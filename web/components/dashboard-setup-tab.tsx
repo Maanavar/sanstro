@@ -15,6 +15,8 @@ import { SettingsRail, type SettingsSectionId } from "./dashboard-settings-rail"
 // UXD-11 / SHD-03 — consolidated onto the shared form primitives; aliased so the
 // 28 existing call sites stay unchanged and the rendered styling is identical.
 import { TextInput as WInput, Select as WSelect } from "./dashboard-ui";
+import { Button, StatusChip } from "./ui";
+import { ArrowUpRight } from "lucide-react";
 
 type Relationship = "self" | "spouse" | "child" | "parent" | "sibling" | "grandparent" | "other";
 
@@ -99,37 +101,18 @@ interface DashboardSetupTabProps {
   onModeChange?: (mode: UserMode) => void;
 }
 
-/* ── Design tokens (warm, matching personal/family/life-areas) ── */
-const W = {
-  ink:      "var(--deepdive-ink, var(--panel-earth-dark))",
-  inkMid:   "var(--deepdive-ink-mid, var(--panel-earth))",
-  muted:    "var(--color-faint)",
-  mutedLt:  "var(--color-faint)",
-  border:   "var(--deepdive-border, var(--panel-tan))",
-  borderLt: "var(--deepdive-border-light, var(--panel-tan-light))",
-  surface:  "var(--deepdive-surface, var(--panel-cream))",
-  surfaceMd:"var(--deepdive-surface-strong, var(--panel-hover))",
-  card:     "var(--chart-cell-default)",
-  terracota:"var(--deepdive-accent, var(--panel-brand))",
-  accent:   "var(--planet-lagna)",
-  sage:     "var(--chart-d9-active)",
-  sageLt:   "rgba(92,118,84,0.15)",
-  sageBorder:"rgba(92,118,84,0.35)",
-  goldBorder:"rgba(184,90,44,0.35)",
-  goldBg:   "rgba(184,90,44,0.07)",
-  dimBorder:"rgba(212,200,174,0.5)",
-} as const;
-
 /* ── Shared primitives ──
-   WInput/WSelect now come from dashboard-ui (see aliased import above). */
+   WInput/WSelect come from dashboard-ui (see aliased import above); StatusChip
+   from the kit. StepBtn/GhostBtn are thin wrappers over the kit Button so the
+   ~30 existing call sites stay unchanged while the chrome themes for free. */
 
 function WField({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: React.ReactNode }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-      <label style={{ fontSize: "0.75rem", fontWeight: 700, color: W.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</label>
+      <label style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</label>
       {children}
-      {hint && <span style={{ fontSize: "0.75rem", color: W.mutedLt, lineHeight: 1.4 }}>{hint}</span>}
-      {error && <span style={{ fontSize: "0.75rem", color: "var(--color-low, var(--planet-saturn))", lineHeight: 1.4 }}>{error}</span>}
+      {hint && <span style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)", lineHeight: 1.4 }}>{hint}</span>}
+      {error && <span style={{ fontSize: "var(--text-sm)", color: "var(--color-low)", lineHeight: 1.4 }}>{error}</span>}
     </div>
   );
 }
@@ -138,39 +121,17 @@ function StepBtn({
   onClick, disabled, busy, children,
 }: { onClick: () => void; disabled?: boolean; busy?: boolean; children: React.ReactNode }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled || busy}
-      style={{
-        padding: "var(--space-2) var(--space-5)", borderRadius: "var(--radius-md)", fontSize: "0.875rem", fontWeight: 700,
-        cursor: disabled || busy ? "not-allowed" : "pointer",
-        opacity: disabled ? 0.45 : 1,
-        border: `1.5px solid ${W.ink}`,
-        background: W.ink, color: W.surfaceMd,
-        fontFamily: "inherit", whiteSpace: "nowrap",
-      }}
-    >
+    <Button variant="primary" onClick={onClick} disabled={disabled || busy} style={{ whiteSpace: "nowrap" }}>
       {children}
-    </button>
+    </Button>
   );
 }
 
 function GhostBtn({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        padding: "var(--space-2) var(--space-4)", borderRadius: "var(--radius-md)", fontSize: "0.875rem", fontWeight: 600,
-        cursor: "pointer",
-        border: `1.5px solid ${W.border}`,
-        background: "transparent", color: W.muted,
-        fontFamily: "inherit",
-      }}
-    >
+    <Button variant="secondary" size="sm" onClick={onClick}>
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -180,27 +141,11 @@ function Avatar({ name }: { name: string }) {
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", justifyContent: "center",
-      width: "32px", height: "32px", borderRadius: "50%", flexShrink: 0,
-      background: W.surfaceMd, border: `1.5px solid ${W.border}`,
-      fontSize: "0.875rem", fontWeight: 700, color: W.muted,
+      width: "32px", height: "32px", borderRadius: "var(--radius-pill)", flexShrink: 0,
+      background: "var(--color-surface-2)", border: "1.5px solid var(--color-border-strong)",
+      fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-faint)",
     }}>
       {letter}
-    </span>
-  );
-}
-
-/* ── Status chip ── */
-function StatusChip({ done, label }: { done: boolean; label: string }) {
-  return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", gap: "var(--space-1)",
-      padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 700,
-      background: done ? W.sageLt : W.goldBg,
-      border: `1px solid ${done ? W.sageBorder : W.goldBorder}`,
-      color: done ? W.sage : W.terracota,
-    }}>
-      {done && <svg viewBox="0 0 24 24" fill="none" width="12" height="12" aria-hidden="true" style={{ flexShrink: 0 }}><path d="M5.5 12.5L10 17L18.5 8.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-      {label}
     </span>
   );
 }
@@ -261,7 +206,7 @@ export function DashboardSetupTab({
   ];
 
   return (
-    <div style={{ fontFamily: "var(--font-body)", color: W.ink, maxWidth: "1180px", margin: "0 auto", width: "100%" }}>
+    <div style={{ fontFamily: "var(--font-body)", color: "var(--color-text-strong)", maxWidth: "1180px", margin: "0 auto", width: "100%" }}>
       <div className="vs-settings-grid">
         <SettingsRail
           active="setup"
@@ -276,11 +221,11 @@ export function DashboardSetupTab({
       <h1 style={{
         margin: "-20px 0 0",
         fontFamily: "var(--font-display)",
-        fontSize: "clamp(1.8rem, 4vw, 2.6rem)",
+        fontSize: "var(--display-md)",
         fontWeight: 500,
         letterSpacing: "-0.03em",
         lineHeight: 1.1,
-        color: W.ink,
+        color: "var(--color-text-strong)",
       }}>
         {lang === "ta"
           ? "மூன்று அமைதியான படிகள். பிறகு நாங்கள் படிக்கிறோம்."
@@ -290,12 +235,12 @@ export function DashboardSetupTab({
       {/* Philosophy primer */}
       <div style={{
         padding: "var(--space-5) var(--space-6)",
-        background: "rgba(184, 90, 44, 0.05)",
-        border: "1px solid rgba(184, 90, 44, 0.18)",
+        background: "var(--color-accent-muted)",
+        border: "1px solid var(--color-accent-muted)",
         borderRadius: "var(--radius-md)",
         marginTop: "-8px",
       }}>
-        <p style={{ margin: 0, fontSize: "0.9rem", lineHeight: 1.7, color: W.inkMid }}>
+        <p style={{ margin: 0, fontSize: "var(--text-base)", lineHeight: 1.7, color: "var(--color-text)" }}>
           {lang === "ta"
             ? "விநாடி உங்கள் ஜாதகத்தை படிக்கிறது — தவிர்க்க முடியாத தீர்ப்பாக அல்ல, ஒரு ஜன்னலாக. ஒவ்வொரு தசையும் ஒரு ஆற்றல் தரம்: சில மாதங்கள் விதைக்க ஏற்றது, சில மாதங்கள் அறுவடைக்கு, சில மாதங்கள் ஆழமாக ஓய்வெடுக்க. இந்த ஜன்னல்களை அறிந்துகொண்டால், சரியான நேரத்தில் சரியான முயற்சி செய்யலாம். நினைவில் கொள்ளுங்கள்: ஜோதிடம் வானிலையை காட்டுகிறது — அதில் நீங்கள் என்ன செய்கிறீர்கள் என்பதை நீங்களே தீர்மானிக்கிறீர்கள்."
             : "Vinaadi reads your birth chart as a window, not a verdict. Each dasha period has a quality — some months are built for planting, some for harvesting, some for deep rest. Knowing these windows lets you bring the right effort at the right time. Remember: astrology reads the weather. What you do in it is always yours to decide."}
@@ -303,18 +248,18 @@ export function DashboardSetupTab({
       </div>
 
       {/* ── Step stepper ── */}
-      <div style={{ display: "flex", alignItems: "flex-start", gap: "0" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 0 }}>
         {steps.map((s, i) => (
           <div key={s.n} style={{ display: "flex", alignItems: "flex-start", flex: i < 2 ? 1 : undefined }}>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-1_5)", minWidth: "80px" }}>
               {/* Circle */}
               <div style={{
-                width: "36px", height: "36px", borderRadius: "50%",
+                width: "36px", height: "36px", borderRadius: "var(--radius-pill)",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: "0.875rem", fontWeight: 700,
-                background: s.done ? W.sage : setupStep === s.n ? W.ink : W.surfaceMd,
-                border: `2px solid ${s.done ? W.sage : setupStep === s.n ? W.ink : W.border}`,
-                color: s.done || setupStep === s.n ? W.surfaceMd : W.muted,
+                fontSize: "var(--text-base)", fontWeight: 700,
+                background: s.done ? "var(--color-high)" : setupStep === s.n ? "var(--color-accent)" : "var(--color-surface-2)",
+                border: `2px solid ${s.done ? "var(--color-high)" : setupStep === s.n ? "var(--color-accent)" : "var(--color-border-strong)"}`,
+                color: s.done || setupStep === s.n ? "var(--color-on-accent)" : "var(--color-faint)",
               }}>
                 {s.done
                   ? <svg viewBox="0 0 24 24" fill="none" width="14" height="14" aria-hidden="true"><path d="M5.5 12.5L10 17L18.5 8.5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -322,12 +267,12 @@ export function DashboardSetupTab({
               </div>
               {/* Label */}
               <span style={{
-                fontSize: "0.75rem", fontWeight: 600, textAlign: "center", lineHeight: 1.3,
-                color: s.done ? W.sage : setupStep === s.n ? W.ink : W.muted,
+                fontSize: "var(--text-sm)", fontWeight: 600, textAlign: "center", lineHeight: 1.3,
+                color: s.done ? "var(--color-high)" : setupStep === s.n ? "var(--color-text-strong)" : "var(--color-faint)",
               }}>
                 {s.label}
               </span>
-              <span style={{ fontSize: "0.625rem", color: W.mutedLt, textAlign: "center", lineHeight: 1.3 }}>
+              <span style={{ fontSize: "var(--text-2xs)", color: "var(--color-faint)", textAlign: "center", lineHeight: 1.3 }}>
                 {s.sub}
               </span>
             </div>
@@ -335,7 +280,7 @@ export function DashboardSetupTab({
             {i < 2 && (
               <div style={{
                 flex: 1, height: "2px", marginTop: "17px", marginLeft: "var(--space-1)", marginRight: "var(--space-1)",
-                background: s.done ? W.sage : W.borderLt,
+                background: s.done ? "var(--color-high)" : "var(--color-border)",
               }} />
             )}
           </div>
@@ -347,8 +292,8 @@ export function DashboardSetupTab({
 
         {/* Step 1 — Birth chart card */}
         <div style={{
-          background: W.surface,
-          border: `1.5px solid ${birthProfileId ? W.sage : setupStep === 1 ? W.terracota : W.borderLt}`,
+          background: "var(--color-surface)",
+          border: `1.5px solid ${birthProfileId ? "var(--color-high)" : setupStep === 1 ? "var(--color-accent)" : "var(--color-border)"}`,
           borderRadius: "var(--radius-md)",
           padding: "var(--space-6)",
           display: "flex", flexDirection: "column", gap: "var(--space-4)",
@@ -360,10 +305,10 @@ export function DashboardSetupTab({
               <StatusChip done={!!birthProfileId} label={birthProfileId
                 ? (lang === "ta" ? "உருவாக்கப்பட்டது" : "Created")
                 : (lang === "ta" ? "தேவை" : "Required")} />
-              <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: W.ink }}>
+              <h3 style={{ margin: 0, fontSize: "var(--text-md)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                 {lang === "ta" ? "உங்கள் பிறந்த விவரங்கள்" : "Your birth details"}
               </h3>
-              <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted }}>
+              <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)" }}>
                 {lang === "ta" ? "பெயர், தேதி, நேரம் மற்றும் இடம்" : "Name, date, time and place"}
               </p>
             </div>
@@ -377,7 +322,7 @@ export function DashboardSetupTab({
             <div style={{
               display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: "var(--space-3) var(--space-6)",
               padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)",
-              background: W.surfaceMd, border: `1px solid ${W.borderLt}`,
+              background: "var(--color-surface-2)", border: `1px solid var(--color-border)`,
             }}>
               {[
                 { lbl: lang === "ta" ? "பெயர்" : "NAME", val: birthForm.displayName },
@@ -391,8 +336,8 @@ export function DashboardSetupTab({
                   : []),
               ].map(({ lbl, val }) => (
                 <div key={lbl}>
-                  <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase", letterSpacing: "0.07em" }}>{lbl}</p>
-                  <p style={{ margin: 0, fontSize: "0.875rem", color: W.inkMid, fontWeight: 500 }}>{val}</p>
+                  <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.07em" }}>{lbl}</p>
+                  <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", fontWeight: 500 }}>{val}</p>
                 </div>
               ))}
             </div>
@@ -532,11 +477,11 @@ export function DashboardSetupTab({
               </details>
 
               {/* Calculate toggle */}
-              <label style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", cursor: "pointer", fontSize: "0.875rem", color: W.muted }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", cursor: "pointer", fontSize: "var(--text-base)", color: "var(--color-faint)" }}>
                 <input type="checkbox" checked={birthForm.calculateNow}
                   onChange={(e) => onBirthFormChange({ ...birthForm, calculateNow: e.target.checked })} />
                 {t("setup_calc_now", lang)}
-                <span style={{ fontSize: "0.625rem", color: W.mutedLt }}>{t("setup_required", lang)}</span>
+                <span style={{ fontSize: "var(--text-2xs)", color: "var(--color-faint)" }}>{t("setup_required", lang)}</span>
               </label>
 
               {/* Submit */}
@@ -555,7 +500,7 @@ export function DashboardSetupTab({
               onClick={() => setShowRectWizard(true)}
               style={{
                 alignSelf: "flex-start", background: "none", border: "none", padding: 0,
-                fontSize: "0.75rem", color: W.terracota, textDecoration: "underline", cursor: "pointer",
+                fontSize: "var(--text-sm)", color: "var(--color-accent)", textDecoration: "underline", cursor: "pointer",
                 fontFamily: "inherit",
               }}
             >
@@ -574,17 +519,17 @@ export function DashboardSetupTab({
         {/* Manage all birth profiles — visible once at least one profile exists */}
         {birthProfileId && (
           <div style={{
-            background: W.surface,
-            border: `1.5px solid ${W.borderLt}`,
+            background: "var(--color-surface)",
+            border: `1.5px solid var(--color-border)`,
             borderRadius: "var(--radius-md)",
             overflow: "hidden",
           }}>
             <div style={{
               padding: "var(--space-4) var(--space-6)",
-              borderBottom: `1px solid ${W.borderLt}`,
+              borderBottom: `1px solid var(--color-border)`,
               display: "flex", justifyContent: "space-between", alignItems: "center",
             }}>
-              <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: W.ink }}>
+              <h3 style={{ margin: 0, fontSize: "var(--text-md)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                 {lang === "ta" ? "பிறந்த விவர பட்டியல்" : "All birth profiles"}
               </h3>
             </div>
@@ -594,8 +539,8 @@ export function DashboardSetupTab({
 
         {/* Step 2 — Family vault card */}
         <div style={{
-          background: W.surface,
-          border: `1.5px solid ${selectedVaultId ? W.sage : setupStep === 2 ? W.terracota : W.borderLt}`,
+          background: "var(--color-surface)",
+          border: `1.5px solid ${selectedVaultId ? "var(--color-high)" : setupStep === 2 ? "var(--color-accent)" : "var(--color-border)"}`,
           borderRadius: "var(--radius-md)",
           padding: "var(--space-6)",
           display: "flex", flexDirection: "column", gap: "var(--space-4)",
@@ -607,11 +552,11 @@ export function DashboardSetupTab({
             <StatusChip done={!!selectedVaultId} label={selectedVaultId
               ? (lang === "ta" ? "கொட்டில் உள்ளது" : "Vault exists")
               : (lang === "ta" ? "தேவை" : "Required")} />
-            <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: W.ink }}>
+            <h3 style={{ margin: 0, fontSize: "var(--text-md)", fontWeight: 700, color: "var(--color-text-strong)" }}>
               {/* Show live-typed name while editing, or saved vault name, or fallback */}
               {vaultForm.name || selectedVault?.name || (lang === "ta" ? "குடும்ப கொட்டில்" : "Family vault")}
             </h3>
-            <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted }}>
+            <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)" }}>
               {familyMembers.length > 0
                 ? `${familyMembers.length} ${t("members_label_pl", lang)} · ${selectedVault?.defaultLanguage ?? vaultForm.defaultLanguage}`
                 : (lang === "ta" ? "உறுப்பினர்களை ஒரே கூரையின் கீழ் சேர்" : "Group members under one roof")}
@@ -621,8 +566,8 @@ export function DashboardSetupTab({
           {/* Real members list from familyAggregate */}
           {familyMembers.length > 0 && (
             <div style={{
-              border: `1.5px solid ${W.borderLt}`, borderRadius: "var(--radius-md)",
-              overflow: "hidden", background: W.card,
+              border: `1.5px solid var(--color-border)`, borderRadius: "var(--radius-md)",
+              overflow: "hidden", background: "var(--color-surface)",
             }}>
               {familyMembers.map((member, idx) => {
                 const isOwner = member.birthProfileId === birthProfileId;
@@ -631,14 +576,14 @@ export function DashboardSetupTab({
                     key={member.familyMemberId}
                     style={{
                       padding: "var(--space-3) var(--space-4)",
-                      borderBottom: idx < familyMembers.length - 1 ? `1px solid ${W.borderLt}` : undefined,
+                      borderBottom: idx < familyMembers.length - 1 ? `1px solid var(--color-border)` : undefined,
                       display: "flex", alignItems: "center", gap: "var(--space-2_5)",
                     }}
                   >
                     <Avatar name={member.displayName} />
                     <div style={{ flex: 1 }}>
-                      <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600, color: W.ink }}>{member.displayName}</p>
-                      <p style={{ margin: 0, fontSize: "0.75rem", color: W.muted }}>
+                      <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)" }}>{member.displayName}</p>
+                      <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
                         {member.label} · {lang === "ta" ? "எடை" : "weight"} {member.memberWeight.toFixed(2)}
                       </p>
                     </div>
@@ -658,9 +603,9 @@ export function DashboardSetupTab({
                 onClick={() => (document.getElementById("form-member") as HTMLFormElement | null)?.scrollIntoView({ behavior: "smooth", block: "center" })}
                 style={{
                   width: "100%", padding: "var(--space-3) var(--space-4)",
-                  border: "none", borderTop: `1px solid ${W.borderLt}`,
+                  border: "none", borderTop: `1px solid var(--color-border)`,
                   background: "transparent",
-                  color: W.terracota, fontSize: "0.875rem", fontWeight: 600,
+                  color: "var(--color-accent)", fontSize: "var(--text-base)", fontWeight: 600,
                   cursor: "pointer", fontFamily: "inherit", textAlign: "center",
                 }}
               >
@@ -698,8 +643,8 @@ export function DashboardSetupTab({
       {/* ── Step 3 — Add family member (separate card, outside vault card) ── */}
       {selectedVaultId && (
         <div style={{
-          background: W.surface,
-          border: `1.5px solid ${(selectedVault?.memberCount ?? 0) > 1 ? W.sage : setupStep === 3 ? W.terracota : W.borderLt}`,
+          background: "var(--color-surface)",
+          border: `1.5px solid ${(selectedVault?.memberCount ?? 0) > 1 ? "var(--color-high)" : setupStep === 3 ? "var(--color-accent)" : "var(--color-border)"}`,
           borderRadius: "var(--radius-md)",
           padding: "var(--space-6)",
           display: "flex", flexDirection: "column", gap: "var(--space-4)",
@@ -709,10 +654,10 @@ export function DashboardSetupTab({
               <StatusChip done={(selectedVault?.memberCount ?? 0) > 1} label={(selectedVault?.memberCount ?? 0) > 1
                 ? (lang === "ta" ? "சேர்க்கப்பட்டது" : "Members added")
                 : (lang === "ta" ? "தேவை" : "Required")} />
-              <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: W.ink }}>
+              <h3 style={{ margin: 0, fontSize: "var(--text-md)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                 {lang === "ta" ? "குடும்ப உறுப்பினரை சேர்" : "Add a family member"}
               </h3>
-              <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted }}>
+              <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)" }}>
                 {lang === "ta"
                   ? "மனைவி, பெற்றோர், குழந்தை — அவர்களின் ஜாதகம் மட்டும் கொடுங்கள். கொட்டில் விவரங்கள் தனியே உள்ளன."
                   : "Add spouse, parent, child, etc. — only their birth details needed here. Vault settings are separate above."}
@@ -726,10 +671,10 @@ export function DashboardSetupTab({
           <div style={{
             display: "flex", alignItems: "flex-start", gap: "var(--space-2)",
             padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)",
-            background: W.sageLt, border: `1px solid ${W.sageBorder}`,
+            background: "var(--color-high-bg)", border: `1px solid var(--color-high-border)`,
           }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={W.sage} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0, marginTop: "1px" }}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            <p style={{ margin: 0, fontSize: "0.8rem", color: W.inkMid, lineHeight: 1.5 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={"var(--color-high)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0, marginTop: "1px" }}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.5 }}>
               {lang === "ta"
                 ? "இவர்களின் விவரங்கள் மறையாக்கம் செய்யப்பட்டு பாதுகாப்பாக சேமிக்கப்படுகின்றன — யாருக்கும் விற்கப்படுவதில்லை. எப்போது வேண்டுமானாலும் அமைப்புகளில் நீக்கலாம் அல்லது திருத்தலாம்."
                 : "Their details are encrypted and kept private — never sold or shared. You can delete or correct any member anytime from Settings."}
@@ -827,7 +772,7 @@ export function DashboardSetupTab({
                   onChange={(e) => onMemberFormChange({ ...memberForm, memberWeight: e.target.value })} />
               </WField>
             </div>
-            <label style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", cursor: "pointer", fontSize: "0.875rem", color: W.muted }}>
+            <label style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", cursor: "pointer", fontSize: "var(--text-base)", color: "var(--color-faint)" }}>
               <input type="checkbox" checked={memberForm.calculateNow}
                 onChange={(e) => onMemberFormChange({ ...memberForm, calculateNow: e.target.checked })} />
               {t("setup_calc_now", lang)}
@@ -843,13 +788,13 @@ export function DashboardSetupTab({
       {setupComplete && (selectedVault?.memberCount ?? 0) > 1 && (
         <div style={{
           padding: "var(--space-4_5) var(--space-6)", borderRadius: "var(--radius-md)",
-          background: W.sageLt, border: `1.5px solid ${W.sageBorder}`,
+          background: "var(--color-high-bg)", border: `1.5px solid var(--color-high-border)`,
           display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-4)",
           flexWrap: "wrap",
         }}>
           <div>
-            <p style={{ margin: "0 0 var(--space-0_5)", fontWeight: 700, color: W.sage, fontSize: "0.875rem" }}>{t("setup_done_title", lang)}</p>
-            <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted }}>
+            <p style={{ margin: "0 0 var(--space-0_5)", fontWeight: 700, color: "var(--color-high)", fontSize: "var(--text-base)" }}>{t("setup_done_title", lang)}</p>
+            <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)" }}>
               {birthForm.displayName} · {selectedVault?.name} · {selectedVault?.memberCount} {t("members_label_pl", lang)}
             </p>
           </div>
@@ -860,16 +805,16 @@ export function DashboardSetupTab({
       {/* ── Experience depth picker (post-setup) ── */}
       {setupComplete && onModeChange && (
         <div style={{
-          background: W.surface, border: `1.5px solid ${W.borderLt}`,
+          background: "var(--color-surface)", border: `1.5px solid var(--color-border)`,
           borderRadius: "var(--radius-md)", padding: "var(--space-6)",
           display: "flex", flexDirection: "column", gap: "var(--space-4)",
         }}>
           <div>
-            <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: W.terracota }}>
+            <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-2xs)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent)" }}>
               {lang === "ta" ? "கட்டுமான ஆழம்" : "Experience depth"}
             </p>
-            <h3 style={{ margin: "0 0 var(--space-1)", color: W.ink }}>{lang === "ta" ? "உங்கள் அனுபவ நிலை தேர்ந்தெடுங்கள்" : "Choose your experience level"}</h3>
-            <p style={{ margin: 0, fontSize: "0.875rem", color: W.muted }}>
+            <h3 style={{ margin: "0 0 var(--space-1)", color: "var(--color-text-strong)" }}>{lang === "ta" ? "உங்கள் அனுபவ நிலை தேர்ந்தெடுங்கள்" : "Choose your experience level"}</h3>
+            <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)" }}>
               {lang === "ta" ? "இதை பின்னர் அமைப்புகளில் மாற்றலாம்." : "You can change this later in Settings."}
             </p>
           </div>
@@ -882,18 +827,18 @@ export function DashboardSetupTab({
                 style={{
                   flex: "1 1 140px", padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)",
                   textAlign: "left", cursor: "pointer", fontFamily: "inherit",
-                  border: `1.5px solid ${userMode === m ? W.ink : W.border}`,
-                  background: userMode === m ? W.ink : "transparent",
-                  color: userMode === m ? W.surfaceMd : W.muted,
+                  border: `1.5px solid ${userMode === m ? "var(--color-accent)" : "var(--color-border-strong)"}`,
+                  background: userMode === m ? "var(--color-accent)" : "transparent",
+                  color: userMode === m ? "var(--color-on-accent)" : "var(--color-faint)",
                   transition: "all 0.12s",
                 }}
               >
-                <p style={{ margin: "0 0 var(--space-0_5)", fontWeight: 700, fontSize: "0.875rem" }}>
+                <p style={{ margin: "0 0 var(--space-0_5)", fontWeight: 700, fontSize: "var(--text-base)" }}>
                   {m === "BEGINNER" ? (lang === "ta" ? "ஆரம்பநிலை" : "Beginner") :
                    m === "BALANCED" ? (lang === "ta" ? "சமநிலை" : "Balanced") :
                    lang === "ta" ? "பாரம்பரியம்" : "Traditional"}
                 </p>
-                <p style={{ margin: 0, fontSize: "0.75rem", opacity: 0.7 }}>
+                <p style={{ margin: 0, fontSize: "var(--text-sm)", opacity: 0.7 }}>
                   {m === "BEGINNER" ? (lang === "ta" ? "எளிய மொழி, ஜோதிட சொற்கள் இல்லை" : "Plain language, no jargon") :
                    m === "BALANCED" ? (lang === "ta" ? "சமநிலை கலவை" : "Balanced mix") :
                    lang === "ta" ? "முழு ஜோதிட சொற்களஞ்சியம்" : "Full Jyothidam vocabulary"}
@@ -907,28 +852,28 @@ export function DashboardSetupTab({
       {/* ── Premium upgrade nudge — shown once birth profile exists ── */}
       {!!birthProfileId && (
         <div style={{
-          background: "linear-gradient(135deg, #1A1208 0%, #2E2118 100%)",
+          background: "linear-gradient(135deg, var(--color-surface-3) 0%, var(--color-surface-2) 100%)",
           borderRadius: "var(--radius-md)", padding: "var(--space-5) var(--space-6)",
           display: "grid", gridTemplateColumns: "1fr auto", gap: "var(--space-4)",
           alignItems: "center",
         }}>
           <div>
-            <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.625rem", fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "#C8944A" }}>
+            <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-2xs)", fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>
               {lang === "ta" ? "Premium" : "Go Premium"}
             </p>
-            <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "1rem", fontWeight: 700, color: "#FFF7ED", lineHeight: 1.3 }}>
+            <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "var(--text-md)", fontWeight: 700, color: "var(--color-text-strong)", lineHeight: 1.3 }}>
               {lang === "ta"
                 ? "வரம்பற்ற வழிகாட்டல். விளம்பரங்கள் இல்லை."
                 : "Unlimited guidance. No ads."}
             </p>
-            <p style={{ margin: 0, fontSize: "0.8125rem", color: "rgba(255,247,237,0.65)", lineHeight: 1.55 }}>
+            <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
               {lang === "ta"
                 ? "வருஷபலன், வர்கங்கள், ஒத்திசைவு — iOS மற்றும் Android ஆப்பில் சந்தா செய்யலாம்."
                 : "Varshaphala, vargas, synastry, and 5 reports/month — subscribe via the iOS or Android app."}
             </p>
             {/* Explicit free/paid boundary — counters the "free = hidden charges
                 later" reflex that keeps money-anxious users defensive (#19/#73). */}
-            <p style={{ margin: "var(--space-2) 0 0", fontSize: "0.75rem", color: "rgba(255,247,237,0.8)", lineHeight: 1.5 }}>
+            <p style={{ margin: "var(--space-2) 0 0", fontSize: "var(--text-sm)", color: "var(--color-text)", lineHeight: 1.5 }}>
               {lang === "ta"
                 ? "உங்கள் தினசரி மதிப்பெண், பஞ்சாங்கம், ஜாதகம், குடும்பக் கண்ணோட்டம் — எப்போதும் இலவசம். மறைமுக கட்டணங்கள் இல்லை; நீங்கள் தேர்ந்தெடுத்தால் மட்டுமே Premium."
                 : "Your daily score, panchangam, chart and family view stay free forever. No hidden charges — Premium is only if you choose it."}
@@ -938,24 +883,24 @@ export function DashboardSetupTab({
             <a
               href="https://apps.apple.com/app/vinaadi/id0000000000"
               style={{
-                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "var(--space-1)",
                 padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)",
-                background: "#FFF7ED", color: "#2E2118", textDecoration: "none",
-                fontSize: "0.8125rem", fontWeight: 700, whiteSpace: "nowrap",
+                background: "var(--color-text-strong)", color: "var(--color-surface)", textDecoration: "none",
+                fontSize: "var(--text-base)", fontWeight: 700, whiteSpace: "nowrap",
               }}
             >
-              App Store ↗
+              App Store <ArrowUpRight size={14} strokeWidth={1.5} aria-hidden="true" />
             </a>
             <a
               href="https://play.google.com/store/apps/details?id=ai.vinaadi.app"
               style={{
-                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "var(--space-1)",
                 padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)",
-                border: "1px solid rgba(255,247,237,0.28)", color: "#FFF7ED", textDecoration: "none",
-                fontSize: "0.8125rem", fontWeight: 700, whiteSpace: "nowrap",
+                border: "1px solid var(--color-border-strong)", color: "var(--color-text-strong)", textDecoration: "none",
+                fontSize: "var(--text-base)", fontWeight: 700, whiteSpace: "nowrap",
               }}
             >
-              Google Play ↗
+              Google Play <ArrowUpRight size={14} strokeWidth={1.5} aria-hidden="true" />
             </a>
           </div>
         </div>
@@ -963,13 +908,13 @@ export function DashboardSetupTab({
 
       {/* ── Disclaimer ── */}
       <div style={{
-        borderRadius: "var(--radius-md)", border: `1px solid ${W.borderLt}`,
-        background: W.surfaceMd, padding: "var(--space-4) var(--space-5)",
+        borderRadius: "var(--radius-md)", border: `1px solid var(--color-border)`,
+        background: "var(--color-surface-2)", padding: "var(--space-4) var(--space-5)",
         display: "flex", flexDirection: "column", gap: "var(--space-1_5)",
       }}>
-        <p style={{ margin: 0, fontSize: "0.75rem", color: W.mutedLt, lineHeight: 1.6 }}>{t("disclaimer_astro", lang)}</p>
-        <p style={{ margin: 0, fontSize: "0.75rem", color: W.mutedLt, lineHeight: 1.5 }}>{t("disclaimer_no_doom", lang)}</p>
-        <p style={{ margin: 0, fontSize: "0.75rem", color: W.mutedLt, lineHeight: 1.5 }}>{t("disclaimer_data", lang)}</p>
+        <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)", lineHeight: 1.6 }}>{t("disclaimer_astro", lang)}</p>
+        <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)", lineHeight: 1.5 }}>{t("disclaimer_no_doom", lang)}</p>
+        <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)", lineHeight: 1.5 }}>{t("disclaimer_data", lang)}</p>
       </div>
 
       {showRectWizard && birthProfileId && (

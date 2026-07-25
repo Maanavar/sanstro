@@ -29,7 +29,7 @@
  * - All three tones ride one horizontal carousel — favourable, then amber
  *   cautions, then the neutral "business as usual" rows — rather than hiding
  *   the neutral majority behind a toggle. When the row is wider than the
- *   viewport, ‹ › paging arrows appear in the header; on touch it just swipes.
+ *   viewport, prev/next paging arrows appear in the header; on touch it just swipes.
  *   Neutral is a legible cool-slate tile, not a greyed-out one, so it reads as
  *   "steady" rather than "disabled".
  * - On a Chandrashtama day the engine returns no favourable rows at all. The
@@ -41,9 +41,14 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Home, Rocket, Heart, Baby, Plane, Coins, Briefcase, HeartPulse, Car, GraduationCap, Sparkle,
+  ArrowRight, ChevronLeft, ChevronRight, type LucideIcon,
+} from "lucide-react";
 
 import { getActivityTimingBatch } from "@vinaadi/shared/api/activityTiming";
 import { NovaStarRow } from "./dashboard-ui-nova";
+import { GlanceHeader } from "./dashboard-today-glance-nova";
 import { formatClockLabel } from "@/lib/format";
 import type { Lang } from "@/lib/i18n";
 import { minutesOfDayInZone } from "@/lib/tz";
@@ -127,22 +132,22 @@ function dominantReason(verdicts: DailyActivityVerdict[], lang: Lang): string | 
 
 /** Glance glyph per activity — matched on the activity id + English label so
  *  backend id renames degrade to the generic star, never to a wrong icon. */
-const ACTIVITY_ICONS: Array<[RegExp, string]> = [
-  [/propert|land|house|sign/i, "⌂"],
-  [/business|venture|launch/i, "✦"],
-  [/marri|wedding|engag/i, "♥"],
-  [/child|baby/i, "❀"],
-  [/travel|journey|abroad/i, "➤"],
-  [/money|invest|finan|gold/i, "◈"],
-  [/job|career|work/i, "▣"],
-  [/health|surg|medic/i, "✚"],
-  [/vehicle|car/i, "⛟"],
-  [/educat|study|exam|learn/i, "✎"],
+const ACTIVITY_ICONS: Array<[RegExp, LucideIcon]> = [
+  [/propert|land|house|sign/i, Home],
+  [/business|venture|launch/i, Rocket],
+  [/marri|wedding|engag/i, Heart],
+  [/child|baby/i, Baby],
+  [/travel|journey|abroad/i, Plane],
+  [/money|invest|finan|gold/i, Coins],
+  [/job|career|work/i, Briefcase],
+  [/health|surg|medic/i, HeartPulse],
+  [/vehicle|car/i, Car],
+  [/educat|study|exam|learn/i, GraduationCap],
 ];
 
-function activityIcon(activity: string, labelEn: string): string {
+function activityIcon(activity: string, labelEn: string): LucideIcon {
   const haystack = `${activity} ${labelEn}`;
-  return ACTIVITY_ICONS.find(([pattern]) => pattern.test(haystack))?.[1] ?? "✧";
+  return ACTIVITY_ICONS.find(([pattern]) => pattern.test(haystack))?.[1] ?? Sparkle;
 }
 
 /** Plain-language "what does this card mean" per activity, shown in the card's
@@ -172,7 +177,7 @@ function activityExplanation(activity: string, lang: Lang): string | null {
 type ActivityTone = "good" | "caution" | "neutral";
 
 /** Per-tone visuals for `ActivityCardNova`. Stars re-encode the three-way
- *  alignment honestly (SUPPORTS → 4, NEUTRAL → 3, CAUTION → 2) — the middle
+ *  alignment honestly (SUPPORTS=4, NEUTRAL=3, CAUTION=2) — the middle
  *  value for NEUTRAL, not a fourth invented precision level. Neutral gets its
  *  own cool-slate token (--color-neutral, added for this), giving the board a
  *  genuine third semantic hue — green / amber / slate — instead of dropping to
@@ -247,21 +252,23 @@ function ActivityCardNova({
         scrollSnapAlign: "start",
         background: `linear-gradient(160deg, ${bg}, transparent 75%)`,
         border: `1px solid ${border}`,
-        borderRadius: "14px",
-        padding: "14px 14px 12px",
+        borderRadius: "var(--radius-md)",
+        padding: "var(--space-3_5) var(--space-3_5) var(--space-3)",
         display: "flex",
         flexDirection: "column",
-        gap: "7px",
+        gap: "var(--space-1_5)",
       }}
     >
-      <div aria-hidden="true" style={{ width: "34px", height: "34px", borderRadius: "50%", background: bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "15px", color }}>
-        {activityIcon(verdict.activity, verdict.label.en)}
+      {(() => { const Icon = activityIcon(verdict.activity, verdict.label.en); return (
+      <div aria-hidden="true" style={{ width: "34px", height: "34px", borderRadius: "var(--radius-pill)", background: bg, display: "flex", alignItems: "center", justifyContent: "center", color }}>
+        <Icon size={18} strokeWidth={1.75} />
       </div>
-      <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--color-text-strong)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+      ); })()}
+      <div style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
         {label}
       </div>
       <NovaStarRow value={stars} size={12.5} color={color} />
-      <div style={{ fontSize: "11px", fontWeight: 600, color, lineHeight: 1.4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+      <div style={{ fontSize: "var(--text-xs)", fontWeight: 600, color, lineHeight: 1.4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
         {lang === "ta" ? statusTa : statusEn}
         {showReason ? ` · ${reason}` : ""}
       </div>
@@ -275,7 +282,7 @@ function ActivityCardNova({
             style={{
               alignSelf: "flex-start",
               font: "inherit",
-              fontSize: "11.5px",
+              fontSize: "var(--text-xs)",
               fontWeight: 600,
               color: "var(--color-accent-secondary)",
               background: "none",
@@ -283,12 +290,16 @@ function ActivityCardNova({
               padding: 0,
               cursor: "pointer",
               whiteSpace: "nowrap",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "var(--space-1)",
             }}
           >
-            {betterLabel} →
+            {betterLabel}
+            <ArrowRight size={13} strokeWidth={2} aria-hidden="true" />
           </button>
         ) : (
-          <span style={{ fontSize: "11.5px", color: "var(--color-faint)", whiteSpace: "nowrap" }}>
+          <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", whiteSpace: "nowrap" }}>
             {betterLabel}
           </span>
         ))}
@@ -323,7 +334,7 @@ export function DashboardTodayActivityBoardNova({
   const [timing, setTiming] = useState<Record<string, ActivityTimingData | null>>({});
 
   // Horizontal carousel: every activity — favourable, caution and neutral —
-  // rides one scrolling row now, so ‹ › paging arrows replace the old
+  // rides one scrolling row now, so prev/next paging arrows replace the old
   // "N more" toggle. They surface only when the row actually overflows, and
   // each disables at its end of the track.
   const scrollerRef = useRef<HTMLUListElement | null>(null);
@@ -419,85 +430,73 @@ export function DashboardTodayActivityBoardNova({
         background: "var(--color-surface)",
         border: "1px solid var(--color-border-strong)",
         borderRadius: "var(--radius-lg)",
-        padding: "16px 18px",
+        padding: "var(--space-4) var(--space-4_5)",
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "baseline",
-          gap: "10px",
-          flexWrap: "wrap",
-          marginBottom: "12px",
-        }}
-      >
-        <h3
-          style={{
-            margin: 0,
-            fontSize: "15px",
-            fontWeight: 600,
-            color: "var(--color-text-strong)",
-          }}
-        >
-          {lang === "ta" ? "இன்று நல்ல நாளா…?" : "Is today okay for…?"}
-        </h3>
-        {headerNote && (
-          <span style={{ fontSize: "12px", color: "var(--color-muted)", minWidth: 0 }}>
-            {"· "}
-            {headerNote}
-          </span>
-        )}
-        <div style={{ flex: 1 }} />
-        {scroll.overflow && (
-          <div style={{ display: "flex", gap: "6px", alignSelf: "center" }}>
-            {([-1, 1] as const).map((dir) => {
-              const disabled = dir === -1 ? scroll.atStart : scroll.atEnd;
-              return (
-                <button
-                  key={dir}
-                  type="button"
-                  onClick={() => pageScroll(dir)}
-                  disabled={disabled}
-                  aria-label={
-                    dir === -1
-                      ? lang === "ta" ? "முந்தையவை" : "Scroll back"
-                      : lang === "ta" ? "அடுத்தவை" : "Scroll forward"
-                  }
-                  style={{
-                    width: "30px",
-                    height: "30px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    borderRadius: "50%",
-                    border: "1px solid var(--color-border-strong)",
-                    background: "color-mix(in srgb, var(--color-text-strong) 4%, transparent)",
-                    color: "var(--color-text)",
-                    fontSize: "15px",
-                    lineHeight: 1,
-                    cursor: disabled ? "default" : "pointer",
-                    opacity: disabled ? 0.35 : 1,
-                    transition: "opacity 120ms ease",
-                    fontFamily: "inherit",
-                  }}
-                >
-                  {dir === -1 ? "‹" : "›"}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      <GlanceHeader
+        lang={lang}
+        title="Is today okay for…?"
+        titleTa="இன்று நல்ல நாளா…?"
+        right={
+          <>
+            {headerNote && (
+              <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", minWidth: 0 }}>
+                {"· "}
+                {headerNote}
+              </span>
+            )}
+            <div style={{ flex: 1 }} />
+            {scroll.overflow && (
+              <div style={{ display: "flex", gap: "var(--space-1_5)", alignSelf: "center" }}>
+                {([-1, 1] as const).map((dir) => {
+                  const disabled = dir === -1 ? scroll.atStart : scroll.atEnd;
+                  return (
+                    <button
+                      key={dir}
+                      type="button"
+                      onClick={() => pageScroll(dir)}
+                      disabled={disabled}
+                      aria-label={
+                        dir === -1
+                          ? lang === "ta" ? "முந்தையவை" : "Scroll back"
+                          : lang === "ta" ? "அடுத்தவை" : "Scroll forward"
+                      }
+                      style={{
+                        width: "30px",
+                        height: "30px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderRadius: "var(--radius-pill)",
+                        border: "1px solid var(--color-border-strong)",
+                        background: "color-mix(in srgb, var(--color-text-strong) 4%, transparent)",
+                        color: "var(--color-text)",
+                        lineHeight: 1,
+                        cursor: disabled ? "default" : "pointer",
+                        opacity: disabled ? 0.35 : 1,
+                        transition: "opacity 120ms ease",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      {dir === -1 ? <ChevronLeft size={16} strokeWidth={2} aria-hidden="true" /> : <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        }
+      />
 
       {/* Purpose line — this board answers a *different* question from the Life
           Areas tiles, and without saying so the two read as contradictory
           ("Medical procedures · Neutral" here vs "Health 44 · take care" there).
           This one is muhurtam: the auspicious day to *begin* something. Life
           Areas is the standing outlook of a domain. Both true, different axes. */}
-      <p style={{ margin: "-4px 0 12px", fontSize: "12px", lineHeight: 1.5, color: "var(--color-faint)" }}>
+      <p style={{ margin: "-4px 0 12px", fontSize: "var(--text-sm)", lineHeight: 1.5, color: "var(--color-faint)" }}>
         {lang === "ta"
-          ? "ஒரு செயலை எப்போது தொடங்குவது நல்லது என்பதற்கான நேர வழிகாட்டி — வாழ்க்கைத் துறை மதிப்பெண் அல்ல."
-          : "The auspicious day to begin something — a timing guide, not your life-area outlook."}
+          ? "நேர வழிகாட்டி — வாழ்க்கைத் துறை மதிப்பெண் அல்ல."
+          : "A timing guide, not your life-area outlook."}
       </p>
 
       {/* An empty green column on a Chandrashtama day is a decision, not an
@@ -506,7 +505,7 @@ export function DashboardTodayActivityBoardNova({
         <p
           style={{
             margin: "0 0 12px",
-            fontSize: "12.5px",
+            fontSize: "var(--text-sm)",
             lineHeight: 1.5,
             color: "var(--color-muted)",
           }}
@@ -519,7 +518,7 @@ export function DashboardTodayActivityBoardNova({
 
       {/* One horizontal carousel — favourable, then cautions, then the neutral
           "business as usual" rows shown inline (no longer toggled away), then
-          the dashed way out for the activity the rules don't cover. The ‹ ›
+          the dashed way out for the activity the rules don't cover. The prev/next
           arrows in the header page it; on touch it swipes. */}
       <ul
         ref={scrollerRef}
@@ -528,9 +527,9 @@ export function DashboardTodayActivityBoardNova({
         style={{
           listStyle: "none",
           margin: 0,
-          padding: "2px 1px 4px",
+          padding: "var(--space-0_5) var(--space-0_5) var(--space-1)",
           display: "flex",
-          gap: "12px",
+          gap: "var(--space-3)",
           overflowX: "auto",
           scrollSnapType: "x proximity",
         }}
@@ -578,19 +577,19 @@ export function DashboardTodayActivityBoardNova({
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              gap: "8px",
-              fontSize: "11px",
+              gap: "var(--space-2)",
+              fontSize: "var(--text-xs)",
               lineHeight: 1.35,
               color: "var(--color-accent-secondary)",
               background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)",
               border: "1px dashed var(--color-accent-secondary-muted, var(--color-accent-secondary))",
-              borderRadius: "14px",
-              padding: "12px",
+              borderRadius: "var(--radius-md)",
+              padding: "var(--space-3)",
               cursor: "pointer",
               fontFamily: "inherit",
             }}
           >
-            <span aria-hidden="true" style={{ width: "26px", height: "26px", borderRadius: "8px", background: "color-mix(in srgb, var(--color-accent-secondary) 14%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px" }}>+</span>
+            <span aria-hidden="true" style={{ width: "26px", height: "26px", borderRadius: "var(--radius-sm)", background: "color-mix(in srgb, var(--color-accent-secondary) 14%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-base)" }}>+</span>
             {lang === "ta" ? "உங்கள் கேள்வி" : "Ask your own"}
           </button>
         </li>

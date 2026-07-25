@@ -70,7 +70,7 @@ export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack, activeLife
             style={{
               position: "absolute", top: "-6px", right: "-6px", minWidth: "18px", height: "18px",
               padding: "0 5px", borderRadius: "999px", background: chipsRemaining! > 0 ? "var(--chart-d9-active)" : "var(--planet-saturn)",
-              color: "#fff", fontSize: "0.6875rem", fontWeight: 800, lineHeight: "18px", textAlign: "center",
+              color: "var(--color-on-accent, #fff)", fontSize: "0.6875rem", fontWeight: 800, lineHeight: "18px", textAlign: "center",
               boxShadow: "0 2px 6px rgba(0,0,0,0.25)",
             }}
           >

@@ -1,5 +1,7 @@
 "use client";
 
+import { ArrowLeft } from "lucide-react";
+
 import { useState } from "react";
 
 import type { Lang } from "@/lib/i18n";
@@ -21,7 +23,8 @@ import {
   yogaReadingStatus,
   yogaReadingStatusLabel,
 } from "./dashboard-yoga-dosham-panel";
-import { NovaAskEntryChip, NovaAttributeBand, NovaDetailBreadcrumb, NovaDetailHero, NovaKicker, novaDetailCardStyle } from "./dashboard-explore-detail-nova";
+import { NovaAskEntryChip, NovaAttributeBand, NovaDetailBreadcrumb, NovaDetailHero, novaDetailCardStyle } from "./dashboard-explore-detail-nova";
+import { Card, Kicker } from "./ui";
 
 /**
  * Nova personalised Yogam profile screen — mirrors
@@ -68,14 +71,14 @@ function YogamFullGuide({ engineName, lang }: { engineName: string; lang: Lang }
   const text = (v: BiText) => (lang === "ta" ? v.ta : v.en);
 
   return (
-    <div style={cardStyle}>
-      <NovaKicker>{lang === "ta" ? "முழுமையான யோக வழிகாட்டி" : "Full yogam guide"}</NovaKicker>
-      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+    <Card>
+      <Kicker>{lang === "ta" ? "முழுமையான யோக வழிகாட்டி" : "Full yogam guide"}</Kicker>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
         {content.sections.map((section, i) => (
           <CollapsibleSection key={i} title={text(section.heading)} defaultOpen={i === 0}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
               {section.body.map((p, j) => (
-                <p key={j} style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "13px", lineHeight: 1.7, color: "var(--color-text)" }}>
+                <p key={j} style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "var(--text-base)", lineHeight: 1.7, color: "var(--color-text)" }}>
                   {text(p)}
                 </p>
               ))}
@@ -85,13 +88,13 @@ function YogamFullGuide({ engineName, lang }: { engineName: string; lang: Lang }
 
         {content.bringCards && content.bringCards.length > 0 && (
           <CollapsibleSection title={lang === "ta" ? "எதை கொண்டுவரலாம்" : "What it can bring"}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
               {content.bringCards.map((cat, i) => (
-                <div key={i} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                  <div style={{ fontSize: "12.5px", fontWeight: 700, color: "var(--color-accent-strong)" }}>{text(cat.heading)}</div>
-                  <ul style={{ margin: 0, padding: "0 0 0 18px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                <div key={i} style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+                  <div style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-accent-strong)" }}>{text(cat.heading)}</div>
+                  <ul style={{ margin: 0, paddingLeft: "var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                     {cat.items.map((item, j) => (
-                      <li key={j} style={{ fontSize: "12px", color: "var(--color-muted)", lineHeight: 1.5 }}>{text(item)}</li>
+                      <li key={j} style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5 }}>{text(item)}</li>
                     ))}
                   </ul>
                 </div>
@@ -102,18 +105,18 @@ function YogamFullGuide({ engineName, lang }: { engineName: string; lang: Lang }
 
         {content.faq && content.faq.length > 0 && (
           <CollapsibleSection title={lang === "ta" ? "அடிக்கடி கேட்கப்படும் கேள்விகள்" : "Frequently asked questions"}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
               {content.faq.map((item, i) => (
                 <div key={i} style={{ borderTop: i > 0 ? "1px solid var(--color-border)" : "none", paddingTop: i > 0 ? "12px" : 0 }}>
-                  <p style={{ margin: "0 0 4px", fontSize: "13px", fontWeight: 700, color: "var(--color-text-strong)" }}>{text(item.q)}</p>
-                  <p style={{ margin: 0, fontSize: "12.5px", color: "var(--color-muted)", lineHeight: 1.6 }}>{text(item.a)}</p>
+                  <p style={{ margin: "0 0 4px", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>{text(item.q)}</p>
+                  <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.6 }}>{text(item.a)}</p>
                 </div>
               ))}
             </div>
           </CollapsibleSection>
         )}
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -136,8 +139,6 @@ export function yogaStatusColor(y: ChartYogaInsight): string {
   return "var(--color-muted)";
 }
 
-const cardStyle = novaDetailCardStyle;
-
 /**
  * List-first index for the Yogam library — mirrors
  * `DashboardExploreDoshamListNova`. Every yoga here is already about the
@@ -158,14 +159,14 @@ export function DashboardExploreYogamListNova({
   onBack: () => void;
 }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "18px", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
       <NovaDetailBreadcrumb
         onBack={onBack}
         backLabel={lang === "ta" ? "ஆராய்வு" : "Explore"}
         hubLabel={lang === "ta" ? "யோகம்" : "Yogam"}
         currentLabel={lang === "ta" ? "அனைத்து யோகங்களும்" : "All yogas"}
       />
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
         {yogas.map((y, i) => {
           const color = yogaStatusColor(y);
           return (
@@ -174,8 +175,8 @@ export function DashboardExploreYogamListNova({
               type="button"
               onClick={() => onSelect(i)}
               style={{
-                ...cardStyle,
-                gap: "6px",
+                ...novaDetailCardStyle,
+                gap: "var(--space-2)",
                 cursor: "pointer",
                 textAlign: "left",
                 fontFamily: "inherit",
@@ -185,16 +186,16 @@ export function DashboardExploreYogamListNova({
                 justifyContent: "space-between",
               }}
             >
-              <span style={{ fontSize: "14px", fontWeight: 600, color: y.isPresent ? "var(--color-text-strong)" : "var(--color-faint)" }}>
+              <span style={{ fontSize: "var(--text-base)", fontWeight: 600, color: y.isPresent ? "var(--color-text-strong)" : "var(--color-faint)" }}>
                 {displayName(y.name, lang)}
               </span>
-              <span style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+              <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexShrink: 0 }}>
                 {y.isPresent && (
-                  <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "999px", padding: "2px 10px" }}>
+                  <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
                     {strengthBand(y.strength, true, lang)}
                   </span>
                 )}
-                <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "999px", padding: "2px 10px" }}>
+                <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
                   {yogaStatusLabel(y, lang)}
                 </span>
               </span>
@@ -230,11 +231,11 @@ export function DashboardExploreYogamNova({
 
   if (yogas.length === 0) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "14px", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
-        <button type="button" onClick={onBack} style={{ alignSelf: "flex-start", fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-          {lang === "ta" ? "← ஆராய்வுக்குத் திரும்பு" : "← Back to Explore"}
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
+        <button type="button" onClick={onBack} style={{ alignSelf: "flex-start", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+          <><ArrowLeft size={14} strokeWidth={1.5} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "var(--space-1)" }} />{lang === "ta" ? "ஆராய்வுக்குத் திரும்பு" : "Back to Explore"}</>
         </button>
-        <p style={{ margin: 0, fontSize: "12.5px", color: "var(--color-faint)" }}>
+        <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
           {lang === "ta" ? "யோக தரவு இல்லை." : "No yogam data available."}
         </p>
       </div>
@@ -271,7 +272,7 @@ export function DashboardExploreYogamNova({
     .filter((row): row is { mc: MemberChart; entry: ChartYogaInsight } => row.entry !== null);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "18px", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
 
       {/* ===== Breadcrumb + yoga nav ===== */}
       <NovaDetailBreadcrumb
@@ -293,7 +294,7 @@ export function DashboardExploreYogamNova({
       <NovaDetailHero
         kicker={lang === "ta" ? "யோக நூலகம்" : "Yogam library"}
         badge={
-          <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", fontSize: "11.5px", fontWeight: 700, color: ownStatusColor, background: `${ownStatusColor}18`, border: `1px solid ${ownStatusColor}55`, borderRadius: "999px", padding: "5px 12px" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-xs)", fontWeight: 700, color: ownStatusColor, background: `${ownStatusColor}18`, border: `1px solid ${ownStatusColor}55`, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
             {readingStatus === "PRESENT"
               ? `${lang === "ta" ? "உங்கள் ஜாதகத்தில் உள்ளது" : "Present in your chart"} · ${strengthBand(yoga.strength, true, lang)}`
               : readingStatus === "CANCELLED"
@@ -327,21 +328,21 @@ export function DashboardExploreYogamNova({
       <div className="nova-grid-detail" style={{ alignItems: "start" }}>
 
         {/* LEFT */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <div style={cardStyle}>
-            <NovaKicker>{lang === "ta" ? "இது உண்மையில் என்ன பொருள்" : "What it actually means"}</NovaKicker>
-            <p style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "13.5px", lineHeight: 1.7, color: "var(--color-text)" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+          <Card>
+            <Kicker>{lang === "ta" ? "இது உண்மையில் என்ன பொருள்" : "What it actually means"}</Kicker>
+            <p style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "var(--text-base)", lineHeight: 1.7, color: "var(--color-text)" }}>
               {astroText(whatText)}
             </p>
-          </div>
+          </Card>
 
-          <div style={cardStyle}>
-            <NovaKicker>{lang === "ta" ? "ஏன் உங்கள் ஜாதகத்தில் உள்ளது" : "Why your chart has this"}</NovaKicker>
-            <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.6, color: "var(--color-text)" }}>{astroText(whyText)}</p>
+          <Card>
+            <Kicker>{lang === "ta" ? "ஏன் உங்கள் ஜாதகத்தில் உள்ளது" : "Why your chart has this"}</Kicker>
+            <p style={{ margin: 0, fontSize: "var(--text-base)", lineHeight: 1.6, color: "var(--color-text)" }}>{astroText(whyText)}</p>
             {yoga.isPresent && yoga.conditionsMet.length > 0 && (
-              <ul style={{ margin: 0, padding: "0 0 0 18px", display: "flex", flexDirection: "column", gap: "6px" }}>
+              <ul style={{ margin: 0, paddingLeft: "var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                 {yoga.conditionsMet.map((c, i) => (
-                  <li key={i} style={{ fontSize: "12px", color: "var(--color-muted)", lineHeight: 1.5 }}>{markerLabel(c, lang)}</li>
+                  <li key={i} style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5 }}>{markerLabel(c, lang)}</li>
                 ))}
               </ul>
             )}
@@ -350,92 +351,92 @@ export function DashboardExploreYogamNova({
                 <p style={{ margin: "0 0 6px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                   {lang === "ta" ? "நிவர்த்தி காரணங்கள்" : "Cancellation factors"}
                 </p>
-                <ul style={{ margin: 0, padding: "0 0 0 18px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                <ul style={{ margin: 0, paddingLeft: "var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                   {yoga.cancellationFactors.map((c, i) => (
-                    <li key={i} style={{ fontSize: "12px", color: "var(--color-muted)", lineHeight: 1.5 }}>{markerLabel(c, lang)}</li>
+                    <li key={i} style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5 }}>{markerLabel(c, lang)}</li>
                   ))}
                 </ul>
               </div>
             )}
-          </div>
+          </Card>
 
           {yoga.isPresent && powerText && (
-            <div style={{ ...cardStyle, background: "linear-gradient(120deg, var(--color-accent-muted), transparent)", border: "1px solid var(--color-border-strong)" }}>
-              <NovaKicker color="var(--color-accent-strong)">{lang === "ta" ? "உங்கள் ஜாதகத்தில்" : "In your chart"}</NovaKicker>
-              <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.6, color: "var(--color-text)" }}>{astroText(powerText)}</p>
-              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-                <span style={{ fontSize: "11.5px", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "5px 12px" }}>
+            <Card variant="accent" style={{ background: "linear-gradient(120deg, var(--color-accent-muted), transparent)" }}>
+              <Kicker color="var(--color-accent-strong)">{lang === "ta" ? "உங்கள் ஜாதகத்தில்" : "In your chart"}</Kicker>
+              <p style={{ margin: 0, fontSize: "var(--text-base)", lineHeight: 1.6, color: "var(--color-text)" }}>{astroText(powerText)}</p>
+              <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", alignItems: "center" }}>
+                <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
                   {lang === "ta" ? "பலம்" : "Strength"} · {strengthBand(yoga.strength, true, lang)}
                 </span>
                 {yoga.dashaActivated && (
-                  <span style={{ fontSize: "11.5px", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "5px 12px" }}>
+                  <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
                     {lang === "ta" ? "தசையால் செயல்படுத்தப்பட்டது" : "Activated by current Dasha"}
                   </span>
                 )}
                 <button
                   type="button"
                   onClick={onNavigateToday}
-                  style={{ marginLeft: "auto", fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}
+                  style={{ marginLeft: "auto", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}
                 >
-                  {lang === "ta" ? "உங்கள் ஜாதகத்தில் காண்க →" : "See it in your chart →"}
+                  {lang === "ta" ? "உங்கள் ஜாதகத்தில் காண்க" : "See it in your chart"}
                 </button>
               </div>
-            </div>
+            </Card>
           )}
 
           <YogamFullGuide engineName={yoga.name} lang={lang} />
         </div>
 
         {/* RIGHT rail */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
           {remedy && (
-            <div style={cardStyle}>
-              <NovaKicker>{lang === "ta" ? "யோகத்தை பலப்படுத்துவது எப்படி" : "How to strengthen this"}</NovaKicker>
-              <p style={{ margin: 0, fontSize: "12.5px", lineHeight: 1.6, color: "var(--color-muted)" }}>
+            <Card>
+              <Kicker>{lang === "ta" ? "யோகத்தை பலப்படுத்துவது எப்படி" : "How to strengthen this"}</Kicker>
+              <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.6, color: "var(--color-muted)" }}>
                 {astroText(lang === "ta" ? remedy.ta : remedy.en)}
               </p>
-            </div>
+            </Card>
           )}
 
-          <div style={cardStyle}>
-            <NovaKicker color="var(--color-accent-secondary)">{lang === "ta" ? "உங்கள் குடும்பத்தில்" : "Check your family"}</NovaKicker>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12.5px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-                <span style={{ width: "26px", height: "26px", borderRadius: "50%", background: "var(--color-accent)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: 700, flexShrink: 0 }}>
+          <Card>
+            <Kicker color="var(--color-accent-secondary)">{lang === "ta" ? "உங்கள் குடும்பத்தில்" : "Check your family"}</Kicker>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "var(--text-sm)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+                <span style={{ width: "26px", height: "26px", borderRadius: "var(--radius-pill)", background: "var(--color-accent)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: 700, flexShrink: 0 }}>
                   {lang === "ta" ? "நீ" : "Y"}
                 </span>
                 <span>{lang === "ta" ? "நீங்கள்" : "You"}</span>
               </div>
-              <span style={{ fontSize: "11px", fontWeight: 700, color: ownStatusColor, background: `${ownStatusColor}18`, border: `1px solid ${ownStatusColor}55`, borderRadius: "5px", padding: "2px 8px" }}>
+              <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: ownStatusColor, background: `${ownStatusColor}18`, border: `1px solid ${ownStatusColor}55`, borderRadius: "var(--radius-sm)", padding: "var(--space-1) var(--space-2)" }}>
                 {ownStatusLabel}
               </span>
             </div>
             {familyRows.map(({ mc, entry }) => {
               const color = yogaStatusColor(entry);
               return (
-                <div key={mc.memberId} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12.5px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-                    <span style={{ width: "26px", height: "26px", borderRadius: "50%", background: "var(--color-accent-secondary)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: 700, flexShrink: 0 }}>
+                <div key={mc.memberId} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "var(--text-sm)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+                    <span style={{ width: "26px", height: "26px", borderRadius: "var(--radius-pill)", background: "var(--color-accent-secondary)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: 700, flexShrink: 0 }}>
                       {mc.displayName.charAt(0).toUpperCase()}
                     </span>
                     <span>{mc.displayName}</span>
                   </div>
-                  <span style={{ fontSize: "11px", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "5px", padding: "2px 8px" }}>
+                  <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "var(--radius-sm)", padding: "var(--space-1) var(--space-2)" }}>
                     {yogaStatusLabel(entry, lang)}
                   </span>
                 </div>
               );
             })}
             {familyRows.length === 0 && (
-              <p style={{ margin: 0, fontSize: "11.5px", color: "var(--color-faint)", lineHeight: 1.5 }}>
+              <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.5 }}>
                 {lang === "ta" ? "வேறு குடும்ப ஜாதக தரவு இல்லை." : "No other family chart data available."}
               </p>
             )}
-          </div>
+          </Card>
 
           <NovaAskEntryChip
             label={lang === "ta" ? `${displayName(yoga.name, lang)} பற்றி கேளுங்கள்…` : `Ask about ${displayName(yoga.name, "en")}…`}
-            ctaLabel={lang === "ta" ? "கேளுங்கள் ✦" : "Ask ✦"}
+            ctaLabel={lang === "ta" ? "கேளுங்கள்" : "Ask"}
             onOpenAskVinaadi={onOpenAskVinaadi}
           />
         </div>

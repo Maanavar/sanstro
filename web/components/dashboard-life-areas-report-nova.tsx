@@ -14,9 +14,8 @@ import { NovaYogaDoshamPanel } from "./dashboard-life-areas-yogas-doshams-nova";
  * read end to end) — unlike the other 3 deferred panels, this one turned out
  * to already be ~95% Nova-safe: Section/Row/StrengthBar/NatureBadge/
  * FocusBadge all read only core --color-*, --radius-*, --space-* tokens or
- * already-redirected Classic-named ones (--panel-cream, --planet-nodes,
- * --planet-other, --chart-d9-active-dark, --chart-d1-lagna-bg). Two real
- * issues found, not a wholesale rebuild:
+ * already-redirected Classic-named ones (the surface/planet/chart-cell
+ * redirects). Two real issues found, not a wholesale rebuild:
  *
  * 1. One literal hardcoded `#7a3412` (no CSS variable at all) in the
  *    Remedies section's caution text — the exact same bug class Phase 9

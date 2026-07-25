@@ -175,7 +175,7 @@ export function DashboardChartsPanelNova({
             <button
               type="button"
               onClick={() => void downloadPdf()}
-              style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "8px 16px", borderRadius: "999px", border: "1px solid var(--color-border-strong)", background: "none", color: "var(--color-accent-strong)", fontSize: "12.5px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+              style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "8px 16px", borderRadius: "var(--radius-pill)", border: "1px solid var(--color-border-strong)", background: "none", color: "var(--color-accent-strong)", fontSize: "var(--text-sm)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
             >
               ⤓ {lang === "ta" ? "PDF பதிவிறக்கம்" : "Download PDF"}
             </button>
@@ -365,7 +365,7 @@ export function DashboardChartsPanelNova({
                   </p>
                   {charaDasha.currentPeriod && (
                     <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-md)", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)" }}>
-                      <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-high)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                      <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-high)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                         {lang === "ta" ? "தற்போதைய சார தசை" : "Current Chara Dasha"}
                       </p>
                       <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>{charaDasha.currentPeriod.rasi_name}</p>
@@ -387,11 +387,11 @@ export function DashboardChartsPanelNova({
               <CollapsibleSection title={lang === "ta" ? `${solarReturn.returnYear} ஆண்டு தாஜகா` : `${solarReturn.returnYear} Annual Chart`} defaultOpen={false}>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "var(--space-2_5)", paddingTop: "var(--space-2)" }}>
                   <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)" }}>
-                    <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{lang === "ta" ? "வருட லக்னம்" : "SR Lagna"}</p>
+                    <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{lang === "ta" ? "வருட லக்னம்" : "SR Lagna"}</p>
                     <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>{solarReturn.srLagnaRasiName}</p>
                   </div>
                   <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)" }}>
-                    <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{lang === "ta" ? "முந்தா" : "Muntha"}</p>
+                    <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{lang === "ta" ? "முந்தா" : "Muntha"}</p>
                     <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>{solarReturn.munthaRasiName}</p>
                   </div>
                 </div>
@@ -407,7 +407,7 @@ export function DashboardChartsPanelNova({
           a direct "ask a question about this chart" action. ===== */}
       {isSelf && onOpenPrasna && (
         <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "18px", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-          <p style={{ margin: 0, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700, color: "var(--color-text-accent)" }}>
+          <p style={{ margin: 0, fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700, color: "var(--color-text-accent)" }}>
             {lang === "ta" ? "கருவிகள்" : "Tools"}
           </p>
           <NovaPrasnaTrigger lang={lang} onOpenPrasna={onOpenPrasna} />

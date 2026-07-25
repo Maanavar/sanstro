@@ -1,10 +1,13 @@
 "use client";
 
+import { ArrowLeft } from "lucide-react";
+
 import { useState } from "react";
 
 import type { Lang } from "@/lib/i18n";
 import { getGuideDetail, getGuideSlugs, getGuideVerifyNote, type GuideKind } from "@/lib/guide-detail-content";
-import { NovaAskEntryChip, NovaAttributeBand, NovaDetailBreadcrumb, NovaDetailHero, NovaKicker, novaDetailCardStyle } from "./dashboard-explore-detail-nova";
+import { NovaAskEntryChip, NovaAttributeBand, NovaDetailBreadcrumb, NovaDetailHero, novaDetailCardStyle } from "./dashboard-explore-detail-nova";
+import { Card, Kicker } from "./ui";
 
 /**
  * Nova in-app viewer for the Yogam / Pariharam / Temple library entries
@@ -38,8 +41,6 @@ function wrapIndex(i: number, length: number): number {
   return ((i % length) + length) % length;
 }
 
-const cardStyle = novaDetailCardStyle;
-
 /**
  * List-first index shared by Yogam/Pariharam/Temple — all three Explore hub
  * tiles used to jump straight into ONE library entry's detail screen with no
@@ -66,7 +67,7 @@ export function DashboardExploreGuideListNova({
   const kindLabel = KIND_LABEL[kind];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "18px", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
       <NovaDetailBreadcrumb
         onBack={onBack}
         backLabel={lang === "ta" ? "ஆராய்வு" : "Explore"}
@@ -83,9 +84,9 @@ export function DashboardExploreGuideListNova({
                 key={slug}
                 type="button"
                 onClick={() => onSelect(slug)}
-                style={{ ...cardStyle, cursor: "pointer", textAlign: "left", fontFamily: "inherit", width: "100%" }}
+                style={{ ...novaDetailCardStyle, cursor: "pointer", textAlign: "left", fontFamily: "inherit", width: "100%" }}
               >
-                <span style={{ fontFamily: "var(--font-display)", fontSize: "16px", fontWeight: 600, color: "var(--color-text-strong)" }}>
+                <span style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>
                   {text(content.title)}
                 </span>
               </button>
@@ -93,7 +94,7 @@ export function DashboardExploreGuideListNova({
           })}
         </div>
       ) : (
-        <p style={{ margin: 0, fontSize: "12.5px", color: "var(--color-faint)" }}>
+        <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
           {lang === "ta" ? "தரவு இல்லை." : "No entries available."}
         </p>
       )}
@@ -119,11 +120,11 @@ export function DashboardExploreGuideNova({ lang, kind, initialSlug, onBack, onO
 
   if (slugs.length === 0) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "14px", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
-        <button type="button" onClick={onBack} style={{ alignSelf: "flex-start", fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-          {lang === "ta" ? "← ஆராய்வுக்குத் திரும்பு" : "← Back to Explore"}
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
+        <button type="button" onClick={onBack} style={{ alignSelf: "flex-start", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+          <><ArrowLeft size={14} strokeWidth={1.5} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "var(--space-1)" }} />{lang === "ta" ? "ஆராய்வுக்குத் திரும்பு" : "Back to Explore"}</>
         </button>
-        <p style={{ margin: 0, fontSize: "12.5px", color: "var(--color-faint)" }}>
+        <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
           {lang === "ta" ? "தரவு இல்லை." : "No entries available."}
         </p>
       </div>
@@ -139,7 +140,7 @@ export function DashboardExploreGuideNova({ lang, kind, initialSlug, onBack, onO
   const verifyNote = getGuideVerifyNote(content);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "18px", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
 
       {/* ===== Breadcrumb + prev/next nav ===== */}
       <NovaDetailBreadcrumb
@@ -167,64 +168,64 @@ export function DashboardExploreGuideNova({ lang, kind, initialSlug, onBack, onO
       <div className="nova-grid-detail" style={{ alignItems: "start" }}>
 
         {/* LEFT — sections */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
           {content.sections.map((section, i) => (
-            <div key={i} style={cardStyle}>
-              <NovaKicker>{text(section.heading)}</NovaKicker>
+            <Card key={i}>
+              <Kicker>{text(section.heading)}</Kicker>
               {section.body.map((p, j) => (
-                <p key={j} style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "13.5px", lineHeight: 1.7, color: "var(--color-text)" }}>
+                <p key={j} style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "var(--text-base)", lineHeight: 1.7, color: "var(--color-text)" }}>
                   {text(p)}
                 </p>
               ))}
-            </div>
+            </Card>
           ))}
         </div>
 
         {/* RIGHT rail */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
           {content.bringCards && content.bringCards.length > 0 && (
-            <div style={cardStyle}>
-              <NovaKicker>{lang === "ta" ? "எதை கொண்டுவரலாம்" : "What it can bring"}</NovaKicker>
+            <Card>
+              <Kicker>{lang === "ta" ? "எதை கொண்டுவரலாம்" : "What it can bring"}</Kicker>
               {content.bringCards.map((cat, i) => (
-                <div key={i} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                  <div style={{ fontSize: "12.5px", fontWeight: 700, color: "var(--color-accent-strong)" }}>{text(cat.heading)}</div>
-                  <ul style={{ margin: 0, padding: "0 0 0 18px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                <div key={i} style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+                  <div style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-accent-strong)" }}>{text(cat.heading)}</div>
+                  <ul style={{ margin: 0, paddingLeft: "var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                     {cat.items.map((item, j) => (
-                      <li key={j} style={{ fontSize: "12px", color: "var(--color-muted)", lineHeight: 1.5 }}>{text(item)}</li>
+                      <li key={j} style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5 }}>{text(item)}</li>
                     ))}
                   </ul>
                 </div>
               ))}
-            </div>
+            </Card>
           )}
 
           {content.remedies && (
-            <div style={cardStyle}>
-              <NovaKicker>{text(content.remedies.heading)}</NovaKicker>
-              <p style={{ margin: 0, fontSize: "12.5px", color: "var(--color-muted)", lineHeight: 1.6 }}>{text(content.remedies.intro)}</p>
-              <ol style={{ margin: 0, padding: "0 0 0 18px", display: "flex", flexDirection: "column", gap: "8px" }}>
+            <Card>
+              <Kicker>{text(content.remedies.heading)}</Kicker>
+              <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.6 }}>{text(content.remedies.intro)}</p>
+              <ol style={{ margin: 0, paddingLeft: "var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                 {content.remedies.items.map((item, i) => (
-                  <li key={i} style={{ fontSize: "12.5px", color: "var(--color-text)", lineHeight: 1.6 }}>{text(item)}</li>
+                  <li key={i} style={{ fontSize: "var(--text-sm)", color: "var(--color-text)", lineHeight: 1.6 }}>{text(item)}</li>
                 ))}
               </ol>
-            </div>
+            </Card>
           )}
 
           {content.slokam && (
-            <div style={{ ...cardStyle, borderLeft: "3px solid var(--color-accent-strong)" }}>
-              <NovaKicker>{text(content.slokam.label)}</NovaKicker>
-              <p style={{ margin: 0, fontSize: "13.5px", fontWeight: 600, color: "var(--color-text-strong)", whiteSpace: "pre-line", lineHeight: 1.6 }}>
+            <Card style={{ borderLeft: "3px solid var(--color-accent-strong)" }}>
+              <Kicker>{text(content.slokam.label)}</Kicker>
+              <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)", whiteSpace: "pre-line", lineHeight: 1.6 }}>
                 {text(content.slokam.text)}
               </p>
-              <p style={{ margin: 0, fontSize: "12px", color: "var(--color-muted)", fontStyle: "italic", lineHeight: 1.5 }}>
+              <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-muted)", fontStyle: "italic", lineHeight: 1.5 }}>
                 {text(content.slokam.meaning)}
               </p>
-            </div>
+            </Card>
           )}
 
           <NovaAskEntryChip
             label={lang === "ta" ? `${text(content.title)} பற்றி கேளுங்கள்…` : `Ask about ${content.title.en}…`}
-            ctaLabel={lang === "ta" ? "கேளுங்கள் ✦" : "Ask ✦"}
+            ctaLabel={lang === "ta" ? "கேளுங்கள்" : "Ask"}
             onOpenAskVinaadi={onOpenAskVinaadi}
           />
         </div>
@@ -232,20 +233,20 @@ export function DashboardExploreGuideNova({ lang, kind, initialSlug, onBack, onO
 
       {/* ===== FAQ ===== */}
       {content.faq && content.faq.length > 0 && (
-        <div style={cardStyle}>
-          <NovaKicker>{lang === "ta" ? "அடிக்கடி கேட்கப்படும் கேள்விகள்" : "Frequently asked questions"}</NovaKicker>
-          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+        <Card>
+          <Kicker>{lang === "ta" ? "அடிக்கடி கேட்கப்படும் கேள்விகள்" : "Frequently asked questions"}</Kicker>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
             {content.faq.map((item, i) => (
               <div key={i} style={{ borderTop: i > 0 ? "1px solid var(--color-border)" : "none", paddingTop: i > 0 ? "12px" : 0 }}>
-                <p style={{ margin: "0 0 4px", fontSize: "13px", fontWeight: 700, color: "var(--color-text-strong)" }}>{text(item.q)}</p>
-                <p style={{ margin: 0, fontSize: "12.5px", color: "var(--color-muted)", lineHeight: 1.6 }}>{text(item.a)}</p>
+                <p style={{ margin: "0 0 4px", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>{text(item.q)}</p>
+                <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.6 }}>{text(item.a)}</p>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       )}
 
-      <p style={{ margin: 0, fontSize: "11.5px", color: "var(--color-faint)", fontStyle: "italic", lineHeight: 1.5, borderTop: "1px solid var(--color-border)", paddingTop: "12px" }}>
+      <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", fontStyle: "italic", lineHeight: 1.5, borderTop: "1px solid var(--color-border)", paddingTop: "12px" }}>
         {text(verifyNote)}
       </p>
     </div>

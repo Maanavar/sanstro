@@ -6,18 +6,6 @@ import type { Lang } from "@/lib/i18n";
 import { CollapsibleSection } from "./collapsible-section";
 import { GlossaryTerm } from "./glossary-term";
 
-const W = {
-  ink: "var(--deepdive-ink, var(--panel-earth-dark))",
-  inkMid: "var(--deepdive-ink-mid, var(--panel-earth))",
-  muted: "var(--color-faint)",
-  border: "var(--deepdive-border, var(--panel-tan))",
-  borderLt: "var(--deepdive-border-light, var(--panel-tan-light))",
-  surface: "var(--deepdive-surface, var(--panel-cream))",
-  surfaceMd: "var(--deepdive-surface-strong, var(--panel-hover))",
-  sage: "var(--chart-d9-active)",
-  terracotta: "var(--deepdive-accent, var(--panel-brand))",
-} as const;
-
 const VARGA_TABS = [
   { key: "D2",  label: "D2" },
   { key: "D3",  label: "D3" },
@@ -97,7 +85,7 @@ export function VargasPanel({ lang, vargas, d1Planets, equalBhava, vargaReliabil
   return (
     <CollapsibleSection title={t("vargas_title", lang)} defaultOpen={false}>
       <div style={{ marginTop: "var(--space-3)" }}>
-        <p style={{ margin: "0 0 var(--space-2_5)", fontSize: 12, color: W.muted, lineHeight: 1.5 }}>
+        <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "var(--text-sm)", color: "var(--color-faint)", lineHeight: 1.5 }}>
           <GlossaryTerm term="varga" lang={lang}>
             {lang === "ta" ? "பிரிவு கட்டங்கள்" : "Divisional charts"}
           </GlossaryTerm>
@@ -120,13 +108,13 @@ export function VargasPanel({ lang, vargas, d1Planets, equalBhava, vargaReliabil
                 type="button"
                 onClick={() => setActiveVarga(key)}
                 style={{
-                  padding: "4px 12px",
+                  padding: "var(--space-1) var(--space-3)",
                   borderRadius: "var(--radius-pill)",
-                  border: `1.5px solid ${isActive ? W.terracotta : W.borderLt}`,
-                  background: isActive ? "rgba(184,90,44,0.1)" : W.surface,
-                  color: isActive ? W.terracotta : W.muted,
+                  border: `1.5px solid ${isActive ? "var(--color-mid)" : "var(--color-border)"}`,
+                  background: isActive ? "var(--color-mid-bg)" : "var(--color-surface-soft)",
+                  color: isActive ? "var(--color-mid)" : "var(--color-faint)",
                   fontWeight: isActive ? 700 : 500,
-                  fontSize: "0.8rem",
+                  fontSize: "var(--text-base)",
                   cursor: "pointer",
                   fontFamily: "inherit",
                 }}
@@ -138,10 +126,10 @@ export function VargasPanel({ lang, vargas, d1Planets, equalBhava, vargaReliabil
         </div>
 
         {/* Active varga description */}
-        <p style={{ fontSize: "0.8rem", color: W.muted, marginBottom: "var(--space-2)", fontStyle: "italic" }}>
+        <p style={{ fontSize: "var(--text-base)", color: "var(--color-faint)", marginBottom: "var(--space-2)", fontStyle: "italic" }}>
           {VARGA_DESC[activeVarga][lang]}
           {vargaReliability?.[activeVarga] === "LOW" && (
-            <span style={{ color: W.terracotta, fontWeight: 600, marginLeft: "var(--space-2)" }}>
+            <span style={{ color: "var(--color-mid)", fontWeight: 600, marginLeft: "var(--space-2)" }}>
               {lang === "ta" ? "(பிறந்த நேரம் துல்லியமாக இல்லை)" : "(needs exact birth time)"}
             </span>
           )}
@@ -150,19 +138,19 @@ export function VargasPanel({ lang, vargas, d1Planets, equalBhava, vargaReliabil
         {/* Planet comparison table */}
         {currentVarga ? (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}>
               <thead>
-                <tr style={{ borderBottom: `1.5px solid ${W.border}` }}>
-                  <th style={{ textAlign: "left", padding: "4px 8px", color: W.muted, fontWeight: 600 }}>
+                <tr style={{ borderBottom: `1.5px solid var(--color-border)` }}>
+                  <th style={{ textAlign: "left", padding: "var(--space-1) var(--space-2)", color: "var(--color-faint)", fontWeight: 600 }}>
                     {t("vargas_planet", lang)}
                   </th>
-                  <th style={{ textAlign: "center", padding: "4px 8px", color: W.muted, fontWeight: 600 }}>
+                  <th style={{ textAlign: "center", padding: "var(--space-1) var(--space-2)", color: "var(--color-faint)", fontWeight: 600 }}>
                     {t("vargas_d1_label", lang)}
                   </th>
-                  <th style={{ textAlign: "center", padding: "4px 8px", color: W.muted, fontWeight: 600 }}>
+                  <th style={{ textAlign: "center", padding: "var(--space-1) var(--space-2)", color: "var(--color-faint)", fontWeight: 600 }}>
                     {activeVarga}
                   </th>
-                  <th style={{ textAlign: "center", padding: "4px 8px", color: W.muted, fontWeight: 600 }}>
+                  <th style={{ textAlign: "center", padding: "var(--space-1) var(--space-2)", color: "var(--color-faint)", fontWeight: 600 }}>
                     —
                   </th>
                 </tr>
@@ -173,21 +161,21 @@ export function VargasPanel({ lang, vargas, d1Planets, equalBhava, vargaReliabil
                   const vargaRasi = currentVarga[planet];
                   const same = d1Rasi === vargaRasi;
                   return (
-                    <tr key={planet} style={{ borderBottom: `1px solid ${W.borderLt}` }}>
-                      <td style={{ padding: "5px 8px", fontWeight: 600, color: W.inkMid }}>
+                    <tr key={planet} style={{ borderBottom: `1px solid var(--color-border)` }}>
+                      <td style={{ padding: "var(--space-1) var(--space-2)", fontWeight: 600, color: "var(--color-text)" }}>
                         {PLANET_ABBR[planet] ?? planet}
                       </td>
-                      <td style={{ padding: "5px 8px", textAlign: "center", color: W.inkMid }}>
+                      <td style={{ padding: "var(--space-1) var(--space-2)", textAlign: "center", color: "var(--color-text)" }}>
                         {d1Rasi ? (RASI_NAMES[d1Rasi]?.[lang] ?? d1Rasi) : "—"}
                       </td>
-                      <td style={{ padding: "5px 8px", textAlign: "center", color: W.inkMid }}>
+                      <td style={{ padding: "var(--space-1) var(--space-2)", textAlign: "center", color: "var(--color-text)" }}>
                         {vargaRasi ? (RASI_NAMES[vargaRasi]?.[lang] ?? vargaRasi) : "—"}
                       </td>
-                      <td style={{ padding: "5px 8px", textAlign: "center" }}>
+                      <td style={{ padding: "var(--space-1) var(--space-2)", textAlign: "center" }}>
                         {d1Rasi && vargaRasi ? (
                           same
-                            ? <span style={{ color: W.sage, fontWeight: 700, fontSize: "0.75rem" }}>✓</span>
-                            : <span style={{ color: W.terracotta, fontWeight: 700, fontSize: "0.75rem" }}>≠</span>
+                            ? <span style={{ color: "var(--color-high)", fontWeight: 700, fontSize: "var(--text-sm)" }}>✓</span>
+                            : <span style={{ color: "var(--color-mid)", fontWeight: 700, fontSize: "var(--text-sm)" }}>≠</span>
                         ) : null}
                       </td>
                     </tr>
@@ -197,18 +185,18 @@ export function VargasPanel({ lang, vargas, d1Planets, equalBhava, vargaReliabil
             </table>
           </div>
         ) : (
-          <p style={{ fontSize: "0.82rem", color: W.muted }}>
+          <p style={{ fontSize: "var(--text-base)", color: "var(--color-faint)" }}>
             {lang === "ta" ? "வர்க தரவு கிடைக்கவில்லை." : "Varga data not available."}
           </p>
         )}
 
         {/* Equal Bhava diff — only planets that changed */}
         {equalBhavaChanges.length > 0 && (
-          <div style={{ marginTop: "var(--space-4)", paddingTop: "var(--space-3)", borderTop: `1px solid ${W.borderLt}` }}>
-            <p style={{ fontSize: "0.78rem", fontWeight: 700, color: W.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "var(--space-2)" }}>
+          <div style={{ marginTop: "var(--space-4)", paddingTop: "var(--space-3)", borderTop: `1px solid var(--color-border)` }}>
+            <p style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "var(--space-2)" }}>
               {t("equal_bhava_title", lang)}
             </p>
-            <p style={{ fontSize: "0.75rem", color: W.muted, marginBottom: "var(--space-2)", fontStyle: "italic" }}>
+            <p style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)", marginBottom: "var(--space-2)", fontStyle: "italic" }}>
               {t("equal_bhava_desc", lang)}
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
@@ -216,16 +204,16 @@ export function VargasPanel({ lang, vargas, d1Planets, equalBhava, vargaReliabil
                 <span
                   key={planet}
                   style={{
-                    padding: "3px 10px",
+                    padding: "var(--space-1) var(--space-3)",
                     borderRadius: "var(--radius-pill)",
-                    background: "rgba(184,90,44,0.08)",
-                    border: `1px solid rgba(184,90,44,0.25)`,
-                    fontSize: "0.78rem",
-                    color: W.terracotta,
+                    background: "var(--color-mid-bg)",
+                    border: `1px solid var(--color-mid-border)`,
+                    fontSize: "var(--text-sm)",
+                    color: "var(--color-mid)",
                     fontWeight: 600,
                   }}
                 >
-                  {PLANET_ABBR[planet] ?? planet}: H{d1Planets[planet]} → H{equalHouse}
+                  {PLANET_ABBR[planet] ?? planet}: H{d1Planets[planet]} to H{equalHouse}
                 </span>
               ))}
             </div>

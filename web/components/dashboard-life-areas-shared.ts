@@ -48,9 +48,9 @@ export function isAreaRelevantForAge(areaKey: string, age: number, maritalStatus
 // ── Prediction tone/label helpers (shared by Classic PredictionDetailPanel and
 //    Nova's Life-Areas predictions panel) ──
 export function confidenceTone(confidence: string) {
-  if (confidence === "HIGH") return { bg: "var(--chart-d9-active-bg)", border: "var(--cl-sage-border)", text: SCORE_HIGH };
-  if (confidence === "LOW") return { bg: "var(--panel-warm-tint)", border: "var(--cl-rust-35)", text: SCORE_LOW };
-  return { bg: "var(--chart-d1-lagna-bg)", border: "var(--cl-brand-edge)", text: SCORE_MID };
+  if (confidence === "HIGH") return { bg: "var(--color-high-bg)", border: "var(--color-high-border)", text: SCORE_HIGH };
+  if (confidence === "LOW") return { bg: "var(--color-low-bg)", border: "var(--color-low-border)", text: SCORE_LOW };
+  return { bg: "var(--color-mid-bg)", border: "var(--color-mid-border)", text: SCORE_MID };
 }
 
 export function supportTone(value: string) {

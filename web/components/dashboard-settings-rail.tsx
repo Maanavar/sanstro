@@ -2,39 +2,11 @@
 
 import type { Lang } from "@/lib/i18n";
 
-/* ── Shared palette — 100% theme-reactive tokens (flips dark ⇄ light) ──
-   Every value resolves against the Nova [data-ui="nova"] token blocks in
-   dashboard-nova.css, which redefine the whole --color-* set under
-   [data-theme="light"]. No raw hex/rgba literals here, so the Settings
-   surface tracks whichever theme the shell is in. */
-export const SETTINGS_C = {
-  // text ladder
-  text:         "var(--color-text-strong)",
-  textMid:      "var(--color-text)",
-  muted:        "var(--color-muted)",
-  faint:        "var(--color-faint)",
-  // brand / semantic
-  accent:       "var(--color-accent)",         // fills + borders
-  accentText:   "var(--color-text-accent)",    // gold used as TEXT (legible both themes)
-  accentMuted:  "var(--color-accent-muted)",
-  purple:       "var(--color-accent-secondary)",
-  sage:         "var(--color-accent-alt)",
-  sageBg:       "var(--color-high-bg)",
-  sageBorder:   "var(--color-high-border)",
-  danger:       "var(--color-low)",
-  dangerText:   "var(--color-alert-critical-text)",
-  dangerBg:     "var(--color-low-bg)",
-  dangerBorder: "var(--color-low-border)",
-  onAccent:     "var(--color-on-accent)",
-  // surfaces + lines
-  card:         "var(--color-surface)",
-  surfaceSoft:  "var(--color-surface-soft)",
-  raised:       "var(--color-hover-bg)",        // subtle raised fill in both themes
-  border:       "var(--color-border)",
-  borderStrong: "var(--color-border-strong)",
-  // switch off-track: neutral in both themes via the text hue at low alpha
-  offTrack:     "color-mix(in srgb, var(--color-muted) 45%, transparent)",
-} as const;
+/* ── Settings surface styling ──
+   All colours reference the semantic --color-* token layer directly, so the
+   surface tracks whichever theme (Nova Galaxy / Warm) the shell is in — the
+   Nova [data-ui="nova"] blocks in dashboard-nova.css redefine the whole set
+   under [data-theme="light"]. */
 
 export type SettingsSectionId =
   | "setup"
@@ -82,10 +54,10 @@ function RailButton({
   const base: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
-    gap: "11px",
-    padding: "10px 13px",
-    borderRadius: "10px",
-    fontSize: "13.5px",
+    gap: "var(--space-3)",
+    padding: "var(--space-3) var(--space-3)",
+    borderRadius: "var(--radius-md)",
+    fontSize: "var(--text-base)",
     cursor: "pointer",
     transition: "background .15s, color .15s, border-color .15s",
     // Longhand (not the `border` shorthand) so the active branch can toggle
@@ -102,16 +74,16 @@ function RailButton({
   let style: React.CSSProperties;
   if (danger) {
     style = active
-      ? { ...base, fontWeight: 600, color: SETTINGS_C.danger, background: SETTINGS_C.dangerBg, borderColor: SETTINGS_C.dangerBorder }
-      : { ...base, fontWeight: 500, color: SETTINGS_C.danger, opacity: 0.82 };
+      ? { ...base, fontWeight: 600, color: "var(--color-low)", background: "var(--color-low-bg)", borderColor: "var(--color-low-border)" }
+      : { ...base, fontWeight: 500, color: "var(--color-low)", opacity: 0.82 };
   } else {
     style = active
-      ? { ...base, fontWeight: 600, color: SETTINGS_C.text, background: SETTINGS_C.accentMuted, borderColor: SETTINGS_C.borderStrong }
-      : { ...base, fontWeight: 500, color: SETTINGS_C.muted };
+      ? { ...base, fontWeight: 600, color: "var(--color-text-strong)", background: "var(--color-accent-muted)", borderColor: "var(--color-border-strong)" }
+      : { ...base, fontWeight: 500, color: "var(--color-muted)" };
   }
   return (
     <button type="button" onClick={() => onNavigate(item.id)} style={style} aria-current={active ? "page" : undefined}>
-      <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "currentColor", opacity: 0.65, flex: "none" }} />
+      <span style={{ width: "6px", height: "6px", borderRadius: "var(--radius-pill)", background: "currentColor", opacity: 0.65, flex: "none" }} />
       {lang === "ta" ? item.labelTa : item.labelEn}
     </button>
   );
@@ -141,11 +113,11 @@ export function SettingsRail({
 
   return (
     <div className="vs-settings-rail">
-      <div className="vs-settings-rail-heading" style={{ padding: "0 4px 6px" }}>
-        <div style={{ fontSize: "11px", letterSpacing: ".22em", textTransform: "uppercase", color: SETTINGS_C.purple, fontWeight: 700 }}>
+      <div className="vs-settings-rail-heading" style={{ paddingRight: "var(--space-1)", paddingBottom: "var(--space-2)", paddingLeft: "var(--space-1)" }}>
+        <div style={{ fontSize: "var(--text-xs)", letterSpacing: ".22em", textTransform: "uppercase", color: "var(--color-accent-secondary)", fontWeight: 700 }}>
           {lang === "ta" ? "அமைப்புகள்" : "Settings"}
         </div>
-        <div style={{ fontFamily: "var(--font-display, Georgia, serif)", fontSize: "27px", fontWeight: 600, lineHeight: 1.05, color: SETTINGS_C.text, marginTop: "6px" }}>
+        <div style={{ fontFamily: "var(--font-display, Georgia, serif)", fontSize: "var(--text-xl)", fontWeight: 600, lineHeight: 1.05, color: "var(--color-text-strong)", marginTop: "6px" }}>
           {lang === "ta" ? "விருப்பங்கள்" : "Preferences"}
         </div>
       </div>
@@ -154,7 +126,7 @@ export function SettingsRail({
         {ITEMS.map((item) => (
           <RailButton key={item.id} item={item} active={active === item.id} onNavigate={onNavigate} lang={lang} />
         ))}
-        <div className="vs-settings-rail-divider" style={{ height: "1px", background: SETTINGS_C.border, margin: "9px 6px" }} />
+        <div className="vs-settings-rail-divider" style={{ height: "1px", background: "var(--color-border)", margin: "9px 6px" }} />
         <RailButton item={DANGER} active={active === "danger"} danger onNavigate={onNavigate} lang={lang} />
       </nav>
 
@@ -162,21 +134,21 @@ export function SettingsRail({
         className="vs-settings-identity"
         style={{
           marginTop: "20px",
-          background: SETTINGS_C.surfaceSoft,
-          border: `1px solid ${SETTINGS_C.border}`,
-          borderRadius: "13px",
-          padding: "13px 14px",
+          background: "var(--color-surface-soft)",
+          border: `1px solid var(--color-border)`,
+          borderRadius: "var(--radius-md)",
+          padding: "var(--space-3) var(--space-4)",
           display: "flex",
           alignItems: "center",
-          gap: "11px",
+          gap: "var(--space-3)",
         }}
       >
-        <div style={{ width: "38px", height: "38px", borderRadius: "50%", background: SETTINGS_C.accent, color: SETTINGS_C.onAccent, display: "grid", placeItems: "center", fontSize: "15px", fontWeight: 700, flex: "none" }}>
+        <div style={{ width: "38px", height: "38px", borderRadius: "var(--radius-pill)", background: "var(--color-accent)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-md)", fontWeight: 700, flex: "none" }}>
           {initialOf(userDisplayName)}
         </div>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: "13px", fontWeight: 600, color: SETTINGS_C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{displayName}</div>
-          <div style={{ fontSize: "11px", color: SETTINGS_C.faint, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{vaultLine}</div>
+          <div style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{displayName}</div>
+          <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{vaultLine}</div>
         </div>
       </div>
     </div>

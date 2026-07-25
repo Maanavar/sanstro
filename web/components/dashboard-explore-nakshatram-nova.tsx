@@ -1,5 +1,7 @@
 "use client";
 
+import { ArrowLeft, Sparkles, AlertTriangle } from "lucide-react";
+
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -15,7 +17,8 @@ import { NATCHATHIRAM_EN, type NatchathiramEnSections } from "@/lib/natchathiram
 import { CollapsibleSection } from "./collapsible-section";
 
 import { moonRasiFromNakshatra, rasiName } from "./dashboard-calendar-shared";
-import { NovaAskEntryChip, NovaAttributeBand, NovaDetailBreadcrumb, NovaDetailHero, NovaKicker, novaDetailCardStyle } from "./dashboard-explore-detail-nova";
+import { NovaAskEntryChip, NovaAttributeBand, NovaDetailBreadcrumb, NovaDetailHero, novaDetailCardStyle } from "./dashboard-explore-detail-nova";
+import { Card, Kicker } from "./ui";
 
 /**
  * The signed-in Nakshatram screen used to show only the thin backend card
@@ -52,14 +55,14 @@ function NakshatraFullGuide({ slug, lang }: { slug: string; lang: Lang }) {
   }
 
   return (
-    <div style={cardStyle}>
-      <NovaKicker>{lang === "ta" ? "முழுமையான நட்சத்திர வழிகாட்டி" : "Full nakshatra guide"}</NovaKicker>
-      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+    <Card>
+      <Kicker>{lang === "ta" ? "முழுமையான நட்சத்திர வழிகாட்டி" : "Full nakshatra guide"}</Kicker>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
         {SECTION_ORDER.map((section, i) => (
           <CollapsibleSection key={section.key} title={lang === "ta" ? section.taLabel : section.enLabel} defaultOpen={i === 0}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
               {sectionParas(section.key).map((p, j) => (
-                <p key={j} style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "13px", lineHeight: 1.7, color: "var(--color-text)" }}>
+                <p key={j} style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "var(--text-base)", lineHeight: 1.7, color: "var(--color-text)" }}>
                   {p}
                 </p>
               ))}
@@ -67,7 +70,7 @@ function NakshatraFullGuide({ slug, lang }: { slug: string; lang: Lang }) {
           </CollapsibleSection>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -114,8 +117,6 @@ function wrapNakshatraNumber(n: number): number {
   return ((n - 1 + 27) % 27) + 1;
 }
 
-const cardStyle = novaDetailCardStyle;
-
 /**
  * List-first index for the Nakshatram library — Explore hub's "Natchathiram"
  * tile used to jump straight into ONE star's detail screen (the user's own,
@@ -145,7 +146,7 @@ export function DashboardExploreNakshatramListNova({
   }, []);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "18px", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
       <NovaDetailBreadcrumb
         onBack={onBack}
         backLabel={lang === "ta" ? "ஆராய்வு" : "Explore"}
@@ -162,8 +163,8 @@ export function DashboardExploreNakshatramListNova({
               type="button"
               onClick={() => onSelect(n.number)}
               style={{
-                ...cardStyle,
-                gap: "4px",
+                ...novaDetailCardStyle,
+                gap: "var(--space-1)",
                 cursor: "pointer",
                 textAlign: "left",
                 fontFamily: "inherit",
@@ -175,12 +176,12 @@ export function DashboardExploreNakshatramListNova({
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{n.number}</span>
                 {isOwn && (
-                  <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", borderRadius: "5px", padding: "2px 8px" }}>
+                  <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", borderRadius: "var(--radius-sm)", padding: "var(--space-1) var(--space-2)" }}>
                     {lang === "ta" ? "நீங்கள்" : "YOU"}
                   </span>
                 )}
               </div>
-              <div style={{ fontFamily: "var(--font-display)", fontSize: "17px", fontWeight: 600, color: "var(--color-text-strong)" }}>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>
                 {lang === "ta" ? n.name_ta : n.name_en}
               </div>
             </button>
@@ -222,11 +223,11 @@ export function DashboardExploreNakshatramNova({
 
   if (isLoading || !card) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "14px", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
-        <button type="button" onClick={onBack} style={{ alignSelf: "flex-start", fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-          {lang === "ta" ? "← ஆராய்வுக்குத் திரும்பு" : "← Back to Explore"}
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
+        <button type="button" onClick={onBack} style={{ alignSelf: "flex-start", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+          <><ArrowLeft size={14} strokeWidth={1.5} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "var(--space-1)" }} />{lang === "ta" ? "ஆராய்வுக்குத் திரும்பு" : "Back to Explore"}</>
         </button>
-        <p style={{ margin: 0, fontSize: "12.5px", color: "var(--color-faint)" }}>{lang === "ta" ? "ஏற்றுகிறது…" : "Loading…"}</p>
+        <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>{lang === "ta" ? "ஏற்றுகிறது…" : "Loading…"}</p>
       </div>
     );
   }
@@ -249,7 +250,7 @@ export function DashboardExploreNakshatramNova({
     });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "18px", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
 
       {/* ===== Breadcrumb + star nav ===== */}
       <NovaDetailBreadcrumb
@@ -271,15 +272,15 @@ export function DashboardExploreNakshatramNova({
       <NovaDetailHero
         kicker={lang === "ta" ? `நட்சத்திரம் ${card.number} / 27` : `Nakshatram ${card.number} of 27`}
         badge={isOwnStar && (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "11.5px", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", borderRadius: "999px", padding: "5px 12px" }}>
-            {"✦"} {lang === "ta" ? `உங்கள் ஜென்ம நட்சத்திரம் · பாதம் ${ownPada ?? ""}` : `Your birth star · pada ${ownPada ?? ""}`}
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
+            <Sparkles size={14} strokeWidth={1.5} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "var(--space-1)" }} />{lang === "ta" ? `உங்கள் ஜென்ம நட்சத்திரம் · பாதம் ${ownPada ?? ""}` : `Your birth star · pada ${ownPada ?? ""}`}
           </span>
         )}
         titleMain={lang === "ta" ? card.nameTa : astroText(card.nameEn)}
         prose={lang === "ta" ? card.profile.ta : astroText(card.profile.en)}
         rightSlot={
-          <div style={{ flex: "none", width: "150px", borderLeft: "1px solid var(--color-border)", paddingLeft: "22px", display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
-            <div style={{ width: "84px", height: "84px", borderRadius: "50%", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", display: "grid", placeItems: "center", fontSize: "32px", color: "var(--color-accent-strong)" }}>
+          <div style={{ flex: "none", width: "150px", borderLeft: "1px solid var(--color-border)", paddingLeft: "22px", display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-2)" }}>
+            <div style={{ width: "84px", height: "84px", borderRadius: "var(--radius-pill)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", display: "grid", placeItems: "center", fontSize: "var(--text-2xl)", color: "var(--color-accent-strong)" }}>
               {"☙"}
             </div>
             <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", textAlign: "center", lineHeight: 1.5 }}>
@@ -305,35 +306,35 @@ export function DashboardExploreNakshatramNova({
       <div className="nova-grid-detail" style={{ alignItems: "start" }}>
 
         {/* LEFT */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <div style={cardStyle}>
-            <NovaKicker>{lang === "ta" ? `${card.nameTa} இன் இயல்பு` : `The nature of ${astroText(card.nameEn)}`}</NovaKicker>
-            <p style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "13.5px", lineHeight: 1.7, color: "var(--color-text)" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+          <Card>
+            <Kicker>{lang === "ta" ? `${card.nameTa} இன் இயல்பு` : `The nature of ${astroText(card.nameEn)}`}</Kicker>
+            <p style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "var(--text-base)", lineHeight: 1.7, color: "var(--color-text)" }}>
               {lang === "ta" ? card.profile.ta : astroText(card.profile.en)}
             </p>
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
               {card.strengths.map((s) => (
-                <span key={s.en} style={{ fontSize: "12px", color: "var(--color-text)", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border, var(--color-high))", borderRadius: "999px", padding: "6px 13px" }}>
+                <span key={s.en} style={{ fontSize: "var(--text-sm)", color: "var(--color-text)", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border, var(--color-high))", borderRadius: "var(--radius-pill)", padding: "var(--space-2) var(--space-3)" }}>
                   {lang === "ta" ? s.ta : astroText(s.en)}
                 </span>
               ))}
               {card.cautions.map((c) => (
-                <span key={c.en} style={{ fontSize: "12px", color: "var(--color-text)", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border, var(--color-low))", borderRadius: "999px", padding: "6px 13px" }}>
-                  {"⚠ "}{lang === "ta" ? c.ta : astroText(c.en)}
+                <span key={c.en} style={{ fontSize: "var(--text-sm)", color: "var(--color-text)", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border, var(--color-low))", borderRadius: "var(--radius-pill)", padding: "var(--space-2) var(--space-3)" }}>
+                  <AlertTriangle size={12} strokeWidth={1.5} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "var(--space-1)" }} />{lang === "ta" ? c.ta : astroText(c.en)}
                 </span>
               ))}
             </div>
-          </div>
+          </Card>
 
-          <div style={cardStyle}>
+          <Card>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-              <NovaKicker>{lang === "ta" ? "நான்கு பாதங்கள்" : "The four padas"}</NovaKicker>
+              <Kicker>{lang === "ta" ? "நான்கு பாதங்கள்" : "The four padas"}</Kicker>
             </div>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12.5px" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
               <thead>
                 <tr style={{ textAlign: "left", color: "var(--color-accent-strong)", fontSize: "var(--text-xs)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                  <th style={{ padding: "0 12px 6px 0", borderBottom: "1px solid var(--color-border)" }}>{lang === "ta" ? "பாதம்" : "Pada"}</th>
-                  <th style={{ padding: "0 12px 6px 0", borderBottom: "1px solid var(--color-border)" }}>{lang === "ta" ? "நவாம்சம்" : "Navamsa"}</th>
+                  <th style={{ paddingRight: "var(--space-3)", paddingBottom: "var(--space-2)", borderBottom: "1px solid var(--color-border)" }}>{lang === "ta" ? "பாதம்" : "Pada"}</th>
+                  <th style={{ paddingRight: "var(--space-3)", paddingBottom: "var(--space-2)", borderBottom: "1px solid var(--color-border)" }}>{lang === "ta" ? "நவாம்சம்" : "Navamsa"}</th>
                 </tr>
               </thead>
               <tbody>
@@ -342,37 +343,37 @@ export function DashboardExploreNakshatramNova({
                   const isYou = isOwnStar && ownPada === pada;
                   return (
                     <tr key={pada} style={isYou ? { background: "var(--color-accent-muted)" } : undefined}>
-                      <td style={{ padding: "8px 12px 8px 0", borderBottom: "1px solid var(--color-border)", fontWeight: isYou ? 700 : 500 }}>
+                      <td style={{ padding: "var(--space-2) var(--space-3) var(--space-2) 0", borderBottom: "1px solid var(--color-border)", fontWeight: isYou ? 700 : 500 }}>
                         {pada}
                         {isYou && (
-                          <span style={{ marginLeft: "6px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", borderRadius: "4px", padding: "1px 6px" }}>
+                          <span style={{ marginLeft: "6px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", borderRadius: "var(--radius-sm)", padding: "var(--space-1) var(--space-2)" }}>
                             {lang === "ta" ? "நீங்கள்" : "YOU"}
                           </span>
                         )}
                       </td>
-                      <td style={{ padding: "8px 12px 8px 0", borderBottom: "1px solid var(--color-border)" }}>{navRasi ? rasiName(navRasi, lang) : "—"}</td>
+                      <td style={{ padding: "var(--space-2) var(--space-3) var(--space-2) 0", borderBottom: "1px solid var(--color-border)" }}>{navRasi ? rasiName(navRasi, lang) : "—"}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
-          </div>
+          </Card>
 
           <NakshatraFullGuide slug={slug} lang={lang} />
         </div>
 
         {/* RIGHT rail */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
           {isOwnStar && (
-            <div style={{ ...cardStyle, background: "linear-gradient(120deg, var(--color-accent-muted), transparent)", border: "1px solid var(--color-border-strong)" }}>
-              <NovaKicker color="var(--color-accent-strong)">{lang === "ta" ? "உங்கள் ஜாதகத்தில்" : "In your chart"}</NovaKicker>
-              <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.6, color: "var(--color-text)" }}>
+            <Card variant="accent" style={{ background: "linear-gradient(120deg, var(--color-accent-muted), transparent)" }}>
+              <Kicker color="var(--color-accent-strong)">{lang === "ta" ? "உங்கள் ஜாதகத்தில்" : "In your chart"}</Kicker>
+              <p style={{ margin: 0, fontSize: "var(--text-base)", lineHeight: 1.6, color: "var(--color-text)" }}>
                 {lang === "ta"
                   ? `நீங்கள் ${card.nameTa} பாதம் ${ownPada ?? ""}.`
                   : `You are ${astroText(card.nameEn)} pada ${ownPada ?? ""}.`}
               </p>
               {personalDailyGuidance?.nakshatraPerspective && (
-                <div style={{ fontSize: "11.5px", color: "var(--color-muted)", background: "var(--color-surface-soft)", borderRadius: "8px", padding: "8px 11px" }}>
+                <div style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", background: "var(--color-surface-soft)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)" }}>
                   {lang === "ta" ? "இன்றைய பார்வை: " : "Today's lens: "}
                   <b style={{ color: "var(--color-accent-strong)" }}>{astroText(tLang(personalDailyGuidance.nakshatraPerspective, lang))}</b>
                   {typeof personalDailyGuidance.score === "number" && (
@@ -380,13 +381,13 @@ export function DashboardExploreNakshatramNova({
                   )}
                 </div>
               )}
-            </div>
+            </Card>
           )}
 
-          <div style={cardStyle}>
-            <NovaKicker color="var(--color-accent-secondary)">{lang === "ta" ? "உங்கள் குடும்பத்தில்" : "In your family"}</NovaKicker>
-            <div style={{ display: "flex", alignItems: "center", gap: "9px", fontSize: "12.5px" }}>
-              <span style={{ width: "26px", height: "26px", borderRadius: "50%", background: "var(--color-accent)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: 700, flexShrink: 0 }}>
+          <Card>
+            <Kicker color="var(--color-accent-secondary)">{lang === "ta" ? "உங்கள் குடும்பத்தில்" : "In your family"}</Kicker>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)" }}>
+              <span style={{ width: "26px", height: "26px", borderRadius: "var(--radius-pill)", background: "var(--color-accent)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: 700, flexShrink: 0 }}>
                 {lang === "ta" ? "நீ" : "Y"}
               </span>
               <span>
@@ -395,30 +396,30 @@ export function DashboardExploreNakshatramNova({
               </span>
             </div>
             {membersOnStar.map((mc) => (
-              <div key={mc.memberId} style={{ display: "flex", alignItems: "center", gap: "9px", fontSize: "12.5px" }}>
-                <span style={{ width: "26px", height: "26px", borderRadius: "50%", background: "var(--color-accent-secondary)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: 700, flexShrink: 0 }}>
+              <div key={mc.memberId} style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)" }}>
+                <span style={{ width: "26px", height: "26px", borderRadius: "var(--radius-pill)", background: "var(--color-accent-secondary)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: 700, flexShrink: 0 }}>
                   {mc.displayName.charAt(0).toUpperCase()}
                 </span>
                 <span>{mc.displayName}</span>
               </div>
             ))}
             {membersOnStar.length === 0 && (
-              <p style={{ margin: 0, fontSize: "11.5px", color: "var(--color-faint)", lineHeight: 1.5 }}>
+              <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.5 }}>
                 {lang === "ta" ? `வீட்டில் யாரும் ${card.nameTa} நட்சத்திரத்தை பகிரவில்லை.` : `No one else at home shares ${astroText(card.nameEn)}.`}
               </p>
             )}
             {upcomingDashaNotes.map((note) => (
-              <p key={note.displayName} style={{ margin: 0, fontSize: "11.5px", color: "var(--color-faint)", lineHeight: 1.5 }}>
+              <p key={note.displayName} style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.5 }}>
                 {lang === "ta"
                   ? `${note.displayName}-ன் ${tPlanetLord(card.rulingPlanet, lang)} தசை ${note.year} இல் தொடங்குகிறது.`
                   : `${note.displayName}'s ${tPlanetLord(card.rulingPlanet, lang)} dasa begins ${note.year}.`}
               </p>
             ))}
-          </div>
+          </Card>
 
           <NovaAskEntryChip
             label={lang === "ta" ? `${card.nameTa} பற்றி கேளுங்கள்…` : `Ask about ${astroText(card.nameEn)}…`}
-            ctaLabel={lang === "ta" ? "கேளுங்கள் ✦" : "Ask ✦"}
+            ctaLabel={lang === "ta" ? "கேளுங்கள்" : "Ask"}
             onOpenAskVinaadi={onOpenAskVinaadi}
           />
         </div>

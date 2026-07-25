@@ -22,9 +22,9 @@ import {
 } from "./dashboard-plan-shared";
 import type { EventType } from "./dashboard-event-windows";
 import { humaniseReason } from "./dashboard-event-windows";
-import { novaDetailCardStyle } from "./dashboard-explore-detail-nova";
 import { NovaLifeEventLogCard } from "./dashboard-plan-life-event-log-nova";
-import { Segmented } from "./ui";
+import { Orbit, ArrowRight, X } from "lucide-react";
+import { Card, Segmented } from "./ui";
 import { NovaPlanWhatIfPanel } from "./dashboard-plan-whatif-nova";
 import { NovaPlanDecisionsPanel } from "./dashboard-plan-decisions-nova";
 import { NovaSelect } from "./nova-select";
@@ -34,13 +34,13 @@ import { NovaSelect } from "./nova-select";
  * Phase 10 of the dashboard revamp, mapped from the mockup's `plan` screen
  * (docs/DASHBOARD_UI_REVAMP_PLAN.md §6.9). A full tab-level screen (own
  * 5-way sub-nav) like Life Areas' Nova tab — not a "detail drill-down", so
- * no shared shell with dashboard-explore-detail-nova.tsx applies beyond its
- * genuinely generic `novaDetailCardStyle` card container.
+ * no shared shell with dashboard-explore-detail-nova.tsx applies; card
+ * surfaces use the shared `<Card>` primitive instead (kit adoption).
  *
  * Transits & Dasha (dashboard-plan-transits-nova.tsx's `NovaTransitsView`,
  * §6.10) used to be a second view toggled inside this same tab. There is no
  * standalone `transits` tab anymore — it was folded into Family & Charts
- * (2026-07-21), so the "See the dasa timeline →" link below navigates there
+ * (2026-07-21), so the "See the dasa timeline" link below navigates there
  * via `onGoToChart`.
  *
  * The mockup's static export only expands the "Goals" pill (same
@@ -87,7 +87,7 @@ import { NovaSelect } from "./nova-select";
  *   gap-fix — that file's `W` token palette was the same class flagged
  *   unsafe-to-redirect by the 2026-07-06 browser QA round.
  *
- * Mockup's "Remind me →" per-window link is a genuine stub — grepped for
+ * Mockup's "Remind me" per-window link is a genuine stub — grepped for
  * any per-event/per-date reminder mechanism; the only existing "reminder"
  * feature (`dashboard-personal-overview.tsx`'s "Save reminder" button) is
  * a recurring daily morning-notification toggle, not a schedule-a-future-
@@ -279,28 +279,28 @@ export function DashboardPlanTabNova({
 
   if (!hasBirthProfile) {
     return (
-      <div style={{ ...novaDetailCardStyle, border: "1px dashed var(--color-border-strong)" }}>
-        <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)" }}>
+      <Card variant="dashed">
+        <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)" }}>
           {lang === "ta" ? "முதலில் உங்கள் ஜாதக விவரங்களை சேர்க்கவும்." : "Add your birth profile first to use planning tools."}
         </p>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "18px", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
 
       {/* ===== Header ===== */}
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "20px", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "var(--space-5)", flexWrap: "wrap" }}>
         <div>
-          <p style={{ margin: 0, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
+          <p style={{ margin: 0, fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
             {t("tab_plan", lang)}
           </p>
-          <h1 style={{ margin: "6px 0 8px", fontFamily: "var(--font-display)", fontSize: "clamp(1.8rem,3vw,2.4rem)", fontWeight: 600, lineHeight: 1.15, color: "var(--color-text-strong)" }}>
+          <h1 style={{ margin: "6px 0 8px", fontFamily: "var(--font-display)", fontSize: "var(--display-md)", fontWeight: 600, lineHeight: 1.15, color: "var(--color-text-strong)" }}>
             {lang === "ta" ? "நம்பிக்கையுடன் " : "Plan with "}
             <em style={{ fontStyle: "italic", color: "var(--color-accent-strong)" }}>{lang === "ta" ? "திட்டமிடுங்கள்." : "confidence."}</em>
           </h1>
-          <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)", lineHeight: 1.55, maxWidth: "520px" }}>
+          <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55, maxWidth: "520px" }}>
             {lang === "ta"
               ? "இலக்குகளை அமைக்கவும், முடிவுகளை பரிசோதிக்கவும், முக்கிய முடிவுகளுக்கு ஆதரவான தேதிகளைத் தேர்ந்தெடுக்கவும்."
               : "Set goals, simulate outcomes, and pick high-support dates for important moves."}
@@ -310,9 +310,11 @@ export function DashboardPlanTabNova({
         <button
           type="button"
           onClick={onGoToChart}
-          style={{ display: "flex", alignItems: "center", gap: "7px", background: "var(--color-surface)", color: "var(--color-muted)", border: "1px solid var(--color-border)", borderRadius: "11px", padding: "10px 16px", fontSize: "12.5px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+          style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", background: "var(--color-surface)", color: "var(--color-muted)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)", fontSize: "var(--text-sm)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
         >
-          🪐 {t("tab_family", lang)} →
+          <Orbit size={16} strokeWidth={1.5} aria-hidden="true" />
+          {t("tab_family", lang)}
+          <ArrowRight size={14} strokeWidth={1.5} aria-hidden="true" />
         </button>
       </div>
 
@@ -330,31 +332,32 @@ export function DashboardPlanTabNova({
         <>
           <div className={heroGroup ? "nova-grid-anticipation" : undefined}>
             {/* ── My goals ── */}
-            <div style={novaDetailCardStyle}>
+            <Card>
               <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-                <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
+                <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
                   {lang === "ta" ? "என் இலக்குகள்" : "My goals"}
                 </span>
-                <span style={{ fontSize: "12px", color: "var(--color-faint)" }}>
+                <span style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
                   {lang === "ta" ? "தினசரி வழிகாட்டல் அதற்கேற்ப செறிவூட்டப்படும்" : "Daily guidance is enriched to match"}
                 </span>
               </div>
 
               {goals.length > 0 && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
                   {goals.map((g) => {
                     const norm = normalizeGoalType(g.goalType);
                     const labelKey = GOAL_OPTIONS.find(([v]) => v === norm)?.[1];
                     return (
-                      <span key={g.goalId} style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontSize: "12.5px", fontWeight: 600, color: "var(--color-accent-strong)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "7px 14px" }}>
+                      <span key={g.goalId} style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-accent-strong)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-pill)", padding: "var(--space-2) var(--space-4)" }}>
                         {labelKey ? t(labelKey, lang) : g.goalType}
                         <button
                           type="button"
                           onClick={() => onRemoveGoal(g.goalId)}
                           disabled={removingGoalId === g.goalId}
-                          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-muted)", padding: 0, fontSize: "0.75rem", lineHeight: 1, fontWeight: 400 }}
+                          aria-label={lang === "ta" ? "இலக்கை நீக்கு" : "Remove goal"}
+                          style={{ display: "inline-flex", alignItems: "center", background: "none", border: "none", cursor: "pointer", color: "var(--color-muted)", padding: 0, fontSize: "var(--text-sm)", lineHeight: 1, fontWeight: 400 }}
                         >
-                          {removingGoalId === g.goalId ? "…" : "✕"}
+                          {removingGoalId === g.goalId ? "…" : <X size={13} strokeWidth={1.5} aria-hidden="true" />}
                         </button>
                       </span>
                     );
@@ -363,24 +366,24 @@ export function DashboardPlanTabNova({
               )}
 
               {goals.length === 0 && (
-                <p style={{ margin: 0, fontSize: "12.5px", color: "var(--color-muted)" }}>{t("goals_empty", lang)}</p>
+                <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>{t("goals_empty", lang)}</p>
               )}
 
               {goals.length < 3 && (
-                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
                   <NovaSelect
                     value={addingGoalType || "job_change"}
                     onChange={onAddingGoalTypeChange}
                     ariaLabel={t("goals_add", lang)}
                     containerStyle={{ flex: "1 1 200px" }}
-                    style={{ fontSize: "12.5px" }}
+                    style={{ fontSize: "var(--text-sm)" }}
                     options={GOAL_OPTIONS.map(([val, key]) => ({ value: val, label: t(key, lang) }))}
                   />
                   <button
                     type="button"
                     onClick={() => onAddGoal(addingGoalType || "job_change")}
                     disabled={goalsBusy}
-                    style={{ fontSize: "12.5px", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", border: "none", borderRadius: "9px", padding: "10px 16px", cursor: goalsBusy ? "wait" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
+                    style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", border: "none", borderRadius: "var(--radius-sm)", padding: "var(--space-3) var(--space-4)", cursor: goalsBusy ? "wait" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
                   >
                     {goalsBusy ? t("goals_adding", lang) : t("goals_add", lang)}
                   </button>
@@ -388,7 +391,7 @@ export function DashboardPlanTabNova({
               )}
 
               {goals.length > 0 && (
-                <p style={{ margin: 0, fontSize: "11.5px", lineHeight: 1.5, color: "var(--color-muted)", background: "var(--color-accent-muted)", borderRadius: "8px", padding: "9px 12px" }}>
+                <p style={{ margin: 0, fontSize: "var(--text-xs)", lineHeight: 1.5, color: "var(--color-muted)", background: "var(--color-accent-muted)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)" }}>
                   {lang === "ta" ? "உங்கள் இலக்குகள் " : "Your goals are highlighted in "}
                   <button type="button" onClick={onGoToLifeAreas} style={{ background: "none", border: "none", padding: 0, color: "var(--color-accent-strong)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", fontSize: "inherit" }}>
                     {t("tab_life_areas", lang)}
@@ -396,16 +399,16 @@ export function DashboardPlanTabNova({
                   {lang === "ta" ? " மற்றும் இன்றைய சுருக்கத்தில் முன்னிலைப்படுத்தப்படும்." : " and Today's snapshot, so the most relevant areas stand out."}
                 </p>
               )}
-            </div>
+            </Card>
 
             {/* ── Nearest supportive window ── */}
             {heroGroup && (
-              <div style={{ position: "relative", overflow: "hidden", background: "var(--nova-hero-gradient)", border: "1px solid var(--color-accent-secondary-muted)", borderRadius: "var(--radius-lg)", padding: "22px 24px", display: "flex", flexDirection: "column", gap: "12px" }}>
-                <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent-secondary)", fontWeight: 700 }}>
+              <div style={{ position: "relative", overflow: "hidden", background: "var(--nova-hero-gradient)", border: "1px solid var(--color-accent-secondary-muted)", borderRadius: "var(--radius-lg)", padding: "var(--space-6) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+                <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent-secondary)", fontWeight: 700 }}>
                   {lang === "ta" ? "அருகிலுள்ள ஆதரவான காலம்" : "Nearest supportive window"}
                 </span>
                 {heroQuery?.isLoading ? (
-                  <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)" }}>{lang === "ta" ? "கணக்கிடுகிறோம்…" : "Calculating…"}</p>
+                  <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)" }}>{lang === "ta" ? "கணக்கிடுகிறோம்…" : "Calculating…"}</p>
                 ) : heroWindow ? (() => {
                   const lord = namedLordFromReasons(heroWindow.reasons);
                   const isActiveNow = heroWindow.startDate <= todayStr && todayStr <= heroWindow.endDate;
@@ -414,11 +417,11 @@ export function DashboardPlanTabNova({
                   const yearsUntil = (new Date(`${heroWindow.startDate}T12:00:00`).getTime() - Date.now()) / (365.25 * 24 * 3600 * 1000);
                   return (
                     <>
-                      <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "26px", fontWeight: 600, color: "var(--color-accent-strong)", lineHeight: 1.2 }}>
+                      <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 600, color: "var(--color-accent-strong)", lineHeight: 1.2 }}>
                         {isActiveNow ? (lang === "ta" ? "இப்போது" : "Right now") : startLabel}
                         {lord ? ` · ${tPlanetLord(lord, lang)} ${lang === "ta" ? "தசை" : "dasa"}` : ""}
                       </p>
-                      <p style={{ margin: 0, fontSize: "12.5px", lineHeight: 1.6, color: "var(--color-muted)" }}>
+                      <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.6, color: "var(--color-muted)" }}>
                         {lang === "ta" ? "இதற்கு " : "For "}
                         <b style={{ color: "var(--color-text-strong)" }}>{heroGroup.goalLabels.join(lang === "ta" ? " மற்றும் " : " and ")}</b>
                         {!isActiveNow && yearsUntil >= 0
@@ -431,9 +434,9 @@ export function DashboardPlanTabNova({
                       <button
                         type="button"
                         onClick={onGoToCalendar}
-                        style={{ marginTop: "auto", textAlign: "left", background: "var(--color-accent-secondary-muted)", border: "1px solid var(--color-accent-secondary-muted)", borderRadius: "8px", padding: "8px 11px", cursor: "pointer", fontFamily: "inherit" }}
+                        style={{ marginTop: "auto", textAlign: "left", background: "var(--color-accent-secondary-muted)", border: "1px solid var(--color-accent-secondary-muted)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)", cursor: "pointer", fontFamily: "inherit" }}
                       >
-                        <span style={{ fontSize: "11.5px", color: "var(--color-muted)" }}>
+                        <span style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)" }}>
                           {lang === "ta" ? "வேகமான சூரிய/சுக்கிர சிக்னல்கள் உங்கள் " : "Short-term triggers (fast Sun/Venus signals) still appear in your "}
                           <span style={{ color: "var(--color-accent-secondary)", fontWeight: 600 }}>{lang === "ta" ? t("tab_calendar", lang) : "Calendar"}</span>
                           {lang === "ta" ? "-ல் தொடர்ந்து தோன்றும்." : "."}
@@ -442,13 +445,13 @@ export function DashboardPlanTabNova({
                     </>
                   );
                 })() : heroAgeGated ? (
-                  <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)", lineHeight: 1.5 }}>
+                  <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.5 }}>
                     {lang === "ta"
                       ? "இந்த சுயவிவரத்திற்கு திருமண நேரங்கள் காட்டப்படவில்லை."
                       : "Marriage timing isn't shown for this profile."}
                   </p>
                 ) : (
-                  <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)", lineHeight: 1.5 }}>
+                  <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.5 }}>
                     {lang === "ta"
                       ? "அடுத்த 20 ஆண்டுகளில் குறிப்பிடத்தக்க ஆதரவான காலம் இல்லை."
                       : "No notable supportive window in the next 20 years."}
@@ -464,26 +467,26 @@ export function DashboardPlanTabNova({
             const windows = q.data ? chronological(q.data.windows) : [];
             const groupAgeGated = group.event === "MARRIAGE" && Boolean(q.data?.ageGated);
             return (
-              <div key={group.event} style={novaDetailCardStyle}>
-                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
-                  <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
+              <Card key={group.event}>
+                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-2)" }}>
+                  <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
                     {group.goalLabels.join(" · ")} — {lang === "ta" ? "ஆதரவான காலங்கள்" : "supportive windows"}
                   </span>
-                  <button type="button" onClick={onGoToChart} style={{ background: "none", border: "none", padding: 0, fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                    {lang === "ta" ? "தசை காலவரிசையைப் பார் →" : "See the dasa timeline →"}
+                  <button type="button" onClick={onGoToChart} style={{ background: "none", border: "none", padding: 0, fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                    {lang === "ta" ? "தசை காலவரிசையைப் பார்" : "See the dasa timeline"}
                   </button>
                 </div>
 
-                <p style={{ margin: 0, fontSize: "12px", lineHeight: 1.55, color: "var(--color-muted)", background: "color-mix(in srgb, var(--color-text-strong) 4%, transparent)", borderRadius: "8px", padding: "9px 12px" }}>
+                <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)", background: "color-mix(in srgb, var(--color-text-strong) 4%, transparent)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)" }}>
                   {lang === "ta"
                     ? "தசை நேரமும் கிரகநகர்வு ஆதரவும் சேரும்போது ஒரு காலம் தோன்றும். இதை திட்டமிடல் சிக்னலாக எடுத்துக்கொள்ளுங்கள், உறுதியான நிகழ்வாக அல்ல."
                     : "A window appears when dasa timing and transit support overlap. Treat it as a planning signal, not a guaranteed event."}
                 </p>
 
-                {q.isLoading && <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)" }}>{lang === "ta" ? "கணக்கிடுகிறோம்…" : "Calculating…"}</p>}
+                {q.isLoading && <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)" }}>{lang === "ta" ? "கணக்கிடுகிறோம்…" : "Calculating…"}</p>}
 
                 {!q.isLoading && windows.length === 0 && groupAgeGated && (
-                  <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)" }}>
+                  <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)" }}>
                     {lang === "ta"
                       ? "இந்த சுயவிவரத்திற்கு திருமண நேரங்கள் காட்டப்படவில்லை."
                       : "Marriage timing isn't shown for this profile."}
@@ -491,7 +494,7 @@ export function DashboardPlanTabNova({
                 )}
 
                 {!q.isLoading && windows.length === 0 && !groupAgeGated && (
-                  <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)" }}>
+                  <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)" }}>
                     {lang === "ta" ? "அடுத்த 20 ஆண்டுகளில் குறிப்பிடத்தக்க காலம் இல்லை." : "No notable windows in the next 20 years."}
                   </p>
                 )}
@@ -502,30 +505,30 @@ export function DashboardPlanTabNova({
                   const endLabel = new Date(`${w.endDate}T12:00:00`).toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", { day: "numeric", month: "short", year: "numeric" });
                   const isActive = w.startDate <= todayStr && todayStr <= w.endDate;
                   return (
-                    <div key={`${w.startDate}-${i}`} style={{ display: "flex", gap: "16px", alignItems: "flex-start", background: isActive ? "var(--color-accent-muted)" : "var(--color-surface)", border: `1px solid ${isActive ? "var(--color-border-strong)" : "var(--color-border)"}`, borderRadius: "11px", padding: "15px 18px" }}>
-                      <div style={{ flex: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", minWidth: "74px" }}>
-                        <span style={{ fontFamily: "var(--font-display)", fontSize: "26px", fontWeight: 600, color: scoreColor, lineHeight: 1 }}>{w.score}</span>
+                    <Card key={`${w.startDate}-${i}`} variant={isActive ? "accent" : "default"} style={{ flexDirection: "row", gap: "var(--space-4)", alignItems: "flex-start" }}>
+                      <div style={{ flex: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-1)", minWidth: "74px" }}>
+                        <span style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 600, color: scoreColor, lineHeight: 1 }}>{w.score}</span>
                         <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.08em", color: "var(--color-faint)", textTransform: "uppercase" }}>/100 {lang === "ta" ? "ஆதரவு" : "support"}</span>
                       </div>
                       <div style={{ flex: 1 }}>
-                        <p style={{ margin: 0, fontSize: "14px", fontWeight: 700, color: "var(--color-text-strong)" }}>{startLabel} — {endLabel}</p>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "3px", marginTop: "6px" }}>
+                        <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>{startLabel} — {endLabel}</p>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", marginTop: "6px" }}>
                           {w.reasons.map((r, ri) => (
-                            <span key={`${r}-${ri}`} style={{ fontSize: "12px", color: "var(--color-muted)", lineHeight: 1.5 }}>· {humaniseReason(r, lang)}</span>
+                            <span key={`${r}-${ri}`} style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5 }}>· {humaniseReason(r, lang)}</span>
                           ))}
                         </div>
                       </div>
-                    </div>
+                    </Card>
                   );
                 })}
 
-                <p style={{ margin: 0, fontSize: "11.5px", color: "var(--color-faint)", lineHeight: 1.5 }}>
+                <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.5 }}>
                   <b style={{ color: "var(--color-accent-strong)" }}>{lang === "ta" ? "இந்த மதிப்பெண் என்ன அளவிடுகிறது:" : "What the score measures:"}</b>{" "}
                   {lang === "ta"
                     ? "செயலில் உள்ள தசை அதிபதிகளும் தற்போதைய கிரகநகர்வும் இந்த இலக்கை எவ்வளவு ஆதரிக்கின்றன. அதிகமானது ஆதரவானது — இது ஒரு உறுதியான விளைவை உத்தரவாதம் அளிக்காது."
                     : "How strongly the active dasa lords and current transits support this goal, on your chart. Higher is more supportive — it does not guarantee outcomes."}
                 </p>
-              </div>
+              </Card>
             );
           })}
 
@@ -534,11 +537,11 @@ export function DashboardPlanTabNova({
             const labelKey = GOAL_OPTIONS.find(([v]) => v === norm)?.[1];
             const label = labelKey ? t(labelKey, lang) : g.goalType;
             return (
-              <div key={g.goalId} style={novaDetailCardStyle}>
-                <span style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
+              <Card key={g.goalId}>
+                <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
                   {label} — {lang === "ta" ? "ஆதரவான காலங்கள்" : "supportive windows"}
                 </span>
-                <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)", lineHeight: 1.5 }}>
+                <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.5 }}>
                   {lang === "ta"
                     ? "இந்த இலக்கிற்கு, இங்குள்ள 'என்ன ஆகும்?' தாவலிலும், நாட்காட்டியின் 'சிறந்த நாள் & முஹூர்த்தம்' பகுதியிலும் உகந்த தேதிகளைக் கண்டறியவும்."
                     : "For this goal, use the What-If tab here, and the Calendar's Best Dates & Muhurta view, to find favourable dates tailored to your chart."}
@@ -546,11 +549,11 @@ export function DashboardPlanTabNova({
                 <button
                   type="button"
                   onClick={onGoToMuhurta ?? onGoToCalendar}
-                  style={{ marginTop: "2px", alignSelf: "flex-start", background: "none", border: "none", padding: 0, fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+                  style={{ marginTop: "2px", alignSelf: "flex-start", background: "none", border: "none", padding: 0, fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
                 >
-                  {lang === "ta" ? "நாட்காட்டியில் சிறந்த நாள் & முஹூர்த்தம் →" : "Best Dates & Muhurta in Calendar →"}
+                  {lang === "ta" ? "நாட்காட்டியில் சிறந்த நாள் & முஹூர்த்தம்" : "Best Dates & Muhurta in Calendar"}
                 </button>
-              </div>
+              </Card>
             );
           })}
 

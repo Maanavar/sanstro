@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, AlertTriangle, Clover, Flame, Landmark, Moon, type LucideIcon } from "lucide-react";
+import { Sparkles, AlertTriangle, Clover, Flame, Landmark, Moon, Search, ArrowRight, type LucideIcon } from "lucide-react";
+import { Kicker } from "./ui";
+import { novaDetailCardStyle } from "./dashboard-explore-detail-nova";
 
 import type { Lang } from "@/lib/i18n";
 import { tPlanetLord } from "@/lib/i18n";
@@ -61,14 +63,6 @@ type ExploreSubview =
   | { kind: "yogam"; screen: "detail"; index: number }
   | { kind: GuideLibraryKind; screen: "list" }
   | { kind: GuideLibraryKind; screen: "detail"; slug: string };
-
-function NovaKicker({ children, color = "var(--color-accent)" }: { children: React.ReactNode; color?: string }) {
-  return (
-    <p style={{ margin: 0, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700, color }}>
-      {children}
-    </p>
-  );
-}
 
 type LibraryItem = {
   key: string;
@@ -364,52 +358,42 @@ export function DashboardExploreTabNova({
     );
   }
 
-  const cardStyle: React.CSSProperties = {
-    background: "var(--color-surface)",
-    border: "1px solid var(--color-border)",
-    borderRadius: "var(--radius-lg)",
-    padding: "20px 22px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-  };
-
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "22px", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
 
       {/* ===== Page header + search ===== */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
         <div>
-          <NovaKicker>
+          <Kicker>
             {lang === "ta" ? <>ஆராயுங்கள் · <span style={{ fontFamily: "'Noto Sans Tamil', sans-serif" }}>அறிவுக் களஞ்சியம்</span></> : "Explore"}
-          </NovaKicker>
-          {/* audit B-1: page title is the Explore tab's <h1>. */}
-          <h1 style={{ margin: "6px 0 0", fontFamily: "var(--font-display)", fontSize: "clamp(1.7rem,3vw,2.2rem)", fontWeight: 600, color: "var(--color-text-strong)" }}>
+          </Kicker>
+          {/* audit B-1: page title is the Explore tab's sole page heading. */}
+          <h1 style={{ margin: "6px 0 0", fontFamily: "var(--font-display)", fontSize: "var(--display-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>
             {lang === "ta" ? "உங்கள் பலனுக்குப் பின்னால் உள்ள காரணம்" : "The why behind your readings"}
           </h1>
-          <div style={{ fontSize: "12.5px", color: "var(--color-muted)", marginTop: "3px" }}>
+          <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", marginTop: "3px" }}>
             {lang === "ta"
               ? "நட்சத்திரங்கள், தோஷங்கள், யோகங்கள், பரிகாரங்கள், கோயில்கள் — எளிய தமிழில், உங்கள் ஜாதகத்துடன் இணைக்கப்பட்டவை."
               : "Stars, doshams, yogams, remedies and temples — written plainly, linked to your own chart."}
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: "220px", display: "flex", alignItems: "center", gap: "11px", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "12px 18px" }}>
-            <span style={{ color: "var(--color-text-accent)", fontSize: "14px" }}>{"⌕"}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
+          <div style={{ flex: 1, minWidth: "220px", display: "flex", alignItems: "center", gap: "var(--space-3)", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-pill)", padding: "var(--space-3) var(--space-5)" }}>
+            <Search size={18} strokeWidth={1.5} aria-hidden="true" style={{ color: "var(--color-text-accent)", flexShrink: 0 }} />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={lang === "ta" ? "நட்சத்திரம், தோஷம், கோயில் அல்லது கேள்வியைத் தேடுங்கள்…" : "Search a star, dosham, temple or question…"}
-              style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", outline: "none", fontSize: "13.5px", color: "var(--color-text)", fontFamily: "inherit" }}
+              style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", outline: "none", fontSize: "var(--text-base)", color: "var(--color-text)", fontFamily: "inherit" }}
             />
           </div>
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
             {SEARCH_SUGGESTIONS.map((s) => (
               <button
                 key={s}
                 type="button"
                 onClick={() => setQuery(s)}
-                style={{ fontSize: "12px", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border)", borderRadius: "999px", padding: "8px 14px", cursor: "pointer", fontFamily: "inherit" }}
+                style={{ fontSize: "var(--text-sm)", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-2) var(--space-4)", cursor: "pointer", fontFamily: "inherit" }}
               >
                 {s}
               </button>
@@ -420,40 +404,40 @@ export function DashboardExploreTabNova({
 
       {/* ===== Start from your chart ===== */}
       {hasChartStarters && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
-            <NovaKicker>{lang === "ta" ? "உங்கள் ஜாதகத்திலிருந்து தொடங்குங்கள்" : "Start from your chart"}</NovaKicker>
-            <span style={{ fontSize: "11.5px", color: "var(--color-faint)" }}>{lang === "ta" ? "உங்களுக்கே பொருந்தும் பதிவுகள்" : "the entries that apply to you"}</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-3)" }}>
+            <Kicker>{lang === "ta" ? "உங்கள் ஜாதகத்திலிருந்து தொடங்குங்கள்" : "Start from your chart"}</Kicker>
+            <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{lang === "ta" ? "உங்களுக்கே பொருந்தும் பதிவுகள்" : "the entries that apply to you"}</span>
           </div>
           <div className="nova-grid-2">
             {personalChartSummary?.janmaNakshatra && nakshatraCard && (
               <button
                 type="button"
                 onClick={() => setSubview({ kind: "nakshatram", screen: "detail", number: nakshatraCard.number })}
-                style={{ ...cardStyle, background: "linear-gradient(120deg, var(--color-accent-muted), transparent)", border: "1px solid var(--color-border-strong)", textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
+                style={{ ...novaDetailCardStyle, background: "linear-gradient(120deg, var(--color-accent-muted), transparent)", border: "1px solid var(--color-border-strong)", textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent-strong)", fontWeight: 700 }}>
                     {lang === "ta" ? "உங்கள் ஜென்ம நட்சத்திரம்" : "Your birth star"}
                   </span>
-                  <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", borderRadius: "5px", padding: "2px 8px" }}>
+                  <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", borderRadius: "var(--radius-sm)", padding: "var(--space-1) var(--space-2)" }}>
                     {lang === "ta" ? "நீங்கள்" : "YOU"}
                   </span>
                 </div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
-                  <span style={{ fontFamily: "var(--font-display)", fontSize: "24px", fontWeight: 600, color: "var(--color-accent-strong)" }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-3)", flexWrap: "wrap" }}>
+                  <span style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 600, color: "var(--color-accent-strong)" }}>
                     {lang === "ta" ? nakshatraCard.nameTa : astroText(nakshatraCard.nameEn)}
                   </span>
-                  <span style={{ fontSize: "11.5px", color: "var(--color-faint)" }}>
+                  <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
                     {lang === "ta" ? "பாதம்" : "pada"} {personalChartSummary.janmaPada}
                   </span>
                 </div>
-                <p style={{ fontSize: "12.5px", lineHeight: 1.55, color: "var(--color-muted)", margin: 0 }}>
+                <p style={{ fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)", margin: 0 }}>
                   {lang === "ta" ? nakshatraCard.profile.ta : astroText(nakshatraCard.profile.en)}
                   {nakshatraCard.rulingPlanet ? ` (${tPlanetLord(nakshatraCard.rulingPlanet, lang)} ${lang === "ta" ? "ஆளும்" : "ruled"})` : ""}
                 </p>
-                <span style={{ fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, marginTop: "auto" }}>
-                  {lang === "ta" ? "முழு நட்சத்திரப் பக்கத்தைக் காண் →" : "Read your full star profile →"}
+                <span style={{ fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, marginTop: "auto" }}>
+                  {lang === "ta" ? "முழு நட்சத்திரப் பக்கத்தைக் காண்" : "Read your full star profile"}
                 </span>
               </button>
             )}
@@ -461,24 +445,24 @@ export function DashboardExploreTabNova({
               <button
                 type="button"
                 onClick={() => setSubview({ kind: "dosham", screen: "detail", index: doshams.indexOf(activeDosham) })}
-                style={{ ...cardStyle, border: "1px solid var(--color-low-border)", textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
+                style={{ ...novaDetailCardStyle, border: "1px solid var(--color-low-border)", textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-low)", fontWeight: 700 }}>
                     {lang === "ta" ? "உங்கள் ஜாதகத்தில் இயங்குவது" : "Active in your chart"}
                   </span>
-                  <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--color-low)", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", borderRadius: "5px", padding: "2px 8px" }}>
+                  <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-low)", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", borderRadius: "var(--radius-sm)", padding: "var(--space-1) var(--space-2)" }}>
                     {strengthBand(activeDosham.strength, true, lang)}
                   </span>
                 </div>
-                <div style={{ fontFamily: "var(--font-display)", fontSize: "24px", fontWeight: 600 }}>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 600 }}>
                   {displayName(activeDosham.name, lang)}
                 </div>
-                <p style={{ fontSize: "12.5px", lineHeight: 1.55, color: "var(--color-muted)", margin: 0 }}>
+                <p style={{ fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)", margin: 0 }}>
                   {lang === "ta" ? activeDosham.descriptionTa : astroText(activeDosham.descriptionEn)}
                 </p>
-                <span style={{ fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, marginTop: "auto" }}>
-                  {lang === "ta" ? "முழு சுயவிவரப் பக்கத்தைக் காண் →" : "Read the full profile →"}
+                <span style={{ fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, marginTop: "auto" }}>
+                  {lang === "ta" ? "முழு சுயவிவரப் பக்கத்தைக் காண்" : "Read the full profile"}
                 </span>
               </button>
             )}
@@ -486,24 +470,24 @@ export function DashboardExploreTabNova({
               <button
                 type="button"
                 onClick={() => setSubview({ kind: "yogam", screen: "detail", index: yogas.indexOf(activeYoga) })}
-                style={{ ...cardStyle, background: "linear-gradient(120deg, var(--color-high-bg), transparent)", border: "1px solid var(--color-high-border)", textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
+                style={{ ...novaDetailCardStyle, background: "linear-gradient(120deg, var(--color-high-bg), transparent)", border: "1px solid var(--color-high-border)", textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-high)", fontWeight: 700 }}>
                     {lang === "ta" ? "உங்கள் ஜாதகத்தில் உள்ளது" : "Present in your chart"}
                   </span>
-                  <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--color-high)", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)", borderRadius: "5px", padding: "2px 8px" }}>
+                  <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-high)", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)", borderRadius: "var(--radius-sm)", padding: "var(--space-1) var(--space-2)" }}>
                     {strengthBand(activeYoga.strength, true, lang)}
                   </span>
                 </div>
-                <div style={{ fontFamily: "var(--font-display)", fontSize: "24px", fontWeight: 600 }}>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 600 }}>
                   {displayName(activeYoga.name, lang)}
                 </div>
-                <p style={{ fontSize: "12.5px", lineHeight: 1.55, color: "var(--color-muted)", margin: 0 }}>
+                <p style={{ fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)", margin: 0 }}>
                   {astroText(getWhat(activeYoga.name, true, lang, { ta: activeYoga.descriptionTa, en: activeYoga.descriptionEn }, { ta: activeYoga.effectTa, en: activeYoga.effectEn }))}
                 </p>
-                <span style={{ fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, marginTop: "auto" }}>
-                  {lang === "ta" ? "முழு சுயவிவரப் பக்கத்தைக் காண் →" : "Read the full profile →"}
+                <span style={{ fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, marginTop: "auto" }}>
+                  {lang === "ta" ? "முழு சுயவிவரப் பக்கத்தைக் காண்" : "Read the full profile"}
                 </span>
               </button>
             )}
@@ -512,10 +496,10 @@ export function DashboardExploreTabNova({
       )}
 
       {/* ===== The library ===== */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
-          <NovaKicker>{lang === "ta" ? "நூலகம்" : "The library"}</NovaKicker>
-          <span style={{ fontSize: "11.5px", color: "var(--color-faint)" }}>{lang === "ta" ? "எளிய தமிழில் ஒவ்வொரு பதிவும்" : "every entry in plain Tamil-first language"}</span>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-3)" }}>
+          <Kicker>{lang === "ta" ? "நூலகம்" : "The library"}</Kicker>
+          <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{lang === "ta" ? "எளிய தமிழில் ஒவ்வொரு பதிவும்" : "every entry in plain Tamil-first language"}</span>
         </div>
         {filteredLibrary.length > 0 ? (
           <div className="nova-grid-3">
@@ -532,30 +516,30 @@ export function DashboardExploreTabNova({
               const isLoadingChartDetail = !!item.openDetail && !item.nav && !canOpenDetail;
               const inner = (
                 <>
-                  <span style={{ flex: "none", width: "40px", height: "40px", borderRadius: "50%", background: item.iconBg, border: `1px solid ${item.iconColor}`, display: "grid", placeItems: "center", color: item.iconColor }}>
+                  <span style={{ flex: "none", width: "40px", height: "40px", borderRadius: "var(--radius-pill)", background: item.iconBg, border: `1px solid ${item.iconColor}`, display: "grid", placeItems: "center", color: item.iconColor }}>
                     <item.icon size={19} strokeWidth={2} aria-hidden focusable={false} />
                   </span>
-                  <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
-                    <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-                      <span style={{ fontSize: "15px", fontWeight: 600, color: "var(--color-text-strong)" }}>{lang === "ta" ? item.titleTa : item.titleEn}</span>
+                  <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-2)" }}>
+                      <span style={{ fontSize: "var(--text-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>{lang === "ta" ? item.titleTa : item.titleEn}</span>
                     </div>
-                    <div style={{ fontSize: "12px", lineHeight: 1.5, color: "var(--color-muted)" }}>
+                    <div style={{ fontSize: "var(--text-sm)", lineHeight: 1.5, color: "var(--color-muted)" }}>
                       {lang === "ta" ? item.descTa : item.descEn}
                     </div>
-                    <div style={{ fontSize: "11.5px", color: isLoadingChartDetail ? "var(--color-faint)" : "var(--color-accent-strong)", fontWeight: 600, marginTop: "4px" }}>
+                    <div style={{ fontSize: "var(--text-xs)", color: isLoadingChartDetail ? "var(--color-faint)" : "var(--color-accent-strong)", fontWeight: 600, marginTop: "4px" }}>
                       {isLoadingChartDetail
                         ? (lang === "ta" ? "ஜாதகம் ஏற்றப்படுகிறது…" : "Loading your chart…")
                         : item.nav
-                          ? (lang === "ta" ? "நாட்காட்டியில் காண்க →" : "Open in Calendar →")
-                          : (lang === "ta" ? "உலாவுக →" : "Browse →")}
+                          ? (lang === "ta" ? "நாட்காட்டியில் காண்க" : "Open in Calendar")
+                          : (lang === "ta" ? "உலாவுக" : "Browse")}
                     </div>
                   </div>
                 </>
               );
               const tileStyle: React.CSSProperties = {
                 textDecoration: "none", color: "var(--color-text)", background: "var(--color-surface)",
-                border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "18px 20px",
-                display: "flex", gap: "14px", alignItems: "flex-start", cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+                border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-5) var(--space-5)",
+                display: "flex", gap: "var(--space-4)", alignItems: "flex-start", cursor: "pointer", fontFamily: "inherit", textAlign: "left",
               };
               if (item.nav) {
                 return <button key={item.key} type="button" onClick={() => onNavigate(item.nav!)} style={tileStyle}>{inner}</button>;
@@ -585,7 +569,7 @@ export function DashboardExploreTabNova({
             })}
           </div>
         ) : (
-          <p style={{ fontSize: "12.5px", color: "var(--color-faint)" }}>
+          <p style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
             {lang === "ta" ? `“${query}” க்கு பொருந்தும் நூலக பதிவு இல்லை.` : `No library entries match “${query}”.`}
           </p>
         )}
@@ -593,24 +577,24 @@ export function DashboardExploreTabNova({
 
       {/* ===== Learn ===== */}
       {filteredLearn.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          <NovaKicker>{lang === "ta" ? "கற்றுக்கொள்ளுங்கள்" : "Learn"}</NovaKicker>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+          <Kicker>{lang === "ta" ? "கற்றுக்கொள்ளுங்கள்" : "Learn"}</Kicker>
           <div className="nova-grid-3">
             {filteredLearn.map((a) => (
               <button
                 key={a.key}
                 type="button"
                 onClick={() => setLearnSlug(a.slug)}
-                style={{ textDecoration: "none", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "16px 18px", display: "flex", flexDirection: "column", gap: "8px", cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%" }}
+                style={{ textDecoration: "none", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-4) var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-2)", cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%" }}
               >
                 <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent-secondary)", fontWeight: 700 }}>
                   {lang === "ta" ? a.kickerTa : a.kickerEn}
                 </span>
-                <span style={{ fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "15px", fontWeight: 600, lineHeight: 1.4 }}>
+                <span style={{ fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "var(--text-md)", fontWeight: 600, lineHeight: 1.4 }}>
                   {lang === "ta" ? a.titleTa : a.titleEn}
                 </span>
-                <span style={{ fontSize: "11.5px", color: "var(--color-accent-strong)", fontWeight: 600, marginTop: "auto" }}>
-                  {lang === "ta" ? "படிக்க →" : "Read →"}
+                <span style={{ fontSize: "var(--text-xs)", color: "var(--color-accent-strong)", fontWeight: 600, marginTop: "auto" }}>
+                  {lang === "ta" ? "படிக்க" : "Read"}
                 </span>
               </button>
             ))}
@@ -619,7 +603,7 @@ export function DashboardExploreTabNova({
       )}
 
       {noMatches && (
-        <p style={{ fontSize: "12.5px", color: "var(--color-faint)" }}>
+        <p style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
           {lang === "ta" ? `“${query}” க்கு எதுவும் கிடைக்கவில்லை — கீழே Ask Vinaadi-யிடம் கேளுங்கள்.` : `Nothing matched “${query}” — ask Vinaadi below instead.`}
         </p>
       )}
@@ -629,23 +613,24 @@ export function DashboardExploreTabNova({
         type="button"
         onClick={onOpenAskVinaadi}
         style={{
-          display: "flex", alignItems: "center", gap: "14px", textAlign: "left", cursor: "pointer", fontFamily: "inherit",
-          background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px solid var(--color-accent-secondary)", borderRadius: "var(--radius-md)", padding: "16px 22px",
+          display: "flex", alignItems: "center", gap: "var(--space-4)", textAlign: "left", cursor: "pointer", fontFamily: "inherit",
+          background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px solid var(--color-accent-secondary)", borderRadius: "var(--radius-md)", padding: "var(--space-4) var(--space-6)",
         }}
       >
-        <span aria-hidden="true" style={{ width: "32px", height: "32px", borderRadius: "50%", background: "var(--color-accent-secondary-muted)", border: "1px solid var(--color-accent-secondary)", display: "grid", placeItems: "center", fontSize: "15px", color: "var(--color-accent-secondary)", flexShrink: 0 }}>
-          {"✦"}
+        <span aria-hidden="true" style={{ width: "32px", height: "32px", borderRadius: "var(--radius-pill)", background: "var(--color-accent-secondary-muted)", border: "1px solid var(--color-accent-secondary)", display: "grid", placeItems: "center", color: "var(--color-accent-secondary)", flexShrink: 0 }}>
+          <Sparkles size={16} strokeWidth={1.5} />
         </span>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: "13.5px", fontWeight: 600, color: "var(--color-accent-secondary)" }}>
+          <div style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-accent-secondary)" }}>
             {lang === "ta" ? "நீங்கள் தேடுவது கிடைக்கவில்லையா?" : "Can't find what you're looking for?"}
           </div>
-          <div style={{ fontSize: "12px", color: "var(--color-muted)", marginTop: "1px" }}>
+          <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", marginTop: "1px" }}>
             {lang === "ta" ? "Ask Vinaadi — நூலகத்திலிருந்தும் உங்கள் ஜாதகத்திலிருந்தும் பதிலளிக்கும்." : "Ask Vinaadi — answers cite the library and read from your chart."}
           </div>
         </div>
-        <span style={{ background: "var(--color-accent-secondary)", color: "var(--color-on-accent)", borderRadius: "999px", padding: "8px 18px", fontSize: "12.5px", fontWeight: 700, flexShrink: 0 }}>
-          {lang === "ta" ? "கேளுங்கள் ✦" : "Ask ✦"}
+        <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", background: "var(--color-accent-secondary)", color: "var(--color-on-accent)", borderRadius: "var(--radius-pill)", padding: "var(--space-2) var(--space-5)", fontSize: "var(--text-sm)", fontWeight: 700, flexShrink: 0 }}>
+          {lang === "ta" ? "கேளுங்கள்" : "Ask"}
+          <Sparkles size={14} strokeWidth={1.5} aria-hidden="true" />
         </span>
       </button>
     </div>

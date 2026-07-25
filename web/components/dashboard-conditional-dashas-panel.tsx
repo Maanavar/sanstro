@@ -15,13 +15,6 @@ import { CollapsibleSection } from "./collapsible-section";
 // app/calculations/conditional_dashas.py for the documented single-source
 // posture. Experimental / display-only — none feed the daily score, and the
 // applicability report never auto-hides a system.
-const W = {
-  ink: "var(--deepdive-ink, var(--panel-earth-dark))",
-  muted: "var(--color-faint)",
-  borderLt: "var(--deepdive-border-light, var(--panel-tan-light))",
-  surfaceMd: "var(--deepdive-surface-strong, var(--panel-hover))",
-} as const;
-
 const LORD_LABEL: Record<string, { en: string; ta: string }> = {
   SUN: { en: "Sun", ta: "சூரியன்" },
   MOON: { en: "Moon", ta: "சந்திரன்" },
@@ -52,16 +45,16 @@ function StatusChip({ applicable, lang }: { applicable: boolean | null; lang: La
       ? { label: isTamil ? "பொருந்தும்" : "Applies", bg: "var(--color-high-bg)", fg: "var(--color-high)", bd: "var(--color-high-border)" }
       : applicable === false
         ? { label: isTamil ? "பொருந்தாது" : "Does not apply", bg: "var(--color-surface-soft)", fg: "var(--color-muted)", bd: "var(--color-border)" }
-        : { label: isTamil ? "மதிப்பாய்வு தேவை" : "Needs review", bg: "var(--cl-sage-soft)", fg: "var(--color-text-strong)", bd: "var(--cl-sage-border)" };
+        : { label: isTamil ? "மதிப்பாய்வு தேவை" : "Needs review", bg: "var(--color-high-bg)", fg: "var(--color-text-strong)", bd: "var(--color-high-border)" };
   return (
     <span
       style={{
-        fontSize: "0.625rem",
+        fontSize: "var(--text-2xs)",
         fontWeight: 700,
         textTransform: "uppercase",
         letterSpacing: "0.06em",
-        padding: "2px 8px",
-        borderRadius: "999px",
+        padding: "var(--space-1) var(--space-2)",
+        borderRadius: "var(--radius-pill)",
         background: config.bg,
         color: config.fg,
         border: `1px solid ${config.bd}`,
@@ -93,7 +86,7 @@ function SystemCard({
   return (
     <CollapsibleSection title={title} defaultOpen={false}>
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", paddingTop: "var(--space-1)" }}>
-        <p style={{ margin: 0, fontSize: "0.7rem", color: W.muted, lineHeight: 1.5 }}>
+        <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.5 }}>
           {isTamil ? system.applicabilityTa : system.applicabilityEn}
           {applicability?.reason ? ` · ${applicability.reason}` : ""}
         </p>
@@ -108,24 +101,24 @@ function SystemCard({
           }}
         >
           <div style={{ flex: 1 }}>
-            <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: W.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
               {isTamil ? "தற்போதைய மஹா" : "Current Maha"}
             </p>
-            <p style={{ margin: 0, fontSize: "0.8125rem", fontWeight: 700, color: W.ink }}>
+            <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
               {lordName(system.current.mahadasha.lord, isTamil)}
             </p>
-            <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "0.6875rem", color: W.muted }}>
+            <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
               {system.current.mahadasha.startDate} – {system.current.mahadasha.endDate}
             </p>
           </div>
           <div style={{ flex: 1 }}>
-            <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: W.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
               {isTamil ? "அந்தர்" : "Antar"}
             </p>
-            <p style={{ margin: 0, fontSize: "0.8125rem", fontWeight: 700, color: W.ink }}>
+            <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
               {lordName(system.current.antardasha.lord, isTamil)}
             </p>
-            <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "0.6875rem", color: W.muted }}>
+            <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
               {system.current.antardasha.startDate} – {system.current.antardasha.endDate}
             </p>
           </div>
@@ -141,12 +134,12 @@ function SystemCard({
                 gap: "var(--space-2)",
                 padding: "var(--space-1) var(--space-2_5)",
                 borderRadius: "var(--radius-sm)",
-                border: `1px solid ${W.borderLt}`,
-                background: period.startDate === system.current.mahadasha.startDate ? W.surfaceMd : "transparent",
+                border: `1px solid var(--color-border)`,
+                background: period.startDate === system.current.mahadasha.startDate ? "var(--color-surface)" : "transparent",
               }}
             >
-              <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: W.ink }}>{lordName(period.lord, isTamil)}</span>
-              <span style={{ fontSize: "0.6875rem", color: W.muted }}>
+              <span style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)" }}>{lordName(period.lord, isTamil)}</span>
+              <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
                 {period.years} {isTamil ? "ஆண்டு" : "yr"} · {period.startDate}
               </span>
             </div>
@@ -192,18 +185,18 @@ export function ConditionalDashasPanel({ lang, chartId }: Props) {
 
   return (
     <CollapsibleSection title={title} defaultOpen={false}>
-      <p style={{ color: W.muted, fontSize: 12, margin: "0 0 var(--space-2) 0", lineHeight: 1.5 }}>{subtitle}</p>
+      <p style={{ color: "var(--color-faint)", fontSize: "var(--text-sm)", margin: "0 0 var(--space-2) 0", lineHeight: 1.5 }}>{subtitle}</p>
       {state === "loading" && (
-        <p style={{ color: W.muted, fontSize: 13, margin: 0 }}>{isTamil ? "ஏற்றுகிறது…" : "Loading…"}</p>
+        <p style={{ color: "var(--color-faint)", fontSize: "var(--text-base)", margin: 0 }}>{isTamil ? "ஏற்றுகிறது…" : "Loading…"}</p>
       )}
       {state === "error" && (
-        <p style={{ color: "var(--deepdive-accent, var(--panel-brand))", fontSize: 13, margin: 0 }}>
+        <p style={{ color: "var(--color-mid)", fontSize: "var(--text-base)", margin: 0 }}>
           {isTamil ? "நிபந்தனை தசைகளை ஏற்ற முடியவில்லை." : "Could not load conditional dashas."}
         </p>
       )}
       {data && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
-          <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.6875rem", color: W.muted }}>
+          <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
             {isTamil ? "பக்ஷம்" : "Paksha"}: {data.applicability.paksha === "SHUKLA" ? (isTamil ? "சுக்ல" : "Shukla") : (isTamil ? "கிருஷ்ண" : "Krishna")}
             {data.applicability.isDayBirth !== null && (
               <>

@@ -8,6 +8,7 @@ import type { Lang } from "@/lib/i18n";
 import type { ApiEnvelope, DecisionBriefData } from "@/lib/types";
 import { SCENARIO_GROUPS } from "./dashboard-plan-shared";
 import { NovaSelect } from "./nova-select";
+import { Card } from "./ui";
 
 /**
  * Nova re-skin of dashboard-decision-panel.tsx's DecisionPanel (plus the
@@ -19,10 +20,10 @@ import { NovaSelect } from "./nova-select";
  *
  * Grepped every var(--...) reference in the Classic file first: its own `W`
  * token map (ink/inkMid/border/borderLt/surface/surfaceMd) reads the exact
- * same 5 custom properties (--panel-earth-dark/-earth/-tan/-tan-light/
- * -hover) the 2026-07-06 browser-QA round reverted after they broke
- * selected-pill text app-wide (same finding as Journal §6.11, Remedies
- * §6.8.1), plus several literal hardcoded `#F9ECE7`/rgba(168,72,47,...)
+ * same warm-parchment custom properties the 2026-07-06 browser-QA round
+ * reverted after they broke selected-pill text app-wide (same finding as
+ * Journal §6.11, Remedies §6.8.1), plus several literal hardcoded
+ * `#F9ECE7`/rgba(168,72,47,...)
  * values with no CSS variable at all for the caution/risk boxes. So this is
  * a fresh Nova-token rebuild, not a gap-fix — same class of decision as
  * every other deferred panel re-skinned this pass.
@@ -41,12 +42,12 @@ function novaVerdictColor(verdict: string): string {
 
 const fieldStyle: React.CSSProperties = {
   width: "100%",
-  padding: "8px 10px",
-  borderRadius: "10px",
+  padding: "var(--space-2) var(--space-3)",
+  borderRadius: "var(--radius-md)",
   border: "1.5px solid var(--color-border)",
   background: "var(--color-surface-soft)",
   color: "var(--color-text)",
-  fontSize: "14px",
+  fontSize: "var(--text-base)",
   fontFamily: "inherit",
 };
 
@@ -104,36 +105,36 @@ export function NovaPlanDecisionsPanel({ lang, chartId, mode = "BALANCED" }: Pro
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "16px", fontFamily: "var(--font-body)" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", fontFamily: "var(--font-body)" }}>
       <div>
-        <p style={{ margin: "0 0 4px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>
+        <p style={{ margin: "0 0 4px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>
           {t("decision_panel_title", lang)}
         </p>
-        <p style={{ margin: 0, fontSize: "14px", color: "var(--color-muted)" }}>{t("decision_panel_desc", lang)}</p>
+        <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)" }}>{t("decision_panel_desc", lang)}</p>
       </div>
 
-      <div style={{ padding: "14px", borderRadius: "12px", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)" }}>
-        <p style={{ margin: "0 0 8px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>
+      <Card variant="soft" compact>
+        <p style={{ margin: "0 0 8px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>
           {lang === "ta" ? "எதை எப்போது பயன்படுத்துவது?" : "When to use which tool?"}
         </p>
-        <p style={{ margin: "0 0 6px", fontSize: "14px", color: "var(--color-text)", lineHeight: 1.5 }}>
+        <p style={{ margin: "0 0 6px", fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.5 }}>
           <strong>Decision Support:</strong>{" "}
           {lang === "ta"
             ? "A vs B போன்ற இரண்டு விருப்பங்களை ஒப்பிட்டு, இப்போது எது சிறந்தது என்பதை தெரிந்துகொள்ள."
             : "Compare Option A vs Option B when you need a recommendation for a specific decision date."}
         </p>
-        <p style={{ margin: 0, fontSize: "14px", color: "var(--color-text)", lineHeight: 1.5 }}>
+        <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.5 }}>
           <strong>What-If:</strong>{" "}
           {lang === "ta"
             ? "ஒரே முடிவிற்கு வேறு தேதிகளை முயன்று, எந்த காலம் சிறந்தது என்பதை பார்க்க (Planning tab)."
             : "Simulate a single scenario across timing windows to find better periods (Planning tab)."}
         </p>
-      </div>
+      </Card>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "10px", padding: "16px", borderRadius: "12px", background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
-        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+      <Card compact style={{ gap: "var(--space-3)" }}>
+        <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: "160px" }}>
-            <label style={{ display: "block", fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-faint)", marginBottom: "4px" }}>
+            <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-faint)", marginBottom: "4px" }}>
               {t("decision_scenario", lang)}
             </label>
             <NovaSelect
@@ -157,16 +158,16 @@ export function NovaPlanDecisionsPanel({ lang, chartId, mode = "BALANCED" }: Pro
             />
           </div>
           <div style={{ flex: 1, minWidth: "160px" }}>
-            <label style={{ display: "block", fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-faint)", marginBottom: "4px" }}>
+            <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-faint)", marginBottom: "4px" }}>
               {t("decision_target_date", lang)} *
             </label>
             <input style={fieldStyle} type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} />
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: "220px" }}>
-            <label style={{ display: "block", fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-faint)", marginBottom: "4px" }}>
+            <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-faint)", marginBottom: "4px" }}>
               {t("decision_option_a", lang)}
             </label>
             <input
@@ -185,7 +186,7 @@ export function NovaPlanDecisionsPanel({ lang, chartId, mode = "BALANCED" }: Pro
             />
           </div>
           <div style={{ flex: 1, minWidth: "220px" }}>
-            <label style={{ display: "block", fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-faint)", marginBottom: "4px" }}>
+            <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-faint)", marginBottom: "4px" }}>
               {t("decision_option_b", lang)}
             </label>
             <input
@@ -211,11 +212,11 @@ export function NovaPlanDecisionsPanel({ lang, chartId, mode = "BALANCED" }: Pro
           disabled={loading || !isFormValid}
           style={{
             alignSelf: "flex-start",
-            padding: "8px 22px",
-            borderRadius: "10px",
+            padding: "var(--space-2) var(--space-6)",
+            borderRadius: "var(--radius-md)",
             border: "1px solid var(--color-accent)",
             cursor: loading || !isFormValid ? "not-allowed" : "pointer",
-            fontSize: "14px",
+            fontSize: "var(--text-base)",
             fontWeight: 700,
             background: loading || !isFormValid ? "var(--color-surface-soft)" : "var(--color-accent)",
             color: loading || !isFormValid ? "var(--color-faint)" : "var(--color-on-accent)",
@@ -224,54 +225,53 @@ export function NovaPlanDecisionsPanel({ lang, chartId, mode = "BALANCED" }: Pro
         >
           {loading ? t("decision_analysing", lang) : t("decision_analyse", lang)}
         </button>
-        {error && <p style={{ margin: 0, fontSize: "12px", color: "var(--color-low)" }}>{error}</p>}
-      </div>
+        {error && <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-low)" }}>{error}</p>}
+      </Card>
 
       {result && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          <div style={{ padding: "18px 20px", borderRadius: "12px", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", display: "flex", gap: "20px", flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+          <Card variant="soft" style={{ flexDirection: "row", gap: "var(--space-5)", flexWrap: "wrap", alignItems: "center" }}>
             <div>
-              <p style={{ margin: "0 0 2px", fontSize: "11px", fontWeight: 700, color: "var(--color-faint)" }}>{t("decision_recommended", lang)}</p>
-              <p style={{ margin: 0, fontSize: "1.8rem", fontWeight: 900, lineHeight: 1, color: novaVerdictColor(result.recommended) }}>
+              <p style={{ margin: "0 0 2px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)" }}>{t("decision_recommended", lang)}</p>
+              <p style={{ margin: 0, fontSize: "var(--text-2xl)", fontWeight: 900, lineHeight: 1, color: novaVerdictColor(result.recommended) }}>
                 {result.recommended === "DEFER" ? t("decision_defer", lang) : result.recommended}
               </p>
             </div>
             <div>
-              <p style={{ margin: "0 0 2px", fontSize: "11px", fontWeight: 700, color: "var(--color-faint)" }}>{t("decision_confidence", lang)}</p>
-              <p style={{ margin: 0, fontSize: "1.5rem", fontWeight: 700, color: novaVerdictColor(result.recommended) }}>{result.confidence}%</p>
+              <p style={{ margin: "0 0 2px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)" }}>{t("decision_confidence", lang)}</p>
+              <p style={{ margin: 0, fontSize: "var(--text-xl)", fontWeight: 700, color: novaVerdictColor(result.recommended) }}>{result.confidence}%</p>
             </div>
             <div style={{ flex: 1, minWidth: "200px" }}>
-              <p style={{ margin: "0 0 2px", fontSize: "11px", fontWeight: 700, color: "var(--color-faint)" }}>{t("decision_reasoning", lang)}</p>
-              <p style={{ margin: 0, fontSize: "14px", color: "var(--color-text)", lineHeight: 1.5 }}>{tLang(result.reasoning, lang)}</p>
+              <p style={{ margin: "0 0 2px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)" }}>{t("decision_reasoning", lang)}</p>
+              <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.5 }}>{tLang(result.reasoning, lang)}</p>
             </div>
-          </div>
+          </Card>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: "12px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: "var(--space-3)" }}>
             {[
               { key: "A" as const, data: result.optionA, isRecommended: result.recommended === "A" },
               { key: "B" as const, data: result.optionB, isRecommended: result.recommended === "B" },
             ].map(({ key, data, isRecommended }) => {
               const isDefer = result.recommended === "DEFER";
               const accentColor = isRecommended ? "var(--color-high)" : isDefer ? "var(--color-mid)" : "var(--color-low)";
-              const bgColor = isRecommended ? "var(--color-high-bg)" : isDefer ? "var(--color-surface-soft)" : "var(--color-low-bg)";
-              const borderColor = isRecommended ? "var(--color-high-border)" : isDefer ? "var(--color-border)" : "var(--color-low-border)";
+              const cardVariant = isRecommended ? "high" : isDefer ? "soft" : "low";
               return (
-                <div key={key} style={{ padding: "14px 16px", borderRadius: "12px", background: bgColor, border: `1px solid ${borderColor}` }}>
+                <Card key={key} variant={cardVariant} compact>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
                     <div>
-                      <p style={{ margin: "0 0 2px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", color: accentColor }}>
+                      <p style={{ margin: "0 0 2px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.06em", color: accentColor }}>
                         {t(`decision_option_${key.toLowerCase()}` as Parameters<typeof t>[0], lang)}
                       </p>
-                      <p style={{ margin: 0, fontSize: "12px", fontWeight: 600, color: "var(--color-text)" }}>{data.label}</p>
+                      <p style={{ margin: 0, fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text)" }}>{data.label}</p>
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0, marginLeft: "8px" }}>
-                      <div style={{ fontSize: "1.5rem", fontWeight: 900, color: accentColor, lineHeight: 1 }}>{data.score}</div>
+                      <div style={{ fontSize: "var(--text-xl)", fontWeight: 900, color: accentColor, lineHeight: 1 }}>{data.score}</div>
                       <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "2px" }}>/100</div>
                     </div>
                   </div>
 
                   <div style={{ marginBottom: "10px" }}>
-                    <span style={{ fontSize: "12px", fontWeight: 700, padding: "3px 10px", borderRadius: "999px", background: `${accentColor}18`, border: `1px solid ${accentColor}44`, color: accentColor }}>
+                    <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", background: `${accentColor}18`, border: `1px solid ${accentColor}44`, color: accentColor }}>
                       {isRecommended ? "Recommended" : isDefer ? "Defer" : "Weaker option"}
                     </span>
                   </div>
@@ -281,9 +281,9 @@ export function NovaPlanDecisionsPanel({ lang, chartId, mode = "BALANCED" }: Pro
                       <p style={{ margin: "0 0 2px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.05em", color: isRecommended ? "var(--color-high)" : "var(--color-faint)" }}>
                         {isRecommended ? "Why this is stronger" : "Limiting factors"}
                       </p>
-                      <ul style={{ margin: 0, padding: "0 0 0 14px" }}>
+                      <ul style={{ margin: 0, paddingLeft: "var(--space-4)" }}>
                         {data.alignmentNotes.map((note) => (
-                          <li key={note} style={{ fontSize: "12px", color: isRecommended ? "var(--color-text)" : "var(--color-muted)", lineHeight: 1.4, marginBottom: "2px" }}>
+                          <li key={note} style={{ fontSize: "var(--text-sm)", color: isRecommended ? "var(--color-text)" : "var(--color-muted)", lineHeight: 1.4, marginBottom: "2px" }}>
                             {note}
                           </li>
                         ))}
@@ -292,12 +292,12 @@ export function NovaPlanDecisionsPanel({ lang, chartId, mode = "BALANCED" }: Pro
                   )}
 
                   {data.riskFactors.length > 0 && (
-                    <div style={{ padding: "6px 8px", borderRadius: "6px", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", marginBottom: "6px" }}>
+                    <div style={{ padding: "var(--space-2) var(--space-2)", borderRadius: "var(--radius-sm)", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", marginBottom: "6px" }}>
                       <p style={{ margin: 0, fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.05em", color: "var(--color-low)" }}>
                         {lang === "ta" ? "கவனிக்க வேண்டியவை" : "Watch out for"}
                       </p>
                       {data.riskFactors.map((rf, i) => (
-                        <p key={rf} style={{ margin: i > 0 ? "2px 0 0" : 0, fontSize: "12px", color: "var(--color-low)", lineHeight: 1.4 }}>
+                        <p key={rf} style={{ margin: i > 0 ? "2px 0 0" : 0, fontSize: "var(--text-sm)", color: "var(--color-low)", lineHeight: 1.4 }}>
                           ! {rf}
                         </p>
                       ))}
@@ -305,32 +305,32 @@ export function NovaPlanDecisionsPanel({ lang, chartId, mode = "BALANCED" }: Pro
                   )}
 
                   {data.optimalWindow && (
-                    <p style={{ margin: "4px 0 0", fontSize: "12px", color: "var(--color-mid)" }}>
+                    <p style={{ margin: "4px 0 0", fontSize: "var(--text-sm)", color: "var(--color-mid)" }}>
                       {t("decision_optimal_window", lang)}: {data.optimalWindow}
                     </p>
                   )}
-                </div>
+                </Card>
               );
             })}
           </div>
 
           {result.caution && (
-            <div style={{ padding: "10px 14px", borderRadius: "10px", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)" }}>
-              <p style={{ margin: "0 0 2px", fontSize: "11px", fontWeight: 700, color: "var(--color-low)" }}>{t("decision_caution", lang)}</p>
-              <p style={{ margin: 0, fontSize: "12px", color: "var(--color-text)", lineHeight: 1.5 }}>{tLang(result.caution, lang)}</p>
-            </div>
+            <Card variant="low" compact>
+              <p style={{ margin: "0 0 2px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-low)" }}>{t("decision_caution", lang)}</p>
+              <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-text)", lineHeight: 1.5 }}>{tLang(result.caution, lang)}</p>
+            </Card>
           )}
 
           {/* High-stakes risk framing — money/immigration decisions leaned on
               astrology carry blame/liability if they "go wrong" (#32). */}
-          <p style={{ margin: 0, fontSize: "11.5px", color: "var(--color-muted)", lineHeight: 1.5, display: "flex", gap: "6px" }}>
+          <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.5, display: "flex", gap: "var(--space-2)" }}>
             <span aria-hidden="true">⚖</span>
             <span>{t("safeguard_decision", lang)}</span>
           </p>
         </div>
       )}
 
-      {!result && !loading && <p style={{ margin: 0, fontSize: "14px", color: "var(--color-muted)" }}>{t("decision_empty", lang)}</p>}
+      {!result && !loading && <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)" }}>{t("decision_empty", lang)}</p>}
     </div>
   );
 }

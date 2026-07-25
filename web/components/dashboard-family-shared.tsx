@@ -129,7 +129,7 @@ export function MemberDetailExpanded({
 }) {
   const band = getScoreBand(member.individualScore);
   const toneColor = scoreColor(member.individualScore);
-  const scoreBg   = band.tone === "high" ? "var(--chart-d9-active-bg)" : band.tone === "low" ? "var(--panel-warm-tint)" : "var(--chart-d1-lagna-bg)";
+  const scoreBg   = band.tone === "high" ? "var(--color-high-bg)" : band.tone === "low" ? "var(--color-low-bg)" : "var(--color-mid-bg)";
   const isChandrashtama = memberChart?.transit?.isChandrashtama ?? false;
 
   const relLabel = formatRelLabel(relationshipToOwner);
@@ -151,7 +151,7 @@ export function MemberDetailExpanded({
   return (
     <div style={{
       background: "var(--color-surface)",
-      border: `1px solid ${isChandrashtama ? "var(--cl-rust-edge)" : "var(--color-border)"}`,
+      border: `1px solid ${isChandrashtama ? "var(--color-low-border)" : "var(--color-border)"}`,
       borderRadius: "var(--radius-lg)",
       padding: "var(--space-7)",
       display: "flex",
@@ -164,13 +164,13 @@ export function MemberDetailExpanded({
           {relLabel && <p className="cd-kicker">{relLabel}</p>}
           {/* Name + Edit/Remove inline */}
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2_5)", flexWrap: "wrap", marginBottom: "var(--space-1)" }}>
-            <h3 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "1.6rem", fontWeight: 500, color: "var(--color-text-strong)", lineHeight: 1.1, overflowWrap: "anywhere", wordBreak: "break-word" }}>
+            <h3 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 500, color: "var(--color-text-strong)", lineHeight: 1.1, overflowWrap: "anywhere", wordBreak: "break-word" }}>
               {member.displayName}
             </h3>
             <button
               type="button"
               onClick={() => onEdit(member)}
-              style={{ padding: "var(--space-0_75) var(--space-3)", borderRadius: "var(--radius-pill)", border: "1.5px solid var(--color-border-strong)", background: "transparent", color: "var(--color-muted)", fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+              style={{ padding: "var(--space-0_75) var(--space-3)", borderRadius: "var(--radius-pill)", border: "1.5px solid var(--color-border-strong)", background: "transparent", color: "var(--color-muted)", fontSize: "var(--text-sm)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
             >
               {lang === "ta" ? "திருத்து" : "Edit"}
             </button>
@@ -178,18 +178,18 @@ export function MemberDetailExpanded({
               type="button"
               disabled={deletingId === member.familyMemberId}
               onClick={() => onDelete(member.familyMemberId, member.displayName)}
-              style={{ padding: "var(--space-0_75) var(--space-3)", borderRadius: "var(--radius-pill)", border: "1.5px solid var(--cl-rust-30)", background: "transparent", color: SCORE_LOW, fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: deletingId === member.familyMemberId ? 0.5 : 1 }}
+              style={{ padding: "var(--space-0_75) var(--space-3)", borderRadius: "var(--radius-pill)", border: "1.5px solid var(--color-low-border)", background: "transparent", color: SCORE_LOW, fontSize: "var(--text-sm)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: deletingId === member.familyMemberId ? 0.5 : 1 }}
             >
               {deletingId === member.familyMemberId ? "…" : (lang === "ta" ? "நீக்கு" : "Remove")}
             </button>
           </div>
           {identityParts.length > 0 && (
-            <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)" }}>
+            <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)" }}>
               {identityParts.join(" · ")}
             </p>
           )}
           {(dasha || memberAge !== null) && (
-            <p style={{ margin: "var(--space-0_75) 0 0", fontSize: "0.8125rem", color: "var(--color-muted)" }}>
+            <p style={{ margin: "var(--space-0_75) 0 0", fontSize: "var(--text-base)", color: "var(--color-muted)" }}>
               {dasha && (
                 <>
                   {t("dasha_word", lang)}:{" "}
@@ -205,7 +205,7 @@ export function MemberDetailExpanded({
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-1)", flexShrink: 0 }}>
           <ScoreRing score={member.individualScore} size={88} />
-          <span style={{ padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 600, background: scoreBg, color: toneColor, border: `1px solid ${toneColor}44` }}>
+          <span style={{ padding: "var(--space-0_75) var(--space-2_5)", borderRadius: "var(--radius-pill)", fontSize: "var(--text-sm)", fontWeight: 600, background: scoreBg, color: toneColor, border: `1px solid ${toneColor}44` }}>
             {band.label}
           </span>
         </div>
@@ -214,22 +214,22 @@ export function MemberDetailExpanded({
       {/* Status chips */}
       <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
         {bestW && (
-          <span style={{ padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 600, background: "var(--panel-cream)", border: "1px solid var(--color-border)", color: "var(--color-text)" }}>
+          <span style={{ padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", fontSize: "var(--text-sm)", fontWeight: 600, background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", color: "var(--color-text)" }}>
             {lang === "ta" ? "சிறந்த நேரம்" : "Best"} {formatClockLabel(bestW.start)} – {formatClockLabel(bestW.end)}
           </span>
         )}
         {avoidW && (
-          <span style={{ padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 600, background: "var(--panel-warm-tint)", border: "1px solid var(--cl-rust-30)", color: SCORE_LOW }}>
+          <span style={{ padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", fontSize: "var(--text-sm)", fontWeight: 600, background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", color: SCORE_LOW }}>
             {lang === "ta" ? "தவிர்க்கவும்" : "Avoid"} {formatClockLabel(avoidW.start)} – {formatClockLabel(avoidW.end)}
           </span>
         )}
         {member.activeCycleTags.map((tag) => (
-          <span key={tag} style={{ padding: "var(--space-1) var(--space-2_5)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", background: "var(--panel-cream)", border: "1px solid var(--color-border)", color: "var(--color-muted)" }}>
+          <span key={tag} style={{ padding: "var(--space-1) var(--space-2_5)", borderRadius: "var(--radius-pill)", fontSize: "var(--text-sm)", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", color: "var(--color-muted)" }}>
             {tag}
           </span>
         ))}
         {isChandrashtama && (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", fontSize: "0.75rem", fontWeight: 700, background: "var(--panel-warm-tint)", color: SCORE_LOW, border: "1px solid var(--cl-rust-edge)" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", fontSize: "var(--text-sm)", fontWeight: 700, background: "var(--color-low-bg)", color: SCORE_LOW, border: "1px solid var(--color-low-border)" }}>
             <AlertGlyph /> {t("label_chandrashtamam", lang)}
           </span>
         )}
@@ -243,7 +243,7 @@ export function MemberDetailExpanded({
             const meta = SCORE_CHIP_META[k];
             const isNegative = value < 0;
             const pct = Math.round(Math.max(0, value) / meta.max * 100);
-            const color = isNegative ? "var(--color-score-low, #A8482F)" : scoreColor(value / meta.max * 100);
+            const color = isNegative ? "var(--color-score-low)" : scoreColor(value / meta.max * 100);
             const displayValue = meta.signed && value > 0 ? `+${value}` : `${value}`;
             return (
               <div key={k} className="cd-score-chip">
@@ -325,12 +325,12 @@ export function DasaBhuktiAntaramDetail({
             { color: antaramColor, lord: dasha.current.pratyantardasha.lord, word: t("antaram_word", lang), start: dasha.current.pratyantardasha.startDate, end: dasha.current.pratyantardasha.endDate, indent: 32 },
           ].map((row, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginLeft: `${row.indent}px` }}>
-              <div style={{ width: `${8 - i * 2}px`, height: `${8 - i * 2}px`, borderRadius: "50%", background: row.color, flexShrink: 0 }} />
+              <div style={{ width: `${8 - i * 2}px`, height: `${8 - i * 2}px`, borderRadius: "var(--radius-pill)", background: row.color, flexShrink: 0 }} />
               <span style={{ fontSize: `${0.84 - i * 0.04}rem`, fontWeight: 600, color: "var(--color-text-strong)", minWidth: "88px" }}>
                 {tPlanetLord(row.lord, lang)} {row.word}
               </span>
-              <span style={{ fontSize: "0.625rem", color: "var(--color-faint)" }}>
-                {String(row.start)} → {String(row.end)}
+              <span style={{ fontSize: "var(--text-2xs)", color: "var(--color-faint)" }}>
+                {String(row.start)} – {String(row.end)}
               </span>
             </div>
           ))}
@@ -338,7 +338,7 @@ export function DasaBhuktiAntaramDetail({
 
         {dashaAntar && dashaAntar.length > 0 && (
           <div style={{ marginTop: "var(--space-2_5)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--space-2_5)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
-            <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.625rem", color: "var(--color-faint)", letterSpacing: "0.04em" }}>
+            <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "var(--text-2xs)", color: "var(--color-faint)", letterSpacing: "0.04em" }}>
               {tPlanetLord(dasha.current.mahadasha.lord, lang)} {t("dasha_word", lang)} — {t("dasha_all_bhukti", lang)}
             </p>
             {dashaAntar.map((bh) => {
@@ -348,17 +348,17 @@ export function DasaBhuktiAntaramDetail({
               return (
                 <div key={`${bh.lord}-${bh.startDate}`} style={{
                   display: "flex", alignItems: "center", gap: "var(--space-1_5)",
-                  padding: "3px 8px",
+                  padding: "var(--space-0_75) var(--space-2)",
                   borderRadius: "var(--radius-xs)",
                   background: isRunning ? "var(--color-accent-muted)" : "transparent",
                   opacity: bst === "past" ? 0.5 : 1,
                 }}>
-                  <div style={{ width: "5px", height: "5px", borderRadius: "50%", background: bc, flexShrink: 0 }} />
-                  <span style={{ fontSize: "0.75rem", fontWeight: isRunning ? 700 : 400, color: isRunning ? "var(--color-accent-strong)" : "var(--color-muted)", minWidth: "70px" }}>
+                  <div style={{ width: "5px", height: "5px", borderRadius: "var(--radius-pill)", background: bc, flexShrink: 0 }} />
+                  <span style={{ fontSize: "var(--text-sm)", fontWeight: isRunning ? 700 : 400, color: isRunning ? "var(--color-accent-strong)" : "var(--color-muted)", minWidth: "70px" }}>
                     {tPlanetLord(bh.lord, lang)} {t("bhukti_word", lang)}
                   </span>
-                  <span style={{ fontSize: "0.625rem", color: "var(--color-faint)", flex: 1 }}>
-                    {String(bh.startDate)} → {String(bh.endDate)}
+                  <span style={{ fontSize: "var(--text-2xs)", color: "var(--color-faint)", flex: 1 }}>
+                    {String(bh.startDate)} – {String(bh.endDate)}
                   </span>
                   <Chip tone={isRunning ? "accent" : "neutral"}>
                     {isRunning ? t("status_active", lang) : bst === "past" ? t("status_past", lang) : t("status_upcoming", lang)}
@@ -418,7 +418,7 @@ export function FamilySevenDayOutlook({
       {/* Score numbers */}
       <div style={{ display: "flex", gap: "var(--space-1)", marginBottom: "var(--space-0_75)" }}>
         {weekScores.map((s, i) => (
-          <span key={i} style={{ flex: 1, textAlign: "center", fontSize: "0.625rem", color: "var(--color-faint)", fontFamily: "var(--font-mono)" }}>{s}</span>
+          <span key={i} style={{ flex: 1, textAlign: "center", fontSize: "var(--text-2xs)", color: "var(--color-faint)", fontFamily: "var(--font-mono)" }}>{s}</span>
         ))}
       </div>
       {/* Bars */}
@@ -428,7 +428,7 @@ export function FamilySevenDayOutlook({
           const c = scoreColor(s);
           return (
             <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%" }}>
-              <div style={{ width: "100%", height: `${h}px`, borderRadius: "3px 3px 0 0", background: c }} />
+              <div style={{ width: "100%", height: `${h}px`, borderRadius: "var(--radius-sm) var(--radius-sm) 0 0", background: c }} />
             </div>
           );
         })}
@@ -438,9 +438,9 @@ export function FamilySevenDayOutlook({
         {weekDayLabels.map((l, i) => {
           const c = scoreColor(weekScores[i]);
           return (
-            <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "3px" }}>
-              <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: c, display: "block" }} />
-              <span style={{ fontSize: "0.625rem", color: c, fontWeight: 500 }}>{l}</span>
+            <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-0_75)" }}>
+              <span style={{ width: "5px", height: "5px", borderRadius: "var(--radius-pill)", background: c, display: "block" }} />
+              <span style={{ fontSize: "var(--text-2xs)", color: c, fontWeight: 500 }}>{l}</span>
             </div>
           );
         })}
@@ -451,13 +451,13 @@ export function FamilySevenDayOutlook({
         <div style={{ marginTop: "var(--space-3)", paddingTop: "var(--space-3)", borderTop: "1px solid var(--color-border)", display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
           {memberWeekTrends.map((trend) => (
             <div key={trend.familyMemberId} style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-              <span style={{ minWidth: "84px", maxWidth: "84px", fontSize: "0.75rem", color: "var(--color-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <span style={{ minWidth: "84px", maxWidth: "84px", fontSize: "var(--text-sm)", color: "var(--color-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {trend.displayName}
               </span>
               <div style={{ display: "flex", gap: "var(--space-1)", flex: 1 }}>
                 {trend.scores.map((s, i) => (
                   <span key={i} style={{
-                    flex: 1, height: "4px", borderRadius: "2px",
+                    flex: 1, height: "4px", borderRadius: "var(--radius-sm)",
                     background: s == null ? "var(--color-border)" : scoreColor(s),
                     opacity: s == null ? 0.4 : 1,
                   }} />

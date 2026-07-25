@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import {
   ScrollText, Sunrise, Sparkles, Timer, CalendarClock, HeartHandshake, NotebookPen, Compass,
+  ArrowRight, ArrowUp, ArrowDown, Diamond, Check,
   type LucideIcon,
 } from "lucide-react";
 
@@ -90,37 +91,42 @@ function daysAwayLabel(days: number, lang: Lang): string {
   return lang === "ta" ? `${months} மாதங்களில்` : `in ${months} mo`;
 }
 
-/** Shared section header: title (in the active language only) + trailing link. */
-function GlanceHeader({
+/** Shared section header: title (in the active language only) + trailing link or custom right-side content. */
+export function GlanceHeader({
   lang,
   title,
   titleTa,
   linkLabel,
   onLink,
+  right,
 }: {
   lang: Lang;
   title: string;
   titleTa: string;
   linkLabel?: string;
   onLink?: () => void;
+  /** Custom trailing content (e.g. a note + scroll controls) in place of the link button. */
+  right?: ReactNode;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginBottom: "14px" }}>
+    <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-2)", marginBottom: "14px" }}>
       {/* audit B-1: shared section header is a real <h2>, so every Today
           section (Life Areas, Dasa, Family, Coming up) lands in the outline. */}
       <h2 style={{ margin: 0, fontSize: "var(--text-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>
         {lang === "ta" ? titleTa : title}
       </h2>
+      {right}
       {onLink && linkLabel && (
         <button
           type="button"
           onClick={onLink}
-          style={{ marginLeft: "auto", fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0, whiteSpace: "nowrap" }}
+          style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0, whiteSpace: "nowrap" }}
         >
           {linkLabel}
+          <ArrowRight size={13} strokeWidth={2} aria-hidden="true" />
         </button>
       )}
-      {!onLink && <span style={{ marginLeft: "auto" }} />}
+      {!onLink && !right && <span style={{ marginLeft: "auto" }} />}
     </div>
   );
 }
@@ -231,10 +237,10 @@ export function DashboardTodayQuickLinksNova({
         lang={lang}
         title="Quick Links"
         titleTa="விரைவு இணைப்புகள்"
-        linkLabel={lang === "ta" ? "அனைத்து கருவிகளும் →" : "All tools →"}
+        linkLabel={lang === "ta" ? "அனைத்து கருவிகளும்" : "All tools"}
         onLink={onGoToAllTools}
       />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "10px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "var(--space-2_5)" }}>
         {LINKS.map((link) => {
           const disabled = Boolean(link.gateOnProfile && needsProfile);
           return (
@@ -245,15 +251,15 @@ export function DashboardTodayQuickLinksNova({
               onClick={link.onClick}
               disabled={disabled || !link.onClick}
               style={{
-                display: "flex", flexDirection: "column", gap: "8px", textAlign: "left",
+                display: "flex", flexDirection: "column", gap: "var(--space-2)", textAlign: "left",
                 cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.55 : 1,
                 fontFamily: "inherit", width: "100%",
               }}
             >
-              <span aria-hidden="true" style={{ flex: "none", width: "36px", height: "36px", borderRadius: "50%", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", display: "grid", placeItems: "center", color: link.color }}>
+              <span aria-hidden="true" style={{ flex: "none", width: "36px", height: "36px", borderRadius: "var(--radius-pill)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", display: "grid", placeItems: "center", color: link.color }}>
                 <link.icon size={17} strokeWidth={2} />
               </span>
-              <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--color-text-strong)", lineHeight: 1.25 }}>
+              <span style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)", lineHeight: 1.25 }}>
                 {lang === "ta" ? link.nameTa : link.nameEn}
               </span>
               <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.3 }}>
@@ -267,10 +273,10 @@ export function DashboardTodayQuickLinksNova({
   );
 }
 
-const TREND_META: Record<"UP" | "DOWN" | "STABLE", { arrow: string; color: string }> = {
-  UP: { arrow: "↑", color: "var(--color-high)" },
-  DOWN: { arrow: "↓", color: "var(--color-low)" },
-  STABLE: { arrow: "→", color: "var(--color-mid)" },
+const TREND_META: Record<"UP" | "DOWN" | "STABLE", { Icon: LucideIcon; color: string }> = {
+  UP: { Icon: ArrowUp, color: "var(--color-high)" },
+  DOWN: { Icon: ArrowDown, color: "var(--color-low)" },
+  STABLE: { Icon: ArrowRight, color: "var(--color-mid)" },
 };
 
 /** Plain-language "what this life-area score means", for the tile tooltip.
@@ -345,23 +351,23 @@ export function DashboardTodayLifeAreasDasaRowNova({
       {/* Life areas: stat tiles with trend arrows. No sparklines — the API
           exposes today's score + trend direction, not a history series, so a
           curve would be invented data. */}
-      <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "18px 20px" }}>
+      <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-4_5) var(--space-5)" }}>
         <GlanceHeader
           lang={lang}
           title="Life Areas"
           titleTa="வாழ்க்கைத் துறைகள்"
-          linkLabel={lang === "ta" ? "அனைத்தும் →" : "All areas →"}
+          linkLabel={lang === "ta" ? "அனைத்தும்" : "All areas"}
           onLink={onGoToLifeAreas}
         />
         {/* Visible horizon cue: these are a *period* outlook (your dasha + slow
             transits), not a daily number — stated on the card, not just in a
             hover tooltip, so users don't read them on the same "today" clock as
             the dial and the "Is today okay for…?" board. */}
-        <div style={{ fontSize: "11.5px", color: "var(--color-faint)", marginTop: "-8px", marginBottom: "13px" }}>
+        <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "-8px", marginBottom: "13px" }}>
           {lang === "ta" ? "இந்தக் காலகட்டத்தின் நிலை — தினசரி அல்ல" : "Your outlook this period — not a daily score"}
         </div>
         {lifeAreas?.areas && lifeAreas.areas.length > 0 ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(104px, 1fr))", gap: "10px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(104px, 1fr))", gap: "var(--space-2_5)" }}>
             {lifeAreas.areas.slice(0, 5).map((area) => {
               const score = Math.round(area.score);
               const color = scoreColorScale(score);
@@ -375,14 +381,14 @@ export function DashboardTodayLifeAreasDasaRowNova({
                 <div
                   key={area.area}
                   title={explanation ? `${explanation}\n${band.label} · ${score}/100` : `${band.label} · ${score}/100`}
-                  style={{ background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: `1px solid ${scoreColorAlpha(color, 30)}`, borderRadius: "12px", padding: "12px 12px" }}
+                  style={{ background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: `1px solid ${scoreColorAlpha(color, 30)}`, borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3)" }}
                 >
-                  <div style={{ fontSize: "11.5px", color: "var(--color-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <div style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {lang === "ta" ? area.label.ta : area.label.en}
                   </div>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: "5px", marginTop: "6px" }}>
-                    <span style={{ fontFamily: "var(--font-display)", fontSize: "26px", fontWeight: 700, color: "var(--color-text-strong)", lineHeight: 1 }}>{score}</span>
-                    <span aria-hidden="true" style={{ fontSize: "13px", color: trend.color }}>{trend.arrow}</span>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-1)", marginTop: "6px" }}>
+                    <span style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 700, color: "var(--color-text-strong)", lineHeight: 1 }}>{score}</span>
+                    <span aria-hidden="true" style={{ display: "inline-flex", color: trend.color }}><trend.Icon size={14} strokeWidth={2} /></span>
                   </div>
                   <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color, marginTop: "6px", lineHeight: 1.15 }}>{verdictWord}</div>
                 </div>
@@ -390,24 +396,24 @@ export function DashboardTodayLifeAreasDasaRowNova({
             })}
           </div>
         ) : (
-          <p style={{ margin: 0, fontSize: "13px", color: "var(--color-faint)" }}>{t("guidance_empty", lang)}</p>
+          <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)" }}>{t("guidance_empty", lang)}</p>
         )}
       </div>
 
       {/* Dasa chapter */}
-      <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "18px 20px", display: "flex", flexDirection: "column" }}>
+      <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-4_5) var(--space-5)", display: "flex", flexDirection: "column" }}>
         <GlanceHeader
           lang={lang}
           title="Dasa Chapter"
           titleTa="தசா"
-          linkLabel={lang === "ta" ? "திற →" : "Open →"}
+          linkLabel={lang === "ta" ? "திற" : "Open"}
           onLink={onGoToChart}
         />
         {personalChartSummary ? (
           <>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-              <div style={{ fontFamily: "var(--font-display)", fontSize: "26px", fontWeight: 600, color: "var(--color-accent-strong)" }}>
-                {tPlanetLord(personalChartSummary.currentMahadasha, lang)} <span style={{ color: "var(--color-faint)" }}>→</span> {tPlanetLord(personalChartSummary.currentAntardasha, lang)}
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 600, color: "var(--color-accent-strong)" }}>
+                {tPlanetLord(personalChartSummary.currentMahadasha, lang)} <ArrowRight size={16} strokeWidth={2} aria-hidden="true" style={{ verticalAlign: "middle", color: "var(--color-faint)" }} /> {tPlanetLord(personalChartSummary.currentAntardasha, lang)}
               </div>
               {(() => {
                 const sentiment = dashaSentiment(
@@ -416,7 +422,7 @@ export function DashboardTodayLifeAreasDasaRowNova({
                   lang,
                 );
                 return (
-                  <span style={{ fontSize: "11px", fontWeight: 600, color: sentiment.color, background: "color-mix(in srgb, currentColor 10%, transparent)", border: "1px solid color-mix(in srgb, currentColor 30%, transparent)", borderRadius: "999px", padding: "4px 12px", whiteSpace: "nowrap" }}>
+                  <span style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: sentiment.color, background: "color-mix(in srgb, currentColor 10%, transparent)", border: "1px solid color-mix(in srgb, currentColor 30%, transparent)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)", whiteSpace: "nowrap" }}>
                     {sentiment.label}
                   </span>
                 );
@@ -428,7 +434,7 @@ export function DashboardTodayLifeAreasDasaRowNova({
                 remains. "in chapter" keeps the second from reading as a
                 contradiction of the first. */}
             {(nextAntar || yearsLeft !== null) && (
-              <div style={{ fontSize: "12.5px", color: "var(--color-muted)", marginTop: "10px" }}>
+              <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", marginTop: "10px" }}>
                 {nextAntar && (
                   <>
                     {lang === "ta" ? "உட் தசை " : "Sub-period until "}
@@ -445,11 +451,11 @@ export function DashboardTodayLifeAreasDasaRowNova({
             <div style={{ flex: 1 }} />
             {elapsedPct !== null && (
               <>
-                <div style={{ position: "relative", height: "5px", borderRadius: "3px", background: "color-mix(in srgb, var(--color-text-strong) 10%, transparent)", marginTop: "16px" }}>
-                  <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${elapsedPct}%`, background: "linear-gradient(90deg, var(--color-accent-secondary), var(--color-accent))", borderRadius: "3px" }} />
-                  <span style={{ position: "absolute", left: `${elapsedPct}%`, top: "50%", transform: "translate(-50%, -50%)", width: "11px", height: "11px", borderRadius: "50%", background: "var(--color-text-strong)", border: "2px solid var(--color-surface)" }} />
+                <div style={{ position: "relative", height: "5px", borderRadius: "var(--radius-sm)", background: "color-mix(in srgb, var(--color-text-strong) 10%, transparent)", marginTop: "16px" }}>
+                  <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${elapsedPct}%`, background: "linear-gradient(90deg, var(--color-accent-secondary), var(--color-accent))", borderRadius: "var(--radius-sm)" }} />
+                  <span style={{ position: "absolute", left: `${elapsedPct}%`, top: "50%", transform: "translate(-50%, -50%)", width: "11px", height: "11px", borderRadius: "var(--radius-pill)", background: "var(--color-text-strong)", border: "2px solid var(--color-surface)" }} />
                 </div>
-                <div style={{ position: "relative", fontSize: "11px", color: "var(--color-faint)", marginTop: "8px", height: "15px" }}>
+                <div style={{ position: "relative", fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "8px", height: "15px" }}>
                   {mahaStartYear !== null && <span style={{ position: "absolute", left: 0 }}>{mahaStartYear}</span>}
                   <span style={{ position: "absolute", left: `${Math.max(8, Math.min(92, elapsedPct))}%`, transform: "translateX(-50%)", color: "var(--color-text)", fontWeight: 600 }}>
                     {lang === "ta" ? "இப்போது" : "Now"}
@@ -460,7 +466,7 @@ export function DashboardTodayLifeAreasDasaRowNova({
             )}
           </>
         ) : (
-          <p style={{ margin: 0, fontSize: "13px", color: "var(--color-faint)" }}>{t("chart_no_profile", lang)}</p>
+          <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)" }}>{t("chart_no_profile", lang)}</p>
         )}
       </div>
     </div>
@@ -507,37 +513,37 @@ function RemedyFocusCard({
   const nextDate = focus ? formatDateLabel(nextWeekdayDate(focus.weekday)).replace(/ \d{4}$/, "") : "";
 
   return (
-    <div style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--color-accent-secondary) 12%, transparent), color-mix(in srgb, var(--color-text-strong) 2%, transparent))", border: "1px solid color-mix(in srgb, var(--color-accent-secondary) 30%, transparent)", borderRadius: "var(--radius-lg)", padding: "18px 20px", display: "flex", flexDirection: "column", gap: "14px" }}>
+    <div style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--color-accent-secondary) 12%, transparent), color-mix(in srgb, var(--color-text-strong) 2%, transparent))", border: "1px solid color-mix(in srgb, var(--color-accent-secondary) 30%, transparent)", borderRadius: "var(--radius-lg)", padding: "var(--space-4_5) var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-3_5)" }}>
       {/* Header: planet glyph + eyebrow/title, with a "Why this?" affordance. */}
-      <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
-        <div aria-hidden="true" style={{ width: "38px", height: "38px", borderRadius: "50%", background: `color-mix(in srgb, ${accent} 16%, transparent)`, border: `1px solid color-mix(in srgb, ${accent} 40%, transparent)`, display: "flex", alignItems: "center", justifyContent: "center", color: accent, fontSize: "19px", flex: "none", lineHeight: 1 }}>{glyph}</div>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: "var(--space-3)" }}>
+        <div aria-hidden="true" style={{ width: "38px", height: "38px", borderRadius: "var(--radius-pill)", background: `color-mix(in srgb, ${accent} 16%, transparent)`, border: `1px solid color-mix(in srgb, ${accent} 40%, transparent)`, display: "flex", alignItems: "center", justifyContent: "center", color: accent, fontSize: "var(--text-lg)", flex: "none", lineHeight: 1 }}>{glyph}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           {focus && (
-            <div style={{ fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.11em", textTransform: "uppercase", color: accent, marginBottom: "1px" }}>
+            <div style={{ fontSize: "var(--text-2xs)", fontWeight: 700, letterSpacing: "0.11em", textTransform: "uppercase", color: accent, marginBottom: "1px" }}>
               {tPlanetLord(focus.planet, lang)} {t("remedy_focus_dasa", lang)}
             </div>
           )}
-          <div style={{ fontSize: "15px", fontWeight: 600, color: "var(--color-text-strong)" }}>{t("remedy_focus_title", lang)}</div>
+          <div style={{ fontSize: "var(--text-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>{t("remedy_focus_title", lang)}</div>
         </div>
         {focus && (
           <button
             type="button"
             onClick={() => setShowWhy((v) => !v)}
             aria-expanded={showWhy}
-            style={{ flex: "none", fontSize: "11.5px", fontWeight: 600, background: "transparent", color: "var(--color-accent-secondary)", border: "1px solid color-mix(in srgb, var(--color-accent-secondary) 35%, transparent)", borderRadius: "8px", padding: "5px 10px", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
+            style={{ flex: "none", display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-xs)", fontWeight: 600, background: "transparent", color: "var(--color-accent-secondary)", border: "1px solid color-mix(in srgb, var(--color-accent-secondary) 35%, transparent)", borderRadius: "var(--radius-sm)", padding: "var(--space-1) var(--space-2_5)", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
           >
-            {t("remedy_focus_why", lang)} {showWhy ? "↑" : "→"}
+            {t("remedy_focus_why", lang)} {showWhy ? <ArrowUp size={12} strokeWidth={2} aria-hidden="true" /> : <ArrowRight size={12} strokeWidth={2} aria-hidden="true" />}
           </button>
         )}
       </div>
 
       {/* Lead sentence — the chart reason, active language only. */}
-      <p style={{ margin: 0, fontFamily: "var(--font-nova-prose), Georgia, serif", fontSize: "14.5px", lineHeight: 1.65, color: "var(--color-text)" }}>
+      <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "var(--text-base)", lineHeight: 1.65, color: "var(--color-text)" }}>
         {focus ? tLang(focus.lead, lang) : (remedyFallback ? tLang(remedyFallback, lang) : t("remedy_focus_none", lang))}
       </p>
 
       {focus && showWhy && (
-        <p style={{ margin: 0, padding: "10px 12px", borderRadius: "10px", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", fontSize: "12.5px", lineHeight: 1.55, color: "var(--color-muted)" }}>
+        <p style={{ margin: 0, padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)" }}>
           {tLang(focus.why, lang)}
         </p>
       )}
@@ -546,11 +552,11 @@ function RemedyFocusCard({
       {focus && focus.actions.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column" }}>
           {focus.actions.map((action, i) => (
-            <div key={i} style={{ display: "flex", gap: "11px", padding: "11px 0", borderTop: i === 0 ? "none" : "1px solid var(--color-border)" }}>
-              <span aria-hidden="true" style={{ flex: "none", width: "7px", height: "7px", borderRadius: "50%", background: accent, marginTop: "6px" }} />
+            <div key={i} style={{ display: "flex", gap: "var(--space-2_5)", padding: "var(--space-2_5) 0", borderTop: i === 0 ? "none" : "1px solid var(--color-border)" }}>
+              <span aria-hidden="true" style={{ flex: "none", width: "7px", height: "7px", borderRadius: "var(--radius-pill)", background: accent, marginTop: "6px" }} />
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: "13.5px", fontWeight: 500, color: "var(--color-text)", lineHeight: 1.4 }}>{tLang(action.text, lang)}</div>
-                <div style={{ fontSize: "10.5px", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--color-faint)", marginTop: "3px" }}>
+                <div style={{ fontSize: "var(--text-base)", fontWeight: 500, color: "var(--color-text)", lineHeight: 1.4 }}>{tLang(action.text, lang)}</div>
+                <div style={{ fontSize: "var(--text-2xs)", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--color-faint)", marginTop: "3px" }}>
                   {action.cadence === "RITUAL_ON_DAY" ? t("remedy_cadence_ritual", lang) : t("remedy_cadence_anyday", lang)}
                 </div>
               </div>
@@ -561,18 +567,18 @@ function RemedyFocusCard({
 
       {/* Weekday + next date — chart-driven display only (no per-day scheduling). */}
       {focus && (
-        <div style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--color-muted)" }}>
+        <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--color-muted)" }}>
           {t("remedy_focus_best_on", lang)} {tWeekday(focus.weekday, lang)} · {t("remedy_focus_next", lang)} {nextDate}
         </div>
       )}
 
-      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
         <button
           type="button"
           onClick={onSaveReminder}
           disabled={savingReminder}
           title={reminderMessage ?? undefined}
-          style={{ fontSize: "12px", fontWeight: 700, background: "var(--color-accent)", color: "var(--color-on-accent)", border: "none", borderRadius: "8px", padding: "9px 16px", cursor: savingReminder ? "wait" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
+          style={{ fontSize: "var(--text-sm)", fontWeight: 700, background: "var(--color-accent)", color: "var(--color-on-accent)", border: "none", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-4)", cursor: savingReminder ? "wait" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
         >
           {savingReminder ? t("remedy_focus_reminder_saving", lang) : t("remedy_focus_reminder", lang)}
         </button>
@@ -580,7 +586,7 @@ function RemedyFocusCard({
           <button
             type="button"
             onClick={onGoToLifeAreas}
-            style={{ fontSize: "12px", fontWeight: 600, background: "transparent", color: "var(--color-accent-secondary)", border: "1px solid color-mix(in srgb, var(--color-accent-secondary) 35%, transparent)", borderRadius: "8px", padding: "9px 16px", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
+            style={{ fontSize: "var(--text-sm)", fontWeight: 600, background: "transparent", color: "var(--color-accent-secondary)", border: "1px solid color-mix(in srgb, var(--color-accent-secondary) 35%, transparent)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-4)", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
           >
             {t("remedy_focus_more", lang)}
           </button>
@@ -621,12 +627,12 @@ export function DashboardTodayFamilyRemedyRowNova({
           The verdict word below is looked up through getScoreVerdictFromGuidance
           (was: the raw backend label token printed as-is, unlocalised, and
           identical for every score in that label's band). */}
-      <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "18px 20px" }}>
+      <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-4_5) var(--space-5)" }}>
         <GlanceHeader
           lang={lang}
           title="Family Today"
           titleTa="குடும்பம்"
-          linkLabel={lang === "ta" ? "குடும்பம் →" : "Family →"}
+          linkLabel={lang === "ta" ? "குடும்பம்" : "Family"}
           onLink={onGoToFamily}
         />
         {familyAggregate && familyAggregate.members.length > 0 ? (
@@ -639,15 +645,15 @@ export function DashboardTodayFamilyRemedyRowNova({
             {(() => {
               const fverdict = getScoreVerdictFromGuidance(familyAggregate.familyLabel, familyAggregate.familyScore, lang);
               return (
-                <div style={{ display: "flex", alignItems: "center", gap: "14px", padding: "2px 2px 14px", marginBottom: "12px", borderBottom: "1px solid var(--color-border)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3_5)", padding: "var(--space-0_5) var(--space-0_5) var(--space-3_5)", marginBottom: "12px", borderBottom: "1px solid var(--color-border)" }}>
                   <ScoreRing score={familyAggregate.familyScore} size={54} />
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: "12px", color: "var(--color-muted)", fontWeight: 600 }}>
+                    <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", fontWeight: 600 }}>
                       {lang === "ta" ? "இன்று குடும்பம் ஒட்டுமொத்தம்" : "Family overall today"}
                     </div>
-                    <div style={{ display: "flex", alignItems: "baseline", gap: "8px", marginTop: "2px" }}>
-                      <span style={{ fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 700, color: "var(--color-text-strong)", lineHeight: 1 }}>{familyAggregate.familyScore}</span>
-                      <span style={{ fontSize: "14px", fontWeight: 700, color: fverdict.color }}>{fverdict.verdict}</span>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-2)", marginTop: "2px" }}>
+                      <span style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--color-text-strong)", lineHeight: 1 }}>{familyAggregate.familyScore}</span>
+                      <span style={{ fontSize: "var(--text-base)", fontWeight: 700, color: fverdict.color }}>{fverdict.verdict}</span>
                     </div>
                   </div>
                 </div>
@@ -666,10 +672,10 @@ export function DashboardTodayFamilyRemedyRowNova({
                 <>
                   {otherMembers.length > 0 && (
                     <>
-                      <div style={{ fontSize: "11px", color: "var(--color-faint)", fontWeight: 600, marginBottom: "9px" }}>
+                      <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", fontWeight: 600, marginBottom: "9px" }}>
                         {lang === "ta" ? "மற்ற உறுப்பினர்கள்" : "Other members"}
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(96px, 1fr))", gap: "10px" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(96px, 1fr))", gap: "var(--space-2_5)" }}>
                         {otherMembers.slice(0, 3).map((m) => {
                           const verdict = getScoreVerdictFromGuidance(m.label, m.individualScore, lang);
                           return (
@@ -679,16 +685,16 @@ export function DashboardTodayFamilyRemedyRowNova({
                               aria-label={`${m.displayName} — ${verdict.verdict}, ${m.individualScore} / 100`}
                               title={`${verdict.verdict} · ${m.individualScore}/100`}
                               style={{
-                                display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "8px",
+                                display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "var(--space-2)",
                                 background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px solid var(--color-border)",
-                                borderRadius: "12px", padding: "14px 10px", minWidth: 0,
+                                borderRadius: "var(--radius-md)", padding: "var(--space-3_5) var(--space-2_5)", minWidth: 0,
                               }}
                             >
                               <ScoreRing score={m.individualScore} size={44} />
-                              <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--color-text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>
+                              <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>
                                 {m.displayName}
                               </div>
-                              <div style={{ fontSize: "11px", fontWeight: 600, color: verdict.color, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>
+                              <div style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: verdict.color, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>
                                 {verdict.verdict}
                               </div>
                             </div>
@@ -702,14 +708,15 @@ export function DashboardTodayFamilyRemedyRowNova({
                           type="button"
                           onClick={onGoToFamily}
                           style={{
-                            display: "block", width: "100%", textAlign: "left", fontFamily: "inherit",
+                            display: "inline-flex", alignItems: "center", gap: "var(--space-1)", width: "100%", textAlign: "left", fontFamily: "inherit",
                             background: "none", border: "none", padding: 0, marginTop: "9px", cursor: onGoToFamily ? "pointer" : "default",
-                            fontSize: "11.5px", fontWeight: 600, color: "var(--color-accent-secondary)",
+                            fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--color-accent-secondary)",
                           }}
                         >
                           {lang === "ta"
-                            ? `+ மேலும் ${otherMembers.length - 3} பேர் →`
-                            : `+${otherMembers.length - 3} more →`}
+                            ? `+ மேலும் ${otherMembers.length - 3} பேர்`
+                            : `+${otherMembers.length - 3} more`}
+                          <ArrowRight size={12} strokeWidth={2} aria-hidden="true" />
                         </button>
                       )}
                     </>
@@ -722,10 +729,10 @@ export function DashboardTodayFamilyRemedyRowNova({
                       : `When all ${memberCount} family members' favourable windows overlap today, from each person's own chart — a good slot for joint decisions, family talks or doing things together.`)
                     : undefined}
                   style={{
-                    fontSize: "12px", lineHeight: 1.5, color: "var(--color-muted)",
+                    fontSize: "var(--text-sm)", lineHeight: 1.5, color: "var(--color-muted)",
                     background: needsCare ? "var(--color-low-bg)" : "var(--color-accent-muted)",
                     border: `1px solid ${needsCare ? "var(--color-low-border)" : "var(--color-border)"}`,
-                    borderRadius: "10px", padding: "10px 13px", marginTop: "10px",
+                    borderRadius: "var(--radius-sm)", padding: "var(--space-2_5) var(--space-3)", marginTop: "10px",
                   }}
                 >
                   {needsCare && <><b style={{ color: "var(--color-low)" }}>{needsCare.displayName}</b> {lang === "ta" ? "— மென்மையான நாள்" : "— gentle day"}{shared ? "; " : "."}</>}
@@ -737,7 +744,7 @@ export function DashboardTodayFamilyRemedyRowNova({
             })()}
           </>
         ) : (
-          <p style={{ margin: 0, fontSize: "13px", color: "var(--color-faint)" }}>{lang === "ta" ? "குடும்ப உறுப்பினர்கள் இல்லை" : "No family members yet"}</p>
+          <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)" }}>{lang === "ta" ? "குடும்ப உறுப்பினர்கள் இல்லை" : "No family members yet"}</p>
         )}
       </div>
 
@@ -776,17 +783,17 @@ export function DashboardTodayComingUpNova({
       type="button"
       onClick={onGoToCalendar}
       style={{
-        display: "flex", alignItems: "center", gap: "11px", textAlign: "left", cursor: onGoToCalendar ? "pointer" : "default",
+        display: "flex", alignItems: "center", gap: "var(--space-2_5)", textAlign: "left", cursor: onGoToCalendar ? "pointer" : "default",
         width: "100%", minWidth: 0, boxSizing: "border-box",
-        background: isNear || saniActive ? "linear-gradient(135deg, var(--color-accent-muted), rgba(212,175,95,0.03))" : "color-mix(in srgb, var(--color-text-strong) 3%, transparent)",
+        background: isNear || saniActive ? "linear-gradient(135deg, var(--color-accent-muted), transparent)" : "color-mix(in srgb, var(--color-text-strong) 3%, transparent)",
         border: `1px solid ${isNear || saniActive ? "var(--color-border-strong)" : "var(--color-border)"}`,
-        borderRadius: "var(--radius-lg)", padding: "13px 18px", fontFamily: "inherit",
+        borderRadius: "var(--radius-lg)", padding: "var(--space-3) var(--space-4_5)", fontFamily: "inherit",
       }}
     >
-      <span style={{ color: isNear || saniActive ? "var(--color-accent-strong)" : "var(--color-high)", fontSize: "14px", flex: "none" }}>
-        {isNear || saniActive ? "◆" : "✓"}
+      <span style={{ display: "inline-flex", color: isNear || saniActive ? "var(--color-accent-strong)" : "var(--color-high)", flex: "none" }}>
+        {isNear || saniActive ? <Diamond size={15} strokeWidth={2} aria-hidden="true" /> : <Check size={15} strokeWidth={2} aria-hidden="true" />}
       </span>
-      <span style={{ flex: 1, minWidth: 0, fontSize: "12.5px", color: "var(--color-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+      <span style={{ flex: 1, minWidth: 0, fontSize: "var(--text-sm)", color: "var(--color-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         <b style={{ color: "var(--color-text-strong)" }}>{lang === "ta" ? "வரவிருப்பது" : "Coming up"}</b>
         {" — "}
         {primary

@@ -1,5 +1,7 @@
 "use client";
 
+import { ArrowLeft } from "lucide-react";
+
 import { useState } from "react";
 
 import type { Lang } from "@/lib/i18n";
@@ -18,7 +20,8 @@ import {
   markerLabel,
   strengthBand,
 } from "./dashboard-yoga-dosham-panel";
-import { NovaAskEntryChip, NovaAttributeBand, NovaDetailBreadcrumb, NovaDetailHero, NovaKicker, novaDetailCardStyle } from "./dashboard-explore-detail-nova";
+import { NovaAskEntryChip, NovaAttributeBand, NovaDetailBreadcrumb, NovaDetailHero, novaDetailCardStyle } from "./dashboard-explore-detail-nova";
+import { Card, Kicker } from "./ui";
 
 /**
  * Signed-in users looking at a dosham present in their OWN chart used to get
@@ -42,14 +45,14 @@ function DoshamFullGuide({ engineName, lang }: { engineName: string; lang: Lang 
   const text = (v: BiText) => (lang === "ta" ? v.ta : v.en);
 
   return (
-    <div style={cardStyle}>
-      <NovaKicker>{lang === "ta" ? "முழுமையான தோஷ வழிகாட்டி" : "Full dosham guide"}</NovaKicker>
-      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+    <Card>
+      <Kicker>{lang === "ta" ? "முழுமையான தோஷ வழிகாட்டி" : "Full dosham guide"}</Kicker>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
         {content.sections.map((section, i) => (
           <CollapsibleSection key={i} title={text(section.heading)} defaultOpen={i === 0}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
               {section.body.map((p, j) => (
-                <p key={j} style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "13px", lineHeight: 1.7, color: "var(--color-text)" }}>
+                <p key={j} style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "var(--text-base)", lineHeight: 1.7, color: "var(--color-text)" }}>
                   {text(p)}
                 </p>
               ))}
@@ -59,13 +62,13 @@ function DoshamFullGuide({ engineName, lang }: { engineName: string; lang: Lang 
 
         {content.bringCards && content.bringCards.length > 0 && (
           <CollapsibleSection title={lang === "ta" ? "எதை கொண்டுவரலாம்" : "What it can bring"}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
               {content.bringCards.map((cat, i) => (
-                <div key={i} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                  <div style={{ fontSize: "12.5px", fontWeight: 700, color: "var(--color-accent-strong)" }}>{text(cat.heading)}</div>
-                  <ul style={{ margin: 0, padding: "0 0 0 18px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                <div key={i} style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+                  <div style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-accent-strong)" }}>{text(cat.heading)}</div>
+                  <ul style={{ margin: 0, paddingLeft: "var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                     {cat.items.map((item, j) => (
-                      <li key={j} style={{ fontSize: "12px", color: "var(--color-muted)", lineHeight: 1.5 }}>{text(item)}</li>
+                      <li key={j} style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5 }}>{text(item)}</li>
                     ))}
                   </ul>
                 </div>
@@ -76,18 +79,18 @@ function DoshamFullGuide({ engineName, lang }: { engineName: string; lang: Lang 
 
         {content.faq && content.faq.length > 0 && (
           <CollapsibleSection title={lang === "ta" ? "அடிக்கடி கேட்கப்படும் கேள்விகள்" : "Frequently asked questions"}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
               {content.faq.map((item, i) => (
                 <div key={i} style={{ borderTop: i > 0 ? "1px solid var(--color-border)" : "none", paddingTop: i > 0 ? "12px" : 0 }}>
-                  <p style={{ margin: "0 0 4px", fontSize: "13px", fontWeight: 700, color: "var(--color-text-strong)" }}>{text(item.q)}</p>
-                  <p style={{ margin: 0, fontSize: "12.5px", color: "var(--color-muted)", lineHeight: 1.6 }}>{text(item.a)}</p>
+                  <p style={{ margin: "0 0 4px", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>{text(item.q)}</p>
+                  <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.6 }}>{text(item.a)}</p>
                 </div>
               ))}
             </div>
           </CollapsibleSection>
         )}
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -190,8 +193,6 @@ export function doshamStatusColor(d: ChartDoshamInsight): string {
   return "var(--color-low)";
 }
 
-const cardStyle = novaDetailCardStyle;
-
 /**
  * List-first index for the Dosham library — Explore hub's "Dosham" tile
  * used to jump straight into ONE dosham's detail screen (the strongest
@@ -215,14 +216,14 @@ export function DashboardExploreDoshamListNova({
   onBack: () => void;
 }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "18px", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
       <NovaDetailBreadcrumb
         onBack={onBack}
         backLabel={lang === "ta" ? "ஆராய்வு" : "Explore"}
         hubLabel={lang === "ta" ? "தோஷம்" : "Dosham"}
         currentLabel={lang === "ta" ? "அனைத்து தோஷங்களும்" : "All doshams"}
       />
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
         {doshams.map((d, i) => {
           const color = doshamStatusColor(d);
           return (
@@ -231,8 +232,8 @@ export function DashboardExploreDoshamListNova({
               type="button"
               onClick={() => onSelect(i)}
               style={{
-                ...cardStyle,
-                gap: "6px",
+                ...novaDetailCardStyle,
+                gap: "var(--space-2)",
                 cursor: "pointer",
                 textAlign: "left",
                 fontFamily: "inherit",
@@ -242,16 +243,16 @@ export function DashboardExploreDoshamListNova({
                 justifyContent: "space-between",
               }}
             >
-              <span style={{ fontSize: "14px", fontWeight: 600, color: d.isPresent ? "var(--color-text-strong)" : "var(--color-faint)" }}>
+              <span style={{ fontSize: "var(--text-base)", fontWeight: 600, color: d.isPresent ? "var(--color-text-strong)" : "var(--color-faint)" }}>
                 {displayName(d.name, lang)}
               </span>
-              <span style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+              <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexShrink: 0 }}>
                 {d.isPresent && (
-                  <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "999px", padding: "2px 10px" }}>
+                  <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
                     {strengthBand(d.strength, true, lang)}
                   </span>
                 )}
-                <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "999px", padding: "2px 10px" }}>
+                <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
                   {doshamStatusLabel(d, lang)}
                 </span>
               </span>
@@ -287,11 +288,11 @@ export function DashboardExploreDoshamNova({
 
   if (doshams.length === 0) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "14px", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
-        <button type="button" onClick={onBack} style={{ alignSelf: "flex-start", fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-          {lang === "ta" ? "← ஆராய்வுக்குத் திரும்பு" : "← Back to Explore"}
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
+        <button type="button" onClick={onBack} style={{ alignSelf: "flex-start", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+          <><ArrowLeft size={14} strokeWidth={1.5} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "var(--space-1)" }} />{lang === "ta" ? "ஆராய்வுக்குத் திரும்பு" : "Back to Explore"}</>
         </button>
-        <p style={{ margin: 0, fontSize: "12.5px", color: "var(--color-faint)" }}>
+        <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
           {lang === "ta" ? "தோஷ தரவு இல்லை." : "No dosham data available."}
         </p>
       </div>
@@ -322,7 +323,7 @@ export function DashboardExploreDoshamNova({
     .filter((row): row is { mc: MemberChart; entry: ChartDoshamInsight } => row.entry !== null);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "18px", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
 
       {/* ===== Breadcrumb + dosham nav ===== */}
       <NovaDetailBreadcrumb
@@ -344,7 +345,7 @@ export function DashboardExploreDoshamNova({
       <NovaDetailHero
         kicker={lang === "ta" ? "தோஷ நூலகம்" : "Dosham library"}
         badge={
-          <span style={{ display: "inline-flex", alignItems: "center", gap: "7px", fontSize: "11.5px", fontWeight: 700, color: ownStatusColor, background: `${ownStatusColor}18`, border: `1px solid ${ownStatusColor}55`, borderRadius: "999px", padding: "5px 12px" }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-xs)", fontWeight: 700, color: ownStatusColor, background: `${ownStatusColor}18`, border: `1px solid ${ownStatusColor}55`, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
             {dosham.isPresent
               ? `${lang === "ta" ? "உங்கள் ஜாதகத்தில் உள்ளது" : "Present in your chart"} · ${strengthBand(dosham.strength, true, lang)}`
               : (lang === "ta" ? "உங்கள் ஜாதகத்தில் இல்லை" : "Not present in your chart")}
@@ -376,127 +377,127 @@ export function DashboardExploreDoshamNova({
       <div className="nova-grid-detail" style={{ alignItems: "start" }}>
 
         {/* LEFT */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <div style={cardStyle}>
-            <NovaKicker>{lang === "ta" ? "இது உண்மையில் என்ன பொருள்" : "What it actually means"}</NovaKicker>
-            <p style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "13.5px", lineHeight: 1.7, color: "var(--color-text)" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+          <Card>
+            <Kicker>{lang === "ta" ? "இது உண்மையில் என்ன பொருள்" : "What it actually means"}</Kicker>
+            <p style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "var(--text-base)", lineHeight: 1.7, color: "var(--color-text)" }}>
               {astroText(whatText)}
             </p>
-            <div style={{ display: "flex", gap: "12px", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border, var(--color-high))", borderRadius: "10px", padding: "13px 16px" }}>
-              <span style={{ flex: "none", color: "var(--color-high)", fontSize: "15px" }}>{"☘"}</span>
-              <p style={{ margin: 0, fontSize: "12.5px", lineHeight: 1.6, color: "var(--color-text)" }}>
+            <Card variant="high" compact style={{ flexDirection: "row", gap: "var(--space-3)" }}>
+              <span style={{ flex: "none", color: "var(--color-high)", fontSize: "var(--text-md)" }}>{"☘"}</span>
+              <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.6, color: "var(--color-text)" }}>
                 {astroText(lang === "ta" ? dosham.explanationHowTa || "" : dosham.explanationHowEn || "")}
               </p>
-            </div>
-          </div>
+            </Card>
+          </Card>
 
-          <div style={cardStyle}>
-            <NovaKicker>{lang === "ta" ? "ஏன் தூண்டப்படுகிறது / குறைகிறது" : "Why it triggers or softens"}</NovaKicker>
-            <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.6, color: "var(--color-text)" }}>{astroText(whyText)}</p>
+          <Card>
+            <Kicker>{lang === "ta" ? "ஏன் தூண்டப்படுகிறது / குறைகிறது" : "Why it triggers or softens"}</Kicker>
+            <p style={{ margin: 0, fontSize: "var(--text-base)", lineHeight: 1.6, color: "var(--color-text)" }}>{astroText(whyText)}</p>
             {triggerBullets.length > 0 && (
-              <ul style={{ margin: 0, padding: "0 0 0 18px", display: "flex", flexDirection: "column", gap: "6px" }}>
+              <ul style={{ margin: 0, paddingLeft: "var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                 {triggerBullets.map((c, i) => (
-                  <li key={i} style={{ fontSize: "12px", color: "var(--color-muted)", lineHeight: 1.5 }}>{markerLabel(c, lang)}</li>
+                  <li key={i} style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5 }}>{markerLabel(c, lang)}</li>
                 ))}
               </ul>
             )}
             {dosham.cancellationFactors.length > 0 && (
-              <ul style={{ margin: 0, padding: "0 0 0 18px", display: "flex", flexDirection: "column", gap: "6px" }}>
+              <ul style={{ margin: 0, paddingLeft: "var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                 {dosham.cancellationFactors.map((c, i) => (
-                  <li key={i} style={{ fontSize: "12px", color: "var(--color-high)", lineHeight: 1.5 }}>{"✓ "}{markerLabel(c, lang)}</li>
+                  <li key={i} style={{ fontSize: "var(--text-sm)", color: "var(--color-high)", lineHeight: 1.5 }}>{"✓ "}{markerLabel(c, lang)}</li>
                 ))}
               </ul>
             )}
-          </div>
+          </Card>
 
           {dosham.isPresent && (
-            <div style={{ ...cardStyle, background: "linear-gradient(120deg, var(--color-accent-muted), transparent)", border: "1px solid var(--color-border-strong)" }}>
-              <NovaKicker color="var(--color-accent-strong)">{lang === "ta" ? "உங்கள் ஜாதகத்தில்" : "In your chart"}</NovaKicker>
-              <p style={{ margin: 0, fontSize: "13px", lineHeight: 1.6, color: "var(--color-text)" }}>{astroText(powerText)}</p>
-              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-                <span style={{ fontSize: "11.5px", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "5px 12px" }}>
+            <Card variant="accent" style={{ background: "linear-gradient(120deg, var(--color-accent-muted), transparent)" }}>
+              <Kicker color="var(--color-accent-strong)">{lang === "ta" ? "உங்கள் ஜாதகத்தில்" : "In your chart"}</Kicker>
+              <p style={{ margin: 0, fontSize: "var(--text-base)", lineHeight: 1.6, color: "var(--color-text)" }}>{astroText(powerText)}</p>
+              <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", alignItems: "center" }}>
+                <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
                   {lang === "ta" ? "தீவிரம்" : "Severity"} · {strengthBand(dosham.strength, true, lang)}
                 </span>
                 {dosham.dashaActivated && (
-                  <span style={{ fontSize: "11.5px", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "5px 12px" }}>
+                  <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
                     {lang === "ta" ? "தசையால் செயல்படுத்தப்பட்டது" : "Activated by current Dasha"}
                   </span>
                 )}
                 <button
                   type="button"
                   onClick={onNavigateToday}
-                  style={{ marginLeft: "auto", fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}
+                  style={{ marginLeft: "auto", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}
                 >
-                  {lang === "ta" ? "உங்கள் ஜாதகத்தில் காண்க →" : "See it in your chart →"}
+                  {lang === "ta" ? "உங்கள் ஜாதகத்தில் காண்க" : "See it in your chart"}
                 </button>
               </div>
-            </div>
+            </Card>
           )}
 
           <DoshamFullGuide engineName={dosham.name} lang={lang} />
         </div>
 
         {/* RIGHT rail */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
           {remedy && (
-            <div style={cardStyle}>
-              <NovaKicker>{lang === "ta" ? "பரிகாரம்" : "Pariharam"}</NovaKicker>
-              <p style={{ margin: 0, fontSize: "12.5px", lineHeight: 1.6, color: "var(--color-muted)" }}>
+            <Card>
+              <Kicker>{lang === "ta" ? "பரிகாரம்" : "Pariharam"}</Kicker>
+              <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.6, color: "var(--color-muted)" }}>
                 {astroText(lang === "ta" ? remedy.ta : remedy.en)}
               </p>
-            </div>
+            </Card>
           )}
 
-          <div style={cardStyle}>
-            <NovaKicker color="var(--color-accent-secondary)">{lang === "ta" ? "உங்கள் குடும்பத்தில்" : "Check your family"}</NovaKicker>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12.5px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-                <span style={{ width: "26px", height: "26px", borderRadius: "50%", background: "var(--color-accent)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: 700, flexShrink: 0 }}>
+          <Card>
+            <Kicker color="var(--color-accent-secondary)">{lang === "ta" ? "உங்கள் குடும்பத்தில்" : "Check your family"}</Kicker>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "var(--text-sm)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+                <span style={{ width: "26px", height: "26px", borderRadius: "var(--radius-pill)", background: "var(--color-accent)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: 700, flexShrink: 0 }}>
                   {lang === "ta" ? "நீ" : "Y"}
                 </span>
                 <span>{lang === "ta" ? "நீங்கள்" : "You"}</span>
               </div>
-              <span style={{ fontSize: "11px", fontWeight: 700, color: ownStatusColor, background: `${ownStatusColor}18`, border: `1px solid ${ownStatusColor}55`, borderRadius: "5px", padding: "2px 8px" }}>
+              <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: ownStatusColor, background: `${ownStatusColor}18`, border: `1px solid ${ownStatusColor}55`, borderRadius: "var(--radius-sm)", padding: "var(--space-1) var(--space-2)" }}>
                 {ownStatusLabel}
               </span>
             </div>
             {familyRows.map(({ mc, entry }) => {
               const color = doshamStatusColor(entry);
               return (
-                <div key={mc.memberId} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12.5px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-                    <span style={{ width: "26px", height: "26px", borderRadius: "50%", background: "var(--color-accent-secondary)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: 700, flexShrink: 0 }}>
+                <div key={mc.memberId} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "var(--text-sm)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+                    <span style={{ width: "26px", height: "26px", borderRadius: "var(--radius-pill)", background: "var(--color-accent-secondary)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: 700, flexShrink: 0 }}>
                       {mc.displayName.charAt(0).toUpperCase()}
                     </span>
                     <span>{mc.displayName}</span>
                   </div>
-                  <span style={{ fontSize: "11px", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "5px", padding: "2px 8px" }}>
+                  <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "var(--radius-sm)", padding: "var(--space-1) var(--space-2)" }}>
                     {doshamStatusLabel(entry, lang)}
                   </span>
                 </div>
               );
             })}
             {familyRows.length === 0 && (
-              <p style={{ margin: 0, fontSize: "11.5px", color: "var(--color-faint)", lineHeight: 1.5 }}>
+              <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.5 }}>
                 {lang === "ta" ? "வேறு குடும்ப ஜாதக தரவு இல்லை." : "No other family chart data available."}
               </p>
             )}
-          </div>
+          </Card>
 
           {POROUTHAM_RELEVANT.has(key) && (
-            <div style={{ ...cardStyle, background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px dashed var(--color-border-strong)" }}>
-              <NovaKicker>{lang === "ta" ? "தொடர்புடையவை" : "Related"}</NovaKicker>
-              <p style={{ margin: 0, fontSize: "12.5px", color: "var(--color-text)", lineHeight: 1.5 }}>
+            <Card variant="dashed">
+              <Kicker>{lang === "ta" ? "தொடர்புடையவை" : "Related"}</Kicker>
+              <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-text)", lineHeight: 1.5 }}>
                 {lang === "ta"
                   ? "இந்த தோஷம் பொருத்த பொருத்தத்திலும் கணக்கில் எடுத்துக்கொள்ளப்படுகிறது."
                   : "This dosham also factors into Porutham (marriage) compatibility matching."}
               </p>
-            </div>
+            </Card>
           )}
 
           <NovaAskEntryChip
             label={lang === "ta" ? `${displayName(dosham.name, lang)} பற்றி கேளுங்கள்…` : `Ask about ${displayName(dosham.name, "en")}…`}
-            ctaLabel={lang === "ta" ? "கேளுங்கள் ✦" : "Ask ✦"}
+            ctaLabel={lang === "ta" ? "கேளுங்கள்" : "Ask"}
             onOpenAskVinaadi={onOpenAskVinaadi}
           />
         </div>

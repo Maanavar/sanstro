@@ -754,9 +754,9 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
   const [open, setOpen] = useState(false);
   const color = yoga.isPresent
     ? yoga.strength === "STRONG" ? "var(--chart-d9-active)"
-    : yoga.strength === "PARTIAL" ? "var(--panel-brand)"
+    : yoga.strength === "PARTIAL" ? "var(--color-mid)"
     : "var(--color-faint)"
-    : "var(--yogadosham-border, var(--panel-tan))";
+    : "var(--color-border)";
 
   const whyText = buildWhyText(
     yoga.conditionsMet,
@@ -774,13 +774,13 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
   const cardBg = yoga.isPresent
     ? yoga.strength === "STRONG" ? "var(--chart-d9-active-bg)"
     : yoga.strength === "PARTIAL" ? "var(--chart-d1-lagna-bg)"
-    : "var(--panel-cream)"
-    : "var(--panel-cream)";
+    : "var(--color-surface-2)"
+    : "var(--color-surface-2)";
   const cardBorder = yoga.isPresent
-    ? yoga.strength === "STRONG" ? "rgba(92,118,84,0.35)"
-    : yoga.strength === "PARTIAL" ? "rgba(184,90,44,0.35)"
-    : "var(--yogadosham-border, var(--panel-tan))"
-    : "var(--yogadosham-border-light, var(--panel-tan-light))";
+    ? yoga.strength === "STRONG" ? "var(--color-high-border)"
+    : yoga.strength === "PARTIAL" ? "var(--color-mid-border)"
+    : "var(--color-border)"
+    : "var(--color-border)";
 
   return (
     <div style={{ borderRadius: "var(--radius-md)", border: `1px solid ${cardBorder}`, background: "var(--chart-cell-default)", overflow: "hidden", fontFamily: "var(--font-body)" }}>
@@ -789,12 +789,12 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
         style={{ width: "100%", padding: "var(--space-4) var(--space-5)", background: cardBg, border: "none", cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-2_5)" }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flex: 1 }}>
-          <span style={{ fontSize: "0.875rem", color }}>{yoga.isPresent ? "★" : "○"}</span>
-          <span style={{ fontSize: "0.875rem", fontWeight: 600, color: yoga.isPresent ? "var(--yogadosham-ink-strong, var(--panel-earth-dark))" : "var(--color-faint)" }}>
+          <span style={{ fontSize: "var(--text-base)", color }}>{yoga.isPresent ? "★" : "○"}</span>
+          <span style={{ fontSize: "var(--text-base)", fontWeight: 600, color: yoga.isPresent ? "var(--color-text-strong)" : "var(--color-faint)" }}>
             {displayName(yoga.name, lang)}
           </span>
           {yoga.isPresent && yoga.dashaActivated && (
-            <span style={{ fontSize: "0.625rem", fontWeight: 700, color: "var(--panel-brand)", border: "1px solid rgba(184,90,44,0.4)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)" }}>
+            <span style={{ fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-mid)", border: "1px solid var(--color-mid-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)" }}>
               {t("yoga_dasha_activated", lang)}
             </span>
           )}
@@ -803,24 +803,24 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
           {yoga.isPresent ? (
             <span
               title={lang === "ta" ? "ஜாதக பலம் (நேட்டல் சார்ட்)" : "Natal chart strength — how strong this yoga is in your birth chart"}
-              style={{ fontSize: "0.625rem", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2_5)" }}
+              style={{ fontSize: "var(--text-2xs)", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2_5)" }}
             >
               {strengthBand(yoga.strength, yoga.isPresent, lang)}
             </span>
           ) : (
-            <span style={{ fontSize: "0.625rem", color: "var(--color-faint)" }}>{t("yoga_absent", lang)}</span>
+            <span style={{ fontSize: "var(--text-2xs)", color: "var(--color-faint)" }}>{t("yoga_absent", lang)}</span>
           )}
           {yoga.isPresent && typeof yoga.activationScore === "number" && (
             <span
               title={lang === "ta" ? "இன்றைய செயல்பாட்டு மதிப்பெண் (தசை + கிரகநகர்வு)" : "Today's activation score — how strongly Dasha and transits are triggering this yoga now"}
               style={{
-                fontSize: "0.625rem",
+                fontSize: "var(--text-2xs)",
                 fontWeight: 700,
                 padding: "var(--space-0_5) var(--space-2)",
                 borderRadius: "var(--radius-pill)",
-                background: yoga.isCurrentlyActive ? "rgba(92,118,84,0.18)" : "var(--color-surface-soft)",
+                background: yoga.isCurrentlyActive ? "var(--color-high-bg)" : "var(--color-surface-soft)",
                 color: yoga.isCurrentlyActive ? "var(--color-score-high)" : "var(--color-faint)",
-                border: `1px solid ${yoga.isCurrentlyActive ? "rgba(92,118,84,0.4)" : "var(--color-border)"}`,
+                border: `1px solid ${yoga.isCurrentlyActive ? "var(--color-high-border)" : "var(--color-border)"}`,
                 flexShrink: 0,
               }}
             >
@@ -838,7 +838,7 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
             <p className="cd-kicker" style={{ letterSpacing: "0.08em" }}>
               {lang === "ta" ? "இது என்ன" : "What This Is"}
             </p>
-            <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--yogadosham-ink, var(--panel-earth))", lineHeight: 1.55 }}>
+            <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
               {getWhat(yoga.name, true, lang, { ta: yoga.descriptionTa, en: yoga.descriptionEn }, { ta: yoga.effectTa, en: yoga.effectEn })}
             </p>
           </div>
@@ -847,13 +847,13 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
             <p className="cd-kicker" style={{ letterSpacing: "0.08em" }}>
               {lang === "ta" ? "உங்கள் ஜாதகத்தில் ஏன்" : "Why Your Chart Has This"}
             </p>
-            <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--yogadosham-ink, var(--panel-earth))", lineHeight: 1.55 }}>
+            <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
               {whyText}
             </p>
             {yoga.isPresent && yoga.conditionsMet.length > 0 && (
-              <ul style={{ margin: "var(--space-2) 0 0", padding: "0 0 0 var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
+              <ul style={{ margin: "var(--space-2) 0 0", paddingLeft: "var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
                 {yoga.conditionsMet.map((c, i) => (
-                  <li key={i} style={{ fontSize: "0.75rem", color: "var(--panel-mid-earth)", lineHeight: 1.45 }}>{markerLabel(c, lang)}</li>
+                  <li key={i} style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.45 }}>{markerLabel(c, lang)}</li>
                 ))}
               </ul>
             )}
@@ -862,7 +862,7 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
                 <p
                   style={{
                     margin: "0 0 var(--space-1)",
-                    fontSize: "0.625rem",
+                    fontSize: "var(--text-2xs)",
                     fontWeight: 700,
                     color: "var(--color-faint)",
                     textTransform: "uppercase",
@@ -876,7 +876,7 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
                     key={factor}
                     style={{
                       margin: "var(--space-0_75) 0",
-                      fontSize: "0.875rem",
+                      fontSize: "var(--text-base)",
                       color: "var(--color-muted)",
                     }}
                   >
@@ -899,7 +899,7 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
                     <p className="cd-kicker" style={{ color: "var(--chart-d9-active)", letterSpacing: "0.08em" }}>
                       {lang === "ta" ? "வாழ்க்கையில் என்ன தரும்" : "What This Brings"}
                     </p>
-                    <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--yogadosham-ink, var(--panel-earth))", lineHeight: 1.55 }}>
+                    <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
                       {lang === "ta" ? outcomes.ta : outcomes.en}
                     </p>
                   </div>
@@ -909,17 +909,17 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
                     <p className="cd-kicker" style={{ color: "var(--chart-d9-active)", letterSpacing: "0.08em" }}>
                       {lang === "ta" ? "யோகத்தை பலப்படுத்துவது எப்படி" : "How to Strengthen This Yoga"}
                     </p>
-                    <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--yogadosham-ink, var(--panel-earth))", lineHeight: 1.55 }}>
+                    <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
                       {lang === "ta" ? howTo.ta : howTo.en}
                     </p>
                   </div>
                 )}
                 {remedies && (
-                  <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", background: "var(--chart-d9-active-bg)", border: "1px solid rgba(92,118,84,0.2)" }}>
+                  <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", background: "var(--chart-d9-active-bg)", border: "1px solid var(--color-high-border)" }}>
                     <p className="cd-kicker" style={{ color: "var(--chart-d9-active)", letterSpacing: "0.08em" }}>
                       {lang === "ta" ? "பரிகாரங்கள்" : "Remedies"}
                     </p>
-                    <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--yogadosham-ink-strong, var(--panel-earth-dark))", lineHeight: 1.55 }}>
+                    <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text-strong)", lineHeight: 1.55 }}>
                       {lang === "ta" ? remedies.ta : remedies.en}
                     </p>
                   </div>
@@ -932,7 +932,7 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
               <p className="cd-kicker" style={{ color, letterSpacing: "0.08em" }}>
                 {lang === "ta" ? "இப்போது என்ன செய்யலாம்" : "What It Can Do Now"}
               </p>
-              <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--yogadosham-ink-strong, var(--panel-earth-dark))", lineHeight: 1.55 }}>
+              <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text-strong)", lineHeight: 1.55 }}>
                 {powerText}
               </p>
             </div>
@@ -948,12 +948,12 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
 // Doshams carry no numeric field from the engine, so derive a 0–100 severity
 // from the same signals the yoga badge uses (strength band + dasha activation +
 // cancellation). This gives doshams a score on par with yogas so the UI is
-// consistent ("some have scores, some don't" → all do now).
+// consistent ("some have scores, some don't" -> all do now).
 export function doshamSeverityScore(dosham: ChartDoshamInsight): number | null {
   if (!dosham.isPresent) return null;
   let base = dosham.strength === "STRONG" ? 80 : dosham.strength === "PARTIAL" ? 55 : 35;
   if (dosham.dashaActivated) base += 10;
-  if (dosham.isCancelled) base = Math.round(base * 0.35); // mitigated → much lower
+  if (dosham.isCancelled) base = Math.round(base * 0.35); // mitigated -> much lower
   return Math.max(0, Math.min(100, base));
 }
 
@@ -1013,8 +1013,8 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
   const triggerBullets = dosham.conditionsMet.filter((c) => !annotationMarkers.has(c));
   const attentionBullets = dosham.conditionsMet.filter((c) => annotationMarkers.has(c));
 
-  const cardBg = isActiveAndPresent ? "var(--panel-warm-tint)" : isCancelledAndPresent ? "var(--chart-d9-active-bg)" : "var(--panel-cream)";
-  const cardBorder = isActiveAndPresent ? "rgba(168,72,47,0.35)" : isCancelledAndPresent ? "rgba(92,118,84,0.35)" : "var(--yogadosham-border-light, var(--panel-tan-light))";
+  const cardBg = isActiveAndPresent ? "var(--color-low-bg)" : isCancelledAndPresent ? "var(--chart-d9-active-bg)" : "var(--color-surface-2)";
+  const cardBorder = isActiveAndPresent ? "var(--color-mid-border)" : isCancelledAndPresent ? "var(--color-high-border)" : "var(--color-border)";
 
   return (
     <div style={{ borderRadius: "var(--radius-md)", border: `1px solid ${cardBorder}`, background: "var(--chart-cell-default)", overflow: "hidden", fontFamily: "var(--font-body)" }}>
@@ -1031,23 +1031,23 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
               : <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="2"/></svg>
             }
           </span>
-          <span style={{ fontSize: "0.875rem", fontWeight: 600, color: dosham.isPresent ? "var(--yogadosham-ink-strong, var(--panel-earth-dark))" : "var(--color-faint)" }}>
+          <span style={{ fontSize: "var(--text-base)", fontWeight: 600, color: dosham.isPresent ? "var(--color-text-strong)" : "var(--color-faint)" }}>
             {displayName(dosham.name, lang)}
           </span>
           {dosham.isPresent && dosham.dashaActivated && (
-            <span style={{ fontSize: "0.625rem", fontWeight: 700, color: "var(--panel-brand)", border: "1px solid rgba(184,90,44,0.4)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)" }}>
+            <span style={{ fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-mid)", border: "1px solid var(--color-mid-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)" }}>
               {t("yoga_dasha_activated", lang)}
             </span>
           )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-1_5)", flexShrink: 0 }}>
-          <span style={{ fontSize: "0.625rem", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2_5)" }}>
+          <span style={{ fontSize: "var(--text-2xs)", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2_5)" }}>
             {statusLabel}
           </span>
           {severityBand !== null && (
             <span
               title={lang === "ta" ? "தீவிரம் — ஜாதக பலம் + தசை செயல்பாடு ஆகியவற்றின் அடிப்படையில்" : "Severity — based on natal strength + current Dasha activation"}
-              style={{ fontSize: "0.625rem", fontWeight: 700, padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", background: `${color}14`, color, border: `1px solid ${color}40`, flexShrink: 0 }}
+              style={{ fontSize: "var(--text-2xs)", fontWeight: 700, padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", background: `${color}14`, color, border: `1px solid ${color}40`, flexShrink: 0 }}
             >
               {severityBand}
             </span>
@@ -1063,7 +1063,7 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
             <p className="cd-kicker" style={{ letterSpacing: "0.08em" }}>
               {lang === "ta" ? "இது என்ன" : "What This Is"}
             </p>
-            <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--yogadosham-ink, var(--panel-earth))", lineHeight: 1.55 }}>
+            <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
               {getWhat(dosham.name, false, lang, {
                 ta: dosham.explanationWhatTa || dosham.descriptionTa,
                 en: dosham.explanationWhatEn || dosham.descriptionEn,
@@ -1075,16 +1075,16 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
             <p className="cd-kicker" style={{ letterSpacing: "0.08em" }}>
               {lang === "ta" ? "உங்கள் ஜாதகத்தில் ஏன்" : "Why Your Chart Has This"}
             </p>
-            <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--yogadosham-ink, var(--panel-earth))", lineHeight: 1.55 }}>{whyText}</p>
+            <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>{whyText}</p>
 
             {triggerBullets.length > 0 && (
               <div style={{ marginTop: "var(--space-2_5)" }}>
                 <p className="cd-kicker" style={{ color: "var(--planet-saturn)", letterSpacing: "0.08em" }}>
                   {lang === "ta" ? "கிரக நிலைகள்" : "Planet Positions"}
                 </p>
-                <ul style={{ margin: 0, padding: "0 0 0 var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
+                <ul style={{ margin: 0, paddingLeft: "var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
                   {triggerBullets.map((c, i) => (
-                    <li key={i} style={{ fontSize: "0.75rem", color: "var(--panel-mid-earth)", lineHeight: 1.45 }}>{markerLabel(c, lang)}</li>
+                    <li key={i} style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.45 }}>{markerLabel(c, lang)}</li>
                   ))}
                 </ul>
               </div>
@@ -1095,9 +1095,9 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
                 <p className="cd-kicker" style={{ color: "var(--chart-d9-active)", letterSpacing: "0.08em" }}>
                   {lang === "ta" ? "பாதுகாப்பு காரணங்கள்" : "Protective Factors"}
                 </p>
-                <ul style={{ margin: 0, padding: "0 0 0 var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
+                <ul style={{ margin: 0, paddingLeft: "var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
                   {dosham.cancellationFactors.map((c, i) => (
-                    <li key={i} style={{ fontSize: "0.75rem", color: "var(--panel-mid-earth)", lineHeight: 1.45 }}>{markerLabel(c, lang)}</li>
+                    <li key={i} style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.45 }}>{markerLabel(c, lang)}</li>
                   ))}
                 </ul>
               </div>
@@ -1105,12 +1105,12 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
 
             {attentionBullets.length > 0 && (
               <div style={{ marginTop: "var(--space-2_5)" }}>
-                <p className="cd-kicker" style={{ color: "var(--panel-brand)", letterSpacing: "0.08em" }}>
+                <p className="cd-kicker" style={{ color: "var(--color-mid)", letterSpacing: "0.08em" }}>
                   {lang === "ta" ? "கவன குறிப்பு" : "Attention Note"}
                 </p>
-                <ul style={{ margin: 0, padding: "0 0 0 var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
+                <ul style={{ margin: 0, paddingLeft: "var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
                   {attentionBullets.map((c, i) => (
-                    <li key={i} style={{ fontSize: "0.75rem", color: "var(--panel-mid-earth)", lineHeight: 1.45 }}>{markerLabel(c, lang)}</li>
+                    <li key={i} style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.45 }}>{markerLabel(c, lang)}</li>
                   ))}
                 </ul>
               </div>
@@ -1128,7 +1128,7 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
                       <p className="cd-kicker" style={{ color: "var(--planet-saturn)", letterSpacing: "0.08em" }}>
                         {lang === "ta" ? "வாழ்க்கையில் என்ன ஆகலாம்" : "How This May Affect You"}
                       </p>
-                      <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--yogadosham-ink, var(--panel-earth))", lineHeight: 1.55 }}>
+                      <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
                         {lang === "ta" ? outcomes.ta : outcomes.en}
                       </p>
                     </div>
@@ -1138,17 +1138,17 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
                       <p className="cd-kicker" style={{ color: "var(--chart-d9-active)", letterSpacing: "0.08em" }}>
                         {lang === "ta" ? "தாக்கத்தை குறைப்பது எப்படி" : "How to Reduce Impact"}
                       </p>
-                      <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--yogadosham-ink, var(--panel-earth))", lineHeight: 1.55 }}>
+                      <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
                         {lang === "ta" ? howTo.ta : howTo.en}
                       </p>
                     </div>
                   )}
                   {remedies && dosham.isPresent && (
-                    <div style={{ marginTop: "var(--space-2_5)", padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", background: "var(--yogadosham-remedy-bg, var(--panel-warm-light))", border: "1px solid rgba(168,72,47,0.2)" }}>
+                    <div style={{ marginTop: "var(--space-2_5)", padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", background: "var(--color-accent-muted)", border: "1px solid var(--color-mid-border)" }}>
                       <p className="cd-kicker" style={{ color: "var(--planet-saturn)", letterSpacing: "0.08em" }}>
                         {lang === "ta" ? "பரிகாரங்கள்" : "Remedies"}
                       </p>
-                      <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--yogadosham-ink-strong, var(--panel-earth-dark))", lineHeight: 1.55 }}>
+                      <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text-strong)", lineHeight: 1.55 }}>
                         {lang === "ta" ? remedies.ta : remedies.en}
                       </p>
                     </div>
@@ -1158,7 +1158,7 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
             })()}
 
             {dosham.missingData && dosham.missingData.length > 0 && (
-              <p style={{ margin: "var(--space-2_5) 0 0", fontSize: "0.75rem", color: "var(--color-score-mid)", fontStyle: "italic", lineHeight: 1.5 }}>
+              <p style={{ margin: "var(--space-2_5) 0 0", fontSize: "var(--text-sm)", color: "var(--color-score-mid)", fontStyle: "italic", lineHeight: 1.5 }}>
                 {lang === "ta"
                   ? "குறிப்பு: பிறந்த நேரம் இல்லாததால் இந்த மதிப்பீடு தோராயமானது."
                   : "Note: this assessment is estimated because exact birth time is unavailable."}
@@ -1170,7 +1170,7 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
             <p className="cd-kicker" style={{ color, letterSpacing: "0.08em" }}>
               {lang === "ta" ? "இப்போது என்ன பொருள்" : "What This Means For You Now"}
             </p>
-            <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--yogadosham-ink-strong, var(--panel-earth-dark))", lineHeight: 1.55 }}>{powerText}</p>
+            <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text-strong)", lineHeight: 1.55 }}>{powerText}</p>
           </div>
         </div>
       )}
@@ -1189,7 +1189,7 @@ type Props = {
 export function YogaDoshamPanel({ lang, yogas, doshams }: Props) {
   if (yogas.length === 0 && doshams.length === 0) {
     return (
-      <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-faint)", fontFamily: "var(--font-body)" }}>
+      <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)", fontFamily: "var(--font-body)" }}>
         {t("yogas_empty", lang)}
       </p>
     );
@@ -1203,11 +1203,11 @@ export function YogaDoshamPanel({ lang, yogas, doshams }: Props) {
       {yogas.length > 0 && (
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2_5)", marginBottom: "var(--space-3)" }}>
-            <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 500, color: "var(--yogadosham-ink-strong, var(--panel-earth-dark))" }}>
+            <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 500, color: "var(--color-text-strong)" }}>
               {t("yogas_title", lang)}
             </p>
             {presentYogas.length > 0 && (
-              <span style={{ fontSize: "0.625rem", fontWeight: 700, color: "var(--chart-d9-active)", background: "var(--chart-d9-active-bg)", border: "1px solid rgba(92,118,84,0.35)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)" }}>
+              <span style={{ fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--chart-d9-active)", background: "var(--chart-d9-active-bg)", border: "1px solid var(--color-high-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)" }}>
                 {presentYogas.length} {t("yoga_present", lang)}
               </span>
             )}
@@ -1221,7 +1221,7 @@ export function YogaDoshamPanel({ lang, yogas, doshams }: Props) {
 
       {doshams.length > 0 && (
         <div>
-          <p style={{ margin: "0 0 var(--space-3)", fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 500, color: "var(--yogadosham-ink-strong, var(--panel-earth-dark))" }}>
+          <p style={{ margin: "0 0 var(--space-3)", fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 500, color: "var(--color-text-strong)" }}>
             {t("doshams_title", lang)}
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>

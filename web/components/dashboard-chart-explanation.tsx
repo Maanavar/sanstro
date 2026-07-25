@@ -139,7 +139,7 @@ function normalizePlanet(graha: string): string {
 function strengthColor(score: number | undefined): string {
   if (score === undefined) return "var(--color-faint)";
   if (score >= 70) return "var(--color-score-high, var(--chart-d9-active))";
-  if (score >= 45) return "var(--color-score-mid, var(--panel-brand))";
+  if (score >= 45) return "var(--color-score-mid)";
   return "var(--color-score-low, var(--planet-saturn))";
 }
 
@@ -214,7 +214,7 @@ function relationshipColor(tone: string): string {
   const key = normalizeRelationshipTone(tone);
   if (key === "friendly") return "var(--color-score-high, var(--chart-d9-active))";
   if (key === "hostile") return "var(--color-score-low, var(--planet-saturn))";
-  return "var(--color-score-mid, var(--panel-brand))";
+  return "var(--color-score-mid)";
 }
 
 function periodLevelLabel(level: string, lang: Lang): string {
@@ -233,7 +233,7 @@ function activationToneLabel(tone: string, lang: Lang): string {
 function activationToneColor(tone: string): string {
   if (tone === "SUPPORT") return "var(--color-score-high, var(--chart-d9-active))";
   if (tone === "CAUTION") return "var(--color-score-low, var(--planet-saturn))";
-  return "var(--color-score-mid, var(--panel-brand))";
+  return "var(--color-score-mid)";
 }
 
 function signalTypeLabel(signalType: string, lang: Lang): string {
@@ -655,7 +655,7 @@ function Chip({ children, color }: { children: ReactNode; color?: string }) {
         border: `1px solid ${color ? `${color}44` : "var(--color-border)"}`,
         color: color ?? "var(--color-muted)",
         background: color ? `${color}12` : "var(--color-surface-soft)",
-        fontSize: "0.75rem",
+        fontSize: "var(--text-sm)",
         fontWeight: 600,
         lineHeight: 1.25,
       }}
@@ -694,8 +694,8 @@ function DetailRow({ label, value }: { label: string; value: string }) {
         borderBottom: "1px solid var(--color-border)",
       }}
     >
-      <span style={{ fontSize: "0.75rem", color: "var(--color-faint)", lineHeight: 1.35 }}>{label}</span>
-      <span style={{ fontSize: "0.875rem", color: "var(--color-text-strong)", fontWeight: 500, lineHeight: 1.45 }}>{value}</span>
+      <span style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)", lineHeight: 1.35 }}>{label}</span>
+      <span style={{ fontSize: "var(--text-base)", color: "var(--color-text-strong)", fontWeight: 500, lineHeight: 1.45 }}>{value}</span>
     </div>
   );
 }
@@ -846,7 +846,7 @@ export function ChartExplanationPanel({
           <p
             style={{
               margin: "0 0 var(--space-1)",
-              fontSize: "0.625rem",
+              fontSize: "var(--text-2xs)",
               fontWeight: 700,
               color: "var(--color-faint)",
               textTransform: "uppercase",
@@ -855,7 +855,7 @@ export function ChartExplanationPanel({
           >
             {lang === "ta" ? "ஜாதக விளக்கம்" : "Chart Explanation"}
           </p>
-          <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)", lineHeight: 1.5 }}>
+          <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.5 }}>
             {teaser}
           </p>
         </div>
@@ -879,7 +879,7 @@ export function ChartExplanationPanel({
             border: "1.5px solid var(--color-border-strong)",
             background: open ? "var(--color-text-strong)" : "var(--color-surface)",
             color: open ? "var(--color-bg)" : "var(--color-text)",
-            fontSize: "0.8125rem",
+            fontSize: "var(--text-base)",
             fontWeight: 700,
             cursor: "pointer",
             fontFamily: "inherit",
@@ -932,7 +932,7 @@ export function ChartExplanationPanel({
                     borderColor: active ? "var(--color-text-strong)" : "var(--color-border)",
                     background: active ? "var(--color-text-strong)" : "transparent",
                     color: active ? "var(--color-bg)" : "var(--color-muted)",
-                    fontSize: "0.8125rem",
+                    fontSize: "var(--text-base)",
                     fontWeight: active ? 700 : 600,
                     cursor: "pointer",
                     fontFamily: "inherit",
@@ -946,13 +946,13 @@ export function ChartExplanationPanel({
           {/* Active section content — one section at a time */}
           {SECTION_META.filter((section) => section.id === activeSection).map((section) => (
             <div key={section.id} style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-              <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-faint)", lineHeight: 1.35 }}>
+              <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)", lineHeight: 1.35 }}>
                 {tx(section.hint, lang)}
               </p>
               <div style={{ display: "flex", flexDirection: "column" }}>
               {section.id === "basics" && (
                 <div style={{ display: "grid", gap: "var(--space-3)" }}>
-                  <p style={{ margin: 0, fontSize: "0.875rem", lineHeight: 1.6, color: "var(--color-muted)" }}>
+                  <p style={{ margin: 0, fontSize: "var(--text-base)", lineHeight: 1.6, color: "var(--color-muted)" }}>
                     {coreIdentity
                       ? tx(coreIdentity.explanation, lang)
                       : lang === "ta"
@@ -996,7 +996,7 @@ export function ChartExplanationPanel({
                 <div style={{ display: "grid", gap: "var(--space-3)" }}>
                   {backendCurrentActivation ? (
                     <>
-                      <p style={{ margin: 0, fontSize: "0.875rem", lineHeight: 1.6, color: "var(--color-muted)" }}>
+                      <p style={{ margin: 0, fontSize: "var(--text-base)", lineHeight: 1.6, color: "var(--color-muted)" }}>
                         {tx(backendCurrentActivation.explanation, lang)}
                       </p>
                       <div style={{ display: "grid", gap: "var(--space-2)" }}>
@@ -1014,10 +1014,10 @@ export function ChartExplanationPanel({
                           <div key={`${item.level}-${item.lord}`} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", background: "var(--color-surface)", padding: "var(--space-3)" }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "var(--space-2)", flexWrap: "wrap" }}>
                               <div>
-                                <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                                <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                                   {periodLevelLabel(item.level, lang)} - {displayPlanet(item.lord, lang)}
                                 </p>
-                                <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "0.75rem", color: "var(--color-faint)", lineHeight: 1.45 }}>
+                                <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "var(--text-sm)", color: "var(--color-faint)", lineHeight: 1.45 }}>
                                   {formatPeyarchiDate(item.startDate)} - {formatPeyarchiDate(item.endDate)}
                                 </p>
                               </div>
@@ -1031,7 +1031,7 @@ export function ChartExplanationPanel({
                               <Chip>{lang === "ta" ? "கிரகநகர்வு" : "Transit"}: {ordinalHouse(item.transitHouseFromLagna, lang)}</Chip>
                               {item.transitIsRetrograde && <Chip>{lang === "ta" ? "வக்கிரம்" : "Retrograde"}</Chip>}
                             </div>
-                            <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.8125rem", color: "var(--color-text)", lineHeight: 1.55 }}>
+                            <p style={{ margin: "0 0 var(--space-2)", fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
                               {tx(item.explanation, lang)}
                             </p>
                             <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
@@ -1054,7 +1054,7 @@ export function ChartExplanationPanel({
                         label={lang === "ta" ? "நடப்பு அந்தரம்" : "Current Antaram"}
                         value={currentAntar ? displayPlanet(currentAntar, lang) : (lang === "ta" ? "தரவு இல்லை" : "Unavailable")}
                       />
-                      <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
+                      <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
                         {lang === "ta"
                           ? "முழு தசை செயல்பாட்டு விளக்கம் backend தரவு கிடைக்கும் போது காட்டப்படும்."
                           : "Full Dasa activation detail appears when backend explanation data is available."}
@@ -1089,13 +1089,13 @@ export function ChartExplanationPanel({
                           }}
                         >
                           <div>
-                            <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                            <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                               {displayPlanet(planet.graha, lang)}
                             </p>
                             <Chip color={color}>{Math.round(planet.strengthScore)}/100</Chip>
                           </div>
                           <div style={{ display: "grid", gap: "var(--space-1_5)" }}>
-                            <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--color-text)", lineHeight: 1.5 }}>
+                            <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.5 }}>
                               {ordinalHouse(planet.houseFromLagna, lang)} - {rasiName(planet.rasi, lang)} - {tNakshatra(planet.nakshatraName, lang)}{" "}
                               {lang === "ta" ? "பாதம்" : "Pada"} {planet.pada}
                             </p>
@@ -1108,10 +1108,10 @@ export function ChartExplanationPanel({
                             {planet.facets && planet.facets.length > 0 ? (
                               <dl style={{ margin: 0, display: "grid", gap: "var(--space-1)" }}>
                                 {planet.facets.map((facet) => (
-                                  <div key={facet.key} style={{ display: "grid", gap: "1px" }}>
+                                  <div key={facet.key} style={{ display: "grid", gap: "var(--space-1)" }}>
                                     <dt
                                       style={{
-                                        fontSize: "0.6875rem",
+                                        fontSize: "var(--text-xs)",
                                         fontWeight: 700,
                                         letterSpacing: "0.03em",
                                         textTransform: "uppercase",
@@ -1125,22 +1125,22 @@ export function ChartExplanationPanel({
                                     >
                                       {tx(facet.label, lang)}
                                     </dt>
-                                    <dd style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-muted)", lineHeight: 1.5 }}>
+                                    <dd style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5 }}>
                                       {tx(facet.value, lang)}
                                     </dd>
                                   </div>
                                 ))}
-                                <div style={{ display: "grid", gap: "1px" }}>
-                                  <dt style={{ fontSize: "0.6875rem", fontWeight: 700, letterSpacing: "0.03em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+                                <div style={{ display: "grid", gap: "var(--space-1)" }}>
+                                  <dt style={{ fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.03em", textTransform: "uppercase", color: "var(--color-faint)" }}>
                                     {lang === "ta" ? "நவாம்சம் (D9)" : "Navamsa (D9)"}
                                   </dt>
-                                  <dd style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-muted)", lineHeight: 1.5 }}>
+                                  <dd style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5 }}>
                                     {rasiName(planet.d9Rasi, lang)}
                                   </dd>
                                 </div>
                               </dl>
                             ) : (
-                              <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-muted)", lineHeight: 1.5 }}>
+                              <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5 }}>
                                 {tx(planet.explanation, lang)} D9: {rasiName(planet.d9Rasi, lang)}.
                               </p>
                             )}
@@ -1174,7 +1174,7 @@ export function ChartExplanationPanel({
                           }}
                         >
                           <div>
-                            <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                            <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                               {displayPlanet(planet.graha, lang)}
                             </p>
                             <Chip color={color}>
@@ -1182,11 +1182,11 @@ export function ChartExplanationPanel({
                             </Chip>
                           </div>
                           <div style={{ display: "grid", gap: "var(--space-1_5)" }}>
-                            <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--color-text)", lineHeight: 1.5 }}>
+                            <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.5 }}>
                               {ordinalHouse(planet.houseFromLagna, lang)} - {rasiName(planet.rasi, lang)} - {tNakshatra(planet.nakshatraName, lang)}{" "}
                               {lang === "ta" ? "பாதம்" : "Pada"} {planet.pada}
                             </p>
-                            <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-muted)", lineHeight: 1.5 }}>
+                            <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5 }}>
                               {dignityFor(planet, lang)}. D9: {rasiName(planet.d9Rasi, lang)}.
                             </p>
                             <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
@@ -1207,7 +1207,7 @@ export function ChartExplanationPanel({
                 <div style={{ display: "grid", gap: "var(--space-3)" }}>
                   {backendConjunctions ? (
                     backendConjunctions.length === 0 ? (
-                      <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
+                      <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
                         {lang === "ta"
                           ? "ஒரே ராசியில் இரண்டு அல்லது அதற்கு மேற்பட்ட கிரகங்கள் இல்லை. அதனால் பெரிய கூட்ட அழுத்தம் குறைவு."
                           : "No sign has two or more planets together, so there is no major conjunction cluster."}
@@ -1218,12 +1218,12 @@ export function ChartExplanationPanel({
                         return (
                           <div key={group.rasi} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", padding: "var(--space-3)", background: "var(--color-surface)" }}>
                             <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-2)", flexWrap: "wrap", alignItems: "center" }}>
-                              <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                              <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                                 {rasiName(group.rasi, lang)} - {ordinalHouse(group.houseFromLagna, lang)}
                               </p>
                               <Chip color={color}>{relationshipLabel(group.relationshipTone, lang)}</Chip>
                             </div>
-                            <p style={{ margin: "var(--space-2) 0", fontSize: "0.8125rem", color: "var(--color-muted)", lineHeight: 1.5 }}>
+                            <p style={{ margin: "var(--space-2) 0", fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.5 }}>
                               {tx(group.explanation, lang)}
                             </p>
                             <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
@@ -1238,7 +1238,7 @@ export function ChartExplanationPanel({
                       })
                     )
                   ) : derived.conjunctions.length === 0 ? (
-                    <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
+                    <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
                       {lang === "ta"
                         ? "ஒரே ராசியில் இரண்டு அல்லது அதற்கு மேற்பட்ட கிரகங்கள் இல்லை. அதனால் பெரிய கூட்ட அழுத்தம் குறைவு."
                         : "No sign has two or more planets together, so there is no major conjunction cluster."}
@@ -1249,12 +1249,12 @@ export function ChartExplanationPanel({
                       return (
                         <div key={group.rasi} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", padding: "var(--space-3)", background: "var(--color-surface)" }}>
                           <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-2)", flexWrap: "wrap", alignItems: "center" }}>
-                            <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                            <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                               {rasiName(group.rasi, lang)}
                             </p>
                             <Chip color={color}>{relationshipLabel(group.tone, lang)}</Chip>
                           </div>
-                          <p style={{ margin: "var(--space-2) 0", fontSize: "0.8125rem", color: "var(--color-muted)", lineHeight: 1.5 }}>
+                          <p style={{ margin: "var(--space-2) 0", fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.5 }}>
                             {group.planets.map((planet) => displayPlanet(planet.graha, lang)).join(" + ")}
                           </p>
                           <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap" }}>
@@ -1279,12 +1279,12 @@ export function ChartExplanationPanel({
               {section.id === "drishti" && (
                 <div style={{ display: "grid", gap: "var(--space-3)" }}>
                   <div style={{ display: "grid", gap: "var(--space-2)" }}>
-                    <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                    <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                       {lang === "ta" ? "ஜாதக திருஷ்டி" : "Natal Drishti"}
                     </p>
                     {backendAspects ? (
                       backendAspects.length === 0 ? (
-                        <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
+                        <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
                           {lang === "ta"
                             ? "இந்த கணக்கில் நேரடி கிரக திருஷ்டி தொடுதல்கள் இல்லை."
                             : "No direct natal drishti contacts were found in this calculation."}
@@ -1303,7 +1303,7 @@ export function ChartExplanationPanel({
                         </div>
                       )
                     ) : derived.seventhAspects.length === 0 ? (
-                      <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
+                      <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
                         {lang === "ta"
                           ? "எளிய 7-ஆம் பார்வையில் முக்கிய கிரக ஜோடி இல்லை."
                           : "No major planet pair is in a simple mutual 7th-house aspect."}
@@ -1328,7 +1328,7 @@ export function ChartExplanationPanel({
                     {backendAspects?.some(
                       (a) => a.aspectType.startsWith("RAHU_") || a.aspectType.startsWith("KETU_"),
                     ) && (
-                      <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-faint)", lineHeight: 1.5 }}>
+                      <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)", lineHeight: 1.5 }}>
                         {lang === "ta"
                           ? "குறிப்பு: ராகு/கேதுவுக்கு 5, 7, 9 பார்வை தரும் மரபை இங்கு பின்பற்றுகிறோம். இது ஒரு மரபு சார்ந்த கருத்து; வேறு மரபுகள் வேறாகக் கொள்ளலாம் — சில ஆசிரியர்கள் நிழல் கிரகங்களுக்கு 7-ஆம் பார்வை மட்டுமே தருகிறார்கள், சிலர் தனிப் பார்வையே இல்லை என்கிறார்கள்."
                           : "Note: we follow the tradition that gives Rahu/Ketu 5th, 7th and 9th aspects. This is one school's doctrine — some authorities give the shadow grahas the 7th aspect only, and others hold that they aspect solely through their dispositor."}
@@ -1337,16 +1337,16 @@ export function ChartExplanationPanel({
                   </div>
 
                   <div style={{ display: "grid", gap: "var(--space-2)" }}>
-                    <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                    <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                       {lang === "ta" ? "இன்றைய குரு / சனி கோசாரப் பார்வை" : "Guru / Sani — Current Transit Aspects"}
                     </p>
-                    <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-faint)", lineHeight: 1.45 }}>
+                    <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)", lineHeight: 1.45 }}>
                       {lang === "ta"
                         ? "இது இன்றைய வானத்தில் குரு/சனி எங்கே சஞ்சரிக்கிறார்கள் என்பதைக் காட்டுகிறது — உங்கள் பிறப்பு ஜாதக நிலை அல்ல."
                         : "This shows where Guru/Sani are moving in today's sky — not their positions in your birth chart."}
                     </p>
                     {[derived.jupiterTransit, derived.saturnTransit].filter(Boolean).length === 0 ? (
-                      <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
+                      <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
                         {lang === "ta" ? "கிரகநகர்விலான குரு/சனி தரவு இல்லை." : "Transit Guru/Sani data is unavailable."}
                       </p>
                     ) : (
@@ -1358,7 +1358,7 @@ export function ChartExplanationPanel({
                         const bindus = transitBindus(chart, graha, item!.houseFromLagna);
                         return (
                           <div key={graha} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", padding: "var(--space-3)", background: "var(--color-surface)" }}>
-                            <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.8125rem", color: "var(--color-text)", lineHeight: 1.55 }}>
+                            <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
                               {transitAspectSummary(graha, item!.houseFromLagna, item!.houseFromMoon ?? null, houses, lang)}
                             </p>
                             {/*
@@ -1380,13 +1380,13 @@ export function ChartExplanationPanel({
                                  primarily as "semen" — not usable in product copy.
                             */}
                             {bindus !== null && (
-                              <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "0.75rem", color: "var(--color-muted)", lineHeight: 1.5 }}>
+                              <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5 }}>
                                 {lang === "ta"
                                   ? `அஷ்டகவர்க்கம்: ${displayPlanet(graha, lang)} இந்த ராசியில் ${bindus}/8 பரல்கள் பெற்றுள்ளார் — ${binduReading(bindus, lang)}. பரல்கள் அதிகம் இருந்தால் இந்தப் பெயர்ச்சியின் பலன் எளிதாக வெளிப்படும்; குறைவாக இருந்தால் அதே பெயர்ச்சி மெதுவாகவே பலன் தரும்.`
                                   : `Ashtakavarga: ${displayPlanet(graha, lang)} holds ${bindus}/8 bindus in this rasi — ${binduReading(bindus, lang)}. More bindus let a peyarchi deliver its results more easily; fewer bindus mean the same transit works slowly.`}
                               </p>
                             )}
-                            <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.75rem", color: "var(--color-faint)", lineHeight: 1.4 }}>
+                            <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-sm)", color: "var(--color-faint)", lineHeight: 1.4 }}>
                               {touched.length > 0
                                 ? (lang === "ta" ? "இந்தப் பார்வையில் வரும் உங்கள் கிரகங்கள்:" : "Your natal planets under this aspect:")
                                 : (lang === "ta" ? "இந்தப் பார்வையில் நேரடியாக எந்த ஜாதக கிரகமும் வரவில்லை." : "No natal planet falls directly under this aspect right now.")}
@@ -1396,7 +1396,7 @@ export function ChartExplanationPanel({
                                 {touched.map((planet) => (
                                   <div key={`${graha}-${planet.graha}`} style={{ borderTop: "1px solid var(--color-border)", paddingTop: "var(--space-1_5)" }}>
                                     <Chip>{displayPlanet(planet.graha, lang)} - {ordinalHouse(planet.houseFromLagna, lang)}</Chip>
-                                    <p style={{ margin: "var(--space-1) 0 0", fontSize: "0.75rem", color: "var(--color-text)", lineHeight: 1.5 }}>
+                                    <p style={{ margin: "var(--space-1) 0 0", fontSize: "var(--text-sm)", color: "var(--color-text)", lineHeight: 1.5 }}>
                                       {touchedPlanetMeaning(graha as "JUPITER" | "SATURN", planet.graha, lang)}
                                     </p>
                                   </div>
@@ -1416,10 +1416,10 @@ export function ChartExplanationPanel({
                   {backendHouseGroups ? (
                     backendHouseGroups.map((group) => (
                       <div key={group.group} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", background: "var(--color-surface)", padding: "var(--space-3)" }}>
-                        <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                        <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                           {houseGroupLabel(group.group, lang)}
                         </p>
-                        <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.8125rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
+                        <p style={{ margin: "0 0 var(--space-2)", fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
                           {tx(group.explanation, lang)}
                         </p>
                         <div style={{ display: "grid", gap: "var(--space-1)" }}>
@@ -1427,12 +1427,12 @@ export function ChartExplanationPanel({
                             ? group.planets.map((planet) => {
                                 const h = (backendPlanets ?? chart.planets).find((p) => normalizePlanet(p.graha) === normalizePlanet(planet))?.houseFromLagna;
                                 return (
-                                  <p key={`${group.group}-${planet}`} style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-text)", lineHeight: 1.5 }}>
+                                  <p key={`${group.group}-${planet}`} style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-text)", lineHeight: 1.5 }}>
                                     {h ? planetHouseMeaning(planet, h, lang) : displayPlanet(planet, lang)}
                                   </p>
                                 );
                               })
-                            : <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-faint)" }}>{lang === "ta" ? "இங்கு கிரகம் இல்லை" : "No planet here"}</p>}
+                            : <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>{lang === "ta" ? "இங்கு கிரகம் இல்லை" : "No planet here"}</p>}
                         </div>
                       </div>
                     ))
@@ -1446,31 +1446,31 @@ export function ChartExplanationPanel({
                             : derived.dusthanaPlanets;
                       return (
                         <div key={group} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", background: "var(--color-surface)", padding: "var(--space-3)" }}>
-                          <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                          <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                             {houseGroupLabel(group, lang)}
                           </p>
-                          <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.8125rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
+                          <p style={{ margin: "0 0 var(--space-2)", fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
                             {tx(HOUSE_GROUP_COPY[group], lang)}
                           </p>
                           <div style={{ display: "grid", gap: "var(--space-1)" }}>
                             {planets.length > 0
                               ? planets.map((planet) => (
-                                  <p key={`${group}-${planet.graha}`} style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-text)", lineHeight: 1.5 }}>
+                                  <p key={`${group}-${planet.graha}`} style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-text)", lineHeight: 1.5 }}>
                                     {planetHouseMeaning(planet.graha, planet.houseFromLagna, lang)}
                                   </p>
                                 ))
-                              : <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-faint)" }}>{lang === "ta" ? "இங்கு கிரகம் இல்லை" : "No planet here"}</p>}
+                              : <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>{lang === "ta" ? "இங்கு கிரகம் இல்லை" : "No planet here"}</p>}
                           </div>
                         </div>
                       );
                     })
                   )}
                   <div style={{ display: "grid", gap: "var(--space-1)" }}>
-                    <p style={{ margin: "var(--space-1) 0 0", fontSize: "0.6875rem", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                    <p style={{ margin: "var(--space-1) 0 0", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                       {lang === "ta" ? "எல்லா கிரகங்களும் — வீடு வாரியாக" : "All planets — by house"}
                     </p>
                     {(backendPlanets ?? chart.planets).map((planet) => (
-                      <p key={`house-${planet.graha}`} style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-text)", lineHeight: 1.5 }}>
+                      <p key={`house-${planet.graha}`} style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-text)", lineHeight: 1.5 }}>
                         {planetHouseMeaning(planet.graha, planet.houseFromLagna, lang)}
                       </p>
                     ))}
@@ -1484,18 +1484,18 @@ export function ChartExplanationPanel({
                     functionalNatureEntries.map(([planet, nature]) => (
                       <div key={planet} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", background: "var(--color-surface)", padding: "var(--space-3)" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-2)", flexWrap: "wrap", alignItems: "center" }}>
-                          <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                          <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                             {displayPlanet(planet, lang)}
                           </p>
                           <Chip>{natureLabel(nature, lang)}</Chip>
                         </div>
-                        <p style={{ margin: "var(--space-2) 0 0", fontSize: "0.8125rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
+                        <p style={{ margin: "var(--space-2) 0 0", fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
                           {natureNote(nature, lang)}
                         </p>
                       </div>
                     ))
                   ) : (
-                    <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
+                    <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
                       {lang === "ta"
                         ? "இந்த சுருக்கத்தில் செயல்பாட்டு தன்மை தரவு இல்லை."
                         : "Functional nature data was not included in this summary."}
@@ -1507,7 +1507,7 @@ export function ChartExplanationPanel({
               {section.id === "yogas" && (
                 <div style={{ display: "grid", gap: "var(--space-3)" }}>
                   {backendYogaDosham && (
-                    <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
+                    <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
                       {tx(backendYogaDosham.explanation, lang)}
                     </p>
                   )}
@@ -1577,7 +1577,7 @@ export function ChartExplanationPanel({
                         borderRadius: "var(--radius-2, 8px)",
                         background: "var(--color-accent-muted)",
                         border: "1px solid var(--color-border-strong)",
-                        fontSize: "0.8125rem",
+                        fontSize: "var(--text-base)",
                         lineHeight: 1.6,
                         color: "var(--color-text)",
                       }}
@@ -1587,30 +1587,30 @@ export function ChartExplanationPanel({
                   )}
 
                   {backendSummary?.scoreScaleNote && (
-                    <p style={{ margin: 0, fontSize: "0.75rem", lineHeight: 1.6, color: "var(--color-muted)" }}>
+                    <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.6, color: "var(--color-muted)" }}>
                       {tx(backendSummary.scoreScaleNote, lang)}
                     </p>
                   )}
-                  <ul style={{ margin: 0, padding: "0 0 0 var(--space-4)", display: "grid", gap: "var(--space-1_5)" }}>
+                  <ul style={{ margin: 0, paddingLeft: "var(--space-4)", display: "grid", gap: "var(--space-1_5)" }}>
                     {backendSummary ? (
                       [...backendSummary.positives, ...backendSummary.cautions].map((item, index) => (
-                        <li key={`${tx(item, "en")}-${index}`} style={{ fontSize: "0.875rem", color: "var(--color-text)", lineHeight: 1.55 }}>
+                        <li key={`${tx(item, "en")}-${index}`} style={{ fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
                           {tx(item, lang)}
                         </li>
                       ))
                     ) : (
                       <>
-                        <li style={{ fontSize: "0.875rem", color: "var(--color-text)", lineHeight: 1.55 }}>
+                        <li style={{ fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
                           {lang === "ta"
                             ? `${derived.kendraPlanets.length} கேந்திர கிரகங்கள் வாழ்க்கையின் வெளிப்படைத் துறைகளை சுறுசுறுப்பாக்கும். இதை திட்டமிட்ட செயலில் பயன்படுத்தலாம்.`
                             : `${derived.kendraPlanets.length} Kendra planets make the visible life areas more active. Use this through planned action.`}
                         </li>
-                        <li style={{ fontSize: "0.875rem", color: "var(--color-text)", lineHeight: 1.55 }}>
+                        <li style={{ fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
                           {lang === "ta"
                             ? `${derived.dusthanaPlanets.length} துஷ்டான கிரகங்கள் கவனமும் ஒழுங்கும் கேட்கும். ஓய்வு, பழக்கம், கால மேலாண்மை உதவும்.`
                             : `${derived.dusthanaPlanets.length} Dusthana planets ask for care and refinement. Rest, routines, and time management help.`}
                         </li>
-                        <li style={{ fontSize: "0.875rem", color: "var(--color-text)", lineHeight: 1.55 }}>
+                        <li style={{ fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
                           {lang === "ta"
                             ? `நடப்பு ${dashaLabel} இந்த விளக்கத்தின் செயல்படும் அடுக்கு. அந்த கிரகங்களின் வீடு மற்றும் பலத்தை முன்னுரிமையாக பார்க்கவும்.`
                             : `The current ${dashaLabel} is the active layer of this reading. Prioritize those planets' houses and strength.`}
@@ -1625,16 +1625,16 @@ export function ChartExplanationPanel({
                 <div style={{ display: "grid", gap: "var(--space-3)" }}>
                   {backendPeyarchi ? (
                     <>
-                      <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
+                      <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
                         {tx(backendPeyarchi.explanation, lang)}
                       </p>
                       {backendPeyarchi.events.length > 0 ? (
                         backendPeyarchi.events.map((event) => (
                           <div key={`${event.planet}-${event.eventDate}`} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", padding: "var(--space-3)", background: "var(--color-surface)" }}>
-                            <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                            <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                               {displayPlanet(event.planet, lang)} - {formatPeyarchiDate(event.eventDate)}
                             </p>
-                            <p style={{ margin: "0 0 var(--space-2)", fontSize: "0.8125rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
+                            <p style={{ margin: "0 0 var(--space-2)", fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
                               {event.fromRasi} - {event.toRasi}; {lang === "ta" ? "சந்திரனிலிருந்து" : "from Moon"} {ordinalHouse(event.houseFromMoon, lang)},{" "}
                               {lang === "ta" ? "லக்னத்திலிருந்து" : "from Lagna"} {ordinalHouse(event.houseFromLagna, lang)}.
                             </p>
@@ -1643,18 +1643,18 @@ export function ChartExplanationPanel({
                                 <Chip>{saniCycleLabel(event.saniCycleAfter, lang)}</Chip>
                               </div>
                             )}
-                            <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--color-text)", lineHeight: 1.55 }}>
+                            <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
                               {tx(event.explanation, lang)}
                             </p>
                           </div>
                         ))
                       ) : (
-                        <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
+                        <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
                           {lang === "ta" ? "இந்த காலச்சாளரத்தில் பெரிய பெயர்ச்சி நிகழ்வு இல்லை." : "No major peyarchi event in this window."}
                         </p>
                       )}
                       {backend?.methodNote && (
-                        <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-faint)", lineHeight: 1.55 }}>
+                        <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)", lineHeight: 1.55 }}>
                           {tx(backend.methodNote, lang)}
                         </p>
                       )}
@@ -1662,15 +1662,15 @@ export function ChartExplanationPanel({
                   ) : (
                     <>
                   <div style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", padding: "var(--space-3)", background: "var(--color-surface)" }}>
-                    <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                    <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                       {lang === "ta" ? "சனி" : "Sani / Saturn"}
                     </p>
-                    <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
+                    <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
                       {tx(derived.saniStage, lang)}
                       {derived.kandakaStage ? ` ${tx(derived.kandakaStage, lang)}` : ""}
                     </p>
                     {saniEvent && (
-                      <p style={{ margin: "var(--space-2) 0 0", fontSize: "0.8125rem", color: "var(--color-text)", lineHeight: 1.55 }}>
+                      <p style={{ margin: "var(--space-2) 0 0", fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
                         {formatPeyarchiDate(saniEvent.peyarchiDateLocal)}: {saniEvent.fromRasi} - {saniEvent.toRasi};{" "}
                         {lang === "ta" ? "சந்திரனிலிருந்து" : "from Moon"} {ordinalHouse(saniEvent.impactFromMoon, lang)},{" "}
                         {lang === "ta" ? "லக்னத்திலிருந்து" : "from Lagna"} {ordinalHouse(saniEvent.impactFromLagna, lang)}.
@@ -1679,56 +1679,56 @@ export function ChartExplanationPanel({
                   </div>
 
                   <div style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", padding: "var(--space-3)", background: "var(--color-surface)" }}>
-                    <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                    <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                       {lang === "ta" ? "குரு" : "Guru / Jupiter"}
                     </p>
                     {guruEvent ? (
                       <>
-                        <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
+                        <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
                           {formatPeyarchiDate(guruEvent.peyarchiDateLocal)}: {guruEvent.fromRasi} - {guruEvent.toRasi};{" "}
                           {lang === "ta" ? "சந்திரனிலிருந்து" : "from Moon"} {ordinalHouse(guruEvent.impactFromMoon, lang)}.{" "}
                           {guruQualityCopy(guruMoonQuality(guruEvent.impactFromMoon), lang)}
                         </p>
-                        <p style={{ margin: "var(--space-2) 0 0", fontSize: "0.8125rem", color: "var(--color-text)", lineHeight: 1.55 }}>
+                        <p style={{ margin: "var(--space-2) 0 0", fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
                           {lang === "ta" ? "லக்னத்திலிருந்து இது தொடும் துறை" : "Life area from Lagna"}:{" "}
                           {ordinalHouse(guruEvent.impactFromLagna, lang)} - {tx(HOUSE_MEANING[guruEvent.impactFromLagna], lang)}.
                         </p>
                       </>
                     ) : (
-                      <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
+                      <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
                         {lang === "ta" ? "அடுத்த பெயர்ச்சி தரவு இந்த சாளரத்தில் இல்லை." : "No upcoming Jupiter peyarchi in this window."}
                       </p>
                     )}
                   </div>
 
                   <div style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", padding: "var(--space-3)", background: "var(--color-surface)" }}>
-                    <p style={{ margin: "0 0 var(--space-1)", fontSize: "0.875rem", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                    <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                       {lang === "ta" ? "ராகு / கேது" : "Rahu / Ketu"}
                     </p>
                     {rahuEvent || ketuEvent ? (
                       <div style={{ display: "grid", gap: "var(--space-2)" }}>
                         {rahuEvent && (
-                          <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
+                          <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
                             {formatPeyarchiDate(rahuEvent.peyarchiDateLocal)}: {lang === "ta" ? "ராகு பெரிதாக்கும் பகுதி" : "Rahu amplifies"} -{" "}
                             {ordinalHouse(rahuEvent.impactFromMoon, lang)} {lang === "ta" ? "சந்திரனிலிருந்து" : "from Moon"},{" "}
                             {ordinalHouse(rahuEvent.impactFromLagna, lang)} {lang === "ta" ? "லக்னத்திலிருந்து" : "from Lagna"}.
                           </p>
                         )}
                         {ketuEvent && (
-                          <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
+                          <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
                             {formatPeyarchiDate(ketuEvent.peyarchiDateLocal)}: {lang === "ta" ? "கேது விடுவிக்கும் பகுதி" : "Ketu releases"} -{" "}
                             {ordinalHouse(ketuEvent.impactFromMoon, lang)} {lang === "ta" ? "சந்திரனிலிருந்து" : "from Moon"},{" "}
                             {ordinalHouse(ketuEvent.impactFromLagna, lang)} {lang === "ta" ? "லக்னத்திலிருந்து" : "from Lagna"}.
                           </p>
                         )}
-                        <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--color-text)", lineHeight: 1.55 }}>
+                        <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
                           {lang === "ta"
                             ? "இந்த அச்சு ஆசை மற்றும் விடுவிப்பு ஆகிய இரண்டையும் ஒன்றாக இயக்கும். முடிவுகளை மெதுவாக சரிபார்த்து எடுப்பது உதவும்."
                             : "This axis activates both amplification and release. Slower verification before decisions is helpful."}
                         </p>
                       </div>
                     ) : (
-                      <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--color-muted)", lineHeight: 1.55 }}>
+                      <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
                         {lang === "ta" ? "ராகு/கேது பெயர்ச்சி தரவு இந்த சாளரத்தில் இல்லை." : "No Rahu/Ketu peyarchi in this window."}
                       </p>
                     )}

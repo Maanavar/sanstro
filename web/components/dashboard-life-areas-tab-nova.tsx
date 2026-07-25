@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ArrowRight } from "lucide-react";
 
 import { t, tLang, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
@@ -123,7 +124,7 @@ function YogaActivationSummary({
   const hasAny = presentYogas.length > 0 || presentDoshams.length > 0;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "16px", fontFamily: "var(--font-body)" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", fontFamily: "var(--font-body)" }}>
       <Card>
         <h3 style={{ margin: "0 0 4px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
           {lang === "ta" ? "இப்போது செயலில் உள்ளவை" : "Active right now"}
@@ -139,18 +140,18 @@ function YogaActivationSummary({
             {lang === "ta" ? "இப்போது குறிப்பிட்டு செயலில் ஒன்றும் இல்லை." : "Nothing notably active for this chart right now."}
           </p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
             {presentYogas.length > 0 && (
               <div>
                 <p style={{ margin: "0 0 6px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-high)" }}>{t("yogas_title", lang)}</p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
                   {presentYogas.map((y, i) => {
                     const active = y.isCurrentlyActive;
                     const color = active ? "var(--color-high)" : "var(--color-muted)";
                     return (
                       <span
                         key={`${y.name}-${i}`}
-                        style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text-strong)", background: active ? "var(--color-high-bg)" : "var(--color-surface-soft)", border: `1px solid ${active ? "var(--color-high-border)" : "var(--color-border)"}`, borderRadius: "999px", padding: "4px 11px" }}
+                        style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text-strong)", background: active ? "var(--color-high-bg)" : "var(--color-surface-soft)", border: `1px solid ${active ? "var(--color-high-border)" : "var(--color-border)"}`, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}
                       >
                         {yogaDisplayName(y.name, lang)}
                         {typeof y.activationScore === "number" && (
@@ -166,7 +167,7 @@ function YogaActivationSummary({
             {presentDoshams.length > 0 && (
               <div>
                 <p style={{ margin: "0 0 6px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-low)" }}>{t("doshams_title", lang)}</p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
                   {presentDoshams.map((d) => {
                     const mitigated = d.isCancelled;
                     const color = mitigated ? "var(--color-high)" : "var(--color-low)";
@@ -175,7 +176,7 @@ function YogaActivationSummary({
                     return (
                       <span
                         key={d.name}
-                        style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text-strong)", background: bg, border: `1px solid ${border}`, borderRadius: "999px", padding: "4px 11px" }}
+                        style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text-strong)", background: bg, border: `1px solid ${border}`, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}
                       >
                         {yogaDisplayName(d.name, lang)}
                         <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color }}>
@@ -191,7 +192,8 @@ function YogaActivationSummary({
         )}
 
         <Button variant="secondary" onClick={onGoToChart} style={{ marginTop: "16px", alignSelf: "flex-start" }}>
-          {lang === "ta" ? "ஜாதகத்தில் முழு யோக & தோஷ பகுப்பாய்வு →" : "Full yoga & dosham analysis in your chart →"}
+          {lang === "ta" ? "ஜாதகத்தில் முழு யோக & தோஷ பகுப்பாய்வு" : "Full yoga & dosham analysis in your chart"}
+          <ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" />
         </Button>
       </Card>
     </div>
@@ -231,7 +233,7 @@ type DashboardLifeAreasTabNovaProps = {
    *  2026-07-22, Phase 5). */
   onGoToChart: () => void;
   /** A cross-tab request to open a specific sub-tab (e.g. Family's "View all
-   *  remedies →" wants `remedies`, "Forecast →" wants `predictions`). When set,
+   *  remedies" wants `remedies`, "Forecast" wants `predictions`). When set,
    *  the tab focuses that sub-tab on arrival, then calls `onFocusConsumed` so a
    *  later plain nav lands on the default Overview instead of re-focusing (IA
    *  audit 2026-07-22, Phase 1/2 — links must land on the populated sub-tab). */
@@ -292,7 +294,7 @@ export function DashboardLifeAreasTabNova({
 
   // Remedies is the single canonical home for the full plan (IA audit
   // 2026-07-22, Phase 2). `NovaRemediesPanel` used to only fetch on a "Load"
-  // click, so anyone arriving via a link-out (Family's "View all remedies →",
+  // click, so anyone arriving via a link-out (Family's "View all remedies",
   // or a direct ?tab=life-areas deep link) landed on an empty panel. Auto-load
   // once the sub-tab is opened; the ref is keyed to the chart so switching the
   // selected member refetches for the right chart instead of showing stale data.
@@ -344,15 +346,15 @@ export function DashboardLifeAreasTabNova({
     : [];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "18px", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
 
       {/* ===== Header ===== */}
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "20px", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "var(--space-5)", flexWrap: "wrap" }}>
         <div>
           <p style={{ margin: 0, fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
             {t("tab_life_areas", lang)}{currentAge !== null ? ` · ${lang === "ta" ? "வயது" : "Age"} ${currentAge}` : ""}
           </p>
-          <h1 style={{ margin: "6px 0 8px", fontFamily: "var(--font-display)", fontSize: "clamp(1.8rem,3vw,2.4rem)", fontWeight: 600, lineHeight: 1.15, color: "var(--color-text-strong)" }}>
+          <h1 style={{ margin: "6px 0 8px", fontFamily: "var(--font-display)", fontSize: "var(--display-md)", fontWeight: 600, lineHeight: 1.15, color: "var(--color-text-strong)" }}>
             {lang === "ta" ? "நீங்கள் எங்கே நிற்கிறீர்கள்," : "Where you stand,"}{" "}
             <em style={{ fontStyle: "italic", color: "var(--color-accent-strong)" }}>{lang === "ta" ? "துறை வாரியாக." : "area by area."}</em>
           </h1>
@@ -363,9 +365,9 @@ export function DashboardLifeAreasTabNova({
           </p>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "10px" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "var(--space-3)" }}>
           {/* Member switcher — kit <Pill> (audit B-7): one toggle chip, touch-safe. */}
-          <div style={{ display: "flex", gap: "7px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", justifyContent: "flex-end" }}>
             <Pill active={selectedMemberId === null} onClick={() => onSelectMember(null)}>
               {birthDisplayName || (lang === "ta" ? "நீங்கள்" : "You")}
             </Pill>
@@ -429,7 +431,7 @@ export function DashboardLifeAreasTabNova({
                   {lang === "ta" ? "உங்கள் இலக்கு" : "Your focus"}
                 </span>
                 {activeGoals.map((g) => (
-                  <span key={g.goalId} style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-accent-strong)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "4px 12px" }}>
+                  <span key={g.goalId} style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-accent-strong)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
                     {t(GOAL_LABEL_BY_TYPE.get(g.goalType) ?? "goal_other", lang)}
                   </span>
                 ))}
@@ -441,14 +443,15 @@ export function DashboardLifeAreasTabNova({
                   </span>
                 )}
                 <Button variant="ghost" onClick={onGoToPlan} style={{ marginLeft: "auto" }}>
-                  {lang === "ta" ? "திட்டத்தில் இலக்குகளை மாற்று →" : "Edit goals in Plan →"}
+                  {lang === "ta" ? "திட்டத்தில் இலக்குகளை மாற்று" : "Edit goals in Plan"}
+                <ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" />
                 </Button>
               </Card>
             )}
 
             {tiers.map((tier) => (
-              <section key={tier.key} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                <div style={{ display: "flex", alignItems: "baseline", gap: "10px", flexWrap: "wrap" }}>
+              <section key={tier.key} style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-3)", flexWrap: "wrap" }}>
                   {/* audit B-1: tier name is a real section heading, not a styled
                       div — screen readers get a document outline on this page. */}
                   <h2 style={{ margin: 0, fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: tier.color, fontWeight: 700 }}>{tier.label}</h2>
@@ -474,7 +477,8 @@ export function DashboardLifeAreasTabNova({
                 </p>
               </div>
               <Button variant="secondary" onClick={onGoToChart} style={{ whiteSpace: "nowrap" }}>
-                {lang === "ta" ? "இதன் பின்னணி ஜாதகத்தைப் பார் →" : "See the chart behind them →"}
+                {lang === "ta" ? "இதன் பின்னணி ஜாதகத்தைப் பார்" : "See the chart behind them"}
+                <ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" />
               </Button>
             </Card>
 
@@ -490,7 +494,7 @@ export function DashboardLifeAreasTabNova({
 
       {/* ===== Sub-tab: Predictions ===== */}
       {subTab === "predictions" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
           <NovaPredictionsPanel lang={lang} predictions={predictions} loading={predictionsLoading} maritalStatus={maritalStatus} />
 
           {/* 6/12-month life-area forecast — the single full home for this

@@ -7,17 +7,6 @@ import { CollapsibleSection } from "./collapsible-section";
 import { GlossaryTerm } from "./glossary-term";
 import type { GlossaryKey } from "@/lib/glossary";
 
-const W = {
-  ink: "var(--deepdive-ink, var(--panel-earth-dark))",
-  muted: "var(--color-faint)",
-  border: "var(--deepdive-border, var(--panel-tan))",
-  borderLt: "var(--deepdive-border-light, var(--panel-tan-light))",
-  surface: "var(--deepdive-surface, var(--panel-cream))",
-  surfaceMd: "var(--deepdive-surface-strong, var(--panel-hover))",
-  strong: "#2E7D32",
-  weak: "var(--deepdive-accent, var(--panel-brand))",
-} as const;
-
 const PLANET_LABEL: Record<string, { en: string; ta: string }> = {
   SUN: { en: "Sun", ta: "சூரியன்" },
   MOON: { en: "Moon", ta: "சந்திரன்" },
@@ -73,32 +62,32 @@ export function ShadbalaPanel({ lang, chartId }: Props) {
 
   return (
     <CollapsibleSection title={title} defaultOpen={false}>
-      <p style={{ color: W.muted, fontSize: 12, margin: "0 0 var(--space-2) 0" }}>{subtitle}</p>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: "var(--space-2_5)" }}>
+      <p style={{ color: "var(--color-faint)", fontSize: "var(--text-sm)", margin: "0 0 var(--space-2) 0" }}>{subtitle}</p>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)", marginBottom: "var(--space-2_5)" }}>
         {COMPONENTS.map(([key, name, glossaryKey]) => (
           <GlossaryTerm key={key} term={glossaryKey} lang={lang}>
-            <span style={{ fontSize: 11, color: W.muted }}>{name} bala</span>
+            <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{name} bala</span>
           </GlossaryTerm>
         ))}
       </div>
       {state === "loading" && (
-        <p style={{ color: W.muted, fontSize: 13, margin: 0 }}>
+        <p style={{ color: "var(--color-faint)", fontSize: "var(--text-base)", margin: 0 }}>
           {isTamil ? "ஏற்றுகிறது…" : "Loading…"}
         </p>
       )}
       {state === "error" && (
-        <p style={{ color: W.weak, fontSize: 13, margin: 0 }}>
+        <p style={{ color: "var(--color-low)", fontSize: "var(--text-base)", margin: 0 }}>
           {isTamil ? "ஷட்பலத்தை ஏற்ற முடியவில்லை." : "Could not load Shadbala."}
         </p>
       )}
       {data && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)" }}>
-          <p style={{ color: W.ink, fontSize: 12.5, margin: 0, lineHeight: 1.55 }}>
+          <p style={{ color: "var(--color-text-strong)", fontSize: "var(--text-sm)", margin: 0, lineHeight: 1.55 }}>
             {isTamil
               ? "ரூபம் என்பது கிரக பலத்தின் செம்மொழி அளவு. ஒவ்வொரு கிரகமும் ஆறு மூலங்களிலிருந்து (இடம், திசை, காலம், இயக்கம், இயற்கைத் தரம், பார்வை) பலம் பெறுகிறது; அது ரூபங்களாகக் கூட்டப்படுகிறது. ஒரு கிரகம் அதற்குத் தேவையான ரூபத்தைத் தாண்டினால், அதன் வீடு மற்றும் தசை பலன்களை முழுமையாகத் தரும் அளவு வலிமையானது; குறைவாக இருந்தால், அப்பலன்கள் மெதுவாக வரும், முயற்சியும் பரிகாரமும் உதவும்."
               : "A Rupa is the classical unit of planetary strength. Each planet earns strength from six sources (position, direction, time, motion, natural rank, and aspects), summed in Rupas. Clear the required Rupas and the planet is strong enough to deliver its house and dasha results fully; below that, those results come slower and benefit from effort or remedies."}
           </p>
-          {data.note && <p style={{ color: W.muted, fontSize: 12, margin: 0, lineHeight: 1.5 }}>{data.note}</p>}
+          {data.note && <p style={{ color: "var(--color-faint)", fontSize: "var(--text-sm)", margin: 0, lineHeight: 1.5 }}>{data.note}</p>}
           {data.planets.map((p) => (
             <PlanetCard key={p.graha} p={p} isTamil={isTamil} />
           ))}
@@ -114,65 +103,65 @@ function PlanetCard({ p, isTamil }: { p: PlanetShadbala; isTamil: boolean }) {
   return (
     <div
       style={{
-        border: `1px solid ${W.borderLt}`,
+        border: `1px solid var(--color-border)`,
         borderRadius: "var(--radius-md)",
-        background: W.surface,
+        background: "var(--color-surface-soft)",
         padding: "var(--space-3) var(--space-3_5)",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <strong style={{ color: W.ink, fontSize: 15 }}>
+        <strong style={{ color: "var(--color-text-strong)", fontSize: "var(--text-md)" }}>
           {isTamil ? label?.ta ?? p.graha : label?.en ?? p.graha}
         </strong>
         <span
           style={{
-            fontSize: 11,
+            fontSize: "var(--text-xs)",
             fontWeight: 700,
-            color: p.isStrong ? W.strong : W.weak,
-            background: p.isStrong ? "rgba(46,125,50,0.12)" : "rgba(198,40,40,0.10)",
-            borderRadius: 999,
-            padding: "2px 8px",
+            color: p.isStrong ? "var(--color-high)" : "var(--color-low)",
+            background: p.isStrong ? "var(--color-high-bg)" : "var(--color-low-bg)",
+            borderRadius: "var(--radius-pill)",
+            padding: "var(--space-1) var(--space-2)",
           }}
         >
           {p.isStrong ? (isTamil ? "பலம்" : "Strong") : isTamil ? "பலவீனம்" : "Weak"}
         </span>
       </div>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 4 }}>
-        <span style={{ fontSize: 20, fontWeight: 800, color: W.ink }}>{p.rupas.toFixed(2)}</span>
-        <span style={{ fontSize: 12, color: W.muted }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-2)", marginTop: "var(--space-1)" }}>
+        <span style={{ fontSize: "var(--text-lg)", fontWeight: 800, color: "var(--color-text-strong)" }}>{p.rupas.toFixed(2)}</span>
+        <span style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
           {isTamil ? "தேவை" : "req"} {p.requiredRupas.toFixed(1)} {isTamil ? "ரூபம்" : "Rupas"} · {ratioPct}%
         </span>
       </div>
-      <div style={{ height: 6, borderRadius: 3, background: W.surfaceMd, overflow: "hidden", marginTop: 6 }}>
+      <div style={{ height: 6, borderRadius: "var(--radius-sm)", background: "var(--color-surface)", overflow: "hidden", marginTop: "var(--space-2)" }}>
         <div
           style={{
             height: 6,
             width: `${ratioPct}%`,
-            borderRadius: 3,
-            background: p.isStrong ? W.strong : W.weak,
+            borderRadius: "var(--radius-sm)",
+            background: p.isStrong ? "var(--color-high)" : "var(--color-low)",
           }}
         />
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
         {COMPONENTS.map(([key, name]) => (
           <span
             key={name}
             style={{
               display: "inline-flex",
-              gap: 4,
+              gap: "var(--space-1)",
               alignItems: "center",
-              fontSize: 11,
-              background: W.surfaceMd,
-              borderRadius: 999,
-              padding: "2px 8px",
+              fontSize: "var(--text-xs)",
+              background: "var(--color-surface)",
+              borderRadius: "var(--radius-pill)",
+              padding: "var(--space-1) var(--space-2)",
             }}
           >
-            <span style={{ color: W.muted }}>{name}</span>
-            <strong style={{ color: W.ink }}>{Number(p[key]).toFixed(0)}</strong>
+            <span style={{ color: "var(--color-faint)" }}>{name}</span>
+            <strong style={{ color: "var(--color-text-strong)" }}>{Number(p[key]).toFixed(0)}</strong>
           </span>
         ))}
       </div>
-      <p style={{ color: W.muted, fontSize: 12, margin: "8px 0 0", lineHeight: 1.5 }}>
+      <p style={{ color: "var(--color-faint)", fontSize: "var(--text-sm)", margin: "8px 0 0", lineHeight: 1.5 }}>
         {p.isStrong
           ? isTamil
             ? `${label?.ta ?? p.graha} தேவையான பலத்தைத் தாண்டுகிறது — அதன் வீடு மற்றும் தசை பலன்கள் தானாகவே நிலைக்கும்.`

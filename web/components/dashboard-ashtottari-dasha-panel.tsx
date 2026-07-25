@@ -6,16 +6,6 @@ import { getAshtottariDasha, type AshtottariDashaData, type AshtottariDashaPerio
 import { CollapsibleSection } from "./collapsible-section";
 import { GlossaryTerm } from "./glossary-term";
 
-const W = {
-  ink: "var(--deepdive-ink, var(--panel-earth-dark))",
-  muted: "var(--color-faint)",
-  border: "var(--deepdive-border, var(--panel-tan))",
-  borderLt: "var(--deepdive-border-light, var(--panel-tan-light))",
-  surface: "var(--deepdive-surface, var(--panel-cream))",
-  surfaceMd: "var(--deepdive-surface-strong, var(--panel-hover))",
-  accent: "var(--deepdive-accent, var(--panel-brand))",
-} as const;
-
 // Ashtottari Dasha — 108-year secondary/comparison dasha, 8 lords, no Ketu.
 // See app/calculations/ashtottari_dasha.py for the documented Ardra-adi
 // (B.V. Raman / Jataka Parijata) nakshatra-lord convention this project uses.
@@ -45,16 +35,16 @@ function StatusChip({ applicable, lang }: { applicable: boolean | null; lang: La
       ? { label: isTamil ? "பொருந்தும்" : "Applies", bg: "var(--color-high-bg)", fg: "var(--color-high)", bd: "var(--color-high-border)" }
       : applicable === false
         ? { label: isTamil ? "பொருந்தாது" : "Does not apply", bg: "var(--color-surface-soft)", fg: "var(--color-muted)", bd: "var(--color-border)" }
-        : { label: isTamil ? "மதிப்பாய்வு தேவை" : "Needs review", bg: "var(--cl-sage-soft)", fg: "var(--color-text-strong)", bd: "var(--cl-sage-border)" };
+        : { label: isTamil ? "மதிப்பாய்வு தேவை" : "Needs review", bg: "var(--color-high-bg)", fg: "var(--color-text-strong)", bd: "var(--color-high-border)" };
   return (
     <span
       style={{
-        fontSize: "0.625rem",
+        fontSize: "var(--text-2xs)",
         fontWeight: 700,
         textTransform: "uppercase",
         letterSpacing: "0.06em",
-        padding: "2px 8px",
-        borderRadius: "999px",
+        padding: "var(--space-1) var(--space-2)",
+        borderRadius: "var(--radius-pill)",
         background: config.bg,
         color: config.fg,
         border: `1px solid ${config.bd}`,
@@ -103,19 +93,19 @@ export function AshtottariDashaPanel({ lang, chartId }: Props) {
 
   return (
     <CollapsibleSection title={title} defaultOpen={false}>
-      <p style={{ color: W.muted, fontSize: 12, margin: "0 0 var(--space-2) 0" }}>
+      <p style={{ color: "var(--color-faint)", fontSize: "var(--text-sm)", margin: "0 0 var(--space-2) 0" }}>
         <GlossaryTerm term="ashtottariDasha" lang={lang}>
           {isTamil ? "இரண்டாம்நிலை/ஒப்பீட்டு தசை" : "Secondary/comparison dasha"}
         </GlossaryTerm>
         {subtitleRest}
       </p>
       {state === "loading" && (
-        <p style={{ color: W.muted, fontSize: 13, margin: 0 }}>
+        <p style={{ color: "var(--color-faint)", fontSize: "var(--text-base)", margin: 0 }}>
           {isTamil ? "ஏற்றுகிறது…" : "Loading…"}
         </p>
       )}
       {state === "error" && (
-        <p style={{ color: "var(--deepdive-accent, var(--panel-brand))", fontSize: 13, margin: 0 }}>
+        <p style={{ color: "var(--color-mid)", fontSize: "var(--text-base)", margin: 0 }}>
           {isTamil ? "அஷ்டோத்தரி தசையை ஏற்ற முடியவில்லை." : "Could not load Ashtottari Dasha."}
         </p>
       )}
@@ -129,22 +119,22 @@ export function AshtottariDashaPanel({ lang, chartId }: Props) {
                 gap: "var(--space-1)",
                 padding: "var(--space-2) var(--space-3)",
                 borderRadius: "var(--radius-md)",
-                border: `1px solid ${W.borderLt}`,
+                border: `1px solid var(--color-border)`,
                 background: "var(--color-surface-soft)",
               }}
             >
               <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
-                <span style={{ fontSize: "0.6875rem", fontWeight: 700, color: W.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                   {isTamil ? "பாரம்பரிய பொருத்தம்" : "Classical applicability"}
                 </span>
                 <StatusChip applicable={data.applicability.applicable} lang={lang} />
               </span>
-              <p style={{ margin: 0, fontSize: "0.7rem", color: W.muted, lineHeight: 1.5 }}>
+              <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.5 }}>
                 {isTamil ? data.applicability.ruleTa : data.applicability.ruleEn}
                 {data.applicability.reason ? ` · ${data.applicability.reason}` : ""}
               </p>
               {data.applicability.pakshaSupports !== null && (
-                <p style={{ margin: 0, fontSize: "0.7rem", color: W.muted, lineHeight: 1.5 }}>
+                <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.5 }}>
                   {isTamil ? "இரண்டாம்நிலை (பக்ஷம்/பகல்-இரவு): " : "Secondary (paksha / day-night): "}
                   {data.applicability.pakshaSupports ? (isTamil ? "ஆதரிக்கிறது" : "supports") : (isTamil ? "பூர்த்தியாகவில்லை" : "not met")}
                   {data.applicability.pakshaReason ? ` · ${data.applicability.pakshaReason}` : ""}
@@ -168,29 +158,29 @@ export function AshtottariDashaPanel({ lang, chartId }: Props) {
               gap: "var(--space-2)",
               padding: "var(--space-2_5) var(--space-3)",
               borderRadius: "var(--radius-md)",
-              background: "var(--cl-sage-soft)",
-              border: "1px solid var(--cl-sage-border)",
+              background: "var(--color-high-bg)",
+              border: "1px solid var(--color-high-border)",
             }}
           >
             <div style={{ flex: 1 }}>
-              <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-score-high)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-score-high)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                 {isTamil ? "தற்போதைய மஹா தசை" : "Current Mahadasha"}
               </p>
-              <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: W.ink }}>
+              <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                 {lordName(data.current.mahadasha.lord, isTamil)}
               </p>
-              <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "0.75rem", color: W.muted }}>
+              <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
                 {data.current.mahadasha.startDate} – {data.current.mahadasha.endDate}
               </p>
             </div>
             <div style={{ flex: 1 }}>
-              <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: W.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                 {isTamil ? "அந்தர் தசை" : "Antardasha"}
               </p>
-              <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: W.ink }}>
+              <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                 {lordName(data.current.antardasha.lord, isTamil)}
               </p>
-              <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "0.75rem", color: W.muted }}>
+              <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
                 {data.current.antardasha.startDate} – {data.current.antardasha.endDate}
               </p>
             </div>
@@ -206,14 +196,14 @@ export function AshtottariDashaPanel({ lang, chartId }: Props) {
                   gap: "var(--space-2)",
                   padding: "var(--space-1_5) var(--space-3)",
                   borderRadius: "var(--radius-sm)",
-                  border: `1px solid ${W.borderLt}`,
-                  background: period.startDate === data.current.mahadasha.startDate ? W.surfaceMd : "transparent",
+                  border: `1px solid var(--color-border)`,
+                  background: period.startDate === data.current.mahadasha.startDate ? "var(--color-surface)" : "transparent",
                 }}
               >
-                <span style={{ fontSize: "0.875rem", fontWeight: 600, color: W.ink }}>
+                <span style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)" }}>
                   {lordName(period.lord, isTamil)}
                 </span>
-                <span style={{ fontSize: "0.75rem", color: W.muted }}>
+                <span style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
                   {period.years} {isTamil ? "ஆண்டுகள்" : "yrs"} · {period.startDate}
                 </span>
               </div>

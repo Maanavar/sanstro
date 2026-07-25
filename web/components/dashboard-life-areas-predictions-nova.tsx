@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Check, AlertTriangle, Minus } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import { t } from "@/lib/i18n";
 import { bandPhrase, bandTone } from "@/lib/reasoning";
@@ -21,12 +23,12 @@ import { NovaFadeIn } from "./dashboard-ui-nova";
  * Nova first shipped (Phase 9, docs/DASHBOARD_UI_REVAMP_PLAN.md §6.8).
  *
  * Grepped every var(--...) reference in the Classic file first: most tokens
- * (--chart-d9-active-bg, --panel-warm-tint, --chart-d1-lagna-bg, the
- * SCORE_HIGH/MID/LOW constants) were already Nova-redirected, but the border
- * colors on every confidence/band chip (--cl-sage-border/--cl-rust-35/
- * --cl-brand-edge) were not — a near-miss of the already-redirected
- * "-edge"/"-30" siblings, fixed centrally in dashboard-nova.css rather than
- * worked around here (also fixes an already-shipped, unnoticed border-color
+ * (the chart-cell and warm-tint redirects, the SCORE_HIGH/MID/LOW constants)
+ * were already Nova-redirected, but the border colors on every confidence/band
+ * chip (the Classic sage/rust/brand edge tints) were not — a near-miss of the
+ * already-redirected "-edge"/"-30" siblings, fixed centrally in
+ * dashboard-nova.css rather than worked around here (also fixes an
+ * already-shipped, unnoticed border-color
  * bug in dashboard-synastry-panel.tsx's Compatibility sub-view and
  * lib/reasoning.ts's bandTone(), used by LifeAreaCard's causalChain path).
  * With that fix, confidenceTone()/bandTone() are both fully Nova-safe, so
@@ -67,9 +69,9 @@ function NovaChevron({ open }: { open: boolean }) {
 
 function NovaSupportList({ items, color, lang }: { items: { ta: string; en: string }[]; color: string; lang: Lang }) {
   return (
-    <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "6px" }}>
+    <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
       {items.map((item, index) => (
-        <li key={index} style={{ display: "flex", gap: "8px", alignItems: "flex-start", fontSize: "13px", lineHeight: 1.5, color: "var(--color-text)" }}>
+        <li key={index} style={{ display: "flex", gap: "var(--space-2)", alignItems: "flex-start", fontSize: "var(--text-base)", lineHeight: 1.5, color: "var(--color-text)" }}>
           <span style={{ color, fontWeight: 700, lineHeight: 1, marginTop: "3px" }} aria-hidden="true">&bull;</span>
           {lang === "ta" ? item.ta : item.en}
         </li>
@@ -78,12 +80,13 @@ function NovaSupportList({ items, color, lang }: { items: { ta: string; en: stri
   );
 }
 
-// Status → colour/glyph for each underlying astrological factor. SUPPORT reads
-// as a lift (green ✓), CAUTION as a drag (rust ⚠), NEUTRAL as context (·).
-function factorStatusStyle(status: PredictionAstroFactor["status"]): { color: string; glyph: string } {
-  if (status === "SUPPORT") return { color: "var(--color-high)", glyph: "✓" };
-  if (status === "CAUTION") return { color: "var(--color-low)", glyph: "⚠" };
-  return { color: "var(--color-muted)", glyph: "·" };
+// Status -> colour/icon for each underlying astrological factor. SUPPORT reads
+// as a lift (green check), CAUTION as a drag (rust triangle), NEUTRAL as
+// context (dash). Lucide icons, not Unicode glyphs (audit A6).
+function factorStatusStyle(status: PredictionAstroFactor["status"]): { color: string; Icon: LucideIcon } {
+  if (status === "SUPPORT") return { color: "var(--color-high)", Icon: Check };
+  if (status === "CAUTION") return { color: "var(--color-low)", Icon: AlertTriangle };
+  return { color: "var(--color-muted)", Icon: Minus };
 }
 
 /**
@@ -98,22 +101,22 @@ function NovaWhyThisReading({ factors, lang }: { factors: PredictionAstroFactor[
   if (!factors.length) return null;
   return (
     <div>
-      <p style={{ margin: "0 0 3px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>
+      <p style={{ margin: "0 0 3px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>
         {lang === "ta" ? "இந்தக் கணிப்பு ஏன்" : "Why this reading"}
       </p>
-      <p style={{ margin: "0 0 10px", fontSize: "11.5px", color: "var(--color-faint)" }}>
+      <p style={{ margin: "0 0 10px", fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
         {lang === "ta" ? "இதற்குப் பின்னால் உள்ள ஜோதிடக் காரணிகள்" : "the astrological factors behind it"}
       </p>
-      <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "8px" }}>
+      <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
         {factors.map((factor, index) => {
           const s = factorStatusStyle(factor.status);
           return (
-            <li key={`${factor.key}-${index}`} style={{ display: "flex", gap: "9px", alignItems: "flex-start", fontSize: "13px", lineHeight: 1.5, color: "var(--color-text)" }}>
+            <li key={`${factor.key}-${index}`} style={{ display: "flex", gap: "var(--space-2)", alignItems: "flex-start", fontSize: "var(--text-base)", lineHeight: 1.5, color: "var(--color-text)" }}>
               <span
                 aria-hidden="true"
-                style={{ flexShrink: 0, marginTop: "1px", width: "18px", height: "18px", borderRadius: "50%", display: "grid", placeItems: "center", fontSize: "11px", fontWeight: 700, color: s.color, background: "color-mix(in srgb, currentColor 12%, transparent)" }}
+                style={{ flexShrink: 0, marginTop: "1px", width: "18px", height: "18px", borderRadius: "var(--radius-pill)", display: "grid", placeItems: "center", color: s.color, background: "color-mix(in srgb, currentColor 12%, transparent)" }}
               >
-                {s.glyph}
+                <s.Icon size={12} strokeWidth={2} />
               </span>
               <span>{lang === "ta" ? factor.detail.ta : factor.detail.en}</span>
             </li>
@@ -126,37 +129,37 @@ function NovaWhyThisReading({ factors, lang }: { factors: PredictionAstroFactor[
 
 function NovaPredictionDetail({ pred, lang }: { pred: LifeAreaPredictionData; lang: Lang }) {
   return (
-    <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
-      <div style={{ display: "grid", gridTemplateColumns: pred.challenges.length > 0 ? "repeat(auto-fit, minmax(min(100%, 220px), 1fr))" : "1fr", gap: "20px" }}>
+    <div style={{ padding: "var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: pred.challenges.length > 0 ? "repeat(auto-fit, minmax(min(100%, 220px), 1fr))" : "1fr", gap: "var(--space-5)" }}>
         {pred.supports.length > 0 && (
           <div>
-            <p style={{ margin: "0 0 8px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-high)" }}>{t("pred_supports", lang)}</p>
+            <p style={{ margin: "0 0 8px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-high)" }}>{t("pred_supports", lang)}</p>
             <NovaSupportList items={pred.supports} color="var(--color-high)" lang={lang} />
           </div>
         )}
         {pred.challenges.length > 0 && (
           <div>
-            <p style={{ margin: "0 0 8px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-mid)" }}>{t("pred_challenges", lang)}</p>
+            <p style={{ margin: "0 0 8px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-mid)" }}>{t("pred_challenges", lang)}</p>
             <NovaSupportList items={pred.challenges} color="var(--color-mid)" lang={lang} />
           </div>
         )}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "10px" }}>
-        <div style={{ borderRadius: "10px", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)", padding: "10px 14px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "var(--space-3)" }}>
+        <div style={{ borderRadius: "var(--space-3)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)", padding: "var(--space-3) var(--space-4)" }}>
           <p style={{ margin: "0 0 3px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>{t("pred_dasha_support", lang)}</p>
-          <p style={{ margin: 0, fontSize: "13px", fontWeight: 700, color: supportTone(pred.dashaSupport) }}>{supportLabel(pred.dashaSupport, lang)}</p>
+          <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: supportTone(pred.dashaSupport) }}>{supportLabel(pred.dashaSupport, lang)}</p>
         </div>
 
-        <div style={{ borderRadius: "10px", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)", padding: "10px 14px" }}>
+        <div style={{ borderRadius: "var(--space-3)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)", padding: "var(--space-3) var(--space-4)" }}>
           <p style={{ margin: "0 0 3px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>{t("pred_transit_support", lang)}</p>
-          <p style={{ margin: 0, fontSize: "13px", fontWeight: 700, color: supportTone(pred.transitSupport) }}>{supportLabel(pred.transitSupport, lang)}</p>
+          <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: supportTone(pred.transitSupport) }}>{supportLabel(pred.transitSupport, lang)}</p>
         </div>
 
         {pred.timingWindowStart && pred.timingWindowEnd && (
-          <div style={{ borderRadius: "10px", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)", padding: "10px 14px" }}>
+          <div style={{ borderRadius: "var(--space-3)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)", padding: "var(--space-3) var(--space-4)" }}>
             <p style={{ margin: "0 0 3px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>{t("pred_timing_window", lang)}</p>
-            <p style={{ margin: 0, fontSize: "13px", fontWeight: 600, color: "var(--color-text-strong)" }}>{pred.timingWindowStart} to {pred.timingWindowEnd}</p>
+            <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)" }}>{pred.timingWindowStart} to {pred.timingWindowEnd}</p>
           </div>
         )}
       </div>
@@ -172,7 +175,7 @@ function NovaPredictionDetail({ pred, lang }: { pred: LifeAreaPredictionData; la
 
 function NovaLaterPhaseBadge({ lang }: { lang: Lang }) {
   return (
-    <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, padding: "3px 10px", borderRadius: "999px", background: "var(--color-low-bg)", color: "var(--color-low)", border: "1px solid var(--color-low-border)" }}>
+    <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", background: "var(--color-low-bg)", color: "var(--color-low)", border: "1px solid var(--color-low-border)" }}>
       {lang === "ta" ? "பின்வரும் கட்டம்" : "Later phase"}
     </span>
   );
@@ -184,13 +187,13 @@ function NovaPredictionCard({ title, pred, lang, expanded, onToggle, featured, d
 
   if (featured && expanded) {
     return (
-      <div style={{ borderRadius: "14px", border: "1px solid var(--color-border)", background: "var(--color-surface)", overflow: "hidden", fontFamily: "var(--font-body)" }}>
+      <div style={{ borderRadius: "var(--space-4)", border: "1px solid var(--color-border)", background: "var(--color-surface)", overflow: "hidden", fontFamily: "var(--font-body)" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr" }}>
-          <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "14px", borderRight: "1px solid var(--color-border)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-              <p style={{ margin: 0, fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>{title}</p>
+          <div style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-4)", borderRight: "1px solid var(--color-border)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
+              <p style={{ margin: 0, fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>{title}</p>
               {deferred && <NovaLaterPhaseBadge lang={lang} />}
-              <span style={{ fontSize: "12px", fontWeight: 700, padding: "3px 10px", borderRadius: "999px", background: tone.bg, color: tone.text, border: `1px solid ${tone.border}` }}>{chipLabel}</span>
+              <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", background: tone.bg, color: tone.text, border: `1px solid ${tone.border}` }}>{chipLabel}</span>
             </div>
 
             <h2 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "clamp(1.25rem, 2vw, 1.75rem)", fontWeight: 500, lineHeight: 1.2, color: "var(--color-text-strong)" }}>
@@ -200,10 +203,10 @@ function NovaPredictionCard({ title, pred, lang, expanded, onToggle, featured, d
             <NovaPredictionDetail pred={pred} lang={lang} />
           </div>
 
-          <div style={{ padding: "24px", background: "var(--color-surface-soft)", display: "flex", flexDirection: "column", gap: "14px" }}>
-            <p style={{ margin: 0, fontSize: "11px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>{t("pred_confidence", lang)}</p>
+          <div style={{ padding: "var(--space-6)", background: "var(--color-surface-soft)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+            <p style={{ margin: 0, fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>{t("pred_confidence", lang)}</p>
             <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: pred.band ? "1.35rem" : "2rem", lineHeight: 1.15, color: tone.text }}>{chipLabel}</p>
-            <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)", lineHeight: 1.55 }}>
+            <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
               {lang === "ta" ? pred.mainPredictionTa : pred.mainPredictionEn}
             </p>
           </div>
@@ -212,7 +215,7 @@ function NovaPredictionCard({ title, pred, lang, expanded, onToggle, featured, d
         <button
           type="button"
           onClick={onToggle}
-          style={{ width: "100%", padding: "10px", border: 0, borderTop: "1px solid var(--color-border)", background: "var(--color-bg)", color: "var(--color-muted)", fontSize: "12px", fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", cursor: "pointer", fontFamily: "inherit" }}
+          style={{ width: "100%", padding: "var(--space-3)", border: 0, borderTop: "1px solid var(--color-border)", background: "var(--color-bg)", color: "var(--color-muted)", fontSize: "var(--text-sm)", fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--space-2)", cursor: "pointer", fontFamily: "inherit" }}
         >
           <NovaChevron open />
           {lang === "ta" ? "மூடு" : "Collapse"}
@@ -222,14 +225,14 @@ function NovaPredictionCard({ title, pred, lang, expanded, onToggle, featured, d
   }
 
   return (
-    <div style={{ borderRadius: "12px", border: "1px solid var(--color-border)", background: "var(--color-surface)", overflow: "hidden", fontFamily: "var(--font-body)" }}>
+    <div style={{ borderRadius: "var(--space-3)", border: "1px solid var(--color-border)", background: "var(--color-surface)", overflow: "hidden", fontFamily: "var(--font-body)" }}>
       <button
         type="button"
         onClick={onToggle}
         style={{
           width: "100%",
           textAlign: "left",
-          padding: "16px 20px",
+          padding: "var(--space-4) var(--space-5)",
           background: expanded ? "var(--color-surface-soft)" : "var(--color-surface)",
           border: 0,
           borderBottom: expanded ? "1px solid var(--color-border)" : "none",
@@ -237,20 +240,20 @@ function NovaPredictionCard({ title, pred, lang, expanded, onToggle, featured, d
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          gap: "14px",
+          gap: "var(--space-4)",
           fontFamily: "inherit",
         }}
       >
         <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", margin: "0 0 3px" }}>
-            <p style={{ margin: 0, fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-mid)" }}>{title}</p>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap", margin: "0 0 3px" }}>
+            <p style={{ margin: 0, fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-mid)" }}>{title}</p>
             {deferred && <NovaLaterPhaseBadge lang={lang} />}
           </div>
-          <p style={{ margin: 0, fontSize: "13px", color: "var(--color-text)", lineHeight: 1.5 }}>{lang === "ta" ? pred.mainPredictionTa : pred.mainPredictionEn}</p>
+          <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.5 }}>{lang === "ta" ? pred.mainPredictionTa : pred.mainPredictionEn}</p>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
-          <span style={{ fontSize: "11px", fontWeight: 700, padding: "3px 10px", borderRadius: "999px", background: tone.bg, color: tone.text, border: `1px solid ${tone.border}` }}>{chipLabel}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexShrink: 0 }}>
+          <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", background: tone.bg, color: tone.text, border: `1px solid ${tone.border}` }}>{chipLabel}</span>
           <NovaChevron open={expanded} />
         </div>
       </button>
@@ -304,13 +307,13 @@ export function NovaPredictionsPanel({ lang, predictions, loading, maritalStatus
   }, [firstKey]);
 
   if (loading) {
-    return <p style={{ margin: 0, fontSize: "13px", color: "var(--color-faint)", fontFamily: "var(--font-body)" }}>{t("pred_loading", lang)}</p>;
+    return <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)", fontFamily: "var(--font-body)" }}>{t("pred_loading", lang)}</p>;
   }
 
   if (!orderedItems.length) {
     return (
-      <div style={{ padding: "16px 20px", borderRadius: "12px", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)", fontFamily: "var(--font-body)" }}>
-        <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)", lineHeight: 1.6 }}>
+      <div style={{ padding: "var(--space-4) var(--space-5)", borderRadius: "var(--space-3)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)", fontFamily: "var(--font-body)" }}>
+        <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.6 }}>
           {lang === "ta"
             ? "இந்த குடும்ப உறுப்பினரின் கணிப்புகள் தனி பகுப்பாய்வு தேவைப்படுகின்றன. தனிப்பட்ட கணிப்புகளுக்கு உங்கள் சொந்த சுயவிவரத்தை தேர்ந்தெடுக்கவும்."
             : "Predictions are computed for your own profile. Switch to your profile to see your personalised readings, or use Life Events for this member."}
@@ -320,9 +323,9 @@ export function NovaPredictionsPanel({ lang, predictions, loading, maritalStatus
   }
 
   return (
-    <NovaFadeIn style={{ display: "flex", flexDirection: "column", gap: "12px", fontFamily: "var(--font-body)" }}>
+    <NovaFadeIn style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", fontFamily: "var(--font-body)" }}>
       {isMarried && predictions?.marriage && (
-        <p style={{ margin: 0, fontSize: "13px", color: "var(--color-muted)", lineHeight: 1.5, padding: "8px 12px", borderRadius: "8px", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)" }}>
+        <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.5, padding: "var(--space-2) var(--space-3)", borderRadius: "var(--space-2)", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)" }}>
           {lang === "ta"
             ? "நீங்கள் திருமணமானவர் — 7-ம் வீடு இங்கே உறவு தரம், பாலத்துவம் மற்றும் குடும்ப ஒற்றுமையைக் காட்டுகிறது; புதிய திருமணம் அல்ல."
             : "This person is married — the 7th-house reading here covers relationship quality, partnership, and family cohesion, not a new wedding."}
@@ -343,7 +346,7 @@ export function NovaPredictionsPanel({ lang, predictions, loading, maritalStatus
             {/* Medical safeguard — folk users over-read the health card, clinicians
                 reject it; both need it framed as not-a-diagnosis (#31). */}
             {key === "health" && expanded.health && (
-              <p style={{ margin: "8px 2px 0", fontSize: "11.5px", color: "var(--color-muted)", lineHeight: 1.5, display: "flex", gap: "6px" }}>
+              <p style={{ margin: "8px 2px 0", fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.5, display: "flex", gap: "var(--space-2)" }}>
                 <span aria-hidden="true">⚕</span>
                 <span>{t("safeguard_health", lang)}</span>
               </p>

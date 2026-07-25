@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ArrowRight } from "lucide-react";
 
 import { formatClockLabel, formatDateLabel, scoreColor } from "@/lib/format";
 import { t, tNakshatra, tPlanetLord, tTithi, tYoga } from "@/lib/i18n";
@@ -19,28 +20,21 @@ import { RasiChart, NavamsaChart } from "./dashboard-charts";
 import { DASHA_COLORS } from "./dashboard-dasha";
 import { YOGA_DISPLAY } from "./dashboard-yoga-dosham-panel";
 import { NovaScoreDial, NovaProgressBar } from "./dashboard-ui-nova";
+import { Kicker } from "./ui";
 
 /**
  * Nova "Family member" screen — Phase 5 of the dashboard revamp (see
  * docs/DASHBOARD_UI_REVAMP_PLAN.md §6.4). A dedicated, full-screen detail
  * view reached from the Family tab via a deliberate "View full profile"
- * action (Phase 4's inline "Open →" expand stays for a quick glance — see
+ * action (Phase 4's inline "Open" expand stays for a quick glance — see
  * the plan's Progress Log for why both patterns were kept). Every field
  * below reuses data already fetched for the Family tab's memberCharts —
  * no new backend endpoints, no new astrology.
  */
 
-function NovaKicker({ children, color = "var(--color-accent)" }: { children: React.ReactNode; color?: string }) {
-  return (
-    <p style={{ margin: 0, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700, color }}>
-      {children}
-    </p>
-  );
-}
-
 function NovaCard({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "22px 24px", display: "flex", flexDirection: "column", gap: "14px" }}>
+    <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-5_5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3_5)" }}>
       {children}
     </div>
   );
@@ -48,9 +42,9 @@ function NovaCard({ children }: { children: React.ReactNode }) {
 
 function TimingCard({ label, value, color, borderColor, bgColor }: { label: string; value: string; color: string; borderColor: string; bgColor: string }) {
   return (
-    <div style={{ background: bgColor, border: `1px solid ${borderColor}`, borderRadius: "11px", padding: "13px 16px" }}>
+    <div style={{ background: bgColor, border: `1px solid ${borderColor}`, borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)" }}>
       <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", color, textTransform: "uppercase", fontWeight: 700 }}>{label}</div>
-      <div style={{ fontSize: "15px", fontWeight: 700, marginTop: "3px", color: "var(--color-text-strong)" }}>{value}</div>
+      <div style={{ fontSize: "var(--text-md)", fontWeight: 700, marginTop: "3px", color: "var(--color-text-strong)" }}>{value}</div>
     </div>
   );
 }
@@ -101,35 +95,36 @@ function NovaMemberRelationshipsCard({
   return (
     <NovaCard>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-        <NovaKicker>
+        <Kicker>
           {lang === "ta" ? <>குடும்பத்தில் · <span style={{ fontFamily: "'Noto Sans Tamil', sans-serif" }}>உறவுகள்</span></> : "In the family"}
-        </NovaKicker>
+        </Kicker>
         {!loaded && participants.length > 0 && (
-          <button type="button" onClick={() => void load()} style={{ fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-            {lang === "ta" ? "ஏற்று →" : "Load →"}
+          <button type="button" onClick={() => void load()} style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+            {lang === "ta" ? "ஏற்று" : "Load"}
+            <ArrowRight size={13} strokeWidth={2} aria-hidden="true" />
           </button>
         )}
       </div>
 
-      {loading && <p style={{ margin: 0, fontSize: "12.5px", color: "var(--color-faint)" }}>{lang === "ta" ? "ஏற்றுகிறது…" : "Loading…"}</p>}
+      {loading && <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>{lang === "ta" ? "ஏற்றுகிறது…" : "Loading…"}</p>}
 
       {rows.map((row) => {
         const color = scoreColor(row.score);
         return (
-          <div key={row.participant.id} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <span style={{ width: "30px", height: "30px", borderRadius: "50%", background: color, color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "12px", fontWeight: 700, flexShrink: 0 }}>
+          <div key={row.participant.id} style={{ display: "flex", alignItems: "center", gap: "var(--space-2_5)" }}>
+            <span style={{ width: "30px", height: "30px", borderRadius: "var(--radius-pill)", background: color, color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-sm)", fontWeight: 700, flexShrink: 0 }}>
               {row.participant.displayName.charAt(0).toUpperCase()}
             </span>
-            <span style={{ fontSize: "12.5px", fontWeight: 600, flex: 1 }}>
+            <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, flex: 1 }}>
               {row.participant.displayName}{row.participant.relationLabel ? ` · ${row.participant.relationLabel}` : ""}
             </span>
-            <span style={{ fontSize: "12px", fontWeight: 700, color }}>{row.score}<span style={{ color: "var(--color-faint)", fontWeight: 500 }}>/100</span></span>
+            <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color }}>{row.score}<span style={{ color: "var(--color-faint)", fontWeight: 500 }}>/100</span></span>
           </div>
         );
       })}
 
       {bestFamilyWindow && (
-        <div style={{ fontSize: "12px", lineHeight: 1.5, color: "var(--color-muted)", background: "var(--color-accent-muted)", borderRadius: "9px", padding: "9px 12px", marginTop: "2px" }}>
+        <div style={{ fontSize: "var(--text-sm)", lineHeight: 1.5, color: "var(--color-muted)", background: "var(--color-accent-muted)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)", marginTop: "2px" }}>
           {lang === "ta" ? "குடும்பத்துடன் சிறந்த பகிர்ந்த நேரம் " : "Best shared window with family "}
           <b style={{ color: "var(--color-accent-strong)" }}>{formatClockLabel(bestFamilyWindow.start)} – {formatClockLabel(bestFamilyWindow.end)}</b>.
         </div>
@@ -246,22 +241,22 @@ export function DashboardFamilyMemberNova({
   const visibleInsights = showAllYogas ? combinedInsights : combinedInsights.slice(0, 3);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "18px", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4_5)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
 
       {/* ===== Breadcrumb + prev/next ===== */}
-      <div style={{ display: "flex", alignItems: "center", gap: "14px", fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3_5)", fontSize: "var(--text-xs)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
         <button type="button" onClick={onBack} style={{ color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: "inherit", letterSpacing: "inherit", textTransform: "inherit", padding: 0 }}>
           {lang === "ta" ? "‹ குடும்பத்திற்குத் திரும்பு" : "‹ Back to Family"}
         </button>
         <span style={{ color: "var(--color-faint)" }}>{lang === "ta" ? "உறுப்பினர் விவரம்" : "Member profile"}</span>
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "12px", letterSpacing: "0.02em", textTransform: "none" }}>
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "var(--space-3)", letterSpacing: "0.02em", textTransform: "none" }}>
           {onPrev && prevName && (
-            <button type="button" onClick={onPrev} style={{ fontSize: "12px", color: "var(--color-text)", background: "var(--color-surface)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "4px 12px", cursor: "pointer", fontFamily: "inherit" }}>
+            <button type="button" onClick={onPrev} style={{ fontSize: "var(--text-sm)", color: "var(--color-text)", background: "var(--color-surface)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)", cursor: "pointer", fontFamily: "inherit" }}>
               ◄ {prevName}
             </button>
           )}
           {onNext && nextName && (
-            <button type="button" onClick={onNext} style={{ fontSize: "12px", color: "var(--color-text)", background: "var(--color-surface)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "4px 12px", cursor: "pointer", fontFamily: "inherit" }}>
+            <button type="button" onClick={onNext} style={{ fontSize: "var(--text-sm)", color: "var(--color-text)", background: "var(--color-surface)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)", cursor: "pointer", fontFamily: "inherit" }}>
               {nextName} ►
             </button>
           )}
@@ -269,32 +264,32 @@ export function DashboardFamilyMemberNova({
       </div>
 
       {/* ===== Member header ===== */}
-      <div style={{ display: "flex", alignItems: "center", gap: "20px", flexWrap: "wrap" }}>
-        <span style={{ flexShrink: 0, width: "64px", height: "64px", borderRadius: "50%", background: "var(--color-accent)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "26px", fontWeight: 700, fontFamily: "var(--font-display)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-5)", flexWrap: "wrap" }}>
+        <span style={{ flexShrink: 0, width: "64px", height: "64px", borderRadius: "var(--radius-pill)", background: "var(--color-accent)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-xl)", fontWeight: 700, fontFamily: "var(--font-display)" }}>
           {member.displayName.charAt(0).toUpperCase()}
         </span>
         <div style={{ flex: "1 1 260px", minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-            <div style={{ fontFamily: "var(--font-display)", fontSize: "30px", fontWeight: 600, color: "var(--color-text-strong)" }}>{member.displayName}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-2xl)", fontWeight: 600, color: "var(--color-text-strong)" }}>{member.displayName}</div>
             {relationLabel && (
-              <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--color-accent-strong)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "999px", padding: "4px 12px" }}>
+              <span style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--color-accent-strong)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
                 {relationLabel}
               </span>
             )}
-            <button type="button" onClick={onEdit} style={{ fontSize: "11.5px", color: "var(--color-muted)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}>
+            <button type="button" onClick={onEdit} style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}>
               {lang === "ta" ? "திருத்து" : "Edit"}
             </button>
-            <button type="button" disabled={deleting} onClick={onDelete} style={{ fontSize: "11.5px", color: "var(--color-low)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textDecoration: "underline", opacity: deleting ? 0.5 : 1 }}>
+            <button type="button" disabled={deleting} onClick={onDelete} style={{ fontSize: "var(--text-xs)", color: "var(--color-low)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textDecoration: "underline", opacity: deleting ? 0.5 : 1 }}>
               {deleting ? "…" : (lang === "ta" ? "நீக்கு" : "Remove")}
             </button>
           </div>
-          {identityLine && <div style={{ fontSize: "12.5px", color: "var(--color-muted)", marginTop: "3px" }}>{identityLine}</div>}
+          {identityLine && <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", marginTop: "3px" }}>{identityLine}</div>}
         </div>
-        <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: "14px" }}>
+        <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: "var(--space-3_5)" }}>
           {insight && (
             <div style={{ textAlign: "right", maxWidth: "220px" }}>
               <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>{lang === "ta" ? "இன்று" : "Today"}</div>
-              <div style={{ fontSize: "12px", color: "var(--color-muted)" }}>{insight}</div>
+              <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>{insight}</div>
             </div>
           )}
           <NovaScoreDial score={member.individualScore} size={64} label="/100" />
@@ -302,7 +297,7 @@ export function DashboardFamilyMemberNova({
       </div>
 
       {/* ===== Timing strip ===== */}
-      <div className="nova-grid-anticipation" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px" }}>
+      <div className="nova-grid-anticipation" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "var(--space-3)" }}>
         <TimingCard
           label={lang === "ta" ? "சிறந்த நேரம்" : "Best window"}
           value={bestWindow ? `${formatClockLabel(bestWindow.start)} – ${formatClockLabel(bestWindow.end)}` : "—"}
@@ -327,11 +322,11 @@ export function DashboardFamilyMemberNova({
       </div>
 
       {/* ===== Charts + Guidance ===== */}
-      <div className="nova-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "18px" }}>
+      <div className="nova-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-4_5)" }}>
         {chart && (
           <NovaCard>
-            <NovaKicker>{lang === "ta" ? "ஜாதகங்கள்" : "Charts"}</NovaKicker>
-            <div style={{ display: "flex", gap: "14px", flexWrap: "wrap", justifyContent: "center" }}>
+            <Kicker>{lang === "ta" ? "ஜாதகங்கள்" : "Charts"}</Kicker>
+            <div style={{ display: "flex", gap: "var(--space-3_5)", flexWrap: "wrap", justifyContent: "center" }}>
               <RasiChart chart={chart} label={t("label_d1", lang)} lang={lang} showExplain={false} />
               <NavamsaChart chart={chart} label={t("label_d9", lang)} lang={lang} showExplain={false} />
             </div>
@@ -341,34 +336,34 @@ export function DashboardFamilyMemberNova({
         {guidance && (
           <NovaCard>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-              <NovaKicker>{lang === "ta" ? "இன்றைய வழிகாட்டுதல்" : "Today's guidance"}</NovaKicker>
-              <span style={{ fontSize: "12px", color: "var(--color-muted)" }}>{guidance.score}/100 · {guidance.label}</span>
+              <Kicker>{lang === "ta" ? "இன்றைய வழிகாட்டுதல்" : "Today's guidance"}</Kicker>
+              <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>{guidance.score}/100 · {guidance.label}</span>
             </div>
-            <div style={{ fontSize: "13.5px", lineHeight: 1.65, color: "var(--color-text)" }}>
+            <div style={{ fontSize: "var(--text-base)", lineHeight: 1.65, color: "var(--color-text)" }}>
               {lang === "ta" ? guidance.text.ta : guidance.text.en}
             </div>
-            <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "12px", display: "flex", flexDirection: "column", gap: "9px" }}>
-              <NovaKicker>{lang === "ta" ? "இந்த கணிப்பு ஏன்?" : "Why this prediction?"}</NovaKicker>
+            <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "var(--space-3)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+              <Kicker>{lang === "ta" ? "இந்த கணிப்பு ஏன்?" : "Why this prediction?"}</Kicker>
               {dasaLine && (
-                <div style={{ display: "flex", gap: "10px", fontSize: "12.5px", lineHeight: 1.55, color: "var(--color-muted)" }}>
-                  <span style={{ flexShrink: 0, width: "6px", height: "6px", borderRadius: "50%", background: "var(--color-accent)", marginTop: "6px" }} />
+                <div style={{ display: "flex", gap: "var(--space-2_5)", fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)" }}>
+                  <span style={{ flexShrink: 0, width: "6px", height: "6px", borderRadius: "var(--radius-pill)", background: "var(--color-accent)", marginTop: "6px" }} />
                   <span><b style={{ color: "var(--color-text-strong)" }}>{lang === "ta" ? "தசை" : "Dasa"}</b> — {dasaLine}.</span>
                 </div>
               )}
               {panchangamLine && (
-                <div style={{ display: "flex", gap: "10px", fontSize: "12.5px", lineHeight: 1.55, color: "var(--color-muted)" }}>
-                  <span style={{ flexShrink: 0, width: "6px", height: "6px", borderRadius: "50%", background: "var(--color-accent)", marginTop: "6px" }} />
+                <div style={{ display: "flex", gap: "var(--space-2_5)", fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)" }}>
+                  <span style={{ flexShrink: 0, width: "6px", height: "6px", borderRadius: "var(--radius-pill)", background: "var(--color-accent)", marginTop: "6px" }} />
                   <span><b style={{ color: "var(--color-text-strong)" }}>{lang === "ta" ? "பஞ்சாங்கம்" : "Panchangam"}</b> — {panchangamLine}.</span>
                 </div>
               )}
-              <div style={{ display: "flex", gap: "10px", fontSize: "12.5px", lineHeight: 1.55, color: "var(--color-muted)" }}>
-                <span style={{ flexShrink: 0, width: "6px", height: "6px", borderRadius: "50%", background: "var(--color-accent)", marginTop: "6px" }} />
+              <div style={{ display: "flex", gap: "var(--space-2_5)", fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)" }}>
+                <span style={{ flexShrink: 0, width: "6px", height: "6px", borderRadius: "var(--radius-pill)", background: "var(--color-accent)", marginTop: "6px" }} />
                 <span><b style={{ color: "var(--color-text-strong)" }}>{lang === "ta" ? "கிரகநகர்வு" : "Transit"}</b> — {transitLine}</span>
               </div>
             </div>
-            <div style={{ marginTop: "auto", background: "linear-gradient(135deg, var(--color-accent-muted), transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "11px", padding: "13px 15px" }}>
-              <NovaKicker color="var(--color-accent-strong)">{lang === "ta" ? "பரிகாரம்" : "Remedy"}</NovaKicker>
-              <div style={{ fontSize: "12.5px", lineHeight: 1.5, color: "var(--color-text)", marginTop: "4px" }}>
+            <div style={{ marginTop: "auto", background: "linear-gradient(135deg, var(--color-accent-muted), transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3_5)" }}>
+              <Kicker color="var(--color-accent-strong)">{lang === "ta" ? "பரிகாரம்" : "Remedy"}</Kicker>
+              <div style={{ fontSize: "var(--text-sm)", lineHeight: 1.5, color: "var(--color-text)", marginTop: "4px" }}>
                 {lang === "ta" ? guidance.remedy.ta : guidance.remedy.en}
               </div>
             </div>
@@ -377,32 +372,32 @@ export function DashboardFamilyMemberNova({
       </div>
 
       {/* ===== Dasa + Planets ===== */}
-      <div className="nova-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr", gap: "18px" }}>
+      <div className="nova-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr", gap: "var(--space-4_5)" }}>
         {dasha && (
           <NovaCard>
-            <NovaKicker>{lang === "ta" ? "தசை நிலை" : "Dasa position"}</NovaKicker>
-            <div style={{ display: "flex", gap: "18px" }}>
+            <Kicker>{lang === "ta" ? "தசை நிலை" : "Dasa position"}</Kicker>
+            <div style={{ display: "flex", gap: "var(--space-4_5)" }}>
               {[
                 { label: t("dasha_word", lang), lord: dasha.current.mahadasha.lord },
                 { label: t("bhukti_word", lang), lord: dasha.current.antardasha.lord },
                 { label: t("antaram_word", lang), lord: dasha.current.pratyantardasha.lord },
               ].map((row, i) => (
-                <div key={row.label} style={i > 0 ? { borderLeft: "1px solid var(--color-border)", paddingLeft: "18px" } : undefined}>
+                <div key={row.label} style={i > 0 ? { borderLeft: "1px solid var(--color-border)", paddingLeft: "var(--space-4_5)" } : undefined}>
                   <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", color: "var(--color-faint)", textTransform: "uppercase" }}>{row.label}</div>
-                  <div style={{ fontFamily: "var(--font-display)", fontSize: "22px", fontWeight: 600, marginTop: "2px", color: i === 2 ? "var(--color-accent-strong)" : "var(--color-text-strong)" }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 600, marginTop: "2px", color: i === 2 ? "var(--color-accent-strong)" : "var(--color-text-strong)" }}>
                     {tPlanetLord(row.lord, lang)}
                   </div>
                 </div>
               ))}
             </div>
             <NovaProgressBar value={elapsedPct} tone="accent" />
-            <div style={{ fontSize: "11px", color: "var(--color-faint)" }}>
-              {tPlanetLord(dasha.current.mahadasha.lord, lang)} {t("dasha_word", lang)} · {String(dasha.current.mahadasha.startDate).slice(0, 4)} → {String(dasha.current.mahadasha.endDate).slice(0, 4)} · {Math.round(elapsedPct)}% {lang === "ta" ? "முடிந்தது" : "elapsed"}
+            <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
+              {tPlanetLord(dasha.current.mahadasha.lord, lang)} {t("dasha_word", lang)} · {String(dasha.current.mahadasha.startDate).slice(0, 4)} – {String(dasha.current.mahadasha.endDate).slice(0, 4)} · {Math.round(elapsedPct)}% {lang === "ta" ? "முடிந்தது" : "elapsed"}
             </div>
             {visibleMaha.length > 0 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px", borderTop: "1px solid var(--color-border)", paddingTop: "12px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1_5)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--space-3)" }}>
                 {visibleMaha.map((p) => (
-                  <div key={`${p.lord}-${p.startDate}`} style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "var(--color-text)" }}>
+                  <div key={`${p.lord}-${p.startDate}`} style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-sm)", color: "var(--color-text)" }}>
                     <span>{tPlanetLord(p.lord, lang)}</span>
                     <span style={{ color: "var(--color-faint)" }}>{String(p.startDate).slice(0, 4)} – {String(p.endDate).slice(0, 4)}</span>
                   </div>
@@ -410,7 +405,7 @@ export function DashboardFamilyMemberNova({
               </div>
             )}
             {upcomingMaha.length > 3 && (
-              <button type="button" onClick={() => setShowFullDasaTimeline((v) => !v)} style={{ fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", alignSelf: "flex-start" }}>
+              <button type="button" onClick={() => setShowFullDasaTimeline((v) => !v)} style={{ fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", alignSelf: "flex-start" }}>
                 {showFullDasaTimeline ? (lang === "ta" ? "குறை ▴" : "Show less ▴") : (lang === "ta" ? "முழு தசை காலவரிசை காண் ▾" : "Show full dasa timeline ▾")}
               </button>
             )}
@@ -420,15 +415,15 @@ export function DashboardFamilyMemberNova({
         {allPlanets.length > 0 && (
           <NovaCard>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-              <NovaKicker>{lang === "ta" ? "கிரக நிலை" : "Planet positions"}</NovaKicker>
+              <Kicker>{lang === "ta" ? "கிரக நிலை" : "Planet positions"}</Kicker>
               {allPlanets.length > 5 && (
-                <button type="button" onClick={() => setShowAllPlanets((v) => !v)} style={{ fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                <button type="button" onClick={() => setShowAllPlanets((v) => !v)} style={{ fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
                   {showAllPlanets ? (lang === "ta" ? "குறை ▴" : "Show less ▴") : (lang === "ta" ? `அனைத்தும் (${allPlanets.length}) & பாகைகள் ▾` : `All ${allPlanets.length} & degrees ▾`)}
                 </button>
               )}
             </div>
             <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8125rem" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}>
                 <thead>
                   <tr>
                     {[
@@ -438,7 +433,7 @@ export function DashboardFamilyMemberNova({
                       ...(showAllPlanets ? [lang === "ta" ? "பாகை" : "Degree"] : []),
                       lang === "ta" ? "குறிப்பு" : "Note",
                     ].map((header) => (
-                      <th key={header} style={{ textAlign: "left", fontSize: "0.65625rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700, padding: "10px 12px", borderBottom: "1px solid var(--color-border-strong)", whiteSpace: "nowrap" }}>
+                      <th key={header} style={{ textAlign: "left", fontSize: "var(--text-2xs)", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700, padding: "var(--space-2_5) var(--space-3)", borderBottom: "1px solid var(--color-border-strong)", whiteSpace: "nowrap" }}>
                         {header}
                       </th>
                     ))}
@@ -450,17 +445,17 @@ export function DashboardFamilyMemberNova({
                     const isStrongest = strongest != null && planet.graha === strongest.graha;
                     return (
                       <tr key={planet.graha} style={{ borderBottom: "1px solid color-mix(in srgb, var(--color-text-strong) 7%, transparent)" }}>
-                        <td style={{ padding: "10px 12px", fontWeight: 700, color: DASHA_COLORS[planet.graha] ?? "var(--color-accent-secondary)" }}>{tPlanetLord(planet.graha, lang)}</td>
-                        <td style={{ padding: "10px 12px", color: "var(--color-text)" }}>{planet.rasiName}</td>
-                        <td style={{ padding: "10px 12px", color: "var(--color-text)" }}>{planet.houseFromLagna}</td>
-                        {showAllPlanets && <td style={{ padding: "10px 12px", color: "var(--color-text)" }}>{planet.degreeInRasi.toFixed(2)}°</td>}
-                        <td style={{ padding: "10px 12px" }}>
+                        <td style={{ padding: "var(--space-2_5) var(--space-3)", fontWeight: 700, color: DASHA_COLORS[planet.graha] ?? "var(--color-accent-secondary)" }}>{tPlanetLord(planet.graha, lang)}</td>
+                        <td style={{ padding: "var(--space-2_5) var(--space-3)", color: "var(--color-text)" }}>{planet.rasiName}</td>
+                        <td style={{ padding: "var(--space-2_5) var(--space-3)", color: "var(--color-text)" }}>{planet.houseFromLagna}</td>
+                        {showAllPlanets && <td style={{ padding: "var(--space-2_5) var(--space-3)", color: "var(--color-text)" }}>{planet.degreeInRasi.toFixed(2)}°</td>}
+                        <td style={{ padding: "var(--space-2_5) var(--space-3)" }}>
                           {isDasaLord ? (
                             <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-text-accent)" }}>{lang === "ta" ? "தசாதிபதி" : "DASA LORD"}</span>
                           ) : planet.isRetrograde ? (
-                            <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-low)", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", borderRadius: "5px", padding: "2px 7px" }}>{lang === "ta" ? "வக்ரம்" : "Retro"}</span>
+                            <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-low)", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", borderRadius: "var(--radius-sm)", padding: "var(--space-0_5) var(--space-1_5)" }}>{lang === "ta" ? "வக்ரம்" : "Retro"}</span>
                           ) : isStrongest ? (
-                            <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-accent-strong)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "5px", padding: "2px 7px" }}>{lang === "ta" ? "வலுவானது" : "Strongest"}</span>
+                            <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-accent-strong)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-sm)", padding: "var(--space-0_5) var(--space-1_5)" }}>{lang === "ta" ? "வலுவானது" : "Strongest"}</span>
                           ) : (
                             <span style={{ color: "var(--color-faint)" }}>—</span>
                           )}
@@ -476,16 +471,16 @@ export function DashboardFamilyMemberNova({
       </div>
 
       {/* ===== Yogas & Doshams + Relationships ===== */}
-      <div className="nova-grid-2" style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: "18px" }}>
+      <div className="nova-grid-2" style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: "var(--space-4_5)" }}>
         <NovaCard>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-            <NovaKicker>{lang === "ta" ? "யோகங்கள் & தோஷங்கள்" : "Yogas & Doshams"}</NovaKicker>
-            <span style={{ fontSize: "11px", color: "var(--color-faint)" }}>{activeCount} {lang === "ta" ? "செயலில்" : "active"}</span>
+            <Kicker>{lang === "ta" ? "யோகங்கள் & தோஷங்கள்" : "Yogas & Doshams"}</Kicker>
+            <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{activeCount} {lang === "ta" ? "செயலில்" : "active"}</span>
           </div>
           {combinedInsights.length === 0 ? (
-            <p style={{ margin: 0, fontSize: "12.5px", color: "var(--color-faint)" }}>{t("yogas_empty", lang)}</p>
+            <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>{t("yogas_empty", lang)}</p>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
               {visibleInsights.map((item, i) => {
                 const isYoga = item.type === "YOGA";
                 const tone = isYoga ? "high" : item.cancelled ? "mid" : "low";
@@ -493,17 +488,17 @@ export function DashboardFamilyMemberNova({
                 const border = tone === "high" ? "var(--color-high-border)" : tone === "mid" ? "var(--color-mid-border)" : "var(--color-low-border)";
                 const badgeColor = tone === "high" ? "var(--color-high)" : tone === "mid" ? "var(--color-mid)" : "var(--color-low)";
                 return (
-                  <div key={`${item.type}-${item.name}-${i}`} style={{ display: "flex", alignItems: "center", gap: "11px", background: bg, border: `1px solid ${border}`, borderRadius: "9px", padding: "10px 13px" }}>
-                    <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-on-accent)", background: badgeColor, borderRadius: "5px", padding: "3px 8px", flexShrink: 0 }}>{item.type}</span>
-                    <span style={{ fontSize: "12.5px", fontWeight: 600, flex: 1 }}>{item.name}</span>
-                    <span style={{ fontSize: "11px", color: "var(--color-muted)", textAlign: "right" }}>{item.desc}</span>
+                  <div key={`${item.type}-${item.name}-${i}`} style={{ display: "flex", alignItems: "center", gap: "var(--space-2_5)", background: bg, border: `1px solid ${border}`, borderRadius: "var(--radius-sm)", padding: "var(--space-2_5) var(--space-3)" }}>
+                    <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-on-accent)", background: badgeColor, borderRadius: "var(--radius-sm)", padding: "var(--space-0_75) var(--space-2)", flexShrink: 0 }}>{item.type}</span>
+                    <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, flex: 1 }}>{item.name}</span>
+                    <span style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", textAlign: "right" }}>{item.desc}</span>
                   </div>
                 );
               })}
             </div>
           )}
           {combinedInsights.length > 3 && (
-            <button type="button" onClick={() => setShowAllYogas((v) => !v)} style={{ fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", alignSelf: "flex-start" }}>
+            <button type="button" onClick={() => setShowAllYogas((v) => !v)} style={{ fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", alignSelf: "flex-start" }}>
               {showAllYogas ? (lang === "ta" ? "குறை ▴" : "Show less ▴") : (lang === "ta" ? `அனைத்தும் (${combinedInsights.length}) காண் ▾` : `Show all ${combinedInsights.length} yogas & doshams ▾`)}
             </button>
           )}

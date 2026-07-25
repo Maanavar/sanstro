@@ -1,5 +1,6 @@
 "use client";
 
+import { Sparkles, ChevronRight, ArrowLeft, ArrowRight } from "lucide-react";
 import type { Lang } from "@/lib/i18n";
 
 /**
@@ -29,22 +30,14 @@ import type { Lang } from "@/lib/i18n";
  * in-app browsing mechanism.
  */
 
-export function NovaKicker({ children, color = "var(--color-accent)" }: { children: React.ReactNode; color?: string }) {
-  return (
-    <p style={{ margin: 0, fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700, color }}>
-      {children}
-    </p>
-  );
-}
-
 export const novaDetailCardStyle: React.CSSProperties = {
   background: "var(--color-surface)",
   border: "1px solid var(--color-border)",
   borderRadius: "var(--radius-lg)",
-  padding: "20px 22px",
+  padding: "var(--space-5) var(--space-6)",
   display: "flex",
   flexDirection: "column",
-  gap: "12px",
+  gap: "var(--space-3)",
 };
 
 type BreadcrumbNavButton = { label: string; onClick: () => void };
@@ -65,32 +58,32 @@ export function NovaDetailBreadcrumb({
   onNext?: BreadcrumbNavButton;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "var(--color-faint)", flexWrap: "wrap" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)", color: "var(--color-faint)", flexWrap: "wrap" }}>
       <button type="button" onClick={onBack} style={{ color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>
         {backLabel}
       </button>
-      <span>{"›"}</span>
+      <ChevronRight size={14} strokeWidth={1.5} aria-hidden="true" style={{ color: "var(--color-faint)" }} />
       <span style={{ color: "var(--color-muted)", fontWeight: 600 }}>{hubLabel}</span>
-      <span>{"›"}</span>
+      <ChevronRight size={14} strokeWidth={1.5} aria-hidden="true" style={{ color: "var(--color-faint)" }} />
       <span style={{ color: "var(--color-text)" }}>{currentLabel}</span>
       {(onPrev || onNext) && (
-        <div style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>
+        <div style={{ marginLeft: "auto", display: "flex", gap: "var(--space-2)" }}>
           {onPrev && (
             <button
               type="button"
               onClick={onPrev.onClick}
-              style={{ fontSize: "12px", color: "var(--color-text)", border: "1px solid var(--color-border)", borderRadius: "999px", padding: "6px 14px", background: "none", cursor: "pointer", fontFamily: "inherit" }}
+              style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-sm)", color: "var(--color-text)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-2) var(--space-4)", background: "none", cursor: "pointer", fontFamily: "inherit" }}
             >
-              {"←"} {onPrev.label}
+              <ArrowLeft size={14} strokeWidth={1.5} aria-hidden="true" /> {onPrev.label}
             </button>
           )}
           {onNext && (
             <button
               type="button"
               onClick={onNext.onClick}
-              style={{ fontSize: "12px", color: "var(--color-text)", border: "1px solid var(--color-border)", borderRadius: "999px", padding: "6px 14px", background: "none", cursor: "pointer", fontFamily: "inherit" }}
+              style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-sm)", color: "var(--color-text)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-2) var(--space-4)", background: "none", cursor: "pointer", fontFamily: "inherit" }}
             >
-              {onNext.label} {"→"}
+              {onNext.label} <ArrowRight size={14} strokeWidth={1.5} aria-hidden="true" />
             </button>
           )}
         </div>
@@ -113,20 +106,20 @@ export function NovaDetailHero({
   rightSlot?: React.ReactNode;
 }) {
   return (
-    <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg, var(--color-surface-strong, var(--color-surface)), var(--color-surface))", border: "1px solid var(--color-border-strong)", borderRadius: "16px", padding: "26px 28px", display: "flex", gap: "26px", alignItems: "center" }}>
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "10px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-          <span style={{ fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-accent-secondary)", fontWeight: 700 }}>
+    <div style={{ position: "relative", overflow: "hidden", background: "linear-gradient(135deg, var(--color-surface-strong, var(--color-surface)), var(--color-surface))", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-xl)", padding: "var(--space-7) var(--space-7)", display: "flex", gap: "var(--space-7)", alignItems: "center" }}>
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
+          <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-accent-secondary)", fontWeight: 700 }}>
             {kicker}
           </span>
           {badge}
         </div>
-        <div style={{ display: "flex", alignItems: "baseline", gap: "12px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-3)", flexWrap: "wrap" }}>
           <span style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.8rem,3vw,2.4rem)", fontWeight: 600, lineHeight: 1, color: "var(--color-text-strong)" }}>
             {titleMain}
           </span>
         </div>
-        <p style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "14.5px", lineHeight: 1.65, color: "var(--color-text)", maxWidth: "640px" }}>
+        <p style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "var(--text-base)", lineHeight: 1.65, color: "var(--color-text)", maxWidth: "640px" }}>
           {prose}
         </p>
       </div>
@@ -137,11 +130,11 @@ export function NovaDetailHero({
 
 export function NovaAttributeBand({ facts }: { facts: { label: string; value: React.ReactNode }[] }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: `repeat(${facts.length}, 1fr)`, gap: "10px", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "12px", padding: "13px 20px" }}>
+    <div style={{ display: "grid", gridTemplateColumns: `repeat(${facts.length}, 1fr)`, gap: "var(--space-3)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-5)" }}>
       {facts.map((fact, i) => (
         <div key={i}>
           <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.08em", color: "var(--color-accent-strong)", textTransform: "uppercase" }}>{fact.label}</div>
-          <div style={{ fontSize: "13.5px", fontWeight: 600, marginTop: "2px" }}>{fact.value}</div>
+          <div style={{ fontSize: "var(--text-base)", fontWeight: 600, marginTop: "2px" }}>{fact.value}</div>
         </div>
       ))}
     </div>
@@ -153,11 +146,12 @@ export function NovaAskEntryChip({ label, ctaLabel, onOpenAskVinaadi }: { label:
     <button
       type="button"
       onClick={onOpenAskVinaadi}
-      style={{ display: "flex", alignItems: "center", gap: "10px", background: "var(--color-accent-secondary-muted)", border: "1px solid var(--color-accent-secondary)", borderRadius: "999px", padding: "10px 16px", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}
+      style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", background: "var(--color-accent-secondary-muted)", border: "1px solid var(--color-accent-secondary)", borderRadius: "var(--radius-pill)", padding: "var(--space-3) var(--space-4)", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}
     >
-      <span style={{ flex: 1, fontSize: "12.5px", color: "var(--color-muted)" }}>{label}</span>
-      <span style={{ background: "var(--color-accent-secondary)", color: "var(--color-on-accent)", borderRadius: "999px", padding: "6px 14px", fontSize: "12px", fontWeight: 700 }}>
+      <span style={{ flex: 1, fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>{label}</span>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", background: "var(--color-accent-secondary)", color: "var(--color-on-accent)", borderRadius: "var(--radius-pill)", padding: "var(--space-2) var(--space-4)", fontSize: "var(--text-sm)", fontWeight: 700 }}>
         {ctaLabel}
+        <Sparkles size={14} strokeWidth={1.5} aria-hidden="true" />
       </span>
     </button>
   );

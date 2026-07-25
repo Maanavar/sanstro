@@ -79,7 +79,7 @@ export const ACTIVITY_OPTIONS: Array<{ value: string; en: string; ta: string }> 
   { value: "other", en: "General auspicious day", ta: "பொதுவான நல்ல நாள்" },
 ];
 
-// Map Best Dates activity values → Muhurta picker activity IDs
+// Map Best Dates activity values -> Muhurta picker activity IDs
 export const ACTIVITY_TO_MUHURTA: Record<string, string> = {
   job_change: "JOB_START",
   business_start: "JOB_START",
@@ -258,7 +258,7 @@ export function PlanEventsPanel({ lang, chartId }: { lang: Lang; chartId: string
   return (
     <Surface title={lang === "ta" ? "வாழ்க்கை நிகழ்வு ஜன்னல்கள்" : "Life Event Windows"}>
       <div className="surface__body">
-        <p style={{ margin: "0 0 var(--space-3)", fontSize: "0.875rem", color: "var(--color-faint)", lineHeight: 1.5 }}>
+        <p style={{ margin: "0 0 var(--space-3)", fontSize: "var(--text-base)", color: "var(--color-faint)", lineHeight: 1.5 }}>
           {lang === "ta"
             ? "அடுத்த ஐந்து ஆண்டுகளில் தொழில், திருமணம், படிப்பு, இடமாற்றம் மற்றும் ஆரோக்கியம் தொடர்பான முக்கிய காலகட்டங்கள் — தசை மற்றும் கிரகநகர்வு ஆதரவு சேரும் இடங்களில்."
             : "Key windows for career, marriage, studies, relocation, and health over the next five years — where dasha and transit support converge."}

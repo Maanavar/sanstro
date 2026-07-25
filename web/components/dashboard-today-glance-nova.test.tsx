@@ -129,7 +129,7 @@ describe("DashboardTodayQuickLinksNova", () => {
     ]) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
-    expect(screen.getByText("All tools →")).toBeInTheDocument();
+    expect(screen.getByText("All tools")).toBeInTheDocument();
   });
 
   it("fires the matching callback when a tile is clicked", () => {

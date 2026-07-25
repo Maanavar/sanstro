@@ -160,7 +160,7 @@ describe("DashboardExploreTabNova — Nakshatram list-first navigation", () => {
   it("the 'Start from your chart' shortcut jumps straight to the detail screen, and back still returns to the list", async () => {
     renderWithQueryClient(<DashboardExploreTabNova {...baseProps()} />);
 
-    fireEvent.click(screen.getByText("Read your full star profile →"));
+    fireEvent.click(screen.getByText("Read your full star profile"));
 
     expect(screen.queryByText("All 27 stars")).not.toBeInTheDocument();
     await waitFor(() => {

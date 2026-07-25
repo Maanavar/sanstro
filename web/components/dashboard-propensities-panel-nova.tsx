@@ -124,20 +124,20 @@ export function DashboardPropensitiesPanelNova({ lang, chartId }: Props) {
 
   return (
     <CollapsibleSection title={title} defaultOpen>
-      <p style={{ color: W.muted, fontSize: 12.5, margin: "0 0 var(--space-3) 0", lineHeight: 1.55 }}>
+      <p style={{ color: W.muted, fontSize: "var(--text-sm)", margin: "0 0 var(--space-3) 0", lineHeight: 1.55 }}>
         {intro}
       </p>
 
       {state === "loading" && (
-        <p style={{ color: W.muted, fontSize: 13, margin: 0 }}>{isTamil ? "ஏற்றுகிறது…" : "Loading…"}</p>
+        <p style={{ color: W.muted, fontSize: "var(--text-sm)", margin: 0 }}>{isTamil ? "ஏற்றுகிறது…" : "Loading…"}</p>
       )}
       {state === "error" && (
-        <p style={{ color: W.care, fontSize: 13, margin: 0 }}>
+        <p style={{ color: W.care, fontSize: "var(--text-sm)", margin: 0 }}>
           {isTamil ? "தகவலை ஏற்ற முடியவில்லை." : "Could not load this section."}
         </p>
       )}
       {state === "unavailable" && (
-        <p style={{ color: W.muted, fontSize: 13, margin: 0 }}>
+        <p style={{ color: W.muted, fontSize: "var(--text-sm)", margin: 0 }}>
           {isTamil ? "இந்த பகுதி இறுதி செய்யப்படுகிறது." : "This section is being finalised."}
         </p>
       )}
@@ -152,7 +152,7 @@ export function DashboardPropensitiesPanelNova({ lang, chartId }: Props) {
                 <h4
                   style={{
                     color: W.ink,
-                    fontSize: 13,
+                    fontSize: "var(--text-sm)",
                     fontWeight: 700,
                     letterSpacing: 0.3,
                     textTransform: "uppercase",
@@ -209,7 +209,7 @@ function PropensityCardView({ card, isTamil }: { card: PropensityCard; isTamil: 
         {!card.deferred && (
           <span
             style={{
-              fontSize: 11,
+              fontSize: "var(--text-xs)",
               fontWeight: 700,
               color: tone.fg,
               background: tone.bg,
@@ -224,11 +224,11 @@ function PropensityCardView({ card, isTamil }: { card: PropensityCard; isTamil: 
       </button>
 
       {card.deferred ? (
-        <p style={{ color: W.muted, fontSize: 12.5, margin: "6px 0 0", lineHeight: 1.5 }}>
+        <p style={{ color: W.muted, fontSize: "var(--text-sm)", margin: "6px 0 0", lineHeight: 1.5 }}>
           {card.deferredReason ? (isTamil ? card.deferredReason.ta : card.deferredReason.en) : ""}
         </p>
       ) : (
-        <p style={{ color: W.ink, fontSize: 12.5, margin: "6px 0 0", lineHeight: 1.55 }}>
+        <p style={{ color: W.ink, fontSize: "var(--text-sm)", margin: "6px 0 0", lineHeight: 1.55 }}>
           {isTamil ? card.summary.ta : card.summary.en}
         </p>
       )}
@@ -237,7 +237,7 @@ function PropensityCardView({ card, isTamil }: { card: PropensityCard; isTamil: 
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)", marginTop: "var(--space-3)" }}>
           {card.factors.length > 0 && (
             <div>
-              <div style={{ color: W.muted, fontSize: 11, fontWeight: 700, marginBottom: 6, textTransform: "uppercase" }}>
+              <div style={{ color: W.muted, fontSize: "var(--text-xs)", fontWeight: 700, marginBottom: 6, textTransform: "uppercase" }}>
                 {isTamil ? "ஏன்" : "Why"}
               </div>
               <ul style={{ margin: 0, paddingLeft: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 5 }}>
@@ -255,7 +255,7 @@ function PropensityCardView({ card, isTamil }: { card: PropensityCard; isTamil: 
                           f.status === "SUPPORT" ? W.good : f.status === "CAUTION" ? W.warn : W.muted,
                       }}
                     />
-                    <span style={{ color: W.ink, fontSize: 12.5, lineHeight: 1.5 }}>
+                    <span style={{ color: W.ink, fontSize: "var(--text-sm)", lineHeight: 1.5 }}>
                       {isTamil ? f.detail.ta : f.detail.en}
                     </span>
                   </li>
@@ -270,7 +270,7 @@ function PropensityCardView({ card, isTamil }: { card: PropensityCard; isTamil: 
                 background: W.surfaceMd,
                 borderRadius: "var(--radius-sm)",
                 padding: "var(--space-2) var(--space-2_5)",
-                fontSize: 12,
+                fontSize: "var(--text-sm)",
                 color: W.ink,
                 lineHeight: 1.5,
               }}
@@ -286,12 +286,12 @@ function PropensityCardView({ card, isTamil }: { card: PropensityCard; isTamil: 
 
           {card.whatHelps.length > 0 && (
             <div>
-              <div style={{ color: W.muted, fontSize: 11, fontWeight: 700, marginBottom: 6, textTransform: "uppercase" }}>
+              <div style={{ color: W.muted, fontSize: "var(--text-xs)", fontWeight: 700, marginBottom: 6, textTransform: "uppercase" }}>
                 {isTamil ? "என்ன உதவும்" : "What helps"}
               </div>
               <ul style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 4 }}>
                 {card.whatHelps.map((h, i) => (
-                  <li key={i} style={{ color: W.ink, fontSize: 12.5, lineHeight: 1.5 }}>
+                  <li key={i} style={{ color: W.ink, fontSize: "var(--text-sm)", lineHeight: 1.5 }}>
                     {isTamil ? h.ta : h.en}
                   </li>
                 ))}
@@ -306,7 +306,7 @@ function PropensityCardView({ card, isTamil }: { card: PropensityCard; isTamil: 
                 border: `1px solid color-mix(in srgb, ${W.info} 25%, transparent)`,
                 borderRadius: "var(--radius-sm)",
                 padding: "var(--space-2_5)",
-                fontSize: 12,
+                fontSize: "var(--text-sm)",
                 color: W.ink,
                 lineHeight: 1.55,
               }}
@@ -319,7 +319,7 @@ function PropensityCardView({ card, isTamil }: { card: PropensityCard; isTamil: 
           )}
 
           {card.disclaimer && (
-            <p style={{ color: W.muted, fontSize: 11.5, margin: 0, lineHeight: 1.5, fontStyle: "italic" }}>
+            <p style={{ color: W.muted, fontSize: "var(--text-xs)", margin: 0, lineHeight: 1.5, fontStyle: "italic" }}>
               {isTamil ? card.disclaimer.ta : card.disclaimer.en}
             </p>
           )}

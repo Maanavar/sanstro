@@ -4,7 +4,8 @@ import { useState } from "react";
 
 import type { Lang } from "@/lib/i18n";
 import { LEARN_ARTICLES_CONTENT } from "./dashboard-learn-content";
-import { NovaAskEntryChip, NovaDetailBreadcrumb, NovaDetailHero, NovaKicker, novaDetailCardStyle } from "./dashboard-explore-detail-nova";
+import { NovaAskEntryChip, NovaDetailBreadcrumb, NovaDetailHero } from "./dashboard-explore-detail-nova";
+import { Card, Kicker } from "./ui";
 
 /**
  * Nova in-app viewer for the Explore tab's "Learn" articles — see
@@ -18,8 +19,6 @@ import { NovaAskEntryChip, NovaDetailBreadcrumb, NovaDetailHero, NovaKicker, nov
 function wrapIndex(i: number, length: number): number {
   return ((i % length) + length) % length;
 }
-
-const cardStyle = novaDetailCardStyle;
 
 interface DashboardExploreLearnNovaProps {
   lang: Lang;
@@ -38,7 +37,7 @@ export function DashboardExploreLearnNova({ lang, initialSlug, onBack, onOpenAsk
   const nextArticle = LEARN_ARTICLES_CONTENT[wrapIndex(viewedIndex + 1, LEARN_ARTICLES_CONTENT.length)];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "18px", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
 
       <NovaDetailBreadcrumb
         onBack={onBack}
@@ -55,20 +54,20 @@ export function DashboardExploreLearnNova({ lang, initialSlug, onBack, onOpenAsk
         prose={text(article.lead)}
       />
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
         {article.sections.map((section, i) => (
-          <div key={i} style={cardStyle}>
-            <NovaKicker>{text(section.heading)}</NovaKicker>
-            <p style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "13.5px", lineHeight: 1.7, color: "var(--color-text)" }}>
+          <Card key={i}>
+            <Kicker>{text(section.heading)}</Kicker>
+            <p style={{ margin: 0, fontFamily: "var(--font-nova-prose, var(--font-body))", fontSize: "var(--text-base)", lineHeight: 1.7, color: "var(--color-text)" }}>
               {text(section.body)}
             </p>
-          </div>
+          </Card>
         ))}
       </div>
 
       <NovaAskEntryChip
         label={lang === "ta" ? `${text(article.title)} பற்றி கேளுங்கள்…` : `Ask about ${article.title.en}…`}
-        ctaLabel={lang === "ta" ? "கேளுங்கள் ✦" : "Ask ✦"}
+        ctaLabel={lang === "ta" ? "கேளுங்கள்" : "Ask"}
         onOpenAskVinaadi={onOpenAskVinaadi}
       />
     </div>

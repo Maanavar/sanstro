@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import type { Lang } from "@/lib/i18n";
 import { readErrorMessage } from "@/lib/api";
@@ -12,6 +13,7 @@ import {
   type MuhurthamNaalItem,
 } from "@/lib/muhurtham-naal";
 import { NovaSelect } from "./nova-select";
+import { Card } from "./ui";
 
 /**
  * Nova re-skin of dashboard-muhurtham-naal.tsx's DashboardMuhurthamNaal —
@@ -73,35 +75,35 @@ function NovaNaalRow({ row, lang, showMatchCol }: { row: MergedRow; lang: Lang; 
   const rowBorder = isChandrashtama ? "var(--color-low-border)" : isRecommended ? "var(--color-high-border)" : "var(--color-border)";
 
   return (
-    <div style={{ border: `1px solid ${rowBorder}`, borderRadius: "10px", marginBottom: "8px", background: rowBg, overflow: "hidden" }}>
+    <div style={{ border: `1px solid ${rowBorder}`, borderRadius: "var(--radius-md)", marginBottom: "8px", background: rowBg, overflow: "hidden" }}>
       <div
-        style={{ display: "grid", gridTemplateColumns: showMatchCol ? "1fr auto" : "1fr", gap: "10px", padding: "12px 14px", cursor: match ? "pointer" : "default", alignItems: "center" }}
+        style={{ display: "grid", gridTemplateColumns: showMatchCol ? "1fr auto" : "1fr", gap: "var(--space-3)", padding: "var(--space-3) var(--space-4)", cursor: match ? "pointer" : "default", alignItems: "center" }}
         onClick={() => match && setOpen((v) => !v)}
       >
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(110px,auto) minmax(0,1fr)", gap: "10px 16px", alignItems: "center" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(110px,auto) minmax(0,1fr)", gap: "var(--space-3) var(--space-4)", alignItems: "center" }}>
           <div>
-            <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--color-text)" }}>{formatDate(naal.date, lang)}</div>
-            <div style={{ fontSize: "12.5px", color: "var(--color-text-accent)", fontWeight: 600 }}>{lang === "ta" ? naal.weekday.ta : naal.weekday.en}</div>
+            <div style={{ fontWeight: 700, fontSize: "var(--text-base)", color: "var(--color-text)" }}>{formatDate(naal.date, lang)}</div>
+            <div style={{ fontSize: "var(--text-sm)", color: "var(--color-text-accent)", fontWeight: 600 }}>{lang === "ta" ? naal.weekday.ta : naal.weekday.en}</div>
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "5px 10px", alignItems: "center" }}>
-            <span style={{ fontSize: "13px", color: "var(--color-text)", fontWeight: 600 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-1) var(--space-3)", alignItems: "center" }}>
+            <span style={{ fontSize: "var(--text-base)", color: "var(--color-text)", fontWeight: 600 }}>
               {lang === "ta" ? naal.tamilMonth.ta : naal.tamilMonth.en} {naal.tamilDay}
             </span>
-            <span style={{ fontSize: "12px", color: "var(--color-faint)" }}>·</span>
-            <span style={{ fontSize: "13px", color: "var(--color-text)" }}>{lang === "ta" ? naal.nakshatra.ta : naal.nakshatra.en}</span>
-            <span style={{ fontSize: "12px", color: "var(--color-faint)" }}>·</span>
-            <span style={{ fontSize: "12px", color: "var(--color-faint)" }}>{lang === "ta" ? naal.pirai.ta : naal.pirai.en}</span>
+            <span style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>·</span>
+            <span style={{ fontSize: "var(--text-base)", color: "var(--color-text)" }}>{lang === "ta" ? naal.nakshatra.ta : naal.nakshatra.en}</span>
+            <span style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>·</span>
+            <span style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>{lang === "ta" ? naal.pirai.ta : naal.pirai.en}</span>
             {naal.nallaNeram.length > 0 && (
               <>
-                <span style={{ fontSize: "12px", color: "var(--color-faint)" }}>·</span>
-                <span style={{ fontSize: "11.5px", color: "var(--color-high)", fontWeight: 600 }}>
+                <span style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>·</span>
+                <span style={{ fontSize: "var(--text-xs)", color: "var(--color-high)", fontWeight: 600 }}>
                   {lang === "ta" ? "நல்ல நேரம்: " : "Nalla neram: "}
                   {naal.nallaNeram.map((w) => `${w.start}–${w.end}`).join(", ")}
                 </span>
               </>
             )}
             {isChandrashtama && (
-              <span style={{ fontSize: "11px", color: "var(--color-low)", fontWeight: 700, padding: "1px 6px", background: "var(--color-low-bg)", borderRadius: "999px", border: "1px solid var(--color-low-border)" }}>
+              <span style={{ fontSize: "var(--text-xs)", color: "var(--color-low)", fontWeight: 700, padding: "var(--space-1) var(--space-2)", background: "var(--color-low-bg)", borderRadius: "var(--radius-pill)", border: "1px solid var(--color-low-border)" }}>
                 {lang === "ta" ? "சந்திராஷ்டமம்" : "Chandrashtama"}
               </span>
             )}
@@ -109,14 +111,14 @@ function NovaNaalRow({ row, lang, showMatchCol }: { row: MergedRow; lang: Lang; 
         </div>
 
         {showMatchCol && match && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px", minWidth: "80px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-              <span style={{ fontSize: "1.15rem", fontWeight: 700, color: SCORE_COLOR(match.matchScore), fontVariantNumeric: "tabular-nums" }}>{match.matchScore}</span>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "var(--space-1)", minWidth: "80px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+              <span style={{ fontSize: "var(--text-lg)", fontWeight: 700, color: SCORE_COLOR(match.matchScore), fontVariantNumeric: "tabular-nums" }}>{match.matchScore}</span>
               <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>/100</span>
-              <span style={{ fontSize: "12px", color: "var(--color-faint)" }}>{open ? "▲" : "▼"}</span>
+              <span style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>{open ? "▲" : "▼"}</span>
             </div>
             {q && (
-              <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: q.dot, padding: "1px 6px", background: q.bg, borderRadius: "999px", border: `1px solid ${q.dot}30`, whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: q.dot, padding: "var(--space-1) var(--space-2)", background: q.bg, borderRadius: "var(--radius-pill)", border: `1px solid ${q.dot}30`, whiteSpace: "nowrap" }}>
                 {lang === "ta" ? q.label.ta : q.label.en}
               </span>
             )}
@@ -125,13 +127,13 @@ function NovaNaalRow({ row, lang, showMatchCol }: { row: MergedRow; lang: Lang; 
       </div>
 
       {open && match && match.reasons.length > 0 && (
-        <div style={{ padding: "10px 14px 12px", borderTop: "1px solid var(--color-border)" }}>
-          <p style={{ margin: "0 0 6px", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-faint)" }}>
+        <div style={{ padding: "var(--space-3) var(--space-4) var(--space-3)", borderTop: "1px solid var(--color-border)" }}>
+          <p style={{ margin: "0 0 6px", fontSize: "var(--text-xs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-faint)" }}>
             {lang === "ta" ? "பொருத்த காரணங்கள்" : "Match reasons"}
           </p>
-          <ul style={{ margin: 0, padding: "0 0 0 14px" }}>
+          <ul style={{ margin: 0, paddingLeft: "var(--space-4)" }}>
             {match.reasons.map((r, i) => (
-              <li key={i} style={{ fontSize: "13px", color: "var(--color-text)", marginBottom: "3px" }}>{lang === "ta" ? r.ta : r.en}</li>
+              <li key={i} style={{ fontSize: "var(--text-base)", color: "var(--color-text)", marginBottom: "3px" }}>{lang === "ta" ? r.ta : r.en}</li>
             ))}
           </ul>
         </div>
@@ -203,86 +205,86 @@ export function NovaMuhurthamNaal({ lang, chartId }: { lang: Lang; chartId: stri
   const title = lang === "ta" ? `${year} திருமண முகூர்த்த நாட்கள்` : `${year} Wedding Muhurtham Naal`;
 
   return (
-    <div style={{ padding: "16px 18px", borderRadius: "12px", background: "var(--color-surface)", border: "1px solid var(--color-border)", fontFamily: "var(--font-body)" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", marginBottom: "12px" }}>
-        <p style={{ margin: 0, fontSize: "11px", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>{title}</p>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+    <Card style={{ fontFamily: "var(--font-body)" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-3)", marginBottom: "12px" }}>
+        <p style={{ margin: 0, fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>{title}</p>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
           <button
             type="button"
             onClick={() => setYear((y) => y - 1)}
             aria-label={lang === "ta" ? "முந்தைய ஆண்டு" : "Previous year"}
-            style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)", color: "var(--color-text)", borderRadius: "6px", width: "24px", height: "24px", cursor: "pointer", fontFamily: "inherit", fontSize: "13px", lineHeight: 1 }}
+            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", border: "1px solid var(--color-border)", background: "var(--color-surface)", color: "var(--color-text)", borderRadius: "var(--radius-sm)", width: "24px", height: "24px", cursor: "pointer", fontFamily: "inherit", lineHeight: 1 }}
           >
-            ‹
+            <ChevronLeft size={16} strokeWidth={1.5} aria-hidden="true" />
           </button>
-          <span style={{ fontSize: "12.5px", fontWeight: 700, color: "var(--color-text)", minWidth: "38px", textAlign: "center" }}>{year}</span>
+          <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-text)", minWidth: "38px", textAlign: "center" }}>{year}</span>
           <button
             type="button"
             onClick={() => setYear((y) => y + 1)}
             aria-label={lang === "ta" ? "அடுத்த ஆண்டு" : "Next year"}
-            style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)", color: "var(--color-text)", borderRadius: "6px", width: "24px", height: "24px", cursor: "pointer", fontFamily: "inherit", fontSize: "13px", lineHeight: 1 }}
+            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", border: "1px solid var(--color-border)", background: "var(--color-surface)", color: "var(--color-text)", borderRadius: "var(--radius-sm)", width: "24px", height: "24px", cursor: "pointer", fontFamily: "inherit", lineHeight: 1 }}
           >
-            ›
+            <ChevronRight size={16} strokeWidth={1.5} aria-hidden="true" />
           </button>
         </div>
       </div>
 
       {chartId && context && (
-        <div style={{ padding: "10px 12px", marginBottom: "12px", borderRadius: "8px", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)", fontSize: "13.5px", color: "var(--color-text)" }}>
+        <Card variant="high" compact style={{ marginBottom: "12px", fontSize: "var(--text-base)", color: "var(--color-text)" }}>
           {lang === "ta"
             ? `உங்கள் நட்சத்திரம் ${context.janmaNakshatra.ta} — ${context.recommendedCount} நாட்கள் உங்களுக்கு ஏற்றவை (தாரா பலம் + சந்திராஷ்டமம் வைத்து).`
             : `Your star ${context.janmaNakshatra.en} — ${context.recommendedCount} of ${context.totalCount} dates suit you (Tara Bala + Chandrashtama).`}
-        </div>
+        </Card>
       )}
 
       {!chartId && (
-        <p style={{ fontSize: "13.5px", color: "var(--color-muted)", marginBottom: "12px" }}>
+        <p style={{ fontSize: "var(--text-base)", color: "var(--color-muted)", marginBottom: "12px" }}>
           {lang === "ta"
             ? "ஜாதகம் தேர்ந்தெடுத்தால் ஒவ்வொரு நாளுக்கும் உங்கள் நட்சத்திர பொருத்தம் காட்டப்படும்."
             : "Select a chart to see personal star-match scores alongside each almanac date."}
         </p>
       )}
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "14px", alignItems: "center" }}>
-        <label style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "11.5px", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-3)", marginBottom: "14px", alignItems: "center" }}>
+        <label style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
           {lang === "ta" ? "மாதம்" : "Month"}
           <NovaSelect
             value={String(filterMonth)}
             onChange={(v) => setFilterMonth(Number(v))}
             ariaLabel={lang === "ta" ? "மாதம்" : "Month"}
-            style={{ padding: "5px 10px", fontSize: "13px" }}
+            style={{ padding: "var(--space-1) var(--space-3)", fontSize: "var(--text-base)" }}
             options={MONTH_LABELS.map((m) => ({ value: String(m.value), label: lang === "ta" ? m.ta : m.en }))}
           />
         </label>
 
-        <label style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "11.5px", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        <label style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
           {lang === "ta" ? "பிறை" : "Pirai"}
           <NovaSelect
             value={filterPirai}
             onChange={setFilterPirai}
             ariaLabel={lang === "ta" ? "பிறை" : "Pirai"}
-            style={{ padding: "5px 10px", fontSize: "13px" }}
+            style={{ padding: "var(--space-1) var(--space-3)", fontSize: "var(--text-base)" }}
             options={PIRAI_OPTIONS.map((p) => ({ value: p.value, label: lang === "ta" ? p.ta : p.en }))}
           />
         </label>
 
         {showMatchCol && (
-          <label style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "13px", color: "var(--color-muted)", marginLeft: "auto", cursor: "pointer" }}>
+          <label style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-base)", color: "var(--color-muted)", marginLeft: "auto", cursor: "pointer" }}>
             <input type="checkbox" checked={recommendedOnly} onChange={(e) => setRecommendedOnly(e.target.checked)} />
             {lang === "ta" ? "ஏற்றவை மட்டும்" : "Recommended only"}
           </label>
         )}
 
-        <span style={{ fontSize: "12px", color: "var(--color-faint)", marginLeft: showMatchCol ? "0" : "auto" }}>
+        <span style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)", marginLeft: showMatchCol ? "0" : "auto" }}>
           {lang === "ta" ? `${rows.length} நாட்கள்` : `${rows.length} dates`}
         </span>
       </div>
 
-      {loading && <p style={{ fontSize: "14px", color: "var(--color-muted)", padding: "16px 0" }}>{lang === "ta" ? "முகூர்த்த நாட்கள் ஏற்றப்படுகிறது…" : "Loading muhurtham dates…"}</p>}
-      {error && <p style={{ fontSize: "14px", color: "var(--color-low)" }}>{error}</p>}
+      {loading && <p style={{ fontSize: "var(--text-base)", color: "var(--color-muted)", padding: "var(--space-4) 0" }}>{lang === "ta" ? "முகூர்த்த நாட்கள் ஏற்றப்படுகிறது…" : "Loading muhurtham dates…"}</p>}
+      {error && <p style={{ fontSize: "var(--text-base)", color: "var(--color-low)" }}>{error}</p>}
 
       {!loading && !error && rows.length === 0 && (
-        <p style={{ fontSize: "14px", color: "var(--color-muted)", padding: "12px 0" }}>
+        <p style={{ fontSize: "var(--text-base)", color: "var(--color-muted)", padding: "var(--space-3) 0" }}>
           {lang === "ta" ? "இந்த வடிகட்டலுக்கு நாட்கள் இல்லை." : "No dates for this filter."}
         </p>
       )}
@@ -290,19 +292,19 @@ export function NovaMuhurthamNaal({ lang, chartId }: { lang: Lang; chartId: stri
       {!loading && !error && rows.map((row) => <NovaNaalRow key={row.naal.date} row={row} lang={lang} showMatchCol={showMatchCol} />)}
 
       {showMatchCol && !loading && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginTop: "14px", padding: "10px 12px", borderRadius: "8px", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)" }}>
+        <Card variant="soft" compact style={{ flexDirection: "row", flexWrap: "wrap", gap: "var(--space-3)", marginTop: "14px" }}>
           {[
             { dot: "var(--color-high)", en: "Recommended (score ≥ 60)", ta: "சிறந்தது (மதிப்பு ≥ 60)" },
             { dot: "var(--color-low)", en: "Chandrashtama — avoid", ta: "சந்திராஷ்டமம் — தவிர்க்க" },
             { dot: "var(--color-faint)", en: "Neutral / check further", ta: "நடுநிலை / மேலும் சரிபார்க்க" },
           ].map((item) => (
-            <span key={item.en} style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "11.5px", color: "var(--color-muted)" }}>
-              <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: item.dot, flexShrink: 0, display: "inline-block" }} />
+            <span key={item.en} style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-xs)", color: "var(--color-muted)" }}>
+              <span style={{ width: "8px", height: "8px", borderRadius: "var(--radius-pill)", background: item.dot, flexShrink: 0, display: "inline-block" }} />
               {lang === "ta" ? item.ta : item.en}
             </span>
           ))}
-        </div>
+        </Card>
       )}
-    </div>
+    </Card>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Check, X, Clock, Minus, type LucideIcon } from "lucide-react";
 
 import { getActivityTimingBatch } from "@vinaadi/shared/api/activityTiming";
 import { formatClockLabel } from "@/lib/format";
@@ -25,16 +26,16 @@ const DECIDE_ACTIVITIES: Array<{ activity: string; labelEn: string; labelTa: str
   { activity: "job_change", labelEn: "New job", labelTa: "புதிய வேலை" },
 ];
 
-function alignmentDisplay(alignment: string, hasBetterDate: boolean): { icon: string; color: string; bg: string; border: string } {
+function alignmentDisplay(alignment: string, hasBetterDate: boolean): { Icon: LucideIcon; color: string; bg: string; border: string } {
   if (alignment === "SUPPORTS") {
-    return { icon: "✓", color: "var(--color-high)", bg: "var(--color-high-bg)", border: "var(--color-high-border)" };
+    return { Icon: Check, color: "var(--color-high)", bg: "var(--color-high-bg)", border: "var(--color-high-border)" };
   }
   if (alignment === "CAUTION") {
-    return { icon: "✕", color: "var(--color-low)", bg: "var(--color-low-bg)", border: "var(--color-low-border)" };
+    return { Icon: X, color: "var(--color-low)", bg: "var(--color-low-bg)", border: "var(--color-low-border)" };
   }
-  // NEUTRAL: a half-tone dot — filled further (◐) when we can point to a
-  // concretely better date, since that reads as "waitable", not "wrong".
-  return { icon: hasBetterDate ? "◐" : "~", color: "var(--color-mid)", bg: "var(--color-mid-bg)", border: "var(--color-mid-border)" };
+  // NEUTRAL: a clock when we can point to a concretely better date, since that
+  // reads as "waitable", not "wrong"; otherwise a neutral dash.
+  return { Icon: hasBetterDate ? Clock : Minus, color: "var(--color-mid)", bg: "var(--color-mid-bg)", border: "var(--color-mid-border)" };
 }
 
 /** The chip's short cause comes structured from the backend
@@ -175,20 +176,20 @@ export function DashboardTodayDecideNova({
   }
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap", background: "var(--color-surface)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-lg)", padding: "14px 20px" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", flexWrap: "wrap", background: "var(--color-surface)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-lg)", padding: "var(--space-3_5) var(--space-5)" }}>
       <div style={{ flex: "none" }}>
-        <div style={{ fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700, whiteSpace: "nowrap" }}>
+        <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700, whiteSpace: "nowrap" }}>
           {lang === "ta" ? "இன்று நல்ல நாளா…?" : "Is today okay for…?"}
         </div>
         {!busy && sharedCause && (
-          <div style={{ fontSize: "11px", color: "var(--color-mid)", marginTop: "3px", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: "5px" }}>
+          <div style={{ fontSize: "var(--text-xs)", color: "var(--color-mid)", marginTop: "3px", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: "var(--space-1)" }}>
             <span aria-hidden="true">◑</span>
             <span>{lang === "ta" ? "இன்று: " : "Today: "}{sharedCause}</span>
           </div>
         )}
       </div>
 
-      <div style={{ flex: 1, display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "flex-end", minWidth: 0 }}>
+      <div style={{ flex: 1, display: "flex", gap: "var(--space-2)", flexWrap: "wrap", justifyContent: "flex-end", minWidth: 0 }}>
         {chartId && pills.map(({ a, dateResult, reason, short, betterDate, display }) => {
           let q: string | null = null;
           if (dateResult) {
@@ -196,7 +197,7 @@ export function DashboardTodayDecideNova({
               q = supportsQualifier(bestWindow, now, isToday, lang, timeZone);
             } else if (dateResult.alignment === "CAUTION") {
               // Drop the cause from the pill when it's already stated once in the
-              // shared subtitle — the pill just reads "✕ Travel · defer".
+              // shared subtitle — the pill just reads "Travel · defer" with a caution icon.
               const ownCause = short && short !== sharedCause;
               q = ownCause ? `${lang === "ta" ? "ஒத்திவை" : "defer"} · ${short}` : (lang === "ta" ? "ஒத்திவை" : "defer");
             } else if (betterDate) {
@@ -216,14 +217,14 @@ export function DashboardTodayDecideNova({
               key={a.activity}
               title={tooltip}
               style={{
-                display: "inline-flex", alignItems: "center", gap: "7px", fontSize: "12.5px",
+                display: "inline-flex", alignItems: "center", gap: "var(--space-1_5)", fontSize: "var(--text-sm)",
                 background: display?.bg ?? "color-mix(in srgb, var(--color-text-strong) 5%, transparent)",
                 border: `1px solid ${display?.border ?? "var(--color-border)"}`,
-                borderRadius: "999px", padding: "7px 13px", whiteSpace: "nowrap",
+                borderRadius: "var(--radius-pill)", padding: "var(--space-1_5) var(--space-3)", whiteSpace: "nowrap",
               }}
             >
-              <span style={{ color: display?.color ?? "var(--color-faint)", fontWeight: 700 }}>
-                {busy ? "…" : (display?.icon ?? "?")}
+              <span style={{ display: "inline-flex", color: display?.color ?? "var(--color-faint)", fontWeight: 700 }}>
+                {busy ? "…" : (display ? <display.Icon size={14} strokeWidth={2} aria-hidden="true" /> : "?")}
               </span>
               <span style={{ color: "var(--color-text-strong)", fontWeight: 600 }}>{lang === "ta" ? a.labelTa : a.labelEn}</span>
               {!busy && q && <span style={{ color: "var(--color-faint)" }}>· {q}</span>}
@@ -234,9 +235,9 @@ export function DashboardTodayDecideNova({
           type="button"
           onClick={onOpenAskVinaadi}
           style={{
-            display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12.5px", color: "var(--color-accent-secondary)",
-            background: "none", border: "1px dashed var(--color-accent-secondary-muted)", borderRadius: "999px",
-            padding: "7px 13px", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+            display: "inline-flex", alignItems: "center", gap: "var(--space-1_5)", fontSize: "var(--text-sm)", color: "var(--color-accent-secondary)",
+            background: "none", border: "1px dashed var(--color-accent-secondary-muted)", borderRadius: "var(--radius-pill)",
+            padding: "var(--space-1_5) var(--space-3)", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
           }}
         >
           + {lang === "ta" ? "உங்கள் கேள்வி" : "Ask your own"}

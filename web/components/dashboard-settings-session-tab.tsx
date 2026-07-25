@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ArrowUpRight, Check, ChevronDown, ChevronRight, Copy, Mail, RefreshCw, X } from "lucide-react";
 
 import { useTheme, type Theme } from "@/hooks/useTheme";
 import { apiFetchJson } from "@/lib/api";
@@ -11,7 +12,8 @@ import type { Lang } from "@/lib/i18n";
 import type { ContextData, ContextEvent, JournalRetentionApplyData, NotificationPreferenceData } from "@/lib/types";
 import { CONTEXT_EVENT_TYPES, CTX_TYPE_KEY, type ContextEventType } from "./dashboard-journal-shared";
 import { NovaSelect } from "./nova-select";
-import { SettingsRail, SETTINGS_C as C, type SettingsSectionId } from "./dashboard-settings-rail";
+import { SettingsRail, type SettingsSectionId } from "./dashboard-settings-rail";
+import { Toggle } from "./ui";
 
 type UserMode = "BEGINNER" | "BALANCED" | "TRADITIONAL";
 type GoalTrack = "CAREER" | "EXAM" | "RELATIONSHIP" | "FINANCIAL";
@@ -72,13 +74,13 @@ type DashboardSettingsSessionTabProps = {
 
 function PanelHeader({ title, desc, danger }: { title: string; desc: string; danger?: boolean }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-      {/* audit B-1: the active settings panel's title is this view's <h1>
-          (the left rail shows one panel at a time). */}
-      <h1 style={{ margin: 0, fontFamily: "var(--font-display, Georgia, serif)", fontSize: "clamp(1.8rem, 3.4vw, 2.15rem)", fontWeight: 600, lineHeight: 1.05, color: danger ? C.danger : C.text }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+      {/* audit B-1: the active settings panel's title is this view's top-level
+          heading (the left rail shows one panel at a time). */}
+      <h1 style={{ margin: 0, fontFamily: "var(--font-display, Georgia, serif)", fontSize: "var(--display-md)", fontWeight: 600, lineHeight: 1.05, color: danger ? "var(--color-low)" : "var(--color-text-strong)" }}>
         {title}
       </h1>
-      <div style={{ fontFamily: "var(--font-body, Georgia, serif)", fontSize: "15px", color: C.muted, maxWidth: "520px", lineHeight: 1.55 }}>
+      <div style={{ fontFamily: "var(--font-body, ui-sans-serif, system-ui, sans-serif)", fontSize: "var(--text-md)", color: "var(--color-muted)", maxWidth: "520px", lineHeight: 1.55 }}>
         {desc}
       </div>
     </div>
@@ -87,16 +89,16 @@ function PanelHeader({ title, desc, danger }: { title: string; desc: string; dan
 
 function Card({ children, tone }: { children: React.ReactNode; tone?: "plain" | "danger" }) {
   const base: React.CSSProperties = {
-    background: C.card,
-    border: `1px solid ${C.border}`,
-    borderRadius: "16px",
-    padding: "24px 26px",
+    background: "var(--color-surface)",
+    border: `1px solid var(--color-border)`,
+    borderRadius: "var(--radius-xl)",
+    padding: "var(--space-6) var(--space-7)",
     display: "flex",
     flexDirection: "column",
-    gap: "16px",
+    gap: "var(--space-4)",
   };
   if (tone === "danger") {
-    return <div style={{ ...base, background: C.dangerBg, border: `1px solid ${C.dangerBorder}` }}>{children}</div>;
+    return <div style={{ ...base, background: "var(--color-low-bg)", border: `1px solid var(--color-low-border)` }}>{children}</div>;
   }
   return <div style={base}>{children}</div>;
 }
@@ -104,8 +106,8 @@ function Card({ children, tone }: { children: React.ReactNode; tone?: "plain" | 
 function RowHeader({ title, desc }: { title: string; desc?: string }) {
   return (
     <div style={{ maxWidth: "360px" }}>
-      <div style={{ fontSize: "15px", fontWeight: 600, color: C.text }}>{title}</div>
-      {desc && <div style={{ fontSize: "12.5px", color: C.faint, marginTop: "3px", lineHeight: 1.5 }}>{desc}</div>}
+      <div style={{ fontSize: "var(--text-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>{title}</div>
+      {desc && <div style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)", marginTop: "3px", lineHeight: 1.5 }}>{desc}</div>}
     </div>
   );
 }
@@ -116,7 +118,7 @@ function Segmented<T extends string>({ value, options, onChange }: {
   onChange: (v: T) => void;
 }) {
   return (
-    <div style={{ display: "inline-flex", background: C.surfaceSoft, border: `1px solid ${C.border}`, borderRadius: "11px", padding: "4px", gap: "4px", flexWrap: "wrap" }}>
+    <div style={{ display: "inline-flex", background: "var(--color-surface-soft)", border: `1px solid var(--color-border)`, borderRadius: "var(--radius-md)", padding: "var(--space-1)", gap: "var(--space-1)", flexWrap: "wrap" }}>
       {options.map((o) => {
         const on = o.v === value;
         return (
@@ -125,8 +127,8 @@ function Segmented<T extends string>({ value, options, onChange }: {
             type="button"
             onClick={() => onChange(o.v)}
             style={{
-              padding: "9px 17px", borderRadius: "8px", fontSize: "12.5px", fontWeight: on ? 700 : 500,
-              color: on ? C.onAccent : C.muted, background: on ? C.accent : "transparent",
+              padding: "var(--space-2) var(--space-4)", borderRadius: "var(--radius-sm)", fontSize: "var(--text-sm)", fontWeight: on ? 700 : 500,
+              color: on ? "var(--color-on-accent)" : "var(--color-muted)", background: on ? "var(--color-accent)" : "transparent",
               cursor: "pointer", border: "none", fontFamily: "inherit", transition: "background .15s, color .15s", whiteSpace: "nowrap",
             }}
           >
@@ -144,32 +146,14 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
       type="button"
       onClick={onClick}
       style={{
-        padding: "9px 16px", borderRadius: "999px", fontSize: "12.5px", fontWeight: active ? 600 : 500,
-        background: active ? C.accentMuted : C.raised,
-        border: `1px solid ${active ? C.accent : C.border}`,
-        color: active ? C.text : C.muted,
+        padding: "var(--space-2) var(--space-4)", borderRadius: "var(--radius-pill)", fontSize: "var(--text-sm)", fontWeight: active ? 600 : 500,
+        background: active ? "var(--color-accent-muted)" : "var(--color-hover-bg)",
+        border: `1px solid ${active ? "var(--color-accent)" : "var(--color-border)"}`,
+        color: active ? "var(--color-text-strong)" : "var(--color-muted)",
         cursor: "pointer", fontFamily: "inherit", transition: "background .15s, border-color .15s",
       }}
     >
       {children}
-    </button>
-  );
-}
-
-function Toggle({ checked, onChange, tone }: { checked: boolean; onChange: (v: boolean) => void; tone?: string }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      style={{
-        width: "44px", height: "25px", borderRadius: "999px",
-        background: checked ? (tone ?? C.sage) : C.offTrack,
-        position: "relative", cursor: "pointer", border: "none", flex: "none", transition: "background .2s", padding: 0,
-      }}
-    >
-      <span style={{ position: "absolute", top: "2.5px", left: checked ? "21px" : "2.5px", width: "20px", height: "20px", borderRadius: "50%", background: "#fff", transition: "left .2s", boxShadow: "0 1px 3px rgba(0,0,0,.35)" }} />
     </button>
   );
 }
@@ -181,8 +165,8 @@ function PrimaryBtn({ onClick, disabled, children }: { onClick: () => void; disa
       onClick={onClick}
       disabled={disabled}
       style={{
-        alignSelf: "flex-start", background: C.accent, color: C.onAccent, fontWeight: 700, borderRadius: "10px",
-        padding: "11px 22px", fontSize: "13px", cursor: disabled ? "not-allowed" : "pointer", border: "none",
+        alignSelf: "flex-start", background: "var(--color-accent)", color: "var(--color-on-accent)", fontWeight: 700, borderRadius: "var(--radius-md)",
+        padding: "var(--space-3) var(--space-6)", fontSize: "var(--text-base)", cursor: disabled ? "not-allowed" : "pointer", border: "none",
         opacity: disabled ? 0.5 : 1, fontFamily: "inherit", whiteSpace: "nowrap", transition: "opacity .15s",
       }}
     >
@@ -199,8 +183,9 @@ function GhostBtn({ onClick, disabled, children, danger }: { onClick: () => void
       disabled={disabled}
       style={{
         alignSelf: "flex-start", background: "transparent",
-        border: `1px solid ${danger ? C.dangerBorder : C.border}`,
-        color: danger ? C.danger : C.accentText, borderRadius: "9px", padding: "9px 16px", fontSize: "12.5px",
+        display: "inline-flex", alignItems: "center", gap: "var(--space-1)",
+        border: `1px solid ${danger ? "var(--color-low-border)" : "var(--color-border)"}`,
+        color: danger ? "var(--color-low)" : "var(--color-text-accent)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-4)", fontSize: "var(--text-sm)",
         fontWeight: 600, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.5 : 1,
         fontFamily: "inherit", whiteSpace: "nowrap", transition: "opacity .15s",
       }}
@@ -211,12 +196,12 @@ function GhostBtn({ onClick, disabled, children, danger }: { onClick: () => void
 }
 
 const KICKER: React.CSSProperties = {
-  fontSize: "var(--text-xs)", letterSpacing: ".12em", textTransform: "uppercase", color: C.faint, fontWeight: 700,
+  fontSize: "var(--text-xs)", letterSpacing: ".12em", textTransform: "uppercase", color: "var(--color-faint)", fontWeight: 700,
 };
 
 const fieldStyle: React.CSSProperties = {
-  width: "100%", background: C.surfaceSoft, border: `1px solid ${C.border}`, borderRadius: "10px",
-  padding: "11px 13px", fontSize: "14px", color: C.text, fontFamily: "inherit", outline: "none",
+  width: "100%", background: "var(--color-surface-soft)", border: `1px solid var(--color-border)`, borderRadius: "var(--radius-md)",
+  padding: "var(--space-3) var(--space-3)", fontSize: "var(--text-base)", color: "var(--color-text-strong)", fontFamily: "inherit", outline: "none",
 };
 
 /* ═══════════════ Component ═══════════════ */
@@ -524,7 +509,7 @@ export function DashboardSettingsSessionTab({
     { label: lang === "ta" ? "கொட்டில் ID" : "Vault ID", value: selectedVaultId },
   ].filter((f) => f.value);
 
-  const panelWrap: React.CSSProperties = { display: "flex", flexDirection: "column", gap: "20px", animation: "vfade .3s ease" };
+  const panelWrap: React.CSSProperties = { display: "flex", flexDirection: "column", gap: "var(--space-5)", animation: "vfade .3s ease" };
 
   /* ── Panels ── */
   const renderAccount = () => (
@@ -537,27 +522,27 @@ export function DashboardSettingsSessionTab({
       />
 
       {/* identity hero */}
-      <div style={{ background: `linear-gradient(150deg, ${C.accentMuted}, ${C.card} 62%)`, border: `1px solid ${C.borderStrong}`, borderRadius: "18px", padding: "26px 28px", display: "flex", alignItems: "center", gap: "22px", flexWrap: "wrap" }}>
-        <div style={{ width: "64px", height: "64px", borderRadius: "50%", background: C.accent, color: C.onAccent, display: "grid", placeItems: "center", fontSize: "26px", fontFamily: "var(--font-display, serif)", fontWeight: 700, flex: "none" }}>
+      <div style={{ background: `linear-gradient(150deg, var(--color-accent-muted), var(--color-surface) 62%)`, border: `1px solid var(--color-border-strong)`, borderRadius: "var(--radius-xl)", padding: "var(--space-7) var(--space-7)", display: "flex", alignItems: "center", gap: "var(--space-6)", flexWrap: "wrap" }}>
+        <div style={{ width: "64px", height: "64px", borderRadius: "var(--radius-pill)", background: "var(--color-accent)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-xl)", fontFamily: "var(--font-display, serif)", fontWeight: 700, flex: "none" }}>
           {(userDisplayName || "S").trim().charAt(0).toUpperCase() || "S"}
         </div>
         <div style={{ flex: 1, minWidth: "220px" }}>
-          <div style={{ fontFamily: "var(--font-display, Georgia, serif)", fontSize: "26px", fontWeight: 600, color: C.text, lineHeight: 1.1 }}>
+          <div style={{ fontFamily: "var(--font-display, Georgia, serif)", fontSize: "var(--text-xl)", fontWeight: 600, color: "var(--color-text-strong)", lineHeight: 1.1 }}>
             {userDisplayName?.trim() || (lang === "ta" ? "உங்கள் கணக்கு" : "Your account")}
           </div>
           {chartLine && (
-            <div style={{ fontSize: "12px", letterSpacing: ".08em", textTransform: "uppercase", color: C.accentText, marginTop: "6px", fontWeight: 600 }}>{chartLine}</div>
+            <div style={{ fontSize: "var(--text-sm)", letterSpacing: ".08em", textTransform: "uppercase", color: "var(--color-text-accent)", marginTop: "6px", fontWeight: 600 }}>{chartLine}</div>
           )}
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-end" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "7px", fontSize: "12px", color: C.sage, background: C.sageBg, border: `1px solid ${C.sageBorder}`, borderRadius: "999px", padding: "6px 13px" }}>
-            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: busyFamily ? C.accent : C.sage }} />
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", alignItems: "flex-end" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)", color: "var(--color-accent-alt)", background: "var(--color-high-bg)", border: `1px solid var(--color-high-border)`, borderRadius: "var(--radius-pill)", padding: "var(--space-2) var(--space-3)" }}>
+            <span style={{ width: "6px", height: "6px", borderRadius: "var(--radius-pill)", background: busyFamily ? "var(--color-accent)" : "var(--color-accent-alt)" }} />
             {busyFamily ? (lang === "ta" ? "குடும்பத் தரவு புதுப்பிக்கப்படுகிறது…" : "Refreshing family data…") : (lang === "ta" ? "குடும்பத் தரவு தயார்" : "Family data loaded")}
           </div>
           {vaultName?.trim() && (
-            <div style={{ fontSize: "11.5px", color: C.faint }}>
+            <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
               {lang === "ta" ? "படிக்கிறது " : "Reading "}
-              <span style={{ color: C.purple, fontWeight: 600 }}>{vaultName}</span>
+              <span style={{ color: "var(--color-accent-secondary)", fontWeight: 600 }}>{vaultName}</span>
               {lang === "ta" ? " கொட்டில்" : " vault"}
             </div>
           )}
@@ -566,30 +551,30 @@ export function DashboardSettingsSessionTab({
 
       {/* session facts */}
       <Card>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "var(--space-4)" }}>
           <div>
             <div style={{ ...KICKER, marginBottom: "8px" }}>{lang === "ta" ? "தேர்ந்தெடுத்த தேதி" : "Selected date"}</div>
             <input type="date" value={selectedDate} onChange={(e) => onSelectedDateChange(e.target.value)} style={fieldStyle} />
-            <div style={{ fontSize: "11.5px", color: C.faint, marginTop: "7px" }}>{lang === "ta" ? "அனைத்து கணிப்புகளையும் இயக்குகிறது." : "Drives all forecasts and transits."}</div>
+            <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "7px" }}>{lang === "ta" ? "அனைத்து கணிப்புகளையும் இயக்குகிறது." : "Drives all forecasts and transits."}</div>
           </div>
           <div>
             <div style={{ ...KICKER, marginBottom: "8px" }}>{lang === "ta" ? "செயலில் உள்ள கொட்டில்" : "Active vault"}</div>
-            <div style={{ ...fieldStyle, padding: "12px 14px" }}>
+            <div style={{ ...fieldStyle, padding: "var(--space-3) var(--space-4)" }}>
               {vaultName?.trim() || (lang === "ta" ? "தேர்ந்தெடுக்கப்படவில்லை" : "None selected")}
             </div>
-            <div style={{ fontSize: "11.5px", color: C.faint, marginTop: "7px" }}>{lang === "ta" ? "குடும்பத் தாவலில் கொட்டில்களை மாற்றவும்." : "Switch vaults from the Family tab."}</div>
+            <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "7px" }}>{lang === "ta" ? "குடும்பத் தாவலில் கொட்டில்களை மாற்றவும்." : "Switch vaults from the Family tab."}</div>
           </div>
         </div>
 
-        <div style={{ height: "1px", background: C.border }} />
+        <div style={{ height: "1px", background: "var(--color-border)" }} />
 
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
           <span style={{ ...KICKER, letterSpacing: ".14em", marginRight: "2px" }}>{lang === "ta" ? "விரைவு செயல்கள்" : "Quick actions"}</span>
           <GhostBtn onClick={onRefreshPersonal} disabled={!birthProfileId || busyPersonal}>
-            {busyPersonal ? t("btn_refreshing", lang) : `↻ ${t("btn_refresh_personal", lang)}`}
+            {busyPersonal ? t("btn_refreshing", lang) : <><RefreshCw size={14} strokeWidth={1.5} aria-hidden="true" />{t("btn_refresh_personal", lang)}</>}
           </GhostBtn>
           <GhostBtn onClick={onRefreshFamily} disabled={!selectedVaultId || busyFamily}>
-            {busyFamily ? t("btn_refreshing", lang) : `↻ ${t("btn_refresh_family", lang)}`}
+            {busyFamily ? t("btn_refreshing", lang) : <><RefreshCw size={14} strokeWidth={1.5} aria-hidden="true" />{t("btn_refresh_family", lang)}</>}
           </GhostBtn>
           <GhostBtn onClick={() => onNavigate("setup")}>{lang === "ta" ? "அமைப்பு" : "Setup"}</GhostBtn>
           <div style={{ marginLeft: "auto" }}>
@@ -600,32 +585,32 @@ export function DashboardSettingsSessionTab({
 
       {/* support IDs disclosure */}
       {idFields.length > 0 && (
-        <div style={{ background: C.raised, border: `1px solid ${C.border}`, borderRadius: "14px", overflow: "hidden" }}>
+        <div style={{ background: "var(--color-hover-bg)", border: `1px solid var(--color-border)`, borderRadius: "var(--radius-lg)", overflow: "hidden" }}>
           <button
             type="button"
             onClick={() => setShowIds((s) => !s)}
-            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 22px", cursor: "pointer", width: "100%", background: "transparent", border: "none", fontFamily: "inherit", textAlign: "left" }}
+            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "var(--space-4) var(--space-6)", cursor: "pointer", width: "100%", background: "transparent", border: "none", fontFamily: "inherit", textAlign: "left" }}
           >
             <span>
-              <span style={{ display: "block", fontSize: "13.5px", fontWeight: 600, color: C.text }}>{lang === "ta" ? "ஆதரவு & டெவலப்பர் அடையாளங்கள்" : "Support & developer identifiers"}</span>
-              <span style={{ display: "block", fontSize: "11.5px", color: C.faint, marginTop: "2px" }}>{lang === "ta" ? "ஆதரவு கேட்கக்கூடிய படிக்க-மட்டும் ID-கள். திருத்த ஏதுமில்லை." : "Read-only IDs you may be asked for by support. Nothing to edit."}</span>
+              <span style={{ display: "block", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)" }}>{lang === "ta" ? "ஆதரவு & டெவலப்பர் அடையாளங்கள்" : "Support & developer identifiers"}</span>
+              <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "2px" }}>{lang === "ta" ? "ஆதரவு கேட்கக்கூடிய படிக்க-மட்டும் ID-கள். திருத்த ஏதுமில்லை." : "Read-only IDs you may be asked for by support. Nothing to edit."}</span>
             </span>
-            <span style={{ color: C.accentText, fontSize: "13px" }}>{showIds ? "▾" : "▸"}</span>
+            <span style={{ color: "var(--color-text-accent)", display: "inline-flex" }} aria-hidden="true">{showIds ? <ChevronDown size={16} strokeWidth={1.5} /> : <ChevronRight size={16} strokeWidth={1.5} />}</span>
           </button>
           {showIds && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1px", background: C.border, borderTop: `1px solid ${C.border}` }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "var(--space-1)", background: "var(--color-border)", borderTop: `1px solid var(--color-border)` }}>
               {idFields.map((f) => (
                 <button
                   key={f.label}
                   type="button"
                   onClick={() => copyId(f.value)}
                   title={f.value}
-                  style={{ background: C.surfaceSoft, padding: "14px 22px", cursor: "pointer", display: "flex", flexDirection: "column", gap: "5px", border: "none", fontFamily: "inherit", textAlign: "left" }}
+                  style={{ background: "var(--color-surface-soft)", padding: "var(--space-4) var(--space-6)", cursor: "pointer", display: "flex", flexDirection: "column", gap: "var(--space-1)", border: "none", fontFamily: "inherit", textAlign: "left" }}
                 >
-                  <span style={{ fontSize: "var(--text-xs)", letterSpacing: ".12em", textTransform: "uppercase", color: C.faint, fontWeight: 700 }}>{f.label}</span>
-                  <span style={{ fontFamily: "ui-monospace, Menlo, monospace", fontSize: "12px", color: C.textMid, display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span style={{ fontSize: "var(--text-xs)", letterSpacing: ".12em", textTransform: "uppercase", color: "var(--color-faint)", fontWeight: 700 }}>{f.label}</span>
+                  <span style={{ fontFamily: "ui-monospace, Menlo, monospace", fontSize: "var(--text-sm)", color: "var(--color-text)", display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
                     {f.value.length > 24 ? `${f.value.slice(0, 24)}…` : f.value}
-                    <span style={{ color: C.accentText, fontSize: "11px" }}>⧉</span>
+                    <Copy size={12} strokeWidth={1.5} aria-hidden="true" style={{ color: "var(--color-text-accent)" }} />
                   </span>
                 </button>
               ))}
@@ -650,7 +635,7 @@ export function DashboardSettingsSessionTab({
       />
 
       <Card>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "16px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "var(--space-4)", flexWrap: "wrap" }}>
           <RowHeader title={t("mode_label", lang)} desc={detailDesc} />
           <Segmented<UserMode>
             value={modeDraft}
@@ -666,7 +651,7 @@ export function DashboardSettingsSessionTab({
 
       <Card>
         <RowHeader title={t("track_label", lang)} desc={lang === "ta" ? "இப்போது முக்கியமான ஒன்றைத் தேர்வுசெய்யுங்கள் — வழிகாட்டலும் நேரமும் அதை நோக்கி சாயும்." : "Pick what matters right now — guidance and timing lean toward it."} />
-        <div style={{ display: "flex", gap: "9px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
           <Chip active={trackDraft === ""} onClick={() => setTrackDraft("")}>{t("track_none", lang)}</Chip>
           {(["CAREER", "EXAM", "RELATIONSHIP", "FINANCIAL"] as GoalTrack[]).map((tr) => (
             <Chip key={tr} active={trackDraft === tr} onClick={() => setTrackDraft(tr)}>
@@ -690,25 +675,25 @@ export function DashboardSettingsSessionTab({
       />
 
       <Card>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
-          <RowHeader title={lang === "ta" ? "தீம்" : "Theme"} desc={lang === "ta" ? "இருண்ட, வெளிர், அல்லது சாதன அமைப்பைப் பின்பற்றவும்." : "Dark, light, or follow your device setting."} />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-4)", flexWrap: "wrap" }}>
+          <RowHeader title={lang === "ta" ? "தீம்" : "Theme"} desc={lang === "ta" ? "Nova Galaxy, Warm, அல்லது சாதன அமைப்பைப் பின்பற்றவும்." : "Nova Galaxy, Warm, or follow your device setting."} />
           <Segmented<Theme>
             value={currentTheme}
             onChange={setTheme}
             options={[
               { v: "system", label: lang === "ta" ? "சாதனம்" : "System" },
-              { v: "light", label: lang === "ta" ? "வெளிர்" : "Light" },
-              { v: "dark", label: lang === "ta" ? "இருண்ட" : "Dark" },
+              { v: "light", label: "Warm" },
+              { v: "dark", label: "Nova Galaxy" },
             ]}
           />
         </div>
-        <div style={{ fontSize: "11.5px", color: C.accentText, background: C.accentMuted, border: `1px solid ${C.border}`, borderRadius: "9px", padding: "9px 13px", lineHeight: 1.5 }}>
-          {lang === "ta" ? "Nova தோற்றம் செயலில் இருக்கும்போது, இந்த அமைப்பைப் பொருட்படுத்தாமல் ஆப் இருண்டதாகவே இருக்கும்." : "While the Nova look is active, the app stays dark regardless of this setting."}
+        <div style={{ fontSize: "var(--text-xs)", color: "var(--color-text-accent)", background: "var(--color-accent-muted)", border: `1px solid var(--color-border)`, borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)", lineHeight: 1.5 }}>
+          {lang === "ta" ? "“சாதனம்” Nova Galaxy (இருண்ட) தோற்றத்தில் இருக்கும்; parchment தோற்றத்திற்கு Warm-ஐத் தேர்ந்தெடுக்கவும்." : "“System” keeps the Nova Galaxy (dark) look; pick Warm for the parchment theme."}
         </div>
       </Card>
 
       <Card>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-4)", flexWrap: "wrap" }}>
           <RowHeader title={lang === "ta" ? "மொழி" : "Language"} desc={lang === "ta" ? "ஆப் ஏற்றப்படும் இயல்பு மொழி." : "Default language the app loads in."} />
           <Segmented<Lang>
             value={lang}
@@ -724,10 +709,10 @@ export function DashboardSettingsSessionTab({
   );
 
   const notifRow = (title: string, desc: string, node: React.ReactNode, last?: boolean) => (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "14px", padding: "18px 0", borderBottom: last ? undefined : `1px solid ${C.border}` }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-4)", padding: "var(--space-5) 0", borderBottom: last ? undefined : `1px solid var(--color-border)` }}>
       <div style={{ maxWidth: "70%" }}>
-        <div style={{ fontSize: "14px", fontWeight: 600, color: C.text }}>{title}</div>
-        <div style={{ fontSize: "12px", color: C.faint, marginTop: "2px" }}>{desc}</div>
+        <div style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)" }}>{title}</div>
+        <div style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)", marginTop: "2px" }}>{desc}</div>
       </div>
       {node}
     </div>
@@ -741,7 +726,7 @@ export function DashboardSettingsSessionTab({
       />
 
       <Card>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-4)", flexWrap: "wrap" }}>
           <RowHeader title={t("notif_channel", lang)} desc={lang === "ta" ? "அறிவிப்புகள் எங்கு அனுப்பப்படும்." : "Where alerts are sent."} />
           <Segmented<"none" | "push" | "email" | "both">
             value={notifChannel}
@@ -756,33 +741,33 @@ export function DashboardSettingsSessionTab({
         </div>
       </Card>
 
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: "16px", padding: "6px 26px", display: "flex", flexDirection: "column" }}>
+      <div style={{ background: "var(--color-surface)", border: `1px solid var(--color-border)`, borderRadius: "var(--radius-xl)", padding: "var(--space-2) var(--space-7)", display: "flex", flexDirection: "column" }}>
         {notifRow(
           t("notif_morning_alert", lang),
           lang === "ta" ? "உங்கள் தினசரி வாசிப்பு, குறிப்பிட்ட நேரத்தில்." : "Your daily reading, delivered at a set time.",
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
             {notifMorning && (
-              <input type="time" value={notifMorningTime} onChange={(e) => setNotifMorningTime(e.target.value)} style={{ ...fieldStyle, width: "auto", padding: "7px 11px", fontSize: "12.5px" }} />
+              <input type="time" value={notifMorningTime} onChange={(e) => setNotifMorningTime(e.target.value)} style={{ ...fieldStyle, width: "auto", padding: "var(--space-2) var(--space-3)", fontSize: "var(--text-sm)" }} />
             )}
             <Toggle checked={notifMorning} onChange={setNotifMorning} />
           </div>,
         )}
         {notifRow(t("notif_dasha_alert", lang), lang === "ta" ? "ஒரு பெரிய கிரக காலம் மாறும்போது." : "When a major planetary period shifts.", <Toggle checked={notifDasha} onChange={setNotifDasha} />)}
         {notifRow(t("notif_pirantha_alert", lang), lang === "ta" ? "குடும்ப உறுப்பினர்களுக்கான நட்சத்திரப் பிறந்தநாள் நினைவூட்டல்." : "Star-birthday reminders for family members.", <Toggle checked={notifPirantha} onChange={setNotifPirantha} />)}
-        {notifRow(t("notif_smart_silence", lang), lang === "ta" ? "ராகு காலம் & இரவில் அவசரமற்ற அறிவிப்புகளை இடைநிறுத்து." : "Pause non-urgent alerts during Rahu Kalam & night.", <Toggle checked={notifSmartSilence} onChange={setNotifSmartSilence} tone={C.accent} />, true)}
+        {notifRow(t("notif_smart_silence", lang), lang === "ta" ? "ராகு காலம் & இரவில் அவசரமற்ற அறிவிப்புகளை இடைநிறுத்து." : "Pause non-urgent alerts during Rahu Kalam & night.", <Toggle checked={notifSmartSilence} onChange={setNotifSmartSilence} />, true)}
       </div>
 
       {(notificationPrefs && !notificationPrefs.fcmTokenRegistered) || pushUnavailable ? (
-        <div style={{ background: C.dangerBg, border: `1px solid ${C.dangerBorder}`, borderRadius: "10px", padding: "11px 15px", fontSize: "12px", color: C.dangerText, lineHeight: 1.5 }}>
+        <div style={{ background: "var(--color-low-bg)", border: `1px solid var(--color-low-border)`, borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)", fontSize: "var(--text-sm)", color: "var(--color-alert-critical-text)", lineHeight: 1.5 }}>
           {pushUnavailable
             ? (lang === "ta" ? "Push notifications unavailable." : "Push notifications unavailable.")
             : t("notif_fcm_not_registered", lang)}
         </div>
       ) : notificationPrefs?.fcmTokenRegistered ? (
-        <div style={{ fontSize: "12px", color: C.sage }}>{t("notif_fcm_registered", lang)}</div>
+        <div style={{ fontSize: "var(--text-sm)", color: "var(--color-accent-alt)" }}>{t("notif_fcm_registered", lang)}</div>
       ) : null}
 
-      <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center", flexWrap: "wrap" }}>
         <PrimaryBtn onClick={handleSaveNotifications} disabled={notifSaving}>
           {notifSaving ? t("notif_saving", lang) : t("btn_save_notifications", lang)}
         </PrimaryBtn>
@@ -797,7 +782,7 @@ export function DashboardSettingsSessionTab({
           </>
         )}
       </div>
-      {pushMessage && <div style={{ fontSize: "12px", color: C.muted }}>{pushMessage}</div>}
+      {pushMessage && <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>{pushMessage}</div>}
     </div>
   );
 
@@ -809,11 +794,11 @@ export function DashboardSettingsSessionTab({
       />
 
       <Card>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "12px" }}>
-          <div style={{ fontSize: "15px", fontWeight: 600, color: C.text }}>{lang === "ta" ? "தக்கவைப்பு காலம்" : "Retention window"}</div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-            <span style={{ fontFamily: "var(--font-display, serif)", fontSize: "34px", fontWeight: 600, color: C.accentText, lineHeight: 1 }}>{retentionDraft}</span>
-            <span style={{ fontSize: "13px", color: C.faint }}>{lang === "ta" ? "நாட்கள்" : "days"}</span>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "var(--space-3)" }}>
+          <div style={{ fontSize: "var(--text-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>{lang === "ta" ? "தக்கவைப்பு காலம்" : "Retention window"}</div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-2)" }}>
+            <span style={{ fontFamily: "var(--font-display, serif)", fontSize: "var(--text-2xl)", fontWeight: 600, color: "var(--color-text-accent)", lineHeight: 1 }}>{retentionDraft}</span>
+            <span style={{ fontSize: "var(--text-base)", color: "var(--color-faint)" }}>{lang === "ta" ? "நாட்கள்" : "days"}</span>
           </div>
         </div>
         <input
@@ -823,34 +808,34 @@ export function DashboardSettingsSessionTab({
           step={1}
           value={retentionValid ? retentionDraft : 7}
           onChange={(e) => setRetentionDraft(Number.parseInt(e.target.value, 10))}
-          style={{ width: "100%", accentColor: "var(--color-accent, #d4af5f)" }}
+          style={{ width: "100%", accentColor: "var(--color-accent)" }}
         />
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: C.faint }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
           <span>{lang === "ta" ? "7 நாட்கள்" : "7 days"}</span>
-          <span>{lang === "ta" ? "நீண்ட வரலாறு →" : "Longer history kept before cleanup →"}</span>
+          <span>{lang === "ta" ? "நீண்ட வரலாறு" : "Longer history kept before cleanup"}</span>
           <span>{lang === "ta" ? "3650 நாட்கள்" : "3650 days"}</span>
         </div>
 
-        <div style={{ height: "1px", background: C.border }} />
+        <div style={{ height: "1px", background: "var(--color-border)" }} />
 
-        <div style={{ display: "flex", gap: "26px", flexWrap: "wrap" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+        <div style={{ display: "flex", gap: "var(--space-7)", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
             <span style={{ ...KICKER, letterSpacing: ".1em" }}>{t("settings_retention_last_updated", lang)}</span>
-            <span style={{ fontSize: "13px", color: C.textMid }}>{fmt(journalLastUpdatedAt)}</span>
+            <span style={{ fontSize: "var(--text-base)", color: "var(--color-text)" }}>{fmt(journalLastUpdatedAt)}</span>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
             <span style={{ ...KICKER, letterSpacing: ".1em" }}>{t("settings_retention_next_review", lang)}</span>
-            <span style={{ fontSize: "13px", color: C.textMid }}>{fmtDate(journalNextRecommendedReviewDate)}</span>
+            <span style={{ fontSize: "var(--text-base)", color: "var(--color-text)" }}>{fmtDate(journalNextRecommendedReviewDate)}</span>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
             <span style={{ ...KICKER, letterSpacing: ".1em" }}>{t("settings_retention_last_reviewed", lang)}</span>
-            <span style={{ fontSize: "13px", color: C.faint }}>{fmt(journalLastRetentionReviewedAt)}</span>
+            <span style={{ fontSize: "var(--text-base)", color: "var(--color-faint)" }}>{fmt(journalLastRetentionReviewedAt)}</span>
           </div>
         </div>
 
-        <div style={{ fontSize: "13px", color: retentionDraft <= 30 ? C.accentText : C.muted, lineHeight: 1.5 }}>{retentionNotice}</div>
+        <div style={{ fontSize: "var(--text-base)", color: retentionDraft <= 30 ? "var(--color-text-accent)" : "var(--color-muted)", lineHeight: 1.5 }}>{retentionNotice}</div>
 
-        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", alignItems: "center" }}>
           <PrimaryBtn onClick={() => onSaveJournalRetentionDays(retentionDraft)} disabled={!retentionValid || busyJournalSettings}>
             {busyJournalSettings ? t("settings_retention_saving", lang) : t("settings_retention_save", lang)}
           </PrimaryBtn>
@@ -863,11 +848,11 @@ export function DashboardSettingsSessionTab({
         </div>
 
         {retentionPreview && retentionPreview.matchedCount === 0 && (
-          <div style={{ fontSize: "13px", color: C.sage }}>{lang === "ta" ? "காப்பகப்படுத்த பழைய குறிப்புகள் எதுவும் இல்லை." : "No entries are older than your retention window — nothing to clean up."}</div>
+          <div style={{ fontSize: "var(--text-base)", color: "var(--color-accent-alt)" }}>{lang === "ta" ? "காப்பகப்படுத்த பழைய குறிப்புகள் எதுவும் இல்லை." : "No entries are older than your retention window — nothing to clean up."}</div>
         )}
         {retentionPreview && retentionPreview.matchedCount > 0 && (
-          <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ fontSize: "13px", color: C.textMid }}>
+          <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "var(--text-base)", color: "var(--color-text)" }}>
               {lang === "ta"
                 ? `${retentionPreview.matchedCount} குறிப்புகள் (${fmtDate(retentionPreview.thresholdDate)} க்கு முந்தையவை) காப்பகப்படுத்தப்படும்.`
                 : `${retentionPreview.matchedCount} entr${retentionPreview.matchedCount === 1 ? "y" : "ies"} older than ${fmtDate(retentionPreview.thresholdDate)} will be archived.`}
@@ -879,7 +864,7 @@ export function DashboardSettingsSessionTab({
           </div>
         )}
         {retentionApplied && (
-          <div style={{ fontSize: "13px", color: C.sage }}>
+          <div style={{ fontSize: "var(--text-base)", color: "var(--color-accent-alt)" }}>
             {lang === "ta"
               ? `${retentionApplied.archivedCount} குறிப்புகள் காப்பகப்படுத்தப்பட்டன.`
               : `Archived ${retentionApplied.archivedCount} entr${retentionApplied.archivedCount === 1 ? "y" : "ies"}.`}
@@ -900,27 +885,27 @@ export function DashboardSettingsSessionTab({
       />
 
       <Card>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "var(--space-3)", flexWrap: "wrap" }}>
           <RowHeader
             title={t("context_section_label", lang)}
             desc={t("context_section_desc", lang)}
           />
-          {ctxSuccess && <span style={{ fontSize: "12.5px", color: C.sage }}>{t("context_event_saved", lang)}</span>}
+          {ctxSuccess && <span style={{ fontSize: "var(--text-sm)", color: "var(--color-accent-alt)" }}>{t("context_event_saved", lang)}</span>}
         </div>
 
         {activeContextEvents.length > 0 ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
             {activeContextEvents.map((ev, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 13px", borderRadius: "10px", background: C.surfaceSoft, border: `1px solid ${C.border}`, flexWrap: "wrap" }}>
-                <span style={{ fontSize: "12px", fontWeight: 600, color: C.accentText, background: C.accentMuted, border: `1px solid ${C.border}`, borderRadius: "999px", padding: "3px 11px" }}>
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", padding: "var(--space-3) var(--space-3)", borderRadius: "var(--radius-md)", background: "var(--color-surface-soft)", border: `1px solid var(--color-border)`, flexWrap: "wrap" }}>
+                <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text-accent)", background: "var(--color-accent-muted)", border: `1px solid var(--color-border)`, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
                   {CTX_TYPE_KEY[ev.type as ContextEventType] ? t(CTX_TYPE_KEY[ev.type as ContextEventType], lang) : ev.type}
                 </span>
-                <span style={{ fontSize: "12.5px", color: C.muted }}>{formatDateLabel(ev.date)}</span>
-                {ev.note && <span style={{ fontSize: "12.5px", color: C.muted, fontStyle: "italic", flex: 1 }}>{ev.note}</span>}
+                <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>{formatDateLabel(ev.date)}</span>
+                {ev.note && <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", fontStyle: "italic", flex: 1 }}>{ev.note}</span>}
                 <button
                   type="button"
                   onClick={() => void handleRemoveContextEvent(i)}
-                  style={{ marginLeft: "auto", padding: "4px 12px", borderRadius: "8px", border: `1px solid ${C.dangerBorder}`, background: "transparent", color: C.danger, fontSize: "11.5px", cursor: "pointer", fontFamily: "inherit" }}
+                  style={{ marginLeft: "auto", padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-sm)", border: `1px solid var(--color-low-border)`, background: "transparent", color: "var(--color-low)", fontSize: "var(--text-xs)", cursor: "pointer", fontFamily: "inherit" }}
                 >
                   {t("btn_remove_event", lang)}
                 </button>
@@ -928,19 +913,19 @@ export function DashboardSettingsSessionTab({
             ))}
           </div>
         ) : (
-          <div style={{ fontSize: "12.5px", color: C.faint }}>{t("context_no_events", lang)}</div>
+          <div style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>{t("context_no_events", lang)}</div>
         )}
 
-        <div style={{ height: "1px", background: C.border }} />
+        <div style={{ height: "1px", background: "var(--color-border)" }} />
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
           <div style={KICKER}>{lang === "ta" ? "புதிய நிகழ்வைச் சேர்" : "Add an event"}</div>
           <NovaSelect
             value={ctxEventType}
             onChange={(v) => setCtxEventType(v as ContextEventType)}
             options={CONTEXT_EVENT_TYPES.map((type) => ({ value: type, label: t(CTX_TYPE_KEY[type], lang) }))}
           />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
             <input style={fieldStyle} type="date" value={ctxEventDate} min={todayIso()} onChange={(e) => setCtxEventDate(e.target.value)} />
             <input
               style={fieldStyle}
@@ -967,23 +952,23 @@ export function DashboardSettingsSessionTab({
       />
 
       <Card>
-        <div style={{ fontSize: "15px", fontWeight: 600, color: C.text }}>{lang === "ta" ? "உதவி & கருத்து" : "Help & feedback"}</div>
-        <div style={{ fontFamily: "var(--font-body, serif)", fontSize: "14px", color: C.muted, lineHeight: 1.6 }}>
+        <div style={{ fontSize: "var(--text-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>{lang === "ta" ? "உதவி & கருத்து" : "Help & feedback"}</div>
+        <div style={{ fontFamily: "var(--font-body, ui-sans-serif, system-ui, sans-serif)", fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.6 }}>
           {lang === "ta" ? "கேள்விகள் அல்லது பரிந்துரைகள்? நாங்கள் ஒரு சிறிய குழு — ஒவ்வொரு குறிப்பையும் படிக்கிறோம். உங்கள் கருத்து இறுதி வடிவத்தை வடிவமைக்கிறது." : "Questions or suggestions? We're a small team and read every note — your feedback shapes the final version."}
         </div>
-        <GhostBtn onClick={openFeedback}>{lang === "ta" ? "✉ கருத்து அனுப்பு" : "✉ Send feedback"}</GhostBtn>
+        <GhostBtn onClick={openFeedback}><Mail size={14} strokeWidth={1.5} aria-hidden="true" />{lang === "ta" ? "கருத்து அனுப்பு" : "Send feedback"}</GhostBtn>
       </Card>
 
-      <div style={{ background: C.raised, border: `1px solid ${C.border}`, borderRadius: "16px", padding: "24px 26px", display: "flex", flexDirection: "column", gap: "12px" }}>
-        <div style={{ ...KICKER, letterSpacing: ".14em", color: C.purple }}>{lang === "ta" ? "வழிகாட்டல் மறுப்பு" : "Guidance disclaimer"}</div>
-        <div style={{ fontFamily: "var(--font-body, serif)", fontSize: "13.5px", lineHeight: 1.7, color: C.muted, display: "flex", flexDirection: "column", gap: "8px" }}>
+      <div style={{ background: "var(--color-hover-bg)", border: `1px solid var(--color-border)`, borderRadius: "var(--radius-xl)", padding: "var(--space-6) var(--space-7)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+        <div style={{ ...KICKER, letterSpacing: ".14em", color: "var(--color-accent-secondary)" }}>{lang === "ta" ? "வழிகாட்டல் மறுப்பு" : "Guidance disclaimer"}</div>
+        <div style={{ fontFamily: "var(--font-body, ui-sans-serif, system-ui, sans-serif)", fontSize: "var(--text-base)", lineHeight: 1.7, color: "var(--color-muted)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
           <p style={{ margin: 0 }}>{t("disclaimer_astro", lang)}</p>
           <p style={{ margin: 0 }}>{t("disclaimer_no_doom", lang)}</p>
           <p style={{ margin: 0 }}>{t("disclaimer_data", lang)}</p>
         </div>
-        <div style={{ display: "flex", gap: "20px", fontSize: "13px", fontWeight: 600, marginTop: "2px" }}>
-          <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: C.accentText, textDecoration: "none" }}>{t("privacy_link", lang)} ↗</a>
-          <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: C.accentText, textDecoration: "none" }}>{t("terms_link", lang)} ↗</a>
+        <div style={{ display: "flex", gap: "var(--space-5)", fontSize: "var(--text-base)", fontWeight: 600, marginTop: "2px" }}>
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "var(--color-text-accent)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}>{t("privacy_link", lang)}<ArrowUpRight size={14} strokeWidth={1.5} aria-hidden="true" /></a>
+          <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "var(--color-text-accent)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}>{t("terms_link", lang)}<ArrowUpRight size={14} strokeWidth={1.5} aria-hidden="true" /></a>
         </div>
       </div>
     </div>
@@ -997,22 +982,22 @@ export function DashboardSettingsSessionTab({
         danger
       />
       <Card tone="danger">
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-          <div style={{ fontSize: "15px", fontWeight: 600, color: C.text }}>{t("delete_account_btn", lang)}</div>
-          <div style={{ fontFamily: "var(--font-body, serif)", fontSize: "14px", color: C.muted, lineHeight: 1.6, maxWidth: "560px" }}>{t("delete_account_warning", lang)}</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+          <div style={{ fontSize: "var(--text-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>{t("delete_account_btn", lang)}</div>
+          <div style={{ fontFamily: "var(--font-body, ui-sans-serif, system-ui, sans-serif)", fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.6, maxWidth: "560px" }}>{t("delete_account_warning", lang)}</div>
         </div>
-        {deleteError && <div style={{ fontSize: "13px", color: C.danger }}>{deleteError}</div>}
+        {deleteError && <div style={{ fontSize: "var(--text-base)", color: "var(--color-low)" }}>{deleteError}</div>}
         {!deleteConfirming ? (
           <GhostBtn onClick={() => { setDeleteConfirming(true); setDeleteError(""); }} danger>{t("delete_account_btn", lang)}</GhostBtn>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <div style={{ fontSize: "14px", fontWeight: 600, color: C.danger }}>{t("delete_account_confirm_prompt", lang)}</div>
-            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+            <div style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-low)" }}>{t("delete_account_confirm_prompt", lang)}</div>
+            <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
               <button
                 type="button"
                 onClick={() => void handleDeleteAccount()}
                 disabled={deleteDeleting}
-                style={{ alignSelf: "flex-start", background: C.danger, border: `1px solid ${C.danger}`, color: "#fff", borderRadius: "10px", padding: "11px 22px", fontSize: "13px", fontWeight: 700, cursor: deleteDeleting ? "not-allowed" : "pointer", opacity: deleteDeleting ? 0.6 : 1, fontFamily: "inherit" }}
+                style={{ alignSelf: "flex-start", background: "var(--color-low-bg)", border: `1px solid var(--color-low-border)`, color: "var(--color-low)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-6)", fontSize: "var(--text-base)", fontWeight: 700, cursor: deleteDeleting ? "not-allowed" : "pointer", opacity: deleteDeleting ? 0.6 : 1, fontFamily: "inherit" }}
               >
                 {deleteDeleting ? t("delete_account_deleting", lang) : t("delete_account_confirm_btn", lang)}
               </button>
@@ -1036,7 +1021,7 @@ export function DashboardSettingsSessionTab({
     : renderAccount();
 
   return (
-    <div style={{ fontFamily: "var(--font-body, Georgia, serif)", color: C.text, maxWidth: "1180px", margin: "0 auto", width: "100%" }}>
+    <div style={{ fontFamily: "var(--font-body, ui-sans-serif, system-ui, sans-serif)", color: "var(--color-text-strong)", maxWidth: "1180px", margin: "0 auto", width: "100%" }}>
       <div className="vs-settings-grid">
         <SettingsRail active={section} onNavigate={onNavigate} lang={lang} userDisplayName={userDisplayName} vaultName={vaultName} />
         <div style={{ minWidth: 0 }}>{panel}</div>
@@ -1049,31 +1034,31 @@ export function DashboardSettingsSessionTab({
           aria-modal="true"
           aria-label={lang === "ta" ? "கருத்து அனுப்பு" : "Send feedback"}
           onClick={() => { if (!feedbackSending) setFeedbackOpen(false); }}
-          style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,.5)", backdropFilter: "blur(2px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}
+          style={{ position: "fixed", inset: 0, zIndex: 50, background: "var(--ink-overlay)", backdropFilter: "blur(2px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--space-5)" }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            style={{ width: "min(480px, 100%)", background: C.card, border: `1px solid ${C.borderStrong}`, borderRadius: "18px", padding: "26px 28px", display: "flex", flexDirection: "column", gap: "16px", boxShadow: "0 24px 60px rgba(0,0,0,.5)", maxHeight: "90vh", overflowY: "auto" }}
+            style={{ width: "min(480px, 100%)", background: "var(--color-surface)", border: `1px solid var(--color-border-strong)`, borderRadius: "var(--radius-xl)", padding: "var(--space-7) var(--space-7)", display: "flex", flexDirection: "column", gap: "var(--space-4)", boxShadow: "0 24px 60px var(--shadow-lift)", maxHeight: "90vh", overflowY: "auto" }}
           >
             {feedbackDone ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px", alignItems: "flex-start" }}>
-                <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: C.sageBg, color: C.sage, display: "grid", placeItems: "center", fontSize: "20px" }}>✓</div>
-                <div style={{ fontFamily: "var(--font-display, Georgia, serif)", fontSize: "20px", fontWeight: 600, color: C.text }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", alignItems: "flex-start" }}>
+                <div style={{ width: "40px", height: "40px", borderRadius: "var(--radius-pill)", background: "var(--color-high-bg)", color: "var(--color-accent-alt)", display: "grid", placeItems: "center" }}><Check size={20} strokeWidth={1.5} aria-hidden="true" /></div>
+                <div style={{ fontFamily: "var(--font-display, Georgia, serif)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--color-text-strong)" }}>
                   {lang === "ta" ? "நன்றி!" : "Thank you."}
                 </div>
-                <div style={{ fontSize: "14px", color: C.muted, lineHeight: 1.55 }}>
+                <div style={{ fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
                   {lang === "ta" ? "உங்கள் குறிப்பு எங்களை சென்றடைந்தது — ஒவ்வொன்றையும் படிக்கிறோம்." : "Your note reached us — we read every one."}
                 </div>
                 <PrimaryBtn onClick={() => setFeedbackOpen(false)}>{lang === "ta" ? "மூடு" : "Done"}</PrimaryBtn>
               </div>
             ) : (
               <>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "var(--space-3)" }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: "var(--font-display, Georgia, serif)", fontSize: "21px", fontWeight: 600, color: C.text }}>
+                    <div style={{ fontFamily: "var(--font-display, Georgia, serif)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--color-text-strong)" }}>
                       {lang === "ta" ? "கருத்து அனுப்பு" : "Send feedback"}
                     </div>
-                    <div style={{ fontSize: "13px", color: C.muted, marginTop: "3px", lineHeight: 1.5 }}>
+                    <div style={{ fontSize: "var(--text-base)", color: "var(--color-muted)", marginTop: "3px", lineHeight: 1.5 }}>
                       {lang === "ta" ? "நாங்கள் ஒரு சிறிய குழு — ஒவ்வொரு குறிப்பையும் படிக்கிறோம்." : "We're a small team and read every note."}
                     </div>
                   </div>
@@ -1081,15 +1066,15 @@ export function DashboardSettingsSessionTab({
                     type="button"
                     onClick={() => setFeedbackOpen(false)}
                     aria-label={lang === "ta" ? "மூடு" : "Close"}
-                    style={{ flex: "none", background: "none", border: "none", color: C.faint, fontSize: "22px", lineHeight: 1, cursor: "pointer", padding: "2px 4px" }}
+                    style={{ flex: "none", background: "none", border: "none", color: "var(--color-faint)", lineHeight: 1, cursor: "pointer", padding: "var(--space-1) var(--space-1)", display: "inline-flex" }}
                   >
-                    ×
+                    <X size={22} strokeWidth={1.5} aria-hidden="true" />
                   </button>
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                   <div style={{ ...KICKER }}>{lang === "ta" ? "வகை" : "About"}</div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
                     {FEEDBACK_CATEGORIES.map((c) => {
                       const on = c.v === feedbackCategory;
                       return (
@@ -1098,9 +1083,9 @@ export function DashboardSettingsSessionTab({
                           type="button"
                           onClick={() => setFeedbackCategory(c.v)}
                           style={{
-                            padding: "8px 14px", borderRadius: "999px", fontSize: "12.5px", fontWeight: on ? 600 : 500,
-                            background: on ? C.accentMuted : C.raised, border: `1px solid ${on ? C.accent : C.border}`,
-                            color: on ? C.text : C.muted, cursor: "pointer", fontFamily: "inherit",
+                            padding: "var(--space-2) var(--space-4)", borderRadius: "var(--radius-pill)", fontSize: "var(--text-sm)", fontWeight: on ? 600 : 500,
+                            background: on ? "var(--color-accent-muted)" : "var(--color-hover-bg)", border: `1px solid ${on ? "var(--color-accent)" : "var(--color-border)"}`,
+                            color: on ? "var(--color-text-strong)" : "var(--color-muted)", cursor: "pointer", fontFamily: "inherit",
                           }}
                         >
                           {lang === "ta" ? c.ta : c.en}
@@ -1119,12 +1104,12 @@ export function DashboardSettingsSessionTab({
                   placeholder={lang === "ta" ? "என்ன நடந்தது அல்லது என்ன மேம்படுத்தலாம்?" : "What happened, or what would make this better?"}
                   style={{
                     width: "100%", boxSizing: "border-box", resize: "vertical", minHeight: "110px",
-                    background: C.surfaceSoft, border: `1px solid ${C.border}`, borderRadius: "11px",
-                    padding: "12px 14px", fontSize: "14px", color: C.text, fontFamily: "inherit", lineHeight: 1.5,
+                    background: "var(--color-surface-soft)", border: `1px solid var(--color-border)`, borderRadius: "var(--radius-md)",
+                    padding: "var(--space-3) var(--space-4)", fontSize: "var(--text-base)", color: "var(--color-text-strong)", fontFamily: "inherit", lineHeight: 1.5,
                   }}
                 />
 
-                <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", fontSize: "13px", color: C.muted }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", cursor: "pointer", fontSize: "var(--text-base)", color: "var(--color-muted)" }}>
                   <input
                     type="checkbox"
                     checked={feedbackContact}
@@ -1135,14 +1120,14 @@ export function DashboardSettingsSessionTab({
                 </label>
 
                 {feedbackError && (
-                  <div style={{ fontSize: "12.5px", color: C.danger }}>{feedbackError}</div>
+                  <div style={{ fontSize: "var(--text-sm)", color: "var(--color-low)" }}>{feedbackError}</div>
                 )}
 
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "2px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginTop: "2px" }}>
                   <PrimaryBtn onClick={() => void submitFeedback()} disabled={feedbackSending || !feedbackMessage.trim()}>
                     {feedbackSending ? (lang === "ta" ? "அனுப்புகிறது…" : "Sending…") : (lang === "ta" ? "அனுப்பு" : "Send")}
                   </PrimaryBtn>
-                  <span style={{ fontSize: "11.5px", color: C.faint, marginLeft: "auto" }}>{feedbackMessage.length}/2000</span>
+                  <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginLeft: "auto" }}>{feedbackMessage.length}/2000</span>
                 </div>
               </>
             )}
@@ -1152,8 +1137,8 @@ export function DashboardSettingsSessionTab({
 
       {/* toast */}
       {toast && (
-        <div style={{ position: "fixed", left: "50%", bottom: "30px", transform: "translateX(-50%)", display: "flex", alignItems: "center", gap: "9px", background: C.card, border: `1px solid ${C.sageBorder}`, borderRadius: "999px", padding: "11px 20px", fontSize: "13px", color: C.text, boxShadow: "0 10px 34px rgba(0,0,0,.45)", zIndex: 40 }}>
-          <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: C.sage }} />
+        <div style={{ position: "fixed", left: "50%", bottom: "30px", transform: "translateX(-50%)", display: "flex", alignItems: "center", gap: "var(--space-2)", background: "var(--color-surface)", border: `1px solid var(--color-high-border)`, borderRadius: "var(--radius-pill)", padding: "var(--space-3) var(--space-5)", fontSize: "var(--text-base)", color: "var(--color-text-strong)", boxShadow: "0 10px 34px var(--shadow-lift)", zIndex: 40 }}>
+          <span style={{ width: "7px", height: "7px", borderRadius: "var(--radius-pill)", background: "var(--color-accent-alt)" }} />
           {toast}
         </div>
       )}

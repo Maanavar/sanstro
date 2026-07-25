@@ -3,7 +3,7 @@
 import type { CSSProperties } from "react";
 import {
   ScrollText, CalendarDays, History, Sunrise, Moon, Sparkles, Timer, CalendarClock,
-  HeartHandshake, type LucideIcon,
+  HeartHandshake, ArrowLeft, ArrowRight, ChevronRight, type LucideIcon,
 } from "lucide-react";
 
 import type { Lang } from "@/lib/i18n";
@@ -35,78 +35,14 @@ import { SynastryPanel } from "./dashboard-synastry-panel";
  */
 
 // The deferred Classic panels (chart generation / annual wrapped /
-// retrospective / rasipalan — each 300-700 lines of its own stateful UI, none
-// captured in the Nova tools mockups) read the older `--panel-*`/`--chart-*`/
-// `--chartgrid-*` token family directly. Nova's base .cd-shell only redirects
-// *some* of those names (the ones shared with already-migrated components), so
-// left alone these panels render the broken dark-bg + near-black-text combo
-// that a partial redirect produces. Earlier this was worked around by forcing
-// the whole island back to Classic light values; per the 2026-07 UI pass it's
-// now reskinned to native Nova dark instead — every token this family uses is
-// mapped to its Nova --color-* equivalent, scoped locally to the island (via
-// var() so it tracks the ambient Nova palette) rather than blanket-redirecting
-// these widely-shared raw names in dashboard-nova.css, which the existing
-// --chartgrid-/--deepdive-/--yogadosham- scoped-fallback blocks deliberately
-// avoided doing. --color-faint is intentionally NOT pinned here — the panels
-// should inherit Nova's own faint on the dark surface.
-const NOVA_TOOL_ISLAND_STYLE: CSSProperties = {
-  "--panel-brand": "var(--color-accent)",
-  "--panel-cream": "var(--color-surface)",
-  "--panel-earth": "var(--color-text)",
-  "--panel-earth-dark": "var(--color-text-strong)",
-  "--panel-tan": "var(--color-border)",
-  "--panel-tan-light": "var(--color-border)",
-  "--panel-hover": "var(--color-surface-2)",
-  "--panel-warm-light": "var(--color-accent-muted)",
-  "--chart-cell-default": "var(--color-surface-soft)",
-  "--chart-d9-active": "var(--color-high)",
-  "--chart-amber": "var(--color-accent-strong)",
-  "--planet-saturn": "var(--color-low)",
-  "--dignity-neecha": "var(--color-low)",
-  "--ring-brand": "var(--color-accent-muted)",
-  "--chartgrid-ink": "var(--color-text-strong)",
-  "--chartgrid-ink-strong": "var(--color-text-strong)",
-  "--chartgrid-border": "var(--color-border)",
-  "--chartgrid-border-light": "var(--color-border)",
-  "--chartgrid-surface": "var(--color-surface-soft)",
-  // Rasipalan (indraiya-rasipalan/RasippalanTool) is the one panel here built
-  // on the older Classic `--cl-*` token family instead of --panel-*/--chart-*.
-  // Nova's base .cd-shell only redirects a handful of --cl-* names (sage-edge,
-  // rust-edge, brand-edge…), so the rest resolve to Classic *light* values and
-  // the tool renders the old light-on-dark look inside the Nova island. Map the
-  // full set it uses to their Nova --color-* equivalents (via var() so they
-  // track the ambient Nova palette), same approach as the --panel-*/--chart-*
-  // block above. Safe on the shared island: the other panels (chartgen /
-  // wrapped / retrospective) use no --cl-* tokens at all.
-  "--cl-surface": "var(--color-surface)",
-  "--cl-bg": "var(--color-bg)",
-  "--cl-bg-2": "var(--color-surface-soft)",
-  "--cl-border": "var(--color-border)",
-  "--cl-accent": "var(--color-accent)",
-  "--cl-ink": "var(--color-text-strong)",
-  "--cl-ink-2": "var(--color-text)",
-  "--cl-muted": "var(--color-muted)",
-  "--cl-brand-tint": "var(--color-accent-muted)",
-  "--cl-brand-ring-md": "var(--color-border-strong)",
-  "--cl-sage-tint": "var(--color-high-bg)",
-  "--cl-sage-mid": "var(--color-high-border)",
-  "--cl-neutral-tint": "var(--color-surface-soft)",
-  "--cl-neutral-ring": "var(--color-border)",
-  "--cl-neutral-mid": "var(--color-border-strong)",
-  "--cl-neutral-ink": "var(--color-text)",
-  "--cl-rust-tint": "var(--color-low-bg)",
-  "--cl-rust-fill": "var(--color-low-bg)",
-  "--cl-rust-ring": "var(--color-low-border)",
-  "--cl-rust-mid": "var(--color-low-border)",
-  "--veil-white-55": "var(--color-surface)",
-  background: "var(--color-surface)",
-  border: "1px solid var(--color-border)",
-  borderRadius: "14px",
-  padding: "22px 24px",
-} as CSSProperties;
-
+// retrospective / rasipalan) read the older Classic scoped token families
+// directly. The legacy-token to Nova semantic-color bridge that
+// reskins them to native Nova dark now lives as the scoped `.nova-tool-island`
+// rule in dashboard-nova.css (audit A1 — keeps this component literal-free while
+// the bridge behaviour is unchanged; the redirect stays scoped to the island,
+// not blanket-applied to these widely-shared raw names).
 function NovaToolIsland({ children }: { children: React.ReactNode }) {
-  return <div style={NOVA_TOOL_ISLAND_STYLE}>{children}</div>;
+  return <div className="nova-tool-island">{children}</div>;
 }
 
 type ToolCardSpec = {
@@ -258,8 +194,8 @@ export function DashboardToolsTabNova({
   ];
 
   const cardStyle = (tool: ToolCardSpec): CSSProperties => ({
-    background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "14px",
-    padding: "20px 22px", display: "flex", flexDirection: "column", gap: "9px", textAlign: "left",
+    background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)",
+    padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-2)", textAlign: "left",
     cursor: tool.disabled ? "default" : "pointer", opacity: tool.disabled ? 0.55 : 1,
     fontFamily: "inherit", width: "100%",
   });
@@ -267,17 +203,18 @@ export function DashboardToolsTabNova({
   function renderCardBody(tool: ToolCardSpec) {
     return (
       <>
-        <div style={{ display: "flex", alignItems: "center", gap: "11px" }}>
-          <span style={{ flex: "none", width: "38px", height: "38px", borderRadius: "50%", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", display: "grid", placeItems: "center", color: tool.color }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+          <span style={{ flex: "none", width: "38px", height: "38px", borderRadius: "var(--radius-pill)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", display: "grid", placeItems: "center", color: tool.color }}>
             <tool.icon size={18} strokeWidth={2} aria-hidden focusable={false} />
           </span>
-          <div style={{ fontSize: "14.5px", fontWeight: 600, color: "var(--color-text-strong)" }}>{lang === "ta" ? tool.nameTa : tool.nameEn}</div>
+          <div style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)" }}>{lang === "ta" ? tool.nameTa : tool.nameEn}</div>
         </div>
-        <div style={{ fontSize: "12.5px", lineHeight: 1.55, color: "var(--color-text)" }}>{lang === "ta" ? tool.descTa : tool.descEn}</div>
-        <div style={{ display: "flex", alignItems: "center", marginTop: "auto", paddingTop: "4px" }}>
-          <span style={{ fontSize: "11px", color: "var(--color-faint)" }}>{lang === "ta" ? tool.metaTa : tool.metaEn}</span>
-          <span style={{ marginLeft: "auto", fontSize: "12px", color: "var(--color-accent-strong)", fontWeight: 600 }}>
-            {tool.disabled ? (lang === "ta" ? "ஜாதகம் தேவை" : "Needs profile") : (lang === "ta" ? "திற →" : "Open →")}
+        <div style={{ fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-text)" }}>{lang === "ta" ? tool.descTa : tool.descEn}</div>
+        <div style={{ display: "flex", alignItems: "center", marginTop: "auto", paddingTop: "var(--space-1)" }}>
+          <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{lang === "ta" ? tool.metaTa : tool.metaEn}</span>
+          <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600 }}>
+            {tool.disabled ? (lang === "ta" ? "ஜாதகம் தேவை" : "Needs profile") : (lang === "ta" ? "திற" : "Open")}
+            {!tool.disabled && <ArrowRight size={14} strokeWidth={1.5} aria-hidden="true" />}
           </span>
         </div>
       </>
@@ -287,12 +224,12 @@ export function DashboardToolsTabNova({
   if (activeTool) {
     const tool = TOOLS.find((c) => c.id === activeTool) ?? { nameEn: "Marriage Porutham", nameTa: "பொருத்தம்" };
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: "var(--color-muted)" }}>
-          <button type="button" onClick={onCloseTool} style={{ color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "5px" }}>
-            <span aria-hidden="true">←</span> {lang === "ta" ? "கருவிகள்" : "Tools"}
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
+          <button type="button" onClick={onCloseTool} style={{ color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: "var(--text-sm)", display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}>
+            <ArrowLeft size={14} strokeWidth={1.5} aria-hidden="true" /> {lang === "ta" ? "கருவிகள்" : "Tools"}
           </button>
-          <span>›</span>
+          <ChevronRight size={14} strokeWidth={1.5} aria-hidden="true" />
           <span style={{ color: "var(--color-text)" }}>{lang === "ta" ? tool.nameTa : tool.nameEn}</span>
         </div>
 
@@ -318,7 +255,7 @@ export function DashboardToolsTabNova({
           <VarshaphalaPanel lang={lang} chartId={personalChartId} data={varshaphalaData} loading={varshaphalaLoading} onLoad={onLoadVarshaphala} />
         )}
         {showSynastry && (
-          <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "14px", padding: "22px 24px", display: "flex", flexDirection: "column", gap: "20px" }}>
+          <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-6) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
             {ownerChartId && synastryMemberCharts.length > 0 && (
               <SynastryMatrix
                 lang={lang}
@@ -344,44 +281,45 @@ export function DashboardToolsTabNova({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
       <div>
-        <div style={{ fontSize: "11px", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>
+        <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>
           {lang === "ta" ? "கருவிகள்" : "Tools"} · <span style={{ fontFamily: "var(--font-tamil), sans-serif", letterSpacing: 0, textTransform: "none" }}>கருவிகள்</span>
         </div>
-        {/* audit B-1: page title is the Tools tab's <h1>. */}
-        <h1 style={{ margin: "6px 0 0", fontFamily: "var(--font-display)", fontSize: "clamp(1.6rem, 3vw, 2.1rem)", fontWeight: 600, color: "var(--color-text-strong)" }}>
+        {/* audit B-1: page title is the Tools tab's sole page heading. */}
+        <h1 style={{ margin: "6px 0 0", fontFamily: "var(--font-display)", fontSize: "var(--display-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>
           {lang === "ta" ? "உங்கள் ஜாதகங்களை அறிந்த கருவிகள்" : "Calculators that know your charts"}
         </h1>
-        <div style={{ fontSize: "13px", color: "var(--color-muted)", marginTop: "3px" }}>
+        <div style={{ fontSize: "var(--text-base)", color: "var(--color-muted)", marginTop: "3px" }}>
           {lang === "ta" ? "ஒவ்வொரு கருவியும் உங்கள் சேமிக்கப்பட்ட ஜாதகங்களைப் படிக்கும் — மீண்டும் தட்டச்சு தேவையில்லை." : "Every tool reads from your saved family charts — no re-typing birth details."}
         </div>
       </div>
 
       {/* Hero tool: Porutham — Classic's own "most used" primary tool */}
       <button type="button" onClick={() => onOpenTool("porutham")} style={{
-        background: "linear-gradient(120deg, var(--color-accent-muted), rgba(212,175,95,.05))",
-        border: "1px solid var(--color-border-strong)", borderRadius: "14px", padding: "24px 26px",
-        display: "flex", gap: "24px", alignItems: "center", flexWrap: "wrap", cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%",
+        background: "linear-gradient(120deg, var(--color-accent-muted), transparent)",
+        border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-lg)", padding: "var(--space-6) var(--space-7)",
+        display: "flex", gap: "var(--space-6)", alignItems: "center", flexWrap: "wrap", cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%",
       }}>
-        <div style={{ flex: "1", minWidth: "240px", display: "flex", flexDirection: "column", gap: "9px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <span style={{ fontSize: "11px", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-accent-strong)", fontWeight: 700 }}>
+        <div style={{ flex: "1", minWidth: "240px", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+            <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-accent-strong)", fontWeight: 700 }}>
               {lang === "ta" ? "அதிகம் பயன்படுத்தப்படுவது" : "Most used"}
             </span>
-            <span style={{ fontFamily: "var(--font-tamil), sans-serif", fontSize: "12.5px", color: "var(--color-muted)" }}>திருமணப் பொருத்தம்</span>
+            <span style={{ fontFamily: "var(--font-tamil), sans-serif", fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>திருமணப் பொருத்தம்</span>
           </div>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: "26px", fontWeight: 600, color: "var(--color-text-strong)" }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 600, color: "var(--color-text-strong)" }}>
             {lang === "ta" ? "பொருத்தம் / இணக்கம்" : "Marriage Porutham"}
           </div>
-          <div style={{ fontSize: "13px", lineHeight: 1.6, color: "var(--color-text)", maxWidth: "560px" }}>
+          <div style={{ fontSize: "var(--text-base)", lineHeight: 1.6, color: "var(--color-text)", maxWidth: "560px" }}>
             {lang === "ta"
               ? "தினம் முதல் வேதை வரை முழு 10 பொருத்த சோதனை — ரஜ்ஜு மற்றும் செவ்வாய் தோஷ குறுக்கு சோதனைகளுடன், எளிய வார்த்தைகளில் ஒரு தீர்ப்பு. திருமணம், நட்பு, வியாபாரம் அல்லது குடும்பம் — அனைத்திற்கும்."
               : "The full 10-porutham match — Dinam to Vethai — with Rajju and Sevvai dosham cross-checks, and a verdict in plain words. Covers marriage, friendship, business, or family contexts."}
           </div>
         </div>
-        <span style={{ flex: "none", background: "var(--color-accent)", color: "var(--color-on-accent)", borderRadius: "9px", padding: "11px 22px", fontSize: "12.5px", fontWeight: 700 }}>
-          {lang === "ta" ? "பொருத்தம் ஓட்டு →" : "Run porutham →"}
+        <span style={{ flex: "none", display: "inline-flex", alignItems: "center", gap: "var(--space-1)", background: "var(--color-accent)", color: "var(--color-on-accent)", borderRadius: "var(--radius-sm)", padding: "var(--space-3) var(--space-6)", fontSize: "var(--text-sm)", fontWeight: 700 }}>
+          {lang === "ta" ? "பொருத்தம் ஓட்டு" : "Run porutham"}
+          <ArrowRight size={14} strokeWidth={1.5} aria-hidden="true" />
         </span>
       </button>
 
@@ -404,11 +342,11 @@ export function DashboardToolsTabNova({
       </div>
 
       {/* Recent results — genuine stub, no tool-run history is tracked anywhere in the backend (confirmed by grep) */}
-      <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "14px", padding: "18px 22px", display: "flex", flexDirection: "column", gap: "6px" }}>
-        <span style={{ fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
+      <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+        <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
           {lang === "ta" ? "சமீபத்திய முடிவுகள்" : "Recent results"}
         </span>
-        <p style={{ margin: 0, fontSize: "12.5px", color: "var(--color-faint)" }}>
+        <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
           {lang === "ta"
             ? "கருவி இயக்க வரலாறு இன்னும் சேமிக்கப்படவில்லை — விரைவில்."
             : "Tool run history isn't tracked yet — coming soon."}

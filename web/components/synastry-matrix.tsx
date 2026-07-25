@@ -19,9 +19,9 @@ interface SynastryMatrixProps {
 }
 
 function scoreTone(score: number) {
-  if (score >= 65) return { color: "var(--chart-d9-active)", bg: "var(--chart-d9-active-bg)", border: "rgba(92,118,84,0.35)" };
-  if (score >= 40) return { color: "var(--synastry-accent, var(--panel-brand))", bg: "var(--chart-d1-lagna-bg)", border: "rgba(184,90,44,0.3)" };
-  return                  { color: "var(--planet-saturn)", bg: "var(--panel-warm-tint)", border: "rgba(168,72,47,0.3)" };
+  if (score >= 65) return { color: "var(--chart-d9-active)", bg: "var(--chart-d9-active-bg)", border: "var(--color-high-border)" };
+  if (score >= 40) return { color: "var(--color-mid)", bg: "var(--chart-d1-lagna-bg)", border: "var(--color-mid-border)" };
+  return                  { color: "var(--planet-saturn)", bg: "var(--color-low-bg)", border: "var(--color-low-border)" };
 }
 
 export function SynastryMatrix({ lang, ownerChartId, familyVaultId, members }: SynastryMatrixProps) {
@@ -57,8 +57,8 @@ export function SynastryMatrix({ lang, ownerChartId, familyVaultId, members }: S
 
   return (
     <div style={{ fontFamily: "var(--font-body)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
-        <p style={{ margin: 0, fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: "var(--space-3)" }}>
+        <p style={{ margin: 0, fontSize: "var(--text-2xs)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
           {lang === "ta" ? "பொருத்த சுருக்கம்" : "COMPATIBILITY OVERVIEW"}
         </p>
         {!loaded && (
@@ -66,9 +66,9 @@ export function SynastryMatrix({ lang, ownerChartId, familyVaultId, members }: S
             type="button"
             onClick={() => void loadAll()}
             style={{
-              padding: "4px 14px", borderRadius: "999px",
-              border: "1.5px solid var(--synastry-border, var(--panel-tan))", background: "transparent",
-              color: "var(--synastry-ink, var(--panel-earth))", fontSize: "0.75rem", fontWeight: 600,
+              padding: "var(--space-1) var(--space-4)", borderRadius: "var(--radius-pill)",
+              border: "1.5px solid var(--color-border)", background: "transparent",
+              color: "var(--color-text)", fontSize: "var(--text-sm)", fontWeight: 600,
               cursor: "pointer", fontFamily: "inherit",
             }}
           >
@@ -78,39 +78,39 @@ export function SynastryMatrix({ lang, ownerChartId, familyVaultId, members }: S
       </div>
 
       {error && (
-        <p style={{ margin: "0 0 8px", fontSize: "0.75rem", color: "var(--planet-saturn)" }}>{error}</p>
+        <p style={{ margin: "0 0 var(--space-2)", fontSize: "var(--text-sm)", color: "var(--planet-saturn)" }}>{error}</p>
       )}
 
       {loaded && (
-        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
           {members.map((m) => {
             const score = scores[m.memberId] ?? null;
             const busy  = loading[m.memberId] ?? false;
-            const tone  = score !== null ? scoreTone(score) : { color: "var(--color-faint)", bg: "var(--panel-cream)", border: "var(--synastry-border-light, var(--panel-tan-light))" };
+            const tone  = score !== null ? scoreTone(score) : { color: "var(--color-faint)", bg: "var(--color-surface-2)", border: "var(--color-border)" };
             return (
               <div
                 key={m.memberId}
                 style={{
-                  padding: "12px 16px",
-                  borderRadius: "14px",
+                  padding: "var(--space-3) var(--space-4)",
+                  borderRadius: "var(--radius-lg)",
                   border: `1px solid ${tone.border}`,
                   background: tone.bg,
                   minWidth: "110px",
                   textAlign: "center",
                 }}
               >
-                <p style={{ margin: "0 0 5px", fontSize: "0.75rem", color: "var(--synastry-ink, var(--panel-earth))", fontWeight: 600 }}>
+                <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "var(--text-sm)", color: "var(--color-text)", fontWeight: 600 }}>
                   {m.displayName}
                 </p>
                 {busy ? (
-                  <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-faint)" }}>…</p>
+                  <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>…</p>
                 ) : score !== null ? (
-                  <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "1.6rem", fontWeight: 500, color: tone.color, lineHeight: 1 }}>
+                  <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 500, color: tone.color, lineHeight: 1 }}>
                     {score}
-                    <span style={{ fontSize: "0.75rem", color: "var(--color-faint)", fontFamily: "var(--font-body)", fontWeight: 400 }}>/100</span>
+                    <span style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)", fontFamily: "var(--font-body)", fontWeight: 400 }}>/100</span>
                   </p>
                 ) : (
-                  <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-faint)" }}>—</p>
+                  <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>—</p>
                 )}
               </div>
             );

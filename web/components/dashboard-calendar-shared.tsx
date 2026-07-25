@@ -15,20 +15,6 @@ import type { PanchangamDailyResponseData, PanchangamFestival } from "@/lib/type
 
 export type CalendarView = "panchangam" | "monthly";
 
-export const W = {
-  ink: "var(--color-text-strong)",
-  inkMid: "var(--color-text)",
-  muted: "var(--color-muted)",
-  mutedLt: "var(--color-faint)",
-  border: "var(--color-border-strong)",
-  borderLt: "var(--color-border)",
-  surface: "var(--color-surface-soft)",
-  card: "var(--color-surface)",
-  terracotta: "var(--color-score-mid)",
-  rust: "var(--color-score-low)",
-  sage: "var(--color-score-high)",
-} as const;
-
 export const RASI_NAMES_EN = ["", "Mesham", "Rishabam", "Mithunam", "Kadagam", "Simmam", "Kanni", "Thulam", "Viruchigam", "Dhanusu", "Magaram", "Kumbam", "Meenam"];
 export const RASI_NAMES_TA = ["", "மேஷம்", "ரிஷபம்", "மிதுனம்", "கடகம்", "சிம்மம்", "கன்னி", "துலாம்", "விருச்சிகம்", "தனுசு", "மகரம்", "கும்பம்", "மீனம்"];
 
@@ -193,14 +179,14 @@ export type DayTimelineBand = {
 };
 
 const DAY_TIMELINE_BAND_STYLE: Record<DayTimelineBand["kind"], { fill: string; opacity: number }> = {
-  best: { fill: W.sage, opacity: 0.9 },
-  good: { fill: W.sage, opacity: 0.5 },
-  "avoid-strong": { fill: W.rust, opacity: 0.9 },
-  avoid: { fill: W.terracotta, opacity: 0.88 },
-  "avoid-soft": { fill: W.terracotta, opacity: 0.45 },
+  best: { fill: "var(--color-score-high)", opacity: 0.9 },
+  good: { fill: "var(--color-score-high)", opacity: 0.5 },
+  "avoid-strong": { fill: "var(--color-score-low)", opacity: 0.9 },
+  avoid: { fill: "var(--color-score-mid)", opacity: 0.88 },
+  "avoid-soft": { fill: "var(--color-score-mid)", opacity: 0.45 },
 };
 
-// The timeline is a "daylight dome": the arc spans the day's real sunrise →
+// The timeline is a "daylight dome": the arc spans the day's real sunrise ->
 // sunset and the area under it is filled, so it reads as the lit part of the
 // day. The axis range is dynamic — it starts a touch before sunrise and ends a
 // touch after whichever is later, sunset or the last band — so evening Nalla
@@ -264,7 +250,7 @@ export function DayTimeline({
     const clamped = Math.max(axisStartH, Math.min(axisEndH, h));
     return AXIS_X0 + ((clamped - axisStartH) / span) * AXIS_W;
   };
-  // Y on the sunrise→sunset quadratic, parameterised by clock hour.
+  // Y on the sunrise->sunset quadratic, parameterised by clock hour.
   const arcY = (h: number): number => {
     const p = Math.max(0, Math.min(1, (h - sunriseH) / (sunsetH - sunriseH)));
     return HORIZON_Y + 2 * p * (1 - p) * (CONTROL_Y - HORIZON_Y);
@@ -303,22 +289,22 @@ export function DayTimeline({
       <svg viewBox="0 0 600 188" style={{ width: "100%", height: "auto", display: "block" }}>
         <defs>
           <linearGradient id="day-timeline-dome" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={W.terracotta} stopOpacity="0.24" />
-            <stop offset="100%" stopColor={W.terracotta} stopOpacity="0.02" />
+            <stop offset="0%" stopColor={"var(--color-score-mid)"} stopOpacity="0.24" />
+            <stop offset="100%" stopColor={"var(--color-score-mid)"} stopOpacity="0.02" />
           </linearGradient>
         </defs>
 
         {/* Lit daytime dome: filled area under the arc, then the arc stroke. */}
         <path d={`${domePath} Z`} fill="url(#day-timeline-dome)" stroke="none" />
-        <path d={domePath} fill="none" stroke={W.border} strokeWidth="2" />
+        <path d={domePath} fill="none" stroke={"var(--color-border-strong)"} strokeWidth="2" />
 
         {/* Horizon rail spans the whole axis; the tails outside the dome are
             dawn (left) and dusk (right). */}
-        <rect x={AXIS_X0} y={HORIZON_Y - 1} width={AXIS_W} height="4" rx="2" fill={W.borderLt} />
+        <rect x={AXIS_X0} y={HORIZON_Y - 1} width={AXIS_W} height="4" rx="2" fill={"var(--color-border)"} />
 
         {/* Sunrise / sunset anchors where the dome meets the horizon. */}
-        <circle cx={sunriseX} cy={HORIZON_Y + 1} r="3.5" fill={W.terracotta} opacity="0.65" />
-        <circle cx={sunsetX} cy={HORIZON_Y + 1} r="3.5" fill={W.terracotta} opacity="0.65" />
+        <circle cx={sunriseX} cy={HORIZON_Y + 1} r="3.5" fill={"var(--color-score-mid)"} opacity="0.65" />
+        <circle cx={sunsetX} cy={HORIZON_Y + 1} r="3.5" fill={"var(--color-score-mid)"} opacity="0.65" />
 
         {drawn.map(({ band, x, width }) => {
           const style = DAY_TIMELINE_BAND_STYLE[band.kind];
@@ -333,8 +319,8 @@ export function DayTimeline({
           const x = hourToX(h);
           return (
             <g key={h}>
-              <line x1={x} y1={HORIZON_Y + 3} x2={x} y2={HORIZON_Y + 11} stroke={W.mutedLt} strokeWidth="2" />
-              <text x={x} y={HORIZON_Y + 26} textAnchor="middle" fontSize="12" fill={W.mutedLt} fontFamily="var(--font-mono)">{formatHourLabel(h)}</text>
+              <line x1={x} y1={HORIZON_Y + 3} x2={x} y2={HORIZON_Y + 11} stroke={"var(--color-faint)"} strokeWidth="2" />
+              <text x={x} y={HORIZON_Y + 26} textAnchor="middle" fontSize="12" fill={"var(--color-faint)"} fontFamily="var(--font-mono)">{formatHourLabel(h)}</text>
             </g>
           );
         })}
@@ -345,19 +331,19 @@ export function DayTimeline({
             crescent is carved by a second circle filled with the card surface,
             which is the background here since night falls outside the dome. */}
         {isDaytimeNow ? (
-          <circle cx={hourToX(nowH)} cy={arcY(nowH)} r="8" fill={W.terracotta} />
+          <circle cx={hourToX(nowH)} cy={arcY(nowH)} r="8" fill={"var(--color-score-mid)"} />
         ) : (
           <g>
-            <circle cx={hourToX(nowH)} cy={HORIZON_Y - 9} r="6" fill={W.muted} />
-            <circle cx={hourToX(nowH) + 3} cy={HORIZON_Y - 10.5} r="5.5" fill={W.card} />
+            <circle cx={hourToX(nowH)} cy={HORIZON_Y - 9} r="6" fill={"var(--color-muted)"} />
+            <circle cx={hourToX(nowH) + 3} cy={HORIZON_Y - 10.5} r="5.5" fill={"var(--color-surface)"} />
           </g>
         )}
       </svg>
       {legend.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", marginTop: "var(--space-1)", padding: "0 var(--space-2)" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2) var(--space-4)", marginTop: "var(--space-1)", paddingInline: "var(--space-2)" }}>
           {legend.map((entry) => (
-            <span key={entry.label} style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "0.72rem", color: W.muted }}>
-              <span style={{ width: "8px", height: "8px", borderRadius: "2px", background: entry.fill, opacity: entry.opacity, flex: "none" }} />
+            <span key={entry.label} style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
+              <span style={{ width: "8px", height: "8px", borderRadius: "var(--radius-sm)", background: entry.fill, opacity: entry.opacity, flex: "none" }} />
               {entry.label}
             </span>
           ))}
@@ -386,7 +372,7 @@ export function MoonPhaseMark({ kind, size = 10 }: { kind: "new" | "full"; size?
       style={{
         width: `${size}px`,
         height: `${size}px`,
-        borderRadius: "50%",
+        borderRadius: "var(--radius-pill)",
         border: "1.5px solid currentColor",
         background: kind === "new" ? "currentColor" : "transparent",
         display: "inline-block",
@@ -416,9 +402,9 @@ export function LunarTithiBadge({
         justifyContent: "center",
         gap: compact ? "5px" : "var(--space-1_5)",
         borderRadius: "var(--radius-pill)",
-        background: W.ink,
+        background: "var(--color-text-strong)",
         color: "var(--color-bg)",
-        border: `1px solid ${W.ink}`,
+        border: `1px solid ${"var(--color-text-strong)"}`,
         padding: compact ? "3px 7px" : "var(--space-1_5) var(--space-2_5)",
         fontSize: compact ? "0.68rem" : "0.75rem",
         fontWeight: 800,

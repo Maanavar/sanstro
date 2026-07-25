@@ -6,16 +6,6 @@ import { getYoginiDasha, type YoginiDashaData, type YoginiDashaPeriod } from "@v
 import { CollapsibleSection } from "./collapsible-section";
 import { GlossaryTerm } from "./glossary-term";
 
-const W = {
-  ink: "var(--deepdive-ink, var(--panel-earth-dark))",
-  muted: "var(--color-faint)",
-  border: "var(--deepdive-border, var(--panel-tan))",
-  borderLt: "var(--deepdive-border-light, var(--panel-tan-light))",
-  surface: "var(--deepdive-surface, var(--panel-cream))",
-  surfaceMd: "var(--deepdive-surface-strong, var(--panel-hover))",
-  accent: "var(--deepdive-accent, var(--panel-brand))",
-} as const;
-
 // Yogini Dasha (Devi Bhagavata / Muhurta Chintamani tradition) — 8 Yoginis,
 // fixed Mangala..Sankata order. See app/calculations/yogini_dasha.py for the
 // documented starting-offset convention.
@@ -89,19 +79,19 @@ export function YoginiDashaPanel({ lang, chartId }: Props) {
 
   return (
     <CollapsibleSection title={title} defaultOpen={false}>
-      <p style={{ color: W.muted, fontSize: 12, margin: "0 0 var(--space-2) 0" }}>
+      <p style={{ color: "var(--color-faint)", fontSize: "var(--text-sm)", margin: "0 0 var(--space-2) 0" }}>
         <GlossaryTerm term="yoginiDasha" lang={lang}>
           {isTamil ? "இரண்டாம்நிலை/ஒப்பீட்டு தசை" : "Secondary/comparison dasha"}
         </GlossaryTerm>
         {subtitleRest}
       </p>
       {state === "loading" && (
-        <p style={{ color: W.muted, fontSize: 13, margin: 0 }}>
+        <p style={{ color: "var(--color-faint)", fontSize: "var(--text-base)", margin: 0 }}>
           {isTamil ? "ஏற்றுகிறது…" : "Loading…"}
         </p>
       )}
       {state === "error" && (
-        <p style={{ color: "var(--deepdive-accent, var(--panel-brand))", fontSize: 13, margin: 0 }}>
+        <p style={{ color: "var(--color-mid)", fontSize: "var(--text-base)", margin: 0 }}>
           {isTamil ? "யோகினி தசையை ஏற்ற முடியவில்லை." : "Could not load Yogini Dasha."}
         </p>
       )}
@@ -113,32 +103,32 @@ export function YoginiDashaPanel({ lang, chartId }: Props) {
               gap: "var(--space-2)",
               padding: "var(--space-2_5) var(--space-3)",
               borderRadius: "var(--radius-md)",
-              background: "var(--cl-sage-soft)",
-              border: "1px solid var(--cl-sage-border)",
+              background: "var(--color-high-bg)",
+              border: "1px solid var(--color-high-border)",
             }}
           >
             <div style={{ flex: 1 }}>
-              <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: "var(--color-score-high)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-score-high)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                 {isTamil ? "தற்போதைய மஹா தசை" : "Current Mahadasha"}
               </p>
-              <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: W.ink }}>
+              <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                 {yoginiName(data.current.mahadasha.yogini, isTamil)}
-                <span style={{ fontWeight: 400, color: W.muted, fontSize: "0.75rem" }}>
+                <span style={{ fontWeight: 400, color: "var(--color-faint)", fontSize: "var(--text-sm)" }}>
                   {" · "}{planetName(data.current.mahadasha.rulingPlanet, isTamil)}
                 </span>
               </p>
-              <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "0.75rem", color: W.muted }}>
+              <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
                 {data.current.mahadasha.startDate} – {data.current.mahadasha.endDate}
               </p>
             </div>
             <div style={{ flex: 1 }}>
-              <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "0.625rem", fontWeight: 700, color: W.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                 {isTamil ? "அந்தர் தசை" : "Antardasha"}
               </p>
-              <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: W.ink }}>
+              <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                 {yoginiName(data.current.antardasha.yogini, isTamil)}
               </p>
-              <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "0.75rem", color: W.muted }}>
+              <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
                 {data.current.antardasha.startDate} – {data.current.antardasha.endDate}
               </p>
             </div>
@@ -154,14 +144,14 @@ export function YoginiDashaPanel({ lang, chartId }: Props) {
                   gap: "var(--space-2)",
                   padding: "var(--space-1_5) var(--space-3)",
                   borderRadius: "var(--radius-sm)",
-                  border: `1px solid ${W.borderLt}`,
-                  background: period.startDate === data.current.mahadasha.startDate ? W.surfaceMd : "transparent",
+                  border: `1px solid var(--color-border)`,
+                  background: period.startDate === data.current.mahadasha.startDate ? "var(--color-surface)" : "transparent",
                 }}
               >
-                <span style={{ fontSize: "0.875rem", fontWeight: 600, color: W.ink }}>
+                <span style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)" }}>
                   {yoginiName(period.yogini, isTamil)}
                 </span>
-                <span style={{ fontSize: "0.75rem", color: W.muted }}>
+                <span style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
                   {period.years} {isTamil ? "ஆண்டுகள்" : "yrs"} · {period.startDate}
                 </span>
               </div>
