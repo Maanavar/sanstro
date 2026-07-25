@@ -41,6 +41,7 @@ import { RasiChart, NavamsaChart } from "./dashboard-charts";
 import { DrawerPanel } from "./drawer-panel";
 import { NovaSelect } from "./nova-select";
 import { Chip, Metric, Surface } from "./dashboard-ui";
+import { Card, Kicker } from "./ui";
 
 /**
  * Deep Dive completeness follow-up (see docs/DASHBOARD_UI_REVAMP_PLAN.md §7/§8) —
@@ -229,14 +230,14 @@ export function NovaGuidanceCard({
           {personalDailyGuidance ? (
             <div className="surface__body">
               {personalDailyGuidance.tithiCard && (
-                <div style={{ marginBottom: "10px", padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--color-mid-bg)", border: "1px solid var(--color-mid-border)" }}>
-                  <p style={{ margin: "0 0 3px", fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-mid)", textTransform: "uppercase", letterSpacing: "0.06em" }}>🕉 {t("tithi_card_label", lang)}</p>
+                <Card variant="mid" style={{ display: "block", marginBottom: "10px", padding: "var(--space-2_5) var(--space-3)" }}>
+                  <Kicker as="p" color="var(--color-mid)" style={{ margin: "0 0 3px", letterSpacing: "0.06em" }}>🕉 {t("tithi_card_label", lang)}</Kicker>
                   <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.5 }}>{tLang(personalDailyGuidance.tithiCard, lang)}</p>
-                </div>
+                </Card>
               )}
               {personalDailyGuidance.contextInsight && (
                 <div style={{ marginBottom: "10px", padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--color-accent-secondary-muted)", border: "1px solid color-mix(in srgb, var(--color-accent-secondary) 40%, transparent)" }}>
-                  <p style={{ margin: "0 0 3px", fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-accent-secondary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>📋 {t("context_insight_label", lang)}</p>
+                  <Kicker as="p" color="var(--color-accent-secondary)" style={{ margin: "0 0 3px", letterSpacing: "0.06em" }}>📋 {t("context_insight_label", lang)}</Kicker>
                   <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.5 }}>{tLang(personalDailyGuidance.contextInsight, lang)}</p>
                 </div>
               )}
@@ -262,14 +263,14 @@ export function NovaGuidanceCard({
                 </div>
               )}
               {personalDailyGuidance.pratyantarNarrative && (
-                <div style={{ marginTop: "8px", padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)" }}>
-                  <p style={{ margin: "0 0 3px", fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <Card variant="soft" style={{ display: "block", marginTop: "8px", padding: "var(--space-2_5) var(--space-3)" }}>
+                  <Kicker as="p" color="var(--color-faint)" style={{ margin: "0 0 3px", letterSpacing: "0.08em" }}>
                     {lang === "ta" ? "பிரத்யந்தர தசை" : "Pratyantar signal"}
-                  </p>
+                  </Kicker>
                   <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.45, color: "var(--color-text)" }}>
                     {tLang(personalDailyGuidance.pratyantarNarrative, lang)}
                   </p>
-                </div>
+                </Card>
               )}
               {personalDailyGuidance.nakshatraPerspective && (
                 <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5 }}>
@@ -525,10 +526,10 @@ function novaOutlookColor(outlook: PrasnaResponse["outlook"]) {
 
 function NovaMetaChip({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ padding: "var(--space-1_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)" }}>
-      <p style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "2px" }}>{label}</p>
+    <Card variant="soft" style={{ display: "block", padding: "var(--space-1_5) var(--space-3)" }}>
+      <Kicker as="p" color="var(--color-faint)" style={{ marginBottom: "2px" }}>{label}</Kicker>
       <p style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>{value}</p>
-    </div>
+    </Card>
   );
 }
 
@@ -599,9 +600,9 @@ export function NovaPrasnaWidget({
           {t("prasna_desc", lang)}
         </p>
 
-        <p style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "10px" }}>
+        <Kicker as="p" color="var(--color-faint)" style={{ fontSize: "var(--text-sm)", letterSpacing: "0.1em", marginBottom: "10px" }}>
           {t("prasna_area_label", lang)}
-        </p>
+        </Kicker>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)", marginBottom: "16px" }}>
           {QUESTION_AREAS.map(({ key, labelKey }) => {
             const isActive = key === selectedArea;
@@ -664,9 +665,9 @@ export function NovaPrasnaWidget({
 
             {result.positiveIndicators.length > 0 && (
               <div style={{ marginBottom: "12px" }}>
-                <p style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-high)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>
+                <Kicker as="p" color="var(--color-high)" style={{ letterSpacing: "0.08em", marginBottom: "6px" }}>
                   {t("prasna_positive", lang)}
-                </p>
+                </Kicker>
                 {result.positiveIndicators.map((ind, i) => (
                   <p key={i} style={{ fontSize: "var(--text-base)", color: "var(--color-text)", marginBottom: "4px" }}>+ {ind}</p>
                 ))}
@@ -675,9 +676,9 @@ export function NovaPrasnaWidget({
 
             {result.negativeIndicators.length > 0 && (
               <div style={{ marginBottom: "12px" }}>
-                <p style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-mid)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" }}>
+                <Kicker as="p" color="var(--color-mid)" style={{ letterSpacing: "0.08em", marginBottom: "6px" }}>
                   {t("prasna_negative", lang)}
-                </p>
+                </Kicker>
                 {result.negativeIndicators.map((ind, i) => (
                   <p key={i} style={{ fontSize: "var(--text-base)", color: "var(--color-text)", marginBottom: "4px" }}>− {ind}</p>
                 ))}
@@ -685,14 +686,13 @@ export function NovaPrasnaWidget({
             )}
 
             {(lang === "ta" ? result.cautionTa : result.cautionEn) && (
-              <div style={{
-                padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--color-mid-bg)",
-                border: "1px solid var(--color-mid-border)", fontSize: "var(--text-sm)", color: "var(--color-mid)", lineHeight: 1.55,
-                display: "flex", alignItems: "flex-start", gap: "var(--space-1_5)",
+              <Card variant="mid" style={{
+                padding: "var(--space-2_5) var(--space-3)", fontSize: "var(--text-sm)", color: "var(--color-mid)", lineHeight: 1.55,
+                display: "flex", flexDirection: "row", alignItems: "flex-start", gap: "var(--space-1_5)",
               }}>
                 <AlertTriangle size={14} strokeWidth={2} aria-hidden="true" style={{ flex: "none", marginTop: "2px" }} />
                 <span>{lang === "ta" ? result.cautionTa : result.cautionEn}</span>
-              </div>
+              </Card>
             )}
           </div>
         )}

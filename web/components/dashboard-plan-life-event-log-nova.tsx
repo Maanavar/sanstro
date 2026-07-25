@@ -11,6 +11,7 @@ import type { LifeEventLogItem } from "./dashboard-plan-shared";
 import { NovaReveal } from "./dashboard-ui-nova";
 import { NovaSelect } from "./nova-select";
 import { Card } from "./ui";
+import { Kicker } from "./ui/kicker";
 
 /**
  * Nova re-skin of `DashboardLifeEventLog` (Classic) — same API calls and
@@ -49,9 +50,9 @@ function NovaEventCard({ item, lang }: { item: LifeEventLogItem; lang: Lang }) {
 
       {expanded && item.correlation && (
         <div style={{ marginTop: "10px", paddingTop: "10px", borderTop: "1px solid var(--color-border)" }}>
-          <p style={{ fontSize: "var(--text-xs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-faint)", margin: "0 0 4px" }}>
+          <Kicker as="p" color="var(--color-faint)" style={{ letterSpacing: "0.05em", margin: "0 0 4px" }}>
             {lang === "ta" ? "கிரக சூழல்" : "Planetary context"}
-          </p>
+          </Kicker>
           <p style={{ fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.5, margin: 0 }}>
             {lang === "ta" ? item.correlation.narrative.ta : item.correlation.narrative.en}
           </p>
@@ -114,9 +115,9 @@ export function NovaLifeEventLogCard({ lang, chartId }: { lang: Lang; chartId: s
   return (
     <Card>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-        <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
+        <Kicker>
           {lang === "ta" ? "வாழ்க்கை நிகழ்வு பதிவு" : "Life event log"}
-        </span>
+        </Kicker>
         <button
           type="button"
           onClick={() => setShowForm((v) => !v)}

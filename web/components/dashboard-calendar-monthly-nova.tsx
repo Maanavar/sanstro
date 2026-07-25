@@ -23,6 +23,7 @@ import {
   WEEKDAY_LABELS_TA,
 } from "./dashboard-calendar-shared";
 import { Card } from "./ui";
+import { Kicker } from "./ui/kicker";
 
 /**
  * Nova "Calendar" tab, monthly grid view — Phase 3 of the dashboard revamp,
@@ -593,9 +594,9 @@ export function MonthlyCalendarViewNova({
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", minWidth: 0 }}>
             {/* Card A — Events & Festivals */}
             <Card as="section" style={{ borderRadius: "var(--radius-xl)", borderColor: "var(--color-border-strong)", gap: "var(--space-1)" }}>
-              <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700, marginBottom: "10px" }}>
+              <Kicker as="div" style={{ marginBottom: "10px" }}>
                 {lang === "ta" ? "நிகழ்வுகள் & திருவிழாக்கள்" : "Events & Festivals"}
-              </div>
+              </Kicker>
               <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", borderBottom: "1px solid var(--color-border)", marginBottom: "6px" }}>
                 {([
                   ["upcoming", lang === "ta" ? "வரவிருப்பவை" : "Upcoming", sidebarCounts.upcoming],
@@ -656,9 +657,9 @@ export function MonthlyCalendarViewNova({
 
               {sidebarTab === "vratha" && vrathaGroups.length > 0 && (
                 <div style={{ marginTop: "14px" }}>
-                  <p style={{ margin: "0 0 8px", fontSize: "var(--text-xs)", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)", fontWeight: 700 }}>
+                  <Kicker as="p" color="var(--color-faint)" style={{ margin: "0 0 8px" }}>
                     {lang === "ta" ? "விரத வரிசை" : "Vratha sequence"}
-                  </p>
+                  </Kicker>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
                     {vrathaGroups.slice(0, 6).map((group) => (
                       <span key={group.name} style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-pill)", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", fontSize: "var(--text-xs)", color: "var(--color-text)" }}>
@@ -673,9 +674,9 @@ export function MonthlyCalendarViewNova({
 
               {sidebarTab === "muhurthams" && chartMatchedDates.length > 0 && (
                 <div style={{ marginTop: "14px" }}>
-                  <p style={{ margin: "0 0 8px", fontSize: "var(--text-xs)", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-high)", fontWeight: 700 }}>
+                  <Kicker as="p" color="var(--color-high)" style={{ margin: "0 0 8px" }}>
                     {lang === "ta" ? "உங்கள் ஜாதகத்துக்கு ஏற்ற நாட்கள்" : "Best for your chart"}
-                  </p>
+                  </Kicker>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
                     {chartMatchedDates.map((dateLocal) => (
                       <span key={dateLocal} style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-pill)", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)", fontSize: "var(--text-xs)", color: "var(--color-high)", fontWeight: 700 }}>
@@ -691,9 +692,9 @@ export function MonthlyCalendarViewNova({
             {/* Card B — Filter Calendar */}
             <Card as="section" style={{ borderRadius: "var(--radius-xl)", borderColor: "var(--color-border-strong)", gap: 0 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-                <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
+                <Kicker as="div">
                   {lang === "ta" ? "நாட்காட்டி வடிகட்டி" : "Filter Calendar"}
-                </div>
+                </Kicker>
                 <button
                   type="button"
                   onClick={clearFilters}
@@ -726,9 +727,9 @@ export function MonthlyCalendarViewNova({
 
             {/* Card C — Quick Jump */}
             <Card as="section" style={{ borderRadius: "var(--radius-xl)", borderColor: "var(--color-border-strong)", gap: 0 }}>
-              <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700, marginBottom: "12px" }}>
+              <Kicker as="div" style={{ marginBottom: "12px" }}>
                 {lang === "ta" ? "விரைவு தாவல்" : "Quick Jump"}
-              </div>
+              </Kicker>
               <div style={{ display: "flex", gap: "var(--space-2)", marginBottom: "10px" }}>
                 <button
                   type="button"

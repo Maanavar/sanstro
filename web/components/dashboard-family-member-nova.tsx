@@ -20,7 +20,7 @@ import { RasiChart, NavamsaChart } from "./dashboard-charts";
 import { DASHA_COLORS } from "./dashboard-dasha";
 import { YOGA_DISPLAY } from "./dashboard-yoga-dosham-panel";
 import { NovaScoreDial, NovaProgressBar } from "./dashboard-ui-nova";
-import { Kicker } from "./ui";
+import { Card, Kicker } from "./ui";
 
 /**
  * Nova "Family member" screen — Phase 5 of the dashboard revamp (see
@@ -34,18 +34,18 @@ import { Kicker } from "./ui";
 
 function NovaCard({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-5_5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3_5)" }}>
+    <Card style={{ padding: "var(--space-5_5) var(--space-6)", gap: "var(--space-3_5)" }}>
       {children}
-    </div>
+    </Card>
   );
 }
 
 function TimingCard({ label, value, color, borderColor, bgColor }: { label: string; value: string; color: string; borderColor: string; bgColor: string }) {
   return (
-    <div style={{ background: bgColor, border: `1px solid ${borderColor}`, borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)" }}>
-      <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", color, textTransform: "uppercase", fontWeight: 700 }}>{label}</div>
+    <Card style={{ display: "block", background: bgColor, borderColor, borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)" }}>
+      <Kicker as="div" color={color} style={{ letterSpacing: "0.1em" }}>{label}</Kicker>
       <div style={{ fontSize: "var(--text-md)", fontWeight: 700, marginTop: "3px", color: "var(--color-text-strong)" }}>{value}</div>
-    </div>
+    </Card>
   );
 }
 
@@ -288,7 +288,7 @@ export function DashboardFamilyMemberNova({
         <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: "var(--space-3_5)" }}>
           {insight && (
             <div style={{ textAlign: "right", maxWidth: "220px" }}>
-              <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>{lang === "ta" ? "இன்று" : "Today"}</div>
+              <Kicker as="div" style={{ letterSpacing: "0.1em" }}>{lang === "ta" ? "இன்று" : "Today"}</Kicker>
               <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>{insight}</div>
             </div>
           )}
@@ -383,7 +383,7 @@ export function DashboardFamilyMemberNova({
                 { label: t("antaram_word", lang), lord: dasha.current.pratyantardasha.lord },
               ].map((row, i) => (
                 <div key={row.label} style={i > 0 ? { borderLeft: "1px solid var(--color-border)", paddingLeft: "var(--space-4_5)" } : undefined}>
-                  <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", color: "var(--color-faint)", textTransform: "uppercase" }}>{row.label}</div>
+                  <Kicker as="div" color="var(--color-faint)">{row.label}</Kicker>
                   <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 600, marginTop: "2px", color: i === 2 ? "var(--color-accent-strong)" : "var(--color-text-strong)" }}>
                     {tPlanetLord(row.lord, lang)}
                   </div>
@@ -484,15 +484,13 @@ export function DashboardFamilyMemberNova({
               {visibleInsights.map((item, i) => {
                 const isYoga = item.type === "YOGA";
                 const tone = isYoga ? "high" : item.cancelled ? "mid" : "low";
-                const bg = tone === "high" ? "var(--color-high-bg)" : tone === "mid" ? "var(--color-mid-bg)" : "var(--color-low-bg)";
-                const border = tone === "high" ? "var(--color-high-border)" : tone === "mid" ? "var(--color-mid-border)" : "var(--color-low-border)";
                 const badgeColor = tone === "high" ? "var(--color-high)" : tone === "mid" ? "var(--color-mid)" : "var(--color-low)";
                 return (
-                  <div key={`${item.type}-${item.name}-${i}`} style={{ display: "flex", alignItems: "center", gap: "var(--space-2_5)", background: bg, border: `1px solid ${border}`, borderRadius: "var(--radius-sm)", padding: "var(--space-2_5) var(--space-3)" }}>
+                  <Card key={`${item.type}-${item.name}-${i}`} variant={tone} style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "var(--space-2_5)", borderRadius: "var(--radius-sm)", padding: "var(--space-2_5) var(--space-3)" }}>
                     <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-on-accent)", background: badgeColor, borderRadius: "var(--radius-sm)", padding: "var(--space-0_75) var(--space-2)", flexShrink: 0 }}>{item.type}</span>
                     <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, flex: 1 }}>{item.name}</span>
                     <span style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", textAlign: "right" }}>{item.desc}</span>
-                  </div>
+                  </Card>
                 );
               })}
             </div>

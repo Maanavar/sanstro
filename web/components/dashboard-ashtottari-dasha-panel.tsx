@@ -5,6 +5,8 @@ import type { Lang } from "@/lib/i18n";
 import { getAshtottariDasha, type AshtottariDashaData, type AshtottariDashaPeriod } from "@vinaadi/shared/api/ashtottariDasha";
 import { CollapsibleSection } from "./collapsible-section";
 import { GlossaryTerm } from "./glossary-term";
+import { Card } from "./ui/card";
+import { Kicker } from "./ui/kicker";
 
 // Ashtottari Dasha — 108-year secondary/comparison dasha, 8 lords, no Ketu.
 // See app/calculations/ashtottari_dasha.py for the documented Ardra-adi
@@ -112,21 +114,20 @@ export function AshtottariDashaPanel({ lang, chartId }: Props) {
       {data && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)" }}>
           {data.applicability && (
-            <div
+            <Card
+              variant="soft"
               style={{
                 display: "flex",
                 flexDirection: "column",
                 gap: "var(--space-1)",
                 padding: "var(--space-2) var(--space-3)",
                 borderRadius: "var(--radius-md)",
-                border: `1px solid var(--color-border)`,
-                background: "var(--color-surface-soft)",
               }}
             >
               <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
-                <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                <Kicker color="var(--color-faint)" style={{ letterSpacing: "0.06em" }}>
                   {isTamil ? "பாரம்பரிய பொருத்தம்" : "Classical applicability"}
-                </span>
+                </Kicker>
                 <StatusChip applicable={data.applicability.applicable} lang={lang} />
               </span>
               <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.5 }}>
@@ -150,22 +151,22 @@ export function AshtottariDashaPanel({ lang, chartId }: Props) {
                   )}
                 </p>
               )}
-            </div>
+            </Card>
           )}
-          <div
+          <Card
+            variant="high"
             style={{
               display: "flex",
+              flexDirection: "row",
               gap: "var(--space-2)",
               padding: "var(--space-2_5) var(--space-3)",
               borderRadius: "var(--radius-md)",
-              background: "var(--color-high-bg)",
-              border: "1px solid var(--color-high-border)",
             }}
           >
             <div style={{ flex: 1 }}>
-              <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-score-high)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <Kicker as="p" color="var(--color-score-high)" style={{ margin: "0 0 var(--space-0_5)", letterSpacing: "0.08em" }}>
                 {isTamil ? "தற்போதைய மஹா தசை" : "Current Mahadasha"}
-              </p>
+              </Kicker>
               <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                 {lordName(data.current.mahadasha.lord, isTamil)}
               </p>
@@ -174,9 +175,9 @@ export function AshtottariDashaPanel({ lang, chartId }: Props) {
               </p>
             </div>
             <div style={{ flex: 1 }}>
-              <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <Kicker as="p" color="var(--color-faint)" style={{ margin: "0 0 var(--space-0_5)", letterSpacing: "0.08em" }}>
                 {isTamil ? "அந்தர் தசை" : "Antardasha"}
-              </p>
+              </Kicker>
               <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                 {lordName(data.current.antardasha.lord, isTamil)}
               </p>
@@ -184,19 +185,19 @@ export function AshtottariDashaPanel({ lang, chartId }: Props) {
                 {data.current.antardasha.startDate} – {data.current.antardasha.endDate}
               </p>
             </div>
-          </div>
+          </Card>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
             {data.mahadashas.map((period: AshtottariDashaPeriod, index: number) => (
-              <div
+              <Card
                 key={`${period.startDate}-${index}`}
                 style={{
                   display: "flex",
+                  flexDirection: "row",
                   justifyContent: "space-between",
                   alignItems: "center",
                   gap: "var(--space-2)",
                   padding: "var(--space-1_5) var(--space-3)",
                   borderRadius: "var(--radius-sm)",
-                  border: `1px solid var(--color-border)`,
                   background: period.startDate === data.current.mahadasha.startDate ? "var(--color-surface)" : "transparent",
                 }}
               >
@@ -206,7 +207,7 @@ export function AshtottariDashaPanel({ lang, chartId }: Props) {
                 <span style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
                   {period.years} {isTamil ? "ஆண்டுகள்" : "yrs"} · {period.startDate}
                 </span>
-              </div>
+              </Card>
             ))}
           </div>
         </div>

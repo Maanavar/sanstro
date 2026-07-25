@@ -11,6 +11,7 @@ import type { ChartCalculateResponseData, ChartSummaryData, DashaTimelineRespons
 import { RasiChart, NavamsaChart } from "./dashboard-charts";
 import { Field } from "./dashboard-ui";
 import { PlaceCombobox } from "./place-combobox";
+import { Card } from "./ui/card";
 import { nakshatraLordShort } from "@vinaadi/shared/nakshatraLord";
 import {
   computeD9LagnaRasi,
@@ -513,7 +514,7 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
         </p>
 
         {/* Birth details form */}
-        <div className="card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "14px", background: W.card, border: `1px solid ${W.borderLt}` }}>
+        <Card className="card" variant="soft" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "14px" }}>
           <Field label={lang === "ta" ? "பெயர்" : "Name"}>
             <input className="input" style={fieldStyle} value={form.displayName}
               onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
@@ -600,17 +601,17 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
               ? (lang === "ta" ? "கணக்கிடுகிறது…" : "Calculating…")
               : (lang === "ta" ? "ஜாதகம் உருவாக்கு" : "Generate Chart")}
           </button>
-        </div>
+        </Card>
 
         {/* Results */}
         {chart && (
-          <div className="card" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "16px", background: W.card, border: `1px solid ${W.borderLt}` }}>
+          <Card className="card" variant="soft" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
 
             {/* Person header */}
-            <div style={{ padding: "12px 14px", borderRadius: "10px", background: W.surface, border: `1px solid ${W.border}` }}>
+            <Card style={{ padding: "12px 14px", borderRadius: "10px" }}>
               <p style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: W.terracotta }}>{chart.birthProfile.displayName}</p>
               <p style={{ margin: "2px 0 0", fontSize: "0.75rem", color: W.muted }}>{chart.birthProfile.birthDateLocal}</p>
-            </div>
+            </Card>
 
             {/* Action buttons: Print Jathagam (prominent) + D1/D9 toggle */}
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
@@ -650,7 +651,7 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
             </div>
 
             {/* Calculation method */}
-            <div style={{ borderRadius: "10px", border: `1px solid ${W.border}`, background: W.surface, padding: "12px 14px" }}>
+            <Card style={{ borderRadius: "10px", padding: "12px 14px" }}>
               <p style={{ margin: 0, fontSize: "0.75rem", letterSpacing: "0.05em", textTransform: "uppercase", color: W.terracotta }}>Calculation Method</p>
               <p style={{ margin: "6px 0 0", fontSize: "0.875rem" }}>
                 Version: <strong>{chart.calculationVersion}</strong> | Ayanamsa: <strong>{chart.ayanamsa.type}</strong> | Ephemeris: <strong>{chart.ephemerisBackend}</strong>
@@ -658,14 +659,14 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
               <p style={{ margin: "6px 0 0", fontSize: "0.75rem", color: W.muted }}>
                 House style: Whole-sign from Lagna. Dasa system: Vimshottari from Moon longitude.
               </p>
-            </div>
+            </Card>
 
             {/* Interactive chart (D1 or D9) */}
             {view === "D1"
               ? <RasiChart chart={chart} label={t("label_d1", lang)} lang={lang} showExplain />
               : <NavamsaChart chart={chart} label={t("label_d9", lang)} lang={lang} showExplain />
             }
-          </div>
+          </Card>
         )}
 
         {/* Hidden print-mode indicator for styling */}

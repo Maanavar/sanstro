@@ -6,7 +6,7 @@
 // three presentational leaf components (DayTimeline, MoonPhaseMark,
 // LunarTithiBadge) with no Classic/Nova fork.
 
-import { formatClockLabel, formatDateLabel } from "@/lib/format";
+import { addDays, formatClockLabel, formatDateLabel } from "@/lib/format";
 import { tNakshatra } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { lunarSpecialTithiMeta } from "@/lib/lunar";
@@ -88,30 +88,30 @@ export function parseHmToMinutes(hm: string): number {
 // passed the segment's end, the headline should become the next segment so the
 // card reflects what is actually running now.
 //
-// `endsAt` arrives as a bare "HH:MM" with the date stripped (see
-// panchangam_service.py), but the backend always computes the boundary as the
-// first crossing *after* that day's sunrise. So an endsAt earlier on the clock
-// than sunrise necessarily rolled past midnight and belongs to tomorrow —
-// promoting on it would show tomorrow's limb all of today.
-//
-// This previously used a hard-coded `end >= 240` (04:00) cutoff to spot those
-// after-midnight boundaries. On 2026-07-20 Saptami ended at 04:03, three
-// minutes past the constant, so the calendar showed Ashtami — tomorrow's
-// tithi — for the whole day. Comparing against the real sunrise removes the
-// magic number.
+// `endsAt` (bare "HH:MM", date stripped) is kept only for display. Rollover
+// must compare `endsAtIso` (a full local datetime) against the real instant —
+// two prior clock-only heuristics (a hard-coded `end >= 240` / 04:00 cutoff,
+// then `end > sunrise`) both guessed the missing date from the clock value
+// alone, and both broke whenever a boundary landed on the *next* calendar day
+// at a clock time that still looked like "later today" (2026-07-20 Saptami
+// ending 04:03 the next morning; 2026-07-25 Kettai nakshatra ending 07:35 the
+// next morning). Comparing exact instants removes the guess entirely.
 export function activeLimb(
   name: string,
   endsAt: string,
   nextName: string,
   nowMinutes: number,
-  sunriseHm: string,
+  endsAtIso: string,
+  nowIso?: string,
 ): { activeName: string; until: string | null; upcomingName: string | null; rolledOver: boolean } {
   const notPromoted = { activeName: name, until: endsAt, upcomingName: nextName, rolledOver: false };
   if (nowMinutes < 0) return notPromoted;
 
-  const end = parseHmToMinutes(endsAt);
-  const sunrise = parseHmToMinutes(sunriseHm);
-  if (end > sunrise && nowMinutes > end) {
+  const endInstant = new Date(endsAtIso).getTime();
+  if (Number.isNaN(endInstant)) return notPromoted;
+  const nowInstant = nowIso ? new Date(nowIso).getTime() : Date.now();
+
+  if (nowInstant > endInstant) {
     return { activeName: nextName, until: null, upcomingName: null, rolledOver: true };
   }
   return notPromoted;
@@ -123,6 +123,22 @@ export function moonRasiFromNakshatra(name: string, pada = 1): number {
   const normalizedPada = Math.min(4, Math.max(1, Math.trunc(pada) || 1));
   const absolutePada = idx * 4 + (normalizedPada - 1);
   return Math.floor(absolutePada / 9) + 1;
+}
+
+// A bare clock time like "7:35 am" next to a limb's "until" label is
+// ambiguous about which calendar day it falls on once the boundary rolls
+// past midnight (the same source of confusion `activeLimb` above disambiguates
+// for rollover). Mirrors `formatChandrashtamaWindowEdge`'s day-qualifier
+// approach, using "tomorrow" for the common next-day case.
+export function formatUntilLabel(endsAt: string, endsAtIso: string, dateLocal: string, lang: Lang): string {
+  const clock = formatClockLabel(endsAt);
+  if (!endsAtIso.includes("T")) return clock;
+  const endDate = endsAtIso.slice(0, 10);
+  if (endDate === dateLocal) return clock;
+  const dayLabel = endDate === addDays(dateLocal, 1)
+    ? (lang === "ta" ? "நாளை" : "tomorrow")
+    : formatDateLabel(endDate);
+  return lang === "ta" ? `${dayLabel}, ${clock}` : `${clock} (${dayLabel})`;
 }
 
 export function formatChandrashtamaWindowEdge(value: string, dateLocal: string): string {

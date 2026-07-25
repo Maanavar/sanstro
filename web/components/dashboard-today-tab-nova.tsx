@@ -35,7 +35,7 @@ import { useStreak } from "@/hooks/useStreak";
 import { StreakChip } from "./streak-chip";
 import { useEveningPreview } from "@/hooks/useEveningPreview";
 
-import { Kicker } from "./ui";
+import { Card, Kicker } from "./ui";
 import { downloadJadhagamPdf } from "./dashboard-personal-shared";
 import { DashboardTodayRibbonNova, findHorai } from "./dashboard-today-ribbon-nova";
 import { DashboardTodayActivityBoardNova } from "./dashboard-today-activity-board-nova";
@@ -201,6 +201,9 @@ export function DashboardTodayTabNova({
   const { days: streakDays, best: streakBest, forgiven: streakForgiven } = useStreak();
   const { enabled: eveningPreviewOn, setEnabled: setEveningPreviewOn } = useEveningPreview();
   const displayName = personalMemberChart?.displayName ?? birthDisplayName;
+  // Hero greeting shows a first name only — the full name reads too formal
+  // sitting right next to "Good morning".
+  const heroFirstName = displayName.trim().split(/\s+/)[0] ?? displayName;
   const activeChartId = personalChartSummary?.chartId ?? "";
   const [savingReminder, setSavingReminder] = useState(false);
   const [reminderStatus, setReminderStatus] = useState<StatusMessage | null>(null);
@@ -383,7 +386,7 @@ export function DashboardTodayTabNova({
                   background: "linear-gradient(120deg, var(--color-text-strong), var(--color-accent-secondary))",
                   WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent",
                 }}>
-                  {displayName}
+                  {heroFirstName}
                 </h1>
                 <div style={{ fontSize: "var(--text-base)", color: "var(--color-accent-secondary)", fontWeight: 600 }}>
                   {lang === "ta" ? "நாளையைப் பற்றி ஒரு முன்னோட்டம் — " : "A look ahead to tomorrow — "}
@@ -401,9 +404,8 @@ export function DashboardTodayTabNova({
                 {/* Journal prompt — the evening half of design's "preview +
                     journal prompt" ask, replacing the best-window action tile.
                     Tomorrow's first good window folds into its sub-line. */}
-                <div style={{
-                  display: "flex", alignItems: "center", gap: "var(--space-3)", marginTop: "2px", flexWrap: "wrap", rowGap: "var(--space-2_5)",
-                  background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)",
+                <Card variant="accent" style={{
+                  display: "flex", flexDirection: "row", alignItems: "center", gap: "var(--space-3)", marginTop: "2px", flexWrap: "wrap", rowGap: "var(--space-2_5)",
                   borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)",
                 }}>
                   <span className="nova-pulse-dot" style={{ width: "9px", height: "9px", borderRadius: "var(--radius-pill)", background: "var(--color-accent)", flex: "none" }} />
@@ -448,7 +450,7 @@ export function DashboardTodayTabNova({
                       {savingReminder ? (lang === "ta" ? "…" : "Saving…") : (lang === "ta" ? "நினைவூட்டு" : "Remind me")}
                     </button>
                   </div>
-                </div>
+                </Card>
                 <StatusLive status={reminderStatus} />
               </>
             ) : (
@@ -465,7 +467,7 @@ export function DashboardTodayTabNova({
                   background: "linear-gradient(120deg, var(--color-text-strong), var(--color-accent-secondary))",
                   WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent",
                 }}>
-                  {displayName}
+                  {heroFirstName}
                 </h1>
                 <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55, maxWidth: "520px" }}>
                   {lang === "ta"
@@ -526,9 +528,8 @@ export function DashboardTodayTabNova({
                 {/* Next-action tile — the single best-window callout, embedded in
                     the hero per design 8a §3 (not a separate card below it). */}
                 {bestWindow && (
-                  <div style={{
-                    display: "flex", alignItems: "center", gap: "var(--space-3)", marginTop: "2px", flexWrap: "wrap", rowGap: "var(--space-2_5)",
-                    background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)",
+                  <Card variant="high" style={{
+                    display: "flex", flexDirection: "row", alignItems: "center", gap: "var(--space-3)", marginTop: "2px", flexWrap: "wrap", rowGap: "var(--space-2_5)",
                     borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)",
                   }}>
                     <span className="nova-pulse-dot" style={{ width: "9px", height: "9px", borderRadius: "var(--radius-pill)", background: "var(--color-high)", boxShadow: "0 0 0 4px var(--color-high-bg)", flex: "none" }} />
@@ -569,7 +570,7 @@ export function DashboardTodayTabNova({
                         </button>
                       )}
                     </div>
-                  </div>
+                  </Card>
                 )}
                 {secondaryAbhijitWindow && (
                   <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", display: "flex", alignItems: "center", gap: "var(--space-1_5)" }}>
@@ -594,17 +595,17 @@ export function DashboardTodayTabNova({
             const dialScore = dialSource.score ?? 0;
             const verdict = getScoreVerdictFromGuidance(dialSource.label, dialScore, lang);
             return (
-              <div style={{
+              <Card style={{
                 flex: "none", width: "196px", alignSelf: "center",
                 background: "color-mix(in srgb, var(--color-surface) 62%, transparent)",
-                border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-md)",
+                borderColor: "var(--color-border-strong)", borderRadius: "var(--radius-md)",
                 padding: "var(--space-4_5) var(--space-3_5)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "var(--space-2)",
               }}>
-                <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
+                <Kicker style={{ letterSpacing: "0.14em" }}>
                   {isTomorrow
                     ? (lang === "ta" ? "நாளைய மதிப்பெண்" : "Tomorrow's score")
                     : (lang === "ta" ? "இன்றைய மதிப்பெண்" : "Today's score")}
-                </div>
+                </Kicker>
                 <NovaScoreDial score={dialScore} color={verdict.color} label={lang === "ta" ? "100க்கு" : "/ 100"} />
                 <NovaStarRow value={dialScore / 20} size={14} />
                 {/* UXD-19 — the calm verdict phrase leads; the number supports it. */}
@@ -621,7 +622,7 @@ export function DashboardTodayTabNova({
                   {lang === "ta" ? "இந்த மதிப்பெண் ஏன்?" : "Why this score"}
                   <ArrowRight size={12} strokeWidth={2} aria-hidden="true" style={{ verticalAlign: "middle", marginLeft: "var(--space-1)" }} />
                 </a>
-              </div>
+              </Card>
             );
           })()}
 
@@ -632,12 +633,12 @@ export function DashboardTodayTabNova({
           {(bestWindow || avoidWindow || heroHora) && (
             <div style={{ flex: "none", width: "224px", alignSelf: "center", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
               {bestWindow && (
-                <div style={{ flex: "none", background: "color-mix(in srgb, var(--color-surface) 62%, transparent)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3_5)", display: "flex", gap: "var(--space-3)", alignItems: "center" }}>
+                <Card style={{ flex: "none", background: "color-mix(in srgb, var(--color-surface) 62%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3_5)", display: "flex", flexDirection: "row", gap: "var(--space-3)", alignItems: "center" }}>
                   <div aria-hidden="true" style={{ width: "32px", height: "32px", borderRadius: "var(--radius-pill)", background: "var(--color-high-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-high)", flex: "none" }}><ArrowUpRight size={16} strokeWidth={2} /></div>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-high)", textTransform: "uppercase" }}>
+                    <Kicker as="div" color="var(--color-high)">
                       {lang === "ta" ? "சிறந்த நேரம்" : "Best window"}
-                    </div>
+                    </Kicker>
                     <div style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)", marginTop: "3px", fontVariantNumeric: "tabular-nums" }}>
                       {formatClockLabel(bestWindow.start)} – {formatClockLabel(bestWindow.end)}
                     </div>
@@ -645,15 +646,15 @@ export function DashboardTodayTabNova({
                       {lang === "ta" ? "முக்கியமான வேலைகளுக்கு நல்லது" : "Good for important tasks"}
                     </div>
                   </div>
-                </div>
+                </Card>
               )}
               {avoidWindow && (
-                <div style={{ flex: "none", background: "color-mix(in srgb, var(--color-surface) 62%, transparent)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3_5)", display: "flex", gap: "var(--space-3)", alignItems: "center" }}>
+                <Card style={{ flex: "none", background: "color-mix(in srgb, var(--color-surface) 62%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3_5)", display: "flex", flexDirection: "row", gap: "var(--space-3)", alignItems: "center" }}>
                   <div aria-hidden="true" style={{ width: "32px", height: "32px", borderRadius: "var(--radius-pill)", background: "var(--color-low-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-low)", flex: "none" }}><X size={16} strokeWidth={2} /></div>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-low)", textTransform: "uppercase" }}>
+                    <Kicker as="div" color="var(--color-low)">
                       {lang === "ta" ? "தவிர்க்க வேண்டிய நேரம்" : "Avoid window"}
-                    </div>
+                    </Kicker>
                     <div style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)", marginTop: "3px", fontVariantNumeric: "tabular-nums" }}>
                       {formatClockLabel(avoidWindow.start)} – {formatClockLabel(avoidWindow.end)}
                     </div>
@@ -661,15 +662,15 @@ export function DashboardTodayTabNova({
                       {windowTypeLabel(avoidWindow.type, lang)}
                     </div>
                   </div>
-                </div>
+                </Card>
               )}
               {heroHora && (
-                <div style={{ flex: "none", background: "color-mix(in srgb, var(--color-surface) 62%, transparent)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3_5)", display: "flex", gap: "var(--space-3)", alignItems: "center" }}>
+                <Card style={{ flex: "none", background: "color-mix(in srgb, var(--color-surface) 62%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3_5)", display: "flex", flexDirection: "row", gap: "var(--space-3)", alignItems: "center" }}>
                   <div aria-hidden="true" style={{ width: "32px", height: "32px", borderRadius: "var(--radius-pill)", background: "color-mix(in srgb, var(--color-accent-secondary) 16%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-accent-secondary)", flex: "none" }}><Diamond size={15} strokeWidth={2} /></div>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-accent-secondary)", textTransform: "uppercase" }}>
+                    <Kicker as="div" color="var(--color-accent-secondary)">
                       {lang === "ta" ? "இப்போதைய ஓரை" : "Horai now"}
-                    </div>
+                    </Kicker>
                     <div style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)", marginTop: "3px" }}>
                       {tPlanetLord(heroHora.lord, lang)}
                     </div>
@@ -679,7 +680,7 @@ export function DashboardTodayTabNova({
                       </div>
                     )}
                   </div>
-                </div>
+                </Card>
               )}
             </div>
           )}
@@ -707,12 +708,12 @@ export function DashboardTodayTabNova({
       {/* Fail-soft notice (DASH-02): the day bundle loaded but some sections
           couldn't be computed — offer a one-tap retry instead of blanking. */}
       {onRetryBundle && bundleSectionErrors && Object.keys(bundleSectionErrors).length > 0 && (
-        <div
+        <Card
+          variant="low"
           role="status"
           style={{
-            display: "flex", alignItems: "center", gap: "var(--space-2_5)", flexWrap: "wrap",
-            background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)",
-            borderRadius: "var(--radius-lg)", padding: "var(--space-2_5) var(--space-4)", fontSize: "var(--text-sm)", color: "var(--color-text)",
+            display: "flex", flexDirection: "row", alignItems: "center", gap: "var(--space-2_5)", flexWrap: "wrap",
+            padding: "var(--space-2_5) var(--space-4)", fontSize: "var(--text-sm)", color: "var(--color-text)",
           }}
         >
           <span aria-hidden="true" style={{ display: "inline-flex", color: "var(--color-low)" }}><AlertTriangle size={15} strokeWidth={2} /></span>
@@ -726,7 +727,7 @@ export function DashboardTodayTabNova({
           >
             {t("today_retry", lang)}
           </button>
-        </div>
+        </Card>
       )}
 
       {/* ===== 2. "Is today okay for…?" — one activity-timing card. This was
@@ -800,7 +801,7 @@ export function DashboardTodayTabNova({
           keeps Today a decision layer only. The hero's "Why this score ->"
           anchors here; this card's button opens the full charts. ===== */}
       {personalDailyGuidance && (
-        <div id="nova-deep-dive" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3_5)" }}>
+        <Card id="nova-deep-dive" style={{ borderColor: "var(--color-border-strong)", padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3_5)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2_5)", flexWrap: "wrap" }}>
             <h2 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--color-accent-strong)" }}>
               {lang === "ta" ? "இந்த கணிப்பு ஏன்?" : "Why this prediction?"}
@@ -851,12 +852,12 @@ export function DashboardTodayTabNova({
               <div className="nova-deepdive-grid">
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "var(--space-2_5)" }}>
                   {tiles.map((tile) => (
-                    <div key={tile.label} style={{ background: "color-mix(in srgb, var(--color-text-strong) 4%, transparent)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3_5)", fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)" }}>
+                    <Card key={tile.label} style={{ display: "block", background: "color-mix(in srgb, var(--color-text-strong) 4%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3_5)", fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)" }}>
                       <div style={{ marginBottom: "6px" }}>
                         <b style={{ color: "var(--color-accent-strong)", fontSize: "var(--text-sm)" }}>{tile.label}</b>
                       </div>
                       {tLang(tile.text, lang)}
-                    </div>
+                    </Card>
                   ))}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -872,7 +873,7 @@ export function DashboardTodayTabNova({
               <>Planet positions · birth chart · divisional charts · dasha tables · birth-star profile now live in <b style={{ color: "var(--color-muted)" }}>Family &amp; Charts</b>.</>
             )}
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Morning Guidance moved to the workspace footer (redesign 2026-07-18)

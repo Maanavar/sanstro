@@ -28,7 +28,7 @@ type CardProps = {
    *  div pattern the hand-rolled card it replaces already used, not a new
    *  a11y regression. Prefer a real `<button>` outside `<Card>` when possible. */
   onClick?: () => void;
-};
+} & Omit<React.HTMLAttributes<HTMLElement>, "style" | "className" | "onClick" | "children">;
 
 const VARIANT_CLASS: Record<CardVariant, string> = {
   default: "",
@@ -48,13 +48,14 @@ export function Card({
   className,
   style,
   onClick,
+  ...rest
 }: CardProps) {
   const Tag = as;
   const classes = ["ui-card", VARIANT_CLASS[variant], compact ? "ui-card--pad-sm" : "", className]
     .filter(Boolean)
     .join(" ");
   return (
-    <Tag className={classes} style={style} onClick={onClick}>
+    <Tag className={classes} style={style} onClick={onClick} {...rest}>
       {children}
     </Tag>
   );

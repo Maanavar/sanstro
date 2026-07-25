@@ -23,6 +23,7 @@ import type {
 import { RASI_NAMES } from "./dashboard-charts";
 import { displayName as yogaDoshamDisplayName } from "./dashboard-yoga-dosham-panel";
 import { HOUSE_MEANING, OWN_SIGN_RASI } from "./dashboard-chart-explanation-data";
+import { ageAtDate } from "./dashboard-dasha";
 import { Card, Kicker } from "./ui";
 
 /**
@@ -202,7 +203,7 @@ function HyPlanetVerdict({ lang, pl, expl }: {
   const grad = ORB_GRADIENTS[pl.graha] ?? ORB_GRADIENTS.SATURN!;
 
   return (
-    <div style={{ background: "var(--color-surface-soft)", border: `1px solid ${score != null && score < 35 ? "var(--color-low-border)" : "var(--color-border-strong)"}`, borderRadius: "var(--radius-md)", padding: "var(--space-4) var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+    <Card variant="soft" style={{ borderColor: score != null && score < 35 ? "var(--color-low-border)" : "var(--color-border-strong)", borderRadius: "var(--radius-md)", padding: "var(--space-4) var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
         <span style={{ width: "26px", height: "26px", borderRadius: "var(--radius-pill)", background: grad.orb, boxShadow: `0 0 10px ${grad.glow}`, flexShrink: 0 }} />
         <span style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>{tPlanetLord(pl.graha, lang)}</span>
@@ -228,7 +229,7 @@ function HyPlanetVerdict({ lang, pl, expl }: {
           {lang === "ta" ? focus.ta : focus.en}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -316,9 +317,9 @@ function HyPlanetLifeAreas({ lang, expl }: { lang: Lang; expl: ChartExplanationP
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-      <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-mid)", textTransform: "uppercase" }}>
+      <Kicker color="var(--color-mid)">
         {lang === "ta" ? "உங்கள் வாழ்க்கையில்" : "In your life"}
-      </span>
+      </Kicker>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "var(--space-2)" }}>
         {buckets.map((b) => {
           const meta = BUCKET_META[b];
@@ -327,13 +328,13 @@ function HyPlanetLifeAreas({ lang, expl }: { lang: Lang; expl: ChartExplanationP
             ? `${planet} மூலம், ${covers} ${outcome}`
             : `Through ${planet}, ${covers} ${outcome}`;
           return (
-            <div key={b} style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3)", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+            <Card key={b} style={{ borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3)", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
                 <span style={{ fontSize: "var(--text-base)" }} aria-hidden>{meta.icon}</span>
                 <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-text-strong)" }}>{lang === "ta" ? meta.label.ta : meta.label.en}</span>
               </div>
               <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "var(--text-sm)", lineHeight: 1.5, color: "var(--color-muted)" }}>{line}</p>
-            </div>
+            </Card>
           );
         })}
       </div>
@@ -391,7 +392,7 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
       </div>
 
       {/* Expandable table */}
-      <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", overflow: "hidden" }}>
+      <Card style={{ display: "block", overflow: "hidden", padding: 0 }}>
         <div style={{ display: "grid", gridTemplateColumns: PLANET_ROW_COLS, columnGap: "var(--space-3)", alignItems: "center", padding: "var(--space-3) var(--space-5)", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderBottom: "1px solid var(--color-border)", fontSize: "var(--text-xs)", letterSpacing: "0.1em", fontWeight: 700, color: "var(--color-faint)" }}>
           <span /><span>{t("col_graha", lang)}</span><span>{t("col_rasi", lang)}</span><span>{t("col_degree", lang)}</span>
           <span>{t("col_nakshatra", lang)}</span><span>{t("col_house", lang)}</span>
@@ -400,7 +401,12 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
         {planets.map((pl) => {
           const isOpen = open === pl.graha;
           const flags: { key: string; label: string; tone: "success" | "warning" }[] = [];
-          if (pl.isRetrograde) flags.push({ key: "vakra", label: t("flag_vakra", lang), tone: "warning" });
+          // Rahu/Ketu are retrograde every day of their existence, so the badge
+          // separates nothing on them and reads as generated noise. The backend
+          // already applies this rule (PlanetPosition.showRetrogradeBadge).
+          if (pl.isRetrograde && !PERPETUALLY_RETROGRADE.has(pl.graha)) {
+            flags.push({ key: "vakra", label: t("flag_vakra", lang), tone: "warning" });
+          }
           if (pl.isCombust) flags.push({ key: "astam", label: t("flag_astam", lang), tone: "warning" });
           if (pl.isCazimi) flags.push({ key: "cazimi", label: t("flag_cazimi", lang), tone: "success" });
           if (pl.isVargottama) flags.push({ key: "varga", label: t("flag_vargottamam", lang), tone: "success" });
@@ -439,10 +445,10 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
                     <HyPlanetVerdict lang={lang} pl={pl} expl={expl} />
                     <HyPlanetLifeAreas lang={lang} expl={expl} />
                     {remedy && (
-                      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)" }}>
+                      <Card variant="high" style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "var(--space-3)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)" }}>
                         <span style={{ color: "var(--color-high)", fontSize: "var(--text-base)", flexShrink: 0 }}>⋔</span>
                         <span style={{ fontFamily: "var(--font-body)", fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)" }}>{lang === "ta" ? remedy.value.ta : remedy.value.en}</span>
-                      </div>
+                      </Card>
                     )}
                     <HyTechnicalDetails lang={lang} pl={pl} expl={expl} />
                   </div>
@@ -451,7 +457,7 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
             </div>
           );
         })}
-      </div>
+      </Card>
     </div>
   );
 }
@@ -459,7 +465,7 @@ function HyFact({ label, value, tone = "NEUTRAL" }: { label: string; value: stri
   const labelColor = tone === "BOOST" ? "var(--color-high)" : tone === "CAUTION" ? "var(--color-low)" : "var(--color-mid)";
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-      <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", fontWeight: 700, color: labelColor, textTransform: "uppercase" }}>{label}</span>
+      <Kicker color={labelColor}>{label}</Kicker>
       <span style={{ fontFamily: "var(--font-body)", fontSize: "var(--text-base)", lineHeight: 1.5, color: "var(--color-text)" }}>{value}</span>
     </div>
   );
@@ -493,7 +499,7 @@ function HyTechnicalDetails({ lang, pl, expl }: {
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", marginTop: "14px" }}>
           {score != null && (
             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
-              <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-mid)", textTransform: "uppercase" }}>{lang === "ta" ? "வலிமை" : "Strength"}</span>
+              <Kicker color="var(--color-mid)">{lang === "ta" ? "வலிமை" : "Strength"}</Kicker>
               <div style={{ width: "160px", height: "5px", borderRadius: "var(--radius-sm)", background: "var(--color-border)", overflow: "hidden" }}>
                 <div style={{ height: "100%", width: `${Math.max(0, Math.min(100, score))}%`, background: scoreColor(score), borderRadius: "var(--radius-sm)" }} />
               </div>
@@ -561,7 +567,7 @@ export function HyBhavaTable({ lang, chart, explanationPlanets }: {
 
   const cols = ".5fr 1.9fr 1.2fr auto";
   return (
-    <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-5)", display: "flex", flexDirection: "column" }}>
+    <Card style={{ padding: "var(--space-5) var(--space-5)", display: "flex", flexDirection: "column", gap: 0 }}>
       <Kicker color="var(--color-mid)">{lang === "ta" ? "பாவ (வீடு) மேலோட்டம்" : "Bhava (house) overview"}</Kicker>
       <div style={{ display: "grid", gridTemplateColumns: cols, columnGap: "var(--space-3)", padding: "var(--space-3) var(--space-2) var(--space-2)", marginTop: "8px", fontSize: "var(--text-xs)", letterSpacing: "0.1em", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase" }}>
         <span>{lang === "ta" ? "வீடு" : "House"}</span>
@@ -577,7 +583,7 @@ export function HyBhavaTable({ lang, chart, explanationPlanets }: {
           <span title={r.lordScore != null ? `${r.lordScore}/100` : undefined} style={{ justifySelf: "center", width: "9px", height: "9px", borderRadius: "var(--radius-pill)", background: r.dot }} />
         </div>
       ))}
-    </div>
+    </Card>
   );
 }
 
@@ -619,40 +625,271 @@ export function HyProfileCard({ kicker, glyph, name, rulingPlanetLabel, blurb, t
 
 /* ── One horizontal period band (dasha / bhukti / antaram all use this) —
       chapters left to right with the running one marked ACTIVE. ─────────── */
-function HyPeriodBand({ items, lang, word, fmtDate, isActiveItem, minWidth }: {
+function dashaTotalDays(period: { startDate: string; endDate: string }): number {
+  const start = new Date(`${period.startDate}T00:00:00`).getTime();
+  const end = new Date(`${period.endDate}T00:00:00`).getTime();
+  return Math.round((end - start) / 86400000);
+}
+function dashaDaysBetween(fromIso: string, toIso: string): number {
+  const from = new Date(`${fromIso}T00:00:00`).getTime();
+  const to = new Date(`${toIso}T00:00:00`).getTime();
+  return Math.round((to - from) / 86400000);
+}
+
+/* In-bar segment labels — each level reads best in its own natural unit:
+   whole years for mahadashas, year+month for bhuktis, plain days for the
+   fast-moving antarams (a month/year label would collapse several of those
+   into the same text). */
+function dashaYearsLabel(period: { startDate: string; endDate: string }, lang: Lang): string {
+  const years = Math.max(1, Math.round(dashaTotalDays(period) / 365.25));
+  return lang === "ta" ? `${years} ஆண்டு` : `${years}yr`;
+}
+function dashaYearMonthLabel(period: { startDate: string; endDate: string }, lang: Lang): string {
+  const totalDays = dashaTotalDays(period);
+  if (totalDays < 45) return lang === "ta" ? `${totalDays} நாள்` : `${totalDays}d`;
+  const totalMonths = Math.round(totalDays / 30.44);
+  const years = Math.floor(totalMonths / 12);
+  const months = totalMonths % 12;
+  if (years === 0) return lang === "ta" ? `${months} மாதம்` : `${months}mo`;
+  if (months === 0) return lang === "ta" ? `${years} ஆண்டு` : `${years}yr`;
+  return lang === "ta" ? `${years}ஆ ${months}மா` : `${years}y ${months}mo`;
+}
+function dashaDaysLabel(period: { startDate: string; endDate: string }, lang: Lang): string {
+  return lang === "ta" ? `${dashaTotalDays(period)} நாள்` : `${dashaTotalDays(period)}d`;
+}
+/* Header-row span captions — spelled out in full, one size up from the
+   segment labels above (the mahadasha row states the whole cycle's span in
+   years; the antaram row states its bhukti's span in days). */
+function dashaSpanYears(period: { startDate: string; endDate: string }, lang: Lang): string {
+  const years = Math.round(dashaTotalDays(period) / 365.25);
+  return lang === "ta" ? `${years} ஆண்டுகள்` : `${years} years`;
+}
+function dashaSpanDays(period: { startDate: string; endDate: string }, lang: Lang): string {
+  return lang === "ta" ? `${dashaTotalDays(period)} நாட்கள்` : `${dashaTotalDays(period)} days`;
+}
+
+/* ── Segment fills — three states, each legible on its own. `past` is a
+      dimmed version of the same purple as `future` (NOT a near-transparent
+      wash): an already-lived chapter still has to be readable, it's just not
+      where the eye should land. ──────────────────────────────────────────── */
+const DASHA_SEG_BG = {
+  active: "linear-gradient(160deg, var(--color-accent-strong) 0%, var(--color-accent) 100%)",
+  past: "color-mix(in srgb, var(--color-accent-secondary-muted) 45%, transparent)",
+  future: "var(--color-accent-secondary-muted)",
+} as const;
+
+/* ── Legend swatch — explains the bar grammar (dimmed/filled/ahead) once, at
+      the foot of the card, instead of repeating a key on every row. ─────── */
+function HyDashaLegendSwatch({ tone, label }: { tone: keyof typeof DASHA_SEG_BG; label: string }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1_5)", fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
+      <span style={{ width: "14px", height: "10px", borderRadius: "3px", background: DASHA_SEG_BG[tone], border: "1px solid var(--color-border)", flexShrink: 0 }} />
+      {label}
+    </span>
+  );
+}
+
+/* ── Level header — which chapter a row is nested inside, how many
+      sub-periods, how long the whole thing spans, with the calendar range
+      right-aligned. `depth` draws the ↳ nesting glyph. ──────────────────── */
+function HyDashaLevelHeader({ label, meta, rangeLabel, depth = 0 }: { label: string; meta: string; rangeLabel: string; depth?: number }) {
+  return (
+    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "var(--space-3)", flexWrap: "wrap" }}>
+      <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text)" }}>
+        {depth > 0 && <span aria-hidden="true" style={{ color: "var(--color-border-strong)", marginRight: "var(--space-1_5)" }}>↳</span>}
+        <b style={{ fontWeight: 700, color: "var(--color-text-strong)" }}>{label}</b>{" "}
+        <span style={{ color: "var(--color-faint)" }}>· {meta}</span>
+      </span>
+      <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", whiteSpace: "nowrap" }}>{rangeLabel}</span>
+    </div>
+  );
+}
+
+/* ── Proportional bar row — the Gantt-style read the old equal-width card
+      band couldn't give: a 20-year mahadasha visibly wider than a 6-year
+      one, an already-lived chapter dimmed, the running one lit gold with an
+      inner sliver showing how far through it today sits. ─────────────────── */
+function HyDashaBarRow({
+  items,
+  lang,
+  today,
+  isActiveItem,
+  durationLabel,
+  height = 56,
+  todayLabel,
+  axis,
+}: {
   items: DashaTimelineItem[];
   lang: Lang;
-  word: string;
-  fmtDate: (iso: string) => string;
+  today: string;
   isActiveItem: (item: DashaTimelineItem) => boolean;
-  minWidth: string;
+  durationLabel: (item: DashaTimelineItem) => string;
+  height?: number;
+  /** When set, draws the "you are here" marker line with this caption above
+   *  the row. Only the outermost row captions it; the nested rows get the
+   *  bare line so the eye can follow one vertical thread down the card. */
+  todayLabel?: string;
+  /** Rendered directly under the bar and INSIDE its scroll container, so an
+   *  axis stays pinned to the segments it labels when the row scrolls. */
+  axis?: React.ReactNode;
 }) {
+  if (items.length === 0) return null;
+  const rangeStart = new Date(`${items[0].startDate}T00:00:00`).getTime();
+  const rangeEnd = new Date(`${items[items.length - 1].endDate}T00:00:00`).getTime();
+  const totalMs = Math.max(rangeEnd - rangeStart, 1);
+  const pct = (iso: string) => Math.max(0, Math.min(100, ((new Date(`${iso}T00:00:00`).getTime() - rangeStart) / totalMs) * 100));
+
+  const todayMs = new Date(`${today}T00:00:00`).getTime();
+  const todayInRange = todayMs >= rangeStart && todayMs <= rangeEnd;
+  const todayPct = todayInRange ? ((todayMs - rangeStart) / totalMs) * 100 : null;
+  // A caption near either edge would run off the bar — pin it inside.
+  const captionAnchor = todayPct === null ? "none" : todayPct < 12 ? "start" : todayPct > 88 ? "end" : "center";
+
   return (
-    // paddingTop clears the ACTIVE badge's -8px overhang: `overflow-x: auto`
-    // forces `overflow-y` to compute to auto, so anything above the content box
-    // would be clipped.
-    <div style={{ display: "flex", alignItems: "stretch", gap: 0, overflowX: "auto", padding: "var(--space-3) 0 var(--space-1)" }}>
-      {items.map((p, i) => {
-        const active = isActiveItem(p);
-        return (
-          // stretch, not center: a label that wraps to two lines ("Jupiter
-          // Mahadasha", "Mercury Antaram") makes its card taller, and centering
-          // would float every shorter card down — moving its ACTIVE badge with
-          // it. Stretching keeps all card tops on one line so the badge sits at
-          // the same height across the whole band.
-          <div key={`${p.lord}-${p.startDate}`} style={{ display: "flex", alignItems: "stretch", flex: 1, minWidth }}>
-            <div style={{ flex: 1, position: "relative", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)", background: active ? "var(--color-accent-muted)" : "var(--color-surface-soft)", border: `1px solid ${active ? "var(--color-border-strong)" : "var(--color-border)"}` }}>
-              {active && (
-                <span style={{ position: "absolute", top: "-8px", left: "13px", fontSize: "var(--text-xs)", letterSpacing: "0.08em", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-2)", whiteSpace: "nowrap" }}>
-                  ● {lang === "ta" ? "இயங்குகிறது" : "ACTIVE"}
+    // The bar holds 9 segments; below ~680px the narrowest ones can no longer
+    // fit their own name, so scroll rather than crush them into blank boxes.
+    <div style={{ overflowX: "auto", overflowY: "hidden" }}>
+      <div style={{ position: "relative", minWidth: "680px", paddingTop: todayLabel ? "18px" : 0 }}>
+        {todayPct !== null && todayLabel && (
+          <span
+            style={{
+              position: "absolute",
+              top: 0,
+              left: `${todayPct}%`,
+              transform: captionAnchor === "center" ? "translateX(-50%)" : captionAnchor === "end" ? "translateX(-100%)" : "none",
+              fontSize: "var(--text-2xs)",
+              fontWeight: 700,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: "var(--color-accent-strong)",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {todayLabel}
+          </span>
+        )}
+        <div style={{ position: "relative", height: `${height}px` }}>
+          {items.map((item) => {
+            const active = isActiveItem(item);
+            const past = !active && item.endDate <= today;
+            const left = pct(item.startDate);
+            const width = Math.max(pct(item.endDate) - left, 0.5);
+            const tone = active ? "active" : past ? "past" : "future";
+            const fg = active ? "var(--color-on-accent)" : past ? "var(--color-faint)" : "var(--color-text)";
+            // The name always renders (a nameless box is the one thing a
+            // timeline must never show); only the duration line, which is
+            // supplementary, drops out when the segment is genuinely too thin.
+            const showDuration = width >= 4.5;
+
+            let innerPct: number | null = null;
+            if (active) {
+              const segStart = new Date(`${item.startDate}T00:00:00`).getTime();
+              const segEnd = new Date(`${item.endDate}T00:00:00`).getTime();
+              const segTotal = Math.max(segEnd - segStart, 1);
+              const segElapsed = Math.min(Math.max(todayMs - segStart, 0), segTotal);
+              innerPct = (segElapsed / segTotal) * 100;
+            }
+
+            return (
+              <div
+                key={`${item.level}-${item.lord}-${item.startDate}`}
+                title={`${tPlanetLord(item.lord, lang)} · ${item.startDate} – ${item.endDate}`}
+                style={{
+                  position: "absolute",
+                  // Inset by 2px a side so adjacent periods read as separate
+                  // cards (the approved mockup's grammar) instead of one
+                  // continuous ribbon split by hairlines.
+                  left: `calc(${left}% + 2px)`,
+                  width: `calc(${width}% - 4px)`,
+                  top: 0,
+                  bottom: 0,
+                  background: DASHA_SEG_BG[tone],
+                  borderRadius: "var(--radius-sm)",
+                  border: active ? "1px solid var(--color-accent-strong)" : "1px solid transparent",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "2px",
+                  overflow: "hidden",
+                  padding: "0 3px",
+                }}
+              >
+                <span style={{ fontSize: "var(--text-xs)", fontWeight: active ? 700 : 600, color: fg, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>
+                  {tPlanetLord(item.lord, lang)}
                 </span>
-              )}
-              <div style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: active ? "var(--color-accent-strong)" : "var(--color-text)" }}>{tPlanetLord(p.lord, lang)} {word}</div>
-              <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "3px" }}>{fmtDate(p.startDate)} – {fmtDate(p.endDate)}</div>
-            </div>
-            {i < items.length - 1 && (
-              <span style={{ alignSelf: "center", color: "var(--color-border-strong)", paddingInline: "var(--space-2)", flexShrink: 0, display: "inline-flex" }} aria-hidden="true">
-                <ArrowRight size={16} strokeWidth={1.5} />
+                {showDuration && (
+                  <span style={{ fontSize: "var(--text-2xs)", color: fg, opacity: active ? 0.85 : 0.75, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>
+                    {durationLabel(item)}
+                  </span>
+                )}
+                {innerPct !== null && (
+                  <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "4px", background: "color-mix(in srgb, var(--color-on-accent) 30%, transparent)" }}>
+                    <div style={{ width: `${innerPct}%`, height: "100%", background: "var(--color-on-accent)" }} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {todayPct !== null && (
+            <span
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                left: `${todayPct}%`,
+                top: "-4px",
+                bottom: "-4px",
+                width: "2px",
+                marginLeft: "-1px",
+                background: "var(--color-accent-strong)",
+                borderRadius: "1px",
+                pointerEvents: "none",
+              }}
+            />
+          )}
+        </div>
+        {axis}
+      </div>
+    </div>
+  );
+}
+
+/* ── Axis ticks — year + age at each mahadasha boundary. Only the outermost
+      row carries this: bhukti/antaram rows are already scoped by their own
+      header ("Bhukti within Moon dasa"), so a second axis would repeat the
+      same handful of years without adding information. ────────────────── */
+function HyDashaAxisTicks({ items, lang, birthDateLocal }: { items: DashaTimelineItem[]; lang: Lang; birthDateLocal?: string | null }) {
+  if (items.length === 0) return null;
+  const rangeStart = new Date(`${items[0].startDate}T00:00:00`).getTime();
+  const rangeEnd = new Date(`${items[items.length - 1].endDate}T00:00:00`).getTime();
+  const totalMs = Math.max(rangeEnd - rangeStart, 1);
+  const marks = [...items.map((m) => m.startDate), items[items.length - 1].endDate];
+  let lastLeft = -100;
+  return (
+    <div style={{ position: "relative", height: "30px" }}>
+      {marks.map((iso, i) => {
+        const left = Math.max(0, Math.min(100, ((new Date(`${iso}T00:00:00`).getTime() - rangeStart) / totalMs) * 100));
+        if (left - lastLeft < 6) return null;
+        lastLeft = left;
+        const isLast = i === marks.length - 1;
+        const age = ageAtDate(birthDateLocal ?? undefined, iso);
+        return (
+          <div
+            key={`${iso}-${i}`}
+            style={{
+              position: "absolute",
+              left: `${left}%`,
+              transform: isLast ? "translateX(-100%)" : left === 0 ? "none" : "translateX(-50%)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: isLast ? "flex-end" : left === 0 ? "flex-start" : "center",
+              gap: "1px",
+            }}
+          >
+            <span style={{ fontSize: "var(--text-2xs)", color: "var(--color-faint)" }}>{iso.slice(0, 4)}</span>
+            {age !== null && (
+              <span style={{ fontSize: "var(--text-2xs)", color: "var(--color-faint)", opacity: 0.65 }}>
+                {lang === "ta" ? `வயது ${age}` : `age ${age}`}
               </span>
             )}
           </div>
@@ -661,35 +898,60 @@ function HyPeriodBand({ items, lang, word, fmtDate, isActiveItem, minWidth }: {
     </div>
   );
 }
-function HyBandCaption({ children }: { children: React.ReactNode }) {
-  return <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{children}</span>;
+
+/* ── Countdown readout — exact days left in the running antaram, the
+      finest-grained "where am I right now" number the timeline can give. ── */
+function HyDashaCountdown({ lang, period, today }: { lang: Lang; period: { startDate: string; endDate: string }; today: string }) {
+  const totalDays = Math.max(dashaTotalDays(period), 1);
+  const elapsedDays = Math.min(Math.max(dashaDaysBetween(period.startDate, today), 0), totalDays);
+  const daysLeft = totalDays - elapsedDays;
+  const pct = (elapsedDays / totalDays) * 100;
+  const endLabel = new Date(`${period.endDate}T00:00:00`).toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", { day: "numeric", month: "short", year: "numeric" });
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "var(--space-1_5)", minWidth: "148px" }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-1_5)" }}>
+        <span style={{ fontFamily: "var(--font-display)", fontSize: "2rem", fontWeight: 600, color: "var(--color-accent-strong)", lineHeight: 1 }}>{daysLeft}</span>
+        <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>{lang === "ta" ? "நாட்கள் மீதம்" : "days left"}</span>
+      </div>
+      <div style={{ width: "100%", height: "5px", borderRadius: "3px", background: "color-mix(in srgb, var(--color-text-strong) 12%, transparent)", overflow: "hidden" }}>
+        <div style={{ width: `${pct}%`, height: "100%", borderRadius: "3px", background: "var(--color-accent)" }} />
+      </div>
+      <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", whiteSpace: "nowrap" }}>
+        {lang === "ta" ? `${elapsedDays} / ${totalDays} நாட்கள்` : `${elapsedDays} of ${totalDays} days`} · {lang === "ta" ? "முடிவு" : "ends"} {endLabel}
+      </span>
+    </div>
+  );
 }
 
-/* ── Dasha timeline — the three nested Vimshottari levels as stacked bands:
-      every mahadasha of the life, the bhuktis inside the running one, and the
-      antarams inside the running bhukti. Data is the same DashaTimelineItem[]
-      the Dasa·Bhukti detail already uses — no extra fetch. ──────────────── */
+/* ── Dasha timeline — the three nested Vimshottari levels as proportional
+      Gantt bars: every mahadasha of the life sized by its own duration, the
+      bhuktis inside the running one, and the antarams inside the running
+      bhukti. Data is the same DashaTimelineItem[] the Dasa·Bhukti detail
+      already uses — no extra fetch. ──────────────────────────────────────── */
 export function HyBhuktiTimeline({
   lang,
   dasha,
   dashaMaha,
   dashaAntar,
   today,
+  birthDateLocal,
+  dashaSupportText,
+  onOpenForecast,
 }: {
   lang: Lang;
   dasha: DashaTimelineResponseData | null;
   dashaMaha?: DashaTimelineResponseData | null;
   dashaAntar: DashaTimelineItem[];
   today: string;
+  birthDateLocal?: string | null;
+  dashaSupportText?: BiText | null;
+  onOpenForecast?: () => void;
 }) {
   if (!dasha) return null;
   const maha = dasha.current.mahadasha;
-  const activeBhuktiLord = dasha.current.antardasha.lord;
-  const activeAntaramLord = dasha.current.pratyantardasha.lord;
+  const activeBhukti = dasha.current.antardasha;
+  const activeAntaram = dasha.current.pratyantardasha;
 
-  // Each level's rows. The bundle's split hands us pre-filtered timelines, but
-  // filter by `level` anyway so this stays correct if given an unsplit one.
-  //
   // The engine builds TWO full Vimshottari cycles (18 mahadashas, ~240 years)
   // so long-range period lookups resolve — but a life only ever runs one. Show
   // the first cycle: 9 mahadashas, the 120 years from birth the almanac prints.
@@ -710,67 +972,111 @@ export function HyBhuktiTimeline({
   };
   const isActive = (b: DashaTimelineItem) => b.startDate <= today && today < b.endDate;
   const mahaWord = lang === "ta" ? "மகாதசை" : "Mahadasha";
+  const bhuktiWord = t("bhukti_word", lang);
+  const periodsWord = lang === "ta" ? "காலகட்டங்கள்" : "chapters";
+  const subPeriodsWord = lang === "ta" ? "துணைக் காலங்கள்" : "sub-periods";
+  const todayMarkerLabel = `${lang === "ta" ? "இன்று" : "Today"} · ${new Date(`${today}T00:00:00`).toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", { day: "numeric", month: "short", year: "numeric" })}`;
 
   return (
-    <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-      {/* The running stack, stated first — the bands below are the detail
+    <Card style={{ padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
+      {/* Right now — the running stack at every depth, stated first, with the
+          most specific level (the antaram) picked out in gold and its exact
+          days-remaining count alongside. The bands below are the detail
           behind it (mahadashas -> bhuktis -> antarams, each nested in the last). */}
-      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)" }}>
-        <span style={{ color: "var(--color-accent-secondary)", fontSize: "var(--text-base)" }}>◈</span>
-        <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text)" }}>
-          {lang === "ta" ? "இப்போது: " : "Right now: "}
-          <b style={{ color: "var(--color-text-strong)", fontWeight: 700 }}>
-            {tPlanetLord(maha.lord, lang)} {t("dasha_word", lang)} · {tPlanetLord(activeBhuktiLord, lang)} {t("bhukti_word", lang)} · {tPlanetLord(activeAntaramLord, lang)} {t("antaram_word", lang)}
-          </b>
-        </span>
-      </div>
+      {/* `flexDirection: "row"` is load-bearing: `.ui-card` sets
+          `flex-direction: column`, so without it the children stack and the
+          text block's `flex-basis` resolves against the HEIGHT — which
+          ballooned this hero to ~330px of dead space. */}
+      <Card variant="accent" style={{ display: "flex", flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "var(--space-4) var(--space-6)", borderRadius: "var(--radius-lg)", padding: "var(--space-4) var(--space-5)" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1_5)", flex: "1 1 320px", minWidth: 0 }}>
+          <Kicker>{lang === "ta" ? "இப்போது" : "Right now"}</Kicker>
+          <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 600, color: "var(--color-text-strong)", lineHeight: 1.25 }}>
+            {tPlanetLord(maha.lord, lang)} {mahaWord} · {tPlanetLord(activeBhukti.lord, lang)} {bhuktiWord} ·{" "}
+            <span style={{ color: "var(--color-accent-strong)" }}>{tPlanetLord(activeAntaram.lord, lang)} {t("antaram_word", lang)}</span>
+          </p>
+          {dashaSupportText && (dashaSupportText.en || dashaSupportText.ta) && (
+            <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.5 }}>
+              {lang === "ta" ? dashaSupportText.ta : dashaSupportText.en}
+            </p>
+          )}
+        </div>
+        <HyDashaCountdown lang={lang} period={activeAntaram} today={today} />
+      </Card>
 
       {mahas.length > 0 && (
-        <>
-          <HyBandCaption>{lang === "ta" ? "வாழ்நாள் மகாதசைகள் —" : "the mahadasha chapters of this life —"}</HyBandCaption>
-          <HyPeriodBand
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+          <HyDashaLevelHeader
+            label={mahaWord}
+            meta={`${mahas.length} ${periodsWord} · ${dashaSpanYears({ startDate: mahas[0].startDate, endDate: mahas[mahas.length - 1].endDate }, lang)}`}
+            rangeLabel={`${fmt(mahas[0].startDate)} – ${fmt(mahas[mahas.length - 1].endDate)}`}
+          />
+          <HyDashaBarRow
             items={mahas}
             lang={lang}
-            word={mahaWord}
-            fmtDate={fmt}
+            today={today}
             isActiveItem={(m) => isActive(m) || (!mahas.some(isActive) && m.lord === maha.lord)}
-            minWidth="140px"
+            durationLabel={(item) => dashaYearsLabel(item, lang)}
+            todayLabel={todayMarkerLabel}
+            axis={<HyDashaAxisTicks items={mahas} lang={lang} birthDateLocal={birthDateLocal} />}
           />
-        </>
+        </div>
       )}
 
-      <HyBandCaption>
-        {lang === "ta"
-          ? `${tPlanetLord(maha.lord, lang)} ${mahaWord}க்குள் புக்திகள் —`
-          : `then the bhukti chapters within ${tPlanetLord(maha.lord, lang)} ${mahaWord} —`}
-      </HyBandCaption>
-      <HyPeriodBand
-        items={bhuktis}
-        lang={lang}
-        word={t("bhukti_word", lang)}
-        fmtDate={fmt}
-        isActiveItem={(b) => isActive(b) || (dashaAntar.length === 0 && b.lord === activeBhuktiLord)}
-        minWidth="140px"
-      />
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", paddingLeft: "var(--space-4)" }}>
+        <HyDashaLevelHeader
+          depth={1}
+          label={lang === "ta" ? `${tPlanetLord(maha.lord, lang)} ${mahaWord}க்குள் ${bhuktiWord}` : `${bhuktiWord} within ${tPlanetLord(maha.lord, lang)} ${mahaWord}`}
+          meta={`${bhuktis.length} ${subPeriodsWord} · ${dashaSpanYears(maha, lang)}`}
+          rangeLabel={`${fmt(maha.startDate)} – ${fmt(maha.endDate)}`}
+        />
+        <HyDashaBarRow
+          items={bhuktis}
+          lang={lang}
+          today={today}
+          isActiveItem={(b) => isActive(b) || (dashaAntar.length === 0 && b.lord === activeBhukti.lord)}
+          durationLabel={(item) => dashaYearMonthLabel(item, lang)}
+        />
+      </div>
 
       {antarams.length > 0 && (
-        <>
-          <HyBandCaption>
-            {lang === "ta"
-              ? `${tPlanetLord(activeBhuktiLord, lang)} ${t("bhukti_word", lang)}க்குள் அந்தரங்கள் —`
-              : `then the antarams within ${tPlanetLord(activeBhuktiLord, lang)} ${t("bhukti_word", lang)} —`}
-          </HyBandCaption>
-          <HyPeriodBand
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", paddingLeft: "var(--space-7)" }}>
+          <HyDashaLevelHeader
+            depth={2}
+            label={lang === "ta" ? `${tPlanetLord(activeBhukti.lord, lang)} ${bhuktiWord}க்குள் ${t("antaram_word", lang)}` : `${t("antaram_word", lang)} within ${tPlanetLord(activeBhukti.lord, lang)} ${bhuktiWord}`}
+            meta={`${antarams.length} ${subPeriodsWord} · ${dashaSpanDays(activeBhukti, lang)}`}
+            rangeLabel={`${fmtDay(activeBhukti.startDate)} – ${fmtDay(activeBhukti.endDate)}`}
+          />
+          <HyDashaBarRow
             items={antarams}
             lang={lang}
-            word={t("antaram_word", lang)}
-            fmtDate={fmtDay}
-            isActiveItem={(a) => isActive(a) || (!antarams.some(isActive) && a.lord === activeAntaramLord)}
-            minWidth="128px"
+            today={today}
+            isActiveItem={(a) => isActive(a) || (!antarams.some(isActive) && a.lord === activeAntaram.lord)}
+            durationLabel={(item) => dashaDaysLabel(item, lang)}
+            height={48}
           />
-        </>
+        </div>
       )}
-    </div>
+
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "var(--space-3)", paddingTop: "var(--space-3)", borderTop: "1px solid var(--color-border)" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-4)" }}>
+          <HyDashaLegendSwatch tone="active" label={lang === "ta" ? "இப்போது இருக்கும் இடம்" : "where you are now"} />
+          <HyDashaLegendSwatch tone="past" label={lang === "ta" ? "கடந்தது" : "already lived"} />
+          <HyDashaLegendSwatch tone="future" label={lang === "ta" ? "இன்னும் வரவில்லை" : "still ahead"} />
+          <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
+            {lang === "ta" ? "அகலம் = கால அளவு" : "bar width = duration"}
+          </span>
+        </div>
+        {onOpenForecast && (
+          <button
+            type="button"
+            onClick={onOpenForecast}
+            style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-accent-strong)", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+          >
+            {lang === "ta" ? "வரும் ஆண்டு முன்னறிவிப்பு" : "See the year-ahead forecast"}<ArrowRight size={14} strokeWidth={1.5} aria-hidden="true" />
+          </button>
+        )}
+      </div>
+    </Card>
   );
 }
 
@@ -885,10 +1191,10 @@ export function HyTodayFacts({ lang, memberName, memberNakshatraName, weekdayLor
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
       {headline && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-2)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3)" }}>
+          <Card style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "var(--space-3)", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3)" }}>
             <span style={{ width: "30px", height: "30px", borderRadius: "var(--radius-sm)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", display: "grid", placeItems: "center", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-accent-strong)", flexShrink: 0, fontFamily: "var(--font-display)" }}>{headline.number}</span>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase" }}>{headlineIsPersonal ? ownerLabel : (lang === "ta" ? "இன்றைய அதிர்ஷ்ட எண்" : "Lucky number today")}</div>
+              <Kicker as="div" color="var(--color-faint)" style={{ letterSpacing: "0.1em" }}>{headlineIsPersonal ? ownerLabel : (lang === "ta" ? "இன்றைய அதிர்ஷ்ட எண்" : "Lucky number today")}</Kicker>
               <div style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-text-strong)", marginTop: "2px" }}>{headline.number} · {tPlanetLord(headline.graha, lang)}</div>
               <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "1px" }}>
                 {headlineIsPersonal
@@ -896,20 +1202,20 @@ export function HyTodayFacts({ lang, memberName, memberNakshatraName, weekdayLor
                   : (weekdayKey ? tWeekday(weekdayKey, lang) : "")}
               </div>
             </div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3)" }}>
+          </Card>
+          <Card style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "var(--space-3)", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3)" }}>
             <span style={{ width: "30px", height: "30px", borderRadius: "var(--radius-sm)", background: headline.colour.swatch, border: "1px solid var(--color-border-strong)", flexShrink: 0 }} />
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase" }}>{headlineIsPersonal ? ownerColourLabel : (lang === "ta" ? "இன்றைய அதிர்ஷ்ட நிறம்" : "Lucky colour today")}</div>
+              <Kicker as="div" color="var(--color-faint)" style={{ letterSpacing: "0.1em" }}>{headlineIsPersonal ? ownerColourLabel : (lang === "ta" ? "இன்றைய அதிர்ஷ்ட நிறம்" : "Lucky colour today")}</Kicker>
               <div style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-text-strong)", marginTop: "2px" }}>{lang === "ta" ? headline.colour.ta : headline.colour.en}</div>
             </div>
-          </div>
+          </Card>
         </div>
       )}
       {/* Shared-day almanac — one muted line, explicitly "same for everyone", so
           it reads as context for the day rather than a second personal number. */}
       {(dayLucky || dayStarLord) && (
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px dashed var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-2) var(--space-3)" }}>
+        <Card variant="dashed" style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "var(--space-3)", borderRadius: "var(--radius-md)", padding: "var(--space-2) var(--space-3)" }}>
           <span style={{ flexShrink: 0, width: "22px", height: "22px", borderRadius: "var(--radius-sm)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", color: "var(--color-accent-strong)" }}>⋆</span>
           <span style={{ flex: 1, fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.5 }}>
             <b style={{ color: "var(--color-faint)", fontWeight: 700, textTransform: "uppercase", fontSize: "var(--text-xs)", letterSpacing: "0.1em", marginRight: "6px" }}>{lang === "ta" ? "இன்று · அனைவருக்கும்" : "Today · shared"}</b>
@@ -921,16 +1227,16 @@ export function HyTodayFacts({ lang, memberName, memberNakshatraName, weekdayLor
               <>{lang === "ta" ? "நட்சத்திரம் " : "star "}<b style={{ color: "var(--color-text)" }}>{tNakshatra(dayNakshatraName, lang)}</b> {lang === "ta" ? `எண் ${dayStarLord.number}` : `no. ${dayStarLord.number}`}</>
             )}
           </span>
-        </div>
+        </Card>
       )}
       {goodWindow && (
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)" }}>
+        <Card variant="high" style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "var(--space-3)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)" }}>
           <span style={{ color: "var(--color-high)", fontSize: "var(--text-sm)" }}>✳</span>
           <span style={{ flex: 1, fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
             {goodWindowLabel ?? (lang === "ta" ? "சிறந்த நேரம் " : "Best window ")}
             <b style={{ color: "var(--color-text-strong)" }}>{formatClockLabel(goodWindow.start)} – {formatClockLabel(goodWindow.end)}</b>
           </span>
-        </div>
+        </Card>
       )}
     </div>
   );
@@ -1000,7 +1306,7 @@ export function HyYogaDoshaCard({ lang, yogaDosham, onViewAll }: {
 }) {
   const items = buildYogaDoshaItems(yogaDosham, lang);
   return (
-    <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+    <Card style={{ padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
       <Kicker color="var(--color-mid)">{lang === "ta" ? "யோகம் & தோஷம்" : "Yoga & doshas"}</Kicker>
       <div style={{ marginTop: "8px" }}>
         {items.map((it, i) => {
@@ -1018,7 +1324,7 @@ export function HyYogaDoshaCard({ lang, yogaDosham, onViewAll }: {
           {lang === "ta" ? "எல்லா யோகம் & தோஷமும்" : "View all yogas & doshas"}<ArrowRight size={14} strokeWidth={1.5} aria-hidden="true" />
         </button>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -1072,6 +1378,9 @@ export function deriveStrengthsWatchouts(planets: Pick<ChartExplanationPlanet, "
    (D1=D9), cazimi (heart of the Sun), combustion and retrogression, plus the
    count of planets in Kendra/Trikona vs. Dusthana. No authored interpretation —
    these are chart facts, so they need no astrologer sign-off. */
+/** Rahu and Ketu are always retrograde — the flag carries no signal for them. */
+const PERPETUALLY_RETROGRADE = new Set(["RAHU", "KETU"]);
+
 const DIGNITY_WORD: Record<string, BiText> = {
   EXALTED: { en: "exalted", ta: "உச்சம்" },
   MOOLATRIKONA: { en: "moolatrikona", ta: "மூலத்திரிகோணம்" },
@@ -1100,7 +1409,13 @@ export function derivePlacementSignals(
     if (p.isCazimi) push(boosts, p.graha, t("flag_cazimi", lang), "good");
     if (p.dignity === "DEBILITATED") push(cautions, p.graha, tl(lang, DIGNITY_WORD.DEBILITATED!), "warn");
     if (p.isCombust) push(cautions, p.graha, t("flag_astam", lang), "warn");
-    if (p.isRetrograde) push(cautions, p.graha, t("flag_vakra", lang), "warn");
+    if (p.isRetrograde && !PERPETUALLY_RETROGRADE.has(p.graha)) {
+      push(cautions, p.graha, t("flag_vakra", lang), "warn");
+    }
+    // Graha yuddham was scored (-15 to the loser) long before it was ever shown.
+    if (p.isPlanetaryWar && p.warOutcome === "LOST") {
+      push(cautions, p.graha, lang === "ta" ? "கிரக யுத்தம்" : "Graha yuddham", "warn");
+    }
   }
   return { boosts: boosts.slice(0, 6), cautions: cautions.slice(0, 6), kendraTrikona, dusthana };
 }
@@ -1149,31 +1464,31 @@ export function HyStrengthsWatchoutsCard({ lang, planets }: {
   const { boosts, cautions, kendraTrikona, dusthana } = derivePlacementSignals(planets, lang);
   if (strengths.length === 0 && watchOuts.length === 0 && boosts.length === 0 && cautions.length === 0) return null;
   return (
-    <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+    <Card style={{ padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
       <Kicker color="var(--color-mid)">{lang === "ta" ? "பலம் & கவனிக்க வேண்டியவை" : "Strengths & watch-outs"}</Kicker>
 
       {/* Structural summary — kendra/trikona (angular & trinal, strong) vs.
           dusthana (6·8·12, testing) occupancy, straight off houseGroup. */}
       <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
-        <div style={{ flex: "1 1 120px", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3)" }}>
+        <Card variant="high" style={{ display: "block", flex: "1 1 120px", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3)" }}>
           <div style={{ fontSize: "var(--text-lg)", fontWeight: 700, fontFamily: "var(--font-display)", color: "var(--color-high)", lineHeight: 1 }}>{kendraTrikona}</div>
           <div style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", marginTop: "3px" }}>{lang === "ta" ? "கேந்திர/திரிகோணத்தில் கிரகங்கள்" : "planets in Kendra / Trikona"}</div>
-        </div>
-        <div style={{ flex: "1 1 120px", background: dusthana > 0 ? "var(--color-low-bg)" : "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: `1px solid ${dusthana > 0 ? "var(--color-low-border)" : "var(--color-border)"}`, borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3)" }}>
+        </Card>
+        <Card variant={dusthana > 0 ? "low" : "default"} style={{ display: "block", flex: "1 1 120px", background: dusthana > 0 ? undefined : "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3)" }}>
           <div style={{ fontSize: "var(--text-lg)", fontWeight: 700, fontFamily: "var(--font-display)", color: dusthana > 0 ? "var(--color-low)" : "var(--color-faint)", lineHeight: 1 }}>{dusthana}</div>
           <div style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", marginTop: "3px" }}>{lang === "ta" ? "துஸ்தானத்தில் (6·8·12) கிரகங்கள்" : "planets in Dusthana (6·8·12)"}</div>
-        </div>
+        </Card>
       </div>
 
       {strengths.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-          <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-high)", textTransform: "uppercase" }}>{lang === "ta" ? "பலங்கள்" : "Strengths"}</span>
+          <Kicker color="var(--color-high)">{lang === "ta" ? "பலங்கள்" : "Strengths"}</Kicker>
           <TraitBars rows={strengths} mode="strength" lang={lang} />
         </div>
       )}
       {watchOuts.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-          <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-low)", textTransform: "uppercase" }}>{lang === "ta" ? "கவனிக்க வேண்டியவை" : "Watch-outs"}</span>
+          <Kicker color="var(--color-low)">{lang === "ta" ? "கவனிக்க வேண்டியவை" : "Watch-outs"}</Kicker>
           <TraitBars rows={watchOuts} mode="watch" lang={lang} />
         </div>
       )}
@@ -1182,12 +1497,12 @@ export function HyStrengthsWatchoutsCard({ lang, planets }: {
           cazimi (boosts) vs. debilitation, combustion, retrogression (cautions). */}
       {(boosts.length > 0 || cautions.length > 0) && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", borderTop: "1px solid var(--color-border)", paddingTop: "var(--space-3_5)" }}>
-          <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-mid)", textTransform: "uppercase" }}>{lang === "ta" ? "நிலை & தனிச்சிறப்பு" : "Dignity & placement"}</span>
+          <Kicker color="var(--color-mid)">{lang === "ta" ? "நிலை & தனிச்சிறப்பு" : "Dignity & placement"}</Kicker>
           {boosts.length > 0 && <PlacementChips chips={boosts} />}
           {cautions.length > 0 && <PlacementChips chips={cautions} />}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -1239,7 +1554,7 @@ export function HyRemediesCard({ lang, planets, onViewAll }: {
 }) {
   const rows = deriveWeeklyRemedies(planets);
   return (
-    <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+    <Card style={{ padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
       <Kicker color="var(--color-accent-strong)">{lang === "ta" ? "இந்த வார பரிகாரம்" : "Remedies this week"}</Kicker>
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
         {rows.map((r) => (
@@ -1265,7 +1580,7 @@ export function HyRemediesCard({ lang, planets, onViewAll }: {
           {lang === "ta" ? "எல்லா பரிகாரமும்" : "View all remedies"}<ArrowRight size={14} strokeWidth={1.5} aria-hidden="true" />
         </button>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -1369,7 +1684,7 @@ export function HyLifeAreaForecast({ lang, areas, age, onOpenLifeAreas, compact 
     (horizon === "s6" ? a.score6mo : a.score12mo) ?? a.score;
 
   return (
-    <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", overflow: "hidden" }}>
+    <Card style={{ display: "block", overflow: "hidden", padding: 0 }}>
       <div style={{ display: "grid", gridTemplateColumns: cols, columnGap: "var(--space-3)", padding: "var(--space-3) var(--space-5)", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderBottom: "1px solid var(--color-border)", fontSize: "var(--text-xs)", letterSpacing: "0.1em", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase" }}>
         <span>{lang === "ta" ? "வாழ்க்கைத் துறை" : "Life area"}</span>
         <span>{lang === "ta" ? "தற்போது" : "Current"}</span>
@@ -1418,7 +1733,7 @@ export function HyLifeAreaForecast({ lang, areas, age, onOpenLifeAreas, compact 
           )}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -1471,7 +1786,7 @@ export function HyTransitOverview({ lang, transit, memberName, onOpenTransits }:
   const moonRasi = transit?.janmaRasi;
   const who = memberName ?? (lang === "ta" ? "இவரின்" : "this member's");
   return (
-    <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+    <Card style={{ padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "var(--space-3)" }}>
         <Kicker color="var(--color-accent-strong)">{lang === "ta" ? "கோச்சர மேலோட்டம்" : "Transit overview"}</Kicker>
         <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{lang === "ta" ? "முக்கிய கிரக நகர்வுகள்" : "major planetary transits"}</span>
@@ -1515,7 +1830,7 @@ export function HyTransitOverview({ lang, transit, memberName, onOpenTransits }:
           {lang === "ta" ? "எல்லா நகர்வுகளும்" : "View all transits"}<ArrowRight size={14} strokeWidth={1.5} aria-hidden="true" />
         </button>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -1743,7 +2058,7 @@ export function HyDetailedForecast({ lang, dasha, dashaAntar, dashaMaha, planets
   ];
 
   return (
-    <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+    <Card style={{ padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
         <Kicker color="var(--color-mid)">{lang === "ta" ? "விரிவான முன்னறிவிப்பு" : "Detailed forecast"}</Kicker>
         <span style={{ flex: 1 }} />
@@ -1784,7 +2099,7 @@ export function HyDetailedForecast({ lang, dasha, dashaAntar, dashaMaha, planets
               ? forecastReadingLine(b.lord, b.score, wordForLevel(b.level), lang, b.entering, lordHouses.get(b.lord) ?? [])
               : (lang === "ta" ? "இந்தக் காலம் நிலையாக நகர்கிறது." : "A steady stretch overall.");
             return (
-              <div key={`${grain}-${b.label}-${i}`} style={{ display: "flex", gap: "var(--space-4)", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)" }}>
+              <Card key={`${grain}-${b.label}-${i}`} style={{ display: "flex", flexDirection: "row", gap: "var(--space-4)", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)" }}>
                 <div style={{ flexShrink: 0, width: "64px", textAlign: "center", paddingTop: "var(--space-0_5)" }}>
                   <div style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-text-strong)" }}>{b.label}</div>
                   <div style={{ display: "inline-block", marginTop: "5px", fontSize: "var(--text-xs)", fontWeight: 700, color: band.fg, background: band.bg, border: `1px solid ${band.bd}`, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-2)" }}>{tl(lang, status)}</div>
@@ -1799,7 +2114,7 @@ export function HyDetailedForecast({ lang, dasha, dashaAntar, dashaMaha, planets
                     </div>
                   )}
                 </div>
-              </div>
+              </Card>
             );
           })}
         </div>
@@ -1809,7 +2124,7 @@ export function HyDetailedForecast({ lang, dasha, dashaAntar, dashaMaha, planets
           {lang === "ta" ? "முழு முன்னறிவிப்பு" : "View full forecast"}<ArrowRight size={14} strokeWidth={1.5} aria-hidden="true" />
         </button>
       )}
-    </div>
+    </Card>
   );
 }
 

@@ -49,6 +49,7 @@ import {
 import { getActivityTimingBatch } from "@vinaadi/shared/api/activityTiming";
 import { NovaStarRow } from "./dashboard-ui-nova";
 import { GlanceHeader } from "./dashboard-today-glance-nova";
+import { Card } from "./ui";
 import { formatClockLabel } from "@/lib/format";
 import type { Lang } from "@/lib/i18n";
 import { minutesOfDayInZone } from "@/lib/tz";
@@ -424,14 +425,10 @@ export function DashboardTodayActivityBoardNova({
       .sort((x, y) => (x.dateLocal < y.dateLocal ? -1 : 1))[0]?.dateLocal ?? null;
 
   return (
-    <section
+    <Card
+      as="section"
       aria-label={lang === "ta" ? "இன்று எதற்கு ஏற்றது" : "What today favours"}
-      style={{
-        background: "var(--color-surface)",
-        border: "1px solid var(--color-border-strong)",
-        borderRadius: "var(--radius-lg)",
-        padding: "var(--space-4) var(--space-4_5)",
-      }}
+      style={{ display: "block", borderColor: "var(--color-border-strong)", padding: "var(--space-4) var(--space-4_5)" }}
     >
       <GlanceHeader
         lang={lang}
@@ -594,6 +591,6 @@ export function DashboardTodayActivityBoardNova({
           </button>
         </li>
       </ul>
-    </section>
+    </Card>
   );
 }

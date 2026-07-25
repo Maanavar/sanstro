@@ -6,6 +6,7 @@ import type { Lang } from "@/lib/i18n";
 import type { AnnualWrappedData, ApiEnvelope, WrappedSlide } from "@/lib/types";
 import { ShareCardButton } from "./dashboard-share-card";
 import { WrappedShareCard } from "./wrapped-share-card";
+import { Card } from "./ui/card";
 
 const W = {
   inkMid: "var(--panel-earth)",
@@ -113,15 +114,10 @@ function StatsSummary({ data, lang }: { data: AnnualWrappedData; lang: Lang }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: "8px" }}>
       {stats.map((s) => (
-        <div key={s.label} style={{
-          padding: "12px 14px",
-          borderRadius: "10px",
-          background: W.card,
-          border: `1px solid ${W.borderLt}`,
-        }}>
+        <Card key={s.label} variant="soft" style={{ padding: "12px 14px", borderRadius: "10px" }}>
           <p style={{ margin: "0 0 3px", fontSize: "0.625rem", color: W.mutedLt, textTransform: "uppercase", letterSpacing: "0.04em" }}>{s.label}</p>
           <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: s.color ?? W.terracotta }}>{s.value}</p>
-        </div>
+        </Card>
       ))}
     </div>
   );
@@ -185,12 +181,11 @@ export function DashboardAnnualWrapped({ chartId, lang }: DashboardAnnualWrapped
   return (
     <>
       {/* Entry card */}
-      <div style={{
+      <Card style={{
         padding: "18px 20px",
         borderRadius: "14px",
-        background: W.surface,
-        border: `1px solid ${W.border}`,
         display: "flex",
+        flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
         gap: "12px",
@@ -238,7 +233,7 @@ export function DashboardAnnualWrapped({ chartId, lang }: DashboardAnnualWrapped
             {loading ? "..." : (lang === "ta" ? "திற" : "Open")}
           </button>
         </div>
-      </div>
+      </Card>
 
       {/* Error */}
       {error && (

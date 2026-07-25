@@ -25,6 +25,7 @@ import { humaniseReason } from "./dashboard-event-windows";
 import { NovaLifeEventLogCard } from "./dashboard-plan-life-event-log-nova";
 import { Orbit, ArrowRight, X } from "lucide-react";
 import { Card, Segmented } from "./ui";
+import { Kicker } from "./ui/kicker";
 import { NovaPlanWhatIfPanel } from "./dashboard-plan-whatif-nova";
 import { NovaPlanDecisionsPanel } from "./dashboard-plan-decisions-nova";
 import { NovaSelect } from "./nova-select";
@@ -293,9 +294,9 @@ export function DashboardPlanTabNova({
       {/* ===== Header ===== */}
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "var(--space-5)", flexWrap: "wrap" }}>
         <div>
-          <p style={{ margin: 0, fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
+          <Kicker as="p" style={{ margin: 0 }}>
             {t("tab_plan", lang)}
-          </p>
+          </Kicker>
           <h1 style={{ margin: "6px 0 8px", fontFamily: "var(--font-display)", fontSize: "var(--display-md)", fontWeight: 600, lineHeight: 1.15, color: "var(--color-text-strong)" }}>
             {lang === "ta" ? "நம்பிக்கையுடன் " : "Plan with "}
             <em style={{ fontStyle: "italic", color: "var(--color-accent-strong)" }}>{lang === "ta" ? "திட்டமிடுங்கள்." : "confidence."}</em>
@@ -334,9 +335,9 @@ export function DashboardPlanTabNova({
             {/* ── My goals ── */}
             <Card>
               <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-                <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
+                <Kicker>
                   {lang === "ta" ? "என் இலக்குகள்" : "My goals"}
-                </span>
+                </Kicker>
                 <span style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
                   {lang === "ta" ? "தினசரி வழிகாட்டல் அதற்கேற்ப செறிவூட்டப்படும்" : "Daily guidance is enriched to match"}
                 </span>
@@ -404,9 +405,9 @@ export function DashboardPlanTabNova({
             {/* ── Nearest supportive window ── */}
             {heroGroup && (
               <div style={{ position: "relative", overflow: "hidden", background: "var(--nova-hero-gradient)", border: "1px solid var(--color-accent-secondary-muted)", borderRadius: "var(--radius-lg)", padding: "var(--space-6) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-                <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent-secondary)", fontWeight: 700 }}>
+                <Kicker color="var(--color-accent-secondary)">
                   {lang === "ta" ? "அருகிலுள்ள ஆதரவான காலம்" : "Nearest supportive window"}
-                </span>
+                </Kicker>
                 {heroQuery?.isLoading ? (
                   <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)" }}>{lang === "ta" ? "கணக்கிடுகிறோம்…" : "Calculating…"}</p>
                 ) : heroWindow ? (() => {
@@ -469,9 +470,9 @@ export function DashboardPlanTabNova({
             return (
               <Card key={group.event}>
                 <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-2)" }}>
-                  <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
+                  <Kicker>
                     {group.goalLabels.join(" · ")} — {lang === "ta" ? "ஆதரவான காலங்கள்" : "supportive windows"}
-                  </span>
+                  </Kicker>
                   <button type="button" onClick={onGoToChart} style={{ background: "none", border: "none", padding: 0, fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                     {lang === "ta" ? "தசை காலவரிசையைப் பார்" : "See the dasa timeline"}
                   </button>
@@ -538,9 +539,9 @@ export function DashboardPlanTabNova({
             const label = labelKey ? t(labelKey, lang) : g.goalType;
             return (
               <Card key={g.goalId}>
-                <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
+                <Kicker>
                   {label} — {lang === "ta" ? "ஆதரவான காலங்கள்" : "supportive windows"}
-                </span>
+                </Kicker>
                 <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.5 }}>
                   {lang === "ta"
                     ? "இந்த இலக்கிற்கு, இங்குள்ள 'என்ன ஆகும்?' தாவலிலும், நாட்காட்டியின் 'சிறந்த நாள் & முஹூர்த்தம்' பகுதியிலும் உகந்த தேதிகளைக் கண்டறியவும்."

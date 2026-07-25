@@ -23,6 +23,7 @@ import type {
 } from "@/lib/types";
 
 import { ScoreRing } from "./dashboard-family-shared";
+import { Card, Kicker } from "./ui";
 
 /**
  * Today-tab glance sections (homepage redesign 2026-07-18):
@@ -232,7 +233,7 @@ export function DashboardTodayQuickLinksNova({
   ];
 
   return (
-    <div className="ui-card ui-card--pad-sm" style={{ display: "flex", flexDirection: "column" }}>
+    <Card compact>
       <GlanceHeader
         lang={lang}
         title="Quick Links"
@@ -269,7 +270,7 @@ export function DashboardTodayQuickLinksNova({
           );
         })}
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -351,7 +352,7 @@ export function DashboardTodayLifeAreasDasaRowNova({
       {/* Life areas: stat tiles with trend arrows. No sparklines — the API
           exposes today's score + trend direction, not a history series, so a
           curve would be invented data. */}
-      <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-4_5) var(--space-5)" }}>
+      <Card style={{ display: "block" }}>
         <GlanceHeader
           lang={lang}
           title="Life Areas"
@@ -398,10 +399,10 @@ export function DashboardTodayLifeAreasDasaRowNova({
         ) : (
           <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)" }}>{t("guidance_empty", lang)}</p>
         )}
-      </div>
+      </Card>
 
       {/* Dasa chapter */}
-      <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-4_5) var(--space-5)", display: "flex", flexDirection: "column" }}>
+      <Card style={{ display: "flex", flexDirection: "column", gap: 0 }}>
         <GlanceHeader
           lang={lang}
           title="Dasa Chapter"
@@ -468,7 +469,7 @@ export function DashboardTodayLifeAreasDasaRowNova({
         ) : (
           <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)" }}>{t("chart_no_profile", lang)}</p>
         )}
-      </div>
+      </Card>
     </div>
   );
 }
@@ -519,9 +520,9 @@ function RemedyFocusCard({
         <div aria-hidden="true" style={{ width: "38px", height: "38px", borderRadius: "var(--radius-pill)", background: `color-mix(in srgb, ${accent} 16%, transparent)`, border: `1px solid color-mix(in srgb, ${accent} 40%, transparent)`, display: "flex", alignItems: "center", justifyContent: "center", color: accent, fontSize: "var(--text-lg)", flex: "none", lineHeight: 1 }}>{glyph}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
           {focus && (
-            <div style={{ fontSize: "var(--text-2xs)", fontWeight: 700, letterSpacing: "0.11em", textTransform: "uppercase", color: accent, marginBottom: "1px" }}>
+            <Kicker as="div" color={accent} style={{ marginBottom: "1px" }}>
               {tPlanetLord(focus.planet, lang)} {t("remedy_focus_dasa", lang)}
-            </div>
+            </Kicker>
           )}
           <div style={{ fontSize: "var(--text-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>{t("remedy_focus_title", lang)}</div>
         </div>
@@ -556,9 +557,9 @@ function RemedyFocusCard({
               <span aria-hidden="true" style={{ flex: "none", width: "7px", height: "7px", borderRadius: "var(--radius-pill)", background: accent, marginTop: "6px" }} />
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: "var(--text-base)", fontWeight: 500, color: "var(--color-text)", lineHeight: 1.4 }}>{tLang(action.text, lang)}</div>
-                <div style={{ fontSize: "var(--text-2xs)", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--color-faint)", marginTop: "3px" }}>
+                <Kicker as="div" color="var(--color-faint)" style={{ marginTop: "3px" }}>
                   {action.cadence === "RITUAL_ON_DAY" ? t("remedy_cadence_ritual", lang) : t("remedy_cadence_anyday", lang)}
-                </div>
+                </Kicker>
               </div>
             </div>
           ))}
@@ -567,9 +568,9 @@ function RemedyFocusCard({
 
       {/* Weekday + next date — chart-driven display only (no per-day scheduling). */}
       {focus && (
-        <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--color-muted)" }}>
+        <Kicker as="div" tone="muted">
           {t("remedy_focus_best_on", lang)} {tWeekday(focus.weekday, lang)} · {t("remedy_focus_next", lang)} {nextDate}
-        </div>
+        </Kicker>
       )}
 
       <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
@@ -627,7 +628,7 @@ export function DashboardTodayFamilyRemedyRowNova({
           The verdict word below is looked up through getScoreVerdictFromGuidance
           (was: the raw backend label token printed as-is, unlocalised, and
           identical for every score in that label's band). */}
-      <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-4_5) var(--space-5)" }}>
+      <Card style={{ display: "block" }}>
         <GlanceHeader
           lang={lang}
           title="Family Today"
@@ -746,7 +747,7 @@ export function DashboardTodayFamilyRemedyRowNova({
         ) : (
           <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)" }}>{lang === "ta" ? "குடும்ப உறுப்பினர்கள் இல்லை" : "No family members yet"}</p>
         )}
-      </div>
+      </Card>
 
       {/* Remedy for you — chart-driven anchor-planet remedy (2026-07-24). */}
       <RemedyFocusCard

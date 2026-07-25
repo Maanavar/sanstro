@@ -27,6 +27,7 @@ import { useMonthlyPanchangam } from "@/hooks/useMonthlyPanchangam";
 import { PlaceCombobox } from "./place-combobox";
 import { DrawerPanel } from "./drawer-panel";
 import { Card, Segmented } from "./ui";
+import { Kicker } from "./ui/kicker";
 import type {
   PanchangamDailyResponseData,
   PanchangamFestival,
@@ -43,6 +44,7 @@ import {
   festivalTags,
   formatChandrashtamaWindowSummary,
   formatHeaderDate,
+  formatUntilLabel,
   getTamilMonthDate,
   LunarTithiBadge,
   moonRasiFromNakshatra,
@@ -334,9 +336,9 @@ function NovaGowriDetailGrid({
   const nightSlots = slots.filter((slot) => slot.period === "NIGHT");
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-      <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>
+      <Kicker as="div">
         {lang === "ta" ? "கௌரி நல்ல நேரம் விவரம்" : "Gowri Nalla Neram Details"}
-      </div>
+      </Kicker>
       <div style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.4 }}>
         {lang === "ta"
           ? "சிவப்பு = தீய கலம் (ரோகம்/சோரம்/விஷம்) அல்லது ராகு காலம்/யமகண்டம்/குளிகையுடன் மோதும் நேரம் — காரணம் ஒவ்வொரு வரிசையிலும். பஞ்சாங்க நாள் சூர்யோதயத்தில் தொடங்குகிறது; நள்ளிரவுக்குப் பிந்தைய நேரங்களுடன் அடுத்த நாள் தேதி குறிக்கப்பட்டுள்ளது."
@@ -472,9 +474,9 @@ function DayDetailDrawerNova({
           )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-            <p style={{ margin: 0, fontSize: "var(--text-xs)", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-low)", fontWeight: 700 }}>
+            <Kicker as="p" color="var(--color-low)" style={{ margin: 0, letterSpacing: "0.14em" }}>
               {lang === "ta" ? "தவிர்க்க வேண்டிய நேரம்" : "Avoid"}
-            </p>
+            </Kicker>
             <NovaAvoidRow label={t("label_rahu_kalam", lang)} slot={data.kalam.rahuKalam} />
             <NovaAvoidRow label={t("label_yamagandam", lang)} slot={data.kalam.yamagandam} />
             <NovaAvoidRow label={t("label_kuligai", lang)} slot={data.kalam.kuligai} />
@@ -482,9 +484,9 @@ function DayDetailDrawerNova({
 
           {data.festivals.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-              <p style={{ margin: 0, fontSize: "var(--text-xs)", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
+              <Kicker as="p" style={{ margin: 0, letterSpacing: "0.14em" }}>
                 {t("label_festivals", lang)}
-              </p>
+              </Kicker>
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                 {data.festivals.map((f) => <NovaFestivalRow key={f.name} festival={f} lang={lang} />)}
               </div>
@@ -654,13 +656,13 @@ export function DashboardCalendarTabNova({
   const hijriHeaderDate = formatHijriDate(selectedDate);
   const currentNowMinutes = selectedDate === todayDate ? new Date().getHours() * 60 + new Date().getMinutes() : -1;
 
-  const tithiActive = panchangam ? activeLimb(panchangam.tithi.name, panchangam.tithi.endsAt, panchangam.tithi.nextName, currentNowMinutes, panchangam.sunrise) : null;
-  const nakActive = panchangam ? activeLimb(panchangam.nakshatra.name, panchangam.nakshatra.endsAt, panchangam.nakshatra.nextName, currentNowMinutes, panchangam.sunrise) : null;
+  const tithiActive = panchangam ? activeLimb(panchangam.tithi.name, panchangam.tithi.endsAt, panchangam.tithi.nextName, currentNowMinutes, panchangam.tithi.endsAtIso) : null;
+  const nakActive = panchangam ? activeLimb(panchangam.nakshatra.name, panchangam.nakshatra.endsAt, panchangam.nakshatra.nextName, currentNowMinutes, panchangam.nakshatra.endsAtIso) : null;
   // Issue #9: yoga & karana were static (sunrise value only, hint "Yoga N" / "—")
   // so they never advanced after their boundary. Give them the same live promotion
   // + "until HH:MM · then next" treatment as tithi/nakshatra.
-  const yogaActive = panchangam ? activeLimb(panchangam.yoga.name, panchangam.yoga.endsAt, panchangam.yoga.nextName, currentNowMinutes, panchangam.sunrise) : null;
-  const karanaActive = panchangam ? activeLimb(panchangam.karana.name, panchangam.karana.endsAt, panchangam.karana.nextName, currentNowMinutes, panchangam.sunrise) : null;
+  const yogaActive = panchangam ? activeLimb(panchangam.yoga.name, panchangam.yoga.endsAt, panchangam.yoga.nextName, currentNowMinutes, panchangam.yoga.endsAtIso) : null;
+  const karanaActive = panchangam ? activeLimb(panchangam.karana.name, panchangam.karana.endsAt, panchangam.karana.nextName, currentNowMinutes, panchangam.karana.endsAtIso) : null;
 
   const tithiPaksha = panchangam
     ? `${panchangam.tithi.paksha === "SHUKLA" ? t("paksha_shukla", lang) : t("paksha_krishna", lang)} ${panchangam.tithi.number}`
@@ -705,35 +707,35 @@ export function DashboardCalendarTabNova({
           value: tTithi(tithiActive?.activeName ?? panchangam.tithi.name, lang),
           hint: tithiActive?.rolledOver
             ? `${formatClockLabel(panchangam.tithi.endsAt)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
-            : `${tithiPaksha ?? ""} · ${formatClockLabel(panchangam.tithi.endsAt)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tTithi(panchangam.tithi.nextName, lang)}`,
+            : `${tithiPaksha ?? ""} · ${formatUntilLabel(panchangam.tithi.endsAt, panchangam.tithi.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tTithi(panchangam.tithi.nextName, lang)}`,
         },
         {
           key: lang === "ta" ? "நட்சத்திரம்" : "Nakshatra",
           value: tNakshatra(nakActive?.activeName ?? panchangam.nakshatra.name, lang),
           hint: nakActive?.rolledOver
             ? `${formatClockLabel(panchangam.nakshatra.endsAt)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
-            : `${t("label_padam", lang)} ${panchangam.nakshatra.pada} · ${formatClockLabel(panchangam.nakshatra.endsAt)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tNakshatra(panchangam.nakshatra.nextName, lang)}`,
+            : `${t("label_padam", lang)} ${panchangam.nakshatra.pada} · ${formatUntilLabel(panchangam.nakshatra.endsAt, panchangam.nakshatra.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tNakshatra(panchangam.nakshatra.nextName, lang)}`,
         },
         {
           key: lang === "ta" ? "யோகம்" : "Yoga",
           value: tYoga(yogaActive?.activeName ?? panchangam.yoga.name, lang),
           hint: yogaActive?.rolledOver
             ? `${formatClockLabel(panchangam.yoga.endsAt)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
-            : `${formatClockLabel(panchangam.yoga.endsAt)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tYoga(panchangam.yoga.nextName, lang)}`,
+            : `${formatUntilLabel(panchangam.yoga.endsAt, panchangam.yoga.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tYoga(panchangam.yoga.nextName, lang)}`,
         },
         {
           key: lang === "ta" ? "கரணம்" : "Karana",
           value: tKarana(karanaActive?.activeName ?? panchangam.karana.name, lang),
           hint: karanaActive?.rolledOver
             ? `${formatClockLabel(panchangam.karana.endsAt)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
-            : `${formatClockLabel(panchangam.karana.endsAt)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tKarana(panchangam.karana.nextName, lang)}`,
+            : `${formatUntilLabel(panchangam.karana.endsAt, panchangam.karana.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tKarana(panchangam.karana.nextName, lang)}`,
         },
         { key: lang === "ta" ? "சந்திரன்" : "Moon", value: tMoonPhase(panchangam.moonPhaseLabel, lang), hint: lang === "ta" ? "சந்திர கலை" : "Moon phase" },
         { key: lang === "ta" ? "சூலம்" : "Soolam", value: tSoolamDirection(panchangam.soolam.direction, lang), hint: `${lang === "ta" ? "பரிகாரம்" : "Parigaram"}: ${tParigaram(panchangam.soolam.parigaram, lang)}` },
-        { key: lang === "ta" ? "லக்னம்" : "Lagnam", value: panchangam.lagnam.rasiName, hint: `${lang === "ta" ? "இருப்பு" : "Remaining"} ${panchangam.lagnam.nazhigai} ${lang === "ta" ? "நாழிகை" : "nazhigai"} ${panchangam.lagnam.vinadi} ${lang === "ta" ? "விநாடி" : "vinadi"} · ${formatClockLabel(panchangam.lagnam.endsAt)} ${t("until_word", lang)}` },
+        { key: lang === "ta" ? "லக்னம்" : "Lagnam", value: panchangam.lagnam.rasiName, hint: `${lang === "ta" ? "இருப்பு" : "Remaining"} ${panchangam.lagnam.nazhigai} ${lang === "ta" ? "நாழிகை" : "nazhigai"} ${panchangam.lagnam.vinadi} ${lang === "ta" ? "விநாடி" : "vinadi"} · ${formatUntilLabel(panchangam.lagnam.endsAt, panchangam.lagnam.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)}` },
         { key: lang === "ta" ? "நேத்திரம்" : "Nethiram", value: tNethiram(panchangam.nethiram, lang), hint: t("nethiram_jeevan_hint", lang) },
         { key: lang === "ta" ? "ஜீவன்" : "Jeevan", value: tJeevan(panchangam.jeevan, lang), hint: t("nethiram_jeevan_hint", lang) },
-        { key: lang === "ta" ? "அமிர்தாதி யோகம்" : "Amirdhadhi Yogam", value: tAmirdhadhiYogam(panchangam.amirdhadhiYogam.name, lang), hint: `${formatClockLabel(panchangam.amirdhadhiYogam.endsAt)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tAmirdhadhiYogam(panchangam.amirdhadhiYogam.nextName, lang)}` },
+        { key: lang === "ta" ? "அமிர்தாதி யோகம்" : "Amirdhadhi Yogam", value: tAmirdhadhiYogam(panchangam.amirdhadhiYogam.name, lang), hint: `${formatUntilLabel(panchangam.amirdhadhiYogam.endsAt, panchangam.amirdhadhiYogam.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tAmirdhadhiYogam(panchangam.amirdhadhiYogam.nextName, lang)}` },
       ]
     : [];
 
@@ -750,9 +752,9 @@ export function DashboardCalendarTabNova({
       {/* ===== Page header ===== */}
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "var(--space-4)", flexWrap: "wrap" }}>
         <div>
-          <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>
+          <Kicker as="div">
             {lang === "ta" ? "கிரகநகர்வு & நிகழ்வுகள்" : "Transits & Events"}
-          </div>
+          </Kicker>
           <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-3)", marginTop: "6px", flexWrap: "wrap" }}>
             {/* audit B-1: the date is the Calendar page's sole page heading
                 (was a styled div; the tab shipped no headings / no outline). */}
@@ -883,18 +885,18 @@ export function DashboardCalendarTabNova({
 
               {/* ── Auspicious ── */}
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-                <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", color: "var(--color-high)", textTransform: "uppercase", fontWeight: 700 }}>
+                <Kicker as="div" color="var(--color-high)">
                   {lang === "ta" ? "நல்ல நேரங்கள்" : "Auspicious"}
-                </div>
+                </Kicker>
                 <NovaAuspiciousCard title={t("label_nalla_neram", lang)} slots={panchangam.kalam.nallaNeram ?? []} lang={lang} />
                 <NovaAuspiciousCard title={t("label_gowri_nalla_neram", lang)} slots={panchangam.kalam.gowriNallaNeram ?? []} lang={lang} />
               </div>
 
               {/* ── Avoid ── */}
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", color: "var(--color-low)", textTransform: "uppercase", fontWeight: 700 }}>
+                <Kicker as="div" color="var(--color-low)">
                   {lang === "ta" ? "தவிர்க்க வேண்டிய நேரம்" : "Avoid"}
-                </div>
+                </Kicker>
                 <NovaAvoidRow label={t("label_rahu_kalam", lang)} slot={panchangam.kalam.rahuKalam} />
                 <NovaAvoidRow label={t("label_yamagandam", lang)} slot={panchangam.kalam.yamagandam} />
                 <NovaAvoidRow label={t("label_kuligai", lang)} slot={panchangam.kalam.kuligai} />
@@ -902,15 +904,15 @@ export function DashboardCalendarTabNova({
 
               {/* ── Today's Nakshatra ── */}
               <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "14px", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>
+                <Kicker as="div">
                   {lang === "ta" ? "இன்றைய நட்சத்திரம்" : "Today's Nakshatra"}
-                </div>
+                </Kicker>
                 <Card variant="accent" compact style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--color-text-strong)" }}>
                     {tNakshatra(nakActive?.activeName ?? panchangam.nakshatra.name, lang)}
                   </span>
                   <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
-                    {t("label_padam", lang)} {panchangam.nakshatra.pada} · {t("until_word", lang)} {formatClockLabel(panchangam.nakshatra.endsAt)}
+                    {t("label_padam", lang)} {panchangam.nakshatra.pada} · {t("until_word", lang)} {formatUntilLabel(panchangam.nakshatra.endsAt, panchangam.nakshatra.endsAtIso, panchangam.dateLocal, lang)}
                   </span>
                 </Card>
               </div>
@@ -918,9 +920,9 @@ export function DashboardCalendarTabNova({
               {/* ── Chandrashtamam ── */}
               {chandraName && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                  <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", color: "var(--color-low)", textTransform: "uppercase", fontWeight: 700 }}>
+                  <Kicker as="div" color="var(--color-low)">
                     {t("label_chandrashtamam", lang)}
-                  </div>
+                  </Kicker>
                   <Card variant="low" compact>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-sm)" }}>
                       <span style={{ color: "var(--color-muted)" }}>{lang === "ta" ? "பாதிக்கப்படும் ராசி" : "Affected Rasi"}</span>
@@ -943,9 +945,9 @@ export function DashboardCalendarTabNova({
 
               {/* ── Today's Events ── */}
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>
+                <Kicker as="div">
                   {lang === "ta" ? "இன்றைய நிகழ்வுகள்" : "Today's Events"}
-                </div>
+                </Kicker>
                 {observanceFestivals.length === 0 && dailyFestivalEvents.length === 0 ? (
                   <span style={{ fontSize: "var(--text-base)", color: "var(--color-muted)", fontWeight: 600 }}>{t("label_no_festivals", lang)}</span>
                 ) : (
@@ -982,9 +984,9 @@ export function DashboardCalendarTabNova({
 
               {/* ── Today's Significance ── */}
               <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "14px", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>
+                <Kicker as="div">
                   {lang === "ta" ? "இன்றைய சிறப்பு" : "Today's Significance"}
-                </div>
+                </Kicker>
                 <Card variant="accent" compact style={{ fontSize: "var(--text-sm)", color: "var(--color-text)" }}>
                   {significanceText}
                 </Card>
@@ -994,9 +996,9 @@ export function DashboardCalendarTabNova({
             {/* ===== RIGHT column ===== */}
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
               <Card style={{ borderRadius: "var(--radius-xl)", borderColor: "var(--color-border-strong)", gap: 0 }}>
-                <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700, marginBottom: "12px" }}>
+                <Kicker as="div" style={{ marginBottom: "12px" }}>
                   {lang === "ta" ? "பஞ்சாங்கம் · ஐந்து அங்கங்கள்" : "Panchangam · Five Limbs"}
-                </div>
+                </Kicker>
                 <div style={{ display: "flex", flexDirection: "column" }}>
                   {fiveLimbRows.map((row) => (
                     <div key={row.key} className="cd-detail-spec-row">
@@ -1024,9 +1026,9 @@ export function DashboardCalendarTabNova({
 
               {panchangam.hora.length > 0 && (
                 <Card style={{ borderRadius: "var(--radius-xl)", borderColor: "var(--color-border-strong)", gap: 0 }}>
-                  <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700, marginBottom: "10px" }}>
+                  <Kicker as="div" style={{ marginBottom: "10px" }}>
                     {lang === "ta" ? "ஹோரை அட்டவணை" : "Hora Table"}
-                  </div>
+                  </Kicker>
                   {/* Issue #11: pin the currently-running hora to the top so the user
                       never has to scroll the 24-row table to find "now". */}
                   {(() => {

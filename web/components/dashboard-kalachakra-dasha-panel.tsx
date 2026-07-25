@@ -5,6 +5,8 @@ import type { Lang } from "@/lib/i18n";
 import { getKalachakraDasha, type KalachakraDashaData, type KalachakraDashaPeriod } from "@vinaadi/shared/api/kalachakraDasha";
 import { CollapsibleSection } from "./collapsible-section";
 import { GlossaryTerm } from "./glossary-term";
+import { Card } from "./ui/card";
+import { Kicker } from "./ui/kicker";
 
 // Kalachakra Dasha — rasi-based, non-uniform period lengths (4-21 years).
 // Experimental / display only — see app/calculations/kalachakra_dasha.py for
@@ -66,20 +68,20 @@ export function KalachakraDashaPanel({ lang, chartId }: Props) {
       )}
       {data && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)" }}>
-          <div
+          <Card
+            variant="high"
             style={{
               display: "flex",
+              flexDirection: "row",
               gap: "var(--space-2)",
               padding: "var(--space-2_5) var(--space-3)",
               borderRadius: "var(--radius-md)",
-              background: "var(--color-high-bg)",
-              border: "1px solid var(--color-high-border)",
             }}
           >
             <div style={{ flex: 1 }}>
-              <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-score-high)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <Kicker as="p" color="var(--color-score-high)" style={{ margin: "0 0 var(--space-0_5)", letterSpacing: "0.08em" }}>
                 {isTamil ? "தற்போதைய மஹா தசை" : "Current Mahadasha"}
-              </p>
+              </Kicker>
               <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                 {data.current.mahadasha.rasiName ?? data.current.mahadasha.rasiCode}
               </p>
@@ -88,9 +90,9 @@ export function KalachakraDashaPanel({ lang, chartId }: Props) {
               </p>
             </div>
             <div style={{ flex: 1 }}>
-              <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <Kicker as="p" color="var(--color-faint)" style={{ margin: "0 0 var(--space-0_5)", letterSpacing: "0.08em" }}>
                 {isTamil ? "அந்தர் தசை" : "Antardasha"}
-              </p>
+              </Kicker>
               <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                 {data.current.antardasha.rasiName ?? data.current.antardasha.rasiCode}
               </p>
@@ -98,19 +100,19 @@ export function KalachakraDashaPanel({ lang, chartId }: Props) {
                 {data.current.antardasha.startDate} – {data.current.antardasha.endDate}
               </p>
             </div>
-          </div>
+          </Card>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
             {data.mahadashas.map((period: KalachakraDashaPeriod, index: number) => (
-              <div
+              <Card
                 key={`${period.startDate}-${index}`}
                 style={{
                   display: "flex",
+                  flexDirection: "row",
                   justifyContent: "space-between",
                   alignItems: "center",
                   gap: "var(--space-2)",
                   padding: "var(--space-1_5) var(--space-3)",
                   borderRadius: "var(--radius-sm)",
-                  border: `1px solid var(--color-border)`,
                   background: period.startDate === data.current.mahadasha.startDate ? "var(--color-surface)" : "transparent",
                 }}
               >
@@ -120,7 +122,7 @@ export function KalachakraDashaPanel({ lang, chartId }: Props) {
                 <span style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
                   {period.years} {isTamil ? "ஆண்டுகள்" : "yrs"} · {period.startDate}
                 </span>
-              </div>
+              </Card>
             ))}
           </div>
         </div>

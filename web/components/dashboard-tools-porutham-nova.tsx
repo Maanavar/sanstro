@@ -19,6 +19,8 @@ import { PoruthamShareLinkButton } from "./porutham-share-link-button";
 import { ZodiacBadge } from "./zodiac-badge";
 import { NakshatraBadge } from "./nakshatra-badge";
 import { GlossaryTerm } from "./glossary-term";
+import { Card } from "./ui/card";
+import { Kicker } from "./ui/kicker";
 
 /**
  * Nova rebuild of PoruthamPanel (see docs/DASHBOARD_UI_REVAMP_PLAN.md §6.12,
@@ -297,7 +299,7 @@ export function NovaPoruthamPanel({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
       {/* Context selector */}
-      <div style={{ padding: "var(--space-4) var(--space-4)", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)" }}>
+      <Card style={{ padding: "var(--space-4) var(--space-4)", borderRadius: "var(--radius-md)" }}>
         <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", alignItems: "center" }}>
           <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", marginRight: "4px" }}>
             {lang === "ta" ? "வகை" : "Context"}
@@ -314,12 +316,12 @@ export function NovaPoruthamPanel({
             </button>
           ))}
         </div>
-      </div>
+      </Card>
 
       {/* Two person forms */}
       <div style={{ display: "flex", gap: "var(--space-4)", flexWrap: "wrap", alignItems: "flex-start" }}>
         {([["A", formA, setFormA, "var(--color-accent-strong)"], ["B", formB, setFormB, "var(--color-accent-secondary)"]] as const).map(([which, form, setForm, accent]) => (
-          <div key={which} style={{ flex: 1, minWidth: "260px", padding: "var(--space-5)", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)" }}>
+          <Card key={which} style={{ flex: 1, minWidth: "260px", padding: "var(--space-5)", borderRadius: "var(--radius-md)", gap: 0 }}>
             {familyMembers.length > 0 && (
               <div style={{ marginBottom: "12px" }}>
                 <label style={{ display: "block", margin: "0 0 4px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
@@ -376,7 +378,7 @@ export function NovaPoruthamPanel({
                 </Field>
               </div>
             </div>
-          </div>
+          </Card>
         ))}
       </div>
 
@@ -421,9 +423,9 @@ export function NovaPoruthamPanel({
               </div>
               <div style={{ flex: "1", minWidth: "260px", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
-                  <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
+                  <Kicker>
                     {lang === "ta" ? "பொருத்தம் முடிவு" : "Porutham Result"}
-                  </span>
+                  </Kicker>
                   {(porutham.rajjuDosha || porutham.vedhaDosha) && (
                     <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-low)", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
                       <AlertTriangle size={12} strokeWidth={1.5} aria-hidden="true" />
@@ -465,7 +467,7 @@ export function NovaPoruthamPanel({
               const moon = chart.planets.find((p) => p.graha === "MOON");
               if (!moon) return null;
               return (
-                <div key={i} style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-4) var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+                <Card key={i} style={{ borderRadius: "var(--radius-md)", padding: "var(--space-4) var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                   <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>{chart.birthProfile.displayName}</p>
                   <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--space-4)" }}>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)" }}>
@@ -496,18 +498,18 @@ export function NovaPoruthamPanel({
                       {" "}({lang === "ta" ? "வரை" : "until"} {String(dasha.current.mahadasha.endDate)})
                     </div>
                   )}
-                </div>
+                </Card>
               );
             })}
           </div>
 
           <div className="nova-grid-detail">
             {/* LEFT: 10 porutham table */}
-            <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+            <Card style={{ borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
               <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-                <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
+                <Kicker style={{ letterSpacing: "0.1em" }}>
                   {lang === "ta" ? "தமிழ் 10 பொருத்தங்கள்" : "The ten poruthams"}
-                </span>
+                </Kicker>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
                   <Check size={12} strokeWidth={2} aria-hidden="true" /> {lang === "ta" ? "பொருத்தம்" : "match"} · <X size={12} strokeWidth={2} aria-hidden="true" /> {lang === "ta" ? "இல்லை" : "no match"}
                 </span>
@@ -517,10 +519,8 @@ export function NovaPoruthamPanel({
                   const pass = k.passed ?? k.score > 0;
                   const governs = kutaGoverns(k);
                   return (
-                    <div key={k.name} style={{
-                      display: "flex", alignItems: "center", gap: "var(--space-3)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)",
-                      background: governs?.critical ? "var(--color-high-bg)" : "var(--color-surface-soft)",
-                      border: governs?.critical ? "1px solid var(--color-high-border)" : "1px solid var(--color-border)",
+                    <Card key={k.name} variant={governs?.critical ? "high" : "soft"} style={{
+                      display: "flex", flexDirection: "row", alignItems: "center", gap: "var(--space-3)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)",
                     }}>
                       <div style={{ minWidth: "150px" }}>
                         <span style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>{lang === "ta" ? k.nameTa : k.name}</span>
@@ -540,7 +540,7 @@ export function NovaPoruthamPanel({
                       }}>
                         {pass ? (lang === "ta" ? "✓ பொருத்தம்" : "✓ match") : (lang === "ta" ? "✗ இல்லை" : "✗ no match")}
                       </span>
-                    </div>
+                    </Card>
                   );
                 })}
               </div>
@@ -552,20 +552,20 @@ export function NovaPoruthamPanel({
                   ? "ஒவ்வொரு பொருத்தமும் பொருந்தும்/பொருந்தாது என்ற நேரடிச் சோதனை — தலா ஒரு மதிப்பெண். இது குடும்பங்களுக்கிடையேயான உரையாடலுக்கான வழிகாட்டி — கட்டாய நிபந்தனை அல்ல."
                   : "Each porutham is a strict pass/fail check — one point each. A porutham is guidance for conversation between families — not a gate."}
               </p>
-            </div>
+            </Card>
 
             {/* RIGHT rail */}
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-              <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-                <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
+              <Card style={{ borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+                <Kicker style={{ letterSpacing: "0.1em" }}>
                   {lang === "ta" ? "குறுக்கு சோதனைகள்" : "Cross-checks"}
-                </span>
+                </Kicker>
                 {CROSS_CHECK_DOSHAMS.map(({ name, labelEn, labelTa }) => {
                   const a = doshamPresent(chartA.doshams, name);
                   const b = doshamPresent(chartB.doshams, name);
                   const balanced = a === b;
                   return (
-                    <div key={name} style={{ display: "flex", gap: "var(--space-3)", alignItems: "flex-start", background: balanced ? "var(--color-high-bg)" : "var(--color-mid-bg)", border: balanced ? "1px solid var(--color-high-border)" : "1px solid var(--color-mid-border)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3)" }}>
+                    <Card key={name} variant={balanced ? "high" : "mid"} style={{ display: "flex", flexDirection: "row", gap: "var(--space-3)", alignItems: "flex-start", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3)" }}>
                       <span style={{ flex: "none", width: "20px", height: "20px", borderRadius: "var(--radius-pill)", background: balanced ? "var(--color-high-bg)" : "var(--color-mid-bg)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", color: balanced ? "var(--color-high)" : "var(--color-mid)" }}>{balanced ? "✓" : "~"}</span>
                       <div>
                         <div style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-text-strong)" }}>
@@ -579,15 +579,15 @@ export function NovaPoruthamPanel({
                             : (lang === "ta" ? "ஒரு ஜாதகத்தில் மட்டும் உள்ளது — ஜோதிடருடன் கலந்தாலோசிக்கவும்." : "Present in only one chart — worth an astrologer's reading.")}
                         </div>
                       </div>
-                    </div>
+                    </Card>
                   );
                 })}
-              </div>
+              </Card>
 
               <div style={{ background: "linear-gradient(120deg, var(--color-accent-muted), transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-                <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent-strong)", fontWeight: 700 }}>
+                <Kicker color="var(--color-accent-strong)" style={{ letterSpacing: "0.1em" }}>
                   {lang === "ta" ? "தொடர்ந்தால்" : "If you go ahead"}
-                </span>
+                </Kicker>
                 <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.6, color: "var(--color-text)" }}>
                   {lang === "ta"
                     ? "அடுத்த படி ஒரு முகூர்த்தம் — இரு ஜாதகங்களிலிருந்தும் திருமண நேரங்களை மதிப்பிட முகூர்த்தம் கண்டறியும் கருவியைப் பயன்படுத்தலாம்."
@@ -627,14 +627,14 @@ export function NovaPoruthamPanel({
 
           {/* Side-by-side charts — kept from Classic as real confirmation of the underlying calculation, not shown in the mockup's own captured state */}
           <div className="nova-grid-2">
-            <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-4)" }}>
+            <Card style={{ borderRadius: "var(--radius-md)", padding: "var(--space-4)", gap: 0 }}>
               <p style={{ margin: "0 0 10px", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-accent-strong)" }}>{chartA.birthProfile.displayName}</p>
               <RasiChart chart={chartA} label={t("label_d1", lang)} lang={lang} showExplain={false} />
-            </div>
-            <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-4)" }}>
+            </Card>
+            <Card style={{ borderRadius: "var(--radius-md)", padding: "var(--space-4)", gap: 0 }}>
               <p style={{ margin: "0 0 10px", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-high)" }}>{chartB.birthProfile.displayName}</p>
               <RasiChart chart={chartB} label={t("label_d1", lang)} lang={lang} showExplain={false} />
-            </div>
+            </Card>
           </div>
 
           {/* Compatibility Intelligence upsell / report — ported from Classic

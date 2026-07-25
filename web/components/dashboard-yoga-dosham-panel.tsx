@@ -11,6 +11,7 @@ import {
   yogaReadingStatus,
   yogaReadingStatusLabel,
 } from "@vinaadi/shared/yogaDisplay";
+import { Card } from "./ui/card";
 
 // ── Display name maps ────────────────────────────────────────────────────────
 // These now live in @vinaadi/shared so mobile renders the same names. Re-exported
@@ -783,7 +784,7 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
     : "var(--color-border)";
 
   return (
-    <div style={{ borderRadius: "var(--radius-md)", border: `1px solid ${cardBorder}`, background: "var(--chart-cell-default)", overflow: "hidden", fontFamily: "var(--font-body)" }}>
+    <Card style={{ display: "block", padding: 0, borderRadius: "var(--radius-md)", border: `1px solid ${cardBorder}`, overflow: "hidden", fontFamily: "var(--font-body)" }}>
       <button
         onClick={() => setOpen((v) => !v)}
         style={{ width: "100%", padding: "var(--space-4) var(--space-5)", background: cardBg, border: "none", cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-2_5)" }}
@@ -915,31 +916,31 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
                   </div>
                 )}
                 {remedies && (
-                  <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", background: "var(--chart-d9-active-bg)", border: "1px solid var(--color-high-border)" }}>
+                  <Card variant="high" style={{ display: "block", padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)" }}>
                     <p className="cd-kicker" style={{ color: "var(--chart-d9-active)", letterSpacing: "0.08em" }}>
                       {lang === "ta" ? "பரிகாரங்கள்" : "Remedies"}
                     </p>
                     <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text-strong)", lineHeight: 1.55 }}>
                       {lang === "ta" ? remedies.ta : remedies.en}
                     </p>
-                  </div>
+                  </Card>
                 )}
               </>
             );
           })()}
           {yoga.isPresent && powerText && (
-            <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", background: cardBg, border: `1px solid ${cardBorder}` }}>
+            <Card variant={yoga.strength === "STRONG" ? "high" : yoga.strength === "PARTIAL" ? "mid" : "soft"} style={{ display: "block", padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)" }}>
               <p className="cd-kicker" style={{ color, letterSpacing: "0.08em" }}>
                 {lang === "ta" ? "இப்போது என்ன செய்யலாம்" : "What It Can Do Now"}
               </p>
               <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text-strong)", lineHeight: 1.55 }}>
                 {powerText}
               </p>
-            </div>
+            </Card>
           )}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -1017,7 +1018,7 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
   const cardBorder = isActiveAndPresent ? "var(--color-mid-border)" : isCancelledAndPresent ? "var(--color-high-border)" : "var(--color-border)";
 
   return (
-    <div style={{ borderRadius: "var(--radius-md)", border: `1px solid ${cardBorder}`, background: "var(--chart-cell-default)", overflow: "hidden", fontFamily: "var(--font-body)" }}>
+    <Card style={{ display: "block", padding: 0, borderRadius: "var(--radius-md)", border: `1px solid ${cardBorder}`, overflow: "hidden", fontFamily: "var(--font-body)" }}>
       <button
         onClick={() => setOpen((v) => !v)}
         style={{ width: "100%", padding: "var(--space-4) var(--space-5)", background: cardBg, border: "none", cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-2_5)" }}
@@ -1144,14 +1145,14 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
                     </div>
                   )}
                   {remedies && dosham.isPresent && (
-                    <div style={{ marginTop: "var(--space-2_5)", padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", background: "var(--color-accent-muted)", border: "1px solid var(--color-mid-border)" }}>
+                    <Card variant="accent" style={{ display: "block", marginTop: "var(--space-2_5)", padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-mid-border)" }}>
                       <p className="cd-kicker" style={{ color: "var(--planet-saturn)", letterSpacing: "0.08em" }}>
                         {lang === "ta" ? "பரிகாரங்கள்" : "Remedies"}
                       </p>
                       <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text-strong)", lineHeight: 1.55 }}>
                         {lang === "ta" ? remedies.ta : remedies.en}
                       </p>
-                    </div>
+                    </Card>
                   )}
                 </>
               );
@@ -1166,15 +1167,15 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
             )}
           </div>
 
-          <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", background: cardBg, border: `1px solid ${cardBorder}` }}>
+          <Card variant={isActiveAndPresent ? "low" : isCancelledAndPresent ? "high" : "soft"} style={{ display: "block", padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", border: `1px solid ${cardBorder}` }}>
             <p className="cd-kicker" style={{ color, letterSpacing: "0.08em" }}>
               {lang === "ta" ? "இப்போது என்ன பொருள்" : "What This Means For You Now"}
             </p>
             <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text-strong)", lineHeight: 1.55 }}>{powerText}</p>
-          </div>
+          </Card>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 

@@ -5,6 +5,8 @@ import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
 import { t, tLang, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ApiEnvelope, RetrospectiveData, RetrospectiveListData } from "@/lib/types";
+import { Card } from "./ui/card";
+import { Kicker } from "./ui/kicker";
 
 const EVENT_TYPES = [
   "career", "health", "relationship", "finance", "family", "travel", "spiritual", "other",
@@ -116,7 +118,7 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
       </div>
 
       {/* Input form */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)", padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)", background: W.card, border: `1px solid ${W.borderLt}` }}>
+      <Card variant="soft" style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)", padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)" }}>
         <div style={{ display: "flex", gap: "var(--space-2_5)", flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: "160px" }}>
             <label className="cd-kicker" style={{ display: "block" }}>
@@ -182,29 +184,29 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
           </button>
         </div>
         {error && <p style={{ margin: 0, fontSize: "0.75rem", color: W.rust }}>{error}</p>}
-      </div>
+      </Card>
 
       {/* Result */}
       {result && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
           {/* Active dasha */}
           <div style={{ display: "flex", gap: "var(--space-2_5)", alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase" }}>
+            <Kicker color="var(--color-faint)" style={{ letterSpacing: "normal" }}>
               {t("retro_active_dasha", lang)}:
-            </span>
+            </Kicker>
             <span style={{ fontSize: "0.875rem", color: W.terracotta, fontWeight: 700 }}>{result.activeDasha}</span>
             <span style={{ fontSize: "0.625rem", color: W.mutedLt }}>{result.eventDate}</span>
           </div>
 
           {/* Correlation explanation */}
-          <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-sm)", background: W.surface, border: `1px solid ${W.border}` }}>
+          <Card style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-sm)" }}>
             <p className="cd-kicker" style={{ marginBottom: "var(--space-1_5)", color: W.terracotta }}>
               {t("retro_correlation", lang)}
             </p>
             <p style={{ margin: 0, fontSize: "0.875rem", color: W.inkMid, lineHeight: 1.5 }}>
               {tLang(result.correlationExplanation, lang)}
             </p>
-          </div>
+          </Card>
 
           {/* Key transits */}
           {result.keyTransits.length > 0 && (
@@ -225,7 +227,7 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
 
           {/* Future recurrences */}
           {result.futureRecurrences.length > 0 && (
-          <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-sm)", background: "var(--color-accent-muted)", border: `1px solid ${W.border}` }}>
+          <Card variant="accent" style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-sm)" }}>
               <p className="cd-kicker" style={{ marginBottom: "var(--space-2)", color: W.terracotta }}>
                 {t("retro_future_recurrence", lang)}
               </p>
@@ -242,19 +244,19 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
                   </div>
                 ))}
               </div>
-            </div>
+            </Card>
           )}
 
           {/* Caution */}
           {result.caution && (
-          <div style={{ padding: "var(--space-2_5) var(--space-3_5)", borderRadius: "var(--radius-sm)", background: "var(--color-low-bg)", border: `1px solid ${W.rust}44` }}>
+          <Card variant="low" style={{ padding: "var(--space-2_5) var(--space-3_5)", borderRadius: "var(--radius-sm)" }}>
               <p className="cd-kicker" style={{ color: W.rust }}>
                 ⚠ {t("retro_caution", lang)}
               </p>
               <p style={{ margin: 0, fontSize: "0.75rem", color: W.rust, lineHeight: 1.5 }}>
                 {tLang(result.caution, lang)}
               </p>
-            </div>
+            </Card>
           )}
         </div>
       )}

@@ -5,6 +5,7 @@ import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { CollapsibleSection } from "./collapsible-section";
 import { GlossaryTerm } from "./glossary-term";
+import { Kicker } from "./ui/kicker";
 
 const VARGA_TABS = [
   { key: "D2",  label: "D2" },
@@ -193,9 +194,9 @@ export function VargasPanel({ lang, vargas, d1Planets, equalBhava, vargaReliabil
         {/* Equal Bhava diff — only planets that changed */}
         {equalBhavaChanges.length > 0 && (
           <div style={{ marginTop: "var(--space-4)", paddingTop: "var(--space-3)", borderTop: `1px solid var(--color-border)` }}>
-            <p style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "var(--space-2)" }}>
+            <Kicker as="p" color="var(--color-faint)" style={{ fontSize: "var(--text-sm)", letterSpacing: "0.08em", marginBottom: "var(--space-2)" }}>
               {t("equal_bhava_title", lang)}
-            </p>
+            </Kicker>
             <p style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)", marginBottom: "var(--space-2)", fontStyle: "italic" }}>
               {t("equal_bhava_desc", lang)}
             </p>

@@ -7,6 +7,8 @@ import type { Lang } from "@/lib/i18n";
 import type { VarshaphalaData } from "@/lib/types";
 import { CollapsibleSection } from "./collapsible-section";
 import { Button, Surface } from "./dashboard-ui";
+import { Card } from "./ui/card";
+import { Kicker } from "./ui/kicker";
 
 const W = {
   ink: "var(--deepdive-ink, var(--panel-earth-dark))",
@@ -131,9 +133,9 @@ export function VarshaphalaPanel({ lang, chartId, data, loading, onLoad }: Props
           {/* Area outlook */}
           {data.areaOutlook.length > 0 && (
             <div>
-              <p style={{ fontSize: "0.78rem", fontWeight: 700, color: W.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "var(--space-1)" }}>
+              <Kicker as="p" color="var(--color-faint)" style={{ letterSpacing: "0.08em", marginBottom: "var(--space-1)" }}>
                 {t("varshaphala_area_outlook", lang)}
-              </p>
+              </Kicker>
               <p style={{ fontSize: "0.72rem", color: W.muted, lineHeight: 1.5, marginBottom: "var(--space-2_5)", padding: "var(--space-1_5) var(--space-2_5)", borderRadius: "8px", background: "rgba(122,111,94,0.07)", border: "1px solid rgba(122,111,94,0.15)" }}>
                 {lang === "ta"
                   ? "இந்த மதிப்பெண்கள் வர்ஷபல (ஆண்டு) கட்டத்தை மட்டும் அடிப்படையாகக் கொண்டவை. 'ஜீவிதப் பகுதிகள்' தாவலில் உள்ள மதிப்பெண்கள் உங்கள் ஜாதகம் + தசை + கிரகநகர்வு மூன்றையும் சேர்த்து கணக்கிடப்படுவதால் வேறுபடும்."
@@ -187,15 +189,10 @@ export function VarshaphalaPanel({ lang, chartId, data, loading, onLoad }: Props
 
 function MetricPill({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
-    <div style={{
-      padding: "var(--space-2) var(--space-3)",
-      borderRadius: "var(--radius-card)",
-      background: W.surfaceMd,
-      border: `1px solid ${W.borderLt}`,
-    }}>
-      <p style={{ fontSize: "0.7rem", color: W.muted, textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700, marginBottom: "2px" }}>{label}</p>
+    <Card style={{ padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-card)" }}>
+      <Kicker as="p" color="var(--color-faint)" style={{ letterSpacing: "0.1em", marginBottom: "2px" }}>{label}</Kicker>
       <p style={{ fontSize: "0.9rem", fontWeight: 700, color: accent ?? W.inkMid }}>{value}</p>
-    </div>
+    </Card>
   );
 }
 
@@ -206,16 +203,11 @@ function AspectList({ lang, title, pairs, tone }: {
   tone: string;
 }) {
   return (
-    <div style={{
-      padding: "var(--space-2_5) var(--space-3)",
-      borderRadius: "var(--radius-card)",
-      background: W.surface,
-      border: `1px solid ${W.borderLt}`,
-    }}>
+    <Card variant="soft" style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-card)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-1_5)", flexWrap: "wrap", marginBottom: "var(--space-2)" }}>
-        <p style={{ fontSize: "0.72rem", fontWeight: 700, color: tone, textTransform: "uppercase", letterSpacing: "0.08em", margin: 0 }}>
+        <Kicker as="p" color={tone} style={{ letterSpacing: "0.08em", margin: 0 }}>
           {title}
-        </p>
+        </Kicker>
         {/* Doctrine §9: same-rasi +-5deg approximation, NOT real Tajika (no
             applying/separating speed-order, deeptamsa orbs, or perfection
             logic) — display-only, must never read as complete Tajika. */}
@@ -243,6 +235,6 @@ function AspectList({ lang, title, pairs, tone }: {
           })}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

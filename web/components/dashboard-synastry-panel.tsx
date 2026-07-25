@@ -8,6 +8,8 @@ import { verdictPhrase } from "@/lib/verdict-lexicon";
 import { ConfidenceBadge } from "./dashboard-ui";
 import { NavamsaChart, RasiChart } from "./dashboard-charts";
 import { CompatibilityIntelligencePanel } from "./compatibility-intelligence-panel";
+import { Card } from "./ui/card";
+import { Kicker } from "./ui/kicker";
 import { compareSynastry, compareCharts } from "@vinaadi/shared/api/relationships";
 import type { Lang } from "@/lib/i18n";
 import type { DirectSynastryData } from "@vinaadi/shared/api/relationships";
@@ -401,7 +403,7 @@ export function SynastryPanel({
               )}
 
               {compatError && (
-                <div style={{ padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)" }}>
+                <Card variant="low" style={{ display: "block", padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)" }}>
                   <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--planet-saturn)" }}>
                     {lang === "ta" ? "இணக்கம் ஏற்றல் தோல்வி" : "Could not load compatibility"}
                   </p>
@@ -411,7 +413,7 @@ export function SynastryPanel({
                       ? "குடும்ப உறுப்பினரின் ஜாதகம் கணக்கிடப்படவில்லை இருக்கலாம்."
                       : "The family member's chart may not be calculated yet. Edit member -> Recalculate, then try again."}
                   </p>
-                </div>
+                </Card>
               )}
 
               {synastry && !compatLoading && (
@@ -452,7 +454,7 @@ export function SynastryPanel({
 
                   {/* Caution — tension-tone aspects called out */}
                   {synastry.tensionNotes.length > 0 && (
-                    <div style={{ padding: "var(--space-3) var(--space-4)", borderRadius: "var(--radius-md)", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)" }}>
+                    <Card variant="low" style={{ display: "block", padding: "var(--space-3) var(--space-4)", borderRadius: "var(--radius-md)" }}>
                       <p className="cd-kicker" style={{ color: "var(--planet-saturn)", letterSpacing: "0.08em", display: "flex", alignItems: "center", gap: "var(--space-1)" }}>
                         <svg viewBox="0 0 24 24" fill="none" width="12" height="12" aria-hidden="true"><path d="M12 3L21 20H3L12 3Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M12 9V13.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>
                         {t("synastry_caution", lang)}
@@ -464,7 +466,7 @@ export function SynastryPanel({
                           </p>
                         ))}
                       </div>
-                    </div>
+                    </Card>
                   )}
 
                   {/* Chart comparison */}
@@ -566,9 +568,9 @@ export function SynastryPanel({
                 const hiddenCtx = familyRels.has(rel ?? "") ? new Set(["MARRIAGE"]) : new Set<string>();
                 return (
                   <div style={{ display: "flex", gap: "var(--space-1_5)", flexWrap: "wrap", alignItems: "center" }}>
-                    <span style={{ fontSize: "var(--text-2xs)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+                    <Kicker color="var(--color-faint)" style={{ fontSize: "var(--text-2xs)", letterSpacing: "0.1em" }}>
                       {lang === "ta" ? "பொருத்த வகை" : "Context"}
-                    </span>
+                    </Kicker>
                     {(["GENERAL", "MARRIAGE", "FRIENDSHIP", "BUSINESS", "FAMILY"] as const)
                       .filter((ctx) => !hiddenCtx.has(ctx))
                       .map((ctx) => {
@@ -748,10 +750,9 @@ export function SynastryPanel({
                   {poruthamContext === "MARRIAGE" && (
                     <div style={{ marginTop: "var(--space-2)" }}>
                       {!showCiReport ? (
-                        <div style={{
-                          background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)",
+                        <Card variant="high" style={{
                           borderRadius: "var(--radius-md)", padding: "var(--space-4) var(--space-5)",
-                          display: "flex", gap: "var(--space-4)", alignItems: "center", flexWrap: "wrap",
+                          display: "flex", flexDirection: "row", gap: "var(--space-4)", alignItems: "center", flexWrap: "wrap",
                         }}>
                           <div style={{ flex: 1, minWidth: "200px" }}>
                             <p style={{ margin: "0 0 var(--space-1)", fontWeight: 700, fontSize: "var(--text-base)", color: "var(--color-text-strong)" }}>
@@ -776,7 +777,7 @@ export function SynastryPanel({
                           >
                             {lang === "ta" ? "முழு அறிக்கை காண்க" : "View Full Report"}<ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" />
                           </button>
-                        </div>
+                        </Card>
                       ) : (
                         <div>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-3)" }}>

@@ -9,7 +9,7 @@ import {
   getFamilyHarmonyRemedies,
   type FamilyHarmonyRemedyItem,
 } from "@vinaadi/shared/api/familyVault";
-import { Kicker } from "./ui";
+import { Card, Kicker } from "./ui";
 
 /**
  * Family-harmony remedies panel — a consolidated parigaram read across every
@@ -38,16 +38,16 @@ function RemedyCard({ lang, item }: { lang: Lang; item: FamilyHarmonyRemedyItem 
   const daanam = lang === "ta" ? item.daanamTa : item.daanamEn;
 
   return (
-    <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-4_5) var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-2_5)" }}>
+    <Card style={{ borderRadius: "var(--radius-md)", padding: "var(--space-4_5) var(--space-5)", gap: "var(--space-2_5)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2_5)" }}>
         <span style={{ flexShrink: 0, width: "30px", height: "30px", borderRadius: "var(--radius-sm)", background: "var(--color-accent-muted)", color: meta.color, display: "grid", placeItems: "center" }}>
           <meta.Icon size={16} strokeWidth={2} aria-hidden="true" />
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>{title}</div>
-          <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 600, color: meta.color }}>
+          <Kicker as="div" color={meta.color} style={{ letterSpacing: "0.08em", fontWeight: 600 }}>
             {lang === "ta" ? meta.ta : meta.en}
-          </div>
+          </Kicker>
         </div>
       </div>
 
@@ -64,9 +64,9 @@ function RemedyCard({ lang, item }: { lang: Lang; item: FamilyHarmonyRemedyItem 
       )}
 
       <div style={{ fontSize: "var(--text-sm)", lineHeight: 1.6, color: "var(--color-muted)" }}>{finding}</div>
-      <div style={{ fontSize: "var(--text-base)", lineHeight: 1.65, color: "var(--color-text)", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)", borderRadius: "var(--radius-sm)", padding: "var(--space-2_5) var(--space-3)" }}>
+      <Card variant="high" style={{ display: "block", fontSize: "var(--text-base)", lineHeight: 1.65, color: "var(--color-text)", borderRadius: "var(--radius-sm)", padding: "var(--space-2_5) var(--space-3)" }}>
         {remedy}
-      </div>
+      </Card>
 
       {/* Structured meta pulled from the shared remedy catalogue. */}
       {(item.day || temple || daanam) && (
@@ -76,7 +76,7 @@ function RemedyCard({ lang, item }: { lang: Lang; item: FamilyHarmonyRemedyItem 
           {daanam && <MetaChip label={lang === "ta" ? "தானம்" : "Daanam"} value={daanam} />}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -142,7 +142,7 @@ export function DashboardFamilyHarmonyRemedies({
   const fastingNote = lang === "ta" ? disclaimer.fasting_caution_ta : disclaimer.fasting_caution_en;
 
   return (
-    <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-5_5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+    <Card style={{ padding: "var(--space-5_5) var(--space-6)", gap: "var(--space-4)" }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "var(--space-3)", flexWrap: "wrap" }}>
         <div>
           <Kicker>{lang === "ta" ? "குடும்ப ஒற்றுமை பரிகாரங்கள்" : "Family harmony remedies"}</Kicker>
@@ -186,11 +186,11 @@ export function DashboardFamilyHarmonyRemedies({
           )}
 
           {items.length === 0 ? (
-            <div style={{ fontSize: "var(--text-base)", lineHeight: 1.6, color: "var(--color-muted)", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)", borderRadius: "var(--radius-sm)", padding: "var(--space-3_5) var(--space-4)" }}>
+            <Card variant="high" style={{ display: "block", fontSize: "var(--text-base)", lineHeight: 1.6, color: "var(--color-muted)", borderRadius: "var(--radius-sm)", padding: "var(--space-3_5) var(--space-4)" }}>
               {lang === "ta"
                 ? "இந்தக் குடும்பத்தில் தனிப்பட்ட வலியுறுத்தப்பட்ட பரிகாரங்கள் எதுவும் தேவைப்படவில்லை — இது ஒரு நல்ல அறிகுறி. வழக்கமான குலதெய்வ வழிபாடு போதும்."
                 : "No specific family remedies stood out from the charts — a good sign. Your usual family-deity worship is enough."}
-            </div>
+            </Card>
           ) : (
             <div className="nova-grid-2" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "var(--space-3_5)" }}>
               {items.map((item, i) => (
@@ -211,6 +211,6 @@ export function DashboardFamilyHarmonyRemedies({
           )}
         </>
       )}
-    </div>
+    </Card>
   );
 }

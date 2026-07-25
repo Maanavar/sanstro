@@ -6,14 +6,14 @@ import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { AdhipathiReading, JadhagamReportData } from "@/lib/types";
 import { YogaDoshamPanel } from "./dashboard-yoga-dosham-panel";
+import { Card } from "./ui/card";
 
 // ── Shared section wrapper ────────────────────────────────────────────────────
 
 function Section({ title, children }: { title: string; accent?: string; children: React.ReactNode }) {
   return (
-    <div style={{
+    <Card style={{
       padding: "var(--space-5) var(--space-6)", borderRadius: "var(--radius-md)",
-      background: "var(--color-surface)", border: "1px solid var(--color-border)",
       display: "flex", flexDirection: "column", gap: "var(--space-3)",
       fontFamily: "var(--font-body)",
     }}>
@@ -21,7 +21,7 @@ function Section({ title, children }: { title: string; accent?: string; children
         {title}
       </p>
       {children}
-    </div>
+    </Card>
   );
 }
 
@@ -370,14 +370,14 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad, renderYogaD
       )}
 
       {/* ── Executive summary ── */}
-      <div style={{ padding: "var(--space-5) var(--space-6)", borderRadius: "var(--radius-md)", background: "var(--color-surface)", border: "1px solid var(--color-border)", fontFamily: "var(--font-body)" }}>
+      <Card style={{ padding: "var(--space-5) var(--space-6)", borderRadius: "var(--radius-md)", fontFamily: "var(--font-body)", gap: 0 }}>
         <p className="cd-kicker" style={{ marginBottom: "var(--space-1_5)", color: "var(--color-score-mid)", letterSpacing: "0.1em" }}>
           {t("jadhagam_executive", lang)}
         </p>
         <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 500, color: "var(--color-text-strong)", lineHeight: 1.55 }}>
           {lang === "ta" ? executiveSummary.ta : executiveSummary.en}
         </p>
-      </div>
+      </Card>
 
       {/* ── Birth profile ── */}
       <Section title={lang === "ta" ? "பிறப்பு விவரம்" : "Birth Profile"} accent="rgba(255,255,255,0.15)">
@@ -535,14 +535,14 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad, renderYogaD
       )}
 
       {/* ── This year's guidance ── */}
-      <div style={{ padding: "var(--space-5) var(--space-6)", borderRadius: "var(--radius-md)", background: "var(--color-surface)", border: "1px solid var(--color-border)", fontFamily: "var(--font-body)" }}>
+      <Card style={{ padding: "var(--space-5) var(--space-6)", borderRadius: "var(--radius-md)", fontFamily: "var(--font-body)", gap: 0 }}>
         <p className="cd-kicker" style={{ marginBottom: "var(--space-2)", color: "var(--planet-other)", letterSpacing: "0.1em" }}>
           {t("jadhagam_year_guidance", lang)}
         </p>
         <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text-strong)", lineHeight: 1.6 }}>
           {lang === "ta" ? currentYearGuidance.ta : currentYearGuidance.en}
         </p>
-      </div>
+      </Card>
 
       {/* ── Practical guidance ── */}
       <Section title={t("jadhagam_practical", lang)}>
@@ -559,7 +559,7 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad, renderYogaD
       </Section>
 
       {/* ── Remedies ── */}
-      <div style={{ padding: "var(--space-5) var(--space-6)", borderRadius: "var(--radius-md)", background: "var(--chart-d1-lagna-bg)", border: "1px solid var(--color-mid-border)", fontFamily: "var(--font-body)" }}>
+      <Card variant="mid" style={{ padding: "var(--space-5) var(--space-6)", borderRadius: "var(--radius-md)", fontFamily: "var(--font-body)", gap: 0 }}>
         <p className="cd-kicker" style={{ marginBottom: "var(--space-1_5)", color: "var(--color-score-mid)", letterSpacing: "0.1em" }}>
           {t("jadhagam_remedies", lang)}
         </p>
@@ -578,7 +578,7 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad, renderYogaD
             ? "இந்த பரிகாரங்கள் விருப்பமானவை. எந்தவொரு கல் அல்லது பரிகாரமும் தகுதிவாய்ந்த ஜோதிடரின் ஆலோசனையின் பேரில் மட்டுமே மேற்கொள்ளவும்."
             : "Remedies are optional. Any gemstone or pariharam should only be undertaken after consulting a qualified astrologer."}
         </p>
-      </div>
+      </Card>
 
     </div>
   );

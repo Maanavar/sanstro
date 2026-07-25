@@ -16,6 +16,7 @@ import {
   predictionIsDeferred,
 } from "./dashboard-life-areas-shared";
 import { NovaFadeIn } from "./dashboard-ui-nova";
+import { Kicker } from "./ui/kicker";
 
 /**
  * Nova re-skin of dashboard-prediction-panel.tsx's PredictionDetailPanel —
@@ -101,9 +102,9 @@ function NovaWhyThisReading({ factors, lang }: { factors: PredictionAstroFactor[
   if (!factors.length) return null;
   return (
     <div>
-      <p style={{ margin: "0 0 3px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>
+      <Kicker as="p" style={{ margin: "0 0 3px" }}>
         {lang === "ta" ? "இந்தக் கணிப்பு ஏன்" : "Why this reading"}
-      </p>
+      </Kicker>
       <p style={{ margin: "0 0 10px", fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
         {lang === "ta" ? "இதற்குப் பின்னால் உள்ள ஜோதிடக் காரணிகள்" : "the astrological factors behind it"}
       </p>
@@ -133,13 +134,13 @@ function NovaPredictionDetail({ pred, lang }: { pred: LifeAreaPredictionData; la
       <div style={{ display: "grid", gridTemplateColumns: pred.challenges.length > 0 ? "repeat(auto-fit, minmax(min(100%, 220px), 1fr))" : "1fr", gap: "var(--space-5)" }}>
         {pred.supports.length > 0 && (
           <div>
-            <p style={{ margin: "0 0 8px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-high)" }}>{t("pred_supports", lang)}</p>
+            <Kicker as="p" color="var(--color-high)" style={{ margin: "0 0 8px" }}>{t("pred_supports", lang)}</Kicker>
             <NovaSupportList items={pred.supports} color="var(--color-high)" lang={lang} />
           </div>
         )}
         {pred.challenges.length > 0 && (
           <div>
-            <p style={{ margin: "0 0 8px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-mid)" }}>{t("pred_challenges", lang)}</p>
+            <Kicker as="p" color="var(--color-mid)" style={{ margin: "0 0 8px" }}>{t("pred_challenges", lang)}</Kicker>
             <NovaSupportList items={pred.challenges} color="var(--color-mid)" lang={lang} />
           </div>
         )}
@@ -147,18 +148,18 @@ function NovaPredictionDetail({ pred, lang }: { pred: LifeAreaPredictionData; la
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "var(--space-3)" }}>
         <div style={{ borderRadius: "var(--space-3)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)", padding: "var(--space-3) var(--space-4)" }}>
-          <p style={{ margin: "0 0 3px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>{t("pred_dasha_support", lang)}</p>
+          <Kicker as="p" color="var(--color-faint)" style={{ margin: "0 0 3px", letterSpacing: "0.08em" }}>{t("pred_dasha_support", lang)}</Kicker>
           <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: supportTone(pred.dashaSupport) }}>{supportLabel(pred.dashaSupport, lang)}</p>
         </div>
 
         <div style={{ borderRadius: "var(--space-3)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)", padding: "var(--space-3) var(--space-4)" }}>
-          <p style={{ margin: "0 0 3px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>{t("pred_transit_support", lang)}</p>
+          <Kicker as="p" color="var(--color-faint)" style={{ margin: "0 0 3px", letterSpacing: "0.08em" }}>{t("pred_transit_support", lang)}</Kicker>
           <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: supportTone(pred.transitSupport) }}>{supportLabel(pred.transitSupport, lang)}</p>
         </div>
 
         {pred.timingWindowStart && pred.timingWindowEnd && (
           <div style={{ borderRadius: "var(--space-3)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)", padding: "var(--space-3) var(--space-4)" }}>
-            <p style={{ margin: "0 0 3px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>{t("pred_timing_window", lang)}</p>
+            <Kicker as="p" color="var(--color-faint)" style={{ margin: "0 0 3px", letterSpacing: "0.08em" }}>{t("pred_timing_window", lang)}</Kicker>
             <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)" }}>{pred.timingWindowStart} to {pred.timingWindowEnd}</p>
           </div>
         )}
@@ -191,7 +192,7 @@ function NovaPredictionCard({ title, pred, lang, expanded, onToggle, featured, d
         <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr" }}>
           <div style={{ padding: "var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-4)", borderRight: "1px solid var(--color-border)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
-              <p style={{ margin: 0, fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>{title}</p>
+              <Kicker as="p" style={{ margin: 0 }}>{title}</Kicker>
               {deferred && <NovaLaterPhaseBadge lang={lang} />}
               <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", background: tone.bg, color: tone.text, border: `1px solid ${tone.border}` }}>{chipLabel}</span>
             </div>
@@ -204,7 +205,7 @@ function NovaPredictionCard({ title, pred, lang, expanded, onToggle, featured, d
           </div>
 
           <div style={{ padding: "var(--space-6)", background: "var(--color-surface-soft)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-            <p style={{ margin: 0, fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>{t("pred_confidence", lang)}</p>
+            <Kicker as="p" style={{ margin: 0, letterSpacing: "0.08em" }}>{t("pred_confidence", lang)}</Kicker>
             <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: pred.band ? "1.35rem" : "2rem", lineHeight: 1.15, color: tone.text }}>{chipLabel}</p>
             <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
               {lang === "ta" ? pred.mainPredictionTa : pred.mainPredictionEn}
@@ -246,7 +247,7 @@ function NovaPredictionCard({ title, pred, lang, expanded, onToggle, featured, d
       >
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap", margin: "0 0 3px" }}>
-            <p style={{ margin: 0, fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-mid)" }}>{title}</p>
+            <Kicker as="p" color="var(--color-mid)" style={{ margin: 0 }}>{title}</Kicker>
             {deferred && <NovaLaterPhaseBadge lang={lang} />}
           </div>
           <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.5 }}>{lang === "ta" ? pred.mainPredictionTa : pred.mainPredictionEn}</p>

@@ -5,6 +5,7 @@ import type { Lang } from "@/lib/i18n";
 import { getShadbala, type PlanetShadbala, type ShadbalaData } from "@vinaadi/shared/api/shadbala";
 import { CollapsibleSection } from "./collapsible-section";
 import { GlossaryTerm } from "./glossary-term";
+import { Card } from "./ui/card";
 import type { GlossaryKey } from "@/lib/glossary";
 
 const PLANET_LABEL: Record<string, { en: string; ta: string }> = {
@@ -101,11 +102,10 @@ function PlanetCard({ p, isTamil }: { p: PlanetShadbala; isTamil: boolean }) {
   const label = PLANET_LABEL[p.graha];
   const ratioPct = Math.min(100, Math.round(p.strengthRatio * 100));
   return (
-    <div
+    <Card
+      variant="soft"
       style={{
-        border: `1px solid var(--color-border)`,
         borderRadius: "var(--radius-md)",
-        background: "var(--color-surface-soft)",
         padding: "var(--space-3) var(--space-3_5)",
       }}
     >
@@ -170,6 +170,6 @@ function PlanetCard({ p, isTamil }: { p: PlanetShadbala; isTamil: boolean }) {
             ? `${label?.ta ?? p.graha} தேவையான பலத்திற்குக் குறைவு — அதன் பலன்கள் மெதுவாக வரும்; முயற்சி அல்லது பரிகாரம் உதவும்.`
             : `${label?.en ?? p.graha} is below the required strength — its results come slower and benefit from conscious effort or remedies.`}
       </p>
-    </div>
+    </Card>
   );
 }

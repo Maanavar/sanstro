@@ -19,6 +19,8 @@ import { VarshaphalaPanel } from "./dashboard-varshaphala-panel";
 import { RasippalanTool } from "@/app/tools/indraiya-rasipalan/RasippalanTool";
 import { SynastryMatrix } from "./synastry-matrix";
 import { SynastryPanel } from "./dashboard-synastry-panel";
+import { Card } from "./ui/card";
+import { Kicker } from "./ui/kicker";
 
 /**
  * Nova rebuild of the Tools tab (see docs/DASHBOARD_UI_REVAMP_PLAN.md §6.12).
@@ -255,7 +257,7 @@ export function DashboardToolsTabNova({
           <VarshaphalaPanel lang={lang} chartId={personalChartId} data={varshaphalaData} loading={varshaphalaLoading} onLoad={onLoadVarshaphala} />
         )}
         {showSynastry && (
-          <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-6) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
+          <Card style={{ borderRadius: "var(--radius-lg)", padding: "var(--space-6) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
             {ownerChartId && synastryMemberCharts.length > 0 && (
               <SynastryMatrix
                 lang={lang}
@@ -274,7 +276,7 @@ export function DashboardToolsTabNova({
               relationshipAlerts={relationshipAlerts}
               alertsLoading={relationshipAlertsLoading}
             />
-          </div>
+          </Card>
         )}
       </div>
     );
@@ -283,9 +285,9 @@ export function DashboardToolsTabNova({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
       <div>
-        <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>
+        <Kicker as="div">
           {lang === "ta" ? "கருவிகள்" : "Tools"} · <span style={{ fontFamily: "var(--font-tamil), sans-serif", letterSpacing: 0, textTransform: "none" }}>கருவிகள்</span>
-        </div>
+        </Kicker>
         {/* audit B-1: page title is the Tools tab's sole page heading. */}
         <h1 style={{ margin: "6px 0 0", fontFamily: "var(--font-display)", fontSize: "var(--display-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>
           {lang === "ta" ? "உங்கள் ஜாதகங்களை அறிந்த கருவிகள்" : "Calculators that know your charts"}
@@ -303,9 +305,9 @@ export function DashboardToolsTabNova({
       }}>
         <div style={{ flex: "1", minWidth: "240px", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-            <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-accent-strong)", fontWeight: 700 }}>
+            <Kicker color="var(--color-accent-strong)" style={{ letterSpacing: "0.14em" }}>
               {lang === "ta" ? "அதிகம் பயன்படுத்தப்படுவது" : "Most used"}
-            </span>
+            </Kicker>
             <span style={{ fontFamily: "var(--font-tamil), sans-serif", fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>திருமணப் பொருத்தம்</span>
           </div>
           <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 600, color: "var(--color-text-strong)" }}>
@@ -342,16 +344,16 @@ export function DashboardToolsTabNova({
       </div>
 
       {/* Recent results — genuine stub, no tool-run history is tracked anywhere in the backend (confirmed by grep) */}
-      <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-        <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
+      <Card style={{ borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+        <Kicker style={{ letterSpacing: "0.1em" }}>
           {lang === "ta" ? "சமீபத்திய முடிவுகள்" : "Recent results"}
-        </span>
+        </Kicker>
         <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
           {lang === "ta"
             ? "கருவி இயக்க வரலாறு இன்னும் சேமிக்கப்படவில்லை — விரைவில்."
             : "Tool run history isn't tracked yet — coming soon."}
         </p>
-      </div>
+      </Card>
     </div>
   );
 }

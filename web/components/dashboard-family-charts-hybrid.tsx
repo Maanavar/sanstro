@@ -173,7 +173,7 @@ function HyRhythmCard({
   const sunY = nowPct != null ? ARC_BASE - 2 * (nowPct / 100) * (1 - nowPct / 100) * (ARC_BASE - ARC_PEAK) : null;
 
   return (
-    <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-6) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+    <Card style={{ padding: "var(--space-6) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
       <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--color-accent-strong)" }}>
         {lang === "ta" ? "இன்றைய தாளம்" : "Today's rhythm"}
       </div>
@@ -206,13 +206,13 @@ function HyRhythmCard({
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
           <Kicker color="var(--color-low)">{lang === "ta" ? "மென்மையான கவனம் தேவை" : "Needs gentle care"}</Kicker>
           {careMembers.map((m) => (
-            <div key={m.displayName} style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)" }}>
+            <Card key={m.displayName} variant="low" style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "var(--space-3)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)" }}>
               <span style={{ width: "26px", height: "26px", borderRadius: "var(--radius-pill)", background: "var(--color-low)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-sm)", fontWeight: 700, flexShrink: 0 }}>
                 {m.displayName.charAt(0).toUpperCase()}
               </span>
               <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, flex: 1 }}>{m.displayName}</span>
               <span style={{ fontSize: "var(--text-xs)", color: "var(--color-low)" }}>{m.note}</span>
-            </div>
+            </Card>
           ))}
         </div>
       )}
@@ -222,13 +222,13 @@ function HyRhythmCard({
           <Kicker color="var(--color-high)">{lang === "ta" ? "இன்று மிகவும் பிரகாசமானவர்" : "Brightest today"}</Kicker>
           <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
             {brightMembers.map((m) => (
-              <div key={m.displayName} style={{ flex: "1 1 100px", display: "flex", alignItems: "center", gap: "var(--space-2)", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)" }}>
+              <Card key={m.displayName} variant="high" style={{ flex: "1 1 100px", display: "flex", flexDirection: "row", alignItems: "center", gap: "var(--space-2)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)" }}>
                 <span style={{ width: "24px", height: "24px", borderRadius: "var(--radius-pill)", background: "var(--color-mid)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-xs)", fontWeight: 700, flexShrink: 0 }}>
                   {m.displayName.charAt(0).toUpperCase()}
                 </span>
                 <span style={{ fontSize: "var(--text-sm)", fontWeight: 600 }}>{m.displayName}</span>
                 <span style={{ marginLeft: "auto", fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-high)" }}>{m.score}</span>
-              </div>
+              </Card>
             ))}
           </div>
         </div>
@@ -259,7 +259,7 @@ function HyRhythmCard({
           </p>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -299,7 +299,7 @@ function HyBondsCard({ lang, participants }: { lang: Lang; participants: BondPar
   const rest = pairs.slice(1, 5);
 
   return (
-    <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-6) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+    <Card style={{ padding: "var(--space-6) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
         <Kicker color="var(--color-mid)">{lang === "ta" ? "குடும்ப பொருத்தம்" : "Family bonds"}</Kicker>
         {!loaded && (
@@ -310,7 +310,7 @@ function HyBondsCard({ lang, participants }: { lang: Lang; participants: BondPar
       </div>
       {loading && <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>{lang === "ta" ? "ஏற்றுகிறது…" : "Loading…"}</p>}
       {strongest && (
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)" }}>
+        <Card variant="accent" style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "var(--space-3)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)" }}>
           <Sparkles size={16} strokeWidth={1.5} aria-hidden="true" />
           <div style={{ fontSize: "var(--text-sm)", lineHeight: 1.5, color: "var(--color-text)" }}>
             {lang === "ta" ? "வலுவான பொருத்தம்: " : "Strongest bond: "}
@@ -318,14 +318,14 @@ function HyBondsCard({ lang, participants }: { lang: Lang; participants: BondPar
             <span style={{ fontWeight: 700, color: scoreColor(strongest.score) }}>{strongest.score}<span style={{ color: "var(--color-faint)", fontWeight: 500 }}>/100</span></span>
             {" — "}{bondToneLine(strongest.score, lang)}.
           </div>
-        </div>
+        </Card>
       )}
       {rest.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
           {rest.map((pair) => {
             const color = scoreColor(pair.score);
             return (
-              <div key={`${pair.a.id}-${pair.b.id}`} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+              <Card key={`${pair.a.id}-${pair.b.id}`} style={{ borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <span style={{ fontSize: "var(--text-sm)", fontWeight: 600 }}>{pair.a.displayName} ↔ {pair.b.displayName}</span>
                   <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color }}>{pair.score}<span style={{ color: "var(--color-faint)", fontWeight: 500 }}>/100</span></span>
@@ -334,12 +334,12 @@ function HyBondsCard({ lang, participants }: { lang: Lang; participants: BondPar
                   <div style={{ width: `${Math.max(0, Math.min(100, pair.score))}%`, height: "100%", borderRadius: "var(--radius-sm)", background: color }} />
                 </div>
                 <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{bondToneLine(pair.score, lang)}</div>
-              </div>
+              </Card>
             );
           })}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -353,21 +353,21 @@ function HySaniCard({ lang, sani }: { lang: Lang; sani: SaniCycleData }) {
     { label: lang === "ta" ? "சனி · லக்னத்திலிருந்து" : "Sani · from Lagna", cycle: sani.lagnaBasedCycle },
   ];
   return (
-    <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+    <Card style={{ padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
       <Kicker color="var(--color-accent-strong)">{lang === "ta" ? "ஏழரை / அஷ்டம சனி" : "Sade Sati / Ashtama Sani"}</Kicker>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
         {cycles.map(({ label, cycle }) => (
-          <div key={label} style={{ background: cycle.isActive ? "var(--color-low-bg)" : "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: `1px solid ${cycle.isActive ? "var(--color-low-border)" : "var(--color-border)"}`, borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-            <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700, color: cycle.isActive ? "var(--color-low)" : "var(--color-faint)" }}>{label}</span>
+          <Card key={label} variant={cycle.isActive ? "low" : "default"} style={{ background: cycle.isActive ? undefined : "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+            <Kicker as="span" color={cycle.isActive ? "var(--color-low)" : "var(--color-faint)"} style={{ letterSpacing: "0.1em" }}>{label}</Kicker>
             <span style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-md)", fontWeight: 600, color: cycle.isActive ? "var(--color-low)" : "var(--color-high)" }}>{cycle.type ?? (lang === "ta" ? "இயல்பு" : "Normal")}</span>
             <span style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.45 }}>{cycle.supportiveLabel ?? (lang === "ta" ? "செயலில் சனி அழுத்தம் இல்லை." : "No active Saturn-pressure cycle.")}</span>
-          </div>
+          </Card>
         ))}
       </div>
       {sani.confirmationSentence && (
         <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", fontStyle: "italic", lineHeight: 1.5 }}>{sani.confirmationSentence}</p>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -477,14 +477,14 @@ function HyHighlightCard({ icon, title, timeframe, accent, tintBg, tintBorder, c
   tintBg?: string; tintBorder?: string; children: React.ReactNode;
 }) {
   return (
-    <div style={{ background: tintBg ?? "var(--color-surface)", border: `1px solid ${tintBorder ?? "var(--color-border)"}`, borderRadius: "var(--radius-lg)", padding: "var(--space-4) var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+    <Card style={{ background: tintBg, borderColor: tintBorder, padding: "var(--space-4) var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
         <span style={{ width: "26px", height: "26px", borderRadius: "var(--radius-sm)", background: "color-mix(in srgb, var(--color-text-strong) 4%, transparent)", display: "grid", placeItems: "center", color: accent, fontSize: "var(--text-base)", flexShrink: 0 }}>{icon}</span>
         <span style={{ fontSize: "var(--text-base)", fontWeight: 700, color: accent }}>{title}</span>
         <span style={{ marginLeft: "auto", fontSize: "var(--text-xs)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700, color: "var(--color-faint)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-2)", whiteSpace: "nowrap" }}>{timeframe}</span>
       </div>
       {children}
-    </div>
+    </Card>
   );
 }
 
@@ -804,19 +804,19 @@ export function DashboardFamilyChartsHybrid({
 
           {/* Cold-start nudge */}
           {members.length <= 1 && (
-            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-5)", flexWrap: "wrap", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-6)" }}>
+            <Card variant="accent" style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "var(--space-5)", flexWrap: "wrap", padding: "var(--space-5) var(--space-6)" }}>
               <div style={{ flex: "1 1 320px", minWidth: 0 }}>
                 <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>{t("family_coldstart_title", lang)}</div>
                 <p style={{ margin: "6px 0 0", fontSize: "var(--text-base)", lineHeight: 1.55, color: "var(--color-muted)" }}>{t("family_coldstart_body", lang)}</p>
                 <p style={{ margin: "8px 0 0", fontSize: "var(--text-sm)", lineHeight: 1.5, color: "var(--color-faint)" }}>🕒 {t("family_coldstart_time_note", lang)}</p>
               </div>
               <HyActionButton primary onClick={onOpenSetup}>{t("family_coldstart_cta", lang)}</HyActionButton>
-            </div>
+            </Card>
           )}
 
           <div className="hy-grid-hero">
             {/* Harmony hero */}
-            <div className="hy-ring-pulse" style={{ position: "relative", overflow: "hidden", background: "var(--color-surface)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-xl)", padding: "var(--space-7) var(--space-7)", display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
+            <Card className="hy-ring-pulse" style={{ position: "relative", overflow: "hidden", borderColor: "var(--color-border-strong)", borderRadius: "var(--radius-xl)", padding: "var(--space-7) var(--space-7)", display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
               <div style={{ display: "flex", gap: "var(--space-6)", alignItems: "center", flexWrap: "wrap" }}>
                 <NovaScoreDial score={familyScore} size={122} label={lang === "ta" ? "/ 100 · குடும்பம்" : "/ 100 · FAMILY"} />
                 <div style={{ minWidth: 0, flex: 1 }}>
@@ -832,7 +832,7 @@ export function DashboardFamilyChartsHybrid({
                 </div>
               </div>
               {bestWindow && (
-                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)" }}>
+                <Card variant="high" style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "var(--space-3)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)" }}>
                   <span style={{ flexShrink: 0, width: "34px", height: "34px", borderRadius: "var(--radius-pill)", background: "var(--color-high-bg)", display: "grid", placeItems: "center", fontSize: "var(--text-md)" }}>☀</span>
                   <div style={{ flex: 1 }}>
                     <Kicker color="var(--color-high)">{lang === "ta" ? "சிறந்த பகிர்ந்த நேரம்" : "Best shared window"}</Kicker>
@@ -840,13 +840,13 @@ export function DashboardFamilyChartsHybrid({
                       {formatClockLabel(bestWindow.start)} – {formatClockLabel(bestWindow.end)} <span style={{ color: "var(--color-muted)", fontWeight: 500 }}>· {lang === "ta" ? `அனைத்து ${members.length} பேரும்` : `all ${members.length} aligned`}</span>
                     </div>
                   </div>
-                </div>
+                </Card>
               )}
               {/* 7-day outlook — shared derivation with Classic/Nova. */}
               <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "var(--space-4)" }}>
                 <FamilySevenDayOutlook lang={lang} selectedDate={selectedDate} familyScore={familyScore} familyComposite={familyComposite} members={members} />
               </div>
-            </div>
+            </Card>
 
             <HyRhythmCard lang={lang} selectedDate={selectedDate} bestWindow={bestWindow} avoidWindow={avoidWindow} careMembers={careMembers} brightMembers={brightMembers} rahuKalam={panchangam?.kalam.rahuKalam} yamagandam={panchangam?.kalam.yamagandam} />
           </div>
@@ -926,7 +926,7 @@ export function DashboardFamilyChartsHybrid({
 
             <div className="hy-grid-hero">
               {/* Cosmic snapshot */}
-              <div style={{ position: "relative", overflow: "hidden", background: "var(--color-surface)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-xl)", padding: "var(--space-7) var(--space-7)", display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
+              <Card style={{ position: "relative", overflow: "hidden", borderColor: "var(--color-border-strong)", borderRadius: "var(--radius-xl)", padding: "var(--space-7) var(--space-7)", display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
                 <div style={{ display: "flex", gap: "var(--space-6)", alignItems: "center", flexWrap: "wrap" }}>
                   {dailyGuidance && <NovaScoreDial score={dailyGuidance.score} size={122} label={lang === "ta" ? "/ 100 · இன்று" : "/ 100 · TODAY"} />}
                   <div style={{ minWidth: 0, flex: 1 }}>
@@ -949,17 +949,17 @@ export function DashboardFamilyChartsHybrid({
                       [lang === "ta" ? "லக்னம்" : "Lagnam", astroText(readingSummary.lagnaRasi)],
                       [lang === "ta" ? "வயது" : "Age", String(readingSummary.currentAge)],
                     ].map(([label, value]) => (
-                      <div key={label} style={{ background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)" }}>
-                        <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase" }}>{label}</div>
+                      <Card key={label} style={{ display: "block", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)" }}>
+                        <Kicker as="div" color="var(--color-faint)">{label}</Kicker>
                         <div style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)", marginTop: "4px" }}>{value}</div>
-                      </div>
+                      </Card>
                     ))}
                   </div>
                 )}
-              </div>
+              </Card>
 
               {/* Today for X */}
-              <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-xl)", padding: "var(--space-6) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+              <Card style={{ borderRadius: "var(--radius-xl)", padding: "var(--space-6) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
                   <span style={{ color: "var(--color-accent-strong)", fontSize: "var(--text-md)" }}>☀</span>
                   <span style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--color-accent-strong)" }}>{lang === "ta" ? `${readingName} இன்று` : `Today for ${readingName}`}</span>
@@ -985,7 +985,7 @@ export function DashboardFamilyChartsHybrid({
                 <button type="button" onClick={() => setDetailView(true)} style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", alignSelf: "flex-start", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-accent-strong)", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
                   {lang === "ta" ? "முழு விவரம் காண்" : "View full profile"}<ArrowRight size={14} strokeWidth={1.5} aria-hidden="true" />
                 </button>
-              </div>
+              </Card>
             </div>
           </section>
         )}
@@ -1002,18 +1002,18 @@ export function DashboardFamilyChartsHybrid({
                   tallest cell and stretches these two square-chart cards to match;
                   centring the chart vertically and adding a caption fills the
                   formerly-empty band below each chart usefully. */}
-              <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-xl)", padding: "var(--space-5) var(--space-5)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "var(--space-4)" }}>
+              <Card style={{ borderRadius: "var(--radius-xl)", padding: "var(--space-5) var(--space-5)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "var(--space-4)" }}>
                 <RasiChart chart={readingChart} lang={lang} label={lang === "ta" ? "D1 — ராசி" : "D1 — Rasi"} showExplain={false} />
                 <p style={{ margin: 0, fontSize: "var(--text-xs)", lineHeight: 1.5, color: "var(--color-faint)", textAlign: "center", maxWidth: "34ch" }}>
                   {lang === "ta" ? "ராசி (D1) — பிறப்பின் போது கிரகங்கள் அமர்ந்த ராசிகளும் வீடுகளும். வாழ்க்கையின் முதன்மைப் படம்." : "Rasi (D1) — the signs and houses the planets occupied at birth. Your primary life chart."}
                 </p>
-              </div>
-              <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-xl)", padding: "var(--space-5) var(--space-5)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "var(--space-4)" }}>
+              </Card>
+              <Card style={{ borderRadius: "var(--radius-xl)", padding: "var(--space-5) var(--space-5)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "var(--space-4)" }}>
                 <NavamsaChart chart={readingChart} lang={lang} label={lang === "ta" ? "D9 — நவாம்சம்" : "D9 — Navamsa"} showExplain={false} />
                 <p style={{ margin: 0, fontSize: "var(--text-xs)", lineHeight: 1.5, color: "var(--color-faint)", textAlign: "center", maxWidth: "34ch" }}>
                   {lang === "ta" ? "நவாம்சம் (D9) — திருமணம், தர்மம், கிரகங்களின் உள் வலிமை. D1-ஐ உறுதி செய்யும் நுட்பப் படம்." : "Navamsa (D9) — marriage, dharma and the inner strength of each planet. It confirms and refines the D1."}
                 </p>
-              </div>
+              </Card>
               <HyBhavaTable lang={lang} chart={readingChart} explanationPlanets={reading?.explanation?.planets} />
             </div>
 
@@ -1164,8 +1164,22 @@ export function DashboardFamilyChartsHybrid({
             id="hy-dashas"
             title={lang === "ta" ? "தசைகள் & காலவரிசை" : "Dashas & timeline"}
             sub={lang === "ta" ? "தற்போதைய தசை மற்றும் துணைக் காலங்கள்" : "current dasa and sub-periods"}
+            meta={
+              <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                {lang === "ta" ? "விம்சோத்தரி · லாஹிரி அயனாம்சம்" : "Vimsottari · Lahiri ayanamsa"}
+              </div>
+            }
           >
-            <HyBhuktiTimeline lang={lang} dasha={reading.dasha} dashaMaha={reading.dashaMaha} dashaAntar={reading.dashaAntar} today={selectedDate} />
+            <HyBhuktiTimeline
+              lang={lang}
+              dasha={reading.dasha}
+              dashaMaha={reading.dashaMaha}
+              dashaAntar={reading.dashaAntar}
+              today={selectedDate}
+              birthDateLocal={readingChart?.birthProfile?.birthDateLocal}
+              dashaSupportText={dailyGuidance?.reasons.dashaSupport ?? null}
+              onOpenForecast={() => jumpTo("hy-forecast")}
+            />
           </HySection>
         )}
 
@@ -1188,7 +1202,7 @@ export function DashboardFamilyChartsHybrid({
               </div>
             ) : (
               /* Explanation still loading — keep the flat yoga glance rather than nothing. */
-              <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-xl)", padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+              <Card style={{ borderRadius: "var(--radius-xl)", padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                 <Kicker color="var(--color-mid)">{lang === "ta" ? "யோகம் & தோஷம்" : "Yoga & doshas"}</Kicker>
                 {(readingSummary?.yogas ?? []).slice(0, 8).map((y) => (
                   <div key={y.name} style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", padding: "var(--space-2) 0", borderBottom: "1px solid var(--color-border)" }}>
@@ -1198,7 +1212,7 @@ export function DashboardFamilyChartsHybrid({
                     </span>
                   </div>
                 ))}
-              </div>
+              </Card>
             )}
           </HySection>
         )}
@@ -1289,17 +1303,17 @@ export function DashboardFamilyChartsHybrid({
                     <CollapsibleSection title={lang === "ta" ? "ஜைமினி சார தசை" : "Jaimini Chara Dasha"} defaultOpen={false}>
                       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", paddingTop: "var(--space-2)" }}>
                         {charaDasha.currentPeriod && (
-                          <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-md)", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)" }}>
-                            <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-high)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{lang === "ta" ? "தற்போதைய சார தசை" : "Current Chara Dasha"}</p>
+                          <Card variant="high" style={{ display: "block", padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-md)" }}>
+                            <Kicker as="p" color="var(--color-high)" style={{ margin: "0 0 var(--space-0_5)", letterSpacing: "0.08em" }}>{lang === "ta" ? "தற்போதைய சார தசை" : "Current Chara Dasha"}</Kicker>
                             <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>{charaDasha.currentPeriod.rasi_name}</p>
                             <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>{charaDasha.currentPeriod.start_date} – {charaDasha.currentPeriod.end_date}</p>
-                          </div>
+                          </Card>
                         )}
                         {charaDasha.periods.map((period) => (
-                          <div key={`${period.rasi}-${period.start_date}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-2)", padding: "var(--space-1_5) var(--space-3)", borderRadius: "var(--radius-sm)", border: "1px solid var(--color-border)", background: charaDasha.currentPeriod?.rasi === period.rasi ? "var(--color-surface-soft)" : "transparent" }}>
+                          <Card key={`${period.rasi}-${period.start_date}`} style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: "var(--space-2)", padding: "var(--space-1_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: charaDasha.currentPeriod?.rasi === period.rasi ? "var(--color-surface-soft)" : "transparent" }}>
                             <span style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)" }}>{period.rasi_name}</span>
                             <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>{period.years} {lang === "ta" ? "ஆண்டுகள்" : "yrs"} · {period.start_date}</span>
-                          </div>
+                          </Card>
                         ))}
                       </div>
                     </CollapsibleSection>
@@ -1307,14 +1321,14 @@ export function DashboardFamilyChartsHybrid({
                   {solarReturn && (
                     <CollapsibleSection title={lang === "ta" ? `${solarReturn.returnYear} ஆண்டு தாஜகா` : `${solarReturn.returnYear} Annual Chart`} defaultOpen={false}>
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "var(--space-2_5)", paddingTop: "var(--space-2)" }}>
-                        <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)" }}>
-                          <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{lang === "ta" ? "வருட லக்னம்" : "SR Lagna"}</p>
+                        <Card variant="soft" style={{ display: "block", padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-md)" }}>
+                          <Kicker as="p" color="var(--color-faint)" style={{ margin: "0 0 var(--space-0_5)", letterSpacing: "0.08em" }}>{lang === "ta" ? "வருட லக்னம்" : "SR Lagna"}</Kicker>
                           <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>{solarReturn.srLagnaRasiName}</p>
-                        </div>
-                        <div style={{ padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", background: "var(--color-surface-soft)" }}>
-                          <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{lang === "ta" ? "முந்தா" : "Muntha"}</p>
+                        </Card>
+                        <Card variant="soft" style={{ display: "block", padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-md)" }}>
+                          <Kicker as="p" color="var(--color-faint)" style={{ margin: "0 0 var(--space-0_5)", letterSpacing: "0.08em" }}>{lang === "ta" ? "முந்தா" : "Muntha"}</Kicker>
                           <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>{solarReturn.munthaRasiName}</p>
-                        </div>
+                        </Card>
                       </div>
                     </CollapsibleSection>
                   )}
@@ -1353,12 +1367,12 @@ export function DashboardFamilyChartsHybrid({
 
           <div className="hy-grid-forecast">
             <HyBondsCard lang={lang} participants={bondParticipants} />
-            <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-6) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+            <Card style={{ padding: "var(--space-6) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
               <Kicker color="var(--color-mid)">{lang === "ta" ? "பகிரப்பட்ட முகூர்த்தம்" : "Shared muhurtham"}</Kicker>
               <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.6, color: "var(--color-faint)" }}>
                 {lang === "ta" ? "இது விரைவில் வரும் — தற்போது தனிநபர் நாள்காட்டி மட்டுமே கிடைக்கிறது." : "Coming soon — there's no cross-family shared-events feed yet. Check each member's own Calendar tab for now."}
               </p>
-            </div>
+            </Card>
           </div>
 
           <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.6, maxWidth: "900px" }}>

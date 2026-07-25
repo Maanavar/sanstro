@@ -9,6 +9,8 @@ import {
   type ConditionalDashaApplicabilityResult,
 } from "@vinaadi/shared/api/conditionalDashas";
 import { CollapsibleSection } from "./collapsible-section";
+import { Card } from "./ui/card";
+import { Kicker } from "./ui/kicker";
 
 // Conditional nakshatra dashas — the seven Parashari conditional udu dashas.
 // Tables anchored to a single cited source (satyori/Santhanam BPHS); see
@@ -90,20 +92,20 @@ function SystemCard({
           {isTamil ? system.applicabilityTa : system.applicabilityEn}
           {applicability?.reason ? ` · ${applicability.reason}` : ""}
         </p>
-        <div
+        <Card
+          variant="soft"
           style={{
             display: "flex",
+            flexDirection: "row",
             gap: "var(--space-2)",
             padding: "var(--space-2) var(--space-3)",
             borderRadius: "var(--radius-md)",
-            background: "var(--color-surface-soft)",
-            border: "1px solid var(--color-border)",
           }}
         >
           <div style={{ flex: 1 }}>
-            <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            <Kicker as="p" color="var(--color-faint)" style={{ margin: "0 0 var(--space-0_5)", letterSpacing: "0.08em" }}>
               {isTamil ? "தற்போதைய மஹா" : "Current Maha"}
-            </p>
+            </Kicker>
             <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
               {lordName(system.current.mahadasha.lord, isTamil)}
             </p>
@@ -112,9 +114,9 @@ function SystemCard({
             </p>
           </div>
           <div style={{ flex: 1 }}>
-            <p style={{ margin: "0 0 var(--space-0_5)", fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            <Kicker as="p" color="var(--color-faint)" style={{ margin: "0 0 var(--space-0_5)", letterSpacing: "0.08em" }}>
               {isTamil ? "அந்தர்" : "Antar"}
-            </p>
+            </Kicker>
             <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
               {lordName(system.current.antardasha.lord, isTamil)}
             </p>
@@ -122,19 +124,19 @@ function SystemCard({
               {system.current.antardasha.startDate} – {system.current.antardasha.endDate}
             </p>
           </div>
-        </div>
+        </Card>
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-0_5)" }}>
           {system.mahadashas.slice(0, system.mahadashas.length / 2).map((period, index) => (
-            <div
+            <Card
               key={`${period.startDate}-${index}`}
               style={{
                 display: "flex",
+                flexDirection: "row",
                 justifyContent: "space-between",
                 alignItems: "center",
                 gap: "var(--space-2)",
                 padding: "var(--space-1) var(--space-2_5)",
                 borderRadius: "var(--radius-sm)",
-                border: `1px solid var(--color-border)`,
                 background: period.startDate === system.current.mahadasha.startDate ? "var(--color-surface)" : "transparent",
               }}
             >
@@ -142,7 +144,7 @@ function SystemCard({
               <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
                 {period.years} {isTamil ? "ஆண்டு" : "yr"} · {period.startDate}
               </span>
-            </div>
+            </Card>
           ))}
         </div>
       </div>

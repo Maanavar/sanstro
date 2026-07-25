@@ -4,6 +4,8 @@ import { useState } from "react";
 import { readErrorMessage } from "@/lib/api";
 import type { Lang } from "@/lib/i18n";
 import { getRelationshipSynastry } from "@vinaadi/shared/api/relationships";
+import { Card } from "./ui/card";
+import { Kicker } from "./ui/kicker";
 
 interface MatrixMember {
   memberId: string;
@@ -58,9 +60,9 @@ export function SynastryMatrix({ lang, ownerChartId, familyVaultId, members }: S
   return (
     <div style={{ fontFamily: "var(--font-body)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: "var(--space-3)" }}>
-        <p style={{ margin: 0, fontSize: "var(--text-2xs)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+        <Kicker as="p" color="var(--color-faint)" style={{ margin: 0, fontSize: "var(--text-2xs)", letterSpacing: "0.1em" }}>
           {lang === "ta" ? "பொருத்த சுருக்கம்" : "COMPATIBILITY OVERVIEW"}
-        </p>
+        </Kicker>
         {!loaded && (
           <button
             type="button"
@@ -87,13 +89,16 @@ export function SynastryMatrix({ lang, ownerChartId, familyVaultId, members }: S
             const score = scores[m.memberId] ?? null;
             const busy  = loading[m.memberId] ?? false;
             const tone  = score !== null ? scoreTone(score) : { color: "var(--color-faint)", bg: "var(--color-surface-2)", border: "var(--color-border)" };
+            const variant: "default" | "high" | "mid" | "low" =
+              score === null ? "default" : score >= 65 ? "high" : score >= 40 ? "mid" : "low";
             return (
-              <div
+              <Card
                 key={m.memberId}
+                variant={variant}
                 style={{
+                  display: "block",
                   padding: "var(--space-3) var(--space-4)",
                   borderRadius: "var(--radius-lg)",
-                  border: `1px solid ${tone.border}`,
                   background: tone.bg,
                   minWidth: "110px",
                   textAlign: "center",
@@ -112,7 +117,7 @@ export function SynastryMatrix({ lang, ownerChartId, familyVaultId, members }: S
                 ) : (
                   <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>—</p>
                 )}
-              </div>
+              </Card>
             );
           })}
         </div>

@@ -37,6 +37,7 @@ import { EventWindowsPanel } from "./dashboard-event-windows";
 import { GOAL_OPTIONS } from "./dashboard-plan-shared";
 import { NovaGocharCard, NovaGuidanceCard } from "./dashboard-today-deepdive-extras-nova";
 import { Segmented, Card, Button, Pill, BilingualText } from "./ui";
+import { Kicker } from "./ui/kicker";
 
 /**
  * Nova Life Areas tab — Phase 9 of the dashboard revamp, mapped from the
@@ -351,9 +352,9 @@ export function DashboardLifeAreasTabNova({
       {/* ===== Header ===== */}
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "var(--space-5)", flexWrap: "wrap" }}>
         <div>
-          <p style={{ margin: 0, fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700 }}>
+          <Kicker as="p" style={{ margin: 0 }}>
             {t("tab_life_areas", lang)}{currentAge !== null ? ` · ${lang === "ta" ? "வயது" : "Age"} ${currentAge}` : ""}
-          </p>
+          </Kicker>
           <h1 style={{ margin: "6px 0 8px", fontFamily: "var(--font-display)", fontSize: "var(--display-md)", fontWeight: 600, lineHeight: 1.15, color: "var(--color-text-strong)" }}>
             {lang === "ta" ? "நீங்கள் எங்கே நிற்கிறீர்கள்," : "Where you stand,"}{" "}
             <em style={{ fontStyle: "italic", color: "var(--color-accent-strong)" }}>{lang === "ta" ? "துறை வாரியாக." : "area by area."}</em>
@@ -416,9 +417,9 @@ export function DashboardLifeAreasTabNova({
             <>
             {lifeAreas.chartSignature && (
               <Card variant="accent" style={{ flexDirection: "row", alignItems: "baseline", flexWrap: "wrap" }}>
-                <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent-strong)", whiteSpace: "nowrap" }}>
+                <Kicker color="var(--color-accent-strong)" style={{ whiteSpace: "nowrap" }}>
                   {lang === "ta" ? "ஜாதக முத்திரை" : "Chart signature"}
-                </span>
+                </Kicker>
                 <p style={{ margin: 0, flex: "1 1 24ch", fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
                   {lang === "ta" ? lifeAreas.chartSignature.framing.ta : lifeAreas.chartSignature.framing.en}
                 </p>
@@ -427,9 +428,9 @@ export function DashboardLifeAreasTabNova({
 
             {activeGoals.length > 0 && (
               <Card style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
-                <span style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700, flex: "none" }}>
+                <Kicker style={{ flex: "none" }}>
                   {lang === "ta" ? "உங்கள் இலக்கு" : "Your focus"}
-                </span>
+                </Kicker>
                 {activeGoals.map((g) => (
                   <span key={g.goalId} style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-accent-strong)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
                     {t(GOAL_LABEL_BY_TYPE.get(g.goalType) ?? "goal_other", lang)}

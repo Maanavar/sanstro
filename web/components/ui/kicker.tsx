@@ -19,14 +19,17 @@ type KickerProps = {
   color?: string;
   className?: string;
   as?: "span" | "p" | "div";
+  /** Layout-only overrides (whiteSpace, marginTop, …) for sites that need one. */
+  style?: React.CSSProperties;
 };
 
-export function Kicker({ children, tone = "accent", color, className, as = "span" }: KickerProps) {
+export function Kicker({ children, tone = "accent", color, className, as = "span", style }: KickerProps) {
   const Tag = as;
   const classes = ["ui-kicker", tone === "muted" ? "ui-kicker--muted" : "", className]
     .filter(Boolean)
     .join(" ");
-  return <Tag className={classes} style={color ? { color } : undefined}>{children}</Tag>;
+  const mergedStyle = color || style ? { ...style, ...(color ? { color } : null) } : undefined;
+  return <Tag className={classes} style={mergedStyle}>{children}</Tag>;
 }
 
 type SectionHeaderProps = {

@@ -65,11 +65,43 @@ function clockPart(value: string): string {
   return timePart.slice(0, 5);
 }
 
-function endsAtDate(endsAt: string, sunrise: string, dateLocal: string): string {
+// `endsAtIso`, when supplied, is the source of truth for which calendar date
+// the boundary falls on — it's a full local datetime, so no guessing is
+// needed. Without it (older data), fall back to comparing clock values only,
+// which cannot tell "ends later today" from "ends tomorrow at a similar
+// clock reading" (see limbRolledOver below).
+function endsAtDate(endsAt: string, sunrise: string, dateLocal: string, endsAtIso?: string): string {
+  if (endsAtIso) return endsAtIso.slice(0, 10);
   if (/^\d{4}-\d{2}-\d{2}T/.test(endsAt)) {
     return endsAt.slice(0, 10);
   }
   return clockPart(endsAt) >= clockPart(sunrise) ? dateLocal : addDays(dateLocal, 1);
+}
+
+// When the user is viewing *today* and the clock has passed a limb's end time,
+// the headline should become the next segment so the card reflects what is
+// actually running now.
+//
+// Regression (2026-07-25, Chennai): Kettai nakshatra runs from before sunrise
+// (05:56) until 07:35 the *next* morning. Without endsAtIso, the fallback
+// clock-only comparison in endsAtDate reads 07:35 as "later today" (since
+// 07:35 > sunrise's 05:56) and this function would promote to Moolam — the
+// next nakshatra — 24 hours early, as soon as the clock passed 7:35 AM on the
+// 25th. Passing endsAtIso removes that guess entirely.
+function limbRolledOver(
+  endsAt: string,
+  sunrise: string,
+  dateLocal: string,
+  isToday: boolean,
+  endsAtIso?: string,
+): boolean {
+  if (!isToday) return false;
+  if (endsAtDate(endsAt, sunrise, dateLocal, endsAtIso) !== dateLocal) return false;
+  if (endsAtIso) {
+    return Date.now() > new Date(endsAtIso).getTime();
+  }
+  const end = clockToMinutes(endsAt);
+  return end >= 240 && nowLocalMinutes() > end;
 }
 
 function clockToMinutes(value: string): number {
@@ -81,23 +113,6 @@ function clockToMinutes(value: string): number {
 function nowLocalMinutes(): number {
   const now = new Date();
   return now.getHours() * 60 + now.getMinutes();
-}
-
-// When the user is viewing *today* and the clock has passed a limb's end time,
-// the headline should become the next segment so the card reflects what is
-// actually running now. We only promote for a clear same-day daytime rollover:
-// an end time on a later calendar day hasn't passed yet, and an end before
-// ~04:00 is an after-midnight boundary that two-segment data can't disambiguate.
-function limbRolledOver(
-  endsAt: string,
-  sunrise: string,
-  dateLocal: string,
-  isToday: boolean,
-): boolean {
-  if (!isToday) return false;
-  if (endsAtDate(endsAt, sunrise, dateLocal) !== dateLocal) return false;
-  const end = clockToMinutes(endsAt);
-  return end >= 240 && nowLocalMinutes() > end;
 }
 
 function formatRasi(number: number, fallback: string, lang: Lang): string {
@@ -176,9 +191,9 @@ function FestivalPill({ festival, lang, observance = false }: { festival: Pancha
 // Tamil panchangam day runs sunrise-to-sunrise — an "ends at" clock time
 // earlier than sunrise belongs to the next Gregorian calendar date, which
 // reference almanacs call out explicitly (e.g. "* Next Calendar Day").
-function formatEndsAtLabel(endsAt: string, sunrise: string, dateLocal: string, lang: Lang): string {
+function formatEndsAtLabel(endsAt: string, sunrise: string, dateLocal: string, lang: Lang, endsAtIso?: string): string {
   const clock = formatClockLabel(endsAt);
-  const endDate = endsAtDate(endsAt, sunrise, dateLocal);
+  const endDate = endsAtDate(endsAt, sunrise, dateLocal, endsAtIso);
   const dateLabel = formatDateLabel(endDate);
   const nextDaySuffix = lang === "ta" && endDate !== dateLocal ? " (மறுநாள்)" : "";
   return `${clock}, ${dateLabel}${nextDaySuffix}`;
@@ -385,17 +400,17 @@ export function PanchangamTool() {
 
   // For *today*, promote the currently-running segment once its end has passed
   // (see limbRolledOver). Each flag drives both the headline value and its sub.
-  const tithiRolled = data ? limbRolledOver(data.tithi.endsAt, data.sunrise, data.dateLocal, isToday) : false;
-  const nakshatraRolled = data ? limbRolledOver(data.nakshatra.endsAt, data.sunrise, data.dateLocal, isToday) : false;
-  const yogaRolled = data ? limbRolledOver(data.yoga.endsAt, data.sunrise, data.dateLocal, isToday) : false;
-  const karanaRolled = data ? limbRolledOver(data.karana.endsAt, data.sunrise, data.dateLocal, isToday) : false;
-  const amirdhadhiRolled = data ? limbRolledOver(data.amirdhadhiYogam.endsAt, data.sunrise, data.dateLocal, isToday) : false;
+  const tithiRolled = data ? limbRolledOver(data.tithi.endsAt, data.sunrise, data.dateLocal, isToday, data.tithi.endsAtIso) : false;
+  const nakshatraRolled = data ? limbRolledOver(data.nakshatra.endsAt, data.sunrise, data.dateLocal, isToday, data.nakshatra.endsAtIso) : false;
+  const yogaRolled = data ? limbRolledOver(data.yoga.endsAt, data.sunrise, data.dateLocal, isToday, data.yoga.endsAtIso) : false;
+  const karanaRolled = data ? limbRolledOver(data.karana.endsAt, data.sunrise, data.dateLocal, isToday, data.karana.endsAtIso) : false;
+  const amirdhadhiRolled = data ? limbRolledOver(data.amirdhadhiYogam.endsAt, data.sunrise, data.dateLocal, isToday, data.amirdhadhiYogam.endsAtIso) : false;
 
   // "Active since {time}" when promoted (the segment began when the previous one
   // ended), otherwise the usual "Ends {time} · then {next}" forward-looking sub.
-  const limbSub = (rolled: boolean, endsAt: string, thenLabel: string, prefix = ""): string => {
+  const limbSub = (rolled: boolean, endsAt: string, thenLabel: string, prefix = "", endsAtIso?: string): string => {
     if (!data) return "";
-    const ends = formatEndsAtLabel(endsAt, data.sunrise, data.dateLocal, lang);
+    const ends = formatEndsAtLabel(endsAt, data.sunrise, data.dateLocal, lang, endsAtIso);
     if (rolled) return `${en ? "Active since" : "செயலில்"} ${ends}`;
     return `${prefix}${en ? "Ends" : "முடிவு"} ${ends} · ${en ? "then" : "பின்பு"} ${thenLabel}`;
   };
@@ -597,9 +612,9 @@ export function PanchangamTool() {
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "12px" }}>
               {[
-                { label: en ? "Tithi" : "திதி",         value: tithiLabel,          sub: limbSub(tithiRolled, data.tithi.endsAt, tTithi(data.tithi.nextName, lang)) },
+                { label: en ? "Tithi" : "திதி",         value: tithiLabel,          sub: limbSub(tithiRolled, data.tithi.endsAt, tTithi(data.tithi.nextName, lang), "", data.tithi.endsAtIso) },
                 { label: en ? "Vara" : "வாரம்",          value: tWeekday(data.vara.weekday, lang),   sub: `${en ? "Lord" : "அதிபதி"}: ${tPlanetLord(data.vara.lord, lang)}` },
-                { label: en ? "Birth Star" : "நட்சத்திரம்", value: tNakshatra(nakshatraRolled ? data.nakshatra.nextName : data.nakshatra.name, lang), sub: limbSub(nakshatraRolled, data.nakshatra.endsAt, tNakshatra(data.nakshatra.nextName, lang), nakshatraRolled ? "" : `${en ? "Pada" : "பாதம்"} ${data.nakshatra.pada} · `) },
+                { label: en ? "Birth Star" : "நட்சத்திரம்", value: tNakshatra(nakshatraRolled ? data.nakshatra.nextName : data.nakshatra.name, lang), sub: limbSub(nakshatraRolled, data.nakshatra.endsAt, tNakshatra(data.nakshatra.nextName, lang), nakshatraRolled ? "" : `${en ? "Pada" : "பாதம்"} ${data.nakshatra.pada} · `, data.nakshatra.endsAtIso) },
                 {
                   label: en ? "Today's Chandrashtamam" : "சந்திராஷ்டமம்",
                   value: chandrashtamamRasi,
@@ -609,14 +624,14 @@ export function PanchangamTool() {
                         : `ஜன்ம நட்சத்திர நேரங்கள்: ${chandrashtamaWindowSummary} · சந்திரன் ${moonRasi}`)
                     : (en ? `Affected birth sign; Moon in ${moonRasi}` : `பாதிக்கும் பிறப்பு ராசி; சந்திரன் ${moonRasi}`),
                 },
-                { label: en ? "Yoga" : "யோகம்",          value: tYoga(yogaRolled ? data.yoga.nextName : data.yoga.name, lang),      sub: limbSub(yogaRolled, data.yoga.endsAt, tYoga(data.yoga.nextName, lang), yogaRolled ? "" : `${en ? "Yoga" : "யோகம்"} ${data.yoga.number} · `) },
-                { label: en ? "Karana" : "கரணம்",        value: tKarana(karanaRolled ? data.karana.nextName : data.karana.name, lang),    sub: limbSub(karanaRolled, data.karana.endsAt, tKarana(data.karana.nextName, lang)) },
+                { label: en ? "Yoga" : "யோகம்",          value: tYoga(yogaRolled ? data.yoga.nextName : data.yoga.name, lang),      sub: limbSub(yogaRolled, data.yoga.endsAt, tYoga(data.yoga.nextName, lang), yogaRolled ? "" : `${en ? "Yoga" : "யோகம்"} ${data.yoga.number} · `, data.yoga.endsAtIso) },
+                { label: en ? "Karana" : "கரணம்",        value: tKarana(karanaRolled ? data.karana.nextName : data.karana.name, lang),    sub: limbSub(karanaRolled, data.karana.endsAt, tKarana(data.karana.nextName, lang), "", data.karana.endsAtIso) },
                 { label: en ? "Moon Phase" : "சந்திர கலை", value: tMoonPhase(data.moonPhaseLabel, lang), sub: "" },
-                { label: en ? "Lagnam" : "லக்னம்",       value: formatRasi(data.lagnam.rasiNumber, data.lagnam.rasiName, lang), sub: `${en ? "Ends" : "முடிவு"} ${formatEndsAtLabel(data.lagnam.endsAt, data.sunrise, data.dateLocal, lang)} · ${data.lagnam.nazhigai} ${en ? "nazhigai" : "நாழிகை"} ${data.lagnam.vinadi} ${en ? "vinadi" : "விநாடி"}` },
+                { label: en ? "Lagnam" : "லக்னம்",       value: formatRasi(data.lagnam.rasiNumber, data.lagnam.rasiName, lang), sub: `${en ? "Ends" : "முடிவு"} ${formatEndsAtLabel(data.lagnam.endsAt, data.sunrise, data.dateLocal, lang, data.lagnam.endsAtIso)} · ${data.lagnam.nazhigai} ${en ? "nazhigai" : "நாழிகை"} ${data.lagnam.vinadi} ${en ? "vinadi" : "விநாடி"}` },
                 { label: en ? "Soolam" : "சூலம்",        value: tSoolamDirection(data.soolam.direction, lang), sub: `${en ? "Parigaram" : "பரிகாரம்"}: ${tParigaram(data.soolam.parigaram, lang)}` },
                 { label: en ? "Nethiram" : "நேத்திரம்",  value: tNethiram(data.nethiram, lang), sub: t("nethiram_jeevan_hint", lang) },
                 { label: en ? "Jeevan" : "ஜீவன்",        value: tJeevan(data.jeevan, lang), sub: t("nethiram_jeevan_hint", lang) },
-                { label: en ? "Amirdhadhi Yogam" : "அமிர்தாதி யோகம்", value: tAmirdhadhiYogam(amirdhadhiRolled ? data.amirdhadhiYogam.nextName : data.amirdhadhiYogam.name, lang), sub: limbSub(amirdhadhiRolled, data.amirdhadhiYogam.endsAt, tAmirdhadhiYogam(data.amirdhadhiYogam.nextName, lang)) },
+                { label: en ? "Amirdhadhi Yogam" : "அமிர்தாதி யோகம்", value: tAmirdhadhiYogam(amirdhadhiRolled ? data.amirdhadhiYogam.nextName : data.amirdhadhiYogam.name, lang), sub: limbSub(amirdhadhiRolled, data.amirdhadhiYogam.endsAt, tAmirdhadhiYogam(data.amirdhadhiYogam.nextName, lang), "", data.amirdhadhiYogam.endsAtIso) },
               ].map((item) => (
                 <div key={item.label} style={{
                   background: "var(--cl-bg-2)", border: "1px solid var(--cl-border)",

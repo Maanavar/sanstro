@@ -10,6 +10,7 @@ import type {
   ChartCalculateResponseData,
   ChartDoshamInsight,
   ChartExplanationData,
+  ChartExplanationPlanet,
   ChartPlanet,
   ChartSummaryData,
   ChartYogaInsight,
@@ -21,6 +22,8 @@ import type {
 } from "@/lib/types";
 
 import { YogaDoshamPanel } from "./dashboard-yoga-dosham-panel";
+import { Card } from "./ui/card";
+import { Kicker } from "./ui/kicker";
 import {
   type BiCopy,
   type RelationshipTone,
@@ -238,9 +241,97 @@ function activationToneColor(tone: string): string {
 
 function signalTypeLabel(signalType: string, lang: Lang): string {
   if (signalType === "DASHA_LORD_RETURN") return lang === "ta" ? "சுய ராசி கிரகநகர்வு" : "Natal sign return";
+  if (signalType === "TRANSIT_RETURN") return lang === "ta" ? "சுய ராசிக்கு திரும்புதல்" : "Return to its own natal sign";
   if (signalType === "TRANSIT_CONJUNCTION") return lang === "ta" ? "கிரகநகர்வு சேர்க்கை" : "Transit conjunction";
   if (signalType.startsWith("TRANSIT_ASPECT_")) return lang === "ta" ? "கிரகநகர்வு பார்வை" : "Transit aspect";
   return signalType.replaceAll("_", " ");
+}
+
+/** Rahu and Ketu — perpetually retrograde, so the vakra badge says nothing. */
+const NODES = new Set(["RAHU", "KETU"]);
+
+/**
+ * Why this planet scores what it scores, as an addable column.
+ *
+ * A bare 0-100 with no derivation is what turns every disagreement into "your
+ * engine is broken": a reader seeing an exalted, vargottama Jupiter in the
+ * fifties has no way to find the rasi-sandhi and house terms that put it there.
+ * The rows come from the engine and sum to `strengthScore` exactly (the `clamp`
+ * row carries rounding and the 10/95 limit), so the total is shown and can be
+ * checked against the chip above it.
+ *
+ * Collapsed by default — this is the answer to "why", not the headline.
+ */
+function ScoreBreakdown({ planet, lang }: { planet: ChartExplanationPlanet; lang: Lang }) {
+  const rows = planet.scoreBreakdown ?? [];
+  if (rows.length === 0) return null;
+  const total = Math.round(rows.reduce((sum, row) => sum + row.points, 0));
+  return (
+    <details style={{ marginTop: "var(--space-1_5)" }}>
+      <summary
+        style={{
+          cursor: "pointer",
+          fontSize: "var(--text-xs)",
+          color: "var(--color-muted)",
+          listStyle: "revert",
+        }}
+      >
+        {lang === "ta" ? "இந்த மதிப்பெண் ஏன்?" : "Why this score?"}
+      </summary>
+      <dl style={{ margin: "var(--space-2) 0 0", display: "grid", gap: "var(--space-1)" }}>
+        {rows.map((row, index) => (
+          <div
+            key={`${row.key}-${index}`}
+            style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-2)", alignItems: "baseline" }}
+          >
+            <dt style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.4 }}>
+              {tx(row.label, lang)}
+              {row.detail ? (
+                <span style={{ color: "var(--color-faint)" }}> · {tx(row.detail, lang)}</span>
+              ) : null}
+            </dt>
+            <dd
+              style={{
+                margin: 0,
+                fontSize: "var(--text-xs)",
+                fontVariantNumeric: "tabular-nums",
+                fontWeight: 600,
+                whiteSpace: "nowrap",
+                color: row.points >= 0 ? "var(--color-high)" : "var(--color-low)",
+              }}
+            >
+              {row.points >= 0 ? "+" : ""}
+              {row.points.toFixed(1)}
+            </dd>
+          </div>
+        ))}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: "var(--space-2)",
+            borderTop: "1px solid var(--color-border)",
+            paddingTop: "var(--space-1)",
+          }}
+        >
+          <dt style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-text)" }}>
+            {lang === "ta" ? "மொத்தம்" : "Total"}
+          </dt>
+          <dd
+            style={{
+              margin: 0,
+              fontSize: "var(--text-xs)",
+              fontWeight: 700,
+              fontVariantNumeric: "tabular-nums",
+              color: "var(--color-text)",
+            }}
+          >
+            {total}
+          </dd>
+        </div>
+      </dl>
+    </details>
+  );
 }
 
 function groupRelationship(planets: ChartPlanet[]): RelationshipTone {
@@ -830,11 +921,10 @@ export function ChartExplanationPanel({
   const functionalNatureEntries = Object.entries(backendFunctionalNature ?? summary?.functionalNature ?? {});
 
   return (
-    <div
+    <Card
+      variant="soft"
       style={{
         borderRadius: "var(--radius-md)",
-        border: "1px solid var(--color-border)",
-        background: "var(--color-surface-soft)",
         padding: "var(--space-4)",
         display: "flex",
         flexDirection: "column",
@@ -843,18 +933,13 @@ export function ChartExplanationPanel({
     >
       <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-3)", alignItems: "flex-start", flexWrap: "wrap" }}>
         <div style={{ flex: "1 1 260px", minWidth: 0 }}>
-          <p
-            style={{
-              margin: "0 0 var(--space-1)",
-              fontSize: "var(--text-2xs)",
-              fontWeight: 700,
-              color: "var(--color-faint)",
-              textTransform: "uppercase",
-              letterSpacing: "0.1em",
-            }}
+          <Kicker
+            as="p"
+            color="var(--color-faint)"
+            style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-2xs)", letterSpacing: "0.1em" }}
           >
             {lang === "ta" ? "ஜாதக விளக்கம்" : "Chart Explanation"}
-          </p>
+          </Kicker>
           <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.5 }}>
             {teaser}
           </p>
@@ -1011,7 +1096,7 @@ export function ChartExplanationPanel({
                       </div>
                       <div style={{ display: "grid", gap: "var(--space-2)" }}>
                         {backendCurrentActivation.activeLords.map((item) => (
-                          <div key={`${item.level}-${item.lord}`} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", background: "var(--color-surface)", padding: "var(--space-3)" }}>
+                          <Card key={`${item.level}-${item.lord}`} style={{ borderRadius: "var(--radius-sm)", padding: "var(--space-3)" }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "var(--space-2)", flexWrap: "wrap" }}>
                               <div>
                                 <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
@@ -1043,7 +1128,7 @@ export function ChartExplanationPanel({
                                   ))
                                 : <Chip>{lang === "ta" ? "நேரடி பெரிய கிரகநகர்வு தொடுதல் இல்லை" : "No direct major transit contact"}</Chip>}
                             </div>
-                          </div>
+                          </Card>
                         ))}
                       </div>
                     </>
@@ -1070,22 +1155,30 @@ export function ChartExplanationPanel({
                     backendPlanets.map((planet) => {
                       const color = strengthColor(planet.strengthScore);
                       const flags = [
-                        planet.isRetrograde ? (lang === "ta" ? "வக்கிரம்" : "Retrograde") : null,
+                        // Rahu and Ketu are retrograde every day of their
+                        // existence, so the badge distinguishes nothing on them
+                        // and reads as noise. The backend already excludes them
+                        // (PlanetPosition.showRetrogradeBadge); this is the
+                        // client-side half of the same rule.
+                        planet.isRetrograde && !NODES.has(planet.graha)
+                          ? (lang === "ta" ? "வக்கிரம்" : "Retrograde")
+                          : null,
                         planet.isCazimi ? (lang === "ta" ? "கசிமி" : "Cazimi") : null,
                         planet.isCombust ? (lang === "ta" ? "அஸ்தம்" : "Combust") : null,
                         planet.isVargottama ? (lang === "ta" ? "வர்கோத்தமம்" : "Vargottama") : null,
+                        planet.isPlanetaryWar
+                          ? (lang === "ta" ? "கிரக யுத்தம்" : "Graha yuddham")
+                          : null,
                       ].filter(Boolean) as string[];
                       return (
-                        <div
+                        <Card
                           key={planet.graha}
                           style={{
                             display: "grid",
                             gridTemplateColumns: "minmax(92px, 0.7fr) minmax(0, 2fr)",
                             gap: "var(--space-3)",
                             padding: "var(--space-3)",
-                            border: "1px solid var(--color-border)",
                             borderRadius: "var(--radius-sm)",
-                            background: "var(--color-surface)",
                           }}
                         >
                           <div>
@@ -1093,6 +1186,7 @@ export function ChartExplanationPanel({
                               {displayPlanet(planet.graha, lang)}
                             </p>
                             <Chip color={color}>{Math.round(planet.strengthScore)}/100</Chip>
+                            <ScoreBreakdown planet={planet} lang={lang} />
                           </div>
                           <div style={{ display: "grid", gap: "var(--space-1_5)" }}>
                             <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.5 }}>
@@ -1153,7 +1247,7 @@ export function ChartExplanationPanel({
                                 : <Chip>{lang === "ta" ? "சிறப்பு குறி இல்லை" : "No special flag"}</Chip>}
                             </div>
                           </div>
-                        </div>
+                        </Card>
                       );
                     })
                   ) : (
@@ -1161,16 +1255,14 @@ export function ChartExplanationPanel({
                       const color = strengthColor(planet.strengthScore);
                       const flags = planetFlags(planet, lang);
                       return (
-                        <div
+                        <Card
                           key={planet.graha}
                           style={{
                             display: "grid",
                             gridTemplateColumns: "minmax(92px, 0.7fr) minmax(0, 2fr)",
                             gap: "var(--space-3)",
                             padding: "var(--space-3)",
-                            border: "1px solid var(--color-border)",
                             borderRadius: "var(--radius-sm)",
-                            background: "var(--color-surface)",
                           }}
                         >
                           <div>
@@ -1196,7 +1288,7 @@ export function ChartExplanationPanel({
                                 : <Chip>{lang === "ta" ? "சிறப்பு குறி இல்லை" : "No special flag"}</Chip>}
                             </div>
                           </div>
-                        </div>
+                        </Card>
                       );
                     })
                   )}
@@ -1216,7 +1308,7 @@ export function ChartExplanationPanel({
                       backendConjunctions.map((group) => {
                         const color = relationshipColor(group.relationshipTone);
                         return (
-                          <div key={group.rasi} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", padding: "var(--space-3)", background: "var(--color-surface)" }}>
+                          <Card key={group.rasi} style={{ borderRadius: "var(--radius-sm)", padding: "var(--space-3)" }}>
                             <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-2)", flexWrap: "wrap", alignItems: "center" }}>
                               <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                                 {rasiName(group.rasi, lang)} - {ordinalHouse(group.houseFromLagna, lang)}
@@ -1233,7 +1325,7 @@ export function ChartExplanationPanel({
                                 </Chip>
                               ))}
                             </div>
-                          </div>
+                          </Card>
                         );
                       })
                     )
@@ -1247,7 +1339,7 @@ export function ChartExplanationPanel({
                     derived.conjunctions.map((group) => {
                       const color = relationshipColor(group.tone);
                       return (
-                        <div key={group.rasi} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", padding: "var(--space-3)", background: "var(--color-surface)" }}>
+                        <Card key={group.rasi} style={{ borderRadius: "var(--radius-sm)", padding: "var(--space-3)" }}>
                           <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-2)", flexWrap: "wrap", alignItems: "center" }}>
                             <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                               {rasiName(group.rasi, lang)}
@@ -1269,7 +1361,7 @@ export function ChartExplanationPanel({
                               }),
                             )}
                           </div>
-                        </div>
+                        </Card>
                       );
                     })
                   )}
@@ -1357,7 +1449,7 @@ export function ChartExplanationPanel({
                         const touched = chart.planets.filter((planet) => houses.includes(planet.houseFromLagna));
                         const bindus = transitBindus(chart, graha, item!.houseFromLagna);
                         return (
-                          <div key={graha} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", padding: "var(--space-3)", background: "var(--color-surface)" }}>
+                          <Card key={graha} style={{ borderRadius: "var(--radius-sm)", padding: "var(--space-3)" }}>
                             <p style={{ margin: "0 0 var(--space-1_5)", fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
                               {transitAspectSummary(graha, item!.houseFromLagna, item!.houseFromMoon ?? null, houses, lang)}
                             </p>
@@ -1403,7 +1495,7 @@ export function ChartExplanationPanel({
                                 ))}
                               </div>
                             )}
-                          </div>
+                          </Card>
                         );
                       })
                     )}
@@ -1415,7 +1507,7 @@ export function ChartExplanationPanel({
                 <div style={{ display: "grid", gap: "var(--space-3)" }}>
                   {backendHouseGroups ? (
                     backendHouseGroups.map((group) => (
-                      <div key={group.group} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", background: "var(--color-surface)", padding: "var(--space-3)" }}>
+                      <Card key={group.group} style={{ borderRadius: "var(--radius-sm)", padding: "var(--space-3)" }}>
                         <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                           {houseGroupLabel(group.group, lang)}
                         </p>
@@ -1434,7 +1526,7 @@ export function ChartExplanationPanel({
                               })
                             : <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>{lang === "ta" ? "இங்கு கிரகம் இல்லை" : "No planet here"}</p>}
                         </div>
-                      </div>
+                      </Card>
                     ))
                   ) : (
                     (["kendra", "trikona", "dusthana"] as const).map((group) => {
@@ -1445,7 +1537,7 @@ export function ChartExplanationPanel({
                             ? derived.trikonaPlanets
                             : derived.dusthanaPlanets;
                       return (
-                        <div key={group} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", background: "var(--color-surface)", padding: "var(--space-3)" }}>
+                        <Card key={group} style={{ borderRadius: "var(--radius-sm)", padding: "var(--space-3)" }}>
                           <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                             {houseGroupLabel(group, lang)}
                           </p>
@@ -1461,14 +1553,14 @@ export function ChartExplanationPanel({
                                 ))
                               : <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>{lang === "ta" ? "இங்கு கிரகம் இல்லை" : "No planet here"}</p>}
                           </div>
-                        </div>
+                        </Card>
                       );
                     })
                   )}
                   <div style={{ display: "grid", gap: "var(--space-1)" }}>
-                    <p style={{ margin: "var(--space-1) 0 0", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                    <Kicker as="p" color="var(--color-faint)" style={{ margin: "var(--space-1) 0 0", letterSpacing: "0.08em" }}>
                       {lang === "ta" ? "எல்லா கிரகங்களும் — வீடு வாரியாக" : "All planets — by house"}
-                    </p>
+                    </Kicker>
                     {(backendPlanets ?? chart.planets).map((planet) => (
                       <p key={`house-${planet.graha}`} style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-text)", lineHeight: 1.5 }}>
                         {planetHouseMeaning(planet.graha, planet.houseFromLagna, lang)}
@@ -1482,7 +1574,7 @@ export function ChartExplanationPanel({
                 <div style={{ display: "grid", gap: "var(--space-2)" }}>
                   {functionalNatureEntries.length > 0 ? (
                     functionalNatureEntries.map(([planet, nature]) => (
-                      <div key={planet} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", background: "var(--color-surface)", padding: "var(--space-3)" }}>
+                      <Card key={planet} style={{ borderRadius: "var(--radius-sm)", padding: "var(--space-3)" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-2)", flexWrap: "wrap", alignItems: "center" }}>
                           <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                             {displayPlanet(planet, lang)}
@@ -1492,7 +1584,7 @@ export function ChartExplanationPanel({
                         <p style={{ margin: "var(--space-2) 0 0", fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
                           {natureNote(nature, lang)}
                         </p>
-                      </div>
+                      </Card>
                     ))
                   ) : (
                     <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
@@ -1630,7 +1722,7 @@ export function ChartExplanationPanel({
                       </p>
                       {backendPeyarchi.events.length > 0 ? (
                         backendPeyarchi.events.map((event) => (
-                          <div key={`${event.planet}-${event.eventDate}`} style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", padding: "var(--space-3)", background: "var(--color-surface)" }}>
+                          <Card key={`${event.planet}-${event.eventDate}`} style={{ borderRadius: "var(--radius-sm)", padding: "var(--space-3)" }}>
                             <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                               {displayPlanet(event.planet, lang)} - {formatPeyarchiDate(event.eventDate)}
                             </p>
@@ -1646,7 +1738,7 @@ export function ChartExplanationPanel({
                             <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
                               {tx(event.explanation, lang)}
                             </p>
-                          </div>
+                          </Card>
                         ))
                       ) : (
                         <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
@@ -1661,7 +1753,7 @@ export function ChartExplanationPanel({
                     </>
                   ) : (
                     <>
-                  <div style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", padding: "var(--space-3)", background: "var(--color-surface)" }}>
+                  <Card style={{ borderRadius: "var(--radius-sm)", padding: "var(--space-3)" }}>
                     <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                       {lang === "ta" ? "சனி" : "Sani / Saturn"}
                     </p>
@@ -1676,9 +1768,9 @@ export function ChartExplanationPanel({
                         {lang === "ta" ? "லக்னத்திலிருந்து" : "from Lagna"} {ordinalHouse(saniEvent.impactFromLagna, lang)}.
                       </p>
                     )}
-                  </div>
+                  </Card>
 
-                  <div style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", padding: "var(--space-3)", background: "var(--color-surface)" }}>
+                  <Card style={{ borderRadius: "var(--radius-sm)", padding: "var(--space-3)" }}>
                     <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                       {lang === "ta" ? "குரு" : "Guru / Jupiter"}
                     </p>
@@ -1699,9 +1791,9 @@ export function ChartExplanationPanel({
                         {lang === "ta" ? "அடுத்த பெயர்ச்சி தரவு இந்த சாளரத்தில் இல்லை." : "No upcoming Jupiter peyarchi in this window."}
                       </p>
                     )}
-                  </div>
+                  </Card>
 
-                  <div style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", padding: "var(--space-3)", background: "var(--color-surface)" }}>
+                  <Card style={{ borderRadius: "var(--radius-sm)", padding: "var(--space-3)" }}>
                     <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                       {lang === "ta" ? "ராகு / கேது" : "Rahu / Ketu"}
                     </p>
@@ -1732,7 +1824,7 @@ export function ChartExplanationPanel({
                         {lang === "ta" ? "ராகு/கேது பெயர்ச்சி தரவு இந்த சாளரத்தில் இல்லை." : "No Rahu/Ketu peyarchi in this window."}
                       </p>
                     )}
-                  </div>
+                  </Card>
                     </>
                   )}
                 </div>
@@ -1742,6 +1834,6 @@ export function ChartExplanationPanel({
           ))}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

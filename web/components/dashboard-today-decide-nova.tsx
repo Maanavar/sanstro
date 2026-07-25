@@ -8,6 +8,7 @@ import { formatClockLabel } from "@/lib/format";
 import type { Lang } from "@/lib/i18n";
 import { minutesOfDayInZone } from "@/lib/tz";
 import type { ActivityTimingData, DailyGuidanceWindow } from "@/lib/types";
+import { Card, Kicker } from "./ui";
 
 /**
  * Nova "Is today okay for…?" decision strip — a promoted, full-width row of
@@ -176,11 +177,16 @@ export function DashboardTodayDecideNova({
   }
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", flexWrap: "wrap", background: "var(--color-surface)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-lg)", padding: "var(--space-3_5) var(--space-5)" }}>
+    <Card
+      style={{
+        display: "flex", alignItems: "center", gap: "var(--space-4)", flexWrap: "wrap",
+        borderColor: "var(--color-border-strong)", padding: "var(--space-3_5) var(--space-5)",
+      }}
+    >
       <div style={{ flex: "none" }}>
-        <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-accent)", fontWeight: 700, whiteSpace: "nowrap" }}>
+        <Kicker style={{ whiteSpace: "nowrap" }}>
           {lang === "ta" ? "இன்று நல்ல நாளா…?" : "Is today okay for…?"}
-        </div>
+        </Kicker>
         {!busy && sharedCause && (
           <div style={{ fontSize: "var(--text-xs)", color: "var(--color-mid)", marginTop: "3px", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: "var(--space-1)" }}>
             <span aria-hidden="true">◑</span>
@@ -243,6 +249,6 @@ export function DashboardTodayDecideNova({
           + {lang === "ta" ? "உங்கள் கேள்வி" : "Ask your own"}
         </button>
       </div>
-    </div>
+    </Card>
   );
 }
