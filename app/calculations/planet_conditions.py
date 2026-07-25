@@ -133,15 +133,106 @@ D9_DIGNIFIED_MEANING: tuple[str, str] = (
 )
 
 
-def combust_meaning(graha: str) -> tuple[str, str]:
-    """Practical meaning of combustion for a specific graha, ("", "") if none."""
-    return COMBUST_MEANING.get(graha, ("", ""))
+# ── Minor-safe variants ─────────────────────────────────────────────────────
+# The tables above are written in adult second person and assume the reader has
+# messages to send, a partner to speak to, and responsibilities to weigh. Served
+# unchanged on a child's chart they are not just tonally off — they address
+# someone who does not exist yet, and an eight-month-old's reading advised her
+# to re-read important messages before sending them.
+#
+# These say the SAME astrological thing about the graha, described as a
+# developmental tendency a parent can recognise and support. Nothing is softened
+# or withheld; only the recipient changes.
+#
+# TAMIL COPY STATUS: author-written first draft, same as the adult tables above.
+# Queued for the native-Tamil review pass.
+COMBUST_MEANING_MINOR: dict[str, tuple[str, str]] = {
+    "MOON": (
+        "உணர்வுகளை வெளிக்காட்டாமல் உள்ளுக்குள் வைத்திருக்கும் இயல்பு; "
+        "என்ன உணர்கிறார் என்பதைச் சொல்ல அமைதியான நேரமும் பொறுமையும் உதவும்.",
+        "Feelings tend to stay inside rather than show. Unhurried, quiet attention helps this "
+        "child put what they feel into words.",
+    ),
+    "MERCURY": (
+        "சொல்ல நினைப்பதற்கும் வெளிப்படுத்துவதற்கும் இடையே இடைவெளி இருக்கலாம்; "
+        "பேச்சு அல்லது கற்றல் சற்று தாமதமாகத் தெளிவடையலாம் — அவசரப்படுத்தாமல் இருப்பது நல்லது.",
+        "There can be a gap between what this child means and what comes out. Speech or "
+        "learning may take its own time to settle — steady practice serves better than pressure.",
+    ),
+    "VENUS": (
+        "தனக்கு என்ன பிடிக்கும் என்பதை வெளிப்படையாகக் கேட்காத இயல்பு; "
+        "விருப்பங்களைக் கேட்டறிவது அவரது ரசனை வளர உதவும்.",
+        "This child may not readily say what they like or want. Asking, rather than waiting to "
+        "be told, helps their own taste and preferences develop.",
+    ),
+    "MARS": (
+        "ஆற்றல் வெளியே தெரியாமல் உள்ளே தேங்கலாம்; "
+        "விளையாட்டு அல்லது உடல் இயக்கம் அதற்கு நல்ல வடிகால்.",
+        "Energy can bank up inside instead of coming out as activity. Play and physical movement "
+        "give it somewhere useful to go.",
+    ),
+    "JUPITER": (
+        "தன் கருத்தை முன்வைக்கத் தயங்கும் இயல்பு; "
+        "அவரது கேள்விகளை மதிப்பது தன்னம்பிக்கையை வளர்க்கும்.",
+        "This child may hold back their own view even when it is sound. Taking their questions "
+        "seriously is what builds the confidence to voice it.",
+    ),
+    "SATURN": (
+        "ஒழுங்கும் திறனும் மெதுவாக, வெளியில் தெரியாமல் உருவாகும்; "
+        "பிற குழந்தைகளுடன் ஒப்பிடாமல் அவரவர் வேகத்தை மதிப்பது நல்லது.",
+        "Structure and capability build slowly and quietly here. Comparison with other children "
+        "misreads it — this pace is the placement working normally, not a delay.",
+    ),
+}
+
+RETROGRADE_MEANING_MINOR: dict[str, tuple[str, str]] = {
+    "MERCURY": (
+        "யோசித்து, மீண்டும் ஆராய்ந்து முடிவெடுக்கும் இயல்பு; "
+        "உடனடி பதில் வராதது புரியாமை அல்ல — அது இந்த அமைப்பின் இயல்பு.",
+        "Thinking doubles back before it settles. A slow answer here is not a gap in "
+        "understanding; it is how this placement processes.",
+    ),
+    "VENUS": (
+        "பழகிய பொருட்கள், பழகிய நபர்களிடம் திரும்பத் திரும்பச் செல்லும் இயல்பு; "
+        "மாற்றங்களுக்கு சற்று நேரம் தேவைப்படும்.",
+        "A pull back towards familiar things and familiar people. Changes of setting or routine "
+        "need a little more time here than usual.",
+    ),
+    "MARS": (
+        "செயல்படும் முன் யோசிக்கும் இயல்பு; வெளிப்படையான மோதலைத் தவிர்க்கும் குழந்தை.",
+        "Action comes after thinking rather than before it. This child tends to avoid open "
+        "confrontation rather than meet it.",
+    ),
+    "JUPITER": (
+        "சொல்லப்படுவதை அப்படியே ஏற்காமல் கேள்வி கேட்கும் இயல்பு; "
+        "இது மரியாதைக் குறைவு அல்ல, சொந்தமாக ஆராயும் மனம்.",
+        "What they are told gets questioned before it is accepted. This is not defiance — it is "
+        "a mind that needs to work things out for itself.",
+    ),
+    "SATURN": (
+        "பொறுப்பை உள்ளுக்குள் எடைபோடும் இயல்பு; "
+        "வெளியில் தெரியாத ஒழுக்கம் நாளடைவில் பலன் தரும்.",
+        "Responsibility gets weighed internally. A discipline that others do not see is what "
+        "pays off here over time.",
+    ),
+}
 
 
-def retrograde_meaning(graha: str) -> tuple[str, str]:
+def combust_meaning(graha: str, *, minor: bool = False) -> tuple[str, str]:
+    """Practical meaning of combustion for a specific graha, ("", "") if none.
+
+    ``minor`` selects the developmental phrasing addressed to a parent. It
+    changes the recipient, never the astrological claim.
+    """
+    table = COMBUST_MEANING_MINOR if minor else COMBUST_MEANING
+    return table.get(graha, ("", ""))
+
+
+def retrograde_meaning(graha: str, *, minor: bool = False) -> tuple[str, str]:
     """Practical meaning of retrogression for a specific graha, ("", "") if none.
 
     Rahu and Ketu are perpetually retrograde, so the flag distinguishes nothing
     for them and they intentionally have no entry.
     """
-    return RETROGRADE_MEANING.get(graha, ("", ""))
+    table = RETROGRADE_MEANING_MINOR if minor else RETROGRADE_MEANING
+    return table.get(graha, ("", ""))

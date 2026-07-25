@@ -15,16 +15,16 @@ from app.calculations.astro import (
     utc_datetime_to_julian_day,
 )
 from app.calculations.chart_strength import (
-    compute_natal_planet_score,
     compute_strength_breakdown,
     detect_planetary_wars,
+    explain_natal_planet_score,
 )
 from app.calculations.divisional_charts import get_varga
 from app.calculations.ephemeris import calculate_lagna_degree, calculate_rise_transit_jd
 from app.calculations.nakshatra_analysis import build_dispositor_chain, gandanta_detail, pushkara_check
 from app.calculations.panchangam import NAKSHATRA_NAMES
 from app.calculations.transits import RASI_NAMES, is_cazimi, is_combust
-from app.schemas.charts import PlanetPosition
+from app.schemas.charts import PlanetPosition, PlanetScoreTerm
 
 # Maandhi (Mandhi/Gulika) slot rules for chart longitude computation.
 #
@@ -262,7 +262,7 @@ def _planet_position_from_snapshot(
     d9_rasi = navamsa_rasi_from_degree(body.absolute_longitude)  # type: ignore[attr-defined]
     is_vargottama = body.rasi == d9_rasi  # type: ignore[attr-defined]
     speed_ratio = _speed_ratio(body.graha, body.speed_deg_per_day)  # type: ignore[attr-defined]
-    strength_score = compute_natal_planet_score(
+    strength_score, score_terms = explain_natal_planet_score(
         body.graha,  # type: ignore[attr-defined]
         body.rasi,  # type: ignore[attr-defined]
         body.absolute_longitude,  # type: ignore[attr-defined]
@@ -316,4 +316,13 @@ def _planet_position_from_snapshot(
             malefic_aspect_count=malefic_aspect_count,
             speed_ratio=speed_ratio,
         ),
+        score_terms=[
+            PlanetScoreTerm(
+                key=c.key,
+                points=c.points,
+                detail_key=c.detail_key,
+                detail_value=c.detail_value,
+            )
+            for c in score_terms
+        ],
     )

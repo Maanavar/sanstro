@@ -35,6 +35,15 @@ def test_daily_panchangam_endpoint_returns_structured_daily_data(client):
     assert body["data"]["yoga"]["nextName"]
     assert body["data"]["karana"]["endsAt"]
     assert body["data"]["karana"]["nextName"]
+    # endsAtIso is the full local datetime alongside the bare "HH:MM" endsAt —
+    # clients must use it (not endsAt + a guessed date) to tell whether a
+    # boundary falls later today or on a future day. See the 2026-07-25
+    # Kettai/Moolam regression below.
+    for limb in ("tithi", "nakshatra", "yoga", "karana"):
+        ends_at = body["data"][limb]["endsAt"]
+        ends_at_iso = body["data"][limb]["endsAtIso"]
+        assert ends_at_iso[:10] in ("2026-05-21", "2026-05-22")
+        assert ends_at_iso[11:16] == ends_at
     chandra = body["data"]["chandrashtamamToday"]
     assert 1 <= chandra["moonRasiNumber"] <= 12
     assert 1 <= chandra["affectedJanmaRasiNumber"] <= 12
@@ -54,6 +63,34 @@ def test_daily_panchangam_endpoint_returns_structured_daily_data(client):
         assert s["isGood"] is True
         assert s["warning"] is None
     assert len(body["data"]["hora"]) == 24
+
+
+def test_nakshatra_ends_at_iso_carries_the_real_next_day_boundary(client):
+    """Regression: 2026-07-25 Chennai. Kettai (Jyeshtha) nakshatra runs from
+    before sunrise (05:56) until 07:35 the *next* morning (2026-07-26). Before
+    endsAtIso existed, clients had to guess the missing date from the bare
+    "07:35" clock string; because 07:35 is numerically later than sunrise's
+    05:56, that guess read it as "ends later today" and promoted the headline
+    to Moolam a full day early, as soon as the clock passed 7:35 AM on the
+    25th. This pins the wire value so a client comparing endsAtIso can never
+    make that mistake again.
+    """
+    response = client.get(
+        "/api/v1/panchangam/daily",
+        params={
+            "date": "2026-07-25",
+            "lat": 13.0827,
+            "lng": 80.2707,
+            "timezone": "Asia/Kolkata",
+        },
+    )
+
+    assert response.status_code == 200
+    nakshatra = response.json()["data"]["nakshatra"]
+    assert nakshatra["name"] == "KETTAI"
+    assert nakshatra["nextName"] == "MOOLAM"
+    assert nakshatra["endsAt"] == "07:35"
+    assert nakshatra["endsAtIso"].startswith("2026-07-26T07:35")
 
 
 def test_panchangam_timings_endpoint_returns_timing_windows(client):

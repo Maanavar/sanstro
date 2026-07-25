@@ -38,6 +38,12 @@ class PanchangamTithi(BaseModel):
     name: str
     paksha: Literal["SHUKLA", "KRISHNA"]
     ends_at: str = Field(alias="endsAt")
+    # Full local-datetime ISO string alongside the bare "HH:MM" above — the
+    # boundary is the first crossing after sunrise, so it routinely lands on
+    # the next calendar day, and a clock-only string can't say which day.
+    # Clients must use this (not endsAt + a guessed date) for same-day-rollover
+    # promotion. See docs/... project_tithi_rollover_bug_2026-07-20 note.
+    ends_at_iso: str = Field(alias="endsAtIso")
     next_number: int = Field(alias="nextNumber")
     next_name: str = Field(alias="nextName")
     next_paksha: Literal["SHUKLA", "KRISHNA"] = Field(alias="nextPaksha")
@@ -49,6 +55,7 @@ class PanchangamNakshatra(BaseModel):
     name: str
     pada: int
     ends_at: str = Field(alias="endsAt")
+    ends_at_iso: str = Field(alias="endsAtIso")
     next_name: str = Field(alias="nextName")
 
     model_config = ConfigDict(populate_by_name=True)
@@ -58,6 +65,7 @@ class PanchangamYoga(BaseModel):
     number: int
     name: str
     ends_at: str = Field(alias="endsAt")
+    ends_at_iso: str = Field(alias="endsAtIso")
     next_name: str = Field(alias="nextName")
 
     model_config = ConfigDict(populate_by_name=True)
@@ -66,6 +74,7 @@ class PanchangamYoga(BaseModel):
 class PanchangamKarana(BaseModel):
     name: str
     ends_at: str = Field(alias="endsAt")
+    ends_at_iso: str = Field(alias="endsAtIso")
     next_name: str = Field(alias="nextName")
 
     model_config = ConfigDict(populate_by_name=True)
@@ -136,6 +145,7 @@ class PanchangamLagnam(BaseModel):
     rasi_number: int = Field(alias="rasiNumber")
     rasi_name: str = Field(alias="rasiName")
     ends_at: str = Field(alias="endsAt")
+    ends_at_iso: str = Field(alias="endsAtIso")
     nazhigai: int
     vinadi: int
 
@@ -145,6 +155,7 @@ class PanchangamLagnam(BaseModel):
 class PanchangamAmirdhadhiYogam(BaseModel):
     name: str
     ends_at: str = Field(alias="endsAt")
+    ends_at_iso: str = Field(alias="endsAtIso")
     next_name: str = Field(alias="nextName")
     status: str = Field(default="preliminary", description="Verification status: 'preliminary' indicates pending source verification")
 

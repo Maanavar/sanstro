@@ -10,6 +10,7 @@ from app.schemas.charts import PlanetPosition
 from app.services.chart_explanation_service import (
     _functional_context_en,
     _functional_context_ta,
+    _planet_condition_states,
     _planet_facets,
 )
 
@@ -46,10 +47,29 @@ def _planet(
     )
 
 
-def _facets(planet: PlanetPosition, fn: str = "KENDRA", *, current_role: str | None = None):
+def _facets(
+    planet: PlanetPosition,
+    fn: str = "KENDRA",
+    *,
+    current_role: str | None = None,
+    dignity: str = "OWN_SIGN",
+    minor: bool = False,
+    war_opponent: str | None = None,
+    war_lost: bool = False,
+    co_tenants: list[str] | None = None,
+    owned_houses: list[int] | None = None,
+    stage: str = "ADULT",
+):
+    states = _planet_condition_states(
+        planet,
+        minor=minor,
+        war_opponent=war_opponent,
+        war_lost=war_lost,
+        war_separation=0.4,
+    )
     return _planet_facets(
         planet,
-        "OWN_SIGN",
+        dignity,
         fn,
         current_role=current_role,
         dasha_chain_ta="சுக்கிரன் மகாதசை",
@@ -57,7 +77,10 @@ def _facets(planet: PlanetPosition, fn: str = "KENDRA", *, current_role: str | N
         fn_context_ta=_functional_context_ta(fn),
         fn_context_en=_functional_context_en(fn),
         transit_contact_text=None,
-        transit_remedy=None,
+        condition_states=states,
+        co_tenants=co_tenants or [],
+        owned_houses=owned_houses or [],
+        stage=stage,
     )
 
 
@@ -90,7 +113,7 @@ def test_combust_mercury_explains_the_communication_effect() -> None:
     condition = _by_key(facets, "condition")
     assert condition is not None, "combust planet produced no condition facet"
     assert condition.tone == "CAUTION"
-    assert condition.value.en == COMBUST_MEANING["MERCURY"][1]
+    assert COMBUST_MEANING["MERCURY"][1] in condition.value.en
     # Mercury's combustion reads on communication, not on some generic weakness.
     assert "mean" in condition.value.en.lower() or "message" in condition.value.en.lower()
 
@@ -142,12 +165,17 @@ def test_cazimi_outranks_combustion() -> None:
 @pytest.mark.no_db
 def test_retrograde_is_not_framed_as_a_problem() -> None:
     """Retrograde planets are awarded chesta bala by the scorer. The prose must
-    not call a strength a weakness."""
+    not call a strength a weakness.
+
+    This Saturn is ALSO dignified in the Navamsa (exalted in Thulam), so the
+    composed condition line carries both and the net tone is a boost. The
+    invariant that matters is unchanged: retrogression never reads as a caution.
+    """
     facets = _facets(_planet("SATURN", 10, 10, 7, retro=True))
     condition = _by_key(facets, "condition")
     assert condition is not None
-    assert condition.tone == "NEUTRAL", "retrograde should not be flagged as a caution"
-    assert condition.value.en == RETROGRADE_MEANING["SATURN"][1]
+    assert condition.tone != "CAUTION", "retrograde should not be flagged as a caution"
+    assert RETROGRADE_MEANING["SATURN"][1] in condition.value.en
 
 
 @pytest.mark.no_db

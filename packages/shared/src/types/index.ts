@@ -703,12 +703,31 @@ export interface ChartExplanationPlanet {
   d9Rasi: number;
   houseGroup: "KENDRA" | "TRIKONA" | "DUSTHANA" | "OTHER";
   functionalNature: string;
+  /** Inside a graha yuddham (planetary war) — two tara grahas within 1°. The
+   *  engine has always charged the loser -15 on `strengthScore`; these fields
+   *  are what finally let a client say so. */
+  isPlanetaryWar?: boolean;
+  warOpponent?: string | null;
+  warOutcome?: "LOST" | "WON" | null;
+  /** Other grahas sharing this planet's sign. */
+  coTenants?: string[];
   /** The full reading as one paragraph. Retained for existing consumers;
    *  prefer `facets` for anything newly built. */
   explanation: BiText;
   /** The same reading split into labelled, scannable lines. Empty on responses
    *  from before this field existed. */
   facets?: ChartExplanationFacet[];
+  /** Additive derivation of `strengthScore` — the rows sum to it exactly.
+   *  Empty on charts calculated before this field existed. */
+  scoreBreakdown?: ChartExplanationScoreTerm[];
+}
+
+/** One signed, labelled row of a planet's score derivation. */
+export interface ChartExplanationScoreTerm {
+  key: string;
+  label: BiText;
+  points: number;
+  detail?: BiText | null;
 }
 
 /**
@@ -718,7 +737,19 @@ export interface ChartExplanationPlanet {
  * BOOST = strengthening, CAUTION = asks for care, NEUTRAL = descriptive.
  */
 export interface ChartExplanationFacet {
-  key: "placement" | "role" | "strength" | "condition" | "activation" | "nakshatra" | "transit" | "remedy";
+  key:
+    | "placement"
+    | "role"
+    | "strength"
+    | "lordship"
+    | "condition"
+    | "company"
+    | "navamsa"
+    | "activation"
+    | "nakshatra"
+    | "transit"
+    | "remedy"
+    | "synthesis";
   label: BiText;
   value: BiText;
   tone: "NEUTRAL" | "BOOST" | "CAUTION";
@@ -907,12 +938,12 @@ export interface PanchangamDailyResponseData {
   solarNoon: string;
   vara: { weekday: string; lord: string };
   tithi: {
-    number: number; name: string; paksha: "SHUKLA" | "KRISHNA"; endsAt: string;
+    number: number; name: string; paksha: "SHUKLA" | "KRISHNA"; endsAt: string; endsAtIso: string;
     nextNumber: number; nextName: string; nextPaksha: "SHUKLA" | "KRISHNA";
   };
-  nakshatra: { name: string; pada: number; endsAt: string; nextName: string };
-  yoga: { number: number; name: string; endsAt: string; nextName: string };
-  karana: { name: string; endsAt: string; nextName: string };
+  nakshatra: { name: string; pada: number; endsAt: string; endsAtIso: string; nextName: string };
+  yoga: { number: number; name: string; endsAt: string; endsAtIso: string; nextName: string };
+  karana: { name: string; endsAt: string; endsAtIso: string; nextName: string };
   kalam: {
     rahuKalam: { start: string; end: string; slot: number };
     yamagandam: { start: string; end: string; slot: number };
@@ -927,10 +958,10 @@ export interface PanchangamDailyResponseData {
   hora: Array<{ index: number; lord: string; start: string; end: string }>;
   moonPhaseLabel: string;
   soolam: { direction: string; parigaram: string };
-  lagnam: { rasiNumber: number; rasiName: string; endsAt: string; nazhigai: number; vinadi: number };
+  lagnam: { rasiNumber: number; rasiName: string; endsAt: string; endsAtIso: string; nazhigai: number; vinadi: number };
   nethiram: string;
   jeevan: string;
-  amirdhadhiYogam: { name: string; endsAt: string; nextName: string };
+  amirdhadhiYogam: { name: string; endsAt: string; endsAtIso: string; nextName: string };
   chandrashtamamToday: {
     moonRasiNumber: number; moonRasiName: string;
     affectedJanmaRasiNumber: number; affectedJanmaRasiName: string; nakshatras: string[];

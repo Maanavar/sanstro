@@ -36,6 +36,25 @@ class LagnaPosition(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class PlanetScoreTerm(BaseModel):
+    """One signed term of ``strength_score``, on the final 0-100 scale.
+
+    Mirrors ``chart_strength.ScoreContribution``. The terms of a planet sum to
+    its ``strength_score``, so a client can render an addable column rather than
+    asking the reader to take the number on trust. ``key`` is a machine token —
+    bilingual labels are attached by the narration layer.
+    """
+
+    key: str
+    points: float
+    # Language-neutral qualifier (a house number, a graha code, a percentage).
+    # Rendered bilingually by the narration layer — see chart_explanation_service.
+    detail_key: str | None = Field(default=None, alias="detailKey")
+    detail_value: str | None = Field(default=None, alias="detailValue")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class PlanetPosition(BaseModel):
     graha: str
     rasi_name: str = Field(alias="rasiName")
@@ -68,6 +87,9 @@ class PlanetPosition(BaseModel):
         },
         alias="strengthBreakdown",
     )
+    # Additive derivation of `strength_score`. Defaults to [] so older persisted
+    # payloads and existing clients are unaffected; populated by both build paths.
+    score_terms: list[PlanetScoreTerm] = Field(default_factory=list, alias="scoreTerms")
 
     model_config = ConfigDict(populate_by_name=True)
 

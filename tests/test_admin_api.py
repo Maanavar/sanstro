@@ -357,6 +357,9 @@ def test_feature_flags_round_trip(raw_client):
         "timing_band_likely_cutoff",
         "timing_band_mixed_cutoff",
         "nadi_parihara_mode",
+        # Added in bc2cf32 (holistic strength synthesis, shipped ON) but never
+        # added here, so this exact-set assertion has been red since that commit.
+        "holistic_strength_synthesis",
     } == names
 
     set_response = raw_client.patch(

@@ -5,6 +5,7 @@ Implements a practical six-component Shadbala blend for production use.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import dataclass
 
 from app.calculations.aspects import aspects_house
 from app.calculations.astro import house_from_reference
@@ -497,6 +498,40 @@ def compute_strength_breakdown(
     }
 
 
+@dataclass(frozen=True, slots=True)
+class ScoreContribution:
+    """One signed term of a planet's 0-100 strength score.
+
+    ``points`` is already expressed on the final scale, so the contributions of
+    a planet ALWAYS sum to its displayed score — the ``CLAMP_KEY`` term absorbs
+    rounding and the 10/95 clamp so the invariant holds by construction rather
+    than by hope. A UI that prints these can be trusted to add up.
+
+    ``key`` is a stable machine token; this module owns no copy. Bilingual
+    labels live in the narration layer (chart_explanation_service), same split
+    as everywhere else in the engine.
+
+    ``detail_key``/``detail_value`` carry the one fact that decides the term
+    where the key alone does not (which house, which opponent, how burnt). They
+    are split so the narration layer can render them in either language: a
+    single pre-formatted English string like "house 7" would have to be either
+    parsed or shown untranslated in Tamil, and this module holds no copy.
+    ``detail_value`` is always language-neutral — a number or a graha code.
+    """
+
+    key: str
+    points: float
+    detail_key: str | None = None
+    detail_value: str | None = None
+
+
+# Absorbs float rounding plus the 10/95 clamp. Present only when it is non-zero.
+CLAMP_KEY = "clamp"
+
+SCORE_FLOOR = 10
+SCORE_CEILING = 95
+
+
 def compute_natal_planet_score(
     planet: str,
     natal_rasi: int,
@@ -516,7 +551,61 @@ def compute_natal_planet_score(
     """
     Full Shadbala-weighted natal planet strength score.
     Returns 10-95.
+
+    Thin wrapper over ``explain_natal_planet_score`` so the number and its
+    published breakdown can never disagree — there is one arithmetic path.
     """
+    score, _ = explain_natal_planet_score(
+        planet,
+        natal_rasi,
+        natal_longitude,
+        natal_lagna_rasi,
+        sun_longitude,
+        is_retrograde,
+        is_vargottama=is_vargottama,
+        benefic_aspect_count=benefic_aspect_count,
+        malefic_aspect_count=malefic_aspect_count,
+        d9_rasi=d9_rasi,
+        is_daytime=is_daytime,
+        paksha_is_shukla=paksha_is_shukla,
+        speed_ratio=speed_ratio,
+        planetary_wars=planetary_wars,
+    )
+    return score
+
+
+def explain_natal_planet_score(
+    planet: str,
+    natal_rasi: int,
+    natal_longitude: float,
+    natal_lagna_rasi: int,
+    sun_longitude: float,
+    is_retrograde: bool,
+    *,
+    is_vargottama: bool = False,
+    benefic_aspect_count: int = 0,
+    malefic_aspect_count: int = 0,
+    d9_rasi: int | None = None,
+    is_daytime: bool = True,
+    paksha_is_shukla: bool = True,
+    speed_ratio: float | None = None,
+    planetary_wars: dict[str, str] | None = None,
+) -> tuple[int, list[ScoreContribution]]:
+    """``(score, contributions)`` — the score plus why it is that number.
+
+    A bare 0-100 with no visible derivation is the single largest source of
+    "this number is wrong" complaints about the product: a reader who sees an
+    exalted, vargottama Jupiter land at 64 has no way to discover that a
+    rasi-sandhi placement and an 8th-house occupancy are what took it there,
+    so the only available conclusion is that the engine is broken. Publishing
+    the terms converts an argument about the verdict into an argument about a
+    weight, which is a conversation the doctrine can actually have.
+
+    The six balas are reported as their WEIGHTED point contributions (sthana
+    already carries its 0.30 factor), not as raw 0-1 sub-scores, so the column
+    is directly addable. Modifiers follow in the order they are applied.
+    """
+    contributions: list[ScoreContribution] = []
     house = house_from_reference(natal_lagna_rasi, natal_rasi)
 
     dignity = _dignity_score(planet, natal_rasi, natal_longitude)
@@ -550,8 +639,33 @@ def compute_natal_planet_score(
         + drik * 0.15
     ) * 100.0
 
+    contributions.extend(
+        (
+            ScoreContribution("sthana", sthana * 0.30 * 100.0, "house", str(house)),
+            ScoreContribution("dik", dik * 0.15 * 100.0, "house", str(house)),
+            ScoreContribution("kala", kala * 0.15 * 100.0),
+            ScoreContribution(
+                "chesta",
+                chesta * 0.15 * 100.0,
+                # Chesta Bala IS the classical "vakra graha is strong" rule, and
+                # it is the ONLY place retrogression is rewarded (the former flat
+                # +8 was removed 2026-07-18 as a double-count). Naming it here
+                # stops a reader hunting for a missing "retrograde" line.
+                *(("retrograde", None) if is_retrograde else (None, None)),
+            ),
+            ScoreContribution("naisargika", naisargika * 0.10 * 100.0),
+            ScoreContribution(
+                "drik",
+                drik * 0.15 * 100.0,
+                "aspect_counts",
+                f"{benefic_aspect_count}/{malefic_aspect_count}",
+            ),
+        )
+    )
+
     if is_vargottama:
         shadbala += 4.0
+        contributions.append(ScoreContribution("vargottama", 4.0))
 
     if d9_rasi is not None:
         d9_tier = _d9_dignity_tier(planet, d9_rasi)
@@ -560,12 +674,14 @@ def compute_natal_planet_score(
         # already exalted in Rasi.
         if d9_tier > 0 and dignity == 50:
             shadbala += D9_DIGNITY_BONUS
+            contributions.append(ScoreContribution("d9_dignified", D9_DIGNITY_BONUS))
         # The penalty is deliberately NOT gated on dignity. Gating it would
         # re-open the exact hole this closes: the case that most needs the
         # correction is a Rasi-exalted (dignity == 100) planet sitting neecha
         # in Navamsa. Vargottama is exempt, as in the Kala Bala branch above.
         elif d9_tier < 0 and not is_vargottama:
             shadbala -= D9_DEBILITATION_PENALTY
+            contributions.append(ScoreContribution("d9_debilitated", -D9_DEBILITATION_PENALTY))
 
     if planet not in {"SUN", "RAHU", "KETU"}:
         if is_cazimi(planet, natal_longitude, sun_longitude):
@@ -575,6 +691,7 @@ def compute_natal_planet_score(
             # weak to fortified, and the product surfaces it as a BOOST. Kept as
             # the single strongest positive modifier (above retrograde +8).
             shadbala += CAZIMI_BONUS
+            contributions.append(ScoreContribution("cazimi", CAZIMI_BONUS))
         else:
             # Combustion is a gradient, not a hard boundary: full weight only
             # near an exact conjunction, tapering to nothing at the orb edge.
@@ -582,13 +699,29 @@ def compute_natal_planet_score(
                 planet, natal_longitude, sun_longitude, is_retrograde
             )
             shadbala -= MAX_COMBUSTION_PENALTY * severity
+            if severity > 0.0:
+                # The severity is published because the gradient is exactly what
+                # makes a bare "Combust −X" line look arbitrary: two combust
+                # planets legitimately take very different penalties.
+                contributions.append(
+                    ScoreContribution(
+                        "combustion",
+                        -MAX_COMBUSTION_PENALTY * severity,
+                        "orb_severity_pct",
+                        str(round(severity * 100)),
+                    )
+                )
 
     deg_in_sign = natal_longitude % 30
     if deg_in_sign <= 1.0 or deg_in_sign >= 29.0:
         shadbala -= 8.0
+        contributions.append(
+            ScoreContribution("sandhi", -8.0, "degree_in_sign", f"{deg_in_sign:.2f}")
+        )
 
     if is_gandanta(natal_longitude):
         shadbala -= 10.0
+        contributions.append(ScoreContribution("gandanta", -10.0))
 
     # NOTE: retrogression is deliberately NOT rewarded again here.
     #
@@ -607,8 +740,21 @@ def compute_natal_planet_score(
 
     if planetary_wars and planet in planetary_wars:
         shadbala -= 15.0
+        contributions.append(
+            ScoreContribution("planetary_war", -15.0, "lost_to", planetary_wars[planet])
+        )
 
-    return max(10, min(95, round(shadbala)))
+    score = max(SCORE_FLOOR, min(SCORE_CEILING, round(shadbala)))
+
+    # Close the books. Rounding and the 10/95 clamp are the only two ways the
+    # terms above can fail to reach the published number, and a breakdown that
+    # does not add up is worse than no breakdown at all — so the residual is
+    # named rather than hidden.
+    residual = score - sum(c.points for c in contributions)
+    if abs(residual) >= 0.05:
+        contributions.append(ScoreContribution(CLAMP_KEY, residual))
+
+    return score, contributions
 
 
 # ── Holistic Strength Synthesis ───────────────────────────────────────────────

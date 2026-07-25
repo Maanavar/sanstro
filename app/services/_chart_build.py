@@ -22,9 +22,9 @@ from app.calculations.birth_conditions import (
 )
 from app.calculations.chart_strength import (
     apply_holistic_synthesis,
-    compute_natal_planet_score,
     compute_strength_breakdown,
     detect_planetary_wars,
+    explain_natal_planet_score,
 )
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_lagna_degree, calculate_sidereal_planets
@@ -47,6 +47,7 @@ from app.schemas.charts import (
     ChartYogaInsight,
     LagnaPosition,
     PlanetPosition,
+    PlanetScoreTerm,
     ResponseMeta,
 )
 from app.services._chart_planets import (
@@ -306,6 +307,26 @@ def _apply_holistic_strength_synthesis(
                 value = terms[key]
                 if value:
                     p.strength_breakdown[f"synthesis_{key}"] = f"{value:+g}"
+        # Keep the published breakdown addable. The base terms were computed
+        # against the pre-synthesis score; without appending the four relational
+        # deltas (plus a residual for the synthesis cap and int() truncation) the
+        # column would silently stop summing to the number beside it the moment
+        # this flag is switched on.
+        if p.score_terms:
+            # The base pass may already have left a clamp term. Drop it and
+            # recompute one at the end, so the reader sees a single residual row
+            # rather than two rows with the same label that only make sense
+            # together.
+            p.score_terms = [t for t in p.score_terms if t.key != "clamp"]
+            for key in ("functional", "yuti", "drishti", "bhanga"):
+                value = float(terms[key])
+                if value:
+                    p.score_terms.append(
+                        PlanetScoreTerm(key=f"synthesis_{key}", points=value)
+                    )
+            residual = p.strength_score - sum(t.points for t in p.score_terms)
+            if abs(residual) >= 0.05:
+                p.score_terms.append(PlanetScoreTerm(key="clamp", points=residual))
 
 
 def _active_dasha_lords(birth_jd: float, moon_longitude: float) -> set[str]:
@@ -710,13 +731,13 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
             paksha_is_shukla=paksha_is_shukla,
         )
         speed_ratio = _speed_ratio(planet.graha, float(planet.speed_deg_per_day))
-        planet.strength_score = compute_natal_planet_score(
-            planet=planet.graha,
-            natal_rasi=planet.rasi,
-            natal_longitude=planet.absolute_longitude,
-            natal_lagna_rasi=lagna_rasi,
-            sun_longitude=sun_degree,
-            is_retrograde=planet.is_retrograde,
+        planet.strength_score, _score_terms = explain_natal_planet_score(
+            planet.graha,
+            planet.rasi,
+            planet.absolute_longitude,
+            lagna_rasi,
+            sun_degree,
+            planet.is_retrograde,
             is_vargottama=planet.is_vargottama,
             d9_rasi=planet.d9_rasi,
             is_daytime=is_daytime,
@@ -726,6 +747,15 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
             malefic_aspect_count=malefic_aspects,
             planetary_wars=planetary_wars,
         )
+        planet.score_terms = [
+            PlanetScoreTerm(
+                key=c.key,
+                points=c.points,
+                detail_key=c.detail_key,
+                detail_value=c.detail_value,
+            )
+            for c in _score_terms
+        ]
         planet.strength_breakdown = compute_strength_breakdown(
             planet=planet.graha,
             natal_rasi=planet.rasi,

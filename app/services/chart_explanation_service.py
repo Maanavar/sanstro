@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, time
 from itertools import combinations
 from uuid import UUID
@@ -19,6 +20,7 @@ from app.calculations.chart_strength import (
     _dignity_score,
     compute_all_bhava_bala,
     d9_dignity_tier,
+    detect_planetary_wars,
 )
 from app.calculations.dasha import DashaPeriod, calculate_vimshottari_timeline
 from app.calculations.display_names import planet_en, planet_ta, sani_cycle_en, sani_cycle_ta
@@ -33,6 +35,7 @@ from app.calculations.planet_conditions import (
     combust_meaning,
     retrograde_meaning,
 )
+from app.calculations.remedies import PLANET_REMEDY_CATALOG
 from app.models import Chart
 from app.schemas.chart_explanation import (
     ChartExplanationActivationSignal,
@@ -51,11 +54,19 @@ from app.schemas.chart_explanation import (
     ChartExplanationPeyarchiSection,
     ChartExplanationPlanet,
     ChartExplanationResponse,
+    ChartExplanationScoreTerm,
     ChartExplanationSummarySection,
     ChartExplanationText,
     ChartExplanationYogaDoshamSection,
 )
 from app.schemas.charts import ChartBirthCondition, PlanetPosition, ResponseMeta
+from app.services.age_phase_service import (
+    STAGE_ADULT,
+    house_theme_for_stage,
+    is_minor,
+    life_stage,
+    remedy_lead_in_for_stage,
+)
 from app.services.chart_service import load_persisted_chart_response
 from app.services.narrative_engine import PLANET_NAME
 from app.services.peyarchi_service import get_peyarchi_summary
@@ -83,6 +94,21 @@ _HOUSE_THEMES: dict[int, ChartExplanationText] = {
 
 def _bi(ta: str, en: str) -> ChartExplanationText:
     return ChartExplanationText(ta=ta, en=en)
+
+
+def _house_theme(house: int, stage: str = STAGE_ADULT) -> ChartExplanationText:
+    """The house's life area, in terms that apply to THIS reader.
+
+    ``_HOUSE_THEMES`` is written for an adult: house 10 is "career, responsibility,
+    public work" and house 2 is "money base". Served unchanged on a child's chart
+    those are not simply premature, they are about a life the reader does not have
+    — which is how an eight-month-old's reading came to discuss her public standing
+    at work. The signification is unchanged; only the surface it lands on moves.
+    """
+    override = house_theme_for_stage(house, stage)
+    if override is None:
+        return _HOUSE_THEMES[house]
+    return _bi(*override)
 
 
 def _public_planets(planets: list[PlanetPosition]) -> list[PlanetPosition]:
@@ -231,81 +257,269 @@ _TRANSIT_EFFECT: dict[str, ChartExplanationText] = {
         "brings detachment and inward focus; if this area feels unclear right now, avoid forcing a decision",
     ),
 }
-_TRANSIT_REMEDY: dict[str, ChartExplanationText] = {
-    "MARS": _bi("செவ்வாய்க்கிழமை அனுமன்/முருகன் வழிபாடு, சிவப்பு பருப்பு தானம் உதவும்.", "Tuesday prayer to Hanuman/Murugan and donating red lentils are traditional supports."),
-    "JUPITER": _bi("வியாழக்கிழமை குரு/விஷ்ணு வழிபாடு, மஞ்சள் நிற பொருள் தானம் உதவும்.", "Thursday prayer to Guru/Vishnu and offering yellow items are traditional supports."),
-    "SATURN": _bi("சனிக்கிழமை எள் எண்ணெய் விளக்கேற்றுவது, முதியோர்/ஏழைகளுக்கு உதவுவது நல்லது.", "A sesame-oil lamp for Shani on Saturdays and serving elders or those in need are traditional supports."),
-    "RAHU": _bi("துர்க்கை/பைரவர் வழிபாடு, தியானம்/நடைபயிற்சி போன்ற தரையிறங்கிய பழக்கங்கள் உதவும்.", "Prayer to Durga/Bhairava and grounding routines like meditation or walking help balance this."),
-    "KETU": _bi("விநாயகர் வழிபாடு, தனிமையைத் தவிர்த்து பொறுமையாக இருப்பது நல்லது.", "Prayer to Ganesha, and staying patient rather than isolating, are traditional supports."),
+# English weekday names for the natal remedy line. The catalog's own `day` field
+# is Tamil display free-text (RAHU's is "ராகு காலம் (தினமும்)", a daily window
+# rather than a weekday), so it cannot be reused for the English string.
+_REMEDY_WEEKDAY_EN: dict[str, str] = {
+    "SUN": "Sunday",
+    "MOON": "Monday",
+    "MARS": "Tuesday",
+    "MERCURY": "Wednesday",
+    "JUPITER": "Thursday",
+    "VENUS": "Friday",
+    "SATURN": "Saturday",
+    "RAHU": "during the daily Rahu Kalam window",
+    "KETU": "Saturday",
 }
+
+
+def _natal_remedy_text(graha: str, stage: str) -> ChartExplanationText | None:
+    """This graha's OWN classical support — keyed to the natal planet, not to
+    whatever happens to be transiting it.
+
+    The facet used to carry ``_TRANSIT_REMEDY[transiting_source]``, so a chart
+    where transiting Guru touched three natal planets showed the identical
+    Thursday/Vishnu/yellow remedy on all three cards, labelled as each planet's
+    "traditional support". Two consequences, both bad: the remedy silently
+    changed as the sky moved, and it was never that graha's remedy in the first
+    place. Keyed to the natal graha it is stable across dates and correct by
+    construction — which is also what the weekly-remedies card already does
+    (web deriveWeeklyRemedies, fixed 2026-07-22); the two now agree.
+
+    For a minor the same remedy is addressed to the parents, who are the only
+    people who can actually perform it.
+    """
+    remedy = PLANET_REMEDY_CATALOG.get(graha)
+    if remedy is None:
+        return None
+    lead_ta, lead_en = remedy_lead_in_for_stage(stage)
+    prefix_ta = f"{lead_ta} " if lead_ta else ""
+    prefix_en = f"{lead_en} " if lead_en else ""
+    day_en = _REMEDY_WEEKDAY_EN.get(graha, "")
+    on_day_en = day_en if day_en.startswith("during") else f"on {day_en}"
+    return _bi(
+        (
+            f"{prefix_ta}{planet_ta(graha)} பரிகாரம் — {remedy.day} அன்று "
+            f"{remedy.daanam_items_ta} தானம், \"{remedy.mantra_seed}\" ஜபம். "
+            f"{remedy.seva_ta}"
+        ),
+        (
+            f"{prefix_en}Support for {planet_en(graha)} — {remedy.daanam_items_en.lower()} "
+            f"daanam {on_day_en}, with the \"{remedy.mantra_seed}\" seed mantra. {remedy.seva_en}"
+        ),
+    )
+
+
+# ── Graha yuddham (planetary war) ────────────────────────────────────────────
+# The engine has detected this since before the 2026-07-16 audit and charges the
+# losing graha -15 in chart_strength.compute_natal_planet_score. It has never
+# been NARRATED: no field, no card, no sentence. A reader with two grahas half a
+# degree apart saw an unexplained hole in one score and no mention anywhere that
+# the chart's tightest conjunction existed. Detection was never the gap.
+#
+# Stance: detection is tradition-neutral and always on; what varies between
+# lineages is how much phala to attach. This layer states the yuddham as an
+# extremely tight yuti that colours both grahas, and names the win/loss because
+# the score already acts on it — reporting the penalty without its cause is what
+# made the number look arbitrary.
+def _yuddham_text(
+    graha: str, opponent: str, *, lost: bool, separation: float
+) -> ChartExplanationText:
+    sep_ta = f"{separation:.2f}°"
+    if lost:
+        return _bi(
+            (
+                f"{planet_ta(graha)} {planet_ta(opponent)}-உடன் {sep_ta} இடைவெளியில் "
+                "மிக நெருக்கமாக நிற்கிறது — இது கிரக யுத்தம். இவ்வளவு நெருக்கத்தில் இரு "
+                f"கிரகங்களின் பலனும் ஒன்றோடொன்று கலக்கும்; இங்கு {planet_ta(graha)} "
+                "பின்தங்கி நிற்பதால் அதன் தனித்த வெளிப்பாடு மங்குகிறது, "
+                f"{planet_ta(opponent)} வழியாகவே அது செயல்படும்."
+            ),
+            (
+                f"{planet_en(graha)} stands just {sep_ta} from {planet_en(opponent)} — a graha "
+                "yuddham (planetary war). At this closeness the two significations run through "
+                f"each other rather than separately, and {planet_en(graha)} is the trailing "
+                f"graha: its own expression is dimmed and tends to reach you through "
+                f"{planet_en(opponent)}'s agenda. This is the -15 you can see in the score breakdown."
+            ),
+        )
+    return _bi(
+        (
+            f"{planet_ta(graha)} {planet_ta(opponent)}-உடன் {sep_ta} இடைவெளியில் "
+            "மிக நெருக்கமாக நிற்கிறது — இது கிரக யுத்தம். இங்கு "
+            f"{planet_ta(graha)} முன்னிலை பெறுவதால், இரு துறைகளும் இணையும் இடத்தில் "
+            "இதன் தன்மையே மேலோங்கி நிற்கும்."
+        ),
+        (
+            f"{planet_en(graha)} stands just {sep_ta} from {planet_en(opponent)} — a graha "
+            f"yuddham (planetary war) in which {planet_en(graha)} leads. Where the two areas of "
+            "life meet, this graha's character is the one that sets the terms."
+        ),
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class _TransitContact:
+    source: str
+    aspect_house: int
+    signal_type: str
+    rank: int
+
+
+# Contact ranking ladder — lower is reported first.
+#
+# Before this existed the reporting rule was "a conjunction if there is one,
+# otherwise whatever came first in _TRANSIT_SOURCE_PLANETS order" — which is
+# Mars, always, whenever Mars aspected anything. The ladder puts the classical
+# weight in the order a jyotishi would state it, so the one line a card has room
+# for is the one worth having.
+_RANK_RETURN = 0        # the graha is back over its own natal sign (Guru/Sani return)
+_RANK_CONJUNCTION = 1   # a different slow graha sits on it
+_RANK_SLOW_SPECIAL = 2  # Guru 5/9, Sani 3/10 — the two that classically decide a period
+_RANK_MARS_SPECIAL = 3  # Sevvai 4/8
+_RANK_SEVENTH = 4       # standard opposition
+_RANK_NODAL = 5         # Rahu/Ketu — ranked last, they aspect very widely
+
+_SLOW_SPECIAL_SOURCES = frozenset({"JUPITER", "SATURN"})
+_NODE_SOURCES = frozenset({"RAHU", "KETU"})
+_OPPOSITE_NODE = {"RAHU": "KETU", "KETU": "RAHU"}
+
+# How many contacts a planet card reports. One was too few to be honest (a
+# Sani return was being hidden behind a Guru aspect); all of them is a list
+# nobody reads.
+_MAX_REPORTED_CONTACTS = 2
+
+
+def _contact_rank(source: str, aspect_house: int, is_return: bool) -> int:
+    if is_return:
+        return _RANK_RETURN
+    if aspect_house == 1:
+        return _RANK_CONJUNCTION
+    if source in _NODE_SOURCES:
+        return _RANK_NODAL
+    if aspect_house == 7:
+        return _RANK_SEVENTH
+    if source in _SLOW_SPECIAL_SOURCES:
+        return _RANK_SLOW_SPECIAL
+    return _RANK_MARS_SPECIAL
 
 
 def _planet_transit_contacts(
     natal_planet: PlanetPosition,
     transit_bodies: dict[str, object],
-) -> list[tuple[str, int, str]]:
-    """(source_planet, aspect_house, signal_type) for every one of Mars/Jupiter/
-    Saturn/Rahu/Ketu currently conjunct or aspecting this natal planet's sign —
-    computed for every planet, not just the active dasha/bhukti/antaram lords, so
-    the position explanation can state real current gochar contact (issue #2)."""
-    contacts: list[tuple[str, int, str]] = []
+) -> list[_TransitContact]:
+    """Current gochar contacts on this natal planet's sign, strongest first.
+
+    Computed for every planet, not just the active dasha/bhukti/antaram lords,
+    so the position explanation can state real current contact (issue #2).
+
+    The self-contact case used to be skipped outright (``if source ==
+    natal_planet.graha: continue``), which silently deleted the single most
+    important transit a chart can have: a graha returning to its own natal sign.
+    Transiting Guru sitting on natal Guru, or Sani on natal Sani, produced NO
+    transit line at all, while a distant Mars aspect on another planet produced
+    one — so the cards that most deserved a transit note were the ones that had
+    none. Reported here as its own top-ranked ``TRANSIT_RETURN`` signal.
+    """
+    contacts: list[_TransitContact] = []
     for source in _TRANSIT_SOURCE_PLANETS:
-        if source == natal_planet.graha:
-            continue
         body = transit_bodies.get(source)
         if body is None:
             continue
         aspect_house = house_from_reference(body.rasi, natal_planet.rasi)
-        if aspect_house == 1:
-            contacts.append((source, aspect_house, "TRANSIT_CONJUNCTION"))
-        elif aspect_house in aspect_houses(source):
-            contacts.append((source, aspect_house, f"TRANSIT_ASPECT_{aspect_house}TH"))
+        is_return = source == natal_planet.graha and aspect_house == 1
+        if source == natal_planet.graha and not is_return:
+            # A graha's own drishti back onto its natal sign is a geometric
+            # artefact of where it currently stands, not a contact anyone reads.
+            continue
+        # A node opposing the OTHER natal node is true by construction — the
+        # axis is 180° in both the natal and the transit frame, so this fires
+        # exactly when the same node's own return fires and adds nothing to it.
+        # Reported, it reads as an insight the engine found; it is arithmetic.
+        if (
+            source in _NODE_SOURCES
+            and natal_planet.graha == _OPPOSITE_NODE[source]
+            and aspect_house == 7
+        ):
+            continue
+        if is_return or aspect_house == 1 or aspect_house in aspect_houses(source):
+            contacts.append(
+                _TransitContact(
+                    source=source,
+                    aspect_house=aspect_house,
+                    signal_type="TRANSIT_RETURN" if is_return else (
+                        "TRANSIT_CONJUNCTION" if aspect_house == 1
+                        else f"TRANSIT_ASPECT_{aspect_house}TH"
+                    ),
+                    rank=_contact_rank(source, aspect_house, is_return),
+                )
+            )
+    contacts.sort(key=lambda c: (c.rank, c.source))
     return contacts
 
 
-def _planet_transit_contact_text(contacts: list[tuple[str, int, str]]) -> ChartExplanationText | None:
+def _contact_verb(contact: _TransitContact) -> tuple[str, str]:
+    if contact.signal_type == "TRANSIT_RETURN":
+        return (
+            "தனது சொந்த பிறப்பு ராசிக்கே திரும்பி வந்துள்ளது",
+            "has come back onto its own natal sign",
+        )
+    if contact.signal_type == "TRANSIT_CONJUNCTION":
+        return "இணைந்து நிற்கிறது", "is conjunct with this planet"
+    return (
+        f"{contact.aspect_house}-ஆம் பார்வையில் பார்க்கிறது",
+        f"aspects this planet by its {contact.aspect_house}th-house drishti",
+    )
+
+
+def _contact_clause(contact: _TransitContact) -> tuple[str, str]:
+    verb_ta, verb_en = _contact_verb(contact)
+    effect = _TRANSIT_EFFECT[contact.source]
+    if contact.signal_type == "TRANSIT_RETURN":
+        # A return is the graha's own cycle closing, so it is described as the
+        # planet's theme coming round again rather than an outside influence.
+        return (
+            f"கோசார {planet_ta(contact.source)} {verb_ta}; அதன் சுழற்சி ஒன்று முடிந்து "
+            f"புதிதாகத் தொடங்குகிறது — இது {effect.ta}",
+            f"Transiting {planet_en(contact.source)} {verb_en}, closing one full cycle and "
+            f"beginning another; this {effect.en}",
+        )
+    return (
+        f"கோசார {planet_ta(contact.source)} இதை {verb_ta}; இது {effect.ta}",
+        f"Transiting {planet_en(contact.source)} {verb_en}; this {effect.en}",
+    )
+
+
+def _planet_transit_contact_text(contacts: list[_TransitContact]) -> ChartExplanationText | None:
     if not contacts:
         return None
-    # A conjunction is the strongest single contact; otherwise report the first aspect found.
-    source, aspect_house, signal_type = next((c for c in contacts if c[2] == "TRANSIT_CONJUNCTION"), contacts[0])
-    effect = _TRANSIT_EFFECT[source]
-    remedy = _TRANSIT_REMEDY[source]
-    if signal_type == "TRANSIT_CONJUNCTION":
-        verb_ta, verb_en = "இணைந்து நிற்கிறது", "is conjunct with this planet"
-    else:
-        verb_ta, verb_en = f"{aspect_house}-ஆம் பார்வையில் பார்க்கிறது", f"aspects this planet by its {aspect_house}th-house drishti"
-    ta = f"கவனிக்க: இப்போது கோசார {planet_ta(source)} இதை {verb_ta}; இது {effect.ta}. {remedy.ta}"
-    en = f"Right now: transiting {planet_en(source)} {verb_en}; this {effect.en}. {remedy.en}"
+    clauses = [_contact_clause(c) for c in contacts[:_MAX_REPORTED_CONTACTS]]
+    ta = "கவனிக்க: " + ". ".join(c[0] for c in clauses) + "."
+    en = "Right now: " + ". ".join(c[1] for c in clauses) + "."
     return _bi(ta, en)
 
 
 def _split_transit_contact(
-    contacts: list[tuple[str, int, str]],
-) -> tuple[ChartExplanationText | None, ChartExplanationText | None]:
-    """(what the transit is doing, the traditional support) as two separate texts.
+    contacts: list[_TransitContact],
+) -> tuple[ChartExplanationText | None, int]:
+    """(what the transits are doing, how many contacts were not shown).
 
-    ``_planet_transit_contact_text`` deliberately concatenates the remedy onto
-    the effect for the single-paragraph form. Facets render them as two labelled
-    lines, so this returns the same content unjoined rather than re-deriving it.
+    Facets render the contact on its own labelled line. The remedy is no longer
+    returned alongside it — see ``_natal_remedy_text``: keying a graha's
+    "traditional support" to whichever planet happens to be transiting it meant
+    the remedy silently changed as the sky moved while being presented as the
+    planet's own classical support.
     """
     if not contacts:
-        return None, None
-    source, aspect_house, signal_type = next(
-        (c for c in contacts if c[2] == "TRANSIT_CONJUNCTION"), contacts[0]
+        return None, 0
+    clauses = [_contact_clause(c) for c in contacts[:_MAX_REPORTED_CONTACTS]]
+    return (
+        _bi(
+            ". ".join(c[0] for c in clauses) + ".",
+            ". ".join(c[1] for c in clauses) + ".",
+        ),
+        max(0, len(contacts) - _MAX_REPORTED_CONTACTS),
     )
-    effect = _TRANSIT_EFFECT[source]
-    if signal_type == "TRANSIT_CONJUNCTION":
-        verb_ta, verb_en = "இணைந்து நிற்கிறது", "is conjunct with this planet"
-    else:
-        verb_ta, verb_en = (
-            f"{aspect_house}-ஆம் பார்வையில் பார்க்கிறது",
-            f"aspects this planet by its {aspect_house}th-house drishti",
-        )
-    contact = _bi(
-        f"கோசார {planet_ta(source)} இதை {verb_ta}; இது {effect.ta}.",
-        f"Transiting {planet_en(source)} {verb_en}; this {effect.en}.",
-    )
-    return contact, _TRANSIT_REMEDY[source]
 
 
 def _planet_explanation(
@@ -317,9 +531,10 @@ def _planet_explanation(
     dasha_chain_ta: str,
     dasha_chain_en: str,
     transit_contact_text: ChartExplanationText | None = None,
+    stage: str = STAGE_ADULT,
 ) -> ChartExplanationText:
     dignity_text = _dignity_text(dignity)
-    theme = _HOUSE_THEMES[planet.house_from_lagna]
+    theme = _house_theme(planet.house_from_lagna, stage)
     fn_context_ta = _functional_context_ta(functional_nature, planet.graha)
     fn_context_en = _functional_context_en(functional_nature, planet.graha)
     period_ta, period_en = _current_period_text(current_role, dasha_chain_ta, dasha_chain_en)
@@ -427,7 +642,142 @@ _FACET_LABELS: dict[str, ChartExplanationText] = {
     "nakshatra": _bi("நட்சத்திர அதிபதி", "Its star lord"),
     "transit": _bi("நடப்பு கோசாரம்", "Current transit"),
     "remedy": _bi("பரிகாரம்", "Traditional support"),
+    "lordship": _bi("அதிபதி நிலை", "What it rules, and from where"),
+    "company": _bi("உடன் இருப்பவை", "Shares its house with"),
+    "synthesis": _bi("இணைத்துப் பார்த்தால்", "Putting it together"),
 }
+
+
+def _ordinal_en(n: int) -> str:
+    if 10 <= n % 100 <= 20:
+        return f"{n}th"
+    return f"{n}{ {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th') }"
+
+
+def _lordship_facet_value(
+    planet: PlanetPosition,
+    owned_houses: list[int],
+    stage: str,
+) -> ChartExplanationText | None:
+    """Bhavat-bhavam: what this graha rules, read THROUGH where it sits.
+
+    Rahu and Ketu own no rasi, so they get no line here — asserting a lordship
+    Parashari does not grant them is the same error the functional-nature copy
+    was corrected for in the 2026-07-18 review.
+    """
+    if not owned_houses:
+        return None
+    sitting = planet.house_from_lagna
+    sitting_theme = _house_theme(sitting, stage)
+    # A graha standing in a house it OWNS is the swakshetra case, and it breaks
+    # the bhavat-bhavam sentence: "matters of rest and retreat pass through rest
+    # and retreat" is circular, which is what the first draft emitted. Those
+    # houses are stated separately, as running on the graha's own terms.
+    elsewhere = [h for h in owned_houses if h != sitting]
+    owns_its_seat = sitting in owned_houses
+
+    own_seat_ta = (
+        f"தான் ஆளும் {sitting}-ஆம் வீட்டிலேயே அமர்ந்துள்ளது; அந்த வீட்டின் விஷயங்கள் "
+        "இதன் சொந்த இயல்பிலேயே நடக்கும்."
+        if owns_its_seat
+        else ""
+    )
+    own_seat_en = (
+        f"It sits in the {_ordinal_en(sitting)}, a house it rules itself, so those matters "
+        "run directly on its own terms."
+        if owns_its_seat
+        else ""
+    )
+
+    if not elsewhere:
+        return _bi(own_seat_ta, own_seat_en)
+
+    # Semicolons, not commas: each house theme is itself a comma-separated list,
+    # so joining them with commas produced unreadable soup.
+    themes_ta = "; ".join(_house_theme(h, stage).ta for h in elsewhere)
+    themes_en = "; ".join(_house_theme(h, stage).en for h in elsewhere)
+    owned_ta = ", ".join(f"{h}-ஆம்" for h in elsewhere)
+    owned_en = _graha_list_en([_ordinal_en(h) for h in elsewhere])
+    house_word = "house" if len(elsewhere) == 1 else "houses"
+
+    lead_ta = f"{own_seat_ta} " if own_seat_ta else ""
+    lead_en = f"{own_seat_en} " if own_seat_en else ""
+    return _bi(
+        (
+            f"{lead_ta}{owned_ta} வீட்டுக்கும் அதிபதி; {sitting}-ஆம் வீட்டில் "
+            f"அமர்ந்திருப்பதால் {themes_ta} — இவை {sitting_theme.ta} வழியாகவே நடைபெறும்."
+        ),
+        (
+            f"{lead_en}As lord of the {owned_en} {house_word} placed in the "
+            f"{_ordinal_en(sitting)}, matters of {themes_en} pass through {sitting_theme.en}."
+        ),
+    )
+
+# Bilingual labels for the score-derivation rows. The engine owns the arithmetic
+# and the machine keys; copy lives here, as everywhere else in this layer.
+_SCORE_TERM_LABELS: dict[str, ChartExplanationText] = {
+    "sthana": _bi("ஸ்தான பலம் (ராசி + வீடு)", "Sthana bala (sign + house)"),
+    "dik": _bi("திக் பலம் (திசை)", "Dik bala (direction)"),
+    "kala": _bi("கால பலம் (நேரம்)", "Kala bala (time of birth)"),
+    "chesta": _bi("சேஷ்டா பலம் (இயக்கம்)", "Chesta bala (motion)"),
+    "naisargika": _bi("நைசர்கிக பலம் (இயற்கை)", "Naisargika bala (natural rank)"),
+    "drik": _bi("திருக் பலம் (பார்வை)", "Drik bala (aspects received)"),
+    "vargottama": _bi("வர்கோத்தமம்", "Vargottama"),
+    "d9_dignified": _bi("நவாம்சத்தில் பலம்", "Dignified in Navamsa"),
+    "d9_debilitated": _bi("நவாம்சத்தில் நீசம்", "Debilitated in Navamsa"),
+    "cazimi": _bi("கசிமி (சூரியனின் இதயம்)", "Cazimi (heart of the Sun)"),
+    "combustion": _bi("அஸ்தங்கம் (எரிப்பு)", "Combustion"),
+    "sandhi": _bi("ராசி சந்தி (விளிம்பு)", "Rasi sandhi (sign edge)"),
+    "gandanta": _bi("கண்டாந்தம்", "Gandanta"),
+    "planetary_war": _bi("கிரக யுத்தம்", "Graha yuddham"),
+    "synthesis_functional": _bi("செயல்பாட்டு அதிபதித்துவம்", "Functional lordship"),
+    "synthesis_yuti": _bi("சேர்க்கை (யுதி)", "Company it keeps (yuti)"),
+    "synthesis_drishti": _bi("பார்வை தரம்", "Quality of aspects"),
+    "synthesis_bhanga": _bi("நீச பங்கம்", "Neecha bhanga"),
+    "clamp": _bi("வரம்பு / முழுமையாக்கல்", "Rounding and 10-95 limit"),
+}
+
+
+def _score_term_detail(detail_key: str | None, value: str | None) -> ChartExplanationText | None:
+    """Bilingual rendering of an engine detail token."""
+    if detail_key is None:
+        return None
+    if detail_key == "house":
+        return _bi(f"{value}-ஆம் வீடு", f"house {value}")
+    if detail_key == "retrograde":
+        return _bi("வக்ர கதி இங்கே கணக்கில் வருகிறது", "retrogression is credited here")
+    if detail_key == "aspect_counts":
+        benefic, _, malefic = (value or "0/0").partition("/")
+        return _bi(
+            f"{benefic} சுப, {malefic} பாப பார்வைகள்",
+            f"{benefic} benefic / {malefic} malefic aspects",
+        )
+    if detail_key == "orb_severity_pct":
+        return _bi(
+            f"முழு எரிப்பு எல்லையில் {value}% தீவிரம்",
+            f"{value}% of the full combustion weight",
+        )
+    if detail_key == "degree_in_sign":
+        return _bi(f"ராசியில் {value}°", f"{value}° into the sign")
+    if detail_key == "lost_to":
+        graha = value or ""
+        return _bi(f"{planet_ta(graha)}-இடம் தோற்றது", f"lost to {planet_en(graha)}")
+    return None
+
+
+def _score_breakdown(planet: PlanetPosition) -> list[ChartExplanationScoreTerm]:
+    """The planet's score, itemised. Empty when the chart predates score terms."""
+    return [
+        ChartExplanationScoreTerm(
+            key=term.key,
+            label=_SCORE_TERM_LABELS.get(
+                term.key, _bi(term.key, term.key.replace("_", " ").title())
+            ),
+            points=round(term.points, 1),
+            detail=_score_term_detail(term.detail_key, term.detail_value),
+        )
+        for term in getattr(planet, "score_terms", []) or []
+    ]
 
 
 def _navamsa_facet_value(planet: PlanetPosition) -> tuple[ChartExplanationText | None, str]:
@@ -495,40 +845,222 @@ def _navamsa_facet_value(planet: PlanetPosition) -> tuple[ChartExplanationText |
     )
 
 
-def _condition_facet_value(planet: PlanetPosition) -> tuple[ChartExplanationText | None, str]:
-    """Practical meaning of this planet's special conditions, plus a tone.
+@dataclass(frozen=True, slots=True)
+class _ConditionState:
+    """One special condition holding on a planet, with its direction."""
 
-    Conditions are reported in priority order and only one is surfaced: cazimi
-    outranks combustion (it inverts it), and an explicit D9 debilitation
-    outranks the milder vargottama/D9-dignity notes because it is the one a
-    reader most needs and the one the chart is least likely to make obvious.
+    key: str
+    ta: str
+    en: str
+    polarity: int  # +1 strengthening, -1 restraining, 0 descriptive
+
+
+_SANDHI_MEANING: tuple[str, str] = (
+    "ராசியின் விளிம்பில் (சந்தி) அமர்ந்துள்ளது — இதன் விஷயங்கள் ஒரு நிலையிலிருந்து "
+    "இன்னொரு நிலைக்கு மாறும் கட்டத்தில் உள்ளன; பலன் முழுமையாக நிலைபெற நேரம் எடுக்கும்.",
+    "It sits right at the edge of its sign (sandhi) — its themes are in transition between one "
+    "sign's terms and the next, so results here settle later than the placement alone suggests.",
+)
+
+
+def _planet_condition_states(
+    planet: PlanetPosition,
+    *,
+    minor: bool,
+    war_opponent: str | None,
+    war_lost: bool,
+    war_separation: float,
+) -> list[_ConditionState]:
+    """EVERY special condition holding on this planet, not just the top one.
+
+    This used to be a single-winner priority chain: cazimi, else D9-neecha, else
+    combustion, else retrogression, else vargottama, else D9 dignity — first
+    match returned, rest discarded. A combust AND retrograde Mercury therefore
+    reported combustion only, and a reader was never told about the retrogression
+    that the score had already acted on. Conditions genuinely compose (a planet
+    can be own-sign, combust and retrograde at once), so they are all collected
+    and the caller decides how to say them together.
+
+    Cazimi still SUPPRESSES combustion rather than sitting beside it — those two
+    are mutually exclusive by definition, not merely co-occurring.
     """
     graha = planet.graha
-    if getattr(planet, "is_cazimi", False):
-        return _bi(*CAZIMI_MEANING), "BOOST"
+    states: list[_ConditionState] = []
+
+    is_cazimi_planet = bool(getattr(planet, "is_cazimi", False))
+    if is_cazimi_planet:
+        states.append(_ConditionState("cazimi", *CAZIMI_MEANING, polarity=1))
+
+    if war_opponent is not None:
+        war = _yuddham_text(graha, war_opponent, lost=war_lost, separation=war_separation)
+        states.append(
+            _ConditionState(
+                "planetary_war", war.ta, war.en, polarity=-1 if war_lost else 1
+            )
+        )
+
+    if planet.is_combust and not is_cazimi_planet:
+        ta, en = combust_meaning(graha, minor=minor)
+        if ta:
+            states.append(_ConditionState("combust", ta, en, polarity=-1))
+
+    if planet.is_retrograde:
+        ta, en = retrograde_meaning(graha, minor=minor)
+        if ta:
+            # Retrogression is not a penalty here — Chesta Bala already rewards
+            # it. Descriptive, so a mixed reading does not treat it as a flaw.
+            states.append(_ConditionState("retrograde", ta, en, polarity=0))
+
+    deg_in_sign = planet.absolute_longitude % 30
+    if deg_in_sign <= 1.0 or deg_in_sign >= 29.0:
+        # Scored (-8 in chart_strength) since long before it was ever said out
+        # loud. It is frequently the entire reason an otherwise-dignified graha
+        # lands mid-scale, which made the number look wrong.
+        states.append(_ConditionState("sandhi", *_SANDHI_MEANING, polarity=-1))
 
     d9_rasi = getattr(planet, "d9_rasi", None)
     tier = d9_dignity_tier(graha, d9_rasi) if d9_rasi is not None else 0
-    if tier < 0 and not planet.is_vargottama:
-        return _bi(*D9_DEBILITATED_MEANING), "CAUTION"
-
-    if planet.is_combust:
-        ta, en = combust_meaning(graha)
-        if ta:
-            return _bi(ta, en), "CAUTION"
-
-    if planet.is_retrograde:
-        ta, en = retrograde_meaning(graha)
-        if ta:
-            return _bi(ta, en), "NEUTRAL"
-
     if planet.is_vargottama:
-        return _bi(*VARGOTTAMA_MEANING), "BOOST"
+        states.append(_ConditionState("vargottama", *VARGOTTAMA_MEANING, polarity=1))
+    elif tier < 0:
+        states.append(_ConditionState("d9_debilitated", *D9_DEBILITATED_MEANING, polarity=-1))
+    elif tier > 0:
+        states.append(_ConditionState("d9_dignified", *D9_DIGNIFIED_MEANING, polarity=1))
 
-    if tier > 0:
-        return _bi(*D9_DIGNIFIED_MEANING), "BOOST"
+    return states
 
+
+def _condition_facet_value(
+    states: list[_ConditionState],
+) -> tuple[ChartExplanationText | None, str]:
+    """All applicable conditions in one line, with an overall tone."""
+    if not states:
+        return None, "NEUTRAL"
+    net = sum(s.polarity for s in states)
+    tone = "BOOST" if net > 0 else ("CAUTION" if net < 0 else "NEUTRAL")
+    return _bi(" ".join(s.ta for s in states), " ".join(s.en for s in states)), tone
+
+
+# ── Contradiction synthesis ─────────────────────────────────────────────────
+# When strengthening and restraining factors both hold, a reading must NAME the
+# disagreement rather than average it away into "moderate" — the same doctrine
+# app/reasoning/contradiction.py already applies to promise-vs-timing, applied
+# here at planet altitude. Four disconnected facts ("own sign", "combust",
+# "8th house", "exalted in Navamsa") are data; the sentence that puts them in
+# tension is the reading.
+#
+# Template: [dignity], but [restraint], [outlet].
+_STRONG_DIGNITIES = frozenset({"EXALTED", "MOOLATRIKONA", "OWN_SIGN"})
+_WEAK_DIGNITIES = frozenset({"DEBILITATED", "ENEMY_SIGN"})
+
+_DIGNITY_CLAUSE: dict[str, tuple[str, str]] = {
+    "EXALTED": ("உச்சம் பெற்று அடிப்படையில் மிகவும் வலுவாக உள்ளது", "is exalted and fundamentally very strong"),
+    "MOOLATRIKONA": ("மூலத்திரிகோணத்தில் அமர்ந்து தெளிவான பலத்துடன் உள்ளது", "sits in its Moolatrikona with focused strength"),
+    "OWN_SIGN": ("சொந்த ராசியில் அமர்ந்து அடிப்படையில் வலுவாக உள்ளது", "is fundamentally strong in its own sign"),
+    "DEBILITATED": ("நீச ராசியில் அமர்ந்து அடிப்படை ஆதரவு குறைவாக உள்ளது", "is debilitated and starts from little natural support"),
+    "ENEMY_SIGN": ("பகை ராசியில் அமர்ந்து சூழல் ஒத்துழைக்காத நிலையில் உள்ளது", "sits in an enemy sign, without a cooperative setting"),
+}
+
+# The channel a restrained-but-strong graha actually expresses through, by house
+# family. This is the "so where does it go" half of the template — without it the
+# sentence names a tension and abandons the reader inside it.
+_OUTLET_BY_HOUSE: dict[int, tuple[str, str]] = {
+    6: ("சேவை, ஒழுங்கான உழைப்பு, தினசரி பயிற்சி வழியாக", "through service, disciplined work and daily practice"),
+    8: ("ஆழம், தாங்கும் சக்தி, உள்ளார்ந்த மாற்றம் வழியாக", "through depth, endurance and transformation rather than open action"),
+    12: ("தனிமை, ஆய்வு, உள்முக பயிற்சி வழியாக", "through solitude, study and inward practice"),
+}
+
+
+def _synthesis_facet_value(
+    planet: PlanetPosition,
+    dignity: str,
+    states: list[_ConditionState],
+    stage: str = STAGE_ADULT,
+) -> tuple[ChartExplanationText | None, str]:
+    """The one sentence that reconciles this planet's competing signals."""
+    restraints = [s for s in states if s.polarity < 0]
+    supports = [s for s in states if s.polarity > 0]
+    strong_dignity = dignity in _STRONG_DIGNITIES
+    weak_dignity = dignity in _WEAK_DIGNITIES
+
+    # Nothing pulls against anything — the individual facets already say it.
+    if not restraints and not (weak_dignity and supports):
+        return None, "NEUTRAL"
+    if not restraints and not supports:
+        return None, "NEUTRAL"
+
+    name_ta, name_en = planet_ta(planet.graha), planet_en(planet.graha)
+    dignity_ta, dignity_en = _DIGNITY_CLAUSE.get(
+        dignity,
+        ("கலந்த ராசி பலத்தில் உள்ளது", "carries mixed sign-strength"),
+    )
+
+    restraint_names_ta = _CONDITION_SHORT_TA
+    restraint_names_en = _CONDITION_SHORT_EN
+    restraint_ta = _graha_list_ta([restraint_names_ta[s.key] for s in restraints]) if restraints else ""
+    restraint_en = _graha_list_en([restraint_names_en[s.key] for s in restraints]) if restraints else ""
+
+    theme = _house_theme(planet.house_from_lagna, stage)
+    outlet_ta, outlet_en = _OUTLET_BY_HOUSE.get(
+        planet.house_from_lagna,
+        (f"{theme.ta} துறை வழியாக", f"through {theme.en}"),
+    )
+
+    # The closing clause is what stops the sentence reading as a verdict: a D9
+    # that backs the Rasi promise says the strength is real and arrives later,
+    # which is a materially different reading from the same restraints with an
+    # unsupportive Navamsa.
+    d9_backs = any(s.key in {"vargottama", "d9_dignified"} for s in supports)
+    if d9_backs:
+        closing_ta = "நவாம்சம் இதை ஆதரிப்பதால் இந்த பலம் உண்மையானது — காலப்போக்கில் முதிர்ந்து வெளிப்படும்."
+        closing_en = "The Navamsa backs it, so the strength is real and matures with time."
+    elif any(s.key == "d9_debilitated" for s in states):
+        closing_ta = "நவாம்சம் இதை ஆதரிக்காததால், வெளித்தோற்ற பலத்தை நம்பாமல் தொடர் முயற்சி தேவை."
+        closing_en = "The Navamsa does not back it, so sustained effort matters more here than the outward promise."
+    else:
+        closing_ta = "இது ஒரு குறையல்ல — வெளிப்படும் வழி வேறு என்பதே பொருள்."
+        closing_en = "This is not a defect in the placement, only a different route out."
+
+    if strong_dignity and restraints:
+        ta = f"{name_ta} {dignity_ta}; ஆனால் {restraint_ta} அந்த ஆற்றலை உள்நோக்கித் திருப்புகிறது — அது {outlet_ta} வெளிப்படும். {closing_ta}"
+        en = f"{name_en} {dignity_en}, but {restraint_en} turns that force inward — it expresses {outlet_en}. {closing_en}"
+        return _bi(ta, en), "NEUTRAL"
+    if weak_dignity and supports:
+        support_ta = _graha_list_ta([restraint_names_ta[s.key] for s in supports])
+        support_en = _graha_list_en([restraint_names_en[s.key] for s in supports])
+        ta = f"{name_ta} {dignity_ta}; ஆனால் {support_ta} அதற்குப் பாதுகாப்பு தருகிறது — {outlet_ta} இதன் பலன் வெளிப்படும். {closing_ta}"
+        en = f"{name_en} {dignity_en}, yet {support_en} protects it — its results still come {outlet_en}. {closing_en}"
+        return _bi(ta, en), "NEUTRAL"
+    if restraints:
+        ta = f"{name_ta} {dignity_ta}; இதனுடன் {restraint_ta} சேர்வதால், பலன் {outlet_ta} மெதுவாக வெளிப்படும். {closing_ta}"
+        en = f"{name_en} {dignity_en}, and with {restraint_en} alongside, its results arrive gradually {outlet_en}. {closing_en}"
+        return _bi(ta, en), "CAUTION"
     return None, "NEUTRAL"
+
+
+# Short noun forms used inside the synthesis sentence — the full condition
+# meanings are already their own facet and repeating them there would produce a
+# paragraph, not a synthesis.
+_CONDITION_SHORT_TA: dict[str, str] = {
+    "cazimi": "கசிமி நிலை",
+    "planetary_war": "கிரக யுத்தம்",
+    "combust": "அஸ்தங்கம்",
+    "retrograde": "வக்ர கதி",
+    "sandhi": "ராசி சந்தி",
+    "vargottama": "வர்கோத்தமம்",
+    "d9_debilitated": "நவாம்ச நீசம்",
+    "d9_dignified": "நவாம்ச பலம்",
+}
+_CONDITION_SHORT_EN: dict[str, str] = {
+    "cazimi": "cazimi",
+    "planetary_war": "the planetary war",
+    "combust": "combustion",
+    "retrograde": "retrogression",
+    "sandhi": "the sign-edge placement",
+    "vargottama": "vargottama",
+    "d9_debilitated": "Navamsa debilitation",
+    "d9_dignified": "its Navamsa dignity",
+}
 
 
 def _planet_facets(
@@ -542,15 +1074,15 @@ def _planet_facets(
     fn_context_ta: str,
     fn_context_en: str,
     transit_contact_text: ChartExplanationText | None,
-    transit_remedy: ChartExplanationText | None,
+    condition_states: list[_ConditionState],
+    co_tenants: list[str],
+    owned_houses: list[int],
+    hidden_contacts: int = 0,
+    stage: str = STAGE_ADULT,
     lord_house_by_graha: dict[str, int] | None = None,
 ) -> list[ChartExplanationFacet]:
-    """The same reading as ``_planet_explanation``, split into labelled lines.
-
-    Nothing new is computed here — this is purely a restructuring of content
-    that was already being concatenated into one paragraph.
-    """
-    theme = _HOUSE_THEMES[planet.house_from_lagna]
+    """The reading of one planet, split into labelled lines."""
+    theme = _house_theme(planet.house_from_lagna, stage)
     dignity_text = _dignity_text(dignity)
     period_ta, period_en = _current_period_text(current_role, dasha_chain_ta, dasha_chain_en)
 
@@ -579,7 +1111,24 @@ def _planet_facets(
         ),
     ]
 
-    condition_value, condition_tone = _condition_facet_value(planet)
+    # Bhavat-bhavam: "as 5th lord placed in the 8th, learning and children pass
+    # through periods of deep change." The card stated lordship (in `role`) and
+    # placement (in `placement`) as two separate facts and never joined them,
+    # which is the join a jyotishi makes first. house_lords.py has produced this
+    # reading for the Jadhagam report since audit T3 — it simply never reached
+    # the planet card.
+    lordship = _lordship_facet_value(planet, owned_houses, stage)
+    if lordship is not None:
+        facets.append(
+            ChartExplanationFacet(
+                key="lordship",
+                label=_FACET_LABELS["lordship"],
+                value=lordship,
+                tone="CAUTION" if planet.house_from_lagna in _DUSTHANA_HOUSES else "NEUTRAL",
+            )
+        )
+
+    condition_value, condition_tone = _condition_facet_value(condition_states)
     if condition_value is not None:
         facets.append(
             ChartExplanationFacet(
@@ -587,6 +1136,20 @@ def _planet_facets(
                 label=_FACET_LABELS["condition"],
                 value=condition_value,
                 tone=condition_tone,
+            )
+        )
+
+    if co_tenants:
+        facets.append(
+            ChartExplanationFacet(
+                key="company",
+                label=_FACET_LABELS["company"],
+                value=_bi(
+                    f"{_graha_list_ta([planet_ta(g) for g in co_tenants])} இதே வீட்டில் "
+                    f"உடன் நிற்கின்றன; இவற்றின் பலன்கள் ஒன்றோடொன்று கலந்தே வெளிப்படும்.",
+                    f"It shares this house with {_graha_list_en([planet_en(g) for g in co_tenants])}; "
+                    "their significations arrive mixed together rather than separately.",
+                ),
             )
         )
 
@@ -631,22 +1194,60 @@ def _planet_facets(
     )
 
     if transit_contact_text is not None:
+        # Only the top two contacts are narrated. Saying how many were left out
+        # is the difference between an editorial choice and an omission — a
+        # reader who knows Sani is also aspecting this graha should not conclude
+        # the engine missed it.
+        more_ta = (
+            f" (மேலும் {hidden_contacts} தொடுதல் உள்ளது.)" if hidden_contacts else ""
+        )
+        more_en = (
+            f" ({hidden_contacts} further contact{'s' if hidden_contacts > 1 else ''} not shown.)"
+            if hidden_contacts
+            else ""
+        )
         facets.append(
             ChartExplanationFacet(
                 key="transit",
                 label=_FACET_LABELS["transit"],
-                value=transit_contact_text,
+                value=_bi(
+                    transit_contact_text.ta + more_ta,
+                    transit_contact_text.en + more_en,
+                ),
             )
         )
-    if transit_remedy is not None:
+
+    # The remedy is keyed to THIS graha, not to whatever is transiting it, so it
+    # is stable across dates — see _natal_remedy_text.
+    remedy = _natal_remedy_text(planet.graha, stage)
+    if remedy is not None:
         facets.append(
             ChartExplanationFacet(
                 key="remedy",
                 label=_FACET_LABELS["remedy"],
-                value=transit_remedy,
+                value=remedy,
+            )
+        )
+
+    # Last, because it reconciles everything above it.
+    synthesis_value, synthesis_tone = _synthesis_facet_value(
+        planet, dignity, condition_states, stage
+    )
+    if synthesis_value is not None:
+        facets.append(
+            ChartExplanationFacet(
+                key="synthesis",
+                label=_FACET_LABELS["synthesis"],
+                value=synthesis_value,
+                tone=synthesis_tone,
             )
         )
     return facets
+
+
+def _angular_separation(a: float, b: float) -> float:
+    diff = abs((a % 360.0) - (b % 360.0))
+    return min(diff, 360.0 - diff)
 
 
 def _build_planet_sections(
@@ -654,6 +1255,7 @@ def _build_planet_sections(
     lagna_rasi: int,
     timeline,
     transit_bodies: dict[str, object],
+    stage: str = STAGE_ADULT,
 ) -> tuple[list[ChartExplanationPlanet], dict[str, str]]:
     node_rasi_map = {p.graha: p.rasi for p in planets if p.graha in ("RAHU", "KETU")}
     functional = {
@@ -684,13 +1286,47 @@ def _build_planet_sections(
     # House of every plotted body, so a planet's star-lord note can say where
     # that lord actually sits instead of only naming it.
     lord_house_by_graha = {p.graha: p.house_from_lagna for p in planets}
+    longitudes = {p.graha: p.absolute_longitude for p in planets}
+    # Graha yuddham. Detected by the same canonical function the scorer uses, so
+    # the -15 the reader can see in the breakdown and the sentence explaining it
+    # can never disagree about who is at war with whom.
+    wars = detect_planetary_wars(longitudes)
+    war_partner: dict[str, tuple[str, bool]] = {}
+    for loser, winner in wars.items():
+        war_partner[loser] = (winner, True)
+        war_partner[winner] = (loser, False)
+    # Same-sign company, per graha — the other half of the natal yuti reading
+    # that until now existed only as a chart-level section.
+    by_rasi: dict[int, list[str]] = {}
+    for p in planets:
+        by_rasi.setdefault(p.rasi, []).append(p.graha)
+    # Houses each graha rules from this Lagna. Nodes own nothing.
+    owned_by_graha: dict[str, list[int]] = {}
+    for house in range(1, 13):
+        house_rasi = ((lagna_rasi + house - 2) % 12) + 1
+        owned_by_graha.setdefault(_SIGN_LORD_BY_RASI[house_rasi], []).append(house)
+
     items: list[ChartExplanationPlanet] = []
     for planet in planets:
         dignity = _dignity_label(planet)
         dignity_score = _dignity_score(planet.graha, planet.rasi, planet.absolute_longitude)
         fn = functional.get(planet.graha, "NEUTRAL")
         contacts = _planet_transit_contacts(planet, transit_bodies)
-        transit_contact, transit_remedy = _split_transit_contact(contacts)
+        transit_contact, hidden_contacts = _split_transit_contact(contacts)
+        opponent, lost = war_partner.get(planet.graha, (None, False))
+        separation = (
+            _angular_separation(longitudes[planet.graha], longitudes[opponent])
+            if opponent is not None
+            else 0.0
+        )
+        condition_states = _planet_condition_states(
+            planet,
+            minor=is_minor(stage),
+            war_opponent=opponent,
+            war_lost=lost,
+            war_separation=separation,
+        )
+        co_tenants = [g for g in by_rasi.get(planet.rasi, []) if g != planet.graha]
         items.append(
             ChartExplanationPlanet(
                 graha=planet.graha,
@@ -711,6 +1347,10 @@ def _build_planet_sections(
                 d9_rasi=planet.d9_rasi,
                 house_group=_house_group(planet.house_from_lagna),
                 functional_nature=fn,
+                is_planetary_war=opponent is not None,
+                war_opponent=opponent,
+                war_outcome=None if opponent is None else ("LOST" if lost else "WON"),
+                co_tenants=co_tenants,
                 explanation=_planet_explanation(
                     planet,
                     dignity,
@@ -719,6 +1359,7 @@ def _build_planet_sections(
                     dasha_chain_ta=dasha_chain_ta,
                     dasha_chain_en=dasha_chain_en,
                     transit_contact_text=_planet_transit_contact_text(contacts),
+                    stage=stage,
                 ),
                 facets=_planet_facets(
                     planet,
@@ -730,9 +1371,14 @@ def _build_planet_sections(
                     fn_context_ta=_functional_context_ta(fn, planet.graha),
                     fn_context_en=_functional_context_en(fn, planet.graha),
                     transit_contact_text=transit_contact,
-                    transit_remedy=transit_remedy,
+                    condition_states=condition_states,
+                    co_tenants=co_tenants,
+                    owned_houses=owned_by_graha.get(planet.graha, []),
+                    hidden_contacts=hidden_contacts,
+                    stage=stage,
                     lord_house_by_graha=lord_house_by_graha,
                 ),
+                score_breakdown=_score_breakdown(planet),
             )
         )
     return items, functional
@@ -1315,6 +1961,7 @@ _SCORE_SCALE_NOTE: ChartExplanationText = _bi(
 def _summary_section(
     planets: list[PlanetPosition],
     birth_conditions: list[ChartBirthCondition] | None = None,
+    lagna_rasi: int | None = None,
 ) -> ChartExplanationSummarySection:
     scored = [planet for planet in planets if planet.strength_score is not None]
     strongest = max(scored, key=lambda planet: planet.strength_score, default=None)
@@ -1382,6 +2029,53 @@ def _summary_section(
                 f"{planet_en(weakest.graha)} scores lowest on positional strength; a slower plan helps that area.",
             )
         )
+    # The chart's conjunction structure, stated once at chart level. Two grahas
+    # sharing a house is usually the most defining thing about a chart, and the
+    # summary previously reported only Kendra/Dusthana COUNTS — so a reading
+    # could open without ever mentioning that the 7th holds a pair.
+    clusters: dict[int, list[str]] = {}
+    for planet in planets:
+        clusters.setdefault(planet.rasi, []).append(planet.graha)
+    grouped = [
+        (rasi, grahas) for rasi, grahas in sorted(clusters.items()) if len(grahas) > 1
+    ]
+    if grouped and lagna_rasi is not None:
+        phrases_ta: list[str] = []
+        phrases_en: list[str] = []
+        for rasi, grahas in grouped:
+            house = house_from_reference(lagna_rasi, rasi)
+            phrases_ta.append(
+                f"{_graha_list_ta([planet_ta(g) for g in grahas])} {house}-ஆம் வீட்டில்"
+            )
+            phrases_en.append(
+                f"{_graha_list_en([planet_en(g) for g in grahas])} in the {_ordinal_en(house)}"
+            )
+        positives.append(
+            _bi(
+                "சேர்க்கை அமைப்பு: " + "; ".join(phrases_ta) + " — இந்த கிரகங்களின் பலன்கள் இணைந்தே வெளிப்படும்.",
+                "Conjunctions: " + "; ".join(phrases_en) + " — these grahas deliver together rather than separately.",
+            )
+        )
+
+    # Graha yuddham at chart level. The score has acted on this for months; this
+    # is the first place the reader is told it happened.
+    wars = detect_planetary_wars({p.graha: p.absolute_longitude for p in planets})
+    for loser, winner in sorted(wars.items()):
+        sep = _angular_separation(
+            next(p.absolute_longitude for p in planets if p.graha == loser),
+            next(p.absolute_longitude for p in planets if p.graha == winner),
+        )
+        cautions.append(
+            _bi(
+                f"கிரக யுத்தம்: {planet_ta(winner)} மற்றும் {planet_ta(loser)} வெறும் "
+                f"{sep:.2f}° இடைவெளியில் உள்ளன; {planet_ta(loser)} பின்தங்குவதால் அதன் "
+                "தனித்த பலன் மங்கி, மற்றதன் வழியாகவே வெளிப்படும்.",
+                f"Graha yuddham: {planet_en(winner)} and {planet_en(loser)} stand just "
+                f"{sep:.2f}° apart. {planet_en(loser)} is the trailing graha, so its own "
+                "results are dimmed and tend to reach you through its opponent's themes.",
+            )
+        )
+
     # Border-Alert birth conditions (Sankranti/Grahana boundary births, Cazimi,
     # etc. — app/calculations/birth_conditions.py + transits.is_cazimi). These
     # are verified, display-safe qualitative factors, so they belong in the
@@ -1485,6 +2179,24 @@ def _build_peyarchi_section(session: Session, chart_id: UUID, *, as_of: date, wi
     )
 
 
+def _reader_life_stage(chart: Chart, as_of: date) -> str:
+    """Life stage of the person this chart belongs to, ADULT when unknowable.
+
+    Defaulting to ADULT on a missing birth date keeps existing behaviour for
+    charts we cannot age, rather than silently applying child framing to an
+    adult — the failure mode that matters here is the one that already shipped
+    (adult copy on a child), and this only ever narrows it.
+    """
+    profile = getattr(chart, "birth_profile", None)
+    birth_date = getattr(profile, "birth_date_local", None) if profile else None
+    if birth_date is None:
+        return STAGE_ADULT
+    age = as_of.year - birth_date.year
+    if (as_of.month, as_of.day) < (birth_date.month, birth_date.day):
+        age -= 1
+    return life_stage(max(age, 0))
+
+
 def build_chart_explanation(
     session: Session,
     chart_id: UUID,
@@ -1516,7 +2228,15 @@ def build_chart_explanation(
     # ephemeris call.
     transit_bodies = calculate_sidereal_planets(as_of_jd).bodies
 
-    planet_sections, functional_nature = _build_planet_sections(planets, data.lagna.rasi, timeline, transit_bodies)
+    # Who is this reading FOR. Adult second-person guidance ("re-read an
+    # important message before sending it", career and income framing) was being
+    # served on every chart regardless of age, including infants' — the text was
+    # right about the graha and addressed to a person who does not exist yet.
+    stage = _reader_life_stage(chart, as_of)
+
+    planet_sections, functional_nature = _build_planet_sections(
+        planets, data.lagna.rasi, timeline, transit_bodies, stage
+    )
     core_identity = ChartExplanationCoreIdentity(
         lagna_rasi=data.lagna.rasi_name,
         moon_rasi=moon.rasi_name,
@@ -1557,7 +2277,7 @@ def build_chart_explanation(
                 as_of,
                 transit_bodies,
             ),
-            summary=_summary_section(planets, data.birth_conditions),
+            summary=_summary_section(planets, data.birth_conditions, data.lagna.rasi),
             peyarchi=_build_peyarchi_section(
                 session,
                 chart_id,

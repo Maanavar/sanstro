@@ -36,6 +36,26 @@ class ChartExplanationFacet(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class ChartExplanationScoreTerm(BaseModel):
+    """One labelled, signed row of a planet's score derivation.
+
+    A bare 0-100 with no visible arithmetic is the product's single biggest
+    "your engine is wrong" magnet: a reader looking at an exalted, vargottama
+    Jupiter scoring in the fifties has no way to find the rasi-sandhi and
+    8th-house terms that put it there, so "broken" is the only conclusion left
+    open to them. These rows sum to ``strength_score`` exactly (the ``clamp``
+    key carries rounding and the 10/95 clamp), which turns a dispute about the
+    verdict into a dispute about a weight.
+    """
+
+    key: str
+    label: ChartExplanationText
+    points: float
+    detail: ChartExplanationText | None = None
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class ChartExplanationCoreIdentity(BaseModel):
     lagna_rasi: str = Field(alias="lagnaRasi")
     moon_rasi: str = Field(alias="moonRasi")
@@ -70,10 +90,24 @@ class ChartExplanationPlanet(BaseModel):
     d9_rasi: int = Field(alias="d9Rasi")
     house_group: str = Field(alias="houseGroup")
     functional_nature: str = Field(alias="functionalNature")
+    # True when this planet is inside a graha yuddham (planetary war) — two tara
+    # grahas within 1°. The engine has always DETECTED this and charged the
+    # loser -15, but never told anyone: a reader saw an unexplained hole in the
+    # score. `war_opponent` names the other graha; `war_outcome` is LOST or WON.
+    is_planetary_war: bool = Field(default=False, alias="isPlanetaryWar")
+    war_opponent: str | None = Field(default=None, alias="warOpponent")
+    war_outcome: str | None = Field(default=None, alias="warOutcome")
+    # Grahas sharing this planet's sign. Natal yuti was computed chart-wide but
+    # never surfaced on the card of either participant.
+    co_tenants: list[str] = Field(default_factory=list, alias="coTenants")
     explanation: ChartExplanationText
     # Same reading as `explanation`, split into labelled lines. Defaulted to []
     # so older clients are unaffected.
     facets: list[ChartExplanationFacet] = Field(default_factory=list)
+    # Additive derivation of `strength_score`. Empty for older persisted charts.
+    score_breakdown: list[ChartExplanationScoreTerm] = Field(
+        default_factory=list, alias="scoreBreakdown"
+    )
 
     model_config = ConfigDict(populate_by_name=True)
 

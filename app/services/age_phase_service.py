@@ -85,6 +85,88 @@ def get_age_phase_label(current_age: int) -> dict[str, str]:
     return {"ta": "மூத்த பருவம்", "en": "Elder years"}
 
 
+# ── Life stage for narration gating ──────────────────────────────────────────
+# `get_active_life_phases` above answers "which life areas matter now" for the
+# jadhagam report. This narrower axis answers a different question the planet
+# cards need: "may this text address the reader directly, as an adult with a
+# job, a partner, and an income?"
+#
+# It exists because that question was never asked on the chart-explanation path,
+# and an eight-month-old's chart came back advising her to re-read important
+# messages before sending them and to watch her public standing at work. The
+# text was not wrong about the graha — it was written for the wrong person.
+STAGE_INFANT = "INFANT"   # under 3 — everything is mediated by the parents
+STAGE_CHILD = "CHILD"     # 3-12 — school, play, family
+STAGE_TEEN = "TEEN"       # 13-17 — study and identity; still a minor
+STAGE_ADULT = "ADULT"     # 18-59
+STAGE_ELDER = "ELDER"     # 60+
+
+_MINOR_STAGES: frozenset[str] = frozenset({STAGE_INFANT, STAGE_CHILD, STAGE_TEEN})
+
+
+def life_stage(current_age: int) -> str:
+    """Coarse stage used to gate second-person adult phrasing."""
+    if current_age < 3:
+        return STAGE_INFANT
+    if current_age < 13:
+        return STAGE_CHILD
+    if current_age < 18:
+        return STAGE_TEEN
+    if current_age < 60:
+        return STAGE_ADULT
+    return STAGE_ELDER
+
+
+def is_minor(stage: str) -> bool:
+    return stage in _MINOR_STAGES
+
+
+# House themes rewritten for readers who do not yet have a career, an income, or
+# a marriage. Same houses, same significations — a different life surface for
+# them to land on. Absent keys keep the adult theme, which is the correct
+# default for houses whose meaning does not shift with age (4th, 9th, 12th).
+_CHILD_HOUSE_THEMES: dict[int, tuple[str, str]] = {
+    1: ("உடல் வளர்ச்சி, குணம், இயல்பு", "body, temperament, how they meet the world"),
+    2: ("குடும்பம், பேச்சு வளர்ச்சி, வீட்டு வளம்", "family, early speech, the household's resources"),
+    3: ("விளையாட்டு, ஆர்வம், உடன்பிறந்தோர்", "play, curiosity, siblings"),
+    5: ("கற்றல், விளையாட்டு, இயல்பான திறமை", "learning, play, natural talent"),
+    6: ("தினசரி பழக்கம், உணவு, ஆரோக்கியம்", "daily routine, appetite, everyday health"),
+    7: ("மற்றவர்களுடன் பழகும் விதம், நெருங்கிய தோழமை", "how they bond with others, close companions"),
+    8: ("உணர்வு நுட்பம், பொறுமையான கவனிப்பு தேவைப்படும் விஷயங்கள்", "sensitivity, matters that ask for patient care"),
+    10: ("இயல்பாக ஈர்க்கும் துறை, ஆரம்ப திறமை", "what naturally draws them, early aptitude"),
+    11: ("நட்பு வட்டம், சுற்றியுள்ள ஆதரவு", "friendships, the circle around them"),
+}
+
+# Teens: work and money are real but still preparatory, and relationships are
+# read as friendship and formation, not marriage.
+_TEEN_HOUSE_THEMES: dict[int, tuple[str, str]] = {
+    2: ("குடும்பம், பேச்சு, சேமிக்கும் பழக்கம்", "family, speech, early habits with money"),
+    7: ("நட்பு, மற்றவர்களுடன் இணைந்து செயல்படுதல்", "friendship and working alongside others"),
+    10: ("படிப்பு, திறமை, எதிர்கால திசை", "study, aptitude, the direction ahead"),
+    11: ("நண்பர்கள், வாய்ப்புகள், வலையமைப்பு", "friends, opportunities, widening circles"),
+}
+
+
+def house_theme_for_stage(house: int, stage: str) -> tuple[str, str] | None:
+    """``(ta, en)`` age-apt replacement for a house theme, or None to keep the default."""
+    if stage in {STAGE_INFANT, STAGE_CHILD}:
+        return _CHILD_HOUSE_THEMES.get(house)
+    if stage == STAGE_TEEN:
+        return _TEEN_HOUSE_THEMES.get(house)
+    return None
+
+
+# Remedies for a minor are performed BY the parents, so the copy must address
+# them. Saying "light a sesame-oil lamp on Saturdays" to an infant's chart is
+# not merely odd — it is an instruction with no valid recipient.
+def remedy_lead_in_for_stage(stage: str) -> tuple[str, str]:
+    if stage in {STAGE_INFANT, STAGE_CHILD}:
+        return ("பெற்றோர் செய்யக்கூடியது:", "Parents may offer:")
+    if stage == STAGE_TEEN:
+        return ("குடும்பத்துடன் சேர்ந்து செய்யக்கூடியது:", "To do together with family:")
+    return ("", "")
+
+
 # Return age-specific practical guidance for the report.
 # These texts are real, semantic, and not generic filler.
 def get_age_based_practical_guidance(
