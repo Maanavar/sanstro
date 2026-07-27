@@ -60,6 +60,8 @@ from app.schemas.numerology import (
     MarriageDatesResponse,
     NameCorrectionRequest,
     NameCorrectionResponse,
+    NameSessionRequest,
+    NameSessionsResponse,
     NameVariantOut,
     NumberAlignmentOut,
     NumberReadingOut,
@@ -74,6 +76,11 @@ from app.services.numerology_alignment_service import (
 )
 from app.services.numerology_compatibility_service import compatibility_for_charts
 from app.services.numerology_correction_service import correct_name_for_chart
+from app.services.numerology_name_session_service import (
+    delete_name_session,
+    list_name_sessions,
+    save_name_session,
+)
 from app.services.numerology_service import require_numerology_enabled
 from app.services.numerology_timing_service import (
     cycle_for_chart,
@@ -205,6 +212,94 @@ def get_name_correction(
         legalWarningTa=warning.get("legal_warning_ta"),
         calculationVersion=correction.calculation_version,
     )
+
+
+@router.post(
+    "/charts/{chart_id}/numerology/name-sessions",
+    response_model=NameSessionsResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["numerology"],
+)
+def save_numerology_name_session(
+    chart_id: UUID,
+    payload: NameSessionRequest,
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> NameSessionsResponse:
+    """Save a spelling to this chart's shortlist (NUM-58).
+
+    Returns the whole shortlist rather than the one row just written, because
+    every client that saves a name immediately wants the list it now belongs to,
+    and the alternative is a POST followed by a GET that recomputes the same
+    readings a second time.
+
+    Saving a spelling already on the list updates it in place — a retry is not a
+    second session, and treating it as one would let a retry loop exhaust the cap.
+    """
+    _authorize(session, chart_id, current_user)
+    try:
+        save_name_session(
+            session,
+            owner_user_id=current_user.user_id,
+            chart_id=chart_id,
+            name=payload.name,
+            label=payload.label,
+            max_edits=payload.max_edits,
+        )
+    except ScriptMismatchError as exc:
+        # Refused here rather than on read: a row holding a name the engine will
+        # not score can only ever produce an error, and the 422 belongs at the
+        # moment the user typed it.
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
+
+    session.commit()
+    return NameSessionsResponse.from_saved(list_name_sessions(session, chart_id))
+
+
+@router.get(
+    "/charts/{chart_id}/numerology/name-sessions",
+    response_model=NameSessionsResponse,
+    tags=["numerology"],
+)
+def get_numerology_name_sessions(
+    chart_id: UUID,
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> NameSessionsResponse:
+    """This chart's saved-name shortlist, recomputed (NUM-58).
+
+    GET rather than POST despite carrying names, unlike the alignment and
+    correction routes: the names are already stored server-side, so there is
+    nothing here to keep out of a URL. Nothing user-supplied enters the path.
+    """
+    _authorize(session, chart_id, current_user)
+    return NameSessionsResponse.from_saved(list_name_sessions(session, chart_id))
+
+
+@router.delete(
+    "/charts/{chart_id}/numerology/name-sessions/{name_session_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["numerology"],
+)
+def delete_numerology_name_session(
+    chart_id: UUID,
+    name_session_id: UUID,
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    """Remove a spelling from the shortlist (NUM-58). Soft delete."""
+    _authorize(session, chart_id, current_user)
+    if not delete_name_session(session, chart_id=chart_id, name_session_id=name_session_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Saved name not found."
+        )
+    session.commit()
 
 
 @router.post(

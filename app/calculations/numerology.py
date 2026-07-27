@@ -30,14 +30,30 @@ getting bitten by. Characters that are legitimately not letters (spaces,
 hyphens, apostrophes, dots) are ignored *and reported* in
 ``NumberReading.ignored_characters`` so a caller can show what was dropped.
 
-Open doctrine question (D4, see docs/NUMEROLOGY_IMPLEMENTATION_PLAN)
---------------------------------------------------------------------
-Which value in the reduction chain is "the compound" is not fully settled.
-This module uses the most common Tamil/Cheiro convention: **the first value in
-the chain that falls within Cheiro's documented 10..52 series**. So a name
-totalling 37 has compound 37 (not 10), and one totalling 87 has compound 15
-(87 is outside the series, so reduce once). ``reduction_chain`` is always
-exposed so a different reading can be derived without recomputation.
+Where the compound comes from, and where the series runs out (doctrine D6)
+--------------------------------------------------------------------------
+"The compound" is **the first value in the chain that falls within Cheiro's
+documented 10..52 series**. A name totalling 37 has compound 37, not 10.
+
+That rule has a sharp edge, and it is not a detail: **Cheiro's series stops at
+52, and Indian document names routinely exceed it.** Of twelve realistic
+three-part names measured, ten totalled above 52. For those the rule reduces
+until something lands in range, so a name totalling 87 is read as 15 — the
+meaning of a number the name does not make. Worse, a name totalling 63 reduces
+straight to 9 with nothing landing in 10..52 at all, and would otherwise report
+``compound=None``, which is indistinguishable from a genuinely single-digit
+total.
+
+Pandit Sethuraman extended the series to **1..108** for exactly this reason, and
+his is the tradition this product follows (see doctrine D5/D6). That corpus is
+not in hand, so the meanings are not encoded — but the *fact* is:
+``compound_beyond_series`` carries the real total whenever the reading describes
+a surrogate, and ``compound_is_surrogate`` says so outright. Encoding the
+53..108 meanings from an unsourced guess would be the failure the NU-8a
+print-over-online protocol exists to prevent.
+
+``reduction_chain`` is always exposed so a different convention can be derived
+without recomputation.
 """
 from __future__ import annotations
 
@@ -115,6 +131,19 @@ class NumberReading:
     root: int
     graha: str
     ignored_characters: tuple[str, ...] = ()
+    #: The name's own total, when that total lies **above** the encoded 10-52
+    #: series and the reading therefore describes a reduced surrogate rather
+    #: than the number the name actually makes. ``None`` whenever ``compound``
+    #: is the real thing.
+    #:
+    #: This exists because Cheiro's series stops at 52 and Indian document names
+    #: routinely exceed it — of twelve realistic three-part names measured,
+    #: **ten totalled above 52**. Without this field two opposite situations are
+    #: both reported as ``compound=None``: a genuinely single-digit total, and a
+    #: name totalling 63 (which reduces straight to 9 with nothing landing in
+    #: 10..52). The second is not "no compound" — 63 *is* the compound, and
+    #: Pandit Sethuraman's series reads it. See doctrine D6.
+    compound_beyond_series: int | None = None
 
     @property
     def graha_ta(self) -> str:
@@ -126,8 +155,23 @@ class NumberReading:
 
     @property
     def has_compound(self) -> bool:
-        """False for a single-digit total — there is no compound to interpret."""
+        """Whether a compound *within the encoded series* was found.
+
+        Note this is False both for a single-digit total and for a total above
+        52 that reduces straight past the series — check
+        ``compound_beyond_series`` to tell those apart.
+        """
         return self.compound is not None
+
+    @property
+    def compound_is_surrogate(self) -> bool:
+        """True when ``compound`` is a reduction of the name's real total.
+
+        A caller showing a compound reading for such a name is showing the
+        meaning of a *different number* than the one the name adds up to, and
+        should say so.
+        """
+        return self.compound_beyond_series is not None
 
 
 def digit_sum(value: int) -> int:
@@ -174,6 +218,9 @@ def reading_from_total(total: int, ignored: tuple[str, ...] = ()) -> NumberReadi
         total=total,
         reduction_chain=chain,
         compound=compound_from_chain(chain),
+        # Single construction site, so this cannot drift out of step with
+        # ``compound`` the way a field set by each caller would.
+        compound_beyond_series=total if total > COMPOUND_SERIES_MAX else None,
         root=root,
         graha=NUMBER_TO_GRAHA[root],
         ignored_characters=ignored,

@@ -23,6 +23,7 @@ from app.calculations.numerology import (
     compound_from_chain,
     destiny_number,
     psychic_number,
+    reading_from_total,
     reduction_chain,
     score_digits,
     score_text,
@@ -102,6 +103,74 @@ def test_compound_is_the_first_value_inside_cheiros_series() -> None:
 def test_single_digit_total_has_no_compound() -> None:
     assert compound_from_chain(reduction_chain(6)) is None
     assert compound_from_chain(reduction_chain(100)) is None  # chain is (100, 1)
+
+
+# ---------------------------------------------------------------------------
+# Doctrine D6 — where Cheiro's series runs out
+# ---------------------------------------------------------------------------
+def test_a_total_inside_the_series_is_not_flagged_as_a_surrogate() -> None:
+    reading = reading_from_total(37)
+    assert reading.compound == 37
+    assert reading.compound_beyond_series is None
+    assert reading.compound_is_surrogate is False
+
+
+def test_a_total_above_the_series_reports_the_number_the_name_actually_makes() -> None:
+    """87 is read as 15, and the response must not hide that.
+
+    Showing the meaning of 15 for a name that adds to 87 is showing a different
+    number's reading. It is defensible — Cheiro documented nothing above 52 —
+    but only if the surface can tell the user which number it is describing.
+    """
+    reading = reading_from_total(87)
+    assert reading.compound == 15
+    assert reading.compound_beyond_series == 87
+    assert reading.compound_is_surrogate is True
+
+
+def test_a_total_that_reduces_straight_past_the_series_is_not_no_compound() -> None:
+    """The case that motivated D6, and it is not exotic.
+
+    "Rajesh Kumar Subramanian" totals 63, which reduces to 9 in one step with
+    nothing landing in 10..52. Before this, that reported ``compound=None`` —
+    byte-identical to a genuinely single-digit total, so no caller could tell
+    "this name has no compound" from "this name's compound is 63, which we have
+    not encoded". Sethuraman's series reads 63; ours stops at 52.
+    """
+    reading = reading_from_total(63)
+    assert reading.compound is None
+    assert reading.has_compound is False
+    assert reading.compound_beyond_series == 63
+    assert reading.compound_is_surrogate is True
+
+    single_digit = reading_from_total(6)
+    assert single_digit.compound is None
+    assert single_digit.compound_beyond_series is None
+    assert single_digit.compound_is_surrogate is False
+
+
+def test_document_length_names_routinely_leave_the_encoded_series() -> None:
+    """Measured, not asserted — this is why D6 is not an edge case.
+
+    Name correction targets the *document* spelling, and Indian document names
+    are commonly three parts. If this ratio ever drops to zero the sample has
+    stopped being representative, not the problem gone away.
+    """
+    names = (
+        "Senthil Kumar Sivaraman",
+        "Rajesh Kumar Subramanian",
+        "Lakshmi Priya Venkatesan",
+        "Thiruvengadam Ramachandran",
+        "Venkataraman Krishnamurthy",
+        "Meenakshi Sundaram Pillai",
+        "Chandrasekaran Natarajan",
+        "Parthasarathy Raghavan",
+    )
+    beyond = [name for name in names if score_text(name).compound_is_surrogate]
+    assert len(beyond) == 8, (
+        f"{len(beyond)}/8 three-part names exceeded the 10-52 series; the "
+        "measurement behind doctrine D6 has changed"
+    )
 
 
 # ---------------------------------------------------------------------------

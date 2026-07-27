@@ -17,6 +17,9 @@ import type { BiText, MuhurtaSlot } from "../types";
  *   GET  /charts/{id}/numerology/lucky-dates        -> get_lucky_dates
  *   GET  /charts/{id}/numerology/marriage-dates     -> get_marriage_dates
  *   POST /numerology/compatibility                  -> get_numerology_compatibility
+ *   POST   /charts/{id}/numerology/name-sessions      -> save_numerology_name_session
+ *   GET    /charts/{id}/numerology/name-sessions      -> get_numerology_name_sessions
+ *   DELETE /charts/{id}/numerology/name-sessions/{id} -> delete_numerology_name_session
  *
  * The last one is not chart-scoped because it reads two charts and neither is
  * subordinate to the other — both ids go in the body.
@@ -42,9 +45,13 @@ export interface NumberReading {
   /** Raw sum before any reduction. */
   total: number;
   /**
-   * The two-digit compound, null only for a single-digit total. Never collapse
-   * this into `root` for display — 43 and 34 both reduce to 7 and are read
-   * differently. The compound outranks the root.
+   * The compound within the encoded 10-52 series. Never collapse this into
+   * `root` for display — 43 and 34 both reduce to 7 and are read differently.
+   * The compound outranks the root.
+   *
+   * Null for a single-digit total AND for a long name whose total reduces past
+   * the series entirely (e.g. 63 → 9). Check `compoundBeyondSeries` to tell
+   * those two apart — they are opposite findings.
    */
   compound: number | null;
   /** Final single digit, 1-9. */
@@ -57,6 +64,19 @@ export interface NumberReading {
   grahaEn: string;
   /** Characters skipped while scoring (spaces, punctuation), for transparency. */
   ignoredCharacters: string[];
+  /**
+   * Doctrine D6. The name's own total when it exceeds the encoded 10-52 series,
+   * meaning `compound` above is a *reduced surrogate* — the meaning of a
+   * different number than this name actually makes. Null when `compound` is the
+   * real thing.
+   *
+   * Common for document names: of twelve realistic three-part Indian names
+   * measured, ten totalled above 52. Cheiro's series stops there; Pandit
+   * Sethuraman extended it to 108 for exactly this reason, and that corpus is
+   * not yet in hand. A surface rendering a compound reading while this is
+   * non-null must say which number it is describing.
+   */
+  compoundBeyondSeries: number | null;
 }
 
 export interface NumerologyProfileRequest {
@@ -742,4 +762,85 @@ export async function getNumerologyMarriageDates(
     `/charts/${encodeURIComponent(chartId)}/numerology/marriage-dates`,
     { year, recommendedOnly },
   ) as Promise<MarriageDatesResponse>;
+}
+
+/* ------------------------------------------------------------------------- *
+ * Saved name sessions (NUM-58)
+ * ------------------------------------------------------------------------- */
+
+export interface NameSessionRequest {
+  /** The spelling under consideration. Latin only (doctrine D3) — 422 otherwise. */
+  name: string;
+  /** The user's own note. Never interpretive copy, so never withheld. */
+  label?: string | null;
+  maxEdits?: number;
+}
+
+/**
+ * One saved spelling, recomputed on every read.
+ *
+ * There is no stored score in this object and no field for one. `reading` and
+ * `alignment` are computed on the request that returned it, so a saved session
+ * follows the engine and the doctrine flags instead of freezing them.
+ */
+export interface SavedNameSession {
+  nameSessionId: string;
+  name: string;
+  label: string | null;
+  maxEdits: number;
+  reading: NumberReading;
+  alignment: NumberAlignment;
+  savedAt: string;
+  /** The engine version moved since this was saved; the numbers may differ. */
+  recalculatedSinceSaved: boolean;
+}
+
+export interface NameSessionsResponse {
+  sessions: SavedNameSession[];
+  /** How many more spellings may be saved before the server refuses with 409. */
+  remainingSlots: number;
+  readingsAvailable: boolean;
+  calculationVersion: string;
+  traditionEn: string;
+  traditionTa: string;
+}
+
+/**
+ * Save a spelling to a chart's shortlist, and get the whole shortlist back.
+ *
+ * Returns the full list rather than the single new row, because a client that
+ * has just saved a name always wants the list it now belongs to — the
+ * alternative is a POST followed immediately by a GET recomputing the same
+ * readings a second time.
+ *
+ * Saving a spelling already on the list updates it in place rather than adding
+ * a duplicate. 409 once the chart holds its maximum.
+ */
+export async function saveNumerologyNameSession(
+  chartId: string,
+  payload: NameSessionRequest,
+): Promise<NameSessionsResponse> {
+  return getApiClient().post(
+    `/charts/${encodeURIComponent(chartId)}/numerology/name-sessions`,
+    payload,
+  ) as Promise<NameSessionsResponse>;
+}
+
+/** A chart's saved-name shortlist, recomputed against the current engine. */
+export async function getNumerologyNameSessions(
+  chartId: string,
+): Promise<NameSessionsResponse> {
+  return getApiClient().get(
+    `/charts/${encodeURIComponent(chartId)}/numerology/name-sessions`,
+  ) as Promise<NameSessionsResponse>;
+}
+
+/** Remove one saved spelling. Soft delete server-side. */
+export async function deleteNumerologyNameSession(
+  chartId: string,
+  nameSessionId: string,
+): Promise<void> {
+  return getApiClient().delete(
+    `/charts/${encodeURIComponent(chartId)}/numerology/name-sessions/${encodeURIComponent(nameSessionId)}`,
+  ) as Promise<void>;
 }

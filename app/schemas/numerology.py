@@ -27,7 +27,7 @@ fortune-teller, and it costs nothing.
 """
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -60,6 +60,13 @@ from app.schemas.muhurta import MuhurtaSlot
 from app.schemas.muhurtham_naal import MuhurthamNaalMatchContext, MuhurthamNaalMatchItem
 from app.schemas.relationships import VALID_COMPATIBILITY_CONTEXTS, DirectPoruthamData
 from app.services.numerology_compatibility_service import ChartCompatibility
+from app.services.numerology_name_session_service import (
+    CALCULATION_VERSION as NAME_SESSION_CALCULATION_VERSION,
+)
+from app.services.numerology_name_session_service import (
+    MAX_SESSIONS_PER_CHART,
+    SavedNameReading,
+)
 from app.services.numerology_service import readings_available
 
 #: Shown with every response. Chaldean numerology reached Tamil practice via
@@ -95,6 +102,12 @@ class NumberReadingOut(BaseModel):
     graha_ta: str = Field(alias="grahaTa")
     graha_en: str = Field(alias="grahaEn")
     ignored_characters: list[str] = Field(alias="ignoredCharacters", default_factory=list)
+    #: Doctrine D6 — the name's own total when it exceeds the encoded 10-52
+    #: series, meaning ``compound`` above describes a *reduced surrogate* rather
+    #: than the number this name actually makes. Null when ``compound`` is the
+    #: real thing. A client showing a compound reading while this is non-null is
+    #: showing a different number's meaning and must say so.
+    compound_beyond_series: int | None = Field(alias="compoundBeyondSeries", default=None)
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -109,6 +122,7 @@ class NumberReadingOut(BaseModel):
             grahaTa=reading.graha_ta,
             grahaEn=reading.graha_en,
             ignoredCharacters=list(reading.ignored_characters),
+            compoundBeyondSeries=reading.compound_beyond_series,
         )
 
 
@@ -952,3 +966,73 @@ class MarriageDatesResponse(BaseModel):
     tradition_ta: str = Field(alias="traditionTa", default=TRADITION_NOTE_TA)
 
     model_config = ConfigDict(populate_by_name=True)
+
+
+class NameSessionRequest(BaseModel):
+    """A spelling to add to this chart's shortlist (NUM-58)."""
+
+    name: str = Field(max_length=120, min_length=1)
+    #: The user's own note. Free text they wrote themselves, so it is *not*
+    #: interpretive copy and does not pass through ``reviewed_prose`` — the
+    #: corpus gate withholds sentences this codebase wrote, not the user's.
+    label: str | None = Field(default=None, max_length=120)
+    max_edits: int = Field(alias="maxEdits", default=2, ge=1, le=2)
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class SavedNameSessionOut(BaseModel):
+    """One saved spelling, recomputed at read time.
+
+    There is no stored score here and deliberately no field for one. ``reading``
+    and ``alignment`` are computed on this request; the row supplied only the
+    name, the label and ``maxEdits``.
+    """
+
+    name_session_id: UUID = Field(alias="nameSessionId")
+    name: str
+    label: str | None = None
+    max_edits: int = Field(alias="maxEdits")
+    reading: NumberReadingOut
+    alignment: NumberAlignmentOut
+    saved_at: datetime = Field(alias="savedAt")
+    #: True when the engine version has moved since the user saved this. A
+    #: changed number with no explanation is worse than one with an explanation.
+    recalculated_since_saved: bool = Field(alias="recalculatedSinceSaved")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    @classmethod
+    def from_saved(cls, saved: SavedNameReading) -> SavedNameSessionOut:
+        return cls(
+            nameSessionId=saved.session.numerology_name_session_id,
+            name=saved.session.candidate_name,
+            label=saved.session.label,
+            maxEdits=saved.session.max_edits,
+            reading=NumberReadingOut.from_reading(saved.reading),
+            alignment=NumberAlignmentOut.from_alignment(saved.alignment),
+            savedAt=saved.session.created_at,
+            recalculatedSinceSaved=saved.recalculated_since_saved,
+        )
+
+
+class NameSessionsResponse(BaseModel):
+    """This chart's saved-name shortlist (NUM-58)."""
+
+    sessions: list[SavedNameSessionOut]
+    #: How many more spellings may be saved before the cap refuses.
+    remaining_slots: int = Field(alias="remainingSlots")
+    readings_available: bool = Field(alias="readingsAvailable", default_factory=readings_available)
+    calculation_version: str = Field(alias="calculationVersion")
+    tradition_en: str = Field(alias="traditionEn", default=TRADITION_NOTE_EN)
+    tradition_ta: str = Field(alias="traditionTa", default=TRADITION_NOTE_TA)
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    @classmethod
+    def from_saved(cls, rows: list[SavedNameReading]) -> NameSessionsResponse:
+        return cls(
+            sessions=[SavedNameSessionOut.from_saved(row) for row in rows],
+            remainingSlots=max(0, MAX_SESSIONS_PER_CHART - len(rows)),
+            calculationVersion=NAME_SESSION_CALCULATION_VERSION,
+        )

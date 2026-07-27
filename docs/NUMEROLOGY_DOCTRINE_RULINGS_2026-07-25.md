@@ -199,6 +199,51 @@ Online Tamil "Peyar Porutham" calculators were checked and are **not** usable as
 
 ---
 
+## D6 — Sethuraman, and where Cheiro's series runs out — **ruled 2026-07-27**
+
+**Context: the astrologer confirmed he has no access to *Adhista Vingyanam* and granted full ownership of this call.** D5 named the missing source as the largest open item in the feature. It cannot be closed by waiting, so I researched Sethuraman directly rather than leaving a permanent blocker in the plan.
+
+### What the research established
+
+Sethuraman (1925–1997) adopted Cheiro's Latin-alphabet table and diverged from him in named, specific ways:
+
+| Finding | Consequence here |
+|---|---|
+| **He extended the compound series to 1–108**, and this is his best-known contribution — his publisher and multiple independent descriptions all lead with it | Cheiro's series stops at 52. **This is a real gap, not a nuance** — see the measurement below |
+| **He rejected Cheiro's rules for selecting the key compound**, and simply added the unreduced first and last name totals | Arithmetically this is what `score_text` already does — summing every letter of "First Last" equals summing each part and adding. **No change required**, and it is worth recording that the simpler method is the Tamil one |
+| **He grades 12 as lucky** (Cheiro reads it as the sacrifice/the victim), **39 and 48 as unlucky forms of 12**, and **77 as favourable** | A direct conflict on 12, 39 and 48, all of which are inside our encoded series. Not acted on — see the ruling |
+| Interchangeable pairs **2&7, 1&4&8, 3&6, 5&9** | Conflicts with D4's Cheiro groups. See below |
+| He warned that **changing another person's name can attract unresolved karma** | Independent support for the §9.4 conservatism already built |
+
+### The measurement that turned this from theory into a defect
+
+Name correction targets the **document** spelling, and Indian document names are commonly three parts. Measured over twelve realistic three-part names: **ten totalled above 52**, and four (63, 81, 61, 62) reduced straight past the series with nothing landing in 10..52 at all.
+
+Those four reported `compound = None` — **byte-identical to a genuinely single-digit total.** No caller could distinguish *"this name has no compound"* from *"this name's compound is 63, which we have not encoded"*. They are opposite findings, and this is the same defect class as `noChangeReason` vs `alternativesWithheldReason`.
+
+The remaining six were read as a **reduced surrogate**: a name totalling 87 was shown the meaning of 15, silently.
+
+### Ruling
+
+1. **The encoded corpus stays at Cheiro's 10–52.** I have his primary text and not Sethuraman's. Writing 53–108 meanings from secondary descriptions is precisely what the NU-8a print-over-online protocol forbids, and the fatalism-laundering risk is higher here than anywhere else in the feature.
+2. **But the engine must stop pretending the series is complete.** `NumberReading.compound_beyond_series` now carries the name's real total whenever the reading describes a surrogate, and `compound_is_surrogate` says so outright. Set at the single construction site, exposed as `compoundBeyondSeries`, pinned by four tests including the measured ratio.
+3. **D4's default is unchanged, and its open question is now specific.** D4 said a named Tamil printed source would outrank it. Sethuraman is that source — but his pairs reached me through a secondary reconstruction whose own author states it deviates from Sethuraman's practice for 1, 7, 8 and 9. Under my own protocol that ranks *below* Cheiro's primary text, so `cheiro_series` stands. What has changed is that the question is no longer "does Tamil practice carry a different table" — it is "is the table {2,7} / {1,4,8} / {3,6} / {5,9}", which a copy of the book settles in one reading.
+4. **His 12/39/48/77 gradings are recorded and not applied**, for the same reason as 3.
+
+### The action that actually closes this
+
+**The book is purchasable.** It is not a rare archive item:
+
+- *Adhista Vingyanam* (Tamil) — **Kindle edition**, Amazon.in / Amazon.com
+- *Science of Fortune* (English, V. S. Guruswami) — Google Play Books, BookBaby, Exotic India
+- Print — giri.in
+
+One purchase closes D6 item 1, D4's remaining question, most of NU-05, and plausibly the NUM-53/54 operation set. It is the highest value-per-rupee item in this entire feature and it needs no astrologer time.
+
+**Sources:** [Science of Fortune, publisher](https://scienceoffortune.com/) · [Adhista Vingyanam, Kindle (Amazon.in)](https://www.amazon.in/Adhista-Vingyanam-Tamil-Pandit-Sethuraman-ebook/dp/B07FPSS2ZG) · [Science of Fortune (Google Books)](https://books.google.com/books/about/SCIENCE_OF_FORTUNE.html?id=98xEBQAAQBAJ) · [Exotic India](https://www.exoticindiaart.com/book/details/science-of-fortune-ultimate-book-on-numerology-hac368/) · [Sethuraman system overview](https://bostjanlovrat.com/2024/09/26/chaldean-numerologist-pandit-sethuraman/) · [Sethuraman auspicious-date model (secondary reconstruction, self-described as approximate)](https://bostjanlovrat.com/2025/06/24/auspicious-dates-and-the-neo-chaldean-numerology-of-pandit-sethuraman/)
+
+---
+
 ## NU-04 — The 108 pada table — **cross-checked, NOT promoted**
 
 **Ruling: record the corroboration, leave `verified = False`.**

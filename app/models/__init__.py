@@ -15,6 +15,7 @@ from app.models.feedback import Feedback
 from app.models.interpretation_output import InterpretationOutput
 from app.models.journal_entry import JournalEntry
 from app.models.notification import Notification
+from app.models.numerology_name_session import NumerologyNameSession
 from app.models.panchangam_cache import PanchangamCache
 from app.models.password_reset_token import PasswordResetToken
 from app.models.peyarchi_alert import PeyarchiAlert
@@ -51,6 +52,7 @@ __all__ = [
     "InterpretationOutput",
     "JournalEntry",
     "Notification",
+    "NumerologyNameSession",
     "PanchangamCache",
     "PasswordResetToken",
     "PeyarchiAlert",

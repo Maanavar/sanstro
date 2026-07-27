@@ -21,7 +21,7 @@ All doctrine rulings and their sources: **`NUMEROLOGY_DOCTRINE_RULINGS_2026-07-2
 | 4 — Time numerology | **Built and wired.** All three D1 epochs ship; muhurta/naal layering with the "astrology stays authoritative" guard enforced in two places. | `app/calculations/numerology_timing.py`, `app/services/numerology_timing_service.py`, `tests/test_numerology_timing.py` |
 | **API layer (3 + 4)** | **Built 2026-07-27**, ahead of the phase order — see §7 "API layer" below. 6 authenticated routes (5 chart-scoped + `POST /numerology/compatibility`, which takes two charts) + 1 public route, typed wrappers, prose gated dark. | `app/api/numerology.py`, `app/services/numerology_service.py`, `packages/shared/src/api/numerology.ts`, `tests/test_numerology_chart_api.py` |
 | 5 — Name engine (pada half) | **Pipeline built ahead of schedule** against draft canon; gated, cannot produce user-facing names. | `app/data/nakshatra_pada_akshara.py`, `app/calculations/numerology_naming.py` |
-| 5 — Name engine (correction half) | **Built 2026-07-27.** Needs no pada table. NUM-53/54/57 done + `numerology_alignment_required` registered; recommendations withheld pending Tamil review, analysis ships. | `app/calculations/numerology_correction.py`, `app/services/numerology_correction_service.py`, `tests/test_numerology_correction.py` |
+| 5 — Name engine (correction half) | **Built 2026-07-27.** Needs no pada table. NUM-53/54/57 done + `numerology_alignment_required` registered; recommendations withheld pending Tamil review, analysis ships. **NUM-58 persistence built** — the only DB-touching part of the phase. | `app/calculations/numerology_correction.py`, `app/services/numerology_correction_service.py`, `app/models/numerology_name_session.py`, `app/services/numerology_name_session_service.py`, `migrations/versions/kk4a5b6c7d8e_*.py`, `tests/test_numerology_correction.py`, `tests/test_numerology_name_sessions.py` |
 | 6, 7, 8 | Not started. | — |
 
 **Flags:** `numerology_engine=False`, `numerology_personal_year_epoch="birthday"` (also accepts `"january"`, `"chithirai"`), `numerology_naming_mode="pada_first"`, `numerology_alignment_required=True`, `numerology_compatibility_basis="cheiro_series"` (also accepts `"graha_maitri"`).
@@ -32,7 +32,7 @@ All doctrine rulings and their sources: **`NUMEROLOGY_DOCTRINE_RULINGS_2026-07-2
 2. **§4 item 1 understated the pada problem.** `tamil_collapse` affects **59 of 108 rows across 21 of 27 nakshatras (55%)**, not ~20% — every ka/ca/ja/ṭa/ta/pa-series row, not only the aspirates. The Tamil substitution rule is a **blocker on baby naming**, not an edge case.
 
 **Remaining blockers:**
-0. **A copy of Pandit Sethuraman's *Adhista Vingyanam* (Tamil, 1954)** — added 2026-07-27 and now the **largest** open item. Tamil Nadu follows Chaldean/Cheiro *through Sethuraman*, and nothing in this repo cites him: every ruling here is sourced to Cheiro's English original, to Parashari tables, or to online material. Where he differs he outranks all of them, and he could close D4, NU-05, possibly NU-04, and the NUM-53/54 operation set at once. See rulings D5.
+0. **A copy of Pandit Sethuraman's *Adhista Vingyanam*** — still the largest open item, but **no longer a blocked one.** The astrologer has no access and granted full ownership (2026-07-27), so it was researched directly rather than left to wait: **the book is purchasable** as a Tamil Kindle edition (Amazon) and as the English *Science of Fortune* (Google Play / BookBaby / Exotic India). The research established four named divergences from Cheiro and turned up **a real defect, now fixed** — see rulings **D6**. One purchase closes D6, D4's remaining question and most of NU-05; it is the highest value-per-rupee item in the feature and needs no astrologer time.
 1. **One named Tamil printed source** for the pada table. It is cross-checked against Drik Panchang's Swar Siddhanta (108/108 rows) but `verified` stays `False` — your protocol ranks online tables below print, and it is right to.
 2. **Tamil native review** of the root 1–9 and compound 10–52 copy. `CONTENT_REVIEWED = False`; API responses ship numbers + graha names only, no prose.
 
@@ -452,7 +452,7 @@ The highest-effort and highest-liability phase. Requires Phase 0 closed and Phas
 | NUM-55 | Business name analysis — **served today** by `POST /charts/{id}/numerology/alignment` with the business name as `documentName`; a dedicated route buys nothing until the promoter-vs-firm lagna question is answered |
 | NUM-56 | Brand naming engine — **not started**, and should not be until Q6 (in-app vs separate B2B line) is decided |
 | NUM-57 | **Legal-consequence warning** surfaced with every correction (§9) — **BUILT 2026-07-27**, enforced by a pydantic `model_validator` |
-| NUM-58 | Persistence: saved name sessions — **not started**; needs a reversible migration and is the only part of Phase 5 that touches the DB |
+| NUM-58 | Persistence: saved name sessions — **BUILT 2026-07-27.** `numerology_name_sessions` table (migration `kk4a5b6c7d8e`, round-tripped up → verify → down → verify → up on a scratch DB), 3 routes, 3 typed wrappers, 16 tests. **The row stores the question, never the answer** — see below |
 
 **Phase 5 splits in two, and only one half was buildable (verified 2026-07-27):**
 
@@ -492,6 +492,42 @@ chart bridge, both of which exist and are now reachable over HTTP.
   `noChangeReason` and `alternativesWithheldReason` as separate fields precisely
   so it cannot. A `model_validator` refuses to serialise alternatives without the
   warning in both languages, so the coupling survives a future edit to the route.
+
+### Saved name sessions (NUM-58) — what was built *(2026-07-27)*
+
+The shortlist a user builds while weighing a name change. `numerology_name_sessions`
+(migration `kk4a5b6c7d8e`), `app/models/numerology_name_session.py`,
+`app/services/numerology_name_session_service.py`, three routes
+(`POST`/`GET /charts/{id}/numerology/name-sessions`, `DELETE …/{name_session_id}`),
+three typed wrappers, `tests/test_numerology_name_sessions.py` (16 tests).
+
+- **The row stores the question, never the answer.** No score, verdict,
+  alternative or sentence is persisted — only the inputs needed to ask the engine
+  again. Three reasons, and they are the whole design. (1) The corpus is dark, so
+  a reading computed today carries no prose; freezing it into a row would produce
+  saved sessions that stay mute *forever*, including after the Tamil review lands
+  and every live reading has gained its explanation. (2) The doctrine flags are
+  *designed* to be flipped — a stored verdict would silently contradict the flag
+  that governs it, and a saved row is exactly the thing nobody re-derives.
+  (3) Recomputation is cheap: integer arithmetic over a 26-letter table, against
+  a chart context the list endpoint loads **once** for the whole page.
+  A test asserts the table's exact column set, so adding a `score` column to make
+  listing faster has to be done on purpose.
+- **`savedCalculationVersion` is a receipt, not a cache key.** It records which
+  engine version the user was looking at when they saved, so a later read can
+  report `recalculatedSinceSaved` rather than quietly showing a different number
+  than they remember.
+- **Reading altitude, not correction altitude.** `correct_name` runs a variant
+  search; doing that per saved row would make a twenty-row shortlist run twenty
+  searches. A saved session reads back as the name's own numbers plus its
+  alignment; the full correction stays at the existing `name-correction` route.
+- **The name is scored before it is stored.** Doctrine D3 makes non-Latin input a
+  422, and that 422 belongs at the moment the user typed it — checked only on
+  read, the row would be a permanent error in their shortlist that they cannot
+  clear.
+- Saving a spelling already on the list **updates it in place**; a retry is not a
+  second session, and treating it as one would let a retry loop exhaust the cap
+  (20 live rows per chart, then 409). Delete is soft.
 
 ### Phase 6 — Reports
 

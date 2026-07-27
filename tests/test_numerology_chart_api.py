@@ -133,6 +133,10 @@ ROUTES: tuple[tuple[str, str, dict[str, Any]], ...] = (
         {"activity": "SPIRITUAL", "dateFrom": "2026-06-01", "dateTo": "2026-06-05"},
     ),
     ("GET", "marriage-dates", {}),
+    # NUM-58. The DELETE route carries an extra path segment and so does not fit
+    # this matrix; its gate and auth are covered in test_numerology_name_sessions.py.
+    ("POST", "name-sessions", {"name": "Zoro"}),
+    ("GET", "name-sessions", {}),
 )
 
 
@@ -830,6 +834,12 @@ def test_no_explanation_prose_ships_while_the_corpus_is_unreviewed(
         client.post(
             COMPATIBILITY_URL, json={"chartIdA": chart_id, "chartIdB": chart_b}
         ).json(),
+        # NUM-58 embeds a NumberAlignmentOut per saved spelling, so the same
+        # reasonEn/reasonTa every other alignment gates must be gated here too.
+        # A saved session is also the longest-lived response in the feature — a
+        # user opens their shortlist days later — so a leak here outlives the
+        # request that caused it.
+        client.post(f"{base}/name-sessions", json={"name": "Zoro"}).json(),
     ]
 
     for body in bodies:
