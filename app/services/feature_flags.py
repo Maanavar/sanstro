@@ -126,6 +126,74 @@ def _defaults() -> dict[str, Any]:
         # the numbers (bounded, conservative) and the astrologer signed off the
         # weights + node handling (nodes carry no lordship delta — spec §7).
         "holistic_strength_synthesis": True,
+        # Numerology engine master gate (docs/NUMEROLOGY_IMPLEMENTATION_PLAN_2026-07-25.md).
+        # Phases 1-4 are built and tested — Chaldean core, object numerology
+        # (mobile/vehicle/house), the Fortune Alignment chart bridge, compatibility
+        # (NUM-34) and time numerology — plus the name-correction half of Phase 5.
+        # OFF because the interpretive corpus is NOT reviewed: no Tamil native has
+        # read the root 1-9 or compound 10-52 copy, so numerology_content
+        # .CONTENT_REVIEWED is False and every response ships numbers and graha
+        # names with the prose withheld (schemas/numerology.py::reviewed_prose).
+        # NU-05 is discharged — the compound series is sourced to Cheiro, Book of
+        # Numbers, 1935 ed., pp. 126-133 — so the remaining gate is review, not
+        # sourcing. Flag-OFF is byte-identical to today: nothing calls the engine
+        # on any existing path.
+        "numerology_engine": False,
+        # Doctrine D1 — personal year rollover epoch. String flag (same mechanism
+        # as nadi_parihara_mode) so every branch ships and the ruling is a
+        # PATCH /admin/flags call, not a code change. See
+        # docs/NUMEROLOGY_DOCTRINE_RULINGS_2026-07-25.md D1 for sources.
+        #   "birthday"  (default) — increments on the native's birthday.
+        #   "january"   — increments 1 January. This is the DOMINANT published
+        #                 convention in both Pythagorean and Chaldean practice.
+        #   "chithirai" — increments at Tamil new year; a minority Tamil view.
+        # Default is "birthday" on a coherence argument, not a claim that the
+        # calendar-year method is wrong: Vinaadi already computes varshaphala
+        # from the solar return (app/calculations/tajaka.py::find_solar_return_jd),
+        # which is the birthday boundary. Two "your year ahead" features with
+        # different year boundaries would contradict each other in the same app.
+        # CORRECTION (2026-07-25): an earlier revision of this comment asserted
+        # that 1 January is "correct in neither tradition" and is a bug. That was
+        # wrong — it is the most widely published method. The option exists.
+        "numerology_personal_year_epoch": "birthday",
+        # Doctrine D2 — baby-naming precedence. "pada_first" (default): only
+        # names carrying a valid nakshatra-pada akshara are returned, numerology
+        # ranks within that set. "pada_weighted": pada-valid names rank far
+        # higher but siblings may be reached for, clearly marked. A
+        # "numerology_first" mode is deliberately NOT offered — it would let a
+        # number override a graha, which the astrologer ruled against.
+        "numerology_naming_mode": "pada_first",
+        # Plan §9.1 — a number never overrides a graha. When True (the default,
+        # and the only value the doctrine actually sanctions) no name-change
+        # alternative may be offered without its Fortune Alignment against the
+        # native's own chart; a variant whose alignment could not be computed is
+        # dropped rather than shown unscored. Registered with Phase 5 because
+        # name correction is the first feature capable of violating it —
+        # everything before it either had no recommendation to make or could not
+        # be reached without a chart. Exists as a flag rather than a constant so
+        # a support/debug session can inspect an unaligned ranking without a
+        # deploy; turning it off in production would make this a generic
+        # numerology app with a jadhagam bolted on.
+        "numerology_alignment_required": True,
+        # Doctrine D4 — what makes two *numbers* compatible (NUM-34). String flag,
+        # same mechanism as the two above; both branches ship and are tested.
+        # See docs/NUMEROLOGY_DOCTRINE_RULINGS_2026-07-25.md D4 for the sources.
+        #   "cheiro_series" (default) — Cheiro's own person-to-person doctrine:
+        #       the sympathetic groups {1,2,4,7} and {3,6,9}, 5 friendly with
+        #       almost anyone, 4 and 8 interchangeable. He names sympathies and
+        #       never enmities, so this basis can RAISE a compatibility score and
+        #       can never lower one. Every negative verdict comes from the
+        #       poruthams, which is standing ruling 1 taken to its conclusion.
+        #   "graha_maitri" — number -> graha -> Parashari natural friendship, the
+        #       table shadbala/porutham/daily-guidance already share. Scores the
+        #       full range including enmity.
+        # Default is Cheiro because naisargika maitri is a *dignity* rule — it
+        # governs how a graha behaves in another graha's sign, not whether two
+        # people get on. Cheiro states the person-to-person doctrine explicitly,
+        # and Chaldean numerology reached Tamil practice through him (NU-05).
+        # The naisargika regard is reported on every pair either way, so an
+        # astrologer always sees the graha view alongside the numerology one.
+        "numerology_compatibility_basis": "cheiro_series",
     }
 
 

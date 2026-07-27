@@ -29,6 +29,7 @@ from app.api.life_events import router as life_events_router
 from app.api.mobile_auth import router as mobile_auth_router
 from app.api.muhurta import router as muhurta_router
 from app.api.notification_preferences import router as notification_preferences_router
+from app.api.numerology import router as numerology_router
 from app.api.notifications import router as notifications_router
 from app.api.panchangam import router as panchangam_router
 from app.api.porutham_shares import router as porutham_shares_router
@@ -221,6 +222,7 @@ def create_app() -> FastAPI:
     app.include_router(ask_vinaadi_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(life_event_log_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(muhurta_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
+    app.include_router(numerology_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(annual_wrapped_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(share_card_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
     app.include_router(rectification_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)

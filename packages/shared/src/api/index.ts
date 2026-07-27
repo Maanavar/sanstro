@@ -29,6 +29,7 @@ export * from "./notifications";
 export * from "./tools";
 export * from "./annualWrapped";
 export * from "./propensities";
+export * from "./numerology";
 export * from "./activityTiming";
 export * from "./dashboardBundle";
 export * from "./reports";

@@ -360,6 +360,21 @@ def test_feature_flags_round_trip(raw_client):
         # Added in bc2cf32 (holistic strength synthesis, shipped ON) but never
         # added here, so this exact-set assertion has been red since that commit.
         "holistic_strength_synthesis",
+        # Numerology engine (docs/NUMEROLOGY_IMPLEMENTATION_PLAN_2026-07-25.md).
+        # Master gate ships OFF; the two string flags carry doctrine rulings D1
+        # and D2 so a ruling is a PATCH /admin/flags call, not a code change.
+        # Same failure mode as the line above: this is an exact-set assertion,
+        # so every new flag has to be added here in the same change.
+        "numerology_engine",
+        "numerology_personal_year_epoch",
+        "numerology_naming_mode",
+        # Registered with Phase 5 (name correction) — the first feature capable
+        # of violating "a number never overrides a graha", because it is the
+        # first one that recommends an action.
+        "numerology_alignment_required",
+        # Doctrine D4 (NUM-34) — whether the number-pair relation reads Cheiro's
+        # sympathetic series or Parashari natural friendship.
+        "numerology_compatibility_basis",
     } == names
 
     set_response = raw_client.patch(

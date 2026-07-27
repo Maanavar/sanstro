@@ -21,6 +21,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy.orm import Session
 
 from app.calculations.astro import RASI_NAME_TO_NUMBER, RASI_NAMES, nakshatra_to_rasi
+from app.calculations.numerology import ScriptMismatchError, analyze_object, build_profile
 from app.calculations.porutham import compute_porutham
 from app.core.public_endpoint_limiter import public_endpoint_rate_limit
 from app.services.feature_flags import get_flag
@@ -28,11 +29,20 @@ from app.db.session import get_db
 from app.schemas.birth_profiles import _validate_birth_date_bounds  # noqa: PLC2701 (shared validation)
 from app.schemas.charts import ChartCalculateResponseData, ChartSummaryData
 from app.schemas.muhurtham_naal import MuhurthamNaalListResponse, item_from_view
+from app.schemas.numerology import (
+    NumerologyProfileRequest,
+    NumerologyProfileResponse,
+    ObjectNumberRequest,
+    ObjectNumberResponse,
+    PersonalCycleRequest,
+    PersonalCycleResponse,
+)
 from app.schemas.panchangam import PanchangamDailyQuery, PanchangamDailyResponse, PanchangamMonthlyQuery, PanchangamMonthlyResponse
 from app.schemas.dasha import DashaTimelineResponseData
 from app.schemas.relationships import DirectPoruthamData, KutaResult, NadiDoshaData, RelationshipBiText
 from app.services.chart_service import _chart_response_from_profile, get_chart_summary_from_snapshot  # noqa: PLC2701 (internal use)
 from app.services.dasha_service import get_chart_dasha_from_snapshot
+from app.services.numerology_timing_service import cycle_for
 from app.services.panchangam_service import build_monthly_panchangam, calculate_panchangam
 from app.services.synastry_service import compare_chart_snapshots_direct
 
@@ -1161,3 +1171,107 @@ def public_panchangam_monthly(
     /panchangam/monthly but accessible to guest users.
     """
     return build_monthly_panchangam(query, session)
+
+
+# ── Numerology (Chaldean) ──────────────────────────────────────────────────────
+#
+# Public and unauthenticated on purpose: numerology needs only a date of birth
+# and a name — no birth time, no location. It is therefore the one reading we
+# can offer the large share of users who bounce at the birth-time field.
+#
+# Gated on the `numerology_engine` flag (default OFF) while the interpretive
+# corpus is unreviewed. Responses carry numbers and graha names only, never
+# readings — see app/schemas/numerology.py.
+
+
+def _require_numerology_enabled() -> None:
+    if not bool(get_flag("numerology_engine")):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not available.")
+
+
+@router.post("/numerology/profile", response_model=NumerologyProfileResponse)
+@public_endpoint_rate_limit("public_numerology")
+def public_numerology_profile(
+    payload: NumerologyProfileRequest,
+    request: Request,
+) -> NumerologyProfileResponse:
+    """Compute the four core numbers from a date of birth and optional name(s)."""
+    _require_numerology_enabled()
+    try:
+        profile = build_profile(
+            year=payload.birth_date.year,
+            month=payload.birth_date.month,
+            day=payload.birth_date.day,
+            document_name=payload.document_name,
+            called_name=payload.called_name,
+        )
+    except ScriptMismatchError as exc:
+        # Chaldean values are Latin-only. Refusing beats silently skipping the
+        # characters and returning a confident wrong number.
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
+
+    return NumerologyProfileResponse.from_profile(profile)
+
+
+@router.post("/numerology/number", response_model=ObjectNumberResponse)
+@public_endpoint_rate_limit("public_numerology")
+def public_numerology_number(
+    payload: ObjectNumberRequest,
+    request: Request,
+) -> ObjectNumberResponse:
+    """Analyse a mobile, vehicle or house number."""
+    _require_numerology_enabled()
+    try:
+        result = analyze_object(payload.value, payload.kind)
+    except ScriptMismatchError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
+    return ObjectNumberResponse.from_reading(result)
+
+
+@router.post("/numerology/personal-year", response_model=PersonalCycleResponse)
+@public_endpoint_rate_limit("public_numerology")
+def public_personal_year(
+    payload: PersonalCycleRequest,
+    request: Request,
+) -> PersonalCycleResponse:
+    """Personal year (and the month/day inside it) for a date of birth.
+
+    Numbers only, same rule Phase 2 ships under — no interpretive copy anywhere
+    in this response. The month and day ride along because
+    ``personal_cycle`` derives all three in one pass and a personal year with no
+    position inside it is half a reading.
+
+    ``epoch``, ``cycleStart`` and ``cycleEnd`` are part of the answer, not
+    metadata: the year rolls on a different day under each doctrine D1 branch
+    (birthday / 1 January / Puthandu), so a number without its window cannot be
+    checked against anyone else's.
+
+    Unauthenticated, like the rest of the numerology tools — this needs a date
+    of birth and nothing else. The authenticated
+    ``/charts/{chart_id}/numerology/personal-cycle`` takes the birth date from
+    the jadhagam and resolves Puthandu at the native's own longitude; here it
+    can only be the Chennai reference point.
+
+    POST rather than GET to match the sibling numerology tools and keep dates of
+    birth out of URLs and access logs.
+    """
+    _require_numerology_enabled()
+    try:
+        cycle = cycle_for(payload.birth_date, payload.on_date or date.today())
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
+    return PersonalCycleResponse.from_cycle(cycle)

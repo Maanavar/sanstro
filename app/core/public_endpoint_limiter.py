@@ -39,6 +39,7 @@ class PublicEndpointLimiter:
         "public_panchangam_events": {"max_requests": 30, "window_seconds": 60},  # 30/min per IP (GET, SEO content pages)
         "public_calendar_categories": {"max_requests": 30, "window_seconds": 60},  # 30/min per IP (GET, SEO content pages)
         "public_panchangam_share_card": {"max_requests": 30, "window_seconds": 60},  # 30/min per IP (GET, panchangam-backed)
+        "public_numerology": {"max_requests": 30, "window_seconds": 60},  # 30/min per IP (pure integer arithmetic, no ephemeris)
     }
 
     def __init__(self) -> None:
