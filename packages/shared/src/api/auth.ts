@@ -18,8 +18,22 @@ export interface MobileAuthResponse {
 export interface MeResponse {
   userId: string;
   email: string;
-  displayName: string | null;
+  userMode: "BEGINNER" | "BALANCED" | "TRADITIONAL";
+  goalTrack: "CAREER" | "EXAM" | "RELATIONSHIP" | "FINANCIAL" | null;
+  lang: "ta" | "en";
+  /** Derived live from the subscription table — never a stored flag on the user. */
   tier: "registered" | "premium";
+  /**
+   * NOT SENT BY THE BACKEND. There is no user display name anywhere in this
+   * system: `users` has no such column, registration does not accept one, and
+   * `updateMe({ displayName })` below patches a field
+   * `UpdateUserSettingsRequest` silently discards. Always `undefined` at
+   * runtime — kept only so existing call sites keep compiling, and typed
+   * `undefined` so the compiler says so.
+   *
+   * Tracked in tests/test_api_wrapper_field_contract.py::KNOWN_DRIFT.
+   */
+  displayName?: undefined;
 }
 
 export function login(email: string, password: string): Promise<MobileAuthResponse> {

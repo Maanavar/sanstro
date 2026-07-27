@@ -24,6 +24,7 @@ from app.core.auth import (
 )
 from app.core.auth_throttle import AuthThrottleAction, get_auth_throttler
 from app.core.config import Settings, get_settings
+from app.core.subscription import is_premium
 from app.db.session import get_db
 from app.middleware import resolve_client_ip
 from app.models.password_reset_token import PasswordResetToken
@@ -154,12 +155,25 @@ def _as_utc(value: datetime) -> datetime:
     return value.astimezone(UTC)
 
 
-def _build_auth_user_response(user: User, fallback_email: str | None = None) -> AuthUserResponse:
+def _tier_for(user_id: UUID, session: Session) -> str:
+    """The tier name clients gate on, derived live from the subscription table.
+
+    Never a stored flag on the user — premium is a fact about an active
+    subscription row, and duplicating it onto the user is how the two drift
+    apart (GROWTH_FEATURES.md decision #8).
+    """
+    return "premium" if is_premium(user_id, session) else "registered"
+
+
+def _build_auth_user_response(
+    user: User, fallback_email: str | None = None, *, session: Session | None = None
+) -> AuthUserResponse:
     return AuthUserResponse(
         userId=str(user.user_id),
         email=user.email or fallback_email or "",
         userMode=getattr(user, "user_mode", "BALANCED") or "BALANCED",
         goalTrack=getattr(user, "goal_track", None),
+        tier=_tier_for(user.user_id, session) if session is not None else "registered",
     )
 
 
@@ -314,7 +328,7 @@ def login(
 
     token = _issue_access_token_for_user(user)
     _set_auth_cookie(response, token)
-    return _build_auth_user_response(user, payload.email)
+    return _build_auth_user_response(user, payload.email, session=session)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_csrf_header)])
@@ -344,6 +358,7 @@ def me(
         userMode=getattr(user, "user_mode", "BALANCED") or "BALANCED",
         goalTrack=getattr(user, "goal_track", None),
         lang=lang,
+        tier=_tier_for(user.user_id, session),
     )
 
 
@@ -366,6 +381,7 @@ def patch_me(
         email=email,
         userMode=user.user_mode or "BALANCED",
         goalTrack=user.goal_track,
+        tier=_tier_for(user.user_id, session),
     )
 
 

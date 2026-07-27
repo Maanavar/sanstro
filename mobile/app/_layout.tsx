@@ -93,7 +93,10 @@ function RootNavigation() {
               ? "registered" // expired subscription — RC overrides stale backend tier
               : me.tier;
             setSession(
-              { userId: me.userId, email: me.email, displayName: me.displayName },
+              // /auth/me sends no display name — there is no such field anywhere in
+          // the backend. `?? null` makes that explicit instead of storing
+          // `undefined` in a slot typed `string | null`.
+          { userId: me.userId, email: me.email, displayName: me.displayName ?? null },
               effectiveTier
             );
             setUser(me.userId);
@@ -104,7 +107,10 @@ function RootNavigation() {
         }
 
         setSession(
-          { userId: me.userId, email: me.email, displayName: me.displayName },
+          // /auth/me sends no display name — there is no such field anywhere in
+          // the backend. `?? null` makes that explicit instead of storing
+          // `undefined` in a slot typed `string | null`.
+          { userId: me.userId, email: me.email, displayName: me.displayName ?? null },
           me.tier
         );
         setUser(me.userId);

@@ -64,6 +64,93 @@ def test_register_sets_cookie_and_returns_user(raw_client):
     assert me_payload["userId"] == login_payload["userId"]
 
 
+def _register_and_login(raw_client, email: str) -> str:
+    """Register, sign in, and return the user id. Leaves the cookie on the client."""
+    assert raw_client.post(
+        "/api/v1/auth/register", json={"email": email, "password": "password123"}
+    ).status_code == 200
+    login = raw_client.post(
+        "/api/v1/auth/login", json={"email": email, "password": "password123"}
+    )
+    assert login.status_code == 200
+    return login.json()["userId"]
+
+
+def test_auth_me_reports_the_registered_tier_by_default(raw_client):
+    """``tier`` must be a real value, not absent.
+
+    Added 2026-07-27. ``MeResponse`` in the shared client had declared ``tier``
+    since it was written and no route had ever sent it, so
+    ``mobile/app/_layout.tsx`` stored ``undefined`` as the session tier whenever
+    RevenueCat was unavailable or reported no entitlement. The schema-level
+    guard (``tests/test_api_wrapper_field_contract.py``) proves the field
+    *exists*; only this proves it carries the right value.
+    """
+    _register_and_login(raw_client, "tierdefault@example.com")
+
+    me = raw_client.get("/api/v1/auth/me")
+    assert me.status_code == 200
+    assert me.json()["tier"] == "registered"
+
+
+def test_auth_me_reports_premium_from_an_active_subscription(raw_client):
+    """Derived live from the subscription row, never a stored flag on the user."""
+    user_id = _register_and_login(raw_client, "tierpremium@example.com")
+
+    with SessionLocal() as session:
+        with session.begin():
+            session.add(
+                Subscription(user_id=UUID(user_id), tier="premium", status="active")
+            )
+
+    me = raw_client.get("/api/v1/auth/me")
+    assert me.status_code == 200
+    assert me.json()["tier"] == "premium"
+
+
+def test_auth_me_does_not_report_premium_for_an_inactive_subscription(raw_client):
+    """An expired row must not read as premium — the safe default is lower privilege."""
+    user_id = _register_and_login(raw_client, "tierexpired@example.com")
+
+    with SessionLocal() as session:
+        with session.begin():
+            session.add(
+                Subscription(user_id=UUID(user_id), tier="premium", status="cancelled")
+            )
+
+    me = raw_client.get("/api/v1/auth/me")
+    assert me.status_code == 200
+    assert me.json()["tier"] == "registered"
+
+
+def test_login_and_patch_me_carry_the_same_tier_as_me(raw_client):
+    """All three AuthUserResponse sites agree.
+
+    ``tier`` is defaulted on the model so no construction site can fail to
+    serialise; the risk that creates is a site that silently ships the default
+    for a premium user. Login and PATCH are the two that would.
+    """
+    user_id = _register_and_login(raw_client, "tierparity@example.com")
+    with SessionLocal() as session:
+        with session.begin():
+            session.add(
+                Subscription(user_id=UUID(user_id), tier="premium", status="active")
+            )
+
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "tierparity@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
+    assert login.json()["tier"] == "premium"
+
+    patched = raw_client.patch(
+        "/api/v1/auth/me", json={"userMode": "TRADITIONAL"}, headers=CSRF_HEADERS
+    )
+    assert patched.status_code == 200
+    assert patched.json()["tier"] == "premium"
+
+
 def test_register_duplicate_email_returns_neutral_response(raw_client):
     first = raw_client.post(
         "/api/v1/auth/register",

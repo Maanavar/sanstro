@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 from app.core.auth import create_access_token
 from app.core.auth_throttle import AuthThrottleAction, get_auth_throttler
 from app.core.config import get_settings
+from app.core.subscription import is_premium
 from app.db.session import get_db
 from app.middleware import resolve_client_ip
 from app.models.refresh_token import RefreshToken
@@ -139,6 +140,7 @@ def _build_response(db: Session, user: User, device_id: str | None) -> MobileAut
             email=user.email or "",
             userMode=getattr(user, "user_mode", "BALANCED") or "BALANCED",
             goalTrack=getattr(user, "goal_track", None),
+            tier="premium" if is_premium(user.user_id, db) else "registered",
         ),
     )
 
