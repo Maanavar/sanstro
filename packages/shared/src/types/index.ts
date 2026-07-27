@@ -130,6 +130,7 @@ export interface MuhurtaSlot {
   score: number;
   panchangamSupport: BiText;
   dashaSupport: BiText;
+  horaSupport?: BiText | null;
   cautions: BiText[];
 }
 
