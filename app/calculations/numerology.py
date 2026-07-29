@@ -131,6 +131,18 @@ class NumberReading:
     root: int
     graha: str
     ignored_characters: tuple[str, ...] = ()
+    #: ``(character, value)`` for every scored token, in the order encountered.
+    #: Empty for readings built from a date or an already-summed total, which
+    #: have no letters to break down.
+    #:
+    #: This is the arithmetic a practitioner writes out by hand, and its absence
+    #: is what makes a name total unverifiable: "adds up to 65" is an assertion,
+    #: while ``S·3 E·5 N·5 …`` is a claim the reader can check and — the reason
+    #: it matters for name correction — can see *move* when a spelling changes.
+    #: Emitted rather than left to clients because ``CHALDEAN_GROUPS`` is data,
+    #: not a formula (see module docstring): a second copy of the table in
+    #: TypeScript is a second copy to get wrong.
+    letter_values: tuple[tuple[str, int], ...] = ()
     #: The name's own total, when that total lies **above** the encoded 10-52
     #: series and the reading therefore describes a reduced surrogate rather
     #: than the number the name actually makes. ``None`` whenever ``compound``
@@ -204,16 +216,31 @@ def compound_from_chain(chain: tuple[int, ...]) -> int | None:
     return None
 
 
-def reading_from_total(total: int, ignored: tuple[str, ...] = ()) -> NumberReading:
+def reading_from_total(
+    total: int,
+    ignored: tuple[str, ...] = (),
+    letter_values: tuple[tuple[str, int], ...] = (),
+) -> NumberReading:
     """Build a full reading from an already-summed total.
 
     Public so sibling modules (``numerology_timing``) build readings the same
     way rather than re-deriving compound/root/graha and drifting.
+
+    ``letter_values`` is supplied only by the two scorers below; a reading built
+    from a date or a running total legitimately has no letters, and an empty
+    tuple means exactly that rather than "not computed".
     """
     chain = reduction_chain(total)
     root = chain[-1]
     if root == 0:
         raise ValueError("cannot build a reading from a zero total")
+    if letter_values and sum(value for _, value in letter_values) != total:
+        # The breakdown is shown to users as the *proof* of the total. If the
+        # two ever disagree the page is displaying a lie in a font that invites
+        # checking, so this is an assertion rather than a lenient reconcile.
+        raise ValueError(
+            f"letter_values sum to {sum(v for _, v in letter_values)}, total is {total}"
+        )
     return NumberReading(
         total=total,
         reduction_chain=chain,
@@ -224,6 +251,7 @@ def reading_from_total(total: int, ignored: tuple[str, ...] = ()) -> NumberReadi
         root=root,
         graha=NUMBER_TO_GRAHA[root],
         ignored_characters=ignored,
+        letter_values=letter_values,
     )
 
 
@@ -249,6 +277,7 @@ def score_text(text: str) -> NumberReading:
     normalized = _strip_diacritics(text)
     total = 0
     ignored: list[str] = []
+    letters: list[tuple[str, int]] = []
     for char in normalized:
         if char in _IGNORABLE:
             ignored.append(char)
@@ -256,6 +285,7 @@ def score_text(text: str) -> NumberReading:
         value = chaldean_value(char)
         if value is not None:
             total += value
+            letters.append((char.upper(), value))
             continue
         if char.isalpha():
             raise ScriptMismatchError(
@@ -268,7 +298,7 @@ def score_text(text: str) -> NumberReading:
 
     if total == 0:
         raise ValueError(f"no scoreable Latin letters in {text!r}")
-    return reading_from_total(total, tuple(dict.fromkeys(ignored)))
+    return reading_from_total(total, tuple(dict.fromkeys(ignored)), tuple(letters))
 
 
 def score_digits(text: str) -> NumberReading:
@@ -283,15 +313,21 @@ def score_digits(text: str) -> NumberReading:
     normalized = _strip_diacritics(text)
     total = 0
     ignored: list[str] = []
+    letters: list[tuple[str, int]] = []
     seen_token = False
     for char in normalized:
         if char.isdigit():
             total += int(char)
+            # A digit scores as itself, which reads as trivial until a plate
+            # mixes digits and letters ("TN 09 BX 4512") and the reader needs to
+            # see that N counted 5 while 9 counted 9.
+            letters.append((char, int(char)))
             seen_token = True
             continue
         value = chaldean_value(char)
         if value is not None:
             total += value
+            letters.append((char.upper(), value))
             seen_token = True
             continue
         if char.isalpha():
@@ -302,7 +338,7 @@ def score_digits(text: str) -> NumberReading:
 
     if not seen_token or total == 0:
         raise ValueError(f"no scoreable digits or letters in {text!r}")
-    return reading_from_total(total, tuple(dict.fromkeys(ignored)))
+    return reading_from_total(total, tuple(dict.fromkeys(ignored)), tuple(letters))
 
 
 # ---------------------------------------------------------------------------

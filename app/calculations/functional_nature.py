@@ -324,6 +324,38 @@ def derive_functional_nature(lagna_rasi: int, planet: str) -> FunctionalNature:
 _NODES = ("RAHU", "KETU")
 
 
+def owned_houses(lagna_rasi: int, planet: str) -> tuple[int, ...]:
+    """Houses this graha rules counted from this lagna, ascending.
+
+    The reason a functional nature came out as it did — `MARAKA` for Venus at
+    Mesha lagna *is* "Venus rules the 2nd and the 7th", not a separate fact
+    about it. Surfaces that show a verdict need this to explain one, so the
+    derivation is exported rather than left inside `derive_functional_nature`.
+
+    Empty for RAHU/KETU, which own no sign; `node_dispositor` and the occupied
+    house carry their story instead (see `_node_functional_nature`).
+    """
+    owned = PLANET_OWNED_RASIS.get(planet)
+    if not owned:
+        return ()
+    return tuple(sorted(_house_from(lagna_rasi, rasi) for rasi in owned))
+
+
+def house_of(lagna_rasi: int, rasi: int) -> int:
+    """Which house a rasi is, counted from this lagna. 1-12."""
+    return _house_from(lagna_rasi, rasi)
+
+
+def node_dispositor(node_rasi: int) -> str:
+    """Lord of the sign a node occupies — whose nature the node borrows."""
+    return _SIGN_LORD[node_rasi]
+
+
+def is_dusthana_house(house: int) -> bool:
+    """6th, 8th, 12th — the houses that override a node's dispositor."""
+    return house in _DUSTHANA
+
+
 def _node_functional_nature(lagna_rasi: int, node_rasi: int) -> FunctionalNature:
     """Functional nature of a node (audit T5).
 

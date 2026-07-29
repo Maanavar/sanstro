@@ -168,6 +168,31 @@ def _calc_ut(jd_ut: float, planet_id: int) -> tuple[float, float, str]:
         return longitude, speed, warning
 
 
+def calculate_sun_moon_longitudes(jd_ut: float) -> tuple[float, float]:
+    """Sidereal Sun and Moon longitudes alone, for root-finding hot paths.
+
+    ``calculate_sidereal_planets`` computes all eight bodies, derives Ketu, and
+    reads the ayanamsa — ten Swiss Ephemeris calls. The panchangam's tithi,
+    nakshatra and yoga boundary searches bisect to 64 iterations against a
+    function of the Sun and Moon *only*, so they were paying for six bodies they
+    discard on every probe: one daily panchangam issued ~1,355 snapshots and
+    ~10,840 ``_calc_ut`` calls, of which roughly three quarters were waste.
+
+    Values are identical to the corresponding entries of a full snapshot by
+    construction — same ``_calc_ut``, same flags, same ayanamsa mode set first.
+    This is strictly a narrower query, never a different one.
+
+    Deliberately returns no warnings: every caller of this path discards them,
+    and the one panchangam site that *reports* ``source_warnings`` still takes
+    the full snapshot so its output is unchanged.
+    """
+    with _SWISS_LOCK:  # RLock — set_lahiri_ayanamsa reacquires, as it does below
+        set_lahiri_ayanamsa()
+        sun_longitude, _sun_speed, _sun_warning = _calc_ut(jd_ut, PLANET_IDS["SUN"])
+        moon_longitude, _moon_speed, _moon_warning = _calc_ut(jd_ut, PLANET_IDS["MOON"])
+        return sun_longitude, moon_longitude
+
+
 def calculate_sidereal_planets(jd_ut: float) -> EphemerisSnapshot:
     with _SWISS_LOCK:
         set_lahiri_ayanamsa()

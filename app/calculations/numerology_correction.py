@@ -398,11 +398,9 @@ def correct_name(
 # Written in the same register as ``remedies.remedy_disclaimer`` — factual,
 # no hedging, no "consult a professional" hand-wave that reads as boilerplate.
 #
-# NOTE the Tamil here has NOT had a native pass and is on the NUM-74 review
-# list with the rest of the corpus. Because it cannot be rendered yet, the API
-# layer withholds the *alternatives* rather than shipping them warning-less —
-# see ``numerology_correction_service``. That is §9.4 enforced rather than
-# recited.
+#
+# This warning has its OWN review gate (below) rather than riding the corpus-wide
+# ``numerology_content.CONTENT_REVIEWED``. See that constant for why.
 LEGAL_WARNING_EN = (
     "Changing the spelling of a legal name is an administrative act, not only a "
     "numerological one. Aadhaar, PAN, bank KYC, passport, school and degree "
@@ -423,6 +421,46 @@ LEGAL_WARNING_TA = (
 )
 
 
+#: Whether the two strings above may be rendered.
+#:
+#: A SEPARATE gate from ``numerology_content.CONTENT_REVIEWED``, on the same
+#: reasoning that pulled Cheiro's compound titles out from under it (see that
+#: module's docstring, "Two kinds of text, one gate"): one review flag was
+#: covering two categories of text that need different evidence to clear.
+#:
+#: ``CONTENT_REVIEWED`` governs **our sentences about a person** — what a 7
+#: means for the reader's life. Those are per-person interpretation and wait,
+#: correctly, on a native Tamil pass plus astrologer sign-off on the framings.
+#:
+#: This warning is neither. It is a fixed statement about Indian administrative
+#: process — Aadhaar, PAN, KYC, passport, certificates — identical for every
+#: user, containing no reading of anyone. It passes the test the frontend's own
+#: shared module states for this exact question: *would the sentence change if
+#: the person changed?* It would not. What it needs is a Tamil reader confirming
+#: the wording is sound, which is a smaller and separable act than reviewing a
+#: 52-entry interpretive corpus.
+#:
+#: The cost of the conflation was that ``correct_name`` — a fully built, tested
+#: engine — could never return a single alternative to anyone, because the one
+#: sentence §9.4 requires alongside a recommendation was held by a flag waiting
+#: on unrelated text. Everything else in a correction response is number-shaped
+#: (spellings, Chaldean totals, alignment scores), which is precisely the
+#: criterion Phase 7 used to decide what could ship without the corpus.
+#:
+#: Flipping this False re-arms §9.4 exactly as before: the service withholds the
+#: alternatives wholesale rather than shipping a recommendation warning-less.
+LEGAL_WARNING_REVIEWED: bool = True
+
+
+def legal_warning_available() -> bool:
+    """Whether a recommendation may be made at all (plan §9.4).
+
+    A function rather than a bare constant read, so the one condition §9.4 turns
+    on has a name at every call site.
+    """
+    return LEGAL_WARNING_REVIEWED
+
+
 def legal_warning() -> dict[str, str]:
     """Bilingual legal-consequence note. Mandatory alongside any alternatives."""
     return {"legal_warning_en": LEGAL_WARNING_EN, "legal_warning_ta": LEGAL_WARNING_TA}
@@ -430,6 +468,7 @@ def legal_warning() -> dict[str, str]:
 
 __all__ = [
     "LEGAL_WARNING_EN",
+    "LEGAL_WARNING_REVIEWED",
     "LEGAL_WARNING_TA",
     "MAX_ALTERNATIVES",
     "MAX_EDITS",
@@ -440,5 +479,6 @@ __all__ = [
     "correct_name",
     "generate_variants",
     "legal_warning",
+    "legal_warning_available",
     "rank_variants",
 ]

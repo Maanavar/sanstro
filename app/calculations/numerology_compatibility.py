@@ -628,11 +628,22 @@ def name_harmony_from_alignment(alignment: FortuneAlignment | None) -> NameHarmo
     Returns ``None`` when no name was scored — the alignment of a nameless
     profile says nothing about a *name*, and reporting its date-only score under
     a "name harmony" label would be a quiet lie.
+
+    ``score`` is the **name's own** alignment, not ``overall_score``. This read
+    ``alignment.overall_score`` until 2026-07-28, which was the very lie the
+    paragraph above forbids, merely committed by degree instead of outright:
+    ``overall_score`` is a weighted blend in which psychic and destiny — both
+    functions of the date of birth alone — carry 0.55 of the weight against the
+    name's 0.35. It also disagreed with the ``verdict`` beside it, since that
+    field has always come from ``alignment.name``. A name scoring 38 inside a
+    blend of 67 was emitted as ``NameHarmony(score=67, verdict="misaligned")``,
+    and a client rendering "Name harmony 67 · out of step" is reporting two
+    different numbers under one label. Score and verdict now share a source.
     """
     if alignment is None or alignment.name is None:
         return None
     return NameHarmony(
-        score=alignment.overall_score,
+        score=alignment.name.score,
         verdict=alignment.name.verdict.value,
         change_advised=alignment.name_change_advised,
     )

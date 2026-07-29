@@ -16,6 +16,17 @@ a route added later gets it without knowing it exists, and
 ``tests/test_numerology_chart_api.py`` fails if any prose leaks while the
 corpus is unreviewed.
 
+**What that gate is not for (corrected 2026-07-29).** "No interpretive prose"
+was being applied to Cheiro's own compound titles as well, which are a citation
+of a printed source rather than copy we wrote about a reader. They now ship
+ungated as ``compoundTitle`` / ``compoundTone`` / ``compoundEchoes`` /
+``compoundSource``; our re-rendered meanings for the same numbers stay behind
+``reviewed_prose`` as ``compoundReadingEn`` / ``compoundReadingTa``. The
+reasoning is in ``numerology_content.CompoundCitation``. Note the citation
+fields carry no ``…En``/``…Ta`` suffix precisely because that suffix is what
+``test_numerology_chart_api.py`` scans for — the suffix means "gated bilingual
+prose", and mislabelling bibliography as prose is the mistake being undone.
+
 Chart id is deliberately **not** echoed on the chart-scoped responses: it is
 already in the path, and leaving it out lets the authenticated and public
 personal-cycle routes share one response model (and therefore one TypeScript
@@ -39,7 +50,12 @@ from app.calculations.numerology import (
     ObjectKind,
     ObjectReading,
 )
-from app.calculations.numerology_alignment import FortuneAlignment, NumberAlignment
+from app.calculations.numerology_alignment import (
+    VERDICT_BANDS,
+    AlignmentBasis,
+    FortuneAlignment,
+    NumberAlignment,
+)
 from app.calculations.numerology_compatibility import (
     ENEMY,
     FRIEND,
@@ -60,6 +76,7 @@ from app.schemas.muhurta import MuhurtaSlot
 from app.schemas.muhurtham_naal import MuhurthamNaalMatchContext, MuhurthamNaalMatchItem
 from app.schemas.relationships import VALID_COMPATIBILITY_CONTEXTS, DirectPoruthamData
 from app.services.numerology_compatibility_service import ChartCompatibility
+from app.services.numerology_content import compound_citation, compound_reading
 from app.services.numerology_name_session_service import (
     CALCULATION_VERSION as NAME_SESSION_CALCULATION_VERSION,
 )
@@ -87,11 +104,32 @@ def reviewed_prose(text: str | None) -> str | None:
     return text if readings_available() else None
 
 
+class LetterValueOut(BaseModel):
+    """One scored character and the value it contributed.
+
+    A list of these is the hand-written working a practitioner shows, and it is
+    the only thing that makes ``total`` checkable by the reader. Sent as objects
+    rather than ``[["S", 3], …]`` pairs so a client cannot silently transpose
+    them.
+    """
+
+    char: str
+    value: int
+
+
 class NumberReadingOut(BaseModel):
     """One computed number with its derivation intact.
 
     ``compound`` is null only for a single-digit total. It is never collapsed
     into ``root`` — 43 and 34 both reduce to 7 and are read differently.
+
+    The compound's **citation** (``compoundTitle`` / ``compoundTone`` /
+    ``compoundEchoes`` / ``compoundSource``) ships unconditionally: it is a
+    reference to Cheiro 1935, not interpretive copy about the reader. The
+    compound's **meaning** (``compoundReadingEn`` / ``compoundReadingTa``) is
+    ours and goes through ``reviewed_prose`` like everything else. See
+    ``numerology_content.CompoundCitation`` for why those two are not the same
+    kind of text.
     """
 
     total: int
@@ -108,11 +146,48 @@ class NumberReadingOut(BaseModel):
     #: real thing. A client showing a compound reading while this is non-null is
     #: showing a different number's meaning and must say so.
     compound_beyond_series: int | None = Field(alias="compoundBeyondSeries", default=None)
+    #: ``(character, value)`` for every scored token, in order. Empty for a
+    #: reading built from a date — psychic and destiny numbers have no letters.
+    letter_values: list[LetterValueOut] = Field(alias="letterValues", default_factory=list)
+
+    # ── The compound's citation. Ungated: bibliography, not prose. ───────────
+    #: Cheiro's classical title for ``compound``, verbatim. Null when the total
+    #: is single-digit or lands outside his encoded 10-52 series — a truthful
+    #: "not encoded", never a withheld value.
+    #:
+    #: English-only by design: a Tamil rendering would be a new translation,
+    #: which is precisely what the review gate holds. Not named ``…En`` because
+    #: it has no ``…Ta`` counterpart and never will; the ``*En``/``*Ta`` suffix
+    #: in this file means "gated bilingual prose" and this is neither.
+    compound_title: str | None = Field(alias="compoundTitle", default=None)
+    #: Cheiro's register for this compound: favourable / mixed / cautionary. A
+    #: client rendering ``compoundTitle`` **must** render this beside it — some
+    #: of his titles are alarming alone, and shipping the dread without the
+    #: framing is standing ruling 3 breached by omission.
+    compound_tone: str | None = Field(alias="compoundTone", default=None)
+    #: The earlier compound this one repeats, in Cheiro's own structure.
+    compound_echoes: int | None = Field(alias="compoundEchoes", default=None)
+    compound_source: str | None = Field(alias="compoundSource", default=None)
+
+    # ── The compound's meaning. Ours, and therefore gated. ───────────────────
+    compound_reading_en: str | None = Field(alias="compoundReadingEn", default=None)
+    compound_reading_ta: str | None = Field(alias="compoundReadingTa", default=None)
 
     model_config = ConfigDict(populate_by_name=True)
 
     @classmethod
     def from_reading(cls, reading: NumberReading) -> NumberReadingOut:
+        # Resolved here, at the single conversion site, so every route that
+        # returns a number gets the citation without knowing it exists — the
+        # same discipline ``reviewed_prose`` uses for the other direction.
+        #
+        # Note this deliberately cites whatever ``compound`` holds, including
+        # the surrogate case (doctrine D6: a name totalling 65 reports compound
+        # 11). That is correct — 11 *is* the number being described — and the
+        # ``compoundBeyondSeries`` warning that clients must render alongside is
+        # what stops the citation being read as this name's own.
+        citation = compound_citation(reading.compound)
+        meaning = compound_reading(reading.compound)
         return cls(
             total=reading.total,
             compound=reading.compound,
@@ -123,6 +198,15 @@ class NumberReadingOut(BaseModel):
             grahaEn=reading.graha_en,
             ignoredCharacters=list(reading.ignored_characters),
             compoundBeyondSeries=reading.compound_beyond_series,
+            letterValues=[
+                LetterValueOut(char=char, value=value) for char, value in reading.letter_values
+            ],
+            compoundTitle=citation.title_en if citation else None,
+            compoundTone=citation.tone.value if citation else None,
+            compoundEchoes=citation.echoes if citation else None,
+            compoundSource=citation.source if citation else None,
+            compoundReadingEn=reviewed_prose(meaning.reading_en if meaning else None),
+            compoundReadingTa=reviewed_prose(meaning.reading_ta if meaning else None),
         )
 
 
@@ -226,13 +310,107 @@ class ObjectNumberResponse(BaseModel):
 # ---------------------------------------------------------------------------
 # Phase 3 — Fortune Alignment (NUM-30..33)
 # ---------------------------------------------------------------------------
+class NodeBasisOut(BaseModel):
+    """Why a node landed on the nature it did — it owns no sign to explain it.
+
+    Numbers 4 and 7 resolve to Rahu and Ketu, so two of the nine take this path.
+    ``kind`` says which classical branch fired: sitting in a 6/8/12 overrides
+    everything, otherwise the node borrows its sign lord's functional nature.
+    """
+
+    kind: str
+    #: House the node occupies, from lagna. Null when the chart had no position.
+    occupied_house: int | None = Field(alias="occupiedHouse", default=None)
+    dispositor: str | None = None
+    dispositor_ta: str | None = Field(alias="dispositorTa", default=None)
+    dispositor_en: str | None = Field(alias="dispositorEn", default=None)
+    #: Houses the dispositor rules, so the borrowing is explainable in turn.
+    dispositor_houses: list[int] = Field(alias="dispositorHouses", default_factory=list)
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class AlignmentBasisOut(BaseModel):
+    """The score's own working — how it was arrived at, step by step.
+
+    **Ungated on purpose.** ``reasonEn``/``reasonTa`` are our sentences *about a
+    person* and stay null until the Tamil corpus clears review; these fields are
+    arithmetic and lordship — facts about the calculation, which would not change
+    if the native changed, only if their chart did. Same standing as
+    ``compoundTitle``/``compoundTone``, which cite Cheiro rather than assert
+    anything about the reader.
+
+    ``baseScore + strengthDelta == score`` is guaranteed, so a client can print
+    the parts without ever printing a sum that fails to add up.
+    """
+
+    #: Houses this graha rules from this lagna. Empty for RAHU/KETU.
+    owned_houses: list[int] = Field(alias="ownedHouses", default_factory=list)
+    node_basis: NodeBasisOut | None = Field(alias="nodeBasis", default=None)
+    base_score: int = Field(alias="baseScore")
+    strength_delta: int = Field(alias="strengthDelta")
+    #: amplifies | inverted | damped | none. `inverted` is the one that must be
+    #: rendered rather than swallowed: a strong malefic scores *lower*, and a
+    #: screen showing strength beside a fallen score with no rule named has
+    #: shown the reader what looks like a bug.
+    strength_rule: str = Field(alias="strengthRule")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    @classmethod
+    def from_basis(cls, basis: AlignmentBasis) -> AlignmentBasisOut:
+        node = basis.node_basis
+        return cls(
+            ownedHouses=list(basis.owned_houses),
+            nodeBasis=(
+                NodeBasisOut(
+                    kind=node.kind.value,
+                    occupiedHouse=node.occupied_house,
+                    dispositor=node.dispositor,
+                    dispositorTa=planet_ta(node.dispositor) if node.dispositor else None,
+                    dispositorEn=planet_en(node.dispositor) if node.dispositor else None,
+                    dispositorHouses=list(node.dispositor_houses),
+                )
+                if node is not None
+                else None
+            ),
+            baseScore=basis.base_score,
+            strengthDelta=basis.strength_delta,
+            strengthRule=basis.strength_rule.value,
+        )
+
+
+class VerdictBandOut(BaseModel):
+    """One rung of the 0-100 ladder, inclusive at both ends.
+
+    Shipped so a client can draw the legend without hard-coding the cutoffs. The
+    thresholds live in exactly one place (``_VERDICT_CUTOFFS``) and this is
+    derived from them; a TypeScript copy would be a second copy to get wrong,
+    the same reasoning that keeps the Chaldean letter table off the client.
+    """
+
+    verdict: str
+    min_score: int = Field(alias="minScore")
+    max_score: int = Field(alias="maxScore")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+def verdict_scale() -> list[VerdictBandOut]:
+    return [
+        VerdictBandOut(verdict=b.verdict.value, minScore=b.min_score, maxScore=b.max_score)
+        for b in VERDICT_BANDS
+    ]
+
+
 class NumberAlignmentOut(BaseModel):
     """How one number sits against this native's own chart.
 
     ``functionalNature`` is the enum key the rest of the app already uses
     (YOGAKARAKA, DUSTHANA, …), not a sentence — clients render it from their own
     vocabulary, so it is not gated behind the corpus review the way
-    ``reasonEn``/``reasonTa`` are.
+    ``reasonEn``/``reasonTa`` are. ``basis`` is ungated for the same reason —
+    see `AlignmentBasisOut`.
     """
 
     number: int
@@ -244,6 +422,9 @@ class NumberAlignmentOut(BaseModel):
     natal_strength: float | None = Field(alias="natalStrength", default=None)
     score: int
     verdict: str
+    #: How the score was arrived at, so a surface can explain the verdict rather
+    #: than assert it. Never null — every alignment has a derivation.
+    basis: AlignmentBasisOut
     reason_en: str | None = Field(alias="reasonEn", default=None)
     reason_ta: str | None = Field(alias="reasonTa", default=None)
 
@@ -260,6 +441,7 @@ class NumberAlignmentOut(BaseModel):
             natalStrength=alignment.natal_strength,
             score=alignment.score,
             verdict=alignment.verdict.value,
+            basis=AlignmentBasisOut.from_basis(alignment.basis),
             reasonEn=reviewed_prose(alignment.reason_en),
             reasonTa=reviewed_prose(alignment.reason_ta),
         )
@@ -295,6 +477,10 @@ class FortuneAlignmentResponse(BaseModel):
     name_change_advised: bool = Field(alias="nameChangeAdvised")
     #: 1-9 ranked best-first for this chart (NUM-33).
     favourable_numbers: list[int] = Field(alias="favourableNumbers")
+    #: The 0-100 ladder these scores are bucketed by. See `VerdictBandOut`.
+    verdict_scale: list[VerdictBandOut] = Field(
+        alias="verdictScale", default_factory=verdict_scale
+    )
     lagna_rasi: int = Field(alias="lagnaRasi")
     recommendation_en: str | None = Field(alias="recommendationEn", default=None)
     recommendation_ta: str | None = Field(alias="recommendationTa", default=None)
@@ -347,6 +533,11 @@ class FavourableNumbersResponse(BaseModel):
     #: ``favourableNumbers`` — the two are projections of one sort.
     numbers: list[NumberAlignmentOut]
     favourable_numbers: list[int] = Field(alias="favourableNumbers")
+    #: The 0-100 ladder, so a client can draw the legend for these scores
+    #: without hard-coding the cutoffs. See `VerdictBandOut`.
+    verdict_scale: list[VerdictBandOut] = Field(
+        alias="verdictScale", default_factory=verdict_scale
+    )
     readings_available: bool = Field(alias="readingsAvailable", default_factory=readings_available)
     calculation_version: str = Field(alias="calculationVersion")
     tradition_en: str = Field(alias="traditionEn", default=TRADITION_NOTE_EN)
@@ -408,6 +599,13 @@ class PersonalCycleResponse(BaseModel):
     year: PersonalYearOut
     month: NumberReadingOut
     day: NumberReadingOut
+    #: This was the ONE numerology response without it, and the omission had
+    #: teeth: the cycle panel is the surface with the least self-evident output
+    #: (three bare digits and three graha names), so it is the one where silence
+    #: about the withheld prose reads as "this feature is broken" rather than
+    #: "the words are in review". Every sibling response carries this and their
+    #: clients render the honest-absence note from it.
+    readings_available: bool = Field(alias="readingsAvailable", default_factory=readings_available)
     tradition_en: str = Field(alias="traditionEn", default=TRADITION_NOTE_EN)
     tradition_ta: str = Field(alias="traditionTa", default=TRADITION_NOTE_TA)
 

@@ -19,13 +19,14 @@ from app.calculations.astro import (
     utc_datetime_to_julian_day,
     utc_datetime_to_local_datetime,
 )
-from app.constants.astrology import NAKSHATRA_NAMES
 from app.calculations.ephemeris import (
     RiseTransitUndefinedError,
     calculate_lagna_degree,
     calculate_rise_transit_jd,
     calculate_sidereal_planets,
+    calculate_sun_moon_longitudes,
 )
+from app.constants.astrology import NAKSHATRA_NAMES
 from app.models.panchangam_cache import PanchangamCache
 
 logger = logging.getLogger(__name__)
@@ -674,8 +675,19 @@ def _find_next_boundary_jd(start_jd: float, angle_fn, step_degrees: float) -> fl
     return hi
 
 
+def _sun_moon_at_jd(jd: float) -> tuple[float, float]:
+    """The two longitudes every panchangam angle is a function of.
+
+    Split from `_calculate_positions_at_sunrise` purely for cost: the boundary
+    searches below bisect 64 times per boundary and never look at the warnings,
+    so they have no reason to compute — and build dataclasses for — the six
+    bodies a tithi, nakshatra or yoga angle does not involve.
+    """
+    return calculate_sun_moon_longitudes(jd)
+
+
 def _tithi_angle_at_jd(jd: float) -> float:
-    sun, moon, _ = _calculate_positions_at_sunrise(jd)
+    sun, moon = _sun_moon_at_jd(jd)
     return normalize_longitude(moon - sun)
 
 
@@ -684,7 +696,7 @@ def _tithi_number_at_jd(jd: float) -> int:
 
 
 def _nakshatra_angle_at_jd(jd: float) -> float:
-    _, moon, _ = _calculate_positions_at_sunrise(jd)
+    _, moon = _sun_moon_at_jd(jd)
     return normalize_longitude(moon)
 
 
@@ -693,7 +705,7 @@ def _nakshatra_number_at_jd(jd: float) -> int:
 
 
 def _yoga_angle_at_jd(jd: float) -> float:
-    sun, moon, _ = _calculate_positions_at_sunrise(jd)
+    sun, moon = _sun_moon_at_jd(jd)
     return normalize_longitude(sun + moon)
 
 
@@ -1287,6 +1299,14 @@ def _find_lagna_rasi_boundary_jd(start_jd: float, latitude: float, longitude: fl
 
 
 def _calculate_positions_at_sunrise(jd_ut: float) -> tuple[float, float, tuple[str, ...]]:
+    """Sun/Moon plus the snapshot's warnings.
+
+    Kept on the full snapshot deliberately: this is the form whose
+    ``source_warnings`` reach the response, and narrowing it would silently drop
+    warnings raised by the six bodies the panchangam does not read. Callers that
+    discard the warnings — every boundary search — should use `_sun_moon_at_jd`
+    instead, which is the same numbers for a quarter of the ephemeris work.
+    """
     snapshot = calculate_sidereal_planets(jd_ut)
     return (
         snapshot.bodies["SUN"].absolute_longitude,
@@ -1662,15 +1682,15 @@ def calculate_daily_panchangam(
     diff = normalize_longitude(moon_longitude - sun_longitude)
 
     def _tithi_angle(jd: float) -> float:
-        sun, moon, _ = _calculate_positions_at_sunrise(jd)
+        sun, moon = _sun_moon_at_jd(jd)
         return normalize_longitude(moon - sun)
 
     def _nakshatra_angle(jd: float) -> float:
-        _, moon, _ = _calculate_positions_at_sunrise(jd)
+        _, moon = _sun_moon_at_jd(jd)
         return moon
 
     def _yoga_angle(jd: float) -> float:
-        sun, moon, _ = _calculate_positions_at_sunrise(jd)
+        sun, moon = _sun_moon_at_jd(jd)
         return normalize_longitude(sun + moon)
 
     tithi_number = int((diff + 1e-9) // 12) + 1
