@@ -9,7 +9,10 @@ import { toast } from "sonner";
 import { apiFetchJson, toQuery } from "@/lib/api";
 import { getFriendlyErrorMessage } from "@/lib/error-messages";
 import { isBirthDateWithinBounds } from "@/lib/birth-date";
-import { TAB_QUERY_PARAM, sanitizeRestoredTab, sanitizeUrlTab, type Tab } from "@/lib/dashboard-tabs";
+import {
+  TAB_QUERY_PARAM, dashboardPath, isDashboardTool, parseDashboardPath,
+  sanitizeRestoredTab, sanitizeUrlTab, type DashboardTool, type Tab,
+} from "@/lib/dashboard-tabs";
 import { todayIso } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
@@ -272,7 +275,24 @@ export function DashboardWorkspace() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const urlTabParam = searchParams.get(TAB_QUERY_PARAM);
-  const [activeTab, setActiveTab] = useState<Tab>("personal");
+  // Seeded from the PATH at first render, not hardcoded to "personal".
+  //
+  // `/dashboard` (page.tsx) and `/dashboard/*` ([...segments]/page.tsx) are two
+  // different Next routes rendering two different components, so the shared
+  // layout swaps its child on every nav between them and React unmounts and
+  // remounts this whole workspace. With a hardcoded default that meant each nav
+  // click painted **Today** on arrival and only switched to the clicked tab
+  // after the hydration effect below — which waits on `/auth/me` — so every
+  // destination was reached via a visible bounce through the dashboard home.
+  //
+  // `usePathname()` already knows the destination on that first render; nothing
+  // has to be awaited to read it. The hydration effect still runs and is now a
+  // no-op for this value, but it still owns the two cases a path cannot answer:
+  // the legacy `?tab=` param and the localStorage restore, both of which only
+  // apply when the path names nothing.
+  const [activeTab, setActiveTab] = useState<Tab>(
+    () => parseDashboardPath(pathname, { qaEnabled: ENABLE_QA_TAB }).tab ?? "personal",
+  );
   // In-design confirmation dialog for destructive actions (DASH-05) —
   // replaces the browser confirm() popups.
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
@@ -293,18 +313,26 @@ export function DashboardWorkspace() {
   const [showRectification, setShowRectification] = useState(false);
   const [askVinaadiOpen, setAskVinaadiOpen] = useState(false);
 
-  // ── Tab ⇄ URL ────────────────────────────────────────────
-  // The tab is addressable (`/dashboard?tab=calendar`) so it can be deep-linked,
-  // bookmarked, and walked with browser back/forward.
+  // ── Destination ⇄ URL ────────────────────────────────────
+  // The tab AND the open tool are addressable as path segments
+  // (`/dashboard/calendar`, `/dashboard/tools/numerology`) so both can be
+  // deep-linked, bookmarked, and walked with browser back/forward. Segments,
+  // not the `?tab=` query param this used to write — see lib/dashboard-tabs.ts
+  // for the slug vocabulary and for how the legacy param still resolves.
   //
-  // push vs. replace: a tab the *user* chose is a navigation and earns a history
-  // entry (back should undo it). A tab the *app* chose — the setup gate, the QA
-  // fallback, a post-save redirect — is a correction, and pushing those would
-  // trap the user in a loop where back re-triggers the same redirect. So the
-  // three intent-carrying helpers below flag "push"; every other setActiveTab
-  // call site falls through to "replace" by default, which is what they want.
+  // push vs. replace: a destination the *user* chose is a navigation and earns
+  // a history entry (back should undo it). One the *app* chose — the setup
+  // gate, the QA fallback, a post-save redirect — is a correction, and pushing
+  // those would trap the user in a loop where back re-triggers the same
+  // redirect. So the intent-carrying helpers below (goToTab, openTool, …) flag
+  // "push"; every other setActiveTab call site falls through to "replace" by
+  // default, which is what they want.
   const navIntentRef = useRef<"push" | "replace">("replace");
-  const tabUrlReadyRef = useRef(false);
+  // State, not a ref: the outbound effect depends on it, so flipping it at the
+  // end of hydration triggers one normalising write. That is what rewrites a
+  // legacy `?tab=` link, or a mistyped path, to its canonical URL even when the
+  // resolved tab happens to equal the default and no other dependency changes.
+  const [urlSyncReady, setUrlSyncReady] = useState(false);
   const goToTab = useCallback((tab: Tab) => {
     navIntentRef.current = "push";
     setExploreReturnTab(null);
@@ -322,14 +350,29 @@ export function DashboardWorkspace() {
     setExploreReturnTab(null);
     setActiveTab("explore");
   }, []);
-  const [showWrapped, setShowWrapped] = useState(false);
-  const [showRetrospective, setShowRetrospective] = useState(false);
-  const [showPorutham, setShowPorutham] = useState(false);
-  const [showChartGenerate, setShowChartGenerate] = useState(false);
-  const [showRasipalan, setShowRasipalan] = useState(false);
-  const [showActivityTiming, setShowActivityTiming] = useState(false);
-  const [showVarshaphala, setShowVarshaphala] = useState(false);
-  const [showSynastry, setShowSynastry] = useState(false);
+  // The open tool is ONE value, not nine booleans (it was nine until
+  // 2026-07-28). Only one tool panel can be open at a time — the old setters
+  // were only ever called together, from openTool/closeTool, each assigning
+  // `toolId === "…"` — so the booleans could never legally disagree, and
+  // collapsing them is what lets the tool be addressable in the URL alongside
+  // the tab. The nine `show*` flags below are now derived, so every consumer
+  // downstream is unchanged.
+  // Seeded from the path for the same reason as `activeTab` above — otherwise
+  // `/dashboard/tools/numerology` lands on the Tools card grid and only opens
+  // the panel a round-trip later. `parseDashboardPath` only ever reports a tool
+  // under the `tools` tab, so this cannot disagree with the tab seeded above.
+  const [activeTool, setActiveTool] = useState<DashboardTool | null>(
+    () => parseDashboardPath(pathname, { qaEnabled: ENABLE_QA_TAB }).tool,
+  );
+  const showWrapped = activeTool === "wrapped";
+  const showRetrospective = activeTool === "retro";
+  const showPorutham = activeTool === "porutham";
+  const showChartGenerate = activeTool === "chartgen";
+  const showRasipalan = activeTool === "rasipalan";
+  const showActivityTiming = activeTool === "activityTiming";
+  const showVarshaphala = activeTool === "varshaphala";
+  const showSynastry = activeTool === "synastry";
+  const showNumerology = activeTool === "numerology";
   const [showPrasna, setShowPrasna] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
@@ -513,25 +556,18 @@ export function DashboardWorkspace() {
   // focusCalendar/focusFamily reach into their tabs (homepage redesign
   // 2026-07-24).
   const needsProfile = !personal.birthProfileId;
+  // Opening/closing a tool is a navigation: it earns a history entry and a URL
+  // (`/dashboard/tools/numerology`), so Back leaves the tool the way it leaves
+  // a tab. An unrecognised id closes the panel rather than opening nothing —
+  // the Tools tab's card specs also carry the two cross-nav ids, which never
+  // reach here.
   const openTool = useCallback((toolId: string) => {
-    setShowPorutham(toolId === "porutham");
-    setShowChartGenerate(toolId === "chartgen");
-    setShowWrapped(toolId === "wrapped");
-    setShowRetrospective(toolId === "retro");
-    setShowRasipalan(toolId === "rasipalan");
-    setShowActivityTiming(toolId === "activityTiming");
-    setShowVarshaphala(toolId === "varshaphala");
-    setShowSynastry(toolId === "synastry");
+    navIntentRef.current = "push";
+    setActiveTool(isDashboardTool(toolId) ? toolId : null);
   }, []);
   const closeTool = useCallback(() => {
-    setShowPorutham(false);
-    setShowChartGenerate(false);
-    setShowWrapped(false);
-    setShowRetrospective(false);
-    setShowRasipalan(false);
-    setShowActivityTiming(false);
-    setShowVarshaphala(false);
-    setShowSynastry(false);
+    navIntentRef.current = "push";
+    setActiveTool(null);
   }, []);
   const focusTool = useCallback((toolId: string) => {
     openTool(toolId);
@@ -602,12 +638,23 @@ export function DashboardWorkspace() {
     if (!session.hydrated) return;
     const authedUserId = session.sessionUserId;
     setOwnerUserId(authedUserId);
-    // A `?tab=` in the URL is an explicit instruction and outranks the restored
-    // session. Resolved outside the isSameUser branch on purpose: a link shared
-    // with someone else must still land on the tab it names, even though that
-    // person's localStorage belongs to a different user and gets cleared below.
-    const fromUrl = sanitizeUrlTab(urlTabParam, { qaEnabled: ENABLE_QA_TAB });
-    if (fromUrl) setActiveTab(fromUrl.tab);
+    // A destination in the URL is an explicit instruction and outranks the
+    // restored session. Resolved outside the isSameUser branch on purpose: a
+    // link shared with someone else must still land where it names, even though
+    // that person's localStorage belongs to a different user and gets cleared
+    // below.
+    //
+    // Legacy fallback: `/dashboard?tab=tools` was the scheme until 2026-07-28
+    // and is still out there in bookmarks and shared links, so the param is
+    // consulted when the path itself names nothing. The outbound sync below
+    // then rewrites the URL to the path form and drops the param.
+    const fromPath = parseDashboardPath(pathname, { qaEnabled: ENABLE_QA_TAB });
+    const fromLegacyParam = fromPath.tab ? null : sanitizeUrlTab(urlTabParam, { qaEnabled: ENABLE_QA_TAB });
+    const fromUrl = fromPath.tab ?? fromLegacyParam?.tab ?? null;
+    if (fromUrl) {
+      setActiveTab(fromUrl);
+      setActiveTool(fromUrl === "tools" ? fromPath.tool : null);
+    }
     try {
       const stored = window.localStorage.getItem(STORAGE_KEY);
       if (stored) {
@@ -641,8 +688,8 @@ export function DashboardWorkspace() {
     }
     // Only now may the outbound sync write to the URL — before this point
     // `activeTab` is still the "personal" default and would overwrite the very
-    // `?tab=` we just read.
-    tabUrlReadyRef.current = true;
+    // destination we just read.
+    setUrlSyncReady(true);
     // Load DB lang preference — overrides localStorage (works across devices).
     // GET /settings/ui answers flat ({ lang, dashboard_mode }) — there is no
     // { data } envelope to unwrap.
@@ -653,46 +700,62 @@ export function DashboardWorkspace() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.hydrated]);
 
-  // ── Tab → URL (outbound) ──────────────────────────────────
-  // Mirrors the active tab into `?tab=`. Keyed on `activeTab` ALONE — never on
-  // `urlTabParam`. That distinction is what stops the back/forward ping-pong:
-  // a browser Back changes only the URL (activeTab still lags one render), and
-  // if this effect also woke on that change it would write the *old* activeTab
-  // straight back into the URL, undoing the Back and fighting the inbound
-  // effect below — the two would then flip each other forever. By waking only
-  // when activeTab itself changes, a Back is handled solely by the inbound
-  // effect (URL → tab); this effect then re-runs once activeTab has caught up,
-  // sees the URL already correct, and bails. `urlTabParam` is still read fresh
-  // from render scope for that bail check.
+  // ── Destination → URL (outbound) ──────────────────────────
+  // Mirrors the active tab and open tool into the path. Keyed on those two
+  // state values (plus the readiness latch) ALONE — never on `pathname`. That
+  // distinction is what stops the back/forward ping-pong: a browser Back
+  // changes only the URL (activeTab still lags one render), and if this effect
+  // also woke on that change it would write the *old* destination straight back
+  // into the URL, undoing the Back and fighting the inbound effect below — the
+  // two would then flip each other forever. By waking only when the state
+  // itself changes, a Back is handled solely by the inbound effect (URL →
+  // state); this effect then re-runs once the state has caught up, sees the URL
+  // already correct, and bails. `pathname` is still read fresh from render
+  // scope for that bail check.
   useEffect(() => {
-    if (!tabUrlReadyRef.current) return;
-    if (urlTabParam === activeTab) return;
-    const next = new URLSearchParams(Array.from(searchParams.entries()));
-    next.set(TAB_QUERY_PARAM, activeTab);
-    const href = `${pathname}?${next.toString()}`;
+    if (!urlSyncReady) return;
+    const nextPath = dashboardPath(activeTab, activeTool);
+    // Everything except the superseded `?tab=` survives the rewrite — the
+    // destination lives in the path now, so carrying the old param forward
+    // would leave `/dashboard/tools?tab=tools` in the address bar.
+    const query = new URLSearchParams(Array.from(searchParams.entries()));
+    query.delete(TAB_QUERY_PARAM);
+    const nextSearch = query.toString();
+    if (nextPath === pathname && nextSearch === searchParams.toString()) return;
+    const href = nextSearch ? `${nextPath}?${nextSearch}` : nextPath;
     const intent = navIntentRef.current;
     navIntentRef.current = "replace";
     // scroll: false — a tab switch already resets its own scroll position; the
     // router's default jump-to-top fights the panel transition.
     if (intent === "push") router.push(href, { scroll: false });
     else router.replace(href, { scroll: false });
-  // searchParams/pathname/router are stable per navigation; urlTabParam is read
+  // searchParams/pathname/router are stable per navigation; pathname is read
   // for the bail but deliberately NOT a dependency (see comment above).
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  }, [activeTab, activeTool, urlSyncReady]);
 
-  // ── URL → tab (inbound) ───────────────────────────────────
-  // Back/forward and edited URLs. Guarded the same way as the outbound effect.
+  // ── URL → destination (inbound) ───────────────────────────
+  // Back/forward and hand-edited URLs. Guarded the same way as the outbound
+  // effect.
   useEffect(() => {
-    if (!tabUrlReadyRef.current) return;
-    const fromUrl = sanitizeUrlTab(urlTabParam, { qaEnabled: ENABLE_QA_TAB });
-    if (!fromUrl || fromUrl.tab === activeTab) return;
+    if (!urlSyncReady) return;
+    const fromUrl = parseDashboardPath(pathname, { qaEnabled: ENABLE_QA_TAB });
+    // A path naming no tab means Today here, NOT "leave things alone" — Back to
+    // a bare `/dashboard` must actually land on Today rather than stranding the
+    // previous tab on screen under a URL that no longer describes it. (The
+    // hydration effect above reads the same null differently, handing off to
+    // the localStorage restore, because on first load there is no "previous
+    // tab" to strand.)
+    const nextTab = fromUrl.tab ?? "personal";
+    const nextTool = nextTab === "tools" ? fromUrl.tool : null;
+    if (nextTab === activeTab && nextTool === activeTool) return;
     // A history move is not a new navigation — never push in response to one.
     navIntentRef.current = "replace";
     setExploreReturnTab(null);
-    setActiveTab(fromUrl.tab);
+    setActiveTab(nextTab);
+    setActiveTool(nextTool);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [urlTabParam]);
+  }, [pathname, urlSyncReady]);
 
   // ── Persist lang to DB when changed ───────────────────────
   const langSyncRef = useRef(false);
@@ -1592,14 +1655,16 @@ export function DashboardWorkspace() {
             onOpenCompatibility={() => focusTool("synastry")}
             onOpenActivityTiming={() => focusTool("activityTiming")}
             onOpenRasipalan={() => focusTool("rasipalan")}
-            onOpenVarshaphala={() => focusTool("varshaphala")}
+            onOpenNumerology={() => focusTool("numerology")}
             onGoToExplore={() => goToTab("explore")}
             onGoToAllTools={() => goToTab("tools")}
           />
         )}
 
         {activeTab === "tools" && (() => {
-          const activeTool = showPorutham ? "porutham" : showChartGenerate ? "chartgen" : showWrapped ? "wrapped" : showRetrospective ? "retro" : showRasipalan ? "rasipalan" : showActivityTiming ? "activityTiming" : showVarshaphala ? "varshaphala" : showSynastry ? "synastry" : null;
+          // `activeTool` is component-level state now (it used to be derived
+          // here from the nine show* booleans) — that is what makes it
+          // addressable as `/dashboard/tools/<tool>`.
           // Note: Find Birth Time (rectification) removed — results were unreliable
           // needsProfile/openTool/closeTool now live at component level (see
           // above, near the other cross-tab focus helpers) so Today's Quick
@@ -1610,6 +1675,14 @@ export function DashboardWorkspace() {
             const fm = family.familyMembers.find((f) => f.familyMemberId === mc.memberId);
             return { memberId: mc.memberId, displayName: mc.displayName, relationshipToOwner: fm?.relationshipToOwner ?? "other" };
           });
+          // Numerology's "Reading for" switcher — same member charts as
+          // Compatibility above, just the {memberId, displayName, chartId}
+          // shape the panel's picker needs.
+          const numerologyMembers = family.memberCharts.map((mc) => ({
+            memberId: mc.memberId,
+            displayName: mc.displayName,
+            chartId: mc.chart.chartId,
+          }));
 
           return (
             <DashboardToolsTabNova
@@ -1626,6 +1699,7 @@ export function DashboardWorkspace() {
               showActivityTiming={showActivityTiming}
               showVarshaphala={showVarshaphala}
               showSynastry={showSynastry}
+              showNumerology={showNumerology}
               varshaphalaData={varshaphalaData}
               varshaphalaLoading={varshaphalaLoading}
               onLoadVarshaphala={(year) => void loadVarshaphala(year)}
@@ -1633,6 +1707,7 @@ export function DashboardWorkspace() {
               selectedDate={selectedDate}
               onDateChange={setSelectedDate}
               familyVaultId={family.selectedVaultId ?? undefined}
+              numerologyMembers={numerologyMembers}
               ownerChart={personal.chart}
               synastryMemberCharts={family.memberCharts}
               synastryMemberOptions={synastryMemberOptions}

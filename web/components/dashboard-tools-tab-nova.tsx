@@ -3,7 +3,7 @@
 import type { CSSProperties } from "react";
 import {
   ScrollText, CalendarDays, History, Sunrise, Moon, Sparkles, Timer, CalendarClock,
-  HeartHandshake, ArrowLeft, ArrowRight, ChevronRight, type LucideIcon,
+  HeartHandshake, Hash, ArrowLeft, ArrowRight, ChevronRight, type LucideIcon,
 } from "lucide-react";
 
 import type { Lang } from "@/lib/i18n";
@@ -13,6 +13,7 @@ import type { MemberChart } from "@/hooks/useFamilyData";
 import { ChartGenerateInlinePanel } from "./chart-generate-inline-panel";
 import { DashboardAnnualWrapped } from "./dashboard-annual-wrapped";
 import { RetrospectivePanel } from "./dashboard-retrospective-panel";
+import { NumerologyPanel, type NumerologyMemberOption } from "./dashboard-numerology-panel-nova";
 import { NovaPoruthamPanel, type PoruthamFamilyMember } from "./dashboard-tools-porutham-nova";
 import { NovaActivityTimingCard } from "./dashboard-today-deepdive-extras-nova";
 import { VarshaphalaPanel } from "./dashboard-varshaphala-panel";
@@ -76,6 +77,11 @@ export type DashboardToolsTabNovaProps = {
   showActivityTiming: boolean;
   showVarshaphala: boolean;
   showSynastry: boolean;
+  /** Numerology (Phase 7) — chart-aware Chaldean readings, gated on the
+   *  `numerology_engine` flag (ON since 2026-07-28). If that flag is ever off
+   *  in a given environment every route behind it 404s, which the panel
+   *  renders as "not switched on yet" rather than as an error. */
+  showNumerology: boolean;
   varshaphalaData: VarshaphalaData | null;
   varshaphalaLoading: boolean;
   onLoadVarshaphala: (year: number) => void;
@@ -84,6 +90,9 @@ export type DashboardToolsTabNovaProps = {
   onDateChange: (date: string) => void;
   familyVaultId?: string;
   familyMembersForPorutham: PoruthamFamilyMember[];
+  /** Family members with a saved chart, for the Numerology tool's "Reading
+   *  for" switcher — same source as `synastryMemberCharts`, no extra fetch. */
+  numerologyMembers: NumerologyMemberOption[];
   /** Compatibility (synastry) tool — cross-chart reads for the family. Owner
    *  chart + the vault's member charts feed the same SynastryMatrix/SynastryPanel
    *  the Family page used to host (moved here 2026-07-21). */
@@ -111,6 +120,7 @@ export function DashboardToolsTabNova({
   showActivityTiming,
   showVarshaphala,
   showSynastry,
+  showNumerology,
   varshaphalaData,
   varshaphalaLoading,
   onLoadVarshaphala,
@@ -119,6 +129,7 @@ export function DashboardToolsTabNova({
   onDateChange,
   familyVaultId,
   familyMembersForPorutham,
+  numerologyMembers,
   ownerChart,
   synastryMemberCharts,
   synastryMemberOptions,
@@ -193,6 +204,13 @@ export function DashboardToolsTabNova({
       descTa: "உங்கள் குடும்பத்தில் இருவரின் ஜாதகப் பொருத்தம் — இணக்க மதிப்பெண், ஆதரவு/பதற்றப் புள்ளிகள், உறவு விளக்கம்.",
       metaEn: "uses · your family charts", metaTa: "பயன்படுத்துவது · குடும்ப ஜாதகங்கள்", disabled: needsProfile, kind: "inline",
     },
+    {
+      id: "numerology", icon: Hash, color: "var(--color-accent-secondary)",
+      nameEn: "Numerology", nameTa: "எண் கணிதம்",
+      descEn: "Chaldean numbers read against a jadhagam — yours or any family member's — favourable numbers, fortune alignment, personal cycle and date scoring.",
+      descTa: "கல்தேய எண்கள் ஒரு ஜாதகத்திற்கு எதிராகப் படிக்கப்படுகின்றன — உங்களுடையது அல்லது குடும்பத்தினர் யாருடையதும் — சாதக எண்கள், அதிர்ஷ்ட இணக்கம், தனிப்பட்ட சுழற்சி, தேதி மதிப்பீடு.",
+      metaEn: "uses · your family charts", metaTa: "பயன்படுத்துவது · குடும்ப ஜாதகங்கள்", disabled: needsProfile, kind: "inline",
+    },
   ];
 
   const cardStyle = (tool: ToolCardSpec): CSSProperties => ({
@@ -255,6 +273,9 @@ export function DashboardToolsTabNova({
         )}
         {showVarshaphala && personalChartId && (
           <VarshaphalaPanel lang={lang} chartId={personalChartId} data={varshaphalaData} loading={varshaphalaLoading} onLoad={onLoadVarshaphala} />
+        )}
+        {showNumerology && personalChartId && (
+          <NumerologyPanel lang={lang} chartId={personalChartId} members={numerologyMembers} />
         )}
         {showSynastry && (
           <Card style={{ borderRadius: "var(--radius-lg)", padding: "var(--space-6) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>

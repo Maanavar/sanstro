@@ -108,14 +108,14 @@ export type DashboardTodayTabNovaProps = {
   onOpenNotificationSettings?: () => void;
   /** Quick Links row (homepage redesign 2026-07-24) — true when no birth
    *  profile is saved yet, gray out the chart-dependent tiles (Compatibility,
-   *  Activity Timing, Varshaphala), matching the Tools tab's own gating. */
+   *  Activity Timing, Numerology), matching the Tools tab's own gating. */
   needsProfile?: boolean;
   onOpenChartGen?: () => void;
   onOpenMuhurta?: () => void;
   onOpenCompatibility?: () => void;
   onOpenActivityTiming?: () => void;
   onOpenRasipalan?: () => void;
-  onOpenVarshaphala?: () => void;
+  onOpenNumerology?: () => void;
   onGoToExplore?: () => void;
   onGoToAllTools?: () => void;
 };
@@ -194,7 +194,7 @@ export function DashboardTodayTabNova({
   onOpenCompatibility,
   onOpenActivityTiming,
   onOpenRasipalan,
-  onOpenVarshaphala,
+  onOpenNumerology,
   onGoToExplore,
   onGoToAllTools,
 }: DashboardTodayTabNovaProps) {
@@ -699,7 +699,7 @@ export function DashboardTodayTabNova({
         onOpenCompatibility={onOpenCompatibility}
         onOpenActivityTiming={onOpenActivityTiming}
         onOpenRasipalan={onOpenRasipalan}
-        onOpenVarshaphala={onOpenVarshaphala}
+        onOpenNumerology={onOpenNumerology}
         onGoToJournal={onGoToJournal}
         onGoToExplore={onGoToExplore}
         onGoToAllTools={onGoToAllTools}

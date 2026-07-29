@@ -105,7 +105,7 @@ describe("DashboardTodayQuickLinksNova", () => {
       onOpenCompatibility: vi.fn(),
       onOpenActivityTiming: vi.fn(),
       onOpenRasipalan: vi.fn(),
-      onOpenVarshaphala: vi.fn(),
+      onOpenNumerology: vi.fn(),
       onGoToJournal: vi.fn(),
       onGoToExplore: vi.fn(),
       onGoToAllTools: vi.fn(),
@@ -125,7 +125,7 @@ describe("DashboardTodayQuickLinksNova", () => {
     renderLinks();
     for (const label of [
       "Today's Rasipalan", "Muhurta Finder", "Compatibility", "Generate Jadhagam",
-      "Best Days This Month", "Annual Chart", "Journal", "Explore & Learn",
+      "Best Days This Month", "Numerology", "Journal", "Explore & Learn",
     ]) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
@@ -140,14 +140,14 @@ describe("DashboardTodayQuickLinksNova", () => {
     expect(callbacks.onGoToJournal).toHaveBeenCalledTimes(1);
   });
 
-  it("disables the chart-dependent tiles (Compatibility, Activity Timing, Varshaphala) when needsProfile is true", () => {
+  it("disables the chart-dependent tiles (Compatibility, Activity Timing, Numerology) when needsProfile is true", () => {
     const callbacks = renderLinks({ needsProfile: true });
     fireEvent.click(screen.getByText("Compatibility"));
     fireEvent.click(screen.getByText("Best Days This Month"));
-    fireEvent.click(screen.getByText("Annual Chart"));
+    fireEvent.click(screen.getByText("Numerology"));
     expect(callbacks.onOpenCompatibility).not.toHaveBeenCalled();
     expect(callbacks.onOpenActivityTiming).not.toHaveBeenCalled();
-    expect(callbacks.onOpenVarshaphala).not.toHaveBeenCalled();
+    expect(callbacks.onOpenNumerology).not.toHaveBeenCalled();
     // Unaffected tiles stay enabled.
     fireEvent.click(screen.getByText("Today's Rasipalan"));
     expect(callbacks.onOpenRasipalan).toHaveBeenCalledTimes(1);

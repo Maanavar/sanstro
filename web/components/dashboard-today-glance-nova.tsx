@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import {
-  ScrollText, Sunrise, Sparkles, Timer, CalendarClock, HeartHandshake, NotebookPen, Compass,
+  ScrollText, Sunrise, Sparkles, Timer, Hash, HeartHandshake, NotebookPen, Compass,
   ArrowRight, ArrowUp, ArrowDown, Diamond, Check,
   type LucideIcon,
 } from "lucide-react";
@@ -164,7 +164,7 @@ export function DashboardTodayQuickLinksNova({
   onOpenCompatibility,
   onOpenActivityTiming,
   onOpenRasipalan,
-  onOpenVarshaphala,
+  onOpenNumerology,
   onGoToJournal,
   onGoToExplore,
   onGoToAllTools,
@@ -176,7 +176,7 @@ export function DashboardTodayQuickLinksNova({
   onOpenCompatibility?: () => void;
   onOpenActivityTiming?: () => void;
   onOpenRasipalan?: () => void;
-  onOpenVarshaphala?: () => void;
+  onOpenNumerology?: () => void;
   onGoToJournal?: () => void;
   onGoToExplore?: () => void;
   onGoToAllTools?: () => void;
@@ -213,10 +213,10 @@ export function DashboardTodayQuickLinksNova({
       onClick: onOpenActivityTiming, gateOnProfile: true,
     },
     {
-      id: "varshaphala", icon: CalendarClock, color: "var(--color-accent-strong)",
-      nameEn: "Annual Chart", nameTa: "வர்ஷபலம்",
-      descEn: "Your year ahead", descTa: "உங்கள் இந்த ஆண்டு பலன்",
-      onClick: onOpenVarshaphala, gateOnProfile: true,
+      id: "numerology", icon: Hash, color: "var(--color-accent-secondary)",
+      nameEn: "Numerology", nameTa: "எண் கணிதம்",
+      descEn: "What your name & numbers say", descTa: "உங்கள் பெயர் & எண்கள் சொல்வது",
+      onClick: onOpenNumerology, gateOnProfile: true,
     },
     {
       id: "journal", icon: NotebookPen, color: "var(--color-accent-secondary)",
