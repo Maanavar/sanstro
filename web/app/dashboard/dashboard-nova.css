@@ -2176,6 +2176,26 @@
 }
 [data-ui="nova"] .cd-shell .ui-card--pad-sm { padding: 14px 16px; }
 
+/* ── Numerology "how this was worked out" disclosure ──
+   A native <details> so keyboard and screen-reader behaviour, find-in-page and
+   print-expanded all come for free. Only the *derivation* folds away — the
+   doctrine D3 scored-from string and the D6 surrogate warning render outside
+   it, because a caveat a reader has to opt into is a caveat that goes unread. */
+[data-ui="nova"] .cd-shell .num-calc-details > summary {
+  display: list-item;
+  width: fit-content;
+  padding: 2px 0;
+  border-radius: var(--radius-sm, 6px);
+  transition: color 120ms ease;
+}
+[data-ui="nova"] .cd-shell .num-calc-details > summary:hover {
+  color: var(--color-text) !important;
+}
+[data-ui="nova"] .cd-shell .num-calc-details > summary:focus-visible {
+  outline: 2px solid var(--color-border-strong);
+  outline-offset: 2px;
+}
+
 /* ── Segmented — the one replacement for the 7 hand-rolled sub-navs. ── */
 [data-ui="nova"] .cd-shell .ui-segmented {
   display: inline-flex;

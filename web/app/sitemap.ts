@@ -133,6 +133,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.8,
     },
+    {
+      url: `${BASE}/tools/numerology-calculator`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
     /* ── Share pages ── */
     {
       url: `${BASE}/share/panchangam`,

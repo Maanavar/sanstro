@@ -5650,6 +5650,803 @@ button:focus-visible,
   color: var(--cl-muted);
   line-height: 1.55;
 }
+/* ═══════════════════════════════════════════════════════════
+   NUMEROLOGY CALCULATOR — public tool surface (revamped 2026-07-29)
+
+   Every colour here is a --cl-* token. The page once styled itself with
+   --color-surface / --color-border / --text-secondary, which are dashboard
+   aliases: globals.css points them at a base layer (--surface-1, --text-primary,
+   --text-secondary, --accent …) that is defined NOWHERE in the tree. .cd-shell
+   survives that by re-declaring each alias with real hex; .clarity-shell does
+   not, so on a public page those declarations are invalid at computed-value
+   time — borders vanished and every muted line inherited full heading ink,
+   which is what flattened the page.
+
+   The 2026-07-29 pass reworked everything below the hero into a ruled almanac
+   page: square corners, hairline cells, mono labels. Two deliberate departures
+   from the imported design comp:
+
+   * Its accent is brass (#A9812F). This keeps --cl-accent (rust), because the
+     nav and hero above are untouched and a second accent halfway down a page
+     reads as two brands rather than one.
+   * Its caveat block and pull-quote carry a 2px gold left stripe. Standing
+     ruling: no coloured left-border stripes. Both are tinted panels with a full
+     hairline instead — same separation, no stripe.
+
+   This whole namespace is exclusive to /tools/numerology-calculator, so nothing
+   here can regress another public page.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── The band the calculator sits in ─────────────────────────────────────── */
+.cl-num-band {
+  padding: 44px 0 64px;
+  background: var(--cl-bg-2);
+  border-top: 1px solid var(--cl-border);
+  border-bottom: 1px solid var(--cl-border);
+}
+
+.cl-num-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.cl-num-tab {
+  padding: 9px 20px;
+  border-radius: 999px;
+  border: 1px solid var(--cl-border-2);
+  background: var(--cl-surface-2);
+  color: var(--cl-ink-2);
+  font-family: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+.cl-num-tab:hover { border-color: var(--cl-accent); color: var(--cl-accent); }
+.cl-num-tab[data-active="true"] {
+  background: var(--cl-ink);
+  border-color: var(--cl-ink);
+  color: var(--cl-bg);
+  font-weight: 600;
+}
+.cl-num-tab--sm { padding: 7px 15px; font-size: 0.8rem; }
+.cl-num-kinds {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+/* ── One ruled card: the question at its head, the answers as its cells ──── */
+.cl-num-card {
+  border: 1px solid var(--cl-border);
+  background: var(--cl-surface);
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+}
+.cl-num-card__form {
+  padding: 26px 28px;
+  border-bottom: 1px solid var(--cl-border);
+}
+/* No result yet — the rule would otherwise hang off the bottom of the card. */
+.cl-num-card__form:last-child { border-bottom: none; }
+.cl-num-card__intro {
+  margin: 0 0 20px;
+  font-size: 0.88rem;
+  line-height: 1.65;
+  color: var(--cl-muted);
+  max-width: 78ch;
+}
+
+.cl-num-form {
+  display: grid;
+  gap: 16px 18px;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: end;
+}
+/* Each tool declares its own column rhythm — a lone number field should not
+   inherit the three-field profile layout. One column until there is room. */
+@media (min-width: 860px) {
+  .cl-num-form[data-cols="3"] {
+    grid-template-columns: 200px minmax(0, 1fr) minmax(0, 1fr) auto;
+  }
+  .cl-num-form[data-cols="2"] { grid-template-columns: 200px 200px auto; }
+  .cl-num-form[data-cols="1"] { grid-template-columns: minmax(0, 340px) auto; }
+}
+
+.cl-num-field { display: block; min-width: 0; }
+.cl-num-field__label {
+  display: block;
+  font-size: 0.73rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  margin-bottom: 7px;
+  color: var(--cl-muted);
+}
+.cl-num-input {
+  width: 100%;
+  padding: 11px 12px;
+  min-height: 44px;
+  border-radius: 2px;
+  border: 1px solid var(--cl-border-2);
+  background: var(--cl-surface-2);
+  color: var(--cl-ink);
+  font-size: 0.9rem;
+  font-family: inherit;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+.cl-num-input:focus {
+  outline: none;
+  border-color: var(--cl-accent);
+  box-shadow: 0 0 0 3px rgba(139, 64, 20, 0.12);
+}
+.cl-num-input::placeholder { color: var(--cl-muted); opacity: 0.7; }
+
+.cl-num-submit {
+  justify-self: start;
+  padding: 12px 26px;
+  min-height: 44px;
+  border: 1px solid var(--cl-ink);
+  border-radius: 999px;
+  background: var(--cl-ink);
+  color: var(--cl-bg);
+  font-family: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 150ms ease, opacity 150ms ease;
+}
+.cl-num-submit:hover:not(:disabled) { background: var(--cl-ink-2); }
+.cl-num-submit:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.cl-num-note,
+.cl-num-error {
+  margin: 16px 0 0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+.cl-num-note { color: var(--cl-muted); }
+.cl-num-error { color: var(--cl-caution); }
+
+/* Doctrine D1 — which rollover produced this year, and the window it covers. */
+.cl-num-window {
+  margin: 0;
+  padding: 12px 28px;
+  border-bottom: 1px solid var(--cl-border);
+  background: var(--cl-surface-2);
+  font-family: var(--cl-font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  color: var(--cl-muted);
+}
+
+/* ── Results: hairline cells, two across once there is room ──────────────── */
+.cl-num-results {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+.cl-num-reading {
+  padding: 22px 26px 20px;
+  border-top: 1px solid var(--cl-border);
+  min-width: 0;
+}
+.cl-num-reading:first-child { border-top: none; }
+
+@media (min-width: 900px) {
+  .cl-num-results { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* The first row sits under the form's own rule and needs none of its own. */
+  .cl-num-reading:nth-child(-n + 2) { border-top: none; }
+  .cl-num-reading:nth-child(odd) { border-right: 1px solid var(--cl-border); }
+  /* An odd last cell has empty space to its right — no rule into nothing. */
+  .cl-num-reading:last-child { border-right: none; }
+  /* A tool returning one number (house, vehicle) takes the full width. */
+  .cl-num-reading:only-child { grid-column: 1 / -1; }
+}
+
+.cl-num-reading__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 14px;
+  margin-bottom: 13px;
+}
+.cl-num-reading__label {
+  font-family: var(--cl-font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--cl-accent);
+}
+.cl-num-reading__source {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--cl-muted-2);
+  text-align: right;
+}
+
+/* ── The compound, as a peer of the root ───────────────────────────────────
+ *
+ * Not a stripe, not a tinted card — a chip carries the register. The compound
+ * outranks the root in this system, and it used to render as a faint line
+ * inside the collapsed "How this was worked out" list, which presented the
+ * senior number as a discarded step of arithmetic. It sits above the root at
+ * comparable weight instead.
+ */
+.cl-num-compound {
+  margin-bottom: 15px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--cl-border);
+}
+.cl-num-compound__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.cl-num-compound__digit {
+  font-family: var(--cl-font-display);
+  font-size: 1.9rem;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--cl-ink);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+/* Cheiro's classical title, verbatim and in English in both languages — a
+   Tamil rendering would be new translation, which is what the content gate
+   holds. The Tamil is carried by __meta below instead. */
+.cl-num-compound__title {
+  font-family: var(--cl-font-display);
+  font-size: 1.05rem;
+  color: var(--cl-ink-2);
+}
+.cl-num-compound__tone {
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.cl-num-compound__tone[data-tone="favourable"] {
+  background: var(--cl-sage-soft);
+  color: var(--cl-sage);
+}
+.cl-num-compound__tone[data-tone="mixed"] {
+  background: var(--cl-surface-2);
+  color: var(--cl-muted);
+  box-shadow: inset 0 0 0 1px var(--cl-border-2);
+}
+/* Cautionary uses the caution pair, never a red — standing ruling 3 bans the
+   fear trade, and a number is never rendered as a warning about a person. */
+.cl-num-compound__tone[data-tone="cautionary"] {
+  background: var(--cl-caution-soft);
+  color: var(--cl-caution);
+}
+.cl-num-compound__meta {
+  margin-top: 6px;
+  font-family: var(--cl-font-mono);
+  font-size: 0.67rem;
+  letter-spacing: 0.05em;
+  line-height: 1.5;
+  color: var(--cl-muted-2);
+}
+.cl-num-compound__reading {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--cl-ink-2);
+}
+/* Whose judgement the tone chip is. `--cl-muted-2`, not `--color-muted`: on the
+   public shell the latter aliases `--text-secondary`, which is defined nowhere
+   in the tree, so the declaration is invalid at computed-value time and the
+   colour silently falls back to full heading ink. See the note above
+   `NotLaunched` in NumerologyCalculatorContent.tsx. */
+.cl-num-compound__whose {
+  margin: 6px 0 0;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--cl-muted-2);
+  max-width: 56ch;
+}
+
+.cl-num-reading__figure {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  min-width: 0;
+}
+.cl-num-reading__digit {
+  font-family: var(--cl-font-display);
+  font-size: 4.1rem;
+  font-weight: 400;
+  line-height: 0.85;
+  letter-spacing: -0.02em;
+  color: var(--cl-ink);
+  font-variant-numeric: lining-nums;
+}
+.cl-num-reading__side {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 5px;
+  min-width: 0;
+}
+/* Names the second tier, so "31 The Recluse" above and "4 Rahu" here read as
+   two different numbers rather than one figure and a stray integer. */
+.cl-num-reading__rootnote {
+  font-family: var(--cl-font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1;
+  color: var(--cl-muted-2);
+}
+.cl-num-reading__graha {
+  font-family: var(--cl-font-display);
+  font-size: 1.25rem;
+  line-height: 1.1;
+  color: var(--cl-ink);
+}
+/* Doctrine D3 — the spelling a name reading came from. */
+.cl-num-reading__scored {
+  font-size: 0.75rem;
+  color: var(--cl-muted-2);
+  overflow-wrap: anywhere;
+}
+.cl-num-reading__scored strong { color: var(--cl-ink-2); font-weight: 600; }
+
+/* Doctrine D6 — a caveat, so it reads as one and is never folded away. */
+.cl-num-reading__caveat {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--cl-border);
+  background: var(--cl-surface-2);
+  font-size: 0.77rem;
+  line-height: 1.55;
+  color: var(--cl-ink-2);
+}
+
+/* ── The working, behind a disclosure but shown as working ───────────────── */
+.cl-num-details { margin-top: 15px; }
+.cl-num-details > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  list-style: none;
+  padding: 3px 0;
+  font-size: 0.76rem;
+  color: var(--cl-muted);
+  cursor: pointer;
+}
+.cl-num-details > summary::-webkit-details-marker { display: none; }
+.cl-num-details > summary::before {
+  content: "\25B8";
+  font-size: 0.72rem;
+  line-height: 1;
+  color: var(--cl-accent);
+}
+.cl-num-details[open] > summary::before { content: "\25BE"; }
+.cl-num-details > summary:hover { color: var(--cl-ink); }
+.cl-num-details > summary:focus-visible {
+  outline: 2px solid var(--cl-accent);
+  outline-offset: 2px;
+}
+.cl-num-details__body {
+  margin-top: 13px;
+  padding-top: 13px;
+  border-top: 1px solid var(--cl-border);
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+/* ── Letter-by-letter working ──────────────────────────────────────────────
+ *
+ * The arithmetic a practitioner writes by hand. "Adds up to 65" is an
+ * assertion; this is a claim the reader can check — and the only view in which
+ * a name correction is legible, since changing a spelling moves specific
+ * letters rather than just some total.
+ *
+ * Rendered straight from `letterValues`. The Chaldean table is data, not an
+ * A=1..Z=26 formula, so a client-side copy would be a second table to break.
+ */
+.cl-num-letters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.cl-num-letter {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 28px;
+  padding: 5px 4px 4px;
+  border: 1px solid var(--cl-border);
+  background: var(--cl-surface-2);
+}
+.cl-num-letter__char {
+  font-family: var(--cl-font-display);
+  font-size: 0.88rem;
+  line-height: 1;
+  color: var(--cl-ink);
+}
+.cl-num-letter__value {
+  margin-top: 3px;
+  font-family: var(--cl-font-mono);
+  font-size: 0.6rem;
+  line-height: 1;
+  color: var(--cl-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.cl-num-steps {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 16px;
+  font-family: var(--cl-font-mono);
+  font-size: 0.72rem;
+}
+.cl-num-steps dt { color: var(--cl-muted-2); }
+.cl-num-steps dd {
+  margin: 0;
+  color: var(--cl-ink-2);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* ── The ceiling, restated where a result could be mistaken for a verdict ── */
+.cl-num-bridge {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  flex-wrap: wrap;
+  padding: 24px 28px;
+  border-top: 1px solid var(--cl-border);
+  background: var(--cl-surface-2);
+}
+.cl-num-bridge > div { flex: 1 1 340px; min-width: 0; }
+.cl-num-bridge__title {
+  margin: 0 0 6px;
+  font-family: var(--cl-font-display);
+  font-size: 1.15rem;
+  color: var(--cl-ink);
+}
+.cl-num-bridge__body {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.6;
+  color: var(--cl-muted);
+  max-width: 64ch;
+}
+.cl-num-bridge__link {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  padding: 11px 22px;
+  min-height: 44px;
+  border: 1px solid var(--cl-ink);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--cl-ink);
+  text-decoration: none;
+  transition: background 150ms ease;
+}
+.cl-num-bridge__link:hover { background: rgba(26, 22, 18, 0.06); }
+
+.cl-num-tradition {
+  margin: 14px 0 0;
+  font-family: var(--cl-font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  line-height: 1.6;
+  text-transform: uppercase;
+  color: var(--cl-muted-2);
+  max-width: 92ch;
+}
+
+/* ── Section chrome for the bands below the calculator ───────────────────── */
+.cl-num-section {
+  padding: 76px 0;
+  background: var(--cl-bg);
+  border-bottom: 1px solid var(--cl-border);
+}
+.cl-num-section--alt { background: var(--cl-bg-2); }
+
+.cl-num-eyebrow {
+  margin: 0 0 16px;
+  font-family: var(--cl-font-mono);
+  font-size: 0.66rem;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cl-accent);
+}
+.cl-num-h2 {
+  margin: 0;
+  font-family: var(--cl-font-display);
+  font-size: clamp(1.7rem, 3.2vw, 2.5rem);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--cl-ink);
+}
+
+.cl-num-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 40px;
+  flex-wrap: wrap;
+  margin-bottom: 42px;
+}
+.cl-num-head__aside {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--cl-muted);
+  max-width: 44ch;
+}
+
+/* ── The four numbers, as a ruled index rather than four floating cards ──── */
+.cl-num-quad {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  border: 1px solid var(--cl-border);
+  background: var(--cl-surface-2);
+}
+.cl-num-quad__cell {
+  padding: 24px 22px 26px;
+  border-top: 1px solid var(--cl-border);
+  min-width: 0;
+}
+.cl-num-quad__cell:first-child { border-top: none; }
+@media (min-width: 660px) {
+  .cl-num-quad { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cl-num-quad__cell:nth-child(-n + 2) { border-top: none; }
+  .cl-num-quad__cell:nth-child(odd) { border-right: 1px solid var(--cl-border); }
+}
+@media (min-width: 1000px) {
+  .cl-num-quad { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .cl-num-quad__cell {
+    border-top: none;
+    border-right: 1px solid var(--cl-border);
+  }
+  .cl-num-quad__cell:last-child { border-right: none; }
+}
+.cl-num-quad__index {
+  display: block;
+  margin-bottom: 16px;
+  font-family: var(--cl-font-mono);
+  font-size: 0.68rem;
+  color: var(--cl-accent);
+}
+.cl-num-quad__title {
+  margin: 0 0 10px;
+  font-family: var(--cl-font-display);
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--cl-ink);
+}
+.cl-num-quad__body {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--cl-muted);
+}
+
+/* ── The limit, as a ledger the reader can audit before the signup CTA ───── */
+.cl-num-limit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 44px;
+  align-items: start;
+}
+@media (min-width: 940px) {
+  .cl-num-limit { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 72px; }
+}
+.cl-num-limit__body {
+  margin: 20px 0 26px;
+  font-size: 0.98rem;
+  line-height: 1.7;
+  color: var(--cl-ink-2);
+  max-width: 52ch;
+}
+.cl-num-quote {
+  margin: 0;
+  padding: 20px 22px;
+  border: 1px solid var(--cl-border-2);
+  background: var(--cl-surface-2);
+  font-family: var(--cl-font-display);
+  font-style: italic;
+  font-size: 1.02rem;
+  line-height: 1.6;
+  color: var(--cl-ink-2);
+  max-width: 56ch;
+}
+
+.cl-num-ledger {
+  border: 1px solid var(--cl-border);
+  background: var(--cl-surface);
+}
+.cl-num-ledger__head,
+.cl-num-ledger__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.cl-num-ledger__head {
+  border-bottom: 1px solid var(--cl-border);
+  font-family: var(--cl-font-mono);
+  font-size: 0.63rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cl-muted-2);
+}
+.cl-num-ledger__head > span { padding: 13px 20px; }
+.cl-num-ledger__head > span:first-child { border-right: 1px solid var(--cl-border); }
+.cl-num-ledger__row { border-bottom: 1px solid var(--cl-border); }
+.cl-num-ledger__row:last-child { border-bottom: none; }
+.cl-num-ledger__label {
+  padding: 14px 20px;
+  border-right: 1px solid var(--cl-border);
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--cl-ink-2);
+}
+.cl-num-ledger__value {
+  padding: 14px 20px;
+  font-family: var(--cl-font-mono);
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: var(--cl-ink-2);
+}
+.cl-num-ledger__row[data-free="false"] .cl-num-ledger__label { color: var(--cl-muted); }
+.cl-num-ledger__row[data-free="false"] .cl-num-ledger__value { color: var(--cl-accent); }
+
+/* ── FAQ: a two-column index a reader can scan and pick from ─────────────── */
+.cl-num-faq {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  column-gap: 48px;
+}
+@media (min-width: 900px) {
+  .cl-num-faq { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.cl-num-faq__item {
+  padding: 18px 0;
+  border-top: 1px solid var(--cl-border);
+}
+.cl-num-faq__q {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 20px;
+  list-style: none;
+  cursor: pointer;
+  font-size: 0.94rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--cl-ink);
+}
+.cl-num-faq__q::-webkit-details-marker { display: none; }
+.cl-num-faq__q::after {
+  content: "+";
+  flex: none;
+  font-family: var(--cl-font-mono);
+  font-size: 1.05rem;
+  line-height: 1;
+  color: var(--cl-accent);
+}
+.cl-num-faq__item[open] > .cl-num-faq__q::after { content: "\2212"; }
+.cl-num-faq__q:focus-visible {
+  outline: 2px solid var(--cl-accent);
+  outline-offset: 3px;
+}
+.cl-num-faq__a {
+  margin: 12px 0 0;
+  font-size: 0.86rem;
+  line-height: 1.65;
+  color: var(--cl-muted);
+  max-width: 62ch;
+}
+
+.cl-num-related {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 46px;
+  padding-top: 30px;
+  border-top: 1px solid var(--cl-border);
+}
+.cl-num-related__title {
+  margin: 0;
+  font-family: var(--cl-font-mono);
+  font-size: 0.64rem;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cl-muted-2);
+}
+.cl-num-related__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cl-num-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 18px;
+  min-height: 44px;
+  border: 1px solid var(--cl-border-2);
+  border-radius: 999px;
+  background: var(--cl-surface-2);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--cl-ink-2);
+  text-decoration: none;
+  transition: border-color 150ms ease, color 150ms ease;
+}
+.cl-num-chip:hover { border-color: var(--cl-accent); color: var(--cl-accent); }
+
+/* ── CTA ─────────────────────────────────────────────────────────────────── */
+.cl-num-cta {
+  padding: 68px 0;
+  background: var(--cl-ink);
+  color: #EFE7D8;
+}
+.cl-num-cta__inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 32px;
+  align-items: center;
+}
+@media (min-width: 900px) {
+  .cl-num-cta__inner { grid-template-columns: 1.15fr 0.85fr; gap: 56px; }
+}
+.cl-num-cta__title {
+  margin: 0 0 16px;
+  font-family: var(--cl-font-display);
+  font-size: clamp(1.7rem, 3vw, 2.4rem);
+  font-weight: 400;
+  line-height: 1.14;
+  letter-spacing: -0.02em;
+  color: #F6EFE1;
+  max-width: 24ch;
+}
+.cl-num-cta__body {
+  margin: 0;
+  font-size: 0.94rem;
+  line-height: 1.7;
+  color: #BFB5A0;
+  max-width: 56ch;
+}
+.cl-num-cta__action {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+.cl-num-cta__btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 13px 28px;
+  min-height: 46px;
+  border-radius: 999px;
+  background: var(--cl-bg);
+  color: var(--cl-ink);
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 150ms ease, transform 120ms ease;
+}
+.cl-num-cta__btn:hover { background: #FFFFFF; transform: translateY(-1px); }
+.cl-num-cta__note { font-size: 0.78rem; color: #A79C88; }
+
 .cl-pub-faq {
   display: flex;
   flex-direction: column;
@@ -5674,6 +6471,46 @@ button:focus-visible,
   font-size: 0.86rem;
   color: var(--cl-muted);
   line-height: 1.6;
+}
+
+/* ── Collapsible variant of the same row ──
+   A native <details>, so keyboard, screen-reader and find-in-page behaviour
+   come for free and the answer text stays in the DOM for crawlers — the
+   JSON-LD FAQPage on these pages is a mirror of what is rendered, not a
+   substitute for it.
+
+   Every selector is qualified with `details`/`summary` so the pages that still
+   render this band as static <div>/<p> (porutham, birth-time-rectification,
+   the four feature pages) keep the layout they have today. */
+details.cl-pub-faq-item { padding: 0; }
+summary.cl-pub-faq-item__q {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0;
+  padding: 16px 20px;
+  cursor: pointer;
+  list-style: none;
+}
+summary.cl-pub-faq-item__q::-webkit-details-marker { display: none; }
+summary.cl-pub-faq-item__q::after {
+  content: "+";
+  flex: none;
+  font-size: 1.35rem;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--cl-accent);
+}
+details.cl-pub-faq-item[open] > summary.cl-pub-faq-item__q::after { content: "\2212"; }
+summary.cl-pub-faq-item__q:hover { background: var(--cl-bg-2); }
+summary.cl-pub-faq-item__q:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+details.cl-pub-faq-item > .cl-pub-faq-item__a {
+  padding: 0 20px 18px;
+  max-width: 72ch;
 }
 .cl-pub-related {
   margin-top: 56px;
@@ -7255,6 +8092,17 @@ html[lang="ta"] :where(
   .cl-filter-field > span,
   .cl-tool__score-label,
   .cl-tool__breakdown-label,
+  .cl-num-eyebrow,
+  .cl-num-reading__label,
+  .cl-num-reading__rootnote,
+  .cl-num-compound__tone,
+  .cl-num-compound__meta,
+  .cl-num-quad__index,
+  .cl-num-ledger__head,
+  .cl-num-related__title,
+  .cl-num-tradition,
+  .cl-num-window,
+  .cl-num-steps,
   .as-card__eyebrow,
   .as-profile__kicker
 ) {
@@ -7272,11 +8120,24 @@ html[lang="ta"] :where(
   .cl-nav__signin,
   .cl-lang-toggle,
   .cl-pub-related-link,
+  .cl-num-chip,
+  .cl-num-submit,
+  .cl-num-bridge__link,
+  .cl-num-cta__btn,
   .cd-btn-pill
 ) {
   line-height: 1.35;
   text-align: center;
   white-space: normal;
+}
+
+/* Tamil glyphs render ~20% taller/wider — same scale-down the shared h2 gets. */
+html[lang="ta"] .cl-num-h2 {
+  font-size: clamp(1.45rem, 2.8vw, 2.1rem);
+}
+html[lang="ta"] :where(.cl-num-faq__q, .cl-num-ledger__label, .cl-num-quad__title) {
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 html[lang="ta"] :where(
