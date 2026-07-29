@@ -431,10 +431,16 @@ def test_configured_epoch_reads_the_flag() -> None:
 def test_service_entry_points_are_dark_while_the_flag_is_off() -> None:
     from fastapi import HTTPException
 
-    assert svc.numerology_enabled() is False
-    with pytest.raises(HTTPException) as exc:
-        svc.require_numerology_enabled()
-    assert exc.value.status_code == 404
+    from app.services import feature_flags
+
+    feature_flags.set_flag("numerology_engine", False)
+    try:
+        assert svc.numerology_enabled() is False
+        with pytest.raises(HTTPException) as exc:
+            svc.require_numerology_enabled()
+        assert exc.value.status_code == 404
+    finally:
+        feature_flags.reset_flag("numerology_engine")
 
 
 def test_chithirai_resolver_agrees_with_the_almanac() -> None:

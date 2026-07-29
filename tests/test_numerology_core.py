@@ -218,6 +218,47 @@ def test_non_latin_script_is_refused_not_silently_skipped() -> None:
         score_text("Deepa தீபா")
 
 
+# ---------------------------------------------------------------------------
+# The letter-by-letter working
+# ---------------------------------------------------------------------------
+def test_score_text_reports_what_each_letter_was_worth() -> None:
+    """"Adds up to 23" is an assertion; this is the part a reader can check."""
+    reading = score_text("ZORO")
+    assert reading.letter_values == (("Z", 7), ("O", 7), ("R", 2), ("O", 7))
+    assert sum(value for _, value in reading.letter_values) == reading.total
+
+
+def test_letter_values_are_uppercased_and_skip_the_ignorable() -> None:
+    reading = score_text("t e-s.t")
+    assert reading.letter_values == (("T", 4), ("E", 5), ("S", 3), ("T", 4))
+    # The dropped characters are still reported, just not as scored tokens.
+    assert set(reading.ignored_characters) == {" ", "-", "."}
+
+
+def test_score_digits_breaks_down_a_mixed_plate() -> None:
+    """A digit scores as itself; a letter does not. The breakdown shows both."""
+    reading = score_digits("TN09BX")
+    assert reading.letter_values == (("T", 4), ("N", 5), ("0", 0), ("9", 9), ("B", 2), ("X", 5))
+    assert sum(value for _, value in reading.letter_values) == reading.total
+
+
+def test_date_derived_readings_carry_no_letters() -> None:
+    """Empty must mean "there were none", not "not computed"."""
+    assert psychic_number(15).letter_values == ()
+    assert destiny_number(1990, 5, 17).letter_values == ()
+
+
+def test_a_breakdown_that_contradicts_its_total_is_refused() -> None:
+    """The breakdown is shown as *proof* of the total.
+
+    If the two could disagree the page would be displaying a lie in the one
+    format that invites the reader to check it, so this is an assertion rather
+    than a lenient reconcile.
+    """
+    with pytest.raises(ValueError, match="letter_values sum"):
+        reading_from_total(10, (), (("A", 1), ("B", 2)))
+
+
 def test_empty_or_unscoreable_input_raises() -> None:
     with pytest.raises(ValueError):
         score_text("")
@@ -363,6 +404,72 @@ def test_corpus_is_marked_unreviewed_and_not_renderable() -> None:
     assert content.corpus_is_renderable() is False
 
 
+# ---------------------------------------------------------------------------
+# The citation/prose split (2026-07-29)
+# ---------------------------------------------------------------------------
+def test_compound_citation_ships_while_the_prose_corpus_is_dark() -> None:
+    """The whole point of the split: a title is a citation, not a reading.
+
+    Before this, one ``CONTENT_REVIEWED`` gate covered both our sentences about
+    a person *and* Cheiro's own titles for his numbers. The second needs no
+    Tamil review — there is no Tamil in it and no claim about the reader — and
+    holding it back is what left the public calculator printing a bare integer
+    where a sourced classical name existed three files away.
+    """
+    assert content.CONTENT_REVIEWED is False, "this test is about the gate being OFF"
+
+    citation = content.compound_citation(31)
+    assert citation is not None
+    assert citation.title_en == "The Recluse"
+    assert citation.tone is content.CompoundTone.MIXED
+    assert "Cheiro" in citation.source
+
+    # …while the meaning of the same number stays withheld at the API edge.
+    assert content.corpus_is_renderable() is False
+
+
+def test_compound_citation_is_absent_where_cheiro_encodes_nothing() -> None:
+    """``None`` must mean "not in the series", never "withheld"."""
+    assert content.compound_citation(None) is None   # single-digit total
+    assert content.compound_citation(9) is None      # a root, not a compound
+    assert content.compound_citation(53) is None     # past the series
+    assert content.compound_citation(108) is None    # Sethuraman's range, unencoded
+
+
+def test_compound_citation_carries_no_tamil() -> None:
+    """English-only by design — a Tamil title would be new, ungated translation."""
+    for number in range(10, 53):
+        citation = content.compound_citation(number)
+        assert citation is not None
+        assert not any(ord(ch) in TAMIL_RANGE for ch in citation.title_en), number
+
+
+def test_every_citation_carries_a_tone_so_a_title_never_ships_bare() -> None:
+    """Standing ruling 3, in its breached-by-omission form.
+
+    Several of Cheiro's titles are alarming standing alone — 16 is "The
+    Shattered Citadel", 22 "The Good Man Blinded". Shipping a title with no
+    register beside it hands the reader his fatalism and withholds our
+    reframing of it, which is the fear trade arrived at by leaving something
+    out rather than by writing it.
+    """
+    for number in range(10, 53):
+        citation = content.compound_citation(number)
+        assert citation is not None
+        assert citation.tone in set(content.CompoundTone), number
+
+
+def test_citation_agrees_with_the_corpus_it_is_drawn_from() -> None:
+    """Two views of one row must not drift."""
+    for number in range(10, 53):
+        citation = content.compound_citation(number)
+        reading = content.compound_reading(number)
+        assert citation is not None and reading is not None
+        assert citation.title_en == reading.title_en
+        assert citation.tone is reading.tone
+        assert citation.echoes == reading.echoes
+
+
 def test_every_root_has_a_reading_and_matches_the_engine_graha() -> None:
     readings = content.all_root_readings()
     assert len(readings) == 9
@@ -440,7 +547,10 @@ def test_bilingual_fields_are_script_pure() -> None:
 # ---------------------------------------------------------------------------
 # Flags
 # ---------------------------------------------------------------------------
-def test_numerology_flags_default_to_off_and_proposed_doctrine() -> None:
-    assert get_flag("numerology_engine") is False
+def test_numerology_flags_launched_and_proposed_doctrine() -> None:
+    # Flipped ON 2026-07-28 — see app/services/feature_flags.py for why this
+    # is safe ahead of Tamil content review (CONTENT_REVIEWED is the separate
+    # gate that still withholds every interpretive string).
+    assert get_flag("numerology_engine") is True
     assert get_flag("numerology_personal_year_epoch") == "birthday"
     assert get_flag("numerology_naming_mode") == "pada_first"

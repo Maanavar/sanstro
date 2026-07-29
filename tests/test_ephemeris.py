@@ -3,7 +3,11 @@ from datetime import datetime
 import pytest
 
 from app.calculations.astro import local_datetime_to_utc, utc_datetime_to_julian_day
-from app.calculations.ephemeris import calculate_lagna_degree, calculate_sidereal_planets
+from app.calculations.ephemeris import (
+    calculate_lagna_degree,
+    calculate_sidereal_planets,
+    calculate_sun_moon_longitudes,
+)
 
 
 def test_sidereal_planets_from_documented_birth_datetime():
@@ -55,3 +59,31 @@ def test_t020_lagna_changes_once_within_two_hour_window_for_chennai():
 
     changes = sum(1 for i in range(1, len(lagna_rasis)) if lagna_rasis[i] != lagna_rasis[i - 1])
     assert changes == 1
+
+
+def test_sun_moon_shortcut_matches_the_full_snapshot_exactly():
+    """The narrow query must never become a *different* query.
+
+    ``calculate_sun_moon_longitudes`` exists only to spare the panchangam's
+    boundary searches the six bodies a tithi/nakshatra/yoga angle does not
+    involve — it is the same Swiss Ephemeris call with the same flags, so it owes
+    bit-identical longitudes, not merely close ones. ``approx`` would hide
+    exactly the drift this guards: a changed flag or a missing
+    ``set_lahiri_ayanamsa`` would move results by a fraction of a degree and
+    silently shift every tithi boundary in the product.
+
+    Swept across the year because the Moon is the fast body here, and a single
+    instant could agree by luck.
+    """
+    for month in range(1, 13):
+        birth_datetime_utc = local_datetime_to_utc(
+            datetime(1993, month, 15, 8, 15),
+            "Asia/Kolkata",
+        )
+        jd_ut = utc_datetime_to_julian_day(birth_datetime_utc)
+
+        snapshot = calculate_sidereal_planets(jd_ut)
+        sun, moon = calculate_sun_moon_longitudes(jd_ut)
+
+        assert sun == snapshot.bodies["SUN"].absolute_longitude
+        assert moon == snapshot.bodies["MOON"].absolute_longitude

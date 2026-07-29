@@ -48,6 +48,7 @@ from app.calculations.numerology_compatibility import (
     compare_numbers,
     graha_relation,
     layer_over_porutham,
+    name_harmony_from_alignment,
     pair_numbers,
     relation_between,
     resolve_basis,
@@ -545,6 +546,25 @@ def test_name_harmony_is_reported_per_partner() -> None:
     assert result.name_harmony_b is not None
     assert 0 <= result.name_harmony_a.score <= 100
     assert isinstance(result.name_harmony_a.change_advised, bool)
+
+
+def test_name_harmony_score_is_the_name_not_the_blend() -> None:
+    """Regression: the score under a *name* label must be the name's own.
+
+    ``FortuneAlignment.overall_score`` is a weighted blend, and psychic +
+    destiny — both derived from the date of birth alone — outweigh the name in
+    it (0.55 vs 0.35). Reporting that blend as "name harmony" is the same lie
+    the None-branch above exists to prevent, just committed by degree; it also
+    contradicted ``verdict``, which has always come from the name. This pins
+    score and verdict to one source.
+    """
+    alignment = align_profile(_profile(22, "Zoro"), 10)
+    assert alignment.name is not None
+    harmony = name_harmony_from_alignment(alignment)
+    assert harmony is not None
+    assert harmony.score == alignment.name.score
+    # And the verdict it ships beside must describe that same number.
+    assert harmony.verdict == alignment.name.verdict.value
 
 
 def test_name_harmony_is_absent_when_no_name_was_scored() -> None:

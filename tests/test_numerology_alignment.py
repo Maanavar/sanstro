@@ -8,11 +8,21 @@ from __future__ import annotations
 
 import pytest
 
-from app.calculations.functional_nature import FunctionalNature
-from app.calculations.numerology import build_profile
+from app.calculations.functional_nature import (
+    PLANET_OWNED_RASIS,
+    FunctionalNature,
+    derive_functional_nature,
+    get_functional_nature,
+    owned_houses,
+)
+from app.calculations.numerology import NUMBER_TO_GRAHA, build_profile
 from app.calculations.numerology_alignment import (
     BENEFIC_NATURES,
+    MALEFIC_NATURES,
+    VERDICT_BANDS,
     AlignmentVerdict,
+    NodeBasisKind,
+    StrengthRule,
     align_number,
     align_profile,
     favourable_numbers_for,
@@ -249,3 +259,161 @@ def test_reasons_and_recommendations_are_script_pure() -> None:
                 continue
             assert not any(ord(c) in TAMIL_RANGE for c in alignment.reason_en)
             assert any(ord(c) in TAMIL_RANGE for c in alignment.reason_ta)
+
+
+# ---------------------------------------------------------------------------
+# The verdict's own working (`AlignmentBasis`)
+#
+# A rating nobody can check is a rating nobody should trust, and until this
+# existed the panel showed "Out of step - 38 / 100" with no way to get from one
+# to the other. These pin the arithmetic the explanation is built out of. Every
+# one guards a failure that is *silent* on screen — a sum that does not add up,
+# a legend that disagrees with the scoring, a sentence naming the wrong houses
+# — none of which raises anything.
+# ---------------------------------------------------------------------------
+def test_the_parts_of_the_score_always_add_up_to_the_score() -> None:
+    """``base + delta == score`` for every lagna, number and strength.
+
+    The invariant the UI depends on: it prints the base, then the adjustment,
+    then the total. ``strength_delta`` is deliberately the *realised* difference
+    rather than the pre-clamp float, so the 0/100 rails cannot produce a screen
+    whose own arithmetic visibly fails.
+    """
+    for lagna in range(1, 13):
+        for number in range(1, 10):
+            for strength in (None, 0.0, 12.5, 50.0, 87.5, 100.0):
+                a = align_number(number, lagna, natal_strength=strength)
+                assert a.basis.base_score + a.basis.strength_delta == a.score, (
+                    f"lagna {lagna} number {number} strength {strength}"
+                )
+                assert 0 <= a.score <= 100
+
+
+def test_strength_rule_names_what_actually_happened_to_the_score() -> None:
+    """The rule token must match the direction the score really moved.
+
+    ``INVERTED`` is the one that matters: for a malefic lordship a *stronger*
+    graha scores lower. If token and arithmetic ever disagree the UI prints an
+    explanation of the opposite of what it did — which reads as correct, and is
+    worse than printing nothing.
+    """
+    for lagna in range(1, 13):
+        for number in range(1, 10):
+            weak = align_number(number, lagna, natal_strength=10.0)
+            strong = align_number(number, lagna, natal_strength=90.0)
+            nature = weak.functional_nature
+            assert weak.basis.strength_rule is strong.basis.strength_rule
+
+            if nature in MALEFIC_NATURES:
+                assert strong.basis.strength_rule is StrengthRule.INVERTED
+                assert strong.score < weak.score
+            elif nature in BENEFIC_NATURES:
+                assert strong.basis.strength_rule is StrengthRule.AMPLIFIES
+                assert strong.score > weak.score
+            else:
+                assert strong.basis.strength_rule is StrengthRule.DAMPED
+                assert strong.score > weak.score
+
+
+def test_no_strength_on_the_chart_leaves_the_office_alone_to_speak() -> None:
+    a = align_number(8, 1)
+    assert a.basis.strength_rule is StrengthRule.NONE
+    assert a.basis.strength_delta == 0
+    assert a.score == a.basis.base_score
+
+
+def test_owned_houses_match_the_mechanical_derivation() -> None:
+    """The houses the UI names must be the houses the nature was derived from.
+
+    ``derive_functional_nature`` is the repo's own validation oracle for the
+    hand-authored table, and it branches on exactly this house set. Rebuilding
+    the set from ``owned_houses`` proves the sentence on screen and the
+    classification behind it are reading one fact rather than two.
+    """
+    for lagna in range(1, 13):
+        for planet, rasis in PLANET_OWNED_RASIS.items():
+            houses = owned_houses(lagna, planet)
+            assert len(houses) == len(rasis)
+            assert list(houses) == sorted(houses), "houses come back ascending"
+            assert all(1 <= h <= 12 for h in houses)
+            assert {((r - lagna) % 12) + 1 for r in rasis} == set(houses)
+            assert derive_functional_nature(lagna, planet) is not None
+
+
+def test_the_seven_always_own_houses_and_the_nodes_never_do() -> None:
+    """Numbers 4 and 7 are Rahu and Ketu — the node path is two of nine.
+
+    Which makes "Ketu rules no house of its own" an ordinary sentence on this
+    panel rather than a corner case, and worth pinning.
+    """
+    for lagna in range(1, 13):
+        for number in range(1, 10):
+            a = align_number(number, lagna)
+            is_node = NUMBER_TO_GRAHA[number] in ("RAHU", "KETU")
+            assert bool(a.basis.node_basis) is is_node
+            assert bool(a.basis.owned_houses) is not is_node
+
+
+def test_node_basis_agrees_with_the_nature_it_claims_to_explain() -> None:
+    """``_node_basis`` mirrors ``_node_functional_nature`` branch for branch.
+
+    Two functions walking one classical rule, so they can drift. If they do the
+    panel explains a node's rating by a reason that did not produce it — fluent
+    and wrong, the worst combination available.
+    """
+    for lagna in range(1, 13):
+        for node_rasi in range(1, 13):
+            node_map = {"RAHU": node_rasi, "KETU": ((node_rasi + 5) % 12) + 1}
+            a = align_number(4, lagna, node_rasi_map=node_map)
+            basis = a.basis.node_basis
+            assert basis is not None
+            if basis.kind is NodeBasisKind.OCCUPIED_HOUSE:
+                assert basis.occupied_house in (6, 8, 12)
+                assert a.functional_nature is FunctionalNature.DUSTHANA
+                assert basis.dispositor is None
+            else:
+                assert basis.kind is NodeBasisKind.DISPOSITOR
+                assert basis.occupied_house not in (6, 8, 12)
+                assert basis.dispositor is not None
+                # It borrows its host's office outright — the claim the sentence
+                # on screen makes, so it has to hold.
+                assert a.functional_nature is get_functional_nature(lagna, basis.dispositor)
+                assert basis.dispositor_houses == owned_houses(lagna, basis.dispositor)
+
+
+def test_a_node_with_no_recorded_position_says_so_rather_than_guessing() -> None:
+    a = align_number(7, 5)
+    assert a.basis.node_basis is not None
+    assert a.basis.node_basis.kind is NodeBasisKind.NO_POSITION
+    assert a.basis.node_basis.occupied_house is None
+    assert a.functional_nature is FunctionalNature.NEUTRAL
+
+
+# ---------------------------------------------------------------------------
+# The ladder the client draws its legend from
+# ---------------------------------------------------------------------------
+def test_verdict_bands_cover_every_score_exactly_once() -> None:
+    covered = sorted(
+        score for band in VERDICT_BANDS for score in range(band.min_score, band.max_score + 1)
+    )
+    assert covered == list(range(101)), "the bands must tile 0-100 with no gap or overlap"
+
+
+def test_every_band_boundary_agrees_with_verdict_from_score() -> None:
+    """Legend and scoring must never be able to disagree.
+
+    ``VERDICT_BANDS`` is derived from ``_VERDICT_CUTOFFS`` rather than written
+    out a second time, and this walks all 101 scores to keep it that way. A
+    hand-copied ladder — in Python or, worse, in TypeScript — is how a client
+    ends up drawing a boundary the server does not score by.
+    """
+    for score in range(101):
+        band = next(b for b in VERDICT_BANDS if b.min_score <= score <= b.max_score)
+        assert band.verdict is verdict_from_score(score), f"score {score}"
+
+
+def test_bands_are_ordered_best_first() -> None:
+    mins = [band.min_score for band in VERDICT_BANDS]
+    assert mins == sorted(mins, reverse=True)
+    assert VERDICT_BANDS[0].max_score == 100
+    assert VERDICT_BANDS[-1].min_score == 0

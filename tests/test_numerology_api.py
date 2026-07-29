@@ -29,9 +29,22 @@ def enabled() -> Iterator[None]:
         reset_rate_limit_backend()
 
 
-def test_endpoints_404_while_the_flag_is_off() -> None:
-    """Default state. A not-yet-launched feature should not advertise itself."""
+@pytest.fixture
+def numerology_off() -> Iterator[None]:
+    """The flag ships ON (2026-07-28) — this forces the rollback path so the
+    gate itself stays under test rather than only its currently-launched
+    happy path."""
     reset_rate_limit_backend()
+    set_flag("numerology_engine", False)
+    try:
+        yield
+    finally:
+        reset_flag("numerology_engine")
+        reset_rate_limit_backend()
+
+
+def test_endpoints_404_while_the_flag_is_off(numerology_off: None) -> None:
+    """A feature switched back off must not advertise itself."""
     with TestClient(app, raise_server_exceptions=False) as client:
         profile = client.post(PROFILE_URL, json={"birthDate": "1990-05-17"})
         number = client.post(NUMBER_URL, json={"value": "12A", "kind": "house"})
@@ -83,6 +96,97 @@ def test_compound_is_exposed_not_collapsed(enabled: None) -> None:
     assert name["compound"] == 23
     assert name["root"] == 5
     assert name["reductionChain"] == [23, 5]
+
+
+def test_compound_ships_with_its_citation_while_the_meaning_stays_dark(
+    enabled: None,
+) -> None:
+    """The 2026-07-29 split, asserted at the edge that actually feeds the page.
+
+    Two kinds of text were behind one gate. Cheiro's title for a number is a
+    reference to a printed book — no Tamil in it, no claim about the reader —
+    and it now ships. *Our* sentence about what the number means for a person
+    is still ours and still unreviewed, so it stays null.
+
+    Without this test the split is one boolean away from silently closing
+    again, and the symptom would be the one it was built to fix: a bare
+    "Compound 23" with no provenance and no meaning.
+    """
+    with TestClient(app, raise_server_exceptions=False) as client:
+        body = client.post(
+            PROFILE_URL, json={"birthDate": "1990-05-17", "documentName": "Zoro"}
+        ).json()
+
+    name = body["name"]
+    assert name["compound"] == 23
+    # Bibliography — ships.
+    assert name["compoundTitle"] == "The Royal Star of the Lion"
+    assert name["compoundTone"] == "favourable"
+    assert "Cheiro" in name["compoundSource"]
+    # Our prose about a person — withheld.
+    assert name["compoundReadingEn"] is None
+    assert name["compoundReadingTa"] is None
+
+
+def test_a_title_never_ships_without_its_register(enabled: None) -> None:
+    """Standing ruling 3, breached by omission rather than by commission.
+
+    "The Shattered Citadel" delivered with no tone beside it is Cheiro's
+    fatalism handed over with our reframing left behind. Any surface rendering
+    the title has to be able to render the register too, so the two must travel
+    together on the wire.
+    """
+    with TestClient(app, raise_server_exceptions=False) as client:
+        # ARIVU: A1 R2 I1 V6 U6 = 16, Cheiro's sharpest warning in the series.
+        body = client.post(
+            PROFILE_URL, json={"birthDate": "1990-05-17", "calledName": "Arivu"}
+        ).json()
+
+    namesake = body["namesake"]
+    assert namesake["compound"] == 16
+    assert namesake["compoundTitle"] == "The Shattered Citadel"
+    assert namesake["compoundTone"] == "cautionary"
+
+
+def test_a_name_past_cheiros_52_gets_no_citation_at_all(enabled: None) -> None:
+    """Doctrine D6. Absent must read as "not encoded", never as "withheld".
+
+    A total above 52 that reduces straight past the series has no compound and
+    therefore nothing to cite. Inventing one here would be the exact
+    substitution `compound_reading` refuses to make.
+    """
+    with TestClient(app, raise_server_exceptions=False) as client:
+        body = client.post(
+            PROFILE_URL,
+            json={"birthDate": "1990-05-17", "documentName": "Arivunithi Kalaiyarasan"},
+        ).json()
+
+    name = body["name"]
+    assert name["compound"] is None
+    assert name["compoundBeyondSeries"] == 54
+    assert name["compoundTitle"] is None
+    assert name["compoundTone"] is None
+
+
+def test_letter_values_make_the_total_checkable(enabled: None) -> None:
+    """The working a practitioner writes by hand, and the reason it is on the wire.
+
+    Clients must not recompute this: the Chaldean table is *data*, not an
+    `A=1..Z=26 mod 9` formula — no letter carries 9 — so a second copy in
+    TypeScript would be a second copy to get wrong.
+    """
+    with TestClient(app, raise_server_exceptions=False) as client:
+        body = client.post(
+            PROFILE_URL, json={"birthDate": "1990-05-17", "documentName": "Zoro"}
+        ).json()
+
+    letters = body["name"]["letterValues"]
+    assert [(row["char"], row["value"]) for row in letters] == [
+        ("Z", 7), ("O", 7), ("R", 2), ("O", 7),
+    ]
+    assert sum(row["value"] for row in letters) == body["name"]["total"]
+    # A date has no letters, and that is a fact rather than a gap.
+    assert body["psychic"]["letterValues"] == []
 
 
 def test_tradition_is_declared_on_every_response(enabled: None) -> None:

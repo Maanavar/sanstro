@@ -21,6 +21,7 @@ from uuid import uuid4
 
 import pytest
 
+from app.calculations import numerology_correction
 from app.services import numerology_content
 from app.services.feature_flags import reset_flag, set_flag
 
@@ -28,6 +29,18 @@ from app.services.feature_flags import reset_flag, set_flag
 @pytest.fixture
 def enabled() -> Iterator[None]:
     set_flag("numerology_engine", True)
+    try:
+        yield
+    finally:
+        reset_flag("numerology_engine")
+
+
+@pytest.fixture
+def numerology_off() -> Iterator[None]:
+    """The flag ships ON (2026-07-28) — this forces the rollback path so the
+    gate itself stays under test rather than only its currently-launched
+    happy path."""
+    set_flag("numerology_engine", False)
     try:
         yield
     finally:
@@ -48,6 +61,24 @@ def reviewed() -> Iterator[None]:
         yield
     finally:
         numerology_content.CONTENT_REVIEWED = original
+
+
+@pytest.fixture
+def legal_warning_unreviewed() -> Iterator[None]:
+    """Force plan §9.4's refusal path.
+
+    The warning's own gate ships ON (2026-07-29), so the withholding branch is
+    no longer the default and would otherwise fall out of test. It is the more
+    important of the two branches — it is the rule that a recommendation never
+    ships without the cost of acting on it — so it gets driven explicitly rather
+    than being tested only while a flag happened to be off.
+    """
+    original = numerology_correction.LEGAL_WARNING_REVIEWED
+    numerology_correction.LEGAL_WARNING_REVIEWED = False
+    try:
+        yield
+    finally:
+        numerology_correction.LEGAL_WARNING_REVIEWED = original
 
 
 def _create_chart(client, native: dict[str, Any] | None = None) -> str:
@@ -146,9 +177,9 @@ def _call(http, verb: str, url: str, payload: dict[str, Any]):
 
 @pytest.mark.parametrize(("verb", "suffix", "payload"), ROUTES)
 def test_routes_404_while_the_flag_is_off(
-    client, verb: str, suffix: str, payload: dict[str, Any]
+    client, numerology_off: None, verb: str, suffix: str, payload: dict[str, Any]
 ) -> None:
-    """Default state — a feature that has not launched must not advertise itself."""
+    """A feature switched back off must not advertise itself."""
     chart_id = _create_chart(client)
     url = f"/api/v1/charts/{chart_id}/numerology/{suffix}"
     response = _call(client, verb, url, payload)
@@ -158,7 +189,7 @@ def test_routes_404_while_the_flag_is_off(
     )
 
 
-def test_flag_off_hides_whether_the_chart_exists(client) -> None:
+def test_flag_off_hides_whether_the_chart_exists(client, numerology_off: None) -> None:
     """The gate must not double as an existence oracle for chart ids.
 
     Both answers are 404 with the same body, so a caller learns nothing about
@@ -215,6 +246,59 @@ def test_alignment_scores_the_numbers_against_the_chart(client, enabled: None) -
     assert sorted(body["favourableNumbers"]) == list(range(1, 10))
     assert 1 <= body["lagnaRasi"] <= 12
     assert isinstance(body["nameChangeAdvised"], bool)
+
+
+def test_the_verdict_arrives_with_its_own_working(client, enabled: None) -> None:
+    """`basis` and `verdictScale` must survive the response model, ungated.
+
+    They are what turns "Out of step - 38 / 100" from an assertion into
+    something a reader can check, and they cross the wire *whatever*
+    `readingsAvailable` says: houses ruled and arithmetic are facts about the
+    calculation, not the readings-about-a-person the corpus review holds back.
+    Gating them by accident would restore the exact silence this fixed, and it
+    would look like nothing at all had broken.
+    """
+    chart_id = _create_chart(client)
+    body = client.post(
+        f"/api/v1/charts/{chart_id}/numerology/alignment",
+        json={"documentName": "Zoro"},
+    ).json()
+
+    for key in ("psychic", "destiny", "name"):
+        basis = body[key]["basis"]
+        # The invariant every surface prints: base + delta == score.
+        assert basis["baseScore"] + basis["strengthDelta"] == body[key]["score"]
+        assert basis["strengthRule"] in {"amplifies", "inverted", "damped", "none"}
+        # A graha either rules houses or is a node explaining itself another way
+        # — never neither, which would leave the UI with nothing to say.
+        assert basis["ownedHouses"] or basis["nodeBasis"] is not None
+        assert all(1 <= h <= 12 for h in basis["ownedHouses"])
+
+    # 4 is Rahu: two of the nine numbers take the node path, so it is reachable
+    # from an ordinary fixture rather than needing a contrived one.
+    rahu = body["psychic"]
+    assert rahu["number"] == 4
+    node = rahu["basis"]["nodeBasis"]
+    assert node is not None
+    assert node["kind"] in {"occupied_house", "dispositor", "no_position"}
+
+    scale = body["verdictScale"]
+    assert [b["verdict"] for b in scale][0] == "strongly_aligned"
+    assert scale[0]["maxScore"] == 100
+    assert scale[-1]["minScore"] == 0
+    # Contiguous, so a client can draw the axis with no gaps.
+    for higher, lower in zip(scale, scale[1:], strict=False):
+        assert higher["minScore"] == lower["maxScore"] + 1
+
+
+def test_the_ranked_list_carries_the_scale_it_is_read_against(
+    client, enabled: None
+) -> None:
+    chart_id = _create_chart(client)
+    body = client.get(f"/api/v1/charts/{chart_id}/numerology/favourable-numbers").json()
+    assert len(body["verdictScale"]) == 5
+    for row in body["numbers"]:
+        assert row["basis"]["baseScore"] + row["basis"]["strengthDelta"] == row["score"]
 
 
 def test_alignment_body_is_optional(client, enabled: None) -> None:
@@ -349,15 +433,18 @@ def test_a_benefic_name_gets_no_alternatives_over_http(client, enabled: None) ->
 
 
 def test_a_misaligned_name_has_its_alternatives_withheld_pending_review(
-    client, enabled: None
+    client, enabled: None, legal_warning_unreviewed: None
 ) -> None:
-    """Plan §9.4 composed with the corpus gate.
+    """Plan §9.4's refusal path, driven explicitly.
 
     The engine found corrections. They are removed — not because the name is
     fine, but because the legal-consequence warning that must accompany any
-    recommendation has not cleared Tamil review. The two reasons must never be
-    conflated, so this asserts the withheld reason is set and the no-change
-    reason is not.
+    recommendation cannot be rendered. The two reasons must never be conflated,
+    so this asserts the withheld reason is set and the no-change reason is not.
+
+    The fixture is what changed 2026-07-29, not the rule: the warning now has
+    its own review gate and that gate ships ON, so this branch has to be forced
+    rather than being whatever the corpus flag happened to make it.
     """
     chart_id = _create_chart(client)
     grouped = _numbers_by_verdict(client, chart_id)
@@ -380,10 +467,14 @@ def test_a_misaligned_name_has_its_alternatives_withheld_pending_review(
     assert body["variantsConsidered"] > 0, "the engine did search — say so"
 
 
-def test_alternatives_and_the_legal_warning_appear_together(
-    client, enabled: None, reviewed: None
-) -> None:
-    """Once review clears: corrections ship, and never without the warning."""
+def test_alternatives_and_the_legal_warning_appear_together(client, enabled: None) -> None:
+    """Corrections ship, and never without the warning.
+
+    Deliberately takes NO ``reviewed`` fixture. That is the assertion: the two
+    review gates are independent, so corrected spellings reach a user while
+    every interpretive sentence in the response is still dark. Add ``reviewed``
+    here and the test stops covering the thing the 2026-07-29 split was for.
+    """
     chart_id = _create_chart(client)
     grouped = _numbers_by_verdict(client, chart_id)
     misaligned = grouped.get("misaligned", []) + grouped.get("strongly_misaligned", [])
@@ -394,11 +485,16 @@ def test_alternatives_and_the_legal_warning_appear_together(
         json={"name": _name_scoring(misaligned[0]["number"])},
     ).json()
 
-    assert body["alternatives"], "review cleared but no corrections were offered"
+    assert body["alternatives"], "the warning is available but no corrections were offered"
     assert body["alternativesWithheldReason"] is None
     assert body["changeAdvised"] is True
     assert "Aadhaar" in body["legalWarningEn"]
     assert body["legalWarningTa"]
+    # The independence, stated as an assertion rather than left to the docstring.
+    assert body["readingsAvailable"] is False, (
+        "this test is meaningless if the corpus gate happens to be open — the "
+        "point is that a correction ships without it"
+    )
 
     for row in body["alternatives"]:
         # Every offered spelling must say how it was derived and why it is better.
@@ -453,12 +549,15 @@ def _two_charts(client) -> tuple[str, str]:
     return _create_chart(client), _create_chart(client, _NATIVE_B)
 
 
-def test_compatibility_404s_while_the_flag_is_off(client) -> None:
+def test_compatibility_404s_while_the_flag_is_off(client, numerology_off: None) -> None:
     """Cheap by design: random chart ids never reach the database.
 
     That the call still 404s *is* the assertion — the flag is checked before
     either chart is looked up, so a flag-off deployment cannot be used to probe
-    which chart ids exist.
+    which chart ids exist. Without ``numerology_off`` this passes for the wrong
+    reason once the flag ships ON by default: a random chart id 404s from
+    ``_assert_chart_owner`` regardless of the gate, so the test would stop
+    proving anything about the flag the moment it stopped forcing it off.
     """
     response = client.post(
         COMPATIBILITY_URL, json={"chartIdA": str(uuid4()), "chartIdB": str(uuid4())}
@@ -466,7 +565,9 @@ def test_compatibility_404s_while_the_flag_is_off(client) -> None:
     assert response.status_code == 404
 
 
-def test_compatibility_flag_off_hides_whether_the_charts_exist(client) -> None:
+def test_compatibility_flag_off_hides_whether_the_charts_exist(
+    client, numerology_off: None
+) -> None:
     """A real chart and a nonexistent one must be indistinguishable while off."""
     real = _create_chart(client)
     with_real = client.post(

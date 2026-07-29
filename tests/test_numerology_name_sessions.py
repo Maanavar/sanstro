@@ -40,6 +40,18 @@ def enabled() -> Iterator[None]:
         reset_flag("numerology_engine")
 
 
+@pytest.fixture
+def numerology_off() -> Iterator[None]:
+    """The flag ships ON (2026-07-28) — this forces the rollback path so the
+    gate itself stays under test rather than only its currently-launched
+    happy path."""
+    set_flag("numerology_engine", False)
+    try:
+        yield
+    finally:
+        reset_flag("numerology_engine")
+
+
 def _create_chart(client) -> str:
     """A clearly-synthetic Chennai-born native. No real birth data in fixtures."""
     created = client.post(
@@ -278,8 +290,14 @@ def test_a_moved_engine_version_is_declared_not_hidden(client, enabled: None) ->
 
 
 # ── Gate and access ──────────────────────────────────────────────────────────
-def test_delete_404s_while_the_flag_is_off(client) -> None:
-    """The DELETE route does not fit the shared matrix, so it is gated here."""
+def test_delete_404s_while_the_flag_is_off(client, numerology_off: None) -> None:
+    """The DELETE route does not fit the shared matrix, so it is gated here.
+
+    Without ``numerology_off`` this would still return 404 once the flag ships
+    ON by default, but for the wrong reason (a random session id under a real,
+    owned chart is simply "not found", not gated) — silently testing nothing
+    about the flag.
+    """
     chart_id = _create_chart(client)
     response = client.delete(f"{_base(chart_id)}/{uuid4()}")
     assert response.status_code == 404
