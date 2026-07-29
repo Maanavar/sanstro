@@ -21,6 +21,44 @@ Two corpora with very different readiness:
   than quietly erased. A cautionary number still reads as cautionary — it just
   does not read as a sentence passed on the user.
 
+Two kinds of text, one gate — and the gate was wrong (2026-07-29)
+-----------------------------------------------------------------
+``CONTENT_REVIEWED`` covers **our sentences about a person**: the root 1-9 copy
+and the ``reading_en``/``reading_ta`` re-renderings above. Those wait for a
+Tamil native pass, correctly.
+
+It was also, wrongly, covering **Cheiro's own titles and their register** —
+which are a citation of a printed book, not a claim about the reader. Nothing
+about "31 is titled *The Recluse* in Cheiro 1935, pp. 126-133" becomes truer or
+safer after a Tamil review, because there is no Tamil in it and no assertion
+about the person reading it.
+
+The cost of that conflation was concrete: the public calculator printed
+"Compound 31" as a bare integer inside a collapsed *How this was worked out*
+disclosure, while the sourced title for 31 sat unused three files away. The
+compound outranks the root in this system — that is the first thing this
+package's docstring says — and the product was rendering it as a discarded
+intermediate step.
+
+``CompoundCitation`` / ``compound_citation`` below is that second category,
+ungated. The prose stays dark.
+
+The same split, applied a second time (2026-07-29)
+--------------------------------------------------
+``numerology_correction.LEGAL_WARNING_REVIEWED`` is the other review gate in
+this feature, and it exists for the identical reason. The name-correction legal
+warning is a fixed statement about Indian administrative process, the same for
+every user, containing no reading of anyone — so it clears on a Tamil reader
+confirming the wording, not on a review of the interpretive corpus. It lives
+beside the strings it governs rather than here, so an edit to the text cannot
+miss the flag; this note is the pointer, because "which review gates exist" is a
+question that should be answerable from this file.
+
+The two gates are independent in both directions: name-correction alternatives
+ship with every root and compound reading still dark, and flipping
+``CONTENT_REVIEWED`` here would not by itself release a single corrected
+spelling.
+
 Safety (plan §9.3) — the 8-and-4 fear trade is banned
 ------------------------------------------------------
 Scaring users about Sani (8) and Rahu (4) is the most profitable and most
@@ -340,6 +378,78 @@ COMPOUND_READINGS: dict[int, CompoundReading] = {
         for number, base in _COMPOUND_ECHOES.items()
     },
 }
+
+
+@dataclass(frozen=True, slots=True)
+class CompoundCitation:
+    """What Cheiro's series *calls* a compound — bibliography, not a reading.
+
+    Why this is a separate type from ``CompoundReading``, and why it is not
+    behind ``CONTENT_REVIEWED``
+    -------------------------------------------------------------------------
+    One review gate was covering two different kinds of text, and only one of
+    them is ours:
+
+    * ``reading_en`` / ``reading_ta`` — **our** re-rendering of what a compound
+      means for a person. Drafted by one hand, no Tamil native pass. That is
+      prose about a human being and it stays dark until NUM-74 clears.
+    * ``title_en``, ``tone``, ``echoes``, ``COMPOUND_SOURCE`` — **Cheiro's**,
+      from a cited page range. "Number 31 is titled *The Recluse* in Cheiro,
+      *Book of Numbers*, 1935 ed., pp. 126-133" is a statement about a printed
+      book. Its truth does not depend on a Tamil review, because nothing in it
+      is a claim about the reader.
+
+    Holding the second category behind the first was the actual defect. It left
+    the public calculator printing a bare "Compound 31" — an integer with no
+    provenance and no meaning — while a sourced classical title for that exact
+    number sat unused in this file. The result read as arithmetic rather than
+    numerology, which is a fair description of what it was.
+
+    English-only, deliberately
+    --------------------------
+    There is no ``title_ta``. Cheiro wrote "The Shattered Citadel" in English
+    and a Tamil rendering would be **a new translation**, i.e. the very thing
+    the review gate exists to hold. The title therefore renders identically in
+    both languages, and the surrounding UI chrome carries the Tamil.
+
+    ``tone`` ships as an enum token for the same reason ``authority`` does on
+    the compatibility response (D5): a token is rendered by each client in its
+    own reviewed vocabulary, so it crosses the gate that a sentence cannot. It
+    is also load-bearing rather than decorative here — several of Cheiro's
+    titles are alarming on their own ("The Shattered Citadel", "The Good Man
+    Blinded"), and shipping a title with no register attached would hand the
+    reader his dread and withhold our reframing of it, which is standing
+    ruling 3 (the banned fear trade) breached by omission. A client rendering a
+    title MUST render the tone with it.
+    """
+
+    number: int
+    #: Cheiro's classical title, verbatim. English only — see class docstring.
+    title_en: str
+    tone: CompoundTone
+    #: Set when Cheiro reads this number as repeating an earlier one's meaning.
+    echoes: int | None
+    source: str
+
+
+def compound_citation(compound: int | None) -> CompoundCitation | None:
+    """Bibliographic record for a compound, or ``None`` outside the series.
+
+    Not gated on ``CONTENT_REVIEWED`` — see ``CompoundCitation``. Callers still
+    get ``None`` for a single-digit total and for anything past 52, so the
+    absence of a citation stays a truthful "Cheiro does not encode this number"
+    rather than "withheld".
+    """
+    reading = compound_reading(compound)
+    if reading is None:
+        return None
+    return CompoundCitation(
+        number=reading.number,
+        title_en=reading.title_en,
+        tone=reading.tone,
+        echoes=reading.echoes,
+        source=COMPOUND_SOURCE,
+    )
 
 
 def root_reading(number: int) -> RootReading:

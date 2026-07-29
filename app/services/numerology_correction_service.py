@@ -15,13 +15,27 @@ displaying it unranked. Enforced in the service so every future caller — a
 report, a batch job, a second route — inherits it.
 
 **The legal warning (plan §9.4).** "Name correction ships with the
-legal-consequence warning or does not ship." That warning is Tamil prose that
-has not had a native pass, and this codebase does not ship unreviewed Tamil.
-The two rules do not conflict, they compose: while the corpus is unreviewed,
-**the alternatives are withheld and the analysis still ships**. A user learns
-how their current name sits against their chart — which is the honest, useful
-half — and learns nothing about what to change it to until the sentence
-explaining the cost of changing it can actually be shown to them.
+legal-consequence warning or does not ship." The rule is unchanged and is still
+enforced here; what changed (2026-07-29) is *which* flag answers it.
+
+It used to be ``readings_available()`` — the corpus-wide
+``numerology_content.CONTENT_REVIEWED``. That was the wrong gate, for the same
+reason it was the wrong gate for Cheiro's compound titles: one flag was covering
+two categories of text needing different evidence. The corpus is per-person
+interpretation and waits on a native pass plus astrologer sign-off; the legal
+warning is a fixed statement about Indian paperwork, identical for every user.
+Tying the second to the first meant a fully built, tested correction engine
+could never return one alternative to anyone — the alternatives themselves are
+spellings, totals and alignment scores, all number-shaped, all of the kind
+Phase 7 shipped without the corpus.
+
+``numerology_correction.legal_warning_available()`` is now the condition, and
+flipping it False re-arms the old behaviour exactly. The composition rule still
+holds either way: while the warning cannot be rendered, **the alternatives are
+withheld and the analysis still ships**. A user learns how their current name
+sits against their chart — the honest, useful half — and learns nothing about
+what to change it to until the sentence explaining the cost of changing it can
+actually be shown to them.
 
 That is why ``alternatives_withheld_reason`` exists. An empty list from a
 withheld recommendation and an empty list from "your name is already
@@ -41,11 +55,11 @@ from app.calculations.numerology_correction import (
     CorrectionResult,
     RankedVariant,
     correct_name,
+    legal_warning_available,
 )
 from app.services.feature_flags import get_flag
 from app.services.numerology_service import (
     load_chart_context,
-    readings_available,
     require_numerology_enabled,
 )
 
@@ -119,9 +133,12 @@ def correct_name_for_chart(
 
     withheld: str | None = None
     if result.alternatives:
-        if not readings_available():
+        if not legal_warning_available():
             # §9.4 — the warning cannot be rendered, so the recommendation it
-            # is mandatory for cannot be made.
+            # is mandatory for cannot be made. Note this is the WARNING's own
+            # gate, not the corpus gate: a correction may ship with every
+            # interpretive sentence still dark, because the alternatives carry
+            # no interpretation — only spellings, totals and alignment scores.
             withheld = WITHHELD_PENDING_REVIEW
         elif alignment_required() and any(
             variant.alignment is None for variant in result.alternatives

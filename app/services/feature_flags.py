@@ -130,15 +130,19 @@ def _defaults() -> dict[str, Any]:
         # Phases 1-4 are built and tested — Chaldean core, object numerology
         # (mobile/vehicle/house), the Fortune Alignment chart bridge, compatibility
         # (NUM-34) and time numerology — plus the name-correction half of Phase 5.
-        # OFF because the interpretive corpus is NOT reviewed: no Tamil native has
-        # read the root 1-9 or compound 10-52 copy, so numerology_content
-        # .CONTENT_REVIEWED is False and every response ships numbers and graha
-        # names with the prose withheld (schemas/numerology.py::reviewed_prose).
-        # NU-05 is discharged — the compound series is sourced to Cheiro, Book of
-        # Numbers, 1935 ed., pp. 126-133 — so the remaining gate is review, not
-        # sourcing. Flag-OFF is byte-identical to today: nothing calls the engine
-        # on any existing path.
-        "numerology_engine": False,
+        # Flipped ON 2026-07-28 to launch the numbers-only surfaces (favourable
+        # numbers, Fortune Alignment, personal cycle, lucky/marriage dates, name
+        # sessions) — deliberately decoupled from content review, because
+        # numerology_content.CONTENT_REVIEWED is a SEPARATE gate that still
+        # nulls every interpretive string (schemas/numerology.py::reviewed_prose)
+        # regardless of this flag: no Tamil native has read the root 1-9 or
+        # compound 10-52 copy yet, so this launch ships numbers and graha names
+        # only, same as it always would have. NU-05 is discharged — the compound
+        # series is sourced to Cheiro, Book of Numbers, 1935 ed., pp. 126-133.
+        # Peyar Porutham (NUM-34) and name-correction alternatives stay unbuilt
+        # on the frontend regardless — see dashboard-numerology-panel-nova.tsx
+        # docstring — because those two are sentence-shaped, not number-shaped.
+        "numerology_engine": True,
         # Doctrine D1 — personal year rollover epoch. String flag (same mechanism
         # as nadi_parihara_mode) so every branch ships and the ruling is a
         # PATCH /admin/flags call, not a code change. See

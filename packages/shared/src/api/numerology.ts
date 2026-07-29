@@ -40,6 +40,18 @@ import type { BiText, MuhurtaSlot } from "../types";
  * was written; tests/test_api_wrapper_route_contract.py fails if they drift.
  */
 
+/** One scored character and the value it contributed. */
+export interface LetterValue {
+  char: string;
+  value: number;
+}
+
+/**
+ * Cheiro's register for a compound. A token, rendered by each client in its own
+ * reviewed vocabulary — never printed raw.
+ */
+export type CompoundTone = "favourable" | "mixed" | "cautionary";
+
 /** A number kept with its full derivation. */
 export interface NumberReading {
   /** Raw sum before any reduction. */
@@ -77,6 +89,55 @@ export interface NumberReading {
    * non-null must say which number it is describing.
    */
   compoundBeyondSeries: number | null;
+  /**
+   * Every scored character and what it contributed, in order. Empty for a
+   * reading built from a date — psychic and destiny numbers have no letters.
+   *
+   * This is what makes `total` checkable. Render it rather than recomputing:
+   * the Chaldean table is *data*, not an `A=1..Z=26 mod 9` formula (no letter
+   * carries 9), so a client-side copy would be a second table to get wrong.
+   */
+  letterValues: LetterValue[];
+
+  /* ── The compound's citation. Always present when `compound` is set. ──────
+   *
+   * These four are a reference to Cheiro, Book of Numbers (1935), not copy
+   * written about the reader — so unlike everything else interpretive in this
+   * feature they are NOT withheld behind `readingsAvailable`. See
+   * `numerology_content.CompoundCitation` for why the two are different kinds
+   * of text.
+   */
+  /**
+   * Cheiro's classical title, e.g. "The Recluse" for 31. Null when the total is
+   * single-digit or falls outside the encoded 10-52 series — a truthful "not
+   * encoded", never a withheld value.
+   *
+   * **English-only, in both languages.** A Tamil rendering would be a new
+   * translation, which is exactly what the review gate holds. Render it as-is
+   * and let the surrounding chrome carry the Tamil.
+   */
+  compoundTitle: string | null;
+  /**
+   * **Must be rendered wherever `compoundTitle` is.** Several of Cheiro's
+   * titles are alarming standing alone ("The Shattered Citadel" for 16, "The
+   * Good Man Blinded" for 22); printing one without its register hands the
+   * reader his fatalism and withholds our reframing of it. That is the banned
+   * fear trade (standing ruling 3) breached by omission, not by commission.
+   */
+  compoundTone: CompoundTone | null;
+  /** The earlier compound this one repeats, in Cheiro's own structure. */
+  compoundEchoes: number | null;
+  /** The page-level citation. Show it wherever a title is shown. */
+  compoundSource: string | null;
+
+  /**
+   * What the compound *means* — ours, not Cheiro's, and therefore gated like
+   * all other prose. Null while the Tamil corpus is unreviewed; the title above
+   * still ships. Check `readingsAvailable` on the enclosing response to tell
+   * "withheld" from "no such number".
+   */
+  compoundReadingEn: string | null;
+  compoundReadingTa: string | null;
 }
 
 export interface NumerologyProfileRequest {
@@ -179,6 +240,10 @@ export interface PersonalCycleResponse {
   year: PersonalYear;
   month: NumberReading;
   day: NumberReading;
+  /** False while the interpretive corpus is unreviewed. Render the withheld
+   *  note from it — on this surface especially, three bare digits with no
+   *  explanation of the silence read as a broken screen. */
+  readingsAvailable: boolean;
   traditionEn: string;
   traditionTa: string;
 }
@@ -217,6 +282,63 @@ export type AlignmentVerdict =
   | "misaligned"
   | "strongly_misaligned";
 
+/**
+ * How this graha's natal strength was allowed to move the score.
+ *
+ * `inverted` is the one a client must actually render rather than swallow: for
+ * a malefic lordship a *stronger* graha scores **lower**, because strength
+ * governs how fully a graha delivers what it rules, not whether what it rules
+ * is welcome. A screen showing "Strength 71" beside a fallen score with no rule
+ * named has shown the reader what looks like an arithmetic error.
+ */
+export type StrengthRule = "amplifies" | "inverted" | "damped" | "none";
+
+/** Which branch of the node rule fired — nodes own no sign to explain them. */
+export type NodeBasisKind = "occupied_house" | "dispositor" | "no_position";
+
+export interface NodeBasis {
+  kind: NodeBasisKind;
+  /** House the node occupies, from lagna. Null when position is unknown. */
+  occupiedHouse: number | null;
+  /** The sign lord it borrows from — `dispositor` branch only. */
+  dispositor: string | null;
+  dispositorTa: string | null;
+  dispositorEn: string | null;
+  /** Houses that dispositor rules, so the borrowing explains in turn. */
+  dispositorHouses: number[];
+}
+
+/**
+ * The score's own working — what makes a verdict explainable instead of
+ * asserted.
+ *
+ * **Not gated by `readingsAvailable`.** These are facts about the calculation
+ * (lordship and arithmetic), not readings of a person: a sentence built from
+ * them changes only if the chart changes, never if the native does. Same
+ * standing as `compoundTitle`/`compoundTone`, which cite Cheiro.
+ *
+ * `baseScore + strengthDelta === score`, always — `strengthDelta` is the
+ * realised difference, so the parts can be printed without ever showing a sum
+ * that fails to add up at the 0/100 rails.
+ */
+export interface AlignmentBasis {
+  /** Houses this graha rules from this lagna. Empty for Rahu/Ketu. */
+  ownedHouses: number[];
+  /** Populated for Rahu/Ketu only — numbers 4 and 7, so this is common. */
+  nodeBasis: NodeBasis | null;
+  /** What the graha's office alone is worth, before strength. */
+  baseScore: number;
+  strengthDelta: number;
+  strengthRule: StrengthRule;
+}
+
+/** One rung of the 0-100 ladder, inclusive at both ends. */
+export interface VerdictBand {
+  verdict: AlignmentVerdict;
+  minScore: number;
+  maxScore: number;
+}
+
 export interface NumberAlignment {
   /** Root digit 1-9. The compound lives on the matching NumberReading. */
   number: number;
@@ -228,6 +350,8 @@ export interface NumberAlignment {
   natalStrength: number | null;
   score: number;
   verdict: AlignmentVerdict;
+  /** How the score was arrived at. Never null — every alignment has one. */
+  basis: AlignmentBasis;
   /** Null while the interpretive corpus is unreviewed — see readingsAvailable. */
   reasonEn: string | null;
   reasonTa: string | null;
@@ -270,6 +394,12 @@ export interface FortuneAlignmentResponse {
   nameChangeAdvised: boolean;
   /** 1-9 ranked best-first for this chart. */
   favourableNumbers: number[];
+  /**
+   * The 0-100 ladder these scores are bucketed by, best band first. Draw the
+   * legend from this rather than hard-coding cutoffs — the thresholds live in
+   * one place server-side and a TS copy would be a second copy to get wrong.
+   */
+  verdictScale: VerdictBand[];
   lagnaRasi: number;
   recommendationEn: string | null;
   recommendationTa: string | null;
@@ -289,6 +419,8 @@ export interface FavourableNumbersResponse {
   /** All nine, ranked best-first. Same order as `favourableNumbers`. */
   numbers: NumberAlignment[];
   favourableNumbers: number[];
+  /** The 0-100 ladder, best band first — see `FortuneAlignmentResponse`. */
+  verdictScale: VerdictBand[];
   readingsAvailable: boolean;
   calculationVersion: string;
   traditionEn: string;
