@@ -19,6 +19,7 @@ export function PublicFooter() {
     { href: "/tools/daily-panchangam-planner", label: mt(FOOTER.tool_panch, lang) },
     { href: "/tools/birth-time-rectification", label: mt(FOOTER.tool_btr, lang) },
     { href: "/tools/indraiya-rasipalan", label: mt(FOOTER.tool_rasipalan, lang) },
+    { href: "/tools/numerology-calculator", label: mt(FOOTER.tool_numerology, lang) },
   ];
   const learnLinks = [
     { href: "/learn/what-is-porutham", label: mt(FOOTER.learn_porutham, lang) },

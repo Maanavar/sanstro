@@ -165,6 +165,77 @@ export function NakshatraMapVisual({ className }: VisualProps) {
   );
 }
 
+/**
+ * How a name becomes a number — the one step that makes the whole calculator
+ * legible, drawn instead of explained.
+ *
+ * The worked example is the word NAME itself, and the values are real: the
+ * Chaldean groups in app/calculations/numerology.py put N in group 5, A in 1,
+ * M in 4 and E in 5, totalling 15, which lands inside Cheiro's encoded 10–52
+ * series and reduces to 6 — Venus. Verified against that table rather than
+ * eyeballed, because a marketing visual teaching a wrong letter value would be
+ * a domain error on the most-read surface we have.
+ */
+export function NumerologyChainVisual({ className, lang = "en" }: VisualProps) {
+  const letters: Array<[string, number]> = [
+    ["N", 5],
+    ["A", 1],
+    ["M", 4],
+    ["E", 5],
+  ];
+  const labels =
+    lang === "ta"
+      ? { total: "மொத்தம்", compound: "கூட்டு எண்", root: "ஒற்றை இலக்கம்", graha: "சுக்கிரன்" }
+      : { total: "adds up to", compound: "compound", root: "single digit", graha: "Venus" };
+
+  return (
+    <div className={cx("mk-visual mk-visual--numerology", className)}>
+      <svg viewBox="0 0 340 300" role="img" aria-label="How letters become a Chaldean number">
+        {letters.map(([letter, value], index) => {
+          const x = 46 + index * 66;
+          return (
+            <g key={letter}>
+              <rect className="mk-paper" x={x} y="26" width="52" height="56" rx="10" />
+              <text className="mk-center-title" x={x + 26} y="58" textAnchor="middle">
+                {letter}
+              </text>
+              <text className="mk-label mk-label--strong" x={x + 26} y="74" textAnchor="middle">
+                {value}
+              </text>
+            </g>
+          );
+        })}
+
+        <path className="mk-spoke" d="M170 90v22" />
+        <text className="mk-center-sub" x="170" y="106" textAnchor="middle">
+          {labels.total}
+        </text>
+
+        <rect className="mk-accent-cell" x="134" y="118" width="72" height="40" rx="12" />
+        <text className="mk-center-title" x="170" y="146" textAnchor="middle">
+          15
+        </text>
+        <text className="mk-center-sub" x="170" y="172" textAnchor="middle">
+          {labels.compound}
+        </text>
+
+        <path className="mk-spoke" d="M170 180v24" />
+
+        {/* Ringed light disc rather than a filled accent dot: the numeral is
+            the point, and dark ink on burnt orange is not readable. */}
+        <circle className="mk-ring mk-ring--outer" cx="170" cy="232" r="30" />
+        <circle className="mk-paper" cx="170" cy="232" r="24" />
+        <text className="mk-center-title" x="170" y="241" textAnchor="middle">
+          6
+        </text>
+        <text className="mk-center-sub" x="170" y="278" textAnchor="middle">
+          {labels.root} · {labels.graha}
+        </text>
+      </svg>
+    </div>
+  );
+}
+
 export function RasiTransitVisual({ className }: VisualProps) {
   const signs = ["Me", "Ri", "Mi", "Ka", "Si", "Ka", "Tu", "Vi", "Dh", "Ma", "Ku", "Mi"];
 

@@ -77,6 +77,7 @@ export function PublicNav() {
     { href: "/tamil-calendar",                     label: `${lang === "en" ? "Tamil Calendar" : "தமிழ் நாட்காட்டி"} ${calendarYear}`, desc: lang === "en" ? "Pournami, Amavasai, Pradosham dates" : "பௌர்ணமி, அமாவாசை, பிரதோஷ நாட்கள்" },
     { href: "/tools/birth-time-rectification",     label: mt(NAV.tool_btr,      lang), desc: mt(NAV.tool_btr_desc,      lang) },
     { href: "/tools/indraiya-rasipalan",           label: mt(NAV.tool_rasipalan, lang), desc: mt(NAV.tool_rasipalan_desc, lang) },
+    { href: "/tools/numerology-calculator",        label: mt(NAV.tool_numerology, lang), desc: mt(NAV.tool_numerology_desc, lang) },
   ];
 
   const GUIDE = [
