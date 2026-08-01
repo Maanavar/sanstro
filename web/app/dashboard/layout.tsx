@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Source_Serif_4 } from "next/font/google";
 import type { ReactNode } from "react";
-// Loaded here (not just app/dashboard/page.tsx) so the standalone routes under
+// Loaded here (not just in the (workspace) group) so the standalone routes under
 // /dashboard/* (reports, goals, chart-generate, daily-score, porutham, wrapped)
 // also get .cd-shell's real Classic/Nova color system instead of falling through
 // to globals.css's unrelated "Clarity" .cd-shell block (same class name, a

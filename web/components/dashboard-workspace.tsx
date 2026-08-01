@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 
 import { toast } from "sonner";
 import { apiFetchJson, toQuery } from "@/lib/api";
@@ -260,6 +260,43 @@ function parseNumber(value: string, fallback = 0): number {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+/**
+ * One tab's pane. Mounted the first time `visible` goes true and never
+ * unmounted again afterwards — `active` only toggles CSS `display` and a
+ * framer-motion fade, so a tab's own data-fetching state (and anything else
+ * it holds) survives switching away and back instead of resetting to
+ * "loading" every time.
+ *
+ * `initial` is a real entry state, not `false`. A pane is only ever mounted at
+ * the moment it becomes active, so with `initial={false}` framer snapped it
+ * straight to the target and the FIRST visit to a tab appeared instantly while
+ * every later visit — animating back up from the opacity 0 it was parked at —
+ * took the full 0.42s. Same click, two different-looking transitions depending
+ * on history. Giving the mount the same starting values the parked state uses
+ * makes one tab switch look like every other.
+ */
+function TabPane({
+  visible,
+  active,
+  children,
+}: {
+  visible: boolean;
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  if (!visible) return null;
+  return (
+    <motion.div
+      style={{ display: active ? "block" : "none", position: "relative", zIndex: 1 }}
+      initial={{ opacity: 0, y: 8 }}
+      animate={active ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
+      transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────
 
 export function DashboardWorkspace() {
@@ -277,19 +314,22 @@ export function DashboardWorkspace() {
   const urlTabParam = searchParams.get(TAB_QUERY_PARAM);
   // Seeded from the PATH at first render, not hardcoded to "personal".
   //
-  // `/dashboard` (page.tsx) and `/dashboard/*` ([...segments]/page.tsx) are two
-  // different Next routes rendering two different components, so the shared
-  // layout swaps its child on every nav between them and React unmounts and
-  // remounts this whole workspace. With a hardcoded default that meant each nav
-  // click painted **Today** on arrival and only switched to the clicked tab
-  // after the hydration effect below — which waits on `/auth/me` — so every
-  // destination was reached via a visible bounce through the dashboard home.
+  // This matters on a cold arrival: someone opening or reloading
+  // `/dashboard/calendar` must land on Calendar in the very first paint. With a
+  // hardcoded default they got **Today** first and only moved to the real
+  // destination once the hydration effect below had resolved — and that effect
+  // waits on `/auth/me`, so the wrong screen sat there for a whole round trip.
   //
   // `usePathname()` already knows the destination on that first render; nothing
   // has to be awaited to read it. The hydration effect still runs and is now a
   // no-op for this value, but it still owns the two cases a path cannot answer:
   // the legacy `?tab=` param and the localStorage restore, both of which only
   // apply when the path names nothing.
+  //
+  // In-app tab clicks no longer go through any of this: the workspace is
+  // mounted by app/dashboard/(workspace)/layout.tsx, which the router keeps
+  // alive across every /dashboard ⇄ /dashboard/* move, so a tab change is state
+  // plus a URL rewrite and this initialiser runs once per real page load.
   const [activeTab, setActiveTab] = useState<Tab>(
     () => parseDashboardPath(pathname, { qaEnabled: ENABLE_QA_TAB }).tab ?? "personal",
   );
@@ -299,6 +339,26 @@ export function DashboardWorkspace() {
   const [exploreReturnTab, setExploreReturnTab] = useState<Tab | null>(null);
   const [settingsSubTab, setSettingsSubTab] = useState<SettingsSubTab>("setup");
   const [settingsSection, setSettingsSection] = useState<SettingsSectionId>("account");
+  // Which pane is on screen right now. Settings splits into two independent
+  // panes (setup / session) that need the same keep-alive treatment as a top-
+  // level tab, so it gets its own compound key; every other tab is just itself.
+  const currentPaneKey = activeTab === "settings" ? `settings-${settingsSubTab}` : activeTab;
+  // Panes are mounted once and never unmounted again (see `TabPane` below) —
+  // switching tabs used to fully unmount/remount the outgoing and incoming
+  // tab's whole subtree (a single AnimatePresence child keyed by the tab), so
+  // every panel with its own local `loading` state re-showed that loading
+  // state on every single revisit, even though it had already loaded. This
+  // ref is the record of which panes have ever been on screen; once true for
+  // a pane, it stays mounted and is just hidden via CSS instead.
+  const visitedPanesRef = useRef<Set<string> | null>(null);
+  if (visitedPanesRef.current === null) visitedPanesRef.current = new Set([currentPaneKey]);
+  useEffect(() => {
+    visitedPanesRef.current?.add(currentPaneKey);
+  }, [currentPaneKey]);
+  const isPaneRendered = useCallback(
+    (key: string) => key === currentPaneKey || (visitedPanesRef.current?.has(key) ?? false),
+    [currentPaneKey],
+  );
   const [selectedDate, setSelectedDate] = useState(todayIso());
   const [lang, setLang] = useState<Lang>("en");
 
@@ -373,6 +433,7 @@ export function DashboardWorkspace() {
   const showVarshaphala = activeTool === "varshaphala";
   const showSynastry = activeTool === "synastry";
   const showNumerology = activeTool === "numerology";
+  const showBabyNames = activeTool === "babynames";
   const [showPrasna, setShowPrasna] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
@@ -490,6 +551,35 @@ export function DashboardWorkspace() {
     setFamilyFocusSection(section);
     goToTab("family");
   }, [goToTab]);
+
+  // ── Scroll reset on destination change ───────────────────
+  // Panes are kept mounted and hidden with CSS rather than unmounted, and the
+  // workspace itself no longer remounts on navigation (the router keeps the
+  // (workspace) layout alive), so nothing resets the window scroll on a tab
+  // change any more — it used to be a side effect of the remount this fix
+  // removed. Without it, leaving a tab from halfway down dropped you into the
+  // middle of the next one.
+  //
+  // Skipped on the first render, which belongs to whatever the arriving URL
+  // named (including its anchor), and skipped whenever a cross-tab focus
+  // request is in flight — focusLifeAreas/focusCalendar/focusFamily place the
+  // scroll themselves, and the family deep-link retries for up to ~4s, so
+  // yanking to the top here would fight them.
+  const scrollResetPrimedRef = useRef(false);
+  useEffect(() => {
+    if (!scrollResetPrimedRef.current) {
+      scrollResetPrimedRef.current = true;
+      return;
+    }
+    if (familyFocusSection || lifeAreasFocusSubTab || calendarFocusView) return;
+    // `auto`, not `smooth`: the destination is already fading in under the
+    // TabPane transition, and a competing smooth scroll reads as the page
+    // sliding out from under the content.
+    window.scrollTo({ top: 0, behavior: "auto" });
+  // The focus values are read as an escape hatch, not as triggers — only an
+  // actual destination change should reset the scroll.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPaneKey, activeTool]);
 
   const [onboardingDone, setOnboardingDone] = useState(false);
 
@@ -725,8 +815,10 @@ export function DashboardWorkspace() {
     const href = nextSearch ? `${nextPath}?${nextSearch}` : nextPath;
     const intent = navIntentRef.current;
     navIntentRef.current = "replace";
-    // scroll: false — a tab switch already resets its own scroll position; the
-    // router's default jump-to-top fights the panel transition.
+    // scroll: false — the scroll reset above already owns this, and it can tell
+    // a plain tab switch from a cross-tab jump that wants to land on a section.
+    // The router's blanket jump-to-top cannot, and fights both the panel
+    // transition and those deep links.
     if (intent === "push") router.push(href, { scroll: false });
     else router.replace(href, { scroll: false });
   // searchParams/pathname/router are stable per navigation; pathname is read
@@ -1581,16 +1673,7 @@ export function DashboardWorkspace() {
         <CelestialAmbientNova
           moon={personal.panchangam ? moonPhaseFromTithi(personal.panchangam.tithi.number, personal.panchangam.tithi.paksha) : null}
         />
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={activeTab === "settings" ? `settings-${settingsSubTab}` : activeTab}
-            style={{ position: "relative", zIndex: 1 }}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0, transition: { duration: 0.42, ease: [0.22, 1, 0.36, 1] } }}
-            exit={{ opacity: 0, transition: { duration: 0.08 } }}
-          >
-
-        {activeTab === "settings" && settingsSubTab === "setup" && (
+        <TabPane visible={isPaneRendered("settings-setup")} active={activeTab === "settings" && settingsSubTab === "setup"}>
           <DashboardSetupTab
             lang={lang}
             birthProfileId={personal.birthProfileId}
@@ -1616,9 +1699,9 @@ export function DashboardWorkspace() {
             onEditMember={handleEditFamilyMember}
             onGoToPersonal={() => setActiveTab("personal")}
           />
-        )}
+        </TabPane>
 
-        {activeTab === "personal" && (
+        <TabPane visible={isPaneRendered("personal")} active={activeTab === "personal"}>
           <DashboardTodayTabNova
             lang={lang}
             activeLifeMode={activeLifeMode}
@@ -1659,9 +1742,10 @@ export function DashboardWorkspace() {
             onGoToExplore={() => goToTab("explore")}
             onGoToAllTools={() => goToTab("tools")}
           />
-        )}
+        </TabPane>
 
-        {activeTab === "tools" && (() => {
+        <TabPane visible={isPaneRendered("tools")} active={activeTab === "tools"}>
+          {(() => {
           // `activeTool` is component-level state now (it used to be derived
           // here from the nine show* booleans) — that is what makes it
           // addressable as `/dashboard/tools/<tool>`.
@@ -1700,6 +1784,7 @@ export function DashboardWorkspace() {
               showVarshaphala={showVarshaphala}
               showSynastry={showSynastry}
               showNumerology={showNumerology}
+              showBabyNames={showBabyNames}
               varshaphalaData={varshaphalaData}
               varshaphalaLoading={varshaphalaLoading}
               onLoadVarshaphala={(year) => void loadVarshaphala(year)}
@@ -1742,9 +1827,11 @@ export function DashboardWorkspace() {
               onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
             />
           );
-        })()}
+          })()}
+        </TabPane>
 
-        {activeTab === "family" && (() => {
+        <TabPane visible={isPaneRendered("family")} active={activeTab === "family"}>
+          {(() => {
           const familyTabProps: DashboardFamilyChartsHybridProps = {
             lang,
             selectedDate,
@@ -1787,9 +1874,10 @@ export function DashboardWorkspace() {
             onFocusConsumed: () => setFamilyFocusSection(null),
           };
           return <DashboardFamilyChartsHybrid {...familyTabProps} />;
-        })()}
+          })()}
+        </TabPane>
 
-        {activeTab === "calendar" && (
+        <TabPane visible={isPaneRendered("calendar")} active={activeTab === "calendar"}>
           <DashboardCalendarTabNova
             selectedDate={selectedDate}
             todayDate={personal.todayDate}
@@ -1802,9 +1890,9 @@ export function DashboardWorkspace() {
             focusView={calendarFocusView}
             onFocusConsumed={() => setCalendarFocusView(null)}
           />
-        )}
+        </TabPane>
 
-        {activeTab === "life-areas" && (
+        <TabPane visible={isPaneRendered("life-areas")} active={activeTab === "life-areas"}>
           <DashboardLifeAreasTabNova
             lang={lang}
             personalDailyGuidance={lifeAreasDailyGuidance}
@@ -1844,9 +1932,9 @@ export function DashboardWorkspace() {
             focusSubTab={lifeAreasFocusSubTab}
             onFocusConsumed={() => setLifeAreasFocusSubTab(null)}
           />
-        )}
+        </TabPane>
 
-        {activeTab === "plan" && (
+        <TabPane visible={isPaneRendered("plan")} active={activeTab === "plan"}>
           <DashboardPlanTabNova
             lang={lang}
             chartId={personal.chartId}
@@ -1873,9 +1961,9 @@ export function DashboardWorkspace() {
             onGoToJournal={() => goToTab("journal")}
             onGoToChart={() => goToTab("family")}
           />
-        )}
+        </TabPane>
 
-        {activeTab === "journal" && (
+        <TabPane visible={isPaneRendered("journal")} active={activeTab === "journal"}>
           <DashboardJournalTabNova
             lang={lang}
             chartId={personal.chartId}
@@ -1892,9 +1980,9 @@ export function DashboardWorkspace() {
             onGoToChart={() => goToTab("family")}
             onManageContext={() => navigateSettings("context")}
           />
-        )}
+        </TabPane>
 
-        {activeTab === "explore" && (
+        <TabPane visible={isPaneRendered("explore")} active={activeTab === "explore"}>
           <DashboardExploreTabNova
             lang={lang}
             personalChartSummary={personalChartSummary}
@@ -1905,13 +1993,15 @@ export function DashboardWorkspace() {
             onNavigate={goToExploreDestination}
             onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
           />
+        </TabPane>
+
+        {ENABLE_QA_TAB && (
+          <TabPane visible={isPaneRendered("qa")} active={activeTab === "qa"}>
+            <QATab lang={lang} />
+          </TabPane>
         )}
 
-        {ENABLE_QA_TAB && activeTab === "qa" && (
-          <QATab lang={lang} />
-        )}
-
-        {activeTab === "settings" && settingsSubTab === "session" && (
+        <TabPane visible={isPaneRendered("settings-session")} active={activeTab === "settings" && settingsSubTab === "session"}>
           <DashboardSettingsSessionTab
             lang={lang}
             section={settingsSection}
@@ -1962,10 +2052,7 @@ export function DashboardWorkspace() {
             busyRetentionApply={journal.busyRetentionApply}
             onSignOut={session.signOut}
           />
-        )}
-
-          </motion.div>
-        </AnimatePresence>
+        </TabPane>
       </div>
       </div>{/* cd-main-content__body */}
 
