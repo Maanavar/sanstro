@@ -31,7 +31,7 @@ from __future__ import annotations
 import os
 import unicodedata
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum, StrEnum
 
 from app.data.nakshatra_pada_akshara import (
@@ -153,13 +153,47 @@ SINGLE_SCRIPT_CONFIDENCES: frozenset[MatchConfidence] = STRICT_CONFIDENCES | {
 }
 
 
+class AksharaRelation(StrEnum):
+    """How a returned name's opening letter stands to the birth paadham.
+
+    The whole point of the widening scopes below is that a parent can ask for
+    names the strict paadham rule would not offer — so every name has to say,
+    on its own card, which rule it came in under. Without this a widened list
+    is indistinguishable from a strict one and the tool would be quietly
+    presenting an off-paadham name as if the tradition had chosen it.
+
+    Ordered from most to least on-target; ``_RELATION_RANK`` below relies on
+    the declaration order, and ranking never lets a weaker relation displace a
+    stronger one (doctrine D2).
+    """
+
+    ON_PAADHAM = "on_paadham"                # the birth paadham's own letter
+    SAME_NATCHATHIRAM = "same_natchathiram"  # another paadham of the same star
+    SAME_RASI = "same_rasi"                  # a paadham inside the Moon rasi
+    OTHER_PAADHAM = "other_paadham"          # some other star's paadham letter
+    NO_PAADHAM = "no_paadham"                # opens with no paadham letter at all
+
+
+_RELATION_RANK: dict[AksharaRelation, int] = {
+    relation: index for index, relation in enumerate(AksharaRelation)
+}
+
+
 @dataclass(frozen=True, slots=True)
 class ScoredCandidate:
     candidate: NameCandidate
-    row: PadaAkshara
+    #: ``None`` only for a NO_PAADHAM candidate — a name whose opening letter
+    #: is not any of the 108 paadham aksharas. Reachable exclusively through
+    #: ``NamingMode.OPEN``, where the parent has asked for names chosen on the
+    #: chart and the numbers rather than on the akshara rule.
+    row: PadaAkshara | None
     confidence: MatchConfidence
     matched_latin_variant: str | None
     warnings: tuple[str, ...] = ()
+    #: Set by ``find_names``, which is the only place that knows the target.
+    #: ``evaluate_candidate`` scores one candidate against one row and has no
+    #: opinion about which row the parent was born under.
+    relation: AksharaRelation | None = None
 
     @property
     def is_match(self) -> bool:
@@ -300,7 +334,7 @@ def padas_for_name(candidate: NameCandidate) -> tuple[ScoredCandidate, ...]:
     scored = (evaluate_candidate(candidate, row) for row in PADA_AKSHARA_TABLE)
     return tuple(sorted(
         (s for s in scored if s.is_match),
-        key=lambda s: (_CONFIDENCE_RANK[s.confidence], s.row.key),
+        key=lambda s: (_CONFIDENCE_RANK[s.confidence], _row_key(s)),
     ))
 
 
@@ -314,13 +348,70 @@ _CONFIDENCE_RANK: dict[MatchConfidence, int] = {
 
 
 # ---------------------------------------------------------------------------
+# Rasi geometry
+#
+# A rasi is 30 degrees, a pada is 3 degrees 20 minutes: exactly NINE padas per
+# rasi, with no remainder, so the mapping is arithmetic and needs no table.
+# Padas are numbered continuously from Aswini pada 1, and rasi 1 (Mesham)
+# begins at the same zero point.
+#
+# The nine padas of a rasi are NOT the four padas of a nakshatra: a nakshatra
+# straddles a rasi boundary whenever 4 does not divide evenly into the running
+# count. Uthiradam is the worked example — pada 1 falls in Dhanusu, padas 2-4
+# in Makaram. So "another paadham of this star" and "another paadham of this
+# rasi" are overlapping, not nested, and the widening ladder has to offer both.
+# ---------------------------------------------------------------------------
+PADAS_PER_RASI = 9
+
+
+def rasi_of_pada(nakshatra_id: int, pada: int) -> int:
+    """Sidereal rasi (1-12) containing this nakshatra-pada."""
+    if not 1 <= nakshatra_id <= 27:
+        raise ValueError(f"nakshatra_id must be 1..27, got {nakshatra_id}")
+    if not 1 <= pada <= 4:
+        raise ValueError(f"pada must be 1..4, got {pada}")
+    absolute = (nakshatra_id - 1) * 4 + (pada - 1)
+    return absolute // PADAS_PER_RASI + 1
+
+
+def _build_rasi_index() -> dict[int, tuple[PadaAkshara, ...]]:
+    buckets: dict[int, list[PadaAkshara]] = defaultdict(list)
+    for row in PADA_AKSHARA_TABLE:
+        buckets[rasi_of_pada(row.nakshatra_id, row.pada)].append(row)
+    return {rasi: tuple(rows) for rasi, rows in buckets.items()}
+
+
+#: rasi (1-12) -> the nine pada rows inside it, in order.
+PADA_ROWS_BY_RASI: dict[int, tuple[PadaAkshara, ...]] = _build_rasi_index()
+
+
+# ---------------------------------------------------------------------------
 # Constraint satisfaction
 # ---------------------------------------------------------------------------
 class NamingMode(StrEnum):
-    """Mirrors the ``numerology_naming_mode`` feature flag (doctrine D2)."""
+    """How far past the birth paadham's own letter a search may reach.
 
-    PADA_FIRST = "pada_first"        # pada akshara is a hard filter
-    PADA_WEIGHTED = "pada_weighted"  # sibling padas may be reached for
+    A ladder, each rung a strict superset of the one above it. The first two
+    mirror the ``numerology_naming_mode`` feature flag (doctrine D2); the last
+    two were added 2026-07-31 because the tool was silently asserting that the
+    strict rule is the only legitimate practice, which is not what practising
+    astrologer-numerologists do.
+
+    Widening does not weaken doctrine D2 — a number still never displaces an
+    akshara. ``AksharaRelation`` rides on every result and ranking keeps
+    on-paadham names above every widened one at every rung, so the tradition's
+    own answer stays first on the page no matter how far the parent opens the
+    search.
+    """
+
+    PADA_FIRST = "pada_first"        # this paadham's letter only — a hard filter
+    PADA_WEIGHTED = "pada_weighted"  # + the other three paadhams of this star
+    RASI_WIDE = "rasi_wide"          # + every paadham inside the Moon rasi
+    OPEN = "open"                    # + any name at all, ranked on chart/numbers
+
+
+#: Ladder order. A mode admits every row its predecessors admit.
+_MODE_RANK: dict[NamingMode, int] = {mode: index for index, mode in enumerate(NamingMode)}
 
 
 @dataclass(frozen=True, slots=True)
@@ -339,6 +430,15 @@ class NamingConstraints:
             raise ValueError(f"nakshatra_id must be 1..27, got {self.nakshatra_id}")
         if not 1 <= self.pada <= 4:
             raise ValueError(f"pada must be 1..4, got {self.pada}")
+        # Normalise a raw string to the enum. `NamingMode` is a StrEnum, so a
+        # plain "rasi_wide" compares and hashes equal and every lookup here
+        # keeps working — but `.value` does not exist on it, and the mode is
+        # now echoed all the way out to the client. Coercing at construction
+        # keeps that one difference from surfacing as an AttributeError three
+        # layers away, and rejects an unknown rung here rather than silently
+        # narrowing the search to the strict rule.
+        if not isinstance(self.mode, NamingMode):
+            object.__setattr__(self, "mode", NamingMode(self.mode))
 
 
 class Relaxation(StrEnum):
@@ -349,19 +449,47 @@ class Relaxation(StrEnum):
     ALLOW_SINGLE_SCRIPT = "allow_single_script"
     ALLOW_AMBIGUOUS = "allow_ambiguous"
     SIBLING_PADAS = "sibling_padas"
+    RASI_PADAS = "rasi_padas"
+    ANY_AKSHARA = "any_akshara"
     DROP_GENDER = "drop_gender"
+
+
+class EmptyReason(StrEnum):
+    """Why a search came back with nothing, as a stable code.
+
+    ``empty_reason`` next to it is a developer sentence with counts and
+    aksharas interpolated into it — useful in a log, unusable as UI copy and
+    impossible to translate. Clients render from THIS, and must never print
+    ``empty_reason``: it leaked verbatim to users ("pada gated on unresolved
+    tamil_collapse rule") until 2026-07-31.
+    """
+
+    POOL_EMPTY = "pool_empty"
+    COLLAPSE_GATED = "collapse_gated"
+    NO_CANDIDATE_FITS = "no_candidate_fits"
 
 
 @dataclass(frozen=True, slots=True)
 class NamingResult:
     matches: tuple[ScoredCandidate, ...]
     target_row: PadaAkshara
+    #: The Moon rasi the birth paadham falls in. Carried because the scope
+    #: explanation a parent reads names it ("the nine paadhams of Makaram"),
+    #: and because a rasi-scope result has to be able to say which rasi.
+    target_rasi: int = 1
+    #: The rung the caller asked for — distinct from `relaxations_applied`,
+    #: which records what the search actually had to do. A parent who picks
+    #: "any paadham of this star" and gets a full list of on-paadham names
+    #: needs the UI to still explain the rule they chose.
+    mode: NamingMode = NamingMode.PADA_FIRST
     relaxations_applied: tuple[Relaxation, ...] = ()
     warnings: tuple[str, ...] = ()
     #: False when the result must not be shown as a recommendation — draft
     #: canon, gated collapse row, or an empty search.
     usable: bool = False
+    #: Developer-facing sentence. Never render this; see ``EmptyReason``.
     empty_reason: str | None = None
+    empty_reason_code: EmptyReason | None = None
 
     @property
     def is_empty(self) -> bool:
@@ -382,6 +510,11 @@ def _gender_ok(candidate: NameCandidate, wanted: str | None) -> bool:
     return wanted is None or candidate.gender is None or candidate.gender == wanted
 
 
+def _row_key(scored: ScoredCandidate) -> tuple[int, int]:
+    """Sort key for a row that may be absent (NO_PAADHAM candidates)."""
+    return scored.row.key if scored.row is not None else (99, 99)
+
+
 def _collect(pool: list[NameCandidate], search: _Search) -> list[ScoredCandidate]:
     hits: list[ScoredCandidate] = []
     for row in search.rows:
@@ -391,8 +524,100 @@ def _collect(pool: list[NameCandidate], search: _Search) -> list[ScoredCandidate
             scored = evaluate_candidate(candidate, row)
             if scored.confidence in search.accepted:
                 hits.append(scored)
-    hits.sort(key=lambda s: (_CONFIDENCE_RANK[s.confidence], s.row.key, s.candidate.tamil_form))
+    hits.sort(key=lambda s: (_CONFIDENCE_RANK[s.confidence], _row_key(s), s.candidate.tamil_form))
     return hits
+
+
+def _collect_any(
+    pool: list[NameCandidate],
+    gender: str | None,
+    already: set[str],
+) -> list[ScoredCandidate]:
+    """Every remaining name in the pool, whatever it opens with.
+
+    Only ``NamingMode.OPEN`` reaches this. The akshara rule is set aside, but
+    it is not hidden: each name is still scored against the whole 108-row
+    table so the result can say *which* paadham its letter does belong to
+    ("ஆ opens Kaarthigai paadham 1"), and names belonging to none get
+    ``row=None``. Telling a parent their chosen letter suits a different star
+    is a real answer; telling them nothing is what made the strict list feel
+    like a verdict.
+    """
+    hits: list[ScoredCandidate] = []
+    for candidate in pool:
+        if candidate.tamil_form in already:
+            continue
+        if not _gender_ok(candidate, gender):
+            continue
+        best: ScoredCandidate | None = None
+        for row in PADA_AKSHARA_TABLE:
+            scored = evaluate_candidate(candidate, row)
+            if not scored.is_match:
+                continue
+            if best is None or _CONFIDENCE_RANK[scored.confidence] < _CONFIDENCE_RANK[best.confidence]:
+                best = scored
+        hits.append(best if best is not None else ScoredCandidate(
+            candidate=candidate,
+            row=None,
+            confidence=MatchConfidence.NO_MATCH,
+            matched_latin_variant=None,
+        ))
+    hits.sort(key=lambda s: (_CONFIDENCE_RANK[s.confidence], _row_key(s), s.candidate.tamil_form))
+    return hits
+
+
+def _merge(
+    base: list[ScoredCandidate],
+    extra: list[ScoredCandidate],
+    applied: list[Relaxation],
+    step: Relaxation,
+) -> list[ScoredCandidate]:
+    """Union an additive rung onto the running set, best evidence per name.
+
+    De-duplicates on the name itself, not on (name, row): the same name can
+    open both the target pada and a sibling, and a parent must not be shown it
+    twice. The first occurrence wins because `base` is always the stronger
+    claim — on-target before sibling, better-evidenced before weaker.
+
+    ``step`` is recorded only when the rung actually contributed a name, so
+    "Search was widened: ..." never claims a widening the parent cannot see.
+    """
+    seen = {s.candidate.tamil_form for s in base}
+    added: list[ScoredCandidate] = []
+    for scored in extra:
+        # `extra` can carry the same name twice when a sibling search spans
+        # several rows and one name opens more than one of them.
+        if scored.candidate.tamil_form in seen:
+            continue
+        seen.add(scored.candidate.tamil_form)
+        added.append(scored)
+    if not added:
+        return base
+    applied.append(step)
+    return base + added
+
+
+def _relation_to_target(
+    row: PadaAkshara | None,
+    target: PadaAkshara,
+    rasi_keys: set[tuple[int, int]],
+) -> AksharaRelation:
+    """Classify one match against the birth paadham.
+
+    Same-natchathiram wins over same-rasi when both apply — a nakshatra that
+    straddles a rasi boundary puts three of its four paadhams in the parent's
+    rasi, and "another paadham of your own star" is the more specific and more
+    reassuring thing to be told.
+    """
+    if row is None:
+        return AksharaRelation.NO_PAADHAM
+    if row.key == target.key:
+        return AksharaRelation.ON_PAADHAM
+    if row.nakshatra_id == target.nakshatra_id:
+        return AksharaRelation.SAME_NATCHATHIRAM
+    if row.key in rasi_keys:
+        return AksharaRelation.SAME_RASI
+    return AksharaRelation.OTHER_PAADHAM
 
 
 def find_names(
@@ -401,10 +626,13 @@ def find_names(
 ) -> NamingResult:
     """Run the constraint-satisfaction pipeline with an explicit relaxation ladder.
 
-    Returns the first non-empty rung, tagged with every widening it took to get
-    there. An empty result is returned with ``empty_reason`` populated rather
-    than as a bare empty list — "no name fits" and "the pool was empty" and "the
-    row is gated" are different answers and the caller must be able to tell them
+    Automatic rescues resolve first-hit-wins; the widenings the CALLER asked
+    for (``allow_ambiguous``, ``mode=PADA_WEIGHTED``) then union on top. The
+    result is tagged with every widening that actually contributed a name.
+
+    An empty result is returned with ``empty_reason`` populated rather than as
+    a bare empty list — "no name fits" and "the pool was empty" and "the row is
+    gated" are different answers and the caller must be able to tell them
     apart.
     """
     assert_canon_usable()
@@ -413,6 +641,7 @@ def find_names(
     if target is None:  # pragma: no cover - guarded by NamingConstraints
         raise KeyError(f"no pada row for {constraints.nakshatra_id}-{constraints.pada}")
 
+    target_rasi = rasi_of_pada(constraints.nakshatra_id, constraints.pada)
     warnings: list[str] = []
     if not target.verified:
         warnings.append(
@@ -427,28 +656,40 @@ def find_names(
         return NamingResult(
             matches=(),
             target_row=target,
+            target_rasi=target_rasi,
+            mode=constraints.mode,
             warnings=tuple(warnings),
             usable=False,
             empty_reason="candidate pool was empty",
+            empty_reason_code=EmptyReason.POOL_EMPTY,
         )
 
-    # tamil_collapse gate — the substitution rule for aspirates with no Tamil
-    # letter is an OPEN practitioner question (NU-8a). Until it is answered we
-    # refuse to lead with these rows unless the caller opts in.
+    # tamil_collapse — the substitution rule for aspirates with no Tamil letter
+    # is an OPEN practitioner question (NU-8a). What that open question can and
+    # cannot invalidate is narrower than this code first assumed:
+    #
+    # The unresolved rule is about reading a pada *off the Tamil letter alone*.
+    # A CONFIRMED candidate is one where the Tamil opening AND a Latin opening
+    # both land on this row — Latin carries the voicing/aspiration Tamil drops,
+    # so the pair pins the akshara regardless of how the substitution question
+    # is eventually settled. `evaluate_candidate` already encodes exactly that:
+    # on a collapse row it demotes Tamil-only evidence to AMBIGUOUS (see the
+    # `row.tamil_collapse` branch) and leaves CONFIRMED alone.
+    #
+    # Until 2026-07-31 this function ALSO refused the whole row before the
+    # ladder ran, which threw away every two-script match on it. Measured over
+    # the shipping corpus: 84 CONFIRMED candidates across 54 of the 59 collapse
+    # rows, i.e. 55% of all births got an empty Baby Name Finder. The gate now
+    # sits where the doubt actually is — it withholds the SINGLE-SCRIPT rungs,
+    # and the strict two-script rung runs on every row.
     collapse_gated = target.tamil_collapse and not constraints.allow_tamil_collapse
-    if collapse_gated:
+    if target.tamil_collapse:
         warnings.append(
             f"Pada {target.nakshatra_id}-{target.pada} akshara {target.akshara_tamil} "
             f"({target.akshara_iso}) has no distinct Tamil letter — the Tamil "
-            "substitution rule for this akshara is unresolved. Set "
-            "allow_tamil_collapse to search it anyway."
-        )
-        return NamingResult(
-            matches=(),
-            target_row=target,
-            warnings=tuple(warnings),
-            usable=False,
-            empty_reason="pada gated on unresolved tamil_collapse rule",
+            "substitution rule for this akshara is unresolved, so a name is only "
+            "offered here when its Latin spelling corroborates the Tamil opening."
+            + ("" if collapse_gated else " allow_tamil_collapse widened this search.")
         )
 
     siblings = [
@@ -456,50 +697,152 @@ def find_names(
         for p in range(1, 5)
         if p != constraints.pada
     ]
-
-    ladder: list[tuple[Relaxation | None, _Search]] = [
-        (None, _Search([target], STRICT_CONFIDENCES, constraints.gender)),
-        (Relaxation.ALLOW_SINGLE_SCRIPT, _Search([target], SINGLE_SCRIPT_CONFIDENCES, constraints.gender)),
-        (Relaxation.DROP_GENDER, _Search([target], SINGLE_SCRIPT_CONFIDENCES, None)),
+    # The rasi's other paadhams, minus anything the sibling rung already
+    # covers. A nakshatra can straddle a rasi boundary, so these two sets
+    # overlap and must not be double-searched.
+    sibling_keys = {row.key for row in siblings} | {target.key}
+    rasi_rows = [
+        row for row in PADA_ROWS_BY_RASI[target_rasi] if row.key not in sibling_keys
     ]
-    if constraints.allow_ambiguous:
-        ladder.append((
-            Relaxation.ALLOW_AMBIGUOUS,
-            _Search([target], SINGLE_SCRIPT_CONFIDENCES | {MatchConfidence.AMBIGUOUS}, None),
-        ))
-    if constraints.mode is NamingMode.PADA_WEIGHTED:
-        ladder.append((
-            Relaxation.SIBLING_PADAS,
-            _Search([target, *siblings], SINGLE_SCRIPT_CONFIDENCES, None),
+    rasi_keys = {row.key for row in PADA_ROWS_BY_RASI[target_rasi]}
+    scope = _MODE_RANK[constraints.mode]
+
+    # ── Two kinds of widening, which must NOT behave alike ─────────────────
+    #
+    # AUTOMATIC rescues (ALLOW_TAMIL_COLLAPSE, ALLOW_SINGLE_SCRIPT, DROP_GENDER)
+    # are safety nets nobody asked for. They stay first-hit-wins: once a better-
+    # evidenced rung produces names, a weaker one must not dilute it, and
+    # DROP_GENDER especially must never volunteer boys' names into a search for
+    # a girl's name that already worked.
+    #
+    # USER rungs (ALLOW_AMBIGUOUS, SIBLING_PADAS) were ticked by a parent
+    # reading a checkbox that says "ALSO show close matches". Those are
+    # ADDITIVE — they union onto whatever the automatic chain found.
+    #
+    # Until 2026-07-31 the user rungs were fallbacks too, which made them dead
+    # controls. Measured over all 27x4 padas x 3 gender settings against the
+    # shipping corpus: 293 of 324 searches returned byte-identical results for
+    # ALL EIGHT toggle combinations, because the automatic chain had already
+    # succeeded and the ladder returned at its first non-empty rung. A control
+    # that changes nothing in 90% of searches is not a control.
+
+    # Rung 0 is unconditional. Every rung below it leans on single-script
+    # evidence, which is what a collapse row cannot support.
+    automatic: list[tuple[Relaxation | None, _Search]] = [
+        (None, _Search([target], STRICT_CONFIDENCES, constraints.gender)),
+    ]
+    if not collapse_gated:
+        if target.tamil_collapse:
+            # The declared-but-never-wired rung, now real: reaching past the
+            # two-script rung on a collapse row IS the relaxation, and the
+            # caller is told it was taken.
+            automatic.append((
+                Relaxation.ALLOW_TAMIL_COLLAPSE,
+                _Search([target], SINGLE_SCRIPT_CONFIDENCES, constraints.gender),
+            ))
+        automatic.append((
+            Relaxation.ALLOW_SINGLE_SCRIPT,
+            _Search([target], SINGLE_SCRIPT_CONFIDENCES, constraints.gender),
         ))
 
     applied: list[Relaxation] = []
-    for step, search in ladder:
+    hits: list[ScoredCandidate] = []
+    for step, search in automatic:
         if step is not None:
             applied.append(step)
         hits = _collect(pool, search)
         if hits:
-            off_target = [h for h in hits if h.row.key != target.key]
-            local_warnings = list(warnings)
-            if off_target:
-                local_warnings.append(
-                    f"{len(off_target)} result(s) come from a sibling pada, not "
-                    f"{target.nakshatra_id}-{target.pada}."
-                )
-            return NamingResult(
-                matches=tuple(hits),
-                target_row=target,
-                relaxations_applied=tuple(applied),
-                warnings=tuple(local_warnings),
-                # Never usable while the row is draft canon. This is the single
-                # place that decides whether a caller may render a result.
-                usable=target.verified,
-                empty_reason=None,
-            )
+            break
 
+    # Additive rungs, and what the collapse gate may and may not touch.
+    #
+    # `accepted` carries the gate: on a gated row only two-script CONFIRMED
+    # evidence is admissible, everywhere. That is the whole gate — it must not
+    # also decide WHICH ROWS are searched. Barring sibling padas outright here
+    # would throw away CONFIRMED sibling matches, which the unresolved Tamil
+    # substitution rule never put in doubt; that is precisely the one-level-too-
+    # broad mistake this function already made once (see the long note above).
+    #
+    # ALLOW_AMBIGUOUS is different and stays barred: AMBIGUOUS is the exact
+    # tier the open question demotes evidence INTO, so admitting it on a gated
+    # row would re-admit the disputed reading through the back door.
+    accepted = STRICT_CONFIDENCES if collapse_gated else SINGLE_SCRIPT_CONFIDENCES
+    if constraints.allow_ambiguous and not collapse_gated:
+        # Only the AMBIGUOUS tier — everything stronger is already in `hits`.
+        hits = _merge(hits, _collect(pool, _Search(
+            [target], frozenset({MatchConfidence.AMBIGUOUS}), constraints.gender,
+        )), applied, Relaxation.ALLOW_AMBIGUOUS)
+        accepted = accepted | {MatchConfidence.AMBIGUOUS}
+    # The scope ladder. Each rung is a superset of the last and each is only
+    # entered because the parent asked for it, so all three are additive for
+    # the same reason ALLOW_AMBIGUOUS is — a control that only fires on an
+    # otherwise-empty search is a control that does nothing 90% of the time.
+    if scope >= _MODE_RANK[NamingMode.PADA_WEIGHTED]:
+        hits = _merge(hits, _collect(pool, _Search(
+            siblings, accepted, constraints.gender,
+        )), applied, Relaxation.SIBLING_PADAS)
+    if scope >= _MODE_RANK[NamingMode.RASI_WIDE] and rasi_rows:
+        hits = _merge(hits, _collect(pool, _Search(
+            rasi_rows, accepted, constraints.gender,
+        )), applied, Relaxation.RASI_PADAS)
+    if scope >= _MODE_RANK[NamingMode.OPEN]:
+        # No row filter at all — the akshara rule is set aside on request.
+        # Deliberately last, so every name the rule DOES admit is already in
+        # `hits` and `_merge` keeps that stronger claim for any name that
+        # appears in both.
+        hits = _merge(
+            hits,
+            _collect_any(pool, constraints.gender, {s.candidate.tamil_form for s in hits}),
+            applied,
+            Relaxation.ANY_AKSHARA,
+        )
+
+    # Last resort, after everything the caller asked for has been added: a
+    # gender filter that emptied the result is worth dropping, but only when
+    # nothing else survived. Running it earlier is what made a girl search on
+    # புனர்பூசம் paadham 1 answer with three boys' names.
+    if not hits and constraints.gender is not None:
+        applied.append(Relaxation.DROP_GENDER)
+        rescue_rows = [target]
+        if scope >= _MODE_RANK[NamingMode.PADA_WEIGHTED]:
+            rescue_rows += siblings
+        if scope >= _MODE_RANK[NamingMode.RASI_WIDE]:
+            rescue_rows += rasi_rows
+        hits = _collect(pool, _Search(rescue_rows, accepted, None))
+
+    if hits:
+        hits = [
+            replace(hit, relation=_relation_to_target(hit.row, target, rasi_keys))
+            for hit in hits
+        ]
+        off_target = [h for h in hits if h.relation is not AksharaRelation.ON_PAADHAM]
+        local_warnings = list(warnings)
+        if off_target:
+            local_warnings.append(
+                f"{len(off_target)} result(s) do not open with pada "
+                f"{target.nakshatra_id}-{target.pada}'s own akshara."
+            )
+        return NamingResult(
+            matches=tuple(hits),
+            target_row=target,
+            target_rasi=target_rasi,
+            mode=constraints.mode,
+            relaxations_applied=tuple(applied),
+            warnings=tuple(local_warnings),
+            # Never usable while the row is draft canon. This is the single
+            # place that decides whether a caller may render a result.
+            usable=target.verified,
+            empty_reason=None,
+        )
+
+    # A gated collapse row that found no two-script match is a different answer
+    # from "the corpus has nothing for this akshara": the caller can open the
+    # first with `allow_tamil_collapse`, and can do nothing about the second.
     return NamingResult(
         matches=(),
         target_row=target,
+        target_rasi=target_rasi,
+        mode=constraints.mode,
         relaxations_applied=tuple(applied),
         warnings=tuple(warnings),
         usable=False,
@@ -507,5 +850,9 @@ def find_names(
             f"no candidate in a pool of {len(pool)} opens with akshara "
             f"{target.akshara_tamil} / {target.akshara_latin_bare} "
             f"({target.akshara_iso}), after {len(applied)} relaxation step(s)"
+            + (" (single-script rungs withheld: collapse row)" if collapse_gated else "")
+        ),
+        empty_reason_code=(
+            EmptyReason.COLLAPSE_GATED if collapse_gated else EmptyReason.NO_CANDIDATE_FITS
         ),
     )

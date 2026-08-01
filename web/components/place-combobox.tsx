@@ -14,11 +14,28 @@ export function PlaceCombobox({ value, onChange, className = "", placeholder = "
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
-  const listboxId = useId();
+  // `useId()` is not SSR-stable for this component. Most call sites reach it
+  // through a `next/dynamic` panel with a `loading` fallback, so the Suspense
+  // boundary above can suspend on the client (chunk still downloading at
+  // hydration time) without having suspended during SSR — that shifts the
+  // Suspense-fork path useId() encodes and yields a different id than the HTML
+  // carries, tripping a hydration mismatch on `aria-controls`. See the same
+  // note in celestial-glyph-nova.tsx.
+  //
+  // A fixed constant isn't an option here (two comboboxes co-exist in the edit
+  // profile modal), but the id is only *needed* once the listbox exists, which
+  // is after a focus — i.e. always post-mount. So keep it out of the server
+  // HTML and out of the first client render, and adopt it in an effect.
+  const reactId = useId();
+  const [listboxId, setListboxId] = useState<string | undefined>(undefined);
   const filtered = useMemo(
     () => (query.length < 1 ? PLACE_CITIES : PLACE_CITIES.filter((city) => city.name.toLowerCase().includes(query.toLowerCase()))),
     [query],
   );
+
+  useEffect(() => {
+    setListboxId(reactId);
+  }, [reactId]);
 
   useEffect(() => {
     setQuery(value);
@@ -89,7 +106,7 @@ export function PlaceCombobox({ value, onChange, className = "", placeholder = "
         aria-autocomplete="list"
         aria-expanded={open}
         aria-controls={listboxId}
-        aria-activedescendant={open && filtered[activeIndex] ? `${listboxId}-option-${activeIndex}` : undefined}
+        aria-activedescendant={listboxId && open && filtered[activeIndex] ? `${listboxId}-option-${activeIndex}` : undefined}
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         onChange={(event) => handleInput(event.target.value)}

@@ -85,7 +85,7 @@ export function sanitizeUrlTab(value: unknown, options: { qaEnabled: boolean }):
 
 // ── Path-segment addressing ─────────────────────────────────────────────────
 
-/** The nine inline tools the Tools tab can open. The two `kind: "cross-nav"`
+/** The ten inline tools the Tools tab can open. The two `kind: "cross-nav"`
  *  cards (Muhurta, Panchangam) are NOT here — they navigate to the Goals and
  *  Calendar tabs rather than opening a panel, so they have no tool URL. */
 export type DashboardTool =
@@ -97,7 +97,8 @@ export type DashboardTool =
   | "activityTiming"
   | "varshaphala"
   | "synastry"
-  | "numerology";
+  | "numerology"
+  | "babynames";
 
 export const DASHBOARD_BASE_PATH = "/dashboard";
 
@@ -145,6 +146,7 @@ const TOOL_SLUGS: Record<DashboardTool, string> = {
   varshaphala: "varshaphala",
   synastry: "compatibility",
   numerology: "numerology",
+  babynames: "baby-name-finder",
 };
 
 const TAB_BY_SLUG: Record<string, Tab> = {

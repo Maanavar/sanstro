@@ -453,8 +453,8 @@ The highest-effort and highest-liability phase. Requires Phase 0 closed and Phas
 | ID | Work item |
 |---|---|
 | NUM-50 | Pada aksharam ↔ name matching (`numerology_naming.py`, depends NUM-04) |
-| NUM-51 | Baby naming — pada-first candidate generation, numerology ranking |
-| NUM-52 | Name candidate corpus (Tamil names, meanings, gender, syllable index) |
+| NUM-51 | Baby naming — pada-first candidate generation, numerology ranking — **BUILT 2026-07-30**, gated |
+| NUM-52 | Name candidate corpus (Tamil names, meanings, gender, syllable index) — **DRAFTED 2026-07-30**, 96 names, unreviewed |
 | NUM-53 | Name correction — spelling variants scored against chart alignment — **BUILT 2026-07-27** |
 | NUM-54 | Name optimization engine (ranked alternatives + rationale) — **BUILT 2026-07-27** |
 | NUM-55 | Business name analysis — **served today** by `POST /charts/{id}/numerology/alignment` with the business name as `documentName`; a dedicated route buys nothing until the promoter-vs-firm lagna question is answered |
@@ -462,15 +462,20 @@ The highest-effort and highest-liability phase. Requires Phase 0 closed and Phas
 | NUM-57 | **Legal-consequence warning** surfaced with every correction (§9) — **BUILT 2026-07-27**, enforced by a pydantic `model_validator` |
 | NUM-58 | Persistence: saved name sessions — **BUILT 2026-07-27.** `numerology_name_sessions` table (migration `kk4a5b6c7d8e`, round-tripped up → verify → down → verify → up on a scratch DB), 3 routes, 3 typed wrappers, 16 tests. **The row stores the question, never the answer** — see below |
 
-**Phase 5 splits in two, and only one half was buildable (verified 2026-07-27):**
+**Phase 5 originally split in two (2026-07-27), because only one half was
+buildable without a corpus.** Name correction needed no pada table and shipped
+that day. Baby naming (NUM-50/51/52) depended on the pada canon, which was and
+remains 0/108 verified, and on a name corpus that did not exist yet — blocked
+outright, not a "finish it later" item.
 
-*Blocked.* Baby naming (NUM-50/51/52) depends on the pada canon, which is 0/108
-verified and whose `assert_canon_usable()` raises outside dev. With
-`tamil_collapse` affecting 59 of 108 rows, this cannot produce a user-facing
-name at all — it is not a "finish it later" item.
+**2026-07-30: the corpus was drafted and the pipeline built, fully gated.**
+Both blockers on baby naming are still open — the pada canon is still 0/108
+verified, and the corpus is 0/96 astrologer-reviewed — so this is a second
+"built but dark" phase, not a launch. See below.
 
-*Built.* Name correction needs no pada table: Chaldean scoring plus the Phase 3
-chart bridge, both of which exist and are now reachable over HTTP.
+*Built, both gated dark.* Name correction (chart bridge, no pada table needed)
+and baby naming (needs both the pada table and the corpus) are now both
+reachable over HTTP, behind their respective flags.
 
 ### Name correction — what was built *(2026-07-27)*
 
@@ -500,6 +505,110 @@ chart bridge, both of which exist and are now reachable over HTTP.
   `noChangeReason` and `alternativesWithheldReason` as separate fields precisely
   so it cannot. A `model_validator` refuses to serialise alternatives without the
   warning in both languages, so the coupling survives a future edit to the route.
+
+### Baby naming (NUM-50/51/52) — what was built *(2026-07-30)*
+
+The other half of Phase 5, unblocked by drafting the one thing that was
+missing: a name corpus. Everything below is gated behind a **new, second**
+flag, `numerology_baby_naming`, checked in addition to `numerology_engine` —
+not folded into it, because this feature carries two stacked, unresolved
+blockers that nothing else under `numerology_engine` does. Flipped **True**
+2026-07-30 on product direction (ship access now, add a premium/pay-per-use
+gate in a later pass — see §8's pricing note on baby naming) — that flip is
+access-gating, not a claim that either blocker below has cleared.
+
+- **`app/data/tamil_name_corpus.py`** — 96 `NameCandidate` entries, authored by
+  the assistant to exercise the pipeline. **Zero rows have astrologer or
+  native-speaker review.** Measured (not estimated) coverage:
+  `tests/test_tamil_name_corpus.py` — all 27 nakshatras reach at least one
+  CONFIRMED candidate (the bar this phase actually needs); 98 of 108 individual
+  padas do. Two of the ten uncovered padas (Ardra pada 3, Hasta pada 3) are not
+  merely rare — ங and ண cannot begin a Tamil personal name at all, a
+  phonotactic fact, not a gap in searching.
+- **`app/services/numerology_naming_service.py`** — the chart bridge over the
+  existing NU-8a pure engine (`app.calculations.numerology_naming.find_names`,
+  untouched). `NumerologyChartContext` (in `numerology_service.py`) gained
+  `moon_nakshatra_id` / `moon_pada`, the first Phase 5 consumer to need a pada
+  rather than a rasi off a chart. Each pada match is scored via `score_text` +
+  `align_number` — the exact composition `numerology_correction.py` already
+  uses — and re-sorted **within** its pada-confidence tier by alignment score.
+  Pada precedence from `find_names` is never crossed: a number ranks among
+  names that already passed the pada filter, and never promotes one that
+  didn't (plan §9.1, "a number never overrides a graha").
+- **Two routes**, both new: `POST /public/numerology/baby-names` (bare
+  nakshatra + pada, no chart, so `alignment` is `null` on every candidate —
+  same public/chart asymmetry as the rest of Phase 3-5) and
+  `GET /charts/{chart_id}/numerology/baby-names` (Moon's own pada, ranked by
+  Fortune Alignment). Both catch the pure engine's `UnverifiedCanonError` and
+  respond 503 — this is now the **operative** safety backstop in any
+  environment where `APP_ENV` is `production`/`staging`, since the flag no
+  longer blocks the request first.
+- **`response.usable` and `response.canonVerified` read `False` for every
+  request today**, because every one of the 108 canon rows still carries
+  `verified=False`. This is the expected, permanent-for-now state to design
+  for — both the public tool (`/tools/baby-name-finder`) and the dashboard's
+  new **Baby names** view (`dashboard-numerology-panel-nova.tsx`) show an
+  unconditional draft banner rather than gating it on `usable`, because a
+  banner that only appears on a technicality would in practice never appear.
+- Typed wrappers (`getPublicBabyNames`, `getChartBabyNames`) added to
+  `packages/shared/src/api/numerology.ts`; the public tool is registered in
+  nav, footer, sitemap and `web/lib/search-index.ts` (the last of which
+  `numerology-calculator` itself is still missing from — not fixed here as
+  drive-by cleanup).
+- 13 tests across `tests/test_numerology_naming_service.py` and
+  `tests/test_numerology_baby_names_api.py`, plus the 4 corpus tests above.
+  Covers: the chart-context extension, tier-preserving ranking, the
+  public/chart alignment asymmetry, both flags gating independently, and
+  `UnverifiedCanonError` still raising under a simulated production
+  environment with both flags on.
+- **Not done, on purpose:** the pada canon verification pass and the corpus's
+  astrologer/native review are both still outstanding. `numerology_baby_naming`
+  True does not mean either has cleared — in a `production`/`staging`
+  environment `assert_canon_usable()` still 503s every request until the
+  canon (not the flag) says otherwise. Flipping the flag was a call about who
+  can *reach* the feature, not a claim that what they'd see has been checked.
+
+### Baby naming — restructured to a standalone tool *(same day, 2026-07-30)*
+
+Product direction: baby naming is not a 4th view on the chart-scoped
+Numerology tool. The person it is for — a baby with no saved profile —
+cannot be reached through a "Reading for" picker that only lists profiles
+that already exist. It is now its own Tools-tab card, the same shape as
+Jadhagam Generator: enter birth details directly, no account, no saved
+chart.
+
+- **New primary entry point.** `POST /public/numerology/baby-names-preview`
+  takes raw birth details (`PublicBirthInput` — the same shape
+  `/public/chart-preview` and `/public/porutham` already take) and computes
+  an ephemeral chart via the existing `_chart_response_from_profile` /
+  `_EphemeralProfile` machinery — nothing persisted. Because that chart has a
+  real lagna, this path DOES carry Fortune Alignment, unlike the original
+  bare-nakshatra-pada `POST /public/numerology/baby-names`, which still
+  exists (harmless, tested, kept for an "I already know my pada" shortcut)
+  but is no longer what either frontend calls.
+- **`app.services.numerology_naming_service.baby_names_for_birth_details`** —
+  a third entry point alongside `baby_names_for_chart` /
+  `baby_names_for_pada`, sharing the same `_baby_names_for_constraints` tail.
+  Reads lagna/strengths/node map/Moon pada off an ephemeral
+  `ChartCalculateResponse` via a new shared helper,
+  `numerology_service.pada_context_from_snapshot` (factored out of
+  `load_chart_context`, which now calls it too — one extraction, two chart
+  sources, persisted or not).
+- **Dashboard:** removed from `dashboard-numerology-panel-nova.tsx` (back to
+  3 views); added as its own Tools-tab card,
+  `web/components/dashboard-tools-baby-names-nova.tsx`
+  (`activeTool === "babynames"`, slug `baby-name-finder`, registered in
+  `web/lib/dashboard-tabs.ts`'s `DashboardTool` union). `dashboard-numerology-baby-names-nova.tsx`
+  (the removed view's component) is now unused and was left in place rather
+  than deleted unprompted.
+- **Public tool** (`/tools/baby-name-finder`) rebuilt the same way: a
+  birth-detail form (`PlaceCombobox` for place autocomplete, matching
+  Jadhagam Generator's own form) instead of a nakshatra/pada button grid, and
+  now shows Fortune Alignment per candidate since the ephemeral chart
+  provides it.
+- 3 more tests (`test_preview_*` in `tests/test_numerology_baby_names_api.py`)
+  covering the flag gate, the pada+alignment happy path, and a rejected
+  incomplete birth-detail payload. 20 baby-naming tests total.
 
 ### Saved name sessions (NUM-58) — what was built *(2026-07-27)*
 
@@ -632,7 +741,7 @@ Domain calculation bugs in this codebase are *silent* — they produce plausible
 | Q2 | D2 — pada hard-veto or weighted? | Astrologer |
 | Q3 | D3 — scored script: English document spelling (proposed) or Tamil? | Astrologer |
 | Q4 | Is there a Tamil source you want the compound 10–52 corpus drawn from? | Astrologer |
-| Q5 | Name candidate corpus — license/source for the Tamil baby-name dataset? | PO |
+| Q5 | Name candidate corpus — license/source for the Tamil baby-name dataset? **Interim answer (2026-07-30): none yet** — `app/data/tamil_name_corpus.py`'s 96 rows were assistant-drafted to unblock the pipeline, not sourced. `numerology_baby_naming` is now access-on, but real recommendations still wait on this and on Q2/pada-canon verification — see the "what was built" note above. | PO |
 | Q6 | Does brand/business naming stay in-app, or become a separate B2B line (different buyer, ₹5k–25k, no store cut)? | CEO |
 
 ---

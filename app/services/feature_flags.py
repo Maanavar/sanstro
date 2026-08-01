@@ -198,6 +198,24 @@ def _defaults() -> dict[str, Any]:
         # The naisargika regard is reported on every pair either way, so an
         # astrologer always sees the graha view alongside the numerology one.
         "numerology_compatibility_basis": "cheiro_series",
+        # Baby naming (NUM-50/51/52, plan Phase 5 "blocked" half). Independent of
+        # `numerology_engine` — everything else that flag guards ships numbers
+        # only and has no data-quality dependency beyond the Chaldean table
+        # itself. This feature stacks TWO unresolved blockers instead of one:
+        #   1. app/data/nakshatra_pada_akshara.py is 0/108 rows verified
+        #      (CANON_VERSION "0.1.0-draft"); assert_canon_usable() raises
+        #      UnverifiedCanonError outside dev/test as a backstop, independent
+        #      of this flag.
+        #   2. app/data/tamil_name_corpus.py is a corpus I (the assistant)
+        #      authored to exercise the pipeline — zero rows have astrologer
+        #      review.
+        # Flipped True 2026-07-30 on product direction: ship access to
+        # everyone now (no tier gate exists for this feature yet), add a
+        # premium/pay-per-use gate in a later pass, and flip this off then if
+        # the access model needs it instead. NOTE this flag alone does not
+        # make results reach a real user today — see UnverifiedCanonError
+        # above, still unresolved as of this flip.
+        "numerology_baby_naming": True,
     }
 
 

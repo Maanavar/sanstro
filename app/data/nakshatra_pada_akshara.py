@@ -108,8 +108,13 @@ class PadaAkshara:
     """One nakshatra-pada row, with provenance."""
 
     nakshatra_id: int
+    #: Display names, in Tamil almanac usage — உத்திராடம் / "Uthiradam", NOT
+    #: उत्तराषाढा / "Uttara Ashadha". These are what a Tamil reader calls the
+    #: star; the Sanskrit form below is kept for cross-referencing printed
+    #: Sanskrit sources during verification, and is not display copy.
     nakshatra_ta: str
     nakshatra_en: str
+    nakshatra_sanskrit: str
     pada: int
     akshara_devanagari: str
     akshara_iso: str
@@ -138,10 +143,53 @@ class PadaAkshara:
         return (self.nakshatra_id, self.pada)
 
 
+#: Tamil almanac names for the 27 stars, keyed by id — the ONLY names any of
+#: this module's rows display. Copied from `packages/shared/src/i18n/
+#: panchangam-names.ts` (`NAKSHATRA_NAMES`), which is the site-wide source of
+#: truth for what a star is called on screen; keeping a second, divergent
+#: spelling here is how "Uttara Ashadha" ended up in front of a Tamil user.
+#:
+#: The Sanskrit column in `_RAW` stays exactly as drafted. It is the right key
+#: for checking a row against a Sanskrit jataka text and the wrong string to
+#: ever render — see `PadaAkshara.nakshatra_ta`/`nakshatra_en`.
+_ALMANAC_NAMES: dict[int, tuple[str, str]] = {
+    1: ("அஸ்வினி", "Aswini"),
+    2: ("பரணி", "Bharani"),
+    3: ("கார்த்திகை", "Karthigai"),
+    4: ("ரோகிணி", "Rohini"),
+    5: ("மிருகசீரிடம்", "Mirugaseeridam"),
+    6: ("திருவாதிரை", "Thiruvathirai"),
+    7: ("புனர்பூசம்", "Punarpoosam"),
+    8: ("பூசம்", "Poosam"),
+    9: ("ஆயில்யம்", "Ayilyam"),
+    10: ("மகம்", "Magam"),
+    11: ("பூரம்", "Pooram"),
+    12: ("உத்திரம்", "Uthiram"),
+    13: ("ஹஸ்தம்", "Hastham"),
+    14: ("சித்திரை", "Chithirai"),
+    15: ("சுவாதி", "Swathi"),
+    16: ("விசாகம்", "Visakam"),
+    17: ("அனுஷம்", "Anusham"),
+    18: ("கேட்டை", "Kettai"),
+    19: ("மூலம்", "Moolam"),
+    20: ("பூராடம்", "Pooradam"),
+    21: ("உத்திராடம்", "Uthiradam"),
+    22: ("திருவோணம்", "Thiruvonam"),
+    23: ("அவிட்டம்", "Avittam"),
+    24: ("சதயம்", "Sadayam"),
+    25: ("பூரட்டாதி", "Poorattathi"),
+    26: ("உத்திரட்டாதி", "Uthirattathi"),
+    27: ("ரேவதி", "Revathi"),
+}
+
+
 # ---------------------------------------------------------------------------
 # Raw draft table.
 #
-# Per nakshatra: (id, tamil_name, english_name, tier, (pada1..pada4))
+# Per nakshatra: (id, tamil_name, sanskrit_name, tier, (pada1..pada4))
+#   — both name columns here are SANSKRIT-side provenance. Display names come
+#     from `_ALMANAC_NAMES` above; the Tamil column below is retained only
+#     because it records how the draft transliterated the Sanskrit.
 # Per pada:      (devanagari, iso15919, latin_bare, tamil, latin_initial_set)
 #
 # ``latin_initial_set`` is HAND-ENTERED per the NU-8a protocol (never derived) —
@@ -382,13 +430,15 @@ def _tamil_collapses(tamil_form: str) -> bool:
 
 def _build() -> tuple[PadaAkshara, ...]:
     rows: list[PadaAkshara] = []
-    for nak_id, nak_ta, nak_en, tier, padas in _RAW:
+    for nak_id, _draft_ta, nak_sanskrit, tier, padas in _RAW:
+        almanac_ta, almanac_en = _ALMANAC_NAMES[nak_id]
         for pada_no, (deva, iso, bare, tamil, latin_set) in enumerate(padas, start=1):
             rows.append(
                 PadaAkshara(
                     nakshatra_id=nak_id,
-                    nakshatra_ta=nak_ta,
-                    nakshatra_en=nak_en,
+                    nakshatra_ta=almanac_ta,
+                    nakshatra_en=almanac_en,
+                    nakshatra_sanskrit=nak_sanskrit,
                     pada=pada_no,
                     akshara_devanagari=deva,
                     akshara_iso=iso,

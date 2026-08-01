@@ -24,7 +24,7 @@ import { Segmented } from "./ui/segmented";
  * costs no change to the `Tab` union, the localStorage restore allowlist, or the
  * `?tab=` sanitizers — all four of which have to move together.
  *
- * ## The three views, and why Dates is no longer one of them
+ * ## The three views, and why Dates is not one of them
  *
  * **Dates was cut on 2026-07-29** because both halves of it duplicated surfaces
  * this product already ships, and duplication was the whole of its content:
@@ -62,6 +62,14 @@ import { Segmented } from "./ui/segmented";
  * Name correction is no longer on this list: it moved into the **Names** view
  * on 2026-07-29, once its legal warning was split off the corpus-wide review
  * gate that had been withholding every alternative.
+ *
+ * **Baby names (NUM-50/51/52) is deliberately NOT here.** It was a view on
+ * this panel for one same-day iteration (2026-07-30) and was pulled back out:
+ * the person it is for — a baby with no saved chart yet — cannot be reached
+ * through a "Reading for" picker that only lists profiles that already exist.
+ * It is its own Tools-tab card instead (`dashboard-tools-baby-names-nova.tsx`,
+ * `activeTool === "babynames"`), taking raw birth details the same way
+ * Jadhagam Generator does, with no dependency on this panel or its chart.
  *
  * ## Reading for a family member
  *

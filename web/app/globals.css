@@ -5673,8 +5673,10 @@ button:focus-visible,
      ruling: no coloured left-border stripes. Both are tinted panels with a full
      hairline instead — same separation, no stripe.
 
-   This whole namespace is exclusive to /tools/numerology-calculator, so nothing
-   here can regress another public page.
+   Shared with /tools/baby-name-finder (2026-07-30) as of this comment — the
+   second public tool to reuse this namespace rather than fork it. Any change
+   here now affects both pages; check both before editing a rule's meaning
+   rather than just its numerology-calculator call site.
    ═══════════════════════════════════════════════════════════ */
 
 /* ── The band the calculator sits in ─────────────────────────────────────── */
@@ -6009,6 +6011,17 @@ button:focus-visible,
   color: var(--cl-ink-2);
 }
 
+/* The single-digit case: no compound exists to show, and this says so rather
+   than leaving a silent gap where Year/Day show a titled chip. */
+.cl-num-reading__nocompound {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border: 1px dashed var(--cl-border);
+  font-size: 0.77rem;
+  line-height: 1.55;
+  color: var(--cl-muted-2);
+}
+
 /* ── The working, behind a disclosure but shown as working ───────────────── */
 .cl-num-details { margin-top: 15px; }
 .cl-num-details > summary {
@@ -6147,6 +6160,172 @@ button:focus-visible,
   text-transform: uppercase;
   color: var(--cl-muted-2);
   max-width: 92ch;
+}
+
+/* ── Baby Name Finder ──────────────────────────────────────────────────────
+ *
+ * This tool's result is not a single reading like the other numerology tools —
+ * it is a heading (the paadham's opening letter), a set of notes, and then a
+ * list of name cards. Those pieces need their own padded blocks, because
+ * `.cl-num-results` is a two-column grid and anything dropped into it becomes
+ * a cell: the first build put the banner, the window strip, the letter and the
+ * card list in four different cells and the page split down the middle with a
+ * column of dead space beside it.
+ */
+
+/* The letter itself, at display size — it is the answer, not a caption. The
+   band is tinted so the two lines a parent actually came for cannot be read as
+   chrome; the glyph stays an ink colour, since gold is a tint here, not text. */
+.cl-num-akshara {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 26px 28px;
+  border-bottom: 1px solid var(--cl-border);
+  background: var(--cl-surface-2);
+}
+.cl-num-akshara__letter {
+  flex: none;
+  display: grid;
+  place-items: center;
+  min-width: 84px;
+  min-height: 84px;
+  padding: 10px 14px;
+  border: 1px solid var(--cl-border);
+  background: var(--cl-surface);
+  font-family: var(--cl-font-display);
+  font-size: 2.9rem;
+  line-height: 1.05;
+  color: var(--cl-ink);
+}
+.cl-num-akshara__body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.cl-num-akshara__eyebrow {
+  font-family: var(--cl-font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cl-accent);
+}
+/* Whose paadham this is. It used to sit above the band in `.cl-num-window` —
+   a separate tinted strip immediately above a tinted band, which merged into
+   one grey slab and read as chrome. It belongs to the answer, so it sits with
+   the answer. */
+.cl-num-akshara__context {
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--cl-ink-2);
+}
+.cl-num-akshara__lede {
+  margin-top: 3px;
+  font-family: var(--cl-font-display);
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--cl-ink);
+}
+.cl-num-akshara__sub {
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--cl-muted);
+}
+@media (max-width: 560px) {
+  .cl-num-akshara { gap: 16px; padding: 22px; }
+  .cl-num-akshara__letter { min-width: 62px; min-height: 62px; font-size: 2.1rem; }
+  .cl-num-akshara__lede { font-size: 1.2rem; }
+}
+
+/* Notes above the list and below it. `.cl-num-note`'s own `margin-top` is for
+   sitting under a form field, so it is zeroed at the call site and the spacing
+   comes from these flex containers instead. */
+.cl-num-babynames__notes,
+.cl-num-babynames__foot {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 28px;
+}
+.cl-num-babynames__notes { border-bottom: 1px solid var(--cl-border); }
+.cl-num-babynames__foot { border-top: 1px solid var(--cl-border); }
+/* An empty result has no card list between the two, so they would otherwise
+   meet on a doubled hairline. */
+.cl-num-babynames__notes + .cl-num-babynames__foot { border-top: none; }
+
+/* The alignment verdict, on its own line under the figure. Inline and
+   right-floated it collided with the graha name and wrapped to three lines in
+   a two-across cell. */
+.cl-num-babynames__verdict {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 14px 0 0;
+  font-size: 0.78rem;
+  color: var(--cl-muted);
+}
+.cl-num-babynames__score {
+  margin-left: auto;
+  font-family: var(--cl-font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--cl-muted-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Personal Year meaning card ─────────────────────────────────────────── */
+.cl-num-meaning {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  background: var(--cl-bg-2);
+  border: 1px solid var(--cl-border);
+  border-radius: 6px;
+  margin: 14px 0 0;
+}
+
+.cl-num-meaning__label {
+  font-family: var(--cl-font-mono);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cl-muted-2);
+}
+
+.cl-num-meaning__section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cl-num-meaning__heading {
+  font-family: var(--cl-font-mono);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cl-muted-2);
+}
+
+.cl-num-meaning__text {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--cl-ink);
+}
+
+.cl-num-meaning__hint {
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--cl-border);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--cl-muted);
+  font-style: italic;
 }
 
 /* ── Section chrome for the bands below the calculator ───────────────────── */

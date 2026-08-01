@@ -16,6 +16,7 @@ import type {
 
 import { Card } from "./ui/card";
 import { Chip } from "./ui/chip";
+import { Kicker } from "./ui/kicker";
 
 /**
  * Shared vocabulary and primitives for the numerology surfaces (Phase 7).
@@ -846,6 +847,126 @@ export function TraditionNote({
   );
 }
 
+/* ── Baby naming ─────────────────────────────────────────────────────────── */
+
+/**
+ * The paadham's opening letter, as the headline of a baby-name result.
+ *
+ * Ported from the public `/tools/baby-name-finder` page so the signed-in
+ * surfaces read the same. The public page expresses this in `cl-num-*`
+ * marketing CSS, which the dashboard has no access to — the *structure* is what
+ * carries over, not the classes:
+ *
+ *   1. a context line — natchathiram, paadham, lagnam
+ *   2. the letter itself at display size, in a tile
+ *   3. the sentence that says what to do with it
+ *
+ * ## Why this is an accent Card and not a plain block
+ *
+ * The first port rendered it as body text inside the surrounding card: a faint
+ * `--text-xs` context line and a `--text-lg` sentence, sitting flush with the
+ * notes and the results under it. It was *present* and invisible — the two
+ * lines a parent actually came for read as chrome.
+ *
+ * `variant="accent"` is the dashboard's existing emphasis affordance (gold
+ * tint + stronger border, `.ui-card--accent`). Deliberately NOT a coloured
+ * left-border stripe.
+ *
+ * Both dashboard baby-name surfaces render this, so they cannot drift the way
+ * their label maps did before `web/lib/baby-name-copy.ts` existed.
+ */
+export function BabyNamePaadhamHeader({
+  lang,
+  contextLine,
+  aksharaTa,
+  aksharaEn,
+  subLine,
+}: {
+  lang: Lang;
+  /** "Uthiradam · Paadham 3 · Lagnam: Mesham" */
+  contextLine: string;
+  aksharaTa: string;
+  aksharaEn: string;
+  subLine?: string | null;
+}) {
+  const isTamil = lang === "ta";
+  return (
+    <Card variant="accent" style={{ gap: "var(--space-3)" }}>
+      <Kicker as="div">{isTamil ? "தொடக்க எழுத்து" : "Opening letter"}</Kicker>
+
+      {/* Whose paadham this is. Was `--text-xs` + `--color-faint`, i.e. the
+          quietest pair in the system, for the line that identifies the whole
+          result. */}
+      <p
+        style={{
+          margin: 0,
+          fontSize: "var(--text-sm)",
+          color: "var(--color-text-strong)",
+          lineHeight: 1.45,
+        }}
+      >
+        {contextLine}
+      </p>
+
+      {/* `flexDirection: "row"` is explicit: a <Card> is already a column
+          flexbox, so a horizontal child that does not say so gets its HEIGHT
+          sized by flex-basis instead of its width. */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          alignItems: "center",
+          gap: "var(--space-4)",
+          minWidth: 0,
+        }}
+      >
+        <span
+          aria-hidden="true"
+          style={{
+            flex: "none",
+            display: "grid",
+            placeItems: "center",
+            minWidth: "84px",
+            minHeight: "84px",
+            padding: "var(--space-2) var(--space-3)",
+            border: "1px solid var(--color-border-strong)",
+            borderRadius: "var(--radius-md)",
+            background: "var(--color-surface)",
+            fontFamily: "var(--font-display)",
+            fontSize: "2.9rem",
+            lineHeight: 1.05,
+            // The tint carries the emphasis; the glyph stays a text colour.
+            // Gold at body weight is decoration, not legible text.
+            color: "var(--color-text-strong)",
+          }}
+        >
+          {aksharaTa}
+        </span>
+        <span style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", minWidth: 0 }}>
+          <strong
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "var(--text-xl)",
+              fontWeight: 400,
+              lineHeight: 1.25,
+              color: "var(--color-text-strong)",
+            }}
+          >
+            {isTamil
+              ? `பெயர் ${aksharaTa} என்ற எழுத்தில் தொடங்க வேண்டும்`
+              : `Names should begin with ${aksharaTa} (${aksharaEn})`}
+          </strong>
+          {subLine ? (
+            <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5 }}>
+              {subLine}
+            </span>
+          ) : null}
+        </span>
+      </div>
+    </Card>
+  );
+}
+
 /* ── Number rendering ────────────────────────────────────────────────────── */
 
 /** e.g. [87, 15, 6] → "87 → 15 → 6". Empty chain falls back to the root. */
@@ -1085,6 +1206,26 @@ export function CompoundSurrogateNote({ reading, lang }: { reading: NumberReadin
 }
 
 /**
+ * The single-digit case: `compound === null` and `compoundBeyondSeries ===
+ * null` together mean the total never reached two digits in the first place —
+ * Cheiro's series only names 10-52, so there is nothing to cite. Distinct from
+ * `CompoundSurrogateNote` above, which explains a *different* silence (a total
+ * that overshot 52). Conflating the two would tell a reader the wrong story
+ * about why no title appears.
+ */
+export function NoCompoundNote({ reading, lang }: { reading: NumberReading; lang: Lang }) {
+  if (reading.compound !== null || reading.compoundBeyondSeries !== null) return null;
+  const isTamil = lang === "ta";
+  return (
+    <div style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.5 }}>
+      {isTamil
+        ? `இது ${reading.total} ஆகக் கூடி நேரடியாக ஒற்றை இலக்கமாக (${reading.root}) உள்ளது. கல்தேய கூட்டு எண்கள் இரட்டை இலக்கத் தொகைகளுக்கு (10–52) மட்டுமே பெயர் பெற்றவை, எனவே இங்கே ஒரு கூட்டு எண் இல்லை — இது குறையல்ல.`
+        : `This adds up to ${reading.total}, already a single digit (${reading.root}). Chaldean compound numbers are only named for two-digit totals (10-52), so there is no compound to show here — that is expected, not a missing reading.`}
+    </div>
+  );
+}
+
+/**
  * One number with its full derivation. `scoredFrom` echoes the exact string the
  * backend scored (`scoredName` / `scoredNamesake`) — a name reading must never
  * be readable without knowing which spelling produced it (doctrine D3).
@@ -1179,6 +1320,13 @@ export function NumberReadingCard({
 
       {/* Doctrine D6 — a caveat, so it stays outside the disclosure. */}
       <CompoundSurrogateNote reading={reading} lang={lang} />
+
+      {/* The third state `CompoundLine`'s own docstring names but used to
+          render as nothing: `compound === null` (a single-digit total, no
+          two-digit step to name). Personal Month/Day roots most often land
+          here, and a card with no compound and no explanation reads as broken
+          rather than as the ordinary case it is. */}
+      <NoCompoundNote reading={reading} lang={lang} />
 
       {/* Doctrine D3 — a name reading must never be readable without the
           spelling that produced it, so this stays outside the disclosure too. */}

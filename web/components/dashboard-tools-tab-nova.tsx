@@ -14,6 +14,7 @@ import { ChartGenerateInlinePanel } from "./chart-generate-inline-panel";
 import { DashboardAnnualWrapped } from "./dashboard-annual-wrapped";
 import { RetrospectivePanel } from "./dashboard-retrospective-panel";
 import { NumerologyPanel, type NumerologyMemberOption } from "./dashboard-numerology-panel-nova";
+import { DashboardBabyNamesTool } from "./dashboard-tools-baby-names-nova";
 import { NovaPoruthamPanel, type PoruthamFamilyMember } from "./dashboard-tools-porutham-nova";
 import { NovaActivityTimingCard } from "./dashboard-today-deepdive-extras-nova";
 import { VarshaphalaPanel } from "./dashboard-varshaphala-panel";
@@ -82,6 +83,9 @@ export type DashboardToolsTabNovaProps = {
    *  in a given environment every route behind it 404s, which the panel
    *  renders as "not switched on yet" rather than as an error. */
   showNumerology: boolean;
+  /** Baby Name Finder — its own tool, not a Numerology view. Takes raw birth
+   *  details (no saved profile needed), gated on `numerology_baby_naming`. */
+  showBabyNames: boolean;
   varshaphalaData: VarshaphalaData | null;
   varshaphalaLoading: boolean;
   onLoadVarshaphala: (year: number) => void;
@@ -121,6 +125,7 @@ export function DashboardToolsTabNova({
   showVarshaphala,
   showSynastry,
   showNumerology,
+  showBabyNames,
   varshaphalaData,
   varshaphalaLoading,
   onLoadVarshaphala,
@@ -211,6 +216,13 @@ export function DashboardToolsTabNova({
       descTa: "கல்தேய எண்கள் ஒரு ஜாதகத்திற்கு எதிராகப் படிக்கப்படுகின்றன — உங்களுடையது அல்லது குடும்பத்தினர் யாருடையதும் — சாதக எண்கள், அதிர்ஷ்ட இணக்கம், தனிப்பட்ட சுழற்சி, தேதி மதிப்பீடு.",
       metaEn: "uses · your family charts", metaTa: "பயன்படுத்துவது · குடும்ப ஜாதகங்கள்", disabled: needsProfile, kind: "inline",
     },
+    {
+      id: "babynames", icon: Sparkles, color: "var(--color-high)",
+      nameEn: "Baby Name Finder", nameTa: "பெயர் தேடல்",
+      descEn: "Names matched to a birth-nakshatra pada, ranked by Fortune Alignment — enter birth details directly, no saved profile needed. Draft: pending astrologer and native-speaker review.",
+      descTa: "நட்சத்திர பாதத்திற்குப் பொருந்தும் பெயர்கள், Fortune Alignment வழியே தரவரிசைப்படுத்தப்பட்டவை — பிறப்பு விவரங்களை நேரடியாக உள்ளிடவும், சேமிக்கப்பட்ட சுயவிவரம் தேவையில்லை. வரைவு: மதிப்பாய்வு நிலுவையில்.",
+      metaEn: "needs · birth details", metaTa: "தேவை · பிறப்பு விவரங்கள்", kind: "inline",
+    },
   ];
 
   const cardStyle = (tool: ToolCardSpec): CSSProperties => ({
@@ -277,6 +289,7 @@ export function DashboardToolsTabNova({
         {showNumerology && personalChartId && (
           <NumerologyPanel lang={lang} chartId={personalChartId} members={numerologyMembers} />
         )}
+        {showBabyNames && <DashboardBabyNamesTool lang={lang} />}
         {showSynastry && (
           <Card style={{ borderRadius: "var(--radius-lg)", padding: "var(--space-6) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
             {ownerChartId && synastryMemberCharts.length > 0 && (

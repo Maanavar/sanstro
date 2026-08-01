@@ -106,6 +106,7 @@ const TOOLS: SearchDoc[] = [
   { en: "Muhurta Calculator", ta: "முகூர்த்தம்", kw: "muhurtham muhurta", href: "/tools/muhurta-calculator", category: "Tool" },
   { en: "Chandrashtama", ta: "சந்திராஷ்டமம்", kw: "chandrashtama", href: "/tools/chandrashtama", category: "Tool" },
   { en: "Friendship Compatibility", ta: "நட்பு பொருத்தம்", kw: "friendship compatibility", href: "/tools/friendship-compatibility", category: "Tool" },
+  { en: "Baby Name Finder", ta: "பெயர் தேடல்", kw: "baby names nakshatra pada", href: "/tools/baby-name-finder", category: "Tool" },
 ];
 
 const PAGES: SearchDoc[] = [

@@ -376,6 +376,9 @@ def test_feature_flags_round_trip(raw_client):
         # Doctrine D4 (NUM-34) — whether the number-pair relation reads Cheiro's
         # sympathetic series or Parashari natural friendship.
         "numerology_compatibility_basis",
+        # Baby naming (NUM-50/51/52, Phase 5's other half). Independent of
+        # `numerology_engine` — see app/services/feature_flags.py for why.
+        "numerology_baby_naming",
     } == names
 
     set_response = raw_client.patch(

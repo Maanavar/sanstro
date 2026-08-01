@@ -180,7 +180,13 @@ def build_sheet() -> str:
         if row.nakshatra_id != current_nakshatra:
             current_nakshatra = row.nakshatra_id
             add("")
-            add(f"### {row.nakshatra_id}. {row.nakshatra_en} · {row.nakshatra_ta}")
+            # Almanac name leads (that is what the reviewing astrologer calls
+            # the star); the Sanskrit form trails so a row can still be checked
+            # against a Sanskrit printed source.
+            add(
+                f"### {row.nakshatra_id}. {row.nakshatra_ta} · {row.nakshatra_en} "
+                f"_(Skt. {row.nakshatra_sanskrit})_"
+            )
             add("")
             add("| Pada | Devanagari | ISO | Latin | Tamil | Flags | Status | Correct? | Source |")
             add("| --- | --- | --- | --- | --- | --- | --- | --- | --- |")

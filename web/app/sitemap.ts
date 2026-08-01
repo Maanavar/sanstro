@@ -138,6 +138,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.8,
     },
+    {
+      // Draft: numerology_baby_naming defaults true (access-gating only, see
+      // app/services/feature_flags.py) but the pada canon and name corpus
+      // are both still unreviewed. Lower priority than the launched tools
+      // above for that reason.
+      url: `${BASE}/tools/baby-name-finder`,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
     /* ── Share pages ── */
     {
       url: `${BASE}/share/panchangam`,

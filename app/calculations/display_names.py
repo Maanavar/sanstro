@@ -88,3 +88,35 @@ def sani_cycle_ta(cycle_type: str) -> str:
 
 def sani_cycle_en(cycle_type: str) -> str:
     return SANI_CYCLE_EN.get(cycle_type, cycle_type.replace("_", " ").title())
+
+
+# ---------------------------------------------------------------------------
+# Rasi names.
+#
+# English spellings mirror `app.calculations.astro.RASI_NAMES`, which is
+# already Tamil almanac usage (Mesham, Rishabam, …) rather than Sanskrit
+# (Mesha, Vrishabha, …) — do not "correct" them toward Sanskrit.
+#
+# NOTE: `app/api/daily_snapshot.py` and `app/api/public_tools.py` each carry a
+# private `_RASI_NAMES_TA` copy that predates this one. New code should import
+# from here; those two are left alone rather than refactored blind.
+# ---------------------------------------------------------------------------
+RASI_TA: dict[int, str] = {
+    1: "மேஷம்", 2: "ரிஷபம்", 3: "மிதுனம்", 4: "கடகம்",
+    5: "சிம்மம்", 6: "கன்னி", 7: "துலாம்", 8: "விருச்சிகம்",
+    9: "தனுசு", 10: "மகரம்", 11: "கும்பம்", 12: "மீனம்",
+}
+
+RASI_EN: dict[int, str] = {
+    1: "Mesham", 2: "Rishabam", 3: "Mithunam", 4: "Kadagam",
+    5: "Simmam", 6: "Kanni", 7: "Thulam", 8: "Viruchigam",
+    9: "Dhanusu", 10: "Magaram", 11: "Kumbam", 12: "Meenam",
+}
+
+
+def rasi_ta(rasi: int | None) -> str | None:
+    return RASI_TA.get(rasi) if rasi is not None else None
+
+
+def rasi_en(rasi: int | None) -> str | None:
+    return RASI_EN.get(rasi) if rasi is not None else None
