@@ -7,6 +7,7 @@ import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { NumerologyChainVisual } from "@/components/marketing-visuals";
 import { useLang } from "@/components/lang-toggle";
+import { PersonalYearMeaningCard } from "@/components/PersonalYearMeaningCard";
 import { TOOL_NUMEROLOGY, mt, type Lang } from "@/lib/marketing-i18n";
 import { readErrorMessage } from "@/lib/api";
 import { todayIso } from "@/lib/format";
@@ -484,6 +485,21 @@ function ReadingBlock({
         </span>
       </div>
 
+      {/* The other reason a compound can be absent, and the one visitors ask
+          about most: not "withheld" or "borrowed", just never generated in
+          the first place. Cheiro's compound series only covers two-digit
+          totals (10-52); a total that lands on a single digit on the first
+          pass has no two-digit step to name, so there is no title or tone to
+          show — this is the normal case for roughly 1 in 3 totals, not a
+          missing reading. */}
+      {reading.compound === null && beyond === null ? (
+        <p className="cl-num-reading__nocompound">
+          {ta
+            ? `இது ${reading.total} ஆகக் கூடி நேரடியாக ஒற்றை இலக்கமாக (${reading.root}) உள்ளது. கல்தேய கூட்டு எண்கள் இரட்டை இலக்கத் தொகைகளுக்கு (10–52) மட்டுமே பெயர் பெற்றவை, எனவே இங்கே ஒரு கூட்டு எண் இல்லை — இது குறையல்ல.`
+            : `This adds up to ${reading.total}, already a single digit (${reading.root}). Chaldean compound numbers are only named for two-digit totals (10-52), so there is no compound to show here — that is expected, not a missing reading.`}
+        </p>
+      ) : null}
+
       {/* Doctrine D6 — a caveat, so it is never folded away. */}
       {beyond !== null ? (
         <p className="cl-num-reading__caveat">
@@ -812,6 +828,17 @@ function ObjectTool({ ta }: { ta: boolean }) {
 
 /* ── Personal year ───────────────────────────────────────────────────────── */
 
+/* The calendar month/day the server actually keyed month/day to — read off
+ * `onDate` (the server's own echo) rather than the local input state, so the
+ * arithmetic shown can never describe a different date than the numbers
+ * beside it while a new date is in flight. */
+function monthOf(isoDate: string): number {
+  return Number(isoDate.slice(5, 7));
+}
+function dayOf(isoDate: string): number {
+  return Number(isoDate.slice(8, 10));
+}
+
 function PersonalYearTool({ ta }: { ta: boolean }) {
   const [birthDate, setBirthDate] = useState("");
   const [onDate, setOnDate] = useState(todayIso());
@@ -897,28 +924,51 @@ function PersonalYearTool({ ta }: { ta: boolean }) {
                 reading={result.year.reading}
                 label={ta ? "தனிப்பட்ட ஆண்டு" : "Personal year"}
                 source={
-                  ta ? "பிறந்த தேதியும் நடப்பு ஆண்டும் சேர்ந்து" : "your birth date plus the governing year"
+                  ta
+                    ? `பிறந்த நாள் + மாதம் + ஆண்டு (${result.year.governingYear}) இலக்கங்களின் கூட்டுத்தொகை = ${result.year.reading.total}`
+                    : `digit sum of birth day + birth month + governing year (${result.year.governingYear}) = ${result.year.reading.total}`
                 }
                 ta={ta}
               />
+              {result.year.meaning && (
+                <PersonalYearMeaningCard
+                  meaning={result.year.meaning}
+                  label={ta ? "இந்த ஆண்டின் கருப்பொருள்" : "What this year is about"}
+                  ta={ta}
+                />
+              )}
               <ReadingBlock
-                reading={result.month}
+                reading={result.month.reading}
                 label={ta ? "தனிப்பட்ட மாதம்" : "Personal month"}
                 source={
                   ta
-                    ? "தனிப்பட்ட ஆண்டும் நடப்பு மாதமும் சேர்ந்து"
-                    : "your personal year plus the current month"
+                    ? `ஆண்டு எண் ${result.year.reading.root} + நாட்காட்டி மாதம் ${monthOf(result.onDate)} = ${result.month.reading.total}`
+                    : `year number ${result.year.reading.root} + calendar month ${monthOf(result.onDate)} = ${result.month.reading.total}`
                 }
                 ta={ta}
               />
+              {result.month.meaning && (
+                <PersonalYearMeaningCard
+                  meaning={result.month.meaning}
+                  ta={ta}
+                />
+              )}
               <ReadingBlock
-                reading={result.day}
+                reading={result.day.reading}
                 label={ta ? "தனிப்பட்ட நாள்" : "Personal day"}
                 source={
-                  ta ? "தனிப்பட்ட மாதமும் இன்றைய தேதியும் சேர்ந்து" : "your personal month plus today's date"
+                  ta
+                    ? `தனிப்பட்ட மாத எண் ${result.month.reading.root} (இது நாட்காட்டி மாதம் அல்ல) + தேதி ${dayOf(result.onDate)} = ${result.day.reading.total}`
+                    : `personal month number ${result.month.reading.root} (not the calendar month) + day of month ${dayOf(result.onDate)} = ${result.day.reading.total}`
                 }
                 ta={ta}
               />
+              {result.day.meaning && (
+                <PersonalYearMeaningCard
+                  meaning={result.day.meaning}
+                  ta={ta}
+                />
+              )}
             </div>
             <ChartBridge ta={ta} />
           </>

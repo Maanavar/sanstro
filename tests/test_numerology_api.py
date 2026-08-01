@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 
 from app.core.rate_limit import reset_rate_limit_backend
 from app.main import app
+from app.services import numerology_personal_year_content as py_content
 from app.services.feature_flags import reset_flag, set_flag
 
 pytestmark = pytest.mark.no_db
@@ -41,6 +42,21 @@ def numerology_off() -> Iterator[None]:
     finally:
         reset_flag("numerology_engine")
         reset_rate_limit_backend()
+
+
+@pytest.fixture
+def py_reviewed() -> Iterator[None]:
+    """Pretend the personal-year corpus has cleared review.
+
+    Its own flag, not ``numerology_content.CONTENT_REVIEWED`` — the two corpora
+    are gated separately and clear review on separate schedules.
+    """
+    original = py_content.CONTENT_REVIEWED
+    py_content.CONTENT_REVIEWED = True
+    try:
+        yield
+    finally:
+        py_content.CONTENT_REVIEWED = original
 
 
 def test_endpoints_404_while_the_flag_is_off(numerology_off: None) -> None:
@@ -276,10 +292,12 @@ def test_personal_year_returns_the_cycle_and_its_window(enabled: None) -> None:
     # different epoch, so a number without its boundaries cannot be checked.
     assert body["year"]["cycleStart"] == "2026-05-17"
     assert body["year"]["cycleEnd"] == "2027-05-16"
-    assert body["month"]["total"] == 12
-    assert body["month"]["root"] == 3
-    assert body["day"]["total"] == 30
-    assert body["day"]["root"] == 3
+    # Month and day nest their arithmetic under ``reading`` — the level also
+    # carries a ``meaning`` block, so the number is one field of two.
+    assert body["month"]["reading"]["total"] == 12
+    assert body["month"]["reading"]["root"] == 3
+    assert body["day"]["reading"]["total"] == 30
+    assert body["day"]["reading"]["root"] == 3
 
 
 def test_personal_year_epoch_flag_changes_the_number_not_just_the_label(
@@ -316,13 +334,73 @@ def test_personal_year_ships_numbers_only(enabled: None) -> None:
 
     The Phase 4 engine can produce notes; none has had a Tamil native review, so
     this response carries arithmetic, graha names and the tradition line only.
+
+    The ``meaning`` blocks are the shape of the withholding, not a hole in it:
+    each level returns its block with the number filled and every sentence null,
+    which is what lets a client tell "in review" from "no such reading". The
+    account of *why* they are empty rides on ``readingsAvailable`` — this is the
+    surface where three bare digits and no explanation read as a broken screen.
     """
     with TestClient(app, raise_server_exceptions=False) as client:
         body = client.post(
             PERSONAL_YEAR_URL, json={"birthDate": "1990-05-17", "onDate": "2026-07-27"}
         ).json()
-    assert set(body) == {"onDate", "year", "month", "day", "traditionEn", "traditionTa"}
+    assert set(body) == {
+        "onDate",
+        "year",
+        "month",
+        "day",
+        "readingsAvailable",
+        "traditionEn",
+        "traditionTa",
+    }
     assert "Chaldean" in body["traditionEn"]
+
+    assert body["readingsAvailable"] is False
+    for level, meaning in _cycle_meanings(body).items():
+        assert meaning is not None, f"{level} dropped its meaning block entirely"
+        assert meaning["number"] == _cycle_reading(body, level)["root"], (
+            f"{level} meaning is keyed to a number the reading did not produce"
+        )
+        prose = {key: value for key, value in meaning.items() if key != "number"}
+        assert prose, f"{level} meaning carries no prose fields at all"
+        assert set(prose.values()) == {None}, f"{level} shipped unreviewed prose: {prose}"
+
+
+def test_personal_year_meanings_are_withheld_not_missing(
+    enabled: None, py_reviewed: None
+) -> None:
+    """Prove the meaning fields are wired, and only being held back.
+
+    Without this, ``test_personal_year_ships_numbers_only`` passes just as
+    happily against a converter that never populates the fields at all — the
+    gate and a dead wire are indistinguishable from outside while the flag is
+    off. Runs against a forced-reviewed corpus; everything else runs against the
+    real, unreviewed state.
+    """
+    with TestClient(app, raise_server_exceptions=False) as client:
+        body = client.post(
+            PERSONAL_YEAR_URL, json={"birthDate": "1990-05-17", "onDate": "2026-07-27"}
+        ).json()
+
+    assert body["readingsAvailable"] is True
+    for level, meaning in _cycle_meanings(body).items():
+        assert meaning["themeEn"], f"{level} theme never made it through the gate"
+        assert meaning["themeTa"], f"{level} Tamil theme never made it through the gate"
+        assert meaning["actionEn"] and meaning["watchEn"], f"{level} guidance is incomplete"
+
+
+def _cycle_meanings(body: dict) -> dict[str, dict | None]:
+    """The three ``meaning`` blocks, keyed by level.
+
+    All three levels share the ``{reading, meaning}`` shape — the year adds its
+    epoch and window alongside, not around.
+    """
+    return {level: body[level]["meaning"] for level in ("year", "month", "day")}
+
+
+def _cycle_reading(body: dict, level: str) -> dict:
+    return body[level]["reading"]
 
 
 def test_personal_year_defaults_to_today(enabled: None) -> None:

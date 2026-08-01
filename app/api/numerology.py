@@ -45,12 +45,14 @@ from sqlalchemy.orm import Session
 
 from app.calculations.numerology import ScriptMismatchError
 from app.calculations.numerology_correction import legal_warning
+from app.calculations.numerology_naming import NamingMode, UnverifiedCanonError
 from app.core.auth import get_current_user
 from app.db.session import get_db
 from app.models import BirthProfile, Chart
 from app.models.user import User
 from app.schemas.muhurtham_naal import context_from_dict, item_from_match
 from app.schemas.numerology import (
+    BabyNamesResponse,
     DateNumerologyOut,
     FavourableNumbersResponse,
     FortuneAlignmentRequest,
@@ -81,6 +83,10 @@ from app.services.numerology_name_session_service import (
     list_name_sessions,
     save_name_session,
 )
+from app.services.numerology_naming_service import (
+    baby_names_for_chart,
+    require_baby_naming_enabled,
+)
 from app.services.numerology_service import require_numerology_enabled
 from app.services.numerology_timing_service import (
     cycle_for_chart,
@@ -107,6 +113,15 @@ def _assert_chart_owner(session: Session, chart_id: UUID, current_user: User) ->
 def _authorize(session: Session, chart_id: UUID, current_user: User) -> None:
     """Flag first, then ownership — see the module docstring."""
     require_numerology_enabled()
+    _assert_chart_owner(session, chart_id, current_user)
+
+
+def _authorize_baby_naming(session: Session, chart_id: UUID, current_user: User) -> None:
+    """Both flags, then ownership. See `numerology_baby_naming`'s comment in
+    `app.services.feature_flags` for why this feature needs a second flag on
+    top of `numerology_engine`."""
+    require_numerology_enabled()
+    require_baby_naming_enabled()
     _assert_chart_owner(session, chart_id, current_user)
 
 
@@ -488,3 +503,62 @@ def get_marriage_dates(
         ],
         calculationVersion=result.calculation_version,
     )
+
+
+@router.get(
+    "/charts/{chart_id}/numerology/baby-names",
+    response_model=BabyNamesResponse,
+    tags=["numerology"],
+)
+def get_baby_names(
+    chart_id: UUID,
+    gender: str | None = Query(default=None, description="m | f | n"),
+    mode: str = Query(
+        default="pada_first",
+        description="pada_first | pada_weighted | rasi_wide | open",
+    ),
+    allow_ambiguous: bool = Query(default=False, alias="allowAmbiguous"),
+    allow_tamil_collapse: bool = Query(default=False, alias="allowTamilCollapse"),
+    limit: int = Query(default=20, ge=1, le=50),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> BabyNamesResponse:
+    """Baby names for the native's own birth (Moon) nakshatra-pada (NUM-50/51/52).
+
+    GET, unlike alignment/correction: nothing here is user-supplied text that
+    would otherwise sit in a URL or access log — the pada comes off the
+    chart, and the filters are all enums/booleans.
+
+    Behind a **second** flag on top of ``numerology_engine`` —
+    ``numerology_baby_naming``, defaulting True as of 2026-07-30 (access-gating
+    on product direction, not a claim of review — see
+    ``app/services/feature_flags.py``). The nakshatra-pada canon this matches
+    against is 0/108 astrologer-verified, and the name corpus is
+    assistant-drafted with zero rows reviewed. ``response.usable`` is False
+    and ``response.canonVerified`` is False until both clear; a client must
+    not render ``candidates`` as a recommendation until then.
+    """
+    _authorize_baby_naming(session, chart_id, current_user)
+    try:
+        result = baby_names_for_chart(
+            chart_id,
+            session,
+            gender=gender,
+            mode=NamingMode(mode),
+            allow_ambiguous=allow_ambiguous,
+            allow_tamil_collapse=allow_tamil_collapse,
+            limit=limit,
+        )
+    except UnverifiedCanonError as exc:
+        # Belt-and-braces backstop behind the flag above (see module and
+        # service docstrings) — reachable only if the flag were flipped True
+        # against a still-unverified canon in a real environment.
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
+
+    return BabyNamesResponse.from_result(result)

@@ -79,6 +79,11 @@ class NumerologyChartContext:
     timezone_name: str
     latitude: float
     longitude: float
+    #: Birth (janma) nakshatra and pada, 1-27 / 1-4 — the Moon's position.
+    #: Added for baby naming (NUM-50/51), which is the first Phase 5 consumer
+    #: to need a pada rather than a rasi off the chart.
+    moon_nakshatra_id: int
+    moon_pada: int
 
 
 def load_chart_context(
@@ -102,16 +107,38 @@ def load_chart_context(
     if snapshot is None:
         snapshot = load_persisted_chart_response(session, chart_id)
     location = resolve_effective_daily_location(profile)
+    lagna_rasi, strengths, node_rasi_map, moon_nakshatra_id, moon_pada = (
+        pada_context_from_snapshot(snapshot)
+    )
     return NumerologyChartContext(
-        lagna_rasi=snapshot.data.lagna.rasi,
-        strengths={p.graha: float(p.strength_score) for p in snapshot.data.planets},
-        # Nodes carry no rasi lordship; functional_nature resolves them via their
-        # dispositor, which needs to know where they sit.
-        node_rasi_map={
-            p.graha: p.rasi for p in snapshot.data.planets if p.graha in ("RAHU", "KETU")
-        },
+        lagna_rasi=lagna_rasi,
+        strengths=strengths,
+        node_rasi_map=node_rasi_map,
         birth_date=profile.birth_date_local,
         timezone_name=location.timezone,
         latitude=location.latitude,
         longitude=location.longitude,
+        moon_nakshatra_id=moon_nakshatra_id,
+        moon_pada=moon_pada,
     )
+
+
+def pada_context_from_snapshot(
+    snapshot: ChartCalculateResponse,
+) -> tuple[int, dict[str, float], dict[str, int], int, int]:
+    """(lagna_rasi, strengths, node_rasi_map, moon_nakshatra_id, moon_pada) off
+    any chart snapshot — persisted or ephemeral (e.g. `_chart_response_from_profile`,
+    which never touches the DB). Baby naming's public, no-login path needs this
+    from a chart it computed in memory for one request and never persisted;
+    `load_chart_context` above needs the same five things off a saved one.
+    """
+    moon = next((p for p in snapshot.data.planets if p.graha == "MOON"), None)
+    if moon is None:  # pragma: no cover - every chart snapshot carries all 9 grahas
+        raise HTTPException(status_code=500, detail="Chart is missing Moon position.")
+    strengths = {p.graha: float(p.strength_score) for p in snapshot.data.planets}
+    # Nodes carry no rasi lordship; functional_nature resolves them via their
+    # dispositor, which needs to know where they sit.
+    node_rasi_map = {
+        p.graha: p.rasi for p in snapshot.data.planets if p.graha in ("RAHU", "KETU")
+    }
+    return snapshot.data.lagna.rasi, strengths, node_rasi_map, moon.nakshatra, moon.pada

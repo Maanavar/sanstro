@@ -186,6 +186,33 @@ export function NumerologyCycleSection({ lang, chartId }: Props) {
             </div>
           </Card>
 
+          {/* Year meaning — what this year is about */}
+          {data.year.meaning && (
+            <Card variant="soft" style={{ gap: "var(--space-2)" }}>
+              <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                {isTamil ? "இந்தக் கட்டத்தின் கருப்பொருள்" : "The theme of this period"}
+              </div>
+              {data.year.meaning.themeEn && (
+                <p style={{ margin: "var(--space-1) 0 0", fontSize: "var(--text-sm)", lineHeight: 1.6, color: "var(--color-text)" }}>
+                  <strong>{isTamil ? "கருப்பொருள்: " : "Theme: "}</strong>
+                  {isTamil ? data.year.meaning.themeTa : data.year.meaning.themeEn}
+                </p>
+              )}
+              {data.year.meaning.actionEn && (
+                <p style={{ margin: "var(--space-1) 0 0", fontSize: "var(--text-sm)", lineHeight: 1.6, color: "var(--color-text)" }}>
+                  <strong>{isTamil ? "செய்ய வேண்டியவை: " : "Focus on: "}</strong>
+                  {isTamil ? data.year.meaning.actionTa : data.year.meaning.actionEn}
+                </p>
+              )}
+              {data.year.meaning.watchEn && (
+                <p style={{ margin: "var(--space-1) 0 0", fontSize: "var(--text-sm)", lineHeight: 1.6, color: "var(--color-text)" }}>
+                  <strong>{isTamil ? "கவனிக்க வேண்டியவை: " : "Watch for: "}</strong>
+                  {isTamil ? data.year.meaning.watchTa : data.year.meaning.watchEn}
+                </p>
+              )}
+            </Card>
+          )}
+
           <div className="nova-grid-3" style={{ gap: "var(--space-3)" }}>
             <NumberReadingCard
               reading={data.year.reading}
@@ -193,28 +220,28 @@ export function NumerologyCycleSection({ lang, chartId }: Props) {
               lang={lang}
               hint={
                 isTamil
-                  ? `பிறந்த தேதி + பிறந்த மாதம் + ${data.year.governingYear}`
-                  : `birth day + birth month + ${data.year.governingYear}`
+                  ? `பிறந்த நாள் + பிறந்த மாதம் + ${data.year.governingYear} இலக்கங்களின் கூட்டுத்தொகை = ${data.year.reading.total}`
+                  : `digit sum of birth day + birth month + ${data.year.governingYear} = ${data.year.reading.total}`
               }
             />
             <NumberReadingCard
-              reading={data.month}
+              reading={data.month.reading}
               label={isTamil ? "மாதம்" : "Month"}
               lang={lang}
               hint={
                 isTamil
-                  ? `ஆண்டு எண் ${data.year.reading.root} + நாட்காட்டி மாதம் ${monthOf(data.onDate)}`
-                  : `year number ${data.year.reading.root} + calendar month ${monthOf(data.onDate)}`
+                  ? `ஆண்டு எண் ${data.year.reading.root} + நாட்காட்டி மாதம் ${monthOf(data.onDate)} = ${data.month.reading.total}`
+                  : `year number ${data.year.reading.root} + calendar month ${monthOf(data.onDate)} = ${data.month.reading.total}`
               }
             />
             <NumberReadingCard
-              reading={data.day}
+              reading={data.day.reading}
               label={isTamil ? "நாள்" : "Day"}
               lang={lang}
               hint={
                 isTamil
-                  ? `மாத எண் ${data.month.root} + தேதி ${dayOf(data.onDate)}`
-                  : `month number ${data.month.root} + day of month ${dayOf(data.onDate)}`
+                  ? `தனிப்பட்ட மாத எண் ${data.month.reading.root} (நாட்காட்டி மாதம் அல்ல) + தேதி ${dayOf(data.onDate)} = ${data.day.reading.total}`
+                  : `personal month number ${data.month.reading.root} (not the calendar month) + day of month ${dayOf(data.onDate)} = ${data.day.reading.total}`
               }
             />
           </div>

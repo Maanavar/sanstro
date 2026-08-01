@@ -20,9 +20,16 @@ import type { BiText, MuhurtaSlot } from "../types";
  *   POST   /charts/{id}/numerology/name-sessions      -> save_numerology_name_session
  *   GET    /charts/{id}/numerology/name-sessions      -> get_numerology_name_sessions
  *   DELETE /charts/{id}/numerology/name-sessions/{id} -> delete_numerology_name_session
+ *   GET  /charts/{id}/numerology/baby-names           -> get_baby_names
+ *   POST /public/numerology/baby-names                -> public_baby_names
+ *   POST /public/numerology/baby-names-preview        -> public_baby_names_preview
  *
- * The last one is not chart-scoped because it reads two charts and neither is
- * subordinate to the other — both ids go in the body.
+ * The compatibility route is not chart-scoped because it reads two charts and
+ * neither is subordinate to the other — both ids go in the body.
+ *
+ * Baby naming sits behind a SECOND flag, `numerology_baby_naming`, checked in
+ * addition to `numerology_engine` — see the two functions near the bottom of
+ * this file for why, and for what that flag does and does not mean.
  *
  * The public routes need only a date of birth and a name — never a birth time
  * or location — which is why they can be unauthenticated at all. The chart
@@ -213,6 +220,25 @@ export async function analyzeNumerologyNumber(
 /** When the personal year rolls over (doctrine D1, server-configured). */
 export type PersonalYearEpoch = "birthday" | "january" | "chithirai";
 
+/** Meaning and guidance for a personal year/month/day number (1-9). */
+export interface PersonalYearMeaning {
+  number: number;
+  themeEn: string | null;
+  themeTa: string | null;
+  actionEn: string | null;
+  actionTa: string | null;
+  watchEn: string | null;
+  watchTa: string | null;
+  monthHintEn: string | null;
+  monthHintTa: string | null;
+}
+
+/** A number reading paired with its personal year meaning. */
+export interface NumberReadingWithMeaning {
+  reading: NumberReading;
+  meaning: PersonalYearMeaning | null;
+}
+
 export interface PersonalYear {
   reading: NumberReading;
   /**
@@ -226,6 +252,8 @@ export interface PersonalYear {
   cycleStart: string;
   /** ISO date. Inclusive last day of the cycle. */
   cycleEnd: string;
+  /** Theme and guidance for this year's energy. Null when review is pending. */
+  meaning: PersonalYearMeaning | null;
 }
 
 export interface PersonalCycleRequest {
@@ -238,8 +266,10 @@ export interface PersonalCycleRequest {
 export interface PersonalCycleResponse {
   onDate: string;
   year: PersonalYear;
-  month: NumberReading;
-  day: NumberReading;
+  /** Month reading with its meaning, if available. */
+  month: NumberReadingWithMeaning;
+  /** Day reading with its meaning, if available. */
+  day: NumberReadingWithMeaning;
   /** False while the interpretive corpus is unreviewed. Render the withheld
    *  note from it — on this surface especially, three bare digits with no
    *  explanation of the silence read as a broken screen. */
@@ -975,4 +1005,271 @@ export async function deleteNumerologyNameSession(
   return getApiClient().delete(
     `/charts/${encodeURIComponent(chartId)}/numerology/name-sessions/${encodeURIComponent(nameSessionId)}`,
   ) as Promise<void>;
+}
+
+/* ------------------------------------------------------------------------- *
+ * Baby naming (NUM-50/51/52)
+ * ------------------------------------------------------------------------- *
+ *
+ * Behind a SECOND flag on top of `numerology_engine` — `numerology_baby_naming`,
+ * defaulting true as of 2026-07-30 on product direction (access-gating now,
+ * premium/pay-per-use gating planned for later — see that flag's comment in
+ * app/services/feature_flags.py). That default does NOT mean the content is
+ * reviewed: the nakshatra-pada canon these matches come from is 0/108
+ * astrologer-verified, and the name corpus (app/data/tamil_name_corpus.py,
+ * backend) was drafted by an assistant to exercise the pipeline — zero rows
+ * reviewed. The backend's own `assert_canon_usable()` backstop still 503s
+ * outside dev/test regardless of either flag. Check `usable` AND
+ * `canonVerified` before rendering `candidates` as a recommendation; both are
+ * false today.
+ *
+ * Public vs chart-scoped is the same asymmetry as the rest of this file: the
+ * public route has no chart, so no lagna, so `alignment` is null on every
+ * candidate. The chart route has both and ranks within each pada-confidence
+ * tier by Fortune Alignment score.
+ */
+
+export type BabyNameGender = "m" | "f" | "n";
+
+/**
+ * How far past the birth paadham's own letter a search may reach.
+ *
+ * A ladder: each rung admits everything the one before it does, plus more.
+ * The first two mirror doctrine D2 (`numerology_naming_mode`); the last two
+ * were added 2026-07-31, because offering only the strict rule amounted to
+ * telling a parent that a name not opening with this paadham's letter is
+ * wrong — which is not what practising astrologer-numerologists do.
+ *
+ *   `pada_first`    this paadham's letter only (the strict, traditional rule)
+ *   `pada_weighted` + the other three paadhams of the same natchathiram
+ *   `rasi_wide`     + every paadham inside the Moon rasi (nine in all)
+ *   `open`          + any name, with the akshara rule set aside on request
+ *
+ * Widening never weakens D2. Every candidate carries an `AksharaRelation`
+ * and on-paadham names are ranked above widened ones at every rung, so the
+ * tradition's own answer still leads the page.
+ */
+export type BabyNameMode = "pada_first" | "pada_weighted" | "rasi_wide" | "open";
+
+/**
+ * Where a returned name's opening letter stands relative to the BIRTH paadham.
+ *
+ * Must be rendered on every card whenever `mode` is not `pada_first`: a name
+ * the parent asked to also see is otherwise indistinguishable from one the
+ * tradition picked, which would make the widening dishonest rather than
+ * generous.
+ *
+ *   `on_paadham`        opens with this paadham's own letter
+ *   `same_natchathiram` another paadham of the same star
+ *   `same_rasi`         a paadham elsewhere in the Moon rasi
+ *   `other_paadham`     some other star's paadham letter entirely
+ *   `no_paadham`        opens with none of the 108 paadham letters
+ */
+export type AksharaRelation =
+  | "on_paadham"
+  | "same_natchathiram"
+  | "same_rasi"
+  | "other_paadham"
+  | "no_paadham";
+
+/**
+ * How well a candidate's opening is pinned to the target pada.
+ *
+ * `"confirmed"` — both scripts agree. `"tamil_only"` / `"latin_only"` — one
+ * script matched and is unambiguous for this row. `"ambiguous"` — matched,
+ * but the matching script is lossy for this specific row (see the backend's
+ * `numerology_naming` module for why neither script alone is trustworthy on
+ * every row).
+ */
+export type MatchConfidence = "confirmed" | "tamil_only" | "latin_only" | "ambiguous";
+
+export interface BabyNameCandidate {
+  tamilForm: string;
+  latinSpelling: string;
+  /** Null while the corpus is unreviewed — see `readingsAvailable`. */
+  meaningEn: string | null;
+  meaningTa: string | null;
+  gender: BabyNameGender | null;
+  confidence: MatchConfidence;
+  relation: AksharaRelation;
+  /** The paadham this name's letter DOES open. Null only for `no_paadham` —
+   *  a letter that opens none of the 108. The star names ride along so a
+   *  client can say "ஆ opens Kaarthigai paadham 1" without its own table. */
+  nakshatraId: number | null;
+  pada: number | null;
+  nakshatraTa: string | null;
+  nakshatraEn: string | null;
+  aksharaTa: string | null;
+  reading: NumberReading;
+  /** Null on the public (chart-less) path — no lagna to align against. */
+  alignment: NumberAlignment | null;
+  /** Provenance notes from the matcher (draft-canon, tamil_collapse, …). Not
+   *  interpretive copy, so not gated behind `readingsAvailable`. */
+  warnings: string[];
+}
+
+/**
+ * Why a search came back with nothing, as a stable code.
+ *
+ * Render UI copy from THIS, never from `emptyReason` — that field is a
+ * developer sentence with counts and aksharas interpolated into it, and it
+ * shipped to users verbatim ("pada gated on unresolved tamil_collapse rule")
+ * until 2026-07-31.
+ */
+export type BabyNameEmptyReason = "pool_empty" | "collapse_gated" | "no_candidate_fits";
+
+/** Widening steps the backend took, in the order it took them. */
+export type BabyNameRelaxation =
+  | "allow_tamil_collapse"
+  | "allow_single_script"
+  | "allow_ambiguous"
+  | "sibling_padas"
+  | "rasi_padas"
+  | "any_akshara"
+  | "drop_gender";
+
+export interface BabyNamesResponse {
+  targetNakshatraId: number;
+  /**
+   * Tamil almanac naming — "Uthiradam" / உத்திராடம். These are the display
+   * names; `targetNakshatraSanskrit` ("Uttara Ashadha") is for cross-
+   * referencing Sanskrit sources and must not be shown to a Tamil reader.
+   */
+  targetNakshatraTa: string;
+  targetNakshatraEn: string;
+  targetNakshatraSanskrit: string;
+  targetPada: number;
+  /** The opening letter this paadham calls for — ஜா / "Ja". The fact the whole
+   *  tradition turns on, and the only thing that makes an empty result
+   *  intelligible ("no name in the list begins with ஜா"). */
+  targetAksharaTa: string;
+  targetAksharaEn: string;
+  /** The Moon rasi containing this paadham — the scope one rung wider than
+   *  the star, and the one many families are actually told to name by.
+   *  Prefer the name fields: "Makaram" is actionable, "10" is not. */
+  targetRasi: number;
+  targetRasiEn: string | null;
+  targetRasiTa: string | null;
+  /** The scope rung this search ran at, echoed back. Not the same question as
+   *  `relaxationsApplied` — that says what the search had to DO, this says
+   *  which rule the parent CHOSE, and the rule needs explaining either way. */
+  mode: BabyNameMode;
+  candidates: BabyNameCandidate[];
+  relaxationsApplied: BabyNameRelaxation[];
+  /**
+   * The single render gate. False whenever the target pada row is draft
+   * canon, the search came back empty, or a tamil_collapse row was withheld.
+   * Never render `candidates` as a recommendation unless this is true.
+   */
+  usable: boolean;
+  /** Developer sentence — for logs only. Render `emptyReasonCode` instead. */
+  emptyReason: string | null;
+  emptyReasonCode: BabyNameEmptyReason | null;
+  /** True only once all 108 pada rows have astrologer sign-off. False today. */
+  canonVerified: boolean;
+  /** Null on the public (chart-less) path. Prefer the name fields for display:
+   *  "Lagna 12" is not something a reader can act on. */
+  lagnaRasi: number | null;
+  lagnaRasiEn: string | null;
+  lagnaRasiTa: string | null;
+  readingsAvailable: boolean;
+  calculationVersion: string;
+  traditionEn: string;
+  traditionTa: string;
+}
+
+export interface PublicBabyNameRequest {
+  nakshatraId: number;
+  pada: number;
+  gender?: BabyNameGender;
+  mode?: BabyNameMode;
+  /** Withhold candidates whose only evidence is a lossy script. */
+  allowAmbiguous?: boolean;
+  /** Withhold rows whose Tamil letter is shared across Sanskrit consonants. */
+  allowTamilCollapse?: boolean;
+  limit?: number;
+}
+
+/**
+ * Baby names for a bare nakshatra + pada — no chart, no alignment.
+ *
+ * For the signed-in equivalent that ranks by Fortune Alignment against the
+ * native's own chart, see `getChartBabyNames`.
+ */
+export async function getPublicBabyNames(
+  payload: PublicBabyNameRequest,
+): Promise<BabyNamesResponse> {
+  return getApiClient().post(
+    "/public/numerology/baby-names",
+    payload,
+  ) as Promise<BabyNamesResponse>;
+}
+
+/**
+ * Raw birth details — no saved profile, matching `app.api.public_tools`'s
+ * `PublicBirthInput`. `birthTimeLocal` is optional there but omitting it
+ * weakens the chart (no reliable lagna), which weakens the alignment ranking
+ * this endpoint's whole value proposition rests on — collect it.
+ */
+export interface PublicBirthInput {
+  displayName?: string;
+  /** ISO date, YYYY-MM-DD. */
+  birthDateLocal: string;
+  /** "HH:MM:SS" or "HH:MM". */
+  birthTimeLocal?: string;
+  birthLatitude: number;
+  birthLongitude: number;
+  birthTimezone?: string;
+  birthPlace?: string;
+}
+
+export interface PublicBabyNamesPreviewRequest {
+  birth: PublicBirthInput;
+  gender?: BabyNameGender;
+  mode?: BabyNameMode;
+  allowAmbiguous?: boolean;
+  allowTamilCollapse?: boolean;
+  limit?: number;
+}
+
+/**
+ * Baby names from raw birth details — the primary way to use this feature.
+ *
+ * No saved profile and no login: mirrors `/public/chart-preview` (the same
+ * ephemeral, unpersisted chart computation Jadhagam Generator's dashboard
+ * tool already uses) so a parent can search for their child's name before
+ * that child has a birth profile at all. Unlike `getPublicBabyNames`, this
+ * DOES carry `alignment` on every candidate — an ephemeral chart still has a
+ * real lagna and real planetary strengths.
+ */
+export async function getPublicBabyNamesPreview(
+  payload: PublicBabyNamesPreviewRequest,
+): Promise<BabyNamesResponse> {
+  return getApiClient().post(
+    "/public/numerology/baby-names-preview",
+    payload,
+  ) as Promise<BabyNamesResponse>;
+}
+
+export interface ChartBabyNamesParams {
+  gender?: BabyNameGender;
+  mode?: BabyNameMode;
+  allowAmbiguous?: boolean;
+  allowTamilCollapse?: boolean;
+  limit?: number;
+}
+
+/**
+ * Baby names for the native's own birth (Moon) nakshatra-pada, ranked by pada
+ * match first and Fortune Alignment second — a number never overrides a
+ * graha (plan §9.1), so alignment only breaks ties within a pada tier.
+ */
+export async function getChartBabyNames(
+  chartId: string,
+  params: ChartBabyNamesParams = {},
+): Promise<BabyNamesResponse> {
+  return getApiClient().get(
+    `/charts/${encodeURIComponent(chartId)}/numerology/baby-names`,
+    { ...params },
+  ) as Promise<BabyNamesResponse>;
 }

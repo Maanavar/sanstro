@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import logging
 from datetime import date, time, timedelta
-from typing import Any
+from typing import Any, Literal
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 
 from app.calculations.astro import RASI_NAME_TO_NUMBER, RASI_NAMES, nakshatra_to_rasi
 from app.calculations.numerology import ScriptMismatchError, analyze_object, build_profile
+from app.calculations.numerology_naming import NamingMode, UnverifiedCanonError
 from app.calculations.porutham import compute_porutham
 from app.core.public_endpoint_limiter import public_endpoint_rate_limit
 from app.services.feature_flags import get_flag
@@ -30,18 +31,24 @@ from app.schemas.birth_profiles import _validate_birth_date_bounds  # noqa: PLC2
 from app.schemas.charts import ChartCalculateResponseData, ChartSummaryData
 from app.schemas.muhurtham_naal import MuhurthamNaalListResponse, item_from_view
 from app.schemas.numerology import (
+    BabyNamesResponse,
     NumerologyProfileRequest,
     NumerologyProfileResponse,
     ObjectNumberRequest,
     ObjectNumberResponse,
     PersonalCycleRequest,
     PersonalCycleResponse,
+    PublicBabyNameRequest,
 )
 from app.schemas.panchangam import PanchangamDailyQuery, PanchangamDailyResponse, PanchangamMonthlyQuery, PanchangamMonthlyResponse
 from app.schemas.dasha import DashaTimelineResponseData
 from app.schemas.relationships import DirectPoruthamData, KutaResult, NadiDoshaData, RelationshipBiText
 from app.services.chart_service import _chart_response_from_profile, get_chart_summary_from_snapshot  # noqa: PLC2701 (internal use)
 from app.services.dasha_service import get_chart_dasha_from_snapshot
+from app.services.numerology_naming_service import (
+    baby_names_for_birth_details,
+    baby_names_for_pada,
+)
 from app.services.numerology_timing_service import cycle_for
 from app.services.panchangam_service import build_monthly_panchangam, calculate_panchangam
 from app.services.synastry_service import compare_chart_snapshots_direct
@@ -1275,3 +1282,130 @@ def public_personal_year(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
         ) from exc
     return PersonalCycleResponse.from_cycle(cycle)
+
+
+# ── Baby naming (NUM-50/51/52) ──────────────────────────────────────────────
+#
+# Behind a SECOND flag on top of `numerology_engine` — `numerology_baby_naming`,
+# defaulting True as of 2026-07-30 (access-gating, on product direction; see
+# app/services/feature_flags.py). That flag does not by itself mean this is
+# reviewed: the nakshatra-pada canon this matches against is 0/108
+# astrologer-verified, and the name corpus (app/data/tamil_name_corpus.py) was
+# drafted by an assistant with zero rows reviewed. assert_canon_usable() is
+# the operative backstop and still raises outside dev/test regardless of
+# either flag.
+#
+# Two routes here. `POST /numerology/baby-names` takes a bare nakshatra+pada —
+# no chart, so no lagna, so `alignment` is null on every candidate.
+# `POST /numerology/baby-names-preview` is the primary path: raw birth
+# details, mirroring `/chart-preview`'s ephemeral (no-login, unpersisted)
+# chart computation, which DOES carry a real lagna — so it ranks by Fortune
+# Alignment same as the signed-in `/charts/{id}/numerology/baby-names` route
+# (app/api/numerology.py), just without needing a saved profile first.
+
+
+def _require_baby_naming_enabled() -> None:
+    if not bool(get_flag("numerology_baby_naming")):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not available.")
+
+
+@router.post("/numerology/baby-names", response_model=BabyNamesResponse)
+@public_endpoint_rate_limit("public_numerology")
+def public_baby_names(
+    payload: PublicBabyNameRequest,
+    request: Request,
+) -> BabyNamesResponse:
+    """Baby names for a bare nakshatra + pada — no chart, no alignment.
+
+    ``response.usable`` is False and ``response.canonVerified`` is False until
+    the pada canon and the name corpus have both cleared review — a client
+    must not render ``candidates`` as a recommendation until then.
+    """
+    _require_numerology_enabled()
+    _require_baby_naming_enabled()
+    try:
+        result = baby_names_for_pada(
+            payload.nakshatra_id,
+            payload.pada,
+            gender=payload.gender,
+            mode=NamingMode(payload.mode),
+            allow_ambiguous=payload.allow_ambiguous,
+            allow_tamil_collapse=payload.allow_tamil_collapse,
+            limit=payload.limit,
+        )
+    except UnverifiedCanonError as exc:
+        # Belt-and-braces backstop behind the two flags above — reachable only
+        # if both were flipped True against a still-unverified canon in a real
+        # environment.
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
+
+    return BabyNamesResponse.from_result(result)
+
+
+class PublicBabyNamesPreviewRequest(BaseModel):
+    """Raw birth details — the primary baby-naming input, since the person
+    this feature is for does not have a saved profile yet."""
+
+    birth: PublicBirthInput
+    gender: Literal["m", "f", "n"] | None = None
+    #: Scope ladder — see `app.calculations.numerology_naming.NamingMode`.
+    mode: Literal["pada_first", "pada_weighted", "rasi_wide", "open"] = "pada_first"
+    allow_ambiguous: bool = Field(alias="allowAmbiguous", default=False)
+    allow_tamil_collapse: bool = Field(alias="allowTamilCollapse", default=False)
+    limit: int = Field(default=20, ge=1, le=50)
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+@router.post("/numerology/baby-names-preview", response_model=BabyNamesResponse)
+@public_endpoint_rate_limit("public_numerology")
+def public_baby_names_preview(
+    payload: PublicBabyNamesPreviewRequest,
+    request: Request,
+) -> BabyNamesResponse:
+    """Baby names from raw birth details — no saved profile, no login.
+
+    Mirrors `/chart-preview`'s ephemeral-chart pattern exactly: the chart is
+    computed once, in memory, to read the Moon's nakshatra-pada and this
+    native's own lagna/strengths for Fortune Alignment, then discarded —
+    nothing here is persisted. This is the primary way to use baby naming,
+    because the person it is for does not have a saved chart to point at.
+
+    ``response.usable`` is False and ``response.canonVerified`` is False
+    until the pada canon and the name corpus have both cleared review — a
+    client must not render ``candidates`` as a recommendation until then.
+    """
+    _require_numerology_enabled()
+    _require_baby_naming_enabled()
+    profile = _EphemeralProfile(payload.birth)
+    try:
+        chart = _chart_response_from_profile(profile, "thirukanitham-2026-v1")
+    except (ValueError, HTTPException) as exc:
+        msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc
+
+    try:
+        result = baby_names_for_birth_details(
+            chart,
+            gender=payload.gender,
+            mode=NamingMode(payload.mode),
+            allow_ambiguous=payload.allow_ambiguous,
+            allow_tamil_collapse=payload.allow_tamil_collapse,
+            limit=payload.limit,
+        )
+    except UnverifiedCanonError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
+
+    return BabyNamesResponse.from_result(result)

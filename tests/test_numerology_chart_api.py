@@ -826,8 +826,15 @@ def test_personal_cycle_uses_the_charts_birth_date(client, enabled: None) -> Non
     assert body["year"]["governingYear"] == 2026
     assert body["year"]["cycleStart"] == "2026-07-22"
     assert body["year"]["cycleEnd"] == "2027-07-21"
-    assert body["month"]["total"] == 10
-    assert body["day"]["total"] == 28
+    # Month and day nest their arithmetic under ``reading``, alongside a
+    # ``meaning`` block held dark until the personal-year corpus clears review.
+    assert body["month"]["reading"]["total"] == 10
+    assert body["day"]["reading"]["total"] == 28
+    assert body["readingsAvailable"] is False
+    assert all(
+        body[level]["meaning"]["number"] == body[level]["reading"]["root"]
+        for level in ("year", "month", "day")
+    )
 
 
 def test_lucky_dates_reorder_muhurta_without_adding_or_removing(

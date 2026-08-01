@@ -39,11 +39,12 @@ fortune-teller, and it costs nothing.
 from __future__ import annotations
 
 from datetime import date, datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.calculations.display_names import planet_en, planet_ta
+from app.calculations.display_names import planet_en, planet_ta, rasi_en, rasi_ta
 from app.calculations.numerology import (
     NumberReading,
     NumerologyProfile,
@@ -72,6 +73,7 @@ from app.calculations.numerology_compatibility import (
 )
 from app.calculations.numerology_correction import RankedVariant
 from app.calculations.numerology_timing import DateNumerology, PersonalCycle
+from app.data.nakshatra_pada_akshara import is_production_ready
 from app.schemas.muhurta import MuhurtaSlot
 from app.schemas.muhurtham_naal import MuhurthamNaalMatchContext, MuhurthamNaalMatchItem
 from app.schemas.relationships import VALID_COMPATIBILITY_CONTEXTS, DirectPoruthamData
@@ -83,6 +85,13 @@ from app.services.numerology_name_session_service import (
 from app.services.numerology_name_session_service import (
     MAX_SESSIONS_PER_CHART,
     SavedNameReading,
+)
+from app.services.numerology_naming_service import ChartBabyNames, RankedNameCandidate
+from app.services.numerology_personal_year_content import (
+    content_is_renderable as py_content_is_renderable,
+)
+from app.services.numerology_personal_year_content import (
+    personal_year_meaning,
 )
 from app.services.numerology_service import readings_available
 
@@ -549,12 +558,73 @@ class FavourableNumbersResponse(BaseModel):
 # ---------------------------------------------------------------------------
 # Phase 4 — Time numerology (NUM-40..44)
 # ---------------------------------------------------------------------------
+class NumberReadingWithMeaning(BaseModel):
+    """A number reading paired with its personal year meaning (if available).
+
+    Used for month and day readings in personal cycle, which nest inside the
+    year. ``meaning`` is null when review is pending.
+    """
+
+    reading: NumberReadingOut
+    meaning: PersonalYearMeaningOut | None = None
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PersonalYearMeaningOut(BaseModel):
+    """Meaning and guidance for a personal year/month/day number (1-9).
+
+    Theme, action, and cautions for the energy of that year. All text is gated
+    behind the personal-year corpus's own review flag, so a client can
+    distinguish "meaning not available yet" (all fields null) from "no meaning
+    for this number" (would never happen, 1-9 all have entries).
+    """
+
+    number: int
+    theme_en: str | None = Field(alias="themeEn", default=None)
+    theme_ta: str | None = Field(alias="themeTa", default=None)
+    action_en: str | None = Field(alias="actionEn", default=None)
+    action_ta: str | None = Field(alias="actionTa", default=None)
+    watch_en: str | None = Field(alias="watchEn", default=None)
+    watch_ta: str | None = Field(alias="watchTa", default=None)
+    month_hint_en: str | None = Field(alias="monthHintEn", default=None)
+    month_hint_ta: str | None = Field(alias="monthHintTa", default=None)
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    @classmethod
+    def from_number(cls, number: int) -> PersonalYearMeaningOut | None:
+        """Load meaning for a number (1-9), gated by review flag."""
+        meaning = personal_year_meaning(number)
+        if not meaning:
+            return None
+        # Only populate fields if content is reviewed. Read through the
+        # function so a flip is picked up at request time — a snapshot of the
+        # constant taken at import would freeze the gate shut forever.
+        if not py_content_is_renderable():
+            return cls(number=number)
+        return cls(
+            number=number,
+            themeEn=meaning.theme_en,
+            themeTa=meaning.theme_ta,
+            actionEn=meaning.action_en,
+            actionTa=meaning.action_ta,
+            watchEn=meaning.watch_en,
+            watchTa=meaning.watch_ta,
+            monthHintEn=meaning.month_hint_en,
+            monthHintTa=meaning.month_hint_ta,
+        )
+
+
 class PersonalYearOut(BaseModel):
     """The personal year in force, with the boundaries it was derived from.
 
     ``cycleStart``/``cycleEnd`` are not decoration: the year rolls on a
     different day under each D1 epoch, and a number without its window cannot be
     checked. ``epoch`` says which convention produced it.
+
+    ``meaning`` carries the theme and guidance for this year's energy, null when
+    review is pending.
     """
 
     reading: NumberReadingOut
@@ -565,6 +635,7 @@ class PersonalYearOut(BaseModel):
     cycle_start: date = Field(alias="cycleStart")
     #: Inclusive last day of the cycle.
     cycle_end: date = Field(alias="cycleEnd")
+    meaning: PersonalYearMeaningOut | None = None
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -593,19 +664,32 @@ class PersonalCycleResponse(BaseModel):
     doctrinal — so the chart adds nothing to them. What the chart route adds is
     that the birth date comes from the jadhagam and Puthandu resolves at the
     native's own longitude rather than the Chennai reference point.
+
+    Each level carries its meaning (theme, action, watch-for), gated by the
+    personal-year corpus's review flag. A client uses ``readingsAvailable`` to
+    render an honest-absence note when meanings are pending review.
     """
 
     on_date: date = Field(alias="onDate")
     year: PersonalYearOut
-    month: NumberReadingOut
-    day: NumberReadingOut
+    month: NumberReadingWithMeaning
+    day: NumberReadingWithMeaning
     #: This was the ONE numerology response without it, and the omission had
     #: teeth: the cycle panel is the surface with the least self-evident output
     #: (three bare digits and three graha names), so it is the one where silence
     #: about the withheld prose reads as "this feature is broken" rather than
     #: "the words are in review". Every sibling response carries this and their
     #: clients render the honest-absence note from it.
-    readings_available: bool = Field(alias="readingsAvailable", default_factory=readings_available)
+    #:
+    #: Sourced from the *personal-year* gate, not the shared
+    #: ``readings_available()``: the only withheld text on this response is the
+    #: three ``meaning`` blocks, and the two corpora clear review separately. If
+    #: the root corpus flipped first this would claim readings are available
+    #: while every meaning field was still null — the exact broken-screen
+    #: reading the field exists to prevent, inverted.
+    readings_available: bool = Field(
+        alias="readingsAvailable", default_factory=py_content_is_renderable
+    )
     tradition_en: str = Field(alias="traditionEn", default=TRADITION_NOTE_EN)
     tradition_ta: str = Field(alias="traditionTa", default=TRADITION_NOTE_TA)
 
@@ -621,9 +705,16 @@ class PersonalCycleResponse(BaseModel):
                 governingYear=cycle.year.governing_year,
                 cycleStart=cycle.year.cycle_start,
                 cycleEnd=cycle.year.cycle_end,
+                meaning=PersonalYearMeaningOut.from_number(cycle.year.reading.root),
             ),
-            month=NumberReadingOut.from_reading(cycle.month),
-            day=NumberReadingOut.from_reading(cycle.day),
+            month=NumberReadingWithMeaning(
+                reading=NumberReadingOut.from_reading(cycle.month),
+                meaning=PersonalYearMeaningOut.from_number(cycle.month.root),
+            ),
+            day=NumberReadingWithMeaning(
+                reading=NumberReadingOut.from_reading(cycle.day),
+                meaning=PersonalYearMeaningOut.from_number(cycle.day.root),
+            ),
         )
 
 
@@ -1234,3 +1325,184 @@ class NameSessionsResponse(BaseModel):
             remainingSlots=max(0, MAX_SESSIONS_PER_CHART - len(rows)),
             calculationVersion=NAME_SESSION_CALCULATION_VERSION,
         )
+
+
+# ---------------------------------------------------------------------------
+# Baby naming (NUM-50/51/52) — Phase 5's other half.
+#
+# Two gates apply here that no other numerology response has to carry
+# together: `usable`/`canonVerified` (the pada canon this is matched against
+# is 0/108 astrologer-verified) and `meaningEn`/`meaningTa` routed through the
+# same `reviewed_prose` every other sentence in this file uses (the corpus
+# itself is assistant-drafted, zero rows reviewed). A client must never render
+# `candidates` as a recommendation unless `usable` is True — see
+# `app.services.numerology_naming_service.ChartBabyNames.usable`.
+# ---------------------------------------------------------------------------
+class BabyNameCandidateOut(BaseModel):
+    """One name matched to a nakshatra-pada, with its Chaldean reading and —
+    chart-scoped only — its Fortune Alignment.
+
+    `alignment` is null on the public (chart-less) path: no birth chart means
+    no lagna, so there is nothing to align against. Same asymmetry as
+    `FortuneAlignmentResponse` having no public counterpart.
+    """
+
+    tamil_form: str = Field(alias="tamilForm")
+    latin_spelling: str = Field(alias="latinSpelling")
+    meaning_en: str | None = Field(alias="meaningEn", default=None)
+    meaning_ta: str | None = Field(alias="meaningTa", default=None)
+    gender: str | None = None
+    #: "confirmed" | "tamil_only" | "latin_only" | "ambiguous"
+    confidence: str
+    #: Where this name's opening letter stands relative to the BIRTH paadham:
+    #: "on_paadham" | "same_natchathiram" | "same_rasi" | "other_paadham" |
+    #: "no_paadham". Every widened result must render this — without it a name
+    #: the parent asked to also see is indistinguishable from one the
+    #: tradition chose, which is the whole point of offering the wider scopes.
+    relation: str
+    #: The paadham this name's letter DOES open — null only when it opens
+    #: none of the 108. The star names are carried so a client can say
+    #: "ஆ opens Kaarthigai paadham 1" without a lookup table of its own.
+    nakshatra_id: int | None = Field(alias="nakshatraId", default=None)
+    pada: int | None = None
+    nakshatra_ta: str | None = Field(alias="nakshatraTa", default=None)
+    nakshatra_en: str | None = Field(alias="nakshatraEn", default=None)
+    akshara_ta: str | None = Field(alias="aksharaTa", default=None)
+    reading: NumberReadingOut
+    alignment: NumberAlignmentOut | None = None
+    #: Provenance notes from the matcher — e.g. draft-canon or
+    #: tamil_collapse warnings. Not interpretive copy, so not gated.
+    warnings: list[str] = Field(default_factory=list)
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    @classmethod
+    def from_ranked(cls, ranked: RankedNameCandidate) -> BabyNameCandidateOut:
+        return cls(
+            tamilForm=ranked.candidate.tamil_form,
+            latinSpelling=ranked.matched_spelling,
+            meaningEn=reviewed_prose(ranked.candidate.meaning_en),
+            meaningTa=reviewed_prose(ranked.candidate.meaning_ta),
+            gender=ranked.candidate.gender,
+            confidence=ranked.confidence.value,
+            relation=ranked.relation.value,
+            nakshatraId=ranked.row_nakshatra_id,
+            pada=ranked.row_pada,
+            nakshatraTa=ranked.row_nakshatra_ta,
+            nakshatraEn=ranked.row_nakshatra_en,
+            aksharaTa=ranked.row_akshara_ta,
+            reading=NumberReadingOut.from_reading(ranked.reading),
+            alignment=(
+                NumberAlignmentOut.from_alignment(ranked.alignment) if ranked.alignment else None
+            ),
+            warnings=list(ranked.warnings),
+        )
+
+
+class BabyNamesResponse(BaseModel):
+    """Pada-matched name candidates for one nakshatra + pada.
+
+    `usable` is the single render gate (mirrors
+    `numerology_naming.NamingResult.usable`): False whenever the target row is
+    draft canon, the search came back empty, or a `tamil_collapse` row was
+    gated. `canonVerified` is the same fact restated at the table level (all
+    108 rows, not just this one) so a client can show "draft" chrome even on a
+    request that happens to hit an already-verified row in the future.
+    """
+
+    target_nakshatra_id: int = Field(alias="targetNakshatraId")
+    #: Tamil almanac naming — "Uthiradam"/உத்திராடம், which is what a Tamil
+    #: reader calls the star. `targetNakshatraSanskrit` ("Uttara Ashadha") is
+    #: reference only; rendering it to a Tamil audience is the bug this field
+    #: split fixes.
+    target_nakshatra_ta: str = Field(alias="targetNakshatraTa")
+    target_nakshatra_en: str = Field(alias="targetNakshatraEn")
+    target_nakshatra_sanskrit: str = Field(alias="targetNakshatraSanskrit")
+    target_pada: int = Field(alias="targetPada")
+    #: The opening letter this paadham calls for — ஜா / "Ja". The one fact the
+    #: whole tradition turns on, and the only thing that makes an empty result
+    #: intelligible ("no name in the list begins with ஜா").
+    target_akshara_ta: str = Field(alias="targetAksharaTa")
+    target_akshara_en: str = Field(alias="targetAksharaEn")
+    #: The Moon rasi containing this paadham — the scope one rung wider than
+    #: the star. Named, not just numbered, for the same reason `lagnaRasi` is:
+    #: "Makaram" is actionable copy, "10" is not.
+    target_rasi: int = Field(alias="targetRasi")
+    target_rasi_en: str | None = Field(alias="targetRasiEn", default=None)
+    target_rasi_ta: str | None = Field(alias="targetRasiTa", default=None)
+    #: The scope rung this search ran at, echoed back:
+    #: "pada_first" | "pada_weighted" | "rasi_wide" | "open". Clients explain
+    #: the CHOSEN rule from this, which is not the same question as
+    #: `relaxationsApplied` (what the search had to do to find anything).
+    mode: str = "pada_first"
+    candidates: list[BabyNameCandidateOut]
+    relaxations_applied: list[str] = Field(alias="relaxationsApplied", default_factory=list)
+    usable: bool
+    #: Developer sentence with counts and aksharas interpolated in. NOT UI copy
+    #: and not translatable — clients render `emptyReasonCode` instead. This
+    #: field reached users verbatim ("pada gated on unresolved tamil_collapse
+    #: rule") until 2026-07-31.
+    empty_reason: str | None = Field(alias="emptyReason", default=None)
+    #: "pool_empty" | "collapse_gated" | "no_candidate_fits"
+    empty_reason_code: str | None = Field(alias="emptyReasonCode", default=None)
+    #: True only once every one of the 108 pada rows has astrologer sign-off.
+    #: False today — see `app.data.nakshatra_pada_akshara.is_production_ready`.
+    canon_verified: bool = Field(alias="canonVerified", default_factory=is_production_ready)
+    #: Null on the public (chart-less) path. The number is kept for clients
+    #: that compute with it; the two name fields exist because "Lagna 12" is
+    #: not something a reader can act on, and both surfaces were printing it.
+    lagna_rasi: int | None = Field(alias="lagnaRasi", default=None)
+    lagna_rasi_en: str | None = Field(alias="lagnaRasiEn", default=None)
+    lagna_rasi_ta: str | None = Field(alias="lagnaRasiTa", default=None)
+    readings_available: bool = Field(alias="readingsAvailable", default_factory=readings_available)
+    calculation_version: str = Field(alias="calculationVersion")
+    tradition_en: str = Field(alias="traditionEn", default=TRADITION_NOTE_EN)
+    tradition_ta: str = Field(alias="traditionTa", default=TRADITION_NOTE_TA)
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    @classmethod
+    def from_result(cls, result: ChartBabyNames) -> BabyNamesResponse:
+        return cls(
+            targetNakshatraId=result.target_nakshatra_id,
+            targetNakshatraTa=result.target_nakshatra_ta,
+            targetNakshatraEn=result.target_nakshatra_en,
+            targetNakshatraSanskrit=result.target_nakshatra_sanskrit,
+            targetPada=result.target_pada,
+            targetAksharaTa=result.target_akshara_ta,
+            targetAksharaEn=result.target_akshara_en,
+            targetRasi=result.target_rasi,
+            targetRasiEn=rasi_en(result.target_rasi),
+            targetRasiTa=rasi_ta(result.target_rasi),
+            mode=result.mode,
+            candidates=[BabyNameCandidateOut.from_ranked(m) for m in result.matches],
+            relaxationsApplied=list(result.relaxations_applied),
+            usable=result.usable,
+            emptyReason=result.empty_reason,
+            emptyReasonCode=(
+                result.empty_reason_code.value if result.empty_reason_code else None
+            ),
+            lagnaRasi=result.lagna_rasi,
+            lagnaRasiEn=rasi_en(result.lagna_rasi),
+            lagnaRasiTa=rasi_ta(result.lagna_rasi),
+            calculationVersion=result.calculation_version,
+        )
+
+
+class PublicBabyNameRequest(BaseModel):
+    """Bare nakshatra + pada — the public path has no chart to read them from."""
+
+    nakshatra_id: int = Field(alias="nakshatraId", ge=1, le=27)
+    pada: int = Field(ge=1, le=4)
+    gender: Literal["m", "f", "n"] | None = None
+    #: How far past this paadham's own letter the search may reach. A ladder:
+    #: each rung admits everything the one before it does. See
+    #: `app.calculations.numerology_naming.NamingMode`.
+    mode: Literal["pada_first", "pada_weighted", "rasi_wide", "open"] = "pada_first"
+    #: Withhold candidates whose only evidence is a lossy script.
+    allow_ambiguous: bool = Field(alias="allowAmbiguous", default=False)
+    #: Withhold rows whose Tamil letter is shared across Sanskrit consonants.
+    allow_tamil_collapse: bool = Field(alias="allowTamilCollapse", default=False)
+    limit: int = Field(default=20, ge=1, le=50)
+
+    model_config = ConfigDict(populate_by_name=True)
