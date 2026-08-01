@@ -45,6 +45,8 @@ export const NAV = {
   tool_rasipalan_desc: s("Today's horoscope by rasi", "இன்றைய ராசி பலன்"),
   tool_numerology:      s("Numerology Calculator", "எண் கணிதக் கருவி"),
   tool_numerology_desc: s("Chaldean numbers from name & DOB", "பெயர் & பிறந்த தேதியிலிருந்து எண்கள்"),
+  tool_baby_names:      s("Baby Name Finder", "பெயர் தேடல்"),
+  tool_baby_names_desc: s("Nakshatra-pada names (draft)", "நட்சத்திர பாத பெயர்கள் (வரைவு)"),
 
   lang_toggle_en: s("EN", "EN"),
   lang_toggle_ta: s("தமிழ்", "தமிழ்"),
@@ -92,6 +94,7 @@ export const FOOTER = {
   tool_btr:      s("Birth Time Rectification","பிறப்பு நேர திருத்தம்"),
   tool_rasipalan: s("Indraiya Rasipalan",     "இன்றைய ராசிபலன்"),
   tool_numerology: s("Numerology Calculator", "எண் கணிதக் கருவி"),
+  tool_baby_names: s("Baby Name Finder",      "பெயர் தேடல்"),
 
   learn_porutham:  s("What is Porutham?",         "பொருத்தம் என்றால் என்ன?"),
   learn_thiruk:    s("What is Thirukanitham?",     "திருக்கணிதம் என்றால் என்ன?"),

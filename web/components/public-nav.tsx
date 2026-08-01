@@ -78,6 +78,7 @@ export function PublicNav() {
     { href: "/tools/birth-time-rectification",     label: mt(NAV.tool_btr,      lang), desc: mt(NAV.tool_btr_desc,      lang) },
     { href: "/tools/indraiya-rasipalan",           label: mt(NAV.tool_rasipalan, lang), desc: mt(NAV.tool_rasipalan_desc, lang) },
     { href: "/tools/numerology-calculator",        label: mt(NAV.tool_numerology, lang), desc: mt(NAV.tool_numerology_desc, lang) },
+    { href: "/tools/baby-name-finder",             label: mt(NAV.tool_baby_names, lang), desc: mt(NAV.tool_baby_names_desc, lang) },
   ];
 
   const GUIDE = [
