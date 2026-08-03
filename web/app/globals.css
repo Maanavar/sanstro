@@ -5920,6 +5920,74 @@ button:focus-visible,
 .cl-num-reading__relation--high { color: var(--cl-sage); }
 .cl-num-reading__relation--mid { color: var(--cl-accent); }
 .cl-num-reading__relation--neutral { color: var(--cl-muted-2); }
+/* The set-aside call. Deliberately the accent, not a red: this is advice
+   about a SPELLING that a different spelling usually clears, not a warning
+   about the child or the name.
+
+   Drawn as a bordered pill because it sits immediately after the relation
+   tag, which is the same colour and weight — as bare text the two ran
+   together and "Your natchathiram   I'd set this spelling aside" read as one
+   phrase. Same failure this card has had twice before: two adjacent labels
+   fuse into a single claim unless something separates them. */
+.cl-num-reading__relation--warn {
+  color: var(--cl-accent);
+  border: 1px solid var(--cl-border-2);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-weight: 600;
+}
+/* Two tags sit on one row; `--relation` is `display:block` on its own. */
+.cl-num-reading__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-bottom: 4px;
+}
+.cl-num-reading__tags .cl-num-reading__relation { margin-bottom: 0; }
+
+/* ── One heading per letter rule ───────────────────────────────────────────
+ *
+ * The list is ordered by which rule admitted a name (doctrine D2), then by
+ * chart fit only within that. Rendered flat, it reads as one ranking by
+ * merit and a 59 above an 85 looks like a bug — which is exactly how it was
+ * read, twice. The heading is the ordering explanation, made structural.
+ *
+ * Sits OUTSIDE `.cl-num-results`: that is a two-column grid and every direct
+ * child becomes a cell, so each group carries its own grid instead.
+ */
+.cl-num-namegroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 28px;
+}
+.cl-num-namegroup:first-of-type { margin-top: 0; }
+.cl-num-namegroup__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+.cl-num-namegroup__title {
+  margin: 0;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cl-ink);
+}
+.cl-num-namegroup__count {
+  font-size: 0.75rem;
+  color: var(--cl-muted-2);
+}
+.cl-num-namegroup__advice {
+  margin: 0 0 6px;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--cl-muted);
+  max-width: 68ch;
+}
 
 /* ── The compound, as a peer of the root ───────────────────────────────────
  *

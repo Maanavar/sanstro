@@ -344,6 +344,28 @@ export function adviseAgainstNote(
 }
 
 /**
+ * The same call without the functional-nature term.
+ *
+ * For surfaces that carry no functional-nature vocabulary of their own — the
+ * public tool page shows a verdict and a score but not the five-step
+ * derivation, so "Maraka lord" would arrive there unexplained. It stays
+ * accurate without it: `adviseAgainst` can only be true for a non-benefic
+ * lordship that is ALSO misaligned, so both clauses below hold by
+ * construction.
+ *
+ * Deliberately NOT solved by importing `NATURE_LABEL` from
+ * `dashboard-numerology-shared.tsx` — that module pulls dashboard chrome into
+ * a marketing bundle, and this page already keeps its own `VERDICT_LABEL`
+ * copy for the same reason. Consolidating those two maps into a neutral
+ * module is worth doing, and is not this change.
+ */
+export function adviseAgainstShort(grahaName: string, ta: boolean): string {
+  return ta
+    ? `இந்தச் சொற்பொருள் எண் ${grahaName}-க்குரியது; இந்த ஜாதகத்தில் ${grahaName} ஆதரவான பொறுப்பில் இல்லை, பொருத்தமும் குறைவு. பெயரை அல்ல, இந்த எழுத்துக்கோர்வையை மாற்றிப் பாருங்கள்.`
+    : `This spelling's number belongs to ${grahaName}, which does not hold a supportive role in this chart, and the fit is low as well. It is the spelling to reconsider, not the name.`;
+}
+
+/**
  * Why the parent's own name can sit lower than its score suggests.
  *
  * Shown only on a shortlist card whose relation is not `on_paadham`. The

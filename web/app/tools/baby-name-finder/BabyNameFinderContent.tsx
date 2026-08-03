@@ -25,9 +25,15 @@ import {
   MEANINGS_WITHHELD,
   MUST_IT_BEGIN_A,
   MUST_IT_BEGIN_Q,
+  ADVISE_AGAINST_CHIP,
+  GROUP_ADVICE,
+  GROUP_HEADING,
   ORDER_EXPLAINER,
   RELATION_CHIP,
   RELATION_TONE,
+  WITHIN_GROUP_ORDER,
+  adviseAgainstShort,
+  groupByRelation,
   SCOPE_LABEL,
   SCOPE_ORDER,
   SCOPE_REVIEW_NOTE,
@@ -573,18 +579,50 @@ function ResultBlock({ result, ta }: { result: BabyNamesResponse; ta: boolean })
         ) : null}
       </div>
 
-      {result.candidates.length > 0 ? (
-        <div className="cl-num-results">
-          {result.candidates.map((c, i) => (
-            <NameCard
-              key={`${c.tamilForm}-${i}`}
-              candidate={c}
-              rasiName={ta ? result.targetRasiTa : result.targetRasiEn}
-              ta={ta}
-            />
-          ))}
-        </div>
-      ) : null}
+      {/* Grouped by letter rule, in doctrine D2 order.
+       *
+       * A flat list asserts one ranking by merit, and this list is not one: a
+       * name opening this paadham's own letter outranks a better-scoring name
+       * that does not, because the akshara decides who is eligible and the
+       * number only orders within that. A parent read the dashboard's flat
+       * version twice and twice asked why a 59 sat above an 85. The heading
+       * is the answer, and it has to be structural — no paragraph above a
+       * list survives the list.
+       *
+       * The heading sits OUTSIDE `.cl-num-results`, which is a two-column
+       * grid whose every DIRECT child becomes a cell — the whole result was
+       * once wrapped in it and half the page turned to dead space. Only
+       * `.cl-num-reading` cards may be direct children, so each group gets
+       * its own grid. */}
+      {result.candidates.length > 0
+        ? groupByRelation(result.candidates).map((group) => (
+            <div className="cl-num-namegroup" key={group.relation}>
+              <div className="cl-num-namegroup__head">
+                <h3 className="cl-num-namegroup__title">
+                  {pick(GROUP_HEADING[group.relation], ta)}
+                  {group.relation === "on_paadham" ? ` · ${result.targetAksharaTa}` : null}
+                </h3>
+                <span className="cl-num-namegroup__count">
+                  {group.items.length}
+                  {ta ? " பெயர்" : group.items.length === 1 ? " name" : " names"}
+                  {" · "}
+                  {pick(WITHIN_GROUP_ORDER, ta)}
+                </span>
+              </div>
+              <p className="cl-num-namegroup__advice">{pick(GROUP_ADVICE[group.relation], ta)}</p>
+              <div className="cl-num-results">
+                {group.items.map((c, i) => (
+                  <NameCard
+                    key={`${c.latinSpelling}-${i}`}
+                    candidate={c}
+                    rasiName={ta ? result.targetRasiTa : result.targetRasiEn}
+                    ta={ta}
+                  />
+                ))}
+              </div>
+            </div>
+          ))
+        : null}
 
       <div className="cl-num-babynames__foot">
         {!result.readingsAvailable ? (
@@ -617,8 +655,19 @@ function NameCard({
   const relation = relationNote(candidate, rasiName, ta);
   return (
     <div className="cl-num-reading">
-      <span className={`cl-num-reading__relation cl-num-reading__relation--${RELATION_TONE[candidate.relation]}`}>
-        {pick(RELATION_CHIP[candidate.relation], ta)}
+      <span className="cl-num-reading__tags">
+        <span className={`cl-num-reading__relation cl-num-reading__relation--${RELATION_TONE[candidate.relation]}`}>
+          {pick(RELATION_CHIP[candidate.relation], ta)}
+        </span>
+        {/* The one negative call this tool makes — from
+            `should_advise_name_change`, the same guard Fortune Alignment uses.
+            A benefic lordship can never trip it, so "8 is unlucky" cannot
+            reach a parent through this. */}
+        {candidate.adviseAgainst ? (
+          <span className="cl-num-reading__relation cl-num-reading__relation--warn">
+            {pick(ADVISE_AGAINST_CHIP, ta)}
+          </span>
+        ) : null}
       </span>
       <div className="cl-num-reading__head">
         <span className="cl-num-reading__label">{candidate.tamilForm}</span>
@@ -645,6 +694,11 @@ function NameCard({
         <p className="cl-num-babynames__verdict">
           <span>{ta ? verdict.ta : verdict.en}</span>
           <span className="cl-num-babynames__score">{Math.round(candidate.alignment.score)}</span>
+        </p>
+      ) : null}
+      {candidate.adviseAgainst ? (
+        <p className="cl-num-note" style={{ margin: 0 }}>
+          {adviseAgainstShort(ta ? candidate.reading.grahaTa : candidate.reading.grahaEn, ta)}
         </p>
       ) : null}
       {candidate.meaningEn || candidate.meaningTa ? (
