@@ -11,25 +11,36 @@ import {
   type BabyNamesResponse,
 } from "@vinaadi/shared/api/numerology";
 import {
+  ADVISE_AGAINST_CHIP,
   CONFIDENCE_CHIP,
   CONFIDENCE_TONE,
   DRAFT_BANNER,
+  GROUP_ADVICE,
+  GROUP_HEADING,
+  ORDER_EXPLAINER,
+  WITHIN_GROUP_ORDER,
+  adviseAgainstNote,
   aksharaSubLine,
   contextLine,
   emptyMessage,
+  groupByRelation,
   pick,
   relaxationSentence,
 } from "@/lib/baby-name-copy";
 
 import {
   BabyNamePaadhamHeader,
+  BabyNameRowSummary,
   NumberReadingCard,
   NumerologyError,
   NumerologyLoading,
   NumerologyUnavailable,
   ReadingsWithheldNote,
   TraditionNote,
+  grahaLabel,
   isNumerologyUnavailable,
+  natureLabel,
+  oneLineWhy,
 } from "./dashboard-numerology-shared";
 import { Card } from "./ui/card";
 import { Chip } from "./ui/chip";
@@ -68,8 +79,6 @@ export function NumerologyBabyNamesSection({ lang, chartId }: Props) {
 
   const [gender, setGender] = useState<GenderFilter>("any");
   const [mode, setMode] = useState<BabyNameMode>("pada_first");
-  const [allowAmbiguous, setAllowAmbiguous] = useState(false);
-  const [allowTamilCollapse, setAllowTamilCollapse] = useState(false);
 
   const [data, setData] = useState<BabyNamesResponse | null>(null);
   const [phase, setPhase] = useState<"loading" | "ready" | "error" | "unavailable">("loading");
@@ -81,8 +90,6 @@ export function NumerologyBabyNamesSection({ lang, chartId }: Props) {
     getChartBabyNames(chartId, {
       gender: gender === "any" ? undefined : gender,
       mode,
-      allowAmbiguous,
-      allowTamilCollapse,
     })
       .then((res) => {
         setData(res);
@@ -96,7 +103,7 @@ export function NumerologyBabyNamesSection({ lang, chartId }: Props) {
         setError(readErrorMessage(err));
         setPhase("error");
       });
-  }, [chartId, gender, mode, allowAmbiguous, allowTamilCollapse]);
+  }, [chartId, gender, mode]);
 
   useEffect(() => {
     load();
@@ -146,18 +153,9 @@ export function NumerologyBabyNamesSection({ lang, chartId }: Props) {
                 },
               ]}
             />
-            <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "var(--color-muted)" }}>
-              <input type="checkbox" checked={allowAmbiguous} onChange={(e) => setAllowAmbiguous(e.target.checked)} />
-              {isTamil
-                ? "ஏறத்தாழப் பொருந்தும் பெயர்களையும் காட்டு"
-                : "Also show close matches"}
-            </label>
-            <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "var(--color-muted)" }}>
-              <input type="checkbox" checked={allowTamilCollapse} onChange={(e) => setAllowTamilCollapse(e.target.checked)} />
-              {isTamil
-                ? "ஒரே தமிழ் எழுத்து பல ஒலிகளைக் குறிக்கும்போது, ஒரு எழுத்து முறையில் மட்டும் பொருந்தும் பெயர்களையும் சேர்"
-                : "Where one Tamil letter stands for several sounds, also include names only one spelling confirms"}
-            </label>
+            {/* Two script-evidence checkboxes stood here until 2026-08-02.
+                Cut as dead controls — see the note in
+                `web/app/tools/baby-name-finder/BabyNameFinderContent.tsx`. */}
           </div>
         </details>
       </div>
@@ -201,6 +199,9 @@ export function NumerologyBabyNamesSection({ lang, chartId }: Props) {
             {/* Unconditional, per the file header — usable reads false for
                 every response today, and that is the state to design for. */}
             <p style={{ margin: 0 }}>{pick(DRAFT_BANNER, isTamil)}</p>
+            {data.candidates.length > 0 ? (
+              <p style={{ margin: 0 }}>{pick(ORDER_EXPLAINER, isTamil)}</p>
+            ) : null}
             {relaxationSentence(data.relaxationsApplied, isTamil) ? (
               <p style={{ margin: 0 }}>{relaxationSentence(data.relaxationsApplied, isTamil)}</p>
             ) : null}
@@ -212,22 +213,91 @@ export function NumerologyBabyNamesSection({ lang, chartId }: Props) {
           </div>
 
           {data.candidates.length === 0 ? null : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-              {data.candidates.map((c, i) => (
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
+              {groupByRelation(data.candidates).map((group) => (
+                <div
+                  key={group.relation}
+                  style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}
+                >
+                  {/* Heading per letter rule, in doctrine D2 order — the
+                      ordering explanation, made structural. Kept identical to
+                      `dashboard-tools-baby-names-nova.tsx`; these two surfaces
+                      have drifted apart before. */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                    <div style={{ display: "flex", flexDirection: "row", alignItems: "baseline", gap: "var(--space-2)", flexWrap: "wrap" }}>
+                      <span
+                        style={{
+                          fontSize: "var(--text-xs)",
+                          fontWeight: 700,
+                          color: "var(--color-text-strong)",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.06em",
+                        }}
+                      >
+                        {pick(GROUP_HEADING[group.relation], isTamil)}
+                        {group.relation === "on_paadham" ? ` · ${data.targetAksharaTa}` : null}
+                      </span>
+                      <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
+                        {group.items.length}
+                        {isTamil ? " பெயர்" : group.items.length === 1 ? " name" : " names"}
+                        {" · "}
+                        {pick(WITHIN_GROUP_ORDER, isTamil)}
+                      </span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.55 }}>
+                      {pick(GROUP_ADVICE[group.relation], isTamil)}
+                    </p>
+                  </div>
+
+                  {group.items.map((c, i) => (
                 <NumberReadingCard
-                  key={`${c.tamilForm}-${i}`}
+                  key={`${c.latinSpelling}-${i}`}
                   reading={c.reading}
-                  label={c.tamilForm}
+                  label={c.tamilForm || c.latinSpelling}
                   lang={lang}
                   scoredFrom={c.latinSpelling}
                   alignment={c.alignment}
-                  hint={c.meaningEn || c.meaningTa ? (isTamil ? c.meaningTa : c.meaningEn) : null}
-                  trailing={
+                  // This chart is the CHILD's, not the reader's; Cheiro's
+                  // compound register beside a 0-100 chart score read as a
+                  // contradicting second verdict; and one collapsed row per
+                  // name replaces a full derivation per name.
+                  subject="child"
+                  showCompound={false}
+                  collapsedSummary={
+                    <BabyNameRowSummary
+                      name={c.tamilForm || c.latinSpelling}
+                      lang={lang}
+                      score={c.alignment ? Math.round(c.alignment.score) : null}
+                      oneLine={c.alignment ? oneLineWhy(c.alignment, lang) : null}
+                      chips={
+                        c.adviseAgainst ? (
+                          <Chip tone="mid">{pick(ADVISE_AGAINST_CHIP, isTamil)}</Chip>
+                        ) : null
+                      }
+                    />
+                  }
+                  hint={
+                    [
+                      c.meaningEn || c.meaningTa ? (isTamil ? c.meaningTa : c.meaningEn) : null,
+                      c.adviseAgainst && c.alignment
+                        ? adviseAgainstNote(
+                            grahaLabel(c.alignment, lang),
+                            natureLabel(c.alignment.functionalNature, lang),
+                            isTamil,
+                          )
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" ") || null
+                  }
+                  scoredFromBadge={
                     <Chip tone={CONFIDENCE_TONE[c.confidence]}>
                       {pick(CONFIDENCE_CHIP[c.confidence], isTamil)}
                     </Chip>
                   }
                 />
+                  ))}
+                </div>
               ))}
             </div>
           )}

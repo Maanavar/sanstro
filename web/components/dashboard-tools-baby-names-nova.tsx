@@ -13,33 +13,47 @@ import {
   type BabyNamesResponse,
 } from "@vinaadi/shared/api/numerology";
 import {
+  ADVISE_AGAINST_CHIP,
   CONFIDENCE_CHIP,
   CONFIDENCE_TONE,
   DRAFT_BANNER,
+  GROUP_ADVICE,
+  GROUP_HEADING,
   MUST_IT_BEGIN_A,
   MUST_IT_BEGIN_Q,
-  RELATION_CHIP,
-  RELATION_TONE,
+  ORDER_EXPLAINER,
   SCOPE_LABEL,
   SCOPE_ORDER,
   SCOPE_REVIEW_NOTE,
   SCOPE_SUMMARY,
+  SHORTLIST_HEADING,
+  SHORTLIST_INTRO,
+  WITHIN_GROUP_ORDER,
+  YOUR_PICK_ALSO_RECOMMENDED,
+  YOUR_PICK_CHIP,
+  adviseAgainstNote,
   aksharaSubLine,
   contextLine,
   emptyMessage,
+  groupByRelation,
   pick,
   relationNote,
   relaxationSentence,
   scopeExplainer,
+  shortlistPlaceholder,
 } from "@/lib/baby-name-copy";
 
 import {
   BabyNamePaadhamHeader,
+  BabyNameRowSummary,
   NumberReadingCard,
   NumerologyError,
   NumerologyLoading,
   ReadingsWithheldNote,
   TraditionNote,
+  grahaLabel,
+  natureLabel,
+  oneLineWhy,
 } from "./dashboard-numerology-shared";
 import { PlaceCombobox } from "./place-combobox";
 import { Button } from "./ui/button";
@@ -103,15 +117,19 @@ const EMPTY_FORM: BirthForm = {
   birthTimezone: "Asia/Kolkata",
 };
 
+//: How many of a parent's own candidate names can be checked in one search —
+//: mirrors `MAX_USER_NAMES` in `app/services/numerology_naming_service.py`.
+const MAX_USER_NAMES = 5;
+const EMPTY_USER_NAMES: string[] = Array.from({ length: MAX_USER_NAMES }, () => "");
+
 export function DashboardBabyNamesTool({ lang }: Props) {
   const isTamil = lang === "ta";
   const { applyPlaceSelection } = useBirthProfileForm();
 
   const [form, setForm] = useState<BirthForm>(EMPTY_FORM);
+  const [userNames, setUserNames] = useState<string[]>(EMPTY_USER_NAMES);
   const [gender, setGender] = useState<GenderFilter>("any");
   const [mode, setMode] = useState<BabyNameMode>("pada_first");
-  const [allowAmbiguous, setAllowAmbiguous] = useState(false);
-  const [allowTamilCollapse, setAllowTamilCollapse] = useState(false);
 
   const [result, setResult] = useState<BabyNamesResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -142,8 +160,7 @@ export function DashboardBabyNamesTool({ lang }: Props) {
       },
       gender: gender === "any" ? undefined : gender,
       mode,
-      allowAmbiguous,
-      allowTamilCollapse,
+      userNames: userNames.map((n) => n.trim()).filter(Boolean),
     })
       .then(setResult)
       .catch((err: unknown) => setError(readErrorMessage(err)))
@@ -159,7 +176,7 @@ export function DashboardBabyNamesTool({ lang }: Props) {
     if (!hasSearched.current) return;
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gender, mode, allowAmbiguous, allowTamilCollapse]);
+  }, [gender, mode]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
@@ -204,6 +221,35 @@ export function DashboardBabyNamesTool({ lang }: Props) {
           </Field>
         </div>
 
+        {/* A parent's own shortlist — checked against the SAME paadham rule
+            and chart fit as the recommendations below, and shown at its true
+            place in that list (never a separate one). English spelling only. */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+          <div>
+            <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-text-strong)", fontWeight: 600 }}>
+              {pick(SHORTLIST_HEADING, isTamil)}
+            </p>
+            <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.55 }}>
+              {pick(SHORTLIST_INTRO, isTamil)}
+            </p>
+          </div>
+          <div className="nova-grid-2" style={{ gap: "var(--space-2)" }}>
+            {userNames.map((name, i) => (
+              <Input
+                // eslint-disable-next-line react/no-array-index-key
+                key={i}
+                value={name}
+                onChange={(e) =>
+                  setUserNames((prev) => prev.map((v, idx) => (idx === i ? e.target.value : v)))
+                }
+                placeholder={shortlistPlaceholder(i, isTamil)}
+                autoComplete="off"
+                maxLength={120}
+              />
+            ))}
+          </div>
+        </div>
+
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
           <Segmented
             ariaLabel={isTamil ? "பாலினம்" : "Gender"}
@@ -246,26 +292,11 @@ export function DashboardBabyNamesTool({ lang }: Props) {
               </p>
             </details>
           </div>
-
-          <details className="num-calc-details">
-            <summary style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", cursor: "pointer" }}>
-              {isTamil ? "மேலும் விருப்பங்கள்" : "More options"}
-            </summary>
-            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", paddingTop: "var(--space-2)" }}>
-              <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "var(--color-muted)" }}>
-                <input type="checkbox" checked={allowAmbiguous} onChange={(e) => setAllowAmbiguous(e.target.checked)} />
-                {isTamil
-                  ? "ஏறத்தாழப் பொருந்தும் பெயர்களையும் காட்டு"
-                  : "Also show close matches"}
-              </label>
-              <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--text-xs)", color: "var(--color-muted)" }}>
-                <input type="checkbox" checked={allowTamilCollapse} onChange={(e) => setAllowTamilCollapse(e.target.checked)} />
-                {isTamil
-                  ? "ஒரே தமிழ் எழுத்து பல ஒலிகளைக் குறிக்கும்போது, ஒரு எழுத்து முறையில் மட்டும் பொருந்தும் பெயர்களையும் சேர்"
-                  : "Where one Tamil letter stands for several sounds, also include names only one spelling confirms"}
-              </label>
-            </div>
-          </details>
+          {/* A "More options" disclosure with two script-evidence checkboxes
+              stood here until 2026-08-02. Cut as dead controls — see the note
+              in `web/app/tools/baby-name-finder/BabyNameFinderContent.tsx`
+              for the measurement. The scope ladder above is the widening
+              control; it moves results in every search. */}
         </div>
 
         <div>
@@ -336,6 +367,9 @@ export function DashboardBabyNamesTool({ lang }: Props) {
                 false for every result today, and that is the state to design
                 for, not an error. */}
             <p style={{ margin: 0 }}>{pick(DRAFT_BANNER, isTamil)}</p>
+            {result.candidates.length > 0 ? (
+              <p style={{ margin: 0 }}>{pick(ORDER_EXPLAINER, isTamil)}</p>
+            ) : null}
             {relaxationSentence(result.relaxationsApplied, isTamil) ? (
               <p style={{ margin: 0 }}>{relaxationSentence(result.relaxationsApplied, isTamil)}</p>
             ) : null}
@@ -352,42 +386,142 @@ export function DashboardBabyNamesTool({ lang }: Props) {
           </div>
 
           {result.candidates.length === 0 ? null : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-              {result.candidates.map((c, i) => {
-                // Null for an on-paadham name. Once the scope widens, a name
-                // from a neighbouring star sits on the same page as one the
-                // paadham actually calls for — without this the two are
-                // indistinguishable, and the tool would be passing off a name
-                // it reached for as one the tradition chose.
-                const relation = relationNote(
-                  c,
-                  isTamil ? result.targetRasiTa : result.targetRasiEn,
-                  isTamil,
-                );
-                const meaning =
-                  c.meaningEn || c.meaningTa ? (isTamil ? c.meaningTa : c.meaningEn) : null;
-                return (
-                  <NumberReadingCard
-                    key={`${c.tamilForm}-${i}`}
-                    reading={c.reading}
-                    label={c.tamilForm}
-                    lang={lang}
-                    scoredFrom={c.latinSpelling}
-                    alignment={c.alignment}
-                    hint={[relation, meaning].filter(Boolean).join(" ") || null}
-                    trailing={
-                      <span style={{ display: "flex", gap: "var(--space-1)", flexWrap: "wrap", justifyContent: "flex-end" }}>
-                        <Chip tone={RELATION_TONE[c.relation]}>
-                          {pick(RELATION_CHIP[c.relation], isTamil)}
-                        </Chip>
-                        <Chip tone={CONFIDENCE_TONE[c.confidence]}>
-                          {pick(CONFIDENCE_CHIP[c.confidence], isTamil)}
-                        </Chip>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
+              {groupByRelation(result.candidates).map((group) => (
+                <div
+                  key={group.relation}
+                  style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}
+                >
+                  {/* The heading IS the ordering explanation. A flat numbered
+                      list asserted one ranking by merit and was twice read as
+                      broken when a 59 that opens this paadham's letter sat
+                      above an 85 that does not. Under separate headings the
+                      question does not arise. */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "row",
+                        alignItems: "baseline",
+                        gap: "var(--space-2)",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "var(--text-xs)",
+                          fontWeight: 700,
+                          color: "var(--color-text-strong)",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.06em",
+                        }}
+                      >
+                        {pick(GROUP_HEADING[group.relation], isTamil)}
+                        {group.relation === "on_paadham"
+                          ? ` · ${result.targetAksharaTa}`
+                          : null}
                       </span>
-                    }
-                  />
-                );
-              })}
+                      <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
+                        {group.items.length}
+                        {isTamil ? " பெயர்" : group.items.length === 1 ? " name" : " names"}
+                        {" · "}
+                        {pick(WITHIN_GROUP_ORDER, isTamil)}
+                      </span>
+                    </div>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: "var(--text-xs)",
+                        color: "var(--color-muted)",
+                        lineHeight: 1.55,
+                      }}
+                    >
+                      {pick(GROUP_ADVICE[group.relation], isTamil)}
+                    </p>
+                  </div>
+
+                  {group.items.map((c, i) => {
+                    const meaning =
+                      c.meaningEn || c.meaningTa ? (isTamil ? c.meaningTa : c.meaningEn) : null;
+                    // A shortlist name has no Tamil spelling on file
+                    // (English-only input) — fall back to the English
+                    // spelling as the card's headline rather than showing a
+                    // blank label, and drop the redundant "Scored from" line.
+                    const displayLabel = c.tamilForm || c.latinSpelling;
+                    const scoredFromText = c.tamilForm ? c.latinSpelling : null;
+                    const isYourPick = c.source === "user" || c.source === "both";
+                    // Which paadham this letter DOES open — still worth
+                    // saying per card, because the group heading names the
+                    // rule but not the specific star. Null on-paadham.
+                    const relation = relationNote(
+                      c,
+                      isTamil ? result.targetRasiTa : result.targetRasiEn,
+                      isTamil,
+                    );
+                    // The one negative call this tool makes, and only where
+                    // the chart actually supports it — see
+                    // `should_advise_name_change`.
+                    const setAside =
+                      c.adviseAgainst && c.alignment
+                        ? adviseAgainstNote(
+                            grahaLabel(c.alignment, lang),
+                            natureLabel(c.alignment.functionalNature, lang),
+                            isTamil,
+                          )
+                        : null;
+                    return (
+                      <NumberReadingCard
+                        key={`${c.latinSpelling}-${i}`}
+                        reading={c.reading}
+                        label={displayLabel}
+                        lang={lang}
+                        scoredFrom={scoredFromText}
+                        alignment={c.alignment}
+                        // The chart behind this search is the CHILD's, not the
+                        // reader's — every "your chart" on this card named the
+                        // wrong person until 2026-08-02.
+                        subject="child"
+                        // Cheiro's register is about a number in a 1935 book
+                        // and cannot move this score; beside a 0-100 chart
+                        // rating it read as a second, contradicting verdict.
+                        showCompound={false}
+                        // One row per name; the derivation opens on click.
+                        collapsedSummary={
+                          <BabyNameRowSummary
+                            name={displayLabel}
+                            lang={lang}
+                            score={c.alignment ? Math.round(c.alignment.score) : null}
+                            oneLine={c.alignment ? oneLineWhy(c.alignment, lang) : null}
+                            chips={
+                              <>
+                                {isYourPick ? (
+                                  <Chip tone="high">
+                                    {pick(
+                                      c.source === "both"
+                                        ? YOUR_PICK_ALSO_RECOMMENDED
+                                        : YOUR_PICK_CHIP,
+                                      isTamil,
+                                    )}
+                                  </Chip>
+                                ) : null}
+                                {c.adviseAgainst ? (
+                                  <Chip tone="mid">{pick(ADVISE_AGAINST_CHIP, isTamil)}</Chip>
+                                ) : null}
+                              </>
+                            }
+                          />
+                        }
+                        hint={[relation, meaning, setAside].filter(Boolean).join(" ") || null}
+                        scoredFromBadge={
+                          <Chip tone={CONFIDENCE_TONE[c.confidence]}>
+                            {pick(CONFIDENCE_CHIP[c.confidence], isTamil)}
+                          </Chip>
+                        }
+                      />
+                    );
+                  })}
+                </div>
+              ))}
             </div>
           )}
 
