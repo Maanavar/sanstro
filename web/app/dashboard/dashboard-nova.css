@@ -2196,6 +2196,48 @@
   outline-offset: 2px;
 }
 
+/* ── Baby Name Finder — one collapsed row per name ──
+   A search can return >100 names, and every one of them used to render its
+   full five-step derivation inline: unscannable, with the one comparable fact
+   (the chart-fit score) buried under a paragraph each. The summary IS the row,
+   so it spans the full width rather than `fit-content`, and the marker sits at
+   the end where it reads as an affordance rather than a bullet. */
+[data-ui="nova"] .cd-shell .num-name-details > summary {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  padding: 2px 0;
+  cursor: pointer;
+  border-radius: var(--radius-sm, 6px);
+  list-style: none;
+  transition: color 120ms ease;
+}
+/* Safari still paints the default triangle without this. */
+[data-ui="nova"] .cd-shell .num-name-details > summary::-webkit-details-marker {
+  display: none;
+}
+[data-ui="nova"] .cd-shell .num-name-details > summary::after {
+  content: "›";
+  margin-left: auto;
+  flex: none;
+  font-size: var(--text-lg, 18px);
+  line-height: 1;
+  color: var(--color-faint);
+  transform: rotate(90deg);
+  transition: transform 140ms ease;
+}
+[data-ui="nova"] .cd-shell .num-name-details[open] > summary::after {
+  transform: rotate(-90deg);
+}
+[data-ui="nova"] .cd-shell .num-name-details > summary:focus-visible {
+  outline: 2px solid var(--color-border-strong);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-ui="nova"] .cd-shell .num-name-details > summary::after { transition: none; }
+}
+
 /* ── Segmented — the one replacement for the 7 hand-rolled sub-navs. ── */
 [data-ui="nova"] .cd-shell .ui-segmented {
   display: inline-flex;

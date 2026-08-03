@@ -202,6 +202,157 @@ export const SCOPE_REVIEW_NOTE: BiText = {
   ta: "பெயர் வைக்கும் வழக்கம் குறித்த இந்தக் குறிப்புகளும், எழுத்து அட்டவணையைப் போலவே, ஜோதிடர் மதிப்பாய்வுக்குக் காத்திருக்கின்றன.",
 };
 
+/**
+ * States the ranking rule once, above the list. Without it, a reader sees a
+ * relation chip, a confidence note, a chart-fit score, and Cheiro's compound
+ * register all on one card and has no way to tell which of those actually
+ * decides where the card sits — only the first two do (see
+ * `numerology_naming_service.py`'s `sort_key`), the chart-fit score only
+ * breaks ties within that, and the compound register is bibliography that
+ * never affects order at all.
+ *
+ * Awaiting the same astrologer / native-speaker review as the rest of this
+ * file's practice notes (see `SCOPE_REVIEW_NOTE`).
+ */
+export const ORDER_EXPLAINER: BiText = {
+  en: "The top of this list is the name that follows the letter rule most closely — not the one that fits the chart best. Order is decided in this priority: (1) which letter rule admitted the name — this paadham, then this natchathiram, then this rasi, then wider; (2) how firmly its spelling pins it to that letter; (3) chart fit, which only breaks ties inside the two above. So a name further down can carry a higher score than the one at the top.",
+  ta: "இந்தப் பட்டியலின் முதல் பெயர் என்பது எழுத்து விதியை மிக நெருக்கமாகப் பின்பற்றும் பெயர் — ஜாதகத்தோடு அதிகம் பொருந்தும் பெயர் அல்ல. வரிசை இந்த முன்னுரிமையில் முடிவாகிறது: (1) எந்த எழுத்து விதி அந்தப் பெயரை அனுமதித்தது — இந்தப் பாதம், பின் இந்த நட்சத்திரம், பின் இந்த ராசி, பின் விரிவானது; (2) அதன் எழுத்து அந்த ஒலியை எவ்வளவு உறுதியாகக் குறிக்கிறது; (3) ஜாதகப் பொருத்தம் — மேற்சொன்ன இரண்டுக்குள் மட்டுமே இது வரிசையை முடிவு செய்யும். எனவே கீழே உள்ள ஒரு பெயருக்கு, மேலே உள்ள பெயரைவிட அதிக மதிப்பெண் இருக்கலாம்.",
+};
+
+/* ==========================================================================
+ * Group headings — the recommendation order, made structural
+ *
+ * A flat list numbered #1..#6 asserts one ranking by merit. It is not one:
+ * a 59 that opens this paadham's own letter outranks an 85 that does not,
+ * because the akshara decides who is eligible and the number only orders
+ * within that (doctrine D2). A parent read that list twice and twice asked
+ * why 59 beat 85 — and they were right to, because no paragraph above a
+ * numbered list survives the list. Structure beats prose, so the sort key
+ * becomes the structure: one heading per letter rule, in D2 order, each
+ * saying what this group IS FOR rather than where it placed.
+ * ========================================================================== */
+
+export const GROUP_HEADING: Record<AksharaRelation, BiText> = {
+  on_paadham: {
+    en: "Opens this paadham's own letter",
+    ta: "இந்தப் பாதத்தின் சொந்த எழுத்தில் தொடங்குபவை",
+  },
+  same_natchathiram: {
+    en: "Another paadham of the same natchathiram",
+    ta: "இதே நட்சத்திரத்தின் இன்னொரு பாதம்",
+  },
+  same_rasi: {
+    en: "Another paadham inside the same rasi",
+    ta: "இதே ராசிக்குள் வரும் இன்னொரு பாதம்",
+  },
+  other_paadham: {
+    en: "Opens a different letter",
+    ta: "வேறு எழுத்தில் தொடங்குபவை",
+  },
+  no_paadham: {
+    en: "Outside the paadham letter table",
+    ta: "பாத எழுத்து அட்டவணைக்கு வெளியே",
+  },
+};
+
+/** What this group is *for* — the practitioner's actual advice, one line. */
+export const GROUP_ADVICE: Record<AksharaRelation, BiText> = {
+  on_paadham: {
+    en: "The tradition's own answer. This is the name used at the naming ceremony and in temple sankalpam. Take it from here whatever else you choose.",
+    ta: "மரபு தரும் பதில். நாமகரணச் சடங்கிலும் கோயில் சங்கல்பத்திலும் சொல்லப்படுவது இதுவே. வேறு எதைத் தேர்ந்தாலும், இதிலிருந்து ஒன்றை எடுத்துக்கொள்ளுங்கள்.",
+  },
+  same_natchathiram: {
+    en: "Widely accepted: the paadham depends on the birth time to the minute, so many almanacs print all four letters of the star and leave the choice to the family.",
+    ta: "பரவலாக ஏற்கப்பட்டது: பாதம் பிறந்த நேரத்தை நிமிடம் வரை சார்ந்தது; எனவே பல பஞ்சாங்கங்கள் நட்சத்திரத்தின் நான்கு எழுத்துக்களையும் அச்சிட்டு, தேர்வைக் குடும்பத்திடமே விடுகின்றன.",
+  },
+  same_rasi: {
+    en: "A South Indian practice in its own right — naming from the rasi letter rather than the paadham letter.",
+    ta: "தனியொரு தென்னிந்திய வழக்கம் — பாத எழுத்துக்குப் பதிலாக ராசி எழுத்தில் பெயர் வைப்பது.",
+  },
+  other_paadham: {
+    en: "Here because you widened the scope. Sound as an everyday name when the chart supports the number — and families commonly keep a paadham-letter star name alongside it.",
+    ta: "நீங்கள் வரம்பை விரிவாக்கியதால் இங்கு வந்தவை. ஜாதகம் அந்த எண்ணை ஆதரித்தால் அன்றாடப் பெயராக இவை சரியே — பொதுவாகக் குடும்பங்கள் பாத எழுத்துப் பெயரையும் சேர்த்தே வைத்துக்கொள்கின்றன.",
+  },
+  no_paadham: {
+    en: "Chosen on meaning and number alone — the akshara rule set aside on purpose.",
+    ta: "பொருளையும் எண்ணையும் மட்டும் வைத்துத் தேர்ந்தவை — எழுத்து விதி வேண்டுமென்றே ஒதுக்கப்பட்டது.",
+  },
+};
+
+/** Says how names are ordered *inside* a group, where it really is by score. */
+export const WITHIN_GROUP_ORDER: BiText = {
+  en: "Best chart fit first.",
+  ta: "ஜாதகப் பொருத்தம் அதிகமுள்ளவை முதலில்.",
+};
+
+/** Declaration order IS doctrine D2's order — most on-target first. */
+export const RELATION_ORDER: AksharaRelation[] = [
+  "on_paadham",
+  "same_natchathiram",
+  "same_rasi",
+  "other_paadham",
+  "no_paadham",
+];
+
+/**
+ * Split an already-ranked candidate list into its letter-rule groups.
+ *
+ * Preserves the server's order inside each group — it is authoritative (see
+ * `_sort_key`) and must never be re-sorted here. Empty groups are dropped, so
+ * a strict search still renders exactly one heading.
+ */
+export function groupByRelation<T extends { relation: AksharaRelation }>(
+  candidates: T[],
+): { relation: AksharaRelation; items: T[] }[] {
+  return RELATION_ORDER.map((relation) => ({
+    relation,
+    items: candidates.filter((c) => c.relation === relation),
+  })).filter((group) => group.items.length > 0);
+}
+
+/* ==========================================================================
+ * The one negative call this tool makes
+ * ========================================================================== */
+
+/**
+ * `adviseAgainst` — from `should_advise_name_change`, the same guard Fortune
+ * Alignment uses. What it REFUSES to flag is the point: a functionally benefic
+ * graha is never a reason to reject a name, so "8 is unlucky" can never
+ * surface here. Only a non-benefic lordship that is also misaligned trips it.
+ *
+ * Worded as advice about a *spelling*, never about the child or the name's
+ * worth — a different spelling of the same name usually clears it, which is
+ * what the name-correction tool is for.
+ */
+export const ADVISE_AGAINST_CHIP: BiText = {
+  en: "I'd set this spelling aside",
+  ta: "இந்த எழுத்துக்கோர்வையை ஒதுக்கலாம்",
+};
+
+export function adviseAgainstNote(
+  grahaName: string,
+  natureLabel: string,
+  ta: boolean,
+): string {
+  return ta
+    ? `இந்தச் சொற்பொருள் எண் ${grahaName}-க்குரியது; இந்த ஜாதகத்தில் ${grahaName} ${natureLabel} — ஆதரவான பொறுப்பு அல்ல — மேலும் பொருத்தமும் குறைவு. பெயரை அல்ல, இந்த எழுத்துக்கோர்வையை மாற்றிப் பாருங்கள்.`
+    : `This spelling's number belongs to ${grahaName}, which is ${natureLabel} in this chart — not a supportive role — and the fit is low as well. It is the spelling to reconsider, not the name.`;
+}
+
+/**
+ * Why the parent's own name can sit lower than its score suggests.
+ *
+ * Shown only on a shortlist card whose relation is not `on_paadham`. The
+ * spelling tier no longer costs it a place (see `_confidence_rank` in
+ * `numerology_naming_service.py`), but the LETTER RULE still does, by
+ * doctrine — and a parent looking at "85 / 100" three rows below a name
+ * scoring 60 is owed the reason.
+ */
+export const WHY_YOUR_NAME_SITS_HERE: BiText = {
+  en: "Its position follows the letter rule, not its score — names opening with this paadham's own letter come first however they score.",
+  ta: "இதன் இடம் மதிப்பெண்ணை அல்ல, எழுத்து விதியைப் பின்பற்றுகிறது — இந்தப் பாதத்தின் சொந்த எழுத்தில் தொடங்கும் பெயர்கள், மதிப்பெண் எதுவாயினும், முதலில் வரும்.",
+};
+
 /* ==========================================================================
  * Relation — which rule admitted THIS name
  * ========================================================================== */
@@ -258,16 +409,16 @@ export function relationNote(
       return null;
     case "same_natchathiram":
       return ta
-        ? `${opens}. உங்கள் நட்சத்திரத்தின் இன்னொரு பாதம்.`
-        : `Opens ${opens} — another paadham of your own natchathiram.`;
+        ? `${opens}. குழந்தையின் நட்சத்திரத்தின் இன்னொரு பாதம்.`
+        : `Opens ${opens} — another paadham of the child's own natchathiram.`;
     case "same_rasi":
       return ta
-        ? `${opens}. உங்கள் ${rasiName || "ராசி"} ராசிக்குள் வரும் பாதம்.`
-        : `Opens ${opens} — inside your rasi${rasiName ? `, ${rasiName}` : ""}.`;
+        ? `${opens}. குழந்தையின் ${rasiName || "ராசி"} ராசிக்குள் வரும் பாதம்.`
+        : `Opens ${opens} — inside the child's rasi${rasiName ? `, ${rasiName}` : ""}.`;
     case "other_paadham":
       return ta
-        ? `${opens}. இது உங்கள் பாதமோ ராசியோ அல்ல — எழுத்து வரம்பைத் திறந்ததால் வந்தது.`
-        : `Opens ${opens} — neither your paadham nor your rasi. It is here because you opened the letter scope.`;
+        ? `${opens}. இது குழந்தையின் பாதமோ ராசியோ அல்ல — எழுத்து வரம்பைத் திறந்ததால் வந்தது.`
+        : `Opens ${opens} — neither the child's paadham nor their rasi. It is here because you opened the letter scope.`;
     case "no_paadham":
     default:
       return ta
@@ -290,12 +441,20 @@ export const CONFIDENCE_LABEL: Record<MatchConfidence, BiText> = {
   ambiguous: { en: "Close match", ta: "ஏறத்தாழப் பொருந்துகிறது" },
 };
 
-/** Short form for a chip, where the full sentence above will not fit. */
+/**
+ * Short form for a chip, where the full sentence above will not fit.
+ *
+ * Deliberately avoids the word "match" — this chip sits on the same card as
+ * the chart-numerology alignment score (0-100). "Strong match" next to a
+ * 30/100 score read as a contradiction, but the two describe unrelated
+ * things: this chip is pure spelling confidence (does Tamil + English both
+ * confirm the paadham letter), never the numerology score.
+ */
 export const CONFIDENCE_CHIP: Record<MatchConfidence, BiText> = {
-  confirmed: { en: "Strong match", ta: "உறுதியான பொருத்தம்" },
-  tamil_only: { en: "Tamil match", ta: "தமிழில் பொருத்தம்" },
-  latin_only: { en: "English match", ta: "ஆங்கிலத்தில் பொருத்தம்" },
-  ambiguous: { en: "Close match", ta: "ஏறத்தாழப் பொருத்தம்" },
+  confirmed: { en: "Spelling confirmed", ta: "எழுத்து உறுதி" },
+  tamil_only: { en: "Tamil spelling only", ta: "தமிழ் எழுத்தில் மட்டும்" },
+  latin_only: { en: "English spelling only", ta: "ஆங்கில எழுத்தில் மட்டும்" },
+  ambiguous: { en: "Approx. spelling", ta: "தோராயமான எழுத்து" },
 };
 
 export const CONFIDENCE_TONE: Record<MatchConfidence, "high" | "mid" | "neutral"> = {
@@ -376,9 +535,16 @@ export function emptyMessage(
   const letter = ta ? aksharaTa : `${aksharaTa} (${aksharaEn})`;
   switch (code) {
     case "collapse_gated":
+      // Until 2026-08-02 this pointed at a "More options" checkbox that let
+      // the parent override the gate. That checkbox is gone (it asked them to
+      // rule on NU-8a, an open practitioner question), so the remedy offered
+      // here has to be one they can actually act on. Measured over the
+      // shipping corpus: of the 9 collapse-gated empty searches, ALL 9 return
+      // names one rung out at natchathiram scope — so naming that rung is a
+      // real instruction, not a shrug.
       return ta
-        ? `இந்தப் பாதத்தின் தொடக்க எழுத்து ${letter}. இந்தத் தமிழ் எழுத்து பல வடமொழி ஒலிகளைக் குறிப்பதால், தமிழ் மற்றும் ஆங்கிலம் இரண்டிலும் உறுதிப்படும் பெயர்கள் மட்டுமே இங்கு காட்டப்படுகின்றன — அப்படி எதுவும் எங்கள் பட்டியலில் இல்லை. "மேலும் விருப்பங்கள்" பகுதியில், "ஒரே தமிழ் எழுத்து பல ஒலிகளைக் குறிக்கும்போது…" என்பதைத் தேர்ந்தெடுத்துத் தேடலை விரிவாக்கலாம்.`
-        : `This paadham opens with ${letter}. That Tamil letter stands for several different sounds, so only names both the Tamil and the English spelling confirm are offered here — and our list has none. Under “More options”, turn on “where one Tamil letter stands for several sounds…” to widen the search.`;
+        ? `இந்தப் பாதத்தின் தொடக்க எழுத்து ${letter}. இந்தத் தமிழ் எழுத்து பல வடமொழி ஒலிகளைக் குறிப்பதால், தமிழ் மற்றும் ஆங்கிலம் இரண்டிலும் உறுதிப்படும் பெயர்கள் மட்டுமே இங்கு காட்டப்படுகின்றன — அப்படி எதுவும் எங்கள் பட்டியலில் இல்லை. வரம்பை "இந்த நட்சத்திரத்தின் எந்தப் பாதமும்" என விரிவாக்கினால் பெயர்கள் கிடைக்கும்.`
+        : `This paadham opens with ${letter}. That Tamil letter stands for several different sounds, so only names confirmed by both the Tamil and the English spelling are offered here — and our list has none. Widen the scope to “any paadham of this star” and names will appear.`;
     case "no_candidate_fits":
       // A few paadham letters (ங, ணா, ட-initials) genuinely cannot begin a
       // Tamil personal name, so for those births the strict rule has no
@@ -418,3 +584,45 @@ export const DRAFT_BANNER: BiText = {
   en: "These are draft suggestions. The paadham letter table and this name list are both still awaiting review by an astrologer and a native speaker — treat them as a starting point for discussion, not a final choice.",
   ta: "இவை வரைவுப் பரிந்துரைகள். பாத எழுத்து அட்டவணையும் இந்தப் பெயர் பட்டியலும் ஜோதிடர் மற்றும் தமிழ் அறிஞர் மதிப்பாய்வுக்குக் காத்திருக்கின்றன — இறுதி முடிவாக அல்லாமல், பேசித் தீர்மானிக்கத் தொடக்கமாகக் கொள்ளுங்கள்.",
 };
+
+/* ==========================================================================
+ * A parent's own shortlist — checked against the same rule, shown at its
+ * true rank alongside the recommendations, never a second list off to the
+ * side. English spelling only (no Tamil-script input for this feature), so
+ * a shortlist name can reach at most "English spelling matches" confidence —
+ * it is never eligible for "Tamil + English agree".
+ * ========================================================================== */
+
+export const SHORTLIST_HEADING: BiText = {
+  en: "Already have names in mind?",
+  ta: "ஏற்கனவே சில பெயர்கள் மனதில் உள்ளதா?",
+};
+
+export const SHORTLIST_INTRO: BiText = {
+  en: "Add up to 5 names you're considering — English spelling. Each is checked against the same paadham rule and chart fit as the list below, and shown at its true place in it, not as a separate list.",
+  ta: "நீங்கள் யோசிக்கும் 5 பெயர்கள் வரை சேர்க்கலாம் — ஆங்கில எழுத்தில். ஒவ்வொன்றும் கீழே உள்ள பட்டியலின் அதே பாத விதி மற்றும் ஜாதகப் பொருத்தத்தை வைத்துச் சரிபார்க்கப்பட்டு, அதற்குரிய சரியான இடத்தில் காட்டப்படும் — தனிப் பட்டியலாக அல்ல.",
+};
+
+export function shortlistPlaceholder(index: number, ta: boolean): string {
+  return ta ? `பெயர் ${index + 1} (விருப்பம்)` : `Name ${index + 1} (optional)`;
+}
+
+/** The badge that marks a card as the parent's own pick — "user" or "both". */
+export const YOUR_PICK_CHIP: BiText = { en: "Your pick", ta: "உங்கள் தேர்வு" };
+
+/** Only for `source === "both"` — the parent's pick already IS a recommendation. */
+export const YOUR_PICK_ALSO_RECOMMENDED: BiText = {
+  en: "Your pick — also one we'd have suggested",
+  ta: "உங்கள் தேர்வு — நாங்களும் பரிந்துரைக்கும் பெயர்",
+};
+
+/**
+ * "Ranks #47 of 132 matches." — shown under a shortlist card so a parent can
+ * see where their own choice stands even when it falls outside the
+ * recommended names shown above it (a card is never dropped for this).
+ */
+export function shortlistRankNote(overallRank: number, totalMatches: number, ta: boolean): string {
+  return ta
+    ? `மொத்தம் பொருந்திய ${totalMatches} பெயர்களில் ${overallRank}-ஆவது இடம்.`
+    : `Ranks #${overallRank} of ${totalMatches} matches.`;
+}

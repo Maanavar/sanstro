@@ -29,6 +29,7 @@ import type {
 
 import {
   AlignmentRow,
+  BabyNameRowSummary,
   CompoundLine,
   CompoundSurrogateNote,
   NumberReadingCard,
@@ -287,6 +288,187 @@ describe("the compound's citation", () => {
     const text = document.body.textContent ?? "";
     expect(text).toContain("The Shattered Citadel");
     expect(text).toContain("Cautionary");
+  });
+
+  /*
+   * `showCompound={false}` — Baby Name Finder.
+   *
+   * Reported 2026-08-02: a card reading "85 / 100 · Strongly aligned" also
+   * carried "Cheiro's register: Cautionary" (compound 18, "Material and Spirit
+   * in Conflict") and was read as contradicting itself. It is not a
+   * contradiction — they are unrelated axes, and the register can never move
+   * the score or the ranking — but on a page where a parent is choosing their
+   * child's name, the safest reading of a stray "Cautionary" is the damaging
+   * one. Same defect class as the spelling-confidence chip that had to stop
+   * saying "Strong match" next to a 30/100 score.
+   */
+  it("drops Cheiro's register entirely when the surface asks it to", () => {
+    render(
+      <NumberReadingCard
+        reading={makeReading({
+          total: 18, compound: 18, root: 9, reductionChain: [18, 9],
+          compoundTitle: "Material and Spirit in Conflict", compoundTone: "cautionary",
+        })}
+        label="ஆதினி"
+        lang="en"
+        showCompound={false}
+      />,
+    );
+    const text = document.body.textContent ?? "";
+    expect(text).not.toContain("Cautionary");
+    expect(text).not.toContain("Material and Spirit in Conflict");
+    expect(text).not.toContain("Cheiro");
+    // The root reading itself is untouched — only the compound block goes.
+    expect(text).toContain("9");
+  });
+
+  /*
+   * The reported card, end to end.
+   *
+   * "Aadhini" scores Chaldean 18 -> root 9 -> Mars; against the reported chart
+   * Mars is Lagna lord (1st + 8th), base 85, natal strength 49, so the
+   * adjustment lands on exactly ±0 and the score is 85 / "Strongly aligned".
+   * That single card carried all three defects at once, which is why it is
+   * pinned as one test rather than three.
+   */
+  it("renders the reported Baby Name Finder card without contradicting itself", () => {
+    render(
+      <NumberReadingCard
+        reading={makeReading({
+          total: 18, compound: 18, root: 9, reductionChain: [18, 9],
+          compoundTitle: "Material and Spirit in Conflict", compoundTone: "cautionary",
+        })}
+        label="ஆதினி"
+        lang="en"
+        scoredFrom="Aadhini"
+        subject="child"
+        showCompound={false}
+        scale={SCALE}
+        alignment={makeAlignment({
+          number: 9,
+          functionalNature: "LAGNA_LORD",
+          natalStrength: 49,
+          score: 85,
+          verdict: "strongly_aligned",
+          basis: makeBasis({
+            ownedHouses: [1, 8], baseScore: 85, strengthDelta: 0, strengthRule: "amplifies",
+          }),
+        })}
+      />,
+    );
+    const text = document.body.textContent ?? "";
+
+    // 1. The finding, in one sentence, before any step.
+    expect(text).toContain(
+      "9 is Mars's number, and in this child's chart Mars is Lagna lord. " +
+      "So this name's number and the chart pull the same way.",
+    );
+    // 2. The chart is named as the child's, and the houses are named as houses.
+    expect(text).toContain("In this child's chart, Mars rules the 1st and 8th houses.");
+    expect(text).toContain("the role that stands for the child");
+    // 3. Strength agrees with the ±0 printed beside it.
+    expect(text).toContain("strength here is 49, which is about average");
+    // 4. No second, contradicting verdict anywhere on the card.
+    expect(text).not.toContain("Cautionary");
+    // 5. The chart verdict still lands where it should.
+    expect(text).toContain('85 falls in the 78–100 band, which we call "Strongly aligned"');
+  });
+
+  /*
+   * `collapsedSummary` — one row per name, derivation on click.
+   *
+   * A search returns up to ~116 names and every one used to render its full
+   * five-step chain inline. `<details>` keeps children in the DOM when closed
+   * (that is the point — find-in-page and print still work), so "is it
+   * collapsed" cannot be tested by absence. Ancestry is the check, same
+   * technique as the compound-outside-<details> test above.
+   */
+  it("puts the derivation behind the row, and the row outside it", () => {
+    const { container } = render(
+      <NumberReadingCard
+        reading={makeReading()}
+        label="ஆதினி"
+        lang="en"
+        showCompound={false}
+        scale={SCALE}
+        alignment={makeAlignment({ score: 85, verdict: "strongly_aligned" })}
+        collapsedSummary={
+          <BabyNameRowSummary name="ஆதினி" lang="en" score={85} rank={18} total={116} oneLine="Mars · Yogakaraka · works with the chart" />
+        }
+      />,
+    );
+    const summary = container.querySelector("summary");
+    expect(summary).not.toBeNull();
+    // The four comparable facts are ON the row, not behind it.
+    expect(summary?.textContent).toContain("ஆதினி");
+    expect(summary?.textContent).toContain("85");
+    expect(summary?.textContent).toContain("#18 of 116");
+    expect(summary?.textContent).toContain("works with the chart");
+    // The five-step derivation is inside the disclosure, not on the row.
+    const steps = Array.from(container.querySelectorAll("*")).find((el) =>
+      el.textContent?.includes("How that was worked out"),
+    );
+    expect(steps).toBeTruthy();
+    expect(summary?.contains(steps!)).toBe(false);
+  });
+
+  it("does not repeat the name two lines apart when collapsed", () => {
+    // The header label row is suppressed under `collapsedSummary` — the row
+    // already carries the name, and repeating it is how an accordion starts
+    // looking broken.
+    const { container } = render(
+      <NumberReadingCard
+        reading={makeReading()}
+        label="Gayathri"
+        lang="en"
+        collapsedSummary={<BabyNameRowSummary name="Gayathri" lang="en" score={85} rank={6} total={116} />}
+      />,
+    );
+    const occurrences = (container.textContent ?? "").split("Gayathri").length - 1;
+    expect(occurrences).toBe(1);
+  });
+
+  it("keeps the full header when NOT collapsed, so other surfaces are untouched", () => {
+    const { container } = render(
+      <NumberReadingCard reading={makeReading()} label="Called name" lang="en" />,
+    );
+    expect(container.querySelector("summary[class*='num-name-details']")).toBeNull();
+    expect(container.textContent).toContain("Called name");
+  });
+
+  it("shows the rank with its denominator, never a bare position", () => {
+    // "#18" alone reads as "18th best". The list is ordered by the letter rule
+    // first, so a lower row can outscore a higher one — the denominator is
+    // what stops the number being read as a quality ranking.
+    const { container } = render(
+      <BabyNameRowSummary name="ஆதினி" lang="en" score={85} rank={18} total={116} />,
+    );
+    expect(container.textContent).toContain("#18 of 116");
+    expect(container.textContent).toContain("/100 fit");
+  });
+
+  it("omits the score on the chart-less path instead of printing a zero", () => {
+    const { container } = render(<BabyNameRowSummary name="Janaki" lang="en" score={null} rank={1} total={7} />);
+    expect(container.textContent).not.toContain("/100 fit");
+    expect(container.textContent).toContain("#1 of 7");
+  });
+
+  it("also drops the notes that exist only to explain a missing compound", () => {
+    // "Chaldean practice only writes down meanings for two-digit totals up to
+    // 52, so there is none for 60" answers a question the card stops asking
+    // once the compound block is gone. `Aadhinii Senthilkumar` totals 60.
+    render(
+      <NumberReadingCard
+        reading={makeReading({
+          total: 60, compound: null, root: 6, reductionChain: [60, 6],
+          compoundBeyondSeries: 60, compoundTitle: null, compoundTone: null,
+        })}
+        label="Aadhinii Senthilkumar"
+        lang="en"
+        showCompound={false}
+      />,
+    );
+    expect(document.body.textContent ?? "").not.toContain("52");
   });
 
   /*
@@ -606,10 +788,107 @@ describe("WhyThisRating — the five-step chain", () => {
       />,
     );
     const text = document.body.textContent ?? "";
-    expect(text).toContain("starts a number at 60 out of 100");
+    expect(text).toContain("starting score at 60 out of 100");
     // The step that was entirely missing: which band the score landed in.
     expect(text).toContain("45–61");
     expect(text).toContain("Neutral");
+  });
+
+  /* ── The 2026-08-02 legibility pass ──────────────────────────────────────
+   *
+   * A user read a real result and asked, of one card, "I see score 85 but
+   * labelled cautionary — why?" and "are we actually considering the birth
+   * chart?". Three separate defects produced those two questions; each gets a
+   * test here, because each is invisible to types and to every other gate.
+   */
+
+  it("leads with one plain sentence, before any numbered step", () => {
+    // Five correct steps are still not an answer to a first-time reader: they
+    // read line one and stop. The finding has to be line one.
+    render(
+      <WhyThisRating
+        alignment={makeAlignment({ functionalNature: "LAGNA_LORD", verdict: "strongly_aligned" })}
+        lang="en"
+        scale={SCALE}
+      />,
+    );
+    const text = document.body.textContent ?? "";
+    expect(text).toContain("So this name's number and the chart pull the same way");
+    // …and the summary must agree with the band step 5 names, never the raw
+    // score, or the card argues with itself exactly as before.
+    expect(text).not.toContain("pulls against the chart");
+  });
+
+  it("says whose chart it is — the child's on Baby Name Finder, not the reader's", () => {
+    // Every other numerology surface reads the signed-in user's own chart, so
+    // "your chart" was hardcoded. Here the birth details are the baby's, and
+    // naming the wrong person is what made a reader doubt a chart was used.
+    render(
+      <WhyThisRating
+        alignment={makeAlignment({ functionalNature: "LAGNA_LORD", basis: makeBasis({ ownedHouses: [1, 8] }) })}
+        lang="en"
+        scale={SCALE}
+        subject="child"
+      />,
+    );
+    const text = document.body.textContent ?? "";
+    expect(text).toContain("In this child's chart");
+    expect(text).toContain("the role that stands for the child");
+    expect(text).not.toContain("In your chart");
+    expect(text).not.toContain("you yourself");
+  });
+
+  it("spells out that the numbers in step 2 are houses", () => {
+    render(
+      <WhyThisRating
+        alignment={makeAlignment({ basis: makeBasis({ ownedHouses: [1, 8] }) })}
+        lang="en"
+        scale={SCALE}
+      />,
+    );
+    expect(document.body.textContent ?? "").toContain("rules the 1st and 8th houses");
+  });
+
+  it("never claims strength did something when the adjustment is ±0", () => {
+    // The reported line: "Mars's strength here is 49. A supportive office held
+    // by a STRONG graha delivers MORE of that support. ±0". The sentence was
+    // keyed off the rule alone, so it asserted a direction the number printed
+    // beside it visibly contradicted. It must be derived from `strengthDelta`.
+    render(
+      <WhyThisRating
+        alignment={makeAlignment({
+          natalStrength: 49,
+          score: 85,
+          verdict: "strongly_aligned",
+          functionalNature: "LAGNA_LORD",
+          basis: makeBasis({ baseScore: 85, strengthDelta: 0, strengthRule: "amplifies" }),
+        })}
+        lang="en"
+        scale={SCALE}
+      />,
+    );
+    const text = document.body.textContent ?? "";
+    expect(text).toContain("about average");
+    expect(text).toContain("neither adds to nor takes from this score");
+    expect(text).not.toContain("delivers more of that support");
+  });
+
+  it("keeps the strength sentence pointing the same way as the printed delta", () => {
+    // A below-average graha in a supportive role must not be described as
+    // delivering "more" — same defect class as the ±0 case above.
+    render(
+      <WhyThisRating
+        alignment={makeAlignment({
+          natalStrength: 30,
+          basis: makeBasis({ baseScore: 92, strengthDelta: -5, strengthRule: "amplifies" }),
+        })}
+        lang="en"
+        scale={SCALE}
+      />,
+    );
+    const text = document.body.textContent ?? "";
+    expect(text).toContain("below the average of 50");
+    expect(text).toContain("delivers less of that support");
   });
 
   it("shows a sum that adds up", () => {
@@ -752,7 +1031,7 @@ describe("WhyThisRating — the five-step chain", () => {
       />,
     );
     const text = container.textContent ?? "";
-    expect(text).toContain("இந்த மதிப்பீடு ஏன்");
+    expect(text).toContain("இது எப்படிக் கணக்கிடப்பட்டது");
     // Accusative — the graha *rules* the houses. `இடங்கள் ஆள்கிறது` is not
     // clumsy Tamil, it is ungrammatical, and this is the one screen whose whole
     // job is to sound like a person explaining something.

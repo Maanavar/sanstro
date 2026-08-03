@@ -353,40 +353,88 @@ export function housesPhrase(
 }
 
 /**
- * What each office *is*, as a clause completing "That makes it a <term> — …".
+ * Whose chart this card is explaining.
+ *
+ * Every numerology surface but one is reading the signed-in user's own chart,
+ * so "your chart" was hardcoded throughout. Baby Name Finder breaks that: the
+ * birth details in its form are the **child's**, so every "your chart" /
+ * "your paadham" on that surface named the wrong person — and a reader who
+ * notices reasonably concludes no chart is being used at all, which is exactly
+ * the doubt it produced. Never infer the subject from the copy; pass it.
+ */
+export type ChartSubject = "self" | "child";
+
+/** "In your chart" / "In this child's chart" — the sentence opener. */
+function inChartPhrase(subject: ChartSubject, lang: Lang): string {
+  if (lang === "ta") {
+    return subject === "child" ? "இந்தக் குழந்தையின் ஜாதகத்தில்" : "உங்கள் ஜாதகத்தில்";
+  }
+  return subject === "child" ? "In this child's chart" : "In your chart";
+}
+
+/**
+ * What each role *is*, as a clause completing "That makes it a <term> — …".
  *
  * Distinct from `NATURE_GLOSS`, which is a clause completing "<Graha> …" and
- * describes the houses. This one describes the **office**, so it stays correct
+ * describes the houses. This one describes the **role**, so it stays correct
  * however many houses are listed in front of it — the reason the sentence is
  * built this way rather than by pluralising a noun phrase. `LAGNA_LORD` owning
  * the 1st *and* the 8th, and `YOGAKARAKA` owning a kendra *and* a trikona, both
  * break any single description of "the houses" and neither breaks this.
  *
+ * Says "role", not "office": "office" is a translator's word for அதிபதி that
+ * no first-time reader owns, and the expert term (`natureLabel`) is already on
+ * screen immediately before this clause, so nothing is lost by making the
+ * gloss beside it plain.
+ *
+ * `{self}` in `LAGNA_LORD` is filled from `ChartSubject` — it is the one role
+ * whose description names a person, so it is the one that goes wrong when the
+ * chart belongs to someone other than the reader.
+ *
  * Standing ruling 3 binds as hard here as in `NATURE_GLOSS`: MARAKA and
- * DUSTHANA are offices of limit and of effort, never omens.
+ * DUSTHANA are roles of limit and of effort, never omens.
  */
 export const NATURE_OFFICE: Record<FunctionalNature, { en: string; ta: string }> = {
   LAGNA_LORD: {
-    en: "the office that stands for you yourself",
-    ta: "உங்களையே குறிக்கும் பொறுப்பு",
+    en: "the role that stands for {self}",
+    ta: "{self}யே குறிக்கும் பொறுப்பு",
   },
   YOGAKARAKA: {
     en: "a pillar house and a fortune house at once, which is the most supportive thing a graha can hold",
     ta: "கேந்திரமும் திரிகோணமும் சேர்ந்த பொறுப்பு — ஒரு கிரகம் பெறக்கூடிய மிக ஆதரவான நிலை",
   },
-  TRIKONA: { en: "an office of fortune", ta: "அதிர்ஷ்டத்தின் பொறுப்பு" },
-  KENDRA: { en: "an office that holds the chart up", ta: "ஜாதகத்தைத் தாங்கும் பொறுப்பு" },
-  UPACHAYA: { en: "an office that grows with effort", ta: "முயற்சியால் வளரும் பொறுப்பு" },
-  MARAKA: { en: "the office of limits and endings", ta: "எல்லைகள், முடிவுகளின் பொறுப்பு" },
+  TRIKONA: { en: "a role of fortune", ta: "அதிர்ஷ்டத்தின் பொறுப்பு" },
+  KENDRA: { en: "a role that holds the chart up", ta: "ஜாதகத்தைத் தாங்கும் பொறுப்பு" },
+  UPACHAYA: { en: "a role that grows with effort", ta: "முயற்சியால் வளரும் பொறுப்பு" },
+  MARAKA: { en: "the role of limits and endings", ta: "எல்லைகள், முடிவுகளின் பொறுப்பு" },
   DUSTHANA: {
-    en: "the most demanding office in a chart",
+    en: "the most demanding role in a chart",
     ta: "ஜாதகத்தில் அதிக உழைப்புக் கேட்கும் பொறுப்பு",
   },
   NEUTRAL: {
-    en: "a mixed office that pulls both ways, so it settles at neutral",
+    en: "a mixed role that pulls both ways, so it settles at neutral",
     ta: "இரு பக்கமும் இழுக்கும் கலப்புப் பொறுப்பு — அதனால் நடுநிலை",
   },
 };
+
+/** `NATURE_OFFICE` with `{self}` resolved for whoever owns this chart. */
+function natureOfficeClause(
+  nature: FunctionalNature,
+  subject: ChartSubject,
+  lang: Lang,
+): string | undefined {
+  const office = NATURE_OFFICE[nature];
+  if (!office) return undefined;
+  const self =
+    lang === "ta"
+      ? subject === "child"
+        ? "குழந்தையை"
+        : "உங்களை"
+      : subject === "child"
+        ? "the child"
+        : "you yourself";
+  return (lang === "ta" ? office.ta : office.en).replace("{self}", self);
+}
 
 /**
  * Step 2 for a node, which owns no sign and so cannot be explained the way the
@@ -398,9 +446,15 @@ export const NATURE_OFFICE: Record<FunctionalNature, { en: string; ta: string }>
  * sentences: a node in a 6/8/12 reads as demanding *whatever* sign it sits in,
  * and otherwise it borrows its host's office outright.
  */
-function nodeOwnershipLine(alignment: NumberAlignment, basis: NodeBasis, lang: Lang): string {
+function nodeOwnershipLine(
+  alignment: NumberAlignment,
+  basis: NodeBasis,
+  lang: Lang,
+  subject: ChartSubject,
+): string {
   const isTamil = lang === "ta";
   const graha = grahaLabel(alignment, lang);
+  const inChart = inChartPhrase(subject, lang);
   const owns = isTamil
     ? `${graha} தனக்கென எந்த ராசியையும் ஆள்வதில்லை.`
     : `${graha} rules no sign of its own.`;
@@ -413,38 +467,42 @@ function nodeOwnershipLine(alignment: NumberAlignment, basis: NodeBasis, lang: L
 
   const seatHouses = basis.occupiedHouse ? [basis.occupiedHouse] : [];
   // Locative in Tamil — the node *sits in* the house. English gets the bare
-  // ordinal and supplies its own preposition.
+  // ordinal and supplies its own preposition; the word "house" is spelled out
+  // because "sits in the 8th" leaves a first-time reader to guess the noun.
   const seatTa = housesPhrase(seatHouses, "ta", "locative");
-  const seatEn = housesPhrase(seatHouses, "en");
+  const seatEn = `${housesPhrase(seatHouses, "en")} house`;
 
   if (basis.kind === "occupied_house") {
     return isTamil
-      ? `${owns} உங்கள் ஜாதகத்தில் அது ${seatTa} அமர்ந்துள்ளது — அதிக உழைப்புக் கேட்கும் இடங்களில் ஒன்று. இது எந்த ராசியில் அமர்ந்துள்ளது என்பதையும் மீறி நிற்கும்.`
-      : `${owns} In your chart it sits in ${seatEn} — one of the demanding houses — and that outweighs whose sign it is sitting in.`;
+      ? `${owns} ${inChart} அது ${seatTa} அமர்ந்துள்ளது — அதிக உழைப்புக் கேட்கும் இடங்களில் ஒன்று. இது எந்த ராசியில் அமர்ந்துள்ளது என்பதையும் மீறி நிற்கும்.`
+      : `${owns} ${inChart} it sits in ${seatEn} — one of the demanding houses — and that outweighs whose sign it is sitting in.`;
   }
 
   const host = isTamil ? basis.dispositorTa : basis.dispositorEn;
   const hostClause = basis.dispositorHouses.length
     ? isTamil
-      ? `${host} — உங்கள் ${housesPhrase(basis.dispositorHouses, "ta", "accusative")} ஆள்பவர்`
-      : `${host}, which rules ${housesPhrase(basis.dispositorHouses, "en")}`
+      ? `${host} — ${housesPhrase(basis.dispositorHouses, "ta", "accusative")} ஆள்பவர்`
+      : `${host}, which rules ${housesPhrase(basis.dispositorHouses, "en")} ${basis.dispositorHouses.length > 1 ? "houses" : "house"}`
     : `${host}`;
   return isTamil
-    ? `${owns} உங்கள் ஜாதகத்தில் அது ${seatTa} அமர்ந்து, அந்த ராசியின் அதிபதியான ${hostClause} — அவரது தன்மையையே எடுத்துக்கொள்கிறது.`
-    : `${owns} In your chart it sits in ${seatEn}, so it takes its character from the lord of that sign: ${hostClause}.`;
+    ? `${owns} ${inChart} அது ${seatTa} அமர்ந்து, அந்த ராசியின் அதிபதியான ${hostClause} — அவரது தன்மையையே எடுத்துக்கொள்கிறது.`
+    : `${owns} ${inChart} it sits in ${seatEn}, so it takes its character from the lord of that sign: ${hostClause}.`;
 }
 
 /** Step 2 for the seven grahas that do own signs. */
-function ownershipLine(alignment: NumberAlignment, lang: Lang): string {
+function ownershipLine(alignment: NumberAlignment, lang: Lang, subject: ChartSubject): string {
   const houses = alignment.basis.ownedHouses;
   if (!houses.length) {
     // No houses and not a node: fall back to the vaguer gloss rather than
     // printing a sentence with a hole in it.
     return `${grahaLabel(alignment, lang)} ${natureGloss(alignment.functionalNature, lang)}.`;
   }
+  // English spells out "house(s)" — "rules the 1st and 8th" reads as an
+  // unfinished phrase to anyone who does not already know the noun. Tamil
+  // does not need it: `TA_HOUSE_SUFFIX` already carries இடம்.
   return lang === "ta"
-    ? `உங்கள் ஜாதகத்தில் ${grahaLabel(alignment, lang)} ${housesPhrase(houses, lang, "accusative")} ஆள்கிறது.`
-    : `In your chart, ${grahaLabel(alignment, lang)} rules ${housesPhrase(houses, lang)}.`;
+    ? `${inChartPhrase(subject, lang)} ${grahaLabel(alignment, lang)} ${housesPhrase(houses, lang, "accusative")} ஆள்கிறது.`
+    : `${inChartPhrase(subject, lang)}, ${grahaLabel(alignment, lang)} rules ${housesPhrase(houses, lang)} ${houses.length > 1 ? "houses" : "house"}.`;
 }
 
 /**
@@ -458,28 +516,44 @@ function ownershipLine(alignment: NumberAlignment, lang: Lang): string {
  * the single most likely thing on this panel to be reported as a bug.
  */
 function strengthLine(alignment: NumberAlignment, lang: Lang): string {
-  const { strengthRule } = alignment.basis;
+  const { strengthRule, strengthDelta } = alignment.basis;
   const isTamil = lang === "ta";
   const graha = grahaLabel(alignment, lang);
   if (strengthRule === "none" || alignment.natalStrength === null) {
     return isTamil
       ? `இந்த ஜாதகத்தில் ${graha}-க்கான பலம் பதிவாகவில்லை, எனவே பொறுப்பு மட்டுமே மதிப்பெண்ணை முடிவு செய்கிறது.`
-      : `This chart carried no strength reading for ${graha}, so the office alone sets the score.`;
+      : `This chart carried no strength reading for ${graha}, so the role alone sets the score.`;
   }
   const strength = Math.round(alignment.natalStrength);
-  if (strengthRule === "inverted") {
+
+  // Branch on the REALISED delta — the very number printed beside this
+  // sentence — not on the rule alone. The rule-only version asserted "a
+  // supportive role held by a STRONG graha delivers MORE of that support"
+  // while the adjustment printed next to it read ±0, because 50 is the
+  // midpoint and a graha at 49 is not strong. A sentence that describes a
+  // mechanism the adjacent number shows doing nothing reads as broken, and it
+  // was the single most confusing line on the card.
+  if (strengthDelta === 0) {
     return isTamil
-      ? `${graha}-இன் பலம் ${strength}. பலம் என்பது ஒரு கிரகம் தன் பொறுப்பை எவ்வளவு முழுமையாக நிறைவேற்றும் என்பதைச் சொல்கிறதே தவிர, அந்தப் பொறுப்பு எளிதானதா என்பதை அல்ல — எனவே கடினமான பொறுப்பில் உள்ள வலுவான கிரகம் அதை இன்னும் அதிகமாக உணர்த்தும்.`
-      : `${graha}'s strength here is ${strength}. Strength decides how fully a graha delivers what it holds, not whether what it holds is easy — so a strong graha in a demanding office makes that office felt more, not less.`;
+      ? `${graha}-இன் பலம் ${strength} — சராசரிக்கு அருகில். எனவே பலம் இந்த மதிப்பெண்ணைக் கூட்டவும் இல்லை, குறைக்கவும் இல்லை.`
+      : `${graha}'s strength here is ${strength}, which is about average — so strength neither adds to nor takes from this score.`;
+  }
+
+  const rose = strengthDelta > 0;
+  if (strengthRule === "inverted") {
+    // The genuinely surprising one: a STRONGER malefic lord scores LOWER.
+    return isTamil
+      ? `${graha}-இன் பலம் ${strength}. பலம் என்பது ஒரு கிரகம் தன் பொறுப்பை எவ்வளவு முழுமையாக நிறைவேற்றும் என்பதைச் சொல்கிறதே தவிர, அந்தப் பொறுப்பு எளிதானதா என்பதை அல்ல — எனவே கடினமான பொறுப்பில் உள்ள ${rose ? "வலுக்குறைந்த கிரகம் அதைக் குறைவாகவே உணர்த்தும்" : "வலுவான கிரகம் அதை இன்னும் அதிகமாக உணர்த்தும்"}.`
+      : `${graha}'s strength here is ${strength}. Strength decides how fully a graha delivers what it holds, not whether what it holds is easy — so a ${rose ? "weaker graha in a demanding role makes that role felt less" : "stronger graha in a demanding role makes that role felt more, not less"}.`;
   }
   if (strengthRule === "damped") {
     return isTamil
-      ? `${graha}-இன் பலம் ${strength}. இந்தப் பொறுப்பு ஆதரவானதும் அல்ல, கடினமானதும் அல்ல — எனவே பலம் பாதி அளவே கணக்கில் கொள்ளப்படுகிறது.`
-      : `${graha}'s strength here is ${strength}. This office is neither supportive nor demanding, so strength counts for half.`;
+      ? `${graha}-இன் பலம் ${strength} — சராசரியை விட ${rose ? "அதிகம்" : "குறைவு"}. இந்தப் பொறுப்பு ஆதரவானதும் அல்ல, கடினமானதும் அல்ல — எனவே பலம் பாதி அளவே கணக்கில் கொள்ளப்படுகிறது.`
+      : `${graha}'s strength here is ${strength}, ${rose ? "above" : "below"} the average of 50. This role is neither supportive nor demanding, so strength counts for half.`;
   }
   return isTamil
-    ? `${graha}-இன் பலம் ${strength}. ஆதரவான பொறுப்பில் உள்ள வலுவான கிரகம் அந்த ஆதரவை முழுமையாகத் தருகிறது.`
-    : `${graha}'s strength here is ${strength}. A supportive office held by a strong graha delivers more of that support.`;
+    ? `${graha}-இன் பலம் ${strength} — சராசரியை விட ${rose ? "அதிகம்" : "குறைவு"}. ஆதரவான பொறுப்பில் உள்ள கிரகம் வலுவாக இருந்தால் அந்த ஆதரவை ${rose ? "முழுமையாகத் தருகிறது" : "அவ்வளவு முழுமையாகத் தருவதில்லை"}.`
+    : `${graha}'s strength here is ${strength}, ${rose ? "above" : "below"} the average of 50 — so it delivers ${rose ? "more" : "less"} of that support.`;
 }
 
 /**
@@ -507,6 +581,80 @@ function WhyLineFallback({ alignment, lang }: { alignment: NumberAlignment; lang
 function signed(delta: number): string {
   if (delta === 0) return "±0";
   return delta > 0 ? `+${delta}` : `−${Math.abs(delta)}`;
+}
+
+/**
+ * The five-step chain collapsed into one sentence a first-time reader owns.
+ *
+ * Written from the same three facts the steps use — the graha, its functional
+ * role, and the verdict band — so it can never claim something the working
+ * below contradicts. It deliberately does NOT restate the score: the number is
+ * already three lines up at display size, and repeating it is what made the
+ * card feel like it was arguing with itself.
+ *
+ * The direction verb comes off `verdict`, not off the raw score, because the
+ * band is what step 5 names — a summary saying "works with" beside a step
+ * saying "Out of step" is the same defect this whole pass is fixing.
+ */
+function plainSummary(alignment: NumberAlignment, subject: ChartSubject, lang: Lang): string {
+  const isTamil = lang === "ta";
+  const graha = grahaLabel(alignment, lang);
+  const term = natureLabel(alignment.functionalNature, lang);
+  const whose = isTamil
+    ? subject === "child"
+      ? "இந்தக் குழந்தையின் ஜாதகத்தில்"
+      : "உங்கள் ஜாதகத்தில்"
+    : subject === "child"
+      ? "this child's chart"
+      : "your chart";
+
+  const supportive =
+    alignment.verdict === "strongly_aligned" || alignment.verdict === "aligned";
+  const against =
+    alignment.verdict === "misaligned" || alignment.verdict === "strongly_misaligned";
+
+  if (isTamil) {
+    const lead = `${alignment.number} என்ற எண் ${graha}-க்குரியது; ${whose} ${graha} ${term}.`;
+    if (supportive) return `${lead} அதனால் இந்தப் பெயரின் எண்ணும் ஜாதகமும் ஒரே திசையில் இழுக்கின்றன.`;
+    if (against) return `${lead} அதனால் இந்தப் பெயரின் எண் ஜாதகத்துக்கு எதிர்த் திசையில் இழுக்கிறது.`;
+    return `${lead} அதனால் இந்தப் பெயரின் எண் ஜாதகத்துக்கு உதவவும் இல்லை, தடையாகவும் இல்லை.`;
+  }
+
+  const lead = `${alignment.number} is ${graha}'s number, and in ${whose} ${graha} is ${term}.`;
+  if (supportive) return `${lead} So this name's number and the chart pull the same way.`;
+  if (against) return `${lead} So this name's number pulls against the chart.`;
+  return `${lead} So this name's number neither helps nor hinders the chart.`;
+}
+
+/**
+ * `plainSummary` compressed to a single scannable clause for a collapsed row.
+ *
+ * "Mars · Lagna lord · works with the chart" — the graha, its role, and the
+ * direction, in that order, because a reader skimming a list of names wants to
+ * know *which way this one points* before anything else. Direction comes off
+ * `verdict`, never the raw score, so the row and the expanded step 5 can never
+ * disagree.
+ */
+export function oneLineWhy(alignment: NumberAlignment, lang: Lang): string {
+  const isTamil = lang === "ta";
+  const graha = grahaLabel(alignment, lang);
+  const term = natureLabel(alignment.functionalNature, lang);
+  const supportive =
+    alignment.verdict === "strongly_aligned" || alignment.verdict === "aligned";
+  const against =
+    alignment.verdict === "misaligned" || alignment.verdict === "strongly_misaligned";
+  const direction = isTamil
+    ? supportive
+      ? "ஜாதகத்தோடு ஒத்துப்போகிறது"
+      : against
+        ? "ஜாதகத்துக்கு எதிராக இழுக்கிறது"
+        : "உதவவும் இல்லை, தடையும் இல்லை"
+    : supportive
+      ? "works with the chart"
+      : against
+        ? "pulls against the chart"
+        : "neither helps nor hinders";
+  return `${graha} · ${term} · ${direction}`;
 }
 
 function StepRow({ index, children }: { index: number; children: ReactNode }) {
@@ -544,11 +692,14 @@ export function WhyThisRating({
   alignment,
   lang,
   scale,
+  subject = "self",
 }: {
   alignment: NumberAlignment;
   lang: Lang;
   /** The ladder off the response. Omit and step 5 states the band it knows. */
   scale?: VerdictBand[] | null;
+  /** Whose chart this is. See `ChartSubject` — Baby Name Finder is "child". */
+  subject?: ChartSubject;
 }) {
   const isTamil = lang === "ta";
   const { basis } = alignment;
@@ -558,8 +709,7 @@ export function WhyThisRating({
   // one-line why this replaced rather than crash on a rolling deploy.
   if (!basis) return <WhyLineFallback alignment={alignment} lang={lang} />;
   const band = scale?.find((b) => b.verdict === alignment.verdict);
-  const office = NATURE_OFFICE[alignment.functionalNature];
-  const officeClause = isTamil ? office?.ta : office?.en;
+  const officeClause = natureOfficeClause(alignment.functionalNature, subject, lang);
 
   return (
     <div
@@ -571,6 +721,16 @@ export function WhyThisRating({
         borderTop: "1px solid var(--color-border)",
       }}
     >
+      {/* The whole chain in one sentence, ABOVE the numbered steps.
+          The five steps are a correct derivation and were still failing the
+          reader they were written for: a first-time reader does not assemble
+          five clauses into a claim, they read the first line and stop. This
+          says the finding; the steps below remain the working, for anyone who
+          wants to check it or argue with it. */}
+      <div style={{ fontSize: "var(--text-sm)", color: "var(--color-text)", lineHeight: 1.55 }}>
+        {plainSummary(alignment, subject, lang)}
+      </div>
+
       <div
         style={{
           fontSize: "var(--text-xs)",
@@ -578,9 +738,10 @@ export function WhyThisRating({
           color: "var(--color-faint)",
           textTransform: "uppercase",
           letterSpacing: "0.06em",
+          paddingTop: "var(--space-1)",
         }}
       >
-        {isTamil ? "இந்த மதிப்பீடு ஏன்" : "Why this rating"}
+        {isTamil ? "இது எப்படிக் கணக்கிடப்பட்டது" : "How that was worked out"}
       </div>
 
       <StepRow index={1}>
@@ -591,13 +752,14 @@ export function WhyThisRating({
 
       <StepRow index={2}>
         {basis.nodeBasis
-          ? nodeOwnershipLine(alignment, basis.nodeBasis, lang)
-          : ownershipLine(alignment, lang)}{" "}
+          ? nodeOwnershipLine(alignment, basis.nodeBasis, lang, subject)
+          : ownershipLine(alignment, lang, subject)}{" "}
         {officeClause ? (
           <>
             {isTamil ? "அது " : "That makes it "}
             {/* The expert term stays on screen, deliberately: an astrologer
-                reading over the user's shoulder must find their own word. */}
+                reading over the user's shoulder must find their own word. The
+                plain gloss after the dash is what the reader gets. */}
             <span style={{ color: "var(--color-text)" }}>
               {natureLabel(alignment.functionalNature, lang)}
             </span>
@@ -610,7 +772,7 @@ export function WhyThisRating({
       <StepRow index={3}>
         {isTamil
           ? `இந்தப் பொறுப்பு ஒரு எண்ணை 100-க்கு ${basis.baseScore} என்ற அளவில் தொடங்கி வைக்கிறது.`
-          : `That office starts a number at ${basis.baseScore} out of 100.`}
+          : `That role sets this number's starting score at ${basis.baseScore} out of 100.`}
       </StepRow>
 
       <StepRow index={4}>
@@ -721,6 +883,17 @@ const SCALE_TONE_BG: Record<Tone, string> = {
   neutral: "var(--color-neutral-border)",
   mid: "var(--color-mid-border)",
   low: "var(--color-low-border)",
+};
+
+/** Text-colour equivalent, for tone carried by a word rather than a chip —
+ *  see `CompoundInSeries`, where Cheiro's register reads as attributed text,
+ *  not a competing verdict chip. */
+const TONE_TEXT: Record<Tone, string> = {
+  high: "var(--color-high)",
+  accent: "var(--color-accent)",
+  neutral: "var(--color-muted)",
+  mid: "var(--color-mid)",
+  low: "var(--color-low)",
 };
 
 /**
@@ -1067,11 +1240,6 @@ export function CompoundInSeries({ reading, lang }: { reading: NumberReading; la
             {reading.compoundTitle}
           </span>
         ) : null}
-        {reading.compoundTone ? (
-          <Chip tone={compoundToneChip(reading.compoundTone)}>
-            {compoundToneLabel(reading.compoundTone, lang)}
-          </Chip>
-        ) : null}
       </div>
       <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.5 }}>
         {isTamil ? "கூட்டு எண் · சீரோவின் வரிசை" : "Compound number · Cheiro's series"}
@@ -1083,6 +1251,19 @@ export function CompoundInSeries({ reading, lang }: { reading: NumberReading; la
             ? ` · ${reading.compoundEchoes}-ஐ மீண்டும் சொல்கிறது`
             : ` · repeats ${reading.compoundEchoes}`
           : null}
+        {/* Cheiro's own register for THIS number — attributed text, not a
+            chip. A chip here reads as a verdict on the candidate; it is a
+            citation about the compound number alone and never affects
+            ranking (see `ORDER_EXPLAINER`). */}
+        {reading.compoundTone ? (
+          <>
+            {" · "}
+            {isTamil ? "சீரோவின் பதிவு: " : "Cheiro's register: "}
+            <span style={{ color: TONE_TEXT[compoundToneChip(reading.compoundTone)], fontWeight: 600 }}>
+              {compoundToneLabel(reading.compoundTone, lang)}
+            </span>
+          </>
+        ) : null}
       </div>
       {/* Our meaning for the number, when it clears review. Null today; the
           title above ships regardless, which is the whole point of the split. */}
@@ -1236,15 +1417,38 @@ export function NumberReadingCard({
   lang,
   scoredFrom,
   trailing,
+  scoredFromBadge,
+  leadTag,
   alignment,
   hint,
   scale,
+  subject = "self",
+  showCompound = true,
+  collapsedSummary,
 }: {
   reading: NumberReading;
   label: string;
   lang: Lang;
   scoredFrom?: string | null;
   trailing?: ReactNode;
+  /**
+   * Chip(s) that qualify the *spelling* (script confidence, which paadham
+   * relation admitted this name) — rendered next to "Scored from", not in the
+   * header's `trailing` corner. That corner sits directly above the
+   * numerology alignment score below it; a spelling-confidence chip up there
+   * reads as a verdict on the score ("Strong match" next to "30 / 100") when
+   * the two are unrelated axes.
+   */
+  scoredFromBadge?: ReactNode;
+  /**
+   * The card's own leading badge, rendered above the header row at full
+   * visual weight — for baby names this is the relation chip (which rule
+   * admitted this name: your paadham, your star, your rasi, …), the *actual*
+   * primary sort key (see `numerology_naming_service.py`). It leads because
+   * everything below it — confidence, alignment score, compound tone — only
+   * ever breaks ties within this tier or is decorative, never overrides it.
+   */
+  leadTag?: ReactNode;
   /**
    * The chart-scored verdict for this number, when the surface has one. Supply
    * it and the card leads with what the number *means for this chart*; omit it
@@ -1256,16 +1460,56 @@ export function NumberReadingCard({
   hint?: string | null;
   /** The 0-100 ladder off the response, so step 5 can name the band. */
   scale?: VerdictBand[] | null;
+  /** Whose chart the alignment is scored against. See `ChartSubject`. */
+  subject?: ChartSubject;
+  /**
+   * Cheiro's compound-number block (the number, his title for it, and his
+   * register), plus the two notes that exist only to explain its absence.
+   *
+   * Off on Baby Name Finder. That block is a citation about a NUMBER in a 1935
+   * book — it cannot move the alignment score and never affects ranking (see
+   * `ORDER_EXPLAINER`) — but it renders directly under a 0-100 chart score, so
+   * a card reading "85 / 100 · Strongly aligned" also carried "Cheiro's
+   * register: Cautionary" for compound 18, and was read as self-contradictory.
+   * On a page where a parent is choosing their child's name, the safest
+   * reading of a stray "Cautionary" is the damaging one. Stays on for the
+   * numerology calculator, where the reader came for the number itself.
+   */
+  showCompound?: boolean;
+  /**
+   * Turns the card into one collapsed row that opens on click.
+   *
+   * Baby Name Finder returns up to ~116 names, and every one of them was
+   * rendering its full five-step derivation inline — a wall no reader can
+   * scan, in which the one fact they came to compare (the score) was buried
+   * under a paragraph per name. Supply the compact row here (name, score,
+   * rank, one-line why) and everything below becomes the disclosure.
+   *
+   * Native `<details>`, like `CalculationDetails`: keyboard- and
+   * screen-reader-correct for free, prints expanded, and stays in the DOM for
+   * find-in-page — which matters here, because a parent scanning 116 names
+   * will use Ctrl-F.
+   *
+   * The `label`/`trailing` header row is suppressed when this is set: the
+   * summary already carries the name, and repeating it two lines apart is how
+   * an accordion starts looking like a bug.
+   */
+  collapsedSummary?: ReactNode;
 }) {
   const isTamil = lang === "ta";
-  return (
-    <Card compact style={{ gap: "var(--space-2)" }}>
-      <div style={{ display: "flex", flexDirection: "row", alignItems: "baseline", gap: "var(--space-2)", flexWrap: "wrap" }}>
-        <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-          {label}
-        </span>
-        {trailing ? <span style={{ marginLeft: "auto" }}>{trailing}</span> : null}
-      </div>
+  const body = (
+    <>
+      {collapsedSummary ? null : (
+        <>
+          {leadTag ? <div>{leadTag}</div> : null}
+          <div style={{ display: "flex", flexDirection: "row", alignItems: "baseline", gap: "var(--space-2)", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              {label}
+            </span>
+            {trailing ? <span style={{ marginLeft: "auto" }}>{trailing}</span> : null}
+          </div>
+        </>
+      )}
 
       {hint ? (
         <div style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", marginTop: "-4px" }}>{hint}</div>
@@ -1308,31 +1552,43 @@ export function NumberReadingCard({
           <div style={{ fontSize: "var(--text-sm)", color: "var(--color-text-strong)", lineHeight: 1.5 }}>
             {verdictPlain(alignment.verdict, lang)}
           </div>
-          <WhyThisRating alignment={alignment} lang={lang} scale={scale} />
+          <WhyThisRating alignment={alignment} lang={lang} scale={scale} subject={subject} />
         </>
       ) : null}
 
-      {/* The compound, as a peer of the root — NOT inside the disclosure.
-          It outranks the root in this system (43 and 34 both reduce to 7 and
-          are read differently), so filing it under "how this was worked out"
-          presented the senior number as a discarded intermediate. */}
-      <CompoundInSeries reading={reading} lang={lang} />
+      {/* Cheiro's compound block and the two notes that exist ONLY to account
+          for its absence. All three are one switch: with the compound hidden,
+          "there is no entry for 60" and "this total has no compound step" are
+          answers to a question the card is no longer asking. See
+          `showCompound`. */}
+      {showCompound ? (
+        <>
+          {/* The compound, as a peer of the root — NOT inside the disclosure.
+              It outranks the root in this system (43 and 34 both reduce to 7 and
+              are read differently), so filing it under "how this was worked out"
+              presented the senior number as a discarded intermediate. */}
+          <CompoundInSeries reading={reading} lang={lang} />
 
-      {/* Doctrine D6 — a caveat, so it stays outside the disclosure. */}
-      <CompoundSurrogateNote reading={reading} lang={lang} />
+          {/* Doctrine D6 — a caveat, so it stays outside the disclosure. */}
+          <CompoundSurrogateNote reading={reading} lang={lang} />
 
-      {/* The third state `CompoundLine`'s own docstring names but used to
-          render as nothing: `compound === null` (a single-digit total, no
-          two-digit step to name). Personal Month/Day roots most often land
-          here, and a card with no compound and no explanation reads as broken
-          rather than as the ordinary case it is. */}
-      <NoCompoundNote reading={reading} lang={lang} />
+          {/* The third state `CompoundLine`'s own docstring names but used to
+              render as nothing: `compound === null` (a single-digit total, no
+              two-digit step to name). Personal Month/Day roots most often land
+              here, and a card with no compound and no explanation reads as broken
+              rather than as the ordinary case it is. */}
+          <NoCompoundNote reading={reading} lang={lang} />
+        </>
+      ) : null}
 
       {/* Doctrine D3 — a name reading must never be readable without the
           spelling that produced it, so this stays outside the disclosure too. */}
       {scoredFrom ? (
-        <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
-          {isTamil ? "கணக்கிடப்பட்டது" : "Scored from"} · <span style={{ color: "var(--color-text)" }}>{scoredFrom}</span>
+        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "var(--space-2)", fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
+          <span>
+            {isTamil ? "கணக்கிடப்பட்டது" : "Scored from"} · <span style={{ color: "var(--color-text)" }}>{scoredFrom}</span>
+          </span>
+          {scoredFromBadge}
         </div>
       ) : null}
 
@@ -1350,9 +1606,121 @@ export function NumberReadingCard({
             {reading.ignoredCharacters.map((ch) => (ch === " " ? "␣" : ch)).join(" ")}
           </div>
         ) : null}
-        <CompoundSourceNote reading={reading} lang={lang} />
+        {/* Cheiro's bibliographic citation. Follows `showCompound` — a source
+            note for a block that is not on the card cites nothing. */}
+        {showCompound ? <CompoundSourceNote reading={reading} lang={lang} /> : null}
       </CalculationDetails>
+    </>
+  );
+
+  if (!collapsedSummary) {
+    return (
+      <Card compact style={{ gap: "var(--space-2)" }}>
+        {body}
+      </Card>
+    );
+  }
+
+  return (
+    <Card compact style={{ gap: 0 }}>
+      <details className="num-name-details">
+        <summary className="num-name-details__summary">{collapsedSummary}</summary>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "var(--space-2)",
+            paddingTop: "var(--space-3)",
+          }}
+        >
+          {body}
+        </div>
+      </details>
     </Card>
+  );
+}
+
+/**
+ * The collapsed row for one baby-name candidate.
+ *
+ * Feeds `NumberReadingCard`'s `collapsedSummary`. Four facts and nothing else:
+ * the name, what admitted it, its chart-fit score, and its position — the
+ * things a parent compares *across* names. Everything that explains a single
+ * name lives behind the disclosure.
+ *
+ * Score and rank sit together at the end on purpose, and the rank carries its
+ * denominator: "#18" alone invites the reading "18th best", when the list is
+ * ordered by the letter rule first (see `ORDER_EXPLAINER`) and a lower row can
+ * legitimately outscore a higher one.
+ */
+export function BabyNameRowSummary({
+  name,
+  lang,
+  chips,
+  score,
+  rank,
+  total,
+  oneLine,
+}: {
+  name: string;
+  lang: Lang;
+  chips?: ReactNode;
+  /** Chart fit, 0-100. Null on the chart-less path — then no score is shown. */
+  score?: number | null;
+  /** 1-based position in the full ranked pool. */
+  rank?: number | null;
+  total?: number | null;
+  /** `oneLineWhy(alignment, lang)`. */
+  oneLine?: string | null;
+}) {
+  const isTamil = lang === "ta";
+  return (
+    <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "2px" }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          alignItems: "baseline",
+          gap: "var(--space-2)",
+          flexWrap: "wrap",
+        }}
+      >
+        <span style={{ fontSize: "var(--text-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>
+          {name}
+        </span>
+        {chips}
+        <span
+          style={{
+            marginLeft: "auto",
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "baseline",
+            gap: "var(--space-2)",
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {typeof score === "number" ? (
+            <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text)" }}>
+              {score}
+              <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", fontWeight: 400 }}>
+                {isTamil ? " /100 பொருத்தம்" : " /100 fit"}
+              </span>
+            </span>
+          ) : null}
+          {typeof rank === "number" && rank > 0 ? (
+            <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
+              #{rank}
+              {typeof total === "number" && total > 0 ? (isTamil ? ` / ${total}` : ` of ${total}`) : null}
+            </span>
+          ) : null}
+        </span>
+      </div>
+      {oneLine ? (
+        <div style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.5 }}>
+          {oneLine}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
