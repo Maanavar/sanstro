@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 
 import { PublicNav } from "@/components/public-nav";
@@ -25,7 +25,9 @@ import {
   MEANINGS_WITHHELD,
   MUST_IT_BEGIN_A,
   MUST_IT_BEGIN_Q,
+  ORDER_EXPLAINER,
   RELATION_CHIP,
+  RELATION_TONE,
   SCOPE_LABEL,
   SCOPE_ORDER,
   SCOPE_REVIEW_NOTE,
@@ -119,14 +121,13 @@ export function BabyNameFinderContent() {
   const [lang] = useLang();
   const ta = lang === "ta";
   const { applyPlaceSelection } = useBirthProfileForm();
+  const genderLabelId = useId();
 
   const [form, setForm] = useState<BirthForm>(EMPTY_FORM);
   const [gender, setGender] = useState<BabyNameGender | undefined>(undefined);
   // Defaults to the strict rule. Widening is always the parent's decision —
   // the tool must never quietly reach past the paadham on their behalf.
   const [mode, setMode] = useState<BabyNameMode>("pada_first");
-  const [allowAmbiguous, setAllowAmbiguous] = useState(false);
-  const [allowTamilCollapse, setAllowTamilCollapse] = useState(false);
 
   const [result, setResult] = useState<BabyNamesResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -159,8 +160,6 @@ export function BabyNameFinderContent() {
       },
       gender,
       mode,
-      allowAmbiguous,
-      allowTamilCollapse,
     })
       .then(setResult)
       .catch((err: unknown) => {
@@ -181,7 +180,7 @@ export function BabyNameFinderContent() {
     if (!hasSearched.current) return;
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gender, mode, allowAmbiguous, allowTamilCollapse]);
+  }, [gender, mode]);
 
   return (
     <div className="clarity-shell">
@@ -215,7 +214,7 @@ export function BabyNameFinderContent() {
                     : "Date and place of birth are required. Time sharpens the alignment ranking if you have it."}
                 </p>
 
-                <div className="cl-num-form" data-cols="2">
+                <div className="cl-num-form" data-cols="birth">
                   <label className="cl-num-field">
                     <span className="cl-num-field__label">{ta ? "பெயர் (விருப்பம்)" : "Name (optional)"}</span>
                     <input
@@ -244,9 +243,18 @@ export function BabyNameFinderContent() {
                       onChange={(e) => setForm((prev) => ({ ...prev, birthTimeLocal: e.target.value }))}
                     />
                   </label>
-                  <label className="cl-num-field">
+                  {/* Spans two tracks — a "City, State, Country" string needs
+                      more room than the date and time fields beside it. */}
+                  <label className="cl-num-field" data-span="2">
                     <span className="cl-num-field__label">{ta ? "பிறந்த இடம்" : "Place of birth"}</span>
+                    {/* `cl-num-input` opts this combobox out of its own inline
+                        dashboard styling. Without it the field rendered with
+                        10px corners, a 1.5px tan border and no 44px floor
+                        while the three fields above it were square-cornered
+                        44px-tall inputs on `--cl-surface-2` — one row of four
+                        fields drawn in two different visual languages. */}
                     <PlaceCombobox
+                      className="cl-num-input"
                       value={form.birthPlace}
                       onChange={onPlaceChange}
                       placeholder={ta ? "நகரத்தைத் தட்டச்சு செய்யவும்…" : "Type a city…"}
@@ -254,59 +262,55 @@ export function BabyNameFinderContent() {
                   </label>
                 </div>
 
-                <div className="cl-num-kinds">
-                  {([undefined, "m", "f"] as const).map((g) => (
-                    <button
-                      key={g ?? "any"}
-                      type="button"
-                      onClick={() => setGender(g)}
-                      aria-pressed={gender === g}
-                      className="cl-num-tab cl-num-tab--sm"
-                      data-active={gender === g ? "true" : undefined}
-                    >
-                      {g ? (ta ? GENDER_LABEL[g].ta : GENDER_LABEL[g].en) : ta ? "பொது" : "Any"}
-                    </button>
-                  ))}
+                {/* Labelled like every other control. Unlabelled, these three
+                    buttons sat 4px under "Place of birth" and read as options
+                    belonging to that field rather than as the baby's gender. */}
+                <div className="cl-num-group">
+                  <span className="cl-num-field__label" id={genderLabelId}>
+                    {ta ? "குழந்தையின் பாலினம்" : "Baby's gender"}
+                  </span>
+                  <div className="cl-num-kinds" role="group" aria-labelledby={genderLabelId}>
+                    {([undefined, "m", "f"] as const).map((g) => (
+                      <button
+                        key={g ?? "any"}
+                        type="button"
+                        onClick={() => setGender(g)}
+                        aria-pressed={gender === g}
+                        className="cl-num-tab cl-num-tab--sm"
+                        data-active={gender === g ? "true" : undefined}
+                      >
+                        {g ? (ta ? GENDER_LABEL[g].ta : GENDER_LABEL[g].en) : ta ? "பொது" : "Any"}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                {/* The scope control sits in the open form, NOT under "More
-                    options". It is the question a parent actually arrives
-                    with — "does the name have to start with that letter?" —
-                    and burying it implied the strict rule was the only rule.
-                    The other two toggles are script-evidence plumbing and
-                    stay where they are. */}
+                {/* The scope ladder is the ONLY widening control now, and it
+                    sits in the open form: it is the question a parent actually
+                    arrives with — "does the name have to start with that
+                    letter?" — and burying it implied the strict rule was the
+                    only rule.
+
+                    Two script-evidence checkboxes used to sit under a "More
+                    options" disclosure here and were cut on 2026-08-02.
+                    Measured over all 108 paadhams x 3 genders x 4 scopes:
+                    at this page's default scope "close matches" changed the
+                    result in 3 of 324 searches and the Tamil-collapse box in
+                    10 of 324, and at "any letter" scope BOTH were inert in all
+                    324. Worse, `allow_ambiguous` is ANDed with `not
+                    collapse_gated` in `find_names`, so on the 177 collapse-row
+                    searches the first box could not do anything unless the
+                    second was also ticked — an invisible dependency between
+                    two controls. The API params survive (mobile and the
+                    service tests still pass them); only the UI is gone. The
+                    collapse question is NU-8a, an unresolved practitioner
+                    question, which is not a parent's call to make. */}
                 <ScopePicker
                   mode={mode}
                   onChange={setMode}
                   rasiName={result ? (ta ? result.targetRasiTa : result.targetRasiEn) : null}
                   ta={ta}
                 />
-
-                <details className="cl-num-details">
-                  <summary>{ta ? "மேலும் விருப்பங்கள்" : "More options"}</summary>
-                  <div className="cl-num-details__body" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.85rem" }}>
-                      <input
-                        type="checkbox"
-                        checked={allowAmbiguous}
-                        onChange={(e) => setAllowAmbiguous(e.target.checked)}
-                      />
-                      {ta
-                        ? "ஏறத்தாழப் பொருந்தும் பெயர்களையும் காட்டு"
-                        : "Also show close matches"}
-                    </label>
-                    <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "0.85rem" }}>
-                      <input
-                        type="checkbox"
-                        checked={allowTamilCollapse}
-                        onChange={(e) => setAllowTamilCollapse(e.target.checked)}
-                      />
-                      {ta
-                        ? "ஒரே தமிழ் எழுத்து பல ஒலிகளைக் குறிக்கும்போது, ஒரு எழுத்து முறையில் மட்டும் பொருந்தும் பெயர்களையும் சேர்"
-                        : "Where one Tamil letter stands for several sounds, also include names only one spelling confirms"}
-                    </label>
-                  </div>
-                </details>
 
                 <button
                   type="button"
@@ -452,12 +456,13 @@ function ScopePicker({
   rasiName: string | null;
   ta: boolean;
 }) {
+  const labelId = useId();
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-      <span className="cl-num-field__label">
+    <div className="cl-num-group">
+      <span className="cl-num-field__label" id={labelId}>
         {ta ? "தொடக்க எழுத்தின் வரம்பு" : "Opening-letter scope"}
       </span>
-      <div className="cl-num-kinds" role="group">
+      <div className="cl-num-kinds" role="group" aria-labelledby={labelId}>
         {SCOPE_ORDER.map((option) => (
           <button
             key={option}
@@ -551,6 +556,11 @@ function ResultBlock({ result, ta }: { result: BabyNamesResponse; ta: boolean })
         <p className="cl-num-note" role="note" style={{ margin: 0 }}>
           {pick(DRAFT_BANNER, ta)}
         </p>
+        {result.candidates.length > 0 ? (
+          <p className="cl-num-note" style={{ margin: 0 }}>
+            {pick(ORDER_EXPLAINER, ta)}
+          </p>
+        ) : null}
         {widened ? (
           <p className="cl-num-note" style={{ margin: 0 }}>
             {widened}
@@ -607,10 +617,12 @@ function NameCard({
   const relation = relationNote(candidate, rasiName, ta);
   return (
     <div className="cl-num-reading">
+      <span className={`cl-num-reading__relation cl-num-reading__relation--${RELATION_TONE[candidate.relation]}`}>
+        {pick(RELATION_CHIP[candidate.relation], ta)}
+      </span>
       <div className="cl-num-reading__head">
         <span className="cl-num-reading__label">{candidate.tamilForm}</span>
         <span className="cl-num-reading__source">
-          {pick(RELATION_CHIP[candidate.relation], ta)} ·{" "}
           {pick(CONFIDENCE_CHIP[candidate.confidence], ta)}
         </span>
       </div>

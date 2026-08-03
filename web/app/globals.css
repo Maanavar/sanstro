@@ -5720,6 +5720,24 @@ button:focus-visible,
   margin-bottom: 16px;
 }
 
+/* One labelled control below the field grid — a label, its buttons, and any
+   note or disclosure that explains them. The parts each carry their own
+   standalone margins (`.cl-num-kinds` 16px bottom, `.cl-num-field__label` 7px,
+   `.cl-num-note` 16px top, `.cl-num-details` 15px top) which stack on top of
+   this gap and made the internal spacing of a group larger than the spacing
+   BETWEEN groups — so a group's own label read as belonging to the control
+   above it. Inside a group the gap is the only authority. */
+.cl-num-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 22px;
+}
+.cl-num-group > .cl-num-kinds { margin-bottom: 0; }
+.cl-num-group > .cl-num-field__label { margin-bottom: 0; }
+.cl-num-group > .cl-num-note { margin-top: 0; }
+.cl-num-group > .cl-num-details { margin-top: 2px; }
+
 /* ── One ruled card: the question at its head, the answers as its cells ──── */
 .cl-num-card {
   border: 1px solid var(--cl-border);
@@ -5754,6 +5772,22 @@ button:focus-visible,
   }
   .cl-num-form[data-cols="2"] { grid-template-columns: 200px 200px auto; }
   .cl-num-form[data-cols="1"] { grid-template-columns: minmax(0, 340px) auto; }
+  /* Birth details: FOUR fields with the submit button OUTSIDE the grid, because
+     gender and the scope ladder sit between the fields and the button.
+
+     The numbered profiles above all end in an `auto` cell sized for that
+     button. Borrowing one of them here (this used to say data-cols="2") put
+     field 3 in the button's `auto` cell — so "Time of birth" stretched across
+     the rest of the row — and pushed field 4 onto a row of its own beside two
+     dead cells. Hence a profile with no button cell at all, and tracks sized to
+     what each field actually holds rather than to the card's full width. */
+  .cl-num-form[data-cols="birth"] {
+    grid-template-columns: minmax(0, 240px) 170px 150px;
+    justify-content: start;
+  }
+  /* Only meaningful once the tracks above exist — in the one-column fallback a
+     span would open an implicit second column and re-break the stacking. */
+  .cl-num-form .cl-num-field[data-span="2"] { grid-column: span 2; }
 }
 
 .cl-num-field { display: block; min-width: 0; }
@@ -5801,6 +5835,11 @@ button:focus-visible,
 }
 .cl-num-submit:hover:not(:disabled) { background: var(--cl-ink-2); }
 .cl-num-submit:disabled { opacity: 0.45; cursor: not-allowed; }
+/* When the submit is a cell of `.cl-num-form` the grid's own gap spaces it.
+   Standing outside the grid (baby name finder) it had no margin at all and sat
+   flush against the disclosure above it, reading as part of that control
+   rather than as the action that ends the form. */
+.cl-num-card__form > .cl-num-submit { margin-top: 26px; }
 
 .cl-num-note,
 .cl-num-error {
@@ -5866,6 +5905,21 @@ button:focus-visible,
   color: var(--cl-muted-2);
   text-align: right;
 }
+
+/* The relation tag — which rule admitted this name (your paadham, your star,
+   your rasi, …) — leads the card at full weight because it is the actual
+   ranking key (see `numerology_naming_service.py`), unlike the confidence
+   note in `.cl-num-reading__source` beside it, which only breaks ties. */
+.cl-num-reading__relation {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  margin-bottom: 4px;
+}
+.cl-num-reading__relation--high { color: var(--cl-sage); }
+.cl-num-reading__relation--mid { color: var(--cl-accent); }
+.cl-num-reading__relation--neutral { color: var(--cl-muted-2); }
 
 /* ── The compound, as a peer of the root ───────────────────────────────────
  *
