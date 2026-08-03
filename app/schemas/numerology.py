@@ -1373,6 +1373,19 @@ class BabyNameCandidateOut(BaseModel):
     #: Provenance notes from the matcher — e.g. draft-canon or
     #: tamil_collapse warnings. Not interpretive copy, so not gated.
     warnings: list[str] = Field(default_factory=list)
+    #: "corpus" (one of ours) | "user" (from the parent's own shortlist) |
+    #: "both" (the parent's pick happens to be a corpus name — shown once).
+    source: Literal["corpus", "user", "both"] = "corpus"
+    #: 1-based rank in the FULL matched pool (corpus + shortlist), before
+    #: `limit` trimmed the corpus side. A shortlist name below `limit` is
+    #: still returned.
+    overall_rank: int = Field(alias="overallRank", default=0)
+    #: True when a numerologist would tell this family to set this spelling
+    #: aside — a non-benefic lordship that is also MISALIGNED or worse. Straight
+    #: off `should_advise_name_change`, the same guard Fortune Alignment's
+    #: name-change recommendation uses, so the two can never disagree. False on
+    #: the chart-less public path (no lagna, no alignment, no opinion).
+    advise_against: bool = Field(alias="adviseAgainst", default=False)
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -1396,6 +1409,9 @@ class BabyNameCandidateOut(BaseModel):
                 NumberAlignmentOut.from_alignment(ranked.alignment) if ranked.alignment else None
             ),
             warnings=list(ranked.warnings),
+            source=ranked.source,
+            overallRank=ranked.overall_rank,
+            adviseAgainst=ranked.advise_against,
         )
 
 
@@ -1445,6 +1461,11 @@ class BabyNamesResponse(BaseModel):
     empty_reason: str | None = Field(alias="emptyReason", default=None)
     #: "pool_empty" | "collapse_gated" | "no_candidate_fits"
     empty_reason_code: str | None = Field(alias="emptyReasonCode", default=None)
+    #: Size of the full ranked pool (corpus matches + any shortlist entries)
+    #: before `limit` trimmed the corpus side — always >= len(candidates).
+    #: Lets a client say "your name ranks #47 of 132" even though only the
+    #: top `limit` corpus names are in `candidates`.
+    total_matches: int = Field(alias="totalMatches", default=0)
     #: True only once every one of the 108 pada rows has astrologer sign-off.
     #: False today — see `app.data.nakshatra_pada_akshara.is_production_ready`.
     canon_verified: bool = Field(alias="canonVerified", default_factory=is_production_ready)
@@ -1482,6 +1503,7 @@ class BabyNamesResponse(BaseModel):
             emptyReasonCode=(
                 result.empty_reason_code.value if result.empty_reason_code else None
             ),
+            totalMatches=result.total_matches,
             lagnaRasi=result.lagna_rasi,
             lagnaRasiEn=rasi_en(result.lagna_rasi),
             lagnaRasiTa=rasi_ta(result.lagna_rasi),

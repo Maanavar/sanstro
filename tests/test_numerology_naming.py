@@ -32,10 +32,12 @@ from app.calculations.numerology_naming import (
     Relaxation,
     UnverifiedCanonError,
     assert_canon_usable,
+    evaluate_against_target,
     evaluate_candidate,
     find_names,
     padas_for_name,
     rasi_of_pada,
+    relation_to_target,
 )
 from app.data.nakshatra_pada_akshara import (
     PADA_AKSHARA_ALTERNATES,
@@ -326,6 +328,56 @@ def test_reverse_lookup_returns_a_set_not_a_single_pada() -> None:
     assert ranks == sorted(ranks)
     # தீ is Vishakha P1; the name must at minimum reach that pada.
     assert any(h.row.key == (16, 1) for h in hits)
+
+
+def test_evaluate_against_target_flags_the_parents_own_choice_on_paadham() -> None:
+    """A parent's own shortlist name that DOES open the birth paadham reads
+    ON_PAADHAM with the true confidence — same evidence rules as the corpus."""
+    target = PADA_AKSHARA_BY_KEY[(16, 1)]  # Vishakha P1, தீ
+    scored = evaluate_against_target(cand("தீபா", "Theepa", "Deepa"), target, rasi_of_pada(16, 1))
+    assert scored.relation is AksharaRelation.ON_PAADHAM
+    assert scored.row is not None and scored.row.key == (16, 1)
+
+
+def test_evaluate_against_target_names_the_row_a_name_actually_opens() -> None:
+    """A shortlist name that misses the birth paadham still gets a real
+    answer — which row (if any) it DOES open — mirroring the ஆதினி case."""
+    target = PADA_AKSHARA_BY_KEY[(16, 1)]  # Vishakha P1, தீ — not அ.
+    scored = evaluate_against_target(cand("ஆதினி", "Aadhini"), target, rasi_of_pada(16, 1))
+    assert scored.relation is not AksharaRelation.ON_PAADHAM
+    assert scored.row is not None
+    assert scored.is_match
+
+
+def test_evaluate_against_target_reports_no_paadham_when_nothing_matches() -> None:
+    target = PADA_AKSHARA_BY_KEY[(16, 1)]
+    # ங ணா and similar consonants never open a Tamil personal name; use a
+    # made-up string with no plausible akshara opening in either script.
+    scored = evaluate_against_target(cand("", "Zzqxw"), target, rasi_of_pada(16, 1))
+    assert scored.relation is AksharaRelation.NO_PAADHAM
+    assert scored.row is None
+    assert not scored.is_match
+
+
+def test_latin_only_shortlist_candidate_can_still_confirm_on_a_non_lossy_row() -> None:
+    """Blank Tamil form is allowed (Baby Name Finder's English-only shortlist
+    input) — it just means the ceiling is LATIN_ONLY/AMBIGUOUS, never
+    CONFIRMED/TAMIL_ONLY, on any row."""
+    target = PADA_AKSHARA_BY_KEY[(16, 1)]
+    scored = evaluate_against_target(cand("", "Theepa"), target, rasi_of_pada(16, 1))
+    if scored.row is not None:
+        assert scored.confidence not in (MatchConfidence.CONFIRMED, MatchConfidence.TAMIL_ONLY)
+
+
+def test_relation_to_target_matches_find_names_classification() -> None:
+    target = PADA_AKSHARA_BY_KEY[(16, 1)]
+    sibling = PADA_AKSHARA_BY_KEY[(16, 2)]
+    assert relation_to_target(target, target, rasi_of_pada(16, 1)) is AksharaRelation.ON_PAADHAM
+    assert (
+        relation_to_target(sibling, target, rasi_of_pada(16, 1))
+        is AksharaRelation.SAME_NATCHATHIRAM
+    )
+    assert relation_to_target(None, target, rasi_of_pada(16, 1)) is AksharaRelation.NO_PAADHAM
 
 
 # ---------------------------------------------------------------------------
@@ -680,8 +732,19 @@ def test_a_raw_string_mode_is_normalised_and_an_unknown_one_rejected() -> None:
         NamingConstraints(nakshatra_id=21, pada=3, mode="everything")  # type: ignore[arg-type]
 
 
-def test_candidate_requires_both_scripts() -> None:
-    with pytest.raises(ValueError):
-        NameCandidate(tamil_form="", latin_variants=("Ravi",))
+def test_candidate_requires_at_least_latin() -> None:
+    """`latin_variants` is the one thing every candidate must carry — a bare
+    English shortlist name (no Tamil script) is a valid, if capped, candidate:
+    see `evaluate_against_target`'s LATIN_ONLY/AMBIGUOUS ceiling for it."""
+    NameCandidate(tamil_form="", latin_variants=("Ravi",))  # does not raise
     with pytest.raises(ValueError):
         NameCandidate(tamil_form="ரவி", latin_variants=())
+
+
+def test_latin_only_candidate_never_reaches_confirmed_or_tamil_only() -> None:
+    latin_only = NameCandidate(tamil_form="", latin_variants=("Deepa",))
+    confirmed_or_tamil_row = next(
+        row for row in PADA_AKSHARA_TABLE if not row.tamil_collapse and row.akshara_tamil
+    )
+    scored = evaluate_candidate(latin_only, confirmed_or_tamil_row)
+    assert scored.confidence not in (MatchConfidence.CONFIRMED, MatchConfidence.TAMIL_ONLY)

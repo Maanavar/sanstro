@@ -19,16 +19,25 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from itertools import groupby
+from types import SimpleNamespace
 from uuid import UUID
 
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from app.calculations.numerology_naming import UnverifiedCanonError
+from app.calculations.numerology_alignment import AlignmentVerdict
+from app.calculations.numerology_naming import (
+    _RELATION_RANK,
+    AksharaRelation,
+    MatchConfidence,
+    NamingMode,
+    UnverifiedCanonError,
+)
 from app.db.session import SessionLocal
 from app.services.feature_flags import reset_flag, set_flag
 from app.services.numerology_naming_service import (
+    UserNameQuery,
     baby_names_for_chart,
     baby_names_for_pada,
     require_baby_naming_enabled,
@@ -137,6 +146,191 @@ def test_public_path_never_carries_alignment(enabled: None) -> None:
     result = baby_names_for_pada(1, 1, allow_ambiguous=True, allow_tamil_collapse=True)
     assert result.lagna_rasi is None
     assert all(m.alignment is None for m in result.matches)
+
+
+# ---------------------------------------------------------------------------
+# A parent's own shortlist, ranked in place among the recommendations
+# ---------------------------------------------------------------------------
+def test_shortlist_name_matching_a_corpus_name_is_shown_once(enabled: None) -> None:
+    """"Suresh" is already a CONFIRMED corpus match for (1, 1). A parent
+    typing the exact same name must see one card, tagged "both" — not the
+    same name twice under two different cards."""
+    result = baby_names_for_pada(
+        1, 1, allow_ambiguous=True, limit=50, user_names=[UserNameQuery(latin_spelling="Suresh")]
+    )
+    hits = [m for m in result.matches if m.matched_spelling.casefold() == "suresh"]
+    assert len(hits) == 1
+    assert hits[0].source == "both"
+
+
+def test_shortlist_name_survives_a_display_limit_that_would_otherwise_drop_it(
+    enabled: None,
+) -> None:
+    """A shortlist name that opens no paadham at all ranks last by doctrine
+    (D2), which a small `limit` would normally cut — it must still appear,
+    because dropping a parent's own pick silently is exactly the "silence is
+    a claim" mistake this feature exists to avoid."""
+    result = baby_names_for_pada(
+        1,
+        1,
+        allow_ambiguous=True,
+        limit=1,
+        user_names=[UserNameQuery(latin_spelling="Zzqxw")],
+    )
+    corpus_only = [m for m in result.matches if m.source == "corpus"]
+    user_only = [m for m in result.matches if m.source == "user"]
+    assert len(corpus_only) == 1  # the display limit still applies to the corpus side
+    assert len(user_only) == 1
+    assert user_only[0].matched_spelling == "Zzqxw"
+    assert user_only[0].relation.value == "no_paadham"
+    # total_matches counts the full pool, not just what's returned.
+    assert result.total_matches >= len(result.matches)
+
+
+def test_shortlist_name_bypasses_the_gender_filter(enabled: None) -> None:
+    """"Suresh" is a boy's name and is filtered OUT of the corpus results when
+    `gender="f"` — but a parent checking their own pick must still see it; the
+    gender toggle narrows recommendations, not "does my chosen name count"."""
+    result = baby_names_for_pada(
+        1, 1, gender="f", allow_ambiguous=True, user_names=[UserNameQuery(latin_spelling="Suresh")]
+    )
+    assert not any(m.matched_spelling.casefold() == "suresh" and m.source == "corpus"
+                   for m in result.matches)
+    hits = [m for m in result.matches if m.matched_spelling.casefold() == "suresh"]
+    assert len(hits) == 1
+    assert hits[0].source == "user"
+
+
+def test_shortlist_name_is_not_sunk_by_a_tier_english_only_input_cannot_win(
+    enabled: None,
+) -> None:
+    """The reported defect, pinned.
+
+    Baby Name Finder collects English spelling only, so a name the parent types
+    can never reach CONFIRMED — and CONFIRMED outranks LATIN_ONLY in the sort.
+    Measured before the fix, Uthiradam paadham 3 / girl / `open` scope: the
+    parent's own name scored 85, **tied for the best chart fit of all 116
+    names, and ranked 116th of 116**. Ranking a name last on a field our own
+    form made unfillable is not a judgement about the name.
+
+    What must NOT change: doctrine D2. A promoted name may only move within
+    its own relation tier, never above an on-paadham name.
+    """
+    result = baby_names_for_pada(
+        21,
+        3,
+        gender="f",
+        mode=NamingMode.OPEN,
+        limit=100,
+        user_names=[UserNameQuery(latin_spelling="Aadhini")],
+    )
+    ranked = sorted(result.matches, key=lambda m: m.overall_rank)
+    mine = next(m for m in ranked if m.source == "user")
+    assert mine.confidence is MatchConfidence.LATIN_ONLY  # the cap is real…
+    assert mine.relation is AksharaRelation.OTHER_PAADHAM
+
+    # …but it no longer costs a place. Every name above it must be on a
+    # STRONGER relation tier — never merely better-spelled on the same tier.
+    above = [m for m in ranked if m.overall_rank < mine.overall_rank]
+    assert above, "expected on-paadham names to still lead"
+    assert all(
+        _RELATION_RANK[m.relation] < _RELATION_RANK[mine.relation] for m in above
+    ), "a same-tier corpus name outranked the parent's own pick on spelling evidence alone"
+
+
+def test_ambiguous_shortlist_names_are_still_demoted(enabled: None) -> None:
+    """AMBIGUOUS is not promoted alongside LATIN_ONLY.
+
+    LATIN_ONLY means the English initial *uniquely* pins the row and only
+    Tamil corroboration is missing. AMBIGUOUS means the matching script is
+    lossy for that row — a real doubt about which paadham the letter opens,
+    which survives regardless of who supplied the name.
+    """
+    from app.services.numerology_naming_service import _confidence_rank
+
+    def item(confidence: MatchConfidence, source: str) -> object:
+        return SimpleNamespace(confidence=confidence, source=source)
+
+    confirmed = _confidence_rank(item(MatchConfidence.CONFIRMED, "corpus"))
+    assert _confidence_rank(item(MatchConfidence.LATIN_ONLY, "user")) == confirmed
+    assert _confidence_rank(item(MatchConfidence.LATIN_ONLY, "both")) == confirmed
+    # Unchanged for a corpus row: there the missing Tamil IS evidence, because
+    # the corpus always carries both scripts.
+    assert _confidence_rank(item(MatchConfidence.LATIN_ONLY, "corpus")) > confirmed
+    assert _confidence_rank(item(MatchConfidence.AMBIGUOUS, "user")) > confirmed
+
+
+def test_advise_against_reuses_the_name_change_doctrine_and_what_it_refuses(
+    client: TestClient, enabled: None
+) -> None:
+    """The one negative call this surface makes, delegated not reinvented.
+
+    `should_advise_name_change` flags a non-benefic lordship that is ALSO
+    misaligned or worse. What it REFUSES to flag matters as much: a
+    functionally benefic graha is never grounds to reject a name, so the "8 is
+    unlucky" claim can never reach a parent through this field.
+    """
+    chart_id = _create_chart(client)
+    with SessionLocal() as session:
+        result = baby_names_for_chart(chart_id, session, mode=NamingMode.OPEN, limit=50)
+
+    for m in result.matches:
+        if m.alignment is None:
+            assert m.advise_against is False
+            continue
+        if m.alignment.is_benefic_lordship:
+            assert m.advise_against is False, (
+                f"{m.matched_spelling}: a benefic lordship must never be a reason "
+                "to set a name aside, whatever the number's reputation"
+            )
+        if m.advise_against:
+            assert not m.alignment.is_benefic_lordship
+            assert m.alignment.verdict in {
+                AlignmentVerdict.MISALIGNED,
+                AlignmentVerdict.STRONGLY_MISALIGNED,
+            }
+
+
+def test_advise_against_never_reorders_across_a_relation_tier(
+    client: TestClient, enabled: None
+) -> None:
+    """Doctrine D2 outranks the caution. A flagged name stays in its own
+    letter-rule group — it is labelled there, not demoted out of it, because
+    the akshara claim is real even when the number is poor (and a different
+    spelling of the same name usually clears it)."""
+    chart_id = _create_chart(client)
+    with SessionLocal() as session:
+        result = baby_names_for_chart(chart_id, session, mode=NamingMode.OPEN, limit=50)
+    ranked = sorted(result.matches, key=lambda m: m.overall_rank)
+    tiers = [_RELATION_RANK[m.relation] for m in ranked]
+    assert tiers == sorted(tiers), "a caution moved a name out of its letter-rule group"
+
+
+def test_public_chartless_path_expresses_no_opinion(enabled: None) -> None:
+    """No lagna, no alignment, no advice — the flag must not default to a
+    judgement the chart never supported."""
+    result = baby_names_for_pada(1, 1, allow_ambiguous=True)
+    assert all(m.alignment is None for m in result.matches)
+    assert all(m.advise_against is False for m in result.matches)
+
+
+def test_shortlist_is_capped_and_blanks_are_ignored(enabled: None) -> None:
+    result = baby_names_for_pada(
+        1,
+        1,
+        user_names=[
+            UserNameQuery(latin_spelling=""),
+            UserNameQuery(latin_spelling="  "),
+            UserNameQuery(latin_spelling="Alpha"),
+            UserNameQuery(latin_spelling="Beta"),
+            UserNameQuery(latin_spelling="Gamma"),
+            UserNameQuery(latin_spelling="Delta"),
+            UserNameQuery(latin_spelling="Epsilon"),
+            UserNameQuery(latin_spelling="Zeta"),
+        ],
+    )
+    user_only = {m.matched_spelling for m in result.matches if m.source == "user"}
+    assert user_only == {"Alpha", "Beta", "Gamma", "Delta", "Epsilon"}  # first 5, blanks dropped
 
 
 def test_require_baby_naming_enabled_404s_independently_of_numerology_engine() -> None:

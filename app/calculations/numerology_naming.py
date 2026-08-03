@@ -113,10 +113,14 @@ def tamil_is_ambiguous(row: PadaAkshara) -> bool:
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True, slots=True)
 class NameCandidate:
-    """A name in both scripts.
+    """A name, ideally in both scripts.
 
-    Both forms are required. A candidate carrying only one script can only ever
-    reach ``AMBIGUOUS`` on a lossy row, which is not a result worth showing.
+    The corpus always supplies both. ``tamil_form`` may be blank for a
+    candidate built from a parent's own English-only shortlist (Baby Name
+    Finder's "check your own names" input) — a blank Tamil form simply never
+    matches a row's Tamil opening, so such a candidate can reach at best
+    ``LATIN_ONLY``/``AMBIGUOUS``, never ``CONFIRMED``/``TAMIL_ONLY``. Same
+    honesty rule the engine already applies to any single-script evidence.
     ``latin_variants`` is a tuple because Tamil romanisation is genuinely
     many-to-one in practice (தீபா -> "Deepa"/"Dheepa"/"Theepa").
     """
@@ -128,8 +132,6 @@ class NameCandidate:
     gender: str | None = None  # "m" | "f" | "n" | None
 
     def __post_init__(self) -> None:
-        if not self.tamil_form.strip():
-            raise ValueError("NameCandidate.tamil_form must not be empty")
         if not self.latin_variants:
             raise ValueError("NameCandidate.latin_variants must not be empty")
 
@@ -618,6 +620,46 @@ def _relation_to_target(
     if row.key in rasi_keys:
         return AksharaRelation.SAME_RASI
     return AksharaRelation.OTHER_PAADHAM
+
+
+def relation_to_target(
+    row: PadaAkshara | None, target: PadaAkshara, target_rasi: int
+) -> AksharaRelation:
+    """Public wrapper over ``_relation_to_target`` for a caller scoring one
+    candidate outside ``find_names``'s own search — e.g. a parent's own
+    shortlist name, which was never in the corpus pool ``find_names`` walks."""
+    rasi_keys = {r.key for r in PADA_ROWS_BY_RASI[target_rasi]}
+    return _relation_to_target(row, target, rasi_keys)
+
+
+def evaluate_against_target(
+    candidate: NameCandidate, target: PadaAkshara, target_rasi: int
+) -> ScoredCandidate:
+    """Score one candidate the parent already chose against the birth paadham.
+
+    Unlike ``find_names``, this is not gated by ``NamingMode``/``accepted`` —
+    it reports the TRUE confidence and TRUE relation, because the caller
+    already picked this name and is asking "how does it actually stand", not
+    "does it clear the bar for a recommendation". When the name does not open
+    the birth paadham's own letter, falls back to whichever row (if any) it
+    best matches elsewhere in the table via ``padas_for_name``, so the result
+    can still say e.g. "this opens Kaarthigai paadham 1, not your paadham" —
+    the same reasoning ``ஆதினி`` needed (see NUM-50/51/52 round 6).
+    """
+    matches = padas_for_name(candidate)
+    on_target = next((m for m in matches if m.row is not None and m.row.key == target.key), None)
+    best = on_target or (matches[0] if matches else None)
+    row = best.row if best is not None else None
+    relation = relation_to_target(row, target, target_rasi)
+    if best is None:
+        return ScoredCandidate(
+            candidate=candidate,
+            row=None,
+            confidence=MatchConfidence.NO_MATCH,
+            matched_latin_variant=None,
+            relation=relation,
+        )
+    return replace(best, relation=relation)
 
 
 def find_names(

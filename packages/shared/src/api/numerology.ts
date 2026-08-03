@@ -1106,6 +1106,19 @@ export interface BabyNameCandidate {
   /** Provenance notes from the matcher (draft-canon, tamil_collapse, …). Not
    *  interpretive copy, so not gated behind `readingsAvailable`. */
   warnings: string[];
+  /** "corpus" (one of ours) | "user" (from the parent's own shortlist) |
+   *  "both" (the parent's pick happens to be a corpus name — shown once). */
+  source: "corpus" | "user" | "both";
+  /** 1-based rank in the FULL matched pool (corpus + shortlist), before
+   *  `limit` trimmed the corpus side. A shortlist name below `limit` is
+   *  still returned. */
+  overallRank: number;
+  /** True when a numerologist would tell this family to set this spelling
+   *  aside — a non-benefic lordship that is ALSO misaligned or worse. Off
+   *  `should_advise_name_change`, the same guard Fortune Alignment's
+   *  name-change advice uses. Never reorders across a `relation` tier
+   *  (doctrine D2); render it as a caution on the card, not as a demotion. */
+  adviseAgainst: boolean;
 }
 
 /**
@@ -1165,6 +1178,11 @@ export interface BabyNamesResponse {
   /** Developer sentence — for logs only. Render `emptyReasonCode` instead. */
   emptyReason: string | null;
   emptyReasonCode: BabyNameEmptyReason | null;
+  /** Size of the full ranked pool (corpus + any shortlist entries) before
+   *  `limit` trimmed the corpus side — always >= candidates.length. Lets a
+   *  client say "your name ranks #47 of 132" even when only the top `limit`
+   *  corpus names are in `candidates`. */
+  totalMatches: number;
   /** True only once all 108 pada rows have astrologer sign-off. False today. */
   canonVerified: boolean;
   /** Null on the public (chart-less) path. Prefer the name fields for display:
@@ -1230,6 +1248,11 @@ export interface PublicBabyNamesPreviewRequest {
   allowAmbiguous?: boolean;
   allowTamilCollapse?: boolean;
   limit?: number;
+  /** Up to 5 names the parent already has in mind (English spelling only).
+   *  Each is scored against the same birth paadham as the recommendations
+   *  and returned at its true rank inside `candidates`, tagged `source`
+   *  "user"/"both" — never silently dropped for scoring poorly. */
+  userNames?: string[];
 }
 
 /**

@@ -46,6 +46,7 @@ from app.schemas.relationships import DirectPoruthamData, KutaResult, NadiDoshaD
 from app.services.chart_service import _chart_response_from_profile, get_chart_summary_from_snapshot  # noqa: PLC2701 (internal use)
 from app.services.dasha_service import get_chart_dasha_from_snapshot
 from app.services.numerology_naming_service import (
+    UserNameQuery,
     baby_names_for_birth_details,
     baby_names_for_pada,
 )
@@ -1359,8 +1360,23 @@ class PublicBabyNamesPreviewRequest(BaseModel):
     allow_ambiguous: bool = Field(alias="allowAmbiguous", default=False)
     allow_tamil_collapse: bool = Field(alias="allowTamilCollapse", default=False)
     limit: int = Field(default=20, ge=1, le=50)
+    #: Up to 5 names the parent already has in mind (English spelling only —
+    #: no Tamil-script input for this feature). Each is scored against the
+    #: SAME birth paadham as the recommendations and shown at its true rank,
+    #: never silently dropped for scoring poorly — see
+    #: `app.services.numerology_naming_service.UserNameQuery`.
+    user_names: list[str] = Field(alias="userNames", default_factory=list, max_length=5)
 
     model_config = ConfigDict(populate_by_name=True)
+
+    @field_validator("user_names")
+    @classmethod
+    def validate_user_names(cls, value: list[str]) -> list[str]:
+        cleaned = [v.strip() for v in value if v.strip()]
+        for name in cleaned:
+            if len(name) > 120:
+                raise ValueError("each name must be 120 characters or fewer")
+        return cleaned
 
 
 @router.post("/numerology/baby-names-preview", response_model=BabyNamesResponse)
@@ -1398,6 +1414,7 @@ def public_baby_names_preview(
             allow_ambiguous=payload.allow_ambiguous,
             allow_tamil_collapse=payload.allow_tamil_collapse,
             limit=payload.limit,
+            user_names=[UserNameQuery(latin_spelling=n) for n in payload.user_names],
         )
     except UnverifiedCanonError as exc:
         raise HTTPException(

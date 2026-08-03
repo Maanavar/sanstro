@@ -250,6 +250,54 @@ def test_preview_rejects_incomplete_birth_details(
     assert response.status_code == 422
 
 
+# ── userNames: a parent's own shortlist, ranked in place ───────────────────
+def test_preview_ranks_a_users_own_shortlist_in_place(
+    client: TestClient, both_flags_on: None
+) -> None:
+    """The whole point of the feature: the parent's own candidate names come
+    back inside `candidates`, at their true rank, tagged so the UI can label
+    them "your pick" rather than silently blending in as a recommendation."""
+    response = client.post(
+        PREVIEW_URL,
+        json={
+            "birth": SYNTHETIC_BIRTH,
+            "mode": "open",
+            "limit": 5,
+            "userNames": ["Zzqxw Not A Real Name", "Suresh"],
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    sources = {c["latinSpelling"]: c["source"] for c in body["candidates"]}
+    assert sources.get("Zzqxw Not A Real Name") in ("user", "both")
+    for candidate in body["candidates"]:
+        assert candidate["overallRank"] >= 1
+    assert body["totalMatches"] >= len(body["candidates"])
+
+
+def test_preview_rejects_more_than_five_shortlist_names(
+    client: TestClient, both_flags_on: None
+) -> None:
+    response = client.post(
+        PREVIEW_URL,
+        json={"birth": SYNTHETIC_BIRTH, "userNames": ["A", "B", "C", "D", "E", "F"]},
+    )
+    assert response.status_code == 422
+
+
+def test_preview_shortlist_names_are_never_dropped_by_the_display_limit(
+    client: TestClient, both_flags_on: None
+) -> None:
+    """A tiny `limit` still trims the corpus side only — every shortlist name
+    the parent typed must still be in the response."""
+    response = client.post(
+        PREVIEW_URL,
+        json={"birth": SYNTHETIC_BIRTH, "limit": 1, "userNames": ["Zzqxw Not A Real Name"]},
+    )
+    body = response.json()
+    assert "Zzqxw Not A Real Name" in {c["latinSpelling"] for c in body["candidates"]}
+
+
 # ── Chart-scoped route ───────────────────────────────────────────────────────
 def test_chart_route_404s_while_baby_naming_flag_is_off(
     client: TestClient, only_engine_on: None
