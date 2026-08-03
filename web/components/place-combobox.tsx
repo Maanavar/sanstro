@@ -10,6 +10,18 @@ type PlaceComboboxProps = {
   onChange: (city: CityEntry | null, rawText: string) => void;
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange">;
 
+/**
+ * `className` and `placeholder` were destructured here but never reached the
+ * input — the Tamil placeholder the marketing tools pass was silently replaced
+ * by a hardcoded English one, and a caller's field class was a no-op. Both are
+ * applied now.
+ *
+ * `inputProps` is deliberately still NOT spread. The only caller using it is
+ * `dashboard-edit-profile-modal.tsx`, which passes `required` inside a real
+ * `<form onSubmit>` that already runs its own `fieldErrors` validation —
+ * honouring it would hand that flow over to the browser's native validation
+ * bubble instead. Spread it only alongside a decision about that modal.
+ */
 export function PlaceCombobox({ value, onChange, className = "", placeholder = "Type a city...", ...inputProps }: PlaceComboboxProps) {
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
@@ -100,7 +112,8 @@ export function PlaceCombobox({ value, onChange, className = "", placeholder = "
     <div style={{ position: "relative" }}>
       <input
         value={query}
-        placeholder="Type a city..."
+        className={className || undefined}
+        placeholder={placeholder}
         autoComplete="off"
         role="combobox"
         aria-autocomplete="list"
@@ -111,23 +124,32 @@ export function PlaceCombobox({ value, onChange, className = "", placeholder = "
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         onChange={(event) => handleInput(event.target.value)}
         onKeyDown={handleKeyDown}
-        style={{
-          width: "100%",
-          padding: "9px 12px",
-          borderRadius: "10px",
-          // Scoped --pcbx-* names fall back to the exact Classic values, so
-          // Classic call sites are a pixel no-op. dashboard-nova.css redefines
-          // --pcbx-* under [data-ui="nova"] .cd-shell so the field + dropdown
-          // render on Nova's dark palette instead of the Classic light tokens
-          // (--panel-earth/--panel-tan/--panel-hover, which can't be globally
-          // remapped — see the reverted-block note in dashboard-nova.css).
-          border: "1.5px solid var(--pcbx-field-border, var(--panel-tan-light))",
-          background: "var(--pcbx-field-bg, var(--chart-cell-default))",
-          color: "var(--pcbx-ink, var(--panel-earth))",
-          fontSize: "0.875rem",
-          fontFamily: "inherit",
-          outline: "none",
-        }}
+        // Inline styles beat any class, so a caller that supplies its own field
+        // class gets the defaults dropped entirely rather than fought with.
+        // That is how the marketing tools (`cl-num-input`) sit in a row of
+        // native inputs without this one rendering in dashboard chrome — the
+        // class is expected to set its own width.
+        style={
+          className
+            ? undefined
+            : {
+                width: "100%",
+                padding: "9px 12px",
+                borderRadius: "10px",
+                // Scoped --pcbx-* names fall back to the exact Classic values, so
+                // Classic call sites are a pixel no-op. dashboard-nova.css redefines
+                // --pcbx-* under [data-ui="nova"] .cd-shell so the field + dropdown
+                // render on Nova's dark palette instead of the Classic light tokens
+                // (--panel-earth/--panel-tan/--panel-hover, which can't be globally
+                // remapped — see the reverted-block note in dashboard-nova.css).
+                border: "1.5px solid var(--pcbx-field-border, var(--panel-tan-light))",
+                background: "var(--pcbx-field-bg, var(--chart-cell-default))",
+                color: "var(--pcbx-ink, var(--panel-earth))",
+                fontSize: "0.875rem",
+                fontFamily: "inherit",
+                outline: "none",
+              }
+        }
       />
       {open && filtered.length > 0 && (
         <ul
