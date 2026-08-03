@@ -371,6 +371,57 @@ def test_no_family_name_leaves_the_full_name_fields_empty(enabled: None) -> None
             assert m.full_name_alignment is None
 
 
+def test_better_spellings_are_offered_exactly_where_the_caution_is(
+    client: TestClient, enabled: None
+) -> None:
+    """The card promises "a different spelling of the same name usually clears
+    it" — this is that spelling.
+
+    One gate, two consumers: `should_advise_name_change` fires on a
+    non-benefic lordship that is also misaligned, and `correct_name` refuses
+    to generate anything unless both hold (its two no-change reasons are
+    `benefic_lordship` and `not_misaligned`). So the sets must coincide
+    exactly — a flagged card always has something actionable, and an unflagged
+    one is never handed a "correction" it did not need.
+    """
+    chart_id = _create_chart(client)
+    with SessionLocal() as session:
+        result = baby_names_for_chart(chart_id, session, mode=NamingMode.OPEN, limit=50)
+
+    for m in result.matches:
+        if m.better_spellings:
+            assert m.advise_against, (
+                f"{m.matched_spelling}: offered a spelling correction without the caution"
+            )
+        for b in m.better_spellings:
+            # A "correction" that scores worse is not one.
+            assert b.improvement > 0
+            assert b.alignment.score > (m.alignment.score if m.alignment else 0)
+            assert b.spelling != m.matched_spelling
+            assert b.operations, "a suggested spelling must name the move that produced it"
+
+
+def test_better_spellings_are_absent_without_a_chart(enabled: None) -> None:
+    """No lagna, no alignment, no caution — and so nothing to correct."""
+    result = baby_names_for_pada(1, 1, allow_ambiguous=True)
+    assert all(m.better_spellings == () for m in result.matches)
+
+
+def test_better_spellings_carry_no_legal_warning_by_design(enabled: None) -> None:
+    """Plan §9.4's warning is about changing an EXISTING legal name — Aadhaar,
+    PAN, KYC, passport, certificates updated in step. A child being named has
+    none of them, so `NameCorrectionResponse` (whose validator makes that
+    warning unskippable) is deliberately not reused here.
+
+    Pinned so a future reader sees the omission is a decision, not a gap: the
+    dataclass must carry no warning field at all rather than an empty one.
+    """
+    from app.services.numerology_naming_service import BetterSpelling
+
+    fields = BetterSpelling.__dataclass_fields__
+    assert not any("legal" in name or "warning" in name for name in fields)
+
+
 def test_shortlist_is_capped_and_blanks_are_ignored(enabled: None) -> None:
     result = baby_names_for_pada(
         1,

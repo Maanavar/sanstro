@@ -6,6 +6,7 @@ import { Info } from "lucide-react";
 import type { Lang } from "@/lib/i18n";
 import type {
   AlignmentVerdict,
+  BetterSpelling,
   CompoundTone,
   FunctionalNature,
   NodeBasis,
@@ -1764,6 +1765,92 @@ export function FullNameReadingLine({
           {note}
         </div>
       ) : null}
+    </div>
+  );
+}
+
+/**
+ * Spellings that clear the set-aside call.
+ *
+ * The card already says "it is the spelling to reconsider, not the name — a
+ * different spelling of the same name usually clears it". Until this existed
+ * that was a promise with nothing behind it. Each row carries the operation
+ * that produced it, because a parent weighing a spelling is owed the reason
+ * for it — "the 'n' was doubled", not "the algorithm ranked it first".
+ *
+ * No legal-consequence warning: that covers changing an EXISTING legal name
+ * (Aadhaar, PAN, KYC, passport, certificates in step), and a child being
+ * named has none. See `BetterSpelling` in the naming service.
+ */
+export function BetterSpellingsBlock({
+  spellings,
+  lang,
+  heading,
+  intro,
+  describeOperations,
+}: {
+  spellings: BetterSpelling[];
+  lang: Lang;
+  heading: string;
+  intro: string;
+  /** `spellingOperations(ops, isTamil)` — passed in so this component keeps
+   *  no copy of the operation vocabulary. */
+  describeOperations: (operations: string[]) => string;
+}) {
+  if (!spellings.length) return null;
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "var(--space-2)",
+        marginTop: "var(--space-2)",
+        padding: "var(--space-3)",
+        border: "1px solid var(--color-border)",
+        borderRadius: "var(--radius-sm)",
+      }}
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+        <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-text-strong)" }}>
+          {heading}
+        </span>
+        <span style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.5 }}>
+          {intro}
+        </span>
+      </div>
+      {spellings.map((s) => (
+        <div key={s.spelling} style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "baseline",
+              gap: "var(--space-2)",
+              flexWrap: "wrap",
+              fontSize: "var(--text-sm)",
+            }}
+          >
+            <span style={{ color: "var(--color-text-strong)", fontWeight: 600 }}>{s.spelling}</span>
+            <span style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)" }}>
+              {s.reading.root} · {grahaLabel(s.reading, lang)}
+            </span>
+            <span
+              style={{
+                marginLeft: "auto",
+                fontSize: "var(--text-xs)",
+                color: "var(--color-text)",
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              {Math.round(s.alignment.score)} / 100
+              <span style={{ color: "var(--color-high)" }}> (+{s.improvement})</span>
+            </span>
+          </div>
+          <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
+            {describeOperations(s.operations)}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }

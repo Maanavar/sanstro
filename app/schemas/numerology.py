@@ -1387,6 +1387,12 @@ class BabyNameCandidateOut(BaseModel):
     full_name_alignment: NumberAlignmentOut | None = Field(
         alias="fullNameAlignment", default=None
     )
+    #: Spellings of this same name that clear `adviseAgainst`. Empty for every
+    #: candidate that is not flagged. See `BetterSpellingOut` for why plan
+    #: §9.4's legal warning does not ride along for a child being named.
+    better_spellings: list[BetterSpellingOut] = Field(
+        alias="betterSpellings", default_factory=list
+    )
     #: "corpus" (one of ours) | "user" (from the parent's own shortlist) |
     #: "both" (the parent's pick happens to be a corpus name — shown once).
     source: Literal["corpus", "user", "both"] = "corpus"
@@ -1437,7 +1443,47 @@ class BabyNameCandidateOut(BaseModel):
                 if ranked.full_name_alignment
                 else None
             ),
+            betterSpellings=[
+                BetterSpellingOut(
+                    spelling=b.spelling,
+                    reading=NumberReadingOut.from_reading(b.reading),
+                    alignment=NumberAlignmentOut.from_alignment(b.alignment),
+                    improvement=b.improvement,
+                    operations=list(b.operations),
+                )
+                for b in ranked.better_spellings
+            ],
         )
+
+
+class BetterSpellingOut(BaseModel):
+    """A spelling of the same name that clears the set-aside call.
+
+    Present only on a candidate whose `adviseAgainst` is True — the two share
+    one gate, so a flagged card always has something actionable and an
+    unflagged one is never offered a "correction" it did not need.
+
+    **Plan §9.4's legal warning is deliberately absent**, and this is not the
+    guard being dodged. That warning covers *changing an existing legal name*
+    (Aadhaar, PAN, KYC, passport and certificates all having to be updated in
+    step). A child being named has none of them: choosing "Noella" over "Noel"
+    before the birth is registered is a choice, not an administrative act.
+    `NameCorrectionResponse` — whose validator makes the warning structurally
+    unskippable — is the right shape for an adult renaming and is untouched.
+    """
+
+    spelling: str
+    reading: NumberReadingOut
+    alignment: NumberAlignmentOut
+    #: Points of Fortune Alignment gained over the flagged spelling. Always
+    #: positive; a "correction" that scores worse is not one.
+    improvement: int
+    #: The named orthographic moves behind it — "lengthen_vowel",
+    #: "double_consonant". The reviewable artefact, and the difference between
+    #: a reason and an assertion.
+    operations: list[str] = Field(default_factory=list)
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class BabyNamesResponse(BaseModel):

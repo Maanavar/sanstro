@@ -1083,6 +1083,18 @@ export type AksharaRelation =
  */
 export type MatchConfidence = "confirmed" | "tamil_only" | "latin_only" | "ambiguous";
 
+/** One alternative spelling offered against a flagged baby-name candidate. */
+export interface BetterSpelling {
+  spelling: string;
+  reading: NumberReading;
+  alignment: NumberAlignment;
+  /** Points of Fortune Alignment gained over the flagged spelling. Always > 0. */
+  improvement: number;
+  /** Named orthographic moves — "lengthen_vowel", "double_consonant", … .
+   *  Render these: a parent weighing a spelling is owed the reason for it. */
+  operations: string[];
+}
+
 export interface BabyNameCandidate {
   tamilForm: string;
   latinSpelling: string;
@@ -1133,6 +1145,16 @@ export interface BabyNameCandidate {
   fullNameSpelling: string | null;
   fullNameReading: NumberReading | null;
   fullNameAlignment: NumberAlignment | null;
+  /** Spellings of this same name that clear `adviseAgainst`. Empty unless the
+   *  candidate is flagged — the two share one gate, so a flagged card always
+   *  has something actionable and an unflagged one is never offered a
+   *  "correction" it did not need.
+   *
+   *  Note there is no legal-consequence warning here, unlike
+   *  `NameCorrectionResponse`. That warning covers changing an EXISTING legal
+   *  name (Aadhaar, PAN, KYC, passport, certificates); a child being named
+   *  has none, so choosing a spelling is a choice, not an administrative act. */
+  betterSpellings: BetterSpelling[];
 }
 
 /**

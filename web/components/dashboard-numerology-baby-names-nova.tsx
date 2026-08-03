@@ -12,6 +12,8 @@ import {
 } from "@vinaadi/shared/api/numerology";
 import {
   ADVISE_AGAINST_CHIP,
+  BETTER_SPELLINGS_HEADING,
+  BETTER_SPELLINGS_INTRO,
   CONFIDENCE_CHIP,
   CONFIDENCE_TONE,
   DRAFT_BANNER,
@@ -26,12 +28,14 @@ import {
   fullNameGapNote,
   groupByRelation,
   pick,
+  spellingOperations,
   relaxationSentence,
 } from "@/lib/baby-name-copy";
 
 import {
   BabyNamePaadhamHeader,
   BabyNameRowSummary,
+  BetterSpellingsBlock,
   FullNameReadingLine,
   NumberReadingCard,
   NumerologyError,
@@ -297,8 +301,16 @@ export function NumerologyBabyNamesSection({ lang, chartId }: Props) {
                   // This view has no family-name input of its own yet, so the
                   // fields are simply absent and this renders nothing.
                   footer={
-                    c.fullNameSpelling && c.fullNameReading ? (
-                      <FullNameReadingLine
+                    <>
+                      <BetterSpellingsBlock
+                        spellings={c.betterSpellings}
+                        lang={lang}
+                        heading={pick(BETTER_SPELLINGS_HEADING, isTamil)}
+                        intro={pick(BETTER_SPELLINGS_INTRO, isTamil)}
+                        describeOperations={(ops) => spellingOperations(ops, isTamil)}
+                      />
+                      {c.fullNameSpelling && c.fullNameReading ? (
+                        <FullNameReadingLine
                         spelling={c.fullNameSpelling}
                         reading={c.fullNameReading}
                         alignment={c.fullNameAlignment}
@@ -308,8 +320,9 @@ export function NumerologyBabyNamesSection({ lang, chartId }: Props) {
                             ? fullNameGapNote(c.alignment.score, c.fullNameAlignment.score, isTamil)
                             : null
                         }
-                      />
-                    ) : null
+                        />
+                      ) : null}
+                    </>
                   }
                   scoredFromBadge={
                     <Chip tone={CONFIDENCE_TONE[c.confidence]}>

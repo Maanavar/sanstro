@@ -51,12 +51,13 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.calculations.numerology import NumberReading, score_text
+from app.calculations.numerology import NumberReading, ScriptMismatchError, score_text
 from app.calculations.numerology_alignment import (
     NumberAlignment,
     align_number,
     should_advise_name_change,
 )
+from app.calculations.numerology_correction import correct_name
 from app.calculations.numerology_naming import (
     AksharaRelation,
     EmptyReason,
@@ -165,6 +166,10 @@ class RankedNameCandidate:
     full_name_spelling: str | None = None
     full_name_reading: NumberReading | None = None
     full_name_alignment: NumberAlignment | None = None
+    #: Spellings of this same name that clear `advise_against`. Empty for
+    #: every candidate that is not flagged — see `BetterSpelling`, including
+    #: why plan §9.4's legal warning does not apply to a child being named.
+    better_spellings: tuple[BetterSpelling, ...] = ()
     #: "corpus" — one of ours; "user" — one of the parent's own shortlist that
     #: doesn't also appear in the corpus; "both" — the parent's pick happens to
     #: BE a corpus name, shown once, not duplicated. Defaults to "corpus" so
@@ -196,6 +201,45 @@ class RankedNameCandidate:
         *correction* feature exists to fix.
         """
         return should_advise_name_change(self.alignment)
+
+
+@dataclass(frozen=True, slots=True)
+class BetterSpelling:
+    """A spelling of the SAME name that clears the set-aside call.
+
+    Only ever attached to a candidate whose `advise_against` is True, and the
+    two gates are the same gate: `should_advise_name_change` fires on a
+    non-benefic lordship that is also misaligned, and `correct_name` refuses
+    to generate anything unless both hold (`benefic_lordship` /
+    `not_misaligned` are its two no-change reasons). So a flagged card can
+    always be given something to do about it, and an unflagged one can never
+    be handed a "correction" it did not need.
+
+    **Plan §9.4's legal warning deliberately does NOT ride along.** That
+    warning is about *changing an existing legal name* — Aadhaar, PAN, KYC,
+    passport, certificates all having to be updated together. A child being
+    named has none of those: choosing "Noella" over "Noel" before the birth is
+    registered is a choice, not an administrative act, and shipping that
+    warning here would be both false and alarming. This is why
+    `NameCorrectionResponse` (whose validator makes the warning structurally
+    unskippable) is NOT reused — the guard is not being dodged, it is being
+    kept where it applies.
+    """
+
+    spelling: str
+    reading: NumberReading
+    alignment: NumberAlignment
+    #: Points of Fortune Alignment gained over the flagged spelling.
+    improvement: int
+    #: The named orthographic moves that produced it — "the second 'a' was
+    #: lengthened" is a reason a parent can weigh; "the algorithm ranked it
+    #: first" is not.
+    operations: tuple[str, ...]
+
+
+#: Three is enough to choose between and few enough to read. `correct_name`
+#: returns best-first, so this is a display cut, not a quality one.
+MAX_BETTER_SPELLINGS = 3
 
 
 @dataclass(frozen=True, slots=True)
@@ -295,6 +339,53 @@ def _full_name(
         spelling,
         reading,
         _align(reading, lagna_rasi=lagna_rasi, strengths=strengths, node_rasi_map=node_rasi_map),
+    )
+
+
+def _better_spellings(
+    spelling: str,
+    alignment: NumberAlignment | None,
+    *,
+    lagna_rasi: int | None,
+    strengths: dict[str, float] | None,
+    node_rasi_map: dict[str, int] | None,
+) -> tuple[BetterSpelling, ...]:
+    """Spellings that clear the set-aside call, or () when there is no call.
+
+    Runs only for a flagged candidate, so an unflagged name is never handed a
+    "correction" it did not need — and every flagged one gets something to do
+    about it, which is the promise the card already makes ("a different
+    spelling of the same name usually clears it") and could not keep.
+
+    Cheap enough to do inline: measured at ~0.5ms per name, so even a page
+    where every one of 20 shown candidates is flagged costs ~10ms.
+    """
+    if alignment is None or lagna_rasi is None:
+        return ()
+    if not should_advise_name_change(alignment):
+        return ()
+    try:
+        result = correct_name(
+            spelling,
+            lagna_rasi,
+            strengths=strengths,
+            node_rasi_map=node_rasi_map,
+            limit=MAX_BETTER_SPELLINGS,
+        )
+    except ScriptMismatchError:
+        # Doctrine D3 — the variant rules are Latin orthography. A shortlist
+        # name typed in Tamil script still gets its reading and its relation;
+        # it just gets no spelling suggestions.
+        return ()
+    return tuple(
+        BetterSpelling(
+            spelling=ranked.variant.spelling,
+            reading=ranked.variant.reading,
+            alignment=ranked.alignment,
+            improvement=ranked.improvement,
+            operations=tuple(op.value for op in ranked.variant.operations),
+        )
+        for ranked in result.alternatives[:MAX_BETTER_SPELLINGS]
     )
 
 
@@ -413,6 +504,13 @@ def _rank(
                 full_name_spelling=full_spelling,
                 full_name_reading=full_reading,
                 full_name_alignment=full_alignment,
+                better_spellings=_better_spellings(
+                    spelling,
+                    alignment,
+                    lagna_rasi=lagna_rasi,
+                    strengths=strengths,
+                    node_rasi_map=node_rasi_map,
+                ),
             )
         )
     ranked.sort(key=_sort_key)
@@ -469,6 +567,13 @@ def _evaluate_user_candidate(
         full_name_spelling=full_spelling,
         full_name_reading=full_reading,
         full_name_alignment=full_alignment,
+        better_spellings=_better_spellings(
+            spelling,
+            alignment,
+            lagna_rasi=lagna_rasi,
+            strengths=strengths,
+            node_rasi_map=node_rasi_map,
+        ),
     )
 
 

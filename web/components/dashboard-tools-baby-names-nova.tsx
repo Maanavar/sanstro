@@ -14,6 +14,8 @@ import {
 } from "@vinaadi/shared/api/numerology";
 import {
   ADVISE_AGAINST_CHIP,
+  BETTER_SPELLINGS_HEADING,
+  BETTER_SPELLINGS_INTRO,
   CONFIDENCE_CHIP,
   CONFIDENCE_TONE,
   DRAFT_BANNER,
@@ -44,11 +46,13 @@ import {
   relaxationSentence,
   scopeExplainer,
   shortlistPlaceholder,
+  spellingOperations,
 } from "@/lib/baby-name-copy";
 
 import {
   BabyNamePaadhamHeader,
   BabyNameRowSummary,
+  BetterSpellingsBlock,
   FullNameReadingLine,
   NumberReadingCard,
   NumerologyError,
@@ -540,8 +544,19 @@ export function DashboardBabyNamesTool({ lang }: Props) {
                         // documents. Below the called name's reading, never
                         // instead of it.
                         footer={
-                          c.fullNameSpelling && c.fullNameReading ? (
-                            <FullNameReadingLine
+                          <>
+                            {/* The spellings that clear the caution — the
+                                promise "a different spelling usually clears
+                                it" made good. Empty unless flagged. */}
+                            <BetterSpellingsBlock
+                              spellings={c.betterSpellings}
+                              lang={lang}
+                              heading={pick(BETTER_SPELLINGS_HEADING, isTamil)}
+                              intro={pick(BETTER_SPELLINGS_INTRO, isTamil)}
+                              describeOperations={(ops) => spellingOperations(ops, isTamil)}
+                            />
+                            {c.fullNameSpelling && c.fullNameReading ? (
+                              <FullNameReadingLine
                               spelling={c.fullNameSpelling}
                               reading={c.fullNameReading}
                               alignment={c.fullNameAlignment}
@@ -555,8 +570,9 @@ export function DashboardBabyNamesTool({ lang }: Props) {
                                     )
                                   : null
                               }
-                            />
-                          ) : null
+                              />
+                            ) : null}
+                          </>
                         }
                         scoredFromBadge={
                           <Chip tone={CONFIDENCE_TONE[c.confidence]}>

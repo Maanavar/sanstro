@@ -6002,6 +6002,48 @@ button:focus-visible,
   color: var(--cl-muted);
 }
 
+/* Spellings that clear the set-aside caution.
+   Boxed, because it is the one actionable thing on a flagged card and must
+   not read as another caveat. Each row names the orthographic move that
+   produced it — a parent weighing a spelling is owed the reason for it. */
+.cl-num-better {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--cl-border);
+  border-radius: 8px;
+}
+.cl-num-better__head {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--cl-ink);
+}
+.cl-num-better__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  font-size: 0.82rem;
+  color: var(--cl-muted);
+}
+.cl-num-better__name { font-weight: 700; color: var(--cl-ink); }
+.cl-num-better__num { color: var(--cl-muted-2); }
+.cl-num-better__score {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: var(--cl-ink);
+}
+.cl-num-better__gain { color: var(--cl-sage); font-weight: 700; }
+/* The operation gets the whole next line — it is a sentence, not a chip. */
+.cl-num-better__ops {
+  flex-basis: 100%;
+  font-size: 0.76rem;
+  color: var(--cl-muted-2);
+}
+
 /* The full-name reading — one quiet line, not a second figure.
    The called name keeps the card's big numeral because it is the one the
    paadham rule governs and the one the child is addressed by; this answers

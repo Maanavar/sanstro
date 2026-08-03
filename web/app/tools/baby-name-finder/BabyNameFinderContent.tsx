@@ -28,6 +28,7 @@ import {
   MUST_IT_BEGIN_Q,
   ADVISE_AGAINST_ACTION,
   ADVISE_AGAINST_CHIP,
+  BETTER_SPELLINGS_HEADING,
   FAMILY_NAME_HELP,
   FAMILY_NAME_LABEL,
   FULL_NAME_TERM,
@@ -39,6 +40,7 @@ import {
   WITHIN_GROUP_ORDER,
   fullNameGapNote,
   groupByRelation,
+  spellingOperations,
   SCOPE_LABEL,
   SCOPE_ORDER,
   SCOPE_REVIEW_NOTE,
@@ -741,6 +743,25 @@ function NameCard({
         <p className="cl-num-note" style={{ margin: 0 }}>
           {pick(ADVISE_AGAINST_ACTION, ta)}
         </p>
+      ) : null}
+      {/* …and the spellings that would clear it. Until this existed, the line
+          above was a promise with nothing behind it. */}
+      {candidate.betterSpellings.length > 0 ? (
+        <div className="cl-num-better">
+          <span className="cl-num-better__head">{pick(BETTER_SPELLINGS_HEADING, ta)}</span>
+          {candidate.betterSpellings.map((s) => (
+            <span className="cl-num-better__row" key={s.spelling}>
+              <span className="cl-num-better__name">{s.spelling}</span>
+              <span className="cl-num-better__num">
+                {s.reading.root} · {ta ? s.reading.grahaTa : s.reading.grahaEn}
+              </span>
+              <span className="cl-num-better__score">
+                {Math.round(s.alignment.score)} <span className="cl-num-better__gain">+{s.improvement}</span>
+              </span>
+              <span className="cl-num-better__ops">{spellingOperations(s.operations, ta)}</span>
+            </span>
+          ))}
+        </div>
       ) : null}
       {candidate.meaningEn || candidate.meaningTa ? (
         <p className="cl-num-reading__nocompound">{ta ? candidate.meaningTa : candidate.meaningEn}</p>

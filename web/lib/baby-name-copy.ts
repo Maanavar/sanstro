@@ -373,6 +373,58 @@ export function adviseAgainstNote(
  * copy for the same reason. Consolidating those two maps into a neutral
  * module is worth doing, and is not this change.
  */
+/* ==========================================================================
+ * Spellings that clear the caution
+ *
+ * The card already told the parent "it is the spelling to reconsider, not the
+ * name — a different spelling of the same name usually clears it", and until
+ * now offered no such spelling. These are it, straight off the same
+ * name-correction engine the signed-in tool uses.
+ *
+ * No legal-consequence warning rides along, unlike the name-correction tool.
+ * That warning covers changing an EXISTING legal name — Aadhaar, PAN, KYC,
+ * passport and certificates all having to be updated in step. A child being
+ * named has none of them, so choosing "Noella" over "Noel" before the birth
+ * is registered is a choice, not an administrative act.
+ * ========================================================================== */
+
+export const BETTER_SPELLINGS_HEADING: BiText = {
+  en: "Spellings that would clear it",
+  ta: "இதைச் சரிசெய்யும் எழுத்துக்கோர்வைகள்",
+};
+
+export const BETTER_SPELLINGS_INTRO: BiText = {
+  en: "The same name, spelled differently. Each line says what was changed and where the number lands.",
+  ta: "அதே பெயர், வேறு எழுத்துக்கோர்வையில். எது மாற்றப்பட்டது, எண் எங்கு வந்து நிற்கிறது என்பதை ஒவ்வொரு வரியும் சொல்கிறது.",
+};
+
+/**
+ * The seven orthographic moves, in words.
+ *
+ * Rendering the raw enum ("double_consonant") would be the same
+ * backend-internals leak as `emptyReason` and `relaxationsApplied` before it.
+ * The operation is the reviewable artefact of this feature — a parent
+ * weighing a spelling is owed "the 'n' was doubled", not "the algorithm
+ * ranked it first".
+ */
+export const SPELLING_OPERATION_LABEL: Record<string, BiText> = {
+  lengthen_vowel: { en: "a vowel lengthened", ta: "ஒரு உயிரெழுத்து நீட்டப்பட்டது" },
+  shorten_vowel: { en: "a vowel shortened", ta: "ஒரு உயிரெழுத்து குறுக்கப்பட்டது" },
+  double_consonant: { en: "a consonant doubled", ta: "ஒரு மெய்யெழுத்து இரட்டிக்கப்பட்டது" },
+  add_aspirate: { en: "an 'h' added", ta: "'h' சேர்க்கப்பட்டது" },
+  drop_aspirate: { en: "an 'h' dropped", ta: "'h' நீக்கப்பட்டது" },
+  append_vowel: { en: "a vowel added at the end", ta: "இறுதியில் ஒரு உயிரெழுத்து சேர்க்கப்பட்டது" },
+  swap_final_glide: { en: "the final glide changed", ta: "இறுதி ஒலி மாற்றப்பட்டது" },
+};
+
+export function spellingOperations(operations: string[], ta: boolean): string {
+  const parts = operations
+    .map((op) => SPELLING_OPERATION_LABEL[op])
+    .filter(Boolean)
+    .map((text) => pick(text, ta));
+  return parts.join(ta ? ", " : ", ");
+}
+
 /**
  * Just the advice, with no derivation.
  *
