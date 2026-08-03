@@ -258,8 +258,12 @@ export const GROUP_HEADING: Record<AksharaRelation, BiText> = {
 /** What this group is *for* — the practitioner's actual advice, one line. */
 export const GROUP_ADVICE: Record<AksharaRelation, BiText> = {
   on_paadham: {
-    en: "The tradition's own answer. This is the name used at the naming ceremony and in temple sankalpam. Take it from here whatever else you choose.",
-    ta: "மரபு தரும் பதில். நாமகரணச் சடங்கிலும் கோயில் சங்கல்பத்திலும் சொல்லப்படுவது இதுவே. வேறு எதைத் தேர்ந்தாலும், இதிலிருந்து ஒன்றை எடுத்துக்கொள்ளுங்கள்.",
+    // Must not read as a blanket endorsement of every name under it. Live
+    // check, Kettai paadham 1: the ONLY on-paadham name was "Noel", which is
+    // flagged `adviseAgainst` — so unconditional "take it from here" sat
+    // directly above a name this tool advises setting aside.
+    en: "The tradition's own answer — the name used at the naming ceremony and in temple sankalpam. Choose from here where you can; where a spelling below is flagged, another spelling of the same name usually clears it.",
+    ta: "மரபு தரும் பதில் — நாமகரணச் சடங்கிலும் கோயில் சங்கல்பத்திலும் சொல்லப்படுவது இதுவே. முடிந்தவரை இதிலிருந்தே தேர்ந்தெடுங்கள்; கீழே ஒரு எழுத்துக்கோர்வை குறிக்கப்பட்டிருந்தால், அதே பெயரின் வேறு எழுத்துக்கோர்வை பொதுவாகச் சரியாக அமையும்.",
   },
   same_natchathiram: {
     en: "Widely accepted: the paadham depends on the birth time to the minute, so many almanacs print all four letters of the star and leave the choice to the family.",
