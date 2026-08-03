@@ -1366,8 +1366,19 @@ class PublicBabyNamesPreviewRequest(BaseModel):
     #: never silently dropped for scoring poorly — see
     #: `app.services.numerology_naming_service.UserNameQuery`.
     user_names: list[str] = Field(alias="userNames", default_factory=list, max_length=5)
+    #: The family surname, supplied once and applied to every name on the
+    #: page — ours and the parent's. Tamil Nadu now uses first-name/last-name
+    #: alongside the traditional initial + given name, and both are real names
+    #: the child carries, so both are scored. Never affects the akshara match.
+    family_name: str | None = Field(alias="familyName", default=None, max_length=120)
 
     model_config = ConfigDict(populate_by_name=True)
+
+    @field_validator("family_name")
+    @classmethod
+    def validate_family_name(cls, value: str | None) -> str | None:
+        cleaned = (value or "").strip()
+        return cleaned or None
 
     @field_validator("user_names")
     @classmethod
@@ -1415,6 +1426,7 @@ def public_baby_names_preview(
             allow_tamil_collapse=payload.allow_tamil_collapse,
             limit=payload.limit,
             user_names=[UserNameQuery(latin_spelling=n) for n in payload.user_names],
+            family_name=payload.family_name,
         )
     except UnverifiedCanonError as exc:
         raise HTTPException(

@@ -333,14 +333,28 @@ export const ADVISE_AGAINST_CHIP: BiText = {
   ta: "இந்த எழுத்துக்கோர்வையை ஒதுக்கலாம்",
 };
 
+/**
+ * `calledName` is interpolated rather than saying "this spelling".
+ *
+ * Once a family name is supplied a card carries TWO spellings, and the
+ * caution applies only to the called name — which is the one invoked daily
+ * and the one the paadham rule governs. Seen live: "Yazhini" is flagged at 27
+ * while "Yazhini Senthilkumar" scores 84, so an unqualified "this spelling"
+ * sat on a card whose other reading contradicted it. Name the referent.
+ *
+ * The flag is NOT withdrawn when the full name reads better: a poor called
+ * name is not rescued by a good signature, and `fullNameGapNote` states the
+ * other half so the parent can weigh both.
+ */
 export function adviseAgainstNote(
+  calledName: string,
   grahaName: string,
   natureLabel: string,
   ta: boolean,
 ): string {
   return ta
-    ? `இந்தச் சொற்பொருள் எண் ${grahaName}-க்குரியது; இந்த ஜாதகத்தில் ${grahaName} ${natureLabel} — ஆதரவான பொறுப்பு அல்ல — மேலும் பொருத்தமும் குறைவு. பெயரை அல்ல, இந்த எழுத்துக்கோர்வையை மாற்றிப் பாருங்கள்.`
-    : `This spelling's number belongs to ${grahaName}, which is ${natureLabel} in this chart — not a supportive role — and the fit is low as well. It is the spelling to reconsider, not the name.`;
+    ? `${calledName} என்ற அழைக்கும் பெயரின் எண் ${grahaName}-க்குரியது; இந்த ஜாதகத்தில் ${grahaName} ${natureLabel} — ஆதரவான பொறுப்பு அல்ல — மேலும் பொருத்தமும் குறைவு. பெயரை அல்ல, இந்த எழுத்துக்கோர்வையை மாற்றிப் பாருங்கள்.`
+    : `Called on its own, ${calledName} carries ${grahaName}'s number, and ${grahaName} is ${natureLabel} in this chart — not a supportive role — with a low fit as well. It is the spelling to reconsider, not the name.`;
 }
 
 /**
@@ -359,10 +373,14 @@ export function adviseAgainstNote(
  * copy for the same reason. Consolidating those two maps into a neutral
  * module is worth doing, and is not this change.
  */
-export function adviseAgainstShort(grahaName: string, ta: boolean): string {
+export function adviseAgainstShort(
+  calledName: string,
+  grahaName: string,
+  ta: boolean,
+): string {
   return ta
-    ? `இந்தச் சொற்பொருள் எண் ${grahaName}-க்குரியது; இந்த ஜாதகத்தில் ${grahaName} ஆதரவான பொறுப்பில் இல்லை, பொருத்தமும் குறைவு. பெயரை அல்ல, இந்த எழுத்துக்கோர்வையை மாற்றிப் பாருங்கள்.`
-    : `This spelling's number belongs to ${grahaName}, which does not hold a supportive role in this chart, and the fit is low as well. It is the spelling to reconsider, not the name.`;
+    ? `${calledName} என்ற அழைக்கும் பெயரின் எண் ${grahaName}-க்குரியது; இந்த ஜாதகத்தில் ${grahaName} ஆதரவான பொறுப்பில் இல்லை, பொருத்தமும் குறைவு. பெயரை அல்ல, இந்த எழுத்துக்கோர்வையை மாற்றிப் பாருங்கள்.`
+    : `Called on its own, ${calledName} carries ${grahaName}'s number, and ${grahaName} does not hold a supportive role in this chart, with a low fit as well. It is the spelling to reconsider, not the name.`;
 }
 
 /**
@@ -618,6 +636,54 @@ export const DRAFT_BANNER: BiText = {
  * a shortlist name can reach at most "English spelling matches" confidence —
  * it is never eligible for "Tamil + English agree".
  * ========================================================================== */
+
+/* ==========================================================================
+ * Called name vs full name
+ *
+ * Tamil Nadu naming has genuinely moved: the traditional initial + given name
+ * now coexists with first-name/last-name on every document, and both are
+ * names the child really carries. So both are answered — but not equally.
+ *
+ * The called name leads, because it is the only one the paadham rule can
+ * govern (the akshara is about the GIVEN name's opening letter, which a
+ * surname can neither satisfy nor violate), it is what the namakarana uses,
+ * and it is what the child is addressed by daily. The full name rides
+ * alongside as a second reading, never in place of it.
+ * ========================================================================== */
+
+export const FAMILY_NAME_LABEL: BiText = {
+  en: "Family name / surname (optional)",
+  ta: "குடும்பப் பெயர் (விருப்பம்)",
+};
+
+export const FAMILY_NAME_HELP: BiText = {
+  en: "Add it once and every name below is also scored as it would read on documents — \"Aadhini Senthilkumar\". It never changes which names match the paadham: the opening letter belongs to the given name.",
+  ta: "ஒருமுறை சேர்த்தால், கீழே உள்ள ஒவ்வொரு பெயரும் ஆவணங்களில் எழுதப்படும் வடிவிலும் — \"ஆதினி செந்தில்குமார்\" — கணக்கிடப்படும். இது பாதத்துக்குப் பொருந்தும் பெயர்களை மாற்றாது: தொடக்க எழுத்து இயற்பெயருக்கே உரியது.",
+};
+
+/** Field label for the two readings, so neither is mistaken for the other. */
+export const CALLED_NAME_TERM: BiText = { en: "Called name", ta: "அழைக்கும் பெயர்" };
+export const FULL_NAME_TERM: BiText = { en: "With family name", ta: "குடும்பப் பெயருடன்" };
+
+/**
+ * Sits under the full-name reading when it lands in a materially different
+ * place from the called name's. Measured on one real paadham: "Gayathri"
+ * scores 85 alone and 25 as "Gayathri Senthilkumar", so this is not a corner
+ * case — a surname can systematically pull the best-scoring given names down,
+ * and a parent choosing on the called-name score alone would never see it.
+ */
+export function fullNameGapNote(calledScore: number, fullScore: number, ta: boolean): string | null {
+  const gap = Math.round(fullScore) - Math.round(calledScore);
+  if (Math.abs(gap) < 15) return null;
+  if (gap < 0) {
+    return ta
+      ? "அழைக்கும் பெயரை விட, குடும்பப் பெயருடன் சேர்த்து எழுதும்போது இந்த எண் ஜாதகத்தோடு குறைவாகவே பொருந்துகிறது."
+      : "Written in full with the family name, this number sits noticeably less well with the chart than the called name does.";
+  }
+  return ta
+    ? "குடும்பப் பெயருடன் சேர்த்து எழுதும்போது இந்த எண் ஜாதகத்தோடு இன்னும் நன்றாகப் பொருந்துகிறது."
+    : "Written in full with the family name, this number sits noticeably better with the chart than the called name does.";
+}
 
 export const SHORTLIST_HEADING: BiText = {
   en: "Already have names in mind?",

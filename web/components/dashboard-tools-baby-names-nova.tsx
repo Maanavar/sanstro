@@ -17,6 +17,8 @@ import {
   CONFIDENCE_CHIP,
   CONFIDENCE_TONE,
   DRAFT_BANNER,
+  FAMILY_NAME_HELP,
+  FAMILY_NAME_LABEL,
   GROUP_ADVICE,
   GROUP_HEADING,
   MUST_IT_BEGIN_A,
@@ -35,6 +37,7 @@ import {
   aksharaSubLine,
   contextLine,
   emptyMessage,
+  fullNameGapNote,
   groupByRelation,
   pick,
   relationNote,
@@ -46,6 +49,7 @@ import {
 import {
   BabyNamePaadhamHeader,
   BabyNameRowSummary,
+  FullNameReadingLine,
   NumberReadingCard,
   NumerologyError,
   NumerologyLoading,
@@ -128,6 +132,10 @@ export function DashboardBabyNamesTool({ lang }: Props) {
 
   const [form, setForm] = useState<BirthForm>(EMPTY_FORM);
   const [userNames, setUserNames] = useState<string[]>(EMPTY_USER_NAMES);
+  // One surname for the whole family, applied to every name on the page —
+  // ours and the parent's. Retyping it onto five candidates would also let
+  // the five drift apart.
+  const [familyName, setFamilyName] = useState("");
   const [gender, setGender] = useState<GenderFilter>("any");
   const [mode, setMode] = useState<BabyNameMode>("pada_first");
 
@@ -161,6 +169,7 @@ export function DashboardBabyNamesTool({ lang }: Props) {
       gender: gender === "any" ? undefined : gender,
       mode,
       userNames: userNames.map((n) => n.trim()).filter(Boolean),
+      familyName: familyName.trim() || undefined,
     })
       .then(setResult)
       .catch((err: unknown) => setError(readErrorMessage(err)))
@@ -249,6 +258,20 @@ export function DashboardBabyNamesTool({ lang }: Props) {
             ))}
           </div>
         </div>
+
+        {/* One surname for the family, scored against every name on the page.
+            Tamil Nadu now uses first-name/last-name alongside the traditional
+            initial + given name, and both are names the child carries — so
+            both are answered. Never affects which names match the paadham. */}
+        <Field label={pick(FAMILY_NAME_LABEL, isTamil)} helper={pick(FAMILY_NAME_HELP, isTamil)}>
+          <Input
+            value={familyName}
+            onChange={(e) => setFamilyName(e.target.value)}
+            placeholder={isTamil ? "எ.கா. செந்தில்குமார்" : "e.g. Senthilkumar"}
+            autoComplete="off"
+            maxLength={120}
+          />
+        </Field>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
           <Segmented
@@ -464,6 +487,7 @@ export function DashboardBabyNamesTool({ lang }: Props) {
                     const setAside =
                       c.adviseAgainst && c.alignment
                         ? adviseAgainstNote(
+                            c.latinSpelling,
                             grahaLabel(c.alignment, lang),
                             natureLabel(c.alignment.functionalNature, lang),
                             isTamil,
@@ -512,6 +536,28 @@ export function DashboardBabyNamesTool({ lang }: Props) {
                           />
                         }
                         hint={[relation, meaning, setAside].filter(Boolean).join(" ") || null}
+                        // The other real question: what this reads as on the
+                        // documents. Below the called name's reading, never
+                        // instead of it.
+                        footer={
+                          c.fullNameSpelling && c.fullNameReading ? (
+                            <FullNameReadingLine
+                              spelling={c.fullNameSpelling}
+                              reading={c.fullNameReading}
+                              alignment={c.fullNameAlignment}
+                              lang={lang}
+                              note={
+                                c.alignment && c.fullNameAlignment
+                                  ? fullNameGapNote(
+                                      c.alignment.score,
+                                      c.fullNameAlignment.score,
+                                      isTamil,
+                                    )
+                                  : null
+                              }
+                            />
+                          ) : null
+                        }
                         scoredFromBadge={
                           <Chip tone={CONFIDENCE_TONE[c.confidence]}>
                             {pick(CONFIDENCE_CHIP[c.confidence], isTamil)}

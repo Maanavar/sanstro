@@ -1119,6 +1119,20 @@ export interface BabyNameCandidate {
    *  name-change advice uses. Never reorders across a `relation` tier
    *  (doctrine D2); render it as a caution on the card, not as a demotion. */
   adviseAgainst: boolean;
+  /** The same name with the family surname, scored as one string — the name
+   *  on the documents, now that first-name/last-name is ordinary in Tamil
+   *  Nadu alongside the traditional initial + given name. Null unless a
+   *  `familyName` was supplied.
+   *
+   *  NEVER drives ranking, `relation`, `confidence` or `adviseAgainst` — the
+   *  paadham akshara governs the GIVEN name's opening letter, which a surname
+   *  can neither satisfy nor violate. Render it beside the called name's
+   *  reading, never in place of it. Expect `compound` to be null far more
+   *  often here: Cheiro's series stops at 52 and full names routinely
+   *  exceed it. */
+  fullNameSpelling: string | null;
+  fullNameReading: NumberReading | null;
+  fullNameAlignment: NumberAlignment | null;
 }
 
 /**
@@ -1253,6 +1267,10 @@ export interface PublicBabyNamesPreviewRequest {
    *  and returned at its true rank inside `candidates`, tagged `source`
    *  "user"/"both" — never silently dropped for scoring poorly. */
   userNames?: string[];
+  /** The family surname, supplied once and applied to every name on the page
+   *  — ours and the parent's. Scores a second "given + surname" reading per
+   *  candidate; never affects which names match the paadham. */
+  familyName?: string;
 }
 
 /**

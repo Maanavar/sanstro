@@ -26,6 +26,9 @@ import {
   MUST_IT_BEGIN_A,
   MUST_IT_BEGIN_Q,
   ADVISE_AGAINST_CHIP,
+  FAMILY_NAME_HELP,
+  FAMILY_NAME_LABEL,
+  FULL_NAME_TERM,
   GROUP_ADVICE,
   GROUP_HEADING,
   ORDER_EXPLAINER,
@@ -33,6 +36,7 @@ import {
   RELATION_TONE,
   WITHIN_GROUP_ORDER,
   adviseAgainstShort,
+  fullNameGapNote,
   groupByRelation,
   SCOPE_LABEL,
   SCOPE_ORDER,
@@ -134,6 +138,9 @@ export function BabyNameFinderContent() {
   // Defaults to the strict rule. Widening is always the parent's decision —
   // the tool must never quietly reach past the paadham on their behalf.
   const [mode, setMode] = useState<BabyNameMode>("pada_first");
+  // One surname for the family, scored against every name on the page. TN now
+  // uses first-name/last-name alongside the traditional initial + given name.
+  const [familyName, setFamilyName] = useState("");
 
   const [result, setResult] = useState<BabyNamesResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -166,6 +173,7 @@ export function BabyNameFinderContent() {
       },
       gender,
       mode,
+      familyName: familyName.trim() || undefined,
     })
       .then(setResult)
       .catch((err: unknown) => {
@@ -187,6 +195,8 @@ export function BabyNameFinderContent() {
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gender, mode]);
+  // `familyName` is deliberately NOT a re-run trigger: it is typed a
+  // character at a time, same reasoning as the birth-detail fields.
 
   return (
     <div className="clarity-shell">
@@ -311,6 +321,25 @@ export function BabyNameFinderContent() {
                     service tests still pass them); only the UI is gone. The
                     collapse question is NU-8a, an unresolved practitioner
                     question, which is not a parent's call to make. */}
+                {/* One surname for the family, applied to every name below —
+                    ours and any the parent is weighing. Never affects which
+                    names match the paadham: the opening letter belongs to the
+                    given name, and a surname can neither satisfy nor violate
+                    that rule. */}
+                <label className="cl-num-field">
+                  <span className="cl-num-field__label">{pick(FAMILY_NAME_LABEL, ta)}</span>
+                  <input
+                    className="cl-num-input"
+                    type="text"
+                    value={familyName}
+                    maxLength={120}
+                    autoComplete="off"
+                    placeholder={ta ? "எ.கா. செந்தில்குமார்" : "e.g. Senthilkumar"}
+                    onChange={(e) => setFamilyName(e.target.value)}
+                  />
+                  <span className="cl-num-field__help">{pick(FAMILY_NAME_HELP, ta)}</span>
+                </label>
+
                 <ScopePicker
                   mode={mode}
                   onChange={setMode}
@@ -698,12 +727,50 @@ function NameCard({
       ) : null}
       {candidate.adviseAgainst ? (
         <p className="cl-num-note" style={{ margin: 0 }}>
-          {adviseAgainstShort(ta ? candidate.reading.grahaTa : candidate.reading.grahaEn, ta)}
+          {adviseAgainstShort(
+            candidate.latinSpelling,
+            ta ? candidate.reading.grahaTa : candidate.reading.grahaEn,
+            ta,
+          )}
         </p>
       ) : null}
       {candidate.meaningEn || candidate.meaningTa ? (
         <p className="cl-num-reading__nocompound">{ta ? candidate.meaningTa : candidate.meaningEn}</p>
       ) : null}
+      {/* The other real question: what this reads as on the documents. Kept
+          below and quieter than the called name's figure — the called name is
+          the one the paadham rule governs and the one the child is addressed
+          by, and two full readings at equal weight is the adjacent-scores
+          fusion this card has hit before. */}
+      {candidate.fullNameSpelling && candidate.fullNameReading ? (
+        <p className="cl-num-reading__fullname">
+          <span className="cl-num-reading__fullname-label">{pick(FULL_NAME_TERM, ta)}</span>
+          <span className="cl-num-reading__fullname-name">{candidate.fullNameSpelling}</span>
+          <span className="cl-num-reading__fullname-num">{candidate.fullNameReading.root}</span>
+          <span>
+            {ta ? candidate.fullNameReading.grahaTa : candidate.fullNameReading.grahaEn}
+          </span>
+          {candidate.fullNameAlignment ? (
+            <span className="cl-num-reading__fullname-score">
+              {Math.round(candidate.fullNameAlignment.score)}
+            </span>
+          ) : null}
+        </p>
+      ) : null}
+      {candidate.alignment && candidate.fullNameAlignment
+        ? (() => {
+            const note = fullNameGapNote(
+              candidate.alignment.score,
+              candidate.fullNameAlignment.score,
+              ta,
+            );
+            return note ? (
+              <p className="cl-num-note" style={{ margin: 0 }}>
+                {note}
+              </p>
+            ) : null;
+          })()
+        : null}
       {/*
        * `candidate.warnings` is NOT rendered, deliberately.
        *

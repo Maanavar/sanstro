@@ -1425,6 +1425,7 @@ export function NumberReadingCard({
   subject = "self",
   showCompound = true,
   collapsedSummary,
+  footer,
 }: {
   reading: NumberReading;
   label: string;
@@ -1495,6 +1496,16 @@ export function NumberReadingCard({
    * an accordion starts looking like a bug.
    */
   collapsedSummary?: ReactNode;
+  /**
+   * Rendered last, below the collapsed working — for Baby Name Finder this is
+   * `<FullNameReadingLine>`, the "with family name" second reading.
+   *
+   * Below, not above: the called name leads because it is the one the paadham
+   * rule governs and the one the child is addressed by, and a full reading
+   * stacked directly on the card's own numeral is the adjacent-scores fusion
+   * this card has already hit three times.
+   */
+  footer?: ReactNode;
 }) {
   const isTamil = lang === "ta";
   const body = (
@@ -1610,6 +1621,8 @@ export function NumberReadingCard({
             note for a block that is not on the card cites nothing. */}
         {showCompound ? <CompoundSourceNote reading={reading} lang={lang} /> : null}
       </CalculationDetails>
+
+      {footer}
     </>
   );
 
@@ -1718,6 +1731,77 @@ export function BabyNameRowSummary({
       {oneLine ? (
         <div style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.5 }}>
           {oneLine}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * The full-name reading, as a second row under the called name's.
+ *
+ * Deliberately quieter than the card's own numeral: the called name leads
+ * because it is the only one the paadham rule governs and the one the child
+ * is addressed by. This answers the other real question — what the name reads
+ * as on documents — without competing for the verdict.
+ *
+ * Rendered as ONE line (spelling · number · graha · score), not a second
+ * card. Two full readings stacked is precisely the adjacent-scores fusion
+ * this card has hit three times.
+ */
+export function FullNameReadingLine({
+  spelling,
+  reading,
+  alignment,
+  lang,
+  note,
+}: {
+  spelling: string;
+  reading: NumberReading;
+  alignment?: NumberAlignment | null;
+  lang: Lang;
+  /** `fullNameGapNote(...)` — only when the two readings diverge materially. */
+  note?: string | null;
+}) {
+  const isTamil = lang === "ta";
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "2px",
+        paddingTop: "var(--space-2)",
+        borderTop: "1px dashed var(--color-border)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          alignItems: "baseline",
+          gap: "var(--space-2)",
+          flexWrap: "wrap",
+          fontSize: "var(--text-xs)",
+          color: "var(--color-muted)",
+        }}
+      >
+        <span style={{ color: "var(--color-faint)" }}>
+          {isTamil ? "குடும்பப் பெயருடன்" : "With family name"}
+        </span>
+        <span style={{ color: "var(--color-text)" }}>{spelling}</span>
+        <span style={{ color: "var(--color-text-strong)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+          {reading.root}
+        </span>
+        <span>{grahaLabel(reading, lang)}</span>
+        {alignment ? (
+          <span style={{ marginLeft: "auto", fontVariantNumeric: "tabular-nums" }}>
+            {Math.round(alignment.score)} / 100
+          </span>
+        ) : null}
+      </div>
+      {note ? (
+        <div style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.5 }}>
+          {note}
         </div>
       ) : null}
     </div>

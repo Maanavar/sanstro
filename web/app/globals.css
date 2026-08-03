@@ -5738,6 +5738,17 @@ button:focus-visible,
 .cl-num-group > .cl-num-note { margin-top: 0; }
 .cl-num-group > .cl-num-details { margin-top: 2px; }
 
+/* Helper text under a field, inside its own <label>. `.cl-num-note` is a
+   block-level sibling with a 16px top margin, which detaches the sentence
+   from the input it belongs to; this stays tight to it. */
+.cl-num-field__help {
+  display: block;
+  margin-top: 5px;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--cl-muted-2);
+}
+
 /* ── One ruled card: the question at its head, the answers as its cells ──── */
 .cl-num-card {
   border: 1px solid var(--cl-border);
@@ -5981,6 +5992,34 @@ button:focus-visible,
   font-size: 0.75rem;
   color: var(--cl-muted-2);
 }
+/* The full-name reading — one quiet line, not a second figure.
+   The called name keeps the card's big numeral because it is the one the
+   paadham rule governs and the one the child is addressed by; this answers
+   the documents question without competing for the verdict. */
+.cl-num-reading__fullname {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin: 8px 0 0;
+  padding-top: 8px;
+  border-top: 1px dashed var(--cl-border);
+  font-size: 0.8rem;
+  color: var(--cl-muted);
+}
+.cl-num-reading__fullname-label { color: var(--cl-muted-2); }
+.cl-num-reading__fullname-name { color: var(--cl-ink); }
+.cl-num-reading__fullname-num {
+  font-weight: 700;
+  color: var(--cl-ink);
+  font-variant-numeric: tabular-nums;
+}
+.cl-num-reading__fullname-score {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: var(--cl-muted-2);
+}
+
 .cl-num-namegroup__advice {
   margin: 0 0 6px;
   font-size: 0.82rem;

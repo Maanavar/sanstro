@@ -23,6 +23,7 @@ import {
   aksharaSubLine,
   contextLine,
   emptyMessage,
+  fullNameGapNote,
   groupByRelation,
   pick,
   relaxationSentence,
@@ -31,6 +32,7 @@ import {
 import {
   BabyNamePaadhamHeader,
   BabyNameRowSummary,
+  FullNameReadingLine,
   NumberReadingCard,
   NumerologyError,
   NumerologyLoading,
@@ -281,6 +283,7 @@ export function NumerologyBabyNamesSection({ lang, chartId }: Props) {
                       c.meaningEn || c.meaningTa ? (isTamil ? c.meaningTa : c.meaningEn) : null,
                       c.adviseAgainst && c.alignment
                         ? adviseAgainstNote(
+                            c.latinSpelling,
                             grahaLabel(c.alignment, lang),
                             natureLabel(c.alignment.functionalNature, lang),
                             isTamil,
@@ -289,6 +292,24 @@ export function NumerologyBabyNamesSection({ lang, chartId }: Props) {
                     ]
                       .filter(Boolean)
                       .join(" ") || null
+                  }
+                  // Kept in step with `dashboard-tools-baby-names-nova.tsx`.
+                  // This view has no family-name input of its own yet, so the
+                  // fields are simply absent and this renders nothing.
+                  footer={
+                    c.fullNameSpelling && c.fullNameReading ? (
+                      <FullNameReadingLine
+                        spelling={c.fullNameSpelling}
+                        reading={c.fullNameReading}
+                        alignment={c.fullNameAlignment}
+                        lang={lang}
+                        note={
+                          c.alignment && c.fullNameAlignment
+                            ? fullNameGapNote(c.alignment.score, c.fullNameAlignment.score, isTamil)
+                            : null
+                        }
+                      />
+                    ) : null
                   }
                   scoredFromBadge={
                     <Chip tone={CONFIDENCE_TONE[c.confidence]}>

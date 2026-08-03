@@ -1373,6 +1373,20 @@ class BabyNameCandidateOut(BaseModel):
     #: Provenance notes from the matcher — e.g. draft-canon or
     #: tamil_collapse warnings. Not interpretive copy, so not gated.
     warnings: list[str] = Field(default_factory=list)
+    #: The same name with the family's surname, scored as one string — the
+    #: name on the documents, now that first-name/last-name is ordinary in
+    #: Tamil Nadu alongside the traditional initial + given name. Null unless
+    #: a `familyName` was supplied.
+    #:
+    #: NEVER drives ranking, `relation`, `confidence` or `adviseAgainst`: the
+    #: paadham akshara governs the GIVEN name's opening letter, which a
+    #: surname can neither satisfy nor violate. Render it as a second reading
+    #: beside the called name, never in place of it.
+    full_name_spelling: str | None = Field(alias="fullNameSpelling", default=None)
+    full_name_reading: NumberReadingOut | None = Field(alias="fullNameReading", default=None)
+    full_name_alignment: NumberAlignmentOut | None = Field(
+        alias="fullNameAlignment", default=None
+    )
     #: "corpus" (one of ours) | "user" (from the parent's own shortlist) |
     #: "both" (the parent's pick happens to be a corpus name — shown once).
     source: Literal["corpus", "user", "both"] = "corpus"
@@ -1412,6 +1426,17 @@ class BabyNameCandidateOut(BaseModel):
             source=ranked.source,
             overallRank=ranked.overall_rank,
             adviseAgainst=ranked.advise_against,
+            fullNameSpelling=ranked.full_name_spelling,
+            fullNameReading=(
+                NumberReadingOut.from_reading(ranked.full_name_reading)
+                if ranked.full_name_reading
+                else None
+            ),
+            fullNameAlignment=(
+                NumberAlignmentOut.from_alignment(ranked.full_name_alignment)
+                if ranked.full_name_alignment
+                else None
+            ),
         )
 
 

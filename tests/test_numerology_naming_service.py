@@ -26,6 +26,7 @@ import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
+from app.calculations.numerology import score_text
 from app.calculations.numerology_alignment import AlignmentVerdict
 from app.calculations.numerology_naming import (
     _RELATION_RANK,
@@ -312,6 +313,62 @@ def test_public_chartless_path_expresses_no_opinion(enabled: None) -> None:
     result = baby_names_for_pada(1, 1, allow_ambiguous=True)
     assert all(m.alignment is None for m in result.matches)
     assert all(m.advise_against is False for m in result.matches)
+
+
+def test_family_name_adds_a_second_reading_without_touching_the_first(enabled: None) -> None:
+    """Called name and full name are different questions; both get answered.
+
+    Tamil Nadu now uses first-name/last-name alongside the traditional
+    initial + given name, so both are names the child really carries. The
+    surname is supplied once and applies to OUR recommendations as well as the
+    parent's own picks — a parent choosing from this list needs to know how
+    "Gayathri Senthilkumar" reads, not only how their own shortlist does.
+    """
+    with_surname = baby_names_for_pada(
+        21, 3, gender="f", mode=NamingMode.OPEN, limit=6, family_name="Senthilkumar"
+    )
+    for m in with_surname.matches:
+        assert m.full_name_spelling == f"{m.matched_spelling} Senthilkumar"
+        assert m.full_name_reading is not None
+        # The called name's own reading is untouched by the surname.
+        assert m.reading == score_text(m.matched_spelling)
+
+
+def test_family_name_never_changes_the_ranking(enabled: None) -> None:
+    """Doctrine: the paadham akshara governs the GIVEN name's opening letter,
+    which a surname can neither satisfy nor violate. Ranking on the full name
+    would also make the same given name rank differently for every family —
+    turning our recommendation list into a statement about the surname.
+
+    Worth pinning because the surname genuinely moves the numbers: measured on
+    this paadham, "Gayathri" scores 85 alone and 25 as "Gayathri
+    Senthilkumar". If that ever leaked into `_sort_key`, the list would
+    silently reorder per family.
+    """
+    kwargs = {"gender": "f", "mode": NamingMode.OPEN, "limit": 6}
+    plain = baby_names_for_pada(21, 3, **kwargs)
+    surnamed = baby_names_for_pada(21, 3, family_name="Senthilkumar", **kwargs)
+
+    assert [m.matched_spelling for m in surnamed.matches] == [
+        m.matched_spelling for m in plain.matches
+    ]
+    assert [m.relation for m in surnamed.matches] == [m.relation for m in plain.matches]
+    assert [m.confidence for m in surnamed.matches] == [m.confidence for m in plain.matches]
+    assert [m.advise_against for m in surnamed.matches] == [
+        m.advise_against for m in plain.matches
+    ]
+
+
+def test_no_family_name_leaves_the_full_name_fields_empty(enabled: None) -> None:
+    """The ordinary case. Blank/whitespace must read the same as absent, not
+    produce a trailing-space spelling."""
+    for family in (None, "", "   "):
+        result = baby_names_for_pada(21, 3, gender="f", limit=3, family_name=family)
+        assert result.matches
+        for m in result.matches:
+            assert m.full_name_spelling is None
+            assert m.full_name_reading is None
+            assert m.full_name_alignment is None
 
 
 def test_shortlist_is_capped_and_blanks_are_ignored(enabled: None) -> None:

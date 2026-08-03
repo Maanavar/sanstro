@@ -143,6 +143,28 @@ class RankedNameCandidate:
     reading: NumberReading
     alignment: NumberAlignment | None
     warnings: tuple[str, ...]
+    #: The same name written with the family's surname — "Aadhini
+    #: Senthilkumar" — scored as one string, when a `family_name` was
+    #: supplied. All three are None otherwise.
+    #:
+    #: Tamil Nadu naming has genuinely moved: the traditional initial + given
+    #: name now coexists with first-name/last-name on every document, and both
+    #: are names the child really carries. So both are answered.
+    #:
+    #: This never touches ranking, `relation`, `confidence` or
+    #: `advise_against`. The paadham akshara is a rule about the GIVEN name's
+    #: opening letter — a surname can neither satisfy nor violate it — and the
+    #: called name is what the namakarana uses and what the child is addressed
+    #: by. Ranking on the full name would also make the same given name rank
+    #: differently for every family, i.e. make our list about the surname
+    #: rather than about the name.
+    #:
+    #: Expect `full_name_reading.compound` to be None far more often than the
+    #: called name's: Cheiro's series stops at 52 and full names routinely
+    #: exceed it (doctrine D6).
+    full_name_spelling: str | None = None
+    full_name_reading: NumberReading | None = None
+    full_name_alignment: NumberAlignment | None = None
     #: "corpus" — one of ours; "user" — one of the parent's own shortlist that
     #: doesn't also appear in the corpus; "both" — the parent's pick happens to
     #: BE a corpus name, shown once, not duplicated. Defaults to "corpus" so
@@ -232,6 +254,50 @@ class ChartBabyNames:
     calculation_version: str = CALCULATION_VERSION
 
 
+def _align(
+    reading: NumberReading,
+    *,
+    lagna_rasi: int | None,
+    strengths: dict[str, float] | None,
+    node_rasi_map: dict[str, int] | None,
+) -> NumberAlignment | None:
+    """Fortune Alignment for one reading, or None on the chart-less path."""
+    if lagna_rasi is None:
+        return None
+    return align_number(
+        reading.root,
+        lagna_rasi,
+        natal_strength=(strengths or {}).get(reading.graha),
+        node_rasi_map=node_rasi_map,
+    )
+
+
+def _full_name(
+    given: str,
+    family_name: str | None,
+    *,
+    lagna_rasi: int | None,
+    strengths: dict[str, float] | None,
+    node_rasi_map: dict[str, int] | None,
+) -> tuple[str | None, NumberReading | None, NumberAlignment | None]:
+    """Score "<given> <family>" as one string — the name on the documents.
+
+    Returns a triple of Nones when no surname was supplied, which is the
+    ordinary case and not an error. `score_text` drops the space itself into
+    `ignored_characters`, so the total is the two names' letters combined.
+    """
+    family = (family_name or "").strip()
+    if not family:
+        return (None, None, None)
+    spelling = f"{given.strip()} {family}"
+    reading = score_text(spelling)
+    return (
+        spelling,
+        reading,
+        _align(reading, lagna_rasi=lagna_rasi, strengths=strengths, node_rasi_map=node_rasi_map),
+    )
+
+
 def _matched_spelling(scored: ScoredCandidate) -> str:
     """The Latin string this match is scored and shown under.
 
@@ -307,6 +373,7 @@ def _rank(
     lagna_rasi: int | None,
     strengths: dict[str, float] | None,
     node_rasi_map: dict[str, int] | None,
+    family_name: str | None = None,
 ) -> tuple[RankedNameCandidate, ...]:
     """Score and sort every corpus match. NOT truncated to `limit` here —
     a caller merging in a parent's own shortlist needs the full ranked pool
@@ -316,14 +383,19 @@ def _rank(
     for scored in result.matches:
         spelling = _matched_spelling(scored)
         reading = score_text(spelling)
-        alignment: NumberAlignment | None = None
-        if lagna_rasi is not None:
-            alignment = align_number(
-                reading.root,
-                lagna_rasi,
-                natal_strength=(strengths or {}).get(reading.graha),
-                node_rasi_map=node_rasi_map,
-            )
+        alignment = _align(
+            reading, lagna_rasi=lagna_rasi, strengths=strengths, node_rasi_map=node_rasi_map
+        )
+        # Our own recommendations carry the full-name reading too: a parent
+        # choosing from this list needs to know how "Gayathri Senthilkumar"
+        # sits, not only how their own picks do.
+        full_spelling, full_reading, full_alignment = _full_name(
+            spelling,
+            family_name,
+            lagna_rasi=lagna_rasi,
+            strengths=strengths,
+            node_rasi_map=node_rasi_map,
+        )
         ranked.append(
             RankedNameCandidate(
                 candidate=scored.candidate,
@@ -338,6 +410,9 @@ def _rank(
                 reading=reading,
                 alignment=alignment,
                 warnings=scored.warnings,
+                full_name_spelling=full_spelling,
+                full_name_reading=full_reading,
+                full_name_alignment=full_alignment,
             )
         )
     ranked.sort(key=_sort_key)
@@ -352,23 +427,31 @@ def _evaluate_user_candidate(
     lagna_rasi: int | None,
     strengths: dict[str, float] | None,
     node_rasi_map: dict[str, int] | None,
+    family_name: str | None = None,
 ) -> RankedNameCandidate:
     """Score one of the parent's own names against the birth paadham — the
     TRUE relation/confidence (see `evaluate_against_target`), not gated by
     `NamingMode`. A name the parent already chose is never withheld for
-    "not matching well enough"; the whole point is to show where it stands."""
+    "not matching well enough"; the whole point is to show where it stands.
+
+    `query.latin_spelling` is the GIVEN name only. The surname arrives once,
+    as `family_name`, because a family has one — retyping it onto all five
+    candidates would also let the five drift apart.
+    """
     spelling = query.latin_spelling.strip()
     candidate = NameCandidate(tamil_form="", latin_variants=(spelling,))
     scored = evaluate_against_target(candidate, target_row, target_rasi)
     reading = score_text(spelling)
-    alignment: NumberAlignment | None = None
-    if lagna_rasi is not None:
-        alignment = align_number(
-            reading.root,
-            lagna_rasi,
-            natal_strength=(strengths or {}).get(reading.graha),
-            node_rasi_map=node_rasi_map,
-        )
+    alignment = _align(
+        reading, lagna_rasi=lagna_rasi, strengths=strengths, node_rasi_map=node_rasi_map
+    )
+    full_spelling, full_reading, full_alignment = _full_name(
+        spelling,
+        family_name,
+        lagna_rasi=lagna_rasi,
+        strengths=strengths,
+        node_rasi_map=node_rasi_map,
+    )
     return RankedNameCandidate(
         candidate=candidate,
         row_nakshatra_id=scored.row.nakshatra_id if scored.row else None,
@@ -383,6 +466,9 @@ def _evaluate_user_candidate(
         alignment=alignment,
         warnings=scored.warnings,
         source="user",
+        full_name_spelling=full_spelling,
+        full_name_reading=full_reading,
+        full_name_alignment=full_alignment,
     )
 
 
@@ -438,6 +524,7 @@ def _baby_names_for_constraints(
     node_rasi_map: dict[str, int] | None,
     limit: int,
     user_names: Sequence[UserNameQuery] = (),
+    family_name: str | None = None,
 ) -> ChartBabyNames:
     """Shared tail of the entry points below. Callers must gate first —
     this raises `UnverifiedCanonError` (via `find_names`) unguarded."""
@@ -447,6 +534,7 @@ def _baby_names_for_constraints(
         lagna_rasi=lagna_rasi,
         strengths=strengths,
         node_rasi_map=node_rasi_map,
+        family_name=family_name,
     )
     cleaned_user_names = [q for q in user_names if q.latin_spelling.strip()][:MAX_USER_NAMES]
     if cleaned_user_names:
@@ -458,6 +546,7 @@ def _baby_names_for_constraints(
                 lagna_rasi=lagna_rasi,
                 strengths=strengths,
                 node_rasi_map=node_rasi_map,
+                family_name=family_name,
             )
             for q in cleaned_user_names
         )
@@ -496,6 +585,7 @@ def baby_names_for_chart(
     allow_tamil_collapse: bool = False,
     limit: int = DEFAULT_LIMIT,
     user_names: Sequence[UserNameQuery] = (),
+    family_name: str | None = None,
 ) -> ChartBabyNames:
     """Baby names for the native behind this chart, ranked by pada then Fortune Alignment.
 
@@ -521,6 +611,7 @@ def baby_names_for_chart(
         node_rasi_map=ctx.node_rasi_map,
         limit=limit,
         user_names=user_names,
+        family_name=family_name,
     )
 
 
@@ -534,6 +625,7 @@ def baby_names_for_pada(
     allow_tamil_collapse: bool = False,
     limit: int = DEFAULT_LIMIT,
     user_names: Sequence[UserNameQuery] = (),
+    family_name: str | None = None,
 ) -> ChartBabyNames:
     """Baby names for a bare nakshatra + pada — the public, chart-less path.
 
@@ -557,6 +649,7 @@ def baby_names_for_pada(
         node_rasi_map=None,
         limit=limit,
         user_names=user_names,
+        family_name=family_name,
     )
 
 
@@ -569,6 +662,7 @@ def baby_names_for_birth_details(
     allow_tamil_collapse: bool = False,
     limit: int = DEFAULT_LIMIT,
     user_names: Sequence[UserNameQuery] = (),
+    family_name: str | None = None,
 ) -> ChartBabyNames:
     """Baby names from an ephemeral chart — raw birth details, no account, no save.
 
@@ -604,4 +698,5 @@ def baby_names_for_birth_details(
         node_rasi_map=node_rasi_map,
         limit=limit,
         user_names=user_names,
+        family_name=family_name,
     )
