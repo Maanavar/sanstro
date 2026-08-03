@@ -85,48 +85,29 @@ import { Kicker } from "./ui/kicker";
 
 type Tone = "high" | "mid" | "low" | "neutral" | "accent";
 
-type VerdictSpec = { en: string; ta: string; tone: Tone };
-
-export const VERDICT_LABEL: Record<AlignmentVerdict, VerdictSpec> = {
-  strongly_aligned: { en: "Strongly aligned", ta: "மிகவும் இணக்கம்", tone: "high" },
-  aligned: { en: "Aligned", ta: "இணக்கம்", tone: "high" },
-  neutral: { en: "Neutral", ta: "நடுநிலை", tone: "neutral" },
-  misaligned: { en: "Out of step", ta: "ஒத்துவரவில்லை", tone: "mid" },
-  strongly_misaligned: { en: "Well out of step", ta: "மிகவும் ஒத்துவரவில்லை", tone: "low" },
-};
-
 /**
- * Kept deliberately consistent with the labels already used by the chart
- * explanation and jadhagam report panels — the same enum must not read as two
- * different vocabularies in two tabs. `UPACHAYA` is the one key those maps
- * predate; the alignment engine emits it, so it is labelled here.
+ * The verdict/nature vocabulary now lives in `@/lib/numerology-labels` —
+ * presentation-neutral, so the marketing tools can share it instead of
+ * keeping their own copy. This module cannot be imported from a marketing
+ * page: it pulls dashboard primitives and its inline styles read
+ * `var(--color-*)`, which exist only under `[data-ui="nova"] .cd-shell`.
+ *
+ * Re-exported rather than moved-and-updated at every call site: ~20 call
+ * sites across the dashboard already import these from here, and churning
+ * them buys nothing.
  */
-export const NATURE_LABEL: Record<FunctionalNature, { en: string; ta: string }> = {
-  LAGNA_LORD: { en: "Lagna lord", ta: "லக்னாதிபதி" },
-  YOGAKARAKA: { en: "Yogakaraka", ta: "யோககாரகன்" },
-  TRIKONA: { en: "Trikona lord", ta: "திரிகோண அதிபதி" },
-  KENDRA: { en: "Kendra lord", ta: "கேந்திர அதிபதி" },
-  UPACHAYA: { en: "Upachaya lord", ta: "உபசய அதிபதி" },
-  MARAKA: { en: "Maraka lord", ta: "மாரகாதிபதி" },
-  DUSTHANA: { en: "Dusthana lord", ta: "துஷ்டானாதிபதி" },
-  NEUTRAL: { en: "Neutral", ta: "நடுநிலை" },
-};
+import {
+  NATURE_LABEL,
+  VERDICT_LABEL,
+  natureLabel,
+  plainSummaryText,
+  verdictLabel,
+  verdictTone,
+} from "@/lib/numerology-labels";
+import type { ChartSubject } from "@/lib/numerology-labels";
 
-export function verdictLabel(verdict: AlignmentVerdict, lang: Lang): string {
-  const spec = VERDICT_LABEL[verdict];
-  if (!spec) return verdict.replaceAll("_", " ");
-  return lang === "ta" ? spec.ta : spec.en;
-}
-
-export function verdictTone(verdict: AlignmentVerdict): Tone {
-  return VERDICT_LABEL[verdict]?.tone ?? "neutral";
-}
-
-export function natureLabel(nature: FunctionalNature, lang: Lang): string {
-  const spec = NATURE_LABEL[nature];
-  if (!spec) return nature.replaceAll("_", " ");
-  return lang === "ta" ? spec.ta : spec.en;
-}
+export { NATURE_LABEL, VERDICT_LABEL, natureLabel, verdictLabel, verdictTone };
+export type { ChartSubject };
 
 /* ── The plain-language layer ───────────────────────────────────────────────
  *
@@ -362,7 +343,9 @@ export function housesPhrase(
  * notices reasonably concludes no chart is being used at all, which is exactly
  * the doubt it produced. Never infer the subject from the copy; pass it.
  */
-export type ChartSubject = "self" | "child";
+// `ChartSubject` now lives in `@/lib/numerology-labels` (imported and
+// re-exported at the top of this file) so the marketing tools can use the
+// same type without importing dashboard chrome.
 
 /** "In your chart" / "In this child's chart" — the sentence opener. */
 function inChartPhrase(subject: ChartSubject, lang: Lang): string {
@@ -597,33 +580,10 @@ function signed(delta: number): string {
  * saying "Out of step" is the same defect this whole pass is fixing.
  */
 function plainSummary(alignment: NumberAlignment, subject: ChartSubject, lang: Lang): string {
-  const isTamil = lang === "ta";
-  const graha = grahaLabel(alignment, lang);
-  const term = natureLabel(alignment.functionalNature, lang);
-  const whose = isTamil
-    ? subject === "child"
-      ? "இந்தக் குழந்தையின் ஜாதகத்தில்"
-      : "உங்கள் ஜாதகத்தில்"
-    : subject === "child"
-      ? "this child's chart"
-      : "your chart";
-
-  const supportive =
-    alignment.verdict === "strongly_aligned" || alignment.verdict === "aligned";
-  const against =
-    alignment.verdict === "misaligned" || alignment.verdict === "strongly_misaligned";
-
-  if (isTamil) {
-    const lead = `${alignment.number} என்ற எண் ${graha}-க்குரியது; ${whose} ${graha} ${term}.`;
-    if (supportive) return `${lead} அதனால் இந்தப் பெயரின் எண்ணும் ஜாதகமும் ஒரே திசையில் இழுக்கின்றன.`;
-    if (against) return `${lead} அதனால் இந்தப் பெயரின் எண் ஜாதகத்துக்கு எதிர்த் திசையில் இழுக்கிறது.`;
-    return `${lead} அதனால் இந்தப் பெயரின் எண் ஜாதகத்துக்கு உதவவும் இல்லை, தடையாகவும் இல்லை.`;
-  }
-
-  const lead = `${alignment.number} is ${graha}'s number, and in ${whose} ${graha} is ${term}.`;
-  if (supportive) return `${lead} So this name's number and the chart pull the same way.`;
-  if (against) return `${lead} So this name's number pulls against the chart.`;
-  return `${lead} So this name's number neither helps nor hinders the chart.`;
+  // Delegates to `@/lib/numerology-labels` so the dashboard and the marketing
+  // tool state the finding in the same words. Two copies of this sentence is
+  // how "works with the chart" starts meaning two different things.
+  return plainSummaryText(alignment, subject, lang);
 }
 
 /**

@@ -5992,6 +5992,16 @@ button:focus-visible,
   font-size: 0.75rem;
   color: var(--cl-muted-2);
 }
+/* Why this name scores what it does, in one sentence. Sits directly under the
+   verdict + score line it explains — a verdict with no reason beside it is
+   what made this page read as unaccountable. */
+.cl-num-reading__why {
+  margin: 2px 0 0;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--cl-muted);
+}
+
 /* The full-name reading — one quiet line, not a second figure.
    The called name keeps the card's big numeral because it is the one the
    paadham rule governs and the one the child is addressed by; this answers

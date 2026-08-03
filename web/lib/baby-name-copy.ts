@@ -373,6 +373,20 @@ export function adviseAgainstNote(
  * copy for the same reason. Consolidating those two maps into a neutral
  * module is worth doing, and is not this change.
  */
+/**
+ * Just the advice, with no derivation.
+ *
+ * For a surface that already states WHY directly above — the marketing card
+ * renders `plainSummaryText` ("2 is Moon's number, and in this child's chart
+ * Moon is Maraka lord…") immediately before this, so repeating the graha and
+ * its role reads as the card saying the same thing twice in different words.
+ * Use `adviseAgainstShort` where no such line precedes it.
+ */
+export const ADVISE_AGAINST_ACTION: BiText = {
+  en: "It is the spelling to reconsider, not the name — a different spelling of the same name usually clears it.",
+  ta: "மாற்ற வேண்டியது பெயரை அல்ல, இந்த எழுத்துக்கோர்வையை — அதே பெயரின் வேறு எழுத்துக்கோர்வை பொதுவாகச் சரியாக அமையும்.",
+};
+
 export function adviseAgainstShort(
   calledName: string,
   grahaName: string,

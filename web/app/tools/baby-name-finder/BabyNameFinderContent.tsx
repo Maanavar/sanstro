@@ -9,6 +9,7 @@ import { PlaceCombobox } from "@/components/place-combobox";
 import { useLang } from "@/components/lang-toggle";
 import { useBirthProfileForm } from "@/hooks/useBirthProfileForm";
 import { readErrorMessage } from "@/lib/api";
+import { VERDICT_LABEL, plainSummaryText } from "@/lib/numerology-labels";
 import type { CityEntry } from "@/lib/tn-cities";
 import {
   getPublicBabyNamesPreview,
@@ -25,6 +26,7 @@ import {
   MEANINGS_WITHHELD,
   MUST_IT_BEGIN_A,
   MUST_IT_BEGIN_Q,
+  ADVISE_AGAINST_ACTION,
   ADVISE_AGAINST_CHIP,
   FAMILY_NAME_HELP,
   FAMILY_NAME_LABEL,
@@ -35,7 +37,6 @@ import {
   RELATION_CHIP,
   RELATION_TONE,
   WITHIN_GROUP_ORDER,
-  adviseAgainstShort,
   fullNameGapNote,
   groupByRelation,
   SCOPE_LABEL,
@@ -80,13 +81,11 @@ import {
  * that reason, not gated on a technicality that would rarely show it.
  */
 
-const VERDICT_LABEL: Record<AlignmentVerdict, { en: string; ta: string }> = {
-  strongly_aligned: { en: "Strongly aligned", ta: "மிகவும் இணக்கம்" },
-  aligned: { en: "Aligned", ta: "இணக்கம்" },
-  neutral: { en: "Neutral", ta: "நடுநிலை" },
-  misaligned: { en: "Out of step", ta: "ஒத்துவரவில்லை" },
-  strongly_misaligned: { en: "Well out of step", ta: "மிகவும் ஒத்துவரவில்லை" },
-};
+/* `VERDICT_LABEL` was a private copy of the dashboard's map, kept because
+   `dashboard-numerology-shared.tsx` cannot be imported here — it pulls
+   dashboard primitives and its inline styles read `var(--color-*)`, which
+   exist only under `[data-ui="nova"] .cd-shell`. Both surfaces now share
+   `@/lib/numerology-labels`, which carries strings and nothing else. */
 
 function isNotLaunched(err: unknown): boolean {
   const message = err instanceof Error ? err.message : String(err ?? "");
@@ -725,13 +724,22 @@ function NameCard({
           <span className="cl-num-babynames__score">{Math.round(candidate.alignment.score)}</span>
         </p>
       ) : null}
+      {/* Why that verdict, in one sentence. This page showed a bare "Out of
+          step" and a bare 38 with nothing joining them to the chart — the
+          complaint that started this whole pass, fixed on the dashboard and
+          left standing here. Shares `plainSummaryText` with the dashboard so
+          the two cannot word the same finding differently. */}
+      {candidate.alignment ? (
+        <p className="cl-num-reading__why">
+          {plainSummaryText(candidate.alignment, "child", ta ? "ta" : "en")}
+        </p>
+      ) : null}
+      {/* Action only — `plainSummaryText` above already named the graha and
+          its role, and repeating them here read as the card saying the same
+          thing twice. */}
       {candidate.adviseAgainst ? (
         <p className="cl-num-note" style={{ margin: 0 }}>
-          {adviseAgainstShort(
-            candidate.latinSpelling,
-            ta ? candidate.reading.grahaTa : candidate.reading.grahaEn,
-            ta,
-          )}
+          {pick(ADVISE_AGAINST_ACTION, ta)}
         </p>
       ) : null}
       {candidate.meaningEn || candidate.meaningTa ? (
