@@ -122,6 +122,12 @@ const STRINGS = {
   marital_married:       { ta: "திருமணமானவர்",           en: "Married" },
   marital_divorced:      { ta: "விவாகரத்தானவர்",         en: "Divorced / Separated" },
   marital_widowed:       { ta: "விதவை / விதுரர்",        en: "Widowed" },
+  // Same argument as children_undisclosed below, and the same treatment: a
+  // declined status and an unasked one both mean we hold no status, and neither
+  // may be read as "single". The one-minute reading withholds its fifth beat on
+  // either. Without this option the only way to dismiss that reading's question
+  // was to claim a status that is not true.
+  marital_undisclosed:   { ta: "சொல்ல விரும்பவில்லை",    en: "Prefer not to say" },
 
   // ── Children field + options
   // "Prefer not to say" is a real option, not politeness: a declined answer and

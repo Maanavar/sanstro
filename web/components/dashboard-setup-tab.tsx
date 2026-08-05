@@ -449,13 +449,18 @@ export function DashboardSetupTab({
                     })} />
                 </WField>
                 <WField label={lang === "ta" ? "திருமண நிலை" : "Marital Status"}>
+                  {/* "Prefer not to say" is a real option here for the same reason
+                      it is on Children: a declined status and an unasked one both
+                      mean we hold no status, neither is ever read as "single", and
+                      the one-minute reading withholds its fifth beat on either. */}
                   <WSelect value={birthForm.maritalStatus}
                     onChange={(e) => onBirthFormChange({ ...birthForm, maritalStatus: e.target.value })}>
                     <option value="">{lang === "ta" ? "தேர்ந்தெடுக்கவும்" : "Select…"}</option>
                     <option value="single">{lang === "ta" ? "திருமணமாகாதவர்" : "Single / Unmarried"}</option>
                     <option value="married">{lang === "ta" ? "திருமணமானவர்" : "Married"}</option>
                     <option value="divorced">{lang === "ta" ? "விவாகரத்து" : "Divorced"}</option>
-                    <option value="widowed">{lang === "ta" ? "விதவை / விதவைர்" : "Widowed"}</option>
+                    <option value="widowed">{lang === "ta" ? "விதவை / விதுரர்" : "Widowed"}</option>
+                    <option value="undisclosed">{lang === "ta" ? "சொல்ல விரும்பவில்லை" : "Prefer not to say"}</option>
                   </WSelect>
                 </WField>
                 <WField label={lang === "ta" ? "குழந்தைகள்" : "Children"}>

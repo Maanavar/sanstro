@@ -6,7 +6,15 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-_VALID_MARITAL_STATUSES: frozenset[str] = frozenset({"single", "married", "divorced", "widowed", "breakup"})
+# "undisclosed" is a declined answer and behaves exactly like NULL everywhere
+# that reads this field — no surface may treat it as "single". It exists so a
+# reader who does not want to say has a way to say so: without one, the only way
+# to dismiss the one-minute reading's marital question was to pick a status that
+# is not true, which then fed every other surface through the same PATCH. Same
+# reasoning, same shape as `children` below.
+_VALID_MARITAL_STATUSES: frozenset[str] = frozenset(
+    {"single", "married", "divorced", "widowed", "breakup", "undisclosed"}
+)
 # Whether the reader has children. Absent (None) means we have never asked and
 # is NOT a synonym for "none" — conflating the two is what let progeny be
 # inferred from age and gender. "undisclosed" is a declined answer, which the
@@ -54,7 +62,10 @@ class BirthProfileCreate(BaseModel):
     marital_status: str | None = Field(
         default=None,
         alias="maritalStatus",
-        description="single | married | divorced | widowed | breakup",
+        description=(
+            "single | married | divorced | widowed | breakup | undisclosed — "
+            "absent and 'undisclosed' both mean we hold no status, which is not 'single'"
+        ),
     )
     employment_type: str | None = Field(
         default=None,

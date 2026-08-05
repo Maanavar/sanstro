@@ -279,6 +279,7 @@ export function EditProfileModal({
                 <option value="married">{t("marital_married", lang)}</option>
                 <option value="divorced">{t("marital_divorced", lang)}</option>
                 <option value="widowed">{t("marital_widowed", lang)}</option>
+                <option value="undisclosed">{t("marital_undisclosed", lang)}</option>
               </WSelect>
             </WField>
             <WField label={t("field_children", lang)}>
