@@ -516,8 +516,7 @@ The gap is not the copy, it is the absence of the model — nothing stops the ne
 
 v2 reorders the work. Provenance is cheap and static; the status fixes are safety.
 
-1. **Defect 3 — the progeny assertion.** Live, highest severity, outside the flag. Add the `children` field
-   (`unknown | none | has | undisclosed`) and stop deriving progeny from age+gender. Its own commit.
+1. ~~**Defect 3 — the progeny assertion.**~~ **DONE 2026-08-05**, in two commits — see §6.7.
 2. **Defect 1 — status inference.** `unknown ≠ never_married`; withhold beat 5 until answered, as the schema
    docstring already promises; widen the question to three options plus a decline path (v2 Part 2 is right
    that a binary is wrong — "Not yet" is not "single", and a divorced or widowed reader has no button).
@@ -531,3 +530,50 @@ v2 reorders the work. Provenance is cheap and static; the status fixes are safet
 Steps 1–3 are safety fixes and should not queue behind copy work. Steps 4–5 together cost ~4 strings per
 language and one dataclass field — they do **not** touch the 78-string review ceiling that §4.3 was
 negotiating against, which is the main reason to do them early.
+
+## 6.7 What shipped for Defect 3, and what it turned up
+
+Deliberately split, so the harm stopped before the feature landed.
+
+**Commit A — stop asserting** (`15b9f9a`). `children` left `get_active_life_phases`, three progeny lines
+left the practical guidance (EN+TA), and the 35-49 gender branch went as a unit — its whole justification
+was the children reorder, and dropping only the female line would have left the male one standing alone.
+Jupiter's karakatva line stayed: it names what the graha signifies and asserts nothing about the reader.
+That distinction is what the new lint matches on — **the possessive form, not the bare noun**, in both
+languages.
+
+**Commit B — start knowing.** `children` (`has | none | undisclosed | NULL`) on `BirthProfile`, migration
+verified up → down → up on a throwaway DB, validators on create and update, and one shared predicate
+`has_declared_children()` so no surface compares the string itself. The progeny focus and the 40-50
+guidance line return on a declared `"has"` only. Both web form surfaces carry the field with an explicit
+**"Prefer not to say"** — a declined answer reads exactly like an unasked one, and offering the decline is
+what makes the other answers trustworthy.
+
+**Three things the work turned up that the analysis had not:**
+
+1. **`children` was a scored *primary concern*, not just a phase label.** `_CONCERN_HOUSES` maps it to the
+   5th, so a childless 38-year-old whose antardasha activated the 5th got progeny ranked as the **top
+   concern of their reading**, with a rationale attached. Worse than a list entry.
+2. **`create_birth_profile_record` lists its columns explicitly**, so the new field was silently dropped on
+   creation while updates worked — caught by writing the round-trip test, not by reading the code. It now
+   has a test naming that failure.
+3. **A native-Tamil review lock guards this module.** Two of its `_REQUIRED` strings were sentences the fix
+   removed. The Tamil in both was correct and reviewed; they went for a content reason. One came straight
+   back under the gate; the other — the gendered ordering claim — is gone for good. Both pre-review *bad*
+   wordings stay in `_BANNED`, because a string that must never come back should stay banned whether or not
+   anything currently emits it.
+
+**Two things deliberately not done, and they are open:**
+
+- **The old gender delta is not restored.** It ranked children above career for mothers and below it for
+  fathers, was never sourced, and asserts a gendered priority we have no basis for. Declared parents of
+  either gender now get the same ordering. **If tradition genuinely weights it, say so and it comes back** —
+  flagged in the code as an open astrologer question rather than silently kept or silently dropped.
+- **`web/app/natchathiram/*/visual/` still asserts progeny** — lines like *"Grandchildren may arrive toward
+  the end of this period"* across the per-nakshatra guides. Same defect class, but static content on the
+  public site rather than the personalised path, and it is 27 nakshatras × several dasas. Its own job.
+
+One pre-existing gap this made more visible: the workspace never hydrates `maritalStatus` or
+`employmentType` back into the form from a loaded profile, and `children` now inherits that. It is not a
+data-loss bug — a blank select sends `undefined`, `exclude_unset` skips it, and the stored value survives —
+but the user cannot see what they previously set. Pre-existing across all three fields; worth its own fix.
