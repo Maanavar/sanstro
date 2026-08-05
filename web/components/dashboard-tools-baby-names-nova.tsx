@@ -444,8 +444,12 @@ export function DashboardBabyNamesTool({ lang }: Props) {
                         }}
                       >
                         {pick(GROUP_HEADING[group.relation], isTamil)}
+                        {/* The letter follows the active language too — with
+                            the names below now in Latin, a bare ஜா here left
+                            an English reader nothing to match them against.
+                            The header above still teaches the pair, "ஜா (Ja)". */}
                         {group.relation === "on_paadham"
-                          ? ` · ${result.targetAksharaTa}`
+                          ? ` · ${isTamil ? result.targetAksharaTa : result.targetAksharaEn}`
                           : null}
                       </span>
                       <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
@@ -470,12 +474,17 @@ export function DashboardBabyNamesTool({ lang }: Props) {
                   {group.items.map((c, i) => {
                     const meaning =
                       c.meaningEn || c.meaningTa ? (isTamil ? c.meaningTa : c.meaningEn) : null;
-                    // A shortlist name has no Tamil spelling on file
-                    // (English-only input) — fall back to the English
-                    // spelling as the card's headline rather than showing a
-                    // blank label, and drop the redundant "Scored from" line.
-                    const displayLabel = c.tamilForm || c.latinSpelling;
-                    const scoredFromText = c.tamilForm ? c.latinSpelling : null;
+                    // One script for the whole list, and it has to be Latin.
+                    // A shortlist name has no Tamil spelling on file (this
+                    // tool collects English spelling only, by product
+                    // decision), so `tamilForm || latinSpelling` printed our
+                    // suggestions in Tamil and the parent's own names in
+                    // English *in the same list* — two scripts, read as two
+                    // kinds of result. Latin is the only spelling every row
+                    // has, and it is the exact string the Chaldean number was
+                    // scored from, so the headline and the number below it now
+                    // agree. That also retires the "Scored from" echo.
+                    const displayLabel = c.latinSpelling;
                     const isYourPick = c.source === "user" || c.source === "both";
                     // Which paadham this letter DOES open — still worth
                     // saying per card, because the group heading names the
@@ -503,7 +512,6 @@ export function DashboardBabyNamesTool({ lang }: Props) {
                         reading={c.reading}
                         label={displayLabel}
                         lang={lang}
-                        scoredFrom={scoredFromText}
                         alignment={c.alignment}
                         // The chart behind this search is the CHILD's, not the
                         // reader's — every "your chart" on this card named the

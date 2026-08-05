@@ -630,7 +630,9 @@ function ResultBlock({ result, ta }: { result: BabyNamesResponse; ta: boolean })
               <div className="cl-num-namegroup__head">
                 <h3 className="cl-num-namegroup__title">
                   {pick(GROUP_HEADING[group.relation], ta)}
-                  {group.relation === "on_paadham" ? ` · ${result.targetAksharaTa}` : null}
+                  {group.relation === "on_paadham"
+                    ? ` · ${ta ? result.targetAksharaTa : result.targetAksharaEn}`
+                    : null}
                 </h3>
                 <span className="cl-num-namegroup__count">
                   {group.items.length}
@@ -700,7 +702,11 @@ function NameCard({
         ) : null}
       </span>
       <div className="cl-num-reading__head">
-        <span className="cl-num-reading__label">{candidate.tamilForm}</span>
+        {/* Latin spelling, matching both dashboard surfaces since 2026-08-04 —
+            one script per list, and the one every row has. The Chaldean number
+            below is scored from this exact string, so the old `__rootnote`
+            repeat of it under the digit went with the change. */}
+        <span className="cl-num-reading__label">{candidate.latinSpelling}</span>
         <span className="cl-num-reading__source">
           {pick(CONFIDENCE_CHIP[candidate.confidence], ta)}
         </span>
@@ -713,7 +719,6 @@ function NameCard({
       <div className="cl-num-reading__figure">
         <span className="cl-num-reading__digit">{candidate.reading.root}</span>
         <span className="cl-num-reading__side">
-          <span className="cl-num-reading__rootnote">{candidate.latinSpelling}</span>
           <span className="cl-num-reading__graha">
             {ta ? candidate.reading.grahaTa : candidate.reading.grahaEn}
             {candidate.gender ? ` · ${pick(GENDER_LABEL[candidate.gender], ta)}` : ""}

@@ -241,7 +241,9 @@ export function NumerologyBabyNamesSection({ lang, chartId }: Props) {
                         }}
                       >
                         {pick(GROUP_HEADING[group.relation], isTamil)}
-                        {group.relation === "on_paadham" ? ` · ${data.targetAksharaTa}` : null}
+                        {group.relation === "on_paadham"
+                          ? ` · ${isTamil ? data.targetAksharaTa : data.targetAksharaEn}`
+                          : null}
                       </span>
                       <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
                         {group.items.length}
@@ -259,9 +261,11 @@ export function NumerologyBabyNamesSection({ lang, chartId }: Props) {
                 <NumberReadingCard
                   key={`${c.latinSpelling}-${i}`}
                   reading={c.reading}
-                  label={c.tamilForm || c.latinSpelling}
+                  // Latin spelling as the headline, one script for the whole
+                  // list — see the note in `dashboard-tools-baby-names-nova.tsx`.
+                  // It is also the exact string scored, so "Scored from" goes.
+                  label={c.latinSpelling}
                   lang={lang}
-                  scoredFrom={c.latinSpelling}
                   alignment={c.alignment}
                   // This chart is the CHILD's, not the reader's; Cheiro's
                   // compound register beside a 0-100 chart score read as a
@@ -271,7 +275,7 @@ export function NumerologyBabyNamesSection({ lang, chartId }: Props) {
                   showCompound={false}
                   collapsedSummary={
                     <BabyNameRowSummary
-                      name={c.tamilForm || c.latinSpelling}
+                      name={c.latinSpelling}
                       lang={lang}
                       score={c.alignment ? Math.round(c.alignment.score) : null}
                       oneLine={c.alignment ? oneLineWhy(c.alignment, lang) : null}

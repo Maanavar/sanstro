@@ -1370,7 +1370,8 @@ export function NoCompoundNote({ reading, lang }: { reading: NumberReading; lang
 /**
  * One number with its full derivation. `scoredFrom` echoes the exact string the
  * backend scored (`scoredName` / `scoredNamesake`) — a name reading must never
- * be readable without knowing which spelling produced it (doctrine D3).
+ * be readable without knowing which spelling produced it (doctrine D3). Pass
+ * null where `label` already IS that string, as the baby-name surfaces now do.
  */
 export function NumberReadingCard({
   reading,
@@ -1554,12 +1555,18 @@ export function NumberReadingCard({
       ) : null}
 
       {/* Doctrine D3 — a name reading must never be readable without the
-          spelling that produced it, so this stays outside the disclosure too. */}
-      {scoredFrom ? (
+          spelling that produced it, so this stays outside the disclosure too.
+          Omitted where the card's own `label` IS that spelling (baby names,
+          since 2026-08-04): D3 is satisfied by the headline, and repeating it
+          verbatim two lines down reads as a second, different name. The badge
+          qualifies the spelling either way, so it renders on its own. */}
+      {scoredFrom || scoredFromBadge ? (
         <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "var(--space-2)", fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
-          <span>
-            {isTamil ? "கணக்கிடப்பட்டது" : "Scored from"} · <span style={{ color: "var(--color-text)" }}>{scoredFrom}</span>
-          </span>
+          {scoredFrom ? (
+            <span>
+              {isTamil ? "கணக்கிடப்பட்டது" : "Scored from"} · <span style={{ color: "var(--color-text)" }}>{scoredFrom}</span>
+            </span>
+          ) : null}
           {scoredFromBadge}
         </div>
       ) : null}
