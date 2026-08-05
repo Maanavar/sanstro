@@ -100,8 +100,10 @@ from app.schemas.one_minute_reading import (
 )
 from app.services.age_phase_service import (
     STAGE_INFANT,
+    STAGE_TEEN,
     get_age_phase_label,
     life_stage,
+    remedy_lead_in_for_stage,
 )
 from app.services.chart_service import load_persisted_chart_response
 from app.services.feature_flags import get_flag
@@ -148,6 +150,45 @@ def require_one_minute_reading_enabled() -> None:
 # per-gate budget, and both numbers should be re-derived from the clock there.
 MAX_WORDS_EN = 285
 MAX_WORDS_TA = 212
+
+# ...and the global pair is now the CEILING OF THE CEILINGS. §4.2 item 5 of the
+# audit: a four-beat guardian reading and a seven-beat adult one were being held
+# to the same number, which means the number was doing nothing for the shorter
+# ones — a guardian reading could double in length and still pass.
+#
+# The forcing case was G6. Its trust mechanism is a declared refusal ("this
+# reading does not read length of life"), it is the highest trust-per-word
+# sentence in the source document, and it must not be truncated — but an elder
+# reading was already running 265 of 285 English words, so the refusal could not
+# fit under a ceiling that did not know which gate it was guarding. The budget
+# had to become per-gate BEFORE the copy that needed it could be written, which
+# is the reverse of the order §6.6 sequences them in.
+#
+# The refusal was PAID FOR rather than granted an allowance, which is the
+# discipline the 08-04 raise used and the 08-05 one could not. The elder topic
+# frame closed on "both are worth deliberate attention rather than assumed
+# continuity" — nine words instructing the reader to pay attention, which is not
+# a claim about anything. The refusal costs about the same and says something.
+# So MAX_WORDS_EN/TA above are unchanged, and no gate exceeds them.
+_WORD_BUDGET: dict[str, tuple[int, int]] = {
+    "parent": (200, 155),
+    "client_with_guardian": (250, 190),
+    # Four beats, all D or F. Anything approaching the adult number here means
+    # interpretation of an absent adult has crept back in — the budget is a
+    # second guard on §3.1, not only on length.
+    "other": (150, 115),
+    "self": (MAX_WORDS_EN, MAX_WORDS_TA),
+}
+
+
+def word_budget(addressed_to: str) -> tuple[int, int]:
+    """The (en, ta) ceiling for one reading. Asserted by test, not by the service.
+
+    Truncating would be worse than running long — it would cut a sentence in
+    half — so this stays a test-time assertion, exactly as the global pair
+    always was.
+    """
+    return _WORD_BUDGET[addressed_to]
 
 _MONTH_TA: dict[int, str] = {
     1: "ஜனவரி", 2: "பிப்ரவரி", 3: "மார்ச்", 4: "ஏப்ரல்", 5: "மே", 6: "ஜூன்",
@@ -794,6 +835,10 @@ _TABLE_PROVENANCE: dict[str, tuple[Provenance, BaseRate]] = {
     "_FALSIFIABILITY": (Provenance.DERIVED, BaseRate.KEYED),
     # Claims nothing about anybody. States where the reading stops, and why.
     "_THIRD_PARTY_CLOSE": (Provenance.FRAME, BaseRate.KEYED),
+    # Not a claim about the reader or the chart — a statement of what this
+    # service will not do, and why. The only string here whose value is that it
+    # is identical for everyone, which is exactly what a declared principle is.
+    "_LONGEVITY_REFUSAL": (Provenance.FRAME, BaseRate.KEYED),
     # The dasha/area affinity read out loud — a rule applied to the running
     # lord, and the one place a date reaches the body text.
     "_OUTLOOK_SUPPORTIVE": (Provenance.RULE, BaseRate.KEYED),
@@ -968,6 +1013,12 @@ _CHILD_VOICE: dict[str, _ChildVoice] = {
 # every other marriage/career surface and stays canonical here.
 
 TOPIC_CHILD_GROWTH = "CHILD_GROWTH"
+# 13-17 reading their OWN chart. Separate from EDUCATION because that topic
+# opens "You are studying", which is an inference from age — true of most Tamil
+# teenagers and humiliating for the one it is wrong about. This frame says what
+# the chart is weighted toward and asserts nothing about where they spend
+# their days.
+TOPIC_TEEN = "TEEN"
 TOPIC_EDUCATION = "EDUCATION"
 TOPIC_MARRIAGE = "MARRIAGE"
 TOPIC_MARRIED_LIFE = "MARRIED_LIFE"
@@ -1004,6 +1055,7 @@ ELDER_TOPIC_AGE = 60
 # saying opposite things about the same period.
 _TOPIC_AREA: dict[str, str] = {
     TOPIC_CHILD_GROWTH: "EDUCATION",
+    TOPIC_TEEN: "EDUCATION",
     TOPIC_EDUCATION: "EDUCATION",
     TOPIC_MARRIAGE: "RELATIONSHIPS",
     TOPIC_MARRIED_LIFE: "FAMILY_HARMONY",
@@ -1015,6 +1067,33 @@ _TOPIC_AREA: dict[str, str] = {
 # Where the withheld beat 5 would have stood. The pending question is rendered
 # there, so the gap the question explains is the gap the question fills.
 _QUESTION_ANCHOR_BEAT = "next_ten_years"
+
+# ── G6's trust mechanism: a principle declared rather than quietly kept ──────
+#
+# §1.1(g) of the audit. We have always omitted longevity; nobody could tell we
+# omitted it ON PURPOSE, and a silence is indistinguishable from an oversight —
+# or from not knowing. Saying it is worth more than doing it: one sentence, no
+# chart data, the highest trust-per-word in the source document.
+#
+# The source's wording is *"I do not read longevity. Not because the chart is
+# silent on it. Because I have watched what that answer does."* The third
+# sentence is a first-person claim to practice — v2 ship blocker #5 — and does
+# not port. What replaces it is the REASON, stated without a claimant, which is
+# the same substitution Part 3 makes everywhere else: move the authority from
+# the speaker to the argument.
+#
+# Elder only. Declared at every gate it would be a disclaimer answering a
+# question nobody asked; declared at the gate where the question is actually
+# live, it is a position. It is also the one thing Part 5 item 5 warns us to
+# take carefully — the source refuses longevity and then frames the close of
+# life anyway ("the work of your remaining years"). We take the refusal and
+# leave the framing.
+_LONGEVITY_REFUSAL: tuple[str, str] = (
+    "இந்த வாசிப்பு ஆயுளைக் கணிப்பதில்லை. ஜாதகம் அதைப் பற்றி மௌனமாக இருப்பதால் அல்ல — "
+    "அந்தப் பதில், மிச்சமிருக்கும் காலத்தை ஒருவர் எப்படிக் கழிக்கிறார் என்பதையே மாற்றிவிடும்.",
+    "This reading does not read length of life. Not because the chart is silent on it — because "
+    "that answer changes how a person spends the years they have.",
+)
 
 _OUTLOOK_SUPPORTIVE = (
     "நடப்புக் காலம் இதற்கு ஆதரவாக இருக்கிறது.",
@@ -1201,24 +1280,45 @@ def _beat_who_you_are(
         # works alone — the contrast on its own is the Forer effect with better
         # rhythm, and the behaviour on its own opens cold.
         voice = _VOICE[nakshatra_lord]
-        opening = _SIGNATURE_OPENING[signature_lord]
-        # Only when the two significators disagree — see _SECOND_NOTE.
-        agree = signature_lord == nakshatra_lord
-        hinge_ta = "" if agree else f"{_SECOND_NOTE[0]} "
-        hinge_en = "" if agree else f"{_SECOND_NOTE[1]} "
-        nature_ta = voice.nature[0] if agree else voice.nature[0][:1].lower() + voice.nature[0][1:]
-        nature_en = voice.nature[1] if agree else voice.nature[1][:1].lower() + voice.nature[1][1:]
-        ta = (
-            f"{opening[0]} நீங்கள் {star} நட்சத்திரத்தில், {moon_rasi} ராசியில்{lagna_ta} பிறந்தவர். "
-            f"{hinge_ta}{nature_ta}"
-        )
-        en = (
-            f"{opening[1]} You were born under {star}, Moon in {moon_rasi}{lagna_en}. "
-            f"{hinge_en}{nature_en}"
-        )
+        if addressed_to == "client_with_guardian":
+            # Plainer, per §4.2 item 2. The nature line stays — a 13-to-17-year-
+            # old does have a temperament, and the facets are dispositional
+            # rather than about a life they have not had. What goes is the
+            # signature opening: "Some people are content inside the life they
+            # were handed / you are the second kind" is a verdict on a life
+            # shape, delivered to someone who has not chosen one yet, and it is
+            # the most rhetorical device in the feature besides.
+            ta = (
+                f"நீங்கள் {star} நட்சத்திரத்தில், {moon_rasi} ராசியில்{lagna_ta} பிறந்தவர். "
+                f"{voice.nature[0]}"
+            )
+            en = (
+                f"You were born under {star}, Moon in {moon_rasi}{lagna_en}. {voice.nature[1]}"
+            )
+        else:
+            opening = _SIGNATURE_OPENING[signature_lord]
+            # Only when the two significators disagree — see _SECOND_NOTE.
+            agree = signature_lord == nakshatra_lord
+            hinge_ta = "" if agree else f"{_SECOND_NOTE[0]} "
+            hinge_en = "" if agree else f"{_SECOND_NOTE[1]} "
+            nature_ta = (
+                voice.nature[0] if agree else voice.nature[0][:1].lower() + voice.nature[0][1:]
+            )
+            nature_en = (
+                voice.nature[1] if agree else voice.nature[1][:1].lower() + voice.nature[1][1:]
+            )
+            ta = (
+                f"{opening[0]} நீங்கள் {star} நட்சத்திரத்தில், {moon_rasi} ராசியில்{lagna_ta} "
+                f"பிறந்தவர். {hinge_ta}{nature_ta}"
+            )
+            en = (
+                f"{opening[1]} You were born under {star}, Moon in {moon_rasi}{lagna_en}. "
+                f"{hinge_en}{nature_en}"
+            )
 
     basis_ta = f"{star} நட்சத்திரம் (அதிபதி {planet_ta(nakshatra_lord)})"
     basis_en = f"{star} nakshatra, lord {planet_en(nakshatra_lord)}"
+    # The signature is only named in `basis` when it was used in the text.
     if addressed_to == "self":
         basis_ta += f"; ஜாதகத்தின் மைய கிரகம் {planet_ta(signature_lord)}"
         basis_en += f"; chart signature {planet_en(signature_lord)}"
@@ -1499,7 +1599,7 @@ def _beat_right_now(
 
 
 def _focus_topic(
-    *, age: int, marital_status: str | None, employment_type: str | None
+    *, age: int, marital_status: str | None, employment_type: str | None, addressed_to: str
 ) -> str:
     """The ONE topic this reader's age is actually asking about.
 
@@ -1531,7 +1631,12 @@ def _focus_topic(
     and marriage_service keeps the remarriage reading for readers who ask for it.
     """
     if is_minor_age(age):
-        return TOPIC_CHILD_GROWTH
+        # The topic follows the REGISTER, not the age, and that coupling is the
+        # point: TOPIC_TEEN's frame is second person, so it may only be picked
+        # when the reading is addressed to the teen. A 15-year-old in somebody
+        # else's family vault is read to their guardian and keeps the
+        # third-person frame.
+        return TOPIC_TEEN if addressed_to == "client_with_guardian" else TOPIC_CHILD_GROWTH
     if (employment_type or "").strip().lower() == "student":
         return TOPIC_EDUCATION
     # Elder is checked BEFORE married. An earlier build had it after, and a
@@ -1607,6 +1712,19 @@ def _beat_age_question(
             f"steady the home around them is. Those are the things that shape everything that comes "
             f"later. {outlook_en}"
         )
+    elif topic == TOPIC_TEEN:
+        # Second person, and it names no life the reader may not have. "You are
+        # studying" (TOPIC_EDUCATION) is an inference from age — true of most
+        # Tamil teenagers and wrong in a way that stings for the one it misses.
+        # What the chart is weighted toward is a claim about the chart.
+        ta = (
+            f"{age} வயதில், ஜாதகத்தின் கவனம் நீங்கள் கற்பதன் மீதும், உங்களை நிலைப்படுத்துவதன் "
+            f"மீதும் இருக்கிறது — அடுத்து வருவதை இவை இரண்டுமே தீர்மானிக்கின்றன. {outlook_ta}"
+        )
+        en = (
+            f"At {age}, the chart's weight is on what you are learning and what steadies you — "
+            f"those two decide what comes next. {outlook_en}"
+        )
     elif topic == TOPIC_EDUCATION:
         ta = (
             "நீங்கள் படித்துக்கொண்டிருப்பதால், ஜாதகத்தில் இப்போது முக்கியமான பகுதி கற்றல்தான் — இந்தக் "
@@ -1658,13 +1776,36 @@ def _beat_age_question(
             f"the next stretch compounds. {outlook_en}"
         )
     else:  # TOPIC_ELDER
-        ta = (
-            "இந்தக் காலத்தில் ஜாதகத்தின் கவனம் உடல்நலத்தின் மீதும், நீங்கள் ஒப்படைப்பதன் மீதும் "
-            f"நகர்கிறது — இரண்டும் தானாகவே நடக்கும் என்று விட்டுவிடக்கூடாதவை. {outlook_ta}"
+        # The refusal is appended HERE rather than given its own beat, and it
+        # replaces this frame's old closing clause rather than being added to
+        # it. That clause — "both are worth deliberate attention rather than
+        # assumed continuity" — spent nine words telling the reader to pay
+        # attention, which is not a claim about anything. The refusal costs
+        # about the same and is the gate's whole trust mechanism, so the
+        # ceiling did not have to move to fit it.
+        # Joined rather than interpolated: the neutral outlook is deliberately
+        # the empty string, and it is no longer the LAST thing in the sentence,
+        # so an f-string would leave a double space mid-paragraph on every
+        # reading whose dasa/area affinity happens to be neutral. The old
+        # trailing .strip() covered that only while the outlook came last.
+        ta = " ".join(
+            part
+            for part in (
+                "இந்தக் காலத்தில் ஜாதகத்தின் கவனம் உடல்நலத்தின் மீதும், நீங்கள் "
+                "ஒப்படைப்பதன் மீதும் நகர்கிறது.",
+                outlook_ta,
+                _LONGEVITY_REFUSAL[0],
+            )
+            if part
         )
-        en = (
-            "In this stretch the chart's attention moves to health, and to what you hand on — both "
-            f"are worth deliberate attention rather than assumed continuity. {outlook_en}"
+        en = " ".join(
+            part
+            for part in (
+                "In this stretch the chart's attention moves to health, and to what you hand on.",
+                outlook_en,
+                _LONGEVITY_REFUSAL[1],
+            )
+            if part
         )
 
     return OneMinuteBeat(
@@ -1835,6 +1976,15 @@ def _beat_one_thing(*, timeline: VimshottariTimeline, addressed_to: str) -> OneM
         # exists to enforce, and the action itself is written for them.
         ta = f"பெற்றோர் செய்யக்கூடிய ஒன்று: {_CHILD_VOICE[lord].action[0]}."
         en = f"One thing parents can do: {_CHILD_VOICE[lord].action[1]}."
+    elif addressed_to == "client_with_guardian":
+        # The teen is the one acting, and the lead-in puts the family in the
+        # room with them rather than around them. The wording is
+        # remedy_lead_in_for_stage's own — it already holds the right sentence
+        # for STAGE_TEEN, and reusing it is what keeps a fourth register from
+        # costing a fourth vocabulary.
+        lead_ta, lead_en = remedy_lead_in_for_stage(STAGE_TEEN)
+        ta = f"{lead_ta} {_VOICE[lord].action[0]}."
+        en = f"{lead_en} {_VOICE[lord].action[1]}."
     else:
         ta = f"ஒரு செயல்: {_VOICE[lord].action[0]}."
         en = f"One thing: {_VOICE[lord].action[1]}."
@@ -1938,17 +2088,27 @@ def build_one_minute_reading(
     age = compute_age(profile.birth_date_local, as_of=today)
     stage = life_stage(age)
     age_band = get_age_phase_label(age)
-    # Three registers, and the order is the safety property. A minor is read to
-    # their guardian whoever holds the account; an ADULT who is not the account
-    # holder is read as somebody who is not in the room (§3.1); only the account
-    # holder's own chart is read to them in the second person.
+    # FOUR registers, and they turn on two independent facts — how old the
+    # subject is, and whether the person holding the account is that subject.
     #
-    # The minor branch stays first because it is already a third-party register
-    # and a stricter one — it has its own vocabulary and drops two beats — so
-    # falling through to "other" would be a downgrade, not an upgrade.
+    # §4.2 item 2 specifies the G2 seam on AGE ALONE: 13-17 becomes
+    # "client_with_guardian", addressed directly in the second person. That is
+    # right for a consultation, where the teenager is in the room, and wrong
+    # here for the same reason §3.1 was wrong: on a family vault the reader is
+    # usually the parent, and a second-person teen reading on a child's member
+    # card would tell a father "you were born under Rohini" about his son. So
+    # the direct register is reached only when the teenager holds the account.
+    #
+    # The minor check stays outermost. The guardian register is the STRICTER of
+    # the two third-party registers — its own vocabulary, two beats dropped, the
+    # remedy addressed to somebody who can act on it — so a minor falling
+    # through to "other" would be a downgrade.
+    is_own_chart = _relationship_to_owner(session, profile) == "self"
     if is_minor_age(age):
-        addressed_to = "parent"
-    elif _relationship_to_owner(session, profile) != "self":
+        addressed_to = (
+            "client_with_guardian" if (is_own_chart and stage == STAGE_TEEN) else "parent"
+        )
+    elif not is_own_chart:
         addressed_to = "other"
     else:
         addressed_to = "self"
@@ -1964,6 +2124,7 @@ def build_one_minute_reading(
             age=age,
             marital_status=profile.marital_status,
             employment_type=profile.employment_type,
+            addressed_to=addressed_to,
         )
     )
     strongest, weakest = _strongest_and_weakest(chart_response.data.planets)
@@ -2012,6 +2173,35 @@ def build_one_minute_reading(
             _beat_period_for_someone_else(timeline=timeline, display_name=profile.display_name),
             _beat_third_party_close(display_name=profile.display_name),
         ]
+    elif addressed_to == "client_with_guardian":
+        # G2, §4.2 item 2. Six beats. The teen band used to receive the guardian
+        # reading — copy written ABOUT them, in the third person, for somebody
+        # else to read — which is the one thing the source document says the
+        # 13-21 gate must never do.
+        #
+        # last_ten_years and strength_and_cost stay dropped, for two different
+        # reasons. The past beat is degenerate here by construction: its window
+        # is clamped to age 15, so for a 15-year-old it spans nothing and for a
+        # 17-year-old it spans two years. The strength beat is dropped because
+        # its second half is a soft spot and a private grievance, and a
+        # character verdict is what §4.2 says this gate does not deliver.
+        #
+        # right_now takes no hinge: the hinge names the year the PREVIOUS beat
+        # closed on, and there is no previous beat to close.
+        beats = [
+            opening,
+            rests_on,
+            _beat_right_now(timeline=timeline, hinge=None),
+            _beat_age_question(
+                topic=topic,
+                display_name=profile.display_name,
+                age=age,
+                age_band=age_band,
+                timeline=timeline,
+            ),
+            _beat_next_ten_years(timeline=timeline, as_of=today),
+            _beat_one_thing(timeline=timeline, addressed_to=addressed_to),
+        ]
     elif addressed_to == "parent":
         # Five beats, all natively third person and addressed to the parent. The
         # strength/soft-spot and last-ten-years beats are absent by design, not
@@ -2045,10 +2235,24 @@ def build_one_minute_reading(
                     strongest=strongest, weakest=weakest, signature_lord=signature_lord
                 )
             )
-        past_beat, hinge = _beat_last_ten_years(
-            timeline=timeline, as_of=today, birth_date=profile.birth_date_local
-        )
-        beats.append(past_beat)
+        # THE DATED PAST IS NOT EVERY GATE'S TRUST MECHANISM, and at G6 it is
+        # not even a good one. §1.1(d): a 67-year-old knows his own decades
+        # better than we do, and reciting them back is not impressive, it is
+        # filler. What buys trust at this gate is the declared refusal in the
+        # topic beat — one sentence, no chart data, and it is what those
+        # thirty-four words are now spent on instead.
+        #
+        # This is the first gate-keyed trust beat (§4.2 item 3) and it is also
+        # what made the refusal affordable: an elder reading was running 300
+        # English words against a 285 ceiling with both, and the answer was not
+        # a bigger budget.
+        if topic == TOPIC_ELDER:
+            hinge = None
+        else:
+            past_beat, hinge = _beat_last_ten_years(
+                timeline=timeline, as_of=today, birth_date=profile.birth_date_local
+            )
+            beats.append(past_beat)
         beats.append(_beat_right_now(timeline=timeline, hinge=hinge))
         # Withheld, not defaulted. Every version of this beat is a statement
         # about the reader's marriage — that it is the open question, that it is
@@ -2185,7 +2389,9 @@ __all__ = [
     "TOPIC_MARRIAGE",
     "TOPIC_MARRIED_LIFE",
     "TOPIC_STEADYING",
+    "TOPIC_TEEN",
     "TOPIC_THIRD_PARTY",
     "TOPIC_UNKNOWN",
     "build_one_minute_reading",
+    "word_budget",
 ]

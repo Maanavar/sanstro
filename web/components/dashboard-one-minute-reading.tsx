@@ -232,12 +232,16 @@ export function DashboardOneMinuteReading({
         : "";
 
   const given = data.displayName.split(" ")[0] || data.displayName;
-  // "self" is the only register that gets "your chart". This used to test for
+  // The question is whether the READER is the subject, which is not the same as
+  // which register the copy is in — "client_with_guardian" is a teenager
+  // reading their own chart, so it is their chart. This used to test for
   // "parent", so the moment the backend grew a third register an adult family
   // member's card was headed "Your chart in one minute" over somebody else's
   // reading — the same mistake as the body copy, one line further out.
+  const readerIsSubject =
+    data.addressedTo === "self" || data.addressedTo === "client_with_guardian";
   const title =
-    data.addressedTo === "self"
+    readerIsSubject
       ? lang === "ta"
         ? "உங்கள் ஜாதகம் — ஒரு நிமிடத்தில்"
         : "Your chart in one minute"

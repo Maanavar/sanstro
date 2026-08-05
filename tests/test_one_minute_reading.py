@@ -26,6 +26,7 @@ from app.services.one_minute_reading_service import (
     MAX_WORDS_EN,
     MAX_WORDS_TA,
     _beat_last_ten_years,
+    word_budget,
 )
 
 TODAY = date.today()
@@ -173,8 +174,16 @@ def test_word_budget_holds_for_every_life_stage(
         birth_time_source=birth_time_source,
     )
 
-    assert data["wordCount"]["en"] <= MAX_WORDS_EN, _body(data, "en")
-    assert data["wordCount"]["ta"] <= MAX_WORDS_TA, _body(data, "ta")
+    # Per-GATE, not global. A four-beat guardian reading and a seven-beat adult
+    # one held to the same number means the number was doing nothing for the
+    # shorter ones — a guardian reading could have doubled and still passed.
+    budget_en, budget_ta = word_budget(data["addressedTo"])
+    assert data["wordCount"]["en"] <= budget_en, _body(data, "en")
+    assert data["wordCount"]["ta"] <= budget_ta, _body(data, "ta")
+    # No gate may exceed the global ceiling, which is still what the "about a
+    # minute" promise is measured against.
+    assert budget_en <= MAX_WORDS_EN
+    assert budget_ta <= MAX_WORDS_TA
     # A reading that collapses to two sentences has failed differently.
     assert data["wordCount"]["en"] >= 60
     assert len(data["beats"]) >= 4
@@ -200,8 +209,12 @@ def test_a_minors_reading_never_speaks_about_marriage_or_work(client, age):
     """
     data = _read(client, age=age)
 
-    assert data["addressedTo"] == "parent"
-    assert data["focusTopic"] == "CHILD_GROWTH"
+    # The register splits at 13 (§4.2 item 2) and the CONTENT gate does not:
+    # the legal gate is still MINOR_AGE = 18, so everything below holds for a
+    # 17-year-old addressed directly exactly as it does for an eight-year-old
+    # read to their parent. Which register they get is a different test.
+    assert data["addressedTo"] in {"parent", "client_with_guardian"}
+    assert data["focusTopic"] in {"CHILD_GROWTH", "TEEN"}
 
     body_en = _body(data, "en").lower()
     for token in _ADULT_TOKENS_EN:
@@ -210,10 +223,17 @@ def test_a_minors_reading_never_speaks_about_marriage_or_work(client, age):
     for token in _ADULT_TOKENS_TA:
         assert token not in body_ta, f"minor aged {age} was told about '{token}': {body_ta}"
 
-    # And the instruction must have a valid recipient.
+    # And the instruction must have a valid recipient — a bare "do this" to a
+    # minor has none. Which adult is named depends on the register: below 13 the
+    # parent is the one who can act, and at 13-17 the teenager can act with the
+    # family alongside them. What is not allowed is neither.
     one_thing = next(b for b in data["beats"] if b["id"] == "one_thing")
-    assert "parents" in one_thing["text"]["en"].lower()
-    assert "பெற்றோர்" in one_thing["text"]["ta"]
+    if data["addressedTo"] == "parent":
+        assert "parents" in one_thing["text"]["en"].lower()
+        assert "பெற்றோர்" in one_thing["text"]["ta"]
+    else:
+        assert "together with family" in one_thing["text"]["en"].lower()
+        assert "குடும்பத்துடன்" in one_thing["text"]["ta"]
 
 
 @pytest.mark.parametrize("age", [26, 33, 40, 49])
@@ -520,6 +540,152 @@ def test_a_minor_in_the_vault_keeps_the_guardian_register_rather_than_the_third_
 
     assert data["addressedTo"] == "parent"
     assert "years_ahead" in [beat["id"] for beat in data["beats"]]
+
+
+# ── G2, the teen band: read TO them, not about them ──────────────────────────
+
+
+@pytest.mark.parametrize("age", [13, 15, 17])
+def test_a_teenager_reading_their_own_chart_is_addressed_directly(client, age):
+    """§4.2 item 2. The whole 13-17 band used to get copy written for somebody else.
+
+    A 17-year-old received a reading addressed to their parent, in the third
+    person, out of a vocabulary written for an eight-year-old — "give the energy
+    somewhere to go every day, a sport not a screen". The source document's
+    13-21 gate says the client is addressed directly with the guardian present,
+    and that is the one thing this band was not getting.
+    """
+    data = _read(client, age=age)
+
+    assert data["addressedTo"] == "client_with_guardian"
+    assert data["focusTopic"] == "TEEN"
+    body = _body(data, "en")
+    assert re.search(r"\byou\b|\byour\b", body.lower()), body
+    # Still a minor: the legal gate is unchanged and the content blocks hold.
+    for token in _ADULT_TOKENS_EN:
+        assert token not in body.lower(), f"'{token}' reached a 17-and-under reading: {body}"
+
+
+@pytest.mark.parametrize("age", [13, 15, 17])
+def test_the_teen_reading_carries_no_character_verdict_and_no_dead_past_beat(client, age):
+    """Two beats stay dropped, for two different reasons.
+
+    strength_and_cost closes on a soft spot and a private grievance, which is a
+    character verdict and is what §4.2 says this gate does not deliver.
+    last_ten_years is degenerate by construction — its window is clamped to age
+    15, so for a 15-year-old it spans nothing at all.
+    """
+    ids = [beat["id"] for beat in _read(client, age=age)["beats"]]
+
+    assert "strength_and_cost" not in ids, ids
+    assert "last_ten_years" not in ids, ids
+    assert "right_now" in ids, ids
+
+
+def test_the_teen_remedy_is_shared_with_the_family_rather_than_handed_over(client):
+    """"Guardian present" is a register, and the remedy is where it shows.
+
+    The wording is age_phase_service.remedy_lead_in_for_stage's own — it already
+    held the right sentence for STAGE_TEEN, and reusing it is what keeps a
+    fourth register from costing a fourth vocabulary.
+    """
+    data = _read(client, age=16)
+    one_thing = next(b for b in data["beats"] if b["id"] == "one_thing")
+
+    assert one_thing["text"]["en"].startswith("To do together with family:")
+    assert "parents can do" not in one_thing["text"]["en"]
+
+
+def test_a_teenager_in_someone_elses_vault_is_still_read_to_their_guardian(
+    client, family_vault_payload_factory, family_member_payload_factory
+):
+    """§4.2 item 2 specifies this seam on AGE ALONE, and that is wrong for us.
+
+    Addressing a teenager directly is right in a consultation, where they are in
+    the room. On a family vault the reader is usually the parent, so a
+    second-person teen reading on a child's member card would tell a father
+    "you were born under Rohini" about his son — the same error as §3.1, one
+    band down. The direct register is reached only when the teenager holds the
+    account.
+    """
+    data = _vault_member_reading(
+        client,
+        family_vault_payload_factory,
+        family_member_payload_factory,
+        age=15,
+        relationship="child",
+        name="Karthik Synthetic Teen",
+    )
+
+    assert data["addressedTo"] == "parent"
+    assert data["focusTopic"] == "CHILD_GROWTH"
+    assert "Karthik" in _body(data, "en")
+
+
+# ── G6: the refusal said out loud ────────────────────────────────────────────
+
+
+@pytest.mark.parametrize("age", [62, 66, 71])
+def test_an_elder_is_not_handed_their_own_decades_back(client, age):
+    """§1.1(d), and the first gate-keyed trust beat (§4.2 item 3).
+
+    The dated past is G4's mechanism and it is weak above ~50: a 67-year-old
+    knows his own decades better than we do, and reciting them back is not
+    impressive, it is filler. It is also what the refusal is paid for with — an
+    elder reading ran 300 English words against a 285 ceiling carrying both, and
+    the answer to that was not a bigger budget.
+    """
+    ids = [beat["id"] for beat in _read(client, age=age, marital_status="married")["beats"]]
+
+    assert "last_ten_years" not in ids, ids
+    # The hinge names the year the previous beat closed on, so dropping that
+    # beat must drop the hinge with it rather than leaving it pointing at
+    # nothing.
+    assert "right_now" in ids, ids
+
+
+@pytest.mark.parametrize("age", [62, 66, 71])
+def test_an_elder_is_told_that_longevity_is_refused_rather_than_merely_not_given(client, age):
+    """§1.1(g). Saying it is worth more than doing it.
+
+    We have always omitted longevity, and a silence is indistinguishable from an
+    oversight — or from not knowing. One sentence, no chart data, the highest
+    trust-per-word in the source document.
+    """
+    body = _body(_read(client, age=age, marital_status="married"), "en")
+
+    assert "does not read length of life" in body, body
+    # The reason has to travel with the refusal, or it reads as a limitation
+    # rather than a position.
+    assert "changes how a person spends the years they have" in body, body
+
+
+def test_the_refusal_claims_no_practice_of_its_own(client):
+    """The source's third sentence is "because I have watched what that answer does".
+
+    That is a first-person claim to practice — v2 ship blocker #5 — and does not
+    port for the same reason "in fifty years" does not. What replaces it is the
+    REASON, stated without a claimant: authority moved from the speaker to the
+    argument, which is what the whole of Part 3 does.
+    """
+    body = _body(_read(client, age=68, marital_status="married"), "en").lower()
+
+    for claim in ("i have watched", "i have seen", "in my experience", "years of practice"):
+        assert claim not in body, f"first-person claim to practice: {body}"
+
+
+@pytest.mark.parametrize("age", [8, 16, 30, 45])
+def test_the_refusal_is_declared_where_the_question_is_live_and_nowhere_else(client, age):
+    """A principle declared at every gate is a disclaimer answering nobody.
+
+    The ban on longevity vocabulary is a lint and applies everywhere; the
+    REFUSAL is copy and belongs to G6. They are not the same deliverable, and
+    conflating them would put "this reading does not read length of life" in
+    front of a parent of an eight-year-old who had not wondered.
+    """
+    body = _body(_read(client, age=age), "en")
+
+    assert "length of life" not in body, body
 
 
 # ── The jargon rule, and its language asymmetry ──────────────────────────────
