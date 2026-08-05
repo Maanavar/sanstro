@@ -401,6 +401,33 @@ def test_better_spellings_are_offered_exactly_where_the_caution_is(
             assert b.operations, "a suggested spelling must name the move that produced it"
 
 
+def test_better_spellings_never_touch_the_family_name(
+    client: TestClient, enabled: None
+) -> None:
+    """Only the called name is on offer, and only because it is not registered
+    anywhere yet.
+
+    The family name is the opposite case — already on the parents' and
+    siblings' documents — so it is scored into `full_name_reading` and left
+    alone. Pinned here as well as in the engine because this is the surface
+    that actually holds a surname: passing `full_name_spelling` to
+    `correct_name` instead of the called name would compile, pass every other
+    test, and start offering families a new spelling of their own surname.
+    """
+    chart_id = _create_chart(client)
+    with SessionLocal() as session:
+        result = baby_names_for_chart(
+            chart_id, session, mode=NamingMode.OPEN, limit=50, family_name="Senthilkumar"
+        )
+
+    assert any(m.better_spellings for m in result.matches), "fixture offered nothing to check"
+    for m in result.matches:
+        for b in m.better_spellings:
+            assert "Senthilkumar" not in b.spelling, (
+                f"{b.spelling}: a spelling suggestion reached the family name"
+            )
+
+
 def test_better_spellings_are_absent_without_a_chart(enabled: None) -> None:
     """No lagna, no alignment, no caution — and so nothing to correct."""
     result = baby_names_for_pada(1, 1, allow_ambiguous=True)

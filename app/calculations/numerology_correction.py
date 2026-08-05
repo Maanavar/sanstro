@@ -23,8 +23,8 @@ is not returned.
 Edits are capped at ``MAX_EDITS`` (two). Past that a "correction" is a different
 name, and the entire premise of correction is that the name survives it.
 
-The three guards this module carries
-------------------------------------
+The four guards this module carries
+-----------------------------------
 1. **A well-aligned name yields no alternatives at all.** Not "alternatives,
    plus a note saying you're fine" — ``correct_name`` returns an empty tuple.
    An engine that always has something to sell is a slot machine (plan §9.2),
@@ -32,13 +32,16 @@ The three guards this module carries
 2. **A variant is only ever offered against the chart.** ``rank_variants``
    requires the chart's lagna; there is no chartless ranking path to call by
    mistake. Doctrine §9.1 — a number never overrides a graha.
-3. **The legal consequence is inseparable from the recommendation** (plan §9.4).
+3. **Only the called name is ever re-spelled** (see ``split_called_name``).
+   The family name is counted in the total and returned untouched.
+4. **The legal consequence is inseparable from the recommendation** (plan §9.4).
    This module returns ``CorrectionResult.requires_legal_warning = True`` on
    every result that carries variants; the API layer cannot serialise the
    variants without it.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from enum import StrEnum
 
@@ -104,6 +107,51 @@ _ASPIRABLE = "bcdgjkpt"
 _VOWELS = "aeiou"
 
 
+#: A token that is an initial rather than a name: "S", "S.", "K.M.". Never the
+#: thing anyone is called, so never the thing a correction re-spells.
+_INITIALS = re.compile(r"^(?:[A-Za-z]\.?)$|^(?:[A-Za-z]\.)+$")
+
+_TOKEN = re.compile(r"\S+")
+
+
+def split_called_name(text: str) -> tuple[str, str, str]:
+    """Split a written name into (fixed prefix, the called name, fixed suffix).
+
+    **Only the middle part may be re-spelled. The family name is never
+    touched.** Nobody re-spells a surname: it is shared with parents and
+    siblings, it is on their documents as well as yours, and a "correction"
+    that lands on it is advice no family will act on. A baby's given name is
+    the opposite case — it is not registered anywhere yet — which is exactly
+    why the baby-name finder may offer spellings and this rule still holds
+    there: it offers them for the given name only.
+
+    Measured on the live engine before this existed: of the eleven one-edit
+    spellings of "Rajesh Kumar", seven changed *Kumar* ("Kumaar", "Kummar",
+    "Khumar"...), and because ranking is by score alone one of those could
+    perfectly well come back as the top recommendation.
+
+    A **leading initial is skipped rather than treated as the name**, because
+    "S. Rajesh" is written that way on half the documents in Tamil Nadu and
+    taking the first token would freeze "Rajesh" and re-spell "S." — the exact
+    inversion of the rule. This is the one piece of parsing here, and it is a
+    definite test ("is this token a name at all?"), not a guess about which of
+    two names is the surname.
+
+    Whitespace and punctuation are preserved verbatim, so
+    ``prefix + called + suffix`` reconstructs the input exactly.
+    """
+    tokens = list(_TOKEN.finditer(text))
+    if not tokens:
+        return ("", text, "")
+    index = 0
+    # Stop at the last token even if it too looks like an initial: something
+    # has to be the name, and "S. K." has no better candidate than "K.".
+    while index < len(tokens) - 1 and _INITIALS.match(tokens[index].group()):
+        index += 1
+    called = tokens[index]
+    return (text[: called.start()], called.group(), text[called.end() :])
+
+
 @dataclass(frozen=True, slots=True)
 class NameVariant:
     """One candidate spelling, with the derivation that produced it.
@@ -148,7 +196,9 @@ def _single_edits(name: str) -> list[tuple[str, SpellingOperation]]:
                     replacement = long_form.upper() if name[i].isupper() else long_form
                     out.append((_apply_at(name, i, 1, replacement), SpellingOperation.LENGTHEN_VOWEL))
 
-        # Double a consonant, but never across a word boundary or an existing pair.
+        # Double a consonant, but never the first letter or an existing pair.
+        # `i > 0` is a word-initial guard only because this runs on a single
+        # token — `split_called_name` is what makes that true.
         if char in _DOUBLEABLE:
             doubled_already = (i + 1 < len(lowered) and lowered[i + 1] == char) or (
                 i > 0 and lowered[i - 1] == char
@@ -172,7 +222,9 @@ def _single_edits(name: str) -> list[tuple[str, SpellingOperation]]:
         if lowered[i] in _ASPIRABLE and lowered[i + 1] == "h":
             out.append((_apply_at(name, i, 2, name[i]), SpellingOperation.DROP_ASPIRATE))
 
-    if lowered and lowered[-1] not in _VOWELS:
+    # `isalpha` matters for the one input that reaches here without a real
+    # name in it: "S. K." has no called name, and "K.a" is not a spelling.
+    if lowered and lowered[-1].isalpha() and lowered[-1] not in _VOWELS:
         out.append((name + "a", SpellingOperation.APPEND_VOWEL))
     if lowered.endswith("y"):
         out.append((name[:-1] + "i", SpellingOperation.SWAP_FINAL_GLIDE))
@@ -185,6 +237,13 @@ def _single_edits(name: str) -> list[tuple[str, SpellingOperation]]:
 def generate_variants(name: str, *, max_edits: int = MAX_EDITS) -> tuple[NameVariant, ...]:
     """Every spelling of ``name`` reachable in ``max_edits`` named operations.
 
+    **Edits land on the called name only** — ``split_called_name`` holds any
+    initials and the family name fixed, and every returned ``spelling`` is the
+    whole written name with the corrected called name substituted in. So the
+    reading, the total and the delta are all still the full name's (the number
+    a person actually carries), while the part being *changed* is the only part
+    anyone would change.
+
     Deterministic and de-duplicated: two different operation paths can land on
     the same string, and the first (fewer edits, then alphabetical) wins so the
     derivation shown is always the simplest one that explains the spelling.
@@ -196,22 +255,28 @@ def generate_variants(name: str, *, max_edits: int = MAX_EDITS) -> tuple[NameVar
         raise ValueError(f"max_edits must be 1..{MAX_EDITS}, got {max_edits}")
 
     base_reading = score_text(name)
+    prefix, called, suffix = split_called_name(name)
     seen: dict[str, NameVariant] = {}
 
-    frontier: list[tuple[str, tuple[SpellingOperation, ...]]] = [(name, ())]
+    # The frontier carries the called name alone (what gets edited); `seen` is
+    # keyed by the full spelling (what gets returned, and what dedupes).
+    frontier: list[tuple[str, tuple[SpellingOperation, ...]]] = [(called, ())]
     for _ in range(max_edits):
         next_frontier: list[tuple[str, tuple[SpellingOperation, ...]]] = []
         for spelling, ops in frontier:
             for edited, operation in _single_edits(spelling):
-                if edited.lower() == name.lower() or edited in seen:
+                if edited.lower() == called.lower():
+                    continue
+                full = f"{prefix}{edited}{suffix}"
+                if full in seen:
                     continue
                 try:
-                    reading = score_text(edited)
+                    reading = score_text(full)
                 except (ValueError, ScriptMismatchError):  # pragma: no cover - defensive
                     continue
                 trail = (*ops, operation)
-                seen[edited] = NameVariant(
-                    spelling=edited,
+                seen[full] = NameVariant(
+                    spelling=full,
                     reading=reading,
                     operations=trail,
                     delta=reading.total - base_reading.total,
@@ -332,6 +397,12 @@ def correct_name(
     search does not run at all. Saturn as yogakaraka is the canonical case —
     "8 is unlucky" is the most sold and least defensible claim in this trade,
     and a chart-aware engine must refuse to act on it.
+
+    ``name`` may be written in full. It is analysed in full — the total, the
+    alignment and the verdict are the whole name's — but only its called name
+    is re-spelled; see ``split_called_name``. A name whose called part cannot
+    reach a better number therefore returns no alternatives, which is the
+    honest answer rather than a surname edit nobody would make.
     """
     original_reading = score_text(name)
     original_alignment = align_number(

@@ -21,6 +21,7 @@ from app.calculations.numerology_correction import (
     generate_variants,
     legal_warning,
     rank_variants,
+    split_called_name,
 )
 from app.schemas.numerology import (
     NameCorrectionResponse,
@@ -111,6 +112,68 @@ def test_non_latin_name_is_refused_not_silently_skipped() -> None:
 
 def test_generation_is_deterministic() -> None:
     assert generate_variants(NAME, max_edits=2) == generate_variants(NAME, max_edits=2)
+
+
+# ── The family name is never re-spelled ──────────────────────────────────────
+def test_the_family_name_is_never_re_spelled() -> None:
+    """Nobody re-spells a surname.
+
+    It is shared with parents and siblings and sits on their documents too, so
+    a "correction" that lands on it is advice no family will act on. Measured
+    on the engine before this rule existed: seven of the eleven one-edit
+    spellings of "Rajesh Kumar" changed *Kumar* — "Kumaar", "Kummar",
+    "Khumar" — and ranking is by score alone, so one of those could come back
+    as the top recommendation.
+    """
+    variants = generate_variants(f"{NAME} Kumar", max_edits=2)
+    assert variants
+    for variant in variants:
+        assert variant.spelling.endswith(" Kumar"), (
+            f"{variant.spelling}: the family name was altered"
+        )
+
+
+def test_a_leading_initial_is_not_mistaken_for_the_called_name() -> None:
+    """"S. Rajesh" is how half the documents in Tamil Nadu are written.
+
+    Taking the first token would freeze "Rajesh" and re-spell "S." — the exact
+    inversion of the rule this module is enforcing.
+    """
+    for written in (f"S. {NAME}", f"S {NAME}", f"K.M. {NAME} Kumar"):
+        prefix, called, _ = split_called_name(written)
+        assert called == NAME, f"{written}: re-spelled {called!r} instead of {NAME!r}"
+        assert prefix.strip(), f"{written}: the initial was swallowed"
+        assert all(v.spelling.startswith(prefix) for v in generate_variants(written, max_edits=2))
+
+
+def test_a_name_that_is_only_initials_still_has_something_to_correct() -> None:
+    """Something has to be the called name; the last token is the best there is."""
+    assert split_called_name("S. K.") == ("S. ", "K.", "")
+
+
+def test_split_reconstructs_its_input_exactly() -> None:
+    """Whitespace and punctuation are preserved, so a returned spelling is the
+    user's own name with one part substituted — not a re-rendering of it."""
+    for written in (NAME, f"{NAME} Kumar", f"  {NAME}   Kumar  ", "S. Rajesh", ""):
+        prefix, called, suffix = split_called_name(written)
+        assert prefix + called + suffix == written
+
+
+def test_the_whole_name_is_what_gets_scored() -> None:
+    """The edit is narrowed; the analysis is not. A person carries the number of
+    the name they are written under, so the total, the delta and (via
+    `rank_variants`) the alignment are all the full name's."""
+    written = f"{NAME} Kumar"
+    full_total = score_text(written).total
+    for variant in generate_variants(written, max_edits=2):
+        assert variant.reading == score_text(variant.spelling)
+        assert variant.delta == variant.reading.total - full_total
+
+
+def test_a_single_token_name_is_unaffected_by_the_split() -> None:
+    """The baby-name finder passes one token — the rule must be a no-op there,
+    or every spelling it offers changes underneath it."""
+    assert split_called_name(NAME) == ("", NAME, "")
 
 
 # ── The refusals ─────────────────────────────────────────────────────────────

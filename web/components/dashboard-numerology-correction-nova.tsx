@@ -302,9 +302,18 @@ export function NumerologyCorrectionSection({ lang, chartId, onSaveSpelling }: P
       </div>
 
       <div className="nova-grid-2" style={{ gap: "var(--space-3)", alignItems: "end" }}>
+        {/* The helper states the rule at the point of entry, because the
+            results otherwise look like the engine simply failed to think of
+            "Kumaar": the family name is scored into the total and never
+            re-spelled. Nobody re-spells a surname — it is on a parent's and a
+            sibling's documents too. */}
         <Field
           label={isTamil ? "ஆவணங்களில் உள்ள பெயர்" : "The name on your documents"}
-          helper={isTamil ? "ஆங்கில எழுத்துக்கள் மட்டும்" : "Latin letters only"}
+          helper={
+            isTamil
+              ? "ஆங்கில எழுத்துக்கள் மட்டும். குடும்பப் பெயர் அப்படியே இருக்கும் — அழைக்கும் பெயரின் எழுத்துக்கூட்டல் மட்டுமே மாறும்."
+              : "Latin letters only. Write it in full — the family name is counted in the total but kept exactly as it is; only your called name is re-spelled."
+          }
         >
           <Input
             value={name}
