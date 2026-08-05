@@ -6,6 +6,13 @@ _add_gender_guidance / _add_planet_strength_guidance / get_age_based_remedies
 strings only render for specific age/dasha/planet-strength combinations.
 If a string is intentionally re-reworded later, update this test in the same
 change.
+
+Two entries were dropped from _REQUIRED on 2026-08-05, and the reason is worth
+distinguishing from a re-wording: the Tamil in both was correct and reviewed.
+The SENTENCES were removed because they asserted the reader has children on the
+evidence of age and gender alone (see age_phase_service.get_active_life_phases).
+Their pre-review bad wordings stay in _BANNED — a string that must never come
+back must stay banned whether or not anything currently emits it.
 """
 from __future__ import annotations
 
@@ -47,9 +54,8 @@ _REQUIRED = [
     "திருமண வாய்ப்புகளை ஒத்த மதிப்புகள் மற்றும் வாழ்க்கை இலக்குகள் உட்பட முழுமையாக மதிப்பிடவும்.",
     "முறையான நிதித் திட்டமிடலைத் தொடங்கவும்",
     "இந்த காலத்தில் தீவிர வளர்ச்சியை விட செல்வத்தைத் திரட்டிப் பாதுகாப்பது அதிக முக்கியம்.",
-    "குழந்தைகளின் உயர்கல்வியும் வாழ்க்கை நிலைப்பாடும் செயலில் உள்ள முன்னுரிமை.",
+    # Two progeny-asserting sentences were removed here — see the module docstring.
     "அவற்றில் ஈடுபட இது நல்ல காலம்.",
-    "இந்த பருவத்தில் தொழில் உச்ச பொறுப்புகளுடன் குழந்தைகளின் கல்வியும் வாழ்க்கை நிலைப்பாடும் முன்னுரிமையில் முன்னேறுவது வழக்கம்.",
     "சமூக தொடர்பையும் நோக்கத்தையும் பராமரிப்பது தனிமையைத் தடுக்கிறது, நல்வாழ்வை ஆதரிக்கிறது.",
     "ராகு மகாதசை பேராசையான உந்துதல்களையும் வழக்கத்திற்கு மாறான பாதைகளையும் கொண்டுவருகிறது — கவனமும் விவேகமும் முக்கியம்.",
     "கேது மகாதசை பற்றின்மை, ஆன்மீக நுண்ணறிவு",

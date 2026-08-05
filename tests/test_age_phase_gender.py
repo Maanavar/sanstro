@@ -31,16 +31,30 @@ def test_24_34_band_reorders_marriage_first_for_female() -> None:
 
 
 @pytest.mark.no_db
-def test_35_49_band_reorders_children_earlier_for_female() -> None:
+def test_35_49_band_no_longer_carries_a_gender_delta() -> None:
+    """The 35-49 delta was the `children` reorder, and it went with the code itself."""
     male_phases = get_active_life_phases(40, "male")
     female_phases = get_active_life_phases(40, "female")
-    assert male_phases == ["career_peak", "wealth", "property", "children"]
-    assert female_phases == ["career_peak", "children", "wealth", "property"]
-    assert set(male_phases) == set(female_phases)
+    assert male_phases == ["career_peak", "wealth", "property"]
+    assert male_phases == female_phases
 
 
 @pytest.mark.no_db
-@pytest.mark.parametrize("age", [3, 10, 15, 20, 55, 68, 75])
+@pytest.mark.parametrize("gender", [*_GENDERS, None])
+def test_no_life_phase_asserts_progeny_at_any_age(gender: str | None) -> None:
+    """We hold no field saying whether this reader has children.
+
+    `children` was emitted for everyone aged 35-49 and is a scored primary-concern candidate
+    (primary_concern_service._CONCERN_HOUSES maps it to the 5th), so a childless reader whose
+    antardasha activated the 5th got progeny ranked as the top concern of their reading. It
+    returns only when the profile declares `children == "has"`.
+    """
+    for age in range(0, 90):
+        assert "children" not in get_active_life_phases(age, gender)
+
+
+@pytest.mark.no_db
+@pytest.mark.parametrize("age", [3, 10, 15, 20, 40, 55, 68, 75])
 def test_other_bands_are_gender_invariant(age: int) -> None:
     assert get_active_life_phases(age, "male") == get_active_life_phases(age, "female")
     assert get_active_life_phases(age, "male") == get_active_life_phases(age, None)
@@ -76,6 +90,33 @@ def test_practical_guidance_accepts_gender_and_returns_bilingual_text(age: int, 
 
 
 @pytest.mark.no_db
+@pytest.mark.parametrize("gender", [*_GENDERS, None])
+def test_practical_guidance_never_claims_the_reader_has_children(gender: str | None) -> None:
+    """The possessive is the claim; the karaka listing is not.
+
+    "Jupiter Mahadasha is expansive — wisdom, teaching, children, and dharmic activity are
+    supported" names what the graha signifies and asserts nothing about this reader. "Children's
+    higher education is an active priority" asserts they have some. Only the second is banned,
+    which is why this matches the possessive/genitive form rather than the bare noun.
+    """
+    for age in [*_AGES, 33, 38, 44, 52, 60]:
+        guidance = get_age_based_practical_guidance(
+            current_age=age,
+            mahadasha_lord="JUPITER",
+            antardasha_lord="VENUS",
+            lagna_rasi="Mesham",
+            strong_planets=["JUPITER"],
+            weak_planets=["SATURN"],
+            gender=gender,
+        )
+        for line in guidance["en"]:
+            assert "children's" not in line.lower()
+            assert "your children" not in line.lower()
+        for line in guidance["ta"]:
+            assert "குழந்தைகளின்" not in line
+
+
+@pytest.mark.no_db
 def test_gender_guidance_adds_extra_sentence_only_in_scoped_bands() -> None:
     neutral = get_age_based_practical_guidance(
         current_age=25, mahadasha_lord="JUPITER", antardasha_lord="VENUS",
@@ -88,13 +129,16 @@ def test_gender_guidance_adds_extra_sentence_only_in_scoped_bands() -> None:
     assert len(female["en"]) == len(neutral["en"]) + 1
     assert len(female["ta"]) == len(neutral["ta"]) + 1
 
-    # Bands outside 24-49 get no extra sentence even with gender known.
-    elder_neutral = get_age_based_practical_guidance(
-        current_age=68, mahadasha_lord="JUPITER", antardasha_lord="VENUS",
-        lagna_rasi="Mesham", strong_planets=[], weak_planets=[], gender=None,
-    )
-    elder_female = get_age_based_practical_guidance(
-        current_age=68, mahadasha_lord="JUPITER", antardasha_lord="VENUS",
-        lagna_rasi="Mesham", strong_planets=[], weak_planets=[], gender="female",
-    )
-    assert len(elder_female["en"]) == len(elder_neutral["en"])
+    # Bands outside 24-34 get no extra sentence even with gender known. 40 is in the list
+    # because the 35-49 branch used to fire there and its content was the progeny claim.
+    for age in (40, 68):
+        neutral_band = get_age_based_practical_guidance(
+            current_age=age, mahadasha_lord="JUPITER", antardasha_lord="VENUS",
+            lagna_rasi="Mesham", strong_planets=[], weak_planets=[], gender=None,
+        )
+        female_band = get_age_based_practical_guidance(
+            current_age=age, mahadasha_lord="JUPITER", antardasha_lord="VENUS",
+            lagna_rasi="Mesham", strong_planets=[], weak_planets=[], gender="female",
+        )
+        assert len(female_band["en"]) == len(neutral_band["en"])
+        assert len(female_band["ta"]) == len(neutral_band["ta"])

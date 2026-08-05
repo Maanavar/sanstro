@@ -191,7 +191,10 @@ def test_age_phase_priorities_follow_roadmap_mapping():
     assert get_active_life_phases(8) == ["health", "education", "family"]
     assert get_active_life_phases(20) == ["education", "health", "career_preparation"]
     assert get_active_life_phases(30) == ["career", "marriage", "wealth_foundation"]
-    assert get_active_life_phases(42) == ["career_peak", "wealth", "property", "children"]
+    # `children` left this band on 2026-08-05: we hold no field saying whether the reader has
+    # any, so emitting it derived progeny from age and gender alone. It returns when the
+    # profile declares `children == "has"`.
+    assert get_active_life_phases(42) == ["career_peak", "wealth", "property"]
     assert get_active_life_phases(60) == ["health", "spirituality", "family_legacy"]
 
 

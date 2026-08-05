@@ -40,10 +40,22 @@ def _dosham_label(code: str, lang: str) -> str:
 # stage of life rather than presenting a static all-at-once dump.
 #
 # `gender` (from birth_profile.gender_for_traditional_rules) reorders — never adds/removes —
-# the focus codes for the two bands where classical tradition weights the ordering differently
-# by gender (24-34: marriage-timing surfaces earlier for women; 35-49: children surfaces earlier
-# for women). This is a deliberately minimal, first-pass delta pending astrologer sign-off — all
-# other bands and unknown/unspecified gender are unchanged from the age-only ordering.
+# the focus codes for the ONE band where classical tradition weights the ordering differently by
+# gender (24-34: marriage-timing surfaces earlier for women). This is a deliberately minimal,
+# first-pass delta pending astrologer sign-off — all other bands and unknown/unspecified gender
+# are unchanged from the age-only ordering.
+#
+# The 35-49 band used to carry a second gender delta ("children surfaces earlier for women") and
+# it is gone, along with the `children` focus code itself. We hold no field saying whether this
+# reader has children, so emitting it derived progeny from AGE AND GENDER ALONE — to a reader who
+# may have none, or may have lost a pregnancy. `children` is a scored primary-concern candidate
+# (primary_concern_service._CONCERN_HOUSES maps it to the 5th), so a 38-year-old whose antardasha
+# activated the 5th got progeny ranked as the TOP concern of their reading. Nothing about the band
+# changed; what changed is that we no longer claim to know.
+#
+# It returns in this list only when the profile declares `children == "has"`. What the 5th house
+# should say for the unknown case — the older reading is intelligence, creativity and purva punya,
+# never progeny — is a doctrine call and is deliberately NOT invented here.
 def get_active_life_phases(current_age: int, gender: str | None = None) -> list[str]:
     if current_age < 5:
         return ["health", "family_nurture"]
@@ -58,9 +70,7 @@ def get_active_life_phases(current_age: int, gender: str | None = None) -> list[
             return ["marriage", "career", "wealth_foundation"]
         return ["career", "marriage", "wealth_foundation"]
     if current_age < 50:
-        if gender == "female":
-            return ["career_peak", "children", "wealth", "property"]
-        return ["career_peak", "wealth", "property", "children"]
+        return ["career_peak", "wealth", "property"]
     if current_age < 65:
         return ["health", "spirituality", "family_legacy"]
     if current_age < 70:
@@ -228,26 +238,22 @@ def get_age_based_practical_guidance(
         en += [
             "Career growth and family stability are the twin priorities — balance both deliberately.",
             "Property investment decisions should be made with long-term stability in mind.",
-            "Children's health and educational foundation are an active responsibility now.",
             "Avoid major career risks unless the current Mahadasha strongly supports it.",
         ]
         ta += [
             "தொழில் வளர்ச்சியும் குடும்ப நிலைத்தன்மையும் இரட்டை முன்னுரிமைகள் — இரண்டையும் வேண்டுமென சமப்படுத்தவும்.",
             "சொத்து முதலீட்டு முடிவுகளை நீண்ட கால நிலைத்தன்மையை கருத்தில் கொண்டு எடுக்கவும்.",
-            "குழந்தைகளின் ஆரோக்கியம் மற்றும் கல்வி அடிப்படை இப்போது செயலில் உள்ள பொறுப்பு.",
             "தற்போதைய மகாதசை வலுவாக ஆதரிக்காத வரை பெரிய தொழில் அபாயங்களை தவிர்க்கவும்.",
         ]
     elif current_age < 50:
         en += [
             "Peak career phase — strategic decisions now define long-term professional legacy.",
             "Wealth consolidation is more important than aggressive growth in this phase.",
-            "Children's higher education and settlement is an active priority.",
             "Preventive health checks become essential — do not defer them.",
         ]
         ta += [
             "உச்ச தொழில் காலம் — இப்போது மூலோபாய முடிவுகள் நீண்ட கால தொழில் மரபை தீர்மானிக்கின்றன.",
             "இந்த காலத்தில் தீவிர வளர்ச்சியை விட செல்வத்தைத் திரட்டிப் பாதுகாப்பது அதிக முக்கியம்.",
-            "குழந்தைகளின் உயர்கல்வியும் வாழ்க்கை நிலைப்பாடும் செயலில் உள்ள முன்னுரிமை.",
             "தடுப்பு உடல்நல பரிசோதனைகள் அவசியமாகின்றன — அவற்றை தள்ளி வைக்காதீர்கள்.",
         ]
     elif current_age < 60:
@@ -255,13 +261,11 @@ def get_age_based_practical_guidance(
             "Protecting and organising accumulated wealth is the central financial task.",
             "Health requires proactive attention — regular checkups and lifestyle discipline.",
             "Spiritual and dharmic practices deepen naturally — this is a good time to invest in them.",
-            "Supporting children's life transitions (marriage, career) is an active focus.",
         ]
         ta += [
             "திரட்டப்பட்ட செல்வத்தை பாதுகாப்பது மற்றும் ஒழுங்கமைப்பது மையமான நிதி பணி.",
             "ஆரோக்கியத்திற்கு முன்னோக்கிய கவனம் தேவை — வழக்கமான பரிசோதனைகளும் வாழ்க்கை முறை ஒழுக்கமும்.",
             "ஆன்மீக மற்றும் தர்ம நடைமுறைகள் இயற்கையாகவே ஆழமடைகின்றன — அவற்றில் ஈடுபட இது நல்ல காலம்.",
-            "குழந்தைகளின் வாழ்க்கை மாற்றங்களை (திருமணம், தொழில்) ஆதரிப்பது செயலில் உள்ள கவனம்.",
         ]
     else:
         en += [
@@ -334,6 +338,13 @@ def _add_dasha_guidance(en: list[str], ta: list[str], mahadasha: str, antardasha
 
 
 def _add_gender_guidance(en: list[str], ta: list[str], gender: str | None, current_age: int) -> None:
+    """One band only — see get_active_life_phases.
+
+    The 35-49 branch is gone with the `children` focus code it existed to justify: its whole
+    content was "children's education and settlement move up in priority for women", which asserted
+    the reader has children on the evidence of her age and her gender. Removing only the female
+    line would have left the male one standing alone in the band, so the band goes as a unit.
+    """
     if gender not in ("male", "female"):
         return
     if 24 <= current_age < 35:
@@ -343,13 +354,6 @@ def _add_gender_guidance(en: list[str], ta: list[str], gender: str | None, curre
         else:
             en.append("Career-establishment decisions made now set the pattern Saturn later tests for discipline — build steadily rather than chasing shortcuts.")
             ta.append("இப்போது எடுக்கப்படும் தொழில் நிலைநாட்டல் முடிவுகள் பின்னர் சனி ஒழுக்கத்திற்காக சோதிக்கும் அமைப்பை நிர்ணயிக்கின்றன — குறுக்குவழிகளை தேடாமல் நிலையாக கட்டியெழுப்பவும்.")
-    elif 35 <= current_age < 50:
-        if gender == "female":
-            en.append("Children's education and settlement often move up in priority alongside career-peak responsibilities during this phase.")
-            ta.append("இந்த பருவத்தில் தொழில் உச்ச பொறுப்புகளுடன் குழந்தைகளின் கல்வியும் வாழ்க்கை நிலைப்பாடும் முன்னுரிமையில் முன்னேறுவது வழக்கம்.")
-        else:
-            en.append("This is typically framed as the primary provider-and-legacy building phase — wealth and property decisions carry long-term weight.")
-            ta.append("இது பொதுவாக முதன்மை பொறுப்பாளர் மற்றும் மரபு கட்டியெழுப்பும் பருவமாக கருதப்படுகிறது — செல்வம் மற்றும் சொத்து முடிவுகள் நீண்ட கால முக்கியத்துவம் கொண்டவை.")
 
 
 def _add_planet_strength_guidance(
