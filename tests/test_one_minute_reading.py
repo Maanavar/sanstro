@@ -6,6 +6,7 @@ once on another surface.
 """
 from __future__ import annotations
 
+import dataclasses
 import itertools
 import re
 import uuid
@@ -15,6 +16,7 @@ import pytest
 
 from app.calculations.astro import utc_datetime_to_julian_day
 from app.calculations.dasha import DashaPeriod, VimshottariTimeline
+from app.services import one_minute_reading_service as reading
 from app.services.feature_flags import reset_flag, set_flag
 from app.services.narrative_engine import tone_validator
 from app.services.one_minute_reading_service import (
@@ -592,6 +594,147 @@ def test_an_unconfirmed_birth_time_withholds_the_lagna(client):
     assert "லக்னத்தில்" not in unsure_beat["text"]["ta"]
     assert "birth time is not confirmed" in unsure_beat["basis"]["en"]
     assert "rising" in confirmed_beat["text"]["en"]
+
+
+# ── Provenance: the class system, enforced statically ────────────────────────
+#
+# docs/AGE_GATED_READING_AUDIT_2026-08-05.md §6.2(a). The reading-generation
+# spec v2 specifies a RUNTIME validator that drops E/C sentences on their way
+# out; because our vocabulary is fixed rather than generated, the same rule is
+# a static assertion over the tables. That is strictly stronger — a runtime
+# dropper catches only what its matcher recognises, whereas a table with no E
+# slot cannot emit an E sentence at all — and these four tests are the whole
+# mechanism.
+
+
+def _is_copy_pair(value: object) -> bool:
+    """A (ta, en) pair of authored copy.
+
+    ``type(part) is str`` rather than ``isinstance``: the provenance
+    declarations are 2-tuples of StrEnum members, which ARE str instances, and
+    an isinstance check would classify the classifier as copy.
+    """
+    return (
+        isinstance(value, tuple)
+        and len(value) == 2
+        and all(type(part) is str for part in value)
+    )
+
+
+def _copy_tables() -> dict[str, object]:
+    """Every module-level table of authored copy, found by reflection.
+
+    Discovered rather than listed, deliberately: a list would be a thing to
+    forget to update, and the whole point is that a NEW table of Tamil/English
+    copy fails the suite until somebody classifies it.
+    """
+    found: dict[str, object] = {}
+    for name, value in vars(reading).items():
+        if _is_copy_pair(value):
+            found[name] = value
+        elif isinstance(value, dict) and value and all(_is_copy_pair(v) for v in value.values()):
+            found[name] = value
+    return found
+
+
+def test_no_copy_slot_classifies_as_an_event_or_a_cold_read():
+    """The ship blocker, and the reason the class system exists at all.
+
+    E asserts something happened; C lands on most readers regardless of chart.
+    Neither may reach a user, and on a fixed vocabulary that is checkable before
+    anything is rendered.
+    """
+    declared = {
+        **{f"_Voice.{slot}": v for slot, v in reading._Voice.PROVENANCE.items()},
+        **{f"_ChildVoice.{slot}": v for slot, v in reading._ChildVoice.PROVENANCE.items()},
+        **reading._TABLE_PROVENANCE,
+    }
+    assert declared, "the provenance registry is empty — the model has been removed"
+
+    for slot, (provenance, base_rate) in declared.items():
+        assert provenance in reading.EMITTABLE_PROVENANCE, (
+            f"{slot} classifies {provenance.name}, which may never be emitted"
+        )
+        # The sixth column. A near-universal predicate carries no information
+        # however impeccable its derivation — v2's own C-test misses this
+        # because it reads the sentence's form, not the rule's consequent.
+        assert base_rate is not reading.BaseRate.UNIVERSAL, (
+            f"{slot} declares a near-universal predicate and cannot inform anyone"
+        )
+
+    for beat_id, classes in reading._BEAT_PROVENANCE.items():
+        assert classes, f"beat {beat_id} declares no class at all"
+        unemittable = classes - reading.EMITTABLE_PROVENANCE
+        assert not unemittable, f"beat {beat_id} carries {unemittable}"
+
+
+def test_every_table_of_copy_declares_its_provenance():
+    """A new vocabulary table is unclassified until somebody classifies it.
+
+    Without this the model decays the moment the next contributor adds a table,
+    which is the failure mode the audit named: the copy is in decent shape, and
+    nothing stops the next string being an E.
+    """
+    classified = set(reading._TABLE_PROVENANCE)
+    # _VOICE and _CHILD_VOICE hold dataclasses rather than pairs, so reflection
+    # does not reach them; their facets are classified on the dataclass itself
+    # and asserted by the field check below.
+    for name in _copy_tables():
+        assert name in classified, (
+            f"{name} is a table of authored copy with no provenance class. "
+            "Add it to _TABLE_PROVENANCE."
+        )
+    stale = classified - set(_copy_tables())
+    assert not stale, f"_TABLE_PROVENANCE classifies tables that no longer exist: {stale}"
+
+
+def test_every_narration_facet_is_classified():
+    """Add a seventh facet to _Voice and this fails until it is classified.
+
+    Field reflection rather than a list, for the same reason as above.
+    """
+    for voice_class in (reading._Voice, reading._ChildVoice):
+        fields = {f.name for f in dataclasses.fields(voice_class)}
+        declared = set(voice_class.PROVENANCE)
+        assert fields == declared, (
+            f"{voice_class.__name__}: {fields ^ declared} is unclassified or stale"
+        )
+
+
+def test_every_keyed_table_covers_every_graha():
+    """A missing key is not a copy gap, it is a crash for one reader in nine.
+
+    Every one of these is indexed by a graha derived from the chart — the
+    nakshatra lord, the signature, the running dasa lord — so a table short one
+    entry raises KeyError for exactly the readers who have it.
+    """
+    grahas = set(reading._VOICE)
+    assert len(grahas) == 9, grahas
+    for name in ("_CHILD_VOICE", "_SIGNATURE_OPENING", "_SIGNATURE_GRIEVANCE"):
+        assert set(getattr(reading, name)) == grahas, f"{name} does not cover every graha"
+
+
+def test_every_beat_the_service_emits_declares_its_provenance(client):
+    """The frames are where an event claim would actually get written.
+
+    Most of this reading's words are the frames the beat builders write around
+    the vocabulary, not the vocabulary itself — and a frame already carries a
+    date, so turning it into an event claim is one clause of work. §6.5 of the
+    audit classified the tables and stopped there; this closes the other half.
+
+    Both directions are asserted. A declared-but-never-emitted beat is the
+    stale-baseline problem this repo has paid for before.
+    """
+    emitted: set[str] = set()
+    # Two profiles cover all eight ids: the minor path (four beats, its own
+    # forward beat) and the full adult path.
+    for kwargs in ({"age": 8}, {"age": 33, "marital_status": "married"}):
+        emitted |= {beat["id"] for beat in _read(client, **kwargs)["beats"]}
+
+    undeclared = emitted - set(reading._BEAT_PROVENANCE)
+    assert not undeclared, f"beats with no provenance class: {undeclared}"
+    never_emitted = set(reading._BEAT_PROVENANCE) - emitted
+    assert not never_emitted, f"_BEAT_PROVENANCE declares beats nothing emits: {never_emitted}"
 
 
 def test_no_score_number_appears_anywhere_in_the_body(client):

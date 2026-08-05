@@ -38,6 +38,14 @@ THE FOUR RULES THE COPY MUST OBEY
   4. Windows, never date-certain outcomes. "From March 2031" — never "in March
      2031 you will".
 
+PROVENANCE. Rules 1 and 4 are two instances of one rule, and until 2026-08-05
+this module had the instances without the rule. Every string now carries a
+declared class — D derived / R rule / T tendency / F frame, with E event and C
+cold-read banned — asserted statically rather than filtered at serve time. See
+``Provenance`` below and docs/AGE_GATED_READING_AUDIT_2026-08-05.md §6.2(a). The
+copy was already almost clean when the model went in; the point is that nothing
+had stopped the next string being an event claim, and one already was.
+
 COPY VOCABULARY SIZE. 9 grahas x 6 facets, plus the frames, topics and outlook
 clauses = 78 reviewable strings per language. The spec's original estimate was
 60; the binding constraint was never the number but "a Tamil review pass must
@@ -54,6 +62,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
+from enum import StrEnum
+from typing import ClassVar
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -146,6 +156,77 @@ _LAGNA_TIME_TOLERANCE_MINUTES = 30
 _DOMINANT_STRETCH_SHARE = 0.3
 
 
+# ── Provenance: what class of claim a string is allowed to be ────────────────
+#
+# docs/AGE_GATED_READING_AUDIT_2026-08-05.md §6.2(a), from the reading-generation
+# spec v2 Part 1. Every authored string carries exactly one class, declared at
+# AUTHORING time and asserted by tests/test_one_minute_reading.py.
+#
+# The adaptation matters and it is deliberate: v2 specifies a RUNTIME validator
+# that drops E/C sentences on their way out, which it needs only because it
+# assumes a generator. We have a fixed vocabulary, so the same rule is a static
+# annotation over the tables — strictly stronger, because a runtime dropper can
+# only catch what its matcher recognises, while a table with no E slot cannot
+# emit an E sentence at all. v2's own warning ("an E rewritten by the same
+# generator comes back as a softer E") is a problem this shape does not have.
+
+
+class Provenance(StrEnum):
+    """The class of claim a string makes. Two of these may never be emitted."""
+
+    #: Mechanically traceable to a placement, a lordship or dasa arithmetic.
+    #: A second engine given the same birth data reproduces it exactly.
+    DERIVED = "D"
+    #: A classical interpretive rule applied to a D fact.
+    RULE = "R"
+    #: Traditional characterological inference. A disposition, never an
+    #: occurrence, and present tense.
+    TENDENCY = "T"
+    #: Connective tissue that makes no claim at all — a hinge, a validation, a
+    #: label. NOT one of v2's five: v2's table assumes every sentence is a
+    #: claim, and it has no row for "And yet:". Forcing those into T would
+    #: classify a conversational move as a characterological inference, which
+    #: is how a class system stops meaning anything.
+    FRAME = "F"
+    #: Asserts that a specific thing happened or will happen. BANNED.
+    EVENT = "E"
+    #: No chart link. Lands on most readers regardless of chart. BANNED.
+    COLD_READ = "C"
+
+
+EMITTABLE_PROVENANCE: frozenset[Provenance] = frozenset(
+    {Provenance.DERIVED, Provenance.RULE, Provenance.TENDENCY, Provenance.FRAME}
+)
+
+
+class BaseRate(StrEnum):
+    """How much of the population a slot's predicate is true of anyway.
+
+    The sixth column, and it exists because v2's own C-test does not close.
+    That test asks "would this land on 70% of readers regardless of chart?"
+    and applies it to the sentence's FORM — so a properly keyed, properly
+    derived R sentence passes it while still carrying no information, because
+    its predicate is near-universal. ("Most people borrow money between
+    twenty-five and twenty-eight.") The failure reappears one level up, on the
+    rule's consequent rather than on the sentence, and keying does not fix it.
+
+    This is a judgement, not a measurement, and no test can make it for us. The
+    column's job is to force the judgement to be WRITTEN DOWN next to the copy
+    before the copy ships — see docs/AGE_GATED_READING_AUDIT_2026-08-05.md
+    §6.3(a).
+    """
+
+    #: The predicate varies with the chart and is not near-universal.
+    KEYED = "keyed"
+    #: Common in the population. Keying makes the sentence honest; it does not
+    #: make it informative. Admissible, but it buys less than it looks like it
+    #: buys, and it must not be leaned on as the reading's proof.
+    COMMON = "common"
+    #: Near-universal. Carries no information however impeccable its
+    #: derivation. Not admissible.
+    UNIVERSAL = "universal"
+
+
 @dataclass(frozen=True, slots=True)
 class _Voice:
     """One graha's six narration facets, each as ``(ta, en)``.
@@ -159,7 +240,36 @@ class _Voice:
                       never comparing to the preceding lord, because that would
                       be a claim we have not computed).
     ``action``      — the one thing to do while this lord runs.
+
+    ``PROVENANCE`` classifies the FACET, not the graha, and that is the whole
+    point of putting it here rather than on each instance. A facet that is T for
+    Saturn and E for Mars is not a fact about Mars — it is a defect in the
+    Saturn string, and the fix is to rewrite the string rather than to relabel
+    it. Saturn's ``past_texture`` was exactly that case: see the note on it.
     """
+
+    PROVENANCE: ClassVar[dict[str, tuple[Provenance, BaseRate]]] = {
+        # Dispositions of the person, present tense, no occurrence.
+        "nature": (Provenance.TENDENCY, BaseRate.KEYED),
+        "capacity": (Provenance.TENDENCY, BaseRate.KEYED),
+        "soft_spot": (Provenance.TENDENCY, BaseRate.KEYED),
+        # NOT T. These describe a PERIOD, not the reader — the classical rule
+        # for what a stretch under this lord asks for, applied to the D fact of
+        # which lord ran. Calling them T would claim they describe the reader's
+        # disposition, which they do not, and would hide the one place this
+        # feature can slide into E: a sentence about a period is one clause
+        # away from a sentence about what the reader did in it.
+        "past_texture": (Provenance.RULE, BaseRate.KEYED),
+        "now_texture": (Provenance.RULE, BaseRate.KEYED),
+        # A remedial prescription is a rule application too. The rule is real
+        # and traditional; we have not yet NAMED it in ``basis``, which §6.3(b)
+        # of the audit rules a standing goal rather than a ship blocker —
+        # sourcing 14 rules is a research task, and a content gate that cannot
+        # close is worse than the feature not existing. Declaring these R and
+        # leaving the source open is the honest record of that; declaring them
+        # T to dodge the question would not be.
+        "action": (Provenance.RULE, BaseRate.KEYED),
+    }
 
     nature: tuple[str, str]
     capacity: tuple[str, str]
@@ -355,11 +465,16 @@ _VOICE: dict[str, _Voice] = {
             "தொடங்குவது — வராத ஒரு உறுதிக்காகக் காத்திருக்கிறீர்கள்",
             "starting; you wait for a certainty that does not arrive",
         ),
+        # Reclassified 2026-08-05. The clause that stood here — "what you built
+        # then was built slowly, and mostly alone" — is E, not R: it asserts
+        # that the reader built something and that they were unsupported while
+        # they did. Neither is in the chart. A Saturn stretch is a rule about
+        # what the PERIOD asks for; the moment a sentence says what the reader
+        # did inside it, it has left the rule and started inventing a
+        # biography. The replacement stays on the period, where the rule is.
         past_texture=(
-            "அது பலனை விடப் பொறுமையையே அதிகம் கேட்டது; அப்போது நீங்கள் கட்டியது மெதுவாக, "
-            "பெரும்பாலும் தனியாகவே கட்டப்பட்டது",
-            "it asked for endurance more than it offered reward; what you built then was built slowly, "
-            "and mostly alone",
+            "அது பலனை விடப் பொறுமையையே அதிகம் கேட்டது; அங்கே எதுவும் அவசரத்திற்கு இணங்கவில்லை",
+            "it asked for endurance more than it offered reward, and nothing in it yielded to haste",
         ),
         now_texture=(
             "இந்தக் காலம் தாமதமாகத் தரும், ஆனால் தரும் — அவசரப்பட்டு செய்வதை விட இப்போது கட்டுவது நீடிக்கும்",
@@ -535,6 +650,35 @@ _VALIDATION: tuple[str, str] = (
     "That feeling is not misplaced.",
 )
 
+# Provenance for the copy that does not live on a _Voice — see _Voice.PROVENANCE
+# for the model, and tests/test_one_minute_reading.py for the enforcement. The
+# test discovers these tables by reflection rather than from a list, so a new
+# table of Tamil/English copy fails the suite until it is classified here.
+_TABLE_PROVENANCE: dict[str, tuple[Provenance, BaseRate]] = {
+    # Nine keyed variants, each falsifiable: a reader can meet one and say "no,
+    # that is not me", which is the only thing that makes meeting it worth
+    # anything.
+    "_SIGNATURE_OPENING": (Provenance.TENDENCY, BaseRate.KEYED),
+    # COMMON, and this is the honest entry in the table. The grievance is the
+    # highest-value sentence in the feature and the one carrying the most
+    # Barnum risk — the module comment above already says so. Keying it on the
+    # signature was the FORM fix and it worked; it is not the base-rate fix.
+    # Saturn's "why is it still taking so long" is true of most people who ever
+    # consulted an astrologer, whatever their chart. It stays, because a
+    # recognised complaint earns attention that the reading then spends on
+    # chart-derived material — but it is marked, so nobody mistakes it for
+    # proof and nobody builds the next trust mechanism on top of it.
+    "_SIGNATURE_GRIEVANCE": (Provenance.TENDENCY, BaseRate.COMMON),
+    # Claims nothing. Responds to the sentence before it.
+    "_VALIDATION": (Provenance.FRAME, BaseRate.KEYED),
+    "_SECOND_NOTE": (Provenance.FRAME, BaseRate.KEYED),
+    # The dasha/area affinity read out loud — a rule applied to the running
+    # lord, and the one place a date reaches the body text.
+    "_OUTLOOK_SUPPORTIVE": (Provenance.RULE, BaseRate.KEYED),
+    "_OUTLOOK_MIXED": (Provenance.FRAME, BaseRate.KEYED),
+    "_OUTLOOK_SLOW": (Provenance.RULE, BaseRate.KEYED),
+}
+
 # Beat 1 puts two grahas in consecutive sentences: the chart's dominant graha
 # (the opening) and the janma nakshatra's lord (the nature line). They often
 # disagree — a Sun-signature chart with a Ketu nakshatra opens "only fully
@@ -565,6 +709,15 @@ _SECOND_NOTE: tuple[str, str] = ("அதே நேரத்தில்:", "And 
 @dataclass(frozen=True, slots=True)
 class _ChildVoice:
     """``note`` — the child's temperament. ``action`` — what a parent can do."""
+
+    PROVENANCE: ClassVar[dict[str, tuple[Provenance, BaseRate]]] = {
+        # Present-tense behaviour a guardian can recognise today, which is also
+        # this gate's whole trust mechanism: a parent checks the note against
+        # the child in front of them, and nothing else in the reading has to be
+        # taken on faith.
+        "note": (Provenance.TENDENCY, BaseRate.KEYED),
+        "action": (Provenance.RULE, BaseRate.KEYED),
+    }
 
     note: tuple[str, str]
     action: tuple[str, str]
@@ -832,6 +985,37 @@ def _antardashas(maha: DashaPeriod) -> tuple[DashaPeriod, ...]:
 
 
 # ── Beat composition ─────────────────────────────────────────────────────────
+#
+# Most of this reading's words are NOT in the vocabulary tables above — they are
+# the frames the beat builders write around them ("From 2019 to 2026 you were
+# under Saturn", "At 34, marriage is the question the chart is being asked").
+# §6.5 of the audit classified the tables and stopped there, so the frames were
+# the unclassified half, and they are also where a contributor would actually
+# write an event claim: a frame has a date in it already, and adding what
+# happened on that date is one clause of work.
+#
+# So each beat declares the classes its own frames and tables contribute, and
+# the test asserts every beat the service emits is declared and that the union
+# is emittable. Adding a beat fails the suite until it is classified.
+_BEAT_PROVENANCE: dict[str, frozenset[Provenance]] = {
+    # Star, rasi, lagna (D) + the signature opening and nature (T).
+    "who_you_are": frozenset({Provenance.DERIVED, Provenance.TENDENCY, Provenance.FRAME}),
+    # Strength ranking (D) + capacity/soft-spot/grievance (T) + validation (F).
+    "strength_and_cost": frozenset({Provenance.DERIVED, Provenance.TENDENCY, Provenance.FRAME}),
+    # Dated dasa spans (D) + past_texture (R). The dates are the beat's whole
+    # value and also its whole risk — this is the beat v2's E→R+invitation
+    # operator is written for, and the one Rule 1 has always guarded.
+    "last_ten_years": frozenset({Provenance.DERIVED, Provenance.RULE}),
+    "right_now": frozenset({Provenance.DERIVED, Provenance.RULE}),
+    # Age and the topic routing (D) + the topic frame and outlook clause (R).
+    "your_age_question": frozenset({Provenance.DERIVED, Provenance.RULE}),
+    "next_ten_years": frozenset({Provenance.DERIVED, Provenance.RULE}),
+    # The minor path's forward beat carries NO texture claim by design — the
+    # handover and its date, and nothing about a person who does not exist yet.
+    # That is why it is D-only, and the absence of R here is the design.
+    "years_ahead": frozenset({Provenance.DERIVED}),
+    "one_thing": frozenset({Provenance.RULE, Provenance.FRAME}),
+}
 
 
 def _beat_who_you_are(
@@ -1681,9 +1865,12 @@ def build_one_minute_reading(
 
 __all__ = [
     "CALC_VERSION",
+    "EMITTABLE_PROVENANCE",
     "MAX_WORDS_EN",
     "MAX_WORDS_TA",
     "STATUS_UNDISCLOSED",
+    "BaseRate",
+    "Provenance",
     "TOPIC_CAREER",
     "TOPIC_CHILD_GROWTH",
     "TOPIC_EDUCATION",
