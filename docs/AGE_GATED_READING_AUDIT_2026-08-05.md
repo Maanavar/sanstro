@@ -522,11 +522,12 @@ v2 reorders the work. Provenance is cheap and static; the status fixes are safet
    right that a binary is wrong — "Not yet" is not "single", and a divorced or widowed reader has no
    button).~~ **DONE 2026-08-05** — see §6.8.
 3. ~~**Defect 2 — the widowed default.**~~ **DONE 2026-08-05** — see §6.8.
-4. **Provenance annotation + static test.** One field on `_Voice`, one test, and reclassify the Saturn
-   `past_texture` clause. Add the base-rate column from §6.3(a) before any new R copy is authored.
-5. **Falsifiability line**, conditional on `_lagna_is_reliable()`, in the **body**, near the top. ~2 strings
-   per language.
-6. Then Part 4's gate work (third-party register, G2 split, gate-keyed trust beat) as sequenced above.
+4. ~~**Provenance annotation + static test.**~~ **DONE 2026-08-05** (`19e11ae`) — see §6.9.
+5. ~~**Falsifiability line**, conditional on `_lagna_is_reliable()`, in the **body**, near the top.~~
+   **DONE 2026-08-05** (`26cb339`) — see §6.10.
+6. Then Part 4's gate work as sequenced above. **§4.2 item 1, the third-party register, is DONE
+   2026-08-05** (`831093f`) — see §6.11. G2 split, gate-keyed trust beat, the two lints and the per-gate
+   budget remain.
 
 Steps 1–3 are safety fixes and should not queue behind copy work. Steps 4–5 together cost ~4 strings per
 language and one dataclass field — they do **not** touch the 78-string review ceiling that §4.3 was
@@ -638,3 +639,120 @@ volunteering remarriage to the bereaved is a different thing from answering abou
 - **No test covers the client-side anchor.** `test_the_question_stands_in_the_gap_rather_than_ahead_of_the_reading`
   pins the backend contract (the anchor resolves, and is not the first beat); nothing pins the React fallback,
   because `web/` has no component test harness for this surface. Worth knowing before the next edit to it.
+
+## 6.9 What shipped for the provenance model (`19e11ae`)
+
+Every string now carries a declared class, asserted statically. **The adaptation is an improvement on v2's
+own design and worth stating as a general principle:** v2 specifies a runtime validator because it assumes a
+generator; on a fixed vocabulary the same rule is an annotation over the tables, and that is strictly
+stronger — a runtime dropper catches only what its matcher recognises, while a table with no E slot cannot
+emit an E sentence at all.
+
+**The model needed two things v2 does not have.**
+
+- **A sixth column, the base rate** (§6.3(a), as sequenced). It is a judgement, not a measurement, and no
+  test can make it for us — the column's job is to force the judgement to be *written down beside the copy*.
+  `_SIGNATURE_GRIEVANCE` is marked `COMMON`, which is the honest entry: keying it was the form fix and the
+  form fix worked, but Saturn's *"why is it still taking so long"* is true of most people who ever consulted
+  an astrologer. It stays — a recognised complaint earns attention that the reading then spends on
+  chart-derived material — and it is marked, so the next trust mechanism is not built on top of it.
+- **A sixth class, `F` for frame.** v2's table assumes every sentence is a claim and has no row for *"And
+  yet:"* or *"That feeling is not misplaced."* Forcing those into T would classify a conversational move as a
+  characterological inference, which is how a class system stops meaning anything.
+
+**The class is declared on the FACET, not the graha**, and the Saturn case is the argument for that shape: a
+facet that is T for Saturn and E for Mars is not a fact about Mars, it is a defect in the Saturn string. So
+`past_texture` was rewritten rather than relabelled — *"what you built then was built slowly, and mostly
+alone"* asserts that the reader built something and was unsupported doing it, neither of which is in the
+chart. It now reads *"nothing in it yielded to haste"*, which stays on the period.
+
+**Two things the work turned up that this audit had not:**
+
+1. **§6.5 classified the vocabulary tables and stopped there, which was the smaller half.** Most of the
+   reading's words are the frames the beat builders write around the vocabulary, and a frame already carries
+   a date — so turning one into an event claim is a single clause of work. That is where a contributor would
+   actually write one. `_BEAT_PROVENANCE` closes it.
+2. **A list-driven test would have decayed on the first addition.** The two tests that matter are reflective:
+   a new module-level table of Tamil/English copy is unclassified until somebody classifies it, and a seventh
+   facet on `_Voice` fails the suite. Both directions are asserted — a declared-but-never-emitted entry is
+   the stale-baseline problem this repo has paid for before.
+
+## 6.10 What shipped for the falsifiability line (`26cb339`)
+
+A beat, second, on every path. We already computed the input and were putting the output in the wrong place:
+`_lagna_is_reliable` decided whether to open on the lagna, and when it said no we wrote the disclosure into
+`basis` — so the reader most affected by the uncertainty was the one least likely to hear about it.
+
+**Reading the output found the defect the analysis had not, and it is a correction to v2's own wording.**
+v2's line — *"if that doesn't sound like you, the birth time is off"* — is sound in v2's specimen, where it
+sits immediately before a paragraph **describing the lagnam**. Our beat 1 is not that paragraph: its two
+claims come from the janma nakshatra and the chart signature, and the rising sign is only *named*. The Moon
+covers ~0.55° an hour against a 13°20' nakshatra, so **twenty minutes essentially never moves the star** — a
+reader saying "that is not me" has therefore said almost nothing about the birth *time*, and the line was
+about to send them to check the one input their objection was not evidence about. The confirmed form now
+says "birth date and time"; only the unconfirmed form, which really is about the lagna (~15°/hour against a
+30° rasi), rests its case on twenty minutes.
+
+**Three more, all found by measuring rather than by reading the plan:**
+
+1. **The ceiling rose to 285/212 and nothing was cut to pay for it.** Worth recording because the last raise
+   was not like that — the 08-04 raise found a clause spending thirteen words to report an absence of signal.
+   The beats that remain are all chart-derived, and paying for a trust device by deleting a chart claim would
+   trade the reading's substance for its frame.
+2. **`MAX_WORDS_TA` has never been a clock figure.** 212 words at ~130 wpm is ~98s, and 190 was already ~88s.
+   It was set as a ratio of the English ceiling rather than derived, so it has been quietly making a
+   different promise the whole time. **§4.2 item 5's per-gate budget should re-derive both from the clock.**
+3. **The unconfirmed branch is the *longer* reading and was outside the budget matrix.** Saying what was left
+   out and what stood in its place costs more than the two words beat 1 saves by dropping the rising sign, so
+   it is now the binding case for the English ceiling. Same shape of gap as the 66/married one.
+
+On the client: rendered at body weight the beat reads as the reading's own second sentence, which turns the
+strongest trust device we have into cold water two paragraphs in. It is not part of the reading — it is the
+terms the reading is offered under — so it is set one step down, in `--color-muted` and **not**
+`--color-faint`, because faint is the disclosure register and a reader whose birth time *is* wrong needs to
+read this line. The first draft reached for `--color-text-muted`, which **exists nowhere in the codebase** —
+the phantom-token class from the 07-20 light-theme audit, caught by grepping the token rather than by looking
+at the page, where it would have looked fine.
+
+## 6.11 What shipped for the third-party register (`831093f`, §4.2 item 1)
+
+An adult who is not the account holder gets four beats, every one D or F. The omissions **are** the fix:
+`strength_and_cost` (a character verdict nobody asked for, plus a private complaint quoted to a relative),
+`last_ten_years` (G4's trust mechanism, earned from the person whose decade it was), `your_age_question`
+(where marriage timing lives), `next_ten_years` and `one_thing` ("what they will achieve", and an
+instruction with no valid recipient).
+
+What is kept is the chart facts, the falsifiability offer, and the running period **by name and dates only**.
+`now_texture` cannot travel with it: six of nine variants are second person, and the three that are not would
+still be a claim about an absent adult's coming years told to their relative. **Naming a period is a fact
+about the chart; describing it is a reading of the person.**
+
+Beat 1 carries no character note at all in this register, because both available vocabularies are wrong for
+it — the adult facets are second person and rewriting them in a string pass is the defect that once produced
+*"they carry yourself as someone in charge"*, while the child facets describe a life this person is decades
+past. Saying less is the correct interim, and the close says so out loud. The close cannot be the source
+document's *"bring them here and I will talk to them"*: that is a first-person claim to practice, v2 ship
+blocker #5, and it does not port for the same reason "in fifty years" does not.
+
+**Two more instances of the same defect, neither of them in §3.1:**
+
+1. **The pending question would have asked a father to declare his adult daughter's marital status.** It
+   PATCHes the birth profile, so his answer would have reached `life_areas`, `marriage_service` and daily
+   guidance as though she had given it. `TOPIC_THIRD_PARTY` is a distinct marker from `TOPIC_UNKNOWN` for
+   exactly this reason: UNKNOWN means *ask*, and asking is what must not happen here.
+2. **The web title tested for `addressedTo === "parent"`**, so the moment the backend grew a third register
+   an adult member's card would have been headed *"Your chart in one minute"* over somebody else's reading.
+
+`_focus_topic` is not called at all in this register rather than called and ignored — computing the answer
+and merely not rendering the beat still puts it on the wire under `focusTopic`, which is how a suppression
+becomes a leak. The minor branch stays **first** in the routing and that ordering is load-bearing: the
+guardian register is the *stricter* of the two third-party registers, so falling through to "other" would be
+a downgrade. Tested.
+
+**Why nothing caught this:** the tests reach charts through `/birth-profiles`, and a profile created that way
+has no `family_member_id` at all — so the entire third-party path was invisible to the suite. The new tests
+go through the family-vault route.
+
+**Open, named rather than silently kept:** a **minor** family member who is not the owner's child (a younger
+sibling) still gets the guardian register's *"one thing parents can do"* lead-in. Pre-existing, narrower than
+what this fixed, and widening the register would have grown a safety commit.
