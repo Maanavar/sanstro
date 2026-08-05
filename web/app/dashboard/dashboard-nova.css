@@ -2586,6 +2586,259 @@ button.ui-chip { cursor: pointer; }
   [data-ui="nova"] .cd-shell .ui-toggle { min-height: var(--touch-target); }
 }
 
+/* ═══════════════════════════════════════════════════════════
+   "YOUR CHART IN ONE MINUTE" — the reading surface.
+   docs/ONE_MINUTE_READING_2026-08-04.md §2, component
+   web/components/dashboard-one-minute-reading.tsx.
+
+   Deliberately NOT a <Card>. Everything else on Family & Charts is a card of
+   facts; this is the one thing on the page written to be *read* rather than
+   scanned, and the spec's first rendering rule ("prose, not panels") only
+   means anything if the surface itself stops looking like the panels around
+   it. So: an opening page — one centred measure, a warm wash at the head,
+   real paragraph rhythm, and no chrome competing with the words.
+
+   Unscoped (no .cd-shell prefix) purely so it never has to out-specify
+   .ui-card; it still reads the token layer by inheritance, which is where
+   every colour, radius and step below comes from.
+   ═══════════════════════════════════════════════════════════ */
+.om {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-accent) 5%, transparent) 0%,
+      transparent 260px
+    ),
+    var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: clamp(24px, 3.6vw, 46px) clamp(20px, 3.4vw, 40px);
+}
+
+/* The measure, capped AND centred. A 62ch column pinned to the left edge of a
+   1200px card leaves half the surface empty and reads as a layout bug rather
+   than as a margin — the single loudest thing wrong with the first build.
+   In px, not ch: `ch` resolves against THIS element's font (the UI sans), not
+   the serif the paragraphs are actually set in, so it sizes the wrong text.
+   620px holds ~75 characters of the prose face — the top of the readable band. */
+.om__col {
+  max-width: 620px;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.om__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-4);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+/* Takes the remaining width so the toggle sits hard right, and wraps the whole
+   control below the text rather than crushing it once the row runs out. */
+.om__head-text {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+.om__title {
+  margin: 0;
+  font-family: var(--font-display, Georgia, serif);
+  font-size: var(--display-sm);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--color-text-strong);
+}
+/* Says WHY it will look the same tomorrow. The reading moves at the antardasha
+   boundary, never daily; unlabelled, that stability reads as a page that failed
+   to refresh, which is the opposite of the trust it is meant to buy. */
+.om__meta {
+  margin: 8px 0 0;
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  color: var(--color-faint);
+}
+
+/* ONE control for all seven bases, not seven. The per-beat links repeated the
+   same five underlined words down the column, fragmenting a piece of writing
+   into a list of toggles — whether the reader wants the astrological layer at
+   all is a single decision, so it is asked once, out of the prose column. */
+.om__basis-toggle {
+  flex: 0 0 auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-muted);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  line-height: 1;
+  padding: 9px 15px;
+  cursor: pointer;
+  transition:
+    color var(--motion-toggle) var(--ease-nova),
+    border-color var(--motion-toggle) var(--ease-nova);
+}
+.om__basis-toggle:hover {
+  color: var(--color-text-strong);
+  border-color: var(--color-border-strong);
+}
+.om__basis-toggle:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 2px;
+}
+
+/* One blank line between paragraphs — 28px against a 28.5px computed line. */
+.om__beats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
+.om__beat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.om__beat--close {
+  margin-top: var(--space-1);
+}
+
+.om__p {
+  margin: 0;
+  font-family: var(--font-nova-prose, var(--font-body, system-ui, sans-serif));
+  font-size: var(--text-md);
+  line-height: 1.78;
+  color: var(--color-text);
+}
+/* The opening beat is the sentence a reader can look at and say "no, that is
+   not me" — it carries the whole reading, so it is set as a lead rather than
+   as the first of seven identical blocks. */
+.om__p--lead {
+  font-size: var(--text-lg);
+  line-height: 1.5;
+  color: var(--color-text-strong);
+}
+
+.om__basis {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--color-faint);
+  animation: om-basis-in var(--motion-nav) var(--ease-nova) both;
+}
+@keyframes om-basis-in {
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* The close lands on its own surface so the eye knows the piece has finished —
+   a tint, never a coloured edge stripe. */
+.om__close {
+  background: color-mix(in srgb, var(--color-accent) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 24%, transparent);
+  border-radius: var(--radius-md);
+  padding: clamp(16px, 2.2vw, 22px) clamp(18px, 2.4vw, 26px);
+}
+.om__close .om__p {
+  font-weight: 500;
+  line-height: 1.66;
+  color: var(--color-text-strong);
+}
+
+/* The one question the reading is allowed to ask, rendered in the gap left by
+   the beat that was withheld for want of the answer — its copy says a part is
+   held back, so it has to stand where that part would have been. */
+.om__ask {
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 22%, transparent);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.om__ask-prompt {
+  margin: 0;
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--color-text-strong);
+}
+.om__ask-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.om__ask-btn {
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-strong);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  padding: 9px 16px;
+  cursor: pointer;
+  transition:
+    border-color var(--motion-toggle) var(--ease-nova),
+    background var(--motion-toggle) var(--ease-nova);
+}
+.om__ask-btn:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  background: var(--color-accent-muted);
+}
+.om__ask-btn:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 2px;
+}
+.om__ask-btn:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.om__next {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: var(--text-base);
+  color: var(--color-accent-strong);
+  cursor: pointer;
+  text-underline-offset: 4px;
+}
+.om__next:hover { text-decoration: underline; }
+.om__next:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+/* Held back 200ms by the component so a flag-off deployment's fast 404 never
+   flashes a skeleton for a feature that is not there. */
+.om__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.om__skeleton span {
+  display: block;
+  height: 13px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-text-strong) 9%, transparent);
+  animation: om-pulse 1.6s var(--ease-nova) infinite;
+}
+@keyframes om-pulse {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 0.9; }
+}
+
+@media (pointer: coarse) {
+  .om__basis-toggle,
+  .om__ask-btn { min-height: var(--touch-target); }
+}
+
 /* ── Reduced-motion guard ──────────────────────────────────
    First-class a11y path: honour the OS preference by collapsing every
    Nova animation/transition to instant. Scoped to [data-ui="nova"] so it

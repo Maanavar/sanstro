@@ -36,6 +36,7 @@ import {
   ageFromBirth,
 } from "./dashboard-family-shared";
 import { DashboardFamilyMemberNova } from "./dashboard-family-member-nova";
+import { DashboardOneMinuteReading } from "./dashboard-one-minute-reading";
 import { NovaScoreDial } from "./dashboard-ui-nova";
 import { DashboardFamilyHarmonyRemedies } from "./dashboard-family-harmony-remedies";
 import { RasiChart, NavamsaChart } from "./dashboard-charts";
@@ -923,6 +924,14 @@ export function DashboardFamilyChartsHybrid({
                 )}
               </div>
             </div>
+
+            {/* "Your Chart in One Minute" — the first thing on the active
+                member's reading, and deliberately ABOVE the score dial: it is
+                the one piece here written to be read rather than scanned, and
+                a number placed before it would be answered first. Renders
+                nothing while the `one_minute_reading` flag is off.
+                docs/ONE_MINUTE_READING_2026-08-04.md §7. */}
+            {readingChartId && <DashboardOneMinuteReading lang={lang} chartId={readingChartId} />}
 
             <div className="hy-grid-hero">
               {/* Cosmic snapshot */}

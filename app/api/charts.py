@@ -32,6 +32,7 @@ from app.schemas.charts import (
 )
 from app.schemas.dashboard_bundle import ChartDashboardBundleResponse
 from app.schemas.dasha import DashaTimelineResponse
+from app.schemas.one_minute_reading import OneMinuteReadingResponse
 from app.services.chart_explanation_service import build_chart_explanation
 from app.services.dashboard_bundle_service import get_chart_dashboard_bundle
 from app.services.chart_service import (
@@ -43,6 +44,10 @@ from app.services.chart_service import (
     load_persisted_chart_response,
 )
 from app.services.dasha_service import get_chart_dasha
+from app.services.one_minute_reading_service import (
+    build_one_minute_reading,
+    require_one_minute_reading_enabled,
+)
 from app.services.pdf_export_service import generate_chart_pdf
 from app.services.shadbala_service import build_shadbala_response
 from app.services.tajaka_service import get_varshaphala
@@ -157,6 +162,28 @@ def get_report(
 ) -> JadhagamReportResponse:
     _assert_chart_owner(session, chart_id, current_user)
     return get_jadhagam_report(session, chart_id)
+
+
+@router.get(
+    "/charts/{chart_id}/one-minute",
+    response_model=OneMinuteReadingResponse,
+    tags=["charts"],
+    summary="Your Chart in One Minute — the astrologer's opening reading, in plain language",
+)
+def get_one_minute_reading(
+    chart_id: UUID,
+    as_of: date | None = Query(default=None, alias="asOf"),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> OneMinuteReadingResponse:
+    # Flag first, chart second — see require_one_minute_reading_enabled's docstring.
+    require_one_minute_reading_enabled()
+    return build_one_minute_reading(
+        session,
+        chart_id,
+        owner_user_id=current_user.user_id,
+        as_of=as_of,
+    )
 
 
 @router.get("/charts/{chart_id}/explanation", response_model=ChartExplanationResponse, tags=["charts"])

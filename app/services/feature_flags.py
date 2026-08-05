@@ -216,6 +216,26 @@ def _defaults() -> dict[str, Any]:
         # make results reach a real user today — see UnverifiedCanonError
         # above, still unresolved as of this flip.
         "numerology_baby_naming": True,
+        # "Your Chart in One Minute" (docs/ONE_MINUTE_READING_2026-08-04.md).
+        # A ~200-word plain-language reading composed from engines that already
+        # exist — Vimshottari, strength scores, the age gates, the dasha/area
+        # affinity table. No new calculation, no LLM, no new content gate.
+        #
+        # This is a ROLLOUT flag, not a content gate, and the distinction is the
+        # point: flag-off means the feature is absent, not that it renders with
+        # its sentences nulled. The four numerology CONTENT_REVIEWED gates
+        # produce the latter, and docs/DASHBOARD_PRODUCT_DECISIONS_2026-08-02.md
+        # P0-2 is a full account of why that outcome is worse. The Tamil copy
+        # here ships under a PENDING NATIVE-TAMIL REVIEW marker in the service
+        # docstring, which is the same posture nakshatra_content.NAKSHATRA_LENS
+        # already ships live under.
+        #
+        # Flipped True 2026-08-04 so the surface is reachable for the authed
+        # browser pass — with it off the route 404s and the component renders
+        # null, so the review could not happen at all. If the browser pass finds
+        # something that cannot be fixed in the same sitting, set this back to
+        # False rather than leaving a half-right reading on Family & Charts.
+        "one_minute_reading": True,
     }
 
 
