@@ -232,14 +232,18 @@ export function DashboardOneMinuteReading({
         : "";
 
   const given = data.displayName.split(" ")[0] || data.displayName;
+  // "self" is the only register that gets "your chart". This used to test for
+  // "parent", so the moment the backend grew a third register an adult family
+  // member's card was headed "Your chart in one minute" over somebody else's
+  // reading — the same mistake as the body copy, one line further out.
   const title =
-    data.addressedTo === "parent"
+    data.addressedTo === "self"
       ? lang === "ta"
-        ? `${given} — ஒரு நிமிடத்தில்`
-        : `${given}, in one minute`
-      : lang === "ta"
         ? "உங்கள் ஜாதகம் — ஒரு நிமிடத்தில்"
-        : "Your chart in one minute";
+        : "Your chart in one minute"
+      : lang === "ta"
+        ? `${given} — ஒரு நிமிடத்தில்`
+        : `${given}, in one minute`;
   const titleId = `om-title-${chartId}`;
 
   const hasBasis = data.beats.some((beat) => beat.basis);

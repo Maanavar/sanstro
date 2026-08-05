@@ -84,7 +84,7 @@ from app.core.age_gate import (
     is_past_prime_marriage_age,
     is_seeking_marriage,
 )
-from app.models import BirthProfile, Chart
+from app.models import BirthProfile, Chart, FamilyMember
 from app.reasoning.chart_signature import detect_signature
 from app.schemas.one_minute_reading import (
     OneMinuteBeat,
@@ -701,6 +701,11 @@ _VALIDATION: tuple[str, str] = (
 # the one input their objection was not evidence about. The lagna does turn on
 # it (~15°/hour against a 30° rasi), which is why the unconfirmed form is the
 # one that gets to say "twenty minutes".
+#
+# Keyed on REGISTER rather than on ``addressed_to`` directly: a guardian reading
+# a child's chart and a daughter reading her father's are the same speech act
+# here — somebody checking a description against a person who is not them — and
+# the copy does not care which.
 _FALSIFIABILITY: dict[tuple[str, bool], tuple[str, str]] = {
     ("self", True): (
         "இது உங்களைப் பற்றியதாக இல்லை என்று தோன்றினால் — சிறிதளவும் அல்ல, உண்மையிலேயே இல்லை "
@@ -716,14 +721,14 @@ _FALSIFIABILITY: dict[tuple[str, bool], tuple[str, str]] = {
         "The birth time is not confirmed, so this reading leaves the rising sign out — twenty "
         "minutes can move it. It does not move your star, which the rest is built on.",
     ),
-    ("parent", True): (
+    ("third_person", True): (
         "இது {name}-ஐப் பற்றியதாக இல்லை என்று தோன்றினால் — சிறிதளவும் அல்ல, உண்மையிலேயே இல்லை "
         "என்றால் — தொடர்வதற்கு முன் பிறந்த தேதியையும் நேரத்தையும் சரிபாருங்கள். இருபது "
         "நிமிடங்கள் லக்னத்தை மாற்றிவிடும்.",
         "If that does not sound like {name} — not partly, genuinely not — check the birth date "
         "and time before reading on. Twenty minutes can move the rising sign.",
     ),
-    ("parent", False): (
+    ("third_person", False): (
         "{name}-இன் பிறந்த நேரம் உறுதிப்படுத்தப்படவில்லை; அதனால் இந்த வாசிப்பு லக்னத்தை "
         "விட்டுவிடுகிறது — இருபது நிமிடங்கள் அதை மாற்றிவிடும். அவரின் நட்சத்திரத்தை அது "
         "மாற்றுவதில்லை; மீதி அதன் மீதுதான் நிற்கிறது.",
@@ -731,6 +736,34 @@ _FALSIFIABILITY: dict[tuple[str, bool], tuple[str, str]] = {
         "twenty minutes can move it. It does not move their star, which the rest is built on.",
     ),
 }
+
+# ── Reading a chart that belongs to somebody else ────────────────────────────
+#
+# §3.1 of docs/AGE_GATED_READING_AUDIT_2026-08-05.md, and the source document's
+# hardest cross-gate prohibition: NOBODY WHO IS NOT IN THE ROOM GETS READ IN
+# ACHIEVEMENT TERMS — not a spouse, not a child, not a business partner.
+#
+# The family vault is member-centric and this reading was placed as its first
+# section per member, so a 52-year-old father opening his 26-year-old daughter's
+# card was handed her full adult reading: the signature opening, her private
+# grievance quoted back as her own inner question, her soft spot, and her
+# marriage-timing beat — every one of them addressed as "you".
+#
+# The close is not an apology for a shorter reading. A reading that simply stops
+# reads as broken, and the honest sentence is available: the material we are
+# withholding is not missing, it is HERS, and a chart read at second hand has a
+# natural end. It doubles as the invite loop, which is not the reason it is here
+# but is not nothing either.
+#
+# It cannot say what the source document says — "bring them here and I will talk
+# to them" — because that is a first-person claim to practice, which is v2 ship
+# blocker #5 and does not port for the same reason "in fifty years" does not.
+_THIRD_PARTY_CLOSE: tuple[str, str] = (
+    "தன்னைப் பற்றி வாசிக்காத ஒருவரைப் பற்றி ஜாதகம் இவ்வளவுதான் சொல்லும். மீதி "
+    "{name}-க்குச் சொந்தமானது; அவர் கேட்கும்போது அது திறக்கும்.",
+    "That is as far as a reading goes for someone who is not the one reading it. The rest is "
+    "{name}'s own, and it opens when they ask for it.",
+)
 
 # Provenance for the copy that does not live on a _Voice — see _Voice.PROVENANCE
 # for the model, and tests/test_one_minute_reading.py for the enforcement. The
@@ -759,6 +792,8 @@ _TABLE_PROVENANCE: dict[str, tuple[Provenance, BaseRate]] = {
     # (twenty minutes moves the lagna). It says nothing about the reader, which
     # is exactly why it can be trusted to say the reading might be wrong.
     "_FALSIFIABILITY": (Provenance.DERIVED, BaseRate.KEYED),
+    # Claims nothing about anybody. States where the reading stops, and why.
+    "_THIRD_PARTY_CLOSE": (Provenance.FRAME, BaseRate.KEYED),
     # The dasha/area affinity read out loud — a rule applied to the running
     # lord, and the one place a date reaches the body text.
     "_OUTLOOK_SUPPORTIVE": (Provenance.RULE, BaseRate.KEYED),
@@ -944,6 +979,12 @@ TOPIC_STEADYING = "STEADYING"
 # Not a topic: the marker that we cannot pick one without a fact we do not hold.
 # Beat 5 is withheld, and the reading asks instead of guessing.
 TOPIC_UNKNOWN = "UNKNOWN"
+# Also not a topic: the marker that the subject is an adult who is not the
+# reader, so there is no question of theirs for us to raise with somebody else.
+# Distinct from TOPIC_UNKNOWN deliberately — UNKNOWN means "ask", and asking is
+# precisely what must not happen here. Emitted on the wire so a client can tell
+# a short reading from a broken one.
+TOPIC_THIRD_PARTY = "THIRD_PARTY"
 
 # The declined answer (app.schemas.birth_profiles._VALID_MARITAL_STATUSES). It
 # withholds beat 5 exactly as a blank does, and additionally stops the question:
@@ -1104,6 +1145,12 @@ _BEAT_PROVENANCE: dict[str, frozenset[Provenance]] = {
     # That is why it is D-only, and the absence of R here is the design.
     "years_ahead": frozenset({Provenance.DERIVED}),
     "one_thing": frozenset({Provenance.RULE, Provenance.FRAME}),
+    # The third-party register. D-only and F-only respectively, and that is the
+    # whole safety property: the reading of an absent adult contains no
+    # interpretation of them at all, only chart facts and a statement of where
+    # it stops. Anything added here that is not D has to answer §3.1 first.
+    "period_now": frozenset({Provenance.DERIVED}),
+    "third_party_close": frozenset({Provenance.FRAME}),
 }
 
 
@@ -1124,7 +1171,19 @@ def _beat_who_you_are(
     lagna_ta = f", {lagna_rasi} லக்னத்தில்" if lagna_reliable else ""
     lagna_en = f", {lagna_rasi} rising" if lagna_reliable else ""
 
-    if addressed_to == "parent":
+    if addressed_to == "other":
+        # An adult who is not the reader gets the chart FACTS and no character
+        # note at all. There is a third-person nature vocabulary to be written
+        # (§4.2 item 1, deferred to the second review sitting in §4.3), and
+        # until it exists the only two candidates are both wrong: the adult
+        # facets are second person, and rewriting them in a string pass is the
+        # exact defect that produced "they carry yourself as someone in charge";
+        # the child facets describe a life this person is decades past. Saying
+        # less is the correct interim, and the close says so out loud.
+        given = _first_name(display_name)
+        ta = f"{given} {star} நட்சத்திரத்தில், {moon_rasi} ராசியில்{lagna_ta} பிறந்தவர்."
+        en = f"{given} was born under {star}, Moon in {moon_rasi}{lagna_en}."
+    elif addressed_to == "parent":
         child = _CHILD_VOICE[nakshatra_lord]
         given = _first_name(display_name)
         ta = (
@@ -1160,7 +1219,7 @@ def _beat_who_you_are(
 
     basis_ta = f"{star} நட்சத்திரம் (அதிபதி {planet_ta(nakshatra_lord)})"
     basis_en = f"{star} nakshatra, lord {planet_en(nakshatra_lord)}"
-    if addressed_to != "parent":
+    if addressed_to == "self":
         basis_ta += f"; ஜாதகத்தின் மைய கிரகம் {planet_ta(signature_lord)}"
         basis_en += f"; chart signature {planet_en(signature_lord)}"
     if lagna_reliable:
@@ -1194,7 +1253,8 @@ def _beat_what_this_rests_on(
     wants to set it in a different register needs it separable.
     """
     given = _first_name(display_name)
-    ta, en = _FALSIFIABILITY[(addressed_to, lagna_reliable)]
+    register = "self" if addressed_to == "self" else "third_person"
+    ta, en = _FALSIFIABILITY[(register, lagna_reliable)]
 
     source = (birth_time_source or "unknown").upper()
     return OneMinuteBeat(
@@ -1716,6 +1776,57 @@ def _beat_years_ahead_for_a_child(
     )
 
 
+def _beat_period_for_someone_else(
+    *, timeline: VimshottariTimeline, display_name: str
+) -> OneMinuteBeat:
+    """Which period is running, and nothing about what it offers them.
+
+    §4.2 item 1 keeps the running period for a third-party reading, and the
+    dates are the whole of what it keeps. ``now_texture`` cannot come with them:
+    six of its nine variants are written in the second person ("what you build
+    now outlasts what you rush"), and the three that are not would still be a
+    claim about an absent adult's coming years, delivered to their relative.
+    Naming the period is a fact about the chart. Describing it is a reading of
+    the person, and this is not their reading.
+    """
+    maha = timeline.current_mahadasha
+    given = _first_name(display_name)
+    ta = (
+        f"{given} இப்போது {planet_ta(maha.lord)} காலத்தில் இருக்கிறார் — "
+        f"{maha.start_date.year} முதல் {maha.end_date.year} வரை."
+    )
+    en = (
+        f"{given} is in a {planet_en(maha.lord)} period, running from "
+        f"{maha.start_date.year} to {maha.end_date.year}."
+    )
+    return OneMinuteBeat(
+        id="period_now",
+        text=OneMinuteText(ta=ta, en=en),
+        basis=OneMinuteText(
+            ta=(
+                f"{planet_ta(maha.lord)} மகாதசை "
+                f"{maha.start_date.isoformat()} – {maha.end_date.isoformat()}"
+            ),
+            en=(
+                f"{planet_en(maha.lord)} mahadasha "
+                f"{maha.start_date.isoformat()} to {maha.end_date.isoformat()}"
+            ),
+        ),
+    )
+
+
+def _beat_third_party_close(*, display_name: str) -> OneMinuteBeat:
+    """Where a chart read at second hand stops, said out loud — see _THIRD_PARTY_CLOSE."""
+    given = _first_name(display_name)
+    return OneMinuteBeat(
+        id="third_party_close",
+        text=OneMinuteText(
+            ta=_THIRD_PARTY_CLOSE[0].format(name=given),
+            en=_THIRD_PARTY_CLOSE[1].format(name=given),
+        ),
+    )
+
+
 def _beat_one_thing(*, timeline: VimshottariTimeline, addressed_to: str) -> OneMinuteBeat:
     lord = timeline.current_mahadasha.lord
     if addressed_to == "parent":
@@ -1738,6 +1849,22 @@ def _beat_one_thing(*, timeline: VimshottariTimeline, addressed_to: str) -> OneM
 
 
 # ── Entry point ──────────────────────────────────────────────────────────────
+
+
+def _relationship_to_owner(session: Session, profile: BirthProfile) -> str:
+    """Who this chart belongs to, relative to the account looking at it.
+
+    Resolved exactly as charts.py:233 and predictions.py:171 already resolve it,
+    down to the "self" default when there is no family-member row — three
+    surfaces asking the same question of the same two columns should not answer
+    it three ways.
+    """
+    if profile.family_member_id is None:
+        return "self"
+    member = session.get(FamilyMember, profile.family_member_id)
+    if member is None:
+        return "self"
+    return member.relationship_to_owner or "self"
 
 
 def _lagna_is_reliable(profile: BirthProfile) -> bool:
@@ -1811,11 +1938,33 @@ def build_one_minute_reading(
     age = compute_age(profile.birth_date_local, as_of=today)
     stage = life_stage(age)
     age_band = get_age_phase_label(age)
-    addressed_to = "parent" if is_minor_age(age) else "self"
-    topic = _focus_topic(
-        age=age,
-        marital_status=profile.marital_status,
-        employment_type=profile.employment_type,
+    # Three registers, and the order is the safety property. A minor is read to
+    # their guardian whoever holds the account; an ADULT who is not the account
+    # holder is read as somebody who is not in the room (§3.1); only the account
+    # holder's own chart is read to them in the second person.
+    #
+    # The minor branch stays first because it is already a third-party register
+    # and a stricter one — it has its own vocabulary and drops two beats — so
+    # falling through to "other" would be a downgrade, not an upgrade.
+    if is_minor_age(age):
+        addressed_to = "parent"
+    elif _relationship_to_owner(session, profile) != "self":
+        addressed_to = "other"
+    else:
+        addressed_to = "self"
+
+    # _focus_topic answers "what is this reader's age asking about", and for an
+    # absent adult there is no reader to ask it of. Calling it anyway and simply
+    # not rendering the beat would still put the answer on the wire, where a
+    # client is free to render it — which is how a suppression becomes a leak.
+    topic = (
+        TOPIC_THIRD_PARTY
+        if addressed_to == "other"
+        else _focus_topic(
+            age=age,
+            marital_status=profile.marital_status,
+            employment_type=profile.employment_type,
+        )
     )
     strongest, weakest = _strongest_and_weakest(chart_response.data.planets)
     nakshatra_lord = timeline.opening_lord  # the janma nakshatra's lord, by construction
@@ -1843,14 +1992,34 @@ def build_one_minute_reading(
         addressed_to=addressed_to,
         birth_time_source=profile.birth_time_source,
     )
-    if addressed_to == "parent":
+    if addressed_to == "other":
+        # Four beats, every one of them D or F, and the omissions are the point.
+        # What goes, and why each one had to:
+        #   strength_and_cost — the soft spot is a character verdict on somebody
+        #     who did not ask for one, and the grievance quotes their private
+        #     complaint back to a relative as though they had said it aloud.
+        #   last_ten_years — the dated past is G4's trust mechanism and it is
+        #     earned from the person whose decade it was, not collected about
+        #     them by someone else.
+        #   your_age_question — this is where marriage timing lives.
+        #   next_ten_years / one_thing — "what they will achieve" and an
+        #     instruction with no valid recipient; §4.2 keeps one thing the
+        #     READER can do, and that needs the third-party vocabulary the
+        #     second review sitting is for.
+        beats: list[OneMinuteBeat] = [
+            opening,
+            rests_on,
+            _beat_period_for_someone_else(timeline=timeline, display_name=profile.display_name),
+            _beat_third_party_close(display_name=profile.display_name),
+        ]
+    elif addressed_to == "parent":
         # Five beats, all natively third person and addressed to the parent. The
         # strength/soft-spot and last-ten-years beats are absent by design, not
         # softened: one is a character verdict a child has not earned, the other
         # describes the parents' decade rather than the child's.
         # A minor always routes to CHILD_GROWTH, so beat 5 is never the withheld
         # one on this path and never needs the marital question.
-        beats: list[OneMinuteBeat] = [
+        beats = [
             opening,
             rests_on,
             _beat_age_question(
@@ -1910,6 +2079,14 @@ def build_one_minute_reading(
     # themselves as something they are not, which then fed every other surface
     # through the PATCH. Each option below is a real value of
     # birth_profiles._VALID_MARITAL_STATUSES and means what it says.
+    #
+    # TOPIC_THIRD_PARTY never reaches here, and that is a third instance of the
+    # same defect rather than a consequence of the first two. The question
+    # PATCHes the birth profile, so on a family-vault card it would have asked a
+    # father to declare his adult daughter's marital status — a status she has
+    # not disclosed, written by somebody else, and then propagated to
+    # life_areas, marriage_service and daily guidance as though she had. Beat 5
+    # being absent here is not a gap waiting on an answer; it is the register.
     pending: OneMinutePendingQuestion | None = None
     if topic == TOPIC_UNKNOWN and not (profile.marital_status or "").strip():
         pending = OneMinutePendingQuestion(
@@ -2008,6 +2185,7 @@ __all__ = [
     "TOPIC_MARRIAGE",
     "TOPIC_MARRIED_LIFE",
     "TOPIC_STEADYING",
+    "TOPIC_THIRD_PARTY",
     "TOPIC_UNKNOWN",
     "build_one_minute_reading",
 ]

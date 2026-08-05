@@ -2,9 +2,11 @@
 
 ``beats`` is an ARRAY, not seven named fields, deliberately: a beat can be
 suppressed (a minor gets no career beat, an unanswered marital-status question
-withholds beat 5) without the frontend having to know why. A named-field shape
-would force every consumer to re-implement the suppression rules that
-``one_minute_reading_service`` already owns.
+withholds beat 5, an adult who is not the reader gets neither a character
+reading nor a future) without the frontend having to know why. A named-field
+shape would force every consumer to re-implement the suppression rules that
+``one_minute_reading_service`` already owns — and the third-party register drops
+five of the seven, which would have made that shape untenable.
 """
 from __future__ import annotations
 

@@ -13,9 +13,12 @@ import uuid
 from datetime import UTC, date, datetime
 
 import pytest
+from sqlalchemy import select
 
 from app.calculations.astro import utc_datetime_to_julian_day
 from app.calculations.dasha import DashaPeriod, VimshottariTimeline
+from app.db.session import SessionLocal
+from app.models import BirthProfile, Chart
 from app.services import one_minute_reading_service as reading
 from app.services.feature_flags import reset_flag, set_flag
 from app.services.narrative_engine import tone_validator
@@ -345,6 +348,178 @@ def test_a_reader_who_has_lost_a_marriage_is_never_offered_remarriage_unasked(
     body_ta = _body(data, "ta")
     for token in ("திருமண", "கல்யாண", "மறுமண"):
         assert token not in body_ta, f"{marital_status} reader was told about '{token}': {body_ta}"
+
+
+# ── The third-party register: nobody who is not in the room ──────────────────
+#
+# §3.1 of docs/AGE_GATED_READING_AUDIT_2026-08-05.md, and the source document's
+# hardest cross-gate prohibition. This was a live product-shape defect, not a
+# copy defect: the family vault is member-centric and this reading is its first
+# section per member, so a father opening his adult daughter's card was handed
+# her whole reading — grievance, soft spot and marriage timing — as "you".
+
+
+def _vault_member_reading(
+    client, vault_factory, member_factory, *, age: int, relationship: str, name: str
+) -> dict:
+    """A chart reached the way the family vault reaches it, not by profile id.
+
+    The register turns on FamilyMember.relationship_to_owner, which a birth
+    profile created directly never has — so a test that posts to
+    /birth-profiles cannot see this behaviour at all.
+    """
+    vault = client.post("/api/v1/family-vaults", json=vault_factory())
+    assert vault.status_code == 200, vault.text
+    vault_id = vault.json()["data"]["familyVaultId"]
+
+    payload = member_factory(display_name=name, relationship_to_owner=relationship)
+    payload["birthDateLocal"] = _birth_date_for_age(age)
+    member = client.post(f"/api/v1/family-vaults/{vault_id}/members", json=payload)
+    assert member.status_code == 200, member.text
+    member_id = member.json()["data"]["familyMemberId"]
+
+    with SessionLocal() as session:
+        row = session.execute(
+            select(Chart.chart_id)
+            .join(BirthProfile, BirthProfile.birth_profile_id == Chart.birth_profile_id)
+            .where(BirthProfile.family_member_id == uuid.UUID(member_id))
+            .order_by(Chart.created_at.desc())
+        ).first()
+    assert row is not None, "the member's chart was not created"
+
+    response = client.get(f"/api/v1/charts/{row[0]}/one-minute")
+    assert response.status_code == 200, response.text
+    return response.json()["data"]
+
+
+def test_an_adult_who_is_not_the_reader_is_never_read_in_achievement_terms(
+    client, family_vault_payload_factory, family_member_payload_factory
+):
+    """The failure §3.1 found, pinned.
+
+    A 52-year-old opening his 26-year-old daughter's member card received her
+    signature opening, her private grievance quoted back as her own inner
+    question, her soft spot, and her marriage-timing beat — every one addressed
+    as "you". None of it may survive.
+    """
+    data = _vault_member_reading(
+        client,
+        family_vault_payload_factory,
+        family_member_payload_factory,
+        age=26,
+        relationship="child",
+        name="Divya Synthetic Daughter",
+    )
+
+    assert data["addressedTo"] == "other"
+    assert data["focusTopic"] == "THIRD_PARTY"
+
+    ids = [beat["id"] for beat in data["beats"]]
+    for withheld in ("strength_and_cost", "last_ten_years", "your_age_question", "next_ten_years"):
+        assert withheld not in ids, f"{withheld} reached a third-party reading: {ids}"
+
+    body = _body(data, "en").lower()
+    # Second person at all is the tell — the whole register is third person, so
+    # a single "you" means a beat leaked in from the reader's own path.
+    assert not re.search(r"\byou\b|\byour\b|\byourself\b", body), body
+    for token in _ADULT_TOKENS_EN:
+        assert token not in body, f"'{token}' reached a third-party reading: {body}"
+    assert "Divya" in _body(data, "en")
+
+
+def test_no_question_about_an_absent_adult_is_put_to_somebody_else(
+    client, family_vault_payload_factory, family_member_payload_factory
+):
+    """The third instance of the same defect, and the least obvious one.
+
+    The pending question PATCHes the birth profile. Raised on a family-vault
+    card it would ask a father to declare his adult daughter's marital status —
+    a status she has not disclosed, answered by somebody else, and propagated
+    from there to life_areas, marriage_service and daily guidance as though she
+    had said it herself.
+    """
+    data = _vault_member_reading(
+        client,
+        family_vault_payload_factory,
+        family_member_payload_factory,
+        age=30,
+        relationship="sibling",
+        name="Nila Synthetic Sibling",
+    )
+
+    assert data["pendingQuestion"] is None, data["pendingQuestion"]
+
+
+def test_a_reading_that_stops_early_says_so_rather_than_just_stopping(
+    client, family_vault_payload_factory, family_member_payload_factory
+):
+    """A short reading with no explanation reads as a broken one.
+
+    Same rule as the withheld beat 5: an unexplained gap is a bug, and "this is
+    where a chart read at second hand ends, and the rest is theirs" is the
+    restraint it actually is. It must not claim to be a person, either — "bring
+    them here and I will talk to them" is a first-person claim to practice and
+    is v2 ship blocker #5.
+    """
+    data = _vault_member_reading(
+        client,
+        family_vault_payload_factory,
+        family_member_payload_factory,
+        age=41,
+        relationship="spouse",
+        name="Ilango Synthetic Spouse",
+    )
+
+    close = next(b for b in data["beats"] if b["id"] == "third_party_close")
+    assert "Ilango" in close["text"]["en"]
+    assert "Ilango" in close["text"]["ta"]
+    body = _body(data, "en").lower()
+    for claim in (" i ", "i will", "i have", "my practice", "in my experience"):
+        assert claim not in f" {body} ", f"first-person claim to practice: {body}"
+
+
+def test_the_owners_own_chart_is_still_read_to_them_in_the_second_person(
+    client, family_vault_payload_factory, family_member_payload_factory
+):
+    """The gate is the RELATIONSHIP, not the vault.
+
+    Without this the safety fix would quietly gut the feature for everyone who
+    keeps their own chart in a family vault — which is most people who have one.
+    """
+    data = _vault_member_reading(
+        client,
+        family_vault_payload_factory,
+        family_member_payload_factory,
+        age=34,
+        relationship="self",
+        name="Arjun Synthetic Owner",
+    )
+
+    assert data["addressedTo"] == "self"
+    assert "strength_and_cost" in [beat["id"] for beat in data["beats"]]
+
+
+def test_a_minor_in_the_vault_keeps_the_guardian_register_rather_than_the_third_party_one(
+    client, family_vault_payload_factory, family_member_payload_factory
+):
+    """Order matters: the minor branch is checked first, and must stay first.
+
+    The guardian register is the STRICTER of the two third-party registers — it
+    has its own vocabulary, drops the strength and past beats, and addresses the
+    remedy to somebody who can act on it. Falling through to "other" would swap
+    a reading written for this case for one written for a different one.
+    """
+    data = _vault_member_reading(
+        client,
+        family_vault_payload_factory,
+        family_member_payload_factory,
+        age=9,
+        relationship="child",
+        name="Meena Synthetic Child",
+    )
+
+    assert data["addressedTo"] == "parent"
+    assert "years_ahead" in [beat["id"] for beat in data["beats"]]
 
 
 # ── The jargon rule, and its language asymmetry ──────────────────────────────
@@ -799,7 +974,9 @@ def test_every_keyed_table_covers_every_graha():
         assert set(getattr(reading, name)) == grahas, f"{name} does not cover every graha"
 
 
-def test_every_beat_the_service_emits_declares_its_provenance(client):
+def test_every_beat_the_service_emits_declares_its_provenance(
+    client, family_vault_payload_factory, family_member_payload_factory
+):
     """The frames are where an event claim would actually get written.
 
     Most of this reading's words are the frames the beat builders write around
@@ -811,10 +988,21 @@ def test_every_beat_the_service_emits_declares_its_provenance(client):
     stale-baseline problem this repo has paid for before.
     """
     emitted: set[str] = set()
-    # Two profiles cover all eight ids: the minor path (four beats, its own
-    # forward beat) and the full adult path.
+    # Three registers cover every id: the guardian path (its own forward beat),
+    # the full adult path, and the third-party path (its two own beats).
     for kwargs in ({"age": 8}, {"age": 33, "marital_status": "married"}):
         emitted |= {beat["id"] for beat in _read(client, **kwargs)["beats"]}
+    emitted |= {
+        beat["id"]
+        for beat in _vault_member_reading(
+            client,
+            family_vault_payload_factory,
+            family_member_payload_factory,
+            age=29,
+            relationship="sibling",
+            name="Tamil Synthetic Sibling",
+        )["beats"]
+    }
 
     undeclared = emitted - set(reading._BEAT_PROVENANCE)
     assert not undeclared, f"beats with no provenance class: {undeclared}"
