@@ -326,7 +326,8 @@ def get_jadhagam_report(session: Session, chart_id: UUID) -> JadhagamReportRespo
     vargottama_planets = [planet.graha for planet in chart_response.data.planets if planet.is_vargottama]
 
     gender = _value(birth_profile, "gender_for_traditional_rules")
-    active_focus = get_active_life_phases(current_age, gender)
+    children = _value(birth_profile, "children")
+    active_focus = get_active_life_phases(current_age, gender, children)
     life_area_predictions = [{"area": area, "status": "ACTIVE"} for area in active_focus]
 
     mahadasha_lord = timeline.current_mahadasha.lord
@@ -348,6 +349,7 @@ def get_jadhagam_report(session: Session, chart_id: UUID) -> JadhagamReportRespo
         antardasha_lord=antardasha_lord,
         lagna_rasi=chart_response.data.lagna.rasi,
         sani_cycle=sani_cycle,
+        children=children,
     )
 
     practical = get_age_based_practical_guidance(
@@ -358,6 +360,7 @@ def get_jadhagam_report(session: Session, chart_id: UUID) -> JadhagamReportRespo
         strong_planets=strong_planet_names,
         weak_planets=weak_planet_names,
         gender=gender,
+        children=children,
     )
     remedies = get_age_based_remedies(
         current_age=current_age,

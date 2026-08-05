@@ -30,6 +30,7 @@ export type BirthFormState = {
   calculateNow: boolean;
   maritalStatus: string;
   employmentType: string;
+  children: string;
   birthTimeSource: string;
   birthTimeConfidenceMinutes: string;
 };
@@ -278,6 +279,15 @@ export function EditProfileModal({
                 <option value="married">{t("marital_married", lang)}</option>
                 <option value="divorced">{t("marital_divorced", lang)}</option>
                 <option value="widowed">{t("marital_widowed", lang)}</option>
+              </WSelect>
+            </WField>
+            <WField label={t("field_children", lang)}>
+              <WSelect value={birthForm.children}
+                onChange={(e) => onChange({ ...birthForm, children: e.target.value })}>
+                <option value="">{t("children_select", lang)}</option>
+                <option value="has">{t("children_has", lang)}</option>
+                <option value="none">{t("children_none", lang)}</option>
+                <option value="undisclosed">{t("children_undisclosed", lang)}</option>
               </WSelect>
             </WField>
             <WField label={t("field_employment_type", lang)}>

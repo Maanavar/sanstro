@@ -7,6 +7,11 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 _VALID_MARITAL_STATUSES: frozenset[str] = frozenset({"single", "married", "divorced", "widowed", "breakup"})
+# Whether the reader has children. Absent (None) means we have never asked and
+# is NOT a synonym for "none" — conflating the two is what let progeny be
+# inferred from age and gender. "undisclosed" is a declined answer, which the
+# reading must treat exactly as it treats an absent one: no progeny claim.
+_VALID_CHILDREN_STATUSES: frozenset[str] = frozenset({"has", "none", "undisclosed"})
 _VALID_EMPLOYMENT_TYPES: frozenset[str] = frozenset({
     "employed_salaried", "self_employed", "business_owner", "student",
     "unemployed", "recently_unemployed", "retired", "homemaker",
@@ -56,6 +61,11 @@ class BirthProfileCreate(BaseModel):
         alias="employmentType",
         description="employed_salaried | self_employed | business_owner | student | unemployed | recently_unemployed | retired | homemaker",
     )
+    children: str | None = Field(
+        default=None,
+        alias="children",
+        description="has | none | undisclosed — absent means not asked, which is not 'none'",
+    )
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -85,6 +95,18 @@ class BirthProfileCreate(BaseModel):
         if normalized not in _VALID_EMPLOYMENT_TYPES:
             raise ValueError(
                 f"employmentType must be one of: {', '.join(sorted(_VALID_EMPLOYMENT_TYPES))}"
+            )
+        return normalized
+
+    @field_validator("children", mode="before")
+    @classmethod
+    def validate_children(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        normalized = v.strip().lower()
+        if normalized not in _VALID_CHILDREN_STATUSES:
+            raise ValueError(
+                f"children must be one of: {', '.join(sorted(_VALID_CHILDREN_STATUSES))}"
             )
         return normalized
 
@@ -127,6 +149,7 @@ class BirthProfileUpdate(BaseModel):
     gender_for_traditional_rules: str | None = Field(default=None, alias="genderForTraditionalRules")
     marital_status: str | None = Field(default=None, alias="maritalStatus")
     employment_type: str | None = Field(default=None, alias="employmentType")
+    children: str | None = Field(default=None, alias="children")
     recalculate: bool = Field(default=True, alias="recalculate")
 
     model_config = ConfigDict(populate_by_name=True)
@@ -159,6 +182,18 @@ class BirthProfileUpdate(BaseModel):
         if normalized not in _VALID_EMPLOYMENT_TYPES:
             raise ValueError(
                 f"employmentType must be one of: {', '.join(sorted(_VALID_EMPLOYMENT_TYPES))}"
+            )
+        return normalized
+
+    @field_validator("children", mode="before")
+    @classmethod
+    def validate_children(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        normalized = v.strip().lower()
+        if normalized not in _VALID_CHILDREN_STATUSES:
+            raise ValueError(
+                f"children must be one of: {', '.join(sorted(_VALID_CHILDREN_STATUSES))}"
             )
         return normalized
 

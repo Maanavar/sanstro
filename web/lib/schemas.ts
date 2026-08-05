@@ -38,6 +38,9 @@ export const birthProfileSchema = z.object({
   relationshipToOwner: z.enum(["self", "spouse", "child", "parent", "sibling", "grandparent", "other"]).default("self"),
   maritalStatus: z.string().default(""),
   employmentType: z.string().default(""),
+  // "" means unanswered and is sent as null — the reading treats it exactly as
+  // it treats "undisclosed", so neither ever unlocks a progeny reading.
+  children: z.string().default(""),
   birthTimeSource: z.string().default(""),
   birthTimeConfidenceMinutes: z.string().default(""),
 });

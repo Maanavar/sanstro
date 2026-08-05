@@ -276,3 +276,54 @@ def test_birth_profile_create_schedules_d1_jadhagam_nudge(client):
         assert notification.send_at > datetime.now(UTC) + timedelta(hours=23)
         assert notification.payload["deepLink"] == "/dasha"
         assert notification.payload["source"] == "onboarding_d1_nudge"
+
+
+def _create_profile(client, **extra):
+    payload = {
+        "ownerUserId": "22222222-2222-2222-2222-222222222222",
+        "displayName": "Nila Rajan",
+        "birthDateLocal": "1988-03-14",
+        "birthTimeLocal": "09:15:00",
+        "birthPlace": "Madurai, Tamil Nadu, India",
+        "birthLatitude": 9.9252,
+        "birthLongitude": 78.1198,
+        "birthTimezone": "Asia/Kolkata",
+        "calculateNow": False,
+    }
+    payload.update(extra)
+    response = client.post("/api/v1/birth-profiles", json=payload)
+    assert response.status_code == 200, response.text
+    return response.json()["data"]["birthProfileId"]
+
+
+def test_children_status_round_trips_through_create(client):
+    """_chart_persist.create_birth_profile_record lists its columns explicitly, so a
+    new field is silently dropped on create unless it is added there too — which is
+    what happened on the first pass of this change."""
+    profile_id = _create_profile(client, children="has")
+    fetched = client.get(f"/api/v1/birth-profiles/{profile_id}")
+    assert fetched.status_code == 200
+    assert fetched.json()["data"]["children"] == "has"
+
+
+def test_children_status_round_trips_through_patch(client):
+    profile_id = _create_profile(client)
+    fetched = client.get(f"/api/v1/birth-profiles/{profile_id}")
+    assert fetched.json()["data"]["children"] is None
+
+    patched = client.patch(
+        f"/api/v1/birth-profiles/{profile_id}",
+        json={"children": "none", "recalculate": False},
+    )
+    assert patched.status_code == 200, patched.text
+    fetched = client.get(f"/api/v1/birth-profiles/{profile_id}")
+    assert fetched.json()["data"]["children"] == "none"
+
+
+def test_children_status_rejects_a_value_outside_the_vocabulary(client):
+    profile_id = _create_profile(client)
+    response = client.patch(
+        f"/api/v1/birth-profiles/{profile_id}",
+        json={"children": "two", "recalculate": False},
+    )
+    assert response.status_code == 422

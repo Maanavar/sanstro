@@ -34,6 +34,18 @@ def _dosham_label(code: str, lang: str) -> str:
     return code.replace("_", " ").title()
 
 
+def has_declared_children(children: str | None) -> bool:
+    """Only an explicit "has" unlocks a progeny reading of the 5th house.
+
+    None (we never asked) and "undisclosed" (they declined) are treated
+    identically here, and neither is "none". Collapsing unknown into any
+    settled answer is the whole defect this predicate exists to prevent, so
+    every surface that reads progeny asks the question through this one
+    function rather than comparing the string itself.
+    """
+    return (children or "").strip().lower() == "has"
+
+
 # Maps age → list of active life focus areas.
 # Used by the jadhagam report to surface only the scenarios, components,
 # and fortune probabilities that are RELEVANT to the person's current
@@ -56,7 +68,15 @@ def _dosham_label(code: str, lang: str) -> str:
 # It returns in this list only when the profile declares `children == "has"`. What the 5th house
 # should say for the unknown case — the older reading is intelligence, creativity and purva punya,
 # never progeny — is a doctrine call and is deliberately NOT invented here.
-def get_active_life_phases(current_age: int, gender: str | None = None) -> list[str]:
+#
+# OPEN ASTROLOGER QUESTION: the old gender delta ranked children above career for women and below
+# it for men. It was never sourced, and it asserts a gendered priority we have no basis for, so it
+# is NOT restored along with the focus code — declared parents of either gender get the same
+# ordering (the pre-existing default, which this module already treats as the neutral one). If
+# tradition genuinely weights it, say so and it comes back.
+def get_active_life_phases(
+    current_age: int, gender: str | None = None, children: str | None = None
+) -> list[str]:
     if current_age < 5:
         return ["health", "family_nurture"]
     if current_age < 12:
@@ -70,6 +90,8 @@ def get_active_life_phases(current_age: int, gender: str | None = None) -> list[
             return ["marriage", "career", "wealth_foundation"]
         return ["career", "marriage", "wealth_foundation"]
     if current_age < 50:
+        if has_declared_children(children):
+            return ["career_peak", "wealth", "property", "children"]
         return ["career_peak", "wealth", "property"]
     if current_age < 65:
         return ["health", "spirituality", "family_legacy"]
@@ -187,9 +209,14 @@ def get_age_based_practical_guidance(
     strong_planets: list[str],
     weak_planets: list[str],
     gender: str | None = None,
+    children: str | None = None,
 ) -> dict[str, list[str]]:
     en: list[str] = []
     ta: list[str] = []
+    # Three bands carry a line about the reader's children. They are appended
+    # only on a declared "has" — never on silence — and the Tamil in each is the
+    # wording from the 2026-07-14 native review, unchanged.
+    parent = has_declared_children(children)
 
     # Age-phase specific core guidance
     if current_age < 12:
@@ -245,6 +272,9 @@ def get_age_based_practical_guidance(
             "சொத்து முதலீட்டு முடிவுகளை நீண்ட கால நிலைத்தன்மையை கருத்தில் கொண்டு எடுக்கவும்.",
             "தற்போதைய மகாதசை வலுவாக ஆதரிக்காத வரை பெரிய தொழில் அபாயங்களை தவிர்க்கவும்.",
         ]
+        if parent:
+            en.append("Children's health and educational foundation are an active responsibility now.")
+            ta.append("குழந்தைகளின் ஆரோக்கியம் மற்றும் கல்வி அடிப்படை இப்போது செயலில் உள்ள பொறுப்பு.")
     elif current_age < 50:
         en += [
             "Peak career phase — strategic decisions now define long-term professional legacy.",
@@ -256,6 +286,9 @@ def get_age_based_practical_guidance(
             "இந்த காலத்தில் தீவிர வளர்ச்சியை விட செல்வத்தைத் திரட்டிப் பாதுகாப்பது அதிக முக்கியம்.",
             "தடுப்பு உடல்நல பரிசோதனைகள் அவசியமாகின்றன — அவற்றை தள்ளி வைக்காதீர்கள்.",
         ]
+        if parent:
+            en.append("Children's higher education and settlement is an active priority.")
+            ta.append("குழந்தைகளின் உயர்கல்வியும் வாழ்க்கை நிலைப்பாடும் செயலில் உள்ள முன்னுரிமை.")
     elif current_age < 60:
         en += [
             "Protecting and organising accumulated wealth is the central financial task.",
@@ -267,6 +300,9 @@ def get_age_based_practical_guidance(
             "ஆரோக்கியத்திற்கு முன்னோக்கிய கவனம் தேவை — வழக்கமான பரிசோதனைகளும் வாழ்க்கை முறை ஒழுக்கமும்.",
             "ஆன்மீக மற்றும் தர்ம நடைமுறைகள் இயற்கையாகவே ஆழமடைகின்றன — அவற்றில் ஈடுபட இது நல்ல காலம்.",
         ]
+        if parent:
+            en.append("Supporting children's life transitions (marriage, career) is an active focus.")
+            ta.append("குழந்தைகளின் வாழ்க்கை மாற்றங்களை (திருமணம், தொழில்) ஆதரிப்பது செயலில் உள்ள கவனம்.")
     else:
         en += [
             "Health preservation and daily routine stability are the primary focus.",

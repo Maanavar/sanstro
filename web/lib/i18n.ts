@@ -123,6 +123,17 @@ const STRINGS = {
   marital_divorced:      { ta: "விவாகரத்தானவர்",         en: "Divorced / Separated" },
   marital_widowed:       { ta: "விதவை / விதுரர்",        en: "Widowed" },
 
+  // ── Children field + options
+  // "Prefer not to say" is a real option, not politeness: a declined answer and
+  // an unasked one are treated identically by the reading (neither reads the
+  // 5th house as progeny), and offering the decline is what makes the other
+  // answers trustworthy.
+  field_children:        { ta: "குழந்தைகள்",              en: "Children" },
+  children_select:       { ta: "தேர்ந்தெடுக்கவும்",      en: "Select…" },
+  children_has:          { ta: "குழந்தைகள் உள்ளனர்",     en: "Yes" },
+  children_none:         { ta: "இல்லை",                    en: "No" },
+  children_undisclosed:  { ta: "சொல்ல விரும்பவில்லை",    en: "Prefer not to say" },
+
   // ── Employment type field + options
   field_employment_type:        { ta: "வேலை நிலை",            en: "Employment Status" },
   employment_select:            { ta: "தேர்ந்தெடுக்கவும்",   en: "Select…" },

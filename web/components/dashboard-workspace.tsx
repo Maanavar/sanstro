@@ -192,6 +192,7 @@ type BirthFormState = {
   calculateNow: boolean;
   maritalStatus: string;
   employmentType: string;
+  children: string;
   birthTimeSource: string;
   birthTimeConfidenceMinutes: string;
 };
@@ -239,7 +240,7 @@ const defaultBirthForm: BirthFormState = {
   birthPlace: "", birthLatitude: "", birthLongitude: "", birthTimezone: "",
   currentPlace: "", currentLatitude: "", currentLongitude: "", currentTimezone: "",
   relationshipToOwner: "self", calculateNow: true,
-  maritalStatus: "", employmentType: "",
+  maritalStatus: "", employmentType: "", children: "",
   birthTimeSource: "unknown", birthTimeConfidenceMinutes: "0",
 };
 
@@ -1190,6 +1191,7 @@ export function DashboardWorkspace() {
           calculateNow: birthForm.calculateNow,
           maritalStatus: birthForm.maritalStatus || undefined,
           employmentType: birthForm.employmentType || undefined,
+          children: birthForm.children || undefined,
           birthTimeSource: birthForm.birthTimeSource || undefined,
           birthTimeConfidenceMinutes: birthForm.birthTimeConfidenceMinutes
             ? parseInt(birthForm.birthTimeConfidenceMinutes, 10)
@@ -1336,6 +1338,7 @@ export function DashboardWorkspace() {
             currentTimezone: birthForm.currentTimezone || undefined,
             maritalStatus: birthForm.maritalStatus || undefined,
             employmentType: birthForm.employmentType || undefined,
+            children: birthForm.children || undefined,
             recalculate: true,
           }),
         });
@@ -1368,6 +1371,7 @@ export function DashboardWorkspace() {
             calculateNow: true,
             maritalStatus: birthForm.maritalStatus || undefined,
             employmentType: birthForm.employmentType || undefined,
+            children: birthForm.children || undefined,
           }),
         });
         personal.setBirthProfileId(response.data.birthProfileId);

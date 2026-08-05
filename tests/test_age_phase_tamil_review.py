@@ -11,8 +11,15 @@ Two entries were dropped from _REQUIRED on 2026-08-05, and the reason is worth
 distinguishing from a re-wording: the Tamil in both was correct and reviewed.
 The SENTENCES were removed because they asserted the reader has children on the
 evidence of age and gender alone (see age_phase_service.get_active_life_phases).
-Their pre-review bad wordings stay in _BANNED — a string that must never come
-back must stay banned whether or not anything currently emits it.
+
+One came straight back, unchanged, once `children` existed to gate it on — the
+40-50 band's line, which is now emitted only on a declared "has". The other was
+the 35-49 gender-guidance line, and it is gone for good: its claim was not only
+that the reader has children but that they rank differently for a mother than
+for a father, which was never sourced.
+
+Both pre-review bad wordings stay in _BANNED regardless — a string that must
+never come back must stay banned whether or not anything currently emits it.
 """
 from __future__ import annotations
 
@@ -54,7 +61,8 @@ _REQUIRED = [
     "திருமண வாய்ப்புகளை ஒத்த மதிப்புகள் மற்றும் வாழ்க்கை இலக்குகள் உட்பட முழுமையாக மதிப்பிடவும்.",
     "முறையான நிதித் திட்டமிடலைத் தொடங்கவும்",
     "இந்த காலத்தில் தீவிர வளர்ச்சியை விட செல்வத்தைத் திரட்டிப் பாதுகாப்பது அதிக முக்கியம்.",
-    # Two progeny-asserting sentences were removed here — see the module docstring.
+    # Emitted only on a declared `children == "has"` — see the module docstring.
+    "குழந்தைகளின் உயர்கல்வியும் வாழ்க்கை நிலைப்பாடும் செயலில் உள்ள முன்னுரிமை.",
     "அவற்றில் ஈடுபட இது நல்ல காலம்.",
     "சமூக தொடர்பையும் நோக்கத்தையும் பராமரிப்பது தனிமையைத் தடுக்கிறது, நல்வாழ்வை ஆதரிக்கிறது.",
     "ராகு மகாதசை பேராசையான உந்துதல்களையும் வழக்கத்திற்கு மாறான பாதைகளையும் கொண்டுவருகிறது — கவனமும் விவேகமும் முக்கியம்.",

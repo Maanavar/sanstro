@@ -72,9 +72,14 @@ def infer_primary_concerns(
     antardasha_lord: str,
     lagna_rasi: int,
     sani_cycle: CycleAssessment | None,
+    children: str | None = None,
     top_n: int = 3,
 ) -> list[ConcernCandidate]:
-    candidates = get_active_life_phases(current_age, gender)
+    # `children` reaches this function because `children` is a scored candidate
+    # here (_CONCERN_HOUSES maps it to the 5th) — without it a childless reader
+    # whose antardasha activates the 5th gets progeny ranked as their TOP
+    # concern. The gate lives in get_active_life_phases; this only forwards it.
+    candidates = get_active_life_phases(current_age, gender, children)
     if not candidates:
         return []
 

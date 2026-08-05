@@ -48,6 +48,10 @@ class BirthProfile(TimestampMixin, Base):
     encrypted_birth_payload: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     marital_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
     employment_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # "has" | "none" | "undisclosed" | NULL. NULL means we have not asked, which
+    # is NOT the same as "none" — only a declared "has" may unlock a progeny
+    # reading of the 5th house. See age_phase_service.get_active_life_phases.
+    children: Mapped[str | None] = mapped_column(String(32), nullable=True)
     gender_for_traditional_rules: Mapped[str] = mapped_column(
         String(32), nullable=False, default="not_specified", server_default=text("'not_specified'")
     )

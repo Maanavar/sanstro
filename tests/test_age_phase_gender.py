@@ -40,6 +40,32 @@ def test_35_49_band_no_longer_carries_a_gender_delta() -> None:
 
 
 @pytest.mark.no_db
+@pytest.mark.parametrize("declared", ["has"])
+def test_a_declared_parent_gets_the_progeny_focus_back(declared: str) -> None:
+    assert get_active_life_phases(40, "female", declared) == [
+        "career_peak", "wealth", "property", "children",
+    ]
+    # Same ordering for both — the old delta ranked children above career for
+    # women and below it for men, was never sourced, and is not restored.
+    assert get_active_life_phases(40, "male", declared) == get_active_life_phases(40, "female", declared)
+
+
+@pytest.mark.no_db
+@pytest.mark.parametrize("undeclared", [None, "", "none", "undisclosed", "HAS_NOT", "unknown"])
+def test_only_an_explicit_has_unlocks_the_progeny_focus(undeclared: str | None) -> None:
+    """"undisclosed" is a declined answer and must read exactly like an unasked one."""
+    assert "children" not in get_active_life_phases(40, "female", undeclared)
+    assert "children" not in get_active_life_phases(40, "male", undeclared)
+
+
+@pytest.mark.no_db
+def test_the_progeny_focus_stays_inside_its_own_band() -> None:
+    """Declaring children does not put progeny into a 20-year-old's or an elder's reading."""
+    for age in (8, 20, 30, 55, 68, 75):
+        assert "children" not in get_active_life_phases(age, "female", "has")
+
+
+@pytest.mark.no_db
 @pytest.mark.parametrize("gender", [*_GENDERS, None])
 def test_no_life_phase_asserts_progeny_at_any_age(gender: str | None) -> None:
     """We hold no field saying whether this reader has children.
@@ -100,20 +126,39 @@ def test_practical_guidance_never_claims_the_reader_has_children(gender: str | N
     which is why this matches the possessive/genitive form rather than the bare noun.
     """
     for age in [*_AGES, 33, 38, 44, 52, 60]:
-        guidance = get_age_based_practical_guidance(
-            current_age=age,
-            mahadasha_lord="JUPITER",
-            antardasha_lord="VENUS",
-            lagna_rasi="Mesham",
-            strong_planets=["JUPITER"],
-            weak_planets=["SATURN"],
-            gender=gender,
-        )
-        for line in guidance["en"]:
-            assert "children's" not in line.lower()
-            assert "your children" not in line.lower()
-        for line in guidance["ta"]:
-            assert "குழந்தைகளின்" not in line
+        for undeclared in (None, "none", "undisclosed"):
+            guidance = get_age_based_practical_guidance(
+                current_age=age,
+                mahadasha_lord="JUPITER",
+                antardasha_lord="VENUS",
+                lagna_rasi="Mesham",
+                strong_planets=["JUPITER"],
+                weak_planets=["SATURN"],
+                gender=gender,
+                children=undeclared,
+            )
+            for line in guidance["en"]:
+                assert "children's" not in line.lower()
+                assert "your children" not in line.lower()
+            for line in guidance["ta"]:
+                assert "குழந்தைகளின்" not in line
+
+
+@pytest.mark.no_db
+@pytest.mark.parametrize("age", [33, 44, 52])
+def test_a_declared_parent_gets_the_progeny_guidance_line(age: int) -> None:
+    """The three bands that carry a children line, each on a declared "has" only."""
+    kwargs = dict(
+        mahadasha_lord="JUPITER", antardasha_lord="VENUS", lagna_rasi="Mesham",
+        strong_planets=["JUPITER"], weak_planets=["SATURN"], gender=None,
+    )
+    declared = get_age_based_practical_guidance(current_age=age, children="has", **kwargs)
+    silent = get_age_based_practical_guidance(current_age=age, children=None, **kwargs)
+
+    assert len(declared["en"]) == len(silent["en"]) + 1
+    assert len(declared["ta"]) == len(silent["ta"]) + 1
+    assert any("children's" in line.lower() for line in declared["en"])
+    assert any("குழந்தைகளின்" in line for line in declared["ta"])
 
 
 @pytest.mark.no_db

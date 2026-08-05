@@ -158,6 +158,7 @@ def create_birth_profile_record(
         encrypted_birth_payload=encrypt_bytes(json.dumps(sensitive).encode("utf-8")),
         marital_status=getattr(profile, "marital_status", None),
         employment_type=getattr(profile, "employment_type", None),
+        children=getattr(profile, "children", None),
     )
     session.add(birth_profile)
     session.flush()

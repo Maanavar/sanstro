@@ -42,6 +42,7 @@ export type BirthFormState = {
   calculateNow: boolean;
   maritalStatus: string;
   employmentType: string;
+  children: string;
   birthTimeSource: string;
   birthTimeConfidenceMinutes: string;
 };
@@ -455,6 +456,18 @@ export function DashboardSetupTab({
                     <option value="married">{lang === "ta" ? "திருமணமானவர்" : "Married"}</option>
                     <option value="divorced">{lang === "ta" ? "விவாகரத்து" : "Divorced"}</option>
                     <option value="widowed">{lang === "ta" ? "விதவை / விதவைர்" : "Widowed"}</option>
+                  </WSelect>
+                </WField>
+                <WField label={lang === "ta" ? "குழந்தைகள்" : "Children"}>
+                  {/* "Prefer not to say" is a real option: a declined answer and an
+                      unasked one are treated identically by the reading, and neither
+                      ever unlocks a progeny reading of the 5th house. */}
+                  <WSelect value={birthForm.children}
+                    onChange={(e) => onBirthFormChange({ ...birthForm, children: e.target.value })}>
+                    <option value="">{lang === "ta" ? "தேர்ந்தெடுக்கவும்" : "Select…"}</option>
+                    <option value="has">{lang === "ta" ? "குழந்தைகள் உள்ளனர்" : "Yes"}</option>
+                    <option value="none">{lang === "ta" ? "இல்லை" : "No"}</option>
+                    <option value="undisclosed">{lang === "ta" ? "சொல்ல விரும்பவில்லை" : "Prefer not to say"}</option>
                   </WSelect>
                 </WField>
                 <WField label={lang === "ta" ? "தொழில் வகை" : "Employment Type"}>
