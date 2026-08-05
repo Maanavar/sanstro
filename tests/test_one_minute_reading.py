@@ -1022,6 +1022,98 @@ def test_the_falsifiability_offer_addresses_the_person_who_can_act_on_it(client)
     assert "sound like you" not in beat["text"]["en"]
 
 
+# ── The two cross-gate lints ─────────────────────────────────────────────────
+#
+# §4.2 item 4. Both come from the source document's cross-gate rules, and
+# neither had anything enforcing it: `run_safety_pass` is tone-only by design,
+# and `tone_validator` bans fatalism without saying anything about boundedness.
+
+
+# Difficulty language, chosen to match the vocabulary we actually ship rather
+# than to be exhaustive — a lint that guesses at words nobody wrote is a lint
+# that never fires, which is worse than none because it reads as coverage.
+_DIFFICULTY_EN = (
+    "asks for patience", "pays late", "slow", "delay", "harder",
+    "endurance", "against you", "loss", "struggle",
+)
+_DIFFICULTY_TA = ("பொறுமையைக் கேட்கிறது", "தாமத", "இழப்ப", "கடின")
+_BOUND = re.compile(r"\b(?:19|20)\d{2}\b")
+
+# The rule is about difficulties, and a difficulty is a claim about a PERIOD.
+# A trait's cost is not one: "once committed to a way of working, you find it
+# hard to let go" has no expiry because it is not supposed to have one — rule 2
+# says every trait carries its own cost, and a cost that expired would be a
+# gift. Scoping to the time beats is what separates the two, and it is not a
+# convenience: applied to the whole reading this lint fired on the nature line,
+# which is the one place an unbounded negative is correct.
+_TIME_BEATS = frozenset({
+    "last_ten_years", "right_now", "next_ten_years", "your_age_question", "period_now",
+})
+
+
+@pytest.mark.parametrize(
+    ("age", "marital_status", "employment_type"),
+    [(8, None, None), (16, None, None), (26, "single", None), (33, "married", None),
+     (45, "widowed", None), (52, None, "employed_salaried"), (66, "married", None),
+     (71, "widowed", "retired")],
+)
+def test_every_difficulty_is_bounded_by_a_date(client, age, marital_status, employment_type):
+    """"If a difficulty cannot be bounded by a bukthi, it does not get said."
+
+    A negative with no end is the single cruellest thing this surface can emit,
+    and it is easy to write by accident — the vocabulary supplies the
+    difficulty and the FRAME supplies the year, so the two can come apart
+    without either half looking wrong on its own. That is exactly how it broke:
+    `right_now`'s no-hinge lead named no year at all, and it became the live
+    path for every elder the moment G6 dropped the past beat.
+    """
+    data = _read(client, age=age, marital_status=marital_status, employment_type=employment_type)
+
+    for beat in data["beats"]:
+        if beat["id"] not in _TIME_BEATS:
+            continue
+        en = beat["text"]["en"].lower()
+        if any(marker in en for marker in _DIFFICULTY_EN):
+            assert _BOUND.search(beat["text"]["en"]), (
+                f"unbounded difficulty in beat '{beat['id']}': {beat['text']['en']}"
+            )
+        ta = beat["text"]["ta"]
+        if any(marker in ta for marker in _DIFFICULTY_TA):
+            assert _BOUND.search(ta), f"unbounded difficulty in beat '{beat['id']}': {ta}"
+
+
+_LONGEVITY_EN = ("longevity", "lifespan", "length of life", "how long you will live",
+                 "years remaining", "remaining years", "death", "die", "dying")
+_LONGEVITY_TA = ("ஆயுள", "ஆயுட", "மரண", "இறப்ப")
+
+
+@pytest.mark.parametrize("age", [8, 16, 26, 33, 45, 62, 66, 71])
+def test_longevity_is_spoken_of_only_in_the_sentence_that_refuses_to_read_it(client, age):
+    """The ban is a lint; the refusal is copy. They are not the same deliverable.
+
+    Which is why this test cannot simply forbid the vocabulary: the G6 refusal
+    is made OF that vocabulary, and a naive ban would have deleted the one
+    sentence the audit rated highest trust-per-word in the source document. So
+    the refusal is subtracted first, and what must hold is that nothing else in
+    any reading at any gate raises the subject at all.
+    """
+    data = _read(client, age=age, marital_status="married" if age > 25 else None)
+
+    for lang, banned in (("en", _LONGEVITY_EN), ("ta", _LONGEVITY_TA)):
+        body = _body(data, lang)
+        refusal = reading._LONGEVITY_REFUSAL[0 if lang == "ta" else 1]
+        assert body.count(refusal) <= 1, "the refusal is declared more than once"
+        remainder = body.replace(refusal, " ").lower()
+        for term in banned:
+            # Anchored at the start of a word. Substring matching put "die"
+            # inside "decide" and failed a teenager's reading on the word
+            # "those two decide what comes next", which is the wrong kind of
+            # caution: a lint that cries wolf gets its markers deleted.
+            assert not re.search(rf"\b{re.escape(term)}", remainder), (
+                f"longevity vocabulary outside the refusal: {remainder}"
+            )
+
+
 # ── Provenance: the class system, enforced statically ────────────────────────
 #
 # docs/AGE_GATED_READING_AUDIT_2026-08-05.md §6.2(a). The reading-generation

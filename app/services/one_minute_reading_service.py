@@ -1565,9 +1565,19 @@ def _beat_right_now(
     # something changed and then told it is the same graha, in consecutive
     # sentences. Two levels of turn, two different connectives.
     if hinge is None:
+        # This lead NAMES THE END, and the other two do not have to because they
+        # open on a year the reader has just been given. Without a hinge there
+        # is no year anywhere in the beat, so a lord whose texture is a
+        # difficulty — Saturn's "pays late", Ketu's "closes more than it opens"
+        # — was an unbounded negative: told they are in a slow stretch with no
+        # indication of how long. That is the cross-gate rule "every negative
+        # statement carries an expiry date", and it broke here.
+        #
+        # The no-hinge branch used to be rare. It is now the live path for every
+        # elder, because G6 drops last_ten_years and the hinge with it.
         hinge_ta = hinge_en = ""
-        ta_lead = f"இப்போது உங்களுக்கு {planet_ta(maha.lord)} காலம்."
-        en_lead = f"You are in a {planet_en(maha.lord)} period now."
+        ta_lead = f"இப்போது உங்களுக்கு {planet_ta(maha.lord)} காலம், {maha.end_date.year} வரை."
+        en_lead = f"You are in a {planet_en(maha.lord)} period now, and it runs to {maha.end_date.year}."
     elif hinge[1] == "maha":
         hinge_ta = f"{hinge[0]}-ல் அது மாறியது. "
         hinge_en = f"That changed in {hinge[0]}. "
