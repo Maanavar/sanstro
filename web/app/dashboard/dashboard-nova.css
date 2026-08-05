@@ -2705,6 +2705,15 @@ button.ui-chip { cursor: pointer; }
 .om__beat--close {
   margin-top: var(--space-1);
 }
+/* The terms the reading is offered under, not a beat of the reading. It sits
+   second, right under the lead, so at body weight it reads as the reading's own
+   second sentence — which turns the strongest trust device we have into cold
+   water two paragraphs in. Pulled up tight against the opening it qualifies and
+   set quieter than the body, it reads as what it is: an aside about the inputs.
+   Quiet, not hidden — a reader who needs it must still be able to find it. */
+.om__beat--terms {
+  margin-top: calc(var(--space-7) * -0.5);
+}
 
 .om__p {
   margin: 0;
@@ -2720,6 +2729,16 @@ button.ui-chip { cursor: pointer; }
   font-size: var(--text-lg);
   line-height: 1.5;
   color: var(--color-text-strong);
+}
+
+/* --color-muted, not --color-faint: faint is the disclosure register and this
+   is not a disclosure — a reader whose birth time IS wrong needs to read this
+   line, and it is the only thing in the piece that can tell them. One step
+   down from the body, not two. */
+.om__p--terms {
+  font-size: var(--text-sm);
+  line-height: 1.65;
+  color: var(--color-muted);
 }
 
 .om__basis {

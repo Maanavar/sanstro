@@ -117,41 +117,58 @@ def test_flag_off_answers_404_identically_for_real_and_fake_chart_ids(
 
 
 @pytest.mark.parametrize(
-    ("age", "marital_status", "employment_type"),
+    ("age", "marital_status", "employment_type", "birth_time_source"),
     [
-        (1, None, None),
-        (8, None, None),
-        (15, None, None),
-        (22, None, "student"),
-        (28, None, "student"),
-        (26, "single", None),
+        (1, None, None, "BIRTH_CERTIFICATE"),
+        (8, None, None, "BIRTH_CERTIFICATE"),
+        (15, None, None, "BIRTH_CERTIFICATE"),
+        (22, None, "student", "BIRTH_CERTIFICATE"),
+        (28, None, "student", "BIRTH_CERTIFICATE"),
+        (26, "single", None, "BIRTH_CERTIFICATE"),
         # Blank status: beat 5 is withheld, so this case measures the SHORT
         # reading — the lower bound below is the one doing the work here.
-        (30, None, None),
-        (33, "married", None),
+        (30, None, None, "BIRTH_CERTIFICATE"),
+        (33, "married", None, "BIRTH_CERTIFICATE"),
         # A status that records a loss routes to STEADYING, which has its own
         # copy and therefore its own budget exposure.
-        (45, "widowed", None),
-        (38, "divorced", "employed_salaried"),
-        (38, "married", "business_owner"),
-        (44, "married", "business_owner"),
-        (52, None, "employed_salaried"),
-        (62, "married", "retired"),
+        (45, "widowed", None, "BIRTH_CERTIFICATE"),
+        (38, "divorced", "employed_salaried", "BIRTH_CERTIFICATE"),
+        (38, "married", "business_owner", "BIRTH_CERTIFICATE"),
+        (44, "married", "business_owner", "BIRTH_CERTIFICATE"),
+        (52, None, "employed_salaried", "BIRTH_CERTIFICATE"),
+        (62, "married", "retired", "BIRTH_CERTIFICATE"),
         # 66/married was absent from this matrix and the case ran 259 words
         # against a 255 ceiling — found by reading a preview, not by this test.
         # The gap was the matrix, not the guard.
-        (66, "married", None),
-        (71, "widowed", "retired"),
+        (66, "married", None, "BIRTH_CERTIFICATE"),
+        (71, "widowed", "retired", "BIRTH_CERTIFICATE"),
+        # An unconfirmed birth time is a longer reading, not a shorter one: the
+        # falsifiability beat's unconfirmed form has to say what it left out and
+        # what it stood on instead, which costs more than the two words beat 1
+        # saves by dropping the rising sign. This branch was outside the matrix
+        # and is now the binding case for the English ceiling — the same shape
+        # of gap as the 66/married one above, found the same way.
+        (33, "married", None, "unknown"),
+        (66, "married", None, "unknown"),
+        (8, None, None, "unknown"),
     ],
 )
-def test_word_budget_holds_for_every_life_stage(client, age, marital_status, employment_type):
+def test_word_budget_holds_for_every_life_stage(
+    client, age, marital_status, employment_type, birth_time_source
+):
     """Without this test the surface becomes a report within two sprints.
 
     That is not hypothetical — it is exactly how the jadhagam report got to
     where it is. The one-minute promise is the product; a reading that runs
     long has silently become a different feature.
     """
-    data = _read(client, age=age, marital_status=marital_status, employment_type=employment_type)
+    data = _read(
+        client,
+        age=age,
+        marital_status=marital_status,
+        employment_type=employment_type,
+        birth_time_source=birth_time_source,
+    )
 
     assert data["wordCount"]["en"] <= MAX_WORDS_EN, _body(data, "en")
     assert data["wordCount"]["ta"] <= MAX_WORDS_TA, _body(data, "ta")
@@ -594,6 +611,74 @@ def test_an_unconfirmed_birth_time_withholds_the_lagna(client):
     assert "லக்னத்தில்" not in unsure_beat["text"]["ta"]
     assert "birth time is not confirmed" in unsure_beat["basis"]["en"]
     assert "rising" in confirmed_beat["text"]["en"]
+
+
+# ── Falsifiability: the trust device only software can offer ──────────────────
+
+
+@pytest.mark.parametrize("age,marital_status", [(8, None), (30, None), (33, "married"), (66, "married")])
+def test_every_reading_says_what_it_rests_on_before_it_asks_to_be_believed(
+    client, age, marital_status
+):
+    """Spec v2 Part 3 substitute #4, and it is the one that does not port BACK.
+
+    A practitioner cannot say "this may all rest on bad input" without losing
+    the room. Software can, it costs nothing, and it converts the honest
+    weakness into the credibility the borrowed "fifty years of practice" was
+    faking — which is why it is asserted on every path including the minor one,
+    and asserted to be SECOND rather than merely present.
+    """
+    data = _read(client, age=age, marital_status=marital_status)
+    ids = [beat["id"] for beat in data["beats"]]
+
+    assert "what_this_rests_on" in ids, ids
+    # Position is the device. Arriving later it is a disclaimer attached to a
+    # reading already delivered, by which point "that is not me" has stopped
+    # being a cheap thing for the reader to say.
+    assert ids[1] == "what_this_rests_on", ids
+
+
+def test_the_falsifiability_offer_points_at_the_input_it_is_evidence_about(client):
+    """The correction v2's own wording needed before it could be used here.
+
+    v2 places this offer before a paragraph DESCRIBING the lagnam, so "if that
+    is not you, the birth time is off" is sound there. Our opening is built on
+    the janma nakshatra and the chart signature, and the Moon moves ~0.55° an
+    hour against a 13°20' nakshatra — twenty minutes essentially never moves the
+    star. So a confirmed reading must send the reader to the DATE as well as the
+    time, and only the unconfirmed reading, which is actually about the lagna,
+    gets to rest its case on twenty minutes.
+    """
+    confirmed = _read(client, age=33, marital_status="married")
+    unsure = _read(client, age=33, marital_status="married", birth_time_source="unknown")
+
+    confirmed_text = next(b for b in confirmed["beats"] if b["id"] == "what_this_rests_on")["text"]
+    unsure_text = next(b for b in unsure["beats"] if b["id"] == "what_this_rests_on")["text"]
+
+    assert "birth date and time" in confirmed_text["en"], confirmed_text["en"]
+    # The unconfirmed form states the uncertainty band (v2 Part 3 substitute #3)
+    # rather than asking for a check we already know the answer to, and it says
+    # what the reading stood on instead — otherwise "we left something out" is
+    # an admission with no reassurance attached.
+    assert "not confirmed" in unsure_text["en"], unsure_text["en"]
+    assert "your star" in unsure_text["en"], unsure_text["en"]
+    assert "நட்சத்திர" in unsure_text["ta"], unsure_text["ta"]
+
+
+def test_the_falsifiability_offer_addresses_the_person_who_can_act_on_it(client):
+    """A parent cannot check whether a reading "sounds like you".
+
+    Same rule as _beat_one_thing: an instruction aimed at a child has no valid
+    recipient. Here the whole beat is an instruction, so the register has to
+    follow the reading's.
+    """
+    data = _read(client, age=8, display_name="Meena Synthetic Child")
+    beat = next(b for b in data["beats"] if b["id"] == "what_this_rests_on")
+
+    assert data["addressedTo"] == "parent"
+    assert "Meena" in beat["text"]["en"]
+    assert "Meena" in beat["text"]["ta"]
+    assert "sound like you" not in beat["text"]["en"]
 
 
 # ── Provenance: the class system, enforced statically ────────────────────────

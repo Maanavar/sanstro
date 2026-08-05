@@ -129,12 +129,25 @@ def require_one_minute_reading_enabled() -> None:
 # exactly how the jadhagam report got to where it is.
 #
 # Raised from 240/180 when the signature opening and the grievance went in
-# (2026-08-04). 255 English words is ~70s at 220 wpm — the promise is "about a
-# minute", and the grievance sentence is worth more than anything it would have
-# displaced. Most of its cost was paid for by deleting the neutral outlook
-# clause rather than by the raise; the raise covers the rest.
-MAX_WORDS_EN = 255
-MAX_WORDS_TA = 190
+# (2026-08-04). Most of that cost was paid for by deleting the neutral outlook
+# clause rather than by the raise; the raise covered the rest.
+#
+# Raised again to 285/212 for the falsifiability beat (2026-08-05), and this
+# time NOTHING was cut to pay for it, which is worth saying plainly. The 08-04
+# raise found a clause that reported an absence of signal in thirteen words; the
+# beats that remain are all chart-derived, and paying for a trust device by
+# deleting a chart claim would trade the reading's substance for its frame. 285
+# English words is ~78s at 220 wpm against a promise of "about a minute" — the
+# honest end of "about".
+#
+# The Tamil number has never been a clock figure and is not one now. 212 words
+# at ~130 wpm is ~98s; 190 was already ~88s. It was set as a ratio of the
+# English ceiling rather than derived, so it has been quietly making a different
+# promise the whole time. Flagged rather than fixed here: §4.2 item 5 of
+# docs/AGE_GATED_READING_AUDIT_2026-08-05.md replaces this global pair with a
+# per-gate budget, and both numbers should be re-derived from the clock there.
+MAX_WORDS_EN = 285
+MAX_WORDS_TA = 212
 
 _MONTH_TA: dict[int, str] = {
     1: "ஜனவரி", 2: "பிப்ரவரி", 3: "மார்ச்", 4: "ஏப்ரல்", 5: "மே", 6: "ஜூன்",
@@ -650,6 +663,75 @@ _VALIDATION: tuple[str, str] = (
     "That feeling is not misplaced.",
 )
 
+# ── The falsifiability offer ─────────────────────────────────────────────────
+#
+# Spec v2 Part 3, substitute #4, and the strongest of the four things that
+# replace "in fifty years of practice" — which does not port, because software
+# has no practice and borrowing the phrasing is a straightforward lie about what
+# the user is talking to.
+#
+# This one is available ONLY to software. A practitioner cannot say "the whole
+# reading may rest on bad input" without losing the room; saying it costs us
+# nothing and converts the honest weakness into the credibility the borrowed
+# fifty years was faking.
+#
+# We already computed the input and were putting the output in the wrong place.
+# _lagna_is_reliable decided whether to open on the lagna, and when it said no we
+# wrote "lagna withheld — birth time is not confirmed" into `basis` — the
+# disclosure the plain reader never opens. So the reader most affected by the
+# uncertainty was the one least likely to hear about it.
+#
+# Two forms, not one, and this is where we can beat v2's own specification: v2
+# prints the same boilerplate on every reading. We know which case we are in, so
+# the confirmed reading offers a CHECK and the unconfirmed one states its
+# UNCERTAINTY BAND (Part 3 substitute #3) and says what it stood on instead.
+# Boilerplate that appears identically on every reading is read as a disclaimer
+# and skipped; a sentence that could only have been written about this reader is
+# read.
+#
+# THE ANTECEDENT HAD TO BE WIDENED, and this is the correction v2's own wording
+# needs before it can be used here. v2's specimen places the offer immediately
+# before a paragraph DESCRIBING the lagnam, so "if that doesn't sound like you,
+# the birth time is off" is a sound inference there. Our beat 1 is not that
+# paragraph: its two claims come from the janma nakshatra and the chart
+# signature, and the rising sign is only NAMED. The Moon covers ~0.55° an hour
+# against a 13°20' nakshatra, so twenty minutes essentially never moves the
+# star — meaning a reader who says "that is not me" has said almost nothing
+# about the birth TIME, and pointing them at it would have sent them to check
+# the one input their objection was not evidence about. The lagna does turn on
+# it (~15°/hour against a 30° rasi), which is why the unconfirmed form is the
+# one that gets to say "twenty minutes".
+_FALSIFIABILITY: dict[tuple[str, bool], tuple[str, str]] = {
+    ("self", True): (
+        "இது உங்களைப் பற்றியதாக இல்லை என்று தோன்றினால் — சிறிதளவும் அல்ல, உண்மையிலேயே இல்லை "
+        "என்றால் — தொடர்வதற்கு முன் பிறந்த தேதியையும் நேரத்தையும் சரிபாருங்கள். இருபது "
+        "நிமிடங்கள் லக்னத்தை மாற்றிவிடும்.",
+        "If that does not sound like you — not partly, genuinely not — check the birth date and "
+        "time before reading on. Twenty minutes can move the rising sign.",
+    ),
+    ("self", False): (
+        "பிறந்த நேரம் உறுதிப்படுத்தப்படவில்லை; அதனால் இந்த வாசிப்பு லக்னத்தை விட்டுவிடுகிறது — "
+        "இருபது நிமிடங்கள் அதை மாற்றிவிடும். உங்கள் நட்சத்திரத்தை அது மாற்றுவதில்லை; மீதி "
+        "அதன் மீதுதான் நிற்கிறது.",
+        "The birth time is not confirmed, so this reading leaves the rising sign out — twenty "
+        "minutes can move it. It does not move your star, which the rest is built on.",
+    ),
+    ("parent", True): (
+        "இது {name}-ஐப் பற்றியதாக இல்லை என்று தோன்றினால் — சிறிதளவும் அல்ல, உண்மையிலேயே இல்லை "
+        "என்றால் — தொடர்வதற்கு முன் பிறந்த தேதியையும் நேரத்தையும் சரிபாருங்கள். இருபது "
+        "நிமிடங்கள் லக்னத்தை மாற்றிவிடும்.",
+        "If that does not sound like {name} — not partly, genuinely not — check the birth date "
+        "and time before reading on. Twenty minutes can move the rising sign.",
+    ),
+    ("parent", False): (
+        "{name}-இன் பிறந்த நேரம் உறுதிப்படுத்தப்படவில்லை; அதனால் இந்த வாசிப்பு லக்னத்தை "
+        "விட்டுவிடுகிறது — இருபது நிமிடங்கள் அதை மாற்றிவிடும். அவரின் நட்சத்திரத்தை அது "
+        "மாற்றுவதில்லை; மீதி அதன் மீதுதான் நிற்கிறது.",
+        "{name}'s birth time is not confirmed, so this reading leaves the rising sign out — "
+        "twenty minutes can move it. It does not move their star, which the rest is built on.",
+    ),
+}
+
 # Provenance for the copy that does not live on a _Voice — see _Voice.PROVENANCE
 # for the model, and tests/test_one_minute_reading.py for the enforcement. The
 # test discovers these tables by reflection rather than from a list, so a new
@@ -672,6 +754,11 @@ _TABLE_PROVENANCE: dict[str, tuple[Provenance, BaseRate]] = {
     # Claims nothing. Responds to the sentence before it.
     "_VALIDATION": (Provenance.FRAME, BaseRate.KEYED),
     "_SECOND_NOTE": (Provenance.FRAME, BaseRate.KEYED),
+    # D, and unusually literally so: the only claims it makes are about our own
+    # inputs (whether the birth time is confirmed) and about the ephemeris
+    # (twenty minutes moves the lagna). It says nothing about the reader, which
+    # is exactly why it can be trusted to say the reading might be wrong.
+    "_FALSIFIABILITY": (Provenance.DERIVED, BaseRate.KEYED),
     # The dasha/area affinity read out loud — a rule applied to the running
     # lord, and the one place a date reaches the body text.
     "_OUTLOOK_SUPPORTIVE": (Provenance.RULE, BaseRate.KEYED),
@@ -1000,6 +1087,8 @@ def _antardashas(maha: DashaPeriod) -> tuple[DashaPeriod, ...]:
 _BEAT_PROVENANCE: dict[str, frozenset[Provenance]] = {
     # Star, rasi, lagna (D) + the signature opening and nature (T).
     "who_you_are": frozenset({Provenance.DERIVED, Provenance.TENDENCY, Provenance.FRAME}),
+    # Claims nothing about the reader — only about our inputs and the ephemeris.
+    "what_this_rests_on": frozenset({Provenance.DERIVED}),
     # Strength ranking (D) + capacity/soft-spot/grievance (T) + validation (F).
     "strength_and_cost": frozenset({Provenance.DERIVED, Provenance.TENDENCY, Provenance.FRAME}),
     # Dated dasa spans (D) + past_texture (R). The dates are the beat's whole
@@ -1085,6 +1174,36 @@ def _beat_who_you_are(
         id="who_you_are",
         text=OneMinuteText(ta=ta, en=en),
         basis=OneMinuteText(ta=basis_ta, en=basis_en),
+    )
+
+
+def _beat_what_this_rests_on(
+    *, display_name: str, lagna_reliable: bool, addressed_to: str, birth_time_source: str | None
+) -> OneMinuteBeat:
+    """The falsifiability offer — see _FALSIFIABILITY for why it exists.
+
+    Placed SECOND, immediately after the opening and before anything is asked of
+    the reader's trust. That position is the whole device: it arrives while the
+    opening is still the only thing they have been told, so "that is not me" is
+    still a live and cheap response. Moved any later it becomes a disclaimer
+    attached to a reading already delivered, which is a different speech act and
+    buys nothing.
+
+    It is a beat rather than a clause on beat 1 because it is not part of the
+    reading — it is the terms the reading is offered under, and a client that
+    wants to set it in a different register needs it separable.
+    """
+    given = _first_name(display_name)
+    ta, en = _FALSIFIABILITY[(addressed_to, lagna_reliable)]
+
+    source = (birth_time_source or "unknown").upper()
+    return OneMinuteBeat(
+        id="what_this_rests_on",
+        text=OneMinuteText(ta=ta.format(name=given), en=en.format(name=given)),
+        basis=OneMinuteText(
+            ta=f"பிறந்த நேரத்தின் ஆதாரம்: {source}",
+            en=f"Birth time source: {source}",
+        ),
     )
 
 
@@ -1704,6 +1823,7 @@ def build_one_minute_reading(
         chart_response.data.planets, timeline, fallback=nakshatra_lord
     )
 
+    lagna_reliable = _lagna_is_reliable(profile)
     opening = _beat_who_you_are(
         display_name=profile.display_name,
         nakshatra_name=moon.nakshatra_name,
@@ -1711,11 +1831,20 @@ def build_one_minute_reading(
         lagna_rasi_name=chart_response.data.lagna.rasi_name,
         nakshatra_lord=nakshatra_lord,
         signature_lord=signature_lord,
-        lagna_reliable=_lagna_is_reliable(profile),
+        lagna_reliable=lagna_reliable,
         addressed_to=addressed_to,
     )
+    # Second on BOTH paths, and on the minor path it is arguably worth more: a
+    # parent checking a behavioural note against the child in front of them is
+    # the most checkable form this offer takes anywhere in the feature.
+    rests_on = _beat_what_this_rests_on(
+        display_name=profile.display_name,
+        lagna_reliable=lagna_reliable,
+        addressed_to=addressed_to,
+        birth_time_source=profile.birth_time_source,
+    )
     if addressed_to == "parent":
-        # Four beats, all natively third person and addressed to the parent. The
+        # Five beats, all natively third person and addressed to the parent. The
         # strength/soft-spot and last-ten-years beats are absent by design, not
         # softened: one is a character verdict a child has not earned, the other
         # describes the parents' decade rather than the child's.
@@ -1723,6 +1852,7 @@ def build_one_minute_reading(
         # one on this path and never needs the marital question.
         beats: list[OneMinuteBeat] = [
             opening,
+            rests_on,
             _beat_age_question(
                 topic=topic,
                 display_name=profile.display_name,
@@ -1736,7 +1866,7 @@ def build_one_minute_reading(
             _beat_one_thing(timeline=timeline, addressed_to=addressed_to),
         ]
     else:
-        beats = [opening]
+        beats = [opening, rests_on]
         # STAGE_INFANT is unreachable here (every minor takes the branch above);
         # the guard stays so that widening the parent path later cannot silently
         # start claiming a newborn has observable strengths.

@@ -43,6 +43,14 @@ import {
 const LEAD_BEAT = "who_you_are";
 /** The action to take; lands on its own tinted surface so the piece has an end. */
 const CLOSING_BEAT = "one_thing";
+/**
+ * What the reading rests on, and how to tell if it is wrong. Set QUIETLY and
+ * deliberately so: it arrives second, immediately after the lead, and given the
+ * same weight as the body it reads as the reading's own second sentence —
+ * cold water two sentences in. It is not part of the reading; it is the terms
+ * the reading is offered under, and the type has to say so before the words do.
+ */
+const TERMS_BEAT = "what_this_rests_on";
 
 type LoadStatus = "loading" | "ready" | "absent";
 
@@ -78,15 +86,22 @@ function BeatBlock({
 }) {
   const isLead = beat.id === LEAD_BEAT;
   const isClosing = beat.id === CLOSING_BEAT;
+  const isTerms = beat.id === TERMS_BEAT;
 
   const paragraph = (
-    <p className={isLead ? "om__p om__p--lead" : "om__p"}>
+    <p className={`om__p${isLead ? " om__p--lead" : ""}${isTerms ? " om__p--terms" : ""}`}>
       {lang === "ta" ? beat.text.ta : beat.text.en}
     </p>
   );
 
+  const beatClass = isClosing
+    ? "om__beat om__beat--close"
+    : isTerms
+      ? "om__beat om__beat--terms"
+      : "om__beat";
+
   return (
-    <div className={isClosing ? "om__beat om__beat--close" : "om__beat"}>
+    <div className={beatClass}>
       {isClosing ? <div className="om__close">{paragraph}</div> : paragraph}
       {showBasis && beat.basis && (
         <p className="om__basis">{lang === "ta" ? beat.basis.ta : beat.basis.en}</p>
