@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 
 import { DUR, EASE_NOVA, useCountUp } from "@/lib/motion";
@@ -203,6 +203,16 @@ export function NovaFadeIn({ children, className, style }: Omit<NovaRevealProps,
   );
 }
 
+/** FNV-1a → base36. Short, stable, and identical on server and client. */
+function stableSlug(input: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(36);
+}
+
 type NovaScoreDialProps = {
   score: number;
   max?: number;
@@ -226,11 +236,23 @@ export function NovaScoreDial({ score, max = 100, size = 118, label, color }: No
   const pct = Math.max(0, Math.min(1, score / max));
   const filled = pct * circ;
   const strokeWidth = size * 0.068;
-  // Unique per instance — multiple dials render on a page (Life Areas, Family),
-  // and duplicate SVG def ids would cross-reference the wrong gradient/filter.
-  const uid = useId().replace(/:/g, "");
-  const gradId = `nova-dial-grad-${uid}`;
-  const glowId = `nova-dial-glow-${uid}`;
+  // Keyed by the defs' own inputs, NOT useId(). Multiple dials render on a page
+  // (Life Areas, Family) and duplicate def ids would cross-reference the wrong
+  // gradient/filter — but useId() is not SSR-stable here: this component is
+  // SSR'd inside next/dynamic panels whose Suspense boundary can suspend on the
+  // client (chunk still downloading at hydration time) without having suspended
+  // during SSR, which shifts the Suspense-fork path useId() encodes and yields a
+  // different id than the HTML carries. Same note in celestial-glyph-nova.tsx
+  // and place-combobox.tsx.
+  //
+  // `size` and `arcColor` are the only things the gradient and the filter read,
+  // so keying on them is exactly what "no wrong cross-reference" requires: two
+  // dials that share a key emit byte-identical defs, and url(#…) resolving to
+  // the first is the same paint; a caution ring beside a neutral one differs in
+  // arcColor and so gets its own ids.
+  const defsKey = stableSlug(`${size}:${arcColor}`);
+  const gradId = `nova-dial-grad-${defsKey}`;
+  const glowId = `nova-dial-glow-${defsKey}`;
   // The arc runs from its band colour into a lightened tip so the progress
   // reads as lit, not painted — the sheen the flat single-stroke ring lacked.
   // color-mix keeps it token-driven (works with the var() the callers pass).
