@@ -525,9 +525,11 @@ v2 reorders the work. Provenance is cheap and static; the status fixes are safet
 4. ~~**Provenance annotation + static test.**~~ **DONE 2026-08-05** (`19e11ae`) — see §6.9.
 5. ~~**Falsifiability line**, conditional on `_lagna_is_reliable()`, in the **body**, near the top.~~
    **DONE 2026-08-05** (`26cb339`) — see §6.10.
-6. Then Part 4's gate work as sequenced above. **§4.2 item 1, the third-party register, is DONE
-   2026-08-05** (`831093f`) — see §6.11. G2 split, gate-keyed trust beat, the two lints and the per-gate
-   budget remain.
+6. Then Part 4's gate work as sequenced above. **DONE 2026-08-05: §4.2 item 1** the third-party register
+   (`831093f`, §6.11); **item 2** the G2 split and **item 5** the per-gate budget, with G6's declared
+   principle and the first gate-keyed trust beat (`cb98937`, §6.12); **item 4** the two lints (`be69588`,
+   §6.13). **Still open: the G2 stigma rebuttal** (§3.2 — blocked on an astrologer input, see §6.12),
+   G5's "what was built", and the third-party vocabulary.
 
 Steps 1–3 are safety fixes and should not queue behind copy work. Steps 4–5 together cost ~4 strings per
 language and one dataclass field — they do **not** touch the 78-string review ceiling that §4.3 was
@@ -756,3 +758,78 @@ go through the family-vault route.
 **Open, named rather than silently kept:** a **minor** family member who is not the owner's child (a younger
 sibling) still gets the guardian register's *"one thing parents can do"* lead-in. Pre-existing, narrower than
 what this fixed, and widening the register would have grown a safety commit.
+
+## 6.12 What shipped for G2, G6 and the per-gate budget (`cb98937`)
+
+**G2 (§4.2 item 2).** The 13–17 band was receiving the guardian reading — copy written *about* them, in the
+third person, for somebody else to read, from a vocabulary meant for an eight-year-old. A 17-year-old was
+being told to give the energy somewhere to go every day, a sport not a screen.
+
+**§4.2 specifies this seam on age alone, and that is wrong for our product shape — the same error as §3.1,
+one band down.** Addressing a teenager directly is right in a consultation, where they are in the room. On a
+family vault the reader is usually the parent, so a second-person teen reading on a child's member card
+would tell a father *"you were born under Rohini"* about his son. The direct register is reached only when
+the teenager holds the account, so the routing turns on **two** independent facts — how old the subject is,
+and whether the reader is the subject — not one.
+
+It cost one new frame per language, because the nature line stays (a 13-to-17-year-old does have a
+temperament, and the facets are dispositional rather than about a life they have not had) and the remedy
+lead-in was already written: `remedy_lead_in_for_stage(STAGE_TEEN)` has held *"To do together with family:"*
+all along. `TOPIC_TEEN` rather than `TOPIC_EDUCATION` because that topic opens *"You are studying"* — an
+inference from age, true of most Tamil teenagers and stinging for the one it is wrong about.
+
+**G6's declared principle (§1.1(g)).** The source's third sentence, *"Because I have watched what that answer
+does"*, is a first-person claim to practice and does not port. What replaces it is the **reason stated
+without a claimant** — the substitution Part 3 makes everywhere. Elder only: declared at every gate it is a
+disclaimer answering a question nobody asked. Part 5 item 5 is observed — we take the refusal and leave *"the
+work of your remaining years"*.
+
+**The per-gate budget (§4.2 item 5), and the sequence has it in the wrong order.** It is listed *after* the
+copy, but G6's refusal could not be written until it existed. Then measuring it changed the design:
+
+> An elder reading carrying the refusal ran **300 English words against 285**, and the answer was not a
+> bigger budget. §1.1(d) of this document already says the dated past is weak above ~50 — a 67-year-old knows
+> his own decades better than we do, and reciting them back is not impressive, it is filler. **So G6 drops
+> `last_ten_years` and spends those thirty-four words on the refusal.**
+
+That is the first gate-keyed trust beat (§4.2 item 3), and it arrived as a *budget consequence* rather than
+as planned copy work. No gate exceeds `MAX_WORDS_EN/TA`; nothing was raised.
+
+**Two defects the change surfaced:** the elder frame's outlook clause is deliberately the empty string in the
+neutral case and stopped being the last thing in the sentence, so an f-string would have left a double space
+mid-paragraph on most readings — the trailing `.strip()` covered that only while the outlook came last. And
+the web title asked whether the register was `"self"`, so a teenager reading their own chart would have been
+headed *"Karthik, in one minute"*. **The question is whether the reader is the subject, which is not the same
+as which register the copy is in.** That line has now been wrong in three consecutive commits.
+
+**Still open, and it is the one genuinely blocked item: the G2 stigma rebuttal (§3.2).** Half of it is
+buildable today — `_yoga_dosham.cancellation_factors` is computed, sourced and reviewable. The other half is
+not: the janma-nakshatra stigma table (Moolam, Kettai, Aayilyam) does not exist in the codebase, and writing
+one would be **inventing doctrine**, which is the astrologer's call and not ours. There is a second problem
+worth flagging with it — *dosham* is on the English jargon lint, so the English rebuttal has to dismantle a
+belief it may not name. That is a copy problem, not a blocker, but it is not trivial.
+
+## 6.13 What shipped for the two lints (`be69588`)
+
+**Bounded negatives.** The vocabulary supplies the difficulty and the *frame* supplies the year, so the two
+can come apart without either half looking wrong on its own — which is precisely how it had broken.
+`right_now` has three leads; two open on a year the reader was just given, and the no-hinge one named no year
+at all. A Saturn or Ketu mahadasha down that path said the reader was in a stretch that "pays late" with no
+indication of how long. **That branch used to be rare and became the live path for every elder one commit
+earlier**, when G6 dropped the past beat and the hinge with it. The lead now names the period's end.
+
+The lint is scoped to the time beats, and **the scoping is the substantive part, not a convenience.** Applied
+to the whole reading it fired on Saturn's nature line — *"once committed to a way of working, you find it
+hard to let go"* — which is the one place an unbounded negative is *correct*. A difficulty is a claim about a
+period; a trait's cost is not, and rule 2 says every trait carries one. A cost that expired would be a gift.
+
+**Longevity vocabulary.** The test cannot simply forbid the words, because the G6 refusal is made of them — a
+naive ban would delete the sentence this document rates highest trust-per-word. The refusal is subtracted
+from the body first, which also pins that it is the only place the subject is raised, and that it is raised
+once.
+
+**Both lints were wrong on the first run, both times in the lint rather than the copy, and in opposite
+directions.** The Tamil markers matched a dispositional line (fixed by scoping, not by deleting the marker —
+inside a period beat that word really would be an unbounded difficulty). And `"die"` matched inside
+`"decide"`, failing a sixteen-year-old on *"those two decide what comes next"*. **A lint that cries wolf gets
+its markers deleted by the next person**, which is a worse outcome than never having written it.
