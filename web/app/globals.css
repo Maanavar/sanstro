@@ -5799,9 +5799,22 @@ button:focus-visible,
   /* Only meaningful once the tracks above exist — in the one-column fallback a
      span would open an implicit second column and re-break the stacking. */
   .cl-num-form .cl-num-field[data-span="2"] { grid-column: span 2; }
+  /* 240 + 18 gap + 170 — the exact width "Place of birth" spans, so a lone
+     field below the grid lines up with the row above instead of running the
+     full card. Inside the media query only: in the one-column fallback every
+     field is full width and a cap here would make this one the odd narrow
+     field instead of the odd wide one. */
+  .cl-num-field--standalone { max-width: 428px; }
 }
 
 .cl-num-field { display: block; min-width: 0; }
+/* A field standing outside `.cl-num-form`'s grid and outside `.cl-num-group`
+   — the baby name finder's family-name box is the only one today. It inherits
+   neither the grid's gap nor the group's 22px, so without this it sat flush
+   against the control above and read as part of it, at full card width beside
+   a row of 150–240px fields. Both are supplied here rather than by an inline
+   style so the rhythm stays defined in one place. */
+.cl-num-field--standalone { margin-top: 22px; }
 .cl-num-field__label {
   display: block;
   font-size: 0.73rem;
@@ -6069,6 +6082,14 @@ button:focus-visible,
 .cl-num-reading__fullname-score {
   margin-left: auto;
   font-variant-numeric: tabular-nums;
+  color: var(--cl-muted-2);
+}
+/* When the two readings land far apart, why — a caption to the line above,
+   at the sub-caption size this card already uses for `__ops`. */
+.cl-num-reading__fullname-note {
+  margin: 3px 0 0;
+  font-size: 0.76rem;
+  line-height: 1.55;
   color: var(--cl-muted-2);
 }
 

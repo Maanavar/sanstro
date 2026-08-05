@@ -279,6 +279,35 @@ export function BabyNameFinderContent() {
                   </label>
                 </div>
 
+                {/* One surname for the family, applied to every name below —
+                    ours and any the parent is weighing. Never affects which
+                    names match the paadham: the opening letter belongs to the
+                    given name, and a surname can neither satisfy nor violate
+                    that rule.
+
+                    Sits here, with the other text inputs and above the two chip
+                    rows, for two reasons. It is where the dashboard twin puts
+                    it (`dashboard-tools-baby-names-nova.tsx` — fields, then
+                    Segmented controls), and standing between gender and scope
+                    it split the pair of chip rows that read as one filter
+                    block, while being glued to the gender buttons by the
+                    margin it does not have. `--standalone` supplies the
+                    separation and the width that `.cl-num-form`'s grid and
+                    `.cl-num-group`'s margin give every other control here. */}
+                <label className="cl-num-field cl-num-field--standalone">
+                  <span className="cl-num-field__label">{pick(FAMILY_NAME_LABEL, ta)}</span>
+                  <input
+                    className="cl-num-input"
+                    type="text"
+                    value={familyName}
+                    maxLength={120}
+                    autoComplete="off"
+                    placeholder={ta ? "எ.கா. செந்தில்குமார்" : "e.g. Senthilkumar"}
+                    onChange={(e) => setFamilyName(e.target.value)}
+                  />
+                  <span className="cl-num-field__help">{pick(FAMILY_NAME_HELP, ta)}</span>
+                </label>
+
                 {/* Labelled like every other control. Unlabelled, these three
                     buttons sat 4px under "Place of birth" and read as options
                     belonging to that field rather than as the baby's gender. */}
@@ -322,25 +351,6 @@ export function BabyNameFinderContent() {
                     service tests still pass them); only the UI is gone. The
                     collapse question is NU-8a, an unresolved practitioner
                     question, which is not a parent's call to make. */}
-                {/* One surname for the family, applied to every name below —
-                    ours and any the parent is weighing. Never affects which
-                    names match the paadham: the opening letter belongs to the
-                    given name, and a surname can neither satisfy nor violate
-                    that rule. */}
-                <label className="cl-num-field">
-                  <span className="cl-num-field__label">{pick(FAMILY_NAME_LABEL, ta)}</span>
-                  <input
-                    className="cl-num-input"
-                    type="text"
-                    value={familyName}
-                    maxLength={120}
-                    autoComplete="off"
-                    placeholder={ta ? "எ.கா. செந்தில்குமார்" : "e.g. Senthilkumar"}
-                    onChange={(e) => setFamilyName(e.target.value)}
-                  />
-                  <span className="cl-num-field__help">{pick(FAMILY_NAME_HELP, ta)}</span>
-                </label>
-
                 <ScopePicker
                   mode={mode}
                   onChange={setMode}
@@ -798,11 +808,12 @@ function NameCard({
               candidate.fullNameAlignment.score,
               ta,
             );
-            return note ? (
-              <p className="cl-num-note" style={{ margin: 0 }}>
-                {note}
-              </p>
-            ) : null;
+            /* Not `.cl-num-note`: at 0.85rem that set this footnote LARGER
+               than the full-name line it captions (0.8rem) and larger than
+               the called name's own explanation (0.82rem), with a zero margin
+               gluing it to the line above — the opposite of the "quieter than
+               the called name" intent stated a few lines up. */
+            return note ? <p className="cl-num-reading__fullname-note">{note}</p> : null;
           })()
         : null}
       {/*
