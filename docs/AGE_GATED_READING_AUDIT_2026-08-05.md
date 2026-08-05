@@ -517,10 +517,11 @@ The gap is not the copy, it is the absence of the model — nothing stops the ne
 v2 reorders the work. Provenance is cheap and static; the status fixes are safety.
 
 1. ~~**Defect 3 — the progeny assertion.**~~ **DONE 2026-08-05**, in two commits — see §6.7.
-2. **Defect 1 — status inference.** `unknown ≠ never_married`; withhold beat 5 until answered, as the schema
-   docstring already promises; widen the question to three options plus a decline path (v2 Part 2 is right
-   that a binary is wrong — "Not yet" is not "single", and a divorced or widowed reader has no button).
-3. **Defect 2 — the widowed default.**
+2. ~~**Defect 1 — status inference.** `unknown ≠ never_married`; withhold beat 5 until answered, as the
+   schema docstring already promises; widen the question to three options plus a decline path (v2 Part 2 is
+   right that a binary is wrong — "Not yet" is not "single", and a divorced or widowed reader has no
+   button).~~ **DONE 2026-08-05** — see §6.8.
+3. ~~**Defect 2 — the widowed default.**~~ **DONE 2026-08-05** — see §6.8.
 4. **Provenance annotation + static test.** One field on `_Voice`, one test, and reclassify the Saturn
    `past_texture` clause. Add the base-rate column from §6.3(a) before any new R copy is authored.
 5. **Falsifiability line**, conditional on `_lagna_is_reliable()`, in the **body**, near the top. ~2 strings
@@ -577,3 +578,63 @@ One pre-existing gap this made more visible: the workspace never hydrates `marit
 `employmentType` back into the form from a loaded profile, and `children` now inherits that. It is not a
 data-loss bug — a blank select sends `undefined`, `exclude_unset` skips it, and the stored value survives —
 but the user cannot see what they previously set. Pre-existing across all three fields; worth its own fix.
+
+## 6.8 What shipped for Defects 1 and 2
+
+Both are in `_focus_topic`, both are one routing table, and both reduce to the same sentence: **the reading
+may state what the reader told us and nothing else.** Defect 1 was asserting from a field's absence; Defect 2
+was asserting from a field whose meaning is surface-dependent.
+
+**Defect 1 — `unknown ≠ never_married`.** The `age < 36 and marital_status is None → TOPIC_MARRIAGE` branch
+is gone. Blank status now returns `TOPIC_UNKNOWN`, which is not a topic but the marker that we cannot pick
+one, and **beat 5 is not appended at all** — the promise
+[schemas/one_minute_reading.py:5](../app/schemas/one_minute_reading.py#L5) had been making while the code did
+the opposite. Note the fix widened the range as a side effect and this is deliberate: a 52-year-old of
+unknown status previously fell through to `TOPIC_CAREER`, which is safe but is still a guess between "your
+chart is about work" and "about home", and the question that resolves it is one tap.
+
+**The question is five options, not two.** `married · single · divorced · widowed · undisclosed`. The old
+pair failed in both halves — *"Not yet"* writes an expectation the reader never expressed, and a divorced or
+widowed person could clear the question only by claiming a status that is untrue, which the PATCH would then
+have propagated to `life_areas`, `marriage_service` and daily guidance. `undisclosed` is new on
+`_VALID_MARITAL_STATUSES` and behaves **identically to NULL** at every one of the ~20 call sites (all compare
+against `"married"` or membership in `REMARRIAGE_SEEKING_STATUSES`); its only distinct effect is that it
+stops the question. No migration — the column is a plain `String(32)`, never an enum. Both web profile forms
+carry it, matching what `children` shipped one commit earlier.
+
+**Defect 2 — the widowed default.** `divorced`/`widowed`/`breakup` under 60 now route to a new
+`TOPIC_STEADYING` (area `FAMILY_HARMONY`): *"At 45, the chart's weight sits on what steadies you — home,
+health, and the people closest to you."* `age_gate.REMARRIAGE_SEEKING_STATUSES` is untouched and stays
+canonical — the distinction is not about the status but about the **act**: `marriage_service` answers a
+reader who navigated there and gets to frame remarriage as a new chapter; this surface opens by itself, and
+volunteering remarriage to the bereaved is a different thing from answering about it.
+
+**Three things the work turned up that the analysis had not:**
+
+1. **Withholding the beat broke the question's placement, silently.** The client anchored on a hardcoded
+   `your_age_question` id with `Math.max(0, findIndex(...))`. The moment the backend actually withheld that
+   beat the `-1` fallback became the live path, and the question moved to **index 0** — asking a reader their
+   marital status above the opening line, before they had read a word of their own reading. The anchor is now
+   sent from the backend (`pendingQuestion.beforeBeat`, which owns the beat order) and the client's fallback
+   is the end of the piece rather than the start. Neither `tsc` nor any Python test could have caught this;
+   it is only visible if you ask where the question lands once the beat it pointed at is gone.
+2. **The copy rule had to stop one clause earlier than it wanted to.** The natural second half of the
+   `STEADYING` sentence is *"…rather than on any new beginning"*, and it is doubly wrong: it is a claim we
+   have not computed, and read by someone who does want to marry again it is a verdict against them. Saying
+   only what the chart **is** being asked, and stopping, is the same discipline as the minor path's refusal
+   to phrase its gate as a negation.
+3. **The Tamil widow label differs by surface, on purpose.** The profile select says
+   *விதவை / விதுரர்*, which is the conventional form label. Inside prose addressed to the reader the button
+   says *வாழ்க்கைத் துணையை இழந்தவர்* — the register of the rest of the reading. Flagged for the Tamil review
+   pass rather than silently unified, because "make them consistent" is a plausible next edit and the
+   difference is the point.
+
+**Open, and deliberately not decided here:**
+
+- **`breakup` is lumped with `divorced`/`widowed`.** A breakup is not the end of a marriage, and for a
+  26-year-old it is arguable that marriage genuinely *is* the chart's question. It is grouped with the losses
+  because this surface volunteers, and because the cost of being wrong in that direction is much lower. **An
+  astrologer's call to split it back out.**
+- **No test covers the client-side anchor.** `test_the_question_stands_in_the_gap_rather_than_ahead_of_the_reading`
+  pins the backend contract (the anchor resolves, and is not the first beat); nothing pins the React fallback,
+  because `web/` has no component test harness for this surface. Worth knowing before the next edit to it.
