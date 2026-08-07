@@ -582,6 +582,70 @@ def test_the_teen_reading_carries_no_character_verdict_and_no_dead_past_beat(cli
     assert "right_now" in ids, ids
 
 
+@pytest.mark.parametrize("age", [13, 15, 17])
+def test_the_teen_reading_never_switches_person_mid_way(client, age):
+    """Every beat addresses the teenager, including the falsifiability offer.
+
+    `client_with_guardian` is reached only when the teenager holds the account,
+    so they are the reader throughout. But _beat_what_this_rests_on chose its
+    copy with `"self" if addressed_to == "self" else "third_person"`, and the
+    teen register — added later — fell to the third-person side. The result was
+    two consecutive sentences that disagreed about who was being spoken to:
+    "You were born under Uthiram..." followed immediately by "If that does not
+    sound like Sweep...". The reader's own name, used about them, to them.
+
+    Checked on the falsifiability beat specifically rather than on the body as a
+    whole: the body already contains "you" from other beats, so a whole-body
+    search would pass while this exact sentence was still wrong.
+    """
+    data = _read(client, age=age)
+    rests_on = next(b for b in data["beats"] if b["id"] == "what_this_rests_on")
+    display_name = data.get("displayName") or ""
+    given = display_name.split()[0] if display_name else None
+
+    assert "does not sound like you" in rests_on["text"]["en"], rests_on["text"]["en"]
+    if given:
+        assert given not in rests_on["text"]["en"], (
+            "the teenager is addressed as 'you' everywhere else; naming them here "
+            f"talks about them instead of to them: {rests_on['text']['en']}"
+        )
+
+
+def test_a_soft_spot_that_repeats_its_own_noun_says_what_the_reader_does_with_it():
+    """KETU's English endorsed the very cost it had just named.
+
+    It read "staying, at the times when staying is what the situation needs",
+    which the frame rendered as "Where it costs you is staying, at the times
+    when staying is what the situation needs" — the cost is staying, and staying
+    is what is needed. Its Tamil was always right (விலகிவிடுகிறீர்கள், "you
+    withdraw"); only the English had dropped the verb.
+
+    Deliberately narrow. The general shape — "a soft spot must explain itself" —
+    is not machine-checkable: a first attempt at a table-wide rule ("the tail
+    must contain a second-person verb") flagged eight correct entries, because
+    RAHU's tail is a statement about the world and JUPITER's folds the cost into
+    a single clause. A guard with eight false positives would be deleted the
+    first time it fired. What IS checkable is the specific trap: when the tail
+    repeats the head noun, the sentence has to say what the reader does with it,
+    or the repetition reads as endorsement.
+    """
+    from app.services.one_minute_reading_service import _VOICE
+
+    offenders = []
+    for lord, voice in _VOICE.items():
+        en = voice.soft_spot[1]
+        head = re.split(r"[;,—]", en, maxsplit=1)[0].strip().lower()
+        tail = en[len(head):]
+        if head and head in tail.lower() and not re.search(r"\byou\b", tail):
+            offenders.append(f"{lord}: {en}")
+
+    assert not offenders, (
+        "a soft spot repeats its own noun without naming the behaviour, so the "
+        "frame turns it into 'the cost is X, and X is what is needed':\n"
+        + "\n".join(offenders)
+    )
+
+
 def test_the_teen_remedy_is_shared_with_the_family_rather_than_handed_over(client):
     """"Guardian present" is a register, and the remedy is where it shows.
 

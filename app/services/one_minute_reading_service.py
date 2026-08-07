@@ -580,7 +580,14 @@ _VOICE: dict[str, _Voice] = {
         ),
         soft_spot=(
             "தங்கியிருப்பது — சூழலுக்குத் தேவை அதுவாக இருக்கும்போதும் விலகிவிடுகிறீர்கள்",
-            "staying, at the times when staying is what the situation needs",
+            # The English used to stop at "...is what the situation needs", which
+            # dropped the verb its own Tamil carries (விலகிவிடுகிறீர்கள் — "you
+            # withdraw"). Rendered into the frame it read "Where it costs you is
+            # staying, at the times when staying is what the situation needs":
+            # the cost is staying, and staying is what is needed. Every other
+            # soft_spot in this table names the behaviour after the noun; this
+            # was the one that did not.
+            "staying — you withdraw at the times when staying is what the situation needs",
         ),
         past_texture=(
             "அது அமைதியாகப் பலவற்றை முடித்து வைத்தது; சேர்ப்பதை விட விட்டுவிடும்படி கேட்டது",
@@ -1353,7 +1360,15 @@ def _beat_what_this_rests_on(
     wants to set it in a different register needs it separable.
     """
     given = _first_name(display_name)
-    register = "self" if addressed_to == "self" else "third_person"
+    # "third_person" is for somebody checking a description against a person who
+    # is NOT them — a guardian on a child's card, a daughter on her father's.
+    # `client_with_guardian` is not that: it is only ever reached when the
+    # teenager holds the account (see the register block in the builder), and
+    # every other beat addresses them as "you". Mapping it here by "anything
+    # that is not self" put the one third-person sentence in the middle of a
+    # second-person reading — the teen was told "You were born under Uthiram"
+    # and then, in the very next line, "If that does not sound like Sweep".
+    register = "third_person" if addressed_to in ("parent", "other") else "self"
     ta, en = _FALSIFIABILITY[(register, lagna_reliable)]
 
     source = (birth_time_source or "unknown").upper()
