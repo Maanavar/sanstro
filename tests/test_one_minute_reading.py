@@ -17,6 +17,14 @@ from sqlalchemy import select
 
 from app.calculations.astro import utc_datetime_to_julian_day
 from app.calculations.dasha import DashaPeriod, VimshottariTimeline
+from app.calculations.display_names import (
+    NAKSHATRA_EN,
+    NAKSHATRA_TA,
+    PLANET_EN,
+    RASI_EN,
+    RASI_TA,
+    planet_en,
+)
 from app.db.session import SessionLocal
 from app.models import BirthProfile, Chart
 from app.services import one_minute_reading_service as reading
@@ -177,7 +185,14 @@ def test_word_budget_holds_for_every_life_stage(
     # Per-GATE, not global. A four-beat guardian reading and a seven-beat adult
     # one held to the same number means the number was doing nothing for the
     # shorter ones — a guardian reading could have doubled and still passed.
-    budget_en, budget_ta = word_budget(data["addressedTo"])
+    #
+    # The same argument applies INSIDE the self register, which is why the
+    # budget also takes lagna confidence: an unconfirmed reading keeps every
+    # beat and additionally says what it left out and which part of the rest
+    # depends on it. Folding that into one raised number would have let the
+    # confirmed reading — most of them — drift up into headroom it does not need.
+    lagna_reliable = birth_time_source in {"BIRTH_CERTIFICATE", "HOSPITAL_RECORD", "FAMILY_RECORD"}
+    budget_en, budget_ta = word_budget(data["addressedTo"], lagna_reliable=lagna_reliable)
     assert data["wordCount"]["en"] <= budget_en, _body(data, "en")
     assert data["wordCount"]["ta"] <= budget_ta, _body(data, "ta")
     # No gate may exceed the global ceiling, which is still what the "about a
@@ -192,11 +207,27 @@ def test_word_budget_holds_for_every_life_stage(
 # ── Safety: the two failures that lose a user permanently ────────────────────
 
 
+# The family-formation and money halves were added 2026-08-07, and they were
+# not a hypothetical gap. Jupiter's `now_texture` — "teaching, children, and
+# people senior to you tend to help" — was being printed verbatim to a
+# sixteen-year-old reading their own chart, and Venus's ran "relationships,
+# comfort and money move more easily now" to the same reader. Both passed this
+# test for two commits because the list covered marriage and work and stopped
+# there.
+#
+# The register split is what exposed it: before G2 the 13-17 band got the child
+# vocabulary, which never touched `now_texture` at all. Adding a register that
+# shares an adult table is exactly when a content lint has to be re-derived from
+# the rule rather than left at whatever it happened to catch last time.
 _ADULT_TOKENS_EN = (
     "marriage", "marry", "married", "spouse", "husband", "wife",
     "career", "salary", "promotion", "income", "job", "wealth", "invest",
+    "children", "money", "relationship",
 )
-_ADULT_TOKENS_TA = ("திருமண", "கல்யாண", "கணவ", "மனைவி", "சம்பள", "முதலீ")
+_ADULT_TOKENS_TA = (
+    "திருமண", "கல்யாண", "கணவ", "மனைவி", "சம்பள", "முதலீ",
+    "பிள்ளைகள்", "பணம்", "உறவுகள்",
+)
 
 
 @pytest.mark.parametrize("age", [1, 5, 8, 12, 15, 17])
@@ -633,7 +664,7 @@ def test_a_soft_spot_that_repeats_its_own_noun_says_what_the_reader_does_with_it
 
     offenders = []
     for lord, voice in _VOICE.items():
-        en = voice.soft_spot[1]
+        en = voice.shadow[1]
         head = re.split(r"[;,—]", en, maxsplit=1)[0].strip().lower()
         tail = en[len(head):]
         if head and head in tail.lower() and not re.search(r"\byou\b", tail):
@@ -658,6 +689,44 @@ def test_the_teen_remedy_is_shared_with_the_family_rather_than_handed_over(clien
 
     assert one_thing["text"]["en"].startswith("To do together with family:")
     assert "parents can do" not in one_thing["text"]["en"]
+
+
+def test_no_period_read_to_a_teenager_names_a_life_they_do_not_have():
+    """``now_texture`` is the ONE table the teen register shares with the adult
+    one, and two of its nine entries named an adult life surface.
+
+    Jupiter's ran "teaching, children, and people senior to you tend to help"
+    and Venus's "relationships, comfort and money move more easily now", both
+    printed verbatim to a sixteen-year-old holding their own account. The
+    parametrized minor test above could only catch it when a synthetic chart
+    happened to land in one of those two mahadashas, which is not a guarantee —
+    so this walks the table directly and the coverage stops depending on luck.
+
+    The second half is what makes it a real test: the ADULT form must still
+    contain the token. Otherwise a future contributor could satisfy this by
+    stripping the karakatva from the adult copy, which is the opposite of the
+    fix — Guru is putra-karaka and Sukra is kalatra-karaka, and the adult
+    readings are where that belongs.
+    """
+    proved_the_override_does_work = 0
+    for lord in reading._VOICE:
+        teen_ta, teen_en = reading._now_texture(lord, "client_with_guardian")
+        for token in _ADULT_TOKENS_EN:
+            assert token not in teen_en.lower(), f"{lord} tells a teenager about '{token}': {teen_en}"
+        for token in _ADULT_TOKENS_TA:
+            assert token not in teen_ta, f"{lord} tells a teenager about '{token}': {teen_ta}"
+
+        adult_en = reading._VOICE[lord].now_texture[1].lower()
+        if any(token in adult_en for token in _ADULT_TOKENS_EN):
+            assert lord in reading._MINOR_NOW_TEXTURE, (
+                f"{lord}'s adult now_texture names an adult life surface and has no minor form"
+            )
+            proved_the_override_does_work += 1
+
+    assert proved_the_override_does_work == len(reading._MINOR_NOW_TEXTURE), (
+        "_MINOR_NOW_TEXTURE carries an entry whose adult form needs no override — "
+        "a stale entry reads as coverage it is not providing"
+    )
 
 
 def test_a_teenager_in_someone_elses_vault_is_still_read_to_their_guardian(
@@ -778,11 +847,25 @@ def test_tamil_body_text_keeps_its_household_words(client):
     lint would make the copy read as translated-from-English, which costs
     exactly the trust this surface exists to earn. Asserted so a future
     "consistency" pass cannot quietly delete it.
+
+    THE TWO WORDS ARE NOW CHECKED ON DIFFERENT REGISTERS, and that is the §6.17
+    ruling rather than a weakening of this test. Cutting the self reading's rasi
+    clauses obliged cutting their nouns with them — a named placement the reading
+    says nothing about is the defect those clauses were added to fix. So ராசி
+    survives only where the placement is still printed: `parent` and `other` are
+    defined as chart facts with the interpretation withheld, so there the bare
+    noun IS the deliverable.
+
+    Asserting it on the self reading anyway is what turned this into a failure
+    rather than a finding — a lint pinned to copy that no longer exists tests
+    nothing and blocks everything.
     """
-    data = _read(client, age=33, marital_status="married")
-    body = _body(data, "ta")
-    assert "நட்சத்திர" in body
-    assert "ராசி" in body
+    body_self = _body(_read(client, age=33, marital_status="married"), "ta")
+    assert "நட்சத்திர" in body_self
+
+    body_parent = _body(_read(client, age=8), "ta")
+    assert "நட்சத்திர" in body_parent
+    assert "ராசி" in body_parent
 
 
 def test_the_basis_field_is_where_the_technical_terms_live(client):
@@ -791,6 +874,54 @@ def test_the_basis_field_is_where_the_technical_terms_live(client):
     basis = " ".join(b["basis"]["en"] for b in data["beats"] if b.get("basis"))
     assert "nakshatra" in basis.lower()
     assert "mahadasha" in basis.lower()
+
+
+@pytest.mark.parametrize(
+    "age,marital_status,addressed_to",
+    [(33, "married", "self"), (16, None, "client_with_guardian"), (8, None, "parent")],
+)
+def test_the_tamil_reading_names_the_star_and_rasi_in_tamil(
+    client, age, marital_status, addressed_to
+):
+    """The star and the rasi are the first two nouns the reader meets.
+
+    Both languages used to be handed one `_proper(nakshatra_name)`, so the Tamil
+    opened on "நீங்கள் Anusham நட்சத்திரத்தில், Viruchigam ராசியில்" — English
+    proper nouns inside Tamil prose, in the sentence whose entire job is to
+    sound like a person talking. Every register that prints the placement is
+    checked, because the three build it in three separate f-strings.
+    """
+    data = _read(client, age=age, marital_status=marital_status)
+    beat = next(b for b in data["beats"] if b["id"] == "who_you_are")
+    basis_en = beat["basis"]["en"]
+
+    star_en = re.search(r"^(\w+) nakshatra", basis_en)
+    assert star_en, f"basis does not name the star: {basis_en}"
+    number = next(
+        n for n, name in NAKSHATRA_EN.items() if name == star_en.group(1)
+    )
+
+    for field in ("text", "basis"):
+        ta = beat[field]["ta"]
+        assert NAKSHATRA_TA[number] in ta, f"{field}.ta lacks the Tamil star: {ta}"
+        assert star_en.group(1) not in ta, f"{field}.ta still carries the English star: {ta}"
+        for rasi_name in RASI_EN.values():
+            assert rasi_name not in ta, f"{field}.ta still carries an English rasi: {ta}"
+
+
+def test_every_nakshatra_has_a_tamil_name_aligned_to_the_machine_value():
+    """A 27-row hand-typed map beside a 27-row constant is the classic drift pair.
+
+    The English side is derived from `NAKSHATRA_NAMES` and so cannot drift; this
+    guards the half that can. Alignment matters more than presence — a table
+    that is complete but off by one row renders a wrong star name for 26 of 27
+    readers and nothing else in the system would notice.
+    """
+    assert sorted(NAKSHATRA_TA) == list(range(1, 28))
+    assert sorted(NAKSHATRA_EN) == list(range(1, 28))
+    # Tamil script only, so an English name cannot be pasted into a gap.
+    for number, name in NAKSHATRA_TA.items():
+        assert not re.search(r"[A-Za-z]", name), f"nakshatra {number} is not Tamil: {name}"
 
 
 # ── Tone, stability, and the hinge ───────────────────────────────────────────
@@ -1000,22 +1131,130 @@ def test_the_reading_names_texture_and_never_an_event(client, age, marital_statu
         assert not re.search(pattern, body), f"event claim '{pattern}' in: {body}"
 
 
+def _who_you_are(data: dict) -> dict:
+    return next(b for b in data["beats"] if b["id"] == "who_you_are")
+
+
 def test_an_unconfirmed_birth_time_withholds_the_lagna(client):
     """A wrong birth time moves the lagna, and beat 1 is what most depends on it.
 
     Opening confidently on a lagna we are not sure of loses the reader at
     sentence one — which costs the whole reading, not just that clause.
+
+    EACH DIRECTION IS ASSERTED ON A SURFACE THAT STILL VARIES, which is the
+    §6.17 repair and the reason this test failed rather than merely aged. The
+    self reading's prose no longer prints the lagna at all — the clause was cut
+    for length and its noun went with it — so `"rising" not in text` had become
+    true of every reading ever generated, confirmed or not. A negative with no
+    live positive control beside it is the stale-baseline failure this repo has
+    paid for before, and here it was the guard for a claim we make about our own
+    honesty.
+
+    So the withholding is now checked where it is actually decided:
+
+    - `basis`, on the self register, where the lagna is either named or its
+      absence is explained. This is the surface the reader who wants to check us
+      opens.
+    - `text`, on the `parent` register, which still prints the placement — so
+      there is one register where the prose-level guard has something to prove.
     """
-    unsure = _read(client, age=33, marital_status="married", birth_time_source="unknown")
-    confirmed = _read(client, age=33, marital_status="married", birth_time_source="BIRTH_CERTIFICATE")
+    unsure = _who_you_are(
+        _read(client, age=33, marital_status="married", birth_time_source="unknown")
+    )
+    confirmed = _who_you_are(
+        _read(client, age=33, marital_status="married", birth_time_source="BIRTH_CERTIFICATE")
+    )
 
-    unsure_beat = next(b for b in unsure["beats"] if b["id"] == "who_you_are")
-    confirmed_beat = next(b for b in confirmed["beats"] if b["id"] == "who_you_are")
+    # Both languages state the withholding rather than going quiet on it. The
+    # Tamil sentence necessarily contains லக்னம் — it is the word being withheld
+    # — so the discriminator is the refusal verb, not the noun.
+    assert "birth time is not confirmed" in unsure["basis"]["en"]
+    assert "பயன்படுத்தப்படவில்லை" in unsure["basis"]["ta"]
 
-    assert "rising" not in unsure_beat["text"]["en"]
-    assert "லக்னத்தில்" not in unsure_beat["text"]["ta"]
-    assert "birth time is not confirmed" in unsure_beat["basis"]["en"]
-    assert "rising" in confirmed_beat["text"]["en"]
+    assert "lagna" in confirmed["basis"]["en"]
+    assert "withheld" not in confirmed["basis"]["en"]
+    assert "லக்னம்" in confirmed["basis"]["ta"]
+    assert "பயன்படுத்தப்படவில்லை" not in confirmed["basis"]["ta"]
+
+    # The prose path, on the register that still has prose to withhold.
+    unsure_child = _who_you_are(_read(client, age=8, birth_time_source="unknown"))
+    confirmed_child = _who_you_are(_read(client, age=8, birth_time_source="BIRTH_CERTIFICATE"))
+
+    assert "rising" not in unsure_child["text"]["en"]
+    assert "லக்னத்தில்" not in unsure_child["text"]["ta"]
+    assert "rising" in confirmed_child["text"]["en"]
+    assert "லக்னத்தில்" in confirmed_child["text"]["ta"]
+
+
+@pytest.mark.parametrize("age,marital_status", [(22, None), (33, "married"), (45, "widowed")])
+def test_every_placement_the_opening_names_is_a_placement_it_reads(client, age, marital_status):
+    """THE INVARIANT IS UNCHANGED; what satisfies it is.
+
+    Until 2026-08-07 the opening said "you were born under Anusham, Moon in
+    Viruchigam, Meenam rising" and then took its character line from the
+    nakshatra lord alone. The other two nouns were decoration — two readers with
+    different stars AND different Moon rasis got word-for-word identical
+    openings whenever their signature graha happened to coincide, which is
+    common. Naming a placement and reading nothing from it is worse than not
+    naming it: the reader can see the noun, so the silence after it is legible
+    to them and to nobody else.
+
+    That was first satisfied by adding the two missing clauses. §6.17 cut them
+    for length, so it is now satisfied the other way — one noun, and the nature
+    sentence is read from it. Both directions honour the same rule, which is
+    why this test kept its name: the failure it exists to catch is a THIRD
+    state, where a noun is printed and nothing follows from it.
+    """
+    data = _read(client, age=age, marital_status=marital_status)
+    beat = next(b for b in data["beats"] if b["id"] == "who_you_are")
+
+    for lang in ("en", "ta"):
+        text = beat["text"][lang]
+        # No rasi may be named in the self reading's opening — neither language,
+        # and Tamil is checked against the Tamil spellings it now renders.
+        for rasi_name in (*RASI_EN.values(), *RASI_TA.values()):
+            assert rasi_name not in text, f"{lang} opening still names a rasi: {text}"
+
+    # The star IS named, and the nature line keyed to its lord is what reads it.
+    star = re.search(r"^(\w+) nakshatra", beat["basis"]["en"])
+    assert star, beat["basis"]["en"]
+    assert star.group(1) in beat["text"]["en"], beat["text"]["en"]
+    lord = re.search(r"lord (\w+)", beat["basis"]["en"]).group(1)
+    graha = next(g for g, name in PLANET_EN.items() if name == lord)
+    # Case-insensitive: the nature clause is lower-cased when a connective
+    # precedes it, which is `_transition` working rather than a mismatch.
+    nature = reading._VOICE[graha].nature.en.rstrip(".").lower()
+    assert nature in beat["text"]["en"].lower(), beat["text"]["en"]
+
+
+def test_a_chart_read_at_second_hand_keeps_its_dispositions_to_itself(
+    client, family_vault_payload_factory, family_member_payload_factory
+):
+    """The two new tables are dispositions, so §3.1 governs them.
+
+    An adult who is not the one reading gets the chart facts and no character
+    note; a child's reading is a different artifact rather than the adult one
+    softened. A clause about how this person's mind works, or about how other
+    people meet them, is precisely the material both of those registers exist to
+    withhold — and it would have arrived attached to a fact sentence that both
+    registers legitimately keep, which is how it would have gone unnoticed.
+    """
+    for age, relationship, name in ((26, "sibling", "Anitha Synthetic"), (8, "child", "Ravi Synthetic")):
+        data = _vault_member_reading(
+            client,
+            family_vault_payload_factory,
+            family_member_payload_factory,
+            age=age,
+            relationship=relationship,
+            name=name,
+        )
+        beat = next(b for b in data["beats"] if b["id"] == "who_you_are")
+        for table_name in ("_MOON_MIND", "_LAGNA_FACE"):
+            for rasi, (ta, en) in getattr(reading, table_name).items():
+                assert en not in beat["text"]["en"], f"{table_name}[{rasi}] reached {relationship}"
+                assert ta not in beat["text"]["ta"], f"{table_name}[{rasi}] reached {relationship}"
+        # The basis must not advertise a derivation the text did not make.
+        assert "Moon in" not in beat["basis"]["en"], beat["basis"]["en"]
 
 
 # ── Falsifiability: the trust device only software can offer ──────────────────
@@ -1066,7 +1305,12 @@ def test_the_falsifiability_offer_points_at_the_input_it_is_evidence_about(clien
     # what the reading stood on instead — otherwise "we left something out" is
     # an admission with no reassurance attached.
     assert "not confirmed" in unsure_text["en"], unsure_text["en"]
-    assert "your star" in unsure_text["en"], unsure_text["en"]
+    # Case-insensitive: the reassurance was a trailing clause ("it does not move
+    # your star") until 2026-08-07 and is now its own sentence, because the
+    # clause it used to trail — "which the rest is built on" — was false. What
+    # this test is pinning is that the star is named as what survives, not where
+    # in the paragraph it lands.
+    assert "your star" in unsure_text["en"].lower(), unsure_text["en"]
     assert "நட்சத்திர" in unsure_text["ta"], unsure_text["ta"]
 
 
@@ -1084,6 +1328,293 @@ def test_the_falsifiability_offer_addresses_the_person_who_can_act_on_it(client)
     assert "Meena" in beat["text"]["en"]
     assert "Meena" in beat["text"]["ta"]
     assert "sound like you" not in beat["text"]["en"]
+
+
+def test_an_unconfirmed_time_says_which_half_of_the_reading_actually_moves(client):
+    """The offer used to claim the star was all the rest stood on. It was false.
+
+    ``_signature_lord`` and ``_strongest_and_weakest`` both key on
+    ``strength_score``, and ``explain_natal_planet_score`` takes the lagna and
+    swings house strength 25-80 on it. So the opening line and the whole
+    strength/cost beat rested on the input the sentence had just disclaimed —
+    in the one register whose entire job is to be honest about that.
+
+    The caveat is keyed on ``addressed_to``, NOT on the falsifiability register,
+    and that distinction is the test's real subject: ``client_with_guardian``
+    shares the "self" key while carrying neither the signature opening nor the
+    strength beat, so a register-keyed caveat would tell a teenager to discount
+    a sentence their reading does not contain.
+    """
+    unsure = _read(client, age=38, birth_time_source="APPROXIMATE")
+    beat = next(b for b in unsure["beats"] if b["id"] == "what_this_rests_on")
+    assert unsure["addressedTo"] == "self"
+    assert "The strength and the cost named next" in beat["text"]["en"], beat["text"]["en"]
+    assert "அடுத்து வரும் பலமும்" in beat["text"]["ta"], beat["text"]["ta"]
+    # ...and the beat it points at is in fact the next one.
+    ids = [b["id"] for b in unsure["beats"]]
+    assert ids[ids.index("what_this_rests_on") + 1] == "strength_and_cost", ids
+    # The false clause is gone rather than softened.
+    assert "which the rest is built on" not in beat["text"]["en"]
+
+    # A confirmed time raises none of this — there is nothing to discount.
+    sure = _read(client, age=38)
+    sure_beat = next(b for b in sure["beats"] if b["id"] == "what_this_rests_on")
+    assert "named next" not in sure_beat["text"]["en"]
+
+    # A teenager shares the register and not the beats, so they must not be told
+    # to discount a strength reading they were never given.
+    teen = _read(client, age=16, birth_time_source="APPROXIMATE")
+    teen_beat = next(b for b in teen["beats"] if b["id"] == "what_this_rests_on")
+    assert teen["addressedTo"] == "client_with_guardian"
+    assert "strength_and_cost" not in [b["id"] for b in teen["beats"]]
+    assert "named next" not in teen_beat["text"]["en"], teen_beat["text"]["en"]
+
+    # And the third-person registers KEEP the strong claim, because for them it
+    # is true: neither emits the signature opening nor the strength beat.
+    child = _read(client, age=8, birth_time_source="APPROXIMATE")
+    child_beat = next(b for b in child["beats"] if b["id"] == "what_this_rests_on")
+    assert "which the rest is built on" in child_beat["text"]["en"]
+
+
+@pytest.mark.parametrize("age,marital_status", [(25, None), (33, "married"), (45, "widowed")])
+def test_the_dated_past_hands_the_reader_the_judgement_on_it(client, age, marital_status):
+    """v2's E->R conversion operator, second half — see ``_PAST_INVITATION``.
+
+    We shipped the rule ("that stretch asked for endurance") without the
+    invitation ("whether it took that form for you, you will know") from launch
+    until 2026-08-07. The rule alone is a statement the reader has to decide
+    what to do with; the invitation tells them to check it against a decade they
+    lived, which is this beat's entire reason to exist.
+    """
+    data = _read(client, age=age, marital_status=marital_status)
+    past = next(b for b in data["beats"] if b["id"] == "last_ten_years")
+
+    assert "only you can say" in past["text"]["en"], past["text"]["en"]
+    assert "நீங்கள்தான் சொல்ல முடியும்" in past["text"]["ta"], past["text"]["ta"]
+    # It invites; it must never assert. The operator exists precisely so that a
+    # miss says nothing false, and "whether" is what carries that.
+    assert "Whether it took that form" in past["text"]["en"]
+    # It also may not reach for the future to do it. The first draft read "you
+    # will know" and _EVENT_CLAIM_PATTERNS rejected it, correctly — that is the
+    # construction one edit away from "you will marry".
+    assert "you will" not in past["text"]["en"].lower()
+
+    # The invitation carries no year, so it cannot displace the hinge that beat
+    # 4 opens on — the reason it sits before the turn sentence, not after it.
+    assert not re.search(r"\b(?:19|20)\d{2}\b", reading._PAST_INVITATION[1])
+
+
+def test_the_connective_between_two_sentences_comes_from_their_meaning():
+    """It used to come from whether two GRAHAS were the same one.
+
+    `signature_lord != nakshatra_lord` means "different graha", not "opposing
+    content" — with nine grahas it fires almost always, and a sweep found `And
+    yet:` claiming a tension that was not there in seven readings out of nine. A
+    Rahu opening ("reaching past the edge of it") followed by "And yet: you
+    carry yourself as someone in charge" announces a contradiction between two
+    sentences that plainly agree.
+
+    The reader never sees a graha. They see two sentences and the word joining
+    them, and they notice when that word is wrong.
+    """
+    outward = reading._Line("வெளி", "outward line", reading.Orientation.OUTWARD)
+    other_outward = reading._Line("வேறு", "another outward line", reading.Orientation.OUTWARD)
+    inward = reading._Line("உள்", "inward line", reading.Orientation.INWARD)
+
+    assert reading._transition(outward, inward) == reading._CONTRAST
+    assert reading._transition(inward, outward) == reading._CONTRAST
+    assert reading._transition(outward, other_outward) == reading._CONTINUATION
+    # The same line twice is not a transition. A connective there would be
+    # punctuation pretending to be thought.
+    assert reading._transition(outward, outward) == reading._NO_TRANSITION
+
+    # Both languages must make the SAME claim, which is what broke before: the
+    # single connective was ("அதே நேரத்தில்:", "And yet:") — but அதே நேரத்தில்
+    # means "at the same time", a continuation, while "And yet" asserts a
+    # contrast. The two languages were printing opposite claims about the same
+    # pair of sentences for as long as the device existed.
+    assert reading._CONTRAST != reading._CONTINUATION
+    assert reading._CONTINUATION[0] == "அதே நேரத்தில்:"
+    assert "at the same time" in reading._CONTINUATION[1].lower()
+
+    # A connective may not collide with the sentence it introduces. ஆனால் is the
+    # obvious Tamil for a contrast and it is unusable here: every nature line
+    # contains it already, because rule 2 attaches each trait's cost with ஆனால்.
+    # Printed together it read "…ஆனால், தொடங்கியதை முடிப்பவர்; … — ஆனால் ஒரு…".
+    # The English has no such collision ("And yet" against "though"), so nothing
+    # about the English side of this table would have shown it.
+    for connective in (reading._CONTRAST, reading._CONTINUATION):
+        lead_ta = connective[0].rstrip(":,").strip()
+        if not lead_ta:
+            continue
+        for lord, voice in reading._VOICE.items():
+            assert lead_ta not in voice.nature.ta, (
+                f"the connective '{lead_ta}' already appears inside {lord}'s Tamil nature line, "
+                f"so the two collide when printed together: {voice.nature.ta}"
+            )
+
+
+def test_every_temperament_sentence_carries_its_own_meaning_tag():
+    """The tag travels ON the sentence, never in a table beside it.
+
+    That is the whole reason this is not a graha-pair table: a pair table is
+    tied to wording, so rewriting one nature line silently invalidates every
+    pair involving that graha with nothing to catch it. A field on the same
+    literal cannot be missed by anyone editing the text.
+    """
+    for lord, opening in reading._SIGNATURE_OPENING.items():
+        assert isinstance(opening, reading._Line), lord
+        assert isinstance(opening.faces, reading.Orientation), lord
+        assert opening.ta and opening.en, lord
+    for lord, voice in reading._VOICE.items():
+        assert isinstance(voice.nature, reading._Line), lord
+        assert isinstance(voice.nature.faces, reading.Orientation), lord
+
+    # Both poles must be populated, or the axis is not an axis and every reading
+    # takes the same branch — which is the defect this replaced, inverted.
+    poles = {line.faces for line in reading._SIGNATURE_OPENING.values()}
+    poles |= {v.nature.faces for v in reading._VOICE.values()}
+    assert poles == set(reading.Orientation), poles
+
+
+@pytest.mark.parametrize("age,marital_status", [(25, None), (33, "married"), (45, "widowed")])
+def test_the_gift_its_shadow_and_its_consequence_all_come_from_one_graha(
+    client, age, marital_status
+):
+    """"Which is why" must be true by construction, not by coincidence.
+
+    Beat 3 used to draw the gift from the strongest graha, the cost from the
+    weakest and the grievance from the signature, then assert the second caused
+    the third. They cohered in one reading out of nine — worse than chance,
+    because the signature is the DOMINANT graha and the cost came from the
+    WEAKEST, so the two were actively anti-correlated. What reached the reader
+    was three separate observations wearing the grammar of one.
+
+    A jodhidar says: Sevvai is your strength; because Sevvai is strong you move
+    before others; and because of that you wonder why people resisted something
+    obvious to you. One graha, one voice.
+
+    §6.17 stopped the chain at the shadow for length. The one-graha rule is what
+    survives and is what this test is really for — it applies to however many
+    links the beat has, and it is the property that would break silently if a
+    later change reached for a second graha to fill the shorter beat out.
+    """
+    data = _read(client, age=age, marital_status=marital_status)
+    beat = next(b for b in data["beats"] if b["id"] == "strength_and_cost")
+
+    # The basis names one graha, and the copy must be that graha's throughout.
+    strongest = next(
+        lord for lord in reading._VOICE if planet_en(lord) in beat["basis"]["en"]
+    )
+    voice = reading._VOICE[strongest]
+    assert voice.gift[1] in beat["text"]["en"], beat["text"]["en"]
+    assert voice.shadow[1] in beat["text"]["en"], beat["text"]["en"]
+
+    # No OTHER graha's gift or shadow may appear — the failure mode the one-graha
+    # rule exists to stop, and the shorter beat is exactly when padding tempts.
+    for lord, other in reading._VOICE.items():
+        if lord == strongest:
+            continue
+        assert other.gift[1] not in beat["text"]["en"], f"{lord} gift leaked in"
+        assert other.shadow[1] not in beat["text"]["en"], f"{lord} shadow leaked in"
+
+    # The grievance chain is out of the one-minute reading (§6.17). Pinned, not
+    # merely absent: it was cut for length and would come back for the same
+    # reason it was written, which was a good one.
+    assert reading._GRIEVANCE[strongest][1] not in beat["text"]["en"], beat["text"]["en"]
+    assert "Which is why" not in beat["text"]["en"]
+    assert reading._VALIDATION[1] not in beat["text"]["en"]
+
+
+@pytest.mark.parametrize("age,marital_status", [(25, None), (33, "married"), (66, "married")])
+def test_the_lesson_beat_is_held_back_from_the_one_minute_reading(
+    client, age, marital_status
+):
+    """§6.17: it exists, it is correct, and it is not in the minute.
+
+    The cut is asserted rather than left implicit because the beat's builder and
+    vocabulary are both still here, one call away from returning — which is the
+    point of keeping them, and also the way this would come back by accident.
+    """
+    ids = [b["id"] for b in _read(client, age=age, marital_status=marital_status)["beats"]]
+    assert "what_life_keeps_teaching" not in ids, ids
+
+
+def test_the_lesson_still_closes_its_own_grahas_chain():
+    """Tested against the builder, because the reading no longer calls it.
+
+    The property is what makes the beat worth keeping for the longer reading, so
+    it is worth keeping tested: the lesson must ANSWER the shadow rather than
+    raise a second difficulty. Keyed on the weakest graha for one afternoon, the
+    pairing was arbitrary eight times in nine; from the same graha the closure is
+    real rather than rhetorical — Guru's chain ends "everyone comes to me, so
+    who comes for me?" and Guru's lesson answers exactly that.
+
+    All nine grahas, where the old route through the API could only ever reach
+    the three the fixtures happened to produce.
+    """
+    for strongest in reading._VOICE:
+        beat = reading._beat_what_life_keeps_teaching(strongest=strongest)
+        assert beat.text.en == reading._VOICE[strongest].life_lesson[1], strongest
+        assert beat.text.ta == reading._VOICE[strongest].life_lesson[0], strongest
+        assert planet_en(strongest) in beat.basis.en, strongest
+
+        # No frame. These sentences are self-contained by design, and a lead-in
+        # would be the beat introducing itself.
+        assert beat.text.en[0].isupper(), strongest
+        assert not beat.text.en.startswith("One lesson"), strongest
+        # "Life keeps teaching you X" is one clause from "life taught you X in
+        # 2019", an event claim. The class boundary runs directly under this beat.
+        assert not re.search(r"\b(?:19|20)\d{2}\b", beat.text.en), beat.text.en
+
+
+def test_every_life_lesson_answers_its_own_grahas_complaint():
+    """The vocabulary is a narrative primitive now, not a copy optimisation.
+
+    ``shadow`` answers "where does this strength become excessive"; ``life_lesson``
+    answers "what does that keep teaching". Different questions, so the second
+    may not be phrased out of the first — the same rule that gave minors their
+    own copy rather than a rephrasing of the adults'.
+
+    A GENERAL RULE WAS TRIED AND REMOVED, and the removal is the finding. "The
+    lesson may not repeat the shadow's head noun" sounds like the right check
+    and fires on two entries, one of which is correct: SATURN's shadow is
+    *starting* and its lesson is "waiting for certainty costs more than starting
+    without it" — the echo is the whole point, because the lesson is telling
+    them to start. It did catch MERCURY, whose lesson closed on the shadow's own
+    noun and left the grievance unanswered; that copy was fixed. But a rule that
+    needs an exception carved for a correct entry is a wrong rule, and this repo
+    has already paid for the lint that cried wolf.
+
+    What remains is the shape, plus the one trap that IS decidable.
+    """
+    for lord, voice in reading._VOICE.items():
+        lesson_en = voice.life_lesson[1]
+        assert lesson_en.endswith("."), f"{lord}: the lesson is a whole sentence"
+        assert lesson_en[0].isupper(), lord
+        assert lesson_en != voice.shadow[1], f"{lord}: the lesson IS the shadow"
+        # A lesson that prescribes more of the shadow endorses the cost it just
+        # named. SATURN is the live case and the reason this is written down:
+        # "life keeps teaching you patience" is the obvious Sani sentence and it
+        # is advice to do more of the problem, because this graha's shadow is
+        # that it already waits too long. Same failure as the KETU soft spot,
+        # one facet later.
+        if lord == "SATURN":
+            assert "patience" not in lesson_en.lower(), lesson_en
+
+
+def test_the_supportive_outlook_cannot_be_read_as_the_slow_one(client):
+    """"The current period is behind this" shipped, and "behind" reads as
+    "lagging" as readily as "supporting".
+
+    It lands immediately after a sentence about where the chart's weight sits,
+    where both readings are plausible — so a reader taking the wrong one was
+    told the opposite of what the dasa/area affinity computed. The Tamil was
+    never ambiguous (ஆதரவாக இருக்கிறது), which makes this the second time on
+    this surface that the ENGLISH was the copy at risk.
+    """
+    for clause in (reading._OUTLOOK_SUPPORTIVE, reading._OUTLOOK_MIXED, reading._OUTLOOK_SLOW):
+        assert "behind" not in clause[1].lower(), clause[1]
 
 
 # ── The two cross-gate lints ─────────────────────────────────────────────────
@@ -1190,12 +1721,22 @@ def test_longevity_is_spoken_of_only_in_the_sentence_that_refuses_to_read_it(cli
 
 
 def _is_copy_pair(value: object) -> bool:
-    """A (ta, en) pair of authored copy.
+    """One slot of authored copy: a (ta, en) pair, or a tagged ``_Line``.
 
     ``type(part) is str`` rather than ``isinstance``: the provenance
     declarations are 2-tuples of StrEnum members, which ARE str instances, and
     an isinstance check would classify the classifier as copy.
+
+    ``_Line`` was added when the transition between two temperament sentences
+    stopped being chosen from their grahas and started being chosen from their
+    meaning — it is a (ta, en) pair plus the tag that decides the connective.
+    Reflection has to recognise it or `_SIGNATURE_OPENING` silently drops out of
+    the discovered set and its provenance declaration reads as stale, which is
+    the failure mode these tests exist to prevent, arriving through the door
+    they were built on.
     """
+    if isinstance(value, reading._Line):
+        return True
     return (
         isinstance(value, tuple)
         and len(value) == 2
@@ -1292,8 +1833,73 @@ def test_every_keyed_table_covers_every_graha():
     """
     grahas = set(reading._VOICE)
     assert len(grahas) == 9, grahas
-    for name in ("_CHILD_VOICE", "_SIGNATURE_OPENING", "_SIGNATURE_GRIEVANCE"):
+    for name in ("_CHILD_VOICE", "_SIGNATURE_OPENING", "_GRIEVANCE"):
         assert set(getattr(reading, name)) == grahas, f"{name} does not cover every graha"
+
+
+def test_every_rasi_has_a_mind_and_a_face():
+    """Same failure one table over, and keyed by rasi rather than by graha.
+
+    A gap here is not a copy gap either — it is a KeyError for exactly the one
+    reader in twelve who has that placement, and nothing else in the suite would
+    reach it, because every synthetic profile in this file shares a birth time.
+    """
+    for name in ("_MOON_MIND", "_LAGNA_FACE"):
+        assert set(getattr(reading, name)) == set(range(1, 13)), (
+            f"{name} does not cover every rasi"
+        )
+
+
+def test_the_rasi_clauses_cannot_outgrow_their_budget():
+    """The one part of beat 1 whose length the API matrix structurally cannot see.
+
+    Every synthetic profile here shares a birth time and place, so
+    `test_word_budget_holds_for_every_life_stage` exercises exactly ONE of the
+    144 rasi pairs — and not the longest. A contributor adding a generous
+    twelfth entry would ship a reading over its ceiling for eleven readers in
+    twelve with the entire suite green.
+
+    That is the failure the 66/married case already taught this file once: the
+    gap was the matrix, not the guard. The fix there was five more rows; here
+    more rows cannot work, because reaching a chosen rasi means solving for a
+    birth time rather than adding a parameter. So the table is bounded directly
+    and the budget test keeps the register it can actually measure.
+
+    AS OF §6.17 NO READING EMITS THESE CLAUSES — the tables are held for the
+    longer reading, alongside `_beat_what_life_keeps_teaching`. So this is
+    presently a bound on unspent copy, and it is kept rather than deleted for the
+    reason it was written: it is the only check that can exist at all for these
+    two tables, and the `self` budget still reserves room for them. Deleting it
+    while the reservation stands would mean wiring the clauses back in with
+    nothing measuring the case the suite cannot reach.
+    """
+    def longest(table: dict, index: int) -> int:
+        return max(len(value[index].split()) for value in table.values())
+
+    worst_en = longest(reading._MOON_MIND, 1) + longest(reading._LAGNA_FACE, 1)
+    worst_ta = longest(reading._MOON_MIND, 0) + longest(reading._LAGNA_FACE, 0)
+
+    # Headroom is measured, not assumed: the binding 45-widowed reading runs 322
+    # English words carrying the fixture's 13-word pair, against a 328 ceiling.
+    assert worst_en <= 19, f"the longest rasi clause pair is {worst_en} English words"
+    # Tamil: 234 measured with an 11-word pair, against 238.
+    assert worst_ta <= 15, f"the longest rasi clause pair is {worst_ta} Tamil words"
+
+
+def test_the_rasi_clauses_describe_a_mind_and_not_a_life():
+    """The `now_texture` lesson, applied before these tables can repeat it.
+
+    Both are shared with the teen register, which is exactly the condition that
+    let Jupiter's "children" and Venus's "relationships, comfort and money"
+    reach a sixteen-year-old. A table shared across registers gets its content
+    lint written when it is added, not after the sweep that finds it.
+    """
+    for name in ("_MOON_MIND", "_LAGNA_FACE"):
+        for rasi, (ta, en) in getattr(reading, name).items():
+            for token in _ADULT_TOKENS_EN:
+                assert token not in en.lower(), f"{name}[{rasi}] names '{token}': {en}"
+            for token in _ADULT_TOKENS_TA:
+                assert token not in ta, f"{name}[{rasi}] names '{token}': {ta}"
 
 
 def test_every_beat_the_service_emits_declares_its_provenance(

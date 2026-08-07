@@ -76,7 +76,7 @@ from app.calculations.dasha import (
     _build_subperiods,
     calculate_vimshottari_timeline,
 )
-from app.calculations.display_names import planet_en, planet_ta
+from app.calculations.display_names import nakshatra_ta, planet_en, planet_ta, rasi_ta
 from app.core.age_gate import (
     compute_age,
     is_married_settled,
@@ -148,8 +148,56 @@ def require_one_minute_reading_enabled() -> None:
 # promise the whole time. Flagged rather than fixed here: §4.2 item 5 of
 # docs/AGE_GATED_READING_AUDIT_2026-08-05.md replaces this global pair with a
 # per-gate budget, and both numbers should be re-derived from the clock there.
-MAX_WORDS_EN = 285
-MAX_WORDS_TA = 212
+#
+# Raised a third time (2026-08-07) for two devices that both land on the SELF
+# register: v2's E→R+invitation clause on the dated past beat, and the sentence
+# that names which half of an unconfirmed-time reading actually moves. Nothing
+# was cut, again, and the search was real — the only sentence that reads as
+# removable is "Within it, {year} marked a turn", and it is not: it is the only
+# place the hinge year is introduced, and beat 4 opens on it.
+#
+# The honest way to read three unpaid raises in four days is that the 240 the
+# feature started on was measuring the wrong thing. A reading is not too long
+# because of a word count; it is too long when it contains a sentence the reader
+# would not miss. The per-gate matrix below is the guard that actually catches
+# that, and no raise has ever bought CHART material — all three bought trust
+# devices, which is the trade this surface exists to make.
+#
+# A fourth raise, same day, and this one has a different justification from the
+# other three: THE READING GAINED A BEAT. `what_life_keeps_teaching` gives the
+# weakest graha its own observation instead of forcing it into the strongest
+# graha's causal chain, so the adult reading now contains two soft spots where
+# it contained one. That is a new claim about the reader, not a new frame around
+# an old one, and the only honest way to fit it would be to delete a different
+# claim.
+#
+# Two things WERE found and taken, and both are corrections rather than trims:
+# the married frame's "rather than on reinventing your work" is an uncomputed
+# negation that the STEADYING frame twelve lines below was deliberately written
+# without, and the lesson frame lost a leading "And". Seven words against
+# sixteen. The rest is the raise.
+#
+# These two are the CEILING OF THE CEILINGS only. The confirmed adult reading is
+# held at 305/228 in the matrix below and the unconfirmed one at 320/240, so the
+# common case cannot drift up into the headroom the rarer case needs. 320
+# English words is ~87s at 220 wpm, which is the outer edge of "about a minute"
+# and should be treated as the last raise this surface gets without something
+# leaving.
+#
+# ...AND THE FOURTH RAISE'S JUSTIFICATION NO LONGER SHIPS. §6.17 answered "the
+# only honest way to fit it would be to delete a different claim" by deleting the
+# beat instead: `what_life_keeps_teaching` is built but not emitted, and beat 1's
+# two rasi clauses went the same way. The numbers below are unchanged and still
+# hold — every gate measures under them — but they now carry MORE headroom than
+# the reasoning above describes, and headroom nobody has re-derived is how a
+# ceiling stops being a measurement.
+#
+# Left as a raise rather than walked back, deliberately: re-deriving these from
+# the clock is §4.2 item 5's job and the audit already owns it. What is NOT
+# acceptable is the paragraph above reading as though the beat ships, because
+# that is precisely how three tests came to assert copy that no longer existed.
+MAX_WORDS_EN = 330
+MAX_WORDS_TA = 240
 
 # ...and the global pair is now the CEILING OF THE CEILINGS. §4.2 item 5 of the
 # audit: a four-beat guardian reading and a seven-beat adult one were being held
@@ -177,17 +225,70 @@ _WORD_BUDGET: dict[str, tuple[int, int]] = {
     # interpretation of an absent adult has crept back in — the budget is a
     # second guard on §3.1, not only on length.
     "other": (150, 115),
-    "self": (MAX_WORDS_EN, MAX_WORDS_TA),
+    # Measured, not chosen: the binding case is a 45-year-old widowed reader,
+    # which takes the STEADYING frame and so cannot pay with the married frame's
+    # deleted negation.
+    #
+    # THE RASI ALLOWANCE INSIDE THIS NUMBER IS NOW UNSPENT. It was 322 as the
+    # fixture charted it, plus the gap between the fixture's rasi pair and the
+    # longest pair in the tables — because those two clauses are the one part of
+    # beat 1 whose length the API matrix structurally cannot see (every synthetic
+    # profile shares a birth time, so the suite exercises 1 of 144 pairs). §6.17
+    # then cut the clauses, so the reading no longer spends it.
+    #
+    # The allowance and its guard both stay, and that is not inertia:
+    # `_MOON_MIND`/`_LAGNA_FACE` are held for the longer reading exactly as
+    # `_beat_what_life_keeps_teaching` is, so the day they are wired back the
+    # budget must already know their worst case —
+    # `test_the_rasi_clauses_cannot_outgrow_their_budget` keeps bounding the
+    # tables directly, which is the only place that check can live. 328 is ~89s
+    # at 220 wpm.
+    "self": (328, 238),
 }
 
+# THE UNCONFIRMED ADULT READING IS ITS OWN LENGTH CLASS, and giving it one is
+# the alternative to a fourth flat raise. It keeps every beat and additionally
+# has to say what it left out, what stands without the lagna, and which part of
+# what remains rests on it anyway.
+#
+# THE ORDERING HAS SINCE INVERTED AND THE SPLIT SURVIVES IT. When this class was
+# created the unconfirmed reading was the LONGER one — 305 English words against
+# 291 — and that gap was the argument for it. Adding the lagna clause to beat 1
+# gave the confirmed reading words the unconfirmed one does not get, and the two
+# now measure 325 and 324. That is coincidence, not convergence: they are
+# different copy, they were 14 apart a day ago, and the next change to either
+# separates them again. Merging them on the strength of a one-word gap would
+# re-create exactly the failure §4.2 item 5 named, with the roles swapped —
+# whichever class is shorter next month would stop being guarded.
+#
+# A single raised global would have let the COMMON reading — the confirmed one,
+# which is most of them — drift up to the same ceiling for free. That is exactly
+# the failure §4.2 item 5 named when a four-beat guardian reading and a
+# seven-beat adult one were held to one number: a ceiling that does not know
+# what it is guarding stops guarding the shorter case. The same argument applies
+# INSIDE a register, and this is the first place it bites.
+#
+# It is uncomfortable that the reading with less confirmed input is the longest
+# one, and it is not a defect: those extra words are the price of telling that
+# reader precisely how far to trust it, and they are the reader who most needs
+# telling. 310 words is ~84s at 220 wpm.
+#
+# Kept out of the dict above rather than keyed into it as a tuple. A mapping
+# whose keys are sometimes a register and sometimes a (register, condition) pair
+# has stopped being a lookup table and become two tables sharing a name, and the
+# next condition would make it three.
+_WORD_BUDGET_SELF_UNCONFIRMED: tuple[int, int] = (327, 236)
 
-def word_budget(addressed_to: str) -> tuple[int, int]:
+
+def word_budget(addressed_to: str, *, lagna_reliable: bool = True) -> tuple[int, int]:
     """The (en, ta) ceiling for one reading. Asserted by test, not by the service.
 
     Truncating would be worse than running long — it would cut a sentence in
     half — so this stays a test-time assertion, exactly as the global pair
     always was.
     """
+    if addressed_to == "self" and not lagna_reliable:
+        return _WORD_BUDGET_SELF_UNCONFIRMED
     return _WORD_BUDGET[addressed_to]
 
 _MONTH_TA: dict[int, str] = {
@@ -281,13 +382,119 @@ class BaseRate(StrEnum):
     UNIVERSAL = "universal"
 
 
+class Orientation(StrEnum):
+    """Which way a temperament sentence faces — outward at people, or inward.
+
+    THE CONNECTIVE BETWEEN TWO SENTENCES IS A FACT ABOUT THE SENTENCES, NOT
+    ABOUT THE GRAHAS THEY CAME FROM. That is the whole argument for this enum,
+    and it is worth stating because the obvious alternative — a table of graha
+    pairs that "oppose" each other — is what this replaces. The reader never
+    sees a graha. They see two sentences, and they notice immediately when the
+    word joining them claims a tension that is not in the words.
+
+    A graha-pair table also decays on the first copy rewrite: change Ketu's
+    nature line and every pair involving Ketu is silently wrong, with nothing to
+    catch it. The tag travels ON the sentence, in the same literal, so a
+    contributor rewriting the English is looking at `faces=` on the next line.
+
+    ONE AXIS, and the collapse from three is deliberate. Tone (outward/inward),
+    polarity (assertive/reflective) and energy (active/passive) are nearly
+    collinear across our nine openings and nine nature lines — a line that faces
+    outward is assertive and active in essentially every case — so three fields
+    would sort the copy into the same two buckets while looking like they sorted
+    it into eight. This is extensible: a second axis that genuinely separates
+    lines the first one merges can be added as a field here, and `_transition`
+    is the only reader.
+    """
+
+    #: Faces people, visibility, action, wanting.
+    OUTWARD = "outward"
+    #: Faces inward — withdrawal, patience, observation, self-containment.
+    INWARD = "inward"
+
+
+@dataclass(frozen=True, slots=True)
+class _Line:
+    """One authored sentence, carried together with what it MEANS.
+
+    Deliberately not a ``(ta, en)`` pair plus a parallel lookup keyed by graha.
+    A parallel table is the failure the tag exists to prevent, one level up: it
+    can drift from the copy it describes and nothing shows the drift, whereas a
+    field on the same literal cannot be missed by anyone editing the text.
+    """
+
+    ta: str
+    en: str
+    faces: Orientation
+
+
+# The three transitions, and the choice between them is made from the two lines'
+# tags rather than from anything astronomical. See ``Orientation``.
+#
+# THE TAMIL AND ENGLISH USED TO SAY DIFFERENT THINGS HERE, which is how long
+# this went unnoticed. The single connective was ("அதே நேரத்தில்:", "And yet:")
+# — but அதே நேரத்தில் means "at the same time", a CONTINUATION, while "And yet"
+# asserts a CONTRAST. So the two languages have been printing opposite claims
+# about the same pair of sentences since the device shipped. The Tamil was the
+# right connective for the common case and the English was the wrong one; both
+# now exist, chosen by meaning, and the old Tamil string keeps the job it was
+# always doing.
+# The Tamil is மறுபுறம் and NOT ஆனால், which is the obvious word and was the
+# first draft. Every one of the nine Tamil nature lines already contains ஆனால் —
+# they must, because rule 2 says every trait carries its own cost and ஆனால் is
+# how that clause attaches — so the connective collided with its own object in
+# all nine: "…பிறந்தவர். ஆனால், தொடங்கியதை முடிப்பவர்; … — ஆனால் ஒரு வழிமுறையை…".
+# The English has no such collision ("And yet" against "though"), so this was
+# visible only by reading the Tamil, and only after the transition engine made
+# a contrast connective exist at all.
+_CONTRAST: tuple[str, str] = ("மறுபுறம்:", "And yet:")
+_CONTINUATION: tuple[str, str] = ("அதே நேரத்தில்:", "At the same time:")
+_NO_TRANSITION: tuple[str, str] = ("", "")
+
+
+def _transition(first: _Line, second: _Line) -> tuple[str, str]:
+    """The connective between two temperament sentences, chosen from their sense.
+
+    Three outcomes, in descending order of how much they claim:
+
+    - **contrast** — the two face opposite ways, so the second genuinely turns
+      against the first and saying so is more convincing than a flat note. Real
+      people are contradictory and a jodhidar reading two significators that
+      pull apart says it out loud.
+    - **continuation** — different sentences facing the same way. They add to
+      each other, and the connective marks that without claiming a tension.
+    - **nothing** — the same line twice over, in effect: one graha supplied
+      both, so there is no transition to make and a connective would be
+      punctuation pretending to be thought.
+    """
+    if first.faces is not second.faces:
+        return _CONTRAST
+    if first is second or (first.en == second.en):
+        return _NO_TRANSITION
+    return _CONTINUATION
+
+
 @dataclass(frozen=True, slots=True)
 class _Voice:
-    """One graha's six narration facets, each as ``(ta, en)``.
+    """One graha's six narration facets, each as ``(ta, en)`` except ``nature``.
 
     ``nature``      — temperament, when this graha lords the janma nakshatra.
-    ``capacity``    — the human capacity, when this graha is strongest.
-    ``soft_spot``   — the tendency under pressure, when this graha is weakest.
+                      A ``_Line`` rather than a pair, because it is the only
+                      facet that ever stands next to another authored sentence
+                      and therefore the only one that needs a transition chosen
+                      for it. The heterogeneity is the honest shape: tagging the
+                      other five would be metadata nothing reads.
+    ``gift``        — the human capacity this graha gives. Was ``capacity``.
+    ``shadow``      — where that same gift becomes excessive. Was ``soft_spot``.
+    ``life_lesson`` — what the shadow keeps teaching. Closes the chain.
+
+    THE FIRST THREE ARE ONE CHAIN AND THE NAMES NOW SAY SO. ``capacity`` and
+    ``soft_spot`` were named when they came from two DIFFERENT grahas — the
+    strongest and the weakest — so they were two independent facts and their
+    names were fine. Since they became gift and shadow of one graha the old
+    names actively misled: ``soft_spot`` reads as "a weakness this person has",
+    which invites keying it back to the weakest graha, when what it means is
+    "where this person's strength runs past its use".
     ``past_texture``— what a stretch under this lord asked for (past tense).
     ``now_texture`` — what a stretch under this lord offers (tense-neutral, so
                       beats 4 and 6 share it; deliberately self-contained,
@@ -305,8 +512,16 @@ class _Voice:
     PROVENANCE: ClassVar[dict[str, tuple[Provenance, BaseRate]]] = {
         # Dispositions of the person, present tense, no occurrence.
         "nature": (Provenance.TENDENCY, BaseRate.KEYED),
-        "capacity": (Provenance.TENDENCY, BaseRate.KEYED),
-        "soft_spot": (Provenance.TENDENCY, BaseRate.KEYED),
+        "gift": (Provenance.TENDENCY, BaseRate.KEYED),
+        "shadow": (Provenance.TENDENCY, BaseRate.KEYED),
+        # T, and the closest call in this table. "Life keeps teaching you X" is
+        # one clause from "life taught you X in 2019", which is an event claim —
+        # the class boundary runs directly under this facet. It stays T because
+        # it names a standing disposition of the reader's life and no
+        # occurrence: nothing in it happened, and nothing in it is dated. Any
+        # future entry here that reaches for a period, a stage of life or a
+        # circumstance has crossed into E and must be rewritten, not relabelled.
+        "life_lesson": (Provenance.TENDENCY, BaseRate.KEYED),
         # NOT T. These describe a PERIOD, not the reader — the classical rule
         # for what a stretch under this lord asks for, applied to the D fact of
         # which lord ran. Calling them T would claim they describe the reader's
@@ -325,9 +540,10 @@ class _Voice:
         "action": (Provenance.RULE, BaseRate.KEYED),
     }
 
-    nature: tuple[str, str]
-    capacity: tuple[str, str]
-    soft_spot: tuple[str, str]
+    nature: _Line
+    gift: tuple[str, str]
+    shadow: tuple[str, str]
+    life_lesson: tuple[str, str]
     past_texture: tuple[str, str]
     now_texture: tuple[str, str]
     action: tuple[str, str]
@@ -335,19 +551,27 @@ class _Voice:
 
 _VOICE: dict[str, _Voice] = {
     "SUN": _Voice(
-        nature=(
+        nature=_Line(
             "நீங்கள் பொறுப்பேற்கும் இயல்பு கொண்டவர்; அதை மற்றவர்கள் உடனே உணர்கிறார்கள் — ஆனால் "
             "கருத்து வேறுபாட்டை வெளியே காட்டுவதை விட உள்ளுக்குள் அதிகம் உணர்கிறீர்கள்.",
             "You carry yourself as someone in charge and people read that quickly — though you take "
             "disagreement more personally than you let on.",
+            # Taking charge in front of people.
+            Orientation.OUTWARD,
         ),
-        capacity=(
+        gift=(
             "கேட்காமலேயே மற்றவர்கள் உங்களிடம் ஒப்படைக்கும் பொறுப்பு",
             "the authority people hand you without being asked",
         ),
-        soft_spot=(
+        shadow=(
             "தவறு என்று வெளிப்பட நேரும் தருணம் — நீங்கள் நம்பாத நிலைப்பாட்டையும் தொடர்ந்து காப்பாற்றுகிறீர்கள்",
             "being seen to be wrong; you defend a position past the point you believe it",
+        ),
+        life_lesson=(
+            "தன்னை நிரூபிப்பதும் தானாக மாறுவதும் ஒன்றல்ல என்பதை வாழ்க்கை உங்களுக்குத் "
+            "திரும்பத் திரும்பச் சொல்கிறது.",
+            "Life keeps reminding you that proving yourself and becoming yourself are not the "
+            "same thing.",
         ),
         past_texture=(
             "அது உங்களை மற்றவர்கள் முன்னால் நிறுத்தியது — நீங்கள் விரும்பினாலும் விரும்பாவிட்டாலும்",
@@ -363,20 +587,27 @@ _VOICE: dict[str, _Voice] = {
         ),
     ),
     "MOON": _Voice(
-        nature=(
+        nature=_Line(
             "யாரும் பேசுவதற்கு முன்பே சூழலை நீங்கள் புரிந்துகொள்கிறீர்கள்; அதனால் மற்றவர்கள் தங்கள் "
             "கவலைகளை உங்களிடம் கொண்டு வருகிறார்கள் — ஆனால் பிறரின் மனநிலை தேவைக்கும் அதிக நேரம் "
             "உங்களுடன் தங்கிவிடுகிறது.",
             "You read a room before anyone speaks, and people bring you their troubles — though other "
             "people's moods stay with you longer than they should.",
+            # Receiving and absorbing, not projecting. The room acts on them.
+            Orientation.INWARD,
         ),
-        capacity=(
+        gift=(
             "மற்றவர்களுக்கு என்ன தேவை என்பதை அவர்கள் சொல்வதற்கு முன்பே அறிதல்",
             "reading what people need before they say it",
         ),
-        soft_spot=(
+        shadow=(
             "அழுத்தத்தில் நிலைத்திருத்தல் — உங்கள் மனநிலை சூழலின் மனநிலையைப் பின்தொடர்கிறது",
             "steadiness under pressure; your mood follows the room's more than you would like",
+        ),
+        life_lesson=(
+            "எல்லாவற்றையும் சுமக்காமலேயே அக்கறை காட்ட முடியும் என்பதை வாழ்க்கை உங்களுக்குத் "
+            "திரும்பத் திரும்பக் கற்பிக்கிறது.",
+            "Life keeps asking you to care without carrying all of it.",
         ),
         past_texture=(
             "அது அடிக்கடி நகர்ந்தது — இடம், மனநிலை, மனிதர்கள் — அதற்குள் நிலையாக இருக்கும்படி கேட்டது",
@@ -392,19 +623,25 @@ _VOICE: dict[str, _Voice] = {
         ),
     ),
     "MARS": _Voice(
-        nature=(
+        nature=_Line(
             "முதலில் செயல்படுபவர், விரைவாக முடிவெடுப்பவர் — உங்களைச் சுற்றி வேலைகள் நடப்பதற்குக் "
             "காரணமே அதுதான். ஆனால் கடைசித் தகவல் வருவதற்கு முன்பே முடிவெடுத்துவிடுகிறீர்கள்.",
             "You move first and decide fast, which is why things around you actually get done — though "
             "you commit before the last fact is in.",
+            Orientation.OUTWARD,
         ),
-        capacity=(
+        gift=(
             "மற்றவர்கள் இன்னும் விவாதித்துக்கொண்டிருக்கும்போது செயல்படுதல்",
             "acting while other people are still discussing",
         ),
-        soft_spot=(
+        shadow=(
             "பொறுமை — தானாகவே வந்திருக்கக்கூடிய முடிவை நீங்கள் வலுக்கட்டாயமாக வரவழைக்கிறீர்கள்",
             "patience; you force a decision that would have come to you on its own",
+        ),
+        life_lesson=(
+            "ஒவ்வொரு போரும் உங்கள் பலத்திற்குத் தகுதியானது அல்ல என்பதை வாழ்க்கை உங்களுக்குத் "
+            "திரும்பத் திரும்பக் கற்பிக்கிறது.",
+            "Life keeps teaching you that not every battle deserves your strength.",
         ),
         past_texture=(
             "அது செயலுக்குப் பலன் தந்தது, தயக்கத்திற்குத் தண்டனை தந்தது — உங்களைக் களைப்படையவும் வைத்தது",
@@ -420,19 +657,30 @@ _VOICE: dict[str, _Voice] = {
         ),
     ),
     "MERCURY": _Voice(
-        nature=(
+        nature=_Line(
             "வார்த்தைகளில் சிந்திப்பவர்; எந்தச் சூழலையும் பேச்சால் கடந்துவிடுவீர்கள் — ஆனால் ஏற்கனவே "
             "சரியாக எடுத்த முடிவை மீண்டும் யோசித்து மாற்றிக்கொள்கிறீர்கள்.",
             "You think in words and can talk your way through most rooms — though you often reason "
             "yourself out of a decision you had already got right.",
+            # Talking their way through rooms is done AT people.
+            Orientation.OUTWARD,
         ),
-        capacity=(
+        gift=(
             "சிக்கலான ஒன்றை எளிமையாக விளக்குதல்",
             "explaining a complicated thing simply",
         ),
-        soft_spot=(
+        shadow=(
             "முடிவெடுத்தல் — இரு பக்கத்தையும் நன்றாக வாதிடுவதால் எதுவும் வெல்வதில்லை",
             "deciding; you can argue both sides so well that neither one wins",
+        ),
+        # Answers the GRIEVANCE ("why am I still explaining things people should
+        # already understand") rather than restating the shadow. The first draft
+        # was "understanding more is not the same as deciding better", which
+        # closed on the shadow's own noun and left the complaint unanswered.
+        life_lesson=(
+            "எல்லாவற்றையும் இன்னும் நன்றாக விளக்குவதன் மூலம் தீர்த்துவிட முடியாது என்பதை "
+            "வாழ்க்கை உங்களுக்குத் திரும்பத் திரும்பக் காட்டுகிறது.",
+            "Life keeps showing you that not everything is settled by explaining it better.",
         ),
         past_texture=(
             "அது பேச்சு, கற்றல், ஆவணங்கள் நிறைந்த காலம் — நுணுக்கங்களைச் சரியாகச் செய்ததில் வெற்றி வந்தது",
@@ -449,19 +697,26 @@ _VOICE: dict[str, _Voice] = {
         ),
     ),
     "JUPITER": _Voice(
-        nature=(
+        nature=_Line(
             "தீர்ப்புக்காக மக்கள் உங்களிடம் வருகிறார்கள்; நீங்கள் தாராளமாகக் கொடுக்கிறீர்கள் — ஆனால் "
             "ஒருவரால் தாங்கக்கூடியதை விட அதிகமாக வாக்குறுதி அளிக்கிறீர்கள்.",
             "People come to you for judgment and you give it generously — though you promise more than "
             "one person can reasonably carry.",
+            # Giving outward, and over-giving. Guru faces the room.
+            Orientation.OUTWARD,
         ),
-        capacity=(
+        gift=(
             "மற்றவர்கள் நம்பிச் செயல்படும் அளவுக்கான தீர்ப்பு",
             "judgment people trust enough to act on",
         ),
-        soft_spot=(
+        shadow=(
             "மறுத்துச் சொல்வது — அதனால் உங்கள் சம்மதம் பல இடங்களில் மெலிந்துவிடுகிறது",
             "saying no, so your yes gets spread thin",
+        ),
+        life_lesson=(
+            "வரம்பின்றி அல்ல, விவேகத்துடன் கொடுக்கும்படி வாழ்க்கை உங்களைத் திரும்பத் "
+            "திரும்பக் கேட்கிறது.",
+            "Life keeps asking you to give wisely rather than endlessly.",
         ),
         past_texture=(
             "அது கதவுகளைத் திறந்தது, உங்கள் வட்டத்தை விரிவாக்கியது — நீங்கள் உள்ளே நுழைந்த அளவுக்கு",
@@ -477,19 +732,28 @@ _VOICE: dict[str, _Voice] = {
         ),
     ),
     "VENUS": _Voice(
-        nature=(
+        nature=_Line(
             "சூழலையும் மனிதர்களையும் இதமாக வைத்திருப்பவர்; திறமை மட்டும் திறக்காத கதவுகளை அது "
             "திறக்கும் — ஆனால் தெளிவைக் கொடுக்கும் அந்த ஒரு உரையாடலைத் தவிர்க்கிறீர்கள்.",
             "You make things pleasant and people comfortable, and that opens doors ability alone would "
             "not — though you avoid the one conversation that would clear the air.",
+            # Acting ON the room to keep it pleasant, even where the cost is
+            # avoidance. The avoidance is a withdrawal from ONE conversation,
+            # not a disposition to withdraw.
+            Orientation.OUTWARD,
         ),
-        capacity=(
+        gift=(
             "மனிதர்களிடம் காட்டும் பொறுமையும், அது ஈட்டித் தரும் நல்லெண்ணமும்",
             "patience with people, and the good will it earns",
         ),
-        soft_spot=(
+        shadow=(
             "நேரடி மோதல் — எதிர்த்துச் சொல்வதை விட உள்ளுக்குள் தாங்கிக்கொள்கிறீர்கள், அது சேர்ந்துகொண்டே வரும்",
             "confrontation; you tend to absorb rather than object, and it accumulates",
+        ),
+        life_lesson=(
+            "மௌனத்தால் வாங்கிய அமைதி நீடிப்பதில்லை என்பதை வாழ்க்கை உங்களுக்குத் திரும்பத் "
+            "திரும்ப நினைவூட்டுகிறது.",
+            "Life keeps reminding you that peace bought with silence does not hold.",
         ),
         past_texture=(
             "அது பொறுமைக்கு வசதியைத் திருப்பித் தந்தது, அதை மிகைப்படுத்தாமல் அனுபவிக்கும்படி கேட்டது",
@@ -505,19 +769,35 @@ _VOICE: dict[str, _Voice] = {
         ),
     ),
     "SATURN": _Voice(
-        nature=(
+        nature=_Line(
             "தொடங்கியதை முடிப்பவர்; முதலில் இருப்பதை விட உறுதியாக இருப்பதையே விரும்புவீர்கள் — ஆனால் "
             "ஒரு வழிமுறையை ஏற்ற பிறகு, அது பலன் தராத நிலையிலும் விட்டு விலகுவது கடினம்.",
             "You finish what you start and would rather be sure than first — though once committed "
             "to a way of working, you find it hard to let go.",
+            # Sureness before speed, holding rather than reaching. Sani works
+            # against himself, not on the room.
+            Orientation.INWARD,
         ),
-        capacity=(
+        gift=(
             "வேகமானவர்களைத் தோற்கடிக்கும் பிரச்சினைகளை விடத் தாக்குப்பிடித்தல்",
             "outlasting problems that defeat faster people",
         ),
-        soft_spot=(
+        shadow=(
             "தொடங்குவது — வராத ஒரு உறுதிக்காகக் காத்திருக்கிறீர்கள்",
             "starting; you wait for a certainty that does not arrive",
+        ),
+        # NOT "life keeps teaching you patience". That is the obvious Sani
+        # sentence and it is the wrong one here: this graha's shadow is that it
+        # waits too long, so a lesson prescribing more patience would endorse
+        # the cost the two sentences above have just named. Sani's own grievance
+        # is "why is it still taking so long" — the honest answer is that some
+        # of the delay is the waiting. Cf. the KETU soft-spot defect, which was
+        # this same failure one facet earlier.
+        life_lesson=(
+            "உறுதி வரும்வரை காத்திருப்பதன் விலை, உறுதியின்றித் தொடங்குவதை விட அதிகம் "
+            "என்பதை வாழ்க்கை உங்களுக்குக் கற்பிக்கிறது.",
+            "Life keeps teaching you that waiting for certainty costs more than starting "
+            "without it.",
         ),
         # Reclassified 2026-08-05. The clause that stood here — "what you built
         # then was built slowly, and mostly alone" — is E, not R: it asserts
@@ -540,19 +820,25 @@ _VOICE: dict[str, _Voice] = {
         ),
     ),
     "RAHU": _Voice(
-        nature=(
+        nature=_Line(
             "உங்களுக்குக் கொடுக்கப்பட்ட இடத்தை விட அதிகம் வேண்டும் என்பவர்; மற்றவர் காணாத வழிகளைக் "
             "கண்டுபிடிப்பீர்கள் — ஆனால் சென்றடைந்ததை அனுபவிக்க நிற்பதே இல்லை.",
             "You want more than the room you were given and you find routes other people do not see — "
             "though you rarely stop long enough to enjoy arriving.",
+            Orientation.OUTWARD,
         ),
-        capacity=(
+        gift=(
             "மற்றவர்கள் சுவரைக் காணும் இடத்தில் ஒரு வழியைக் காணுதல்",
             "seeing an opening where other people see a wall",
         ),
-        soft_spot=(
+        shadow=(
             "முடிப்பது — நடப்பதை விட அடுத்தது எப்போதும் சுவாரஸ்யமாக இருக்கிறது",
             "finishing; the next thing is always more interesting than the current one",
+        ),
+        life_lesson=(
+            "அடுத்ததாக நீங்கள் தேடுவது உண்மையில் நீங்கள் விரும்பியதுதானா என்று வாழ்க்கை "
+            "திரும்பத் திரும்பக் கேட்கிறது.",
+            "Life keeps asking whether the next thing is the one you actually wanted.",
         ),
         past_texture=(
             "அது வழக்கத்திற்கு மாறான திருப்பங்கள் நிறைந்தது — நீங்கள் சென்ற பாதை திட்டமிட்டது அல்ல",
@@ -568,17 +854,18 @@ _VOICE: dict[str, _Voice] = {
         ),
     ),
     "KETU": _Voice(
-        nature=(
+        nature=_Line(
             "எதையும் விரைவில் ஊடுருவிப் பார்ப்பவர்; எளிதில் வியப்படைவதில்லை — ஆனால் கேட்டே "
             "தெரிந்துகொள்ளக்கூடிய ஒன்றிலிருந்தும் விலகிவிடுகிறீர்கள்.",
             "You see through things quickly and are not easily impressed — though you withdraw from "
             "what you could simply have asked about.",
+            Orientation.INWARD,
         ),
-        capacity=(
+        gift=(
             "உண்மையில் முக்கியமானது எது என்பதை நேராக அடைதல்",
             "cutting straight to what actually matters",
         ),
-        soft_spot=(
+        shadow=(
             "தங்கியிருப்பது — சூழலுக்குத் தேவை அதுவாக இருக்கும்போதும் விலகிவிடுகிறீர்கள்",
             # The English used to stop at "...is what the situation needs", which
             # dropped the verb its own Tamil carries (விலகிவிடுகிறீர்கள் — "you
@@ -588,6 +875,11 @@ _VOICE: dict[str, _Voice] = {
             # soft_spot in this table names the behaviour after the noun; this
             # was the one that did not.
             "staying — you withdraw at the times when staying is what the situation needs",
+        ),
+        life_lesson=(
+            "இன்னும் உங்கள் கவனத்திற்குத் தகுதியானதை விட்டு விலகாதீர்கள் என்பதை வாழ்க்கை "
+            "உங்களுக்குத் திரும்பத் திரும்ப நினைவூட்டுகிறது.",
+            "Life keeps reminding you not to leave what still deserves your attention.",
         ),
         past_texture=(
             "அது அமைதியாகப் பலவற்றை முடித்து வைத்தது; சேர்ப்பதை விட விட்டுவிடும்படி கேட்டது",
@@ -626,64 +918,183 @@ _VOICE: dict[str, _Voice] = {
 #                 grievance ("why is it taking so long") is true of everyone who
 #                 ever consulted an astrologer, which is why it is keyed on the
 #                 signature and not printed unconditionally.
-_SIGNATURE_OPENING: dict[str, tuple[str, str]] = {
-    "SUN": (
+_SIGNATURE_OPENING: dict[str, _Line] = {
+    "SUN": _Line(
         "சிலர் கவனிக்கப்படாத இடத்தில் சிறப்பாகச் செயல்படுவார்கள். சிலர் பார்க்கப்படும்போதுதான் "
         "முழுமையாகத் தங்களாக இருப்பார்கள். நீங்கள் இரண்டாவது வகை.",
         "Some people do their best work out of sight. Others are only fully themselves when they "
         "are being watched. You are the second kind.",
+        # Needs to be seen. The most outward line in the table.
+        Orientation.OUTWARD,
     ),
-    "MOON": (
+    "MOON": _Line(
         "சிலர் திட்டங்களை வைத்து வாழ்க்கையைக் கடப்பார்கள். சிலர் சூழலை உணர்ந்து கடப்பார்கள் — "
         "சொல்லப்படுவதற்கு முன்பே மாற்றத்தை உணர்பவர்கள். நீங்கள் இரண்டாவது வகை.",
         "Some people move through life on plans. Others move on atmosphere — reading a room, "
         "feeling a shift before it is announced. You are the second kind.",
+        # Sensing rather than acting; the room reaches them first.
+        Orientation.INWARD,
     ),
-    "MARS": (
+    "MARS": _Line(
         "சிலர் சரியான தருணத்திற்குக் காத்திருப்பார்கள். சிலர் அதை உருவாக்கிவிட்டு விளைவுகளைச் "
         "சமாளிப்பார்கள். நீங்கள் இரண்டாவது வகை.",
         "Some people wait for the right moment. Others create it and deal with the consequences "
         "afterwards. You are the second kind.",
+        Orientation.OUTWARD,
     ),
-    "MERCURY": (
+    "MERCURY": _Line(
         "சிலர் தங்கள் இருப்பால் மற்றவர்களை நம்பவைப்பார்கள். சிலர் விளக்கத்தால் நம்பவைப்பார்கள். "
         "நீங்கள் இரண்டாவது வகை.",
         "Some people convince others by sheer presence. Others convince by explaining. You are the "
         "second kind.",
+        # Convincing is done to somebody.
+        Orientation.OUTWARD,
     ),
-    "JUPITER": (
+    "JUPITER": _Line(
         "சிலர் ஒவ்வொரு கதவையும் தள்ளித் திறக்க வேண்டியிருக்கும். சிலருக்குக் கதவுகள் திறக்கும் — "
         "எளிதாக வந்ததை மதிக்காமல் விடுவதுதான் அவர்களின் ஆபத்து. நீங்கள் இரண்டாவது வகை.",
         "Some people force every door. Others find doors tend to open — and their real risk is not "
         "valuing what came easily. You are the second kind.",
+        # A judgement call worth recording: doors OPENING is something the world
+        # does to them, which argues INWARD. It is tagged OUTWARD because the
+        # line is about their standing among people — Guru's fortune arrives
+        # through patronage, and the reader placed here is being told they are
+        # well-received, not that they are receptive.
+        Orientation.OUTWARD,
     ),
-    "VENUS": (
+    "VENUS": _Line(
         "சிலர் தாங்கள் விரும்புவதை அழுத்தத்தால் அடைவார்கள். சிலர், மற்றவர்கள் கொடுக்க "
         "விரும்புவதால் அடைவார்கள். நீங்கள் இரண்டாவது வகை.",
         "Some people get what they want by pushing for it. Others get it because people want to "
         "give it to them. You are the second kind.",
+        Orientation.OUTWARD,
     ),
-    "SATURN": (
+    "SATURN": _Line(
         "சிலருக்கு வாய்ப்புகள் தானாக வந்து சேரும். சிலர் ஒவ்வொரு வாய்ப்பையும் போராடி வெல்ல "
         "வேண்டியிருக்கும். நீங்கள் இரண்டாவது வகை.",
         "Some people find that opportunities arrive on their own. Others have to win each one. You "
         "are the second kind.",
+        # Winning each one is endurance turned on the self, not display.
+        Orientation.INWARD,
     ),
-    "RAHU": (
+    "RAHU": _Line(
         "சிலர் தங்களுக்குக் கிடைத்த வாழ்க்கைக்குள் நிறைவாக இருப்பார்கள். சிலர் அதன் எல்லையைத் "
         "தாண்டியே கை நீட்டிக்கொண்டிருப்பார்கள். நீங்கள் இரண்டாவது வகை.",
         "Some people are content inside the life they were handed. Others spend it reaching past "
         "the edge of it. You are the second kind.",
+        Orientation.OUTWARD,
     ),
-    "KETU": (
+    "KETU": _Line(
         "சிலருக்கு அறைக்குள் இருப்பது அவசியம். சிலருக்கு சற்று வெளியே நின்றால்தான் அது தெளிவாகத் "
         "தெரியும். நீங்கள் இரண்டாவது வகை.",
         "Some people need to be in the room. Others see it more clearly from just outside it. You "
         "are the second kind.",
+        # Standing outside the room is the definition of the inward pole.
+        Orientation.INWARD,
     ),
 }
 
-_SIGNATURE_GRIEVANCE: dict[str, tuple[str, str]] = {
+# ── The two nouns beat 1 printed and never used ──────────────────────────────
+#
+# Until 2026-08-07 the opening named three things — the janma nakshatra, the
+# Moon's rasi and the lagna rasi — and only the first of them said anything: the
+# nature line is keyed on the nakshatra lord, and the other two were decoration.
+# Two readers with different stars and different Moon rasis got the SAME opening
+# and the SAME character paragraph whenever their signature and strongest graha
+# happened to coincide, which is common. Naming a thing to the reader's face and
+# then deriving nothing from it is worse than not naming it: the reader can see
+# the noun, so the silence after it is legible to them and to nobody else.
+#
+# KEYED ON THE RASI, NOT ON THE RASI'S LORD, and that is the load-bearing
+# choice. A lord-keyed table would be nine entries and would collide with
+# ``_VOICE`` by construction — Moon in Mithunam gives Mercury, and a reader whose
+# janma nakshatra is also Mercury's would be told the same thing twice in
+# consecutive clauses with no way for either sentence to know. Twelve rasi
+# entries cannot collide with a nine-graha table at all, and the rasi is the unit
+# a Tamil reader already knows themselves by.
+#
+# WHERE THEY DO NOT GO. The ``parent`` and ``other`` registers keep the bare fact
+# sentence. Both of those are deliberate silences and neither is a length
+# problem: a child's reading is a different artifact rather than the adult one
+# rephrased, and an adult who is not in the room gets the chart facts and no
+# character note at all (§3.1). A disposition clause is exactly the material
+# those two registers exist to withhold.
+
+# Chandra is manah-karaka; the rasi it occupies is the classical colour of the
+# manas. So this table describes the MIND — never the life, never the outcome —
+# which is also what keeps it inside the teen register's content rule.
+_MOON_MIND: dict[int, tuple[str, str]] = {
+    1: ("முடிவெடுத்து முடிக்கும் முன்பே தொடங்கிவிடும்",
+        "a mind that starts before it has finished deciding"),
+    2: ("மெதுவாக நிலைபெறும்; பிறகு அசையாது",
+        "a mind slow to settle and then immovable"),
+    3: ("சூழ்நிலையை விட வேகமாக ஓடும்",
+        "a mind that runs ahead of your circumstances"),
+    4: ("உணர்ந்த அனைத்தையும் வைத்திருக்கும்",
+        "a mind that keeps everything it has felt"),
+    5: ("நடைமுறையாகப் பார்ப்பதற்கு முன் தன்னைச் சார்ந்ததாகப் பார்க்கும்",
+        "a mind that takes things personally first, practically second"),
+    6: ("முழுமையைக் காண்பதற்கு முன் குறையைக் காணும்",
+        "a mind that sees the flaw before the whole"),
+    7: ("பதில் தெரிந்த பிறகும் நிறுத்தி நிறுத்திப் பார்க்கும்",
+        "a mind still weighing after the answer is obvious"),
+    # Moon is debilitated here and the copy carries that without naming it: the
+    # holding-on IS the neecha, read as disposition rather than as a verdict.
+    8: ("விடாமல் பிடிக்கும்; நினைத்ததை விட ஆழமாகச் செல்லும்",
+        "a mind that grips, and goes deeper than intended"),
+    9: ("பதிலை மட்டுமல்ல, அதன் பின்னுள்ள நெறியையும் தேடும்",
+        "a mind that wants the principle behind the answer"),
+    10: ("லாபத்தைக் கணக்கிடும் முன் விலையைக் கணக்கிடும்",
+         "a mind that counts the cost before the gain"),
+    11: ("சற்று விலகி நின்று கவனிக்கும்",
+         "a mind that stands a little apart and watches"),
+    12: ("இருக்கும் இடத்தின் உணர்வை உள்வாங்கும்",
+         "a mind that absorbs whatever room it is in"),
+}
+
+# The lagna is the body and the first impression — how the person is MET, which
+# is a claim about other people's reading of them and not about their character.
+# That distinction is why this can sit next to the nature line without competing
+# with it: one says how you come across, the other says what you do.
+#
+# The frame supplies "so people meet you" / "லக்னத்தால்" so the attribution is
+# unambiguous. Left to the entries, twelve strings would each have to re-state
+# which of the two nouns they belong to, and the first one written without it
+# would silently attach the outer impression to the Moon clause beside it.
+_LAGNA_FACE: dict[int, tuple[str, str]] = {
+    1: ("ஏற்கனவே நகர்ந்துகொண்டிருப்பவராகத் தெரிகிறீர்கள்",
+        "already in motion"),
+    2: ("அவசரமற்றவராகத் தெரிகிறீர்கள்; அதை உறுதி என்று படிக்கிறார்கள்",
+        "unhurried, and they read that as certainty"),
+    3: ("விரைவானவராகவும் பேச எளியவராகவும் தெரிகிறீர்கள்",
+        "quick, and easy to talk to"),
+    4: ("யாரை அருகில் விடுவது என்பதில் கவனமானவராகத் தெரிகிறீர்கள்",
+        "careful about who gets close"),
+    5: ("கேட்காமலேயே பொறுப்பில் இருப்பவராகத் தெரிகிறீர்கள்",
+        "as someone in charge, asked or not"),
+    6: ("நுணுக்கமானவராக — சில நேரம் திருத்துபவராக — தெரிகிறீர்கள்",
+        "exact, and sometimes correcting"),
+    7: ("உங்கள் கருத்து தெரிவதற்கு முன்பே இணக்கமானவராகத் தெரிகிறீர்கள்",
+        "agreeable long before they meet your opinion"),
+    8: ("படிக்க முடியாதவராகத் தெரிகிறீர்கள்; ஆழம் இருக்கும் என்று எண்ணுகிறார்கள்",
+        "hard to read, and they assume depth"),
+    9: ("வெளிப்படையானவராகத் தெரிகிறீர்கள்; நேரடித்தன்மை நம்பிக்கையாகப் படுகிறது",
+        "open, and they read directness as confidence"),
+    10: ("உங்கள் வயதை விட மூத்தவராகத் தெரிகிறீர்கள்",
+         "serious, and older than you are"),
+    11: ("கூட்டத்திற்குள் இருந்தாலும் சற்று தனித்தவராகத் தெரிகிறீர்கள்",
+         "slightly apart, even from inside the group"),
+    12: ("நீங்கள் இருப்பதை விட மென்மையானவராகத் தெரிகிறீர்கள்",
+         "softer than you are"),
+}
+
+
+# Renamed from _SIGNATURE_GRIEVANCE 2026-08-07. It is no longer keyed on the
+# signature: the grievance now closes the strongest graha's gift→shadow chain in
+# _beat_strength_and_cost, so it must come from that graha or "Which is why" is
+# asserting a cause it does not have. The old name would have been a standing
+# invitation to key it back.
+_GRIEVANCE: dict[str, tuple[str, str]] = {
     "SUN": ("இதை நான் ஏன் திரும்பத் திரும்ப நிரூபிக்க வேண்டியிருக்கிறது",
             "why do I have to keep proving this"),
     "MOON": ("மற்றவர்களின் மனநிலை ஏன் என் சுமையாகிறது",
@@ -762,12 +1173,22 @@ _FALSIFIABILITY: dict[tuple[str, bool], tuple[str, str]] = {
         "If that does not sound like you — not partly, genuinely not — check the birth date and "
         "time before reading on. Twenty minutes can move the rising sign.",
     ),
+    # "…which the rest is built on" USED TO STAND HERE AND IT WAS FALSE. The
+    # sentence claims the reading rests on the star alone once the lagna is
+    # withheld, and two of this register's beats do not: `_signature_lord` and
+    # `_strongest_and_weakest` both key on `strength_score`, and
+    # chart_strength.explain_natal_planet_score takes `natal_lagna_rasi` and
+    # swings house strength 25→80 on it. So the opening line and the whole
+    # strength/cost beat stood on the input this sentence had just disclaimed —
+    # in the one register whose entire job is to be honest about that. The claim
+    # is now narrowed to what actually holds without a lagna, and
+    # `_LAGNA_STRENGTH_CAVEAT` says what does not.
     ("self", False): (
         "பிறந்த நேரம் உறுதிப்படுத்தப்படவில்லை; அதனால் இந்த வாசிப்பு லக்னத்தை விட்டுவிடுகிறது — "
-        "இருபது நிமிடங்கள் அதை மாற்றிவிடும். உங்கள் நட்சத்திரத்தை அது மாற்றுவதில்லை; மீதி "
-        "அதன் மீதுதான் நிற்கிறது.",
+        "இருபது நிமிடங்கள் அதை மாற்றிவிடும். உங்கள் நட்சத்திரமும் இங்குள்ள காலக் "
+        "கணக்குகளும் அதைச் சாராமல் நிற்கின்றன.",
         "The birth time is not confirmed, so this reading leaves the rising sign out — twenty "
-        "minutes can move it. It does not move your star, which the rest is built on.",
+        "minutes can move it. Your star and every date here stand without it.",
     ),
     ("third_person", True): (
         "இது {name}-ஐப் பற்றியதாக இல்லை என்று தோன்றினால் — சிறிதளவும் அல்ல, உண்மையிலேயே இல்லை "
@@ -776,6 +1197,12 @@ _FALSIFIABILITY: dict[tuple[str, bool], tuple[str, str]] = {
         "If that does not sound like {name} — not partly, genuinely not — check the birth date "
         "and time before reading on. Twenty minutes can move the rising sign.",
     ),
+    # This one KEEPS the strong claim, and the asymmetry is the point rather
+    # than an oversight. `third_person` is the parent and third-party registers,
+    # and neither emits `strength_and_cost` or the signature opening — the child
+    # note is keyed on the nakshatra lord and the third-party reading carries no
+    # character material at all. So in these two registers the star and the dasa
+    # arithmetic really are the whole of what is left, and saying so is true.
     ("third_person", False): (
         "{name}-இன் பிறந்த நேரம் உறுதிப்படுத்தப்படவில்லை; அதனால் இந்த வாசிப்பு லக்னத்தை "
         "விட்டுவிடுகிறது — இருபது நிமிடங்கள் அதை மாற்றிவிடும். அவரின் நட்சத்திரத்தை அது "
@@ -784,6 +1211,116 @@ _FALSIFIABILITY: dict[tuple[str, bool], tuple[str, str]] = {
         "twenty minutes can move it. It does not move their star, which the rest is built on.",
     ),
 }
+
+# Appended to the unconfirmed-time offer on the SELF register only, because it
+# is the only register carrying strength-derived material. `client_with_guardian`
+# maps to the "self" key above (it is second person) and yet contains neither the
+# signature opening nor the strength beat, so keying this on the falsifiability
+# REGISTER would have told a teenager to discount a sentence their reading does
+# not contain. It keys on `addressed_to` instead.
+#
+# The device here is v2 Part 3 substitute #3 — state the uncertainty band rather
+# than pick a side — applied to our own inputs instead of to a disagreement
+# between classical sources. A practitioner cannot say "take this specific part
+# of what I just told you less seriously"; software can, it costs nothing, and
+# it is worth more than the confident version because a reader who checks it
+# finds it was true.
+# It names the STRENGTH AND THE COST rather than "which graha scores highest",
+# and that is the jargon rule doing real work rather than being obeyed: "graha"
+# is on the English lint, and a reader told to discount "the graha ranking"
+# would not know which sentence that was. Naming the beat by what it says to
+# them is both plainer and more actionable. "Named next" is exact — on the self
+# path `strength_and_cost` is always the beat immediately after this one.
+_LAGNA_STRENGTH_CAVEAT: tuple[str, str] = (
+    "அடுத்து வரும் பலமும் அதன் விலையும் லக்னத்தைச் சார்ந்தவை; அவற்றை மட்டும் சற்று "
+    "தளர்வாக எடுத்துக்கொள்ளுங்கள்.",
+    "The strength and the cost named next do rest on it, so hold those more lightly.",
+)
+
+# ── The invitation: v2's E→R conversion operator, second half ────────────────
+#
+# Spec v2 Part 1. The operator converts a banned event claim ("between
+# twenty-five and twenty-eight there was a loan") into a rule plus an invitation
+# ("the sixth-house emphasis from twenty-five to twenty-eight is the chart's
+# marker for obligation or borrowing — whether it took that form for you, you
+# will know"). We have been shipping the FIRST half only since this feature
+# launched: `past_texture` is exactly that rule, correctly dated, and then the
+# beat stops.
+#
+# Stopping there is safe and it undersells. The rule on its own is a statement
+# ABOUT A PERIOD that the reader has to decide what to do with; the invitation
+# tells them what to do with it, which is to check it against a decade they
+# actually lived. That check is the entire trust mechanism of the past beat —
+# "trust is earned on the checkable past" is this module's first sentence — and
+# until now nothing in the copy asked the reader to perform it.
+#
+# It is also the one device here that gets STRONGER the less certain we are. An
+# assertion that misses is wrong; an invitation that misses has said nothing
+# false, and an invitation that lands was matched by the reader rather than
+# accepted from us. That asymmetry is why v2 rates it above every other
+# substitute for practitioner authority, and why it belongs on the beat that
+# carries dates rather than on the beat that carries character.
+#
+# Eleven words, and the brevity is deliberate. The spec's own specimen runs to
+# twenty-five ("...you'll recognise better than I can state"), which in a piece
+# this short reads as the engine apologising for itself. Said once, briefly, at
+# the close of the beat, it reads as a practitioner handing the floor back.
+#
+# It drafted as "…you will know" and the event-claim lint rejected it, which was
+# correct and is worth recording. "You will know" is semantically an invitation
+# and grammatically a future assertion about the reader — the exact construction
+# `\byou will\b` exists to keep out, because the sentence one edit away from it
+# is "you will marry". The right response to a lint firing on a string you like
+# is to change the string: an exception carved for one entry is an exception
+# available to the next one. "Only you can say" carries the same meaning in the
+# present, and is closer to how the handing-back is actually spoken.
+_PAST_INVITATION: tuple[str, str] = (
+    "அது உங்களுக்கு எந்த வடிவத்தில் வந்தது என்பதை நீங்கள்தான் சொல்ல முடியும்.",
+    "Whether it took that form for you, only you can say.",
+)
+
+# ── Minor forms: an adult life surface named to somebody who has no such life ─
+#
+# `now_texture` is the only vocabulary the teen register shares verbatim with
+# the adult one, and two of its nine entries name a domain a sixteen-year-old
+# does not have. Jupiter's widening ran "teaching, children, and people senior
+# to you tend to help" and Venus's ran "relationships, comfort and money move
+# more easily now" — both printed to a teenager holding their own account, and
+# both read by a Tamil parent looking over that shoulder as a claim about
+# romance and progeny.
+#
+# The doctrine does not change and must not: Guru IS putra-karaka and Sukra IS
+# kalatra-karaka, and rewriting the ADULT strings to dodge the teen case would
+# delete real karakatva from the readings where it belongs. What changes is
+# which life surface the same karakatva is read onto — the identical move
+# age_phase_service:128 already makes for house themes. A Guru period over a
+# student's years is the classical vidya/guru window, and a Sukra period is
+# arts, ease and companionship. Those are not softenings of the adult copy; they
+# are the more accurate reading for the age.
+#
+# ONLY these two, and the boundary is drawn by the lint rather than by taste:
+# tests/test_one_minute_reading.py scans a teen reading for the adult-life
+# vocabulary, so a future edit that reintroduces "money" into, say, Mercury's
+# adult copy fails the suite even though nobody thought to add Mercury here.
+# The gap in this shape of fix is always the table, never the guard.
+_MINOR_NOW_TEXTURE: dict[str, tuple[str, str]] = {
+    "JUPITER": (
+        "இந்தக் காலம் விரிவடைகிறது — கற்றல், ஆசிரியர்கள், உங்களை விட மூத்தவர்களின் உதவி கிடைக்கும்",
+        "this stretch widens things — learning, teachers, and people older than you tend to help",
+    ),
+    "VENUS": (
+        "இது எளிதான காலம் — நட்பு, கலை, ரசனை சார்ந்தவை இப்போது எளிதாக நகர்கின்றன",
+        "this is an easier stretch — friendships, art and anything with taste in it move more "
+        "easily now",
+    ),
+}
+
+
+def _now_texture(lord: str, addressed_to: str) -> tuple[str, str]:
+    """``(ta, en)`` for what a stretch under ``lord`` offers, in this register."""
+    if addressed_to == "client_with_guardian" and lord in _MINOR_NOW_TEXTURE:
+        return _MINOR_NOW_TEXTURE[lord]
+    return _VOICE[lord].now_texture
 
 # ── Reading a chart that belongs to somebody else ────────────────────────────
 #
@@ -822,24 +1359,57 @@ _TABLE_PROVENANCE: dict[str, tuple[Provenance, BaseRate]] = {
     # that is not me", which is the only thing that makes meeting it worth
     # anything.
     "_SIGNATURE_OPENING": (Provenance.TENDENCY, BaseRate.KEYED),
+    # T rather than R, and the call is worth recording. The derivation ("Moon in
+    # Viruchigam", "Meenam rising") is D and lives in the frame beside them; what
+    # these tables add is the classical characterological inference drawn from
+    # that placement, which is the definition of T. Calling them R would claim
+    # they are a rule application whose output is checkable, and a disposition
+    # is not — it is exactly the kind of claim the falsifiability beat invites
+    # the reader to reject.
+    #
+    # KEYED, not COMMON, and unlike _GRIEVANCE this one is easy: each entry is
+    # true of a twelfth of the population by construction, and the reader is
+    # told which twelfth they are in and why in the same sentence.
+    "_MOON_MIND": (Provenance.TENDENCY, BaseRate.KEYED),
+    "_LAGNA_FACE": (Provenance.TENDENCY, BaseRate.KEYED),
     # COMMON, and this is the honest entry in the table. The grievance is the
     # highest-value sentence in the feature and the one carrying the most
-    # Barnum risk — the module comment above already says so. Keying it on the
-    # signature was the FORM fix and it worked; it is not the base-rate fix.
+    # Barnum risk — the module comment above already says so. Keying it on a
+    # graha was the FORM fix and it worked; it is not the base-rate fix.
     # Saturn's "why is it still taking so long" is true of most people who ever
     # consulted an astrologer, whatever their chart. It stays, because a
     # recognised complaint earns attention that the reading then spends on
     # chart-derived material — but it is marked, so nobody mistakes it for
     # proof and nobody builds the next trust mechanism on top of it.
-    "_SIGNATURE_GRIEVANCE": (Provenance.TENDENCY, BaseRate.COMMON),
+    "_GRIEVANCE": (Provenance.TENDENCY, BaseRate.COMMON),
     # Claims nothing. Responds to the sentence before it.
     "_VALIDATION": (Provenance.FRAME, BaseRate.KEYED),
-    "_SECOND_NOTE": (Provenance.FRAME, BaseRate.KEYED),
+    # The three transitions. F, and unusually purely so — a connective is the
+    # one kind of string whose entire content is the relation between two OTHER
+    # strings. It makes no claim about the reader at all, which is exactly why
+    # choosing it from the grahas rather than from the sentences was wrong.
+    "_CONTRAST": (Provenance.FRAME, BaseRate.KEYED),
+    "_CONTINUATION": (Provenance.FRAME, BaseRate.KEYED),
+    "_NO_TRANSITION": (Provenance.FRAME, BaseRate.KEYED),
     # D, and unusually literally so: the only claims it makes are about our own
     # inputs (whether the birth time is confirmed) and about the ephemeris
     # (twenty minutes moves the lagna). It says nothing about the reader, which
     # is exactly why it can be trusted to say the reading might be wrong.
     "_FALSIFIABILITY": (Provenance.DERIVED, BaseRate.KEYED),
+    # D for the same reason, one level finer: it reports which of OUR OWN
+    # computations take the lagna as an input. That is a fact about this
+    # codebase, checkable in chart_strength.py, and not a claim about anybody.
+    "_LAGNA_STRENGTH_CAVEAT": (Provenance.DERIVED, BaseRate.KEYED),
+    # F, and it is worth being exact about why, because the temptation is to
+    # call it T. It asserts nothing about the reader — it explicitly declines
+    # to, which is the whole device. It is a conversational move that hands the
+    # judgement back, and the class system stops meaning anything the moment a
+    # refusal to claim is filed as a claim.
+    "_PAST_INVITATION": (Provenance.FRAME, BaseRate.KEYED),
+    # Same class as the `now_texture` facet it substitutes for: a rule about
+    # what a period under this lord offers, read onto the life surface the
+    # subject actually has.
+    "_MINOR_NOW_TEXTURE": (Provenance.RULE, BaseRate.KEYED),
     # Claims nothing about anybody. States where the reading stops, and why.
     "_THIRD_PARTY_CLOSE": (Provenance.FRAME, BaseRate.KEYED),
     # Not a claim about the reader or the chart — a statement of what this
@@ -852,19 +1422,6 @@ _TABLE_PROVENANCE: dict[str, tuple[Provenance, BaseRate]] = {
     "_OUTLOOK_MIXED": (Provenance.FRAME, BaseRate.KEYED),
     "_OUTLOOK_SLOW": (Provenance.RULE, BaseRate.KEYED),
 }
-
-# Beat 1 puts two grahas in consecutive sentences: the chart's dominant graha
-# (the opening) and the janma nakshatra's lord (the nature line). They often
-# disagree — a Sun-signature chart with a Ketu nakshatra opens "only fully
-# yourself when you are being watched" and then says "you withdraw". Printed
-# flat, that is whiplash, and it reads as an app that does not know the reader.
-#
-# The fix is not to suppress one. A jodhidar reading two significators that pull
-# apart says so out loud, and naming the tension is more convincing than a flat
-# single note, because real people are in fact contradictory. So: silence when
-# the two agree (no marker needed), and an explicit hinge when they do not.
-_SECOND_NOTE: tuple[str, str] = ("அதே நேரத்தில்:", "And yet:")
-
 
 # ── A child's reading is a different artifact, not the adult one rephrased ───
 #
@@ -1102,9 +1659,20 @@ _LONGEVITY_REFUSAL: tuple[str, str] = (
     "that answer changes how a person spends the years they have.",
 )
 
+# "The current period is behind this" stood here and it is ambiguous in exactly
+# the wrong direction: "behind" reads as "lagging" as readily as "supporting",
+# and it lands immediately after a sentence about where the chart's weight sits,
+# where either reading is plausible. A reader who takes the wrong one is told
+# the opposite of what the dasa/area affinity computed.
+#
+# The Tamil was never ambiguous — ஆதரவாக இருக்கிறது is unmistakably "is
+# supportive" — so only the English moved. That is the second time on this
+# surface that the English was the copy at risk while the Tamil was correct
+# (the other was KETU's soft_spot), against the usual assumption that the
+# translated language is the fragile one.
 _OUTLOOK_SUPPORTIVE = (
     "நடப்புக் காலம் இதற்கு ஆதரவாக இருக்கிறது.",
-    "The current period is behind this.",
+    "The period running now supports that.",
 )
 # The neutral case says nothing, and it was appearing in most readings — a
 # sentence that costs thirteen words to report an absence of signal. Silence is
@@ -1215,13 +1783,28 @@ _BEAT_PROVENANCE: dict[str, frozenset[Provenance]] = {
     # Star, rasi, lagna (D) + the signature opening and nature (T).
     "who_you_are": frozenset({Provenance.DERIVED, Provenance.TENDENCY, Provenance.FRAME}),
     # Claims nothing about the reader — only about our inputs and the ephemeris.
+    # `_LAGNA_STRENGTH_CAVEAT` joins it on the unconfirmed self path and is D for
+    # the same reason: it reports which of our computations take the lagna.
     "what_this_rests_on": frozenset({Provenance.DERIVED}),
     # Strength ranking (D) + capacity/soft-spot/grievance (T) + validation (F).
     "strength_and_cost": frozenset({Provenance.DERIVED, Provenance.TENDENCY, Provenance.FRAME}),
-    # Dated dasa spans (D) + past_texture (R). The dates are the beat's whole
-    # value and also its whole risk — this is the beat v2's E→R+invitation
-    # operator is written for, and the one Rule 1 has always guarded.
-    "last_ten_years": frozenset({Provenance.DERIVED, Provenance.RULE}),
+    # `what_life_keeps_teaching` IS ABSENT ON PURPOSE, and its absence here is
+    # the §6.17 length ruling rather than an oversight. This table means "the
+    # classes the beats this service EMITS contribute" — the test asserts both
+    # directions, so a declared beat nothing emits fails the suite exactly as an
+    # emitted beat nothing declares does. Its classification has moved onto
+    # `_beat_what_life_keeps_teaching`, which is held for the longer reading;
+    # re-wiring the builder fails this test until the entry comes back, which is
+    # the behaviour we want and the reason not to leave a dormant row here.
+    #
+    # Dated dasa spans (D) + past_texture (R) + the invitation (F). The dates
+    # are the beat's whole value and also its whole risk — this is the beat
+    # v2's E→R+invitation operator is written for, and the one Rule 1 has
+    # always guarded. As of 2026-08-07 it carries BOTH halves of that operator:
+    # the rule, and the clause that hands the reader the judgement on it.
+    "last_ten_years": frozenset(
+        {Provenance.DERIVED, Provenance.RULE, Provenance.FRAME}
+    ),
     "right_now": frozenset({Provenance.DERIVED, Provenance.RULE}),
     # Age and the topic routing (D) + the topic frame and outlook clause (R).
     "your_age_question": frozenset({Provenance.DERIVED, Provenance.RULE}),
@@ -1243,19 +1826,56 @@ _BEAT_PROVENANCE: dict[str, frozenset[Provenance]] = {
 def _beat_who_you_are(
     *,
     display_name: str,
+    nakshatra: int,
     nakshatra_name: str,
     moon_rasi_name: str,
+    moon_rasi: int,
     lagna_rasi_name: str,
+    lagna_rasi: int,
     nakshatra_lord: str,
     signature_lord: str,
     lagna_reliable: bool,
     addressed_to: str,
 ) -> OneMinuteBeat:
+    # ONE display name per language, never one shared between them. The star and
+    # rasi are the first nouns in the reading, and until now both languages were
+    # handed `_proper(nakshatra_name)` — so the Tamil opened "நீங்கள் Anusham
+    # நட்சத்திரத்தில், Viruchigam ராசியில்", English proper nouns inside Tamil
+    # prose in the one sentence that has to sound like a person speaking.
+    #
+    # The Tamil side falls back to the English form rather than to nothing: a
+    # number this table has no row for is a bug, but an empty noun in the
+    # opening sentence is a worse way to report it than a legible wrong one.
     star = _proper(nakshatra_name)
-    moon_rasi = _proper(moon_rasi_name)
-    lagna_rasi = _proper(lagna_rasi_name)
-    lagna_ta = f", {lagna_rasi} லக்னத்தில்" if lagna_reliable else ""
-    lagna_en = f", {lagna_rasi} rising" if lagna_reliable else ""
+    star_ta = nakshatra_ta(nakshatra) or star
+    moon_rasi_display = _proper(moon_rasi_name)
+    moon_rasi_ta_display = rasi_ta(moon_rasi) or moon_rasi_display
+    lagna_rasi_display = _proper(lagna_rasi_name)
+    lagna_rasi_ta_display = rasi_ta(lagna_rasi) or lagna_rasi_display
+
+    # THE OPENING NAMES ONE PLACEMENT, AND IT IS THE ONE THE READING READS FROM.
+    #
+    # It named three — star, Moon rasi, lagna — and for one day it read from all
+    # three, which was defect 22's fix. §6.17 cut the two rasi clauses for
+    # length, and cutting a clause obliges cutting its noun: a named placement
+    # with nothing read from it is the defect 22 the clauses were added to fix,
+    # and it is the worse half of it. The reader can SEE the noun, so the
+    # silence after it is legible to them and to nobody else.
+    #
+    # The star stays because `_VOICE` is keyed on its lord — the nature sentence
+    # two clauses later is what it is read from, so the noun is earning its
+    # place in the sentence rather than decorating it.
+    placement_ta = f"நீங்கள் {star_ta} நட்சத்திரத்தில் பிறந்தவர்."
+    placement_en = f"You were born under {star}."
+
+    # `parent` and `other` keep all three placements, and the rule above is not
+    # being bent for them. Those two registers are DEFINED as chart facts with
+    # the interpretation withheld (§3.1) — the facts are what the reader asked
+    # for, so a noun with no clause after it is the deliverable rather than an
+    # unkept promise. The self reading is the opposite case: there the noun
+    # promises a reading of itself, which is why it now has to keep it.
+    lagna_ta = f", {lagna_rasi_ta_display} லக்னத்தில்" if lagna_reliable else ""
+    lagna_en = f", {lagna_rasi_display} rising" if lagna_reliable else ""
 
     if addressed_to == "other":
         # An adult who is not the reader gets the chart FACTS and no character
@@ -1267,17 +1887,17 @@ def _beat_who_you_are(
         # the child facets describe a life this person is decades past. Saying
         # less is the correct interim, and the close says so out loud.
         given = _first_name(display_name)
-        ta = f"{given} {star} நட்சத்திரத்தில், {moon_rasi} ராசியில்{lagna_ta} பிறந்தவர்."
-        en = f"{given} was born under {star}, Moon in {moon_rasi}{lagna_en}."
+        ta = f"{given} {star_ta} நட்சத்திரத்தில், {moon_rasi_ta_display} ராசியில்{lagna_ta} பிறந்தவர்."
+        en = f"{given} was born under {star}, Moon in {moon_rasi_display}{lagna_en}."
     elif addressed_to == "parent":
         child = _CHILD_VOICE[nakshatra_lord]
         given = _first_name(display_name)
         ta = (
-            f"{given} {star} நட்சத்திரத்தில், {moon_rasi} ராசியில்{lagna_ta} பிறந்தவர். "
+            f"{given} {star_ta} நட்சத்திரத்தில், {moon_rasi_ta_display} ராசியில்{lagna_ta} பிறந்தவர். "
             f"{child.note[0].format(name=given)}"
         )
         en = (
-            f"{given} was born under {star}, Moon in {moon_rasi}{lagna_en}. "
+            f"{given} was born under {star}, Moon in {moon_rasi_display}{lagna_en}. "
             f"{child.note[1].format(name=given)}"
         )
     else:
@@ -1295,43 +1915,53 @@ def _beat_who_you_are(
             # were handed / you are the second kind" is a verdict on a life
             # shape, delivered to someone who has not chosen one yet, and it is
             # the most rhetorical device in the feature besides.
-            ta = (
-                f"நீங்கள் {star} நட்சத்திரத்தில், {moon_rasi} ராசியில்{lagna_ta} பிறந்தவர். "
-                f"{voice.nature[0]}"
-            )
-            en = (
-                f"You were born under {star}, Moon in {moon_rasi}{lagna_en}. {voice.nature[1]}"
-            )
+            ta = f"{placement_ta} {voice.nature.ta}"
+            en = f"{placement_en} {voice.nature.en}"
         else:
             opening = _SIGNATURE_OPENING[signature_lord]
-            # Only when the two significators disagree — see _SECOND_NOTE.
-            agree = signature_lord == nakshatra_lord
-            hinge_ta = "" if agree else f"{_SECOND_NOTE[0]} "
-            hinge_en = "" if agree else f"{_SECOND_NOTE[1]} "
-            nature_ta = (
-                voice.nature[0] if agree else voice.nature[0][:1].lower() + voice.nature[0][1:]
-            )
+            # THE CONNECTIVE COMES FROM THE MEANING, NOT FROM THE GRAHAS. It
+            # used to be `signature_lord != nakshatra_lord`, which is
+            # "different graha" and not "opposing content" — with nine grahas
+            # that fires almost always, and a sweep found it claiming a tension
+            # that was not there in seven readings out of nine. A Rahu opening
+            # ("reaching past the edge of it") followed by "And yet: you carry
+            # yourself as someone in charge" announces a contradiction between
+            # two sentences that plainly agree, and a reader who looks for the
+            # contradiction and finds none concludes the app is generating
+            # rather than reading. See ``Orientation`` and ``_transition``.
+            hinge = _transition(opening, voice.nature)
+            hinge_ta = f"{hinge[0]} " if hinge[0] else ""
+            hinge_en = f"{hinge[1]} " if hinge[1] else ""
+            # Lower-cased only when a connective precedes it, because then the
+            # facet is continuing a sentence rather than opening one.
+            nature_ta = voice.nature.ta if not hinge_ta else voice.nature.ta
             nature_en = (
-                voice.nature[1] if agree else voice.nature[1][:1].lower() + voice.nature[1][1:]
+                voice.nature.en
+                if not hinge_en
+                else voice.nature.en[:1].lower() + voice.nature.en[1:]
             )
-            ta = (
-                f"{opening[0]} நீங்கள் {star} நட்சத்திரத்தில், {moon_rasi} ராசியில்{lagna_ta} "
-                f"பிறந்தவர். {hinge_ta}{nature_ta}"
-            )
-            en = (
-                f"{opening[1]} You were born under {star}, Moon in {moon_rasi}{lagna_en}. "
-                f"{hinge_en}{nature_en}"
-            )
+            ta = f"{opening.ta} {placement_ta} {hinge_ta}{nature_ta}"
+            en = f"{opening.en} {placement_en} {hinge_en}{nature_en}"
 
-    basis_ta = f"{star} நட்சத்திரம் (அதிபதி {planet_ta(nakshatra_lord)})"
+    # The basis takes the same treatment as the prose. It is the "show the
+    # astrology" disclosure, not a debug dump — a Tamil reader who opens it is
+    # the reader most likely to know these names in Tamil.
+    basis_ta = f"{star_ta} நட்சத்திரம் (அதிபதி {planet_ta(nakshatra_lord)})"
     basis_en = f"{star} nakshatra, lord {planet_en(nakshatra_lord)}"
     # The signature is only named in `basis` when it was used in the text.
     if addressed_to == "self":
         basis_ta += f"; ஜாதகத்தின் மைய கிரகம் {planet_ta(signature_lord)}"
         basis_en += f"; chart signature {planet_en(signature_lord)}"
+    # The Moon's rasi has LEFT the basis, and by the rule that put it there. It
+    # was listed only for the registers that printed the mind clause, because
+    # for the others it was a bare fact and claiming it as a derivation would
+    # claim a reading those registers withhold. With the mind clause gone that
+    # condition is now true of every register, so the line goes with it — a
+    # basis that lists an input nothing was read from is the same broken promise
+    # as a noun with no clause, made to the reader who cared enough to open it.
     if lagna_reliable:
-        basis_ta += f"; {lagna_rasi} லக்னம்"
-        basis_en += f"; {lagna_rasi} lagna"
+        basis_ta += f"; {lagna_rasi_ta_display} லக்னம்"
+        basis_en += f"; {lagna_rasi_display} lagna"
     else:
         basis_ta += "; பிறந்த நேரம் உறுதிப்படுத்தப்படாததால் லக்னம் இங்கே பயன்படுத்தப்படவில்லை"
         basis_en += "; lagna withheld — birth time is not confirmed"
@@ -1371,6 +2001,13 @@ def _beat_what_this_rests_on(
     register = "third_person" if addressed_to in ("parent", "other") else "self"
     ta, en = _FALSIFIABILITY[(register, lagna_reliable)]
 
+    # Keyed on `addressed_to`, NOT on `register` — see _LAGNA_STRENGTH_CAVEAT.
+    # Only the adult self reading contains strength-derived material, and the
+    # teenager shares the register without sharing the beats.
+    if addressed_to == "self" and not lagna_reliable:
+        ta = f"{ta} {_LAGNA_STRENGTH_CAVEAT[0]}"
+        en = f"{en} {_LAGNA_STRENGTH_CAVEAT[1]}"
+
     source = (birth_time_source or "unknown").upper()
     return OneMinuteBeat(
         id="what_this_rests_on",
@@ -1382,45 +2019,126 @@ def _beat_what_this_rests_on(
     )
 
 
-def _beat_strength_and_cost(
-    *, strongest: str, weakest: str, signature_lord: str
-) -> OneMinuteBeat:
-    """Adult path only — a soft-spot sentence is a character verdict, and a
-    child has not lived long enough to have earned one.
+def _beat_strength_and_cost(*, strongest: str) -> OneMinuteBeat:
+    """Gift → shadow → consequence, and ALL THREE COME FROM ONE GRAHA.
 
-    Closes on the grievance: the private question this signature actually
-    produces, quoted back as the reader's own words, then validated before
-    anything is reframed. It sits HERE rather than in the opening because a
-    complaint only lands once the cost that causes it has been named — put it
-    first and it is a guess, put it after the soft spot and it is a conclusion.
+    Adult path only — a soft-spot sentence is a character verdict, and a child
+    has not lived long enough to have earned one.
+
+    THIS BEAT USED TO DRAW ON THREE GRAHAS: the gift from the strongest, the
+    cost from the weakest, the grievance from the signature, with "Which is why"
+    asserting that the second caused the third. They coincided in one reading
+    out of nine, and worse than chance — the signature is the DOMINANT graha by
+    construction and the cost came from the WEAKEST, so the two were actively
+    anti-correlated. What it produced was three separate observations wearing
+    the grammar of one:
+
+        "Your real strength is reading what people need before they say it"
+        [Moon]. "Where it costs you is patience; you force a decision that
+        would have come to you on its own" [Mars]. "Which is why you have asked
+        yourself, more than once, 'why do I have to keep proving this?'" [Sun].
+
+    Forcing decisions early does not cause having to keep proving yourself, and
+    an attuned reader of rooms is not the same person as an impatient forcer.
+
+    A jodhidar does not speak that way. He says: Sevvai is your strength;
+    BECAUSE Sevvai is strong you move before others; and BECAUSE of that you
+    wonder why people resisted something obvious to you. One graha, one voice,
+    one observation that happens to have three parts. So the whole chain is the
+    strongest graha's now — its capacity, its own soft spot, its own grievance —
+    and "Which is why" is true by construction rather than by luck.
+
+    THE CHAIN NOW STOPS AT THE SHADOW — see §6.17. The grievance and its
+    validation were the third and fourth sentences here, and the reasoning above
+    is why they were RIGHT to be built and still right to hold: one graha, one
+    voice. What removed them was not a flaw in them but the length ruling. This
+    is the beat the reader is most likely to quote back, and at four sentences it
+    was also the beat competing hardest with beats 5-7 for a minute they do not
+    have.
+
+    ``_GRIEVANCE``, ``_VALIDATION`` and ``_VOICE.life_lesson`` are deliberately
+    left in place, reviewed and intact. They are not dead — they are the seed of
+    the longer reading this surface now hands off to, and deleting nine
+    astrologer-approved lines to save nine unused dict rows would be trading
+    something scarce for something free.
     """
-    strong_voice = _VOICE[strongest]
-    weak_voice = _VOICE[weakest]
-    grievance = _SIGNATURE_GRIEVANCE[signature_lord]
+    voice = _VOICE[strongest]
 
-    ta = (
-        f"உங்கள் உண்மையான பலம் {strong_voice.capacity[0]}. விலை என்பது {weak_voice.soft_spot[0]}. "
-        f"அதனால்தான் ஒன்றுக்கு மேற்பட்ட முறை உங்களுக்குள் “{grievance[0]}?” என்ற கேள்வி "
-        f"வந்திருக்கும். {_VALIDATION[0]}"
-    )
-    en = (
-        f"Your real strength is {strong_voice.capacity[1]}. Where it costs you is "
-        f"{weak_voice.soft_spot[1]}. Which is why you have asked yourself, more than once, "
-        f"“{grievance[1]}?” {_VALIDATION[1]}"
-    )
+    ta = f"உங்கள் உண்மையான பலம் {voice.gift[0]}. விலை என்பது {voice.shadow[0]}."
+    en = f"Your real strength is {voice.gift[1]}. Where it costs you is {voice.shadow[1]}."
 
     return OneMinuteBeat(
         id="strength_and_cost",
         text=OneMinuteText(ta=ta, en=en),
         basis=OneMinuteText(
-            ta=(
-                f"வலிமையான கிரகம் {planet_ta(strongest)}; பலவீனமானது {planet_ta(weakest)}; "
-                f"மைய கிரகம் {planet_ta(signature_lord)}"
-            ),
-            en=(
-                f"Strongest graha {planet_en(strongest)}; weakest {planet_en(weakest)}; "
-                f"signature {planet_en(signature_lord)}"
-            ),
+            ta=f"வலிமையான கிரகம் {planet_ta(strongest)} — பலமும் விலையும் இதிலிருந்தே",
+            en=f"Strongest graha {planet_en(strongest)} — both the gift and its cost from it",
+        ),
+    )
+
+
+def _beat_what_life_keeps_teaching(*, strongest: str) -> OneMinuteBeat:
+    """NOT IN THE ONE-MINUTE READING as of §6.17 — held for the longer one.
+
+    It is kept rather than deleted for the same reason its vocabulary is: this
+    beat was ruled in by the astrologer one day before the length ruling cut it,
+    the nine ``life_lesson`` phrases are reviewed archetypal copy, and the
+    surface that will call this is the one the closing hand-off now points at.
+    A builder held for a named consumer is not dead code; re-deriving it in a
+    fortnight would be.
+
+    ITS PROVENANCE, held here rather than in `_BEAT_PROVENANCE` because that
+    table is keyed on what the service emits and a dormant row there fails the
+    bidirectional test: **D + T.** D for which graha is strongest, T for the
+    lesson itself — still a disposition, still present tense. The frame around it
+    is deliberately not a claim that anything HAPPENED, which is the line this
+    beat sits closest to: "life keeps teaching you" is one clause away from "life
+    taught you X in 2019", and that clause is an event assertion. Whoever wires
+    this beat up copies this paragraph back into the table.
+
+    Everything below is the reasoning that put it here, unchanged.
+
+    ---
+
+    The fourth link, and it CLOSES the previous beat rather than opening a topic.
+
+        gift → shadow → repeated consequence → what the consequence is teaching
+
+    This beat briefly belonged to the WEAKEST graha, and the correction is the
+    sharper version of the same rule that fixed beat 3. Beat 3 ends on the
+    reader's own recurring complaint; a beat that answers it gives the section
+    an ending, while a beat that raises a different graha's difficulty leaves
+    the complaint hanging and starts again. The reader should finish this
+    section feeling shown the meaning of the three sentences before it, not
+    handed a fourth observation.
+
+    That the copy is keyed on the same graha is what makes the closure real
+    rather than rhetorical: Guru's chain ends "everyone comes to me, so who
+    comes for me?" and Guru's lesson answers exactly that — "give wisely rather
+    than endlessly". Keyed on the weakest graha the pairing was arbitrary, and
+    with nine grahas it would have been arbitrary eight times in nine.
+
+    ITS OWN VOCABULARY, not a reused facet. ``shadow`` answers "where does this
+    strength become excessive"; ``life_lesson`` answers "what does that keep
+    teaching". Different questions, so different sentences — the same rule that
+    gave minors their own copy rather than a rephrasing of the adults'. Reusing
+    ``shadow`` here also read as generated, and showed in the punctuation: "One
+    lesson keeps returning: starting; you wait for a certainty that does not
+    arrive" carries a colon and a semicolon inside nine words.
+
+    The frame is gone with it. These sentences are self-contained by design, so
+    there is nothing to introduce them with — a lead-in would be the beat
+    apologising for itself.
+    """
+    return OneMinuteBeat(
+        id="what_life_keeps_teaching",
+        text=OneMinuteText(
+            ta=_VOICE[strongest].life_lesson[0],
+            en=_VOICE[strongest].life_lesson[1],
+        ),
+        basis=OneMinuteText(
+            ta=f"வலிமையான கிரகம் {planet_ta(strongest)} — அதன் விலை கற்பிப்பது",
+            en=f"Strongest graha {planet_en(strongest)} — what its shadow keeps teaching",
         ),
     )
 
@@ -1474,11 +2192,12 @@ def _beat_last_ten_years(
             voice = _VOICE[previous.lord]
             ta = (
                 f"{span_start.year} முதல் {hinge_year} வரை உங்களுக்கு {planet_ta(previous.lord)} "
-                f"காலம் நடந்தது. {_cap(voice.past_texture[0])}."
+                f"காலம் நடந்தது. {_cap(voice.past_texture[0])}. {_PAST_INVITATION[0]}"
             )
             en = (
                 f"From {span_start.year} to {hinge_year} you were under "
-                f"{planet_en(previous.lord)}. {_cap(voice.past_texture[1])}."
+                f"{planet_en(previous.lord)}. {_cap(voice.past_texture[1])}. "
+                f"{_PAST_INVITATION[1]}"
             )
             return (
                 OneMinuteBeat(
@@ -1514,15 +2233,20 @@ def _beat_last_ten_years(
         # window edge — "From 2016" is simply wrong when the mahadasha began in
         # 2017, and this beat's whole value is that its dates are checkable.
         span_year = max(window_start.year, maha.start_date.year)
+        # The invitation sits BEFORE the turn sentence here, not at the close.
+        # It qualifies the texture claim, so it belongs against it; and the turn
+        # sentence has to stay last because it is the only place `hinge_year` is
+        # introduced and beat 4 opens on that year. Moving the invitation to the
+        # end would put ten words between the hinge and its pick-up.
         ta = (
             f"{span_year} முதல் இதுவரை நீங்கள் {planet_ta(maha.lord)} காலத்திற்குள்ளேயே "
-            f"இருக்கிறீர்கள். {_cap(voice.past_texture[0])}. அதற்குள் {hinge_year}-ல் ஒரு "
-            f"திருப்பம் வந்தது."
+            f"இருக்கிறீர்கள். {_cap(voice.past_texture[0])}. {_PAST_INVITATION[0]} "
+            f"அதற்குள் {hinge_year}-ல் ஒரு திருப்பம் வந்தது."
         )
         en = (
             f"From {span_year} until now you have been inside one long "
-            f"{planet_en(maha.lord)} stretch. {_cap(voice.past_texture[1])}. Within it, "
-            f"{hinge_year} marked a turn."
+            f"{planet_en(maha.lord)} stretch. {_cap(voice.past_texture[1])}. "
+            f"{_PAST_INVITATION[1]} Within it, {hinge_year} marked a turn."
         )
         return (
             OneMinuteBeat(
@@ -1544,11 +2268,11 @@ def _beat_last_ten_years(
 
     ta = (
         f"{window_start.year} முதல் இதுவரை {planet_ta(maha.lord)} காலமே தொடர்ந்திருக்கிறது. "
-        f"{_cap(voice.past_texture[0])}."
+        f"{_cap(voice.past_texture[0])}. {_PAST_INVITATION[0]}"
     )
     en = (
         f"From {window_start.year} until now you have been under {planet_en(maha.lord)} "
-        f"throughout. {_cap(voice.past_texture[1])}."
+        f"throughout. {_cap(voice.past_texture[1])}. {_PAST_INVITATION[1]}"
     )
     return (
         OneMinuteBeat(
@@ -1564,11 +2288,11 @@ def _beat_last_ten_years(
 
 
 def _beat_right_now(
-    *, timeline: VimshottariTimeline, hinge: tuple[int, str] | None
+    *, timeline: VimshottariTimeline, hinge: tuple[int, str] | None, addressed_to: str
 ) -> OneMinuteBeat:
     maha = timeline.current_mahadasha
     antar = timeline.current_antardasha
-    voice = _VOICE[maha.lord]
+    texture = _now_texture(maha.lord, addressed_to)
 
     # The hinge: this beat opens on the year the previous one closed on. It is
     # what turns seven facts into one piece of writing rather than seven
@@ -1604,8 +2328,8 @@ def _beat_right_now(
         ta_lead = f"{planet_ta(maha.lord)} காலம் தொடர்கிறது."
         en_lead = f"You are still under {planet_en(maha.lord)}."
 
-    ta = f"{hinge_ta}{ta_lead} {_cap(voice.now_texture[0])}."
-    en = f"{hinge_en}{en_lead} {_cap(voice.now_texture[1])}."
+    ta = f"{hinge_ta}{ta_lead} {_cap(texture[0])}."
+    en = f"{hinge_en}{en_lead} {_cap(texture[1])}."
 
     return OneMinuteBeat(
         id="right_now",
@@ -1769,13 +2493,24 @@ def _beat_age_question(
             f"but with whom. {outlook_en}"
         )
     elif topic == TOPIC_MARRIED_LIFE:
+        # "…rather than on reinventing your work" used to close this, and it is
+        # the same defect TOPIC_STEADYING below was deliberately written without:
+        # a claim we have not computed, attached to one we have. Nothing in the
+        # chart says this reader's work is NOT the question; the dasa/area
+        # affinity says family is well-supported, which is a different sentence.
+        # It is also the clause that produced the "reinventing your work" absurdity
+        # at 66 — the fix then was to route elders elsewhere, which left the
+        # claim standing for everyone under 60.
+        #
+        # Say what the chart IS being asked, and stop. That rule was already
+        # written down twelve lines below; it just had not been applied here.
         ta = (
             f"திருமணமானவர், {age_band['ta']} நிலையில் இருப்பவர் என்பதால், ஜாதகத்தின் கவனம் இப்போது "
-            f"வீடு மற்றும் குடும்பத்தின் மீதே இருக்கிறது — தொழிலை மாற்றியமைப்பதன் மீது அல்ல. {outlook_ta}"
+            f"வீடு மற்றும் குடும்பத்தின் மீதே இருக்கிறது. {outlook_ta}"
         )
         en = (
             f"Married, and in the {age_band['en'].lower()} — so the weight of the chart sits on home "
-            f"and family rather than on reinventing your work. {outlook_en}"
+            f"and family. {outlook_en}"
         )
     elif topic == TOPIC_STEADYING:
         # Says what the chart IS being asked, and stops there. The tempting
@@ -1850,20 +2585,22 @@ def _beat_age_question(
     )
 
 
-def _beat_next_ten_years(*, timeline: VimshottariTimeline, as_of: date) -> OneMinuteBeat:
+def _beat_next_ten_years(
+    *, timeline: VimshottariTimeline, as_of: date, addressed_to: str
+) -> OneMinuteBeat:
     horizon = date(as_of.year + 10, as_of.month, min(as_of.day, 28))
     upcoming = _handovers_within(timeline.mahadashas, as_of, horizon)
 
     if upcoming:
         nxt = upcoming[0]
-        voice = _VOICE[nxt.lord]
+        texture = _now_texture(nxt.lord, addressed_to)
         ta = (
             f"{_month_year(nxt.start_date, 'ta')} முதல் உங்களுக்கு {planet_ta(nxt.lord)} காலம் "
-            f"தொடங்குகிறது. {_cap(voice.now_texture[0])}."
+            f"தொடங்குகிறது. {_cap(texture[0])}."
         )
         en = (
             f"From {_month_year(nxt.start_date, 'en')}, {planet_en(nxt.lord)} takes over. "
-            f"{_cap(voice.now_texture[1])}."
+            f"{_cap(texture[1])}."
         )
         basis_ta = f"{planet_ta(nxt.lord)} மகாதசை {nxt.start_date.isoformat()} முதல்"
         basis_en = f"{planet_en(nxt.lord)} mahadasha from {nxt.start_date.isoformat()}"
@@ -1872,16 +2609,16 @@ def _beat_next_ten_years(*, timeline: VimshottariTimeline, as_of: date) -> OneMi
         antars = _antardashas(maha)
         upcoming_antars = _handovers_within(antars, as_of, horizon)
         nxt = upcoming_antars[0] if upcoming_antars else timeline.current_antardasha
-        voice = _VOICE[nxt.lord]
+        texture = _now_texture(nxt.lord, addressed_to)
         ta = (
             f"{maha.end_date.year} வரை {planet_ta(maha.lord)} காலமே தொடர்கிறது; அதற்குள் "
             f"{_month_year(nxt.start_date, 'ta')} முதல் {planet_ta(nxt.lord)} பகுதி வருகிறது. "
-            f"{_cap(voice.now_texture[0])}."
+            f"{_cap(texture[0])}."
         )
         en = (
             f"You stay under {planet_en(maha.lord)} through {maha.end_date.year}; the shift "
             f"inside it comes in {_month_year(nxt.start_date, 'en')}, when {planet_en(nxt.lord)} "
-            f"begins. {_cap(voice.now_texture[1])}."
+            f"begins. {_cap(texture[1])}."
         )
         basis_ta = f"{planet_ta(nxt.lord)} புத்தி {nxt.start_date.isoformat()} முதல்"
         basis_en = f"{planet_en(nxt.lord)} antardasha from {nxt.start_date.isoformat()}"
@@ -2159,11 +2896,34 @@ def build_one_minute_reading(
     )
 
     lagna_reliable = _lagna_is_reliable(profile)
+    # The signature is picked from `strength_score`, which takes the lagna — so
+    # with an unconfirmed birth time the "dominant graha" is chosen by a number
+    # that moves with the input we have just declared unreliable. `detect_
+    # signature` already treats the nakshatra lord as its own fallback, and that
+    # is the right answer here for the same reason: it is the one significator a
+    # twenty-minute error does not touch (the Moon covers ~0.55° an hour against
+    # a 13°20' star).
+    #
+    # This is what keeps `_LAGNA_STRENGTH_CAVEAT`'s scope exactly true. Without
+    # it the caveat would name the strength beat while the OPENING rested on the
+    # same withheld input silently — a disclosure that covers one of the two
+    # places a problem lives is worse than none, because it reads as complete.
+    #
+    # A side effect worth naming: on this path `signature_lord == nakshatra_lord`
+    # by construction, so `agree` is True and the opening takes no "And yet:".
+    # That is correct rather than incidental — there is no second significator
+    # here to disagree with.
+    if not lagna_reliable:
+        signature_lord = nakshatra_lord
+
     opening = _beat_who_you_are(
         display_name=profile.display_name,
+        nakshatra=moon.nakshatra,
         nakshatra_name=moon.nakshatra_name,
         moon_rasi_name=moon.rasi_name,
+        moon_rasi=moon.rasi,
         lagna_rasi_name=chart_response.data.lagna.rasi_name,
+        lagna_rasi=chart_response.data.lagna.rasi,
         nakshatra_lord=nakshatra_lord,
         signature_lord=signature_lord,
         lagna_reliable=lagna_reliable,
@@ -2216,7 +2976,7 @@ def build_one_minute_reading(
         beats = [
             opening,
             rests_on,
-            _beat_right_now(timeline=timeline, hinge=None),
+            _beat_right_now(timeline=timeline, hinge=None, addressed_to=addressed_to),
             _beat_age_question(
                 topic=topic,
                 display_name=profile.display_name,
@@ -2224,7 +2984,7 @@ def build_one_minute_reading(
                 age_band=age_band,
                 timeline=timeline,
             ),
-            _beat_next_ten_years(timeline=timeline, as_of=today),
+            _beat_next_ten_years(timeline=timeline, as_of=today, addressed_to=addressed_to),
             _beat_one_thing(timeline=timeline, addressed_to=addressed_to),
         ]
     elif addressed_to == "parent":
@@ -2255,11 +3015,18 @@ def build_one_minute_reading(
         # the guard stays so that widening the parent path later cannot silently
         # start claiming a newborn has observable strengths.
         if stage != STAGE_INFANT:
-            beats.append(
-                _beat_strength_and_cost(
-                    strongest=strongest, weakest=weakest, signature_lord=signature_lord
-                )
-            )
+            # ONE GRAHA, TWO LINKS, ONE BEAT: the gift and what it costs.
+            #
+            # It was four links across two beats — gift, shadow, the grievance
+            # that follows, and what the grievance keeps teaching. Every link
+            # was true and each was argued for on its own; what was never
+            # examined was the four of them arriving together. §6.17 is that
+            # examination, and the character section lost half its length to it.
+            #
+            # `weakest` is deliberately unused here. It is still computed (it is
+            # the other half of the ranking, and a future beat's basis line
+            # would need it) but nothing in the reading speaks in its voice.
+            beats.append(_beat_strength_and_cost(strongest=strongest))
         # THE DATED PAST IS NOT EVERY GATE'S TRUST MECHANISM, and at G6 it is
         # not even a good one. §1.1(d): a 67-year-old knows his own decades
         # better than we do, and reciting them back is not impressive, it is
@@ -2278,7 +3045,9 @@ def build_one_minute_reading(
                 timeline=timeline, as_of=today, birth_date=profile.birth_date_local
             )
             beats.append(past_beat)
-        beats.append(_beat_right_now(timeline=timeline, hinge=hinge))
+        beats.append(
+            _beat_right_now(timeline=timeline, hinge=hinge, addressed_to=addressed_to)
+        )
         # Withheld, not defaulted. Every version of this beat is a statement
         # about the reader's marriage — that it is the open question, that it is
         # settled, or that it is behind them — and we hold no fact that picks
@@ -2293,7 +3062,9 @@ def build_one_minute_reading(
                     timeline=timeline,
                 )
             )
-        beats.append(_beat_next_ten_years(timeline=timeline, as_of=today))
+        beats.append(
+            _beat_next_ten_years(timeline=timeline, as_of=today, addressed_to=addressed_to)
+        )
         beats.append(_beat_one_thing(timeline=timeline, addressed_to=addressed_to))
 
     # The one question the reading is allowed to ask, raised in exactly the case

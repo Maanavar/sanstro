@@ -833,3 +833,269 @@ directions.** The Tamil markers matched a dispositional line (fixed by scoping, 
 inside a period beat that word really would be an unbounded difficulty). And `"die"` matched inside
 `"decide"`, failing a sixteen-year-old on *"those two decide what comes next"*. **A lint that cries wolf gets
 its markers deleted by the next person**, which is a worse outcome than never having written it.
+
+## 6.14 Four defects found by reading generated output, 2026-08-07
+
+A sweep of eleven registers against the isolated test backend, read end to end. 130 tests were green
+throughout — **the fourth time on this feature that looking beat running**, and the second time the
+English was the copy at risk while the Tamil was already correct.
+
+**1. The falsifiability beat over-promised, in the one register whose job is not to.** The unconfirmed
+form said *"It does not move your star, which the rest is built on."* The clause is false:
+`_signature_lord` and `_strongest_and_weakest` both key on `strength_score`, and
+`explain_natal_planet_score` takes `natal_lagna_rasi` and swings house strength **25→80** on it. So the
+signature opening and the entire strength/cost beat rested on the input the sentence had just
+disclaimed, while `lagna_reliable` gated only the two beats that *name* the lagna.
+
+Fixed in two halves, and the second is the better one. The claim is narrowed to what genuinely holds
+(*"Your star and every date here stand without it"*) and `_LAGNA_STRENGTH_CAVEAT` names what does not —
+but **the signature now falls back to the nakshatra lord when the time is unconfirmed**, so the caveat
+covers exactly one beat rather than gesturing at two. A disclosure that covers one of the two places a
+problem lives is worse than none, because it reads as complete. Side effect worth naming: on that path
+`signature_lord == nakshatra_lord`, so the opening takes no `And yet:` — correct, because there is no
+second significator there to disagree with.
+
+The caveat is keyed on `addressed_to`, **not** on the falsifiability register. `client_with_guardian`
+shares the `"self"` key while carrying neither the signature opening nor the strength beat, so a
+register-keyed caveat would have told a teenager to discount a sentence their reading does not contain
+— the same class of mis-filing as the §6.13 register split, one commit later.
+
+**2. `The current period is behind this` reads as "lagging" as readily as "supporting"**, and it lands
+immediately after a sentence about where the chart's weight sits, where both readings are plausible. A
+reader taking the wrong one was told the opposite of what the dasa/area affinity computed. **The Tamil
+was never ambiguous** (ஆதரவாக இருக்கிறது), so only the English moved.
+
+**3. `now_texture` is the one table the teen register shares with the adult one, and two of its nine
+entries named a life a minor does not have.** Jupiter's ran *"teaching, children, and people senior to
+you tend to help"* and Venus's *"relationships, comfort and money move more easily now"* — both printed
+verbatim to a sixteen-year-old holding their own account, and both read by a Tamil parent over that
+shoulder as claims about progeny and romance. They passed `_ADULT_TOKENS_EN` for two commits because
+that list covered marriage and work and stopped there.
+
+**The doctrine does not change and must not.** Guru is putra-karaka and Sukra is kalatra-karaka;
+rewriting the *adult* strings to dodge the teen case would delete real karakatva from the readings where
+it belongs. What changes is which life surface the same karakatva is read onto — the identical move
+`age_phase_service:128` already makes for house themes. A Guru period over a student's years is the
+vidya/guru window; a Sukra period is arts, ease and companionship. Those are not softenings, they are
+the more accurate reading for the age.
+
+Two guards, because the parametrized minor test could only catch this when a synthetic chart happened to
+land in one of those two mahadashas: the token list gained the family-formation and money halves, and a
+new test walks `_now_texture` for all nine grahas directly. Its second half is the part that matters —
+**the adult form must still contain the token**, so nobody can satisfy the test by stripping karakatva
+from the adult copy.
+
+**4. We had been shipping half of v2's own conversion operator since launch.** Part 1 converts a banned
+event claim into a rule *plus an invitation*; `past_texture` is exactly that rule, correctly dated, and
+then the beat stopped. The rule alone is a statement the reader has to decide what to do with; the
+invitation tells them to check it against a decade they lived, which is this beat's entire reason to
+exist — *"trust is earned on the checkable past"* is the module's first sentence, and nothing in the copy
+had ever asked the reader to perform the check.
+
+It drafted as *"…you will know"* and **`_EVENT_CLAIM_PATTERNS` rejected it, correctly.** That is
+semantically an invitation and grammatically a future assertion about the reader — the construction one
+edit away from "you will marry". The right response to a lint firing on a string you like is to change
+the string: an exception carved for one entry is an exception available to the next one. It reads *"only
+you can say"*.
+
+### The budget, and why it did not become a fourth flat raise
+
+The compound worst case — adult, married, mid-life, unconfirmed birth time — ran **305 English words**
+against 285, and reading it found nothing removable. The one sentence that looks like duplication
+(*"Within it, 2025 marked a turn"* against beat 4's *"Since 2025…"*) is not: it is the only place the
+hinge year is introduced.
+
+So the ceiling moved, and the shape of the move is the substantive part. **The unconfirmed adult reading
+is its own length class** (`_WORD_BUDGET_SELF_UNCONFIRMED`, 310/232) and the confirmed one is held at
+295/220, where it runs 291. A single raised global would have let the common reading — most of them —
+drift into headroom only the rare one needs, which is the failure §4.2 item 5 named when a four-beat
+guardian reading and a seven-beat adult one were held to one number. **That argument applies inside a
+register too, and this is the first place it bit.**
+
+It is uncomfortable that the reading with *less* confirmed input is the longest one. It is not a defect:
+those words are the price of telling that reader exactly how far to trust it, and they are the reader
+who most needs telling.
+
+**The two open items were ruled on the same day — see §6.15.**
+
+## 6.15 The two connectives, ruled and rebuilt
+
+Both were the same defect wearing different clothes: **a word that claims a relation between two
+sentences, chosen from the grahas that produced them rather than from the sentences.**
+
+### `And yet:` — the tag goes on the sentence
+
+The ruling was explicit and it rejected the graha-pair table I proposed: *"Never decide based on graha
+pairs. The reader never sees planets."* A pair table is also tied to wording — rewrite one nature line
+and every pair involving that graha is silently wrong.
+
+So every temperament sentence now carries its own meaning tag (`_Line`, `Orientation`) **in the same
+literal as the copy**, and `_transition` picks contrast / continuation / nothing from the two tags. In
+the verification sweep `And yet:` fired twice, both genuine (Sun→Ketu, Sun→Saturn); the three
+same-facing pairs took `At the same time:`. It was 5 of 5 wrong before.
+
+**Three proposed axes collapsed to one, and that is a deviation worth recording.** Tone, polarity and
+energy are near-collinear across our eighteen lines — outward is assertive is active in essentially
+every case — so three fields would have sorted the copy into two buckets while looking like eight. The
+shape takes a second axis as a field whenever one earns it; `_transition` is the only reader.
+
+**This turned up a defect nobody was looking for: the two languages had been printing opposite claims.**
+The single connective was `("அதே நேரத்தில்:", "And yet:")` — but அதே நேரத்தில் means *at the same time*,
+a continuation, while *And yet* asserts a contrast. Since the device shipped, the Tamil reader and the
+English reader have been told different things about the same pair of sentences. **The Tamil was the
+right connective for the common case and the English was the wrong one**, which is the third time on
+this surface that the English was the copy at risk. The old Tamil string keeps the job it was always
+doing, as `_CONTINUATION`.
+
+### `Which is why` — one graha owns the paragraph
+
+Ruled as proposed, with the weakest graha extracted rather than deleted: *"The weakest planet should
+never explain the dominant planet. A Tamil astrologer simply doesn't speak that way."*
+
+`_beat_strength_and_cost` is now gift → shadow → consequence, **all three from the strongest graha**, so
+`Which is why` is true by construction rather than by luck (it cohered in 1 of 9 before, and worse than
+chance — the signature is dominant and the cost came from the weakest, so they were anti-correlated).
+`_SIGNATURE_GRIEVANCE` was renamed `_GRIEVANCE`; the old name was a standing invitation to key it back.
+
+The weakest graha gets `_beat_what_life_keeps_teaching` — *"the one thing this chart keeps handing back
+until something is done about it"*. As a clause inside somebody else's story it was a verdict with a
+false connective in front of it; as its own beat it is an observation.
+
+### What it cost, and the one correction that paid part of it
+
+**The reading gained a beat**, so the adult reading now carries two soft spots where it carried one.
+That is a new claim about the reader, not a new frame, and the only honest way to fit it would have been
+to delete a different claim.
+
+One deletion was found and it is a correction rather than a trim: the married frame closed on *"rather
+than on reinventing your work"* — an uncomputed negation, and **the same defect `TOPIC_STEADYING`
+twelve lines below was deliberately written without**. Nothing in the chart says this reader's work is
+not the question. It is also the clause that produced the "reinventing your work" absurdity at 66; the
+fix then was to route elders elsewhere, which left the claim standing for everyone under 60.
+
+Seven words recovered against sixteen spent. Budgets: **315/236 confirmed self, 320/240 unconfirmed**,
+both measured against the binding case (a 45-year-old widowed reader at 312, which takes the STEADYING
+frame and so cannot pay with the married deletion). **315 English words is ~86s and the promise is
+"about a minute" — this should be the last raise without something leaving.**
+
+**The follow-up that would buy it back** — a dedicated nine-graha lesson vocabulary — was ruled in
+immediately and is §6.16.
+
+## 6.16 The lesson becomes a narrative primitive
+
+Ruled the same session, and the ruling went further than the proposal: not *"make the lesson shorter"*
+but *"make it archetypal — each graha should have one sentence an astrologer could almost say from
+memory."* Nine `life_lesson` phrases, treated as a vocabulary of the same standing as `opening`,
+`gift`, `shadow` and `grievance` rather than as a copy optimisation.
+
+**Two renames came with it**, and they matter more than they look. `capacity` → `gift` and `soft_spot`
+→ `shadow`. The old names were correct when the two came from *different grahas* — they were two
+independent facts. Once they became gift and shadow of one graha, `soft_spot` actively misled: it reads
+as "a weakness this person has", which is a standing invitation to key it back to the weakest graha,
+when what it means is "where this person's strength runs past its use".
+
+### The fork the ruling created, and how it was resolved
+
+The same message approved *"weakest graha becomes its own beat"* **and** observed that beat 4 must
+**resolve** beat 3 rather than introduce a topic. Those are incompatible: all nine sample lessons close
+their *own* graha's chain (Guru's *"give wisely, not endlessly"* answers Guru's *"who comes for me"*),
+so a beat that resolves beat 3 belongs to the **strongest** graha — and the weakest graha loses its
+voice.
+
+Resolved toward closure, because the resolution is decidable and the pairing was not: keyed on the
+weakest graha the lesson is arbitrary **eight times in nine**. The reader now finishes the character
+section shown the meaning of the three sentences before it. `weakest` is still computed and nothing
+speaks in its voice; **that is a real loss and it is named rather than hidden.**
+
+### Two defects the new copy turned up
+
+**1. A lint that was right about one entry and wrong about another, which makes it a wrong lint.** The
+rule *"a lesson may not repeat its shadow's head noun"* fired twice. On MERCURY it was correct — the
+lesson closed on the shadow's own noun and left the grievance unanswered, and the copy was rewritten to
+*"not everything is settled by explaining it better"*, which answers the complaint. On SATURN it was
+wrong: the shadow is *starting* and the lesson is *"waiting for certainty costs more than starting
+without it"* — **the echo is the entire point, because the lesson is telling them to start.** A rule
+needing an exception carved for a correct entry is a wrong rule; it was removed and the removal
+recorded, leaving the one trap that is decidable.
+
+That trap is worth stating on its own: **SATURN's obvious lesson is "life keeps teaching you
+patience", and it is the wrong sentence.** This graha's shadow is that it already waits too long, so
+prescribing patience endorses the cost the two sentences above have just named. Same failure as the
+KETU soft spot, one facet later, and now pinned by test.
+
+**2. ஆனால் is unusable as the Tamil contrast connective, and only reading the Tamil showed it.** It is
+the obvious word and was the first draft. **All nine Tamil nature lines already contain ஆனால்** — they
+must, because rule 2 says every trait carries its own cost and ஆனால் is how that clause attaches — so
+the connective collided with its own object every time: *"…பிறந்தவர். ஆனால், தொடங்கியதை முடிப்பவர்; … —
+ஆனால் ஒரு வழிமுறையை…"*. The English has no equivalent collision ("And yet" against "though"), so
+nothing on the English side of the table could have revealed it. Now மறுபுறம், with a test asserting no
+connective appears inside any line it introduces.
+
+**This is the fourth round on this feature where reading the output beat running the suite**, and the
+first where the defect was Tamil-only — a useful correction to the run of EN-at-risk findings above.
+
+## 6.17 The length ruling — what the reading gave back, and what it kept
+
+The code has cited "§6.17" since it was written; this is the section it was citing. Recording it late is
+itself the finding, and the section below says why.
+
+### The ruling
+
+Four raises to the word ceiling in four days, and §6.14's own note that *"a reading is not too long
+because of a word count; it is too long when it contains a sentence the reader would not miss"* was by
+then arguing against the raise it was justifying. Ruled: **stop buying headroom, spend it.** Two things
+left the one-minute reading.
+
+**1. Beat 1's two rasi clauses.** Added the previous day as defect 22's fix — the opening named three
+placements (star, Moon rasi, lagna) and read from one, so two were decoration. Cut for length.
+
+**Cutting a clause obliged cutting its noun,** and that is the part worth keeping in writing. A named
+placement with nothing said about it *is* defect 22 — it is the worse half of it, because the reader can
+see the noun, so the silence after it is legible to them and to nobody else. So the self opening now
+names the star alone, and the star earns it: `_VOICE` is keyed on its lord, and the nature sentence two
+clauses later is read from exactly that. The Moon's rasi left the `basis` line by the same rule that had
+put it there — a basis listing an input nothing was read from is the same broken promise, made to the
+reader who cared enough to open it.
+
+`parent` and `other` keep all three placements, and this is not the rule being bent for them. Those
+registers are **defined** as chart facts with the interpretation withheld (§3.1), so there a bare noun is
+the deliverable rather than an unkept promise. The self reading is the opposite case: its nouns promise a
+reading of themselves.
+
+**2. The `what_life_keeps_teaching` beat.** §6.16 ruled it in one day earlier and the fourth ceiling
+raise was taken specifically to fit it. Cut from *this* surface, **kept as a builder** — the nine
+`life_lesson` phrases are reviewed archetypal copy, the closing hand-off already points at the longer
+reading that will call it, and re-deriving it in a fortnight would cost more than holding it. Same for
+`_MOON_MIND` / `_LAGNA_FACE`.
+
+### What it cost to record this late — three tests asserting copy that no longer existed
+
+The ruling updated one test (`test_every_placement_the_opening_names_is_a_placement_it_reads`, which
+kept its name because the invariant is unchanged and only what satisfies it moved) and missed three.
+They were found by running the suite before committing, not by reading it:
+
+| Test | Asserted | Why it survived review |
+|---|---|---|
+| `test_tamil_body_text_keeps_its_household_words` | ராசி in the **self** body | The word is still printed — by `parent` and `other`. The lint was pinned to the one register that had stopped saying it. |
+| `test_an_unconfirmed_birth_time_withholds_the_lagna` | `"rising"` in the confirmed self **text** | — |
+| `test_every_beat_the_service_emits_declares_its_provenance` | `_BEAT_PROVENANCE` ≡ emitted beats | The dormant `what_life_keeps_teaching` row. Caught by the direction of this test that had never fired before. |
+
+**The middle one is the finding, not the failure.** Its negative assertion — `"rising" not in
+unsure_beat["text"]["en"]` — had silently become true of *every* reading ever generated, confirmed or
+not, because the self prose no longer prints the lagna at all. A negative with no live positive control
+beside it is the stale-baseline problem this repo has paid for before, and here it was the guard on a
+claim we make about our own honesty: that we do not open confidently on a lagna we are unsure of. It
+would have passed forever while guarding nothing.
+
+Repaired by pointing each direction at a surface that still varies: `basis` for the self register (where
+the lagna is either named or its absence explained, and the discriminator has to be the refusal verb,
+since the Tamil withholding sentence necessarily contains லக்னம் itself), and `text` on the `parent`
+register, which still prints the placement and so still has something to withhold.
+
+### The rule this leaves behind
+
+**A comment claiming copy ships is a test that nobody runs.** The word-budget block still read as though
+the fourth raise's beat were shipping, and three assertions still described the pre-ruling opening. Both
+have been corrected in place rather than deleted, including the uncomfortable half: the `self` budget now
+carries **unspent** headroom, and headroom nobody has re-derived is how a ceiling stops being a
+measurement. Re-deriving both numbers from the clock stays §4.2 item 5's job.
