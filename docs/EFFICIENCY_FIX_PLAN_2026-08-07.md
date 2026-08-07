@@ -154,6 +154,51 @@ Each copy is internally consistent, which is exactly why no test sees it.
 
 **Effort:** ~2h. **Surface:** [D] (all 8 are dashboard components).
 
+#### ✅ LANDED 2026-08-07
+
+The four drifted maps are gone and the Venus spelling is now single-sourced. What the work
+turned up beyond the plan:
+
+**`dashboard-yoga-dosham-panel`'s map carried a comment defending itself:** *"Local to this file
+on purpose — the panel already owns its own label vocabulary and there is no shared web-side
+planet-name helper to reuse."* `tPlanetLord` already existed and already served ~10 surfaces, so
+the claim was untrue when written. **A justification nobody re-checks outlives the duplication
+it defends** — the comment is replaced by the guard test.
+
+**Two files could not simply delete their map, and both for the same real reason:**
+`chart-generate-inline-panel` and `JadhagamTool` include **MANDHI**, an upagraha with no
+`tPlanetLord` row. The nine delegate; MANDHI stays as a genuine local addition. `JadhagamTool`'s
+`PLANET_LABELS_EN` ("Sun · Suryan") also stays — that bilingual gloss exists nowhere else.
+
+**`plainlang.ts` was the interesting one.** Its 18 planet rows were not quite a duplicate map:
+nine are bare names, nine carry a plain-language gloss ("soul planet", "மனம் கிரகம்"). Rewritten
+so a `graha(code, taGloss?, enGloss?)` helper composes the canonical name with the gloss, so the
+**name is never typed here and the gloss is the only thing written out**. Output is
+byte-identical. The uneven glossing between the two key families is preserved rather than
+"made consistent" — that is a copy decision, not a refactor.
+
+**`dashboard-jadhagam-report-panel` had six copies of `lang === "ta" ? (MAP[x] ?? x) : x`**, not
+one. Replaced by a single `planetNameTA` helper, so the ternary went with the map. Its English
+side deliberately shows the raw enum (`SUN`, not `Sun`) — preserved.
+
+**The guard test needed two passes, and the first version was wrong in a way worth recording.**
+Keying on "a planet enum key on a line that also contains a Tamil graha name" produced three
+false positives, all planet-keyed tables whose values are *content*, not names:
+
+```
+JUPITER: { ta: "ஞானம், செல்வம், குழந்தைகள், குரு", … }   // significations
+SATURN:  { ta: "சனி தீபம் + பெரியோரை சேவித்தல்", … }      // a remedy
+```
+
+The rule is now **exact match, not "contains"**: some complete string literal on the line must
+*equal* a graha name. A name table's value is the name and nothing else. The detector is tested
+directly against both sets of real lines, because the tree-sweep alone proves only that today is
+clean, not that a ninth copy would be noticed.
+
+**Verified:** `tsc --noEmit` clean, 337 web unit tests pass (3 new), `text-encoding-guard` green.
+The 4 remaining eslint errors are pre-existing `<a>`-vs-`<Link>` in marketing tools, untouched
+here.
+
 ### F3 · [S] Consolidate the doctrine constants while they still agree
 
 No drift yet, but per this project's own history domain-calc divergence is silent — fix

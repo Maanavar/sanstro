@@ -9,6 +9,7 @@ import { computeD9LagnaRasi, GRAHA_ABBR, GRAHA_ABBR_EN } from "@/lib/chart-utils
 import { useLang } from "@/components/lang-toggle";
 import { JadhagamShareButton } from "@/components/public-share-card";
 import { tamilizeAstroEnglish } from "@/lib/tamil-astro";
+import { tPlanetLord } from "@/lib/i18n";
 import { nakshatraLordShort } from "@vinaadi/shared/nakshatraLord";
 
 // ── South Indian grid layout ──────────────────────────────────────────────────
@@ -39,11 +40,14 @@ const PLANET_LABELS_EN: Record<string, string> = {
   SATURN: "Saturn · Sani", RAHU: "Rahu", KETU: "Ketu", MANDHI: "Mandhi",
 };
 
-const PLANET_LABELS_TA: Record<string, string> = {
-  SUN: "சூரியன்", MOON: "சந்திரன்", MARS: "செவ்வாய்",
-  MERCURY: "புதன்", JUPITER: "குரு", VENUS: "சுக்கிரன்",
-  SATURN: "சனி", RAHU: "ராகு", KETU: "கேது", MANDHI: "மாந்தி",
-};
+// PLANET_LABELS_EN above stays — "Sun · Suryan" is this tool's own bilingual
+// gloss and exists nowhere else. The Tamil side was a plain copy of the canonical
+// nine, so it delegates; MANDHI is an upagraha with no `tPlanetLord` row and is
+// the one name this file still owns.
+const PLANET_LABELS_TA: Record<string, string> = Object.fromEntries([
+  ...PLANET_ORDER.filter((code) => code !== "MANDHI").map((code) => [code, tPlanetLord(code, "ta")]),
+  ["MANDHI", "மாந்தி"],
+]);
 
 // Nakshatra lords come from the shared Vimshottari derivation — this file used
 // to carry its own transcribed 27-row copy, as did chart-generate-inline-panel.
@@ -199,11 +203,7 @@ function pakshaTa(p: string): string {
 }
 
 function dashaLordTa(lord: string): string {
-  const MAP: Record<string, string> = {
-    SUN: "சூரியன்", MOON: "சந்திரன்", MARS: "செவ்வாய்", MERCURY: "புதன்",
-    JUPITER: "குரு", VENUS: "சுக்கிரன்", SATURN: "சனி", RAHU: "ராகு", KETU: "கேது",
-  };
-  return MAP[lord] ?? lord;
+  return tPlanetLord(lord, "ta") || lord;
 }
 
 function formatDashaYMD(years: number): string {

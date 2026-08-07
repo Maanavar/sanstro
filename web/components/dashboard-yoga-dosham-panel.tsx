@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import React, { useState } from "react";
-import { t } from "@/lib/i18n";
+import { t, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ChartYogaInsight, ChartDoshamInsight } from "@/lib/types";
 import {
@@ -114,25 +114,16 @@ const MARKER_LABELS: Record<string, { ta: string; en: string }> = {
   planet_kendra_from_moon:           { ta: "சந்திரனிலிருந்து கேந்திரத்தில் ஒரு கிரகம் உள்ளது — கேமத்ரும நிலையை மென்மையாக்கும்", en: "A planet sits in a kendra from the Moon — this softens the Kemadruma condition" },
 };
 
-// Planet display names for the parametrized markers below. Local to this file
-// on purpose — the panel already owns its own label vocabulary and there is no
-// shared web-side planet-name helper to reuse.
-const MARKER_PLANET: Record<string, { ta: string; en: string }> = {
-  SUN: { ta: "சூரியன்", en: "Sun" },
-  MOON: { ta: "சந்திரன்", en: "Moon" },
-  MARS: { ta: "செவ்வாய்", en: "Mars" },
-  MERCURY: { ta: "புதன்", en: "Mercury" },
-  JUPITER: { ta: "குரு", en: "Jupiter" },
-  VENUS: { ta: "சுக்கிரன்", en: "Venus" },
-  SATURN: { ta: "சனி", en: "Saturn" },
-  RAHU: { ta: "ராகு", en: "Rahu" },
-  KETU: { ta: "கேது", en: "Ketu" },
-};
-
+// Planet display names for the parametrized markers below.
+//
+// The comment that used to sit here said this map was "local to this file on
+// purpose … there is no shared web-side planet-name helper to reuse." That was
+// not true when it was written: `tPlanetLord` in `lib/i18n.ts` is canonical and
+// already served ~10 surfaces. Worth recording, because a justification nobody
+// re-checks is more durable than the duplication it defends — and four sibling
+// panels drifted to "சுக்ரன்" for Venus behind exactly this kind of reasoning.
 function planetLabel(code: string, lang: Lang): string {
-  const entry = MARKER_PLANET[code.toUpperCase()];
-  if (!entry) return code;
-  return lang === "ta" ? entry.ta : entry.en;
+  return tPlanetLord(code, lang) || code;
 }
 
 /**

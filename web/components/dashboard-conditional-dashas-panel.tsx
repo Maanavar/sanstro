@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Lang } from "@/lib/i18n";
+import { tPlanetLord, type Lang } from "@/lib/i18n";
 import {
   getConditionalDashas,
   type ConditionalDashasData,
@@ -17,21 +17,12 @@ import { Kicker } from "./ui/kicker";
 // app/calculations/conditional_dashas.py for the documented single-source
 // posture. Experimental / display-only — none feed the daily score, and the
 // applicability report never auto-hides a system.
-const LORD_LABEL: Record<string, { en: string; ta: string }> = {
-  SUN: { en: "Sun", ta: "சூரியன்" },
-  MOON: { en: "Moon", ta: "சந்திரன்" },
-  MARS: { en: "Mars", ta: "செவ்வாய்" },
-  MERCURY: { en: "Mercury", ta: "புதன்" },
-  JUPITER: { en: "Jupiter", ta: "குரு" },
-  VENUS: { en: "Venus", ta: "சுக்ரன்" },
-  SATURN: { en: "Saturn", ta: "சனி" },
-  RAHU: { en: "Rahu", ta: "ராகு" },
-  KETU: { en: "Ketu", ta: "கேது" },
-};
-
+//
+// The local nine-row label map is gone. It spelled Venus "சுக்ரன்" where the rest
+// of the app says "சுக்கிரன்", as did three sibling panels. `tPlanetLord` is
+// canonical.
 function lordName(lord: string, isTamil: boolean): string {
-  const label = LORD_LABEL[lord];
-  return isTamil ? label?.ta ?? lord : label?.en ?? lord;
+  return tPlanetLord(lord, isTamil ? "ta" : "en");
 }
 
 type Props = {

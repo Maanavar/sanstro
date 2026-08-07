@@ -6,7 +6,7 @@
  * Never pass plain-lang output to backend endpoints.
  */
 
-import type { Lang } from "./i18n";
+import { tPlanetLord, type Lang } from "./i18n";
 
 export type Mode = "BEGINNER" | "BALANCED" | "TRADITIONAL";
 
@@ -15,28 +15,54 @@ interface BiText {
   en: string;
 }
 
-const PLAIN_LANG: Record<string, BiText> = {
-  // ── Planets
-  SU:       { ta: "சூரியன் (ஆன்மா கிரகம்)", en: "Sun (soul planet)" },
-  MO:       { ta: "சந்திரன் (மனம் கிரகம்)", en: "Moon (mind planet)" },
-  MA:       { ta: "செவ்வாய் (செயல் கிரகம்)", en: "Mars (action planet)" },
-  ME:       { ta: "புதன் (தகவல் கிரகம்)", en: "Mercury (communication planet)" },
-  JU:       { ta: "குரு (வளர்ச்சி கிரகம்)", en: "Jupiter (growth planet)" },
-  VE:       { ta: "சுக்கிரன் (அன்பு கிரகம்)", en: "Venus (love planet)" },
-  SA:       { ta: "சனி (ஒழுக்க கிரகம்)", en: "Saturn (discipline planet)" },
-  RA:       { ta: "ராகு (மாற்றம்)", en: "Rahu (change force)" },
-  KE:       { ta: "கேது (வைராக்கியம்)", en: "Ketu (detachment force)" },
+/**
+ * A planet's canonical name, optionally with this layer's plain-language gloss.
+ *
+ * THE NAME IS NEVER TYPED HERE. Eighteen of the rows below re-typed the nine
+ * graha names that `tPlanetLord` already owns, which is how four dashboard
+ * panels came to spell Venus "சுக்ரன்" while the rest of the app said
+ * "சுக்கிரன்" — every copy internally consistent, so no test could see it.
+ *
+ * What this layer legitimately adds is the parenthetical role ("soul planet",
+ * "மனம் கிரகம்"), and that is now the only thing written out. Rows with no gloss
+ * are exactly the canonical name, by construction rather than by coincidence.
+ */
+function graha(code: string, taGloss?: string, enGloss?: string): BiText {
+  const ta = tPlanetLord(code, "ta");
+  const en = tPlanetLord(code, "en");
+  return {
+    ta: taGloss ? `${ta} (${taGloss})` : ta,
+    en: enGloss ? `${en} (${enGloss})` : en,
+  };
+}
 
-  // Common string-key variants used in narrative engine
-  SUN:      { ta: "சூரியன்", en: "Sun" },
-  MOON:     { ta: "சந்திரன்", en: "Moon" },
-  MARS:     { ta: "செவ்வாய்", en: "Mars" },
-  MERCURY:  { ta: "புதன்", en: "Mercury" },
-  JUPITER:  { ta: "குரு", en: "Jupiter" },
-  VENUS:    { ta: "சுக்கிரன்", en: "Venus" },
-  SATURN:   { ta: "சனி (கட்டுப்பாடு கிரகம்)", en: "Saturn (discipline planet)" },
-  RAHU:     { ta: "ராகு (மாற்றம்)", en: "Rahu (change force)" },
-  KETU:     { ta: "கேது (வைராக்கியம்)", en: "Ketu (detachment force)" },
+const PLAIN_LANG: Record<string, BiText> = {
+  // ── Planets. Two-letter keys are the glossed BEGINNER-mode forms.
+  SU:       graha("SUN", "ஆன்மா கிரகம்", "soul planet"),
+  MO:       graha("MOON", "மனம் கிரகம்", "mind planet"),
+  MA:       graha("MARS", "செயல் கிரகம்", "action planet"),
+  ME:       graha("MERCURY", "தகவல் கிரகம்", "communication planet"),
+  JU:       graha("JUPITER", "வளர்ச்சி கிரகம்", "growth planet"),
+  VE:       graha("VENUS", "அன்பு கிரகம்", "love planet"),
+  SA:       graha("SATURN", "ஒழுக்க கிரகம்", "discipline planet"),
+  RA:       graha("RAHU", "மாற்றம்", "change force"),
+  KE:       graha("KETU", "வைராக்கியம்", "detachment force"),
+
+  // Common string-key variants used in narrative engine. The gloss pattern is
+  // deliberately uneven here and was before this change — the first six are
+  // bare, the last three carry the same glosses as their two-letter twins.
+  // Preserved rather than "made consistent": these strings are what the
+  // narrative engine's output already reads as, and levelling them is a copy
+  // decision, not a refactor.
+  SUN:      graha("SUN"),
+  MOON:     graha("MOON"),
+  MARS:     graha("MARS"),
+  MERCURY:  graha("MERCURY"),
+  JUPITER:  graha("JUPITER"),
+  VENUS:    graha("VENUS"),
+  SATURN:   graha("SATURN", "கட்டுப்பாடு கிரகம்", "discipline planet"),
+  RAHU:     graha("RAHU", "மாற்றம்", "change force"),
+  KETU:     graha("KETU", "வைராக்கியம்", "detachment force"),
 
   // ── Rasis (Zodiac signs)
   MESHA:        { ta: "மேஷம் (ஆட்டுக்கிடா)", en: "Aries (Ram)" },

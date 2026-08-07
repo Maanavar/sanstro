@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Lang } from "@/lib/i18n";
+import { tPlanetLord, type Lang } from "@/lib/i18n";
 import { getYoginiDasha, type YoginiDashaData, type YoginiDashaPeriod } from "@vinaadi/shared/api/yoginiDasha";
 import { CollapsibleSection } from "./collapsible-section";
 import { GlossaryTerm } from "./glossary-term";
@@ -22,25 +22,17 @@ const YOGINI_LABEL: Record<string, { en: string; ta: string }> = {
   SANKATA: { en: "Sankata", ta: "சங்கடா" },
 };
 
-const RULING_PLANET_LABEL: Record<string, { en: string; ta: string }> = {
-  SUN: { en: "Sun", ta: "சூரியன்" },
-  MOON: { en: "Moon", ta: "சந்திரன்" },
-  MARS: { en: "Mars", ta: "செவ்வாய்" },
-  MERCURY: { en: "Mercury", ta: "புதன்" },
-  JUPITER: { en: "Jupiter", ta: "குரு" },
-  VENUS: { en: "Venus", ta: "சுக்ரன்" },
-  SATURN: { en: "Saturn", ta: "சனி" },
-  RAHU: { en: "Rahu", ta: "ராகு" },
-};
-
 function yoginiName(yogini: string, isTamil: boolean): string {
   const label = YOGINI_LABEL[yogini];
   return isTamil ? label?.ta ?? yogini : label?.en ?? yogini;
 }
 
+// The eight Yoginis above stay local — they are this system's own vocabulary and
+// live nowhere else. Their RULING PLANETS were a second, redundant copy of the
+// nine-graha map, and it spelled Venus "சுக்ரன்" against the app's "சுக்கிரன்",
+// as did three sibling panels. `tPlanetLord` is canonical.
 function planetName(planet: string, isTamil: boolean): string {
-  const label = RULING_PLANET_LABEL[planet];
-  return isTamil ? label?.ta ?? planet : label?.en ?? planet;
+  return tPlanetLord(planet, isTamil ? "ta" : "en");
 }
 
 type Props = {

@@ -1,23 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Lang } from "@/lib/i18n";
+import { tPlanetLord, type Lang } from "@/lib/i18n";
 import { getShadbala, type PlanetShadbala, type ShadbalaData } from "@vinaadi/shared/api/shadbala";
 import { CollapsibleSection } from "./collapsible-section";
 import { GlossaryTerm } from "./glossary-term";
 import { Card } from "./ui/card";
 import type { GlossaryKey } from "@/lib/glossary";
 
-const PLANET_LABEL: Record<string, { en: string; ta: string }> = {
-  SUN: { en: "Sun", ta: "சூரியன்" },
-  MOON: { en: "Moon", ta: "சந்திரன்" },
-  MARS: { en: "Mars", ta: "செவ்வாய்" },
-  MERCURY: { en: "Mercury", ta: "புதன்" },
-  JUPITER: { en: "Jupiter", ta: "குரு" },
-  VENUS: { en: "Venus", ta: "சுக்ரன்" },
-  SATURN: { en: "Saturn", ta: "சனி" },
-};
-
+// The local seven-row planet map is gone — it spelled Venus "சுக்ரன்" against the
+// app's "சுக்கிரன்", as did three sibling panels. `tPlanetLord` is canonical.
 const COMPONENTS: [keyof PlanetShadbala, string, GlossaryKey][] = [
   ["sthana", "Sthana", "sthanaBala"],
   ["dig", "Dig", "digBala"],
@@ -99,7 +91,9 @@ export function ShadbalaPanel({ lang, chartId }: Props) {
 }
 
 function PlanetCard({ p, isTamil }: { p: PlanetShadbala; isTamil: boolean }) {
-  const label = PLANET_LABEL[p.graha];
+  // Language resolved once, fallback folded in, so the five uses below are a
+  // bare `{label}` instead of five copies of `label?.ta ?? p.graha`.
+  const label = tPlanetLord(p.graha, isTamil ? "ta" : "en") || p.graha;
   const ratioPct = Math.min(100, Math.round(p.strengthRatio * 100));
   return (
     <Card
@@ -111,7 +105,7 @@ function PlanetCard({ p, isTamil }: { p: PlanetShadbala; isTamil: boolean }) {
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <strong style={{ color: "var(--color-text-strong)", fontSize: "var(--text-md)" }}>
-          {isTamil ? label?.ta ?? p.graha : label?.en ?? p.graha}
+          {label}
         </strong>
         <span
           style={{
@@ -164,11 +158,11 @@ function PlanetCard({ p, isTamil }: { p: PlanetShadbala; isTamil: boolean }) {
       <p style={{ color: "var(--color-faint)", fontSize: "var(--text-sm)", margin: "8px 0 0", lineHeight: 1.5 }}>
         {p.isStrong
           ? isTamil
-            ? `${label?.ta ?? p.graha} தேவையான பலத்தைத் தாண்டுகிறது — அதன் வீடு மற்றும் தசை பலன்கள் தானாகவே நிலைக்கும்.`
-            : `${label?.en ?? p.graha} clears its required strength — its house and dasha results tend to hold up on their own.`
+            ? `${label} தேவையான பலத்தைத் தாண்டுகிறது — அதன் வீடு மற்றும் தசை பலன்கள் தானாகவே நிலைக்கும்.`
+            : `${label} clears its required strength — its house and dasha results tend to hold up on their own.`
           : isTamil
-            ? `${label?.ta ?? p.graha} தேவையான பலத்திற்குக் குறைவு — அதன் பலன்கள் மெதுவாக வரும்; முயற்சி அல்லது பரிகாரம் உதவும்.`
-            : `${label?.en ?? p.graha} is below the required strength — its results come slower and benefit from conscious effort or remedies.`}
+            ? `${label} தேவையான பலத்திற்குக் குறைவு — அதன் பலன்கள் மெதுவாக வரும்; முயற்சி அல்லது பரிகாரம் உதவும்.`
+            : `${label} is below the required strength — its results come slower and benefit from conscious effort or remedies.`}
       </p>
     </Card>
   );

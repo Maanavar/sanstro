@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { ArrowRight } from "lucide-react";
-import { t } from "@/lib/i18n";
+import { t, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { AdhipathiReading, JadhagamReportData } from "@/lib/types";
 import { YogaDoshamPanel } from "./dashboard-yoga-dosham-panel";
@@ -36,14 +36,18 @@ function Row({ label, value }: { label: string; value: string | number }) {
 
 // ── Planetary strength bar ────────────────────────────────────────────────────
 
-const PLANET_NAMES_TA: Record<string, string> = {
-  SUN: "சூரியன்", MOON: "சந்திரன்", MARS: "செவ்வாய்", MERCURY: "புதன்",
-  JUPITER: "குரு", VENUS: "சுக்கிரன்", SATURN: "சனி", RAHU: "ராகு", KETU: "கேது",
-};
+// TAMIL ONLY, and that is this panel's existing choice rather than an omission:
+// the English side shows the raw enum ("SUN", not "Sun"). Replaces a local
+// nine-row Tamil map plus six copies of `lang === "ta" ? (MAP[x] ?? x) : x` —
+// `tPlanetLord` is canonical, and four sibling panels had drifted to "சுக்ரன்"
+// for Venus behind maps exactly like the one this deletes.
+function planetNameTA(code: string, lang: Lang): string {
+  return lang === "ta" ? (tPlanetLord(code, "ta") || code) : code;
+}
 
 function StrengthBar({ planet, score, lang }: { planet: string; score: number; lang: Lang }) {
   const color = score >= 70 ? "var(--color-score-high)" : score >= 40 ? "var(--color-score-mid)" : "var(--color-score-low)";
-  const label = lang === "ta" ? (PLANET_NAMES_TA[planet] ?? planet) : planet;
+  const label = planetNameTA(planet, lang);
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
       <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", minWidth: "76px" }}>{label}</span>
@@ -91,7 +95,7 @@ const NATURE_GLOSS: Record<string, { ta: string; en: string }> = {
 // plain-language gloss of what that role does. Replaces the bare enum pill.
 function NatureRow({ planet, nature, lang }: { planet: string; nature: string; lang: Lang }) {
   const color = NATURE_COLORS[nature] ?? "var(--color-faint)";
-  const planetLabel = lang === "ta" ? (PLANET_NAMES_TA[planet] ?? planet) : planet;
+  const planetLabel = planetNameTA(planet, lang);
   const natureLabel = lang === "ta" ? (NATURE_LABELS_TA[nature] ?? nature) : nature.replace(/_/g, " ");
   const gloss = NATURE_GLOSS[nature];
   return (
@@ -331,10 +335,10 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad, renderYogaD
   ];
 
   const strongNames = planetaryStrengthSummary.strong.map((p) =>
-    lang === "ta" ? (PLANET_NAMES_TA[p.planet] ?? p.planet) : p.planet
+    planetNameTA(p.planet, lang)
   );
   const weakNames = planetaryStrengthSummary.weak.map((p) =>
-    lang === "ta" ? (PLANET_NAMES_TA[p.planet] ?? p.planet) : p.planet
+    planetNameTA(p.planet, lang)
   );
 
   const [topConcern, ...otherConcerns] = primaryConcerns ?? [];
@@ -511,7 +515,7 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad, renderYogaD
               {navamsamSummary.vargottamaPlanets.length > 0 && (
                 <p style={{ margin: "var(--space-1) 0 var(--space-2_5)", fontSize: "var(--text-base)", color: "var(--planet-other)", lineHeight: 1.4 }}>
                   {lang === "ta" ? "வர்கோத்தமம்: " : "Vargottama: "}
-                  {navamsamSummary.vargottamaPlanets.map((p) => (lang === "ta" ? (PLANET_NAMES_TA[p] ?? p) : p)).join(", ")}
+                  {navamsamSummary.vargottamaPlanets.map((p) => (planetNameTA(p, lang))).join(", ")}
                 </p>
               )}
               <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-1_5)" }}>
@@ -521,7 +525,7 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad, renderYogaD
                     background: "var(--color-surface-2)", border: "1px solid var(--color-border)",
                     fontSize: "var(--text-sm)", color: "var(--color-text)",
                   }}>
-                    {lang === "ta" ? (PLANET_NAMES_TA[planet] ?? planet) : planet}
+                    {planetNameTA(planet, lang)}
                     <span style={{ color: "var(--color-faint)", margin: "0 var(--space-1)", display: "inline-flex", verticalAlign: "middle" }} aria-hidden="true">
                       <ArrowRight size={12} strokeWidth={1.5} />
                     </span>

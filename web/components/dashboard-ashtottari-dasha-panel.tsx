@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Lang } from "@/lib/i18n";
+import { tPlanetLord, type Lang } from "@/lib/i18n";
 import { getAshtottariDasha, type AshtottariDashaData, type AshtottariDashaPeriod } from "@vinaadi/shared/api/ashtottariDasha";
 import { CollapsibleSection } from "./collapsible-section";
 import { GlossaryTerm } from "./glossary-term";
@@ -11,20 +11,13 @@ import { Kicker } from "./ui/kicker";
 // Ashtottari Dasha — 108-year secondary/comparison dasha, 8 lords, no Ketu.
 // See app/calculations/ashtottari_dasha.py for the documented Ardra-adi
 // (B.V. Raman / Jataka Parijata) nakshatra-lord convention this project uses.
-const LORD_LABEL: Record<string, { en: string; ta: string }> = {
-  SUN: { en: "Sun", ta: "சூரியன்" },
-  MOON: { en: "Moon", ta: "சந்திரன்" },
-  MARS: { en: "Mars", ta: "செவ்வாய்" },
-  MERCURY: { en: "Mercury", ta: "புதன்" },
-  JUPITER: { en: "Jupiter", ta: "குரு" },
-  VENUS: { en: "Venus", ta: "சுக்ரன்" },
-  SATURN: { en: "Saturn", ta: "சனி" },
-  RAHU: { en: "Rahu", ta: "ராகு" },
-};
-
+//
+// The local nine-row label map is gone. It said "சுக்ரன்" for Venus where the
+// rest of the app says "சுக்கிரன்", as did three sibling panels — each copy was
+// internally consistent, which is exactly why no test saw it and why the fix is
+// deleting the copies rather than correcting them. `tPlanetLord` is canonical.
 function lordName(lord: string, isTamil: boolean): string {
-  const label = LORD_LABEL[lord];
-  return isTamil ? label?.ta ?? lord : label?.en ?? lord;
+  return tPlanetLord(lord, isTamil ? "ta" : "en");
 }
 
 // Applies / Does not apply / Needs review — informational, never hides the

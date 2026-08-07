@@ -5,7 +5,7 @@ import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { track } from "@/lib/analytics";
 import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
 import { useBirthProfileForm } from "@/hooks/useBirthProfileForm";
-import { t } from "@/lib/i18n";
+import { t, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ChartCalculateResponseData, ChartSummaryData, DashaTimelineResponseData } from "@/lib/types";
 import { RasiChart, NavamsaChart } from "./dashboard-charts";
@@ -87,11 +87,14 @@ const RASI_NAMES_TA: Record<number, string> = {
   7: "துலாம்", 8: "விருச்சிகம்", 9: "தனுசு", 10: "மகரம்", 11: "கும்பம்", 12: "மீனம்",
 };
 
-const GRAHA_NAMES_TA: Record<string, string> = {
-  SUN: "சூரியன்", MOON: "சந்திரன்", MARS: "செவ்வாய்", MERCURY: "புதன்",
-  JUPITER: "குரு", VENUS: "சுக்கிரன்", SATURN: "சனி", RAHU: "ராகு",
-  KETU: "கேது", MANDHI: "மாந்தி",
-};
+// MANDHI is the only name this file still owns — it is an upagraha, not one of
+// the nine, so `tPlanetLord` has no row for it and this is a genuine local
+// addition rather than a copy. The nine came from here until four sibling panels
+// proved what a hand-copied graha map costs (Venus as "சுக்ரன்").
+function grahaNameTA(code: string): string {
+  if (code === "MANDHI") return "மாந்தி";
+  return tPlanetLord(code, "ta") || code;
+}
 
 const PLANET_DIRECTION: Record<string, string> = {
   SUN: "கி", MOON: "வ", MARS: "தெ", MERCURY: "வ.கி", JUPITER: "வ.கி",
@@ -142,11 +145,7 @@ function formatDateTA(iso: string): string {
 }
 
 function dashaLordTA(lord: string): string {
-  const map: Record<string, string> = {
-    SUN: "சூரியன்", MOON: "சந்திரன்", MARS: "செவ்வாய்", MERCURY: "புதன்",
-    JUPITER: "குரு", VENUS: "சுக்கிரன்", SATURN: "சனி", RAHU: "ராகு", KETU: "கேது",
-  };
-  return map[lord] ?? lord;
+  return tPlanetLord(lord, "ta") || lord;
 }
 
 function currentAge(dateIso: string): number {
@@ -259,7 +258,7 @@ function JathagamPrint({ chart, dasha, fatherName, motherName, gender }: {
     const p = chart.planets.find((x) => x.graha === g);
     if (!p) return null;
     return {
-      graha: g, nameTA: GRAHA_NAMES_TA[g] ?? g,
+      graha: g, nameTA: grahaNameTA(g),
       absLong: p.absoluteLongitude, degInRasi: p.degreeInRasi,
       nakshatra: p.nakshatra, nakshatraName: p.nakshatraName,
       pada: p.pada, rasi: p.rasi, isRetrograde: p.isRetrograde,
