@@ -221,6 +221,13 @@ export interface BirthProfileSnapshot {
   calculateNow?: boolean;
   languagePreference?: string;
   genderForTraditionalRules?: string | null;
+  /** Life-stage answers. `null` means we hold no answer and is NOT the same as
+   *  "single" / "none" — `undisclosed` is the reader declining, which is also
+   *  not an answer. Anything gating on these must distinguish all three. They
+   *  are optional here only because older cached snapshots predate them. */
+  maritalStatus?: string | null;
+  employmentType?: string | null;
+  children?: string | null;
   birthDatetimeUtc?: string | null;
   calculationStatus: "pending" | "completed" | "failed";
   warnings: string[];

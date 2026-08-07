@@ -965,7 +965,18 @@ export function DashboardWorkspace() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [personal.birthProfileId, personal.birthProfileLookupDone, session.hydrated]);
 
-  // Sync birthForm from the loaded chart so name/details survive new builds
+  // Sync birthForm from the loaded chart so name/details survive new builds.
+  //
+  // The three life-stage selects below were left out of this effect for a long
+  // time on the reasoning that a blank select sends `undefined`, `exclude_unset`
+  // skips it, and the stored value survives — true, and harmless while nothing
+  // but this form could write them. The one-minute reading ended that: it asks
+  // the marital-status question inline and PATCHes the answer. A reader who
+  // taps the wrong option had written a value that this form could not show
+  // them and therefore could not correct, while it fed life_areas,
+  // marriage_service and daily guidance. Not lost data — an unanswerable
+  // answer, which is worse in a feature whose argument is that declining is
+  // safe. Hydrate them.
   useEffect(() => {
     if (!personal.chart) return;
     const bp = personal.chart.birthProfile;
@@ -982,6 +993,9 @@ export function DashboardWorkspace() {
       currentTimezone: c.currentTimezone || bp.currentTimezone || "",
       currentLatitude: c.currentLatitude || (bp.currentLatitude != null ? String(bp.currentLatitude) : ""),
       currentLongitude: c.currentLongitude || (bp.currentLongitude != null ? String(bp.currentLongitude) : ""),
+      maritalStatus: c.maritalStatus || bp.maritalStatus || "",
+      employmentType: c.employmentType || bp.employmentType || "",
+      children: c.children || bp.children || "",
     }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [personal.chart]);
