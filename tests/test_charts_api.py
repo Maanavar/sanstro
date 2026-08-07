@@ -77,6 +77,72 @@ def test_chart_calculate_endpoint_uses_persisted_birth_profile(client, birth_pro
     )
 
 
+def test_chart_response_returns_every_life_stage_answer_the_profile_form_reads_back(
+    client, birth_profile_payload_factory
+):
+    """The chart's birthProfile is the only copy of these the profile form sees.
+
+    The web form hydrates its three life-stage selects from POST
+    /charts/calculate, not from GET /birth-profiles — so a field the chart
+    response drops is a field the reader can have stored and can never see or
+    change. `children` was dropped here while `maritalStatus` and
+    `employmentType` were not, which made it exactly that: write-only. The
+    one-minute reading now asks one of these questions inline and PATCHes the
+    answer, so a mistaken tap has to be correctable.
+
+    Asserted per-field rather than as a set membership check, because the
+    failure this guards is one field silently missing from a builder that
+    lists every field by hand.
+    """
+    payload = birth_profile_payload_factory()
+    payload["maritalStatus"] = "married"
+    payload["employmentType"] = "self_employed"
+    payload["children"] = "has"
+    created = client.post("/api/v1/birth-profiles", json=payload).json()
+    birth_profile_id = created["data"]["birthProfileId"]
+
+    body = client.post(
+        "/api/v1/charts/calculate",
+        json={
+            "birthProfileId": birth_profile_id,
+            "calculationVersion": "thirukanitham-2026-v1",
+            "forceRecalculate": False,
+        },
+    ).json()
+
+    profile = body["data"]["birthProfile"]
+    assert profile["maritalStatus"] == "married"
+    assert profile["employmentType"] == "self_employed"
+    assert profile["children"] == "has"
+
+
+def test_chart_response_never_invents_a_life_stage_answer_that_was_not_given(
+    client, birth_profile_payload_factory
+):
+    """Silence must survive the round trip as silence.
+
+    `null` here means "we hold no answer"; it is not "single", not "no
+    children", and not "undisclosed" (which is the reader actively declining).
+    A builder that defaulted any of these to a settled string would let the
+    form show the reader an answer they never gave.
+    """
+    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
+
+    body = client.post(
+        "/api/v1/charts/calculate",
+        json={
+            "birthProfileId": created["data"]["birthProfileId"],
+            "calculationVersion": "thirukanitham-2026-v1",
+            "forceRecalculate": False,
+        },
+    ).json()
+
+    profile = body["data"]["birthProfile"]
+    assert profile["maritalStatus"] is None
+    assert profile["employmentType"] is None
+    assert profile["children"] is None
+
+
 def test_chart_summary_endpoint_returns_dashboard_payload(client, birth_profile_payload_factory):
     created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
     birth_profile_id = created["data"]["birthProfileId"]

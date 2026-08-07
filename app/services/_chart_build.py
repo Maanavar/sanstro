@@ -494,8 +494,17 @@ def _birth_profile_response(
         # Relationships/harmony lifelong; student-under-18 ⇒ drop Career;
         # retired ⇒ Career becomes "Life Purpose"). Dropping them here silently
         # disabled all of that.
+        #
+        # `children` joined them late and for a different reason: it is the only
+        # copy of the answer the profile form can read back. The form hydrates
+        # from this response, so omitting the field left a stored "has"/"none"
+        # invisible and therefore uncorrectable — the reader could set it (the
+        # one-minute reading asks and PATCHes) but never see or change it.
+        # Never treat the absence of a value here as "no children": None means
+        # the chart response did not carry it, which is what this line fixes.
         marital_status=_value(profile, "marital_status"),
         employment_type=_value(profile, "employment_type"),
+        children=_value(profile, "children"),
         calendar_input_type=_value(profile, "calendar_input_type", "gregorian"),
         calculate_now=bool(_value(profile, "calculate_now", True)),
         language_preference=_value(profile, "language_preference", "ta-en"),
