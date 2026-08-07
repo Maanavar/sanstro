@@ -7,8 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
+from app.core.chart_access import assert_chart_owner as _assert_chart_owner
 from app.db.session import get_db
-from app.models import BirthProfile, Chart
+from app.models import BirthProfile
 from app.models.user import User
 from app.schemas.daily_guidance import (
     ActivityTimingBatchData,
@@ -35,17 +36,6 @@ from app.services.daily_guidance_service import (
 )
 
 router = APIRouter()
-
-
-def _assert_chart_owner(session: Session, chart_id: UUID, current_user: User) -> None:
-    chart = session.get(Chart, chart_id)
-    if chart is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chart not found.")
-    profile = session.get(BirthProfile, chart.birth_profile_id)
-    if profile is None or profile.deleted_at is not None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Birth profile not found.")
-    if profile.owner_user_id != current_user.user_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
 
 
 def _assert_profile_owner(session: Session, profile_id: UUID, current_user: User) -> None:

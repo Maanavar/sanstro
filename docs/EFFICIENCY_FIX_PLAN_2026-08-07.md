@@ -78,6 +78,61 @@ Any authenticated user with a chart UUID can read another user's output from
 
 **Effort:** ~1h + tests. **Surface:** backend, affects [D].
 
+#### ✅ LANDED 2026-08-07 — and the audit above was wrong in three ways
+
+Every correction made the item bigger, which is worth noting on its own: an audit that
+undercounts a security rule undercounts it in the unsafe direction.
+
+**1. Six copies, not five.** `journal.py:46` had one too.
+
+**2. They were not "identical bodies differing only in return type" — `journal.py`'s had
+already drifted.** It omitted the `deleted_at` check, so a chart whose birth profile had been
+soft-deleted stayed readable through that route, and it answered **403 where the other five
+answer 404**, which leaks chart existence to a non-owner. Neither is visible reading that copy
+on its own; both were obvious the moment six sat in one place. This is the drift the item
+predicted for `F3` — it had already happened here.
+
+**3. `muhurta.py` was not the only unguarded router. `share_card.py` was the same defect**,
+found by doing step 5 rather than by reading the audit. `generate_card_data(session, chart_id,
+card_type, resolved_date)` takes **no owner argument at all**, so a signed-in user with any
+chart UUID got a 200 carrying that chart's daily score, headline, best windows and running
+dasa lord. Verified by removing the new guard and watching the test return the payload.
+
+**Two independent instances is the actual argument for the shared module.** The failure mode is
+not a bad copy of the rule — it is a router that never got one, and absence does not appear in
+a diff.
+
+**Also fixed:** `transits.gochar_current` validated its query params *before* authorising, so a
+non-owner probing it got a helpful 422 about parameter shape instead of a 403. `sani_cycle`
+three lines below already had the right order.
+
+**Landed:**
+
+- `app/core/chart_access.py` — one `assert_chart_owner`, superset of all six, 404-before-403 so
+  a missing chart and someone else's chart are indistinguishable.
+- Six local copies replaced (aliased to `_assert_chart_owner`, so call sites are unchanged).
+- `muhurta.py` ×2 and `share_card.py` ×1 guarded.
+- `tests/test_chart_access_guard.py`, 25 tests. Structural half enumerates all **52**
+  `{chart_id}` routes off the live app and fails until each owning module declares
+  `router-guard` or `service-scope`; behavioural half drives 8 routes as a second user and
+  requires **403**, with valid params so a 422 cannot pass for a guard.
+- 250 tests green across every router touched.
+
+**One honest gap:** the structural half sees **path** params only. `journal.py` takes its
+`chart_id` from a request body and is covered by its own named test; a future body-param router
+would not be caught by the enumeration.
+
+**Router pattern register** (the item's step 5 — "pick one per router and record which"):
+
+| Pattern | Routers |
+|---|---|
+| `router-guard` | `charts`, `daily_guidance`, `numerology`, `remedies`, `transits`, `muhurta`, `share_card`, (`journal`, body param) |
+| `service-scope` | `annual_wrapped`, `ask_vinaadi`, `life_areas`, `life_events`, `life_event_log`, `predictions` |
+
+`public_tools.py` appeared in the first grep and is a false positive — it is unauthenticated by
+design and has no `chart_id` route. `reports`/`retrospective`/`relationships` named in the
+audit have no `{chart_id}` route either.
+
 ### F2 · [D] One planet-name map — Venus currently has two spellings in the UI
 
 `tPlanetLord` (`web/lib/i18n.ts:1104`) is canonical and used by ~10 surfaces. Eight

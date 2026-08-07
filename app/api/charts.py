@@ -14,6 +14,7 @@ from app.calculations.jaimini_karakas import compute_char_karakas, compute_karak
 from app.calculations.tajaka import calculate_tajaka_chart
 from app.core.age_gate import is_married_settled, is_minor, is_past_prime_marriage_age
 from app.core.auth import get_current_user
+from app.core.chart_access import assert_chart_owner as _assert_chart_owner
 from app.db.session import get_db
 from app.models import BirthProfile, Chart
 from app.models.chart_planet import ChartPlanet
@@ -57,18 +58,6 @@ from app.services.kalachakra_dasha_service import build_kalachakra_dasha_respons
 from app.services.conditional_dashas_service import build_conditional_dashas_response
 
 router = APIRouter()
-
-
-def _assert_chart_owner(session: Session, chart_id: UUID, current_user: User) -> Chart:
-    chart = session.get(Chart, chart_id)
-    if chart is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chart not found.")
-    profile = session.get(BirthProfile, chart.birth_profile_id)
-    if profile is None or profile.deleted_at is not None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Birth profile not found.")
-    if profile.owner_user_id != current_user.user_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
-    return chart
 
 
 def _load_chart_and_profile(session: Session, owner_user_id: UUID, chart_id: UUID) -> tuple[Chart | None, BirthProfile | None]:
@@ -212,7 +201,7 @@ def get_event_windows(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> EventWindowsResponse:
-    chart = _assert_chart_owner(session, chart_id, current_user)
+    chart, _ = _assert_chart_owner(session, chart_id, current_user)
 
     if from_year > to_year:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="fromYear must be <= toYear.")
