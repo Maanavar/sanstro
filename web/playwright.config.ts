@@ -5,12 +5,22 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..");
 
+// The e2e frontend runs on its own port, NOT dev's :3000. `reuseExistingServer`
+// is true outside CI, so sharing a port with `dev.ps1` meant Playwright reused
+// the dev server whenever it happened to be up — and a reused server keeps the
+// environment it was started with, so the `env: { BACKEND_URL }` below was
+// silently dropped and the specs wrote to vinaadi_dev. A distinct port means
+// the only thing that can be reused here is another e2e frontend. See
+// e2e/global-setup.ts, which refuses to run if the proxy still lands on the
+// wrong backend.
+const E2E_FRONTEND_PORT = 3100;
+
 /**
  * Base URL is overridden by BASE_URL env var in CI / staging, or defaults
- * to local dev. When webServer is set below, Playwright starts `next dev`
- * itself so the dev server doesn't need to be running beforehand.
+ * to the dedicated e2e frontend. When webServer is set below, Playwright
+ * starts `next dev` itself so nothing needs to be running beforehand.
  */
-const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
+const BASE_URL = process.env.BASE_URL ?? `http://localhost:${E2E_FRONTEND_PORT}`;
 
 // e2e runs get their own backend + database (vinaadi_e2e on the test Postgres
 // container, port 5433) instead of reusing whatever backend is already
@@ -26,6 +36,8 @@ const E2E_DATABASE_URL =
 export default defineConfig({
   testDir: ".",
   testMatch: ["e2e/**/*.spec.ts", "tests/**/*.spec.ts"],
+  // Proves the stack under test is the isolated one before any spec writes to it.
+  globalSetup: "./e2e/global-setup.ts",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: 1,
@@ -65,10 +77,13 @@ export default defineConfig({
         timeout: 120_000,
       },
       {
-        command: "npm run dev",
-        url: "http://localhost:3000",
+        command: `npm run dev -- --port ${E2E_FRONTEND_PORT}`,
+        url: `http://localhost:${E2E_FRONTEND_PORT}`,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
+        // Overrides web/.env.local's BACKEND_URL (:8000 → vinaadi_dev). This
+        // only applies when Playwright actually starts the server; global-setup
+        // is what catches the case where it didn't.
         env: { BACKEND_URL: `http://127.0.0.1:${E2E_BACKEND_PORT}` },
       },
     ],
