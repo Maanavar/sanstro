@@ -13,6 +13,8 @@ rendered output, not table equality).
 """
 from __future__ import annotations
 
+from app.constants.astrology import NAKSHATRA_NAMES
+
 PLANET_TA: dict[str, str] = {
     "SUN": "சூரியன்", "MOON": "சந்திரன்", "MARS": "செவ்வாய்",
     "MERCURY": "புதன்", "JUPITER": "குரு", "VENUS": "சுக்கிரன்",
@@ -120,3 +122,44 @@ def rasi_ta(rasi: int | None) -> str | None:
 
 def rasi_en(rasi: int | None) -> str | None:
     return RASI_EN.get(rasi) if rasi is not None else None
+
+
+# ---------------------------------------------------------------------------
+# Nakshatra names, 1..27.
+#
+# The Tamil spellings are printed-almanac usage and were previously a private
+# tuple inside `muhurtham_naal_service`. They are here now because a second
+# caller appeared (the one-minute reading), and the alternative was the third
+# hand-copy of a name table in this codebase — which is exactly what the RASI
+# note above is apologising for.
+#
+# THE ENGLISH SIDE IS DERIVED, NOT TYPED. `NAKSHATRA_NAMES` is the stable
+# machine value other surfaces match on and it is already Tamil-almanac
+# transliteration; the only difference in prose is case. Writing the 27 English
+# names out again would create a table that can silently disagree with the
+# constant it is supposed to mirror, which is the failure mode RASI_EN already
+# carries. Derivation makes that impossible rather than merely tested.
+# ---------------------------------------------------------------------------
+NAKSHATRA_TA: dict[int, str] = {
+    1: "அசுவினி", 2: "பரணி", 3: "கார்த்திகை", 4: "ரோகிணி",
+    5: "மிருகசீரிடம்", 6: "திருவாதிரை", 7: "புனர்பூசம்", 8: "பூசம்",
+    9: "ஆயில்யம்", 10: "மகம்", 11: "பூரம்", 12: "உத்திரம்",
+    13: "ஹஸ்தம்", 14: "சித்திரை", 15: "சுவாதி", 16: "விசாகம்",
+    17: "அனுசம்", 18: "கேட்டை", 19: "மூலம்", 20: "பூராடம்",
+    21: "உத்திராடம்", 22: "திருவோணம்", 23: "அவிட்டம்", 24: "சதயம்",
+    25: "பூரட்டாதி", 26: "உத்திரட்டாதி", 27: "ரேவதி",
+}
+
+NAKSHATRA_EN: dict[int, str] = {
+    index + 1: name.title() for index, name in enumerate(NAKSHATRA_NAMES)
+}
+
+
+def nakshatra_ta(nakshatra: int | None) -> str | None:
+    """Tamil display name for a 1-indexed nakshatra number."""
+    return NAKSHATRA_TA.get(nakshatra) if nakshatra is not None else None
+
+
+def nakshatra_en(nakshatra: int | None) -> str | None:
+    """Prose-cased English name for a 1-indexed nakshatra number."""
+    return NAKSHATRA_EN.get(nakshatra) if nakshatra is not None else None

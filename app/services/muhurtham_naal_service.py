@@ -32,6 +32,7 @@ from app.calculations.astro import (
     chandrashtama_rasi_from_janma,
     resolve_rasi,
 )
+from app.calculations.display_names import nakshatra_ta
 from app.calculations.panchangam import (
     NAKSHATRA_NAMES,
     NALLA_NERAM_SUMMARY_TABLE,
@@ -48,14 +49,9 @@ from app.models import Chart
 
 logger = logging.getLogger(__name__)
 
-# Tamil names for the 27 nakshatras, aligned to panchangam.NAKSHATRA_NAMES order.
-NAKSHATRA_TA: tuple[str, ...] = (
-    "அசுவினி", "பரணி", "கார்த்திகை", "ரோகிணி", "மிருகசீரிடம்", "திருவாதிரை",
-    "புனர்பூசம்", "பூசம்", "ஆயில்யம்", "மகம்", "பூரம்", "உத்திரம்", "ஹஸ்தம்",
-    "சித்திரை", "சுவாதி", "விசாகம்", "அனுசம்", "கேட்டை", "மூலம்", "பூராடம்",
-    "உத்திராடம்", "திருவோணம்", "அவிட்டம்", "சதயம்", "பூரட்டாதி", "உத்திரட்டாதி",
-    "ரேவதி",
-)
+# The Tamil nakshatra names this module used to own now live in
+# `calculations.display_names` — a second caller appeared (the one-minute
+# reading) and one shared 1-indexed lookup beats two hand-copies.
 
 WEEKDAY_TA = {
     "MONDAY": "திங்கள்", "TUESDAY": "செவ்வாய்", "WEDNESDAY": "புதன்",
@@ -165,7 +161,7 @@ def _to_view(n: MuhurthamNaal) -> MuhurthamNaalView:
         pirai=BiLabel(ta=pirai_ta, en=pirai_en),
         tamil_month=BiLabel(ta=month_ta, en=month_en),
         tamil_day=n.tamil_day,
-        nakshatra=BiLabel(ta=NAKSHATRA_TA[n.nakshatra_number - 1], en=n.nakshatra_name.title()),
+        nakshatra=BiLabel(ta=nakshatra_ta(n.nakshatra_number), en=n.nakshatra_name.title()),
         tithi_number=n.tithi_number,
         paksha=n.paksha,
         nalla_neram=_nalla_neram_windows(n.weekday),
@@ -262,7 +258,7 @@ def match_muhurtham_naals(
 
     janma_nak, janma_rasi, janma_name = _resolve_janma(session, chart_id)
     chandra_rasi = chandrashtama_rasi_from_janma(janma_rasi)
-    janma_star_ta = NAKSHATRA_TA[janma_nak - 1]
+    janma_star_ta = nakshatra_ta(janma_nak)
     janma_star_en = janma_name.title()
 
     matches: list[MuhurthamNaalMatch] = []
@@ -276,7 +272,7 @@ def match_muhurtham_naals(
         score = 50 + TARA_SCORE[tara]
         reasons: list[BiLabel] = []
 
-        day_star_ta = NAKSHATRA_TA[n.nakshatra_number - 1]
+        day_star_ta = nakshatra_ta(n.nakshatra_number)
         reasons.append(BiLabel(
             ta=f"உங்கள் நட்சத்திரம் {janma_star_ta}லிருந்து {day_star_ta} {tara_ta} தாரா — {mean_ta}",
             en=f"{tara_en} tara ({n.nakshatra_name.title()}) from your star {janma_star_en} — {mean_en}",
