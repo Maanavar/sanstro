@@ -162,10 +162,18 @@ def create_birth_profile(session: Session, payload: BirthProfileCreate, *, calcu
         )
     ).scalar_one()
     if not math.isinf(max_profiles) and int(active_profile_count) >= int(max_profiles):
+        # The number has to come from the tier, not from the error catalogue.
+        # The catalogue's copy said "(10)" while this tier's cap was 3, so the
+        # message named a limit nobody was ever held to.
         error_info = get_error_message(ErrorCode.RESOURCE_LIMIT_EXCEEDED)
+        limit = int(max_profiles)
         raise HTTPException(
             status_code=error_info["status"],
-            detail=error_info["user_message"],
+            detail=(
+                f"You have reached the maximum number of birth profiles "
+                f"({limit}). Delete unused profiles from your settings to make "
+                f"room for new ones, or upgrade to Premium for unlimited profiles."
+            ),
         )
 
     birth_profile = create_birth_profile_record(session, payload)

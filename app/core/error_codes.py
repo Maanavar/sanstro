@@ -138,8 +138,15 @@ ERROR_MESSAGES = {
         "technical": "Token has been revoked.",
     },
     ErrorCode.RESOURCE_LIMIT_EXCEEDED: {
+        # Deliberately carries no number. This is a generic code, and the number
+        # that belongs in it is per-tier and per-resource — it can only be known
+        # at the call site. It used to read "(10)" here while the registered
+        # tier's actual birth-profile cap was 3, so the only users who ever saw
+        # this message were told a limit that was more than three times the one
+        # actually stopping them. Callers interpolate the real figure; see
+        # goals_service and family_vault_service for the pattern.
         "status": status.HTTP_409_CONFLICT,
-        "user_message": "You have reached the maximum number of birth profiles (10). Delete unused profiles from your settings to make room for new ones.",
+        "user_message": "You have reached a plan limit. Delete an unused item to make room, or upgrade for more.",
         "technical": "Resource limit exceeded.",
     },
     ErrorCode.DUPLICATE_RESOURCE: {

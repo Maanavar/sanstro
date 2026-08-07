@@ -180,3 +180,35 @@ def test_premium_reports_included(ts_limits: dict, py_limits: dict) -> None:
 def test_premium_birth_profiles_unlimited(ts_limits: dict, py_limits: dict) -> None:
     assert py_limits["premium"]["birthProfilesMax"] == math.inf
     assert ts_limits["premium"]["birthProfilesMax"] == math.inf
+
+
+def test_no_limit_message_hardcodes_a_number_the_tiers_do_not_back() -> None:
+    """A cap message must get its number from the tier table, not from prose.
+
+    The shared RESOURCE_LIMIT_EXCEEDED entry read "You have reached the maximum
+    number of birth profiles (10)" while the registered tier's actual cap was 3
+    and premium's was unlimited — so the only users who ever saw that sentence
+    were told a limit more than three times the one that had just stopped them,
+    and were invited to "delete unused profiles to make room" when deleting one
+    would buy them a single slot back out of a claimed ten.
+
+    The two sibling caps (goals_service, family_vault_service) both interpolate
+    their real figure; this one was the outlier. The rule the guard encodes is
+    the general one: no number in the shared error catalogue, because a number
+    there cannot know which tier is reading it.
+    """
+    import re
+
+    from app.core.error_codes import ERROR_MESSAGES
+
+    offenders = [
+        f"{code}: {info['user_message']}"
+        for code, info in ERROR_MESSAGES.items()
+        if re.search(r"\(\s*\d+\s*\)|\b\d+\b", info["user_message"])
+    ]
+
+    assert not offenders, (
+        "error-catalogue messages carrying a literal number. The catalogue is "
+        "shared across tiers and cannot know the caller's limit — interpolate it "
+        "at the call site instead:\n" + "\n".join(offenders)
+    )
