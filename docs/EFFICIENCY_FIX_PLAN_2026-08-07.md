@@ -670,6 +670,51 @@ twice per session with two separate caches.
 **Effort:** ~1 day for the hook + 6 panels. **Measure:** network requests on a
 Today→Plan→Life Areas→Today tab cycle, before vs after.
 
+#### ✅ LANDED 2026-08-08 — and the headline claim did not reproduce
+
+`hooks/useApiQuery.ts`, `components/ui/async-section.tsx`, the six panels, and
+`useEventWindowsQuery` promoted into `hooks/useEventWindows.ts`.
+
+**The fetch block really was identical in all six. What had drifted was the
+presentation of its failure** — three different colours for the same error:
+`--color-mid` (ashtottari, yogini, kalachakra, conditional), `--color-low`
+(shadbala), `--deepdive-accent` (propensities, which also used `--text-sm` where
+the rest used `--text-base`). What gets copied stays in step; what gets
+hand-written diverges. Standardised on `--color-mid` — the majority, and the right
+severity for an optional section inside a collapsible.
+
+**The Tamil loading line had NOT drifted**, checked before centralising it: all 16
+occurrences are byte-identical. Recorded because it cuts against the usual finding.
+The sweep did turn up a construction that must not be folded in —
+"ஜாதகம் ஏற்றப்படுகிறது…" names *what* is loading and inflects the verb for it, so
+replacing those with the generic default would be a copy regression, not a cleanup.
+
+**The measurement, and the honest result.** `e2e/tab-cycle-requests.spec.ts` counts
+every v1 request across two laps of Today→Goals→Life Areas→Today. **Before and
+after are identical: 7 requests, `event-windows` once.** This item says that
+endpoint "crosses the wire twice per session with two separate caches". It can,
+but not on this path, for two reasons:
+
+- The Plan tab's copy was **already inside react-query**, so it was never the
+  offender; only the Life Areas consumer was hand-rolled.
+- That consumer is **lazy**. `EventWindowsPanel` is rendered without `autoLoad`, so
+  it shows "Select an event type above" and fetches nothing until a tab is clicked.
+  The duplication is user-triggered, not automatic.
+
+So F8 removes a duplicate definition and guarantees one cache — worth having — but
+it is **not** a measured request reduction and is not claimed as one.
+
+**What the same run did find:** `charts/{id}/life-event-log` is fetched **once per
+lap**. It is one of the ~30 remaining hand-rolled blocks this item deliberately did
+not rewrite, and the spec now pins it as a known-open exception so the assertion
+tightens when it is fixed.
+
+**Reachability, which changes what the proving run proves.** Five of the six panels
+render from `dashboard-family-charts-hybrid` *and* from
+`dashboard-charts-panel-nova.tsx` — the latter being one of F11's 13 orphans, so
+that render site ships to nobody. Four of the five also sit behind
+`AdvancedAstrologyGate`. **The cycle named in this item mounts none of them.**
+
 ### F9 · `<SecondaryDashaPanel>` — five panels are one component
 
 `dashboard-ashtottari-dasha-panel.tsx` (217 ln) and `dashboard-yogini-dasha-panel.tsx`
@@ -687,6 +732,36 @@ card.
 renderPeriodLabel, header? }} />`. ~600 lines → ~200 + four ~40-line configs.
 
 **Effort:** ~half a day *if sequenced after F2/F8*; ~1.5 days if attempted first.
+
+#### ✅ LANDED 2026-08-08 — three panels, not four, and the sequencing worked too well
+
+`components/dashboard-secondary-dasha-panel.tsx` now owns the shell all three were
+hand-rendering: same `CollapsibleSection`, same `GlossaryTerm` subtitle and caveat,
+same two-column current-period card, same highlighted mahadasha list — down to the
+same `padding: var(--space-1_5) var(--space-3)`.
+
+**"Kalachakra and conditional follow the same skeleton" is half wrong.** Kalachakra
+does. **Conditional does not** — it renders a paksha line and a list of per-system
+cards, with no current-period card and no mahadasha list at all. It shares the
+header and the async states with these three and nothing below that, so it keeps
+its own body. Checked rather than assumed.
+
+**The projected saving does not land, because the sequencing did its job.** F9 was
+scheduled after F2 and F8 because they remove two of its four differences — and they
+had already removed most of the *lines* too. "~600 lines → ~200 + four configs" was
+measured against the pre-F2 files. Actual: the three panels go **443 → 302**, plus a
+158-line shared component, so **the tree is 17 lines longer**. The win is not bytes:
+a change to the current-period card is now one edit instead of three, and a fourth
+secondary dasha costs a config rather than a copy.
+
+Deliberately **not generic over the API response type** — each panel keeps its own
+`useApiQuery` call and maps its own field names (`yogini`, `rasiName`, `lord`) into a
+plain shape. A generic selector would hide the one thing that actually differs.
+Yogini's ruling-planet suffix and Ashtottari's applicability card are slots, so
+neither panel gave up copy to share the shell.
+
+**Not visually diffed:** all three render behind `AdvancedAstrologyGate` inside
+Family & Charts, which the sweep's BALANCED-mode account does not open.
 
 ### F10 · The 9 `fieldStyle` copies are an accessibility gap
 
@@ -712,6 +787,50 @@ near-identical copies in one folder.
 rest. **[M] tools last** — they're on SEO-indexed pages, so they want their own visual pass.
 
 **Effort:** ~half a day for the 9 [D] files.
+
+#### ✅ LANDED 2026-08-08 — the gap was worse than "no aria-*": 13 of 19 controls had no name
+
+This item says the copies "none carry the a11y attributes". Measured on rendered
+pages, the actual state was a level worse: the captions beside those inputs were
+`<span>`s, or `<label>`s with **neither `htmlFor` nor the control nested inside**, so
+the controls had **no accessible name at all**.
+
+`e2e/field-a11y-probe.spec.ts` walks five signed-in surfaces and reads the name the
+browser computes. **Before: 13 of 19 unnamed. After: 0 of 19.** The before number was
+taken by stashing only `web/components` and re-running, so it is measured, not
+asserted. A source guard can prove the copies are gone; only a rendered page can prove
+the replacement works, since the association is resolved by the browser.
+
+**There were 11 copies, not 9.** `novaFieldStyle` in `dashboard-tools-porutham-nova`
+and `dashboard-today-deepdive-extras-nova` are live and were missed because a
+case-sensitive grep for `fieldStyle` does not match `novaFieldStyle` — the same class
+of blind spot as the built class names, one letter wide.
+
+**Two copies deliberately left, both unreachable code:** `porutham-panel` (an F11
+orphan) and `DashboardActivityTimingCard` — **a dead component inside a live module**.
+That file is imported only for five helpers; `NovaActivityTimingCard` superseded the
+component. The orphan scan works at file granularity and cannot see this.
+
+**`PlaceCombobox` never spreads `inputProps`**, so `style={fieldStyle}` at
+`dashboard-plan-muhurta-picker-nova` had never reached the input, and the `id` that
+`Field` clones onto it is dropped too — leaving its label's `htmlFor` pointing at
+nothing. `aria-label` is now forwarded explicitly and passed at the three call sites.
+
+**New `FieldShell`** for controls that name themselves and must not be wrapped in a
+`<label>`: `NovaSelect` renders a `<button>`, which a label would both mis-describe and
+re-activate on click, closing the dropdown.
+
+**The [M] tools are declared, not migrated, and not for lack of time.** `.ui-input`
+exists only as `[data-ui="nova"] .cd-shell .ui-*` in `dashboard-nova.css`, which
+marketing does not load at all after F4, and no marketing page renders `.cd-shell`.
+Swapping them would render browser-default controls on SEO-indexed pages. They also
+already nest their inputs inside their `<label>`, so **the a11y gap was concentrated
+entirely in [D]**.
+
+Guard: `lib/field-style-guard.test.ts`, both directions. It keys on a control box
+*reaching a raw form control*, not on the declaration alone — the first version flagged
+a print-table cell, two card surfaces and a tile, and a guard that cries wolf earns an
+allowlist entry rather than a fix.
 
 ---
 
@@ -789,6 +908,12 @@ Phase 4     F11 step 1 (headers) — do today, costs nothing
             F11 step 2 (deletion) — per file, on approval
 ```
 
+**Status 2026-08-08:** F1, F2, F3, F4, F5, F6, F8, F9, F10 and F11 step 1 have all
+landed. Open: **F7** (55 marketing `"use client"` files), **F11 step 2** (deletion,
+per file, on explicit approval only), the two **Fraunces** declarations (a design
+call), the ~17 KB of unreferenced `.cl-*` left in `marketing.css`, and the **[M]
+half of F10**, which needs marketing-scoped field CSS before it can move at all.
+
 **Hard dependencies:**
 - F5 **must** ship inside F4 (the `.cd-shell` collision is currently held at bay by CSS load
   order, which F4 changes).
@@ -811,7 +936,9 @@ paid for once.
 |---|---|---|
 | Parametrised owner-check test over every `chart_id` route | a 7th router shipping without F1's guard | backend tests ✅ |
 | No Tamil planet `Record` outside `lib/i18n.ts` | F2 recurrence | source-regex test ✅ |
-| No `const *Style` object containing `border`+`padding` outside `components/ui/` | F10 recurrence | source-regex test |
+| A control box reaching a raw `<input>`/`<select>`/`<textarea>` | F10 recurrence | `lib/field-style-guard.test.ts` ✅ |
+| Every form control on the migrated panels has an accessible name | F10 regression — invisible to tsc, resolved by the browser | `e2e/field-a11y-probe.spec.ts` ✅ |
+| Every sub-tab named in `TOP_TABS` is actually reached | a sweep silently shrinking to nothing | `e2e/nova-sweep.spec.ts` ✅ |
 | Every load context can reach the CSS it uses; one loader per stylesheet; size ratchets | F4 regression | `lib/css-surface-boundary.test.ts` ✅ |
 | A class only an interpolation can build is still a live class | the F4-step-5 prune that deleted 13 live rules | `lib/css-dynamic-class.test.ts` ✅ |
 | No marketing or root-only route reaches react-query / sonner | F6 regression — a runtime crash on a public page, not a build error | `lib/payload-boundary.test.ts` ✅ |
@@ -832,6 +959,31 @@ cheap to re-run and each found something.
 | `e2e/css-ab.spec.ts` + `scripts/css-ab-diff.mjs` | did any element resolve differently? | 97 diffs, 13 real |
 | `scripts/payload-probe.mjs` | who actually reaches this module? | login does not need react-query |
 | `scripts/js-budget.mjs` | which routes ship this package? | 126 → 6 / 3 / 3 |
+| `e2e/field-a11y-probe.spec.ts` | does the browser give this control a name? | 13 of 19 unnamed → 0 |
+| `e2e/tab-cycle-requests.spec.ts` | what crosses the wire on a tab cycle? | F8's headline claim did not reproduce; `life-event-log` refetches per lap |
+
+### The sweep was measuring less than it claimed
+
+`e2e/nova-sweep.spec.ts` is described in this repo as the fastest dashboard
+regression check. While using it to verify F10 it turned out to be green while
+covering considerably less than its name implies — three compounding faults, each
+hiding the next:
+
+1. It waited for `networkidle`, which says nothing about a `next/dynamic` panel still
+   showing its `loading` fallback. **Goals and Life Areas were screenshotted
+   mid-skeleton**, and since a skeleton has no text, `assertNoLeakedText` passed.
+2. With the panel unrendered, its sub-tab strip did not exist — and a missing sub-tab
+   was `continue`, not a failure. **All 11 sub-tabs were silently skipped.**
+3. Independently, the lookup used `getByRole("button")`. The strip is `<Segmented>`,
+   whose buttons carry `role="tab"`, and an explicit role **replaces** the implicit
+   one. `goToTab()` documents this exact trap for the "More" menu's `role="menuitem"`
+   directly above the code that fell into it.
+
+Plus a stale entry: "Best Dates & Muhurta" was listed under Goals, having moved to
+Calendar in the 2026-07-22 IA refactor — the same class as the "Transits & Dashas"
+entry fixed in `955f4fa`. Fixed in `68d8948`: 11 tests / 0 sub-tabs → 12 tests / all
+11 sub-tabs reached. **A list of destinations is only worth having if a destination
+going missing is loud.**
 
 **A caution that applies to all of them.** Three separate tools in this repo have now been
 fooled by the same thing — a name the source builds rather than writes. `css-split.mjs`'s
