@@ -25,12 +25,19 @@ const CSRF_HEADERS = { "X-Vinaadi-CSRF": "1" };
 const ARTIFACT_DIR = path.join(__dirname, ".artifacts", "nova-sweep");
 
 test.describe.configure({ mode: "serial" });
+// Each tab now waits for its lazy panel to actually render before asserting, and
+// several take >10s to settle, so the default 30s is no longer enough.
+test.setTimeout(90_000);
 
 let context: BrowserContext;
 let page: Page;
 let currentTab = "setup";
 const consoleErrors: { tab: string; text: string }[] = [];
 const pageErrors: { tab: string; text: string }[] = [];
+/** Sub-tabs named in TOP_TABS that the run could not find — see the assertion
+ *  at the bottom. A silent skip here is how this sweep came to cover far less
+ *  than its name claims. */
+const missingSubTabs: string[] = [];
 
 function log(msg: string) {
   // eslint-disable-next-line no-console
@@ -175,7 +182,7 @@ async function dismissBlockingDialogs(maxAttempts = 20) {
 test.afterAll(async () => {
   fs.writeFileSync(
     path.join(ARTIFACT_DIR, "report.json"),
-    JSON.stringify({ email: EMAIL, consoleErrors, pageErrors }, null, 2),
+    JSON.stringify({ email: EMAIL, consoleErrors, pageErrors, missingSubTabs }, null, 2),
   );
   await context.close();
 });
@@ -202,6 +209,34 @@ async function goToTab(label: string, role: "button" | "menuitem" = "button") {
   log(`goToTab(${label}): clicked`);
   await page.waitForTimeout(1200);
   await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
+  await waitForContent(label);
+}
+
+/**
+ * Wait for the tab's real content, not just for the network to go quiet.
+ *
+ * `networkidle` says nothing about a `next/dynamic` panel still showing its
+ * `loading` fallback — dashboard-workspace.tsx lazy-loads 16 of them. Goals and
+ * Life Areas were being screenshotted mid-skeleton, and since a skeleton
+ * contains no text, `assertNoLeakedText` passed and the tab was reported as
+ * rendering cleanly. Every sub-tab under those two was then "not visible" and
+ * silently skipped, which is why this sweep was green while covering neither.
+ */
+async function waitForContent(label: string) {
+  // Bounded, and a timeout is logged rather than thrown: a tab whose skeleton
+  // never resolves is a finding worth seeing in the log, but it must not eat the
+  // whole per-test budget and turn into an unrelated-looking timeout.
+  const deadline = Date.now() + 12_000;
+  while (Date.now() < deadline) {
+    const remaining = await page.locator(".skel").count().catch(() => 0);
+    if (remaining === 0) {
+      await page.waitForTimeout(400);
+      return;
+    }
+    await page.waitForTimeout(400);
+  }
+  const stuck = await page.locator(".skel").count().catch(() => 0);
+  log(`waitForContent(${label}): ${stuck} skeleton element(s) still present after 12s`);
 }
 
 async function assertNoLeakedText(tabName: string) {
@@ -244,9 +279,12 @@ async function assertNoLeakedText(tabName: string) {
  */
 const TOP_TABS: Array<{ label: string; subTabs?: RegExp[]; via: "nav" | "more" | "url"; path?: string }> = [
   { label: "Today", via: "nav" },
-  { label: "Calendar", via: "nav" },
+  // "Best Dates & Muhurta" lives here, not under Goals — it moved in the
+  // 2026-07-22 IA refactor and dashboard-plan-tab-nova.tsx:99 records the move.
+  // It was still listed under Goals below, where it can never be found.
+  { label: "Calendar", via: "nav", subTabs: [/Panchangam/i, /Monthly/i, /Best Dates & Muhurta/i] },
   { label: "Family & Charts", via: "nav" },
-  { label: "Goals", via: "nav", subTabs: [/Life Events/i, /What-If/i, /Best Dates & Muhurta/i, /Decisions/i] },
+  { label: "Goals", via: "nav", subTabs: [/Life Events/i, /What-If/i, /Decisions/i] },
   { label: "Life Areas", via: "nav", subTabs: [/Overview/, /Predictions/, /Yogas/, /Remedies/, /Full report/i] },
   { label: "Settings", via: "nav" },
   { label: "Journal", via: "url", path: "/dashboard/journal" },
@@ -263,6 +301,7 @@ for (const tabDef of TOP_TABS) {
       await page.goto(tabDef.path!);
       await page.waitForTimeout(1200);
       await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
+      await waitForContent(tabDef.label);
     } else {
       if (tabDef.via === "more") {
         // Tools/Explore/QA live behind the "More" dropdown now — open it first
@@ -278,9 +317,26 @@ for (const tabDef of TOP_TABS) {
 
     if (tabDef.subTabs) {
       for (const subPattern of tabDef.subTabs) {
-        const subBtn = page.getByRole("button", { name: subPattern }).first();
-        const visible = await subBtn.isVisible().catch(() => false);
-        if (!visible) continue;
+        // The sub-tab strip is the shared <Segmented>, whose buttons carry
+        // role="tab" — and an explicit role REPLACES the implicit button role
+        // rather than adding to it, the same trap goToTab() documents above for
+        // the "More" dropdown's role="menuitem". So the old
+        // getByRole("button", …) matched nothing here, and because a miss was
+        // treated as "not applicable" and skipped, this sweep reported Goals and
+        // Life Areas as clean while never opening a single sub-tab.
+        let subBtn = page.getByRole("tab", { name: subPattern }).first();
+        let visible = await subBtn.isVisible().catch(() => false);
+        if (!visible) {
+          subBtn = page.getByRole("button", { name: subPattern }).first();
+          visible = await subBtn.isVisible().catch(() => false);
+        }
+        if (!visible) {
+          const tabs = await page
+            .getByRole("tab")
+            .evaluateAll((els) => els.map((e) => (e.textContent ?? "").replace(/\s+/g, " ").trim()));
+          missingSubTabs.push(`${tabDef.label} > ${subPattern} (tabs on screen: ${JSON.stringify(tabs)})`);
+          continue;
+        }
         currentTab = `${tabDef.label} > ${subPattern}`;
         await subBtn.click();
         await page.waitForTimeout(1000);
@@ -305,4 +361,23 @@ test("no console or page errors across the whole sweep", async () => {
   }
   expect(filtered, "console errors were logged during the sweep — see stdout above").toHaveLength(0);
   expect(pageErrors, "uncaught page errors were logged during the sweep — see stdout above").toHaveLength(0);
+});
+
+/**
+ * A sub-tab named in TOP_TABS that could not be found is a failure, not a skip.
+ *
+ * This is the same lesson as the stale "Transits & Dashas" entry: a list of
+ * destinations is only worth having if a destination going missing is loud. A
+ * skipped sub-tab still lets the parent tab report "renders cleanly", so the
+ * sweep's coverage can shrink to nothing without any run turning red.
+ */
+test("every sub-tab named in TOP_TABS was actually reached", () => {
+  if (missingSubTabs.length > 0) {
+    // eslint-disable-next-line no-console
+    console.log("[nova-sweep] sub-tabs not found:", JSON.stringify(missingSubTabs, null, 2));
+  }
+  expect(
+    missingSubTabs,
+    "named sub-tabs were not found — either the nav changed and TOP_TABS is stale, or the role is wrong",
+  ).toHaveLength(0);
 });
