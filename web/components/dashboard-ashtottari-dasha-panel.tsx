@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { tPlanetLord, type Lang } from "@/lib/i18n";
-import { getAshtottariDasha, type AshtottariDashaData, type AshtottariDashaPeriod } from "@vinaadi/shared/api/ashtottariDasha";
+import { getAshtottariDasha, type AshtottariDashaPeriod } from "@vinaadi/shared/api/ashtottariDasha";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { CollapsibleSection } from "./collapsible-section";
 import { GlossaryTerm } from "./glossary-term";
+import { AsyncSection } from "./ui/async-section";
 import { Card } from "./ui/card";
 import { Kicker } from "./ui/kicker";
 
@@ -58,27 +59,11 @@ type Props = {
 
 export function AshtottariDashaPanel({ lang, chartId }: Props) {
   const isTamil = lang === "ta";
-  const [data, setData] = useState<AshtottariDashaData | null>(null);
-  const [state, setState] = useState<"idle" | "loading" | "error">("idle");
-
-  useEffect(() => {
-    if (!chartId) return;
-    let cancelled = false;
-    setState("loading");
-    getAshtottariDasha(chartId)
-      .then((res) => {
-        if (!cancelled) {
-          setData(res.data);
-          setState("idle");
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setState("error");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [chartId]);
+  const { data, state, refetch } = useApiQuery({
+    key: ["ashtottari-dasha", chartId],
+    queryFn: () => getAshtottariDasha(chartId).then((res) => res.data),
+    enabled: !!chartId,
+  });
 
   const title = isTamil ? "அஷ்டோத்தரி தசை — 108 ஆண்டு சுழற்சி" : "Ashtottari Dasha — 108-Year Cycle";
   // Experimental caveat, consistent with the other secondary engines (UX #40).
@@ -94,16 +79,12 @@ export function AshtottariDashaPanel({ lang, chartId }: Props) {
         </GlossaryTerm>
         {subtitleRest}
       </p>
-      {state === "loading" && (
-        <p style={{ color: "var(--color-faint)", fontSize: "var(--text-base)", margin: 0 }}>
-          {isTamil ? "ஏற்றுகிறது…" : "Loading…"}
-        </p>
-      )}
-      {state === "error" && (
-        <p style={{ color: "var(--color-mid)", fontSize: "var(--text-base)", margin: 0 }}>
-          {isTamil ? "அஷ்டோத்தரி தசையை ஏற்ற முடியவில்லை." : "Could not load Ashtottari Dasha."}
-        </p>
-      )}
+      <AsyncSection
+        state={state}
+        lang={lang}
+        onRetry={refetch}
+        error={{ ta: "அஷ்டோத்தரி தசையை ஏற்ற முடியவில்லை.", en: "Could not load Ashtottari Dasha." }}
+      />
       {data && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)" }}>
           {data.applicability && (

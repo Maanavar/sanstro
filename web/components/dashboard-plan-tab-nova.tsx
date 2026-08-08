@@ -20,7 +20,7 @@ import {
   normalizeGoalType,
   PlanEventsPanel,
 } from "./dashboard-plan-shared";
-import type { EventType } from "./dashboard-event-windows";
+import { useEventWindowsQuery, type EventType } from "@/hooks/useEventWindows";
 import { humaniseReason } from "./dashboard-event-windows";
 import { NovaLifeEventLogCard } from "./dashboard-plan-life-event-log-nova";
 import { Orbit, ArrowRight, X } from "lucide-react";
@@ -159,22 +159,9 @@ const EVENT_ADVICE: Record<EventType, { future: BiText; active: BiText }> = {
   },
 };
 
-type EventWindowsQueryData = { windows: EventWindowItem[]; ageGated: boolean };
-
-function useEventWindowsQuery(chartId: string, event: EventType, enabled: boolean) {
-  return useQuery({
-    queryKey: ["event-windows", chartId, event],
-    queryFn: async (): Promise<EventWindowsQueryData> => {
-      const currentYear = new Date().getFullYear();
-      const res = await apiFetchJson<{ data: { windows: EventWindowItem[]; ageGated?: boolean } }>(
-        `/api/v1/charts/${chartId}/event-windows?event=${event}&fromYear=${currentYear}&toYear=${currentYear + 20}`,
-      );
-      return { windows: res.data?.windows ?? [], ageGated: Boolean(res.data?.ageGated) };
-    },
-    enabled: enabled && !!chartId,
-    staleTime: STALE.today,
-  });
-}
+// `useEventWindowsQuery` used to be defined here, while dashboard-event-windows
+// hand-rolled the same request outside react-query. It now lives in
+// hooks/useEventWindows.ts so both surfaces share one key and one cache.
 
 function chronological(windows: EventWindowItem[]): EventWindowItem[] {
   return [...windows].sort((a, b) => a.startDate.localeCompare(b.startDate));

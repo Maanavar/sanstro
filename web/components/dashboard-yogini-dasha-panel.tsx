@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { tPlanetLord, type Lang } from "@/lib/i18n";
-import { getYoginiDasha, type YoginiDashaData, type YoginiDashaPeriod } from "@vinaadi/shared/api/yoginiDasha";
+import { getYoginiDasha, type YoginiDashaPeriod } from "@vinaadi/shared/api/yoginiDasha";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { CollapsibleSection } from "./collapsible-section";
 import { GlossaryTerm } from "./glossary-term";
+import { AsyncSection } from "./ui/async-section";
 import { Card } from "./ui/card";
 import { Kicker } from "./ui/kicker";
 
@@ -42,27 +43,11 @@ type Props = {
 
 export function YoginiDashaPanel({ lang, chartId }: Props) {
   const isTamil = lang === "ta";
-  const [data, setData] = useState<YoginiDashaData | null>(null);
-  const [state, setState] = useState<"idle" | "loading" | "error">("idle");
-
-  useEffect(() => {
-    if (!chartId) return;
-    let cancelled = false;
-    setState("loading");
-    getYoginiDasha(chartId)
-      .then((res) => {
-        if (!cancelled) {
-          setData(res.data);
-          setState("idle");
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setState("error");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [chartId]);
+  const { data, state, refetch } = useApiQuery({
+    key: ["yogini-dasha", chartId],
+    queryFn: () => getYoginiDasha(chartId).then((res) => res.data),
+    enabled: !!chartId,
+  });
 
   const title = isTamil ? "யோகினி தசை — 36 ஆண்டு சுழற்சி" : "Yogini Dasha — 36-Year Cycle";
   // Consistent experimental caveat so unverified engines don't wear the same
@@ -79,16 +64,12 @@ export function YoginiDashaPanel({ lang, chartId }: Props) {
         </GlossaryTerm>
         {subtitleRest}
       </p>
-      {state === "loading" && (
-        <p style={{ color: "var(--color-faint)", fontSize: "var(--text-base)", margin: 0 }}>
-          {isTamil ? "ஏற்றுகிறது…" : "Loading…"}
-        </p>
-      )}
-      {state === "error" && (
-        <p style={{ color: "var(--color-mid)", fontSize: "var(--text-base)", margin: 0 }}>
-          {isTamil ? "யோகினி தசையை ஏற்ற முடியவில்லை." : "Could not load Yogini Dasha."}
-        </p>
-      )}
+      <AsyncSection
+        state={state}
+        lang={lang}
+        onRetry={refetch}
+        error={{ ta: "யோகினி தசையை ஏற்ற முடியவில்லை.", en: "Could not load Yogini Dasha." }}
+      />
       {data && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)" }}>
           <Card

@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 
-import { apiFetchJson, readErrorMessage } from "@/lib/api";
+import { useEventWindowsQuery, type EventType } from "@/hooks/useEventWindows";
+import { readErrorMessage } from "@/lib/api";
 import { tLang } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
-import type { EventWindowItem } from "@/lib/types";
 
-export type EventType = "MARRIAGE" | "CAREER" | "FINANCE";
+export type { EventType };
 
 type EventWindowsProps = {
   lang: Lang;
@@ -65,38 +65,36 @@ export function EventWindowsPanel({ lang, chartId, isMarried = false, onlyEvent,
   const eventLabel = (evt: EventType) =>
     evt === "MARRIAGE" && isMarried ? tLang(MARRIED_MARRIAGE_LABEL, lang) : tLang(EVENT_LABELS[evt], lang);
   const [event, setEvent] = useState<EventType>(onlyEvent ?? "MARRIAGE");
-  const [windows, setWindows] = useState<EventWindowItem[]>([]);
-  const [ageGated, setAgeGated] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState("");
-  const currentYear = new Date().getFullYear();
   const eventTabs: EventType[] = onlyEvent ? [onlyEvent] : ["MARRIAGE", "CAREER", "FINANCE"];
 
-  // Auto-load on mount / when the locked event or chart changes.
-  useEffect(() => {
-    if (autoLoad && chartId) void load(onlyEvent ?? event);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoLoad, chartId, onlyEvent]);
+  // This panel is lazy by design: with `autoLoad` off it shows "Select an event
+  // type above" and fetches nothing until a tab is clicked. That intent is now
+  // carried by react-query's `enabled` rather than by "no request has been
+  // fired yet", so the panel keeps its behaviour while sharing one cache with
+  // dashboard-plan-tab-nova instead of racing it with a second copy.
+  const [requested, setRequested] = useState(autoLoad);
 
-  async function load(evt: EventType) {
-    setLoading(true);
-    setError("");
+  useEffect(() => {
+    if (onlyEvent) setEvent(onlyEvent);
+  }, [onlyEvent]);
+
+  useEffect(() => {
+    if (autoLoad && chartId) setRequested(true);
+  }, [autoLoad, chartId]);
+
+  const query = useEventWindowsQuery(chartId, event, requested);
+  const windows = query.data?.windows ?? [];
+  const ageGated = query.data?.ageGated ?? false;
+  const loading = query.isFetching;
+  // "A load has finished", success OR failure — matching the old `finally`.
+  // `isSuccess` alone would leave the "Select an event type above" prompt on
+  // screen next to the error message.
+  const loaded = requested && (query.isSuccess || query.isError);
+  const error = query.isError ? readErrorMessage(query.error) : "";
+
+  function load(evt: EventType) {
     setEvent(evt);
-    try {
-      const res = await apiFetchJson<{ data: { windows: EventWindowItem[]; ageGated?: boolean } }>(
-        `/api/v1/charts/${chartId}/event-windows?event=${evt}&fromYear=${currentYear}&toYear=${currentYear + 20}`
-      );
-      setWindows(res.data?.windows ?? []);
-      setAgeGated(Boolean(res.data?.ageGated));
-    } catch (err) {
-      setWindows([]);
-      setAgeGated(false);
-      setError(readErrorMessage(err));
-    } finally {
-      setLoading(false);
-      setLoaded(true);
-    }
+    setRequested(true);
   }
 
   return (

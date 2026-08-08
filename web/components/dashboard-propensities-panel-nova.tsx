@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { Lang } from "@/lib/i18n";
 import {
   getPropensities,
-  type PropensityBundle,
   type PropensityCard,
   type PropensityCategory,
 } from "@vinaadi/shared/api/propensities";
+import { useApiQuery } from "@/hooks/useApiQuery";
 import { CollapsibleSection } from "./collapsible-section";
+import { AsyncSection } from "./ui/async-section";
 
 /**
  * "Chances & Cautions" — the life-propensity panel (a Life Areas sub-panel).
@@ -93,29 +94,13 @@ type Props = {
 
 export function DashboardPropensitiesPanelNova({ lang, chartId }: Props) {
   const isTamil = lang === "ta";
-  const [bundle, setBundle] = useState<PropensityBundle | null>(null);
-  const [state, setState] = useState<"idle" | "loading" | "error" | "unavailable">("idle");
-
-  useEffect(() => {
-    if (!chartId) return;
-    let cancelled = false;
-    setState("loading");
-    getPropensities(chartId)
-      .then((res) => {
-        if (cancelled) return;
-        setBundle(res);
-        setState("idle");
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        // 404 = feature flag off → "being finalised" rather than an error.
-        const msg = String((err as { message?: string })?.message ?? err);
-        setState(/404|not available/i.test(msg) ? "unavailable" : "error");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [chartId]);
+  const { data: bundle, state, refetch } = useApiQuery({
+    key: ["propensities", chartId],
+    queryFn: () => getPropensities(chartId),
+    enabled: !!chartId,
+    // 404 = feature flag off → "being finalised" rather than an error.
+    unavailableWhen: (err) => /404|not available/i.test(String((err as { message?: string })?.message ?? err)),
+  });
 
   const title = isTamil ? "வாய்ப்புகள் & எச்சரிக்கைகள்" : "Chances & Cautions";
   const intro = isTamil
@@ -128,19 +113,13 @@ export function DashboardPropensitiesPanelNova({ lang, chartId }: Props) {
         {intro}
       </p>
 
-      {state === "loading" && (
-        <p style={{ color: W.muted, fontSize: "var(--text-sm)", margin: 0 }}>{isTamil ? "ஏற்றுகிறது…" : "Loading…"}</p>
-      )}
-      {state === "error" && (
-        <p style={{ color: W.care, fontSize: "var(--text-sm)", margin: 0 }}>
-          {isTamil ? "தகவலை ஏற்ற முடியவில்லை." : "Could not load this section."}
-        </p>
-      )}
-      {state === "unavailable" && (
-        <p style={{ color: W.muted, fontSize: "var(--text-sm)", margin: 0 }}>
-          {isTamil ? "இந்த பகுதி இறுதி செய்யப்படுகிறது." : "This section is being finalised."}
-        </p>
-      )}
+      <AsyncSection
+        state={state}
+        lang={lang}
+        onRetry={refetch}
+        error={{ ta: "தகவலை ஏற்ற முடியவில்லை.", en: "Could not load this section." }}
+        unavailable={{ ta: "இந்த பகுதி இறுதி செய்யப்படுகிறது.", en: "This section is being finalised." }}
+      />
 
       {bundle && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
