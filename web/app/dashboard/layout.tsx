@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Fraunces, Source_Serif_4 } from "next/font/google";
 import type { ReactNode } from "react";
+import { Toaster } from "sonner";
+
+import { QueryProvider } from "@/components/query-provider";
 // Loaded here (not just in the (workspace) group) so the standalone routes under
 // /dashboard/* (reports, goals, chart-generate, daily-score, porutham, wrapped)
 // also get .cd-shell's Nova color system.
@@ -51,10 +54,23 @@ const sourceSerif4 = Source_Serif_4({
   variable: "--font-nova-prose",
 });
 
+// F6 — QueryProvider and Toaster moved down from the root layout, which was
+// giving them to every marketing visitor. This is the correct level rather than
+// (workspace) for the same reason the stylesheets above are: the standalone
+// routes under /dashboard/* need them too.
+//
+// Deliberately NOT also added to /login or /admin. They read as "the signed-in
+// side" and are not under app/dashboard/, which is the trap this file's CSS
+// comments already record — but here the measurement says they genuinely do not
+// need it: nothing either route reaches uses react-query or sonner. See
+// lib/payload-boundary.test.ts, which fails if that stops being true.
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <div className={`cd-font-host ${frauncesNova.variable} ${sourceSerif4.variable}`}>
-      {children}
-    </div>
+    <QueryProvider>
+      <div className={`cd-font-host ${frauncesNova.variable} ${sourceSerif4.variable}`}>
+        {children}
+        <Toaster position="bottom-center" />
+      </div>
+    </QueryProvider>
   );
 }

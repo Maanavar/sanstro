@@ -2,12 +2,16 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Fraunces, Inter, JetBrains_Mono, Noto_Sans_Tamil } from "next/font/google";
 import type { ReactNode } from "react";
-import { BetaSystem } from "@/components/beta-system";
-import { PostHogProvider } from "@/components/posthog-provider";
-import { QueryProvider } from "@/components/query-provider";
+// F6 — what every visitor used to get here before a single pixel of content:
+// QueryProvider (react-query), PostHogProvider (-> posthog-js), BetaSystem
+// (-> 524 KB marketing-i18n) and Toaster (sonner). Measured against the real
+// import graph (scripts/payload-probe.mjs), the public site reaches NONE of
+// react-query or sonner, and neither does /login or /admin — so those two moved
+// to the dashboard layout, which is the only context that uses them. The other
+// two are deferred past first paint; see components/deferred-chrome.tsx.
+import { DeferredChrome } from "@/components/deferred-chrome";
 import { LangProvider } from "@/components/lang-toggle";
 import { LANG_COOKIE_NAME, type Lang } from "@/lib/i18n";
-import { Toaster } from "sonner";
 
 import "@vinaadi/design-tokens/dist/web/tokens.css";
 import "./globals.css";
@@ -192,12 +196,8 @@ export default async function RootLayout({
       </head>
       <body>
         <LangProvider initialLang={initialLang}>
-          <QueryProvider>
-            <PostHogProvider />
-            <BetaSystem />
-            {children}
-            <Toaster position="bottom-center" />
-          </QueryProvider>
+          <DeferredChrome />
+          {children}
         </LangProvider>
       </body>
     </html>

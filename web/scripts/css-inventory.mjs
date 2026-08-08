@@ -544,6 +544,22 @@ if (args.includes("--emit-classes")) {
   process.exit(0);
 }
 
+if (args.includes("--emit-reach")) {
+  // The import graph on its own, with no CSS in the answer.
+  //
+  // F6 asks payload questions of the same shape as the CSS ones — "does any
+  // marketing route actually reach react-query / sonner / the mono font?" — and
+  // they have the same trap: a filename does not say which surface renders a
+  // component. `components/` holds both surfaces' files side by side, so
+  // grepping app/(marketing) alone answers a different question than the one
+  // being asked. `own` is what each context reaches by itself; `withRoot`
+  // folds in the root layout, which is an ancestor of everything.
+  const own = Object.fromEntries(Object.entries(REACH_OWN).map(([k, v]) => [k, [...v].map(rel).sort()]));
+  const withRoot = Object.fromEntries(Object.entries(REACH).map(([k, v]) => [k, [...v].map(rel).sort()]));
+  process.stdout.write(JSON.stringify({ unresolved: UNRESOLVED, own, withRoot, unreached: UNREACHED.map(rel).sort() }));
+  process.exit(0);
+}
+
 const pad = (s, n) => String(s).padEnd(n);
 const num = (n) => String(n).padStart(9);
 const kb = (n) => (n / 1024).toFixed(1) + "K";
