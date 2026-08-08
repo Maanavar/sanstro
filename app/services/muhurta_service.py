@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 
 from app.calculations.astro import nakshatra_to_rasi, resolve_rasi, resolve_timezone, utc_datetime_to_julian_day
 from app.calculations.dasha import calculate_vimshottari_timeline
+from app.constants.astrology import SIGN_LORD
 from app.calculations.panchangam import (
     RIKTA_TITHIS_IN_PAKSHA,
     SUBHA_NAKSHATRAS,
@@ -67,10 +68,7 @@ _ACTIVITY_HOUSES: dict[str, list[int]] = {
 }
 
 
-_SIGN_LORDS = {
-    1: "MARS", 2: "VENUS", 3: "MERCURY", 4: "MOON", 5: "SUN", 6: "MERCURY",
-    7: "VENUS", 8: "MARS", 9: "JUPITER", 10: "SATURN", 11: "SATURN", 12: "JUPITER",
-}
+_SIGN_LORDS = SIGN_LORD
 
 _GURU_ALIAS = {"GURU": "JUPITER", "SANI": "SATURN"}
 

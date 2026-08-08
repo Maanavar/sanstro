@@ -20,6 +20,8 @@ from __future__ import annotations
 
 from enum import Enum
 
+from app.constants.astrology import SIGN_LORD
+
 
 class FunctionalNature(str, Enum):  # noqa: UP042 — str-mixin enum kept; StrEnum changes str()/format() output
     YOGAKARAKA = "YOGAKARAKA"
@@ -225,12 +227,11 @@ FUNCTIONAL_NATURE_TABLE: dict[int, dict[str, str]] = {
 # still reads FUNCTIONAL_NATURE_TABLE so behaviour is unchanged. Reconciling the
 # flagged inconsistencies requires astrologer sign-off (see KNOWN_FUNCTIONAL_NATURE_OVERRIDES).
 
-# Sign → ruling planet (1=Mesha … 12=Meenam). Kept local so this module stays a
-# dependency-light leaf; a golden test asserts it matches chart_strength.SIGN_LORD.
-_SIGN_LORD: dict[int, str] = {
-    1: "MARS", 2: "VENUS", 3: "MERCURY", 4: "MOON", 5: "SUN", 6: "MERCURY",
-    7: "VENUS", 8: "MARS", 9: "JUPITER", 10: "SATURN", 11: "SATURN", 12: "JUPITER",
-}
+# Sign → ruling planet (1=Mesha … 12=Meenam). Was a local copy to keep this module
+# a dependency-light leaf, with a golden test asserting it matched
+# chart_strength.SIGN_LORD. `app.constants.astrology` imports nothing, so the leaf
+# property survives and the equality is structural now instead of asserted.
+_SIGN_LORD: dict[int, str] = SIGN_LORD
 
 # Planet → the set of rasis it rules (Rahu/Ketu own none).
 PLANET_OWNED_RASIS: dict[str, frozenset[int]] = {}

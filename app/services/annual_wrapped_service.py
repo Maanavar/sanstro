@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.calculations.astro import utc_datetime_to_julian_day
 from app.calculations.dasha import calculate_vimshottari_timeline
+from app.calculations.display_names import PLANET_TA
 from app.models.birth_profile import BirthProfile
 from app.models.chart import Chart
 from app.models.daily_score import DailyScore
@@ -26,11 +27,11 @@ from app.services.chart_service import load_persisted_chart_response
 
 _CALC_VERSION = "jothidam-formula-engine-v1.0-2026"
 
-_PLANET_TA: dict[str, str] = {
-    "SUN": "சூரியன்", "MOON": "சந்திரன்", "MARS": "செவ்வாய்",
-    "MERCURY": "புதன்", "JUPITER": "குரு", "VENUS": "சுக்கிரன்",
-    "SATURN": "சனி", "RAHU": "ராகு", "KETU": "கேது",
-}
+# Was a byte-identical copy of `display_names.PLANET_TA`. A hand-typed Tamil name
+# table beside another hand-typed Tamil name table is the drift pair that gave the
+# web tree two spellings of Venus; this one had not diverged yet, which is the only
+# reason consolidating it is cheap rather than a correction.
+_PLANET_TA: dict[str, str] = PLANET_TA
 
 _SCORE_BAND_THRESHOLDS = {"high": 75, "good": 55, "neutral": 40}
 

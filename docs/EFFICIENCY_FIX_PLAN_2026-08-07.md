@@ -216,6 +216,55 @@ table — `display_names.py`'s docstring explains the pairing. Do not "consolida
 
 **Effort:** ~1h. **Surface:** [S].
 
+#### ✅ LANDED 2026-08-08 — "no drift yet" was wrong, and there were 7 copies not 3
+
+**Backend sign lords: seven byte-identical copies, not three.** `chart_strength`,
+`conditional_dashas`, `functional_nature`, `ashtottari_dasha`, `chart_explanation_service`,
+`muhurta_service`, `whatif_service`. **Only two had an equality test** — the other four could
+have diverged in silence.
+
+Three of the copies documented a real reason: *"kept local so this leaf module stays free of the
+heavier `chart_strength` import."* **That reasoning was sound and argued for a lighter home, not
+for six more copies.** `app/constants/astrology.py` imports nothing and its docstring already
+said *"import from here, never redefine locally"* — so `SIGN_LORD` moved there, and every leaf
+keeps its leaf property while there is exactly one definition. `chart_strength.SIGN_LORD` stays
+as a re-export because most call sites and tests reach for it there. Verified: all seven names
+are now the *same object*.
+
+**Backend planet Tamil names:** `annual_wrapped_service._PLANET_TA` and
+`dasha_transition_service.PLANET_NAME_TA` confirmed byte-equal to `display_names.PLANET_TA`
+programmatically, then replaced with imports. `narrative_engine.PLANET_NAME` left alone as
+documented.
+
+**The web side had already drifted, which is what this item was written to prevent.**
+`JadhagamTool.tsx`'s `NATURAL_ENEMIES` **omitted RAHU/KETU as enemies for SUN, MARS, JUPITER,
+VENUS and KETU**, against both the dashboard's copy and the backend's
+`chart_strength._NATURAL_ENEMIES` (which agree with each other exactly).
+
+**It never surfaced, and the reason matters more than the relief.** Its only reader, `getNilai`,
+compares the graha against `SIGN_LORD[rasi]` — and a sign lord is only ever one of the seven,
+never Rahu or Ketu. The five wrong rows were **unreachable, not correct.** A copy that is already
+wrong and merely never consulted is the argument for single-sourcing, not a reason to relax.
+
+**Where the web tables went, and why not the obvious place.** Pointing `JadhagamTool` at
+`dashboard-chart-explanation-data.ts` would have fixed the duplication and created a Phase 2
+problem: that module also holds `HOUSE_MEANING` and `SECTION_META`, several KB of bilingual
+dashboard prose, which would then ship on an SEO-indexed marketing page. The tables are pure
+doctrine, so they live in `lib/chart-utils.ts` — already imported by both surfaces — and
+`dashboard-chart-explanation-data.ts` re-exports them so its own call sites are untouched.
+
+**New guard: `web/lib/doctrine-parity.test.ts`.** The web↔Python constant boundary has no
+compile-time check — the same unguarded seam as the API contract, one layer down. It parses the
+Python literals as text (a Node test cannot import the ephemeris, and shelling out to `python`
+would make a fast suite depend on the venv) and asserts sign lords, exaltation, debilitation,
+natural friends and natural enemies all agree. Row counts are asserted separately so a table that
+parsed to `{}` cannot pass by being empty on both sides, and one test pins the exact drift that
+shipped so the file cannot become decoration.
+
+**Verified:** 591 backend tests green across 26 doctrine suites; `tsc` clean; 341 web unit tests
+(4 new). The two pre-existing `_SIGN_LORD == SIGN_LORD` equality tests are kept — they still catch
+a future divergent redefinition.
+
 ---
 
 ## Phase 2 — [M] Marketing: stop shipping the dashboard's CSS, and vice versa

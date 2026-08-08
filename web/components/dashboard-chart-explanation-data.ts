@@ -35,86 +35,30 @@ export const KENDRA_HOUSES = new Set([1, 4, 7, 10]);
 export const TRIKONA_HOUSES = new Set([1, 5, 9]);
 export const DUSTHANA_HOUSES = new Set([6, 8, 12]);
 
-export const EXALTATION_RASI: Record<string, number> = {
-  SUN: 1,
-  MOON: 2,
-  MARS: 10,
-  MERCURY: 6,
-  JUPITER: 4,
-  VENUS: 12,
-  SATURN: 7,
-};
+// ── Dignity doctrine, re-exported from lib/chart-utils ───────────────────────
+//
+// These six tables were duplicated here and in the public
+// `app/tools/jadhagam-generator/JadhagamTool.tsx`, where NATURAL_ENEMIES had
+// already drifted. They now live in `lib/chart-utils.ts`, which is where a
+// marketing surface can read them WITHOUT pulling in this module's bilingual
+// prose (`HOUSE_MEANING`, `SECTION_META`) — see the note there.
+//
+// Re-exported rather than repointed at the call sites: the values are unchanged,
+// and this module is the natural place to look for them when you are already
+// reading the chart explanation.
+export {
+  EXALTATION_RASI,
+  DEBILITATION_RASI,
+  MOOLATRIKONA_ZONE,
+  OWN_SIGN_RASI,
+  NATURAL_FRIENDS,
+  NATURAL_ENEMIES,
+} from "@/lib/chart-utils";
 
-export const DEBILITATION_RASI: Record<string, number> = {
-  SUN: 7,
-  MOON: 8,
-  MARS: 4,
-  MERCURY: 12,
-  JUPITER: 10,
-  VENUS: 6,
-  SATURN: 1,
-};
-
-export const MOOLATRIKONA_ZONE: Record<string, { rasi: number; start: number; end: number }> = {
-  SUN: { rasi: 5, start: 0, end: 20 },
-  MOON: { rasi: 2, start: 4, end: 30 },
-  MARS: { rasi: 1, start: 0, end: 12 },
-  MERCURY: { rasi: 6, start: 16, end: 20 },
-  JUPITER: { rasi: 9, start: 0, end: 10 },
-  VENUS: { rasi: 7, start: 0, end: 15 },
-  SATURN: { rasi: 11, start: 0, end: 20 },
-};
-
-export const OWN_SIGN_RASI: Record<string, number[]> = {
-  SUN: [5],
-  MOON: [4],
-  MARS: [1, 8],
-  MERCURY: [3, 6],
-  JUPITER: [9, 12],
-  VENUS: [2, 7],
-  SATURN: [10, 11],
-  RAHU: [],
-  KETU: [],
-};
-
-export const SIGN_LORD: Record<number, string> = {
-  1: "MARS",
-  2: "VENUS",
-  3: "MERCURY",
-  4: "MOON",
-  5: "SUN",
-  6: "MERCURY",
-  7: "VENUS",
-  8: "MARS",
-  9: "JUPITER",
-  10: "SATURN",
-  11: "SATURN",
-  12: "JUPITER",
-};
-
-export const NATURAL_FRIENDS: Record<string, string[]> = {
-  SUN: ["MOON", "MARS", "JUPITER"],
-  MOON: ["SUN", "MERCURY"],
-  MARS: ["SUN", "MOON", "JUPITER"],
-  MERCURY: ["SUN", "VENUS"],
-  JUPITER: ["SUN", "MOON", "MARS"],
-  VENUS: ["MERCURY", "SATURN"],
-  SATURN: ["MERCURY", "VENUS"],
-  RAHU: ["VENUS", "SATURN"],
-  KETU: ["MARS", "VENUS"],
-};
-
-export const NATURAL_ENEMIES: Record<string, string[]> = {
-  SUN: ["VENUS", "SATURN", "RAHU", "KETU"],
-  MOON: ["RAHU", "KETU"],
-  MARS: ["MERCURY", "RAHU"],
-  MERCURY: ["MOON"],
-  JUPITER: ["MERCURY", "VENUS", "RAHU", "KETU"],
-  VENUS: ["SUN", "MOON", "RAHU", "KETU"],
-  SATURN: ["SUN", "MOON", "MARS"],
-  RAHU: ["SUN", "MOON", "MARS", "JUPITER"],
-  KETU: ["SUN", "MOON", "JUPITER", "RAHU"],
-};
+// One table, two names. `RASI_LORDS` is the canonical export in chart-utils and
+// `SIGN_LORD` is what this module's consumers ask for; both were already present
+// in the tree with identical values, so neither name is being taken away.
+export { RASI_LORDS as SIGN_LORD } from "@/lib/chart-utils";
 
 export const HOUSE_MEANING: Record<number, BiCopy> = {
   1: { ta: "உடல், தன்மை, வாழ்க்கை திசை", en: "self, body, life direction" },

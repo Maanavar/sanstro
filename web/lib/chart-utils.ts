@@ -24,6 +24,78 @@ export const RASI_LORDS: Record<number, string> = {
   7: "VENUS", 8: "MARS", 9: "JUPITER", 10: "SATURN", 11: "SATURN", 12: "JUPITER",
 };
 
+// ── Dignity (Nilai) doctrine ─────────────────────────────────────────────────
+//
+// THE TABLES LIVE HERE RATHER THAN IN A DASHBOARD FILE, and the reason is the
+// [M]/[D] split. They were duplicated between
+// `components/dashboard-chart-explanation-data.ts` and the public
+// `app/tools/jadhagam-generator/JadhagamTool.tsx`. Pointing the marketing tool at
+// the dashboard module would have fixed the duplication and created a worse
+// problem: that file also holds `HOUSE_MEANING` and `SECTION_META`, several KB of
+// bilingual dashboard prose, which would then ship on an SEO-indexed page.
+//
+// These are pure doctrine — fixed, chart-independent, no copy — so `lib/` is the
+// honest home. `chart-utils` was already imported by both surfaces.
+//
+// NATURAL_ENEMIES HAD ALREADY DRIFTED. `JadhagamTool`'s copy omitted RAHU/KETU as
+// enemies for SUN, MARS, JUPITER, VENUS and KETU. The values below are the
+// dashboard's, which match the backend's `chart_strength._NATURAL_ENEMIES`
+// exactly. The drift was LATENT, not live: its only consumer, `getNilai`, looks up
+// a SIGN LORD, and a sign lord is never Rahu or Ketu, so those five rows were
+// never reached. That is the argument for consolidating rather than a reason to
+// relax — the copy was already wrong, and only an accident of the caller kept it
+// from showing.
+export const EXALTATION_RASI: Record<string, number> = {
+  SUN: 1, MOON: 2, MARS: 10, MERCURY: 6, JUPITER: 4, VENUS: 12, SATURN: 7,
+};
+
+export const DEBILITATION_RASI: Record<string, number> = {
+  SUN: 7, MOON: 8, MARS: 4, MERCURY: 12, JUPITER: 10, VENUS: 6, SATURN: 1,
+};
+
+export const MOOLATRIKONA_ZONE: Record<string, { rasi: number; start: number; end: number }> = {
+  SUN: { rasi: 5, start: 0, end: 20 },
+  MOON: { rasi: 2, start: 4, end: 30 },
+  MARS: { rasi: 1, start: 0, end: 12 },
+  MERCURY: { rasi: 6, start: 16, end: 20 },
+  JUPITER: { rasi: 9, start: 0, end: 10 },
+  VENUS: { rasi: 7, start: 0, end: 15 },
+  SATURN: { rasi: 11, start: 0, end: 20 },
+};
+
+// RAHU/KETU own no sign. Present as empty arrays rather than absent so a caller
+// doing `OWN_SIGN_RASI[graha].includes(...)` cannot throw on the two grahas most
+// likely to be passed in by accident.
+export const OWN_SIGN_RASI: Record<string, number[]> = {
+  SUN: [5], MOON: [4], MARS: [1, 8], MERCURY: [3, 6],
+  JUPITER: [9, 12], VENUS: [2, 7], SATURN: [10, 11],
+  RAHU: [], KETU: [],
+};
+
+export const NATURAL_FRIENDS: Record<string, string[]> = {
+  SUN: ["MOON", "MARS", "JUPITER"],
+  MOON: ["SUN", "MERCURY"],
+  MARS: ["SUN", "MOON", "JUPITER"],
+  MERCURY: ["SUN", "VENUS"],
+  JUPITER: ["SUN", "MOON", "MARS"],
+  VENUS: ["MERCURY", "SATURN"],
+  SATURN: ["MERCURY", "VENUS"],
+  RAHU: ["VENUS", "SATURN"],
+  KETU: ["MARS", "VENUS"],
+};
+
+export const NATURAL_ENEMIES: Record<string, string[]> = {
+  SUN: ["VENUS", "SATURN", "RAHU", "KETU"],
+  MOON: ["RAHU", "KETU"],
+  MARS: ["MERCURY", "RAHU"],
+  MERCURY: ["MOON"],
+  JUPITER: ["MERCURY", "VENUS", "RAHU", "KETU"],
+  VENUS: ["SUN", "MOON", "RAHU", "KETU"],
+  SATURN: ["SUN", "MOON", "MARS"],
+  RAHU: ["SUN", "MOON", "MARS", "JUPITER"],
+  KETU: ["SUN", "MOON", "JUPITER", "RAHU"],
+};
+
 export const GRAHA_ABBR: Record<string, string> = {
   SUN: "சூ",
   MOON: "சந்",

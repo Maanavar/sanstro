@@ -101,6 +101,7 @@ from dataclasses import dataclass
 from typing import Final
 
 from app.calculations.astro import normalize_longitude
+from app.constants.astrology import SIGN_LORD
 from app.calculations.dasha import (
     EPSILON_DEGREES,
     JULIAN_YEAR_DAYS,
@@ -147,13 +148,10 @@ _MAHADASHA_CYCLES: Final[int] = 3
 # lord. The 1st is shared by both; the union is {1,4,5,7,9,10}.
 _KENDRA_TRIKONA: Final[frozenset[int]] = frozenset({1, 4, 5, 7, 9, 10})
 
-# Traditional 7-planet sign lordship; equals chart_strength.SIGN_LORD (kept
-# local so this leaf module stays free of the heavier chart_strength import,
-# matching conditional_dashas._SIGN_LORD).
-_SIGN_LORD: Final[dict[int, str]] = {
-    1: "MARS", 2: "VENUS", 3: "MERCURY", 4: "MOON", 5: "SUN", 6: "MERCURY",
-    7: "VENUS", 8: "MARS", 9: "JUPITER", 10: "SATURN", 11: "SATURN", 12: "JUPITER",
-}
+# Traditional 7-planet sign lordship. Was a local copy to keep this leaf free of
+# the heavier chart_strength import — `app.constants.astrology` imports nothing,
+# so it stays a leaf without the copy. This one had NO equality test.
+_SIGN_LORD: Final[dict[int, str]] = SIGN_LORD
 
 # Descriptive, and careful NOT to claim universality — this is the dominant, not
 # the only, applicability doctrine (a few parampara-s trigger differently).

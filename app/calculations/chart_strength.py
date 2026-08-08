@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from app.calculations.aspects import aspects_house
 from app.calculations.astro import house_from_reference
 from app.calculations.transits import combustion_severity, is_cazimi, is_gandanta
+from app.constants.astrology import SIGN_LORD as _SIGN_LORD_CONSTANT
 
 # Cazimi / combustion magnitudes on this module's 0-100 composite strength scale
 # (see the block near the end of ``natal_strength_score``). Combustion is applied
@@ -93,11 +94,14 @@ _NATURAL_ENEMIES: dict[str, frozenset[str]] = {
     "KETU": frozenset({"SUN", "MOON", "JUPITER", "RAHU"}),
 }
 
-# Sign lords for friend/enemy of sign lord check
-SIGN_LORD: dict[int, str] = {
-    1: "MARS", 2: "VENUS", 3: "MERCURY", 4: "MOON", 5: "SUN", 6: "MERCURY",
-    7: "VENUS", 8: "MARS", 9: "JUPITER", 10: "SATURN", 11: "SATURN", 12: "JUPITER",
-}
+# Sign lords for friend/enemy of sign lord check.
+#
+# RE-EXPORTED, not defined here. This module was the de-facto canonical home and
+# is where most call sites and tests import it from, so the name stays — but six
+# other modules had hand-copied it, three of them explicitly to avoid importing
+# this file. `app.constants.astrology` imports nothing, so it can be the one
+# definition without costing any leaf a dependency.
+SIGN_LORD = _SIGN_LORD_CONSTANT
 
 # Naisargika Bala natural hierarchy (0-1 scaled).
 # Classical BPHS order (strongest to weakest): Sun > Moon > Venus > Jupiter >

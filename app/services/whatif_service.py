@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 
 from app.calculations.astro import house_from_reference, utc_datetime_to_julian_day
 from app.calculations.dasha import calculate_vimshottari_timeline
+from app.constants.astrology import SIGN_LORD
 from app.calculations.dasha_activation import assess_dasha_activation
 from app.calculations.display_names import sani_cycle_en, sani_cycle_ta
 from app.calculations.ephemeris import calculate_sidereal_planets
@@ -572,10 +573,7 @@ def _assess_gochar_support(
 
 _CAUTION_YOGAS = {1, 6, 9, 10, 17, 27}
 _AUSPICIOUS_NAKSHATRAS = {1, 4, 5, 7, 8, 13, 14, 15, 17, 22, 27}
-_SIGN_LORDS = {
-    1: "MARS", 2: "VENUS", 3: "MERCURY", 4: "MOON", 5: "SUN", 6: "MERCURY",
-    7: "VENUS", 8: "MARS", 9: "JUPITER", 10: "SATURN", 11: "SATURN", 12: "JUPITER",
-}
+_SIGN_LORDS = SIGN_LORD
 
 
 def _compute_panchangam_score(

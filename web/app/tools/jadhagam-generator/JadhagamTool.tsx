@@ -5,7 +5,17 @@ import { createPortal } from "react-dom";
 import { PlaceCombobox } from "@/components/dashboard-ui";
 import type { ChartCalculateResponseData, ChartPlanet, ChartYogaInsight } from "@/lib/types";
 import { readErrorMessage } from "@/lib/api";
-import { computeD9LagnaRasi, GRAHA_ABBR, GRAHA_ABBR_EN } from "@/lib/chart-utils";
+import {
+  computeD9LagnaRasi,
+  DEBILITATION_RASI,
+  EXALTATION_RASI,
+  GRAHA_ABBR,
+  GRAHA_ABBR_EN,
+  NATURAL_ENEMIES,
+  NATURAL_FRIENDS,
+  OWN_SIGN_RASI,
+  RASI_LORDS as SIGN_LORD,
+} from "@/lib/chart-utils";
 import { useLang } from "@/components/lang-toggle";
 import { JadhagamShareButton } from "@/components/public-share-card";
 import { tamilizeAstroEnglish } from "@/lib/tamil-astro";
@@ -87,42 +97,20 @@ const NAKSHATRA_SYLLABLES: Record<number, [string, string, string, string]> = {
 };
 
 // ── Dignity (Nilai) tables ────────────────────────────────────────────────────
-const EXALTATION_RASI: Record<string, number> = {
-  SUN: 1, MOON: 2, MARS: 10, MERCURY: 6, JUPITER: 4, VENUS: 12, SATURN: 7,
-};
-const DEBILITATION_RASI: Record<string, number> = {
-  SUN: 7, MOON: 8, MARS: 4, MERCURY: 12, JUPITER: 10, VENUS: 6, SATURN: 1,
-};
-const OWN_SIGN_RASI: Record<string, number[]> = {
-  SUN: [5], MOON: [4], MARS: [1, 8], MERCURY: [3, 6],
-  JUPITER: [9, 12], VENUS: [2, 7], SATURN: [10, 11],
-};
-const NATURAL_FRIENDS: Record<string, string[]> = {
-  SUN: ["MOON", "MARS", "JUPITER"],
-  MOON: ["SUN", "MERCURY"],
-  MARS: ["SUN", "MOON", "JUPITER"],
-  MERCURY: ["SUN", "VENUS"],
-  JUPITER: ["SUN", "MOON", "MARS"],
-  VENUS: ["MERCURY", "SATURN"],
-  SATURN: ["MERCURY", "VENUS"],
-  RAHU: ["VENUS", "SATURN"],
-  KETU: ["MARS", "VENUS"],
-};
-const NATURAL_ENEMIES: Record<string, string[]> = {
-  SUN: ["VENUS", "SATURN"],
-  MOON: ["RAHU", "KETU"],
-  MARS: ["MERCURY"],
-  MERCURY: ["MOON"],
-  JUPITER: ["MERCURY", "VENUS"],
-  VENUS: ["SUN", "MOON"],
-  SATURN: ["SUN", "MOON", "MARS"],
-  RAHU: ["SUN", "MOON", "MARS", "JUPITER"],
-  KETU: ["SUN", "MOON", "JUPITER"],
-};
-const SIGN_LORD: Record<number, string> = {
-  1: "MARS", 2: "VENUS", 3: "MERCURY", 4: "MOON", 5: "SUN", 6: "MERCURY",
-  7: "VENUS", 8: "MARS", 9: "JUPITER", 10: "SATURN", 11: "SATURN", 12: "JUPITER",
-};
+//
+// Six hand-copied tables used to sit here. THIS FILE'S NATURAL_ENEMIES WAS WRONG:
+// it omitted RAHU/KETU as enemies for SUN, MARS, JUPITER, VENUS and KETU, against
+// both the dashboard's copy and the backend's `chart_strength._NATURAL_ENEMIES`.
+//
+// It never showed, and the reason is worth knowing rather than being relieved
+// about: `getNilai` compares the graha against `SIGN_LORD[rasi]`, and a sign lord
+// is only ever one of the seven — never Rahu or Ketu — so the five wrong rows
+// could not be reached. A copy that is already wrong and merely unreachable is
+// the case for single-sourcing, not against it.
+//
+// Imported from `lib/chart-utils` rather than from the dashboard's explanation-data
+// module, which would have dragged several KB of bilingual dashboard prose onto
+// this SEO-indexed page.
 
 function getNilai(graha: string, rasi: number): string {
   if (EXALTATION_RASI[graha] === rasi) return "உச்சம்";

@@ -107,6 +107,7 @@ from dataclasses import dataclass
 from typing import Final
 
 from app.calculations.astro import normalize_longitude
+from app.constants.astrology import SIGN_LORD
 from app.calculations.dasha import (
     EPSILON_DEGREES,
     JULIAN_YEAR_DAYS,
@@ -435,13 +436,13 @@ def calculate_timeline(
 # wordings and the day/night approximation are logged for the astrologer pass
 # (docs/ASTROLOGER_LIVE_SESSION_BACKLOG_2026-07.md, EC-3..).
 
-# Local classical sign-lord map (Rahu/Ketu are not sign lords). Kept local to
-# stay a dependency-light leaf, matching jaimini_dasha.py; a test asserts it
-# equals chart_strength.SIGN_LORD.
-_SIGN_LORD: Final[dict[int, str]] = {
-    1: "MARS", 2: "VENUS", 3: "MERCURY", 4: "MOON", 5: "SUN", 6: "MERCURY",
-    7: "VENUS", 8: "MARS", 9: "JUPITER", 10: "SATURN", 11: "SATURN", 12: "JUPITER",
-}
+# Classical sign lords (Rahu/Ketu are not sign lords). The comment here used to
+# explain that the map was copied to keep this module a dependency-light leaf,
+# with a test asserting it equalled chart_strength.SIGN_LORD. The goal was right
+# and the means were the problem — six other modules made the same trade, only two
+# with a test. `app.constants.astrology` imports nothing, so this stays a leaf
+# and the equality is now structural rather than asserted.
+_SIGN_LORD: Final[dict[int, str]] = SIGN_LORD
 
 _VENUS_SIGNS: Final[frozenset[int]] = frozenset({2, 7})  # Taurus, Libra
 _CANCER: Final[int] = 4

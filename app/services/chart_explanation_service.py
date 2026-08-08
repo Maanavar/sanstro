@@ -23,6 +23,7 @@ from app.calculations.chart_strength import (
     detect_planetary_wars,
 )
 from app.calculations.dasha import DashaPeriod, calculate_vimshottari_timeline
+from app.constants.astrology import SIGN_LORD
 from app.calculations.display_names import planet_en, planet_ta, sani_cycle_en, sani_cycle_ta
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.functional_nature import get_functional_nature
@@ -1514,10 +1515,8 @@ def _graha_list_en(names: list[str]) -> str:
     return f"{', '.join(names[:-1])} and {names[-1]}"
 
 
-_SIGN_LORD_BY_RASI: dict[int, str] = {
-    1: "MARS", 2: "VENUS", 3: "MERCURY", 4: "MOON", 5: "SUN", 6: "MERCURY",
-    7: "VENUS", 8: "MARS", 9: "JUPITER", 10: "SATURN", 11: "SATURN", 12: "JUPITER",
-}
+# One of four copies that carried no equality test at all.
+_SIGN_LORD_BY_RASI: dict[int, str] = SIGN_LORD
 
 
 def _build_bhava_section(
