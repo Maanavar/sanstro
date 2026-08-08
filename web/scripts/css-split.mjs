@@ -26,9 +26,17 @@
  *    that no one can check.
  *
  * Run with --check to analyse without writing.
+ *
+ * THIS IS A ONE-SHOT MIGRATION. Its input is app/globals.css, which after the
+ * split is the *base* file — the residue, not the original. Running it again
+ * would partition the residue: `destOf` would file the grouped-selector rules
+ * still in the base (`.cl-mobile-form-grid-3, .cd-responsive-grid-3 { … }`)
+ * wherever their surviving classes point, and overwrite the real marketing.css
+ * and dashboard-globals.css with those few hundred bytes. The guard below
+ * refuses unless the input still looks unsplit.
  */
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -36,6 +44,27 @@ import { fileURLToPath } from "node:url";
 const WEB = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = resolve(WEB, "app/globals.css");
 const CHECK = process.argv.includes("--check");
+const FORCE = process.argv.includes("--force");
+
+const OUTPUTS = ["app/marketing.css", "app/dashboard/dashboard-globals.css"];
+
+// Guard 1 — the outputs must not exist yet. Checked before the inventory runs,
+// because that subprocess walks the whole module graph and this costs nothing.
+{
+  const existing = OUTPUTS.filter((f) => existsSync(resolve(WEB, f)));
+  if (existing.length && !FORCE) {
+    console.error(
+      "refusing to split: app/globals.css has already been split.\n\n" +
+        existing.map((f) => `  ${f} exists`).join("\n") +
+        "\n\nThe input is now the base file, not the original 215 KB one. Splitting it\n" +
+        "again would overwrite the real split outputs with a partition of the residue\n" +
+        "— measured, that is an empty marketing.css.\n" +
+        "If you genuinely mean to re-split a restored globals.css, delete the files\n" +
+        "above first, or pass --force.",
+    );
+    process.exit(1);
+  }
+}
 
 const inv = JSON.parse(
   execFileSync(process.execPath, [resolve(WEB, "scripts/css-inventory.mjs"), "--emit-classes"], {
@@ -265,6 +294,26 @@ for (const f of flat) {
 console.log(`rules: ${flat.length}`);
 console.log("by destination:", counts);
 console.log("rule bytes:", Object.fromEntries(Object.entries(bytes).map(([k, v]) => [k, (v / 1024).toFixed(1) + "K"])));
+
+// Guard 2 — the same question asked of the content rather than of the filesystem,
+// because guard 1 fails open in the one case that matters: an output deleted by
+// accident and this script run to "regenerate" it. Measured against the current
+// base file, that run reports 272 rules, all of them base, and 0 marketing bytes
+// — so it would replace the 118 KB marketing.css with an empty one. The `.cl-*`
+// names still in the base survive only inside grouped selectors that also name a
+// shared class, which is exactly why "are .cl-* rules still present" is not the
+// test. The Clarity system is ~110 KB of marketing-destined rules.
+const MIN_MARKETING_KB = 50;
+const marketingKB = (bytes.marketing ?? 0) / 1024;
+if (marketingKB < MIN_MARKETING_KB && !FORCE) {
+  console.error(
+    `\nrefusing to split: app/globals.css holds only ${marketingKB.toFixed(1)}K of ` +
+      `marketing-destined rules (expected >${MIN_MARKETING_KB}K).\n` +
+      "This input is the already-split base file, not the original. Re-splitting it\n" +
+      "would overwrite marketing.css with a partition of the leftover residue.",
+  );
+  process.exit(1);
+}
 console.log(`\ncascade conflicts: ${conflicts.length} (over ${classSets.length} real class combinations)`);
 const seenPair = new Set();
 for (const c of conflicts) {
