@@ -4516,12 +4516,38 @@ details.cl-pub-faq-item > .cl-pub-faq-item__a {
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.28), 0 12px 28px rgba(70, 48, 25, 0.16);
 }
 
+/* Size and element-tone modifiers for .as-rasi / .as-nak.
+   RESTORED — F4 step 5's prune deleted these as unreferenced, and they were
+   not. astro-symbols.tsx builds the name:
+       cx("as-rasi", `as-rasi--${item.tone}`, `as-rasi--${size}`)
+   so no literal "as-rasi--fire" exists anywhere for a usage scan to find. The
+   badges lost their element colour and collapsed to intrinsic size on every
+   marketing page that renders one. See scripts/css-dynamic-class-audit.mjs,
+   which now lists every class only an interpolation can produce. */
+.as-rasi--sm { width: 34px; height: 34px; font-size: 1.1rem; }
+
+.as-rasi--md { width: 48px; height: 48px; font-size: 1.55rem; }
+
+.as-rasi--lg { width: 70px; height: 70px; font-size: 2.35rem; }
+
+.as-rasi--fire { background: linear-gradient(135deg, #b85a2c, #d79a45); }
+
+.as-rasi--earth { background: linear-gradient(135deg, #776847, #b49b64); }
+
+.as-rasi--air { background: linear-gradient(135deg, #6f8175, #9aa98d); }
+
+.as-rasi--water { background: linear-gradient(135deg, #3f6f75, #78a5a3); }
+
 
 .as-nak {
   display: inline-grid;
   place-items: center;
   flex-shrink: 0;
 }
+
+.as-nak--sm { width: 54px; height: 44px; }
+
+.as-nak--lg { width: min(190px, 100%); height: 150px; }
 
 
 .as-nak svg { width: 100%; height: 100%; display: block; }
@@ -4658,6 +4684,19 @@ details.cl-pub-faq-item > .cl-pub-faq-item__a {
   font-weight: 700;
   box-shadow: 0 12px 26px rgba(70, 48, 25, 0.1);
 }
+
+/* RESTORED alongside the .as-rasi/.as-nak modifiers above, and for the same
+   reason: `as-topic__mark as-topic__mark--${index}` (astro-symbols.tsx:145).
+   These carry the offsets as well as the size and colour, so without them all
+   four marks lost their positions and stacked in one corner rather than merely
+   looking plain. */
+.as-topic__mark--0 { width: 76px; height: 76px; left: 8%; top: 14%; font-size: 1.8rem; color: #b85a2c; }
+
+.as-topic__mark--1 { width: 58px; height: 58px; right: 17%; top: 8%; font-size: 1.35rem; color: #5c7654; }
+
+.as-topic__mark--2 { width: 64px; height: 64px; left: 34%; bottom: 2%; font-size: 1.45rem; color: #3f6f75; }
+
+.as-topic__mark--3 { width: 50px; height: 50px; right: 4%; bottom: 18%; font-size: 1rem; color: #7d6b57; }
 
 
 .cl-natch-grid {
