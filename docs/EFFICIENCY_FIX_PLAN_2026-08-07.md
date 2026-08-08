@@ -309,11 +309,88 @@ the `/dashboard` layout. So the asymmetry is one-directional and fixable.
    the same technique already used for `dashboard/(workspace)`.
 5. Delete the 21 dead `.site-*` classes and the 23 unused `.as-*` classes.
 
+   **✅ Done 2026-08-08**, plus `day-strip`'s CSS that F11 explicitly handed over. 30
+   `.site-*` rules and 25 `.as-*` rules (6.1 KB) out of `marketing.css`; 16 `.day-strip*`
+   rules (1.8 KB) out of `globals.css`, where they had been costing *every* route to style a
+   component that is not imported anywhere. The 5 live `.as-*` families (`as-card`,
+   `as-profile`, `as-topic`, `as-rasi`, `as-nak`) were left alone; the pruner refuses any
+   grouped selector where a single class is still referenced, and it reported each skip.
+
+   **Not deleted, deliberately:** a further ~17 KB in `marketing.css` where every class in
+   the rule is unreferenced (73 `.cl-*`, 3 `.clf-*`, 3 `.cd-*`). Those are the live marketing
+   system, where a "dead" verdict has more ways to be wrong than in a retired namespace, and
+   the saving now falls on marketing alone rather than on every route. Worth a separate pass
+   with a browser open, not a drive-by.
+
 **Verify:** cold-load transferred CSS on `/dashboard` before vs after; and a visual-diff
 sweep of both surfaces (`web/tests/visual/quality-gates.spec.ts` already exists — extend it).
 
 **Effort:** 1–2 days including the visual pass. **Risk:** medium — mitigated entirely by
 step 1. Do not skip step 1.
+
+#### ✅ LANDED 2026-08-08 — steps 1–5, measured off real builds
+
+CSS transferred per route, union over each route's whole layout chain
+(`node scripts/css-budget.mjs` after `npm run build`, same measurement both sides):
+
+| Surface | Before | After | Change |
+|---|---|---|---|
+| `/dashboard/*` | 246.6–249.9 KB | 164.2–167.5 KB | **−82 KB (−33%)** |
+| marketing routes | 168.9–171.6 KB | 145.0 KB | **−27 KB (−15%)** |
+| `/login`, `/admin` | 178.4–185.6 KB | 74.9–82.2 KB | **−103 KB (−56%)** |
+
+`globals.css` 215 KB → 62 KB; new `app/marketing.css` 118 KB; new
+`app/dashboard/dashboard-globals.css` 30 KB. All 153 pages build; marketing URLs
+unchanged (route groups are stripped from the path).
+
+The dashboard saving is 82 KB rather than the 109 KB projected above, and the gap is
+honest: the 109 KB was the raw `.cl-*` byte count, but a rule has to live where the classes
+it styles are *used*, and some `.cl-*` rules group a marketing class with a genuinely shared
+one. Those stay in the base file. The remaining ~17 KB of unreferenced `.cl-*` is measured
+and listed but **not** deleted — see step 5 below.
+
+**Step 1 was worth more than its stated reason.** It said the dashboard depends on "parts of
+`as-*` and `cd-*`". The real number is **84 classes** defined only in `globals.css` that
+dashboard code renders — the drawer, the life-event cards, the rectification wizard, none of
+them named `dashboard-*`. Filenames cannot answer which surface uses a class; only the import
+graph can. That is what `scripts/css-inventory.mjs` now does.
+
+**Three things the plan did not anticipate, each found by measuring:**
+
+**1. There are three CSS load contexts, not two surfaces.** `login/` and `admin/` read as
+"the signed-in side" but are not under `app/dashboard/`, so they never load its stylesheet.
+Filing by surface put `.input--error` / `.select--error` / `.input--valid` — used by the
+shared `ValidatedField` that `/login` renders — into a file `/login` does not load, silently
+dropping login's field-validation styling. The question is never "which surface does this
+feel like" but "which stylesheets does this route actually load".
+
+**2. Cascade order is not preserved by construction.** One file's order is settled by
+position; three files load base → surface, so any base rule that sat *after* a surface rule
+now sits *before* it. `scripts/css-split.mjs` refuses to write until it has checked every
+such pair — both by identical selector and, more importantly, by the class combinations that
+actually occur in the source, since `className="card cl-tile"` is matched by two rules that
+share no selector text. Zero conflicts across 81 real combinations.
+
+**3. Ownership cannot be read off a class name.** `html:not(:has(.cd-shell))` gives marketing
+`color-scheme: light` by naming the *dashboard's* class. Filing it by that name would have
+moved it to the dashboard file and handed dark-OS visitors dark form controls on the cream
+pages again (MKT-19). Classes inside `:not()` say who a rule is **not** for.
+
+**The split is verified, not asserted.** The three outputs hold exactly the 1,334 rules the
+original had — same at-rule context, same declarations, none dropped or duplicated. Moved
+text is copied verbatim and spliced out, so `globals.css`'s diff is deletions only rather
+than a 7,900-line reformat that no one could review.
+
+**Two tooling bugs, both caught by the guard rather than by review.** Splitting while a stale
+`@/app/tools/...` import was still in the tree made `RasippalanTool` unreachable from the
+dashboard, so `.cl-mobile-cta` measured as marketing-only and was filed where the dashboard
+could not load it — **a broken import silently narrows a class's measured surface.**
+`css-split.mjs` now refuses to run on an incomplete graph, which immediately exposed the
+second: `base + "/index.tsx"` mixes path separators on Windows, so directory-barrel imports
+(`./ui`, `@/components/skeleton`) had *never* resolved, in any run.
+
+**Still owed:** the authenticated browser pass and a visual-diff sweep. Every check here is
+static or build-time; nothing has looked at a rendered dashboard.
 
 ### F5 · [M+D] Kill the `.cd-shell` name collision
 
@@ -332,6 +409,35 @@ globals.css block to `.cl-shell` (its actual family) and update the ~65 unused-i
 `.cd-*` selectors that belong to it.
 
 **Effort:** folded into F4. **Do not ship F4 without this.**
+
+#### ✅ LANDED 2026-08-07 — and the prescribed fix (rename) was the wrong one
+
+Renaming the block to `.cl-shell` assumed it belonged to the marketing family and merely
+collided. Measuring says otherwise in both directions:
+
+- **No marketing file renders `.cd-shell`.** The two that appeared to were naming it in a
+  *comment*. So renaming it to a class nothing renders would have deleted it silently — safe
+  only if it was already dead, which nobody had checked.
+- **It is not a marketing layer at all.** It styles `.cd-shell .card` / `.chip` / `.metric` /
+  `.table`: the dashboard's own components, from the always-light Clarity era.
+
+So the only real question was whether it still wins anywhere. It does not. **45 of its 47
+rules are shadowed by `dashboard-nova.css`**, whose `[data-ui="nova"] .cd-shell` selectors
+carry higher specificity and load later, and whose theme blocks redefine every custom
+property the block set — including the score-band tokens (`--color-high/mid/low` and
+friends) that ~600 `var()` references depend on. Deleted.
+
+**The two exceptions were live and wrong.** The shell's scrollbars painted a warm brown thumb
+authored for a light shell onto one that defaults to dark. `globals.css`'s base pair has the
+mirror-image bug: a white thumb over the cream marketing pages. Both now derive from
+`--color-text`, which each theme block already defines, so each theme gets its own contrast
+instead of one being picked.
+
+**This removed F4's hard dependency on F5** — the collision was gone before the split began,
+rather than having to be resolved during it. The `.cd-shell` entry also turned out to be the
+*only* rival-system collision: the other 73 shared names (`.card`, `.chip`, `.button`,
+`.surface`, `.table`, `.metric`) are deliberate base-in-globals + theme-override-in-nova
+layering, which the split preserves.
 
 ### F6 · [M] Trim the root layout's client payload
 
@@ -552,10 +658,10 @@ paid for once.
 
 | Guard | Prevents | Where |
 |---|---|---|
-| Parametrised owner-check test over every `chart_id` route | a 7th router shipping without F1's guard | backend tests |
-| No Tamil planet `Record` outside `lib/i18n.ts` | F2 recurrence | source-regex test |
+| Parametrised owner-check test over every `chart_id` route | a 7th router shipping without F1's guard | backend tests ✅ |
+| No Tamil planet `Record` outside `lib/i18n.ts` | F2 recurrence | source-regex test ✅ |
 | No `const *Style` object containing `border`+`padding` outside `components/ui/` | F10 recurrence | source-regex test |
-| CSS budget assertion: transferred bytes on `/` and `/dashboard` | F4 regression | extend `tests/visual/quality-gates.spec.ts` |
+| Every load context can reach the CSS it uses; one loader per stylesheet; size ratchets | F4 regression | `lib/css-surface-boundary.test.ts` ✅ |
 | `components/ui` barrel must not transitively import `framer-motion` | the ChunkLoadError class already hit once | build-time check |
 | Orphan scan (basename appears in no import specifier) in CI, warn-only | F11 recurrence | CI job |
 
