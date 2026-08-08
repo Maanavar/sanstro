@@ -184,12 +184,21 @@ async function shot(name: string) {
   await page.screenshot({ path: path.join(ARTIFACT_DIR, `${name}.png`), fullPage: true });
 }
 
-async function goToTab(label: string) {
+/**
+ * `role` differs by where the destination lives, and getting it wrong does not
+ * fail — it hangs. The hero nav renders plain `<button>`s, but the "More"
+ * dropdown gives its items `role="menuitem"` (dashboard-hero.tsx:321), which
+ * REPLACES the implicit button role rather than adding to it. So a
+ * `getByRole("button", { name: "Tools" })` matches nothing and Playwright waits
+ * for it to appear until the test times out, taking Explore and QA down with it
+ * under serial mode.
+ */
+async function goToTab(label: string, role: "button" | "menuitem" = "button") {
   currentTab = label;
   log(`goToTab(${label}): start`);
   await dismissBlockingDialogs(3);
-  log(`goToTab(${label}): dialogs dismissed, clicking nav button`);
-  await page.getByRole("button", { name: label, exact: true }).first().click();
+  log(`goToTab(${label}): dialogs dismissed, clicking ${role} "${label}"`);
+  await page.getByRole(role, { name: label, exact: true }).first().click();
   log(`goToTab(${label}): clicked`);
   await page.waitForTimeout(1200);
   await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
@@ -212,28 +221,58 @@ async function assertNoLeakedText(tabName: string) {
   }
 }
 
-const TOP_TABS: Array<{ label: string; subTabs?: RegExp[]; viaMore?: boolean }> = [
-  { label: "Today" },
-  { label: "Calendar" },
-  { label: "Family & Charts" },
-  { label: "Transits & Dashas" },
-  { label: "Goals", subTabs: [/Life Events/i, /What-If/i, /Best Dates & Muhurta/i, /Decisions/i] },
-  { label: "Life Areas", subTabs: [/Overview/, /Predictions/, /Yogas/, /Remedies/, /Full report/i] },
-  { label: "Journal" },
-  { label: "Tools", viaMore: true },
-  { label: "Explore", viaMore: true },
-  { label: "QA", viaMore: true },
+/**
+ * Mirrors dashboard-hero.tsx's TAB_DEFS + MORE_TAB_DEFS. Keep it that way: a
+ * label here that the nav does not render makes `getByRole(...).click()` wait
+ * until the test times out rather than fail with "not found", so the sweep
+ * stops at that tab and every tab after it is reported as "did not run".
+ *
+ * That is what had happened. This list still carried "Transits & Dashas", a
+ * destination removed on 2026-07-21 — lib/dashboard-tabs.ts says so in its own
+ * docstring, and its content moved into Family & Charts. So the sweep had been
+ * unable to get past the fourth tab for two and a half weeks, and the last
+ * artifacts in e2e/.artifacts/nova-sweep are dated 18 July. It also listed
+ * "Journal", which is a real tab but has never had a nav pill, and omitted
+ * Settings, which does.
+ *
+ * `via` says how each destination is actually reached, because they differ:
+ *   nav   a pill in the hero nav
+ *   more  behind the "More" dropdown, which must be opened first
+ *   url   no nav affordance at all — Journal is reached from a Today quick-link
+ *         tile or by its canonical path, so the sweep addresses it directly
+ *         rather than pretending a pill exists.
+ */
+const TOP_TABS: Array<{ label: string; subTabs?: RegExp[]; via: "nav" | "more" | "url"; path?: string }> = [
+  { label: "Today", via: "nav" },
+  { label: "Calendar", via: "nav" },
+  { label: "Family & Charts", via: "nav" },
+  { label: "Goals", via: "nav", subTabs: [/Life Events/i, /What-If/i, /Best Dates & Muhurta/i, /Decisions/i] },
+  { label: "Life Areas", via: "nav", subTabs: [/Overview/, /Predictions/, /Yogas/, /Remedies/, /Full report/i] },
+  { label: "Settings", via: "nav" },
+  { label: "Journal", via: "url", path: "/dashboard/journal" },
+  { label: "Tools", via: "more" },
+  { label: "Explore", via: "more" },
+  { label: "QA", via: "more" },
 ];
 
 for (const tabDef of TOP_TABS) {
   test(`Nova tab renders cleanly: ${tabDef.label}`, async () => {
-    if (tabDef.viaMore) {
-      // Tools/Explore/QA live behind the "More" dropdown now — open it first
-      // so the item's own button exists for goToTab() to click.
+    if (tabDef.via === "url") {
+      currentTab = tabDef.label;
       await dismissBlockingDialogs(3);
-      await page.getByRole("button", { name: "More", exact: false }).first().click();
+      await page.goto(tabDef.path!);
+      await page.waitForTimeout(1200);
+      await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
+    } else {
+      if (tabDef.via === "more") {
+        // Tools/Explore/QA live behind the "More" dropdown now — open it first
+        // so the item exists for goToTab() to click. The trigger's accessible
+        // name carries a caret ("More ▾"), hence exact: false.
+        await dismissBlockingDialogs(3);
+        await page.getByRole("button", { name: "More", exact: false }).first().click();
+      }
+      await goToTab(tabDef.label, tabDef.via === "more" ? "menuitem" : "button");
     }
-    await goToTab(tabDef.label);
     await shot(`tab-${tabDef.label.replace(/\s+/g, "-").toLowerCase()}`);
     await assertNoLeakedText(tabDef.label);
 
