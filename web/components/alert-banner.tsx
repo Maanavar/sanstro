@@ -1,5 +1,11 @@
 ﻿"use client";
 
+// ORPHANED 2026-08-08 — NOT IMPORTED ANYWHERE. Verified by sweeping every import
+// specifier in web/, packages/ and mobile/; nothing mentions it at all. Do not
+// fix a bug here — find the file that ships.
+// See docs/EFFICIENCY_FIX_PLAN_2026-08-07.md F11. Deletion is a separate,
+// per-file decision and has not been made.
+
 import { useState } from "react";
 import type { ReactNode } from "react";
 

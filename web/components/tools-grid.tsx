@@ -1,5 +1,13 @@
 "use client";
 
+// ORPHANED 2026-08-08 — NOT IMPORTED ANYWHERE. A marketing-surface component;
+// `dashboard-tools-tab-nova.tsx:29` records that its replacement was confirmed by
+// grep. The `cl-tools-grid` class in `home-content.tsx` is an unrelated CSS name,
+// not a use of this file. Verified by sweeping every import specifier in web/,
+// packages/ and mobile/.
+// See docs/EFFICIENCY_FIX_PLAN_2026-08-07.md F11. Deletion is a separate,
+// per-file decision and has not been made.
+
 import type { Lang } from "@/lib/i18n";
 import { t } from "@/lib/i18n";
 import { ToolCard } from "./tool-card";

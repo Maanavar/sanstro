@@ -1,5 +1,14 @@
 ﻿"use client";
 
+// ORPHANED 2026-08-08 — NOT IMPORTED ANYWHERE, and it owns ~65 lines of LIVE CSS.
+// `.day-strip*` still occupies globals.css:2236-2300. Verified: no .tsx outside
+// this file references any of those classes, so the CSS is dead too — and F4's
+// globals.css split would carry it into the new file unless this is handled first.
+// That makes this the one orphan with a cost beyond the wrong-file hazard.
+// Verified by sweeping every import specifier in web/, packages/ and mobile/.
+// See docs/EFFICIENCY_FIX_PLAN_2026-08-07.md F11. Deletion is a separate,
+// per-file decision and has not been made.
+
 import { motion, useReducedMotion } from "framer-motion";
 
 import { getScoreBand } from "@/lib/format";

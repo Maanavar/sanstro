@@ -1,5 +1,12 @@
 "use client";
 
+// ORPHANED 2026-08-08 — NOT IMPORTED ANYWHERE. Superseded by
+// `dashboard-tools-porutham-nova.tsx`. Verified by sweeping every import
+// specifier in web/, packages/ and mobile/; the only references left are prose
+// in comments. Do not fix a bug here — find the file that ships.
+// See docs/EFFICIENCY_FIX_PLAN_2026-08-07.md F11. Deletion is a separate,
+// per-file decision and has not been made.
+
 import { useState } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";

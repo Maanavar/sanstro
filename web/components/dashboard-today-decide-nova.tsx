@@ -1,5 +1,12 @@
 "use client";
 
+// ORPHANED 2026-08-08 — NOT IMPORTED ANYWHERE. Verified by sweeping every import
+// specifier in web/, packages/ and mobile/; nothing mentions it at all, not even
+// a comment. The `-nova` suffix reads as "current generation" in this codebase,
+// so do not fix a bug here — find the file that ships.
+// See docs/EFFICIENCY_FIX_PLAN_2026-08-07.md F11. Deletion is a separate,
+// per-file decision and has not been made.
+
 import { useEffect, useState } from "react";
 import { Check, X, Clock, Minus, type LucideIcon } from "lucide-react";
 

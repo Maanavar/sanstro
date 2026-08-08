@@ -1,5 +1,15 @@
 "use client";
 
+// ORPHANED 2026-08-08 — NOT IMPORTED ANYWHERE, and this one is the reason these
+// banners exist. TWO LIVE FILES CITE IT AS THOUGH IT RENDERS —
+// `dashboard-family-shared.tsx:300` ("so the dasha story lives in exactly one
+// place") and `dashboard-today-deepdive-extras-nova.tsx:101`. A reader following
+// either pointer lands here and reasons about code no user sees. The `-nova`
+// suffix makes it worse: in this codebase that reads as "current generation".
+// Verified by sweeping every import specifier in web/, packages/ and mobile/.
+// See docs/EFFICIENCY_FIX_PLAN_2026-08-07.md F11. Deletion is a separate,
+// per-file decision and has not been made.
+
 import { useEffect, useState } from "react";
 
 import { apiFetchJson } from "@/lib/api";

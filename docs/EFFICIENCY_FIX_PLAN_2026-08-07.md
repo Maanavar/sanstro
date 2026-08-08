@@ -489,6 +489,34 @@ a bug in the file we don't ship.
 2. **Later, per file, on your explicit approval only** — never as a batch. `day-strip.tsx`
    also owns live CSS in `globals.css:2236-2300` that F4 would otherwise carry forward.
 
+#### ✅ STEP 1 LANDED 2026-08-08 — step 2 (deletion) not started, and needs per-file approval
+
+All 13 banner'd, each stating what supersedes it and what still points at it. **The audit's list
+was exactly right** — a fresh scan (below) found the same 13, no more and no fewer, which is worth
+recording after F1/F2/F3 each turned up more than the audit said.
+
+**Two claims verified rather than repeated:**
+
+- `day-strip.tsx`'s CSS *is* still live at `globals.css:2236-2300` (~65 lines), and **no `.tsx`
+  outside the orphan itself references any `.day-strip*` class.** So the CSS is dead too, and F4
+  would carry it into the new file. This is the one orphan with a cost beyond the wrong-file
+  hazard, and F4 should handle it rather than inherit it.
+- `dashboard-charts-panel-nova.tsx` is indeed cited by two live files as though it renders
+  (`dashboard-family-shared.tsx:300`, `dashboard-today-deepdive-extras-nova.tsx:101`).
+
+**New guard: `web/lib/orphan-scan.test.ts`, and it asserts BOTH directions.** A new orphan fails
+until it is declared and banner'd — and a declared orphan that *gains* an importer also fails,
+because its banner has become a lie, and a stale warning is worse than none. That second direction
+is the failure mode this repo keeps paying for: F2 found a comment insisting no shared planet-name
+helper existed, and F3 found a "no drift yet" claim that was already false.
+
+Two scan details that would otherwise produce false positives, recorded because both were hit:
+the specifier regex must match the dynamic `import("…")` form (`dashboard-workspace.tsx` alone has
+16, so missing it reports most of the dashboard as orphaned), and `index.ts`/`index.tsx` barrels
+must be excluded since they are imported by *directory* name and so never appear as "index".
+
+**Verified:** `tsc` clean, 344 web unit tests (3 new), eslint unchanged.
+
 ---
 
 ## Sequencing

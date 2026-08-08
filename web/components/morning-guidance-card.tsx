@@ -1,5 +1,12 @@
 "use client";
 
+// ORPHANED 2026-08-08 — NOT IMPORTED ANYWHERE. Replaced by
+// `dashboard-footer-morning-nova.tsx`. `dashboard-today-deepdive-extras-nova.tsx:518`
+// still points at "./morning-guidance-card" in a comment. Verified by sweeping
+// every import specifier in web/, packages/ and mobile/.
+// See docs/EFFICIENCY_FIX_PLAN_2026-08-07.md F11. Deletion is a separate,
+// per-file decision and has not been made.
+
 import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import { apiFetchJson } from "@/lib/api";
