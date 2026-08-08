@@ -12,6 +12,12 @@ import type { ReactNode } from "react";
 // marketing file ever rendered .cd-shell, so it styled nothing that this file
 // did not already style. The remaining pair (shell scrollbars) moved into
 // dashboard-nova.css. There is now exactly one .cd-shell system.
+// Hoisted out of globals.css by F4: the component rules only signed-in routes
+// render (.cd-*, the drawer, the life-event cards, the rectification wizard).
+// It is imported first so that the ordering these rules had inside globals.css —
+// ahead of everything in dashboard.css — is preserved, and the Nova theme layers
+// below still win.
+import "./dashboard-globals.css";
 import "./dashboard.css";
 import "./dashboard-nova.css";
 

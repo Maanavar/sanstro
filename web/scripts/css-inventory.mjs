@@ -117,7 +117,11 @@ const readCode = (p) => {
 // ------------------------------------------------------------ import graph
 
 const RESOLVE_EXT = ["", ".tsx", ".ts", ".jsx", ".js", ".mjs"];
-const INDEXES = ["/index.tsx", "/index.ts", "/index.jsx", "/index.js"];
+// join()ed, not concatenated: on Windows `base` already uses backslashes, so
+// `base + "/index.tsx"` produces a mixed-separator string that never matches the
+// walked file list. That silently dropped every directory-barrel import
+// (`./ui`, `@/components/skeleton`) out of the graph.
+const INDEXES = ["index.tsx", "index.ts", "index.jsx", "index.js"];
 
 const CODE_SET = new Set(CODE_FILES.map((p) => p));
 
@@ -131,7 +135,7 @@ function resolveSpecifier(spec, fromFile) {
     if (CODE_SET.has(cand)) return cand;
   }
   for (const idx of INDEXES) {
-    const cand = base + idx;
+    const cand = join(base, idx);
     if (CODE_SET.has(cand)) return cand;
   }
   return null;
@@ -142,6 +146,7 @@ const SPEC_RE = /(?:from\s*|import\s*\(\s*|require\s*\(\s*|import\s+)["'`]([^"'`
 
 const IMPORTS = new Map(); // file -> Set<file>
 const CSS_IMPORTS = new Map(); // file -> Set<cssFile>
+const UNRESOLVED = []; // local specifiers that point at nothing
 
 for (const f of CODE_FILES) {
   const src = readCode(f);
@@ -160,6 +165,14 @@ for (const f of CODE_FILES) {
     }
     const target = resolveSpecifier(spec, f);
     if (target) deps.add(target);
+    else if (spec.startsWith("@/") || spec.startsWith(".")) {
+      // A local import that resolves to nothing silently shrinks the graph, and
+      // a smaller graph makes classes look single-surface when they are not.
+      // That is not hypothetical: splitting the CSS while a stale
+      // `@/app/tools/...` import was still in the tree measured .cl-mobile-cta
+      // as marketing-only and filed it where the dashboard could not load it.
+      UNRESOLVED.push(`${rel(f)} -> ${spec}`);
+    }
   }
   IMPORTS.set(f, deps);
   CSS_IMPORTS.set(f, css);
@@ -171,17 +184,29 @@ const ROUTE_FILE = /\/(page|layout|template|loading|error|not-found|default|glob
 
 const ROOT_LAYOUT = join(WEB, "app", "layout.tsx");
 
-/** Which surface owns a route file. `app/api/*` is server-only, no CSS. */
+/**
+ * Which CSS *load context* a route file sits in — not which product surface it
+ * feels like. There are three, and conflating the first two is a live hazard:
+ *
+ *   root      app/layout.tsx, and the routes with no group layout of their own
+ *             (login, admin). These get globals.css and nothing else.
+ *   marketing app/(marketing)/** — additionally gets marketing.css.
+ *   dashboard app/dashboard/**  — additionally gets dashboard-globals.css.
+ *
+ * login/ and admin/ read as "the signed-in side", but they are not under
+ * app/dashboard/, so they never import its stylesheet. Grouping them with the
+ * dashboard sent .input--error and friends — used by the shared ValidatedField
+ * that /login renders — into a file /login does not load. Anything a root-only
+ * route touches has to stay in the base file.
+ *
+ * `app/api/*` is server-only: no CSS.
+ */
 function surfaceOf(relPath) {
   if (!relPath.startsWith("app/")) return null;
   if (relPath.startsWith("app/api/")) return null;
   if (relPath === "app/layout.tsx") return "root";
-  if (
-    relPath.startsWith("app/dashboard/") ||
-    relPath.startsWith("app/login/") ||
-    relPath.startsWith("app/admin/")
-  )
-    return "dashboard";
+  if (relPath.startsWith("app/login/") || relPath.startsWith("app/admin/")) return "root";
+  if (relPath.startsWith("app/dashboard/")) return "dashboard";
   return "marketing";
 }
 
@@ -190,7 +215,11 @@ for (const f of CODE_FILES) {
   const r = rel(f);
   if (!ROUTE_FILE.test("/" + r)) continue;
   const s = surfaceOf(r);
-  if (!s || s === "root") continue;
+  if (!s) continue;
+  if (s === "root") {
+    if (f !== ROOT_LAYOUT) entries.root.push(f);
+    continue;
+  }
   entries[s].push(f);
 }
 
@@ -210,6 +239,14 @@ const REACH = {
   marketing: reachable(entries.marketing),
   dashboard: reachable(entries.dashboard),
   root: reachable(entries.root),
+};
+
+// Kept before the union below, because the boundary guard has to ask "what does
+// /login alone reach" — a question the unioned sets can no longer answer.
+const REACH_OWN = {
+  marketing: new Set(REACH.marketing),
+  dashboard: new Set(REACH.dashboard),
+  root: new Set(REACH.root),
 };
 
 // The root layout is an ancestor of both surfaces, so anything it pulls in is
@@ -475,11 +512,30 @@ function sourceClassSets() {
   return sets;
 }
 
+if (args.includes("--emit-boundary")) {
+  // Per load-context: the classes that context's own module tree references, and
+  // where every class is defined. The guard test joins the two.
+  const used = {};
+  for (const [name, files] of Object.entries(REACH_OWN)) {
+    const set = new Set();
+    for (const c of ALL_CLASSES) for (const f of USED_BY.get(c)) if (files.has(f)) { set.add(c); break; }
+    used[name] = [...set].sort();
+  }
+  process.stdout.write(
+    JSON.stringify({
+      used,
+      definedIn: Object.fromEntries([...DEFINED_IN].map(([c, s]) => [c, [...s]])),
+    }),
+  );
+  process.exit(0);
+}
+
 if (args.includes("--emit-classes")) {
   // Machine-readable surface verdict per class, consumed by css-split.mjs so the
   // split and the inventory can never disagree about who owns a class.
   process.stdout.write(
     JSON.stringify({
+      unresolved: UNRESOLVED,
       classSurface: Object.fromEntries(CLASS_SURFACE),
       definedIn: Object.fromEntries([...DEFINED_IN].map(([c, s]) => [c, [...s]])),
       sourceClassSets: sourceClassSets(),

@@ -18,7 +18,7 @@ import { DashboardBabyNamesTool } from "./dashboard-tools-baby-names-nova";
 import { NovaPoruthamPanel, type PoruthamFamilyMember } from "./dashboard-tools-porutham-nova";
 import { NovaActivityTimingCard } from "./dashboard-today-deepdive-extras-nova";
 import { VarshaphalaPanel } from "./dashboard-varshaphala-panel";
-import { RasippalanTool } from "@/app/tools/indraiya-rasipalan/RasippalanTool";
+import { RasippalanTool } from "@/app/(marketing)/tools/indraiya-rasipalan/RasippalanTool";
 import { SynastryMatrix } from "./synastry-matrix";
 import { SynastryPanel } from "./dashboard-synastry-panel";
 import { Card } from "./ui/card";

@@ -27,8 +27,31 @@ function widgetSources(dir: string): string[] {
   return results;
 }
 
+/**
+ * Locate the widget route wherever it sits under app/. Hardcoding app/widget
+ * meant that moving the public routes into the app/(marketing) route group made
+ * readdirSync throw — which reads as a broken test, not as the security scan
+ * silently covering zero files, but only because it threw. A route group is
+ * invisible in the URL, so this has to resolve by name.
+ */
+function findWidgetDir(root: string): string {
+  for (const entry of readdirSync(root, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    if (entry.name === "widget") return join(root, entry.name);
+    if (entry.name.startsWith("(") || entry.name === "api") {
+      const nested = join(root, entry.name, "widget");
+      try {
+        if (readdirSync(nested).length) return nested;
+      } catch {
+        /* not here */
+      }
+    }
+  }
+  throw new Error(`no widget route found under ${root}`);
+}
+
 // Resolve from the repo root (this file lives in web/lib/).
-const WIDGET_DIR = join(import.meta.dirname, "..", "app", "widget");
+const WIDGET_DIR = findWidgetDir(join(import.meta.dirname, "..", "app"));
 const AUTHED_PATTERNS = [
   /apiFetchJson/,
   /from\s+["']@\/lib\/api["']/,
@@ -44,7 +67,7 @@ describe("widget pages — no authed API surface", () => {
   });
 
   for (const file of sources) {
-    const rel = file.replace(/.*[/\\]app[/\\]widget[/\\]/, "widget/");
+    const rel = file.replace(/.*[/\\]widget[/\\]/, "widget/");
     it(`${rel} does not import authed API client or session hook`, () => {
       const src = readFileSync(file, "utf-8");
       for (const pattern of AUTHED_PATTERNS) {
@@ -58,7 +81,7 @@ describe("widget pages — call only public endpoints", () => {
   const sources = widgetSources(WIDGET_DIR);
 
   for (const file of sources) {
-    const rel = file.replace(/.*[/\\]app[/\\]widget[/\\]/, "widget/");
+    const rel = file.replace(/.*[/\\]widget[/\\]/, "widget/");
     it(`${rel} fetch() calls target /public/ paths only`, () => {
       const src = readFileSync(file, "utf-8");
       // Find all fetch() URL string arguments.

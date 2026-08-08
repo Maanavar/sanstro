@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { DOSHAM_DETAILS, DRAFT_GUIDE_SLUGS, YOGAM_DETAILS, TEMPLE_DETAILS, PARIHARAM_DETAILS } from "@/lib/guide-detail-content";
-import { CALENDAR_CATEGORY_SLUGS } from "./tamil-calendar/calendar-category-api";
+import { CALENDAR_CATEGORY_SLUGS } from "./(marketing)/tamil-calendar/calendar-category-api";
 
 const BASE = "https://vinaadi.com";
 
