@@ -1,13 +1,9 @@
 "use client";
 
 import { tPlanetLord, type Lang } from "@/lib/i18n";
-import { getYoginiDasha, type YoginiDashaPeriod } from "@vinaadi/shared/api/yoginiDasha";
+import { getYoginiDasha } from "@vinaadi/shared/api/yoginiDasha";
 import { useApiQuery } from "@/hooks/useApiQuery";
-import { CollapsibleSection } from "./collapsible-section";
-import { GlossaryTerm } from "./glossary-term";
-import { AsyncSection } from "./ui/async-section";
-import { Card } from "./ui/card";
-import { Kicker } from "./ui/kicker";
+import { SecondaryDashaPanel } from "./dashboard-secondary-dasha-panel";
 
 // Yogini Dasha (Devi Bhagavata / Muhurta Chintamani tradition) — 8 Yoginis,
 // fixed Mangala..Sankata order. See app/calculations/yogini_dasha.py for the
@@ -49,91 +45,51 @@ export function YoginiDashaPanel({ lang, chartId }: Props) {
     enabled: !!chartId,
   });
 
-  const title = isTamil ? "யோகினி தசை — 36 ஆண்டு சுழற்சி" : "Yogini Dasha — 36-Year Cycle";
-  // Consistent experimental caveat so unverified engines don't wear the same
-  // confidence as the validated core (UX #40).
-  const subtitleRest = isTamil
-    ? " (தேவி பாகவதம் / முஹூர்த்த சிந்தாமணி மரபு) · சோதனை நிலை, மதிப்பெண் கணக்கீட்டில் பயன்படுத்தப்படவில்லை"
-    : " (Devi Bhagavata / Muhurta Chintamani tradition) · Experimental, not used in any scoring path";
-
   return (
-    <CollapsibleSection title={title} defaultOpen={false}>
-      <p style={{ color: "var(--color-faint)", fontSize: "var(--text-sm)", margin: "0 0 var(--space-2) 0" }}>
-        <GlossaryTerm term="yoginiDasha" lang={lang}>
-          {isTamil ? "இரண்டாம்நிலை/ஒப்பீட்டு தசை" : "Secondary/comparison dasha"}
-        </GlossaryTerm>
-        {subtitleRest}
-      </p>
-      <AsyncSection
-        state={state}
-        lang={lang}
-        onRetry={refetch}
-        error={{ ta: "யோகினி தசையை ஏற்ற முடியவில்லை.", en: "Could not load Yogini Dasha." }}
-      />
-      {data && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)" }}>
-          <Card
-            variant="high"
-            style={{
-              display: "flex",
-              flexDirection: "row",
-              gap: "var(--space-2)",
-              padding: "var(--space-2_5) var(--space-3)",
-              borderRadius: "var(--radius-md)",
-            }}
-          >
-            <div style={{ flex: 1 }}>
-              <Kicker as="p" color="var(--color-score-high)" style={{ margin: "0 0 var(--space-0_5)", letterSpacing: "0.08em" }}>
-                {isTamil ? "தற்போதைய மஹா தசை" : "Current Mahadasha"}
-              </Kicker>
-              <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
+    <SecondaryDashaPanel
+      lang={lang}
+      glossaryTerm="yoginiDasha"
+      title={{ ta: "யோகினி தசை — 36 ஆண்டு சுழற்சி", en: "Yogini Dasha — 36-Year Cycle" }}
+      // Consistent experimental caveat so unverified engines don't wear the same
+      // confidence as the validated core (UX #40).
+      caveat={{
+        ta: " (தேவி பாகவதம் / முஹூர்த்த சிந்தாமணி மரபு) · சோதனை நிலை, மதிப்பெண் கணக்கீட்டில் பயன்படுத்தப்படவில்லை",
+        en: " (Devi Bhagavata / Muhurta Chintamani tradition) · Experimental, not used in any scoring path",
+      }}
+      error={{ ta: "யோகினி தசையை ஏற்ற முடியவில்லை.", en: "Could not load Yogini Dasha." }}
+      state={state}
+      onRetry={refetch}
+      current={
+        data && {
+          mahadasha: {
+            // Yogini is the only one of the three whose current mahadasha names a
+            // second thing — the Yogini's ruling planet.
+            name: (
+              <>
                 {yoginiName(data.current.mahadasha.yogini, isTamil)}
                 <span style={{ fontWeight: 400, color: "var(--color-faint)", fontSize: "var(--text-sm)" }}>
-                  {" · "}{planetName(data.current.mahadasha.rulingPlanet, isTamil)}
+                  {" · "}
+                  {planetName(data.current.mahadasha.rulingPlanet, isTamil)}
                 </span>
-              </p>
-              <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
-                {data.current.mahadasha.startDate} – {data.current.mahadasha.endDate}
-              </p>
-            </div>
-            <div style={{ flex: 1 }}>
-              <Kicker as="p" color="var(--color-faint)" style={{ margin: "0 0 var(--space-0_5)", letterSpacing: "0.08em" }}>
-                {isTamil ? "அந்தர் தசை" : "Antardasha"}
-              </Kicker>
-              <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
-                {yoginiName(data.current.antardasha.yogini, isTamil)}
-              </p>
-              <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
-                {data.current.antardasha.startDate} – {data.current.antardasha.endDate}
-              </p>
-            </div>
-          </Card>
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-            {data.mahadashas.map((period: YoginiDashaPeriod) => (
-              <Card
-                key={period.startDate}
-                style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: "var(--space-2)",
-                  padding: "var(--space-1_5) var(--space-3)",
-                  borderRadius: "var(--radius-sm)",
-                  background: period.startDate === data.current.mahadasha.startDate ? "var(--color-surface)" : "transparent",
-                }}
-              >
-                <span style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)" }}>
-                  {yoginiName(period.yogini, isTamil)}
-                </span>
-                <span style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
-                  {period.years} {isTamil ? "ஆண்டுகள்" : "yrs"} · {period.startDate}
-                </span>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-    </CollapsibleSection>
+              </>
+            ),
+            startDate: data.current.mahadasha.startDate,
+            endDate: data.current.mahadasha.endDate,
+          },
+          antardasha: {
+            name: yoginiName(data.current.antardasha.yogini, isTamil),
+            startDate: data.current.antardasha.startDate,
+            endDate: data.current.antardasha.endDate,
+          },
+        }
+      }
+      periods={data?.mahadashas.map((period, index) => ({
+        key: `${period.startDate}-${index}`,
+        name: yoginiName(period.yogini, isTamil),
+        years: period.years,
+        startDate: period.startDate,
+        isCurrent: period.startDate === data.current.mahadasha.startDate,
+      }))}
+    />
   );
 }

@@ -1,11 +1,9 @@
 "use client";
 
 import { tPlanetLord, type Lang } from "@/lib/i18n";
-import { getAshtottariDasha, type AshtottariDashaPeriod } from "@vinaadi/shared/api/ashtottariDasha";
+import { getAshtottariDasha } from "@vinaadi/shared/api/ashtottariDasha";
 import { useApiQuery } from "@/hooks/useApiQuery";
-import { CollapsibleSection } from "./collapsible-section";
-import { GlossaryTerm } from "./glossary-term";
-import { AsyncSection } from "./ui/async-section";
+import { SecondaryDashaPanel } from "./dashboard-secondary-dasha-panel";
 import { Card } from "./ui/card";
 import { Kicker } from "./ui/kicker";
 
@@ -65,127 +63,84 @@ export function AshtottariDashaPanel({ lang, chartId }: Props) {
     enabled: !!chartId,
   });
 
-  const title = isTamil ? "அஷ்டோத்தரி தசை — 108 ஆண்டு சுழற்சி" : "Ashtottari Dasha — 108-Year Cycle";
-  // Experimental caveat, consistent with the other secondary engines (UX #40).
-  const subtitleRest = isTamil
-    ? " · சோதனை நிலை — காட்சிக்கு மட்டும், மதிப்பெண் கணக்கீட்டில் பயன்படுத்தப்படவில்லை"
-    : " · Experimental — display only, not used in any scoring path";
+  const applicability = data?.applicability;
 
   return (
-    <CollapsibleSection title={title} defaultOpen={false}>
-      <p style={{ color: "var(--color-faint)", fontSize: "var(--text-sm)", margin: "0 0 var(--space-2) 0" }}>
-        <GlossaryTerm term="ashtottariDasha" lang={lang}>
-          {isTamil ? "இரண்டாம்நிலை/ஒப்பீட்டு தசை" : "Secondary/comparison dasha"}
-        </GlossaryTerm>
-        {subtitleRest}
-      </p>
-      <AsyncSection
-        state={state}
-        lang={lang}
-        onRetry={refetch}
-        error={{ ta: "அஷ்டோத்தரி தசையை ஏற்ற முடியவில்லை.", en: "Could not load Ashtottari Dasha." }}
-      />
-      {data && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)" }}>
-          {data.applicability && (
-            <Card
-              variant="soft"
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "var(--space-1)",
-                padding: "var(--space-2) var(--space-3)",
-                borderRadius: "var(--radius-md)",
-              }}
-            >
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
-                <Kicker color="var(--color-faint)" style={{ letterSpacing: "0.06em" }}>
-                  {isTamil ? "பாரம்பரிய பொருத்தம்" : "Classical applicability"}
-                </Kicker>
-                <StatusChip applicable={data.applicability.applicable} lang={lang} />
-              </span>
-              <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.5 }}>
-                {isTamil ? data.applicability.ruleTa : data.applicability.ruleEn}
-                {data.applicability.reason ? ` · ${data.applicability.reason}` : ""}
-              </p>
-              {data.applicability.pakshaSupports !== null && (
-                <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.5 }}>
-                  {isTamil ? "இரண்டாம்நிலை (பக்ஷம்/பகல்-இரவு): " : "Secondary (paksha / day-night): "}
-                  {data.applicability.pakshaSupports ? (isTamil ? "ஆதரிக்கிறது" : "supports") : (isTamil ? "பூர்த்தியாகவில்லை" : "not met")}
-                  {data.applicability.pakshaReason ? ` · ${data.applicability.pakshaReason}` : ""}
-                  {data.applicability.isDayBirthApproximate ? (isTamil ? " (தோராயம்)" : " (approx.)") : ""}
-                  {/* Honesty on the tradition choice: paksha is disclosed as supportive, */}
-                  {/* not a gate. When unmet, say so plainly — some lineages require it. */}
-                  {!data.applicability.pakshaSupports && (
-                    <span>
-                      {isTamil
-                        ? " — சில பாரம்பரியங்களில் இது கட்டாய இணை-நிபந்தனை; இங்கு ஆதரவாக மட்டுமே கருதப்படுகிறது, மேலே உள்ள முடிவை மாற்றாது."
-                        : " — some traditions require this as a co-condition; this reading treats it as supportive only, so it does not change the verdict above."}
-                    </span>
-                  )}
-                </p>
-              )}
-            </Card>
-          )}
+    <SecondaryDashaPanel
+      lang={lang}
+      glossaryTerm="ashtottariDasha"
+      title={{ ta: "அஷ்டோத்தரி தசை — 108 ஆண்டு சுழற்சி", en: "Ashtottari Dasha — 108-Year Cycle" }}
+      // Experimental caveat, consistent with the other secondary engines (UX #40).
+      caveat={{
+        ta: " · சோதனை நிலை — காட்சிக்கு மட்டும், மதிப்பெண் கணக்கீட்டில் பயன்படுத்தப்படவில்லை",
+        en: " · Experimental — display only, not used in any scoring path",
+      }}
+      error={{ ta: "அஷ்டோத்தரி தசையை ஏற்ற முடியவில்லை.", en: "Could not load Ashtottari Dasha." }}
+      state={state}
+      onRetry={refetch}
+      header={
+        applicability ? (
           <Card
-            variant="high"
+            variant="soft"
             style={{
               display: "flex",
-              flexDirection: "row",
-              gap: "var(--space-2)",
-              padding: "var(--space-2_5) var(--space-3)",
+              flexDirection: "column",
+              gap: "var(--space-1)",
+              padding: "var(--space-2) var(--space-3)",
               borderRadius: "var(--radius-md)",
             }}
           >
-            <div style={{ flex: 1 }}>
-              <Kicker as="p" color="var(--color-score-high)" style={{ margin: "0 0 var(--space-0_5)", letterSpacing: "0.08em" }}>
-                {isTamil ? "தற்போதைய மஹா தசை" : "Current Mahadasha"}
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
+              <Kicker color="var(--color-faint)" style={{ letterSpacing: "0.06em" }}>
+                {isTamil ? "பாரம்பரிய பொருத்தம்" : "Classical applicability"}
               </Kicker>
-              <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
-                {lordName(data.current.mahadasha.lord, isTamil)}
+              <StatusChip applicable={applicability.applicable} lang={lang} />
+            </span>
+            <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.5 }}>
+              {isTamil ? applicability.ruleTa : applicability.ruleEn}
+              {applicability.reason ? ` · ${applicability.reason}` : ""}
+            </p>
+            {applicability.pakshaSupports !== null && (
+              <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.5 }}>
+                {isTamil ? "இரண்டாம்நிலை (பக்ஷம்/பகல்-இரவு): " : "Secondary (paksha / day-night): "}
+                {applicability.pakshaSupports ? (isTamil ? "ஆதரிக்கிறது" : "supports") : (isTamil ? "பூர்த்தியாகவில்லை" : "not met")}
+                {applicability.pakshaReason ? ` · ${applicability.pakshaReason}` : ""}
+                {applicability.isDayBirthApproximate ? (isTamil ? " (தோராயம்)" : " (approx.)") : ""}
+                {/* Honesty on the tradition choice: paksha is disclosed as supportive, */}
+                {/* not a gate. When unmet, say so plainly — some lineages require it. */}
+                {!applicability.pakshaSupports && (
+                  <span>
+                    {isTamil
+                      ? " — சில பாரம்பரியங்களில் இது கட்டாய இணை-நிபந்தனை; இங்கு ஆதரவாக மட்டுமே கருதப்படுகிறது, மேலே உள்ள முடிவை மாற்றாது."
+                      : " — some traditions require this as a co-condition; this reading treats it as supportive only, so it does not change the verdict above."}
+                  </span>
+                )}
               </p>
-              <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
-                {data.current.mahadasha.startDate} – {data.current.mahadasha.endDate}
-              </p>
-            </div>
-            <div style={{ flex: 1 }}>
-              <Kicker as="p" color="var(--color-faint)" style={{ margin: "0 0 var(--space-0_5)", letterSpacing: "0.08em" }}>
-                {isTamil ? "அந்தர் தசை" : "Antardasha"}
-              </Kicker>
-              <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
-                {lordName(data.current.antardasha.lord, isTamil)}
-              </p>
-              <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
-                {data.current.antardasha.startDate} – {data.current.antardasha.endDate}
-              </p>
-            </div>
+            )}
           </Card>
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-            {data.mahadashas.map((period: AshtottariDashaPeriod, index: number) => (
-              <Card
-                key={`${period.startDate}-${index}`}
-                style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: "var(--space-2)",
-                  padding: "var(--space-1_5) var(--space-3)",
-                  borderRadius: "var(--radius-sm)",
-                  background: period.startDate === data.current.mahadasha.startDate ? "var(--color-surface)" : "transparent",
-                }}
-              >
-                <span style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)" }}>
-                  {lordName(period.lord, isTamil)}
-                </span>
-                <span style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
-                  {period.years} {isTamil ? "ஆண்டுகள்" : "yrs"} · {period.startDate}
-                </span>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-    </CollapsibleSection>
+        ) : null
+      }
+      current={
+        data && {
+          mahadasha: {
+            name: lordName(data.current.mahadasha.lord, isTamil),
+            startDate: data.current.mahadasha.startDate,
+            endDate: data.current.mahadasha.endDate,
+          },
+          antardasha: {
+            name: lordName(data.current.antardasha.lord, isTamil),
+            startDate: data.current.antardasha.startDate,
+            endDate: data.current.antardasha.endDate,
+          },
+        }
+      }
+      periods={data?.mahadashas.map((period, index) => ({
+        key: `${period.startDate}-${index}`,
+        name: lordName(period.lord, isTamil),
+        years: period.years,
+        startDate: period.startDate,
+        isCurrent: period.startDate === data.current.mahadasha.startDate,
+      }))}
+    />
   );
 }
