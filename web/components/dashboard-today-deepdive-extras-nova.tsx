@@ -42,6 +42,7 @@ import { DrawerPanel } from "./drawer-panel";
 import { NovaSelect } from "./nova-select";
 import { Chip, Metric, Surface } from "./dashboard-ui";
 import { Card, Kicker } from "./ui";
+import { Field, FieldShell, Input } from "./ui/field";
 
 /**
  * Deep Dive completeness follow-up (see docs/DASHBOARD_UI_REVAMP_PLAN.md §7/§8) —
@@ -382,16 +383,6 @@ export function NovaGocharCard({
 
 // ───────────────────────── 4. Activity Timing (single-activity month browser) ─────────────────────────
 
-const novaFieldStyle = {
-  borderRadius: "var(--radius-sm)",
-  border: "1px solid var(--color-border)",
-  background: "var(--color-surface)",
-  color: "var(--color-text-strong)",
-  fontSize: "var(--text-base)",
-  padding: "var(--space-2) var(--space-2_5)",
-  fontFamily: "inherit",
-} as const;
-
 export function NovaActivityTimingCard({
   lang,
   chartId,
@@ -441,8 +432,7 @@ export function NovaActivityTimingCard({
             : "See the strongest dates for your chosen activity this month. Picking a date switches to that day."}
         </p>
         <div className="cd-responsive-row" style={{ gap: "var(--space-2_5)", alignItems: "flex-end" }}>
-          <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-            <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-faint)" }}>{t("activity_label", lang)}</span>
+          <FieldShell className="cd-responsive-form-block" label={t("activity_label", lang)}>
             <NovaSelect
               value={activityType}
               onChange={setActivityType}
@@ -450,11 +440,10 @@ export function NovaActivityTimingCard({
               containerStyle={{ minWidth: "240px" }}
               options={ACTIVITY_OPTIONS.map((option) => ({ value: option.value, label: lang === "ta" ? option.ta : option.en }))}
             />
-          </div>
-          <div className="cd-responsive-form-block" style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-            <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-faint)" }}>{t("activity_month_label", lang)}</span>
-            <input style={{ ...novaFieldStyle, minWidth: "140px" }} type="month" value={activityMonth} onChange={(event) => setActivityMonth(event.target.value)} />
-          </div>
+          </FieldShell>
+          <Field className="cd-responsive-form-block" label={t("activity_month_label", lang)}>
+            <Input type="month" value={activityMonth} onChange={(event) => setActivityMonth(event.target.value)} style={{ minWidth: "140px" }} />
+          </Field>
           <div style={{ minWidth: "140px" }}>
             <Chip tone={busy ? "accent" : "neutral"}>
               {busy ? t("btn_finding", lang) : `${result?.topDates.length ?? 0} ${lang === "ta" ? "நாட்கள்" : "dates"}`}
@@ -462,7 +451,7 @@ export function NovaActivityTimingCard({
           </div>
         </div>
 
-        {error && <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-low)" }}>{error}</p>}
+        {error && <p role="alert" style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-low)" }}>{error}</p>}
 
         {!busy && result && result.topDates.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>

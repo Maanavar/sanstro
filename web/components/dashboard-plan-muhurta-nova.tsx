@@ -11,6 +11,7 @@ import { NovaMuhurtaPicker } from "./dashboard-plan-muhurta-picker-nova";
 import { NovaMuhurthamNaal } from "./dashboard-plan-muhurtham-naal-nova";
 import { NovaSelect } from "./nova-select";
 import { Card } from "./ui";
+import { Field, FieldShell, Input } from "./ui/field";
 
 /**
  * Nova re-skin of dashboard-plan-tab.tsx's PlanMuhurtaPanel — the last of
@@ -28,16 +29,6 @@ import { Card } from "./ui";
  * Same data/API calls, same activityType -> muhurta-activity mapping, same
  * click-to-prefill interaction between Step 1 and Step 2.
  */
-
-const fieldStyle: React.CSSProperties = {
-  borderRadius: "var(--radius-md)",
-  border: "1.5px solid var(--color-border)",
-  background: "var(--color-surface-soft)",
-  color: "var(--color-text)",
-  fontSize: "var(--text-base)",
-  padding: "var(--space-2) var(--space-3)",
-  fontFamily: "inherit",
-};
 
 type Props = { lang: Lang; chartId: string };
 
@@ -86,8 +77,7 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
         </p>
 
         <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "flex-end", flexWrap: "wrap", marginBottom: "16px" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", flex: "1 1 220px" }}>
-            <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)" }}>{t("activity_label", lang)}</span>
+          <FieldShell label={t("activity_label", lang)} style={{ flex: "1 1 220px" }}>
             <NovaSelect
               value={activityType}
               onChange={(v) => { setActivityType(v); setActivityTimingResult(null); }}
@@ -95,11 +85,10 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
               containerStyle={{ minWidth: "min(240px, 100%)" }}
               options={ACTIVITY_OPTIONS.map((opt) => ({ value: opt.value, label: lang === "ta" ? opt.ta : opt.en }))}
             />
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", flex: "1 1 130px" }}>
-            <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)" }}>{t("activity_month_label", lang)}</span>
-            <input style={{ ...fieldStyle, minWidth: "min(140px, 100%)" }} type="month" value={activityMonth} onChange={(e) => { setActivityMonth(e.target.value); setActivityTimingResult(null); }} />
-          </div>
+          </FieldShell>
+          <Field label={t("activity_month_label", lang)} style={{ flex: "1 1 130px" }}>
+            <Input type="month" value={activityMonth} onChange={(e) => { setActivityMonth(e.target.value); setActivityTimingResult(null); }} style={{ minWidth: "min(140px, 100%)" }} />
+          </Field>
           <button
             type="button"
             disabled={activityTimingBusy}

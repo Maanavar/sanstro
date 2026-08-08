@@ -12,6 +12,7 @@ import { NovaSelect } from "./nova-select";
 import { PlaceCombobox } from "./place-combobox";
 import type { CityEntry } from "@/lib/tn-cities";
 import { Card } from "./ui";
+import { Field, FieldShell, Input } from "./ui/field";
 
 /**
  * Nova re-skin of dashboard-muhurta-picker.tsx's DashboardMuhurtaPicker —
@@ -34,17 +35,6 @@ const ACTIVITIES: Array<{ id: string; en: string; ta: string }> = [
   { id: "PURCHASE", en: "Property or major purchase", ta: "சொத்து / பெரிய கொள்முதல்" },
   { id: "SPIRITUAL", en: "Grihapravesh / Religious event", ta: "இல்லப்பிரவேசம் / மத நிகழ்வு" },
 ];
-
-const fieldStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "var(--space-2) var(--space-3)",
-  borderRadius: "var(--radius-md)",
-  border: "1.5px solid var(--color-border)",
-  background: "var(--color-surface-soft)",
-  color: "var(--color-text)",
-  fontSize: "var(--text-base)",
-  fontFamily: "inherit",
-};
 
 const SCORE_COLOR = (score: number) => (score >= 75 ? "var(--color-high)" : score >= 55 ? "var(--color-mid)" : "var(--color-faint)");
 
@@ -168,10 +158,7 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
       <p style={{ margin: "0 0 12px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>{t("muhurta_title", lang)}</p>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-3)", marginBottom: "14px", alignItems: "flex-end" }}>
-        <div style={{ flex: "1 1 180px" }}>
-          <label style={{ fontSize: "var(--text-xs)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-faint)", display: "block", marginBottom: "4px" }}>
-            {t("muhurta_activity", lang)}
-          </label>
+        <FieldShell label={t("muhurta_activity", lang)} style={{ flex: "1 1 180px" }}>
           <NovaSelect
             value={activity}
             onChange={setActivity}
@@ -179,21 +166,15 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
             ariaLabel={t("muhurta_activity", lang)}
             options={ACTIVITIES.map((a) => ({ value: a.id, label: lang === "ta" ? a.ta : a.en }))}
           />
-        </div>
+        </FieldShell>
 
-        <div style={{ flex: "1 1 130px" }}>
-          <label style={{ fontSize: "var(--text-xs)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-faint)", display: "block", marginBottom: "4px" }}>
-            {t("muhurta_date_from", lang)}
-          </label>
-          <input type="date" value={dateFrom} min={today} onChange={(e) => setDateFrom(e.target.value)} style={fieldStyle} />
-        </div>
+        <Field label={t("muhurta_date_from", lang)} style={{ flex: "1 1 130px" }}>
+          <Input type="date" value={dateFrom} min={today} onChange={(e) => setDateFrom(e.target.value)} />
+        </Field>
 
-        <div style={{ flex: "1 1 130px" }}>
-          <label style={{ fontSize: "var(--text-xs)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-faint)", display: "block", marginBottom: "4px" }}>
-            {t("muhurta_date_to", lang)}
-          </label>
-          <input type="date" value={dateTo} min={dateFrom} onChange={(e) => setDateTo(e.target.value)} style={fieldStyle} />
-        </div>
+        <Field label={t("muhurta_date_to", lang)} style={{ flex: "1 1 130px" }}>
+          <Input type="date" value={dateTo} min={dateFrom} onChange={(e) => setDateTo(e.target.value)} />
+        </Field>
 
         <button
           type="button"
@@ -219,7 +200,7 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
 
       {!result && !loading && !error && <p style={{ fontSize: "var(--text-base)", color: "var(--color-muted)", textAlign: "center", padding: "var(--space-4) 0" }}>{t("muhurta_empty", lang)}</p>}
 
-      {error && <p style={{ fontSize: "var(--text-base)", color: "var(--color-low)", padding: "var(--space-2) 0" }}>{error}</p>}
+      {error && <p role="alert" style={{ fontSize: "var(--text-base)", color: "var(--color-low)", padding: "var(--space-2) 0" }}>{error}</p>}
 
       {result && result.slots.length > 0 && (
         <div>
@@ -227,22 +208,28 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
             {t("muhurta_results", lang)} {selectedActivity && <span style={{ color: "var(--color-muted)", fontWeight: 400 }}>· {lang === "ta" ? selectedActivity.ta : selectedActivity.en}</span>}
           </p>
 
-          <div style={{ marginBottom: "12px" }}>
-            <label style={{ fontSize: "var(--text-xs)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--color-faint)", display: "block", marginBottom: "4px" }}>
-              {lang === "ta" ? "மற்றொரு ஊருடன் ஒப்பிடவும் (விருப்பம்)" : "Compare with another city (optional)"}
-            </label>
-            <PlaceCombobox
-              value={compareCityQuery}
-              onChange={(city, raw) => { setCompareCityQuery(raw); setCompareCity(city); }}
-              placeholder={lang === "ta" ? "எ.கா. மெல்போர்ன், ஆஸ்திரேலியா" : "e.g. Melbourne, Australia"}
-              style={fieldStyle}
-            />
-            {compareCity && compareCity.timezone === result.timezone && (
-              <p style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", marginTop: "4px" }}>
-                {lang === "ta" ? "இது உங்கள் நேரமண்டலமே." : "That's the same timezone as this reading."}
-              </p>
-            )}
-          </div>
+          {(() => {
+            // `PlaceCombobox` deliberately does not spread arbitrary input props
+            // (see its own note), so the `style={fieldStyle}` this call site used
+            // to pass never reached the input — it has always rendered on the
+            // combobox's own --pcbx-* Nova defaults. Dropped rather than ported.
+            const compareLabel = lang === "ta" ? "மற்றொரு ஊருடன் ஒப்பிடவும் (விருப்பம்)" : "Compare with another city (optional)";
+            return (
+              <FieldShell label={compareLabel} style={{ marginBottom: "12px" }}>
+                <PlaceCombobox
+                  value={compareCityQuery}
+                  onChange={(city, raw) => { setCompareCityQuery(raw); setCompareCity(city); }}
+                  placeholder={lang === "ta" ? "எ.கா. மெல்போர்ன், ஆஸ்திரேலியா" : "e.g. Melbourne, Australia"}
+                  aria-label={compareLabel}
+                />
+                {compareCity && compareCity.timezone === result.timezone && (
+                  <p style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
+                    {lang === "ta" ? "இது உங்கள் நேரமண்டலமே." : "That's the same timezone as this reading."}
+                  </p>
+                )}
+              </FieldShell>
+            );
+          })()}
 
           {result.slots.map((slot, i) => <NovaMuhurtaCard key={`${slot.date}-${i}`} slot={slot} lang={lang} sourceTz={result.timezone} compareCity={compareCity} />)}
         </div>

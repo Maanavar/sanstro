@@ -21,8 +21,13 @@ type PlaceComboboxProps = {
  * `<form onSubmit>` that already runs its own `fieldErrors` validation —
  * honouring it would hand that flow over to the browser's native validation
  * bubble instead. Spread it only alongside a decision about that modal.
+ *
+ * `aria-label` is pulled out and forwarded explicitly, because that blanket
+ * non-spread also swallowed it: this input is a `role="combobox"` whose visible
+ * caption is a sibling `<span>`, so without it the control has no accessible
+ * name at all. Named separately rather than by relaxing the rule above (F10).
  */
-export function PlaceCombobox({ value, onChange, className = "", placeholder = "Type a city...", ...inputProps }: PlaceComboboxProps) {
+export function PlaceCombobox({ value, onChange, className = "", placeholder = "Type a city...", "aria-label": ariaLabel, ...inputProps }: PlaceComboboxProps) {
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -116,6 +121,7 @@ export function PlaceCombobox({ value, onChange, className = "", placeholder = "
         placeholder={placeholder}
         autoComplete="off"
         role="combobox"
+        aria-label={ariaLabel}
         aria-autocomplete="list"
         aria-expanded={open}
         aria-controls={listboxId}

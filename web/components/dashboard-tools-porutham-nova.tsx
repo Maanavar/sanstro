@@ -12,7 +12,7 @@ import type { ChartCalculateResponseData, ChartDoshamInsight, DashaTimelineRespo
 
 import { RasiChart } from "./dashboard-charts";
 import { CompatibilityIntelligencePanel } from "./compatibility-intelligence-panel";
-import { Field } from "./dashboard-ui";
+import { Field, Input } from "./ui/field";
 import { PlaceCombobox } from "./place-combobox";
 import { NovaSelect } from "./nova-select";
 import { PoruthamShareLinkButton } from "./porutham-share-link-button";
@@ -58,16 +58,6 @@ const EMPTY_FORM: BirthForm = {
   birthLatitude: "",
   birthLongitude: "",
   birthTimezone: "Asia/Kolkata",
-};
-
-const novaFieldStyle: React.CSSProperties = {
-  borderRadius: "var(--radius-md)",
-  border: "1px solid var(--color-border)",
-  background: "var(--color-surface)",
-  color: "var(--color-text-strong)",
-  fontSize: "var(--text-base)",
-  padding: "var(--space-2) var(--space-3)",
-  fontFamily: "inherit",
 };
 
 type PublicCompareResponse = {
@@ -352,29 +342,33 @@ export function NovaPoruthamPanel({
                       : (lang === "ta" ? "நபர் 2" : "Person 2"))}
               </p>
               <Field label={lang === "ta" ? "பெயர்" : "Name"}>
-                <input style={novaFieldStyle} value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} placeholder={lang === "ta" ? "பெயர் உள்ளிடவும்" : "Enter name"} />
+                <Input value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })} placeholder={lang === "ta" ? "பெயர் உள்ளிடவும்" : "Enter name"} />
               </Field>
               <Field label={lang === "ta" ? "பிறந்த தேதி" : "Birth Date"}>
-                <input style={novaFieldStyle} type="date" value={form.birthDateLocal} min={MIN_BIRTH_DATE} max={maxBirthDateIso()} onChange={(e) => setForm({ ...form, birthDateLocal: e.target.value })} />
+                <Input type="date" value={form.birthDateLocal} min={MIN_BIRTH_DATE} max={maxBirthDateIso()} onChange={(e) => setForm({ ...form, birthDateLocal: e.target.value })} />
               </Field>
               <Field label={lang === "ta" ? "பிறந்த நேரம்" : "Birth Time"}>
-                <input style={novaFieldStyle} type="time" value={form.birthTimeLocal} onChange={(e) => setForm({ ...form, birthTimeLocal: e.target.value })} />
+                <Input type="time" value={form.birthTimeLocal} onChange={(e) => setForm({ ...form, birthTimeLocal: e.target.value })} />
               </Field>
               <Field label={t("field_birth_place", lang)} helper={t("field_place_helper", lang)}>
+                {/* Named explicitly: PlaceCombobox does not spread arbitrary input
+                    props, so the id Field clones onto it is dropped and the
+                    label's htmlFor resolves to nothing. */}
                 <PlaceCombobox
                   value={form.birthPlace}
+                  aria-label={t("field_birth_place", lang)}
                   onChange={(city, raw) => setForm({ ...form, birthPlace: raw, ...(city ? { birthLatitude: city.lat, birthLongitude: city.lng, birthTimezone: city.timezone } : {}) })}
                 />
               </Field>
               <Field label={t("field_timezone", lang)}>
-                <input style={novaFieldStyle} value={form.birthTimezone} onChange={(e) => setForm({ ...form, birthTimezone: e.target.value })} />
+                <Input value={form.birthTimezone} onChange={(e) => setForm({ ...form, birthTimezone: e.target.value })} />
               </Field>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 140px), 1fr))", gap: "var(--space-2)" }}>
                 <Field label={t("field_latitude", lang)}>
-                  <input style={novaFieldStyle} inputMode="decimal" value={form.birthLatitude} onChange={(e) => setForm({ ...form, birthLatitude: e.target.value })} />
+                  <Input inputMode="decimal" value={form.birthLatitude} onChange={(e) => setForm({ ...form, birthLatitude: e.target.value })} />
                 </Field>
                 <Field label={t("field_longitude", lang)}>
-                  <input style={novaFieldStyle} inputMode="decimal" value={form.birthLongitude} onChange={(e) => setForm({ ...form, birthLongitude: e.target.value })} />
+                  <Input inputMode="decimal" value={form.birthLongitude} onChange={(e) => setForm({ ...form, birthLongitude: e.target.value })} />
                 </Field>
               </div>
             </div>
@@ -382,7 +376,7 @@ export function NovaPoruthamPanel({
         ))}
       </div>
 
-      {error && <p style={{ margin: 0, color: "var(--color-low)", fontSize: "var(--text-base)" }}>{error}</p>}
+      {error && <p role="alert" style={{ margin: 0, color: "var(--color-low)", fontSize: "var(--text-base)" }}>{error}</p>}
 
       <button type="button" onClick={() => void handleCompare()} disabled={loading}
         style={{

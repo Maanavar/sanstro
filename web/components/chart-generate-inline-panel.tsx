@@ -9,7 +9,7 @@ import { t, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ChartCalculateResponseData, ChartSummaryData, DashaTimelineResponseData } from "@/lib/types";
 import { RasiChart, NavamsaChart } from "./dashboard-charts";
-import { Field } from "./dashboard-ui";
+import { Field, Input, Select } from "./ui/field";
 import { PlaceCombobox } from "./place-combobox";
 import { Card } from "./ui/card";
 import { nakshatraLordShort } from "@vinaadi/shared/nakshatraLord";
@@ -59,16 +59,6 @@ const W = {
   rust: "var(--planet-saturn)",
   sage: "var(--chart-d9-active)",
 } as const;
-
-const fieldStyle: React.CSSProperties = {
-  borderRadius: "10px",
-  border: `1.5px solid ${W.borderLt}`,
-  background: W.card,
-  color: W.inkMid,
-  fontSize: "0.875rem",
-  padding: "8px 10px",
-  fontFamily: "inherit",
-};
 
 // ── Traditional data tables ──────────────────────────────────────────────────
 // Nakshatra lords are derived from the shared Vimshottari cycle rather than
@@ -515,42 +505,37 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
         {/* Birth details form */}
         <Card className="card" variant="soft" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "14px" }}>
           <Field label={lang === "ta" ? "பெயர்" : "Name"}>
-            <input className="input" style={fieldStyle} value={form.displayName}
+            <Input value={form.displayName}
               onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
               placeholder={lang === "ta" ? "உதாரணம்: ரமேஷ் குமார்" : "e.g. Ramesh Kumar"} />
           </Field>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "12px" }}>
             <Field label={lang === "ta" ? "தகப்பனார் பெயர்" : "Father's Name"}>
-              <input className="input" style={fieldStyle} value={form.fatherName}
+              <Input value={form.fatherName}
                 onChange={(e) => setForm((f) => ({ ...f, fatherName: e.target.value }))}
                 placeholder={lang === "ta" ? "உதாரணம்: சுரேஷ் குமார்" : "e.g. Suresh Kumar"} />
             </Field>
             <Field label={lang === "ta" ? "அன்னை பெயர்" : "Mother's Name"}>
-              <input className="input" style={fieldStyle} value={form.motherName}
+              <Input value={form.motherName}
                 onChange={(e) => setForm((f) => ({ ...f, motherName: e.target.value }))}
                 placeholder={lang === "ta" ? "உதாரணம்: மீனா தேவி" : "e.g. Meena Devi"} />
             </Field>
           </div>
 
           <Field label={lang === "ta" ? "பாலினம்" : "Gender"}>
-            <select
-              className="input"
-              aria-label="Gender"
-              style={fieldStyle}
+            <Select
               value={form.gender}
               onChange={(e) => setForm((f) => ({ ...f, gender: e.target.value as "MALE" | "FEMALE" }))}
             >
               <option value="MALE">{lang === "ta" ? "ஆண் / Male" : "Male / ஆண்"}</option>
               <option value="FEMALE">{lang === "ta" ? "பெண் / Female" : "Female / பெண்"}</option>
-            </select>
+            </Select>
           </Field>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "12px" }}>
             <Field label={lang === "ta" ? "பிறந்த தேதி" : "Birth Date"}>
-              <input
-                className="input"
-                style={fieldStyle}
+              <Input
                 type="date"
                 value={form.birthDateLocal}
                 min={MIN_BIRTH_DATE}
@@ -564,35 +549,39 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
               />
             </Field>
             <Field label={lang === "ta" ? "பிறந்த நேரம்" : "Birth Time"}>
-              <input className="input" style={fieldStyle} type="time" value={form.birthTimeLocal}
+              <Input type="time" value={form.birthTimeLocal}
                 onChange={(e) => setForm((f) => ({ ...f, birthTimeLocal: e.target.value }))} />
             </Field>
           </div>
 
           <Field label={t("field_birth_place", lang)} helper={t("field_place_helper", lang)}>
+            {/* PlaceCombobox does not spread arbitrary input props, so the id and
+                aria-describedby Field clones onto it are dropped and the label's
+                htmlFor resolves to nothing — it is named explicitly instead. */}
             <PlaceCombobox
               value={form.birthPlace}
+              aria-label={t("field_birth_place", lang)}
               onChange={(city, raw) => setForm((f) => applyPlaceSelection(f, city, raw))}
             />
           </Field>
 
           <Field label={t("field_timezone", lang)}>
-            <input className="input" style={fieldStyle} value={form.birthTimezone}
+            <Input value={form.birthTimezone}
               onChange={(e) => setForm((f) => ({ ...f, birthTimezone: e.target.value }))} />
           </Field>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: "12px" }}>
             <Field label={t("field_latitude", lang)}>
-              <input className="input" style={fieldStyle} inputMode="decimal" value={form.birthLatitude}
+              <Input inputMode="decimal" value={form.birthLatitude}
                 onChange={(e) => setForm((f) => ({ ...f, birthLatitude: e.target.value }))} />
             </Field>
             <Field label={t("field_longitude", lang)}>
-              <input className="input" style={fieldStyle} inputMode="decimal" value={form.birthLongitude}
+              <Input inputMode="decimal" value={form.birthLongitude}
                 onChange={(e) => setForm((f) => ({ ...f, birthLongitude: e.target.value }))} />
             </Field>
           </div>
 
-          {error && <p style={{ margin: 0, color: W.rust, fontSize: "0.75rem" }}>{error}</p>}
+          {error && <p role="alert" style={{ margin: 0, color: W.rust, fontSize: "0.75rem" }}>{error}</p>}
 
           <button type="button" className="button button--primary" style={{ background: "var(--panel-warm-light)", border: `1px solid ${W.terracotta}66`, color: W.terracotta }}
             onClick={() => void handleGenerate()} disabled={loading}>

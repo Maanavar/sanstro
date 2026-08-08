@@ -2,6 +2,7 @@
 
 import { cloneElement, isValidElement, type ReactNode } from "react";
 import type {
+  CSSProperties,
   InputHTMLAttributes,
   SelectHTMLAttributes,
   TextareaHTMLAttributes,
@@ -29,9 +30,12 @@ type FieldProps = {
   error?: string;
   required?: boolean;
   className?: string;
+  /** Sizing for the field's slot in the parent's flex/grid row (`flex`,
+   *  `minWidth`, …). Visuals stay in `.ui-field*`; only layout belongs here. */
+  style?: CSSProperties;
 };
 
-export function Field({ id, label, children, helper, error, required, className }: FieldProps) {
+export function Field({ id, label, children, helper, error, required, className, style }: FieldProps) {
   const fieldId = id ?? `field-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "control"}`;
   const errorId = error ? `${fieldId}-error` : undefined;
   const helperId = helper ? `${fieldId}-helper` : undefined;
@@ -48,7 +52,7 @@ export function Field({ id, label, children, helper, error, required, className 
 
   const classes = ["ui-field", className].filter(Boolean).join(" ");
   return (
-    <label className={classes} htmlFor={fieldId}>
+    <label className={classes} htmlFor={fieldId} style={style}>
       <span className="ui-field__label">
         {label}
         {required ? <span aria-hidden="true"> *</span> : null}
@@ -66,6 +70,41 @@ export function Field({ id, label, children, helper, error, required, className 
         </span>
       ) : null}
     </label>
+  );
+}
+
+/**
+ * `<FieldShell>` — the same `.ui-field` label/gap shell as `<Field>`, but a
+ * `<div>` with a plain `<span>` label instead of a `<label>`.
+ *
+ * For controls that already carry their own accessible name and must NOT be
+ * wrapped in a `<label>`: `NovaSelect` renders a `<button aria-haspopup>`, and
+ * `PlaceCombobox` an `<input role="combobox">` whose name comes from the
+ * caller. A `<label>` around a button is the wrong semantic (a button is named
+ * by its content, not by a label) and clicking the label forwards a second
+ * activation to the trigger, which toggles the dropdown shut again.
+ *
+ * So this exists to keep a NovaSelect field *visually* identical to the `Field`
+ * next to it in the same row without borrowing the labelling semantics that
+ * would misfire. Anything that is a real form control belongs in `<Field>`.
+ */
+export function FieldShell({
+  label,
+  children,
+  className,
+  style,
+}: {
+  label: string;
+  children: ReactNode;
+  className?: string;
+  style?: CSSProperties;
+}) {
+  const classes = ["ui-field", className].filter(Boolean).join(" ");
+  return (
+    <div className={classes} style={style}>
+      <span className="ui-field__label">{label}</span>
+      {children}
+    </div>
   );
 }
 

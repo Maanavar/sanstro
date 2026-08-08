@@ -7,6 +7,7 @@ import type { WhatIfData } from "@/lib/types";
 import { verdictKey, strengthKey, WHATIF_OPTIONS } from "./dashboard-plan-shared";
 import { NovaSelect } from "./nova-select";
 import { Card } from "./ui";
+import { Field, FieldShell, Input } from "./ui/field";
 
 /**
  * Nova re-skin of dashboard-plan-tab.tsx's PlanWhatIfPanel — one of Plan's 4
@@ -38,16 +39,6 @@ function novaVerdictColor(v: string): string {
 function novaStrengthColor(s: string): string {
   return s === "STRONG" ? "var(--color-high)" : s === "WEAK" ? "var(--color-low)" : "var(--color-mid)";
 }
-
-const fieldStyle: React.CSSProperties = {
-  borderRadius: "var(--radius-md)",
-  border: "1.5px solid var(--color-border)",
-  background: "var(--color-surface-soft)",
-  color: "var(--color-text)",
-  fontSize: "var(--text-base)",
-  padding: "var(--space-2) var(--space-3)",
-  fontFamily: "inherit",
-};
 
 type Props = {
   lang: Lang;
@@ -93,8 +84,7 @@ export function NovaPlanWhatIfPanel({
       </div>
 
       <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "flex-end", flexWrap: "wrap" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", flex: "1 1 220px" }}>
-          <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)" }}>{t("whatif_scenario", lang)}</span>
+        <FieldShell label={t("whatif_scenario", lang)} style={{ flex: "1 1 220px" }}>
           <NovaSelect
             value={whatIfScenario}
             onChange={onWhatIfScenarioChange}
@@ -102,12 +92,11 @@ export function NovaPlanWhatIfPanel({
             containerStyle={{ minWidth: "min(220px, 100%)" }}
             options={WHATIF_OPTIONS.map((opt) => ({ value: opt.value, label: lang === "ta" ? opt.ta : opt.en }))}
           />
-        </div>
+        </FieldShell>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", flex: "1 1 140px" }}>
-          <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)" }}>{t("whatif_date", lang)}</span>
-          <input style={fieldStyle} type="date" value={whatIfDate} onChange={(e) => onWhatIfDateChange(e.target.value)} />
-        </div>
+        <Field label={t("whatif_date", lang)} style={{ flex: "1 1 140px" }}>
+          <Input type="date" value={whatIfDate} onChange={(e) => onWhatIfDateChange(e.target.value)} />
+        </Field>
 
         <button
           type="button"
@@ -129,7 +118,7 @@ export function NovaPlanWhatIfPanel({
         </button>
       </div>
 
-      {whatIfError && <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-low)" }}>{whatIfError}</p>}
+      {whatIfError && <p role="alert" style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-low)" }}>{whatIfError}</p>}
 
       {whatIfResult && (() => {
         const r = whatIfResult;

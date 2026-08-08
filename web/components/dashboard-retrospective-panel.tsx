@@ -6,6 +6,7 @@ import { t, tLang, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ApiEnvelope, RetrospectiveData, RetrospectiveListData } from "@/lib/types";
 import { Card } from "./ui/card";
+import { Field, Input, Select, Textarea } from "./ui/field";
 import { Kicker } from "./ui/kicker";
 
 const EVENT_TYPES = [
@@ -32,19 +33,6 @@ const W = {
   rust: "var(--planet-saturn)",
   sage: "var(--chart-d9-active)",
 } as const;
-
-const fieldStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "var(--space-2) var(--space-2_5)",
-  borderRadius: "var(--radius-md)",
-  background: W.card,
-  border: `1.5px solid ${W.borderLt}`,
-  color: W.inkMid,
-  fontSize: "0.875rem",
-  outline: "none",
-  boxSizing: "border-box",
-  fontFamily: "inherit",
-};
 
 function intensityLabel(intensity: string, lang: Lang): string {
   if (intensity === "similar") return t("retro_intensity_similar", lang);
@@ -120,46 +108,34 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
       {/* Input form */}
       <Card variant="soft" style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)", padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)" }}>
         <div style={{ display: "flex", gap: "var(--space-2_5)", flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: "160px" }}>
-            <label className="cd-kicker" style={{ display: "block" }}>
-              {t("retro_event_date", lang)} *
-            </label>
-            <input
+          <Field label={t("retro_event_date", lang)} required style={{ flex: 1, minWidth: "160px" }}>
+            <Input
               type="date"
               value={eventDate}
               onChange={(e) => setEventDate(e.target.value)}
-              style={fieldStyle}
             />
-          </div>
-          <div style={{ flex: 1, minWidth: "140px" }}>
-            <label className="cd-kicker" style={{ display: "block" }}>
-              {t("retro_event_type", lang)}
-            </label>
-            <select
+          </Field>
+          <Field label={t("retro_event_type", lang)} style={{ flex: 1, minWidth: "140px" }}>
+            <Select
               value={eventType}
               onChange={(e) => setEventType(e.target.value as EventType)}
-              style={fieldStyle}
             >
               {EVENT_TYPES.map((et) => (
                 <option key={et} value={et}>
                   {t(`retro_event_${et}` as any, lang)}
                 </option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
         </div>
-        <div>
-          <label className="cd-kicker" style={{ display: "block" }}>
-            {t("retro_event_desc", lang)}
-          </label>
-          <textarea
+        <Field label={t("retro_event_desc", lang)}>
+          <Textarea
             value={eventDesc}
             onChange={(e) => setEventDesc(e.target.value)}
             rows={2}
             placeholder={lang === "ta" ? "உதாரணம்: வேலை கிடைத்தது, திருமணம்…" : "e.g. Got a job offer, had an accident…"}
-            style={{ ...fieldStyle, resize: "vertical" }}
           />
-        </div>
+        </Field>
         <div style={{ display: "flex", gap: "var(--space-2)" }}>
           <button
             type="button"
@@ -183,7 +159,7 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
             {lang === "ta" ? "வரலாறு" : "History"}
           </button>
         </div>
-        {error && <p style={{ margin: 0, fontSize: "0.75rem", color: W.rust }}>{error}</p>}
+        {error && <p role="alert" style={{ margin: 0, fontSize: "0.75rem", color: W.rust }}>{error}</p>}
       </Card>
 
       {/* Result */}

@@ -14,6 +14,7 @@ import { CONTEXT_EVENT_TYPES, CTX_TYPE_KEY, type ContextEventType } from "./dash
 import { NovaSelect } from "./nova-select";
 import { SettingsRail, type SettingsSectionId } from "./dashboard-settings-rail";
 import { Toggle } from "./ui";
+import { Field, Input } from "./ui/field";
 
 type UserMode = "BEGINNER" | "BALANCED" | "TRADITIONAL";
 type GoalTrack = "CAREER" | "EXAM" | "RELATIONSHIP" | "FINANCIAL";
@@ -197,11 +198,6 @@ function GhostBtn({ onClick, disabled, children, danger }: { onClick: () => void
 
 const KICKER: React.CSSProperties = {
   fontSize: "var(--text-xs)", letterSpacing: ".12em", textTransform: "uppercase", color: "var(--color-faint)", fontWeight: 700,
-};
-
-const fieldStyle: React.CSSProperties = {
-  width: "100%", background: "var(--color-surface-soft)", border: `1px solid var(--color-border)`, borderRadius: "var(--radius-md)",
-  padding: "var(--space-3) var(--space-3)", fontSize: "var(--text-base)", color: "var(--color-text-strong)", fontFamily: "inherit", outline: "none",
 };
 
 /* ═══════════════ Component ═══════════════ */
@@ -553,13 +549,19 @@ export function DashboardSettingsSessionTab({
       <Card>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "var(--space-4)" }}>
           <div>
-            <div style={{ ...KICKER, marginBottom: "8px" }}>{lang === "ta" ? "தேர்ந்தெடுத்த தேதி" : "Selected date"}</div>
-            <input type="date" value={selectedDate} onChange={(e) => onSelectedDateChange(e.target.value)} style={fieldStyle} />
-            <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "7px" }}>{lang === "ta" ? "அனைத்து கணிப்புகளையும் இயக்குகிறது." : "Drives all forecasts and transits."}</div>
+            <Field
+              label={lang === "ta" ? "தேர்ந்தெடுத்த தேதி" : "Selected date"}
+              helper={lang === "ta" ? "அனைத்து கணிப்புகளையும் இயக்குகிறது." : "Drives all forecasts and transits."}
+            >
+              <Input type="date" value={selectedDate} onChange={(e) => onSelectedDateChange(e.target.value)} />
+            </Field>
           </div>
           <div>
             <div style={{ ...KICKER, marginBottom: "8px" }}>{lang === "ta" ? "செயலில் உள்ள கொட்டில்" : "Active vault"}</div>
-            <div style={{ ...fieldStyle, padding: "var(--space-3) var(--space-4)" }}>
+            {/* A read-only value that borrows the field box, not a control — it
+                keeps `.ui-input`'s look without becoming focusable, since the
+                vault is switched from the Family tab (see the note below). */}
+            <div className="ui-input">
               {vaultName?.trim() || (lang === "ta" ? "தேர்ந்தெடுக்கப்படவில்லை" : "None selected")}
             </div>
             <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "7px" }}>{lang === "ta" ? "குடும்பத் தாவலில் கொட்டில்களை மாற்றவும்." : "Switch vaults from the Family tab."}</div>
@@ -747,7 +749,13 @@ export function DashboardSettingsSessionTab({
           lang === "ta" ? "உங்கள் தினசரி வாசிப்பு, குறிப்பிட்ட நேரத்தில்." : "Your daily reading, delivered at a set time.",
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
             {notifMorning && (
-              <input type="time" value={notifMorningTime} onChange={(e) => setNotifMorningTime(e.target.value)} style={{ ...fieldStyle, width: "auto", padding: "var(--space-2) var(--space-3)", fontSize: "var(--text-sm)" }} />
+              <Input
+                type="time"
+                value={notifMorningTime}
+                onChange={(e) => setNotifMorningTime(e.target.value)}
+                aria-label={t("notif_morning_alert", lang)}
+                style={{ width: "auto", padding: "var(--space-2) var(--space-3)", fontSize: "var(--text-sm)" }}
+              />
             )}
             <Toggle checked={notifMorning} onChange={setNotifMorning} />
           </div>,
@@ -923,16 +931,23 @@ export function DashboardSettingsSessionTab({
           <NovaSelect
             value={ctxEventType}
             onChange={(v) => setCtxEventType(v as ContextEventType)}
+            ariaLabel={lang === "ta" ? "நிகழ்வு வகை" : "Event type"}
             options={CONTEXT_EVENT_TYPES.map((type) => ({ value: type, label: t(CTX_TYPE_KEY[type], lang) }))}
           />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
-            <input style={fieldStyle} type="date" value={ctxEventDate} min={todayIso()} onChange={(e) => setCtxEventDate(e.target.value)} />
-            <input
-              style={fieldStyle}
+            <Input
+              type="date"
+              value={ctxEventDate}
+              min={todayIso()}
+              onChange={(e) => setCtxEventDate(e.target.value)}
+              aria-label={lang === "ta" ? "நிகழ்வு தேதி" : "Event date"}
+            />
+            <Input
               type="text"
               value={ctxEventNote}
               onChange={(e) => setCtxEventNote(e.target.value)}
               maxLength={200}
+              aria-label={lang === "ta" ? "விரும்பினால் குறிப்பு" : "Optional note"}
               placeholder={lang === "ta" ? "விரும்பினால் குறிப்பு…" : "Optional note..."}
             />
           </div>

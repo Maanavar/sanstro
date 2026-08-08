@@ -9,6 +9,7 @@ import type { ApiEnvelope, DecisionBriefData } from "@/lib/types";
 import { SCENARIO_GROUPS } from "./dashboard-plan-shared";
 import { NovaSelect } from "./nova-select";
 import { Card } from "./ui";
+import { Field, FieldShell, Input, Textarea } from "./ui/field";
 
 /**
  * Nova re-skin of dashboard-decision-panel.tsx's DecisionPanel (plus the
@@ -39,17 +40,6 @@ function novaVerdictColor(verdict: string): string {
   if (verdict === "B" || verdict === "CAUTION") return "var(--color-low)";
   return "var(--color-mid)";
 }
-
-const fieldStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "var(--space-2) var(--space-3)",
-  borderRadius: "var(--radius-md)",
-  border: "1.5px solid var(--color-border)",
-  background: "var(--color-surface-soft)",
-  color: "var(--color-text)",
-  fontSize: "var(--text-base)",
-  fontFamily: "inherit",
-};
 
 type Props = {
   lang: Lang;
@@ -133,10 +123,7 @@ export function NovaPlanDecisionsPanel({ lang, chartId, mode = "BALANCED" }: Pro
 
       <Card compact style={{ gap: "var(--space-3)" }}>
         <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: "160px" }}>
-            <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-faint)", marginBottom: "4px" }}>
-              {t("decision_scenario", lang)}
-            </label>
+          <FieldShell label={t("decision_scenario", lang)} style={{ flex: 1, minWidth: "160px" }}>
             <NovaSelect
               value={scenarioLabel}
               onChange={(v) => {
@@ -156,54 +143,57 @@ export function NovaPlanDecisionsPanel({ lang, chartId, mode = "BALANCED" }: Pro
                 })),
               )}
             />
-          </div>
-          <div style={{ flex: 1, minWidth: "160px" }}>
-            <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-faint)", marginBottom: "4px" }}>
-              {t("decision_target_date", lang)} *
-            </label>
-            <input style={fieldStyle} type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} />
-          </div>
+          </FieldShell>
+          <Field label={t("decision_target_date", lang)} required style={{ flex: 1, minWidth: "160px" }}>
+            <Input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} />
+          </Field>
         </div>
 
         <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: "220px" }}>
-            <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-faint)", marginBottom: "4px" }}>
-              {t("decision_option_a", lang)}
-            </label>
-            <input
-              style={fieldStyle}
-              type="text"
-              value={optionALabel}
-              onChange={(e) => setOptionALabel(e.target.value)}
-              placeholder={lang === "ta" ? "விருப்பம் A தலைப்பு" : "Option A label"}
-            />
-            <textarea
-              style={{ ...fieldStyle, marginTop: "6px", resize: "vertical" }}
-              value={optionADescription}
-              onChange={(e) => setOptionADescription(e.target.value)}
-              rows={2}
-              placeholder={lang === "ta" ? "விருப்பம் A விளக்கம்" : "Option A description"}
-            />
-          </div>
-          <div style={{ flex: 1, minWidth: "220px" }}>
-            <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-faint)", marginBottom: "4px" }}>
-              {t("decision_option_b", lang)}
-            </label>
-            <input
-              style={fieldStyle}
-              type="text"
-              value={optionBLabel}
-              onChange={(e) => setOptionBLabel(e.target.value)}
-              placeholder={lang === "ta" ? "விருப்பம் B தலைப்பு" : "Option B label"}
-            />
-            <textarea
-              style={{ ...fieldStyle, marginTop: "6px", resize: "vertical" }}
-              value={optionBDescription}
-              onChange={(e) => setOptionBDescription(e.target.value)}
-              rows={2}
-              placeholder={lang === "ta" ? "விருப்பம் B விளக்கம்" : "Option B description"}
-            />
-          </div>
+          {([
+            {
+              key: "a" as const,
+              label: t("decision_option_a", lang),
+              titlePlaceholder: lang === "ta" ? "விருப்பம் A தலைப்பு" : "Option A label",
+              descPlaceholder: lang === "ta" ? "விருப்பம் A விளக்கம்" : "Option A description",
+              title: optionALabel,
+              setTitle: setOptionALabel,
+              desc: optionADescription,
+              setDesc: setOptionADescription,
+            },
+            {
+              key: "b" as const,
+              label: t("decision_option_b", lang),
+              titlePlaceholder: lang === "ta" ? "விருப்பம் B தலைப்பு" : "Option B label",
+              descPlaceholder: lang === "ta" ? "விருப்பம் B விளக்கம்" : "Option B description",
+              title: optionBLabel,
+              setTitle: setOptionBLabel,
+              desc: optionBDescription,
+              setDesc: setOptionBDescription,
+            },
+          ]).map((opt) => (
+            // Two controls under one caption, so this is a FieldShell rather than
+            // a Field: a <label> associates with exactly one control, and each of
+            // these needs its own name. The caption stays visual and both controls
+            // are named from their placeholder text — the textarea had no
+            // accessible name at all before.
+            <FieldShell key={opt.key} label={opt.label} style={{ flex: 1, minWidth: "220px" }}>
+              <Input
+                type="text"
+                value={opt.title}
+                onChange={(e) => opt.setTitle(e.target.value)}
+                aria-label={opt.titlePlaceholder}
+                placeholder={opt.titlePlaceholder}
+              />
+              <Textarea
+                value={opt.desc}
+                onChange={(e) => opt.setDesc(e.target.value)}
+                rows={2}
+                aria-label={opt.descPlaceholder}
+                placeholder={opt.descPlaceholder}
+              />
+            </FieldShell>
+          ))}
         </div>
 
         <button
@@ -225,7 +215,7 @@ export function NovaPlanDecisionsPanel({ lang, chartId, mode = "BALANCED" }: Pro
         >
           {loading ? t("decision_analysing", lang) : t("decision_analyse", lang)}
         </button>
-        {error && <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-low)" }}>{error}</p>}
+        {error && <p role="alert" style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-low)" }}>{error}</p>}
       </Card>
 
       {result && (

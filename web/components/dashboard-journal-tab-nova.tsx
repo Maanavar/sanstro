@@ -23,6 +23,7 @@ import { Chip } from "./dashboard-ui";
 import { NovaProgressBar } from "./dashboard-ui-nova";
 import { NovaSelect } from "./nova-select";
 import { Card, Segmented } from "./ui";
+import { Field, FieldShell, Input, Textarea } from "./ui/field";
 import {
   AREA_KEY,
   CTX_TYPE_KEY,
@@ -58,16 +59,6 @@ import type { ContextEventType, LifeArea } from "./dashboard-journal-shared";
  */
 
 type JournalSubTab = "write" | "entries" | "reflections";
-
-const fieldStyle: CSSProperties = {
-  borderRadius: "var(--radius-sm)",
-  border: "1.5px solid var(--color-border)",
-  background: "var(--color-surface)",
-  color: "var(--color-text)",
-  fontSize: "var(--text-base)",
-  padding: "var(--space-2) var(--space-3)",
-  fontFamily: "inherit",
-};
 
 const kickerStyle: CSSProperties = {
   fontSize: "var(--text-xs)",
@@ -411,19 +402,17 @@ export function DashboardJournalTabNova({
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-                <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", fontWeight: 700 }}>{t("journal_date", lang)}</span>
-                <input style={fieldStyle} type="date" value={entryDate} max={todayIso()} onChange={(e) => setEntryDate(e.target.value)} />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-                <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", fontWeight: 700 }}>{t("journal_life_area", lang)}</span>
+              <Field label={t("journal_date", lang)}>
+                <Input type="date" value={entryDate} max={todayIso()} onChange={(e) => setEntryDate(e.target.value)} />
+              </Field>
+              <FieldShell label={t("journal_life_area", lang)}>
                 <NovaSelect
                   value={lifeArea}
                   onChange={(v) => setLifeArea(v as LifeArea)}
                   ariaLabel={t("journal_life_area", lang)}
                   options={LIFE_AREAS.map((area) => ({ value: area, label: t(AREA_KEY[area], lang) }))}
                 />
-              </div>
+              </FieldShell>
             </div>
 
             {promptsLoading && <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>{t("journal_prompts_loading", lang)}</p>}
@@ -447,12 +436,13 @@ export function DashboardJournalTabNova({
             )}
 
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-              <textarea
-                style={{ ...fieldStyle, resize: "vertical", lineHeight: 1.55, minHeight: "120px" }}
+              <Textarea
+                style={{ lineHeight: 1.55, minHeight: "120px" }}
                 value={noteText}
                 onChange={(e) => setNoteText(e.target.value)}
                 maxLength={2000}
                 rows={5}
+                aria-label={t("journal_note_placeholder", lang)}
                 placeholder={t("journal_note_placeholder", lang)}
               />
               <span style={{ fontSize: "var(--text-2xs)", color: "var(--color-faint)", textAlign: "right" }}>{noteText.length}/2000</span>
@@ -624,7 +614,18 @@ export function DashboardJournalTabNova({
                   {editId === entry.journalId && (
                     <Card compact style={{ gap: 0, marginTop: "10px" }}>
                       <div style={{ display: "flex", gap: "var(--space-2)", marginBottom: "8px", flexWrap: "wrap" }}>
-                        <input type="date" value={editDate} max={todayIso()} onChange={(e) => setEditDate(e.target.value)} style={{ ...fieldStyle, minWidth: "140px" }} />
+                        {/* Inline edit of an existing entry — the controls repeat
+                            the "new entry" form directly above, so they take
+                            their names from aria-label rather than repeating its
+                            visible captions inside a row this narrow. */}
+                        <Input
+                          type="date"
+                          value={editDate}
+                          max={todayIso()}
+                          onChange={(e) => setEditDate(e.target.value)}
+                          aria-label={t("journal_date", lang)}
+                          style={{ minWidth: "140px", width: "auto" }}
+                        />
                         <NovaSelect
                           value={editLifeArea}
                           onChange={(v) => setEditLifeArea(v as LifeArea)}
@@ -633,7 +634,13 @@ export function DashboardJournalTabNova({
                           options={LIFE_AREAS.map((area) => ({ value: area, label: t(AREA_KEY[area], lang) }))}
                         />
                       </div>
-                      <textarea value={editNoteText} onChange={(e) => setEditNoteText(e.target.value)} rows={4} style={{ ...fieldStyle, width: "100%", resize: "vertical", lineHeight: 1.5, boxSizing: "border-box" }} />
+                      <Textarea
+                        value={editNoteText}
+                        onChange={(e) => setEditNoteText(e.target.value)}
+                        rows={4}
+                        aria-label={t("journal_note_placeholder", lang)}
+                        style={{ lineHeight: 1.5 }}
+                      />
                       <div style={{ display: "flex", gap: "var(--space-2)", marginTop: "8px", flexWrap: "wrap" }}>
                         <button
                           type="button"
