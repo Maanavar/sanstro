@@ -389,8 +389,90 @@ could not load it — **a broken import silently narrows a class's measured surf
 second: `base + "/index.tsx"` mixes path separators on Windows, so directory-barrel imports
 (`./ui`, `@/components/skeleton`) had *never* resolved, in any run.
 
-**Still owed:** the authenticated browser pass and a visual-diff sweep. Every check here is
-static or build-time; nothing has looked at a rendered dashboard.
+#### ✅ VERIFIED ON RENDERED PAGES 2026-08-08 — and the prune had broken 13 live rules
+
+The check owed above ("every check here is static or build-time; nothing has looked at a
+rendered dashboard") is done. **The split itself is clean. F4 step 5's prune was not.**
+
+**How the before/after was obtained.** Not a worktree at `17b45ef` — this is a pnpm
+workspace, so a second checkout needs three junctioned `node_modules` trees, and it would
+move two variables at once. `scripts/css-presplit-toggle.mjs` instead reverts *only which
+stylesheets load*, in place and reversibly: the original `globals.css` restored from git,
+the two new imports commented out, `dashboard-nova.css` reverted. The route-group move is
+deliberately left in place — route groups are stripped from the URL and the group layout
+renders a bare fragment, so it cannot change a pixel, and reverting it would only add risk.
+
+**What was compared.** `e2e/css-ab.spec.ts` captures a computed-style fingerprint of every
+rendered element across all three load contexts, both themes, two widths — 28 captures
+including two authenticated dashboard ones. Not screenshots: a dashboard showing today's
+chart produces a wall of true-but-irrelevant pixel differences. The fingerprint is keyed by
+`tagName + sorted class list`, **not** by DOM path, because a path shifts whenever content
+changes length and reports thousands of false differences on a page styled identically.
+
+**Result: 97 raw differences across 3,707 class combinations, and exactly 13 were real.**
+
+| Cause | Count | Verdict |
+|---|---|---|
+| `.as-*` rules deleted by the prune | 13 | **real regression — fixed** |
+| Animation caught mid-flight (spin matrices, star opacity, beta-modal fade) | ~60 | noise |
+| Content loaded on one side, not the other (every height delta on `rasipalan` is the same 557px) | ~15 | noise |
+| Tag-only keys landing on different elements | ~9 | instrument flaw, now segregated |
+| **Attributable to the split** | **0** | |
+
+**The 13.** `astro-symbols.tsx` builds its class names:
+
+```tsx
+cx("as-rasi", `as-rasi--${item.tone}`, `as-rasi--${size}`)
+className={`as-topic__mark as-topic__mark--${index}`}
+```
+
+No literal `as-rasi--fire` exists anywhere, so every tool that decides "is this class used?"
+by searching source answers **no** — correctly, and uselessly. The prune deleted the rasi
+element-tone gradients, the rasi/nakshatra size modifiers, and the four `<AstroTopic>` marks.
+The marks are the worst: they carry the `left/top/right/bottom` offsets, so all four stopped
+being positioned and stacked in one corner rather than merely looking plain.
+
+623ad59's own message asserts the opposite — *"the 5 live `.as-*` families … are untouched …
+the pruner refuses any grouped selector in which a single class is still referenced"*. That
+safety net is real, and it was aimed at the wrong failure: it guards **grouped** selectors,
+and every rule here was a standalone rule for a single modifier class.
+
+Restored verbatim from `17b45ef`; the marks now compute byte-identical to their pre-split
+values on a rendered page. New guards: `scripts/css-dynamic-class-audit.mjs` (with
+`--since <ref>`, which is what found all 13 — run it before any future prune) and
+`lib/css-dynamic-class.test.ts`.
+
+**A second instrument, and a second finding.** `scripts/css-split-seams.mjs` re-derives the
+cascade question from the built stylesheets rather than trusting the splitter's one-time
+check. 95 classes are legitimately defined in more than one file. Exactly **one** cascade
+inversion exists: `.cd-tools-v3-card:hover` (now in `dashboard-globals.css`) versus
+`.cd-tools-v3-card.is-disabled` (now in base), equal specificity, both setting `box-shadow`,
+original order reversed. It is unreachable — nothing renders `.cd-tools-v3-card`, and no
+source file of any type contains `is-disabled`. Recorded rather than fixed, because the
+reason it did not ship is that nobody uses it, not that the cascade is fine.
+
+`css-split.mjs` missed it for the same reason the prune missed the `.as-*` rules: its
+co-occurrence pass pairs rules via class combinations it can read as **literal** `className`
+strings, and a conditionally-applied modifier never appears as one. Reading the built
+stylesheets has no such blind spot. Note also *why* the rule crossed the boundary at all —
+`destOf()` returns `base` as soon as any class in a selector is used by both surfaces, so one
+shared class on a compound selector drags the whole rule out of its surface file.
+
+**The existing suites, run on both sides.** `npm run test:visual` fails 33/33 — and fails
+**identically** with pre-split CSS, baseline diff ratios matching to two decimal places
+(0.18 / 0.16 / 0.15). Every quality-gate page fails on `tap-target-too-small` alone (40×40
+controls against a 44 px floor), with the same counts and the same element sizes on both
+sides. No axe violations, no horizontal overflow. **All 33 are pre-existing.** The three
+baselines are gitignored (`.gitignore:47`) and dated **2026-06-30**, five weeks and ~40
+commits before the split, so this suite could not have attributed anything to it either way.
+Re-baselining it is a separate job.
+
+`web/scripts/css-split.mjs` now refuses to run on its own output — its input is
+`app/globals.css`, which after the split is the *base* file. Measured, a second run reports
+272 rules, all destined base, 0 marketing bytes: it would replace the 118 KB `marketing.css`
+with an empty one. Two guards, because they fail in different cases (outputs already exist;
+input no longer holds a marketing system). "Are `.cl-*` rules still present" is **not** a
+usable signal — 85 `.cl-*` matches survive in the base inside grouped selectors.
 
 ### F5 · [M+D] Kill the `.cd-shell` name collision
 
@@ -457,6 +539,75 @@ Static marketing pages use almost none of this. Proposals, cheapest first:
 
 **Effort:** ~half a day. **Do after F4** — F4's measurement harness tells you whether these
 moved the needle.
+
+#### ✅ LANDED 2026-08-08 — and two claims in this plan were wrong
+
+Measured by **which routes actually ship each module**, out of 126:
+
+| Module | Before | After |
+|---|---|---|
+| `posthog-js` | 126 | **6** |
+| `react-query` | 126 | **3** |
+| `sonner` | 126 | **3** |
+
+JS per route, union over the whole layout chain, uncompressed:
+
+| Surface | Before | After |
+|---|---|---|
+| marketing | 1221.5K – 1974.6K | **462.8K – 1712.6K** |
+| `/login` | 1533.1K | **985.4K** |
+| `/admin` | 1268.2K | **712.1K** |
+| dashboard | 1237.6K – 1532.3K | **546.3K – 1043.6K** |
+
+The dashboard gets smaller too, even though `QueryProvider` and `Toaster` moved *into* it —
+what left was bigger than what arrived.
+
+**The "check first" column was answered from the import graph, not by grep.** A grep over
+`app/(marketing)` asks a narrower question than the one that matters: a provider removed from
+the root layout breaks any component a route *renders*, and `components/` holds both surfaces'
+files side by side. `scripts/payload-probe.mjs` walks each load context's real module tree —
+the same instrument the CSS side needed, for the same reason.
+
+- **`QueryProvider` → `app/dashboard/layout.tsx`.** Marketing reaches zero react-query. So do
+  `/login` and `/admin` — so, contrary to the table above, it is **not** also added to login.
+- **`Toaster` → `app/dashboard/layout.tsx`.** Exactly one file calls `toast()`.
+- **`PostHogProvider` + `BetaSystem` → deferred** past first paint via
+  `components/deferred-chrome.tsx`. Both already rendered `null` on the server and on first
+  paint, so nothing visible changes. The wrapper exists because `next/dynamic` with
+  `ssr: false` is not allowed inside a Server Component in Next 15.
+
+**Wrong claim 1 — "marketing data modules are properly confined … zero leak into the dashboard
+bundle"** (§0, "what is already clean — do not touch"). `BetaSystem` imports
+`lib/marketing-i18n.ts`, **524 KB of source**, and `BetaSystem` was rendered from the **root**
+layout. It suppresses itself on `/dashboard` by returning `null` — *after* its module has
+loaded. That is most of the 758 KB that leaves the simplest marketing routes.
+
+**Wrong claim 2 — "is Mono used on marketing at all?"** It is, heavily. `--cl-font-mono` wraps
+`var(--font-mono)` and is applied at ~28 sites in `marketing.css`, while `globals.css`
+references it **zero** times. Marketing is its main consumer.
+
+The real font finding is next door: **Fraunces is loaded twice.** The root layout declares
+400/500/600 + italics as `--font-display`; the dashboard layout declares 500/600/700 as
+`--font-nova-display`. A signed-in visitor gets **27 `@font-face` blocks for one typeface**
+(18 + 9) across two independent `next/font` instances, with 500 and 600 declared in both. Not
+changed here — merging them is a design call about which cuts each surface needs, not a
+mechanical move.
+
+**Why `next build`'s own column shows nothing.** First Load JS is identical before and after
+(104 kB shared; `/login` 300 → 301 kB). It counts the page entry plus shared-by-all, so client
+chunks pulled in by a **layout** are under-counted — the same defect `css-budget.mjs` was
+written to work around on the CSS side. `scripts/js-budget.mjs` is its sibling: it unions the
+layout chain, and `--find <module>` reports which routes actually ship a package by searching
+the emitted chunks.
+
+**Verified:** 10 public routes + `/login` loaded from a real production build (no page errors,
+no "No QueryClient set"); `nova-sweep` 11/11 against the isolated e2e backend with no console
+or page errors; 374 web unit tests; `tsc` clean; eslint unchanged. New guard
+`lib/payload-boundary.test.ts` fails if a marketing or root-only route starts reaching
+react-query or sonner — which would otherwise be a runtime crash on a public page rather than
+a build error.
+
+**Still open in F6:** merging the two Fraunces declarations (needs a design call).
 
 ### F7 · [M] Convert marketing client components back to server components
 
@@ -662,8 +813,34 @@ paid for once.
 | No Tamil planet `Record` outside `lib/i18n.ts` | F2 recurrence | source-regex test ✅ |
 | No `const *Style` object containing `border`+`padding` outside `components/ui/` | F10 recurrence | source-regex test |
 | Every load context can reach the CSS it uses; one loader per stylesheet; size ratchets | F4 regression | `lib/css-surface-boundary.test.ts` ✅ |
+| A class only an interpolation can build is still a live class | the F4-step-5 prune that deleted 13 live rules | `lib/css-dynamic-class.test.ts` ✅ |
+| No marketing or root-only route reaches react-query / sonner | F6 regression — a runtime crash on a public page, not a build error | `lib/payload-boundary.test.ts` ✅ |
 | `components/ui` barrel must not transitively import `framer-motion` | the ChunkLoadError class already hit once | build-time check |
 | Orphan scan (basename appears in no import specifier) in CI, warn-only | F11 recurrence | CI job |
+
+### Instruments added while verifying F4/F6
+
+These exist because a question kept recurring in a form no existing tool answered. Each is
+cheap to re-run and each found something.
+
+| Script | Question it answers | What it found |
+|---|---|---|
+| `scripts/css-split.mjs` (guarded) | is this input still unsplit? | a re-run would write an **empty** `marketing.css` |
+| `scripts/css-split-seams.mjs` | did the split change which declaration wins? | 1 inversion, unreachable |
+| `scripts/css-dynamic-class-audit.mjs` | which classes can no tool see? | the 13 deleted live rules |
+| `scripts/css-presplit-toggle.mjs` | what did this look like before? | reversible pre-split rendering |
+| `e2e/css-ab.spec.ts` + `scripts/css-ab-diff.mjs` | did any element resolve differently? | 97 diffs, 13 real |
+| `scripts/payload-probe.mjs` | who actually reaches this module? | login does not need react-query |
+| `scripts/js-budget.mjs` | which routes ship this package? | 126 → 6 / 3 / 3 |
+
+**A caution that applies to all of them.** Three separate tools in this repo have now been
+fooled by the same thing — a name the source builds rather than writes. `css-split.mjs`'s
+conflict check reads literal `className` strings, so a conditionally-applied modifier was
+invisible to it. The F4 prune read literal class names, so `as-rasi--${tone}` was invisible to
+it. `css-inventory.mjs` splits template literals on `${…}` deliberately, which is right for
+keeping the static tokens and wrong if you then treat the result as complete. Any tool that
+decides "is this used?" by searching source is answering a narrower question than it appears
+to.
 
 ---
 
