@@ -841,6 +841,23 @@
   padding-right: 0;
 }
 
+/* Scrollbars inside the shell.
+   These are the one surviving declaration pair from globals.css's "Clarity
+   dashboard shell" block, which was deleted once every other rule in it was
+   shown to be shadowed by this file. That block painted a warm brown
+   (rgba(60,40,20,0.18)) thumb — authored for the always-light Clarity era, and
+   still applying to a shell that defaults to dark, where it is close to
+   invisible. globals.css's base pair has the mirror-image problem: a white
+   thumb, unreadable on the light theme.
+   Deriving both from --color-text, which each theme block already defines,
+   reproduces the intended contrast on either theme instead of picking one. */
+[data-ui="nova"] .cd-shell ::-webkit-scrollbar-track {
+  background: color-mix(in srgb, var(--color-text) 4%, transparent);
+}
+[data-ui="nova"] .cd-shell ::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-text) 18%, transparent);
+}
+
 /* ═══════════════════════════════════════════════════════════
    Nova navbar (dashboard-hero.tsx, uiVariant === "nova"):
    one topbar row — serif wordmark · inline tab links · right

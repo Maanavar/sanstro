@@ -3,9 +3,15 @@ import { Fraunces, Source_Serif_4 } from "next/font/google";
 import type { ReactNode } from "react";
 // Loaded here (not just in the (workspace) group) so the standalone routes under
 // /dashboard/* (reports, goals, chart-generate, daily-score, porutham, wrapped)
-// also get .cd-shell's real Classic/Nova color system instead of falling through
-// to globals.css's unrelated "Clarity" .cd-shell block (same class name, a
-// different, always-light, unscoped legacy component-styling layer).
+// also get .cd-shell's Nova color system.
+//
+// This used to warn that globals.css defined a rival, always-light .cd-shell
+// block and that load order was the only thing keeping it from winning. That
+// block is gone (F5): 45 of its 47 rules were already shadowed by
+// dashboard-nova.css's higher-specificity [data-ui="nova"] selectors, and no
+// marketing file ever rendered .cd-shell, so it styled nothing that this file
+// did not already style. The remaining pair (shell scrollbars) moved into
+// dashboard-nova.css. There is now exactly one .cd-shell system.
 import "./dashboard.css";
 import "./dashboard-nova.css";
 
