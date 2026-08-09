@@ -209,15 +209,15 @@ test("Today -> Goals -> Life Areas -> Today, twice", async () => {
   expect(counts.get("event-windows") ?? 0, "event-windows crossed the wire more than once").toBeLessThanOrEqual(1);
 
   /**
-   * KNOWN OPEN, measured here rather than assumed: `life-event-log` is fetched
-   * once per lap. It is one of the ~30 remaining hand-rolled `apiFetchJson`
+   * `life-event-log` was the one exception this spec recorded as known-open: it
+   * was fetched once per lap, being one of the ~30 hand-rolled `apiFetchJson`
    * blocks outside react-query that F8's proving run deliberately did not
-   * rewrite ("do NOT rewrite all 54 files"). It is listed so the next person
-   * migrating on touch has a measured target rather than a guess — and so this
-   * assertion tightens when it is fixed.
+   * rewrite. It has since been migrated on touch (`useApiQuery`, one key shared
+   * by both of its mount sites), so the exception list is now empty and this
+   * assertion is the strict form: NOTHING may be requested twice over two laps.
    */
   expect(
-    [...counts.entries()].filter(([k, v]) => v > 1).map(([k]) => k).sort(),
-    "an endpoint started refetching per lap — see the table above",
-  ).toEqual(["charts/{id}/life-event-log"]);
+    [...counts.entries()].filter(([, v]) => v > 1).map(([k]) => k).sort(),
+    "an endpoint refetched on a tab switch — see the table above",
+  ).toEqual([]);
 });
