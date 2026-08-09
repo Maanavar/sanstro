@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Source_Serif_4 } from "next/font/google";
+import { Source_Serif_4 } from "next/font/google";
 import type { ReactNode } from "react";
 import { Toaster } from "sonner";
 
@@ -35,18 +35,19 @@ export const metadata: Metadata = {
   },
 };
 
-// SHD-01 — one display serif across both surfaces. The dashboard's Nova display
-// font is now Fraunces (the same serif that carries the marketing brand and
-// reads better at UI sizes than Cormorant's hairlines), keeping the exported
-// `--font-nova-display` variable name so nothing downstream changes. This drops
-// Cormorant Garamond, taking the product from six loaded families toward four.
-const frauncesNova = Fraunces({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  display: "swap",
-  variable: "--font-nova-display",
-});
-
+// SHD-01 finished the job it named — "one display serif across both surfaces" —
+// but only at the level of *which* serif. Two independent `next/font` instances
+// of Fraunces survived: this one (500/600/700 as `--font-nova-display`) and the
+// root layout's (400/500/600 + italics as `--font-display`), declaring 500 and
+// 600 twice and giving a signed-in visitor 27 @font-face blocks for one
+// typeface. `--font-nova-display` existed only to keep the two apart.
+//
+// F6 follow-up — there is now one instance, in the root layout, covering the
+// union (400/500/600/700 + italics). Rendering is unchanged: every weight and
+// style either surface renders today is still declared, and it is the same
+// family from the same source. The `--font-nova-display` indirection is gone
+// rather than aliased, because an alias pointing at the variable it used to
+// shadow is the kind of thing that reads as deliberate a year later.
 const sourceSerif4 = Source_Serif_4({
   subsets: ["latin"],
   weight: ["400", "600"],
@@ -67,7 +68,7 @@ const sourceSerif4 = Source_Serif_4({
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <QueryProvider>
-      <div className={`cd-font-host ${frauncesNova.variable} ${sourceSerif4.variable}`}>
+      <div className={`cd-font-host ${sourceSerif4.variable}`}>
         {children}
         <Toaster position="bottom-center" />
       </div>

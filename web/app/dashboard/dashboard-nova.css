@@ -46,13 +46,22 @@
   --radius-lg: 14px; /* cards */
   --radius-xl: 16px; /* hero sections */
 
-  /* ── Type: display font is Cormorant Garamond (headings/logo/score);
-     body font stays the system-ui stack per the source tokens (the
-     "UI" family is reserved for nav/labels/chips/data, not a serif
-     takeover of every string in the shell). Source Serif 4 (loaded as
-     --font-nova-prose in dashboard/layout.tsx) is applied selectively
-     to prose/guidance copy as each screen is built, not blanket here. ── */
-  --font-display: var(--font-nova-display), Georgia, serif;
+  /* ── Type: the display font (headings/logo/score) is Fraunces, inherited
+     from the root layout's `--font-display` — this block used to re-point
+     `--font-display` at a second, dashboard-only Fraunces instance
+     (`--font-nova-display`), which is what put 27 @font-face blocks for one
+     typeface in front of a signed-in visitor. There is one instance now, so
+     there is nothing to re-point: the value inherits.
+
+     (The comment that stood here said "display font is Cormorant Garamond".
+     SHD-01 replaced Cormorant with Fraunces and left the note behind — the
+     same stale-justification pattern F2 and F3 each turned up.)
+
+     Body font stays the system-ui stack per the source tokens: the "UI"
+     family is reserved for nav/labels/chips/data, not a serif takeover of
+     every string in the shell. Source Serif 4 (loaded as --font-nova-prose
+     in dashboard/layout.tsx) is applied selectively to prose/guidance copy
+     as each screen is built, not blanket here. ── */
   --font-body: system-ui, -apple-system, sans-serif;
 }
 

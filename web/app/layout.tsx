@@ -17,9 +17,15 @@ import "./globals.css";
 
 const BASE = "https://vinaadi.com";
 
+// The single Fraunces instance for the whole product. 700 is here because the
+// dashboard renders it (Nova declared its own 500/600/700 instance until this
+// merged them); 400 and the italics are here because marketing renders them
+// (`.cl-hero__h1 em`, `.cl-num-quote`, `/login`'s `.ca-left-headline em`). The
+// union is what each surface already used — no cut was added speculatively and
+// none was dropped, so this changes what is *declared*, not what is rendered.
 const fraunces = Fraunces({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
   style: ["normal", "italic"],
   display: "swap",
   variable: "--font-display",
