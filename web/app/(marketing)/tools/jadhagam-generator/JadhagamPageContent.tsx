@@ -1,15 +1,14 @@
-"use client";
-
 import Link from "next/link";
 import { JadhagamTool } from "./JadhagamTool";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
-import { useLang } from "@/components/lang-toggle";
+import { getServerLang } from "@/lib/server-lang";
 import { TOOL_JADHAGAM, mt } from "@/lib/marketing-i18n";
 import { SouthIndianChartVisual } from "@/components/marketing-visuals";
 
-export function JadhagamPageContent() {
-  const [lang] = useLang();
+// F7 part two - a Server Component; see lib/server-lang.ts.
+export async function JadhagamPageContent() {
+  const lang = await getServerLang();
   const d = TOOL_JADHAGAM;
 
   const WHAT_ITEMS = [

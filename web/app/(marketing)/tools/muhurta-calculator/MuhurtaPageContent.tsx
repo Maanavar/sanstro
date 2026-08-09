@@ -1,10 +1,8 @@
-"use client";
-
 import Link from "next/link";
 import { MuhurtaTool } from "./MuhurtaTool";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
-import { useLang } from "@/components/lang-toggle";
+import { getServerLang } from "@/lib/server-lang";
 import { TimingArcVisual } from "@/components/marketing-visuals";
 
 const MUHURTA_CONCEPTS = [
@@ -30,8 +28,9 @@ const MUHURTA_CONCEPTS = [
   },
 ];
 
-export function MuhurtaPageContent() {
-  const [lang] = useLang();
+// F7 part two - a Server Component; see lib/server-lang.ts.
+export async function MuhurtaPageContent() {
+  const lang = await getServerLang();
 
   return (
     <div className="clarity-shell">

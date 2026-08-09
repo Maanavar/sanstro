@@ -1,14 +1,13 @@
-"use client";
-
 import Link from "next/link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
-import { useLang } from "@/components/lang-toggle";
+import { getServerLang } from "@/lib/server-lang";
 import { FEAT_TIMING, mt } from "@/lib/marketing-i18n";
 import { PanchangamWheelVisual, TimingArcVisual } from "@/components/marketing-visuals";
 
-export default function TimingAndDecisionsPage() {
-  const [lang] = useLang();
+// F7 part two - a Server Component; see lib/server-lang.ts.
+export default async function TimingAndDecisionsPage() {
+  const lang = await getServerLang();
   const d = FEAT_TIMING;
 
   const WHAT_ITEMS = [

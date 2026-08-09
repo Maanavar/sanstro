@@ -1,13 +1,12 @@
-"use client";
-
 import Link from "next/link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
-import { useLang } from "@/components/lang-toggle";
+import { getServerLang } from "@/lib/server-lang";
 import { TOOL_BTR, mt } from "@/lib/marketing-i18n";
 
-export default function BirthTimeRectificationPage() {
-  const [lang] = useLang();
+// F7 part two - a Server Component; see lib/server-lang.ts.
+export default async function BirthTimeRectificationPage() {
+  const lang = await getServerLang();
   const d = TOOL_BTR;
 
   const STEPS = [

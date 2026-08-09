@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import { Fraunces, Inter, JetBrains_Mono, Noto_Sans_Tamil } from "next/font/google";
 import type { ReactNode } from "react";
 // F6 — what every visitor used to get here before a single pixel of content:
@@ -11,7 +10,7 @@ import type { ReactNode } from "react";
 // two are deferred past first paint; see components/deferred-chrome.tsx.
 import { DeferredChrome } from "@/components/deferred-chrome";
 import { LangProvider } from "@/components/lang-toggle";
-import { LANG_COOKIE_NAME, type Lang } from "@/lib/i18n";
+import { getServerLang } from "@/lib/server-lang";
 
 import "@vinaadi/design-tokens/dist/web/tokens.css";
 import "./globals.css";
@@ -156,13 +155,13 @@ export default async function RootLayout({
 }: Readonly<{
   children: ReactNode;
 }>) {
-  const cookieStore = await cookies();
-  const langCookie = cookieStore.get(LANG_COOKIE_NAME)?.value;
   // English-by-default: the site loads in English unless the visitor saved an
   // explicit Tamil preference (the language toggle / Settings card persists a
   // cookie, so returning Tamil users are unaffected). Signed-in users can set
   // their default load language in Settings; it syncs across devices via the DB.
-  const initialLang: Lang = langCookie === "ta" ? "ta" : "en";
+  // Resolved through `getServerLang()` so this layout and every server-rendered
+  // marketing page read the language exactly one way — see lib/server-lang.ts.
+  const initialLang = await getServerLang();
 
   return (
     <html

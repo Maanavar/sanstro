@@ -1,9 +1,7 @@
-"use client";
-
 import Link from "next/link";
 import { PublicFooter } from "@/components/public-footer";
 import { PublicNav } from "@/components/public-nav";
-import { useLang } from "@/components/lang-toggle";
+import { getServerLang } from "@/lib/server-lang";
 import { tLang, type Lang } from "@/lib/i18n";
 import type { CalendarCategoryDetail, CalendarCategorySummary } from "./calendar-category-api";
 
@@ -45,8 +43,9 @@ function tagLabel(tag: string, lang: Lang): string {
   return label ? pick(label.en, label.ta, lang) : tag.replaceAll("_", " ");
 }
 
-export function CalendarCategoryContent({ data, categories }: CalendarCategoryContentProps) {
-  const [lang] = useLang();
+// F7 part two - a Server Component; see lib/server-lang.ts.
+export async function CalendarCategoryContent({ data, categories }: CalendarCategoryContentProps) {
+  const lang = await getServerLang();
 
   if (!data) {
     return (

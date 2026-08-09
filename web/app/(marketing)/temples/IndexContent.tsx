@@ -1,16 +1,15 @@
-"use client";
-
 import Link from "next/link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
-import { useLang } from "@/components/lang-toggle";
+import { getServerLang } from "@/lib/server-lang";
 import { TEMPLE_INDEX, mt } from "@/lib/marketing-i18n";
 import { TopicSymbolPanel } from "@/components/astro-symbols";
 import { GuideCardGrid, type GuideCard } from "@/components/guide-cards";
 import { ContextualSignupCta } from "@/components/contextual-signup-cta";
 
-export function TempleIndexContent() {
-  const [lang] = useLang();
+// F7 part two - a Server Component; see lib/server-lang.ts.
+export async function TempleIndexContent() {
+  const lang = await getServerLang();
   const d = TEMPLE_INDEX;
 
   const navagraha: GuideCard[] = [

@@ -1,9 +1,7 @@
-﻿"use client";
-
-import Link from "next/link";
+﻿import Link from "next/link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
-import { useLang } from "@/components/lang-toggle";
+import { getServerLang } from "@/lib/server-lang";
 import { PARIHARAM_KADAN, PARIHARAM_KADAN_FAQ, mt } from "@/lib/marketing-i18n";
 import { TopicSymbolPanel } from "@/components/astro-symbols";
 import { SlokamBlock, FaithNote, FaqSection } from "@/components/devotional";
@@ -11,8 +9,9 @@ import { ContextualSignupCta } from "@/components/contextual-signup-cta";
 import { GuideVerifyNote } from "@/components/guide-traditional-notes";
 import { getGuideVerifyNote } from "@/lib/guide-detail-content";
 
-export function KadanPariharamContent() {
-  const [lang] = useLang();
+// F7 part two - a Server Component; see lib/server-lang.ts.
+export async function KadanPariharamContent() {
+  const lang = await getServerLang();
   const d = PARIHARAM_KADAN;
   const verifyNote = getGuideVerifyNote({ kind: "pariharam" });
 

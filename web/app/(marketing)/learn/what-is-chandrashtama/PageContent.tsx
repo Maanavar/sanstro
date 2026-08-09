@@ -1,14 +1,17 @@
-"use client";
-
 import Link from "next/link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
-import { useLang } from "@/components/lang-toggle";
+import { getServerLang } from "@/lib/server-lang";
 import { LEARN_CHANDRA, mt } from "@/lib/marketing-i18n";
 import { TopicSymbolPanel } from "@/components/astro-symbols";
 
-export function ChandrashtamaPageContent() {
-  const [lang] = useLang();
+// F7 part two — a Server Component. This page uses no React hook other than
+// `useLang()`, so resolving the language server-side removes its whole subtree
+// (and both languages of LEARN_CHANDRA) from the client bundle. `PublicNav`,
+// `PublicFooter` and `TopicSymbolPanel` stay client components; a Server
+// Component renders them normally.
+export async function ChandrashtamaPageContent() {
+  const lang = await getServerLang();
   const d = LEARN_CHANDRA;
 
   return (

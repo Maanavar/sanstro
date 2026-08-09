@@ -1,14 +1,13 @@
-"use client";
-
 import Link from "next/link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
-import { useLang } from "@/components/lang-toggle";
+import { getServerLang } from "@/lib/server-lang";
 import { FEAT_CHART, mt } from "@/lib/marketing-i18n";
 import { SouthIndianChartVisual } from "@/components/marketing-visuals";
 
-export default function ChartGuidancePage() {
-  const [lang] = useLang();
+// F7 part two - a Server Component; see lib/server-lang.ts.
+export default async function ChartGuidancePage() {
+  const lang = await getServerLang();
   const d = FEAT_CHART;
 
   const CHART_ITEMS = [

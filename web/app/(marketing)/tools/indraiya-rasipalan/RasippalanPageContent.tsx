@@ -1,10 +1,8 @@
-"use client";
-
 import Link from "next/link";
 import { RasippalanTool } from "./RasippalanTool";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
-import { useLang } from "@/components/lang-toggle";
+import { getServerLang } from "@/lib/server-lang";
 import { RasiTransitVisual } from "@/components/marketing-visuals";
 
 const RASIPALAN_CONCEPTS = [
@@ -26,8 +24,9 @@ const RASIPALAN_CONCEPTS = [
   },
 ];
 
-export function RasippalanPageContent() {
-  const [lang] = useLang();
+// F7 part two - a Server Component; see lib/server-lang.ts.
+export async function RasippalanPageContent() {
+  const lang = await getServerLang();
 
   return (
     <div className="clarity-shell">

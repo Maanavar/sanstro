@@ -1,9 +1,7 @@
-"use client";
-
 import Link from "next/link";
 import { PublicFooter } from "@/components/public-footer";
 import { PublicNav } from "@/components/public-nav";
-import { useLang } from "@/components/lang-toggle";
+import { getServerLang } from "@/lib/server-lang";
 import { tLang, type Lang } from "@/lib/i18n";
 import type { CalendarCategorySummary } from "./calendar-category-api";
 
@@ -39,8 +37,9 @@ function formatDate(iso: string, lang: Lang): string {
   });
 }
 
-export function TamilCalendarContent({ events, categories }: TamilCalendarContentProps) {
-  const [lang] = useLang();
+// F7 part two - a Server Component; see lib/server-lang.ts.
+export async function TamilCalendarContent({ events, categories }: TamilCalendarContentProps) {
+  const lang = await getServerLang();
 
   return (
     <div className="clarity-shell">

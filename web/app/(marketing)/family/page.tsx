@@ -1,9 +1,7 @@
-"use client";
-
 import Link from "next/link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
-import { useLang } from "@/components/lang-toggle";
+import { getServerLang } from "@/lib/server-lang";
 import { FAMILY_PAGE, mt } from "@/lib/marketing-i18n";
 
 const MEMBER_SAMPLES = [
@@ -12,8 +10,9 @@ const MEMBER_SAMPLES = [
   { name: "Kavitha", score: 61, band: "mid",  rasi: "Kadagam"  },
 ];
 
-export default function FamilyPage() {
-  const [lang] = useLang();
+// F7 part two - a Server Component; see lib/server-lang.ts.
+export default async function FamilyPage() {
+  const lang = await getServerLang();
   const d = FAMILY_PAGE;
 
   const BENEFITS = [

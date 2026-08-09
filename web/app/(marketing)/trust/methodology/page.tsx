@@ -1,14 +1,13 @@
-"use client";
-
 import Link from "next/link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
-import { useLang } from "@/components/lang-toggle";
+import { getServerLang } from "@/lib/server-lang";
 import { TopicSymbolPanel } from "@/components/astro-symbols";
 import { TRUST_METHOD, mt } from "@/lib/marketing-i18n";
 
-export default function MethodologyPage() {
-  const [lang] = useLang();
+// F7 part two - a Server Component; see lib/server-lang.ts.
+export default async function MethodologyPage() {
+  const lang = await getServerLang();
   const d = TRUST_METHOD;
 
   const CALC_STACK = [

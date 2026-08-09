@@ -1,17 +1,16 @@
-"use client";
-
 import Link from "next/link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
-import { useLang } from "@/components/lang-toggle";
+import { getServerLang } from "@/lib/server-lang";
 import { NATCHATHIRAM_INDEX, mt } from "@/lib/marketing-i18n";
 import { NATCHATHIRAM_LIST } from "@/lib/natchathiram-data";
 import { romanNakshathiramName, tamilizeAstroEnglish } from "@/lib/tamil-astro";
 import { NakshatraMapVisual } from "@/components/marketing-visuals";
 import { NakshatraSigil } from "@/components/astro-symbols";
 
-export function NatchathiramIndexContent() {
-  const [lang] = useLang();
+// F7 part two - a Server Component; see lib/server-lang.ts.
+export async function NatchathiramIndexContent() {
+  const lang = await getServerLang();
   const d = NATCHATHIRAM_INDEX;
   const text = (value: string) => (lang === "en" ? tamilizeAstroEnglish(value) : value);
   const visualHref = (slug: string) => `/natchathiram/${slug}/visual`;

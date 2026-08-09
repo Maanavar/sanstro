@@ -1,9 +1,7 @@
-﻿"use client";
-
-import Link from "next/link";
+﻿import Link from "next/link";
 import { PublicFooter } from "@/components/public-footer";
 import { PublicNav } from "@/components/public-nav";
-import { useLang } from "@/components/lang-toggle";
+import { getServerLang } from "@/lib/server-lang";
 import { tLang, type Lang } from "@/lib/i18n";
 
 interface BiText {
@@ -70,8 +68,9 @@ function formatShort(iso: string, lang: Lang): string {
   });
 }
 
-export function TamilCalendarEventContent({ data, allEvents }: TamilCalendarEventContentProps) {
-  const [lang] = useLang();
+// F7 part two - a Server Component; see lib/server-lang.ts.
+export async function TamilCalendarEventContent({ data, allEvents }: TamilCalendarEventContentProps) {
+  const lang = await getServerLang();
 
   if (!data) {
     return (

@@ -1,9 +1,7 @@
-"use client";
-
 import Link from "next/link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
-import { useLang } from "@/components/lang-toggle";
+import { getServerLang } from "@/lib/server-lang";
 import { TopicSymbolPanel } from "@/components/astro-symbols";
 import { ContextualSignupCta } from "@/components/contextual-signup-cta";
 import { SlokamBlock, FaithNote, FaqSection } from "@/components/devotional";
@@ -15,8 +13,10 @@ function text(value: { en: string; ta: string }, lang: string) {
   return lang === "ta" ? value.ta : value.en;
 }
 
-export function GuideDetailPage({ content }: { content: GuideDetail }) {
-  const [lang] = useLang();
+// F7 part two — a Server Component. Backs the four `[slug]` guide routes; all
+// four callers are already Server Components passing a serialisable `content`.
+export async function GuideDetailPage({ content }: { content: GuideDetail }) {
+  const lang = await getServerLang();
   const topic =
     content.kind === "yogam" ? "yogam" : content.kind === "temple" ? "temple" : content.topic;
   const verifyNote = getGuideVerifyNote(content);

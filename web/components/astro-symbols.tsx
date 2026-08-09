@@ -98,7 +98,18 @@ export function NakshatraSymbolCard({ data, compact = false }: { data: Natchathi
   );
 }
 
-export function NatchathiramFactVisual({ data }: { data: NatchathiramEntry }) {
+// F7 part two — takes the five fields it renders, not the whole entry. This is
+// a client component called from a Server Component, so its props are
+// serialised into the RSC payload of all 27 `/natchathiram/*` routes; asking
+// for `NatchathiramEntry` sent every one of them the entry's `sections` blob —
+// paragraphs of Tamil prose already present in the rendered HTML — a second
+// time. A prop type is a transfer cost once it crosses that boundary.
+export type NatchathiramFacts = Pick<
+  NatchathiramEntry,
+  "number" | "name_en" | "name_ta" | "rasi_en" | "rasi_ta"
+>;
+
+export function NatchathiramFactVisual({ data }: { data: NatchathiramFacts }) {
   const englishName = romanNakshathiramName(data.name_en);
 
   return (

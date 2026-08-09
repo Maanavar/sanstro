@@ -1,15 +1,14 @@
-"use client";
-
 import Link from "next/link";
 import { PoruthamTool } from "./PoruthamTool";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
-import { useLang } from "@/components/lang-toggle";
+import { getServerLang } from "@/lib/server-lang";
 import { TOOL_PORUTHAM, mt } from "@/lib/marketing-i18n";
 import { PoruthamRingsVisual } from "@/components/marketing-visuals";
 
-export function PoruthamPageContent() {
-  const [lang] = useLang();
+// F7 part two - a Server Component; see lib/server-lang.ts.
+export async function PoruthamPageContent() {
+  const lang = await getServerLang();
   const d = TOOL_PORUTHAM;
 
   const TEN_PORUTHAMS = [

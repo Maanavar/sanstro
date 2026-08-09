@@ -1,14 +1,13 @@
-"use client";
-
 import Link from "next/link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
-import { useLang } from "@/components/lang-toggle";
+import { getServerLang } from "@/lib/server-lang";
 import { LEARN_BIRTH, mt } from "@/lib/marketing-i18n";
 import { TopicSymbolPanel } from "@/components/astro-symbols";
 
-export function WhyBirthTimeMattersPageContent() {
-  const [lang] = useLang();
+// F7 part two - a Server Component; see lib/server-lang.ts.
+export async function WhyBirthTimeMattersPageContent() {
+  const lang = await getServerLang();
   const d = LEARN_BIRTH;
 
   return (
