@@ -621,6 +621,41 @@ a build error.
 
 **Still open in F6:** merging the two Fraunces declarations (needs a design call).
 
+##### ✅ THE TWO FRAUNCES DECLARATIONS MERGED 2026-08-09
+
+The call: **one instance, carrying the union of the cuts each surface already renders**
+(400/500/600/700 + italics). 700 because Nova renders it; 400 and the italics because marketing
+does (`.cl-hero__h1 em`, `.cl-num-quote`, `/login`'s `.ca-left-headline em`). Nothing added
+speculatively, nothing dropped — this changes what is *declared*, not what is rendered.
+
+| | before | after |
+|---|---|---|
+| Fraunces `@font-face` blocks | 27, across 2 instances | **24, in 1** |
+| Fraunces in the dashboard stylesheet | 14 mentions | **0** |
+| CSS per route, dashboard | 164.2–167.5K | **159.2–162.5K** |
+| CSS per route, marketing max | 145.0K | **144.1K** |
+
+`--font-nova-display` is **deleted, not aliased.** An alias pointing at the variable it used to
+shadow reads as deliberate a year later, and there is nothing left to keep apart:
+`dashboard-nova.css`'s `[data-ui="nova"] .cd-shell` block no longer re-points `--font-display`
+at a second instance, it inherits the one on `<html>`.
+
+That block's comment said *"display font is Cormorant Garamond"* — SHD-01 replaced Cormorant
+with Fraunces and left the note behind. Third instance of the pattern in this document (F2's
+comment insisting no shared planet-name helper existed; F3's "no drift yet").
+
+**New instrument: `scripts/font-probe.mjs`** — reads the computed `--font-display` and heading
+`font-family` off a rendered page. Static analysis proves there is one definition; only a
+browser proves it *arrives*, because `.cd-shell` used to override it and now inherits it. Clean
+on `/`, `/learn/what-is-chandrashtama`, `/login`.
+
+**One honest gap:** the probe covers the three unauthenticated load contexts; the dashboard was
+not rendered signed-in. What stands in for it is stronger than a guess and weaker than a
+screenshot — across every emitted stylesheet there is now exactly one `--font-display`
+definition, zero `--font-nova-display` references, and the root layout puts the font variable
+class on `<html>` for every route, so inside `.cd-shell` it cannot resolve to anything else.
+**An authenticated pass is owed** and pairs naturally with the one F9 still owes.
+
 ### F7 · [M] Convert marketing client components back to server components
 
 55 of 167 marketing `.tsx` are `"use client"`. Marketing content is overwhelmingly static
@@ -702,6 +737,78 @@ whoever picks it up: **46 of 52 route rows are already `ƒ` Dynamic**, because t
 does `await cookies()` to read the lang cookie — so the usual objection to server-rendering the
 active language (losing static prerendering) has already been paid, and `LangProvider` then
 re-derives that same value on the client from `localStorage` anyway.
+
+#### ✅ PART TWO LANDED 2026-08-09 — the count above was wrong, and the cost was never the page's own code
+
+**"26 hookless pages" was 64.** The triage regex was `^["']use client["']`, and every
+`dosham/*`, `pariharam/*` and `temples/*` `PageContent.tsx` carries a **UTF-8 BOM**, so `^`
+never matched — and those were the heavy ones. Fourth entry in this document's running list of
+tools fooled by a name the file writes differently from how the search spells it
+(`as-rasi--${tone}`, `novaFieldStyle`, `Learn · Chandrashtama`, now a BOM). **Every one of the
+four was a search that returned a confident, wrong, smaller number.** 41 pages converted.
+
+| family | n | before | after | change |
+|---|---|---|---|---|
+| `/natchathiram/*` | 55 | 989K | 638K | **−351K** |
+| `/pariharam/*` | 9 | 894K | 566K | −327K |
+| `/dosham/*` | 7 | 891K | 566K | −325K |
+| `/temples/*` | 6 | 870K | 566K | −305K |
+| `/yogam/*` | 2 | 745K | 565K | −181K |
+| `/trust`, `/features`, `/learn`, `/tamil-calendar`, `/tools` | 27 | — | — | −5K to −23K |
+
+Marketing range **463K–1241K → 463K–797K**. **No route grew.**
+
+**The size was never the page's own JSX** — that is why the first estimate (source bytes of
+each page's TSX plus its i18n module: ~5–25 KB) was right for two pilot routes and wrong by
+**19×** on the third. `guide-detail-content.ts` (2,568 ln) and `natchathiram-data.ts`
+(2,474 ln) are build-time data reached through *helpers* — `getGuideVerifyNote()`,
+`NATCHATHIRAM_EN` — and **a helper called from a client component is bundled for the browser
+whether or not its output is.** The whole corpus rode along behind one
+`const [lang] = useLang()`.
+
+That is the third time §0's "marketing data modules are properly confined — do not touch" note
+has been wrong, each time for the reason F7 part one recorded: it asked whether these modules
+leak into the *dashboard*. They do not. They were leaking across marketing routes, and then
+into the client bundle, and the note's heading told people not to look.
+
+**A cost `js-budget.mjs` cannot see.** `NatchathiramFactVisual` is a client component called
+from a server one, so its props are serialised into the RSC payload. It asked for the whole
+`NatchathiramEntry` and rendered five scalars off it — sending each route the entry's Tamil
+`sections` prose a second time, already present as rendered HTML. Narrowed to the five fields:
+**HTML 99.0K → 76.7K per nakshatra route, ×27.** *A prop type is a transfer cost once it
+crosses that boundary*, and no JS-chunk measurement reports it.
+
+**The language is now request-scoped and resolved one way.** `lib/server-lang.ts` owns
+`getServerLang()`; `app/layout.tsx` uses it too, so the layout and its pages cannot disagree.
+`lib/i18n.ts` gained `resolveLang()` — there were **two coercion rules with different shapes**,
+the layout's `v === "ta" ? "ta" : "en"` and `LangProvider`'s
+`v === "ta" || v === "en" ? v : initialLang`.
+
+**The cookie is authoritative now, and that needed a migration path nobody had named.**
+localStorage does not expire; the cookie has a 1-year max-age. A visitor returning after a long
+gap, or one who cleared cookies only, arrives with a Tamil preference the server could not see —
+and on a server-rendered page, writing the cookie back is no longer enough, because the copy is
+in the HTML. It self-heals with one `router.refresh()`, only when the two disagree.
+
+**The toggle costs an RSC round trip**, in a `useTransition` so the current language stays
+interactive until the new one arrives. That was the product-visible trade, and it was raised
+before any code was written.
+
+**Guard: `components/lang-toggle.test.tsx`, and it guards a dead control.** Delete that one
+`router.refresh()` and `tsc`, eslint, `next build` and the unit suite all stay green while the
+language button silently does nothing on ~45 server-rendered routes — and it keeps working on
+the pages still reading `useLang()`, so a spot check passes too. Same shape as part one's
+`sideEffects` field. **Verified by deleting the call and watching the test fail**, which is not
+a formality: the first attempt to verify it *appeared* to pass with the call removed, because
+the edit that was meant to remove it had silently done nothing.
+
+**Conversion order is forced and not optional:** a Server Component cannot be imported by a
+Client Component, so pages convert before the components they share. `astro-symbols.tsx` stays
+client — dashboard components import it. `scripts/`-adjacent helper used for the sweep checks
+every importer of a file is already server before converting it.
+
+**Still client, correctly:** the 14 files with real hooks (the tools), and the `NAV`/`FOOTER`
+chrome, which is genuinely on every page.
 
 ---
 
@@ -1066,15 +1173,27 @@ Phase 4     F11 step 1 (headers) — do today, costs nothing
             F11 step 2 (deletion) — per file, on approval
 ```
 
-**Status 2026-08-09:** F1, F2, F3, F4, F5, F6, F8, F9, F10 and F11 step 1 have all
-landed. **F7 part one** (the i18n module split, −477 KB per marketing route) has
-landed; **F10's [M] half is closed as won't-do** with the reason recorded.
+**Status 2026-08-09 (end of session):** **every item F1–F11 step 1 has landed.** F7 is
+complete — part one (the i18n module split, −477 KB per marketing route) and part two
+(the RSC conversion, marketing 463K–1241K → 463K–797K per route). F10's [M] half is
+closed as won't-do with the reason recorded, and F6's last open thread — the two
+Fraunces declarations — is merged.
 
-Open: **F7 part two** — the RSC conversion of the 26 hookless marketing pages, which
-needs a decision about whether the language toggle may become a server round trip;
-**F11 step 2** (deletion, per file, on explicit approval only); the two **Fraunces**
-declarations (a design call); and the ~17 KB of unreferenced `.cl-*` left in
-`marketing.css`.
+Open, in the order I'd take them:
+
+1. **The ~17 KB of unreferenced `.cl-*` in `marketing.css`** (73 `.cl-*`, 3 `.clf-*`,
+   3 `.cd-*`). Wants a browser open and `css-dynamic-class-audit.mjs --since <ref>` run
+   first — F4's earlier prune deleted 13 live rules in exactly this namespace.
+2. **An authenticated render pass**, which three separate items now owe: F9's three
+   secondary-dasha panels, F10's migrated fields, and the Fraunces merge's dashboard
+   half. One signed-in session closes all three.
+3. **Re-baselining `web/tests/visual`** — gitignored, dated 2026-06-30, all 33 failing
+   identically since before the CSS split, so it currently blinds every visual change.
+   Its own job, and it gates item 2 being worth much.
+4. **~29 hand-rolled `apiFetchJson` blocks** outside react-query, migrate-on-touch.
+   `e2e/tab-cycle-requests.spec.ts` now asserts the strict form (nothing requested twice
+   across two laps), so a regression here is loud.
+5. **F11 step 2** (deletion, per file, on explicit approval only — never as a batch).
 
 **Hard dependencies:**
 - F5 **must** ship inside F4 (the `.cd-shell` collision is currently held at bay by CSS load
@@ -1105,6 +1224,7 @@ paid for once.
 | A class only an interpolation can build is still a live class | the F4-step-5 prune that deleted 13 live rules | `lib/css-dynamic-class.test.ts` ✅ |
 | No marketing or root-only route reaches react-query / sonner | F6 regression — a runtime crash on a public page, not a build error | `lib/payload-boundary.test.ts` ✅ |
 | `package.json` keeps `sideEffects`, and the i18n barrel declares nothing itself | F7 regression — silently puts all 63 i18n domains back on all 117 marketing routes, with **no** build error and no visible symptom | `lib/marketing-i18n-split.test.ts` ✅ |
+| The language toggle actually re-renders server copy | F7 part two — a **dead control** on ~45 server-rendered routes, with tsc, eslint, `next build` and the unit suite all green and the toggle still working on the pages that kept `useLang()` | `components/lang-toggle.test.tsx` ✅ |
 | `components/ui` barrel must not transitively import `framer-motion` | the ChunkLoadError class already hit once | build-time check |
 | Orphan scan (basename appears in no import specifier) in CI, warn-only | F11 recurrence | CI job |
 
@@ -1125,7 +1245,8 @@ cheap to re-run and each found something.
 | `e2e/field-a11y-probe.spec.ts` | does the browser give this control a name? | 13 of 19 unnamed → 0 |
 | `e2e/tab-cycle-requests.spec.ts` | what crosses the wire on a tab cycle? | F8's headline claim did not reproduce; `life-event-log` refetches per lap (now fixed; assertion tightened to zero exceptions) |
 | `scripts/i18n-split.mjs` (guarded) | can a marketing page ship only its own copy? | 63 exports in one 488 KB chunk on 117 routes |
-| `scripts/marketing-render-probe.mjs` | does the page still render its own copy, in **both** languages? | 39/39 clean after the split |
+| `scripts/marketing-render-probe.mjs` | does the page still render its own copy, in **both** languages? | 39/39 clean after the split **and** after the RSC conversion — it sends `jothidam-lang=ta` and reads server-rendered HTML, so it exercises exactly the mechanism F7 part two replaced |
+| `scripts/font-probe.mjs` | does this surface actually resolve the font it declares? | one Fraunces on all three public load contexts; `--font-nova-display` gone |
 
 ### The sweep was measuring less than it claimed
 
@@ -1150,8 +1271,13 @@ entry fixed in `955f4fa`. Fixed in `68d8948`: 11 tests / 0 sub-tabs → 12 tests
 11 sub-tabs reached. **A list of destinations is only worth having if a destination
 going missing is loud.**
 
-**A caution that applies to all of them.** Three separate tools in this repo have now been
-fooled by the same thing — a name the source builds rather than writes. `css-split.mjs`'s
+**A caution that applies to all of them.** Four separate searches in this repo have now been
+fooled by the same thing — a name the file writes differently from how the search spells it.
+`as-rasi--${tone}` (built by interpolation), `novaFieldStyle` (a case-sensitive prefix),
+`Learn · Chandrashtama` (a non-ASCII character escaped in the minified output), and F7 part
+two's `^"use client"` (defeated by a UTF-8 BOM). **Every one returned a confident, wrong,
+*smaller* number** — 0 of 126 routes, 9 copies not 11, 26 pages not 64 — which is the direction
+that makes you stop looking. Three separate tools have been fooled by the same thing: `css-split.mjs`'s
 conflict check reads literal `className` strings, so a conditionally-applied modifier was
 invisible to it. The F4 prune read literal class names, so `as-rasi--${tone}` was invisible to
 it. `css-inventory.mjs` splits template literals on `${…}` deliberately, which is right for
