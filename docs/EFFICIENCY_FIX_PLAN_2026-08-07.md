@@ -31,6 +31,18 @@ Verified, so nobody wastes a sprint "fixing" these:
 - **Marketing data modules are properly confined.** `marketing-i18n.ts`,
   `guide-detail-content.ts`, `natchathiram-data.ts` (7,500+ lines combined) are imported
   only by `app/` marketing routes. Zero leak into the dashboard bundle.
+
+  > **⚠️ Half-true, and the wrong half was checked — corrected by F7, 2026-08-09.** This
+  > asked "does it leak into the *dashboard*", and the answer is genuinely no. But this
+  > table's own left column says marketing is judged on **first-load bytes**, and by that
+  > measure the question that mattered was whether these modules leak *across marketing
+  > routes*. `marketing-i18n.ts` did, completely: all 63 exports in one chunk on 117 of
+  > 121 routes. "Do not touch" held for two of the three files — `natchathiram-data.ts`
+  > is correctly confined to its 28 routes, verified — but it parked the largest single
+  > win in the repo under a heading that told people to skip it. F6 had already found the
+  > same entry wrong once (`BetaSystem` pulled 524 KB of `marketing-i18n` into the **root**
+  > layout). Twice is not bad luck: **a "verified clean" note is only as good as the
+  > question it asked, and it does not carry the question with it.**
 - **`framer-motion` is dashboard-only.** 9 importers, all under dashboard/login. The
   `components/ui` barrel already deliberately excludes `Score`/`Table`/`ProgressBar` to keep
   it that way — keep honouring that.
@@ -621,6 +633,76 @@ server component. Start with the highest-traffic routes (`/`, `/tools/*`).
 
 **Effort:** ~1 day for the top 15 routes. **Measure per route** — don't do all 55 blind.
 
+#### ✅ PART ONE LANDED 2026-08-09 — but the prescribed fix does not apply, and the real cost was somewhere else
+
+**The triage first, because it invalidates the plan above.** Of the 53 marketing
+`"use client"` files, **26 use no React hook at all** — and they are client components for a
+single reason: `useLang()` is a context hook, and it is threaded through *every text node* on
+the page as `mt(d.h1, lang)`. So "push the interactive leaf into a small client child" has no
+leaf to push. The whole page is the consumer. Converting these means resolving the language on
+the server, which is a different job with a product-visible consequence (a language toggle
+becomes a round trip), and it was raised rather than assumed.
+
+**What measuring found instead, and it is bigger than the `"use client"` count.** All 63
+exports of `lib/marketing-i18n.ts` (524 KB of source) land in **one webpack commons chunk that
+117 of 121 marketing routes download eagerly**. `/learn/what-is-chandrashtama` — a 55-line page
+that imports exactly one object — ships the Thirunallar temple's full English description, the
+five dosham guides, and every tool's copy.
+
+The import map was never the problem: every page already imports precisely its own slice. What
+was missing was **module granularity for webpack to act on**.
+
+| | JS per route (union over the layout chain, uncompressed) |
+|---|---|
+| marketing, before | 462.8K – **1712.6K** |
+| marketing, after | 462.8K – **1240.9K** |
+| per-route saving | **−477 KB**, uniform across all 117 routes; **no route grew** |
+
+**Two things are required and neither works alone.** Probed before writing the splitter,
+because the reasoning would have got this wrong in both directions:
+
+| | result |
+|---|---|
+| `"sideEffects"` in package.json, alone | **117 routes. No change at all.** |
+| the module split, alone | **117 routes.** Without the flag webpack must assume importing any module has side effects, so an unused `export *` cannot be dropped. |
+| both | **1 route.** |
+
+That asymmetry is the whole reason `lib/marketing-i18n-split.test.ts` exists. Deleting one line
+of `package.json` silently reverts 477 KB per route and leaves a tree that merely *looks* better
+organised — `tsc`, eslint and `next build` all stay green, and the only symptom is a number in a
+report nobody runs. The guard was verified by removing the field and watching it fail, not just
+by watching it pass.
+
+**Landed:** `scripts/i18n-split.mjs` (63 exports → 45 per-page modules + `_s.ts`; barrel
+524 KB → 3.2 KB), `"sideEffects": ["*.css"]` in `web/package.json`,
+`lib/marketing-i18n-split.test.ts` (4 tests), `scripts/marketing-render-probe.mjs`.
+
+**No import site changed.** The barrel stays at `lib/marketing-i18n.ts` while the domains live
+in `lib/marketing-i18n/`; a file beats a directory in both TS and webpack resolution, so all 63
+`from "@/lib/marketing-i18n"` imports keep meaning the barrel. Text is moved verbatim and
+spliced out, so each new file reviews as "the same bytes, relocated" and the splitter refuses to
+run on its own output — the trap `css-split.mjs` documented after a re-run would have written an
+empty `marketing.css`.
+
+**Two measurement hazards worth recording, both hit here:**
+
+1. **A needle containing `·` reported "0 of 126 routes" for a module that was on 117.** The
+   interpunct is escaped in the minified chunk, so a literal search misses it. This is the same
+   class as `as-rasi--${tone}` and `novaFieldStyle` — three tools and now one search string
+   fooled by a name the output writes differently from the source. Use plain ASCII needles.
+2. **Two `next dev` servers left running from the previous day were rewriting `.next` on every
+   file change**, replacing the production build under `next start` — every route 404'd with a
+   zero-length body while the route manifest listed it correctly. It also means a measurement
+   taken from `.next` is only trustworthy if nothing recompiled since the build; the numbers
+   above were re-derived on a clean build with no dev server running and **reproduced exactly**.
+
+**Still open in F7:** the RSC conversion itself. The 26 hookless pages remain client components,
+and the `NAV`/`FOOTER` chrome (9 KB) is genuinely on every page and should stay. Worth noting for
+whoever picks it up: **46 of 52 route rows are already `ƒ` Dynamic**, because the root layout
+does `await cookies()` to read the lang cookie — so the usual objection to server-rendering the
+active language (losing static prerendering) has already been paid, and `LangProvider` then
+re-derives that same value on the client from `localStorage` anyway.
+
 ---
 
 ## Phase 3 — [D] Dashboard: one fetch path, one form control
@@ -714,6 +796,53 @@ render from `dashboard-family-charts-hybrid` *and* from
 `dashboard-charts-panel-nova.tsx` — the latter being one of F11's 13 orphans, so
 that render site ships to nobody. Four of the five also sit behind
 `AdvancedAstrologyGate`. **The cycle named in this item mounts none of them.**
+
+#### ✅ THE KNOWN-OPEN EXCEPTION CLOSED 2026-08-09 — `life-event-log`
+
+Migrated on touch, which is the path this item prescribes. `NovaLifeEventLogCard`
+now reads through `useApiQuery` on one key (`["life-event-log", chartId]`), and the
+POST writes the new row into that cache with `setQueryData` instead of into local
+state.
+
+**Why this one refetched per lap when the six did not:** it has **two mount sites**
+(`dashboard-plan-tab-nova.tsx:549` and `:557`), so a hand-rolled `useEffect` fetch
+re-ran on each, and neither could see the other's rows. One shared key fixes both
+the traffic and the coherence problem at once.
+
+`STALE.session` rather than the `STALE.today` the six F8 panels use. Those are
+natal-chart derivations that genuinely cannot change during a session; a life event
+log is authored by the user and may be edited from another device, so a 24-hour
+stale window would be wrong for a different reason than it is right for them.
+
+**A defect found by reading the code being moved, not by any test.** The old
+`.catch(() => setItems([]))` collapsed a failed load into the *empty* state, so the
+card said "No events logged yet. Tap + Log event to add your first." when the
+request had actually errored. That is the one reading of this card that must never
+be wrong — it invites the user to re-enter history they already recorded. It now
+renders an `<AsyncSection>` error with a retry.
+
+Its loading line was also `"ஏற்றுகிறோம்..."` — first-person plural, ASCII ellipsis —
+against the sixteen byte-identical `"ஏற்றுகிறது…"` the F8 sweep counted. Folded into
+the shared default, because unlike `"ஜாதகம் ஏற்றப்படுகிறது…"` it names nothing and
+inflects for nothing, so it is drift rather than copy.
+
+**Measured, against the isolated e2e stack** (backend :8010 on `vinaadi_e2e`,
+frontend :3100, proxy confirmed reporting `environment=e2e`, `--workers=1`):
+
+```
+[tab-cycle] every v1 request over two laps (7 total):
+      1x  charts/{id}/life-event-log     <- was 1x per lap
+      1x  event-windows
+      1x  activity-timing/batch
+      1x  charts/{id}/predictions/{marriage,career,wealth,health}
+[tab-cycle] endpoints requested more than once: 0
+```
+
+`e2e/tab-cycle-requests.spec.ts`'s exception list is now empty and the assertion is
+the strict form: **nothing** may be requested twice across two laps. Unlike F8's
+headline claim, this one is a real measured reduction — small (one request per extra
+lap), but it is the assertion that now holds the line for the ~29 hand-rolled blocks
+still outstanding.
 
 ### F9 · `<SecondaryDashaPanel>` — five panels are one component
 
@@ -832,6 +961,35 @@ Guard: `lib/field-style-guard.test.ts`, both directions. It keys on a control bo
 a print-table cell, two card surfaces and a tile, and a guard that cries wolf earns an
 allowlist entry rather than a fix.
 
+#### ⛔ THE [M] HALF IS CLOSED AS WON'T-DO — decided 2026-08-09
+
+Raised rather than picked, and the answer is to leave the four marketing tools
+(`MuhurtaTool`, `JadhagamTool`, `PanchangamTool`, `FriendshipTool`) on their own
+`fieldStyle` consts.
+
+**The reason is that there is no defect here to fix.** All four already nest their
+inputs inside their `<label>`, so every control has an accessible name. The a11y gap
+this item was written about was **entirely dashboard-side**, and that half is done
+(13 of 19 unnamed → 0). What remains on the marketing side is four duplicated style
+objects — a tidiness cost.
+
+**What adopting the kit would actually cost.** `.ui-input` / `.ui-select` /
+`.ui-textarea` exist *only* as `[data-ui="nova"] .cd-shell .ui-*` in
+`dashboard-nova.css`, which marketing has not loaded since the F4 split, and no
+marketing page renders `.cd-shell`. So the swap is not a swap: it requires authoring
+a second, marketing-scoped form-control system in Clarity tokens, and then giving it
+its own browser pass in both themes on **SEO-indexed pages**. Paying that to
+de-duplicate four style objects is the wrong trade.
+
+The third option — hoisting Nova's `.ui-*` block out of its `.cd-shell` scope so both
+surfaces share one definition — was rejected for a more specific reason: it un-scopes
+a dashboard-authored system onto the cream marketing pages, which is precisely the
+tangle F5 and F4 just finished undoing. The `.cd-shell` collision is a solved problem
+and should not be re-created one namespace over.
+
+The four stay allowlisted in `lib/field-style-guard.test.ts`. Revisit only if
+marketing gains a form-heavy surface that wants the kit for its own sake.
+
 ---
 
 ## Phase 4 — Dead weight
@@ -908,11 +1066,15 @@ Phase 4     F11 step 1 (headers) — do today, costs nothing
             F11 step 2 (deletion) — per file, on approval
 ```
 
-**Status 2026-08-08:** F1, F2, F3, F4, F5, F6, F8, F9, F10 and F11 step 1 have all
-landed. Open: **F7** (55 marketing `"use client"` files), **F11 step 2** (deletion,
-per file, on explicit approval only), the two **Fraunces** declarations (a design
-call), the ~17 KB of unreferenced `.cl-*` left in `marketing.css`, and the **[M]
-half of F10**, which needs marketing-scoped field CSS before it can move at all.
+**Status 2026-08-09:** F1, F2, F3, F4, F5, F6, F8, F9, F10 and F11 step 1 have all
+landed. **F7 part one** (the i18n module split, −477 KB per marketing route) has
+landed; **F10's [M] half is closed as won't-do** with the reason recorded.
+
+Open: **F7 part two** — the RSC conversion of the 26 hookless marketing pages, which
+needs a decision about whether the language toggle may become a server round trip;
+**F11 step 2** (deletion, per file, on explicit approval only); the two **Fraunces**
+declarations (a design call); and the ~17 KB of unreferenced `.cl-*` left in
+`marketing.css`.
 
 **Hard dependencies:**
 - F5 **must** ship inside F4 (the `.cd-shell` collision is currently held at bay by CSS load
@@ -942,6 +1104,7 @@ paid for once.
 | Every load context can reach the CSS it uses; one loader per stylesheet; size ratchets | F4 regression | `lib/css-surface-boundary.test.ts` ✅ |
 | A class only an interpolation can build is still a live class | the F4-step-5 prune that deleted 13 live rules | `lib/css-dynamic-class.test.ts` ✅ |
 | No marketing or root-only route reaches react-query / sonner | F6 regression — a runtime crash on a public page, not a build error | `lib/payload-boundary.test.ts` ✅ |
+| `package.json` keeps `sideEffects`, and the i18n barrel declares nothing itself | F7 regression — silently puts all 63 i18n domains back on all 117 marketing routes, with **no** build error and no visible symptom | `lib/marketing-i18n-split.test.ts` ✅ |
 | `components/ui` barrel must not transitively import `framer-motion` | the ChunkLoadError class already hit once | build-time check |
 | Orphan scan (basename appears in no import specifier) in CI, warn-only | F11 recurrence | CI job |
 
@@ -960,7 +1123,9 @@ cheap to re-run and each found something.
 | `scripts/payload-probe.mjs` | who actually reaches this module? | login does not need react-query |
 | `scripts/js-budget.mjs` | which routes ship this package? | 126 → 6 / 3 / 3 |
 | `e2e/field-a11y-probe.spec.ts` | does the browser give this control a name? | 13 of 19 unnamed → 0 |
-| `e2e/tab-cycle-requests.spec.ts` | what crosses the wire on a tab cycle? | F8's headline claim did not reproduce; `life-event-log` refetches per lap |
+| `e2e/tab-cycle-requests.spec.ts` | what crosses the wire on a tab cycle? | F8's headline claim did not reproduce; `life-event-log` refetches per lap (now fixed; assertion tightened to zero exceptions) |
+| `scripts/i18n-split.mjs` (guarded) | can a marketing page ship only its own copy? | 63 exports in one 488 KB chunk on 117 routes |
+| `scripts/marketing-render-probe.mjs` | does the page still render its own copy, in **both** languages? | 39/39 clean after the split |
 
 ### The sweep was measuring less than it claimed
 
