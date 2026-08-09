@@ -1268,20 +1268,7 @@ unsafe direction — 9 of the 73 `.cl-*` are interpolation-built and live.**
 Open, in the order I'd take them:
 
 1. ~~The ~17 KB of unreferenced `.cl-*` in `marketing.css`~~ — **DONE 2026-08-09.**
-2. **An authenticated render pass**, which three separate items now owe: F9's three
-   secondary-dasha panels, F10's migrated fields, and the Fraunces merge's dashboard
-   half. One signed-in session closes all three.
-
-   **The stated reason the F9 panels were never diffed is wrong, and the real one is
-   easier to act on.** F9 says they "render behind `AdvancedAstrologyGate`, which the
-   sweep's BALANCED-mode account does not open" — but that gate is a **pass-through** for
-   BALANCED and TRADITIONAL (`advanced-astrology-gate.tsx:26` returns `<>{children}</>`;
-   only BEGINNER wraps them). They are rendered. What hides them is that
-   `SecondaryDashaPanel` wraps itself in `<CollapsibleSection defaultOpen={false}>`, and
-   `collapsible-section.tsx:61` renders `{open && …}` — **a closed section puts no children
-   in the DOM at all.** So the pass needs to click each of the three open on the Family &
-   Charts tab; no user-mode change is involved. (`e2e/css-ab.spec.ts` already has a working
-   signed-in bootstrap to build on.)
+2. ~~An authenticated render pass~~ — **DONE 2026-08-09**, see below.
 3. **Re-baselining `web/tests/visual`** — gitignored, dated 2026-06-30, all 33 failing
    identically since before the CSS split, so it currently blinds every visual change.
    Its own job, and it gates item 2 being worth much.
@@ -1300,6 +1287,65 @@ Open, in the order I'd take them:
 
 **Parallelisable:** Phase 2 [M] and Phase 3 [D] touch disjoint files and can run
 concurrently on separate branches.
+
+---
+
+## The authenticated render pass — LANDED 2026-08-09
+
+`e2e/dashboard-render-pass.spec.ts`, 8 tests, closes what F6, F9 and F10 each owed.
+
+**F6 — the Fraunces merge's dashboard half is closed.** Signed in, `--font-display`
+resolves to `'Fraunces', 'Fraunces Fallback'` **identically on `<html>` and inside
+`.cd-shell`**, `--font-nova-display` is empty in both, and the `<h1>` renders Fraunces at
+weight 600. That equality is the whole point: `.cd-shell` used to re-point the variable at
+a second `next/font` instance and now inherits the one on `<html>`. It is asserted rather
+than screenshotted, because a screenshot cannot distinguish a correctly-inherited Fraunces
+from a fallback serif.
+
+**F9 — the three panels render, and the stated reason they never had is wrong.** F9 says
+they "sit behind `AdvancedAstrologyGate`, which the sweep's BALANCED-mode account doesn't
+open". That gate is a **pass-through** for BALANCED and TRADITIONAL —
+`advanced-astrology-gate.tsx:26` returns `<>{children}</>`, and only BEGINNER wraps
+anything. What actually hid them is one level down: `SecondaryDashaPanel` wraps itself in
+`<CollapsibleSection defaultOpen={false}>`, and `collapsible-section.tsx:61` renders
+`{open && …}` — **a closed section puts no children in the DOM at all.** No skeleton, no
+empty state, no error: an absent subtree, which no assertion on that page could have
+noticed. All three now open and render real content (Yogini "Sankata · Rahu", Ashtottari's
+classical-applicability card, Kalachakra "Mesham 2025-10-21 – 2032-10-20"), with no error
+state. Each is captured as its own element screenshot — the full-page one is ~12,600 px
+tall, at which scale the thing being inspected is a few pixels.
+
+**F10 — the migrated fields render consistently.** 20 controls across five signed-in
+surfaces (What-If, Decisions, Best Dates & Muhurta, Journal, Settings): every text-ish
+control 37–41 px tall (textareas 96–128), and every migrated field carrying the identical
+`1px rgba(201, 151, 28, 0.4)` border at 14 px. The box check skips checkboxes and radios —
+the first run flagged a 13×13 checkbox as "collapsed", and that was the assertion being
+wrong, not the markup.
+
+### Three things the pass found that were not what it went looking for
+
+**1. A user with no family-vault member sees no chart at all on Family & Charts.** The
+spec's first account had a birth profile and nothing else, and the entire chart half of the
+tab rendered nothing — no D1/D9, no bhava table, no planet orbs, no "Full technical
+reading" — leaving a blank region between the forecast table and "Family connections". The
+reading sections hang off `activeMeta = memberMeta.find(m => m.isSelf)`, and `memberMeta`
+maps `familyAggregate.members`; with no member the owner's own row
+(`familyMemberId === birthProfileId`) never appears, so `readingChart` is null **while
+`readingChartId` still falls back to the owner's chart**. The panels are gated on the id
+and their parent section on the object, so they cannot appear. Adding an empty vault was
+tried and is **not** enough — the boundary is ≥1 member. `nova-sweep` creates a vault *and*
+a spouse, so this state is covered nowhere.
+
+**2. Settings renders 13 controls with a different border** (`1px rgb(228, 219, 200)`) from
+the migrated kit fields. Not an F10 regression — `dashboard-settings-session-tab.tsx` has no
+`fieldStyle` left, so its migration held; these belong to a different settings form that was
+never on F10's list. They also report no `name`/`aria-label`/`id`.
+
+**3. The Yogini list runs to 2126** for a 1990 birth — a panel titled "36-Year Cycle"
+listing roughly four of them, ~30 rows past any plausible lifespan. Pre-existing and
+untouched by F9, which changed the shell and not the data.
+
+None of the three is fixed here; each is a separate item.
 
 ---
 
