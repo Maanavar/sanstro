@@ -334,6 +334,10 @@ the `/dashboard` layout. So the asymmetry is one-directional and fixable.
    the saving now falls on marketing alone rather than on every route. Worth a separate pass
    with a browser open, not a drive-by.
 
+   **✅ DONE 2026-08-09 — and those numbers were wrong in the dangerous direction.**
+   See "F4 step 5, the remainder" below: the safe set is **64** `.cl-*`, not 73. Nine of
+   the 73 are built by interpolation and are live.
+
 **Verify:** cold-load transferred CSS on `/dashboard` before vs after; and a visual-diff
 sweep of both surfaces (`web/tests/visual/quality-gates.spec.ts` already exists — extend it).
 
@@ -485,6 +489,81 @@ Re-baselining it is a separate job.
 with an empty one. Two guards, because they fail in different cases (outputs already exist;
 input no longer holds a marketing system). "Are `.cl-*` rules still present" is **not** a
 usable signal — 85 `.cl-*` matches survive in the base inside grouped selectors.
+
+#### ✅ F4 STEP 5, THE REMAINDER — LANDED 2026-08-09
+
+**90 rules, 10,596 bytes out of `marketing.css`. Marketing CSS per route 144.1K → 135.9K
+(−8.2 KB, minified), across all 121 marketing routes. Dashboard and root-only unchanged,
+as they must be — `marketing.css` is not in their load chain.**
+
+**The plan's own candidate list above was wrong in the unsafe direction, and by exactly the
+mechanism that broke the first prune.** It said 73 `.cl-*`. Nine of those 73 —
+`cl-score-bar--{high,mid,low}`, `cl-score-num--{high,mid,low}`,
+`cl-num-reading__relation--{high,mid,neutral}` — are built by interpolation on
+`app/(marketing)/family/page.tsx`, `features/family-planning/page.tsx`,
+`components/home-content.tsx` and `tools/baby-name-finder/BabyNameFinderContent.tsx`. They
+are live. **Pruning to this document's stated numbers would have repeated 623ad59's exact
+mistake, in the same namespace, one namespace-mate over from the rules it already deleted.**
+A count written down after a measurement does not carry the measurement's caveats with it —
+the same failure as §0's "properly confined" note, which was wrong three times.
+
+**The prerequisite was fixing the guard, which was flagging everything** (`0744666`). While
+`cl-` was a phantom prefix, the audit answered "all ~400 `.cl-*` classes are at risk", so it
+could not have distinguished the 9 live rules from the 64 dead ones. That is the whole reason
+this item was left open with "run `css-dynamic-class-audit.mjs` first" attached to it, and the
+instrument named there would not have answered.
+
+**Four instruments, chosen because they fail in different directions.** No single one licenses
+a prune:
+
+| Instrument | Question | Result |
+|---|---|---|
+| `css-inventory.mjs` | does any file in the import graph name this class? | 94 unreferenced |
+| `css-dynamic-class-audit.mjs` | could an interpolation build this name? | **24 rules withheld**, incl. all 13 that 623ad59 deleted |
+| `css-class-repo-grep.mjs` *(new)* | does **any** file of **any** type mention it? | 1 hit, a doc-comment example |
+| `css-rendered-class-probe.mjs` *(new)* | does it appear in real HTML? | **0 of 67, over 396 routes × 2 languages** |
+
+**The rendered probe is the instrument this repo has been missing for four sessions.** Every
+"is this used?" tool here reads source, and the caution at the end of this document lists four
+searches defeated by a name the output writes differently from the source. A rendered page
+carries *final* class names — an interpolation has already been evaluated, so `as-rasi--fire`
+appears as itself. It is the one instrument immune to the blind spot that caused the 13-rule
+regression. It crawls from `/` rather than taking a route list, because a route list goes stale
+silently (`nova-sweep`'s did), and it refuses to report a clean result unless canary classes
+(`cl-nav`, `cl-footer`, `cl-container`) are present — otherwise a crawl that harvested nothing
+reads exactly like a pass.
+
+**Why source-scanning still covers the case the crawler cannot reach.** A crawler never submits
+a form, so `.cl-tool__result` / `__score-card` / `__bars` — result-state styling on the tool
+pages — would be invisible to it. But interaction changes what *renders*, not what is *written*:
+if a tool rendered those classes, its JSX would contain the literal string, and the repo-wide
+grep found none. The tools moved to inline `fieldStyle` objects (see F10) and left this CSS
+behind. The only case no instrument covers is a class both interpolated *and* interaction-only,
+and net 2 excludes every doomed class from any known interpolation prefix.
+
+**Verification of the splice itself, since that was the remaining risk.** The rendered class
+inventory is **identical before and after — 440 distinct classes, zero added, zero removed**.
+Structurally: 800 → 710 leaf rules, exactly the 90 reported; every surviving rule's body
+byte-identical; no deletion outside the list; and the result is asserted to be a *subsequence*
+of the input, so it cannot be a re-serialisation. 392 web unit tests green, 153 pages build,
+`marketing-render-probe` 39/39 clean in both languages, eslint unchanged at the known 4.
+
+**Left behind deliberately:** three grouped selectors still name a dead class alongside a live
+one (`.cl-pub-body, .cl-trust-body`; `.cl-pub-lead` beside `.cl-hero__body`; the
+`.cl-mobile-*`/`.cd-responsive-*` grid group). Net 1 refuses these — deleting the rule would
+take the live class with it, and editing a selector list is a different, riskier operation than
+removing a whole rule. A dead fragment in a live selector costs a few bytes and no behaviour.
+
+**New: `scripts/css-prune.mjs`, guarded three ways** — every class in the rule unreferenced
+(net 1, which 623ad59 had), no class interpolation-constructible (net 2, **the one it lacked**),
+and the rule must have at least one class (net 3). It refuses to run at all if the audit reports
+fewer than 50 at-risk classes, because "nothing is at risk" and "the scan is broken" are
+indistinguishable from the outside, and the broken reading is the one that deletes live rules.
+
+**Found while crawling, unrelated and not fixed here:** three internal links 404 —
+`/panchangam` in `components/public-footer.tsx:37` (so on **every** marketing route;
+`/panchangam/today` and `/panchangam/[date]` exist, bare `/panchangam` does not),
+`/natchathirams` ×2 (the route is `/natchathiram`), and `/signup` ×3 (the route is `/login`).
 
 ### F5 · [M+D] Kill the `.cd-shell` name collision
 
@@ -1179,14 +1258,30 @@ complete — part one (the i18n module split, −477 KB per marketing route) and
 closed as won't-do with the reason recorded, and F6's last open thread — the two
 Fraunces declarations — is merged.
 
+**Update 2026-08-09 (later session):** item 1 below is **done** — see "F4 step 5, the
+remainder". 90 rules / 10.6 KB out, marketing CSS 144.1K → 135.9K per route. It needed the
+prune guard fixed first (`0744666`): a commented `cl-${x}` in `css-inventory.mjs` was
+marking the whole `.cl-*` namespace at-risk, so the instrument this item told you to run
+would have answered "all of them are live". **The stated candidate count was wrong in the
+unsafe direction — 9 of the 73 `.cl-*` are interpolation-built and live.**
+
 Open, in the order I'd take them:
 
-1. **The ~17 KB of unreferenced `.cl-*` in `marketing.css`** (73 `.cl-*`, 3 `.clf-*`,
-   3 `.cd-*`). Wants a browser open and `css-dynamic-class-audit.mjs --since <ref>` run
-   first — F4's earlier prune deleted 13 live rules in exactly this namespace.
+1. ~~The ~17 KB of unreferenced `.cl-*` in `marketing.css`~~ — **DONE 2026-08-09.**
 2. **An authenticated render pass**, which three separate items now owe: F9's three
    secondary-dasha panels, F10's migrated fields, and the Fraunces merge's dashboard
    half. One signed-in session closes all three.
+
+   **The stated reason the F9 panels were never diffed is wrong, and the real one is
+   easier to act on.** F9 says they "render behind `AdvancedAstrologyGate`, which the
+   sweep's BALANCED-mode account does not open" — but that gate is a **pass-through** for
+   BALANCED and TRADITIONAL (`advanced-astrology-gate.tsx:26` returns `<>{children}</>`;
+   only BEGINNER wraps them). They are rendered. What hides them is that
+   `SecondaryDashaPanel` wraps itself in `<CollapsibleSection defaultOpen={false}>`, and
+   `collapsible-section.tsx:61` renders `{open && …}` — **a closed section puts no children
+   in the DOM at all.** So the pass needs to click each of the three open on the Family &
+   Charts tab; no user-mode change is involved. (`e2e/css-ab.spec.ts` already has a working
+   signed-in bootstrap to build on.)
 3. **Re-baselining `web/tests/visual`** — gitignored, dated 2026-06-30, all 33 failing
    identically since before the CSS split, so it currently blinds every visual change.
    Its own job, and it gates item 2 being worth much.
@@ -1222,6 +1317,7 @@ paid for once.
 | Every sub-tab named in `TOP_TABS` is actually reached | a sweep silently shrinking to nothing | `e2e/nova-sweep.spec.ts` ✅ |
 | Every load context can reach the CSS it uses; one loader per stylesheet; size ratchets | F4 regression | `lib/css-surface-boundary.test.ts` ✅ |
 | A class only an interpolation can build is still a live class | the F4-step-5 prune that deleted 13 live rules | `lib/css-dynamic-class.test.ts` ✅ |
+| That same guard must not flag *everything* — no prefix read out of a comment, none attributed to `scripts/`/`e2e/` | the guard answering "all ~400 `.cl-*` are live", which is not an answer and would have let the remaining prune delete 9 live rules | `lib/css-dynamic-class.test.ts` ✅ |
 | No marketing or root-only route reaches react-query / sonner | F6 regression — a runtime crash on a public page, not a build error | `lib/payload-boundary.test.ts` ✅ |
 | `package.json` keeps `sideEffects`, and the i18n barrel declares nothing itself | F7 regression — silently puts all 63 i18n domains back on all 117 marketing routes, with **no** build error and no visible symptom | `lib/marketing-i18n-split.test.ts` ✅ |
 | The language toggle actually re-renders server copy | F7 part two — a **dead control** on ~45 server-rendered routes, with tsc, eslint, `next build` and the unit suite all green and the toggle still working on the pages that kept `useLang()` | `components/lang-toggle.test.tsx` ✅ |
@@ -1247,6 +1343,9 @@ cheap to re-run and each found something.
 | `scripts/i18n-split.mjs` (guarded) | can a marketing page ship only its own copy? | 63 exports in one 488 KB chunk on 117 routes |
 | `scripts/marketing-render-probe.mjs` | does the page still render its own copy, in **both** languages? | 39/39 clean after the split **and** after the RSC conversion — it sends `jothidam-lang=ta` and reads server-rendered HTML, so it exercises exactly the mechanism F7 part two replaced |
 | `scripts/font-probe.mjs` | does this surface actually resolve the font it declares? | one Fraunces on all three public load contexts; `--font-nova-display` gone |
+| `scripts/css-prune.mjs` (guarded) | which rules are safe to delete, and which does an interpolation still build? | 90 deletable; **24 withheld**, incl. all 13 that 623ad59 deleted while live |
+| `scripts/css-rendered-class-probe.mjs` | which classes does the site actually put in its HTML? | 0 of 67 doomed classes on 396 routes × 2 languages; class inventory identical before/after; 3 internal links 404 |
+| `scripts/css-class-repo-grep.mjs` | does any file of any type mention this class? | the boundary rule matters — 4 "live" classes on substring match, 1 on token match, and that one a doc comment |
 
 ### The sweep was measuring less than it claimed
 
