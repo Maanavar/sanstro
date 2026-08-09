@@ -21,6 +21,8 @@ import { readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join, dirname, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { stripComments } from "./lib/strip-comments.mjs";
+
 const WEB = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const rel = (p) => relative(WEB, p).split(sep).join("/");
 
@@ -66,48 +68,8 @@ const read = (p) => {
   return TEXT.get(p);
 };
 
-/**
- * Blank out comments, preserving length. This is not optional: this codebase
- * documents its CSS decisions *in prose that names the classes*, so a naive scan
- * reports `.cd-shell` as live on two marketing pages that only mention it in a
- * comment. That error runs in the unsafe direction for a CSS split — a dead
- * class looks used, and gets carried forward forever.
- */
-function stripComments(src) {
-  let out = "";
-  let i = 0;
-  const n = src.length;
-  while (i < n) {
-    const c = src[i];
-    const d = src[i + 1];
-    if (c === "/" && d === "/") {
-      let j = i;
-      while (j < n && src[j] !== "\n") j++;
-      out += " ".repeat(j - i);
-      i = j;
-    } else if (c === "/" && d === "*") {
-      let j = src.indexOf("*/", i + 2);
-      j = j === -1 ? n : j + 2;
-      out += src.slice(i, j).replace(/[^\n]/g, " ");
-      i = j;
-    } else if (c === '"' || c === "'" || c === "`") {
-      let j = i + 1;
-      while (j < n) {
-        if (src[j] === "\\") j += 2;
-        else if (src[j] === c) break;
-        else j++;
-      }
-      j = Math.min(j + 1, n);
-      out += src.slice(i, j);
-      i = j;
-    } else {
-      out += c;
-      i++;
-    }
-  }
-  return out;
-}
-
+// Shared with css-dynamic-class-audit.mjs, which needs the same guarantee for
+// the opposite reason — see scripts/lib/strip-comments.mjs.
 const CODE = new Map();
 const readCode = (p) => {
   if (!CODE.has(p)) CODE.set(p, stripComments(read(p)));

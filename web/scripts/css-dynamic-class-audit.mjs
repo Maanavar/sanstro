@@ -32,6 +32,8 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { resolve, dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { stripComments } from "./lib/strip-comments.mjs";
+
 const WEB = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const REPO = resolve(WEB, "..");
 const sinceAt = process.argv.indexOf("--since");
@@ -49,7 +51,41 @@ function walk(dir, out = []) {
 }
 
 const FILES = walk(WEB);
-const CODE = FILES.filter((f) => /\.(tsx?|jsx?|mjs)$/.test(f) && !/\.test\.[tj]sx?$/.test(f));
+const relWeb = (f) => relative(WEB, f).replace(/\\/g, "/");
+
+/**
+ * Only the *application* builds class names that reach a browser. Tooling and
+ * specs merely name them, and counting those inverts what this audit is for.
+ *
+ * Two concrete false positives this excludes, both of which made the audit
+ * useless for the job it was written to protect — F4 step 5's remaining prune:
+ *
+ *   - `scripts/css-inventory.mjs:413` explains its DYNAMIC_RE with the example
+ *     `cl-${x}` **in a comment**. That invented a bare `cl-` prefix, so all ~400
+ *     `.cl-*` classes reported "invisible to a usage scan, do not delete" — the
+ *     entire marketing namespace, including every rule the prune is meant to
+ *     consider. A guard that flags everything answers nothing, and this repo's
+ *     own record (F10) is that a guard which cries wolf earns an allowlist entry
+ *     rather than a fix.
+ *   - `e2e/css-ab.spec.ts` names `as-rasi--${…}` because it *asserts* on those
+ *     classes. Asserting on a class does not render it.
+ *
+ * The real interpolations survive on their own merit: `as-rasi--`, `as-nak--`
+ * and `as-topic__mark--` all come from `components/astro-symbols.tsx`, and the
+ * three genuine `cl-` families from the marketing pages that build them.
+ *
+ * Same predicate as css-inventory.mjs's CODE_FILES, deliberately — the two
+ * instruments answer opposite halves of one question and must scan one corpus.
+ */
+const CODE = FILES.filter(
+  (f) =>
+    /\.(tsx?|jsx?|mjs)$/.test(f) &&
+    !/\.test\.[tj]sx?$/.test(f) &&
+    !/\.spec\.[tj]sx?$/.test(f) &&
+    !relWeb(f).startsWith("scripts/") &&
+    !relWeb(f).startsWith("e2e/") &&
+    !relWeb(f).startsWith("tests/"),
+);
 const CSS_NOW = ["app/globals.css", "app/marketing.css", "app/dashboard/dashboard-globals.css", "app/dashboard/dashboard.css", "app/dashboard/dashboard-nova.css"];
 
 const classesInCss = (text) =>
@@ -64,7 +100,10 @@ const classesInCss = (text) =>
 function interpolationPrefixes() {
   const prefixes = new Map(); // prefix -> Set(file)
   for (const f of CODE) {
-    const src = readFileSync(f, "utf8");
+    // Comments stripped: this file's own header documents the bug it guards
+    // against using a real interpolation, and so does css-inventory.mjs. Prose
+    // that names a class is not a class.
+    const src = stripComments(readFileSync(f, "utf8"));
     for (const m of src.matchAll(/`([^`]*)`/g)) {
       const tpl = m[1];
       for (const seg of tpl.matchAll(/([A-Za-z_][\w-]*)\$\{/g)) {
