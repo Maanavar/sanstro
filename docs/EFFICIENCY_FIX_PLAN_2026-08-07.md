@@ -1451,12 +1451,25 @@ retry needed. Re-run three times over the full suite; zero contrast findings aga
 **33/33 does not currently hold, but not for a contrast reason.** The full suite (all 3
 projects × 11 specs) now shows 22 passed outright, 6 flaky (pass on retry), 5 failed — all of
 it concentrated in the three `toHaveScreenshot` baseline tests (`home`, `methodology`,
-`daily-guidance`), never in the 24 axe/layout tests. `home` fails identically on all three
-projects: expected 1280×7039, received 1280×7004 — the same 35 px short on every project,
-which points at page content that changed height uniformly rather than a per-project rendering
-difference. Not investigated further here — it's unrelated to the beta-modal fix (different
-pages, different failure mode: a pixel-diff ratio, not an axe rule) and re-baselining is
-already on record above as its own job, not a drive-by inside this one.
+`daily-guidance`), never in the 24 axe/layout tests. Unrelated to the beta-modal fix (different
+pages, different failure mode: a pixel-diff ratio, not an axe rule).
+
+**First read was wrong: it isn't stale-baseline drift, it's a live race, reproduced by trying
+the "obvious" fix.** `home` first failed 1280×7039 (baseline) vs 1280×7004 (actual) — 35 px
+short, on every project, which read as "content got shorter since the baseline was captured."
+Regenerating the local baselines (`npm run test:visual:baseline`) and re-running immediately —
+same code, seconds apart — failed again, **in the opposite direction**: 1280×6992 (new
+baseline) vs 1280×7004 (actual), now 12 px *taller*. Page height is oscillating run to run on
+identical code, so there is no fixed "current" height to baseline against.
+
+**Prime suspect: `settlePage()` (`tests/visual/quality-gates.spec.ts:63`) waits for
+`document.fonts.ready` + a flat 500 ms and nothing else.** `home`, `methodology` and
+`daily-guidance` are exactly the three pages carrying a live-data widget (the diff showed a
+"Daily reading · sample" panel with numeric content) — if that data resolves sometime after the
+networkidle+500ms window, the capture races it, landing before or after the layout shift
+depending on timing. Not fixed here: making `settlePage()` actually wait on that widget (or
+excluding it from the full-page screenshot) needs looking at `home`/`methodology`/
+`daily-guidance`'s data-fetch path specifically, which is its own task, not a re-baseline.
 
 **The chromium project (no `reducedMotion`) reproduced this document's own caution about
 mid-animation contrast noise, live.** `learn-porutham` failed once on chromium with a
