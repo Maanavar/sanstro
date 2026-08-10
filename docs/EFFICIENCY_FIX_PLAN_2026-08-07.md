@@ -1336,28 +1336,34 @@ wrong, not the markup.
 
 ### Three things the pass found that were not what it went looking for
 
-**1. A user with no family-vault member sees no chart at all on Family & Charts.** The
-spec's first account had a birth profile and nothing else, and the entire chart half of the
-tab rendered nothing — no D1/D9, no bhava table, no planet orbs, no "Full technical
-reading" — leaving a blank region between the forecast table and "Family connections". The
-reading sections hang off `activeMeta = memberMeta.find(m => m.isSelf)`, and `memberMeta`
-maps `familyAggregate.members`; with no member the owner's own row
-(`familyMemberId === birthProfileId`) never appears, so `readingChart` is null **while
+**1. ✅ FIXED 2026-08-10 (`4e6197d`) — a user with no family-vault member sees no chart at
+all on Family & Charts.** The spec's first account had a birth profile and nothing else, and
+the entire chart half of the tab rendered nothing — no D1/D9, no bhava table, no planet
+orbs, no "Full technical reading" — leaving a blank region between the forecast table and
+"Family connections". The reading sections hang off `activeMeta = memberMeta.find(m =>
+m.isSelf)`, and `memberMeta` maps `familyAggregate.members`; with no member the owner's own
+row (`familyMemberId === birthProfileId`) never appears, so `readingChart` is null **while
 `readingChartId` still falls back to the owner's chart**. The panels are gated on the id
 and their parent section on the object, so they cannot appear. Adding an empty vault was
 tried and is **not** enough — the boundary is ≥1 member. `nova-sweep` creates a vault *and*
-a spouse, so this state is covered nowhere.
+a spouse, so this state is covered nowhere. Fixed by falling back `reading` to
+`ownerMemberChart` when there is no member at all; regression spec added at
+`e2e/family-charts-no-vault.spec.ts`.
 
 **2. Settings renders 13 controls with a different border** (`1px rgb(228, 219, 200)`) from
 the migrated kit fields. Not an F10 regression — `dashboard-settings-session-tab.tsx` has no
 `fieldStyle` left, so its migration held; these belong to a different settings form that was
-never on F10's list. They also report no `name`/`aria-label`/`id`.
+never on F10's list. They also report no `name`/`aria-label`/`id`. **Still open** — not
+addressed by any commit to date.
 
-**3. The Yogini list runs to 2126** for a 1990 birth — a panel titled "36-Year Cycle"
-listing roughly four of them, ~30 rows past any plausible lifespan. Pre-existing and
-untouched by F9, which changed the shell and not the data.
+**3. ✅ FIXED 2026-08-10 (`8c96af7`) — the Yogini list ran to 2126** for a 1990 birth — a
+panel titled "36-Year Cycle" listing roughly four of them, ~30 rows past any plausible
+lifespan. Pre-existing and untouched by F9, which changed the shell and not the data. Root
+cause: each dasha engine (Ashtottari, Kalachakra, Yogini) builds 3-4 full repeating cycles so
+long-range lookups resolve, and the panels mapped the whole array instead of slicing to one
+cycle's length. Fixed in all three panels (Ashtottari, Kalachakra, Yogini), not just Yogini.
 
-None of the three is fixed here; each is a separate item.
+Item 2 is the only one of the three still open.
 
 ---
 
@@ -1396,6 +1402,14 @@ counts, same ratios as recorded here before both.
 colour contrast of **4.38 against the required 4.5:1** (`#795c11` on `#e0d7c5`, 11.52 px
 bold). Left red on purpose: it is a genuine WCAG AA miss, marginal enough to fix with a small
 darkening, and ratcheting it away on day one would defeat the point of restoring the suite.
+
+**✅ FIXED 2026-08-10 (`142f8fb`)** — `--beta-gold-dark-text` in `app/beta.css` (the
+site-wide beta modal's `.beta-modal__eyebrow`, rendered on every route via `beta-system.tsx`
+in the root layout) measured the identical **4.38** ratio; darkened `#785A0E` → `#6E4E0C`,
+5.3:1. The hex axe reported (`#795c11`) is close but not bit-identical to the source
+`#785A0E` — plausibly its own sampling/rounding — but the exact ratio match on the same
+element class makes this the same finding, not a coincidence. Re-run the visual suite to
+confirm 33/33 rather than trusting the ratio match alone.
 
 **Why axe contrast on this suite is timing-dependent — worth knowing before trusting a run.**
 Three identical runs gave three answers: one reported contrast ratios of **1.01 / 1.23 / 1.28**
