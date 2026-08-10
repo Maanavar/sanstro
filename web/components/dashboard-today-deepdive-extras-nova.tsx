@@ -97,9 +97,9 @@ export function NovaChartValidationChip({
 
 // ─────────────── 2a. Chart identity card (kattam + birth facts) ───────────────
 // Formerly the left column of one combined NovaChartContextGuidanceGochar
-// two-col. Split in two so the charts panel can lead with the kattam
-// (identity zone, first thing after the header) and render today's
-// guidance/gochar as its own later zone — see dashboard-charts-panel-nova.tsx.
+// two-col, split in two so a chart panel can lead with the kattam (identity
+// zone, first thing after the header) and render today's guidance/gochar as
+// its own later zone.
 
 export function NovaChartIdentityCard({
   lang,

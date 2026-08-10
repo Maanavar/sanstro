@@ -1327,17 +1327,6 @@
 [data-ui="nova"] .cd-shell .metric--high  { border-color: var(--color-high-border); }
 [data-ui="nova"] .cd-shell .metric--low   { border-color: var(--color-low-border); }
 
-[data-ui="nova"] .cd-shell .table-wrap { border-color: var(--color-border); }
-[data-ui="nova"] .cd-shell .table th {
-  background: var(--color-surface-soft);
-  color: var(--color-faint);
-  border-color: var(--color-border);
-}
-[data-ui="nova"] .cd-shell .table td {
-  color: var(--color-text-strong);
-  border-color: var(--color-border);
-}
-
 [data-ui="nova"] .cd-shell .empty-state {
   background: var(--color-surface-soft);
   border-color: var(--color-border);

@@ -31,16 +31,10 @@ import { describe, expect, it } from "vitest";
 /**
  * What is left, and why each is left rather than migrated.
  *
- * Both survivors are unreachable code, so migrating them would have meant
- * restyling something no user can load. Neither is an exemption for new work.
+ * The survivor is unreachable code, so migrating it would have meant
+ * restyling something no user can load. Not an exemption for new work.
  */
 const DECLARED: Record<string, string> = {
-  // One of F11's 13 orphaned files. Superseded by dashboard-tools-porutham-nova.
-  // Deleting it is F11 step 2 and needs per-file approval; restyling a file
-  // queued for deletion would be waste.
-  "components/porutham-panel.tsx":
-    "orphan (F11) — not imported anywhere; superseded by dashboard-tools-porutham-nova",
-
   // A dead COMPONENT inside a live module. The file is imported, but only for
   // its five helpers (ACTIVITY_OPTIONS, currentMonthIso, formatShortDate,
   // formatWeekday, alignmentTone) by dashboard-today-deepdive-extras-nova.

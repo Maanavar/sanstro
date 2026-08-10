@@ -71,7 +71,6 @@ const MUST_STAY_POPULATED = [
   "metric--",
   "ui-btn--",
   "ui-chip--",
-  "alert-banner--",
 ];
 
 describe("CSS classes built by string interpolation", () => {

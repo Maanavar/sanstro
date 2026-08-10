@@ -3,9 +3,10 @@
  *
  * Tree-shaking means an orphan costs no bytes, so the cost is entirely human: a
  * file that does not ship still reads as though it does. `dashboard-charts-panel-nova.tsx`
- * is the proof — two live files cite it in comments as the place where "the dasha
- * story lives in exactly one place", and three of the thirteen orphans wear a
- * `-nova` suffix, which in this codebase reads as *current generation*.
+ * was the proof — two live files once cited it in comments as the place where "the
+ * dasha story lives in exactly one place" (both corrected when it was deleted).
+ * Several of the declared orphans below wear a `-nova` suffix, which in this
+ * codebase reads as *current generation*.
  *
  * TWO DIRECTIONS, AND THE SECOND ONE IS THE POINT. A new orphan fails until it is
  * declared and banner'd, and a declared file that gains an importer ALSO fails —
@@ -23,18 +24,6 @@ import { describe, expect, it } from "vitest";
 // Verified 2026-08-08 by the sweep below, and each carries an ORPHANED banner.
 const DECLARED_ORPHANS = [
   "advanced-lens-note",
-  "alert-banner",
-  "dashboard-charts-panel-nova",
-  "dashboard-numerology-baby-names-nova",
-  "dashboard-numerology-dates-nova",
-  "dashboard-today-decide-nova",
-  "day-strip",
-  "member-chip",
-  "morning-guidance-card",
-  "peyarchi-banner",
-  "porutham-panel",
-  "sub-nav",
-  "tools-grid",
 ].sort();
 
 // Where importers can live. `mobile/` is included because a component moving

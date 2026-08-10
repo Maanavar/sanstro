@@ -296,9 +296,8 @@ export function MemberDetailExpanded({
 }
 
 /* ── Dasa · Bhukti · Antaram detail (current stack + all bhuktis) ──
-   Shared by Classic's MemberDetailExpanded and Nova's chart deep-dive panel
-   (dashboard-charts-panel-nova.tsx) so the dasha story lives in exactly one
-   component. */
+   Used by MemberDetailExpanded in this file so the dasha story lives in
+   exactly one component. */
 export function DasaBhuktiAntaramDetail({
   lang,
   today,
