@@ -19,6 +19,10 @@ function lordName(lord: string, isTamil: boolean): string {
   return tPlanetLord(lord, isTamil ? "ta" : "en");
 }
 
+// 8 lords per 108-year cycle (app/calculations/ashtottari_dasha.py:
+// ASHTOTTARI_SEQUENCE).
+const ASHTOTTARI_SEQUENCE_LENGTH = 8;
+
 // Applies / Does not apply / Needs review — informational, never hides the
 // timeline (parity with the conditional-dasha selector). See app/calculations/
 // ashtottari_dasha.py for the classical rule and why it is disclosed, not gated.
@@ -134,7 +138,10 @@ export function AshtottariDashaPanel({ lang, chartId }: Props) {
           },
         }
       }
-      periods={data?.mahadashas.map((period, index) => ({
+      // The engine builds 3 full 108-year cycles (24 mahadashas, ~324 years) so
+      // long-range period lookups resolve — but a life only ever runs one. Show
+      // the first cycle: 8 mahadashas, matching the "108-Year Cycle" title.
+      periods={data?.mahadashas.slice(0, ASHTOTTARI_SEQUENCE_LENGTH).map((period, index) => ({
         key: `${period.startDate}-${index}`,
         name: lordName(period.lord, isTamil),
         years: period.years,

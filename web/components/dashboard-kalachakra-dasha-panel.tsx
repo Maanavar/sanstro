@@ -11,6 +11,10 @@ import { SecondaryDashaPanel } from "./dashboard-secondary-dasha-panel";
 // and a discovered inconsistency in the source's own worked example. Lords
 // are rasis, so the API already returns a display name (rasiName) — no
 // separate label table needed here.
+// 9 rasis per Paramayus cycle (app/calculations/kalachakra_dasha.py:
+// KALACHAKRA_CHAKRAS — every chakra/pada sequence is 9 rasis long).
+const KALACHAKRA_SEQUENCE_LENGTH = 9;
+
 type Props = {
   lang: Lang;
   chartId: string;
@@ -49,7 +53,11 @@ export function KalachakraDashaPanel({ lang, chartId }: Props) {
           },
         }
       }
-      periods={data?.mahadashas.map((period, index) => ({
+      // The engine builds 3 full Paramayus cycles (27 mahadashas, ~250-300
+      // years) so long-range period lookups resolve — but a life only ever
+      // runs one. Show the first cycle: 9 mahadashas (the birth pada's own
+      // Paramayus, 83-100 years).
+      periods={data?.mahadashas.slice(0, KALACHAKRA_SEQUENCE_LENGTH).map((period, index) => ({
         key: `${period.startDate}-${index}`,
         name: period.rasiName ?? period.rasiCode,
         years: period.years,

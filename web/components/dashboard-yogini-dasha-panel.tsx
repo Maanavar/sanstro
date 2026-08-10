@@ -19,6 +19,8 @@ const YOGINI_LABEL: Record<string, { en: string; ta: string }> = {
   SANKATA: { en: "Sankata", ta: "சங்கடா" },
 };
 
+const YOGINI_SEQUENCE_LENGTH = Object.keys(YOGINI_LABEL).length;
+
 function yoginiName(yogini: string, isTamil: boolean): string {
   const label = YOGINI_LABEL[yogini];
   return isTamil ? label?.ta ?? yogini : label?.en ?? yogini;
@@ -83,7 +85,10 @@ export function YoginiDashaPanel({ lang, chartId }: Props) {
           },
         }
       }
-      periods={data?.mahadashas.map((period, index) => ({
+      // The engine builds 4 full 36-year cycles (32 mahadashas, ~144 years) so
+      // long-range period lookups resolve — but a life only ever runs one. Show
+      // the first cycle: 8 mahadashas, matching the "36-Year Cycle" title.
+      periods={data?.mahadashas.slice(0, YOGINI_SEQUENCE_LENGTH).map((period, index) => ({
         key: `${period.startDate}-${index}`,
         name: yoginiName(period.yogini, isTamil),
         years: period.years,
