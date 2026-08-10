@@ -19,7 +19,7 @@
   --beta-white-a05:     rgba(255, 255, 255, 0.05);
   --beta-sky-a12:       rgba(147, 197, 253, 0.12);
   --beta-gold-dark-bg:  rgba(120, 90, 14, 0.14);
-  --beta-gold-dark-text:#785A0E;
+  --beta-gold-dark-text:#6E4E0C;   /* darkened #785A0E → 5.3:1 on the modal's light bg (WCAG AA; #785A0E measured 4.38) */
   --beta-check:         #4ade80;
   --beta-overlay:       rgba(3, 5, 11, 0.78);
 }

@@ -616,6 +616,7 @@ a {
   background: rgba(255, 255, 255, 0.055);
   padding: 28px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
   animation: rise 1s ease-out 120ms both;
 }
@@ -1580,7 +1581,7 @@ button:focus-visible,
 
 /* ── Responsive ───────────────────────────────────────────── */
 @media (max-width: 1024px) {
-  
+
 
   .three-col-forms,
   .two-col,
@@ -1616,7 +1617,7 @@ button:focus-visible,
 }
 
 @media (max-width: 720px) {
-  
+
 
   .settings-sidebar {
     grid-template-columns: 1fr;
@@ -1655,9 +1656,9 @@ button:focus-visible,
     width: min(280px, 70vw);
   }
 
-  
 
-  
+
+
 
   .site__utility-row {
     width: 100%;
@@ -1668,15 +1669,15 @@ button:focus-visible,
     grid-template-columns: 1fr;
   }
 
-  
 
-  
 
-  
 
-  
 
-  
+
+
+
+
+
 }
 
 /* Daily snapshot */
@@ -2270,11 +2271,11 @@ button:focus-visible,
     justify-content: center;
   }
 
-  
 
-  
 
-  
+
+
+
 
   .cl-mobile-card-split,
   .cd-responsive-row,
@@ -2289,25 +2290,25 @@ button:focus-visible,
     justify-content: center;
   }
 
-  
 
-  
 
-  
 
-  
 
-  
 
-  
 
-  
 
-  
 
-  
 
-  
+
+
+
+
+
+
+
+
+
+
 }
 
 
@@ -2315,9 +2316,9 @@ button:focus-visible,
 
 
 @media print {
-  
-  
-  
+
+
+
 
   /* Hide all navigation, toolbars, alerts, FAB, footer */
   .site__hero,
@@ -2339,7 +2340,7 @@ button:focus-visible,
     color: #111 !important;
   }
 
-  
+
 
   /* Charts and tables should print cleanly */
   .card, .surface {
