@@ -27,6 +27,7 @@ import type {
   SolarReturnData,
 } from "@/lib/types";
 import type { MemberChart } from "@/hooks/useFamilyData";
+import { useApiQuery } from "@/hooks/useApiQuery";
 
 import { formatHeaderDate, getTamilMonthDate } from "./dashboard-calendar-shared";
 import {
@@ -577,9 +578,6 @@ export function DashboardFamilyChartsHybrid({
   const [relationFilter, setRelationFilter] = useState<RelationFilter>("all");
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [remediesNonce, setRemediesNonce] = useState(0);
-  const [charaDasha, setCharaDasha] = useState<CharaDashaData | null>(null);
-  const [solarReturn, setSolarReturn] = useState<SolarReturnData | null>(null);
-  const [lifeAreas, setLifeAreas] = useState<LifeAreasResponseData | null>(null);
 
   const astroText = (v: string) => (lang === "en" ? tamilizeAstroEnglish(v) : v);
 
@@ -683,7 +681,17 @@ export function DashboardFamilyChartsHybrid({
   const activeMeta = memberMeta.find((m) => m.member.familyMemberId === selectedMemberId) ?? ownerMeta;
   const activeMember = activeMeta?.member ?? null;
   const activeIsSelf = activeMeta?.isSelf ?? true;
-  const reading = activeMeta?.chart;
+  // familyAggregate (and so memberMeta) is empty for a vault with no FamilyMember
+  // rows — the backend 422s before it ever reaches its own owner-injection step.
+  // readingChartId/readingName already fall back to the owner below; without this,
+  // `reading` was the one field left with no fallback, so every chart-shaped
+  // section (D1/D9, bhava table, planet orbs, full technical reading) rendered
+  // nothing for a user who hasn't added a family member yet. `ownerMemberChart` is
+  // the owner's own reading, loaded independently of the family vault — it is
+  // already what isOwnerRow members resolve to above, so this is the same value,
+  // not a new fetch. Only applies when there is no member at all (not when a
+  // selected member's own chart failed to load, which must stay blank).
+  const reading = activeMeta?.chart ?? (activeMember === null ? ownerMemberChart ?? undefined : undefined);
   const readingChartId = activeMember?.chartId ?? ownerChartId;
   const readingName = activeMember?.displayName ?? ownerDisplayName;
   const activeTodayItem = activeMember ? todayMembers.find((tm) => tm.memberId === activeMember.familyMemberId) : undefined;
@@ -712,26 +720,32 @@ export function DashboardFamilyChartsHybrid({
 
   // Chara Dasha + Solar Return for the active reading's chart (ported from the
   // Nova charts panel; classical-timing reference material).
-  useEffect(() => {
-    if (!readingChartId) { setCharaDasha(null); setSolarReturn(null); setLifeAreas(null); return; }
-    const returnYear = Number.parseInt((selectedDate || "").slice(0, 4), 10) || new Date().getFullYear();
-    const controller = new AbortController();
-    const { signal } = controller;
-    void apiFetchJson<{ data: CharaDashaData }>(`/api/v1/charts/${readingChartId}/chara-dasha`, { signal })
-      .then((res) => { if (!signal.aborted) setCharaDasha(res.data ?? null); })
-      .catch(() => { if (!signal.aborted) setCharaDasha(null); });
-    void apiFetchJson<{ data: SolarReturnData }>(`/api/v1/charts/${readingChartId}/solar-return?year=${returnYear}`, { signal })
-      .then((res) => { if (!signal.aborted) setSolarReturn(res.data ?? null); })
-      .catch(() => { if (!signal.aborted) setSolarReturn(null); });
-    // Life-area year-ahead forecast for the active reading's chart (§8). The
-    // backend keys the date on `asOf` (aliased) — matching usePersonalData's
-    // direct fetch, not the drifted shared wrapper's `date` param.
-    setLifeAreas(null);
-    void apiFetchJson<{ data: LifeAreasResponseData }>(`/api/v1/charts/${readingChartId}/life-areas?asOf=${selectedDate}`, { signal })
-      .then((res) => { if (!signal.aborted) setLifeAreas(res.data ?? null); })
-      .catch(() => { if (!signal.aborted) setLifeAreas(null); });
-    return () => controller.abort();
-  }, [readingChartId, selectedDate]);
+  const returnYear = Number.parseInt((selectedDate || "").slice(0, 4), 10) || new Date().getFullYear();
+  const { data: charaDasha = null } = useApiQuery({
+    key: ["chara-dasha", readingChartId],
+    queryFn: () =>
+      apiFetchJson<{ data: CharaDashaData }>(`/api/v1/charts/${readingChartId}/chara-dasha`).then((res) => res.data ?? null),
+    enabled: !!readingChartId,
+  });
+  const { data: solarReturn = null } = useApiQuery({
+    key: ["solar-return", readingChartId, returnYear],
+    queryFn: () =>
+      apiFetchJson<{ data: SolarReturnData }>(`/api/v1/charts/${readingChartId}/solar-return?year=${returnYear}`).then(
+        (res) => res.data ?? null,
+      ),
+    enabled: !!readingChartId,
+  });
+  // Life-area year-ahead forecast for the active reading's chart (§8). The
+  // backend keys the date on `asOf` (aliased) — matching usePersonalData's
+  // direct fetch, not the drifted shared wrapper's `date` param.
+  const { data: lifeAreas = null } = useApiQuery({
+    key: ["life-areas", readingChartId, selectedDate],
+    queryFn: () =>
+      apiFetchJson<{ data: LifeAreasResponseData }>(`/api/v1/charts/${readingChartId}/life-areas?asOf=${selectedDate}`).then(
+        (res) => res.data ?? null,
+      ),
+    enabled: !!readingChartId,
+  });
 
   function selectMember(id: string) {
     setSelectedMemberId(id);
