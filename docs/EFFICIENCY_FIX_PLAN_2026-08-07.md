@@ -1269,9 +1269,10 @@ Open, in the order I'd take them:
 
 1. ~~The ~17 KB of unreferenced `.cl-*` in `marketing.css`~~ — **DONE 2026-08-09.**
 2. ~~An authenticated render pass~~ — **DONE 2026-08-09**, see below.
-3. **Re-baselining `web/tests/visual`** — gitignored, dated 2026-06-30, all 33 failing
-   identically since before the CSS split, so it currently blinds every visual change.
-   Its own job, and it gates item 2 being worth much.
+3. ~~Re-baselining `web/tests/visual`~~ — **DONE 2026-08-10**, and the premise was
+   understated. `.gitignore:47` was `web/tests/` — **the whole directory**, so the suite's
+   *source* was untracked, not just its baselines. Re-baselining locally could never have
+   fixed anything for anyone else. See below.
 4. **~29 hand-rolled `apiFetchJson` blocks** outside react-query, migrate-on-touch.
    `e2e/tab-cycle-requests.spec.ts` now asserts the strict form (nothing requested twice
    across two laps), so a regression here is loud.
@@ -1346,6 +1347,53 @@ listing roughly four of them, ~30 rows past any plausible lifespan. Pre-existing
 untouched by F9, which changed the shell and not the data.
 
 None of the three is fixed here; each is a separate item.
+
+---
+
+## `web/tests/visual` restored — LANDED 2026-08-10
+
+**The suite's source was gitignored, not just its baselines.** `.gitignore:47` was
+`web/tests/`, added in `fbed72d` as *"web/tests directory for test-generated files"*. It is
+not generated — it is `tests/visual/quality-gates.spec.ts`. So from **2026-06-26** the whole
+visual regression suite was outside git: absent from CI and from every other checkout, while
+`playwright.config.ts` kept configuring three projects against it, two of which
+(`mobile-safari-visual`, `reduced-motion-visual`) match nothing else and so matched nothing
+at all. The commit's own message states the false premise — the fourth instance in this
+document of a justification nobody re-checked.
+
+Now: the spec is tracked; `web/tests/**/*-snapshots/` stays ignored. That is deliberate, not
+a compromise — Playwright names snapshots per platform (`home-chromium-win32.png`) and CI is
+`ubuntu-latest`, so committing ~7 MB of win32 PNGs would hand Linux a set it can never match.
+The screenshot tests now `test.skip` when no local baseline exists, because "this file has
+never been on this machine" must not read as a visual regression.
+
+**"All 33 fail on `tap-target-too-small` alone" was two different failures.** The suite has
+two halves: 8 pages × 3 projects = **24** axe/layout tests (no screenshots — `--update-snapshots`
+does nothing for them), and 3 pages × 3 projects = **9** real `toHaveScreenshot` tests. The 24
+failed on tap targets; the 9 failed on diff ratios 0.15–0.18 against a 0.02 threshold. Anyone
+who took "re-baseline it" literally would have fixed 9 of 33 and been tempted to relax the
+44 px floor for the rest — which would have baked the a11y regression in permanently.
+
+**The 44 px floor is untouched.** The tap-target assertion is now a **ratchet** pinned at the
+counts measured on 2026-08-10 (home 2, the other seven 1 each), so the number can fall but
+never rise. A permanently-red check gates nothing; this keeps the standard while making a
+regression loud. Horizontal overflow stays a hard `toEqual([])` — there is none, so there is
+nothing to ratchet. Confirmed unchanged by the CSS split *and* by F4 step 5's prune: same
+counts, same ratios as recorded here before both.
+
+**32/33 now pass, and the one failure is real.** `[reduced-motion-visual] privacy` reports a
+colour contrast of **4.38 against the required 4.5:1** (`#795c11` on `#e0d7c5`, 11.52 px
+bold). Left red on purpose: it is a genuine WCAG AA miss, marginal enough to fix with a small
+darkening, and ratcheting it away on day one would defeat the point of restoring the suite.
+
+**Why axe contrast on this suite is timing-dependent — worth knowing before trusting a run.**
+Three identical runs gave three answers: one reported contrast ratios of **1.01 / 1.23 / 1.28**
+(near-invisible beige-on-beige), two reported none, and the reduced-motion project reported the
+settled **4.38**. The low ratios are elements caught *mid-animation*, where the blended colour
+is what axe measures — the same noise source F4's `css-ab` recorded ("~60 of 97 diffs …
+beta-modal fade"). **`reduced-motion-visual` is the only project that measures settled colours,
+and so the only one whose contrast result means anything.** The other two are `networkidle ≠
+rendered` one more time.
 
 ---
 

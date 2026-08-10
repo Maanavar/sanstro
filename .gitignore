@@ -44,7 +44,19 @@ web/scripts/_dump-*.mjs
 .coverage
 web/playwright-report/
 web/test-results/
-web/tests/
+
+# NOT `web/tests/` — that ignored the visual suite's SOURCE, not its output.
+# fbed72d added it as "web/tests directory for test-generated files"; it holds
+# tests/visual/quality-gates.spec.ts, so from 2026-06-26 the whole visual
+# regression suite was invisible to git, to CI, and to every other checkout,
+# while playwright.config.ts kept configuring three projects against it (two of
+# which match nothing else). The genuine artifact directories are the two lines
+# above.
+#
+# The rendered baselines DO stay out: Playwright names snapshots per platform
+# (`home-chromium-win32.png`) and CI runs ubuntu-latest, so committing ~7 MB of
+# win32 PNGs would give Linux a set it can never match.
+web/tests/**/*-snapshots/
 
 # Local tools and editor settings
 .claude/
