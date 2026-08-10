@@ -1353,8 +1353,39 @@ a spouse, so this state is covered nowhere. Fixed by falling back `reading` to
 **2. Settings renders 13 controls with a different border** (`1px rgb(228, 219, 200)`) from
 the migrated kit fields. Not an F10 regression — `dashboard-settings-session-tab.tsx` has no
 `fieldStyle` left, so its migration held; these belong to a different settings form that was
-never on F10's list. They also report no `name`/`aria-label`/`id`. **Still open** — not
-addressed by any commit to date.
+never on F10's list. They also report no `name`/`aria-label`/`id`.
+
+**✅ FIXED 2026-08-10 (uncommitted)** — the surface is `dashboard-setup-tab.tsx`
+(`settingsSubTab === "setup"`, the default landing pane on Settings), not the session tab. Its
+controls went through a third, older primitive: `WField`/`WInput`/`WSelect`, a local wrapper
+aliasing `TextInput`/`Select` from `dashboard-ui.tsx` — the pre-kit "Classic" implementation
+that `field-style-guard.test.ts` explicitly exempts (it's `EXEMPT_FILES`, on the assumption it
+was already superseded). That exemption is why the F10 sweep never saw this file: the guard
+flags a raw `<input style={...}>`, and this one was one level removed — `dashboard-ui.tsx`
+holds the raw input, `dashboard-setup-tab.tsx` only calls the wrapper. `rgb(228, 219, 200)` is
+`--panel-tan-light`, `TextInput`/`Select`'s hardcoded border token — confirms this is the file.
+
+The accessible-name gap was worse than a missing `aria-label`: `WField`'s `<label>` had no
+`htmlFor` and did not nest the control as a child, so the caption and the control were never
+associated at all — the same defect class F10 found in the session tab, one file over.
+
+Migrated all ~25 field instances across the three forms (birth profile, family vault, add
+member) to `Field`/`Input`/`Select` from `components/ui/field.tsx` — the same kit F10 used
+elsewhere, and the one whose own doc comment already lists "the Setup `WField`/`WInput`/
+`WSelect`" as one of the things it replaces. The three `PlaceCombobox` fields (birth place ×2,
+current place) use `FieldShell` instead of `Field`, with `aria-label` forwarded explicitly —
+the same pattern `dashboard-plan-muhurta-picker-nova.tsx` established, because `PlaceCombobox`
+is a `role="combobox"` that supplies its own name and must not be wrapped in a real `<label>`.
+Those three comboboxes had no `aria-label` under the old `WField` either, so this closes a
+second, overlapping a11y gap on the same fields.
+
+`tsc --noEmit` clean, `npx eslint` clean, 387/387 web unit tests pass including
+`field-style-guard.test.ts` (still exempts `dashboard-ui.tsx` itself, which is untouched and
+now has zero remaining importers of its `TextInput`/`Select` — left alone; deleting unused
+exports from a shared file wasn't asked and deletion in this repo goes file-by-file on
+approval, not as a drive-by). Not yet re-verified against the live browser (`e2e/field-a11y-
+probe.spec.ts`, `e2e/dashboard-render-pass.spec.ts`) — those need the isolated e2e stack, which
+this pass didn't stand up; the unit suite and the guard test are the confirmation used here.
 
 **3. ✅ FIXED 2026-08-10 (`8c96af7`) — the Yogini list ran to 2126** for a 1990 birth — a
 panel titled "36-Year Cycle" listing roughly four of them, ~30 rows past any plausible
@@ -1363,7 +1394,8 @@ cause: each dasha engine (Ashtottari, Kalachakra, Yogini) builds 3-4 full repeat
 long-range lookups resolve, and the panels mapped the whole array instead of slicing to one
 cycle's length. Fixed in all three panels (Ashtottari, Kalachakra, Yogini), not just Yogini.
 
-Item 2 is the only one of the three still open.
+All three of the render pass's findings are now fixed; see item 2's own entry above for the
+`dashboard-setup-tab.tsx` fix (2026-08-10, uncommitted at time of writing).
 
 ---
 
@@ -1410,6 +1442,29 @@ in the root layout) measured the identical **4.38** ratio; darkened `#785A0E` �
 `#785A0E` — plausibly its own sampling/rounding — but the exact ratio match on the same
 element class makes this the same finding, not a coincidence. Re-run the visual suite to
 confirm 33/33 rather than trusting the ratio match alone.
+
+**✅ CONFIRMED 2026-08-10.** `[reduced-motion-visual] privacy` — the exact project/page this
+finding was recorded against — passes clean, no `color-contrast` violation, first try, no
+retry needed. Re-run three times over the full suite; zero contrast findings against
+`.beta-modal__eyebrow` on `reduced-motion-visual` in any of them.
+
+**33/33 does not currently hold, but not for a contrast reason.** The full suite (all 3
+projects × 11 specs) now shows 22 passed outright, 6 flaky (pass on retry), 5 failed — all of
+it concentrated in the three `toHaveScreenshot` baseline tests (`home`, `methodology`,
+`daily-guidance`), never in the 24 axe/layout tests. `home` fails identically on all three
+projects: expected 1280×7039, received 1280×7004 — the same 35 px short on every project,
+which points at page content that changed height uniformly rather than a per-project rendering
+difference. Not investigated further here — it's unrelated to the beta-modal fix (different
+pages, different failure mode: a pixel-diff ratio, not an axe rule) and re-baselining is
+already on record above as its own job, not a drive-by inside this one.
+
+**The chromium project (no `reducedMotion`) reproduced this document's own caution about
+mid-animation contrast noise, live.** `learn-porutham` failed once on chromium with a
+`color-contrast` finding on `.beta-modal__eyebrow` — ratio **1.24**, not 4.38 — then passed on
+retry. That is the exact noise this section already named ("three identical runs gave three
+answers... 1.01/1.23/1.28"), caught this time by the suite itself rather than a manual re-run.
+`reduced-motion-visual` is still the only project whose contrast number means anything, and on
+that project the result was clean and unretried.
 
 **Why axe contrast on this suite is timing-dependent — worth knowing before trusting a run.**
 Three identical runs gave three answers: one reported contrast ratios of **1.01 / 1.23 / 1.28**
