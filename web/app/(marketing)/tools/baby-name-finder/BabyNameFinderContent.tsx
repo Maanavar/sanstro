@@ -451,7 +451,7 @@ export function BabyNameFinderContent() {
                 <Link href="/tools/jadhagam-generator" className="cl-num-chip">
                   {ta ? "ஜாதகம் உருவாக்கு →" : "Jadhagam Generator →"}
                 </Link>
-                <Link href="/natchathirams" className="cl-num-chip">
+                <Link href="/natchathiram" className="cl-num-chip">
                   {ta ? "நட்சத்திரங்கள் →" : "Natchathirams →"}
                 </Link>
               </div>
@@ -472,7 +472,7 @@ export function BabyNameFinderContent() {
               </p>
             </div>
             <div className="cl-num-cta__action">
-              <Link href="/signup" className="cl-num-cta__btn">
+              <Link href="/login" className="cl-num-cta__btn">
                 {ta ? "இலவசமாகத் தொடங்குங்கள் →" : "Get started free →"}
               </Link>
             </div>

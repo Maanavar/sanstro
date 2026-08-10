@@ -261,7 +261,7 @@ export function NumerologyCalculatorContent() {
                 <Link href="/tools/marriage-porutham-calculator" className="cl-num-chip">
                   {ta ? "பொருத்தம் பார் →" : "Porutham Calculator →"}
                 </Link>
-                <Link href="/natchathirams" className="cl-num-chip">
+                <Link href="/natchathiram" className="cl-num-chip">
                   {ta ? "நட்சத்திரங்கள் →" : "Natchathirams →"}
                 </Link>
                 <Link href="/trust/methodology" className="cl-num-chip">
@@ -280,7 +280,7 @@ export function NumerologyCalculatorContent() {
               <p className="cl-num-cta__body">{mt(d.cta_body, lang)}</p>
             </div>
             <div className="cl-num-cta__action">
-              <Link href="/signup" className="cl-num-cta__btn">
+              <Link href="/login" className="cl-num-cta__btn">
                 {ta ? "இலவசமாகத் தொடங்குங்கள் →" : "Get started free →"}
               </Link>
               <span className="cl-num-cta__note">{mt(d.cta_note, lang)}</span>
@@ -347,7 +347,7 @@ function ChartBridge({ ta }: { ta: boolean }) {
         <p className="cl-num-bridge__title">{mt(D.bridge_title, lang)}</p>
         <p className="cl-num-bridge__body">{mt(D.bridge_body, lang)}</p>
       </div>
-      <Link href="/signup" className="cl-num-bridge__link">
+      <Link href="/login" className="cl-num-bridge__link">
         {mt(D.bridge_link, lang)}
       </Link>
     </div>
