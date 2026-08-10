@@ -1196,7 +1196,7 @@ Never imported anywhere; referenced only from comments.
 | `components/morning-guidance-card.tsx` | 86 | D | replaced by `dashboard-footer-morning-nova.tsx` |
 | `components/day-strip.tsx` | 69 | D | its CSS is still live at `globals.css:2236` |
 | `components/alert-banner.tsx` | 56 | ? | |
-| `components/advanced-lens-note.tsx` | 55 | ? | |
+| `components/advanced-lens-note.tsx` | 55 | ? | **kept 2026-08-10** — unshipped Issue #7/#8 UX copy, not dead code |
 | `components/member-chip.tsx` | 30 | ? | |
 | `components/sub-nav.tsx` | 28 | M | |
 
@@ -1209,7 +1209,9 @@ a bug in the file we don't ship.
 2. **Later, per file, on your explicit approval only** — never as a batch. `day-strip.tsx`
    also owns live CSS in `globals.css:2236-2300` that F4 would otherwise carry forward.
 
-#### ✅ STEP 1 LANDED 2026-08-08 — step 2 (deletion) not started, and needs per-file approval
+#### ✅ STEP 1 LANDED 2026-08-08, ✅ STEP 2 LANDED 2026-08-10 (`d36b15a`) — see "Sequencing"
+above for the full account. 12 of the 13 deleted; `advanced-lens-note.tsx` kept, not dead
+code (unshipped Issue #7/#8 UX copy).
 
 All 13 banner'd, each stating what supersedes it and what still points at it. **The audit's list
 was exactly right** — a fresh scan (below) found the same 13, no more and no fewer, which is worth
@@ -1273,10 +1275,19 @@ Open, in the order I'd take them:
    understated. `.gitignore:47` was `web/tests/` — **the whole directory**, so the suite's
    *source* was untracked, not just its baselines. Re-baselining locally could never have
    fixed anything for anyone else. See below.
-4. **~29 hand-rolled `apiFetchJson` blocks** outside react-query, migrate-on-touch.
-   `e2e/tab-cycle-requests.spec.ts` now asserts the strict form (nothing requested twice
-   across two laps), so a regression here is loud.
-5. **F11 step 2** (deletion, per file, on explicit approval only — never as a batch).
+4. **~26 hand-rolled `apiFetchJson` blocks** outside react-query, migrate-on-touch — no rush,
+   not a sweep. `e2e/tab-cycle-requests.spec.ts` now asserts the strict form (nothing
+   requested twice across two laps), so a regression here is loud.
+5. ~~**F11 step 2** (deletion, per file, on explicit approval only)~~ — **DONE 2026-08-10**
+   (`d36b15a`). 12 of the 13 deleted, one file at a time with approval before each, each
+   re-verified live rather than trusted from the 3-day-old audit — `day-strip.tsx`'s own
+   banner turned out to be stale (claimed CSS already deleted by an earlier commit),
+   `tool-card.tsx` cascaded (was `tools-grid`'s only importer), and the two stale
+   "renders here" comment pointers onto `dashboard-charts-panel-nova.tsx` were fixed. One
+   file, `advanced-lens-note.tsx`, was **not** deleted — it turned out to be unshipped
+   Issue #7/#8 UX copy for the Yogini/Ashtottari/Kalachakra panels, not dead code.
+
+**Item 4 is now the only open item in this plan.**
 
 **Hard dependencies:**
 - F5 **must** ship inside F4 (the `.cd-shell` collision is currently held at bay by CSS load
