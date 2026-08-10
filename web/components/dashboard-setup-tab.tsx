@@ -12,10 +12,8 @@ import { RectificationWizard } from "./dashboard-rectification-wizard";
 import { BirthProfilesManager } from "./birth-profiles-manager";
 import { usePlaceCoordinatesConfirm, PlaceMatchedBadge, PlaceCoordinatesFooter } from "./place-coordinates-field";
 import { SettingsRail, type SettingsSectionId } from "./dashboard-settings-rail";
-// UXD-11 / SHD-03 — consolidated onto the shared form primitives; aliased so the
-// 28 existing call sites stay unchanged and the rendered styling is identical.
-import { TextInput as WInput, Select as WSelect } from "./dashboard-ui";
 import { Button, StatusChip } from "./ui";
+import { Field, FieldShell, Input, Select } from "./ui/field";
 import { ArrowUpRight } from "lucide-react";
 
 type Relationship = "self" | "spouse" | "child" | "parent" | "sibling" | "grandparent" | "other";
@@ -103,20 +101,11 @@ interface DashboardSetupTabProps {
 }
 
 /* ── Shared primitives ──
-   WInput/WSelect come from dashboard-ui (see aliased import above); StatusChip
-   from the kit. StepBtn/GhostBtn are thin wrappers over the kit Button so the
-   ~30 existing call sites stay unchanged while the chrome themes for free. */
-
-function WField({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: React.ReactNode }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-      <label style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</label>
-      {children}
-      {hint && <span style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)", lineHeight: 1.4 }}>{hint}</span>}
-      {error && <span style={{ fontSize: "var(--text-sm)", color: "var(--color-low)", lineHeight: 1.4 }}>{error}</span>}
-    </div>
-  );
-}
+   Field/FieldShell/Input/Select/StatusChip come from components/ui/field.tsx
+   (F10 migration — replaces the old WField/WInput/WSelect wrappers, which drew
+   their own border and left the label disconnected from the control). StepBtn/
+   GhostBtn are thin wrappers over the kit Button so the ~30 existing call sites
+   stay unchanged while the chrome themes for free. */
 
 function StepBtn({
   onClick, disabled, busy, children,
@@ -348,14 +337,14 @@ export function DashboardSetupTab({
           {!birthProfileId && (
             <form id="form-profile" onSubmit={onCreateProfile} style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "var(--space-3)" }}>
-                <WField label={t("field_name", lang)} error={formErrors.displayName}>
-                  <WInput
+                <Field label={t("field_name", lang)} error={formErrors.displayName}>
+                  <Input
                     value={birthForm.displayName} error={!!formErrors.displayName}
                     onChange={(e) => { onBirthFormChange({ ...birthForm, displayName: e.target.value }); onFormErrorChange({ displayName: "" }); }}
                   />
-                </WField>
-                <WField label={t("field_birth_date", lang)} error={formErrors.birthDateLocal}>
-                  <WInput type="date" value={birthForm.birthDateLocal} error={!!formErrors.birthDateLocal} min={MIN_BIRTH_DATE} max={maxBirthDateIso()}
+                </Field>
+                <Field label={t("field_birth_date", lang)} error={formErrors.birthDateLocal}>
+                  <Input type="date" value={birthForm.birthDateLocal} error={!!formErrors.birthDateLocal} min={MIN_BIRTH_DATE} max={maxBirthDateIso()}
                     onChange={(e) => {
                         onBirthFormChange({
                           ...birthForm,
@@ -364,34 +353,40 @@ export function DashboardSetupTab({
                       onFormErrorChange({ birthDateLocal: "" });
                     }}
                   />
-                </WField>
-                <WField label={t("field_birth_time", lang)} hint={t("field_time_optional", lang)}>
-                  <WInput type="time" step="1" value={birthForm.birthTimeLocal}
+                </Field>
+                <Field label={t("field_birth_time", lang)} helper={t("field_time_optional", lang)}>
+                  <Input type="time" step="1" value={birthForm.birthTimeLocal}
                     onChange={(e) => onBirthFormChange({ ...birthForm, birthTimeLocal: e.target.value })} />
-                </WField>
-                <WField label={t("field_birth_place", lang)} hint={t("field_place_helper", lang)} error={formErrors.birthPlace}>
+                </Field>
+                <FieldShell label={t("field_birth_place", lang)}>
                   <PlaceCombobox value={birthForm.birthPlace}
+                    aria-label={t("field_birth_place", lang)}
                     onChange={(city, raw) => {
                       onBirthFormChange(applyPlaceSelection(birthForm, city, raw));
                       onFormErrorChange({ birthPlace: "", birthTimezone: "" });
                     }} />
-                </WField>
+                  {formErrors.birthPlace ? (
+                    <span className="ui-field__error" role="alert" aria-live="polite">{formErrors.birthPlace}</span>
+                  ) : (
+                    <span className="ui-field__helper">{t("field_place_helper", lang)}</span>
+                  )}
+                </FieldShell>
               {(!birthForm.birthTimezone || formErrors.birthTimezone) && (
-                <WField label={t("field_timezone", lang)} hint={t("field_tz_helper", lang)} error={formErrors.birthTimezone}>
-                  <WInput value={birthForm.birthTimezone} error={!!formErrors.birthTimezone}
+                <Field label={t("field_timezone", lang)} helper={t("field_tz_helper", lang)} error={formErrors.birthTimezone}>
+                  <Input value={birthForm.birthTimezone} error={!!formErrors.birthTimezone}
                     onChange={(e) => { onBirthFormChange({ ...birthForm, birthTimezone: e.target.value }); onFormErrorChange({ birthTimezone: "" }); }} />
-                </WField>
+                </Field>
               )}
                 {ownCoordsConfirm.showRawFields ? (
                   <>
-                    <WField label={t("field_latitude", lang)} error={formErrors.birthLatitude}>
-                      <WInput inputMode="decimal" value={birthForm.birthLatitude} error={!!formErrors.birthLatitude}
+                    <Field label={t("field_latitude", lang)} error={formErrors.birthLatitude}>
+                      <Input inputMode="decimal" value={birthForm.birthLatitude} error={!!formErrors.birthLatitude}
                         onChange={(e) => { onBirthFormChange({ ...birthForm, birthLatitude: e.target.value }); onFormErrorChange({ birthLatitude: "" }); }} />
-                    </WField>
-                    <WField label={t("field_longitude", lang)} error={formErrors.birthLongitude}>
-                      <WInput inputMode="decimal" value={birthForm.birthLongitude} error={!!formErrors.birthLongitude}
+                    </Field>
+                    <Field label={t("field_longitude", lang)} error={formErrors.birthLongitude}>
+                      <Input inputMode="decimal" value={birthForm.birthLongitude} error={!!formErrors.birthLongitude}
                         onChange={(e) => { onBirthFormChange({ ...birthForm, birthLongitude: e.target.value }); onFormErrorChange({ birthLongitude: "" }); }} />
-                    </WField>
+                    </Field>
                     <PlaceCoordinatesFooter lang={lang} place={birthForm.birthPlace} matched={!!ownCoordsConfirm.matched}
                       onUseMatched={() => ownCoordsConfirm.setEditing(false)} />
                   </>
@@ -409,8 +404,8 @@ export function DashboardSetupTab({
                   {lang === "ta" ? "மேலும் விவரங்கள் (விருப்பம்)" : "More details (optional)"}
                 </summary>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "var(--space-3)", marginTop: "var(--space-3)" }}>
-                <WField label={t("field_relationship", lang)}>
-                  <WSelect value={birthForm.relationshipToOwner}
+                <Field label={t("field_relationship", lang)}>
+                  <Select value={birthForm.relationshipToOwner}
                     onChange={(e) => onBirthFormChange({ ...birthForm, relationshipToOwner: e.target.value as Relationship })}>
                     <option value="self">{t("rel_self", lang)}</option>
                     <option value="spouse">{t("rel_spouse", lang)}</option>
@@ -419,10 +414,10 @@ export function DashboardSetupTab({
                     <option value="sibling">{t("rel_sibling", lang)}</option>
                     <option value="grandparent">{t("rel_grandparent", lang)}</option>
                     <option value="other">{t("rel_other", lang)}</option>
-                  </WSelect>
-                </WField>
-                <WField label={lang === "ta" ? "பிறந்த நேர மூலம்" : "Birth Time Source"}>
-                  <WSelect value={birthForm.birthTimeSource}
+                  </Select>
+                </Field>
+                <Field label={lang === "ta" ? "பிறந்த நேர மூலம்" : "Birth Time Source"}>
+                  <Select value={birthForm.birthTimeSource}
                     onChange={(e) => {
                       const src = e.target.value;
                       const conf = src === "hospital_record" ? "5" : src === "family_memory" ? "15" : src === "elder_told" ? "30" : src === "approximate" ? "60" : "0";
@@ -433,27 +428,28 @@ export function DashboardSetupTab({
                     <option value="family_memory">{lang === "ta" ? "குடும்ப நினைவு" : "Family Memory (±15 min)"}</option>
                     <option value="elder_told">{lang === "ta" ? "பெரியவர் சொன்னது" : "Elder's Account (±30 min)"}</option>
                     <option value="approximate">{lang === "ta" ? "தோராயம்" : "Approximate (±1 hr)"}</option>
-                  </WSelect>
-                </WField>
-                <WField
-                  label={lang === "ta" ? "நீங்கள் இப்போது வசிக்கும் ஊர்" : "Where you live now"}
-                  hint={lang === "ta"
-                    ? "பிறந்த ஊரிலிருந்து வேறு இடத்தில் வசித்தால் மட்டும் — தினசரி நேரங்கள் (ராகு காலம், முகூர்த்தம், சூரிய உதயம்) உங்கள் ஊர் வானத்துக்கேற்ப கணிக்கப்படும். பிறந்த ஊரிலேயே இருந்தால் காலியாக விடுங்கள்."
-                    : "Only if you live somewhere other than your birthplace — daily timings (Rahu Kalam, muhurtham, sunrise) will be computed for your local sky. Leave blank to use your birthplace."}
-                >
+                  </Select>
+                </Field>
+                <FieldShell label={lang === "ta" ? "நீங்கள் இப்போது வசிக்கும் ஊர்" : "Where you live now"}>
                   <PlaceCombobox value={birthForm.currentPlace}
+                    aria-label={lang === "ta" ? "நீங்கள் இப்போது வசிக்கும் ஊர்" : "Where you live now"}
                     onChange={(city, raw) => onBirthFormChange({
                       ...birthForm,
                       currentPlace: raw,
                       ...(city ? { currentLatitude: city.lat, currentLongitude: city.lng, currentTimezone: city.timezone } : {}),
                     })} />
-                </WField>
-                <WField label={lang === "ta" ? "திருமண நிலை" : "Marital Status"}>
+                  <span className="ui-field__helper">
+                    {lang === "ta"
+                      ? "பிறந்த ஊரிலிருந்து வேறு இடத்தில் வசித்தால் மட்டும் — தினசரி நேரங்கள் (ராகு காலம், முகூர்த்தம், சூரிய உதயம்) உங்கள் ஊர் வானத்துக்கேற்ப கணிக்கப்படும். பிறந்த ஊரிலேயே இருந்தால் காலியாக விடுங்கள்."
+                      : "Only if you live somewhere other than your birthplace — daily timings (Rahu Kalam, muhurtham, sunrise) will be computed for your local sky. Leave blank to use your birthplace."}
+                  </span>
+                </FieldShell>
+                <Field label={lang === "ta" ? "திருமண நிலை" : "Marital Status"}>
                   {/* "Prefer not to say" is a real option here for the same reason
                       it is on Children: a declined status and an unasked one both
                       mean we hold no status, neither is ever read as "single", and
                       the one-minute reading withholds its fifth beat on either. */}
-                  <WSelect value={birthForm.maritalStatus}
+                  <Select value={birthForm.maritalStatus}
                     onChange={(e) => onBirthFormChange({ ...birthForm, maritalStatus: e.target.value })}>
                     <option value="">{lang === "ta" ? "தேர்ந்தெடுக்கவும்" : "Select…"}</option>
                     <option value="single">{lang === "ta" ? "திருமணமாகாதவர்" : "Single / Unmarried"}</option>
@@ -461,22 +457,22 @@ export function DashboardSetupTab({
                     <option value="divorced">{lang === "ta" ? "விவாகரத்து" : "Divorced"}</option>
                     <option value="widowed">{lang === "ta" ? "விதவை / விதுரர்" : "Widowed"}</option>
                     <option value="undisclosed">{lang === "ta" ? "சொல்ல விரும்பவில்லை" : "Prefer not to say"}</option>
-                  </WSelect>
-                </WField>
-                <WField label={lang === "ta" ? "குழந்தைகள்" : "Children"}>
+                  </Select>
+                </Field>
+                <Field label={lang === "ta" ? "குழந்தைகள்" : "Children"}>
                   {/* "Prefer not to say" is a real option: a declined answer and an
                       unasked one are treated identically by the reading, and neither
                       ever unlocks a progeny reading of the 5th house. */}
-                  <WSelect value={birthForm.children}
+                  <Select value={birthForm.children}
                     onChange={(e) => onBirthFormChange({ ...birthForm, children: e.target.value })}>
                     <option value="">{lang === "ta" ? "தேர்ந்தெடுக்கவும்" : "Select…"}</option>
                     <option value="has">{lang === "ta" ? "குழந்தைகள் உள்ளனர்" : "Yes"}</option>
                     <option value="none">{lang === "ta" ? "இல்லை" : "No"}</option>
                     <option value="undisclosed">{lang === "ta" ? "சொல்ல விரும்பவில்லை" : "Prefer not to say"}</option>
-                  </WSelect>
-                </WField>
-                <WField label={lang === "ta" ? "தொழில் வகை" : "Employment Type"}>
-                  <WSelect value={birthForm.employmentType}
+                  </Select>
+                </Field>
+                <Field label={lang === "ta" ? "தொழில் வகை" : "Employment Type"}>
+                  <Select value={birthForm.employmentType}
                     onChange={(e) => onBirthFormChange({ ...birthForm, employmentType: e.target.value })}>
                     <option value="">{lang === "ta" ? "தேர்ந்தெடுக்கவும்" : "Select…"}</option>
                     {/* Category examples name common Tamil occupations so folk users
@@ -489,8 +485,8 @@ export function DashboardSetupTab({
                     <option value="unemployed">{lang === "ta" ? "வேலையில்லாதவர்" : "Unemployed / Seeking"}</option>
                     <option value="retired">{lang === "ta" ? "ஓய்வு பெற்றவர்" : "Retired"}</option>
                     <option value="homemaker">{lang === "ta" ? "இல்லத்தரசி / இல்லத்தரசர்" : "Homemaker"}</option>
-                  </WSelect>
-                </WField>
+                  </Select>
+                </Field>
                 </div>
               </details>
 
@@ -635,18 +631,18 @@ export function DashboardSetupTab({
           {/* Vault creation / rename form */}
           <form id="form-vault" onSubmit={onCreateVault} style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "var(--space-3)" }}>
-              <WField label={t("field_vault_name", lang)}>
-                <WInput value={vaultForm.name} placeholder="எ.கா. Murugan Family"
+              <Field label={t("field_vault_name", lang)}>
+                <Input value={vaultForm.name} placeholder="எ.கா. Murugan Family"
                   onChange={(e) => onVaultFormChange({ ...vaultForm, name: e.target.value })} />
-              </WField>
-              <WField label={t("field_language", lang)}>
-                <WSelect value={vaultForm.defaultLanguage}
+              </Field>
+              <Field label={t("field_language", lang)}>
+                <Select value={vaultForm.defaultLanguage}
                   onChange={(e) => onVaultFormChange({ ...vaultForm, defaultLanguage: e.target.value })}>
                   <option value="ta-en">{t("lang_ta_en", lang)}</option>
                   <option value="ta">{t("lang_ta", lang)}</option>
                   <option value="en">{t("lang_en", lang)}</option>
-                </WSelect>
-              </WField>
+                </Select>
+              </Field>
             </div>
             {!selectedVaultId && (
               <StepBtn onClick={() => (document.getElementById("form-vault") as HTMLFormElement)?.requestSubmit()} busy={busy.createVault} disabled={setupStep < 2}>
@@ -701,12 +697,12 @@ export function DashboardSetupTab({
 
           <form id="form-member" onSubmit={onAddMember} style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "var(--space-3)" }}>
-              <WField label={t("field_name", lang)} error={formErrors.memberDisplayName}>
-                <WInput value={memberForm.displayName} error={!!formErrors.memberDisplayName}
+              <Field label={t("field_name", lang)} error={formErrors.memberDisplayName}>
+                <Input value={memberForm.displayName} error={!!formErrors.memberDisplayName}
                   onChange={(e) => { onMemberFormChange({ ...memberForm, displayName: e.target.value }); onFormErrorChange({ memberDisplayName: "" }); }} />
-              </WField>
-              <WField label={t("field_relationship", lang)}>
-                <WSelect value={memberForm.relationshipToOwner}
+              </Field>
+              <Field label={t("field_relationship", lang)}>
+                <Select value={memberForm.relationshipToOwner}
                   onChange={(e) => {
                     const rel = e.target.value as Relationship;
                     onMemberFormChange({ ...memberForm, relationshipToOwner: rel, memberWeight: RELATIONSHIP_WEIGHTS[rel] });
@@ -718,10 +714,10 @@ export function DashboardSetupTab({
                   <option value="sibling">{t("rel_sibling", lang)}</option>
                   <option value="grandparent">{t("rel_grandparent", lang)}</option>
                   <option value="other">{t("rel_other", lang)}</option>
-                </WSelect>
-              </WField>
-              <WField label={t("field_birth_date", lang)} error={formErrors.memberBirthDate}>
-                <WInput type="date" value={memberForm.birthDateLocal} error={!!formErrors.memberBirthDate} min={MIN_BIRTH_DATE} max={maxBirthDateIso()}
+                </Select>
+              </Field>
+              <Field label={t("field_birth_date", lang)} error={formErrors.memberBirthDate}>
+                <Input type="date" value={memberForm.birthDateLocal} error={!!formErrors.memberBirthDate} min={MIN_BIRTH_DATE} max={maxBirthDateIso()}
                   onChange={(e) => {
                     onMemberFormChange({
                       ...memberForm,
@@ -729,17 +725,17 @@ export function DashboardSetupTab({
                     });
                     onFormErrorChange({ memberBirthDate: "" });
                   }} />
-              </WField>
-              <WField label={t("field_birth_time", lang)} hint={t("field_time_optional", lang)}>
-                <WInput type="time" step="1" value={memberForm.birthTimeLocal}
+              </Field>
+              <Field label={t("field_birth_time", lang)} helper={t("field_time_optional", lang)}>
+                <Input type="time" step="1" value={memberForm.birthTimeLocal}
                   onChange={(e) => onMemberFormChange({ ...memberForm, birthTimeLocal: e.target.value })} />
-              </WField>
+              </Field>
               {/* Same reassurance the owner form gives — don't have their exact
                   time on hand? Approximate is fine; this is what stopped P04
                   from adding a member at all until she could "fetch her
                   jathagam from the almirah" (#60). */}
-              <WField label={lang === "ta" ? "பிறந்த நேர மூலம்" : "Birth Time Source"} hint={lang === "ta" ? "சரியாக தெரியாவிட்டால் தோராயம் போதும் — பின்னர் திருத்தலாம்" : "Approximate is fine if you don't know exactly — refine it later"}>
-                <WSelect value={memberForm.birthTimeSource}
+              <Field label={lang === "ta" ? "பிறந்த நேர மூலம்" : "Birth Time Source"} helper={lang === "ta" ? "சரியாக தெரியாவிட்டால் தோராயம் போதும் — பின்னர் திருத்தலாம்" : "Approximate is fine if you don't know exactly — refine it later"}>
+                <Select value={memberForm.birthTimeSource}
                   onChange={(e) => {
                     const src = e.target.value;
                     const conf = src === "hospital_record" ? "5" : src === "family_memory" ? "15" : src === "elder_told" ? "30" : src === "approximate" ? "60" : "0";
@@ -750,29 +746,33 @@ export function DashboardSetupTab({
                   <option value="family_memory">{lang === "ta" ? "குடும்ப நினைவு" : "Family Memory (±15 min)"}</option>
                   <option value="elder_told">{lang === "ta" ? "பெரியவர் சொன்னது" : "Elder's Account (±30 min)"}</option>
                   <option value="approximate">{lang === "ta" ? "தோராயம்" : "Approximate (±1 hr)"}</option>
-                </WSelect>
-              </WField>
-              <WField label={t("field_birth_place", lang)} error={formErrors.memberBirthPlace}>
+                </Select>
+              </Field>
+              <FieldShell label={t("field_birth_place", lang)}>
                 <PlaceCombobox value={memberForm.birthPlace}
+                  aria-label={t("field_birth_place", lang)}
                   onChange={(city, raw) => {
                     onMemberFormChange(applyPlaceSelection(memberForm, city, raw));
                     onFormErrorChange({ memberBirthPlace: "", memberTimezone: "" });
                   }} />
-              </WField>
-              <WField label={t("field_timezone", lang)} error={formErrors.memberTimezone}>
-                <WInput value={memberForm.birthTimezone} error={!!formErrors.memberTimezone}
+                {formErrors.memberBirthPlace && (
+                  <span className="ui-field__error" role="alert" aria-live="polite">{formErrors.memberBirthPlace}</span>
+                )}
+              </FieldShell>
+              <Field label={t("field_timezone", lang)} error={formErrors.memberTimezone}>
+                <Input value={memberForm.birthTimezone} error={!!formErrors.memberTimezone}
                   onChange={(e) => { onMemberFormChange({ ...memberForm, birthTimezone: e.target.value }); onFormErrorChange({ memberTimezone: "" }); }} />
-              </WField>
+              </Field>
               {memberCoordsConfirm.showRawFields ? (
                 <>
-                  <WField label={t("field_latitude", lang)}>
-                    <WInput inputMode="decimal" value={memberForm.birthLatitude}
+                  <Field label={t("field_latitude", lang)}>
+                    <Input inputMode="decimal" value={memberForm.birthLatitude}
                       onChange={(e) => onMemberFormChange({ ...memberForm, birthLatitude: e.target.value })} />
-                  </WField>
-                  <WField label={t("field_longitude", lang)}>
-                    <WInput inputMode="decimal" value={memberForm.birthLongitude}
+                  </Field>
+                  <Field label={t("field_longitude", lang)}>
+                    <Input inputMode="decimal" value={memberForm.birthLongitude}
                       onChange={(e) => onMemberFormChange({ ...memberForm, birthLongitude: e.target.value })} />
-                  </WField>
+                  </Field>
                   <PlaceCoordinatesFooter lang={lang} place={memberForm.birthPlace} matched={!!memberCoordsConfirm.matched}
                     onUseMatched={() => memberCoordsConfirm.setEditing(false)} />
                 </>
@@ -781,14 +781,14 @@ export function DashboardSetupTab({
                   latitude={memberForm.birthLatitude} longitude={memberForm.birthLongitude}
                   onEditClick={() => memberCoordsConfirm.setEditing(true)} />
               )}
-              <WField
+              <Field
                 label={t("field_weight", lang)}
-                hint={lang === "ta"
+                helper={lang === "ta"
                   ? "குடும்ப ஒட்டுமொத்த மதிப்பெண்ணில் இந்த உறுப்பினரின் தாக்கம். 1.15 = முக்கிய ஆதரவு (பெற்றோர்); 1.00 = சம நிலை (மனைவி); 0.75 = குறைந்த ஆதரவு (குழந்தை, உடன்பிறந்தவர்)."
                   : "How much this member influences the family aggregate score. 1.15 = strong support role (parent/grandparent); 1.00 = equal partner (spouse); 0.75 = supported member (child, sibling)."}>
-                <WInput inputMode="decimal" value={memberForm.memberWeight}
+                <Input inputMode="decimal" value={memberForm.memberWeight}
                   onChange={(e) => onMemberFormChange({ ...memberForm, memberWeight: e.target.value })} />
-              </WField>
+              </Field>
             </div>
             <label style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", cursor: "pointer", fontSize: "var(--text-base)", color: "var(--color-faint)" }}>
               <input type="checkbox" checked={memberForm.calculateNow}
