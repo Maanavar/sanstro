@@ -10,17 +10,21 @@ verbatim from ``one_minute_reading_service``, plus five extended/new beats:
 Beat 3, "Core Nature, extended" (§2.1), which inserts one ``mechanism``
 clause between the existing ``gift`` and ``shadow`` facets so the shadow
 reads as THIS gift's own shadow rather than an adjacent complaint; Beat 4,
-"Repeating Pattern" (§2.2), which reuses that SAME graha's ``shadow`` clause
-as its opening sentence and appends its ``domain_flex["WORK"]``/
-``domain_flex["RELATIONSHIPS"]`` facets — one trait, relocated into two
-domains, never a different graha's table (§0.3's "one graha" invariant);
+"Repeating Pattern" (§2.2), which continues straight from that SAME graha's
+``shadow`` clause — already spoken as Beat 3's own closing sentence — into
+its ``domain_flex["WORK"]``/``domain_flex["RELATIONSHIPS"]`` facets — one
+trait, relocated into two domains, never a different graha's table (§0.3's
+"one graha" invariant), and never restated verbatim a second time in a row
+(a 2026-08-11 fix — see ``_beat_repeating_pattern``'s own docstring);
 Beat 5, "What the Last Period Was Teaching, extended" (§2.3), which reuses
 ``one_minute_reading_service._beat_last_ten_years`` verbatim and only adds a
 ``_PERIOD_THEME`` word ahead of the SAME ``past_texture`` sentence, never a
 second, independently-computed transition; Beat 6, "Right Now, extended"
-(§2.4), which appends the new ``asks`` facet (what the period REQUIRES) to
-the SAME ``_beat_right_now`` output the 2-minute reading already builds,
-never a second hinge computation; and Beat 7, "Your [Topic] in Full" (§2.5),
+(§2.4), which appends the new ``asks`` facet (what the period REQUIRES),
+and — added 2026-08-11 — what the running antardasha adds via
+``_BHUKTI_FLAVOR``, to the SAME ``_beat_right_now`` output the 2-minute
+reading already builds, never a second hinge computation; and Beat 7,
+"Your [Topic] in Full" (§2.5),
 the one genuinely composed beat — built from the strongest graha's OWN
 ``gift`` (facet 1, alone, no ``mechanism``) and a compressed
 ``_SHADOW_ESSENCE`` paraphrase of ``shadow`` (facet 3), reframed through a
@@ -156,6 +160,11 @@ _TABLE_PROVENANCE: dict[str, tuple[Provenance, BaseRate]] = {
     # `shadow` itself — a compression of the same claim, not a new one — see
     # `_beat_topic_in_full`'s own docstring for the full account.
     "_SHADOW_ESSENCE": (Provenance.TENDENCY, BaseRate.KEYED),
+    # Added 2026-08-11 (see `_BHUKTI_FLAVOR`'s own comment below). A rule
+    # applied to the antardasha lord's own significations, read onto the
+    # mahadasha it is currently running inside — same class as `now_texture`
+    # itself, one level finer.
+    "_BHUKTI_FLAVOR": (Provenance.RULE, BaseRate.KEYED),
 }
 
 # §2.3. One label per graha — the noun the theme sentence opens on. Not a new
@@ -175,6 +184,70 @@ _PERIOD_THEME: dict[str, tuple[str, str]] = {
     "RAHU": ("தேடல்", "reaching"),
     "KETU": ("விடுதல்", "letting go"),
 }
+
+# Added 2026-08-11, in response to an astrologer review of the module's own
+# copy: `_beat_this_period_extended` spoke only in the mahadasha lord's
+# voice, so two readings of the same person taken years apart inside the
+# same ~10-year mahadasha rendered an identical Beat 6 — the antardasha
+# (bhukti), which is what actually makes a Moon-Saturn stretch feel
+# different from a Moon-Venus one, was computed (`timeline.
+# current_antardasha`, already cited in `_beat_right_now`'s own `basis`
+# field) but never spoken in the body text. This table is what that
+# antardasha lord adds, one entry per graha, phrased as a complete
+# predicate ("adds...", "brings...", "pushes...") so the caller only ever
+# concatenates whole words — never splices a case ending onto a bare noun,
+# the exact class of Tamil-morphology bug the KETU `shadow` entry's own
+# comment (above) already warns against.
+#
+# Deliberately NOT keyed on the (maha, antar) pair — that is an 81-entry
+# cross-product, exactly the "COPY VOCABULARY SIZE" trap this module's own
+# §2.5 already refused once for Beat 7. One axis: what THIS lord's bhukti
+# adds, independent of which mahadasha it is currently running inside.
+# Withheld entirely when the antardasha lord IS the mahadasha lord
+# (swabhukti — the common case at the start of every mahadasha): there is
+# nothing new to add in that case, and reusing this table there would
+# reproduce the exact same-clause-twice defect `_beat_repeating_pattern`
+# was just fixed for, one beat over.
+_BHUKTI_FLAVOR: dict[str, tuple[str, str]] = {
+    "SUN": (
+        "கூடுதல் கவனிப்பைக் கொண்டுவருகிறது, நல்லதோ கெட்டதோ",
+        "brings extra visibility, for better or worse",
+    ),
+    "MOON": (
+        "வழக்கத்தை விட மனநிலைக்கும் மனிதர்களுக்குமான அதிக உணர்திறனைக் கொண்டுவருகிறது",
+        "brings more sensitivity to mood and people than usual",
+    ),
+    "MARS": (
+        "இந்தக் காலம் மற்றபடி கேட்பதை விட வேகமாக நகரும்படி தூண்டுகிறது",
+        "pushes you to move faster than the rest of this stretch asks for",
+    ),
+    "MERCURY": (
+        "அதிக பேச்சையும், ஆவணங்களையும், பின்னும் முன்னுமான ஓட்டத்தையும் கொண்டுவருகிறது",
+        "brings more talk, more paperwork, more back-and-forth",
+    ),
+    "JUPITER": (
+        "மீதமுள்ள காலம் தராத வளர்ச்சிக்கான இடத்தைத் திறக்கிறது",
+        "opens room to grow that the rest of the stretch may not offer",
+    ),
+    "VENUS": (
+        "மற்றபடி கேட்பதற்குள் ஓர் எளிதான பகுதியைக் கொண்டுவருகிறது",
+        "brings an easier patch inside whatever the stretch is otherwise asking for",
+    ),
+    "SATURN": (
+        "இலகுவான காலத்திற்குள்ளும் கூடுதல் சுமையையும் மெதுவான நகர்வையும் சேர்க்கிறது",
+        "adds extra weight and slower going, even inside a lighter stretch",
+    ),
+    "RAHU": (
+        "புதிதாக ஏதோ ஒன்றை நோக்கிய நிலையற்ற ஈர்ப்பைச் சேர்க்கிறது",
+        "adds an unsettled pull toward something new",
+    ),
+    "KETU": (
+        "தொடங்குவதை விட முடிப்பதை நோக்கிய ஈர்ப்பைச் சேர்க்கிறது",
+        "adds a pull to close things off rather than start them",
+    ),
+}
+# PENDING NATIVE-TAMIL REVIEW, same posture as every other facet in this
+# table family (see one_minute_reading_service.py:70).
 
 # §2.5. One opening clause per topic, used to reframe the STRONGEST graha's
 # own `gift` (facet 1) into that domain — a grammatical hinge, not a new
@@ -300,30 +373,32 @@ def _beat_repeating_pattern(*, strongest: str) -> OneMinuteBeat:
     """5-minute Beat 4 (§2.2) — one shadow trait, relocated into two domains.
 
     ONE GRAHA, BY CONSTRUCTION (§0.3): reuses the SAME ``strongest`` graha
-    Beat 3 already opened on, reuses that graha's own ``shadow`` clause
-    verbatim as this beat's opening sentence, and appends only that graha's
-    own ``domain_flex["WORK"]``/``domain_flex["RELATIONSHIPS"]`` — never a
+    Beat 3 already opened on, and appends only that graha's own
+    ``domain_flex["WORK"]``/``domain_flex["RELATIONSHIPS"]`` — never a
     different graha's table, even if it would read well on its own. The
     structural guarantee is that this function has no branch that could pick
-    a different graha for the two domain clauses than it used for ``shadow``;
-    see ``test_beat_4_never_mixes_grahas`` for the test that checks this
-    against the tables directly rather than trusting the copy.
+    a different graha for the two domain clauses than Beat 3 used for
+    ``shadow``; see ``test_beat_4_never_mixes_grahas`` for the test that
+    checks this against the tables directly rather than trusting the copy.
+
+    Does NOT reopen on ``shadow`` verbatim. An earlier draft did — this beat
+    always follows Beat 3 directly, whose own closing clause is "Where it
+    costs you is {shadow}." — so a reader saw the identical shadow sentence
+    twice in a row, once framed as a cost and then again, capitalised, with
+    no framing at all. An astrologer review of rendered output on 2026-08-11
+    caught it reading start to finish; no test did, because each beat was
+    individually correct and §0.3's "one graha" invariant was satisfied
+    either way. Same failure class ``_beat_topic_in_full`` was patched for
+    on the same date — see that function's own docstring. The fix here is
+    the same shape: drop the restated clause and let Beat 4 continue
+    straight from Beat 3's own sentence instead of repeating it.
     """
     voice = _VOICE[strongest]
     work_ta, work_en = voice.domain_flex["WORK"]
     relationships_ta, relationships_en = voice.domain_flex["RELATIONSHIPS"]
-    shadow_ta, shadow_en = voice.shadow
 
-    ta = (
-        f"{shadow_ta[0].upper()}{shadow_ta[1:]}. "
-        f"{_WORK_CONNECTIVE[0]} {work_ta}. "
-        f"{_RELATIONSHIPS_CONNECTIVE[0]} {relationships_ta}."
-    )
-    en = (
-        f"{shadow_en[0].upper()}{shadow_en[1:]}. "
-        f"{_WORK_CONNECTIVE[1]} {work_en}. "
-        f"{_RELATIONSHIPS_CONNECTIVE[1]} {relationships_en}."
-    )
+    ta = f"{_WORK_CONNECTIVE[0]} {work_ta}. {_RELATIONSHIPS_CONNECTIVE[0]} {relationships_ta}."
+    en = f"{_WORK_CONNECTIVE[1]} {work_en}. {_RELATIONSHIPS_CONNECTIVE[1]} {relationships_en}."
 
     return OneMinuteBeat(
         id="repeating_pattern",
@@ -370,21 +445,36 @@ def _beat_this_period_extended(
     """5-minute Beat 6 (§2.4) — the 2-minute right_now beat, plus what it asks.
 
     Reuses ``_beat_right_now`` verbatim for the hinge lead, the current lord
-    and ``now_texture`` (what the period OFFERS) — appends only the new
-    ``asks`` facet (what it REQUIRES). ``addressed_to`` is passed through
-    rather than hardcoded, so ``client_with_guardian`` still gets
-    ``_beat_right_now``'s own ``_MINOR_NOW_TEXTURE`` substitution — ``asks``
-    itself has no register-specific variant (every entry read as dispositional
-    rather than adult-specific when drafted, so none was added).
+    and ``now_texture`` (what the period OFFERS) — appends the new ``asks``
+    facet (what it REQUIRES) and, between them, what the running antardasha
+    (bhukti) adds. ``addressed_to`` is passed through rather than hardcoded,
+    so ``client_with_guardian`` still gets ``_beat_right_now``'s own
+    ``_MINOR_NOW_TEXTURE`` substitution — neither ``asks`` nor
+    ``_BHUKTI_FLAVOR`` has a register-specific variant (every entry read as
+    dispositional rather than adult-specific when drafted, so none was
+    added).
+
+    The bhukti clause is withheld on swabhukti (``current_antardasha.lord ==
+    current_mahadasha.lord``, the first bhukti of every mahadasha) — see
+    ``_BHUKTI_FLAVOR``'s own comment for why reusing the table there would
+    reopen the exact same-clause-twice defect Beat 4 was just fixed for.
     """
     base = _beat_right_now(timeline=timeline, hinge=hinge, addressed_to=addressed_to)
-    asks_ta, asks_en = _VOICE[timeline.current_mahadasha.lord].asks
+    maha_lord = timeline.current_mahadasha.lord
+    antar_lord = timeline.current_antardasha.lord
+    asks_ta, asks_en = _VOICE[maha_lord].asks
+
+    bhukti_ta = bhukti_en = ""
+    if antar_lord != maha_lord:
+        flavor_ta, flavor_en = _BHUKTI_FLAVOR[antar_lord]
+        bhukti_ta = f" இப்போதைய {planet_ta(antar_lord)} பகுதி {flavor_ta}."
+        bhukti_en = f" Its current {planet_en(antar_lord)} phase {flavor_en}."
 
     return OneMinuteBeat(
         id="this_period",
         text=OneMinuteText(
-            ta=f"{base.text.ta} {_ASKS_CONNECTIVE[0]} {asks_ta}.",
-            en=f"{base.text.en} {_ASKS_CONNECTIVE[1]} {asks_en}.",
+            ta=f"{base.text.ta}{bhukti_ta} {_ASKS_CONNECTIVE[0]} {asks_ta}.",
+            en=f"{base.text.en}{bhukti_en} {_ASKS_CONNECTIVE[1]} {asks_en}.",
         ),
         basis=base.basis,
     )

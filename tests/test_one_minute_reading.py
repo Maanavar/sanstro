@@ -27,6 +27,7 @@ from app.calculations.display_names import (
 )
 from app.db.session import SessionLocal
 from app.models import BirthProfile, Chart
+from app.schemas.charts import PlanetPosition
 from app.services import one_minute_reading_service as reading
 from app.services.feature_flags import reset_flag, set_flag
 from app.services.narrative_engine import tone_validator
@@ -34,6 +35,7 @@ from app.services.one_minute_reading_service import (
     MAX_WORDS_EN,
     MAX_WORDS_TA,
     _beat_last_ten_years,
+    _strongest_and_weakest,
     word_budget,
 )
 
@@ -1476,6 +1478,50 @@ def test_every_temperament_sentence_carries_its_own_meaning_tag():
     poles = {line.faces for line in reading._SIGNATURE_OPENING.values()}
     poles |= {v.nature.faces for v in reading._VOICE.values()}
     assert poles == set(reading.Orientation), poles
+
+
+def _tied_planet(graha: str) -> PlanetPosition:
+    """Two grahas at the identical `strength_score`, differing only in
+    `graha` — the exact shape that used to resolve alphabetically."""
+    return PlanetPosition(
+        graha=graha,
+        rasiName="Kadagam",
+        absoluteLongitude=95.0,
+        rasi=4,
+        degreeInRasi=5.0,
+        nakshatra=8,
+        nakshatraName="Pusam",
+        pada=2,
+        houseFromLagna=5,
+        speedDegPerDay=1.0,
+        isRetrograde=False,
+        isCombust=False,
+        d9Rasi=4,
+        isVargottama=False,
+        showRetrogradeBadge=False,
+        strengthScore=55,
+    )
+
+
+@pytest.mark.no_db
+def test_strongest_and_weakest_ties_break_by_classical_dignity_not_alphabet():
+    """`_strongest_and_weakest` used to break a `strength_score` tie
+    alphabetically on `graha` — an artifact of dict/sort ordering with no
+    astrological meaning, and one that happened to always hand VENUS a
+    strongest tie against SATURN and always hand SUN a weakest tie against
+    everyone alphabetically after it. It now uses the same classical
+    dignity order `jaimini_karakas.py`/`chart_signature.py` already document
+    and test their own ties against (Sun > Moon > Mars > Mercury > Jupiter >
+    Venus > Saturn > Rahu > Ketu).
+
+    SATURN sorts after VENUS alphabetically, so the old code picked SATURN as
+    strongest; classical order ranks VENUS earlier, so VENUS should win.
+    """
+    strongest, weakest = _strongest_and_weakest(
+        [_tied_planet("SATURN"), _tied_planet("VENUS")]
+    )
+    assert strongest == "VENUS"
+    assert weakest == "SATURN"
 
 
 @pytest.mark.parametrize("age,marital_status", [(25, None), (33, "married"), (45, "widowed")])

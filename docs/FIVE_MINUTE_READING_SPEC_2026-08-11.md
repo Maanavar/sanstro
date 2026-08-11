@@ -263,14 +263,26 @@ honesty `_GRIEVANCE` already models).
 **Beat structure:**
 
 ```
-{shadow, capitalised as an opening clause}. {transition clause}, {domain_flex["WORK"]}.
-{transition clause}, {domain_flex["RELATIONSHIPS"]}.
+{transition clause}, {domain_flex["WORK"]}. {transition clause}, {domain_flex["RELATIONSHIPS"]}.
 ```
 
 No `_transition` device needed here — both clauses come from one graha by
 construction (§0.3's invariant), so there is no contrast/continuation choice
 to make; a fixed light connective ("At work, that can look like... In
 relationships, it can look like...") is honest and sufficient.
+
+**Does not reopen on `shadow`.** The first draft did — `{shadow, capitalised
+as an opening clause}` ahead of the two domain clauses — on the theory that
+the beat should name the trait before relocating it. Beat 4 always follows
+Beat 3 directly, though, and Beat 3 already closes on "Where it costs you is
+{shadow}." Reopening Beat 4 on the same `shadow` string a sentence later
+prints the identical clause twice in a row: once framed as a cost, then
+again with no framing at all. An astrologer review of rendered output on
+2026-08-11 caught this reading the two beats start to finish — no test did,
+since each beat was individually spec-compliant and §0.3's "one graha"
+invariant held regardless. Same failure class as the Beat 7 fix in §2.5's
+own "Composition, not authorship" note, fixed the same way: drop the
+restated clause rather than paraphrase it.
 
 ### 2.3 Beat 5 — What the Last Period Was Teaching (extended)
 
@@ -339,6 +351,32 @@ asks: tuple[str, str]
 
 Provenance: `Provenance.RULE`, `BaseRate.KEYED`. New facet on `_Voice`, nine
 strings, added to `_Voice.PROVENANCE`.
+
+**Addendum, 2026-08-11 — the antardasha (bhukti) clause.** An astrologer
+review of rendered output found that Beat 6, as specified above, speaks only
+in the mahadasha lord's voice. A mahadasha runs up to ~10 years; a chart is
+static; so two five-minute readings of the same person taken a year or two
+apart, inside the same still-running mahadasha, rendered a word-for-word
+identical Beat 6 — no freshness mechanism for a repeat visit, and no answer
+to "why does life feel like THIS right now" at finer resolution than a
+decade. The antardasha was already computed and already cited in
+`_beat_right_now`'s own `basis` field; it had just never reached the body
+text.
+
+Fix: `_BHUKTI_FLAVOR`, one entry per graha (nine strings, `Provenance.RULE`,
+`BaseRate.KEYED` — same class as `now_texture` itself, one level finer),
+naming what that graha's antardasha adds to whatever mahadasha it is
+currently running inside. Deliberately keyed on the antardasha lord ALONE,
+not the `(maha, antar)` pair — an 81-entry cross-product is exactly the
+"COPY VOCABULARY SIZE" trap §2.5 below already refused once for Beat 7.
+Rendered between `now_texture` and `asks`, and withheld entirely on
+swabhukti (`current_antardasha.lord == current_mahadasha.lord`, the first
+bhukti of every mahadasha and the common case, not an edge one) — reusing
+the table there would restate what `now_texture` just said, the same
+same-clause-twice defect Beat 4 was fixed for above. This is an
+**unpaid** vocabulary-cap raise (60 → 62 → 71 across the day's two fixes) —
+see `test_five_minute_vocabulary_stays_under_the_reviewable_cap`'s own
+comment for why it was made anyway.
 
 ### 2.5 Beat 7 — Your [Topic] in Full (NEW)
 
@@ -497,3 +535,106 @@ chart facts are identical.
    any table is drafted — it is easier to hold a line before copy exists than
    to cut approved copy after a reviewer has signed off on it, which is
    exactly the situation the 2-minute module's own history warns against.
+
+---
+
+## 7. Product-owner decisions, 2026-08-11 (post-implementation)
+
+Four items surfaced during the astrologer review pass on the *shipped*
+module (`_BHUKTI_FLAVOR`, the Beat 3/4 verbatim-repetition fixes) that were
+left open pending a call. Decided here rather than left dangling, with the
+reasoning that would let a future contributor re-open them if the premise
+changes.
+
+### 7.1 Provenance-mix budget — deferred, not now
+
+The existing machinery (`_TABLE_PROVENANCE` classifying every string,
+`_BEAT_PROVENANCE` declaring the class-set each beat emits, tested
+bidirectionally in both modules) already does real work: it bans `EVENT`/
+`COLD_READ` outright and makes it impossible to add an unclassified table or
+an undeclared beat without failing the suite. What it does not do is bound
+the *ratio* of `TENDENCY` (soft, dispositional) to `DERIVED`/`RULE` (hard,
+chart-mechanical) content inside a single beat — a beat could in principle
+lean 90% T and still pass today's bidirectional test as long as one D/R
+string is present somewhere.
+
+**Decision: do not restructure the ~20 beat-builder functions into tagged
+`(text, class)` clauses now.** Two reasons, not one:
+
+- The rewrite is not a small decision to encode, it is a rewrite of every
+  already-shipped, already-tested beat in both modules, for a property
+  (mix ratio) nothing has yet demonstrated is actually drifting wrong in
+  the shipped copy — the risk of the refactor itself currently outweighs
+  the unconfirmed benefit.
+- A ratio number set now would be calibrated against exactly two reading
+  lengths (2-minute, 5-minute). The 15-minute module's own spec already
+  earmarks cross-area synthesis and life-area grids as its central content
+  — material that is structurally more `TENDENCY`-heavy by nature (a grid
+  of "how you show up in each life area" is disposition-shaped, not
+  event-shaped). Freezing a ratio before that module's shape exists risks
+  writing a number the 15-minute module immediately has to special-case or
+  break.
+
+**Provisional target, written down now so the eventual work has a
+starting point rather than a blank page:** when this lands, aim for
+**≥50% of a beat's rendered clauses carrying `DERIVED` or `RULE`
+provenance, `TENDENCY` capped at ≤40%, `FRAME` absorbing the remainder** —
+mirrored per-beat, not just per-module, since a module-wide average would
+let one hard-fact-heavy beat (`last_ten_years`) paper over one soft-trait
+beat (`repeating_pattern`) that is nearly all T. This target is
+**provisional and unenforced** — no test asserts it yet. Revisit and lock it
+once the 15-minute module's beat shapes exist and the two pending
+`PENDING NATIVE-TAMIL REVIEW` passes on this module close, so the number is
+set against three modules' worth of real copy instead of two.
+
+### 7.2 Voice register — resolved: the shipped copy IS the reference
+
+No separate transcript/voice-reference doc exists in the repo, and none is
+being created for this. Instead: **the copy already shipped in both
+modules is the de facto register standard**, read back explicitly here so
+a future contributor does not have to reconstruct it by diffing commits.
+
+Sound like this (shipped, `_BHUKTI_FLAVOR`/`asks`/`_PERIOD_THEME`):
+*"pushes you to move faster than the rest of this stretch asks for,"*
+*"a steadiness that doesn't wait for the room to settle first,"*
+*"brings extra visibility, for better or worse."* Direct, declarative,
+present-tense, grounded in a named dasha/graha mechanism, no hedging
+qualifier doing the work a chart fact should be doing.
+
+Not like this (the register this module explicitly does not use):
+*"you've got this,"* *"lean into the discomfort,"* *"hold space for what
+comes up,"* *"your journey of growth" —* therapy-coach vocabulary that
+could be pasted under any chart unchanged, which is precisely the
+`COLD_READ`/`BaseRate.UNIVERSAL` failure mode `_TABLE_PROVENANCE` already
+exists to keep out the door.
+
+This is a **jothidar register**: someone who has read the chart and is
+telling you plainly what it says, not someone coaching you through a
+feeling. Every new table added to either module should be reviewed against
+the three "sound like this" examples above before it is reviewed for
+anything else.
+
+### 7.3 `_strongest_and_weakest` tie-break — resolved, fixed
+
+Was alphabetical on `graha` when two grahas tied on `strength_score` — no
+astrological meaning, and it happened to always hand VENUS a strongest-tie
+win over SATURN and always hand SUN a weakest-tie loss to everyone
+alphabetically after it. Fixed to use the same classical dignity order
+(`SUN > MOON > MARS > MERCURY > JUPITER > VENUS > SATURN > RAHU > KETU`)
+`jaimini_karakas.py` and `chart_signature.py` already document and test
+their own ties against — reused, not reinvented, so the codebase now has
+one tie-break convention instead of two. See
+`_STRENGTH_TIEBREAK_ORDER` in `one_minute_reading_service.py` and
+`test_strongest_and_weakest_ties_break_by_classical_dignity_not_alphabet`
+in `tests/test_one_minute_reading.py`.
+
+### 7.4 Astrologer content-QA on the action table — tracked, not blocking
+
+Not a code decision — the mechanism that keys each graha's `action`
+takeaway is structurally sound (it cannot drift to the wrong lord's
+table; that is a property of the lookup, not the wording). What is
+unverified is whether the nine strings themselves match classical
+kārakattvam. Tracked the same way the module's two `PENDING NATIVE-TAMIL
+REVIEW` markers already are: a content-review item that does not block
+shipping the code, and should be closed in the same review sitting as
+those two markers rather than opened as a separate pass.

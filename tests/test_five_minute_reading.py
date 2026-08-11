@@ -26,12 +26,14 @@ import pytest
 from app.calculations.dasha import DashaPeriod, VimshottariTimeline
 from app.services.feature_flags import reset_flag, set_flag
 from app.services.five_minute_reading_service import (
+    _BHUKTI_FLAVOR,  # noqa: PLC2701 (internal use)
     _PERIOD_THEME,  # noqa: PLC2701 (internal use)
     _SHADOW_ESSENCE,  # noqa: PLC2701 (internal use)
     _TOPIC_LENS,  # noqa: PLC2701 (internal use)
     _VOICE,  # noqa: PLC2701 (internal use)
     _beat_last_period_extended,  # noqa: PLC2701 (internal use)
     _beat_repeating_pattern,  # noqa: PLC2701 (internal use)
+    _beat_this_period_extended,  # noqa: PLC2701 (internal use)
     word_budget,
 )
 
@@ -381,13 +383,16 @@ def test_beat_4_never_mixes_grahas():
     """The §0.3 'one graha' invariant, checked against the tables directly.
 
     Not a test of the copy's plausibility — a reviewer does that — but of the
-    builder function itself: for every graha that could be `strongest`, the
-    rendered beat's opening clause and both domain clauses must be
-    byte-for-byte the SAME graha's `shadow`/`domain_flex` entries. A builder
-    that ever sourced the two domain clauses from a different graha's table
-    than the one it opened `shadow` on would still produce plausible-sounding
-    prose and pass every other test in this file; only comparing against the
-    source tables directly catches that.
+    builder function itself: for every graha that could be `strongest`, both
+    domain clauses must be byte-for-byte the SAME graha's `domain_flex`
+    entries. A builder that ever sourced the two domain clauses from a
+    different graha's table than the caller's `strongest` would still produce
+    plausible-sounding prose and pass every other test in this file; only
+    comparing against the source tables directly catches that. The "one
+    graha" guarantee here is structural (both clauses are keyed off the same
+    `strongest` argument `build_five_minute_reading` also passes to Beat 3),
+    not textual — see `test_beat_4_does_not_reopen_on_beat_3s_shadow_sentence`
+    for why this beat no longer echoes `shadow` itself.
     """
     for graha, voice in _VOICE.items():
         beat = _beat_repeating_pattern(strongest=graha)
@@ -399,11 +404,6 @@ def test_beat_4_never_mixes_grahas():
         assert work_ta in beat.text.ta, (graha, beat.text.ta)
         assert relationships_ta in beat.text.ta, (graha, beat.text.ta)
 
-        # The opening clause is THIS graha's own `shadow`, not any other
-        # graha's — checked by exclusion, not just by presence, since every
-        # `shadow` string in the table is distinct.
-        shadow_en = voice.shadow[1]
-        assert beat.text.en.startswith(f"{shadow_en[0].upper()}{shadow_en[1:]}")
         for other_graha, other_voice in _VOICE.items():
             if other_graha == graha:
                 continue
@@ -412,6 +412,24 @@ def test_beat_4_never_mixes_grahas():
                 graha,
                 other_graha,
             )
+
+
+def test_beat_4_does_not_reopen_on_beat_3s_shadow_sentence():
+    """Regression guard for the 2026-08-11 astrologer-review finding: a first
+    draft opened Beat 4 on `shadow` verbatim, capitalised, immediately after
+    Beat 3's own closing clause — "Where it costs you is {shadow}." — had
+    just said the identical sentence framed as a cost. Read start to finish,
+    that is the same shadow clause twice in a row; no other test in this file
+    catches it because each beat was individually spec-compliant. See
+    `_beat_repeating_pattern`'s own docstring for the full account, and
+    `test_topic_in_full_never_repeats_core_natures_own_sentences_verbatim`
+    for the same failure class caught one beat later, same date."""
+    for graha, voice in _VOICE.items():
+        beat = _beat_repeating_pattern(strongest=graha)
+        shadow_en = voice.shadow[1]
+        shadow_ta = voice.shadow[0]
+        assert shadow_en not in beat.text.en, (graha, beat.text.en)
+        assert shadow_ta not in beat.text.ta, (graha, beat.text.ta)
 
 
 # ── Beat 5 — What the Last Period Was Teaching, extended (§2.3) ─────────────
@@ -473,6 +491,79 @@ def test_asks_never_restates_now_texture_for_any_graha():
     for graha, voice in _VOICE.items():
         assert voice.asks[1] != voice.now_texture[1], graha
         assert voice.asks[0] != voice.now_texture[0], graha
+
+
+def test_this_period_beat_names_the_antardasha_when_it_differs_from_the_mahadasha():
+    """2026-08-11 astrologer-review finding: Beat 6 spoke only in the
+    mahadasha lord's voice, so a Moon mahadasha rendered word-for-word the
+    same "right now" beat whether the running bhukti was Saturn or Venus —
+    the antardasha was already computed (`_beat_right_now`'s own `basis`
+    field cites it) but never reached the body text. `_BHUKTI_FLAVOR` fixes
+    that; this locks the antardasha lord's flavour clause into the rendered
+    beat, ahead of the `asks` clause, whenever it differs from the
+    mahadasha lord."""
+    mahadashas = (
+        _maha("MOON", date(2016, 3, 13), date(2026, 3, 13), 0),
+        _maha("MARS", date(2026, 3, 13), date(2033, 3, 13), 1),
+    )
+    antardasha = DashaPeriod(
+        level="antar", lord="SATURN", start_jd=0.0, end_jd=0.0,
+        start_date=date(2024, 1, 1), end_date=date(2026, 3, 13), sequence_index=0,
+    )
+    timeline = VimshottariTimeline(
+        opening_lord="MOON",
+        balance_years_at_birth=10.0,
+        opening_end_jd=mahadashas[0].end_jd,
+        mahadashas=mahadashas,
+        current_mahadasha=mahadashas[0],
+        current_antardasha=antardasha,
+        current_pratyantardasha=antardasha,
+        current_sookshmadasha=antardasha,
+        current_pranadasha=antardasha,
+    )
+
+    beat = _beat_this_period_extended(timeline=timeline, hinge=None, addressed_to="self")
+
+    flavor_en = _BHUKTI_FLAVOR["SATURN"][1]
+    assert "Its current Saturn phase" in beat.text.en, beat.text.en
+    assert flavor_en in beat.text.en, beat.text.en
+    # Ordering: now_texture, then the bhukti clause, then asks — never the
+    # bhukti clause printed after the reading has already moved on to asks.
+    assert beat.text.en.index("Its current Saturn phase") < beat.text.en.index(
+        "What this period asks of you:"
+    ), beat.text.en
+
+
+def test_this_period_beat_withholds_the_bhukti_clause_on_swabhukti():
+    """The first bhukti of every mahadasha runs under the mahadasha lord
+    itself (swabhukti) — there is nothing new `_BHUKTI_FLAVOR` could add
+    that `now_texture` has not already said, and reusing the table there
+    would reopen the same-clause-twice defect `_beat_repeating_pattern` was
+    fixed for one beat earlier. Regression guard, not a hypothetical: this
+    is the COMMON case, not an edge one."""
+    mahadashas = (_maha("VENUS", date(2024, 1, 1), date(2044, 1, 1), 0),)
+    antardasha = DashaPeriod(
+        level="antar", lord="VENUS", start_jd=0.0, end_jd=0.0,
+        start_date=date(2024, 1, 1), end_date=date(2027, 4, 1), sequence_index=0,
+    )
+    timeline = VimshottariTimeline(
+        opening_lord="VENUS",
+        balance_years_at_birth=20.0,
+        opening_end_jd=mahadashas[0].end_jd,
+        mahadashas=mahadashas,
+        current_mahadasha=mahadashas[0],
+        current_antardasha=antardasha,
+        current_pratyantardasha=antardasha,
+        current_sookshmadasha=antardasha,
+        current_pranadasha=antardasha,
+    )
+
+    beat = _beat_this_period_extended(timeline=timeline, hinge=None, addressed_to="self")
+
+    assert "Its current Venus phase" not in beat.text.en, beat.text.en
+    for flavor_ta, flavor_en in _BHUKTI_FLAVOR.values():
+        assert flavor_en not in beat.text.en, beat.text.en
+        assert flavor_ta not in beat.text.ta, beat.text.ta
 
 
 # ── Beat 7 — Your Topic in Full (§2.5) ───────────────────────────────────────
@@ -570,13 +661,22 @@ def test_last_period_theme_never_names_a_different_lord_than_the_span_it_opens()
 
 
 def test_five_minute_vocabulary_stays_under_the_reviewable_cap():
-    """54 strings estimated in the spec (§4.3); cap raised from 60 to 62 on
+    """54 strings estimated in the spec (§4.3). Cap raised from 60 to 62 on
     2026-08-11 for `_SHADOW_ESSENCE` (see its own comment in
     five_minute_reading_service.py): fixing the Beat 3/4/7 verbatim-repetition
     finding from that day's manual review cost 9 new reviewable strings even
     after dropping `mechanism` from Beat 7 entirely to pay most of the way.
-    +2 net over the original "one Tamil sitting" ceiling is judged close
-    enough to the same review burden to not be worth a second sitting.
+
+    Raised again, same day, from 62 to 71 for `_BHUKTI_FLAVOR` (9 more
+    strings, see its own comment) — an astrologer-requested fix for a
+    different defect (Beat 6 spoke only in the mahadasha lord's voice, so a
+    static chart produced a word-for-word identical "right now" beat on every
+    visit within the same ~10-year mahadasha), not a repetition fix, and
+    genuinely new information rather than a paraphrase of an existing table.
+    Unlike the 62 raise, nothing paid for this one — it is an intentional,
+    written-down unpaid raise rather than a silent one, on the judgement that
+    a freshness mechanism for repeat visits is worth one Tamil review pass
+    it did not previously need.
 
     This test counts what actually exists rather than trusting the spec's
     estimate, so it starts failing the moment a future beat's table pushes the
@@ -595,5 +695,6 @@ def test_five_minute_vocabulary_stays_under_the_reviewable_cap():
     new_strings += len(_PERIOD_THEME)  # period_theme: one per graha
     new_strings += len(_TOPIC_LENS)  # topic_lens: one per non-UNKNOWN, reachable topic
     new_strings += len(_SHADOW_ESSENCE)  # shadow_essence: one per graha, Beat 7's friction facet
-    assert new_strings == 9 + 18 + 9 + 9 + 8 + 9
-    assert new_strings <= 62
+    new_strings += len(_BHUKTI_FLAVOR)  # bhukti_flavor: one per graha, Beat 6's antardasha clause
+    assert new_strings == 9 + 18 + 9 + 9 + 8 + 9 + 9
+    assert new_strings <= 71

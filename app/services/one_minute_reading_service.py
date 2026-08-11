@@ -725,9 +725,17 @@ _VOICE: dict[str, _Voice] = {
             "உங்கள் தூக்கத்தையும் நீர் பழக்கத்தையும் காத்துக்கொள்ளுங்கள் — இந்தக் காலம் உங்கள் நிலைத்தன்மையின் மீது நடக்கிறது",
             "protect your sleep and your hydration; this period runs on your steadiness",
         ),
+        # Reworded 2026-08-11: the first draft ("a rhythm of your own, kept
+        # apart from the mood around you") paraphrased `now_texture` so
+        # closely — "keep your own rhythm and it goes well" — that Beat 6 of
+        # the five-minute reading said the same thing twice in one breath, an
+        # astrologer review caught reading the rendered beat, not a test.
+        # This entry now names the steadiness `action` (below) makes
+        # concrete, rather than restating the rhythm `now_texture` already
+        # asked for.
         asks=(
-            "மற்றவர்களின் மனநிலையிலிருந்து தனித்த, உங்களுக்கே சொந்தமான ஒரு தாளம்",
-            "a rhythm of your own, kept apart from the mood around you",
+            "சூழல் அமைதியாகும் வரை காத்திராத ஒரு நிலைத்தன்மை",
+            "a steadiness that doesn't wait for the room to settle first",
         ),
     ),
     "MARS": _Voice(
@@ -2977,18 +2985,22 @@ def _beat_next_ten_years(
             # stays on WHEN, and only the second lord spends a texture, because
             # it is the one piece of this beat that is actually new.
             #
-            # "decade ahead", not "this decade": the reading is read on a date
-            # inside a calendar decade, and "this decade" was read as that
-            # decade rather than as the ten years from today.
+            # Names the handover date directly rather than framing it as "the
+            # first part of the decade ahead" first and only then giving the
+            # date — an astrologer review on 2026-08-11 flagged the two-step
+            # version as sitting awkwardly together: a vague relative phrase
+            # ("first part") immediately followed by a specific month reads
+            # as the sentence correcting itself mid-stream. One clause, one
+            # throughline: current lord, until when, then the next lord.
             ta = (
-                f"இந்தப் பத்தாண்டின் முதல் பகுதியில் {planet_ta(current.lord)} காலமே "
-                f"தொடர்கிறது; {_month_year(nxt.start_date, 'ta')} முதல் அது "
-                f"{planet_ta(nxt.lord)} காலத்திற்கு மாறுகிறது — {texture[0]}."
+                f"{planet_ta(current.lord)} காலம் {_month_year(nxt.start_date, 'ta')} வரை "
+                f"தொடர்கிறது; அதன் பிறகு அது {planet_ta(nxt.lord)} காலத்திற்கு "
+                f"மாறுகிறது — {texture[0]}."
             )
             en = (
-                f"In the first part of the decade ahead, {planet_en(current.lord)} "
-                f"remains the main influence; from {_month_year(nxt.start_date, 'en')}, "
-                f"that gives way to {planet_en(nxt.lord)} — {texture[1]}."
+                f"{planet_en(current.lord)} remains the main influence until "
+                f"{_month_year(nxt.start_date, 'en')}, when it gives way to "
+                f"{planet_en(nxt.lord)} — {texture[1]}."
             )
         else:
             ta = (
@@ -3224,11 +3236,30 @@ def _signature_lord(
     return signature.dominant if signature.dominant in _VOICE else fallback
 
 
+# Classical dignity order, reused from jaimini_karakas.py's documented
+# tie-break precedent (also reused by chart_signature.py's `_TIEBREAK_ORDER`)
+# rather than alphabetical, which carried no astrological meaning and made
+# "strongest" ties resolve toward whichever graha's name sorts last (SUN
+# beat everyone alphabetically-before it on a weakest tie, VENUS always won a
+# strongest tie against SATURN). A `strength_score` tie is genuinely rare
+# with real ephemeris data, same as the Chara Karaka tie this order was
+# first written for.
+_STRENGTH_TIEBREAK_ORDER: tuple[str, ...] = (
+    "SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU",
+)
+
+
 def _strongest_and_weakest(planets: list) -> tuple[str, str]:
     scored = [p for p in planets if p.graha in _VOICE]
     if not scored:
         raise ValueError("Chart carries no scoreable grahas.")
-    ranked = sorted(scored, key=lambda p: (p.strength_score, p.graha))
+    rank = {planet: i for i, planet in enumerate(_STRENGTH_TIEBREAK_ORDER)}
+    # Ascending sort: within a `strength_score` tie, the EARLIER graha in
+    # classical dignity order sorts toward the end (picked as `strongest`)
+    # by negating its rank; the LATER graha in that order sorts toward the
+    # start (picked as `weakest`) — mirroring the asymmetry the codebase
+    # already applies via `_tie_break`'s first-match-wins scan.
+    ranked = sorted(scored, key=lambda p: (p.strength_score, -rank[p.graha]))
     return ranked[-1].graha, ranked[0].graha
 
 
