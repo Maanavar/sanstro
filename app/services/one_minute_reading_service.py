@@ -98,6 +98,7 @@ from app.core.age_gate import (
 )
 from app.models import BirthProfile, Chart, FamilyMember
 from app.reasoning.chart_signature import detect_signature
+from app.schemas.charts import LagnaPosition, PlanetPosition
 from app.schemas.one_minute_reading import (
     OneMinuteBeat,
     OneMinuteMeta,
@@ -2906,13 +2907,42 @@ def _strongest_and_weakest(planets: list) -> tuple[str, str]:
     return ranked[-1].graha, ranked[0].graha
 
 
-def build_one_minute_reading(
+@dataclass(frozen=True, slots=True)
+class ChartContext:
+    """Computed once per (chart_id, as_of, owner_user_id). Every reading-
+    length module (2/5/15/30-minute) consumes this rather than recomputing
+    any field on it — see docs/FIVE_MINUTE_READING_SPEC_2026-08-11.md §0.1.
+    Recomputing `nakshatra_lord`/`signature_lord`/`strongest`/`weakest` a
+    second time for the same chart at the same `as_of` is a live risk that a
+    rounding/timing difference between call sites produces a *different*
+    answer for the same person in the same sitting.
+    """
+
+    chart_id: UUID
+    profile: BirthProfile
+    timeline: VimshottariTimeline
+    moon: PlanetPosition
+    lagna: LagnaPosition
+    as_of: date
+    age: int
+    stage: str
+    age_band: dict[str, str]
+    addressed_to: str
+    topic: str
+    nakshatra_lord: str
+    signature_lord: str
+    strongest: str
+    weakest: str
+    lagna_reliable: bool
+
+
+def build_chart_context(
     session: Session,
     chart_id: UUID,
     *,
     owner_user_id: UUID,
     as_of: date | None = None,
-) -> OneMinuteReadingResponse:
+) -> ChartContext:
     chart = session.get(Chart, chart_id)
     if chart is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chart not found.")
@@ -3001,14 +3031,50 @@ def build_one_minute_reading(
     if not lagna_reliable:
         signature_lord = nakshatra_lord
 
+    return ChartContext(
+        chart_id=chart_id,
+        profile=profile,
+        timeline=timeline,
+        moon=moon,
+        lagna=chart_response.data.lagna,
+        as_of=today,
+        age=age,
+        stage=stage,
+        age_band=age_band,
+        addressed_to=addressed_to,
+        topic=topic,
+        nakshatra_lord=nakshatra_lord,
+        signature_lord=signature_lord,
+        strongest=strongest,
+        weakest=weakest,
+        lagna_reliable=lagna_reliable,
+    )
+
+
+def build_one_minute_reading(context: ChartContext) -> OneMinuteReadingResponse:
+    chart_id = context.chart_id
+    profile = context.profile
+    timeline = context.timeline
+    moon = context.moon
+    today = context.as_of
+    age = context.age
+    stage = context.stage
+    age_band = context.age_band
+    addressed_to = context.addressed_to
+    topic = context.topic
+    nakshatra_lord = context.nakshatra_lord
+    signature_lord = context.signature_lord
+    strongest = context.strongest
+    lagna_reliable = context.lagna_reliable
+
     opening = _beat_who_you_are(
         display_name=profile.display_name,
         nakshatra=moon.nakshatra,
         nakshatra_name=moon.nakshatra_name,
         moon_rasi_name=moon.rasi_name,
         moon_rasi=moon.rasi,
-        lagna_rasi_name=chart_response.data.lagna.rasi_name,
-        lagna_rasi=chart_response.data.lagna.rasi,
+        lagna_rasi_name=context.lagna.rasi_name,
+        lagna_rasi=context.lagna.rasi,
         nakshatra_lord=nakshatra_lord,
         signature_lord=signature_lord,
         lagna_reliable=lagna_reliable,
@@ -3273,6 +3339,8 @@ __all__ = [
     "TOPIC_TEEN",
     "TOPIC_THIRD_PARTY",
     "TOPIC_UNKNOWN",
+    "ChartContext",
+    "build_chart_context",
     "build_one_minute_reading",
     "word_budget",
 ]

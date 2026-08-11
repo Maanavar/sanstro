@@ -46,6 +46,7 @@ from app.services.chart_service import (
 )
 from app.services.dasha_service import get_chart_dasha
 from app.services.one_minute_reading_service import (
+    build_chart_context,
     build_one_minute_reading,
     require_one_minute_reading_enabled,
 )
@@ -167,12 +168,13 @@ def get_one_minute_reading(
 ) -> OneMinuteReadingResponse:
     # Flag first, chart second — see require_one_minute_reading_enabled's docstring.
     require_one_minute_reading_enabled()
-    return build_one_minute_reading(
+    context = build_chart_context(
         session,
         chart_id,
         owner_user_id=current_user.user_id,
         as_of=as_of,
     )
+    return build_one_minute_reading(context)
 
 
 @router.get("/charts/{chart_id}/explanation", response_model=ChartExplanationResponse, tags=["charts"])
