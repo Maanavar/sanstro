@@ -1,6 +1,18 @@
-"""\"Your Chart in One Minute\" — the astrologer's opening reading.
+"""\"Your Chart in Two Minutes\" — the astrologer's opening reading.
 
 Spec: docs/ONE_MINUTE_READING_2026-08-04.md
+
+RENAMED FROM "one minute" TO "two minutes" 2026-08-10, on external review. The
+displayed copy was the thing that was wrong, not the reading: MAX_WORDS_EN/TA
+had already been raised four times to 330/240 words — the comment trail above
+that constant calls 330 words "the outer edge of about a minute" in its own
+words — so the surface was already a two-minute read describing itself as a
+one-minute one. Renamed the user-facing title only (`dashboard-one-minute-
+reading.tsx`, the OpenAPI `summary=`); the module name, the route
+(`/one-minute`), the feature flag (`one_minute_reading`) and every internal
+identifier stay as they are — renaming those would touch the API-contract
+chain CLAUDE.md governs (backend route + `packages/shared` + mobile + web) for
+a copy-only decision, so it wasn't done.
 
 WHAT THIS IS. When a jodhidar picks up a jadhagam they speak for about a minute
 before the client asks anything: they name the star and describe the nature,
@@ -448,7 +460,7 @@ class _Line:
 # visible only by reading the Tamil, and only after the transition engine made
 # a contrast connective exist at all.
 _CONTRAST: tuple[str, str] = ("மறுபுறம்:", "And yet:")
-_CONTINUATION: tuple[str, str] = ("அதே நேரத்தில்:", "At the same time:")
+_CONTINUATION: tuple[str, str] = ("அதே நேரத்தில்:", "At the same time,")
 _NO_TRANSITION: tuple[str, str] = ("", "")
 
 
@@ -463,9 +475,19 @@ def _transition(first: _Line, second: _Line) -> tuple[str, str]:
       pull apart says it out loud.
     - **continuation** — different sentences facing the same way. They add to
       each other, and the connective marks that without claiming a tension.
-    - **nothing** — the same line twice over, in effect: one graha supplied
-      both, so there is no transition to make and a connective would be
-      punctuation pretending to be thought.
+    - **nothing** — the literal same line twice over (identical object, or
+      identical English text) — there is no transition to make and a connective
+      would be punctuation pretending to be thought.
+
+    NOT reached by "same graha" alone, and this module's one caller is proof:
+    `_beat_who_you_are` calls this with (`_SIGNATURE_OPENING[signature_lord]`,
+    `_VOICE[nakshatra_lord].nature`), two DIFFERENT tables, so even when
+    `signature_lord == nakshatra_lord` the two ``_Line``s carry different prose
+    and this branch cannot fire there — that pairing falls through to
+    continuation instead, correctly, since it is two distinct sentences facing
+    the same way. "Nothing" only fires for a caller that can hand this function
+    the identical ``_Line`` (or identical text) on both sides, which no current
+    call site does.
     """
     if first.faces is not second.faces:
         return _CONTRAST
@@ -619,7 +641,7 @@ _VOICE: dict[str, _Voice] = {
         ),
         action=(
             "உங்கள் தூக்கத்தையும் நீர் பழக்கத்தையும் காத்துக்கொள்ளுங்கள் — இந்தக் காலம் உங்கள் நிலைத்தன்மையின் மீது நடக்கிறது",
-            "protect your sleep and your water; this period runs on your steadiness",
+            "protect your sleep and your hydration; this period runs on your steadiness",
         ),
     ),
     "MARS": _Voice(
@@ -1933,8 +1955,9 @@ def _beat_who_you_are(
             hinge_ta = f"{hinge[0]} " if hinge[0] else ""
             hinge_en = f"{hinge[1]} " if hinge[1] else ""
             # Lower-cased only when a connective precedes it, because then the
-            # facet is continuing a sentence rather than opening one.
-            nature_ta = voice.nature.ta if not hinge_ta else voice.nature.ta
+            # facet is continuing a sentence rather than opening one. Tamil has
+            # no case, so there is nothing to lower on that side.
+            nature_ta = voice.nature.ta
             nature_en = (
                 voice.nature.en
                 if not hinge_en
@@ -2061,6 +2084,18 @@ def _beat_strength_and_cost(*, strongest: str) -> OneMinuteBeat:
     the longer reading this surface now hands off to, and deleting nine
     astrologer-approved lines to save nine unused dict rows would be trading
     something scarce for something free.
+
+    THE THREE ARE NOT HELD THE SAME WAY, and it is worth being exact about the
+    difference before anyone reaches for these. ``_VOICE.life_lesson`` has a
+    complete, callable builder sitting right below this function —
+    ``_beat_what_life_keeps_teaching`` — that only needs to be added back to a
+    ``beats`` list. ``_GRIEVANCE`` and ``_VALIDATION`` have no builder at all: no
+    function in this module reads either table. The four-link stitching function
+    this docstring describes above (gift → shadow → grievance → validation) does
+    not exist as code any more — only the reasoning for why it was the right
+    shape survives, here. Reconnecting them for the longer reading means writing
+    that function fresh (or recovering it from git history before §6.17), not
+    un-commenting something already wired.
     """
     voice = _VOICE[strongest]
 
@@ -2585,40 +2620,90 @@ def _beat_age_question(
     )
 
 
+# How much of the coming decade the CURRENT lord must still cover before the
+# forward beat gives it its own phase clause. Below this share the handover is
+# close enough that the decade already reads as the next lord's, and a
+# first-phase sentence for a few remaining months would be padding, not
+# information. Mirrors _DOMINANT_STRETCH_SHARE — the same judgement, made
+# looking forward instead of back.
+_FORWARD_PHASE_MIN_SHARE = 0.2
+
+
 def _beat_next_ten_years(
     *, timeline: VimshottariTimeline, as_of: date, addressed_to: str
 ) -> OneMinuteBeat:
     horizon = date(as_of.year + 10, as_of.month, min(as_of.day, 28))
+    window_days = (horizon - as_of).days
     upcoming = _handovers_within(timeline.mahadashas, as_of, horizon)
 
     if upcoming:
         nxt = upcoming[0]
         texture = _now_texture(nxt.lord, addressed_to)
-        ta = (
-            f"{_month_year(nxt.start_date, 'ta')} முதல் உங்களுக்கு {planet_ta(nxt.lord)} காலம் "
-            f"தொடங்குகிறது. {_cap(texture[0])}."
-        )
-        en = (
-            f"From {_month_year(nxt.start_date, 'en')}, {planet_en(nxt.lord)} takes over. "
-            f"{_cap(texture[1])}."
-        )
+        current = timeline.current_mahadasha
+        lead_share = (nxt.start_date - as_of).days / window_days
+
+        if lead_share >= _FORWARD_PHASE_MIN_SHARE:
+            # Phase-based, but naming the CURRENT lord costs no texture: beat 4
+            # (`right_now`) already spent that texture on this exact lord, and
+            # repeating it here read as the reading looping on itself — the
+            # first build of this did exactly that. What beat 6 adds that beat 4
+            # does not have is the timing of the handover, so the first clause
+            # stays on WHEN, and only the second lord spends a texture, because
+            # it is the one piece of this beat that is actually new.
+            #
+            # "decade ahead", not "this decade": the reading is read on a date
+            # inside a calendar decade, and "this decade" was read as that
+            # decade rather than as the ten years from today.
+            ta = (
+                f"இந்தப் பத்தாண்டின் முதல் பகுதியில் {planet_ta(current.lord)} காலமே "
+                f"தொடர்கிறது; {_month_year(nxt.start_date, 'ta')} முதல் அது "
+                f"{planet_ta(nxt.lord)} காலத்திற்கு மாறுகிறது — {texture[0]}."
+            )
+            en = (
+                f"In the first part of the decade ahead, {planet_en(current.lord)} "
+                f"remains the main influence; from {_month_year(nxt.start_date, 'en')}, "
+                f"that gives way to {planet_en(nxt.lord)} — {texture[1]}."
+            )
+        else:
+            ta = (
+                f"{_month_year(nxt.start_date, 'ta')} முதல் உங்களுக்கு {planet_ta(nxt.lord)} காலம் "
+                f"தொடங்குகிறது. {_cap(texture[0])}."
+            )
+            en = (
+                f"From {_month_year(nxt.start_date, 'en')}, {planet_en(nxt.lord)} takes over. "
+                f"{_cap(texture[1])}."
+            )
         basis_ta = f"{planet_ta(nxt.lord)} மகாதசை {nxt.start_date.isoformat()} முதல்"
         basis_en = f"{planet_en(nxt.lord)} mahadasha from {nxt.start_date.isoformat()}"
     else:
         maha = timeline.current_mahadasha
         antars = _antardashas(maha)
         upcoming_antars = _handovers_within(antars, as_of, horizon)
+        # The `else` here is structurally unreachable, not a guess: reaching
+        # this branch already means no mahadasha handover falls inside the
+        # 10-year `horizon`, so `maha` (and therefore every one of its
+        # antardashas) spans the entire window. The longest antardasha
+        # Vimshottari can produce is Venus-in-Venus at (20*20)/120 ≈ 3.33
+        # years — under a third of the window — so at least one antardasha
+        # handover must fall inside it. Kept as a fallback rather than an
+        # assertion because a wrong guarantee should degrade to a slightly
+        # stale sentence, not a 500.
         nxt = upcoming_antars[0] if upcoming_antars else timeline.current_antardasha
         texture = _now_texture(nxt.lord, addressed_to)
+        # No mahadasha handover falls inside the decade, so it is honestly one
+        # phase at the maha level — the phase framing here is the antardasha
+        # turn inside it, which is what a person actually feels. `maha.lord`'s
+        # own texture is not repeated for the same reason as the branch above:
+        # beat 4 already spent it.
         ta = (
-            f"{maha.end_date.year} வரை {planet_ta(maha.lord)} காலமே தொடர்கிறது; அதற்குள் "
-            f"{_month_year(nxt.start_date, 'ta')} முதல் {planet_ta(nxt.lord)} பகுதி வருகிறது. "
-            f"{_cap(texture[0])}."
+            f"இந்தப் பத்தாண்டு முழுவதும் {planet_ta(maha.lord)} காலமே தொடர்கிறது; "
+            f"{_month_year(nxt.start_date, 'ta')} முதல் அதற்குள் {planet_ta(nxt.lord)} "
+            f"பகுதி வர, {texture[0]}."
         )
         en = (
-            f"You stay under {planet_en(maha.lord)} through {maha.end_date.year}; the shift "
-            f"inside it comes in {_month_year(nxt.start_date, 'en')}, when {planet_en(nxt.lord)} "
-            f"begins. {_cap(texture[1])}."
+            f"The decade ahead stays under {planet_en(maha.lord)} throughout; from "
+            f"{_month_year(nxt.start_date, 'en')} the emphasis inside it shifts toward "
+            f"{planet_en(nxt.lord)}, when {texture[1]}."
         )
         basis_ta = f"{planet_ta(nxt.lord)} புத்தி {nxt.start_date.isoformat()} முதல்"
         basis_en = f"{planet_en(nxt.lord)} antardasha from {nxt.start_date.isoformat()}"

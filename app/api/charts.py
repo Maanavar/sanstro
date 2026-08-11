@@ -157,7 +157,7 @@ def get_report(
     "/charts/{chart_id}/one-minute",
     response_model=OneMinuteReadingResponse,
     tags=["charts"],
-    summary="Your Chart in One Minute — the astrologer's opening reading, in plain language",
+    summary="Your Chart in Two Minutes — the astrologer's opening reading, in plain language",
 )
 def get_one_minute_reading(
     chart_id: UUID,

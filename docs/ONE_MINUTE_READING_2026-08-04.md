@@ -535,3 +535,58 @@ rendering of "no signal") rather than by the raise.
   measure.
 - **The onboarding hand-off** (§7.2, decision 1 above) — its own commit.
 - **The Tamil review pass** — 78 strings, one sitting, and it is not blocking the flag.
+
+## 16. Renamed to two minutes, and beat 6 made phase-based (2026-08-10)
+
+An external review (not an astrologer or product-owner hat on this doc — a friend's read of the
+architecture) made two points worth acting on, and both were checked against the shipped code rather
+than taken on faith.
+
+**"This is a two-minute reading, not a one-minute one" — correct, and the code already half-admitted
+it.** §3's original per-beat estimate summed to 225 words; the shipped `MAX_WORDS_EN`/`MAX_WORDS_TA`
+had already been raised four times to 330/240, and the comment trail on that constant in
+`one_minute_reading_service.py` already calls 330 words "the outer edge of about a minute" in its own
+words. The fix is the display title only — `dashboard-one-minute-reading.tsx` now reads "Your chart in
+two minutes" / "இரண்டு நிமிடங்களில்", and the OpenAPI `summary=` in `app/api/charts.py` matches. The
+module name, the route (`/charts/{id}/one-minute`), the feature flag (`one_minute_reading`) and every
+internal identifier were deliberately left alone: renaming those is a four-surface API-contract change
+per CLAUDE.md (backend + `packages/shared` + mobile + web) for a naming decision that costs nothing to
+leave as internal plumbing.
+
+**Beat 6 (`next_ten_years`) is now phase-based, not single-note.** The reviewer's suggestion — "the
+first part of this stretch is about X, later the emphasis shifts toward Y" — is now the shape of the
+beat whenever there is a real first phase to name, guarded by `_FORWARD_PHASE_MIN_SHARE` (0.2): a
+handover landing in the first fifth of the ten-year window skips the first-phase clause, because a few
+remaining months under the outgoing lord is not a phase worth naming — same judgement
+`_DOMINANT_STRETCH_SHARE` already makes for beat 3, mirrored forward instead of back.
+
+### 16.1 A second review round caught a real duplication the first round shipped
+
+The same reviewer read a sample of the actual output and found three things, and only one was a
+misreading:
+
+1. **Real: beat 6's first-phase clause repeated beat 4 verbatim.** The first cut of the phase clause
+   spent `_now_texture(current.lord, ...)` on the CURRENT mahadasha lord — but `_beat_right_now` (beat
+   4, `right_now`) already spends that exact texture on that exact lord, every time, by construction:
+   both beats read `timeline.current_mahadasha.lord` for whichever lord is running now. A reading in a
+   Moon mahadasha would say "This stretch runs on people and mood" in beat 4 and then, whenever the
+   next handover fell far enough into the window, say it again almost verbatim in beat 6. Fixed by
+   dropping the texture from beat 6's first-phase clause entirely: it now names *when* the current lord
+   hands over, which beat 4 does not say, and spends the one texture this beat can still contribute —
+   the INCOMING lord's — on the second clause. Nothing here needed a content-gate reopening; it removed
+   a clause rather than adding one.
+2. **Real, and a wording fix only: "this decade" read as the calendar decade, not the decade from
+   today.** Changed to "the decade ahead" in both phase-6 branches — the word the reviewer proposed.
+3. **Not a bug, but acted on: MOON's `action` facet said "protect your sleep and your water" in
+   English**, which is the correct classical association (Chandra rules bodily fluids) but reads as
+   ambiguous to someone who does not already know that. The Tamil was never ambiguous — நீர் பழக்கம் is
+   "water habit," i.e. hydration routine — so this is the same class of defect §12.6 and the "behind"/
+   "ஆதரவாக" case in §8's test suite both are: the English was the copy at risk, not the Tamil. Changed
+   to "protect your sleep and your hydration". One string, in `_VOICE["MOON"].action`; the other eight
+   grahas' action facets were read and none share the pattern.
+
+All three were checked against the running code before being touched, not applied on the reviewer's
+say-so: (1) was reproduced by tracing that `_beat_right_now` and the two-phase branch of
+`_beat_next_ten_years` share `timeline.current_mahadasha.lord` as their subject; (2) and (3) were
+verbatim string edits, confirmed against the actual `_VOICE` table rather than the reviewer's
+paraphrase of it.

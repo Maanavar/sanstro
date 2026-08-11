@@ -243,11 +243,11 @@ export function DashboardOneMinuteReading({
   const title =
     readerIsSubject
       ? lang === "ta"
-        ? "உங்கள் ஜாதகம் — ஒரு நிமிடத்தில்"
-        : "Your chart in one minute"
+        ? "உங்கள் ஜாதகம் — இரண்டு நிமிடங்களில்"
+        : "Your chart in two minutes"
       : lang === "ta"
-        ? `${given} — ஒரு நிமிடத்தில்`
-        : `${given}, in one minute`;
+        ? `${given} — இரண்டு நிமிடங்களில்`
+        : `${given}, in two minutes`;
   const titleId = `om-title-${chartId}`;
 
   const hasBasis = data.beats.some((beat) => beat.basis);
