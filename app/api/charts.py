@@ -33,6 +33,7 @@ from app.schemas.charts import (
 )
 from app.schemas.dashboard_bundle import ChartDashboardBundleResponse
 from app.schemas.dasha import DashaTimelineResponse
+from app.schemas.five_minute_reading import FiveMinuteReadingResponse
 from app.schemas.one_minute_reading import OneMinuteReadingResponse
 from app.services.chart_explanation_service import build_chart_explanation
 from app.services.dashboard_bundle_service import get_chart_dashboard_bundle
@@ -45,6 +46,10 @@ from app.services.chart_service import (
     load_persisted_chart_response,
 )
 from app.services.dasha_service import get_chart_dasha
+from app.services.five_minute_reading_service import (
+    build_five_minute_reading,
+    require_five_minute_reading_enabled,
+)
 from app.services.one_minute_reading_service import (
     build_chart_context,
     build_one_minute_reading,
@@ -175,6 +180,29 @@ def get_one_minute_reading(
         as_of=as_of,
     )
     return build_one_minute_reading(context)
+
+
+@router.get(
+    "/charts/{chart_id}/five-minute",
+    response_model=FiveMinuteReadingResponse,
+    tags=["charts"],
+    summary="Your Chart in Five Minutes — nature, its mechanism, and one thing to do",
+)
+def get_five_minute_reading(
+    chart_id: UUID,
+    as_of: date | None = Query(default=None, alias="asOf"),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> FiveMinuteReadingResponse:
+    # Flag first, chart second — see require_five_minute_reading_enabled's docstring.
+    require_five_minute_reading_enabled()
+    context = build_chart_context(
+        session,
+        chart_id,
+        owner_user_id=current_user.user_id,
+        as_of=as_of,
+    )
+    return build_five_minute_reading(context)
 
 
 @router.get("/charts/{chart_id}/explanation", response_model=ChartExplanationResponse, tags=["charts"])

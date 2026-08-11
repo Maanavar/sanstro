@@ -34,3 +34,4 @@ export * from "./activityTiming";
 export * from "./dashboardBundle";
 export * from "./reports";
 export * from "./oneMinuteReading";
+export * from "./fiveMinuteReading";

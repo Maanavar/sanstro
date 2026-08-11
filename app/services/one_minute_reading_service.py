@@ -561,6 +561,10 @@ class _Voice:
         # leaving the source open is the honest record of that; declaring them
         # T to dodge the question would not be.
         "action": (Provenance.RULE, BaseRate.KEYED),
+        # docs/FIVE_MINUTE_READING_SPEC_2026-08-11.md §2.1. The hinge clause
+        # between gift and shadow — same disposition, present tense, no
+        # occurrence, so the same class as the two facets it sits between.
+        "mechanism": (Provenance.TENDENCY, BaseRate.KEYED),
     }
 
     nature: _Line
@@ -570,6 +574,14 @@ class _Voice:
     past_texture: tuple[str, str]
     now_texture: tuple[str, str]
     action: tuple[str, str]
+    # The clause that turns "gift, then cost" into "gift, and here is exactly
+    # how it becomes the cost" — not a third independent fact, the hinge that
+    # makes the shadow read as THIS gift's own shadow rather than an adjacent
+    # complaint. Inserted between gift and shadow as a connective clause, not
+    # read as its own sentence — see _beat_core_nature_extended in
+    # five_minute_reading_service.py. PENDING NATIVE-TAMIL REVIEW, same as
+    # every other facet in this table.
+    mechanism: tuple[str, str]
 
 
 _VOICE: dict[str, _Voice] = {
@@ -589,6 +601,10 @@ _VOICE: dict[str, _Voice] = {
         shadow=(
             "தவறு என்று வெளிப்பட நேரும் தருணம் — நீங்கள் நம்பாத நிலைப்பாட்டையும் தொடர்ந்து காப்பாற்றுகிறீர்கள்",
             "being seen to be wrong; you defend a position past the point you believe it",
+        ),
+        mechanism=(
+            "ஏனெனில் உங்கள் உறுதியை மற்றவர்கள் அதைச் சோதிப்பதற்கு முன்பே திறமையாகப் படித்துவிடுகிறார்கள்",
+            "because people read your certainty as competence before they've tested it",
         ),
         life_lesson=(
             "தன்னை நிரூபிப்பதும் தானாக மாறுவதும் ஒன்றல்ல என்பதை வாழ்க்கை உங்களுக்குத் "
@@ -627,6 +643,10 @@ _VOICE: dict[str, _Voice] = {
             "அழுத்தத்தில் நிலைத்திருத்தல் — உங்கள் மனநிலை சூழலின் மனநிலையைப் பின்தொடர்கிறது",
             "steadiness under pressure; your mood follows the room's more than you would like",
         ),
+        mechanism=(
+            "ஏனெனில் ஒரு சூழலை உங்களால் படிக்க முடியும் அதே திறந்த தன்மைதான், அதன் மனநிலையை உங்களுக்குள் இறங்க விடுகிறது",
+            "because the same openness that lets you read a room is what lets its mood settle into you",
+        ),
         life_lesson=(
             "எல்லாவற்றையும் சுமக்காமலேயே அக்கறை காட்ட முடியும் என்பதை வாழ்க்கை உங்களுக்குத் "
             "திரும்பத் திரும்பக் கற்பிக்கிறது.",
@@ -660,6 +680,10 @@ _VOICE: dict[str, _Voice] = {
         shadow=(
             "பொறுமை — தானாகவே வந்திருக்கக்கூடிய முடிவை நீங்கள் வலுக்கட்டாயமாக வரவழைக்கிறீர்கள்",
             "patience; you force a decision that would have come to you on its own",
+        ),
+        mechanism=(
+            "ஏனெனில் மற்றவர்களுக்கு முன்பே உங்களை நகர்த்தும் அதே உந்துதல்தான், ஒரு முடிவு தானாக வர அனுமதிக்காமல் தடுக்கிறது",
+            "because the same push that gets you moving before anyone else decides is what won't let a decision arrive on its own",
         ),
         life_lesson=(
             "ஒவ்வொரு போரும் உங்கள் பலத்திற்குத் தகுதியானது அல்ல என்பதை வாழ்க்கை உங்களுக்குத் "
@@ -695,6 +719,10 @@ _VOICE: dict[str, _Voice] = {
         shadow=(
             "முடிவெடுத்தல் — இரு பக்கத்தையும் நன்றாக வாதிடுவதால் எதுவும் வெல்வதில்லை",
             "deciding; you can argue both sides so well that neither one wins",
+        ),
+        mechanism=(
+            "ஏனெனில் ஒன்றை விளக்கும் அளவுக்குத் தெளிவாகப் புரிந்துகொள்வது, அதன் ஒவ்வொரு பக்கத்தையும் அதே தெளிவுடன் காண வைக்கிறது",
+            "because seeing a thing clearly enough to explain it means seeing every side of it just as clearly",
         ),
         # Answers the GRIEVANCE ("why am I still explaining things people should
         # already understand") rather than restating the shadow. The first draft
@@ -736,6 +764,10 @@ _VOICE: dict[str, _Voice] = {
             "மறுத்துச் சொல்வது — அதனால் உங்கள் சம்மதம் பல இடங்களில் மெலிந்துவிடுகிறது",
             "saying no, so your yes gets spread thin",
         ),
+        mechanism=(
+            "ஏனெனில் மற்றவர்களின் நம்பிக்கையை ஈட்டித்தரும் அதே தாராள மனம்தான், அதில் எதையும் தடுத்து நிறுத்த முடியாமல் செய்கிறது",
+            "because the same generosity that earns people's trust is what makes it hard to hold any of it back",
+        ),
         life_lesson=(
             "வரம்பின்றி அல்ல, விவேகத்துடன் கொடுக்கும்படி வாழ்க்கை உங்களைத் திரும்பத் "
             "திரும்பக் கேட்கிறது.",
@@ -773,6 +805,10 @@ _VOICE: dict[str, _Voice] = {
             "நேரடி மோதல் — எதிர்த்துச் சொல்வதை விட உள்ளுக்குள் தாங்கிக்கொள்கிறீர்கள், அது சேர்ந்துகொண்டே வரும்",
             "confrontation; you tend to absorb rather than object, and it accumulates",
         ),
+        mechanism=(
+            "ஏனெனில் மற்றவர்களின் நல்லெண்ணத்தை ஈட்டித்தரும் அதே பொறுமைதான், நீங்கள் சொல்ல வேண்டிய எதிர்ப்பையும் விழுங்கிவிடுகிறது",
+            "because the patience that earns people's goodwill is the same instinct that swallows the objection you should have raised",
+        ),
         life_lesson=(
             "மௌனத்தால் வாங்கிய அமைதி நீடிப்பதில்லை என்பதை வாழ்க்கை உங்களுக்குத் திரும்பத் "
             "திரும்ப நினைவூட்டுகிறது.",
@@ -808,6 +844,10 @@ _VOICE: dict[str, _Voice] = {
         shadow=(
             "தொடங்குவது — வராத ஒரு உறுதிக்காகக் காத்திருக்கிறீர்கள்",
             "starting; you wait for a certainty that does not arrive",
+        ),
+        mechanism=(
+            "ஏனெனில் உறுதியாகும் வரை நகராத அதே குணம்தான், மற்றவர்களை விட உங்களைத் தாக்குப்பிடிக்க வைக்கிறது, அது பயனற்றுப் போன பிறகும் உங்களை நிறுத்தி வைக்கிறது",
+            "because the same refusal to move before you're sure is what lets you outlast everyone else, and what keeps you standing still after it stops helping",
         ),
         # NOT "life keeps teaching you patience". That is the obvious Sani
         # sentence and it is the wrong one here: this graha's shadow is that it
@@ -858,6 +898,10 @@ _VOICE: dict[str, _Voice] = {
             "முடிப்பது — நடப்பதை விட அடுத்தது எப்போதும் சுவாரஸ்யமாக இருக்கிறது",
             "finishing; the next thing is always more interesting than the current one",
         ),
+        mechanism=(
+            "ஏனெனில் மற்றவர்கள் காணாத வழியை உங்களுக்குக் காட்டும் அதே பசி, நீங்கள் ஏற்கனவே இருக்கும் வழியை முடிந்துவிட்டதாக உணர வைக்கிறது",
+            "because the same hunger that shows you the opening no one else sees is what makes the one you're already in feel finished before it is",
+        ),
         life_lesson=(
             "அடுத்ததாக நீங்கள் தேடுவது உண்மையில் நீங்கள் விரும்பியதுதானா என்று வாழ்க்கை "
             "திரும்பத் திரும்பக் கேட்கிறது.",
@@ -898,6 +942,10 @@ _VOICE: dict[str, _Voice] = {
             # soft_spot in this table names the behaviour after the noun; this
             # was the one that did not.
             "staying — you withdraw at the times when staying is what the situation needs",
+        ),
+        mechanism=(
+            "ஏனெனில் முக்கியமற்றதைத் தாண்டிச் செல்லும் அதே உள்ளுணர்வுதான், ஒரு விஷயத்திற்கு உங்களை இன்னும் தேவைப்படும்போதே உங்களை விலக்கிச் செல்கிறது",
+            "because the same instinct that cuts past what doesn't matter is what pulls you away before a thing is finished needing you",
         ),
         life_lesson=(
             "இன்னும் உங்கள் கவனத்திற்குத் தகுதியானதை விட்டு விலகாதீர்கள் என்பதை வாழ்க்கை "
