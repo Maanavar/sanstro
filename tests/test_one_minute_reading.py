@@ -1026,13 +1026,14 @@ def test_a_window_holding_two_handovers_names_the_lord_that_actually_ran():
         current_pranadasha=mahadashas[3],
     )
 
-    beat, hinge = _beat_last_ten_years(
+    beat, hinge, theme_lord = _beat_last_ten_years(
         timeline=timeline, as_of=date(2026, 8, 4), birth_date=date(1993, 3, 20)
     )
 
     assert "From 2020 to 2026 you were under Sun" in beat.text.en, beat.text.en
     assert "Venus" not in beat.text.en, beat.text.en
     assert hinge == (2026, "maha")
+    assert theme_lord == "SUN"
     # The years in the prose must sit inside the span its own basis line prints.
     assert "Sun mahadasha 2020-2026" in beat.basis.en, beat.basis.en
 

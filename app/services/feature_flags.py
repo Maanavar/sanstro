@@ -237,12 +237,13 @@ def _defaults() -> dict[str, Any]:
         # False rather than leaving a half-right reading on Family & Charts.
         "one_minute_reading": True,
         # "Your Chart in Five Minutes" (docs/FIVE_MINUTE_READING_SPEC_2026-08-11.md).
-        # Off by default -- unlike one_minute_reading this ships with only 4 of
-        # 8 beats built (1, 2, 3, 8; see five_minute_reading_service.py's module
-        # docstring for what's missing) and the "self" register only. Flip True
-        # only for the authed review pass, same as one_minute_reading's own
-        # rollout did, and only once that pass is done.
-        "five_minute_reading": False,
+        # Ships with only 4 of 8 beats built (1, 2, 3, 8; see
+        # five_minute_reading_service.py's module docstring for what's missing)
+        # and the "self" register only.
+        # Flipped True 2026-08-11 for the authed browser review pass, same as
+        # one_minute_reading's own rollout did. Set back to False if that pass
+        # finds something that can't be fixed in the same sitting.
+        "five_minute_reading": True,
     }
 
 

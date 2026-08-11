@@ -565,6 +565,22 @@ class _Voice:
         # between gift and shadow — same disposition, present tense, no
         # occurrence, so the same class as the two facets it sits between.
         "mechanism": (Provenance.TENDENCY, BaseRate.KEYED),
+        # §2.2 / §0.3. T for the same reason as `shadow` itself — both entries
+        # are the SAME disposition relocated, not two new facts. COMMON rather
+        # than KEYED, and that is the one deliberate departure from every other
+        # facet in this table: the shadow trait is chart-derived, but "some
+        # hesitation shows up in more than one part of life" is close to
+        # universal, and keying which trait and which two domains does not fix
+        # that. Same honesty `_GRIEVANCE` already models one table over — see
+        # its own comment in `_TABLE_PROVENANCE` for the base-rate argument in
+        # full.
+        "domain_flex": (Provenance.TENDENCY, BaseRate.COMMON),
+        # docs/FIVE_MINUTE_READING_SPEC_2026-08-11.md §2.4. Same class as
+        # `action` — a rule applied to the running mahadasha lord, not a
+        # disposition of the reader. Distinct from `now_texture` (what the
+        # period OFFERS): `asks` is what it REQUIRES, and the two must not
+        # read as restatements of each other for a given graha.
+        "asks": (Provenance.RULE, BaseRate.KEYED),
     }
 
     nature: _Line
@@ -574,6 +590,12 @@ class _Voice:
     past_texture: tuple[str, str]
     now_texture: tuple[str, str]
     action: tuple[str, str]
+    # §2.4. What a stretch under this lord asks OF the reader, as a
+    # disposition rather than a task — `action` (beat 8) then makes it
+    # concrete. Never a restatement of `now_texture`. See
+    # five_minute_reading_service._beat_this_period_extended.
+    # PENDING NATIVE-TAMIL REVIEW, same as every other facet in this table.
+    asks: tuple[str, str]
     # The clause that turns "gift, then cost" into "gift, and here is exactly
     # how it becomes the cost" — not a third independent fact, the hinge that
     # makes the shadow read as THIS gift's own shadow rather than an adjacent
@@ -582,6 +604,13 @@ class _Voice:
     # five_minute_reading_service.py. PENDING NATIVE-TAMIL REVIEW, same as
     # every other facet in this table.
     mechanism: tuple[str, str]
+    # domain_flex["WORK"] / domain_flex["RELATIONSHIPS"] — how the SAME
+    # `shadow` trait shows up in each of two domains, not two independent
+    # facts. See five_minute_reading_service._beat_repeating_pattern, which
+    # reuses `shadow` itself as the beat's opening clause and appends these two
+    # as its "at work" / "in relationships" continuations. §2.2 / §0.3.
+    # PENDING NATIVE-TAMIL REVIEW, same as every other facet in this table.
+    domain_flex: dict[str, tuple[str, str]]
 
 
 _VOICE: dict[str, _Voice] = {
@@ -606,6 +635,21 @@ _VOICE: dict[str, _Voice] = {
             "ஏனெனில் உங்கள் உறுதியை மற்றவர்கள் அதைச் சோதிப்பதற்கு முன்பே திறமையாகப் படித்துவிடுகிறார்கள்",
             "because people read your certainty as competence before they've tested it",
         ),
+        # §2.2. Both entries are `shadow` ("being seen to be wrong; you defend a
+        # position past the point you believe it") relocated, not new facts:
+        # refusing to back down once a stance is threatened.
+        domain_flex={
+            "WORK": (
+                "கூட்டத்தில் எடுத்த முடிவை, எல்லோரும் அதைக் கடந்து சென்ற பிறகும் பிடித்துக்கொள்வது — "
+                "பின்வாங்குவது தோல்வியாகத் தெரியும் என்பதால்",
+                "holding onto a decision in a meeting long after the room has moved past it, because "
+                "backing down there would look like losing",
+            ),
+            "RELATIONSHIPS": (
+                "நீங்கள்தான் தவறு செய்தீர்கள் என்று தெரிந்த பிறகும், முதலில் மன்னிப்புக் கேட்க மறுப்பது",
+                "refusing to say sorry first, even once you know you were the one who was wrong",
+            ),
+        },
         life_lesson=(
             "தன்னை நிரூபிப்பதும் தானாக மாறுவதும் ஒன்றல்ல என்பதை வாழ்க்கை உங்களுக்குத் "
             "திரும்பத் திரும்பச் சொல்கிறது.",
@@ -623,6 +667,10 @@ _VOICE: dict[str, _Voice] = {
         action=(
             "உங்கள் பெயரை உங்கள் வேலையின் மீது பதியுங்கள் — இந்தக் காலம் புலப்படுவதையே பலனாக மாற்றும்",
             "put your name on your work — this period converts visibility, not effort alone",
+        ),
+        asks=(
+            "மற்றவர்கள் முன் நிலைத்திருக்கும் நம்பிக்கை, முடிவு உறுதி செய்யப்படுவதற்கு முன்பே",
+            "steady confidence in front of people, even before the outcome is certain",
         ),
     ),
     "MOON": _Voice(
@@ -647,6 +695,19 @@ _VOICE: dict[str, _Voice] = {
             "ஏனெனில் ஒரு சூழலை உங்களால் படிக்க முடியும் அதே திறந்த தன்மைதான், அதன் மனநிலையை உங்களுக்குள் இறங்க விடுகிறது",
             "because the same openness that lets you read a room is what lets its mood settle into you",
         ),
+        # §2.2. Both entries are `shadow` ("steadiness under pressure; your mood
+        # follows the room's more than you would like") relocated: absorbing an
+        # ambient mood that was never actually yours.
+        domain_flex={
+            "WORK": (
+                "பதற்றமான கூட்டத்தின் மனநிலையை, அது முடிந்த நீண்ட நேரத்திற்குப் பிறகும் வீட்டிற்குக் கொண்டு செல்வது",
+                "carrying a tense meeting's mood home with you long after the meeting itself is over",
+            ),
+            "RELATIONSHIPS": (
+                "துணையின் மோசமான நாளை, யாரும் அதை முடிவு செய்யாமலேயே உங்கள் சொந்த நாளாக ஏற்றுக்கொள்வது",
+                "taking on a partner's bad day as if it were your own, without either of you deciding that",
+            ),
+        },
         life_lesson=(
             "எல்லாவற்றையும் சுமக்காமலேயே அக்கறை காட்ட முடியும் என்பதை வாழ்க்கை உங்களுக்குத் "
             "திரும்பத் திரும்பக் கற்பிக்கிறது.",
@@ -663,6 +724,10 @@ _VOICE: dict[str, _Voice] = {
         action=(
             "உங்கள் தூக்கத்தையும் நீர் பழக்கத்தையும் காத்துக்கொள்ளுங்கள் — இந்தக் காலம் உங்கள் நிலைத்தன்மையின் மீது நடக்கிறது",
             "protect your sleep and your hydration; this period runs on your steadiness",
+        ),
+        asks=(
+            "மற்றவர்களின் மனநிலையிலிருந்து தனித்த, உங்களுக்கே சொந்தமான ஒரு தாளம்",
+            "a rhythm of your own, kept apart from the mood around you",
         ),
     ),
     "MARS": _Voice(
@@ -685,6 +750,22 @@ _VOICE: dict[str, _Voice] = {
             "ஏனெனில் மற்றவர்களுக்கு முன்பே உங்களை நகர்த்தும் அதே உந்துதல்தான், ஒரு முடிவு தானாக வர அனுமதிக்காமல் தடுக்கிறது",
             "because the same push that gets you moving before anyone else decides is what won't let a decision arrive on its own",
         ),
+        # §2.2. Both entries are `shadow` ("patience; you force a decision that
+        # would have come to you on its own") relocated: forcing a resolution
+        # before it was actually ready.
+        domain_flex={
+            "WORK": (
+                "எண்கள் முழுமையாக வருவதற்கு முன்பே ஒரு திட்டத்தை முடிவுக்குத் தள்ளுவது — காத்திருப்பது "
+                "இடத்தை இழப்பது போலத் தோன்றும்",
+                "pushing a project to a decision before the numbers are actually in, because waiting "
+                "feels like losing ground",
+            ),
+            "RELATIONSHIPS": (
+                "மறுபக்கத்தினர் தன் எண்ணத்தை முடிவு செய்வதற்கு முன்பே, உரையாடலை ஒரு முடிவுக்குக் கொண்டுவர வலியுறுத்துவது",
+                "forcing a conversation to a conclusion before the other person has finished working out "
+                "what they think",
+            ),
+        },
         life_lesson=(
             "ஒவ்வொரு போரும் உங்கள் பலத்திற்குத் தகுதியானது அல்ல என்பதை வாழ்க்கை உங்களுக்குத் "
             "திரும்பத் திரும்பக் கற்பிக்கிறது.",
@@ -701,6 +782,10 @@ _VOICE: dict[str, _Voice] = {
         action=(
             "ஒன்றை மட்டும் தேர்ந்தெடுத்து முன்னெடுங்கள்; மற்ற மூன்றைத் தள்ளுவதை நிறுத்துங்கள்",
             "pick one thing to push, and stop pushing the other three",
+        ),
+        asks=(
+            "நகர்வதற்கு முன்பே தேர்ந்தெடுக்கப்பட்ட ஒரு இலக்கு, நகர்ந்தபடி தேடும் ஒன்றல்ல",
+            "a target chosen before you move, not one found while you're already moving",
         ),
     ),
     "MERCURY": _Voice(
@@ -724,6 +809,19 @@ _VOICE: dict[str, _Voice] = {
             "ஏனெனில் ஒன்றை விளக்கும் அளவுக்குத் தெளிவாகப் புரிந்துகொள்வது, அதன் ஒவ்வொரு பக்கத்தையும் அதே தெளிவுடன் காண வைக்கிறது",
             "because seeing a thing clearly enough to explain it means seeing every side of it just as clearly",
         ),
+        # §2.2. Both entries are `shadow` ("deciding; you can argue both sides so
+        # well that neither one wins") relocated: seeing every side so clearly
+        # that no side wins.
+        domain_flex={
+            "WORK": (
+                "ஒரு முடிவைச் சுற்றிச் சுற்றிப் பேசி, கூட்டமே எந்த முடிவும் இல்லாமல் முடிந்துவிடுவது",
+                "talking a decision in circles until the meeting ends with no decision at all",
+            ),
+            "RELATIONSHIPS": (
+                "ஒரு கருத்து வேறுபாட்டில் துணையின் பக்கத்தை மிக நன்றாக வாதிட்டு, உங்கள் சொந்தக் கருத்தையே மறந்துவிடுவது",
+                "arguing your partner's side of a disagreement so well that you lose track of your own",
+            ),
+        },
         # Answers the GRIEVANCE ("why am I still explaining things people should
         # already understand") rather than restating the shadow. The first draft
         # was "understanding more is not the same as deciding better", which
@@ -746,6 +844,10 @@ _VOICE: dict[str, _Voice] = {
             "ஒப்புக்கொள்வதற்கு முன் எழுதி வையுங்கள் — இந்தக் காலம் நுணுக்கங்களில் தீர்மானமாகிறது",
             "write it down before you agree to it; this period settles in the details",
         ),
+        asks=(
+            "இரு பக்கமும் வாதிட்ட பிறகும் மாறாமல் நிற்கும் ஒரு முடிவு",
+            "a decision that stays decided, even after you've argued both sides of it",
+        ),
     ),
     "JUPITER": _Voice(
         nature=_Line(
@@ -766,8 +868,24 @@ _VOICE: dict[str, _Voice] = {
         ),
         mechanism=(
             "ஏனெனில் மற்றவர்களின் நம்பிக்கையை ஈட்டித்தரும் அதே தாராள மனம்தான், அதில் எதையும் தடுத்து நிறுத்த முடியாமல் செய்கிறது",
-            "because the same generosity that earns people's trust is what makes it hard to hold any of it back",
+            "because the same generosity that earns people's trust does not know how to stop, even when it should",
         ),
+        # §2.2. Both entries are `shadow` ("saying no, so your yes gets spread
+        # thin") relocated: over-committing because refusal does not come
+        # easily.
+        domain_flex={
+            "WORK": (
+                "ஏற்கனவே இருக்கும் திட்டங்களே பாதிக்கப்படும் நிலையிலும், இன்னும் ஒரு திட்டத்தை ஏற்றுக்கொள்வது",
+                "agreeing to take on one more project when the ones you already have are the ones "
+                "suffering",
+            ),
+            "RELATIONSHIPS": (
+                "உங்களைச் சுற்றி இருப்பவர்களின் தேவைகளுக்கெல்லாம் சம்மதித்து, உங்களுக்கு மிக நெருக்கமானவருக்கு எதுவும் "
+                "மிச்சம் வைக்காதது",
+                "saying yes to what everyone around you needs, until there is nothing left over for the "
+                "person closest to you",
+            ),
+        },
         life_lesson=(
             "வரம்பின்றி அல்ல, விவேகத்துடன் கொடுக்கும்படி வாழ்க்கை உங்களைத் திரும்பத் "
             "திரும்பக் கேட்கிறது.",
@@ -785,6 +903,10 @@ _VOICE: dict[str, _Voice] = {
             "ஒருவருக்குக் கற்பிக்கச் சம்மதியுங்கள் — இங்கே அது செலவை விட அதிகமாகத் திரும்பும்",
             "say yes to teaching someone; here it returns more than it costs",
         ),
+        asks=(
+            "மிச்சமிருக்கும் சம்மதம் அர்த்தமுள்ளதாக இருக்க, ஒரு தெளிவான மறுப்பு",
+            "one clear no, so the rest of your yes still means something",
+        ),
     ),
     "VENUS": _Voice(
         nature=_Line(
@@ -799,7 +921,7 @@ _VOICE: dict[str, _Voice] = {
         ),
         gift=(
             "மனிதர்களிடம் காட்டும் பொறுமையும், அது ஈட்டித் தரும் நல்லெண்ணமும்",
-            "patience with people, and the good will it earns",
+            "patience with people, and the goodwill it earns",
         ),
         shadow=(
             "நேரடி மோதல் — எதிர்த்துச் சொல்வதை விட உள்ளுக்குள் தாங்கிக்கொள்கிறீர்கள், அது சேர்ந்துகொண்டே வரும்",
@@ -809,6 +931,20 @@ _VOICE: dict[str, _Voice] = {
             "ஏனெனில் மற்றவர்களின் நல்லெண்ணத்தை ஈட்டித்தரும் அதே பொறுமைதான், நீங்கள் சொல்ல வேண்டிய எதிர்ப்பையும் விழுங்கிவிடுகிறது",
             "because the patience that earns people's goodwill is the same instinct that swallows the objection you should have raised",
         ),
+        # §2.2. Both entries are `shadow` ("confrontation; you tend to absorb
+        # rather than object, and it accumulates") relocated: swallowing an
+        # objection instead of raising it.
+        domain_flex={
+            "WORK": (
+                "உண்மையில் உடன்படாத ஒரு முடிவுக்குக் கூட்டத்தில் தலையசைத்து, பிறகு அதை யாரிடமும் எடுத்துச் சொல்லாதது",
+                "agreeing with a decision in the room that you actually disagree with, and raising it "
+                "with no one afterwards",
+            ),
+            "RELATIONSHIPS": (
+                "ஒரு சிறிய வருத்தத்தைச் சொல்லாமல் விட்டுவிட்டு, அது அமைதியாகப் பலவாகச் சேர்ந்துவிடுவது",
+                "letting a small hurt go unsaid until it has quietly become several",
+            ),
+        },
         life_lesson=(
             "மௌனத்தால் வாங்கிய அமைதி நீடிப்பதில்லை என்பதை வாழ்க்கை உங்களுக்குத் திரும்பத் "
             "திரும்ப நினைவூட்டுகிறது.",
@@ -825,6 +961,10 @@ _VOICE: dict[str, _Voice] = {
         action=(
             "முக்கியமானதை வெள்ளிக்கிழமை தொடங்குங்கள்; நீங்கள் தவிர்த்துவரும் அந்த உரையாடலை முடியுங்கள்",
             "start what matters on a Friday, and finish the conversation you have been avoiding",
+        ),
+        asks=(
+            "மென்மையாக்குவதை விட, நடத்த வேண்டிய அந்த ஒரு உரையாடல்",
+            "the conversation you'd rather smooth over than actually have",
         ),
     ),
     "SATURN": _Voice(
@@ -849,6 +989,21 @@ _VOICE: dict[str, _Voice] = {
             "ஏனெனில் உறுதியாகும் வரை நகராத அதே குணம்தான், மற்றவர்களை விட உங்களைத் தாக்குப்பிடிக்க வைக்கிறது, அது பயனற்றுப் போன பிறகும் உங்களை நிறுத்தி வைக்கிறது",
             "because the same refusal to move before you're sure is what lets you outlast everyone else, and what keeps you standing still after it stops helping",
         ),
+        # §2.2. Both entries are `shadow` ("starting; you wait for a certainty
+        # that does not arrive") relocated: delaying a start while waiting for
+        # a certainty that never comes.
+        domain_flex={
+            "WORK": (
+                "ஒரு திட்டமுன்மொழிவை முழுமையாகும் வரை தாமதப்படுத்துவது — கவனம் குறைவானவர் தன்னுடையதை முன்பே "
+                "சமர்ப்பித்துவிடுவார்",
+                "sitting on a proposal until it is airtight, while someone less careful ships theirs "
+                "first",
+            ),
+            "RELATIONSHIPS": (
+                "முக்கியமானதைச் சொல்ல சரியான தருணத்திற்காகக் காத்திருந்து, அந்தத் தருணமே அமைதியாகக் கடந்துவிடுவது",
+                "waiting for the right moment to say what matters, until the moment has quietly passed",
+            ),
+        },
         # NOT "life keeps teaching you patience". That is the obvious Sani
         # sentence and it is the wrong one here: this graha's shadow is that it
         # waits too long, so a lesson prescribing more patience would endorse
@@ -881,6 +1036,10 @@ _VOICE: dict[str, _Voice] = {
             "ஒரு சிறிய உறுதிமொழியை நாற்பது நாட்கள் தினமும் காப்பாற்றுங்கள் — இந்தக் காலம் அளக்கக்கூடியதற்கே பலன் தரும்",
             "keep one small commitment daily for forty days; this period only pays what it can measure",
         ),
+        asks=(
+            "தயாராக உணரும் முன்பே எடுக்கப்படும் ஒரு தொடக்கம்",
+            "a start made before you feel ready for it, not after",
+        ),
     ),
     "RAHU": _Voice(
         nature=_Line(
@@ -902,6 +1061,20 @@ _VOICE: dict[str, _Voice] = {
             "ஏனெனில் மற்றவர்கள் காணாத வழியை உங்களுக்குக் காட்டும் அதே பசி, நீங்கள் ஏற்கனவே இருக்கும் வழியை முடிந்துவிட்டதாக உணர வைக்கிறது",
             "because the same hunger that shows you the opening no one else sees is what makes the one you're already in feel finished before it is",
         ),
+        # §2.2. Both entries are `shadow` ("finishing; the next thing is always
+        # more interesting than the current one") relocated: the pull to what's
+        # next arriving before the current thing is actually closed out.
+        domain_flex={
+            "WORK": (
+                "தற்போதைய திட்டம் முழுமையாக முடிவதற்கு முன்பே அடுத்த திட்டத்தைத் தொடங்கிவிடுவது",
+                "starting the next project before the current one is actually closed out",
+            ),
+            "RELATIONSHIPS": (
+                "ஏற்கனவே இருக்கும் உறவில் முழுமையாக நிலைபெறுவதற்கு முன்பே, புதிதாக ஒன்றின் ஈர்ப்பை உணர்வது",
+                "feeling the pull of what's new before you have finished settling into what you already "
+                "have",
+            ),
+        },
         life_lesson=(
             "அடுத்ததாக நீங்கள் தேடுவது உண்மையில் நீங்கள் விரும்பியதுதானா என்று வாழ்க்கை "
             "திரும்பத் திரும்பக் கேட்கிறது.",
@@ -918,6 +1091,10 @@ _VOICE: dict[str, _Voice] = {
         action=(
             "வழியைத் தேர்ந்தெடுத்து எடுங்கள் — தோன்றியது என்பதற்காக மட்டும் எடுக்க வேண்டாம்",
             "choose the route deliberately; do not take one just because it appeared",
+        ),
+        asks=(
+            "சென்றடைய முடியும் அளவுக்கு நீண்ட நேரம் பிடித்திருக்கப்படும் ஒரு இலக்கு",
+            "one destination held onto long enough to actually arrive",
         ),
     ),
     "KETU": _Voice(
@@ -947,6 +1124,20 @@ _VOICE: dict[str, _Voice] = {
             "ஏனெனில் முக்கியமற்றதைத் தாண்டிச் செல்லும் அதே உள்ளுணர்வுதான், ஒரு விஷயத்திற்கு உங்களை இன்னும் தேவைப்படும்போதே உங்களை விலக்கிச் செல்கிறது",
             "because the same instinct that cuts past what doesn't matter is what pulls you away before a thing is finished needing you",
         ),
+        # §2.2. Both entries are `shadow` ("staying — you withdraw at the times
+        # when staying is what the situation needs") relocated: pulling back
+        # right when staying was what was needed.
+        domain_flex={
+            "WORK": (
+                "ஒரு திட்டத்திற்கு உங்கள் இருப்பு மிகவும் தேவைப்படும் தருணத்திலேயே, அமைதியாக விலகிவிடுவது",
+                "going quiet on a project right when it most needs you to stay in the room",
+            ),
+            "RELATIONSHIPS": (
+                "ஒரு உரையாடல் கடினமாக மாறும் தருணத்திலேயே, அதில் தொடர்வதற்குப் பதிலாகப் பின்வாங்குவது",
+                "pulling back from a conversation the moment it turns difficult, instead of staying in "
+                "it",
+            ),
+        },
         life_lesson=(
             "இன்னும் உங்கள் கவனத்திற்குத் தகுதியானதை விட்டு விலகாதீர்கள் என்பதை வாழ்க்கை "
             "உங்களுக்குத் திரும்பத் திரும்ப நினைவூட்டுகிறது.",
@@ -964,6 +1155,10 @@ _VOICE: dict[str, _Voice] = {
         action=(
             "நீண்ட நாட்களாக முடிக்காமல் இருக்கும் ஒன்றை முடித்து மூடுங்கள்; புதிதாக ஒன்றைத் தொடங்க வேண்டாம்",
             "close one long-open thing rather than starting a new one",
+        ),
+        asks=(
+            "உங்கள் சொந்த ஆர்வமே அமைதியானதற்குப் பிறகும், அந்த இடத்தில் நீங்கள் இருப்பது",
+            "staying present in something after your own interest in it has already gone quiet",
         ),
     ),
 }
@@ -1703,6 +1898,62 @@ _TOPIC_AREA: dict[str, str] = {
 # there, so the gap the question explains is the gap the question fills.
 _QUESTION_ANCHOR_BEAT = "next_ten_years"
 
+
+def _marital_status_pending_question(*, before_beat: str) -> OneMinutePendingQuestion:
+    """The one question a reading may ask, raised in exactly the case that
+    withheld a beat. Factored out so ``build_five_minute_reading`` can reuse
+    it verbatim (docs/FIVE_MINUTE_READING_SPEC_2026-08-11.md §2.5) rather than
+    re-authoring the same four marital-status options a second time — see
+    ``build_one_minute_reading``'s own comment on why FOUR options, not two,
+    and why TOPIC_THIRD_PARTY never reaches here.
+
+    ``before_beat`` is the id of the beat this question renders above — it
+    stands in the gap the withheld beat left, and each caller owns its own
+    beat order, so the anchor is a parameter rather than a shared constant.
+    """
+    return OneMinutePendingQuestion(
+        field="maritalStatus",
+        before_beat=before_beat,
+        prompt=OneMinuteText(
+            ta=(
+                "இதற்குப் பதில் கிடைக்கும் வரை இந்த வாசிப்பின் ஒரு பகுதி நிறுத்தி "
+                "வைக்கப்பட்டுள்ளது — இவற்றில் எது இப்போது உங்களுக்குப் பொருந்தும்?"
+            ),
+            en=(
+                "One part of this reading is held back until this is answered — "
+                "which of these fits you now?"
+            ),
+        ),
+        options=[
+            OneMinuteQuestionOption(
+                value="married",
+                label=OneMinuteText(ta="திருமணமானவர்", en="Married"),
+            ),
+            OneMinuteQuestionOption(
+                value="single",
+                label=OneMinuteText(ta="திருமணமாகவில்லை", en="Not married"),
+            ),
+            OneMinuteQuestionOption(
+                value="divorced",
+                label=OneMinuteText(ta="விவாகரத்து ஆனவர்", en="Divorced"),
+            ),
+            OneMinuteQuestionOption(
+                # The profile FORM says "விதவை / விதுரர்", which is the
+                # conventional label for a select. Inside a piece of prose
+                # addressed to the reader it lands differently, so this one
+                # says "one who has lost their life partner" — the same
+                # register as the rest of the reading, and what a person
+                # would actually say to someone.
+                value="widowed",
+                label=OneMinuteText(ta="வாழ்க்கைத் துணையை இழந்தவர்", en="Widowed"),
+            ),
+            OneMinuteQuestionOption(
+                value=STATUS_UNDISCLOSED,
+                label=OneMinuteText(ta="சொல்ல விரும்பவில்லை", en="Prefer not to say"),
+            ),
+        ],
+    )
+
 # ── G6's trust mechanism: a principle declared rather than quietly kept ──────
 #
 # §1.1(g) of the audit. We have always omitted longevity; nobody could tell we
@@ -2228,9 +2479,14 @@ def _beat_what_life_keeps_teaching(*, strongest: str) -> OneMinuteBeat:
 
 
 def _beat_last_ten_years(
-    *, timeline: VimshottariTimeline, as_of: date, birth_date: date
-) -> tuple[OneMinuteBeat, tuple[int, str] | None]:
-    """The proof beat, plus the year and LEVEL of the turn the next beat hinges on.
+    *,
+    timeline: VimshottariTimeline,
+    as_of: date,
+    birth_date: date,
+    theme_table: dict[str, tuple[str, str]] | None = None,
+) -> tuple[OneMinuteBeat, tuple[int, str] | None, str]:
+    """The proof beat, plus the year/LEVEL of the turn the next beat hinges on,
+    plus the lord whose ``past_texture`` the beat actually named.
 
     Adult path only. A twelve-year-old's "last ten years" describes their
     parents' decade, not theirs, so the minor path drops this beat rather than
@@ -2242,7 +2498,22 @@ def _beat_last_ten_years(
     accurate and more checkable, which is the entire job of this beat.
 
     Rule 1 lives here: this names the TEXTURE of a stretch and never an event.
+
+    ``theme_table``, docs/FIVE_MINUTE_READING_SPEC_2026-08-11.md §2.3. None on
+    the 2-minute path (unchanged output). The 5-minute path passes its own
+    ``_PERIOD_THEME`` table here rather than this module importing it, so the
+    dependency runs the direction it should — the extension module supplies
+    its own table to the shared function, not the other way round — and so the
+    theme word is looked up against the SAME lord this function already picked
+    for ``past_texture``, never a second, independently-computed one.
     """
+
+    def _theme_prefix(lord: str) -> tuple[str, str]:
+        if theme_table is None:
+            return ("", "")
+        theme_ta, theme_en = theme_table[lord]
+        return (f"{theme_ta} — ", f"{theme_en[0].upper()}{theme_en[1:]} — ")
+
     decade_ago = date(as_of.year - 10, as_of.month, min(as_of.day, 28))
     earliest = date(birth_date.year + 15, birth_date.month, min(birth_date.day, 28))
     window_start = max(decade_ago, earliest)
@@ -2274,13 +2545,14 @@ def _beat_last_ten_years(
         )
         if previous is not None and previous.lord != latest.lord and held_enough:
             voice = _VOICE[previous.lord]
+            prefix_ta, prefix_en = _theme_prefix(previous.lord)
             ta = (
                 f"{span_start.year} முதல் {hinge_year} வரை உங்களுக்கு {planet_ta(previous.lord)} "
-                f"காலம் நடந்தது. {_cap(voice.past_texture[0])}. {_PAST_INVITATION[0]}"
+                f"காலம் நடந்தது. {_cap(f'{prefix_ta}{voice.past_texture[0]}')}. {_PAST_INVITATION[0]}"
             )
             en = (
                 f"From {span_start.year} to {hinge_year} you were under "
-                f"{planet_en(previous.lord)}. {_cap(voice.past_texture[1])}. "
+                f"{planet_en(previous.lord)}. {_cap(f'{prefix_en}{voice.past_texture[1]}')}. "
                 f"{_PAST_INVITATION[1]}"
             )
             return (
@@ -2299,6 +2571,7 @@ def _beat_last_ten_years(
                     ),
                 ),
                 (hinge_year, "maha"),
+                previous.lord,
             )
 
     # No mahadasha handover inside the window: a long mahadasha covers it, so the
@@ -2322,14 +2595,15 @@ def _beat_last_ten_years(
         # sentence has to stay last because it is the only place `hinge_year` is
         # introduced and beat 4 opens on that year. Moving the invitation to the
         # end would put ten words between the hinge and its pick-up.
+        prefix_ta, prefix_en = _theme_prefix(maha.lord)
         ta = (
             f"{span_year} முதல் இதுவரை நீங்கள் {planet_ta(maha.lord)} காலத்திற்குள்ளேயே "
-            f"இருக்கிறீர்கள். {_cap(voice.past_texture[0])}. {_PAST_INVITATION[0]} "
+            f"இருக்கிறீர்கள். {_cap(f'{prefix_ta}{voice.past_texture[0]}')}. {_PAST_INVITATION[0]} "
             f"அதற்குள் {hinge_year}-ல் ஒரு திருப்பம் வந்தது."
         )
         en = (
             f"From {span_year} until now you have been inside one long "
-            f"{planet_en(maha.lord)} stretch. {_cap(voice.past_texture[1])}. "
+            f"{planet_en(maha.lord)} stretch. {_cap(f'{prefix_en}{voice.past_texture[1]}')}. "
             f"{_PAST_INVITATION[1]} Within it, {hinge_year} marked a turn."
         )
         return (
@@ -2348,15 +2622,17 @@ def _beat_last_ten_years(
                 ),
             ),
             (hinge_year, "antar"),
+            maha.lord,
         )
 
+    prefix_ta, prefix_en = _theme_prefix(maha.lord)
     ta = (
         f"{window_start.year} முதல் இதுவரை {planet_ta(maha.lord)} காலமே தொடர்ந்திருக்கிறது. "
-        f"{_cap(voice.past_texture[0])}. {_PAST_INVITATION[0]}"
+        f"{_cap(f'{prefix_ta}{voice.past_texture[0]}')}. {_PAST_INVITATION[0]}"
     )
     en = (
         f"From {window_start.year} until now you have been under {planet_en(maha.lord)} "
-        f"throughout. {_cap(voice.past_texture[1])}. {_PAST_INVITATION[1]}"
+        f"throughout. {_cap(f'{prefix_en}{voice.past_texture[1]}')}. {_PAST_INVITATION[1]}"
     )
     return (
         OneMinuteBeat(
@@ -2368,6 +2644,7 @@ def _beat_last_ten_years(
             ),
         ),
         None,
+        maha.lord,
     )
 
 
@@ -3240,7 +3517,7 @@ def build_one_minute_reading(context: ChartContext) -> OneMinuteReadingResponse:
         if topic == TOPIC_ELDER:
             hinge = None
         else:
-            past_beat, hinge = _beat_last_ten_years(
+            past_beat, hinge, _ = _beat_last_ten_years(
                 timeline=timeline, as_of=today, birth_date=profile.birth_date_local
             )
             beats.append(past_beat)
@@ -3288,48 +3565,7 @@ def build_one_minute_reading(context: ChartContext) -> OneMinuteReadingResponse:
     # being absent here is not a gap waiting on an answer; it is the register.
     pending: OneMinutePendingQuestion | None = None
     if topic == TOPIC_UNKNOWN and not (profile.marital_status or "").strip():
-        pending = OneMinutePendingQuestion(
-            field="maritalStatus",
-            before_beat=_QUESTION_ANCHOR_BEAT,
-            prompt=OneMinuteText(
-                ta=(
-                    "இதற்குப் பதில் கிடைக்கும் வரை இந்த வாசிப்பின் ஒரு பகுதி நிறுத்தி "
-                    "வைக்கப்பட்டுள்ளது — இவற்றில் எது இப்போது உங்களுக்குப் பொருந்தும்?"
-                ),
-                en=(
-                    "One part of this reading is held back until this is answered — "
-                    "which of these fits you now?"
-                ),
-            ),
-            options=[
-                OneMinuteQuestionOption(
-                    value="married",
-                    label=OneMinuteText(ta="திருமணமானவர்", en="Married"),
-                ),
-                OneMinuteQuestionOption(
-                    value="single",
-                    label=OneMinuteText(ta="திருமணமாகவில்லை", en="Not married"),
-                ),
-                OneMinuteQuestionOption(
-                    value="divorced",
-                    label=OneMinuteText(ta="விவாகரத்து ஆனவர்", en="Divorced"),
-                ),
-                OneMinuteQuestionOption(
-                    # The profile FORM says "விதவை / விதுரர்", which is the
-                    # conventional label for a select. Inside a piece of prose
-                    # addressed to the reader it lands differently, so this one
-                    # says "one who has lost their life partner" — the same
-                    # register as the rest of the reading, and what a person
-                    # would actually say to someone.
-                    value="widowed",
-                    label=OneMinuteText(ta="வாழ்க்கைத் துணையை இழந்தவர்", en="Widowed"),
-                ),
-                OneMinuteQuestionOption(
-                    value=STATUS_UNDISCLOSED,
-                    label=OneMinuteText(ta="சொல்ல விரும்பவில்லை", en="Prefer not to say"),
-                ),
-            ],
-        )
+        pending = _marital_status_pending_question(before_beat=_QUESTION_ANCHOR_BEAT)
 
     run_safety_pass(*[beat.text for beat in beats], source="one_minute_reading")
 

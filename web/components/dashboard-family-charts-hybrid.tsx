@@ -38,6 +38,7 @@ import {
 } from "./dashboard-family-shared";
 import { DashboardFamilyMemberNova } from "./dashboard-family-member-nova";
 import { DashboardOneMinuteReading } from "./dashboard-one-minute-reading";
+import { DashboardFiveMinuteReading } from "./dashboard-five-minute-reading";
 import { NovaScoreDial } from "./dashboard-ui-nova";
 import { DashboardFamilyHarmonyRemedies } from "./dashboard-family-harmony-remedies";
 import { RasiChart, NavamsaChart } from "./dashboard-charts";
@@ -946,6 +947,13 @@ export function DashboardFamilyChartsHybrid({
                 nothing while the `one_minute_reading` flag is off.
                 docs/ONE_MINUTE_READING_2026-08-04.md §7. */}
             {readingChartId && <DashboardOneMinuteReading lang={lang} chartId={readingChartId} />}
+
+            {/* "Your Chart in Five Minutes" — directly below the two-minute
+                reading, since it deepens the same beats rather than opening a
+                new one. Renders nothing while the `five_minute_reading` flag
+                is off, or for any register other than "self".
+                docs/FIVE_MINUTE_READING_SPEC_2026-08-11.md. */}
+            {readingChartId && <DashboardFiveMinuteReading lang={lang} chartId={readingChartId} />}
 
             <div className="hy-grid-hero">
               {/* Cosmic snapshot */}
