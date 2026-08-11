@@ -76,8 +76,11 @@ export function nokkuClassForNakshatra(name: string | null | undefined): NokkuCl
 
 /**
  * Label + meaning for the day's nokku, or null when the nakshatra can't be
- * resolved. Callers should pass the *active* nakshatra (post-rollover), not the
- * sunrise one — the facing changes with the star.
+ * resolved. Callers should pass the day's (sunrise) nakshatra, not the
+ * *active* post-rollover one — nokku is fixed for the whole civil day and
+ * does not change when the star rolls over mid-day (confirmed 2026-08-10:
+ * a Thiruvathirai-sunrise day stayed Mel Nokku Naal after rolling to
+ * Punarpoosam at 12:27pm, which would otherwise wrongly read as Sama Nokku).
  */
 export function nokkuMeta(name: string | null | undefined, lang: Lang): (NokkuLabels & { nokku: NokkuClass }) | null {
   const nokku = nokkuClassForNakshatra(name);

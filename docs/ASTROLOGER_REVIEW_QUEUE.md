@@ -10,6 +10,25 @@ decision inline and move it to "Resolved".
 
 ## Open
 
+### 2026-08-10 · Nethiram cutoff formula contradicts a live case — reopens the 2026-07-16 confirmation
+
+- **Where:** `app/calculations/panchangam.py` (`_nethiram_value`, `NETHIRAM_LABELS`).
+- **What the formula gives today (2026-08-10, Chennai):** sunrise Sun nakshatra
+  Ayilyam (9), sunrise Moon nakshatra Thiruvathirai (6), ring distance 3 →
+  `_nethiram_value` returns 1, printed as ஒரு கண் (One eye).
+- **Astrologer says:** today should read குருடு (Blind), i.e. distance 3 should
+  fall in the blind bucket, not the one-eye bucket.
+- **Why not just patch the cutoff:** the current table (blind: distance ≤2,
+  one eye: ≤8, two eyes: ≤13) was itself marked CONFIRMED by the astrologer on
+  2026-07-16 (see Resolved, 2026-07-14 entry). A single data point doesn't
+  determine the correct replacement — shifting the blind cutoff to ≤3 fits
+  this one case but so would other tables (e.g. a directional/inclusive star
+  count instead of the current symmetric ring distance, which the 2026-07
+  audit already flagged as suspect by analogy to `_dinam_score`). Needs the
+  actual printed rule or table from the astrologer, not a guess against one
+  example.
+- **Do not change `_nethiram_value`/`NETHIRAM_LABELS` until that's supplied.**
+
 ### 2026-07-21 · Nokku (மேல்/கீழ்/சம நோக்கு) nakshatra classification — NEW, live on the Calendar tab
 
 - **Where:** `web/lib/nokku.ts` (`URDHVAMUKHA_NUMBERS` / `ADHOMUKHA_NUMBERS` /
@@ -17,7 +36,14 @@ decision inline and move it to "Resolved".
 - **What shipped:** the day's nakshatra facing, shown as மேல் நோக்கு நாள் /
   கீழ் நோக்கு நாள் / சம நோக்கு நாள் (romanised, not translated, in English).
   Derived client-side from the nakshatra already on the wire — no engine change.
-  Follows the *active* nakshatra, so the facing rolls over mid-day with the star.
+- **Rollover bug fixed 2026-08-10:** the display used to follow the *active*
+  (post-rollover) nakshatra, so the facing flipped mid-day when the star
+  changed. Astrologer flagged a live case — 2026-08-10, Thiruvathirai the
+  sunrise star (Mel Nokku Naal), rolled to Punarpoosam at 12:27pm IST, and
+  the card started reading Sama Nokku Naal, which is wrong. Nokku is a
+  whole-day classification pinned to the sunrise nakshatra; it now stays
+  fixed for the full civil day (`dashboard-calendar-tab-nova.tsx`,
+  `web/lib/nokku.ts` doc comment).
 - **Needs a jyotishi's call on:** the **27-row table itself**. It is the standard
   classical partition (ūrdhvamukha / adhomukha / tiryaṅmukha, 9 each) and has NOT
   been checked against the reference almanac this project follows. Published Tamil

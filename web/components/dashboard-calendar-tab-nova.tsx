@@ -677,9 +677,12 @@ export function DashboardCalendarTabNova({
   const isWaxing = panchangam?.tithi.paksha === "SHUKLA";
   const moonPhase = panchangam ? moonPhaseFromTithi(panchangam.tithi.number, panchangam.tithi.paksha) : null;
   const specialTithiMeta = lunarSpecialTithiMeta(panchangam?.specialTithiDay?.name, lang);
-  // Nokku follows the *active* nakshatra, not the sunrise one — when the star
-  // rolls over mid-day the day's facing rolls with it.
-  const nokku = nokkuMeta(nakActive?.activeName ?? panchangam?.nakshatra.name, lang);
+  // Nokku is a whole-day classification pinned to the day's (sunrise)
+  // nakshatra — unlike tithi/nakshatra/yoga/karana display, it does NOT
+  // roll over to the next star mid-day. Confirmed against a live case
+  // (2026-08-10, Thiruvathirai sunrise star, Mel Nokku Naal all day even
+  // after the star rolled to Punarpoosam at 12:27pm).
+  const nokku = nokkuMeta(panchangam?.nakshatra.name, lang);
 
   const bestNallaSlot = bestGowriSlot(panchangam?.kalam.nallaNeram);
 
