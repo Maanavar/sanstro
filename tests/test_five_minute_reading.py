@@ -68,7 +68,11 @@ _SERIAL = itertools.count(1)
 
 
 def _profile(
-    *, age: int, display_name: str | None = None, marital_status: str | None = None
+    *,
+    age: int,
+    display_name: str | None = None,
+    marital_status: str | None = None,
+    employment_type: str | None = None,
 ) -> dict:
     """A clearly-synthetic profile. Never a real birth record (CLAUDE.md)."""
     payload = {
@@ -84,12 +88,17 @@ def _profile(
     }
     if marital_status is not None:
         payload["maritalStatus"] = marital_status
+    if employment_type is not None:
+        payload["employmentType"] = employment_type
     return payload
 
 
-def _chart_id_for_age(client, age: int, *, marital_status: str | None = None) -> str:
+def _chart_id_for_age(
+    client, age: int, *, marital_status: str | None = None, employment_type: str | None = None
+) -> str:
     created = client.post(
-        "/api/v1/birth-profiles", json=_profile(age=age, marital_status=marital_status)
+        "/api/v1/birth-profiles",
+        json=_profile(age=age, marital_status=marital_status, employment_type=employment_type),
     )
     assert created.status_code == 200, created.text
     return created.json()["data"]["chartId"]
@@ -138,18 +147,84 @@ def test_a_minor_owning_their_own_account_gets_the_same_404_as_flag_off(client):
     assert response.json() == off.json()
 
 
-def test_a_teen_owning_their_own_account_gets_the_same_404_as_flag_off(client):
-    """Age 15, own chart, own account -> "client_with_guardian", not built yet."""
-    reset_flag("five_minute_reading")
-    set_flag("five_minute_reading", False)
-    off = client.get(f"/api/v1/charts/{uuid.uuid4()}/five-minute")
-    set_flag("five_minute_reading", True)
+# ── client_with_guardian: the reduced 6-beat register (§0.2) ─────────────────
 
-    chart_id = _chart_id_for_age(client, age=15)
+
+def _read_guardian(client, *, age: int = 15, employment_type: str | None = None) -> dict:
+    chart_id = _chart_id_for_age(client, age=age, employment_type=employment_type)
     response = client.get(f"/api/v1/charts/{chart_id}/five-minute")
+    assert response.status_code == 200, response.text
+    return response.json()["data"]
 
-    assert response.status_code == 404
-    assert response.json() == off.json()
+
+def test_a_teen_owning_their_own_account_gets_the_reduced_six_beat_reading(client):
+    """Age 15, own chart, own account -> "client_with_guardian", now built (§0.2)."""
+    data = _read_guardian(client, age=15)
+
+    assert data["addressedTo"] == "client_with_guardian"
+    ids = [beat["id"] for beat in data["beats"]]
+    assert ids == [
+        "who_you_are",
+        "what_this_rests_on",
+        "core_nature",
+        "this_period",
+        "topic_in_full",
+        "one_thing",
+    ]
+    assert data["pendingQuestion"] is None
+
+    max_en, max_ta = word_budget("client_with_guardian")
+    assert max_en == 650
+    assert max_ta == 380
+    assert data["wordCount"]["en"] <= max_en, data["wordCount"]
+    assert data["wordCount"]["ta"] <= max_ta, data["wordCount"]
+
+
+def test_a_teen_always_gets_topic_teen_regardless_of_employment_type(client):
+    """TOPIC_TEEN wins unconditionally for client_with_guardian (see topic
+    resolution in one_minute_reading_service.py) — TOPIC_EDUCATION's "you are
+    studying" is an inference this register's own topic deliberately avoids,
+    true of most Tamil teenagers and wrong in a way that stings the one it
+    misses. `employment_type` is adult-only vocabulary for this register."""
+    data = _read_guardian(client, age=16, employment_type="student")
+    assert data["focusTopic"] == "TEEN"
+
+
+def test_guardian_core_nature_never_carries_the_shadow_sentence(client):
+    """§0.2: drops the shadow/grievance half of Beat 3 — a character verdict a
+    13-to-17-year-old has not earned, same reasoning the 2-minute reading
+    already applies by omitting this beat's 2-minute equivalent outright."""
+    data = _read_guardian(client, age=15)
+    core_nature = next(beat for beat in data["beats"] if beat["id"] == "core_nature")
+
+    assert "Your real strength is" in core_nature["text"]["en"]
+    assert "Where it costs you is" not in core_nature["text"]["en"]
+    for voice in _VOICE.values():
+        assert voice.shadow[1] not in core_nature["text"]["en"]
+
+
+def test_guardian_topic_in_full_uses_nature_not_shadow_essence(client):
+    """§0.2 applied to Beat 7: facet 3 swaps `_SHADOW_ESSENCE` for the same
+    graha's `nature` line, under `_TEMPERAMENT_CONNECTIVE` rather than
+    `_FRICTION_CONNECTIVE` — see _beat_topic_in_full's own addressed_to
+    branch. Otherwise Beat 7 would quietly reintroduce the shadow content
+    Beat 3 just went out of its way to drop."""
+    data = _read_guardian(client, age=15)
+    topic_in_full = next(beat for beat in data["beats"] if beat["id"] == "topic_in_full")
+
+    en = topic_in_full["text"]["en"]
+    assert "It also shows up as:" in en
+    assert "Where it runs into friction:" not in en
+    for essence_ta, essence_en in _SHADOW_ESSENCE.values():
+        assert essence_en not in en
+
+
+def test_guardian_reading_never_asks_the_marital_status_question(client):
+    """A minor's own reading never raises the adult pending-question mechanism,
+    regardless of topic — TOPIC_UNKNOWN is structurally unreachable here."""
+    data = _read_guardian(client, age=15)
+    assert data["focusTopic"] != "UNKNOWN"
+    assert data["pendingQuestion"] is None
 
 
 def test_a_family_vault_members_chart_gets_the_same_404_as_flag_off(

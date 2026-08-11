@@ -2,44 +2,57 @@
 
 Spec: docs/FIVE_MINUTE_READING_SPEC_2026-08-11.md
 
-WHAT THIS IS, RIGHT NOW. The spec sequences eight beats; this module builds
-all eight for the ``self`` register — 1 (identity), 2 (what this rests on)
-and 8 (one thing) reused verbatim from ``one_minute_reading_service``, plus
-five extended/new beats: Beat 3, "Core Nature, extended" (§2.1), which
-inserts one ``mechanism`` clause between the existing ``gift`` and ``shadow``
-facets so the shadow reads as THIS gift's own shadow rather than an adjacent
-complaint; Beat 4, "Repeating Pattern" (§2.2), which reuses that SAME graha's
-``shadow`` clause as its opening sentence and appends its
-``domain_flex["WORK"]``/``domain_flex["RELATIONSHIPS"]`` facets — one trait,
-relocated into two domains, never a different graha's table (§0.3's "one
-graha" invariant); Beat 5, "What the Last Period Was Teaching, extended"
-(§2.3), which reuses ``one_minute_reading_service._beat_last_ten_years``
-verbatim and only adds a ``_PERIOD_THEME`` word ahead of the SAME
-``past_texture`` sentence, never a second, independently-computed transition;
-Beat 6, "Right Now, extended" (§2.4), which appends the new ``asks`` facet
-(what the period REQUIRES) to the SAME ``_beat_right_now`` output the
-2-minute reading already builds, never a second hinge computation; and Beat
-7, "Your [Topic] in Full" (§2.5), the one genuinely composed beat — built
-from the strongest graha's OWN ``gift`` (facet 1, alone, no ``mechanism``)
-and a compressed ``_SHADOW_ESSENCE`` paraphrase of ``shadow`` (facet 3),
-reframed through a topic-specific ``_TOPIC_LENS`` opener, plus the SAME
-``_outlook`` clause the 2-minute reading's age-question beat already
-computes for this topic. Facets 1 and 3 depart from §2.5's literal wording
-(which named ``gift``/``mechanism``/``shadow`` verbatim) on purpose: a
-manual read-through found the literal version made a reading repeat Beat 3's
-own two sentences almost word for word, four beats later — see
-``_beat_topic_in_full``'s own docstring for the full account. Withheld
-exactly when the 2-minute age-question beat would be
-(``topic == TOPIC_UNKNOWN``), and for the same reason: a topic we cannot
-pick without a fact we do not hold is asked for, not guessed at.
+WHAT THIS IS, RIGHT NOW. The spec sequences eight beats for ``self`` and a
+reduced six for ``client_with_guardian`` (§0.2); this module builds both.
 
-REGISTER SCOPE, RIGHT NOW (§0.2). Only ``self`` ships. ``parent``/``other``
-are not designed for this length per the spec and never will be. ``client_
-with_guardian`` IS designed (a reduced 6-beat reading with its own Beat 3
-variant that drops the shadow half) but that variant does not exist yet —
-shipping it with only 3 of its 6 beats would be exactly the "half-built
-reading that silently degrades" failure §0.2 rules out for the two registers
-that never ship. So it gets the same 404 as those two, for now.
+For ``self``: 1 (identity), 2 (what this rests on) and 8 (one thing) reused
+verbatim from ``one_minute_reading_service``, plus five extended/new beats:
+Beat 3, "Core Nature, extended" (§2.1), which inserts one ``mechanism``
+clause between the existing ``gift`` and ``shadow`` facets so the shadow
+reads as THIS gift's own shadow rather than an adjacent complaint; Beat 4,
+"Repeating Pattern" (§2.2), which reuses that SAME graha's ``shadow`` clause
+as its opening sentence and appends its ``domain_flex["WORK"]``/
+``domain_flex["RELATIONSHIPS"]`` facets — one trait, relocated into two
+domains, never a different graha's table (§0.3's "one graha" invariant);
+Beat 5, "What the Last Period Was Teaching, extended" (§2.3), which reuses
+``one_minute_reading_service._beat_last_ten_years`` verbatim and only adds a
+``_PERIOD_THEME`` word ahead of the SAME ``past_texture`` sentence, never a
+second, independently-computed transition; Beat 6, "Right Now, extended"
+(§2.4), which appends the new ``asks`` facet (what the period REQUIRES) to
+the SAME ``_beat_right_now`` output the 2-minute reading already builds,
+never a second hinge computation; and Beat 7, "Your [Topic] in Full" (§2.5),
+the one genuinely composed beat — built from the strongest graha's OWN
+``gift`` (facet 1, alone, no ``mechanism``) and a compressed
+``_SHADOW_ESSENCE`` paraphrase of ``shadow`` (facet 3), reframed through a
+topic-specific ``_TOPIC_LENS`` opener, plus the SAME ``_outlook`` clause the
+2-minute reading's age-question beat already computes for this topic.
+Facets 1 and 3 depart from §2.5's literal wording (which named ``gift``/
+``mechanism``/``shadow`` verbatim) on purpose: a manual read-through found
+the literal version made a reading repeat Beat 3's own two sentences almost
+word for word, four beats later — see ``_beat_topic_in_full``'s own
+docstring for the full account. Withheld exactly when the 2-minute
+age-question beat would be (``topic == TOPIC_UNKNOWN``), and for the same
+reason: a topic we cannot pick without a fact we do not hold is asked for,
+not guessed at.
+
+REGISTER SCOPE (§0.2). ``self`` ships full (8 beats). ``client_with_guardian``
+ships reduced (6 beats: identity, rests-on, nature, current period,
+age-topic mini-reading, one thing) — a 13-to-17-year-old reading their own
+chart, addressed directly, same register the 2-minute reading already gates
+this way. Two beats drop entirely: Beat 4 (repeating pattern, built from
+``shadow``) and Beat 5 (dated past — degenerate by construction below age 18,
+same reasoning the 2-minute reading's own client_with_guardian block already
+gives for dropping ``last_ten_years``). Two beats are built REDUCED rather
+than reused verbatim, both to keep the same character-verdict material the
+2-minute reading already refuses this register out of the 5-minute versions
+too: Beat 3 drops its ``shadow`` sentence (``_beat_core_nature_extended``'s
+own ``addressed_to`` branch); Beat 7's friction facet swaps
+``_SHADOW_ESSENCE`` for the graha's own ``nature`` line — dispositional, not
+a verdict, the same standard the 2-minute reading already applies to keep
+``nature`` in this register's opening beat while dropping its strength/
+shadow beat outright (``_beat_topic_in_full``'s own ``addressed_to`` branch).
+``parent``/``other`` are not designed for this length per the spec and never
+will be — same 404 the flag gate returns when off, not a fallback beat set.
 
 Reuses ``ChartContext``/``build_chart_context`` from ``one_minute_reading_
 service`` rather than recomputing anything — see that module's docstring on
@@ -107,9 +120,7 @@ def require_five_minute_reading_enabled() -> None:
 # day one — spec §0.4.
 _FIVE_MIN_WORD_BUDGET: dict[str, tuple[int, int]] = {
     "self": (950, 550),
-    # "client_with_guardian": (650, 380) — spec §0.4's own number, kept here
-    # rather than invented later. Unused: that register 404s until its own
-    # 6-beat list and reduced Beat 3 variant exist (see module docstring).
+    "client_with_guardian": (650, 380),  # 6 beats, not 8 — spec §0.4's own number.
 }
 
 
@@ -211,6 +222,10 @@ _SHADOW_ESSENCE: dict[str, tuple[str, str]] = {
 # vocabulary cap, same treatment as beat 4's `_WORK_CONNECTIVE`/
 # `_RELATIONSHIPS_CONNECTIVE` below.
 _FRICTION_CONNECTIVE: tuple[str, str] = ("இது சிக்கலாக மாறும் இடம்:", "Where it runs into friction:")
+# client_with_guardian's own facet-3 connective (see _beat_topic_in_full's
+# addressed_to branch): pairs with `nature`, not `_SHADOW_ESSENCE` — "where it
+# runs into friction" frames what follows as a cost, which `nature` is not.
+_TEMPERAMENT_CONNECTIVE: tuple[str, str] = ("இது இப்படியும் தெரியலாம்:", "It also shows up as:")
 _GUIDANCE_CONNECTIVE: tuple[str, str] = ("உதவக்கூடியது:", "One thing that might help:")
 # The universal facet-5 fallback (§2.5's "single ... fallback clause"),
 # deliberately used for EVERY topic rather than `action` verbatim. `action`
@@ -227,31 +242,43 @@ _GUIDANCE_FALLBACK: tuple[str, str] = (
 )
 
 
-def _beat_core_nature_extended(*, strongest: str) -> OneMinuteBeat:
+def _beat_core_nature_extended(*, strongest: str, addressed_to: str) -> OneMinuteBeat:
     """5-minute Beat 3 (§2.1) — gift, its mechanism, shadow. One graha, one beat.
 
     Extends the 2-minute reading's ``_beat_strength_and_cost`` with exactly
     the one clause that function's own docstring names and stops short of:
     the mechanism that makes "gift, then cost" read as one causal object.
+
+    On ``client_with_guardian``, drops the shadow sentence entirely (§0.2):
+    a character verdict a 13-to-17-year-old has not earned, the same
+    reasoning the 2-minute reading already applies by omitting this beat's
+    2-minute equivalent (``_beat_strength_and_cost``) from that register
+    outright. The gift+mechanism half stays — same graha, same content — and
+    is the closest thing to a "core nature" beat this register gets.
     """
     voice = _VOICE[strongest]
 
-    ta = (
-        f"உங்கள் உண்மையான பலம் {voice.gift[0]} — {voice.mechanism[0]}. "
-        f"விலை என்பது {voice.shadow[0]}."
-    )
-    en = (
-        f"Your real strength is {voice.gift[1]} — {voice.mechanism[1]}. "
-        f"Where it costs you is {voice.shadow[1]}."
-    )
+    if addressed_to == "client_with_guardian":
+        ta = f"உங்கள் உண்மையான பலம் {voice.gift[0]} — {voice.mechanism[0]}."
+        en = f"Your real strength is {voice.gift[1]} — {voice.mechanism[1]}."
+        basis_ta = f"வலிமையான கிரகம் {planet_ta(strongest)} — பலமும், அதன் வழிமுறையும் இதிலிருந்தே"
+        basis_en = f"Strongest graha {planet_en(strongest)} — the gift and its mechanism, both from it"
+    else:
+        ta = (
+            f"உங்கள் உண்மையான பலம் {voice.gift[0]} — {voice.mechanism[0]}. "
+            f"விலை என்பது {voice.shadow[0]}."
+        )
+        en = (
+            f"Your real strength is {voice.gift[1]} — {voice.mechanism[1]}. "
+            f"Where it costs you is {voice.shadow[1]}."
+        )
+        basis_ta = f"வலிமையான கிரகம் {planet_ta(strongest)} — பலமும், அதன் வழிமுறையும், விலையும் இதிலிருந்தே"
+        basis_en = f"Strongest graha {planet_en(strongest)} — the gift, its mechanism, and its cost, all from it"
 
     return OneMinuteBeat(
         id="core_nature",
         text=OneMinuteText(ta=ta, en=en),
-        basis=OneMinuteText(
-            ta=f"வலிமையான கிரகம் {planet_ta(strongest)} — பலமும், அதன் வழிமுறையும், விலையும் இதிலிருந்தே",
-            en=f"Strongest graha {planet_en(strongest)} — the gift, its mechanism, and its cost, all from it",
-        ),
+        basis=OneMinuteText(ta=basis_ta, en=basis_en),
     )
 
 
@@ -338,17 +365,19 @@ _ASKS_CONNECTIVE: tuple[str, str] = ("இந்தக் காலம் கே�
 
 
 def _beat_this_period_extended(
-    *, timeline: VimshottariTimeline, hinge: tuple[int, str] | None
+    *, timeline: VimshottariTimeline, hinge: tuple[int, str] | None, addressed_to: str
 ) -> OneMinuteBeat:
     """5-minute Beat 6 (§2.4) — the 2-minute right_now beat, plus what it asks.
 
     Reuses ``_beat_right_now`` verbatim for the hinge lead, the current lord
     and ``now_texture`` (what the period OFFERS) — appends only the new
-    ``asks`` facet (what it REQUIRES). "self" is passed for ``addressed_to``
-    unconditionally: this module never builds beats for any other register
-    (see ``build_five_minute_reading``'s 404 guard).
+    ``asks`` facet (what it REQUIRES). ``addressed_to`` is passed through
+    rather than hardcoded, so ``client_with_guardian`` still gets
+    ``_beat_right_now``'s own ``_MINOR_NOW_TEXTURE`` substitution — ``asks``
+    itself has no register-specific variant (every entry read as dispositional
+    rather than adult-specific when drafted, so none was added).
     """
-    base = _beat_right_now(timeline=timeline, hinge=hinge, addressed_to="self")
+    base = _beat_right_now(timeline=timeline, hinge=hinge, addressed_to=addressed_to)
     asks_ta, asks_en = _VOICE[timeline.current_mahadasha.lord].asks
 
     return OneMinuteBeat(
@@ -362,7 +391,7 @@ def _beat_this_period_extended(
 
 
 def _beat_topic_in_full(
-    *, topic: str, strongest: str, timeline: VimshottariTimeline
+    *, topic: str, strongest: str, timeline: VimshottariTimeline, addressed_to: str
 ) -> OneMinuteBeat:
     """5-minute Beat 7 (§2.5) — composed, not authored, from tables that already exist.
 
@@ -386,12 +415,20 @@ def _beat_topic_in_full(
     ``_GUIDANCE_FALLBACK`` rather than ``action`` verbatim — see that
     constant's own comment for why.
 
+    On ``client_with_guardian`` facet 3 swaps ``_SHADOW_ESSENCE`` for the
+    same graha's own ``nature`` line, under ``_TEMPERAMENT_CONNECTIVE``
+    instead of ``_FRICTION_CONNECTIVE``: this register drops ``shadow``-
+    derived content everywhere else (§0.2), and a "friction" facet built from
+    it here would quietly reintroduce the character-verdict material Beat 3
+    just went out of its way to drop. ``nature`` is dispositional rather than
+    a verdict — the same standard the 2-minute reading already applies to
+    keep it in this register's own opening beat.
+
     Caller-gated on ``topic != TOPIC_UNKNOWN``, same as the 2-minute reading's
     own age-question beat.
     """
     voice = _VOICE[strongest]
     lens_ta, lens_en = _TOPIC_LENS[topic]
-    essence_ta, essence_en = _SHADOW_ESSENCE[strongest]
 
     next_change = timeline.current_antardasha.end_date
     outlook_ta, outlook_en = _outlook(
@@ -400,11 +437,19 @@ def _beat_topic_in_full(
         (_month_year(next_change, "ta"), _month_year(next_change, "en")),
     )
 
+    if addressed_to == "client_with_guardian":
+        facet3_ta = f"{_TEMPERAMENT_CONNECTIVE[0]} {voice.nature.ta}"
+        facet3_en = f"{_TEMPERAMENT_CONNECTIVE[1]} {voice.nature.en}"
+    else:
+        essence_ta, essence_en = _SHADOW_ESSENCE[strongest]
+        facet3_ta = f"{_FRICTION_CONNECTIVE[0]} {essence_ta}."
+        facet3_en = f"{_FRICTION_CONNECTIVE[1]} {essence_en}."
+
     ta = " ".join(
         part
         for part in (
             f"{lens_ta} {voice.gift[0]}.",
-            f"{_FRICTION_CONNECTIVE[0]} {essence_ta}.",
+            facet3_ta,
             outlook_ta,
             f"{_GUIDANCE_CONNECTIVE[0]} {_GUIDANCE_FALLBACK[0]}",
         )
@@ -414,7 +459,7 @@ def _beat_topic_in_full(
         part
         for part in (
             f"{lens_en} {voice.gift[1]}.",
-            f"{_FRICTION_CONNECTIVE[1]} {essence_en}.",
+            facet3_en,
             outlook_en,
             f"{_GUIDANCE_CONNECTIVE[1]} {_GUIDANCE_FALLBACK[1]}",
         )
@@ -439,65 +484,116 @@ _FIVE_MIN_QUESTION_ANCHOR_BEAT = "one_thing"
 
 
 def build_five_minute_reading(context: ChartContext) -> FiveMinuteReadingResponse:
-    if context.addressed_to != "self":
-        # parent/other: not designed for this length, ever (§0.2).
-        # client_with_guardian: designed but not built yet — see module
-        # docstring. Same 404 the flag gate returns, not a fallback beat set:
-        # no beat-building function below is ever reached for these values.
+    if context.addressed_to not in ("self", "client_with_guardian"):
+        # parent/other: not designed for this length, ever (§0.2). Same 404
+        # the flag gate returns, not a fallback beat set: no beat-building
+        # function below is ever reached for these values.
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not available.")
 
-    beats = [
-        _beat_who_you_are(
-            display_name=context.profile.display_name,
-            nakshatra=context.moon.nakshatra,
-            nakshatra_name=context.moon.nakshatra_name,
-            moon_rasi_name=context.moon.rasi_name,
-            moon_rasi=context.moon.rasi,
-            lagna_rasi_name=context.lagna.rasi_name,
-            lagna_rasi=context.lagna.rasi,
-            nakshatra_lord=context.nakshatra_lord,
-            signature_lord=context.signature_lord,
-            lagna_reliable=context.lagna_reliable,
-            addressed_to=context.addressed_to,
-        ),
-        _beat_what_this_rests_on(
-            display_name=context.profile.display_name,
-            lagna_reliable=context.lagna_reliable,
-            addressed_to=context.addressed_to,
-            birth_time_source=context.profile.birth_time_source,
-        ),
-        _beat_core_nature_extended(strongest=context.strongest),
-        _beat_repeating_pattern(strongest=context.strongest),
-    ]
+    opening = _beat_who_you_are(
+        display_name=context.profile.display_name,
+        nakshatra=context.moon.nakshatra,
+        nakshatra_name=context.moon.nakshatra_name,
+        moon_rasi_name=context.moon.rasi_name,
+        moon_rasi=context.moon.rasi,
+        lagna_rasi_name=context.lagna.rasi_name,
+        lagna_rasi=context.lagna.rasi,
+        nakshatra_lord=context.nakshatra_lord,
+        signature_lord=context.signature_lord,
+        lagna_reliable=context.lagna_reliable,
+        addressed_to=context.addressed_to,
+    )
+    rests_on = _beat_what_this_rests_on(
+        display_name=context.profile.display_name,
+        lagna_reliable=context.lagna_reliable,
+        addressed_to=context.addressed_to,
+        birth_time_source=context.profile.birth_time_source,
+    )
+    core_nature = _beat_core_nature_extended(
+        strongest=context.strongest, addressed_to=context.addressed_to
+    )
 
-    # Elder path skips the dated past entirely, same call and same reasoning
-    # as the 2-minute reading's own G6 branch: a 67-year-old knows his own
-    # decades better than we do, and reciting them back is filler, not trust.
-    if context.topic == TOPIC_ELDER:
-        hinge: tuple[int, str] | None = None
-    else:
-        last_period_beat, hinge = _beat_last_period_extended(
-            timeline=context.timeline, as_of=context.as_of, birth_date=context.profile.birth_date_local
-        )
-        beats.append(last_period_beat)
+    pending: OneMinutePendingQuestion | None = None
 
-    beats.append(_beat_this_period_extended(timeline=context.timeline, hinge=hinge))
-
-    # Withheld, not defaulted — identical reasoning to the 2-minute reading's
-    # own age-question beat: every version of Beat 7 is a statement about the
-    # reader's marriage, and we hold no fact that picks between them.
-    if context.topic != TOPIC_UNKNOWN:
-        beats.append(
+    if context.addressed_to == "client_with_guardian":
+        # §0.2's reduced 6-beat list: identity, rests-on, nature (reduced,
+        # above), current period, age-topic mini-reading, one thing. Beat 4
+        # (repeating pattern, built from `shadow`) and Beat 5 (dated past)
+        # both drop entirely — the past beat is degenerate by construction
+        # below age 18 for the same reason the 2-minute reading's own
+        # client_with_guardian block already drops `last_ten_years` (window
+        # clamped to age 15: nothing for a 15-year-old, two years for a
+        # 17-year-old). `hinge=None` for the same reason: the hinge names the
+        # year the previous beat closed on, and there is no previous beat
+        # here to close.
+        #
+        # Topic is never TOPIC_UNKNOWN on this register — it is only ever
+        # reached when a 13-to-17-year-old holds their own account, and
+        # topic routing resolves that to TOPIC_TEEN or TOPIC_EDUCATION by
+        # construction (see one_minute_reading_service's own topic
+        # resolution) — so Beat 7 always renders and no marital-status
+        # pending question is ever raised for a minor.
+        beats = [
+            opening,
+            rests_on,
+            core_nature,
+            _beat_this_period_extended(
+                timeline=context.timeline, hinge=None, addressed_to=context.addressed_to
+            ),
             _beat_topic_in_full(
-                topic=context.topic, strongest=context.strongest, timeline=context.timeline
+                topic=context.topic,
+                strongest=context.strongest,
+                timeline=context.timeline,
+                addressed_to=context.addressed_to,
+            ),
+            _beat_one_thing(timeline=context.timeline, addressed_to=context.addressed_to),
+        ]
+    else:
+        beats = [
+            opening,
+            rests_on,
+            core_nature,
+            _beat_repeating_pattern(strongest=context.strongest),
+        ]
+
+        # Elder path skips the dated past entirely, same call and same
+        # reasoning as the 2-minute reading's own G6 branch: a 67-year-old
+        # knows his own decades better than we do, and reciting them back is
+        # filler, not trust.
+        if context.topic == TOPIC_ELDER:
+            hinge: tuple[int, str] | None = None
+        else:
+            last_period_beat, hinge = _beat_last_period_extended(
+                timeline=context.timeline,
+                as_of=context.as_of,
+                birth_date=context.profile.birth_date_local,
+            )
+            beats.append(last_period_beat)
+
+        beats.append(
+            _beat_this_period_extended(
+                timeline=context.timeline, hinge=hinge, addressed_to=context.addressed_to
             )
         )
 
-    beats.append(_beat_one_thing(timeline=context.timeline, addressed_to=context.addressed_to))
+        # Withheld, not defaulted — identical reasoning to the 2-minute
+        # reading's own age-question beat: every version of Beat 7 is a
+        # statement about the reader's marriage, and we hold no fact that
+        # picks between them.
+        if context.topic != TOPIC_UNKNOWN:
+            beats.append(
+                _beat_topic_in_full(
+                    topic=context.topic,
+                    strongest=context.strongest,
+                    timeline=context.timeline,
+                    addressed_to=context.addressed_to,
+                )
+            )
 
-    pending: OneMinutePendingQuestion | None = None
-    if context.topic == TOPIC_UNKNOWN and not (context.profile.marital_status or "").strip():
-        pending = _marital_status_pending_question(before_beat=_FIVE_MIN_QUESTION_ANCHOR_BEAT)
+        beats.append(_beat_one_thing(timeline=context.timeline, addressed_to=context.addressed_to))
+
+        if context.topic == TOPIC_UNKNOWN and not (context.profile.marital_status or "").strip():
+            pending = _marital_status_pending_question(before_beat=_FIVE_MIN_QUESTION_ANCHOR_BEAT)
 
     return FiveMinuteReadingResponse(
         data=FiveMinuteReadingData(
