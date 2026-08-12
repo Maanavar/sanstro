@@ -163,10 +163,21 @@ export function DashboardFiveMinuteReading({
           : `As of ${asOfLabel}.`
         : "";
 
+  // TITLED "FOUR MINUTES", NOT FIVE, since 2026-08-12 — and the number is
+  // measured, not chosen. Same fix as `dashboard-one-minute-reading.tsx`'s own
+  // rename in 930689c ("one minute" -> "two minutes"): the displayed copy is
+  // what was wrong, so the displayed copy is all that changes. Module name,
+  // route (`/five-minute`), feature flag and spec filename are untouched.
+  //
+  // The rate is the product's own, not a fresh guess. That earlier rename put
+  // a 236-word median reading on the label "two minutes" — 118 words per
+  // advertised minute — and this reading measures 487 EN words median across a
+  // 120-chart sweep, which is 4.1 of those minutes. See
+  // `_FIVE_MIN_WORD_BUDGET`'s comment for the full distribution.
   const title =
     lang === "ta"
-      ? "உங்கள் ஜாதகம் — ஐந்து நிமிடங்களில்"
-      : "Your chart in five minutes";
+      ? "உங்கள் ஜாதகம் — நான்கு நிமிடங்களில்"
+      : "Your chart in four minutes";
   const titleId = `fm-title-${chartId}`;
   const hasBasis = data.beats.some((beat) => beat.basis);
 

@@ -823,3 +823,64 @@ is missing costs a reader a raised eyebrow; dropping it when nothing replaces
 it re-breaks the cross-gate rule the bound was added for — "Saturn pays late"
 with no expiry anywhere in the reading. Every condition above is a separate
 regression test, including the two that assert the year *survives*.
+
+### 8.7 The name, 2026-08-12 — it is a four-minute reading
+
+§8.2 left this as "a product call and not a code one": ~520 words is about
+2m22s at 220 wpm, against a feature called "five minutes". Decided by
+measuring rather than arguing. Both readings were built for the same 120
+charts (10 ages × 4 marital statuses × 3 birth times) and their `wordCount`
+compared:
+
+| | min | median | max |
+|---|---|---|---|
+| 2-minute EN | 207 | **236** | 268 |
+| 4-minute EN | 388 | **487** | 519 |
+| 4-minute TA | 270 | **332** | 357 |
+| ratio (EN long ÷ short) | 1.83 | **2.01** | 2.15 |
+
+**The longer reading is almost exactly twice the shorter one on every chart**
+— a 0.32 spread across all 120. The content ladder is 2.0×; the names
+promised 2.5×. One of the two had to move, and it was never going to be the
+content: padding to reach a name is the failure §0.4 exists to prevent.
+
+**The rate is the product's own, and this is the part worth keeping.** The
+2026-08-10 rename shipped a 236-word median reading under the label "two
+minutes" — **118 words per advertised minute**. That is not a claim about
+reading speed; it is a labelling convention, and a defensible one for copy a
+person stops to check against their own life rather than skims. Nobody had
+written it down. At that rate 487 words is 4.1 minutes.
+
+So the surface is titled **"Your chart in four minutes"** / **"உங்கள் ஜாதகம்
+— நான்கு நிமிடங்களில்"**, and the rule for every future reading length is:
+
+```
+advertised minutes = round(median EN words / 118)
+```
+
+Re-measure whenever beats are added. **The name follows the measurement,
+never the other way round** — which also means the 15-minute module inherits
+an arithmetic answer instead of a fresh argument, and would need ~1,770
+median EN words to keep its own name.
+
+**Scope of the change, identical to the split `930689c` made:** the displayed
+title (`dashboard-five-minute-reading.tsx`) and the OpenAPI `summary=`. The
+module name, the route `/charts/{id}/five-minute`, the feature flag
+`five_minute_reading`, this spec's filename and every internal identifier are
+untouched. A route rename would break three packages to change a word the
+reader never sees.
+
+**Renaming DOWN is the uncomfortable half and it is still right.** A tier
+someone may pay for now advertises a smaller number than it did yesterday.
+But the alternative is a reader who checks a five-minute promise against a
+three-minute read, and this product's entire thesis is that its claims are
+checkable — trust is earned on the part the reader can verify. Advertising 2×
+against a sibling that genuinely delivers 2× is a better ladder than a false
+2.5×.
+
+**Not done, deliberately:** growing the reading to earn "five minutes" would
+take ~590 median EN words, and closing that 100-word gap by writing copy *to
+hit a number* is the same mistake in the other direction. If the content does
+grow — §8.5's Guru gochara table is the obvious next increment of real chart
+— the name is re-derived from the formula above, not restored out of
+nostalgia for the old one.

@@ -186,7 +186,9 @@ def get_one_minute_reading(
     "/charts/{chart_id}/five-minute",
     response_model=FiveMinuteReadingResponse,
     tags=["charts"],
-    summary="Your Chart in Five Minutes — nature, its mechanism, and one thing to do",
+    # "Four Minutes" is the measured length (spec §8.7); the path stays
+    # `/five-minute`, same split the two-minute reading's own rename made.
+    summary="Your Chart in Four Minutes — nature, its mechanism, and one thing to do",
 )
 def get_five_minute_reading(
     chart_id: UUID,

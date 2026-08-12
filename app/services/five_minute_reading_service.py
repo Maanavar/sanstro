@@ -178,27 +178,49 @@ def require_five_minute_reading_enabled() -> None:
 # LOWERED FROM 950/550 ON 2026-08-11, WHICH IS NOT THE DIRECTION THIS USUALLY
 # MOVES. §0.4 derived 950 from the clock (~4m19s at 220 wpm) before any copy
 # existed, which was the right way to set a first number and the wrong number
-# to keep once there was something to measure. Sweeping 220 synthetic charts
-# — 11 ages x 4 marital statuses x 5 birth times, so 55 distinct graha
-# configurations — the WIDEST reading this module can currently produce is 522
-# English words (a 67-year-old on the ELDER topic, which carries the longevity
-# refusal on top of a full topic beat) and 363 Tamil. A ceiling at 950 sits 82%
-# above the worst real case: it cannot fail, so it is not a guard, it is a
-# comment with an assert around it.
+# to keep once there was something to measure. The widest reading this module
+# produces is 519 English words and 357 Tamil (a 67-year-old on the ELDER
+# topic, which carries the longevity refusal on top of a full topic beat) —
+# see the sweep below. A ceiling at 950 sits 82% above the worst real case: it
+# cannot fail, so it is not a guard, it is a comment with an assert around it.
 #
 # 650/450 keeps ~25% headroom over the measured worst case — enough that
 # ordinary table growth does not trip it, tight enough that the beat somebody
 # adds without reading this comment does. That is the whole job.
 #
-# WORTH SAYING PLAINLY, because the number is now visible: 522 words is about
-# 2m22s at 220 wpm, against a feature called "five minutes". Three beats were
-# ADDED in this pass, not cut — the reading gained a tension beat, a dated
-# gochara window and the forward horizon it had been missing — and it is still
-# nowhere near five minutes of prose. Whether the name or the length is what
-# should change is a product call and not a code one; what is not in question
-# is that padding the copy to reach the name would undo the entire point of
-# this module's own §0.4 (a reader who checks a clock against a promise that
-# undershoots trusts the next promise).
+# WORTH SAYING PLAINLY, because the number is now visible: this reading is
+# nowhere near five minutes of prose, and three beats were ADDED in the pass
+# that established that. RESOLVED 2026-08-12 by renaming the surface to "four
+# minutes" (spec §8.7) rather than padding to reach the old name, which would
+# have undone the entire point of §0.4 — a reader who checks a clock against a
+# promise that undershoots trusts the next promise less.
+#
+# The decision was measured, not argued. Sweeping 120 charts (10 ages x 4
+# marital statuses x 3 birth times) through BOTH readings on the same charts:
+#
+#     2-minute EN   min 207   median 236   max 268
+#     5-minute EN   min 388   median 487   max 519
+#     5-minute TA   min 270   median 332   max 357
+#     ratio EN      min 1.83  median 2.01  max 2.15
+#
+# Two things fall out of that table, and the second is the useful one.
+#
+# First, the longer reading is almost exactly TWICE the shorter one on every
+# chart — a 0.32 spread across 120 charts. The content ladder is 2.0x while
+# the names promised 2.5x, and the names were the part that could move.
+#
+# Second, THE PRODUCT ALREADY SET ITS OWN WORDS-PER-MINUTE RATE and nobody had
+# written it down. The 2026-08-10 rename shipped a 236-word median reading
+# under the label "two minutes": 118 words per advertised minute. Not a
+# reading-speed estimate — a labelling convention, and the right one for copy
+# a person stops to check against their own life. At that rate 487 words is
+# 4.1 minutes, so this is a four-minute reading. Which gives the 15-minute
+# module an objective rule instead of a fresh argument:
+#
+#     advertised minutes = round(median EN words / 118)
+#
+# Re-measure with `word_count` across a chart sweep whenever beats are added;
+# the name follows the measurement, never the other way round.
 _FIVE_MIN_WORD_BUDGET: dict[str, tuple[int, int]] = {
     "self": (650, 450),
     # Unchanged, and now the looser of the two: this register lost its
