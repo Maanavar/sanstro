@@ -18,6 +18,7 @@ to what this module builds.
 from __future__ import annotations
 
 import itertools
+import re
 import uuid
 from datetime import date
 
@@ -42,6 +43,10 @@ from app.services.five_minute_reading_service import (
     _beat_this_period_extended,  # noqa: PLC2701 (internal use)
     repeated_source_clauses,
     word_budget,
+)
+from app.services.one_minute_reading_service import (
+    _beat_right_now,  # noqa: PLC2701 (internal use)
+    forward_beat_names_mahadasha_handover,
 )
 
 TODAY = date.today()
@@ -559,7 +564,16 @@ def test_this_period_beat_names_the_antardasha_when_it_differs_from_the_mahadash
         current_pranadasha=antardasha,
     )
 
-    beat = _beat_this_period_extended(timeline=timeline, hinge=None, addressed_to="self")
+    # `forward_beat_follows=False` keeps this test on the bhukti clause it is
+    # about — with it True the lead also drops its end year, which is a
+    # different beat's invariant and has its own tests below.
+    beat = _beat_this_period_extended(
+        timeline=timeline,
+        hinge=None,
+        addressed_to="self",
+        as_of=date(2026, 1, 1),
+        forward_beat_follows=False,
+    )
 
     flavor_en = _BHUKTI_FLAVOR["SATURN"][1]
     assert "Its current Saturn phase" in beat.text.en, beat.text.en
@@ -595,12 +609,193 @@ def test_this_period_beat_withholds_the_bhukti_clause_on_swabhukti():
         current_pranadasha=antardasha,
     )
 
-    beat = _beat_this_period_extended(timeline=timeline, hinge=None, addressed_to="self")
+    beat = _beat_this_period_extended(
+        timeline=timeline,
+        hinge=None,
+        addressed_to="self",
+        as_of=date(2026, 1, 1),
+        forward_beat_follows=True,
+    )
 
     assert "Its current Venus phase" not in beat.text.en, beat.text.en
     for flavor_ta, flavor_en in _BHUKTI_FLAVOR.values():
         assert flavor_en not in beat.text.en, beat.text.en
         assert flavor_ta not in beat.text.ta, beat.text.ta
+
+
+def _timeline_with_handover_in_the_decade() -> VimshottariTimeline:
+    """Current MOON mahadasha ending 2033, MARS after it, SATURN bhukti running.
+
+    The elder shape the doubled-date finding was raised against: no hinge (the
+    elder path drops the dated past), a handover well inside the forward beat's
+    decade, and a bhukti under a different lord so this beat carries its own
+    nearer expiry.
+    """
+    mahadashas = (
+        _maha("MOON", date(2023, 3, 13), date(2033, 3, 13), 0),
+        _maha("MARS", date(2033, 3, 13), date(2040, 3, 13), 1),
+    )
+    antardasha = DashaPeriod(
+        level="antar", lord="SATURN", start_jd=0.0, end_jd=0.0,
+        start_date=date(2025, 1, 1), end_date=date(2027, 6, 1), sequence_index=0,
+    )
+    return VimshottariTimeline(
+        opening_lord="MOON",
+        balance_years_at_birth=10.0,
+        opening_end_jd=mahadashas[0].end_jd,
+        mahadashas=mahadashas,
+        current_mahadasha=mahadashas[0],
+        current_antardasha=antardasha,
+        current_pratyantardasha=antardasha,
+        current_sookshmadasha=antardasha,
+        current_pranadasha=antardasha,
+    )
+
+
+def test_the_mahadasha_end_year_is_dropped_when_a_later_beat_states_it_precisely():
+    """Spec §8.5's last open item, closed 2026-08-12.
+
+    The elder path said the mahadasha's end twice at two precisions — "runs to
+    2033" in this beat, "until March 2033" in `what_comes_after` three beats
+    later. Both correct, neither redundant alone, together noticeable. The
+    coarse one goes, because the bhukti clause in this same beat is a nearer
+    bound for the texture it sits beside.
+    """
+    beat = _beat_this_period_extended(
+        timeline=_timeline_with_handover_in_the_decade(),
+        hinge=None,
+        addressed_to="self",
+        as_of=date(2026, 1, 1),
+        forward_beat_follows=True,
+    )
+
+    assert "runs to 2033" not in beat.text.en, beat.text.en
+    assert "2033" not in beat.text.ta, beat.text.ta
+    # The lord and the bhukti bound both survive — this is a suppression of one
+    # clause, not of the beat's dating.
+    assert "You are in a Moon period now." in beat.text.en, beat.text.en
+    assert "Its current Saturn phase" in beat.text.en, beat.text.en
+
+
+def test_the_mahadasha_end_year_survives_when_the_bhukti_clause_is_withheld():
+    """Swabhukti: no bhukti clause, so nothing in this beat bounds the texture.
+
+    The forward beat would still restate the handover, but three beats away and
+    after a possibly-negative texture has been left hanging. The cross-gate
+    rule ("every negative statement carries an expiry date") outranks the mild
+    repetition, so the year stays.
+    """
+    mahadashas = (
+        _maha("SATURN", date(2024, 1, 1), date(2043, 1, 1), 0),
+        _maha("MERCURY", date(2043, 1, 1), date(2060, 1, 1), 1),
+    )
+    antardasha = DashaPeriod(
+        level="antar", lord="SATURN", start_jd=0.0, end_jd=0.0,
+        start_date=date(2024, 1, 1), end_date=date(2027, 1, 1), sequence_index=0,
+    )
+    timeline = VimshottariTimeline(
+        opening_lord="SATURN",
+        balance_years_at_birth=19.0,
+        opening_end_jd=mahadashas[0].end_jd,
+        mahadashas=mahadashas,
+        current_mahadasha=mahadashas[0],
+        current_antardasha=antardasha,
+        current_pratyantardasha=antardasha,
+        current_sookshmadasha=antardasha,
+        current_pranadasha=antardasha,
+    )
+
+    beat = _beat_this_period_extended(
+        timeline=timeline,
+        hinge=None,
+        addressed_to="self",
+        as_of=date(2026, 1, 1),
+        forward_beat_follows=True,
+    )
+
+    assert "runs to 2043" in beat.text.en, beat.text.en
+
+
+def test_the_mahadasha_end_year_survives_when_no_handover_falls_in_the_decade():
+    """No mahadasha handover inside the forward beat's ten years, so that beat
+    speaks only of an antardasha turn and never says when the mahadasha ends.
+    Suppressing here would DELETE the bound rather than defer it — the failure
+    mode `forward_beat_names_mahadasha_handover` exists to rule out."""
+    mahadashas = (_maha("SATURN", date(2024, 1, 1), date(2043, 1, 1), 0),)
+    antardasha = DashaPeriod(
+        level="antar", lord="KETU", start_jd=0.0, end_jd=0.0,
+        start_date=date(2025, 6, 1), end_date=date(2026, 8, 1), sequence_index=1,
+    )
+    timeline = VimshottariTimeline(
+        opening_lord="SATURN",
+        balance_years_at_birth=19.0,
+        opening_end_jd=mahadashas[0].end_jd,
+        mahadashas=mahadashas,
+        current_mahadasha=mahadashas[0],
+        current_antardasha=antardasha,
+        current_pratyantardasha=antardasha,
+        current_sookshmadasha=antardasha,
+        current_pranadasha=antardasha,
+    )
+
+    assert not forward_beat_names_mahadasha_handover(
+        timeline=timeline, as_of=date(2026, 1, 1)
+    )
+    beat = _beat_this_period_extended(
+        timeline=timeline,
+        hinge=None,
+        addressed_to="self",
+        as_of=date(2026, 1, 1),
+        forward_beat_follows=True,
+    )
+
+    assert "runs to 2043" in beat.text.en, beat.text.en
+
+
+def test_the_guardian_register_keeps_its_bound_because_it_has_no_forward_beat():
+    """`client_with_guardian` is six beats and ends on `one_thing` (§0.2). The
+    chart-level predicate would say the handover gets restated; the register
+    says no beat is left to restate it. The register wins."""
+    beat = _beat_this_period_extended(
+        timeline=_timeline_with_handover_in_the_decade(),
+        hinge=None,
+        addressed_to="client_with_guardian",
+        as_of=date(2026, 1, 1),
+        forward_beat_follows=False,
+    )
+
+    assert "runs to 2033" in beat.text.en, beat.text.en
+
+
+def test_the_two_minute_reading_still_bounds_its_own_no_hinge_lead():
+    """The suppression is the five-minute module's call, taken because of what
+    else that reading contains. The shorter reading has no bhukti clause and no
+    forward beat in the same position, so `_beat_right_now`'s default must not
+    have moved underneath it."""
+    beat = _beat_right_now(
+        timeline=_timeline_with_handover_in_the_decade(),
+        hinge=None,
+        addressed_to="self",
+    )
+
+    assert "runs to 2033" in beat.text.en, beat.text.en
+
+
+def test_the_assembled_elder_reading_states_the_handover_once(client):
+    """End-to-end, on a real chart rather than a hand-built timeline: whatever
+    branch the fixture lands in, no two beats may date the same mahadasha
+    handover. This is the form the defect was actually found in — by a person
+    reading the assembled output, which is how all three of this module's copy
+    defects were found."""
+    data = _read(client, age=66, marital_status="married")
+    assert data["focusTopic"] == "ELDER"
+
+    this_period = next(b for b in data["beats"] if b["id"] == "this_period")["text"]["en"]
+    forward = next(b for b in data["beats"] if b["id"] == "what_comes_after")["text"]["en"]
+
+    match = re.search(r"and it runs to (\d{4})\.", this_period)
+    if match:
+        assert match.group(1) not in forward, (this_period, forward)
 
 
 # ── Beat 7 — Your Topic in Full (§2.5) ───────────────────────────────────────

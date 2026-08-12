@@ -154,6 +154,7 @@ from app.services.one_minute_reading_service import (
     _month_year,  # noqa: PLC2701 (internal use)
     _outlook,  # noqa: PLC2701 (internal use)
     _word_count,  # noqa: PLC2701 (internal use)
+    forward_beat_names_mahadasha_handover,
 )
 
 CALC_VERSION = "five-minute-reading-v1.0-2026"
@@ -910,7 +911,12 @@ _ASKS_CONNECTIVE: tuple[str, str] = ("இந்தக் காலம் கே�
 
 
 def _beat_this_period_extended(
-    *, timeline: VimshottariTimeline, hinge: tuple[int, str] | None, addressed_to: str
+    *,
+    timeline: VimshottariTimeline,
+    hinge: tuple[int, str] | None,
+    addressed_to: str,
+    as_of: date,
+    forward_beat_follows: bool,
 ) -> OneMinuteBeat:
     """5-minute Beat 6 (§2.4) — the 2-minute right_now beat, plus what it asks.
 
@@ -939,15 +945,54 @@ def _beat_this_period_extended(
     was computed for this chart rather than generated: "until June 2027" is
     checkable in a way that no amount of temperament copy is. It costs four
     words to move it into the prose.
+
+    AND IT IS THE BHUKTI DATE THAT PAYS FOR DROPPING THE MAHADASHA'S, as of
+    2026-08-12 — the last item spec §8.5 left open. On the elder path (no
+    hinge) ``_beat_right_now`` bounds its own possibly-negative texture with
+    the mahadasha's end year, "runs to 2034"; three beats later
+    ``what_comes_after`` states the same handover to the month, "until June
+    2034". Both are correct, neither is redundant on its own, and together a
+    reader notices the reading saying one thing twice at two precisions.
+
+    So this beat suppresses the coarse year, but only where ALL THREE
+    replacements are actually present:
+
+    - ``forward_beat_follows`` — the caller's own answer, because it is a fact
+      about the REGISTER, not the chart: ``client_with_guardian`` is six beats
+      and has no forward horizon at all (§0.2), so nothing there would ever
+      restate the handover. A predicate over the timeline cannot see that.
+    - ``forward_beat_names_mahadasha_handover`` — false when no mahadasha
+      handover falls inside the forward beat's decade, in which case that beat
+      speaks only of an antardasha turn and the mahadasha's end is never said
+      again. Suppressing there would delete the bound rather than defer it.
+    - a bhukti clause on this very beat — withheld on swabhukti. It is the
+      NEARER expiry (months, not a decade) and it sits in the same breath as
+      the texture it bounds, which the forward beat, three beats away, does
+      not. Without it the lead would carry a difficulty with no expiry until
+      the reader reaches the end of the reading.
+
+    Keeping the year when any is missing is the deliberate direction to
+    fail: a mild repetition costs a reader a raised eyebrow, an unbounded
+    "Saturn pays late" costs them the evening.
     """
-    base = _beat_right_now(timeline=timeline, hinge=hinge, addressed_to=addressed_to)
     maha_lord = timeline.current_mahadasha.lord
     antar = timeline.current_antardasha
     antar_lord = antar.lord
+    has_bhukti_clause = antar_lord != maha_lord
+    base = _beat_right_now(
+        timeline=timeline,
+        hinge=hinge,
+        addressed_to=addressed_to,
+        name_maha_end=not (
+            forward_beat_follows
+            and has_bhukti_clause
+            and forward_beat_names_mahadasha_handover(timeline=timeline, as_of=as_of)
+        ),
+    )
     asks_ta, asks_en = _VOICE[maha_lord].asks
 
     bhukti_ta = bhukti_en = ""
-    if antar_lord != maha_lord:
+    if has_bhukti_clause:
         flavor_ta, flavor_en = _BHUKTI_FLAVOR[antar_lord]
         bhukti_ta = (
             f" இப்போதைய {planet_ta(antar_lord)} பகுதி — {_month_year(antar.end_date, 'ta')} வரை — "
@@ -1369,7 +1414,13 @@ def build_five_minute_reading(context: ChartContext) -> FiveMinuteReadingRespons
             rests_on,
             core_nature,
             _beat_this_period_extended(
-                timeline=context.timeline, hinge=None, addressed_to=context.addressed_to
+                timeline=context.timeline,
+                hinge=None,
+                addressed_to=context.addressed_to,
+                as_of=context.as_of,
+                # This register has no forward horizon (§0.2), so nothing later
+                # restates the mahadasha's end and the lead keeps its own bound.
+                forward_beat_follows=False,
             ),
             _beat_topic_in_full(
                 topic=context.topic,
@@ -1438,7 +1489,11 @@ def build_five_minute_reading(context: ChartContext) -> FiveMinuteReadingRespons
 
         beats.append(
             _beat_this_period_extended(
-                timeline=context.timeline, hinge=hinge, addressed_to=context.addressed_to
+                timeline=context.timeline,
+                hinge=hinge,
+                addressed_to=context.addressed_to,
+                as_of=context.as_of,
+                forward_beat_follows=True,
             )
         )
         beats.append(_beat_window_ahead(moon_rasi=context.moon.rasi, as_of=context.as_of))

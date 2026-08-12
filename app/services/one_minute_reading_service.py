@@ -2793,8 +2793,21 @@ def _beat_last_ten_years(
 
 
 def _beat_right_now(
-    *, timeline: VimshottariTimeline, hinge: tuple[int, str] | None, addressed_to: str
+    *,
+    timeline: VimshottariTimeline,
+    hinge: tuple[int, str] | None,
+    addressed_to: str,
+    name_maha_end: bool = True,
 ) -> OneMinuteBeat:
+    """`name_maha_end=False` drops the end year from the no-hinge lead ONLY.
+
+    The default is the 2-minute reading's behaviour and both of its call sites
+    take it. The five-minute module passes False when its own later beats state
+    the same handover more precisely AND it still carries a nearer expiry of
+    its own — see `_beat_this_period_extended`, which owns that judgement,
+    because it is the caller that knows what else is in the reading. On the two
+    hinged branches the flag does nothing: neither names the end at all.
+    """
     maha = timeline.current_mahadasha
     antar = timeline.current_antardasha
     texture = _now_texture(maha.lord, addressed_to)
@@ -2819,9 +2832,21 @@ def _beat_right_now(
         #
         # The no-hinge branch used to be rare. It is now the live path for every
         # elder, because G6 drops last_ten_years and the hinge with it.
+        #
+        # `name_maha_end=False` drops the bound, and the caller carries the
+        # burden of having replaced it. Without the year both leads become the
+        # maha-hinge branch's own leads minus the hinge prefix, which is why
+        # this is a suppression rather than a fourth pair of strings.
         hinge_ta = hinge_en = ""
-        ta_lead = f"இப்போது உங்களுக்கு {planet_ta(maha.lord)} காலம், {maha.end_date.year} வரை."
-        en_lead = f"You are in a {planet_en(maha.lord)} period now, and it runs to {maha.end_date.year}."
+        if name_maha_end:
+            ta_lead = f"இப்போது உங்களுக்கு {planet_ta(maha.lord)} காலம், {maha.end_date.year} வரை."
+            en_lead = (
+                f"You are in a {planet_en(maha.lord)} period now, "
+                f"and it runs to {maha.end_date.year}."
+            )
+        else:
+            ta_lead = f"இப்போது உங்களுக்கு {planet_ta(maha.lord)} காலம்."
+            en_lead = f"You are in a {planet_en(maha.lord)} period now."
     elif hinge[1] == "maha":
         hinge_ta = f"{hinge[0]}-ல் அது மாறியது. "
         hinge_en = f"That changed in {hinge[0]}. "
@@ -3117,10 +3142,41 @@ def _beat_age_question(
 _FORWARD_PHASE_MIN_SHARE = 0.2
 
 
+def _forward_horizon(as_of: date) -> date:
+    """The decade `_beat_next_ten_years` looks across.
+
+    Extracted from that beat only so `forward_beat_names_mahadasha_handover`
+    below can answer for it without restating the window — see there.
+    """
+    return date(as_of.year + 10, as_of.month, min(as_of.day, 28))
+
+
+def forward_beat_names_mahadasha_handover(
+    *, timeline: VimshottariTimeline, as_of: date
+) -> bool:
+    """Will the forward beat print the date the current mahadasha hands over?
+
+    Both of `_beat_next_ten_years`'s `upcoming` branches name that month — one
+    as "remains the main influence until {month}", the other as "from {month},
+    {lord} takes over". Its third branch does not: with no mahadasha handover
+    inside the decade it names an antardasha turn inside an unbroken
+    mahadasha, and the mahadasha's own end is never spoken.
+
+    The five-minute module asks this before deciding whether `_beat_right_now`
+    still has to bound its no-hinge lead with the end year. Shares
+    `_forward_horizon` and `_handovers_within` with the beat itself rather than
+    recomputing the decade, because the two answers drifting apart is exactly
+    the failure this predicate exists to prevent: a suppressed bound with
+    nothing later to replace it leaves an unbounded negative, which is the
+    cross-gate rule the bound was added for.
+    """
+    return bool(_handovers_within(timeline.mahadashas, as_of, _forward_horizon(as_of)))
+
+
 def _beat_next_ten_years(
     *, timeline: VimshottariTimeline, as_of: date, addressed_to: str
 ) -> OneMinuteBeat:
-    horizon = date(as_of.year + 10, as_of.month, min(as_of.day, 28))
+    horizon = _forward_horizon(as_of)
     window_days = (horizon - as_of).days
     upcoming = _handovers_within(timeline.mahadashas, as_of, horizon)
 
@@ -3824,5 +3880,6 @@ __all__ = [
     "ChartContext",
     "build_chart_context",
     "build_one_minute_reading",
+    "forward_beat_names_mahadasha_handover",
     "word_budget",
 ]

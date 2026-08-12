@@ -776,12 +776,50 @@ the argument above gets weaker with each module that has to stay in sync.
   first crossing rather than the last. The copy says "moves on around
   {month}" and builds nothing on the exact day. Same known simplification as
   the existing `find_saturn_ingress_jd`, in the opposite direction.
-- **The elder path states the mahadasha's end twice** — Beat 7's no-hinge
-  branch names the end year ("runs to 2034") to bound a possibly-negative
-  texture, and Beat 10 names the same handover more precisely ("until June
-  2034"). Both are correct and neither is redundant on its own; together they
-  are noticeable. Not fixed here because the first belongs to the shared
-  `_beat_right_now` and the 2-minute reading depends on that clause.
+- ~~**The elder path states the mahadasha's end twice**~~ — **CLOSED
+  2026-08-12, see §8.6.**
 - **Guru's gochara is computed but not spoken** — only Sani gets a texture
   table, deliberately (§ the `_GOCHARA_SANI` comment). If the window beat
   earns a second graha, Guru is the one, and it is 12 more strings.
+
+### 8.6 The doubled mahadasha end date, 2026-08-12 — closed
+
+Beat 7's no-hinge branch bounded its texture with the mahadasha's end year
+("runs to 2033") and Beat 10 stated the same handover to the month ("until
+March 2033"), three beats later. §8.5 left it open on the grounds that the
+first clause belongs to the shared `_beat_right_now` and the two-minute
+reading depends on it. That framing was the obstacle, and it was wrong: the
+clause does not have to be *removed* from the shared beat, only *suppressible
+by a caller that has replaced it*.
+
+`_beat_right_now` gains `name_maha_end: bool = True`. The default is the
+two-minute reading's existing behaviour and both of its call sites take it —
+this is additive to the shorter reading, which is asserted by
+`test_the_two_minute_reading_still_bounds_its_own_no_hinge_lead`. Dropping the
+year leaves both leads identical to the maha-hinge branch's own leads minus
+the hinge prefix, so it is a suppression, not a fourth pair of strings.
+
+**The judgement stays with the caller, and it is a conjunction of three
+conditions, all of which must hold before the bound is dropped:**
+
+1. `forward_beat_follows` — a fact about the **register**, not the chart, and
+   therefore not derivable from the timeline: `client_with_guardian` is six
+   beats with no forward horizon (§0.2), so nothing there would ever restate
+   the handover.
+2. `forward_beat_names_mahadasha_handover(timeline, as_of)` — new predicate in
+   `one_minute_reading_service.py`. Both of `_beat_next_ten_years`'s
+   `upcoming` branches print the handover month; its third branch names only
+   an antardasha turn inside an unbroken mahadasha and never says when the
+   mahadasha ends. It deliberately shares `_forward_horizon` and
+   `_handovers_within` with the beat itself — the decade is computed once, so
+   the predicate cannot drift from what the beat actually does.
+3. A bhukti clause on Beat 7 itself, withheld on swabhukti. This is what makes
+   the drop safe rather than merely tidy: it is the **nearer** expiry (months,
+   not a decade) and it sits in the same breath as the texture it bounds,
+   which a beat three positions away does not.
+
+**The direction to fail is deliberate.** Keeping the year when any condition
+is missing costs a reader a raised eyebrow; dropping it when nothing replaces
+it re-breaks the cross-gate rule the bound was added for — "Saturn pays late"
+with no expiry anywhere in the reading. Every condition above is a separate
+regression test, including the two that assert the year *survives*.
