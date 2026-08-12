@@ -43,7 +43,7 @@ export const strings = {
     remedy:              { ta: "இன்றைய பரிகாரம்",     en: "Today's remedy" },
     nalla_neram:         { ta: "நல்ல நேரம்",          en: "Nalla Neram" },
     rahu_kalam:          { ta: "ராகு காலம்",          en: "Rahu Kalam" },
-    yamagandam:          { ta: "யேமகண்டம்",            en: "Yamagandam" },
+    yamagandam:          { ta: "எமகண்டம்",             en: "Yamagandam" },
     kuligai:             { ta: "குளிகை",               en: "Kuligai" },
   },
   panchangam: {
@@ -135,7 +135,7 @@ export const strings = {
     area_health:         { ta: "உடல்நலம்",             en: "Health"      },
     area_money:          { ta: "பணம்",                en: "Money"       },
     area_family:         { ta: "குடும்பம்",             en: "Family"      },
-    area_spiritual:      { ta: "ஆன்மிகம்",             en: "Spiritual"   },
+    area_spiritual:      { ta: "ஆன்மீகம்",             en: "Spiritual"   },
     area_general:        { ta: "பொதுவான",              en: "General"     },
   },
   insights: {

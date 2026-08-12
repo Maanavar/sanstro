@@ -89,7 +89,7 @@ const JOURNAL_AREAS: ChipItem[] = [
   { key: "health",    label: "Health",    labelTa: "உடல்நலம்" },
   { key: "money",     label: "Money",     labelTa: "பணம்" },
   { key: "family",    label: "Family",    labelTa: "குடும்பம்" },
-  { key: "spiritual", label: "Spiritual", labelTa: "ஆன்மிகம்" },
+  { key: "spiritual", label: "Spiritual", labelTa: "ஆன்மீகம்" },
   { key: "general",   label: "General",   labelTa: "பொதுவான" },
 ];
 

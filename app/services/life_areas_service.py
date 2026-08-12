@@ -115,7 +115,7 @@ _AREA_LABELS = {
     "PROPERTY":        _t("சொத்து",          "Property"),
     "FOREIGN":         _t("வெளிநாடு",        "Foreign"),
     "LITIGATION":      _t("வழக்கு",          "Litigation"),
-    "SPIRITUALITY":    _t("ஆன்மிகம்",        "Spirituality"),
+    "SPIRITUALITY":    _t("ஆன்மீகம்",        "Spirituality"),
 }
 
 # ── House quality tables (from Moon — Tamil Thirukanitham) ────────────────────

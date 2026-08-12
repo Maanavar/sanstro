@@ -34,7 +34,7 @@ _LORD_HOUSE_COLOUR: dict[int, tuple[str, str]] = {
     9: ("அதிர்ஷ்டம், வழிகாட்டுதல், நம்பிக்கை வழியாக", "through fortune, guidance, and belief"),
     10: ("தொழில், பொது அங்கீகாரம் வழியாக", "through career and public standing"),
     11: ("லாபம், தொடர்புகள், நண்பர்கள் வழியாக", "through gains, networks, and friendships"),
-    12: ("மறைவான முயற்சி, வெளிநாட்டுத் தொடர்பு, ஆன்மிகம் வழியாக", "through behind-the-scenes work, foreign links, and inner life"),
+    12: ("மறைவான முயற்சி, வெளிநாட்டுத் தொடர்பு, ஆன்மீகம் வழியாக", "through behind-the-scenes work, foreign links, and inner life"),
 }
 
 # Houses whose lordship asks for a note of care rather than encouragement.

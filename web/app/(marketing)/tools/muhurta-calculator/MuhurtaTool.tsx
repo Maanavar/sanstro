@@ -24,7 +24,7 @@ const EVENT_TYPES = [
   { value: "TRAVEL",     en: "Travel",                   ta: "பயணம்" },
   { value: "EXAM",       en: "Exam / Education",         ta: "தேர்வு / கல்வி" },
   { value: "MEDICAL",    en: "Medical / Surgery",        ta: "மருத்துவம் / அறுவை சிகிச்சை" },
-  { value: "SPIRITUAL",  en: "Spiritual / Puja",         ta: "ஆன்மிகம் / பூஜை" },
+  { value: "SPIRITUAL",  en: "Spiritual / Puja",         ta: "ஆன்மீகம் / பூஜை" },
 ];
 
 interface MuhurtaSlot {

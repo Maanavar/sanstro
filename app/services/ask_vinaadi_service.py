@@ -128,7 +128,14 @@ _FOREIGN_AREA_KEYWORDS: tuple[str, ...] = (
 )
 _SPIRITUAL_AREA_KEYWORDS: tuple[str, ...] = (
     "spiritual", "pooja", "temple", "meditation", "remedy",
-    "ஆன்மிகம்", "பூஜை", "கோவில்",
+    # Both spellings, deliberately. The display copy standardised on ஆன்மீகம்
+    # (2026-08-13, the long vowel is correct), but this tuple is matched against
+    # what the USER TYPED, not against anything we render — so the misspelling
+    # has to stay accepted or we drop questions from everyone who writes it the
+    # common way. It was also the only spelling here until now, which means a
+    # user typing it correctly matched nothing; adding the correct form fixes a
+    # live miss rather than merely tidying a string.
+    "ஆன்மீகம்", "ஆன்மிகம்", "பூஜை", "கோவில்",
 )
 _FAMILY_HARMONY_AREA_KEYWORDS: tuple[str, ...] = (
     "family", "parents", "siblings", "in-laws", "family harmony",
