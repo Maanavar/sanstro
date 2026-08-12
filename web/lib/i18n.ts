@@ -26,20 +26,20 @@ export function resolveLang(value: string | null | undefined, fallback: Lang = "
 const STRINGS = {
   // ── Tabs
   tab_today:      { ta: "இன்று",        en: "Today" },
-  tab_explore:    { ta: "ஆராய்வு",       en: "Explore" },
+  tab_explore:    { ta: "ஆய்வு",         en: "Explore" },
   tab_tools:      { ta: "கருவிகள்",     en: "Tools" },
   tab_personal:   { ta: "தனிப்பட்ட",   en: "Personal" },
   tab_plan:       { ta: "இலக்குகள்",   en: "Goals" },
   tab_family:     { ta: "குடும்பம் & ஜாதகம்",    en: "Family & Charts" },
-  tab_calendar:   { ta: "நகர்வு & நிகழ்வு", en: "Transits & Events" },
-  tab_setup:      { ta: "அமைவு",        en: "Setup" },
-  tab_settings:   { ta: "அமைவுகள்",     en: "Settings" },
+  tab_calendar:   { ta: "கிரகநகர்வு & நிகழ்வு", en: "Transits & Events" },
+  tab_setup:      { ta: "தொடக்கம்",     en: "Setup" },
+  tab_settings:   { ta: "அமைப்புகள்",     en: "Settings" },
   tab_life_area_nav: { ta: "வாழ்க்கை பகுதி", en: "Life Areas" },
   tab_more:       { ta: "மேலும்",       en: "More" },
   nav_label:      { ta: "பக்க வழிகாட்டி", en: "App navigation" },
 
   // ── Header / status
-  chart_ready:    { ta: "கட்டம் தயார்", en: "Chart ready" },
+  chart_ready:    { ta: "ஜாதகம் தயார்", en: "Chart ready" },
   today_score:    { ta: "இன்று",        en: "Today" },
   chandrashtamam_active: { ta: "சந்திராஷ்டமம் நடப்பு", en: "Chandrashtamam active" },
   status_restored:       { ta: "அமர்வு மீட்டெடுக்கப்பட்டது", en: "Session restored" },
@@ -59,7 +59,7 @@ const STRINGS = {
   metric_vault_select: { ta: "சேகரிப்பு தேர்வு செய்யவும்",  en: "select a vault" },
 
   // ── Setup wizard
-  setup_kicker:       { ta: "அமைவு",              en: "Setup" },
+  setup_kicker:       { ta: "தொடக்கம்",            en: "Setup" },
   setup_step1_label:  { ta: "உங்கள் ஜாதகம்",     en: "Your chart" },
   setup_step2_label:  { ta: "குடும்ப சேகரிப்பு",      en: "Family vault" },
   setup_step3_label:  { ta: "உறுப்பினர் சேர்",   en: "Add member" },
@@ -80,7 +80,7 @@ const STRINGS = {
   setup_step3_sub_vault: { ta: "சேகரிப்பை தேர்வு செய்த பின் உறுப்பினரை சேர்க்கலாம்", en: "Pick a vault first, then add members" },
   setup_step3_add:    { ta: "+ உறுப்பினரை சேர்", en: "+ Add member" },
   setup_step3_adding: { ta: "சேர்க்கிறது…",      en: "Adding…" },
-  setup_done_title:   { ta: "✓ அமைவு முடிந்தது!", en: "✓ Setup complete!" },
+  setup_done_title:   { ta: "✓ தொடக்கம் முடிந்தது!", en: "✓ Setup complete!" },
   setup_done_goto:    { ta: "தனிப்பட்ட பக்கம் →",  en: "Go to Personal →" },
   setup_required:     { ta: "* கட்டாய தகவல்கள்",  en: "* Required fields" },
   setup_calc_now:     { ta: "ஜாதகம் உடனே கணக்கிடு", en: "Calculate now" },
@@ -248,7 +248,7 @@ const STRINGS = {
   label_panchangam: { ta: "பஞ்சாங்கம்", en: "Panchangam" },
   label_tithi:      { ta: "திதி",         en: "Tithi" },
   label_rahu_kalam: { ta: "ரா.காலம்",    en: "Rahu Kalam" },
-  label_yamagandam: { ta: "யேமகண்டம்",   en: "Yamagandam" },
+  label_yamagandam: { ta: "எமகண்டம்",     en: "Yamagandam" },
   label_kuligai:    { ta: "குளிகை",       en: "Kuligai" },
   label_mandhi:     { ta: "மாந்தி",       en: "Mandhi" },
   label_nalla_neram:      { ta: "நல்ல நேரம்",       en: "Nalla Neram" },
@@ -303,14 +303,14 @@ const STRINGS = {
   family_desc:      { ta: "குடும்ப மதிப்பெண், உறுப்பினர் ராசி கட்டங்கள், பொதுவான சிறந்த நேரங்கள்", en: "Family score, member charts, shared best windows" },
   surface_vaults:   { ta: "உங்கள் சேகரிப்புகள்",  en: "Your vaults" },
   vaults_loading:   { ta: "சேகரிப்புகள் ஏற்றுகிறது…", en: "Loading vaults…" },
-  vaults_empty:     { ta: "சேகரிப்பு இல்லை. அமைவுகள் > அமைவு-ல் உருவாக்கவும்.", en: "No vaults found. Create one in Settings > Setup." },
+  vaults_empty:     { ta: "சேகரிப்பு இல்லை. அமைப்புகள் > தொடக்கம்-ல் உருவாக்கவும்.", en: "No vaults found. Create one in Settings > Setup." },
   members_label:    { ta: "உறுப்பினர்",  en: "member" },
   members_label_pl: { ta: "உறுப்பினர்கள்", en: "members" },
   no_aggregate:     { ta: "சுருக்கம் இல்லை", en: "no aggregate yet" },
   surface_family_score: { ta: "குடும்ப மதிப்பெண்", en: "Family score" },
   family_score_label: { ta: "குடும்ப மதிப்பெண்", en: "Family score" },
   support_need:     { ta: "துணை தேவை",       en: "Support need" },
-  decision_ready:   { ta: "முடிவு தயார்நிலை", en: "Decision readiness" },
+  decision_ready:   { ta: "முடிவு எடுக்க ஏற்ற நிலை", en: "Decision readiness" },
   best_windows:     { ta: "பொதுவான சிறந்த நேரங்கள்", en: "Shared best windows" },
   no_members_yet:   { ta: "சேகரிப்பில் உறுப்பினர் இல்லை.", en: "No members in this vault yet." },
   select_vault:     { ta: "சேகரிப்பு தேர்வு செய்யவும்.",   en: "Select a vault to see members." },
@@ -370,8 +370,8 @@ const STRINGS = {
   nethiram_jeevan_hint: { ta: "இன்று முழுவதும் — முகூர்த்தத் தகுதிக் குறி, தனிநபர் கணிப்பு அல்ல", en: "Throughout today — a muhurtham-suitability marker, not a personal reading" },
 
   // ── Settings tab
-  settings_kicker:  { ta: "அமைவுகள்",   en: "Settings" },
-  settings_title:   { ta: "அமர்வு நிலை", en: "Session state" },
+  settings_kicker:  { ta: "அமைப்புகள்",   en: "Settings" },
+  settings_title:   { ta: "தற்போதைய தேர்வுகள்", en: "Session state" },
   settings_desc:    { ta: "இந்த மதிப்புகள் உரிமையாளர், தேதி மற்றும் சேகரிப்பை ஒரே நிலையில் வைக்கின்றன.", en: "These values anchor the session to one owner, one date, and one vault." },
   settings_owner:   { ta: "Owner user ID", en: "Owner user ID" },
   settings_owner_hint: { ta: "அனைத்து ஜாதகம் மற்றும் சேகரிப்பு படிவங்களிலும் பகிரப்படுகிறது.", en: "Shared across all profile and vault forms." },
@@ -462,7 +462,7 @@ const STRINGS = {
 
   // Privacy & disclaimer
   disclaimer_astro:    { ta: "இந்த பயன்பாடு ஜோதிடம் சார்ந்த வழிகாட்டுதல்களை வழங்குகிறது. இவை அறிவியல் உண்மைகள் அல்ல — நம்பிக்கை சார்ந்த பாரம்பரிய கலை. மருத்துவ, சட்டம், நிதி முடிவுகளுக்கு தகுதிவாய்ந்த நிபுணரை அணுகுங்கள்.", en: "This app provides Jothida-based guidance. Astrology is a traditional belief system, not a science. For medical, legal, or financial decisions, consult a qualified professional." },
-  disclaimer_data:     { ta: "உங்கள் தரவு இந்தச் சாதனத்திலும் சேவையகத்திலும் மட்டும் சேமிக்கப்படுகிறது. உங்கள் தரவை நீக்க அமைவுகள் பகுதிக்கு செல்லவும் அல்லது ஆதரவை தொடர்புகொள்ளவும்.", en: "Your data is stored only on this device and our server. To delete your data, visit Settings or contact support." },
+  disclaimer_data:     { ta: "உங்கள் தரவு இந்தச் சாதனத்திலும் சேவையகத்திலும் மட்டும் சேமிக்கப்படுகிறது. உங்கள் தரவை நீக்க அமைப்புகள் பகுதிக்கு செல்லவும் அல்லது ஆதரவை தொடர்புகொள்ளவும்.", en: "Your data is stored only on this device and our server. To delete your data, visit Settings or contact support." },
   disclaimer_no_doom:  { ta: "இந்தப் பயன்பாடு அச்சுறுத்தல், மோசமான சகுனம், அல்லது உறுதிப்படுத்தப்பட்ட தோல்வி பற்றி எந்த வார்த்தையும் பயன்படுத்துவதில்லை.", en: "This app never uses fear, doom language, or guaranteed negative predictions." },
   safeguard_health:    { ta: "இது கிரக காலங்களின் பாரம்பரிய வாசிப்பு — மருத்துவ மதிப்பீடு அல்ல. ஏதேனும் உடல்நலக் கவலை இருந்தால் மருத்துவரை அணுகுங்கள். ஜோதிடம் காலத்தையும் போக்கையும் சுட்டுகிறது, நோய் கண்டறிதலை அல்ல.", en: "This is a traditional reading of planetary periods, not a medical assessment. For any health concern, please see a doctor — the stars point to timing and tendency, never a diagnosis." },
   safeguard_decision:  { ta: "ஜோதிடம் ஒரு சாதகமான காலத்தை சுட்டலாம்; ஆனால் உங்கள் கட்டுப்பாட்டில் இல்லாத ஒரு முடிவை (விசா அலுவலகம், சந்தை, மற்றொருவர்) கட்டுப்படுத்த முடியாது. இதை தொழில்முறை மற்றும் நடைமுறை ஆலோசனையுடன் ஒரு உள்ளீடாக மட்டுமே கருதுங்கள் — விலையுயர்ந்த முடிவுக்கு ஒரே அடிப்படையாக அல்ல.", en: "Astrology can suggest a favourable window, but it can't control an outcome you don't (a visa office, a market, another person). Treat this as one input alongside professional and practical advice — never the only basis for a costly decision." },
@@ -471,7 +471,7 @@ const STRINGS = {
   terms_link:          { ta: "சேவை விதிமுறைகள்",   en: "Terms of service" },
 
   // Account deletion
-  danger_zone_title:        { ta: "ஆபத்து மண்டலம்",                          en: "Danger zone" },
+  danger_zone_title:        { ta: "எச்சரிக்கை பகுதி",                          en: "Danger zone" },
   delete_account_label:     { ta: "கணக்கை நிரந்தரமாக நீக்கு",                en: "Delete account permanently" },
   delete_account_warning:   { ta: "இந்தச் செயல் திரும்பப்பெற முடியாது. உங்கள் அனைத்து ஜாதகங்கள், குடும்பத் தரவு மற்றும் வரலாறு அழிக்கப்படும்.", en: "This cannot be undone. All your birth profiles, family data, and history will be permanently erased." },
   delete_account_confirm_prompt: { ta: "உறுதிப்படுத்த கீழே உள்ள பொத்தானை அழுத்தவும்:", en: "Press the button below to confirm:" },
@@ -518,14 +518,14 @@ const STRINGS = {
   whatif_remedy:       { ta: "பரிகாரம்",               en: "Remedy" },
   whatif_disclaimer:   { ta: "குறிப்பு",               en: "Note" },
   strength_strong:     { ta: "வலிமையான",               en: "Strong" },
-  strength_moderate:   { ta: "நடுநிலை",                en: "Moderate" },
+  strength_moderate:   { ta: "மிதமான",                 en: "Moderate" },
   strength_weak:       { ta: "குறைவான",                en: "Weak" },
   verdict_favourable:  { ta: "சாதகம்",                 en: "Favourable" },
   verdict_neutral:     { ta: "நடுநிலை",                en: "Neutral" },
   verdict_caution:     { ta: "கவன நிலை",              en: "Caution" },
 
   // ── Emotional weather / nakshatra / context / journal / alerts
-  emotional_weather_label:    { ta: "உணர்வு வானிலை",    en: "Emotional Weather" },
+  emotional_weather_label:    { ta: "இன்றைய மனநிலை",    en: "Emotional Weather" },
   nakshatra_lens_label:       { ta: "நட்சத்திர பார்வை",  en: "Birth Star Lens" },
   context_insight_label:      { ta: "இன்றைய சூழல்",      en: "Today's Context" },
   journal_insight_label:      { ta: "குறிப்பு வடிவம்",   en: "Journal Pattern" },
@@ -544,7 +544,7 @@ const STRINGS = {
   pred_career_title:       { ta: "தொழில் கணிப்பு",                  en: "Career Prediction" },
   pred_wealth_title:       { ta: "பண வரவு கணிப்பு",                 en: "Wealth Prediction" },
   pred_health_title:       { ta: "உடல்நலம் கணிப்பு",                en: "Health Prediction" },
-  pred_confidence:         { ta: "நம்பிக்கை நிலை",                  en: "Confidence" },
+  pred_confidence:         { ta: "நம்பகத்தன்மை நிலை",                  en: "Confidence" },
   pred_dasha_support:      { ta: "தசை ஆதரவு",                       en: "Dasa support" },
   pred_transit_support:    { ta: "கிரகநகர்வு ஆதரவு",                 en: "Transit support" },
   pred_timing_window:      { ta: "கால வரம்பு",                      en: "Timing window" },
@@ -556,9 +556,9 @@ const STRINGS = {
   pred_strong:             { ta: "வலிமையான",                        en: "Strong" },
   pred_partial:            { ta: "ஓரளவு",                           en: "Partial" },
   pred_weak:               { ta: "குறைவான",                         en: "Weak" },
-  pred_high:               { ta: "அதிக நம்பிக்கை",                  en: "High" },
-  pred_medium:             { ta: "நடுத்தர நம்பிக்கை",               en: "Medium" },
-  pred_low:                { ta: "குறைவான நம்பிக்கை",               en: "Low" },
+  pred_high:               { ta: "அதிக நம்பகத்தன்மை",                  en: "High" },
+  pred_medium:             { ta: "நடுத்தர நம்பகத்தன்மை",               en: "Medium" },
+  pred_low:                { ta: "குறைவான நம்பகத்தன்மை",               en: "Low" },
   pred_support_badge:      { ta: "ஆதரவு",                           en: "Support" },
   pred_caution_badge:      { ta: "கவனம்",                           en: "Caution" },
   pred_neutral_badge:      { ta: "நடுநிலை",                         en: "Neutral" },
@@ -634,7 +634,7 @@ const STRINGS = {
   qa_no_regressions:   { ta: "சேமிக்கப்பட்ட தோல்விகள் இல்லை.", en: "No stored failures." },
 
   // ── FEATURE-10: Nakshatra personality card
-  nakshatra_card_label:    { ta: "நட்சத்திர குணாதிசயம்", en: "Birth Star Profile" },
+  nakshatra_card_label:    { ta: "நட்சத்திர சுபாவம்", en: "Birth Star Profile" },
   nakshatra_deity:         { ta: "தேவதை",                en: "Deity" },
   nakshatra_symbol:        { ta: "சின்னம்",               en: "Symbol" },
   nakshatra_ruling_planet: { ta: "அதிபதி",        en: "Ruling Planet" },
@@ -642,7 +642,7 @@ const STRINGS = {
   nakshatra_cautions:      { ta: "கவனிக்க",              en: "Cautions" },
   rasi_trait_card_label:   { ta: "ராசி குணாதிசயம்",      en: "Rasi Profile" },
   lagna_trait_card_label:  { ta: "லக்ன குணாதிசயம்",      en: "Lagnam Profile" },
-  rasi_trait_element:      { ta: "தத்துவம்",              en: "Element" },
+  rasi_trait_element:      { ta: "பூதம்",                 en: "Element" },
   rasi_running_dasha:      { ta: "நடப்பு",                en: "Running" },
 
   // ── ARCH-02: Notification preferences
@@ -664,7 +664,7 @@ const STRINGS = {
   notif_saved:             { ta: "அறிவிப்பு அமைப்புகள் சேமிக்கப்பட்டன.", en: "Notification settings saved." },
 
   // ── FEATURE-05: Tithi special content card
-  tithi_card_label:        { ta: "இன்றைய தினம்",   en: "Today's Significance" },
+  tithi_card_label:        { ta: "இன்றைய சிறப்பு",   en: "Today's Significance" },
 
   // ── FEATURE-11: Peyarchi report
   peyarchi_outlook_label:  { ta: "பெயர்ச்சி விளைவு", en: "Peyarchi Outlook" },
@@ -691,7 +691,7 @@ const STRINGS = {
   activity_property:       { ta: "சொத்து",                     en: "Property" },
   activity_health:         { ta: "உடல்நலம்",                   en: "Health" },
   activity_travel:         { ta: "பயணம்",                      en: "Travel" },
-  activity_spiritual:      { ta: "ஆன்மிகம்",                  en: "Spiritual" },
+  activity_spiritual:      { ta: "ஆன்மீகம்",                  en: "Spiritual" },
   activity_family:         { ta: "குடும்பம்",                  en: "Family" },
   activity_money:          { ta: "பணம்",                       en: "Money" },
   activity_child:          { ta: "குழந்தை",                    en: "Child" },
@@ -735,7 +735,7 @@ const STRINGS = {
   journal_area_family:     { ta: "குடும்பம்",                        en: "Family" },
   journal_area_finance:    { ta: "பணம்",                            en: "Finance" },
   journal_area_education:  { ta: "கல்வி",                           en: "Education" },
-  journal_area_spiritual:  { ta: "ஆன்மிகம்",                       en: "Spiritual" },
+  journal_area_spiritual:  { ta: "ஆன்மீகம்",                       en: "Spiritual" },
   journal_area_general:    { ta: "பொதுவான",                         en: "General" },
   journal_anchor_dasha:    { ta: "தசை",                             en: "Dasa" },
   // ── Context events
@@ -819,7 +819,7 @@ const STRINGS = {
   decision_analyse:        { ta: "ஆய்வு செய்",                  en: "Analyse" },
   decision_analysing:      { ta: "ஆய்வு செய்கிறது…",            en: "Analysing…" },
   decision_recommended:    { ta: "பரிந்துரை",                   en: "Recommended" },
-  decision_confidence:     { ta: "நம்பிக்கை",                   en: "Confidence" },
+  decision_confidence:     { ta: "நம்பகத்தன்மை",                   en: "Confidence" },
   decision_reasoning:      { ta: "காரணம்",                      en: "Reasoning" },
   decision_caution:        { ta: "கவனிக்கவும்",                 en: "Caution" },
   decision_score:          { ta: "மதிப்பெண்",                   en: "Score" },
@@ -862,7 +862,7 @@ const STRINGS = {
   ask_placeholder:         { ta: "ஒரு கேள்வி கேளுங்கள்...",   en: "Ask a question..." },
   ask_submit:              { ta: "கேள்",                        en: "Ask" },
   ask_submitting:          { ta: "கேட்கிறது…",                 en: "Asking…" },
-  ask_low_confidence:      { ta: "பிறந்த நேரம் திட்டமற்றது — லக்கன வாசிப்புகள் மாறலாம்", en: "Birth time estimated — Lagna readings may vary" },
+  ask_low_confidence:      { ta: "பிறந்த நேரம் திட்டமற்றது — லக்ன வாசிப்புகள் மாறலாம்", en: "Birth time estimated — Lagna readings may vary" },
   ask_quota:               { ta: "இன்று %d / 10 கேள்விகள்",   en: "%d of 10 questions today" },
   ask_panel_title:         { ta: "விநாடி கேளு",                en: "Ask Vinaadi" },
   ask_panel_desc:          { ta: "உங்கள் ஜாதகம் அடிப்படையில் கேள்விகளுக்கு பதில் கிடைக்கும்.", en: "Get personalised answers based on your chart." },
@@ -906,7 +906,7 @@ const STRINGS = {
   share_dasha_era:         { ta: "என் தசை காலம்",              en: "My dasa era" },
 
   // ── P2-C: Annual wrapped
-  wrapped_title:           { ta: "என் வருட விமர்சனம்",         en: "My Year Wrapped" },
+  wrapped_title:           { ta: "என் வருடாந்திர சுருக்கம்",         en: "My Year Wrapped" },
   wrapped_generate:        { ta: "உருவாக்கு",                  en: "Generate" },
   wrapped_year_theme:      { ta: "வருட தீம்",                  en: "Year theme" },
   wrapped_next_preview:    { ta: "வரும் ஆண்டு",               en: "Next year preview" },
@@ -916,7 +916,7 @@ const STRINGS = {
   rectify_start:           { ta: "நேரம் கண்டுபிடி",            en: "Find your birth time" },
   rectify_estimated:       { ta: "மதிப்பீட்டு நேரம்",          en: "Estimated time" },
   rectify_disclaimer:      { ta: "இது தோராயமான மதிப்பீடு — பாரம்பரிய ஜாதக திருத்தம் அல்ல.", en: "Approximate — heuristic estimate, not classical rectification." },
-  rectify_banner:          { ta: "பிறந்த நேரம் மதிப்பீடு — லக்கன சார் வாசிப்புகள் மாறலாம்", en: "Birth time estimated — Lagna-dependent readings may vary" },
+  rectify_banner:          { ta: "பிறந்த நேரம் மதிப்பீடு — லக்ன சார் வாசிப்புகள் மாறலாம்", en: "Birth time estimated — Lagna-dependent readings may vary" },
 
   // ── P2-E: Compatibility context
   compat_friendship:       { ta: "நட்பு இணக்கம்",              en: "Friendship" },
@@ -938,7 +938,7 @@ const STRINGS = {
   shadow_prompts_empty:    { ta: "தற்போது தூண்டல்கள் கிடைக்கவில்லை.", en: "No prompts available at the moment." },
 
   // ── Vargas (Divisional Charts)
-  vargas_title:            { ta: "வர்க கட்டங்கள்",              en: "Divisional Charts" },
+  vargas_title:            { ta: "வர்க்க கட்டங்கள்",              en: "Divisional Charts" },
   vargas_d1_label:         { ta: "D1 ராசி",                     en: "D1 Rasi" },
   vargas_confirmed:        { ta: "உறுதி",                       en: "Confirmed" },
   vargas_differs:          { ta: "வேறுபாடு",                    en: "Differs" },
@@ -1074,7 +1074,7 @@ const STRINGS = {
   onboarding_title:        { ta: "தொடங்க சில படிகள் மீதம்",                         en: "A few steps to get started" },
   onboarding_step1:        { ta: "உங்கள் ஜாதக விவரங்களை சேர்க்கவும்",              en: "Add your birth profile" },
   onboarding_step2:        { ta: "ஒப்பிட ஒரு குடும்ப உறுப்பினரைச் சேர்க்கவும்", en: "Add a family member to compare charts" },
-  onboarding_go_setup:     { ta: "அமைவுக்கு செல்",                                   en: "Go to Setup" },
+  onboarding_go_setup:     { ta: "தொடக்கத்திற்கு செல்",                                   en: "Go to Setup" },
 
   // ── Notification inbox popover
   notif_sent:              { ta: "அனுப்பிய அறிவிப்புகள்",             en: "Sent notifications" },
