@@ -93,6 +93,47 @@ def _house_rasi(lagna_rasi: int, house: int) -> int:
     return ((lagna_rasi + house - 2) % 12) + 1
 
 
+def house_rasi(lagna_rasi: int, house: int) -> int:
+    """Which rasi falls in `house` for this lagna. Public form of ``_house_rasi``.
+
+    Exposed for callers that need one house rather than the 12-row report —
+    the five-minute reading resolves a single topic house and its adhipathi,
+    and building all twelve to read one of them would compute eleven
+    functional-nature lookups it discards.
+    """
+    return _house_rasi(lagna_rasi, house)
+
+
+def house_significations(house: int) -> tuple[str, str]:
+    """(ta, en) classical significations of a house.
+
+    Same strings ``compute_house_lord_report`` renders into its own reading
+    line. Exposed so a narration layer can compose its own sentence around
+    them without either copying the twelve pairs or reaching into
+    ``_HOUSE_META`` — a second copy of this table is how the two surfaces
+    would eventually disagree about what the 8th house means.
+    """
+    meta = _HOUSE_META[house]
+    return meta.significations_ta, meta.significations_en
+
+
+def house_lord_title(house: int) -> tuple[str, str]:
+    """(ta, en) name of a house's adhipathi — "பாக்கியாதிபதி" / "Bhagya lord (9th)"."""
+    meta = _HOUSE_META[house]
+    return meta.adhipathi_ta, meta.adhipathi_en
+
+
+def strength_band(score: int) -> str:
+    """STRONG / MODERATE / WEAK for a composite ``strength_score``.
+
+    Public form of ``_band``. Exposed so a narration layer keying copy on the
+    band uses THESE thresholds rather than restating 60 and 40 — a second copy
+    of the cut-offs is how a reading would eventually call a planet strong
+    that this report calls moderate, in the same sitting.
+    """
+    return _band(score)
+
+
 def _band(score: int) -> str:
     if score >= STRONG_THRESHOLD:
         return "STRONG"

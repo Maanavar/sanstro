@@ -13,8 +13,13 @@ from app.calculations.astro import (
     degree_in_rasi,
     house_from_reference,
     normalize_longitude,
+    rasi_from_degree,
 )
-from app.calculations.ephemeris import EphemerisSnapshot, calculate_sidereal_planets
+from app.calculations.ephemeris import (
+    EphemerisSnapshot,
+    calculate_sidereal_planets,
+    saturn_longitude_at_jd,
+)
 
 # Transit-facing labels remain uppercase for backward compatibility in stored/output payloads.
 RASI_NAMES = {number: name.upper() for number, name in CANONICAL_RASI_NAMES.items()}
@@ -284,6 +289,57 @@ def find_saturn_ingress_jd(current_rasi: int, before_jd: float) -> float:
             hi = mid
         else:
             lo = mid
+    return hi
+
+
+# One day, in JD. The egress search below bisects down to this and stops:
+# the only consumer renders the result as a month and year, so grinding the
+# bracket to seconds would buy precision nothing prints and would cost ~45
+# further ephemeris probes on a request the reader is waiting on.
+_SATURN_EGRESS_PRECISION_DAYS = 1.0
+# Saturn spends ~2.5 years (~913 days) per rasi, so 31 thirty-day steps clears
+# a full sign from its own ingress. 40 matches the walk-BACK cap above and
+# leaves the same margin for the slow patches around a station.
+_SATURN_EGRESS_MAX_STEPS = 40
+
+
+@lru_cache(maxsize=64)
+def find_saturn_egress_jd(current_rasi: int, after_jd: float) -> float:
+    """Find the JD when Saturn LEAVES `current_rasi`, searching forward.
+
+    The mirror of ``find_saturn_ingress_jd``: same 30-day walk, same
+    bisection, opposite direction. `after_jd` must fall within `current_rasi`
+    (Saturn is already in that rasi at that instant).
+
+    Reads ``saturn_longitude_at_jd`` rather than ``calculate_sidereal_planets``
+    — one Swiss Ephemeris call per probe instead of ten. The backward finder
+    predates that helper and still takes full snapshots; it is left alone here
+    because its caller is a cycle report that tolerates the cost and its
+    results are already cached, and changing it is not this change's job.
+
+    Same known simplification as the backward finder, and it matters slightly
+    more in this direction: a retrograde loop that carries Saturn back across
+    the boundary it just crossed is not special-cased, so near a station the
+    returned instant is the FIRST crossing rather than the last. The one
+    consumer renders this to a month, states it as when the transit "moves
+    on", and does not build a claim on the exact day.
+    """
+    lo = after_jd
+    hi = after_jd + _SATURN_INGRESS_STEP_DAYS
+    steps = 0
+    while rasi_from_degree(saturn_longitude_at_jd(hi)) == current_rasi:
+        lo = hi
+        hi += _SATURN_INGRESS_STEP_DAYS
+        steps += 1
+        if steps > _SATURN_EGRESS_MAX_STEPS:
+            raise ValueError("saturn egress search exceeded maximum walk-forward window")
+
+    while hi - lo > _SATURN_EGRESS_PRECISION_DAYS:
+        mid = (lo + hi) / 2
+        if rasi_from_degree(saturn_longitude_at_jd(mid)) == current_rasi:
+            lo = mid
+        else:
+            hi = mid
     return hi
 
 

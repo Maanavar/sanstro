@@ -374,3 +374,30 @@ def sun_longitude_at_jd(jd: float) -> float:
     from app.calculations.astro import normalize_longitude
     snap = calculate_sidereal_planets(jd)
     return normalize_longitude(snap.bodies["SUN"].absolute_longitude)
+
+
+@lru_cache(maxsize=256)
+def saturn_longitude_at_jd(jd: float) -> float:
+    """Return the sidereal (Lahiri) longitude of Saturn at the given Julian Day.
+
+    ONE ``_calc_ut``, not ten, and that is the whole reason this exists next to
+    ``sun_longitude_at_jd`` rather than reusing it in Saturn's shape.
+    ``find_saturn_ingress_jd`` in transits.py calls
+    ``calculate_sidereal_planets`` inside both its walk-back loop and its
+    64-step bisection — up to ~104 full snapshots, each computing eight bodies
+    and the ayanamsa to read one of them. That cost is tolerable there because
+    the result is ``lru_cache``d per (rasi, jd) and the caller is a background
+    cycle report; it is not tolerable on a reading endpoint, where the
+    five-minute module bisects for the date Saturn LEAVES its current rasi
+    while the reader waits.
+
+    Same narrowing argument as ``calculate_sun_moon_longitudes`` above, and the
+    same guarantee: identical ``_calc_ut``, identical flags, ayanamsa mode set
+    first, so the value equals the corresponding entry of a full snapshot by
+    construction. Strictly a narrower query, never a different one.
+    """
+    from app.calculations.astro import normalize_longitude
+    with _SWISS_LOCK:  # RLock — set_lahiri_ayanamsa reacquires, as _calc_ut does
+        set_lahiri_ayanamsa()
+        longitude, _speed, _warning = _calc_ut(jd, PLANET_IDS["SATURN"])
+    return normalize_longitude(longitude)
