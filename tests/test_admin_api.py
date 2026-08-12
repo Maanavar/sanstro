@@ -379,6 +379,14 @@ def test_feature_flags_round_trip(raw_client):
         # Baby naming (NUM-50/51/52, Phase 5's other half). Independent of
         # `numerology_engine` — see app/services/feature_flags.py for why.
         "numerology_baby_naming",
+        # The reading-length modules, and the THIRD time this exact-set
+        # assertion has gone red for the reason the two comments above already
+        # describe: `one_minute_reading` shipped ON in 930689c and
+        # `five_minute_reading` in 926b030, neither was added here, and the
+        # test stayed red across both rollouts. Registering a flag and listing
+        # it here is one change, not two.
+        "one_minute_reading",
+        "five_minute_reading",
     } == names
 
     set_response = raw_client.patch(
