@@ -629,7 +629,7 @@ one tie-break convention instead of two. See
 `test_strongest_and_weakest_ties_break_by_classical_dignity_not_alphabet`
 in `tests/test_one_minute_reading.py`.
 
-### 7.4 Astrologer content-QA on the action table — in progress
+### 7.4 Astrologer content-QA on the action table — kārakattvam closed 2026-08-13
 
 Not a code decision — the mechanism that keys each graha's `action`
 takeaway is structurally sound (it cannot drift to the wrong lord's
@@ -665,6 +665,53 @@ has nor cites. Two Tamil strings were also replaced as unnatural
 (`MERCURY`, `SATURN`); the remaining Tamil pass over all eighteen is
 tracked separately from the kārakattvam question, because a string can be
 doctrinally right and still read as translated.
+
+**Kārakattvam pass, 2026-08-13 — seventeen held, one did not.**
+`_CHILD_VOICE["MARS"]` read *"give the energy somewhere to go every day —
+a sport, not a screen"*. The sport half is sound: physical exertion is
+Kuja's own kārakattvam, and the `note` above it has already named the
+energy needing somewhere to go. The screen half is derived from nothing.
+No graha in this reading's frame owns the screen; insofar as any does it
+is Budha's or Rahu's, so the clause reached outside its own key to forbid
+something. That makes it worse than the three claims cut the day before —
+those were merely unearned, whereas this is a rule about how a household
+runs, handed to a parent with the chart's authority behind it. A parent
+whose child games after homework is told, in a jothidam reading, that
+they have it wrong. Replaced with what Kuja does license: *"give the
+energy a physical outlet every day — the daily part matters more than
+which one"*, which additionally hands the activity choice back to the
+parent, where it belonged.
+
+**The test that caught it, stated so it survives this session.** Six of
+the eighteen actions are built as *"do X, not Y"*, and the shape hides
+the defect, because the prescribed half is always checked and the
+rejected half rarely is. **A contrast is earned only when the graha's own
+kārakattvam covers both sides and picks between them.** Budha owns speech
+and reading alike and prefers the mouth, so `_CHILD_VOICE["MERCURY"]`'s
+"out loud rather than re-reading" is a choice made inside his own domain
+and holds. Kuja owns the sport and owns nothing at all about the screen.
+A prohibition whose object the chart never names is a household rule
+wearing the reading's authority — check the rejected half, not just the
+prescribed one. Recorded in `_TABLE_PROVENANCE`'s `action` comment beside
+the claim-strength rule, since that is where the next contributor looks.
+
+**Considered and deliberately kept:** `_VOICE["MARS"]`'s "stop pushing
+the other three". It is a count, which is the shape §7.4 cut twice, but
+it is a figure of speech for *the rest* rather than a doctrinal quantity
+or a schedule, and it asserts nothing datable. Sanding it to "the rest"
+would trade the register's bite (§7.2: direct, declarative) for
+protection against a misreading no reader actually makes. The
+claim-strength rule bites on durations, weekdays and repetition counts —
+prescriptions — not on rhetorical number.
+
+**Still open on this table:** the native-Tamil axis. All eighteen strings
+live in `one_minute_reading_service.py`, under that module's still-open
+module-level marker covering all 78 of its strings (less the five
+`_AREA_NOUN` exemptions). The Tamil written for the MARS replacement
+therefore ships in exactly the same unreviewed state as its 77 siblings —
+no new debt, and no marker may be dated from this pass. Closing
+kārakattvam does not close §7.4; it closes one of its two axes, which is
+the §8.8 lesson applied one section over.
 
 ---
 

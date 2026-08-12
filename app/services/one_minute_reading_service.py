@@ -589,6 +589,19 @@ class _Voice:
         # string: a duration, a weekday or a repetition count is a CLAIM, and
         # this table may only make claims the reading has already earned —
         # `activity_timing_rules` owns vara, and nothing here owns a calendar.
+        #
+        # The kārakattvam pass closed 2026-08-13 over all eighteen: seventeen
+        # held, `_CHILD_VOICE["MARS"]` did not. The test that caught it is worth
+        # keeping, because six of the eighteen are built as "do X, not Y" and
+        # the shape hides the defect. **A contrast is earned only when the
+        # graha's own kārakattvam covers BOTH sides and picks between them.**
+        # Budha owns speech and reading alike and prefers the mouth, so
+        # `_CHILD_VOICE["MERCURY"]`'s "out loud rather than re-reading" is a
+        # choice inside his own domain. Kuja owns the sport and owns nothing
+        # whatever about the screen, so "a sport, not a screen" reached outside
+        # the key to forbid something — and a prohibition whose object the chart
+        # never names is a household rule wearing the reading's authority.
+        # Check the rejected half, not just the prescribed one.
         "action": (Provenance.RULE, BaseRate.KEYED),
         # docs/FIVE_MINUTE_READING_SPEC_2026-08-11.md §2.1. The hinge clause
         # between gift and shadow — same disposition, present tense, no
@@ -1859,9 +1872,22 @@ _CHILD_VOICE: dict[str, _ChildVoice] = {
             "{name} moves first and asks later, which is energy worth steering rather than damping — "
             "the patience to wait for an instruction is what will need practice.",
         ),
+        # Reworded 2026-08-13 (owner review, spec §7.4): dropped "not a screen".
+        # The sport half is Kuja's own — physical exertion is his kārakattvam,
+        # and the note above has already named the energy that needs somewhere
+        # to go. The screen belongs to no graha in this reading's frame; if it
+        # belongs to any it is Budha's or Rahu's, so the clause was rejecting
+        # one graha's object under another's key. That makes it worse than the
+        # three claims already cut here: those were merely unearned, while this
+        # one is a rule about how a household runs, handed to a parent with the
+        # chart's authority behind it. The replacement says what Kuja does
+        # license — the discharge has to be daily. Which activity it is, the
+        # chart does not know, and this table will not pretend to.
         action=(
-            "அந்தச் சக்திக்குத் தினமும் ஒரு வழி கொடுங்கள் — திரையல்ல, விளையாட்டு",
-            "give the energy somewhere to go every day — a sport, not a screen",
+            "அந்தச் சக்திக்குத் தினமும் உடல் உழைப்பில் ஒரு வடிகால் கொடுங்கள் — "
+            "எது என்பதை விட தினமும் என்பதே முக்கியம்",
+            "give the energy a physical outlet every day — the daily part matters "
+            "more than which one",
         ),
     ),
     "MERCURY": _ChildVoice(

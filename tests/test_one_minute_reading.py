@@ -583,8 +583,8 @@ def test_a_teenager_reading_their_own_chart_is_addressed_directly(client, age):
     """§4.2 item 2. The whole 13-17 band used to get copy written for somebody else.
 
     A 17-year-old received a reading addressed to their parent, in the third
-    person, out of a vocabulary written for an eight-year-old — "give the energy
-    somewhere to go every day, a sport not a screen". The source document's
+    person, out of a vocabulary written for an eight-year-old — "One thing
+    parents can do: give the energy a physical outlet every day". The source document's
     13-21 gate says the client is addressed directly with the guardian present,
     and that is the one thing this band was not getting.
     """
