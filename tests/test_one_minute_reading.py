@@ -1384,19 +1384,31 @@ def test_the_dated_past_hands_the_reader_the_judgement_on_it(client, age, marita
     """v2's E->R conversion operator, second half — see ``_PAST_INVITATION``.
 
     We shipped the rule ("that stretch asked for endurance") without the
-    invitation ("whether it took that form for you, you will know") from launch
-    until 2026-08-07. The rule alone is a statement the reader has to decide
-    what to do with; the invitation tells them to check it against a decade they
-    lived, which is this beat's entire reason to exist.
+    invitation from launch until 2026-08-07. The rule alone is a statement the
+    reader has to decide what to do with; the invitation tells them to check it
+    against a decade they lived, which is this beat's entire reason to exist.
+
+    THE INVITATION BECAME A QUESTION ON 2026-08-11. It read "Whether it took
+    that form for you, only you can say" — which is a pre-concession, not an
+    invitation, attached to the one beat whose entire job is to be checkable
+    against a life the reader has already lived. An astrologer review named it
+    as the reading's second epistemic retreat (after `_FALSIFIABILITY` in beat
+    2, which is the load-bearing one) and made the point that two of them read
+    as insecurity rather than care.
+
+    What the test still enforces is the property that mattered: it must INVITE
+    and must never ASSERT. A question form carries that at least as strongly as
+    "whether" did — a question cannot be false — while putting the reader to
+    work on the answer instead of releasing them from it.
     """
     data = _read(client, age=age, marital_status=marital_status)
     past = next(b for b in data["beats"] if b["id"] == "last_ten_years")
 
-    assert "only you can say" in past["text"]["en"], past["text"]["en"]
-    assert "நீங்கள்தான் சொல்ல முடியும்" in past["text"]["ta"], past["text"]["ta"]
-    # It invites; it must never assert. The operator exists precisely so that a
-    # miss says nothing false, and "whether" is what carries that.
-    assert "Whether it took that form" in past["text"]["en"]
+    assert "Where did that show up for you?" in past["text"]["en"], past["text"]["en"]
+    assert "எங்கே, எப்படித் தெரிந்தது?" in past["text"]["ta"], past["text"]["ta"]
+    # Invites, never asserts — and the old hedge is gone rather than moved.
+    assert past["text"]["en"].rstrip().endswith("?") or "?" in past["text"]["en"]
+    assert "only you can say" not in past["text"]["en"]
     # It also may not reach for the future to do it. The first draft read "you
     # will know" and _EVENT_CLAIM_PATTERNS rejected it, correctly — that is the
     # construction one edit away from "you will marry".

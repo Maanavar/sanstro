@@ -631,9 +631,17 @@ _VOICE: dict[str, _Voice] = {
             "தவறு என்று வெளிப்பட நேரும் தருணம் — நீங்கள் நம்பாத நிலைப்பாட்டையும் தொடர்ந்து காப்பாற்றுகிறீர்கள்",
             "being seen to be wrong; you defend a position past the point you believe it",
         ),
+        # REWRITTEN 2026-08-11 with the beat-3 ordering fix. The previous
+        # string — "because people read your certainty as competence before
+        # they've tested it" — explained why the AUTHORITY is handed over,
+        # which is the gift, and the gift needs no explaining. This facet's
+        # job is the bridge: it has to start from the gift's own noun and
+        # land on the shadow. See _beat_core_nature_extended's docstring.
         mechanism=(
-            "ஏனெனில் உங்கள் உறுதியை மற்றவர்கள் அதைச் சோதிப்பதற்கு முன்பே திறமையாகப் படித்துவிடுகிறார்கள்",
-            "because people read your certainty as competence before they've tested it",
+            "ஏனெனில் அந்தப் பொறுப்பு உங்கள் உறுதியின் மீதுதான் வந்தது; அதனால் நீங்கள் காட்டும் "
+            "எந்தச் சந்தேகமும் அந்தப் பொறுப்பு நழுவுவது போலப் படுகிறது",
+            "because that authority arrived on the strength of your certainty, so any doubt you show "
+            "feels like the authority itself slipping",
         ),
         # §2.2. Both entries are `shadow` ("being seen to be wrong; you defend a
         # position past the point you believe it") relocated, not new facts:
@@ -721,9 +729,17 @@ _VOICE: dict[str, _Voice] = {
             "இந்தக் காலம் மனிதர்கள் மற்றும் மனநிலையின் மீது நடக்கிறது; உங்கள் சொந்த தாளத்தைக் காத்தால் நன்றாக நடக்கும்",
             "this stretch runs on people and mood; keep your own rhythm and it goes well",
         ),
+        # "hydration" was cut 2026-08-11. Sleep is Chandra's own significator —
+        # nidra sits under the Moon in every classical list, and the reader can
+        # see why it was chosen the moment it is named. Hydration is generic
+        # wellness advice with no graha behind it, and standing beside a
+        # remedy that IS derived it read as arbitrary, which is worse than
+        # merely being unhelpful: it invites the reader to reclassify the
+        # sentence next to it as arbitrary too. Replaced with the daily rhythm,
+        # which is the same karakatva as sleep one step out.
         action=(
-            "உங்கள் தூக்கத்தையும் நீர் பழக்கத்தையும் காத்துக்கொள்ளுங்கள் — இந்தக் காலம் உங்கள் நிலைத்தன்மையின் மீது நடக்கிறது",
-            "protect your sleep and your hydration; this period runs on your steadiness",
+            "உங்கள் தூக்கத்தையும் தினசரி தாளத்தையும் காத்துக்கொள்ளுங்கள் — இந்தக் காலம் உங்கள் நிலைத்தன்மையின் மீது நடக்கிறது",
+            "protect your sleep and the rhythm of your days; this period runs on your steadiness",
         ),
         # Reworded 2026-08-11: the first draft ("a rhythm of your own, kept
         # apart from the mood around you") paraphrased `now_texture` so
@@ -874,9 +890,18 @@ _VOICE: dict[str, _Voice] = {
             "மறுத்துச் சொல்வது — அதனால் உங்கள் சம்மதம் பல இடங்களில் மெலிந்துவிடுகிறது",
             "saying no, so your yes gets spread thin",
         ),
+        # REWRITTEN 2026-08-11 with the beat-3 ordering fix, and this was the
+        # entry that exposed the ordering bug. "the same generosity that earns
+        # people's trust" names a noun — generosity — that appears in neither
+        # `gift` nor `shadow`, so the clause introduced a third trait and then
+        # explained the STRENGTH by it. Rewritten to start from `gift`'s own
+        # noun (the judgment people come for) and land on `shadow` (the yes
+        # that will not close). See _beat_core_nature_extended's docstring.
         mechanism=(
-            "ஏனெனில் மற்றவர்களின் நம்பிக்கையை ஈட்டித்தரும் அதே தாராள மனம்தான், அதில் எதையும் தடுத்து நிறுத்த முடியாமல் செய்கிறது",
-            "because the same generosity that earns people's trust does not know how to stop, even when it should",
+            "ஏனெனில் மற்றவர்கள் தேடி வரும் அதே தீர்ப்புதான், ஒவ்வொரு முறையும் பதில் சம்மதமாக "
+            "இருக்க வேண்டிய ஒரு காரணத்தையும் கண்டுபிடித்துவிடுகிறது",
+            "because the judgment people come to you for is the same judgment that keeps finding a "
+            "reason the answer should be yes",
         ),
         # §2.2. Both entries are `shadow` ("saying no, so your yes gets spread
         # thin") relocated: over-committing because refusal does not come
@@ -1548,9 +1573,27 @@ _LAGNA_STRENGTH_CAVEAT: tuple[str, str] = (
 # is to change the string: an exception carved for one entry is an exception
 # available to the next one. "Only you can say" carries the same meaning in the
 # present, and is closer to how the handing-back is actually spoken.
+# AN INVITATION, NOT A PRE-CONCESSION, and it was the second of two until
+# 2026-08-11. The old string — "Whether it took that form for you, only you can
+# say" — hedged the retrodiction beat, which is the one beat in the feature
+# whose entire job is to be checkable against a life the reader has already
+# lived. Conceding it might not fit, in the same breath as offering it, spends
+# the strongest trust moment the reading has.
+#
+# The reading already carries one epistemic retreat, and it is the right one:
+# `_FALSIFIABILITY` (beat 2), which offers the whole reading back if the opening
+# does not fit, and which is load-bearing because it arrives before anything has
+# been asked of the reader's trust. Two retreats inside one reading stop reading
+# as care and start reading as insecurity — an audience that comes to a jodhidar
+# expects someone who commits.
+#
+# So the hedge becomes a question. It asks for the same thing the old string
+# conceded — that only the reader knows how the stretch actually landed — while
+# putting the reader to work on it rather than releasing them from it. The
+# claim's strength is unchanged; what changes is who is holding it afterwards.
 _PAST_INVITATION: tuple[str, str] = (
-    "அது உங்களுக்கு எந்த வடிவத்தில் வந்தது என்பதை நீங்கள்தான் சொல்ல முடியும்.",
-    "Whether it took that form for you, only you can say.",
+    "அது உங்களுக்கு எங்கே, எப்படித் தெரிந்தது?",
+    "Where did that show up for you?",
 )
 
 # ── Minor forms: an adult life surface named to somebody who has no such life ─
@@ -1658,6 +1701,13 @@ _TABLE_PROVENANCE: dict[str, tuple[Provenance, BaseRate]] = {
     "_GRIEVANCE": (Provenance.TENDENCY, BaseRate.COMMON),
     # Claims nothing. Responds to the sentence before it.
     "_VALIDATION": (Provenance.FRAME, BaseRate.KEYED),
+    # Five domain nouns, added 2026-08-11 so the outlook clause and the
+    # five-minute reading's guidance clause each name their own subject
+    # instead of opening on a "that" whose antecedent moved when the clause
+    # was reused in a second position. FRAME: naming which area a sentence is
+    # about asserts nothing about the reader — the dasha/area affinity in
+    # `_outlook` is what carries the claim, and it is classified there.
+    "_AREA_NOUN": (Provenance.FRAME, BaseRate.KEYED),
     # The three transitions. F, and unusually purely so — a connective is the
     # one kind of string whose entire content is the relation between two OTHER
     # strings. It makes no claim about the reader at all, which is exactly why
@@ -2000,17 +2050,45 @@ _LONGEVITY_REFUSAL: tuple[str, str] = (
 # surface that the English was the copy at risk while the Tamil was correct
 # (the other was KETU's soft_spot), against the usual assumption that the
 # translated language is the fragile one.
+# THE OUTLOOK CLAUSE NAMES ITS OWN SUBJECT, and until 2026-08-11 it did not.
+#
+# "The period running now supports that." was written as a TRAILING clause on
+# `_beat_age_question`, where "that" picked up the topic sentence immediately
+# before it and the reference was clear. The five-minute reading then promoted
+# the identical string to a standalone sentence inside `_beat_topic_in_full`,
+# where the nearest antecedent is a friction clause three sentences back — so a
+# reader got "Where it runs into friction: not knowing how to say no. The period
+# running now supports that.", which reads as the chart endorsing the reader's
+# worst habit. An astrologer review caught it; no test could, because each
+# string is correct and only their adjacency is not.
+#
+# Fixed by giving the clause a subject of its own rather than by giving the
+# five-minute module a second copy of it: a pronoun that resolves differently in
+# two call sites is a defect in the string, and duplicating it would have left
+# the 2-minute one still relying on adjacency.
+_AREA_NOUN: dict[str, tuple[str, str]] = {
+    "EDUCATION": ("கற்றல்", "learning"),
+    "RELATIONSHIPS": ("உறவுகள்", "relationships"),
+    "FAMILY_HARMONY": ("வீடும் குடும்பமும்", "home and family"),
+    "CAREER": ("வேலை", "work"),
+    "HEALTH": ("உடல்நலம்", "health"),
+}
+# The Tamil puts `{area}` in bare TOPIC position and carries the case on a
+# pronoun after the dash (`இதற்கு`, "to this") rather than inflecting the noun
+# itself. That is the same discipline `_BHUKTI_FLAVOR` states for its own
+# entries: the caller concatenates whole words and never splices a case ending
+# onto a bare noun, so one table of nouns can serve every frame that needs them.
 _OUTLOOK_SUPPORTIVE = (
-    "நடப்புக் காலம் இதற்கு ஆதரவாக இருக்கிறது.",
-    "The period running now supports that.",
+    "{area} — நடப்பு {planet} காலம் இதற்கு ஆதரவாக இருக்கிறது.",
+    "On {area}, the {planet} period running now is supportive.",
 )
 # The neutral case says nothing, and it was appearing in most readings — a
 # sentence that costs thirteen words to report an absence of signal. Silence is
 # the honest rendering of "no signal", and the words buy the grievance instead.
 _OUTLOOK_MIXED = ("", "")
 _OUTLOOK_SLOW = (
-    "நடப்புக் காலம் இங்கே பொறுமையைக் கேட்கிறது; {date} க்குப் பிறகு நிலை தளர்கிறது.",
-    "The current period asks for patience here; conditions ease after {date}.",
+    "{area} — நடப்புக் காலம் இங்கே பொறுமையைக் கேட்கிறது; {date} க்குப் பிறகு நிலை தளர்கிறது.",
+    "On {area}, the current period asks for patience; conditions ease after {date}.",
 )
 
 
@@ -2249,6 +2327,30 @@ def _beat_who_you_are(
             en = f"{placement_en} {voice.nature.en}"
         else:
             opening = _SIGNATURE_OPENING[signature_lord]
+            # THE KEYED LINE LEADS AND THE FORCED CHOICE FOLLOWS IT, and the
+            # order was the other way round until 2026-08-11.
+            #
+            # `_SIGNATURE_OPENING` is a two-option forced choice — "Some people
+            # X. Others Y. You are the second kind." — and an astrologer review
+            # named it for what it is: a flattering binary almost every reader
+            # accepts about themselves, in the one position where the reading
+            # has not yet earned anything. `nature` is the sentence with an
+            # edge and a cost in it ("though you take disagreement more
+            # personally than you let on"), it is keyed on the janma
+            # nakshatra's lord, and it is the harder of the two to accept —
+            # which is exactly why it is the one that proves a chart was read.
+            # Leading with the binary spent the opening position on the most
+            # Forer-shaped sentence in the feature and buried the evidence
+            # behind it.
+            #
+            # The signature opening is NOT cut, and that is deliberate: read
+            # third, after a keyed claim and the star it came from, the same
+            # binary stops being a hook and becomes a summary of a reading
+            # already made. Its own comment trail (the Orientation work below)
+            # is about which connective joins it to `nature`, and that is
+            # unaffected — `_transition` is symmetric in its two arguments, so
+            # reversing the pair cannot change which connective is chosen.
+            #
             # THE CONNECTIVE COMES FROM THE MEANING, NOT FROM THE GRAHAS. It
             # used to be `signature_lord != nakshatra_lord`, which is
             # "different graha" and not "opposing content" — with nine grahas
@@ -2259,20 +2361,18 @@ def _beat_who_you_are(
             # two sentences that plainly agree, and a reader who looks for the
             # contradiction and finds none concludes the app is generating
             # rather than reading. See ``Orientation`` and ``_transition``.
-            hinge = _transition(opening, voice.nature)
+            hinge = _transition(voice.nature, opening)
             hinge_ta = f"{hinge[0]} " if hinge[0] else ""
             hinge_en = f"{hinge[1]} " if hinge[1] else ""
             # Lower-cased only when a connective precedes it, because then the
             # facet is continuing a sentence rather than opening one. Tamil has
-            # no case, so there is nothing to lower on that side.
-            nature_ta = voice.nature.ta
-            nature_en = (
-                voice.nature.en
-                if not hinge_en
-                else voice.nature.en[:1].lower() + voice.nature.en[1:]
-            )
-            ta = f"{opening.ta} {placement_ta} {hinge_ta}{nature_ta}"
-            en = f"{opening.en} {placement_en} {hinge_en}{nature_en}"
+            # no case, so there is nothing to lower on that side. This now
+            # applies to the OPENING rather than to `nature`, following the
+            # reorder — `nature` leads and so keeps its capital.
+            opening_ta = opening.ta
+            opening_en = opening.en if not hinge_en else opening.en[:1].lower() + opening.en[1:]
+            ta = f"{voice.nature.ta} {placement_ta} {hinge_ta}{opening_ta}"
+            en = f"{voice.nature.en} {placement_en} {hinge_en}{opening_en}"
 
     # The basis takes the same treatment as the prose. It is the "show the
     # astrology" disclosure, not a debug dump — a Tamil reader who opens it is
@@ -2517,10 +2617,46 @@ def _beat_last_ten_years(
     """
 
     def _theme_prefix(lord: str) -> tuple[str, str]:
+        """The theme word, unless `past_texture` already said it.
+
+        Saturn is the case that forced this: `_PERIOD_THEME["SATURN"]` is
+        "endurance" and its `past_texture` opens "it asked for endurance more
+        than it offered reward", so the prefixed form rendered "Endurance — it
+        asked for endurance more than it offered reward" — the same word twice
+        in eight, inside one sentence.
+
+        Dropped rather than reworded on either side, and the direction matters.
+        The theme word is a COMPRESSION of the texture (that is its whole
+        stated justification in §2.3: "the single word a person would use to
+        summarise it before saying more"), so when the texture already leads
+        on that word the compression has nothing left to add and the honest
+        thing is silence. Rewriting `past_texture` to avoid its own theme word
+        would be the tail wagging the dog — that string is the 2-minute
+        reading's, and it is correct.
+
+        Checked per language, because the two tables are translations rather
+        than transliterations and a collision in one need not be a collision
+        in the other.
+
+        Joined with a COLON and not an em dash. Six of the nine
+        ``past_texture`` strings already contain an em dash of their own, so
+        the dash form produced "Reaching — it was a stretch of unusual turns —
+        the route you took was not the one you planned": two dashes doing two
+        different jobs in one sentence, with nothing to tell them apart. The
+        colon reads as "here is the word, now here is what it means", which is
+        what this prefix actually is.
+        """
         if theme_table is None:
             return ("", "")
         theme_ta, theme_en = theme_table[lord]
-        return (f"{theme_ta} — ", f"{theme_en[0].upper()}{theme_en[1:]} — ")
+        texture_ta, texture_en = _VOICE[lord].past_texture
+        prefix_ta = "" if theme_ta in texture_ta else f"{theme_ta}: "
+        prefix_en = (
+            ""
+            if theme_en.lower() in texture_en.lower()
+            else f"{theme_en[0].upper()}{theme_en[1:]}: "
+        )
+        return (prefix_ta, prefix_en)
 
     decade_ago = date(as_of.year - 10, as_of.month, min(as_of.day, 28))
     earliest = date(birth_date.year + 15, birth_date.month, min(birth_date.day, 28))
@@ -2785,16 +2921,24 @@ def _focus_topic(
 
 
 def _outlook(topic: str, maha_lord: str, lang_date: tuple[str, str]) -> tuple[str, str]:
-    """Supportive / mixed / slow, decided by the running lord's affinity for the topic's area."""
+    """Supportive / mixed / slow, decided by the running lord's affinity for the topic's area.
+
+    Both non-empty branches name the area they are about — see ``_AREA_NOUN``
+    for why a pronoun was not good enough once a second call site existed.
+    """
     area = _TOPIC_AREA[topic]
     score = _DASHA_AREA_SCORE.get(area, {}).get(maha_lord, 55)
+    area_ta, area_en = _AREA_NOUN[area]
     if score >= 65:
-        return _OUTLOOK_SUPPORTIVE
+        return (
+            _OUTLOOK_SUPPORTIVE[0].format(area=area_ta, planet=planet_ta(maha_lord)),
+            _OUTLOOK_SUPPORTIVE[1].format(area=area_en, planet=planet_en(maha_lord)),
+        )
     if score >= 50:
         return _OUTLOOK_MIXED
     return (
-        _OUTLOOK_SLOW[0].format(date=lang_date[0]),
-        _OUTLOOK_SLOW[1].format(date=lang_date[1]),
+        _OUTLOOK_SLOW[0].format(area=area_ta, date=lang_date[0]),
+        _OUTLOOK_SLOW[1].format(area=area_en, date=lang_date[1]),
     )
 
 
@@ -2873,12 +3017,22 @@ def _beat_age_question(
         #
         # Say what the chart IS being asked, and stop. That rule was already
         # written down twelve lines below; it just had not been applied here.
+        #
+        # NAMES THE AGE, NOT THE BAND LABEL. This used to read "Married, and in
+        # the building years" — `age_band` is `get_age_phase_label`'s UI label,
+        # a chip caption written to sit under a heading, and dropping it into
+        # prose asked the reader to accept an undefined term as though it were
+        # a phrase they already knew. Nothing in the reading defines "the
+        # building years", and the reader cannot check a claim whose subject
+        # they cannot pin down. The age is the fact the band was standing in
+        # for, every other topic branch here already names it, and it costs the
+        # same number of words.
         ta = (
-            f"திருமணமானவர், {age_band['ta']} நிலையில் இருப்பவர் என்பதால், ஜாதகத்தின் கவனம் இப்போது "
+            f"திருமணமானவர், {age} வயதில் இருப்பவர் என்பதால், ஜாதகத்தின் கவனம் இப்போது "
             f"வீடு மற்றும் குடும்பத்தின் மீதே இருக்கிறது. {outlook_ta}"
         )
         en = (
-            f"Married, and in the {age_band['en'].lower()} — so the weight of the chart sits on home "
+            f"Married, and at {age} — so the weight of the chart sits on home "
             f"and family. {outlook_en}"
         )
     elif topic == TOPIC_STEADYING:
@@ -3278,6 +3432,18 @@ class ChartContext:
     profile: BirthProfile
     timeline: VimshottariTimeline
     moon: PlanetPosition
+    # Every graha's persisted natal position, in the order the chart response
+    # holds them. `moon` above stays as its own field rather than becoming a
+    # lookup into this one: it is read by every register and every module, and
+    # a `next(p for p in ...)` at each of those sites is how the two would
+    # eventually disagree about which record is the Moon.
+    #
+    # Added 2026-08-11 for the five-minute reading's house-level material.
+    # `build_chart_context` already loaded the full list to pick `moon`,
+    # `strongest` and `weakest` from it and then dropped it, so carrying it
+    # costs nothing and stops the five-minute module from re-loading the chart
+    # to read a `house_from_lagna` the two-minute path had in hand.
+    planets: tuple[PlanetPosition, ...]
     lagna: LagnaPosition
     as_of: date
     age: int
@@ -3392,6 +3558,7 @@ def build_chart_context(
         profile=profile,
         timeline=timeline,
         moon=moon,
+        planets=tuple(chart_response.data.planets),
         lagna=chart_response.data.lagna,
         as_of=today,
         age=age,

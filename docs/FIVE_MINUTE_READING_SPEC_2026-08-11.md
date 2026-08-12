@@ -638,3 +638,150 @@ kārakattvam. Tracked the same way the module's two `PENDING NATIVE-TAMIL
 REVIEW` markers already are: a content-review item that does not block
 shipping the code, and should be closed in the same review sitting as
 those two markers rather than opened as a separate pass.
+
+---
+
+## 8. The descent rebuild, 2026-08-11 — what shipped, and where it departs from §1–§2
+
+A second astrologer review, this time of **rendered output read start to
+finish** rather than of the tables, found that the module as specified in §1–§2
+had a structural problem no per-beat test could see, and that the spec itself
+had walked into it.
+
+**The finding, in one sentence:** the five-minute reading contained *less
+chart* than the two-minute reading it is sold as an upgrade from. It elaborated
+the most cold-readable material (temperament) at greater length, and silently
+dropped the most derived material (`_beat_next_ten_years`, the forward horizon,
+which §1's beat sequence never listed and so was never wired in). A reader who
+chose five minutes over two paid for the extra length with the one beat that
+named a dated event they had not reached yet.
+
+That is a defect in §1's beat sequence, not only in the implementation. §1 is
+eight beats of which five are natal temperament, and the two dated beats are
+both dasha spans measured in years. Nothing in the shipped reading was true of
+*this season* rather than *this life*, so nothing in it could be checked against
+the reader's next few months — which is what a returning reader actually
+verifies.
+
+### 8.1 The sequence that shipped
+
+```
+1.  IDENTITY              (2-min, REORDERED — see §8.3)
+2.  WHAT THIS RESTS ON    (2-min, unchanged)
+3.  CORE NATURE           (gift → shadow, mechanism hinging INTO the shadow)
+4.  REPEATING PATTERN     (unchanged)
+5.  THE TENSION           (NEW — _LAGNA_FACE vs _MOON_MIND; withheld without a lagna)
+6.  WHAT THE LAST PERIOD
+    WAS TEACHING          (as §2.3, invitation now invitational — §8.3)
+7.  RIGHT NOW             (maha + bhukti WITH ITS REAL END DATE + asks)
+8.  THE WINDOW AHEAD      (NEW — Sani gochara from the janma rasi, dated to a month)
+9.  YOUR [TOPIC] IN FULL  (REBUILT on the topic's house and its adhipathi)
+10. WHAT COMES AFTER      (the forward horizon §1 omitted, now wired in)
+11. ONE THING             (action, now naming the period it descends from)
+```
+
+Eleven beats for `self`, not eight. The three additions are all `DERIVED`/
+`RULE` material, which is the point: **length buys chart, not sentences.**
+The reading is a descent — mahadasha → bhukti → houses → transit window →
+remedy — where each level cites something the previous level did not.
+
+### 8.2 Where the implementation departs from §2, and why
+
+- **§2.5's Beat 7 is rebuilt, not tuned.** The spec composed it from the
+  strongest graha's `gift` behind a `_TOPIC_LENS` opener. That composition is
+  what produced *"In home and family, that shows up as judgment people trust
+  enough to act on"* — Beat 3's own opening clause, relabelled as the
+  home-and-family manifestation four beats later. It is not fixable by
+  rewording the lens: the defect is that the beat had no material of its own
+  and was re-serving the two-minute reading's vocabulary. It now reads the
+  topic's own house (`_TOPIC_HOUSE`), that house's adhipathi, and where the
+  adhipathi actually sits — three chart facts used nowhere else in either
+  reading. The lens survives as a bare locative phrase; its "that shows up as"
+  hand-off, which is what made the reuse grammatically possible, is gone.
+- **§2.1's mechanism clause moved to the other side of the full stop.** The
+  spec said the clause is "the hinge that makes the first two read as one
+  causal object", and the implementation printed it as `{gift} — {mechanism}.
+  {shadow}.` — attaching a *because* clause to the strength. Seven of the nine
+  strings were already written as gift→shadow bridges and were simply on the
+  wrong side; Sun's and Jupiter's were not bridges at all and were rewritten.
+- **§0.4's word budget went DOWN, 950/550 → 650/450.** Measured across 220
+  synthetic charts, the widest reading this module can produce is 522 English
+  words. A ceiling 82% above the worst real case cannot fail and therefore is
+  not a guard. See `_FIVE_MIN_WORD_BUDGET`'s own comment — including the part
+  worth a product decision: 522 words is ~2m22s at 220 wpm, against a feature
+  called "five minutes", and three beats were *added* to get there.
+- **§4's test list gains a seventh item, and it is the one that matters most.**
+  Every copy defect this module has shipped — three of them — was a beat
+  printing a content string another beat had already spent, found by a person
+  reading rendered output and by no test. `repeated_source_clauses()` now scans
+  an assembled reading by reflection over every content table in both modules;
+  `test_no_content_clause_is_printed_by_two_beats_of_one_reading` runs it
+  across five topic routes, and a positive-control test asserts the guard
+  itself fires. This is the check the two-builder architecture needed to be
+  safe — see §8.4.
+- **§4.3's vocabulary cap rises 71 → 96**, the largest raise it has taken, and
+  unpaid. The accounting is in the test's own docstring.
+
+### 8.3 Shared two-minute fixes made in the same pass
+
+These change the *two-minute* reading and were made there rather than
+overridden in this module, because in each case the string was wrong at its
+source and a second copy would have left the shorter reading broken:
+
+- **The opening no longer leads with the forced choice.** `_SIGNATURE_OPENING`
+  ("Some people X. Others Y. You are the second kind.") is a flattering binary
+  most readers accept about themselves, and it was standing in the position the
+  reading has earned the least. `nature` — keyed on the janma nakshatra's lord,
+  and the only opening sentence with a cost in it — now leads, with the binary
+  following as a summary rather than a hook.
+- **`_PAST_INVITATION` became an invitation.** "Whether it took that form for
+  you, only you can say" pre-conceded the retrodiction beat, which is the
+  reading's strongest trust device. It now asks: "Where did that show up for
+  you?" The reading keeps exactly one epistemic retreat — `_FALSIFIABILITY` in
+  Beat 2 — because two read as insecurity.
+- **The outlook clause names its own subject.** "The period running now
+  supports that" was written as a trailing clause where "that" was clear; the
+  five-minute module promoted it to a standalone sentence where the nearest
+  antecedent was a *friction* clause, producing "…not knowing how to say no.
+  The period running now supports that." Now keyed on `_AREA_NOUN`.
+- Three smaller ones: the married-life beat names the reader's age instead of
+  the undefined UI label "the building years"; Chandra's `action` drops
+  "hydration" (no graha behind it, standing beside a remedy that has one);
+  `_theme_prefix` suppresses the theme word when `past_texture` already
+  contains it ("Endurance — it asked for endurance") and joins with a colon,
+  since six of the nine textures carry an em dash of their own.
+
+### 8.4 Architecture: two builders, one repetition guard
+
+Considered and rejected: generating the five-minute reading first and deriving
+the two-minute one by extraction, which would guarantee by construction that
+the long version strictly contains more chart. Rejected because the two-minute
+module ships four registers (`self`, `client_with_guardian`, `parent`, `other`)
+and this module ships two — `parent`/`other` would need a separate path
+regardless, so the inversion buys the guarantee for only half the surface while
+putting a shipped, flag-on module with a 96 KB test suite through a rewrite.
+
+`repeated_source_clauses()` buys the same guarantee for the case that actually
+broke, at a fraction of the risk. If a third reading length is built, revisit:
+the argument above gets weaker with each module that has to stay in sync.
+
+### 8.5 Still open
+
+- **`PENDING NATIVE-TAMIL REVIEW` now covers 25 more strings** —
+  `_GOCHARA_SANI` (12), `_SANI_PHASE_NAME` (5), `_LORD_STRENGTH_NOTE` (3),
+  `_AREA_NOUN` (5). The gochara table is standard doctrine, so this is closer
+  to verification than to judgement, but it has not been done.
+- **`find_saturn_egress_jd` does not special-case a retrograde loop** across
+  the boundary it is finding, so near a station the returned instant is the
+  first crossing rather than the last. The copy says "moves on around
+  {month}" and builds nothing on the exact day. Same known simplification as
+  the existing `find_saturn_ingress_jd`, in the opposite direction.
+- **The elder path states the mahadasha's end twice** — Beat 7's no-hinge
+  branch names the end year ("runs to 2034") to bound a possibly-negative
+  texture, and Beat 10 names the same handover more precisely ("until June
+  2034"). Both are correct and neither is redundant on its own; together they
+  are noticeable. Not fixed here because the first belongs to the shared
+  `_beat_right_now` and the 2-minute reading depends on that clause.
+- **Guru's gochara is computed but not spoken** — only Sani gets a texture
+  table, deliberately (§ the `_GOCHARA_SANI` comment). If the window beat
+  earns a second graha, Guru is the one, and it is 12 more strings.

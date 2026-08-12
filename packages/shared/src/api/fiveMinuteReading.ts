@@ -10,12 +10,21 @@ import type { OneMinuteBeat, OneMinutePendingQuestion, OneMinuteText } from "./o
  * `getOneMinuteReading`. Two wrappers in this package have silently drifted
  * from their routes in the past, so the check is part of adding one.
  *
- * SCOPE, RIGHT NOW: the backend only builds this for the "self" register and
- * only renders 4 of the eventual 8 beats (ids: who_you_are, what_this_rests_on,
- * core_nature, one_thing). Every other `addressedTo` value 404s, identically
- * to the flag being off. No web/mobile UI consumes this yet — this wrapper
- * exists per CLAUDE.md's forward policy (a new backend endpoint gets a typed
- * wrapper here before anything calls it), not because a screen is shipping.
+ * SCOPE, RIGHT NOW (updated 2026-08-11): the backend builds this for the
+ * "self" register (11 beats) and "client_with_guardian" (6). `parent` and
+ * `other` 404, identically to the flag being off, and by design rather than
+ * pending work — see spec §0.2.
+ *
+ * BEAT IDS ARE DELIBERATELY NOT A UNION TYPE HERE, and that is not laziness.
+ * The set has changed three times since this wrapper was written — most
+ * recently gaining `the_tension`, `window_ahead` and `what_comes_after` in the
+ * descent rebuild (spec §8) — and each beat is a self-describing
+ * `{id, text, basis}` that a client renders generically. A union would turn
+ * every backend beat addition into a breaking change across three packages for
+ * a value no consumer switches on exhaustively. `web/components/
+ * dashboard-five-minute-reading.tsx` keys on exactly three ids (`who_you_are`,
+ * `what_this_rests_on`, `one_thing`) for chrome, and falls through for the
+ * rest — which is the pattern to follow.
  */
 
 export interface FiveMinuteReadingData {
