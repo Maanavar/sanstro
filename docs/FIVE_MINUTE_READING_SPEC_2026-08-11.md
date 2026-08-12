@@ -583,9 +583,10 @@ mirrored per-beat, not just per-module, since a module-wide average would
 let one hard-fact-heavy beat (`last_ten_years`) paper over one soft-trait
 beat (`repeating_pattern`) that is nearly all T. This target is
 **provisional and unenforced** — no test asserts it yet. Revisit and lock it
-once the 15-minute module's beat shapes exist and the two pending
-`PENDING NATIVE-TAMIL REVIEW` passes on this module close, so the number is
-set against three modules' worth of real copy instead of two.
+once the 15-minute module's beat shapes exist and the last pending
+`PENDING NATIVE-TAMIL REVIEW` pass on this module closes — `_BHUKTI_FLAVOR`
+(9 strings); the other closed 2026-08-12, §8.8 — so the number is set
+against three modules' worth of real copy instead of two.
 
 ### 7.2 Voice register — resolved: the shipped copy IS the reference
 
@@ -767,10 +768,9 @@ the argument above gets weaker with each module that has to stay in sync.
 
 ### 8.5 Still open
 
-- **`PENDING NATIVE-TAMIL REVIEW` now covers 25 more strings** —
-  `_GOCHARA_SANI` (12), `_SANI_PHASE_NAME` (5), `_LORD_STRENGTH_NOTE` (3),
-  `_AREA_NOUN` (5). The gochara table is standard doctrine, so this is closer
-  to verification than to judgement, but it has not been done.
+- ~~**`PENDING NATIVE-TAMIL REVIEW` now covers 25 more strings**~~ — **CLOSED
+  2026-08-12, see §8.8.** `_BHUKTI_FLAVOR` (9) is now the module's only open
+  Tamil pass.
 - **`find_saturn_egress_jd` does not special-case a retrograde loop** across
   the boundary it is finding, so near a station the returned instant is the
   first crossing rather than the last. The copy says "moves on around
@@ -884,3 +884,47 @@ hit a number* is the same mistake in the other direction. If the content does
 grow — §8.5's Guru gochara table is the obvious next increment of real chart
 — the name is re-derived from the formula above, not restored out of
 nostalgia for the old one.
+
+### 8.8 Native-Tamil review, 2026-08-12 — 25 of 34 strings passed
+
+Owner sign-off on the four tables §8.5 listed: `_GOCHARA_SANI` (12),
+`_SANI_PHASE_NAME` (5), `_LORD_STRENGTH_NOTE` (3), `_AREA_NOUN` (5). Each
+table's `PENDING NATIVE-TAMIL REVIEW` comment is replaced in place by a
+dated `NATIVE-TAMIL REVIEW PASSED` marker naming the entry count reviewed,
+so the marker keeps saying what was actually checked rather than degrading
+into an undated "reviewed" that nobody can scope later.
+
+**§8.5's count and §7.1's gate were never the same set, and the difference
+mattered.** §8.5 counted 25 *strings*; §7.1 gates the provenance-mix budget
+on "the two pending passes", which are the two inline markers in this
+module — `_BHUKTI_FLAVOR` (9) and `_GOCHARA_SANI` (12), 21 strings, only 12
+of them shared with §8.5's 25. A sign-off taken on §8.5's list alone closes
+one of the two markers and leaves the other untouched while reading, from
+the §8.5 bullet, as though the whole thing were done. Two adjacent sections
+counting the same backlog on different axes is the defect; the fix is that
+both now name `_BHUKTI_FLAVOR` explicitly as the single remaining pass.
+
+**Three of the four tables had no marker of their own** and shipped under
+"the same posture as every other table in this module". That is fine as a
+default and useless as a work item — a reviewer cannot sign off on a
+posture. Each now carries its own dated marker.
+
+`_AREA_NOUN` is the exception worth stating: it lives in
+`one_minute_reading_service.py`, whose PENDING marker is a *module-level*
+one in the docstring covering all 78 of that module's strings. Passing 5 of
+those 78 cannot lift it, so the note there is written as an explicit
+per-table exemption that says the module marker still stands. The 2-minute
+module's own review remains open in full.
+
+**Two review outcomes are recorded as constraints, not just approvals,**
+because both look like defects to the next reader: `_GOCHARA_SANI[12]`
+deliberately does not mention the cycle opening (its `_SANI_PHASE_NAME`
+entry already carries that word, and the pair rendered as a tautology in
+the first draft), and `_AREA_NOUN` entries are bare uninflected nouns by
+design — the case is carried by a following `இதற்கு` or `பற்றி`, and
+inflecting the noun itself would break all three call sites.
+
+**Still open:** `_BHUKTI_FLAVOR` (9). It is the last thing standing between
+here and §7.1's second precondition; the first (15-minute beat shapes)
+remains unbuilt regardless, so the provenance-mix budget stays deferred
+either way.

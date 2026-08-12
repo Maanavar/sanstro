@@ -620,8 +620,10 @@ _GOCHARA_SANI: dict[int, tuple[str, str]] = {
         "that asks you to spend less and rest more",
     ),
 }
-# PENDING NATIVE-TAMIL REVIEW, same posture as every other table in this
-# module (see one_minute_reading_service.py:70).
+# NATIVE-TAMIL REVIEW PASSED 2026-08-12 — owner sign-off on all twelve
+# entries, read as a set against the classical placement documented above.
+# House 12's silence about the cycle OPENING was reviewed and is deliberate
+# (see that entry's own comment); it is not an omission to repair.
 
 # The five positions the Tamil almanac names outright. Tamil naming, not the
 # Sanskrit — this is the vocabulary the audience already reads in the panchangam
@@ -643,6 +645,8 @@ _SANI_PHASE_NAME: dict[int, tuple[str, str]] = {
     4: ("அர்த்தாஷ்டம சனி", "Ardhashtama Sani"),
     8: ("அஷ்டம சனி", "Ashtama Sani"),
 }
+# NATIVE-TAMIL REVIEW PASSED 2026-08-12 — owner sign-off, all five entries,
+# confirming these are the almanac's own names and not a translation of them.
 
 # §2.5 rebuilt. Which house each topic is actually read from — the fact that
 # makes Beat 7 a chart reading rather than a relabelled temperament note.
@@ -689,6 +693,7 @@ _LORD_STRENGTH_NOTE: dict[str, tuple[str, str]] = {
         "deliberate attention than it looks like it should",
     ),
 }
+# NATIVE-TAMIL REVIEW PASSED 2026-08-12 — owner sign-off, all three bands.
 
 # Fixed, topic-invariant connectives — never counted toward the reviewable
 # vocabulary cap, same treatment as beat 4's `_WORK_CONNECTIVE`/

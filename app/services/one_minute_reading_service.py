@@ -2073,6 +2073,9 @@ _AREA_NOUN: dict[str, tuple[str, str]] = {
     "CAREER": ("வேலை", "work"),
     "HEALTH": ("உடல்நலம்", "health"),
 }
+# NATIVE-TAMIL REVIEW PASSED 2026-08-12 — owner sign-off, all five entries.
+# This is a PER-TABLE exemption from the module-level PENDING marker in the
+# docstring above, which still stands for the rest of this module's Tamil.
 # The Tamil puts `{area}` in bare TOPIC position and carries the case on a
 # pronoun after the dash (`இதற்கு`, "to this") rather than inflecting the noun
 # itself. That is the same discipline `_BHUKTI_FLAVOR` states for its own
