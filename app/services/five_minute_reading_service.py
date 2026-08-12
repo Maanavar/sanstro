@@ -462,8 +462,11 @@ _BHUKTI_FLAVOR: dict[str, tuple[str, str]] = {
         "adds a pull to close things off rather than start them",
     ),
 }
-# PENDING NATIVE-TAMIL REVIEW, same posture as every other facet in this
-# table family (see one_minute_reading_service.py:70).
+# NATIVE-TAMIL REVIEW PASSED 2026-08-12 — owner sign-off, all nine entries,
+# read as a set. Each was checked to end in a finite predicate that completes
+# the caller's frame on its own, which is the whole-words rule this table's
+# comment above states and the reason no entry can be spliced with a case
+# ending. This was the LAST pending Tamil marker in this module.
 
 # §2.5. One opening clause per topic, used to reframe the STRONGEST graha's
 # own `gift` (facet 1) into that domain — a grammatical hinge, not a new

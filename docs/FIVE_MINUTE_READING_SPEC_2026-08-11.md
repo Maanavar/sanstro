@@ -582,11 +582,11 @@ provenance, `TENDENCY` capped at ≤40%, `FRAME` absorbing the remainder** —
 mirrored per-beat, not just per-module, since a module-wide average would
 let one hard-fact-heavy beat (`last_ten_years`) paper over one soft-trait
 beat (`repeating_pattern`) that is nearly all T. This target is
-**provisional and unenforced** — no test asserts it yet. Revisit and lock it
-once the 15-minute module's beat shapes exist and the last pending
-`PENDING NATIVE-TAMIL REVIEW` pass on this module closes — `_BHUKTI_FLAVOR`
-(9 strings); the other closed 2026-08-12, §8.8 — so the number is set
-against three modules' worth of real copy instead of two.
+**provisional and unenforced** — no test asserts it yet. **Both Tamil passes
+this gate named closed 2026-08-12** (§8.8, §8.9), so the one remaining
+precondition is the 15-minute module's beat shapes, which are unbuilt.
+Revisit and lock the number once they exist, so it is set against three
+modules' worth of real copy instead of two.
 
 ### 7.2 Voice register — resolved: the shipped copy IS the reference
 
@@ -769,8 +769,9 @@ the argument above gets weaker with each module that has to stay in sync.
 ### 8.5 Still open
 
 - ~~**`PENDING NATIVE-TAMIL REVIEW` now covers 25 more strings**~~ — **CLOSED
-  2026-08-12, see §8.8.** `_BHUKTI_FLAVOR` (9) is now the module's only open
-  Tamil pass.
+  2026-08-12, see §8.8.** `_BHUKTI_FLAVOR` (9) followed the same day (§8.9);
+  **this module carries no pending Tamil marker.** The 2-minute module's
+  own module-level pass remains open in full.
 - **`find_saturn_egress_jd` does not special-case a retrograde loop** across
   the boundary it is finding, so near a station the returned instant is the
   first crossing rather than the last. The copy says "moves on around
@@ -924,7 +925,34 @@ the first draft), and `_AREA_NOUN` entries are bare uninflected nouns by
 design — the case is carried by a following `இதற்கு` or `பற்றி`, and
 inflecting the noun itself would break all three call sites.
 
-**Still open:** `_BHUKTI_FLAVOR` (9). It is the last thing standing between
-here and §7.1's second precondition; the first (15-minute beat shapes)
-remains unbuilt regardless, so the provenance-mix budget stays deferred
-either way.
+~~**Still open:** `_BHUKTI_FLAVOR` (9).~~ **Closed the same day — §8.9.**
+
+### 8.9 `_BHUKTI_FLAVOR`, 2026-08-12 — the module's last Tamil marker
+
+Owner sign-off on all nine entries, read as a set. This module now carries
+**no** `PENDING NATIVE-TAMIL REVIEW` marker; 34 of 34 strings across §8.8
+and here have passed.
+
+**What was actually checked, beyond the wording.** Every entry ends in a
+finite predicate — `கொண்டுவருகிறது`, `சேர்க்கிறது`, `திறக்கிறது`,
+`தூண்டுகிறது` — so each completes the caller's frame on its own and the
+caller never splices a case ending onto a table entry. That is the same
+whole-words discipline `_SANI_PHASE_NAME` and `_GUIDANCE_FALLBACK` each
+cite this table for, which means it is not a stylistic preference here but
+a constraint three other places depend on. A future entry written as a
+bare noun phrase would pass a native-speaker read of the string in
+isolation and still break the frame; the marker records the predicate rule
+so the next reviewer checks the property, not just the Tamil.
+
+**Why the whole set closing does not move §7.1.** The provenance-mix budget
+had two preconditions and this was the cheaper one. The other — the
+15-minute module's beat shapes — is unbuilt, so the budget stays deferred
+and §7.1 now names that as its single remaining blocker instead of
+carrying a Tamil clause that is no longer true. The point of closing these
+markers was never to unlock §7.1; it was to stop three separate sections
+from describing the same backlog in terms that had drifted apart.
+
+**Unchanged by this pass:** the 2-minute module's module-level marker in
+`one_minute_reading_service.py`'s docstring, which still covers all 78 of
+its strings less the 5 `_AREA_NOUN` entries exempted in §8.8. Closing the
+5-minute module's Tamil says nothing about that one.
