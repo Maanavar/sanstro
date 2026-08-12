@@ -629,16 +629,42 @@ one tie-break convention instead of two. See
 `test_strongest_and_weakest_ties_break_by_classical_dignity_not_alphabet`
 in `tests/test_one_minute_reading.py`.
 
-### 7.4 Astrologer content-QA on the action table — tracked, not blocking
+### 7.4 Astrologer content-QA on the action table — in progress
 
 Not a code decision — the mechanism that keys each graha's `action`
 takeaway is structurally sound (it cannot drift to the wrong lord's
 table; that is a property of the lookup, not the wording). What is
-unverified is whether the nine strings themselves match classical
-kārakattvam. Tracked the same way the module's two `PENDING NATIVE-TAMIL
-REVIEW` markers already are: a content-review item that does not block
-shipping the code, and should be closed in the same review sitting as
-those two markers rather than opened as a separate pass.
+unverified is whether the strings themselves match classical
+kārakattvam.
+
+**Scope corrected 2026-08-12: eighteen strings, not nine.** This section
+said "the nine strings" and meant `_VOICE[*].action`. `_CHILD_VOICE[*].action`
+is a second nine-entry set, printed by `_beat_one_thing` whenever
+`addressed_to == "parent"` — reader-facing copy on exactly the same axis,
+sitting outside a review whose scope was written as a count. That is the
+same defect §8.8 records between §8.5 and §7.1, one section over: **a
+review scope named by how many strings it covers cannot tell you when a
+new string joins the set. Name the predicate — every `action` entry any
+register can print — and the count follows.**
+
+The three criteria, applied to all eighteen: **kārakattvam** (is the
+action genuinely that graha's?), **voice** (does it sit in §7.2's register
+— and for `_CHILD_VOICE`, in the parent register specifically?), and
+**claim strength** (does it smuggle in a prescription, a timing claim, a
+number, or a ritual implication the reading has not earned?).
+
+**Closed so far (owner review, 2026-08-12), both on claim strength:**
+`_VOICE["VENUS"]` dropped "on a Friday" — Venus does own Friday, but this
+beat is keyed on the running mahadasha and nothing upstream establishes
+why *this* reader should act on a weekday, so it read as ritual;
+`activity_timing_rules` owns vara where vara genuinely decides something.
+`_VOICE["SATURN"]` dropped "for forty days" — the Saturn idea
+(consistency, measurable effort) is right and kept, but a count that
+specific is vrata shape and implies a doctrinal basis this module neither
+has nor cites. Two Tamil strings were also replaced as unnatural
+(`MERCURY`, `SATURN`); the remaining Tamil pass over all eighteen is
+tracked separately from the kārakattvam question, because a string can be
+doctrinally right and still read as translated.
 
 ---
 
@@ -772,11 +798,12 @@ the argument above gets weaker with each module that has to stay in sync.
   2026-08-12, see §8.8.** `_BHUKTI_FLAVOR` (9) followed the same day (§8.9);
   **this module carries no pending Tamil marker.** The 2-minute module's
   own module-level pass remains open in full.
-- **`find_saturn_egress_jd` does not special-case a retrograde loop** across
-  the boundary it is finding, so near a station the returned instant is the
-  first crossing rather than the last. The copy says "moves on around
-  {month}" and builds nothing on the exact day. Same known simplification as
-  the existing `find_saturn_ingress_jd`, in the opposite direction.
+- ~~**`find_saturn_egress_jd` does not special-case a retrograde loop**~~ —
+  **CLOSED 2026-08-12, see §8.10.** It was not the edge case this bullet
+  called it: measured over one reading per month, 1990–2050, **380 of 732
+  samples (51.9%) rendered a different month**. `find_saturn_ingress_jd`
+  still has the old behaviour in the backward direction — its consumer is a
+  cycle report, and it was left alone rather than changed untested.
 - ~~**The elder path states the mahadasha's end twice**~~ — **CLOSED
   2026-08-12, see §8.6.**
 - **Guru's gochara is computed but not spoken** — only Sani gets a texture
@@ -956,3 +983,51 @@ from describing the same backlog in terms that had drifted apart.
 `one_minute_reading_service.py`'s docstring, which still covers all 78 of
 its strings less the 5 `_AREA_NOUN` entries exempted in §8.8. Closing the
 5-minute module's Tamil says nothing about that one.
+
+### 8.10 The Saturn egress date, 2026-08-12 — a 51.9% defect filed as an edge case
+
+§8.5 carried this as a known simplification: `find_saturn_egress_jd`
+returned the first crossing out of the sign rather than the last, and the
+bullet reasoned that since the copy renders a month and "builds nothing on
+the exact day", the imprecision was absorbed. **Both halves of that
+defence were wrong**, and the second one is the more instructive.
+
+**A retrograde loop moves the answer by months, not days.** A sign
+boundary falling inside Saturn's retrograde arc is crossed three times —
+forward, back, forward — and the gap between the first and last crossing is
+a station interval. Month-rendering cannot absorb an error measured in
+station intervals. Measured before fixing, one reading per month across
+1990–2050: **380 of 732 samples (51.9%) would have printed a different
+month, worst case 1302 days out.** A defect that fires on a coin flip was
+sitting under a bullet that called it "a rare edge case", because the
+frequency was reasoned about rather than counted. Counting it took one
+throwaway script.
+
+**And the value was never only rendered as a month.** `basis` prints
+`egress.isoformat()` — the full instant — and the web surface shows it
+behind the disclosure toggle. The argument for tolerating imprecision was
+made about the prose while the exact figure was on screen one click away.
+**When deciding how precise a value has to be, check every surface that
+prints it, not the one the argument is about.**
+
+**The fix is geometric, not a time window.** Saturn's retrograde arc is
+~6.8° at its widest, so once it stands more than that past a boundary no
+loop can reach back; the search walks past the first crossing, treats any
+return to the sign as proof that the crossing behind it was not the last,
+and bisects only after Saturn is 9° clear. A "wait N days and assume it is
+settled" heuristic would have had to guess how long the loop takes, which
+varies with where in the arc the boundary falls; this assumes only how far
+back a loop can reach, which is a property of the orbit.
+
+One implementation detail worth keeping: the coarse step is 30 days, the
+band around the boundary is 5°, and Saturn's fastest is ~0.134°/day — so a
+coarse step moves at most ~4.02° and **cannot** cross the boundary. Every
+crossing is therefore approached at the 4-day fine step. Without that
+invariant a re-entry lasting under a month could be stepped straight over,
+which is the exact case the function exists to catch: the fix would have
+looked correct and still missed the shortest loops.
+
+Regression tests are in `tests/test_transits_calculations.py`, including
+the pre-fix algorithm kept verbatim as the thing being regressed, and a
+probe (December 2014, Saturn in rasi 8) where first and final crossings are
+nine months apart.

@@ -297,19 +297,54 @@ def find_saturn_ingress_jd(current_rasi: int, before_jd: float) -> float:
 # bracket to seconds would buy precision nothing prints and would cost ~45
 # further ephemeris probes on a request the reader is waiting on.
 _SATURN_EGRESS_PRECISION_DAYS = 1.0
-# Saturn spends ~2.5 years (~913 days) per rasi, so 31 thirty-day steps clears
-# a full sign from its own ingress. 40 matches the walk-BACK cap above and
-# leaves the same margin for the slow patches around a station.
-_SATURN_EGRESS_MAX_STEPS = 40
+# THE STOPPING RULE IS GEOMETRIC, NOT A TIME WINDOW. Saturn's retrograde arc —
+# the longitude it gives back between the station-retrograde and station-direct
+# points — is ~6.8° at its widest. Once Saturn stands more than that past a sign
+# boundary, no loop can carry it back into the sign it just left, so the last
+# crossing behind it is final. 9° is the widest arc plus margin.
+#
+# Written this way on purpose: a fixed "wait N days and assume it is done"
+# heuristic would have to guess how long the loop takes, which varies with where
+# in the arc the boundary falls. This assumes only how FAR back a loop can
+# reach, which is a property of the orbit and not of the particular crossing.
+_SATURN_MAX_RETROGRADE_ARC_DEG = 9.0
+# Coarse step for open travel; fine step once within `_RISK_BAND_DEG` of the
+# boundary. The band is what makes the coarse step safe, and the numbers are
+# chosen to give one invariant: Saturn's fastest is ~0.134°/day, so a thirty-day
+# step moves at most ~4.02°, which is less than the 5° band — therefore a coarse
+# step can never cross the boundary, and EVERY crossing is approached at the
+# fine step. Without that, a re-entry lasting under a month could be stepped
+# straight over, which is precisely the case this function exists to catch.
+# Four days is ~0.5° at Saturn's fastest, and any excursion back across a
+# boundary brackets a station, where the motion is slower still.
+_SATURN_EGRESS_COARSE_STEP_DAYS = 30.0
+_SATURN_EGRESS_FINE_STEP_DAYS = 4.0
+_SATURN_EGRESS_RISK_BAND_DEG = 5.0
+# Enough for the whole search: ~26 coarse steps of open travel to reach the
+# band, then fine steps across the band and out to the arc limit, including a
+# full retrograde loop spent inside it. Typical is ~130 probes, worst ~215.
+# This is a runaway guard, not a tuning knob.
+_SATURN_EGRESS_MAX_STEPS = 400
+
+
+def _degrees_past(longitude: float, boundary: float) -> float:
+    """Signed degrees from `boundary` to `longitude`, in (-180, 180].
+
+    Positive means past the boundary (Saturn has left the sign), negative means
+    still short of it. Signed rather than absolute so the caller can tell "9°
+    past, cannot come back" from "9° short, has not arrived".
+    """
+    return ((longitude - boundary + 180.0) % 360.0) - 180.0
 
 
 @lru_cache(maxsize=64)
 def find_saturn_egress_jd(current_rasi: int, after_jd: float) -> float:
     """Find the JD when Saturn LEAVES `current_rasi`, searching forward.
 
-    The mirror of ``find_saturn_ingress_jd``: same 30-day walk, same
-    bisection, opposite direction. `after_jd` must fall within `current_rasi`
-    (Saturn is already in that rasi at that instant).
+    `after_jd` must fall within `current_rasi` — Saturn is already in that rasi
+    at that instant, which the one caller guarantees by construction (it reads
+    the rasi from this very JD). Violating it raises rather than searching from
+    a position the search cannot interpret.
 
     Reads ``saturn_longitude_at_jd`` rather than ``calculate_sidereal_planets``
     — one Swiss Ephemeris call per probe instead of ten. The backward finder
@@ -317,19 +352,56 @@ def find_saturn_egress_jd(current_rasi: int, after_jd: float) -> float:
     because its caller is a cycle report that tolerates the cost and its
     results are already cached, and changing it is not this change's job.
 
-    Same known simplification as the backward finder, and it matters slightly
-    more in this direction: a retrograde loop that carries Saturn back across
-    the boundary it just crossed is not special-cased, so near a station the
-    returned instant is the FIRST crossing rather than the last. The one
-    consumer renders this to a month, states it as when the transit "moves
-    on", and does not build a claim on the exact day.
+    RETURNS THE FINAL EGRESS, NOT THE FIRST CROSSING, and the difference is
+    months rather than days. Saturn crosses a sign boundary up to three times
+    when the boundary falls inside its retrograde arc: forward, back, forward
+    again. Taking the first crossing there names a month up to a station-gap
+    early — and since every reader in a ~2.5-year residency shares one egress,
+    a wrong one is wrong for all of them for the whole stretch. This walks past
+    the first crossing, treats any return to `current_rasi` as evidence that
+    the crossing behind it was not the last one, and only bisects once Saturn
+    stands `_SATURN_MAX_RETROGRADE_ARC_DEG` past the boundary, beyond a loop's
+    reach. `find_saturn_ingress_jd` above still has the old behaviour in the
+    backward direction; its consumer is a cycle report, and it was left alone
+    rather than changed untested.
+
+    The value is not only rendered to a month: the five-minute reading's
+    ``basis`` line prints it as a full ISO instant behind the disclosure
+    toggle, so a reader can inspect the exact day. That is the reason this is
+    a correctness fix and not a precision nicety.
     """
-    lo = after_jd
-    hi = after_jd + _SATURN_INGRESS_STEP_DAYS
+    boundary = 30.0 * (current_rasi % 12)
+    jd = after_jd
+    longitude = saturn_longitude_at_jd(jd)
+    if rasi_from_degree(longitude) != current_rasi:
+        raise ValueError("after_jd must fall within current_rasi")
+
+    last_inside = jd
+    first_outside: float | None = None
     steps = 0
-    while rasi_from_degree(saturn_longitude_at_jd(hi)) == current_rasi:
-        lo = hi
-        hi += _SATURN_INGRESS_STEP_DAYS
+    while True:
+        past = _degrees_past(longitude, boundary)
+        jd += (
+            _SATURN_EGRESS_FINE_STEP_DAYS
+            if abs(past) <= _SATURN_EGRESS_RISK_BAND_DEG
+            else _SATURN_EGRESS_COARSE_STEP_DAYS
+        )
+        longitude = saturn_longitude_at_jd(jd)
+        past = _degrees_past(longitude, boundary)
+
+        if rasi_from_degree(longitude) == current_rasi:
+            # A return. Whatever crossing we had bracketed was not the last.
+            last_inside = jd
+            first_outside = None
+        else:
+            if first_outside is None:
+                first_outside = jd
+            if past > _SATURN_MAX_RETROGRADE_ARC_DEG:
+                # Out of reach of any loop: `first_outside` is the sample after
+                # the last crossing, `last_inside` the one before it.
+                lo, hi = last_inside, first_outside
+                break
+
         steps += 1
         if steps > _SATURN_EGRESS_MAX_STEPS:
             raise ValueError("saturn egress search exceeded maximum walk-forward window")

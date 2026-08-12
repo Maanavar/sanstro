@@ -69,6 +69,19 @@ docs/DASHBOARD_PRODUCT_DECISIONS_2026-08-02.md is about.
 
 The Tamil below is PENDING NATIVE-TAMIL REVIEW (same posture as
 nakshatra_content.NAKSHATRA_LENS, which ships live under the same marker).
+Two subsets have since passed and are exempted in place: `_AREA_NOUN` (5
+strings, 2026-08-12) and the eighteen `action` entries across `_VOICE` and
+`_CHILD_VOICE` (2026-08-12). The remaining strings are still pending.
+
+WHAT THE ACTION-TABLE PASS FOUND, because it generalises to the rest: the
+defects were not mistranslations but CALQUES — English idiom carried across
+with Tamil words. "this period runs on your steadiness" had become
+"இந்தக் காலம் ... மீது நடக்கிறது", which is the English metaphor wearing
+Tamil, and it had been copied into a second table. Each such string parses,
+survives a bilingual-coverage test, and still reads as translated. The
+check that catches them is reading the Tamil ALONE, without the English
+beside it, and asking whether anyone would say it that way — a coverage
+test cannot ask that question, which is why this marker exists at all.
 """
 from __future__ import annotations
 
@@ -560,6 +573,22 @@ class _Voice:
         # close is worse than the feature not existing. Declaring these R and
         # leaving the source open is the honest record of that; declaring them
         # T to dodge the question would not be.
+        #
+        # OWNER CONTENT REVIEW 2026-08-12, spec §7.4 — read as EIGHTEEN strings,
+        # not nine: `_CHILD_VOICE[*].action` is a second nine-entry set printed
+        # by `_beat_one_thing` in the parent register, and a review scoped by
+        # COUNT rather than by predicate would have left it out silently. The
+        # predicate is "every `action` entry any register can print"; if a
+        # third register is ever added, it joins this scope automatically and
+        # nobody has to remember to widen a number.
+        #
+        # Three entries lost a CLAIM the chart does not carry: `_VOICE["VENUS"]`
+        # a weekday, `_VOICE["SATURN"]` a forty-day count, and
+        # `_CHILD_VOICE["RAHU"]` a full-year one. Each entry's own comment has
+        # the argument. The shared rule for whoever writes the next action
+        # string: a duration, a weekday or a repetition count is a CLAIM, and
+        # this table may only make claims the reading has already earned —
+        # `activity_timing_rules` owns vara, and nothing here owns a calendar.
         "action": (Provenance.RULE, BaseRate.KEYED),
         # docs/FIVE_MINUTE_READING_SPEC_2026-08-11.md §2.1. The hinge clause
         # between gift and shadow — same disposition, present tense, no
@@ -673,7 +702,8 @@ _VOICE: dict[str, _Voice] = {
             "this is the stretch where you are seen; take the visible role rather than the safe one",
         ),
         action=(
-            "உங்கள் பெயரை உங்கள் வேலையின் மீது பதியுங்கள் — இந்தக் காலம் புலப்படுவதையே பலனாக மாற்றும்",
+            "நீங்கள் செய்யும் வேலைக்கு உங்கள் பெயர் இருக்கட்டும் — இந்தக் காலத்தில் உழைப்பை விட "
+            "அது தெரிவதுதான் பலன் தரும்",
             "put your name on your work — this period converts visibility, not effort alone",
         ),
         asks=(
@@ -738,7 +768,8 @@ _VOICE: dict[str, _Voice] = {
         # sentence next to it as arbitrary too. Replaced with the daily rhythm,
         # which is the same karakatva as sleep one step out.
         action=(
-            "உங்கள் தூக்கத்தையும் தினசரி தாளத்தையும் காத்துக்கொள்ளுங்கள் — இந்தக் காலம் உங்கள் நிலைத்தன்மையின் மீது நடக்கிறது",
+            "தூக்கத்தையும் தினசரி நேரங்களையும் சீராக வைத்துக்கொள்ளுங்கள் — இந்தக் காலத்தில் உங்கள் "
+            "நிலைத்தன்மையே எல்லாவற்றுக்கும் அடிப்படை",
             "protect your sleep and the rhythm of your days; this period runs on your steadiness",
         ),
         # Reworded 2026-08-11: the first draft ("a rhythm of your own, kept
@@ -865,8 +896,8 @@ _VOICE: dict[str, _Voice] = {
             "this stretch pays for words, learning and clear paperwork more than for effort alone",
         ),
         action=(
-            "ஒப்புக்கொள்வதற்கு முன் எழுதி வையுங்கள் — இந்தக் காலம் நுணுக்கங்களில் தீர்மானமாகிறது",
-            "write it down before you agree to it; this period settles in the details",
+            "ஒப்புக்கொள்வதற்கு முன் எழுதி வையுங்கள் — இந்தக் காலத்தில் சிறிய விவரங்கள்தான் முக்கியமாகின்றன",
+            "write it down before you agree to it; in this period the small details are what matter",
         ),
         asks=(
             "இரு பக்கமும் வாதிட்ட பிறகும் மாறாமல் நிற்கும் ஒரு முடிவு",
@@ -933,7 +964,8 @@ _VOICE: dict[str, _Voice] = {
             "this stretch widens things — teaching, children, and people senior to you tend to help",
         ),
         action=(
-            "ஒருவருக்குக் கற்பிக்கச் சம்மதியுங்கள் — இங்கே அது செலவை விட அதிகமாகத் திரும்பும்",
+            "யாருக்காவது ஒன்றைக் கற்றுக் கொடுங்கள் — அது எடுக்கும் நேரத்தை விட அதிகமாகவே "
+            "திரும்பக் கிடைக்கும்",
             "say yes to teaching someone; here it returns more than it costs",
         ),
         asks=(
@@ -991,9 +1023,17 @@ _VOICE: dict[str, _Voice] = {
             "இது தாராளமான காலம் — உறவுகள், வசதி, பணம் இப்போது எளிதாக நகர்கின்றன",
             "this is a generous stretch — relationships, comfort and money move more easily now",
         ),
+        # Reworded 2026-08-12 (owner review, spec §7.4): the first draft said
+        # "start what matters on a Friday". Venus IS Friday's lord — that part
+        # was not wrong — but this beat is keyed on the running MAHADASHA and
+        # nothing upstream of it establishes why *this* reader should act on a
+        # weekday. An unearned scheduling instruction reads as ritual, and this
+        # module's whole claim is that it only says what the chart supports.
+        # Where vara genuinely decides something, `activity_timing_rules` owns
+        # it; this table stays out of the calendar.
         action=(
-            "முக்கியமானதை வெள்ளிக்கிழமை தொடங்குங்கள்; நீங்கள் தவிர்த்துவரும் அந்த உரையாடலை முடியுங்கள்",
-            "start what matters on a Friday, and finish the conversation you have been avoiding",
+            "முக்கியமானதை நிதானமாகத் தொடங்குங்கள்; நீங்கள் தவிர்த்துவரும் அந்த உரையாடலை முடியுங்கள்",
+            "start what matters gently, and finish the conversation you have been avoiding",
         ),
         asks=(
             "மென்மையாக்குவதை விட, நடத்த வேண்டிய அந்த ஒரு உரையாடல்",
@@ -1065,9 +1105,16 @@ _VOICE: dict[str, _Voice] = {
             "இந்தக் காலம் தாமதமாகத் தரும், ஆனால் தரும் — அவசரப்பட்டு செய்வதை விட இப்போது கட்டுவது நீடிக்கும்",
             "this stretch pays late, but it does pay; what you build now outlasts what you rush",
         ),
+        # Reworded 2026-08-12 (owner review, spec §7.4): the first draft said
+        # "daily for forty days". The Saturn idea — consistency, repetition,
+        # measurable effort — is right and is kept; the NUMBER was not. Forty
+        # days is vrata shape, and a count that specific implies a doctrinal
+        # basis this module does not have and does not cite. Nothing else in
+        # either reading prescribes a duration, so it also stood alone.
         action=(
-            "ஒரு சிறிய உறுதிமொழியை நாற்பது நாட்கள் தினமும் காப்பாற்றுங்கள் — இந்தக் காலம் அளக்கக்கூடியதற்கே பலன் தரும்",
-            "keep one small commitment daily for forty days; this period only pays what it can measure",
+            "ஒரு சிறிய உறுதிமொழியை தினமும் காப்பாற்றுங்கள் — இந்தக் காலத்தில் தொடர்ந்து செய்யக்கூடிய "
+            "செயல்களுக்கே அதிக மதிப்பு கிடைக்கும்",
+            "keep one small commitment every day; this period rewards what you sustain",
         ),
         asks=(
             "தயாராக உணரும் முன்பே எடுக்கப்படும் ஒரு தொடக்கம்",
@@ -1122,7 +1169,7 @@ _VOICE: dict[str, _Voice] = {
             "this stretch offers unconventional routes; take them deliberately, not because they appeared",
         ),
         action=(
-            "வழியைத் தேர்ந்தெடுத்து எடுங்கள் — தோன்றியது என்பதற்காக மட்டும் எடுக்க வேண்டாம்",
+            "எந்த வழி என்பதைத் தெரிந்தே தேர்ந்தெடுங்கள் — கண்முன் வந்தது என்பதற்காக மட்டும் அல்ல",
             "choose the route deliberately; do not take one just because it appeared",
         ),
         asks=(
@@ -1186,7 +1233,7 @@ _VOICE: dict[str, _Voice] = {
             "start them",
         ),
         action=(
-            "நீண்ட நாட்களாக முடிக்காமல் இருக்கும் ஒன்றை முடித்து மூடுங்கள்; புதிதாக ஒன்றைத் தொடங்க வேண்டாம்",
+            "நீண்ட நாட்களாக இழுத்துக்கொண்டிருக்கும் ஒன்றை முடியுங்கள்; புதிதாக ஒன்றைத் தொடங்க வேண்டாம்",
             "close one long-open thing rather than starting a new one",
         ),
         asks=(
@@ -1800,8 +1847,8 @@ _CHILD_VOICE: dict[str, _ChildVoice] = {
             "reason an unsettled week shows up in them before it shows in anyone else.",
         ),
         action=(
-            "தூக்கமும் உணவு நேரமும் சலிப்பூட்டும் அளவுக்கு ஒரே சீராக இருக்கட்டும் — இந்தக் காலம் "
-            "அவரின் நிலைத்தன்மையின் மீது நடக்கிறது",
+            "தூக்கமும் உணவு நேரமும் சலிப்பூட்டும் அளவுக்கு ஒரே சீராக இருக்கட்டும் — இந்தக் காலத்தில் "
+            "அவரின் நிலைத்தன்மையே எல்லாவற்றுக்கும் அடிப்படை",
             "keep sleep and mealtimes boringly regular; this period runs on their steadiness",
         ),
     ),
@@ -1873,9 +1920,15 @@ _CHILD_VOICE: dict[str, _ChildVoice] = {
             "{name} is drawn to whatever is just out of reach and will find an unusual route to it — "
             "the interest runs hot, and holding it to one thing is the work.",
         ),
+        # Reworded 2026-08-12 (owner review, spec §7.4): dropped "for a full
+        # year". Same class as the "forty days" cut from `_VOICE["SATURN"]` in
+        # the same pass — a specific duration arriving with the authority of a
+        # chart reading, when the Rahu point is the ABANDONMENT and not the
+        # calendar. Fixed here for consistency as much as for the string: the
+        # next contributor reads this table for precedent.
         action=(
-            "புதிது ஒன்று தோன்றினாலும், ஒரு ஆர்வத்தை ஒரு முழு ஆண்டு தொடரச் செய்யுங்கள்",
-            "keep one interest going for a full year, even when a newer one appears",
+            "புதிது ஒன்று தோன்றினாலும், ஏற்கனவே தொடங்கிய ஆர்வத்தைத் தொடரச் செய்யுங்கள்",
+            "keep one interest going even when a newer one appears",
         ),
     ),
     "KETU": _ChildVoice(

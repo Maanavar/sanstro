@@ -1062,11 +1062,14 @@ def _beat_window_ahead(*, moon_rasi: int, as_of: date) -> OneMinuteBeat:
     (also classical) system, and mixing the two inside one reading is how a
     surface ends up contradicting the panchangam the reader already has.
 
-    The end date comes from ``find_saturn_egress_jd``, which bisects to a day
-    and is rendered to a month — see that function's docstring on the
-    retrograde caveat, and note the copy says the transit "moves on in
-    {month}" rather than naming a day, precisely because the day is the part
-    the simplification touches.
+    The end date comes from ``find_saturn_egress_jd``, which returns the FINAL
+    egress — the last crossing out of the sign, not the first. That distinction
+    was a live defect until 2026-08-12: a boundary falling inside Saturn's
+    retrograde arc is crossed three times, and the old finder named the first,
+    which can be a station-gap early and therefore a different MONTH, not
+    merely a different day. The copy still says "moves on around {month}"
+    rather than naming a day, but ``basis`` below prints the exact instant, so
+    the value has to be right and not merely roughly right.
     """
     saturn_rasi = rasi_from_degree(
         saturn_longitude_at_jd(

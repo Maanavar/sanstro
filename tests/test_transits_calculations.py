@@ -2,12 +2,23 @@ from datetime import UTC, datetime
 
 import pytest
 
-from app.calculations.astro import house_from_reference, utc_datetime_to_julian_day
-from app.calculations.ephemeris import EphemerisBody, EphemerisSnapshot, calculate_sidereal_planets
+from app.calculations.astro import (
+    house_from_reference,
+    julian_day_to_utc_datetime,
+    rasi_from_degree,
+    utc_datetime_to_julian_day,
+)
+from app.calculations.ephemeris import (
+    EphemerisBody,
+    EphemerisSnapshot,
+    calculate_sidereal_planets,
+    saturn_longitude_at_jd,
+)
 from app.calculations.transits import (
     classify_ezharai_sani_murthi_ingress,
     classify_kandaka_cycle,
     classify_sani_cycle,
+    find_saturn_egress_jd,
     find_saturn_ingress_jd,
     get_jupiter_aspects,
     get_saturn_aspects,
@@ -209,4 +220,129 @@ def test_ezharai_sani_murthi_self_computed_makaram_ingress_2020():
     assert classify_ezharai_sani_murthi_ingress(1, moon_rasi_at_ingress)["grade"] == "COPPER"
     assert classify_ezharai_sani_murthi_ingress(6, moon_rasi_at_ingress)["grade"] == "SILVER"
     assert classify_ezharai_sani_murthi_ingress(9, moon_rasi_at_ingress)["grade"] == "SILVER"
+
+
+# --- find_saturn_egress_jd: the FINAL egress, not the first crossing ---------
+#
+# Fixed 2026-08-12 (spec §8.5). A sign boundary falling inside Saturn's
+# retrograde arc is crossed three times — forward, back, forward — and the old
+# finder returned the first. Measured over one reading per month, 1990-2050:
+# **380 of 732 samples (51.9%) would have rendered a different month**, worst
+# case 1302 days out. That is not an edge case, which is why these tests exist.
+#
+# Same posture as the ingress tests above: self-computed against this repo's own
+# ephemeris, not verified against a printed panchangam. What they lock is the
+# PROPERTY (the returned instant is the last crossing) rather than a date from
+# an external source.
+
+_EGRESS_PROBES = (
+    # (probe date, the rasi Saturn is in on that date — asserted, not assumed)
+    (datetime(2014, 12, 6, tzinfo=UTC), 8),
+    (datetime(2020, 3, 1, tzinfo=UTC), 10),
+    (datetime(2024, 6, 15, tzinfo=UTC), 11),
+    (datetime(2026, 8, 12, tzinfo=UTC), 12),
+)
+
+
+def _first_crossing_egress(current_rasi: int, after_jd: float) -> float:
+    """The pre-fix implementation, kept verbatim as the thing being regressed.
+
+    Walks forward in 30-day steps to the first sample outside `current_rasi`
+    and bisects that bracket — so on a retrograde loop it names the crossing
+    Saturn is about to undo.
+    """
+    lo = after_jd
+    hi = after_jd + 30.0
+    while rasi_from_degree(saturn_longitude_at_jd(hi)) == current_rasi:
+        lo = hi
+        hi += 30.0
+    while hi - lo > 1.0:
+        mid = (lo + hi) / 2
+        if rasi_from_degree(saturn_longitude_at_jd(mid)) == current_rasi:
+            lo = mid
+        else:
+            hi = mid
+    return hi
+
+
+@pytest.mark.parametrize(("probe", "expected_rasi"), _EGRESS_PROBES)
+def test_saturn_egress_lands_on_a_real_sign_boundary(probe: datetime, expected_rasi: int):
+    probe_jd = utc_datetime_to_julian_day(probe)
+    assert rasi_from_degree(saturn_longitude_at_jd(probe_jd)) == expected_rasi
+
+    egress_jd = find_saturn_egress_jd(expected_rasi, probe_jd)
+
+    # Out at the returned instant, still in a day earlier: a true boundary.
+    assert rasi_from_degree(saturn_longitude_at_jd(egress_jd)) != expected_rasi
+    assert rasi_from_degree(saturn_longitude_at_jd(egress_jd - 1.0)) == expected_rasi
+
+
+@pytest.mark.parametrize(("probe", "expected_rasi"), _EGRESS_PROBES)
+def test_saturn_never_returns_to_the_sign_after_the_reported_egress(
+    probe: datetime, expected_rasi: int
+):
+    """THE GUARANTEE THE OLD FINDER DID NOT MAKE.
+
+    "Moves on around {month}" is a claim about the last time Saturn is in that
+    sign, not the first time it steps out. Sampled every two days for 200 days
+    after the returned instant — long enough to contain a whole retrograde loop,
+    which is the only thing that could bring Saturn back.
+    """
+    probe_jd = utc_datetime_to_julian_day(probe)
+    egress_jd = find_saturn_egress_jd(expected_rasi, probe_jd)
+
+    returns = [
+        offset
+        for offset in range(2, 200, 2)
+        if rasi_from_degree(saturn_longitude_at_jd(egress_jd + offset)) == expected_rasi
+    ]
+    assert returns == [], f"Saturn re-entered rasi {expected_rasi} {returns[:3]} days after egress"
+
+
+def test_saturn_egress_outruns_a_first_crossing_finder_on_a_retrograde_loop():
+    """The regression, on a residency where the difference is nine months.
+
+    Saturn in rasi 8 in December 2014: the first crossing out is in January
+    2017, but Saturn retrogrades straight back and does not finally leave until
+    October 2017. A reading generated at the probe date would have told the
+    reader the transit ends nine months before it does.
+    """
+    probe_jd = utc_datetime_to_julian_day(datetime(2014, 12, 6, tzinfo=UTC))
+    saturn_rasi = rasi_from_degree(saturn_longitude_at_jd(probe_jd))
+    assert saturn_rasi == 8
+
+    first = julian_day_to_utc_datetime(_first_crossing_egress(saturn_rasi, probe_jd)).date()
+    final = julian_day_to_utc_datetime(find_saturn_egress_jd(saturn_rasi, probe_jd)).date()
+
+    assert (first.year, first.month) == (2017, 1)
+    assert (final.year, final.month) == (2017, 10)
+    # The month is what the reading prints, so the months must differ — a fix
+    # that moved the answer by days would not have been worth making.
+    assert (final.year, final.month) != (first.year, first.month)
+    # And it is a real loop, not two nearby boundary touches: somewhere between
+    # the two dates Saturn is genuinely back inside rasi 8. Searched rather than
+    # guessed at — the re-entry sits near the retrograde station, months after
+    # the first crossing, not just behind it.
+    first_jd = _first_crossing_egress(saturn_rasi, probe_jd)
+    final_jd = find_saturn_egress_jd(saturn_rasi, probe_jd)
+    reentry_days = [
+        offset
+        for offset in range(0, int(final_jd - first_jd), 5)
+        if rasi_from_degree(saturn_longitude_at_jd(first_jd + offset)) == saturn_rasi
+    ]
+    assert reentry_days, "no re-entry found — this probe is not a triple crossing after all"
+
+
+def test_saturn_egress_rejects_an_anchor_that_is_not_inside_the_rasi():
+    """The precondition is now enforced rather than assumed.
+
+    The one caller reads the rasi from the very JD it passes, so this cannot
+    fire in production — but a future caller that passes a stale rasi would
+    otherwise get a confidently wrong date instead of an error.
+    """
+    probe_jd = utc_datetime_to_julian_day(datetime(2026, 8, 12, tzinfo=UTC))
+    actual = rasi_from_degree(saturn_longitude_at_jd(probe_jd))
+
+    with pytest.raises(ValueError, match="must fall within"):
+        find_saturn_egress_jd(actual % 12 + 1, probe_jd)
 
