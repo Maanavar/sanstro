@@ -20,7 +20,9 @@ adjective. Two deliberate per-domain exceptions, native-approved 2026-07-14:
   • daily RESTORATIVE → ஓய்வு நாள் (a rest day is gentle, not a caution).
   • synastry/prediction "mixed" middle tier → கலப்பான (mixed) rather than
     சமநிலையான (steady) — a mixed relationship/period is a different meaning
-    from a calm, even day.
+    from a calm, even day. ``life_area`` follows the same ruling: its noun is
+    காலகட்டம் (period), never நாள் (day), so a standing life-area outlook can
+    never be read on the same clock as the daily score or the muhurtam board.
 
 Native-Tamil approved in the live astrologer session 2026-07-14 (C-5).
 The web mirror of this table is `web/lib/verdict-lexicon.ts` — keep the two in
@@ -81,6 +83,18 @@ DOMAIN_RUNGS: dict[str, dict[str, VerdictRung]] = {
         "AVERAGE": VerdictRung.BALANCED,
         "CAUTION": VerdictRung.CAUTION,
     },
+    # Standing outlook for one life area over the running dasha + slow
+    # transits. Rendered client-side today (web/lib/format.ts), so only the
+    # word family lives here — but it lives here so the pair stays one table.
+    # Standing outlook for one life area over the running dasha + slow
+    # transits. Three rungs, not four: `life_areas_service._score_area` bands
+    # its own closing prose three ways at 70 / 45, and a fourth UI-only rung
+    # would be a boundary the engine never drew.
+    "life_area": {
+        "EXCELLENT": VerdictRung.EXCELLENT,
+        "MIXED": VerdictRung.BALANCED,
+        "CAUTION": VerdictRung.CAUTION,
+    },
 }
 
 # Composed verdict phrase shown to the user, per domain label — (ta, en).
@@ -104,6 +118,11 @@ VERDICT_PHRASE: dict[str, dict[str, tuple[str, str]]] = {
         "SUPPORTIVE": ("நல்ல இணக்கம்", "Good harmony"),
         "MIXED": ("கலப்பான இணக்கம்", "Mixed harmony"),
         "CAREFUL": ("கவனம் தேவை", "Needs care"),
+    },
+    "life_area": {
+        "EXCELLENT": ("மிகச் சிறந்த காலகட்டம்", "Excellent period"),
+        "MIXED": ("கலப்பான காலகட்டம்", "Mixed period"),
+        "CAUTION": ("கவனம் தேவை", "Needs care"),
     },
 }
 

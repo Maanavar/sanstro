@@ -159,6 +159,20 @@ GOWRI_GOOD_PURPOSE_TA = {
     "DHANAM": "பணம், நிதி, முதலீடு போன்ற செல்வம் சார்ந்த விஷயங்களுக்கு நல்லது",
     "SUGAM": "ஆறுதல், ஆரோக்கியம், குடும்ப அமைதி, பயணம், வழக்கமான நல்ல வேலைகளுக்கு நல்லது",
 }
+# The three inauspicious kalas. Named here (not just good ones) because the daily
+# guidance now has to say *which* bad kala spoiled an otherwise-good window —
+# "avoid 1:58 pm" is unactionable, "Rogam starts 1:58 pm" is checkable against the
+# panchangam page. Mirrors GOWRI_BAD_CATEGORY_DETAILS in web/lib/gowri.ts.
+GOWRI_BAD_LABELS_EN = {
+    "ROGAM": "Rogam",
+    "SORAM": "Soram",
+    "VISHAM": "Visham",
+}
+GOWRI_BAD_LABELS_TA = {
+    "ROGAM": "ரோகம்",
+    "SORAM": "சோரம்",
+    "VISHAM": "விஷம்",
+}
 # Day-slot starting kala per weekday (0=Mon … 6=Sun), 8 kalas sunrise→sunset.
 # Starting kalas: Sun=Uthi, Mon=Amirtham, Tue=Rogam, Wed=Labham,
 #                 Thu=Dhanam, Fri=Sugam, Sat=Soram (Tamil Nadu tradition).
@@ -463,7 +477,26 @@ DEFAULT_AYANAMSA_TYPE = "LAHIRI"
 # moves on TUESDAY only (21:25->20:00 start, as UTHI moves from night slot 3 to 2),
 # and the daytime Nalla Neram is untouched. Persisted gowri_panchangam and Tuesday's
 # gowri_nalla_neram change, so cached snapshots must recompute.
-PANCHANGAM_CACHE_DATA_VERSION = 37
+# v38: the nalla_neram / gowri_nalla_neram summary windows now carry the NAME of
+# the Gowri kala they were cut from (it was dropped as None, which silently
+# disabled best_gowri_slot's ranking — every window tied at rank 999 and it
+# degraded to "earliest" — and blanked the morning push's category/purpose lines,
+# built from gowri_good_label(None)). Gowri Nalla Neram also now takes the
+# best-RANKED clear good kala of each half rather than the first, and skips a
+# window Nalla Neram already prints: taking the first made its DAY window
+# identical to the AM Nalla Neram window by construction, so two cards showed one
+# window twice. Persisted nalla_neram / gowri_nalla_neram change, so cached
+# snapshots must recompute.
+# v39: the NIGHT half of Gowri Nalla Neram is now the EARLIEST clear good kala,
+# not the best-ranked one. v38 ranked both halves for symmetry, but Amirtham
+# advances one slot per weekday, so ranking the night walked the announced window
+# around the clock: on the Aug 2026 Chennai grid it fell at 04:33 (Fri), 03:06
+# (Sat), 01:40 (Sun) and after 22:47 (Mon/Tue) — 5 of 7 weekdays outside any hour
+# a reader would act on. Earliest-clear-good holds all seven inside 18:26-21:21.
+# The DAY half is unchanged (still ranked, still skipping Nalla Neram's windows).
+# Persisted gowri_nalla_neram changes on 6 of 7 weekdays, so cached snapshots must
+# recompute.
+PANCHANGAM_CACHE_DATA_VERSION = 39
 DOMINANT_SPECIAL_TITHIS = {15, 30}
 
 # Fixed weekday clock-table Nalla Neram windows. NOTE (2026-07-17): the daily
@@ -518,6 +551,17 @@ def gowri_good_purpose(name: str | None, lang: str = "en") -> str | None:
     key = _gowri_key(name)
     purposes = GOWRI_GOOD_PURPOSE_TA if lang == "ta" else GOWRI_GOOD_PURPOSE_EN
     return purposes.get(key)
+
+
+def gowri_kala_label(name: str | None, lang: str = "en") -> str | None:
+    """Display name for any Gowri kala, good or bad. `gowri_good_label` returns
+    None for Rogam/Soram/Visham by design (it backs the "what is this good for"
+    copy); callers that must *name a cause* need all eight."""
+    good = gowri_good_label(name, lang)
+    if good:
+        return good
+    labels = GOWRI_BAD_LABELS_TA if lang == "ta" else GOWRI_BAD_LABELS_EN
+    return labels.get(_gowri_key(name))
 
 
 def best_gowri_slot(
@@ -988,16 +1032,37 @@ def _compute_gowri_panchangam(
 def _compute_gowri_nalla_neram(
     gowri_panchangam: Sequence[PanchangamSlot],
     bad_slots: Sequence[PanchangamSlot],
+    nalla_neram: Sequence[PanchangamSlot] = (),
 ) -> list[PanchangamSlot]:
     """Compact day/night Gowri Nalla Neram summary derived from the Gowri slots.
 
-    Returns the FIRST auspicious Gowri kala in the DAY and in the NIGHT that is
+    Returns one auspicious Gowri kala for the DAY and one for the NIGHT, each
     clear of Rahu Kalam / Yamagandam / Kuligai. Gowri kalas and the inauspicious
     kalams are cut from the same 8-part sunrise->sunset grid, so an auspicious
     kala can fall on the exact same slot as a bad kalam — e.g. Thursday's first
     good kala (DHANAM) IS Yamagandam. A reliable panchangam never announces such
-    a slot as "nalla neram"; it moves on to the next good kala. Skipping the
-    colliding kala reproduces that.
+    a slot as "nalla neram"; the clearance filter reproduces that.
+
+    The two halves are picked by DIFFERENT rules, deliberately.
+
+    DAY is best-RANKED — Amirtham where the day has one, else
+    Uthi > Labham > Dhanam > Sugam (gowri_category_rank), the earlier window
+    breaking a tie — and skips any window Nalla Neram already prints. Taking the
+    FIRST clear good day kala made the DAY window identical to the morning Nalla
+    Neram window *by construction* (that window is defined as the first clear
+    good day kala, see _compute_nalla_neram), so the two cards printed the same
+    window twice and the second told the reader nothing. It falls back to the
+    ranked best only when the day has no other clear good kala.
+
+    NIGHT is EARLIEST, not ranked. Ranking it looked symmetric with the day but
+    announced an unusable hour: Amirtham advances one slot per weekday, so
+    "always Amirtham" walked the night window right around the clock — on the
+    Aug 2026 Chennai grid it landed at 04:33 (Fri), 03:06 (Sat) and 01:40 (Sun),
+    and after 22:47 on Mon/Tue. A reader takes a night window to mean "this
+    evening"; earliest-clear-good holds all seven weekdays inside the
+    18:26-21:21 band while still only ever naming a genuinely auspicious kala.
+    NIGHT needs no Nalla-Neram skip either — Nalla Neram is daytime-only, so the
+    two can never collide.
 
     Rahu Kalam is a special case: since v36 the day table places VISHAM on the
     Rahu slot by construction, so a good DAY kala can never overlap Rahu Kalam
@@ -1006,34 +1071,38 @@ def _compute_gowri_nalla_neram(
     good kala on Rahu Kalam on 4 of 7 weekdays, and this filter was silently
     papering over that bug.)
     """
-    day_good = [
-        s for s in gowri_panchangam
-        if s.period == "DAY" and s.is_good and _clear_of_bad_kalams(s.start, s.end, bad_slots)
-    ]
-    night_good = [
-        s for s in gowri_panchangam
-        if s.period == "NIGHT" and s.is_good and _clear_of_bad_kalams(s.start, s.end, bad_slots)
-    ]
+    def _clear_good(period: str) -> list[PanchangamSlot]:
+        return [
+            s for s in gowri_panchangam
+            if s.period == period and s.is_good and _clear_of_bad_kalams(s.start, s.end, bad_slots)
+        ]
+
+    day_ranked = sorted(_clear_good("DAY"), key=lambda s: (gowri_category_rank(s.name), s.start))
+    night_chronological = sorted(_clear_good("NIGHT"), key=lambda s: s.start)
+    already_printed = {(s.start, s.end) for s in nalla_neram}
 
     summary_slots: list[PanchangamSlot] = []
-    if day_good:
-        first_day = day_good[0]
+    if day_ranked:
+        day_pick = next(
+            (s for s in day_ranked if (s.start, s.end) not in already_printed),
+            day_ranked[0],
+        )
         summary_slots.append(PanchangamSlot(
-            start=first_day.start,
-            end=first_day.end,
+            start=day_pick.start,
+            end=day_pick.end,
             slot=1,
-            name=None,
+            name=day_pick.name,
             period="DAY",
             is_good=True,
         ))
 
-    if night_good:
-        first_night = night_good[0]
+    if night_chronological:
+        night_pick = night_chronological[0]
         summary_slots.append(PanchangamSlot(
-            start=first_night.start,
-            end=first_night.end,
+            start=night_pick.start,
+            end=night_pick.end,
             slot=2,
-            name=None,
+            name=night_pick.name,
             period="NIGHT",
             is_good=True,
         ))
@@ -1078,12 +1147,17 @@ def _compute_nalla_neram(
     if day_good_clear[-1] is not day_good_clear[0]:
         picks.append(day_good_clear[-1])
 
+    # Carry the source kala's name. It used to be dropped here, which quietly
+    # disabled every consumer that ranks or names a nalla-neram window:
+    # best_gowri_slot() tied all windows at rank 999 and degraded to "earliest",
+    # and the morning push built its category/purpose lines from
+    # gowri_good_label(None) -> None, so they never rendered.
     return [
         PanchangamSlot(
             start=pick.start,
             end=pick.end,
             slot=slot_number,
-            name=None,
+            name=pick.name,
             period="AM" if pick.start < solar_noon else "PM",
             is_good=True,
         )
@@ -1748,8 +1822,9 @@ def calculate_daily_panchangam(
     # clear of them (they share the Gowri 8-part grid, so a good kala can land
     # on the exact same slot as a bad kalam).
     bad_kalam_slots = (rahu, yama, kuligai)
-    gowri_nalla_neram = _compute_gowri_nalla_neram(gowri_panchangam, bad_kalam_slots)
+    # Nalla Neram first: the Gowri summary skips the windows it already prints.
     nalla_neram = _compute_nalla_neram(gowri_panchangam, bad_kalam_slots, solar_noon)
+    gowri_nalla_neram = _compute_gowri_nalla_neram(gowri_panchangam, bad_kalam_slots, nalla_neram)
 
     is_subha, subha_reason = _compute_subha_muhurtham_broad(
         tithi_number, NAKSHATRA_NAMES[nakshatra_number - 1], weekday_index,
