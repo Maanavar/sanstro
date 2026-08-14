@@ -51,15 +51,17 @@ def test_daily_panchangam_endpoint_returns_structured_daily_data(client):
     assert isinstance(chandra["janmaNakshatraWindows"], list)
     assert chandra["janmaNakshatraWindows"]
     assert {"name", "start", "end"}.issubset(chandra["janmaNakshatraWindows"][0])
-    # Summary windows are compact daily-calendar timings; the full named
-    # Gowri engine remains available under gowriPanchangam.
+    # Summary windows are compact daily-calendar timings cut from the full named
+    # Gowri engine (also served whole under gowriPanchangam), and each carries the
+    # name of the kala it came from so the UI can say *which* good time it is.
+    good_kalas = {"AMIRTHAM", "UTHI", "LABHAM", "DHANAM", "SUGAM"}
     assert len(body["data"]["kalam"]["gowriNallaNeram"]) == 2
     assert {s["period"] for s in body["data"]["kalam"]["gowriNallaNeram"]} == {"DAY", "NIGHT"}
-    assert all(s["name"] is None and s["isGood"] is True for s in body["data"]["kalam"]["gowriNallaNeram"])
+    assert all(s["name"] in good_kalas and s["isGood"] is True for s in body["data"]["kalam"]["gowriNallaNeram"])
     assert len(body["data"]["kalam"]["nallaNeram"]) == 2
     assert {s["period"] for s in body["data"]["kalam"]["nallaNeram"]} == {"AM", "PM"}
     for s in body["data"]["kalam"]["nallaNeram"]:
-        assert s["name"] is None
+        assert s["name"] in good_kalas
         assert s["isGood"] is True
         assert s["warning"] is None
     assert len(body["data"]["hora"]) == 24

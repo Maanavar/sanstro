@@ -1,6 +1,46 @@
 from datetime import date
 
-from app.services.life_areas_service import _duration_caution, _narrative
+from app.services.life_areas_service import (
+    _CHANDRASHTAMA_AREAS,
+    _TREND_DELTA,
+    _duration_caution,
+    _narrative,
+    _trend,
+)
+
+# ── Trend arrow ────────────────────────────────────────────────────────────────
+# `_trend` used to be a function of the current score alone — score < 45 meant
+# "DOWN" — so a tile reading "Money 16 ↓" was not saying money was falling, it
+# was saying 16 is a low number. It now measures the real six-month slope.
+
+
+def test_trend_reads_the_six_month_slope_not_the_current_level():
+    # A low score that is climbing must read UP, and a high one that is falling
+    # must read DOWN. Both were impossible under the old level-only rule.
+    assert _trend(16, 16 + _TREND_DELTA) == "UP"
+    assert _trend(82, 82 - _TREND_DELTA) == "DOWN"
+
+
+def test_trend_ignores_moves_smaller_than_the_ashtakavarga_jitter():
+    # The ashtakavarga term alone swings a score by up to ±4 when the area's
+    # karaka changes rasi, which is not a change of direction.
+    for delta in range(-(_TREND_DELTA - 1), _TREND_DELTA):
+        assert _trend(50, 50 + delta) == "STABLE", delta
+
+
+def test_trend_is_flat_when_nothing_moves():
+    for score in (0, 16, 45, 54, 70, 100):
+        assert _trend(score, score) == "STABLE"
+
+
+def test_chandrashtama_areas_are_the_mind_sensitive_ones():
+    # The client's `chandrashtamaApplied` flag is derived from this same set, so
+    # the marker on a tile can never disagree with the penalty on its score.
+    assert _CHANDRASHTAMA_AREAS == frozenset(
+        {"HEALTH", "RELATIONSHIPS", "FAMILY_HARMONY", "EDUCATION"}
+    )
+    assert "CAREER" not in _CHANDRASHTAMA_AREAS
+    assert "MONEY" not in _CHANDRASHTAMA_AREAS
 
 
 def test_low_score_health_caution_uses_non_chandrashtama_text_when_false():

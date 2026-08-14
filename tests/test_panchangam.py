@@ -145,10 +145,10 @@ def test_daily_panchangam_uses_documented_2026_05_21_reference_case():
     assert snapshot.gowri_panchangam[0].period == "DAY"
     assert len(snapshot.gowri_nalla_neram) == 2
     assert {s.period for s in snapshot.gowri_nalla_neram} == {"DAY", "NIGHT"}
-    assert all(s.name is None and s.is_good is True for s in snapshot.gowri_nalla_neram)
+    assert all(s.name in GOWRI_GOOD_NAMES and s.is_good is True for s in snapshot.gowri_nalla_neram)
     assert len(snapshot.nalla_neram) == 2
     assert {s.period for s in snapshot.nalla_neram} == {"AM", "PM"}
-    assert all(s.name is None and s.is_good is True for s in snapshot.nalla_neram)
+    assert all(s.name in GOWRI_GOOD_NAMES and s.is_good is True for s in snapshot.nalla_neram)
     assert snapshot.abhijit_restricted is False
     assert len(snapshot.hora) == 24
     assert snapshot.hora[0].lord == "GURU"
@@ -340,7 +340,7 @@ def test_nalla_and_gowri_nalla_neram_are_real_gowri_kalas_clear_of_bad_kalams():
     assert {s.period for s in snap.nalla_neram} <= {"AM", "PM"}
     assert {s.period for s in snap.gowri_nalla_neram} <= {"DAY", "NIGHT"}
     for s in snap.nalla_neram + snap.gowri_nalla_neram:
-        assert s.is_good is True and s.name is None
+        assert s.is_good is True and s.name in GOWRI_GOOD_NAMES
         assert (s.start, s.end) in good_gowri, "summary window is not a real Gowri good kala"
         assert not _collides(s, bad), f"{s.period} {s.start:%H:%M}-{s.end:%H:%M} collides with a bad kalam"
 
@@ -352,25 +352,80 @@ def test_nalla_and_gowri_nalla_neram_are_real_gowri_kalas_clear_of_bad_kalams():
             assert s.start >= snap.solar_noon
 
 
-def test_gowri_nalla_neram_skips_first_good_kala_that_is_a_bad_kalam():
-    # Thursday's first good Gowri day kala (Dhanam, slot 1) IS Yamagandam. The old
+def test_gowri_nalla_neram_never_announces_a_kala_that_is_a_bad_kalam():
+    # Thursday's first good Gowri day kala (Dhanam, slot 1) IS Yamagandam. Early
     # code took the first good kala blindly and announced the bad kalam as nalla
-    # neram; the DAY window must skip to the next clear good kala.
+    # neram; the DAY window must never land on one, whichever kala it picks.
     thu = calculate_daily_panchangam(date(2026, 6, 4), 13.0827, 80.2707, "Asia/Kolkata")
     assert thu.weekday == "THURSDAY"
     thu_day = next(s for s in thu.gowri_nalla_neram if s.period == "DAY")
     assert not _collides(thu_day, [thu.yamagandam])
-    assert thu_day.start >= thu.yamagandam.end  # moved past the Yamagandam slot
+    assert thu_day.start >= thu.yamagandam.end  # past the Yamagandam slot
 
     # Saturday used to be cited here as "first good kala IS Rahu Kalam", which was
     # an artefact of the pre-v36 table putting UTHI on Saturday's Rahu slot. Rahu
-    # Kalam is VISHAM by construction, so Saturday's first good kala (UTHI, slot 2)
-    # is clear and lands BEFORE Rahu Kalam rather than being skipped past it.
+    # Kalam is VISHAM by construction, so no good Saturday kala can collide with it.
     sat = calculate_daily_panchangam(date(2026, 6, 6), 13.0827, 80.2707, "Asia/Kolkata")
     assert sat.weekday == "SATURDAY"
     sat_day = next(s for s in sat.gowri_nalla_neram if s.period == "DAY")
     assert not _collides(sat_day, [sat.rahu_kalam])
-    assert sat_day.end <= sat.rahu_kalam.start  # earlier good kala, no skip needed
+
+
+def test_gowri_nalla_neram_is_the_best_kala_and_never_repeats_a_nalla_neram_window():
+    """The Gowri summary must earn its own card.
+
+    Taking the FIRST clear good kala made the DAY window identical to the AM Nalla
+    Neram window on every weekday — that window is *defined* as the first clear
+    good day kala — so the two cards printed one window twice. The DAY pick is now
+    the best-ranked clear good kala that Nalla Neram does not already print.
+    """
+    for day_offset in range(14):
+        snap = calculate_daily_panchangam(
+            date(2026, 6, 1) + timedelta(days=day_offset), 13.0827, 80.2707, "Asia/Kolkata"
+        )
+        printed = {(s.start, s.end) for s in snap.nalla_neram}
+        day = next(s for s in snap.gowri_nalla_neram if s.period == "DAY")
+        assert (day.start, day.end) not in printed, f"{snap.weekday}: Gowri DAY repeats a Nalla Neram window"
+
+        # Ranked, not chronological: no clear good kala outranks the one shown,
+        # apart from the ones Nalla Neram has already taken.
+        bad = [snap.rahu_kalam, snap.yamagandam, snap.kuligai]
+        available = [
+            s for s in snap.gowri_panchangam
+            if s.period == "DAY" and s.is_good and not _collides(s, bad) and (s.start, s.end) not in printed
+        ]
+        assert gowri_category_rank(day.name) == min(gowri_category_rank(s.name) for s in available), snap.weekday
+
+
+def test_gowri_nalla_neram_night_window_is_the_earliest_good_kala_not_the_best():
+    """The NIGHT half is chronological, and the DAY half is not — on purpose.
+
+    v38 ranked both halves for symmetry. But Amirtham advances one slot per
+    weekday, so "always Amirtham" walked the night window around the clock: on
+    the Aug 2026 Chennai grid it landed at 04:33 (Fri), 03:06 (Sat), 01:40 (Sun)
+    and after 22:47 (Mon/Tue). A night window is read as "this evening", so the
+    pick is now the earliest clear good night kala.
+    """
+    for day_offset in range(14):
+        day = date(2026, 8, 10) + timedelta(days=day_offset)
+        snap = calculate_daily_panchangam(day, 13.0827, 80.2707, "Asia/Kolkata")
+        night = next(s for s in snap.gowri_nalla_neram if s.period == "NIGHT")
+
+        bad = [snap.rahu_kalam, snap.yamagandam, snap.kuligai]
+        available = [
+            s for s in snap.gowri_panchangam
+            if s.period == "NIGHT" and s.is_good and not _collides(s, bad)
+        ]
+        assert night.start == min(s.start for s in available), (
+            f"{day} {snap.weekday}: night pick is not the earliest clear good kala"
+        )
+
+        # The property that motivated the rule: a "tonight" window must open
+        # before the date rolls over, not in the small hours of the next morning.
+        midnight = datetime.combine(day + timedelta(days=1), datetime.min.time(), tzinfo=night.start.tzinfo)
+        assert night.start < midnight, (
+            f"{day} {snap.weekday}: night window opens at {night.start:%m-%d %H:%M}, past midnight"
+        )
 
 
 def test_no_good_day_kala_ever_collides_with_rahu_kalam():

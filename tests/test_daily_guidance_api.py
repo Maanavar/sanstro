@@ -64,7 +64,17 @@ def test_daily_guidance_endpoint_returns_daily_card(client, birth_profile_payloa
         "personalCautions",
         "remedialActionSupport",
     }
-    assert body["data"]["bestWindows"][0]["type"] == "ABHIJIT"
+    # Abhijit used to be listed first and the hero then had to demote it. The
+    # computed windows — a hora trimmed to the good Gowri kala it falls in — now
+    # lead, and Abhijit follows as the classical always-auspicious fallback.
+    best = body["data"]["bestWindows"]
+    assert best[0]["type"] != "ABHIJIT"
+    assert any(w["type"] == "ABHIJIT" for w in best)
+    # A computed window carries what it is made of, so a surface can say why.
+    assert best[0]["kala"]
+    assert best[0]["horaLord"]
+    assert best[0]["text"]["en"] and best[0]["text"]["ta"]
+    assert "bestWindowConflicts" in body["data"]
     assert body["data"]["cautionWindows"][0]["type"] == "RAHU_KALAM"
     # caution suggestion always references Rahu Kalam regardless of day label
     assert "Rahu" in body["data"]["cautionSuggestion"]["en"] or "Rahu" in body["data"]["cautionSuggestion"]["ta"]
