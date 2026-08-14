@@ -125,10 +125,16 @@ function getNilai(graha: string, rasi: number): string {
 
 // ── Utility helpers ───────────────────────────────────────────────────────────
 function toDMS(deg: number): string {
-  const d = Math.floor(deg);
-  const mRaw = (deg - d) * 60;
-  const m = Math.floor(mRaw);
-  const s = Math.round((mRaw - m) * 60);
+  const d0 = Math.floor(deg);
+  const mRaw = (deg - d0) * 60;
+  const m0 = Math.floor(mRaw);
+  // Same 60-second carry the dashboard sheet needed — rounding can produce
+  // "17:37:60", which is not a reading.
+  let s = Math.round((mRaw - m0) * 60);
+  let m = m0;
+  let d = d0;
+  if (s === 60) { s = 0; m += 1; }
+  if (m === 60) { m = 0; d += 1; }
   return `${d}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 

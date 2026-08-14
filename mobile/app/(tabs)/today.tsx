@@ -645,7 +645,7 @@ export default function TodayTab() {
                 onPress={() => {
                   Haptics.selectionAsync();
                   openDetailSheet({
-                    title: primaryGowri.name || primaryGowri.label || "Gowri",
+                    title: gowriKalaLabel(primaryGowri.name) || primaryGowri.label || "Gowri",
                     body: primaryGowri.purpose || primaryGowri.warning || `${fmt(primaryGowri.start)} - ${fmt(primaryGowri.end)}`,
                     tone: primaryGowri.warning ? "caution" : "good",
                   });
@@ -1024,6 +1024,23 @@ function LifeAreaPulse({
   );
 }
 
+/**
+ * `name` is the backend's kala enum ("AMIRTHAM"), which must never reach the
+ * screen. It used to arrive null on the gowriNallaNeram summary — so this card
+ * always fell through to the generic "Gowri" — and the backend now sends it
+ * populated, which would print the shouting enum verbatim.
+ *
+ * Title-casing reproduces the English labels the web's `gowriCategoryLabel`
+ * table returns for all eight kalas exactly, so this stays a formatter rather
+ * than a third copy of that table. Tamil labels are still owed here (the card
+ * has never had them — both branches printed "Gowri").
+ */
+function gowriKalaLabel(name: string | null | undefined): string {
+  const raw = String(name ?? "").trim();
+  if (!raw) return "";
+  return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+}
+
 function GowriCard({ slot, isTamil, onPress, styles, fmt }: { slot: GowriSlot; isTamil: boolean; onPress: () => void; styles: ReturnType<typeof makeStyles>; fmt: (iso: string) => string }) {
   return (
     <TouchableOpacity style={styles.gowriCard} activeOpacity={0.86} onPress={onPress}>
@@ -1031,7 +1048,7 @@ function GowriCard({ slot, isTamil, onPress, styles, fmt }: { slot: GowriSlot; i
         <Text style={styles.gowriChipText}>G</Text>
       </View>
       <Text style={styles.gowriTime}>{fmt(slot.start)} - {fmt(slot.end)}</Text>
-      <Text style={styles.gowriLabel} numberOfLines={1}>{slot.name || slot.label || (isTamil ? "Gowri" : "Gowri")}</Text>
+      <Text style={styles.gowriLabel} numberOfLines={1}>{gowriKalaLabel(slot.name) || slot.label || (isTamil ? "Gowri" : "Gowri")}</Text>
     </TouchableOpacity>
   );
 }
