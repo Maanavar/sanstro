@@ -43,7 +43,14 @@ export interface LifeAreaData {
   area: string;
   label: BiText;
   score: number;
+  /** The six-month slope (score vs score6mo), not a restatement of how high
+   *  the current score is. */
   trend: "UP" | "DOWN" | "STABLE";
+  /** True while Chandrashtamam is docking this area's score. The rest of a
+   *  life-area score holds for weeks at a time; this is its one ~2-day input,
+   *  so a surface can name the cause rather than let the tile move silently.
+   *  Optional for backward-compatibility with cached responses. */
+  chandrashtamaApplied?: boolean;
   /** Engine re-run at +6 / +12 months (real transits + dasha in force then),
    *  blended as the current score is. Optional for backward-compatibility with
    *  older cached responses; falls back to the current score when absent. */
@@ -408,6 +415,31 @@ export interface DailyGuidanceWindow {
   type: string;
   start: string;
   end: string;
+  /**
+   * What the window is made of. Populated since the best window became the
+   * intersection of the hora grid and the Gowri kala grid, trimmed to where both
+   * agree — so a surface can say *why* a time is best. All optional: rows cached
+   * before the change, and the backend's stale-snapshot fallback, send only
+   * type/start/end.
+   */
+  kala?: string | null;       // AMIRTHAM | UTHI | LABHAM | DHANAM | SUGAM
+  horaLord?: string | null;   // VENUS | JUPITER | …
+  isPersonal?: boolean;       // ruled by this native's lagna or dasha lord
+  text?: BiText | null;       // "Venus hora inside Amirtham"
+}
+
+/**
+ * A stretch of the day that was nearly a best window, and what spoiled it —
+ * always a hora-vs-kala collision, the one pairing no other surface reconciles.
+ * Rahu Kalam / Yamagandam / Kuligai clashes are deliberately absent: the hero's
+ * Avoid card and the panchangam page already carry those.
+ */
+export interface DailyGuidanceWindowConflict {
+  kind: "BAD_KALA" | "MALEFIC_HORA" | (string & {});
+  cause: string;  // ROGAM | SATURN — the specific thing named
+  start: string;
+  end: string;
+  text: BiText;
 }
 
 export interface DailyGuidanceReasons {
@@ -481,6 +513,8 @@ export interface DailyGuidanceData {
   };
   bestWindows: DailyGuidanceWindow[];
   cautionWindows: DailyGuidanceWindow[];
+  /** Near-misses and their causes. Optional — absent on rows cached before it. */
+  bestWindowConflicts?: DailyGuidanceWindowConflict[];
   text: BiText;
   nakshatraPerspective: BiText | null;
   emotionalWeather: DailyGuidanceEmotionalWeather | null;

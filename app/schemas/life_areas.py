@@ -23,7 +23,15 @@ class LifeAreaData(BaseModel):
     area: str
     label: LifeAreaText
     score: int
+    #: UP / DOWN / STABLE from the six-month slope (score vs score_6mo), not
+    #: from how high the current score happens to be.
     trend: str
+    #: True when Chandrashtamam is currently docking this area's score. A
+    #: life-area score is otherwise a period number that holds for weeks; this
+    #: is the one input that turns over on a ~2-day cycle, so a surface can name
+    #: the cause instead of letting the tile move for no visible reason.
+    #: Defaults False for backward-compatibility with cached payloads.
+    chandrashtama_applied: bool = Field(default=False, alias="chandrashtamaApplied")
     # Forward-projected scores: the SAME engine re-run at +6 and +12 months
     # (real transits + the dasha/antardasha in force then), blended exactly as
     # the current score is. Not a cosmetic slope. Flagged for astrologer review.

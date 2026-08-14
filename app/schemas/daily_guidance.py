@@ -8,15 +8,49 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.schemas.dasha import ResponseMeta
 
 
+class DailyGuidanceText(BaseModel):
+    ta: str
+    en: str
+
+
 class DailyGuidanceWindow(BaseModel):
     type: str
     start: str
     end: str
+    # What the window is actually made of. Populated since the best window became
+    # the intersection of the hora grid and the Gowri kala grid (see
+    # _dg_hora._perfect_windows) so a surface can say *why* a time is best
+    # instead of the unfalsifiable "good for important tasks". All optional:
+    # rows cached before the change, and the stale-snapshot fallback path, carry
+    # a bare type/start/end and must still validate.
+    kala: str | None = Field(default=None)          # AMIRTHAM | UTHI | LABHAM | …
+    hora_lord: str | None = Field(default=None, alias="horaLord")
+    is_personal: bool = Field(default=False, alias="isPersonal")
+    text: DailyGuidanceText | None = Field(default=None)
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
-class DailyGuidanceText(BaseModel):
-    ta: str
-    en: str
+class DailyGuidanceWindowConflict(BaseModel):
+    """A stretch of the day that was nearly a best window, and what spoiled it.
+
+    Emitted so the hero can name a cause rather than silently omit the time. A
+    reader looking at the panchangam page sees Sugam 6:13-7:46 am marked good; if
+    the app's own "best window" skips it, the app owes them the reason.
+
+    Only hora-vs-kala collisions appear here — the one pairing no surface in the
+    app reconciles. Rahu Kalam / Yamagandam / Kuligai clashes are excluded on
+    purpose: they already have their own hero card and their own red rows on the
+    panchangam page, so repeating them would crowd out what nothing else explains.
+    """
+
+    kind: str   # BAD_KALA | MALEFIC_HORA
+    cause: str  # ROGAM | SATURN — the specific thing named
+    start: str
+    end: str
+    text: DailyGuidanceText
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class DailyGuidanceSuggestion(BaseModel):
@@ -161,6 +195,11 @@ class DailyGuidanceData(BaseModel):
     score_breakdown: DailyGuidanceScoreBreakdown = Field(alias="scoreBreakdown")
     best_windows: list[DailyGuidanceWindow] = Field(alias="bestWindows")
     caution_windows: list[DailyGuidanceWindow] = Field(alias="cautionWindows")
+    # Near-misses with their causes — see DailyGuidanceWindowConflict. Additive
+    # and defaulted so rows cached before it still validate.
+    best_window_conflicts: list[DailyGuidanceWindowConflict] = Field(
+        default_factory=list, alias="bestWindowConflicts"
+    )
     text: DailyGuidanceText
     nakshatra_perspective: DailyGuidanceText = Field(alias="nakshatraPerspective")
     emotional_weather: DailyGuidanceEmotionalWeather = Field(alias="emotionalWeather")
