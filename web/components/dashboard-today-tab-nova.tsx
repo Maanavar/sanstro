@@ -34,6 +34,7 @@ import { lunarSpecialTithiMeta, moonPhaseFromTithi } from "@/lib/lunar";
 import { useStreak } from "@/hooks/useStreak";
 import { StreakChip } from "./streak-chip";
 import { useEveningPreview } from "@/hooks/useEveningPreview";
+import type { MemberChart } from "@/hooks/useFamilyData";
 
 import { Card, Kicker } from "./ui";
 import { downloadJadhagamPdf } from "./dashboard-personal-shared";
@@ -71,7 +72,7 @@ export type DashboardTodayTabNovaProps = {
   birthDisplayName: string;
   selectedDate: string;
   todayDate: string;
-  personalMemberChart: { displayName: string } | null;
+  personalMemberChart: Pick<MemberChart, "memberId" | "displayName"> | null;
   personalChartSummary: ChartSummaryData | null;
   personalDailyGuidance: DailyGuidanceData | null;
   personalSani: SaniCycleData | null;
@@ -80,6 +81,7 @@ export type DashboardTodayTabNovaProps = {
   panchangamTimings: PanchangamTimingsData | null;
   weekAhead: WeekAheadData | null;
   familyAggregate: FamilyAggregateData | null;
+  remedyMemberCharts?: Array<Pick<MemberChart, "memberId" | "displayName" | "dailyGuidance">>;
   lifeAreas?: LifeAreasResponseData | null;
   dasha: DashaTimelineResponseData | null;
   dashaAntar: DashaTimelineItem[];
@@ -173,6 +175,7 @@ export function DashboardTodayTabNova({
   panchangam,
   weekAhead,
   familyAggregate,
+  remedyMemberCharts = [],
   lifeAreas,
   dasha,
   dashaAntar,
@@ -201,6 +204,23 @@ export function DashboardTodayTabNova({
   const { days: streakDays, best: streakBest, forgiven: streakForgiven } = useStreak();
   const { enabled: eveningPreviewOn, setEnabled: setEveningPreviewOn } = useEveningPreview();
   const displayName = personalMemberChart?.displayName ?? birthDisplayName;
+  const primaryRemedyMemberId = personalMemberChart?.memberId ?? (personalChartSummary?.chartId ? `chart:${personalChartSummary.chartId}` : "personal");
+  const remedyMembers = [
+    {
+      memberId: primaryRemedyMemberId,
+      displayName,
+      remedy: personalDailyGuidance?.remedy ?? null,
+      remedyFocus: personalDailyGuidance?.remedyFocus ?? null,
+    },
+    ...remedyMemberCharts
+      .filter((member) => member.memberId !== primaryRemedyMemberId)
+      .map((member) => ({
+        memberId: member.memberId,
+        displayName: member.displayName,
+        remedy: member.dailyGuidance?.remedy ?? null,
+        remedyFocus: member.dailyGuidance?.remedyFocus ?? null,
+      })),
+  ];
   // Hero greeting shows a first name only — the full name reads too formal
   // sitting right next to "Good morning".
   const heroFirstName = displayName.trim().split(/\s+/)[0] ?? displayName;
@@ -239,6 +259,12 @@ export function DashboardTodayTabNova({
   // DASH-10.1 (2026-07-16): Abhijit never fully disappears — surfaced as a
   // small secondary line when a personal window won the hero instead.
   const secondaryAbhijitWindow = findSecondaryAbhijitWindow(personalDailyGuidance?.bestWindows, bestWindow);
+  // One near-miss, named. The backend already ranks these (the native's own hora
+  // first, then by how much of the day was lost) and caps the list, so the hero
+  // takes the head rather than re-deciding. Only shown beside a window we are
+  // actually recommending — a lone caution with no recommendation is not a
+  // "best window" card.
+  const windowConflict = bestWindow ? personalDailyGuidance?.bestWindowConflicts?.[0] ?? null : null;
 
   // Real lunar phase for today, drawn straight from the tithi we already have —
   // drives the hero sky backdrop's moon shape (thin crescent -> full disc).
@@ -642,9 +668,32 @@ export function DashboardTodayTabNova({
                     <div style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)", marginTop: "3px", fontVariantNumeric: "tabular-nums" }}>
                       {formatClockLabel(bestWindow.start)} – {formatClockLabel(bestWindow.end)}
                     </div>
-                    <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "2px" }}>
-                      {lang === "ta" ? "முக்கியமான வேலைகளுக்கு நல்லது" : "Good for important tasks"}
+                    {/* The window's own composition ("Venus hora inside
+                        Amirtham") when the backend computed it, so the claim is
+                        checkable against the panchangam tab. The old blanket
+                        line stays as the fallback for windows served from a
+                        cache row predating the change. */}
+                    <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "2px", lineHeight: 1.35 }}>
+                      {bestWindow.text
+                        ? (lang === "ta" ? bestWindow.text.ta : bestWindow.text.en)
+                        : (lang === "ta" ? "முக்கியமான வேலைகளுக்கு நல்லது" : "Good for important tasks")}
                     </div>
+                    {/* A good kala this native must skip, and why. Nothing else
+                        in the app reconciles the hora grid against the Gowri
+                        grid, so without this the panchangam tab appears to
+                        contradict the hero. */}
+                    {windowConflict && (
+                      <div style={{ fontSize: "var(--text-xs)", color: "var(--color-low)", marginTop: "6px", paddingTop: "6px", borderTop: "1px solid var(--color-border)", lineHeight: 1.35, display: "flex", gap: "var(--space-2)" }}>
+                        <AlertTriangle size={12} strokeWidth={2} aria-hidden="true" style={{ flex: "none", marginTop: "2px" }} />
+                        <span>
+                          <span style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+                            {formatClockLabel(windowConflict.start)} – {formatClockLabel(windowConflict.end)}
+                          </span>
+                          {" · "}
+                          {lang === "ta" ? windowConflict.text.ta : windowConflict.text.en}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </Card>
               )}
@@ -779,6 +828,7 @@ export function DashboardTodayTabNova({
         familyAggregate={familyAggregate}
         remedy={personalDailyGuidance?.remedy ?? null}
         remedyFocus={personalDailyGuidance?.remedyFocus ?? null}
+        remedyMembers={remedyMembers}
         savingReminder={savingReminder}
         reminderMessage={reminderStatus?.text ?? null}
         onSaveReminder={() => void handleSaveReminder()}

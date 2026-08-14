@@ -136,35 +136,164 @@ function NovaFestivalRow({ festival, lang }: { festival: PanchangamFestival; lan
   );
 }
 
+/**
+ * A Nalla Neram / Gowri Nalla Neram summary card.
+ *
+ * Each window names the Gowri kala it was cut from (Amirtham/Uthi/Labham/…) next
+ * to its AM/PM/Day/Night period. Without it the two cards can print adjacent
+ * windows with nothing to tell them apart — the reader sees two good times and
+ * no reason why they are listed separately. The kala name is what distinguishes
+ * them: it says *what kind* of good time this is. What it is good for comes from
+ * `gowriPurposeLabel`, printed only where nothing else on the surface carries it
+ * — see `showPurpose`.
+ */
+/**
+ * A festival as a chip for the day-header row, beside Valarpirai and the nokku.
+ *
+ * "Is today anything?" is the first question a panchangam answers, and it was
+ * being answered eight sections down the card, below the kalams and the
+ * chandrashtamam — by the time a reader reached it they had already decided the
+ * day was ordinary. Up here it lands with the fortnight, where it is read.
+ * Tag tone carries the tradition (Hindu / Muslim / Christian / govt); world
+ * observances fall through to the muted tone, which is the ranking we want.
+ */
+function NovaFestivalChip({ festival, lang }: { festival: PanchangamFestival; lang: Lang }) {
+  const tags = festivalTags(festival);
+  const tone = novaFestivalTagTone(tags[0] ?? "");
+  const tagNames = tags.map((tag) => novaFestivalTagLabel(tag, lang)).join(" · ");
+  return (
+    <span
+      title={tagNames || undefined}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: "var(--space-2)",
+        fontSize: "var(--text-sm)", fontWeight: 600, color: tone.color,
+        background: tone.bg, border: `1px solid ${tone.border}`,
+        borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)",
+      }}
+    >
+      <span aria-hidden="true">{festivalIcon(festival.name)}</span>
+      {festival.name}
+    </span>
+  );
+}
+
 function NovaAuspiciousCard({
   title,
   slots,
   lang,
+  showPurpose = true,
 }: {
   title: string;
   slots: PanchangamDailyResponseData["kalam"]["nallaNeram"];
   lang: Lang;
+  /**
+   * Whether each window carries its "good for X" line. Off on the full day view,
+   * where the Gowri detail grid a few sections below already prints the purpose
+   * for every one of the day's kalas — repeating it here makes the Auspicious
+   * section a wall of prose when it is meant to be read as a list of times. On
+   * in the month drawer, which has no detail grid to fall back to.
+   */
+  showPurpose?: boolean;
 }) {
   if (!slots || slots.length === 0) return null;
+  // The purpose line belongs to the kala, not the window, so print it once per
+  // kala: two windows of the same kala repeating "best overall — any important
+  // activity" directly under itself reads as a rendering fault. This used to hit
+  // on most days, when both Gowri windows were Amirtham; since the night window
+  // became the earliest good kala rather than the best-ranked one (panchangam.py
+  // v39) the two coincide far less often, but a shared kala is still reachable.
+  const purposeShownFor = new Set<string>();
   return (
     <Card variant="high" compact>
       <div style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-text-strong)" }}>{title}</div>
-      {slots.map((slot, idx) => (
-        <div key={`${slot.period ?? "slot"}-${slot.start}-${idx}`} style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-sm)", color: "var(--color-text)" }}>
-          <span>{gowriPeriodLabel(slot.period, lang) || `#${idx + 1}`}</span>
-          <span style={{ fontWeight: 600, color: "var(--color-high)" }}>{formatClockLabel(slot.start)} – {formatClockLabel(slot.end)}</span>
-        </div>
-      ))}
+      {slots.map((slot, idx) => {
+        const category = gowriCategoryLabel(slot.name, lang);
+        const quality = gowriQualityLabel(slot.name, lang);
+        const kalaKey = String(slot.name ?? "");
+        const purpose = !showPurpose || purposeShownFor.has(kalaKey) ? "" : gowriPurposeLabel(slot.name, lang);
+        if (purpose) purposeShownFor.add(kalaKey);
+        return (
+          <div key={`${slot.period ?? "slot"}-${slot.start}-${idx}`} style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-3)", fontSize: "var(--text-sm)", color: "var(--color-text)" }}>
+              <span style={{ minWidth: 0 }}>
+                {gowriPeriodLabel(slot.period, lang) || `#${idx + 1}`}
+                {category && (
+                  <>
+                    <span aria-hidden="true" style={{ color: "var(--color-faint)" }}> · </span>
+                    <span style={{ fontWeight: 700, color: "var(--color-text-strong)" }}>{category}</span>
+                    {quality && <span style={{ color: "var(--color-high)", fontWeight: 600 }}> · {quality}</span>}
+                  </>
+                )}
+              </span>
+              <span style={{ fontWeight: 600, color: "var(--color-high)", whiteSpace: "nowrap" }}>{formatClockLabel(slot.start)} – {formatClockLabel(slot.end)}</span>
+            </div>
+            {purpose && (
+              <div style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.35 }}>{purpose}</div>
+            )}
+          </div>
+        );
+      })}
     </Card>
   );
 }
 
-function NovaAvoidRow({ label, slot }: { label: string; slot: { start: string; end: string } }) {
+/**
+ * The three inauspicious kalams as one three-up row rather than three stacked
+ * rows. They are the same *kind* of fact measured three ways, all of one day, so
+ * a reader compares them against each other and against the clock — a vertical
+ * list makes that a scan of three separate cards; side by side it is one glance.
+ * Collapses to two columns and then one on narrow surfaces (the day drawer).
+ *
+ * `nowMinutes` is optional: only the live "today" view knows a running window,
+ * and the month drawer (any date) must not claim one is running.
+ */
+function NovaAvoidStrip({
+  kalam,
+  lang,
+  nowMinutes,
+}: {
+  kalam: PanchangamDailyResponseData["kalam"];
+  lang: Lang;
+  nowMinutes?: number;
+}) {
+  // Dot colour + opacity deliberately mirror DAY_TIMELINE_BAND_STYLE's
+  // avoid-strong / avoid / avoid-soft ramp, because the timeline paints these
+  // same three windows a few pixels above this strip. Two severity ramps
+  // disagreeing on one card is worse than having none.
+  const entries = [
+    { key: "rahu", label: t("label_rahu_kalam", lang), slot: kalam.rahuKalam, dot: "var(--color-score-low)", dotOpacity: 0.9 },
+    { key: "yama", label: t("label_yamagandam", lang), slot: kalam.yamagandam, dot: "var(--color-score-mid)", dotOpacity: 0.88 },
+    { key: "kuligai", label: t("label_kuligai", lang), slot: kalam.kuligai, dot: "var(--color-score-mid)", dotOpacity: 0.45 },
+  ];
   return (
-    <Card variant="low" compact style={{ flexDirection: "row", justifyContent: "space-between", fontSize: "var(--text-sm)" }}>
-      <span style={{ fontWeight: 700, color: "var(--color-text-strong)" }}>{label}</span>
-      <span style={{ fontWeight: 600, color: "var(--color-low)" }}>{formatClockLabel(slot.start)} – {formatClockLabel(slot.end)}</span>
-    </Card>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "var(--space-2)" }}>
+      {entries.map((entry) => {
+        const start = parseHmToMinutes(entry.slot.start);
+        const end = parseHmToMinutes(entry.slot.end);
+        const running = nowMinutes !== undefined && nowMinutes >= start && nowMinutes < end;
+        return (
+          <Card
+            key={entry.key}
+            variant="low"
+            compact
+            style={{ gap: "3px", minWidth: 0, borderColor: running ? "var(--color-low)" : undefined }}
+          >
+            <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-text-strong)", minWidth: 0 }}>
+              <span aria-hidden="true" style={{ width: "6px", height: "6px", borderRadius: "var(--radius-pill)", background: entry.dot, opacity: entry.dotOpacity, flexShrink: 0 }} />
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.label}</span>
+            </span>
+            <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-low)" }}>
+              {formatClockLabel(entry.slot.start)} – {formatClockLabel(entry.slot.end)}
+            </span>
+            {running && (
+              <span style={{ fontSize: "var(--text-xs)", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-low)" }}>
+                {lang === "ta" ? "இப்போது நடப்பில்" : "Running now"}
+              </span>
+            )}
+          </Card>
+        );
+      })}
+    </div>
   );
 }
 
@@ -337,7 +466,7 @@ function NovaGowriDetailGrid({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
       <Kicker as="div">
-        {lang === "ta" ? "கௌரி நல்ல நேரம் விவரம்" : "Gowri Nalla Neram Details"}
+        {t("gowri_panchangam_details", lang)}
       </Kicker>
       <div style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.4 }}>
         {lang === "ta"
@@ -470,16 +599,14 @@ function DayDetailDrawerNova({
           </div>
 
           {(data.kalam.nallaNeram?.length ?? 0) > 0 && (
-            <NovaAuspiciousCard title={t("label_nalla_neram", lang)} slots={data.kalam.nallaNeram ?? []} lang={lang} />
+            <NovaAuspiciousCard title={t("title_recommended_nalla_neram", lang)} slots={data.kalam.nallaNeram ?? []} lang={lang} />
           )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
             <Kicker as="p" color="var(--color-low)" style={{ margin: 0, letterSpacing: "0.14em" }}>
               {lang === "ta" ? "தவிர்க்க வேண்டிய நேரம்" : "Avoid"}
             </Kicker>
-            <NovaAvoidRow label={t("label_rahu_kalam", lang)} slot={data.kalam.rahuKalam} />
-            <NovaAvoidRow label={t("label_yamagandam", lang)} slot={data.kalam.yamagandam} />
-            <NovaAvoidRow label={t("label_kuligai", lang)} slot={data.kalam.kuligai} />
+            <NovaAvoidStrip kalam={data.kalam} lang={lang} />
           </div>
 
           {data.festivals.length > 0 && (
@@ -697,21 +824,24 @@ export function DashboardCalendarTabNova({
   const observanceFestivals = panchangam?.festivals.filter((f) => festivalTags(f).includes("observance")) ?? [];
   const dailyFestivalEvents = panchangam?.festivals.filter((f) => !festivalTags(f).includes("observance")) ?? [];
 
+  // The festival name used to lead this line. It now leads the day-header chip
+  // row instead, and repeating it here — inside the same card, a few hundred
+  // pixels down — spent the "significance" slot restating a fact the reader has
+  // already had, in place of the muhurtham reason it was hiding.
   const significanceText = useMemo(() => {
     if (!panchangam) return "";
-    return panchangam.festivals?.[0]?.name || panchangam.subhaMuhurtham?.reason || (lang === "ta" ? "இன்று அமைதியாக முன்னேறுங்கள்." : "Move steadily and keep the day intentional.");
+    return panchangam.subhaMuhurtham?.reason || (lang === "ta" ? "இன்று அமைதியாக முன்னேறுங்கள்." : "Move steadily and keep the day intentional.");
   }, [panchangam, lang]);
 
+  // Reading order is the astrologer's, not the textbook's: the day's fixed
+  // identity first (Vara / Moon / Lagnam), then the moving limbs a reader checks
+  // for timing (Nakshatra / Tithi / Naamyogam / Amirdhadhi Yogam / Karana), then
+  // the directional and Nethiram/Jeevan qualifiers.
   const fiveLimbRows = panchangam
     ? [
         { key: lang === "ta" ? "வாரம்" : "Vara", value: tWeekday(panchangam.vara.weekday, lang), hint: `${tPlanetLord(panchangam.vara.lord, lang)} ${t("lord_word", lang)}` },
-        {
-          key: lang === "ta" ? "திதி" : "Tithi",
-          value: tTithi(tithiActive?.activeName ?? panchangam.tithi.name, lang),
-          hint: tithiActive?.rolledOver
-            ? `${formatClockLabel(panchangam.tithi.endsAt)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
-            : `${tithiPaksha ?? ""} · ${formatUntilLabel(panchangam.tithi.endsAt, panchangam.tithi.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tTithi(panchangam.tithi.nextName, lang)}`,
-        },
+        { key: lang === "ta" ? "சந்திரன்" : "Moon", value: tMoonPhase(panchangam.moonPhaseLabel, lang), hint: lang === "ta" ? "சந்திர கலை" : "Moon phase" },
+        { key: lang === "ta" ? "லக்னம்" : "Lagnam", value: panchangam.lagnam.rasiName, hint: `${lang === "ta" ? "இருப்பு" : "Remaining"} ${panchangam.lagnam.nazhigai} ${lang === "ta" ? "நாழிகை" : "nazhigai"} ${panchangam.lagnam.vinadi} ${lang === "ta" ? "விநாடி" : "vinadi"} · ${formatUntilLabel(panchangam.lagnam.endsAt, panchangam.lagnam.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)}` },
         {
           key: lang === "ta" ? "நட்சத்திரம்" : "Nakshatra",
           value: tNakshatra(nakActive?.activeName ?? panchangam.nakshatra.name, lang),
@@ -720,12 +850,23 @@ export function DashboardCalendarTabNova({
             : `${t("label_padam", lang)} ${panchangam.nakshatra.pada} · ${formatUntilLabel(panchangam.nakshatra.endsAt, panchangam.nakshatra.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tNakshatra(panchangam.nakshatra.nextName, lang)}`,
         },
         {
-          key: lang === "ta" ? "யோகம்" : "Yoga",
+          key: lang === "ta" ? "திதி" : "Tithi",
+          value: tTithi(tithiActive?.activeName ?? panchangam.tithi.name, lang),
+          hint: tithiActive?.rolledOver
+            ? `${formatClockLabel(panchangam.tithi.endsAt)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
+            : `${tithiPaksha ?? ""} · ${formatUntilLabel(panchangam.tithi.endsAt, panchangam.tithi.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tTithi(panchangam.tithi.nextName, lang)}`,
+        },
+        {
+          // The 27 nithya yogas, named Naamyogam here to keep them clearly apart
+          // from the Amirdhadhi Yogam row directly below — two different "yogam"
+          // systems sitting adjacent read as one repeated field otherwise.
+          key: lang === "ta" ? "நாம யோகம்" : "Naamyogam",
           value: tYoga(yogaActive?.activeName ?? panchangam.yoga.name, lang),
           hint: yogaActive?.rolledOver
             ? `${formatClockLabel(panchangam.yoga.endsAt)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
             : `${formatUntilLabel(panchangam.yoga.endsAt, panchangam.yoga.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tYoga(panchangam.yoga.nextName, lang)}`,
         },
+        { key: lang === "ta" ? "அமிர்தாதி யோகம்" : "Amirdhadhi Yogam", value: tAmirdhadhiYogam(panchangam.amirdhadhiYogam.name, lang), hint: `${formatUntilLabel(panchangam.amirdhadhiYogam.endsAt, panchangam.amirdhadhiYogam.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tAmirdhadhiYogam(panchangam.amirdhadhiYogam.nextName, lang)}` },
         {
           key: lang === "ta" ? "கரணம்" : "Karana",
           value: tKarana(karanaActive?.activeName ?? panchangam.karana.name, lang),
@@ -733,12 +874,9 @@ export function DashboardCalendarTabNova({
             ? `${formatClockLabel(panchangam.karana.endsAt)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
             : `${formatUntilLabel(panchangam.karana.endsAt, panchangam.karana.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tKarana(panchangam.karana.nextName, lang)}`,
         },
-        { key: lang === "ta" ? "சந்திரன்" : "Moon", value: tMoonPhase(panchangam.moonPhaseLabel, lang), hint: lang === "ta" ? "சந்திர கலை" : "Moon phase" },
         { key: lang === "ta" ? "சூலம்" : "Soolam", value: tSoolamDirection(panchangam.soolam.direction, lang), hint: `${lang === "ta" ? "பரிகாரம்" : "Parigaram"}: ${tParigaram(panchangam.soolam.parigaram, lang)}` },
-        { key: lang === "ta" ? "லக்னம்" : "Lagnam", value: panchangam.lagnam.rasiName, hint: `${lang === "ta" ? "இருப்பு" : "Remaining"} ${panchangam.lagnam.nazhigai} ${lang === "ta" ? "நாழிகை" : "nazhigai"} ${panchangam.lagnam.vinadi} ${lang === "ta" ? "விநாடி" : "vinadi"} · ${formatUntilLabel(panchangam.lagnam.endsAt, panchangam.lagnam.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)}` },
         { key: lang === "ta" ? "நேத்திரம்" : "Nethiram", value: tNethiram(panchangam.nethiram, lang), hint: t("nethiram_jeevan_hint", lang) },
         { key: lang === "ta" ? "ஜீவன்" : "Jeevan", value: tJeevan(panchangam.jeevan, lang), hint: t("nethiram_jeevan_hint", lang) },
-        { key: lang === "ta" ? "அமிர்தாதி யோகம்" : "Amirdhadhi Yogam", value: tAmirdhadhiYogam(panchangam.amirdhadhiYogam.name, lang), hint: `${formatUntilLabel(panchangam.amirdhadhiYogam.endsAt, panchangam.amirdhadhiYogam.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tAmirdhadhiYogam(panchangam.amirdhadhiYogam.nextName, lang)}` },
       ]
     : [];
 
@@ -802,8 +940,9 @@ export function DashboardCalendarTabNova({
                 <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 600, lineHeight: 1.25, color: "var(--color-text-strong)" }}>
                   {tTithi(tithiActive?.activeName ?? panchangam.tithi.name, lang)}. {tNakshatra(nakActive?.activeName ?? panchangam.nakshatra.name, lang)}. {tYoga(yogaActive?.activeName ?? panchangam.yoga.name, lang)}.
                 </div>
-                {/* Fortnight (with the live moon shape) and the day's nokku — the two
-                    things a reader checks before the clock times below. */}
+                {/* Fortnight (with the live moon shape), the day's nokku, and what
+                    the day *is* — the things a reader checks before the clock
+                    times below. */}
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginTop: "10px", flexWrap: "wrap" }}>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)", color: "var(--color-accent-secondary)", fontWeight: 600 }}>
                     {moonPhase ? <MiniMoonGlyph phase={moonPhase} size={15} /> : (isWaxing ? "◐" : "◑")}
@@ -823,6 +962,11 @@ export function DashboardCalendarTabNova({
                       </span>
                     </>
                   )}
+                  {/* Festivals first, then world observances — same row, ranked
+                      by the tone their tag resolves to. */}
+                  {[...dailyFestivalEvents, ...observanceFestivals].map((festival) => (
+                    <NovaFestivalChip key={festival.name} festival={festival} lang={lang} />
+                  ))}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginTop: "8px", fontSize: "var(--text-sm)", color: "var(--color-muted)", flexWrap: "wrap" }}>
                   <span>
@@ -891,8 +1035,13 @@ export function DashboardCalendarTabNova({
                 <Kicker as="div" color="var(--color-high)">
                   {lang === "ta" ? "நல்ல நேரங்கள்" : "Auspicious"}
                 </Kicker>
-                <NovaAuspiciousCard title={t("label_nalla_neram", lang)} slots={panchangam.kalam.nallaNeram ?? []} lang={lang} />
-                <NovaAuspiciousCard title={t("label_gowri_nalla_neram", lang)} slots={panchangam.kalam.gowriNallaNeram ?? []} lang={lang} />
+                {/* showPurpose off: the Gowri detail grid below prints what each
+                    kala is good for, so here the section stays a list of times. */}
+                <NovaAuspiciousCard title={t("title_recommended_nalla_neram", lang)} slots={panchangam.kalam.nallaNeram ?? []} lang={lang} showPurpose={false} />
+                <NovaAuspiciousCard title={t("title_additional_gowri_good_times", lang)} slots={panchangam.kalam.gowriNallaNeram ?? []} lang={lang} showPurpose={false} />
+                <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.4 }}>
+                  {t("gowri_summary_hint", lang)}
+                </p>
               </div>
 
               {/* ── Avoid ── */}
@@ -900,9 +1049,9 @@ export function DashboardCalendarTabNova({
                 <Kicker as="div" color="var(--color-low)">
                   {lang === "ta" ? "தவிர்க்க வேண்டிய நேரம்" : "Avoid"}
                 </Kicker>
-                <NovaAvoidRow label={t("label_rahu_kalam", lang)} slot={panchangam.kalam.rahuKalam} />
-                <NovaAvoidRow label={t("label_yamagandam", lang)} slot={panchangam.kalam.yamagandam} />
-                <NovaAvoidRow label={t("label_kuligai", lang)} slot={panchangam.kalam.kuligai} />
+                {/* currentNowMinutes is -1 on any date but today, so "Running
+                    now" can never appear while browsing another day. */}
+                <NovaAvoidStrip kalam={panchangam.kalam} lang={lang} nowMinutes={currentNowMinutes} />
               </div>
 
               {/* ── Today's Nakshatra ── */}
@@ -946,34 +1095,11 @@ export function DashboardCalendarTabNova({
                 </div>
               )}
 
-              {/* ── Today's Events ── */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                <Kicker as="div">
-                  {lang === "ta" ? "இன்றைய நிகழ்வுகள்" : "Today's Events"}
-                </Kicker>
-                {observanceFestivals.length === 0 && dailyFestivalEvents.length === 0 ? (
-                  <span style={{ fontSize: "var(--text-base)", color: "var(--color-muted)", fontWeight: 600 }}>{t("label_no_festivals", lang)}</span>
-                ) : (
-                  <>
-                    {observanceFestivals.length > 0 && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                        <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", color: "var(--color-faint)", textTransform: "uppercase" }}>
-                          {lang === "ta" ? "உலக தினங்கள்" : "World Observance"}
-                        </div>
-                        {observanceFestivals.map((festival) => <NovaFestivalRow key={festival.name} festival={festival} lang={lang} />)}
-                      </div>
-                    )}
-                    {dailyFestivalEvents.length > 0 && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                        <div style={{ fontSize: "var(--text-xs)", letterSpacing: "0.1em", color: "var(--color-faint)", textTransform: "uppercase" }}>
-                          {lang === "ta" ? "திருவிழாக்கள்" : "Festivals"}
-                        </div>
-                        {dailyFestivalEvents.map((festival) => <NovaFestivalRow key={festival.name} festival={festival} lang={lang} />)}
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
+              {/* Today's Events moved up into the day-header chip row above (as
+                  NovaFestivalChip) — a festival is the headline fact about a
+                  day, not a footnote under the kalams. Nothing is printed when
+                  the day has none: the chip row already carries the fortnight,
+                  so an explicit "no festivals" line would only add noise. */}
 
               {/* ── Gowri Nalla Neram Details ── */}
               <NovaGowriDetailGrid

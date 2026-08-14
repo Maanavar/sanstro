@@ -5,6 +5,17 @@ import { ArrowRight, Sparkles } from "lucide-react";
 
 import { apiFetchJson } from "@/lib/api";
 import { formatClockLabel, scoreColor } from "@/lib/format";
+import { dt } from "@/lib/dashboard-i18n";
+import {
+  CARE_FILTER_NOTE,
+  activeSaniCycles,
+  careReasonLabel,
+  careReasonNote,
+  memberCareReason,
+  saniCycleName,
+  saniCycleNote,
+  type CareReason,
+} from "@/lib/family-flags";
 import { t, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { tamilizeAstroEnglish } from "@/lib/tamil-astro";
@@ -29,7 +40,7 @@ import type {
 import type { MemberChart } from "@/hooks/useFamilyData";
 import { useApiQuery } from "@/hooks/useApiQuery";
 
-import { formatHeaderDate, getTamilMonthDate } from "./dashboard-calendar-shared";
+import { formatChandrashtamaWindowSummary, formatHeaderDate, getTamilMonthDate } from "./dashboard-calendar-shared";
 import {
   ScoreRing,
   formatRelLabel,
@@ -58,7 +69,7 @@ import {
   NovaChartValidationChip,
 } from "./dashboard-today-deepdive-extras-nova";
 import { ShareCardButton } from "./dashboard-share-card";
-import { downloadJadhagamPdf } from "./dashboard-personal-shared";
+import { ChandrashtamaCard, downloadJadhagamPdf } from "./dashboard-personal-shared";
 import {
   HySection,
   HyPlanetOrbs,
@@ -95,7 +106,6 @@ import { ZodiacBadge } from "./zodiac-badge";
 
 const ELDER_AGE = 60;
 const MINOR_AGE = 18;
-const LOW_SCORE_THRESHOLD = 45; // mirrors app/services/family_vault_service.py's low_score_count cutoff
 
 type RelationBucket = "elder" | "adult" | "child";
 type RelationFilter = "all" | RelationBucket | "needsCare";
@@ -107,11 +117,16 @@ function ageBucket(age: number | null | undefined): RelationBucket {
   return "adult";
 }
 
-function memberNeedsCare(member: FamilyAggregateMember, isChandrashtama: boolean): boolean {
-  if (isChandrashtama) return true;
-  if (member.individualScore < LOW_SCORE_THRESHOLD) return true;
-  return member.activeCycleTags.some((tag) => tag.includes("SANI") || tag.includes("CHANDRASHTAMA"));
+/** Two independent sources say the same thing, and either can be missing:
+ *  the aggregate's cycle tag arrives with the member list, while the transit
+ *  snapshot only lands once that member's chart bundle resolves (and stays
+ *  null if it failed). Reading both means the flag shows on first paint and
+ *  survives a bundle error, instead of appearing a beat late or not at all. */
+function memberIsChandrashtama(member: FamilyAggregateMember, chart: MemberChart | undefined): boolean {
+  if (chart?.transit?.isChandrashtama) return true;
+  return member.activeCycleTags.includes("CHANDRASHTAMA");
 }
+
 
 const FAMILY_HERO_TEXT: Record<string, { en: string; ta: string }> = {
   STRONG_FAMILY_DAY: { en: "Strongly supportive — a great day to move together.", ta: "மிகவும் சாதகமான நாள் — ஒன்றாக முன்னேற சிறந்த நேரம்." },
@@ -362,7 +377,10 @@ function HySaniCard({ lang, sani }: { lang: Lang; sani: SaniCycleData }) {
         {cycles.map(({ label, cycle }) => (
           <Card key={label} variant={cycle.isActive ? "low" : "default"} style={{ background: cycle.isActive ? undefined : "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
             <Kicker as="span" color={cycle.isActive ? "var(--color-low)" : "var(--color-faint)"} style={{ letterSpacing: "0.1em" }}>{label}</Kicker>
-            <span style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-md)", fontWeight: 600, color: cycle.isActive ? "var(--color-low)" : "var(--color-high)" }}>{cycle.type ?? (lang === "ta" ? "இயல்பு" : "Normal")}</span>
+            {/* Named, not the raw enum — this card is where a reader lands to
+                find out what the member card's ♄ chip meant, and it used to
+                answer with "EZHARAI_SANI_PHASE_1". */}
+            <span style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-md)", fontWeight: 600, color: cycle.isActive ? "var(--color-low)" : "var(--color-high)" }}>{cycle.type ? saniCycleName(cycle.type, lang) : (lang === "ta" ? "இயல்பு" : "Normal")}</span>
             <span style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.45 }}>{cycle.supportiveLabel ?? (lang === "ta" ? "செயலில் சனி அழுத்தம் இல்லை." : "No active Saturn-pressure cycle.")}</span>
           </Card>
         ))}
@@ -383,7 +401,8 @@ function HyMemberSelectorCard({
   relationLabel,
   isSelf,
   isActive,
-  needsCare,
+  careReason,
+  saniCycles,
   onOpen,
 }: {
   lang: Lang;
@@ -393,7 +412,8 @@ function HyMemberSelectorCard({
   relationLabel: string | null;
   isSelf: boolean;
   isActive: boolean;
-  needsCare: boolean;
+  careReason: CareReason | null;
+  saniCycles: string[];
   onOpen: () => void;
 }) {
   const summary = memberChart?.summary;
@@ -413,7 +433,9 @@ function HyMemberSelectorCard({
       style={{
         textAlign: "left", cursor: "pointer", fontFamily: "inherit",
         background: isActive ? "var(--color-accent-muted)" : "var(--color-surface)",
-        border: `1.5px solid ${isActive ? "var(--color-accent)" : needsCare ? "var(--color-low-border)" : isSelf ? "var(--color-border-strong)" : "var(--color-border)"}`,
+        // Only a *today* condition tints the border. A Saturn cycle running for
+        // the next seven years must not paint this card red every single day.
+        border: `1.5px solid ${isActive ? "var(--color-accent)" : careReason === "lowScore" ? "var(--color-low-border)" : careReason === "chandrashtama" ? "var(--color-mid-border)" : isSelf ? "var(--color-border-strong)" : "var(--color-border)"}`,
         borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-5)",
         display: "flex", flexDirection: "column", gap: "var(--space-3)",
       }}
@@ -436,9 +458,30 @@ function HyMemberSelectorCard({
             ☀ {formatClockLabel(bestWindow.start)}–{formatClockLabel(bestWindow.end)}
           </span>
         )}
-        {needsCare && (
-          <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-low)", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", borderRadius: "var(--radius-sm)", padding: "var(--space-1) var(--space-2)" }}>
-            {lang === "ta" ? "கவனம் தேவை" : "needs care"}
+        {/* Every flag names its own cause. The old single "needs care" chip
+            fired for Chandrashtama, a Saturn cycle *or* a low score and said
+            which none of the time — so a member reading 53 / "Steady day" wore
+            a red care chip with nothing on the card to explain it.
+            Chandrashtama is amber ("awareness, not alarm", as on the owner's
+            own Today hero); the score-derived chip is red and worded off the
+            same band that colours the ring beside it. */}
+        {careReason && (
+          <span
+            title={careReasonNote(careReason, lang)}
+            style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: careReason === "chandrashtama" ? "var(--color-mid)" : "var(--color-low)", background: careReason === "chandrashtama" ? "var(--color-mid-bg)" : "var(--color-low-bg)", border: `1px solid ${careReason === "chandrashtama" ? "var(--color-mid-border)" : "var(--color-low-border)"}`, borderRadius: "var(--radius-sm)", padding: "var(--space-1) var(--space-2)" }}
+          >
+            {careReason === "chandrashtama" ? "🌘 " : ""}{careReasonLabel(careReason, lang)}
+          </span>
+        )}
+        {/* Saturn cycles last 2.5–7.5 years. Named, so the reader knows what it
+            is, and quiet, so a permanent condition never reads as today's news.
+            Selecting the member opens the full Sani card further down. */}
+        {saniCycles[0] && (
+          <span
+            title={saniCycleNote(saniCycles, lang)}
+            style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--color-muted)", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", padding: "var(--space-1) var(--space-2)" }}
+          >
+            ♄ {saniCycleName(saniCycles[0], lang)}
           </span>
         )}
         <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-xs)", color: "var(--color-accent-strong)", fontWeight: 600 }}>
@@ -641,8 +684,10 @@ export function DashboardFamilyChartsHybrid({
       const todayItem = (familyToday?.members ?? []).find((tm) => tm.memberId === m.familyMemberId);
       const birthDateLocal = chart?.chart?.birthProfile?.birthDateLocal ?? null;
       const bucket = ageBucket(birthDateLocal ? ageFromBirth(birthDateLocal, selectedDate) : null);
-      const careFlag = memberNeedsCare(m, chart?.transit?.isChandrashtama ?? false);
-      return { member: m, familyMember: fm, chart, todayItem, bucket, careFlag, isSelf: isOwnerRow };
+      const isChandrashtama = memberIsChandrashtama(m, chart);
+      const careReason = memberCareReason(m, isChandrashtama);
+      const saniCycles = activeSaniCycles(m.activeCycleTags);
+      return { member: m, familyMember: fm, chart, todayItem, bucket, careReason, saniCycles, isChandrashtama, isSelf: isOwnerRow };
     });
   }, [familyAggregate, familyMembers, memberCharts, familyToday, ownerMemberChart, selectedDate]);
 
@@ -650,14 +695,14 @@ export function DashboardFamilyChartsHybrid({
     const counts = { elder: 0, adult: 0, child: 0, needsCare: 0 };
     for (const meta of memberMeta) {
       counts[meta.bucket] += 1;
-      if (meta.careFlag) counts.needsCare += 1;
+      if (meta.careReason) counts.needsCare += 1;
     }
     return counts;
   }, [memberMeta]);
 
   const filteredMeta = memberMeta.filter((meta) => {
     if (relationFilter === "all") return true;
-    if (relationFilter === "needsCare") return meta.careFlag;
+    if (relationFilter === "needsCare") return meta.careReason !== null;
     return meta.bucket === relationFilter;
   });
 
@@ -668,8 +713,15 @@ export function DashboardFamilyChartsHybrid({
   const avoidWindow = familyAggregate?.avoidForFamilyDecisions[0] ?? null;
 
   const careMembers = memberMeta
-    .filter((meta) => meta.careFlag).slice(0, 2)
-    .map((meta) => ({ displayName: meta.member.displayName, note: lang === "ta" ? "ஓய்வு · முடிவுகளை தவிர்க்கவும்" : "rest · avoid decisions" }));
+    .filter((meta) => meta.careReason !== null).slice(0, 2)
+    .map((meta) => ({
+      displayName: meta.member.displayName,
+      // Say why, when we know why — "rest · avoid decisions" alone left the
+      // family's one Chandrashtama member indistinguishable from a low score.
+      note: meta.careReason === "chandrashtama"
+        ? (lang === "ta" ? "சந்திராஷ்டமம் · ஓய்வு" : "chandrashtama · rest")
+        : (lang === "ta" ? "ஓய்வு · முடிவுகளை தவிர்க்கவும்" : "rest · avoid decisions"),
+    }));
   const brightMembers = [...memberMeta]
     .sort((a, b) => b.member.individualScore - a.member.individualScore).slice(0, 2)
     .map((meta) => ({ displayName: meta.member.displayName, score: meta.member.individualScore }));
@@ -782,6 +834,17 @@ export function DashboardFamilyChartsHybrid({
   const readingSummary = reading?.summary ?? null;
   const readingChart = reading?.chart ?? null;
   const nakshatraCard = reading?.nakshatraCard ?? null;
+  // Chandrashtama for whoever is being read — the owner sees this spelled out
+  // on their own Today hero, but a family member's only mention of it used to
+  // be the dedicated full-profile screen behind "View full profile".
+  const readingIsChandrashtama = activeMeta?.isChandrashtama ?? reading?.transit?.isChandrashtama ?? false;
+  // `chandrashtamamToday` is derived from today's transiting Moon rasi, not
+  // from any one chart — the affected janma rasi (and so its star windows) is
+  // the same for everyone in the vault, so these windows are correct for the
+  // member being read, exactly as they are for the owner on Today.
+  const readingChandrashtamaWindows = panchangam
+    ? formatChandrashtamaWindowSummary(panchangam.chandrashtamamToday?.janmaNakshatraWindows ?? [], panchangam.dateLocal, lang)
+    : "";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
@@ -889,6 +952,9 @@ export function DashboardFamilyChartsHybrid({
                 ))}
                 {bucketCounts.needsCare > 0 && (
                   <button type="button" onClick={() => setRelationFilter(relationFilter === "needsCare" ? "all" : "needsCare")}
+                    // The pill's own criterion, so its count is never a number
+                    // the reader has to reverse-engineer from the cards.
+                    title={dt(CARE_FILTER_NOTE, lang)}
                     style={{ fontSize: "var(--text-sm)", color: relationFilter === "needsCare" ? "var(--color-on-accent)" : "var(--color-low)", background: relationFilter === "needsCare" ? "var(--color-low)" : "transparent", border: `1px solid ${relationFilter === "needsCare" ? "var(--color-low)" : "var(--color-border)"}`, borderRadius: "var(--radius-pill)", padding: "var(--space-2) var(--space-4)", cursor: "pointer", fontFamily: "inherit" }}>
                     {lang === "ta" ? `கவனம் ${bucketCounts.needsCare}` : `Needs care ${bucketCounts.needsCare}`} ●
                   </button>
@@ -896,8 +962,15 @@ export function DashboardFamilyChartsHybrid({
               </div>
             }
           >
+            {/* Filtering to "Needs care" is the moment the criterion matters,
+                so it is stated on screen rather than left to a hover title. */}
+            {relationFilter === "needsCare" && (
+              <p style={{ margin: "0 0 var(--space-4)", fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5 }}>
+                {dt(CARE_FILTER_NOTE, lang)}
+              </p>
+            )}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "var(--space-4)" }}>
-              {filteredMeta.map(({ member, familyMember, chart, todayItem, careFlag, isSelf }) => (
+              {filteredMeta.map(({ member, familyMember, chart, todayItem, careReason, saniCycles, isSelf }) => (
                 <HyMemberSelectorCard
                   key={member.familyMemberId}
                   lang={lang}
@@ -907,7 +980,8 @@ export function DashboardFamilyChartsHybrid({
                   relationLabel={formatRelLabel(familyMember?.relationshipToOwner)}
                   isSelf={isSelf}
                   isActive={activeMember?.familyMemberId === member.familyMemberId}
-                  needsCare={careFlag}
+                  careReason={careReason}
+                  saniCycles={saniCycles}
                   onOpen={() => selectMember(member.familyMemberId)}
                 />
               ))}
@@ -995,6 +1069,15 @@ export function DashboardFamilyChartsHybrid({
                   <span style={{ color: "var(--color-accent-strong)", fontSize: "var(--text-md)" }}>☀</span>
                   <span style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--color-accent-strong)" }}>{lang === "ta" ? `${readingName} இன்று` : `Today for ${readingName}`}</span>
                 </div>
+                {readingIsChandrashtama && (
+                  <ChandrashtamaCard
+                    lang={lang}
+                    chandrashtamaEnds={dailyGuidance?.chandrashtamaEnds ?? null}
+                    descriptionTa={null}
+                    descriptionEn={null}
+                    windowsSummary={readingChandrashtamaWindows}
+                  />
+                )}
                 {dailyGuidance && (
                   <div style={{ fontSize: "var(--text-base)", lineHeight: 1.6, color: "var(--color-muted)" }}>
                     {lang === "ta" ? dailyGuidance.reasons.moonTransit.ta : dailyGuidance.reasons.moonTransit.en}

@@ -8,6 +8,7 @@ import {
   computeD9LagnaRasi,
   D1_RASI_NAMES,
   GRAHA_ABBR,
+  rasiLabel,
 } from "@/lib/chart-utils";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
@@ -45,6 +46,19 @@ function occupantColor(graha: string): string {
     case "KETU": return "var(--planet-nodes)";
     default: return "var(--planet-other)"; // Mars + fallback
   }
+}
+
+/** `buildD1CellDetail` has no `lang`, so it labels the lagna "La" for every
+ *  reader. In a Tamil kattam the marker is ல — and it sat next to Tamil graha
+ *  abbreviations, so the Latin one was the only stray character in the grid. */
+function occupantAbbr(occ: RasiCellDetail["occupants"][number], lang: Lang): string {
+  if (occ.key === "Lagna" && lang === "ta") return "ல";
+  return occ.abbr;
+}
+
+function occupantName(occ: RasiCellDetail["occupants"][number], lang: Lang): string {
+  if (occ.key === "Lagna") return t("label_lagnam", lang);
+  return occ.graha;
 }
 
 function occupantFlagLabels(
@@ -88,7 +102,8 @@ function ExplainPanel({
         {title}
       </p>
       <p style={{ margin: "3px 0 0", fontSize: "0.875rem", color: "var(--chartgrid-ink, var(--panel-earth))", fontWeight: 600 }}>
-        {detail.rasiName} (Rasi {detail.rasi}) {detail.isLagna ? "• Lagna" : ""}
+        {rasiLabel(detail.rasi, lang)}
+        {detail.isLagna ? ` • ${t("label_lagnam", lang)}` : ""}
       </p>
       <p style={{ margin: "2px 0 0", fontSize: "0.75rem", color: "var(--chartgrid-ink, var(--panel-earth))" }}>
         {subtitle}: {houseLabel} {detail.houseFromRef}
@@ -112,7 +127,7 @@ function ExplainPanel({
                 background: "var(--chartgrid-surface, var(--panel-cream))",
                 color: "var(--chartgrid-ink, var(--panel-earth))",
               }}>
-                {occ.graha}{occ.isRetrograde ? " (R)" : ""}
+                {occupantName(occ, lang)}{occ.isRetrograde ? " (R)" : ""}
                 {nonRetroFlags.length ? ` — ${nonRetroFlags.join(", ")}` : ""}
                 {occ.degreeInRasi !== null ? ` ${occ.degreeInRasi.toFixed(2)}°` : ""}
               </span>
@@ -129,13 +144,24 @@ export function RasiChart({
   label,
   showExplain = true,
   lang,
+  selectedRasi: controlledRasi,
+  onSelectRasi,
 }: {
   chart: ChartCalculateResponseData;
   label?: string;
   showExplain?: boolean;
   lang: Lang;
+  /** Optional controlled selection. Supplied together with `onSelectRasi` when a
+   *  caller shows D1 and D9 side by side and wants one rasi lit in both grids —
+   *  the D1↔D9 comparison (vargottama, a graha's varga strength) is the whole
+   *  point of reading the pair, and it only works if the two agree on which
+   *  rasi is being looked at. Omit both and the chart keeps its own state. */
+  selectedRasi?: number;
+  onSelectRasi?: (rasi: number) => void;
 }) {
-  const [selectedRasi, setSelectedRasi] = useState<number>(chart.lagna.rasi);
+  const [ownRasi, setOwnRasi] = useState<number>(chart.lagna.rasi);
+  const selectedRasi = controlledRasi ?? ownRasi;
+  const selectRasi = onSelectRasi ?? setOwnRasi;
   const selectedDetail = useMemo(() => buildD1CellDetail(chart, selectedRasi), [chart, selectedRasi]);
   const cellSize = 72;
   const gap = 2;
@@ -160,7 +186,7 @@ export function RasiChart({
             <button
               key={rasi}
               type="button"
-              onClick={() => setSelectedRasi(rasi)}
+              onClick={() => selectRasi(rasi)}
               title={`${detail.rasiName} - ${t("chart_tap_to_explain", lang)}`}
               style={{
                 gridColumn: col + 1,
@@ -184,8 +210,11 @@ export function RasiChart({
                 cursor: "pointer",
               }}
             >
-              <span style={{ fontSize: "0.625rem", color: "var(--color-faint)", lineHeight: 1, display: "block" }}>
-                {RASI_NAMES[rasi]}
+              {/* lineHeight 1.15 rather than 1: a Tamil sign name is longer than
+                  its transliteration and can take two lines in a 72px cell, and
+                  at lineHeight 1 the two lines collide. */}
+              <span style={{ fontSize: "0.625rem", color: "var(--color-faint)", lineHeight: 1.15, display: "block" }}>
+                {rasiLabel(rasi, lang)}
               </span>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "2px", alignItems: "flex-end" }}>
                 {detail.occupants.map((occ) => {
@@ -204,7 +233,7 @@ export function RasiChart({
                         background: "var(--chartgrid-surface, var(--panel-cream))",
                         border: "1px solid var(--chartgrid-border-light, var(--panel-tan-light))",
                       }}>
-                      {occ.abbr}
+                      {occupantAbbr(occ, lang)}
                       {occ.isRetrograde ? <sup style={{ fontSize: "0.625rem", color: "var(--chart-d1-active)" }}>R</sup> : null}
                       {occ.isCombust ? <sup style={{ fontSize: "0.625rem", color: "var(--color-low, var(--planet-saturn))" }}>C</sup> : null}
                       {occ.isCazimi ? <sup style={{ fontSize: "0.625rem", color: "var(--color-high, var(--chart-d9-active))" }}>✦</sup> : null}
@@ -228,7 +257,7 @@ export function RasiChart({
           <span style={{ fontSize: "0.75rem", color: "var(--color-faint)", textAlign: "center", padding: "4px", lineHeight: 1.4 }}>
             {chart.birthProfile.displayName}<br />
             <span style={{ fontSize: "0.625rem", color: "var(--color-faint)" }}>
-              {RASI_NAMES[chart.lagna.rasi]} La
+              {rasiLabel(chart.lagna.rasi, lang)} {lang === "ta" ? "லக்னம்" : "La"}
             </span>
           </span>
         </div>
@@ -252,14 +281,21 @@ export function NavamsaChart({
   label,
   showExplain = true,
   lang,
+  selectedRasi: controlledRasi,
+  onSelectRasi,
 }: {
   chart: ChartCalculateResponseData;
   label?: string;
   showExplain?: boolean;
   lang: Lang;
+  /** Optional controlled selection — see the note on `RasiChart`. */
+  selectedRasi?: number;
+  onSelectRasi?: (rasi: number) => void;
 }) {
   const d9LagnaRasi = useMemo(() => computeD9LagnaRasi(chart.lagna.absoluteLongitude), [chart.lagna.absoluteLongitude]);
-  const [selectedRasi, setSelectedRasi] = useState<number>(d9LagnaRasi);
+  const [ownRasi, setOwnRasi] = useState<number>(d9LagnaRasi);
+  const selectedRasi = controlledRasi ?? ownRasi;
+  const selectRasi = onSelectRasi ?? setOwnRasi;
   const selectedDetail = useMemo(() => buildD9CellDetail(chart, selectedRasi), [chart, selectedRasi]);
   const cellSize = 72;
   const gap = 2;
@@ -284,7 +320,7 @@ export function NavamsaChart({
             <button
               key={rasi}
               type="button"
-              onClick={() => setSelectedRasi(rasi)}
+              onClick={() => selectRasi(rasi)}
               title={`${detail.rasiName} - ${t("chart_tap_to_explain", lang)}`}
               style={{
                 gridColumn: col + 1,
@@ -305,10 +341,14 @@ export function NavamsaChart({
                 justifyContent: "space-between",
                 minWidth: 0,
                 textAlign: "left",
+                cursor: "pointer",
               }}
             >
-              <span style={{ fontSize: "0.625rem", color: "var(--color-faint)", lineHeight: 1, display: "block" }}>
-                {RASI_NAMES[rasi]}
+              {/* lineHeight 1.15 rather than 1: a Tamil sign name is longer than
+                  its transliteration and can take two lines in a 72px cell, and
+                  at lineHeight 1 the two lines collide. */}
+              <span style={{ fontSize: "0.625rem", color: "var(--color-faint)", lineHeight: 1.15, display: "block" }}>
+                {rasiLabel(rasi, lang)}
               </span>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "2px", alignItems: "flex-end" }}>
                 {detail.occupants.map((occ) => {
@@ -327,7 +367,7 @@ export function NavamsaChart({
                         background: "var(--chartgrid-surface, var(--panel-cream))",
                         border: "1px solid var(--chartgrid-border-light, var(--panel-tan-light))",
                       }}>
-                      {occ.abbr}
+                      {occupantAbbr(occ, lang)}
                       {occ.isRetrograde ? <sup style={{ fontSize: "0.625rem", color: "var(--chart-d9-active)" }}>R</sup> : null}
                       {occ.isVargottama ? <sup style={{ fontSize: "0.625rem", color: "var(--color-high, var(--chart-d9-active))" }}>V</sup> : null}
                     </span>
@@ -349,7 +389,7 @@ export function NavamsaChart({
           <span style={{ fontSize: "0.75rem", color: "var(--color-faint)", textAlign: "center", padding: "4px", lineHeight: 1.4 }}>
             {chart.birthProfile.displayName}<br />
             <span style={{ fontSize: "0.625rem", color: "var(--color-faint)" }}>
-              Navamsam · {RASI_NAMES[d9LagnaRasi]} La
+              {t("navamsa_label", lang)} · {rasiLabel(d9LagnaRasi, lang)} {lang === "ta" ? "லக்னம்" : "La"}
             </span>
           </span>
         </div>

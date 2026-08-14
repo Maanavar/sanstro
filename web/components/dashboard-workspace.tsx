@@ -1735,6 +1735,7 @@ export function DashboardWorkspace() {
             panchangamTimings={personal.panchangamTimings}
             weekAhead={personal.weekAhead}
             familyAggregate={familyAggregateForToday}
+            remedyMemberCharts={family.memberCharts}
             lifeAreas={personal.lifeAreas}
             dasha={personalDasha}
             dashaAntar={personalDashaAntar}

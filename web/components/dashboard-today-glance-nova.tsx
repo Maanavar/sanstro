@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import {
   ScrollText, Sunrise, Sparkles, Timer, Hash, HeartHandshake, NotebookPen, Compass,
   ArrowRight, ArrowUp, ArrowDown, Diamond, Check,
   type LucideIcon,
 } from "lucide-react";
 
-import { formatClockLabel, formatDateLabel, getScoreBand, getScoreVerdict, getScoreVerdictFromGuidance, nextWeekdayDate, scoreColorAlpha, scoreColorScale } from "@/lib/format";
+import { formatClockLabel, formatDateLabel, getLifeAreaVerdict, getScoreBand, getScoreVerdictFromGuidance, nextWeekdayDate, scoreColorAlpha } from "@/lib/format";
 import { t, tLang, tPlanetLord, tWeekday } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type {
@@ -24,6 +24,13 @@ import type {
 
 import { ScoreRing } from "./dashboard-family-shared";
 import { Card, Kicker } from "./ui";
+
+/** Chandrashtama for one family member, straight off the aggregate's cycle
+ *  tags (app/services/family_vault_service.py appends "CHANDRASHTAMA" when
+ *  that member's own gochar says so) — the Family tab reads the same tag. */
+function memberIsChandrashtama(member: { activeCycleTags: string[] }): boolean {
+  return member.activeCycleTags.includes("CHANDRASHTAMA");
+}
 
 /**
  * Today-tab glance sections (homepage redesign 2026-07-18):
@@ -274,10 +281,17 @@ export function DashboardTodayQuickLinksNova({
   );
 }
 
-const TREND_META: Record<"UP" | "DOWN" | "STABLE", { Icon: LucideIcon; color: string }> = {
-  UP: { Icon: ArrowUp, color: "var(--color-high)" },
-  DOWN: { Icon: ArrowDown, color: "var(--color-low)" },
-  STABLE: { Icon: ArrowRight, color: "var(--color-mid)" },
+/** The tile's trend arrow. It now carries the engine's real six-month slope
+ *  (`score` vs `score6mo`, the same engine re-run against the transits and
+ *  dasha in force then), so it finally means the direction every reader
+ *  already takes an arrow to mean. It previously restated whether the current
+ *  score was high or low — "Money 16 ↓" did not say money was falling — and
+ *  was `aria-hidden` with no text anywhere, so it said nothing at all to a
+ *  screen reader. Now that it measures something, it gets named. */
+const TREND_META: Record<"UP" | "DOWN" | "STABLE", { Icon: LucideIcon; color: string; en: string; ta: string }> = {
+  UP: { Icon: ArrowUp, color: "var(--color-high)", en: "improving over the next 6 months", ta: "அடுத்த 6 மாதங்களில் ஏற்றம்" },
+  DOWN: { Icon: ArrowDown, color: "var(--color-low)", en: "easing over the next 6 months", ta: "அடுத்த 6 மாதங்களில் இறக்கம்" },
+  STABLE: { Icon: ArrowRight, color: "var(--color-mid)", en: "holding steady over the next 6 months", ta: "அடுத்த 6 மாதங்களில் நிலையானது" },
 };
 
 /** Plain-language "what this life-area score means", for the tile tooltip.
@@ -371,27 +385,60 @@ export function DashboardTodayLifeAreasDasaRowNova({
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(104px, 1fr))", gap: "var(--space-2_5)" }}>
             {lifeAreas.areas.slice(0, 5).map((area) => {
               const score = Math.round(area.score);
-              const color = scoreColorScale(score);
-              const band = getScoreBand(score);
               // UXD-14 — pair the band colour with its verdict word so the tile
-              // is readable without relying on hue (colour-blind safe).
-              const verdictWord = getScoreVerdict(score, lang).verdict;
+              // is readable without relying on hue (colour-blind safe). Both now
+              // come from the *period* ladder, not the daily one: "Good day"
+              // here read as a verdict on today, which is what made these tiles
+              // look like they contradicted the "Is today okay for…?" board
+              // ("Money / Wealth 16 · Take care" vs "Money decisions · Neutral").
+              // The board answers "is today an auspicious day to *begin* this";
+              // this tile answers "how is this area faring this period". Naming
+              // the horizon in the word itself carries the distinction onto all
+              // five tiles, where a one-line disclaimer above them did not.
+              const { verdict: verdictWord, color } = getLifeAreaVerdict(score, lang);
               const trend = TREND_META[area.trend] ?? TREND_META.STABLE;
+              const trendLabel = lang === "ta" ? trend.ta : trend.en;
               const explanation = lifeAreaExplanation(area.area, lang);
+              // The one ~2-day input inside an otherwise months-long number:
+              // Chandrashtamam docks 8 points from the mind-sensitive areas. Left
+              // unnamed, the tile would silently drop 8 and could cross a verdict
+              // boundary overnight with nothing on screen accounting for it.
+              const chandra = area.chandrashtamaApplied === true;
+              const chandraNote = chandra
+                ? lang === "ta"
+                  ? "இன்று சந்திராஷ்டமம் — இந்த மதிப்பெண் 8 புள்ளிகள் குறைக்கப்பட்டுள்ளது. இது கடந்ததும் திரும்பும்."
+                  : "Chandrashtamam today — this score is docked 8 points, and recovers when it passes."
+                : null;
+              const tooltip = [explanation, `${verdictWord} · ${score}/100 · ${trendLabel}`, chandraNote]
+                .filter(Boolean)
+                .join("\n");
               return (
                 <div
                   key={area.area}
-                  title={explanation ? `${explanation}\n${band.label} · ${score}/100` : `${band.label} · ${score}/100`}
+                  title={tooltip}
                   style={{ background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: `1px solid ${scoreColorAlpha(color, 30)}`, borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3)" }}
                 >
-                  <div style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {/* Two lines, always — not one line with an ellipsis. A
+                      married native's Relationships tile is relabelled "Married
+                      life harmony" by the engine, which at this width truncated
+                      to "Married life harm…". Height is reserved even for the
+                      one-line labels so every score in the row stays on the same
+                      baseline. */}
+                  <div style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.25, minHeight: "2.5em", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
                     {lang === "ta" ? area.label.ta : area.label.en}
                   </div>
                   <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-1)", marginTop: "6px" }}>
                     <span style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 700, color: "var(--color-text-strong)", lineHeight: 1 }}>{score}</span>
-                    <span aria-hidden="true" style={{ display: "inline-flex", color: trend.color }}><trend.Icon size={14} strokeWidth={2} /></span>
+                    <span role="img" aria-label={trendLabel} style={{ display: "inline-flex", color: trend.color }}><trend.Icon size={14} strokeWidth={2} aria-hidden="true" /></span>
                   </div>
                   <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color, marginTop: "6px", lineHeight: 1.15 }}>{verdictWord}</div>
+                  {/* Amber, not red — "awareness, not alarm", the same framing the
+                      Chandrashtama pill uses on the hero and the family tiles. */}
+                  {chandra && (
+                    <div style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--color-mid)", marginTop: "4px", lineHeight: 1.15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      🌘 {lang === "ta" ? "சந்திராஷ்டமம்" : "Chandrashtama"}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -496,102 +543,261 @@ const GRAHA_COLOR: Record<string, string> = {
  *  catalog acts (temple offering + two seva strands, each tagged by its genuine
  *  cadence — never a per-chart "strongest" ranking), and the planet's weekday +
  *  next date. Falls back to the flat `remedyFallback` string when the backend
- *  sent no structured focus (older cached daily-guidance rows). */
+ *  sent no structured focus (older cached daily-guidance rows).
+ *
+ *  With more than one household member it also carries the member rail — one
+ *  scrollable row of graha-marked chips (2026-08-14), replacing the pill row +
+ *  `<input type="range">` + ‹ › arrow trio that all wrote the same index. See
+ *  `.nova-remedy-rail` in dashboard-nova.css for why the range had to go. */
+type RemedyMemberOption = {
+  memberId: string;
+  displayName: string;
+  remedy: BiText | null;
+  remedyFocus?: RemedyFocus | null;
+};
+
 function RemedyFocusCard({
-  lang, focus, remedyFallback, savingReminder, reminderMessage, onSaveReminder, onGoToLifeAreas,
+  lang, focus, remedyFallback, remedyMembers = [], savingReminder, reminderMessage, onSaveReminder, onGoToLifeAreas,
 }: {
   lang: Lang;
   focus: RemedyFocus | null;
   remedyFallback: BiText | null;
+  remedyMembers?: RemedyMemberOption[];
   savingReminder: boolean;
   reminderMessage: string | null;
   onSaveReminder: () => void;
   onGoToLifeAreas?: () => void;
 }) {
   const [showWhy, setShowWhy] = useState(false);
-  const accent = (focus && GRAHA_COLOR[focus.planet]) || "var(--color-accent-secondary)";
-  const glyph = (focus && GRAHA_GLYPH[focus.planet]) || "❋";
-  const nextDate = focus ? formatDateLabel(nextWeekdayDate(focus.weekday)).replace(/ \d{4}$/, "") : "";
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  // Whether the rail is scrolled to its start/end — drives the CSS edge fade.
+  const [railEdges, setRailEdges] = useState({ atStart: true, atEnd: true });
+  const railRef = useRef<HTMLDivElement>(null);
+  const chipRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const idBase = useId();
+
+  const members = remedyMembers.length > 0
+    ? remedyMembers
+    : [{ memberId: "owner", displayName: lang === "ta" ? "நீங்கள்" : "You", remedy: remedyFallback, remedyFocus: focus }];
+  const selectedIndex = Math.max(0, members.findIndex((m) => m.memberId === selectedMemberId));
+  const selectedMember = members[selectedIndex] ?? members[0];
+  const selectedFocus = selectedMember?.remedyFocus ?? null;
+  const selectedRemedy = selectedMember?.remedy ?? null;
+  const hasMemberRail = members.length > 1;
+  // The caller builds this list owner-first (dashboard-today-tab-nova.tsx), so
+  // index 0 is the signed-in reader — the only member "for you" is true of.
+  const isOwnerSelected = selectedIndex === 0;
+  const accent = (selectedFocus && GRAHA_COLOR[selectedFocus.planet]) || "var(--color-accent-secondary)";
+  const glyph = (selectedFocus && GRAHA_GLYPH[selectedFocus.planet]) || "❋";
+  const nextDate = selectedFocus ? formatDateLabel(nextWeekdayDate(selectedFocus.weekday)).replace(/ \d{4}$/, "") : "";
+  const panelId = `${idBase}-panel`;
+  const tabId = (index: number) => `${idBase}-tab-${index}`;
+
+  // Chips carry the called name only, so a rail of four still fits a phone —
+  // the same trim the hero greeting makes, and never a re-spelling: the full
+  // display name stays intact in the chip's title and in the card heading. If
+  // two members share a first name the trim would make the chips ambiguous, so
+  // the whole rail falls back to full names rather than labelling two chips
+  // identically.
+  const firstNames = members.map((m) => m.displayName.trim().split(/\s+/)[0] || m.displayName);
+  const chipNames = new Set(firstNames).size === firstNames.length ? firstNames : members.map((m) => m.displayName);
+
+  function selectMember(index: number) {
+    const next = members[Math.max(0, Math.min(members.length - 1, index))];
+    if (!next) return;
+    setSelectedMemberId(next.memberId);
+    setShowWhy(false);
+  }
+
+  // Tab-strip keyboard contract (WAI-ARIA APG, matching <Segmented>): arrows
+  // move and select, Home/End jump to the ends, and focus follows so the next
+  // arrow press continues from where the reader is. The old pill row carried
+  // role="tab" with none of this — the role promised keyboard behaviour the
+  // markup never implemented.
+  function onRailKeyDown(event: React.KeyboardEvent, index: number) {
+    const jump = (to: number) => {
+      const clamped = (to + members.length) % members.length;
+      event.preventDefault();
+      selectMember(clamped);
+      chipRefs.current[clamped]?.focus();
+    };
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") jump(index + 1);
+    else if (event.key === "ArrowLeft" || event.key === "ArrowUp") jump(index - 1);
+    else if (event.key === "Home") jump(0);
+    else if (event.key === "End") jump(members.length - 1);
+  }
+
+  // Keep the selected chip in view when the rail overflows. Gated on an actual
+  // selection so a card that mounts below the fold never scroll-jacks the page
+  // on first paint. (`?.` on the method as well — jsdom has no scrollIntoView.)
+  useEffect(() => {
+    if (!selectedMemberId) return;
+    chipRefs.current[selectedIndex]?.scrollIntoView?.({ inline: "center", block: "nearest", behavior: "smooth" });
+  }, [selectedIndex, selectedMemberId]);
+
+  useEffect(() => {
+    const el = railRef.current;
+    if (!el) return;
+    const update = () => {
+      const atStart = el.scrollLeft <= 1;
+      const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 1;
+      setRailEdges((prev) => (prev.atStart === atStart && prev.atEnd === atEnd ? prev : { atStart, atEnd }));
+    };
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      el.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [hasMemberRail, members.length]);
 
   return (
     <div style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--color-accent-secondary) 12%, transparent), color-mix(in srgb, var(--color-text-strong) 2%, transparent))", border: "1px solid color-mix(in srgb, var(--color-accent-secondary) 30%, transparent)", borderRadius: "var(--radius-lg)", padding: "var(--space-4_5) var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-3_5)" }}>
-      {/* Header: planet glyph + eyebrow/title, with a "Why this?" affordance. */}
-      <div style={{ display: "flex", alignItems: "flex-start", gap: "var(--space-3)" }}>
-        <div aria-hidden="true" style={{ width: "38px", height: "38px", borderRadius: "var(--radius-pill)", background: `color-mix(in srgb, ${accent} 16%, transparent)`, border: `1px solid color-mix(in srgb, ${accent} 40%, transparent)`, display: "flex", alignItems: "center", justifyContent: "center", color: accent, fontSize: "var(--text-lg)", flex: "none", lineHeight: 1 }}>{glyph}</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {focus && (
-            <Kicker as="div" color={accent} style={{ marginBottom: "1px" }}>
-              {tPlanetLord(focus.planet, lang)} {t("remedy_focus_dasa", lang)}
-            </Kicker>
-          )}
-          <div style={{ fontSize: "var(--text-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>{t("remedy_focus_title", lang)}</div>
-        </div>
-        {focus && (
-          <button
-            type="button"
-            onClick={() => setShowWhy((v) => !v)}
-            aria-expanded={showWhy}
-            style={{ flex: "none", display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-xs)", fontWeight: 600, background: "transparent", color: "var(--color-accent-secondary)", border: "1px solid color-mix(in srgb, var(--color-accent-secondary) 35%, transparent)", borderRadius: "var(--radius-sm)", padding: "var(--space-1) var(--space-2_5)", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
-          >
-            {t("remedy_focus_why", lang)} {showWhy ? <ArrowUp size={12} strokeWidth={2} aria-hidden="true" /> : <ArrowRight size={12} strokeWidth={2} aria-hidden="true" />}
-          </button>
-        )}
-      </div>
-
-      {/* Lead sentence — the chart reason, active language only. */}
-      <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "var(--text-base)", lineHeight: 1.65, color: "var(--color-text)" }}>
-        {focus ? tLang(focus.lead, lang) : (remedyFallback ? tLang(remedyFallback, lang) : t("remedy_focus_none", lang))}
-      </p>
-
-      {focus && showWhy && (
-        <p style={{ margin: 0, padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)" }}>
-          {tLang(focus.why, lang)}
-        </p>
-      )}
-
-      {/* Three concrete acts, each with its genuine cadence tag. */}
-      {focus && focus.actions.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          {focus.actions.map((action, i) => (
-            <div key={i} style={{ display: "flex", gap: "var(--space-2_5)", padding: "var(--space-2_5) 0", borderTop: i === 0 ? "none" : "1px solid var(--color-border)" }}>
-              <span aria-hidden="true" style={{ flex: "none", width: "7px", height: "7px", borderRadius: "var(--radius-pill)", background: accent, marginTop: "6px" }} />
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: "var(--text-base)", fontWeight: 500, color: "var(--color-text)", lineHeight: 1.4 }}>{tLang(action.text, lang)}</div>
-                <Kicker as="div" color="var(--color-faint)" style={{ marginTop: "3px" }}>
-                  {action.cadence === "RITUAL_ON_DAY" ? t("remedy_cadence_ritual", lang) : t("remedy_cadence_anyday", lang)}
-                </Kicker>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Weekday + next date — chart-driven display only (no per-day scheduling). */}
-      {focus && (
-        <Kicker as="div" tone="muted">
-          {t("remedy_focus_best_on", lang)} {tWeekday(focus.weekday, lang)} · {t("remedy_focus_next", lang)} {nextDate}
-        </Kicker>
-      )}
-
-      <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
-        <button
-          type="button"
-          onClick={onSaveReminder}
-          disabled={savingReminder}
-          title={reminderMessage ?? undefined}
-          style={{ fontSize: "var(--text-sm)", fontWeight: 700, background: "var(--color-accent)", color: "var(--color-on-accent)", border: "none", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-4)", cursor: savingReminder ? "wait" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
+      {/* Whose remedy — one rail, at the top of the card, because everything
+          below it (heading included) belongs to the selected member and so has
+          to sit inside the tabpanel the rail controls. */}
+      {hasMemberRail && (
+        <div
+          ref={railRef}
+          className="nova-remedy-rail"
+          role="tablist"
+          aria-label={t("remedy_focus_member_rail", lang)}
+          aria-orientation="horizontal"
+          data-scroll-start={railEdges.atStart}
+          data-scroll-end={railEdges.atEnd}
         >
-          {savingReminder ? t("remedy_focus_reminder_saving", lang) : t("remedy_focus_reminder", lang)}
-        </button>
-        {onGoToLifeAreas && (
-          <button
-            type="button"
-            onClick={onGoToLifeAreas}
-            style={{ fontSize: "var(--text-sm)", fontWeight: 600, background: "transparent", color: "var(--color-accent-secondary)", border: "1px solid color-mix(in srgb, var(--color-accent-secondary) 35%, transparent)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-4)", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
-          >
-            {t("remedy_focus_more", lang)}
-          </button>
+          {members.map((member, index) => {
+            const isSelected = index === selectedIndex;
+            const memberFocus = member.remedyFocus ?? null;
+            return (
+              <button
+                key={member.memberId}
+                ref={(el) => { chipRefs.current[index] = el; }}
+                type="button"
+                role="tab"
+                id={tabId(index)}
+                aria-selected={isSelected}
+                aria-controls={panelId}
+                tabIndex={isSelected ? 0 : -1}
+                title={member.displayName}
+                onClick={() => selectMember(index)}
+                onKeyDown={(event) => onRailKeyDown(event, index)}
+                className="nova-remedy-chip"
+                style={{ "--chip-accent": (memberFocus && GRAHA_COLOR[memberFocus.planet]) || "var(--color-accent-secondary)" } as React.CSSProperties}
+              >
+                {/* Each chip wears its own member's anchor graha, so the rail
+                    shows what changes when you move along it — a row of
+                    identical pills gave no reason to expect anything would. */}
+                <span className="nova-remedy-chip__glyph" aria-hidden="true">
+                  {(memberFocus && GRAHA_GLYPH[memberFocus.planet]) || "❋"}
+                </span>
+                <span className="nova-remedy-chip__name">{chipNames[index]}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div
+        key={selectedMember?.memberId ?? "owner"}
+        className="nova-remedy-panel"
+        id={panelId}
+        role={hasMemberRail ? "tabpanel" : undefined}
+        aria-labelledby={hasMemberRail ? tabId(selectedIndex) : undefined}
+        style={{ display: "flex", flexDirection: "column", gap: "var(--space-3_5)" }}
+      >
+        {/* Header: planet glyph + eyebrow/title, with a "Why this?" affordance. */}
+        <div style={{ display: "flex", alignItems: "flex-start", gap: "var(--space-3)" }}>
+          <div aria-hidden="true" style={{ width: "38px", height: "38px", borderRadius: "var(--radius-pill)", background: `color-mix(in srgb, ${accent} 16%, transparent)`, border: `1px solid color-mix(in srgb, ${accent} 40%, transparent)`, display: "flex", alignItems: "center", justifyContent: "center", color: accent, fontSize: "var(--text-lg)", flex: "none", lineHeight: 1 }}>{glyph}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {selectedFocus && (
+              <Kicker as="div" color={accent} style={{ marginBottom: "1px" }}>
+                {tPlanetLord(selectedFocus.planet, lang)} {t("remedy_focus_dasa", lang)}
+              </Kicker>
+            )}
+            {/* "Remedy for you" is only true while the owner is selected. Read
+                someone else's and the heading names them instead — the old card
+                kept the first-person title over a sibling's remedy. */}
+            <div style={{ fontSize: "var(--text-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>
+              {isOwnerSelected
+                ? t("remedy_focus_title", lang)
+                : `${selectedMember?.displayName ?? ""} · ${t("remedy_focus_title_short", lang)}`}
+            </div>
+          </div>
+          {selectedFocus && (
+            <button
+              type="button"
+              onClick={() => setShowWhy((v) => !v)}
+              aria-expanded={showWhy}
+              style={{ flex: "none", display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-xs)", fontWeight: 600, background: "transparent", color: "var(--color-accent-secondary)", border: "1px solid color-mix(in srgb, var(--color-accent-secondary) 35%, transparent)", borderRadius: "var(--radius-sm)", padding: "var(--space-1) var(--space-2_5)", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
+            >
+              {t("remedy_focus_why", lang)} {showWhy ? <ArrowUp size={12} strokeWidth={2} aria-hidden="true" /> : <ArrowRight size={12} strokeWidth={2} aria-hidden="true" />}
+            </button>
+          )}
+        </div>
+
+        {/* Lead sentence — the chart reason, active language only. */}
+        <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "var(--text-base)", lineHeight: 1.65, color: "var(--color-text)" }}>
+          {selectedFocus ? tLang(selectedFocus.lead, lang) : (selectedRemedy ? tLang(selectedRemedy, lang) : t("remedy_focus_none", lang))}
+        </p>
+
+        {selectedFocus && showWhy && (
+          <p style={{ margin: 0, padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)" }}>
+            {tLang(selectedFocus.why, lang)}
+          </p>
         )}
+
+        {/* Three concrete acts, each with its genuine cadence tag. */}
+        {selectedFocus && selectedFocus.actions.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {selectedFocus.actions.map((action, i) => (
+              <div key={i} style={{ display: "flex", gap: "var(--space-2_5)", padding: "var(--space-2_5) 0", borderTop: i === 0 ? "none" : "1px solid var(--color-border)" }}>
+                <span aria-hidden="true" style={{ flex: "none", width: "7px", height: "7px", borderRadius: "var(--radius-pill)", background: accent, marginTop: "6px" }} />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: "var(--text-base)", fontWeight: 500, color: "var(--color-text)", lineHeight: 1.4 }}>{tLang(action.text, lang)}</div>
+                  <Kicker as="div" color="var(--color-faint)" style={{ marginTop: "3px" }}>
+                    {action.cadence === "RITUAL_ON_DAY" ? t("remedy_cadence_ritual", lang) : t("remedy_cadence_anyday", lang)}
+                  </Kicker>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Weekday + next date — chart-driven display only (no per-day scheduling). */}
+        {selectedFocus && (
+          <Kicker as="div" tone="muted">
+            {t("remedy_focus_best_on", lang)} {tWeekday(selectedFocus.weekday, lang)} · {t("remedy_focus_next", lang)} {nextDate}
+          </Kicker>
+        )}
+
+        <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+          {/* The reminder toggle writes the *account's* morning alert, which
+              carries the signed-in user's own daily guidance and never a
+              sibling's — offering it under someone else's remedy promised a
+              reminder that would arrive about something else. Owner only. */}
+          {isOwnerSelected && (
+            <button
+              type="button"
+              onClick={onSaveReminder}
+              disabled={savingReminder}
+              title={reminderMessage ?? undefined}
+              style={{ fontSize: "var(--text-sm)", fontWeight: 700, background: "var(--color-accent)", color: "var(--color-on-accent)", border: "none", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-4)", cursor: savingReminder ? "wait" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
+            >
+              {savingReminder ? t("remedy_focus_reminder_saving", lang) : t("remedy_focus_reminder", lang)}
+            </button>
+          )}
+          {onGoToLifeAreas && (
+            <button
+              type="button"
+              onClick={onGoToLifeAreas}
+              style={{ fontSize: "var(--text-sm)", fontWeight: 600, background: "transparent", color: "var(--color-accent-secondary)", border: "1px solid color-mix(in srgb, var(--color-accent-secondary) 35%, transparent)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-4)", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
+            >
+              {t("remedy_focus_more", lang)}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -603,6 +809,7 @@ export function DashboardTodayFamilyRemedyRowNova({
   familyAggregate,
   remedy,
   remedyFocus,
+  remedyMembers,
   savingReminder,
   reminderMessage,
   onSaveReminder,
@@ -613,6 +820,7 @@ export function DashboardTodayFamilyRemedyRowNova({
   familyAggregate: FamilyAggregateData | null;
   remedy: BiText | null;
   remedyFocus?: RemedyFocus | null;
+  remedyMembers?: RemedyMemberOption[];
   savingReminder: boolean;
   reminderMessage: string | null;
   onSaveReminder: () => void;
@@ -666,7 +874,13 @@ export function DashboardTodayFamilyRemedyRowNova({
               // now lives in the composite lead above, not repeated as a tile
               // here. Remaining tiles are the *other* household members.
               const otherMembers = familyAggregate.members.filter((m) => m.familyMemberId !== m.birthProfileId);
-              const needsCare = otherMembers.find((m) => getScoreBand(m.individualScore).tone === "low");
+              // Chandrashtama outranks a low score for this one-line callout,
+              // and is checked first for a second reason: a member can be in
+              // Chandrashtama on a perfectly mid score, in which case the
+              // low-band search below would have found nobody and the day
+              // would have gone unmentioned entirely.
+              const chandraMember = otherMembers.find(memberIsChandrashtama);
+              const needsCare = chandraMember ?? otherMembers.find((m) => getScoreBand(m.individualScore).tone === "low");
               const shared = familyAggregate.bestFamilyWindows[0];
               const memberCount = familyAggregate.members.length;
               return (
@@ -683,7 +897,7 @@ export function DashboardTodayFamilyRemedyRowNova({
                             <div
                               key={m.familyMemberId}
                               role="group"
-                              aria-label={`${m.displayName} — ${verdict.verdict}, ${m.individualScore} / 100`}
+                              aria-label={`${m.displayName} — ${verdict.verdict}, ${m.individualScore} / 100${memberIsChandrashtama(m) ? `, ${lang === "ta" ? "சந்திராஷ்டமம்" : "Chandrashtama"}` : ""}`}
                               title={`${verdict.verdict} · ${m.individualScore}/100`}
                               style={{
                                 display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "var(--space-2)",
@@ -698,6 +912,17 @@ export function DashboardTodayFamilyRemedyRowNova({
                               <div style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: verdict.color, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>
                                 {verdict.verdict}
                               </div>
+                              {/* The owner gets Chandrashtama named on their own
+                                  hero above; a member's tile showed only a score
+                                  and a verdict word, so the household's one
+                                  Chandrashtama member was invisible here. The
+                                  tag already rides along on the aggregate — no
+                                  extra request. Amber, matching the hero pill. */}
+                              {memberIsChandrashtama(m) && (
+                                <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-mid)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>
+                                  🌘 {lang === "ta" ? "சந்திராஷ்டமம்" : "Chandrashtama"}
+                                </div>
+                              )}
                             </div>
                           );
                         })}
@@ -731,12 +956,14 @@ export function DashboardTodayFamilyRemedyRowNova({
                     : undefined}
                   style={{
                     fontSize: "var(--text-sm)", lineHeight: 1.5, color: "var(--color-muted)",
-                    background: needsCare ? "var(--color-low-bg)" : "var(--color-accent-muted)",
-                    border: `1px solid ${needsCare ? "var(--color-low-border)" : "var(--color-border)"}`,
+                    // Amber for Chandrashtama ("awareness, not alarm", as on
+                    // the owner's own hero pill), red only for a low score.
+                    background: needsCare === chandraMember && chandraMember ? "var(--color-mid-bg)" : needsCare ? "var(--color-low-bg)" : "var(--color-accent-muted)",
+                    border: `1px solid ${needsCare === chandraMember && chandraMember ? "var(--color-mid-border)" : needsCare ? "var(--color-low-border)" : "var(--color-border)"}`,
                     borderRadius: "var(--radius-sm)", padding: "var(--space-2_5) var(--space-3)", marginTop: "10px",
                   }}
                 >
-                  {needsCare && <><b style={{ color: "var(--color-low)" }}>{needsCare.displayName}</b> {lang === "ta" ? "— மென்மையான நாள்" : "— gentle day"}{shared ? "; " : "."}</>}
+                  {needsCare && <><b style={{ color: needsCare === chandraMember ? "var(--color-mid)" : "var(--color-low)" }}>{needsCare.displayName}</b> {needsCare === chandraMember ? (lang === "ta" ? "— இன்று சந்திராஷ்டமம்" : "— Chandrashtama today") : (lang === "ta" ? "— மென்மையான நாள்" : "— gentle day")}{shared ? "; " : "."}</>}
                   {shared && <>{lang === "ta" ? `${memberCount} பேருக்கும் நல்ல நேரம்` : `good time for all ${memberCount}`} <b style={{ color: "var(--color-high)" }}>{formatClockLabel(shared.start)} – {formatClockLabel(shared.end)}</b></>}
                 </div>
                   )}
@@ -754,6 +981,7 @@ export function DashboardTodayFamilyRemedyRowNova({
         lang={lang}
         focus={remedyFocus ?? null}
         remedyFallback={remedy}
+        remedyMembers={remedyMembers}
         savingReminder={savingReminder}
         reminderMessage={reminderMessage}
         onSaveReminder={onSaveReminder}
