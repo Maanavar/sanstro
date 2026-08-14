@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.calculations.astro import utc_datetime_to_julian_day
+from app.calculations.dasha import calculate_vimshottari_timeline
 from app.models import BirthProfile, Chart
 from app.schemas.dasha import ResponseMeta
 from app.schemas.decisions import (
@@ -17,7 +19,7 @@ from app.schemas.decisions import (
     OptionAnalysis,
 )
 from app.services.chart_service import load_persisted_chart_response
-from app.services.location_service import resolve_effective_daily_timezone
+from app.services.location_service import local_noon_as_utc_for_profile, resolve_effective_daily_timezone
 from app.services.narrative_engine import PLANET_NAME
 from app.services.whatif_service import evaluate_whatif
 
@@ -125,12 +127,54 @@ def _score_adjustment(option: DecisionOption) -> tuple[int, list[str]]:
     return delta, factors
 
 
-def _optimal_window(target_date: date, verdict: str) -> str:
+def _next_dasha_shift(chart_snapshot, target_date: date) -> tuple[date, str] | None:
+    """The next real change of planetary period after `target_date`.
+
+    Returns (date the running antardasha ends, lord that takes over), or None if
+    the timeline cannot be built.
+
+    The antardasha is the level deliberately chosen: `whatif_service`'s dasha
+    pillar — one of the three this brief is scored on — reads the mahadasha and
+    antardasha lords and nothing finer. Naming the pratyantardasha would cite a
+    boundary that changes none of this brief's own inputs, which is a quieter
+    version of the fabrication being fixed here. The cost is horizon: an
+    antardasha runs months to a few years, so this can point a long way out.
+    That is the method's answer, not a rounding of it.
+    """
+    try:
+        birth_profile = chart_snapshot.data.birth_profile
+        birth_jd = chart_snapshot.data.julian_day
+        natal_moon = next(p for p in chart_snapshot.data.planets if p.graha == "MOON")
+        target_jd = utc_datetime_to_julian_day(local_noon_as_utc_for_profile(target_date, birth_profile))
+
+        timeline = calculate_vimshottari_timeline(birth_jd, natal_moon.absolute_longitude, target_jd)
+        running = timeline.current_antardasha
+        # Step just past the boundary to read off who takes over.
+        incoming = calculate_vimshottari_timeline(
+            birth_jd, natal_moon.absolute_longitude, running.end_jd + 0.5
+        ).current_antardasha
+        return running.end_date, incoming.lord
+    except Exception:  # a timeline hiccup must not fail the whole brief
+        return None
+
+
+def _optimal_window(target_date: date, verdict: str, shift: tuple[date, str] | None) -> str:
+    """Describe when to act, in terms of a computed planetary period.
+
+    This used to return `target_date + 21` or `+ 45` days chosen off the verdict
+    string — a fabricated date presented under the heading "Optimal window",
+    with no astrology behind it at all. The reassessment point is now the end of
+    the running antardasha, which is where the dasha pillar this brief is scored
+    on actually turns. When the timeline is unavailable we name no date rather
+    than inventing one.
+    """
     if verdict == "FAVOURABLE":
         return f"around {target_date.strftime('%d %b %Y')}"
-    if verdict == "NEUTRAL":
-        return f"after { (target_date + timedelta(days=21)).strftime('%d %b %Y') }"
-    return f"reassess after { (target_date + timedelta(days=45)).strftime('%d %b %Y') }"
+    if shift is None:
+        return "reassess when the current planetary period shifts"
+    shift_date, incoming_lord = shift
+    lead = "from" if verdict == "NEUTRAL" else "reassess from"
+    return f"{lead} {shift_date.strftime('%d %b %Y')}, when the {incoming_lord.capitalize()} antardasha begins"
 
 
 def _scenario_from_option(option: DecisionOption) -> str:
@@ -150,6 +194,7 @@ def _build_option_analysis(
     panchangam_quality: str = "MODERATE",
     option_scenario: str | None = None,
     shared_scenario: str | None = None,
+    dasha_shift: tuple[date, str] | None = None,
 ) -> OptionAnalysis:
     adjustment, factors = _score_adjustment(option)
     # Scenario-divergence signal: if this option maps to a different scenario than the
@@ -181,7 +226,7 @@ def _build_option_analysis(
         score=score,
         alignmentNotes=alignment,
         riskFactors=risk_factors,
-        optimalWindow=_optimal_window(target_date, verdict),
+        optimalWindow=_optimal_window(target_date, verdict, dasha_shift),
     )
 
 
@@ -263,6 +308,10 @@ def build_decision_brief(
         tz = resolve_effective_daily_timezone(chart_snapshot.data.birth_profile)
         target_date = datetime.now(tz=UTC).astimezone(ZoneInfo(tz)).date()
 
+    # Both options are read at the same moment on the same chart, so the next
+    # change of planetary period is shared between them.
+    dasha_shift = _next_dasha_shift(chart_snapshot, target_date)
+
     shared_scenario = _pick_scenario(priority, option_a, option_b)
     scenario_a = _scenario_from_option(option_a) or shared_scenario
     scenario_b = _scenario_from_option(option_b) or shared_scenario
@@ -284,6 +333,7 @@ def build_decision_brief(
         panchangam_quality=triple_a.panchangam_quality,
         option_scenario=scenario_a,
         shared_scenario=shared_scenario,
+        dasha_shift=dasha_shift,
     )
     analysis_b = _build_option_analysis(
         option_b,
@@ -296,6 +346,7 @@ def build_decision_brief(
         panchangam_quality=triple_b.panchangam_quality,
         option_scenario=scenario_b,
         shared_scenario=shared_scenario,
+        dasha_shift=dasha_shift,
     )
     # Use the shared scenario label for response metadata
     scenario = shared_scenario

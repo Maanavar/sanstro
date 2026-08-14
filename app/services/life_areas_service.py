@@ -302,10 +302,42 @@ _AREA_ROUTING: dict[str, dict] = {
 
 # ── Trend calculation ──────────────────────────────────────────────────────────
 
-def _trend(score: int, dasha_score: int) -> str:
-    if dasha_score >= 65 and score >= 60:
+#: The mind-sensitive areas Chandrashtamam is allowed to drag, and by how much.
+#: Named here rather than inline in `_score_area` so the flag reported to the
+#: client (`chandrashtamaApplied`) is derived from the SAME set that applies the
+#: penalty — a life-area score is otherwise a period number, and this is the one
+#: input in it that turns over on a ~2-day cycle, so a surface has to be able to
+#: say why the tile moved.
+_CHANDRASHTAMA_AREAS: frozenset[str] = frozenset(
+    {"HEALTH", "RELATIONSHIPS", "FAMILY_HARMONY", "EDUCATION"}
+)
+_CHANDRASHTAMA_PENALTY = 8
+
+#: Smallest score move the arrow will call a direction. Chosen from measured
+#: behaviour: the ashtakavarga term alone jitters a score by up to ±4 when the
+#: area's karaka changes rasi (monthly for Sun/Mercury/Venus areas), while a
+#: real structural move — Jupiter or Saturn changing rasi, a dasha turning over
+#: — measured 5–11 points. So 5 is the floor that separates signal from jitter.
+_TREND_DELTA = 5
+
+
+def _trend(score: int, score_6mo: int) -> str:
+    """Direction the area is actually heading, over the next six months.
+
+    This used to be ``_trend(score, dasha_score)`` — a function of the CURRENT
+    score alone, with no time delta anywhere in it: score < 45 returned "DOWN"
+    and a high dasha score returned "UP". So a tile reading "Money 16 ↓" was not
+    saying money was falling, it was saying 16 is a low number — the same fact
+    the score, its colour and its verdict word already carried, restated a
+    fourth time as a direction it never measured.
+
+    ``score_6mo`` is the same engine re-run against the transits and dasha in
+    force six months out, so comparing the two is a real slope.
+    """
+    delta = score_6mo - score
+    if delta >= _TREND_DELTA:
         return "UP"
-    if score < 45 or dasha_score < 45:
+    if delta <= -_TREND_DELTA:
         return "DOWN"
     return "STABLE"
 
@@ -1238,8 +1270,8 @@ def _score_area(
     scored = compute_prediction_score(inp, use_reasoning_gate=use_gate)
     if kandaka_sani_active:
         scored.total = max(0, scored.total - _SANI_AREA_PENALTY["KANDAKA_SANI"].get(area, 0))
-    if chandrashtama and area in ("HEALTH", "RELATIONSHIPS", "FAMILY_HARMONY", "EDUCATION"):
-        scored.total = max(0, scored.total - 8)
+    if chandrashtama and area in _CHANDRASHTAMA_AREAS:
+        scored.total = max(0, scored.total - _CHANDRASHTAMA_PENALTY)
 
     return scored.total, {
         "l1": scored.l1_birth_promise,
@@ -1997,7 +2029,8 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             area=area,
             label=label,
             score=score,
-            trend=_trend(score, dasha_score),
+            trend=_trend(score, score_6mo),
+            chandrashtamaApplied=chandrashtama and area in _CHANDRASHTAMA_AREAS,
             score6mo=score_6mo,
             score12mo=score_12mo,
             ageRelevant=not phase_skipped,

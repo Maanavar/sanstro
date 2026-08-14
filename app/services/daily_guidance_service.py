@@ -662,7 +662,9 @@ def build_daily_guidance_response(
         personal_safety_score -= 3
     personal_safety_score = max(0, min(100, personal_safety_score))
 
-    best_windows = _best_hours(panchangam, maha_lord, lagna_rasi=natal_lagna, current_antar_lord=antar_lord)
+    best_windows, best_window_conflicts = _best_hours(
+        panchangam, maha_lord, lagna_rasi=natal_lagna, current_antar_lord=antar_lord
+    )
     caution_windows = _caution_windows(panchangam)
     # Remedial support reflects the *quality* of available windows, not merely their
     # presence (every day has some Nalla Neram). Full credit only when a personal-hora
@@ -960,6 +962,7 @@ def build_daily_guidance_response(
             ),
             bestWindows=best_windows,
             cautionWindows=caution_windows,
+            bestWindowConflicts=best_window_conflicts,
             text=DailyGuidanceText(ta=reasons.summary.ta, en=reasons.summary.en),
             nakshatraPerspective=DailyGuidanceText(
                 ta=nakshatra_perspective.ta,

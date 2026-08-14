@@ -10,11 +10,15 @@ Methodology (Thirukanitham):
 - Avoid Rikta tithis (4th/9th/14th of each paksha) for auspicious events
 - Positive signals: auspicious tithi, nakshatra, yoga; Abhijit muhurta (except Wed)
 - Dasha support: check if dasha lord is relevant to the activity
+- The returned window is a favoured hora ∩ a good Gowri day kala clear of the
+  kalams, so the clock time and the reason printed beside it always agree
+  (see `_best_time_window`)
 """
 from __future__ import annotations
 
 import logging
 from datetime import UTC, date, datetime, timedelta
+from typing import NamedTuple
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -30,6 +34,8 @@ from app.calculations.panchangam import (
     SUBHA_TITHIS_SHUKLA,
     best_gowri_slot,
     calculate_daily_panchangam_range,
+    gowri_category_rank,
+    gowri_good_label,
 )
 from app.calculations.tamil_calendar import format_tamil_date
 from app.models import BirthProfile, Chart
@@ -42,6 +48,18 @@ logger = logging.getLogger(__name__)
 
 MAX_DATE_RANGE_DAYS = 60
 TOP_N = 5
+
+# A sliver of the day narrower than this is not actionable as a muhurta window.
+_MIN_WINDOW = timedelta(minutes=15)
+
+
+class _Window(NamedTuple):
+    """The day's recommended window and the hora credit earned by it."""
+
+    start: datetime
+    end: datetime
+    hora_bonus: float
+    hora_support: BiText | None
 
 # Activity → relevant dasha lords (first-choice benefics for that domain)
 _ACTIVITY_LORDS: dict[str, set[str]] = {
@@ -113,29 +131,30 @@ def _activity_hora_lords(activity: str, lagna_rasi: int) -> set[str]:
     return generic
 
 
-def _score_hora(snap, activity: str, lagna_rasi: int) -> tuple[float, BiText | None]:
-    """
-    Return (bonus_score, hora_support_text).
-    Checks daytime horas for activity-relevant lords personalized to this chart.
-    Lagna lord hora gets an extra +5 on top of the base +8.
-    """
-    target_lords = _activity_hora_lords(activity, lagna_rasi)
-    lagna_lord = _norm(_SIGN_LORDS[lagna_rasi])
+def _planet_ta(lord: str) -> str:
+    return PLANET_NAME[lord].ta if lord in PLANET_NAME else lord.capitalize()
 
-    for entry in snap.hora[:12]:
-        lord = _norm(entry.lord)
-        if lord in target_lords:
-            bonus = 13.0 if lord == lagna_lord else 8.0
-            time_str = _format_time_range(entry.start, entry.end)
-            if lord == lagna_lord:
-                en = f"Lagna lord {lord.capitalize()} hora ({time_str}) — strongest personal window"
-                ta = f"லக்கினாதிபதி {lord.capitalize()} ஹோரை ({time_str}) — சிறந்த தனிப்பட்ட நேரம்"
-            else:
-                en = f"{lord.capitalize()} hora ({time_str}) supports this activity"
-                ta = f"{lord.capitalize()} ஹோரை ({time_str}) இந்த செயலை ஆதரிக்கிறது"
-            return bonus, _t(ta, en)
 
-    return 0.0, None
+def _hora_support_text(lord: str, is_lagna_lord: bool, hora, kala_name: str | None) -> BiText:
+    """Reason copy for a window that lies inside `hora`.
+
+    The hora's own clock range is printed, and the returned window is a
+    sub-range of it — so the reason and the time beside it always agree.
+    """
+    time_str = _format_time_range(hora.start, hora.end)
+    kala_en = gowri_good_label(kala_name, "en")
+    kala_ta = gowri_good_label(kala_name, "ta")
+    within_en = f" within {kala_en}" if kala_en else ""
+    within_ta = f" [{kala_ta}]" if kala_ta else ""
+    if is_lagna_lord:
+        return _t(
+            f"லக்கினாதிபதி {_planet_ta(lord)} ஹோரை ({time_str}){within_ta} — சிறந்த தனிப்பட்ட நேரம்",
+            f"Lagna lord {lord.capitalize()} hora ({time_str}){within_en} — strongest personal window",
+        )
+    return _t(
+        f"{_planet_ta(lord)} ஹோரை ({time_str}){within_ta} இந்த செயலை ஆதரிக்கிறது",
+        f"{lord.capitalize()} hora ({time_str}){within_en} supports this activity",
+    )
 
 
 def _score_panchangam(snapshot, activity: str, moon_rasi: int, lagna_rasi: int) -> tuple[float, BiText, list[BiText]]:
@@ -224,20 +243,90 @@ def _nakshatra_to_rasi(nak_number: int, pada: int = 1) -> int:
     return nakshatra_to_rasi(nak_number, pada)
 
 
-def _best_time_window(snapshot) -> tuple[str, str, datetime, datetime]:
-    """Return the best (time_start, time_end) slot for the day — Nalla Neram or Abhijit."""
-    if snapshot.nalla_neram:
-        s = best_gowri_slot(snapshot.nalla_neram)
-        if s is None:
-            s = snapshot.nalla_neram[0]
-        return s.start.strftime("%H:%M"), s.end.strftime("%H:%M"), s.start, s.end
-    # Fallback: Abhijit
-    return (
-        snapshot.abhijit_start.strftime("%H:%M"),
-        snapshot.abhijit_end.strftime("%H:%M"),
-        snapshot.abhijit_start,
-        snapshot.abhijit_end,
-    )
+def _clear_good_day_kalas(snapshot) -> list:
+    """Good Gowri day kalas that no inauspicious kalam touches.
+
+    The Gowri kalas and Rahu Kalam / Yamagandam / Kuligai are cut from the same
+    sunrise->sunset eighths, so a good kala can land exactly on a bad kalam —
+    Thursday's DHANAM *is* Yamagandam. No reliable panchangam announces such a
+    slot, and neither do we.
+    """
+    bad = [b for b in (snapshot.rahu_kalam, snapshot.yamagandam, snapshot.kuligai) if b is not None]
+    return [
+        slot
+        for slot in snapshot.gowri_panchangam
+        if slot.period == "DAY"
+        and slot.is_good
+        and not any(_overlaps(slot.start, slot.end, b.start, b.end) for b in bad)
+    ]
+
+
+def _best_time_window(snapshot, activity: str, lagna_rasi: int) -> _Window:
+    """Pick the day's recommended window, and the hora bonus that goes with it.
+
+    The window is the **intersection** of a favoured hora with a good Gowri day
+    kala clear of Rahu Kalam / Yamagandam / Kuligai, so the returned clock range
+    always lies inside the hora its own `horaSupport` names.
+
+    This closes two defects:
+
+    * **D1** — the hora used to be scored and described in one place while the
+      returned time came from `nalla_neram` in another. The two never had to
+      agree, and mostly did not: for PURCHASE in Chennai the two failed to
+      overlap on all seven days from 2026-08-17 — Mon 17 Aug returned
+      06:00-07:33 beside a reason naming the 08:04-09:06 Guru hora. A hora is
+      now named only when the window returned actually sits inside it.
+    * **D2** — the scan used to `return` on the first favoured hora of the day,
+      so a lagna-lord hora at index 9 lost to a generic one at index 2. Every
+      hora/kala pair is now ranked and the best one wins.
+
+    Consequently the hora bonus is earned only by a *usable* window: a favoured
+    hora spent entirely inside Rahu Kalam no longer lifts the day's score.
+
+    The window stays inside daylight. Night horas are scanned but cannot
+    intersect a DAY kala, so they never win — extending the picker to evening
+    windows is a product decision that needs the astrologer, and ranking a night
+    window has walked us into the small hours once already (see
+    `_compute_gowri_nalla_neram`).
+    """
+    candidates = _clear_good_day_kalas(snapshot)
+    target_lords = _activity_hora_lords(activity, lagna_rasi)
+    lagna_lord = _norm(_SIGN_LORDS[lagna_rasi])
+
+    best_key: tuple | None = None
+    best: _Window | None = None
+    for entry in snapshot.hora:
+        lord = _norm(entry.lord)
+        if lord not in target_lords:
+            continue
+        is_lagna_lord = lord == lagna_lord
+        bonus = 13.0 if is_lagna_lord else 8.0
+        for kala in candidates:
+            start = max(entry.start, kala.start)
+            end = min(entry.end, kala.end)
+            if end - start < _MIN_WINDOW:
+                continue
+            # Lagna-lord hora first, then the Gowri kala's own rank
+            # (Amirtham > Uthi > Labham > Dhanam > Sugam), then earliest.
+            key = (-bonus, gowri_category_rank(kala.name), start)
+            if best_key is None or key < best_key:
+                best_key = key
+                best = _Window(start, end, bonus, _hora_support_text(lord, is_lagna_lord, entry, kala.name))
+
+    if best is not None:
+        return best
+
+    # No favoured hora meets a clear good kala today: fall back to the best-ranked
+    # clear good kala and name no hora, rather than crediting one we cannot use.
+    if candidates:
+        kala = min(candidates, key=lambda s: (gowri_category_rank(s.name), s.start))
+        return _Window(kala.start, kala.end, 0.0, None)
+
+    fallback = best_gowri_slot(snapshot.nalla_neram)
+    if fallback is not None:
+        return _Window(fallback.start, fallback.end, 0.0, None)
+
+    return _Window(snapshot.abhijit_start, snapshot.abhijit_end, 0.0, None)
 
 
 def _overlaps(start_a: datetime, end_a: datetime, start_b: datetime, end_b: datetime) -> bool:
@@ -337,10 +426,12 @@ def find_best_muhurta_slots(
             # Dasha bonus
             if maha_lord in _ACTIVITY_LORDS.get(activity, set()) or antar_lord in _ACTIVITY_LORDS.get(activity, set()):
                 day_score += 10
-            # Hora bonus — personalized to chart lagna and activity houses
-            hora_bonus, hora_text = _score_hora(snap, activity, lagna_rasi)
-            day_score += hora_bonus
-            t_start, t_end, slot_start, slot_end = _best_time_window(snap)
+            # Window + hora bonus — the two are chosen together so the returned
+            # time always falls inside the hora its own reason names (D1).
+            window = _best_time_window(snap, activity, lagna_rasi)
+            day_score += window.hora_bonus
+            slot_start, slot_end = window.start, window.end
+            t_start, t_end = slot_start.strftime("%H:%M"), slot_end.strftime("%H:%M")
             slot_cautions = list(cautions)
             if _overlaps(slot_start, slot_end, snap.rahu_kalam.start, snap.rahu_kalam.end):
                 slot_cautions.append(_t("ராகு காலம் இந்த நேரத்துடன் ஒட்டுகிறது", "Rahu Kalam overlaps this slot"))
@@ -348,7 +439,7 @@ def find_best_muhurta_slots(
                 slot_cautions.append(_t("யமகண்டம் இந்த நேரத்துடன் ஒட்டுகிறது", "Yamagandam overlaps this slot"))
             if _overlaps(slot_start, slot_end, snap.kuligai.start, snap.kuligai.end):
                 slot_cautions.append(_t("குளிகை இந்த நேரத்துடன் ஒட்டுகிறது", "Kuligai overlaps this slot"))
-            scored_days.append((day_score, current, t_start, t_end, pan_support, hora_text, slot_cautions))
+            scored_days.append((day_score, current, t_start, t_end, pan_support, window.hora_support, slot_cautions))
         except Exception as exc:
             logger.debug("Muhurta score failed for %s: %s", current, exc)
         current += timedelta(days=1)

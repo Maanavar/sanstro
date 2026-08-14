@@ -21,7 +21,13 @@ from app.schemas.dasha import ResponseMeta
 # v8 (2026-07-24): additive `remedyFocus` (structured Today-card remedy). Bumped
 # so warm rows recompute and surface the new field immediately rather than
 # serving null until the cache naturally ages out.
-DAILY_SCORE_ENGINE_VERSION = "2026-07-24-v8"
+# v9 (2026-08-14): best windows are now the intersection of the hora grid, the
+# Gowri kala grid and the three kalams, trimmed to where all three agree, plus
+# the new `bestWindowConflicts`. Window START/END VALUES CHANGE (a 62-minute hora
+# clipped by a 93-minute kala is shorter), and on a day whose supportive horas
+# all land in bad kalas `best_windows` can now hold only Abhijit — which lowers
+# `remedialActionSupport` and therefore the score. Warm rows must recompute.
+DAILY_SCORE_ENGINE_VERSION = "2026-08-14-v9"
 
 
 def _cache_version(calculation_version: str) -> str:
