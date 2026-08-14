@@ -16,6 +16,38 @@ export const D1_RASI_NAMES = [
   "Meenam",
 ];
 
+/**
+ * The same twelve rasis in Tamil script.
+ *
+ * D1_RASI_NAMES above is Tamil transliterated into Latin, which is the right
+ * label in English mode and the wrong one in Tamil mode — a Tamil reader was
+ * being shown "Viruchigam" where the almanac says விருச்சிகம். The table was
+ * already hand-copied in two files (`chart-generate-inline-panel`, the
+ * marketing `JadhagamTool`); it lives here so the grids can read the reader's
+ * language without a third copy appearing.
+ */
+export const D1_RASI_NAMES_TA = [
+  "",
+  "மேஷம்",
+  "ரிஷபம்",
+  "மிதுனம்",
+  "கடகம்",
+  "சிம்மம்",
+  "கன்னி",
+  "துலாம்",
+  "விருச்சிகம்",
+  "தனுசு",
+  "மகரம்",
+  "கும்பம்",
+  "மீனம்",
+];
+
+/** Rasi label in the reader's language. */
+export function rasiLabel(rasi: number, lang: "ta" | "en"): string {
+  const table = lang === "ta" ? D1_RASI_NAMES_TA : D1_RASI_NAMES;
+  return table[rasi] ?? `Rasi ${rasi}`;
+}
+
 // Classical, fixed rasi→ruling-planet mapping (never changes per-chart, so it's
 // safe to hardcode client-side — same tier of fact as GRAHA_ABBR/D1_RASI_NAMES
 // above). Keyed the same way DASHA_COLORS/tPlanetLord are (SUN/MOON/MARS/...).

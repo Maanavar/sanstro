@@ -27,6 +27,7 @@ export type {
   ChartSummaryData,
   AdhipathiReading,
   DailyGuidanceWindow,
+  DailyGuidanceWindowConflict,
   DailyGuidanceReasons,
   DailyGuidanceEmotionalWeather,
   DailyGuidanceJournalInsight,

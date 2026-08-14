@@ -179,6 +179,44 @@ export function getScoreVerdict(score: number, lang: "ta" | "en"): ScoreVerdict 
   return { verdict: lang === "ta" ? "ஜாக்கிரதை" : "Take care", tone: "low", color };
 }
 
+// ── Life-area bands ─────────────────────────────────────────────────────────
+// A life area is scored on a different axis from a day, and the engine bands it
+// differently: `life_areas_service._score_area` closes its own prose at 70 and
+// 45 ("strong" / "moderate and steady" / "needs attention"). The four-band
+// DAILY palette above bands at 70 / 65 / 50 — so a life area scoring 45–49 read
+// "Needs care" on the Today tile and "moderate and steady (45/100)" in its own
+// detail text, one tap apart. The engine owns the doctrine, so the UI follows
+// it here rather than the other way round.
+const LIFE_AREA_STRONG = 70;
+const LIFE_AREA_STEADY = 45;
+
+/** Colour for a life-area score — three bands at the engine's own boundaries,
+ *  reusing the existing palette tokens. Deliberately NOT `scoreBandColor`:
+ *  that map is documented as the canonical colours for every *daily* score
+ *  surface, and a life area is not one. Sharing it would put a red tile under
+ *  the words "Mixed period" everywhere between 45 and 49. */
+export function lifeAreaBandColor(score: number): string {
+  if (score >= LIFE_AREA_STRONG) return SCORE_STRONG;
+  if (score >= LIFE_AREA_STEADY) return SCORE_FAIR;
+  return SCORE_WEAK;
+}
+
+/** A life-area score is NOT a daily score, so it must not borrow the daily
+ *  lexicon. `getScoreVerdict` above says "Good day" / "An okay day" — printing
+ *  that under a card whose own subtitle reads "your outlook this period — not a
+ *  daily score" put the word *day* on a months-long number, and set it beside
+ *  the "Is today okay for…?" muhurtam board as if the two answered the same
+ *  question. This is the same 0–100 ladder, read in the period noun
+ *  (காலகட்டம் / "period") and on the engine's own three bands, so word, colour
+ *  and the area's detail prose can never disagree about one number. */
+export function getLifeAreaVerdict(score: number, lang: "ta" | "en"): ScoreVerdict {
+  const color = lifeAreaBandColor(score);
+  const phrase = (label: string) => verdictPhrase("lifeArea", label, lang) ?? "";
+  if (score >= LIFE_AREA_STRONG) return { verdict: phrase("EXCELLENT"), tone: "high", color };
+  if (score >= LIFE_AREA_STEADY) return { verdict: phrase("MIXED"), tone: "mid", color };
+  return { verdict: phrase("CAUTION"), tone: "low", color };
+}
+
 /** Headline verdict from the backend label — the label already encodes the
  *  canonical thresholds AND the chandrashtama cap, so word/colour can never
  *  contradict the engine. Falls back to score-only when label is absent

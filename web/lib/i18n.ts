@@ -254,6 +254,13 @@ const STRINGS = {
   label_nalla_neram:      { ta: "நல்ல நேரம்",       en: "Nalla Neram" },
   label_gowri_nalla_neram:{ ta: "கௌரி நல்ல நேரம்", en: "Gowri Nalla Neram" },
   label_abhijit:    { ta: "அபிஜித்",           en: "Abhijit" },
+  title_recommended_nalla_neram: { ta: "\u0b87\u0ba9\u0bcd\u0bb1\u0bc8\u0baf\u0020\u0baa\u0bb0\u0bbf\u0ba8\u0bcd\u0ba4\u0bc1\u0bb0\u0bc8\u0b95\u0bcd\u0b95\u0baa\u0bcd\u0baa\u0b9f\u0bcd\u0b9f\u0020\u0ba8\u0bb2\u0bcd\u0bb2\u0020\u0ba8\u0bc7\u0bb0\u0bae\u0bcd", en: "Today's recommended Nalla Neram" },
+  title_additional_gowri_good_times: { ta: "\u0b95\u0bc2\u0b9f\u0bc1\u0ba4\u0bb2\u0bcd\u0020\u0b95\u0bcc\u0bb0\u0bbf\u0020\u0ba8\u0bb2\u0bcd\u0bb2\u0020\u0ba8\u0bc7\u0bb0\u0b99\u0bcd\u0b95\u0bb3\u0bcd", en: "Additional Gowri good times" },
+  gowri_summary_hint: {
+    ta: "\u0b87\u0bb5\u0bc8\u0020\u0b87\u0ba9\u0bcd\u0bb1\u0bc8\u0baf\u0020\u0ba8\u0bb2\u0bcd\u0bb2\u0020\u0b95\u0bcc\u0bb0\u0bbf\u0020\u0b95\u0bbe\u0bb2\u0b99\u0bcd\u0b95\u0bb3\u0bbf\u0bb2\u0bbf\u0bb0\u0bc1\u0ba8\u0bcd\u0ba4\u0bc1\u0020\u0ba4\u0bc7\u0bb0\u0bcd\u0ba8\u0bcd\u0ba4\u0bc6\u0b9f\u0bc1\u0ba4\u0bcd\u0ba4\u0020\u0baa\u0bb0\u0bbf\u0ba8\u0bcd\u0ba4\u0bc1\u0bb0\u0bc8\u0b95\u0bb3\u0bcd\u002e\u0020\u0b85\u0ba9\u0bc8\u0ba4\u0bcd\u0ba4\u0bc1\u0020\u0ba8\u0bb2\u0bcd\u0bb2\u0020\u0b95\u0bbe\u0bb2\u0b99\u0bcd\u0b95\u0bb3\u0bc8\u0baf\u0bc1\u0bae\u0bcd\u0020\u0b95\u0bc0\u0bb4\u0bc7\u0020\u0b89\u0bb3\u0bcd\u0bb3\u0020\u0b95\u0bcc\u0bb0\u0bbf\u0020\u0baa\u0b9e\u0bcd\u0b9a\u0bbe\u0b99\u0bcd\u0b95\u0020\u0bb5\u0bbf\u0bb5\u0bb0\u0ba4\u0bcd\u0ba4\u0bbf\u0bb2\u0bcd\u0020\u0b95\u0bbe\u0ba3\u0bb2\u0bbe\u0bae\u0bcd\u002e",
+    en: "These are selected recommendations from today's favourable Gowri periods. See the Gowri Panchangam details below for every auspicious kala.",
+  },
+  gowri_panchangam_details: { ta: "\u0b95\u0bcc\u0bb0\u0bbf\u0020\u0baa\u0b9e\u0bcd\u0b9a\u0bbe\u0b99\u0bcd\u0b95\u0020\u0bb5\u0bbf\u0bb5\u0bb0\u0bae\u0bcd", en: "Gowri Panchangam details" },
   label_subha_muhurtham: { ta: "சுப முஹூர்த்தம்", en: "Subha Muhurtham" },
   label_subha_day:  { ta: "சுப தினம்",         en: "Auspicious Day" },
   label_not_subha:  { ta: "சாதாரண தினம்",       en: "Ordinary Day" },
@@ -1005,6 +1012,14 @@ const STRINGS = {
 
   // ── Remedy For You (Today card) — chart-driven anchor-planet remedy
   remedy_focus_title:      { ta: "உங்களுக்கான பரிகாரம்",          en: "Remedy for you" },
+  // Used as "<Name> · <this word>" when the card is showing another household
+  // member's remedy, so the title stops claiming "for you" while the reader is
+  // looking at someone else's. Deliberately the bare noun and joined with a
+  // separator rather than an inflected "<Name>க்கான": the name can arrive in
+  // either script, and appending a Tamil case suffix to an arbitrary name is
+  // the inflection bug this codebase has already been bitten by.
+  remedy_focus_title_short: { ta: "பரிகாரம்",                      en: "Remedy" },
+  remedy_focus_member_rail: { ta: "யாருடைய பரிகாரம்",              en: "Whose remedy" },
   remedy_focus_dasa:       { ta: "தசை",                           en: "Dasa" },
   remedy_focus_why:        { ta: "ஏன் இது?",                       en: "Why this?" },
   remedy_focus_best_on:    { ta: "சிறந்த நாள்",                    en: "Best on" },

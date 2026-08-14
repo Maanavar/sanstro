@@ -2299,6 +2299,126 @@
   outline-offset: 2px;
 }
 
+/* ── Remedy member rail ────────────────────────────────────
+   The Today tab's "Remedy for you" card lets you read any household member's
+   remedy. That one choice used to carry three stacked controls: a pill row, an
+   `<input type="range">`, and ‹ › arrows — all writing the same value. The
+   range was the wrong instrument twice over: a slider expresses a *continuous
+   quantity*, so dragging one to pick a person reads as a volume control, and a
+   native range paints OS chrome that no token in either theme can reach
+   (`accentColor` colours the thumb, never the track).
+
+   One rail now owns the choice. Each chip carries that member's own graha
+   glyph in that graha's colour (`--chip-accent`, set per chip), so the switch
+   shows *what changes* instead of offering three ways to move the same index.
+   Unscoped selectors (like .nova-activity-scroller above) — the card is not
+   .cd-shell-only. */
+.nova-remedy-rail {
+  display: flex;
+  gap: 6px;
+  /* 4px/2px of breathing room so a chip's focus ring and selected-state
+     halo are not clipped by the scroll box; pulled back out with the
+     matching negative margin so the rail still aligns to the card's text. */
+  padding: 4px 2px;
+  margin: -4px -2px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;         /* Firefox */
+  -ms-overflow-style: none;      /* legacy Edge */
+  /* Edge fade, same technique as the topnav strip: whichever side still has
+     chips off-screen fades out, so an overflowing rail announces itself.
+     Driven by data-scroll-start/end, set from the scroll listener. */
+  --fade-l: 0px;
+  --fade-r: 0px;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
+}
+.nova-remedy-rail::-webkit-scrollbar { display: none; }
+.nova-remedy-rail[data-scroll-start="false"] { --fade-l: 18px; }
+.nova-remedy-rail[data-scroll-end="false"] { --fade-r: 22px; }
+
+.nova-remedy-chip {
+  --chip-accent: var(--color-accent-secondary);
+  appearance: none;
+  flex: 0 0 auto;
+  scroll-snap-align: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 172px;
+  min-height: 36px;
+  padding: 4px 13px 4px 4px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-muted);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background var(--motion-nav) var(--ease-nova),
+    border-color var(--motion-nav) var(--ease-nova),
+    color var(--motion-nav) var(--ease-nova);
+}
+.nova-remedy-chip__glyph {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: var(--text-sm);
+  line-height: 1;
+  color: var(--chip-accent);
+  background: color-mix(in srgb, var(--chip-accent) 13%, transparent);
+  border: 1px solid color-mix(in srgb, var(--chip-accent) 28%, transparent);
+  transition:
+    background var(--motion-nav) var(--ease-nova),
+    border-color var(--motion-nav) var(--ease-nova);
+}
+.nova-remedy-chip__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nova-remedy-chip:hover:not([aria-selected="true"]) {
+  color: var(--color-text-strong);
+  border-color: var(--color-border-strong);
+}
+.nova-remedy-chip[aria-selected="true"] {
+  color: var(--color-text-strong);
+  background: color-mix(in srgb, var(--chip-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--chip-accent) 55%, transparent);
+}
+.nova-remedy-chip[aria-selected="true"] .nova-remedy-chip__glyph {
+  background: color-mix(in srgb, var(--chip-accent) 26%, transparent);
+  border-color: color-mix(in srgb, var(--chip-accent) 52%, transparent);
+}
+.nova-remedy-chip:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 2px;
+}
+
+/* The panel is keyed on the selected member, so switching remounts it. An
+   opacity-only fade (no translate) marks the change without the content
+   appearing to jump inside a card that keeps its own position. */
+.nova-remedy-panel {
+  animation: nova-remedy-fade var(--dur-slow) var(--ease-nova) both;
+}
+@keyframes nova-remedy-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nova-remedy-rail { scroll-behavior: auto; }
+  .nova-remedy-panel { animation: none; }
+}
+
 /* ── Button / Pill — the 44px-safe replacement for inline buttons. ── */
 [data-ui="nova"] .cd-shell .ui-btn {
   display: inline-flex;
