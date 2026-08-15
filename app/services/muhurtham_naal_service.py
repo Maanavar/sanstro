@@ -39,6 +39,7 @@ from app.calculations.panchangam import (
     WEEKDAY_NAMES,
 )
 from app.calculations.tamil_calendar import TAMIL_MONTHS
+from app.calculations.tara_bala import tara_number
 from app.data.muhurtham_naals import (
     MUHURTHAM_SOURCE,
     MuhurthamNaal,
@@ -209,8 +210,8 @@ def list_muhurtham_naals(
 
 
 def _tara_number(janma_nakshatra: int, day_nakshatra: int) -> int:
-    count = ((day_nakshatra - janma_nakshatra) % 27) + 1
-    return ((count - 1) % 9) + 1
+    """Backward-compatible alias for the shared calculation helper."""
+    return tara_number(janma_nakshatra, day_nakshatra)
 
 
 def _resolve_janma(session: Session, chart_id: UUID) -> tuple[int, int, str]:
