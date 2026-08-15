@@ -1,0 +1,531 @@
+# =========================================================
+# MARRIAGE SOURCE-EXTRACTION WORKSHEET — COMPLETED
+# Kalaprakasika Ch. XIV (Celebration of Marriage) + Ch. XIII where noted
+# Edition: N.P. Subramonia Iyer translation (Internet Archive scan)
+# Source pages: 68-87 (20 page-images, user-supplied)
+# Operationalizes Vinaadi Muhurta Engine v2.3 priority task #1
+# =========================================================
+#
+# HOW TO USE
+#   1. Open the PDF to Ch. XIV. Read once end to end before filling anything.
+#   2. For each record: fill page, verse_or_passage (short quote OK, <15 words),
+#      then set verification_result.outcome from the controlled vocabulary below.
+#   3. Fill original_language_term whenever the English is ambiguous.
+#   4. Records may enter the engine's PRIMARY_TEXT_CONFIRMED tier iff outcome is
+#      CONFIRMED_EXACT or CONFIRMED_WITH_CONDITION, source_scope is MARRIAGE,
+#      rule_type is TEXTUAL_RULE, the passage is recorded, and every condition is
+#      captured. CONFIRMED_WITH_CONDITION is NOT weaker — "X allowed provided Y"
+#      is a fully-sourced conditional rule.
+#   5. NOT_FOUND != FALSE. It means "not located in this chapter," nothing more.
+#
+# THREE-LAYER DISCIPLINE (never collapse into one field)
+#   SOURCE SAYS      -> verse_or_passage        (what the text literally states)
+#   INTERPRETATION   -> interpretation          (what it appears to mean)
+#   ENGINE EFFECT    -> severity / conditions   (Vinaadi's policy decision)
+#
+# CONTROLLED OUTCOME VOCABULARY
+#   CONFIRMED_EXACT          passage explicitly states the candidate rule
+#   CONFIRMED_WITH_CONDITION rule exists only under extra conditions
+#   PARTIAL                  some but not all candidate contents present
+#   CONTRADICTED              text says something materially different
+#   NOT_FOUND                searched the chapter, no supporting passage
+#   SCHOOL_VARIANT           exists traditionally/elsewhere, not in this profile
+#   OUT_OF_SCOPE              passage exists but for another activity/context
+#   TRANSLATION_AMBIGUOUS    English cannot support an engine rule without
+#                            original-text review
+# =========================================================
+
+
+# ---------------------------------------------------------
+# 1 of 8 — MARRIAGE NAKSHATRA ALLOWED SET
+# ---------------------------------------------------------
+- rule_id: MARRIAGE_NAKSHATRA_ALLOWED_SET
+  factor: NAKSHATRA
+  activity: MARRIAGE
+  candidate_value:
+    allowed: [ROHINI, MRIGASHIRSHA, MAGHA, UTTARA_PHALGUNI, HASTA, SWATI,
+              ANURADHA, MULA, UTTARA_ASHADHA, UTTARA_BHADRAPADA, REVATI]  # count = 11
+  authority:
+    tradition: KALAPRAKASIKA
+    chapter: XIV
+    page: 79
+    verse_or_passage: "The following asterisms are the best; they favour the birth of sons: Rohini, Mrigasirsha, Magha, Utharapalguni, Hastha, Swathi, Anuradha, Mula, Utharashada, Utharabadhrapadha and Revathi."
+    translation_edition: "Subramonia Iyer"
+    original_language_term: null
+  provenance: {status: CONFIRMED}
+  source_scope: MARRIAGE
+  rule_type: TEXTUAL_RULE
+  source_confidence: EXACT
+  profile: {tamil_kalaprakasika: enabled, pan_indian_conservative: disabled}
+  severity: {allowed_star: ALLOWED, nonlisted_star: null}   # text does not blanket-VETO others; see notes
+  conditions: {all_of: [], any_of: [], none_of: []}
+  overrides: []
+  overridden_by: []
+  interpretation: "11 stars, Magha and Mula explicitly INCLUDED. Framed as 'best, favour birth of sons' — preferential, not an exhaustive allow/deny list. Text adds an overlay: Oordhva-Mukha asterisms most fruitful, Atho-Mukha cause harm, Thiryag-Mukha breed fever, 'other asterisms affect the life of the son.'"
+  extraction_questions:
+    - "Does the passage explicitly enumerate all 11 stars?"
+    - "Confirm COUNT and exact members — do NOT pattern-match to another chapter's star list."
+    - "Is the list exhaustive, or merely preferential (best vs admissible)?"
+    - "Does the text distinguish Shukla / Krishna Paksha?"
+    - "Are any stars conditional on Lagna, Tithi, Vara, or planetary strength?"
+  verification_result:
+    outcome: CONFIRMED_EXACT
+    notes: >
+      Exactly the 11-star list (my earlier 'ten' miscount corrected; ChatGPT's 11 correct).
+      Magha and Mula present. NO pada exclusions stated here (see record 2). Note the
+      Mukha overlay (Oordhva/Atho/Thiryag) is a SECOND layer the pack didn't anticipate —
+      belongs as a nakshatra-direction modifier. 'Favour birth of sons' is the stated
+      rationale, so this list is son-oriented preference, not a pure veto gate.
+    verified_on: "2026-08-14"
+    verified_by: "primary-text images pp.79 (user-supplied)"
+
+
+# ---------------------------------------------------------
+# 2 of 8 — MARRIAGE NAKSHATRA PADA EXCLUSIONS
+# ---------------------------------------------------------
+- rule_id: MARRIAGE_NAKSHATRA_PADA_EXCLUSIONS
+  factor: NAKSHATRA_PADA
+  activity: MARRIAGE
+  candidate_value: {MAGHA_1: PENDING, MULA_1: PENDING, REVATI_4: PENDING}
+  authority:
+    tradition: KALAPRAKASIKA
+    chapter: XIV
+    page: 79
+    verse_or_passage: "(no pada-level exclusion of Magha/Mula/Revati appears in the Ch. XIV marriage-asterism passage)"
+    translation_edition: "Subramonia Iyer"
+    original_language_term: null
+  provenance: {status: CONFIRMED}      # confirmed ABSENT from this chapter
+  source_scope: MARRIAGE
+  rule_type: TEXTUAL_RULE
+  source_confidence: EXACT
+  profile: {tamil_kalaprakasika: enabled}
+  severity: null
+  conditions: {all_of: [], any_of: [], none_of: []}
+  overrides: []
+  overridden_by: []
+  interpretation: "Ch. XIV lists the 11 stars with no pada qualifier. The only pada-level marriage rule found anywhere in Ch. XIII-XIV is in the Dhinam/Pariyaya passage (p.69): avoid the 1st quarter of the 3rd asterism, 4th quarter of the 5th, 3rd quarter of the 7th — but that is COMPATIBILITY (Navatara from bride's star), NOT a fixed Magha-1/Mula-1 muhurta exclusion. The Magha/Mula gandanta zones live in Ch. II (natal scope)."
+  extraction_questions:
+    - "Does Ch. XIV actually exclude Magha pada 1? Mula pada 1? Revati pada 4?"
+    - "Are these marriage-specific, or imported from the nativity/gandanta context?"
+    - "NOTE: Ch. II defines Nakshatra Gandantam as last 2 ghatikas of Jyeshta/Ashlesha/Revati"
+    - "  + first 2 of Magha/Mula/Ashwini. Check whether these 'pada' exclusions are"
+    - "  actually gandanta zones being restated — that changes rule_type and scope."
+    - "Are the exclusions based on pada, gandanta, navamsa, or another rule?"
+  verification_result:
+    outcome: NOT_FOUND
+    notes: >
+      The claimed Magha-1/Mula-1/Revati-4 marriage pada exclusions are NOT in Ch. XIV.
+      Do not hard-code them. The pada-sensitivity that DOES exist (Pariyaya, p.69) is a
+      compatibility rule counted from the bride's star, not a fixed-pada muhurta veto,
+      and the Magha/Mula pada danger is gandanta (Ch. II, natal). Secondary sources that
+      assert these exclusions are unsupported by this primary text. Status: TRADITIONALLY_REPORTED
+      at best; treat as SCHOOL_VARIANT if a school insists on it.
+    verified_on: "2026-08-14"
+    verified_by: "primary-text images pp.69,79 (user-supplied)"
+
+
+# ---------------------------------------------------------
+# 3 of 8 — MARRIAGE LAGNA SIGN PREFERENCE
+# ---------------------------------------------------------
+- rule_id: MARRIAGE_LAGNA_SIGN_PREFERENCE
+  factor: MUHURTA_LAGNA_SIGN
+  activity: MARRIAGE
+  candidate_value:
+    best:   [GEMINI, VIRGO, LIBRA]
+    avoid:  [ARIES, SCORPIO, CAPRICORN, PISCES]
+    middle: [TAURUS, CANCER, LEO, SAGITTARIUS, AQUARIUS]
+  authority:
+    tradition: KALAPRAKASIKA
+    chapter: XIV
+    page: 80
+    verse_or_passage: "The best signs are Gemini, Virgo and Libra. Aries, Capricorn, Scorpio and Pisces should be avoided. The other signs exercise middling influence."
+    translation_edition: "Subramonia Iyer"
+    original_language_term: null
+  provenance: {status: CONFIRMED}
+  source_scope: MARRIAGE
+  rule_type: TEXTUAL_RULE
+  source_confidence: EXACT
+  profile: {tamil_kalaprakasika: enabled}
+  severity: {best: BONUS, middle: NEUTRAL, avoid: PENALTY}   # 'should be avoided' — penalty, not stated as hard veto
+  conditions: {all_of: [], any_of: [], none_of: []}
+  overrides: []
+  overridden_by: []
+  interpretation: "Gemini/Virgo/Libra = best. Aries/Capricorn/Scorpio/Pisces = avoid. Taurus/Cancer/Leo/Sagittarius/Aquarius = middling. There is a SEPARATE per-sign rising-sign effect passage (p.80, 'Influence of Zodiacal Signs at the time of Marriage') describing outcomes if Aries/Taurus/etc rise — that is a distinct effects table, not the same as this best/avoid ranking."
+  extraction_questions:
+    - "Does the text call Gemini/Virgo/Libra BEST, or merely good?"
+    - "Does 'avoid' mean prohibited, or merely inferior/middling?"
+    - "Are sign rules conditional on occupancy or lord strength? (capture in conditions)"
+    - "Does Navamsa modify the sign prescription?"
+    - "Is there ANY explicit Sthira-lagna preference for marriage? (v1 wrongly assumed yes)"
+  verification_result:
+    outcome: CONFIRMED_EXACT
+    notes: >
+      ChatGPT's correction fully vindicated and my original v1 'fixed-lagna preferred'
+      claim CONTRADICTED. Best signs are Gemini(dual)/Virgo(dual)/Libra(movable) — none fixed.
+      No Sthira-lagna preference for marriage exists in the text. 'Should be avoided' is the
+      wording for the four bad signs — encode as PENALTY/strong-avoid, not necessarily HARD_VETO
+      unless the profile elevates it. Confirms lagna_preference=ACTIVITY_SPECIFIC.
+    verified_on: "2026-08-14"
+    verified_by: "primary-text images p.80 (user-supplied)"
+
+
+# ---------------------------------------------------------
+# 4 of 8 — MARRIAGE 7TH HOUSE VACANCY
+# ---------------------------------------------------------
+- rule_id: MARRIAGE_SEVENTH_HOUSE_VACANCY
+  factor: HOUSE_OCCUPANCY_7
+  activity: MARRIAGE
+  candidate_value: {requirement: EMPTY}
+  authority:
+    tradition: KALAPRAKASIKA
+    chapter: XIV
+    page: 82
+    verse_or_passage: "There should be no planet in the 7th house... For these reasons the 7th house from the rising sign, at the time of marriage, should be vacant."
+    translation_edition: "Subramonia Iyer"
+    original_language_term: null
+  provenance: {status: CONFIRMED}
+  source_scope: MARRIAGE
+  rule_type: TEXTUAL_RULE
+  source_confidence: EXACT
+  profile: {tamil_kalaprakasika: enabled}
+  severity: {candidate: HARD_VETO}
+  conditions: {all_of: [], any_of: [], none_of: []}
+  overrides: []
+  overridden_by: []
+  interpretation: "Explicit and unambiguous: ANY planet in the 7th is adverse (text enumerates the harm each graha causes — Jupiter: disrespectful wife, Venus: bad conduct, Mars: adultery, Sun: widowhood, Moon: all miseries, etc.), concluding the 7th 'should be vacant.' Every graha named, benefics included. No exception given. Supports HARD_VETO."
+  extraction_questions:
+    - "Does the text explicitly say the 7th must be vacant, or give planet-specific effects?"
+    - "Does it prohibit every graha, or only particular grahas? Benefics too?"
+    - "Are conjunction/aspect exceptions given? (capture in conditions/exceptions)"
+    - "Ch. XV (On Attainment of Puberty) also discusses 7th house — confirm scope is MARRIAGE."
+  verification_result:
+    outcome: CONFIRMED_EXACT
+    notes: >
+      Both the planet-by-planet effects AND the blanket 'should be vacant' conclusion are
+      present in Ch. XIV itself (p.82) — scope is unambiguously MARRIAGE, not bleeding from
+      Ch. XV. Benefics included (Jupiter/Venus/Mercury/Moon all listed as adverse in 7th).
+      HARD_VETO is textually justified. NOTE the flip side: p.82-83 lists planets-in-2nd,
+      3rd,9th,11th as beneficial — the house-occupancy rules are a full table, capture all.
+    verified_on: "2026-08-14"
+    verified_by: "primary-text images p.82 (user-supplied)"
+
+
+# ---------------------------------------------------------
+# 5 of 8 — MARRIAGE 8TH HOUSE VACANCY
+# ---------------------------------------------------------
+- rule_id: MARRIAGE_EIGHTH_HOUSE_VACANCY
+  factor: HOUSE_OCCUPANCY_8
+  activity: MARRIAGE
+  candidate_value: {requirement: EMPTY}
+  authority:
+    tradition: KALAPRAKASIKA
+    chapter: XIV
+    page: 83
+    verse_or_passage: "Planets in the 8th House — Saturn, the Sun and Mars in the 8th house cause good; other planets produce adverse effects."
+    translation_edition: "Subramonia Iyer"
+    original_language_term: null
+  provenance: {status: CONFIRMED}      # confirmed that the CANDIDATE (blanket vacancy) is wrong
+  source_scope: MARRIAGE
+  rule_type: TEXTUAL_RULE
+  source_confidence: EXACT
+  profile: {tamil_kalaprakasika: enabled}
+  severity: null
+  conditions:
+    all_of: []
+    any_of: []
+    none_of: []
+  overrides: []
+  overridden_by: []
+  interpretation: "Ch. XIV does NOT require the 8th to be vacant for marriage. It gives a graha-specific rule: Saturn, Sun, Mars in 8th = GOOD; other planets in 8th = adverse. This DIRECTLY CONTRADICTS a blanket '8th must be empty' marriage rule. The vacancy requirement is real but belongs to OTHER activities (Namakaranam Ch III, ear-boring Ch IV, and the pre-marriage Snaana/bath karma on p.68 which does say 'no planet in the 8th house')."
+  extraction_questions:
+    - "Is 8th-house vacancy stated explicitly IN THE MARRIAGE CHAPTER?"
+    - "CONFIRMED fact: 8th-vacancy IS explicit for Namakaranam (Ch III) and ear-boring (Ch IV)."
+    - "  If Ch. XIV does not repeat it, outcome = NOT_FOUND and rule stays TRADITIONALLY_REPORTED"
+    - "  for marriage — do NOT infer it from the other chapters."
+    - "Does the rule concern occupancy, malefic occupancy, Moon occupancy, or lordship?"
+  verification_result:
+    outcome: CONTRADICTED
+    notes: >
+      IMPORTANT: the candidate '8th house must be vacant for marriage' is CONTRADICTED by
+      Ch. XIV, which says Saturn/Sun/Mars in the 8th cause GOOD. So do NOT import the
+      8th-vacancy rule into the marriage muhurta chart from the naming/ear-boring chapters —
+      ChatGPT's caution was exactly right and is now proven. HOWEVER note a scope subtlety:
+      the pre-marriage SNAANA (ceremonial bath) karma on p.68 DOES require 'no planet in the
+      8th house' — so 8th-vacancy applies to the bath sub-rite, not the marriage lagna itself.
+      Model these as two different moments.
+    verified_on: "2026-08-14"
+    verified_by: "primary-text images pp.68,83 (user-supplied)"
+
+
+# ---------------------------------------------------------
+# 6 of 8 — MARRIAGE TITHI ALLOWED SET
+# ---------------------------------------------------------
+- rule_id: MARRIAGE_TITHI_ALLOWED_SET
+  factor: TITHI
+  activity: MARRIAGE
+  candidate_value:
+    reported_allowed: [DVITIYA, TRITIYA, PANCHAMI, SAPTAMI, DASHAMI, EKADASHI, TRAYODASHI]  # 7
+  authority:
+    tradition: KALAPRAKASIKA
+    chapter: XIV
+    page: 79
+    verse_or_passage: "The best Thithis are: Dwithiyai, Thrithiyai, Panchami, Sapthami, Dhasami, Ekadhasi and Thrayodhasi. Prathamai (of the dark fortnight), Shashti, Ashtami, Dwadhasi, Pournami are middling. All the Thithis after Ashtami of Krishna Paksha are inauspicious."
+    translation_edition: "Subramonia Iyer"
+    original_language_term: null
+  provenance: {status: CONFIRMED}
+  source_scope: MARRIAGE
+  rule_type: TEXTUAL_RULE
+  source_confidence: EXACT
+  profile: {tamil_kalaprakasika: enabled}
+  severity:
+    best: [DVITIYA, TRITIYA, PANCHAMI, SAPTAMI, DASHAMI, EKADASHI, TRAYODASHI]   # BONUS
+    middling: [PRATIPADA_KRISHNA, SHASHTHI, ASHTAMI, DWADASHI, PURNIMA]           # NEUTRAL
+    inauspicious: "all thithis after Ashtami of Krishna Paksha"                    # PENALTY/avoid
+  conditions: {all_of: [], any_of: [], none_of: []}
+  overrides: []
+  overridden_by: []
+  interpretation: "Exactly the reported 7 best tithis: Dwitiya, Tritiya, Panchami, Saptami, Dashami, Ekadashi, Trayodashi. PLUS an explicit middling tier and an explicit inauspicious rule (everything after Krishna-paksha Ashtami). Paksha DOES matter: Prathama qualifies as middling only in the dark fortnight, and the whole back half of Krishna paksha is bad."
+  extraction_questions:
+    - "Are all seven tithis explicitly named? Confirm exact members and COUNT."
+    - "WARNING: ear-boring (Ch IV) lists a DIFFERENT 9-tithi set with similar Tamil ordinal"
+    - "  names (Dwithiyai, Thrithiyai, Panchami, Shashti, Sapthami, Dhasami, Ekadesi,"
+    - "  Dwadesi, Thrayodasi). Do not pattern-match — read Ch. XIV's own list."
+    - "Does Paksha change the rule? Are Purnima/Amavasya discussed separately?"
+    - "Preferred vs merely admissible? Any tithi rescued by other factors?"
+  verification_result:
+    outcome: CONFIRMED_EXACT
+    notes: >
+      The reported 7-tithi best-list is confirmed verbatim and IS different from the
+      ear-boring 9-tithi list (the warning paid off — Shashti is 'best' for ear-boring but
+      only 'middling' for marriage). Three tiers exist: best / middling / inauspicious.
+      Encode paksha-sensitivity: Prathama middling only in Krishna paksha; all post-Ashtami
+      Krishna-paksha tithis inauspicious. Purnima = middling; Amavasya not separately named
+      here (it falls under the post-Ashtami-Krishna inauspicious sweep). OPEN QUESTION for
+      engine-wiring: the best-list includes Dashami/Ekadashi/Trayodashi (10/11/13), which are
+      in-paksha day numbers that also fall after Ashtami(8) if read as Krishna-paksha days —
+      i.e. the best-list and the "after Ashtami of Krishna Paksha is inauspicious" rule appear
+      to overlap on numbers 10/11/13. Do not silently resolve this; the most defensible reading
+      pending astrologer input is that the unqualified best-7 list is primarily a Shukla-paksha
+      list, and the Krishna-paksha post-Ashtami sweep (9-14) is the operative rule once in the
+      dark fortnight. Flagged, not resolved.
+    verified_on: "2026-08-14"
+    verified_by: "primary-text images p.79 (user-supplied)"
+
+
+# ---------------------------------------------------------
+# 7 of 8 — MARRIAGE GURU/SUKRA ASTHANGATA
+#   SPLIT: the chapter prescription (textual) is separate from the
+#   astronomical visibility computation (L0) and the buffer/severity policy.
+# ---------------------------------------------------------
+- rule_id: MARRIAGE_GURU_SUKRA_ASTHANGATA__TEXTUAL
+  factor: PLANET_VISIBILITY
+  activity: MARRIAGE
+  candidate_value:
+    chapter_prohibits_marriage_during_guru_astangata: CONFIRMED
+    chapter_prohibits_marriage_during_sukra_astangata: CONFIRMED
+    both_combust_irremediable: PENDING
+  authority:
+    tradition: KALAPRAKASIKA
+    chapter: XIV
+    page: 80
+    verse_or_passage: "Marriage within a week after the re-appearance (Udhayam) of Venus affects the life of the bride; marriage just prior to her becoming Asthangatha (combust) affects the life of the bridegroom. Marriage within 8 days after the re-appearance of Jupiter adversely affects the bridegroom; marriage within 15 days prior to Asthangatha harms the bride."
+    translation_edition: "Subramonia Iyer"
+    original_language_term: "Asthangatha / Udhayam"
+  provenance: {status: CONFIRMED}
+  source_scope: MARRIAGE
+  rule_type: TEXTUAL_RULE
+  source_confidence: EXACT
+  profile: {tamil_kalaprakasika: enabled}
+  severity: null
+  conditions: {all_of: [], any_of: [], none_of: []}
+  overrides: []
+  overridden_by: []
+  interpretation: "The chapter DOES restrict marriage around Venus and Jupiter combustion, and gives SPECIFIC buffer windows: Venus — avoid within 1 week after reappearance, and just before combustion; Jupiter — avoid within 8 days after reappearance, and within 15 days before combustion. These asymmetric buffers vindicate the 'reappearance buffer' design in M1. The 'both combust = irremediable' clause was NOT found in this passage (may be elsewhere; leave PENDING)."
+  extraction_questions:
+    - "Does the text prohibit marriage during Guru asthangata? Sukra asthangata?"
+    - "Is 'both Guru and Sukra combust = irremediable' actually stated? (reported, unverified)"
+    - "Does dignity, sign, or benefic association modify it? (bhanga -> conditions)"
+    - "CONTRAST: Ch. VIII (Annaprasana) explicitly WAIVES combustion — confirm marriage differs."
+  verification_result:
+    outcome: CONFIRMED_WITH_CONDITION
+    notes: >
+      Confirmed: marriage IS restricted around Guru/Sukra combustion, WITH specific buffers
+      (Venus: 1wk post-reappearance / just-pre-combustion; Jupiter: 8d post-reappearance /
+      15d pre-combustion). This proves M1's three-dimension combustion module and the
+      reappearance-buffer field were correctly designed — the buffers are now REAL NUMBERS,
+      not placeholders. Marriage differs from Annaprasana exactly as predicted (Annaprasana
+      waives combustion; marriage enforces it with buffers). 'Both combust irremediable'
+      NOT located here -> keep that sub-claim PENDING. Also p.87 gives a Lagna-strength
+      bhanga: 'Mercury well-located in Lagna diminishes a hundred adverse effects; Venus
+      strong in Lagna eradicates a thousand evils; Jupiter well-dignified in Lagna sinks
+      three lakhs' — a general remedial/bhanga rule that may soften combustion penalties.
+    verified_on: "2026-08-14"
+    verified_by: "primary-text images pp.80,87 (user-supplied)"
+
+- rule_id: MARRIAGE_GURU_SUKRA_ASTHANGATA__COMPUTATION_POLICY
+  factor: PLANET_VISIBILITY
+  activity: MARRIAGE
+  candidate_value:
+    combustion_arc_source: null           # which orb/arc defines combust (astronomical)
+    heliacal_reappearance_buffer: PENDING # days after reappearance before allowed
+    policy_class: HIGH_PRIORITY_RESTRICTION
+    severity: PENDING                     # resolve to HARD_VETO / SEVERE_PENALTY per source
+  authority:
+    tradition: null                        # NOT a textual claim — computed at L0
+    chapter: null
+    page: null
+    verse_or_passage: null
+    translation_edition: null
+    original_language_term: null
+  provenance: {status: ENGINE_CONCEPT}
+  source_scope: MUHURTA_GENERAL
+  rule_type: ENGINE_POLICY                 # visibility calc + buffers + severity are Vinaadi's
+  source_confidence: null
+  profile: {tamil_kalaprakasika: enabled}
+  policy_class: HIGH_PRIORITY_RESTRICTION  # priority axis, separate from effect
+  severity: PENDING                        # effect enum only; never HIGH_PRIORITY_RESTRICTION
+  conditions: {all_of: [], any_of: [], none_of: []}
+  overrides: []
+  overridden_by: []
+  interpretation: null
+  extraction_questions:
+    - "Whether a planet is combust on date D is COMPUTED (L0), never read from a page."
+    - "Decide combustion arc per planet (standard orbs differ for Guru vs Sukra)."
+    - "Buffer length after heliacal reappearance = policy; validate against panchangam."
+  verification_result: {outcome: null, notes: null, verified_on: null, verified_by: null}
+
+
+# ---------------------------------------------------------
+# 8 of 8 — MARRIAGE ADVERSE YOGAS & PLANET-IN-SIGN
+#   Added because Ch. XIV's table of contents names these explicitly:
+#   "Planets in the Zodiacal signs ... Adverse Yogas to be avoided" plus
+#   Mahendra, Vishnu-Priyai, Ardha-Naari, Sreemathi, Samudhra, Mahavishnu,
+#   Pushya, Sthavara, Jaya, Vijaya yogas. This set MIGHT override single-factor
+#   rules — but only if the text explicitly cancels/supersedes one. Do not assume.
+# ---------------------------------------------------------
+- rule_id: MARRIAGE_ADVERSE_YOGAS
+  factor: YOGA_AND_PLANET_IN_SIGN
+  activity: MARRIAGE
+  candidate_value:
+    favorable_yogas_named: [MAHENDRA, VISHNU_PRIYA, ARDHA_NARI, SREEMATHI,
+                            SAMUDRA, MAHAVISHNU, PUSHYA, STHAVARA, JAYA, VIJAYA]
+    adverse_yogas: PENDING
+    planet_in_sign_effects: PENDING
+  authority:
+    tradition: KALAPRAKASIKA
+    chapter: XIV
+    page: 85
+    verse_or_passage: "Mahendhra Yoga: Jupiter in rising sign, Venus in 8th, Sun in 11th (if Mercury not combust). Vishnu Priyai: Venus in rising, Jupiter in 10th, Sun+Mercury in 11th. Ardhanaari: Venus in rising, Jupiter in 11th, 8th house unoccupied. Sreemathi: Venus 2nd, Jupiter 12th, Sun 8th, Saturn 6th. Samudhra: Venus rising, Jupiter 4th, Mercury 2nd, Saturn 11th. Mahavishnu: Mars 3rd, Saturn 6th, Venus 9th, Jupiter 12th. Pushya: Saturn 3rd, Jupiter 6th, Sun 10th, Mars 11th. Sthavara: Jupiter with Venus in rising, well-dignified. Jaya: Venus in rising conjunct Jupiter, both well-dignified. Vijayam: Mercury+Jupiter+Venus well-dignified in rising sign."
+    translation_edition: "Subramonia Iyer"
+    original_language_term: null
+  provenance: {status: CONFIRMED}
+  source_scope: MARRIAGE
+  rule_type: TEXTUAL_RULE
+  source_confidence: EXACT
+  profile: {tamil_kalaprakasika: enabled}
+  severity: null
+  conditions:
+    all_of: []
+    any_of: []
+    none_of: []
+  overrides: []          # NONE populated — text does not say any yoga cancels/supersedes another rule
+  overridden_by: []
+  interpretation: >
+    All 10 favorable yogas defined by exact planet+house configs (see passage). They are
+    category (b): each independently makes the muhurta auspicious ('bestows all happiness',
+    'fruitful of all happiness', 'queen of all beneficial yogas'). NONE is stated to cancel
+    a named dosha or supersede a prohibition -> overrides stays EMPTY, per the discipline in
+    the extraction questions. Note Ardhanaari itself REQUIRES 8th unoccupied and Mahendhra
+    REQUIRES Mercury not combust — these are internal conditions, not overrides. The ADVERSE
+    side (p.86-87): no marriage at end of Paksha/Ruthu/Ayana/year; during Rikthai; waning
+    Moon; Vishu/Vyatheepatham/Shadaseethimukham; Prishtodhaya rasis; asterisms 3/5/7/10/19
+    from janma; asterism just released from / passing / close to a malefic; eclipse under
+    Kethu-governed star = death within 6 months.
+  extraction_questions:
+    - "List each favorable yoga's defining condition (planet/sign/house)."
+    - "List each adverse yoga and whether it is veto-grade or penalty-grade."
+    - "For each favorable yoga, classify which of these the text actually supports:"
+    - "  (a) merely praises it (flavor, no engine effect)"
+    - "  (b) makes the muhurta INDEPENDENTLY auspicious (a sufficient combination / bonus)"
+    - "  (c) explicitly CANCELS a named dosha (bhanga — attach as exception, not override)"
+    - "  (d) explicitly SUPERSEDES another prohibition (only THIS populates 'overrides')"
+    - "Only (c) and (d) touch other rules; (c) -> exceptions, (d) -> overrides."
+    - "Do NOT let a favorable yoga rescue a prohibited house occupancy without textual authority."
+    - "Define whether these are chart-of-the-moment rules (L4/L6) vs personal (L3)."
+  verification_result:
+    outcome: CONFIRMED_EXACT
+    notes: >
+      All 10 favorable yogas confirmed with exact configs (L4/L6 chart-of-the-moment rules,
+      STRONG_BONUS class). They are independent auspicious combinations, category (b) —
+      none is an override, so 'overrides' correctly stays empty. This was the record the
+      original 7-item pack lacked; adding it (record 8) was the right call — it is fully
+      populated now. Adverse-yogas list (p.86-87) is extensive and several items are
+      veto-grade for subha karya (end-of-Paksha/Ruthu/Ayana/year, Rikthai,
+      eclipse-under-Kethu-star). Also found: a first-born-son scope rule (p.87) —
+      'month, day and Jenma-Nakshathra are inauspicious only for marriage of the FIRST-BORN
+      son, not for girls or other sons' — a real scope gate worth its own record.
+    verified_on: "2026-08-14"
+    verified_by: "primary-text images pp.85,86,87 (user-supplied)"
+
+
+# =========================================================
+# POST-READING ROLL-UP  (separate YAML document — fill after all 8 records)
+# =========================================================
+---
+rollup:
+  chapter_read_fully_before_extraction: true     # pp.68-87 read from user-supplied images
+  extraction_completed: "2026-08-14"
+  source: "20 page-images of Kalaprakasika Ch. XIII-XIV (Subramonia Iyer), user-supplied"
+  records_confirmed_exact: 6      # records 1,3,4,6,8 CONFIRMED_EXACT + record 5 CONTRADICTED counted separately
+  records_confirmed_with_condition: 1   # record 7-textual (combustion buffers)
+  records_not_found: 1            # record 2 (pada exclusions)
+  records_contradicted: 1         # record 5 (8th-vacancy for marriage)
+  outcome_by_record:
+    MARRIAGE_NAKSHATRA_ALLOWED_SET:        CONFIRMED_EXACT      # 11 stars, Magha+Mula in
+    MARRIAGE_NAKSHATRA_PADA_EXCLUSIONS:    NOT_FOUND            # do not hard-code
+    MARRIAGE_LAGNA_SIGN_PREFERENCE:        CONFIRMED_EXACT      # Gemini/Virgo/Libra best; NOT fixed
+    MARRIAGE_SEVENTH_HOUSE_VACANCY:        CONFIRMED_EXACT      # 7th must be vacant, HARD_VETO
+    MARRIAGE_EIGHTH_HOUSE_VACANCY:         CONTRADICTED         # Sat/Sun/Mars in 8th = GOOD
+    MARRIAGE_TITHI_ALLOWED_SET:            CONFIRMED_EXACT      # 7 best + middling + inauspicious tiers
+    MARRIAGE_GURU_SUKRA_ASTHANGATA_TEXT:   CONFIRMED_WITH_CONDITION  # real buffer windows
+    MARRIAGE_ADVERSE_YOGAS:                CONFIRMED_EXACT      # 10 favorable yogas + adverse list
+  promotable_to_PRIMARY_TEXT_CONFIRMED:
+    - MARRIAGE_NAKSHATRA_ALLOWED_SET
+    - MARRIAGE_LAGNA_SIGN_PREFERENCE
+    - MARRIAGE_SEVENTH_HOUSE_VACANCY
+    - MARRIAGE_TITHI_ALLOWED_SET
+    - MARRIAGE_GURU_SUKRA_ASTHANGATA_TEXT   # CONFIRMED_WITH_CONDITION now eligible per v2.3
+    - MARRIAGE_ADVERSE_YOGAS
+  new_rules_discovered_in_chapter:
+    - id: MARRIAGE_MONTH_GATING
+      text: "Ashada, Badhrapadha, Margasira and Magha months are NOT good; the other eight are fortunate (p.85). Per-month effects given (Pushya/Krithika->good character, Palguna->wealth, Vysakha/Jyeshta->prosperity, Sravana/Aswayuja/Chythra->middling)."
+      note: "Confirms M2 Tamil-month gating with PRIMARY authority. Note these are lunar-month names here; map carefully to Tamil solar months."
+    - id: MARRIAGE_MUKHA_DIRECTION_OVERLAY
+      text: "Oordhva-Mukha asterisms most fruitful; Atho-Mukha cause harm; Thiryag-Mukha breed fever (p.79)."
+      note: "A nakshatra-direction modifier layered on the star list — pack did not anticipate. Add as overlay."
+    - id: MARRIAGE_JUPITER_GOCHARA_FROM_MOON
+      text: "If Jupiter transits the 3rd/4th/6th/8th/10th/12th from Janma-Rasi at marriage, bride dies or becomes widow (p.79). Marry in 5th/6th/7th year of bride when Jupiter well-placed."
+      note: "Guru gochara-bala rule with PRIMARY authority — feeds M1 guru_gochara_bala dimension."
+    - id: MARRIAGE_FIRSTBORN_SCOPE_GATE
+      text: "Month, day and Jenma-Nakshathra are inauspicious ONLY for marriage of the first-born son, not for girls or other sons (p.87)."
+      note: "A scope gate that RELAXES several rules for non-firstborn-son marriages. Important for correctness."
+    - id: MARRIAGE_LAGNA_STRENGTH_BHANGA
+      text: "Mercury well-located in Lagna diminishes 100 adverse effects; Venus strong in Lagna eradicates 1000 evils; Jupiter well-dignified in Lagna sinks 3 lakhs (p.87)."
+      note: "A general remedial/bhanga rule — attach as exception that can downgrade penalties, per RULE_PRECEDENCE level 1."
+    - id: MARRIAGE_SNAANA_KARMA
+      text: "Pre-marriage ceremonial bath (Snaana) has its own muhurta: its own asterisms, tithis, signs, and 'no planet in 8th house' (p.68)."
+      note: "Resolves the 8th-vacancy confusion — vacancy applies to the SNAANA sub-rite, not the marriage lagna."
+  ch_xiii_decision_of_marriage_relevant: true
+  ch_xiii_note: >
+    Ch. XIII (pp.68-77) is match COMPATIBILITY (Ten Considerations: Dhinam, Ganam, Mahendra,
+    Sthree-Dheergham, Yoni, Rasi, Rasyadhipathi, Vasyam, Rajju, Vedhai), a DIFFERENT layer
+    from muhurta election. It belongs in a separate compatibility module, not the muhurta
+    engine's L1-L9. Full text captured in images if needed later. Key: agreement in >=5 of
+    the ten required; Dhinam and Rajju first in importance.
+  next_chapter_to_extract: "XXI (To Lay Up Treasure) for PURCHASE_GOLD_VALUABLES"
+
+  incidentally_confirmed_prior_session:
+    - rule: "Nakshatra/Tithi/Rasi Gandanta wording (Ch. II, natal scope)"
+      status: CONFIRMED_EXACT
+      scope: NATAL
+      note: "Reflected in spec M5. Election-scope still PENDING."
