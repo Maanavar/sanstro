@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { apiFetchJson } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
-import type { ApiEnvelope, MuhurtaSlot, MuhurtaResponseData } from "@/lib/types";
+import type { ApiEnvelope, MuhurtaFactor, MuhurtaSlot, MuhurtaResponseData } from "@/lib/types";
 import { formatClockLabel, formatDateLabel, todayIso, addDays } from "@/lib/format";
 import { convertMuhurtaTime } from "@/lib/timezone";
 import { NovaSelect } from "./nova-select";
@@ -26,17 +26,158 @@ import { Field, FieldShell, Input } from "./ui/field";
  * date), only the JSX/styling is rebuilt.
  */
 
-const ACTIVITIES: Array<{ id: string; en: string; ta: string }> = [
-  { id: "JOB_START", en: "Job start / New role", ta: "வேலை தொடக்கம் / புதிய பதவி" },
-  { id: "EXAM", en: "Exam / Course start", ta: "தேர்வு / படிப்பு தொடக்கம்" },
-  { id: "TRAVEL", en: "Travel / Journey start", ta: "பயண தொடக்கம்" },
-  { id: "INVESTMENT", en: "Investment / Financial agreement", ta: "முதலீடு / நிதி ஒப்பந்தம்" },
-  { id: "MEDICAL", en: "Medical procedure / Surgery", ta: "மருத்துவ சிகிச்சை / அறுவை" },
-  { id: "PURCHASE", en: "Property or major purchase", ta: "சொத்து / பெரிய கொள்முதல்" },
-  { id: "SPIRITUAL", en: "Grihapravesh / Religious event", ta: "இல்லப்பிரவேசம் / மத நிகழ்வு" },
+/**
+ * Grouped so the page-cited activities read as a set without merging them.
+ *
+ * The three Samskara rows and the seven Treasure rows are **separate backend
+ * activities** even where a user might expect one — the chapters give them
+ * different star lists, different tithi rules and, for the two land rows,
+ * different rule *shapes* entirely (taking possession has a 14-star list and no
+ * weekday rule; buying land has a weekday rule and no stars). The grouping here
+ * is purely visual; nothing downstream collapses them.
+ *
+ * Ids must match `app.services.muhurta_service.MUHURTA_ACTIVITIES`.
+ */
+// At 29 activities a single "page-cited" heading stopped being navigable, so the
+// cited ones are split by life area. The split is presentational only — the
+// backend has one flat activity space and nothing downstream reads these groups.
+const GROUP = {
+  FAMILY:   { en: "Family ceremonies · Kalaprakasika", ta: "குடும்ப நிகழ்வுகள் · கலப்பிரகாசிகை" },
+  LEARNING: { en: "Learning · Kalaprakasika",          ta: "கல்வி · கலப்பிரகாசிகை" },
+  WEALTH:   { en: "Wealth & property · Kalaprakasika", ta: "செல்வம் & சொத்து · கலப்பிரகாசிகை" },
+  HOME:     { en: "Home & harvest · Kalaprakasika",    ta: "இல்லம் & அறுவடை · கலப்பிரகாசிகை" },
+  FIELD:    { en: "Field & sowing · Kalaprakasika",    ta: "வயல் & விதைப்பு · கலப்பிரகாசிகை" },
+  GENERAL:  { en: "General almanac",                   ta: "பொது பஞ்சாங்கம்" },
+} as const;
+
+type GroupKey = keyof typeof GROUP;
+
+const ACTIVITIES: Array<{ id: string; en: string; ta: string; group: GroupKey }> = [
+  // Ch. XIII / XIV. The engine's oldest and deepest table, and the only activity
+  // it still scores by its own branch rather than the registry. It was absent
+  // from this list entirely — the public calculator and the mobile picker both
+  // offered it, so the signed-in surface was the one place a user could not
+  // elect a wedding date.
+  { id: "MARRIAGE", en: "Wedding / Marriage", ta: "திருமணம்", group: "FAMILY" },
+  // Ch. III / IV — the infant samskaras.
+  { id: "NAMING_CEREMONY", en: "Baby Naming / Namakarana", ta: "பெயர் சூட்டு விழா / நாமகரணம்", group: "FAMILY" },
+  { id: "MILK_FEEDING", en: "First feeding on milk", ta: "பால் ஊட்டத் தொடங்குதல்", group: "FAMILY" },
+  { id: "ANNAPRASANA", en: "Annaprasana / First Feeding", ta: "அன்னப்பிராசனம் / சோறூட்டு", group: "FAMILY" },
+  { id: "EAR_BORING", en: "Ear Boring / Karnavedha", ta: "காதுகுத்து / கர்ணவேதம்", group: "FAMILY" },
+  // Ch. V, VII, XVII, XVIII — the later life-stage samskaras, and the birth chamber.
+  { id: "TONSURE", en: "Tonsure / Choulam", ta: "மொட்டை / சூடாகர்மம்", group: "FAMILY" },
+  { id: "UPANAYANAM", en: "Upanayanam / Thread ceremony", ta: "உபநயனம் / பூணூல் விழா", group: "FAMILY" },
+  { id: "SEEMANTHAM", en: "Seemantham / Valaikappu", ta: "சீமந்தம் / வளைகாப்பு", group: "FAMILY" },
+  // Ch. XVIII elects the ARRANGING of the birth chamber, never the birth itself.
+  { id: "LYING_IN_CHAMBER", en: "Arranging the lying-in chamber", ta: "பேறுகால அறை ஏற்பாடு", group: "FAMILY" },
+  // Ch. VI, VIII, X, XI, XII.
+  { id: "VIDYARAMBHAM", en: "Vidyarambham / First letters", ta: "வித்யாரம்பம் / எழுத்தறிவித்தல்", group: "LEARNING" },
+  { id: "EDUCATION_START", en: "Starting education", ta: "கல்வியைத் தொடங்குதல்", group: "LEARNING" },
+  { id: "MANTRA_INITIATION", en: "Mantra initiation / Upadesam", ta: "மந்திர உபதேசம்", group: "LEARNING" },
+  { id: "VEDA_STUDY", en: "Beginning Veda study", ta: "வேத அத்யயனம் தொடங்குதல்", group: "LEARNING" },
+  { id: "SNAANA", en: "Samavarthanam bath / Snaana", ta: "சமாவர்த்தன ஸ்நானம்", group: "LEARNING" },
+  // Ch. XXI — "To Lay Up Treasure", plus Ch. XXIV's wearing rule.
+  { id: "GOLD", en: "Gold & precious metals", ta: "தங்கம் / விலைமதிப்புள்ள உலோகம்", group: "WEALTH" },
+  { id: "GEMS", en: "Gems & jewels", ta: "ரத்தினம் / நகை", group: "WEALTH" },
+  { id: "NEW_ORNAMENT", en: "Wearing a new gold ornament", ta: "புது தங்க நகை அணிதல்", group: "WEALTH" },
+  { id: "TREASURE_STORE", en: "Laying up treasure", ta: "செல்வம் சேமிப்பு", group: "WEALTH" },
+  { id: "LAND_POSSESSION", en: "Taking possession of land", ta: "நிலம் கைவசப்படுத்தல்", group: "WEALTH" },
+  { id: "LAND_PURCHASE", en: "Buying land", ta: "நிலம் வாங்குதல்", group: "WEALTH" },
+  { id: "CATTLE_PURCHASE", en: "Buying cattle", ta: "கால்நடை வாங்குதல்", group: "WEALTH" },
+  // Ch. XXIII, and Ch. XX / XXI on grain.
+  { id: "NEW_CLOTHES", en: "Wearing new clothes", ta: "புத்தாடை அணிதல்", group: "HOME" },
+  { id: "GRAIN", en: "Storing grain", ta: "தானியம் சேமிப்பு", group: "HOME" },
+  { id: "HARVEST", en: "Starting the harvest", ta: "அறுவடை தொடங்குதல்", group: "HOME" },
+  { id: "HARVEST_INGATHERING", en: "Bringing the crop in", ta: "விளைச்சலைச் சேர்த்தல்", group: "HOME" },
+  { id: "GRAIN_EXPENDITURE", en: "Drawing down the grain store", ta: "தானியத்தைச் செலவிடுதல்", group: "HOME" },
+  // Ch. XIX and XXII — the crop cycle from first footstep to first mouthful.
+  { id: "AGRICULTURE_START", en: "Starting work on the land", ta: "வேளாண் பணியைத் தொடங்குதல்", group: "FIELD" },
+  { id: "TILLAGE", en: "Ploughing the field", ta: "நிலத்தை உழுதல்", group: "FIELD" },
+  { id: "SOWING", en: "Sowing seed", ta: "விதைத்தல்", group: "FIELD" },
+  { id: "NEW_GRAIN_MEAL", en: "First meal of the new grain", ta: "புதிய தானியத்தை உண்ணுதல்", group: "FIELD" },
+  // Generic almanac only — no primary-text table yet.
+  { id: "JOB_START", en: "Job start / New role", ta: "வேலை தொடக்கம் / புதிய பதவி", group: "GENERAL" },
+  { id: "EXAM", en: "Exam / Course start", ta: "தேர்வு / படிப்பு தொடக்கம்", group: "GENERAL" },
+  { id: "TRAVEL", en: "Travel / Journey start", ta: "பயண தொடக்கம்", group: "GENERAL" },
+  { id: "INVESTMENT", en: "Investment / Financial agreement", ta: "முதலீடு / நிதி ஒப்பந்தம்", group: "GENERAL" },
+  { id: "MEDICAL", en: "Medical procedure / Surgery", ta: "மருத்துவ சிகிச்சை / அறுவை", group: "GENERAL" },
+  { id: "PURCHASE", en: "Property or major purchase", ta: "சொத்து / பெரிய கொள்முதல்", group: "GENERAL" },
+  { id: "SPIRITUAL", en: "Grihapravesh / Religious event", ta: "இல்லப்பிரவேசம் / மத நிகழ்வு", group: "GENERAL" },
 ];
 
 const SCORE_COLOR = (score: number) => (score >= 75 ? "var(--color-high)" : score >= 55 ? "var(--color-mid)" : "var(--color-faint)");
+
+const VERDICT_COLOR: Record<MuhurtaFactor["verdict"], string> = {
+  BONUS: "var(--color-high)",
+  PENALTY: "var(--color-mid)",
+  VETO: "var(--color-low)",
+  NEUTRAL: "var(--color-faint)",
+  // Deliberately the same muted ink as NEUTRAL, never a warning colour: an
+  // unsourced factor is a gap in our reference tables, not a defect in the day.
+  UNSOURCED: "var(--color-faint)",
+};
+
+const VERDICT_LABEL: Record<MuhurtaFactor["verdict"], { en: string; ta: string }> = {
+  BONUS: { en: "Supports", ta: "ஆதரவு" },
+  PENALTY: { en: "Against", ta: "எதிர்" },
+  VETO: { en: "Rules out", ta: "நீக்கம்" },
+  NEUTRAL: { en: "Neutral", ta: "நடுநிலை" },
+  UNSOURCED: { en: "Not yet sourced", ta: "ஆதாரம் இல்லை" },
+};
+
+/** The factor list — what the engine checked, what it decided, and on whose authority.
+ *
+ * Rendered in the engine's own evaluation order rather than sorted by weight:
+ * the order is the method, and re-sorting it would present a heavier generic
+ * almanac factor as though it outranked a cited doctrinal one. */
+function FactorList({ factors, lang }: { factors: MuhurtaFactor[]; lang: Lang }) {
+  return (
+    <div>
+      <span style={{ fontSize: "var(--text-xs)", fontWeight: 600, textTransform: "uppercase", color: "var(--color-faint)", letterSpacing: "0.05em" }}>
+        {lang === "ta" ? "எவை பரிசீலிக்கப்பட்டன" : "What was weighed"}
+      </span>
+      <ul style={{ margin: "6px 0 0 0", padding: 0, listStyle: "none" }}>
+        {factors.map((f, i) => (
+          <li key={`${f.factor}-${i}`} style={{ marginBottom: "8px" }}>
+            <div style={{ display: "flex", flexDirection: "row", alignItems: "baseline", gap: "var(--space-2)", flexWrap: "wrap" }}>
+              <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: VERDICT_COLOR[f.verdict], textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                {lang === "ta" ? VERDICT_LABEL[f.verdict].ta : VERDICT_LABEL[f.verdict].en}
+              </span>
+              {f.contribution !== 0 && (
+                <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", fontVariantNumeric: "tabular-nums" }}>
+                  {f.contribution > 0 ? "+" : ""}{f.contribution}
+                </span>
+              )}
+              {f.sourced && (
+                <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-accent)", fontWeight: 600 }}>
+                  {lang === "ta" ? "மூல நூல்" : "Primary text"}
+                </span>
+              )}
+            </div>
+            <p style={{ fontSize: "var(--text-base)", color: "var(--color-text)", margin: "2px 0 0" }}>
+              {lang === "ta" ? f.reason.ta : f.reason.en}
+            </p>
+            {f.citation && (
+              <p style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", margin: "2px 0 0" }}>
+                {[f.citation.tradition, f.citation.chapter && `Ch. ${f.citation.chapter}`, f.citation.page && `p. ${f.citation.page}`]
+                  .filter(Boolean)
+                  .join(" · ")}
+                {f.citation.passage && (
+                  <span style={{ display: "block", fontStyle: "italic", marginTop: "2px" }}>&ldquo;{f.citation.passage}&rdquo;</span>
+                )}
+              </p>
+            )}
+            {f.conflict && (
+              <p style={{ fontSize: "var(--text-sm)", color: "var(--color-mid)", margin: "2px 0 0" }}>
+                {lang === "ta" ? "முரண்பாடு: " : "Unresolved in the source: "}{f.conflict}
+              </p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 function formatMuhurtaDate(value: string, lang: Lang): string {
   const parsed = new Date(`${value}T00:00:00`);
@@ -55,7 +196,11 @@ function NovaMuhurtaCard({ slot, lang, sourceTz, compareCity }: { slot: MuhurtaS
     <Card compact style={{ marginBottom: "10px" }}>
       <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center", cursor: "pointer", flexWrap: "wrap" }} onClick={() => setExpanded((v) => !v)}>
         <div style={{ textAlign: "center", flexShrink: 0 }}>
-          <div style={{ fontSize: "var(--text-lg)", fontWeight: 700, color: scoreColor }}>{Math.min(100, Math.round(slot.score))}</div>
+          {/* One decimal, not an integer. The backend already maps the score
+              into 0-100 and rounds to 1dp; rounding again to a whole number
+              here re-collapses the compressed top of the range and puts back
+              a third of the ties this list exists to break. */}
+          <div style={{ fontSize: "var(--text-lg)", fontWeight: 700, color: scoreColor }}>{Math.min(100, slot.score).toFixed(1)}</div>
           <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{t("muhurta_score", lang)}</div>
         </div>
         <div style={{ flex: 1, minWidth: "160px" }}>
@@ -86,7 +231,13 @@ function NovaMuhurtaCard({ slot, lang, sourceTz, compareCity }: { slot: MuhurtaS
             <p style={{ fontSize: "var(--text-base)", marginTop: "2px", color: "var(--color-text)" }}>{lang === "ta" ? slot.dashaSupport.ta : slot.dashaSupport.en}</p>
           </div>
 
-          {slot.cautions.length > 0 && (
+          {/* `factors` is a superset of `cautions` — every caution is a PENALTY
+              factor in it. Rendering both would print each caution twice, so the
+              factor list replaces it wherever the API sends one, and the cautions
+              list stays as the fallback for a response that predates it. */}
+          {slot.factors && slot.factors.length > 0 ? (
+            <FactorList factors={slot.factors} lang={lang} />
+          ) : slot.cautions.length > 0 ? (
             <div>
               <span style={{ fontSize: "var(--text-xs)", fontWeight: 600, textTransform: "uppercase", color: "var(--color-mid)", letterSpacing: "0.05em" }}>
                 {t("muhurta_cautions", lang)}
@@ -97,7 +248,7 @@ function NovaMuhurtaCard({ slot, lang, sourceTz, compareCity }: { slot: MuhurtaS
                 ))}
               </ul>
             </div>
-          )}
+          ) : null}
         </div>
       )}
     </Card>
@@ -164,7 +315,11 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
             onChange={setActivity}
             placeholder={lang === "ta" ? "-- பயன்பாடு தேர்ந்தெடுக்கவும் --" : "-- Select an activity --"}
             ariaLabel={t("muhurta_activity", lang)}
-            options={ACTIVITIES.map((a) => ({ value: a.id, label: lang === "ta" ? a.ta : a.en }))}
+            options={ACTIVITIES.map((a) => ({
+              value: a.id,
+              label: lang === "ta" ? a.ta : a.en,
+              group: lang === "ta" ? GROUP[a.group].ta : GROUP[a.group].en,
+            }))}
           />
         </FieldShell>
 

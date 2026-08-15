@@ -12,6 +12,8 @@ export type {
   AskVinaadiAnswer,
   AskVinaadiResponseData,
   MuhurtaSlot,
+  MuhurtaFactor,
+  MuhurtaCitation,
   MuhurtaResponseData,
   ApiEnvelope,
   JournalSettingsData,

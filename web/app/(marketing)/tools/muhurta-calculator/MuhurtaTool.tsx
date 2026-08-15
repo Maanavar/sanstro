@@ -16,15 +16,56 @@ const EXTRA_CITIES: CityEntry[] = [
 const CITY_OPTIONS = [...TN_CITIES, ...EXTRA_CITIES];
 const DEFAULT_CITY = CITY_OPTIONS.find((c) => c.name === "Chennai, Tamil Nadu, India") ?? CITY_OPTIONS[0];
 
+// Values must match `app.api.public_tools._PUBLIC_MUHURTA_ACTIVITIES`, which is
+// kept in step with the signed-in picker on purpose — the same question must
+// not get a different answer depending on whether you are signed in.
+//
+// The Samskara and Treasure entries are the page-cited ones (Kalaprakasika
+// Ch. III, IV and XXI). They stay separate values because their rules differ;
+// see `app/data/muhurta_activity_registry.py`.
 const EVENT_TYPES = [
-  { value: "MARRIAGE",   en: "Wedding / Marriage",       ta: "திருமணம்" },
-  { value: "JOB_START",  en: "Job / Career Start",       ta: "வேலை / தொழில் தொடக்கம்" },
-  { value: "INVESTMENT", en: "Business / Investment",    ta: "வியாபாரம் / முதலீடு" },
-  { value: "PURCHASE",   en: "Purchase / Property",      ta: "வாங்குதல் / சொத்து" },
-  { value: "TRAVEL",     en: "Travel",                   ta: "பயணம்" },
-  { value: "EXAM",       en: "Exam / Education",         ta: "தேர்வு / கல்வி" },
-  { value: "MEDICAL",    en: "Medical / Surgery",        ta: "மருத்துவம் / அறுவை சிகிச்சை" },
-  { value: "SPIRITUAL",  en: "Spiritual / Puja",         ta: "ஆன்மீகம் / பூஜை" },
+  { value: "MARRIAGE",        en: "Wedding / Marriage",           ta: "திருமணம்" },
+  { value: "NAMING_CEREMONY", en: "Baby Naming / Namakarana",     ta: "பெயர் சூட்டு விழா / நாமகரணம்" },
+  { value: "MILK_FEEDING",    en: "First Feeding on Milk",        ta: "பால் ஊட்டத் தொடங்குதல்" },
+  { value: "ANNAPRASANA",     en: "Annaprasana / First Feeding",  ta: "அன்னப்பிராசனம் / சோறூட்டு" },
+  { value: "EAR_BORING",      en: "Ear Boring / Karnavedha",      ta: "காதுகுத்து / கர்ணவேதம்" },
+  { value: "GOLD",            en: "Gold & Precious Metals",       ta: "தங்கம் / விலைமதிப்புள்ள உலோகம்" },
+  { value: "GEMS",            en: "Gems & Jewels",                ta: "ரத்தினம் / நகை" },
+  { value: "TREASURE_STORE",  en: "Laying Up Treasure",           ta: "செல்வம் சேமிப்பு" },
+  { value: "GRAIN",           en: "Storing Grain",                ta: "தானியம் சேமிப்பு" },
+  { value: "LAND_POSSESSION", en: "Taking Possession of Land",    ta: "நிலம் கைவசப்படுத்தல்" },
+  { value: "LAND_PURCHASE",   en: "Buying Land",                  ta: "நிலம் வாங்குதல்" },
+  { value: "CATTLE_PURCHASE", en: "Buying Cattle",                ta: "கால்நடை வாங்குதல்" },
+  // Ch. V, VII, XVII, XVIII — the later life-stage samskaras.
+  { value: "TONSURE",         en: "Tonsure / Choulam",            ta: "மொட்டை / சூடாகர்மம்" },
+  { value: "UPANAYANAM",      en: "Upanayanam / Thread Ceremony", ta: "உபநயனம் / பூணூல் விழா" },
+  { value: "SEEMANTHAM",      en: "Seemantham / Valaikappu",      ta: "சீமந்தம் / வளைகாப்பு" },
+  { value: "LYING_IN_CHAMBER", en: "Arranging the Lying-in Chamber", ta: "பேறுகால அறை ஏற்பாடு" },
+  // Ch. VI, VIII, X, XI, XII — the student's arc, start to finish.
+  { value: "VIDYARAMBHAM",    en: "Vidyarambham / First Letters", ta: "வித்யாரம்பம் / எழுத்தறிவித்தல்" },
+  { value: "EDUCATION_START", en: "Starting Education",           ta: "கல்வியைத் தொடங்குதல்" },
+  { value: "MANTRA_INITIATION", en: "Mantra Initiation / Upadesam", ta: "மந்திர உபதேசம்" },
+  { value: "VEDA_STUDY",      en: "Beginning Veda Study",         ta: "வேத அத்யயனம் தொடங்குதல்" },
+  { value: "SNAANA",          en: "Samavarthanam Bath / Snaana",  ta: "சமாவர்த்தன ஸ்நானம்" },
+  // Ch. XXIII, XXIV — wearing something new.
+  { value: "NEW_CLOTHES",     en: "Wearing New Clothes",          ta: "புத்தாடை அணிதல்" },
+  { value: "NEW_ORNAMENT",    en: "Wearing a New Gold Ornament",  ta: "புது தங்க நகை அணிதல்" },
+  // Ch. XX — harvest and the grain store.
+  { value: "HARVEST",         en: "Starting the Harvest",         ta: "அறுவடை தொடங்குதல்" },
+  { value: "HARVEST_INGATHERING", en: "Bringing the Crop In",     ta: "விளைச்சலைச் சேர்த்தல்" },
+  { value: "GRAIN_EXPENDITURE", en: "Drawing Down the Grain Store", ta: "தானியத்தைச் செலவிடுதல்" },
+  // Ch. XIX, XXII — the crop cycle from first footstep to first mouthful.
+  { value: "AGRICULTURE_START", en: "Starting Work on the Land",  ta: "வேளாண் பணியைத் தொடங்குதல்" },
+  { value: "TILLAGE",         en: "Ploughing the Field",          ta: "நிலத்தை உழுதல்" },
+  { value: "SOWING",          en: "Sowing Seed",                  ta: "விதைத்தல்" },
+  { value: "NEW_GRAIN_MEAL",  en: "First Meal of the New Grain",  ta: "புதிய தானியத்தை உண்ணுதல்" },
+  { value: "JOB_START",       en: "Job / Career Start",           ta: "வேலை / தொழில் தொடக்கம்" },
+  { value: "INVESTMENT",      en: "Business / Investment",        ta: "வியாபாரம் / முதலீடு" },
+  { value: "PURCHASE",        en: "Purchase / Property",          ta: "வாங்குதல் / சொத்து" },
+  { value: "TRAVEL",          en: "Travel",                       ta: "பயணம்" },
+  { value: "EXAM",            en: "Exam / Education",             ta: "தேர்வு / கல்வி" },
+  { value: "MEDICAL",         en: "Medical / Surgery",            ta: "மருத்துவம் / அறுவை சிகிச்சை" },
+  { value: "SPIRITUAL",       en: "Spiritual / Puja",             ta: "ஆன்மீகம் / பூஜை" },
 ];
 
 interface MuhurtaSlot {

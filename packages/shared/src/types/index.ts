@@ -129,6 +129,44 @@ export interface AskVinaadiResponseData {
   chipsRemaining?: number | null;
 }
 
+/**
+ * Where a muhurta factor's rule comes from, when a classical text decided it.
+ * Present only on factors whose rule is primary-text confirmed — a citation on
+ * screen claims that a named page of a named edition says this.
+ */
+export interface MuhurtaCitation {
+  tradition?: string | null;
+  chapter?: string | null;
+  page?: string | null;
+  passage?: string | null;
+  edition?: string | null;
+}
+
+/**
+ * One thing the muhurta engine checked, what it decided, and why — the audit
+ * trail behind a slot's score.
+ *
+ * Two distinctions in `verdict` are load-bearing and must survive into the UI:
+ *
+ * - `UNSOURCED` is NOT `NEUTRAL`. "We checked and it is fine" and "we have no
+ *   table to check against" must never render the same way. Today only marriage
+ *   has a primary-text table; gold, land and business return UNSOURCED.
+ * - `VETO` is NOT a large `PENALTY`. A veto removes the day and cannot be
+ *   outweighed — render it as an exclusion, never as a low score.
+ */
+export interface MuhurtaFactor {
+  factor: string;
+  verdict: "VETO" | "PENALTY" | "NEUTRAL" | "BONUS" | "UNSOURCED";
+  contribution: number;
+  reason: BiText;
+  /** True only for primary-text-confirmed doctrine — never for the generic almanac layer. */
+  sourced?: boolean;
+  ruleId?: string | null;
+  citation?: MuhurtaCitation | null;
+  /** Two sourced rules matched and the text does not settle which wins. */
+  conflict?: string | null;
+}
+
 export interface MuhurtaSlot {
   date: string;
   tamilDate?: BiText | null;
@@ -139,6 +177,13 @@ export interface MuhurtaSlot {
   dashaSupport: BiText;
   horaSupport?: BiText | null;
   cautions: BiText[];
+  /**
+   * Every factor the engine weighed, in evaluation order. `cautions` is a lossy
+   * projection of this (the PENALTY reasons only), kept for surfaces that
+   * already render it — new UI should read `factors`, which also carries
+   * verdicts, citations and rule conflicts.
+   */
+  factors?: MuhurtaFactor[];
 }
 
 export interface MuhurtaResponseData {

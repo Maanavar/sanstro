@@ -23,17 +23,69 @@ import { ErrorCard } from "@/components/ErrorCard";
 import { BannerAdUnit } from "@/components/AdUnit";
 import { getDecisionBrief, type DecisionPriority } from "@/api/decisions";
 import { getMuhurta } from "@/api/tools";
+import type { MuhurtaSlot } from "@vinaadi/shared/types";
 import { getPrimaryChartId } from "@/lib/userPrefs";
 import { scoreFillColor } from "@/lib/score";
 
+/**
+ * Keys are sent verbatim as the `activity` query param and must resolve through
+ * `app.services.muhurta_service.normalize_activity` — uppercased, then any
+ * alias applied. Anything else returns 422.
+ *
+ * `baby_naming` shipped here from the start and never resolved: it uppercased
+ * to `BABY_NAMING`, which no backend activity matched, so every tap failed. It
+ * now aliases to the sourced `NAMING_CEREMONY` (Kalaprakasika Ch. III), and the
+ * key is kept rather than renamed so installed builds keep working.
+ *
+ * `house`, `vehicle` and `business` had the same defect and are REMOVED rather
+ * than aliased: routing them would mean guessing which backend activity was
+ * meant, and no chapter we have extracted rules on a house or a vehicle.
+ * Offering a chip that silently answers a different question is worse than not
+ * offering it. `LAND_PURCHASE` below is the nearest genuinely-sourced option.
+ */
 const ACTIVITIES = [
   { key: "marriage", label: "Marriage" },
-  { key: "house", label: "House" },
-  { key: "vehicle", label: "Vehicle" },
-  { key: "business", label: "Business" },
   { key: "baby_naming", label: "Baby Naming" },
+  { key: "MILK_FEEDING", label: "First Milk" },
+  { key: "ANNAPRASANA", label: "First Feeding" },
+  { key: "EAR_BORING", label: "Ear Boring" },
+  { key: "TONSURE", label: "Tonsure" },
+  { key: "UPANAYANAM", label: "Upanayanam" },
+  { key: "SEEMANTHAM", label: "Seemantham" },
+  { key: "LYING_IN_CHAMBER", label: "Birth Chamber" },
+  { key: "VIDYARAMBHAM", label: "First Letters" },
+  { key: "EDUCATION_START", label: "Start Studies" },
+  { key: "MANTRA_INITIATION", label: "Mantra Upadesam" },
+  { key: "SNAANA", label: "Snaana" },
+  { key: "NEW_CLOTHES", label: "New Clothes" },
+  { key: "NEW_ORNAMENT", label: "New Jewel" },
+  { key: "GOLD", label: "Gold" },
+  { key: "GEMS", label: "Gems" },
+  { key: "LAND_PURCHASE", label: "Buying Land" },
+  { key: "CATTLE_PURCHASE", label: "Cattle" },
+  { key: "HARVEST", label: "Harvest" },
+  { key: "AGRICULTURE_START", label: "Start Field Work" },
+  { key: "TILLAGE", label: "Ploughing" },
+  { key: "SOWING", label: "Sowing" },
+  { key: "NEW_GRAIN_MEAL", label: "New Grain Meal" },
   { key: "travel", label: "Travel" },
 ];
+
+/** The classical sources actually cited for this slot, deduplicated.
+ *
+ * Only primary-text-confirmed factors carry a `citation`, so this line never
+ * appears for a day judged purely on the generic almanac layer — which is the
+ * point: it must not imply a text ruled on a day no text was consulted for. */
+function citationLine(slot: MuhurtaSlot): string | null {
+  const seen = new Set<string>();
+  for (const f of slot.factors ?? []) {
+    if (!f.citation) continue;
+    const parts = [f.citation.tradition, f.citation.chapter && `Ch. ${f.citation.chapter}`, f.citation.page && `p. ${f.citation.page}`];
+    const label = parts.filter(Boolean).join(" ");
+    if (label) seen.add(label);
+  }
+  return seen.size > 0 ? Array.from(seen).join(" · ") : null;
+}
 
 const LIFE_AREAS: Array<{ key: DecisionPriority; label: string; action: string }> = [
   { key: "career", label: "Career", action: "make the career move" },
@@ -276,6 +328,12 @@ export default function MuhurtaScreen() {
                 <View style={styles.slotCenter}>
                   <Text style={styles.slotTime}>{slot.timeStart} - {slot.timeEnd}</Text>
                   <Text style={styles.slotSupport} numberOfLines={2}>{isTamil ? slot.panchangamSupport.ta : slot.panchangamSupport.en}</Text>
+                  {/* The row is too tight for the full factor list the web picker
+                      renders, but the provenance is the part worth the space: it
+                      is what separates a cited rule from a scoring opinion. */}
+                  {citationLine(slot) && (
+                    <Text style={styles.slotCitation} numberOfLines={1}>{citationLine(slot)}</Text>
+                  )}
                 </View>
                 {i === 0 && (
                   <View style={styles.bestBadge}>
@@ -387,6 +445,7 @@ function makeStyles(C: ColorTokens) {
   slotCenter: { flex: 1, gap: 4 },
   slotTime: { fontFamily: "Inter_700Bold", fontSize: 15, color: C.textPrimary },
   slotSupport: { fontFamily: "Inter_400Regular", fontSize: 12, lineHeight: 17, color: C.textSecond },
+  slotCitation: { fontFamily: "Inter_400Regular", fontSize: 11, lineHeight: 15, color: C.textTertiary },
   bestBadge: { backgroundColor: C.gold, borderRadius: RADIUS.chip, paddingHorizontal: S.sm, paddingVertical: 3 },
   bestBadgeText: { fontFamily: "Inter_800ExtraBold", fontSize: 10, color: C.surface },
   decisionResult: { gap: S.md },

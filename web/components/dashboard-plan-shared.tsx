@@ -75,11 +75,25 @@ export const ACTIVITY_OPTIONS: Array<{ value: string; en: string; ta: string }> 
   { value: "travel", en: "Travel abroad or long journey", ta: "வெளிநாடு / நீண்ட பயணம்" },
   { value: "health", en: "Medical procedure or surgery", ta: "மருத்துவ சிகிச்சை / அறுவை" },
   { value: "spiritual", en: "Grihapravesh or religious event", ta: "புதுமனை புகு விழா / ஆன்மிக நிகழ்வு" },
-  { value: "child", en: "Child birth or naming ceremony", ta: "குழந்தை பிறப்பு / பெயரிடல்" },
+  // "Child birth or naming ceremony" was one row covering two different
+  // questions, and it prefilled the picker with SPIRITUAL for both. Naming now
+  // has a page-cited table of its own (Kalaprakasika Ch. III), so answering a
+  // naming question with an unsourced SPIRITUAL scan would be strictly worse
+  // than it was before the chapter was extracted. Split, so each row prefills
+  // the activity it actually asks about.
+  { value: "child_naming", en: "Baby naming ceremony", ta: "பெயர் சூட்டு விழா" },
+  { value: "child_birth", en: "Child birth", ta: "குழந்தை பிறப்பு" },
   { value: "other", en: "General auspicious day", ta: "பொதுவான நல்ல நாள்" },
 ];
 
-// Map Best Dates activity values -> Muhurta picker activity IDs
+// Map Best Dates activity values -> Muhurta picker activity IDs.
+//
+// `property` stays on PURCHASE deliberately. Kalaprakasika Ch. XXI does have
+// land rules, but its 14-star list is scoped to *taking possession* of land,
+// and the only rule it gives for *buying* is a weekday one — so pointing a
+// "property purchase / registration" row at LAND_POSSESSION would promote a
+// possession rule into a purchase scope. `LAND_POSSESSION` and `LAND_PURCHASE`
+// are both selectable directly in the picker instead.
 export const ACTIVITY_TO_MUHURTA: Record<string, string> = {
   job_change: "JOB_START",
   business_start: "JOB_START",
@@ -89,6 +103,11 @@ export const ACTIVITY_TO_MUHURTA: Record<string, string> = {
   travel: "TRAVEL",
   health: "MEDICAL",
   spiritual: "SPIRITUAL",
+  child_naming: "NAMING_CEREMONY",
+  // Child birth has no sourced muhurta table — Kalaprakasika Ch. XVI (Nishekam)
+  // governs conception, not delivery timing. Left on SPIRITUAL, unchanged.
+  child_birth: "SPIRITUAL",
+  // Kept so an in-flight selection of the old merged row still resolves.
   child: "SPIRITUAL",
   other: "",
 };
