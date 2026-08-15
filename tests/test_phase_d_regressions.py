@@ -58,13 +58,11 @@ def test_muhurta_scores_krishna_paksha_favourable_tithi_by_paksha_number() -> No
     favourable_score, favourable_support, _ = _score_panchangam(
         _muhurta_snapshot(17),  # Krishna Dwitiya: within-paksha tithi 2
         activity="general",
-        moon_rasi=1,
         lagna_rasi=1,
     )
     neutral_score, neutral_support, _ = _score_panchangam(
         _muhurta_snapshot(20),  # Krishna Panchami: within-paksha tithi 5
         activity="general",
-        moon_rasi=1,
         lagna_rasi=1,
     )
 

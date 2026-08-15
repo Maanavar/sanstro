@@ -295,7 +295,7 @@ The honesty rule matters: a general answer that reads as personal is worse than 
 | A1 | Extract `_tara_number` into `app/calculations/tara_bala.py`; add `chandra_bala()` alongside. Naal service calls the shared version. | new `app/calculations/tara_bala.py`; `app/services/muhurtham_naal_service.py` |
 | A2 | Durmuhurtham segments added to the panchangam snapshot | `app/calculations/panchangam.py`, `app/schemas/panchangam.py` — **blocked on §11 Q1** |
 | A3 | Full-day lagna schedule — 12 rising windows per day via `calculate_lagna_degree` | `app/calculations/panchangam.py` (extends `:1848`) — see §9.5 budget |
-| A4 | Per-activity preference tables | new `app/data/activity_muhurta_rules.py` — **blocked on §11 Q2–Q3** |
+| A4 | Per-activity preference tables | `app/data/marriage_muhurta_rules.py` **exists** (Kalaprakasika Ch. XIII–XIV, page-cited, with `RULE_SOURCES` provenance records via `app/calculations/muhurta_doctrine.py`). Gold/other activities still **blocked on §11 Q2** pending Ch. XXI |
 | A5 | Transit dignity helper for karaka grahas | reuse `app/calculations/functional_nature.py` / `chart_strength.py` |
 
 ### Phase B — the engine
@@ -431,13 +431,24 @@ Measure before and after; a regression beyond these is a blocker, and the tuning
 
 Phase A cannot complete without these. They are reference data, not opinions — and per standing practice, the right move is to ask for the tables directly rather than offer multiple-choice.
 
-1. **Durmuhurtham table** — start offset from sunrise and duration, per weekday. (Blocks A2.)
-2. **Per-activity nakshatra lists** — for each activity type, the favoured and the forbidden nakshatras. He gave one data point (Pushya/Poosam for gold); we need the full grid. (Blocks A4.)
-3. **Is gold its own activity?** Our set has `PURCHASE`. Does gold/valuables warrant a distinct rule set? (Blocks A4.)
-4. **Tara Bala weighting** — he says he "may reject" a period on poor tara. Is Vadha/Vipat/Pratyak a **hard veto** or a large penalty? If a penalty, how large relative to an excellent nakshatra? (Blocks the L4 weights and the §6.3 veto list.)
-5. **Chandra Bala** — which of the twelve positions from Janma Rasi are acceptable, which are penalised, which veto?
-6. **Muhurta Lagna** — for a wealth purchase, is a strong 2nd/11th a bonus or a requirement, and what counts as "strong" (occupancy? lord's dignity? aspect?)
-7. **Tie-breaking** — when two windows are equal on the almanac, what decides? His example returns a Best *and* a Second choice, so a deterministic tie-break rule exists in his practice.
+**Status 2026-08-14/15:** the Kalaprakasika Ch. XIII–XIV extraction closed several of these from the primary text rather than from opinion — see `docs/MARRIAGE_EXTRACTION_WORKSHEET_KALAPRAKASIKA_CH14_2026-08-14.yaml` (page-cited, verified against 20 page images) and the encoded constants in `app/data/marriage_muhurta_rules.py`. Items below are re-marked accordingly. Note the scope limit: what the extraction settled is **marriage**, not gold — item 2's actual blocker for the astrologer's own worked example (a gold purchase) is untouched.
+
+| # | Item | Status |
+| --- | --- | --- |
+| 1 | **Durmuhurtham table** — start offset from sunrise and duration, per weekday. (Blocks A2.) | **STILL BLOCKED.** The v2.3 spec registers two competing weekday-offset variants (A: DrikPanchang-style, B: sunrise-offset) and deliberately refuses to pick one. Resolution is empirical, not editorial — §Q1's validation protocol (20–30 dates × seasons × 4 TN cities, diffed against a printed Tamil panchangam) decides it, and the winning table may mix rows from both variants. |
+| 2 | **Per-activity nakshatra lists** — favoured and forbidden stars per activity. (Blocks A4.) | **PARTIALLY RESOLVED.** *Marriage* is now sourced: 11 stars, page-cited, with Magha and Mula explicitly **included** (a naive "Ugra/Tikshna = reject" rule would wrongly drop both). *Gold* — the astrologer's own example — is **still blocked**; Kalaprakasika Ch. XXI ("To Lay Up Treasure") is the next extraction and covers gold, grain, gems, land, cattle. Naming, annaprasana and ear-boring lists were already confirmed from the early chapters. |
+| 3 | **Is gold its own activity?** | **RESOLVED in spec, unconfirmed by the astrologer.** v2.3 freezes the enum split (`PURCHASE_GENERAL / GOLD_VALUABLES / VEHICLE / PROPERTY / EQUIPMENT`). The *architecture* is safe to build against; the gold rule *contents* wait on item 2. |
+| 4 | **Tara Bala weighting** — veto or large penalty for Vadha/Vipat/Pratyak? | **STILL BLOCKED, and deliberately so.** v2.3 draws a hard line here: the adverse *classification* is `PRACTICE_CONSENSUS`, but the severity *mapping* is `ENGINE_POLICY` — Vinaadi's product decision, not doctrine, unless a passage says "reject absolutely." No passage found yet. The proposed default (Vadha → veto, Pratyak → severe penalty promotable to veto, Vipat → penalty) needs sign-off **as policy**, and must not be presented to users as sastra. |
+| 5 | **Chandra Bala** — which of the twelve positions veto, penalise, or pass? | **ANSWERED (spec Q5, frozen).** 3/6/10/11 strong bonus; 1/7 bonus; 2/5/9 neutral; 4/12 severe penalty; **8 = Chandrashtama = hard veto**, not compensable by any aggregate score. Same provenance caveat as item 4: the 8th-house veto is practice consensus, the rest of the mapping is engine policy. |
+| 6 | **Muhurta Lagna** — is a strong 2nd/11th a bonus or a requirement? | **ANSWERED for the general rule (spec Q6, frozen):** bonus, never a prerequisite — an excellent Pushya + clean tara + clean Chandra Bala + clean lagna is never discarded for a middling 11th lord. Gold/investment upgrades it to strong bonus. **Marriage lagna signs are now primary-sourced:** best = Gemini/Virgo/Libra, avoid = Aries/Scorpio/Capricorn/Pisces. This *contradicted* the earlier "fixed lagna preferred for marriage" assumption — none of the three best signs is fixed. Still open: what counts as "strong" (occupancy vs lord's dignity vs aspect). |
+| 7 | **Tie-breaking** — what decides between two almanac-equal windows? | **ANSWERED (spec L9, frozen).** Deterministic lexicographic: quality → largest boundary safety margin → earlier window. Worth confirming against his practice, since his example returns a Best *and* a Second choice. |
+
+**Two findings worth the astrologer's attention** — both are cases where the primary text contradicted a rule we were about to build:
+
+- **8th-house vacancy is not a marriage rule.** Ch. XIV says Saturn, Sun and Mars in the 8th *cause good*. The vacancy requirement is genuine — but for naming (Ch. III), ear-boring (Ch. IV), and the pre-marriage **Snaana** bath rite (p.68), which is a different moment from the marriage lagna. We had it queued to import into marriage.
+- **The Magha-1 / Mula-1 / Revati-4 pada exclusions are absent from Ch. XIV.** The pada-sensitive rule that does exist (p.69) is a bride-star *compatibility* check, and the Magha/Mula pada danger is gandanta from the *natal* chapter. Does his practice apply the pada exclusions anyway? If so they are a school variant, not a Kalaprakasika rule, and should be flagged as such.
+
+An open question the text itself did not settle, flagged rather than silently resolved: the marriage best-tithi list (2, 3, 5, 7, 10, 11, 13) overlaps in-paksha numbers 10/11/13 with the same page's "all tithis after Ashtami of Krishna Paksha are inauspicious." The most defensible reading is that the unqualified best-list is primarily Shukla-paksha and the Krishna sweep governs the dark fortnight — but that is an inference, and it needs his ruling before an engine acts on it.
 
 ---
 
