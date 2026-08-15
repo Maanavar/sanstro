@@ -334,7 +334,9 @@ Marriage-favored months (Tamil practice, `TRADITIONALLY_REPORTED`): Thai, Maasi,
 
 ### M3. Karana
 
-`activity_karana_rule`, not a generic karana score. **CONFIRMED:** naming chapter explicitly avoids Vishti and Sakunam karanas, and enumerates the tithi-halves constituting Vishti; Annaprasana avoids Sthira karana and Vishti. Default Tamil profile: `VISHTI => VETO` at L2 for subha karya.
+`activity_karana_rule`, not a generic karana score. **CONFIRMED:** naming chapter explicitly avoids Vishti and Sakunam karanas, and enumerates the tithi-halves constituting Vishti. Default Tamil profile: `VISHTI => VETO` at L2 for subha karya.
+
+> **CORRECTED 2026-08-15 — the "Annaprasana avoids Sthira karana and Vishti" clause struck from the line above.** That sentence is from the **milk-feeding** rite (Ch. III p.32: *"Avoid the following Thithis… as also Sthirakarana and Vishtikarana"*). The **rice**-feeding rite (Annaprasana, Ch. III pp.33–35) states **no karana rule at all**. This is the same class of error as the marriage 8th-house-vacancy import — a rule real in one rite, attributed to its neighbour. Recorded with provenance as `KP_CH3_MILK_FEEDING_KARANA_001` (`source_scope=MILK_FEEDING`) in `app/data/kalaprakasika_samskara_rules.py`, and pinned by a test so it cannot be promoted to Annaprasana. The original claim is left visible here rather than deleted, because a silently-rewritten doc teaches nothing.
 
 ### M4. Tithi
 

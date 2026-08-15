@@ -1,7 +1,7 @@
 # Muhurta Master Remediation — Explanations, Methods & Measures
 
-**Date:** 2026-08-14
-**Status:** PLAN — nothing implemented
+**Date:** 2026-08-14 (updated 2026-08-15)
+**Status:** IN PROGRESS — B3 done, B4 part done, `factors[]` shipped on all four surfaces. See §4.1, §6.4, §8 Phase B and §9.4 for what changed and what it cost to find out.
 **Branch:** `harden/production-readiness`
 **Supersedes:** `docs/muhurta-two-mode-plan.md` (earlier draft, same session)
 **Trigger:** astrologer's written description of the correct Thirukanitham muhurta method for a gold purchase, plus the product decision that every timing surface must serve **both** a personalised and a general audience.
@@ -122,7 +122,7 @@ The most precise layer. For the exact proposed minute, compute the rising sign; 
 | --- | --- | --- | --- |
 | 1 | Sunrise at activity location | ⚠️ wrong location | `app/services/muhurta_service.py:298` — `resolve_effective_daily_location(bp)` is the **birth profile's** location; no activity-location parameter exists on the route (`app/api/muhurta.py:25`) |
 | 2 | Tithi | ✅ | `muhurta_service.py:161`; `app/calculations/activity_timing_rules.py:255` |
-| 3 | Nakshatra + Pada | ⚠️ flat set; **absent from month ranker** | `muhurta_service.py:197` uses `SUBHA_NAKSHATRAS` (`panchangam.py:273`) as one undifferentiated set. `assess_activity_timing()` (`activity_timing_rules.py:593`) takes only `tithi_number, paksha, weekday_lord` |
+| 3 | Nakshatra + Pada | ✅ day-level (B4 done 2026-08-15); pada still absent | `assess_activity_timing()` now takes `nakshatra_number` and judges it on the **sourced** table where one exists (marriage → Kalaprakasika Ch. XIV) and on the generic `SUBHA_NAKSHATRA_NUMBERS` list otherwise, **labelled as generic in the copy**. The engine keeps the two apart as `NAKSHATRA` vs `ALMANAC_NAKSHATRA`. Gold/property still ride the generic layer until Ch. XXI lands (§11 item 2) |
 | 4 | Tara Bala | ⚠️ siloed | `app/services/muhurtham_naal_service.py:211` `_tara_number()` — private, used only by `match_muhurtham_naals` |
 | 5 | Chandra Bala | ❌ missing | no match for `chandra_bala` in `app/`; only the 8th-house case at `muhurta_service.py:168` |
 | 6 | Jupiter / Venus transit condition | ❌ missing | `_ACTIVITY_LORDS` (`muhurta_service.py:47`) treats them as dasha lords only |
@@ -137,8 +137,8 @@ The most precise layer. For the exact proposed minute, compute the rising sign; 
 
 | Engine | Personal | General | Note |
 | --- | --- | --- | --- |
-| `muhurta_service.find_best_muhurta_slots` | ✅ | ❌ | chart mandatory |
-| `public_tools._score_public_muhurta` (`app/api/public_tools.py:781`) | ❌ | ✅ | **duplicate scoring logic** — will drift |
+| `muhurta_service.find_best_muhurta_slots` | ✅ | ❌ | chart mandatory (C1 still open) |
+| ~~`public_tools._score_public_muhurta`~~ | — | — | **DELETED 2026-08-15 (B3).** `/public/muhurta` calls `score_day(..., subject=None)` |
 | `daily_guidance_service.get_activity_timing` (`:1328`) | ✅ | ❌ | chart mandatory, but the underlying rules need no chart |
 | `activity_timing_rules.daily_activity_board` (`:539`) | partial | ✅ | takes a pre-computed `is_chandrashtama` flag |
 | `muhurtham_naal_service.match_muhurtham_naals` (`:237`) | ✅ | ✅ | **the reference implementation** |
@@ -161,6 +161,7 @@ The plumbing to fix this **already exists**: `web/components/dashboard-workspace
 | **D3** | High — fabricated astrology | **FIXED 2026-08-14** | `decisions_service._optimal_window()` returned `target_date + 21 days` or `+ 45 days` selected by verdict string. It was presented to the user as an optimal window and contained no astrological computation whatsoever. |
 | **D4** | Medium | open | **Almanac drowns personalisation.** `daily_guidance_service.py:1439` ranks by `alignment_rank * 100 + score`. The almanac alignment term (0/100/200) dominates a 0–100 personal score, so the chart can only reorder days *within* a bucket. |
 | **D5** | Low | open | Muhurtham-naal times are a **static weekday lookup** (`muhurtham_naal_service.py:141`), not computed for the date or location, while the surrounding date ranking *is* personalised — an inconsistency in one response. |
+| **D6** | Medium — user-visible | **FIXED 2026-08-15** | **Latin names inside Tamil reason copy.** The engine composed both languages from the snapshot's own fields, which are uppercase transliterated codes: the Tamil reason read *"…பதினொரு நட்சத்திரங்களுள் **Aswini** ஒன்று."* and *"சூரிய உதயத்தில் **Rishabam** லக்னம்"*. It affected the nakshatra, tithi, yoga and lagna-sign factors in both modes. All four now compose from `app/calculations/display_names.py`; the tithi table moved there from `activity_timing_rules` so the two modules share one. Pinned by `test_tamil_reason_copy_never_carries_a_latin_star_name`, which flags any ASCII run in a Tamil reason. New Tamil strings from this change remain pending native review, per the standing convention. |
 
 ### 5.1 D1 / D2 — what shipped
 
@@ -270,6 +271,20 @@ factors: FactorResult[]             # every factor: name, verdict, contribution,
 
 `factors[]` is what lets the UI render the astrologer's *"I would then explain exactly why each period was selected or rejected"* — and it is also the audit trail that makes §9's validation possible.
 
+**Shipped 2026-08-15** on `MuhurtaSlot.factors`, across all four surfaces per CLAUDE.md (`app/schemas/muhurta.py`, `packages/shared/src/types/index.ts`, `web/`, `mobile/`). Until then the engine computed verdicts, citations and the tithi conflict and the API dropped every bit of it except the penalties, folded anonymously into `cautions` — the product had paid for provenance nobody could see. Each factor carries:
+
+| Field | Why it is separate |
+| --- | --- |
+| `verdict` | Five states, and two of the distinctions are load-bearing. `UNSOURCED` ≠ `NEUTRAL`: "we checked and it is fine" and "we have no table to check against" must never render alike. `VETO` ≠ a large `PENALTY`: a veto removes the day and cannot be outweighed, so it renders as an exclusion, not a low score. |
+| `contribution` | The signed weight. `ENGINE_POLICY`, never presented as traditional. |
+| `sourced` | True only when the rule is **primary-text confirmed** (`RuleSource.is_primary_text_confirmed()`), not merely when a `rule_id` exists. A citation on screen claims a named page of a named edition says this. |
+| `citation` | tradition / chapter / page / passage / edition, resolved through `muhurta_engine.resolve_rule_source`. |
+| `conflict` | The unresolved-in-the-source case — e.g. the best-tithi list overlapping the Krishna post-Ashtami sweep — surfaced to the reader rather than silently resolved. |
+
+`factors` is a **superset** of `cautions` (every caution is a PENALTY factor in it, including the per-window kalam overlaps), so a surface renders one list or the other, never both. `cautions` stays for back-compat; new UI reads `factors`.
+
+Two things deliberately **not** done here: the kalam-overlap factors carry `contribution: 0.0` because what an overlap should cost on the fallback window path is an open doctrine question (§6.3 argues for a veto), and the public `/muhurta` response keeps its flat shape — repointing its scoring was B3, reshaping its DTO is separate.
+
 ---
 
 ## 7. Mode semantics — the contract
@@ -295,7 +310,7 @@ The honesty rule matters: a general answer that reads as personal is worse than 
 | A1 | Extract `_tara_number` into `app/calculations/tara_bala.py`; add `chandra_bala()` alongside. Naal service calls the shared version. | new `app/calculations/tara_bala.py`; `app/services/muhurtham_naal_service.py` |
 | A2 | Durmuhurtham segments added to the panchangam snapshot | `app/calculations/panchangam.py`, `app/schemas/panchangam.py` — **blocked on §11 Q1** |
 | A3 | Full-day lagna schedule — 12 rising windows per day via `calculate_lagna_degree` | `app/calculations/panchangam.py` (extends `:1848`) — see §9.5 budget |
-| A4 | Per-activity preference tables | `app/data/marriage_muhurta_rules.py` **exists** (Kalaprakasika Ch. XIII–XIV, page-cited, with `RULE_SOURCES` provenance records via `app/calculations/muhurta_doctrine.py`). Gold/other activities still **blocked on §11 Q2** pending Ch. XXI |
+| A4 | Per-activity preference tables | ✅ **Eleven activities sourced.** `app/data/marriage_muhurta_rules.py` (Ch. XIII–XIV), `app/data/kalaprakasika_samskara_rules.py` (Ch. III–IV: naming, annaprasana, ear-boring) and `app/data/kalaprakasika_treasure_rules.py` (Ch. XXI: treasure, gold, gems, grain, land-possession, land-purchase, cattle), all page-cited with `RULE_SOURCES` records via `app/calculations/muhurta_doctrine.py`. Bound to the engine by `app/data/muhurta_activity_registry.py`; MARRIAGE deliberately keeps its own engine branch because its paksha-conditional tithi tiers do not fit the registry's flat shape |
 | A5 | Transit dignity helper for karaka grahas | reuse `app/calculations/functional_nature.py` / `chart_strength.py` |
 
 ### Phase B — the engine
@@ -304,8 +319,8 @@ The honesty rule matters: a general answer that reads as personal is worse than 
 | --- | --- |
 | B1 | Build `muhurta_engine.py` with the `Subject \| None` contract and the L1–L5 layers |
 | B2 | Port `muhurta_service` onto it. D1/D2 are **already fixed in place** (§5.1) — the port must carry the intersection rule over, and add durmuhurtham to it once §11 Q1 lands |
-| B3 | Delete `_score_public_muhurta`; `/public/muhurta` calls the engine with `subject=None` |
-| B4 | Add nakshatra + Tara Bala to `assess_activity_timing`; re-weight the D4 rank formula |
+| B3 | ✅ **DONE 2026-08-15.** `_score_public_muhurta` deleted; `/public/muhurta` calls `score_day(..., subject=None)`. Required moving the generic almanac layer **into** the engine as L1 first — without it, general mode for an unsourced activity would have returned an identical score every day (§9.4 note below) |
+| B4 | ⚠️ **PART DONE 2026-08-15.** Nakshatra added to `assess_activity_timing` and wired at every call site holding a snapshot. **Tara Bala and the D4 re-weight are still open** — both need `get_activity_timing` to build a `Subject`, which is the same work as C2 |
 | B5 | D3's fabrication is **already fixed** (§5.2). What remains: point `decisions_service` at the engine so a defer verdict can name a real *muhurta* window, not just the next antardasha |
 
 ### Phase C — API
@@ -378,8 +393,18 @@ Golden cases use **synthetic birth identities only** — no real profiles, names
 6. `npm run typecheck` + `npm test` in `web/`, and mobile `tsc` + jest — both belong in the routine gate
 7. **Contract parity**: the four surfaces (`app/api/`, `packages/shared/src/api/`, `mobile/`, `web/`) grep-checked for every changed route, param, and field in the same change
 
-### 9.4 Duplicate-logic gate
-After B3, `grep -rn "_score_public_muhurta" app/` returns nothing, and there is exactly **one** function in the repo that scores a day for a muhurta. This is a hard check, not a review opinion — the current duplication is how the two modes drifted apart.
+### 9.4 Duplicate-logic gate — ✅ CLOSED 2026-08-15
+
+There is exactly **one** function in the repo that scores a day for a muhurta: `muhurta_engine.score_day`. Pinned by `test_there_is_exactly_one_day_scorer_in_the_repo`, which scans `app/` for a `def` of either dead scorer. It matches the `def` rather than the bare name, because the surviving comments deliberately name both to record where the logic went — the literal `grep` this section originally specified would flag that history as a violation.
+
+**What the duplication had already cost**, found while merging the two copies:
+
+- **Amavasai scored −5 in `public_tools` and 0 in `muhurta_service`.** Resolved toward the penalty: a day we print a caution for and then score as though we had not is the silence-taken-for-approval failure the engine exists to prevent.
+- **Neither copy consulted the sourced per-activity doctrine.** A public MARRIAGE query was judged without the Kalaprakasika table the signed-in one used — the same question, two answers, depending on whether you were logged in.
+- **The yoga name was appended to the *support* string unconditionally in both**, so a day carrying Vyatipata or Vaidhriti read back to the user as *supported by* it. The yoga is now its own `ALMANAC_YOGA` factor, NEUTRAL and zero-weight, which says it is ungraded instead of posing as a reason.
+- **Both compared nakshatra names with a `.upper().replace("H", "")` fuzz** guarding a spelling mismatch that does not exist — all 17 `SUBHA_NAKSHATRAS` resolve cleanly against `NAKSHATRA_NAMES`. The set is keyed by number now (`SUBHA_NAKSHATRA_NUMBERS`).
+
+**Consequence to expect:** day scores and orderings shift. General mode gains the doctrine layer it never had, and Amavasai now costs points on the picker.
 
 ### 9.5 Performance budget
 
@@ -436,7 +461,7 @@ Phase A cannot complete without these. They are reference data, not opinions —
 | # | Item | Status |
 | --- | --- | --- |
 | 1 | **Durmuhurtham table** — start offset from sunrise and duration, per weekday. (Blocks A2.) | **STILL BLOCKED.** The v2.3 spec registers two competing weekday-offset variants (A: DrikPanchang-style, B: sunrise-offset) and deliberately refuses to pick one. Resolution is empirical, not editorial — §Q1's validation protocol (20–30 dates × seasons × 4 TN cities, diffed against a printed Tamil panchangam) decides it, and the winning table may mix rows from both variants. |
-| 2 | **Per-activity nakshatra lists** — favoured and forbidden stars per activity. (Blocks A4.) | **PARTIALLY RESOLVED.** *Marriage* is now sourced: 11 stars, page-cited, with Magha and Mula explicitly **included** (a naive "Ugra/Tikshna = reject" rule would wrongly drop both). *Gold* — the astrologer's own example — is **still blocked**; Kalaprakasika Ch. XXI ("To Lay Up Treasure") is the next extraction and covers gold, grain, gems, land, cattle. Naming, annaprasana and ear-boring lists were already confirmed from the early chapters. |
+| 2 | **Per-activity nakshatra lists** — favoured and forbidden stars per activity. (Blocks A4.) | **RESOLVED for ten activities, 2026-08-15.** *Marriage*: 11 stars, page-cited, with Magha and Mula explicitly **included** (a naive "Ugra/Tikshna = reject" rule would wrongly drop both). *Gold* — the astrologer's own example — is now sourced from Ch. XXI, along with gems, grain, land-possession and cattle (`app/data/kalaprakasika_treasure_rules.py`, worksheet `docs/sources/kalaprakasika_ch21_treasure_rules.md`). *Naming / annaprasana / ear-boring* are extracted from Ch. III–IV and wired end-to-end (`app/data/kalaprakasika_samskara_rules.py`). **Three findings worth carrying forward:** (a) Ch. XXI gives **no star list for *buying* land** — its 14-star list is scoped to *taking possession*, and the only buying rule is a weekday one; (b) **Annaprasana is the sole activity with a named forbidden-star set** (8 stars, veto-grade), and it forbids Ardra, which the naming chapter calls *good* — the two rites disagree, which is why they are not one activity; (c) the Ch. XXI grain material is one sentence — **Ch. XX (Harvest, pp.105–109) is the real grain chapter and is still unread.** |
 | 3 | **Is gold its own activity?** | **RESOLVED in spec, unconfirmed by the astrologer.** v2.3 freezes the enum split (`PURCHASE_GENERAL / GOLD_VALUABLES / VEHICLE / PROPERTY / EQUIPMENT`). The *architecture* is safe to build against; the gold rule *contents* wait on item 2. |
 | 4 | **Tara Bala weighting** — veto or large penalty for Vadha/Vipat/Pratyak? | **STILL BLOCKED, and deliberately so.** v2.3 draws a hard line here: the adverse *classification* is `PRACTICE_CONSENSUS`, but the severity *mapping* is `ENGINE_POLICY` — Vinaadi's product decision, not doctrine, unless a passage says "reject absolutely." No passage found yet. The proposed default (Vadha → veto, Pratyak → severe penalty promotable to veto, Vipat → penalty) needs sign-off **as policy**, and must not be presented to users as sastra. |
 | 5 | **Chandra Bala** — which of the twelve positions veto, penalise, or pass? | **ANSWERED (spec Q5, frozen).** 3/6/10/11 strong bonus; 1/7 bonus; 2/5/9 neutral; 4/12 severe penalty; **8 = Chandrashtama = hard veto**, not compensable by any aggregate score. Same provenance caveat as item 4: the 8th-house veto is practice consensus, the rest of the mapping is engine policy. |
