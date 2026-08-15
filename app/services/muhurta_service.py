@@ -6,14 +6,18 @@ Uses panchangam (tithi, nakshatra, yoga, kalam) + dasha support.
 
 Methodology (Thirukanitham), in the order the layers apply:
 
-- **Generic almanac** (`_score_panchangam`): rikta tithis, broadly auspicious
-  tithi/nakshatra/yoga, Abhijit, Nalla Neram. Activity-agnostic.
-- **Doctrine + personal** (`muhurta_engine.score_day`): the per-activity rules
-  sourced from the classical text, plus Tara Bala and Chandra Bala when a
-  subject is supplied. Chandrashtama **vetoes** here — the day is dropped, not
-  merely docked points, because no almanac strength offsets it.
-  Only MARRIAGE has a primary-text table today (Kalaprakasika Ch. XIV); other
-  activities get an explicit UNSOURCED verdict rather than a silent pass.
+- **Day score** (`muhurta_engine.score_day`): the whole almanac + doctrine +
+  personal stack in one call — the generic almanac layer, the per-activity
+  rules sourced from the classical text, and Tara Bala / Chandra Bala when a
+  subject is supplied. Chandrashtama **vetoes** — the day is dropped, not
+  merely docked points, because no almanac strength offsets it. Activities with
+  a primary-text table: MARRIAGE (Kalaprakasika Ch. XIV), NAMING_CEREMONY /
+  ANNAPRASANA (Ch. III), EAR_BORING (Ch. IV), and the Ch. XXI treasure set
+  (TREASURE_STORE, GOLD, GEMS, GRAIN, LAND_POSSESSION, LAND_PURCHASE,
+  CATTLE_PURCHASE). The rest get an explicit UNSOURCED verdict rather than a
+  silent pass. This service used to
+  carry its own copy of the generic layer; it does not any more, and must not
+  grow one again (see the §9.4 gate in `tests/test_muhurta_engine.py`).
 - **Dasha support**: whether the running lord is relevant to the activity.
 - **Window**: a favoured hora ∩ a good Gowri day kala clear of Rahu Kalam /
   Yamagandam / Kuligai, so the clock time and the reason printed beside it
@@ -31,12 +35,11 @@ from sqlalchemy.orm import Session
 
 from app.calculations.astro import nakshatra_to_rasi, resolve_rasi, resolve_timezone, utc_datetime_to_julian_day
 from app.calculations.dasha import calculate_vimshottari_timeline
-from app.calculations.muhurta_engine import Subject, Verdict, score_day
+from app.calculations.muhurta_engine import (
+    SOURCED_ACTIVITIES as ENGINE_SOURCED_ACTIVITIES,
+)
+from app.calculations.muhurta_engine import DayScore, Subject, Verdict, display_score, score_day
 from app.calculations.panchangam import (
-    RIKTA_TITHIS_IN_PAKSHA,
-    SUBHA_NAKSHATRAS,
-    SUBHA_TITHIS_KRISHNA,
-    SUBHA_TITHIS_SHUKLA,
     best_gowri_slot,
     calculate_daily_panchangam_range,
     gowri_category_rank,
@@ -45,7 +48,14 @@ from app.calculations.panchangam import (
 from app.calculations.tamil_calendar import format_tamil_date
 from app.constants.astrology import NAKSHATRA_NAMES, SIGN_LORD
 from app.models import BirthProfile, Chart
-from app.schemas.muhurta import BiText, MuhurtaResponse, MuhurtaResponseData, MuhurtaSlot, ResponseMeta
+from app.schemas.muhurta import (
+    BiText,
+    MuhurtaFactor,
+    MuhurtaResponse,
+    MuhurtaResponseData,
+    MuhurtaSlot,
+    ResponseMeta,
+)
 from app.services.chart_service import load_persisted_chart_response
 from app.services.location_service import resolve_effective_daily_location
 from app.services.narrative_engine import PLANET_NAME
@@ -67,7 +77,34 @@ class _Window(NamedTuple):
     hora_bonus: float
     hora_support: BiText | None
 
-# Activity → relevant dasha lords (first-choice benefics for that domain)
+
+class _ScoredDay(NamedTuple):
+    """One ranked candidate day. Named rather than a bare tuple because this
+    grew to eight positional fields and the unpacking at the far end of the
+    function had no way to catch a swapped pair."""
+
+    score: float
+    day: date
+    time_start: str
+    time_end: str
+    panchangam_support: BiText
+    hora_support: BiText | None
+    cautions: list[BiText]
+    factors: list[MuhurtaFactor]
+
+# Activity → relevant dasha lords (first-choice benefics for that domain).
+#
+# ENGINE_POLICY unless noted. These were product choices from the original
+# picker, not sastra, and the newly-sourced activities are deliberately NOT
+# given invented entries: only CATTLE_PURCHASE has an authority for its lord
+# (Kalaprakasika Ch. XXI p.113 footnote, `KP_CH21_CATTLE_LORD_001`: "Jupiter
+# governs the sheep, the cow and all those animals that are useful to man").
+#
+# Absence here is not a bug. An activity with no lord entry earns no dasha bonus
+# and names no favoured hora — it falls back to the best clear Gowri kala, which
+# is the honest answer when no source assigns the activity a graha. Adding a
+# plausible-looking lord to "complete the table" would put an unsourced
+# judgement behind a citation-bearing result.
 _ACTIVITY_LORDS: dict[str, set[str]] = {
     "JOB_START":   {"SUN", "MERCURY", "JUPITER"},
     "MARRIAGE":    {"VENUS", "JUPITER", "MOON"},
@@ -77,9 +114,17 @@ _ACTIVITY_LORDS: dict[str, set[str]] = {
     "MEDICAL":     {"SUN", "MOON"},
     "PURCHASE":    {"VENUS", "JUPITER", "MERCURY"},
     "SPIRITUAL":   {"JUPITER", "SUN", "MOON"},
+    # Sourced: KP_CH21_CATTLE_LORD_001, Ch. XXI p.113.
+    "CATTLE_PURCHASE": {"JUPITER"},
 }
 
-# Activity → house numbers to check for dasha support
+# Activities whose lord entry above rests on a citation rather than on product
+# judgement. Pinned by `tests/test_kalaprakasika_treasure_doctrine.py` so a
+# future "let's fill in the rest of the table" pass has to confront the gap.
+_SOURCED_ACTIVITY_LORDS: frozenset[str] = frozenset({"CATTLE_PURCHASE"})
+
+# Activity → house numbers to check for dasha support. Same policy as above:
+# the sourced activities get no entry, because no chapter assigns them houses.
 _ACTIVITY_HOUSES: dict[str, list[int]] = {
     "JOB_START":  [10, 2],
     "MARRIAGE":   [7, 2],
@@ -90,6 +135,40 @@ _ACTIVITY_HOUSES: dict[str, list[int]] = {
     "PURCHASE":   [2, 11],
     "SPIRITUAL":  [9, 5],
 }
+
+# Every activity the picker accepts.
+#
+# This used to be `_ACTIVITY_LORDS` itself, which made the lord map do double
+# duty as the validity registry — so a new activity could only become reachable
+# by inventing a dasha lord for it. Separating the two is what lets the Ch. XXI
+# and Ch. III/IV activities be selectable *and* honest about having no sourced
+# lord. Kept in one place so the API description, the pickers and the 422 all
+# read from the same list.
+MUHURTA_ACTIVITIES: frozenset[str] = frozenset(_ACTIVITY_LORDS) | ENGINE_SOURCED_ACTIVITIES
+
+# Client keys that are not the backend activity name.
+#
+# `baby_naming` has been on the mobile picker since it shipped and has never
+# reached a backend activity: uppercased it becomes `BABY_NAMING`, which was in
+# neither the lord map nor anything else, so every tap 422'd. It now routes to
+# the sourced Namakarana activity. Kept as an explicit alias rather than by
+# renaming the mobile key, so an installed build that still sends the old string
+# keeps working.
+#
+# `house`, `vehicle` and `business` are on the same mobile picker and have the
+# same defect. They are deliberately NOT aliased here: routing them somewhere
+# would be guessing which backend activity the astrologer meant, and Ch. XXI
+# gives no house or vehicle rule. They still 422, visibly, which is the correct
+# state for an option with no doctrine behind it.
+_ACTIVITY_ALIASES: dict[str, str] = {
+    "BABY_NAMING": "NAMING_CEREMONY",
+}
+
+
+def normalize_activity(activity: str) -> str:
+    """Uppercase an incoming activity key and resolve any client-side alias."""
+    key = str(activity or "").strip().upper()
+    return _ACTIVITY_ALIASES.get(key, key)
 
 
 _SIGN_LORDS = SIGN_LORD
@@ -163,86 +242,23 @@ def _hora_support_text(lord: str, is_lagna_lord: bool, hora, kala_name: str | No
     )
 
 
-def _score_panchangam(snapshot, activity: str, lagna_rasi: int) -> tuple[float, BiText, list[BiText]]:
-    """Score a single day's generic almanac quality. Returns (score, support, cautions).
+def _panchangam_support(day: DayScore) -> BiText:
+    """The one-line "why this day" summary, built from the factors that actually
+    earned the day points.
 
-    This is the activity-agnostic layer only. Per-activity doctrine (which stars
-    and tithis a *marriage* wants, as against a purchase) and the personal layer
-    both live in `muhurta_engine.score_day`, which the caller adds on top — the
-    `moon_rasi` argument this used to take went with the Chandrashtama check
-    that moved there.
+    Only BONUS factors are read. The generic-almanac copy this replaces appended
+    the day's yoga name to the same string unconditionally, so a day carrying
+    Vyatipata read back to the user as *supported by* Vyatipata. The yoga is
+    still reported — as its own NEUTRAL factor in `factors[]`, where it says it
+    is ungraded rather than posing as support.
     """
-    score = 50.0
-    support_parts_ta: list[str] = []
-    support_parts_en: list[str] = []
-    cautions: list[BiText] = []
-
-    tithi = snapshot.tithi_number
-    paksha = snapshot.tithi_paksha
-    nakshatra = snapshot.nakshatra_name
-    yoga = snapshot.yoga_name
-    weekday = snapshot.weekday
-
-    # ── Negative filters ──────────────────────────────────────────────────────
-    tithi_in_paksha = tithi if tithi <= 15 else tithi - 15
-
-    if tithi == 30:  # Amavasai — no penalty per rules, just a content note
-        cautions.append(_t("அமாவாசை திதி — புதிய தொடக்கத்திற்கு ஏற்றதல்ல", "Amavasai tithi is generally not ideal for new starts"))
-
-    if tithi_in_paksha in RIKTA_TITHIS_IN_PAKSHA:
-        cautions.append(_t(
-            f"{snapshot.tithi_name} திதி (எண் {tithi}) — சுப நிகழ்வுகளுக்கு தவிர்க்கவும்",
-            f"Tithi {snapshot.tithi_name} ({tithi}) is generally avoided for auspicious starts",
-        ))
-        score -= 15
-
-    # Chandrashtama is no longer scored here. `muhurta_engine.score_day` owns it
-    # as a **veto** (it is not compensable by any aggregate score), and reads the
-    # snapshot's authoritative `chandrashtamam_moon_rasi_number` rather than
-    # re-deriving the Moon's rasi from nakshatra+pada as this function used to —
-    # that derivation defaults to pada 1 and is wrong for the eight nakshatras
-    # that straddle two rasis.
-
-    # ── Positive signals ──────────────────────────────────────────────────────
-    if snapshot.is_subha_muhurtham:
-        score += 20
-        support_parts_ta.append("சுப முகூர்த்த நாள்")
-        support_parts_en.append("Auspicious muhurta day")
-
-    if paksha == "SHUKLA" and tithi in SUBHA_TITHIS_SHUKLA:
-        score += 10
-        support_parts_ta.append(f"சாதக திதி: {snapshot.tithi_name}")
-        support_parts_en.append(f"Favourable tithi: {snapshot.tithi_name}")
-    elif paksha == "KRISHNA" and tithi_in_paksha in SUBHA_TITHIS_KRISHNA:
-        score += 8
-        support_parts_ta.append(f"சாதக திதி: {snapshot.tithi_name}")
-        support_parts_en.append(f"Favourable tithi: {snapshot.tithi_name}")
-
-    # Normalize nakshatra name to match SUBHA_NAKSHATRAS set
-    if nakshatra.upper().replace("H", "") in {n.upper().replace("H", "") for n in SUBHA_NAKSHATRAS} or nakshatra in SUBHA_NAKSHATRAS:
-        score += 10
-        support_parts_ta.append(f"சுப நட்சத்திரம்: {nakshatra}")
-        support_parts_en.append(f"Auspicious nakshatra: {nakshatra}")
-
-    if yoga:
-        support_parts_ta.append(f"யோகம்: {yoga}")
-        support_parts_en.append(f"Yoga: {yoga}")
-
-    # Abhijit muhurta (except Wednesday)
-    if weekday != "WEDNESDAY" and not snapshot.abhijit_restricted:
-        score += 5
-        support_parts_ta.append("அபிஜித் முகூர்த்த சாளரம் கிடைக்கிறது")
-        support_parts_en.append("Abhijit muhurta window available")
-
-    # Nalla Neram slots available
-    if snapshot.nalla_neram:
-        score += 5
-
-    support_ta = ", ".join(support_parts_ta) if support_parts_ta else "சாதாரண நாள்"
-    support_en = ", ".join(support_parts_en) if support_parts_en else "Ordinary day"
-    support = _t(support_ta, support_en)
-
-    return score, support, cautions
+    bonuses = [f for f in day.factors if f.verdict is Verdict.BONUS]
+    if not bonuses:
+        return _t("சாதாரண நாள்", "Ordinary day")
+    return _t(
+        ", ".join(f.reason_ta for f in bonuses),
+        " ".join(f.reason_en for f in bonuses),
+    )
 
 
 def _nakshatra_to_rasi(nak_number: int, pada: int = 1) -> int:
@@ -368,11 +384,11 @@ def find_best_muhurta_slots(
     date_to: date,
     session: Session,
 ) -> MuhurtaResponse:
-    activity = activity.upper()
-    if activity not in _ACTIVITY_LORDS:
+    activity = normalize_activity(activity)
+    if activity not in MUHURTA_ACTIVITIES:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=f"Unknown activity '{activity}'. Valid values: {sorted(_ACTIVITY_LORDS)}",
+            detail=f"Unknown activity '{activity}'. Valid values: {sorted(MUHURTA_ACTIVITIES)}",
         )
 
     delta_days = (date_to - date_from).days
@@ -442,27 +458,27 @@ def find_best_muhurta_slots(
     # to avoid a per-day cache SELECT+DELETE (see calculate_daily_panchangam_range).
     snapshots_by_date = calculate_daily_panchangam_range(date_from, date_to, lat, lon, tz_name, session=session)
 
-    scored_days: list[tuple[float, date, str, str, BiText, BiText | None, list[BiText]]] = []
+    scored_days: list[_ScoredDay] = []
     current = date_from
     while current <= date_to:
         try:
             snap = snapshots_by_date[current]
-            day_score, pan_support, cautions = _score_panchangam(snap, activity, lagna_rasi)
-
-            # Doctrine layer: per-activity rules sourced from the classical text
-            # (Kalaprakasika Ch. XIV for MARRIAGE today) plus the personal Tara
-            # Bala / Chandra Bala factors. A vetoed day is dropped outright —
+            # One scorer, all layers: the generic almanac, the per-activity
+            # rules sourced from the classical text (Kalaprakasika Ch. XIV for
+            # MARRIAGE today), and the personal Tara Bala / Chandra Bala factors
+            # when a subject exists. A vetoed day is dropped outright —
             # Chandrashtama is not compensable by an excellent almanac, so it
             # must not merely lose points and stay rankable.
-            doctrine = score_day(snap, activity, subject)
+            day = score_day(snap, activity, subject)
             # A vetoed day is never a candidate. `continue` would be wrong here —
             # the loop counter advances at the bottom of the while body, outside
             # this try, so skipping the rest must not skip the increment.
-            if not doctrine.vetoed:
-                day_score += sum(f.contribution for f in doctrine.factors)
-                cautions = list(cautions) + [
+            if not day.vetoed:
+                day_score = day.score
+                pan_support = _panchangam_support(day)
+                cautions = [
                     _t(f.reason_ta, f.reason_en)
-                    for f in doctrine.factors
+                    for f in day.factors
                     if f.verdict is Verdict.PENALTY
                 ]
 
@@ -476,19 +492,51 @@ def find_best_muhurta_slots(
                 slot_start, slot_end = window.start, window.end
                 t_start, t_end = slot_start.strftime("%H:%M"), slot_end.strftime("%H:%M")
                 slot_cautions = list(cautions)
-                if _overlaps(slot_start, slot_end, snap.rahu_kalam.start, snap.rahu_kalam.end):
-                    slot_cautions.append(_t("ராகு காலம் இந்த நேரத்துடன் ஒட்டுகிறது", "Rahu Kalam overlaps this slot"))
-                if _overlaps(slot_start, slot_end, snap.yamagandam.start, snap.yamagandam.end):
-                    slot_cautions.append(_t("யமகண்டம் இந்த நேரத்துடன் ஒட்டுகிறது", "Yamagandam overlaps this slot"))
-                if _overlaps(slot_start, slot_end, snap.kuligai.start, snap.kuligai.end):
-                    slot_cautions.append(_t("குளிகை இந்த நேரத்துடன் ஒட்டுகிறது", "Kuligai overlaps this slot"))
-                scored_days.append((day_score, current, t_start, t_end, pan_support, window.hora_support, slot_cautions))
+                slot_factors = [MuhurtaFactor.from_engine(f) for f in day.factors]
+                for band, band_ta, band_en in (
+                    (snap.rahu_kalam, "ராகு காலம்", "Rahu Kalam"),
+                    (snap.yamagandam, "யமகண்டம்", "Yamagandam"),
+                    (snap.kuligai, "குளிகை", "Kuligai"),
+                ):
+                    if band is None or not _overlaps(slot_start, slot_end, band.start, band.end):
+                        continue
+                    reason = _t(
+                        f"{band_ta} இந்த நேரத்துடன் ஒட்டுகிறது",
+                        f"{band_en} overlaps this slot",
+                    )
+                    slot_cautions.append(reason)
+                    # Reported as a factor too, so `factors` stays a superset of
+                    # `cautions` and a UI need only render one list.
+                    #
+                    # Contribution is 0.0 on purpose, and that is a gap, not a
+                    # judgement that it does not matter: `_best_time_window`
+                    # already refuses any kala a band touches, so this can only
+                    # fire on the Abhijit/Nalla-Neram fallback path — and what an
+                    # overlap should cost there (§6.3 argues for a veto) is an
+                    # unanswered doctrine question. It is named rather than
+                    # priced until that is settled.
+                    slot_factors.append(MuhurtaFactor(
+                        factor="WINDOW_KALAM_OVERLAP",
+                        verdict="PENALTY",
+                        contribution=0.0,
+                        reason=reason,
+                    ))
+                scored_days.append(_ScoredDay(
+                    score=day_score,
+                    day=current,
+                    time_start=t_start,
+                    time_end=t_end,
+                    panchangam_support=pan_support,
+                    hora_support=window.hora_support,
+                    cautions=slot_cautions,
+                    factors=slot_factors,
+                ))
         except Exception as exc:
             logger.debug("Muhurta score failed for %s: %s", current, exc)
         current += timedelta(days=1)
 
     # Sort by score descending, take top N
-    scored_days.sort(key=lambda x: x[0], reverse=True)
+    scored_days.sort(key=lambda x: x.score, reverse=True)
     top = scored_days[:TOP_N]
 
     def _tamil_date(d: date) -> BiText | None:
@@ -501,17 +549,23 @@ def find_best_muhurta_slots(
 
     slots = [
         MuhurtaSlot(
-            date=d,
-            tamilDate=_tamil_date(d),
-            timeStart=t_start,
-            timeEnd=t_end,
-            score=round(s, 1),
-            panchangamSupport=pan_support,
+            date=c.day,
+            tamilDate=_tamil_date(c.day),
+            timeStart=c.time_start,
+            timeEnd=c.time_end,
+            # The engine deliberately does not clamp — callers add their own
+            # layers on top of it — so the display mapping is applied here.
+            # It must be `display_score`, not a bare clamp: nearly a third of
+            # real day-scores exceed 100 raw, and clamping them flattened the
+            # top of every activity's list into an identical "100".
+            score=round(display_score(c.score), 1),
+            panchangamSupport=c.panchangam_support,
             dashaSupport=dasha_support,
-            horaSupport=hora_text,
-            cautions=cautions,
+            horaSupport=c.hora_support,
+            cautions=c.cautions,
+            factors=c.factors,
         )
-        for s, d, t_start, t_end, pan_support, hora_text, cautions in top
+        for c in top
     ]
 
     return MuhurtaResponse(

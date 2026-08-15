@@ -163,3 +163,38 @@ def nakshatra_ta(nakshatra: int | None) -> str | None:
 def nakshatra_en(nakshatra: int | None) -> str | None:
     """Prose-cased English name for a 1-indexed nakshatra number."""
     return NAKSHATRA_EN.get(nakshatra) if nakshatra is not None else None
+
+
+# ---------------------------------------------------------------------------
+# Tithi. Users know tithis by name (Navami, Chaturthi…), never by the raw 1-30
+# index, and the same 1-15 cycle serves both pakshas. Spellings match
+# TITHI_NAMES in app/calculations/panchangam.py.
+#
+# The snapshot's own `tithi_name` is an uppercase enum-ish code, so composing
+# prose from it puts "CHATHURTHI" in English copy and a Latin word inside Tamil
+# copy. Both engines that did that now come here instead.
+# ---------------------------------------------------------------------------
+_TITHI_CYCLE: tuple[tuple[str, str], ...] = (
+    ("பிரதமை", "Prathama"), ("துவிதியை", "Dvithiyai"), ("திரிதியை", "Thrithiyai"),
+    ("சதுர்த்தி", "Chathurthi"), ("பஞ்சமி", "Panchami"), ("சஷ்டி", "Shashti"),
+    ("சப்தமி", "Saptami"), ("அஷ்டமி", "Ashtami"), ("நவமி", "Navami"),
+    ("தசமி", "Dasami"), ("ஏகாதசி", "Ekadasi"), ("துவாதசி", "Dvadasi"),
+    ("திரயோதசி", "Thrayodasi"), ("சதுர்தசி", "Chathurdasi"), ("பௌர்ணமி", "Pournami"),
+)
+# 30 is Amavasai — the new moon, which closes Krishna paksha and has its own name.
+_AMAVASAI: tuple[str, str] = ("அமாவாசை", "Amavasai")
+
+
+def tithi_display(tithi_number: int) -> tuple[str, str]:
+    """(ta, en) display names for a 1-30 tithi number."""
+    if tithi_number == 30:
+        return _AMAVASAI
+    return _TITHI_CYCLE[(tithi_number - 1) % 15]
+
+
+def tithi_ta(tithi_number: int) -> str:
+    return tithi_display(tithi_number)[0]
+
+
+def tithi_en(tithi_number: int) -> str:
+    return tithi_display(tithi_number)[1]

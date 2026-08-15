@@ -419,7 +419,7 @@ def get_personal_cycle(
 def get_lucky_dates(
     chart_id: UUID,
     activity: str = Query(
-        description="JOB_START | MARRIAGE | EXAM | TRAVEL | INVESTMENT | MEDICAL | PURCHASE | SPIRITUAL"
+        description="JOB_START | MARRIAGE | EXAM | TRAVEL | INVESTMENT | MEDICAL | PURCHASE | SPIRITUAL | NAMING_CEREMONY | ANNAPRASANA | EAR_BORING | TREASURE_STORE | GOLD | GEMS | GRAIN | LAND_POSSESSION | LAND_PURCHASE | CATTLE_PURCHASE"
     ),
     date_from: date = Query(alias="dateFrom"),
     date_to: date = Query(alias="dateTo"),

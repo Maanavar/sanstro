@@ -289,6 +289,15 @@ SUBHA_NAKSHATRAS = {
     "THIRUVONAM",     # 22 — Shravana
     "AVITTAM",        # 23 — Dhanishtha
 }
+# The same list keyed by canonical 1..27 number, for callers that hold a
+# nakshatra number rather than a display name. Derived rather than hand-listed
+# so the two can never disagree. Every name above resolves against
+# NAKSHATRA_NAMES — the `.upper().replace("H", "")` fuzz that two former
+# muhurta scorers used to compare these was guarding a mismatch that does not
+# exist, and is gone.
+SUBHA_NAKSHATRA_NUMBERS: frozenset[int] = frozenset(
+    NAKSHATRA_NAMES.index(name) + 1 for name in SUBHA_NAKSHATRAS
+)
 # Soolam (சூலம்): the inauspicious travel direction for the day, by weekday
 # (0=Mon..6=Sun, matching RAHU_SLOT). Parigaram is the remedy food traditionally
 # eaten before travelling in the Soolam direction to nullify its effect.

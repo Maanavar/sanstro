@@ -615,6 +615,7 @@ def build_daily_guidance_response(
             tithi_number=panchangam.tithi_number,
             paksha=panchangam.tithi_paksha,
             weekday_lord=panchangam.weekday_lord,
+            nakshatra_number=panchangam.nakshatra_number,
         )
         if _timing.combined_alignment == "SUPPORTS":
             panchangam_score += 5
@@ -808,6 +809,7 @@ def build_daily_guidance_response(
         tithi_number=panchangam.tithi_number,
         paksha=panchangam.tithi_paksha,
         weekday_lord=panchangam.weekday_lord,
+        nakshatra_number=panchangam.nakshatra_number,
     )
     if goal_track and not active_goals:
         action_suggestion = _enrich_action_with_goal_track(
@@ -836,6 +838,7 @@ def build_daily_guidance_response(
         tithi_number: int,
         paksha: str,
         weekday_lord: str,
+        nakshatra_number: int,
         is_chandrashtama: bool,
     ) -> DailyActivityBoardData:
         """Adapt the calculation-layer board onto the response schema.
@@ -859,6 +862,7 @@ def build_daily_guidance_response(
         )
         board = daily_activity_board(
             tithi_number, paksha, weekday_lord,
+            nakshatra_number=nakshatra_number,
             is_chandrashtama=is_chandrashtama,
             audience=audience,
         )
@@ -1021,6 +1025,7 @@ def build_daily_guidance_response(
                 tithi_number=panchangam.tithi_number,
                 paksha=panchangam.tithi_paksha,
                 weekday_lord=panchangam.weekday_lord,
+                nakshatra_number=panchangam.nakshatra_number,
                 is_chandrashtama=chandrashtama,
             ),
         ),
@@ -1396,6 +1401,10 @@ def get_activity_timing(
                 tithi_number=panchang.tithi_number,
                 paksha=panchang.tithi_paksha,
                 weekday_lord=panchang.weekday_lord,
+                # The strongest day-selection factor, and this ranker ran
+                # without it: tithi, paksha and weekday alone would rank a
+                # Bharani day above a Poosam day for the same activity.
+                nakshatra_number=panchang.nakshatra_number,
             )
             journal_insight = _build_journal_insight(
                 session,

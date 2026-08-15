@@ -103,13 +103,14 @@ def _enrich_action_with_goals(
     tithi_number: int,
     paksha: str,
     weekday_lord: str,
+    nakshatra_number: int | None = None,
 ) -> DailyGuidanceSuggestion:
     """Append a goal-relevant context sentence to the action suggestion.
 
-    Checks Thirukanitham timing rules (tithi/paksha/weekday) for the active goal
-    type first. If timing is CAUTION for the goal, that overrides a positive dasha
-    match — a Rikta tithi during Theipirai on a Saturday cannot be softened just
-    because the dasha lord is supportive.
+    Checks Thirukanitham timing rules (nakshatra/tithi/paksha/weekday) for the
+    active goal type first. If timing is CAUTION for the goal, that overrides a
+    positive dasha match — a Rikta tithi during Theipirai on a Saturday cannot be
+    softened just because the dasha lord is supportive.
     """
     if not active_goals:
         return action
@@ -131,6 +132,7 @@ def _enrich_action_with_goals(
         tithi_number=tithi_number,
         paksha=paksha,
         weekday_lord=weekday_lord,
+        nakshatra_number=nakshatra_number,
     )
 
     if timing.combined_alignment == "CAUTION":

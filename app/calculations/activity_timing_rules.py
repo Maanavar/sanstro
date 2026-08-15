@@ -41,6 +41,9 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import Literal
 
+from app.calculations.display_names import nakshatra_en, nakshatra_ta, tithi_display
+from app.calculations.panchangam import SUBHA_NAKSHATRA_NUMBERS
+from app.constants.astrology import NAKSHATRA_NAMES
 from app.core.age_gate import (
     EDUCATION_LOWER_AGE,
     MINOR_AGE,
@@ -48,6 +51,7 @@ from app.core.age_gate import (
     is_past_prime_marriage_age,
     is_seeking_marriage,
 )
+from app.data.marriage_muhurta_rules import MARRIAGE_NAKSHATRA_ALLOWED
 
 ActivityType = Literal[
     "job_change", "business_start", "marriage", "education",
@@ -145,6 +149,11 @@ class ActivityTimingResult:
     paksha_signal: TimingSignal
     tithi_signal: TimingSignal
     weekday_signal: TimingSignal
+    # None when the caller had no nakshatra to pass. Distinct from a NEUTRAL
+    # signal: "not consulted" and "consulted, nothing to say" are different
+    # claims, and the month ranker used to make the first while reading as the
+    # second.
+    nakshatra_signal: TimingSignal | None
     combined_alignment: Alignment
     combined_ta: str
     combined_en: str
@@ -155,23 +164,11 @@ class ActivityTimingResult:
     short_en: str = ""
 
 
-# Thirukanitham tithi display names — same 1-15 cycle for both pakshas
-# (spellings match TITHI_NAMES in app/calculations/panchangam.py).
-_TITHI_DISPLAY: list[tuple[str, str]] = [
-    ("பிரதமை", "Prathama"), ("துவிதியை", "Dvithiyai"), ("திரிதியை", "Thrithiyai"),
-    ("சதுர்த்தி", "Chathurthi"), ("பஞ்சமி", "Panchami"), ("சஷ்டி", "Shashti"),
-    ("சப்தமி", "Saptami"), ("அஷ்டமி", "Ashtami"), ("நவமி", "Navami"),
-    ("தசமி", "Dasami"), ("ஏகாதசி", "Ekadasi"), ("துவாதசி", "Dvadasi"),
-    ("திரயோதசி", "Thrayodasi"), ("சதுர்தசி", "Chathurdasi"), ("பௌர்ணமி", "Pournami"),
-]
-
-
-def _tithi_display(number: int) -> tuple[str, str]:
-    """(ta, en) display name for a 1-30 tithi number. Users know tithis by
-    name (Navami, Chaturthi…), never by the raw 1-30 index."""
-    if number == 30:
-        return ("அமாவாசை", "Amavasai")
-    return _TITHI_DISPLAY[(number - 1) % 15]
+# Tithi display names moved to `app.calculations.display_names.tithi_display`
+# so the muhurta engine and this module compose prose from one table rather
+# than two that can drift. `_tithi_display` stays as the local alias the rules
+# below already read.
+_tithi_display = tithi_display
 
 
 # ── Paksha rules ───────────────────────────────────────────────────────────────
@@ -399,14 +396,113 @@ def _assess_weekday(activity: ActivityType, weekday_lord: str) -> TimingSignal:
     )
 
 
+# ── Nakshatra rules ────────────────────────────────────────────────────────────
+
+# Activities whose muhurta activity type maps onto a primary-text nakshatra
+# table. Keyed by this module's lowercase `ActivityType`, valued by the
+# uppercase activity name the doctrine tables use.
+#
+# STILL ONLY MARRIAGE, and that is a finding rather than an oversight.
+# Kalaprakasika Ch. XXI ("To Lay Up Treasure") has now been extracted
+# (`app/data/kalaprakasika_treasure_rules.py`), and it does **not** supply a
+# star list for the two board activities that looked like its natural clients:
+#
+# * `property` on this board means *buying and registering* property. Ch. XXI's
+#   14-star list (p.112) sits under "To take possession of land"; the chapter's
+#   only rule for *buying* land is a weekday one (p.112), with no stars at all.
+#   Mapping `property` -> LAND_POSSESSION would promote a possession rule into a
+#   purchase scope — exactly the move `RuleSource.source_scope` exists to stop.
+# * `money` means financial decisions at large, not acquiring gold. Ch. XXI's
+#   gold list is about treasuring metal, which is a different act.
+#
+# The three samskara activities (naming, annaprasana, ear-boring) have sourced
+# tables too, but no row here because this board has no samskara activity type —
+# it answers "what is today good for *me*", and a naming muhurtam presupposes an
+# infant the audience filter has no way to know about. Those three are reachable
+# through the muhurta picker instead (`app.services.muhurta_service`).
+_SOURCED_NAKSHATRA_ACTIVITIES: dict[str, str] = {"marriage": "MARRIAGE"}
+
+
+def _assess_nakshatra(activity: ActivityType, nakshatra_number: int) -> TimingSignal:
+    """The Moon's mansion for this activity.
+
+    For most Tamil muhurta work this is the single strongest day-selection
+    factor — stronger than the weekday, which this module has always consulted.
+    Two tiers, and the copy keeps them apart because they are very different
+    claims:
+
+    * **Sourced** — the activity has a page-cited table (marriage, from
+      Kalaprakasika Ch. XIV via `app.data.marriage_muhurta_rules`). The star is
+      judged against that activity's own list.
+    * **Generic** — everything else falls back to the broad Thirukanitham
+      auspicious-star list, and says so. That list knows nothing about the
+      activity: it cannot tell you Poosam is the classical star for buying
+      gold, only that Poosam is a generally good star. Presenting it as an
+      activity ruling would overstate it. Ch. XXI has since been extracted and
+      still does not close this gap for *these* activities — see the comment on
+      `_SOURCED_NAKSHATRA_ACTIVITIES` for why buying property and making money
+      decisions are not the acts Ch. XXI rules on.
+
+    A star absent from either list is NEUTRAL, never CAUTION. Kalaprakasika
+    names eleven stars *best* for marriage without forbidding the other sixteen,
+    so flipping the day to CAUTION would assert something the cited page does
+    not say.
+    """
+    # Bilingual copy needs a bilingual star name — a Latin "Aswini" dropped into
+    # an otherwise-Tamil sentence is the same seam this repo has fixed before.
+    fallback = NAKSHATRA_NAMES[nakshatra_number - 1].title()
+    name_en = nakshatra_en(nakshatra_number) or fallback
+    name_ta = nakshatra_ta(nakshatra_number) or fallback
+
+    sourced = _SOURCED_NAKSHATRA_ACTIVITIES.get(activity)
+    if sourced == "MARRIAGE":
+        if nakshatra_number in MARRIAGE_NAKSHATRA_ALLOWED:
+            return TimingSignal(
+                alignment="SUPPORTS",
+                reason_ta=f"கலப்பிரகாசிகை திருமணத்திற்குச் சிறந்ததெனக் கூறும் பதினொரு நட்சத்திரங்களுள் {name_ta} ஒன்று.",
+                reason_en=f"{name_en} is among the eleven asterisms Kalaprakasika names best for marriage.",
+                short_ta=f"{name_ta} — சிறந்த நட்சத்திரம்",
+                short_en=f"{name_en} — a best marriage star",
+            )
+        return TimingSignal(
+            alignment="NEUTRAL",
+            reason_ta=f"திருமணத்திற்குச் சிறந்ததெனக் கூறப்பட்ட பதினொரு நட்சத்திரங்களுள் {name_ta} இல்லை.",
+            reason_en=f"{name_en} is not among the eleven asterisms named best for marriage.",
+            short_ta=f"{name_ta} — சிறந்த பட்டியலில் இல்லை",
+            short_en=f"{name_en} — not a best marriage star",
+        )
+
+    if nakshatra_number in SUBHA_NAKSHATRA_NUMBERS:
+        return TimingSignal(
+            alignment="SUPPORTS",
+            reason_ta=f"{name_ta} பொதுவான சுப நட்சத்திரப் பட்டியலில் உள்ளது (இச்செயலுக்கே உரிய பட்டியல் அல்ல).",
+            reason_en=(
+                f"{name_en} is on the general auspicious-star list — no star list specific to this "
+                "activity has been sourced yet."
+            ),
+            short_ta=f"{name_ta} — பொது சுப நட்சத்திரம்",
+            short_en=f"{name_en} — generally auspicious star",
+        )
+    return TimingSignal(
+        alignment="NEUTRAL",
+        reason_ta=f"{name_ta} பொதுவான சுப நட்சத்திரப் பட்டியலில் இல்லை (இச்செயலுக்கே உரிய பட்டியல் அல்ல).",
+        reason_en=(
+            f"{name_en} is not on the general auspicious-star list — no star list specific to this "
+            "activity has been sourced yet."
+        ),
+        short_ta=f"{name_ta} — பொது பட்டியலில் இல்லை",
+        short_en=f"{name_en} — not a generally auspicious star",
+    )
+
+
 # ── Combined result ────────────────────────────────────────────────────────────
 
 _ALIGNMENT_RANK: dict[Alignment, int] = {"CAUTION": 0, "NEUTRAL": 1, "SUPPORTS": 2}
 
 
-def _combine_alignments(a: Alignment, b: Alignment, c: Alignment) -> Alignment:
+def _combine_alignments(*alignments: Alignment) -> Alignment:
     # Lowest rank wins (any CAUTION → overall CAUTION; all SUPPORTS → SUPPORTS; else NEUTRAL)
-    worst = min(_ALIGNMENT_RANK[x] for x in (a, b, c))
+    worst = min(_ALIGNMENT_RANK[x] for x in alignments)
     if worst == 0:
         return "CAUTION"
     if worst == 2:
@@ -419,12 +515,14 @@ def _primary_signal(
     tithi_sig: TimingSignal,
     weekday_sig: TimingSignal,
     paksha_sig: TimingSignal,
+    nakshatra_sig: TimingSignal | None = None,
 ) -> TimingSignal:
     """The one signal a compact UI should name as the cause of the combined
-    verdict. Among signals matching the verdict, tithi outranks weekday
-    outranks paksha — a named tithi (Rikta/Ashtami…) is the most specific,
+    verdict. Among signals matching the verdict, nakshatra outranks tithi
+    outranks weekday outranks paksha — the star is the strongest day-selection
+    factor, and a named tithi (Rikta/Ashtami…) is the next most specific,
     calendar-verifiable cause."""
-    ordered = (tithi_sig, weekday_sig, paksha_sig)
+    ordered = tuple(s for s in (nakshatra_sig, tithi_sig, weekday_sig, paksha_sig) if s is not None)
     for sig in ordered:
         if sig.alignment == combined:
             return sig
@@ -541,6 +639,7 @@ def daily_activity_board(
     paksha: str,
     weekday_lord: str,
     *,
+    nakshatra_number: int | None = None,
     is_chandrashtama: bool = False,
     audience: ActivityAudience | None = None,
 ) -> DailyActivityBoard:
@@ -563,7 +662,9 @@ def daily_activity_board(
     neutral: list[ActivityVerdict] = []
 
     for activity in ACTIVITY_TYPES:
-        result = assess_activity_timing(activity, tithi_number, paksha, weekday_lord)
+        result = assess_activity_timing(
+            activity, tithi_number, paksha, weekday_lord, nakshatra_number
+        )
         verdict = ActivityVerdict(
             activity=activity,
             label_ta=ACTIVITY_LABEL_TA[activity],
@@ -595,36 +696,54 @@ def assess_activity_timing(
     tithi_number: int,
     paksha: str,
     weekday_lord: str,
+    nakshatra_number: int | None = None,
 ) -> ActivityTimingResult:
+    """Judge a day for one activity on paksha, tithi, weekday — and, when the
+    caller can supply it, the Moon's nakshatra.
+
+    `nakshatra_number` is optional only because not every caller holds a
+    panchangam snapshot. Pass it wherever one is available: without it this
+    ranks days on the two weakest signals, which is how the month picker could
+    rank a Bharani day above a Poosam day. A caller that omits it gets the old
+    three-signal behaviour, unchanged, and `nakshatra_signal` is None so the
+    omission is visible downstream rather than looking like a neutral reading.
+    """
     paksha_sig = _assess_paksha(activity, paksha)
     tithi_sig = _assess_tithi(activity, tithi_number)
     weekday_sig = _assess_weekday(activity, weekday_lord)
+    nakshatra_sig = (
+        _assess_nakshatra(activity, nakshatra_number) if nakshatra_number is not None else None
+    )
 
-    combined = _combine_alignments(paksha_sig.alignment, tithi_sig.alignment, weekday_sig.alignment)
+    scored = [s for s in (paksha_sig, tithi_sig, weekday_sig, nakshatra_sig) if s is not None]
+    combined = _combine_alignments(*(s.alignment for s in scored))
+
+    # Reason copy is ordered strongest-signal-first where the star is known.
+    ordered = [s for s in (nakshatra_sig, paksha_sig, tithi_sig, weekday_sig) if s is not None]
 
     if combined == "SUPPORTS":
         combined_ta = (
-            f"{paksha_sig.reason_ta} {tithi_sig.reason_ta} {weekday_sig.reason_ta} "
-            f"இன்று இந்த செயலுக்கு பஞ்சாங்கம் ஆதரவளிக்கிறது."
+            " ".join(s.reason_ta for s in ordered) + " இன்று இந்த செயலுக்கு பஞ்சாங்கம் ஆதரவளிக்கிறது."
         )
         combined_en = (
-            f"{paksha_sig.reason_en} {tithi_sig.reason_en} {weekday_sig.reason_en} "
-            f"Panchangam supports this activity today."
+            " ".join(s.reason_en for s in ordered) + " Panchangam supports this activity today."
         )
     elif combined == "CAUTION":
-        signals = [s for s in (paksha_sig, tithi_sig, weekday_sig) if s.alignment == "CAUTION"]
+        signals = [s for s in ordered if s.alignment == "CAUTION"]
         combined_ta = " ".join(s.reason_ta for s in signals) + " இந்த செயல் சம்பந்தமான முக்கிய முடிவுகளை இன்று ஒத்திவையுங்கள்."
         combined_en = " ".join(s.reason_en for s in signals) + " Defer major steps for this activity today."
     else:
-        combined_ta = f"{tithi_sig.reason_ta} {weekday_sig.reason_ta} வழக்கமான முன்னேற்றம் தொடரலாம்."
-        combined_en = f"{tithi_sig.reason_en} {weekday_sig.reason_en} Routine progress is fine."
+        neutral_parts = [s for s in ordered if s is not paksha_sig]
+        combined_ta = " ".join(s.reason_ta for s in neutral_parts) + " வழக்கமான முன்னேற்றம் தொடரலாம்."
+        combined_en = " ".join(s.reason_en for s in neutral_parts) + " Routine progress is fine."
 
-    primary = _primary_signal(combined, tithi_sig, weekday_sig, paksha_sig)
+    primary = _primary_signal(combined, tithi_sig, weekday_sig, paksha_sig, nakshatra_sig)
 
     return ActivityTimingResult(
         paksha_signal=paksha_sig,
         tithi_signal=tithi_sig,
         weekday_signal=weekday_sig,
+        nakshatra_signal=nakshatra_sig,
         combined_alignment=combined,
         combined_ta=combined_ta,
         combined_en=combined_en,

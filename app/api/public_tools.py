@@ -21,6 +21,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy.orm import Session
 
 from app.calculations.astro import RASI_NAME_TO_NUMBER, RASI_NAMES, nakshatra_to_rasi
+from app.calculations.muhurta_engine import display_score
 from app.calculations.numerology import ScriptMismatchError, analyze_object, build_profile
 from app.calculations.numerology_naming import NamingMode, UnverifiedCanonError
 from app.calculations.porutham import compute_porutham
@@ -741,6 +742,14 @@ def public_panchangam_share_card(
 
 _PUBLIC_MUHURTA_ACTIVITIES = {
     "MARRIAGE", "JOB_START", "INVESTMENT", "TRAVEL", "PURCHASE", "EXAM", "MEDICAL", "SPIRITUAL",
+    # Primary-text-sourced activities (Kalaprakasika Ch. III, IV and XXI). Kept
+    # in step with the signed-in picker deliberately: this route scores through
+    # the same `score_day`, so an activity offered there and withheld here would
+    # mean the same question got a different answer depending on whether you
+    # were signed in — the exact drift that killed `_score_public_muhurta`.
+    "NAMING_CEREMONY", "ANNAPRASANA", "EAR_BORING",
+    "GOLD", "GEMS", "GRAIN", "TREASURE_STORE",
+    "LAND_POSSESSION", "LAND_PURCHASE", "CATTLE_PURCHASE",
 }
 _PUBLIC_MUHURTA_MAX_DAYS = 30
 _PUBLIC_MUHURTA_TOP_N = 3
@@ -778,81 +787,26 @@ class PublicMuhurtaResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
-def _score_public_muhurta(snap) -> tuple[float, list[str], list[str], list[str], list[str]]:
-    """Score a panchangam day without chart personalisation.
-
-    Returns (score, reasons_en, reasons_ta, cautions_en, cautions_ta).
-    """
-    from app.calculations.panchangam import (
-        RIKTA_TITHIS_IN_PAKSHA,
-        SUBHA_NAKSHATRAS,
-        SUBHA_TITHIS_KRISHNA,
-        SUBHA_TITHIS_SHUKLA,
-    )
-
-    score = 50.0
-    reasons_en: list[str] = []
-    reasons_ta: list[str] = []
-    cautions_en: list[str] = []
-    cautions_ta: list[str] = []
-
-    tithi = snap.tithi_number
-    paksha = snap.tithi_paksha
-    nakshatra = snap.nakshatra_name
-    tithi_in_paksha = tithi if tithi <= 15 else tithi - 15
-
-    if tithi == 30:
-        cautions_en.append("Amavasai tithi — not ideal for new starts")
-        cautions_ta.append("அமாவாசை திதி — புதிய தொடக்கத்திற்கு ஏற்றதல்ல")
-        score -= 5
-
-    if tithi_in_paksha in RIKTA_TITHIS_IN_PAKSHA:
-        cautions_en.append(f"Tithi {snap.tithi_name} ({tithi}) — generally avoided for auspicious starts")
-        cautions_ta.append(f"{snap.tithi_name} திதி (எண் {tithi}) — சுப நிகழ்வுகளுக்கு தவிர்க்கவும்")
-        score -= 15
-
-    if snap.is_subha_muhurtham:
-        score += 20
-        reasons_en.append("Auspicious muhurta day")
-        reasons_ta.append("சுப முகூர்த்த நாள்")
-
-    if paksha == "SHUKLA" and tithi_in_paksha in SUBHA_TITHIS_SHUKLA:
-        score += 10
-        reasons_en.append(f"Favourable tithi: {snap.tithi_name}")
-        reasons_ta.append(f"சாதக திதி: {snap.tithi_name}")
-    elif paksha == "KRISHNA" and tithi_in_paksha in SUBHA_TITHIS_KRISHNA:
-        score += 8
-        reasons_en.append(f"Favourable tithi: {snap.tithi_name}")
-        reasons_ta.append(f"சாதக திதி: {snap.tithi_name}")
-
-    if nakshatra in SUBHA_NAKSHATRAS or nakshatra.upper().replace("H", "") in {n.upper().replace("H", "") for n in SUBHA_NAKSHATRAS}:
-        score += 10
-        reasons_en.append(f"Auspicious nakshatra: {nakshatra}")
-        reasons_ta.append(f"சுப நட்சத்திரம்: {nakshatra}")
-
-    if snap.yoga_name:
-        reasons_en.append(f"Yoga: {snap.yoga_name}")
-        reasons_ta.append(f"யோகம்: {snap.yoga_name}")
-
-    if snap.weekday != "WEDNESDAY" and not snap.abhijit_restricted:
-        score += 5
-        reasons_en.append("Abhijit muhurta window available")
-        reasons_ta.append("அபிஜித் முகூர்த்த சாளரம் கிடைக்கிறது")
-
-    if snap.nalla_neram:
-        score += 5
-
-    return score, reasons_en, reasons_ta, cautions_en, cautions_ta
-
-
 def _overlaps_public(start_a, end_a, start_b, end_b) -> bool:
     return max(start_a, start_b) < min(end_a, end_b)
 
 
-def _quality_label(score: float) -> str:
-    if score >= 80:
+def _quality_label(raw_score: float) -> str:
+    """Grade one raw `score_day` result as excellent / good / fair.
+
+    Takes the **raw** engine score and maps it itself, because this route sorts
+    and then keeps only the top few: on the raw scale every survivor of that
+    slice cleared the old 80 and all 110 measured labels came back "excellent".
+
+    The thresholds are 85/70 rather than 80/65 because the engine's base is 50
+    and the median raw day-score is 80 — on the display scale, 80/65 grades
+    roughly half of all days "excellent". Measured over a 90-day Chennai sweep
+    of all sourced activities: 85/70 gives 24% excellent, 39% good, 37% fair.
+    """
+    score = display_score(raw_score)
+    if score >= 85:
         return "excellent"
-    if score >= 65:
+    if score >= 70:
         return "good"
     return "fair"
 
@@ -886,13 +840,23 @@ def public_muhurta(
 ) -> PublicMuhurtaResponse:
     """Return top-3 auspicious muhurta slots for a date range and event type.
 
-    No authentication required. No birth chart — scoring uses Panchangam only
-    (tithi, nakshatra, yoga, Abhijit). Create an account for chart-personalised
-    muhurta that also considers dasha and hora windows.
+    No authentication required. No birth chart, which is exactly
+    `muhurta_engine.score_day(..., subject=None)` — general mode is the same
+    engine with the personal layer switched off, not a second implementation.
+    This route used to carry its own `_score_public_muhurta` copy of the
+    almanac rules; the two had already drifted (Amavasai scored -5 here and 0
+    in the picker) and neither carried the sourced per-activity doctrine, so a
+    public MARRIAGE query was judged without the Kalaprakasika table the signed-in
+    one used. Create an account for personalised muhurta that also weighs Tara
+    Bala, Chandra Bala, dasha and hora windows.
     """
+    from app.calculations.muhurta_engine import Verdict, score_day
     from app.calculations.panchangam import best_gowri_slot, calculate_daily_panchangam_range
+    from app.services.muhurta_service import normalize_activity
 
-    event_type = payload.event_type.upper()
+    # Same alias resolution as the signed-in picker, so a client key like
+    # `baby_naming` means the same activity on both routes.
+    event_type = normalize_activity(payload.event_type)
     if event_type not in _PUBLIC_MUHURTA_ACTIVITIES:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -916,34 +880,45 @@ def public_muhurta(
     while current <= payload.date_to:
         try:
             snap = snapshots[current]
-            score, reasons_en, reasons_ta, cautions_en, cautions_ta = _score_public_muhurta(snap)
+            day = score_day(snap, event_type, subject=None)
+            # A vetoed day is dropped, never merely ranked low. General mode has
+            # no personal vetoes today, so this only fires if an almanac rule is
+            # ever promoted to one — but ranking a vetoed day would be wrong the
+            # moment that happens, and silently so. Guarded with `if` rather than
+            # `continue`: the loop counter advances at the bottom of the while
+            # body, outside this try, so skipping the rest must not skip it.
+            if not day.vetoed:
+                reasons_en = [f.reason_en for f in day.factors if f.verdict is Verdict.BONUS]
+                reasons_ta = [f.reason_ta for f in day.factors if f.verdict is Verdict.BONUS]
+                cautions_en = [f.reason_en for f in day.factors if f.verdict is Verdict.PENALTY]
+                cautions_ta = [f.reason_ta for f in day.factors if f.verdict is Verdict.PENALTY]
 
-            # Determine best time window
-            if snap.nalla_neram:
-                slot = best_gowri_slot(snap.nalla_neram) or snap.nalla_neram[0]
-                t_start, t_end = slot.start, slot.end
-            else:
-                t_start, t_end = snap.abhijit_start, snap.abhijit_end
+                # Determine best time window
+                if snap.nalla_neram:
+                    slot = best_gowri_slot(snap.nalla_neram) or snap.nalla_neram[0]
+                    t_start, t_end = slot.start, slot.end
+                else:
+                    t_start, t_end = snap.abhijit_start, snap.abhijit_end
 
-            # Check kalam overlaps
-            if _overlaps_public(t_start, t_end, snap.rahu_kalam.start, snap.rahu_kalam.end):
-                cautions_en.append("Rahu Kalam overlaps this slot")
-                cautions_ta.append("ராகு காலம் இந்த நேரத்துடன் ஒட்டுகிறது")
-            if _overlaps_public(t_start, t_end, snap.yamagandam.start, snap.yamagandam.end):
-                cautions_en.append("Yamagandam overlaps this slot")
-                cautions_ta.append("யமகண்டம் இந்த நேரத்துடன் ஒட்டுகிறது")
-            if _overlaps_public(t_start, t_end, snap.kuligai.start, snap.kuligai.end):
-                cautions_en.append("Kuligai overlaps this slot")
-                cautions_ta.append("குளிகை இந்த நேரத்துடன் ஒட்டுகிறது")
+                # Check kalam overlaps
+                if _overlaps_public(t_start, t_end, snap.rahu_kalam.start, snap.rahu_kalam.end):
+                    cautions_en.append("Rahu Kalam overlaps this slot")
+                    cautions_ta.append("ராகு காலம் இந்த நேரத்துடன் ஒட்டுகிறது")
+                if _overlaps_public(t_start, t_end, snap.yamagandam.start, snap.yamagandam.end):
+                    cautions_en.append("Yamagandam overlaps this slot")
+                    cautions_ta.append("யமகண்டம் இந்த நேரத்துடன் ஒட்டுகிறது")
+                if _overlaps_public(t_start, t_end, snap.kuligai.start, snap.kuligai.end):
+                    cautions_en.append("Kuligai overlaps this slot")
+                    cautions_ta.append("குளிகை இந்த நேரத்துடன் ஒட்டுகிறது")
 
-            time_window = _format_time_range(t_start, t_end)
-            scored.append((
-                score, current, time_window,
-                snap.tithi_name, snap.nakshatra_name,
-                "; ".join(reasons_en) if reasons_en else "Ordinary day",
-                "; ".join(reasons_ta) if reasons_ta else "சாதாரண நாள்",
-                cautions_en, cautions_ta,
-            ))
+                time_window = _format_time_range(t_start, t_end)
+                scored.append((
+                    day.score, current, time_window,
+                    snap.tithi_name, snap.nakshatra_name,
+                    " ".join(reasons_en) if reasons_en else "Ordinary day",
+                    ", ".join(reasons_ta) if reasons_ta else "சாதாரண நாள்",
+                    cautions_en, cautions_ta,
+                ))
         except Exception as exc:
             logger.debug("Public muhurta score failed for %s: %s", current, exc)
         current += timedelta(days=1)

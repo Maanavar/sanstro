@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import re
 from datetime import date, timedelta
+from pathlib import Path
 
 import pytest
 
@@ -24,10 +25,13 @@ from app.calculations.muhurta_engine import (
     Subject,
     Verdict,
     _ordinal,
+    resolve_rule_source,
     score_day,
 )
 from app.calculations.panchangam import calculate_daily_panchangam
 from app.data import marriage_muhurta_rules as marriage
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 # Chennai — a location, not a person.
 LATITUDE, LONGITUDE, TIMEZONE = 13.0827, 80.2707, "Asia/Kolkata"
@@ -214,6 +218,72 @@ def test_no_reason_text_contains_a_malformed_ordinal(snapshots) -> None:
                 )
 
 
+def test_tamil_reason_copy_never_carries_a_latin_star_name(snapshots) -> None:
+    """Bilingual copy needs a bilingual star name.
+
+    `nakshatra_name.title()` was interpolated into both languages, so the Tamil
+    reason read "…பதினொரு நட்சத்திரங்களுள் Aswini ஒன்று." — a Latin word inside a
+    Tamil sentence. Any ASCII letter run in a Tamil reason is the tell.
+    """
+    latin_run = re.compile(r"[A-Za-z]{3,}")
+    for snap in snapshots:
+        for factor in score_day(snap, "MARRIAGE", SYNTHETIC).factors:
+            # The synthetic subject's own label is English by construction and is
+            # meant to appear; nothing else Latin belongs in the Tamil copy.
+            tamil = factor.reason_ta.replace(SYNTHETIC.label or "", "")
+            assert not latin_run.findall(tamil), (
+                f"Latin text in Tamil reason: {factor.reason_ta}"
+            )
+
+
+def test_the_unlabelled_marriage_path_keeps_latin_out_of_the_tamil_copy(
+    snapshots,
+) -> None:
+    """The test above supplies a label, which hides the bug this one catches.
+
+    `muhurta_service.find_best_muhurta_slots` builds its `Subject` **without** a
+    label, so unlabelled is the *production* path. A shared fallback —
+    `who = subject.label or "this person"` — interpolated into `reason_ta` shipped
+    "this person ஜென்ம ராசிக்கு 8ல் சந்திரன்" on every real result. English keeps
+    its fallback; Tamil must drop the phrase entirely.
+
+    Marriage is guarded here specifically because it is the one activity the
+    engine still scores by its own branch, and so is outside the sourced-activity
+    sweep in `test_muhurta_sourced_activities_e2e.py`.
+    """
+    unlabelled = Subject(janma_nakshatra=4, janma_rasi=2, lagna_rasi=5)
+    latin_run = re.compile(r"[A-Za-z]{3,}")
+    seen: set[str] = set()
+    for snap in snapshots:
+        for factor in score_day(snap, "MARRIAGE", unlabelled).factors:
+            seen.add(factor.factor)
+            assert not latin_run.findall(factor.reason_ta), (
+                f"{factor.factor}: Latin text in unlabelled Tamil reason — {factor.reason_ta}"
+            )
+            # The emptied-slot spacing bug. `_tara_bala_factor` has a branch
+            # reading f"{star_ta} {who} சொந்த நட்சத்திரம்"; substituting an empty
+            # string without moving the space leaves a gap mid-sentence.
+            assert "  " not in factor.reason_ta, (
+                f"{factor.factor}: double space where the label was dropped — {factor.reason_ta}"
+            )
+    # Fail loudly if the sweep never reached the two personal factors that
+    # carried the bug, rather than passing on an empty run.
+    assert {"CHANDRA_BALA", "TARA_BALA"} <= seen
+
+
+def test_a_supplied_label_still_reaches_both_languages(snapshots) -> None:
+    """The Tamil fix drops the phrase only when there is nothing to print. A
+    label that vanished from the Tamil copy would be the opposite regression, and
+    an empty-string fallback in both languages would pass the Latin guard above
+    while silently losing the name."""
+    for snap in snapshots:
+        for factor in score_day(snap, "MARRIAGE", SYNTHETIC).factors:
+            if factor.factor not in {"CHANDRA_BALA", "TARA_BALA"}:
+                continue
+            assert SYNTHETIC.label in factor.reason_en
+            assert SYNTHETIC.label in factor.reason_ta
+
+
 def test_tithi_and_nakshatra_names_share_one_casing(snapshots) -> None:
     """A reason reading "CHATHURTHI" beside one reading "Aswini" is the kind of
     seam that shows up in a screenshot, not in a green test run."""
@@ -253,3 +323,106 @@ def test_magha_and_mula_score_as_favoured_for_marriage(snapshots) -> None:
             assert nakshatra.verdict is Verdict.BONUS, (
                 f"{snap.nakshatra_name} penalised despite being in the marriage list"
             )
+
+
+# ── one scorer, repo-wide (§9.4) ────────────────────────────────────────────
+
+def test_there_is_exactly_one_day_scorer_in_the_repo() -> None:
+    """The hard gate from the remediation plan's §9.4, not a review opinion.
+
+    `muhurta_service._score_panchangam` and `public_tools._score_public_muhurta`
+    were two copies of the generic almanac layer on two endpoints. They had
+    already drifted — Amavasai cost -5 in one and 0 in the other, and only one
+    of them consulted the sourced per-activity doctrine at all, so the same
+    marriage question got a different answer depending on whether you were
+    signed in. Both are folded into `score_day`. If a second one reappears,
+    this fails.
+
+    Matched on the `def` rather than on the bare name, because the surviving
+    code comments deliberately name both dead functions to explain where the
+    logic went — the plan's literal `grep -rn "_score_public_muhurta" app/`
+    would flag that history as a violation.
+    """
+    app_dir = REPO_ROOT / "app"
+    banned = re.compile(r"^\s*def (_score_public_muhurta|_score_panchangam)\b", re.MULTILINE)
+    offenders = [
+        f"{path.relative_to(REPO_ROOT)}: {match}"
+        for path in app_dir.rglob("*.py")
+        for match in banned.findall(path.read_text(encoding="utf-8"))
+    ]
+    assert not offenders, f"a second muhurta day-scorer is back: {offenders}"
+
+
+# ── L1 generic almanac ──────────────────────────────────────────────────────
+
+def test_every_activity_gets_the_generic_almanac_layer(snapshot) -> None:
+    """An activity with no sourced table must still be judged on the almanac.
+    Scoring only L2 would leave every gold/property day on the same base score,
+    which is not "we don't know" — it is a flat ranking presented as a ranking.
+    """
+    for activity in ("MARRIAGE", "PURCHASE", "TRAVEL", "JOB_START"):
+        names = {f.factor for f in score_day(snapshot, activity, None).factors}
+        assert {
+            "ALMANAC_TITHI", "ALMANAC_NAKSHATRA", "ALMANAC_DAY_QUALITY",
+            "ALMANAC_YOGA", "ALMANAC_WINDOWS",
+        } <= names, f"{activity} lost the generic almanac layer"
+
+
+def test_the_generic_layer_separates_days_for_an_unsourced_activity(snapshots) -> None:
+    """The reason B3 could delete the public scorer at all: without L1, general
+    mode for an unsourced activity would return one identical score every day."""
+    scores = {score_day(snap, "PURCHASE", None).score for snap in snapshots}
+    assert len(scores) > 1, "every day scored identically for an unsourced activity"
+
+
+def test_the_generic_layer_never_claims_to_be_sourced(snapshots) -> None:
+    """`ALMANAC_*` factors are almanac convention, not cited doctrine. A rule_id
+    on one would put a page citation under a claim no page makes."""
+    for snap in snapshots:
+        for factor in score_day(snap, "MARRIAGE", SYNTHETIC).factors:
+            if factor.factor.startswith("ALMANAC_"):
+                assert factor.rule_id is None, f"{factor.factor} claimed a citation"
+
+
+def test_the_generic_and_sourced_nakshatra_layers_stay_distinct(snapshots) -> None:
+    """"A generally auspicious star" and "Kalaprakasika names this star best for
+    marriage" are different claims. The sweep must contain a day where they
+    disagree, or the two layers are collapsed in practice whatever the code says.
+    """
+    disagreed = False
+    for snap in snapshots:
+        factors = {f.factor: f for f in score_day(snap, "MARRIAGE", None).factors}
+        generic_good = factors["ALMANAC_NAKSHATRA"].verdict is Verdict.BONUS
+        sourced_good = factors["NAKSHATRA"].verdict is Verdict.BONUS
+        if generic_good != sourced_good:
+            disagreed = True
+    assert disagreed, "the generic star list and the marriage star list never diverged"
+
+
+def test_the_yoga_is_reported_but_never_scored_as_support(snapshots) -> None:
+    """Both former copies of L1 appended the yoga name to the *support* string
+    unconditionally, so a day carrying Vyatipata read as supported by it. The
+    yoga is reported as its own ungraded factor instead."""
+    for snap in snapshots:
+        yoga = next(f for f in score_day(snap, "MARRIAGE", None).factors if f.factor == "ALMANAC_YOGA")
+        assert yoga.verdict is Verdict.NEUTRAL
+        assert yoga.contribution == 0.0
+
+
+# ── provenance resolves ─────────────────────────────────────────────────────
+
+def test_every_emitted_rule_id_resolves_to_a_page_and_a_passage(snapshots) -> None:
+    """A rule_id the product cannot turn back into a citation is decoration.
+    This walks the sweep in both modes rather than trusting one day."""
+    seen = 0
+    for snap in snapshots:
+        for subject in (None, SYNTHETIC):
+            for factor in score_day(snap, "MARRIAGE", subject).factors:
+                if factor.rule_id is None:
+                    continue
+                record = resolve_rule_source(factor.rule_id)
+                assert record is not None, f"unresolvable rule_id {factor.rule_id}"
+                assert record.authority.page is not None
+                assert record.authority.verse_or_passage
+                seen += 1
+    assert seen, "no factor cited a rule across the whole sweep"
