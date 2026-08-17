@@ -460,3 +460,82 @@ def test_every_emitted_rule_id_resolves_to_a_page_and_a_passage(snapshots) -> No
                 assert record.authority.verse_or_passage
                 seen += 1
     assert seen, "no factor cited a rule across the whole sweep"
+
+
+# ── Amirdhadhi Yogam (EC-A08 polarity + the almanac's own day class) ─────────
+
+def test_every_day_carries_an_amirdhadhi_factor(snapshots) -> None:
+    """The classification exists for every weekday x star pair, so a day with no
+    such factor means the snapshot lost its weekday or star, not that the day is
+    unclassified."""
+    for snap in snapshots:
+        names = {f.factor for f in score_day(snap, "MARRIAGE").factors}
+        assert "ALMANAC_AMIRDHADHI_YOGAM" in names
+
+
+def test_marana_yogam_is_scored_against_the_day(snapshots) -> None:
+    """The gap this factor closed: the class was computed, cached, serialised and
+    displayed while every scorer ignored it, so a day the almanac marks Marana
+    Yogam could top a 60-day marriage search on the strength of its tithi and
+    star alone.
+
+    Asserted as a sign, not a magnitude — the weight is engine policy.
+    """
+    seen_adverse = False
+    for snap in snapshots:
+        factor = next(
+            f for f in score_day(snap, "MARRIAGE").factors
+            if f.factor == "ALMANAC_AMIRDHADHI_YOGAM"
+        )
+        if "Marana" in factor.reason_en or "Prabalarishta" in factor.reason_en:
+            seen_adverse = True
+            assert factor.verdict is Verdict.PENALTY
+            assert factor.contribution < 0
+        elif "Amirtha" in factor.reason_en or "Siddha" in factor.reason_en:
+            assert factor.verdict is Verdict.BONUS
+            assert factor.contribution > 0
+    assert seen_adverse, "45-day sweep contained no adverse Amirdhadhi day — check the table"
+
+
+def test_amirdhadhi_reason_is_bilingual_and_names_both_inputs(snapshots) -> None:
+    """The claim is about a *combination*, so the copy has to name the weekday and
+    the star. 'Marana Yogam' alone is not checkable against a printed almanac."""
+    tamil = re.compile(r"[஀-௿]")
+    for snap in snapshots[:7]:
+        factor = next(
+            f for f in score_day(snap, "MARRIAGE").factors
+            if f.factor == "ALMANAC_AMIRDHADHI_YOGAM"
+        )
+        assert tamil.search(factor.reason_ta)
+        assert not tamil.search(factor.reason_en)
+        assert str(snap.weekday).title() in factor.reason_en
+
+
+def test_adverse_amirdhadhi_never_carries_a_rule_id(snapshots) -> None:
+    """L1 is almanac convention, not cited doctrine. A `rule_id` here would send
+    the UI looking for a page and passage that does not exist."""
+    for snap in snapshots:
+        factor = next(
+            f for f in score_day(snap, "MARRIAGE").factors
+            if f.factor == "ALMANAC_AMIRDHADHI_YOGAM"
+        )
+        assert factor.rule_id is None
+
+
+def test_amirdhadhi_is_polarity_aware_for_terminative_intent(snapshots, monkeypatch) -> None:
+    """EC-A08: a destructive kala is not adverse for a destructive intent.
+
+    The source that supplies Marana Yogam says in the same passage that one may
+    repay a debt on such a day. No shipped activity is terminative yet, so the
+    set is empty in production — this drives it through a temporary member to
+    prove the branch is wired, not dead code waiting for a future edit.
+    """
+    from app.calculations import muhurta_engine
+
+    monkeypatch.setattr(muhurta_engine, "_TERMINATIVE_ACTIVITIES", frozenset({"MARRIAGE"}))
+    for snap in snapshots:
+        factor = next(
+            f for f in score_day(snap, "MARRIAGE").factors
+            if f.factor == "ALMANAC_AMIRDHADHI_YOGAM"
+        )
+        assert factor.contribution >= 0, "an adverse class still penalised a terminative intent"

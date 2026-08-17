@@ -35,10 +35,11 @@ Two layers, in evaluation order (`docs/MUHURTA_MASTER_REMEDIATION_2026-08-14.md`
 §6.2):
 
 * **L1 generic almanac** (`_almanac_*`) — rikta/subha tithi, the broad subha
-  nakshatra list, subha-muhurtham status, Abhijit and Nalla Neram. Runs for
-  **every** activity, because "we have no table for gold" must not mean "we
-  have nothing to say about the day". Its factors are prefixed `ALMANAC_` and
-  carry no `rule_id`: they are almanac convention, not cited doctrine.
+  nakshatra list, subha-muhurtham status, Amirdhadhi Yogam, Abhijit and Nalla
+  Neram. Runs for **every** activity, because "we have no table for gold" must
+  not mean "we have nothing to say about the day". Its factors are prefixed
+  `ALMANAC_` and carry no `rule_id`: they are almanac convention, not cited
+  doctrine.
 * **L2 activity doctrine** (`_nakshatra_factor`, `_tithi_factor`,
   `_vara_factor`, `_lagna_sign_factor`) — the per-activity rules from the
   classical text, cited. Deliberately named without the prefix and kept separate
@@ -85,6 +86,7 @@ from app.calculations.panchangam import (
     SUBHA_NAKSHATRA_NUMBERS,
     SUBHA_TITHIS_KRISHNA,
     SUBHA_TITHIS_SHUKLA,
+    amirdhadhi_yogam_class,
 )
 from app.calculations.tara_bala import TARA_SCORE, chandra_bala, tara_number
 from app.calculations.transits import is_cazimi, is_combust
@@ -167,6 +169,17 @@ class _W:
     ALMANAC_SUBHA_MUHURTHAM = 20.0
     ALMANAC_ABHIJIT = 5.0
     ALMANAC_NALLA_NERAM = 5.0
+    # Amirdhadhi Yogam — the weekday x nakshatra classification Tamil almanacs
+    # print beside every date. Sized ABOVE the broad subha-star bonus (10) and
+    # level with the heaviest L2 star penalty, because the almanac tradition
+    # treats this as a day-selection gate rather than a preference: no printed
+    # panchangam offers a muhurtam on a Marana Yogam day. Prabalarishta is the
+    # fourth and worst class and is priced roughly double, matching how the
+    # source that supplied the table describes it.
+    ALMANAC_AMIRTHA_YOGAM = 12.0
+    ALMANAC_SIDDHA_YOGAM = 4.0
+    ALMANAC_MARANA_YOGAM = -16.0
+    ALMANAC_PRABALARISHTA_YOGAM = -30.0
     # L2 activity doctrine.
     NAKSHATRA_FAVOURED = 14.0
     NAKSHATRA_NOT_LISTED = -6.0
@@ -432,6 +445,130 @@ def _almanac_yoga_factor(snapshot) -> FactorResult:
             f"யோகம்: {name_ta} — முகூர்த்தத்திற்கான தரவரிசை இன்னும் உறுதி செய்யப்படவில்லை"
             if name_ta
             else "இந்நாளின் யோகம் முகூர்த்தத்திற்கு இன்னும் தரவரிசைப்படுத்தப்படவில்லை"
+        ),
+    )
+
+
+# ── EC-A08: activity polarity ───────────────────────────────────────────────
+#
+# Muhurta rules are polarity-dependent, and the clearest statement of it in the
+# Tamil literature is about this very yoga: a "destructive" kala is not adverse
+# for an intent that is itself destructive. The source that supplies the Marana
+# Yogam rule says in the same breath that one may *repay a debt* on such a day,
+# with the belief that the debt relationship then ends, and generalises it —
+# "activities intended to terminate or cut off something may be done on such a
+# day."
+#
+# So the adverse classes below must be evaluated relative to intent, never
+# absolutely. Everything this engine currently scores is GROWTH / ACQUISITION /
+# UNION intent, which is why the set is empty rather than populated with
+# guesses: naming a child, boring ears, marrying, buying gold, taking possession
+# of land and storing treasure are all acquisitive or unitive acts.
+#
+# MEDICAL is the one live candidate and is deliberately NOT listed. A surgery is
+# terminative in one reading and restorative in another, the picker's MEDICAL
+# key covers both, and no sourced table settles it — adding it here would be
+# inventing the polarity rather than reading it. When an activity is added whose
+# intent really is terminative (debt closure, dissolving a partnership), it goes
+# here and the adverse classes stop counting against it.
+_TERMINATIVE_ACTIVITIES: frozenset[str] = frozenset()
+
+
+def _almanac_amirdhadhi_factor(snapshot, activity: str) -> FactorResult:
+    """The day's Amirdhadhi Yogam — Amirtha / Siddha / Marana / Prabalarishta.
+
+    **Which Marana this is** (EC-RULING-08's blocking question, answered here so
+    the next reader does not have to re-derive it). It is the **vara x nakshatra**
+    classification: a full 7 x 27 = 189-cell grid in
+    `panchangam.AMIRDHADHI_YOGAM_TABLE`, sourced from the Ungal Vazhkkai
+    Vazhikatti almanac and cross-checked against the publisher's own article and
+    the classical Dagdha set. It is emphatically NOT one of the 27 nithya yogas —
+    those are Vishkambha … Vaidhriti, live in `YOGA_NAMES`, and are handled by
+    `_almanac_yoga_factor`, which deliberately scores zero on them. Nor is it a
+    muhurta-specific Marana kalam; no such thing exists in this codebase.
+
+    **On the incidence.** The ruling flagged ~19% as not matching "7 fixed
+    weekday-nakshatra combinations". It does not, and should not: the grid holds
+    30 Amirtha, 115 Siddha, 37 Marana and 7 Prabalarishta cells, so adverse
+    classes are 44/189 = 23.3% of all weekday-star pairs, and a 90-day window
+    sampling 19% sits comfortably inside that. The "7" expectation most likely
+    comes from **Prabalarishta**, the fourth class, which has exactly one cell
+    per weekday — seven in total. For what it is worth the printed Marana list
+    in the source text is 22 combinations, not 7, so neither the engine nor the
+    book matches that framing.
+
+    Graded PENALTY, not VETO, per EC-RULING-08: promotion to L0 requires the
+    source to use explicit reject/no-remedy language with no exception clause in
+    that section, and absence of a spotted bhanga is not the same as the text
+    commanding rejection. Flipping it later is a one-constant change.
+    """
+    number = snapshot.nakshatra_number
+    try:
+        klass = amirdhadhi_yogam_class(snapshot.weekday, number)
+    except (KeyError, ValueError):
+        # A snapshot with an unrecognised weekday is broken, not a day with no
+        # yogam. Say nothing rather than score it.
+        return FactorResult(
+            factor="ALMANAC_AMIRDHADHI_YOGAM",
+            verdict=Verdict.NEUTRAL,
+            contribution=0.0,
+            reason_en="The day's Amirdhadhi Yogam could not be determined.",
+            reason_ta="இந்நாளின் அமிர்தாதி யோகத்தைக் கண்டறிய முடியவில்லை",
+        )
+
+    name_en, name_ta = _star(snapshot)
+    day_en = str(snapshot.weekday).title()
+    day_ta = _WEEKDAY_TA.get(str(snapshot.weekday).upper(), day_en)
+    terminative = activity in _TERMINATIVE_ACTIVITIES
+
+    if klass == "A":
+        return FactorResult(
+            factor="ALMANAC_AMIRDHADHI_YOGAM",
+            verdict=Verdict.BONUS,
+            contribution=_W.ALMANAC_AMIRTHA_YOGAM,
+            reason_en=f"{day_en} with {name_en} forms Amirtha Yogam — the almanac's best day class.",
+            reason_ta=f"{day_ta} + {name_ta} — அமிர்தயோகம், பஞ்சாங்கத்தின் சிறந்த நாள் வகை",
+        )
+    if klass == "C":
+        return FactorResult(
+            factor="ALMANAC_AMIRDHADHI_YOGAM",
+            verdict=Verdict.BONUS,
+            contribution=_W.ALMANAC_SIDDHA_YOGAM,
+            reason_en=f"{day_en} with {name_en} forms Siddha Yogam — a workable day class.",
+            reason_ta=f"{day_ta} + {name_ta} — சித்தயோகம், ஏற்புடைய நாள் வகை",
+        )
+
+    # Marana and Prabalarishta. Both are adverse for anything one begins in
+    # order to grow, and neither is adverse for an act meant to end something.
+    adverse_en = "Marana Yogam" if klass == "M" else "Prabalarishta Yogam"
+    adverse_ta = "மரணயோகம்" if klass == "M" else "பிரபலாரிஷ்ட யோகம்"
+    if terminative:
+        return FactorResult(
+            factor="ALMANAC_AMIRDHADHI_YOGAM",
+            verdict=Verdict.NEUTRAL,
+            contribution=0.0,
+            reason_en=(
+                f"{day_en} with {name_en} forms {adverse_en}, which counts against a new "
+                "undertaking but not against one meant to close something out."
+            ),
+            reason_ta=(
+                f"{day_ta} + {name_ta} — {adverse_ta}; புதிய தொடக்கத்திற்கு உகந்ததல்ல, "
+                "ஆனால் ஒன்றை முடிக்கும் செயலுக்குத் தடையல்ல"
+            ),
+        )
+    return FactorResult(
+        factor="ALMANAC_AMIRDHADHI_YOGAM",
+        verdict=Verdict.PENALTY,
+        contribution=(
+            _W.ALMANAC_MARANA_YOGAM if klass == "M" else _W.ALMANAC_PRABALARISHTA_YOGAM
+        ),
+        reason_en=(
+            f"{day_en} with {name_en} forms {adverse_en} — the almanac withholds "
+            "auspicious undertakings on this weekday-and-star combination."
+        ),
+        reason_ta=(
+            f"{day_ta} + {name_ta} — {adverse_ta}; இந்நாளில் சுப காரியங்கள் "
+            "தொடங்குவதை பஞ்சாங்கம் தவிர்க்கச் சொல்கிறது"
         ),
     )
 
@@ -1425,6 +1562,7 @@ def score_day(
         _almanac_nakshatra_factor(snapshot),
         _almanac_day_quality_factor(snapshot),
         _almanac_yoga_factor(snapshot),
+        _almanac_amirdhadhi_factor(snapshot, activity),
         _almanac_windows_factor(snapshot),
         # L2 — the activity's own sourced table, or an explicit UNSOURCED gap.
         _nakshatra_factor(snapshot, activity),
@@ -1475,6 +1613,14 @@ def score_day(
 # picker exists to communicate. Measured over a 90-day Chennai sweep of all
 # sourced activities (n = 3244 usable day-scores): min −9, p50 80, p95 130,
 # max 161, with 29.3% of scores at or above 100.
+#
+# RE-MEASURED 2026-08-17, after `ALMANAC_AMIRDHADHI_YOGAM` joined L1 (90 days x
+# 30 sourced activities, general mode, vetoed days excluded, n = 1975): min 1,
+# p50 81, p95 131, max 150, with 31.2% at or above 100. The knee and the ceiling
+# below therefore still hold — nothing reaches CEIL, and the p50 is still within
+# a point of the knee — so the mapping was not retuned. Recorded because the
+# numbers above are a measurement, and a factor that moves the distribution
+# without updating them turns a measured claim into a stale one.
 
 _DISPLAY_KNEE = 80.0
 """Raw score below which the scale already behaves; identity is applied there.
