@@ -59,6 +59,7 @@ from app.calculations.panchangam import (
 from app.calculations.tamil_calendar import format_tamil_date
 from app.calculations.tara_bala import tara_number
 from app.constants.astrology import NAKSHATRA_NAMES, SIGN_LORD
+from app.data.kuligai_polarity import rejects as kuligai_rejects
 from app.models import BirthProfile, Chart
 from app.schemas.muhurta import (
     BiText,
@@ -710,6 +711,31 @@ def find_best_muhurta_slots(
                     (snap.kuligai, "குளிகை", "Kuligai"),
                 ):
                     if band is None or not _overlaps(slot_start, slot_end, band.start, band.end):
+                        continue
+                    # EC-RULING-07: Kuligai is not adverse in itself — it
+                    # multiplies whatever is undertaken, so its sign depends on
+                    # the activity. Until the p.152 activity table is confirmed
+                    # every activity is UNSPECIFIED, and UNSPECIFIED must not
+                    # read as rejection. So the overlap is still *named* (a
+                    # reader checking against a printed almanac needs to see it)
+                    # but the sentence no longer implies a verdict the source
+                    # does not support.
+                    if band is snap.kuligai and not kuligai_rejects(activity):
+                        reason = _t(
+                            "குளிகை இந்த நேரத்துடன் ஒட்டுகிறது — குளிகை செய்யும் "
+                            "செயலைப் பெருக்கும் தன்மை உடையது; இச்செயலுக்கான தரவரிசை "
+                            "இன்னும் உறுதி செய்யப்படவில்லை",
+                            "Kuligai overlaps this slot. Kuligai multiplies whatever is "
+                            "begun in it rather than being adverse in itself, and no "
+                            "sourced ruling for this activity has been confirmed yet.",
+                        )
+                        slot_cautions.append(reason)
+                        slot_factors.append(MuhurtaFactor(
+                            factor="WINDOW_KULIGAI_OVERLAP",
+                            verdict="NEUTRAL",
+                            contribution=0.0,
+                            reason=reason,
+                        ))
                         continue
                     reason = _t(
                         f"{band_ta} இந்த நேரத்துடன் ஒட்டுகிறது",
