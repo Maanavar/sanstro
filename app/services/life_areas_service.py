@@ -40,6 +40,11 @@ from app.calculations.karaka_chains import LIFE_AREA_KARAKA
 from app.calculations.maturation import maturation_multiplier
 from app.calculations.prediction_score import PredictionScoreInput, compute_prediction_score
 from app.calculations.remedies import get_area_remedy
+from app.calculations.sade_sati import (
+    assess_mitigation,
+    elapsed_month,
+    severity_for_month,
+)
 from app.calculations.transits import (
     classify_ezharai_sani_murthi_ingress,
     classify_kandaka_cycle,
@@ -1160,6 +1165,12 @@ def _score_area(
     bav: dict[str, dict[int, int]] | None = None,
     sav: dict[int, int] | None = None,
     native_age: int = 30,
+    # EC-RULING-05. Both default to the "not evaluated" values, so the two
+    # `_score_area` call sites that project a future date (and therefore have no
+    # ingress search of their own) keep the previous flat behaviour rather than
+    # inheriting today's segmentation for a date months away.
+    sade_sati_severity: str | None = None,
+    sade_sati_mitigation_count: int = 0,
 ) -> tuple[int, dict[str, int]]:
     karakas = _AREA_KARAKA.get(area, ["JUPITER"])
     primary_karaka = karakas[0]
@@ -1266,6 +1277,8 @@ def _score_area(
         is_ashtama_sani=sani_cycle_type == "ASHTAMA_SANI",
         bav_delta=bav_delta,
         sav_delta=sav_delta,
+        sade_sati_severity=sade_sati_severity,
+        sade_sati_mitigation_count=sade_sati_mitigation_count,
     )
     scored = compute_prediction_score(inp, use_reasoning_gate=use_gate)
     if kandaka_sani_active:
@@ -1597,10 +1610,46 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
     # phase is actually active, since it requires a Saturn-ingress ephemeris
     # search.
     ezharai_murthi: dict[str, str] | None = None
+    # EC-RULING-05 (A26 + A25), computed here for the same reason the murthi is:
+    # both need the Saturn-ingress search, it is the same search, and doing it
+    # once per request rather than once per life-area is the difference between
+    # one ephemeris walk and eleven.
+    sade_sati_severity: str | None = None
+    sade_sati_mitigation_count = 0
     if sani_cycle.is_active and sani_cycle.type in _SADE_SATI_SANI_TYPES:
         _ingress_jd = find_saturn_ingress_jd(saturn.rasi, transit.jd_ut)
         _ingress_moon_rasi = calculate_sidereal_planets(_ingress_jd).bodies["MOON"].rasi
         ezharai_murthi = classify_ezharai_sani_murthi_ingress(natal_moon.rasi, _ingress_moon_rasi)
+
+        # A26 — where in the ninety months this native actually is. The phase
+        # offset is the table's own arithmetic; the position inside the phase
+        # comes from the real ingress instant, so a native three months into
+        # Janma Sani is not scored like one three months from its end.
+        _months_into_sign = (transit.jd_ut - _ingress_jd) / 30.4375
+        sade_sati_severity = severity_for_month(
+            elapsed_month(saturn_house_from_moon, _months_into_sign)
+        ).value
+
+        # A25 — the stated gates. The bindu gate is included because
+        # Sarvashtakavarga is already computed for this request anyway (see
+        # below); the ruling allows it only on that condition.
+        _natal_saturn_rasi = next(
+            (p.rasi for p in chart_snapshot.data.planets if p.graha == "SATURN"), None
+        )
+        if _natal_saturn_rasi is not None:
+            _bav = compute_bhinnashtakavarga(
+                {
+                    **{p.graha: p.rasi for p in chart_snapshot.data.planets if p.graha != "MANDHI"},
+                    "LAGNA": natal_lagna_rasi,
+                }
+            )
+            sade_sati_mitigation_count = assess_mitigation(
+                natal_saturn_rasi=_natal_saturn_rasi,
+                natal_saturn_house_from_lagna=house_from_reference(
+                    natal_lagna_rasi, _natal_saturn_rasi
+                ),
+                transited_sign_sav_bindus=compute_sarvashtakavarga(_bav).get(saturn.rasi),
+            ).count
     natal_planet_scores = {
         p.graha: (p.strength_score if getattr(p, "strength_score", 0) > 0 else 50)
         for p in chart_snapshot.data.planets
@@ -1711,6 +1760,8 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             bav=bav_table,
             sav=sarvashtakavarga,
             native_age=current_age,
+            sade_sati_severity=sade_sati_severity,
+            sade_sati_mitigation_count=sade_sati_mitigation_count,
         )
         chain_key = _AREA_TO_CHAIN_KEY.get(area, area)
         chain_result = _karaka_chain_score(

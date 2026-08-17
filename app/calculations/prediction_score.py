@@ -30,6 +30,13 @@ class PredictionScoreInput:
     is_ashtama_sani: bool
     bav_delta: int
     sav_delta: int
+    # EC-RULING-05. Both default to None, meaning "the caller did not evaluate
+    # this", which is deliberately NOT the same as "no segmentation applies" or
+    # "no mitigation applies". A caller that supplies neither gets exactly the
+    # previous flat behaviour, so adding these did not silently re-score every
+    # existing surface — they light up as callers start passing them.
+    sade_sati_severity: str | None = None
+    sade_sati_mitigation_count: int = 0
 
 
 @dataclass
@@ -49,6 +56,43 @@ class PredictionScoreResult:
     # gate_grade records the promise-gate outcome (PASS/WEAK/BLOCKED/SILENT).
     band: str | None = None
     gate_grade: str | None = None
+
+
+# EC-RULING-05 (A26 + A25). The cost of Sade Sati by where in the ninety months
+# the native actually is, then reduced by each stated mitigation.
+#
+# The old model charged a flat 4 for all seven and a half years. The traditional
+# division says the middle thirty-five months are *comparatively favourable*, so
+# charging them the same as the opening sixteen was wrong about roughly half the
+# cycle. FAVOURABLE is priced at 1 rather than 0 — the cycle is still running and
+# the reading should not pretend otherwise — while the short acute window closing
+# Janma Sani costs more than the old flat rate ever did.
+#
+# The unsegmented value stays 4 exactly, so a caller that has not been updated
+# scores identically to before.
+_SADE_SATI_PENALTY_BY_SEVERITY: dict[str, int] = {
+    "DIFFICULT": 5,
+    "FAVOURABLE": 1,
+    "ACUTE": 7,
+    "MIXED": 3,
+}
+_SADE_SATI_UNSEGMENTED_PENALTY = 4
+
+#: Each established mitigation lifts one point off, floored so that a mitigated
+#: cycle is lighter but never free — the transit is still happening.
+_SADE_SATI_MITIGATION_RELIEF = 1
+_SADE_SATI_MIN_PENALTY = 1
+
+
+def _sade_sati_penalty(severity: str | None, mitigation_count: int) -> int:
+    """Cost of an active Sade Sati, segmented (A26) and gated (A25)."""
+    base = (
+        _SADE_SATI_PENALTY_BY_SEVERITY.get(severity, _SADE_SATI_UNSEGMENTED_PENALTY)
+        if severity is not None
+        else _SADE_SATI_UNSEGMENTED_PENALTY
+    )
+    relieved = base - _SADE_SATI_MITIGATION_RELIEF * max(0, mitigation_count)
+    return max(_SADE_SATI_MIN_PENALTY, relieved)
 
 
 _YOGA_STRENGTH_BONUS = {"STRONG": 8, "PARTIAL": 4, "WEAK": 1, "NONE": 0}
@@ -158,7 +202,7 @@ def compute_prediction_score(
     l5 += round(inp.saturn_house_score * 0.03)
     l5 += round(inp.double_transit_score * 0.4)
     if inp.is_sade_sati:
-        l5 -= 4
+        l5 -= _sade_sati_penalty(inp.sade_sati_severity, inp.sade_sati_mitigation_count)
     if inp.is_ashtama_sani:
         l5 -= 3
     l5 = max(0, min(15, l5))
