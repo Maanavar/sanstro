@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { readErrorMessage } from "@/lib/api";
 import {
@@ -14,6 +15,7 @@ import {
 } from "@/lib/muhurtham-naal";
 import { NovaSelect } from "./nova-select";
 import { Card } from "./ui";
+import { MuhurtaPanchangamOverlay } from "./dashboard-plan-muhurta-picker-nova";
 
 /**
  * Nova re-skin of dashboard-muhurtham-naal.tsx's DashboardMuhurthamNaal —
@@ -64,7 +66,17 @@ function formatDate(value: string, lang: Lang): string {
 
 type MergedRow = { naal: MuhurthamNaalItem; match: MuhurthamNaalMatchItem | null };
 
-function NovaNaalRow({ row, lang, showMatchCol }: { row: MergedRow; lang: Lang; showMatchCol: boolean }) {
+function NovaNaalRow({
+  row,
+  lang,
+  showMatchCol,
+  onOpenPanchangam,
+}: {
+  row: MergedRow;
+  lang: Lang;
+  showMatchCol: boolean;
+  onOpenPanchangam?: (date: string) => void;
+}) {
   const [open, setOpen] = useState(false);
   const { naal, match } = row;
   const q = match ? (QUALITY_META[match.taraQuality] ?? QUALITY_META.NEUTRAL) : null;
@@ -82,7 +94,18 @@ function NovaNaalRow({ row, lang, showMatchCol }: { row: MergedRow; lang: Lang; 
       >
         <div style={{ display: "grid", gridTemplateColumns: "minmax(110px,auto) minmax(0,1fr)", gap: "var(--space-3) var(--space-4)", alignItems: "center" }}>
           <div>
-            <div style={{ fontWeight: 700, fontSize: "var(--text-base)", color: "var(--color-text)" }}>{formatDate(naal.date, lang)}</div>
+            {onOpenPanchangam ? (
+              <button
+                type="button"
+                onClick={(event) => { event.stopPropagation(); onOpenPanchangam(naal.date); }}
+                aria-label={`${t("label_panchangam", lang)} · ${formatDate(naal.date, lang)}`}
+                style={{ padding: 0, border: 0, background: "transparent", font: "inherit", fontWeight: 700, fontSize: "var(--text-base)", color: "var(--color-text-accent)", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: "3px", textAlign: "left" }}
+              >
+                {formatDate(naal.date, lang)}
+              </button>
+            ) : (
+              <div style={{ fontWeight: 700, fontSize: "var(--text-base)", color: "var(--color-text)" }}>{formatDate(naal.date, lang)}</div>
+            )}
             <div style={{ fontSize: "var(--text-sm)", color: "var(--color-text-accent)", fontWeight: 600 }}>{lang === "ta" ? naal.weekday.ta : naal.weekday.en}</div>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-1) var(--space-3)", alignItems: "center" }}>
@@ -149,6 +172,7 @@ export function NovaMuhurthamNaal({ lang, chartId }: { lang: Lang; chartId: stri
   const [context, setContext] = useState<MuhurthamNaalMatchContext | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [panchangamDate, setPanchangamDate] = useState<string | null>(null);
 
   const [filterMonth, setFilterMonth] = useState(0);
   const [filterPirai, setFilterPirai] = useState("");
@@ -289,7 +313,15 @@ export function NovaMuhurthamNaal({ lang, chartId }: { lang: Lang; chartId: stri
         </p>
       )}
 
-      {!loading && !error && rows.map((row) => <NovaNaalRow key={row.naal.date} row={row} lang={lang} showMatchCol={showMatchCol} />)}
+      {!loading && !error && rows.map((row) => (
+        <NovaNaalRow
+          key={row.naal.date}
+          row={row}
+          lang={lang}
+          showMatchCol={showMatchCol}
+          onOpenPanchangam={context?.dailyLocation ? setPanchangamDate : undefined}
+        />
+      ))}
 
       {showMatchCol && !loading && (
         <Card variant="soft" compact style={{ flexDirection: "row", flexWrap: "wrap", gap: "var(--space-3)", marginTop: "14px" }}>
@@ -304,6 +336,15 @@ export function NovaMuhurthamNaal({ lang, chartId }: { lang: Lang; chartId: stri
             </span>
           ))}
         </Card>
+      )}
+
+      {panchangamDate && context?.dailyLocation && (
+        <MuhurtaPanchangamOverlay
+          date={panchangamDate}
+          location={context.dailyLocation}
+          lang={lang}
+          onClose={() => setPanchangamDate(null)}
+        />
       )}
     </Card>
   );

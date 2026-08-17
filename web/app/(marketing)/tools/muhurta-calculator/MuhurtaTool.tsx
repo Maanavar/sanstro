@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { getPersonalizedMuhurta } from "@vinaadi/shared/api";
 import { readErrorMessage } from "@/lib/api";
 import { useLang } from "@/components/lang-toggle";
 import { TN_CITIES, type CityEntry } from "@/lib/tn-cities";
@@ -70,6 +71,14 @@ const EVENT_TYPES = [
 
 interface MuhurtaSlot {
   date: string;
+  timeStart: string;
+  timeEnd: string;
+  score: number;
+  panchangamSupport: { en: string; ta: string };
+  dashaSupport?: { en: string; ta: string } | null;
+  horaSupport?: { en: string; ta: string } | null;
+  factors?: Array<{ verdict: string; contribution: number; reason: { en: string; ta: string } }>;
+  // Retained while the old public-only result renderer is phased out below.
   timeWindow: string;
   tithi: string;
   nakshatra: string;
@@ -96,6 +105,13 @@ function formatDateDisplay(dateStr: string, lang: "en" | "ta"): string {
   return d.toLocaleDateString(lang === "ta" ? "ta-IN" : "en-GB", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
+}
+
+function formatTime(value: string): string {
+  const [hourText, minute = "00"] = value.split(":");
+  const hour = Number(hourText);
+  if (!Number.isFinite(hour)) return value;
+  return `${hour % 12 || 12}:${minute} ${hour < 12 ? "am" : "pm"}`;
 }
 
 function compactCityName(name: string): string {
@@ -154,6 +170,9 @@ export function MuhurtaTool() {
   const [dateFrom, setDateFrom] = useState(todayStr());
   const [dateTo, setDateTo] = useState(addDaysStr(todayStr(), 14));
   const [city, setCity] = useState<CityEntry>(DEFAULT_CITY);
+  const [birthCity, setBirthCity] = useState<CityEntry>(DEFAULT_CITY);
+  const [birthDate, setBirthDate] = useState("1992-04-18");
+  const [birthTime, setBirthTime] = useState("09:15");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [slots, setSlots] = useState<MuhurtaSlot[] | null>(null);
@@ -164,6 +183,26 @@ export function MuhurtaTool() {
     setError(null);
     setSlots(null);
     try {
+      const response = await getPersonalizedMuhurta({
+        birth: {
+          birthDateLocal: birthDate,
+          birthTimeLocal: `${birthTime}:00`,
+          birthLatitude: Number(birthCity.lat),
+          birthLongitude: Number(birthCity.lng),
+          birthTimezone: birthCity.timezone,
+          birthPlace: birthCity.name,
+        },
+        eventType,
+        dateFrom,
+        dateTo,
+        lat: Number(city.lat),
+        lng: Number(city.lng),
+        timezone: city.timezone,
+        place: city.name,
+      });
+      setSlots(response.data.slots as unknown as MuhurtaSlot[]);
+      return;
+
       const res = await fetch("/api/backend/api/v1/public/muhurta", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -221,6 +260,30 @@ export function MuhurtaTool() {
             ))}
           </select>
         </label>
+
+        <div style={{ padding: "14px", background: "var(--cl-brand-tint)", borderRadius: "8px", display: "grid", gap: "12px" }}>
+          <strong style={{ fontSize: "0.9rem", color: "var(--cl-ink)" }}>{lang === "en" ? "Whose timing is this for?" : "யாருக்கான முகூர்த்தம்?"}</strong>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: "12px" }}>
+            <label style={labelStyle}>
+              {lang === "en" ? "Birth date" : "பிறந்த தேதி"}
+              <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} style={inputStyle} required />
+            </label>
+            <label style={labelStyle}>
+              {lang === "en" ? "Birth time" : "பிறந்த நேரம்"}
+              <input type="time" value={birthTime} onChange={(e) => setBirthTime(e.target.value)} style={inputStyle} required />
+            </label>
+          </div>
+          <label style={labelStyle}>
+            {lang === "en" ? "Birth city" : "பிறந்த ஊர்"}
+            <select value={birthCity.name} onChange={(e) => {
+              const found = CITY_OPTIONS.find((c) => c.name === e.target.value);
+              if (found) setBirthCity(found);
+            }} style={inputStyle}>
+              {CITY_OPTIONS.map((c) => <option key={c.name} value={c.name}>{compactCityName(c.name)}</option>)}
+            </select>
+          </label>
+          <span style={{ fontSize: "0.76rem", color: "var(--cl-ink-2)" }}>{lang === "en" ? "Used only for this calculation; it is not saved." : "இந்தக் கணக்கீட்டிற்கு மட்டும் பயன்படுத்தப்படும்; சேமிக்கப்படாது."}</span>
+        </div>
 
         {/* Date range */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "12px" }}>
@@ -323,6 +386,22 @@ export function MuhurtaTool() {
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 {slots.map((slot, i) => {
+                  if (Number.isFinite(slot.score)) {
+                    const positiveFactors = (slot.factors ?? []).filter((factor) => factor.contribution !== 0);
+                    return (
+                      <div key={slot.date} style={{ border: "1.5px solid var(--cl-border)", borderLeft: "4px solid var(--cl-muhurta-green)", borderRadius: "10px", background: "var(--cl-surface)", padding: "16px 20px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "baseline", marginBottom: "8px" }}>
+                          <strong>{i + 1}. {formatDateDisplay(slot.date, lang)}</strong>
+                          <span style={{ color: "var(--cl-muhurta-green)", fontWeight: 700 }}>{slot.score.toFixed(1)} / 100</span>
+                        </div>
+                        <p style={{ margin: "0 0 6px", fontWeight: 700, color: "var(--cl-ink)" }}>{lang === "en" ? "Recommended window:" : "பரிந்துரைக்கப்படும் நேரம்:"} {formatTime(slot.timeStart)} – {formatTime(slot.timeEnd)}</p>
+                        <p style={{ margin: "0 0 6px", color: "var(--cl-ink-2)" }}>{lang === "en" ? slot.panchangamSupport.en : slot.panchangamSupport.ta}</p>
+                        {slot.dashaSupport && <p style={{ margin: "0 0 6px", color: "var(--cl-ink-2)" }}><strong>{lang === "en" ? "Dasha support: " : "தசை ஆதரவு: "}</strong>{lang === "en" ? slot.dashaSupport.en : slot.dashaSupport.ta}</p>}
+                        {slot.horaSupport && <p style={{ margin: 0, color: "var(--cl-ink-2)" }}><strong>{lang === "en" ? "Hora: " : "ஹோரை: "}</strong>{lang === "en" ? slot.horaSupport.en : slot.horaSupport.ta}</p>}
+                        {positiveFactors.length > 0 && <details style={{ marginTop: "10px", color: "var(--cl-ink-2)" }}><summary style={{ cursor: "pointer", fontWeight: 700 }}>{lang === "en" ? "What was weighed" : "பரிசீலிக்கப்பட்டவை"}</summary><ul style={{ margin: "8px 0 0", paddingLeft: "18px" }}>{positiveFactors.map((factor, factorIndex) => <li key={factorIndex}>{lang === "en" ? factor.reason.en : factor.reason.ta}</li>)}</ul></details>}
+                      </div>
+                    );
+                  }
                   const qc = QUALITY_CONFIG[slot.quality] ?? QUALITY_CONFIG.fair;
                   return (
                     <div

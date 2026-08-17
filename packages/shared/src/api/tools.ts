@@ -182,26 +182,70 @@ export function askPrasna(payload: PrasnaPayload): Promise<PrasnaResponse> {
 }
 
 // ─── Muhurta ──────────────────────────────────────────────────────────────────
-// GET /charts/{id}/muhurta (app/api/muhurta.py). chartId is a real chart UUID in
-// the path — the old wrapper sent it as a query param and passed the literal
-// string "public", which the route would reject even if the path existed.
+// GET /charts/{id}/muhurta or /muhurta (app/api/muhurta.py). A supplied chartId
+// stays in the legacy path for compatibility; without one, /muhurta is the
+// location-aware general mode. Never send the old literal "public" chart id.
 
 export interface MuhurtaPayload {
-  chartId: string;
+  chartId?: string | null;
   activity: string;
   dateFrom: string;
   dateTo: string;
+  lat?: number;
+  lon?: number;
+  tz?: string;
+  /** Return the selected day's veto factors instead of silently omitting it. */
+  includeExcluded?: boolean;
 }
 
 export function getMuhurta(
   params: MuhurtaPayload,
 ): Promise<{ success: boolean; data: MuhurtaResponseData }> {
+  const query: Record<string, string | number> = {
+    activity: params.activity,
+    dateFrom: params.dateFrom,
+    dateTo: params.dateTo,
+  };
+  if (params.lat !== undefined) query.lat = params.lat;
+  if (params.lon !== undefined) query.lon = params.lon;
+  if (params.tz !== undefined) query.tz = params.tz;
+  if (params.includeExcluded) query.includeExcluded = "true";
   return getApiClient().get(
-    `/charts/${encodeURIComponent(params.chartId)}/muhurta`,
-    {
-      activity: params.activity,
-      dateFrom: params.dateFrom,
-      dateTo: params.dateTo,
-    },
+    params.chartId ? `/charts/${encodeURIComponent(params.chartId)}/muhurta` : "/muhurta",
+    query,
+  ) as Promise<{ success: boolean; data: MuhurtaResponseData }>;
+}
+
+/** A transient birth profile used only for a no-save personalised muhurta run. */
+export interface PersonalizedMuhurtaBirthInput {
+  displayName?: string;
+  birthDateLocal: string;
+  birthTimeLocal: string;
+  birthLatitude: number;
+  birthLongitude: number;
+  birthTimezone: string;
+  birthPlace: string;
+}
+
+export interface PersonalizedMuhurtaPayload {
+  birth: PersonalizedMuhurtaBirthInput;
+  eventType: string;
+  dateFrom: string;
+  dateTo: string;
+  lat: number;
+  lng: number;
+  timezone: string;
+  place: string;
+  includeExcluded?: boolean;
+}
+
+/** POST /public/muhurta/personalized (app/api/public_tools.py).
+ * The supplied birth details are calculated in memory and never persisted. */
+export function getPersonalizedMuhurta(
+  payload: PersonalizedMuhurtaPayload,
+): Promise<{ success: boolean; data: MuhurtaResponseData }> {
+  return getApiClient().post(
+    "/public/muhurta/personalized",
+    payload,
   ) as Promise<{ success: boolean; data: MuhurtaResponseData }>;
 }

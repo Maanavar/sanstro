@@ -56,14 +56,20 @@ const ACTIVITIES = [
   { key: "VIDYARAMBHAM", label: "First Letters" },
   { key: "EDUCATION_START", label: "Start Studies" },
   { key: "MANTRA_INITIATION", label: "Mantra Upadesam" },
+  { key: "VEDA_STUDY", label: "Veda Study" },
   { key: "SNAANA", label: "Snaana" },
   { key: "NEW_CLOTHES", label: "New Clothes" },
   { key: "NEW_ORNAMENT", label: "New Jewel" },
   { key: "GOLD", label: "Gold" },
   { key: "GEMS", label: "Gems" },
+  { key: "TREASURE_STORE", label: "Store Treasure" },
+  { key: "LAND_POSSESSION", label: "Take Land Possession" },
   { key: "LAND_PURCHASE", label: "Buying Land" },
   { key: "CATTLE_PURCHASE", label: "Cattle" },
   { key: "HARVEST", label: "Harvest" },
+  { key: "HARVEST_INGATHERING", label: "Bring in Harvest" },
+  { key: "GRAIN", label: "Store Grain" },
+  { key: "GRAIN_EXPENDITURE", label: "Use Grain Store" },
   { key: "AGRICULTURE_START", label: "Start Field Work" },
   { key: "TILLAGE", label: "Ploughing" },
   { key: "SOWING", label: "Sowing" },
@@ -326,7 +332,7 @@ export default function MuhurtaScreen() {
                   <Text style={styles.slotDateEn}>{slot.date}</Text>
                 </View>
                 <View style={styles.slotCenter}>
-                  <Text style={styles.slotTime}>{slot.timeStart} - {slot.timeEnd}</Text>
+                  <Text style={styles.slotTime}>{formatSlotClock(slot.timeStart)} - {formatSlotClock(slot.timeEnd)}</Text>
                   <Text style={styles.slotSupport} numberOfLines={2}>{isTamil ? slot.panchangamSupport.ta : slot.panchangamSupport.en}</Text>
                   {/* The row is too tight for the full factor list the web picker
                       renders, but the provenance is the part worth the space: it
@@ -462,4 +468,14 @@ function makeStyles(C: ColorTokens) {
   optionNote: { color: C.textSecond, fontFamily: "Inter_400Regular", fontSize: 12, lineHeight: 17 },
   optionRisk: { color: C.caution, fontFamily: "Inter_400Regular", fontSize: 12, lineHeight: 17 },
   });
+}
+
+/** API slots are HH:MM. Render the reader-facing 12-hour clock, matching web. */
+function formatSlotClock(value: string): string {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value);
+  if (!match) return value;
+  const hour = Number(match[1]);
+  const minute = match[2];
+  if (!Number.isInteger(hour) || hour < 0 || hour > 23) return value;
+  return `${hour % 12 || 12}:${minute} ${hour < 12 ? "am" : "pm"}`;
 }

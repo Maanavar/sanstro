@@ -7,7 +7,7 @@ import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ActivityTimingData } from "@/lib/types";
 import { ACTIVITY_OPTIONS, ACTIVITY_TO_MUHURTA } from "./dashboard-plan-shared";
-import { NovaMuhurtaPicker } from "./dashboard-plan-muhurta-picker-nova";
+import { MuhurtaPanchangamOverlay, NovaMuhurtaPicker } from "./dashboard-plan-muhurta-picker-nova";
 import { NovaMuhurthamNaal } from "./dashboard-plan-muhurtham-naal-nova";
 import { NovaSelect } from "./nova-select";
 import { Card } from "./ui";
@@ -42,6 +42,7 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
   const [activityTimingBusy, setActivityTimingBusy] = useState(false);
   const [muhurtaPresetDate, setMuhurtaPresetDate] = useState<string | undefined>(undefined);
   const [muhurtaPresetActivity, setMuhurtaPresetActivity] = useState<string | undefined>(undefined);
+  const [panchangamDate, setPanchangamDate] = useState<string | null>(null);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", fontFamily: "var(--font-body)" }}>
@@ -151,7 +152,18 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
-                      <span style={{ fontSize: "var(--text-base)", fontWeight: 700, color: scoreColor }}>{shortDate}</span>
+                      {activityTimingResult.dailyLocation ? (
+                        <button
+                          type="button"
+                          onClick={(event) => { event.stopPropagation(); setPanchangamDate(item.dateLocal); }}
+                          aria-label={`${t("label_panchangam", lang)} · ${shortDate}`}
+                          style={{ padding: 0, border: 0, background: "transparent", font: "inherit", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-accent)", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: "3px" }}
+                        >
+                          {shortDate}
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: "var(--text-base)", fontWeight: 700, color: scoreColor }}>{shortDate}</span>
+                      )}
                       <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-muted)" }}>{weekday}</span>
                       <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, padding: "var(--space-1) var(--space-2)", borderRadius: "var(--radius-pill)", background: alignBg, color: alignColor, border: `1px solid ${alignColor}44` }}>
                         {item.alignment}
@@ -192,6 +204,15 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
         </p>
         <NovaMuhurthamNaal lang={lang} chartId={chartId || null} />
       </div>
+
+      {panchangamDate && activityTimingResult?.dailyLocation && (
+        <MuhurtaPanchangamOverlay
+          date={panchangamDate}
+          location={activityTimingResult.dailyLocation}
+          lang={lang}
+          onClose={() => setPanchangamDate(null)}
+        />
+      )}
     </div>
   );
 }

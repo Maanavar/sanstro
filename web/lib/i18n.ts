@@ -901,6 +901,10 @@ const STRINGS = {
   muhurta_empty:           { ta: "தேதி வரம்பும் செயலும் தேர்வு செய்து தேடவும்.", en: "Select a date range and activity to search." },
   muhurta_score:           { ta: "மதிப்பெண்",                  en: "Score" },
   muhurta_cautions:        { ta: "கவனிக்க",                    en: "Cautions" },
+  muhurta_check_date:      { ta: "தேதியைச் சரிபார்க்கவும்",    en: "Check a date" },
+  muhurta_day_suitability: { ta: "இந்த நாளின் பொருத்தம்",      en: "This day's suitability" },
+  muhurta_day_not_recommended: { ta: "இந்தச் செயலுக்கு இந்நாள் உகந்தது அல்ல", en: "This day is not recommended for this activity" },
+  muhurta_view_all_reasons: { ta: "அனைத்து காரணங்களையும் காண்க", en: "View all reasons" },
 
   // ── P2-A: Dasha scrubber
   dasha_you_are_here:      { ta: "நீங்கள் இங்கே",              en: "You are here" },

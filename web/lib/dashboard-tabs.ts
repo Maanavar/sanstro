@@ -85,15 +85,14 @@ export function sanitizeUrlTab(value: unknown, options: { qaEnabled: boolean }):
 
 // ── Path-segment addressing ─────────────────────────────────────────────────
 
-/** The ten inline tools the Tools tab can open. The two `kind: "cross-nav"`
- *  cards (Muhurta, Panchangam) are NOT here — they navigate to the Goals and
- *  Calendar tabs rather than opening a panel, so they have no tool URL. */
+/** Inline tools available in the signed-in Tools workspace. */
 export type DashboardTool =
   | "porutham"
   | "chartgen"
   | "wrapped"
   | "retro"
   | "rasipalan"
+  | "muhurta"
   | "activityTiming"
   | "varshaphala"
   | "synastry"
@@ -142,6 +141,7 @@ const TOOL_SLUGS: Record<DashboardTool, string> = {
   wrapped: "annual-wrapped",
   retro: "retrospective",
   rasipalan: "rasipalan",
+  muhurta: "muhurta-finder",
   activityTiming: "activity-timing",
   varshaphala: "varshaphala",
   synastry: "compatibility",
@@ -162,8 +162,7 @@ const TOOL_BY_SLUG: Record<string, DashboardTool> = Object.fromEntries(
   Object.entries(TOOL_SLUGS).map(([tool, slug]) => [slug, tool as DashboardTool]),
 );
 
-/** Narrows the `string` tool ids the Tools tab passes to `onOpenTool` (its card
- *  specs also carry the two cross-nav ids) down to a real tool. */
+/** Narrows the string ids the Tools tab passes to `onOpenTool` down to a real tool. */
 export function isDashboardTool(value: unknown): value is DashboardTool {
   return typeof value === "string" && value in TOOL_SLUGS;
 }

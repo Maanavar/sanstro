@@ -548,6 +548,9 @@ export function DashboardWorkspace() {
   // of the family page; these land them on the actual section (#hy-dashas /
   // #hy-members) instead.
   const [familyFocusSection, setFamilyFocusSection] = useState<string | null>(null);
+  // Timing is explicitly scoped: a family member selected for a muhurta does
+  // not silently replace the chart currently being read in Life Areas.
+  const [muhurtaMemberId, setMuhurtaMemberId] = useState<string | null>(null);
   const focusFamily = useCallback((section: string) => {
     setFamilyFocusSection(section);
     goToTab("family");
@@ -1072,6 +1075,12 @@ export function DashboardWorkspace() {
   function resolveLifeAreasChartId(): string {
     if (!lifeAreasViewId) return personal.chartId;
     const member = family.memberCharts.find((mc) => mc.memberId === lifeAreasViewId);
+    return member?.chart.chartId ?? personal.chartId;
+  }
+
+  function resolveMuhurtaChartId(): string {
+    if (!muhurtaMemberId) return personal.chartId;
+    const member = family.memberCharts.find((mc) => mc.memberId === muhurtaMemberId);
     return member?.chart.chartId ?? personal.chartId;
   }
 
@@ -1905,7 +1914,10 @@ export function DashboardWorkspace() {
             lang={lang}
             locationLabel={personal.panchangamLocationLabel}
             onSelectDate={setSelectedDate}
-            chartId={personal.chartId}
+            chartId={resolveMuhurtaChartId()}
+            memberCharts={family.memberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName }))}
+            selectedMemberId={muhurtaMemberId}
+            onSelectMember={setMuhurtaMemberId}
             focusView={calendarFocusView}
             onFocusConsumed={() => setCalendarFocusView(null)}
           />

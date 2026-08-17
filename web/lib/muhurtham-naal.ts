@@ -53,6 +53,8 @@ export interface MuhurthamNaalMatchContext {
   recommendedCount: number;
   totalCount: number;
   source: string;
+  /** The chart's effective daily location, used for the displayed Nalla Neram. */
+  dailyLocation?: { latitude: number; longitude: number; timezone: string; source: "current" | "birth" } | null;
 }
 
 export interface MuhurthamNaalMatchResponse {

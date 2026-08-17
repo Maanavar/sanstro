@@ -173,8 +173,11 @@ export interface MuhurtaSlot {
   timeStart: string;
   timeEnd: string;
   score: number;
+  /** False only for an explicit selected-date assessment that found a veto. */
+  recommended?: boolean;
+  band?: "BEST" | "GOOD" | "USABLE" | "NOT_RECOMMENDED";
   panchangamSupport: BiText;
-  dashaSupport: BiText;
+  dashaSupport?: BiText | null;
   horaSupport?: BiText | null;
   cautions: BiText[];
   /**
@@ -186,12 +189,22 @@ export interface MuhurtaSlot {
   factors?: MuhurtaFactor[];
 }
 
+export interface MuhurtaActivityLocation {
+  /** Human-readable place name whose local sky was used for the results. */
+  place: string;
+  latitude: number;
+  longitude: number;
+  timezone: string;
+  source: "activity" | "current" | "birth";
+}
+
 export interface MuhurtaResponseData {
-  chartId: string;
+  chartId: string | null;
   activity: string;
   dateFrom: string;
   dateTo: string;
   timezone: string;
+  activityLocation: MuhurtaActivityLocation;
   slots: MuhurtaSlot[];
 }
 
@@ -1321,6 +1334,8 @@ export type ActivityTimingData = {
   chartId: string; activity: string; month: string;
   topDates: ActivityTimingDayResult[];
   dateResult: ActivityTimingDayResult | null;
+  /** Panchangam location used to rank this month's dates. */
+  dailyLocation?: { latitude: number; longitude: number; timezone: string; source: "current" | "birth" } | null;
 };
 
 export type DashaStoryData = {

@@ -26,7 +26,7 @@ import { MiniMoonGlyph } from "./celestial-glyph-nova";
 import { useMonthlyPanchangam } from "@/hooks/useMonthlyPanchangam";
 import { PlaceCombobox } from "./place-combobox";
 import { DrawerPanel } from "./drawer-panel";
-import { Card, Segmented } from "./ui";
+import { Card, Pill, Segmented } from "./ui";
 import { Kicker } from "./ui/kicker";
 import type {
   PanchangamDailyResponseData,
@@ -91,6 +91,9 @@ export type DashboardCalendarTabNovaProps = {
   /** Personal chart the "Best Dates & Muhurta" view computes against. Null when
    *  no birth profile exists yet — the view then shows an add-profile note. */
   chartId?: string | null;
+  memberCharts?: Array<{ memberId: string; displayName: string }>;
+  selectedMemberId?: string | null;
+  onSelectMember?: (memberId: string | null) => void;
   /** Cross-tab request to open a specific view (e.g. Goals' "Best Dates &
    *  Muhurta in Calendar" wants `muhurta`). Focused on arrival, then cleared
    *  via `onFocusConsumed` (IA audit 2026-07-22, Phase 3). */
@@ -641,6 +644,9 @@ export function DashboardCalendarTabNova({
   locationLabel,
   onSelectDate,
   chartId = null,
+  memberCharts = [],
+  selectedMemberId = null,
+  onSelectMember,
   focusView = null,
   onFocusConsumed,
 }: DashboardCalendarTabNovaProps) {
@@ -1194,7 +1200,25 @@ export function DashboardCalendarTabNova({
 
       {view === "muhurta" && (
         chartId ? (
-          <NovaPlanMuhurtaPanel lang={lang} chartId={chartId} />
+          <>
+            {onSelectMember && (
+              <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+                <Pill active={selectedMemberId === null} onClick={() => onSelectMember(null)}>
+                  {lang === "ta" ? "நீங்கள்" : "You"}
+                </Pill>
+                {memberCharts.map((member) => (
+                  <Pill
+                    key={member.memberId}
+                    active={selectedMemberId === member.memberId}
+                    onClick={() => onSelectMember(member.memberId)}
+                  >
+                    {member.displayName}
+                  </Pill>
+                ))}
+              </div>
+            )}
+            <NovaPlanMuhurtaPanel lang={lang} chartId={chartId} />
+          </>
         ) : (
           <p className="empty-state">
             {lang === "ta"

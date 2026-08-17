@@ -339,6 +339,29 @@ describe("tools API", () => {
     );
   });
 
+  it("getMuhurta uses the location-aware general route without a chart", async () => {
+    mockGet.mockResolvedValue({ success: true, data: { slots: [] } });
+    await getMuhurta({
+      activity: "MARRIAGE",
+      dateFrom: "2026-08-01",
+      dateTo: "2026-08-30",
+      lat: 11.0168,
+      lon: 76.9558,
+      tz: "Asia/Kolkata",
+    });
+    expect(mockGet).toHaveBeenCalledWith(
+      "/muhurta",
+      {
+        activity: "MARRIAGE",
+        dateFrom: "2026-08-01",
+        dateTo: "2026-08-30",
+        lat: 11.0168,
+        lon: 76.9558,
+        tz: "Asia/Kolkata",
+      },
+    );
+  });
+
   it("getNatchathiram reads the content route", async () => {
     mockGet.mockResolvedValue({ success: true, data: { number: 1, nameEn: "Aswini" } });
     const result = await getNatchathiram(1);

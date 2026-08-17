@@ -19,6 +19,7 @@ import { NovaPoruthamPanel, type PoruthamFamilyMember } from "./dashboard-tools-
 import { NovaActivityTimingCard } from "./dashboard-today-deepdive-extras-nova";
 import { VarshaphalaPanel } from "./dashboard-varshaphala-panel";
 import { RasippalanTool } from "@/app/(marketing)/tools/indraiya-rasipalan/RasippalanTool";
+import { MuhurtaTool } from "@/app/(marketing)/tools/muhurta-calculator/MuhurtaTool";
 import { SynastryMatrix } from "./synastry-matrix";
 import { SynastryPanel } from "./dashboard-synastry-panel";
 import { Card } from "./ui/card";
@@ -172,7 +173,7 @@ export function DashboardToolsTabNova({
       nameEn: "Muhurta Finder", nameTa: "முகூர்த்தம்",
       descEn: "Best date and hour for a wedding, gruhapravesam or new venture — scored against your chart.",
       descTa: "திருமணம், கிரகப்பிரவேசம் அல்லது புதிய முயற்சிக்கான சிறந்த தேதி/நேரம் — உங்கள் ஜாதகத்திற்கேற்ப.",
-      metaEn: "in · Plan tab", metaTa: "இதில் · Plan தாவல்", kind: "cross-nav",
+      metaEn: "needs · birth details", metaTa: "தேவை · பிறப்பு விவரங்கள்", kind: "inline",
     },
     {
       id: "panchangam", icon: Moon, color: "var(--color-accent-secondary)",
@@ -233,6 +234,13 @@ export function DashboardToolsTabNova({
   });
 
   function renderCardBody(tool: ToolCardSpec) {
+    const isGenericMuhurta = tool.id === "muhurta";
+    const description = isGenericMuhurta
+      ? (lang === "ta" ? "யாருக்காகவும் பிறப்பு விவரங்கள், செயல் மற்றும் நிகழ்வு இடத்தை உள்ளிட்டு தனிப்பட்ட முகூர்த்தத்தைக் காணுங்கள். விவரங்கள் சேமிக்கப்படாது." : "Personalised dates and hours for anyone — enter birth details, activity and event location. Nothing is saved.")
+      : (lang === "ta" ? tool.descTa : tool.descEn);
+    const meta = isGenericMuhurta
+      ? (lang === "ta" ? "தேவை · பிறப்பு விவரங்கள்" : "needs · birth details")
+      : (lang === "ta" ? tool.metaTa : tool.metaEn);
     return (
       <>
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
@@ -241,9 +249,9 @@ export function DashboardToolsTabNova({
           </span>
           <div style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)" }}>{lang === "ta" ? tool.nameTa : tool.nameEn}</div>
         </div>
-        <div style={{ fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-text)" }}>{lang === "ta" ? tool.descTa : tool.descEn}</div>
+        <div style={{ fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-text)" }}>{description}</div>
         <div style={{ display: "flex", alignItems: "center", marginTop: "auto", paddingTop: "var(--space-1)" }}>
-          <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{lang === "ta" ? tool.metaTa : tool.metaEn}</span>
+          <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{meta}</span>
           <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600 }}>
             {tool.disabled ? (lang === "ta" ? "ஜாதகம் தேவை" : "Needs profile") : (lang === "ta" ? "திற" : "Open")}
             {!tool.disabled && <ArrowRight size={14} strokeWidth={1.5} aria-hidden="true" />}
@@ -279,6 +287,9 @@ export function DashboardToolsTabNova({
         )}
         {showRasipalan && (
           <NovaToolIsland><RasippalanTool hideCta /></NovaToolIsland>
+        )}
+        {activeTool === "muhurta" && (
+          <NovaToolIsland><MuhurtaTool /></NovaToolIsland>
         )}
         {showActivityTiming && personalChartId && (
           <NovaActivityTimingCard lang={lang} chartId={personalChartId} selectedDate={selectedDate} onDateChange={onDateChange} />
@@ -367,7 +378,7 @@ export function DashboardToolsTabNova({
             type="button"
             disabled={tool.disabled}
             onClick={() => {
-              if (tool.kind === "cross-nav") { if (tool.id === "muhurta") onGoToPlan(); else onGoToCalendar(); return; }
+              if (tool.kind === "cross-nav") { onGoToCalendar(); return; }
               onOpenTool(tool.id);
             }}
             style={cardStyle(tool)}

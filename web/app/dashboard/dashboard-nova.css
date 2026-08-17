@@ -3111,3 +3111,42 @@ button.ui-chip { cursor: pointer; }
   --swatch-rahu: #9a7fc4;
   --swatch-ketu: #a89ac0;
 }
+
+/* Muhurta result rows reserve real reading width for the reasoning column.
+   On small screens the same hierarchy becomes a natural vertical sequence. */
+[data-ui="nova"] .cd-shell .muhurta-slot-summary {
+  display: grid;
+  grid-template-columns: minmax(74px, auto) minmax(180px, 1fr) minmax(220px, 1fr);
+  gap: var(--space-4);
+  align-items: center;
+}
+
+[data-ui="nova"] .cd-shell .muhurta-slot-details {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.7fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+@media (max-width: 640px) {
+  [data-ui="nova"] .cd-shell .muhurta-slot-summary {
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+
+  [data-ui="nova"] .cd-shell .muhurta-slot-summary > :last-child {
+    grid-column: 1 / -1;
+  }
+
+  [data-ui="nova"] .cd-shell .muhurta-slot-details {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+  }
+
+  [data-ui="nova"] .cd-shell .muhurta-slot-dasha {
+    padding-right: 0 !important;
+    padding-bottom: var(--space-4);
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--color-border);
+  }
+}
