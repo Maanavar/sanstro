@@ -16,7 +16,7 @@ The 10 Poruthams (Tamil → calculation rule):
   6. Rasi       (ராசி)            — pass unless 6th or 8th position (Shashtashtaka) between rasis
   7. Rasiyathipathi (ராசியாதிபதி) — FAIL if either rasi lord regards the other as an enemy (one-way enmity fails)
   8. Vasya      (வாஸ்யம்)         — at least one rasi must be vasya of the other
-  9. Rajju      (ராஜ்ஜு)          — same Rajju group = VETO (widowhood risk)
+  9. Rajju      (ராஜ்ஜு)          — same Rajju group = VETO (see RAJJU_SOURCE_TEXT_CATEGORY)
  10. Vedha      (வேதம்)           — Vedha nakshatra pair = VETO
 
 Nakshatra numbers are 1-indexed (1 = Aswini … 27 = Revathi).
@@ -131,18 +131,68 @@ for _i, _rg in enumerate(_rajju_cycle, start=1):
 
 # ---------------------------------------------------------------------------
 # Vedha — nakshatra pairs that afflict each other (absolute veto)
-# ---------------------------------------------------------------------------
+#
+# EC-RULING-02 (2026-08-17): HELD. **RESOLVED 2026-08-17** — the triad is real,
+# and what shipped was a transcription loss rather than a rival tradition.
+#
+# The hold asked for the FULL printed table, "not just the Chitra line, since
+# the surrounding rows are what disambiguate which structure the source is
+# using". Jothidam p.70 supplies it, and the surrounding rows settle it three
+# ways over:
+#
+#   1. TWELVE of the thirteen shipped rows are verbatim identical to p.70. The
+#      thirteenth, {5,23}, is p.70's closing line — "Mrigashirsha, Chitra and
+#      Dhanishta are mutually Vedha with one another" — flattened to a single
+#      edge with Chitra dropped. Same source, one row lost, not variance.
+#   2. 27 is ODD. A pairing cannot cover it, so reading (a) was never a rival
+#      structure: it is the arithmetic residue of losing a triad member. Any
+#      table that vetoes on 13 pairs necessarily exempts exactly one star.
+#   3. The pair sums fall into three families of four — 19, 28, 37 — and the
+#      triad members are the one star each family is missing (5+14=19,
+#      5+23=28, 14+23=37). They sit at 5, 14, 23: ≡5 (mod 9), the middle star
+#      of each nakshatra ninth. The same triple recurs in the source as a
+#      natural class at p.69 (Siro Rajju) and pp.60-61 (Kuja Dosha exemption).
+#
+# Behavioural effect: {5,14} and {14,23} now veto. Chitra × Mrigashira and
+# Chitra × Dhanishta fail Vedha where they used to pass; nothing that failed
+# before now passes.
+VEDHA_TABLE_UNVERIFIED = False
+VEDHA_OPEN_QUESTION = (
+    "RESOLVED against Jothidam p.70: Mrigashira/Chitra/Dhanishta are mutually "
+    "Vedha, so all 27 stars are covered and no star is veto-exempt."
+)
+
 _VEDHA_PAIRS: frozenset[frozenset[int]] = frozenset(
     frozenset(p) for p in [
-        {1, 18}, {2, 17}, {3, 16}, {4, 15}, {5, 23},
+        {1, 18}, {2, 17}, {3, 16}, {4, 15},
         {6, 22}, {7, 21}, {8, 20}, {9, 19}, {10, 27},
         {11, 26}, {12, 25}, {13, 24},
+        # p.70 closing line — a mutual TRIAD, not a pair. All three edges.
+        {5, 14}, {5, 23}, {14, 23},
     ]
 )
 
 # ---------------------------------------------------------------------------
 # Vasya — rasi-to-rasi vasya table (classical Tamil Thirukanitham tradition)
 # Key = rasi (1-based), Value = rasis it controls
+#
+# Two rows were INCOMPLETE until 2026-08-17 and are corrected below. The gap was
+# invisible to any test because every row still looked like a valid vasya row on
+# its own; only a full-table diff against a printed source caught it. Both
+# additions are attested by two independent authorities that agree with each
+# other and disagree with the shipped code:
+#
+#   * Vrischika (8) → Kanni (6): Jothidam p.69 vasya table AND the standard
+#     Muhurta-Chintamani/Jataka-Parijata table both give Vrischika two vasya
+#     signs (Kataka AND Kanni); the code carried only Kataka.
+#   * Makara (10) → Kumbha (11): the standard table gives Makara both Mesha and
+#     Kumbha; Jothidam p.69 gives Kumbha. The code carried only Mesha, i.e. the
+#     one sign the book does *not* list.
+#
+# Effect: both are missing PASSes, never spurious ones — couples who should have
+# cleared Vasya porutham were being failed on it. Simha (5) → Thula (7) is
+# deliberately kept as-is: Jothidam p.69 prints Makara there, which contradicts
+# every standard table and is treated as a source/OCR defect, not doctrine.
 # ---------------------------------------------------------------------------
 _VASYA: dict[int, frozenset[int]] = {
     1:  frozenset({5, 8}),   # Mesha   → Simha, Vrischika
@@ -152,9 +202,9 @@ _VASYA: dict[int, frozenset[int]] = {
     5:  frozenset({7}),      # Simha   → Thula
     6:  frozenset({3, 12}),  # Kanni   → Mithuna, Meena
     7:  frozenset({10}),     # Thula   → Makara
-    8:  frozenset({4}),      # Vrischika → Kataka
+    8:  frozenset({4, 6}),   # Vrischika → Kataka, Kanni
     9:  frozenset({12}),     # Dhanus  → Meena
-    10: frozenset({1}),      # Makara  → Mesha
+    10: frozenset({1, 11}),  # Makara  → Mesha, Kumbha
     11: frozenset({1}),      # Kumbha  → Mesha
     12: frozenset({10}),     # Meena   → Makara
 }
@@ -225,17 +275,66 @@ def _yoni_score(nak_boy: int, nak_girl: int) -> int:
     return 1
 
 
-def _rasi_score(rasi_boy: int, rasi_girl: int) -> int:
-    """Rasi: Shashtashtaka (6th or 8th) position = FAIL; all others = PASS.
+# EC-RULING-01 (2026-08-17). The unverified exception clauses, shipped DISABLED.
+#
+# Two candidate refinements were reported — an "even-sign exception" at the 2nd
+# position, and six enumerated pair exceptions at the 6th. Neither arrived with a
+# quoted passage, and that is precisely the failure mode where a plausible-
+# sounding completion of "what a rich classical rule probably contains" gets
+# mistaken for what is printed. So the schema exists and nothing fires.
+#
+# To enable: supply the verbatim p.68 passage plus whatever page states the
+# 2nd/6th exceptions, fill the sets, and flip the flag in the same change.
+RASI_EXCEPTIONS_ENABLED = False
+RASI_EXCEPTION_GAP = (
+    "Directional skeleton only. The 2nd-position even-sign exception and the "
+    "six 6th-position pair exceptions are unverified against p.68 and do not fire."
+)
 
-    Convention note: this project only fails Shashtashtaka (6/8). Some
-    traditions additionally fail Dwidwadasa (2nd/12th) position. Not changed —
-    documenting the choice per the 2026-07 audit.
+#: Inclusive bride->groom counts the source marks adverse.
+_RASI_ADVERSE_COUNTS: frozenset[int] = frozenset({2, 3, 4, 5, 6})
+
+
+def _inclusive_rasi_count(from_rasi: int, to_rasi: int) -> int:
+    """Inclusive 1..12 count from one sign to another. The base sign counts as 1."""
+    return (to_rasi - from_rasi) % 12 + 1
+
+
+def _rasi_score(rasi_boy: int, rasi_girl: int) -> int:
+    """Rasi porutham — an ASYMMETRIC bride->groom directional count.
+
+    EC-RULING-01: the previous implementation failed Shashtashtaka (6th or 8th,
+    measured in *either* direction). That is the North Indian Bhakoot rule, and
+    it is a structurally different rule — symmetric, and about a different set of
+    positions — not a regional variant of this one. The Tamil rule counts
+    inclusively **from the bride's rasi to the groom's** and reads:
+
+        1            -> same-rasi handling (a separate rule; see below)
+        2, 3, 4, 5, 6 -> adverse
+        7            -> favourable
+        8..12        -> favourable, as the converse of the corresponding
+                        reverse-direction case (a count of d one way is 14 - d
+                        the other, so 8..12 mirror 6..2)
+
+    Net effect versus the old rule: 2nd/3rd/4th/5th from the bride now fail where
+    they used to pass, and 8th now passes where it used to fail.
+
+    Same-rasi (count 1) returns PASS, which is the source's base position. The
+    refinement that grades it on the partners' relative nakshatra order is
+    deliberately NOT applied here — it is a different rule with its own
+    exception lists, and those lists are unverified (see RASI_EXCEPTION_GAP).
     """
-    diff_bg = (rasi_boy - rasi_girl) % 12 + 1
-    diff_gb = (rasi_girl - rasi_boy) % 12 + 1
-    if diff_bg in {6, 8} or diff_gb in {6, 8}:
+    count = _inclusive_rasi_count(rasi_girl, rasi_boy)
+
+    if count == 1:
+        # Routed out of this rule per the ruling, not silently folded in.
+        return 1
+
+    if count in _RASI_ADVERSE_COUNTS:
+        if RASI_EXCEPTIONS_ENABLED:  # pragma: no cover — disabled pending p.68
+            raise NotImplementedError(RASI_EXCEPTION_GAP)
         return 0
+
     return 1
 
 
@@ -250,9 +349,30 @@ def _graha_maitri_kuta(rasi_boy: int, rasi_girl: int) -> int:
 
 def _rajju_score(nak_boy: int, nak_girl: int) -> int:
     """Rajju: same Rajju group = FAIL (veto); different group = PASS.
-    Eka-nakshatra (same birth star) is an accepted exception in Thirukanitham."""
-    if nak_boy == nak_girl:
-        return 1
+
+    EC-RULING-04 (2026-08-17): the eka-nakshatra exemption was removed. It used
+    to return PASS whenever both partners shared a birth star, which is
+    self-defeating — the same star is necessarily the same Rajju group, so the
+    exemption silently waived the veto in the *most* concentrated case the rule
+    describes.
+
+    Its provenance was a category error: *eka nakshatra – bhinna pada* is a
+    classical exception to **Nadi** dosha, and this repo implements it correctly
+    there (`check_nadi_dosha`). It has no textual basis inside the Rajju rule,
+    which states five groups and prohibits same-group membership without
+    qualification.
+
+    KNOWN GAP, deliberately not filled: the ruling asked whether a *separate,
+    general* mitigation passage exists covering Rajju/Vedha/Gana/Rasi together
+    (rasi-lord relationships, opposite-sign configurations). No matching or
+    porutham chapter has been extracted into this repo at all — every
+    `kalaprakasika_*` module here is a muhurta chapter, and the porutham tables
+    come from the Formula Engine Specification, not from a primary text. So the
+    passage can be neither confirmed nor ruled out from inside this codebase.
+    Per the ruling, it is therefore left unencoded and flagged rather than
+    assumed: if it turns up, it is a different rule from the one removed here
+    and must be added on its own citation, not restored as this exemption.
+    """
     return 0 if _RAJJU_GROUP[nak_boy] == _RAJJU_GROUP[nak_girl] else 1
 
 
@@ -322,6 +442,20 @@ class PorutthamResult:
 # tests/test_nadi_dosha_v2.py::test_nadi_v2_tamil_strings_native_reviewed_locked;
 # any edit here must go through review + update that golden test.
 # ---------------------------------------------------------------------------
+
+# ── EC-RULING-06 internal traceability ──────────────────────────────────────
+#
+# The source's own framing for the Rajju prohibition is a longevity/spouse-loss
+# concern. That framing is inadmissible in user-facing output (EC-A11), but the
+# rule still has to be traceable back to what the text actually says, or the
+# engine ends up asserting a veto it cannot explain to an astrologer.
+#
+# These two constants are the sanctioned carrier: a machine-readable reason code
+# and a *category*, never the sentence. `tests/test_porutham.py` asserts they
+# never appear in any rendered string, so "keep it internal" is enforced rather
+# than merely intended.
+RAJJU_REASON_CODE = "RAJJU_SAME_GROUP"
+RAJJU_SOURCE_TEXT_CATEGORY = "traditional_longevity_concern"
 
 _NADI_PARIHARA_MODES = ("strict", "classical_lenient")
 
@@ -591,8 +725,30 @@ def compute_porutham(
         )
 
     if rajju_dosha:
-        suffix_en = " ⚠ Rajju Dosha: same Rajju group — traditionally associated with widowhood risk; requires remedial attention."
-        suffix_ta = " ⚠ ராஜ்ஜு தோஷம்: ஒரே ராஜ்ஜு வகுப்பு — வைதவ்ய ஆபத்துடன் தொடர்புடையது; பரிகாரம் அவசியம்."
+        # EC-RULING-06 (2026-08-17), P0. This string used to name a spouse-loss
+        # outcome outright, in both languages, and shipped to anonymous visitors
+        # through the public porutham calculator. That is an EC-A11-class event
+        # assertion, and the ruling is *excise, don't reword*: no
+        # conversion-operator form, no softened phrasing, no hedge. The finding
+        # itself is unchanged — Rajju still fails, still forces CAUTION, still
+        # reads as one of the strongest objections in Tamil matching. Only the
+        # claim about an outcome is gone.
+        #
+        # The banned wording is deliberately not quoted here either: a comment
+        # reproducing it verbatim would keep the phrase in the shipped tree and
+        # trip the very sweep that now guards this
+        # (`tests/test_tone_compliance.py`). See `RAJJU_SOURCE_TEXT_CATEGORY`
+        # for the sanctioned internal carrier.
+        suffix_en = (
+            " ⚠ Rajju Porutham not met: both partners fall in the same Rajju group — "
+            "one of the strongest objections in Tamil matching, and one that remedial "
+            "guidance addresses directly."
+        )
+        suffix_ta = (
+            " ⚠ ராஜ்ஜு பொருத்தம் இல்லை: இருவரும் ஒரே ராஜ்ஜு வகுப்பைச் சேர்ந்தவர்கள் — "
+            "தமிழ்ப் பொருத்தத்தில் வலிமையான ஆட்சேபனைகளுள் ஒன்று; பரிகாரத்தால் "
+            "நேரடியாகக் கவனிக்கப்படுவது."
+        )
         summary_en += suffix_en
         summary_ta += suffix_ta
 

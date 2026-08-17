@@ -149,14 +149,37 @@ def test_moon_harmony_symmetric_for_all_144_rasi_pairs():
             assert _moon_harmony_label(a, b) == _moon_harmony_label(b, a), (a, b)
 
 
-def test_moon_harmony_never_grades_above_tense_when_porutham_rasi_fails():
-    # Any Moon pair that fails porutham's own Shashtashtaka (6th/8th) veto
-    # must not grade above TENSE here — the two engines must agree on which
-    # positions are adverse.
+def test_moon_harmony_grades_shadashtaka_as_tense():
+    """The two engines must not contradict each other on shadashtaka.
+
+    Rewritten for EC-RULING-01 (2026-08-17). This used to assert that *every*
+    pair failing `porutham._rasi_score` also graded TENSE here, which held only
+    while both rules were the symmetric 6/8 Bhakoot check. Rasi porutham is now
+    the asymmetric bride->groom Tamil rule (adverse at counts 2..6), while Moon
+    harmony is — correctly — still symmetric: emotional resonance between two
+    Moons has no bride/groom direction to it, and `_moon_harmony_label`'s own
+    docstring commits to `harmony(a, b) == harmony(b, a)`.
+
+    So the invariant is narrowed to the positions the two genuinely share rather
+    than deleted: 6th/8th apart must read TENSE in both.
+    """
     for a in range(1, 13):
         for b in range(1, 13):
-            if _rasi_score(a, b) == 0:  # porutham FAIL (6th/8th position)
+            separation = min((a - b) % 12, (b - a) % 12) + 1
+            if separation in {6, 8}:
                 assert _moon_harmony_label(a, b) == "TENSE", (a, b)
+
+
+def test_rasi_porutham_may_fail_positions_moon_harmony_does_not():
+    """The corollary, asserted so the divergence is deliberate rather than drift.
+
+    A groom 2nd from the bride now fails Rasi porutham (a directional doctrinal
+    rule) while the two Moons one sign apart are only dwirdwadasa (MIXED) as an
+    emotional reading. Those are different claims about different things, and
+    the product is allowed to make both.
+    """
+    assert _rasi_score(2, 1) == 0            # bride Mesha, groom Rishabha: count 2
+    assert _moon_harmony_label(2, 1) == "MIXED"
 
 
 # ---------------------------------------------------------------------------

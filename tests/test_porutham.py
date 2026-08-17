@@ -153,32 +153,69 @@ def test_yoni_neutral():
 
 
 # ---------------------------------------------------------------------------
-# Rasi (ராசி) — Shashtashtaka (6th or 8th) = FAIL, else PASS
+# Rasi (ராசி) — EC-RULING-01: asymmetric bride→groom inclusive count.
+#   1 → same-rasi handling (PASS here), 2..6 → FAIL, 7..12 → PASS.
+# Signature is _rasi_score(rasi_boy, rasi_girl); the count runs girl → boy.
 # ---------------------------------------------------------------------------
 
 def test_rasi_seventh():
-    # boy=1 (Mesha), girl=7 (Thula) → 7th position → PASS
+    # girl=7 (Thula) → boy=1 (Mesha): count 7 → favourable → PASS
     assert _rasi_score(1, 7) == 1
 
 
 def test_rasi_sixth():
-    # boy=6 (Kanni), girl=1 (Mesha) → diff_bg=(6-1)%12+1=6 → Shashtashtaka → FAIL
+    # girl=1 (Mesha) → boy=6 (Kanni): count 6 → adverse → FAIL
     assert _rasi_score(6, 1) == 0
 
 
-def test_rasi_eighth():
-    # boy=1 (Mesha), girl=8 (Vrischika) → diff_bg=(1-8)%12+1=6 → Shashtashtaka → FAIL
-    assert _rasi_score(1, 8) == 0
+def test_rasi_eighth_from_bride_now_passes():
+    """The clearest behaviour change from EC-RULING-01.
+
+    The old symmetric Bhakoot rule failed the 8th in either direction. The Tamil
+    directional rule marks only 2..6 from the bride adverse, so the 8th passes.
+    """
+    # girl=1 (Mesha) → boy=8 (Vrischika): count 8 → PASS (used to FAIL).
+    assert _rasi_score(8, 1) == 1
 
 
-def test_rasi_fourth_is_now_pass():
-    # 4th position is NOT Shashtashtaka → PASS under classical Thirukanitham
-    assert _rasi_score(1, 4) == 1
+def test_rasi_positions_two_to_five_from_bride_now_fail():
+    """The other half of the change: these used to pass under Bhakoot, because
+    Bhakoot only ever looked at 6 and 8."""
+    for boy_offset, count in ((1, 2), (2, 3), (3, 4), (4, 5)):
+        girl = 1
+        boy = girl + boy_offset
+        assert _rasi_score(boy, girl) == 0, f"count {count} should be adverse"
 
 
-def test_rasi_same():
-    # same rasi → diff_bg=1, diff_gb=1 → neither 6 nor 8 → PASS
+def test_rasi_count_is_directional_not_symmetric():
+    """The property that makes this a different rule, not a variant.
+
+    Mesha bride with Kanni groom is a 6th-position match and fails; swap the two
+    and it is an 8th-position match and passes. A symmetric rule cannot express
+    that, which is exactly why the old one could not be patched into shape.
+    """
+    assert _rasi_score(6, 1) == 0   # bride Mesha, groom Kanni  → count 6
+    assert _rasi_score(1, 6) == 1   # bride Kanni, groom Mesha  → count 8
+
+
+def test_rasi_same_is_routed_out_of_this_rule():
+    # Count 1 → same-rasi handling, which is a separate rule; PASS is its base.
     assert _rasi_score(3, 3) == 1
+
+
+def test_rasi_exception_clauses_ship_disabled():
+    """EC-RULING-01 explicitly holds the exception clauses until p.68 is read
+    verbatim. The schema is present so enabling is a one-line change; nothing
+    fires until then."""
+    from app.calculations.porutham import (
+        RASI_EXCEPTION_GAP,
+        RASI_EXCEPTIONS_ENABLED,
+    )
+
+    assert RASI_EXCEPTIONS_ENABLED is False
+    assert "p.68" in RASI_EXCEPTION_GAP
+    # With them disabled, every adverse count fails plainly — no clause rescues one.
+    assert all(_rasi_score(1 + n, 1) == 0 for n in range(1, 6))
 
 
 # ---------------------------------------------------------------------------
@@ -225,9 +262,29 @@ def test_rajju_different_group():
     assert _rajju_score(1, 4) == 1
 
 
-def test_rajju_same_nakshatra_passes():
-    # Eka-nakshatra exception: same star = PASS in Thirukanitham
-    assert _rajju_score(5, 5) == 1
+def test_rajju_same_nakshatra_now_fails():
+    """EC-RULING-04: the eka-nakshatra exemption is gone.
+
+    It used to PASS here, which was self-defeating — the same star is by
+    construction the same Rajju group, so the exemption waived the veto in the
+    single most concentrated case the rule describes. The exception it was
+    borrowed from (*eka nakshatra – bhinna pada*) belongs to Nadi, and is still
+    honoured there; see `test_nadi_eka_nakshatra_bhinna_pada_still_cancels`.
+    """
+    assert _rajju_score(5, 5) == 0
+
+
+def test_nadi_eka_nakshatra_bhinna_pada_still_cancels():
+    """The Rajju removal must not take the Nadi exception with it — they are
+    different rules that happened to share a phrase."""
+    result = check_nadi_dosha(5, 5, boy_pada=1, girl_pada=3)
+    assert result["has_nadi_dosha"] is False
+    assert result["mitigation"] == "FULL"
+    # And the Rajju failure is still surfaced alongside it, so a cancelled Nadi
+    # can never read as "the match is clear".
+    assert result["rajju_guard_warning"] is None  # not passed in here
+    guarded = check_nadi_dosha(5, 5, boy_pada=1, girl_pada=3, rajju_failed=True)
+    assert guarded["rajju_guard_warning"] is not None
 
 
 # ---------------------------------------------------------------------------
@@ -267,6 +324,26 @@ def test_vasya_same_rasi_passes():
     # Same rasi is traditionally treated as an automatic Vasya pass (matches
     # the public tool's calcVasya, which the backend previously disagreed with).
     assert _vasya_score(4, 4) == 1
+
+
+def test_vasya_table_carries_the_two_rows_that_were_incomplete():
+    """Vrischika→Kanni and Makara→Kumbha were missing until 2026-08-17.
+
+    Both are attested by two authorities that agree with each other against the
+    shipped table (Jothidam p.69 and the standard Muhurta-Chintamani vasya
+    table), and both are *missing PASSes*: couples who should have cleared Vasya
+    porutham were failed on it. Asserted on the score, not on the raw dict, so a
+    later "tidy" that moves the data cannot quietly drop them again.
+    """
+    # Vrischika (8) controls Kataka (4) AND Kanni (6).
+    assert _vasya_score(8, 6) == 1
+    assert _vasya_score(6, 8) == 1
+    # Makara (10) controls Mesha (1) AND Kumbha (11).
+    assert _vasya_score(10, 11) == 1
+    assert _vasya_score(11, 10) == 1
+    # Guard rail: the fix widened exactly two rows, it did not make Vasya
+    # vacuous. A pair with no vasya relation either way still fails.
+    assert _vasya_score(8, 11) == 0
 
 
 # ---------------------------------------------------------------------------
@@ -465,3 +542,86 @@ def test_compute_porutham_various_inputs_no_exception(boy_nak, girl_nak, boy_ras
         girl_rasi=girl_rasi,
     )
     assert 0 <= result.total_score <= 10
+
+
+# ── EC-RULING-06: the Rajju finding survives, its death framing does not ─────
+
+def test_rajju_summary_states_the_objection_without_asserting_an_outcome():
+    """Excise, don't reword (EC-RULING-06). The dosha must still read as serious
+    — it is a veto — but the summary may not name a spouse-death outcome.
+
+    Uses the shared mortality validator rather than a hand-written substring
+    check, so this test cannot drift away from the class it is guarding.
+    """
+    from app.calculations.porutham import (
+        RAJJU_REASON_CODE,
+        RAJJU_SOURCE_TEXT_CATEGORY,
+        compute_porutham,
+    )
+    from app.services.narrative_engine import mortality_validator
+
+    # Aswini(1) and Ayilyam(9) are both Pada Rajju — same group, so Rajju fails.
+    result = compute_porutham(
+        boy_nakshatra=1, girl_nakshatra=9, boy_rasi=1, girl_rasi=4,
+    )
+    assert result.rajju_dosha is True
+    assert result.label == "CAUTION", "the veto must still drive the verdict"
+
+    for text in (result.summary_en, result.summary_ta):
+        assert mortality_validator(text) == [], f"death assertion leaked: {text!r}"
+        # The internal carriers are for traceability and must never render.
+        assert RAJJU_REASON_CODE not in text
+        assert RAJJU_SOURCE_TEXT_CATEGORY not in text
+
+    # And the objection is still actually stated, not quietly dropped.
+    assert "Rajju" in result.summary_en
+    assert "ராஜ்ஜு" in result.summary_ta
+
+
+# ── EC-RULING-02: Chitra Vedha is HELD, and the hold is visible ─────────────
+
+def test_the_chitra_vedha_gap_is_flagged_not_silently_assumed():
+    """EC-RULING-02, resolved against Jothidam p.70.
+
+    The hold's own release condition was the full printed table. p.70 supplies
+    it: twelve rows verbatim identical to what shipped, and a closing line
+    making Mrigashira/Chitra/Dhanishta *mutually* Vedha. The flag and the table
+    move together, so neither can drift from the other.
+    """
+    from app.calculations.porutham import (
+        VEDHA_OPEN_QUESTION,
+        VEDHA_TABLE_UNVERIFIED,
+        _VEDHA_PAIRS,
+    )
+
+    paired = {n for pair in _VEDHA_PAIRS for n in pair}
+    unpaired = sorted(set(range(1, 28)) - paired)
+
+    if VEDHA_TABLE_UNVERIFIED:
+        assert unpaired == [14], (
+            "the held position is 13 pairs with Chitra unpaired; the table has "
+            f"moved to {unpaired} without clearing VEDHA_TABLE_UNVERIFIED"
+        )
+        assert "Chitra" in VEDHA_OPEN_QUESTION
+    else:
+        assert unpaired == [], (
+            "the flag was cleared, so the table is claimed verified — then every "
+            f"star needs a partner, but {unpaired} has none"
+        )
+
+
+def test_mrigashira_chitra_dhanishta_are_a_mutual_vedha_triad():
+    """All three edges veto, not just the outer one that used to ship.
+
+    {5,23} was already present; {5,14} and {14,23} are the rows the flattening
+    lost. Pinning all three means a future edit cannot silently collapse the
+    triad back into a pair — which is exactly how the defect arose.
+    """
+    assert _vedha_score(5, 14) == 0, "Mrigashira x Chitra must veto"
+    assert _vedha_score(14, 23) == 0, "Chitra x Dhanishta must veto"
+    assert _vedha_score(5, 23) == 0, "Mrigashira x Dhanishta must veto"
+
+    # 27 is odd, so a table of clean pairs can never cover it. Guard the
+    # structural fact that made the single-orphan reading impossible.
+    assert 27 % 2 == 1
+    assert _vedha_score(14, 1) == 1, "Chitra is not vedha to everything"
