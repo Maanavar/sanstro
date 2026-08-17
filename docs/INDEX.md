@@ -36,7 +36,8 @@ Quick map to the right document for each purpose. **Last regenerated: 2026-07-16
 - [ASTROLOGER_LIVE_SESSION_BACKLOG_2026-07.md](ASTROLOGER_LIVE_SESSION_BACKLOG_2026-07.md) — Backlog worked through in the live Tamil-reader astrologer session
 - [STAKEHOLDER_AUDIT_ASTROLOGER_CUSTOMER_2026-07.md](STAKEHOLDER_AUDIT_ASTROLOGER_CUSTOMER_2026-07.md) — Combined jyotishi + customer audit findings
 - [PROPENSITY_ASTROLOGER_REVIEW_2026-07.md](PROPENSITY_ASTROLOGER_REVIEW_2026-07.md) — Astrologer review of the propensity ("chances & cautions") card set
-- [MUHURTA_MASTER_REMEDIATION_2026-08-14.md](MUHURTA_MASTER_REMEDIATION_2026-08-14.md) — **Muhurta plan**: the 8 Thirukanitham timing factors explained, what we actually compute (2 of 10), 5 live defects, the one-engine/two-mode design, phased work, and the acceptance criteria + golden cases + perf budgets that define "fixed"
+- [MUHURTA_MASTER_REMEDIATION_2026-08-14.md](MUHURTA_MASTER_REMEDIATION_2026-08-14.md) — **Muhurta plan**: the 8 Thirukanitham timing factors explained, what we actually compute (2 of 10), 5 live defects, the one-engine/two-mode design, phased work, and the acceptance criteria + golden cases + perf budgets that define "fixed". **Its §8 phase table is stale** — see the handoff below for the corrected state
+- [HANDOFF_MUHURTA_NEXT_2026-08-16.md](HANDOFF_MUHURTA_NEXT_2026-08-16.md) — **Paste-to-agent handoff**: corrected state of every plan item after D1/D2/D3 shipped, then 9 scoped tasks (D4 ranking, D5 naal times, Tara Bala, karaka dignity, activity location, lagna schedule, evening windows, family gap) with acceptance tests, gates and the six questions still blocked on the astrologer
 
 ## Prediction & Reasoning Engine
 - [PREDICTION_DOCTRINE_AND_ROADMAP.md](PREDICTION_DOCTRINE_AND_ROADMAP.md) — Prediction doctrine and the P0–P3 roadmap
