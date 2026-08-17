@@ -1,6 +1,36 @@
 """Shared Tara Bala and Chandra Bala calculations."""
 from __future__ import annotations
 
+# Product-calibrated 9-fold Tara Bala contribution shared by the daily
+# muhurtham-naal list and the picker.  The ordering is traditional; the numeric
+# scale is the single approved product calibration, not a primary-text rule.
+TARA_SCORE: dict[int, int] = {
+    1: 8,
+    2: 30,
+    3: -30,
+    4: 22,
+    5: -25,
+    6: 24,
+    7: -35,
+    8: 26,
+    9: 28,
+}
+
+# Display names shared by the personal muhurta picker and the activity-timing
+# ranker.  Keeping the names beside the calculation prevents a second 1..9
+# table from quietly drifting.  These are established labels, not new doctrine.
+TARA_NAMES: dict[int, tuple[str, str]] = {
+    1: ("ஜென்மம்", "Janma"),
+    2: ("சம்பத்", "Sampat"),
+    3: ("விபத்", "Vipat"),
+    4: ("க்ஷேமம்", "Kshema"),
+    5: ("பிரத்யரி", "Pratyari"),
+    6: ("சாதனை", "Sadhana"),
+    7: ("நைதனம்", "Naidhana"),
+    8: ("மித்திரம்", "Mitra"),
+    9: ("பரம மித்திரம்", "Parama Mitra"),
+}
+
 
 def _validate_range(value: int, lower: int, upper: int, label: str) -> None:
     if not isinstance(value, int) or isinstance(value, bool) or not lower <= value <= upper:

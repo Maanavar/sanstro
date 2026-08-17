@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -106,8 +107,12 @@ class MuhurtaSlot(BaseModel):
     time_start: str = Field(alias="timeStart")
     time_end: str = Field(alias="timeEnd")
     score: float
+    # A selected-date assessment can include a vetoed day so the reader sees
+    # why it is unavailable. Normal picker slots are always recommended.
+    recommended: bool = True
+    band: Literal["BEST", "GOOD", "USABLE", "NOT_RECOMMENDED"] = "USABLE"
     panchangam_support: BiText = Field(alias="panchangamSupport")
-    dasha_support: BiText = Field(alias="dashaSupport")
+    dasha_support: BiText | None = Field(alias="dashaSupport")
     hora_support: BiText | None = Field(alias="horaSupport", default=None)
     cautions: list[BiText]
     # Every factor the engine weighed for this day, in evaluation order.
@@ -120,12 +125,23 @@ class MuhurtaSlot(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class MuhurtaActivityLocation(BaseModel):
+    """Coordinates used for the activity-day panchangam, not birth location."""
+
+    place: str = Field(description="Human-readable place name used for the activity-day panchangam")
+    latitude: float
+    longitude: float
+    timezone: str
+    source: Literal["activity", "current", "birth"]
+
+
 class MuhurtaResponseData(BaseModel):
-    chart_id: UUID = Field(alias="chartId")
+    chart_id: UUID | None = Field(alias="chartId")
     activity: str
     date_from: date = Field(alias="dateFrom")
     date_to: date = Field(alias="dateTo")
     timezone: str = Field(description="IANA timezone the slot times are computed and expressed in")
+    activity_location: MuhurtaActivityLocation = Field(alias="activityLocation")
     slots: list[MuhurtaSlot]
 
     model_config = {"populate_by_name": True}

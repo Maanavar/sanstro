@@ -26,7 +26,8 @@ Methodology (Thirukanitham), in the order the layers apply:
 from __future__ import annotations
 
 import logging
-from datetime import UTC, date, datetime, timedelta
+from dataclasses import replace
+from datetime import UTC, date, datetime, time, timedelta
 from typing import NamedTuple
 from uuid import UUID
 
@@ -35,21 +36,33 @@ from sqlalchemy.orm import Session
 
 from app.calculations.astro import nakshatra_to_rasi, resolve_rasi, resolve_timezone, utc_datetime_to_julian_day
 from app.calculations.dasha import calculate_vimshottari_timeline
+from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.muhurta_engine import (
     SOURCED_ACTIVITIES as ENGINE_SOURCED_ACTIVITIES,
 )
-from app.calculations.muhurta_engine import DayScore, Subject, Verdict, display_score, score_day
+from app.calculations.muhurta_engine import (
+    DayScore,
+    Subject,
+    Verdict,
+    display_score,
+    lagna_sign_factor_at_window,
+    score_day,
+    wealth_house_heuristic_factor,
+)
 from app.calculations.panchangam import (
     best_gowri_slot,
     calculate_daily_panchangam_range,
     gowri_category_rank,
     gowri_good_label,
+    with_daylight_lagna_schedule,
 )
 from app.calculations.tamil_calendar import format_tamil_date
+from app.calculations.tara_bala import tara_number
 from app.constants.astrology import NAKSHATRA_NAMES, SIGN_LORD
 from app.models import BirthProfile, Chart
 from app.schemas.muhurta import (
     BiText,
+    MuhurtaActivityLocation,
     MuhurtaFactor,
     MuhurtaResponse,
     MuhurtaResponseData,
@@ -67,6 +80,44 @@ TOP_N = 5
 
 # A sliver of the day narrower than this is not actionable as a muhurta window.
 _MIN_WINDOW = timedelta(minutes=15)
+_SANDHYA_DURATION = timedelta(minutes=24)
+_LATEST_WINDOW_START = time(21, 0)
+_LATEST_WINDOW_END = time(21, 30)
+
+# The picker’s visual score thresholds.  The cap is applied to raw score, but
+# `display_score` is identity below 80, so these limits also cap the number and
+# colour a reader sees.  Keep them with the client’s 75/55 picker thresholds.
+_BEST_SCORE_MIN = 75.0
+_GOOD_SCORE_MIN = 55.0
+_TARA_DISPLAY_CAP: dict[int, float] = {
+    3: _BEST_SCORE_MIN - 0.1,  # Vipat: at most Good
+    5: _BEST_SCORE_MIN - 0.1,  # Pratyari: at most Good
+    7: _GOOD_SCORE_MIN - 0.1,  # Naidhana: at most Usable
+}
+
+
+def _apply_in_band_heuristic_bonus(score: float, bonus: float) -> float:
+    """Add an approved heuristic without letting it change the visible band.
+
+    The wealth-house rule is deliberately a refinement, never a verdict. A
+    score that is already on the edge of Usable/Good or Good/Best therefore
+    keeps its existing band even when the condition is present.
+    """
+    adjusted = score + bonus
+    for boundary in (_GOOD_SCORE_MIN, _BEST_SCORE_MIN):
+        if score < boundary <= adjusted:
+            adjusted = min(adjusted, boundary - 0.1)
+    return max(score, adjusted)
+
+
+def _score_band(score: float, *, recommended: bool) -> str:
+    if not recommended:
+        return "NOT_RECOMMENDED"
+    if score >= _BEST_SCORE_MIN:
+        return "BEST"
+    if score >= _GOOD_SCORE_MIN:
+        return "GOOD"
+    return "USABLE"
 
 
 class _Window(NamedTuple):
@@ -91,6 +142,12 @@ class _ScoredDay(NamedTuple):
     hora_support: BiText | None
     cautions: list[BiText]
     factors: list[MuhurtaFactor]
+    snapshot: object
+    window_start: datetime
+    window_end: datetime
+    # False only for a one-date assessment requested with `include_excluded`.
+    # Search results themselves never contain vetoed days.
+    recommended: bool = True
 
 # Activity → relevant dasha lords (first-choice benefics for that domain).
 #
@@ -283,7 +340,53 @@ def _clear_good_day_kalas(snapshot) -> list:
     ]
 
 
-def _best_time_window(snapshot, activity: str, lagna_rasi: int) -> _Window:
+def _daylight_fragments(snapshot, start: datetime, end: datetime) -> list[tuple[datetime, datetime]]:
+    """Return actionable daylight pieces after universal timing exclusions.
+
+    Sandhya excludes one ghati on either side of sunrise and sunset.  Each
+    Durmuhurtham interval is then subtracted, rather than discarding a whole
+    Gowri kala that only partly overlaps it.  The table is empty until verified,
+    but the exclusion path is deliberately live and regression-tested now.
+    """
+    latest_start = datetime.combine(snapshot.date_local, _LATEST_WINDOW_START, tzinfo=start.tzinfo)
+    latest_end = datetime.combine(snapshot.date_local, _LATEST_WINDOW_END, tzinfo=start.tzinfo)
+    clipped_start = max(start, snapshot.sunrise + _SANDHYA_DURATION)
+    clipped_end = min(end, snapshot.sunset - _SANDHYA_DURATION, latest_end)
+    if clipped_start > latest_start:
+        return []
+    if clipped_end - clipped_start < _MIN_WINDOW:
+        return []
+
+    fragments = [(clipped_start, clipped_end)]
+    for exclusion in getattr(snapshot, "durmuhurtham", ()):
+        next_fragments: list[tuple[datetime, datetime]] = []
+        for fragment_start, fragment_end in fragments:
+            if not _overlaps(fragment_start, fragment_end, exclusion.start, exclusion.end):
+                next_fragments.append((fragment_start, fragment_end))
+                continue
+            if exclusion.start - fragment_start >= _MIN_WINDOW:
+                next_fragments.append((fragment_start, min(fragment_end, exclusion.start)))
+            if fragment_end - exclusion.end >= _MIN_WINDOW:
+                next_fragments.append((max(fragment_start, exclusion.end), fragment_end))
+        fragments = next_fragments
+    return fragments
+
+
+def _best_fragment(snapshot, start: datetime, end: datetime) -> tuple[datetime, datetime] | None:
+    fragments = _daylight_fragments(snapshot, start, end)
+    return min(fragments, default=None, key=lambda fragment: fragment[0])
+
+
+def _apply_tara_display_cap(raw_score: float, snapshot, subject: Subject | None) -> float:
+    """Apply the owner-approved maximum displayed band for adverse Tara Bala."""
+    if subject is None:
+        return raw_score
+    tara = tara_number(subject.janma_nakshatra, snapshot.nakshatra_number)
+    cap = _TARA_DISPLAY_CAP.get(tara)
+    return min(raw_score, cap) if cap is not None else raw_score
+
+
+def _best_time_window(snapshot, activity: str, lagna_rasi: int | None) -> _Window:
     """Pick the day's recommended window, and the hora bonus that goes with it.
 
     The window is the **intersection** of a favoured hora with a good Gowri day
@@ -312,6 +415,31 @@ def _best_time_window(snapshot, activity: str, lagna_rasi: int) -> _Window:
     `_compute_gowri_nalla_neram`).
     """
     candidates = _clear_good_day_kalas(snapshot)
+    # General mode has no chart, so it must not select or describe a lagna- or
+    # dasha-derived hora. It still returns the strongest clear daytime Gowri
+    # kala, which is the location-aware almanac answer it can honestly make.
+    if lagna_rasi is None:
+        candidate_fragments = [
+            (kala, start, end)
+            for kala in candidates
+            for start, end in _daylight_fragments(snapshot, kala.start, kala.end)
+        ]
+        if candidate_fragments:
+            kala, start, end = min(
+                candidate_fragments,
+                key=lambda item: (gowri_category_rank(item[0].name), item[1]),
+            )
+            return _Window(start, end, 0.0, None)
+        fallback = best_gowri_slot(snapshot.nalla_neram)
+        if fallback is not None:
+            fragment = _best_fragment(snapshot, fallback.start, fallback.end)
+            if fragment is not None:
+                return _Window(*fragment, 0.0, None)
+        fragment = _best_fragment(snapshot, snapshot.abhijit_start, snapshot.abhijit_end)
+        if fragment is not None:
+            return _Window(*fragment, 0.0, None)
+        return _Window(snapshot.sunrise + _SANDHYA_DURATION, snapshot.sunrise + _SANDHYA_DURATION, 0.0, None)
+
     target_lords = _activity_hora_lords(activity, lagna_rasi)
     lagna_lord = _norm(_SIGN_LORDS[lagna_rasi])
 
@@ -324,31 +452,45 @@ def _best_time_window(snapshot, activity: str, lagna_rasi: int) -> _Window:
         is_lagna_lord = lord == lagna_lord
         bonus = 13.0 if is_lagna_lord else 8.0
         for kala in candidates:
-            start = max(entry.start, kala.start)
-            end = min(entry.end, kala.end)
-            if end - start < _MIN_WINDOW:
-                continue
-            # Lagna-lord hora first, then the Gowri kala's own rank
-            # (Amirtham > Uthi > Labham > Dhanam > Sugam), then earliest.
-            key = (-bonus, gowri_category_rank(kala.name), start)
-            if best_key is None or key < best_key:
-                best_key = key
-                best = _Window(start, end, bonus, _hora_support_text(lord, is_lagna_lord, entry, kala.name))
+            for start, end in _daylight_fragments(
+                snapshot,
+                max(entry.start, kala.start),
+                min(entry.end, kala.end),
+            ):
+                # Lagna-lord hora first, then the Gowri kala's own rank
+                # (Amirtham > Uthi > Labham > Dhanam > Sugam), then earliest.
+                key = (-bonus, gowri_category_rank(kala.name), start)
+                if best_key is None or key < best_key:
+                    best_key = key
+                    best = _Window(start, end, bonus, _hora_support_text(lord, is_lagna_lord, entry, kala.name))
 
     if best is not None:
         return best
 
     # No favoured hora meets a clear good kala today: fall back to the best-ranked
     # clear good kala and name no hora, rather than crediting one we cannot use.
-    if candidates:
-        kala = min(candidates, key=lambda s: (gowri_category_rank(s.name), s.start))
-        return _Window(kala.start, kala.end, 0.0, None)
+    candidate_fragments = [
+        (kala, start, end)
+        for kala in candidates
+        for start, end in _daylight_fragments(snapshot, kala.start, kala.end)
+    ]
+    if candidate_fragments:
+        kala, start, end = min(
+            candidate_fragments,
+            key=lambda item: (gowri_category_rank(item[0].name), item[1]),
+        )
+        return _Window(start, end, 0.0, None)
 
     fallback = best_gowri_slot(snapshot.nalla_neram)
     if fallback is not None:
-        return _Window(fallback.start, fallback.end, 0.0, None)
+        fragment = _best_fragment(snapshot, fallback.start, fallback.end)
+        if fragment is not None:
+            return _Window(*fragment, 0.0, None)
 
-    return _Window(snapshot.abhijit_start, snapshot.abhijit_end, 0.0, None)
+    fragment = _best_fragment(snapshot, snapshot.abhijit_start, snapshot.abhijit_end)
+    if fragment is not None:
+        return _Window(*fragment, 0.0, None)
+    return _Window(snapshot.sunrise + _SANDHYA_DURATION, snapshot.sunrise + _SANDHYA_DURATION, 0.0, None)
 
 
 def _overlaps(start_a: datetime, end_a: datetime, start_b: datetime, end_b: datetime) -> bool:
@@ -378,11 +520,18 @@ def _dasha_support(maha_lord: str, antar_lord: str, activity: str) -> BiText:
 
 
 def find_best_muhurta_slots(
-    chart_id: UUID,
+    chart_id: UUID | None,
     activity: str,
     date_from: date,
     date_to: date,
     session: Session,
+    *,
+    activity_latitude: float | None = None,
+    activity_longitude: float | None = None,
+    activity_timezone: str | None = None,
+    include_excluded: bool = False,
+    chart_data: object | None = None,
+    activity_place: str | None = None,
 ) -> MuhurtaResponse:
     activity = normalize_activity(activity)
     if activity not in MUHURTA_ACTIVITIES:
@@ -396,63 +545,121 @@ def find_best_muhurta_slots(
         raise HTTPException(status_code=422, detail="date_to must be >= date_from")
     if delta_days > MAX_DATE_RANGE_DAYS:
         raise HTTPException(status_code=422, detail=f"Date range cannot exceed {MAX_DATE_RANGE_DAYS} days")
+    if include_excluded and delta_days != 0:
+        raise HTTPException(status_code=422, detail="includeExcluded requires a single selected date")
 
-    # Load chart via persisted snapshot (same pattern as life_event_service)
-    chart_snapshot = load_persisted_chart_response(session, chart_id)
-    chart_row = session.get(Chart, chart_id)
-    if chart_row is None:
-        raise HTTPException(status_code=404, detail="Chart not found")
-    bp = session.get(BirthProfile, chart_row.birth_profile_id)
-    if bp is None:
-        raise HTTPException(status_code=404, detail="Birth profile not found")
+    location_values = (activity_latitude, activity_longitude, activity_timezone)
+    has_activity_location = any(value is not None for value in location_values)
+    if has_activity_location and not all(value is not None for value in location_values):
+        raise HTTPException(status_code=422, detail="lat, lon, and tz must be supplied together")
 
-    daily_location = resolve_effective_daily_location(bp)
-    lat = daily_location.latitude
-    lon = daily_location.longitude
-    tz_name = daily_location.timezone
-    lagna_rasi = chart_snapshot.data.lagna.rasi
-    try:
-        moon_rasi = resolve_rasi(str(chart_row.moon_rasi))
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=f"Invalid Moon rasi in chart data: {chart_row.moon_rasi}") from exc
-
-    natal_moon = next(p for p in chart_snapshot.data.planets if p.graha == "MOON")
-    birth_jd = chart_snapshot.data.julian_day
-    moon_lon = natal_moon.absolute_longitude
-
-    # The personal layer's entire input. Built once; `score_day` short-circuits
-    # every personal rule when this is None, which is what general mode will be.
-    janma_name = str(chart_row.janma_nakshatra or "").strip().upper()
     subject: Subject | None = None
-    if janma_name in NAKSHATRA_NAMES:
+    lagna_rasi: int | None = None
+    maha_lord = "UNKNOWN"
+    antar_lord = "UNKNOWN"
+
+    has_personal_chart = chart_id is not None or chart_data is not None
+
+    if chart_data is not None:
+        if not has_activity_location:
+            raise HTTPException(status_code=422, detail="lat, lon, and tz are required for an in-memory chart")
+        lat = float(activity_latitude)
+        lon = float(activity_longitude)
+        tz_name = str(activity_timezone)
+        location_source = "activity"
+        location_place = activity_place or "Selected activity location"
+        try:
+            resolve_timezone(tz_name)
+            lagna_rasi = chart_data.lagna.rasi
+            natal_moon = next(p for p in chart_data.planets if p.graha == "MOON")
+        except (AttributeError, StopIteration, ValueError) as exc:
+            raise HTTPException(status_code=422, detail="Could not derive the personal chart for muhurta") from exc
+        birth_jd = chart_data.julian_day
+        moon_lon = natal_moon.absolute_longitude
         subject = Subject(
-            janma_nakshatra=NAKSHATRA_NAMES.index(janma_name) + 1,
-            janma_rasi=moon_rasi,
+            janma_nakshatra=natal_moon.nakshatra,
+            janma_rasi=natal_moon.rasi,
             lagna_rasi=lagna_rasi,
         )
+        try:
+            tz_obj = resolve_timezone(tz_name)
+            today_local = datetime.now(tz_obj).date()
+            today_midnight = datetime.combine(today_local, datetime.min.time(), tzinfo=tz_obj)
+            jd_today = utc_datetime_to_julian_day(today_midnight.astimezone(UTC))
+            timeline = calculate_vimshottari_timeline(birth_jd, moon_lon, jd_today)
+            maha_lord = timeline.current_mahadasha.lord
+            antar_lord = timeline.current_antardasha.lord
+        except Exception as exc:
+            logger.debug("Muhurta dasha lookup failed for in-memory chart: %s", exc)
+    elif chart_id is None:
+        if not has_activity_location:
+            raise HTTPException(status_code=422, detail="lat, lon, and tz are required without chartId")
+        lat = float(activity_latitude)
+        lon = float(activity_longitude)
+        tz_name = str(activity_timezone)
+        location_source = "activity"
+        location_place = activity_place or "Selected activity location"
     else:
-        # No usable birth star: run the almanac layers rather than fabricating a
-        # subject. Tara Bala silently computed from a wrong star is worse than
-        # an answer that never claims to be personal.
-        logger.warning(
-            "Chart %s has an unrecognised janma nakshatra %r — muhurta falls back to almanac-only scoring",
-            chart_id, chart_row.janma_nakshatra,
-        )
+        # Load chart via persisted snapshot (same pattern as life_event_service).
+        chart_snapshot = load_persisted_chart_response(session, chart_id)
+        chart_row = session.get(Chart, chart_id)
+        if chart_row is None:
+            raise HTTPException(status_code=404, detail="Chart not found")
+        bp = session.get(BirthProfile, chart_row.birth_profile_id)
+        if bp is None:
+            raise HTTPException(status_code=404, detail="Birth profile not found")
 
-    # Get current dasha lords
-    try:
-        tz_obj = resolve_timezone(tz_name)
-        today_local = datetime.now(tz_obj).date()
-        today_midnight = datetime.combine(today_local, datetime.min.time(), tzinfo=tz_obj)
-        jd_today = utc_datetime_to_julian_day(today_midnight.astimezone(UTC))
-        timeline = calculate_vimshottari_timeline(birth_jd, moon_lon, jd_today)
-        maha_lord = timeline.current_mahadasha.lord
-        antar_lord = timeline.current_antardasha.lord
-    except Exception:
-        maha_lord = "UNKNOWN"
-        antar_lord = "UNKNOWN"
+        daily_location = resolve_effective_daily_location(bp)
+        if has_activity_location:
+            lat = float(activity_latitude)
+            lon = float(activity_longitude)
+            tz_name = str(activity_timezone)
+            location_source = "activity"
+            location_place = activity_place or "Selected activity location"
+        else:
+            lat = daily_location.latitude
+            lon = daily_location.longitude
+            tz_name = daily_location.timezone
+            location_source = daily_location.source
+            location_place = (bp.current_place or bp.birth_place) if location_source == "current" else bp.birth_place
+        try:
+            resolve_timezone(tz_name)
+            moon_rasi = resolve_rasi(str(chart_row.moon_rasi))
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=f"Invalid location or Moon rasi in chart data: {exc}") from exc
+        lagna_rasi = chart_snapshot.data.lagna.rasi
+        natal_moon = next(p for p in chart_snapshot.data.planets if p.graha == "MOON")
+        birth_jd = chart_snapshot.data.julian_day
+        moon_lon = natal_moon.absolute_longitude
+        janma_name = str(chart_row.janma_nakshatra or "").strip().upper()
+        if janma_name in NAKSHATRA_NAMES:
+            subject = Subject(
+                janma_nakshatra=NAKSHATRA_NAMES.index(janma_name) + 1,
+                janma_rasi=moon_rasi,
+                lagna_rasi=lagna_rasi,
+            )
+        else:
+            logger.warning(
+                "Chart %s has an unrecognised janma nakshatra %r — muhurta falls back to almanac-only scoring",
+                chart_id, chart_row.janma_nakshatra,
+            )
+        try:
+            tz_obj = resolve_timezone(tz_name)
+            today_local = datetime.now(tz_obj).date()
+            today_midnight = datetime.combine(today_local, datetime.min.time(), tzinfo=tz_obj)
+            jd_today = utc_datetime_to_julian_day(today_midnight.astimezone(UTC))
+            timeline = calculate_vimshottari_timeline(birth_jd, moon_lon, jd_today)
+            maha_lord = timeline.current_mahadasha.lord
+            antar_lord = timeline.current_antardasha.lord
+        except Exception as exc:
+            logger.debug("Muhurta dasha lookup failed for chart %s: %s", chart_id, exc)
 
-    dasha_support = _dasha_support(maha_lord, antar_lord, activity)
+    if not has_personal_chart:
+        try:
+            resolve_timezone(tz_name)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=f"Invalid timezone: {tz_name}") from exc
+    dasha_support = _dasha_support(maha_lord, antar_lord, activity) if has_personal_chart else None
 
     # Scan each day in range — batch-load/compute panchangam snapshots in one pass
     # to avoid a per-day cache SELECT+DELETE (see calculate_daily_panchangam_range).
@@ -469,11 +676,14 @@ def find_best_muhurta_slots(
             # when a subject exists. A vetoed day is dropped outright —
             # Chandrashtama is not compensable by an excellent almanac, so it
             # must not merely lose points and stay rankable.
-            day = score_day(snap, activity, subject)
+            # The selected-window lagna is calculated only for the top five
+            # candidates below.  A sunrise lagna would be cheaper but falsely
+            # claims the sign at the recommended clock time.
+            day = score_day(snap, activity, subject, include_lagna_sign=False)
             # A vetoed day is never a candidate. `continue` would be wrong here —
             # the loop counter advances at the bottom of the while body, outside
             # this try, so skipping the rest must not skip the increment.
-            if not day.vetoed:
+            if not day.vetoed or include_excluded:
                 day_score = day.score
                 pan_support = _panchangam_support(day)
                 cautions = [
@@ -489,6 +699,7 @@ def find_best_muhurta_slots(
                 # time always falls inside the hora its own reason names (D1).
                 window = _best_time_window(snap, activity, lagna_rasi)
                 day_score += window.hora_bonus
+                day_score = _apply_tara_display_cap(day_score, snap, subject)
                 slot_start, slot_end = window.start, window.end
                 t_start, t_end = slot_start.strftime("%H:%M"), slot_end.strftime("%H:%M")
                 slot_cautions = list(cautions)
@@ -530,6 +741,10 @@ def find_best_muhurta_slots(
                     hora_support=window.hora_support,
                     cautions=slot_cautions,
                     factors=slot_factors,
+                    snapshot=snap,
+                    window_start=slot_start,
+                    window_end=slot_end,
+                    recommended=not day.vetoed,
                 ))
         except Exception as exc:
             logger.debug("Muhurta score failed for %s: %s", current, exc)
@@ -538,6 +753,53 @@ def find_best_muhurta_slots(
     # Sort by score descending, take top N
     scored_days.sort(key=lambda x: x.score, reverse=True)
     top = scored_days[:TOP_N]
+
+    enriched_top: list[_ScoredDay] = []
+    for candidate in top:
+        snapshot_with_schedule = with_daylight_lagna_schedule(candidate.snapshot, session=session)
+        midpoint = candidate.window_start + (candidate.window_end - candidate.window_start) / 2
+        lagna_window = next(
+            (
+                interval
+                for interval in snapshot_with_schedule.lagna_schedule
+                if interval.start <= midpoint < interval.end
+            ),
+            None,
+        )
+        if lagna_window is None:
+            enriched_top.append(candidate._replace(snapshot=snapshot_with_schedule))
+            continue
+
+        score = candidate.score
+        factors = list(candidate.factors)
+        cautions = list(candidate.cautions)
+        lagna_factor = lagna_sign_factor_at_window(activity, lagna_window.rasi_number)
+        if lagna_factor is not None:
+            score = _apply_tara_display_cap(score + lagna_factor.contribution, snapshot_with_schedule, subject)
+            factors.append(MuhurtaFactor.from_engine(lagna_factor))
+            if lagna_factor.verdict is Verdict.PENALTY:
+                cautions.append(_t(lagna_factor.reason_ta, lagna_factor.reason_en))
+
+        # This is intentionally calculated only for the already-shortlisted
+        # dates, alongside the selected-window lagna. It is an owner-approved
+        # product heuristic, not a claimed Kalaprakasika rule.
+        try:
+            midpoint_jd = utc_datetime_to_julian_day(midpoint.astimezone(UTC))
+            planets = calculate_sidereal_planets(midpoint_jd).bodies
+            wealth_factor = wealth_house_heuristic_factor(activity, lagna_window.rasi_number, planets)
+        except Exception as exc:
+            logger.debug("Wealth-house heuristic lookup failed for %s: %s", candidate.day, exc)
+            wealth_factor = None
+        if wealth_factor is not None:
+            pre_heuristic_score = score
+            score = _apply_in_band_heuristic_bonus(score, wealth_factor.contribution)
+            score = _apply_tara_display_cap(score, snapshot_with_schedule, subject)
+            # Report the real applied contribution, which can be zero when a
+            # band boundary or Tara cap correctly prevents a score change.
+            wealth_factor = replace(wealth_factor, contribution=score - pre_heuristic_score)
+            factors.append(MuhurtaFactor.from_engine(wealth_factor))
+        enriched_top.append(candidate._replace(score=score, cautions=cautions, factors=factors, snapshot=snapshot_with_schedule))
+    top = sorted(enriched_top, key=lambda candidate: candidate.score, reverse=True)
 
     def _tamil_date(d: date) -> BiText | None:
         try:
@@ -559,6 +821,8 @@ def find_best_muhurta_slots(
             # real day-scores exceed 100 raw, and clamping them flattened the
             # top of every activity's list into an identical "100".
             score=round(display_score(c.score), 1),
+            recommended=c.recommended,
+            band=_score_band(display_score(c.score), recommended=c.recommended),
             panchangamSupport=c.panchangam_support,
             dashaSupport=dasha_support,
             horaSupport=c.hora_support,
@@ -576,6 +840,13 @@ def find_best_muhurta_slots(
             dateFrom=date_from,
             dateTo=date_to,
             timezone=tz_name,
+            activityLocation=MuhurtaActivityLocation(
+                place=location_place,
+                latitude=lat,
+                longitude=lon,
+                timezone=tz_name,
+                source=location_source,
+            ),
             slots=slots,
         ),
         meta=ResponseMeta(

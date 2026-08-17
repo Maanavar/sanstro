@@ -330,6 +330,8 @@ def test_activity_timing_endpoint_avoids_recursive_daily_guidance_calls(client, 
     assert body["activity"] == "job_change"
     assert body["month"] == "2026-05"
     assert 0 < len(body["topDates"]) <= 5
+    assert body["dailyLocation"]["source"] in {"current", "birth"}
+    assert body["dailyLocation"]["timezone"]
 
 
 def test_activity_timing_endpoint_accepts_plan_tab_aliases(client, birth_profile_payload_factory):

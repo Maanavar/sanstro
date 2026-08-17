@@ -78,6 +78,7 @@ from app.calculations.display_names import (
     rasi_ta,
     tithi_display,
 )
+from app.calculations.ephemeris import EphemerisBody
 from app.calculations.muhurta_doctrine import RuleSource
 from app.calculations.panchangam import (
     RIKTA_TITHIS_IN_PAKSHA,
@@ -85,7 +86,8 @@ from app.calculations.panchangam import (
     SUBHA_TITHIS_KRISHNA,
     SUBHA_TITHIS_SHUKLA,
 )
-from app.calculations.tara_bala import chandra_bala, tara_number
+from app.calculations.tara_bala import TARA_SCORE, chandra_bala, tara_number
+from app.calculations.transits import is_cazimi, is_combust
 from app.data import marriage_muhurta_rules as marriage
 from app.data.muhurta_activity_registry import (
     ACTIVITY_RULES,
@@ -180,6 +182,10 @@ class _W:
     KARANA_TRANSITION = -10.0
     LAGNA_BEST = 8.0
     LAGNA_AVOID = -10.0
+    # Product heuristic approved by the owner, not a Kalaprakasika rule. It is
+    # applied only in the picker after the actual window lagna is known, and
+    # the service keeps it inside the result's existing display band.
+    WEALTH_HOUSE_HEURISTIC = 1.0
     # A sourced weekday preference. Weaker than the star, which is why VARA_GOOD
     # sits below NAKSHATRA_FAVOURED — Tamil practice ranks the star above the
     # weekday, and three of these chapters name the same four benefic weekdays,
@@ -192,8 +198,6 @@ class _W:
     # like a star, and half the days in any range share the verdict.
     PAKSHA_PREFERRED = 6.0
     PAKSHA_AGAINST = -8.0
-    TARA_GOOD = 12.0
-    TARA_ADVERSE = -18.0
     CHANDRA_STRONG = 10.0
     CHANDRA_BONUS = 5.0
     CHANDRA_WEAK = -12.0
@@ -893,9 +897,9 @@ def _vara_factor(snapshot, activity: str) -> FactorResult | None:
     weekday guidance was not part of the Ch. XIV extraction, and inventing one
     here would be exactly the drive-by doctrine this module forbids.
 
-    Graded PENALTY, never VETO, even where the passage says "Avoid Sunday,
-    Tuesday and Saturday" — see the grading note in
-    `app.data.muhurta_activity_registry`.
+    An activity's explicitly avoided weekday is a categorical date veto. This
+    remains activity-specific: some sources name Saturday favourable, so no
+    global Saturday rule exists.
     """
     entry = _rules(activity)
     if entry is None or not (entry.vara_good or entry.vara_avoid):
@@ -908,8 +912,8 @@ def _vara_factor(snapshot, activity: str) -> FactorResult | None:
     if weekday in entry.vara_avoid:
         return FactorResult(
             factor="VARA",
-            verdict=Verdict.PENALTY,
-            contribution=_W.VARA_AVOID,
+            verdict=Verdict.VETO if entry.vara_avoid_is_veto else Verdict.PENALTY,
+            contribution=0.0 if entry.vara_avoid_is_veto else _W.VARA_AVOID,
             reason_en=f"{day_en} is a day Kalaprakasika says to avoid for {entry.label_en}.",
             reason_ta=f"கலப்பிரகாசிகை {entry.label_ta} தவிர்க்கச் சொல்லும் நாள் {day_ta}.",
             rule_id=entry.vara_rule_id,
@@ -977,6 +981,127 @@ def _lagna_sign_factor(snapshot, activity: str) -> FactorResult | None:
         reason_ta=f"சூரிய உதயத்தில் {name_ta} லக்னம் — திருமணத்திற்கு நடுத்தரமான பலன்.",
         rule_id="MARRIAGE_LAGNA_SIGN_PREFERENCE",
     )
+
+
+def lagna_sign_factor_at_window(activity: str, rasi: int) -> FactorResult | None:
+    """Apply a sourced lagna-sign rule to the selected window's actual lagna.
+
+    The all-day engine deliberately does not call this: the expensive lagna
+    schedule is calculated only after the picker has shortlisted its dates.
+    """
+    entry = _rules(activity)
+    if activity == _MARRIAGE:
+        best, middling, avoid = marriage.MARRIAGE_LAGNA_BEST, frozenset(), marriage.MARRIAGE_LAGNA_AVOID
+        rule_id = "MARRIAGE_LAGNA_SIGN_PREFERENCE"
+        label_en, label_ta = "marriage", "திருமணம்"
+    elif entry is not None:
+        best, middling, avoid = entry.lagna_best, entry.lagna_middling, entry.lagna_avoid
+        rule_id = entry.lagna_rule_id
+        label_en, label_ta = entry.label_en, entry.label_ta
+    else:
+        return None
+    if not (best or middling or avoid):
+        return None
+
+    name_en = rasi_en(rasi) or str(rasi)
+    name_ta = rasi_ta(rasi) or str(rasi)
+    if rasi in avoid:
+        verdict, contribution = Verdict.PENALTY, _W.LAGNA_AVOID
+        reason_en = f"{name_en} rises during the selected window — a sign the text says to avoid for {label_en}."
+        reason_ta = f"தேர்ந்தெடுத்த நேரத்தில் {name_ta} லக்னம் — {label_ta} தவிர்க்கச் சொல்லப்பட்ட ராசி."
+    elif rasi in best:
+        verdict, contribution = Verdict.BONUS, _W.LAGNA_BEST
+        reason_en = f"{name_en} rises during the selected window — among the signs named best for {label_en}."
+        reason_ta = f"தேர்ந்தெடுத்த நேரத்தில் {name_ta} லக்னம் — {label_ta} சிறந்ததெனக் கூறப்பட்ட ராசிகளுள் ஒன்று."
+    elif rasi in middling:
+        verdict, contribution = Verdict.NEUTRAL, 0.0
+        reason_en = f"{name_en} rises during the selected window — of middling quality for {label_en}."
+        reason_ta = f"தேர்ந்தெடுத்த நேரத்தில் {name_ta} லக்னம் — {label_ta} நடுத்தரமான பலன்."
+    else:
+        verdict, contribution = Verdict.NEUTRAL, 0.0
+        reason_en = f"{name_en} rises during the selected window — the text names it neither way for {label_en}."
+        reason_ta = f"தேர்ந்தெடுத்த நேரத்தில் {name_ta} லக்னம் — {label_ta} நூல் இதைக் குறிப்பிடவில்லை."
+    return FactorResult(
+        factor="LAGNA_SIGN_AT_WINDOW",
+        verdict=verdict,
+        contribution=contribution,
+        reason_en=reason_en,
+        reason_ta=reason_ta,
+        rule_id=rule_id,
+    )
+
+
+_WEALTH_HEURISTIC_ACTIVITIES = frozenset({
+    "TREASURE_STORE",
+    "GOLD",
+    "GEMS",
+    "LAND_PURCHASE",
+    "LAND_POSSESSION",
+    "NEW_ORNAMENT",
+})
+_NATURAL_BENEFICS = frozenset({"JUPITER", "VENUS", "MERCURY"})
+_NATURAL_MALEFICS = frozenset({"SUN", "MARS", "SATURN", "RAHU", "KETU"})
+
+
+def wealth_house_heuristic_factor(
+    activity: str,
+    lagna_rasi: int,
+    bodies: dict[str, EphemerisBody],
+) -> FactorResult | None:
+    """Return the owner-approved, explicitly unsourced wealth-house bonus.
+
+    This deliberately evaluates only the agreed condition: an unafflicted
+    natural benefic in the 2nd or 11th from the *selected-window* lagna, with
+    no natural malefic in the 2nd. Sign dignity and aspect are not inferred.
+    The caller supplies planets at the recommended-window midpoint, preserving
+    this engine's no-ephemeris-call contract.
+    """
+    if activity not in _WEALTH_HEURISTIC_ACTIVITIES or not 1 <= lagna_rasi <= 12:
+        return None
+
+    second_rasi = (lagna_rasi % 12) + 1
+    eleventh_rasi = ((lagna_rasi + 9) % 12) + 1
+    sun = bodies.get("SUN")
+    if sun is None:
+        return None
+
+    # The approved condition requires the second house to be free of a natural
+    # malefic even if a qualifying benefic is found in the eleventh.
+    if any(body is not None and body.rasi == second_rasi for name in _NATURAL_MALEFICS if (body := bodies.get(name))):
+        return None
+
+    for benefic_name in _NATURAL_BENEFICS:
+        benefic = bodies.get(benefic_name)
+        if benefic is None or benefic.rasi not in {second_rasi, eleventh_rasi}:
+            continue
+        combust = is_combust(
+            benefic_name,
+            benefic.absolute_longitude,
+            sun.absolute_longitude,
+            benefic.is_retrograde,
+        ) and not is_cazimi(benefic_name, benefic.absolute_longitude, sun.absolute_longitude)
+        if combust:
+            continue
+        if any(
+            body is not None and body.rasi == benefic.rasi
+            for name in _NATURAL_MALEFICS
+            if (body := bodies.get(name))
+        ):
+            continue
+        return FactorResult(
+            factor="WEALTH_HOUSE_HEURISTIC",
+            verdict=Verdict.BONUS,
+            contribution=_W.WEALTH_HOUSE_HEURISTIC,
+            reason_en=(
+                "An unafflicted natural benefic occupies the 2nd or 11th from the selected lagna, "
+                "supporting this wealth purchase. This is a product heuristic, not a Kalaprakasika rule."
+            ),
+            reason_ta=(
+                "தேர்ந்தெடுத்த லக்னத்திலிருந்து 2 அல்லது 11ஆம் வீட்டில் பாதிப்பில்லாத சுபகிரகம் உள்ளது — "
+                "இந்தச் செல்வக் கொள்முதலுக்கு ஆதரவு. இது கலப்பிரகாசிகை விதியல்ல; செயலி வழிகாட்டல்."
+            ),
+        )
+    return None
 
 
 def _registry_lagna_sign_factor(snapshot, activity: str) -> FactorResult | None:
@@ -1252,22 +1377,22 @@ def _tara_bala_factor(snapshot, subject: Subject) -> FactorResult:
         return FactorResult(
             factor="TARA_BALA",
             verdict=Verdict.PENALTY,
-            contribution=_W.TARA_ADVERSE,
+            contribution=float(TARA_SCORE[tara]),
             reason_en=f"{star_en} is {tara_en} tara from {who_en}'s birth star — an adverse count.",
             reason_ta=f"{who_ta}ஜென்ம நட்சத்திரத்திலிருந்து {star_ta} {tara_ta} தாரா — உகந்ததல்ல.",
         )
     if tara == 1:
         return FactorResult(
             factor="TARA_BALA",
-            verdict=Verdict.NEUTRAL,
-            contribution=0.0,
-            reason_en=f"{star_en} is {who_en}'s own birth star — Janma tara, neutral.",
-            reason_ta=f"{star_ta} {who_ta}சொந்த நட்சத்திரம் — ஜென்ம தாரா, நடுநிலை.",
+            verdict=Verdict.BONUS,
+            contribution=float(TARA_SCORE[tara]),
+            reason_en=f"{star_en} is {who_en}'s own birth star — Janma tara.",
+            reason_ta=f"{star_ta} {who_ta}சொந்த நட்சத்திரம் — ஜென்ம தாரா.",
         )
     return FactorResult(
         factor="TARA_BALA",
         verdict=Verdict.BONUS,
-        contribution=_W.TARA_GOOD,
+        contribution=float(TARA_SCORE[tara]),
         reason_en=f"{star_en} is {tara_en} tara from {who_en}'s birth star — favourable.",
         reason_ta=f"{who_ta}ஜென்ம நட்சத்திரத்திலிருந்து {star_ta} {tara_ta} தாரா — சாதகமானது.",
     )
@@ -1275,7 +1400,13 @@ def _tara_bala_factor(snapshot, subject: Subject) -> FactorResult:
 
 # ── the entry point ─────────────────────────────────────────────────────────
 
-def score_day(snapshot, activity: str, subject: Subject | None = None) -> DayScore:
+def score_day(
+    snapshot,
+    activity: str,
+    subject: Subject | None = None,
+    *,
+    include_lagna_sign: bool = True,
+) -> DayScore:
     """Score one day for one activity, optionally for one person.
 
     `subject=None` is general mode: the personal factors are not computed, not
@@ -1307,10 +1438,13 @@ def score_day(snapshot, activity: str, subject: Subject | None = None) -> DaySco
         _karana_factor(snapshot, activity),
         _vara_factor(snapshot, activity),
         _paksha_factor(snapshot, activity),
-        _lagna_sign_factor(snapshot, activity),
     ):
         if optional is not None:
             factors.append(optional)
+    if include_lagna_sign:
+        lagna_factor = _lagna_sign_factor(snapshot, activity)
+        if lagna_factor is not None:
+            factors.append(lagna_factor)
 
     if subject is not None:
         factors.append(_chandra_bala_factor(snapshot, subject))

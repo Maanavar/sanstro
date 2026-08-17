@@ -23,15 +23,14 @@ number, so the rule is written down:
   the two primary day-selection factors.
 * **PENALTY** — everything softer. Absence from a non-exhaustive "best" list;
   an exclusion phrased as *"all Thithis except X are auspicious"* (X is left out
-  of the auspicious set, which is weaker than being forbidden); and **every**
-  weekday and lagna rule, none of which states a consequence.
+  of the auspicious set, which is weaker than being forbidden); and lagna rules,
+  none of which state a consequence.
+* **Weekday VETO (owner ruling, 2026-08-17)** — every activity-specific weekday
+  in a source's `vara_avoid` set is a categorical date-selection rule. This
+  does not invent a universal Saturday ban: activities whose own sources name
+  Saturday favourable, or name no avoided weekday, remain eligible.
 
-Weekday in particular: three of these chapters say "avoid Sunday, Tuesday and
-Saturday", which reads imperative — but no consequence is attached, the repo has
-no precedent for a weekday veto, and vetoing three days in seven across every
-samskara would remove far more than the text plainly demands. Graded PENALTY as
-the least destructive reading, and flagged here for the astrologer rather than
-resolved silently. The lagna grading follows the precedent already set by
+The lagna grading follows the precedent already set by
 `MARRIAGE_LAGNA_SIGN_PREFERENCE`, whose provenance record states that "should be
 avoided" is treated as a strong penalty and not automatically a hard veto.
 
@@ -65,6 +64,7 @@ repo's convention.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Literal
 
 from app.data import kalaprakasika_adornment_rules as adornment
 from app.data import kalaprakasika_agriculture_rules as agriculture
@@ -120,6 +120,9 @@ class ActivityRules:
     # Where the whole activity comes from, for the UNSOURCED-gap copy and the docs.
     chapter: str
     worksheet: str
+    # Explicitly preserves the picker’s daytime-only behaviour.  Future evening
+    # support must opt in per activity after an owner-approved policy decision.
+    evening_policy: Literal["DAY_ONLY", "FORENOON_ONLY", "UNTIL_PRADOSHA", "EVENING_ALLOWED"] = "DAY_ONLY"
 
     # ── nakshatra ────────────────────────────────────────────────────────────
     star_groups: tuple[StarGroup, ...] = ()
@@ -160,6 +163,9 @@ class ActivityRules:
     # ── vara (uppercase weekday, matching PanchangamSnapshot.weekday) ────────
     vara_good: frozenset[str] = frozenset()
     vara_avoid: frozenset[str] = frozenset()
+    # Owner ruling: an explicitly avoided weekday is never returned as a start
+    # recommendation. Set False only for a documented source conflict.
+    vara_avoid_is_veto: bool = True
     vara_rule_id: str | None = None
     # A condition the passage attaches to the weekday rule that a day-level
     # snapshot cannot evaluate (Ch. XXI p.112's "the lord of the day should
@@ -286,6 +292,7 @@ ACTIVITY_RULES: dict[str, ActivityRules] = {
         karana_rule_id="KP_CH3_NAMING_KARANA_001",
         vara_good=samskara.NAMING_VARA_GOOD,
         vara_avoid=samskara.NAMING_VARA_AVOID,
+        vara_avoid_is_veto=True,
         vara_rule_id="KP_CH3_NAMING_VARA_001",
         lagna_best=samskara.NAMING_LAGNA_BEST,
         lagna_conditional=samskara.NAMING_LAGNA_CONDITIONAL,
@@ -373,6 +380,7 @@ ACTIVITY_RULES: dict[str, ActivityRules] = {
         tithi_rule_id="KP_CH3_ANNAPRASANA_TITHI_001",
         vara_good=samskara.ANNAPRASANA_VARA_GOOD,
         vara_avoid=samskara.ANNAPRASANA_VARA_AVOID,
+        vara_avoid_is_veto=True,
         vara_rule_id="KP_CH3_ANNAPRASANA_VARA_001",
         lagna_best=samskara.ANNAPRASANA_LAGNA_BEST,
         lagna_rule_id="KP_CH3_ANNAPRASANA_LAGNA_001",
@@ -408,6 +416,7 @@ ACTIVITY_RULES: dict[str, ActivityRules] = {
         tithi_rule_id="KP_CH4_EAR_BORING_TITHI_001",
         vara_good=samskara.EAR_BORING_VARA_GOOD,
         vara_avoid=samskara.EAR_BORING_VARA_AVOID,
+        vara_avoid_is_veto=True,
         vara_rule_id="KP_CH4_EAR_BORING_VARA_001",
         lagna_best=samskara.EAR_BORING_LAGNA_BEST,
         lagna_middling=samskara.EAR_BORING_LAGNA_MIDDLING,
@@ -702,6 +711,7 @@ ACTIVITY_RULES: dict[str, ActivityRules] = {
         tithi_rule_id="KP_CH5_TONSURE_TITHI_001",
         vara_good=lifecycle.TONSURE_VARA_GOOD,
         vara_avoid=lifecycle.TONSURE_VARA_AVOID,
+        vara_avoid_is_veto=True,
         vara_rule_id="KP_CH5_TONSURE_VARA_001",
         paksha_preferred=lifecycle.TONSURE_PAKSHA_PREFERRED,
         paksha_exempt_in_paksha=lifecycle.TONSURE_PAKSHA_EXEMPT_IN_PAKSHA,
@@ -744,6 +754,7 @@ ACTIVITY_RULES: dict[str, ActivityRules] = {
         karana_rule_id="KP_CH7_UPANAYANAM_KARANA_001",
         vara_good=lifecycle.UPANAYANAM_VARA_GOOD,
         vara_avoid=lifecycle.UPANAYANAM_VARA_AVOID,
+        vara_avoid_is_veto=True,
         vara_rule_id="KP_CH7_UPANAYANAM_VARA_001",
         paksha_preferred=lifecycle.UPANAYANAM_PAKSHA_PREFERRED,
         paksha_exempt_in_paksha=lifecycle.UPANAYANAM_PAKSHA_EXEMPT_IN_PAKSHA,
@@ -798,6 +809,7 @@ ACTIVITY_RULES: dict[str, ActivityRules] = {
         tithi_rule_id="KP_CH17_SEEMANTHAM_TITHI_001",
         vara_good=lifecycle.SEEMANTHAM_VARA_GOOD,
         vara_avoid=lifecycle.SEEMANTHAM_VARA_AVOID,
+        vara_avoid_is_veto=True,
         vara_rule_id="KP_CH17_SEEMANTHAM_VARA_001",
         lagna_best=lifecycle.SEEMANTHAM_LAGNA_BEST,
         lagna_avoid=lifecycle.SEEMANTHAM_LAGNA_AVOID,
@@ -840,6 +852,7 @@ ACTIVITY_RULES: dict[str, ActivityRules] = {
         karana_rule_id="KP_CH18_LYING_IN_KARANA_001",
         vara_good=lifecycle.LYING_IN_VARA_GOOD,
         vara_avoid=lifecycle.LYING_IN_VARA_AVOID,
+        vara_avoid_is_veto=True,
         vara_rule_id="KP_CH18_LYING_IN_VARA_001",
         lagna_best=lifecycle.LYING_IN_LAGNA_BEST,
         lagna_middling=lifecycle.LYING_IN_LAGNA_MIDDLING,

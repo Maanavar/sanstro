@@ -37,6 +37,7 @@ from app.schemas.charts import ChartCalculateResponse
 from app.schemas.daily_guidance import (
     ActivityTimingData,
     ActivityTimingDayResult,
+    ActivityTimingLocation,
     ActivityTimingResponse,
     DailyActivityBoardData,
     DailyActivityVerdict,
@@ -1330,6 +1331,24 @@ def get_week_ahead_by_chart(
     return get_week_ahead(session, chart.birth_profile_id, week_start, language, calculation_version)
 
 
+def _activity_timing_rank(
+    daily_score: int,
+    alignment: str,
+    tara_score: int,
+    day_ordinal: int,
+) -> tuple[int, int, int]:
+    """Sort key for month timing results, strongest first.
+
+    Daily guidance (which is chart-derived) is the primary score.  The prior
+    ``alignment * 100`` formula made a generic Panchangam bucket lexicographic:
+    a chart-strong CAUTION date could never pass a weak SUPPORTS date.  Tara is
+    the signed personal contribution; generic alignment is only a deterministic
+    tie-breaker, so this introduces no unratified weighting constant.
+    """
+    alignment_tie = {"SUPPORTS": 2, "NEUTRAL": 1, "CAUTION": 0}.get(alignment, 0)
+    return daily_score + tara_score, alignment_tie, -day_ordinal
+
+
 def get_activity_timing(
     session: Session,
     chart_id: UUID,
@@ -1366,9 +1385,11 @@ def get_activity_timing(
     birth_profile_id = chart_snapshot.data.birth_profile.birth_profile_id
     base_cache_eligible = not active_goals and context_row is None
 
-    results: list[tuple[int, ActivityTimingDayResult]] = []
+    results: list[tuple[int, int, int, ActivityTimingDayResult]] = []
     date_result: ActivityTimingDayResult | None = None
-    alignment_rank = {"SUPPORTS": 2, "NEUTRAL": 1, "CAUTION": 0}
+    janma_nakshatra = next(
+        planet.nakshatra for planet in chart_snapshot.data.planets if planet.graha == "MOON"
+    )
 
     # Batch-load/compute the whole month up front instead of looping per-day
     # (which previously recomputed panchangam from scratch — no session/cache —
@@ -1405,6 +1426,7 @@ def get_activity_timing(
                 # without it: tithi, paksha and weekday alone would rank a
                 # Bharani day above a Poosam day for the same activity.
                 nakshatra_number=panchang.nakshatra_number,
+                janma_nakshatra=janma_nakshatra,
             )
             journal_insight = _build_journal_insight(
                 session,
@@ -1445,7 +1467,9 @@ def get_activity_timing(
                     )
                 score = daily_response.data.score
 
-            rank = alignment_rank.get(result.combined_alignment, 0) * 100 + score
+            rank, alignment_tie, date_tie = _activity_timing_rank(
+                score, result.combined_alignment, result.tara_score, day_num
+            )
             day_result = ActivityTimingDayResult(
                 dateLocal=d,
                 score=score,
@@ -1456,14 +1480,14 @@ def get_activity_timing(
                 shortReasonTa=result.short_ta,
                 shortReasonEn=result.short_en,
             )
-            results.append((rank, day_result))
+            results.append((rank, alignment_tie, date_tie, day_result))
             if as_of is not None and d == as_of:
                 date_result = day_result
         except Exception:  # noqa: S112 — skip an un-scorable candidate date, keep the rest
             continue
 
-    results.sort(key=lambda x: x[0], reverse=True)
-    top_dates = [item for _, item in results[:5]]
+    results.sort(key=lambda x: x[:3], reverse=True)
+    top_dates = [item for *_, item in results[:5]]
 
     return ActivityTimingResponse(
         data=ActivityTimingData(
@@ -1472,6 +1496,12 @@ def get_activity_timing(
             month=month,
             topDates=top_dates,
             dateResult=date_result,
+            dailyLocation=ActivityTimingLocation(
+                latitude=daily_location.latitude,
+                longitude=daily_location.longitude,
+                timezone=daily_location.timezone,
+                source=daily_location.source,
+            ),
         ),
         meta=ResponseMeta(
             calculation_version=calculation_version,

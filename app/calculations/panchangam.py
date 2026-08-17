@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterator, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import delete, select
@@ -27,6 +27,7 @@ from app.calculations.ephemeris import (
     calculate_sun_moon_longitudes,
 )
 from app.constants.astrology import NAKSHATRA_NAMES
+from app.data.durmuhurtham_rules import DURMUHURTHAM_DAYLIGHT_INDICES
 from app.models.panchangam_cache import PanchangamCache
 
 logger = logging.getLogger(__name__)
@@ -505,7 +506,7 @@ DEFAULT_AYANAMSA_TYPE = "LAHIRI"
 # The DAY half is unchanged (still ranked, still skipping Nalla Neram's windows).
 # Persisted gowri_nalla_neram changes on 6 of 7 weekdays, so cached snapshots must
 # recompute.
-PANCHANGAM_CACHE_DATA_VERSION = 39
+PANCHANGAM_CACHE_DATA_VERSION = 41
 DOMINANT_SPECIAL_TITHIS = {15, 30}
 
 # Fixed weekday clock-table Nalla Neram windows. NOTE (2026-07-17): the daily
@@ -609,6 +610,16 @@ class PanchangamChandrashtamamNakshatraWindow:
 
 
 @dataclass(frozen=True, slots=True)
+class PanchangamLagnaWindow:
+    """One contiguous daylight interval with the same sidereal rising sign."""
+
+    rasi_number: int
+    rasi_name: str
+    start: datetime
+    end: datetime
+
+
+@dataclass(frozen=True, slots=True)
 class PanchangamSnapshot:
     date_local: date
     timezone_name: str
@@ -640,6 +651,7 @@ class PanchangamSnapshot:
     gowri_panchangam: list[PanchangamSlot]
     nalla_neram: list[PanchangamSlot]
     gowri_nalla_neram: list[PanchangamSlot]
+    durmuhurtham: list[PanchangamSlot]
     abhijit_start: datetime
     abhijit_end: datetime
     abhijit_restricted: bool
@@ -688,6 +700,9 @@ class PanchangamSnapshot:
     # this, not the sunrise tithi (M-2). 0 means "not computed" — callers fall
     # back to the sunrise tithi.
     nishita_tithi_number: int = 0
+    # Calculated only for the picker’s shortlisted dates: a full schedule costs
+    # an ephemeris boundary search for each rising-sign change.
+    lagna_schedule: tuple[PanchangamLagnaWindow, ...] = ()
 
 
 def _format_hhmm(moment: datetime) -> str:
@@ -935,6 +950,35 @@ def _slot_datetime(start: datetime, duration: timedelta, slot_number: int) -> Pa
     slot_start = start + duration * (slot_number - 1)
     slot_end = slot_start + duration
     return PanchangamSlot(start=slot_start, end=slot_end, slot=slot_number)
+
+
+def _durmuhurtham_windows(
+    sunrise: datetime,
+    sunset: datetime,
+    weekday: str,
+) -> list[PanchangamSlot]:
+    """Build the verified Durmuhurtham daylight slots for one local date.
+
+    A weekday rule supplies only 1-based indices on the fifteen-part daylight
+    grid.  The duration is never a fixed number of minutes: it is derived from
+    this date and location's actual sunrise-to-sunset interval.
+    """
+    indices = DURMUHURTHAM_DAYLIGHT_INDICES.get(weekday, ())
+    invalid = [index for index in indices if not 1 <= index <= 15]
+    if invalid:
+        raise ValueError(f"Durmuhurtham indices must be in 1..15, got {invalid!r}")
+    duration = (sunset - sunrise) / 15
+    return [
+        PanchangamSlot(
+            start=sunrise + duration * (index - 1),
+            end=sunrise + duration * index,
+            slot=index,
+            name="DURMUHURTHAM",
+            period="DAY",
+            is_good=False,
+        )
+        for index in indices
+    ]
 
 
 def _gowri_slot_datetime(
@@ -1381,6 +1425,48 @@ def _find_lagna_rasi_boundary_jd(start_jd: float, latitude: float, longitude: fl
     return hi
 
 
+def build_daylight_lagna_schedule(snapshot: PanchangamSnapshot) -> tuple[PanchangamLagnaWindow, ...]:
+    """Calculate the sidereal lagna intervals between this snapshot's sunrise/sunset.
+
+    This intentionally does no cache lookup.  Callers use it only after the
+    inexpensive almanac ranking has shortlisted a maximum of five dates.
+    """
+    if snapshot.lagna_schedule:
+        return snapshot.lagna_schedule
+
+    cursor = utc_datetime_to_julian_day(snapshot.sunrise.astimezone(UTC))
+    end_jd = utc_datetime_to_julian_day(snapshot.sunset.astimezone(UTC))
+    windows: list[PanchangamLagnaWindow] = []
+    while cursor < end_jd - 1e-9:
+        rasi_number = rasi_from_degree(normalize_longitude(calculate_lagna_degree(cursor, snapshot.latitude, snapshot.longitude)))
+        boundary = _find_lagna_rasi_boundary_jd(cursor, snapshot.latitude, snapshot.longitude)
+        interval_end = min(boundary, end_jd)
+        start = utc_datetime_to_local_datetime(julian_day_to_utc_datetime(cursor), snapshot.timezone_name)
+        end = utc_datetime_to_local_datetime(julian_day_to_utc_datetime(interval_end), snapshot.timezone_name)
+        windows.append(PanchangamLagnaWindow(rasi_number, RASI_NAMES[rasi_number], start, end))
+        if interval_end >= end_jd - 1e-9:
+            break
+        cursor = min(interval_end + 1e-8, end_jd)
+    return tuple(windows)
+
+
+def with_daylight_lagna_schedule(
+    snapshot: PanchangamSnapshot,
+    *,
+    session: Session | None = None,
+) -> PanchangamSnapshot:
+    """Attach and persist the lazily calculated daylight lagna schedule."""
+    if snapshot.lagna_schedule:
+        return snapshot
+    enriched = replace(snapshot, lagna_schedule=build_daylight_lagna_schedule(snapshot))
+    if session is not None:
+        try:
+            _store_cached_snapshot(session, enriched, DEFAULT_AYANAMSA_TYPE)
+        except Exception as exc:
+            logger.warning("Failed to cache lagna schedule for %s: %s", snapshot.date_local, exc)
+    return enriched
+
+
 def _calculate_positions_at_sunrise(jd_ut: float) -> tuple[float, float, tuple[str, ...]]:
     """Sun/Moon plus the snapshot's warnings.
 
@@ -1465,6 +1551,7 @@ def _serialize_snapshot(snapshot: PanchangamSnapshot) -> dict:
         "gowri_panchangam": [_serialize_slot(w) for w in snapshot.gowri_panchangam],
         "nalla_neram": [_serialize_slot(w) for w in snapshot.nalla_neram],
         "gowri_nalla_neram": [_serialize_slot(w) for w in snapshot.gowri_nalla_neram],
+        "durmuhurtham": [_serialize_slot(w) for w in snapshot.durmuhurtham],
         "is_subha_muhurtham": snapshot.is_subha_muhurtham,
         "subha_muhurtham_reason": snapshot.subha_muhurtham_reason,
         "is_subha_muhurtham_strict": snapshot.is_subha_muhurtham_strict,
@@ -1518,6 +1605,15 @@ def _serialize_snapshot(snapshot: PanchangamSnapshot) -> dict:
         "dominant_yoga_number": snapshot.dominant_yoga_number,
         "pradhosham_tithi_number": snapshot.pradhosham_tithi_number,
         "nishita_tithi_number": snapshot.nishita_tithi_number,
+        "lagna_schedule": [
+            {
+                "rasi_number": window.rasi_number,
+                "rasi_name": window.rasi_name,
+                "start": window.start.isoformat(),
+                "end": window.end.isoformat(),
+            }
+            for window in snapshot.lagna_schedule
+        ],
     }
 
 
@@ -1574,6 +1670,10 @@ def _deserialize_snapshot(data: dict) -> PanchangamSnapshot:
             _deserialize_slot(w)
             for w in (data["gowri_nalla_neram"] if isinstance(data.get("gowri_nalla_neram"), list) else [])
         ],
+        durmuhurtham=[
+            _deserialize_slot(w)
+            for w in (data["durmuhurtham"] if isinstance(data.get("durmuhurtham"), list) else [])
+        ],
         is_subha_muhurtham=bool(data.get("is_subha_muhurtham", False)),
         subha_muhurtham_reason=str(data.get("subha_muhurtham_reason", "")),
         is_subha_muhurtham_strict=bool(data.get("is_subha_muhurtham_strict", False)),
@@ -1629,6 +1729,15 @@ def _deserialize_snapshot(data: dict) -> PanchangamSnapshot:
         dominant_tithi_number=int(data.get("dominant_tithi_number", 0)),
         pradhosham_tithi_number=int(data.get("pradhosham_tithi_number", 0)),
         nishita_tithi_number=int(data.get("nishita_tithi_number", 0)),
+        lagna_schedule=tuple(
+            PanchangamLagnaWindow(
+                rasi_number=int(window["rasi_number"]),
+                rasi_name=str(window["rasi_name"]),
+                start=datetime.fromisoformat(window["start"]),
+                end=datetime.fromisoformat(window["end"]),
+            )
+            for window in (data.get("lagna_schedule") or [])
+        ),
         dominant_nakshatra_number=int(data.get("dominant_nakshatra_number", 0)),
         dominant_yoga_number=int(data.get("dominant_yoga_number", 0)),
     )
@@ -1826,6 +1935,7 @@ def calculate_daily_panchangam(
     hora_entries = _make_hora_entries(sunrise, sunset, next_sunrise, weekday_lord)
     weekday_index = date_local.weekday()
     gowri_panchangam = _compute_gowri_panchangam(sunrise, sunset, next_sunrise, weekday_index)
+    durmuhurtham = _durmuhurtham_windows(sunrise, sunset, weekday_name)
     # Rahu Kalam / Yamagandam / Kuligai are the inauspicious kalams the daily
     # nalla-neram windows must avoid; pass them so both summaries are computed
     # clear of them (they share the Gowri 8-part grid, so a good kala can land
@@ -1934,6 +2044,7 @@ def calculate_daily_panchangam(
         gowri_panchangam=gowri_panchangam,
         nalla_neram=nalla_neram,
         gowri_nalla_neram=gowri_nalla_neram,
+        durmuhurtham=durmuhurtham,
         abhijit_start=abhijit_start,
         abhijit_end=abhijit_end,
         abhijit_restricted=abhijit_restricted,

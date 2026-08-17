@@ -22,6 +22,7 @@ import pytest
 from app.calculations.panchangam import best_gowri_slot, calculate_daily_panchangam
 from app.services.muhurta_service import (
     _MIN_WINDOW,
+    _SANDHYA_DURATION,
     _SIGN_LORDS,
     _activity_hora_lords,
     _best_time_window,
@@ -111,6 +112,14 @@ def test_window_never_intersects_an_inauspicious_kalam(snapshots):
             if kalam is None:
                 continue
             assert not _overlaps(window.start, window.end, kalam.start, kalam.end)
+
+
+def test_window_excludes_sandhya_and_never_crosses_its_local_date(snapshots):
+    for snapshot, _activity, window in _cases(snapshots):
+        assert window.start >= snapshot.sunrise + _SANDHYA_DURATION
+        assert window.end <= snapshot.sunset - _SANDHYA_DURATION
+        assert window.start.date() == snapshot.date_local
+        assert window.end.date() == snapshot.date_local
 
 
 def test_window_sits_inside_a_good_gowri_kala(snapshots):

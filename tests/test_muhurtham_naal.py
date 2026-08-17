@@ -6,12 +6,14 @@ the matching is pure arithmetic — so they run anywhere (no swisseph / no DB).
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
+from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
 
 from app.data.muhurtham_naals import available_years, get_muhurtham_naals
-from app.models import Chart
+from app.models import BirthProfile, Chart
 from app.services import muhurtham_naal_service as svc
 
 pytestmark = pytest.mark.no_db
@@ -77,8 +79,11 @@ class _FakeSession:
         self._chart = chart
 
     def get(self, model, _id):
-        assert model is Chart
-        return self._chart
+        if model is Chart:
+            return self._chart
+        if model is BirthProfile:
+            return None
+        raise AssertionError(f"Unexpected model: {model}")
 
 
 def test_match_ranks_and_flags_chandrashtama_for_rohini():
@@ -89,6 +94,7 @@ def test_match_ranks_and_flags_chandrashtama_for_rohini():
     assert ctx["total_count"] == 55
     assert ctx["chandrashtama_rasi_number"] == 9
     assert 0 < ctx["recommended_count"] < 55
+    assert ctx["daily_location"] is None
 
     # sorted best-first by score, ties by earliest date
     scores = [m.match_score for m in matches]
@@ -118,6 +124,51 @@ def test_match_recommended_only_filter():
     )
     assert len(rec_only) == ctx["recommended_count"]
     assert all(m.is_recommended for m in rec_only)
+
+
+def test_chart_match_uses_computed_location_specific_nalla_neram(monkeypatch):
+    """The public table stays static; a chart match must use its daily location."""
+    profile_id = uuid.uuid4()
+
+    class _ChartWithProfile(_FakeChart):
+        birth_profile_id = profile_id
+
+    class _Profile:
+        birth_place = "Synthetic birthplace"
+        birth_latitude = 10.0
+        birth_longitude = 76.0
+        birth_timezone = "Asia/Kolkata"
+        current_place = "Synthetic current place"
+        current_latitude = 11.0
+        current_longitude = 77.0
+        current_timezone = "Asia/Kolkata"
+
+    class _SessionWithProfile(_FakeSession):
+        def get(self, model, _id):
+            if model is Chart:
+                return self._chart
+            if model is BirthProfile:
+                return _Profile()
+            return None
+
+    def _snapshots(start, end, lat, lon, tz, *, session):
+        assert (lat, lon, tz) == (11.0, 77.0, "Asia/Kolkata")
+        slot = SimpleNamespace(
+            start=datetime(2026, 1, 1, 8, 12),
+            end=datetime(2026, 1, 1, 9, 7),
+            period="AM",
+        )
+        return {
+            n.date: SimpleNamespace(nalla_neram=[slot])
+            for n in get_muhurtham_naals(2026)
+        }
+
+    monkeypatch.setattr(svc, "calculate_daily_panchangam_range", _snapshots)
+    matches, _ = svc.match_muhurtham_naals(
+        uuid.uuid4(), 2026, _SessionWithProfile(_ChartWithProfile("ROHINI", "Rishabam"))
+    )
+
+    assert all(match.naal.nalla_neram[0].start == "08:12" for match in matches)
 
 
 def test_match_unknown_chart_or_year():

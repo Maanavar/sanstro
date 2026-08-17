@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -306,12 +307,22 @@ class ActivityTimingDayResult(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class ActivityTimingLocation(BaseModel):
+    """Location used for the Panchangam behind an activity-timing result."""
+
+    latitude: float
+    longitude: float
+    timezone: str
+    source: Literal["current", "birth"]
+
+
 class ActivityTimingData(BaseModel):
     chart_id: UUID = Field(alias="chartId")
     activity: str
     month: str
     top_dates: list[ActivityTimingDayResult] = Field(alias="topDates")
     date_result: ActivityTimingDayResult | None = Field(default=None, alias="dateResult")
+    daily_location: ActivityTimingLocation | None = Field(default=None, alias="dailyLocation")
 
     model_config = ConfigDict(populate_by_name=True)
 

@@ -26,10 +26,11 @@ from app.calculations.numerology import ScriptMismatchError, analyze_object, bui
 from app.calculations.numerology_naming import NamingMode, UnverifiedCanonError
 from app.calculations.porutham import compute_porutham
 from app.core.public_endpoint_limiter import public_endpoint_rate_limit
-from app.services.feature_flags import get_flag
 from app.db.session import get_db
 from app.schemas.birth_profiles import _validate_birth_date_bounds  # noqa: PLC2701 (shared validation)
 from app.schemas.charts import ChartCalculateResponseData, ChartSummaryData
+from app.schemas.dasha import DashaTimelineResponseData
+from app.schemas.muhurta import MuhurtaResponse
 from app.schemas.muhurtham_naal import MuhurthamNaalListResponse, item_from_view
 from app.schemas.numerology import (
     BabyNamesResponse,
@@ -41,11 +42,19 @@ from app.schemas.numerology import (
     PersonalCycleResponse,
     PublicBabyNameRequest,
 )
-from app.schemas.panchangam import PanchangamDailyQuery, PanchangamDailyResponse, PanchangamMonthlyQuery, PanchangamMonthlyResponse
-from app.schemas.dasha import DashaTimelineResponseData
+from app.schemas.panchangam import (
+    PanchangamDailyQuery,
+    PanchangamDailyResponse,
+    PanchangamMonthlyQuery,
+    PanchangamMonthlyResponse,
+)
 from app.schemas.relationships import DirectPoruthamData, KutaResult, NadiDoshaData, RelationshipBiText
-from app.services.chart_service import _chart_response_from_profile, get_chart_summary_from_snapshot  # noqa: PLC2701 (internal use)
+from app.services.chart_service import (  # noqa: PLC2701 (internal use)
+    _chart_response_from_profile,
+    get_chart_summary_from_snapshot,
+)
 from app.services.dasha_service import get_chart_dasha_from_snapshot
+from app.services.feature_flags import get_flag
 from app.services.numerology_naming_service import (
     UserNameQuery,
     baby_names_for_birth_details,
@@ -787,6 +796,22 @@ class PublicMuhurtaResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class PublicPersonalizedMuhurtaRequest(BaseModel):
+    """A no-save, chart-personalized muhurta request for the public tool."""
+
+    birth: PublicBirthInput
+    event_type: str = Field(alias="eventType")
+    date_from: date = Field(alias="dateFrom")
+    date_to: date = Field(alias="dateTo")
+    lat: float
+    lng: float
+    timezone: str = "Asia/Kolkata"
+    place: str = "Selected activity location"
+    include_excluded: bool = Field(default=False, alias="includeExcluded")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 def _overlaps_public(start_a, end_a, start_b, end_b) -> bool:
     return max(start_a, start_b) < min(end_a, end_b)
 
@@ -829,6 +854,47 @@ def _format_clock_label(value) -> str:
 
 def _format_time_range(start, end) -> str:
     return f"{_format_clock_label(start)}-{_format_clock_label(end)}"
+
+
+@router.post("/muhurta/personalized", response_model=MuhurtaResponse)
+@public_endpoint_rate_limit("public_muhurta")
+def public_personalized_muhurta(
+    payload: PublicPersonalizedMuhurtaRequest,
+    request: Request,
+    session: Session = Depends(get_db),
+) -> MuhurtaResponse:
+    """Find chart-personalized muhurta without saving the supplied birth details.
+
+    The transient chart uses the same scorer and result contract as Calendar's
+    signed-in picker. Birth time is required here: without it the tool must not
+    claim a personalized Lagna, Hora, or Dasha reading.
+    """
+    from app.services.muhurta_service import find_best_muhurta_slots
+
+    if payload.birth.birth_time_local is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Birth time is required for a personalized muhurta reading.",
+        )
+    try:
+        chart = _chart_response_from_profile(_EphemeralProfile(payload.birth), "thirukanitham-2026-v1")
+    except (ValueError, HTTPException) as exc:
+        msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc
+
+    return find_best_muhurta_slots(
+        None,
+        payload.event_type,
+        payload.date_from,
+        payload.date_to,
+        session,
+        activity_latitude=payload.lat,
+        activity_longitude=payload.lng,
+        activity_timezone=payload.timezone,
+        activity_place=payload.place,
+        include_excluded=payload.include_excluded,
+        chart_data=chart.data,
+    )
 
 
 @router.post("/muhurta", response_model=PublicMuhurtaResponse)

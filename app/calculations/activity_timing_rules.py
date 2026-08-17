@@ -43,6 +43,7 @@ from typing import Literal
 
 from app.calculations.display_names import nakshatra_en, nakshatra_ta, tithi_display
 from app.calculations.panchangam import SUBHA_NAKSHATRA_NUMBERS
+from app.calculations.tara_bala import TARA_NAMES, TARA_SCORE, tara_number
 from app.constants.astrology import NAKSHATRA_NAMES
 from app.core.age_gate import (
     EDUCATION_LOWER_AGE,
@@ -154,6 +155,11 @@ class ActivityTimingResult:
     # claims, and the month ranker used to make the first while reading as the
     # second.
     nakshatra_signal: TimingSignal | None
+    # Present only for a personal (birth-star supplied) assessment.  It is kept
+    # separate from ``combined_alignment``: Tara Bala is a calibrated ranking
+    # contribution, not a claim that Panchangam itself has vetoed the day.
+    tara_signal: TimingSignal | None
+    tara_score: int
     combined_alignment: Alignment
     combined_ta: str
     combined_en: str
@@ -529,6 +535,32 @@ def _primary_signal(
     return tithi_sig
 
 
+def _assess_tara(janma_nakshatra: int, day_nakshatra: int) -> tuple[TimingSignal, int]:
+    """Return the named personal Tara factor and its approved contribution.
+
+    The 9-fold class is deliberately not folded into ``combined_alignment``.
+    Specific source-derived count prohibitions live in the muhurta engine as
+    vetoes; the general Tara class is the signed product scoring factor.
+    """
+    tara = tara_number(janma_nakshatra, day_nakshatra)
+    name_ta, name_en = TARA_NAMES[tara]
+    score = TARA_SCORE[tara]
+    alignment: Alignment = "CAUTION" if score < 0 else "SUPPORTS" if score > 0 else "NEUTRAL"
+    direction = "penalty" if score < 0 else "support"
+    return (
+        TimingSignal(
+            alignment=alignment,
+            # Reuse the established Tamil Tara label rather than introducing
+            # fresh explanatory Tamil pending a separate language review.
+            reason_ta=name_ta,
+            reason_en=f"{name_en} tara — personal day-selection {direction}.",
+            short_ta=name_ta,
+            short_en=f"{name_en} tara",
+        ),
+        score,
+    )
+
+
 @dataclass(frozen=True)
 class ActivityAudience:
     """Who today's board is for.
@@ -697,9 +729,12 @@ def assess_activity_timing(
     paksha: str,
     weekday_lord: str,
     nakshatra_number: int | None = None,
+    *,
+    janma_nakshatra: int | None = None,
 ) -> ActivityTimingResult:
     """Judge a day for one activity on paksha, tithi, weekday — and, when the
-    caller can supply it, the Moon's nakshatra.
+    caller can supply it, the Moon's nakshatra.  Supplying both a day star and
+    a birth star also adds the signed personal Tara Bala contribution.
 
     `nakshatra_number` is optional only because not every caller holds a
     panchangam snapshot. Pass it wherever one is available: without it this
@@ -714,6 +749,10 @@ def assess_activity_timing(
     nakshatra_sig = (
         _assess_nakshatra(activity, nakshatra_number) if nakshatra_number is not None else None
     )
+    tara_sig: TimingSignal | None = None
+    tara_score = 0
+    if janma_nakshatra is not None and nakshatra_number is not None:
+        tara_sig, tara_score = _assess_tara(janma_nakshatra, nakshatra_number)
 
     scored = [s for s in (paksha_sig, tithi_sig, weekday_sig, nakshatra_sig) if s is not None]
     combined = _combine_alignments(*(s.alignment for s in scored))
@@ -737,6 +776,12 @@ def assess_activity_timing(
         combined_ta = " ".join(s.reason_ta for s in neutral_parts) + " வழக்கமான முன்னேற்றம் தொடரலாம்."
         combined_en = " ".join(s.reason_en for s in neutral_parts) + " Routine progress is fine."
 
+    if tara_sig is not None:
+        # Personal Tara is named in the returned explanation but does not
+        # overwrite the general Panchangam verdict.
+        combined_ta = f"{tara_sig.reason_ta}. {combined_ta}"
+        combined_en = f"{tara_sig.reason_en} {combined_en}"
+
     primary = _primary_signal(combined, tithi_sig, weekday_sig, paksha_sig, nakshatra_sig)
 
     return ActivityTimingResult(
@@ -744,6 +789,8 @@ def assess_activity_timing(
         tithi_signal=tithi_sig,
         weekday_signal=weekday_sig,
         nakshatra_signal=nakshatra_sig,
+        tara_signal=tara_sig,
+        tara_score=tara_score,
         combined_alignment=combined,
         combined_ta=combined_ta,
         combined_en=combined_en,

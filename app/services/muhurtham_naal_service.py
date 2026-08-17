@@ -37,16 +37,18 @@ from app.calculations.panchangam import (
     NAKSHATRA_NAMES,
     NALLA_NERAM_SUMMARY_TABLE,
     WEEKDAY_NAMES,
+    calculate_daily_panchangam_range,
 )
 from app.calculations.tamil_calendar import TAMIL_MONTHS
-from app.calculations.tara_bala import tara_number
+from app.calculations.tara_bala import TARA_NAMES, TARA_SCORE, tara_number
 from app.data.muhurtham_naals import (
     MUHURTHAM_SOURCE,
     MuhurthamNaal,
     available_years,
     get_muhurtham_naals,
 )
-from app.models import Chart
+from app.models import BirthProfile, Chart
+from app.services.location_service import EffectiveDailyLocation, resolve_effective_daily_location
 
 logger = logging.getLogger(__name__)
 
@@ -64,26 +66,10 @@ PIRAI_LABEL = {
     "THEIPIRAI": ("தேய்பிறை", "Theipirai (waning)"),
 }
 
-# 9-fold Tara names (Tamil, English) keyed by tara number 1..9.
-TARA_NAMES: dict[int, tuple[str, str]] = {
-    1: ("ஜென்மம்", "Janma"),
-    2: ("சம்பத்", "Sampat"),
-    3: ("விபத்", "Vipat"),
-    4: ("க்ஷேமம்", "Kshema"),
-    5: ("பிரத்யரி", "Pratyari"),
-    6: ("சாதனை", "Sadhana"),
-    7: ("நைதனம்", "Naidhana"),
-    8: ("மித்திரம்", "Mitra"),
-    9: ("பரம மித்திரம்", "Parama Mitra"),
-}
-
 # Quality bucket + base contribution for each tara.
 TARA_QUALITY: dict[int, str] = {
     1: "NEUTRAL", 2: "GOOD", 3: "AVOID", 4: "GOOD", 5: "AVOID",
     6: "GOOD", 7: "AVOID", 8: "GOOD", 9: "GOOD",
-}
-TARA_SCORE: dict[int, int] = {
-    1: 8, 2: 30, 3: -30, 4: 22, 5: -25, 6: 24, 7: -35, 8: 26, 9: 28,
 }
 TARA_MEANING: dict[int, tuple[str, str]] = {
     1: ("சொந்த நட்சத்திரம் — நடுநிலை", "your own star — neutral"),
@@ -153,7 +139,23 @@ def _nalla_neram_windows(weekday: str) -> list[TimeWindow]:
     return out
 
 
-def _to_view(n: MuhurthamNaal) -> MuhurthamNaalView:
+def _slot_windows(slots) -> list[TimeWindow]:
+    """Turn computed, timezone-aware panchangam slots into the API clock shape."""
+    return [
+        TimeWindow(
+            start=slot.start.strftime("%H:%M"),
+            end=slot.end.strftime("%H:%M"),
+            period=slot.period or ("AM" if slot.start.hour < 12 else "PM"),
+        )
+        for slot in slots
+    ]
+
+
+def _to_view(
+    n: MuhurthamNaal,
+    *,
+    nalla_neram: list[TimeWindow] | None = None,
+) -> MuhurthamNaalView:
     pirai_ta, pirai_en = PIRAI_LABEL[n.pirai]
     month_ta, month_en = TAMIL_MONTHS[n.tamil_month_index]
     return MuhurthamNaalView(
@@ -165,8 +167,55 @@ def _to_view(n: MuhurthamNaal) -> MuhurthamNaalView:
         nakshatra=BiLabel(ta=nakshatra_ta(n.nakshatra_number), en=n.nakshatra_name.title()),
         tithi_number=n.tithi_number,
         paksha=n.paksha,
-        nalla_neram=_nalla_neram_windows(n.weekday),
+        nalla_neram=nalla_neram if nalla_neram is not None else _nalla_neram_windows(n.weekday),
     )
+
+
+def _computed_nalla_neram_by_date(
+    naals: tuple[MuhurthamNaal, ...],
+    location: EffectiveDailyLocation,
+    session: Session,
+) -> dict[str, list[TimeWindow]]:
+    """Compute actual Nalla Neram for a chart-aware curated-naal response.
+
+    The public list intentionally remains a customary weekday table because it
+    has no coordinates.  A chart match has an activity location, so returning
+    that table there would mix personal date ranking with a date-free clock
+    claim.  One batched range call lets the persisted panchangam cache satisfy
+    repeat requests and keeps the calculation tied to the exact location.
+    """
+    if not naals:
+        return {}
+    snapshots = calculate_daily_panchangam_range(
+        min(n.date for n in naals),
+        max(n.date for n in naals),
+        location.latitude,
+        location.longitude,
+        location.timezone,
+        session=session,
+    )
+    return {
+        n.date.isoformat(): _slot_windows(snapshots[n.date].nalla_neram)
+        for n in naals
+        if n.date in snapshots
+    }
+
+
+def _chart_daily_location(session: Session, chart_id: UUID) -> EffectiveDailyLocation | None:
+    """Resolve the same current-or-birth daily location as the muhurta picker."""
+    chart = session.get(Chart, chart_id)
+    if chart is None:
+        return None
+    profile_id = getattr(chart, "birth_profile_id", None)
+    if profile_id is None:
+        return None
+    profile = session.get(BirthProfile, profile_id)
+    if profile is None:
+        # Referential integrity makes this unreachable in production, but a
+        # legacy/imported chart cannot truthfully claim a computed local time.
+        logger.warning("Chart %s has no birth profile; retaining customary Nalla Neram", chart_id)
+        return None
+    return resolve_effective_daily_location(profile)
 
 
 def list_muhurtham_naals(
@@ -261,6 +310,12 @@ def match_muhurtham_naals(
     chandra_rasi = chandrashtama_rasi_from_janma(janma_rasi)
     janma_star_ta = nakshatra_ta(janma_nak)
     janma_star_en = janma_name.title()
+    location = _chart_daily_location(session, chart_id)
+    nalla_neram_by_date = (
+        _computed_nalla_neram_by_date(naals, location, session)
+        if location is not None
+        else {}
+    )
 
     matches: list[MuhurthamNaalMatch] = []
     for n in naals:
@@ -295,7 +350,7 @@ def match_muhurtham_naals(
         is_recommended = quality == "GOOD" and not is_chandra
 
         matches.append(MuhurthamNaalMatch(
-            naal=_to_view(n),
+            naal=_to_view(n, nalla_neram=nalla_neram_by_date.get(n.date.isoformat())),
             tara_number=tara,
             tara_name=BiLabel(ta=tara_ta, en=tara_en),
             tara_quality=quality,
@@ -318,5 +373,15 @@ def match_muhurtham_naals(
         "recommended_count": sum(1 for m in matches if m.is_recommended),
         "total_count": len(naals),
         "source": MUHURTHAM_SOURCE,
+        "daily_location": (
+            {
+                "latitude": location.latitude,
+                "longitude": location.longitude,
+                "timezone": location.timezone,
+                "source": location.source,
+            }
+            if location is not None
+            else None
+        ),
     }
     return matches, context

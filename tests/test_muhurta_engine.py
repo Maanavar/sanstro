@@ -30,6 +30,7 @@ from app.calculations.muhurta_engine import (
 )
 from app.calculations.panchangam import calculate_daily_panchangam
 from app.data import marriage_muhurta_rules as marriage
+from app.data.muhurta_activity_registry import ACTIVITY_RULES
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -132,6 +133,39 @@ def test_a_vetoed_day_still_reports_what_killed_it(snapshots) -> None:
             assert result.veto_reasons, "vetoed with no factor naming the cause"
             for factor in result.veto_reasons:
                 assert factor.reason_en and factor.reason_ta
+
+
+@pytest.mark.parametrize("activity", ["EAR_BORING", "TONSURE"])
+def test_saturday_is_a_hard_veto_for_samskaras_that_explicitly_avoid_it(snapshots, activity) -> None:
+    saturday = next(snapshot for snapshot in snapshots if snapshot.weekday == "SATURDAY")
+
+    result = score_day(saturday, activity, subject=None)
+    vara = next(factor for factor in result.factors if factor.factor == "VARA")
+
+    assert vara.verdict is Verdict.VETO
+    assert result.vetoed is True
+    assert "Saturday" in vara.reason_en
+
+
+def test_saturday_remains_available_when_an_activity_source_names_it_favourable(snapshots) -> None:
+    saturday = next(snapshot for snapshot in snapshots if snapshot.weekday == "SATURDAY")
+
+    result = score_day(saturday, "HARVEST_INGATHERING", subject=None)
+    vara = next(factor for factor in result.factors if factor.factor == "VARA")
+
+    assert vara.verdict is Verdict.BONUS
+    assert result.vetoed is False
+
+
+def test_every_explicitly_avoided_weekday_is_a_hard_veto(snapshots) -> None:
+    for activity, rules in ACTIVITY_RULES.items():
+        if not rules.vara_avoid:
+            continue
+        snapshot = next(s for s in snapshots if s.weekday in rules.vara_avoid)
+        result = score_day(snapshot, activity, subject=None)
+        vara = next(factor for factor in result.factors if factor.factor == "VARA")
+        assert vara.verdict is Verdict.VETO, activity
+        assert result.vetoed is True, activity
 
 
 def test_no_almanac_factor_ever_vetoes_for_marriage(snapshots) -> None:
