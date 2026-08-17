@@ -704,3 +704,74 @@ def test_makara_sankranti_precision_2026():
     assert abs(sun_lon - 270.0) < 0.01, (
         f"Sun longitude at Makara entry is {sun_lon:.4f}°, expected 270.00°"
     )
+
+
+# ── EC-RULING-03: Hora is equal 60-minute periods from local sunrise ─────────
+
+_HORA_TEST_DAYS = (
+    # Chennai across the solstices and equinoxes — the widest daylight spread
+    # available in Tamil Nadu, so any residual seasonal scaling shows up here.
+    (date(2026, 3, 20), 13.0827, 80.2707, "Asia/Kolkata"),
+    (date(2026, 6, 21), 13.0827, 80.2707, "Asia/Kolkata"),
+    (date(2026, 9, 22), 13.0827, 80.2707, "Asia/Kolkata"),
+    (date(2026, 12, 21), 13.0827, 80.2707, "Asia/Kolkata"),
+    # Toronto in midwinter: a diaspora location where daylight is ~9 hours, so
+    # the old unequal method produced ~45-minute day horas. If any scaling
+    # survives anywhere, it survives here.
+    (date(2026, 12, 21), 43.6532, -79.3832, "America/Toronto"),
+)
+
+
+@pytest.mark.parametrize(("day", "lat", "lon", "tz"), _HORA_TEST_DAYS)
+def test_every_hora_is_exactly_one_clock_hour(day, lat, lon, tz):
+    """Not "twelve per half, whatever length that makes" — sixty minutes each.
+
+    The old unequal division gave Chennai 63.9-minute horas in June and
+    56.2-minute ones in December; Toronto in December was worse. Parametrised
+    across real sunrise times rather than the illustrative 6 a.m. case, because
+    that case is exactly the one where both methods agree.
+    """
+    snapshot = calculate_daily_panchangam(day, lat, lon, tz)
+    assert len(snapshot.hora) == 24
+    for entry in snapshot.hora:
+        assert entry.end - entry.start == timedelta(hours=1), (
+            f"hora {entry.index} is {entry.end - entry.start}, not one hour"
+        )
+
+
+@pytest.mark.parametrize(("day", "lat", "lon", "tz"), _HORA_TEST_DAYS)
+def test_horas_start_at_true_local_sunrise_and_run_contiguously(day, lat, lon, tz):
+    """Anchored on the real astronomical sunrise, never a hardcoded 06:00, and
+    with no gap or overlap between consecutive horas."""
+    snapshot = calculate_daily_panchangam(day, lat, lon, tz)
+    assert snapshot.hora[0].start == snapshot.sunrise
+    for previous, following in zip(snapshot.hora, snapshot.hora[1:], strict=False):
+        assert following.start == previous.end
+    assert snapshot.hora[-1].end == snapshot.sunrise + timedelta(hours=24)
+
+
+@pytest.mark.parametrize(("day", "lat", "lon", "tz"), _HORA_TEST_DAYS)
+def test_hora_lord_sequence_integrity_across_real_sunrise_times(day, lat, lon, tz):
+    """The ruling's explicit regression requirement.
+
+    Three properties that together pin the cycle:
+      * the day's first hora belongs to the weekday lord;
+      * each hora steps exactly one place along the classical sequence;
+      * the 6-1-8-3 mnemonic holds — the sunrise lord recurs every 7 horas,
+        which under equal hours means every 7 clock hours. This is the property
+        the unequal method could not satisfy, and the reason the ruling went the
+        way it did.
+    """
+    snapshot = calculate_daily_panchangam(day, lat, lon, tz)
+    sequence = ["SUN", "VENUS", "MERCURY", "MOON", "SATURN", "GURU", "MARS"]
+
+    assert snapshot.hora[0].lord == snapshot.weekday_lord
+    start_index = sequence.index(snapshot.weekday_lord)
+    for offset, entry in enumerate(snapshot.hora):
+        assert entry.lord == sequence[(start_index + offset) % 7]
+
+    # 6-1-8-3: +7 horas returns the same lord, exactly 7 clock hours later.
+    for offset in range(24 - 7):
+        later = snapshot.hora[offset + 7]
+        assert later.lord == snapshot.hora[offset].lord
+        assert later.start - snapshot.hora[offset].start == timedelta(hours=7)

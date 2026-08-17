@@ -506,7 +506,13 @@ DEFAULT_AYANAMSA_TYPE = "LAHIRI"
 # The DAY half is unchanged (still ranked, still skipping Nalla Neram's windows).
 # Persisted gowri_nalla_neram changes on 6 of 7 weekdays, so cached snapshots must
 # recompute.
-PANCHANGAM_CACHE_DATA_VERSION = 41
+# v42 (2026-08-17, EC-RULING-03): Hora changed from unequal day/night twelfths
+# to twenty-four EQUAL one-hour periods from local sunrise. Every cached
+# snapshot carries a serialised `hora` array, so without this bump the cache
+# would keep serving the old unequal boundaries — and the muhurta picker reads
+# those boundaries to choose the clock time it recommends. The correction would
+# have been invisible on any date already warmed into the cache.
+PANCHANGAM_CACHE_DATA_VERSION = 42
 DOMINANT_SPECIAL_TITHIS = {15, 30}
 
 # Fixed weekday clock-table Nalla Neram windows. NOTE (2026-07-17): the daily
@@ -1000,39 +1006,56 @@ def _gowri_slot_datetime(
     )
 
 
-def _make_hora_entries(sunrise: datetime, sunset: datetime, next_sunrise: datetime, weekday_lord: str) -> list[PanchangamHoraEntry]:
-    sequence = ["SUN", "VENUS", "MERCURY", "MOON", "SATURN", "GURU", "MARS"]
-    first_index = sequence.index(weekday_lord)
+# The Hora lord sequence, in the order the classical texts give it — the
+# descending-geocentric-distance order, not the weekday order. Successive horas
+# step one place along it; successive weekdays step by five (7 horas × 24 ÷ 7).
+_HORA_SEQUENCE: tuple[str, ...] = ("SUN", "VENUS", "MERCURY", "MOON", "SATURN", "GURU", "MARS")
 
-    day_duration = (sunset - sunrise) / 12
-    night_duration = (next_sunrise - sunset) / 12
+#: Twenty-four horas of exactly one clock hour each, from local sunrise.
+_HORA_DURATION = timedelta(hours=1)
+_HORAS_PER_DAY = 24
 
-    entries: list[PanchangamHoraEntry] = []
-    for i in range(12):
-        start = sunrise + day_duration * i
-        end = start + day_duration
-        entries.append(
-            PanchangamHoraEntry(
-                index=i + 1,
-                lord=sequence[(first_index + i) % 7],
-                start=start,
-                end=end,
-            )
+
+def _make_hora_entries(
+    sunrise: datetime,
+    sunset: datetime,
+    next_sunrise: datetime,
+    weekday_lord: str,
+) -> list[PanchangamHoraEntry]:
+    """Twenty-four EQUAL one-hour horas, anchored at true local sunrise.
+
+    EC-RULING-03 (2026-08-17). This used to divide daylight into twelve and night
+    into twelve — the unequal seasonal method. That is the Hellenistic planetary
+    hour, and it had been conflated with the Tamil Horai system, which is equal
+    clock hours from sunrise.
+
+    The decisive evidence is internal to the tradition: the printed table runs
+    ``6-7, 7-8, 8-9 …`` in whole hours, and the **6-1-8-3 mnemonic** — the hora
+    ruling at 6 a.m. recurs at 1 p.m., 8 p.m. and 3 a.m. — only resolves if a
+    hora is exactly sixty minutes, because the cycle has to land seven clock
+    hours later every time. Under the unequal method a Chennai hora runs 63.9 min
+    in June and 56.2 min in December, and the sunrise lord's first recurrence
+    drifts ~27 minutes off the mnemonic in both directions. On a ~60-minute
+    window that is nearly half a hora, and the muhurta picker returns a clock
+    time whose stated reason is the hora it sits inside.
+
+    `sunset` and `next_sunrise` are no longer used to size the horas, but stay in
+    the signature: they are what makes this function's contract "a day, bounded
+    by real astronomical events" rather than "a timestamp", and the caller
+    already holds them. The 6 a.m. anchor of the printed table is illustrative
+    only — the true local sunrise from the Thirukkanitham layer is what is used,
+    exactly as the ruling requires.
+    """
+    first_index = _HORA_SEQUENCE.index(weekday_lord)
+    return [
+        PanchangamHoraEntry(
+            index=i + 1,
+            lord=_HORA_SEQUENCE[(first_index + i) % 7],
+            start=sunrise + _HORA_DURATION * i,
+            end=sunrise + _HORA_DURATION * (i + 1),
         )
-
-    for i in range(12):
-        start = sunset + night_duration * i
-        end = start + night_duration
-        entries.append(
-            PanchangamHoraEntry(
-                index=i + 13,
-                lord=sequence[(first_index + 12 + i) % 7],
-                start=start,
-                end=end,
-            )
-        )
-
-    return entries
+        for i in range(_HORAS_PER_DAY)
+    ]
 
 
 def _truncate_to_minute(moment: datetime) -> datetime:
@@ -1330,10 +1353,26 @@ def _next_karana_name(karana_index: int) -> str:
     return _karana_name((karana_index + 1) % 60)
 
 
-def _amirdhadhi_yogam_name(weekday_index: int, nakshatra_number: int) -> str:
+def amirdhadhi_yogam_class(weekday: int | str, nakshatra_number: int) -> str:
+    """The day's Amirdhadhi class key — "A"/"C"/"M"/"P" — not its Tamil label.
+
+    The label is a display string; the *class* is what a scorer needs, and until
+    2026-08-17 nothing could get at it: `_amirdhadhi_yogam_name` returned the
+    label only, so the muhurta engine had no way to know a candidate day was
+    Marana Yogam and scored it as though it were ordinary. Accepts either the
+    Python weekday index (0=Mon … 6=Sun) or the uppercase weekday name that
+    `PanchangamSnapshot.weekday` carries, because the engine holds the second.
+    """
+    if isinstance(weekday, str):
+        weekday_index = WEEKDAY_NAMES.index(weekday.upper())
+    else:
+        weekday_index = weekday
     table = AMIRDHADHI_YOGAM_TABLE[weekday_index]
-    key = table[(nakshatra_number - 1) % 27]
-    return AMIRDHADHI_YOGAM_LABELS[key]
+    return table[(nakshatra_number - 1) % 27]
+
+
+def _amirdhadhi_yogam_name(weekday_index: int, nakshatra_number: int) -> str:
+    return AMIRDHADHI_YOGAM_LABELS[amirdhadhi_yogam_class(weekday_index, nakshatra_number)]
 
 
 def _chandrashtamam_affected_janma_rasi(moon_rasi_number: int) -> int:
