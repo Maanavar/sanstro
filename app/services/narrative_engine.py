@@ -1049,8 +1049,28 @@ def build_score_reasons(
 
 
 # ── Tone validator ──────────────────────────────────────────────────────────
+#
+# Two classes, kept apart because they fail for different reasons and a future
+# editor must not "tidy" them into one list.
+#
+# TONE is the original set: fatalistic vocabulary. A hit here means the copy is
+# needlessly bleak and should be rewritten.
+#
+# MORTALITY is EC-A11/EC-RULING-06 class: assertions that a spouse (or the
+# native) will die. A hit here is *not* a tone problem to be softened — the
+# ruling is excise, don't reword, and no conversion-operator form of these is
+# acceptable. Added 2026-08-17 after "traditionally associated with widowhood
+# risk" shipped to anonymous visitors on the public porutham calculator for
+# months: the single-keyword list caught "danger" and "crisis" while sailing
+# past "widowhood", because nobody had thought of that particular word.
+#
+# The lesson encoded here is that a hand-listed keyword set only blocks what its
+# author happened to imagine. Hence: enumerate the *class* (every inflection,
+# the Sanskrit term, and the Tamil equivalents), and sweep templates and i18n
+# strings in CI rather than trusting runtime-only checks — runtime never sees a
+# template that no test exercised, which is exactly how this one survived.
 
-_BANNED_PHRASES: list[str] = [
+_BANNED_TONE_PHRASES: tuple[str, ...] = (
     "bad day",
     "danger",
     "will fail",
@@ -1059,7 +1079,43 @@ _BANNED_PHRASES: list[str] = [
     "crisis",
     "hardship",
     "inauspicious",
-]
+)
+
+_BANNED_MORTALITY_PHRASES: tuple[str, ...] = (
+    # English. "widow" is a SUBSTRING check, so it already subsumes widower,
+    # widowhood and widowed — listing the inflections separately only made every
+    # hit report itself two or three times. One entry, deliberately.
+    "widow",
+    # Sanskrit/transliterated, across the spellings that actually appear.
+    "vaidhavya",
+    "vaidavya",
+    "vaithavya",
+    # The event assertions themselves, however phrased.
+    "spouse death",
+    "spouse loss",
+    "death of the husband",
+    "death of the wife",
+    "death of the spouse",
+    "husband's death",
+    "wife's death",
+    "loss of husband",
+    "loss of wife",
+    "early death",
+    "premature death",
+    # Tamil. வைதவ்யம் is the direct equivalent; கைம்மை/விதவை are the everyday
+    # words; மாங்கல்ய பங்கம் is the euphemism that means the same event and is
+    # exactly the phrasing a well-meaning rewrite would reach for.
+    "வைதவ்ய",
+    "விதவை",
+    "கைம்மை",
+    "மாங்கல்ய பங்கம்",
+    "மாங்கல்யப் பங்கம்",
+    "கணவன் இறப்பு",
+    "மனைவி இறப்பு",
+)
+
+# Public: the union, for callers that just want "is this string admissible".
+_BANNED_PHRASES: tuple[str, ...] = _BANNED_TONE_PHRASES + _BANNED_MORTALITY_PHRASES
 
 
 # ── Shadow Work Prompts — P3-A ────────────────────────────────────────────────
@@ -1167,9 +1223,26 @@ def tone_validator(text: str) -> list[str]:
 
     Returns an empty list when text is compliant.
     Used in tests to verify non-fatalistic language across all narrative output.
+
+    Covers both banned classes. Use `mortality_validator` when you need to know
+    specifically that an EC-A11 spouse-death assertion is present, because the
+    two classes call for different responses: a tone hit gets rewritten, a
+    mortality hit gets deleted.
     """
     lower = text.lower()
     return [phrase for phrase in _BANNED_PHRASES if phrase in lower]
+
+
+def mortality_validator(text: str) -> list[str]:
+    """Return only the EC-A11-class spouse/native death assertions in `text`.
+
+    Separate from `tone_validator` because the remedy differs. A hit here is
+    never fixed by softening the sentence — EC-RULING-06 is explicit that this
+    class gets no conversion-operator form. Delete the claim; keep the finding
+    as a reason code.
+    """
+    lower = text.lower()
+    return [phrase for phrase in _BANNED_MORTALITY_PHRASES if phrase in lower]
 
 
 # ── Band voice (Phase 2, D2/D3) ────────────────────────────────────────────────

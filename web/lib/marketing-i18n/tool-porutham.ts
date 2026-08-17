@@ -25,7 +25,11 @@ export const TOOL_PORUTHAM = {
   p6:  s("Rasi porutham — sign compatibility",                             "ராசி பொருத்தம் — ராசி பொருத்தம்"),
   p7:  s("Rasyadhipati porutham — compatibility of rasi lords",            "ராஸ்யதிபதி பொருத்தம் — ராசி நாதர்கள் பொருத்தம்"),
   p8:  s("Vasya porutham — harmony and mutual respect",                    "வஸ்ய பொருத்தம் — நல்லிணக்கம் மற்றும் பரஸ்பர மரியாதை"),
-  p9:  s("Rajju porutham — the critical dosha check (widow/widower risk)", "ரஜ்ஜு பொருத்தம் — முக்கியமான தோஷம் சரிபார்ப்பு (விதவை/இழப்பு ஆபத்து)"),
+  // EC-RULING-06 (2026-08-17): the parenthetical here named a spouse-death
+  // outcome on a public marketing page. Excised, not softened — that class gets
+  // no conversion-operator form. The porutham's weight is stated instead, which
+  // is what a reader actually needs from a list item.
+  p9:  s("Rajju porutham — the strongest of the dosha checks",             "ரஜ்ஜு பொருத்தம் — தோஷ சரிபார்ப்புகளுள் வலிமையானது"),
   p10: s("Nadi porutham — health and progeny compatibility",               "நாடி பொருத்தம் — உடல்நலம் மற்றும் குழந்தை பொருத்தம்"),
 
   rajju_h2:   s("Rajju and Nadi — the critical checks", "ரஜ்ஜு மற்றும் நாடி — முக்கியமான சரிபார்ப்புகள்"),
