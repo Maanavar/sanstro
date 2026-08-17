@@ -677,6 +677,9 @@ def test_compatibility_layers_numbers_over_the_poruthams(client, enabled: None) 
         assert flagged and body["adjustment"] == 0
 
     # ── Peyar Porutham's pairs, and the asymmetry that is the point ──
+    # (the psychic pair below still carries it: Rahu regards Saturn a friend
+    # while Saturn is neutral toward Rahu, so directional regard survives at the
+    # boundary even after the destiny pair stopped being spuriously one-sided)
     peyar = body["peyarPorutham"]
     assert peyar["method"] == "peyar_porutham"
     assert peyar["basis"] == "cheiro_series", "doctrine D4 default"
@@ -691,9 +694,18 @@ def test_compatibility_layers_numbers_over_the_poruthams(client, enabled: None) 
     # Under Cheiro (the default) 4 and 6 are in different series, so the pair
     # grades neutral — but the graha view still ships, and the disagreement
     # between the two doctrines is declared rather than hidden.
+    #
+    # Rahu/Venus used to assert one_sided + (friend, enemy) here. That was not
+    # doctrine: classical maitri gives the nodes no friendships at all, and in
+    # the Tamil node-inclusive table this repo's Rahu/Ketu rows follow, Venus and
+    # both nodes are mutual friends. The old grade came from a Venus row listing
+    # the nodes as enemies while the node rows listed Venus as a friend — a
+    # contradiction that made `graha_relation` answer differently depending on
+    # argument order. Fixed 2026-08-17 in `chart_strength._NATURAL_ENEMIES`.
+    # The bases still disagree, which is the property this line is really for.
     assert destiny["relation"] == "neutral"
-    assert destiny["grahaRelation"] == "one_sided"
-    assert (destiny["grahaRegardAToB"], destiny["grahaRegardBToA"]) == ("friend", "enemy")
+    assert destiny["grahaRelation"] == "harmonious"
+    assert (destiny["grahaRegardAToB"], destiny["grahaRegardBToA"]) == ("friend", "friend")
     assert destiny["basesAgree"] is False
 
     psychic = pairs["psychic"]

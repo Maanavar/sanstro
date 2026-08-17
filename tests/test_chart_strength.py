@@ -1,6 +1,8 @@
 import pytest
 
 from app.calculations.chart_strength import (
+    _NATURAL_ENEMIES,
+    _NATURAL_FRIENDS,
     _baladi_avastha,
     _chesta_bala_score,
     _deeptadi_avastha,
@@ -10,7 +12,7 @@ from app.calculations.chart_strength import (
     compute_strength_breakdown,
     detect_planetary_wars,
 )
-from app.calculations.shadbala import _nathonnatha_bala, ShadbalaContext
+from app.calculations.shadbala import ShadbalaContext, _nathonnatha_bala
 
 pytestmark = pytest.mark.no_db
 
@@ -204,3 +206,48 @@ def test_retrogression_is_counted_once_via_chesta_bala_only():
         f"retrograde is worth {observed} points but Chesta Bala alone accounts "
         f"for {chesta_margin:.1f} — a second retrograde bonus has been added back"
     )
+
+
+# ── Naisargika maitri invariants ─────────────────────────────────────────────
+
+def test_the_only_friend_versus_enemy_pair_is_the_classical_moon_mercury_one():
+    """A pair may be asymmetric; it may only be *contradictory* where doctrine says so.
+
+    Naisargika maitri is directional by design, and exactly one pair in the
+    seven-graha core is graded friend one way and enemy the other: Moon counts
+    Mercury a friend, Mercury counts Moon an enemy. That is derivable from the
+    Moolatrikona rule (from Moon's MT in Taurus, both Mercury signs land in the
+    friendly 2/4/5/8/9/12 set; from Mercury's MT in Virgo, Cancer lands in the
+    inimical 3/6/7/10/11 set), so it is doctrine, not a splice.
+
+    Any *other* friend/enemy pair means two incompatible source tables were
+    spliced together — which is what Venus/Rahu and Venus/Ketu were until
+    2026-08-17. That splice produced two different answers for one couple
+    depending on which partner the caller passed first
+    (`numerology_compatibility.graha_relation`), while
+    `compatibility_intelligence._graha_relation` silently resolved it to "enemy".
+
+    Asserted as an exact set rather than "no contradictions", so neither
+    direction of drift passes: re-introducing a spliced pair fails, and so does
+    flattening the genuine Moon/Mercury asymmetry away.
+    """
+    contradictory: set[frozenset[str]] = set()
+    for a in _NATURAL_FRIENDS:
+        for b in _NATURAL_FRIENDS:
+            if a >= b:
+                continue
+            a_friend_b = b in _NATURAL_FRIENDS[a]
+            a_enemy_b = b in _NATURAL_ENEMIES[a]
+            b_friend_a = a in _NATURAL_FRIENDS[b]
+            b_enemy_a = a in _NATURAL_ENEMIES[b]
+            assert not (a_friend_b and a_enemy_b), f"{a} grades {b} friend and enemy at once"
+            if (a_friend_b and b_enemy_a) or (a_enemy_b and b_friend_a):
+                contradictory.add(frozenset({a, b}))
+    assert contradictory == {frozenset({"MOON", "MERCURY"})}
+
+
+def test_moon_mercury_asymmetry_is_preserved():
+    """The one genuine directional pair must survive the contradiction fix —
+    flattening every asymmetry would be the opposite error."""
+    assert "MERCURY" in _NATURAL_FRIENDS["MOON"]
+    assert "MOON" in _NATURAL_ENEMIES["MERCURY"]

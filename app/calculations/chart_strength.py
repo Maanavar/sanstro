@@ -70,14 +70,35 @@ OWN_SIGN_RASI: dict[str, frozenset[int]] = {
     "KETU": frozenset(),
 }
 
-# Natural friendship table
+# Natural friendship table (naisargika maitri).
+#
+# The seven-graha core is classical Parashari and is DERIVABLE from the
+# Moolatrikona rule (from a graha's MT sign, the 2/4/5/8/9/12 are friendly and
+# the 3/6/7/10/11 inimical; a graha owning one of each is neutral). Its
+# asymmetries are real doctrine, not bugs — Moon regards Mercury a friend while
+# Mercury regards Moon an enemy is the textbook example.
+#
+# The Rahu/Ketu rows are NOT Parashari: classical naisargika maitri has no node
+# entries at all, and these follow common Tamil practice. They are kept in the
+# same table (rather than a separate overlay) only because the nodes never act
+# as a *sign lord*, so they cannot reach `_dignity_score` — they are read solely
+# for planet-to-planet regard (dasha harmony, graha-maitri compatibility).
+#
+# 2026-08-17: VENUS's enemy row listed RAHU and KETU while the RAHU and KETU
+# rows both list VENUS as a friend. That is not an asymmetry, it is a
+# contradiction — the same pair graded friend one way and enemy the other, which
+# `compatibility_intelligence._graha_relation` resolved as ENEMY (enemy-wins)
+# while `numerology_compatibility.graha_relation` returned two different answers
+# depending on argument order. Resolved toward FRIEND, which is what the node
+# rows here already asserted and what the Tamil practice table this row came
+# from states (Venus: friends Mercury, Saturn, Rahu, Ketu).
 _NATURAL_FRIENDS: dict[str, frozenset[str]] = {
     "SUN": frozenset({"MOON", "MARS", "JUPITER"}),
     "MOON": frozenset({"SUN", "MERCURY"}),
     "MARS": frozenset({"SUN", "MOON", "JUPITER"}),
     "MERCURY": frozenset({"SUN", "VENUS"}),
     "JUPITER": frozenset({"SUN", "MOON", "MARS"}),
-    "VENUS": frozenset({"MERCURY", "SATURN"}),
+    "VENUS": frozenset({"MERCURY", "SATURN", "RAHU", "KETU"}),
     "SATURN": frozenset({"MERCURY", "VENUS"}),
     "RAHU": frozenset({"VENUS", "SATURN"}),
     "KETU": frozenset({"MARS", "VENUS"}),
@@ -88,7 +109,7 @@ _NATURAL_ENEMIES: dict[str, frozenset[str]] = {
     "MARS": frozenset({"MERCURY", "RAHU"}),
     "MERCURY": frozenset({"MOON"}),
     "JUPITER": frozenset({"MERCURY", "VENUS", "RAHU", "KETU"}),
-    "VENUS": frozenset({"SUN", "MOON", "RAHU", "KETU"}),
+    "VENUS": frozenset({"SUN", "MOON"}),
     "SATURN": frozenset({"SUN", "MOON", "MARS"}),
     "RAHU": frozenset({"SUN", "MOON", "MARS", "JUPITER"}),
     "KETU": frozenset({"SUN", "MOON", "JUPITER", "RAHU"}),

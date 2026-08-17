@@ -6,13 +6,16 @@ No DB session, no HTTP exceptions except _birth_datetime_utc which validates inp
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from uuid import UUID
 
 from fastapi import HTTPException, status
 
-from app.calculations.astro import house_from_reference, local_datetime_to_utc
 from app.calculations.ashtakavarga import get_av_bindu
-from app.calculations.chart_strength import compute_natal_planet_score
+from app.calculations.astro import house_from_reference, local_datetime_to_utc
+from app.calculations.chart_strength import (
+    _NATURAL_ENEMIES,
+    _NATURAL_FRIENDS,
+    compute_natal_planet_score,
+)
 from app.models import BirthProfile
 from app.services.narrative_engine import PLANET_NAME
 
@@ -67,31 +70,10 @@ PLANET_PERIOD_SCORE: dict[str, int] = {
     "KETU": 42,
 }
 
-# Classical Thirukanitham natural friendship table (Parashari doctrine).
-# Covers all 9×9 pairs. See CONFLICT-04 in the enhancement doc for derivation.
-_NATURAL_FRIENDS: dict[str, frozenset[str]] = {
-    "SUN":     frozenset({"MOON", "MARS", "JUPITER"}),
-    "MOON":    frozenset({"SUN", "MERCURY"}),
-    "MARS":    frozenset({"SUN", "MOON", "JUPITER"}),
-    "MERCURY": frozenset({"SUN", "VENUS"}),
-    "JUPITER": frozenset({"SUN", "MOON", "MARS"}),
-    "VENUS":   frozenset({"MERCURY", "SATURN"}),
-    "SATURN":  frozenset({"MERCURY", "VENUS"}),
-    "RAHU":    frozenset({"VENUS", "SATURN"}),
-    "KETU":    frozenset({"MARS", "VENUS"}),
-}
-
-_NATURAL_ENEMIES: dict[str, frozenset[str]] = {
-    "SUN":     frozenset({"VENUS", "SATURN", "RAHU", "KETU"}),
-    "MOON":    frozenset({"RAHU", "KETU"}),
-    "MARS":    frozenset({"MERCURY", "RAHU"}),
-    "MERCURY": frozenset({"MOON"}),
-    "JUPITER": frozenset({"MERCURY", "VENUS", "RAHU", "KETU"}),
-    "VENUS":   frozenset({"SUN", "MOON", "RAHU", "KETU"}),
-    "SATURN":  frozenset({"SUN", "MOON", "MARS"}),
-    "RAHU":    frozenset({"SUN", "MOON", "MARS", "JUPITER"}),
-    "KETU":    frozenset({"SUN", "MOON", "JUPITER", "RAHU"}),
-}
+# Naisargika maitri is NOT redefined here. This module carried a byte-identical
+# hand-copy of `chart_strength`'s table, which is how the Venus/Rahu
+# contradiction fixed there on 2026-08-17 would have survived in daily guidance
+# after being corrected everywhere else. One definition, imported.
 
 
 def _age_dasha_modifier(age: int, planet: str) -> float:

@@ -170,22 +170,35 @@ def test_the_measured_grade_distribution() -> None:
             counts[relation_between(NUMBER_TO_GRAHA[a], NUMBER_TO_GRAHA[b])[2]] += 1
 
     assert sum(counts.values()) == 45
-    assert counts[NumberRelation.HARMONIOUS] == 15
+    assert counts[NumberRelation.HARMONIOUS] == 17
     assert counts[NumberRelation.SUPPORTIVE] == 6
     assert counts[NumberRelation.NEUTRAL] == 5
-    assert counts[NumberRelation.ONE_SIDED] == 3
+    assert counts[NumberRelation.ONE_SIDED] == 1
     assert counts[NumberRelation.STRAINED] == 7
     assert counts[NumberRelation.DIFFICULT] == 9
 
 
 # ── Asymmetry ────────────────────────────────────────────────────────────────
-def test_one_sided_pairs_are_exactly_these_three() -> None:
-    """Permanent friendship is directional, and three number pairs prove it.
+def test_the_only_one_sided_pair_is_moon_mercury() -> None:
+    """Permanent friendship is directional, and exactly one number pair proves it.
 
-    2/5 (Moon-Mercury), 4/6 (Rahu-Venus) and 6/7 (Venus-Ketu). Naming them keeps
-    ``ONE_SIDED`` from being quietly collapsed into ``STRAINED`` by a later
-    refactor — which would erase *which partner* carries the difficulty, the one
-    thing this grade exists to say.
+    2/5 — Moon counts Mercury a friend, Mercury counts Moon an enemy. That is
+    the textbook naisargika-maitri asymmetry and it is derivable: from Moon's
+    Moolatrikona (Taurus) both of Mercury's signs fall in the friendly
+    2/4/5/8/9/12 set, while from Mercury's Moolatrikona (Virgo) Cancer falls in
+    the inimical 3/6/7/10/11 set.
+
+    4/6 (Rahu-Venus) and 6/7 (Venus-Ketu) used to be pinned here too. They were
+    not doctrine: classical maitri assigns the nodes no friendships at all, and
+    in the Tamil node-inclusive table this repo's Rahu/Ketu rows actually follow,
+    Venus and both nodes are *mutual* friends. The old ONE_SIDED grade came from
+    a Venus row that listed the nodes as enemies while the node rows listed Venus
+    as a friend — a contradiction, not a directional reading. Fixed 2026-08-17 in
+    ``chart_strength._NATURAL_ENEMIES``; see the comment there.
+
+    Naming the survivor keeps ``ONE_SIDED`` from being quietly collapsed into
+    ``STRAINED`` by a later refactor — which would erase *which partner* carries
+    the difficulty, the one thing this grade exists to say.
     """
     one_sided = {
         (a, b)
@@ -194,22 +207,23 @@ def test_one_sided_pairs_are_exactly_these_three() -> None:
         if relation_between(NUMBER_TO_GRAHA[a], NUMBER_TO_GRAHA[b])[2]
         is NumberRelation.ONE_SIDED
     }
-    assert one_sided == {(2, 5), (4, 6), (6, 7)}
+    assert one_sided == {(2, 5)}
 
 
 def test_direction_survives_into_the_pair_under_both_bases() -> None:
-    """Rahu counts Venus a friend; Venus counts Rahu an enemy.
+    """Moon counts Mercury a friend; Mercury counts Moon an enemy.
 
     The graha regard ships whichever doctrine is grading, because it is a fact
     about the grahas and an astrologer wants it either way. Under Cheiro the
-    *grade* differs — 4 and 6 are in different series — and the disagreement is
-    declared rather than hidden.
+    *grade* differs — 2 and 5 come out SUPPORTIVE on the sympathetic series
+    while the maitri table calls the pair ONE_SIDED — and the disagreement is
+    declared through ``bases_agree`` rather than hidden.
     """
     for basis in CompatibilityBasis:
         pair = pair_numbers(
             PairKind.DESTINY,
-            reading_from_total(4),  # Rahu
-            reading_from_total(6),  # Venus
+            reading_from_total(2),  # Moon
+            reading_from_total(5),  # Mercury
             basis=basis,
             lagna_rasi_a=_LAGNA,
             lagna_rasi_b=_LAGNA,
@@ -221,13 +235,13 @@ def test_direction_survives_into_the_pair_under_both_bases() -> None:
 
     cheiro = pair_numbers(
         PairKind.DESTINY,
-        reading_from_total(4),
-        reading_from_total(6),
+        reading_from_total(2),
+        reading_from_total(5),
         basis=CompatibilityBasis.CHEIRO_SERIES,
         lagna_rasi_a=_LAGNA,
         lagna_rasi_b=_LAGNA,
     )
-    assert cheiro.relation is NumberRelation.NEUTRAL
+    assert cheiro.relation is NumberRelation.SUPPORTIVE
     assert cheiro.bases_agree is False
 
 
