@@ -163,3 +163,29 @@ def test_life_areas_chart_signature_and_causal_chain_are_additive(client, birth_
     finally:
         feature_flags.reset_flag("reasoning_chart_signature")
 
+# ── Age band belongs to the area, not the karaka chain it borrows ────────────
+
+def _all_factors(area: dict) -> list[str]:
+    return list(area.get("supportingFactors") or []) + list(area.get("blockingFactors") or [])
+
+
+def test_a_childs_education_area_is_no_longer_flagged_too_young(client, birth_profile_payload_factory):
+    """Regression. EDUCATION borrows the CHILDREN karaka chain, whose 18-52 band
+    used to travel with it — so an 8-year-old's Education card, which the phase
+    gate deliberately keeps visible, came back scored 30 with a "too_young" chip
+    on it. The age band now belongs to the area the reader sees."""
+    areas = _areas_by_key(client, birth_profile_payload_factory, birth_date="2018-03-14", as_of="2026-06-01")
+    education = areas["EDUCATION"]
+    assert education["ageRelevant"] is True
+    assert "too_young" not in _all_factors(education)
+    assert education["karakaStatus"] != "NOT_APPLICABLE_FOR_AGE"
+
+
+def test_family_harmony_is_not_age_gated_for_the_young(client, birth_profile_payload_factory):
+    """Same defect via PROPERTY's 25+ band. A family reading applies at every
+    age — the reader has a family whether they are eight or eighty."""
+    for birth_date in ("2018-03-14", "1946-03-14"):
+        areas = _areas_by_key(client, birth_profile_payload_factory, birth_date=birth_date, as_of="2026-06-01")
+        family = areas["FAMILY_HARMONY"]
+        assert "too_young" not in _all_factors(family)
+        assert "age_limit" not in _all_factors(family)

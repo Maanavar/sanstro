@@ -1325,6 +1325,30 @@ _AREA_TO_CHAIN_KEY: dict[str, str] = {
     "LITIGATION": "CAREER",
 }
 
+# Age band per AREA, overriding the band on whatever karaka chain that area
+# borrows above.
+#
+# The bands used to live only on LIFE_AREA_KARAKA, so a borrowed chain dragged
+# its age gate along with it and applied it to a different area. Three areas
+# were mis-banded as a result:
+#
+#   EDUCATION      borrowed CHILDREN (18-52) — a 10-year-old's Education card is
+#                  phase-relevant, so it was not skipped; it was scored at 30
+#                  with a "too_young" chip on a CHILD's education reading.
+#   FAMILY_HARMONY borrowed PROPERTY (25+)   — same shape, for everyone under 25.
+#   LITIGATION     borrowed CAREER (16-70)   — capped at 70 for no reason of its
+#                  own; the life-phase gate already keeps it away from minors.
+#
+# Areas absent from this table keep their chain's band, which for them is their
+# own (CAREER, CHILDREN, RELATIONSHIPS, PROPERTY, HEALTH, MONEY/WEALTH,
+# SPIRITUAL, FOREIGN). None means "no age bound" — the life-phase gate above is
+# the only age gate that area needs.
+_AREA_AGE_BAND: dict[str, tuple[int | None, int | None]] = {
+    "EDUCATION": (None, None),
+    "FAMILY_HARMONY": (None, None),
+    "LITIGATION": (None, None),
+}
+
 _GOAL_TO_AREA: dict[str, str | None] = {
     "job_change": "CAREER",
     "business_start": "CAREER",
@@ -1384,6 +1408,7 @@ def _karaka_chain_score(
     transit_planet_rasis: dict[str, int],
     native_age: int,
     sarvashtakavarga: dict[int, int] | None = None,
+    age_band: tuple[int | None, int | None] | None = None,
 ) -> dict:
     chain = LIFE_AREA_KARAKA.get(area_key)
     if chain is None:
@@ -1397,8 +1422,14 @@ def _karaka_chain_score(
             "supporting_factors": [],
         }
 
-    age_min = chain.get("age_min")
-    age_max = chain.get("age_max")
+    # The age band belongs to the AREA THE READER SEES, not to the karaka chain
+    # it happens to borrow — see _AREA_AGE_BAND. Falling back to the chain's own
+    # band keeps every direct caller (forecasts, tests) behaving as before.
+    if age_band is not None:
+        age_min, age_max = age_band
+    else:
+        age_min = chain.get("age_min")
+        age_max = chain.get("age_max")
     if age_min is not None and native_age < age_min:
         return {
             "score": 30,
@@ -1775,6 +1806,7 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             transit_planet_rasis=transit_planet_rasis,
             native_age=current_age,
             sarvashtakavarga=sarvashtakavarga,
+            age_band=_AREA_AGE_BAND.get(area),
         )
         # D4 (plan Phase 3): classify gate-vs-timing disagreement from the
         # prediction score's own pieces — on the gate path `score` is still
@@ -1904,6 +1936,7 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
         if area == "RELATIONSHIPS" and married:
             relevant_areas = set(relevant_areas) | {"RELATIONSHIPS"}
         phase_skipped = area not in relevant_areas
+
         if phase_skipped:
             skip_text = _phase_skip_text(phase)
             if phase in {"INFANT", "CHILD"}:
