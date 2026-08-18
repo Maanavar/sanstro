@@ -28,6 +28,39 @@ const FACTOR_LABELS: Record<string, { ta: string; en: string }> = {
   dasha_aspects_bhava: { en: "Dasha lord aspects this house", ta: "தசை அதிபதியின் பார்வை இந்த வீட்டின் மீது உள்ளது" },
   dasha_dispositor_of_bhava_lord: { en: "House lord sits in the dasha lord's sign", ta: "வீட்டு அதிபதி தசை அதிபதியின் ராசியில் உள்ளார்" },
   dasha_node_agent: { en: "Rahu/Ketu dasha delivers a connected planet's results", ta: "ராகு/கேது தசை தொடர்புடைய கிரகத்தின் பலனை தருகிறது" },
+  // Bhinnashtakavarga indications counted from the karaka graha's own rasi
+  // (app/calculations/bav_derived.py). These read a bindu band on the classical
+  // 0-8 scale — deliberately never a number of children or of relatives, which
+  // is how these sutras are often misquoted. See
+  // docs/BAV_DERIVED_INDICATIONS_2026-08-18.md.
+  progeny_bav_strong: {
+    en: "Guru's bindus support the 5th from Guru — a classical progeny indication",
+    ta: "குருவின் பிந்துக்கள், குருவிலிருந்து 5ஆம் இடத்திற்கு நல்ல வலிமை அளிக்கின்றன — புத்திர பாக்கியத்திற்கு நல்ல அறிகுறி",
+  },
+  siblings_bav_strong: {
+    en: "Sevvai's bindus support the 3rd from Sevvai — sahodara indications are well placed",
+    ta: "செவ்வாயின் பிந்துக்கள், செவ்வாயிலிருந்து 3ஆம் இடத்திற்கு நல்ல வலிமை அளிக்கின்றன — சகோதர உறவிற்கு நல்ல அறிகுறி",
+  },
+  siblings_bav_thin: {
+    en: "Sevvai's bindus are thin in the 3rd from Sevvai — sahodara support is lighter",
+    ta: "செவ்வாயிலிருந்து 3ஆம் இடத்தில் பிந்துக்கள் குறைவாக உள்ளன — சகோதர உறவிற்கான ஆதரவு குறைவாக உள்ளது",
+  },
+  maternal_bav_strong: {
+    en: "Budhan's bindus support the 4th from Budhan — the maternal line is well placed",
+    ta: "புதனின் பிந்துக்கள், புதனிலிருந்து 4ஆம் இடத்திற்கு நல்ல வலிமை அளிக்கின்றன — தாய்வழி உறவிற்கு நல்ல அறிகுறி",
+  },
+  maternal_bav_thin: {
+    en: "Budhan's bindus are thin in the 4th from Budhan — the maternal line has lighter support",
+    ta: "புதனிலிருந்து 4ஆம் இடத்தில் பிந்துக்கள் குறைவாக உள்ளன — தாய்வழி உறவிற்கான ஆதரவு குறைவாக உள்ளது",
+  },
+  paternal_bav_strong: {
+    en: "Suriyan's bindus support the 9th from Suriyan — the paternal line is well placed",
+    ta: "சூரியனின் பிந்துக்கள், சூரியனிலிருந்து 9ஆம் இடத்திற்கு நல்ல வலிமை அளிக்கின்றன — தந்தைவழி உறவிற்கு நல்ல அறிகுறி",
+  },
+  paternal_bav_thin: {
+    en: "Suriyan's bindus are thin in the 9th from Suriyan — the paternal line has lighter support",
+    ta: "சூரியனிலிருந்து 9ஆம் இடத்தில் பிந்துக்கள் குறைவாக உள்ளன — தந்தைவழி உறவிற்கான ஆதரவு குறைவாக உள்ளது",
+  },
   // Named affliction keys (life_areas_service → bhava_afflictions.py).
   papa_kartari_hems_house: { en: "Papa kartari — malefics hem this house", ta: "பாப கர்த்தரி — இரு பக்கமும் பாப கிரகங்கள்" },
   shubha_kartari_protects_house: { en: "Shubha kartari — benefics protect this house", ta: "சுப கர்த்தரி — இரு பக்கமும் சுப கிரகங்கள்" },

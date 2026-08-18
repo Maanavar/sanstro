@@ -28,6 +28,12 @@ from sqlalchemy.orm import Session
 
 from app.calculations.ashtakavarga import compute_bhinnashtakavarga, compute_sarvashtakavarga
 from app.calculations.astro import house_from_reference, resolve_timezone, utc_datetime_to_julian_day
+from app.calculations.bav_derived import (
+    BAND_THIN,
+    compute_bav_derived_indications,
+    disclosable_indications,
+    factor_code,
+)
 from app.calculations.bhava_afflictions import affliction_dosham_strength, assess_bhava_afflictions
 from app.calculations.chart_strength import SIGN_LORD, compute_bhava_bala
 from app.calculations.dasha import calculate_vimshottari_timeline
@@ -1696,6 +1702,11 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
     natal_rasi_map["LAGNA"] = natal_lagna_rasi
     bav_table = compute_bhinnashtakavarga(natal_rasi_map)
     sarvashtakavarga = compute_sarvashtakavarga(bav_table)
+    # Classical indications counted from the karaka graha's own rasi (5th from
+    # Guru, 3rd from Sevvai, 4th from Budhan, 9th from Suriyan). Computed once
+    # for the whole request off the BAV table already built above — no extra
+    # ephemeris work — and age-blind here; disclosure is gated per area below.
+    bav_derived = compute_bav_derived_indications(bav_table, natal_rasi_map)
 
     # Forward horizons: build the +6mo / +12mo engine context once (two extra
     # ephemeris snapshots for the whole request), then re-score each area against
@@ -1936,6 +1947,33 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
         if area == "RELATIONSHIPS" and married:
             relevant_areas = set(relevant_areas) | {"RELATIONSHIPS"}
         phase_skipped = area not in relevant_areas
+
+        # BAV-derived indications (5th from Guru etc.). Keyed on `area`, NEVER on
+        # `chain_key` — EDUCATION borrows the CHILDREN chain, and keying on the
+        # chain would put progeny indications on a child's education card.
+        #
+        # Both existing age gates must pass: the life-phase gate (which catches
+        # the infant and the elder) and the area's own band (which catches the
+        # 55-year-old, whose MID phase still lists CHILDREN but whose age is past
+        # the band). Neither is re-derived here.
+        # Prepended, not appended: surfaces slice the factor lists to three, and
+        # these are the only factors that speak about the area's actual subject
+        # (progeny, siblings, the maternal and paternal lines) rather than
+        # repeating the generic strength signals every area carries.
+        _disclosed = disclosable_indications(
+            bav_derived,
+            area,
+            age_relevant=(
+                not phase_skipped
+                and chain_result["karaka_status"] != "NOT_APPLICABLE_FOR_AGE"
+            ),
+        )
+        chain_result["supporting_factors"][:0] = [
+            factor_code(i) for i in _disclosed if i.band != BAND_THIN
+        ]
+        chain_result["blocking_factors"][:0] = [
+            factor_code(i) for i in _disclosed if i.band == BAND_THIN
+        ]
 
         if phase_skipped:
             skip_text = _phase_skip_text(phase)

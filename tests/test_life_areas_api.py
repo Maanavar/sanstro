@@ -163,10 +163,57 @@ def test_life_areas_chart_signature_and_causal_chain_are_additive(client, birth_
     finally:
         feature_flags.reset_flag("reasoning_chart_signature")
 
-# ── Age band belongs to the area, not the karaka chain it borrows ────────────
+
+
+# ── Bhinnashtakavarga indications counted from the karaka graha ──────────────
+# app/calculations/bav_derived.py; docs/BAV_DERIVED_INDICATIONS_2026-08-18.md.
+# These assert invariants that hold for ANY chart, never "this chart happens to
+# score strongly" — the synthetic fixture's bindus are not the subject.
 
 def _all_factors(area: dict) -> list[str]:
     return list(area.get("supportingFactors") or []) + list(area.get("blockingFactors") or [])
+
+
+def _bav_codes(areas: dict) -> dict[str, list[str]]:
+    return {
+        key: [f for f in _all_factors(area) if "_bav_" in f]
+        for key, area in areas.items()
+    }
+
+
+def test_progeny_indication_never_reaches_a_child(client, birth_profile_payload_factory):
+    """An 8-year-old. The CHILDREN area is phase-skipped for them, and EDUCATION —
+    which borrows the CHILDREN karaka chain — must not pick the indication up in
+    its place."""
+    areas = _areas_by_key(client, birth_profile_payload_factory, birth_date="2018-03-14", as_of="2026-06-01")
+    for key, codes in _bav_codes(areas).items():
+        assert not any(c.startswith("progeny_") for c in codes), f"progeny indication leaked onto {key}"
+
+
+def test_progeny_indication_never_reaches_an_elder(client, birth_profile_payload_factory):
+    areas = _areas_by_key(client, birth_profile_payload_factory, birth_date="1946-03-14", as_of="2026-06-01")
+    for key, codes in _bav_codes(areas).items():
+        assert not any(c.startswith("progeny_") for c in codes), f"progeny indication leaked onto {key}"
+
+
+def test_discouraging_progeny_band_is_never_emitted_at_any_age(client, birth_profile_payload_factory):
+    """Asymmetric disclosure. The supportive band is a harmless chart fact; its
+    mirror image, undisclaimed, is a verdict — and fertility caution has exactly
+    one home in this product, the child_timing propensity card."""
+    for birth_date in ("2018-03-14", "1991-07-22", "1946-03-14"):
+        areas = _areas_by_key(client, birth_profile_payload_factory, birth_date=birth_date, as_of="2026-06-01")
+        for key, codes in _bav_codes(areas).items():
+            assert "progeny_bav_thin" not in codes, f"{birth_date}: thin progeny band emitted on {key}"
+
+
+def test_each_indication_appears_only_on_its_own_area(client, birth_profile_payload_factory):
+    for birth_date in ("2018-03-14", "1991-07-22", "1946-03-14"):
+        areas = _areas_by_key(client, birth_profile_payload_factory, birth_date=birth_date, as_of="2026-06-01")
+        for key, codes in _bav_codes(areas).items():
+            for code in codes:
+                rule = code.split("_bav_")[0]
+                expected_area = "CHILDREN" if rule == "progeny" else "FAMILY_HARMONY"
+                assert key == expected_area, f"{code} surfaced on {key}, expected {expected_area}"
 
 
 def test_a_childs_education_area_is_no_longer_flagged_too_young(client, birth_profile_payload_factory):
