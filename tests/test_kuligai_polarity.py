@@ -1,14 +1,19 @@
-"""EC-RULING-07 — Kuligai polarity mechanism.
+"""EC-RULING-07 — Kuligai polarity, as ruled by the owner on 2026-08-17.
 
-The ruling separates two things and this file keeps them separate too:
+Kuligai **repeats** whatever is begun in it. That single property decides the
+sign, and it cuts both ways: buying gold in Kuligai is good (you buy gold again),
+marrying in Kuligai is bad (you marry again). Both are the owner's own examples
+and are pinned below as the anchors of the whole table.
 
-* the **mechanism** — Kuligai multiplies rather than harms, so its sign is
-  activity-dependent — ships now;
-* the **activity table** — which acts it favours — does not, because the
-  candidate list came from synthesis rather than a quoted passage.
+The discriminator is therefore never "is this act auspicious?" but *does
+repeating it ADD to a stock, or does it mean the first one came UNDONE?* — which
+is why the samskaras are adverse despite being the most auspicious acts there
+are: each is meant to happen once per person.
 
-So these tests assert the seam is live and that the un-populated default is the
-safe one, without asserting any classification the source has not confirmed.
+This file previously asserted the opposite state — an empty table shipped behind
+an unverified-source flag. The owner's ruling replaced that, so the assertions
+are inverted rather than deleted: the emptiness was never the doctrine, it was
+the placeholder for it.
 """
 from __future__ import annotations
 
@@ -19,8 +24,8 @@ from app.data.kuligai_polarity import (
     ADVERSE,
     FAVOURABLE,
     KULIGAI_ACTIVITY_TABLE_UNVERIFIED,
-    KULIGAI_GAP,
     KuligaiPolarity,
+    favours,
     polarity_for,
     rejects,
 )
@@ -28,57 +33,93 @@ from app.data.kuligai_polarity import (
 pytestmark = pytest.mark.no_db
 
 
-def test_the_activity_table_ships_empty_and_says_so():
-    """Populating these without a verbatim p.152 reading is the exact failure
-    mode the ruling names, so the emptiness is the assertion."""
-    assert KULIGAI_ACTIVITY_TABLE_UNVERIFIED is True
-    assert FAVOURABLE == frozenset()
-    assert ADVERSE == frozenset()
-    assert "p.152" in KULIGAI_GAP
+def test_the_owners_two_anchor_cases():
+    """The ruling's ground truth. Every other row was reasoned from these two."""
+    assert polarity_for("GOLD") is KuligaiPolarity.FAVOURABLE
+    assert polarity_for("MARRIAGE") is KuligaiPolarity.ADVERSE
 
 
-def test_unspecified_never_rejects():
-    """The one part of the ruling that is actionable today: a blanket exclusion
-    of Kuligai is itself the defect, so an unclassified activity must not be
-    rejected on Kuligai grounds."""
+def test_the_table_is_ruled_and_no_longer_ships_as_an_open_gap():
+    assert KULIGAI_ACTIVITY_TABLE_UNVERIFIED is False
+    assert FAVOURABLE and ADVERSE
+
+
+def test_no_activity_is_both_favoured_and_adverse():
+    """One act cannot both add to a stock and mean the first came undone."""
+    assert FAVOURABLE & ADVERSE == frozenset()
+
+
+def test_every_sourced_activity_has_been_classified():
+    """A new sourced activity must not silently arrive with no Kuligai reading.
+
+    UNSPECIFIED is a safe default for rejection, so a gap here would never fail
+    anything at runtime — it would just quietly stop asking the question.
+    """
+    unclassified = sorted(set(SOURCED_ACTIVITIES) - FAVOURABLE - ADVERSE)
+    assert unclassified == []
+
+
+def test_the_one_per_person_samskaras_are_all_adverse():
+    """Not because they are inauspicious — because a second one means the first
+    did not stand."""
+    for samskara in (
+        "NAMING_CEREMONY", "ANNAPRASANA", "EAR_BORING", "TONSURE",
+        "UPANAYANAM", "SEEMANTHAM", "MARRIAGE",
+    ):
+        assert polarity_for(samskara) is KuligaiPolarity.ADVERSE, samskara
+
+
+def test_acquisition_is_favoured_across_the_whole_class():
+    """The gold case is a class, not a special case."""
+    for acquisition in ("GOLD", "GEMS", "NEW_ORNAMENT", "TREASURE_STORE", "LAND_PURCHASE"):
+        assert polarity_for(acquisition) is KuligaiPolarity.FAVOURABLE, acquisition
+
+
+def test_medical_diverges_from_kalaprakasika_on_purpose():
+    """A Kalaprakasika reading lists treatment among Gulika's favoured acts.
+
+    Under the Tamil repetition rule it cannot be — treatment recurring is illness
+    recurring — and the owner ruled that Tamil Jothidam governs. Pinned because a
+    future reader comparing the two sources will otherwise read it as an error.
+    """
+    assert polarity_for("MEDICAL") is KuligaiPolarity.ADVERSE
+
+
+def test_rejects_and_favours_are_the_two_halves_and_never_overlap():
+    """A rejection-only model cannot say "prefer this window", which was the
+    half of the ruling the blanket exclusion could not express."""
     for activity in sorted(SOURCED_ACTIVITIES):
-        assert polarity_for(activity) is KuligaiPolarity.UNSPECIFIED
-        assert rejects(activity) is False
+        polarity = polarity_for(activity)
+        assert rejects(activity) is (polarity is KuligaiPolarity.ADVERSE)
+        assert favours(activity) is (polarity is KuligaiPolarity.FAVOURABLE)
+        assert not (rejects(activity) and favours(activity))
+
+
+def test_an_unclassified_activity_never_rejects():
+    """The original defect: defaulting to reject *is* the blanket exclusion."""
+    assert polarity_for("ANYTHING_AT_ALL") is KuligaiPolarity.UNSPECIFIED
+    assert rejects("ANYTHING_AT_ALL") is False
+    assert favours("ANYTHING_AT_ALL") is False
 
 
 def test_unspecified_is_distinct_from_neutralised():
     """"The text settles this as neutral" and "we have no reading" must never
     collapse into the same value — the whole engine turns on that distinction."""
     assert KuligaiPolarity.UNSPECIFIED is not KuligaiPolarity.NEUTRALISED
-    assert polarity_for("ANYTHING_AT_ALL") is KuligaiPolarity.UNSPECIFIED
 
 
-def test_the_mechanism_actually_works_once_a_table_exists(monkeypatch):
-    """Drives the classifying branches through a temporary table, so this is a
-    wired mechanism rather than dead scaffolding waiting on a data change."""
+def test_neutralised_cancels_without_rejecting(monkeypatch):
+    """The third branch has no rows yet, so drive it rather than leave it dead."""
     from app.data import kuligai_polarity as kp
 
-    monkeypatch.setattr(kp, "FAVOURABLE", frozenset({"GOLD"}))
-    monkeypatch.setattr(kp, "ADVERSE", frozenset({"TRAVEL"}))
     monkeypatch.setattr(kp, "NEUTRALISED", frozenset({"EXAM"}))
-
-    assert kp.polarity_for("GOLD") is KuligaiPolarity.FAVOURABLE
-    assert kp.polarity_for("TRAVEL") is KuligaiPolarity.ADVERSE
     assert kp.polarity_for("EXAM") is KuligaiPolarity.NEUTRALISED
-    # Only ADVERSE rejects — favourable and neutralised must not.
-    assert kp.rejects("TRAVEL") is True
-    assert kp.rejects("GOLD") is False
     assert kp.rejects("EXAM") is False
+    assert kp.favours("EXAM") is False
 
 
 def test_activity_lookup_is_case_and_whitespace_insensitive():
     """The picker normalises activity keys upstream, but this module is imported
     directly by other callers and must not depend on that."""
-    from app.data import kuligai_polarity as kp
-
-    original = kp.FAVOURABLE
-    try:
-        kp.FAVOURABLE = frozenset({"GOLD"})
-        assert kp.polarity_for("  gold ") is KuligaiPolarity.FAVOURABLE
-    finally:
-        kp.FAVOURABLE = original
+    assert polarity_for("  gold ") is KuligaiPolarity.FAVOURABLE
+    assert polarity_for("marriage") is KuligaiPolarity.ADVERSE

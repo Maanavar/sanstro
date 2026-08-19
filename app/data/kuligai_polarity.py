@@ -1,28 +1,49 @@
-"""Kuligai (Gulika Kalam) polarity — EC-RULING-07.
+"""Kuligai (Gulika Kalam) polarity — EC-RULING-07, owner-ruled 2026-08-17.
 
-Kuligai is treated across this engine as one of the three inauspicious kalams,
-alongside Rahu Kalam and Yamagandam, and excluded wholesale. The source does not
-say that. It describes Gulika Kalam as a period that **multiplies** whatever is
-undertaken in it — excellent for what you want repeated or increased, ruinous for
-what you do not. That is the same activity-polarity primitive the muhurta engine
-already honours for Marana Yogam (EC-A08): a factor's sign depends on the intent
-of the act, not on the factor alone. It is also why the tradition forbids
-carrying a body to the cremation ground during Gulika Kalam while permitting —
-indeed favouring — acts of accumulation.
+Kuligai was treated across this engine as one of the three inauspicious kalams
+alongside Rahu Kalam and Yamagandam, and excluded wholesale. Tamil practice does
+not say that. Kuligai **repeats** whatever is begun in it: an act started in
+Kuligai comes round again and again.
 
-**What ships here is the mechanism, deliberately with empty tables.**
+That single property decides the sign, and it cuts both ways:
 
-EC-RULING-07 is explicit that the candidate favourable-activity list (harvest,
-trade, debt liquidation, medical treatment, installation, land gifts) came from
-synthesis rather than a quoted passage, and must be verified against a direct
-reading of p.152 before it earns a `RULE_SOURCE`. So the seam is built and
-nothing is classified: every activity resolves to UNSPECIFIED today, and
-UNSPECIFIED means *do not reject* — which is the one part of the ruling that is
-already actionable, because it names the current blanket exclusion as the defect.
+* buying gold in Kuligai is **good** — you buy gold again, and again;
+* marrying in Kuligai is **bad** — you marry again, and again.
 
-Populating `FAVOURABLE` / `ADVERSE` later is a data change with no code change.
+Both examples are the owner's, and they give the discriminator this table is
+built on. The question is never "is the act auspicious?" but:
 
-RULE_SOURCE: p.152 (mechanism); activity table pending verbatim confirmation.
+    **Does repeating this act ADD to a stock, or does it mean the first one came
+    UNDONE?**
+
+Buy gold twice and you hold twice the gold — it adds. Marry twice and the first
+marriage ended — it came undone. Harvest again: adds. Move into a house again:
+you left the first one. Start a job again: the first job did not hold. Take
+medicine again: the illness came back. Carry a body to the cremation ground
+again: a second death, which is exactly why the tradition forbids that one
+(Jothidam p.152, the passage that also states Kuligai is "generally described in
+texts as a good or auspicious period").
+
+So the samskaras are all ADVERSE, not because they are inauspicious — they are
+the most auspicious acts there are — but because each is meant to happen once
+per person. A second naming, a second ear-boring, a second upanayanam means the
+first did not stand.
+
+**Where this departs from Kalaprakasika, deliberately.** A Kalaprakasika reading
+lists medical treatment among Gulika's favoured acts. Under the Tamil repetition
+rule it cannot be: treatment recurring means illness recurring. The owner's
+ruling is that Tamil Jothidam governs, so MEDICAL is ADVERSE here. Recorded
+because it is a real divergence, not an oversight.
+
+SPIRITUAL is FAVOURABLE, and that is a reasoned call rather than a quoted line:
+worship repeated is the point of worship, and the same source has devotees
+performing special abhisheka *during* Rahu Kalam and Yamagandam (p.81) and
+recommends Rahu Kalam for Amman worship (p.257). The inauspicious kalams are
+used for propitiation, not avoided for it.
+
+RULE_SOURCE: Jothidam p.152 (the multiplying mechanism, and the cremation case);
+owner ruling 2026-08-17 (gold favourable, marriage adverse, and the instruction
+to extend the same reasoning to every activity).
 """
 from __future__ import annotations
 
@@ -30,11 +51,11 @@ from enum import Enum
 
 
 class KuligaiPolarity(str, Enum):  # noqa: UP042 — str-mixin enum, repo convention
-    """How Kuligai's multiplying quality bears on a given activity."""
+    """How Kuligai's repeating quality bears on a given activity."""
 
-    #: The act is one of accumulation/increase — multiplication helps.
+    #: Repetition adds to a stock — Kuligai helps, and is worth preferring.
     FAVOURABLE = "FAVOURABLE"
-    #: The act is one nobody wants repeated — multiplication harms.
+    #: Repetition means the first one came undone — Kuligai harms.
     ADVERSE = "ADVERSE"
     #: Some contextual factor cancels the effect either way.
     NEUTRALISED = "NEUTRALISED"
@@ -43,31 +64,78 @@ class KuligaiPolarity(str, Enum):  # noqa: UP042 — str-mixin enum, repo conven
     UNSPECIFIED = "UNSPECIFIED"
 
 
-#: Activities the source marks as favoured during Kuligai. EMPTY pending p.152.
-FAVOURABLE: frozenset[str] = frozenset()
+#: Repeating the act ADDS to a stock. Kuligai is actively good for these.
+FAVOURABLE: frozenset[str] = frozenset({
+    # Acquisition and wealth — the owner's gold case and its whole class.
+    "GOLD",
+    "GEMS",
+    "NEW_ORNAMENT",
+    "NEW_CLOTHES",
+    "TREASURE_STORE",
+    "GRAIN",
+    "PURCHASE",
+    "INVESTMENT",
+    # Land and livestock — buying again means owning more.
+    "LAND_PURCHASE",
+    "LAND_POSSESSION",
+    "CATTLE_PURCHASE",
+    # Agriculture — the cycle is *meant* to come round again.
+    "SOWING",
+    "TILLAGE",
+    "AGRICULTURE_START",
+    "HARVEST",
+    "HARVEST_INGATHERING",
+    "NEW_GRAIN_MEAL",
+    # Worship repeated is the point of worship; see the module docstring.
+    "SPIRITUAL",
+})
 
-#: Activities the source marks as harmed during Kuligai. EMPTY pending p.152.
-ADVERSE: frozenset[str] = frozenset()
+#: Repeating the act means the first one came UNDONE. Kuligai is bad for these.
+ADVERSE: frozenset[str] = frozenset({
+    # The owner's marriage case, and the bath rite that belongs to it.
+    "MARRIAGE",
+    "SNAANA",
+    # One-per-person samskaras. Auspicious acts, but a second one means the
+    # first did not stand.
+    "NAMING_CEREMONY",
+    "MILK_FEEDING",
+    "ANNAPRASANA",
+    "EAR_BORING",
+    "TONSURE",
+    "UPANAYANAM",
+    "SEEMANTHAM",
+    "LYING_IN_CHAMBER",
+    "MANTRA_INITIATION",
+    # Beginning study again means the study was broken off.
+    "VIDYARAMBHAM",
+    "EDUCATION_START",
+    "VEDA_STUDY",
+    # Starting work again means the work did not hold.
+    "JOB_START",
+    # Sitting the exam again means it was not passed.
+    "EXAM",
+    # Treatment recurring is illness recurring. Diverges from Kalaprakasika on
+    # purpose — see the module docstring.
+    "MEDICAL",
+    # Setting out again means the journey had to be made over.
+    "TRAVEL",
+    # Outflow repeated empties the store; the inverse of accumulation.
+    "GRAIN_EXPENDITURE",
+})
 
-#: Contexts that cancel the polarity. EMPTY pending p.152.
+#: Contexts that cancel the polarity either way. None sourced yet.
 NEUTRALISED: frozenset[str] = frozenset()
 
-#: True while the activity table is unpopulated, so a surface can say the
-#: mechanism exists but is not yet classifying rather than implying a verdict.
-KULIGAI_ACTIVITY_TABLE_UNVERIFIED = True
-
-KULIGAI_GAP = (
-    "Kuligai polarity mechanism is live but classifies nothing: the favourable/"
-    "adverse activity lists are unverified against p.152 and ship empty."
-)
+#: The owner has ruled the table, so it no longer ships as an open gap.
+KULIGAI_ACTIVITY_TABLE_UNVERIFIED = False
 
 
 def polarity_for(activity: str) -> KuligaiPolarity:
     """Kuligai's polarity for one activity.
 
-    Returns UNSPECIFIED for everything until the p.152 table is confirmed, and
-    UNSPECIFIED must never be read as rejection — that default is exactly the
-    behaviour EC-RULING-07 identifies as wrong.
+    UNSPECIFIED is returned only for an activity nobody has classified, and it
+    must never be read as rejection — defaulting to reject is exactly the
+    blanket exclusion EC-RULING-07 identifies as the defect.
     """
     key = (activity or "").strip().upper()
     if key in NEUTRALISED:
@@ -80,9 +148,14 @@ def polarity_for(activity: str) -> KuligaiPolarity:
 
 
 def rejects(activity: str) -> bool:
-    """Whether a Kuligai overlap should count against this activity at all.
-
-    The single most important line in this module. Today it is False for every
-    activity, because nothing is classified and UNSPECIFIED does not reject.
-    """
+    """Whether a Kuligai overlap should count against this activity."""
     return polarity_for(activity) is KuligaiPolarity.ADVERSE
+
+
+def favours(activity: str) -> bool:
+    """Whether a Kuligai overlap is a positive for this activity.
+
+    The half of the ruling a rejection-only model cannot express: Kuligai is not
+    merely tolerable for buying gold, it is the preferred time for it.
+    """
+    return polarity_for(activity) is KuligaiPolarity.FAVOURABLE
