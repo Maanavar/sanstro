@@ -77,6 +77,14 @@ export const RASI_LORDS: Record<number, string> = {
 // never reached. That is the argument for consolidating rather than a reason to
 // relax — the copy was already wrong, and only an accident of the caller kept it
 // from showing.
+//
+// It drifted a SECOND time, the same latent way. `20a27af` resolved the
+// Venus-node contradiction in `chart_strength.py` — Venus and the nodes are
+// mutually friendly — and this copy kept the old rows, listing Rahu and Ketu as
+// Venus's enemies while its own RAHU and KETU rows called Venus a friend. Again
+// unreachable, because `getNilai` looks up a sign lord; again caught only by
+// `lib/doctrine-parity.test.ts`, which had been red since that commit. Both
+// Venus rows below are now the backend's.
 export const EXALTATION_RASI: Record<string, number> = {
   SUN: 1, MOON: 2, MARS: 10, MERCURY: 6, JUPITER: 4, VENUS: 12, SATURN: 7,
 };
@@ -110,7 +118,7 @@ export const NATURAL_FRIENDS: Record<string, string[]> = {
   MARS: ["SUN", "MOON", "JUPITER"],
   MERCURY: ["SUN", "VENUS"],
   JUPITER: ["SUN", "MOON", "MARS"],
-  VENUS: ["MERCURY", "SATURN"],
+  VENUS: ["MERCURY", "SATURN", "RAHU", "KETU"],
   SATURN: ["MERCURY", "VENUS"],
   RAHU: ["VENUS", "SATURN"],
   KETU: ["MARS", "VENUS"],
@@ -122,7 +130,7 @@ export const NATURAL_ENEMIES: Record<string, string[]> = {
   MARS: ["MERCURY", "RAHU"],
   MERCURY: ["MOON"],
   JUPITER: ["MERCURY", "VENUS", "RAHU", "KETU"],
-  VENUS: ["SUN", "MOON", "RAHU", "KETU"],
+  VENUS: ["SUN", "MOON"],
   SATURN: ["SUN", "MOON", "MARS"],
   RAHU: ["SUN", "MOON", "MARS", "JUPITER"],
   KETU: ["SUN", "MOON", "JUPITER", "RAHU"],
