@@ -10,6 +10,62 @@ decision inline and move it to "Resolved".
 
 ## Open
 
+### 2026-08-18 · Kandaka Sani — which reference, and which house set? (`GO-10`)
+
+Raised by the external release-gate review of the rulebook. This is a **marker
+and provenance** question, not a suspected calculation bug: the code is internally
+consistent and already discloses its reference to the reader.
+
+- **Where:** `app/calculations/transits.py` (`classify_kandaka_cycle`), fed from
+  `house_from_reference(natal_lagna, saturn.rasi)` in `daily_guidance_service`,
+  `life_areas_service`, `career_service`, `transit_service`, `ask_vinaadi_service`.
+- **What ships today:** Saturn in the **1st, 4th, 7th or 10th from Lagna**. Every
+  surface labels it "Kandaka Sani (from Lagna)" / "கண்டக சனி (லக்னம்)", so no
+  reader is told the reference is universal.
+- **Why it was raised:** Kantaka/Kandaka Sani is not uniform across lineages. It
+  is variously reckoned from Lagna, from Janma Rasi, or from Arudha Lagna, and the
+  house set is variously 1/4/7/10 or 1/4/8/10. The rulebook previously marked this
+  `[CORE]`, i.e. a locked foundation, which overstated it. Now `[VARIANT]`.
+- **Why it matters:** it decides whether a reader is told they are *currently
+  under* Kandaka Sani. Changing the reference from Lagna to Moon changes who sees
+  the flag entirely.
+- **Not disabled, deliberately.** The reference is disclosed in the label on every
+  surface, which is the mitigation the review asked for. Turning off a live,
+  correctly-labelled cycle would remove information rather than correct it.
+- **What we need:** the named Tamil source (book/publisher/page, or lineage) for
+  (a) the reference — Lagna, Janma Rasi, or Arudha — and (b) the house set.
+- **The sharpest form of the question, which the external review did not reach.**
+  A good many Tamil sources give Kandaka Sani as **4/7/10 from Janma Rasi**, not
+  from Lagna. If that is the intended reading, it *collides by design* with two
+  cycles we already compute from the Moon: the 4th from Janma Rasi is already
+  Ardhashtama Sani, and (on a 1/4/8/10 house set) the 8th is already Ashtama Sani.
+  Our Lagna reference makes Kandaka a genuinely independent axis with no overlap,
+  which is tidy — but tidiness is not evidence, and it may be the wrong tidiness.
+  So the ruling needs to answer one more thing: **is Kandaka Sani meant to be a
+  separate axis from the Moon-reference cycle, or a layered second name for
+  positions the Moon cycle already covers?** If layered, a reader in Saturn's 4th
+  from the Moon should arguably see both names, and today they see only one.
+- **Pinned meanwhile:** `tests/test_rulebook_invariants.py::
+  test_kandaka_sani_activates_only_on_the_four_kendras_from_lagna` asserts exactly
+  1/4/7/10, so a doctrine change cannot land without updating `GO-10` and the
+  table appendix in the same commit.
+
+### 2026-08-18 · Kala Sarpa arc definition — four sub-questions (`DOS-02`)
+
+Also from the release-gate review. Vinaadi's Rahu/Ketu marriage-attention houses
+(1/2/7/8) are a recognisable Tamil convention and are not in question. The
+**Kala/Sarpa arc test** is, because schools disagree on four points and our
+implementation silently picks one answer to each:
+
+1. Does a planet sitting exactly *on* a node count as inside the arc?
+2. Must Lagna fall inside the arc, or only the seven grahas?
+3. Does the Rahu→Ketu direction matter, or is the arc read undirected?
+4. Is there a conjunction-boundary tolerance, or is it strict whole-sign?
+
+Vinaadi currently reads the arc whole-sign and direction-agnostic. The rulebook
+now marks the Kala Sarpa portion `[VARIANT]` for this reason. A ruling on each of
+the four would let it be re-marked `[TRADITION]` with a source.
+
 ### 2026-08-10 · Nethiram cutoff formula contradicts a live case — reopens the 2026-07-16 confirmation
 
 - **Where:** `app/calculations/panchangam.py` (`_nethiram_value`, `NETHIRAM_LABELS`).

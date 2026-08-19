@@ -77,6 +77,33 @@ Repo-specific checks:
 - [ ] `JOTHIDAM_ENABLE_ADMIN_DATA_DELETE=true` is set in production so operator-triggered
   deletion requests (from `privacy@vinaadi.com` inbox) can be fulfilled
 
+### 3a. Swiss Ephemeris licensing — STOP-SHIP until decided
+
+Raised by the 2026-08-18 external release-gate review. This is the one finding in
+that review that is not an astrology question, and it is the hardest to unwind
+after launch, so it is a gate rather than a task.
+
+**The facts as they stand in this repo.** `app/calculations/ephemeris.py` calls
+Swiss Ephemeris with `SEFLG_SWIEPH`, i.e. the Swiss Ephemeris engine proper, not
+a fallback. The dependency is `pyswisseph` (`requirements.txt`, `pyproject.toml`)
+on Python < 3.14 and `swisseph-ffi` on 3.14+; both wrap the same Astrodienst
+library. **There is no `LICENSE` file at the repo root.** Swiss Ephemeris is
+dual-licensed: AGPL-3.0, or a paid Astrodienst professional licence. Every chart,
+panchangam, muhurta window, and transit in this product is computed through it.
+
+- [ ] Licensing model is **explicitly chosen** and recorded, not defaulted into
+- [ ] If **AGPL**: complete corresponding source is offered to users of the
+      network service, and the obligation is understood to reach the whole
+      combined work served over the network — not only the ephemeris wrapper
+- [ ] If **professional licence**: purchased from Astrodienst, invoice and licence
+      terms filed, and any attribution or notice requirement satisfied in-app
+- [ ] A `LICENSE` (or `THIRD_PARTY_NOTICES`) file exists at the repo root stating
+      the chosen model and Swiss Ephemeris attribution
+- [ ] The choice is re-checked for the mobile build, which distributes rather than
+      merely serves — distribution and network use have different AGPL triggers
+- [ ] Decision reviewed by someone with commercial-licensing authority; Claude
+      Code flagged the exposure and cannot make this call
+
 ## 4. Domains, hosting, and infrastructure
 
 - [ ] Production domain is live
