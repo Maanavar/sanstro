@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import { motion, useReducedMotion } from "framer-motion";
 
 import { DUR, EASE_NOVA, useCountUp } from "@/lib/motion";
+import { scoreColor } from "@/lib/format";
 
 /**
  * Nova-only shared primitives. Kept separate from `dashboard-ui.tsx` so the
@@ -218,14 +219,15 @@ type NovaScoreDialProps = {
   max?: number;
   size?: number;
   label?: string;
-  /** When set, the ring + number take this colour so the dial reads good/okay/
-   *  caution at a glance (UX #64). Defaults to the neutral accent. */
+  /** Optional semantic override for the ring + number. By default the dial
+   *  uses the canonical score band colour. */
   color?: string;
 };
 
 export function NovaScoreDial({ score, max = 100, size = 118, label, color }: NovaScoreDialProps) {
-  const arcColor = color ?? "var(--color-accent)";
-  const numberColor = color ?? "var(--color-accent-strong)";
+  const scoreTone = color ?? scoreColor(score);
+  const arcColor = scoreTone;
+  const numberColor = scoreTone;
   const reduce = useReducedMotion();
   // Signature moment: the number counts up while the ring sweeps to fill.
   const displayScore = useCountUp(score);
