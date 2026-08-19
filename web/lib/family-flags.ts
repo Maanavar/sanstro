@@ -50,7 +50,7 @@ const SANI_CYCLE_NAME: Record<string, BiStr> = {
   ASHTAMA_SANI: s("Ashtama Sani", "அஷ்டம சனி"),
   ARDHASHTAMA_SANI: s("Ardhashtama Sani", "அர்த்தாஷ்டம சனி"),
   KANTAKA_SANI: s("Kantaka Sani", "கண்டக சனி"),
-  KANDAKA_SANI: s("Kantaka Sani · from Lagna", "கண்டக சனி · லக்னம்"),
+  KANDAKA_SANI: s("Kantaka Sani · from Janma Rasi", "கண்டக சனி · ஜென்ம ராசி"),
 };
 
 /** Every active Saturn cycle on a member, most-significant first. */

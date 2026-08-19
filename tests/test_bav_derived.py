@@ -72,9 +72,11 @@ def test_absent_graha_is_not_evaluated_rather_than_defaulted():
 
 
 def test_nodes_get_no_saturn_proxy_here():
-    """get_av_bindu substitutes Saturn's table for Rahu/Ketu when scoring a
-    transit. That is meaningless for "the Nth house from Rahu", so this layer
-    returns None instead of a borrowed number."""
+    """The nodes have no Bhinnashtakavarga table, so no bindu is returned.
+
+    This layer always refused the Saturn proxy that `get_av_bindu` applied when
+    scoring a transit; doctrine A-15 (ruled 2026-08-19) removed that proxy too,
+    so both layers now answer None."""
     bav = compute_bhinnashtakavarga(NATAL_RASI_MAP)
     assert bav_house_from_planet(bav, NATAL_RASI_MAP, "RAHU", 3) is None
 

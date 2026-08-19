@@ -112,9 +112,10 @@ def bav_house_from_planet(
     """Bindus in `planet`'s own Bhinnashtakavarga at the `house`-th rasi from itself.
 
     Returns None when the graha is missing from the chart or has no BAV table
-    (Rahu and Ketu have none classically — and unlike `get_av_bindu` this does
-    NOT substitute Saturn's table, because a proxy is defensible for scoring a
-    transit and meaningless for "the 5th house from Guru").
+    (Rahu and Ketu have none classically.) This layer has always refused to
+    borrow Saturn's table here; as of doctrine A-15 (ruled 2026-08-19)
+    `get_av_bindu` refuses it for transit scoring too, so the two layers now
+    agree that a node simply has no bindu rather than a proxied one.
     """
     target_rasi = rasi_from_planet(natal_rasi_map, planet, house)
     if target_rasi is None:

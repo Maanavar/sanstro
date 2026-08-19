@@ -101,7 +101,10 @@ def test_panchangam_timing_all_pass(golden_result):
 
 def test_sani_cycle_all_pass(golden_result):
     mod = _get_module(golden_result, "sani_cycle")
-    assert mod.passed + mod.failed == 13, "Expected 13 cases in sani_cycle"
+    # 14 since doctrine A-1 (2026-08-19) added T052-f, which asserts that the
+    # 4th from the Janma Rasi returns Ardhashtama *as well as* Kandaka — the
+    # layering the ruling turned on.
+    assert mod.passed + mod.failed == 14, "Expected 14 cases in sani_cycle"
     _assert_all_cases(mod)
 
 
@@ -137,7 +140,7 @@ def test_safety_text_all_pass(golden_result):
 
 def test_total_cases_count(golden_result):
     total = sum(m.passed + m.failed for m in golden_result.modules)
-    assert total == 139, f"Expected 139 total golden cases, got {total}"
+    assert total == 140, f"Expected 140 total golden cases, got {total}"
 
 
 def test_zero_failures(golden_result):

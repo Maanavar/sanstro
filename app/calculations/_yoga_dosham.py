@@ -626,28 +626,81 @@ KALASARPA_NAGAS: dict[int, dict[str, str]] = {
 }
 
 
+# A graha sitting exactly on a node is a boundary case, not a tolerance. This
+# epsilon exists only because longitudes are floats — it is about a hundredth of
+# an arcsecond and is NOT a doctrinal orb. Doctrine A-4 ruled that there is no
+# degree tolerance at the node ends; widening this value reintroduces one.
+_NODE_CONJUNCTION_EPSILON_DEG = 1.0 / 360_000.0
+
+
 def detect_kalasarpa(
     planets: Mapping[str, PlanetInput],
     lagna_rasi: int | None = None,
+    *,
+    longitudes: Mapping[str, float] | None = None,
 ) -> KalasarpaResult:
-    """Rasi-granular arc test (L-7, docs/ASTROLOGY_FULL_CODE_AUDIT_2026-07-16.md):
-    a planet is treated as "inside" the Rahu-Ketu arc based on whole-sign
-    distance alone. A planet in the same sign as a node but past its exact
-    degree is still counted inside the arc — degree-exact Kala Sarpa (the
-    stricter classical test some traditions use) isn't modeled here. This is
-    a documented simplification, not a decided ruling — AR-3 is the open
-    astrologer-review question on whether to switch to exact node/planet
-    longitudes when available.
+    """Kala Sarpa arc test over the seven grahas.
+
+    Doctrine A-4 (ruled 2026-08-19) settled four mechanical points that were
+    previously answered by implementation default:
+
+    1. **Seven grahas only.** The Lagna is not required to fall inside the arc.
+       Some lineages do require it, which greatly reduces how many charts
+       qualify; we do not.
+    2. **Actual longitude**, when available. Pass `longitudes` (sidereal, 0-360,
+       keyed by graha) and the arc is tested degree-exactly. Without it this
+       falls back to the older whole-sign test, which counts a graha in the same
+       sign as a node but past its exact degree as still inside the arc. That
+       fallback is a documented approximation, not the rule — it is retained
+       only for callers that carry rasi without degrees.
+    3. **No degree tolerance** at the node ends (see the epsilon note above).
+    4. **A graha exactly on a node is a boundary case.** It does not break the
+       formation, but it is recorded in `conditions_met` as
+       `graha_on_node_<GRAHA>` rather than silently resolved in or out.
+
+    Direction is recorded, never used to disqualify: Rahu->Ketu is `ANULOMA`,
+    Ketu->Rahu is `VILOMA`. Some modern schools name the reverse enclosure
+    "Kala Amrita" and read it quite differently. That is a school convention we
+    deliberately do not bake in as settled Tamil doctrine, so both directions
+    form the yoga and the pattern is reported for the caller to interpret.
+
+    Kala Sarpa is heavy language for a reader. Criteria that are too loose tell
+    people they carry a serious affliction they do not have — which is why each
+    of these is a ruling rather than a default.
     """
     rahu_rasi = _planet_rasi(planets, "RAHU")
     ketu_rasi = _planet_rasi(planets, "KETU")
     planet_rasis = [_planet_rasi(planets, planet) for planet in SEVEN_PLANETS]
 
-    def _distance(start: int, end: int) -> int:
-        return (end - start) % 12
+    degree_exact = longitudes is not None and all(
+        graha in longitudes for graha in (*SEVEN_PLANETS, "RAHU", "KETU")
+    )
+    on_node: list[str] = []
 
-    in_rahu_arc = all(_distance(rahu_rasi, rasi) <= 6 for rasi in planet_rasis)
-    in_ketu_arc = all(_distance(ketu_rasi, rasi) <= 6 for rasi in planet_rasis)
+    if degree_exact and longitudes is not None:
+        rahu_lon = longitudes["RAHU"] % 360.0
+        ketu_lon = longitudes["KETU"] % 360.0
+        in_rahu_arc = True
+        in_ketu_arc = True
+        for graha in SEVEN_PLANETS:
+            graha_lon = longitudes[graha] % 360.0
+            from_rahu = (graha_lon - rahu_lon) % 360.0
+            from_ketu = (graha_lon - ketu_lon) % 360.0
+            if (
+                min(from_rahu, 360.0 - from_rahu) <= _NODE_CONJUNCTION_EPSILON_DEG
+                or min(from_ketu, 360.0 - from_ketu) <= _NODE_CONJUNCTION_EPSILON_DEG
+            ):
+                on_node.append(graha)
+            if from_rahu > 180.0:
+                in_rahu_arc = False
+            if from_ketu > 180.0:
+                in_ketu_arc = False
+    else:
+        def _distance(start: int, end: int) -> int:
+            return (end - start) % 12
+
+        in_rahu_arc = all(_distance(rahu_rasi, rasi) <= 6 for rasi in planet_rasis)
+        in_ketu_arc = all(_distance(ketu_rasi, rasi) <= 6 for rasi in planet_rasis)
 
     if not (in_rahu_arc or in_ketu_arc):
         return KalasarpaResult(
@@ -665,6 +718,12 @@ def detect_kalasarpa(
         else "all_planets_between_ketu_and_rahu"
     )
     conditions_met = [condition]
+    # Record how the arc was judged, so a reader of `conditions_met` can tell a
+    # degree-exact qualification from a whole-sign approximation (doctrine A-4).
+    conditions_met.append("arc_test_degree_exact" if degree_exact else "arc_test_whole_sign")
+    # A graha exactly on a node qualifies, but the boundary is disclosed rather
+    # than resolved silently in or out.
+    conditions_met.extend(f"graha_on_node_{graha}" for graha in on_node)
 
     # Name the naga from Rahu's house. When lagna is unknown (older callers),
     # fall back to the un-named formation so behavior never regresses.

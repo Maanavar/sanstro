@@ -685,14 +685,14 @@ def test_tithi_boundary_pournami_amavasai_q1_2026():
 
 def test_makara_sankranti_precision_2026():
     """Thai Pongal 2026 — Makara (Capricorn) sankranti must fall on Jan 14 UTC within ±10 min (P2-07)."""
-    from app.calculations.tamil_calendar import _find_sankranti_jd
-    from app.calculations.ephemeris import sun_longitude_at_jd
     from app.calculations.astro import normalize_longitude
+    from app.calculations.ephemeris import sun_longitude_at_jd
+    from app.calculations.tamil_calendar import find_sankranti_jd
 
     # Jan 15, 2026 12:00 UTC — Sun is already in Makara (rasi index 9 = 270°-300°)
     jd_after = 2461056.0
 
-    sankranti_jd = _find_sankranti_jd(9, jd_after)
+    sankranti_jd = find_sankranti_jd(9, jd_after)
 
     # Must fall on Jan 14, 2026 UTC (JD 2461054.5–2461055.5)
     assert 2461054.5 <= sankranti_jd < 2461055.5, (
@@ -775,3 +775,54 @@ def test_hora_lord_sequence_integrity_across_real_sunrise_times(day, lat, lon, t
         later = snapshot.hora[offset + 7]
         assert later.lord == snapshot.hora[offset].lord
         assert later.start - snapshot.hora[offset].start == timedelta(hours=7)
+
+
+def test_abhijit_is_the_eighth_of_fifteen_daylight_muhurtas():
+    """Doctrine A-9 (ruled 2026-08-19): Abhijit scales with the daylight span.
+
+    It is the 8th of the 15 equal muhurtas dividing sunrise to sunset, so its
+    width is daylight/15 and it is centred on the midpoint of daylight. This
+    replaced a fixed +/-24-minute window around solar noon.
+    """
+    snapshot = calculate_daily_panchangam(date(2026, 5, 21), 13.0827, 80.2707, "Asia/Kolkata")
+
+    daylight = snapshot.sunset - snapshot.sunrise
+    midpoint = snapshot.sunrise + daylight / 2
+
+    assert abs((snapshot.abhijit_end - snapshot.abhijit_start) - daylight / 15) < timedelta(seconds=1)
+    window_centre = snapshot.abhijit_start + (snapshot.abhijit_end - snapshot.abhijit_start) / 2
+    assert abs(window_centre - midpoint) < timedelta(seconds=1)
+    assert snapshot.abhijit_start == snapshot.sunrise + daylight * 7 / 15
+    assert snapshot.abhijit_end == snapshot.sunrise + daylight * 8 / 15
+
+
+def test_abhijit_width_tracks_season_at_high_latitude():
+    """The whole point of the day-length rule: London summer != London winter.
+
+    Under the old fixed +/-24-minute window both of these were 48 minutes, which
+    is the case the ruling called out as substantially wrong away from Chennai.
+    """
+    summer = calculate_daily_panchangam(date(2026, 6, 21), 51.5072, -0.1276, "Europe/London")
+    winter = calculate_daily_panchangam(date(2026, 12, 21), 51.5072, -0.1276, "Europe/London")
+
+    summer_width = summer.abhijit_end - summer.abhijit_start
+    winter_width = winter.abhijit_end - winter.abhijit_start
+
+    assert summer_width > timedelta(minutes=60)  # ~16h40m daylight / 15
+    assert winter_width < timedelta(minutes=36)  # ~8h daylight / 15
+    assert summer_width > winter_width * 1.8
+
+
+def test_wednesday_is_the_only_abhijit_weekday_exclusion():
+    """Doctrine A-9: Wednesday carries no Abhijit; no other weekday is excluded."""
+    restricted = {
+        calculate_daily_panchangam(
+            date(2026, 5, 18) + timedelta(days=offset), 13.0827, 80.2707, "Asia/Kolkata"
+        ).weekday
+        for offset in range(7)
+        if calculate_daily_panchangam(
+            date(2026, 5, 18) + timedelta(days=offset), 13.0827, 80.2707, "Asia/Kolkata"
+        ).abhijit_restricted
+    }
+
+    assert restricted == {"WEDNESDAY"}

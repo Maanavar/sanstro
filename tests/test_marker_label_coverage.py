@@ -90,7 +90,12 @@ def _expand_fstring_markers(source_markers: set[str]) -> set[str]:
         if ".lower()" in expr:
             return "venus"
         name = expr.strip()
-        if name in {"p", "planet"} or name.endswith("_lord"):
+        # `graha` is this codebase's own word for a planet (see `planet.graha`),
+        # so a placeholder named that interpolates a graha code, not a house
+        # number. It was missing here until `graha_on_node_{graha}` was added
+        # in 2026-08 and expanded to `graha_on_node_7` — a token the engine can
+        # never emit, which then failed against a correctly planet-shaped rule.
+        if name in {"p", "planet", "graha"} or name.endswith("_lord"):
             return "JUPITER"
         return "7"
 

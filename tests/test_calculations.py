@@ -213,12 +213,14 @@ def test_ashtami_in_penalty_set():
 
 
 # ---------------------------------------------------------------------------
-# BUG-03 — Kandaka Sani from Lagna: must fire for houses 1, 4, 7, 10
+# BUG-03 — Kandaka Sani from the Janma Rasi: fires for 4, 7, 10
+# Doctrine A-1 (ruled 2026-08-19) moved the reference from Lagna to Janma Rasi
+# and dropped the 1st, which is Janma Sani's position.
 # ---------------------------------------------------------------------------
 
-def test_kandaka_sani_from_lagna_detected():
+def test_kandaka_sani_from_janma_rasi_detected():
     from app.calculations.transits import classify_kandaka_cycle
-    for house in [1, 4, 7, 10]:
+    for house in [4, 7, 10]:
         result = classify_kandaka_cycle(house)
         assert result.is_active is True
         assert result.type == "KANDAKA_SANI"
@@ -226,9 +228,29 @@ def test_kandaka_sani_from_lagna_detected():
 
 def test_kandaka_sani_not_active_for_other_houses():
     from app.calculations.transits import classify_kandaka_cycle
-    for house in [2, 3, 5, 6, 8, 9, 11, 12]:
+    for house in [1, 2, 3, 5, 6, 8, 9, 11, 12]:
         result = classify_kandaka_cycle(house)
         assert result.is_active is False
+
+
+def test_kandaka_layers_over_the_moon_cycles_rather_than_replacing_them():
+    """Doctrine A-1: the overlap is the rule, not a modelling defect.
+
+    Saturn in the 4th from the Janma Rasi is Ardhashtama Sani *and* Kandaka
+    Sani. We used to count Kandaka from the Lagna precisely so this could never
+    happen; a reader in that position must now be told both names.
+    """
+    from app.calculations.transits import classify_kandaka_cycle, classify_sani_cycle
+
+    assert classify_sani_cycle(4).type == "ARDHASHTAMA_SANI"
+    assert classify_kandaka_cycle(4).type == "KANDAKA_SANI"
+    # The 7th and 10th are Kandaka alone — no Moon-reference cycle names them.
+    for house in (7, 10):
+        assert classify_sani_cycle(house).is_active is False
+        assert classify_kandaka_cycle(house).is_active is True
+    # The 1st is Janma Sani alone, no longer also Kandaka.
+    assert classify_sani_cycle(1).type == "JANMA_SANI"
+    assert classify_kandaka_cycle(1).is_active is False
 
 
 # ---------------------------------------------------------------------------
@@ -390,6 +412,7 @@ def test_bav_bindu_range_0_to_8():
     for planet in ["SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN"]:
         for rasi in range(1, 13):
             b = get_av_bindu(bav, planet, rasi)
+            assert b is not None, f"Missing bindu for {planet} rasi {rasi}"
             assert 0 <= b <= 8, f"Out of range bindu {b} for {planet} rasi {rasi}"
 
 
@@ -416,14 +439,22 @@ def test_two_different_charts_produce_different_bindus():
     assert diffs > 0, "Two different charts must produce different Jupiter AV bindus"
 
 
-def test_rahu_ketu_use_saturn_proxy():
+def test_rahu_ketu_have_no_bav_table_and_get_no_proxy():
+    """Doctrine A-15 (ruled 2026-08-19): the nodes are omitted, not proxied.
+
+    Saturn's table used to be substituted for both nodes on an attribution
+    ("common Thirukanitham practice") that nothing in this repository sourced.
+    None is the honest answer; it also stops a table-less graha collecting the
+    +8 that callers award for `bindus >= 4`.
+    """
     from app.calculations.ashtakavarga import compute_bhinnashtakavarga, get_av_bindu
     natal = {"SUN": 5, "MOON": 3, "MARS": 8, "MERCURY": 4, "JUPITER": 9, "VENUS": 6, "SATURN": 11, "LAGNA": 1}
     bav = compute_bhinnashtakavarga(natal)
-    # RAHU and KETU use SATURN's bindu — should return a valid 0-8 value
     for rasi in range(1, 13):
-        assert 0 <= get_av_bindu(bav, "RAHU", rasi) <= 8
-        assert 0 <= get_av_bindu(bav, "KETU", rasi) <= 8
+        assert get_av_bindu(bav, "RAHU", rasi) is None
+        assert get_av_bindu(bav, "KETU", rasi) is None
+        # Specifically not Saturn's value — the shape of the old proxy.
+        assert get_av_bindu(bav, "RAHU", rasi) != get_av_bindu(bav, "SATURN", rasi)
 
 
 # ---------------------------------------------------------------------------

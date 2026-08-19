@@ -10,7 +10,7 @@ of the overall score.
 The 10 Poruthams (Tamil → calculation rule):
   1. Dinam      (தினம்)           — count boy's nak from girl's (1-based, 1-27); pass only for the classical good-count table (incl. the 9th/18th counts, Parama Mitra tara)
   2. Ganam      (கணம்)            — Deva/Manushya/Rakshasa; Deva+Deva or Deva+Manushya = pass
-  3. Mahendra   (மகேந்திரம்)      — count girl's nak from boy's; pass if result ∈ {4,7,10,13,16,19,22,25}
+  3. Mahendra   (மகேந்திரம்)      — count boy's nak from girl's; pass if result ∈ {4,7,10,13,16,19,22,25}
   4. Stree Dirgham (ஸ்திரீ தீர்கம்) — count boy's nak from girl's; pass if count > 7 (≥ 8)
   5. Yoni       (யோனி)            — same or neutral animal pair = pass; hostile pair = fail
   6. Rasi       (ராசி)            — pass unless 6th or 8th position (Shashtashtaka) between rasis
@@ -239,19 +239,22 @@ def _ganam_score(nak_boy: int, nak_girl: int) -> int:
 
 
 def _mahendra_score(nak_boy: int, nak_girl: int) -> int:
-    """Mahendra: count girl's nak from boy's (1-based); PASS if result ∈ {4,7,10,13,16,19,22,25}.
+    """Mahendra: count boy's nak from girl's (1-based); PASS if result ∈ {4,7,10,13,16,19,22,25}.
 
-    Convention note: this project counts girl-from-boy. The reference spec
-    (§11.5) and some worked examples count boy-from-girl instead. The two
-    conventions produce identical PASS/FAIL outcomes here only because
-    {4,7,10,13,16,19,22,25} is closed under c -> 29-c (the two count
-    directions around a 27-star ring always sum to 29) — see
-    test_mahendra_good_set_symmetric_under_direction_reversal. That symmetry
-    is an accident of this particular set, not a general guarantee, so do not
-    assume any future edit to it preserves direction-independence without
-    re-checking. Not changed — documenting the choice per the 2026-07 audit.
+    Doctrine A-18 (ruled 2026-08-19): the count runs from the bride's nakshatra
+    to the groom's — the girl's star is the base and counts as 1. This corrects
+    the direction we had recorded (girl counted from the boy's star), which was
+    the opposite of the reference spec (§11.5) and of the worked examples.
+
+    No PASS/FAIL outcome changes, and that is the trap this note exists to flag:
+    {4,7,10,13,16,19,22,25} is closed under c -> 29-c (the two count directions
+    around a 27-star ring always sum to 29), so the set is direction-blind and
+    the wrong direction was invisible. That symmetry is an accident of this
+    particular set, not a general guarantee — any future edit to the set can
+    break it silently. `test_mahendra_good_set_symmetric_under_direction_reversal`
+    pins the accident so the breakage would be caught.
     """
-    diff = (nak_girl - nak_boy) % 27 + 1
+    diff = (nak_boy - nak_girl) % 27 + 1
     return 1 if diff in {4, 7, 10, 13, 16, 19, 22, 25} else 0
 
 

@@ -103,6 +103,7 @@ def detect_yogas_and_doshams(
     d9_lagna_rasi: int | None = None,
     equal_bhava_map: Mapping[str, int] | None = None,
     planet_scores_in: Mapping[str, int] | None = None,
+    longitudes_in: Mapping[str, float] | None = None,
 ) -> tuple[list[YogaResult], list[DoshamResult], list[NakshatraCautionResult]]:
     _ = equal_bhava_map
     planets_rasi = _planets_as_rasi_map(planets)
@@ -237,7 +238,11 @@ def detect_yogas_and_doshams(
     yogas.append(detect_vasumati_yoga(planets_rasi, moon_rasi))
     yogas.append(detect_kartari_yoga(planets_rasi, lagna_rasi, "LAGNA"))
 
-    kalasarpa = detect_kalasarpa(planets, lagna_rasi)
+    # Doctrine A-4: Kala Sarpa is judged on actual longitudes where the caller
+    # has them. `planets` is a rasi-only map at every production call site (the
+    # same reason `planet_scores_in` exists), so the degrees are threaded
+    # separately rather than inferred.
+    kalasarpa = detect_kalasarpa(planets, lagna_rasi, longitudes=longitudes_in)
     kalasarpa_label = "KALA_SARPA_DOSHAM_CANDIDATE" if kalasarpa.is_present else "NO_DOSHAM"
     kalasarpa_explanations = _build_dosham_explanations(
         "KALASARPA",

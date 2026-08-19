@@ -40,7 +40,12 @@ def _derived_11th_bindu(payload: WealthAssessmentInput, eleventh_house_rasi: int
             "LAGNA": payload.lagna_rasi,
         }
     )
-    return get_av_bindu(bav, "JUPITER", eleventh_house_rasi)
+    # Guru always has a Bhinnashtakavarga table, so this never falls back; the
+    # None branch only satisfies the `int | None` signature `get_av_bindu`
+    # gained when the Rahu/Ketu Saturn proxy was removed (doctrine A-15).
+    # Must not be written `or 4` — that would silently promote a genuine 0.
+    bindu = get_av_bindu(bav, "JUPITER", eleventh_house_rasi)
+    return 4 if bindu is None else bindu
 
 
 def assess_wealth_prediction(payload: WealthAssessmentInput) -> LifeAreaPrediction:

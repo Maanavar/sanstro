@@ -28,27 +28,27 @@ const TAMIL_MONTHS_TA = [
   "சித்திரை", "வைகாசி", "ஆனி", "ஆடி", "ஆவணி", "புரட்டாசி",
   "ஐப்பசி", "கார்த்திகை", "மார்கழி", "தை", "மாசி", "பங்குனி",
 ];
-// Each month starts on these Gregorian md pairs (year-independent approximation)
+// Each month starts on these Gregorian md pairs (year-independent approximation).
+//
+// WARNING: this is a display approximation, not the doctrine. The authority is
+// the backend's `tamil_calendar.tamil_solar_date`, which bisects the actual
+// sankranti instant and applies the sunset rule (doctrine A-3). This table
+// cannot track that — it is already a day off the backend for Karthigai, Thai
+// and Panguni in 2026 — so prefer the server-supplied Tamil date wherever one
+// is available, and never patch a single year's row here to chase a mismatch:
+// a per-year override lived on line 40 of this file until 2026-08-19 and it
+// silently disagreed with the engine.
 const TAMIL_MONTH_STARTS: Array<[number, number]> = [
   [4, 14], [5, 15], [6, 15], [7, 17], [8, 17], [9, 17],
   [10, 18], [11, 16], [12, 16], [1, 14], [2, 13], [3, 14],
 ];
-
-function tamilMonthStartsForYear(year: number): Array<[number, number]> {
-  if (year !== 2026) return TAMIL_MONTH_STARTS;
-
-  // The verified Chennai calendar places Aavani 1 on 18 August in 2026.
-  return TAMIL_MONTH_STARTS.map(([month, day], index) =>
-    index === 4 ? [month, 18] : [month, day],
-  );
-}
 
 export function getTamilMonthDate(dateStr: string, lang: Lang): string {
   const d = new Date(`${dateStr}T00:00:00`);
   if (Number.isNaN(d.getTime())) return "";
   const month = d.getMonth() + 1; // 1-based
   const day = d.getDate();
-  const tamilMonthStarts = tamilMonthStartsForYear(d.getFullYear());
+  const tamilMonthStarts = TAMIL_MONTH_STARTS;
 
   // Find which Tamil month this Gregorian date falls in
   let tamilMonthIdx = -1;

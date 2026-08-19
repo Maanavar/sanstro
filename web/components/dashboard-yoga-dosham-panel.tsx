@@ -71,6 +71,10 @@ const MARKER_LABELS: Record<string, { ta: string; en: string }> = {
   exaltation_sign_lord_aspects_debilitated: { ta: "உச்ச ராசி அதிபதி நீசக் கிரகத்தை பார்க்கிறார்", en: "The exaltation sign's lord aspects the debilitated planet" },
   all_planets_between_rahu_and_ketu:        { ta: "அனைத்து 7 கிரகங்களும் ராகு-கேது வில்லுக்குள் — கால சர்ப்ப அமைப்பு", en: "All 7 planets are within the Rahu–Ketu arc — Kala Sarpa pattern" },
   all_planets_between_ketu_and_rahu:        { ta: "அனைத்து 7 கிரகங்களும் கேது-ராகு வில்லுக்குள் — கால சர்ப்ப அமைப்பு", en: "All 7 planets are within the Ketu–Rahu arc — Kala Sarpa pattern" },
+  // Doctrine A-4: how the arc was judged is disclosed, so a reader can tell an
+  // exact qualification from an approximate one.
+  arc_test_degree_exact:                    { ta: "வில் சரியான பாகை அளவில் கணக்கிடப்பட்டது", en: "The arc was measured on exact longitudes" },
+  arc_test_whole_sign:                      { ta: "வில் ராசி அளவில் மட்டும் கணக்கிடப்பட்டது (தோராயம்)", en: "The arc was measured by whole sign only — an approximation" },
   // Badhaka
   badhaka_active:        { ta: "லக்னப்படி பாதக அதிபதி உங்கள் லக்னம்/சந்திரன்/லக்னாதிபதியை அல்லது தற்போதைய தசையை பாதிக்கிறது", en: "The badhaka lord (by your lagna) is touching your Lagna, Moon, lagna-lord, or current Dasha — the obstruction significator is active" },
   badhaka_lord_strong:   { ta: "பாதக அதிபதி வலுவாக உள்ளார் — தடைகள் வேகமாக கடக்கப்படும்", en: "The badhaka lord is strong — obstacles tend to clear faster" },
@@ -167,6 +171,15 @@ const MARKER_PATTERNS: { re: RegExp; label: (m: RegExpMatchArray, lang: Lang) =>
     label: (m, lang) => ({
       ta: `11-ம் அதிபதி ${m[1]}-ம் வீட்டில் உள்ளார்`,
       en: `The 11th lord is in house ${m[1]}`,
+    }),
+  },
+  {
+    // Doctrine A-4: a graha exactly on a node qualifies, but the boundary is
+    // named rather than silently resolved in or out.
+    re: /^graha_on_node_([A-Z]+)$/,
+    label: (m, lang) => ({
+      ta: `${planetLabel(m[1], lang)} ராகு/கேது மீது சரியாக அமர்ந்துள்ளார் — எல்லை நிலை`,
+      en: `${planetLabel(m[1], lang)} sits exactly on a node — a boundary case`,
     }),
   },
   {

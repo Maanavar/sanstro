@@ -7,8 +7,8 @@ Each area is scored 0–100 using:
   - House signification rules (which house governs this area)
   - Current transit of the area's karaka (significator) planet
   - Dasha lord relevance (maha 70% + antardasha 30%)
-  - Active Sani cycle penalty — from Moon (Sade Sati phases/Ardhashtama/Ashtama)
-    and from Lagna (Kandaka Sani)
+  - Active Sani cycle penalty — all counted from the Moon: Sade Sati phases,
+    Ardhashtama, Ashtama, and Kandaka (4/7/10, doctrine A-1)
   - Chandrashtamam penalty for mind-sensitive areas
 
 All planet-house tables follow South Indian Thirukanitham tradition.
@@ -603,9 +603,10 @@ def _find_next_improvement_date(
         chandrashtama_rasi = ((natal_moon_rasi - 1 + 7) % 12) + 1
         chandrashtama = moon.rasi == chandrashtama_rasi
         saturn_house_from_moon = house_from_reference(natal_moon_rasi, saturn.rasi)
-        saturn_house_from_lagna = house_from_reference(natal_lagna_rasi, saturn.rasi)
         sani_cycle = classify_sani_cycle(saturn_house_from_moon)
-        kandaka_cycle = classify_kandaka_cycle(saturn_house_from_lagna)
+        # Kandaka counts from the Janma Rasi and layers over `sani_cycle` — the
+        # 4th from the Moon is both Ardhashtama and Kandaka (doctrine A-1).
+        kandaka_cycle = classify_kandaka_cycle(saturn_house_from_moon)
         projected, _, _ = _score_area(
             area,
             natal_moon_rasi,
@@ -671,9 +672,10 @@ def _forecast_context(
     saturn = transit.bodies["SATURN"]
     chandrashtama_rasi = ((natal_moon_rasi - 1 + 7) % 12) + 1
     saturn_house_from_moon = house_from_reference(natal_moon_rasi, saturn.rasi)
-    saturn_house_from_lagna = house_from_reference(natal_lagna_rasi, saturn.rasi)
     sani_cycle = classify_sani_cycle(saturn_house_from_moon)
-    kandaka_cycle = classify_kandaka_cycle(saturn_house_from_lagna)
+    # Kandaka counts from the Janma Rasi and layers over `sani_cycle` — the 4th
+    # from the Moon is both Ardhashtama and Kandaka (doctrine A-1).
+    kandaka_cycle = classify_kandaka_cycle(saturn_house_from_moon)
     return _ForecastContext(
         transit_bodies=transit.bodies,
         transit_planet_rasis={g: b.rasi for g, b in transit.bodies.items()},
@@ -750,7 +752,7 @@ _SANI_TYPE_LABEL_TA = {
     "ARDHASHTAMA_SANI":     "அர்த்தாஷ்டம சனி",
     "ASHTAMA_SANI":         "அஷ்டம சனி",
     "KANTAKA_SANI":         "கண்டக சனி",
-    "KANDAKA_SANI":         "கண்டக சனி (லக்னம்)",
+    "KANDAKA_SANI":         "கண்டக சனி (ஜென்ம ராசி)",
 }
 _SANI_TYPE_LABEL_EN = {
     "JANMA_SANI":           "Janma Sani",
@@ -760,7 +762,7 @@ _SANI_TYPE_LABEL_EN = {
     "ARDHASHTAMA_SANI":     "Ardhashtama Sani",
     "ASHTAMA_SANI":         "Ashtama Sani",
     "KANTAKA_SANI":         "Kantaka Sani",
-    "KANDAKA_SANI":         "Kandaka Sani (Lagna)",
+    "KANDAKA_SANI":         "Kandaka Sani (Janma Rasi)",
 }
 
 
@@ -1637,11 +1639,12 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
     chandrashtama = moon.rasi == chandrashtama_rasi
 
     saturn_house_from_moon = house_from_reference(natal_moon.rasi, saturn.rasi)
-    saturn_house_from_lagna = house_from_reference(natal_lagna_rasi, saturn.rasi)
     jupiter_house = house_from_reference(natal_moon.rasi, jupiter.rasi)
 
     sani_cycle = classify_sani_cycle(saturn_house_from_moon)
-    kandaka_cycle = classify_kandaka_cycle(saturn_house_from_lagna)
+    # Kandaka counts from the Janma Rasi and layers over `sani_cycle` — the 4th
+    # from the Moon is both Ardhashtama and Kandaka (doctrine A-1).
+    kandaka_cycle = classify_kandaka_cycle(saturn_house_from_moon)
     # Ezharai Sani Murthi grade — ingress-Moon method (Doctrine §3, WI-08),
     # computed once per request (not per life-area) and only when a Sade Sati
     # phase is actually active, since it requires a Saturn-ingress ephemeris

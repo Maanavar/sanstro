@@ -64,7 +64,7 @@ describe("Saturn cycle chips", () => {
   it("lists both cycles in the note when two run at once", () => {
     const note = saniCycleNote(["JANMA_SANI", "KANDAKA_SANI"], "en");
     expect(note).toContain("Janma Sani");
-    expect(note).toContain("Kantaka Sani · from Lagna");
+    expect(note).toContain("Kantaka Sani · from Janma Rasi");
     expect(note).toContain("not a verdict on today");
   });
 

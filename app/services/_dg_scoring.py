@@ -206,14 +206,19 @@ def _transit_with_av_score(
     Adjust transit house score by Ashtakavarga Bhinna bindus.
     bindus >= 4: supportive transit (+8)
     bindus <= 2: difficult transit (-8)
+
+    Rahu and Ketu have no Bhinnashtakavarga table (doctrine A-15), so
+    `get_av_bindu` returns None for them and the transit keeps its base house
+    score with no bindu adjustment either way.
     """
     base_house = house_from_reference(moon_rasi, transit_rasi)
     base_score = TRANSIT_BASE_SCORE.get(planet, {}).get(base_house, 50)
     bindus = get_av_bindu(bhinnashtakavarga, planet, transit_rasi)
-    if bindus >= 4:
-        base_score += 8
-    elif bindus <= 2:
-        base_score -= 8
+    if bindus is not None:
+        if bindus >= 4:
+            base_score += 8
+        elif bindus <= 2:
+            base_score -= 8
     return max(10, min(90, base_score))
 
 

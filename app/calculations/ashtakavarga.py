@@ -148,16 +148,33 @@ def get_av_bindu(
     bav: dict[str, dict[int, int]],
     planet: str,
     transit_rasi: int,
-) -> int:
+) -> int | None:
+    """Ashtakavarga bindus for `planet` transiting `transit_rasi`, or None.
+
+    Doctrine A-15 (ruled 2026-08-19): Rahu and Ketu have no Bhinnashtakavarga
+    table, and we no longer invent one for them. This used to substitute
+    Saturn's table for both nodes, attributed in a comment to "common
+    Thirukanitham practice" — an attribution nothing in this repository
+    sourced. For a release-quality engine "no value" beats a borrowed one, so
+    the nodes are now omitted from bindu-based transit scoring entirely.
+
+    Do not replace this with a different proxy (Saturn for Rahu, Mars for Ketu,
+    or any other pairing) without a named system to cite. The failure here was
+    never which graha was borrowed; it was borrowing without a source.
+
+    Returning None rather than a neutral 4 also closes a scoring bug: callers
+    treat `>= 4` as a supportive transit worth +8, so the old neutral default
+    silently handed every table-less graha a bonus.
+
+    `bav_derived.bav_house_from_planet` has always refused the proxy for the
+    karaka-relative indications; the two layers now agree.
     """
-    Get Ashtakavarga bindu for a planet transiting a specific Rasi.
-    For RAHU and KETU, uses SATURN's table as proxy (common Thirukanitham practice).
-    Returns 4 (neutral default) if planet has no BAV table.
-    """
-    lookup = planet if planet in BAV_TABLE else ("SATURN" if planet in {"RAHU", "KETU"} else None)
-    if lookup is None:
-        return 4
-    return bav.get(lookup, {}).get(transit_rasi, 4)
+    if planet not in BAV_TABLE:
+        return None
+    planet_bav = bav.get(planet)
+    if planet_bav is None:
+        return None
+    return planet_bav.get(transit_rasi)
 
 
 def compute_sarvashtakavarga(bav: dict[str, dict[int, int]]) -> dict[int, int]:

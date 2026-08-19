@@ -387,6 +387,9 @@ def _build_yoga_dosham_insights(
         d9_lagna_rasi=d9_lagna_rasi,
         equal_bhava_map=equal_bhava_map,
         planet_scores_in=planet_scores,
+        # Doctrine A-4: Kala Sarpa is a degree-exact arc test. `planet_map`
+        # carries rasi only, so the sidereal longitudes go across separately.
+        longitudes_in={planet.graha: planet.absolute_longitude for planet in planets},
     )
 
     yoga_models = [

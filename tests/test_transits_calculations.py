@@ -70,11 +70,12 @@ def test_meenam_moon_saturn_meenam_is_janma_sani():
     assert cycle.is_active is True
 
 
-def test_kandaka_cycle_is_only_active_on_quadrants_from_lagna():
-    assert classify_kandaka_cycle(1).type == "KANDAKA_SANI"
+def test_kandaka_cycle_is_only_active_on_4_7_10_from_janma_rasi():
+    # Doctrine A-1 (2026-08-19): Janma Rasi reference, 1st excluded.
     assert classify_kandaka_cycle(4).type == "KANDAKA_SANI"
     assert classify_kandaka_cycle(7).type == "KANDAKA_SANI"
     assert classify_kandaka_cycle(10).type == "KANDAKA_SANI"
+    assert classify_kandaka_cycle(1).type is None
     assert classify_kandaka_cycle(2).type is None
 
 

@@ -64,13 +64,16 @@ describe("transitBindus", () => {
     expect(transitBindus(chart, "SATURN", 4)).toBe(7);
   });
 
-  it("falls back to Saturn's table for the nodes, matching the server", () => {
+  it("gives the nodes no bindu at all, matching the server", () => {
+    // Doctrine A-15 (ruled 2026-08-19): Rahu and Ketu have no Bhinnashtakavarga
+    // table and we do not borrow Saturn's. This used to return 5 here, mirroring
+    // a server-side proxy that has since been removed as unsourced.
     const chart = {
       planets,
       ashtakavarga: { SATURN: { 2: 5 } as Record<number, number> },
     };
-    expect(transitBindus(chart, "RAHU", 4)).toBe(5);
-    expect(transitBindus(chart, "KETU", 4)).toBe(5);
+    expect(transitBindus(chart, "RAHU", 4)).toBeNull();
+    expect(transitBindus(chart, "KETU", 4)).toBeNull();
   });
 
   it("returns null rather than a fabricated bindu when data is missing", () => {

@@ -243,7 +243,16 @@ class _W:
 
 # Navatara quality. The adverse *classification* (Vipat 3 / Pratyak 5 / Vadha 7)
 # is practice consensus; mapping it to a number below is engine policy.
+#
+# Doctrine A-11 (ruled 2026-08-19) draws a line these three used to blur. The
+# *severe* taras — the ones that carry a scoring penalty — are 3/5/7 and only
+# those. But Janma tara (1) is commonly marked "not good" in general Tarabala
+# presentations, so a reader-facing panel may reasonably show it as unfavourable
+# without the engine treating it as a defect. Keep the two ideas separate: this
+# set governs scoring, `TARA_GENERAL_CAUTION` governs display, and
+# activity-specific rules decide how Janma is treated for a given beginning.
 _TARA_ADVERSE = frozenset({3, 5, 7})
+TARA_GENERAL_CAUTION = frozenset({1, 3, 5, 7})
 _TARA_NAMES: dict[int, tuple[str, str]] = {
     1: ("ஜென்மம்", "Janma"), 2: ("சம்பத்", "Sampat"), 3: ("விபத்", "Vipat"),
     4: ("க்ஷேமம்", "Kshema"), 5: ("பிரத்யரி", "Pratyari"), 6: ("சாதனை", "Sadhana"),

@@ -263,12 +263,16 @@ def _run_sani_cycle() -> QAModuleResult:
     ezhara_12 = classify_sani_cycle(house_from_reference("Rishabam", "Mesham"))  # 12th
     ezhara_1 = classify_sani_cycle(house_from_reference("Mesham", "Mesham"))     # 1st
     ezhara_2 = classify_sani_cycle(house_from_reference("Meenam", "Mesham"))     # 2nd
-    # Kandaka sani (from lagna)
+    # Kandaka Sani: 4/7/10 from the Janma Rasi (doctrine A-1, ruled 2026-08-19).
+    # The 1st is Janma Sani's place and is no longer a Kandaka position, and the
+    # reference is the Moon, not the Lagna.
     kandaka_10 = classify_kandaka_cycle(house_from_reference("Mesham", "Magaram"))
     kandaka_4 = classify_kandaka_cycle(house_from_reference("Mesham", "Kadagam"))
     kandaka_7 = classify_kandaka_cycle(house_from_reference("Mesham", "Thulaam"))
     kandaka_1 = classify_kandaka_cycle(house_from_reference("Mesham", "Mesham"))
     not_kandaka = classify_kandaka_cycle(house_from_reference("Mesham", "Rishabam"))
+    # Layering: the 4th from the Moon must return BOTH names, not one.
+    layered_ardhashtama = classify_sani_cycle(house_from_reference("Mesham", "Kadagam"))
     cases = [
         _case("T050-a", "Dhanusu Moon + Meenam Sani -> Ardhashtama type", "ARDHASHTAMA_SANI", ardhashtama.type),
         _case("T050-b", "Ardhashtama Sani is_active = True", True, ardhashtama.is_active),
@@ -278,11 +282,12 @@ def _run_sani_cycle() -> QAModuleResult:
         _case("T051-a", "Sani in 12th from Moon -> Ezharai active", True, ezhara_12.is_active),
         _case("T051-b", "Sani in 1st from Moon -> Ezharai active", True, ezhara_1.is_active),
         _case("T051-c", "Sani in 2nd from Moon -> Ezharai active", True, ezhara_2.is_active),
-        _case("T052-a", "Sani in 10th from Lagna -> Kandaka Sani", "KANDAKA_SANI", kandaka_10.type),
-        _case("T052-b", "Sani in 4th from Lagna -> Kandaka Sani", "KANDAKA_SANI", kandaka_4.type),
-        _case("T052-c", "Sani in 7th from Lagna -> Kandaka Sani", "KANDAKA_SANI", kandaka_7.type),
-        _case("T052-d", "Sani in 1st from Lagna -> Kandaka Sani", "KANDAKA_SANI", kandaka_1.type),
-        _case("T052-e", "Sani in 2nd from Lagna -> NOT Kandaka", False, not_kandaka.is_active),
+        _case("T052-a", "Sani in 10th from Janma Rasi -> Kandaka Sani", "KANDAKA_SANI", kandaka_10.type),
+        _case("T052-b", "Sani in 4th from Janma Rasi -> Kandaka Sani", "KANDAKA_SANI", kandaka_4.type),
+        _case("T052-c", "Sani in 7th from Janma Rasi -> Kandaka Sani", "KANDAKA_SANI", kandaka_7.type),
+        _case("T052-d", "Sani in 1st from Janma Rasi -> NOT Kandaka (that is Janma Sani)", False, kandaka_1.is_active),
+        _case("T052-e", "Sani in 2nd from Janma Rasi -> NOT Kandaka", False, not_kandaka.is_active),
+        _case("T052-f", "Sani in 4th from Janma Rasi -> Ardhashtama as well (layered)", "ARDHASHTAMA_SANI", layered_ardhashtama.type),
     ]
     passed = sum(1 for c in cases if c.passed)
     return QAModuleResult(module="sani_cycle", passed=passed, failed=len(cases) - passed, cases=cases)

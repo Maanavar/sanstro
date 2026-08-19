@@ -1960,12 +1960,20 @@ def calculate_daily_panchangam(
     yama = _slot_datetime(kalam_anchor, kalam_slot_duration, yama_slot)
     kuligai = _slot_datetime(kalam_anchor, kalam_slot_duration, kuligai_slot)
 
-    # Convention note: fixed ±24-min window around solar noon (the common clock-table
-    # simplification). Some traditions instead scale Abhijit to day-length/15 (varies
-    # with the sunrise-sunset span, wider in summer/narrower in winter). Not changed —
-    # documenting the choice per the 2026-07 audit.
-    abhijit_start = solar_noon - timedelta(minutes=24)
-    abhijit_end = solar_noon + timedelta(minutes=24)
+    # Abhijit is the 8th of the 15 equal muhurtas that divide the daylight span
+    # (doctrine A-9, ruled 2026-08-19). It therefore breathes with the season and
+    # the latitude: wider in summer, narrower in winter, and materially different
+    # from the Chennai case for a user in London. This replaces a fixed
+    # ±24-minute window around solar noon, which was the clock-table
+    # simplification and only ever coincided with the real width near the
+    # equinox at low latitude.
+    #
+    # Being the 8th of 15 equal parts, the window is centred on the midpoint of
+    # daylight by construction — no separate solar-noon anchor is needed.
+    daylight = sunset - sunrise
+    abhijit_start = sunrise + daylight * 7 / 15
+    abhijit_end = sunrise + daylight * 8 / 15
+    # Wednesday carries no Abhijit. This is the only weekday exclusion.
     abhijit_restricted = date_local.weekday() == 2
 
     tithi_paksha: str = "SHUKLA" if tithi_number <= 15 else "KRISHNA"

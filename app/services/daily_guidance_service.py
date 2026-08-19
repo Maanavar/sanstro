@@ -627,8 +627,10 @@ def build_daily_guidance_response(
 
     # Ezhara Sani / Ashtama Sani from natal Moon (primary Saturn cycle)
     saturn_cycle = classify_sani_cycle(house_from_reference(natal_moon.rasi, saturn.rasi))
-    # Kantaka Sani from natal Lagna (independent cycle per spec §6.3)
-    kantaka_sani = classify_kandaka_cycle(house_from_reference(natal_lagna, saturn.rasi))
+    # Kandaka Sani from the natal Moon, layered over the cycle above rather than
+    # independent of it — the 4th from the Moon is both Ardhashtama and Kandaka
+    # (doctrine A-1, ruled 2026-08-19; supersedes the spec §6.3 Lagna reading).
+    kantaka_sani = classify_kandaka_cycle(house_from_reference(natal_moon.rasi, saturn.rasi))
 
     personal_safety_score = 60
     if chandrashtama:
@@ -649,8 +651,13 @@ def build_daily_guidance_response(
             personal_safety_score -= 9
         elif saturn_cycle.type == "ASHTAMA_SANI":
             personal_safety_score -= 12
-    # Kantaka from Lagna: independent penalty only when Ezhara/Ashtama is not already active
-    # to avoid double-counting when both cycles overlap on the same person
+    # Kandaka from the Janma Rasi. Under doctrine A-1 the overlap with
+    # Ardhashtama (both are the 4th from the Moon) is the rule rather than a
+    # modelling accident, so a reader in that position is *named* both cycles —
+    # but the placement is still one placement and must be *scored* once. This
+    # guard, written to dodge an overlap that could not previously happen from
+    # two different reference points, is what keeps the penalty single now that
+    # it can.
     if kantaka_sani.is_active and not saturn_cycle.is_active:
         personal_safety_score -= 7
     if panchangam.abhijit_restricted:

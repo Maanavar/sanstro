@@ -47,8 +47,17 @@ COMBUST_ORBS = {
     # Moon near Sun = Amavasai (New Moon), not combustion in Vedic/Tamil Jyothidam.
 }
 
-# Cazimi ("in the heart of the Sun") — the rare exceptional sub-condition of
-# combustion. A planet within 0°17' (17 arc-minutes = 0.2833°) of the Sun's
+# Cazimi ("in the heart of the Sun") — [VARIANT], not Tamil combustion doctrine.
+#
+# Doctrine A-10 (ruled 2026-08-19) confirmed the five combustion orbs below and
+# the gandanta span, but deliberately did NOT confirm this one. Cazimi is a real
+# technique; it is simply unsourced in this repository, and it should not ride
+# along inside a table that is sourced. Treat the 0°17' figure as our declared
+# choice until a Tamil source names it, and do not cite it as though the ruling
+# covered it.
+#
+# The rare exceptional sub-condition of combustion: a planet within
+# 0°17' (17 arc-minutes = 0.2833°) of the Sun's
 # exact longitude is not burnt but supercharged: it sits in the Sun's heart and
 # gains, rather than loses, indicative strength. This is a much tighter orb than
 # the 8°-17° combustion orbs above, so every cazimi planet is also inside the
@@ -266,7 +275,7 @@ def find_saturn_ingress_jd(current_rasi: int, before_jd: float) -> float:
     rasi at that instant). Walks backward ~30 days at a time (Saturn spends
     ~2.5 years per rasi) until the rasi differs, then bisects the bracketed
     window to the exact crossing instant — mirroring the boundary-finding
-    approach `tamil_calendar._find_sankranti_jd` uses for the Sun.
+    approach `tamil_calendar.find_sankranti_jd` uses for the Sun.
 
     Known simplification: like the Sun-sankranti finder, this assumes a
     single forward crossing and does not special-case a retrograde loop that
@@ -415,12 +424,33 @@ def find_saturn_egress_jd(current_rasi: int, after_jd: float) -> float:
     return hi
 
 
-def classify_kandaka_cycle(position_from_lagna: int) -> CycleAssessment:
-    if position_from_lagna in {1, 4, 7, 10}:
+def classify_kandaka_cycle(position_from_moon: int) -> CycleAssessment:
+    """Kandaka Sani: Saturn in the 4th, 7th or 10th from the Janma Rasi.
+
+    [TAMIL_LINEAGE] Doctrine A-1, ruled 2026-08-19. Two things changed here.
+
+    The **reference** moved from the Lagna to the Janma Rasi. That is not a
+    cosmetic swap: most people's Lagna and Moon sign differ, so the two
+    references select almost disjoint populations, and this changes who is told
+    they are undergoing Kandaka Sani.
+
+    The **house set** dropped the 1st, which belongs to Janma Sani.
+
+    And Kandaka is **layered**, not a separate axis. Saturn in the 4th from the
+    Moon is Ardhashtama Sani *and* Kandaka Sani; a reader in that position
+    should be told both. We previously counted from the Lagna specifically so
+    that Kandaka would never overlap the Moon-reference cycles — the overlap was
+    read as a modelling defect and engineered away. It is not a defect; it is
+    the rule. Tidiness is not evidence.
+
+    Callers must therefore pass the house from the natal Moon and must render
+    this alongside `classify_sani_cycle`, never instead of it.
+    """
+    if position_from_moon in {4, 7, 10}:
         return CycleAssessment(
             type="KANDAKA_SANI",
             is_active=True,
-            supportive_label="Lagna-based restructuring and responsibility cycle",
+            supportive_label="Obstruction and blocked-effort cycle: patience with sustained effort",
         )
     return CycleAssessment(type=None, is_active=False)
 

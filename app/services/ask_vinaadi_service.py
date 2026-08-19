@@ -214,11 +214,12 @@ def _build_context_block(
     chandrashtama = moon_transit.rasi == chandrashtama_rasi
 
     sat_house_moon = house_from_reference(natal_moon.rasi, saturn.rasi)
-    sat_house_lagna = house_from_reference(natal_lagna_rasi, saturn.rasi)
     jup_house_moon = house_from_reference(natal_moon.rasi, jupiter.rasi)
 
     sani_cycle = classify_sani_cycle(sat_house_moon)
-    kandaka = classify_kandaka_cycle(sat_house_lagna)
+    # Kandaka is counted from the Janma Rasi and layers over the cycle above —
+    # the 4th from the Moon is both Ardhashtama and Kandaka (doctrine A-1).
+    kandaka = classify_kandaka_cycle(sat_house_moon)
 
     # Active transit snapshot (top 5 planets)
     transit_lines = []

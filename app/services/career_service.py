@@ -6,7 +6,6 @@ from datetime import date
 from app.calculations.astro import house_from_reference
 from app.calculations.bhava_afflictions import assess_bhava_afflictions
 from app.calculations.dasha_activation import assess_dasha_activation
-from app.calculations.transits import classify_kandaka_cycle
 from app.services.life_area_prediction_models import AstroFactor, BiText, LifeAreaPrediction, house_lord_for_lagna
 from app.services.narrative_engine import PLANET_NAME
 
@@ -186,10 +185,15 @@ def assess_career_prediction(payload: CareerAssessmentInput) -> LifeAreaPredicti
             "The dasha lord connects to the 10th house indirectly (aspect or dispositorship).",
         ))
 
+    # Saturn in the 10th from Lagna is a bhava judgement about the career house,
+    # not a Kandaka reading. It used to be written `== 10 and kandaka.is_active`,
+    # which was a no-op: under the old Lagna-referenced 1/4/7/10 set, house 10
+    # already implied Kandaka. Now that Kandaka counts from the Janma Rasi
+    # (doctrine A-1) that conjunction would silently *narrow* who gets this
+    # career warning, so the redundant term is dropped rather than repurposed.
     saturn_house_from_lagna = house_from_reference(payload.lagna_rasi, payload.transit_saturn_rasi)
-    kandaka = classify_kandaka_cycle(saturn_house_from_lagna)
     transit_support = "STRONG"
-    if saturn_house_from_lagna == 10 and kandaka.is_active:
+    if saturn_house_from_lagna == 10:
         transit_support = "WEAK"
         score -= 8
         challenges.append(

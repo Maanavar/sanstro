@@ -617,11 +617,18 @@ function classifySaniFromMoon(house: number | null | undefined): BiCopy {
   };
 }
 
-function classifyKandakaFromLagna(house: number | null | undefined): BiCopy | null {
-  if (!house || !KENDRA_HOUSES.has(house)) return null;
+// Kandaka Sani: 4/7/10 from the Janma Rasi (doctrine A-1, ruled 2026-08-19).
+// Not the kendra set and not counted from the Lagna — the 1st belongs to Janma
+// Sani, and the reference is the Moon. This reading deliberately layers over
+// `classifySaniFromMoon` rather than replacing it: the 4th from the Moon is
+// both Ardhashtama Sani and Kandaka Sani, and the reader should be told both.
+const KANDAKA_HOUSES_FROM_MOON = new Set([4, 7, 10]);
+
+function classifyKandakaFromMoon(house: number | null | undefined): BiCopy | null {
+  if (!house || !KANDAKA_HOUSES_FROM_MOON.has(house)) return null;
   return {
-    ta: "லக்னத்திலிருந்து கண்டக சனி: முக்கிய வாழ்க்கைத் தூண்களில் பொறுப்பை அதிகரிக்கும்.",
-    en: "Kandaka Sani from Lagna: responsibilities increase around a main life pillar.",
+    ta: "ஜென்ம ராசியிலிருந்து கண்டக சனி: முயற்சிகளில் தடைகள் வரலாம்; பொறுமையும் தொடர் முயற்சியும் தேவை.",
+    en: "Kandaka Sani from the Janma Rasi: effort meets obstruction — patience and persistence are what carry it.",
   };
 }
 
@@ -692,7 +699,11 @@ export function lagnaRasiNumber(planets: ChartPlanet[]): number | null {
  * essential for peyarchi, and correct about the UI (though not, as the review
  * assumed, absent from the engine).
  *
- * Rahu/Ketu fall back to Saturn's table, matching `get_av_bindu` server-side.
+ * Rahu/Ketu return null — they have no Bhinnashtakavarga table and we do not
+ * borrow another graha's (doctrine A-15, ruled 2026-08-19). This used to fall
+ * back to Saturn's table to match `get_av_bindu` server-side; that proxy has
+ * been removed from the engine, and this mirror must stay removed with it or
+ * the card will print a number the backend refuses to compute.
  */
 export function transitBindus(
   chart: { planets: ChartPlanet[]; ashtakavarga?: Record<string, Record<number, number>> },
@@ -704,9 +715,8 @@ export function transitBindus(
   const lagna = lagnaRasiNumber(chart.planets);
   if (lagna == null) return null;
   const transitRasi = ((lagna - 1 + houseFromLagna - 1) % 12) + 1;
-  const key = av[graha] ? graha : graha === "RAHU" || graha === "KETU" ? "SATURN" : null;
-  if (!key) return null;
-  const bindu = av[key]?.[transitRasi];
+  if (!av[graha]) return null;
+  const bindu = av[graha]?.[transitRasi];
   return typeof bindu === "number" ? bindu : null;
 }
 
@@ -846,7 +856,7 @@ export function ChartExplanationPanel({
     const saturnFromMoon = sani?.positionFromMoon ?? saturnTransit?.houseFromMoon ?? null;
     const saturnFromLagna = sani?.positionFromLagna ?? saturnTransit?.houseFromLagna ?? null;
     const saniStage = classifySaniFromMoon(saturnFromMoon);
-    const kandakaStage = classifyKandakaFromLagna(saturnFromLagna);
+    const kandakaStage = classifyKandakaFromMoon(saturnFromMoon);
     return {
       moon,
       conjunctions,
