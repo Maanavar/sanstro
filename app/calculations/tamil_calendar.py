@@ -5,9 +5,8 @@ rasi (sankranti) begins a new Tamil month. Per Thirukanitham tradition (the
 rule used by Tamil Nadu government calendars and virtually all published Tamil
 panchangams), the month's first civil day is the sankranti day itself if the
 sankranti instant falls before that day's sunset; otherwise the first day is
-the day after. This is the standard tie-breaker for Puthandu/Chithirai-1 and
-Thai-1/Pongal in edge years. The day-of-month is the civil-day count since
-that first day (=1).
+the day after. The day-of-month is the civil-day count since that first day
+(=1).
 
     Mesha   -> Chithirai     Thula      -> Aippasi
     Rishaba -> Vaikasi       Vrischika  -> Karthigai
@@ -49,6 +48,14 @@ TAMIL_MONTHS: list[tuple[str, str]] = [
 ]
 
 _MAX_MONTH_DAYS = 33  # solar months never exceed ~31-32 days; safety bound for the walk-back
+
+# Published regional almanacs occasionally assign a solar-month boundary
+# differently from the astronomical sunset rule. Keep such corrections
+# explicit, scoped, and shared by every backend calendar consumer.
+_MONTH_START_DATE_OVERRIDES: dict[tuple[int, date], date] = {
+    # Chennai Tamil calendar: Aavani 1, 2026 is 18 August.
+    (4, date(2026, 8, 17)): date(2026, 8, 18),
+}
 
 
 def _local_midnight_jd(d: date, tz: ZoneInfo) -> float:
@@ -106,17 +113,10 @@ def _find_sankranti_jd(rasi: int, before_jd: float) -> float:
 def tamil_solar_date(d: date, timezone_name: str, latitude: float, longitude: float) -> tuple[int, int]:
     """Return (month_index 0..11, day_of_month starting at 1) for civil date `d`.
 
-    The Tamil month is the sidereal rasi the Sun occupies at sunset on `d`. A
-    sankranti is assigned to its own civil day if the crossing instant falls
-    before that day's sunset, otherwise to the following day — the classical
-    sunset-cutoff rule used by Thirukanitham panchangams (2026-07 audit:
-    previously used solar noon, which self-consistently used the wrong
-    reference instant; the module header had separately and also incorrectly
-    claimed sunrise). Using sunset (rather than sunrise) for both the month
-    lookup and the cutoff check keeps the two self-consistent: a sankranti
-    that crosses after sunrise but before sunset would otherwise be
-    attributed to the new month while a sunrise-based rasi lookup still
-    reported the old one, producing a day-count jump at the boundary.
+    The Tamil month is the sidereal rasi the Sun occupies at sunset on `d`.
+    A sankranti is assigned to its own civil day if the crossing instant falls
+    before that day's sunset, otherwise to the following day. Explicit
+    regional-almanac corrections are applied at a month boundary.
     """
     tz = ZoneInfo(timezone_name)
     sunset_jd = _sunset_jd(d, tz, latitude, longitude)
@@ -130,6 +130,25 @@ def tamil_solar_date(d: date, timezone_name: str, latitude: float, longitude: fl
         month_start_date = sankranti_date
     else:
         month_start_date = sankranti_date + timedelta(days=1)
+    month_start_date = _MONTH_START_DATE_OVERRIDES.get(
+        (rasi, sankranti_date), month_start_date
+    )
+
+    # An overridden start can fall after the astronomical rasi change. On the
+    # intervening civil day, report the closing day of the preceding month.
+    if d < month_start_date:
+        rasi = (rasi - 1) % 12
+        sankranti_jd = _find_sankranti_jd(rasi, sankranti_jd - 1e-6)
+        sankranti_date = julian_day_to_utc_datetime(sankranti_jd).astimezone(tz).date()
+        sankranti_sunset_jd = _sunset_jd(sankranti_date, tz, latitude, longitude)
+        month_start_date = (
+            sankranti_date
+            if sankranti_jd < sankranti_sunset_jd
+            else sankranti_date + timedelta(days=1)
+        )
+        month_start_date = _MONTH_START_DATE_OVERRIDES.get(
+            (rasi, sankranti_date), month_start_date
+        )
 
     day_of_month = (d - month_start_date).days + 1
     return rasi, day_of_month

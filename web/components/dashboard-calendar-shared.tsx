@@ -34,17 +34,27 @@ const TAMIL_MONTH_STARTS: Array<[number, number]> = [
   [10, 18], [11, 16], [12, 16], [1, 14], [2, 13], [3, 14],
 ];
 
+function tamilMonthStartsForYear(year: number): Array<[number, number]> {
+  if (year !== 2026) return TAMIL_MONTH_STARTS;
+
+  // The verified Chennai calendar places Aavani 1 on 18 August in 2026.
+  return TAMIL_MONTH_STARTS.map(([month, day], index) =>
+    index === 4 ? [month, 18] : [month, day],
+  );
+}
+
 export function getTamilMonthDate(dateStr: string, lang: Lang): string {
   const d = new Date(`${dateStr}T00:00:00`);
   if (Number.isNaN(d.getTime())) return "";
   const month = d.getMonth() + 1; // 1-based
   const day = d.getDate();
+  const tamilMonthStarts = tamilMonthStartsForYear(d.getFullYear());
 
   // Find which Tamil month this Gregorian date falls in
   let tamilMonthIdx = -1;
   for (let i = 0; i < 12; i++) {
-    const [sm, sd] = TAMIL_MONTH_STARTS[i]!;
-    const [nm, nd] = TAMIL_MONTH_STARTS[(i + 1) % 12]!;
+    const [sm, sd] = tamilMonthStarts[i]!;
+    const [nm, nd] = tamilMonthStarts[(i + 1) % 12]!;
     const inMonth = (month === sm && day >= sd) || (i < 11 ? (month === nm && day < nd) : (month === nm && day < nd) || (month < sm));
     if (month === sm && day >= sd) { tamilMonthIdx = i; break; }
     if (i < 11 && month === nm && day < nd) { tamilMonthIdx = i; break; }
@@ -56,7 +66,7 @@ export function getTamilMonthDate(dateStr: string, lang: Lang): string {
   }
 
   // Compute day within Tamil month
-  const [sm, sd] = TAMIL_MONTH_STARTS[tamilMonthIdx]!;
+  const [sm, sd] = tamilMonthStarts[tamilMonthIdx]!;
   const startDate = new Date(d.getFullYear(), sm - 1, sd);
   if (sm > month || (sm === month && sd > day)) {
     startDate.setFullYear(d.getFullYear() - 1);
