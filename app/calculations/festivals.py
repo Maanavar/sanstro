@@ -180,6 +180,34 @@ _YEARLY_FESTIVALS: dict[int, list[FestivalEntry]] = {
     ],
 }
 
+#: Years for which the gazetted/administrative rows above exist (`PAN-17`).
+#:
+#: Two engines produce festival rows and they do NOT have the same reach. The
+#: tithi/nakshatra/solar-month rules below are algorithmic and answer for any
+#: year. `_YEARLY_FESTIVALS` is a transcription of government holiday gazettes
+#: plus a few dates that are administrative records rather than calculations,
+#: and it only covers the years named here. Outside that range the calendar
+#: returns the algorithmic set and no gazetted rows — thinner, never wrong.
+#:
+#: Naming the boundary as a constant is what lets a caller disclose it and lets
+#: `tests/test_rulebook_invariants.py` assert the published rulebook still
+#: states the truth. Extend this the same commit you extend `_YEARLY_FESTIVALS`.
+GAZETTED_FESTIVAL_YEARS: frozenset[int] = frozenset(_YEARLY_FESTIVALS)
+
+
+def gazetted_coverage_bounds() -> tuple[int, int]:
+    """First and last year for which gazetted festival rows exist."""
+    return min(GAZETTED_FESTIVAL_YEARS), max(GAZETTED_FESTIVAL_YEARS)
+
+
+def has_gazetted_coverage(year: int) -> bool:
+    """Whether `year` has government/administrative festival rows on file.
+
+    A caller rendering a calendar for a year outside coverage should say so
+    rather than let the reader infer that a month genuinely has no festivals.
+    """
+    return year in GAZETTED_FESTIVAL_YEARS
+
 # ---------------------------------------------------------------------------
 # Nakshatra-based festivals (nakshatra name → festival) — every year
 # ---------------------------------------------------------------------------
