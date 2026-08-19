@@ -4,7 +4,6 @@ from datetime import date
 
 from app.calculations.tamil_calendar import tamil_solar_date
 
-
 CHENNAI = (13.0827, 80.2707, "Asia/Kolkata")
 
 

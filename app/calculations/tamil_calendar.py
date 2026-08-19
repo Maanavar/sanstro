@@ -29,7 +29,8 @@ from app.calculations.astro import (
     normalize_longitude,
     utc_datetime_to_julian_day,
 )
-from app.calculations.ephemeris import calculate_rise_transit_jd, sun_longitude_at_jd as _sun_longitude_at_jd
+from app.calculations.ephemeris import calculate_rise_transit_jd
+from app.calculations.ephemeris import sun_longitude_at_jd as _sun_longitude_at_jd
 
 # Index 0 == Mesha == Chithirai
 TAMIL_MONTHS: list[tuple[str, str]] = [

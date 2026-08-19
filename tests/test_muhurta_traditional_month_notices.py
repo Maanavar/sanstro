@@ -4,7 +4,6 @@ from datetime import date
 
 from app.services.muhurta_service import _traditional_month_notices
 
-
 CHENNAI = ("Asia/Kolkata", 13.0827, 80.2707)
 
 

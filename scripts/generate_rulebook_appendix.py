@@ -22,6 +22,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
+from app.calculations import _yoga_helpers as YH  # noqa: E402
 from app.calculations import chart_strength as CS  # noqa: E402
 from app.calculations import compatibility_intelligence as CI  # noqa: E402
 from app.calculations import dasha as DA  # noqa: E402
@@ -29,10 +30,16 @@ from app.calculations import festivals as FE  # noqa: E402
 from app.calculations import panchangam as PA  # noqa: E402
 from app.calculations import porutham as PO  # noqa: E402
 from app.calculations import transits as TR  # noqa: E402
-from app.calculations import _yoga_helpers as YH  # noqa: E402
 from app.data import kuligai_polarity as KU  # noqa: E402
 
 OUTPUT_PATH = REPO_ROOT / "docs" / "VINAADI_RULEBOOK_TABLE_APPENDIX.md"
+
+#: Corner cell of a directional matrix. The value carries **two** backslashes on
+#: purpose: Markdown reads `\\` as an escaped backslash and renders one. Held here
+#: rather than written inline because a backslash inside an f-string expression is a
+#: syntax error before Python 3.12, and `pyproject.toml` declares
+#: `requires-python = ">=3.11"`.
+FROM_TO_HEADER = "From \\\\ To"
 
 #: Weekday index used across the panchangam module is Python's `date.weekday()`
 #: (Monday == 0). Rendered in almanac order, Sunday first.
@@ -378,7 +385,7 @@ Rasi lords used by the kuta:
 Directional relation scores between the seven rasi lords — row is the viewer,
 column the viewed. `1` friend, `0.5` neutral, `0` enemy.
 
-{_table(["From \\\\ To"] + [lord.title() for lord in lords], rows)}
+{_table([FROM_TO_HEADER] + [lord.title() for lord in lords], rows)}
 
 The kuta fails when either direction is `0`; a one-way enmity is enough to fail.
 """
@@ -475,7 +482,7 @@ def section_friendship() -> str:
 Row is the viewer, column the viewed. `F` friend, `E` enemy, `N` neutral.
 Directional: read across the row for what that graha thinks.
 
-{_table(["From \\\\ To"] + [g.title() for g in GRAHA_ORDER], rows)}
+{_table([FROM_TO_HEADER] + [g.title() for g in GRAHA_ORDER], rows)}
 
 **Why this is `[VARIANT]`, not plain Parashari.** The table includes Rahu and
 Ketu as friendship participants, which strict Parashari natural-friendship
