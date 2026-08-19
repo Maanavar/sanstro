@@ -13,6 +13,7 @@ export type {
   AskVinaadiResponseData,
   MuhurtaSlot,
   MuhurtaFactor,
+  TraditionalMonthNotice,
   MuhurtaCitation,
   MuhurtaResponseData,
   ApiEnvelope,

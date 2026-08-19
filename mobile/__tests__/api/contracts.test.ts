@@ -362,6 +362,43 @@ describe("tools API", () => {
     );
   });
 
+  it("getMuhurta forwards the activity place label alongside the coordinates", async () => {
+    mockGet.mockResolvedValue({ success: true, data: { slots: [] } });
+    await getMuhurta({
+      chartId: "chart-uuid-001",
+      activity: "GOLD",
+      dateFrom: "2026-08-01",
+      dateTo: "2026-08-30",
+      lat: 11.0168,
+      lon: 76.9558,
+      tz: "Asia/Kolkata",
+      place: "Coimbatore, Tamil Nadu, India",
+    });
+    expect(mockGet).toHaveBeenCalledWith(
+      "/charts/chart-uuid-001/muhurta",
+      {
+        activity: "GOLD",
+        dateFrom: "2026-08-01",
+        dateTo: "2026-08-30",
+        lat: 11.0168,
+        lon: 76.9558,
+        tz: "Asia/Kolkata",
+        place: "Coimbatore, Tamil Nadu, India",
+      },
+    );
+  });
+
+  it("getMuhurta omits place entirely when it is not supplied", async () => {
+    // The backend ignores a place without coordinates, but sending an empty one
+    // would still put a meaningless key on every request.
+    mockGet.mockResolvedValue({ success: true, data: { slots: [] } });
+    await getMuhurta({ activity: "GOLD", dateFrom: "2026-08-01", dateTo: "2026-08-30" });
+    expect(mockGet).toHaveBeenCalledWith(
+      "/muhurta",
+      { activity: "GOLD", dateFrom: "2026-08-01", dateTo: "2026-08-30" },
+    );
+  });
+
   it("getNatchathiram reads the content route", async () => {
     mockGet.mockResolvedValue({ success: true, data: { number: 1, nameEn: "Aswini" } });
     const result = await getNatchathiram(1);

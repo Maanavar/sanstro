@@ -167,6 +167,12 @@ export interface MuhurtaFactor {
   conflict?: string | null;
 }
 
+/** A non-scoring family-custom note for the Tamil solar month of the slot. */
+export interface TraditionalMonthNotice {
+  month: BiText;
+  message: BiText;
+}
+
 export interface MuhurtaSlot {
   date: string;
   tamilDate?: BiText | null;
@@ -180,6 +186,8 @@ export interface MuhurtaSlot {
   dashaSupport?: BiText | null;
   horaSupport?: BiText | null;
   cautions: BiText[];
+  /** Informational only; never changes the score or recommendation. */
+  traditionalMonthNotices?: TraditionalMonthNotice[];
   /**
    * Every factor the engine weighed, in evaluation order. `cautions` is a lossy
    * projection of this (the PENALTY reasons only), kept for surfaces that

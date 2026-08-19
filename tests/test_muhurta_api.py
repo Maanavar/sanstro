@@ -57,6 +57,74 @@ def test_muhurta_happy_path(client):
     assert isinstance(body["data"]["slots"], list)
 
 
+def test_muhurta_paksha_filter_returns_only_the_requested_fortnight(client):
+    chart_id = _create_chart(client)
+    response = client.get(
+        f"/api/v1/charts/{chart_id}/muhurta",
+        params={
+            "activity": "SPIRITUAL",
+            "dateFrom": "2026-06-01",
+            "dateTo": "2026-06-30",
+            "paksha": "SHUKLA",
+        },
+    )
+
+    assert response.status_code == 200
+    slots = response.json()["data"]["slots"]
+    assert slots
+    panchangam = calculate_daily_panchangam_range(
+        date(2026, 6, 1), date(2026, 6, 30), 13.0827, 80.2707, "Asia/Kolkata"
+    )
+    assert all(panchangam[date.fromisoformat(slot["date"])].tithi_paksha == "SHUKLA" for slot in slots)
+
+
+def test_a_combust_karaka_reaches_the_response_and_names_itself(client):
+    """A5 end-to-end — the engine finding it is not enough; the reader must see it.
+
+    2026-01-20 sits inside a Venus combust span (சுக்ர மௌட்யம்), verified by
+    printing the year's spans. GOLD is an acquisition, so the karaka of valuables
+    being hidden must appear as a named factor on the day, not merely subtract
+    silently.
+    """
+    chart_id = _create_chart(client)
+    response = client.get(
+        f"/api/v1/charts/{chart_id}/muhurta",
+        params={
+            "activity": "GOLD",
+            "dateFrom": "2026-01-20",
+            "dateTo": "2026-01-20",
+            "includeExcluded": "true",
+        },
+    )
+    assert response.status_code == 200
+    slots = response.json()["data"]["slots"]
+    assert slots, "no slot returned for the combust date"
+
+    karaka = [f for f in slots[0]["factors"] if f["factor"] == "KARAKA_DIGNITY"]
+    assert karaka, f"no karaka factor on a combust day: {[f['factor'] for f in slots[0]['factors']]}"
+    assert any("Venus" in f["reason"]["en"] for f in karaka)
+    assert any("மௌட்யம்" in f["reason"]["ta"] for f in karaka)
+    assert all(f["verdict"] == "PENALTY" for f in karaka)
+
+
+def test_a_clear_karaka_day_carries_no_karaka_factor(client):
+    """The other half — 2026-06-01 is clear, so nothing must be claimed."""
+    chart_id = _create_chart(client)
+    response = client.get(
+        f"/api/v1/charts/{chart_id}/muhurta",
+        params={
+            "activity": "GOLD",
+            "dateFrom": "2026-06-01",
+            "dateTo": "2026-06-01",
+            "includeExcluded": "true",
+        },
+    )
+    assert response.status_code == 200
+    slots = response.json()["data"]["slots"]
+    assert slots
+    assert [f for f in slots[0]["factors"] if f["factor"] == "KARAKA_DIGNITY"] == []
+
+
 def test_muhurta_requires_auth(raw_client):
     response = raw_client.get(
         f"/api/v1/charts/{uuid4()}/muhurta",
@@ -110,6 +178,46 @@ def test_muhurta_activity_location_changes_the_returned_window(client):
     )[on_date]
     assert chennai_snapshot.sunrise != coimbatore_snapshot.sunrise
     assert chennai_snapshot.gowri_panchangam[0].start != coimbatore_snapshot.gowri_panchangam[0].start
+
+
+def test_activity_place_labels_the_echo_without_touching_the_calculation(client):
+    """`place` is the reader's own words, echoed back; it must not compute anything."""
+    chart_id = _create_chart(client)
+    coords = {"lat": 11.0168, "lon": 76.9558, "tz": "Asia/Kolkata"}
+    params = {"activity": "SPIRITUAL", "dateFrom": "2026-06-01", "dateTo": "2026-06-01", **coords}
+
+    unlabelled = client.get(f"/api/v1/charts/{chart_id}/muhurta", params=params)
+    labelled = client.get(
+        f"/api/v1/charts/{chart_id}/muhurta",
+        params={**params, "place": "Coimbatore, Tamil Nadu, India"},
+    )
+
+    assert unlabelled.status_code == labelled.status_code == 200
+    unlabelled_data, labelled_data = unlabelled.json()["data"], labelled.json()["data"]
+    assert unlabelled_data["activityLocation"]["place"] == "Selected activity location"
+    assert labelled_data["activityLocation"]["place"] == "Coimbatore, Tamil Nadu, India"
+    # Same coordinates, so every computed field must be identical.
+    assert labelled_data["slots"] == unlabelled_data["slots"]
+
+
+def test_activity_place_alone_never_relabels_the_profile_location(client):
+    """A label with no coordinates must not rename a reading it did not move.
+
+    Otherwise a stray `place` would let the card claim Coimbatore while every
+    window in it was still computed from the profile's own sunrise.
+    """
+    chart_id = _create_chart(client)
+    params = {"activity": "SPIRITUAL", "dateFrom": "2026-06-01", "dateTo": "2026-06-01"}
+
+    plain = client.get(f"/api/v1/charts/{chart_id}/muhurta", params=params)
+    mislabelled = client.get(
+        f"/api/v1/charts/{chart_id}/muhurta",
+        params={**params, "place": "Coimbatore, Tamil Nadu, India"},
+    )
+
+    assert plain.status_code == mislabelled.status_code == 200
+    assert mislabelled.json()["data"]["activityLocation"] == plain.json()["data"]["activityLocation"]
+    assert mislabelled.json()["data"]["activityLocation"]["source"] != "activity"
 
 
 def test_general_muhurta_requires_activity_location_and_never_claims_personal_data(raw_client):

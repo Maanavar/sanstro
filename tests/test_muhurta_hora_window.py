@@ -20,6 +20,7 @@ from datetime import date, datetime, timedelta
 import pytest
 
 from app.calculations.panchangam import best_gowri_slot, calculate_daily_panchangam
+from app.data.kuligai_polarity import rejects as kuligai_rejects
 from app.services.muhurta_service import (
     _MIN_WINDOW,
     _SANDHYA_DURATION,
@@ -106,12 +107,41 @@ def test_old_algorithm_would_have_contradicted_itself(snapshots):
     assert contradictions > 0, "old pairing never disagreed — re-check the reproduction"
 
 
-def test_window_never_intersects_an_inauspicious_kalam(snapshots):
+def test_window_never_intersects_rahu_kalam_or_yamagandam(snapshots):
     for snapshot, _activity, window in _cases(snapshots):
-        for kalam in (snapshot.rahu_kalam, snapshot.yamagandam, snapshot.kuligai):
+        for kalam in (snapshot.rahu_kalam, snapshot.yamagandam):
             if kalam is None:
                 continue
             assert not _overlaps(window.start, window.end, kalam.start, kalam.end)
+
+
+def test_kuligai_is_cut_only_for_the_activities_it_harms(snapshots):
+    """EC-RULING-07 — Kuligai's sign follows the activity, so its exclusion must too.
+
+    Kuligai repeats whatever is begun in it. A window for an act nobody wants
+    repeated must still clear it; the blanket cut this replaces was the defect.
+    """
+    for snapshot, activity, window in _cases(snapshots):
+        if snapshot.kuligai is None or not kuligai_rejects(activity):
+            continue
+        assert not _overlaps(window.start, window.end, snapshot.kuligai.start, snapshot.kuligai.end)
+
+
+def test_the_kuligai_relaxation_actually_widens_the_candidate_set(snapshots):
+    """Or the ruling shipped as a no-op nobody would notice.
+
+    A favourable activity must see every kala an adverse one sees, plus the
+    Kuligai-touched ones — asserted as containment, and required to be strict on
+    at least one day of the sweep so the test cannot pass vacuously.
+    """
+    widened = 0
+    for snapshot in snapshots:
+        adverse = {(k.start, k.end) for k in _clear_good_day_kalas(snapshot, "MARRIAGE")}
+        favourable = {(k.start, k.end) for k in _clear_good_day_kalas(snapshot, "GOLD")}
+        assert adverse <= favourable
+        if favourable > adverse:
+            widened += 1
+    assert widened > 0, "Kuligai never touched a good Gowri kala in the sweep — test is vacuous"
 
 
 def test_window_excludes_sandhya_and_never_crosses_its_local_date(snapshots):
@@ -123,8 +153,8 @@ def test_window_excludes_sandhya_and_never_crosses_its_local_date(snapshots):
 
 
 def test_window_sits_inside_a_good_gowri_kala(snapshots):
-    for snapshot, _activity, window in _cases(snapshots):
-        kalas = _clear_good_day_kalas(snapshot)
+    for snapshot, activity, window in _cases(snapshots):
+        kalas = _clear_good_day_kalas(snapshot, activity)
         if not kalas:  # Abhijit fallback — not drawn from the Gowri table
             continue
         assert any(k.start <= window.start and window.end <= k.end for k in kalas)
@@ -141,7 +171,7 @@ def test_lagna_lord_hora_wins_whenever_it_is_usable(snapshots):
             min(hora.end, kala.end) - max(hora.start, kala.start) >= _MIN_WINDOW
             for hora in snapshot.hora
             if _norm(hora.lord) == lagna_lord
-            for kala in _clear_good_day_kalas(snapshot)
+            for kala in _clear_good_day_kalas(snapshot, activity)
         )
         if not usable:
             continue

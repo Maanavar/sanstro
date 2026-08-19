@@ -31,6 +31,11 @@ def get_muhurta(
     lat: float | None = Query(default=None, ge=-90, le=90),
     lon: float | None = Query(default=None, ge=-180, le=180),
     tz: str | None = Query(default=None, min_length=1, max_length=64),
+    # Display label only — the calculation uses lat/lon/tz. Without it the
+    # response would echo "Selected activity location" back at a user who just
+    # typed "Coimbatore", so the card names a place the reader chose.
+    place: str | None = Query(default=None, min_length=1, max_length=120),
+    paksha: str | None = Query(default=None, pattern="^(SHUKLA|KRISHNA)$"),
     include_excluded: bool = Query(default=False, alias="includeExcluded"),
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -46,6 +51,8 @@ def get_muhurta(
         activity_latitude=lat,
         activity_longitude=lon,
         activity_timezone=tz,
+        activity_place=place,
+        paksha=paksha,
         include_excluded=include_excluded,
     )
 
@@ -58,6 +65,11 @@ def get_muhurta_for_activity_location(
     lat: float | None = Query(default=None, ge=-90, le=90),
     lon: float | None = Query(default=None, ge=-180, le=180),
     tz: str | None = Query(default=None, min_length=1, max_length=64),
+    # Display label only — the calculation uses lat/lon/tz. Without it the
+    # response would echo "Selected activity location" back at a user who just
+    # typed "Coimbatore", so the card names a place the reader chose.
+    place: str | None = Query(default=None, min_length=1, max_length=120),
+    paksha: str | None = Query(default=None, pattern="^(SHUKLA|KRISHNA)$"),
     chart_id: UUID | None = Query(default=None, alias="chartId"),
     include_excluded: bool = Query(default=False, alias="includeExcluded"),
     session: Session = Depends(get_db),
@@ -78,6 +90,8 @@ def get_muhurta_for_activity_location(
         activity_latitude=lat,
         activity_longitude=lon,
         activity_timezone=tz,
+        activity_place=place,
+        paksha=paksha,
         include_excluded=include_excluded,
     )
 

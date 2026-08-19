@@ -45,6 +45,7 @@ from app.calculations.muhurta_engine import (
     Subject,
     Verdict,
     display_score,
+    karaka_dignity_factors,
     lagna_sign_factor_at_window,
     score_day,
     wealth_house_heuristic_factor,
@@ -56,9 +57,10 @@ from app.calculations.panchangam import (
     gowri_good_label,
     with_daylight_lagna_schedule,
 )
-from app.calculations.tamil_calendar import format_tamil_date
+from app.calculations.tamil_calendar import TAMIL_MONTHS, format_tamil_date, tamil_solar_date
 from app.calculations.tara_bala import tara_number
 from app.constants.astrology import NAKSHATRA_NAMES, SIGN_LORD
+from app.data.kuligai_polarity import favours as kuligai_favours
 from app.data.kuligai_polarity import rejects as kuligai_rejects
 from app.models import BirthProfile, Chart
 from app.schemas.muhurta import (
@@ -69,6 +71,7 @@ from app.schemas.muhurta import (
     MuhurtaResponseData,
     MuhurtaSlot,
     ResponseMeta,
+    TraditionalMonthNotice,
 )
 from app.services.chart_service import load_persisted_chart_response
 from app.services.location_service import resolve_effective_daily_location
@@ -238,6 +241,52 @@ def _t(ta: str, en: str) -> BiText:
     return BiText(ta=ta, en=en)
 
 
+# These are widely followed family customs, not rules that veto a muhurta.
+# Keep the scope deliberately narrow: the tradition is especially established
+# for weddings, while families differ substantially for other ceremonies.
+_WEDDING_MONTH_CUSTOMS: dict[int, tuple[str, str]] = {
+    3: (
+        "பல தமிழ் குடும்பங்கள் ஆடி மாதத்தில் திருமணத்தைத் திட்டமிடுவதைத் தவிர்ப்பார்கள். "
+        "இது பொதுவான குடும்ப வழக்கம் மட்டுமே; இந்த முஹூர்த்தத்தின் மதிப்பெண் அல்லது பரிந்துரையை மாற்றாது.",
+        "Many Tamil families traditionally defer weddings during Aadi. This is a general family custom only; it does not change this muhurta's score or recommendation.",
+    ),
+    5: (
+        "புரட்டாசி வழிபாட்டுக் காலமாகக் கருதப்படுவதால், சில தமிழ் குடும்பங்கள் இந்த மாதத்தில் திருமணத்தைத் திட்டமிட மாட்டார்கள். "
+        "இது பொதுவான குடும்ப வழக்கம் மட்டுமே; இந்த முஹூர்த்தத்தின் மதிப்பெண் அல்லது பரிந்துரையை மாற்றாது.",
+        "As Purattasi is widely observed as a devotional month, some Tamil families do not schedule weddings then. This is a general family custom only; it does not change this muhurta's score or recommendation.",
+    ),
+    8: (
+        "மார்கழி பக்தி மற்றும் கோவில் வழிபாட்டிற்கான மாதமாகக் கருதப்படுவதால், சில தமிழ் குடும்பங்கள் இந்த மாதத்தில் திருமணத்தைத் திட்டமிட மாட்டார்கள். "
+        "இது பொதுவான குடும்ப வழக்கம் மட்டுமே; இந்த முஹூர்த்தத்தின் மதிப்பெண் அல்லது பரிந்துரையை மாற்றாது.",
+        "As Margazhi is widely observed for devotion and temple worship, some Tamil families do not schedule weddings then. This is a general family custom only; it does not change this muhurta's score or recommendation.",
+    ),
+    9: (
+        "மணமகன் அல்லது மணமகள் தம் உடன்பிறப்புகளில் மூத்தவராக இருந்தால், சில தமிழ் குடும்பங்கள் தை மாதத்தில் தலைக் கல்யாணத்தைத் தவிர்ப்பார்கள். "
+        "இது அந்தக் குடும்ப வழக்கத்தைப் பின்பற்றுபவர்களுக்கு மட்டும் பொருந்தும் பொதுவான குறிப்பு; இந்த முஹூர்த்தத்தின் மதிப்பெண் அல்லது பரிந்துரையை மாற்றாது.",
+        "If the bride or groom is the eldest among their siblings, some Tamil families avoid a thalai kalyanam during Thai. This general note applies only to families that follow the custom; it does not change this muhurta's score or recommendation.",
+    ),
+}
+
+
+def _traditional_month_notices(
+    activity: str, on_date: date, timezone_name: str, latitude: float, longitude: float
+) -> list[TraditionalMonthNotice]:
+    """Return non-blocking Tamil family-custom notes for this activity date."""
+    if activity != "MARRIAGE":
+        return []
+    try:
+        month_index, _ = tamil_solar_date(on_date, timezone_name, latitude, longitude)
+    except Exception as exc:  # Calendar enrichment must never hide a valid slot.
+        logger.debug("Tamil month custom lookup failed for %s: %s", on_date, exc)
+        return []
+    custom = _WEDDING_MONTH_CUSTOMS.get(month_index)
+    if custom is None:
+        return []
+    month_ta, month_en = TAMIL_MONTHS[month_index]
+    message_ta, message_en = custom
+    return [TraditionalMonthNotice(month=_t(month_ta, month_en), message=_t(message_ta, message_en))]
+
+
 def _norm(lord: str) -> str:
     return _GURU_ALIAS.get(lord, lord)
 
@@ -323,15 +372,25 @@ def _nakshatra_to_rasi(nak_number: int, pada: int = 1) -> int:
     return nakshatra_to_rasi(nak_number, pada)
 
 
-def _clear_good_day_kalas(snapshot) -> list:
+def _clear_good_day_kalas(snapshot, activity: str) -> list:
     """Good Gowri day kalas that no inauspicious kalam touches.
 
     The Gowri kalas and Rahu Kalam / Yamagandam / Kuligai are cut from the same
     sunrise->sunset eighths, so a good kala can land exactly on a bad kalam —
     Thursday's DHANAM *is* Yamagandam. No reliable panchangam announces such a
     slot, and neither do we.
+
+    **Kuligai is activity-dependent and is therefore cut conditionally.**
+    EC-RULING-07: Kuligai repeats whatever is begun in it, so it disqualifies a
+    window only for activities nobody wants repeated. Excluding it here for
+    every activity was the other half of the blanket exclusion — the polarity
+    table alone could not fix it, because a slot cut at this step never reaches
+    the code that consults the table. For GOLD the Kuligai window is not merely
+    admissible, it is the one a jothidar would pick.
     """
-    bad = [b for b in (snapshot.rahu_kalam, snapshot.yamagandam, snapshot.kuligai) if b is not None]
+    bad = [b for b in (snapshot.rahu_kalam, snapshot.yamagandam) if b is not None]
+    if snapshot.kuligai is not None and kuligai_rejects(activity):
+        bad.append(snapshot.kuligai)
     return [
         slot
         for slot in snapshot.gowri_panchangam
@@ -387,6 +446,27 @@ def _apply_tara_display_cap(raw_score: float, snapshot, subject: Subject | None)
     return min(raw_score, cap) if cap is not None else raw_score
 
 
+def _karaka_factors_at(activity: str, window_start: datetime, window_end: datetime, day: date) -> list:
+    """The wealth karakas' dignity at the recommended window's midpoint.
+
+    The midpoint rather than sunrise, so the condition is read at the moment the
+    act is actually recommended — the same convention the wealth-house heuristic
+    uses. Combustion moves far too slowly for the choice to change a verdict, but
+    two factors on one card disagreeing about which instant they describe is the
+    contradiction class this service already fixed once (D1).
+    """
+    try:
+        midpoint = window_start + (window_end - window_start) / 2
+        planets = calculate_sidereal_planets(utc_datetime_to_julian_day(midpoint.astimezone(UTC))).bodies
+        return karaka_dignity_factors(activity, planets)
+    except Exception as exc:
+        # An ephemeris hiccup must not drop the whole day from the picker, but it
+        # must not silently read as "the karakas are fine" either — the caller
+        # sees no factor, and the log names the date.
+        logger.debug("Karaka dignity lookup failed for %s: %s", day, exc)
+        return []
+
+
 def _best_time_window(snapshot, activity: str, lagna_rasi: int | None) -> _Window:
     """Pick the day's recommended window, and the hora bonus that goes with it.
 
@@ -415,7 +495,7 @@ def _best_time_window(snapshot, activity: str, lagna_rasi: int | None) -> _Windo
     window has walked us into the small hours once already (see
     `_compute_gowri_nalla_neram`).
     """
-    candidates = _clear_good_day_kalas(snapshot)
+    candidates = _clear_good_day_kalas(snapshot, activity)
     # General mode has no chart, so it must not select or describe a lagna- or
     # dasha-derived hora. It still returns the strongest clear daytime Gowri
     # kala, which is the location-aware almanac answer it can honestly make.
@@ -531,6 +611,7 @@ def find_best_muhurta_slots(
     activity_longitude: float | None = None,
     activity_timezone: str | None = None,
     include_excluded: bool = False,
+    paksha: str | None = None,
     chart_data: object | None = None,
     activity_place: str | None = None,
 ) -> MuhurtaResponse:
@@ -548,6 +629,9 @@ def find_best_muhurta_slots(
         raise HTTPException(status_code=422, detail=f"Date range cannot exceed {MAX_DATE_RANGE_DAYS} days")
     if include_excluded and delta_days != 0:
         raise HTTPException(status_code=422, detail="includeExcluded requires a single selected date")
+    normalized_paksha = str(paksha or "").upper() or None
+    if normalized_paksha not in {None, "SHUKLA", "KRISHNA"}:
+        raise HTTPException(status_code=422, detail="paksha must be SHUKLA or KRISHNA")
 
     location_values = (activity_latitude, activity_longitude, activity_timezone)
     has_activity_location = any(value is not None for value in location_values)
@@ -671,6 +755,9 @@ def find_best_muhurta_slots(
     while current <= date_to:
         try:
             snap = snapshots_by_date[current]
+            if normalized_paksha is not None and snap.tithi_paksha != normalized_paksha:
+                current += timedelta(days=1)
+                continue
             # One scorer, all layers: the generic almanac, the per-activity
             # rules sourced from the classical text (Kalaprakasika Ch. XIV for
             # MARRIAGE today), and the personal Tara Bala / Chandra Bala factors
@@ -700,11 +787,25 @@ def find_best_muhurta_slots(
                 # time always falls inside the hora its own reason names (D1).
                 window = _best_time_window(snap, activity, lagna_rasi)
                 day_score += window.hora_bonus
-                day_score = _apply_tara_display_cap(day_score, snap, subject)
                 slot_start, slot_end = window.start, window.end
                 t_start, t_end = slot_start.strftime("%H:%M"), slot_end.strftime("%H:%M")
                 slot_cautions = list(cautions)
                 slot_factors = [MuhurtaFactor.from_engine(f) for f in day.factors]
+
+                # A5 — the wealth karakas' condition on this day. Evaluated for
+                # every candidate, not just the shortlist, because combustion
+                # runs for weeks: a range that straddles the end of சுக்ர
+                # மௌட்யம் must be able to rank the clear days above the hidden
+                # ones, which a top-N-only check could never do. Measured at
+                # 0.5 ms per call, so 60 days costs ~32 ms of a 1.5 s budget.
+                for karaka_factor in _karaka_factors_at(activity, slot_start, slot_end, current):
+                    day_score += karaka_factor.contribution
+                    slot_factors.append(MuhurtaFactor.from_engine(karaka_factor))
+                    slot_cautions.append(_t(karaka_factor.reason_ta, karaka_factor.reason_en))
+                # Capped once, after every additive layer. The karaka penalties
+                # are negative-only, so moving the cap below them cannot raise a
+                # capped day — it just stops the cap being applied twice.
+                day_score = _apply_tara_display_cap(day_score, snap, subject)
                 for band, band_ta, band_en in (
                     (snap.rahu_kalam, "ராகு காலம்", "Rahu Kalam"),
                     (snap.yamagandam, "யமகண்டம்", "Yamagandam"),
@@ -712,22 +813,38 @@ def find_best_muhurta_slots(
                 ):
                     if band is None or not _overlaps(slot_start, slot_end, band.start, band.end):
                         continue
-                    # EC-RULING-07: Kuligai is not adverse in itself — it
-                    # multiplies whatever is undertaken, so its sign depends on
-                    # the activity. Until the p.152 activity table is confirmed
-                    # every activity is UNSPECIFIED, and UNSPECIFIED must not
-                    # read as rejection. So the overlap is still *named* (a
-                    # reader checking against a printed almanac needs to see it)
-                    # but the sentence no longer implies a verdict the source
-                    # does not support.
+                    # EC-RULING-07: Kuligai is not adverse in itself — it repeats
+                    # whatever is begun in it, so its sign follows the activity.
+                    # An overlap is always *named* (a reader checking against a
+                    # printed almanac needs to see it), but only an activity
+                    # nobody wants repeated gets the penalty sentence.
                     if band is snap.kuligai and not kuligai_rejects(activity):
+                        if kuligai_favours(activity):
+                            reason = _t(
+                                "குளிகை இந்த நேரத்துடன் ஒட்டுகிறது — குளிகையில் "
+                                "தொடங்கியது மீண்டும் மீண்டும் நிகழும், எனவே இச்செயலுக்கு "
+                                "இது உகந்த நேரம்",
+                                "Kuligai overlaps this slot, which favours this activity: "
+                                "what is begun in Kuligai recurs, and for this activity "
+                                "recurrence is the point.",
+                            )
+                            # Named as a bonus, not priced. The window scorer does
+                            # not yet carry a Kuligai term, and inventing a weight
+                            # here would put a number in the response that no
+                            # scorer agrees with.
+                            slot_factors.append(MuhurtaFactor(
+                                factor="WINDOW_KULIGAI_FAVOURABLE",
+                                verdict="BONUS",
+                                contribution=0.0,
+                                reason=reason,
+                            ))
+                            continue
                         reason = _t(
-                            "குளிகை இந்த நேரத்துடன் ஒட்டுகிறது — குளிகை செய்யும் "
-                            "செயலைப் பெருக்கும் தன்மை உடையது; இச்செயலுக்கான தரவரிசை "
-                            "இன்னும் உறுதி செய்யப்படவில்லை",
-                            "Kuligai overlaps this slot. Kuligai multiplies whatever is "
-                            "begun in it rather than being adverse in itself, and no "
-                            "sourced ruling for this activity has been confirmed yet.",
+                            "குளிகை இந்த நேரத்துடன் ஒட்டுகிறது — குளிகையில் தொடங்கியது "
+                            "மீண்டும் நிகழும்; இச்செயலுக்கான தரவரிசை இன்னும் "
+                            "உறுதி செய்யப்படவில்லை",
+                            "Kuligai overlaps this slot. What is begun in Kuligai recurs, "
+                            "and no ruling for this activity has been recorded yet.",
                         )
                         slot_cautions.append(reason)
                         slot_factors.append(MuhurtaFactor(
@@ -853,6 +970,7 @@ def find_best_muhurta_slots(
             dashaSupport=dasha_support,
             horaSupport=c.hora_support,
             cautions=c.cautions,
+            traditionalMonthNotices=_traditional_month_notices(activity, c.day, tz_name, lat, lon),
             factors=c.factors,
         )
         for c in top

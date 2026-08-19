@@ -6,7 +6,7 @@ import { apiFetchJson } from "@/lib/api";
 import { t, tKarana, tNakshatra, tTithi, tWeekday, tYoga } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ApiEnvelope, MuhurtaFactor, MuhurtaSlot, MuhurtaResponseData, PanchangamDailyResponseData } from "@/lib/types";
-import { formatClockLabel, formatDateLabel, todayIso, addDays } from "@/lib/format";
+import { addDays, formatClockLabel, formatDateLabel, todayIso } from "@/lib/format";
 import { convertMuhurtaTime } from "@/lib/timezone";
 import { NovaSelect } from "./nova-select";
 import { PlaceCombobox } from "./place-combobox";
@@ -235,6 +235,16 @@ function NovaMuhurtaCard({
             <div style={{ fontSize: "var(--text-base)", color: "var(--color-text-accent)", fontWeight: 600 }}>{lang === "ta" ? slot.tamilDate.ta : slot.tamilDate.en}</div>
           )}
           <div style={{ fontSize: "var(--text-base)", color: "var(--color-muted)" }}>{formatClockLabel(slot.timeStart)} - {formatClockLabel(slot.timeEnd)}</div>
+          {slot.traditionalMonthNotices && slot.traditionalMonthNotices.length > 0 && (
+            <div style={{ marginTop: "8px", padding: "6px 8px", borderLeft: "3px solid var(--color-mid)", background: "var(--color-surface-soft)", color: "var(--color-text)", fontSize: "var(--text-sm)", lineHeight: 1.45 }}>
+              {slot.traditionalMonthNotices.map((notice, index) => (
+                <div key={`${notice.month.en}-${index}`}>
+                  <strong>{lang === "ta" ? notice.month.ta : notice.month.en}: </strong>
+                  {lang === "ta" ? notice.message.ta : notice.message.en}
+                </div>
+              ))}
+            </div>
+          )}
           {compare && (
             <div style={{ fontSize: "var(--text-sm)", color: "var(--color-text-accent)", marginTop: "2px" }}>
               {compareCity!.name.split(",")[0]}: {compare.time12h} {compare.tzAbbr}
@@ -261,6 +271,20 @@ function NovaMuhurtaCard({
               factor in it. Rendering both would print each caution twice, so the
               factor list replaces it wherever the API sends one, and the cautions
               list stays as the fallback for a response that predates it. */}
+          {slot.traditionalMonthNotices && slot.traditionalMonthNotices.length > 0 && (
+            <div style={{ marginTop: "12px", padding: "10px 12px", borderLeft: "3px solid var(--color-mid)", borderRadius: "0 var(--radius-sm) var(--radius-sm) 0", background: "var(--color-surface-soft)" }}>
+              <p style={{ margin: 0, fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-mid)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                {lang === "ta" ? "பொதுவான குடும்ப வழக்கம்" : "General family custom"}
+              </p>
+              {slot.traditionalMonthNotices.map((notice, index) => (
+                <p key={`${notice.month.en}-${index}`} style={{ margin: "5px 0 0", fontSize: "var(--text-base)", lineHeight: 1.5, color: "var(--color-text)" }}>
+                  <strong>{lang === "ta" ? notice.month.ta : notice.month.en}: </strong>
+                  {lang === "ta" ? notice.message.ta : notice.message.en}
+                </p>
+              ))}
+            </div>
+          )}
+
           {slot.factors && slot.factors.length > 0 ? (
             <FactorList factors={slot.factors} lang={lang} />
           ) : slot.cautions.length > 0 ? (
@@ -415,11 +439,18 @@ interface Props {
   initialDateFrom?: string;
 }
 
+const DEFAULT_SEARCH_RANGE_DAYS = 30;
+// The API evaluates at most 60 days per request. Longer selections are split
+// client-side and their top results are merged, so the picker itself has no
+// forward-date ceiling.
+const API_SEARCH_CHUNK_DAYS = 60;
+
 export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateFrom }: Props) {
   const today = todayIso();
   const [activity, setActivity] = useState(initialActivity ?? "");
+  const [pakshaFilter, setPakshaFilter] = useState<"" | "SHUKLA" | "KRISHNA">("");
   const [dateFrom, setDateFrom] = useState(initialDateFrom ?? today);
-  const [dateTo, setDateTo] = useState(addDays(initialDateFrom ?? today, 30));
+  const [dateTo, setDateTo] = useState(addDays(initialDateFrom ?? today, DEFAULT_SEARCH_RANGE_DAYS));
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<MuhurtaResponseData | null>(null);
   const [checkDate, setCheckDate] = useState(initialDateFrom ?? today);
@@ -430,6 +461,12 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
   const [panchangamRequest, setPanchangamRequest] = useState<{ date: string; location: PanchangamOverlayLocation } | null>(null);
   const [compareCityQuery, setCompareCityQuery] = useState("");
   const [compareCity, setCompareCity] = useState<CityEntry | null>(null);
+  // Where the activity happens, which is not always where the person was born.
+  // Sunrise drives the Gowri grid, the kalams, the horas and Nalla Neram, so a
+  // Chennai-born user acting in Coimbatore was reading a table ~20 minutes off.
+  // Null means "use the chart's own daily location", which the backend defaults to.
+  const [activityCityQuery, setActivityCityQuery] = useState("");
+  const [activityCity, setActivityCity] = useState<CityEntry | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -444,15 +481,64 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
     }
   }, [initialDateFrom]);
 
+  /** lat/lon/tz must travel together or the backend 422s; place is display only. */
+  function withActivityLocation(params: URLSearchParams): URLSearchParams {
+    if (activityCity) {
+      params.set("lat", activityCity.lat);
+      params.set("lon", activityCity.lng);
+      params.set("tz", activityCity.timezone);
+      params.set("place", activityCity.name);
+    }
+    return params;
+  }
+
+  function handleDateFromChange(nextDateFrom: string) {
+    setDateFrom(nextDateFrom);
+    setDateTo(addDays(nextDateFrom, DEFAULT_SEARCH_RANGE_DAYS));
+  }
+
+  function handleDateToChange(nextDateTo: string) {
+    setDateTo(nextDateTo < dateFrom ? dateFrom : nextDateTo);
+  }
+
+  function searchDateRanges() {
+    const ranges: Array<{ from: string; to: string }> = [];
+    let rangeStart = dateFrom;
+    while (rangeStart <= dateTo) {
+      const rangeEnd = addDays(rangeStart, API_SEARCH_CHUNK_DAYS);
+      ranges.push({ from: rangeStart, to: rangeEnd < dateTo ? rangeEnd : dateTo });
+      rangeStart = addDays(rangeEnd, 1);
+    }
+    return ranges;
+  }
+
   async function handleSearch() {
     if (!chartId || !activity) return;
     setLoading(true);
     setError(null);
     setResult(null);
+    // A range search replaces the one-date inspection, so its result does not
+    // remain above the newly requested list.
+    setAssessment(null);
+    setAssessmentLocation(null);
     try {
-      const params = new URLSearchParams({ activity, dateFrom, dateTo });
-      const json = await apiFetchJson<ApiEnvelope<MuhurtaResponseData>>(`/api/v1/charts/${chartId}/muhurta?${params}`);
-      setResult(json.data);
+      const chunks = await Promise.all(searchDateRanges().map(async ({ from, to }) => {
+        const params = withActivityLocation(new URLSearchParams({ activity, dateFrom: from, dateTo: to }));
+        if (pakshaFilter) params.set("paksha", pakshaFilter);
+        return apiFetchJson<ApiEnvelope<MuhurtaResponseData>>(`/api/v1/charts/${chartId}/muhurta?${params}`);
+      }));
+      const firstResult = chunks[0]?.data;
+      if (firstResult) {
+        setResult({
+          ...firstResult,
+          dateFrom,
+          dateTo,
+          // Keep each API segment's best dates. Reducing a long search back to
+          // five global winners could hide every viable date in a later Tamil
+          // month, making an informational month custom look like an exclusion.
+          slots: chunks.flatMap((chunk) => chunk.data.slots).sort((a, b) => b.score - a.score),
+        });
+      }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "";
       setError(msg || (lang === "ta" ? "நெட்வொர்க் பிழை - மீண்டும் முயற்சிக்கவும்." : "Network error - please try again."));
@@ -468,7 +554,9 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
     setAssessment(null);
     setAssessmentLocation(null);
     try {
-      const params = new URLSearchParams({ activity, dateFrom: checkDate, dateTo: checkDate, includeExcluded: "true" });
+      const params = withActivityLocation(
+        new URLSearchParams({ activity, dateFrom: checkDate, dateTo: checkDate, includeExcluded: "true" }),
+      );
       const json = await apiFetchJson<ApiEnvelope<MuhurtaResponseData>>(`/api/v1/charts/${chartId}/muhurta?${params}`);
       setAssessment(json.data.slots[0] ?? null);
       setAssessmentLocation(json.data.activityLocation);
@@ -503,12 +591,25 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
         </FieldShell>
 
         <Field label={t("muhurta_date_from", lang)} style={{ flex: "1 1 130px" }}>
-          <Input type="date" value={dateFrom} min={today} onChange={(e) => setDateFrom(e.target.value)} />
+          <Input type="date" value={dateFrom} min={today} onChange={(e) => handleDateFromChange(e.target.value)} />
         </Field>
 
         <Field label={t("muhurta_date_to", lang)} style={{ flex: "1 1 130px" }}>
-          <Input type="date" value={dateTo} min={dateFrom} onChange={(e) => setDateTo(e.target.value)} />
+          <Input type="date" value={dateTo} min={dateFrom} onChange={(e) => handleDateToChange(e.target.value)} />
         </Field>
+
+        <FieldShell label={lang === "ta" ? "பிறை" : "Lunar fortnight"} style={{ flex: "1 1 160px" }}>
+          <NovaSelect
+            value={pakshaFilter}
+            onChange={(value) => setPakshaFilter(value as "" | "SHUKLA" | "KRISHNA")}
+            ariaLabel={lang === "ta" ? "பிறை" : "Lunar fortnight"}
+            options={[
+              { value: "", label: lang === "ta" ? "அனைத்துப் பிறைகளும்" : "Any fortnight" },
+              { value: "SHUKLA", label: lang === "ta" ? "வளர்பிறை" : "Valarpirai (waxing)" },
+              { value: "KRISHNA", label: lang === "ta" ? "தேய்பிறை" : "Theipirai (waning)" },
+            ]}
+          />
+        </FieldShell>
 
         <button
           type="button"
@@ -532,6 +633,30 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
         </button>
       </div>
 
+      {(() => {
+        // Sits with the inputs, not with the results, because it changes what is
+        // calculated rather than how it is displayed — the opposite of the
+        // compare-city field further down, which only re-clocks the answer.
+        const label = lang === "ta" ? "இச்செயல் நடைபெறும் இடம் (விருப்பத்தேர்வு)" : "Where will this take place? (optional)";
+        return (
+          <FieldShell label={label} style={{ marginBottom: "14px", maxWidth: "560px" }}>
+            <PlaceCombobox
+              value={activityCityQuery}
+              onChange={(city, raw) => { setActivityCityQuery(raw); setActivityCity(city); }}
+              placeholder={lang === "ta" ? "இயல்புநிலை: உங்கள் சுயவிவரத்தில் உள்ள இடம்" : "Defaults to your profile's location"}
+              aria-label={label}
+            />
+            {activityCity && (
+              <p style={{ margin: "4px 0 0", fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
+                {lang === "ta"
+                  ? "சூரிய உதய நேரம் இடத்திற்கேற்ப மாறுவதால், நல்ல நேரம், ராகு காலம் மற்றும் ஹோரை ஆகியவை இவ்விடத்தின் அடிப்படையில் கணக்கிடப்படும்."
+                  : "Sunrise time varies by place, so Nalla Neram, Rahu Kalam and the horas are all calculated for this location."}
+              </p>
+            )}
+          </FieldShell>
+        );
+      })()}
+
       <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-3)", alignItems: "flex-end", marginBottom: "14px", paddingTop: "12px", borderTop: "1px solid var(--color-border)" }}>
         <Field label={t("muhurta_check_date", lang)} style={{ flex: "0 1 220px" }}>
           <Input type="date" value={checkDate} min={today} onChange={(e) => setCheckDate(e.target.value)} />
@@ -552,6 +677,16 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
 
       {assessment && (
         <Card compact style={{ marginBottom: "14px", borderColor: assessment.recommended ? "var(--color-border)" : "var(--color-low)" }}>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "6px" }}>
+            <button
+              type="button"
+              onClick={() => { setAssessment(null); setAssessmentLocation(null); }}
+              aria-label={lang === "ta" ? "விளக்கத்தை மூடு" : "Close date explanation"}
+              style={{ padding: "4px 8px", borderRadius: "var(--radius-sm)", border: "1px solid var(--color-border)", background: "transparent", color: "var(--color-text)", cursor: "pointer", font: "inherit", fontSize: "var(--text-sm)", fontWeight: 700 }}
+            >
+              {lang === "ta" ? "மூடு" : "Close"}
+            </button>
+          </div>
           <p style={{ margin: "0 0 8px", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text)" }}>
             {t("muhurta_day_suitability", lang)} · {assessmentLocation ? (
               <button
@@ -572,6 +707,19 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
           <p style={{ margin: "0 0 8px", fontSize: "var(--text-base)", color: SCORE_COLOR(assessment.score), fontWeight: 700 }}>
             {assessment.score.toFixed(1)} · {t("muhurta_score", lang)}
           </p>
+          {assessment.traditionalMonthNotices && assessment.traditionalMonthNotices.length > 0 && (
+            <div style={{ margin: "0 0 12px", padding: "10px 12px", borderLeft: "3px solid var(--color-mid)", borderRadius: "0 var(--radius-sm) var(--radius-sm) 0", background: "var(--color-surface-soft)" }}>
+              <p style={{ margin: 0, fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-mid)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                {lang === "ta" ? "பொதுவான குடும்ப வழக்கம்" : "General family custom"}
+              </p>
+              {assessment.traditionalMonthNotices.map((notice, index) => (
+                <p key={`${notice.month.en}-${index}`} style={{ margin: "5px 0 0", fontSize: "var(--text-base)", lineHeight: 1.5, color: "var(--color-text)" }}>
+                  <strong>{lang === "ta" ? notice.month.ta : notice.month.en}: </strong>
+                  {lang === "ta" ? notice.message.ta : notice.message.en}
+                </p>
+              ))}
+            </div>
+          )}
           {assessment.factors && assessment.factors.length > 0 && (
             <div>
               <p style={{ margin: "0 0 6px", fontSize: "var(--text-xs)", fontWeight: 700, textTransform: "uppercase", color: "var(--color-faint)", letterSpacing: "0.05em" }}>

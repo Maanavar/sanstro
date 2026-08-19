@@ -194,6 +194,14 @@ export interface MuhurtaPayload {
   lat?: number;
   lon?: number;
   tz?: string;
+  /**
+   * Display label for the activity location. Ignored by the backend unless
+   * lat/lon/tz are all supplied, so it can never mislabel a profile-located
+   * reading. Without it the response echoes "Selected activity location".
+   */
+  place?: string;
+  /** Restrict results to Valarpirai (SHUKLA) or Theipirai (KRISHNA). */
+  paksha?: "SHUKLA" | "KRISHNA";
   /** Return the selected day's veto factors instead of silently omitting it. */
   includeExcluded?: boolean;
 }
@@ -209,6 +217,8 @@ export function getMuhurta(
   if (params.lat !== undefined) query.lat = params.lat;
   if (params.lon !== undefined) query.lon = params.lon;
   if (params.tz !== undefined) query.tz = params.tz;
+  if (params.place !== undefined) query.place = params.place;
+  if (params.paksha !== undefined) query.paksha = params.paksha;
   if (params.includeExcluded) query.includeExcluded = "true";
   return getApiClient().get(
     params.chartId ? `/charts/${encodeURIComponent(params.chartId)}/muhurta` : "/muhurta",

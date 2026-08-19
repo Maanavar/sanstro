@@ -70,6 +70,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
+from app.calculations.chart_strength import DEBILITATION_RASI
 from app.calculations.display_names import (
     YOGA_NAME_EN,
     YOGA_NAME_TA,
@@ -214,6 +215,30 @@ class _W:
     CHANDRA_STRONG = 10.0
     CHANDRA_BONUS = 5.0
     CHANDRA_WEAK = -12.0
+    # Karaka transit dignity for acquisitions (A5). The *classification* is Tamil
+    # practice consensus, not a Kalaprakasika page: almanacs print குரு மௌட்யம் /
+    # சுக்ர மௌட்யம் as dated spans and offer no muhurtham inside them. Mapping it
+    # to numbers is engine policy, and each is anchored to an existing weight
+    # rather than chosen to produce a result:
+    #   COMBUST     — set to exactly cancel NAKSHATRA_FAVOURED (+14), so a fine
+    #                 star alone can never carry a purchase made while its karaka
+    #                 is invisible. Penalty, never veto: moudyam suspends
+    #                 samskaras in practice, but this factor scopes to purchases,
+    #                 and vetoing would blank ~2 months of every year.
+    #   DEBILITATED — level with LAGNA_AVOID (-10): the karaka is visible but
+    #                 cannot deliver quality.
+    #
+    # Retrogression is deliberately NOT penalised, though A5 lists it. Vakri is a
+    # *strength* in this codebase and in the classical rule behind it:
+    # `chart_strength._chesta_bala_score` returns its maximum (1.0 vs 0.6 direct)
+    # for a retrograde planet. Docking it here would put two engines in one app
+    # on opposite sides of the same condition, and a 2026-07-18 astrologer review
+    # already flagged mis-signed retrogression once (see the note above
+    # `planetary_wars` in that file). Tamil practice suspends muhurthams inside
+    # மௌட்யம், not inside a vakri period — no almanac blanks the four months a
+    # year Jupiter is retrograde.
+    KARAKA_COMBUST = -14.0
+    KARAKA_DEBILITATED = -10.0
 
 
 # Navatara quality. The adverse *classification* (Vipat 3 / Pratyak 5 / Vadha 7)
@@ -1038,13 +1063,28 @@ def _vara_factor(snapshot, activity: str) -> FactorResult | None:
     remains activity-specific: some sources name Saturday favourable, so no
     global Saturday rule exists.
     """
-    entry = _rules(activity)
-    if entry is None or not (entry.vara_good or entry.vara_avoid):
-        return None
-
     weekday = str(snapshot.weekday).upper()
     day_en = weekday.title()
     day_ta = _WEEKDAY_TA.get(weekday, day_en)
+
+    # Product doctrine: Tuesday and Saturday are traditionally not selected for
+    # a Tamil marriage muhurta. This is intentionally separate from the
+    # Kalaprakasika extraction (which has no encoded marriage weekday table),
+    # so the response does not falsely present the custom as a sourced text
+    # citation. Like every explicit activity-weekday avoidance, it excludes the
+    # date from search results rather than merely lowering its score.
+    if activity == _MARRIAGE and weekday in {"TUESDAY", "SATURDAY"}:
+        return FactorResult(
+            factor="VARA",
+            verdict=Verdict.VETO,
+            contribution=0.0,
+            reason_en=f"{day_en} is traditionally avoided for a Tamil marriage muhurta.",
+            reason_ta=f"தமிழ் திருமண முகூர்த்தத்திற்கு {day_ta} பாரம்பரியமாகத் தவிர்க்கப்படும் நாள்.",
+        )
+
+    entry = _rules(activity)
+    if entry is None or not (entry.vara_good or entry.vara_avoid):
+        return None
 
     if weekday in entry.vara_avoid:
         return FactorResult(
@@ -1239,6 +1279,102 @@ def wealth_house_heuristic_factor(
             ),
         )
     return None
+
+
+# A5 — the acquisition family, where Jupiter (dhana) and Venus (bhoga) are the
+# significators of the thing being acquired. Deliberately excludes the grain and
+# harvest activities: their doctrine is agricultural season, and no chapter makes
+# Venus the karaka of a granary.
+_KARAKA_ACTIVITIES = frozenset({
+    "TREASURE_STORE", "GOLD", "GEMS", "NEW_ORNAMENT", "NEW_CLOTHES",
+    "LAND_PURCHASE", "LAND_POSSESSION", "CATTLE_PURCHASE",
+    "PURCHASE", "INVESTMENT",
+})
+
+# Tamil takes each planet in two forms and one variable cannot serve both — the
+# case-inflection bug class this repo has already shipped once (see `_unsourced`).
+#
+# மௌட்யம் is the term Tamil almanacs print for the combust span, and it takes the
+# planet's COMPOUND form: "சுக்கிர மௌட்யம்", never "சுக்கிரன் மௌட்யம்". நீசம் and
+# every subject slot take the nominative back: "சுக்கிரன் நீசம்". Jupiter is
+# குரு in both, which is exactly why keeping one column would have looked correct
+# in review and been wrong only for Venus.
+#
+# The role is stored as an adjectival participle (காரகரான) because it qualifies
+# the planet that follows it — "செல்வத்தின் காரகரான குரு". All Tamil below is the
+# owner's own wording, approved 2026-08-18.
+_KARAKA_NAMES: dict[str, tuple[str, str, str, str, str]] = {
+    # planet -> (TA nominative, TA compound stem, EN name, TA role adjectival, EN role)
+    "JUPITER": ("குரு", "குரு", "Jupiter", "செல்வத்தின் காரகரான", "the karaka of wealth"),
+    "VENUS": ("சுக்கிரன்", "சுக்கிர", "Venus", "மதிப்புமிக்க பொருட்களின் காரகரான", "the karaka of valuables"),
+}
+
+
+def karaka_dignity_factors(
+    activity: str,
+    bodies: dict[str, EphemerisBody],
+) -> list[FactorResult]:
+    """A5 — the wealth karakas' transit condition on the candidate day.
+
+    An almanac can read perfectly while the very planet that signifies the thing
+    being bought is combust, retrograde or fallen. Tamil practice does not treat
+    that as neutral: no almanac prints a muhurtham inside குரு/சுக்ர மௌட்யம்.
+
+    **Provenance: practice consensus, not a Kalaprakasika page.** The reason copy
+    must never imply the text says this — the same standing this file already
+    gives `_TARA_ADVERSE` and `_CHANDRASHTAMA`. Severities are `_W` policy and
+    are anchored there.
+
+    At most one factor per karaka, combustion before fall, so a planet that is
+    both is docked once rather than compounded. Cazimi is not combustion and
+    earns no penalty at all — a planet in the Sun's heart gains. Retrogression is
+    deliberately absent; see `_W.KARAKA_COMBUST` for why A5's third condition is
+    not implemented. The caller supplies the planets, preserving this engine's
+    no-ephemeris-call contract.
+    """
+    if activity not in _KARAKA_ACTIVITIES:
+        return []
+    sun = bodies.get("SUN")
+    if sun is None:
+        return []
+
+    factors: list[FactorResult] = []
+    for planet, (name_ta, stem_ta, name_en, role_ta, role_en) in _KARAKA_NAMES.items():
+        body = bodies.get(planet)
+        if body is None:
+            continue
+
+        combust = is_combust(
+            planet, body.absolute_longitude, sun.absolute_longitude, body.is_retrograde,
+        ) and not is_cazimi(planet, body.absolute_longitude, sun.absolute_longitude)
+        if combust:
+            factors.append(FactorResult(
+                factor="KARAKA_DIGNITY",
+                verdict=Verdict.PENALTY,
+                contribution=_W.KARAKA_COMBUST,
+                # The English tracks the approved Tamil rather than the earlier
+                # "hidden in the Sun's glare": one card must not state two
+                # different reasons in two languages.
+                reason_en=(
+                    f"{name_en} is combust — {role_en} is so close to the Sun that it has lost "
+                    f"its natural strength."
+                ),
+                reason_ta=(
+                    f"{stem_ta} மௌட்யம் — {role_ta} {name_ta}, சூரியனுக்கு மிக அருகில் "
+                    f"இருப்பதால் தனது இயல்பான வலிமையை இழந்துள்ளார்."
+                ),
+            ))
+            continue
+
+        if DEBILITATION_RASI.get(planet) == body.rasi:
+            factors.append(FactorResult(
+                factor="KARAKA_DIGNITY",
+                verdict=Verdict.PENALTY,
+                contribution=_W.KARAKA_DEBILITATED,
+                reason_en=f"{name_en} is debilitated — {role_en} is in its own sign of fall.",
+                reason_ta=f"{name_ta} நீசம் — {role_ta} {name_ta}, தனது நீச ராசியில் உள்ளார்.",
+            ))
+    return factors
 
 
 def _registry_lagna_sign_factor(snapshot, activity: str) -> FactorResult | None:

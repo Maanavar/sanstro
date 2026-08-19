@@ -90,6 +90,17 @@ class MuhurtaFactor(BaseModel):
         )
 
 
+class TraditionalMonthNotice(BaseModel):
+    """A family-custom note, deliberately separate from the muhurta score.
+
+    These notices describe common Tamil observances. They are not a Panchangam
+    veto or an instruction to cancel an event; families differ.
+    """
+
+    month: BiText
+    message: BiText
+
+
 class MuhurtaQuery(BaseModel):
     chart_id: UUID
     activity: str = Field(
@@ -115,6 +126,11 @@ class MuhurtaSlot(BaseModel):
     dasha_support: BiText | None = Field(alias="dashaSupport")
     hora_support: BiText | None = Field(alias="horaSupport", default=None)
     cautions: list[BiText]
+    # Informational family-custom notes. Unlike `cautions`, these do not
+    # change a day score, band, or recommendation.
+    traditional_month_notices: list[TraditionalMonthNotice] = Field(
+        default_factory=list, alias="traditionalMonthNotices"
+    )
     # Every factor the engine weighed for this day, in evaluation order.
     # `cautions` above is a lossy projection of this list (the PENALTY reasons
     # only) kept for the surfaces that already render it; new UI should read

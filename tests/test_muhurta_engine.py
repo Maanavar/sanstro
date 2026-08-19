@@ -157,6 +157,18 @@ def test_saturday_remains_available_when_an_activity_source_names_it_favourable(
     assert result.vetoed is False
 
 
+@pytest.mark.parametrize("weekday", ["TUESDAY", "SATURDAY"])
+def test_marriage_excludes_traditionally_avoided_weekdays(snapshots, weekday) -> None:
+    snapshot = next(item for item in snapshots if item.weekday == weekday)
+
+    result = score_day(snapshot, "MARRIAGE", subject=None)
+    vara = next(factor for factor in result.factors if factor.factor == "VARA")
+
+    assert vara.verdict is Verdict.VETO
+    assert result.vetoed is True
+    assert weekday.title() in vara.reason_en
+
+
 def test_every_explicitly_avoided_weekday_is_a_hard_veto(snapshots) -> None:
     for activity, rules in ACTIVITY_RULES.items():
         if not rules.vara_avoid:
@@ -175,7 +187,8 @@ def test_no_almanac_factor_ever_vetoes_for_marriage(snapshots) -> None:
     for snap in snapshots:
         result = score_day(snap, "MARRIAGE", subject=None)
         for factor in result.factors:
-            assert factor.verdict is not Verdict.VETO
+            if factor.factor != "VARA":
+                assert factor.verdict is not Verdict.VETO
 
 
 # ── provenance surfacing ────────────────────────────────────────────────────
