@@ -594,15 +594,22 @@ def section_sani_cycles() -> str:
 | Ardha Ashtama Sani | Janma Rasi | 4 |
 | Ashtama Sani | Janma Rasi | 8 |
 | Janma Sani | Janma Rasi | 1 |
-| Kandaka Sani | **Lagna** | 1, 4, 7, 10 |
+| Kandaka Sani | Janma Rasi | 4, 7, 10 |
 
 **`GO-10` is a declared lineage choice, not a locked foundation.** Kantaka /
 Kandaka Sani is variously reckoned from Lagna, from Janma Rasi, or from Arudha
-Lagna depending on lineage, and the house set is variously 1/4/7/10 or 1/4/8/10.
-Vinaadi reckons it from Lagna over the four kendras, and every surface labels it
-"Kandaka Sani (from Lagna)" / "கண்டக சனி (லக்னம்)" so the reference is never
-implied to be universal. **An owner ruling with a named Tamil source is open** —
-see `docs/ASTROLOGER_REVIEW_QUEUE.md`.
+Lagna depending on lineage, and the house set is variously 1/4/7/10 or 1/4/8/10
+or 4/7/10. **Ruled 2026-08-19 (doctrine A-1):** Vinaadi reckons it from the
+Janma Rasi over 4/7/10 — the 1st is excluded because that position is Janma
+Sani's — and every surface labels it "Kandaka Sani (from Janma Rasi)" /
+"கண்டக சனி (ஜென்ம ராசி)" so the reference is never implied to be universal.
+
+Note that Kandaka therefore **overlaps by design** with the Moon-reference
+cycles above: Saturn in the 4th from the Janma Rasi is Ardha Ashtama Sani *and*
+Kandaka Sani, and a reader in that position is told both names. Vinaadi
+previously counted Kandaka from the Lagna specifically so that no such overlap
+could occur; that tidiness was an engineering preference, not a source. The
+score, however, is still applied once — one placement, one penalty.
 
 **`GO-11` Murthi at Saturn's rasi ingress**, by the transiting Moon counted from
 Janma Rasi:

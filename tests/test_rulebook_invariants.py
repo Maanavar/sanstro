@@ -312,16 +312,16 @@ def test_sade_sati_activates_only_on_the_twelfth_first_and_second():
     )
 
 
-def test_kandaka_sani_activates_only_on_the_four_kendras_from_lagna():
+def test_kandaka_sani_activates_only_on_4_7_10_from_janma_rasi():
     active = {
         position
         for position in ALL_RASIS
         if TR.classify_kandaka_cycle(position).is_active
     }
-    assert active == {1, 4, 7, 10}, (
-        "GO-10 declares Kandaka Sani as Saturn in 1/4/7/10 from Lagna; the code "
-        f"fires on {sorted(active)}. If doctrine changed, update GO-10 and the "
-        "appendix in the same commit."
+    assert active == {4, 7, 10}, (
+        "GO-10 declares Kandaka Sani as Saturn in 4/7/10 from the Janma Rasi "
+        f"(doctrine A-1, ruled 2026-08-19); the code fires on {sorted(active)}. "
+        "If doctrine changed, update GO-10 and the appendix in the same commit."
     )
 
 
