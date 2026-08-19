@@ -489,7 +489,7 @@ Pick Option A if you cannot rebuild mobile immediately. Pick Option B if you wan
 
 ---
 
-### [~] P2-05 — Ashtakavarga, Bhava Chalit — parked pending product decision
+### [x] P2-05 — Ashtakavarga, Bhava Chalit — **CLOSED 2026-08-18**
 
 **Files:** `app/calculations/ashtakavarga.py`, `app/calculations/bhava_chalit.py`
 **Divisional charts:** CLOSED — already surfaced in `mobile/app/vargas/index.tsx` and the jadhagam varga strip.
@@ -501,6 +501,11 @@ Pick Option A if you cannot rebuild mobile immediately. Pick Option B if you wan
 - Bhava Chalit: Show as alternate/overlay view in Jadhagam screen, or keep as chart-build infrastructure only?
 
 **Parked 2026-06-29:** Added `# TODO(product): decide fate — P2-05` comments to both files. See `docs/ROADMAP_TASKS.md`. ⏸
+
+**Closed 2026-08-18.** Ruled in `docs/DOCTRINE_DECISIONS_V1.md` §13 and recorded in `docs/ROADMAP_TASKS.md`:
+
+- **Equal Bhava** (the file this plan called `bhava_chalit.py`; renamed per DOCTRINE §6) — already shipped as a labelled secondary lens in `dashboard-vargas-panel.tsx`, showing only the grahas whose bhava differs from their rasi. Not a parallel house grid, deliberately: whole-sign is the primary engine, and two house numbers per graha with no stated precedence is a contradiction the reader cannot resolve.
+- **Ashtakavarga** — bindu grid **approved** for the Jadhagam screen, ungated, because a bindu table is chart arithmetic and already ships on `ChartSummaryData.ashtakavarga`. Karaka-relative readings (5th from Guru, 3rd from Sevvai, 4th from Budhan, 9th from Suriyan) stay gated to the life-area cards. The grid was the surface where all four gates would have been bypassed by whoever wanted a cell to mean something, so the boundary is enforced by `tests/test_bav_disclosure_boundary.py` rather than by this note. The grid UI itself remains unbuilt and is no longer blocked. ✓
 
 ---
 
@@ -1027,7 +1032,7 @@ Work through items in this exact sequence to minimise blocked dependencies:
 [x] P2-12  US timezone mapping
 [x] P2-13  FCM body truncation
 [~] P2-04  jaimini_dasha — parked pending product decision
-[~] P2-05  Ashtakavarga/BhavaChalit — parked pending product decision
+[x] P2-05  Ashtakavarga/EqualBhava — CLOSED 2026-08-18 (grid approved, boundary enforced)
 [x] P2-06  sankranti import coupling
 [x] P2-07  Sankranti bisection regression test
 [x] P2-08  Historical timezone reconstruction
@@ -1060,4 +1065,4 @@ P4-07/13/14  — schedule in sprints post-launch (family calendar, Tamil content
 
 ---
 
-*End of Audit Remediation Plan — last updated 2026-06-30 (all P0 + P1 done; all P2 done except P2-05 parked ⏸; P2-04 done ✓; P4-01/02/03/04/05/06/08/09/10/11/12/15 done; P4-07/13/14 deferred post-launch)*
+*End of Audit Remediation Plan — last updated 2026-06-30 (all P0 + P1 done; all P2 done incl. P2-05 closed 2026-08-18; P2-04 done ✓; P4-01/02/03/04/05/06/08/09/10/11/12/15 done; P4-07/13/14 deferred post-launch)*

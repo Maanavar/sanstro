@@ -1,4 +1,4 @@
-﻿# Vinaadi — Roadmap Backlog
+# Vinaadi — Roadmap Backlog
 
 Items parked here are not blocking the initial release but need a product decision before implementation.
 
@@ -16,18 +16,19 @@ Items parked here are not blocking the initial release but need a product decisi
 
 ---
 
-### P2-05 — Ashtakavarga and Bhava Chalit mobile views
+### P2-05 — Ashtakavarga and Bhava Chalit mobile views — **CLOSED 2026-08-18**
 
-**Status:** Both are in `ChartCalculateResponse` (API ready). No dedicated mobile display for either.
-**Files:** `app/calculations/ashtakavarga.py`, `app/calculations/bhava_chalit.py`
-**Divisional charts status:** CLOSED — already surfaced in `mobile/app/vargas/index.tsx`.
+**Files:** `app/calculations/ashtakavarga.py`, `app/calculations/equal_bhava.py` (the roadmap's
+"bhava_chalit.py" was renamed per DOCTRINE §6), `app/calculations/divisional_charts.py`
 
-**Decision needed (for each):**
+| Feature | Ruling |
+|---------|--------|
+| Divisional charts | **Closed — already shipped.** `mobile/app/vargas/index.tsx` + the jadhagam varga strip. The note recorded this and was never cleared. |
+| Equal Bhava | **Closed — already shipped**, as a labelled secondary lens in `dashboard-vargas-panel.tsx` listing only the grahas whose bhava differs from their rasi. Deliberately not a parallel house grid: whole-sign is the primary engine (DOCTRINE §6), and a second full chart would give the reader two contradictory house numbers per graha with no way to tell which one the app's text used. |
+| Ashtakavarga | **Bindu grid approved** for the Jadhagam screen, ungated, and **not yet built** — this closes the decision, not the UI. The grid renders planet × rasi counts and SAV. It must not acquire a band word, a life-domain label, or a highlight on a karaka-relative house; those are gated disclosures (DOCTRINE §13, rulebook `STR-05`–`STR-07`) and belong on the life-area cards. Enforced by `tests/test_bav_disclosure_boundary.py`, so the grid cannot become a bypass by accident. |
 
-| Feature | Current state | Decision needed |
-|---------|--------------|-----------------|
-| Ashtakavarga | Drives scoring internally, in API response | Show bindu grid in Jadhagam screen, or keep internal-only? |
-| Bhava Chalit | Powers house assignments, in API response | Show as overlay/toggle in Jadhagam, or keep as chart-build only? |
+**Remaining build work (not blocking):** the Jadhagam bindu grid UI itself — web and mobile.
+The payload already ships on `ChartSummaryData.ashtakavarga`; no backend work is needed.
 
 ---
 

@@ -5,9 +5,33 @@ Source: Formula Engine Spec §9.1-9.4, Thirukanitham / Brihat Parashara traditio
 BAV_TABLE[planet][reference_point] = list of houses (from that reference point's Rasi)
 that contribute 1 bindu when the planet transits there.
 
-TODO(product): decide fate — P2-05. This module drives internal scoring (life_areas, daily_guidance,
-wealth_service) but has no dedicated mobile UI grid. Decision: expose a bindu grid in the
-Jadhagam screen, or mark as internal-only? See docs/ROADMAP_TASKS.md and AUDIT_REMEDIATION_PLAN.md P2-05.
+P2-05 RULING, 2026-08-18 — the bindu grid is APPROVED for the Jadhagam screen, and the
+boundary it must respect is why this note replaced the open question rather than answering
+it in a roadmap row.
+
+**A bindu grid states a count. It never states a subject.**
+
+What this module returns is a measurement, in the same sense a graha's longitude is one. It
+is part of a chart's face — printed beside the rasi and navamsa charts in any almanac — and
+an astrologer inspecting their own jadhagam is entitled to their own arithmetic. It says
+nothing about a person and does not change with age, so it is ungated, correctly. It also
+already ships to every client on `ChartSummaryData.ashtakavarga` (app/schemas/charts.py) and
+`dashboard-chart-explanation.tsx` reads it for the peyarchi bindu line — so "keep it
+internal-only" was never the status quo on offer; it would have been a removal that broke a
+live surface.
+
+What is NOT approved — and what a grid must not quietly acquire — is a reading counted from
+a **karaka graha**: the 5th from Guru, the 3rd from Sevvai, the 4th from Budhan, the 9th
+from Suriyan. Those speak about a person's children, siblings, mother and father. They live
+in `bav_derived.py`, they reach a surface only through `disclosable_indications()`, and they
+are gated on the life-area age band, the life-phase gate, the propensity band and the
+declared-fact gate. A grid cell that gains a band word, a life-domain label, or a highlight
+on "the 5th from Guru" has stopped being the grid and has bypassed all four — and nothing in
+a diff of the grid's own file would look wrong.
+
+That is not left to memory: `tests/test_bav_disclosure_boundary.py` fails when it happens.
+Rationale in docs/BAV_DERIVED_INDICATIONS_2026-08-18.md, doctrine in
+docs/DOCTRINE_DECISIONS_V1.md §13.
 """
 from __future__ import annotations
 

@@ -225,7 +225,14 @@ corpus rather than analytically.
 1. **Baseline method.** The ±1-bindu margin around an analytically-derived baseline is a
    judgement call; the baselines themselves are not. Confirm the margin, and whether the
    uniform-position caveat above warrants a corpus-derived baseline instead.
-2. **Nādi section.** Do rules 5–7 get a labelled auxiliary section, and on which screen?
+2. ~~**Nādi section.** Do rules 5–7 get a labelled auxiliary section, and on which screen?~~
+   **Answered 2026-08-18 — parked, with the conditions written down.** Rules 5–7 stay
+   unbuilt until *both* preconditions exist, and they are now stated as doctrine
+   (`OUT-07` in the external-review rulebook) rather than as an open question that
+   decays into someone building them: a labelled auxiliary/Nādi section to hang them
+   on, and — for rule 7 — a marital-status gate matching the `has_declared_children()`
+   pattern. Recording them as an explicit non-claim also means an external reviewer
+   sees what we *chose* not to implement, which is more useful than silence.
 3. **Rule 7 gate.** Confirm spouse-family indications should follow the
    `has_declared_children()` pattern against marital status.
 4. **Chip length.** The approved Tamil measures 94–114 characters per label (English 72–89),
@@ -245,7 +252,8 @@ corpus rather than analytically.
 | 2 · gated disclosure into life areas | **Done** — keyed on `area`, asymmetric for progeny |
 | 3 · web labels | **Done** — 7 bilingual factor labels, Tamil approved by the astrologer 2026-08-18; mobile renders no factors |
 | 4 · tests | **Done** — 36 unit + 6 end-to-end |
-| — · Nādi rules 5–7 | **Not built** — see §1.4 |
+| — · Nādi rules 5–7 | **Not built** — see §1.4; now a recorded non-claim (`OUT-07`) rather than an open question |
+| 5 · P2-05 ruled + boundary enforced | **Done 2026-08-18** — see §4 below |
 
 Verification: full backend suite **3343 passed, 13 skipped, 0 failed** (1:08:28, coverage
 89.96 %); the 13 skips are pre-existing (WI-07 sunrise reference values still pending, and
@@ -256,5 +264,85 @@ Note for whoever runs these next: CLAUDE.md's SQLite test path is stale —
 `tests/conftest.py` now hard-requires the Docker `vinaadi_test` DB on :5433 and refuses
 `pytest_local_test.db`. Do not run two pytest sessions against it concurrently; both reset
 the schema and the results are garbage.
+
+---
+
+# Part 4 — The gap this build left, and closing it (2026-08-18)
+
+Four gates now stand in front of the kāraka-relative readings. All four live in
+`life_areas_service`, and all four are reached through one function,
+`disclosable_indications()`. Every one of them is bypassed by a single import.
+
+`compute_bav_derived_indications()` is public, age-blind by design, and hands back objects
+with `.band` already filled in. Meanwhile `ashtakavarga.py` carried an open
+`TODO(product): decide fate — P2-05` proposing a **bindu grid on the Jādhagam screen**, and
+the raw table has shipped to every client on `ChartSummaryData.ashtakavarga` all along.
+
+That grid is exactly where these rules would go next, and it is the one surface where not
+one of the four gates applies. Whoever builds it will want a cell to *mean* something, will
+find the compute function sitting right there, and will read `.band` off it — and nothing in
+a diff of the grid's own file would look wrong. The gates were built and the hole beside
+them was left open.
+
+## The ruling (DOCTRINE §13)
+
+**A bindu grid states a count. It never states a subject.**
+
+| | Bindu table | Kāraka-relative reading |
+|---|---|---|
+| What it is | A measurement, like a longitude | A claim about a named relative |
+| Changes with age? | No | No — but its *appropriateness* does |
+| Failure mode | None — it is arithmetic | **Falsifiable.** The reader knows their own siblings |
+| Gate | None, correctly | All four, via `disclosable_indications()` |
+| Ships on | `ChartSummaryData.ashtakavarga` | Life-area `supportingFactors` / `blockingFactors` |
+
+So the grid is **approved and ungated** — it is part of a chart's face, printed beside the
+rāsi and navāṁśa charts in any almanac, and "keep it internal-only" was never the status quo
+on offer; it would have been a removal breaking the peyarchi bindu line. What the grid may
+never acquire is a band word, a life-domain label, or a highlight on "the 5th from Guru".
+
+## Making it a test rather than a paragraph
+
+A paragraph is what gets bypassed. `tests/test_bav_disclosure_boundary.py` asserts five
+things, each with a failure message naming the ruling and the alternative:
+
+1. **Import allow-list.** `bav_derived` may be imported by `life_areas_service` alone — the
+   one caller that owns both age gates, keyed on the area the reader sees. The message tells
+   a grid-builder to import `ashtakavarga` instead, which is ungated on purpose. The
+   allow-list is also checked for staleness in the other direction.
+2. **Compute-without-disclose.** Any module calling `compute_bav_derived_indications()` must
+   also call `disclosable_indications()`. The pair is what makes the age-blind layer safe.
+3. **The grid payload stays numeric.** `ChartSummaryData.ashtakavarga` must remain
+   `dict[str, dict[int, int]]` — catches the same bypass arriving through the schema rather
+   than through an import.
+4. **No `schemas/` or `api/` reach-through.** A gated reading in a response model has
+   escaped the life area that was deciding whether to show it, and no client can put it back.
+5. **Bilingual copy for every disclosable code.** `life-area-card.tsx` humanises unknown
+   codes, which is right for an unknown code and wrong for one we ship: a fifth rule added
+   without copy would show a Tamil reader "Paternal Bav Thin". The test asks the disclosure
+   layer which codes are reachable, so `progeny_bav_thin` correctly needs none.
+
+## Found while wiring guard 1
+
+`ast.parse(path.read_text(encoding="utf-8"))` died on `U+FEFF`: two `app/` sources carried a
+UTF-8 BOM, and a sweep found **38 across `app/`, `web/` and `docs/`**. Python's tokenizer
+strips a BOM from a module it imports, so nothing had ever failed at runtime — but anything
+reading source *as text* hits the wall, which is how a BOM previously hid the 38 heaviest
+files during the F7 bundle audit. `test_text_encoding_guard.py` checked mojibake but not
+BOMs, though both come from the same accident (a PowerShell `Get-Content`/`Set-Content`
+round-trip). BOMs stripped, and the missing half added to the existing guard rather than to a
+new one.
+
+## Also closed
+
+`equal_bhava.py` and `divisional_charts.py` carried the same `TODO(product): decide fate —
+P2-05`, and both were **already shipped** — divisional charts in `mobile/app/vargas/`, equal
+bhāva in `dashboard-vargas-panel.tsx` as a labelled secondary lens listing only the grahas
+whose bhāva differs from their rāsi. The notes were stale, not open. The equal-bhāva framing
+is doctrine and now says so in the file: whole-sign is the primary engine (§6), so a parallel
+house grid would hand the reader two contradictory house numbers per graha with no way to
+tell which one the app's own text used.
+
+---
 
 Not committed.

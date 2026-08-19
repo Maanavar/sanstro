@@ -1,9 +1,17 @@
 from __future__ import annotations
 
-# TODO(product): decide fate — P2-05. Equal Bhava powers house assignments in chart build
-# and is returned in ChartCalculateResponse.equalBhava. Decision: display it as an overlay
-# or alternate view in the Jadhagam screen, or keep as internal chart-build only?
-# See docs/ROADMAP_TASKS.md and AUDIT_REMEDIATION_PLAN.md P2-05.
+# P2-05 CLOSED, 2026-08-18. The question this TODO asked — overlay it in Jadhagam, or keep
+# it internal? — was already answered by a shipped surface nobody updated the note for:
+# `dashboard-vargas-panel.tsx` renders it under `equal_bhava_title`, and deliberately shows
+# only the grahas whose bhava differs from their rasi.
+#
+# That "only the differences" framing is the doctrine, not a space saving. The primary
+# interpretive engine is whole-sign (DOCTRINE §6, rulebook CORE-04), so a full second house
+# grid beside the rasi chart would offer the reader two contradictory house numbers for the
+# same graha with no way to tell which one the app's own text used. A short list of the
+# grahas that move, labelled a secondary lens, asks a question; a parallel chart answers it
+# wrongly. Sripati/chalit proper is still unimplemented — the label says equal bhava because
+# that is what this computes.
 
 
 def compute_equal_bhava(

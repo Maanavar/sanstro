@@ -1,9 +1,6 @@
+# P2-05 CLOSED, 2026-08-18. Divisional charts are surfaced in mobile/app/vargas/index.tsx
+# and the jadhagam varga strip; the note had already recorded that and was never cleared.
 from __future__ import annotations
-
-# TODO(product): decide fate — P2-05. Divisional charts (D9 navamsa, D10 dasamsa, etc.)
-# are surfaced in mobile/app/vargas/index.tsx and the jadhagam varga strip.
-# This item can be CLOSED for divisional charts — they are already reachable via the Jadhagam screen.
-# See docs/ROADMAP_TASKS.md and AUDIT_REMEDIATION_PLAN.md P2-05.
 
 from app.calculations.astro import navamsa_rasi_from_degree
 

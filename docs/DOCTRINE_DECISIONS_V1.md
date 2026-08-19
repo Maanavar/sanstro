@@ -20,6 +20,7 @@
 | 10 | Moon–Moon emotional harmony table (CI Level 7) | Reconciled symmetric table — EXCELLENT only for trikona (5/9); TENSE only for shadashtaka (6/8); GOOD for same/upachaya/kendra/samasaptama (1, 3/11, 4/10, 7); MIXED for dwirdwadasa (2/12) | 🟡 Important — Compatibility Intelligence report |
 | 11 | `_graha_relation` compound friendship rule (CI Level 6) | Enemy in either direction → enemy; friend in both directions → friend; else neutral | 🟡 Important — Compatibility Intelligence report |
 | 12 | Rajju/Vedha veto on CI overall label | Hard-cap the headline label at CAUTION when Rajju or Vedha fails, regardless of the 0–100 weighted score | 🟡 Important — Compatibility Intelligence report; consistency with the shipped porutham-label veto |
+| 13 | Ashtakavarga bindu grid vs kāraka-relative readings | Grid is a measurement → shown ungated. Readings counted from a kāraka graha are claims about named relatives → gated to life-area cards, banded never counted | ✅ Ratified 2026-08-18 (P2-05); boundary enforced by test, not convention |
 
 ---
 
@@ -203,6 +204,28 @@ EXCELLENT is now reserved exclusively for trikona (5/9) — the tightest, least 
 - Add a hard cap on the label only: `if rajju_dosha or vedha_dosha: overall_label = "CAUTION"`. `overall_score` itself is unaffected.
 - Surface both clearly: numeric score shown normally, then a distinct governing line — e.g. **"Traditional Verdict: CAUTION (Rajju Dosha)"** — with a short note that other factors remain strong but do not override the dosha.
 - Scope: `compute_compatibility_intelligence`'s overall label only. The core 10-porutham label already applies this veto; no change needed there.
+
+---
+
+## 13. Ashtakavarga — the Bindu Table Is a Measurement; a Kāraka-Relative Reading Is a Claim
+
+**Decision (P2-05, ratified 2026-08-18):** The **Bhinnāṣṭakavarga bindu grid is shown**, ungated, on the Jādhagam screen and anywhere else a chart's own arithmetic belongs. **Kāraka-relative readings** — bindus counted from a kāraka graha's own rāsi (5th from Guru → progeny, 3rd from Sevvai → siblings, 4th from Budhan → maternal line, 9th from Sūryan → paternal line) — are **gated disclosures**, shown only through the life-area cards and only after the four existing gates pass.
+
+**Rationale.** Two different things share the word "ashtakavarga" and only one of them has a subject who can be hurt by it.
+
+The bindu table is a measurement, in the same sense a graha's longitude is one. It is part of a chart's face — printed beside the rāsi and navāṁśa charts in any almanac — it does not change with age, and it makes no statement about a person. Withholding it would mean a product deciding an astrologer may not see their own arithmetic. It is also, already, in every client payload (`ChartSummaryData.ashtakavarga`) and read by the peyarchi bindu line on the chart-explanation screen, so "keep it internal-only" was never the status quo; it would have been a removal.
+
+A kāraka-relative reading is a claim about a named relative. Its failure mode is not inappropriateness but **falsifiability** — a reader knows their own siblings and parents, and being wrong about them costs more trust than saying nothing. That is why the rendering rule is absolute: **the output is a band on the classical 0–8 scale, never a count of people**, and why progeny discloses its supportive band only (the mirror image, delivered undisclaimed to someone trying and failing, is a verdict, not a chart fact; discouraging fertility content has exactly one home, the `child_timing` propensity card with `DISCLAIMER_FERTILITY` and a 21–50 band).
+
+**Why this needed ratifying rather than documenting.** The gates all live in `disclosable_indications()`. `compute_bav_derived_indications()` is public, age-blind by design, and returns objects with `.band` already populated. Whoever builds the approved grid and wants a cell to *mean* something will reach for it — and every gate is in a sibling function they had no reason to call. The bypass is one import, and it would not look wrong in a diff of the grid's own file.
+
+**Implementation notes:**
+- The grid renders planet × rāsi counts and the SAV aggregate. No band word, no life-domain label, no highlight on "the 5th from Guru". A cell that acquires any of those has become a disclosure surface with no gate in front of it.
+- `app/calculations/bav_derived.py` may be imported by `life_areas_service` alone — the one caller that owns both the life-area age band and the life-phase gate, keyed on the **area the reader sees**, never on the borrowed kāraka chain. A second importer would re-derive age, and two age gates that can drift apart are worse than one.
+- Enforced by `tests/test_bav_disclosure_boundary.py`: the import allow-list, the compute-without-disclose pairing, the numeric-only grid payload, no `schemas/`/`api/` reach-through, and bilingual copy for every disclosable factor code. **Widening the allow-list is an amendment to this section, not a refactor.**
+- Nāḍi-tier association rules (planets conjunct Sevvai / Chandran / Sukran) remain **not built**: their natural output is a count, they have no labelled auxiliary surface, and the Sukran rule asserts a spouse the profile may not have. Revisit only with a labelled auxiliary section and a marital-status gate matching the `has_declared_children()` pattern.
+
+**Related:** §6 (whole-sign remains the primary interpretive engine; equal bhāva stays a labelled secondary lens showing only the grahas that move). Rulebook `STR-04`, `STR-05`, `OUT-02`.
 
 ---
 
