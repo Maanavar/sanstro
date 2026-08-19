@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";

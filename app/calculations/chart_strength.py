@@ -1,4 +1,4 @@
-﻿"""
+"""
 Product-level natal planet strength scorer.
 Implements a practical six-component Shadbala blend for production use.
 """

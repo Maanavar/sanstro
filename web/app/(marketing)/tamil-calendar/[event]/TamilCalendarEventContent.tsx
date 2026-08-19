@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { PublicFooter } from "@/components/public-footer";
 import { PublicNav } from "@/components/public-nav";
 import { getServerLang } from "@/lib/server-lang";

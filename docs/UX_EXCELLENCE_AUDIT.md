@@ -1,4 +1,4 @@
-﻿# Vinaadi AI — UX Excellence Audit & Roadmap
+# Vinaadi AI — UX Excellence Audit & Roadmap
 
 > Combined findings from internal codebase audit + external product review.  
 > Target: reach Apple / Google / Tesla / Linear craft level.  

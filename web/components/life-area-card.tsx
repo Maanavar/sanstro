@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { getScoreBand } from "@/lib/format";
 import { WarningGlyph } from "./icons";

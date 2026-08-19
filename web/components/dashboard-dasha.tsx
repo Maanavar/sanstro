@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { CheckGlyph, AlertGlyph } from "./icons";
 import { t, tPlanetLord } from "@/lib/i18n";

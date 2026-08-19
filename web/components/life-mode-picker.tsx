@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { BookOpen, Briefcase, Heart, Home, Coins, Leaf, Star, Flame, Scale } from "lucide-react";

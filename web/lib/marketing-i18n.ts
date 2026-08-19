@@ -1,4 +1,4 @@
-﻿import { normalizeTamilAstroText } from "./tamil-astro";
+import { normalizeTamilAstroText } from "./tamil-astro";
 import { LANG_STORAGE_KEY, type Lang } from "./i18n";
 
 export type { Lang };

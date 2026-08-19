@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { t, tPlanetLord } from "@/lib/i18n";
