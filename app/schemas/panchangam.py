@@ -33,6 +33,50 @@ class PanchangamVara(BaseModel):
     lord: str
 
 
+class PanchangamLimbSpan(BaseModel):
+    """One stretch of a single limb value inside the solar day.
+
+    Every limb ships its full day's spans, not just the first transition. That
+    matters most for karana, which averages 11.79 h: a solar day carries three
+    karanas on most days, so `nextName` alone left the third unrepresented and
+    no client could show the real timeline even if it wanted to.
+
+    `fraction` is the span's share of the solar day, so a client can rank or
+    label a stretch ("most of the day", "the last two hours") without doing
+    date arithmetic.
+    """
+
+    number: int
+    name: str
+    starts_at: str = Field(alias="startsAt")
+    ends_at: str = Field(alias="endsAt")
+    starts_at_iso: str = Field(alias="startsAtIso")
+    ends_at_iso: str = Field(alias="endsAtIso")
+    fraction: float
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PanchangamNethiramJeevan(BaseModel):
+    """Nethiram and Jeevan with the boundary they change at.
+
+    Both are a function of (Sun's star, Moon's star). Inside one day only the
+    Moon's star moves, so both flip at the nakshatra boundary — which is why
+    they belong beside Nokku, which is derived from the same star and already
+    rolls over live on the calendar card. Without `endsAt` on the wire no client
+    could make them agree.
+    """
+
+    nethiram: str
+    jeevan: str
+    nethiram_next: str = Field(alias="nethiramNext")
+    jeevan_next: str = Field(alias="jeevanNext")
+    ends_at: str = Field(alias="endsAt")
+    ends_at_iso: str = Field(alias="endsAtIso")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class PanchangamTithi(BaseModel):
     number: int
     name: str
@@ -48,6 +92,8 @@ class PanchangamTithi(BaseModel):
     next_name: str = Field(alias="nextName")
     next_paksha: Literal["SHUKLA", "KRISHNA"] = Field(alias="nextPaksha")
 
+    spans: list[PanchangamLimbSpan] = Field(default_factory=list)
+
     model_config = ConfigDict(populate_by_name=True)
 
 
@@ -57,6 +103,10 @@ class PanchangamNakshatra(BaseModel):
     ends_at: str = Field(alias="endsAt")
     ends_at_iso: str = Field(alias="endsAtIso")
     next_name: str = Field(alias="nextName")
+    # `name` above is the value at sunrise — the உதய rule, which names the day.
+    # `spans` is what the limb actually did. Additive, so existing clients are
+    # untouched; a client that wants to show the star in effect *now* reads this.
+    spans: list[PanchangamLimbSpan] = Field(default_factory=list)
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -68,6 +118,8 @@ class PanchangamYoga(BaseModel):
     ends_at_iso: str = Field(alias="endsAtIso")
     next_name: str = Field(alias="nextName")
 
+    spans: list[PanchangamLimbSpan] = Field(default_factory=list)
+
     model_config = ConfigDict(populate_by_name=True)
 
 
@@ -76,6 +128,8 @@ class PanchangamKarana(BaseModel):
     ends_at: str = Field(alias="endsAt")
     ends_at_iso: str = Field(alias="endsAtIso")
     next_name: str = Field(alias="nextName")
+
+    spans: list[PanchangamLimbSpan] = Field(default_factory=list)
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -218,6 +272,9 @@ class PanchangamDailyResponseData(BaseModel):
     lagnam: PanchangamLagnam
     nethiram: str
     jeevan: str
+    # Additive: the two bare strings above kept their shape for existing
+    # clients; this carries the boundary and the post-boundary values.
+    nethiram_jeevan: PanchangamNethiramJeevan | None = Field(default=None, alias="nethiramJeevan")
     amirdhadhi_yogam: PanchangamAmirdhadhiYogam = Field(alias="amirdhadhiYogam")
     chandrashtamam_today: PanchangamChandrashtamamToday = Field(alias="chandrashtamamToday")
     special_tithi_day: PanchangamSpecialTithiDay | None = Field(default=None, alias="specialTithiDay")

@@ -17,20 +17,33 @@ from app.calculations.ashtakavarga import compute_bhinnashtakavarga
 from app.calculations.astro import (
     house_from_reference,
     local_datetime_to_utc,
-    nakshatra_from_degree,
     utc_datetime_to_julian_day,
 )
 from app.calculations.chart_strength import compute_natal_planet_score
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.functional_nature import get_dasha_modifier, get_transit_modifier
-from app.calculations.panchangam import PanchangamSnapshot, calculate_daily_panchangam, calculate_daily_panchangam_range
+from app.calculations.panchangam import (
+    PanchangamSnapshot,
+    calculate_daily_panchangam,
+    calculate_daily_panchangam_range,
+    dominant_from_spans,
+    dominant_span_name,
+    limb_fraction,
+)
 from app.calculations.remedies import (
     PLANET_REMEDY_CATALOG,
     active_dosham_planet,
     select_remedy_focus,
 )
-from app.calculations.transits import check_vedha, classify_ezharai_sani_murthi_ingress, classify_kandaka_cycle, classify_sani_cycle, find_saturn_ingress_jd, is_combust
+from app.calculations.transits import (
+    check_vedha,
+    classify_ezharai_sani_murthi_ingress,
+    classify_kandaka_cycle,
+    classify_sani_cycle,
+    find_saturn_ingress_jd,
+    is_combust,
+)
 from app.models import BirthProfile, Chart, JournalEntry
 from app.reasoning.verdict import Band, band_to_legacy_confidence
 from app.schemas.charts import ChartCalculateResponse
@@ -51,7 +64,6 @@ from app.schemas.daily_guidance import (
     DailyGuidanceScoreBreakdown,
     DailyGuidanceSuggestion,
     DailyGuidanceText,
-    DailyGuidanceWindow,
     JournalCorrelationData,
     JournalCorrelationItem,
     JournalCorrelationResponse,
@@ -62,6 +74,48 @@ from app.schemas.daily_guidance import (
     WeekAheadResponse,
 )
 from app.schemas.dasha import ResponseMeta
+from app.services._dg_cache import (
+    DAILY_SCORE_ENGINE_VERSION,
+    _load_daily_score_cache,
+    _load_daily_score_cache_range,
+    _store_daily_score_cache,
+)
+from app.services._dg_goals import (
+    _build_journal_insight,
+    _enrich_action_with_goal_track,
+    _enrich_action_with_goals,
+)
+from app.services._dg_hora import (
+    _best_hours,
+    _build_text,
+    _caution_windows,
+    _current_hora_lord,
+)
+from app.services._dg_peyarchi import (
+    _MAHADASHA_THEMES,
+    _normalize_activity_timing_activity,
+    get_dasha_story,
+    get_peyarchi_report,
+)
+
+# Sub-module imports — all symbols are re-exported here so existing consumers
+# that import directly from daily_guidance_service continue to work unchanged.
+from app.services._dg_scoring import (
+    PLANET_DAILY_WEIGHT,
+    PLANET_PERIOD_SCORE,
+    TRANSIT_BASE_SCORE,
+    _age_dasha_modifier,
+    _collect_afflicted_planets,
+    _dasha_lord_strength_score,
+    _graha_relationship_score,
+    _planet_period_score,
+    _pratyantar_narrative,
+    _rasi_lord,
+    _score_label,
+    _transit_with_av_score,
+    weighted_moon_score,
+    weighted_panchangam_score,
+)
 from app.services.chart_service import load_persisted_chart_response
 from app.services.context_service import get_context_row, should_surface_proactively
 from app.services.daily_briefing_synth import BriefingInputs, synthesize_daily_briefing
@@ -74,77 +128,16 @@ from app.services.location_service import (
     resolve_effective_daily_timezone,
 )
 from app.services.nakshatra_content import build_nakshatra_perspective
-from app.services.narrative_engine import build_score_reasons, gochar_spoken, panchangam_spoken, tithi_content_card
+from app.services.narrative_engine import (
+    build_score_reasons,
+    dasha_spoken,
+    gochar_spoken,
+    moon_spoken,
+    panchangam_spoken,
+    sani_cycle_background,
+    tithi_content_card,
+)
 from app.services.safety_filter import run_safety_pass
-
-# Sub-module imports — all symbols are re-exported here so existing consumers
-# that import directly from daily_guidance_service continue to work unchanged.
-from app.services._dg_scoring import (
-    AUSPICIOUS_DAILY_NAKSHATRAS,
-    CAUTION_YOGAS,
-    PLANET_DAILY_WEIGHT,
-    PLANET_PERIOD_SCORE,
-    SIGN_LORDS,
-    TRANSIT_BASE_SCORE,
-    _NATURAL_ENEMIES,
-    _NATURAL_FRIENDS,
-    _age_dasha_modifier,
-    _angular_sep,
-    _birth_datetime_utc,
-    _collect_afflicted_planets,
-    _dasha_lord_strength_score,
-    _graha_relationship_score,
-    _normalize_graha_name,
-    _planet_period_score,
-    _pratyantar_narrative,
-    _rasi_lord,
-    _score_label,
-    _to_utc,
-    _transit_with_av_score,
-)
-from app.services._dg_hora import (
-    _MALEFIC_HORA_LORDS,
-    _NATURAL_BENEFIC_LORDS,
-    _best_hours,
-    _build_text,
-    _caution_windows,
-    _current_hora_lord,
-    _money_hora_name,
-    _personal_hora_lords,
-)
-from app.services._dg_cache import (
-    DAILY_SCORE_ENGINE_VERSION,
-    _cache_version,
-    _load_daily_score_cache,
-    _load_daily_score_cache_range,
-    _store_daily_score_cache,
-)
-from app.services._dg_goals import (
-    _GOAL_DASHA_AFFINITY,
-    _GOAL_LABEL_EN,
-    _GOAL_LABEL_TA,
-    _GOAL_TRACK_DASHA_AFFINITY,
-    _GOAL_TRACK_EN,
-    _GOAL_TRACK_TA,
-    _JOURNAL_INSIGHT_LOOKBACK_DAYS,
-    _PLANET_EN,
-    _PLANET_TA,
-    _build_journal_insight,
-    _enrich_action_with_goal_track,
-    _enrich_action_with_goals,
-)
-from app.services._dg_peyarchi import (
-    _ACTIVITY_TIMING_ACTIVITY_ALIASES,
-    _HOUSE_THEME_EN,
-    _HOUSE_THEME_TA,
-    _MAHADASHA_THEMES,
-    _PEYARCHI_OUTLOOK,
-    _node_axis_phase,
-    _normalize_activity_timing_activity,
-    _rahu_ketu_axis_outlook,
-    get_dasha_story,
-    get_peyarchi_report,
-)
 
 __all__ = [
     # Public API
@@ -399,36 +392,50 @@ def build_daily_guidance_response(
     ketu = transit_snapshot.bodies["KETU"]
     mars = transit_snapshot.bodies["MARS"]
 
-    current_nakshatra = nakshatra_from_degree(moon.absolute_longitude)
     janma_nakshatra = natal_moon.nakshatra
-    moon_score = 70
 
-    # Tarabalam — full 9-tara cycle repeating across all 27 nakshatras.
-    # tara_pos cycles 1-9 as today's nakshatra steps away from the birth star.
-    # Janma(1) Sampat(2) Vipat(3) Kshema(4) Pratyak(5) Sadhana(6) Naidhana(7) Mitra(8) Parama Mitra(9)
-    _tara_pos = ((current_nakshatra - janma_nakshatra) % 27) % 9 + 1
-    _TARA_DELTA: dict[int, int] = {
-        1: -20,  # Janma
-        2:  +8,  # Sampat
-        3: -15,  # Vipat
-        4:  +8,  # Kshema
-        5: -10,  # Pratyak
-        6:  +5,  # Sadhana
-        7: -15,  # Naidhana
-        8:  +8,  # Mitra
-        9: +12,  # Parama Mitra
-    }
-    moon_score += _TARA_DELTA[_tara_pos]
-    # Chandrashtama = Moon in the 8th Rasi from natal Janma Rasi (per spec §4.11)
-    # NOT the 8th Nakshatra — Nakshatra and Rasi boundaries do not align
-    chandrashtama_rasi = ((natal_moon.rasi - 1 + 7) % 12) + 1
-    chandrashtama = moon.rasi == chandrashtama_rasi
-    if chandrashtama:
-        moon_score -= 25
-    # Chandrashtama nullifies the transit nakshatra's daily auspiciousness (Thirukanitham §4.11)
-    if current_nakshatra in AUSPICIOUS_DAILY_NAKSHATRAS and not chandrashtama:
-        moon_score += 10
-    moon_score = max(0, min(100, moon_score))
+    # Which star this day's *reasoning* is about. Doctrine ruling R-1/R-2
+    # (2026-08-19): the sunrise (உதய) star still names the day everywhere the
+    # day is named — the calendar grid, festivals, headings — but the score and
+    # the reasons that explain the score follow how long each star actually
+    # held. Before this the two lived apart by accident: the Moon score read the
+    # star at *solar noon* (an artefact of `current_jd` being set from the
+    # transit snapshot's epoch) while the panchangam card, the activity board and
+    # the timing rules all read the star at *sunrise*. They disagreed on 23.3% of
+    # days, and on 37 days a year they fell on opposite sides of the
+    # auspicious-star list — two star names on one screen, neither labelled.
+    # One value now feeds all of them.
+    day_nakshatra = panchangam.dominant_nakshatra_number or panchangam.nakshatra_number
+    day_tithi = panchangam.dominant_tithi_number or panchangam.tithi_number
+    day_yoga = panchangam.dominant_yoga_number or panchangam.yoga_number
+    current_nakshatra = day_nakshatra
+    day_moon_rasi = dominant_from_spans(panchangam.moon_rasi_spans) or moon.rasi
+    # Downstream, `karana_name` is only ever tested for "VISHTI", so the day's
+    # karana is named by whether a Bhadra stretch is worth planning around
+    # rather than by whichever karana happened to be running at sunrise — which
+    # is what hid it on 100 of the 149 days a year it occurs. A quarter of the
+    # day is the threshold: below that the weighted score still carries the
+    # penalty in proportion, but the copy ("finishing what's underway beats
+    # starting something new") would overstate a stretch nobody notices.
+    _vishti_share = limb_fraction(panchangam.karana_spans, lambda span: span.name == "VISHTI")
+    day_karana_name = (
+        "VISHTI" if _vishti_share >= 0.25
+        else (dominant_span_name(panchangam.karana_spans) or panchangam.karana_name)
+    )
+
+    moon_score, chandrashtama_fraction = weighted_moon_score(
+        panchangam,
+        janma_nakshatra=janma_nakshatra,
+        natal_moon_rasi=natal_moon.rasi,
+    )
+    # Chandrashtama = Moon in the 8th Rasi from natal Janma Rasi (per spec §4.11),
+    # NOT the 8th Nakshatra — the two boundary systems do not align. The score
+    # above already carries the partial-day share; this boolean is the *display*
+    # and alert gate, so it asks whether the day is mostly chandrashtama rather
+    # than whether it touches it at all. A day that only clips the 8th rasi for
+    # an hour should not wear the badge, and the timed window is surfaced
+    # separately via chandrashtamam_janma_nakshatra_windows.
+    chandrashtama = chandrashtama_fraction >= 0.5
 
     _transit_bodies = {
         "JUPITER": jupiter,
@@ -586,21 +593,15 @@ def build_daily_guidance_response(
     relationship_score = _graha_relationship_score(maha_lord, antar_lord)
     dasha_score = max(0, min(100, round(maha_score * 0.45 + antar_score * 0.30 + relationship_score * 0.25)))
 
-    panchangam_score = 70
-    if panchangam.tithi_number in [4, 9, 14, 19, 24, 29]:
-        panchangam_score -= 15
-    # Ashtami (8th tithi in both pakshas) — mild caution
-    # Amavasai (30) is NOT penalised: it is a sacred Pitru Tarpan day, not an inauspicious one
-    if panchangam.tithi_number in {8, 23}:
-        panchangam_score -= 10
-    if panchangam.yoga_number in CAUTION_YOGAS:
-        panchangam_score -= 10
-    if panchangam.karana_name == "VISHTI":
-        panchangam_score -= 10
-    if panchangam.weekday_lord == _rasi_lord(natal_lagna):
-        panchangam_score += 8
-    if panchangam.weekday_lord == maha_lord:
-        panchangam_score += 5
+    # Duration-weighted across the solar day (doctrine R-1). The single largest
+    # correction here is the karana term: karana averages 11.79 h, so keying
+    # Vishti to the sunrise value alone missed it on 100 of the 149 days a year
+    # it actually occurs.
+    panchangam_score = weighted_panchangam_score(
+        panchangam,
+        lagna_lord=_rasi_lord(natal_lagna),
+        maha_lord=maha_lord,
+    )
 
     # Activity-specific timing adjustment: when a goal is active, check
     # Thirukanitham timing rules and modulate panchangam score accordingly.
@@ -613,10 +614,10 @@ def build_daily_guidance_response(
         ) else "other"
         _timing = assess_activity_timing(
             activity=_activity,
-            tithi_number=panchangam.tithi_number,
+            tithi_number=day_tithi,
             paksha=panchangam.tithi_paksha,
             weekday_lord=panchangam.weekday_lord,
-            nakshatra_number=panchangam.nakshatra_number,
+            nakshatra_number=day_nakshatra,
         )
         if _timing.combined_alignment == "SUPPORTS":
             panchangam_score += 5
@@ -779,18 +780,18 @@ def build_daily_guidance_response(
         current_nakshatra=current_nakshatra,
         janma_nakshatra=janma_nakshatra,
         chandrashtama=chandrashtama,
-        current_moon_rasi=moon.rasi,
+        current_moon_rasi=day_moon_rasi,
         janma_rasi=natal_moon.rasi,
         moon_score=moon_score,
         maha_lord=maha_lord,
         antar_lord=antar_lord,
         dasha_score=dasha_score,
-        tithi_number=panchangam.tithi_number,
-        yoga_number=panchangam.yoga_number,
-        karana_name=panchangam.karana_name,
+        tithi_number=day_tithi,
+        yoga_number=day_yoga,
+        karana_name=day_karana_name,
         weekday_lord=panchangam.weekday_lord,
         panchangam_score=panchangam_score,
-        panchangam_nakshatra=panchangam.nakshatra_number,
+        panchangam_nakshatra=day_nakshatra,
         jupiter_house_from_moon=jupiter_house,
         saturn_house_from_moon=saturn_house,
         sani_cycle_type=saturn_cycle.type if saturn_cycle.is_active else None,
@@ -814,10 +815,10 @@ def build_daily_guidance_response(
         active_goals or [],
         maha_lord,
         label,
-        tithi_number=panchangam.tithi_number,
+        tithi_number=day_tithi,
         paksha=panchangam.tithi_paksha,
         weekday_lord=panchangam.weekday_lord,
-        nakshatra_number=panchangam.nakshatra_number,
+        nakshatra_number=day_nakshatra,
     )
     if goal_track and not active_goals:
         action_suggestion = _enrich_action_with_goal_track(
@@ -920,8 +921,17 @@ def build_daily_guidance_response(
             transit_score=round(transit_score),
             panchangam_score=panchangam_score,
             personal_score=personal_safety_score,
-            moon_transit=reasons.moon_transit,
-            dasha_support=reasons.dasha_support,
+            # RP-10 extended: the Moon slot takes the *spoken* lead too. The
+            # six-row `reasons.moon_transit` opens with rasi/nakshatra/house and
+            # only then interprets — and the synthesizer keeps lead clauses, so
+            # the briefing was printing three coordinates and dropping the read.
+            moon_transit=moon_spoken(
+                current_nakshatra=current_nakshatra,
+                janma_nakshatra=janma_nakshatra,
+                chandrashtama=chandrashtama,
+                moon_score=moon_score,
+            ),
+            dasha_support=dasha_spoken(maha_lord=maha_lord, dasha_score=dasha_score),
             gochar=gochar_spoken(
                 jupiter_house=jupiter_house,
                 saturn_house=saturn_house,
@@ -930,16 +940,19 @@ def build_daily_guidance_response(
                 transit_score=round(transit_score),
             ),
             panchangam=panchangam_spoken(
-                tithi_number=panchangam.tithi_number,
-                yoga_number=panchangam.yoga_number,
-                karana_name=panchangam.karana_name,
+                tithi_number=day_tithi,
+                yoga_number=day_yoga,
+                karana_name=day_karana_name,
                 panchangam_score=panchangam_score,
-                nakshatra_number=panchangam.nakshatra_number,
+                nakshatra_number=day_nakshatra,
             ),
             personal_caution=reasons.personal_caution,
             action=action_suggestion,  # the goal/track-enriched action, not the raw one
             chandrashtama=chandrashtama,
             sani_cycle_active=saturn_cycle.is_active,
+            sani_background=sani_cycle_background(
+                saturn_cycle.type if saturn_cycle.is_active else None
+            ),
             seed=f"{maha_lord}:{on_date.isoformat()}",
         ))
         briefing = DailyGuidanceText(ta=synthesized.ta, en=synthesized.en)
@@ -1026,14 +1039,14 @@ def build_daily_guidance_response(
                 if pratyantar_story is not None
                 else None
             ),
-            tithiCard=_build_tithi_card(panchangam.tithi_number),
+            tithiCard=_build_tithi_card(day_tithi),
             isChandrashtama=chandrashtama,
             saturnCycleAlert=saturn_cycle.type if saturn_cycle.is_active and saturn_cycle.type in {"JANMA_SANI", "ASHTAMA_SANI"} else None,
             activityBoard=_build_activity_board(
-                tithi_number=panchangam.tithi_number,
+                tithi_number=day_tithi,
                 paksha=panchangam.tithi_paksha,
                 weekday_lord=panchangam.weekday_lord,
-                nakshatra_number=panchangam.nakshatra_number,
+                nakshatra_number=day_nakshatra,
                 is_chandrashtama=chandrashtama,
             ),
         ),

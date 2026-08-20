@@ -29,6 +29,7 @@ from app.schemas.panchangam import (
     PanchangamKalam,
     PanchangamKarana,
     PanchangamLagnam,
+    PanchangamLimbSpan,
     PanchangamLocation,
     PanchangamMeta,
     PanchangamMonthDayEntry,
@@ -36,6 +37,7 @@ from app.schemas.panchangam import (
     PanchangamMonthlyQuery,
     PanchangamMonthlyResponse,
     PanchangamNakshatra,
+    PanchangamNethiramJeevan,
     PanchangamSlot,
     PanchangamSoolam,
     PanchangamSpecialTithiDay,
@@ -199,6 +201,28 @@ def _build_special_tithi_day(snapshot) -> PanchangamSpecialTithiDay | None:
     return None
 
 
+def _spans(spans) -> list[PanchangamLimbSpan]:
+    """Map engine spans onto the wire shape.
+
+    Both a bare "HH:MM" and a full ISO local datetime go out for each edge. A
+    limb boundary routinely lands on the next calendar day (this is a solar day,
+    sunrise to sunrise), and a clock-only string cannot say which day — the same
+    trap the tithi-rollover fix already hit once.
+    """
+    return [
+        PanchangamLimbSpan(
+            number=span.number,
+            name=span.name,
+            starts_at=span.start.strftime("%H:%M"),
+            ends_at=span.end.strftime("%H:%M"),
+            starts_at_iso=span.start.isoformat(),
+            ends_at_iso=span.end.isoformat(),
+            fraction=round(span.fraction, 4),
+        )
+        for span in spans
+    ]
+
+
 def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = None) -> PanchangamDailyResponse:
     snapshot = calculate_daily_panchangam(query.date, query.lat, query.lng, query.timezone, session=session)
     previous_day_snapshot = _previous_day_snapshot(snapshot, session)
@@ -221,6 +245,7 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
                 next_number=snapshot.tithi_next_number,
                 next_name=snapshot.tithi_next_name,
                 next_paksha=snapshot.tithi_next_paksha,
+                spans=_spans(snapshot.tithi_spans),
             ),
             nakshatra=PanchangamNakshatra(
                 name=snapshot.nakshatra_name,
@@ -228,6 +253,7 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
                 ends_at=snapshot.nakshatra_ends_at.strftime("%H:%M"),
                 ends_at_iso=snapshot.nakshatra_ends_at.isoformat(),
                 next_name=snapshot.nakshatra_next_name,
+                spans=_spans(snapshot.nakshatra_spans),
             ),
             yoga=PanchangamYoga(
                 number=snapshot.yoga_number,
@@ -235,12 +261,14 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
                 ends_at=snapshot.yoga_ends_at.strftime("%H:%M"),
                 ends_at_iso=snapshot.yoga_ends_at.isoformat(),
                 next_name=snapshot.yoga_next_name,
+                spans=_spans(snapshot.yoga_spans),
             ),
             karana=PanchangamKarana(
                 name=snapshot.karana_name,
                 ends_at=snapshot.karana_ends_at.strftime("%H:%M"),
                 ends_at_iso=snapshot.karana_ends_at.isoformat(),
                 next_name=snapshot.karana_next_name,
+                spans=_spans(snapshot.karana_spans),
             ),
             kalam=_build_kalam(snapshot),
             abhijit=PanchangamAbhijit(
@@ -280,6 +308,17 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
             ),
             nethiram=snapshot.nethiram,
             jeevan=snapshot.jeevan,
+            # The bare strings above stay for existing clients. This object adds
+            # the boundary they never had: both values are derived from the
+            # Moon's star, so they flip at nakshatra_ends_at like Nokku does.
+            nethiram_jeevan=PanchangamNethiramJeevan(
+                nethiram=snapshot.nethiram,
+                jeevan=snapshot.jeevan,
+                nethiram_next=snapshot.nethiram_next,
+                jeevan_next=snapshot.jeevan_next,
+                ends_at=snapshot.nakshatra_ends_at.strftime("%H:%M"),
+                ends_at_iso=snapshot.nakshatra_ends_at.isoformat(),
+            ),
             amirdhadhi_yogam=PanchangamAmirdhadhiYogam(
                 name=snapshot.amirdhadhi_yogam_name,
                 ends_at=snapshot.amirdhadhi_yogam_ends_at.strftime("%H:%M"),

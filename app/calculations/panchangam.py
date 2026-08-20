@@ -512,7 +512,13 @@ DEFAULT_AYANAMSA_TYPE = "LAHIRI"
 # would keep serving the old unequal boundaries — and the muhurta picker reads
 # those boundaries to choose the clock time it recommends. The correction would
 # have been invisible on any date already warmed into the cache.
-PANCHANGAM_CACHE_DATA_VERSION = 42
+# v43 (2026-08-19, doctrine ruling R-1): snapshots now carry `*_spans` — every
+# value each limb takes across the solar day — and the `dominant_*` scalars are
+# derived from those spans (sunrise-to-sunrise) instead of an independent
+# midnight-to-midnight walk. Duration-weighted scoring reads the spans, so a
+# cached record written without them would score every limb as zero-weight; the
+# bump is what stops a warmed cache from serving the old flat answer.
+PANCHANGAM_CACHE_DATA_VERSION = 43
 DOMINANT_SPECIAL_TITHIS = {15, 30}
 
 # Fixed weekday clock-table Nalla Neram windows. NOTE (2026-07-17): the daily
@@ -626,6 +632,30 @@ class PanchangamLagnaWindow:
 
 
 @dataclass(frozen=True, slots=True)
+class PanchangamLimbSpan:
+    """One contiguous stretch of a single tithi / nakshatra / yoga / karana value,
+    clipped to the solar day it is reported for.
+
+    The scalar `<limb>_number` fields on the snapshot are the value at **sunrise**
+    — the classical உதய rule, which is what *names* the day. That name is not the
+    whole truth about the day: measured against real ephemeris boundaries at
+    Chennai over 2026-08, the sunrise nakshatra holds less than half the day on
+    46.6% of days, the sunrise karana on 97.5%. A span list is what lets a caller
+    that needs the *duration* answer (scoring) get it without contradicting the
+    caller that needs the *name* answer (the calendar).
+
+    `fraction` is this span's share of the solar day, so a weighted score never
+    has to re-derive it from the timestamps.
+    """
+
+    number: int
+    name: str
+    start: datetime
+    end: datetime
+    fraction: float
+
+
+@dataclass(frozen=True, slots=True)
 class PanchangamSnapshot:
     date_local: date
     timezone_name: str
@@ -676,6 +706,13 @@ class PanchangamSnapshot:
     soolam_parigaram: str
     nethiram: str
     jeevan: str
+    # Values after the Moon's star changes at `nakshatra_ends_at` — see where
+    # these are computed. No default: this block sits before the dataclass's
+    # remaining required fields, and a defaulted field here would make every
+    # one of them positional-after-default. Deserialisation supplies "" for a
+    # record written before these existed.
+    nethiram_next: str
+    jeevan_next: str
     lagna_rasi_number: int
     lagna_rasi_name: str
     lagna_ends_at: datetime
@@ -691,9 +728,25 @@ class PanchangamSnapshot:
     chandrashtamam_today_nakshatras: tuple[str, ...]
     chandrashtamam_janma_nakshatra_windows: tuple[PanchangamChandrashtamamNakshatraWindow, ...] = ()
     warnings: tuple[str, ...] = ()
-    # Dominant (longest-span) state for the whole civil day, used by the monthly
-    # calendar grid. Cached so the monthly endpoint never re-walks the ephemeris.
-    # 0 means "not computed" — callers fall back to the live computation.
+    # Every value each limb takes across the SOLAR day (this sunrise to the next),
+    # in order. The scalars above are the value at sunrise — the உதய rule, which
+    # names the day; these are what it actually *did*. Doctrine ruling R-1
+    # (2026-08-19) splits the two: naming stays sunrise-keyed, scoring is
+    # duration-weighted over these spans. Empty means "not computed" (an old cache
+    # record) — callers must fall back to the scalar rather than scoring a
+    # zero-length day. See `limb_weighted` / `limb_fraction` / `dominant_from_spans`.
+    tithi_spans: tuple[PanchangamLimbSpan, ...] = ()
+    nakshatra_spans: tuple[PanchangamLimbSpan, ...] = ()
+    yoga_spans: tuple[PanchangamLimbSpan, ...] = ()
+    karana_spans: tuple[PanchangamLimbSpan, ...] = ()
+    # The Moon's rasi across the same solar day. Not a panchangam limb, but
+    # chandrashtama is scored from it and it moves mid-day often enough to
+    # matter — see the `moon_rasi` entry in `_LIMB_WALKERS`.
+    moon_rasi_spans: tuple[PanchangamLimbSpan, ...] = ()
+    # Dominant (longest-span) value across the solar day, derived from the spans
+    # above — not an independent walk, so the two can never disagree. Kept as
+    # scalars because the monthly grid and the cache read them directly.
+    # 0 means "not computed" — callers fall back to the sunrise scalar.
     dominant_tithi_number: int = 0
     dominant_nakshatra_number: int = 0
     dominant_yoga_number: int = 0
@@ -823,30 +876,6 @@ def _state_durations_for_civil_day(
     return durations, noon_value
 
 
-def _dominant_state_for_civil_day(
-    date_local: date,
-    timezone_name: str,
-    *,
-    value_at_jd,
-    boundary_at_jd,
-    max_transitions: int,
-) -> int | None:
-    durations, noon_value = _state_durations_for_civil_day(
-        date_local,
-        timezone_name,
-        value_at_jd=value_at_jd,
-        boundary_at_jd=boundary_at_jd,
-        max_transitions=max_transitions,
-    )
-    if not durations:
-        return None
-
-    return max(
-        durations.items(),
-        key=lambda item: (item[1], 1 if item[0] == noon_value else 0, -item[0]),
-    )[0]
-
-
 def _special_tithi_durations_for_civil_day(
     date_local: date,
     timezone_name: str,
@@ -862,43 +891,134 @@ def _special_tithi_durations_for_civil_day(
     return durations
 
 
-def dominant_tithi_for_civil_day(
-    date_local: date,
+def _karana_index_at_jd(jd: float) -> int:
+    return int((_tithi_angle_at_jd(jd) + 1e-9) // 6)
+
+
+# One entry per limb: how to read its value, how to find its next boundary, how
+# to name it, and how many transitions a solar day can hold. The counts are the
+# observed maxima plus headroom — measured over 2026-08..2027-07 at Chennai a
+# solar day holds at most 2 nakshatra / 2 tithi / 3 yoga / 4 karana values, and
+# the walk stops at the day's end regardless, so these are a runaway guard
+# rather than a modelling claim.
+_LIMB_WALKERS: dict[str, tuple] = {
+    "tithi": (_tithi_number_at_jd, _tithi_angle_at_jd, 12.0, lambda n: _tithi_name(n), 8),
+    "nakshatra": (_nakshatra_number_at_jd, _nakshatra_angle_at_jd, 40 / 3, lambda n: NAKSHATRA_NAMES[(n - 1) % 27], 6),
+    "yoga": (_yoga_number_at_jd, _yoga_angle_at_jd, 40 / 3, lambda n: _yoga_name(n), 6),
+    "karana": (_karana_index_at_jd, _tithi_angle_at_jd, 6.0, lambda n: _karana_name(n), 10),
+    # Not one of the five limbs, but the same shape and the same need: the Moon
+    # crosses a rasi boundary on roughly two days in five, and chandrashtama —
+    # worth -25 to the Moon score — is a rasi test, so scoring it off a single
+    # instant has the same defect the limbs had.
+    "moon_rasi": (lambda jd: rasi_from_degree(_nakshatra_angle_at_jd(jd)), _nakshatra_angle_at_jd, 30.0, lambda n: RASI_NAMES[n], 3),
+}
+
+
+def limb_spans_between(
+    limb: str,
+    start_jd: float,
+    end_jd: float,
     timezone_name: str,
-) -> int | None:
-    return _dominant_state_for_civil_day(
-        date_local,
-        timezone_name,
-        value_at_jd=_tithi_number_at_jd,
-        boundary_at_jd=lambda jd: _find_next_boundary_jd(jd, _tithi_angle_at_jd, 12.0),
-        max_transitions=8,
-    )
+) -> tuple[PanchangamLimbSpan, ...]:
+    """Every distinct value one limb takes between two instants, in order.
+
+    Uses the same boundary search the scalar `<limb>_ends_at` fields use, so a
+    span list can never disagree with the scalar beside it about where the
+    boundary falls.
+    """
+    value_at_jd, angle_at_jd, step_degrees, name_of, max_transitions = _LIMB_WALKERS[limb]
+    total = end_jd - start_jd
+    if total <= 0:
+        return ()
+
+    spans: list[PanchangamLimbSpan] = []
+    # Two cursors on purpose. `probe` is nudged past each boundary so the next
+    # `value_at_jd` reads the new value rather than re-reading the old one at
+    # the boundary instant; `span_start` is the boundary itself. Reporting the
+    # nudged instant instead left an 845 microsecond gap between consecutive
+    # spans — small enough to look like nothing, big enough that "these spans
+    # tile the day" stopped being true and any interval intersection built on
+    # them silently lost time at every boundary.
+    span_start = start_jd
+    probe = start_jd
+    for _ in range(max_transitions):
+        if span_start >= end_jd - 1e-10:
+            break
+        number = int(value_at_jd(probe))
+        boundary = _find_next_boundary_jd(probe, angle_at_jd, step_degrees)
+        span_end = min(boundary, end_jd)
+        spans.append(PanchangamLimbSpan(
+            number=number,
+            name=name_of(number),
+            start=utc_datetime_to_local_datetime(julian_day_to_utc_datetime(span_start), timezone_name),
+            end=utc_datetime_to_local_datetime(julian_day_to_utc_datetime(span_end), timezone_name),
+            fraction=max(0.0, (span_end - span_start) / total),
+        ))
+        if boundary >= end_jd:
+            break
+        span_start = boundary
+        probe = min(boundary + 1e-8, end_jd)
+    return tuple(spans)
 
 
-def dominant_nakshatra_for_civil_day(
-    date_local: date,
-    timezone_name: str,
-) -> int | None:
-    return _dominant_state_for_civil_day(
-        date_local,
-        timezone_name,
-        value_at_jd=_nakshatra_number_at_jd,
-        boundary_at_jd=lambda jd: _find_next_boundary_jd(jd, _nakshatra_angle_at_jd, 40 / 3),
-        max_transitions=6,
-    )
+def dominant_from_spans(spans: Sequence[PanchangamLimbSpan]) -> int | None:
+    """The limb value holding the largest share of the day, or None if unknown.
+
+    Ties break towards the *earlier* value, which is the one the உதய rule already
+    named — so on a genuine 50/50 day the dominant reading and the sunrise
+    reading agree rather than diverging on a rounding artefact.
+    """
+    if not spans:
+        return None
+    totals: dict[int, float] = {}
+    first_seen: dict[int, int] = {}
+    for index, span in enumerate(spans):
+        totals[span.number] = totals.get(span.number, 0.0) + span.fraction
+        first_seen.setdefault(span.number, index)
+    return max(totals.items(), key=lambda item: (item[1], -first_seen[item[0]]))[0]
 
 
-def dominant_yoga_for_civil_day(
-    date_local: date,
-    timezone_name: str,
-) -> int | None:
-    return _dominant_state_for_civil_day(
-        date_local,
-        timezone_name,
-        value_at_jd=_yoga_number_at_jd,
-        boundary_at_jd=lambda jd: _find_next_boundary_jd(jd, _yoga_angle_at_jd, 40 / 3),
-        max_transitions=6,
-    )
+def dominant_span_name(spans: Sequence[PanchangamLimbSpan]) -> str | None:
+    """Name of the value holding the largest share of the day.
+
+    Separate from `dominant_from_spans` because a karana span's `number` is its
+    0..59 index within the lunar month, which no caller can turn back into a
+    name without re-deriving the karana table.
+    """
+    dominant = dominant_from_spans(spans)
+    if dominant is None:
+        return None
+    return next((span.name for span in spans if span.number == dominant), None)
+
+
+def limb_fraction(spans: Sequence[PanchangamLimbSpan], predicate) -> float:
+    """Share of the day (0..1) whose span satisfies `predicate`.
+
+    `predicate` receives the whole `PanchangamLimbSpan`, not just its number, so
+    a karana rule can test `span.name == "VISHTI"` without the caller having to
+    re-derive a name from a 0..59 index.
+    """
+    if not spans:
+        return 0.0
+    return sum(span.fraction for span in spans if predicate(span))
+
+
+def limb_weighted(spans: Sequence[PanchangamLimbSpan], value_fn) -> float:
+    """Duration-weighted mean of `value_fn(span)` across the day.
+
+    This is the primitive behind doctrine ruling R-1 (2026-08-19): the sunrise
+    value *names* the day, but a value holding fifteen minutes of it must not
+    carry a full day's score. With a single span this returns exactly what the
+    old scalar-keyed code returned, so a day with no transition is unchanged —
+    which is what keeps the change invisible on the ~53% of days that do not
+    split, and confines the movement to the days that genuinely do.
+    """
+    if not spans:
+        return 0.0
+    total = sum(span.fraction for span in spans)
+    if total <= 0:
+        return 0.0
+    return sum(value_fn(span) * span.fraction for span in spans) / total
 
 
 def dominant_special_tithi_for_civil_day(
@@ -1545,6 +1665,42 @@ def _deserialize_slot(data: dict) -> PanchangamSlot:
     )
 
 
+def _serialize_limb_spans(spans: Sequence[PanchangamLimbSpan]) -> list[dict]:
+    return [
+        {
+            "number": span.number,
+            "name": span.name,
+            "start": span.start.isoformat(),
+            "end": span.end.isoformat(),
+            "fraction": span.fraction,
+        }
+        for span in spans
+    ]
+
+
+def _deserialize_limb_spans(raw: object) -> tuple[PanchangamLimbSpan, ...]:
+    """Rebuild a span list from a cache record.
+
+    Returns `()` for a record written before spans existed. That empty tuple is
+    load-bearing: `limb_weighted` on no spans returns 0.0, which would silently
+    score every pre-upgrade cached day as a flat zero. Every caller must treat
+    empty as "fall back to the sunrise scalar", which is why the scoring helpers
+    take the scalar as an explicit fallback argument rather than defaulting.
+    """
+    if not isinstance(raw, list):
+        return ()
+    return tuple(
+        PanchangamLimbSpan(
+            number=int(span["number"]),
+            name=str(span.get("name", "")),
+            start=datetime.fromisoformat(span["start"]),
+            end=datetime.fromisoformat(span["end"]),
+            fraction=float(span.get("fraction", 0.0)),
+        )
+        for span in raw
+    )
+
+
 def _serialize_snapshot(snapshot: PanchangamSnapshot) -> dict:
     return {
         "schema_version": PANCHANGAM_CACHE_DATA_VERSION,
@@ -1616,6 +1772,8 @@ def _serialize_snapshot(snapshot: PanchangamSnapshot) -> dict:
         "soolam_direction": snapshot.soolam_direction,
         "soolam_parigaram": snapshot.soolam_parigaram,
         "nethiram": snapshot.nethiram,
+        "nethiram_next": snapshot.nethiram_next,
+        "jeevan_next": snapshot.jeevan_next,
         "jeevan": snapshot.jeevan,
         "lagna_rasi_number": snapshot.lagna_rasi_number,
         "lagna_rasi_name": snapshot.lagna_rasi_name,
@@ -1639,6 +1797,11 @@ def _serialize_snapshot(snapshot: PanchangamSnapshot) -> dict:
             for window in snapshot.chandrashtamam_janma_nakshatra_windows
         ],
         "warnings": list(snapshot.warnings),
+        "tithi_spans": _serialize_limb_spans(snapshot.tithi_spans),
+        "nakshatra_spans": _serialize_limb_spans(snapshot.nakshatra_spans),
+        "yoga_spans": _serialize_limb_spans(snapshot.yoga_spans),
+        "karana_spans": _serialize_limb_spans(snapshot.karana_spans),
+        "moon_rasi_spans": _serialize_limb_spans(snapshot.moon_rasi_spans),
         "dominant_tithi_number": snapshot.dominant_tithi_number,
         "dominant_nakshatra_number": snapshot.dominant_nakshatra_number,
         "dominant_yoga_number": snapshot.dominant_yoga_number,
@@ -1743,6 +1906,8 @@ def _deserialize_snapshot(data: dict) -> PanchangamSnapshot:
         soolam_parigaram=str(data.get("soolam_parigaram", "")),
         nethiram=str(data.get("nethiram", "")),
         jeevan=str(data.get("jeevan", "")),
+        nethiram_next=str(data.get("nethiram_next", "")),
+        jeevan_next=str(data.get("jeevan_next", "")),
         lagna_rasi_number=int(data.get("lagna_rasi_number", 0)),
         lagna_rasi_name=str(data.get("lagna_rasi_name", "")),
         lagna_ends_at=datetime.fromisoformat(data["lagna_ends_at"]) if data.get("lagna_ends_at") else datetime.fromisoformat(data["sunrise"]),
@@ -1765,6 +1930,11 @@ def _deserialize_snapshot(data: dict) -> PanchangamSnapshot:
             for window in (data.get("chandrashtamam_janma_nakshatra_windows") or [])
         ),
         warnings=tuple(data.get("warnings", [])),
+        tithi_spans=_deserialize_limb_spans(data.get("tithi_spans")),
+        nakshatra_spans=_deserialize_limb_spans(data.get("nakshatra_spans")),
+        yoga_spans=_deserialize_limb_spans(data.get("yoga_spans")),
+        karana_spans=_deserialize_limb_spans(data.get("karana_spans")),
+        moon_rasi_spans=_deserialize_limb_spans(data.get("moon_rasi_spans")),
         dominant_tithi_number=int(data.get("dominant_tithi_number", 0)),
         pradhosham_tithi_number=int(data.get("pradhosham_tithi_number", 0)),
         nishita_tithi_number=int(data.get("nishita_tithi_number", 0)),
@@ -2010,6 +2180,16 @@ def calculate_daily_panchangam(
     sun_nakshatra_number = nakshatra_from_degree(sun_longitude)
     nethiram = NETHIRAM_LABELS[_nethiram_value(sun_nakshatra_number, nakshatra_number)]
     jeevan = JEEVAN_LABELS[_jeevan_value(sun_nakshatra_number, nakshatra_number)]
+    # Both are a function of (Sun's star, Moon's star), and within one day only
+    # the Moon's star moves — the Sun holds a star for ~13.6 days. So they flip
+    # at exactly `nakshatra_ends_at`, and the next values are this same pair
+    # read against the following star. Without these the two shipped as bare
+    # strings with no boundary, which is how they came to sit on the calendar
+    # card beside Nokku — derived from the same star, and rolling over live —
+    # showing a stale value all day.
+    _next_star = ((nakshatra_number - 1 + 1) % 27) + 1
+    nethiram_next = NETHIRAM_LABELS[_nethiram_value(sun_nakshatra_number, _next_star)]
+    jeevan_next = JEEVAN_LABELS[_jeevan_value(sun_nakshatra_number, _next_star)]
 
     lagna_degree = normalize_longitude(calculate_lagna_degree(sunrise_jd, latitude, longitude))
     lagna_rasi_number = rasi_from_degree(lagna_degree)
@@ -2042,12 +2222,23 @@ def calculate_daily_panchangam(
         window.name for window in chandrashtamam_janma_nakshatra_windows
     ))
 
-    # Dominant state across the civil day (what the monthly calendar grid shows).
-    # Computed once here so it lands in the cache record; the monthly endpoint then
-    # reads it back instead of re-walking the ephemeris for every day of the month.
-    dominant_tithi_number = dominant_tithi_for_civil_day(date_local, timezone_name) or tithi_number
-    dominant_nakshatra_number = dominant_nakshatra_for_civil_day(date_local, timezone_name) or nakshatra_number
-    dominant_yoga_number = dominant_yoga_for_civil_day(date_local, timezone_name) or yoga_number
+    # What each limb actually does across the solar day, sunrise to next sunrise.
+    # Sunrise-to-sunrise rather than midnight-to-midnight because that is the day
+    # every other anchor here already uses (rahu kalam, the gowri slots and the
+    # hora chain are all measured from sunrise), so a score weighted over these
+    # spans is weighted over the same day the windows beside it divide up.
+    # Computed once and cached, so the callers that need the duration answer never
+    # re-walk the ephemeris — and the dominant scalars fall out of the same walk
+    # instead of costing three more.
+    tithi_spans = limb_spans_between("tithi", sunrise_jd, next_sunrise_jd, timezone_name)
+    nakshatra_spans = limb_spans_between("nakshatra", sunrise_jd, next_sunrise_jd, timezone_name)
+    yoga_spans = limb_spans_between("yoga", sunrise_jd, next_sunrise_jd, timezone_name)
+    karana_spans = limb_spans_between("karana", sunrise_jd, next_sunrise_jd, timezone_name)
+    moon_rasi_spans = limb_spans_between("moon_rasi", sunrise_jd, next_sunrise_jd, timezone_name)
+
+    dominant_tithi_number = dominant_from_spans(tithi_spans) or tithi_number
+    dominant_nakshatra_number = dominant_from_spans(nakshatra_spans) or nakshatra_number
+    dominant_yoga_number = dominant_from_spans(yoga_spans) or yoga_number
 
     # Pradhosam is observed in the twilight around sunset, so its governing tithi is
     # read at pradhosha-kalam (sunset), not at sunrise (issue #10).
@@ -2110,6 +2301,8 @@ def calculate_daily_panchangam(
         soolam_parigaram=soolam_parigaram,
         nethiram=nethiram,
         jeevan=jeevan,
+        nethiram_next=nethiram_next,
+        jeevan_next=jeevan_next,
         lagna_rasi_number=lagna_rasi_number,
         lagna_rasi_name=RASI_NAMES[lagna_rasi_number],
         lagna_ends_at=lagna_ends_at,
@@ -2125,6 +2318,11 @@ def calculate_daily_panchangam(
         chandrashtamam_today_nakshatras=chandrashtamam_today_nakshatras,
         chandrashtamam_janma_nakshatra_windows=chandrashtamam_janma_nakshatra_windows,
         warnings=warnings,
+        tithi_spans=tithi_spans,
+        nakshatra_spans=nakshatra_spans,
+        yoga_spans=yoga_spans,
+        karana_spans=karana_spans,
+        moon_rasi_spans=moon_rasi_spans,
         dominant_tithi_number=dominant_tithi_number,
         dominant_nakshatra_number=dominant_nakshatra_number,
         dominant_yoga_number=dominant_yoga_number,

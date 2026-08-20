@@ -1169,6 +1169,86 @@ def _lagna_sign_factor(snapshot, activity: str) -> FactorResult | None:
     )
 
 
+def limb_factors_at_window(snapshot, midpoint, activity: str) -> list[FactorResult]:
+    """Judge the selected window on the limbs actually in force *during it*.
+
+    `_karana_factor` above says plainly what it cannot do: "this is intentionally
+    conservative and does not certify later unrepresented transitions; window
+    selection needs a full karana schedule." The snapshot now carries that
+    schedule, so the picker can finally close the gap.
+
+    This matters because the picker already reads the lagna and the planets at
+    the window midpoint while every limb factor stayed pinned to sunrise — so it
+    could hand back a 16:00 window whose stated reason was "Swathi is on the
+    general auspicious-star list" on a day where Swathi ended at 06:47. The same
+    class of defect as the D1/D2/D3 hora-overlap bug fixed 2026-08-16: a window
+    certified by a reason that did not hold during it.
+
+    Returns an empty list when the snapshot has no spans (a pre-v43 cache
+    record), which leaves the caller on exactly its previous behaviour rather
+    than on a fabricated one.
+    """
+    results: list[FactorResult] = []
+
+    def _at(spans):
+        return next((span for span in spans if span.start <= midpoint < span.end), None)
+
+    karana_span = _at(snapshot.karana_spans)
+    entry = _rules(activity)
+    if karana_span is not None and entry is not None and entry.karana_avoid:
+        name_en = karana_span.name.replace("_", " ").title()
+        if karana_span.name in entry.karana_avoid:
+            # VETO-class here, unlike the day-level factor. The distinction is
+            # the source's own: it forbids the karana *at the elected moment*,
+            # and this is the elected moment — no longer a transition we can
+            # only half-see.
+            results.append(FactorResult(
+                factor="KARANA_AT_WINDOW",
+                verdict=Verdict.VETO,
+                contribution=0.0,
+                reason_en=(f"{name_en} runs through the selected window "
+                           f"({karana_span.start:%H:%M}–{karana_span.end:%H:%M}), and it is "
+                           f"excluded for {entry.label_en}."),
+                reason_ta=(f"தேர்ந்தெடுத்த நேரத்தில் {name_en} கரணம் "
+                           f"({karana_span.start:%H:%M}–{karana_span.end:%H:%M}) நடைபெறுகிறது; "
+                           f"{entry.label_ta} இது தவிர்க்கப்பட வேண்டியது."),
+                rule_id=entry.karana_rule_id,
+            ))
+        else:
+            results.append(FactorResult(
+                factor="KARANA_AT_WINDOW",
+                verdict=Verdict.NEUTRAL,
+                contribution=0.0,
+                reason_en=(f"{name_en} runs through the selected window and is not "
+                           f"excluded for {entry.label_en}."),
+                reason_ta=(f"தேர்ந்தெடுத்த நேரத்தில் {name_en} கரணம்; {entry.label_ta} "
+                           "இது தவிர்க்கப்பட்டதல்ல."),
+                rule_id=entry.karana_rule_id,
+            ))
+
+    star_span = _at(snapshot.nakshatra_spans)
+    if star_span is not None and star_span.number != snapshot.nakshatra_number:
+        # Not scored — the day's star factors already priced the star, and
+        # charging again here would double-count. This exists so the reason list
+        # cannot silently attribute the window to a star that had already ended.
+        day_en = nakshatra_en(snapshot.nakshatra_number) or str(snapshot.nakshatra_number)
+        win_en = nakshatra_en(star_span.number) or str(star_span.number)
+        day_ta = nakshatra_ta(snapshot.nakshatra_number) or day_en
+        win_ta = nakshatra_ta(star_span.number) or win_en
+        results.append(FactorResult(
+            factor="NAKSHATRA_AT_WINDOW",
+            verdict=Verdict.NEUTRAL,
+            contribution=0.0,
+            reason_en=(f"The day is named for {day_en} (the star at sunrise), but "
+                       f"{win_en} is what runs during the selected window."),
+            reason_ta=(f"இந்நாள் {day_ta} நட்சத்திரம் எனப் பெயரிடப்படுகிறது (உதய நட்சத்திரம்); "
+                       f"ஆனால் தேர்ந்தெடுத்த நேரத்தில் நடப்பது {win_ta}."),
+            rule_id="LIMB_AT_WINDOW_DISCLOSURE",
+        ))
+
+    return results
+
+
 def lagna_sign_factor_at_window(activity: str, rasi: int) -> FactorResult | None:
     """Apply a sourced lagna-sign rule to the selected window's actual lagna.
 

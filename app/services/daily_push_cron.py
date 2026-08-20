@@ -67,6 +67,10 @@ from app.models.chart_planet import ChartPlanet
 from app.models.notification import Notification
 from app.models.user import User
 from app.models.user_notification_preference import UserNotificationPreference
+from app.services._dg_scoring import (
+    AUSPICIOUS_DAILY_NAKSHATRAS,
+    CAUTION_DAILY_NAKSHATRAS,
+)
 from app.services.daily_guidance_service import get_daily_guidance
 from app.services.dasha_transition_service import get_dasha_transition_alerts
 from app.services.location_service import resolve_effective_daily_location
@@ -234,6 +238,11 @@ def _dispatch_for_user(
     if pref.morning_alert_enabled and _alert_due and not _already_sent_today(session, user.user_id, "MORNING_NALLA_NERAM", run_date, tz_name):
         try:
             panchang = calculate_daily_panchangam(run_date, lat, lon, tz_name)
+            # The star this push speaks about. Dominant rather than sunrise: the
+            # sunrise star holds under half the day on 46.6% of days, and a
+            # morning notification naming a star that ended fifteen minutes
+            # after sunrise is the defect this whole change is about.
+            fallback_star = panchang.dominant_nakshatra_number or panchang.nakshatra_number
             nalla_slot = best_gowri_slot(panchang.nalla_neram)
             nalla_start = _format_clock_label(nalla_slot.start) if nalla_slot else "-"
             nalla_end = _format_clock_label(nalla_slot.end) if nalla_slot else "-"
@@ -254,18 +263,25 @@ def _dispatch_for_user(
                 dasha_ctx_ta = guidance.data.reasons.dasha_support.ta
                 dasha_ctx_en = guidance.data.reasons.dasha_support.en
             except Exception:
-                # Fall back to panchangam-only signal if full guidance fails
+                # Fall back to panchangam-only signal if full guidance fails.
+                # Star sets imported, not restated: this branch used to carry
+                # 14 (Chithirai) in BOTH its auspicious and its caution literal,
+                # and because auspicious was tested first the caution arm for 14
+                # was unreachable — the two lists agreed on 14 by accident while
+                # disagreeing in their source. Keyed on the day's dominant star
+                # rather than the sunrise one, to match the guidance score this
+                # is standing in for.
                 score = 50
-                if panchang.nakshatra_number in {1, 4, 5, 7, 8, 13, 14, 15, 17, 22, 27}:
+                if fallback_star in AUSPICIOUS_DAILY_NAKSHATRAS:
                     score = 72
-                elif panchang.nakshatra_number in {2, 9, 10, 14, 19}:
+                elif fallback_star in CAUTION_DAILY_NAKSHATRAS:
                     score = 32
                 label = _score_label(score)
                 is_chandrashtama = False
                 action_ta = action_en = ""
                 dasha_ctx_ta = dasha_ctx_en = ""
 
-            nak_content = build_nakshatra_perspective(panchang.nakshatra_number, label)
+            nak_content = build_nakshatra_perspective(fallback_star, label)
             nak_ta = nak_content.ta if nak_content else str(panchang.nakshatra_number)
             nak_en = nak_content.en if nak_content else str(panchang.nakshatra_number)
 

@@ -19,8 +19,8 @@ from __future__ import annotations
 import io
 import os
 import re
-from pathlib import Path
 from datetime import UTC, date, datetime
+from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import UUID
 
@@ -47,6 +47,10 @@ from app.calculations.panchangam import (
     gowri_good_purpose,
 )
 from app.models import BirthProfile, Chart
+from app.services._dg_scoring import (
+    AUSPICIOUS_DAILY_NAKSHATRAS,
+    CAUTION_DAILY_NAKSHATRAS,
+)
 from app.services.chart_service import load_persisted_chart_response
 from app.services.dasha_service import get_chart_dasha
 from app.services.location_service import resolve_effective_daily_location
@@ -369,11 +373,15 @@ def generate_chart_pdf(
         daily_location.timezone,
     )
 
-    # Quick score derivation from nakshatra (same lightweight heuristic as daily_push_cron)
-    nak = panchang.nakshatra_number
-    if nak in {1, 4, 5, 7, 8, 13, 14, 15, 17, 22, 27}:
+    # Quick score derivation from the day's star (same lightweight heuristic as
+    # daily_push_cron, and now literally the same two sets — these were hand-
+    # copies that had drifted: the push copy also listed 14 as a caution star.
+    # Dominant rather than sunrise, so an exported PDF and the app agree about
+    # which star ran the day.
+    nak = panchang.dominant_nakshatra_number or panchang.nakshatra_number
+    if nak in AUSPICIOUS_DAILY_NAKSHATRAS:
         score, label = 72, _label("good", lang)
-    elif nak in {2, 9, 10, 19}:
+    elif nak in CAUTION_DAILY_NAKSHATRAS:
         score, label = 32, _label("caution", lang)
     else:
         score, label = 50, _label("balanced", lang)

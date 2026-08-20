@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -24,12 +24,16 @@ from sqlalchemy.orm import Session
 
 from app.calculations.astro import house_from_reference, utc_datetime_to_julian_day
 from app.calculations.dasha import calculate_vimshottari_timeline
-from app.constants.astrology import SIGN_LORD
 from app.calculations.dasha_activation import assess_dasha_activation
 from app.calculations.display_names import sani_cycle_en, sani_cycle_ta
 from app.calculations.ephemeris import calculate_sidereal_planets
-from app.calculations.panchangam import calculate_daily_panchangam
+from app.calculations.panchangam import (
+    PanchangamLimbSpan,
+    calculate_daily_panchangam,
+    limb_fraction,
+)
 from app.calculations.transits import classify_sani_cycle
+from app.constants.astrology import SIGN_LORD
 from app.models import BirthProfile, Chart
 from app.reasoning.chart_signature import detect_signature
 from app.reasoning.contradiction import Reading, classify
@@ -43,6 +47,10 @@ from app.schemas.whatif import (
     WhatIfChartSignature,
     WhatIfData,
     WhatIfResponse,
+)
+from app.services._dg_scoring import (
+    AUSPICIOUS_DAILY_NAKSHATRAS,
+    weighted_panchangam_score,
 )
 from app.services.chart_service import load_persisted_chart_response
 from app.services.feature_flags import get_flag
@@ -571,8 +579,6 @@ def _assess_gochar_support(
 
 # ── Panchangam quality score for a given date ─────────────────────────────────
 
-_CAUTION_YOGAS = {1, 6, 9, 10, 17, 27}
-_AUSPICIOUS_NAKSHATRAS = {1, 4, 5, 7, 8, 13, 14, 15, 17, 22, 27}
 _SIGN_LORDS = SIGN_LORD
 
 
@@ -585,7 +591,14 @@ def _compute_panchangam_score(
     maha_lord: str,
 ) -> int:
     """Compute a 0-100 panchangam quality score for target_date.
-    Uses the same logic as daily_guidance_service panchangam_score section.
+
+    Shares `weighted_panchangam_score` with daily guidance rather than restating
+    it. This module previously carried a hand-copy of that block plus its own
+    `_CAUTION_YOGAS` / `_AUSPICIOUS_NAKSHATRAS` sets, so every doctrine fix to
+    the daily scorer — including the duration weighting of 2026-08-19 — would
+    have had to be remembered here separately, and the Vishti term would have
+    kept missing two thirds of its days on the what-if surface alone.
+
     Returns 70 (neutral) if panchangam cannot be computed.
     """
     try:
@@ -593,23 +606,38 @@ def _compute_panchangam_score(
     except Exception:
         return 70
 
-    score = 70
-    if panchang.tithi_number in {4, 9, 14, 19, 24, 29}:
-        score -= 15
-    if panchang.tithi_number in {8, 23}:
-        score -= 10
-    if panchang.yoga_number in _CAUTION_YOGAS:
-        score -= 10
-    if panchang.karana_name == "VISHTI":
-        score -= 10
-    lagna_lord = _SIGN_LORDS.get(natal_lagna_rasi)
-    if lagna_lord and panchang.weekday_lord == lagna_lord:
-        score += 8
-    if panchang.weekday_lord == maha_lord:
-        score += 5
-    if panchang.nakshatra_number in _AUSPICIOUS_NAKSHATRAS:
-        score += 8
+    score = weighted_panchangam_score(
+        panchang,
+        lagna_lord=_SIGN_LORDS.get(natal_lagna_rasi),
+        maha_lord=maha_lord,
+    )
+    # The auspicious-star bonus is what-if's own term — daily guidance carries it
+    # on the Moon score instead, where chandrashtama can cancel it. Weighted the
+    # same way as everything else here.
+    score += round(8 * limb_fraction(
+        _spans_or_flat_nakshatra(panchang),
+        lambda span: span.number in AUSPICIOUS_DAILY_NAKSHATRAS,
+    ))
     return max(0, min(100, score))
+
+
+def _spans_or_flat_nakshatra(panchang):
+    """Nakshatra spans, or the sunrise star as a single full-day span.
+
+    A snapshot cached before spans existed has an empty tuple, and scoring that
+    as zero coverage would silently delete the bonus rather than fall back.
+    """
+    if panchang.nakshatra_spans:
+        return panchang.nakshatra_spans
+    return (
+        PanchangamLimbSpan(
+            number=panchang.nakshatra_number,
+            name=panchang.nakshatra_name,
+            start=panchang.sunrise,
+            end=panchang.sunrise + timedelta(days=1),
+            fraction=1.0,
+        ),
+    )
 
 
 # ── Combined verdict and narrative ────────────────────────────────────────────

@@ -47,6 +47,7 @@ from app.calculations.muhurta_engine import (
     display_score,
     karaka_dignity_factors,
     lagna_sign_factor_at_window,
+    limb_factors_at_window,
     score_day,
     wealth_house_heuristic_factor,
 )
@@ -916,6 +917,28 @@ def find_best_muhurta_slots(
         score = candidate.score
         factors = list(candidate.factors)
         cautions = list(candidate.cautions)
+
+        # The limbs actually in force during the chosen window. The picker has
+        # always read the lagna and the planets at this midpoint while every
+        # limb factor stayed pinned to sunrise, so a window could be certified
+        # by a star or karana that had already ended hours earlier. A veto here
+        # drops the candidate outright rather than merely docking it: the source
+        # forbids the karana *at the elected moment*, and this is that moment.
+        vetoed_at_window = False
+        for limb_factor in limb_factors_at_window(candidate.snapshot, midpoint, activity):
+            factors.append(MuhurtaFactor.from_engine(limb_factor))
+            if limb_factor.verdict is Verdict.VETO:
+                vetoed_at_window = True
+                cautions.append(_t(limb_factor.reason_ta, limb_factor.reason_en))
+            elif limb_factor.verdict is Verdict.PENALTY:
+                score = _apply_tara_display_cap(score + limb_factor.contribution, snapshot_with_schedule, subject)
+                cautions.append(_t(limb_factor.reason_ta, limb_factor.reason_en))
+        if vetoed_at_window:
+            enriched_top.append(candidate._replace(
+                score=0, cautions=cautions, factors=factors, snapshot=snapshot_with_schedule,
+            ))
+            continue
+
         lagna_factor = lagna_sign_factor_at_window(activity, lagna_window.rasi_number)
         if lagna_factor is not None:
             score = _apply_tara_display_cap(score + lagna_factor.contribution, snapshot_with_schedule, subject)
