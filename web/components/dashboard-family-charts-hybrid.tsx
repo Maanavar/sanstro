@@ -40,7 +40,7 @@ import type {
 import type { MemberChart } from "@/hooks/useFamilyData";
 import { useApiQuery } from "@/hooks/useApiQuery";
 
-import { formatChandrashtamaWindowSummary, formatHeaderDate, getTamilMonthDate } from "./dashboard-calendar-shared";
+import { formatChandrashtamaWindowSummary, formatHeaderDate, resolveTamilDate } from "./dashboard-calendar-shared";
 import {
   ScoreRing,
   formatRelLabel,
@@ -727,7 +727,7 @@ export function DashboardFamilyChartsHybrid({
     .map((meta) => ({ displayName: meta.member.displayName, score: meta.member.individualScore }));
 
   const weekday = new Date(`${selectedDate}T00:00:00`).toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", { weekday: "long" });
-  const dateLine = `${weekday} · ${formatHeaderDate(selectedDate, lang)} · ${getTamilMonthDate(selectedDate, lang)}`;
+  const dateLine = `${weekday} · ${formatHeaderDate(selectedDate, lang)} · ${resolveTamilDate(panchangam?.tamilDate, selectedDate, lang)}`;
 
   // ── The subject of every reading section: selected member, or the owner. ──
   const ownerMeta = memberMeta.find((m) => m.isSelf) ?? null;

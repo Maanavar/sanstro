@@ -3,11 +3,12 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 
+import { limbNow } from "./dashboard-calendar-shared";
 import { formatClockLabel, getScoreBand, scoreColorScale } from "@/lib/format";
 import { tNakshatra, tTithi } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { DUR, EASE_NOVA } from "@/lib/motion";
-import { formatClockInZone, minutesOfDayInZone } from "@/lib/tz";
+import { formatClockInZone, minutesOfDayInZone, toDateKeyInZone } from "@/lib/tz";
 import type { PanchangamDailyResponseData, WeekAheadData } from "@/lib/types";
 
 /**
@@ -120,6 +121,18 @@ export function DashboardTodayRibbonNova({
   const reduce = useReducedMotion();
 
   if (!panchangam) return null;
+
+  // The star and tithi actually running, not the ones the day is named after.
+  // A nakshatra span holds under half the day on 46.6% of days, and this card
+  // used to print the sunrise value flat for all 24 hours — so on 2026-08-19 it
+  // read "Swathi" from 06:00 to midnight, when Swathi ended at 06:47 and Visakam
+  // held the remaining 96.8%. The Calendar tab, one click away, already promoted
+  // correctly; the two surfaces disagreed. `sunriseName` is kept and shown when
+  // it differs, because the almanac genuinely does call today a Swathi day.
+  const isToday = selectedDate === toDateKeyInZone(now, timeZone);
+  const nowIso = now.toISOString();
+  const nakNow = limbNow(panchangam.nakshatra, { isToday, nowIso });
+  const tithiNow = limbNow(panchangam.tithi, { isToday, nowIso });
 
   const sunriseMin = timeToMinutes(panchangam.sunrise);
   const sunsetMin = timeToMinutes(panchangam.sunset);
@@ -236,8 +249,23 @@ export function DashboardTodayRibbonNova({
           </div>
           <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "2px" }}>
             {lang === "ta" ? "சூரிய உதயம்" : "sunrise"} {formatClockLabel(panchangam.sunrise)} · {lang === "ta" ? "அஸ்தமனம்" : "sunset"} {formatClockLabel(panchangam.sunset)}
-            {" · "}{lang === "ta" ? "நட்சத்திரம்" : "Nakshatram"} <b style={{ color: "var(--color-text)" }}>{tNakshatra(panchangam.nakshatra.name, lang)}</b>
-            {" · "}{lang === "ta" ? "திதி" : "Tithi"} <b style={{ color: "var(--color-text)" }}>{tTithi(panchangam.tithi.name, lang)}</b>
+            {" · "}{lang === "ta" ? "நட்சத்திரம்" : "Nakshatram"} <b style={{ color: "var(--color-text)" }}>{tNakshatra(nakNow.activeName, lang)}</b>
+            {nakNow.rolledOver && (
+              <span style={{ color: "var(--color-faint)" }}>
+                {" "}({lang === "ta" ? `${tNakshatra(nakNow.sunriseName, lang)} ${formatClockLabel(panchangam.nakshatra.endsAt)} வரை` : `${tNakshatra(nakNow.sunriseName, lang)} until ${formatClockLabel(panchangam.nakshatra.endsAt)}`})
+              </span>
+            )}
+            {!nakNow.rolledOver && nakNow.until && nakNow.upcomingName && (
+              <span style={{ color: "var(--color-faint)" }}>
+                {" "}({lang === "ta" ? `${formatClockLabel(nakNow.until)} வரை · பின்பு ${tNakshatra(nakNow.upcomingName, lang)}` : `to ${formatClockLabel(nakNow.until)}, then ${tNakshatra(nakNow.upcomingName, lang)}`})
+              </span>
+            )}
+            {" · "}{lang === "ta" ? "திதி" : "Tithi"} <b style={{ color: "var(--color-text)" }}>{tTithi(tithiNow.activeName, lang)}</b>
+            {tithiNow.rolledOver && (
+              <span style={{ color: "var(--color-faint)" }}>
+                {" "}({lang === "ta" ? `${tTithi(tithiNow.sunriseName, lang)} ${formatClockLabel(panchangam.tithi.endsAt)} வரை` : `${tTithi(tithiNow.sunriseName, lang)} until ${formatClockLabel(panchangam.tithi.endsAt)}`})
+              </span>
+            )}
           </div>
         </div>
 

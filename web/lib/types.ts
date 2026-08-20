@@ -70,6 +70,7 @@ export type {
   PanchangamFestivalCategory,
   PanchangamFestival,
   KalamSlot,
+  PanchangamLimbSpan,
   PanchangamDailyResponseData,
   PanchangamTimingsData,
   PanchangamMonthDayEntry,

@@ -36,6 +36,7 @@ describe("nokkuClassForNakshatra", () => {
   it("classifies one star from each group", () => {
     expect(nokkuClassForNakshatra("UTHIRADAM")).toBe("URDHVAMUKHA");
     expect(nokkuClassForNakshatra("POORADAM")).toBe("ADHOMUKHA");
+    expect(nokkuClassForNakshatra("VISAKAM")).toBe("ADHOMUKHA");
     expect(nokkuClassForNakshatra("REVATHI")).toBe("TIRYANGMUKHA");
   });
 

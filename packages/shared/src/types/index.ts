@@ -1037,6 +1037,24 @@ export interface KalamSlot {
   isGood?: boolean | null;
 }
 
+/** One stretch of a single panchangam limb value inside the solar day.
+ *
+ * `name` on each limb is the value at sunrise (the உதய rule, which names the
+ * day). `spans` is what the limb actually did — always present from backend
+ * v43 onward, and optional here only so an older cached response still parses.
+ * Karana carries three of these on most days, which `nextName` alone could
+ * never express. */
+export interface PanchangamLimbSpan {
+  number: number;
+  name: string;
+  startsAt: string;
+  endsAt: string;
+  startsAtIso: string;
+  endsAtIso: string;
+  /** Share of the solar day, 0..1. */
+  fraction: number;
+}
+
 export interface PanchangamDailyResponseData {
   dateLocal: string;
   tamilDate?: BiText | null;
@@ -1048,10 +1066,11 @@ export interface PanchangamDailyResponseData {
   tithi: {
     number: number; name: string; paksha: "SHUKLA" | "KRISHNA"; endsAt: string; endsAtIso: string;
     nextNumber: number; nextName: string; nextPaksha: "SHUKLA" | "KRISHNA";
+    spans?: PanchangamLimbSpan[];
   };
-  nakshatra: { name: string; pada: number; endsAt: string; endsAtIso: string; nextName: string };
-  yoga: { number: number; name: string; endsAt: string; endsAtIso: string; nextName: string };
-  karana: { name: string; endsAt: string; endsAtIso: string; nextName: string };
+  nakshatra: { name: string; pada: number; endsAt: string; endsAtIso: string; nextName: string; spans?: PanchangamLimbSpan[] };
+  yoga: { number: number; name: string; endsAt: string; endsAtIso: string; nextName: string; spans?: PanchangamLimbSpan[] };
+  karana: { name: string; endsAt: string; endsAtIso: string; nextName: string; spans?: PanchangamLimbSpan[] };
   kalam: {
     rahuKalam: { start: string; end: string; slot: number };
     yamagandam: { start: string; end: string; slot: number };
@@ -1069,6 +1088,14 @@ export interface PanchangamDailyResponseData {
   lagnam: { rasiNumber: number; rasiName: string; endsAt: string; endsAtIso: string; nazhigai: number; vinadi: number };
   nethiram: string;
   jeevan: string;
+  /** Nethiram/Jeevan with the boundary they change at. Both derive from the
+   *  Moon's star, so they flip at the nakshatra boundary exactly as Nokku does.
+   *  Optional only for responses predating backend v43. */
+  nethiramJeevan?: {
+    nethiram: string; jeevan: string;
+    nethiramNext: string; jeevanNext: string;
+    endsAt: string; endsAtIso: string;
+  } | null;
   amirdhadhiYogam: { name: string; endsAt: string; endsAtIso: string; nextName: string };
   chandrashtamamToday: {
     moonRasiNumber: number; moonRasiName: string;

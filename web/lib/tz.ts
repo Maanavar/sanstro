@@ -63,6 +63,23 @@ export function zonedParts(at: Date, timeZone: string): ZonedParts | null {
   }
 }
 
+/** Calendar date of `at` in `timeZone` as "YYYY-MM-DD"; browser-local when the
+ *  zone is absent or invalid.
+ *
+ *  Needed to answer "is the selected date today?" the way every other time on
+ *  the panchangam surfaces is answered — at the panchangam location, not in the
+ *  browser's zone. A reader in Toronto looking at a Chennai panchangam is on the
+ *  Chennai day, and comparing against their own local date would promote the
+ *  live limb on the wrong day. */
+export function toDateKeyInZone(at: Date, timeZone?: string | null): string {
+  const pad = (n: number): string => String(n).padStart(2, "0");
+  if (timeZone) {
+    const parts = zonedParts(at, timeZone);
+    if (parts) return `${parts.year}-${pad(parts.month)}-${pad(parts.day)}`;
+  }
+  return `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}`;
+}
+
 /** Hour of day (0-23) of `at` in `timeZone`; browser-local when absent/invalid. */
 export function hourInZone(at: Date, timeZone?: string | null): number {
   if (timeZone) {

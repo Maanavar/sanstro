@@ -7,11 +7,17 @@
 // LunarTithiBadge) with no Classic/Nova fork.
 
 import { addDays, formatClockLabel, formatDateLabel } from "@/lib/format";
-import { tNakshatra } from "@/lib/i18n";
+import { tLang, tNakshatra } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { lunarSpecialTithiMeta } from "@/lib/lunar";
 import { festivalGlyph } from "@/lib/astro-symbols";
-import type { PanchangamDailyResponseData, PanchangamFestival } from "@/lib/types";
+import type { BiText, PanchangamDailyResponseData, PanchangamFestival } from "@/lib/types";
+// `limbNow` lives in lib/ rather than here so the marketing home hero can
+// promote its limbs without pulling this whole dashboard module into the
+// marketing bundle. Re-exported for the calendar surfaces already importing
+// from this file.
+export { limbNow } from "@/lib/panchangam-limb";
+export type { LimbNow } from "@/lib/panchangam-limb";
 
 export type CalendarView = "panchangam" | "monthly";
 
@@ -43,7 +49,11 @@ const TAMIL_MONTH_STARTS: Array<[number, number]> = [
   [10, 18], [11, 16], [12, 16], [1, 14], [2, 13], [3, 14],
 ];
 
-export function getTamilMonthDate(dateStr: string, lang: Lang): string {
+// Deliberately NOT exported — call `resolveTamilDate` below instead. Keeping
+// the approximation module-private is what stops a second Tamil date from
+// being rendered beside the server's, which is precisely how the deleted 2026
+// Aavani override came to disagree with the engine on a live surface.
+function getTamilMonthDate(dateStr: string, lang: Lang): string {
   const d = new Date(`${dateStr}T00:00:00`);
   if (Number.isNaN(d.getTime())) return "";
   const month = d.getMonth() + 1; // 1-based
@@ -79,6 +89,33 @@ export function getTamilMonthDate(dateStr: string, lang: Lang): string {
   return lang === "ta"
     ? `${monthName} ${tamilDay}`
     : `${monthName} ${tamilDay}`;
+}
+
+/**
+ * The Tamil date for a day, preferring the value the server computed.
+ *
+ * The backend derives this from the real sankranti instant and the sunset rule
+ * (`app/calculations/tamil_calendar.py`, doctrine A-3). `getTamilMonthDate`
+ * above cannot: it is a year-independent month-start approximation and is
+ * already a day off the engine for Karthigai, Thai and Panguni in 2026.
+ *
+ * So the approximation is a *loading placeholder*, not a second opinion. It
+ * fills the header for the frame before the panchangam response lands, and the
+ * server value replaces it the moment there is one. Two Tamil dates rendered
+ * from two different sources is how the deleted 2026 Aavani override came to
+ * disagree with the engine in the first place; prefer this helper over calling
+ * `getTamilMonthDate` directly anywhere a response is in scope.
+ */
+export function resolveTamilDate(
+  serverValue: BiText | null | undefined,
+  dateStr: string,
+  lang: Lang,
+): string {
+  if (serverValue) {
+    const fromServer = tLang(serverValue, lang);
+    if (fromServer) return fromServer;
+  }
+  return getTamilMonthDate(dateStr, lang);
 }
 
 const NAKSHATRA_ORDER = [

@@ -45,11 +45,11 @@ import {
   formatChandrashtamaWindowSummary,
   formatHeaderDate,
   formatUntilLabel,
-  getTamilMonthDate,
   LunarTithiBadge,
   moonRasiFromNakshatra,
   parseHmToMinutes,
   rasiName,
+  resolveTamilDate,
   timeWindowsOverlap,
 } from "./dashboard-calendar-shared";
 import type { CalendarView, DayTimelineBand } from "./dashboard-calendar-shared";
@@ -576,7 +576,7 @@ function DayDetailDrawerNova({
   onOpenFull: () => void;
 }) {
   const headerDate = formatHeaderDate(date, lang);
-  const tamilDate = getTamilMonthDate(date, lang);
+  const tamilDate = resolveTamilDate(data?.tamilDate, date, lang);
   const hijri = formatHijriDate(date);
   const hijriLabel = hijri ? (lang === "ta" ? hijri.ta : hijri.en) : "";
   const tithiPaksha = data ? `${data.tithi.paksha === "SHUKLA" ? t("paksha_shukla", lang) : t("paksha_krishna", lang)} ${data.tithi.number}` : "";
@@ -676,9 +676,24 @@ export function DashboardCalendarTabNova({
   const [overridePanchangam, setOverridePanchangam] = useState<PanchangamDailyResponseData | null>(null);
   const [overrideLoading, setOverrideLoading] = useState(false);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   const panchangam = overridePanchangam ?? defaultPanchangam;
   const monthlyLocation = panchangam?.location ?? null;
+
+  useEffect(() => {
+    if (selectedDate !== todayDate) return;
+    const untilNextMinute = 60_000 - (Date.now() % 60_000);
+    let intervalId: number | null = null;
+    const timeoutId = window.setTimeout(() => {
+      setNowMs(Date.now());
+      intervalId = window.setInterval(() => setNowMs(Date.now()), 60_000);
+    }, untilNextMinute);
+    return () => {
+      window.clearTimeout(timeoutId);
+      if (intervalId) window.clearInterval(intervalId);
+    };
+  }, [selectedDate, todayDate]);
 
   useEffect(() => {
     if (view !== "monthly" || !monthlyLocation) return;
@@ -785,17 +800,19 @@ export function DashboardCalendarTabNova({
   }, [monthlyLocation, todayDate]);
 
   const headerDate = formatHeaderDate(selectedDate, lang);
-  const tamilHeaderDate = getTamilMonthDate(selectedDate, lang);
+  const tamilHeaderDate = resolveTamilDate(panchangam?.tamilDate, selectedDate, lang);
   const hijriHeaderDate = formatHijriDate(selectedDate);
-  const currentNowMinutes = selectedDate === todayDate ? new Date().getHours() * 60 + new Date().getMinutes() : -1;
+  const currentNow = new Date(nowMs);
+  const currentNowMinutes = selectedDate === todayDate ? currentNow.getHours() * 60 + currentNow.getMinutes() : -1;
+  const currentNowIso = selectedDate === todayDate ? currentNow.toISOString() : undefined;
 
-  const tithiActive = panchangam ? activeLimb(panchangam.tithi.name, panchangam.tithi.endsAt, panchangam.tithi.nextName, currentNowMinutes, panchangam.tithi.endsAtIso) : null;
-  const nakActive = panchangam ? activeLimb(panchangam.nakshatra.name, panchangam.nakshatra.endsAt, panchangam.nakshatra.nextName, currentNowMinutes, panchangam.nakshatra.endsAtIso) : null;
+  const tithiActive = panchangam ? activeLimb(panchangam.tithi.name, panchangam.tithi.endsAt, panchangam.tithi.nextName, currentNowMinutes, panchangam.tithi.endsAtIso, currentNowIso) : null;
+  const nakActive = panchangam ? activeLimb(panchangam.nakshatra.name, panchangam.nakshatra.endsAt, panchangam.nakshatra.nextName, currentNowMinutes, panchangam.nakshatra.endsAtIso, currentNowIso) : null;
   // Issue #9: yoga & karana were static (sunrise value only, hint "Yoga N" / "—")
   // so they never advanced after their boundary. Give them the same live promotion
   // + "until HH:MM · then next" treatment as tithi/nakshatra.
-  const yogaActive = panchangam ? activeLimb(panchangam.yoga.name, panchangam.yoga.endsAt, panchangam.yoga.nextName, currentNowMinutes, panchangam.yoga.endsAtIso) : null;
-  const karanaActive = panchangam ? activeLimb(panchangam.karana.name, panchangam.karana.endsAt, panchangam.karana.nextName, currentNowMinutes, panchangam.karana.endsAtIso) : null;
+  const yogaActive = panchangam ? activeLimb(panchangam.yoga.name, panchangam.yoga.endsAt, panchangam.yoga.nextName, currentNowMinutes, panchangam.yoga.endsAtIso, currentNowIso) : null;
+  const karanaActive = panchangam ? activeLimb(panchangam.karana.name, panchangam.karana.endsAt, panchangam.karana.nextName, currentNowMinutes, panchangam.karana.endsAtIso, currentNowIso) : null;
 
   const tithiPaksha = panchangam
     ? `${panchangam.tithi.paksha === "SHUKLA" ? t("paksha_shukla", lang) : t("paksha_krishna", lang)} ${panchangam.tithi.number}`
@@ -810,12 +827,8 @@ export function DashboardCalendarTabNova({
   const isWaxing = panchangam?.tithi.paksha === "SHUKLA";
   const moonPhase = panchangam ? moonPhaseFromTithi(panchangam.tithi.number, panchangam.tithi.paksha) : null;
   const specialTithiMeta = lunarSpecialTithiMeta(panchangam?.specialTithiDay?.name, lang);
-  // Nokku is a whole-day classification pinned to the day's (sunrise)
-  // nakshatra — unlike tithi/nakshatra/yoga/karana display, it does NOT
-  // roll over to the next star mid-day. Confirmed against a live case
-  // (2026-08-10, Thiruvathirai sunrise star, Mel Nokku Naal all day even
-  // after the star rolled to Punarpoosam at 12:27pm).
-  const nokku = nokkuMeta(panchangam?.nakshatra.name, lang);
+  // Nokku follows the nakshatra currently in effect and changes at its boundary.
+  const nokku = nokkuMeta(nakActive?.activeName ?? panchangam?.nakshatra.name, lang);
 
   const bestNallaSlot = bestGowriSlot(panchangam?.kalam.nallaNeram);
 

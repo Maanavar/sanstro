@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useLang } from "@/components/lang-toggle";
 import { formatClockLabel } from "@/lib/format";
 import { tNakshatra, tTithi, tYoga } from "@/lib/i18n";
+import { limbNow } from "@/lib/panchangam-limb";
 import type { PanchangamDailyResponseData } from "@/lib/types";
 import { HOME, mt } from "@/lib/marketing-i18n";
 import { MarketingIcon, type MarketingIconName } from "@/components/marketing-icons";
@@ -107,9 +108,22 @@ export function HomeContent() {
   const todayLabel = new Intl.DateTimeFormat(lang === "ta" ? "ta-IN" : "en-GB", {
     weekday: "long", day: "numeric", month: "long",
   }).format(new Date());
-  const sampleNakshatra = panchangam ? tNakshatra(panchangam.nakshatra.name, lang) : SAMPLE.nakshatra;
-  const samplePanchangam = panchangam
-    ? `${tTithi(panchangam.tithi.name, lang)} · ${tNakshatra(panchangam.nakshatra.name, lang)} · ${tYoga(panchangam.yoga.name, lang)}`
+  // This card always shows *today*, so it must show the limbs actually running,
+  // not the ones the day is named after. Printing the sunrise value flat is how
+  // the hero came to read "Swathi" all day on 2026-08-19, when Swathi held 15
+  // minutes of it and Visakam held the rest. A visitor's first impression of the
+  // product's accuracy is this strip.
+  const nowIso = new Date().toISOString();
+  const heroLimbs = panchangam
+    ? {
+        nakshatra: limbNow(panchangam.nakshatra, { isToday: true, nowIso }),
+        tithi: limbNow(panchangam.tithi, { isToday: true, nowIso }),
+        yoga: limbNow(panchangam.yoga, { isToday: true, nowIso }),
+      }
+    : null;
+  const sampleNakshatra = heroLimbs ? tNakshatra(heroLimbs.nakshatra.activeName, lang) : SAMPLE.nakshatra;
+  const samplePanchangam = heroLimbs
+    ? `${tTithi(heroLimbs.tithi.activeName, lang)} · ${tNakshatra(heroLimbs.nakshatra.activeName, lang)} · ${tYoga(heroLimbs.yoga.activeName, lang)}`
     : SAMPLE.panchangam;
 
   const HELPS: { icon: MarketingIconName; title: string; body: string }[] = [
