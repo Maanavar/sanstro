@@ -74,3 +74,45 @@ describe("moonPhaseFromTithi", () => {
     expect(moonPhaseFromTithi(0, "SHUKLA").fraction).toBeGreaterThanOrEqual(0);
   });
 });
+
+// The API sends tithi.number as the ABSOLUTE 1-30 index, not the per-paksha
+// 1-15 one every test above uses (app/calculations/panchangam.py: "tithi_number
+// is 1-30 across both pakshas"). The old Math.min(15, …) clamp silently pinned
+// every real Krishna tithi to 15, so the whole waning fortnight rendered as an
+// identical dark new moon. These lock the real wire values.
+describe("moonPhaseFromTithi — absolute 1-30 tithi numbers (what the API sends)", () => {
+  it("does not freeze the waning fortnight at one shape", () => {
+    const fractions = Array.from({ length: 15 }, (_, i) => moonPhaseFromTithi(16 + i, "KRISHNA").fraction);
+    expect(new Set(fractions.map((f) => f.toFixed(3))).size).toBe(15);
+  });
+
+  it("wanes monotonically from just-past-full (16) to dark Amavasai (30)", () => {
+    const fractions = Array.from({ length: 15 }, (_, i) => moonPhaseFromTithi(16 + i, "KRISHNA").fraction);
+    for (let i = 1; i < fractions.length; i++) {
+      expect(fractions[i]).toBeLessThan(fractions[i - 1]);
+    }
+    expect(fractions[0]).toBeGreaterThan(0.9); // day after Pournami is still nearly full
+    expect(fractions[14]).toBeCloseTo(0, 5); // absolute 30 = Amavasai = dark
+  });
+
+  it("waxes monotonically from Prathamai (1) to Pournami (15)", () => {
+    const fractions = Array.from({ length: 15 }, (_, i) => moonPhaseFromTithi(1 + i, "SHUKLA").fraction);
+    for (let i = 1; i < fractions.length; i++) {
+      expect(fractions[i]).toBeGreaterThan(fractions[i - 1]);
+    }
+    expect(fractions[14]).toBeCloseTo(1, 5);
+  });
+
+  it("reads an absolute Krishna number the same as its per-paksha twin", () => {
+    // absolute 23 and per-paksha 8 are the same day; both must agree.
+    expect(moonPhaseFromTithi(23, "KRISHNA").fraction).toBeCloseTo(
+      moonPhaseFromTithi(8, "KRISHNA").fraction,
+      10,
+    );
+  });
+
+  it("keeps waxing/waning limb orientation from the paksha, not the index", () => {
+    expect(moonPhaseFromTithi(20, "KRISHNA").waxing).toBe(false);
+    expect(moonPhaseFromTithi(10, "SHUKLA").waxing).toBe(true);
+  });
+});
