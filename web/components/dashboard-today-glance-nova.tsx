@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ScrollText, Sunrise, Sparkles, Timer, Hash, HeartHandshake, NotebookPen, Compass,
   ArrowRight, ArrowUp, ArrowDown, Diamond, Check,
@@ -574,7 +574,12 @@ function RemedyFocusCard({
   const [railEdges, setRailEdges] = useState({ atStart: true, atEnd: true });
   const railRef = useRef<HTMLDivElement>(null);
   const chipRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const idBase = useId();
+  // This card is rendered beneath a lazily loaded Suspense boundary. `useId()`
+  // encodes that boundary's render path, which can differ when the client has
+  // not loaded the chunk at hydration time; React then leaves mismatched IDs in
+  // place. There is one remedy rail per Today tab, so stable scoped IDs retain
+  // the tab/panel relationship without depending on the render path.
+  const idBase = "nova-remedy-focus";
 
   const members = remedyMembers.length > 0
     ? remedyMembers

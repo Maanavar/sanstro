@@ -378,22 +378,27 @@ export function MonthlyCalendarViewNova({
     [monthFestivals, muhurthamEvents],
   );
 
+  // Every event in the month that survives the Filter Calendar toggles. This is
+  // the scope the Upcoming tab *counts*; the list it renders is narrower (from
+  // today forward) until "View all" is pressed.
+  const upcomingAllVisible = useMemo(
+    () => allEventsChrono.filter((item) => catOn(item.calCategory)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [allEventsChrono, enabledCats],
+  );
+
   const upcomingItems = useMemo(() => {
-    const visible = allEventsChrono.filter((item) => catOn(item.calCategory));
-    if (showAllUpcoming) return visible;
-    const forward = visible.filter((item) => item.dateLocal >= todayDate);
+    if (showAllUpcoming) return upcomingAllVisible;
+    const forward = upcomingAllVisible.filter((item) => item.dateLocal >= todayDate);
     // If the displayed month is entirely past/future relative to today, "from
     // today forward" would be empty — fall back to the whole month.
-    return forward.length > 0 ? forward : visible;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allEventsChrono, enabledCats, showAllUpcoming, todayDate]);
+    return forward.length > 0 ? forward : upcomingAllVisible;
+  }, [upcomingAllVisible, showAllUpcoming, todayDate]);
 
-  const upcomingHiddenCount = useMemo(() => {
-    if (showAllUpcoming) return 0;
-    const visible = allEventsChrono.filter((item) => catOn(item.calCategory));
-    return Math.max(0, visible.length - upcomingItems.length);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allEventsChrono, enabledCats, showAllUpcoming, upcomingItems.length]);
+  const upcomingHiddenCount = useMemo(
+    () => (showAllUpcoming ? 0 : Math.max(0, upcomingAllVisible.length - upcomingItems.length)),
+    [upcomingAllVisible, showAllUpcoming, upcomingItems.length],
+  );
 
   const vrathaItems = useMemo(
     () => monthFestivals.filter((item) => item.kind === "vratha" && catOn(item.calCategory)),
@@ -407,8 +412,13 @@ export function MonthlyCalendarViewNova({
   );
 
   const sidebarLists = { upcoming: upcomingItems, vratha: vrathaItems, muhurthams: muhurthamItems } as const;
+  // All three badges must count the same scope — the whole filtered month — or
+  // they don't reconcile side by side. Counting Upcoming's *truncated* list
+  // instead made it read 12 next to Vratham 11 + Muhurtham 3, as if the two
+  // subsets exceeded the superset. The "View all (N)" button below carries the
+  // truncation, so the badge doesn't have to.
   const sidebarCounts = {
-    upcoming: upcomingItems.length,
+    upcoming: upcomingAllVisible.length,
     vratha: vrathaItems.length,
     muhurthams: muhurthamItems.length,
   } as const;
@@ -523,6 +533,7 @@ export function MonthlyCalendarViewNova({
                     <button
                       key={cell.dateLocal}
                       type="button"
+                      className={isToday ? "nova-cal-today" : undefined}
                       aria-pressed={onSelectDate ? isSelected : undefined}
                       aria-current={isToday ? "date" : undefined}
                       onClick={onSelectDate ? () => onSelectDate(cell.dateLocal!) : undefined}
@@ -597,7 +608,10 @@ export function MonthlyCalendarViewNova({
               <Kicker as="div" style={{ marginBottom: "10px" }}>
                 {lang === "ta" ? "நிகழ்வுகள் & திருவிழாக்கள்" : "Events & Festivals"}
               </Kicker>
-              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", borderBottom: "1px solid var(--color-border)", marginBottom: "6px" }}>
+              <div
+                className="nova-cal-sidebar-tabs"
+                style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", borderBottom: "1px solid var(--color-border)", marginBottom: "6px" }}
+              >
                 {([
                   ["upcoming", lang === "ta" ? "வரவிருப்பவை" : "Upcoming", sidebarCounts.upcoming],
                   ["vratha", lang === "ta" ? "விரதம்" : "Vratham", sidebarCounts.vratha],
@@ -614,6 +628,7 @@ export function MonthlyCalendarViewNova({
                         background: "transparent", color: active ? "var(--color-accent-strong)" : "var(--color-muted)",
                         paddingBottom: "var(--space-3)", cursor: "pointer", fontSize: "var(--text-sm)", fontWeight: active ? 700 : 600,
                         display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontFamily: "inherit",
+                        flexShrink: 0, whiteSpace: "nowrap",
                       }}
                     >
                       <span>{label}</span>

@@ -1606,6 +1606,77 @@
   }
 }
 
+/* Events & Festivals tab row inside that 300px rail. The card's 22px side
+   padding leaves ~256px, and three label+count tabs consume nearly all of it
+   in English — Tamil (வரவிருப்பவை / விரதம் / முகூர்த்தம்) does not fit at all.
+   Without this the flex children shrink and the labels clip mid-word, so the
+   row scrolls instead, matching .cd-tabnav__scroll / .ui-segmented. The tabs
+   themselves set flex-shrink:0 + nowrap inline. */
+.nova-cal-sidebar-tabs {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;         /* Firefox */
+  -ms-overflow-style: none;      /* legacy Edge */
+}
+.nova-cal-sidebar-tabs::-webkit-scrollbar {
+  display: none;                 /* WebKit */
+}
+
+/* Today's cell in the month grid — a light that travels around its border.
+   The cell already carries a steady inset ring (set inline); this rides on top
+   of it, so the day still reads as "today" the instant the grid paints and the
+   motion only adds life.
+
+   Colour is --color-text-strong, not gold, for the same reason the inline ring
+   is: gold is this grid's lunar/auspicious language (pournami's fill, the
+   muhurtham/pradosham dots), and a gold traveller would make "today" and
+   "auspicious day" read as the same cell — worst on load, when today is also
+   the selected day.
+
+   Built as a masked ring rather than a sweep across the tile so the light never
+   passes over the date, tithi or festival text underneath it. */
+@keyframes nova-cal-today-travel {
+  from { background-position: 190% 0; }
+  to   { background-position: -90% 0; }
+}
+[data-ui="nova"] .cd-shell .nova-cal-today::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  padding: 1.5px;                /* ring thickness */
+  background-repeat: no-repeat;
+  background-size: 260% 100%;
+  background-image: linear-gradient(
+    100deg,
+    transparent 34%,
+    color-mix(in srgb, var(--color-text-strong) 45%, transparent) 44%,
+    var(--color-text-strong) 50%,
+    color-mix(in srgb, var(--color-text-strong) 45%, transparent) 56%,
+    transparent 66%
+  );
+  /* Standard gradient-border mask: paint the whole box, then punch out the
+     content box, leaving only the `padding`-wide ring lit. */
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: nova-cal-today-travel 3.6s linear infinite;
+}
+/* Frozen frame is a plain even ring, not a stalled traveller parked mid-sweep. */
+@media (prefers-reduced-motion: reduce) {
+  [data-ui="nova"] .cd-shell .nova-cal-today::after {
+    animation: none;
+    background-size: 100% 100%;
+    background-image: linear-gradient(
+      to right,
+      color-mix(in srgb, var(--color-text-strong) 55%, transparent),
+      color-mix(in srgb, var(--color-text-strong) 55%, transparent)
+    );
+  }
+}
+
 /* ═══════════════════════════════════════════════════════════
    MOTION — the "celestial reveal" language.
    One easing family, one timing scale. The JS twins of these
