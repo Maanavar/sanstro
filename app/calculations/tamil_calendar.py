@@ -13,11 +13,12 @@ count since that first day (=1).
     Simha   -> Aavani        Kumbha     -> Maasi
     Kanni   -> Purattasi     Meena      -> Panguni
 
-Doctrine A-3 — the sunset threshold, and one open conflict
+Doctrine A-3 — the sunset threshold, with a published-calendar correction
 -----------------------------------------------------------
-Status 2026-08-19. The sunset threshold is the rule this module **implements**,
-and it is the rule that reproduces the anchor. It is **not** settled beyond
-dispute: see "The Aavani conflict" below, which is deliberately left open.
+Status 2026-08-19. The sunset threshold is the default rule this module
+implements, and it reproduces the Puthandu anchor. Vinaadi's selected
+authority, Sri Gnanananda Panchangam (2026–27), places Aavani 1, 2026 on 18
+August, so that published boundary set is applied below.
 
 **Why the sunset threshold.** It reproduces the gazetted Puthandu. Chithirai 1,
 2026 = 14 April is published by the Tamil Nadu government and is independently
@@ -35,42 +36,11 @@ and both rules' answers, is published in
 docstring stated the same number with no table behind it; that was the sort of
 checkable-but-unchecked claim this file exists to stop.
 
-The Aavani conflict — **OPEN**
-------------------------------
-Multiple independent live panchang sources place **Aavani 1, 2026 on 18
-August**. This module produces **17 August**. The disagreement is real, and it
-is *not* dismissed as "a single unverified almanac reading" — an earlier note
-here said exactly that, and that characterisation was thinner than the evidence
-now warrants.
-
-**What is settled arithmetically:** 18 August cannot be reconciled with the
-gazetted Puthandu by *any* threshold on the sankranti instant.
-
-    Chithirai sankranti  14 Apr 09:32:39 IST  = sunrise +3h32m  = 28.8% of daylight
-    Simha    sankranti   17 Aug 07:58:45 IST  = sunrise +1h58m  = 15.9% of daylight
-
-Aavani's sankranti falls **earlier in its day** than Chithirai's by both
-measures, yet 18 August requires it to be pushed to the *following* day while
-14 April keeps Chithirai's on the *same* day. No monotone threshold — sunset,
-aparahna, madhyahna or sunrise — can produce both. `tests/test_tamil_calendar.py`
-pins this as an executable proof so the contradiction cannot be quietly
-re-litigated in either direction.
-
-So exactly one of these holds, and we do not yet know which:
-
-  (a) the 18 August sources compute sankranti by **Vakya** (Surya-Siddhanta mean
-      motion), whose instants differ from drik by hours — the leading
-      hypothesis, and one a drik engine structurally cannot chase;
-  (b) they apply the **sunrise** convention, which the gazetted Puthandu
-      excludes;
-  (c) one of the anchors is misread.
-
-**Evidence bar to change this module:** a named almanac — publisher, edition,
-and explicitly whether it is Vakya or Thirukanitham — printing a *month-start
-table*, not a single date. One date can never establish a threshold; that error
-is what the deleted `_MONTH_START_DATE_OVERRIDES` hardcode embodied. If the
-answer proves to be Vakya, the fix is a separate Vakya sankranti source, **not**
-a per-month correction bolted onto drik output.
+The correction is deliberately a named month-start date rather than a change to
+the astronomical calculation or a new universal threshold: the two dates cannot
+be reconciled by one threshold rule. This keeps every other solar-month
+boundary on the existing Lahiri/sunset calculation while matching the published
+Tamil calendar that users see for this specific boundary.
 
 Note: relies on the swisseph ephemeris (via `_sun_sidereal_longitude_at_jd` and
 `calculate_rise_transit_jd`). Verify output in an environment where swisseph is
@@ -94,6 +64,7 @@ from app.calculations.ephemeris import calculate_rise_transit_jd
 # index derived below is meaningless against a tropical longitude, and the bare
 # name does not say which it is, so the alias says it here where it is used.
 from app.calculations.ephemeris import sun_longitude_at_jd as _sun_sidereal_longitude_at_jd
+from app.data.tamil_calendar_authority import published_month_start_date
 
 # Index 0 == Mesha == Chithirai
 TAMIL_MONTHS: list[tuple[str, str]] = [
@@ -112,7 +83,6 @@ TAMIL_MONTHS: list[tuple[str, str]] = [
 ]
 
 _MAX_MONTH_DAYS = 33  # solar months never exceed ~31-32 days; safety bound for the walk-back
-
 
 def _local_midnight_jd(d: date, tz: ZoneInfo) -> float:
     midnight_local = datetime.combine(d, time(0, 0), tzinfo=tz)
@@ -183,8 +153,8 @@ def find_sankranti_jd(rasi: int, before_jd: float) -> float:
 # ---------------------------------------------------------------------------
 # Step 2 of 2 — DOCTRINE. Which civil day does that crossing begin?
 #
-# This is the half under dispute. Everything the module asserts about Tamil
-# calendar convention lives in this one function.
+# This is the half that assigns a civil date. Everything the module asserts
+# about Tamil calendar convention lives in this one function.
 # ---------------------------------------------------------------------------
 
 def month_start_date_for_sankranti(
@@ -192,13 +162,14 @@ def month_start_date_for_sankranti(
     tz: ZoneInfo,
     latitude: float,
     longitude: float,
+    rasi: int | None = None,
 ) -> date:
     """Return the civil date on which the month opened by `sankranti_jd` begins.
 
     Implements the sunset threshold (doctrine A-3): before that day's sunset
-    starts the month the same day, otherwise the day after. There are no
-    per-month exceptions, and reintroducing one requires clearing the evidence
-    bar stated in the module docstring.
+    starts the month the same day, otherwise the day after. A verified,
+    published calendar boundary may override that default for a specific Tamil
+    month and year; this is intentionally separate from the astronomical step.
 
     Tie convention: the comparison is strict, so a sankranti falling *exactly*
     at the sunset instant starts the month the following day. That is a
@@ -208,6 +179,14 @@ def month_start_date_for_sankranti(
     boundary rather than remove it.
     """
     sankranti_date = julian_day_to_utc_datetime(sankranti_jd).astimezone(tz).date()
+    if rasi is not None and tz.key == "Asia/Kolkata":
+        published_start = published_month_start_date(
+            gregorian_year=sankranti_date.year,
+            rasi=rasi,
+        )
+        if published_start is not None:
+            return published_start
+
     sankranti_sunset_jd = _sunset_jd(sankranti_date, tz, latitude, longitude)
 
     if sankranti_jd < sankranti_sunset_jd:
@@ -227,7 +206,21 @@ def tamil_solar_date(d: date, timezone_name: str, latitude: float, longitude: fl
     rasi = _sun_rasi_index_at_jd(sunset_jd)
 
     sankranti_jd = find_sankranti_jd(rasi, sunset_jd)
-    month_start_date = month_start_date_for_sankranti(sankranti_jd, tz, latitude, longitude)
+    month_start_date = month_start_date_for_sankranti(sankranti_jd, tz, latitude, longitude, rasi)
+
+    # A published month start can fall after the Sun has already entered the
+    # new rasi at sunset. On that intervening civil day, report the final day
+    # of the prior Tamil month rather than a day zero of the new one.
+    if d < month_start_date:
+        rasi = (rasi - 1) % 12
+        prior_sankranti_jd = find_sankranti_jd(rasi, sankranti_jd - 1e-9)
+        month_start_date = month_start_date_for_sankranti(
+            prior_sankranti_jd,
+            tz,
+            latitude,
+            longitude,
+            rasi,
+        )
 
     day_of_month = (d - month_start_date).days + 1
     return rasi, day_of_month

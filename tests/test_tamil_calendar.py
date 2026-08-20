@@ -2,10 +2,8 @@
 
 Doctrine A-3 (2026-08-19): a sankranti falling before that day's sunset starts
 the month on that same civil day; otherwise the month starts the day after.
-That is the rule this engine *implements*. One boundary — Aavani 1, 2026 — is
-disputed by live sources and is deliberately left OPEN; see
-`test_aavani_2026_boundary_is_open` and the module docstring of
-`app/calculations/tamil_calendar.py`.
+The verified published Tamil-calendar Aavani 2026 boundary is an explicit,
+regression-tested exception to that default.
 
 The anchor is Puthandu. Chithirai 1, 2026 = 14 April is gazetted by the Tamil
 Nadu government and is independently present in our festival table, so it is
@@ -25,6 +23,7 @@ from app.calculations.tamil_calendar import (
     month_start_date_for_sankranti,
     tamil_solar_date,
 )
+from app.data.tamil_calendar_authority import GNANANANDA_MONTH_STARTS_2026_27
 
 pytestmark = pytest.mark.no_db
 
@@ -91,28 +90,26 @@ def test_maasi_2027_starts_on_the_sankranti_day() -> None:
 
 
 # ---------------------------------------------------------------------------
-# The open boundary
+# Published calendar boundary
 # ---------------------------------------------------------------------------
 
-def test_aavani_2026_boundary_is_open() -> None:
-    """Aavani 1, 2026: this engine says 17 August; live sources say 18 August.
-
-    NOT a settled result. Multiple independent live panchang sources place
-    Aavani 1 on 18 August. The sunset rule, applied to a drik sankranti of
-    17 Aug 07:58 IST, gives 17 August.
-
-    This test pins what the engine currently *does*, so the value cannot drift
-    unnoticed — but the docstring is the point: if you are here because you
-    want to change this to 18 August, read
-    `app/calculations/tamil_calendar.py` first. Doing so requires a named
-    almanac (publisher, edition, Vakya vs Thirukanitham) printing a month-start
-    table, and it must not break
-    `test_no_single_threshold_yields_both_puthandu_and_18_august_aavani`.
-    """
+def test_aavani_2026_matches_published_tamil_calendar() -> None:
+    """The published calendar places Aavani 1 on 18 August 2026."""
     latitude, longitude, timezone = CHENNAI
 
-    assert tamil_solar_date(date(2026, 8, 17), timezone, latitude, longitude) == (AAVANI, 1)
-    assert tamil_solar_date(date(2026, 8, 16), timezone, latitude, longitude)[0] == AADI
+    assert tamil_solar_date(date(2026, 8, 17), timezone, latitude, longitude) == (AADI, 32)
+    assert tamil_solar_date(date(2026, 8, 18), timezone, latitude, longitude) == (AAVANI, 1)
+    assert tamil_solar_date(date(2026, 8, 19), timezone, latitude, longitude) == (AAVANI, 2)
+
+
+def test_selected_calendar_authority_boundaries_match_the_complete_edition() -> None:
+    """Every month start in the selected 2026–27 edition is reproduced."""
+    latitude, longitude, timezone = CHENNAI
+
+    assert len(GNANANANDA_MONTH_STARTS_2026_27) == 12
+    for (_year, rasi), month_start in GNANANANDA_MONTH_STARTS_2026_27.items():
+        assert tamil_solar_date(month_start, timezone, latitude, longitude) == (rasi, 1)
+        assert tamil_solar_date(month_start - timedelta(days=1), timezone, latitude, longitude)[0] == (rasi - 1) % 12
 
 
 def test_no_single_threshold_yields_both_puthandu_and_18_august_aavani() -> None:

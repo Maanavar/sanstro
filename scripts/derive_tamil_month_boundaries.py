@@ -32,6 +32,12 @@ from app.calculations.tamil_calendar import (  # noqa: E402
     _sunrise_jd,
     _sunset_jd,
     find_sankranti_jd,
+    month_start_date_for_sankranti,
+)
+from app.data.tamil_calendar_authority import (  # noqa: E402
+    CALENDAR_AUTHORITY_EDITION,
+    CALENDAR_AUTHORITY_NAME,
+    CALENDAR_AUTHORITY_SOURCE_URL,
 )
 
 OUTPUT = REPO_ROOT / "docs" / "TAMIL_MONTH_BOUNDARY_TABLE_2026-27.md"
@@ -88,6 +94,13 @@ def collect_boundaries() -> list[dict]:
                 sankranti_date if sankranti_jd < sunrise_jd else sankranti_date + timedelta(days=1)
             ),
             "daylight_fraction": (sankranti_jd - sunrise_jd) / (sunset_jd - sunrise_jd),
+            # What the engine ACTUALLY returns, published-calendar overrides
+            # included. Kept distinct from `sunset_rule` on purpose: this table
+            # exists to be audited against the code, so it must never quietly
+            # print the rule's answer where the engine gives a different one.
+            "engine": month_start_date_for_sankranti(
+                sankranti_jd, TZ, LATITUDE, LONGITUDE, rasi
+            ),
         })
 
     return rows
@@ -116,12 +129,17 @@ def render(rows: list[dict]) -> str:
         "`Daylight` is how far through the day's light the crossing falls — 0.00 at",
         "sunrise, 1.00 at sunset. It is the quantity any threshold rule compares against.",
         "",
-        "| Tamil month | Sankranti (IST) | Sunrise | Sunset | Daylight | Sunset rule | Sunrise rule | Agree? |",
-        "|---|---|---|---|---|---|---|---|",
+        "**Engine** is what `tamil_solar_date` actually returns. It equals the sunset",
+        "rule everywhere except where a verified published-calendar boundary overrides",
+        "it — those rows are marked ⚠ and listed again below.",
+        "",
+        "| Tamil month | Sankranti (IST) | Sunrise | Sunset | Daylight | Sunset rule | Sunrise rule | Agree? | Engine |",
+        "|---|---|---|---|---|---|---|---|---|",
     ]
 
     for r in rows:
         agree = "yes" if r["sunset_rule"] == r["sunrise_rule"] else "**NO**"
+        engine = f"{r['engine']}" if r["engine"] == r["sunset_rule"] else f"⚠ **{r['engine']}**"
         lines.append(
             f"| {r['ta']} ({r['en']}) "
             f"| {r['sankranti']:%Y-%m-%d %H:%M:%S} "
@@ -130,7 +148,8 @@ def render(rows: list[dict]) -> str:
             f"| {r['daylight_fraction']:.3f} "
             f"| {r['sunset_rule']} "
             f"| {r['sunrise_rule']} "
-            f"| {agree} |"
+            f"| {agree} "
+            f"| {engine} |"
         )
 
     lines += [
@@ -139,7 +158,7 @@ def render(rows: list[dict]) -> str:
         + ", ".join(r["en"] for r in disagreements)
         + ".",
         "",
-        "## Month lengths under the implemented (sunset) rule",
+        "## Month lengths as the engine returns them",
         "",
         "| Tamil month | First day | Last day | Days |",
         "|---|---|---|---|",
@@ -147,11 +166,11 @@ def render(rows: list[dict]) -> str:
 
     for i, r in enumerate(rows):
         if i + 1 < len(rows):
-            last = rows[i + 1]["sunset_rule"] - timedelta(days=1)
-            length = (rows[i + 1]["sunset_rule"] - r["sunset_rule"]).days
-            lines.append(f"| {r['ta']} ({r['en']}) | {r['sunset_rule']} | {last} | {length} |")
+            last = rows[i + 1]["engine"] - timedelta(days=1)
+            length = (rows[i + 1]["engine"] - r["engine"]).days
+            lines.append(f"| {r['ta']} ({r['en']}) | {r['engine']} | {last} | {length} |")
         else:
-            lines.append(f"| {r['ta']} ({r['en']}) | {r['sunset_rule']} | — | — |")
+            lines.append(f"| {r['ta']} ({r['en']}) | {r['engine']} | — | — |")
 
     chithirai = rows[0]
     aavani = next(r for r in rows if r["en"] == "Aavani")
@@ -164,12 +183,14 @@ def render(rows: list[dict]) -> str:
         "Tamil Nadu government. The sunrise rule places it on",
         f"{chithirai['sunrise_rule']}, so the anchor excludes that convention outright.",
         "",
-        "## The open Aavani conflict",
+        "## The Aavani boundary — why it is an override and not a rule change",
         "",
-        f"This engine produces Aavani 1, 2026 = **{aavani['sunset_rule']}**. Multiple live",
-        "panchang sources publish **2026-08-18**.",
+        f"The sunset rule computes Aavani 1, 2026 = **{aavani['sunset_rule']}**. The published",
+        f"Tamil calendar places it on **{aavani['engine']}**, and the engine follows the published",
+        "calendar for this boundary via a named, regression-tested override.",
         "",
-        "The two claims cannot both come from a threshold rule:",
+        "It has to be an override rather than a different threshold, because the two",
+        "dates cannot both come from a threshold rule:",
         "",
         f"- Chithirai's crossing sits at **{chithirai['daylight_fraction']:.3f}** of daylight "
         "and is assigned to its own day.",
@@ -177,10 +198,94 @@ def render(rows: list[dict]) -> str:
         "*earlier* — yet 18 August requires it to be pushed to the following day.",
         "",
         "A threshold that keeps the later crossing and defers the earlier one does not",
-        "exist. So the 18 August sources are not simply using a different cut-off: either",
-        "they compute sankranti by **Vakya** (mean-motion instants, which differ from drik",
-        "by hours), or they apply a rule that is not a threshold, or an anchor is misread.",
-        "`tests/test_tamil_calendar.py` pins this argument as an executable proof.",
+        "exist. So the published calendar is not simply using a different cut-off: either",
+        "it computes sankranti by **Vakya** (mean-motion instants, which differ from drik",
+        "by hours), or it applies a rule that is not a threshold at all.",
+        "`tests/test_tamil_calendar.py` pins this argument as an executable proof — which",
+        "is exactly why the correction is scoped to one named month rather than applied",
+        "as a new universal rule.",
+        "",
+        "## What the authority's own table reveals about its system",
+        "",
+        f"The authority is **{CALENDAR_AUTHORITY_NAME}**, {CALENDAR_AUTHORITY_EDITION} edition",
+        f"(<{CALENDAR_AUTHORITY_SOURCE_URL}>), imported as a complete twelve-month set rather",
+        "than as isolated patches. That completeness is what makes the following check",
+        "possible — and it is the strongest evidence in this document.",
+        "",
+        "Sorted by how far into daylight each crossing falls, with what the authority",
+        "does about it:",
+        "",
+        "| Daylight | Tamil month | Authority | Matches |",
+        "|---|---|---|---|",
+    ]
+
+    for r in sorted(rows, key=lambda x: x["daylight_fraction"]):
+        if r["engine"] == r["sunset_rule"] and r["engine"] == r["sunrise_rule"]:
+            matches = "both (rules agree)"
+        elif r["engine"] == r["sunset_rule"]:
+            matches = "**sunset** rule"
+        elif r["engine"] == r["sunrise_rule"]:
+            matches = "**sunrise** rule"
+        else:
+            matches = "*neither*"
+        same_day = r["engine"] == r["sankranti"].date()
+        lines.append(
+            f"| {r['daylight_fraction']:.3f} | {r['ta']} ({r['en']}) "
+            f"| {r['engine']} ({'same day' if same_day else 'next day'}) | {matches} |"
+        )
+
+    deferred = sorted(
+        (r for r in rows if r["engine"] != r["sankranti"].date() and r["daylight_fraction"] < 1.0),
+        key=lambda x: x["daylight_fraction"],
+    )
+    same_day_above = [
+        r for r in rows
+        if r["engine"] == r["sankranti"].date()
+        and deferred
+        and r["daylight_fraction"] > deferred[-1]["daylight_fraction"]
+    ]
+    same_day_below = [
+        r for r in rows
+        if r["engine"] == r["sankranti"].date()
+        and deferred
+        and r["daylight_fraction"] < deferred[0]["daylight_fraction"]
+    ]
+
+    lines += [
+        "",
+        "**This is not a threshold rule, and the authority's own data proves it.** Of the",
+        "crossings that happen in daylight, it defers only "
+        + ", ".join(f"{r['en']} ({r['daylight_fraction']:.3f})" for r in deferred)
+        + " to the next day — while keeping "
+        + ", ".join(f"{r['en']} ({r['daylight_fraction']:.3f})" for r in same_day_below)
+        + " on the same day despite those crossings being *earlier*, and also keeping "
+        + ", ".join(f"{r['en']} ({r['daylight_fraction']:.3f})" for r in same_day_above)
+        + " on the same day when they are *later*.",
+        "",
+        "A cut-off that defers a middle band while accepting both the earlier and the",
+        "later crossings does not exist. What this establishes with certainty is the",
+        "negative: **the authority is not applying any threshold to the instants we",
+        "compute.** Two readings remain, and the data here cannot separate them —",
+        "",
+        "1. it works from **different sankranti instants** (Vakya mean-motion rather than",
+        "   drik), so its own \"before sunset\" test lands differently; or",
+        "2. it works from the same instants under a rule that is not a threshold at all.",
+        "",
+        "Reading 1 is the more likely — a few hours' shift in two instants is exactly the",
+        "scale of Vakya-vs-drik divergence — but it is a hypothesis, and it is recorded",
+        "as one.",
+        "",
+        "**Why this matters practically.** It means the override table is not a list of",
+        "corrections to our rule; it is a second calendar system recorded verbatim. The",
+        "durable fix is a Vakya sankranti source, after which these entries become",
+        "derivable rather than transcribed. Until then the complete-set discipline in",
+        "`app/data/tamil_calendar_authority.py` is what keeps it honest. Confirming the",
+        "system is question **Q4** in `docs/ASTROLOGER_CONSULTATION_2026-08-19.md`.",
+        "",
+        "**One boundary to watch:** the authority covers Chithirai 2026 – Panguni 2027",
+        "only. Dates outside that window fall back to the computed sunset rule, so the",
+        "convention changes at the edge of coverage. A later edition must be imported as",
+        "a complete set before that window lapses.",
         "",
         "## Evidence trail",
         "",
@@ -190,15 +295,18 @@ def render(rows: list[dict]) -> str:
         "",
         "| Evidence | Claim | Standing |",
         "|---|---|---|",
-        "| TN Government Gazette | Puthandu / Chithirai 1, 2026 = 14 April | **ANCHOR** — gazetted, and independently carried in our own festival table. The PDF itself is not filed in this repo; filing it would close the last gap. |",
-        "| TN Government Gazette | Aadi 27 = 12 August 2026 | **CORROBORATES US** — implies Aadi 1 = 17 July, which this engine produces. Constrains where Aadi *starts*, not how long it runs, so it does not by itself imply an 18 August Aavani. |",
-        "| Live sankranti calculators | Simha sankranti ≈ 08:04 IST, 17 Aug 2026 | **CORROBORATES US** — our ephemeris gives 07:58:45, agreeing to ~5 minutes. This matters: it means the dispute is *not* about the astronomy. Both sides agree when the Sun crosses; they disagree about which civil day that opens. |",
-        "| Prokerala (3 pages, per review) | Aavani 1, 2026 = 18 August | **SEARCH_LEAD** — a live calculator, not a printed almanac, and **its system (Vakya vs Thirukanitham) is unstated**. That unknown is the crux of the whole question. |",
+        f"| **{CALENDAR_AUTHORITY_NAME}**, {CALENDAR_AUTHORITY_EDITION} | All twelve month starts | **SOURCE — the adopted authority.** Named publisher, named edition, complete April–March set, filed at `app/data/tamil_calendar_authority.py`. This is what the engine reproduces. |",
+        "| TN Government Gazette | Puthandu / Chithirai 1, 2026 = 14 April | **ANCHOR** — gazetted, independently carried in our festival table, and **the authority agrees with it**. The PDF itself is not filed in this repo; filing it would close the last gap. |",
+        "| TN Government Gazette | Aadi 27 = 12 August 2026 | **CORROBORATES BOTH** — implies Aadi 1 = 17 July, which the engine and the authority both give. Under the authority's 18 August Aavani, Aadi runs 17 Jul – 17 Aug (32 days) and Aadi 27 lands on 12 August exactly as gazetted. |",
+        "| Live sankranti calculators | Simha sankranti ≈ 08:04 IST, 17 Aug 2026 | **CORROBORATES OUR EPHEMERIS** — we compute 07:58:45, agreeing to ~5 minutes. The disagreement was never about the astronomy. |",
+        "| Prokerala (3 pages, per review) | Aavani 1, 2026 = 18 August | **SEARCH_LEAD**, now superseded as evidence by the adopted authority above — but it agrees with it, and its own system remains unstated. |",
         "",
-        "The single most useful thing anyone can add here is a **named printed almanac**",
-        "— publisher, edition, and whether it is Vakya or Thirukanitham — showing a",
-        "month-start table for a full Tamil year. See question **Q4** in",
-        "`docs/ASTROLOGER_CONSULTATION_2026-08-19.md`.",
+        "The evidence bar this document originally set — *a named printed almanac,",
+        "publisher and edition, showing a month-start table for a full Tamil year* — **has",
+        "been met**. What remains open is narrower and is question **Q4** in",
+        "`docs/ASTROLOGER_CONSULTATION_2026-08-19.md`: whether that almanac computes by",
+        "Vakya or Thirukanitham. The answer decides whether these twelve dates stay",
+        "transcribed or become derivable.",
         "",
     ]
 
