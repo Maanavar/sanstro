@@ -211,7 +211,7 @@ export function NovaRemediesPanel({ lang, chartId, remedyPlan, gemstoneAdvice, l
                     <NovaRemedyRow label={t("remedies_daanam", lang)} value={lang === "ta" ? item.daanumItemsTa : item.daanumItemsEn} />
                     <NovaRemedyRow label={t("remedies_fasting", lang)} value={lang === "ta" ? item.fastingRuleTa : item.fastingRuleEn} />
                     {(item.fastingRuleTa || item.fastingRuleEn) && (
-                      <p style={{ margin: "-2px 0 8px", paddingLeft: "7rem", fontSize: "var(--text-xs)", color: "var(--color-mid)", lineHeight: 1.45 }}>
+                      <p style={{ margin: "-2px 0 8px", paddingLeft: "7rem", fontSize: "var(--text-xs)", color: "var(--color-mid-text)", lineHeight: 1.45 }}>
                         <AlertTriangle size={12} strokeWidth={1.5} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "4px" }} />
                         {t("remedies_fasting_caution", lang)}
                       </p>
@@ -271,7 +271,7 @@ export function NovaRemediesPanel({ lang, chartId, remedyPlan, gemstoneAdvice, l
                                 {lang === "ta" ? item.reasonTa : item.reasonEn}
                               </p>
                               {item.cautionEn && (
-                                <p style={{ margin: "0 0 2px", fontSize: "var(--text-xs)", color: "var(--color-mid)", lineHeight: 1.4 }}>
+                                <p style={{ margin: "0 0 2px", fontSize: "var(--text-xs)", color: "var(--color-mid-text)", lineHeight: 1.4 }}>
                                   <AlertTriangle size={12} strokeWidth={1.5} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "4px" }} />
                                   {lang === "ta" ? item.cautionTa : item.cautionEn}
                                 </p>

@@ -180,12 +180,12 @@ export function NovaPlanWhatIfPanel({
             </Card>
 
             <Card variant="mid" compact>
-              <p style={{ margin: "0 0 2px", fontSize: "var(--text-xs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-mid)" }}>{t("whatif_caution", lang)}</p>
+              <p style={{ margin: "0 0 2px", fontSize: "var(--text-xs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-mid-text)" }}>{t("whatif_caution", lang)}</p>
               <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-text)", lineHeight: 1.5 }}>{lang === "ta" ? r.cautionNote.ta : r.cautionNote.en}</p>
             </Card>
 
             <Card variant="mid" compact>
-              <p style={{ margin: "0 0 2px", fontSize: "var(--text-xs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-mid)" }}>{t("whatif_remedy", lang)}</p>
+              <p style={{ margin: "0 0 2px", fontSize: "var(--text-xs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-mid-text)" }}>{t("whatif_remedy", lang)}</p>
               <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-text)", lineHeight: 1.5 }}>{lang === "ta" ? r.remedy.ta : r.remedy.en}</p>
             </Card>
 

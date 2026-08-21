@@ -269,7 +269,7 @@ function HyRhythmCard({
             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
               <span style={{ width: "8px", height: "8px", borderRadius: "var(--radius-pill)", background: "var(--color-mid)", flexShrink: 0 }} />
               <span style={{ flex: 1 }}>{lang === "ta" ? "எமகண்டம்" : "Yamagandam"}</span>
-              <b style={{ color: "var(--color-mid)", fontWeight: 700 }}>{formatClockLabel(yamagandam.start)} – {formatClockLabel(yamagandam.end)}</b>
+              <b style={{ color: "var(--color-mid-text)", fontWeight: 700 }}>{formatClockLabel(yamagandam.start)} – {formatClockLabel(yamagandam.end)}</b>
             </div>
           )}
           <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.5 }}>
@@ -915,8 +915,8 @@ export function DashboardFamilyChartsHybrid({
                   <span style={{ flexShrink: 0, width: "34px", height: "34px", borderRadius: "var(--radius-pill)", background: "var(--color-high-bg)", display: "grid", placeItems: "center", fontSize: "var(--text-md)" }}>☀</span>
                   <div style={{ flex: 1 }}>
                     <Kicker color="var(--color-high)">{lang === "ta" ? "சிறந்த பகிர்ந்த நேரம்" : "Best shared window"}</Kicker>
-                    <div style={{ fontSize: "var(--text-base)", fontWeight: 700, marginTop: "2px" }}>
-                      {formatClockLabel(bestWindow.start)} – {formatClockLabel(bestWindow.end)} <span style={{ color: "var(--color-muted)", fontWeight: 500 }}>· {lang === "ta" ? `அனைத்து ${members.length} பேரும்` : `all ${members.length} aligned`}</span>
+                    <div style={{ fontSize: "var(--text-base)", fontWeight: 600, marginTop: "2px", color: "var(--color-text-accent)" }}>
+                      {formatClockLabel(bestWindow.start)} – {formatClockLabel(bestWindow.end)} <span style={{ color: "var(--color-muted)", fontWeight: 400 }}>· {lang === "ta" ? `அனைத்து ${members.length} பேரும்` : `all ${members.length} aligned`}</span>
                     </div>
                   </div>
                 </Card>
@@ -1056,7 +1056,7 @@ export function DashboardFamilyChartsHybrid({
                     ].map(([label, value]) => (
                       <Card key={label} style={{ display: "block", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)" }}>
                         <Kicker as="div" color="var(--color-faint)">{label}</Kicker>
-                        <div style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)", marginTop: "4px" }}>{value}</div>
+                        <div style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text)", marginTop: "4px" }}>{value}</div>
                       </Card>
                     ))}
                   </div>

@@ -44,7 +44,7 @@ function TimingCard({ label, value, color, borderColor, bgColor }: { label: stri
   return (
     <Card style={{ display: "block", background: bgColor, borderColor, borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)" }}>
       <Kicker as="div" color={color} style={{ letterSpacing: "0.1em" }}>{label}</Kicker>
-      <div style={{ fontSize: "var(--text-md)", fontWeight: 700, marginTop: "3px", color: "var(--color-text-strong)" }}>{value}</div>
+      <div style={{ fontSize: "var(--text-md)", fontWeight: 600, marginTop: "3px", color: "var(--color-text)" }}>{value}</div>
     </Card>
   );
 }

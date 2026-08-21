@@ -375,7 +375,7 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad, renderYogaD
 
       {/* ── Executive summary ── */}
       <Card style={{ padding: "var(--space-5) var(--space-6)", borderRadius: "var(--radius-md)", fontFamily: "var(--font-body)", gap: 0 }}>
-        <p className="cd-kicker" style={{ marginBottom: "var(--space-1_5)", color: "var(--color-score-mid)", letterSpacing: "0.1em" }}>
+        <p className="cd-kicker" style={{ marginBottom: "var(--space-1_5)", color: "var(--color-mid-text)", letterSpacing: "0.1em" }}>
           {t("jadhagam_executive", lang)}
         </p>
         <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 500, color: "var(--color-text-strong)", lineHeight: 1.55 }}>
@@ -564,7 +564,7 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad, renderYogaD
 
       {/* ── Remedies ── */}
       <Card variant="mid" style={{ padding: "var(--space-5) var(--space-6)", borderRadius: "var(--radius-md)", fontFamily: "var(--font-body)", gap: 0 }}>
-        <p className="cd-kicker" style={{ marginBottom: "var(--space-1_5)", color: "var(--color-score-mid)", letterSpacing: "0.1em" }}>
+        <p className="cd-kicker" style={{ marginBottom: "var(--space-1_5)", color: "var(--color-mid-text)", letterSpacing: "0.1em" }}>
           {t("jadhagam_remedies", lang)}
         </p>
         <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.4 }}>
@@ -577,7 +577,7 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad, renderYogaD
             <li key={i} style={{ fontSize: "var(--text-base)", color: "var(--color-text-strong)", lineHeight: 1.5 }}>{item}</li>
           ))}
         </ul>
-        <p style={{ margin: "var(--space-3) 0 0", fontSize: "var(--text-sm)", color: "var(--color-score-mid)", lineHeight: 1.4 }}>
+        <p style={{ margin: "var(--space-3) 0 0", fontSize: "var(--text-sm)", color: "var(--color-mid-text)", lineHeight: 1.4 }}>
           {lang === "ta"
             ? "இந்த பரிகாரங்கள் விருப்பமானவை. எந்தவொரு கல் அல்லது பரிகாரமும் தகுதிவாய்ந்த ஜோதிடரின் ஆலோசனையின் பேரில் மட்டுமே மேற்கொள்ளவும்."
             : "Remedies are optional. Any gemstone or pariharam should only be undertaken after consulting a qualified astrologer."}

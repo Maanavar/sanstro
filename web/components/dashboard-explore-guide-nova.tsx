@@ -212,7 +212,7 @@ export function DashboardExploreGuideNova({ lang, kind, initialSlug, onBack, onO
           )}
 
           {content.slokam && (
-            <Card style={{ borderLeft: "3px solid var(--color-accent-strong)" }}>
+            <Card style={{ borderColor: "var(--color-accent-strong)" }}>
               <Kicker>{text(content.slokam.label)}</Kicker>
               <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)", whiteSpace: "pre-line", lineHeight: 1.6 }}>
                 {text(content.slokam.text)}

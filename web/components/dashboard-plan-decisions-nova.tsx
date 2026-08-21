@@ -295,7 +295,7 @@ export function NovaPlanDecisionsPanel({ lang, chartId, mode = "BALANCED" }: Pro
                   )}
 
                   {data.optimalWindow && (
-                    <p style={{ margin: "4px 0 0", fontSize: "var(--text-sm)", color: "var(--color-mid)" }}>
+                    <p style={{ margin: "4px 0 0", fontSize: "var(--text-sm)", color: "var(--color-mid-text)" }}>
                       {t("decision_optimal_window", lang)}: {data.optimalWindow}
                     </p>
                   )}

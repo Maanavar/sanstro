@@ -1192,7 +1192,7 @@ export function ChartExplanationPanel({
                           }}
                         >
                           <div>
-                            <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                            <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)" }}>
                               {displayPlanet(planet.graha, lang)}
                             </p>
                             <Chip color={color}>{Math.round(planet.strengthScore)}/100</Chip>
@@ -1276,7 +1276,7 @@ export function ChartExplanationPanel({
                           }}
                         >
                           <div>
-                            <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                            <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)" }}>
                               {displayPlanet(planet.graha, lang)}
                             </p>
                             <Chip color={color}>

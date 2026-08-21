@@ -36,20 +36,20 @@ type Props = {
 /* ── palette helpers ─────────────────────────────────────── */
 function scoreTone(score: number) {
   if (score >= 65) return { color: "var(--chart-d9-active)", bg: "var(--chart-d9-active-bg)", border: "var(--color-high-border)" };
-  if (score >= 40) return { color: "var(--color-mid)", bg: "var(--chart-d1-lagna-bg)", border: "var(--color-mid-border)" };
+  if (score >= 40) return { color: "var(--color-mid-text)", bg: "var(--chart-d1-lagna-bg)", border: "var(--color-mid-border)" };
   return { color: "var(--planet-saturn)", bg: "var(--color-low-bg)", border: "var(--color-low-border)" };
 }
 
 function statusTone(status: "good" | "mixed" | "caution") {
   if (status === "good")    return { color: "var(--chart-d9-active)",  bg: "var(--chart-d9-active-bg)",  border: "var(--color-high-border)" };
-  if (status === "mixed")   return { color: "var(--color-mid)",  bg: "var(--chart-d1-lagna-bg)",  border: "var(--color-mid-border)" };
+  if (status === "mixed")   return { color: "var(--color-mid-text)",  bg: "var(--chart-d1-lagna-bg)",  border: "var(--color-mid-border)" };
   return                           { color: "var(--planet-saturn)",  bg: "var(--color-low-bg)",  border: "var(--color-low-border)" };
 }
 
 function toneStyle(tone: string) {
   if (tone === "harmony")  return { color: "var(--chart-d9-active)",  bg: "var(--chart-d9-active-bg)",  border: "var(--color-high-border)" };
   if (tone === "tension")  return { color: "var(--planet-saturn)",  bg: "var(--color-low-bg)",  border: "var(--color-low-border)" };
-  return                           { color: "var(--color-mid)",  bg: "var(--chart-d1-lagna-bg)",  border: "var(--color-mid-border)" };
+  return                           { color: "var(--color-mid-text)",  bg: "var(--chart-d1-lagna-bg)",  border: "var(--color-mid-border)" };
 }
 
 function toneLabel(tone: string, lang: Lang): string {
@@ -149,7 +149,7 @@ function weightLabel(weight: PoruthamWeight, lang: Lang): string {
 
 function weightTone(weight: PoruthamWeight) {
   if (weight === "Critical") return { color: "var(--planet-saturn)", bg: "var(--color-low-bg)",  border: "var(--color-low-border)" };
-  if (weight === "High")     return { color: "var(--color-mid)", bg: "var(--chart-d1-lagna-bg)",  border: "var(--color-mid-border)" };
+  if (weight === "High")     return { color: "var(--color-mid-text)", bg: "var(--chart-d1-lagna-bg)",  border: "var(--color-mid-border)" };
   if (weight === "Medium")   return { color: "var(--color-muted)", bg: "var(--color-surface-2)",  border: "var(--color-border)" };
   return                            { color: "var(--color-faint)", bg: "var(--color-surface-2)",  border: "var(--color-border)" };
 }
@@ -528,13 +528,13 @@ export function SynastryPanel({
                   {/* Timing indicators */}
                   {(synastry.timingIndicators ?? []).length > 0 && (
                     <div style={{ padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)", background: "var(--chart-d1-lagna-bg)", border: "1px solid var(--color-mid-border)" }}>
-                      <p className="cd-kicker" style={{ marginBottom: "var(--space-2_5)", letterSpacing: "0.1em", color: "var(--color-mid)" }}>
+                      <p className="cd-kicker" style={{ marginBottom: "var(--space-2_5)", letterSpacing: "0.1em", color: "var(--color-mid-text)" }}>
                         {t("synastry_timing", lang)}
                       </p>
                       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                         {(synastry.timingIndicators ?? []).map((ti, i) => (
                           <div key={i} style={{ display: "flex", gap: "var(--space-2_5)", alignItems: "flex-start" }}>
-                            <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-mid)", minWidth: "54px", paddingTop: "var(--space-0_5)" }}>
+                            <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-mid-text)", minWidth: "54px", paddingTop: "var(--space-0_5)" }}>
                               {tPlanetLord(ti.planet, lang)}
                             </span>
                             <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-text)", lineHeight: 1.45 }}>

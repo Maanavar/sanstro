@@ -130,7 +130,7 @@ export function VargasPanel({ lang, vargas, d1Planets, equalBhava, vargaReliabil
         <p style={{ fontSize: "var(--text-base)", color: "var(--color-faint)", marginBottom: "var(--space-2)", fontStyle: "italic" }}>
           {VARGA_DESC[activeVarga][lang]}
           {vargaReliability?.[activeVarga] === "LOW" && (
-            <span style={{ color: "var(--color-mid)", fontWeight: 600, marginLeft: "var(--space-2)" }}>
+            <span style={{ color: "var(--color-mid-text)", fontWeight: 600, marginLeft: "var(--space-2)" }}>
               {lang === "ta" ? "(பிறந்த நேரம் துல்லியமாக இல்லை)" : "(needs exact birth time)"}
             </span>
           )}
@@ -176,7 +176,7 @@ export function VargasPanel({ lang, vargas, d1Planets, equalBhava, vargaReliabil
                         {d1Rasi && vargaRasi ? (
                           same
                             ? <span style={{ color: "var(--color-high)", fontWeight: 700, fontSize: "var(--text-sm)" }}>✓</span>
-                            : <span style={{ color: "var(--color-mid)", fontWeight: 700, fontSize: "var(--text-sm)" }}>≠</span>
+                            : <span style={{ color: "var(--color-mid-text)", fontWeight: 700, fontSize: "var(--text-sm)" }}>≠</span>
                         ) : null}
                       </td>
                     </tr>
@@ -210,7 +210,7 @@ export function VargasPanel({ lang, vargas, d1Planets, equalBhava, vargaReliabil
                     background: "var(--color-mid-bg)",
                     border: `1px solid var(--color-mid-border)`,
                     fontSize: "var(--text-sm)",
-                    color: "var(--color-mid)",
+                    color: "var(--color-mid-text)",
                     fontWeight: 600,
                   }}
                 >

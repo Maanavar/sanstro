@@ -690,7 +690,7 @@ export function DashboardSettingsSessionTab({
           />
         </div>
         <div style={{ fontSize: "var(--text-xs)", color: "var(--color-text-accent)", background: "var(--color-accent-muted)", border: `1px solid var(--color-border)`, borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)", lineHeight: 1.5 }}>
-          {lang === "ta" ? "“சாதனம்” Nova Galaxy (இருண்ட) தோற்றத்தில் இருக்கும்; parchment தோற்றத்திற்கு Warm-ஐத் தேர்ந்தெடுக்கவும்." : "“System” keeps the Nova Galaxy (dark) look; pick Warm for the parchment theme."}
+          {lang === "ta" ? "“சாதனம்” உங்கள் சாதன அமைப்பைப் பின்பற்றும் — இருண்ட சாதனத்தில் Nova Galaxy, ஒளிர்ந்த சாதனத்தில் Warm. ஒரே தோற்றத்தில் நிலைக்க அதன் பெயரைத் தேர்ந்தெடுக்கவும்." : "“System” follows your device — Nova Galaxy on a dark device, Warm on a light one. Pick a theme by name to hold it."}
         </div>
       </Card>
 

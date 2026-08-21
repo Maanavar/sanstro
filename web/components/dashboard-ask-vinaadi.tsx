@@ -96,7 +96,7 @@ function AnswerCard({ entry, lang }: { entry: { question: string; data: AskVinaa
         );
       })()}
       <p style={{ fontSize: "15px", lineHeight: "1.65", margin: "0 0 10px 0", color: "var(--color-text, var(--panel-earth))" }}>{lang === "ta" ? data.answer.ta : data.answer.en}</p>
-      {data.caveat && <p style={{ fontSize: "12px", color: "var(--color-muted, var(--panel-mid-earth))", margin: "0 0 10px 0", padding: "8px 10px", borderLeft: "3px solid var(--color-score-low, var(--planet-saturn))", borderRadius: "0 4px 4px 0" }}>⚠ {lang === "ta" ? data.caveat.ta : data.caveat.en}</p>}
+      {data.caveat && <p style={{ fontSize: "12px", color: "var(--color-muted, var(--panel-mid-earth))", margin: "0 0 10px 0", padding: "8px 10px", border: "1px solid var(--color-low-border)", borderRadius: "var(--radius-sm)" }}><span style={{ color: "var(--color-low, var(--planet-saturn))" }} aria-hidden="true">⚠ </span>{lang === "ta" ? data.caveat.ta : data.caveat.en}</p>}
       <div style={{ marginTop: "8px" }}>{data.signalsUsed.map((s) => <SignalChip key={s} signal={s} />)}</div>
     </div>
   );

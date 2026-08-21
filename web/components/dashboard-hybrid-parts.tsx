@@ -225,7 +225,7 @@ function HyPlanetVerdict({ lang, pl, expl }: {
       )}
       {focus && (
         <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5 }}>
-          <span style={{ fontWeight: 700, color: "var(--color-mid)" }}>{lang === "ta" ? "தொடும் துறைகள்: " : "Touches: "}</span>
+          <span style={{ fontWeight: 700, color: "var(--color-mid-text)" }}>{lang === "ta" ? "தொடும் துறைகள்: " : "Touches: "}</span>
           {lang === "ta" ? focus.ta : focus.en}
         </div>
       )}
@@ -1195,7 +1195,7 @@ export function HyTodayFacts({ lang, memberName, memberNakshatraName, weekdayLor
             <span style={{ width: "30px", height: "30px", borderRadius: "var(--radius-sm)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", display: "grid", placeItems: "center", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-accent-strong)", flexShrink: 0, fontFamily: "var(--font-display)" }}>{headline.number}</span>
             <div style={{ minWidth: 0 }}>
               <Kicker as="div" color="var(--color-faint)" style={{ letterSpacing: "0.1em" }}>{headlineIsPersonal ? ownerLabel : (lang === "ta" ? "இன்றைய அதிர்ஷ்ட எண்" : "Lucky number today")}</Kicker>
-              <div style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-text-strong)", marginTop: "2px" }}>{headline.number} · {tPlanetLord(headline.graha, lang)}</div>
+              <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text)", marginTop: "2px" }}>{headline.number} · {tPlanetLord(headline.graha, lang)}</div>
               <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "1px" }}>
                 {headlineIsPersonal
                   ? (lang === "ta" ? `பிறப்பு நட்சத்திரம் · ${tNakshatra(memberNakshatraName ?? "", lang)}` : `birth star · ${tNakshatra(memberNakshatraName ?? "", lang)}`)
@@ -1207,7 +1207,7 @@ export function HyTodayFacts({ lang, memberName, memberNakshatraName, weekdayLor
             <span style={{ width: "30px", height: "30px", borderRadius: "var(--radius-sm)", background: headline.colour.swatch, border: "1px solid var(--color-border-strong)", flexShrink: 0 }} />
             <div style={{ minWidth: 0 }}>
               <Kicker as="div" color="var(--color-faint)" style={{ letterSpacing: "0.1em" }}>{headlineIsPersonal ? ownerColourLabel : (lang === "ta" ? "இன்றைய அதிர்ஷ்ட நிறம்" : "Lucky colour today")}</Kicker>
-              <div style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-text-strong)", marginTop: "2px" }}>{lang === "ta" ? headline.colour.ta : headline.colour.en}</div>
+              <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text)", marginTop: "2px" }}>{lang === "ta" ? headline.colour.ta : headline.colour.en}</div>
             </div>
           </Card>
         </div>
@@ -1234,7 +1234,7 @@ export function HyTodayFacts({ lang, memberName, memberNakshatraName, weekdayLor
           <span style={{ color: "var(--color-high)", fontSize: "var(--text-sm)" }}>✳</span>
           <span style={{ flex: 1, fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
             {goodWindowLabel ?? (lang === "ta" ? "சிறந்த நேரம் " : "Best window ")}
-            <b style={{ color: "var(--color-text-strong)" }}>{formatClockLabel(goodWindow.start)} – {formatClockLabel(goodWindow.end)}</b>
+            <b style={{ color: "var(--color-text-accent)", fontWeight: 600 }}>{formatClockLabel(goodWindow.start)} – {formatClockLabel(goodWindow.end)}</b>
           </span>
         </Card>
       )}
@@ -1811,7 +1811,7 @@ export function HyTransitOverview({ lang, transit, memberName, onOpenTransits }:
               <div key={tr.graha} style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
                 <span style={{ flexShrink: 0, width: "30px", height: "30px", borderRadius: "var(--radius-sm)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", display: "grid", placeItems: "center", fontSize: "var(--text-base)", color: "var(--color-accent-strong)" }}>{GRAHA_GLYPH_R[tr.graha.toUpperCase()] ?? "◦"}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                  <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text)" }}>
                     {tPlanetLord(tr.graha.toUpperCase(), lang)} {lang === "ta" ? "" : "in "}{tr.currentRasi}
                     {tr.isRetrograde && <span style={{ marginLeft: "6px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-low)" }}>℞</span>}
                   </div>

@@ -172,12 +172,12 @@ export default function ReportsPage() {
                     </span>
                   </div>
                   {"pages" in product && (
-                    <span style={{ fontSize: "0.7rem", fontWeight: 700, padding: "2px 8px", borderRadius: "4px", background: "var(--color-mid-bg)", color: "var(--color-mid)", alignSelf: "flex-start" }}>
+                    <span style={{ fontSize: "0.7rem", fontWeight: 700, padding: "2px 8px", borderRadius: "4px", background: "var(--color-mid-bg)", color: "var(--color-mid-text)", alignSelf: "flex-start" }}>
                       {product.pages} {ta ? "பக்கம்" : "pages"}
                     </span>
                   )}
                   {"questions" in product && (
-                    <span style={{ fontSize: "0.7rem", fontWeight: 700, padding: "2px 8px", borderRadius: "4px", background: "var(--color-mid-bg)", color: "var(--color-mid)", alignSelf: "flex-start" }}>
+                    <span style={{ fontSize: "0.7rem", fontWeight: 700, padding: "2px 8px", borderRadius: "4px", background: "var(--color-mid-bg)", color: "var(--color-mid-text)", alignSelf: "flex-start" }}>
                       {product.questions} {ta ? "கேள்விகள்" : "questions"}
                     </span>
                   )}

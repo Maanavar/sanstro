@@ -57,7 +57,7 @@ export function humaniseReason(code: string, lang: Lang): string {
 
 export function scoreTone(score: number) {
   if (score >= 65) return { color: "var(--color-score-high)", bg: "rgba(92,118,84,0.15)" };
-  if (score >= 45) return { color: "var(--color-score-mid)", bg: "rgba(184,90,44,0.15)" };
+  if (score >= 45) return { color: "var(--color-mid-text)", bg: "rgba(184,90,44,0.15)" };
   return { color: "var(--color-score-low)", bg: "rgba(168,72,47,0.15)" };
 }
 

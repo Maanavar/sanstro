@@ -25,7 +25,7 @@ import { Card, Kicker } from "./ui";
 const SIGNAL_META: Record<string, { Icon: LucideIcon; ta: string; en: string; color: string }> = {
   COMBUST_SHARED:    { Icon: Sun,      ta: "அஸ்தமனம்", en: "Combust",    color: "var(--color-accent-strong)" },
   NODE_FRICTION:     { Icon: Orbit,    ta: "ராகு-கேது", en: "Nodes",      color: "var(--color-low)" },
-  RETROGRADE_LOAD:   { Icon: RotateCcw, ta: "வக்ரம்",     en: "Retrograde", color: "var(--color-mid)" },
+  RETROGRADE_LOAD:   { Icon: RotateCcw, ta: "வக்ரம்",     en: "Retrograde", color: "var(--color-mid-text)" },
   CHILD_WEAK_PLANET: { Icon: Baby,     ta: "குழந்தை",   en: "Child",      color: "var(--color-high)" },
 };
 

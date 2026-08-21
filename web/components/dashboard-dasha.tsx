@@ -8,16 +8,25 @@ import type { Lang } from "@/lib/i18n";
 import type { DashaTimelineItem, DashaTimelineResponseData } from "@/lib/types";
 import { scoreColor, SCORE_HIGH, SCORE_MID } from "@/lib/format";
 
+/* Every entry must be a themed token, never a literal: these are read as a
+   `color:` on prose (the dasha lord in the deep-dive paragraph, the graha cell
+   in the family table), not only as dot fills, so each value owes 4.5:1 on
+   both palettes. Venus and Ketu were the last two literals — audit 2026-08-21
+   F6 — and both failed that bar on dark (2.41 and 4.02). Their slots now live
+   beside --planet-lagna/-saturn/-nodes/-other in dashboard-nova.css.
+   dashboard-share-card.tsx keeps its own literal copy on purpose: a <canvas>
+   can't read custom properties and a shared image shouldn't follow the
+   viewer's theme. */
 export const DASHA_COLORS: Record<string, string> = {
   SUN: "var(--panel-brand)",
   MOON: "var(--planet-other)",
   MARS: "var(--planet-saturn)",
   MERCURY: "var(--chart-d9-active)",
   JUPITER: "var(--chart-d9-active-dark)",
-  VENUS: "#7a4880",
+  VENUS: "var(--planet-venus)",
   SATURN: "var(--color-faint)",
   RAHU: "var(--planet-nodes)",
-  KETU: "#8c7a6e",
+  KETU: "var(--planet-ketu)",
 };
 
 

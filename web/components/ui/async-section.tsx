@@ -87,7 +87,7 @@ export function AsyncSection({
       <p
         role="alert"
         style={{
-          color: "var(--color-mid)",
+          color: "var(--color-mid-text)",
           fontSize: "var(--text-base)",
           margin: 0,
           display: "flex",

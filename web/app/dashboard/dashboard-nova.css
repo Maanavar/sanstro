@@ -115,20 +115,25 @@
      reveals slower. All still collapse to instant under the reduced-motion
      guard at the end of this file. ── */
   --motion-toggle: var(--dur-fast); /* 120ms — press / toggle feedback */
-  --motion-nav: var(--dur-base);    /* 220ms — nav / colour settle */
-  --motion-reveal: var(--dur-slow); /* 420ms — content reveal */
+  --motion-nav: var(--dur-base);    /* 240ms — nav / colour settle */
+  --motion-reveal: var(--dur-slow); /* 360ms — content reveal */
 }
 
 /* ═══════════════════════════════════════════════════════════
-   Nova-dark palette (default). Matches whenever data-theme isn't
-   explicitly "light" — covers data-theme="dark" and the no-attribute
-   "system" case. Nova's System mode intentionally stays dark rather
-   than following the OS preference: it matches Nova's behavior before
-   this theme toggle existed (always dark), and avoids depending on every
-   Nova-exclusive token below (score bands, glass overlays, the Classic-
-   token redirects) having a correct light-on-system-preference variant
-   that nothing has verified yet. A user who wants light explicitly picks
-   Light — see dashboard-settings-session-tab.tsx's Appearance card.
+   Nova-dark palette. Matches whenever data-theme isn't explicitly
+   "light" — i.e. data-theme="dark", plus the "system" case on a device
+   whose OS is set to dark.
+
+   NOTE (colour audit 2026-08-21, F1): System does NOT pin to dark. UXD-03
+   changed it to follow the OS preference, and both the pre-paint script in
+   app/layout.tsx and useTheme.ts always stamp an explicit data-theme, so an
+   OS-light device lands in the Light block below *by default* — no opt-in.
+   This comment used to claim the opposite and used that claim to justify
+   leaving the light palette less-verified; that justification was void, and
+   the light block's AA failures were default-path defects. F2/F3/F4 of the
+   same audit closed them. Light is now a first-class theme: any Nova-
+   exclusive token added to this block needs a verified light twin below.
+   See dashboard-settings-session-tab.tsx's Appearance card.
    ═══════════════════════════════════════════════════════════ */
 [data-ui="nova"]:not([data-theme="light"]) .cd-shell {
   color-scheme: dark;
@@ -238,6 +243,15 @@
      legibility is non-negotiable. Text sites read this lightened sibling
      (4.83:1 AA); the fill role keeps #b3573d. */
   --color-alert-critical-text: #cf6f52;
+  /* Text-safe twin of --color-mid, same split as --color-alert-critical-text
+     above (audit 2026-08-21 F2). Dark's amber needs no correction — #e39a3e is
+     7.03–8.67 across every dark surface, AAA — so this is a pure alias and the
+     dark rendering is byte-identical. The token exists so the ~50 amber-as-text
+     call sites can name one thing in both themes while Light substitutes a
+     darker amber that actually clears AA on cream. Keep --color-mid itself for
+     FILL roles (score bands, chip backgrounds, borders, the mid ring segment),
+     which only owe 3:1. */
+  --color-mid-text:       var(--color-mid);
   --color-alert-caution:  #e08a72;
   --color-positive:       #8fbf9a;
 
@@ -306,7 +320,7 @@
   --chart-cell-selected:   var(--color-surface-soft);
   --chart-d1-lagna-border: var(--color-mid-border);
   --chart-d1-active:       var(--color-accent);
-  --chart-d1-active-text:  var(--color-mid);
+  --chart-d1-active-text:  var(--color-mid-text);
   --chart-d9-lagna-bg:     var(--color-high-bg);
   --chart-d9-lagna-border: var(--color-high-border);
   --chart-d9-active:       var(--color-high);
@@ -315,6 +329,18 @@
   --planet-saturn:         var(--color-low);
   --planet-nodes:          var(--color-accent-secondary);
   --planet-other:          #7fa3c9; /* same one-off blue as NOVA_CAL_HILITE.sashti, dashboard-calendar-monthly-nova.tsx — Nova has no existing blue semantic slot */
+  /* Audit 2026-08-21 F6 — Venus and Ketu were the only 2 of DASHA_COLORS' 7
+     planets pinned to raw hex (#7a4880 / #8c7a6e in dashboard-dasha.tsx), so
+     they alone couldn't follow a theme. Both now have a slot like their five
+     siblings. The audit measured them as glyph fills against the 3:1 floor,
+     but DASHA_COLORS is read as a `color:` on real prose — the dasha lord in
+     the deep-dive paragraph, the bold graha cell in the family table — so 4.5
+     is the bar, and on it BOTH failed here: Venus #7a4880 bottomed at 2.41
+     and Ketu #8c7a6e at 4.02 across the three dark surfaces. These values
+     hold the same violet and grey-brown identities lifted for a dark ground:
+     Venus 6.57–8.10, Ketu 5.67–6.99. Light keeps its own hexes below. */
+  --planet-venus:          #C094CE;
+  --planet-ketu:           #A79486;
 
   /* ── Closes the "dashboard-charts.tsx chart-grid cosmetic gap" flagged since
      Phase 5 (see Progress Log): RasiChart/NavamsaChart/JathagamKattam's
@@ -374,11 +400,11 @@
   --deepdive-border-light:   var(--color-border);
   --deepdive-surface:        var(--color-surface-soft);
   --deepdive-surface-strong: var(--color-surface);
-  --deepdive-accent:         var(--color-mid);
+  --deepdive-accent:         var(--color-mid-text);
   /* Propensities panel tone colors (DASH-14) — were raw hex in
      dashboard-propensities-panel-nova.tsx, illegible on the dark theme. */
   --deepdive-good:           var(--color-high);
-  --deepdive-warn:           var(--color-mid);
+  --deepdive-warn:           var(--color-mid-text);
   --deepdive-info:           #8fb4dc; /* info blue, dark-theme-legible */
   --cl-sage-soft:            var(--color-high-bg);
 
@@ -418,7 +444,7 @@
   --synastry-active-ink:     var(--color-on-accent);
   --synastry-border:         var(--color-border);
   --synastry-border-light:   var(--color-border);
-  --synastry-accent:         var(--color-mid);
+  --synastry-accent:         var(--color-mid-text);
   --synastry-accent-border:  var(--color-mid-border);
   --synastry-caution-border: var(--color-low-border);
   --synastry-good-bg:        var(--color-high-bg);
@@ -485,9 +511,16 @@
   /* "Your day" timeline — dark-mode-specific inks (the rest of the ribbon
      token set is mode-invariant and lives in the shared block below the
      Light palette). Empty rail is a faint light-on-dark wash; Rahu carries
-     the cream ink that reads on the rust fill. */
+     pure white on the saturated rust fill.
+     Audit 2026-08-21 F5: this was --color-text-strong (#ECEEF7), which is
+     4.17:1 on --color-alert-critical (#b3573d) — the label renders at
+     --text-xs (11px, dashboard-today-ribbon-nova.tsx), so it needed 4.5.
+     Light had already reached #FFFFFF for the same reason (4.83:1 here);
+     the reasoning had simply never been carried across to its twin. Yama
+     and Kuligai stay on --color-text-strong: they blend toward the surface
+     (8.94 and 11.73) and don't have the problem. */
   --ribbon-track-bg: color-mix(in srgb, var(--color-text-strong) 10%, transparent);
-  --ribbon-rahu-fg:  var(--color-text-strong);
+  --ribbon-rahu-fg:  #FFFFFF;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -530,21 +563,68 @@
   background: var(--nova-ambient-glow), var(--surface-0);
   background-attachment: fixed;
 
-  /* ── Backgrounds — reuse Classic's light surface scale directly ── */
+  /* ── Backgrounds — reuse Classic's light surface scale where the value is
+     right, hand-set where the ramp's *direction* matters (see below). ── */
   --color-bg:           var(--surface-0);  /* #FAF7F2 */
-  --color-surface-soft: var(--surface-2);  /* #EAE3D6 — dark's surface-soft mirrors surface-2 too */
+
+  /* Audit 2026-08-21 F4: --color-surface and --color-border used to be omitted
+     here on the belief that they'd fall through to globals.css's Classic
+     aliases (var(--surface-1) / var(--surface-5)). They don't. `.cd-shell` in
+     dashboard.css sets both as literal Classic hex, and `.cd-shell` is a
+     NEARER ancestor than :root — custom properties inherit from the nearest
+     declaring ancestor, so the literal is handed to every descendant before
+     the :root alias is ever consulted. Specificity never enters into it, which
+     is exactly why the omission read as correct. Nova-dark overrides both
+     explicitly, so only Light fell through: cards came out #ffffff (the one
+     hueless element in an otherwise warm palette, sitting beside a hero
+     gradient built from the *warm* --surface-1/--surface-2), and the hairline
+     came out Classic tan #e4dbc8 while its own sibling --color-border-strong
+     had been retuned to gold. Both are declared explicitly now.
+
+     --color-surface is a warm near-white rather than var(--surface-1): the
+     card must stay LIGHTER than the page (surface-1 #F3EEE5 is darker than
+     bg, and is now surface-soft's value — see F3 below), so the elevation
+     step survives. #FFFCF6 is bg's own hue one step brighter; it separates
+     from bg at 1.04 vs #ffffff's 1.07, a difference no eye resolves, and the
+     card's real definition comes from --nova-card-shadow plus the border. The
+     file already argues this principle for shadows ("a pure-black drop on a
+     warm cream palette reads as dirt, not depth") — the same logic rejects a
+     cold white card. */
+  --color-surface:      #FFFCF6;
+
+  /* Audit 2026-08-21 F3: was var(--surface-2) #EAE3D6, on the reasoning that
+     "dark's surface-soft mirrors surface-2 too". Mirroring the INDEX instead
+     of the RELATIONSHIP is what broke it — dark steps bg #04050E → surface
+     #151827 → surface-soft #1A1E31, each one *away* from the page and each
+     one buying ink headroom, while light's surface-2 lands *darker* than the
+     page background and two rungs down the ramp, skipping surface-1 entirely.
+     Result: all eight semantic inks (muted/faint, text-accent, high, low,
+     neutral, deepdive-info, score-weak, mid) sat in a 4.1–4.5 band on it —
+     each one passing on --color-bg and --color-surface, each one failing on
+     the third surface nobody measured, which happens to back the Muhurta
+     notice boxes and most raised panels. surface-1 restores the one-step
+     relationship and clears 7 of the 8 (4.53–4.93 AA). The 8th is --color-mid,
+     which needs its own text token — see --color-mid-text below. ── */
+  --color-surface-soft: var(--surface-1);  /* #F3EEE5 — one step, not two */
+
   --color-bg-glass:     color-mix(in srgb, var(--surface-0) 95%, transparent);
   --color-bg-glass-97:  color-mix(in srgb, var(--surface-0) 97%, transparent);
   --color-hover-bg:     rgba(201, 151, 28, 0.08);
-  /* --color-surface / --color-surface-2 / --color-surface-3 / --color-border /
-     --color-text / --color-muted / --color-accent / --color-accent-muted are
-     deliberately NOT redeclared here — they fall through via the cascade to
-     globals.css's Classic aliases (--color-surface: var(--surface-1), etc.),
-     which already resolve correctly under [data-theme="light"] at the base
-     token layer. Omitting them (rather than copying their values) keeps this
-     block in sync if Classic's light palette is ever retuned. */
+  /* --color-surface-2 / --color-surface-3 / --color-text / --color-muted /
+     --color-accent / --color-accent-muted are deliberately NOT redeclared
+     here — those genuinely do fall through to globals.css's Classic aliases
+     (:root only; `.cd-shell` doesn't shadow them) and resolve correctly under
+     [data-theme="light"] at the base token layer. Verified name by name in the
+     2026-08-21 audit. Omitting them keeps this block in sync if Classic's
+     light palette is ever retuned. */
 
-  /* ── Borders ── */
+  /* ── Borders — surface-3, not the surface-5 the old fall-through comment
+     named. Same lesson as F3 above: match dark's border-vs-surface
+     RELATIONSHIP (#2A3147 on #151827 = 1.37), not an index. surface-3 on the
+     new card gives 1.41 — a hairline that defines the card edge without the
+     heavy 2.12 box surface-5 would draw, and it finally puts --color-border in
+     the same warm family as its retuned --color-border-strong sibling. ── */
+  --color-border:        var(--surface-3);  /* #DDD6C8 */
   --color-border-strong: rgba(201, 151, 28, 0.4);
 
   /* ── Text — reuse Classic's light text scale directly. Nova's 4-tier
@@ -557,67 +637,123 @@
      mixing an omitted alias with hand-set siblings. ── */
   --color-text-strong: var(--text-primary);   /* #1C1008 */
   --color-text:         var(--text-secondary); /* #4A3820 */
-  --color-muted:        var(--text-tertiary);  /* #7A6448 */
-  /* Was --text-disabled #A89880 — 2.2–2.6:1 on cream, a hard fail for the
-     small-text roles faint carries. Reuse text-tertiary (#7A6448, 5.25:1 /
-     4.40:1 AA) rather than inventing hex. muted also reads text-tertiary; the
-     visible ladder step between them now comes from weight/size, not this
-     hue — acceptable trade for clearing AA on 200+ sites. */
-  --color-faint:        var(--text-tertiary);  /* #7A6448 */
+  /* Both tiers were var(--text-tertiary) #7A6448. That came from an earlier
+     fix - --text-disabled #A89880 was 2.2-2.6:1 on cream, a hard fail - and
+     text-tertiary was the honest reuse rather than invented hex. But it lands
+     at 4.40 on --color-surface-2 and lower still on the chart grid's tinted
+     cells, so it fails the ink contract below on exactly the small-text roles
+     faint exists for. #6F5B41 is the same warm brown one step down (5.07 worst
+     case). The visible ladder step between muted and faint still comes from
+     weight and size rather than hue - the same accepted trade as before, now
+     on a value that actually passes. */
+  --color-muted:        #6F5B41;
+  --color-faint:        #6F5B41;
 
-  /* ── Accent — deepened bronze-gold in light so accent FILLS (selected
-     tabs, CTAs, selected chips, badges) can carry white on-accent text.
-     Classic's light gold #C9971C is a *light* fill (lum ~0.35): white on it
-     is only 2.64:1 (fail) and near-black text on it, while AA-valid, reads
-     muddy. #8A6410 is dark enough that white = 5.3:1 AA and the pill reads
-     as a rich amber with crisp white type — the look we want for light mode.
-     accent-strong/on-accent have no Classic equivalent. ── */
-  --color-accent:        #8A6410; /* deep bronze-gold fill (was falling through to Classic #C9971C) */
-  --color-accent-strong: var(--accent-hover); /* #A87D18 — darker gold reads better on cream than dark's lighter highlight gold would */
-  --color-on-accent:     #FFFFFF; /* white type on the deep-gold fill (5.3:1 AA) */
-  /* Light-mode text-safe accent. With --color-accent now deepened to #8A6410
-     (5.02:1 as text on cream) fills and accent-as-text coincide; kept as its
-     own token so the fill can be retuned without silently breaking text. */
-  --color-text-accent:   #8A6410;
-  /* Light alert-critical (#C0392B) is already 5.1:1 as text, so the text
-     token just mirrors it — the split exists so the dark override has a home
-     and consumers can point at one name in both themes. */
-  --color-alert-critical-text: #C0392B;
+  /* ══ THE LIGHT INK CONTRACT ══════════════════════════════════════════════
+     Every ink below clears WCAG AA (4.5:1) on FIVE grounds, not the three the
+     2026-08-21 audit measured:
+
+       plain      bg #FAF7F2 · surface #FFFCF6 · surface-soft #F3EEE5
+                  (which is also --chart-bg) · surface-2 #EAE3D6 ·
+                  accent-muted #FDF3DC
+       tinted     its OWN --color-*-bg (12%, 16% for accent-secondary)
+                  composited over bg, surface, and surface-soft
+
+     Stated precisely, because an overstated guarantee in a comment is how
+     three of this file's defects survived review. A tint composited on top of
+     surface-2 is NOT in the set — nothing renders that pairing, and darkening
+     the whole palette far enough to cover it would muddy every chip to buy
+     nothing. Cross-tints (green ink on a red tint) are likewise not real. The
+     worst real pair in the set today is --color-low at 4.59.
+
+     That last ground is the one that kept biting. The audit's static pass
+     cleared the palette on bg/surface/surface-soft and stopped; the browser
+     pass added by e2e/theme-contrast.spec.ts then found 42 more failing nodes
+     across 11 ink/ground pairs, and almost every one was an ink sitting on a
+     tint of ITSELF — the exact chip/callout/score-pill idiom this palette is
+     built around (#2D7A4F on #E6ECE2 = 4.35, #C0392B on #F7E5DE = 4.45, and so
+     on down). A 12% tint costs roughly 0.5 of ratio; inks tuned to land at
+     4.6–5.1 on a plain surface have nothing left to pay it with.
+
+     So: when adding or retuning any ink here, measure it on its own tint too.
+     The e2e gate will catch it if you don't, which is the point of the gate,
+     but it is cheaper to get right at the token.
+     ═══════════════════════════════════════════════════════════════════════ */
+
+  /* ── Accent — a three-rung gold ladder, monotonic on purpose.
+     --color-accent is the FILL (selected tabs, CTAs, chips, badges): #8A6410
+     is dark enough to carry white on-accent type at 5.37:1, where Classic's
+     light gold #C9971C manages only 2.64. The two ink rungs then go DARKER
+     from there, so "strong" reads stronger than plain.
+
+     --color-accent-strong used to be var(--accent-hover) #A87D18, which is
+     LIGHTER than --color-accent — the same inverted-step mistake F3 found in
+     the surface ramp, with the same consequence: at 3.24–3.65 it failed AA as
+     text on every surface, and it is used as text in 20+ components (the
+     calendar's festival and "Now" labels, every Explore category heading, the
+     hybrid chart headers, --planet-lagna). It reads as a hover token and had
+     quietly become an ink. Its three fill uses (the .nova-fmg switch, the
+     primary-button hover, a 2px hybrid divider) carry white type or no type,
+     so going darker only helps them. ── */
+  --color-accent:        #8A6410; /* deep bronze-gold FILL — white on it = 5.37 AA */
+  --color-text-accent:   #7A5709; /* the amber-gold INK (kickers, links, labels) */
+  --color-accent-strong: #6E4E0C; /* emphatic ink + fill-hover — now genuinely darker */
+  --color-on-accent:     #FFFFFF; /* white type on the deep-gold fill */
+
+  /* ── Alert / amber ink. Both of these used to be the design system's raw
+     light tokens (--error #C0392B, --warning #B86A00), sourced deliberately so
+     the bands would "track the same red/amber already proven to read correctly
+     on Classic's light surfaces". The sourcing was right; the "already proven"
+     was not — nobody had measured them, and #B86A00 is 3.85:1 on plain cream
+     before a tint is anywhere near it.
+
+     --color-mid-text exists as its own name because the audit's F2 proposed
+     splitting the fill role from the text role. The split turned out to be
+     both unnecessary and insufficient: unnecessary because #8A5000 is a
+     perfectly good fill (a slightly deeper amber, still unmistakably amber
+     beside the green and red bands), and insufficient because much of the
+     amber-as-text in this app never names --color-mid at all — it comes out of
+     lib/format.ts's scoreBandColor() at runtime as --color-score-fair, which
+     no repointing of call sites can reach. Moving the underlying value fixes
+     both paths at once. The names are kept so the ~50 repointed call sites
+     still say what they mean, and so the dark block has a home for its alias. ── */
+  --color-alert-critical-text: var(--color-alert-critical);
+  --color-mid-text:            var(--color-mid);
 
   /* ── Semantic — darkened from Nova-dark's pastel green/purple for contrast on cream ── */
-  --color-accent-alt:            #2f7d4e; /* green — success/favourable */
-  --color-accent-secondary:       #7c5aa6; /* purple */
-  --color-accent-secondary-muted: rgba(124, 90, 166, 0.16);
+  --color-accent-alt:            #276A45; /* green — success/favourable */
+  --color-accent-secondary:       #6B4A8F; /* purple */
+  --color-accent-secondary-muted: rgba(107, 74, 143, 0.16);
 
-  /* Four-band score palette, re-tuned for contrast on cream. Sourced from
-     the design system's own light --success/--warning/--error tokens
-     (packages/design-tokens, [data-theme="light"] block) rather than
-     invented hex, so these track the same green/amber/red already proven
-     to read correctly on Classic's light surfaces. */
-  --color-score-high: #2D7A4F;
-  --color-score-mid:  #B86A00;
-  --color-score-low:  #C0392B;
-  --color-score-strong: #1F6B40;
-  --color-score-good:   #2D7A4F;
-  --color-score-fair:   #B86A00;
-  --color-score-weak:   #B3402C;
-  --color-high:        #2D7A4F;
-  --color-high-bg:     rgba(45, 122, 79, 0.12);
-  --color-high-border: rgba(45, 122, 79, 0.34);
-  --color-mid:         #B86A00;
-  --color-mid-bg:      rgba(184, 106, 0, 0.12);
-  --color-mid-border:  rgba(184, 106, 0, 0.34);
-  --color-low:         #C0392B;
-  --color-low-bg:      rgba(192, 57, 43, 0.12);
-  --color-low-border:  rgba(192, 57, 43, 0.34);
+  /* Four-band score palette. Same green/amber/red hue families as Nova-dark so
+     score meaning survives a theme switch, each one landing on the dark side of
+     the ink contract above. strong/good keep a 1.36 step between them so the
+     two greens are still two greens, and low/weak keep the ordering they always
+     had (weak darker than low). */
+  --color-score-high: #276A45;
+  --color-score-mid:  #8A5000;
+  --color-score-low:  #AF3326;
+  --color-score-strong: #17552F;
+  --color-score-good:   #276A45;
+  --color-score-fair:   #8A5000;
+  --color-score-weak:   #A33826;
+  --color-high:        #276A45;
+  --color-high-bg:     rgba(39, 106, 69, 0.12);
+  --color-high-border: rgba(39, 106, 69, 0.34);
+  --color-mid:         #8A5000;
+  --color-mid-bg:      rgba(138, 80, 0, 0.12);
+  --color-mid-border:  rgba(138, 80, 0, 0.34);
+  --color-low:         #AF3326;
+  --color-low-bg:      rgba(175, 51, 38, 0.12);
+  --color-low-border:  rgba(175, 51, 38, 0.34);
   /* Cool slate for the activity board's "steady" NEUTRAL tone — darkened for
      legible text on the cream light-theme surface. See the dark block above. */
-  --color-neutral:        #3C6E8F;
-  --color-neutral-bg:     rgba(60, 110, 143, 0.12);
-  --color-neutral-border: rgba(60, 110, 143, 0.34);
-  --color-alert-critical: #C0392B;
-  --color-alert-caution:  #B3402C;
-  --color-positive:       #2D7A4F;
+  --color-neutral:        #335E7A;
+  --color-neutral-bg:     rgba(51, 94, 122, 0.12);
+  --color-neutral-border: rgba(51, 94, 122, 0.34);
+  --color-alert-critical: #AF3326;
+  --color-alert-caution:  #A33826;
+  --color-positive:       #276A45;
 
   /* ── Toast state colors (error/success banners + dropdown danger button) ── */
   --color-toast-error-bg:     var(--color-low-bg);
@@ -645,12 +781,21 @@
   --panel-mid-earth:    var(--color-muted);
   --shadow-faint:       rgba(28, 16, 8, 0.12);
 
-  --chart-bg:              var(--color-surface-3);
+  /* The rasi-square grid. Was var(--color-surface-3) #DDD6C8 - the same
+     mirror-the-index reflex F3 found in the surface ramp and the accent ladder,
+     a third time: dark's --chart-bg #0A0E20 is one step UP from its page, while
+     light's surface-3 is three steps DOWN from its own. That made the grid a
+     fourth, darker ground nothing in the palette was measured against, and the
+     lagna and D9-active cells then tint it darker still - #D3C6B0 and #C7C9B8,
+     where the 10px rasi label (--color-faint) lands at 3.84. Sitting the grid
+     on surface-soft instead puts those same tinted cells at 4.73 and 4.74, and
+     a recessed-well grid is what one step down is FOR. ── */
+  --chart-bg:              var(--color-surface-soft);
   --chart-cell-default:    var(--color-surface);
   --chart-cell-selected:   var(--color-surface-soft);
   --chart-d1-lagna-border: var(--color-mid-border);
   --chart-d1-active:       var(--color-accent);
-  --chart-d1-active-text:  var(--color-mid);
+  --chart-d1-active-text:  var(--color-mid-text);
   --chart-d9-lagna-bg:     var(--color-high-bg);
   --chart-d9-lagna-border: var(--color-high-border);
   --chart-d9-active:       var(--color-high);
@@ -659,6 +804,14 @@
   --planet-saturn:         var(--color-low);
   --planet-nodes:          var(--color-accent-secondary);
   --planet-other:          #1e5a8c; /* same blue Classic already uses for this exact slot (globals.css) — no invented hex */
+  /* Twins of the dark block's F6 additions. Venus keeps its original #7a4880
+     unchanged — on cream it was already 5.93–6.69, the hue is the established
+     identity, and it stays distinguishable from --planet-nodes' lavender.
+     Ketu could not stay: #8c7a6e is 3.55 on --color-surface-soft, a fail on
+     the same third surface F3 was about. #665C55 cools the grey-brown just
+     enough to also pull it away from --color-faint's warm ochre (5.63–6.35). */
+  --planet-venus:          #7a4880;
+  --planet-ketu:           #665C55;
 
   --chartgrid-ink:          var(--color-text-strong);
   --chartgrid-ink-strong:   var(--color-text-strong);
@@ -678,11 +831,11 @@
   --deepdive-border-light:   var(--color-border);
   --deepdive-surface:        var(--color-surface-soft);
   --deepdive-surface-strong: var(--color-surface);
-  --deepdive-accent:         var(--color-mid);
+  --deepdive-accent:         var(--color-mid-text);
   /* Propensities panel tone colors (DASH-14) — light-theme values. */
   --deepdive-good:           var(--color-high);
-  --deepdive-warn:           var(--color-mid);
-  --deepdive-info:           #3A6EA5; /* info blue */
+  --deepdive-warn:           var(--color-mid-text);
+  --deepdive-info:           #316095; /* info blue - darkened for the ink contract (was #3A6EA5, 3.96 on its own tint) */
   --cl-sage-soft:            var(--color-high-bg);
 
   --yogadosham-ink:          var(--color-text);
@@ -696,7 +849,7 @@
   --synastry-active-ink:     var(--color-on-accent);
   --synastry-border:         var(--color-border);
   --synastry-border-light:   var(--color-border);
-  --synastry-accent:         var(--color-mid);
+  --synastry-accent:         var(--color-mid-text);
   --synastry-accent-border:  var(--color-mid-border);
   --synastry-caution-border: var(--color-low-border);
   --synastry-good-bg:        var(--color-high-bg);
@@ -738,10 +891,16 @@
 
   /* "Your day" timeline — light-mode-specific inks (mode-invariant tokens
      live in the shared block below). The empty rail is an opaque warm
-     greige (surface-soft) so the spine reads as a defined channel on cream
-     rather than the near-invisible 9%-ink wash it used to be. Rahu carries
-     white on its saturated red — near-black type was a muddy ~3:1. */
-  --ribbon-track-bg: var(--color-surface-soft);
+     greige so the spine reads as a defined channel on cream rather than the
+     near-invisible 9%-ink wash it used to be. Rahu carries white on its
+     saturated red — near-black type was a muddy ~3:1.
+     Pinned to --surface-2 rather than --color-surface-soft: audit F3 moved
+     surface-soft one rung lighter (#EAE3D6 → #F3EEE5) to buy ink headroom,
+     which the empty rail doesn't need and can't afford — nothing is printed
+     on it, and at #F3EEE5 it separates from the cream page at 1.03 and the
+     channel disappears. The greige the original comment describes is the
+     value it wanted; it just used to spell it "surface-soft". */
+  --ribbon-track-bg: var(--surface-2);
   --ribbon-rahu-fg:  #FFFFFF;
 }
 
@@ -1142,7 +1301,7 @@
      dark's amber, which is 2.4:1 as text on the cream light canvas, an AA fail
      on a pill whose whole job is to be read. --color-mid is the same #e39a3e in
      dark (no visual change there) and the light-tuned #B86A00 in light. */
-  color: var(--color-mid);
+  color: var(--color-mid-text);
   background: color-mix(in srgb, var(--color-mid) 14%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-mid) 30%, transparent);
   border-radius: 999px;
@@ -1406,7 +1565,7 @@
 [data-ui="nova"] .cd-shell .alert-banner--caution {
   background: var(--color-mid-bg);
   border-color: var(--color-mid-border);
-  color: var(--color-mid);
+  color: var(--color-mid-text);
 }
 
 [data-ui="nova"] .cd-shell .collapsible__trigger { color: var(--color-text-strong); }
@@ -1689,9 +1848,9 @@
      resolving. Mirrors EASE_NOVA in web/lib/motion.ts. */
   --ease-nova: cubic-bezier(0.22, 1, 0.36, 1);
   --dur-fast: 120ms;   /* press / hover feedback */
-  --dur-base: 220ms;   /* colour + shadow settles */
-  --dur-slow: 420ms;   /* content reveal */
-  --dur-reveal: 700ms; /* signature draws (score ring) */
+  --dur-base: 240ms;   /* navigation + colour/shadow settles */
+  --dur-slow: 360ms;   /* content reveal */
+  --dur-reveal: 900ms; /* signature draws (score ring) */
 }
 
 /* The single reveal keyframe: fade + gentle rise. Reused by the tab-enter
@@ -2712,7 +2871,7 @@
 button.ui-chip { cursor: pointer; }
 [data-ui="nova"] .cd-shell .ui-chip--neutral { color: var(--color-neutral); border-color: var(--color-neutral-border); }
 [data-ui="nova"] .cd-shell .ui-chip--high { color: var(--color-high); border-color: var(--color-high-border); background: var(--color-high-bg); }
-[data-ui="nova"] .cd-shell .ui-chip--mid { color: var(--color-mid); border-color: var(--color-mid-border); background: var(--color-mid-bg); }
+[data-ui="nova"] .cd-shell .ui-chip--mid { color: var(--color-mid-text); border-color: var(--color-mid-border); background: var(--color-mid-bg); }
 [data-ui="nova"] .cd-shell .ui-chip--low { color: var(--color-low); border-color: var(--color-low-border); background: var(--color-low-bg); }
 [data-ui="nova"] .cd-shell .ui-chip--accent { color: var(--color-text-accent); border-color: var(--color-border-strong); background: var(--color-accent-muted); }
 [data-ui="nova"] .cd-shell button.ui-chip--active {

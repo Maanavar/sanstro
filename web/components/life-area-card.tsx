@@ -243,7 +243,7 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeArea
 
       {area.remedy && (
         <div style={{ marginTop: "var(--space-2_5)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--chart-d1-lagna-bg)", border: "1px solid rgba(184,90,44,0.25)" }}>
-          <p className="cd-kicker" style={{ margin: "0 0 var(--space-0_5)", color: "var(--color-score-mid)", letterSpacing: "0.08em" }}>
+          <p className="cd-kicker" style={{ margin: "0 0 var(--space-0_5)", color: "var(--color-mid-text)", letterSpacing: "0.08em" }}>
             {t("remedy_label", lang)}
           </p>
           <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-text)", lineHeight: 1.45 }}>{tLang(area.remedy, lang)}</p>

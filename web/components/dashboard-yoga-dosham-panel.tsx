@@ -799,7 +799,7 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
             {displayName(yoga.name, lang)}
           </span>
           {yoga.isPresent && yoga.dashaActivated && (
-            <span style={{ fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-mid)", border: "1px solid var(--color-mid-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)" }}>
+            <span style={{ fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-mid-text)", border: "1px solid var(--color-mid-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)" }}>
               {t("yoga_dasha_activated", lang)}
             </span>
           )}
@@ -1040,7 +1040,7 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
             {displayName(dosham.name, lang)}
           </span>
           {dosham.isPresent && dosham.dashaActivated && (
-            <span style={{ fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-mid)", border: "1px solid var(--color-mid-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)" }}>
+            <span style={{ fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-mid-text)", border: "1px solid var(--color-mid-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)" }}>
               {t("yoga_dasha_activated", lang)}
             </span>
           )}
@@ -1110,7 +1110,7 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
 
             {attentionBullets.length > 0 && (
               <div style={{ marginTop: "var(--space-2_5)" }}>
-                <p className="cd-kicker" style={{ color: "var(--color-mid)", letterSpacing: "0.08em" }}>
+                <p className="cd-kicker" style={{ color: "var(--color-mid-text)", letterSpacing: "0.08em" }}>
                   {lang === "ta" ? "கவன குறிப்பு" : "Attention Note"}
                 </p>
                 <ul style={{ margin: 0, paddingLeft: "var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
@@ -1163,7 +1163,7 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
             })()}
 
             {dosham.missingData && dosham.missingData.length > 0 && (
-              <p style={{ margin: "var(--space-2_5) 0 0", fontSize: "var(--text-sm)", color: "var(--color-score-mid)", fontStyle: "italic", lineHeight: 1.5 }}>
+              <p style={{ margin: "var(--space-2_5) 0 0", fontSize: "var(--text-sm)", color: "var(--color-mid-text)", fontStyle: "italic", lineHeight: 1.5 }}>
                 {lang === "ta"
                   ? "குறிப்பு: பிறந்த நேரம் இல்லாததால் இந்த மதிப்பீடு தோராயமானது."
                   : "Note: this assessment is estimated because exact birth time is unavailable."}

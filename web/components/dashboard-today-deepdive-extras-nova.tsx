@@ -517,7 +517,7 @@ function NovaMetaChip({ label, value }: { label: string; value: string }) {
   return (
     <Card variant="soft" style={{ display: "block", padding: "var(--space-1_5) var(--space-3)" }}>
       <Kicker as="p" color="var(--color-faint)" style={{ marginBottom: "2px" }}>{label}</Kicker>
-      <p style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>{value}</p>
+      <p style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text)" }}>{value}</p>
     </Card>
   );
 }
@@ -676,7 +676,7 @@ export function NovaPrasnaWidget({
 
             {(lang === "ta" ? result.cautionTa : result.cautionEn) && (
               <Card variant="mid" style={{
-                padding: "var(--space-2_5) var(--space-3)", fontSize: "var(--text-sm)", color: "var(--color-mid)", lineHeight: 1.55,
+                padding: "var(--space-2_5) var(--space-3)", fontSize: "var(--text-sm)", color: "var(--color-mid-text)", lineHeight: 1.55,
                 display: "flex", flexDirection: "row", alignItems: "flex-start", gap: "var(--space-1_5)",
               }}>
                 <AlertTriangle size={14} strokeWidth={2} aria-hidden="true" style={{ flex: "none", marginTop: "2px" }} />

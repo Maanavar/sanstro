@@ -22,7 +22,7 @@ interface SynastryMatrixProps {
 
 function scoreTone(score: number) {
   if (score >= 65) return { color: "var(--chart-d9-active)", bg: "var(--chart-d9-active-bg)", border: "var(--color-high-border)" };
-  if (score >= 40) return { color: "var(--color-mid)", bg: "var(--chart-d1-lagna-bg)", border: "var(--color-mid-border)" };
+  if (score >= 40) return { color: "var(--color-mid-text)", bg: "var(--chart-d1-lagna-bg)", border: "var(--color-mid-border)" };
   return                  { color: "var(--planet-saturn)", bg: "var(--color-low-bg)", border: "var(--color-low-border)" };
 }
 
