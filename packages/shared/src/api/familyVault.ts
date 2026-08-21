@@ -1,4 +1,5 @@
 import { getApiClient } from "./client";
+import { todayIso } from "../utils/format";
 
 export interface FamilyVaultListItem {
   familyVaultId: string;
@@ -53,13 +54,9 @@ export function listFamilyVaults(): Promise<FamilyVaultListResponse> {
   return getApiClient().get("/family-vaults") as Promise<FamilyVaultListResponse>;
 }
 
-function utcDateParam(date = new Date()): string {
-  return date.toISOString().slice(0, 10);
-}
-
 export function getFamilyVaultToday(
   vaultId: string,
-  dateLocal = utcDateParam(),
+  dateLocal = todayIso(),
 ): Promise<FamilyVaultTodayResponse> {
   return getApiClient().get(
     `/family-vaults/${encodeURIComponent(vaultId)}/today`,

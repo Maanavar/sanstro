@@ -1,4 +1,5 @@
 import { getApiClient } from "./client";
+import { todayIso } from "../utils/format";
 
 export interface TransitItem {
   alertId: string;
@@ -43,7 +44,7 @@ export function getUpcomingTransits(
   chartId: string,
   windowDays = 30,
 ): Promise<{ success: boolean; data: TransitItem[]; meta: unknown }> {
-  const asOf = new Date().toISOString().slice(0, 10);
+  const asOf = todayIso();
   return getApiClient().get(`/charts/${chartId}/peyarchi/upcoming`, {
     as_of: asOf,
     window_days: windowDays,

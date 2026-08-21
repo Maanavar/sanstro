@@ -1,5 +1,12 @@
+/** Today in the caller's local calendar day, not UTC — `toISOString()` shifts
+ *  to UTC first, which reads as "yesterday" for any positive-offset timezone
+ *  (e.g. IST, UTC+5:30) during the hours after local midnight but before UTC
+ *  has rolled over. */
 export function todayIso(reference = new Date()): string {
-  return reference.toISOString().slice(0, 10);
+  const year = reference.getFullYear();
+  const month = String(reference.getMonth() + 1).padStart(2, "0");
+  const day = String(reference.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 export function addDays(isoDate: string, days: number): string {

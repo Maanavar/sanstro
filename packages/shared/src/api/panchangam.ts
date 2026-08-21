@@ -1,5 +1,6 @@
 import { getApiClient } from "./client";
 import type { PanchangamDailyResponseData, PanchangamMonthlyData } from "../types";
+import { todayIso } from "../utils/format";
 
 export interface PanchangamParams {
   lat: number;
@@ -24,7 +25,7 @@ export function getPanchangamDay(
 export function getPanchangamToday(
   params: PanchangamParams,
 ): Promise<{ data: PanchangamDailyResponseData }> {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIso();
   return getApiClient().get("/panchangam/daily", {
     date: today,
     lat: params.lat,

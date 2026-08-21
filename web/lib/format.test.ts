@@ -31,6 +31,16 @@ describe("format helpers", () => {
     expect(todayIso(new Date("2026-05-21T12:00:00Z"))).toBe("2026-05-21");
   });
 
+  it("todayIso reads the local calendar day, not the UTC-shifted one", () => {
+    // Constructed from local wall-clock components (the `Date(y, m, d, h)`
+    // form), so this is meaningful regardless of the runner's own timezone:
+    // for any positive UTC offset (e.g. IST, +5:30), 1am local on the 21st is
+    // still the 20th in UTC — a naive `toISOString().slice(0, 10)` would
+    // report "yesterday" until the offset hours have elapsed past midnight.
+    const earlyLocalMorning = new Date(2026, 4, 21, 1, 0, 0);
+    expect(todayIso(earlyLocalMorning)).toBe("2026-05-21");
+  });
+
   it("finds the next matching weekday", () => {
     // 2026-05-21 is a Thursday.
     expect(nextWeekdayDate("FRIDAY", "2026-05-21")).toBe("2026-05-22"); // tomorrow
