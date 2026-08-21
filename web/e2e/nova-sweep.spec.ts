@@ -338,6 +338,10 @@ for (const tabDef of TOP_TABS) {
           continue;
         }
         currentTab = `${tabDef.label} > ${subPattern}`;
+        // The focus picker can mount after the parent tab has settled. Dismiss
+        // it again immediately before a sub-tab click so it cannot intercept
+        // the interaction and turn a rendered screen into a false timeout.
+        await dismissBlockingDialogs(3);
         await subBtn.click();
         await page.waitForTimeout(1000);
         await page.waitForLoadState("networkidle", { timeout: 15_000 }).catch(() => {});
