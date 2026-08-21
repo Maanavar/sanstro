@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowRight, ArrowUpRight, X, Diamond, Sparkle, AlertTriangle, Leaf, type LucideIcon } from "lucide-react";
+import { ArrowRight, X, Diamond, Sparkle, AlertTriangle, Leaf, type LucideIcon } from "lucide-react";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { addDays, formatClockLabel, formatDateLabel, getScoreVerdictFromGuidance } from "@/lib/format";
@@ -27,6 +27,7 @@ import type {
 } from "@/lib/types";
 
 import { NovaClampedText, NovaScoreDial, NovaStarRow, StatusLive, type StatusMessage } from "./dashboard-ui-nova";
+import { festivalTags } from "./dashboard-calendar-shared";
 import { bandPhrase, bandTone } from "@/lib/reasoning";
 import { MiniMoonGlyph } from "./celestial-glyph-nova";
 import { HeroSkyBackdrop, DeepDiveOrbitGlyph } from "./celestial-ambient-nova";
@@ -41,7 +42,6 @@ import { downloadJadhagamPdf } from "./dashboard-personal-shared";
 import { DashboardTodayRibbonNova, findHorai } from "./dashboard-today-ribbon-nova";
 import { DashboardTodayActivityBoardNova } from "./dashboard-today-activity-board-nova";
 import {
-  DashboardTodayComingUpNova,
   DashboardTodayFamilyRemedyRowNova,
   DashboardTodayLifeAreasDasaRowNova,
   DashboardTodayQuickLinksNova,
@@ -250,6 +250,11 @@ export function DashboardTodayTabNova({
   // being the useful label — show the actual new/full moon instead of "Waning"/
   // "Waxing" so this chip agrees with the calendar tab's LunarTithiBadge.
   const specialTithiMeta = lunarSpecialTithiMeta(panchangam?.specialTithiDay?.name, lang);
+  // A named day (Varalakshmi Vratham, Ekadashi, ...) is more useful in the
+  // hero's one-liner than the generic paksha name it would otherwise show —
+  // world observances are excluded so a UN awareness day doesn't bump a real
+  // festival off this compact slot.
+  const primaryFestival = panchangam?.festivals.find((f) => !festivalTags(f).includes("observance")) ?? null;
 
   const isToday = selectedDate === todayDate;
 
@@ -259,11 +264,8 @@ export function DashboardTodayTabNova({
   // DASH-10.1 (2026-07-16): Abhijit never fully disappears — surfaced as a
   // small secondary line when a personal window won the hero instead.
   const secondaryAbhijitWindow = findSecondaryAbhijitWindow(personalDailyGuidance?.bestWindows, bestWindow);
-  // One near-miss, named. The backend already ranks these (the native's own hora
-  // first, then by how much of the day was lost) and caps the list, so the hero
-  // takes the head rather than re-deciding. Only shown beside a window we are
-  // actually recommending — a lone caution with no recommendation is not a
-  // "best window" card.
+  // Keep a ranked timing conflict attached to the one actionable recommendation,
+  // rather than rendering a second copy of the best-window card in the rail.
   const windowConflict = bestWindow ? personalDailyGuidance?.bestWindowConflicts?.[0] ?? null : null;
 
   // Real lunar phase for today, drawn straight from the tithi we already have —
@@ -364,7 +366,7 @@ export function DashboardTodayTabNova({
               </span>
               {paksha && (
                 <span style={{ fontSize: "var(--text-sm)", color: "var(--color-accent-secondary)", display: "inline-flex", alignItems: "center", gap: "var(--space-1_5)" }}>
-                  {moonPhase ? <MiniMoonGlyph phase={moonPhase} size={15} /> : (wax ? "◐" : "◑")} {specialTithiMeta ? specialTithiMeta.label : wax ? (lang === "ta" ? "வளர்பிறை" : "Waxing") : (lang === "ta" ? "தேய்பிறை" : "Waning")} · {wax ? (lang === "ta" ? "சுக்ல பக்ஷம்" : "Sukla Paksham") : (lang === "ta" ? "கிருஷ்ண பக்ஷம்" : "Krishna Paksham")}
+                  {moonPhase ? <MiniMoonGlyph phase={moonPhase} size={15} /> : (wax ? "◐" : "◑")} {specialTithiMeta ? specialTithiMeta.label : wax ? (lang === "ta" ? "வளர்பிறை" : "Waxing") : (lang === "ta" ? "தேய்பிறை" : "Waning")} · {primaryFestival ? primaryFestival.name : wax ? (lang === "ta" ? "சுக்ல பக்ஷம்" : "Sukla Paksham") : (lang === "ta" ? "கிருஷ்ண பக்ஷம்" : "Krishna Paksham")}
                 </span>
               )}
               <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
@@ -529,10 +531,10 @@ export function DashboardTodayTabNova({
                   >
                     <span aria-hidden="true" style={{ fontSize: "var(--text-base)", flex: "none" }}>🌘</span>
                     <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      <b style={{ color: "var(--color-mid)", fontWeight: 700 }}>{lang === "ta" ? "இன்று சந்திராஷ்டமம்" : "Chandrashtama today"}</b>
+                      <b style={{ color: "var(--color-mid-text)", fontWeight: 700 }}>{lang === "ta" ? "இன்று சந்திராஷ்டமம்" : "Chandrashtama today"}</b>
                       <span style={{ color: "var(--color-muted)" }}> — {lang === "ta" ? "கவனம் தேவை, பயம் அல்ல" : "a day for awareness, not alarm"}</span>
                     </span>
-                    <span style={{ display: "inline-flex", color: "var(--color-mid)", flex: "none" }}><ArrowRight size={14} strokeWidth={2} aria-hidden="true" /></span>
+                    <span style={{ display: "inline-flex", color: "var(--color-mid-text)", flex: "none" }}><ArrowRight size={14} strokeWidth={2} aria-hidden="true" /></span>
                   </a>
                 )}
                 {personalDailyGuidance?.emotionalWeather && (
@@ -571,9 +573,16 @@ export function DashboardTodayTabNova({
                           </span>
                         )}
                       </div>
-                      {personalDailyGuidance?.actionSuggestion && (
-                        <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", marginTop: "2px" }}>
-                          {tLang(personalDailyGuidance.actionSuggestion, lang)}
+                      {windowConflict && (
+                        <div style={{ fontSize: "var(--text-xs)", color: "var(--color-low)", marginTop: "6px", paddingTop: "6px", borderTop: "1px solid var(--color-border)", lineHeight: 1.35, display: "flex", gap: "var(--space-2)" }}>
+                          <AlertTriangle size={12} strokeWidth={2} aria-hidden="true" style={{ flex: "none", marginTop: "2px" }} />
+                          <span>
+                            <span style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+                              {formatClockLabel(windowConflict.start)} – {formatClockLabel(windowConflict.end)}
+                            </span>
+                            {" · "}
+                            {lang === "ta" ? windowConflict.text.ta : windowConflict.text.en}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -597,14 +606,6 @@ export function DashboardTodayTabNova({
                       )}
                     </div>
                   </Card>
-                )}
-                {secondaryAbhijitWindow && (
-                  <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", display: "flex", alignItems: "center", gap: "var(--space-1_5)" }}>
-                    <Sparkle size={13} strokeWidth={2} aria-hidden="true" />
-                    {lang === "ta"
-                      ? `இன்று அபிஜித் முகூர்த்தமும் நல்லது · ${formatClockLabel(secondaryAbhijitWindow.start)} – ${formatClockLabel(secondaryAbhijitWindow.end)}`
-                      : `Abhijit muhurtham is also auspicious today · ${formatClockLabel(secondaryAbhijitWindow.start)} – ${formatClockLabel(secondaryAbhijitWindow.end)}`}
-                  </div>
                 )}
                 <StatusLive status={reminderStatus} />
               </>
@@ -652,46 +653,24 @@ export function DashboardTodayTabNova({
             );
           })()}
 
-          {/* Best / Avoid / Horai rail — the three timing facts pulled out of
-              prose so the hero answers "when?" at a glance (redesign
-              2026-07-18). Horai only renders when viewing today, since it is
-              a "now" lookup. */}
-          {(bestWindow || avoidWindow || heroHora) && (
+          {/* Timing rail: the primary card above owns the featured best window;
+              this rail holds its complementary auspicious timing plus caution
+              and current-Horai context. */}
+          {(secondaryAbhijitWindow || avoidWindow || heroHora) && (
             <div style={{ flex: "none", width: "224px", alignSelf: "center", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-              {bestWindow && (
+              {secondaryAbhijitWindow && (
                 <Card style={{ flex: "none", background: "color-mix(in srgb, var(--color-surface) 62%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3_5)", display: "flex", flexDirection: "row", gap: "var(--space-3)", alignItems: "center" }}>
-                  <div aria-hidden="true" style={{ width: "32px", height: "32px", borderRadius: "var(--radius-pill)", background: "var(--color-high-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-high)", flex: "none" }}><ArrowUpRight size={16} strokeWidth={2} /></div>
+                  <div aria-hidden="true" style={{ width: "32px", height: "32px", borderRadius: "var(--radius-pill)", background: "var(--color-high-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-high)", flex: "none" }}><Sparkle size={16} strokeWidth={2} /></div>
                   <div style={{ minWidth: 0 }}>
                     <Kicker as="div" color="var(--color-high)">
-                      {lang === "ta" ? "சிறந்த நேரம்" : "Best window"}
+                      {lang === "ta" ? "அபிஜித் முகூர்த்தம்" : "Abhijit muhurtham"}
                     </Kicker>
                     <div style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)", marginTop: "3px", fontVariantNumeric: "tabular-nums" }}>
-                      {formatClockLabel(bestWindow.start)} – {formatClockLabel(bestWindow.end)}
+                      {formatClockLabel(secondaryAbhijitWindow.start)} – {formatClockLabel(secondaryAbhijitWindow.end)}
                     </div>
-                    {/* The window's own composition ("Venus hora inside
-                        Amirtham") when the backend computed it, so the claim is
-                        checkable against the panchangam tab. The old blanket
-                        line stays as the fallback for windows served from a
-                        cache row predating the change. */}
-                    <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "2px", lineHeight: 1.35 }}>
-                      {bestWindow.text
-                        ? (lang === "ta" ? bestWindow.text.ta : bestWindow.text.en)
-                        : (lang === "ta" ? "முக்கியமான வேலைகளுக்கு நல்லது" : "Good for important tasks")}
-                    </div>
-                    {/* A good kala this native must skip, and why. Nothing else
-                        in the app reconciles the hora grid against the Gowri
-                        grid, so without this the panchangam tab appears to
-                        contradict the hero. */}
-                    {windowConflict && (
-                      <div style={{ fontSize: "var(--text-xs)", color: "var(--color-low)", marginTop: "6px", paddingTop: "6px", borderTop: "1px solid var(--color-border)", lineHeight: 1.35, display: "flex", gap: "var(--space-2)" }}>
-                        <AlertTriangle size={12} strokeWidth={2} aria-hidden="true" style={{ flex: "none", marginTop: "2px" }} />
-                        <span>
-                          <span style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-                            {formatClockLabel(windowConflict.start)} – {formatClockLabel(windowConflict.end)}
-                          </span>
-                          {" · "}
-                          {lang === "ta" ? windowConflict.text.ta : windowConflict.text.en}
-                        </span>
+                    {secondaryAbhijitWindow.text && (
+                      <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "2px", lineHeight: 1.35 }}>
+                        {lang === "ta" ? secondaryAbhijitWindow.text.ta : secondaryAbhijitWindow.text.en}
                       </div>
                     )}
                   </div>
@@ -820,9 +799,12 @@ export function DashboardTodayTabNova({
         onGoToLifeAreas={onGoToLifeAreas}
       />
 
-      {/* ===== 5. Family Today + Remedy For You row (redesign 2026-07-18) —
-          the remedy grows from a one-liner into a card with its own save
-          action; family members get star tiles. ===== */}
+      {/* ===== 5. Family Today + Remedy For You row (redesign 2026-07-18,
+          "Coming up" folded into Family Today's footer 2026-08-20) — the
+          remedy grows from a one-liner into a card with its own save action;
+          family members get star tiles; Family Today pins "Coming up" to its
+          bottom so a small/solo household doesn't leave the card looking
+          empty next to the taller Remedy card. ===== */}
       <DashboardTodayFamilyRemedyRowNova
         lang={lang}
         familyAggregate={familyAggregate}
@@ -834,11 +816,6 @@ export function DashboardTodayTabNova({
         onSaveReminder={() => void handleSaveReminder()}
         onGoToFamily={onGoToFamily}
         onGoToLifeAreas={onGoToLifeAreas}
-      />
-
-      {/* Coming up — still a one-liner, full width. */}
-      <DashboardTodayComingUpNova
-        lang={lang}
         peyarchiUpcoming={peyarchiUpcoming}
         personalSani={personalSani}
         onGoToCalendar={onGoToCalendar}

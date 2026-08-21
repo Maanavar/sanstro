@@ -35,8 +35,8 @@ function memberIsChandrashtama(member: { activeCycleTags: string[] }): boolean {
 /**
  * Today-tab glance sections (homepage redesign 2026-07-18):
  *   - Life Areas + Dasa Chapter row (nova-grid-la-dasa)
- *   - Family Today + Remedy For You row (nova-grid-2)
- *   - "Coming up" one-liner strip
+ *   - Family Today + Remedy For You row (nova-grid-2); "Coming up" is folded
+ *     into Family Today's footer (2026-08-20) rather than its own strip
  * All real data, reused from the same hooks the Today tab already consumes.
  */
 
@@ -74,13 +74,13 @@ function dashaSentiment(
     if (_NATURE_GROWTH.has(functionalNature)) {
       // New `ta` string — pending native review, matching this repo's
       // convention for newly added Tamil copy.
-      return { label: lang === "ta" ? "முயற்சியால் வளரும் காலம்" : "grows with effort", color: "var(--color-mid)" };
+      return { label: lang === "ta" ? "முயற்சியால் வளரும் காலம்" : "grows with effort", color: "var(--color-mid-text)" };
     }
     if (_NATURE_TESTING.has(functionalNature)) {
       return { label: lang === "ta" ? "சவாலான காலம் · மெதுவாக செல்லுங்கள்" : "testing period · go gently", color: "var(--color-low)" };
     }
     if (_NATURE_STEADY.has(functionalNature)) {
-      return { label: lang === "ta" ? "நடுநிலையான காலம்" : "steady, mixed period", color: "var(--color-mid)" };
+      return { label: lang === "ta" ? "நடுநிலையான காலம்" : "steady, mixed period", color: "var(--color-mid-text)" };
     }
   }
   // Fallback: natural benefic/malefic split (no chart-specific data yet).
@@ -90,7 +90,7 @@ function dashaSentiment(
   if (_DASHA_CHALLENGING.has(antardashaLord)) {
     return { label: lang === "ta" ? "சவாலான காலம் · மெதுவாக செல்லுங்கள்" : "testing period · go gently", color: "var(--color-low)" };
   }
-  return { label: lang === "ta" ? "நடுநிலையான காலம்" : "steady, mixed period", color: "var(--color-mid)" };
+  return { label: lang === "ta" ? "நடுநிலையான காலம்" : "steady, mixed period", color: "var(--color-mid-text)" };
 }
 
 function daysAwayLabel(days: number, lang: Lang): string {
@@ -291,7 +291,7 @@ export function DashboardTodayQuickLinksNova({
 const TREND_META: Record<"UP" | "DOWN" | "STABLE", { Icon: LucideIcon; color: string; en: string; ta: string }> = {
   UP: { Icon: ArrowUp, color: "var(--color-high)", en: "improving over the next 6 months", ta: "அடுத்த 6 மாதங்களில் ஏற்றம்" },
   DOWN: { Icon: ArrowDown, color: "var(--color-low)", en: "easing over the next 6 months", ta: "அடுத்த 6 மாதங்களில் இறக்கம்" },
-  STABLE: { Icon: ArrowRight, color: "var(--color-mid)", en: "holding steady over the next 6 months", ta: "அடுத்த 6 மாதங்களில் நிலையானது" },
+  STABLE: { Icon: ArrowRight, color: "var(--color-mid-text)", en: "holding steady over the next 6 months", ta: "அடுத்த 6 மாதங்களில் நிலையானது" },
 };
 
 /** Plain-language "what this life-area score means", for the tile tooltip.
@@ -435,7 +435,7 @@ export function DashboardTodayLifeAreasDasaRowNova({
                   {/* Amber, not red — "awareness, not alarm", the same framing the
                       Chandrashtama pill uses on the hero and the family tiles. */}
                   {chandra && (
-                    <div style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--color-mid)", marginTop: "4px", lineHeight: 1.15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    <div style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--color-mid-text)", marginTop: "4px", lineHeight: 1.15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                       🌘 {lang === "ta" ? "சந்திராஷ்டமம்" : "Chandrashtama"}
                     </div>
                   )}
@@ -820,6 +820,9 @@ export function DashboardTodayFamilyRemedyRowNova({
   onSaveReminder,
   onGoToFamily,
   onGoToLifeAreas,
+  peyarchiUpcoming,
+  personalSani,
+  onGoToCalendar,
 }: {
   lang: Lang;
   familyAggregate: FamilyAggregateData | null;
@@ -831,6 +834,13 @@ export function DashboardTodayFamilyRemedyRowNova({
   onSaveReminder: () => void;
   onGoToFamily?: () => void;
   onGoToLifeAreas?: () => void;
+  /** "Coming up" now lives as this card's bottom-pinned footer (was a separate
+   *  skinny full-width strip below the row) — the Family Today card is short
+   *  on its own content for a solo household, and the grid row's stretch
+   *  otherwise left it as dead space under a much taller Remedy card. */
+  peyarchiUpcoming?: PeyarchiEvent[];
+  personalSani?: SaniCycleData | null;
+  onGoToCalendar?: () => void;
 }) {
   return (
     <div className="nova-grid-2 nova-stagger">
@@ -841,7 +851,12 @@ export function DashboardTodayFamilyRemedyRowNova({
           The verdict word below is looked up through getScoreVerdictFromGuidance
           (was: the raw backend label token printed as-is, unlocalised, and
           identical for every score in that label's band). */}
-      <Card style={{ display: "block" }}>
+      {/* No display override here: <Card> is already a column flexbox
+          (.ui-card in dashboard-nova.css), which is what lets the "Coming up"
+          footer below sit with `marginTop: "auto"` and get pushed to the
+          bottom of the grid-stretched card instead of leaving a dead gap. */}
+      <Card>
+        <div>
         <GlanceHeader
           lang={lang}
           title="Family Today"
@@ -924,7 +939,7 @@ export function DashboardTodayFamilyRemedyRowNova({
                                   tag already rides along on the aggregate — no
                                   extra request. Amber, matching the hero pill. */}
                               {memberIsChandrashtama(m) && (
-                                <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-mid)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>
+                                <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-mid-text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>
                                   🌘 {lang === "ta" ? "சந்திராஷ்டமம்" : "Chandrashtama"}
                                 </div>
                               )}
@@ -979,6 +994,20 @@ export function DashboardTodayFamilyRemedyRowNova({
         ) : (
           <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)" }}>{lang === "ta" ? "குடும்ப உறுப்பினர்கள் இல்லை" : "No family members yet"}</p>
         )}
+        </div>
+
+        {/* Bottom-pinned footer (marginTop: auto) — was the standalone
+            full-width "Coming up" strip below this row; folded in here so it
+            fills the space this card otherwise leaves empty next to the
+            taller Remedy card, instead of just padding it out. */}
+        <div style={{ marginTop: "auto", paddingTop: "var(--space-3_5)", borderTop: "1px solid var(--color-border)" }}>
+          <DashboardTodayComingUpNova
+            lang={lang}
+            peyarchiUpcoming={peyarchiUpcoming ?? []}
+            personalSani={personalSani ?? null}
+            onGoToCalendar={onGoToCalendar}
+          />
+        </div>
       </Card>
 
       {/* Remedy for you — chart-driven anchor-planet remedy (2026-07-24). */}
@@ -996,7 +1025,7 @@ export function DashboardTodayFamilyRemedyRowNova({
   );
 }
 
-/** "Coming up" — still a one-liner, now full width. */
+/** "Coming up" — a one-liner, rendered as the Family Today card's footer. */
 export function DashboardTodayComingUpNova({
   lang,
   peyarchiUpcoming,
@@ -1017,17 +1046,20 @@ export function DashboardTodayComingUpNova({
       type="button"
       onClick={onGoToCalendar}
       style={{
-        display: "flex", alignItems: "center", gap: "var(--space-2_5)", textAlign: "left", cursor: onGoToCalendar ? "pointer" : "default",
+        display: "flex", alignItems: "flex-start", gap: "var(--space-2_5)", textAlign: "left", cursor: onGoToCalendar ? "pointer" : "default",
         width: "100%", minWidth: 0, boxSizing: "border-box",
         background: isNear || saniActive ? "linear-gradient(135deg, var(--color-accent-muted), transparent)" : "color-mix(in srgb, var(--color-text-strong) 3%, transparent)",
         border: `1px solid ${isNear || saniActive ? "var(--color-border-strong)" : "var(--color-border)"}`,
         borderRadius: "var(--radius-lg)", padding: "var(--space-3) var(--space-4_5)", fontFamily: "inherit",
       }}
     >
-      <span style={{ display: "inline-flex", color: isNear || saniActive ? "var(--color-accent-strong)" : "var(--color-high)", flex: "none" }}>
+      {/* Nested inside the Family Today footer now (was a full-width strip),
+          so the line wraps instead of ellipsis-truncating — a half-width
+          column is much likelier to clip a whole clause than a full row was. */}
+      <span style={{ display: "inline-flex", color: isNear || saniActive ? "var(--color-accent-strong)" : "var(--color-high)", flex: "none", marginTop: "2px" }}>
         {isNear || saniActive ? <Diamond size={15} strokeWidth={2} aria-hidden="true" /> : <Check size={15} strokeWidth={2} aria-hidden="true" />}
       </span>
-      <span style={{ flex: 1, minWidth: 0, fontSize: "var(--text-sm)", color: "var(--color-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+      <span style={{ flex: 1, minWidth: 0, fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5, whiteSpace: "normal" }}>
         <b style={{ color: "var(--color-text-strong)" }}>{lang === "ta" ? "வரவிருப்பது" : "Coming up"}</b>
         {" — "}
         {primary
