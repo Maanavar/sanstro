@@ -7,6 +7,7 @@ import { Bell, Settings, LogOut, Check, X } from "lucide-react";
 import Image from "next/image";
 import { formatClockLabel } from "@/lib/format";
 import { t } from "@/lib/i18n";
+import { DUR, EASE_NOVA } from "@/lib/motion";
 import type { Lang } from "@/lib/i18n";
 import type {
   ChartSummaryData,
@@ -237,7 +238,7 @@ export function DashboardHero(props: DashboardHeroProps) {
           <motion.span
             layoutId="cd-tab-indicator"
             className="cd-tab__indicator"
-            transition={{ type: "spring", stiffness: 400, damping: 15, mass: 0.8 }}
+            transition={{ duration: DUR.base, ease: EASE_NOVA }}
           />
         )}
       </button>
@@ -306,7 +307,7 @@ export function DashboardHero(props: DashboardHeroProps) {
                   <motion.span
                     layoutId="cd-tab-indicator"
                     className="cd-tab__indicator"
-                    transition={{ type: "spring", stiffness: 400, damping: 15, mass: 0.8 }}
+                    transition={{ duration: DUR.base, ease: EASE_NOVA }}
                   />
                 )}
               </button>

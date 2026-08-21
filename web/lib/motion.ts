@@ -17,8 +17,12 @@ import type { Transition, Variants } from "framer-motion";
 /** Celestial settle — mirrors `--ease-nova` in dashboard-nova.css. */
 export const EASE_NOVA: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
-/** Timing scale in seconds (framer takes seconds; CSS `--dur-*` are the ms twins). */
-export const DUR = { fast: 0.12, base: 0.22, slow: 0.42, reveal: 0.7 } as const;
+/**
+ * Timing scale in seconds (Framer takes seconds; CSS `--dur-*` are the ms
+ * twins). The dashboard is a reading workspace, so navigation settles faster
+ * than a first-time data reveal; only the score has a signature-length draw.
+ */
+export const DUR = { fast: 0.12, base: 0.24, slow: 0.36, reveal: 0.9 } as const;
 
 /** Container that reveals its children in sequence. Pair with `revealItem`. */
 export const staggerContainer: Variants = {
