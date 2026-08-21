@@ -607,7 +607,6 @@ def _family_avoid_windows(member_snapshots: list[_MemberSnapshot]) -> list[Daily
 
 def _family_summary(
     label: str,
-    best_windows: list[DailyGuidanceWindow],
     avoid_windows: list[DailyGuidanceWindow],
     support_member: FamilyAggregateMember | None,
 ) -> FamilyAggregateSummary:
@@ -627,16 +626,17 @@ def _family_summary(
         en = "A quieter day will suit the family best. Keep commitments light and avoid major new starts."
         ta = "குடும்பத்திற்கு அமைதியான நாள் ஏற்றது. பொறுப்புகளை இலகுவாக வைத்துக்கொண்டு பெரிய புதிய தொடக்கங்களைத் தவிர்க்குங்கள்."
 
-    if best_windows:
-        window = best_windows[0]
-        window_label = _format_time_range(window.start, window.end)
-        en += f" Best shared window: {window_label}."
-        ta += f" சிறந்த பகிர்ந்த நேரம்: {window_label}."
+    # Best shared window is not repeated here — the UI already surfaces it as
+    # its own dedicated card directly below this summary, and restating it
+    # in prose duplicated the same sentence twice on screen.
 
     if avoid_windows:
         window = avoid_windows[0]
-        en += f" Avoid beginning important new work during {window.type.replace('_', ' ').title()}."
-        ta += f" {window.type.replace('_', ' ')} நேரத்தில் முக்கியமான புதிய பணிகளைத் தொடங்க வேண்டாம்."
+        window_label = _format_time_range(window.start, window.end)
+        window_name_en = window.type.replace("_", " ").title()
+        window_name_ta = window.type.replace("_", " ")
+        en += f" Avoid beginning important new work during {window_name_en} ({window_label})."
+        ta += f" {window_name_ta} நேரத்தில் ({window_label}) முக்கியமான புதிய பணிகளைத் தொடங்க வேண்டாம்."
 
     if support_member is not None:
         en += f" {support_member.display_name} may benefit from a gentler pace today."
@@ -1088,7 +1088,7 @@ def get_family_daily_aggregate(
     )
     family_label = _family_label(family_score)
     support_member = min(member_summaries, key=lambda item: item.individual_score) if member_summaries else None
-    summary = _family_summary(family_label, best_family_windows, avoid_for_family_decisions, support_member)
+    summary = _family_summary(family_label, avoid_for_family_decisions, support_member)
     # v1 assumption: family aggregate windows share one local context.
     timezone_name = resolve_effective_daily_location(member_snapshots[0].birth_profile).timezone
 
