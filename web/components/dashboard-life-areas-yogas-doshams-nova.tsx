@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
@@ -118,6 +118,25 @@ function YogaFullGuideInline({ engineName, lang }: { engineName: string; lang: L
 
 function NovaYogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const anchorTop = useRef<number | null>(null);
+
+  // Toggling this card changes document height below it, and native scroll
+  // anchoring can pick the wrong anchor for a block this large — pin the
+  // trigger's own viewport position across the toggle instead (see
+  // collapsible-section.tsx's identical fix for the same symptom).
+  useLayoutEffect(() => {
+    if (anchorTop.current === null || !triggerRef.current) return;
+    const drift = triggerRef.current.getBoundingClientRect().top - anchorTop.current;
+    if (drift !== 0) window.scrollBy(0, drift);
+    anchorTop.current = null;
+  }, [open]);
+
+  function toggle() {
+    anchorTop.current = triggerRef.current?.getBoundingClientRect().top ?? null;
+    setOpen((v) => !v);
+  }
+
   const color = yoga.isPresent
     ? yoga.strength === "STRONG" ? "var(--color-high)"
     : yoga.strength === "PARTIAL" ? "var(--color-mid)"
@@ -145,9 +164,10 @@ function NovaYogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
   return (
     <div style={{ borderRadius: "var(--space-3)", border: `1px solid ${cardBorder}`, background: "var(--color-surface)", overflow: "hidden", fontFamily: "var(--font-body)" }}>
       <button
+        ref={triggerRef}
         type="button"
-        onClick={() => setOpen((v) => !v)}
-        style={{ width: "100%", padding: "var(--space-4) var(--space-5)", background: cardBg, border: "none", cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-3)", fontFamily: "inherit" }}
+        onClick={toggle}
+        style={{ width: "100%", padding: "var(--space-4) var(--space-5)", background: cardBg, border: "none", cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-3)", fontFamily: "inherit", overflowAnchor: "none" }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flex: 1 }}>
           <span style={{ fontSize: "var(--text-base)", color }}>{yoga.isPresent ? "★" : "○"}</span>
@@ -155,7 +175,7 @@ function NovaYogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
             {displayName(yoga.name, lang)}
           </span>
           {yoga.isPresent && yoga.dashaActivated && (
-            <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-mid)", border: "1px solid var(--color-mid-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-2)" }}>
+            <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-mid-text)", border: "1px solid var(--color-mid-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-2)" }}>
               {t("yoga_dasha_activated", lang)}
             </span>
           )}
@@ -198,7 +218,7 @@ function NovaYogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
       </button>
 
       {open && (
-        <div style={{ padding: "var(--space-4) var(--space-5)", borderTop: `1px solid ${cardBorder}`, display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+        <div style={{ padding: "var(--space-4) var(--space-5)", borderTop: `1px solid ${cardBorder}`, display: "flex", flexDirection: "column", gap: "var(--space-3)", overflowAnchor: "none" }}>
           <div>
             <p style={{ margin: "0 0 4px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>
               {lang === "ta" ? "இது என்ன" : "What This Is"}
@@ -346,6 +366,22 @@ function DoshamFullGuideInline({ engineName, lang }: { engineName: string; lang:
 
 function NovaDoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const anchorTop = useRef<number | null>(null);
+
+  // Same scroll-anchor-drift fix as NovaYogaCard above.
+  useLayoutEffect(() => {
+    if (anchorTop.current === null || !triggerRef.current) return;
+    const drift = triggerRef.current.getBoundingClientRect().top - anchorTop.current;
+    if (drift !== 0) window.scrollBy(0, drift);
+    anchorTop.current = null;
+  }, [open]);
+
+  function toggle() {
+    anchorTop.current = triggerRef.current?.getBoundingClientRect().top ?? null;
+    setOpen((v) => !v);
+  }
+
   const isActiveAndPresent = dosham.isPresent && !dosham.isCancelled;
   const isCancelledAndPresent = dosham.isPresent && dosham.isCancelled;
   const color = isActiveAndPresent ? "var(--color-low)" : isCancelledAndPresent ? "var(--color-high)" : "var(--color-faint)";
@@ -375,9 +411,10 @@ function NovaDoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: La
   return (
     <div style={{ borderRadius: "var(--space-3)", border: `1px solid ${cardBorder}`, background: "var(--color-surface)", overflow: "hidden", fontFamily: "var(--font-body)" }}>
       <button
+        ref={triggerRef}
         type="button"
-        onClick={() => setOpen((v) => !v)}
-        style={{ width: "100%", padding: "var(--space-4) var(--space-5)", background: cardBg, border: "none", cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-3)", fontFamily: "inherit" }}
+        onClick={toggle}
+        style={{ width: "100%", padding: "var(--space-4) var(--space-5)", background: cardBg, border: "none", cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-3)", fontFamily: "inherit", overflowAnchor: "none" }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flex: 1 }}>
           <span style={{ color }} aria-hidden="true">
@@ -399,7 +436,7 @@ function NovaDoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: La
             </span>
           )}
           {dosham.isPresent && dosham.dashaActivated && (
-            <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-mid)", border: "1px solid var(--color-mid-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-2)" }}>
+            <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-mid-text)", border: "1px solid var(--color-mid-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-2)" }}>
               {t("yoga_dasha_activated", lang)}
             </span>
           )}
@@ -419,7 +456,7 @@ function NovaDoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: La
       </button>
 
       {open && (
-        <div style={{ padding: "var(--space-4) var(--space-5)", borderTop: `1px solid ${cardBorder}`, display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+        <div style={{ padding: "var(--space-4) var(--space-5)", borderTop: `1px solid ${cardBorder}`, display: "flex", flexDirection: "column", gap: "var(--space-3)", overflowAnchor: "none" }}>
           <div>
             <p style={{ margin: "0 0 4px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>
               {lang === "ta" ? "இது என்ன" : "What This Is"}
@@ -459,7 +496,7 @@ function NovaDoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: La
 
             {attentionBullets.length > 0 && (
               <div style={{ marginTop: "10px" }}>
-                <p style={{ margin: "0 0 4px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-mid)" }}>
+                <p style={{ margin: "0 0 4px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-mid-text)" }}>
                   {lang === "ta" ? "கவன குறிப்பு" : "Attention Note"}
                 </p>
                 <ul style={{ margin: 0, paddingLeft: "var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
@@ -494,7 +531,7 @@ function NovaDoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: La
             )}
 
             {dosham.missingData && dosham.missingData.length > 0 && (
-              <p style={{ margin: "10px 0 0", fontSize: "var(--text-sm)", color: "var(--color-mid)", fontStyle: "italic", lineHeight: 1.5 }}>
+              <p style={{ margin: "10px 0 0", fontSize: "var(--text-sm)", color: "var(--color-mid-text)", fontStyle: "italic", lineHeight: 1.5 }}>
                 {lang === "ta"
                   ? "குறிப்பு: பிறந்த நேரம் இல்லாததால் இந்த மதிப்பீடு தோராயமானது."
                   : "Note: this assessment is estimated because exact birth time is unavailable."}
