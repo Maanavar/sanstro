@@ -22,6 +22,7 @@ import type { Lang } from "@/lib/i18n";
 import { rasiGlyph } from "@/lib/astro-symbols";
 import { lunarSpecialTithiMeta, moonPhaseFromTithi } from "@/lib/lunar";
 import { nokkuMeta } from "@/lib/nokku";
+import { timeOnDateToMs } from "@/lib/tz";
 import { MiniMoonGlyph } from "./celestial-glyph-nova";
 import { useMonthlyPanchangam } from "@/hooks/useMonthlyPanchangam";
 import { PlaceCombobox } from "./place-combobox";
@@ -87,6 +88,8 @@ export type DashboardCalendarTabNovaProps = {
   panchangamTimings: PanchangamTimingsData | null;
   lang: Lang;
   locationLabel?: string | null;
+  /** IANA timezone of the panchangam location; used for live timing states. */
+  panchangamTimezone?: string | null;
   onSelectDate?: (date: string) => void;
   /** Personal chart the "Best Dates & Muhurta" view computes against. Null when
    *  no birth profile exists yet — the view then shows an add-profile note. */
@@ -328,12 +331,14 @@ function NovaGowriKalaRow({
   avoidSlots,
   dateLocal,
   lang,
+  running,
 }: {
   slot: GowriSlot;
   offset: GowriSlotDayOffset;
   avoidSlots: GowriAvoidSlot[];
   dateLocal: string;
   lang: Lang;
+  running: boolean;
 }) {
   const overlapping = avoidSlots.filter((avoid) => timeWindowsOverlap(slot, avoid));
   const isInauspiciousKala = slot.isGood === false;
@@ -366,12 +371,21 @@ function NovaGowriKalaRow({
         background: tone.bg,
         padding: "var(--space-2) var(--space-3)",
         minWidth: 0,
+        outline: running ? "2px solid var(--color-accent)" : "none",
+        outlineOffset: "1px",
+        boxShadow: running ? "0 0 0 4px var(--color-accent-muted)" : "none",
       }}
     >
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: "var(--space-2)", alignItems: "baseline" }}>
         <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-text-strong)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {category || `${lang === "ta" ? "கலம்" : "Kala"} ${slot.slot}`}
           {quality && <span style={{ fontWeight: 600, color: tone.color }}> · {quality}</span>}
+          {running && (
+            <span style={{ marginLeft: "var(--space-2)", display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "var(--text-xs)", fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-accent-strong)" }}>
+              <span aria-hidden="true" className="nova-pulse-dot" style={{ width: "6px", height: "6px", borderRadius: "var(--radius-pill)", background: "var(--color-accent)", flex: "none" }} />
+              {lang === "ta" ? "இப்போது" : "Now"}
+            </span>
+          )}
         </span>
         <span style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--color-text)", whiteSpace: "nowrap" }}>
           {gowriEdgeLabel(slot.start, offset.startOffset, dateLocal, lang)} – {gowriEdgeLabel(slot.end, offset.endOffset, dateLocal, lang)}
@@ -399,6 +413,9 @@ function NovaGowriKalaColumn({
   avoidSlots,
   dateLocal,
   lang,
+  nowMs,
+  timeZone,
+  isToday,
 }: {
   slots: GowriSlot[];
   anchorHm: string;
@@ -408,6 +425,9 @@ function NovaGowriKalaColumn({
   avoidSlots: GowriAvoidSlot[];
   dateLocal: string;
   lang: Lang;
+  nowMs: number;
+  timeZone?: string | null;
+  isToday: boolean;
 }) {
   if (slots.length === 0) return null;
   const offsets = gowriSlotDayOffsets(slots, anchorHm);
@@ -428,14 +448,23 @@ function NovaGowriKalaColumn({
         </span>
       </div>
       {slots.map((slot, idx) => (
-        <NovaGowriKalaRow
-          key={`${slot.period ?? "slot"}-${slot.name ?? slot.slot}-${idx}`}
-          slot={slot}
-          offset={offsets[idx] ?? { startOffset: 0, endOffset: 0 }}
-          avoidSlots={avoidSlots}
-          dateLocal={dateLocal}
-          lang={lang}
-        />
+        (() => {
+          const offset = offsets[idx] ?? { startOffset: 0, endOffset: 0 };
+          const startMs = timeOnDateToMs(addDays(dateLocal, offset.startOffset), slot.start, timeZone);
+          const endMs = timeOnDateToMs(addDays(dateLocal, offset.endOffset), slot.end, timeZone);
+          const running = isToday && startMs !== null && endMs !== null && nowMs >= startMs && nowMs < endMs;
+          return (
+            <NovaGowriKalaRow
+              key={`${slot.period ?? "slot"}-${slot.name ?? slot.slot}-${idx}`}
+              slot={slot}
+              offset={offset}
+              avoidSlots={avoidSlots}
+              dateLocal={dateLocal}
+              lang={lang}
+              running={running}
+            />
+          );
+        })()
       ))}
     </div>
   );
@@ -455,6 +484,9 @@ function NovaGowriDetailGrid({
   sunset,
   dateLocal,
   lang,
+  nowMs,
+  timeZone,
+  isToday,
 }: {
   slots: NonNullable<PanchangamDailyResponseData["kalam"]["gowriPanchangam"]>;
   avoidSlots: GowriAvoidSlot[];
@@ -462,6 +494,9 @@ function NovaGowriDetailGrid({
   sunset: string;
   dateLocal: string;
   lang: Lang;
+  nowMs: number;
+  timeZone?: string | null;
+  isToday: boolean;
 }) {
   if (slots.length === 0) return null;
   const daySlots = slots.filter((slot) => slot.period === "DAY");
@@ -486,6 +521,9 @@ function NovaGowriDetailGrid({
           avoidSlots={avoidSlots}
           dateLocal={dateLocal}
           lang={lang}
+          nowMs={nowMs}
+          timeZone={timeZone}
+          isToday={isToday}
         />
         <NovaGowriKalaColumn
           slots={nightSlots}
@@ -496,6 +534,9 @@ function NovaGowriDetailGrid({
           avoidSlots={avoidSlots}
           dateLocal={dateLocal}
           lang={lang}
+          nowMs={nowMs}
+          timeZone={timeZone}
+          isToday={isToday}
         />
       </div>
     </div>
@@ -642,6 +683,7 @@ export function DashboardCalendarTabNova({
   panchangam: defaultPanchangam,
   lang,
   locationLabel,
+  panchangamTimezone,
   onSelectDate,
   chartId = null,
   memberCharts = [],
@@ -679,6 +721,7 @@ export function DashboardCalendarTabNova({
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   const panchangam = overridePanchangam ?? defaultPanchangam;
+  const activePanchangamTimezone = overrideLocation?.timezone ?? panchangamTimezone;
   const monthlyLocation = panchangam?.location ?? null;
 
   useEffect(() => {
@@ -1126,8 +1169,11 @@ export function DashboardCalendarTabNova({
                 avoidSlots={avoidSlotsForOverlap}
                 sunrise={panchangam.sunrise}
                 sunset={panchangam.sunset}
-                dateLocal={panchangam.dateLocal}
-                lang={lang}
+              dateLocal={panchangam.dateLocal}
+              lang={lang}
+              nowMs={nowMs}
+              timeZone={activePanchangamTimezone}
+              isToday={selectedDate === todayDate}
               />
 
               {/* ── Today's Significance ── */}

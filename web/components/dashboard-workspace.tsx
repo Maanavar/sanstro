@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 
 import { toast } from "sonner";
 import { apiFetchJson, toQuery } from "@/lib/api";
@@ -14,6 +14,7 @@ import {
   sanitizeRestoredTab, sanitizeUrlTab, type DashboardTool, type Tab,
 } from "@/lib/dashboard-tabs";
 import { todayIso } from "@/lib/format";
+import { DUR, EASE_NOVA } from "@/lib/motion";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { parseLatitude, parseLongitude } from "@/lib/validation";
@@ -272,7 +273,7 @@ function parseNumber(value: string, fallback = 0): number {
  * the moment it becomes active, so with `initial={false}` framer snapped it
  * straight to the target and the FIRST visit to a tab appeared instantly while
  * every later visit — animating back up from the opacity 0 it was parked at —
- * took the full 0.42s. Same click, two different-looking transitions depending
+ * took the full navigation duration. Same click, two different-looking transitions depending
  * on history. Giving the mount the same starting values the parked state uses
  * makes one tab switch look like every other.
  */
@@ -285,13 +286,14 @@ function TabPane({
   active: boolean;
   children: React.ReactNode;
 }) {
+  const reduce = useReducedMotion();
   if (!visible) return null;
   return (
     <motion.div
       style={{ display: active ? "block" : "none", position: "relative", zIndex: 1 }}
-      initial={{ opacity: 0, y: 8 }}
+      initial={reduce ? false : { opacity: 0, y: 8 }}
       animate={active ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
-      transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: reduce ? 0 : DUR.base, ease: EASE_NOVA }}
     >
       {children}
     </motion.div>
@@ -755,7 +757,15 @@ export function DashboardWorkspace() {
         const parsed = JSON.parse(stored) as Partial<PersistedState>;
         const isSameUser = parsed.ownerUserId === authedUserId;
         if (isSameUser) {
-          if (typeof parsed.selectedDate === "string") setSelectedDate(parsed.selectedDate);
+          // Reject a persisted selectedDate that's fallen into the past: a date
+          // browsed (or merely left open) in an earlier session must not keep
+          // silently overriding the fresh today() default on every later visit,
+          // which would permanently hide "today"-anchored content like festivals.
+          // A persisted today-or-future date is still honored, so browsing ahead
+          // and refreshing the same day keeps its place.
+          if (typeof parsed.selectedDate === "string" && parsed.selectedDate >= todayIso()) {
+            setSelectedDate(parsed.selectedDate);
+          }
           if (typeof parsed.selectedVaultId === "string") family.setSelectedVaultId(parsed.selectedVaultId);
           if (typeof parsed.birthProfileId === "string") personal.setBirthProfileId(parsed.birthProfileId);
           if (typeof parsed.chartId === "string") personal.setChartId(parsed.chartId);
@@ -1109,14 +1119,14 @@ export function DashboardWorkspace() {
   // score, so the same person can't show two different "today" scores on one screen (this
   // feeds both the classic household strip and Nova's family-today card).
   const ownerBirthProfileId = personal.chart?.birthProfile.birthProfileId;
-  const ownerFamilyMemberId = ownerBirthProfileId
-    ? (family.memberCharts.find((mc) => mc.chart.birthProfile.birthProfileId === ownerBirthProfileId)?.memberId ?? null)
-    : null;
   const familyAggregateForToday = family.familyAggregate
     ? {
         ...family.familyAggregate,
         members: family.familyAggregate.members.map((m) =>
-          ownerFamilyMemberId !== null && m.familyMemberId === ownerFamilyMemberId && personal.dailyGuidance?.score != null
+          // `memberCharts` intentionally excludes the synthetic owner row, so
+          // it cannot be used to identify this member. The birth-profile ID is
+          // shared by the live personal reading and the aggregate owner row.
+          ownerBirthProfileId !== undefined && m.birthProfileId === ownerBirthProfileId && personal.dailyGuidance?.score != null
             ? { ...m, individualScore: personal.dailyGuidance.score }
             : m
         ),
@@ -1869,7 +1879,7 @@ export function DashboardWorkspace() {
             ownerMemberChart,
             vaults: family.vaults,
             familyDetail: family.familyDetail,
-            familyAggregate: family.familyAggregate,
+            familyAggregate: familyAggregateForToday,
             familyComposite: family.familyComposite,
             familyMembers: family.familyMembers,
             memberCharts: family.memberCharts,
@@ -1913,6 +1923,7 @@ export function DashboardWorkspace() {
             panchangamTimings={personal.panchangamTimings}
             lang={lang}
             locationLabel={personal.panchangamLocationLabel}
+            panchangamTimezone={personal.panchangamTimezone}
             onSelectDate={setSelectedDate}
             chartId={resolveMuhurtaChartId()}
             memberCharts={family.memberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName }))}
