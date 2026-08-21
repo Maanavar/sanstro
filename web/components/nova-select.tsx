@@ -132,6 +132,10 @@ export function NovaSelect({
     color: selected ? "var(--color-text-strong)" : "var(--color-faint)",
     fontSize: "14px",
     fontFamily: "inherit",
+    // The trigger is often placed inside a bold `<label>`; without an explicit
+    // weight it inherits that label's 700 and makes the selected value look
+    // like a heading rather than a field value.
+    fontWeight: 400,
     textAlign: "left",
     cursor: disabled ? "not-allowed" : "pointer",
     opacity: disabled ? 0.6 : 1,
