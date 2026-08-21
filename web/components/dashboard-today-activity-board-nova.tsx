@@ -193,7 +193,7 @@ const TONE_STYLE: Record<ActivityTone, { color: string; bg: string; border: stri
     statusTa: "ஆதரவு உள்ளது",
   },
   caution: {
-    color: "var(--color-mid)",
+    color: "var(--color-mid-text)",
     bg: "var(--color-mid-bg)",
     border: "var(--color-mid-border)",
     stars: 2,
@@ -223,6 +223,7 @@ function ActivityCardNova({
   tone,
   showReason,
   betterDate,
+  nextFavourableDates,
   onGoToCalendar,
 }: {
   verdict: DailyActivityVerdict;
@@ -230,8 +231,10 @@ function ActivityCardNova({
   tone: ActivityTone;
   showReason: boolean;
   betterDate?: string | null;
+  nextFavourableDates?: string[];
   onGoToCalendar?: () => void;
 }) {
+  const [showTimingHint, setShowTimingHint] = useState(false);
   const { color, bg, border, stars, statusEn, statusTa } = TONE_STYLE[tone];
   const label = tx(verdict.label, lang);
   const reason = tx(verdict.reason, lang);
@@ -245,10 +248,19 @@ function ActivityCardNova({
       ? `சிறந்தது ${shortDate(betterDate, lang)}`
       : `better ${shortDate(betterDate, lang)}`
     : null;
+  const timingTooltip = nextFavourableDates?.length
+    ? `${tooltip}\n${lang === "ta" ? "அடுத்த நல்ல நாட்கள்" : "Next good dates"}: ${nextFavourableDates.map((date) => shortDate(date, lang)).join(", ")}`
+    : tooltip;
   return (
     <li
-      title={tooltip}
+      title={timingTooltip}
+      tabIndex={nextFavourableDates?.length ? 0 : undefined}
+      onMouseEnter={() => setShowTimingHint(true)}
+      onMouseLeave={() => setShowTimingHint(false)}
+      onFocus={() => setShowTimingHint(true)}
+      onBlur={() => setShowTimingHint(false)}
       style={{
+        position: "relative",
         flex: "0 0 158px",
         scrollSnapAlign: "start",
         background: `linear-gradient(160deg, ${bg}, transparent 75%)`,
@@ -260,6 +272,20 @@ function ActivityCardNova({
         gap: "var(--space-1_5)",
       }}
     >
+      {showTimingHint && nextFavourableDates?.length ? (
+        <span
+          role="tooltip"
+          style={{
+            position: "absolute", zIndex: 20, left: 0, bottom: "calc(100% + 8px)",
+            width: "max-content", maxWidth: "min(280px, 80vw)", padding: "8px 10px",
+            borderRadius: "var(--radius-sm)", background: "var(--color-text-strong)",
+            color: "var(--color-surface)", fontSize: "var(--text-xs)", lineHeight: 1.4,
+            boxShadow: "0 6px 18px color-mix(in srgb, #000 25%, transparent)", pointerEvents: "none",
+          }}
+        >
+          {lang === "ta" ? "அடுத்த நல்ல நாட்கள்" : "Next good dates"}: {nextFavourableDates.map((date) => shortDate(date, lang)).join(", ")}
+        </span>
+      ) : null}
       {(() => { const Icon = activityIcon(verdict.activity, verdict.label.en); return (
       <div aria-hidden="true" style={{ width: "34px", height: "34px", borderRadius: "var(--radius-pill)", background: bg, display: "flex", alignItems: "center", justifyContent: "center", color }}>
         <Icon size={18} strokeWidth={1.75} />
@@ -374,7 +400,7 @@ export function DashboardTodayActivityBoardNova({
   // Only the cautioned activities are looked up: they are the only rows where
   // "when instead?" is the next question, and the batch caps at 12 ids.
   const cautionKeys = useMemo(
-    () => (board?.caution ?? []).map((v) => v.activity).slice(0, 12),
+    () => [...(board?.caution ?? []), ...(board?.neutral ?? [])].map((v) => v.activity).slice(0, 12),
     [board],
   );
   const cautionKey = cautionKeys.join(",");
@@ -420,9 +446,10 @@ export function DashboardTodayActivityBoardNova({
   /** Next date this month, after the selected one, where the same activity
    *  actually SUPPORTS — turns "not today" into "then when". */
   const betterDateFor = (activity: string): string | null =>
-    (timing[activity]?.topDates ?? [])
-      .filter((d) => d.dateLocal > selectedDate && d.alignment === "SUPPORTS")
-      .sort((x, y) => (x.dateLocal < y.dateLocal ? -1 : 1))[0]?.dateLocal ?? null;
+    timing[activity]?.nextFavourableDates?.[0] ?? null;
+
+  const nextFavourableDatesFor = (activity: string): string[] =>
+    timing[activity]?.nextFavourableDates ?? [];
 
   return (
     <Card
@@ -548,6 +575,7 @@ export function DashboardTodayActivityBoardNova({
             tone="caution"
             showReason={tx(v.reason, lang) !== sharedReason}
             betterDate={betterDateFor(v.activity)}
+            nextFavourableDates={nextFavourableDatesFor(v.activity)}
             onGoToCalendar={onGoToCalendar}
           />
         ))}
@@ -558,6 +586,8 @@ export function DashboardTodayActivityBoardNova({
             lang={lang}
             tone="neutral"
             showReason={tx(v.reason, lang) !== neutralSharedReason}
+            betterDate={betterDateFor(v.activity)}
+            nextFavourableDates={nextFavourableDatesFor(v.activity)}
           />
         ))}
         {/* The rules cover eleven activities; this is the way out for the

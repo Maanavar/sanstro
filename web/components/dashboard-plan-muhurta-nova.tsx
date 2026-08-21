@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { apiFetchJson, toQuery } from "@/lib/api";
+import { useElapsedSeconds } from "@/hooks/useElapsedSeconds";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ActivityTimingData } from "@/lib/types";
@@ -40,6 +41,7 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
   });
   const [activityTimingResult, setActivityTimingResult] = useState<ActivityTimingData | null>(null);
   const [activityTimingBusy, setActivityTimingBusy] = useState(false);
+  const activityTimingElapsed = useElapsedSeconds(activityTimingBusy);
   const [muhurtaPresetDate, setMuhurtaPresetDate] = useState<string | undefined>(undefined);
   const [muhurtaPresetActivity, setMuhurtaPresetActivity] = useState<string | undefined>(undefined);
   const [panchangamDate, setPanchangamDate] = useState<string | null>(null);
@@ -47,36 +49,25 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", fontFamily: "var(--font-body)" }}>
       <Card variant="soft" compact>
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap", marginBottom: "8px" }}>
-          <span style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>
-            {lang === "ta" ? "சிறந்த நாள் & முஹூர்த்தம்" : "Best Dates & Muhurta"}
-          </span>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", padding: "var(--space-1) var(--space-2)", borderRadius: "var(--radius-pill)", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)", color: "var(--color-high)", fontSize: "var(--text-xs)", fontWeight: 700 }}>
-            ★ {lang === "ta" ? "உங்கள் ஜாதகத்திற்கு ஏற்ப — பொதுவானது அல்ல" : "Personalised to your jadhagam — not generic"}
-          </span>
+        <div>
+          <p style={{ margin: "0 0 4px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>
+            {lang === "ta" ? "உங்கள் ஜாதகத்திற்கு ஏற்ப" : "Personalised to your jadhagam"}
+          </p>
+          <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
+            {lang === "ta" ? "விரைவு தேதி தேடல் ஒரு குறுகிய பட்டியலைத் தரும். விரிவான முகூர்த்த தேடல் எந்தத் தேதிக்கும் முழு ஆய்வைத் தரும்." : "The quick scan gives you a shortlist. The detailed search gives any date a full muhurta assessment."}
+          </p>
         </div>
-        <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55 }}>
-          {lang === "ta"
-            ? "இரண்டு படிகள் ஒன்றாக வேலை செய்கின்றன: படி 1 உங்கள் தசை + கிரகநகர்வைக் கொண்டு சிறந்த நாட்களைக் கண்டறிகிறது — ஒரு நாளைக் கிளிக் செய்தால், படி 2 அந்த நாளுக்குள் சரியான நேரத்தை (முஹூர்த்தம்) காட்டுகிறது."
-            : "The two steps work together: Step 1 finds the best days from your Dasa + transits — click a day, and Step 2 finds the exact auspicious hour within that day."}
-        </p>
       </Card>
 
       <Card>
-        <p style={{ margin: "0 0 6px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>
-          {lang === "ta" ? "படி 1 — சிறந்த நாட்கள் கண்டறிய (விரைவு மாத கண்ணோட்டம்)" : "Step 1 — Find Best Dates (quick month scan)"}
-        </p>
-        <p style={{ margin: "0 0 6px", fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5 }}>
-          {lang === "ta"
-            ? "மாதம் முழுவதையும் விரைவாக ஆராய்ந்து, தசை + கிரகநகர்வு + பஞ்சாங்க தினத்தன்மை கொண்டு சிறந்த நாட்களைத் தேர்ந்தெடுக்கிறது. தேர்ந்த நாளை கிளிக் செய்யுங்கள் — படி 2 தானாக நிரம்பும்; அங்கே சரியான நேரத்தை கண்டறியலாம்."
-            : "Scans the whole month and picks the days with the best dasha + transit + day-quality alignment for your activity. Click any date to prefill Step 2, where you find the exact auspicious hour within that day."}
-        </p>
-        <p style={{ margin: "0 0 12px", fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.45, padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)" }}>
-          {lang === "ta"
-            ? "படி 1 — 'எந்த நாள் நல்லது?' என்று சொல்கிறது. படி 2 — 'அந்த நாளில் எந்த நேரம் சிறந்தது?' என்று கண்டறிகிறது. இரண்டும் வேறு அளவீடுகளை பயன்படுத்துவதால் வெவ்வேறு தேதி/மதிப்பெண் காட்டலாம் — இது சரியானதே."
-            : "Step 1 answers 'which days are good?' Step 2 answers 'what is the best hour on a given day?' They use different criteria (day-level vs hour-level panchangam), so their scores and top dates will not always match — that is expected and correct."}
-        </p>
-
+        <div>
+          <p style={{ margin: "0 0 6px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>
+            {lang === "ta" ? "விரைவு தேதி தேடல்" : "Quick date scan"}
+          </p>
+          <p style={{ margin: "0 0 12px", fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5 }}>
+            {lang === "ta" ? "உங்கள் செயலுக்கு ஒரு மாதத்தில் ஏற்ற நாட்களைத் தேடுங்கள். தேதியைத் தேர்ந்தெடுத்தால், அது கீழே உள்ள விரிவான தேடலுக்குத் தயாராகும்." : "Find supportive days for your activity in a month. Selecting one prepares it in the detailed search below."}
+          </p>
+        </div>
         <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "flex-end", flexWrap: "wrap", marginBottom: "16px" }}>
           <FieldShell label={t("activity_label", lang)} style={{ flex: "1 1 220px" }}>
             <NovaSelect
@@ -114,16 +105,14 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
               fontFamily: "inherit",
             }}
           >
-            {activityTimingBusy ? t("btn_finding", lang) : t("btn_find_best_dates", lang)}
+            {activityTimingBusy ? `${t("btn_finding", lang)} ${activityTimingElapsed}s` : t("btn_find_best_dates", lang)}
           </button>
         </div>
 
         {activityTimingResult && (
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
             <p style={{ margin: "0 0 6px", fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
-              {lang === "ta"
-                ? "ஒரு தேதியை கிளிக் செய்யுங்கள் — படி 2 அந்த நாள் மட்டும் சரிபார்த்து சரியான நேரம் (முஹூர்த்தம்) காட்டும்."
-                : "Click a date to search only that day in Step 2 and find the best auspicious hour within it."}
+              {lang === "ta" ? "ஒரு தேதியைத் தேர்ந்தெடுத்து அதன் முழு முகூர்த்த ஆய்வை கீழே பார்க்கவும்." : "Select a date to check its full muhurta assessment below."}
             </p>
             {activityTimingResult.topDates.map((item, i) => {
               const isSelected = muhurtaPresetDate === item.dateLocal;
@@ -172,7 +161,7 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
                     <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.5 }}>{lang === "ta" ? item.reasonTa : item.reasonEn}</p>
                   </div>
                   <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: isSelected ? "var(--color-high)" : "var(--color-muted)", flexShrink: 0 }}>
-                    {lang === "ta" ? "முஹூர்த்தம்" : "Get Muhurta"}
+                    {lang === "ta" ? "விரிவாகச் சரிபார்க்க" : "Check in detail"}
                   </span>
                 </Card>
               );
@@ -183,26 +172,33 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
 
       <div>
         <p style={{ margin: "0 0 4px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>
-          {lang === "ta" ? "படி 2 — சரியான நேரம் கண்டறிய (முஹூர்த்தம்)" : "Step 2 — Find the right hour (Muhurta)"}
+          {lang === "ta" ? "விரிவான முகூர்த்த தேடல்" : "Detailed muhurta search"}
         </p>
         <p style={{ margin: "0 0 10px", fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.5 }}>
           {muhurtaPresetDate
-            ? (lang === "ta" ? "படி 1-ல் தேர்ந்த நாள் கீழே நிரப்பப்பட்டுள்ளது. நேர-அளவிலான மதிப்பெண் காட்டப்படும்." : "The day you picked in Step 1 is filled in below. Scores here are hour-level for that day.")
-            : (lang === "ta" ? "உங்கள் ஜாதகத்தின்படி ஒரு நாளுக்குள் சிறந்த நேரத்தைக் காட்டுகிறது." : "Shows the best hour within a day, personalised to your jadhagam.")}
+            ? (lang === "ta" ? "தேர்ந்தெடுத்த தேதி தயாராக உள்ளது. செயல்பாடு, பஞ்சாங்கம் மற்றும் தனிப்பட்ட காரணிகளைச் சரிபார்க்கவும்." : "Your selected date is ready. Check its activity rules, Panchangam, and personal factors.")
+            : (lang === "ta" ? "எந்தத் தேதி அல்லது தேதி வரம்பிற்கும் உங்கள் ஜாதகத்தின்படி முழு முகூர்த்தத் தேடலை இயக்கவும்." : "Run a full, chart-personalised muhurta search for any date or date range.")}
         </p>
         <NovaMuhurtaPicker lang={lang} chartId={chartId || null} initialDateFrom={muhurtaPresetDate} initialActivity={muhurtaPresetActivity} />
       </div>
 
       <div>
         <p style={{ margin: "0 0 4px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-accent)" }}>
-          {lang === "ta" ? "திருமணம் — 2027 முகூர்த்த நாட்கள்" : "Marriage — 2027 muhurtham dates"}
+          {lang === "ta" ? "திருமணம் · வெளியிடப்பட்ட முகூர்த்த நாட்கள்" : "Marriage · published muhurtham dates"}
         </p>
         <p style={{ margin: "0 0 10px", fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.5 }}>
           {lang === "ta"
             ? "வெளியிடப்பட்ட பஞ்சாங்க முகூர்த்த நாட்கள், உங்கள் நட்சத்திரத்துக்கு தாரா பலம் + சந்திராஷ்டமம் வைத்து வரிசைப்படுத்தப்பட்டவை."
             : "Published almanac wedding dates, ranked for your birth star by Tara Bala and Chandrashtama."}
         </p>
-        <NovaMuhurthamNaal lang={lang} chartId={chartId || null} />
+        <NovaMuhurthamNaal
+          lang={lang}
+          chartId={chartId || null}
+          onCheckInPlanner={(date) => {
+            setMuhurtaPresetDate(date);
+            setMuhurtaPresetActivity("MARRIAGE");
+          }}
+        />
       </div>
 
       {panchangamDate && activityTimingResult?.dailyLocation && (

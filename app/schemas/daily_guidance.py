@@ -321,6 +321,11 @@ class ActivityTimingData(BaseModel):
     activity: str
     month: str
     top_dates: list[ActivityTimingDayResult] = Field(alias="topDates")
+    # Chronological SUPPORTS days after ``as_of``. Unlike ``topDates``, these
+    # answer the practical follow-up: "when can I do this?"
+    next_favourable_dates: list[date] = Field(
+        default_factory=list, alias="nextFavourableDates"
+    )
     date_result: ActivityTimingDayResult | None = Field(default=None, alias="dateResult")
     daily_location: ActivityTimingLocation | None = Field(default=None, alias="dailyLocation")
 

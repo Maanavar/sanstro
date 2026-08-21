@@ -1368,6 +1368,8 @@ export type ActivityTimingDayResult = {
 export type ActivityTimingData = {
   chartId: string; activity: string; month: string;
   topDates: ActivityTimingDayResult[];
+  /** The first three chronological SUPPORTS dates after the requested asOf date. */
+  nextFavourableDates?: string[];
   dateResult: ActivityTimingDayResult | null;
   /** Panchangam location used to rank this month's dates. */
   dailyLocation?: { latitude: number; longitude: number; timezone: string; source: "current" | "birth" } | null;

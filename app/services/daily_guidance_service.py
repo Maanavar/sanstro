@@ -1508,6 +1508,39 @@ def get_activity_timing(
 
     results.sort(key=lambda x: x[:3], reverse=True)
     top_dates = [item for *_, item in results[:5]]
+    next_favourable_dates = [
+        item.date_local
+        for *_, item in sorted(results, key=lambda entry: entry[3].date_local)
+        if as_of is not None and item.date_local > as_of and item.alignment == "SUPPORTS"
+    ][:3]
+    # The requested calendar month may end before three supported dates have
+    # arrived. Continue the lightweight Panchangam/Tara assessment (without
+    # recalculating daily scores) so the UI can always answer "when next?".
+    if as_of is not None and len(next_favourable_dates) < 3:
+        look_ahead_start = max(month_end + timedelta(days=1), as_of + timedelta(days=1))
+        look_ahead_end = look_ahead_start + timedelta(days=120)
+        future_panchangam = calculate_daily_panchangam_range(
+            look_ahead_start,
+            look_ahead_end,
+            daily_location.latitude,
+            daily_location.longitude,
+            daily_location.timezone,
+            session=session,
+        )
+        for candidate_date in sorted(future_panchangam):
+            panchang = future_panchangam[candidate_date]
+            candidate = assess_activity_timing(
+                activity=normalized_activity,
+                tithi_number=panchang.tithi_number,
+                paksha=panchang.tithi_paksha,
+                weekday_lord=panchang.weekday_lord,
+                nakshatra_number=panchang.nakshatra_number,
+                janma_nakshatra=janma_nakshatra,
+            )
+            if candidate.combined_alignment == "SUPPORTS":
+                next_favourable_dates.append(candidate_date)
+                if len(next_favourable_dates) == 3:
+                    break
 
     return ActivityTimingResponse(
         data=ActivityTimingData(
@@ -1515,6 +1548,7 @@ def get_activity_timing(
             activity=activity,
             month=month,
             topDates=top_dates,
+            nextFavourableDates=next_favourable_dates,
             dateResult=date_result,
             dailyLocation=ActivityTimingLocation(
                 latitude=daily_location.latitude,

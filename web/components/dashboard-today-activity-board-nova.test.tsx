@@ -9,9 +9,10 @@
  *      heading, not once per row (the visible repetition users flagged), and
  *   2. an activity whose reason differs still states its own.
  */
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { DailyActivityBoard } from "@/lib/types";
+import { getActivityTimingBatch } from "@vinaadi/shared/api/activityTiming";
 
 import { DashboardTodayActivityBoardNova } from "./dashboard-today-activity-board-nova";
 
@@ -119,5 +120,39 @@ describe("DashboardTodayActivityBoardNova — no repeated reasons", () => {
     });
 
     expect(screen.getByText(/Because today is your Chandrashtama/)).toBeTruthy();
+  });
+
+  it("puts the next three good dates in a neutral activity's hover hint", async () => {
+    vi.mocked(getActivityTimingBatch).mockResolvedValueOnce({
+      success: true,
+      data: {
+        chartId: "chart-1",
+        month: "2026-07",
+        results: {
+          money: {
+            chartId: "chart-1", activity: "money", month: "2026-07", topDates: [], dateResult: null,
+            nextFavourableDates: ["2026-07-20", "2026-07-23", "2026-07-28"],
+          },
+        },
+      },
+    });
+
+    render(
+      <DashboardTodayActivityBoardNova
+        board={{ favourable: [], caution: [], neutral: [verdict("money", "Money decisions", "NEUTRAL", "Neutral today")], isChandrashtama: false }}
+        lang="en"
+        chartId="chart-1"
+        selectedDate="2026-07-18"
+        bestWindow={null}
+        now={new Date("2026-07-18T12:00:00Z")}
+        isToday
+        onOpenAskVinaadi={() => {}}
+      />,
+    );
+
+    const row = screen.getByText("Money decisions").closest("li") as HTMLElement;
+    await waitFor(() => expect(row.title).toContain("Next good dates: 20 Jul, 23 Jul, 28 Jul"));
+    fireEvent.mouseEnter(row);
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Next good dates: 20 Jul, 23 Jul, 28 Jul");
   });
 });

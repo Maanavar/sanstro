@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { apiFetchJson } from "@/lib/api";
+import { useElapsedSeconds } from "@/hooks/useElapsedSeconds";
 import { t, tKarana, tNakshatra, tTithi, tWeekday, tYoga } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ApiEnvelope, MuhurtaFactor, MuhurtaSlot, MuhurtaResponseData, PanchangamDailyResponseData } from "@/lib/types";
@@ -141,7 +142,7 @@ function FactorList({ factors, lang }: { factors: MuhurtaFactor[]; lang: Lang })
       </span>
       <ul style={{ margin: "8px 0 0", padding: 0, listStyle: "none", display: "grid", gap: "10px" }}>
         {factors.map((f, i) => (
-          <li key={`${f.factor}-${i}`} style={{ padding: "10px 12px", borderLeft: `3px solid ${VERDICT_COLOR[f.verdict]}`, background: "var(--color-surface-soft)", borderRadius: "0 var(--radius-sm) var(--radius-sm) 0" }}>
+          <li key={`${f.factor}-${i}`} style={{ padding: "10px 12px", border: `1px solid color-mix(in srgb, ${VERDICT_COLOR[f.verdict]} 34%, transparent)`, background: "var(--color-surface-soft)", borderRadius: "var(--radius-sm)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
               <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: VERDICT_COLOR[f.verdict], textTransform: "uppercase", letterSpacing: "0.04em", whiteSpace: "nowrap" }}>
                 {lang === "ta" ? VERDICT_LABEL[f.verdict].ta : VERDICT_LABEL[f.verdict].en}
@@ -171,7 +172,7 @@ function FactorList({ factors, lang }: { factors: MuhurtaFactor[]; lang: Lang })
               </p>
             )}
             {f.conflict && (
-              <p style={{ fontSize: "var(--text-sm)", color: "var(--color-mid)", margin: "2px 0 0" }}>
+              <p style={{ fontSize: "var(--text-sm)", color: "var(--color-mid-text)", margin: "2px 0 0" }}>
                 {lang === "ta" ? "முரண்பாடு: " : "Unresolved in the source: "}{f.conflict}
               </p>
             )}
@@ -236,7 +237,7 @@ function NovaMuhurtaCard({
           )}
           <div style={{ fontSize: "var(--text-base)", color: "var(--color-muted)" }}>{formatClockLabel(slot.timeStart)} - {formatClockLabel(slot.timeEnd)}</div>
           {slot.traditionalMonthNotices && slot.traditionalMonthNotices.length > 0 && (
-            <div style={{ marginTop: "8px", padding: "6px 8px", borderLeft: "3px solid var(--color-mid)", background: "var(--color-surface-soft)", color: "var(--color-text)", fontSize: "var(--text-sm)", lineHeight: 1.45 }}>
+            <div style={{ marginTop: "8px", padding: "6px 8px", border: "1px solid var(--color-mid-border)", borderRadius: "var(--radius-sm)", background: "var(--color-surface-soft)", color: "var(--color-text)", fontSize: "var(--text-sm)", lineHeight: 1.45 }}>
               {slot.traditionalMonthNotices.map((notice, index) => (
                 <div key={`${notice.month.en}-${index}`}>
                   <strong>{lang === "ta" ? notice.month.ta : notice.month.en}: </strong>
@@ -272,8 +273,8 @@ function NovaMuhurtaCard({
               factor list replaces it wherever the API sends one, and the cautions
               list stays as the fallback for a response that predates it. */}
           {slot.traditionalMonthNotices && slot.traditionalMonthNotices.length > 0 && (
-            <div style={{ marginTop: "12px", padding: "10px 12px", borderLeft: "3px solid var(--color-mid)", borderRadius: "0 var(--radius-sm) var(--radius-sm) 0", background: "var(--color-surface-soft)" }}>
-              <p style={{ margin: 0, fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-mid)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+            <div style={{ marginTop: "12px", padding: "10px 12px", border: "1px solid var(--color-mid-border)", borderRadius: "var(--radius-sm)", background: "var(--color-surface-soft)" }}>
+              <p style={{ margin: 0, fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-mid-text)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
                 {lang === "ta" ? "பொதுவான குடும்ப வழக்கம்" : "General family custom"}
               </p>
               {slot.traditionalMonthNotices.map((notice, index) => (
@@ -289,7 +290,7 @@ function NovaMuhurtaCard({
             <FactorList factors={slot.factors} lang={lang} />
           ) : slot.cautions.length > 0 ? (
             <div>
-              <span style={{ fontSize: "var(--text-xs)", fontWeight: 600, textTransform: "uppercase", color: "var(--color-mid)", letterSpacing: "0.05em" }}>
+              <span style={{ fontSize: "var(--text-xs)", fontWeight: 600, textTransform: "uppercase", color: "var(--color-mid-text)", letterSpacing: "0.05em" }}>
                 {t("muhurta_cautions", lang)}
               </span>
               <ul style={{ margin: "4px 0 0 0", paddingLeft: "var(--space-4)" }}>
@@ -468,6 +469,8 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
   const [activityCityQuery, setActivityCityQuery] = useState("");
   const [activityCity, setActivityCity] = useState<CityEntry | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const searchElapsed = useElapsedSeconds(loading);
+  const checkDateElapsed = useElapsedSeconds(checkingDate);
 
   useEffect(() => {
     if (initialActivity) setActivity(initialActivity);
@@ -629,7 +632,7 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
             fontFamily: "inherit",
           }}
         >
-          {loading ? t("muhurta_searching", lang) : t("muhurta_search", lang)}
+          {loading ? `${t("muhurta_searching", lang)} ${searchElapsed}s` : t("muhurta_search", lang)}
         </button>
       </div>
 
@@ -667,11 +670,12 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
           onClick={handleCheckDate}
           style={{
             padding: "var(--space-2) var(--space-5)", borderRadius: "var(--radius-md)",
-            border: "1px solid var(--color-border)", background: "var(--color-surface-soft)", color: "var(--color-text)",
-            fontWeight: 700, fontSize: "var(--text-base)", cursor: !chartId || !activity || checkingDate ? "not-allowed" : "pointer", fontFamily: "inherit",
+            border: "1px solid var(--color-border)", background: "var(--color-surface-soft)",
+            color: !chartId || !activity || checkingDate ? "var(--color-faint)" : "var(--color-text-accent)",
+            fontWeight: 600, fontSize: "var(--text-base)", cursor: !chartId || !activity || checkingDate ? "not-allowed" : "pointer", fontFamily: "inherit",
           }}
         >
-          {checkingDate ? t("muhurta_searching", lang) : t("muhurta_check_date", lang)}
+          {checkingDate ? `${t("muhurta_searching", lang)} ${checkDateElapsed}s` : t("muhurta_check_date", lang)}
         </button>
       </div>
 
@@ -708,8 +712,8 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
             {assessment.score.toFixed(1)} · {t("muhurta_score", lang)}
           </p>
           {assessment.traditionalMonthNotices && assessment.traditionalMonthNotices.length > 0 && (
-            <div style={{ margin: "0 0 12px", padding: "10px 12px", borderLeft: "3px solid var(--color-mid)", borderRadius: "0 var(--radius-sm) var(--radius-sm) 0", background: "var(--color-surface-soft)" }}>
-              <p style={{ margin: 0, fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-mid)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+            <div style={{ margin: "0 0 12px", padding: "10px 12px", border: "1px solid var(--color-mid-border)", borderRadius: "var(--radius-sm)", background: "var(--color-surface-soft)" }}>
+              <p style={{ margin: 0, fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-mid-text)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
                 {lang === "ta" ? "பொதுவான குடும்ப வழக்கம்" : "General family custom"}
               </p>
               {assessment.traditionalMonthNotices.map((notice, index) => (
@@ -741,7 +745,7 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
             {t("muhurta_results", lang)} {selectedActivity && <span style={{ color: "var(--color-muted)", fontWeight: 400 }}>· {lang === "ta" ? selectedActivity.ta : selectedActivity.en}</span>}
           </p>
 
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "var(--space-2)", marginBottom: "14px", padding: "10px 12px", background: "var(--color-surface-soft)", borderLeft: "3px solid var(--color-text-accent)" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "var(--space-2)", marginBottom: "14px", padding: "10px 12px", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)" }}>
             <span style={{ color: "var(--color-faint)", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}>{lang === "ta" ? "இடம்" : "Results calculated for"}</span>
             <strong style={{ color: "var(--color-text)", fontSize: "var(--text-base)" }}>{result.activityLocation.place}</strong>
             <span style={{ color: "var(--color-muted)", fontSize: "var(--text-sm)" }}>· {result.timezone}</span>

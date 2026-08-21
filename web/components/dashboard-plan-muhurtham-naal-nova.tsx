@@ -71,11 +71,13 @@ function NovaNaalRow({
   lang,
   showMatchCol,
   onOpenPanchangam,
+  onCheckInPlanner,
 }: {
   row: MergedRow;
   lang: Lang;
   showMatchCol: boolean;
   onOpenPanchangam?: (date: string) => void;
+  onCheckInPlanner?: (date: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const { naal, match } = row;
@@ -161,11 +163,30 @@ function NovaNaalRow({
           </ul>
         </div>
       )}
+      {onCheckInPlanner && (
+        <div style={{ padding: "0 var(--space-4) var(--space-3)", display: "flex", justifyContent: "flex-end" }}>
+          <button
+            type="button"
+            onClick={() => onCheckInPlanner(naal.date)}
+            style={{ padding: "var(--space-1) var(--space-3)", border: "1px solid var(--color-accent)", borderRadius: "var(--radius-pill)", background: "transparent", color: "var(--color-text-accent)", cursor: "pointer", font: "inherit", fontSize: "var(--text-sm)", fontWeight: 700 }}
+          >
+            {lang === "ta" ? "இந்தத் தேதியை விரிவான தேடலில் பயன்படுத்த" : "Use this date in detailed search"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
-export function NovaMuhurthamNaal({ lang, chartId }: { lang: Lang; chartId: string | null }) {
+export function NovaMuhurthamNaal({
+  lang,
+  chartId,
+  onCheckInPlanner,
+}: {
+  lang: Lang;
+  chartId: string | null;
+  onCheckInPlanner?: (date: string) => void;
+}) {
   const [year, setYear] = useState(() => new Date().getFullYear());
   const [allNaals, setAllNaals] = useState<MuhurthamNaalItem[]>([]);
   const [matches, setMatches] = useState<MuhurthamNaalMatchItem[]>([]);
@@ -320,6 +341,7 @@ export function NovaMuhurthamNaal({ lang, chartId }: { lang: Lang; chartId: stri
           lang={lang}
           showMatchCol={showMatchCol}
           onOpenPanchangam={context?.dailyLocation ? setPanchangamDate : undefined}
+          onCheckInPlanner={onCheckInPlanner}
         />
       ))}
 
