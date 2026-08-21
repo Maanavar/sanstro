@@ -11,7 +11,7 @@ export type EventType = "MARRIAGE" | "CAREER" | "FINANCE";
 export type EventWindowsData = { windows: EventWindowItem[]; ageGated: boolean };
 
 /**
- * `/charts/{id}/event-windows`, fetched once per (chart, event).
+ * `/charts/{id}/event-windows`, fetched once per (chart, event, range).
  *
  * It used to be fetched two entirely different ways: `dashboard-plan-tab-nova`
  * had a local `useEventWindowsQuery` inside react-query, and
@@ -20,27 +20,29 @@ export type EventWindowsData = { windows: EventWindowItem[]; ageGated: boolean }
  * Plan and then Life Areas put the identical request on the wire twice, and the
  * hand-rolled side did it again on every remount.
  *
- * The year range is part of the request but NOT part of the key, deliberately:
- * it is derived from `new Date()` at call time and both call sites computed the
- * same `currentYear .. currentYear + 20`. Keying on it would split the cache at
- * midnight on New Year for no benefit.
+ * The range is included in the key because dashboard surfaces can intentionally
+ * request different horizons.
  */
-export function eventWindowsKey(chartId: string, event: EventType) {
-  return ["event-windows", chartId, event] as const;
+export function eventWindowsKey(chartId: string, event: EventType, yearsAhead: number) {
+  return ["event-windows", chartId, event, yearsAhead] as const;
 }
 
-export async function fetchEventWindows(chartId: string, event: EventType): Promise<EventWindowsData> {
+export async function fetchEventWindows(
+  chartId: string,
+  event: EventType,
+  yearsAhead = 20,
+): Promise<EventWindowsData> {
   const currentYear = new Date().getFullYear();
   const res = await apiFetchJson<{ data: { windows: EventWindowItem[]; ageGated?: boolean } }>(
-    `/api/v1/charts/${chartId}/event-windows?event=${event}&fromYear=${currentYear}&toYear=${currentYear + 20}`,
+    `/api/v1/charts/${chartId}/event-windows?event=${event}&fromYear=${currentYear}&toYear=${currentYear + yearsAhead}`,
   );
   return { windows: res.data?.windows ?? [], ageGated: Boolean(res.data?.ageGated) };
 }
 
-export function useEventWindowsQuery(chartId: string, event: EventType, enabled = true) {
+export function useEventWindowsQuery(chartId: string, event: EventType, enabled = true, yearsAhead = 20) {
   return useQuery({
-    queryKey: eventWindowsKey(chartId, event),
-    queryFn: () => fetchEventWindows(chartId, event),
+    queryKey: eventWindowsKey(chartId, event, yearsAhead),
+    queryFn: () => fetchEventWindows(chartId, event, yearsAhead),
     enabled: enabled && !!chartId,
     staleTime: STALE.today,
   });

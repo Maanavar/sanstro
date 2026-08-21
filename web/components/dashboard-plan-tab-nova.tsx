@@ -126,6 +126,42 @@ function namedLordFromReasons(reasons: string[]): string | null {
   return null;
 }
 
+function windowMeaning(event: EventType, reasons: string[]): BiText {
+  const hasDashaSignal = reasons.some((reason) => reason.endsWith("_dasha_active"));
+  const hasJupiterTransit = reasons.some((reason) => reason.startsWith("jupiter_supports_"));
+  const hasCareerConnection = reasons.includes("dasha_connects_10th_house");
+
+  if (event === "CAREER" && hasCareerConnection && hasJupiterTransit) {
+    return {
+      en: "This is a two-layer career signal. First, the maha/antardasha active in this period has a chart connection to your 10th house of profession—through related-house lordship, a natal placement or aspect, a dispositor link, or a career karaka role. Second, Jupiter occupies or aspects that 10th house in transit. The dasha supplies the longer timing backdrop; Jupiter supplies an independent transit confirmation. Use the overlap for preparation, applications, negotiations, and measured business decisions.",
+      ta: "இது இரண்டு அடுக்கு தொழில் சுட்டிக்காட்டாகும். முதலில், இந்தக் காலத்தின் மகாதசை/அந்தர்தசை உங்கள் தொழிலைக் குறிக்கும் 10-ஆம் பாவத்துடன் தொடர்பு கொண்டுள்ளது — தொடர்புடைய பாவ அதிபதித்துவம், பிறப்பு ஜாதக நிலை அல்லது பார்வை, அதிபதி இணைப்பு அல்லது தொழில் காரகப் பங்கு வழியாக. அடுத்து, குரு கோச்சாரத்தில் அந்த 10-ஆம் பாவத்தில் இருப்பார் அல்லது பார்ப்பார். தசை நீண்டகால நேரப் பின்னணியைத் தருகிறது; குரு தனித்த கோச்சார உறுதிப்படுத்தலைத் தருகிறார். தயாரிப்பு, விண்ணப்பம், பேச்சுவார்த்தை மற்றும் அளவான வணிக முடிவுகளுக்கு இந்த இணைப்பைப் பயன்படுத்துங்கள்.",
+    };
+  }
+
+  if (event === "CAREER" && hasDashaSignal && hasJupiterTransit) {
+    return {
+      en: "The active maha/antardasha includes a direct career significator or your 10th-house lord, and Jupiter independently occupies or aspects the 10th house in transit. This combines period-level and transit-level support for well-prepared career decisions.",
+      ta: "செயலில் உள்ள மகாதசை/அந்தர்தசையில் நேரடி தொழில் காரகன் அல்லது உங்கள் 10-ஆம் பாவ அதிபதி இடம்பெறுகிறார்; குருவும் கோச்சாரத்தில் 10-ஆம் பாவத்தில் இருப்பார் அல்லது பார்ப்பார். இது நன்கு தயாரித்த தொழில் முடிவுகளுக்கு தசை மற்றும் கோச்சார ஆதரவை இணைக்கிறது.",
+    };
+  }
+
+  const copy: Record<EventType, BiText> = {
+    CAREER: {
+      en: "This window carries traditional support for career direction. Use it for steady preparation and well-considered job or business decisions.",
+      ta: "இந்தக் காலம் தொழில் திசைக்கான பாரம்பரிய ஆதரவைக் காட்டுகிறது. திட்டமிட்ட தயாரிப்பு மற்றும் சிந்தித்த வேலை அல்லது வணிக முடிவுகளுக்கு இதைப் பயன்படுத்துங்கள்.",
+    },
+    MARRIAGE: {
+      en: "This window carries traditional relationship-timing support. Use it for thoughtful conversations, compatibility checks, and steady next steps.",
+      ta: "இந்தக் காலம் உறவு நேரத்திற்கான பாரம்பரிய ஆதரவைக் காட்டுகிறது. சிந்தனையான உரையாடல், பொருத்தம் பார்ப்பது மற்றும் நிலையான அடுத்த படிகளுக்கு இதைப் பயன்படுத்துங்கள்.",
+    },
+    FINANCE: {
+      en: "This window carries traditional support for income or financial progress. Research and compare options before making planned decisions.",
+      ta: "இந்தக் காலம் வருமானம் அல்லது நிதி முன்னேற்றத்திற்கான பாரம்பரிய ஆதரவைக் காட்டுகிறது. திட்டமிட்ட முடிவுகளுக்கு முன் ஆராய்ந்து தேர்வுகளை ஒப்பிடுங்கள்.",
+    },
+  };
+  return copy[event];
+}
+
 const EVENT_ADVICE: Record<EventType, { future: BiText; active: BiText }> = {
   CAREER: {
     future: {
@@ -255,9 +291,9 @@ export function DashboardPlanTabNova({
   }, [goals, lang]);
 
   const hasEvent = (evt: EventType) => groups.some((g) => g.event === evt);
-  const marriageQ = useEventWindowsQuery(chartId, "MARRIAGE", hasEvent("MARRIAGE"));
-  const careerQ = useEventWindowsQuery(chartId, "CAREER", hasEvent("CAREER"));
-  const financeQ = useEventWindowsQuery(chartId, "FINANCE", hasEvent("FINANCE"));
+  const marriageQ = useEventWindowsQuery(chartId, "MARRIAGE", hasEvent("MARRIAGE"), 5);
+  const careerQ = useEventWindowsQuery(chartId, "CAREER", hasEvent("CAREER"), 5);
+  const financeQ = useEventWindowsQuery(chartId, "FINANCE", hasEvent("FINANCE"), 5);
   const queryByEvent: Record<EventType, typeof marriageQ> = { MARRIAGE: marriageQ, CAREER: careerQ, FINANCE: financeQ };
 
   const heroGroup = groups[0] ?? null;
@@ -441,8 +477,8 @@ export function DashboardPlanTabNova({
                 ) : (
                   <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.5 }}>
                     {lang === "ta"
-                      ? "அடுத்த 20 ஆண்டுகளில் குறிப்பிடத்தக்க ஆதரவான காலம் இல்லை."
-                      : "No notable supportive window in the next 20 years."}
+                      ? "அடுத்த 5 ஆண்டுகளில் குறிப்பிடத்தக்க ஆதரவான காலம் இல்லை."
+                      : "No notable supportive window in the next 5 years."}
                   </p>
                 )}
               </div>
@@ -483,7 +519,7 @@ export function DashboardPlanTabNova({
 
                 {!q.isLoading && windows.length === 0 && !groupAgeGated && (
                   <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)" }}>
-                    {lang === "ta" ? "அடுத்த 20 ஆண்டுகளில் குறிப்பிடத்தக்க காலம் இல்லை." : "No notable windows in the next 20 years."}
+                    {lang === "ta" ? "அடுத்த 5 ஆண்டுகளில் குறிப்பிடத்தக்க காலம் இல்லை." : "No notable windows in the next 5 years."}
                   </p>
                 )}
 
@@ -492,6 +528,7 @@ export function DashboardPlanTabNova({
                   const startLabel = new Date(`${w.startDate}T12:00:00`).toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", { day: "numeric", month: "short", year: "numeric" });
                   const endLabel = new Date(`${w.endDate}T12:00:00`).toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", { day: "numeric", month: "short", year: "numeric" });
                   const isActive = w.startDate <= todayStr && todayStr <= w.endDate;
+                  const meaning = windowMeaning(group.event, w.reasons);
                   return (
                     <Card key={`${w.startDate}-${i}`} variant={isActive ? "accent" : "default"} style={{ flexDirection: "row", gap: "var(--space-4)", alignItems: "flex-start" }}>
                       <div style={{ flex: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-1)", minWidth: "74px" }}>
@@ -505,6 +542,10 @@ export function DashboardPlanTabNova({
                             <span key={`${r}-${ri}`} style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5 }}>· {humaniseReason(r, lang)}</span>
                           ))}
                         </div>
+                        <p style={{ margin: "var(--space-2) 0 0", fontSize: "var(--text-sm)", color: "var(--color-text)", lineHeight: 1.55 }}>
+                          <b style={{ color: "var(--color-accent-strong)" }}>{lang === "ta" ? `இந்தக் காலம் ஏன் ${w.score}/100 பெற்றது:` : `Why this scored ${w.score}/100:`}</b>{" "}
+                          {lang === "ta" ? meaning.ta : meaning.en}
+                        </p>
                       </div>
                     </Card>
                   );
