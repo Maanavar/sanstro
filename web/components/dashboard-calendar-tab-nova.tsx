@@ -1007,7 +1007,7 @@ export function DashboardCalendarTabNova({
                     times below. */}
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", marginTop: "10px", flexWrap: "wrap" }}>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)", color: "var(--color-accent-secondary)", fontWeight: 600 }}>
-                    {moonPhase ? <MiniMoonGlyph phase={moonPhase} size={15} /> : (isWaxing ? "◐" : "◑")}
+                    {moonPhase ? <MiniMoonGlyph phase={moonPhase} size={18} /> : (isWaxing ? "◐" : "◑")}
                     {specialTithiMeta
                       ? specialTithiMeta.label
                       : isWaxing ? (lang === "ta" ? "வளர்பிறை" : "Valarpirai") : (lang === "ta" ? "தேய்பிறை" : "Theipirai")}

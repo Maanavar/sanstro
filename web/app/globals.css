@@ -452,6 +452,24 @@
   --shimmer-peak: rgba(255,255,255,0.15);
 }
 
+/* Moon-glyph ink (MiniMoonGlyph in celestial-glyph-nova.tsx). The phase art is
+   a two-tone disc, so *both* tones have to stay legible on whatever ground the
+   glyph sits on — a near-white lit face reads on the dark shell and vanishes on
+   the cream light theme, which would turn every crescent back into "nothing".
+   Light therefore darkens the body to a mid violet and leans on a stronger rim
+   to carry the disc's edge. */
+:root {
+  --moon-lit: #f4f1ff;
+  --moon-body: #221d3a;
+  --moon-rim: #7d76a6;
+}
+
+[data-theme="light"] {
+  --moon-lit: #ffffff;
+  --moon-body: #6f6291;
+  --moon-rim: #4d4269;
+}
+
 /* UXD-03 — the theme attribute is a dashboard concern. Now that "System" follows
    the OS, a dark-OS visitor carries data-theme="dark" on the public site too;
    keep the marketing surface (no .cd-shell) on a light color-scheme so cream

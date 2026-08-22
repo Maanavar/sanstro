@@ -240,38 +240,42 @@ export function MoonBody({
  * Tiny inline phase-moon — no sky tile, glow or stars — for sitting next to
  * text (e.g. the hero's waxing/waning chip) so the *real* moon shape shows even
  * in daylight, where the full glyph would be a sun. Same terminator math as the
- * big glyph; a hairline rim keeps a near-new moon from vanishing into a dot.
+ * big glyph.
+ *
+ * Drawn deliberately flatter than `MoonBody`: at chip size the terminator is
+ * only a few pixels wide, so a soft radial-gradient face, a translucent dark
+ * limb and a disc that grew with fullness all blurred together and every day
+ * from roughly Ashtami to Pournami read as one full white dot — the phase was
+ * being computed correctly and then thrown away at paint time. Fixed radius +
+ * a solid body + a flat lit face keeps the *shape* the only thing that varies,
+ * which is the one thing this glyph exists to say.
  */
 export function MiniMoonGlyph({
   phase,
-  size = 16,
+  size = 18,
 }: {
   phase: MoonPhase;
   size?: number;
 }) {
-  // Fixed, not useId() — see CelestialGlyphNova above for why.
-  const gid = "celestial-mini-moon";
-  const r = 15 + 3 * phase.fraction; // 15 (new) … 18 (full), within a 40-box
+  const r = 17; // constant — same ball every day, only the shading moves
   const lit = litMoonPath(20, 20, r, phase.fraction, phase.waxing);
-  // Earthshine: at Amavasai the lit path is a near-empty sliver, so in the chip
-  // the dark disc can read as "nothing". A faint outer ring + a stronger rim the
-  // newer the moon keeps it reading as a round dark body. 1 at new … 0 by first
-  // slim crescent.
-  const earthshine = Math.max(0, 1 - phase.fraction / 0.18);
+  // At Amavasai the lit path is a near-empty sliver, so the disc would read as
+  // "nothing". Strengthen the rim the newer the moon so it still reads as a
+  // round dark body. 1 at new … 0 by the first slim crescent.
+  const earthshine = Math.max(0, 1 - phase.fraction / 0.12);
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden="true" style={{ display: "block", flex: "none" }}>
-      <defs>
-        <radialGradient id={`${gid}-d`} cx="38%" cy="34%" r="75%">
-          <stop offset="0%" stopColor="#fdfbff" />
-          <stop offset="100%" stopColor="#cdc7e4" />
-        </radialGradient>
-      </defs>
-      <circle cx="20" cy="20" r={r} fill="#3a3556" fillOpacity={0.5 + 0.12 * earthshine} />
-      {earthshine > 0 && (
-        <circle cx="20" cy="20" r={r + 1.4} fill="none" stroke="#c4bce6" strokeWidth="0.9" opacity={0.4 * earthshine} />
-      )}
-      <circle cx="20" cy="20" r={r} fill="none" stroke="#8f88b5" strokeWidth="0.8" strokeOpacity={0.5 + 0.4 * earthshine} />
-      <path d={lit} fill={`url(#${gid}-d)`} />
+      <circle cx="20" cy="20" r={r} fill="var(--moon-body, #221d3a)" />
+      <circle
+        cx="20"
+        cy="20"
+        r={r}
+        fill="none"
+        stroke="var(--moon-rim, #7d76a6)"
+        strokeWidth={1.2}
+        strokeOpacity={0.55 + 0.35 * earthshine}
+      />
+      <path d={lit} fill="var(--moon-lit, #f4f1ff)" />
     </svg>
   );
 }

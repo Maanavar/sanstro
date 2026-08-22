@@ -479,6 +479,10 @@
   flex-shrink: 0;
   position: relative;
   transition: color 150ms ease;
+  /* A nav label is a control, not prose — double-clicking one to switch tabs
+     should not leave its text selected underneath. */
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .cd-tab:hover {

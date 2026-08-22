@@ -1137,6 +1137,16 @@
   color: var(--color-accent-strong);
 }
 
+/* The tabs are stretched to the topbar's full height inside .cd-topnav__scroll,
+   and that strip's `overflow-x: auto` forces overflow-y to auto too — so the
+   global :focus-visible ring (2px, offset 2px) has its top and bottom edges
+   clipped away and paints as two stray gold bars either side of the tab. Draw
+   the ring *inside* the button instead, where nothing can crop it. */
+[data-ui="nova"] .cd-topnav__scroll .cd-tab:focus-visible {
+  outline-offset: -3px;
+  border-radius: var(--radius-md, 8px);
+}
+
 [data-ui="nova"] .cd-topnav .cd-tab__indicator {
   bottom: 0;
 }
