@@ -7,16 +7,16 @@ import { useMemo, useState } from "react";
 import { formatDateLabel } from "@/lib/format";
 import { t, tLang, tTithi } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
-import { lunarSpecialTithiMeta } from "@/lib/lunar";
+import { lunarSpecialTithiMeta, moonPhaseFromTithi } from "@/lib/lunar";
 import { festivalGlyph } from "@/lib/astro-symbols";
 import type { PanchangamFestival, PanchangamMonthDayEntry } from "@/lib/types";
 
+import { MiniMoonGlyph } from "./celestial-glyph-nova";
 import {
   festivalImagePath,
   festivalTags,
   MONTH_LABELS_EN,
   MONTH_LABELS_TA,
-  MoonPhaseMark,
   tamilMonthOnly,
   VRATHA_FESTIVAL_PATTERN,
   WEEKDAY_LABELS_EN,
@@ -493,8 +493,33 @@ export function MonthlyCalendarViewNova({
                   const showMuhurtham = Boolean(entry?.isTamilMuhurthamDay) && catOn("muhurtham");
                   const showLunar = catOn("lunar");
                   const showKarinaal = Boolean(entry?.isKarinaal) && catOn("karinaal");
-                  const specialTithi = showLunar && entry?.specialTithiDayNumber === 15 ? "POURNAMI" : showLunar && entry?.specialTithiDayNumber === 30 ? "AMAVASAI" : null;
-                  const specialTithiMeta = lunarSpecialTithiMeta(specialTithi, lang);
+                  // Every day carries its real moon shape, not just the two
+                  // special tithis: the month grid is where the fortnight's
+                  // rhythm is read, and the old flat mark appeared only on
+                  // Pournami/Amavasai, so the fourteen days between them showed
+                  // nothing at all. Phase comes from the day's own tithi +
+                  // paksha (no ephemeris call) — see moonPhaseFromTithi.
+                  //
+                  // Deliberately NOT gated by the "lunar" filter: that toggle
+                  // governs the Pournami/Amavasai *highlight tint*, which is an
+                  // event category, whereas the moon's shape is a plain fact
+                  // about the day — same standing as the tithi name printed
+                  // right below it.
+                  const moonPhase = entry ? moonPhaseFromTithi(entry.tithiNumber, entry.tithiPaksha) : null;
+                  const lunarMeta = lunarSpecialTithiMeta(
+                    entry?.specialTithiDayNumber === 15 ? "POURNAMI" : entry?.specialTithiDayNumber === 30 ? "AMAVASAI" : null,
+                    lang,
+                  );
+                  const moonTitle = entry
+                    ? [
+                        tTithi(entry.tithiName, lang),
+                        lunarMeta
+                          ? lunarMeta.phaseLabel
+                          : entry.tithiPaksha === "SHUKLA"
+                            ? (lang === "ta" ? "வளர்பிறை" : "Waxing")
+                            : (lang === "ta" ? "தேய்பிறை" : "Waning"),
+                      ].filter(Boolean).join(" · ")
+                    : "";
                   const highlightType: NovaHighlightKind | null = !entry ? null
                     : showMuhurtham ? "muhurtham"
                     : showLunar && entry.specialTithiDayNumber === 15 ? "pournami"
@@ -553,9 +578,9 @@ export function MonthlyCalendarViewNova({
                       )}
                       <div style={{ display: "flex", alignItems: "flex-start", gap: "var(--space-2)" }}>
                         <span style={{ fontSize: "var(--text-base)", fontWeight: 700, color: dateColor, lineHeight: 1 }}>{dayNumber}</span>
-                        {specialTithiMeta && (
-                          <span title={specialTithiMeta.label} style={{ color: dateColor, display: "inline-flex", marginTop: "1px" }}>
-                            <MoonPhaseMark kind={specialTithiMeta.kind} size={9} />
+                        {moonPhase && (
+                          <span title={moonTitle} style={{ display: "inline-flex", marginTop: "1px" }}>
+                            <MiniMoonGlyph phase={moonPhase} size={13} />
                           </span>
                         )}
                       </div>

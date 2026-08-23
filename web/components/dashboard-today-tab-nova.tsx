@@ -7,6 +7,7 @@ import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { addDays, formatClockLabel, formatDateLabel, getScoreVerdictFromGuidance } from "@/lib/format";
 import { t, tLang, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { dt, FIRST_RESULT_GUIDE } from "@/lib/dashboard-i18n";
 import { hourInZone, minutesOfDayInZone, timeOnDateToMs } from "@/lib/tz";
 import { findSecondaryAbhijitWindow, pickFeaturedWindow } from "@/lib/today-windows";
 import type {
@@ -46,6 +47,7 @@ import {
   DashboardTodayLifeAreasDasaRowNova,
   DashboardTodayQuickLinksNova,
 } from "./dashboard-today-glance-nova";
+import { DashboardOneMinuteReading } from "./dashboard-one-minute-reading";
 
 /**
  * Nova "Today" tab — decision layer only (design 8a). Every field below
@@ -68,6 +70,7 @@ import {
 
 export type DashboardTodayTabNovaProps = {
   lang: Lang;
+  userMode?: "BEGINNER" | "BALANCED" | "TRADITIONAL";
   activeLifeMode?: LifeMode;
   birthDisplayName: string;
   selectedDate: string;
@@ -162,8 +165,61 @@ function formatDuration(ms: number, lang: Lang): string {
   return lang === "ta" ? `${h}மணி ${m}நிமிடம்` : `${h}h ${m}m`;
 }
 
+function FirstResultGuide({
+  lang,
+  action,
+}: {
+  lang: Lang;
+  action: DailyGuidanceData["actionSuggestion"] | null | undefined;
+}) {
+  const items = [
+    { title: dt(FIRST_RESULT_GUIDE.scoreTitle, lang), body: dt(FIRST_RESULT_GUIDE.scoreBody, lang) },
+    { title: dt(FIRST_RESULT_GUIDE.avoidTitle, lang), body: dt(FIRST_RESULT_GUIDE.avoidBody, lang) },
+    {
+      title: dt(FIRST_RESULT_GUIDE.actionTitle, lang),
+      body: action ? tLang(action, lang) : dt(FIRST_RESULT_GUIDE.actionFallback, lang),
+    },
+  ];
+  return (
+    <Card style={{
+      borderColor: "var(--color-border-strong)",
+      padding: "var(--space-4) var(--space-5)",
+      display: "flex",
+      flexDirection: "column",
+      gap: "var(--space-3)",
+    }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "var(--space-3)", flexWrap: "wrap" }}>
+        <h2 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--color-accent-strong)" }}>
+          {dt(FIRST_RESULT_GUIDE.heading, lang)}
+        </h2>
+        <a href="/learn/vedic-vs-western" style={{ fontSize: "var(--text-sm)", color: "var(--color-accent-secondary)", fontWeight: 700, textDecoration: "none" }}>
+          {dt(FIRST_RESULT_GUIDE.learnLink, lang)}
+          <ArrowRight size={12} strokeWidth={2} aria-hidden="true" style={{ verticalAlign: "middle", marginLeft: "var(--space-1)" }} />
+        </a>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "var(--space-3)" }}>
+        {items.map((item) => (
+          <div key={item.title} style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+            <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 800, color: "var(--color-text-strong)" }}>
+              {item.title}
+            </p>
+            <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.5, color: "var(--color-muted)" }}>
+              {item.body}
+            </p>
+          </div>
+        ))}
+      </div>
+      <a href="#nova-deep-dive" style={{ alignSelf: "flex-start", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 700, textDecoration: "none" }}>
+        {dt(FIRST_RESULT_GUIDE.whyTrail, lang)}
+        <ArrowRight size={12} strokeWidth={2} aria-hidden="true" style={{ verticalAlign: "middle", marginLeft: "var(--space-1)" }} />
+      </a>
+    </Card>
+  );
+}
+
 export function DashboardTodayTabNova({
   lang,
+  userMode = "BALANCED",
   birthDisplayName,
   selectedDate,
   todayDate,
@@ -732,6 +788,19 @@ export function DashboardTodayTabNova({
         onGoToExplore={onGoToExplore}
         onGoToAllTools={onGoToAllTools}
       />
+
+      {userMode === "BEGINNER" && personalDailyGuidance && (
+        <FirstResultGuide lang={lang} action={personalDailyGuidance.actionSuggestion} />
+      )}
+
+      {activeChartId && (
+        <DashboardOneMinuteReading
+          lang={lang}
+          chartId={activeChartId}
+          onOpenFullChart={onGoToCharts}
+          deferUntilVisible
+        />
+      )}
 
       {/* Fail-soft notice (DASH-02): the day bundle loaded but some sections
           couldn't be computed — offer a one-tap retry instead of blanking. */}

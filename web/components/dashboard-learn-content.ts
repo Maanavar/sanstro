@@ -4,10 +4,11 @@ import {
   LEARN_JAD,
   LEARN_PORUTHAM,
   LEARN_THIRUK,
+  LEARN_VEDIC_WESTERN,
 } from "@/lib/marketing-i18n";
 
 /**
- * Data-only mapping of the 5 real, already-shipped `/learn/*` marketing
+ * Data-only mapping of the real, already-shipped `/learn/*` marketing
  * articles into a generic bilingual shape, reused by the in-app Learn
  * viewers (Nova's Explore tab + Classic's single-article modal) instead of
  * navigating out to the marketing site. Every string here is imported
@@ -28,6 +29,18 @@ export type LearnArticleContent = {
 };
 
 export const LEARN_ARTICLES_CONTENT: LearnArticleContent[] = [
+  {
+    slug: "vedic-vs-western",
+    eyebrow: LEARN_VEDIC_WESTERN.eyebrow,
+    title: LEARN_VEDIC_WESTERN.h1,
+    lead: LEARN_VEDIC_WESTERN.lead,
+    sections: [
+      { heading: LEARN_VEDIC_WESTERN.zodiac_h2, body: LEARN_VEDIC_WESTERN.zodiac_body },
+      { heading: LEARN_VEDIC_WESTERN.lagna_h2, body: LEARN_VEDIC_WESTERN.lagna_body },
+      { heading: LEARN_VEDIC_WESTERN.stars_h2, body: LEARN_VEDIC_WESTERN.stars_body },
+      { heading: LEARN_VEDIC_WESTERN.dasha_h2, body: LEARN_VEDIC_WESTERN.dasha_body },
+    ],
+  },
   {
     slug: "what-is-thirukanitham",
     eyebrow: LEARN_THIRUK.eyebrow,

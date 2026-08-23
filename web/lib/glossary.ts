@@ -1,6 +1,18 @@
 // Short, plain-language definitions for Jothidam terms that recur on the Deep
 // Dive surface. Kept separate from i18n.ts's label dictionaries because these
 // are explanatory sentences, not UI labels — see H8 (#15/#24/#89).
+//
+// EXPANDED 2026-08-22 (UX blindspot audit) from 20 Deep-Dive terms to cover the
+// DAILY vocabulary as well. The original twenty were chosen for the surface a
+// curious reader opts into; the terms below are the ones the app puts in front
+// of everybody, unasked, on Today and the Calendar — Rahu Kalam, Tithi,
+// Chandrashtama, Nalla Neram, Karinaal and the rest. Between those two screens
+// ~28 terms rendered with no definition anywhere in the product (there is no
+// glossary page, and `GlossaryTerm` reached neither file).
+//
+// House style, worth keeping: a definition DEFINES. "Rajju — the Rajju
+// porutham" is not an entry. Each one below says what the thing is in ordinary
+// words, and where it earns it, what to actually do about it.
 export type GlossaryKey =
   | "dasha"
   | "bhukti"
@@ -21,7 +33,30 @@ export type GlossaryKey =
   | "yoginiDasha"
   | "ashtottariDasha"
   | "kalachakraDasha"
-  | "charaDasha";
+  | "charaDasha"
+  // ── Daily vocabulary: Today ribbon + Calendar day panel ──
+  | "panchangam"
+  | "tithi"
+  | "karana"
+  | "vara"
+  | "yogam"
+  | "paksham"
+  | "rahuKalam"
+  | "yamagandam"
+  | "kuligai"
+  | "nallaNeram"
+  | "abhijit"
+  | "hora"
+  | "chandrashtama"
+  | "karinaal"
+  | "soolam"
+  | "parigaram"
+  | "amirdhadhi"
+  | "muhurtham"
+  | "lagnam"
+  | "pada"
+  | "peyarchi"
+  | "sadeSati";
 
 export const GLOSSARY: Record<GlossaryKey, { ta: string; en: string }> = {
   dasha: {
@@ -103,5 +138,96 @@ export const GLOSSARY: Record<GlossaryKey, { ta: string; en: string }> = {
   charaDasha: {
     en: "A sign-based (Jaimini) alternate timing system, often used to time life events like marriage or career change.",
     ta: "ராசி அடிப்படையிலான (ஜைமினி) மாற்று கால நிர்ணய முறை — திருமணம், தொழில் மாற்றம் போன்ற நிகழ்வுகளின் நேரத்தைக் காண பயன்படுகிறது.",
+  },
+
+  // ── Daily vocabulary ──────────────────────────────────────────────────────
+  // New Tamil, pending native review (CLAUDE.md new-Tamil rule).
+  panchangam: {
+    en: "The traditional daily almanac. Five readings — tithi, star, yogam, karana and weekday — that together say what kind of day this is.",
+    ta: "பாரம்பரிய தினசரி நாட்காட்டி. திதி, நட்சத்திரம், யோகம், கரணம், வாரம் — இந்த ஐந்து அங்கங்கள் சேர்ந்து இன்றைய நாளின் தன்மையைச் சொல்கின்றன.",
+  },
+  tithi: {
+    en: "The lunar day — how far the Moon has pulled ahead of the Sun. There are 30 in a lunar month, and they set which rites and festivals fall today.",
+    ta: "சந்திர தினம் — சூரியனிடமிருந்து சந்திரன் எவ்வளவு விலகியுள்ளது என்பதன் அளவு. ஒரு சந்திர மாதத்தில் 30 திதிகள்; இன்றைய விரதங்களும் பண்டிகைகளும் இதைப் பொறுத்தே அமைகின்றன.",
+  },
+  karana: {
+    en: "Half a tithi — the shortest of the almanac's five limbs. Used mainly for fine-grained timing of when to begin something.",
+    ta: "ஒரு திதியின் பாதி — பஞ்சாங்கத்தின் ஐந்து அங்கங்களில் மிகச் சிறியது. ஒரு செயலைத் தொடங்கும் நுணுக்கமான நேரத்தைக் காண முக்கியமாகப் பயன்படுகிறது.",
+  },
+  vara: {
+    en: "The weekday, and the planet that rules it — Sunday the Sun, Monday the Moon, and so on. It colours the whole day's character.",
+    ta: "வாரத்தின் நாளும் அதை ஆளும் கிரகமும் — ஞாயிறு சூரியன், திங்கள் சந்திரன், என்று தொடரும். நாள் முழுவதன் தன்மையை இது வண்ணமிடுகிறது.",
+  },
+  yogam: {
+    en: "One of 27 daily combinations of Sun and Moon position. Nothing to do with the exercise — it is an almanac reading of the day's quality.",
+    ta: "சூரியன் மற்றும் சந்திரனின் நிலைகளைச் சேர்த்துக் கணக்கிடும் 27 தினசரி சேர்க்கைகளில் ஒன்று. நாளின் தரத்தைக் குறிக்கும் பஞ்சாங்க அங்கம்.",
+  },
+  paksham: {
+    en: "Which half of the lunar month today falls in — Valarpirai, the waxing half towards full moon, or Theipirai, the waning half towards new moon.",
+    ta: "சந்திர மாதத்தின் எந்தப் பாதியில் இன்று வருகிறது என்பது — பௌர்ணமியை நோக்கி வளரும் வளர்பிறை, அல்லது அமாவாசையை நோக்கிக் குறையும் தேய்பிறை.",
+  },
+  rahuKalam: {
+    en: "A roughly 90-minute stretch each day traditionally avoided for starting anything new. Its slot shifts by weekday. Work already under way is not affected.",
+    ta: "ஒவ்வொரு நாளும் ஏறத்தாழ 90 நிமிடம் — புதிதாக எதையும் தொடங்குவதைப் பாரம்பரியமாகத் தவிர்க்கும் நேரம். வாரநாளுக்கேற்ப இது மாறும். ஏற்கனவே நடக்கும் வேலைக்குப் பாதிப்பில்லை.",
+  },
+  yamagandam: {
+    en: "A second daily stretch traditionally avoided for new beginnings, on the same weekday cycle as Rahu Kalam but a different slot.",
+    ta: "புதிய தொடக்கங்களைத் தவிர்க்கும் இரண்டாவது தினசரி நேரம் — ராகு காலத்தின் அதே வாரநாள் சுழற்சி, ஆனால் வேறு நேரப் பகுதி.",
+  },
+  kuligai: {
+    en: "A daily stretch traditionally considered favourable rather than avoided — the counterpart to Rahu Kalam and Yamagandam.",
+    ta: "தினசரி நேரப் பகுதிகளில் தவிர்க்கத் தேவையில்லாத, மாறாக நல்லதாகக் கருதப்படும் ஒன்று — ராகு காலம், எமகண்டத்திற்கு எதிரானது.",
+  },
+  nallaNeram: {
+    en: "The day's recommended good window — the stretch to aim for when you get to choose the hour for something that matters.",
+    ta: "அன்றைய நாளின் பரிந்துரைக்கப்பட்ட நல்ல நேரம் — முக்கியமான ஒன்றுக்கு நேரம் தேர்ந்தெடுக்க முடியும்போது இதை நோக்கமாகக் கொள்ளுங்கள்.",
+  },
+  abhijit: {
+    en: "A short window around solar noon, held to be favourable on most days regardless of the rest of the almanac.",
+    ta: "நண்பகல் சூரிய உச்சத்தைச் சுற்றியுள்ள ஒரு குறுகிய நேரம் — பஞ்சாங்கத்தின் மற்ற அங்கங்கள் எப்படியிருந்தாலும் பெரும்பாலான நாட்களில் நல்லதாகக் கருதப்படுகிறது.",
+  },
+  hora: {
+    en: "The planetary hour. Each hour of the day is ruled by a planet in a fixed cycle — a finer layer of timing under the day's own ruler.",
+    ta: "கிரக ஹோரை. நாளின் ஒவ்வொரு மணி நேரமும் ஒரு நிலையான சுழற்சியில் ஒரு கிரகத்தால் ஆளப்படுகிறது — நாளின் அதிபதிக்குக் கீழ் இயங்கும் நுட்பமான நேர அடுக்கு.",
+  },
+  chandrashtama: {
+    en: "The roughly 2¼ days each month when the Moon sits in the 8th sign from your birth Moon. Traditionally a low-energy stretch — a day for care and routine, not for launching things.",
+    ta: "ஒவ்வொரு மாதமும் ஏறத்தாழ 2¼ நாட்கள் — உங்கள் ஜென்ம ராசியிலிருந்து 8-ஆம் ராசியில் சந்திரன் இருக்கும் காலம். வழக்கமான வேலைகளுக்கும் கவனத்திற்குமான நாள்; புதிய தொடக்கங்களுக்கு அல்ல.",
+  },
+  karinaal: {
+    en: "A day traditionally avoided for beginnings — weddings, moving house, signing things. Ongoing work and routine matters are unaffected.",
+    ta: "தொடக்கங்களுக்குப் பாரம்பரியமாகத் தவிர்க்கப்படும் நாள் — திருமணம், குடிபுகுதல், ஒப்பந்தம். நடந்துகொண்டிருக்கும் வேலைகளுக்கும் அன்றாடப் பணிகளுக்கும் பாதிப்பில்லை.",
+  },
+  soolam: {
+    en: "The direction traditionally avoided for travel today. It shifts with the weekday.",
+    ta: "இன்று பயணத்திற்குப் பாரம்பரியமாகத் தவிர்க்கப்படும் திசை. வாரநாளுக்கேற்ப மாறும்.",
+  },
+  parigaram: {
+    en: "The small customary remedy that offsets the day's Soolam direction — usually eating or carrying a particular thing before you set out.",
+    ta: "அன்றைய சூலத் திசையை ஈடுசெய்யும் சிறு வழக்கமான பரிகாரம் — பொதுவாகப் புறப்படும் முன் ஒரு குறிப்பிட்ட பொருளை உண்பது அல்லது எடுத்துச் செல்வது.",
+  },
+  amirdhadhi: {
+    en: "A quality rating formed by pairing the day's star with its weekday — Amirtha is the best of the three, then Siddha, then Marana.",
+    ta: "அன்றைய நட்சத்திரத்தையும் வாரநாளையும் இணைத்துக் கிடைக்கும் தர மதிப்பீடு — மூன்றில் அமிர்தம் சிறந்தது, பிறகு சித்தம், பிறகு மரணம்.",
+  },
+  muhurtham: {
+    en: "A deliberately chosen auspicious moment to begin something important — a wedding, a move, a new venture. Choosing one is its own branch of the tradition.",
+    ta: "முக்கியமான ஒன்றைத் தொடங்க வேண்டுமென்றே தேர்ந்தெடுக்கப்படும் உகந்த நேரம் — திருமணம், குடிபுகுதல், புதிய முயற்சி. இதைத் தேர்வு செய்வது ஜோதிடத்தின் தனி ஒரு பிரிவு.",
+  },
+  lagnam: {
+    en: "The sign rising on the eastern horizon at the moment you were born. It anchors the whole chart — which is why the exact minute of birth matters so much.",
+    ta: "நீங்கள் பிறந்த தருணத்தில் கிழக்கு அடிவானத்தில் உதயமான ராசி. ஜாதகம் முழுவதற்குமான அடித்தளம் இது — பிறந்த நேரம் துல்லியமாக இருப்பது இதனால்தான் முக்கியம்.",
+  },
+  pada: {
+    en: "A quarter of a birth star. Each of the 27 stars divides into four padas, and which one you were born in refines the reading.",
+    ta: "ஒரு நட்சத்திரத்தின் கால் பகுதி. 27 நட்சத்திரங்களும் தலா நான்கு பாதங்களாகப் பிரிகின்றன; நீங்கள் பிறந்த பாதம் பலனை நுட்பமாக்குகிறது.",
+  },
+  peyarchi: {
+    en: "A slow planet changing sign — Jupiter roughly yearly, Saturn every 2½ years. These are the big shifts that redraw a chart's weather for a long stretch.",
+    ta: "மெதுவாக நகரும் கிரகம் ராசி மாறுவது — குரு ஏறத்தாழ ஆண்டுக்கு ஒருமுறை, சனி 2½ ஆண்டுகளுக்கு ஒருமுறை. நீண்ட காலத்திற்கு ஜாதகத்தின் போக்கை மாற்றியமைக்கும் பெரிய நகர்வுகள்.",
+  },
+  sadeSati: {
+    en: "The 7½-year stretch when Saturn transits the signs around your birth Moon. It reaches almost everyone about three times in a lifetime — demanding rather than disastrous, and it ends on a known date.",
+    ta: "உங்கள் ஜென்ம ராசியைச் சுற்றியுள்ள ராசிகளில் சனி நகரும் 7½ ஆண்டுக் காலம். ஒரு வாழ்நாளில் கிட்டத்தட்ட எல்லோரையும் மூன்று முறை வந்தடையும் — பேரிடர் அல்ல, பொறுமை கேட்கும் காலம்; முடியும் நாள் தெரிந்ததே.",
   },
 };

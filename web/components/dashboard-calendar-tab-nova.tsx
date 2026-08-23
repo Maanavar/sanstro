@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, ArrowDown, ArrowRight } from "lucide-react";
+import type { ReactNode } from "react";
+import { ArrowUp, ArrowDown, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
@@ -20,6 +21,8 @@ import type { GowriSlotDayOffset } from "@/lib/gowri";
 import { t, tAmirdhadhiYogam, tJeevan, tKarana, tMoonPhase, tNakshatra, tNethiram, tParigaram, tPlanetLord, tSoolamDirection, tTithi, tWeekday, tYoga } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { rasiGlyph } from "@/lib/astro-symbols";
+import { GlossaryTerm } from "./glossary-term";
+import type { GlossaryKey } from "@/lib/glossary";
 import { lunarSpecialTithiMeta, moonPhaseFromTithi } from "@/lib/lunar";
 import { nokkuMeta } from "@/lib/nokku";
 import { timeOnDateToMs } from "@/lib/tz";
@@ -27,7 +30,7 @@ import { MiniMoonGlyph } from "./celestial-glyph-nova";
 import { useMonthlyPanchangam } from "@/hooks/useMonthlyPanchangam";
 import { PlaceCombobox } from "./place-combobox";
 import { DrawerPanel } from "./drawer-panel";
-import { Card, Pill, Segmented } from "./ui";
+import { Button, Card, Chip, Pill, Segmented } from "./ui";
 import { Kicker } from "./ui/kicker";
 import type {
   PanchangamDailyResponseData,
@@ -590,6 +593,138 @@ function NovaHoraRow({
   );
 }
 
+/** One ‹ / › day step in the day drawer's header. */
+function DayDrawerStep({ dir, label, onClick }: { dir: "prev" | "next"; label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      style={{
+        width: "32px", height: "32px", padding: 0, flexShrink: 0,
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+        borderRadius: "var(--radius-pill)", border: "1px solid var(--color-border-strong)",
+        background: "var(--color-surface-soft)", color: "var(--color-text)",
+        cursor: "pointer", fontFamily: "inherit",
+      }}
+    >
+      {dir === "prev"
+        ? <ChevronLeft size={16} strokeWidth={2} aria-hidden="true" />
+        : <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />}
+    </button>
+  );
+}
+
+/**
+ * "until 2:20 pm" / "2:20 pm வரை". `until_word` is a preposition in English and
+ * a postposition in Tamil, so a single `${word} ${clock}` template is wrong in
+ * one language whichever way it is written — the two orders both already exist
+ * in this file.
+ */
+function untilPhrase(clock: string, lang: Lang): string {
+  return lang === "ta" ? `${clock} ${t("until_word", lang)}` : `${t("until_word", lang)} ${clock}`;
+}
+
+/** A kicker + its content, the drawer's one section rhythm. */
+function DayDrawerSection({ title, tone, glossary, lang, children }: {
+  title: string;
+  tone?: string;
+  glossary?: GlossaryKey;
+  lang?: Lang;
+  children: ReactNode;
+}) {
+  return (
+    <section style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+      <Kicker as="div" color={tone}>
+        {glossary && lang ? <GlossaryTerm term={glossary} lang={lang}>{title}</GlossaryTerm> : title}
+      </Kicker>
+      {children}
+    </section>
+  );
+}
+
+/**
+ * One panchangam limb as label / value / timing. The drawer used to print the
+ * five limbs as a single run-on line ("Monday · Valarpirai 7 · Thiruvonam"),
+ * which names them but never says when any of them ends — the one thing a
+ * reader opens a specific day to find out.
+ */
+function DayDrawerSpecRow({ label, value, meta, glossary, lang }: {
+  label: string;
+  value: string;
+  meta?: string;
+  /** Definition for `label`. Every row on this panel names a limb of the
+   *  almanac, and the panel shipped with eight of them and no definition
+   *  anywhere in the product — this is the densest concentration of
+   *  tradition-specific vocabulary the app puts in front of a reader. */
+  glossary?: GlossaryKey;
+  lang?: Lang;
+}) {
+  if (!value) return null;
+  return (
+    <div
+      // Stable hook for the drawer's tests, which previously found a row by
+      // taking `getByText(label).parentElement` — that broke the moment the
+      // label gained a wrapper (the glossary button), and would break again on
+      // any future nesting change. Anchoring on the row itself is depth-proof.
+      data-spec-row={label}
+      style={{
+        display: "grid", gridTemplateColumns: "minmax(0, 92px) minmax(0, 1fr)",
+        gap: "var(--space-3)", alignItems: "baseline",
+        padding: "var(--space-2) 0", borderTop: "1px solid var(--color-border)",
+      }}
+    >
+      <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-muted)" }}>
+        {glossary && lang
+          ? <GlossaryTerm term={glossary} lang={lang}>{label}</GlossaryTerm>
+          : label}
+      </span>
+      <span style={{ minWidth: 0 }}>
+        <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text-strong)" }}>{value}</span>
+        {meta && <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.4, marginTop: "1px" }}>{meta}</span>}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * One verdict about the day, naming its own cause and nothing else.
+ *
+ * Muhurtham status and Karinaal are two independent markings that a day can
+ * carry at once, so each gets its own row rather than being fused into a single
+ * rating — a combined verdict would have to silently pick a winner and the
+ * reader could not tell which fact produced it.
+ */
+function DayDrawerMark({ tone, label, note }: { tone: "high" | "low" | "soft"; label: string; note: string }) {
+  const noteColor = tone === "high" ? "var(--color-high)" : tone === "low" ? "var(--color-low)" : "var(--color-muted)";
+  return (
+    <Card variant={tone} compact style={{ gap: "2px" }}>
+      <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-text-strong)" }}>{label}</span>
+      <span style={{ fontSize: "var(--text-xs)", color: noteColor, lineHeight: 1.45 }}>{note}</span>
+    </Card>
+  );
+}
+
+/**
+ * Loading state that holds the shape it is about to become. The drawer used to
+ * render one line of text while fetching, so the panel collapsed to a strip and
+ * then jumped a full screen-height when the day arrived.
+ */
+function DayDrawerSkeleton({ label }: { label: string }) {
+  return (
+    <div role="status" aria-label={label} style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+      <div className="skel" style={{ height: "26px", width: "70%", borderRadius: "var(--radius-pill)" }} />
+      <div className="skel" style={{ height: "62px", borderRadius: "var(--radius-md)" }} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "var(--space-2)" }}>
+        {[0, 1, 2].map((i) => <div key={i} className="skel" style={{ height: "58px", borderRadius: "var(--radius-md)" }} />)}
+      </div>
+      <div className="skel" style={{ height: "110px", borderRadius: "var(--radius-md)" }} />
+      <div className="skel" style={{ height: "150px", borderRadius: "var(--radius-md)" }} />
+    </div>
+  );
+}
+
 /**
  * Nova version of Classic's `DayDetailDrawer` (the month-grid day-click
  * preview). Classic's version pulls in `AuspiciousSlotGroup` and inline
@@ -598,79 +733,261 @@ function NovaHoraRow({
  * on a dark drawer panel. Rebuilt with the same Nova cards already defined
  * above (NovaAuspiciousCard/NovaAvoidRow/NovaFestivalRow) instead; the
  * underlying data/fields are identical to Classic's drawer.
+ *
+ * Redesigned 2026-08-22. What it answered before was "which windows are good or
+ * bad on this day" — three sections, no verdict, no limb timings, and no way to
+ * reach the next day without closing the sheet and hunting the grid again. The
+ * shape now follows how the day is actually read: what kind of day is this
+ * (identity chips + markings), inside which frame (sunrise/noon/sunset), then
+ * the windows, then the limbs behind them, then the day's cautions and events.
+ *
+ * Deliberately static: no "Running now" state. The sheet is a preview of *any*
+ * date and the parent's clock only ticks for the selected one, so a live claim
+ * here would be right at open and quietly wrong ten minutes later. The full day
+ * view is where the running window lives, and the footer goes straight there.
  */
-function DayDetailDrawerNova({
+export function DayDetailDrawerNova({
   date,
+  todayDate,
   data,
   loading,
   error,
   lang,
   onClose,
   onOpenFull,
+  onStepDay,
 }: {
   date: string;
+  /** Used only to mark the sheet as today — never to claim a live window. */
+  todayDate: string;
   data: PanchangamDailyResponseData | null;
   loading: boolean;
   error: string | null;
   lang: Lang;
   onClose: () => void;
   onOpenFull: () => void;
+  /** Step the sheet to an adjacent day without returning to the grid. */
+  onStepDay: (delta: number) => void;
 }) {
   const headerDate = formatHeaderDate(date, lang);
   const tamilDate = resolveTamilDate(data?.tamilDate, date, lang);
   const hijri = formatHijriDate(date);
   const hijriLabel = hijri ? (lang === "ta" ? hijri.ta : hijri.en) : "";
-  const tithiPaksha = data ? `${data.tithi.paksha === "SHUKLA" ? t("paksha_shukla", lang) : t("paksha_krishna", lang)} ${data.tithi.number}` : "";
+  const isToday = date === todayDate;
+
+  const tithiPaksha = data
+    ? `${data.tithi.paksha === "SHUKLA" ? t("paksha_shukla", lang) : t("paksha_krishna", lang)} ${data.tithi.number}`
+    : "";
+  const moonPhase = data ? moonPhaseFromTithi(data.tithi.number, data.tithi.paksha) : null;
+  const specialTithiMeta = lunarSpecialTithiMeta(data?.specialTithiDay?.name, lang);
+  const nokku = nokkuMeta(data?.nakshatra.name, lang);
+
+  const moonRasi = data ? (data.chandrashtamamToday.moonRasiNumber || moonRasiFromNakshatra(data.nakshatra.name, data.nakshatra.pada)) : 0;
+  const chandrashtama = data ? (data.chandrashtamamToday.affectedJanmaRasiNumber || chandrashtamaAffectedNatalRasi(moonRasi)) : 0;
+  const chandraName = chandrashtama ? rasiName(chandrashtama, lang) : "";
+  const chandraWindows = data ? formatChandrashtamaWindowSummary(data.chandrashtamamToday.janmaNakshatraWindows, data.dateLocal, lang) : "";
+
+  // Muhurtham status and Karinaal are separate markings — see DayDrawerMark.
+  // Both branch on the exact boolean the row is reporting, never on a blend.
+  const marks: Array<{ tone: "high" | "low" | "soft"; label: string; note: string }> = [];
+  if (data) {
+    if (data.subhaMuhurtham.isSubha) {
+      marks.push({
+        tone: "high",
+        label: lang === "ta" ? "சுப முகூர்த்த நாள்" : "Subha Muhurtham day",
+        note: lang === "ta"
+          ? "சுப காரியங்கள், புதிய தொடக்கங்களுக்கு உகந்தது."
+          : "Marked auspicious for ceremonies and new starts.",
+      });
+    } else {
+      marks.push({
+        tone: "soft",
+        label: lang === "ta" ? "முகூர்த்த நாள் அல்ல" : "Not a muhurtham day",
+        note: lang === "ta"
+          ? "வழக்கமான நாள் — கீழுள்ள நல்ல நேரங்களைப் பயன்படுத்துங்கள்."
+          : "An ordinary day — plan around the windows below.",
+      });
+    }
+    if (data.isKarinaal) {
+      marks.push({
+        tone: "low",
+        label: lang === "ta" ? "கரிநாள்" : "Karinaal",
+        note: lang === "ta"
+          ? "மரபுப்படி புதிய தொடக்கங்கள், சுப காரியங்கள் தவிர்க்கப்படும் நாள்."
+          : "Traditionally avoided for new beginnings and ceremonies.",
+      });
+    }
+  }
+
+  const sunPoints = data
+    ? [
+        { key: "sunrise", label: lang === "ta" ? "சூர்யோதயம்" : "Sunrise", value: formatClockLabel(data.sunrise) },
+        { key: "noon", label: lang === "ta" ? "நண்பகல்" : "Solar noon", value: formatClockLabel(data.solarNoon) },
+        { key: "sunset", label: lang === "ta" ? "சூர்யாஸ்தமனம்" : "Sunset", value: formatClockLabel(data.sunset) },
+      ]
+    : [];
+
+  // "Today's recommended Nalla Neram" was printed on every date the sheet could
+  // show, including one three months out. The sheet is date-scoped, so the title
+  // must be too.
+  const nallaNeramTitle = lang === "ta" ? "பரிந்துரைக்கப்பட்ட நல்ல நேரம்" : "Recommended Nalla Neram";
+
+  const subtitle = (
+    <>
+      {data && <span>{tWeekday(data.vara.weekday, lang)}</span>}
+      {tamilDate && <span style={{ color: "var(--color-accent-strong)", fontWeight: 600 }}>{tamilDate}</span>}
+      {hijriLabel && <span>{hijriLabel}</span>}
+      {isToday && <Chip tone="accent">{lang === "ta" ? "இன்று" : "Today"}</Chip>}
+    </>
+  );
 
   return (
-    <DrawerPanel title={`${headerDate}${tamilDate ? ` · ${tamilDate}` : ""}${hijriLabel ? ` · ${hijriLabel}` : ""}`} onClose={onClose}>
-      {loading && <p style={{ fontSize: "var(--text-base)", color: "var(--color-muted)" }}>{t("cal_monthly_loading", lang)}</p>}
+    <DrawerPanel
+      title={headerDate}
+      subtitle={subtitle}
+      size="lg"
+      closeLabel={lang === "ta" ? "மூடு" : "Close day panel"}
+      onClose={onClose}
+      headerAccessory={
+        <>
+          <DayDrawerStep dir="prev" label={lang === "ta" ? "முந்தைய நாள்" : "Previous day"} onClick={() => onStepDay(-1)} />
+          <DayDrawerStep dir="next" label={lang === "ta" ? "அடுத்த நாள்" : "Next day"} onClick={() => onStepDay(1)} />
+        </>
+      }
+      footer={
+        <Button variant="primary" onClick={onOpenFull} style={{ width: "100%", justifyContent: "center" }}>
+          {lang === "ta" ? "முழு நாள் விவரம்" : "Open full day view"}
+        </Button>
+      }
+    >
+      {loading && <DayDrawerSkeleton label={t("cal_monthly_loading", lang)} />}
       {error && !loading && <p className="empty-state">{error}</p>}
       {data && !loading && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
-          <div>
-            <p style={{ margin: "0 0 6px", fontSize: "var(--text-base)", color: "var(--color-text)" }}>
-              {tWeekday(data.vara.weekday, lang)} · {tithiPaksha} · {tNakshatra(data.nakshatra.name, lang)}
-            </p>
-            <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
-              {lang === "ta" ? "சூர்யோதயம்" : "Sunrise"} {formatClockLabel(data.sunrise)} · {lang === "ta" ? "சூர்யாஸ்தமனம்" : "Sunset"} {formatClockLabel(data.sunset)}
-            </p>
-            {data.specialTithiDay && (
-              <div style={{ marginTop: "8px" }}>
-                <LunarTithiBadge value={data.specialTithiDay.name} lang={lang} />
-              </div>
+          {/* ── What kind of day is this ── */}
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--space-2)" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-accent-secondary)" }}>
+              {moonPhase && <MiniMoonGlyph phase={moonPhase} size={16} />}
+              {specialTithiMeta
+                ? specialTithiMeta.label
+                : data.tithi.paksha === "SHUKLA"
+                  ? (lang === "ta" ? "வளர்பிறை" : "Valarpirai")
+                  : (lang === "ta" ? "தேய்பிறை" : "Theipirai")}
+            </span>
+            {nokku && (
+              <Chip tone="accent">
+                <span aria-hidden="true" style={{ display: "inline-flex" }}>
+                  {nokku.nokku === "URDHVAMUKHA" ? <ArrowUp size={12} strokeWidth={1.5} /> : nokku.nokku === "ADHOMUKHA" ? <ArrowDown size={12} strokeWidth={1.5} /> : <ArrowRight size={12} strokeWidth={1.5} />}
+                </span>
+                {nokku.label}
+              </Chip>
             )}
+            {data.specialTithiDay && <LunarTithiBadge value={data.specialTithiDay.name} lang={lang} />}
           </div>
 
-          {(data.kalam.nallaNeram?.length ?? 0) > 0 && (
-            <NovaAuspiciousCard title={t("title_recommended_nalla_neram", lang)} slots={data.kalam.nallaNeram ?? []} lang={lang} />
-          )}
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-            <Kicker as="p" color="var(--color-low)" style={{ margin: 0, letterSpacing: "0.14em" }}>
-              {lang === "ta" ? "தவிர்க்க வேண்டிய நேரம்" : "Avoid"}
-            </Kicker>
-            <NovaAvoidStrip kalam={data.kalam} lang={lang} />
-          </div>
-
-          {data.festivals.length > 0 && (
+          {marks.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-              <Kicker as="p" style={{ margin: 0, letterSpacing: "0.14em" }}>
-                {t("label_festivals", lang)}
-              </Kicker>
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                {data.festivals.map((f) => <NovaFestivalRow key={f.name} festival={f} lang={lang} />)}
-              </div>
+              {marks.map((mark) => <DayDrawerMark key={mark.label} {...mark} />)}
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={onOpenFull}
-            style={{ alignSelf: "flex-start", padding: "var(--space-3) var(--space-5)", borderRadius: "var(--radius-pill)", border: "1px solid var(--color-border-strong)", background: "none", color: "var(--color-accent-strong)", fontSize: "var(--text-base)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
-          >
-            {lang === "ta" ? "முழு நாள் விவரம்" : "Open full day view"}
-          </button>
+          {/* ── The frame every time below is measured from ── */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "var(--space-2)" }}>
+            {sunPoints.map((point) => (
+              <Card key={point.key} variant="soft" compact style={{ gap: "2px", minWidth: 0 }}>
+                <span style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{point.label}</span>
+                <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-text-strong)" }}>{point.value}</span>
+              </Card>
+            ))}
+          </div>
+
+          {(data.kalam.nallaNeram?.length ?? 0) > 0 && (
+            <DayDrawerSection title={lang === "ta" ? "நல்ல நேரங்கள்" : "Auspicious"} tone="var(--color-high)">
+              <NovaAuspiciousCard title={nallaNeramTitle} slots={data.kalam.nallaNeram ?? []} lang={lang} />
+            </DayDrawerSection>
+          )}
+
+          <DayDrawerSection title={lang === "ta" ? "தவிர்க்க வேண்டிய நேரம்" : "Avoid"} tone="var(--color-low)">
+            <NovaAvoidStrip kalam={data.kalam} lang={lang} />
+          </DayDrawerSection>
+
+          <DayDrawerSection title={lang === "ta" ? "பஞ்சாங்கம்" : "Panchangam"} glossary="panchangam" lang={lang}>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <DayDrawerSpecRow
+                label={lang === "ta" ? "திதி" : "Tithi"}
+                glossary="tithi"
+                lang={lang}
+                value={tTithi(data.tithi.name, lang)}
+                meta={`${tithiPaksha} · ${untilPhrase(formatUntilLabel(data.tithi.endsAt, data.tithi.endsAtIso, data.dateLocal, lang), lang)}`}
+              />
+              <DayDrawerSpecRow
+                label={lang === "ta" ? "நட்சத்திரம்" : "Nakshatra"}
+                glossary="nakshatra"
+                lang={lang}
+                value={tNakshatra(data.nakshatra.name, lang)}
+                meta={`${t("label_padam", lang)} ${data.nakshatra.pada} · ${untilPhrase(formatUntilLabel(data.nakshatra.endsAt, data.nakshatra.endsAtIso, data.dateLocal, lang), lang)}`}
+              />
+              <DayDrawerSpecRow
+                label={lang === "ta" ? "நாம யோகம்" : "Naamyogam"}
+                glossary="yogam"
+                lang={lang}
+                value={tYoga(data.yoga.name, lang)}
+                meta={untilPhrase(formatUntilLabel(data.yoga.endsAt, data.yoga.endsAtIso, data.dateLocal, lang), lang)}
+              />
+              <DayDrawerSpecRow
+                label={lang === "ta" ? "கரணம்" : "Karana"}
+                glossary="karana"
+                lang={lang}
+                value={tKarana(data.karana.name, lang)}
+                meta={untilPhrase(formatUntilLabel(data.karana.endsAt, data.karana.endsAtIso, data.dateLocal, lang), lang)}
+              />
+              <DayDrawerSpecRow
+                label={lang === "ta" ? "அமிர்தாதி" : "Amirdhadhi"}
+                glossary="amirdhadhi"
+                lang={lang}
+                value={tAmirdhadhiYogam(data.amirdhadhiYogam.name, lang)}
+                meta={untilPhrase(formatUntilLabel(data.amirdhadhiYogam.endsAt, data.amirdhadhiYogam.endsAtIso, data.dateLocal, lang), lang)}
+              />
+              <DayDrawerSpecRow
+                label={lang === "ta" ? "வாரம்" : "Vara"}
+                glossary="vara"
+                lang={lang}
+                value={tWeekday(data.vara.weekday, lang)}
+                meta={`${tPlanetLord(data.vara.lord, lang)} ${t("lord_word", lang)}`}
+              />
+              <DayDrawerSpecRow
+                label={lang === "ta" ? "சூலம்" : "Soolam"}
+                glossary="soolam"
+                lang={lang}
+                value={tSoolamDirection(data.soolam.direction, lang)}
+                meta={`${lang === "ta" ? "பரிகாரம்" : "Parigaram"}: ${tParigaram(data.soolam.parigaram, lang)}`}
+              />
+            </div>
+          </DayDrawerSection>
+
+          {chandraName && (
+            <DayDrawerSection title={t("label_chandrashtamam", lang)} tone="var(--color-low)">
+              <Card variant="low" compact style={{ gap: "3px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-3)", fontSize: "var(--text-sm)" }}>
+                  <span style={{ color: "var(--color-muted)" }}>{lang === "ta" ? "பாதிக்கப்படும் ராசி" : "Affected Rasi"}</span>
+                  <span style={{ fontWeight: 700, color: "var(--color-text-strong)" }}>{rasiGlyph(chandrashtama)} {chandraName}</span>
+                </div>
+                {chandraWindows && (
+                  <div style={{ fontSize: "var(--text-xs)", color: "var(--color-low)", fontWeight: 600, lineHeight: 1.45 }}>
+                    {chandraWindows}
+                  </div>
+                )}
+              </Card>
+            </DayDrawerSection>
+          )}
+
+          {data.festivals.length > 0 && (
+            <DayDrawerSection title={t("label_festivals", lang)}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+                {data.festivals.map((f) => <NovaFestivalRow key={f.name} festival={f} lang={lang} />)}
+              </div>
+            </DayDrawerSection>
+          )}
         </div>
       )}
     </DrawerPanel>
@@ -1099,7 +1416,17 @@ export function DashboardCalendarTabNova({
                 </Kicker>
                 {/* showPurpose off: the Gowri detail grid below prints what each
                     kala is good for, so here the section stays a list of times. */}
-                <NovaAuspiciousCard title={t("title_recommended_nalla_neram", lang)} slots={panchangam.kalam.nallaNeram ?? []} lang={lang} showPurpose={false} />
+                {/* "Today's …" only when the view really is on today — this
+                    date is user-steerable, and the drawer showed the same
+                    "Today's" title on a day three months out. */}
+                <NovaAuspiciousCard
+                  title={selectedDate === todayDate
+                    ? t("title_recommended_nalla_neram", lang)
+                    : (lang === "ta" ? "பரிந்துரைக்கப்பட்ட நல்ல நேரம்" : "Recommended Nalla Neram")}
+                  slots={panchangam.kalam.nallaNeram ?? []}
+                  lang={lang}
+                  showPurpose={false}
+                />
                 <NovaAuspiciousCard title={t("title_additional_gowri_good_times", lang)} slots={panchangam.kalam.gowriNallaNeram ?? []} lang={lang} showPurpose={false} />
                 <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.4 }}>
                   {t("gowri_summary_hint", lang)}
@@ -1309,11 +1636,21 @@ export function DashboardCalendarTabNova({
       {detailDate && (
         <DayDetailDrawerNova
           date={detailDate}
+          todayDate={todayDate}
           data={detailData}
           loading={detailLoading}
           error={detailError}
           lang={lang}
           onClose={() => setDetailDate(null)}
+          onStepDay={(delta) => {
+            const next = addDays(detailDate, delta);
+            setDetailDate(next);
+            // Step the grid with the sheet when the day crosses a month edge —
+            // otherwise the drawer reads "1 Dec" over a November grid.
+            const [nextYear, nextMonth] = next.split("-");
+            setMonthlyYear(Number(nextYear));
+            setMonthlyMonth(Number(nextMonth));
+          }}
           onOpenFull={() => {
             onSelectDate?.(detailDate);
             setView("panchangam");

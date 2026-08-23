@@ -99,7 +99,14 @@ const STRINGS = {
   field_vault_name:   { ta: "சேகரிப்பு பெயர்",        en: "Vault name" },
   field_language:     { ta: "மொழி",               en: "Language" },
   field_owner_id:     { ta: "Owner ID",           en: "Owner ID" },
-  field_time_optional: { ta: "தெரியாவிட்டால் விட்டுவிடலாம்", en: "Leave blank if unknown" },
+  // Was "Leave blank if unknown" alone, which told the reader what they were
+  // ALLOWED to do and nothing about what it costs. Birth time is the highest-
+  // stakes field on the form — it sets the lagna, and with it every house
+  // placement, the whole chart-explanation surface, and the dasa balance — and
+  // a reader who has never opened their own jathagam has no way to know that.
+  // They shrug, leave it blank, and silently receive a degraded chart they
+  // believe is complete. Naming the consequence is the entire fix.
+  field_time_optional: { ta: "15 நிமிட வித்தியாசம் கூட லக்னத்தையும் வீட்டு நிலைகளையும் மாற்றும். தெரியாவிட்டால் விட்டுவிடலாம் — பின்னர் திருத்தலாம்.", en: "Even 15 minutes changes your Lagna and every house in the chart. Leave blank if unknown — you can refine it later." },
   field_place_helper: { ta: "நகரத்தைத் தேர்வு செய்தால் அட்சரேகை, தீர்க்கரேகை தானாக நிரம்பும்", en: "Select a city to auto-fill lat/lng" },
   field_tz_helper:    { ta: "நகரத்தைத் தேர்வு செய்தவுடன் நேர மண்டலம் தானாக வரும்", en: "Auto-filled when city is selected" },
   field_weight_helper:{ ta: "உறவு முறையால் தானாக அமையும்", en: "Auto-set by relationship" },
@@ -1093,6 +1100,8 @@ const STRINGS = {
   onboarding_title:        { ta: "தொடங்க சில படிகள் மீதம்",                         en: "A few steps to get started" },
   onboarding_step1:        { ta: "உங்கள் ஜாதக விவரங்களை சேர்க்கவும்",              en: "Add your birth profile" },
   onboarding_step2:        { ta: "ஒப்பிட ஒரு குடும்ப உறுப்பினரைச் சேர்க்கவும்", en: "Add a family member to compare charts" },
+  // New Tamil, pending native review
+  onboarding_step3:        { ta: "உங்கள் இரண்டு நிமிட வாசிப்பைப் படிக்கவும்",      en: "Read your two-minute chart result" },
   onboarding_go_setup:     { ta: "தொடக்கத்திற்கு செல்",                                   en: "Go to Setup" },
 
   // ── Notification inbox popover

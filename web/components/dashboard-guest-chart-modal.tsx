@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
+import { dt, GUEST_CHART } from "@/lib/dashboard-i18n";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ChartCalculateResponseData } from "@/lib/types";
@@ -46,11 +47,53 @@ function formatBirthTime(hhmm: string | null): string | null {
   return `${h12}:${String(m).padStart(2, "0")} ${period}`;
 }
 
+/**
+ * The timezone this visitor's browser is in, or IST when the browser won't say.
+ *
+ * The form used to default to `Asia/Kolkata` for everyone. That is right for
+ * most of this product's visitors and silently catastrophic for the rest: a
+ * guest outside India who does not notice the timezone field gets their chart
+ * computed hours off — a different lagna, a different dasa balance, sometimes a
+ * different janma rasi — and the result is presented with no indication that
+ * anything was assumed. A wrong chart shown confidently is worse than no chart.
+ *
+ * Resolved once per module load rather than per render: it cannot change during
+ * a session, and `defaultValues` is only consumed on mount.
+ */
+function browserTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Kolkata";
+  } catch {
+    return "Asia/Kolkata";
+  }
+}
+
+const BROWSER_TIMEZONE = browserTimezone();
+
+/**
+ * What we compute against when the visitor leaves the birth time blank.
+ *
+ * The form used to pre-fill this into the field itself, so a visitor who never
+ * touched it submitted noon as though they had stated it, and the chart came
+ * back with a lagna and twelve house placements presented as fact. The backend
+ * cannot take the blank instead — `_birth_datetime_utc` raises without a time —
+ * so the assumption has to be made SOMEWHERE. Making it here, explicitly, is
+ * what lets the result label itself: the field starts empty, and whether it was
+ * still empty at submit is the flag that puts the approximation notice on the
+ * chart.
+ */
+const ASSUMED_BIRTH_TIME = "12:00";
+
 export function GuestChartModal({ lang, onClose, onCreateAccount }: GuestChartModalProps) {
   const [chart, setChart] = useState<ChartCalculateResponseData | null>(null);
   const [submitError, setSubmitError] = useState("");
   const [view, setView] = useState<"D1" | "D9">("D1");
   const [showManualLocation, setShowManualLocation] = useState(false);
+  // Whether the chart on screen rests on ASSUMED_BIRTH_TIME. Held next to the
+  // chart rather than read back off it, because the response cannot tell us:
+  // the request has to carry a time either way, so a stated 12:00 and an
+  // assumed one come back identical.
+  const [birthTimeAssumed, setBirthTimeAssumed] = useState(false);
 
   const {
     register,
@@ -63,11 +106,11 @@ export function GuestChartModal({ lang, onClose, onCreateAccount }: GuestChartMo
     defaultValues: {
       displayName: "",
       birthDateLocal: "",
-      birthTimeLocal: "12:00",
+      birthTimeLocal: "",
       birthPlace: "",
       birthLatitude: "",
       birthLongitude: "",
-      birthTimezone: "Asia/Kolkata",
+      birthTimezone: BROWSER_TIMEZONE,
     },
   });
 
@@ -84,6 +127,7 @@ export function GuestChartModal({ lang, onClose, onCreateAccount }: GuestChartMo
 
   async function onSubmit(values: GuestChartFormValues) {
     setSubmitError("");
+    const statedBirthTime = values.birthTimeLocal.trim();
     try {
       const chartRes = await apiFetchJson<{ success: boolean; data: ChartCalculateResponseData }>("/api/v1/public/chart", {
         method: "POST",
@@ -92,7 +136,7 @@ export function GuestChartModal({ lang, onClose, onCreateAccount }: GuestChartMo
           birth: {
             displayName: values.displayName,
             birthDateLocal: values.birthDateLocal,
-            birthTimeLocal: values.birthTimeLocal || null,
+            birthTimeLocal: statedBirthTime || ASSUMED_BIRTH_TIME,
             birthPlace: values.birthPlace,
             birthLatitude: parseFloat(values.birthLatitude),
             birthLongitude: parseFloat(values.birthLongitude),
@@ -100,6 +144,7 @@ export function GuestChartModal({ lang, onClose, onCreateAccount }: GuestChartMo
           },
         }),
       });
+      setBirthTimeAssumed(statedBirthTime === "");
       setChart(chartRes.data);
     } catch (err) {
       setSubmitError(readErrorMessage(err));
@@ -107,7 +152,10 @@ export function GuestChartModal({ lang, onClose, onCreateAccount }: GuestChartMo
   }
 
   const profileDate = chart ? formatBirthDate(chart.birthProfile.birthDateLocal) : "";
-  const profileTime = chart ? formatBirthTime(chart.birthProfile.birthTimeLocal) : null;
+  // An assumed noon is not a fact about this person, so it does not get printed
+  // beside their name and place as though it were one. The notice below says
+  // what was assumed instead.
+  const profileTime = chart && !birthTimeAssumed ? formatBirthTime(chart.birthProfile.birthTimeLocal) : null;
   const profileInitial = chart ? chart.birthProfile.displayName.trim().charAt(0).toUpperCase() || "?" : "";
 
   return (
@@ -172,7 +220,7 @@ export function GuestChartModal({ lang, onClose, onCreateAccount }: GuestChartMo
               />
             </ValidatedField>
 
-            <Field label={lang === "ta" ? "பிறந்த நேரம்" : "Birth Time"}>
+            <Field label={lang === "ta" ? "பிறந்த நேரம்" : "Birth Time"} helper={t("field_time_optional", lang)}>
               <input className="input" type="time" {...register("birthTimeLocal")} />
             </Field>
           </div>
@@ -290,6 +338,32 @@ export function GuestChartModal({ lang, onClose, onCreateAccount }: GuestChartMo
                 </p>
               </div>
             </div>
+
+            {/* B-008: a guest who leaves the birth time blank still gets a
+                chart, because the calculation cannot proceed without a time —
+                but it is labelled for what it is, in the same viewport as the
+                grid it qualifies, before the reader reads a lagna off it. */}
+            {birthTimeAssumed && (
+              <div
+                role="note"
+                style={{
+                  border: "1px solid var(--color-mid-border)",
+                  background: "var(--color-mid-bg)",
+                  borderRadius: "var(--radius-md)",
+                  padding: "var(--space-3) var(--space-4)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "4px",
+                }}
+              >
+                <b style={{ fontSize: "var(--text-sm)", color: "var(--color-mid-text)" }}>
+                  {dt(GUEST_CHART.assumedTimeTitle, lang)}
+                </b>
+                <span style={{ fontSize: "var(--text-xs)", lineHeight: 1.55, color: "var(--color-muted)" }}>
+                  {dt(GUEST_CHART.assumedTimeBody, lang)}
+                </span>
+              </div>
+            )}
 
             <div className="gcm-view-tabs" role="tablist">
               {(["D1", "D9"] as const).map((v) => (

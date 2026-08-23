@@ -8,10 +8,12 @@ import {
   computeD9LagnaRasi,
   D1_RASI_NAMES,
   GRAHA_ABBR,
+  GRAHA_ABBR_EN,
   rasiLabel,
 } from "@/lib/chart-utils";
-import { t } from "@/lib/i18n";
+import { t, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { CHART_LEGEND, dt } from "@/lib/dashboard-i18n";
 import type { ChartCalculateResponseData } from "@/lib/types";
 import type { RasiCellDetail } from "@/lib/chart-utils";
 
@@ -48,17 +50,113 @@ function occupantColor(graha: string): string {
   }
 }
 
-/** `buildD1CellDetail` has no `lang`, so it labels the lagna "La" for every
- *  reader. In a Tamil kattam the marker is ல — and it sat next to Tamil graha
- *  abbreviations, so the Latin one was the only stray character in the grid. */
+/** `buildD1CellDetail` has no `lang`: it resolves every occupant against
+ *  `GRAHA_ABBR`, which is Tamil (சூ/சந்/செ/…), and hardcodes the lagna to "La".
+ *
+ *  That made the lagna marker the ONLY thing in the grid that answered to the
+ *  reader's language — so a Tamil kattam carried one stray Latin character, and
+ *  an English one carried eleven Tamil characters the reader could not decode
+ *  at all. The second half was the real defect: an English-language reader was
+ *  handed a twelve-box grid of a script they may not read, with no legend, and
+ *  no other rendering of which planet sits where. `GRAHA_ABBR_EN` has existed
+ *  beside `GRAHA_ABBR` the whole time; only the marketing share card used it.
+ *
+ *  Resolved here rather than in `buildD1CellDetail` on purpose. The cell
+ *  builders are pure data (and are asserted as such by `chart-utils.test.ts`);
+ *  which script to print is a rendering decision, and this is the single funnel
+ *  both the D1 and the D9 grid already pass through. `occ.abbr` stays the
+ *  fallback so an unknown graha still prints something. */
 function occupantAbbr(occ: RasiCellDetail["occupants"][number], lang: Lang): string {
-  if (occ.key === "Lagna" && lang === "ta") return "ல";
-  return occ.abbr;
+  if (occ.key === "Lagna") return lang === "ta" ? "ல" : "La";
+  const table = lang === "ta" ? GRAHA_ABBR : GRAHA_ABBR_EN;
+  return table[occ.graha] ?? occ.abbr;
 }
 
 function occupantName(occ: RasiCellDetail["occupants"][number], lang: Lang): string {
   if (occ.key === "Lagna") return t("label_lagnam", lang);
   return occ.graha;
+}
+
+/** MANDHI is a real occupant of the grid but is absent from `PLANET_LORDS`, so
+ *  `tPlanetLord` returns the raw code for it. Same carve-out as
+ *  `chart-generate-inline-panel.tsx`'s `grahaName`. */
+function grahaFullName(code: string, lang: Lang): string {
+  if (code === "MANDHI") return lang === "ta" ? "மாந்தி" : "Mandhi";
+  return tPlanetLord(code, lang) || code;
+}
+
+/**
+ * The key to the kattam's notation, rendered under the grid.
+ *
+ * Built from the chart's OWN occupants rather than from a fixed nine-graha
+ * list, so it never explains a letter that isn't on the grid (Mandhi is
+ * conditional) and never omits one that is. The flag row is emitted only for
+ * flags actually in play on this chart — a legend that lists four marks when
+ * the grid shows none is noise, and this sits directly under the chart on
+ * every screen that renders one.
+ */
+function ChartLegend({ chart, lang, d9 = false }: { chart: ChartCalculateResponseData; lang: Lang; d9?: boolean }) {
+  const entries = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const p of chart.planets) {
+      const table = lang === "ta" ? GRAHA_ABBR : GRAHA_ABBR_EN;
+      const abbr = table[p.graha] ?? p.graha.slice(0, 2);
+      if (!seen.has(abbr)) seen.set(abbr, grahaFullName(p.graha, lang));
+    }
+    return [
+      { abbr: lang === "ta" ? "ல" : "La", name: t("label_lagnam", lang) },
+      ...Array.from(seen, ([abbr, name]) => ({ abbr, name })),
+    ];
+  }, [chart, lang]);
+
+  // D9 occupants carry no combustion/cazimi (see `buildD9CellDetail`), so the
+  // D9 legend must not offer to explain a mark its grid cannot show.
+  const flags = useMemo(() => {
+    const out: { mark: string; label: string }[] = [];
+    if (chart.planets.some((p) => p.isRetrograde)) out.push({ mark: "R", label: t("flag_vakra", lang) });
+    if (!d9 && chart.planets.some((p) => p.isCombust)) out.push({ mark: "C", label: t("flag_astam", lang) });
+    if (!d9 && chart.planets.some((p) => p.isCazimi)) out.push({ mark: "✦", label: t("flag_cazimi", lang) });
+    if (chart.planets.some((p) => p.isVargottama)) out.push({ mark: "V", label: t("flag_vargottamam", lang) });
+    return out;
+  }, [chart, lang, d9]);
+
+  const hasNodes = chart.planets.some((p) => p.graha === "RAHU" || p.graha === "KETU");
+
+  return (
+    <div style={{ maxWidth: `${72 * 4 + 6}px`, display: "flex", flexDirection: "column", gap: "4px" }}>
+      <p style={{ margin: 0, fontSize: "0.625rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)" }}>
+        {dt(CHART_LEGEND.heading, lang)}
+      </p>
+      <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexWrap: "wrap", gap: "2px 10px" }}>
+        {entries.map(({ abbr, name }) => (
+          <li key={abbr} style={{ fontSize: "0.6875rem", color: "var(--color-muted)", lineHeight: 1.5 }}>
+            <b style={{ color: "var(--color-text-strong)", fontWeight: 700 }}>{abbr}</b>{" "}{name}
+          </li>
+        ))}
+      </ul>
+      {flags.length > 0 && (
+        <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexWrap: "wrap", gap: "2px 10px" }}>
+          {/* The superscripts read as typos without a word telling you they are
+              a notation. `flagsHeading` was written for this row and shipped
+              unrendered, so the marks sat unannounced under a legend whose
+              whole job is announcing things. */}
+          <li style={{ fontSize: "0.625rem", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-faint)", lineHeight: 1.5 }}>
+            {dt(CHART_LEGEND.flagsHeading, lang)}
+          </li>
+          {flags.map(({ mark, label }) => (
+            <li key={mark} style={{ fontSize: "0.6875rem", color: "var(--color-muted)", lineHeight: 1.5 }}>
+              <b style={{ color: "var(--color-text-strong)", fontWeight: 700 }}>{mark}</b>{" "}{label}
+            </li>
+          ))}
+        </ul>
+      )}
+      {hasNodes && (
+        <p style={{ margin: 0, fontSize: "0.6875rem", lineHeight: 1.5, color: "var(--color-faint)" }}>
+          {dt(CHART_LEGEND.nodesNote, lang)}
+        </p>
+      )}
+    </div>
+  );
 }
 
 function occupantFlagLabels(
@@ -257,11 +355,12 @@ export function RasiChart({
           <span style={{ fontSize: "0.75rem", color: "var(--color-faint)", textAlign: "center", padding: "4px", lineHeight: 1.4 }}>
             {chart.birthProfile.displayName}<br />
             <span style={{ fontSize: "0.625rem", color: "var(--color-faint)" }}>
-              {rasiLabel(chart.lagna.rasi, lang)} {lang === "ta" ? "லக்னம்" : "La"}
+              {rasiLabel(chart.lagna.rasi, lang)} {t("label_lagnam", lang)}
             </span>
           </span>
         </div>
       </div>
+      <ChartLegend chart={chart} lang={lang} />
       {showExplain ? (
         <ExplainPanel
           title={t("chart_tap_to_explain", lang)}
@@ -394,6 +493,7 @@ export function NavamsaChart({
           </span>
         </div>
       </div>
+      <ChartLegend chart={chart} lang={lang} d9 />
       {showExplain ? (
         <ExplainPanel
           title={t("chart_tap_to_explain", lang)}

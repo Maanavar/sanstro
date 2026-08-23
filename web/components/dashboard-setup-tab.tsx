@@ -6,9 +6,11 @@ import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
 import { useBirthProfileForm } from "@/hooks/useBirthProfileForm";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { dt, ONBOARDING_DETAIL_LEVEL } from "@/lib/dashboard-i18n";
 import type { FamilyVaultListItem, FamilyAggregateMember } from "@/lib/types";
 import { PlaceCombobox } from "./place-combobox";
 import { RectificationWizard } from "./dashboard-rectification-wizard";
+import { DashboardLearnArticleModal } from "./dashboard-learn-article-modal";
 import { BirthProfilesManager } from "./birth-profiles-manager";
 import { usePlaceCoordinatesConfirm, PlaceMatchedBadge, PlaceCoordinatesFooter } from "./place-coordinates-field";
 import { SettingsRail, type SettingsSectionId } from "./dashboard-settings-rail";
@@ -17,6 +19,10 @@ import { Field, FieldShell, Input, Select } from "./ui/field";
 import { ArrowUpRight } from "lucide-react";
 
 type Relationship = "self" | "spouse" | "child" | "parent" | "sibling" | "grandparent" | "other";
+
+// iOS app is not yet published — set the real store URL when it goes live to
+// re-render the App Store badge (null hides it). Mirrors home-content.tsx.
+const APP_STORE_URL: string | null = null;
 
 const RELATIONSHIP_WEIGHTS: Record<Relationship, string> = {
   self: "1.00", spouse: "1.00", child: "0.75",
@@ -125,6 +131,76 @@ function GhostBtn({ onClick, children }: { onClick: () => void; children: React.
   );
 }
 
+const USER_MODE_OPTIONS: Array<{ value: UserMode; label: keyof typeof ONBOARDING_DETAIL_LEVEL; desc: keyof typeof ONBOARDING_DETAIL_LEVEL }> = [
+  { value: "BEGINNER", label: "beginnerLabel", desc: "beginnerDesc" },
+  { value: "BALANCED", label: "balancedLabel", desc: "balancedDesc" },
+  { value: "TRADITIONAL", label: "traditionalLabel", desc: "traditionalDesc" },
+];
+
+function DetailLevelQuestion({
+  lang,
+  userMode,
+  onModeChange,
+}: {
+  lang: Lang;
+  userMode: UserMode;
+  onModeChange?: (mode: UserMode) => void;
+}) {
+  if (!onModeChange) return null;
+  return (
+    <div style={{
+      background: "var(--color-surface)", border: `1.5px solid var(--color-border)`,
+      borderRadius: "var(--radius-md)", padding: "var(--space-4)",
+      display: "flex", flexDirection: "column", gap: "var(--space-4)",
+    }}>
+      <div>
+        <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-2xs)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent)" }}>
+          {dt(ONBOARDING_DETAIL_LEVEL.eyebrow, lang)}
+        </p>
+        <h3 style={{ margin: "0 0 var(--space-1)", color: "var(--color-text-strong)", fontSize: "var(--text-md)" }}>
+          {dt(ONBOARDING_DETAIL_LEVEL.title, lang)}
+        </h3>
+        <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)", lineHeight: 1.5 }}>
+          {dt(ONBOARDING_DETAIL_LEVEL.body, lang)}
+        </p>
+      </div>
+      <div
+        role="radiogroup"
+        aria-label={dt(ONBOARDING_DETAIL_LEVEL.title, lang)}
+        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: "var(--space-2_5)" }}
+      >
+        {USER_MODE_OPTIONS.map((option) => {
+          const selected = userMode === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              onClick={() => onModeChange(option.value)}
+              aria-checked={selected}
+              style={{
+                minHeight: "92px", padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)",
+                textAlign: "left", cursor: "pointer", fontFamily: "inherit",
+                border: `1.5px solid ${selected ? "var(--color-accent)" : "var(--color-border-strong)"}`,
+                background: selected ? "var(--color-accent)" : "transparent",
+                color: selected ? "var(--color-on-accent)" : "var(--color-text)",
+                transition: "background 0.12s, border-color 0.12s, color 0.12s",
+              }}
+            >
+              <p style={{ margin: "0 0 var(--space-1)", fontWeight: 800, fontSize: "var(--text-base)", lineHeight: 1.25 }}>
+                {dt(ONBOARDING_DETAIL_LEVEL[option.label], lang)}
+              </p>
+              <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.35, color: selected ? "var(--color-on-accent)" : "var(--color-muted)" }}>
+                {dt(ONBOARDING_DETAIL_LEVEL[option.desc], lang)}
+              </p>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ── Avatar initial chip ── */
 function Avatar({ name }: { name: string }) {
   const letter = (name || "?")[0]?.toUpperCase() ?? "?";
@@ -171,6 +247,7 @@ export function DashboardSetupTab({
   const setupStep: 1 | 2 | 3 = !birthProfileId ? 1 : !selectedVaultId ? 2 : 3;
   const setupComplete = !!birthProfileId && !!selectedVaultId;
   const [showRectWizard, setShowRectWizard] = useState(false);
+  const [showBirthTimeLearn, setShowBirthTimeLearn] = useState(false);
   const ownCoordsConfirm = usePlaceCoordinatesConfirm(birthForm.birthPlace, birthForm.birthLatitude, birthForm.birthLongitude);
   const memberCoordsConfirm = usePlaceCoordinatesConfirm(memberForm.birthPlace, memberForm.birthLatitude, memberForm.birthLongitude);
 
@@ -336,6 +413,8 @@ export function DashboardSetupTab({
           {/* Form — shown when not yet created */}
           {!birthProfileId && (
             <form id="form-profile" onSubmit={onCreateProfile} style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+              <DetailLevelQuestion lang={lang} userMode={userMode} onModeChange={onModeChange} />
+
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "var(--space-3)" }}>
                 <Field label={t("field_name", lang)} error={formErrors.displayName}>
                   <Input
@@ -354,10 +433,28 @@ export function DashboardSetupTab({
                     }}
                   />
                 </Field>
-                <Field label={t("field_birth_time", lang)} helper={t("field_time_optional", lang)}>
-                  <Input type="time" step="1" value={birthForm.birthTimeLocal}
-                    onChange={(e) => onBirthFormChange({ ...birthForm, birthTimeLocal: e.target.value })} />
-                </Field>
+                {/* The "why does this matter" article has existed since launch
+                    and was reachable from Explore and the public footer — i.e.
+                    everywhere except the one screen that raises the question.
+                    Opened as a modal rather than linked out to /learn/…: this
+                    sits mid-signup and navigating away would discard the form. */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+                  <Field label={t("field_birth_time", lang)} helper={t("field_time_optional", lang)}>
+                    <Input type="time" step="1" value={birthForm.birthTimeLocal}
+                      onChange={(e) => onBirthFormChange({ ...birthForm, birthTimeLocal: e.target.value })} />
+                  </Field>
+                  <button
+                    type="button"
+                    onClick={() => setShowBirthTimeLearn(true)}
+                    style={{
+                      alignSelf: "flex-start", background: "none", border: "none", padding: 0,
+                      font: "inherit", fontSize: "var(--text-2xs)", color: "var(--color-text-accent)",
+                      textDecoration: "underline", textUnderlineOffset: "2px", cursor: "pointer",
+                    }}
+                  >
+                    {lang === "ta" ? "பிறந்த நேரம் ஏன் முக்கியம்? →" : "Why does birth time matter? →"}
+                  </button>
+                </div>
                 <FieldShell label={t("field_birth_place", lang)}>
                   <PlaceCombobox value={birthForm.birthPlace}
                     aria-label={t("field_birth_place", lang)}
@@ -820,53 +917,6 @@ export function DashboardSetupTab({
         </div>
       )}
 
-      {/* ── Experience depth picker (post-setup) ── */}
-      {setupComplete && onModeChange && (
-        <div style={{
-          background: "var(--color-surface)", border: `1.5px solid var(--color-border)`,
-          borderRadius: "var(--radius-md)", padding: "var(--space-6)",
-          display: "flex", flexDirection: "column", gap: "var(--space-4)",
-        }}>
-          <div>
-            <p style={{ margin: "0 0 var(--space-1)", fontSize: "var(--text-2xs)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent)" }}>
-              {lang === "ta" ? "கட்டுமான ஆழம்" : "Experience depth"}
-            </p>
-            <h3 style={{ margin: "0 0 var(--space-1)", color: "var(--color-text-strong)" }}>{lang === "ta" ? "உங்கள் அனுபவ நிலை தேர்ந்தெடுங்கள்" : "Choose your experience level"}</h3>
-            <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)" }}>
-              {lang === "ta" ? "இதை பின்னர் அமைப்புகளில் மாற்றலாம்." : "You can change this later in Settings."}
-            </p>
-          </div>
-          <div style={{ display: "flex", gap: "var(--space-2_5)", flexWrap: "wrap" }}>
-            {(["BEGINNER", "BALANCED", "TRADITIONAL"] as UserMode[]).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => onModeChange(m)}
-                style={{
-                  flex: "1 1 140px", padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)",
-                  textAlign: "left", cursor: "pointer", fontFamily: "inherit",
-                  border: `1.5px solid ${userMode === m ? "var(--color-accent)" : "var(--color-border-strong)"}`,
-                  background: userMode === m ? "var(--color-accent)" : "transparent",
-                  color: userMode === m ? "var(--color-on-accent)" : "var(--color-faint)",
-                  transition: "all 0.12s",
-                }}
-              >
-                <p style={{ margin: "0 0 var(--space-0_5)", fontWeight: 700, fontSize: "var(--text-base)" }}>
-                  {m === "BEGINNER" ? (lang === "ta" ? "ஆரம்பநிலை" : "Beginner") :
-                   m === "BALANCED" ? (lang === "ta" ? "சமநிலை" : "Balanced") :
-                   lang === "ta" ? "பாரம்பரியம்" : "Traditional"}
-                </p>
-                <p style={{ margin: 0, fontSize: "var(--text-sm)", opacity: 0.7 }}>
-                  {m === "BEGINNER" ? (lang === "ta" ? "எளிய மொழி, ஜோதிட சொற்கள் இல்லை" : "Plain language, no jargon") :
-                   m === "BALANCED" ? (lang === "ta" ? "சமநிலை கலவை" : "Balanced mix") :
-                   lang === "ta" ? "முழு ஜோதிட சொற்களஞ்சியம்" : "Full Jyothidam vocabulary"}
-                </p>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* ── Premium upgrade nudge — shown once birth profile exists ── */}
       {!!birthProfileId && (
         <div style={{
@@ -898,17 +948,24 @@ export function DashboardSetupTab({
             </p>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", minWidth: "120px" }}>
-            <a
-              href="https://apps.apple.com/app/vinaadi/id0000000000"
-              style={{
-                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "var(--space-1)",
-                padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)",
-                background: "var(--color-text-strong)", color: "var(--color-surface)", textDecoration: "none",
-                fontSize: "var(--text-base)", fontWeight: 700, whiteSpace: "nowrap",
-              }}
-            >
-              App Store <ArrowUpRight size={14} strokeWidth={1.5} aria-hidden="true" />
-            </a>
+            {/* iOS is not published yet. `id0000000000` was a placeholder that
+                404s on the App Store — home-content.tsx already hides its badge
+                behind a null URL for exactly this reason and this second copy
+                was missed. Same treatment: set APP_STORE_URL when iOS ships and
+                the badge comes back. */}
+            {APP_STORE_URL && (
+              <a
+                href={APP_STORE_URL}
+                style={{
+                  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "var(--space-1)",
+                  padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)",
+                  background: "var(--color-text-strong)", color: "var(--color-surface)", textDecoration: "none",
+                  fontSize: "var(--text-base)", fontWeight: 700, whiteSpace: "nowrap",
+                }}
+              >
+                App Store <ArrowUpRight size={14} strokeWidth={1.5} aria-hidden="true" />
+              </a>
+            )}
             <a
               href="https://play.google.com/store/apps/details?id=ai.vinaadi.app"
               style={{
@@ -944,6 +1001,13 @@ export function DashboardSetupTab({
             setShowRectWizard(false);
           }}
           onClose={() => setShowRectWizard(false)}
+        />
+      )}
+      {showBirthTimeLearn && (
+        <DashboardLearnArticleModal
+          slug="why-birth-time-matters"
+          lang={lang}
+          onClose={() => setShowBirthTimeLearn(false)}
         />
       )}
         </div>

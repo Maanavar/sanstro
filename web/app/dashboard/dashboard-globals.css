@@ -157,17 +157,17 @@
 }
 
 @media (max-width: 1024px) {
-.metric-strip {  
-      grid-template-columns: repeat(2, minmax(0, 1fr));  
+.metric-strip {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
 @media (max-width: 720px) {
-.metric-strip,  
-    .surface__metrics,  
-    .form-grid,  
-    .settings-grid {  
-      grid-template-columns: 1fr;  
+.metric-strip,
+    .surface__metrics,
+    .form-grid,
+    .settings-grid {
+      grid-template-columns: 1fr;
     }
 }
 
@@ -183,35 +183,96 @@
   inset: 0;
   background: rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(4px);
+  animation: drawer-backdrop-in 160ms ease-out;
 }
 
+/* The panel is a fixed frame with ONE scroller (the body). It used to declare
+   `overflow-y: auto` here as well, so header and body were two nested scroll
+   containers competing for the same wheel gesture. */
 .drawer__panel {
   position: absolute;
   top: 0;
   right: 0;
   bottom: 0;
-  width: min(480px, 96vw);
-  background: #0d0f18;
-  border-left: 1px solid rgba(255, 255, 255, 0.08);
-  overflow-y: auto;
+  width: min(480px, 100vw);
+  /* `--color-bg`, the page ground — NOT `--color-surface-3`. Every Card tint in
+     the kit (`.ui-card--high`, `--low`, `--mid`) is mixed against the ground it
+     sits on, so grounding the sheet on the deep-panel tone re-mixed all of them
+     darker and dropped a dozen inks below AA in the light theme (measured by
+     e2e/theme-contrast.spec.ts's day-drawer case). On the page ground the cards
+     resolve to exactly the values they were designed at. */
+  background: var(--color-bg, #0d0f18);
+  border-left: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+  box-shadow: -24px 0 60px -24px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+  animation: drawer-panel-in 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.drawer--lg .drawer__panel {
+  width: min(560px, 100vw);
+}
+
+@keyframes drawer-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes drawer-panel-in {
+  from { transform: translateX(24px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer__backdrop,
+  .drawer__panel {
+    animation: none;
+  }
 }
 
 .drawer__header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  padding: 18px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  gap: var(--space-3, 12px);
+  padding: var(--space-4, 16px) var(--space-5, 20px);
+  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.06));
   flex-shrink: 0;
+}
+
+.drawer__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
 }
 
 .drawer__title {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.0625rem;
   font-weight: 600;
-  color: var(--color-text);
+  line-height: 1.25;
+  color: var(--color-text-strong, var(--color-text));
+}
+
+/* Qualifiers that used to be appended to the title with " · " and clipped. */
+.drawer__subtitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: var(--text-sm, 0.8125rem);
+  line-height: 1.35;
+  color: var(--color-muted);
+}
+
+.drawer__header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  flex-shrink: 0;
 }
 
 .drawer__close {
@@ -235,10 +296,37 @@
   color: var(--color-text);
 }
 
+.drawer__close:focus-visible {
+  outline: 2px solid var(--color-accent, currentColor);
+  outline-offset: 2px;
+}
+
 .drawer__body {
   flex: 1;
-  padding: 20px;
+  min-height: 0;
+  padding: var(--space-5, 20px);
   overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Pinned action bar. `env(safe-area-inset-bottom)` keeps the primary action
+   clear of the iOS home indicator when the sheet goes full-width. */
+.drawer__footer {
+  flex-shrink: 0;
+  display: flex;
+  gap: var(--space-2, 8px);
+  padding: var(--space-4, 16px) var(--space-5, 20px);
+  padding-bottom: calc(var(--space-4, 16px) + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.06));
+  background: var(--color-bg, #0d0f18);
+}
+
+@media (max-width: 560px) {
+  .drawer__panel,
+  .drawer--lg .drawer__panel {
+    width: 100vw;
+    border-left: none;
+  }
 }
 
 /* Light (parchment) variant — matches the calendar / panchangam surfaces */
@@ -448,49 +536,49 @@
 }
 
 @media (max-width: 720px) {
-.cd-responsive-pills > * {  
-      flex: 1 1 calc(50% - 10px);  
+.cd-responsive-pills > * {
+      flex: 1 1 calc(50% - 10px);
     }
 
-.cd-ranked-card {  
-      grid-template-columns: auto minmax(0, 1fr);  
-      align-items: flex-start;  
+.cd-ranked-card {
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: flex-start;
     }
 
-.cd-ranked-card__cta {  
-      grid-column: 1 / -1;  
-      justify-self: start;  
-      white-space: normal;  
+.cd-ranked-card__cta {
+      grid-column: 1 / -1;
+      justify-self: start;
+      white-space: normal;
     }
 
-.cd-calendar-monthly-layout {  
-      gap: var(--space-4);  
+.cd-calendar-monthly-layout {
+      gap: var(--space-4);
     }
 
-.cd-calendar-monthly-sidebar {  
-      /* already single-column at all sizes */  
+.cd-calendar-monthly-sidebar {
+      /* already single-column at all sizes */
     }
 
-.cd-calendar-grid-scroll > .cd-calendar-grid {  
-      min-width: 560px;  
+.cd-calendar-grid-scroll > .cd-calendar-grid {
+      min-width: 560px;
     }
 
-.cd-detail-spec-row {  
-      grid-template-columns: 1fr;  
-      gap: var(--space-1_5);  
+.cd-detail-spec-row {
+      grid-template-columns: 1fr;
+      gap: var(--space-1_5);
     }
 
-.cd-detail-spec-row__tag {  
-      justify-self: start;  
+.cd-detail-spec-row__tag {
+      justify-self: start;
     }
 
-.cd-featured-panel {  
-      grid-template-columns: 1fr;  
+.cd-featured-panel {
+      grid-template-columns: 1fr;
     }
 
-.cd-featured-panel__aside {  
-      border-left: 0;  
-      border-top: 1px solid var(--color-border);  
+.cd-featured-panel__aside {
+      border-left: 0;
+      border-top: 1px solid var(--color-border);
     }
 }
 
@@ -509,36 +597,36 @@
 .cd-print-brand { display: none; }
 
 @media print {
-/* Brand header on printed pages (replaces the old "Dashboard" title vibe) */  
-    .cd-print-brand {  
-      display: flex !important;  
-      align-items: baseline;  
-      gap: 10px;  
-      padding: 0 0 10px;  
-      margin: 0 0 14px;  
-      border-bottom: 2px solid #111;  
+/* Brand header on printed pages (replaces the old "Dashboard" title vibe) */
+    .cd-print-brand {
+      display: flex !important;
+      align-items: baseline;
+      gap: 10px;
+      padding: 0 0 10px;
+      margin: 0 0 14px;
+      border-bottom: 2px solid #111;
     }
 
-.cd-print-brand__name {  
-      font-family: var(--font-display, serif);  
-      font-size: 16pt;  
-      font-weight: 600;  
-      color: #111;  
-      letter-spacing: 0.01em;  
+.cd-print-brand__name {
+      font-family: var(--font-display, serif);
+      font-size: 16pt;
+      font-weight: 600;
+      color: #111;
+      letter-spacing: 0.01em;
     }
 
-.cd-print-brand__tag {  
-      font-size: 9pt;  
-      color: #555;  
-      text-transform: uppercase;  
-      letter-spacing: 0.12em;  
+.cd-print-brand__tag {
+      font-size: 9pt;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
     }
 
-/* Show only the active content area */  
-    .site__body {  
-      width: 100% !important;  
-      padding: 0 !important;  
-      margin: 0 !important;  
+/* Show only the active content area */
+    .site__body {
+      width: 100% !important;
+      padding: 0 !important;
+      margin: 0 !important;
     }
 }
 

@@ -212,3 +212,44 @@ for (const theme of ["light", "dark"] as const) {
     expect(offenders, `WCAG AA contrast violations in ${theme} theme`).toEqual([]);
   });
 }
+
+/**
+ * The month-grid day drawer, which the tab sweep above cannot reach.
+ *
+ * A modal only exists after a click, so a sweep that navigates tabs measures
+ * zero of it — and this one carries ink/ground pairs that appear nowhere else:
+ * tone-carded verdict rows, status chips, a red Chandrashtamam card, and a
+ * pinned footer sitting on the panel rather than on the page. It is portalled
+ * into `.cd-shell`, so the same `.include()` above still applies once it is on
+ * screen. Same both-themes rule, and for the same reason.
+ */
+for (const theme of ["light", "dark"] as const) {
+  test(`no WCAG AA contrast violations in the day drawer — ${theme} theme`, async () => {
+    // Three navigations plus a per-day panchangam fetch before axe can even
+    // start; the 180s default is not enough on a cold dev build.
+    test.slow();
+    await page.goto("/dashboard/calendar");
+    await page.waitForLoadState("networkidle", { timeout: 30_000 }).catch(() => {});
+    await dismissBlockingDialogs();
+    await applyTheme(theme);
+
+    await page.getByRole("tab", { name: /Monthly/i }).click();
+    await page.waitForTimeout(2000);
+    await dismissBlockingDialogs(3);
+    await page.locator('button[aria-current="date"]').first().click();
+    // The sheet fetches the day it was opened on; measuring the skeleton would
+    // pass trivially.
+    await page.getByRole("dialog").getByText("Panchangam").waitFor({ timeout: 20_000 });
+
+    const results = await new AxeBuilder({ page })
+      .withRules(["color-contrast"])
+      .include(".cd-shell")
+      .analyze();
+
+    const offenders = results.violations.flatMap((v) =>
+      v.nodes.map((node) => `[${theme} · day drawer] ${node.failureSummary?.split("\n").join(" ") ?? ""} — ${node.target.join(" ")}`),
+    );
+    if (offenders.length) log(`day drawer ${theme}:\n${offenders.join("\n")}`);
+    expect(offenders, `WCAG AA contrast violations in the day drawer (${theme})`).toEqual([]);
+  });
+}

@@ -7,9 +7,11 @@ import { limbNow } from "./dashboard-calendar-shared";
 import { formatClockLabel, getScoreBand, scoreColorScale } from "@/lib/format";
 import { tNakshatra, tTithi } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import type { GlossaryKey } from "@/lib/glossary";
 import { DUR, EASE_NOVA } from "@/lib/motion";
 import { formatClockInZone, minutesOfDayInZone, toDateKeyInZone } from "@/lib/tz";
 import type { PanchangamDailyResponseData, WeekAheadData } from "@/lib/types";
+import { GlossaryTerm } from "./glossary-term";
 
 /**
  * Nova "Your day" timeline spine — the single card that owns every panchangam
@@ -70,6 +72,7 @@ type Segment = {
   fg: string;
   badge: string;
   legendName: string;
+  glossary?: GlossaryKey;
   legendTime: string;
 };
 
@@ -151,6 +154,7 @@ export function DashboardTodayRibbonNova({
       fg: YAMA_FG,
       badge: lang === "ta" ? "யமகண்டம்" : "YAMAGANDAM",
       legendName: lang === "ta" ? "யமகண்டம்" : "Yamagandam",
+      glossary: "yamagandam",
       legendTime: `${formatClockLabel(panchangam.kalam.yamagandam.start)} – ${formatClockLabel(panchangam.kalam.yamagandam.end)}`,
     });
   }
@@ -166,6 +170,7 @@ export function DashboardTodayRibbonNova({
       fg: RAHU_FG,
       badge: lang === "ta" ? "ராகு காலம்" : "RAHU KALAM",
       legendName: lang === "ta" ? "ராகு காலம்" : "Rahu Kalam",
+      glossary: "rahuKalam",
       legendTime: `${formatClockLabel(panchangam.kalam.rahuKalam.start)} – ${formatClockLabel(panchangam.kalam.rahuKalam.end)}`,
     });
   }
@@ -181,6 +186,7 @@ export function DashboardTodayRibbonNova({
       fg: KULIGAI_FG,
       badge: lang === "ta" ? "குளிகை" : "KULIGAI",
       legendName: lang === "ta" ? "குளிகை" : "Kuligai",
+      glossary: "kuligai",
       legendTime: `${formatClockLabel(panchangam.kalam.kuligai.start)} – ${formatClockLabel(panchangam.kalam.kuligai.end)}`,
     });
   }
@@ -198,6 +204,7 @@ export function DashboardTodayRibbonNova({
         fg: BEST_FG,
         badge: lang === "ta" ? "சிறந்தது" : "BEST",
         legendName: lang === "ta" ? "நல்ல நேரம்" : "Nalla Neram",
+        glossary: "nallaNeram",
         legendTime: `${formatClockLabel(slot.start)} – ${formatClockLabel(slot.end)}`,
       });
     } else {
@@ -210,6 +217,7 @@ export function DashboardTodayRibbonNova({
         fg: GOOD_FG,
         badge: lang === "ta" ? part.badge.ta : part.badge.en,
         legendName: lang === "ta" ? part.legend.ta : part.legend.en,
+        glossary: "nallaNeram",
         legendTime: `${formatClockLabel(slot.start)} – ${formatClockLabel(slot.end)}`,
       });
     }
@@ -249,7 +257,16 @@ export function DashboardTodayRibbonNova({
           </div>
           <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "2px" }}>
             {lang === "ta" ? "சூரிய உதயம்" : "sunrise"} {formatClockLabel(panchangam.sunrise)} · {lang === "ta" ? "அஸ்தமனம்" : "sunset"} {formatClockLabel(panchangam.sunset)}
-            {" · "}{lang === "ta" ? "நட்சத்திரம்" : "Nakshatram"} <b style={{ color: "var(--color-text)" }}>{tNakshatra(nakNow.activeName, lang)}</b>
+            {/* Was bare "Nakshatram". The natal star is labelled "Birth Star"
+                everywhere else in the app, so the same concept carried two
+                labels and a reader could not tell that this one moves daily —
+                several read the day's star as their own. Named for what it is,
+                and glossed in place. */}
+            {" · "}
+            <GlossaryTerm term="nakshatra" lang={lang}>
+              {lang === "ta" ? "இன்றைய நட்சத்திரம்" : "Today's star"}
+            </GlossaryTerm>{" "}
+            <b style={{ color: "var(--color-text)" }}>{tNakshatra(nakNow.activeName, lang)}</b>
             {nakNow.rolledOver && (
               <span style={{ color: "var(--color-faint)" }}>
                 {" "}({lang === "ta" ? `${tNakshatra(nakNow.sunriseName, lang)} ${formatClockLabel(panchangam.nakshatra.endsAt)} வரை` : `${tNakshatra(nakNow.sunriseName, lang)} until ${formatClockLabel(panchangam.nakshatra.endsAt)}`})
@@ -260,7 +277,9 @@ export function DashboardTodayRibbonNova({
                 {" "}({lang === "ta" ? `${formatClockLabel(nakNow.until)} வரை · பின்பு ${tNakshatra(nakNow.upcomingName, lang)}` : `to ${formatClockLabel(nakNow.until)}, then ${tNakshatra(nakNow.upcomingName, lang)}`})
               </span>
             )}
-            {" · "}{lang === "ta" ? "திதி" : "Tithi"} <b style={{ color: "var(--color-text)" }}>{tTithi(tithiNow.activeName, lang)}</b>
+            {" · "}
+            <GlossaryTerm term="tithi" lang={lang}>{lang === "ta" ? "திதி" : "Tithi"}</GlossaryTerm>{" "}
+            <b style={{ color: "var(--color-text)" }}>{tTithi(tithiNow.activeName, lang)}</b>
             {tithiNow.rolledOver && (
               <span style={{ color: "var(--color-faint)" }}>
                 {" "}({lang === "ta" ? `${tTithi(tithiNow.sunriseName, lang)} ${formatClockLabel(panchangam.tithi.endsAt)} வரை` : `${tTithi(tithiNow.sunriseName, lang)} until ${formatClockLabel(panchangam.tithi.endsAt)}`})
@@ -377,7 +396,11 @@ export function DashboardTodayRibbonNova({
           <div key={`legend-${s.key}`} style={{ display: "flex", gap: "var(--space-2_5)", alignItems: "center", padding: "var(--space-3) var(--space-3_5)", borderRight: "1px solid color-mix(in srgb, var(--color-text-strong) 5%, transparent)" }}>
             <span style={{ width: "8px", height: "8px", borderRadius: "var(--radius-sm)", background: s.bg, flex: "none" }} />
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.legendName}</div>
+              <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {s.glossary ? (
+                  <GlossaryTerm term={s.glossary} lang={lang}>{s.legendName}</GlossaryTerm>
+                ) : s.legendName}
+              </div>
               <div style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: s.key === "rahu" || s.key === "yama" || s.key === "kuligai" ? "var(--color-low)" : "var(--color-high)", marginTop: "1px", whiteSpace: "nowrap" }}>{s.legendTime}</div>
             </div>
           </div>

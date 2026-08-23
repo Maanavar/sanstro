@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 
 import { apiFetchJson } from "@/lib/api";
 import type { Lang } from "@/lib/i18n";
@@ -57,6 +57,8 @@ type LoadStatus = "loading" | "ready" | "absent";
 export type DashboardOneMinuteReadingProps = {
   lang: Lang;
   chartId: string;
+  /** Delay the endpoint call until this reading is close to the viewport. */
+  deferUntilVisible?: boolean;
   /** Navigates to the full chart; omit on surfaces that already are it. */
   onOpenFullChart?: () => void;
 };
@@ -113,6 +115,7 @@ function BeatBlock({
 export function DashboardOneMinuteReading({
   lang,
   chartId,
+  deferUntilVisible = false,
   onOpenFullChart,
 }: DashboardOneMinuteReadingProps) {
   const [data, setData] = useState<OneMinuteReadingData | null>(null);
@@ -120,6 +123,32 @@ export function DashboardOneMinuteReading({
   const [showSkeleton, setShowSkeleton] = useState(false);
   const [showBasis, setShowBasis] = useState(false);
   const [answering, setAnswering] = useState(false);
+  const [shouldLoad, setShouldLoad] = useState(!deferUntilVisible);
+  const lazyRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setShouldLoad(!deferUntilVisible);
+  }, [chartId, deferUntilVisible]);
+
+  useEffect(() => {
+    if (!deferUntilVisible || shouldLoad) return;
+    const node = lazyRef.current;
+    if (!node) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setShouldLoad(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+        setShouldLoad(true);
+        observer.disconnect();
+      },
+      { rootMargin: "360px 0px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [deferUntilVisible, shouldLoad]);
 
   // Through the shared wrapper, not a hand-written path: it is the one place
   // the route shape was checked against the FastAPI decorator, and two wrappers
@@ -159,6 +188,7 @@ export function DashboardOneMinuteReading({
   );
 
   useEffect(() => {
+    if (!shouldLoad) return;
     let cancelled = false;
     setData(null);
     setStatus("loading");
@@ -166,7 +196,7 @@ export function DashboardOneMinuteReading({
     return () => {
       cancelled = true;
     };
-  }, [load]);
+  }, [load, shouldLoad]);
 
   // Reserve the height only once the wait is long enough to be perceptible.
   // Under that, showing and hiding a placeholder is itself the layout shift.
@@ -197,6 +227,8 @@ export function DashboardOneMinuteReading({
     },
     [data, load],
   );
+
+  if (!shouldLoad) return <div ref={lazyRef} aria-hidden="true" style={{ height: 1 }} />;
 
   if (status === "absent") return null;
 

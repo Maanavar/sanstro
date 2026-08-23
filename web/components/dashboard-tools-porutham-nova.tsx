@@ -5,6 +5,7 @@ import { AlertTriangle, Check, X } from "lucide-react";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
+import { dt, PORUTHAM_VERDICT } from "@/lib/dashboard-i18n";
 import { t, tPlanetLord, tNakshatra } from "@/lib/i18n";
 import { verdictPhrase } from "@/lib/verdict-lexicon";
 import type { Lang } from "@/lib/i18n";
@@ -414,6 +415,14 @@ export function NovaPoruthamPanel({
                     ? (lang === "ta" ? "தோஷம் — தவிர்க்கவும்" : "Dosham - Avoid")
                     : (verdictPhrase("porutham", porutham.label, lang) ?? porutham.label)}
                 </span>
+                {/* The number had no scale attached to it. A reader with no
+                    prior — which is most people checking their own match —
+                    anchors on 10/10 as the target and reads 7 as a failure.
+                    The calibration belongs against the ring, not three
+                    scroll-lengths down with the pass/fail footnote. */}
+                <span style={{ fontSize: "var(--text-2xs)", color: "var(--color-faint)", textAlign: "center", lineHeight: 1.45, maxWidth: "140px" }}>
+                  {dt(PORUTHAM_VERDICT.baseline, lang)}
+                </span>
               </div>
               <div style={{ flex: "1", minWidth: "260px", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
@@ -427,6 +436,19 @@ export function NovaPoruthamPanel({
                     </span>
                   )}
                 </div>
+                {/* The de-escalation that already existed lived at the bottom of
+                    the ten-porutham table — below the fold on the screen where a
+                    real couple reads a red "Dosham - Avoid" about themselves.
+                    The verdict stays exactly as the engine computed it; what
+                    changes is that the chip no longer travels alone. It names
+                    which check failed (the chip above is a noun, not a reason),
+                    and says what this result is FOR. */}
+                {criticalFail && (
+                  <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.6, color: "var(--color-text)", background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)", maxWidth: "620px" }}>
+                    {dt(porutham.rajjuDosha ? PORUTHAM_VERDICT.blockerRajju : PORUTHAM_VERDICT.blockerVedha, lang)
+                      + dt(PORUTHAM_VERDICT.blockerTail, lang)}
+                  </p>
+                )}
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", flexWrap: "wrap" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
                     <div style={{ width: "34px", height: "34px", borderRadius: "var(--radius-pill)", background: "var(--color-accent-secondary)", color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-base)", fontWeight: 700 }}>{chartA.birthProfile.displayName.charAt(0).toUpperCase()}</div>

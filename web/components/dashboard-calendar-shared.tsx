@@ -224,11 +224,10 @@ export function formatHeaderDate(value: string, lang: Lang): string {
   });
 }
 
-export function tamilMonthOnly(value: string): string {
-  const trimmed = value.trim();
-  const splitAt = trimmed.lastIndexOf(" ");
-  return splitAt > 0 ? trimmed.slice(0, splitAt) : trimmed;
-}
+// `tamilMonthOnly` moved to lib/format for the same reason `limbNow` did — the
+// muhurta picker needs it and must not pull this whole module in. Re-exported
+// for the calendar surfaces already importing it from here.
+export { tamilMonthOnly } from "@/lib/format";
 
 export type DayTimelineBand = {
   key: string;

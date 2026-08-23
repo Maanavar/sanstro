@@ -17,6 +17,7 @@ import { todayIso } from "@/lib/format";
 import { DUR, EASE_NOVA } from "@/lib/motion";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { dt, ONBOARDING_DETAIL_LEVEL } from "@/lib/dashboard-i18n";
 import { parseLatitude, parseLongitude } from "@/lib/validation";
 import type {
   ApiEnvelope,
@@ -30,6 +31,7 @@ import type {
 } from "@/lib/types";
 
 import { useSession } from "@/hooks/useSession";
+import type { GoalTrack, UserMode } from "@/hooks/useSession";
 import { usePersonalData } from "@/hooks/usePersonalData";
 import { useFamilyData, type MemberChart } from "@/hooks/useFamilyData";
 import { usePlanData } from "@/hooks/usePlanData";
@@ -1536,6 +1538,33 @@ export function DashboardWorkspace() {
     });
   }
 
+  // Destructured rather than read off `session` inside the callback: the whole
+  // session object is a new identity every render, so depending on it rebuilt
+  // this callback constantly — and listing `session.x` members instead trips
+  // exhaustive-deps, which cannot see through the member expressions. The two
+  // setters are raw `useState` setters (useSession.ts:29-30) and so are stable;
+  // the two values are genuine dependencies, since the rollback path needs
+  // whatever was current when the save started.
+  const { userMode: currentUserMode, goalTrack: currentGoalTrack, setUserMode, setGoalTrack } = session;
+  const saveUserSettings = useCallback(async (mode: UserMode, track: GoalTrack | null, options?: { toast?: boolean }) => {
+    const previousMode = currentUserMode;
+    const previousTrack = currentGoalTrack;
+    setUserMode(mode);
+    setGoalTrack(track);
+    try {
+      await apiFetchJson("/api/v1/auth/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userMode: mode, goalTrack: track }),
+      });
+      if (options?.toast) toast.success(dt(ONBOARDING_DETAIL_LEVEL.saved, lang));
+    } catch {
+      setUserMode(previousMode);
+      setGoalTrack(previousTrack ?? null);
+      if (options?.toast) toast.error(dt(ONBOARDING_DETAIL_LEVEL.saveFailed, lang));
+    }
+  }, [lang, currentUserMode, currentGoalTrack, setUserMode, setGoalTrack]);
+
   // ── Render ────────────────────────────────────────────────
 
   return (
@@ -1687,6 +1716,14 @@ export function DashboardWorkspace() {
                     </div>
                   );
                 })()}
+                <div className="cd-onboarding__step">
+                  <span className={`cd-onboarding__step-badge ${personal.birthProfileId ? "is-done" : "is-pending"}`}>
+                    {personal.birthProfileId ? "✓" : "3"}
+                  </span>
+                  <span className={`cd-onboarding__step-text ${personal.birthProfileId ? "is-done" : ""}`}>
+                    {t("onboarding_step3", lang)}
+                  </span>
+                </div>
               </div>
             </div>
             <button
@@ -1735,12 +1772,15 @@ export function DashboardWorkspace() {
             familyMembers={family.familyAggregate?.members ?? []}
             onEditMember={handleEditFamilyMember}
             onGoToPersonal={() => setActiveTab("personal")}
+            userMode={session.userMode}
+            onModeChange={(mode) => void saveUserSettings(mode, session.goalTrack ?? null, { toast: true })}
           />
         </TabPane>
 
         <TabPane visible={isPaneRendered("personal")} active={activeTab === "personal"}>
           <DashboardTodayTabNova
             lang={lang}
+            userMode={session.userMode}
             activeLifeMode={activeLifeMode}
             birthDisplayName={birthForm.displayName}
             selectedDate={selectedDate}
@@ -2072,19 +2112,7 @@ export function DashboardWorkspace() {
             onNotificationPrefsSaved={journal.setNotificationPrefs}
             userMode={session.userMode}
             goalTrack={session.goalTrack}
-            onSaveUserSettings={async (mode, track) => {
-              try {
-                await apiFetchJson("/api/v1/auth/me", {
-                  method: "PATCH",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ userMode: mode, goalTrack: track }),
-                });
-                session.setUserMode(mode);
-                session.setGoalTrack(track);
-              } catch {
-                // ignore
-              }
-            }}
+            onSaveUserSettings={(mode, track) => saveUserSettings(mode, track)}
             onSelectedDateChange={setSelectedDate}
             onRefreshPersonal={() => void personal.refreshPersonalBundle(undefined, undefined, true, { forceDay: true })}
             onRefreshFamily={() => void family.refreshFamilyBundle()}

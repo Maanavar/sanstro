@@ -24,6 +24,17 @@ export function nextWeekdayDate(weekday: string, fromIso: string = todayIso()): 
   return addDays(fromIso, (target - cur + 7) % 7);
 }
 
+/** "Aadi 15" -> "Aadi", "ஆடி 15" -> "ஆடி". The backend formats a Tamil date as
+ *  `<month> <day>` in both languages, so dropping the trailing token is the
+ *  month. Lives here rather than in dashboard-calendar-shared (which re-exports
+ *  it) so the muhurta picker can group by Tamil month without dragging the whole
+ *  calendar module into the Plan route's bundle. */
+export function tamilMonthOnly(value: string): string {
+  const trimmed = value.trim();
+  const splitAt = trimmed.lastIndexOf(" ");
+  return splitAt > 0 ? trimmed.slice(0, splitAt) : trimmed;
+}
+
 export interface ScoreBand {
   label: string;
   tone: "high" | "mid" | "low";

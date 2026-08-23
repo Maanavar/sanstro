@@ -5,7 +5,8 @@ import { ArrowRight, Sparkles } from "lucide-react";
 
 import { apiFetchJson } from "@/lib/api";
 import { formatClockLabel, scoreColor } from "@/lib/format";
-import { dt } from "@/lib/dashboard-i18n";
+import { dt, SANI_CYCLE_CARD, SANI_CYCLE_LABELS } from "@/lib/dashboard-i18n";
+import { cycleDate, cycleText } from "@/lib/sani-cycle-card";
 import {
   CARE_FILTER_NOTE,
   activeSaniCycles,
@@ -365,25 +366,46 @@ function HyBondsCard({ lang, participants }: { lang: Lang; participants: BondPar
       Dashas tab (2026-07-21). Two cycles, reckoned from the Moon and from the
       Lagna, plus the engine's plain-language confirmation sentence. Active
       cycles read in the caution palette; quiet ones stay calm. ─────────────── */
+
 function HySaniCard({ lang, sani }: { lang: Lang; sani: SaniCycleData }) {
   const cycles = [
-    { label: lang === "ta" ? "சனி · சந்திரனிலிருந்து" : "Sani · from Moon", cycle: sani.moonBasedCycle },
-    { label: lang === "ta" ? "சனி · லக்னத்திலிருந்து" : "Sani · from Lagna", cycle: sani.lagnaBasedCycle },
+    { label: dt(SANI_CYCLE_LABELS.fromMoon, lang), role: dt(SANI_CYCLE_CARD.primary, lang), cycle: sani.moonBasedCycle },
+    { label: dt(SANI_CYCLE_LABELS.fromLagna, lang), role: dt(SANI_CYCLE_CARD.crossCheck, lang), cycle: sani.lagnaBasedCycle },
   ];
   return (
     <Card style={{ padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-      <Kicker color="var(--color-accent-strong)">{lang === "ta" ? "ஏழரை / அஷ்டம சனி" : "Sade Sati / Ashtama Sani"}</Kicker>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
-        {cycles.map(({ label, cycle }) => (
-          <Card key={label} variant={cycle.isActive ? "low" : "default"} style={{ background: cycle.isActive ? undefined : "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
-            <Kicker as="span" color={cycle.isActive ? "var(--color-low)" : "var(--color-faint)"} style={{ letterSpacing: "0.1em" }}>{label}</Kicker>
-            {/* Named, not the raw enum — this card is where a reader lands to
-                find out what the member card's ♄ chip meant, and it used to
-                answer with "EZHARAI_SANI_PHASE_1". */}
-            <span style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-md)", fontWeight: 600, color: cycle.isActive ? "var(--color-low)" : "var(--color-high)" }}>{cycle.type ? saniCycleName(cycle.type, lang) : (lang === "ta" ? "இயல்பு" : "Normal")}</span>
-            <span style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.45 }}>{cycle.supportiveLabel ?? (lang === "ta" ? "செயலில் சனி அழுத்தம் இல்லை." : "No active Saturn-pressure cycle.")}</span>
-          </Card>
-        ))}
+      <Kicker color="var(--color-accent-strong)">{dt(SANI_CYCLE_LABELS.heading, lang)}</Kicker>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(260px, 100%), 1fr))", gap: "var(--space-3)" }}>
+        {cycles.map(({ label, role, cycle }) => {
+          const detail = cycleText(cycle, lang);
+          return (
+            <Card key={label} variant={cycle.isActive ? "low" : "default"} style={{ background: cycle.isActive ? undefined : "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", justifyContent: "space-between" }}>
+                <Kicker as="span" color={cycle.isActive ? "var(--color-low)" : "var(--color-faint)"} style={{ letterSpacing: "0.1em" }}>{label}</Kicker>
+                <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: cycle.isActive ? "var(--color-low)" : "var(--color-faint)" }}>{role}</span>
+              </div>
+              <span style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-md)", fontWeight: 600, color: cycle.isActive ? "var(--color-low)" : "var(--color-high)" }}>{cycle.type ? saniCycleName(cycle.type, lang) : dt(SANI_CYCLE_CARD.normal, lang)}</span>
+              {cycle.isActive ? (
+                <>
+                  <span style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.45 }}>{detail.prevalence}</span>
+                  <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "var(--space-1) var(--space-2)", fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.45 }}>
+                    <span style={{ color: "var(--color-faint)" }}>{dt(SANI_CYCLE_CARD.scope, lang)}</span>
+                    <b style={{ color: "var(--color-text)", fontWeight: 650 }}>{detail.scope}</b>
+                    <span style={{ color: "var(--color-faint)" }}>{dt(SANI_CYCLE_CARD.phase, lang)}</span>
+                    <b style={{ color: "var(--color-text)", fontWeight: 650 }}>{detail.phase}</b>
+                    <span style={{ color: "var(--color-faint)" }}>{dt(SANI_CYCLE_CARD.phaseEnds, lang)}</span>
+                    <b style={{ color: "var(--color-text)", fontWeight: 650 }}>{cycleDate(cycle.phaseEndsOn, lang)}</b>
+                    <span style={{ color: "var(--color-faint)" }}>{dt(SANI_CYCLE_CARD.cycleEnds, lang)}</span>
+                    <b style={{ color: "var(--color-text)", fontWeight: 650 }}>{cycleDate(cycle.cycleEndsOn, lang)}</b>
+                  </div>
+                  <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text)", lineHeight: 1.45 }}><b>{dt(SANI_CYCLE_CARD.action, lang)}:</b> {detail.action}</span>
+                </>
+              ) : (
+                <span style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.45 }}>{cycle.supportiveLabel ?? dt(SANI_CYCLE_CARD.noActive, lang)}</span>
+              )}
+            </Card>
+          );
+        })}
       </div>
       {sani.confirmationSentence && (
         <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", fontStyle: "italic", lineHeight: 1.5 }}>{sani.confirmationSentence}</p>

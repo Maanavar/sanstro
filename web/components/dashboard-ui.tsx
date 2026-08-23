@@ -155,11 +155,81 @@ export function Button({
   );
 }
 
-export function Surface({ title, children }: { title: ReactNode; children: ReactNode }) {
+/**
+ * `collapsible` turns the title row into a disclosure trigger. Opt-in, so every
+ * existing Surface keeps rendering exactly as before — a plain, always-open
+ * title div with no button semantics.
+ *
+ * `summary` rides on the right of the title row and is shown **only while
+ * closed**: a collapsed section whose header says nothing but its own name
+ * gives the reader no reason to open it, and no way to skip it either. Pass the
+ * one fact that decides that (a score, a count), not a second copy of the body.
+ */
+export function Surface({
+  title,
+  children,
+  collapsible = false,
+  defaultOpen = false,
+  summary,
+}: {
+  title: ReactNode;
+  children: ReactNode;
+  collapsible?: boolean;
+  defaultOpen?: boolean;
+  summary?: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  if (!collapsible) {
+    return (
+      <div className="surface">
+        <div className="surface__title">{title}</div>
+        {children}
+      </div>
+    );
+  }
+
   return (
     <div className="surface">
-      <div className="surface__title">{title}</div>
-      {children}
+      <button
+        type="button"
+        className="surface__title"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "var(--space-3)",
+          width: "100%",
+          // The class ships the collapsed-state bottom margin; an open section
+          // needs it too, so keep it rather than letting the reset drop it.
+          margin: open ? undefined : 0,
+          padding: 0,
+          border: "none",
+          background: "none",
+          font: "inherit",
+          fontSize: "0.72rem",
+          fontWeight: 600,
+          textTransform: "uppercase",
+          letterSpacing: "0.18em",
+          textAlign: "left",
+          cursor: "pointer",
+          minHeight: "32px",
+        }}
+      >
+        <span aria-hidden="true" style={{ display: "inline-flex", transform: open ? "rotate(90deg)" : "none", transition: "transform 140ms ease", flex: "none" }}>
+          <svg viewBox="0 0 20 20" style={{ width: "12px", height: "12px" }} aria-hidden="true">
+            <path d="M7 4l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+        <span style={{ minWidth: 0 }}>{title}</span>
+        {!open && summary ? (
+          <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "var(--space-2)", letterSpacing: "normal", textTransform: "none", minWidth: 0 }}>
+            {summary}
+          </span>
+        ) : null}
+      </button>
+      {open && children}
     </div>
   );
 }

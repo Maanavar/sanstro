@@ -404,11 +404,18 @@ export function DashboardLifeAreasTabNova({
             personalSani={personalSani}
             panchangam={panchangam}
           />
+          {/* Collapsed by default here (2026-08-22): the same guidance is the
+              hero of the Today tab, so a reader arriving on Life Areas has
+              almost certainly already read it, and open it pushed the actual
+              life-domain scores — the reason this tab exists — below the fold.
+              The header keeps the score visible, so nothing is hidden that
+              would make someone open it just to check. */}
           <NovaGuidanceCard
             lang={lang}
             personalDailyGuidance={personalDailyGuidance}
             dailyGuidanceRange={dailyGuidanceRange}
             astroText={astroText}
+            collapsible
           />
 
           {!lifeAreas ? (

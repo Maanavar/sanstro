@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { apiFetchJson } from "@/lib/api";
 import { useElapsedSeconds } from "@/hooks/useElapsedSeconds";
 import { t, tKarana, tNakshatra, tTithi, tWeekday, tYoga } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ApiEnvelope, MuhurtaFactor, MuhurtaSlot, MuhurtaResponseData, PanchangamDailyResponseData } from "@/lib/types";
-import { addDays, formatClockLabel, formatDateLabel, todayIso } from "@/lib/format";
+import { addDays, formatClockLabel, formatDateLabel, tamilMonthOnly, todayIso } from "@/lib/format";
 import { convertMuhurtaTime } from "@/lib/timezone";
 import { NovaSelect } from "./nova-select";
 import { PlaceCombobox } from "./place-combobox";
@@ -446,6 +446,51 @@ const DEFAULT_SEARCH_RANGE_DAYS = 30;
 // forward-date ceiling.
 const API_SEARCH_CHUNK_DAYS = 60;
 
+/** One contiguous run of result dates inside a single Tamil solar month. */
+type TamilMonthGroup = {
+  key: string;
+  en: string;
+  ta: string;
+  firstDate: string;
+  lastDate: string;
+  slots: MuhurtaSlot[];
+};
+
+/**
+ * A **run**, not a bucket. A search longer than a Tamil year revisits the same
+ * month name, and those two stretches are different months of different years —
+ * merging them by name would put dates a year apart under one heading. Walking
+ * the slots in date order and starting a new group whenever the month name
+ * changes keeps them separate without needing a Tamil-year field the API does
+ * not send.
+ *
+ * Slots whose `tamilDate` is missing collect into their own unnamed run rather
+ * than disappearing from a filtered list.
+ */
+export function groupSlotsByTamilMonth(slots: MuhurtaSlot[]): TamilMonthGroup[] {
+  const groups: TamilMonthGroup[] = [];
+  [...slots]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .forEach((slot) => {
+      const en = slot.tamilDate ? tamilMonthOnly(slot.tamilDate.en) : "";
+      const ta = slot.tamilDate ? tamilMonthOnly(slot.tamilDate.ta) : "";
+      const previous = groups[groups.length - 1];
+      if (previous && previous.en === en) {
+        previous.slots.push(slot);
+        previous.lastDate = slot.date;
+        return;
+      }
+      groups.push({ key: `${en}#${groups.length}`, en, ta, firstDate: slot.date, lastDate: slot.date, slots: [slot] });
+    });
+  return groups;
+}
+
+/** Ranked highest-first, which is how the flat list has always read. Grouping
+ *  changes which dates sit together, never how they are ordered within a month. */
+function byScoreDesc(slots: MuhurtaSlot[]): MuhurtaSlot[] {
+  return [...slots].sort((a, b) => b.score - a.score);
+}
+
 export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateFrom }: Props) {
   const today = todayIso();
   const [activity, setActivity] = useState(initialActivity ?? "");
@@ -454,6 +499,11 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
   const [dateTo, setDateTo] = useState(addDays(initialDateFrom ?? today, DEFAULT_SEARCH_RANGE_DAYS));
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<MuhurtaResponseData | null>(null);
+  // Display-only, applied after the search returns — a Tamil month is not a
+  // parameter the API accepts, and re-querying per month would re-run the whole
+  // chart-personalised evaluation for dates already scored.
+  const [tamilMonthKey, setTamilMonthKey] = useState("");
+  const [groupByTamilMonth, setGroupByTamilMonth] = useState(false);
   const [checkDate, setCheckDate] = useState(initialDateFrom ?? today);
   const [assessment, setAssessment] = useState<MuhurtaSlot | null>(null);
   const [assessmentLocation, setAssessmentLocation] = useState<PanchangamOverlayLocation | null>(null);
@@ -520,6 +570,9 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
     setLoading(true);
     setError(null);
     setResult(null);
+    // The month keys are positional within the previous result set, so carrying
+    // a selection across searches would silently filter to the wrong month.
+    setTamilMonthKey("");
     // A range search replaces the one-date inspection, so its result does not
     // remain above the newly requested list.
     setAssessment(null);
@@ -573,6 +626,26 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
 
   const selectedActivity = ACTIVITIES.find((a) => a.id === activity);
   const openPanchangam = (date: string, location: PanchangamOverlayLocation) => setPanchangamRequest({ date, location });
+
+  const tamilMonthGroups = useMemo(() => groupSlotsByTamilMonth(result?.slots ?? []), [result]);
+  const tamilMonthLabel = (group: TamilMonthGroup) => {
+    const base = (lang === "ta" ? group.ta : group.en) || (lang === "ta" ? "தமிழ் மாதம் இல்லை" : "No Tamil date");
+    // Two runs of one month name are a year apart; without the Gregorian year
+    // the two options in the dropdown would be indistinguishable.
+    const repeated = tamilMonthGroups.filter((other) => other.en === group.en).length > 1;
+    if (!repeated) return base;
+    const years = [...new Set([group.firstDate.slice(0, 4), group.lastDate.slice(0, 4)])].join("/");
+    return `${base} ${years}`;
+  };
+  // An unknown key (a stale selection, or none) falls back to the whole list
+  // rather than rendering an empty result the user cannot explain.
+  const selectedMonthGroup = tamilMonthGroups.find((group) => group.key === tamilMonthKey) ?? null;
+  const visibleGroups = selectedMonthGroup ? [selectedMonthGroup] : tamilMonthGroups;
+  const visibleSlots = byScoreDesc(visibleGroups.flatMap((group) => group.slots));
+  // A single-month result has nothing to filter or split, so the whole control
+  // row stays out of the way.
+  const showTamilMonthControls = tamilMonthGroups.length > 1;
+  const groupedView = showTamilMonthControls && groupByTamilMonth && !selectedMonthGroup;
 
   return (
     <div ref={rootRef} style={{ padding: "var(--space-4) var(--space-5)", borderRadius: "var(--radius-md)", background: "var(--color-surface)", border: "1px solid var(--color-border)", fontFamily: "var(--font-body)" }}>
@@ -743,6 +816,7 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
         <div>
           <p style={{ fontSize: "var(--text-base)", fontWeight: 600, marginBottom: "10px", color: "var(--color-text)" }}>
             {t("muhurta_results", lang)} {selectedActivity && <span style={{ color: "var(--color-muted)", fontWeight: 400 }}>· {lang === "ta" ? selectedActivity.ta : selectedActivity.en}</span>}
+            {selectedMonthGroup && <span style={{ color: "var(--color-text-accent)", fontWeight: 600 }}> · {tamilMonthLabel(selectedMonthGroup)}</span>}
           </p>
 
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "var(--space-2)", marginBottom: "14px", padding: "10px 12px", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)" }}>
@@ -774,16 +848,74 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
             );
           })()}
 
-          {result.slots.map((slot, i) => (
-            <NovaMuhurtaCard
-              key={`${slot.date}-${i}`}
-              slot={slot}
-              lang={lang}
-              sourceTz={result.timezone}
-              compareCity={compareCity}
-              onOpenPanchangam={(date) => openPanchangam(date, result.activityLocation)}
-            />
-          ))}
+          {showTamilMonthControls && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-3)", alignItems: "center", marginBottom: "14px" }}>
+              <FieldShell label={lang === "ta" ? "தமிழ் மாதம்" : "Tamil month"} style={{ flex: "0 1 240px" }}>
+                <NovaSelect
+                  value={tamilMonthKey}
+                  onChange={setTamilMonthKey}
+                  ariaLabel={lang === "ta" ? "தமிழ் மாதம்" : "Tamil month"}
+                  options={[
+                    { value: "", label: lang === "ta" ? `எல்லா மாதங்களும் · ${result.slots.length}` : `All months · ${result.slots.length}` },
+                    ...tamilMonthGroups.map((group) => ({
+                      value: group.key,
+                      label: `${tamilMonthLabel(group)} · ${group.slots.length}`,
+                    })),
+                  ]}
+                />
+              </FieldShell>
+
+              <label style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-base)", color: selectedMonthGroup ? "var(--color-faint)" : "var(--color-muted)", cursor: selectedMonthGroup ? "default" : "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={groupedView}
+                  disabled={selectedMonthGroup !== null}
+                  onChange={(e) => setGroupByTamilMonth(e.target.checked)}
+                />
+                {lang === "ta" ? "தமிழ் மாதவாரியாகப் பிரித்துக் காட்டு" : "List by Tamil month"}
+              </label>
+
+              <span style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)", marginLeft: "auto" }}>
+                {lang === "ta" ? `${visibleSlots.length} தேதிகள்` : `${visibleSlots.length} dates`}
+              </span>
+            </div>
+          )}
+
+          {groupedView
+            ? visibleGroups.map((group) => (
+                <div key={group.key} style={{ marginBottom: "18px" }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "var(--space-2)", marginBottom: "8px", paddingBottom: "6px", borderBottom: "1px solid var(--color-border)" }}>
+                    <span style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-accent)" }}>{tamilMonthLabel(group)}</span>
+                    <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
+                      {formatMuhurtaDate(group.firstDate, lang)}
+                      {group.lastDate !== group.firstDate && ` – ${formatMuhurtaDate(group.lastDate, lang)}`}
+                    </span>
+                    <span style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)", marginLeft: "auto" }}>
+                      {lang === "ta" ? `${group.slots.length} தேதிகள்` : `${group.slots.length} dates`}
+                    </span>
+                  </div>
+                  {byScoreDesc(group.slots).map((slot, i) => (
+                    <NovaMuhurtaCard
+                      key={`${slot.date}-${i}`}
+                      slot={slot}
+                      lang={lang}
+                      sourceTz={result.timezone}
+                      compareCity={compareCity}
+                      onOpenPanchangam={(date) => openPanchangam(date, result.activityLocation)}
+                    />
+                  ))}
+                </div>
+              ))
+            : visibleSlots.map((slot, i) => (
+                <NovaMuhurtaCard
+                  key={`${slot.date}-${i}`}
+                  slot={slot}
+                  lang={lang}
+                  sourceTz={result.timezone}
+                  compareCity={compareCity}
+                  onOpenPanchangam={(date) => openPanchangam(date, result.activityLocation)}
+                />
+              ))}
         </div>
       )}
 

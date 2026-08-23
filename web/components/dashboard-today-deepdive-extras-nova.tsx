@@ -216,18 +216,42 @@ export function NovaGuidanceCard({
   personalDailyGuidance,
   dailyGuidanceRange,
   astroText,
+  collapsible = false,
+  defaultOpen = false,
 }: {
   lang: Lang;
   personalDailyGuidance: DailyGuidanceData | null;
   dailyGuidanceRange?: DailyGuidanceRangeData | null;
   astroText: (value: string) => string;
+  /** Render the card as a click-to-open disclosure. Off by default so the
+   *  surfaces where this card *is* the point (Today) keep it open. */
+  collapsible?: boolean;
+  defaultOpen?: boolean;
 }) {
   const bestWindow = personalDailyGuidance?.bestWindows[0] ?? null;
   const avoidWindow = personalDailyGuidance?.cautionWindows[0] ?? null;
   const personalScoreBand = personalDailyGuidance ? getScoreBand(personalDailyGuidance.score) : null;
 
   return (
-        <Surface title={t("surface_guidance", lang)}>
+        <Surface
+          title={t("surface_guidance", lang)}
+          collapsible={collapsible}
+          defaultOpen={defaultOpen}
+          // Collapsed, the header still has to answer "is today good?" — the
+          // score and its band are the one line a reader would have opened the
+          // card for. Everything else (windows, reasons, next 3 days) stays behind
+          // the click.
+          summary={personalDailyGuidance ? (
+            <>
+              <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                {personalDailyGuidance.score}/100
+              </span>
+              <Chip tone={personalScoreBand?.tone === "high" ? "success" : personalScoreBand?.tone === "low" ? "warning" : "neutral"}>
+                {personalDailyGuidance.label}
+              </Chip>
+            </>
+          ) : null}
+        >
           {personalDailyGuidance ? (
             <div className="surface__body">
               {personalDailyGuidance.tithiCard && (

@@ -5,6 +5,13 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "."),
+      // Next resolves `@vinaadi/shared/*` through tsconfig `paths`; Vite does
+      // not read those, so it falls back to the package's `exports` map — which
+      // has drifted and is missing several subpaths that are imported for real
+      // (oneMinuteReading, streak, shadbala, snapshot, …). Point at the source
+      // the same way tsconfig does, so a component test can mock a shared API
+      // wrapper without the resolve failing before the suite starts.
+      "@vinaadi/shared": path.resolve(import.meta.dirname, "../packages/shared/src"),
     },
   },
   test: {

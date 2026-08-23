@@ -196,6 +196,10 @@ export function NovaMuhurthamNaal({
   const [panchangamDate, setPanchangamDate] = useState<string | null>(null);
 
   const [filterMonth, setFilterMonth] = useState(0);
+  // Keyed on the English month name because that is what the API sends; the
+  // Tamil label is the same row's `tamilMonth.ta`, so switching language does
+  // not drop the selection.
+  const [filterTamilMonth, setFilterTamilMonth] = useState("");
   const [filterPirai, setFilterPirai] = useState("");
   const [recommendedOnly, setRecommendedOnly] = useState(false);
 
@@ -228,6 +232,31 @@ export function NovaMuhurthamNaal({
     return map;
   }, [matches]);
 
+  /**
+   * The Tamil months this year's almanac actually lists, in the order they
+   * arrive. A Gregorian year opens mid-Thai and closes mid-Margazhi, so this is
+   * not the canonical Chithirai-first order and must not be sorted into it —
+   * the list reads as a date picker. Only months with dates appear: the almanac
+   * publishes no wedding muhurtham in Aadi or Margazhi, and offering an empty
+   * option would read as "none suit you" rather than "none exist".
+   */
+  const tamilMonthOptions = useMemo(() => {
+    const seen = new Map<string, { en: string; ta: string }>();
+    allNaals.forEach((naal) => {
+      if (!seen.has(naal.tamilMonth.en)) seen.set(naal.tamilMonth.en, naal.tamilMonth);
+    });
+    return [...seen.values()];
+  }, [allNaals]);
+
+  // A month listed in one year can be absent from the next. Without this the
+  // year arrows would land on an empty list that the filter row still claims is
+  // filtered to a month this almanac never mentions.
+  useEffect(() => {
+    if (filterTamilMonth && !tamilMonthOptions.some((m) => m.en === filterTamilMonth)) {
+      setFilterTamilMonth("");
+    }
+  }, [tamilMonthOptions, filterTamilMonth]);
+
   const rows = useMemo((): MergedRow[] => {
     return allNaals
       .map((naal) => ({ naal, match: matchByDate.get(naal.date) ?? null }))
@@ -236,6 +265,7 @@ export function NovaMuhurthamNaal({
           const m = new Date(`${naal.date}T00:00:00`).getMonth() + 1;
           if (m !== filterMonth) return false;
         }
+        if (filterTamilMonth && naal.tamilMonth.en !== filterTamilMonth) return false;
         if (filterPirai) {
           const piraiKey = filterPirai === "VALARPIRAI" ? "VALAR" : "THEI";
           if (naal.pirai.en.toUpperCase().indexOf(piraiKey) === -1) return false;
@@ -244,7 +274,16 @@ export function NovaMuhurthamNaal({
         if (recommendedOnly && !match) return false;
         return true;
       });
-  }, [allNaals, matchByDate, filterMonth, filterPirai, recommendedOnly]);
+  }, [allNaals, matchByDate, filterMonth, filterTamilMonth, filterPirai, recommendedOnly]);
+
+  const filterTamilMonthLabel = (() => {
+    const option = tamilMonthOptions.find((m) => m.en === filterTamilMonth);
+    return option ? (lang === "ta" ? option.ta : option.en) : filterTamilMonth;
+  })();
+  const gregorianMonthLabel = (() => {
+    const option = MONTH_LABELS.find((m) => m.value === filterMonth);
+    return option ? (lang === "ta" ? option.ta : option.en) : "";
+  })();
 
   const showMatchCol = chartId !== null && matches.length > 0;
   const title = lang === "ta" ? `${year} திருமண முகூர்த்த நாட்கள்` : `${year} Wedding Muhurtham Naal`;
@@ -292,15 +331,31 @@ export function NovaMuhurthamNaal({
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-3)", marginBottom: "14px", alignItems: "center" }}>
         <label style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-          {lang === "ta" ? "மாதம்" : "Month"}
+          {lang === "ta" ? "ஆங்கில மாதம்" : "English month"}
           <NovaSelect
             value={String(filterMonth)}
             onChange={(v) => setFilterMonth(Number(v))}
-            ariaLabel={lang === "ta" ? "மாதம்" : "Month"}
+            ariaLabel={lang === "ta" ? "ஆங்கில மாதம்" : "English month"}
             style={{ padding: "var(--space-1) var(--space-3)", fontSize: "var(--text-base)" }}
             options={MONTH_LABELS.map((m) => ({ value: String(m.value), label: lang === "ta" ? m.ta : m.en }))}
           />
         </label>
+
+        {tamilMonthOptions.length > 0 && (
+          <label style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            {lang === "ta" ? "தமிழ் மாதம்" : "Tamil month"}
+            <NovaSelect
+              value={filterTamilMonth}
+              onChange={setFilterTamilMonth}
+              ariaLabel={lang === "ta" ? "தமிழ் மாதம்" : "Tamil month"}
+              style={{ padding: "var(--space-1) var(--space-3)", fontSize: "var(--text-base)" }}
+              options={[
+                { value: "", label: lang === "ta" ? "எல்லா மாதங்கள்" : "All months" },
+                ...tamilMonthOptions.map((m) => ({ value: m.en, label: lang === "ta" ? m.ta : m.en })),
+              ]}
+            />
+          </label>
+        )}
 
         <label style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
           {lang === "ta" ? "பிறை" : "Pirai"}
@@ -330,7 +385,14 @@ export function NovaMuhurthamNaal({
 
       {!loading && !error && rows.length === 0 && (
         <p style={{ fontSize: "var(--text-base)", color: "var(--color-muted)", padding: "var(--space-3) 0" }}>
-          {lang === "ta" ? "இந்த வடிகட்டலுக்கு நாட்கள் இல்லை." : "No dates for this filter."}
+          {/* A Tamil month straddles two English months, so the two filters can
+              exclude each other with no dates at fault. Naming that is the
+              difference between "nothing suits you" and "these two do not overlap". */}
+          {filterMonth !== 0 && filterTamilMonth
+            ? (lang === "ta"
+                ? `${filterTamilMonthLabel} மாதம் ${gregorianMonthLabel} மாதத்துடன் இந்தப் பட்டியலில் ஒன்றுபடவில்லை. ஒரு மாத வடிகட்டலை நீக்கவும்.`
+                : `${filterTamilMonthLabel} and ${gregorianMonthLabel} do not overlap in this year's list. Clear one of the two month filters.`)
+            : (lang === "ta" ? "இந்த வடிகட்டலுக்கு நாட்கள் இல்லை." : "No dates for this filter.")}
         </p>
       )}
 
