@@ -370,7 +370,7 @@ export function DashboardExploreYogamNova({
                 </span>
                 {yoga.dashaActivated && (
                   <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
-                    {lang === "ta" ? "தசையால் செயல்படுத்தப்பட்டது" : "Activated by current Dasha"}
+                    {lang === "ta" ? "இப்போது செயலில் உள்ளது (உங்கள் தற்போதைய கிரக காலம் இதைத் தூண்டுகிறது)" : "Active right now (your current planetary period is triggering it)"}
                   </span>
                 )}
                 <button

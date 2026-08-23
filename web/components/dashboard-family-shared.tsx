@@ -28,6 +28,7 @@ import { AlertGlyph } from "./icons";
 import { DASHA_COLORS, dashaStatus } from "./dashboard-dasha";
 import { RasiChart, NavamsaChart } from "./dashboard-charts";
 import { ChartExplanationPanel } from "./dashboard-chart-explanation";
+import { GlossaryTerm } from "./glossary-term";
 import { Chip, Surface } from "./dashboard-ui";
 
 export type MemberChartData = {
@@ -313,9 +314,18 @@ export function DasaBhuktiAntaramDetail({
   const dashaColor   = DASHA_COLORS[dasha.current.mahadasha.lord]       ?? "var(--color-faint)";
   const bhuktiColor  = DASHA_COLORS[dasha.current.antardasha.lord]      ?? "var(--color-faint)";
   const antaramColor = DASHA_COLORS[dasha.current.pratyantardasha.lord] ?? "var(--color-faint)";
+  const title = lang === "ta" ? (
+    <>
+      <GlossaryTerm term="dasha" lang={lang}>வாழ்க்கைக் காலங்கள்</GlossaryTerm> — பெரிய, <GlossaryTerm term="bhukti" lang={lang}>துணை</GlossaryTerm>, சிறு
+    </>
+  ) : (
+    <>
+      <GlossaryTerm term="dasha" lang={lang}>Life periods</GlossaryTerm> — major, <GlossaryTerm term="bhukti" lang={lang}>sub</GlossaryTerm>, and minor
+    </>
+  );
 
   return (
-    <Surface title={lang === "ta" ? "தசை · புக்தி · அந்தரம்" : "Dasa · Bhukti · Antaram"}>
+    <Surface title={title}>
       <div className="surface__body">
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
           {[

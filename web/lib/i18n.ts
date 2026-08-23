@@ -192,7 +192,7 @@ const STRINGS = {
 
   // ── Transits tab
   tab_transits:       { ta: "தசை & கிரகநகர்வு",    en: "Transits & Dashas" },
-  transits_tab_desc:  { ta: "விம்சோத்தரி தசை காலவரிசை, கிரகநகர்வு நிலைகள், குறிப்பேடு ஒப்பீடுகள்", en: "Vimshottari Dasa timeline, transit positions, journal comparisons" },
+  transits_tab_desc:  { ta: "உங்கள் வாழ்க்கைக் காலங்கள் (விம்சோத்தரி முறை), கிரகநகர்வு நிலைகள், குறிப்பேடு ஒப்பீடுகள்", en: "Your life periods (Vimshottari system), transit positions, journal comparisons" },
 
   // ── TODAY tab (Phase 2)
   today_greeting:       { ta: "காலை வணக்கம்",      en: "Good morning" },
@@ -286,7 +286,7 @@ const STRINGS = {
   col_degree:       { ta: "பாகை",      en: "Degree" },
   col_nakshatra:    { ta: "நட்சத்திரம்", en: "Birth Star" },
   col_pada:         { ta: "பாதம்",     en: "Pada" },
-  col_house:        { ta: "இடம் (L)",  en: "House (L)" },
+  col_house:        { ta: "இடம் (லக்னத்திலிருந்து)",  en: "House (from Lagna)" },
   col_d9_rasi:      { ta: "D9 ராசி",   en: "D9 Sign" },
   col_special:      { ta: "சிறப்பு",   en: "Special" },
   flag_vakra:       { ta: "வக்ரம்",    en: "Retrograde" },
@@ -299,9 +299,9 @@ const STRINGS = {
   border_alert_empty:   { ta: "இந்த ஜாதகத்தில் சிறப்பு எல்லை நிலைகள் எதுவும் இல்லை.", en: "No special junction conditions in this chart." },
 
   // ── Dasha surface
-  surface_dasha:    { ta: "தசை · புக்தி · அந்தரம்", en: "Dasa · Bhukti · Antaram" },
+  surface_dasha:    { ta: "வாழ்க்கைக் காலங்கள் — பெரிய, துணை, சிறு", en: "Life periods — major, sub, and minor" },
   dasha_all_bhukti: { ta: "அனைத்து புக்திகள்", en: "All Bhukti periods" },
-  dasha_timeline_label: { ta: "விம்சோத்தரி தசை காலவரிசை — அனைத்து தசைகள்", en: "Vimshottari Dasa timeline — all periods" },
+  dasha_timeline_label: { ta: "உங்கள் வாழ்க்கைக் காலங்கள் (விம்சோத்தரி முறை)", en: "Your life periods (Vimshottari system)" },
   dasha_word:       { ta: "தசை",    en: "Dasa" },
   bhukti_word:      { ta: "புக்தி", en: "Bhukti" },
   antaram_word:     { ta: "அந்தரம்", en: "Antaram" },
@@ -330,7 +330,7 @@ const STRINGS = {
   select_vault:     { ta: "சேகரிப்பு தேர்வு செய்யவும்.",   en: "Select a vault to see members." },
   members_loading:  { ta: "உறுப்பினர்கள் ஏற்றுகிறது…", en: "Loading members…" },
   charts_loading:   { ta: "· கட்டங்கள் ஏற்றுகிறது…",  en: "· loading charts…" },
-  dasha_bhukti_antaram: { ta: "தசை · புக்தி · அந்தரம்", en: "Dasa · Bhukti · Antaram" },
+  dasha_bhukti_antaram: { ta: "வாழ்க்கைக் காலங்கள் — பெரிய, துணை, சிறு", en: "Life periods — major, sub, and minor" },
   best_time:        { ta: "சிறந்த நேரம்",    en: "Best time" },
   caution_time:     { ta: "எச்சரிக்கை",     en: "Caution" },
   identity_lagnam:  { ta: "லக்னம்",          en: "Lagna" },
