@@ -70,7 +70,16 @@ test.beforeAll(async ({ browser }) => {
 
   const reg = await api.post("/api/backend/api/v1/auth/register", { data: { email: EMAIL, password: PASSWORD } });
   if (!reg.ok()) throw new Error(`register failed: ${reg.status()} ${await reg.text()}`);
-  const login = await api.post("/api/backend/api/v1/auth/login", { data: { email: EMAIL, password: PASSWORD } });
+  // `register` commits in a `yield` dependency's teardown, which runs as the
+  // response goes out — so a login issued the instant the 200 lands can race
+  // the INSERT and come back 401 with the row arriving milliseconds later. This
+  // spec has failed that way in its `beforeAll`, which aborts all four cases
+  // and reads as a broken contrast gate rather than a flaky bootstrap.
+  let login = await api.post("/api/backend/api/v1/auth/login", { data: { email: EMAIL, password: PASSWORD } });
+  for (let attempt = 0; attempt < 10 && !login.ok(); attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    login = await api.post("/api/backend/api/v1/auth/login", { data: { email: EMAIL, password: PASSWORD } });
+  }
   if (!login.ok()) throw new Error(`login failed: ${login.status()} ${await login.text()}`);
 
   // Synthetic identity, per the repo's fixture rule.
