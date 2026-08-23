@@ -1419,10 +1419,25 @@
 
 .cl-daily-card__signals {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-direction: column;
+  gap: 8px;
   padding-top: 10px;
   border-top: 1px solid var(--cl-border);
+}
+
+/* Plain-language decode of the chips below it (B-002). Set in --cl-ink-2, the
+   body colour, not the chips' --cl-muted: this is the readable half of the row. */
+.cl-daily-card__signals-note {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--cl-ink-2);
+}
+
+.cl-daily-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .cl-daily-card__chip {

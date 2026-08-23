@@ -434,9 +434,14 @@ export function HomeContent() {
             </div>
             <p className="cl-daily-card__summary">{SAMPLE.summary}</p>
             <div className="cl-daily-card__signals">
-              {[SAMPLE.dasha, SAMPLE.transit, samplePanchangam].map((chip) => (
-                <span key={chip} className="cl-daily-card__chip">{chip}</span>
-              ))}
+              {/* Meaning before the named terms — the chips are proper nouns and
+                  read as nothing at all without this line. */}
+              <p className="cl-daily-card__signals-note">{mt(HOME.card_signals_note, lang)}</p>
+              <div className="cl-daily-card__chips">
+                {[SAMPLE.dasha, SAMPLE.transit, samplePanchangam].map((chip) => (
+                  <span key={chip} className="cl-daily-card__chip">{chip}</span>
+                ))}
+              </div>
             </div>
           </div>
         </div>

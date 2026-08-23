@@ -98,3 +98,52 @@ describe("Marketing page — the beginner's entry point", () => {
     );
   });
 });
+
+/**
+ * B-002. The sample card is the only concrete demonstration of the product on
+ * the marketing page, and its signal row is five untranslated proper nouns
+ * ("Moon Dasa · Moon Bhukti", "Ekadasi · Kettai · Vishkambha"). A visitor with
+ * no Vedic vocabulary reads the score, then a wall of names, and learns nothing
+ * about what the score was built from.
+ *
+ * These pin the decode line's existence *and its position*: meaning first, the
+ * named terms after it. A note appended below the chips would satisfy a
+ * getByText assertion while leaving the reader's first encounter unchanged, so
+ * the ordering is asserted structurally, not by text alone.
+ */
+describe("Marketing sample card — the signal row", () => {
+  function signals(container: HTMLElement): HTMLElement {
+    const row = container.querySelector(".cl-daily-card__signals");
+    expect(row, "the sample card's signal row is missing").toBeTruthy();
+    return row as HTMLElement;
+  }
+
+  it("decodes the chips in plain language, with no Vedic vocabulary of its own", async () => {
+    const { container } = await renderHome();
+
+    const note = signals(container).querySelector(".cl-daily-card__signals-note");
+    expect(note, "the chips have no plain-language decode").toBeTruthy();
+    const text = note!.textContent ?? "";
+    expect(text).toMatch(/life period/i);
+    // The decode is worthless if it needs the same vocabulary it is decoding.
+    for (const jargon of ["dasa", "bhukti", "tithi", "nakshatra", "yoga", "panchangam"]) {
+      expect(text.toLowerCase()).not.toContain(jargon);
+    }
+  });
+
+  it("puts the plain line before the named terms, not after them", async () => {
+    const { container } = await renderHome();
+
+    const row = signals(container);
+    const note = row.querySelector(".cl-daily-card__signals-note")!;
+    const chips = row.querySelector(".cl-daily-card__chips")!;
+    expect(note.compareDocumentPosition(chips) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("still shows the three traditional signals it is decoding", async () => {
+    const { container } = await renderHome();
+
+    const chips = signals(container).querySelectorAll(".cl-daily-card__chip");
+    expect(chips).toHaveLength(3);
+  });
+});

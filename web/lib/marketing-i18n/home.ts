@@ -90,6 +90,15 @@ export const HOME = {
 
   card_reading:   s("Daily Reading · Sample",  "தினசரி வாசிப்பு · மாதிரி"),
   card_caution:   s("Caution",                 "எச்சரிக்கை"),
+  // B-002 — the chip row below is the only concrete demonstration of the product
+  // on the whole page, and it is five proper nouns. This line decodes them in
+  // order (life period · slow-planet positions · the day's almanac) so a reader
+  // with no Vedic vocabulary can still tell what the score was built from.
+  // New Tamil, pending native review
+  card_signals_note: s(
+    "What that reading is built from: the life period you're in, where the slow planets sit today, and the day's almanac.",
+    "இந்த வாசிப்பு எதிலிருந்து வருகிறது: நீங்கள் நடக்கும் தசைக் காலம், இன்று சனி குரு நிற்கும் இடம், அன்றைய பஞ்சாங்கம்."
+  ),
 
   // Section 4 — Family Planning
   family_eyebrow: s("Family Planning",  "குடும்ப திட்டமிடல்"),
