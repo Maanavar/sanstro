@@ -759,9 +759,18 @@ export interface SaniCycleData {
   lagnaRasi: string;
   positionFromMoon: number;
   positionFromLagna: number;
-  moonBasedCycle: { type: string | null; isActive: boolean; supportiveLabel: string | null };
-  lagnaBasedCycle: { type: string | null; isActive: boolean; supportiveLabel: string | null };
+  moonBasedCycle: SaniCycleAssessment;
+  lagnaBasedCycle: SaniCycleAssessment;
   confirmationSentence: string;
+}
+
+export interface SaniCycleAssessment {
+  type: string | null;
+  isActive: boolean;
+  supportiveLabel: string | null;
+  role?: "primary" | "cross_check" | string | null;
+  phaseEndsOn?: string | null;
+  cycleEndsOn?: string | null;
 }
 
 export interface PeyarchiEvent {

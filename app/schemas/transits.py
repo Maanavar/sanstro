@@ -25,6 +25,9 @@ class TransitCycle(BaseModel):
     type: str | None = None
     is_active: bool = Field(alias="isActive")
     supportive_label: str | None = Field(default=None, alias="supportiveLabel")
+    role: str | None = None
+    phase_ends_on: str | None = Field(default=None, alias="phaseEndsOn")
+    cycle_ends_on: str | None = Field(default=None, alias="cycleEndsOn")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -66,4 +69,3 @@ class SaniCycleResponse(BaseModel):
     meta: ResponseMeta
 
     model_config = ConfigDict(populate_by_name=True)
-

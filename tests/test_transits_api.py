@@ -96,6 +96,12 @@ def test_sani_cycle_endpoint_returns_valid_response(client):
     assert body["data"]["positionFromMoon"] == 5
     assert body["data"]["moonBasedCycle"]["isActive"] in {True, False}
     assert body["data"]["lagnaBasedCycle"]["isActive"] in {True, False}
+    assert body["data"]["moonBasedCycle"]["role"] == "primary"
+    assert body["data"]["lagnaBasedCycle"]["role"] == "cross_check"
+    for cycle in (body["data"]["moonBasedCycle"], body["data"]["lagnaBasedCycle"]):
+        if cycle["isActive"]:
+            assert cycle["phaseEndsOn"]
+            assert cycle["cycleEndsOn"]
     assert "confirmationSentence" in body["data"]
 
 
