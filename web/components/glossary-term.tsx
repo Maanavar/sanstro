@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 
 import { GLOSSARY, type GlossaryKey } from "@/lib/glossary";
 import type { Lang } from "@/lib/i18n";
@@ -130,6 +131,18 @@ export function GlossaryTerm({
       }}
     >
       {lang === "ta" ? def.ta : def.en}
+      <Link
+        href="/dashboard/glossary"
+        style={{
+          display: "block",
+          marginTop: "var(--space-1_5)",
+          color: "var(--color-accent-secondary)",
+          fontWeight: 700,
+          textDecoration: "none",
+        }}
+      >
+        {lang === "ta" ? "எல்லா சொற்களும்" : "See all terms"}
+      </Link>
     </span>
   );
 

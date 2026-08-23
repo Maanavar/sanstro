@@ -5,6 +5,7 @@ import { ArrowRight, X, Sparkle, AlertTriangle, Leaf, type LucideIcon } from "lu
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { addDays, formatClockLabel, formatDateLabel, getScoreVerdictFromGuidance } from "@/lib/format";
+import type { GlossaryKey } from "@/lib/glossary";
 import { t, tLang, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { dt, FIRST_RESULT_GUIDE, TODAY_TIMINGS } from "@/lib/dashboard-i18n";
@@ -46,6 +47,7 @@ import type { MemberChart } from "@/hooks/useFamilyData";
 
 import { Card, Kicker } from "./ui";
 import { downloadJadhagamPdf } from "./dashboard-personal-shared";
+import { GlossaryTerm } from "./glossary-term";
 import { DashboardTodayRibbonNova, findHorai } from "./dashboard-today-ribbon-nova";
 import { DashboardTodayActivityBoardNova } from "./dashboard-today-activity-board-nova";
 import {
@@ -162,6 +164,17 @@ function windowTypeLabel(type: string, lang: Lang): string {
     .join(" ");
 }
 
+function windowTypeGlossary(type: string): GlossaryKey | null {
+  const normalized = type.toUpperCase();
+  if (normalized.includes("RAHU")) return "rahuKalam";
+  if (normalized.includes("YAMA")) return "yamagandam";
+  if (normalized.includes("KULIGAI") || normalized.includes("GULIKA")) return "kuligai";
+  if (normalized.includes("ABHIJIT")) return "abhijit";
+  if (normalized.includes("HORA")) return "hora";
+  if (normalized.includes("NERAM") || normalized.includes("GOWRI")) return "nallaNeram";
+  return null;
+}
+
 /**
  * T8 / A-013 — the other timing systems, named and demoted.
  *
@@ -198,12 +211,13 @@ function OtherTimingsDisclosure({
 }) {
   const [open, setOpen] = useState(false);
 
-  const rows: Array<{ key: string; name: string; value: string | null; what: string }> = [
+  const rows: Array<{ key: string; name: string; value: string | null; what: string; glossary: GlossaryKey }> = [
     {
       key: "nallaNeram",
       name: lang === "ta" ? "நல்ல நேரம்" : "Nalla Neram",
       value: null,
       what: dt(TODAY_TIMINGS.whatIsNallaNeram, lang),
+      glossary: "nallaNeram",
     },
     ...(abhijit
       ? [{
@@ -211,6 +225,7 @@ function OtherTimingsDisclosure({
           name: lang === "ta" ? "அபிஜித் முகூர்த்தம்" : "Abhijit muhurtham",
           value: `${formatClockLabel(abhijit.start)} – ${formatClockLabel(abhijit.end)}`,
           what: dt(TODAY_TIMINGS.whatIsAbhijit, lang),
+          glossary: "abhijit" as const,
         }]
       : []),
     ...(horaLord
@@ -221,6 +236,7 @@ function OtherTimingsDisclosure({
             ? `${tPlanetLord(horaLord, lang)} · ${lang === "ta" ? "அடுத்தது" : "next"} ${tPlanetLord(nextHoraLord, lang)} ${formatClockLabel(nextHoraStart)}`
             : tPlanetLord(horaLord, lang),
           what: dt(TODAY_TIMINGS.whatIsHorai, lang),
+          glossary: "hora" as const,
         }]
       : []),
     ...(avoidKalas.length
@@ -231,6 +247,7 @@ function OtherTimingsDisclosure({
             .map((k) => `${k.label} ${formatClockLabel(k.start)}–${formatClockLabel(k.end)}`)
             .join(" · "),
           what: dt(TODAY_TIMINGS.whatIsAvoidKalas, lang),
+          glossary: "rahuKalam" as const,
         }]
       : []),
   ];
@@ -266,7 +283,7 @@ function OtherTimingsDisclosure({
           {rows.map((row) => (
             <div key={row.key} style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
               <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-text-strong)" }}>
-                {row.name}
+                <GlossaryTerm term={row.glossary} lang={lang}>{row.name}</GlossaryTerm>
                 {row.value && (
                   <span style={{ fontWeight: 400, color: "var(--color-text)", fontVariantNumeric: "tabular-nums" }}>{" · "}{row.value}</span>
                 )}
@@ -728,7 +745,9 @@ export function DashboardTodayTabNova({
                   >
                     <span aria-hidden="true" style={{ fontSize: "var(--text-base)", flex: "none" }}>🌘</span>
                     <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      <b style={{ color: "var(--color-mid-text)", fontWeight: 700 }}>{lang === "ta" ? "இன்று சந்திராஷ்டமம்" : "Chandrashtama today"}</b>
+                      <b style={{ color: "var(--color-mid-text)", fontWeight: 700 }}>
+                        <GlossaryTerm term="chandrashtama" lang={lang}>{lang === "ta" ? "இன்று சந்திராஷ்டமம்" : "Chandrashtama today"}</GlossaryTerm>
+                      </b>
                       <span style={{ color: "var(--color-muted)" }}> — {lang === "ta" ? "கவனம் தேவை, பயம் அல்ல" : "a day for awareness, not alarm"}</span>
                     </span>
                     <span style={{ display: "inline-flex", color: "var(--color-mid-text)", flex: "none" }}><ArrowRight size={14} strokeWidth={2} aria-hidden="true" /></span>
@@ -760,7 +779,7 @@ export function DashboardTodayTabNova({
                     <span className="nova-pulse-dot" style={{ width: "9px", height: "9px", borderRadius: "var(--radius-pill)", background: "var(--color-high)", boxShadow: "0 0 0 4px var(--color-high-bg)", flex: "none" }} />
                     <div style={{ flex: 1, minWidth: "180px" }}>
                       <div style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-high)", fontVariantNumeric: "tabular-nums" }}>
-                        {lang === "ta" ? "சிறந்த நேரம்" : "Best window"} · {formatClockLabel(bestWindow.start)} – {formatClockLabel(bestWindow.end)}
+                        <GlossaryTerm term="nallaNeram" lang={lang}>{lang === "ta" ? "சிறந்த நேரம்" : "Best window"}</GlossaryTerm> · {formatClockLabel(bestWindow.start)} – {formatClockLabel(bestWindow.end)}
                         {windowCountdown && (
                           <span style={{ fontWeight: 400, color: "var(--color-faint)" }}>
                             {" · "}
@@ -892,7 +911,9 @@ export function DashboardTodayTabNova({
                       {formatClockLabel(avoidWindow.start)} – {formatClockLabel(avoidWindow.end)}
                     </div>
                     <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "2px" }}>
-                      {windowTypeLabel(avoidWindow.type, lang)}
+                      {windowTypeGlossary(avoidWindow.type) ? (
+                        <GlossaryTerm term={windowTypeGlossary(avoidWindow.type)!} lang={lang}>{windowTypeLabel(avoidWindow.type, lang)}</GlossaryTerm>
+                      ) : windowTypeLabel(avoidWindow.type, lang)}
                     </div>
                   </div>
                 </Card>
@@ -1078,11 +1099,19 @@ export function DashboardTodayTabNova({
             // (41/100)"). The prose number is authoritative; showing a second,
             // reconstructed one beside it just read as the app disagreeing with
             // itself. One number, in the sentence, wins.
-            const tiles = [
-              { label: lang === "ta" ? "தசை அடுக்கு" : "Dasa layer", text: personalDailyGuidance.reasons.dashaSupport },
-              { label: lang === "ta" ? "பஞ்சாங்கம்" : "Panchangam", text: personalDailyGuidance.reasons.panchangam },
-              { label: lang === "ta" ? "கோசாரம்" : "Transit", text: personalDailyGuidance.reasons.gochar },
-            ].filter((tile) => tile.text);
+            type ReasonTile = { key: string; glossary: GlossaryKey; label: string; text: NonNullable<typeof personalDailyGuidance.reasons.dashaSupport> };
+            const maybeTiles: Array<ReasonTile | null> = [
+              personalDailyGuidance.reasons.dashaSupport
+                ? { key: "dasha", glossary: "dasha", label: lang === "ta" ? "தசை அடுக்கு" : "Dasa layer", text: personalDailyGuidance.reasons.dashaSupport }
+                : null,
+              personalDailyGuidance.reasons.panchangam
+                ? { key: "panchangam", glossary: "panchangam", label: lang === "ta" ? "பஞ்சாங்கம்" : "Panchangam", text: personalDailyGuidance.reasons.panchangam }
+                : null,
+              personalDailyGuidance.reasons.gochar
+                ? { key: "gochar", glossary: "gochar", label: lang === "ta" ? "கோசாரம்" : "Transit", text: personalDailyGuidance.reasons.gochar }
+                : null,
+            ];
+            const tiles = maybeTiles.filter((tile): tile is ReasonTile => tile !== null);
             // Tiles sit in their own (narrower-than-full) column beside the
             // orbit illustration — .nova-deepdive-grid (2fr/1fr, collapses to
             // one column ≤860px) rather than stretching the tiles the full
@@ -1091,9 +1120,11 @@ export function DashboardTodayTabNova({
               <div className="nova-deepdive-grid">
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "var(--space-2_5)" }}>
                   {tiles.map((tile) => (
-                    <Card key={tile.label} style={{ display: "block", background: "color-mix(in srgb, var(--color-text-strong) 4%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3_5)", fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)" }}>
+                    <Card key={tile.key} style={{ display: "block", background: "color-mix(in srgb, var(--color-text-strong) 4%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3_5)", fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)" }}>
                       <div style={{ marginBottom: "6px" }}>
-                        <b style={{ color: "var(--color-accent-strong)", fontSize: "var(--text-sm)" }}>{tile.label}</b>
+                        <b style={{ color: "var(--color-accent-strong)", fontSize: "var(--text-sm)" }}>
+                          <GlossaryTerm term={tile.glossary} lang={lang}>{tile.label}</GlossaryTerm>
+                        </b>
                       </div>
                       {tLang(tile.text, lang)}
                     </Card>

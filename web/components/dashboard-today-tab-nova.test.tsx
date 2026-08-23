@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 import type { DailyGuidanceData } from "@/lib/types";
 
@@ -240,7 +240,7 @@ describe("Today tab — one recommended window (T8)", () => {
       { type: "BENEFIC_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM", isPersonal: false },
     ]);
 
-    expect(screen.getByText(/Best window/)).toHaveTextContent("11:00");
+    expect(screen.getByText(/Best window/).closest("div")).toHaveTextContent("11:00");
     expect(screen.getByText(/Amirtham/)).toBeInTheDocument();
   });
 
@@ -250,7 +250,7 @@ describe("Today tab — one recommended window (T8)", () => {
       { type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "LABHAM" },
     ]);
 
-    const headline = screen.getByText(/Best window/);
+    const headline = screen.getByText(/Best window/).closest("div")!;
     expect(headline).toHaveTextContent("11:00");
     expect(headline.textContent).not.toContain("9:12");
     expect(screen.getByText(/next one clear of them/i)).toBeInTheDocument();
@@ -321,6 +321,49 @@ describe("Today tab — the other timing systems (T8)", () => {
     ]);
 
     expect(screen.getByText(/^Avoid window$/i)).toBeInTheDocument();
+  });
+});
+
+describe("Today tab — glossary coverage (T11)", () => {
+  beforeEach(freezeMorning);
+  afterEach(() => vi.useRealTimers());
+
+  it("glosses the main timing and score-reason terms in the Today tab itself", async () => {
+    await renderWithWindows(
+      [{ type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM" }],
+      {
+        personalDailyGuidance: {
+          ...guidanceFixture(),
+          bestWindows: [{ type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM" }],
+          cautionWindows: [{
+            type: "RAHU_KALAM",
+            start: "09:00",
+            end: "10:30",
+            text: { en: "Avoid new starts.", ta: "" },
+          }],
+          reasons: {
+            ...guidanceFixture().reasons,
+            dashaSupport: { en: "Dasha support is mixed.", ta: "" },
+            panchangam: { en: "Panchangam support is steady.", ta: "" },
+            gochar: { en: "Transit support is steady.", ta: "" },
+          },
+        } as unknown as DailyGuidanceData,
+      },
+    );
+
+    expect(screen.getByRole("button", { name: /Best window/i })).toHaveStyle({ cursor: "help" });
+    expect(screen.getByRole("button", { name: /Rahu Kalam/i })).toHaveStyle({ cursor: "help" });
+    expect(screen.getByRole("button", { name: /Dasa layer/i })).toHaveStyle({ cursor: "help" });
+    expect(screen.getByRole("button", { name: /Panchangam/i })).toHaveStyle({ cursor: "help" });
+    expect(screen.getByRole("button", { name: /Transit/i })).toHaveStyle({ cursor: "help" });
+  });
+
+  it("points opened Today glosses to the full glossary index", async () => {
+    await renderWithWindows([{ type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM" }]);
+
+    fireEvent.click(screen.getByRole("button", { name: /Best window/i }));
+
+    expect(screen.getByRole("link", { name: /See all terms/i })).toHaveAttribute("href", "/dashboard/glossary");
   });
 });
 
