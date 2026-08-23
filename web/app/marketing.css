@@ -27,11 +27,11 @@
 }
 
 @media (max-width: 720px) {
-.cl-mobile-form-grid-2,  
-    .cl-mobile-form-grid-3,  
-    .cd-responsive-grid-2,  
-    .cd-responsive-grid-3 {  
-      grid-template-columns: 1fr;  
+.cl-mobile-form-grid-2,
+    .cl-mobile-form-grid-3,
+    .cd-responsive-grid-2,
+    .cd-responsive-grid-3 {
+      grid-template-columns: 1fr;
     }
 }
 
@@ -1193,6 +1193,21 @@
   line-height: 1.4;
 }
 
+.cl-social-proof__learn {
+  display: table;
+  margin: -18px auto 34px;
+  color: var(--cl-ink);
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 1px solid currentColor;
+  text-underline-offset: 4px;
+}
+
+.cl-social-proof__learn:hover {
+  color: var(--cl-accent);
+}
+
 .cl-testimonials {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
@@ -2058,37 +2073,37 @@
 }
 
 @media (min-width: 860px) {
-.cl-num-form[data-cols="3"] {  
-      grid-template-columns: 200px minmax(0, 1fr) minmax(0, 1fr) auto;  
+.cl-num-form[data-cols="3"] {
+      grid-template-columns: 200px minmax(0, 1fr) minmax(0, 1fr) auto;
     }
 
 .cl-num-form[data-cols="2"] { grid-template-columns: 200px 200px auto; }
 
 .cl-num-form[data-cols="1"] { grid-template-columns: minmax(0, 340px) auto; }
 
-/* Birth details: FOUR fields with the submit button OUTSIDE the grid, because  
-       gender and the scope ladder sit between the fields and the button.  
-    
-       The numbered profiles above all end in an `auto` cell sized for that  
-       button. Borrowing one of them here (this used to say data-cols="2") put  
-       field 3 in the button's `auto` cell — so "Time of birth" stretched across  
-       the rest of the row — and pushed field 4 onto a row of its own beside two  
-       dead cells. Hence a profile with no button cell at all, and tracks sized to  
-       what each field actually holds rather than to the card's full width. */  
-    .cl-num-form[data-cols="birth"] {  
-      grid-template-columns: minmax(0, 240px) 170px 150px;  
-      justify-content: start;  
+/* Birth details: FOUR fields with the submit button OUTSIDE the grid, because
+       gender and the scope ladder sit between the fields and the button.
+
+       The numbered profiles above all end in an `auto` cell sized for that
+       button. Borrowing one of them here (this used to say data-cols="2") put
+       field 3 in the button's `auto` cell — so "Time of birth" stretched across
+       the rest of the row — and pushed field 4 onto a row of its own beside two
+       dead cells. Hence a profile with no button cell at all, and tracks sized to
+       what each field actually holds rather than to the card's full width. */
+    .cl-num-form[data-cols="birth"] {
+      grid-template-columns: minmax(0, 240px) 170px 150px;
+      justify-content: start;
     }
 
-/* Only meaningful once the tracks above exist — in the one-column fallback a  
-       span would open an implicit second column and re-break the stacking. */  
+/* Only meaningful once the tracks above exist — in the one-column fallback a
+       span would open an implicit second column and re-break the stacking. */
     .cl-num-form .cl-num-field[data-span="2"] { grid-column: span 2; }
 
-/* 240 + 18 gap + 170 — the exact width "Place of birth" spans, so a lone  
-       field below the grid lines up with the row above instead of running the  
-       full card. Inside the media query only: in the one-column fallback every  
-       field is full width and a cap here would make this one the odd narrow  
-       field instead of the odd wide one. */  
+/* 240 + 18 gap + 170 — the exact width "Place of birth" spans, so a lone
+       field below the grid lines up with the row above instead of running the
+       full card. Inside the media query only: in the one-column fallback every
+       field is full width and a cap here would make this one the odd narrow
+       field instead of the odd wide one. */
     .cl-num-field--standalone { max-width: 428px; }
 }
 
@@ -2198,15 +2213,15 @@
 @media (min-width: 900px) {
 .cl-num-results { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
-/* The first row sits under the form's own rule and needs none of its own. */  
+/* The first row sits under the form's own rule and needs none of its own. */
     .cl-num-reading:nth-child(-n + 2) { border-top: none; }
 
 .cl-num-reading:nth-child(odd) { border-right: 1px solid var(--cl-border); }
 
-/* An odd last cell has empty space to its right — no rule into nothing. */  
+/* An odd last cell has empty space to its right — no rule into nothing. */
     .cl-num-reading:last-child { border-right: none; }
 
-/* A tool returning one number (house, vehicle) takes the full width. */  
+/* A tool returning one number (house, vehicle) takes the full width. */
     .cl-num-reading:only-child { grid-column: 1 / -1; }
 }
 
@@ -4527,7 +4542,7 @@ details.cl-pub-faq-item > .cl-pub-faq-item__a {
   .as-profile__rasi {
     align-items: flex-start;
   }
-  
+
   .as-topic {
     min-height: 230px;
   }

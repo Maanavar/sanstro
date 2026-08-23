@@ -37,6 +37,7 @@ export * from "./marketing-i18n/learn-chandrashtama";
 export * from "./marketing-i18n/learn-jadhagam";
 export * from "./marketing-i18n/learn-porutham";
 export * from "./marketing-i18n/learn-thirukanitham";
+export * from "./marketing-i18n/learn-vedic-western";
 export * from "./marketing-i18n/legal";
 export * from "./marketing-i18n/natchathiram-detail";
 export * from "./marketing-i18n/natchathiram-index";

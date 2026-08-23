@@ -176,6 +176,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     /* ── Learn pages ── */
     {
+      // The orientation article, and the only one addressed to a reader who has
+      // no Vedic vocabulary at all — which makes search its primary route in.
+      // Ranked above the rest of Learn for that reason.
+      url: `${BASE}/learn/vedic-vs-western`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
       url: `${BASE}/learn/what-is-porutham`,
       changeFrequency: "monthly",
       priority: 0.7,

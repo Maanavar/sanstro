@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { LangToggle, useLang } from "@/components/lang-toggle";
 import { SiteSearch } from "@/components/site-search";
-import { NAV, mt } from "@/lib/marketing-i18n";
+import { LEARN_VEDIC_WESTERN, NAV, mt } from "@/lib/marketing-i18n";
 import { LATEST_MUHURTHAM_NAAL_YEAR } from "@/lib/muhurtham-naal";
 import "./public-nav.css";
 
@@ -135,7 +135,7 @@ export function PublicNav() {
 
             <Link href="/natchathiram" className="cl-nav__link">{lang === "en" ? "Natchathirams" : "நட்சத்திரங்கள்"}</Link>
             <Link href="/pricing" className="cl-nav__link">{lang === "en" ? "Pricing" : "விலை"}</Link>
-            <Link href="/learn/what-is-thirukanitham" className="cl-nav__link">{mt(NAV.learn, lang)}</Link>
+            <Link href="/learn/vedic-vs-western" className="cl-nav__link">{mt(NAV.learn, lang)}</Link>
             <Link href="/trust/methodology" className="cl-nav__link">{mt(NAV.method, lang)}</Link>
 
             <LangToggle />
@@ -219,8 +219,8 @@ export function PublicNav() {
               </div>
               <div className="cl-nav__mobile-group">
                 <p className="cl-nav__mobile-label">{mt(NAV.learn, lang)}</p>
-                <Link href="/learn/what-is-thirukanitham" className="cl-nav__mobile-link" onClick={closeMobileMenu}>
-                  <span>{mt(NAV.learn, lang)}</span>
+                <Link href="/learn/vedic-vs-western" className="cl-nav__mobile-link" onClick={closeMobileMenu}>
+                  <span>{mt(LEARN_VEDIC_WESTERN.h1, lang)}</span>
                   <span>{lang === "en" ? "Concepts and guides" : "கருத்துகளும் வழிகாட்டிகளும்"}</span>
                 </Link>
                 <Link href="/trust/methodology" className="cl-nav__mobile-link" onClick={closeMobileMenu}>

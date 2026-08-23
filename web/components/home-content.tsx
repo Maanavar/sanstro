@@ -7,7 +7,7 @@ import { formatClockLabel } from "@/lib/format";
 import { tNakshatra, tTithi, tYoga } from "@/lib/i18n";
 import { limbNow } from "@/lib/panchangam-limb";
 import type { PanchangamDailyResponseData } from "@/lib/types";
-import { HOME, mt } from "@/lib/marketing-i18n";
+import { HOME, LEARN_VEDIC_WESTERN, mt } from "@/lib/marketing-i18n";
 import { MarketingIcon, type MarketingIconName } from "@/components/marketing-icons";
 import { useGuestStore, RASI_LIST } from "@/hooks/useGuestStore";
 import { getFeatureFlag, initAnalytics, track } from "@/lib/analytics";
@@ -340,6 +340,9 @@ export function HomeContent() {
               <span className="cl-social-proof__number" aria-hidden="true" style={{ opacity: 0 }}>0000</span>
             )}
           </div>
+          <Link href="/learn/vedic-vs-western" className="cl-social-proof__learn">
+            {mt(LEARN_VEDIC_WESTERN.start_here, lang)}
+          </Link>
 
           {/* Verifiable trust proofs replace hand-written testimonials — the
               rigor-seeking segment reads stock quotes as growth-hack theatre

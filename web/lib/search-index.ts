@@ -118,6 +118,8 @@ const PAGES: SearchDoc[] = [
   { en: "Temples", ta: "கோயில்கள்", kw: "temple navagraha", href: "/temples", category: "Page" },
   { en: "Muhurtham Naal", ta: "முகூர்த்த நாள்", kw: "wedding dates muhurtham", href: "/muhurtham-naal", category: "Page" },
   { en: "Tamil Calendar", ta: "தமிழ் நாட்காட்டி", kw: "calendar pournami amavasai", href: "/tamil-calendar", category: "Page" },
+  // New Tamil, pending native review
+  { en: "Vedic vs Western Astrology", ta: "வேத ஜோதிடம் மற்றும் மேலை ஜோதிடம்", kw: "learn beginner sidereal tropical zodiac lagna nakshatra dasha", href: "/learn/vedic-vs-western", category: "Page" },
   { en: "What is Thirukanitham?", ta: "திருக்கணிதம் என்றால் என்ன?", kw: "learn methodology", href: "/learn/what-is-thirukanitham", category: "Page" },
   { en: "Methodology", ta: "முறையியல்", kw: "trust drik ganita", href: "/trust/methodology", category: "Page" },
 ];
