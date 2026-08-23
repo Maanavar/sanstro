@@ -1,15 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowRight, X, Diamond, Sparkle, AlertTriangle, Leaf, type LucideIcon } from "lucide-react";
+import { ArrowRight, X, Sparkle, AlertTriangle, Leaf, type LucideIcon } from "lucide-react";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { addDays, formatClockLabel, formatDateLabel, getScoreVerdictFromGuidance } from "@/lib/format";
 import { t, tLang, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
-import { dt, FIRST_RESULT_GUIDE } from "@/lib/dashboard-i18n";
+import { dt, FIRST_RESULT_GUIDE, TODAY_TIMINGS } from "@/lib/dashboard-i18n";
+import { gowriCategoryLabel, gowriPurposeLabel } from "@/lib/gowri";
 import { hourInZone, minutesOfDayInZone, timeOnDateToMs } from "@/lib/tz";
-import { findSecondaryAbhijitWindow, pickFeaturedWindow } from "@/lib/today-windows";
+import {
+  findSecondaryAbhijitWindow,
+  pickFeaturedWindow,
+  pickRecommendedWindow,
+  type TimingSpan,
+} from "@/lib/today-windows";
 import type {
   ChartSummaryData,
   DailyGuidanceData,
@@ -154,6 +160,124 @@ function windowTypeLabel(type: string, lang: Lang): string {
     .split(/[_\s]+/)
     .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
     .join(" ");
+}
+
+/**
+ * T8 / A-013 — the other timing systems, named and demoted.
+ *
+ * These used to sit beside the promoted window as peer cards of identical
+ * weight: Abhijit muhurtham, Horai now, and the ribbon's Nalla Neram segment,
+ * each naming a different time, none saying what it was or which to obey. A
+ * reader who knows only Rahu Kalam had no way to choose, and choosing wrongly
+ * is the whole risk.
+ *
+ * They are not deleted — a Tamil reader looks for Nalla Neram by name, and an
+ * Abhijit muhurtham that vanished would read as a missing feature. They are
+ * collapsed behind one heading that says what they are *for*: checking the
+ * recommendation, not competing with it. Each row leads with the plain-language
+ * "what this system is" (Layer 1) and carries its traditional name (Layer 2).
+ *
+ * Closed by default and rendered as a real `aria-expanded` button — the axe
+ * gate on this repo means a bare clickable div would fail CI, and a `<details>`
+ * would not inherit the rail's card chrome.
+ */
+function OtherTimingsDisclosure({
+  lang,
+  abhijit,
+  horaLord,
+  nextHoraLord,
+  nextHoraStart,
+  avoidKalas,
+}: {
+  lang: Lang;
+  abhijit: { start: string; end: string } | null;
+  horaLord: string | null;
+  nextHoraLord: string | null;
+  nextHoraStart: string | null;
+  avoidKalas: Array<{ label: string; start: string; end: string }>;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const rows: Array<{ key: string; name: string; value: string | null; what: string }> = [
+    {
+      key: "nallaNeram",
+      name: lang === "ta" ? "நல்ல நேரம்" : "Nalla Neram",
+      value: null,
+      what: dt(TODAY_TIMINGS.whatIsNallaNeram, lang),
+    },
+    ...(abhijit
+      ? [{
+          key: "abhijit",
+          name: lang === "ta" ? "அபிஜித் முகூர்த்தம்" : "Abhijit muhurtham",
+          value: `${formatClockLabel(abhijit.start)} – ${formatClockLabel(abhijit.end)}`,
+          what: dt(TODAY_TIMINGS.whatIsAbhijit, lang),
+        }]
+      : []),
+    ...(horaLord
+      ? [{
+          key: "horai",
+          name: lang === "ta" ? "ஓரை" : "Horai",
+          value: nextHoraLord && nextHoraStart
+            ? `${tPlanetLord(horaLord, lang)} · ${lang === "ta" ? "அடுத்தது" : "next"} ${tPlanetLord(nextHoraLord, lang)} ${formatClockLabel(nextHoraStart)}`
+            : tPlanetLord(horaLord, lang),
+          what: dt(TODAY_TIMINGS.whatIsHorai, lang),
+        }]
+      : []),
+    ...(avoidKalas.length
+      ? [{
+          key: "avoidKalas",
+          name: lang === "ta" ? "தவிர்க்க வேண்டிய நேரங்கள்" : "Avoid periods",
+          value: avoidKalas
+            .map((k) => `${k.label} ${formatClockLabel(k.start)}–${formatClockLabel(k.end)}`)
+            .join(" · "),
+          what: dt(TODAY_TIMINGS.whatIsAvoidKalas, lang),
+        }]
+      : []),
+  ];
+
+  return (
+    <Card style={{ flex: "none", background: "color-mix(in srgb, var(--color-surface) 62%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3_5)", gap: "var(--space-2_5)" }}>
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          display: "flex", alignItems: "center", gap: "var(--space-2)", width: "100%",
+          padding: 0, border: "none", background: "none", font: "inherit", textAlign: "left",
+          fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-text)", cursor: "pointer",
+          // Matches the collapsible Surface's trigger height — a 20px-tall tap
+          // target in a phone rail is not one.
+          minHeight: "32px",
+        }}
+      >
+        <span aria-hidden="true" style={{ display: "inline-flex", transform: open ? "rotate(90deg)" : "none", transition: "transform 140ms ease", flex: "none" }}>
+          <svg viewBox="0 0 20 20" style={{ width: "11px", height: "11px" }} aria-hidden="true">
+            <path d="M7 4l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+        <span style={{ minWidth: 0 }}>{dt(TODAY_TIMINGS.otherSystemsTitle, lang)}</span>
+        <span style={{ marginLeft: "auto", color: "var(--color-faint)", fontWeight: 400 }}>{rows.length}</span>
+      </button>
+      {open && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)" }}>
+          <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.45 }}>
+            {dt(TODAY_TIMINGS.otherSystemsIntro, lang)}
+          </p>
+          {rows.map((row) => (
+            <div key={row.key} style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+              <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-text-strong)" }}>
+                {row.name}
+                {row.value && (
+                  <span style={{ fontWeight: 400, color: "var(--color-text)", fontVariantNumeric: "tabular-nums" }}>{" · "}{row.value}</span>
+                )}
+              </div>
+              <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.45 }}>{row.what}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
 }
 
 function formatDuration(ms: number, lang: Lang): string {
@@ -314,11 +438,28 @@ export function DashboardTodayTabNova({
 
   const isToday = selectedDate === todayDate;
 
-  // Feature a personalized, day-varying window rather than the always-noon
-  // Abhijit slot the backend lists first (see lib/today-windows.ts).
-  const bestWindow = pickFeaturedWindow(personalDailyGuidance?.bestWindows, now, isToday, selectedDate, panchangamTimezone);
+  // T8 / A-013 — the day's three avoid-kalas, straight from the panchangam.
+  // These are the spans a recommended window may never overlap; the ruling is
+  // documented on `pickRecommendedWindow`.
+  const avoidSpans: TimingSpan[] = panchangam
+    ? [panchangam.kalam.rahuKalam, panchangam.kalam.yamagandam, panchangam.kalam.kuligai]
+        .filter(Boolean)
+        .map((k) => ({ start: k.start, end: k.end }))
+    : [];
+
+  // One promoted window, chosen by the almanac's own Gowri ranking and clear of
+  // the avoid-kalas (owner ruling 2026-08-23, superseding DASH-10.1's
+  // personal-hora precedence for this pick). `pickFeaturedWindow` remains the
+  // fallback for the case the ruling cannot apply to — no windows carrying a
+  // kala, e.g. a stale-snapshot response — so the hero never goes blank.
+  const recommended = pickRecommendedWindow(personalDailyGuidance?.bestWindows, avoidSpans, {
+    now, isToday, dateLocal: selectedDate, timeZone: panchangamTimezone,
+  });
+  const bestWindow = recommended?.window
+    ?? pickFeaturedWindow(personalDailyGuidance?.bestWindows, now, isToday, selectedDate, panchangamTimezone);
   // DASH-10.1 (2026-07-16): Abhijit never fully disappears — surfaced as a
-  // small secondary line when a personal window won the hero instead.
+  // small secondary line when another window won the hero instead. It now lives
+  // inside "Other traditional timings" rather than beside the promoted window.
   const secondaryAbhijitWindow = findSecondaryAbhijitWindow(personalDailyGuidance?.bestWindows, bestWindow);
   // Keep a ranked timing conflict attached to the one actionable recommendation,
   // rather than rendering a second copy of the best-window card in the rail.
@@ -629,6 +770,29 @@ export function DashboardTodayTabNova({
                           </span>
                         )}
                       </div>
+                      {/* T8 — why THIS window. Without it the reader is given a
+                          time and no reason, beside three other systems that
+                          each name a different one. */}
+                      {recommended && (
+                        <div style={{ fontSize: "var(--text-xs)", color: "var(--color-text)", marginTop: "4px", lineHeight: 1.4 }}>
+                          {recommended.window.kala && (
+                            <>
+                              <span style={{ fontWeight: 700 }}>{gowriCategoryLabel(recommended.window.kala, lang)}</span>
+                              {gowriPurposeLabel(recommended.window.kala, lang) && ` — ${gowriPurposeLabel(recommended.window.kala, lang)}`}
+                              {". "}
+                            </>
+                          )}
+                          <span style={{ color: recommended.collidesWithAvoid ? "var(--color-low)" : "var(--color-faint)" }}>
+                            {recommended.collidesWithAvoid
+                              ? dt(TODAY_TIMINGS.allCollide, lang)
+                              : recommended.hasPassed
+                                ? dt(TODAY_TIMINGS.hasPassed, lang)
+                                : recommended.skippedForCollision > 0
+                                  ? `${dt(TODAY_TIMINGS.clearOfKalas, lang)} ${dt(TODAY_TIMINGS.skippedForCollision, lang)}`
+                                  : dt(TODAY_TIMINGS.clearOfKalas, lang)}
+                          </span>
+                        </div>
+                      )}
                       {windowConflict && (
                         <div style={{ fontSize: "var(--text-xs)", color: "var(--color-low)", marginTop: "6px", paddingTop: "6px", borderTop: "1px solid var(--color-border)", lineHeight: 1.35, display: "flex", gap: "var(--space-2)" }}>
                           <AlertTriangle size={12} strokeWidth={2} aria-hidden="true" style={{ flex: "none", marginTop: "2px" }} />
@@ -709,29 +873,14 @@ export function DashboardTodayTabNova({
             );
           })()}
 
-          {/* Timing rail: the primary card above owns the featured best window;
-              this rail holds its complementary auspicious timing plus caution
-              and current-Horai context. */}
+          {/* Timing rail. The hero above owns the ONE recommended window; this
+              rail keeps the avoid window promoted beside it — that is the
+              safety axis, not a competing recommendation — and folds every
+              other timing system into a single named disclosure (T8 / A-013).
+              Abhijit and Horai used to be peer cards here, indistinguishable in
+              weight from the recommendation and from each other. */}
           {(secondaryAbhijitWindow || avoidWindow || heroHora) && (
             <div style={{ flex: "none", width: "224px", alignSelf: "center", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-              {secondaryAbhijitWindow && (
-                <Card style={{ flex: "none", background: "color-mix(in srgb, var(--color-surface) 62%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3_5)", display: "flex", flexDirection: "row", gap: "var(--space-3)", alignItems: "center" }}>
-                  <div aria-hidden="true" style={{ width: "32px", height: "32px", borderRadius: "var(--radius-pill)", background: "var(--color-high-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-high)", flex: "none" }}><Sparkle size={16} strokeWidth={2} /></div>
-                  <div style={{ minWidth: 0 }}>
-                    <Kicker as="div" color="var(--color-high)">
-                      {lang === "ta" ? "அபிஜித் முகூர்த்தம்" : "Abhijit muhurtham"}
-                    </Kicker>
-                    <div style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)", marginTop: "3px", fontVariantNumeric: "tabular-nums" }}>
-                      {formatClockLabel(secondaryAbhijitWindow.start)} – {formatClockLabel(secondaryAbhijitWindow.end)}
-                    </div>
-                    {secondaryAbhijitWindow.text && (
-                      <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "2px", lineHeight: 1.35 }}>
-                        {lang === "ta" ? secondaryAbhijitWindow.text.ta : secondaryAbhijitWindow.text.en}
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              )}
               {avoidWindow && (
                 <Card style={{ flex: "none", background: "color-mix(in srgb, var(--color-surface) 62%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3_5)", display: "flex", flexDirection: "row", gap: "var(--space-3)", alignItems: "center" }}>
                   <div aria-hidden="true" style={{ width: "32px", height: "32px", borderRadius: "var(--radius-pill)", background: "var(--color-low-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-low)", flex: "none" }}><X size={16} strokeWidth={2} /></div>
@@ -748,24 +897,18 @@ export function DashboardTodayTabNova({
                   </div>
                 </Card>
               )}
-              {heroHora && (
-                <Card style={{ flex: "none", background: "color-mix(in srgb, var(--color-surface) 62%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3_5)", display: "flex", flexDirection: "row", gap: "var(--space-3)", alignItems: "center" }}>
-                  <div aria-hidden="true" style={{ width: "32px", height: "32px", borderRadius: "var(--radius-pill)", background: "color-mix(in srgb, var(--color-accent-secondary) 16%, transparent)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-accent-secondary)", flex: "none" }}><Diamond size={15} strokeWidth={2} /></div>
-                  <div style={{ minWidth: 0 }}>
-                    <Kicker as="div" color="var(--color-accent-secondary)">
-                      {lang === "ta" ? "இப்போதைய ஓரை" : "Horai now"}
-                    </Kicker>
-                    <div style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)", marginTop: "3px" }}>
-                      {tPlanetLord(heroHora.lord, lang)}
-                    </div>
-                    {heroNextHora && (
-                      <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "2px" }}>
-                        {lang === "ta" ? "அடுத்தது" : "Next"}: {tPlanetLord(heroNextHora.lord, lang)} · {formatClockLabel(heroNextHora.start)}
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              )}
+              <OtherTimingsDisclosure
+                lang={lang}
+                abhijit={secondaryAbhijitWindow}
+                horaLord={heroHora?.lord ?? null}
+                nextHoraLord={heroNextHora?.lord ?? null}
+                nextHoraStart={heroNextHora?.start ?? null}
+                avoidKalas={panchangam ? [
+                  { label: windowTypeLabel("RAHU_KALAM", lang), ...panchangam.kalam.rahuKalam },
+                  { label: windowTypeLabel("YAMAGANDAM", lang), ...panchangam.kalam.yamagandam },
+                  { label: windowTypeLabel("KULIGAI", lang), ...panchangam.kalam.kuligai },
+                ] : []}
+              />
             </div>
           )}
         </div>

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import type { DailyGuidanceData } from "@/lib/types";
@@ -24,9 +24,16 @@ vi.mock("@/lib/api", () => ({
 
 // Heavy siblings that fetch or draw — none of them are what these tests are
 // about, and the guide renders at the top level of the tab regardless.
+// The tab destructures `findHorai`'s result, so the stub returns the real
+// shape. `horaStub` lets a single test hand it a running hora without a second
+// module mock.
+let horaStub: { current: { lord: string } | null; next: { lord: string; start: string } | null } = {
+  current: null,
+  next: null,
+};
 vi.mock("./dashboard-today-ribbon-nova", () => ({
   DashboardTodayRibbonNova: () => null,
-  findHorai: () => null,
+  findHorai: () => horaStub,
 }));
 vi.mock("./dashboard-today-activity-board-nova", () => ({
   DashboardTodayActivityBoardNova: () => null,
@@ -168,6 +175,152 @@ describe("Today tab — first-result guide gating", () => {
     expect(container.querySelector('a[href="/learn/vedic-vs-western"]')).toBeTruthy();
     // Layer 3 is one more tap away, never hidden: the guide has to point at it.
     expect(container.querySelector('a[href="#nova-deep-dive"]')).toBeTruthy();
+  });
+});
+
+/**
+ * T8 / A-013. Nalla Neram, Gowri, Abhijit and Horai used to render beside Rahu
+ * Kalam / Yamagandam / Kuligai at the same weight, so a reader who knows only
+ * Rahu Kalam could not tell which of the four to obey.
+ *
+ * The owner ruled (2026-08-23) that the promoted window is the one in the best
+ * Gowri kala, and that a window overlapping an avoid-kala is never promoted.
+ * `today-windows.test.ts` pins that arithmetic; these pin that the *screen*
+ * carries it — that the chosen window is the one rendered, that it says why,
+ * and that the other systems are named and demoted rather than deleted. Both
+ * halves fail silently: a hero that recommends acting inside Rahu Kalam looks
+ * completely normal, and so does one whose reason line has quietly stopped
+ * rendering.
+ */
+function panchangamFixture() {
+  return {
+    sunrise: "06:02",
+    vara: { weekday: "SUNDAY", lord: "SUN" },
+    tithi: { number: 11, paksha: "SHUKLA" },
+    tamilDate: { en: "Aavani 6", ta: "ஆவணி 6" },
+    festivals: [],
+    hora: [],
+    kalam: {
+      rahuKalam: { start: "09:00", end: "10:30", slot: 2 },
+      yamagandam: { start: "13:30", end: "15:00", slot: 5 },
+      kuligai: { start: "06:00", end: "07:30", slot: 1 },
+      nallaNeram: [],
+      gowriNallaNeram: [],
+    },
+  };
+}
+
+async function renderWithWindows(windows: unknown[], overrides: Partial<TabProps> = {}) {
+  return renderTab({
+    personalDailyGuidance: {
+      ...guidanceFixture(),
+      bestWindows: windows,
+    } as unknown as DailyGuidanceData,
+    panchangam: panchangamFixture() as unknown as TabProps["panchangam"],
+    ...overrides,
+  });
+}
+
+/** 08:30 in Asia/Kolkata on the fixture's date, so every window below is still
+ *  ahead of "now". Without pinning the clock these cases pass or fail by the
+ *  hour of day the suite happens to run at — the "has passed" branch would take
+ *  over every afternoon. */
+function freezeMorning() {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  vi.setSystemTime(new Date("2026-08-23T03:00:00Z"));
+}
+
+describe("Today tab — one recommended window (T8)", () => {
+  beforeEach(freezeMorning);
+  afterEach(() => vi.useRealTimers());
+
+  it("promotes the window in the best Gowri kala, not the personal hora", async () => {
+    await renderWithWindows([
+      { type: "PERSONAL_HORA", start: "16:00", end: "16:45", kala: "SUGAM", isPersonal: true },
+      { type: "BENEFIC_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM", isPersonal: false },
+    ]);
+
+    expect(screen.getByText(/Best window/)).toHaveTextContent("11:00");
+    expect(screen.getByText(/Amirtham/)).toBeInTheDocument();
+  });
+
+  it("never promotes a window that runs into Rahu Kalam", async () => {
+    await renderWithWindows([
+      { type: "BENEFIC_HORA", start: "09:12", end: "10:36", kala: "AMIRTHAM" },
+      { type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "LABHAM" },
+    ]);
+
+    const headline = screen.getByText(/Best window/);
+    expect(headline).toHaveTextContent("11:00");
+    expect(headline.textContent).not.toContain("9:12");
+    expect(screen.getByText(/next one clear of them/i)).toBeInTheDocument();
+  });
+
+  it("says the window is clear of the avoid periods, so the reader can check it", async () => {
+    await renderWithWindows([
+      { type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM" },
+    ]);
+
+    expect(screen.getByText(/Clear of Rahu Kalam, Yamagandam and Kuligai/i)).toBeInTheDocument();
+  });
+
+  it("says so plainly when every window of the day collides", async () => {
+    await renderWithWindows([
+      { type: "PERSONAL_HORA", start: "09:12", end: "10:36", kala: "SUGAM" },
+      { type: "BENEFIC_HORA", start: "14:00", end: "14:40", kala: "AMIRTHAM" },
+    ]);
+
+    expect(screen.getByText(/Every good window today runs into/i)).toBeInTheDocument();
+  });
+});
+
+describe("Today tab — the other timing systems (T8)", () => {
+  beforeEach(freezeMorning);
+  afterEach(() => vi.useRealTimers());
+
+  it("folds them behind one closed disclosure instead of peer cards", async () => {
+    // Abhijit deliberately ranks below the promoted window here — it only
+    // appears in "other timings" when something else won the recommendation.
+    await renderWithWindows([
+      { type: "ABHIJIT", start: "12:02", end: "12:50", kala: "SUGAM" },
+      { type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "UTHI" },
+    ]);
+
+    const toggle = screen.getByRole("button", { name: /Other traditional timings/i });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    // Closed means closed: Abhijit must not still be sitting in the rail.
+    expect(screen.queryByText(/48 minutes around midday/i)).toBeNull();
+  });
+
+  it("names what each system is, in words that need no vocabulary", async () => {
+    horaStub = { current: { lord: "JUPITER" }, next: { lord: "MARS", start: "13:00" } };
+    try {
+      await renderWithWindows([
+        { type: "ABHIJIT", start: "12:02", end: "12:50", kala: "SUGAM" },
+        { type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "UTHI" },
+      ]);
+
+      const { fireEvent } = await import("@testing-library/react");
+      fireEvent.click(screen.getByRole("button", { name: /Other traditional timings/i }));
+
+      expect(screen.getByText(/almanac's good windows for the day/i)).toBeInTheDocument();
+      expect(screen.getByText(/48 minutes around midday/i)).toBeInTheDocument();
+      expect(screen.getByText(/planetary hour/i)).toBeInTheDocument();
+      // The scope line the audit asked for: avoid does not mean "stop working".
+      expect(screen.getByText(/Work already under way is not affected/i)).toBeInTheDocument();
+    } finally {
+      horaStub = { current: null, next: null };
+    }
+  });
+
+  it("keeps the avoid window promoted beside the recommendation, not buried", async () => {
+    // Safety text precedes dense tables — the avoid card is the other axis,
+    // not a competing recommendation, so it does not go into the disclosure.
+    await renderWithWindows([
+      { type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM" },
+    ]);
+
+    expect(screen.getByText(/^Avoid window$/i)).toBeInTheDocument();
   });
 });
 

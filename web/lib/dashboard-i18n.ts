@@ -184,3 +184,50 @@ export const SANI_CYCLE_CARD = {
   actionArdhashtama: s("Stabilise home, health routines, and family responsibilities before adding new pressure.", "புதிய அழுத்தம் சேர்ப்பதற்கு முன் வீடு, உடல்நல பழக்கம், குடும்பப் பொறுப்புகளை நிலைப்படுத்துங்கள்."),
   actionCrossCheck: s("Use this as a secondary caution check, not the main verdict.", "இதைக் துணை கவனச் சரிபார்ப்பாக மட்டும் பார்க்கவும்; முதன்மை தீர்ப்பாக அல்ல."),
 } as const;
+
+// ─── T8 / A-013 — one promoted window, the rest named and demoted ────────────
+// Today used to show four "good time" systems at the same weight as the three
+// avoid-kalas, with nothing telling the reader which to obey. The window above
+// is now chosen by the almanac's own Gowri ranking and guaranteed clear of Rahu
+// Kalam / Yamagandam / Kuligai (see lib/today-windows.ts); these strings carry
+// the one-line "what this system is" for each of the systems it was chosen from.
+// New Tamil, pending native review.
+export const TODAY_TIMINGS = {
+  clearOfKalas: s(
+    "Clear of Rahu Kalam, Yamagandam and Kuligai.",
+    "ராகு காலம், யமகண்டம், குளிகை ஆகியவற்றில் படாத நேரம்.",
+  ),
+  skippedForCollision: s(
+    "An earlier, higher-ranked window today runs into one of those, so this is the next one clear of them.",
+    "இன்று முன்னதாக வரும் சிறந்த நேரம் அவற்றில் ஒன்றில் படுவதால், அதற்கு அடுத்ததாக வரும் தெளிவான நேரம் இது.",
+  ),
+  allCollide: s(
+    "Every good window today runs into Rahu Kalam, Yamagandam or Kuligai. This is the best of them — many families would simply wait for tomorrow.",
+    "இன்று உள்ள எல்லா நல்ல நேரங்களும் ராகு காலம், யமகண்டம் அல்லது குளிகையில் படுகின்றன. அவற்றுள் சிறந்தது இது — பல குடும்பங்கள் நாளை வரை காத்திருப்பார்கள்.",
+  ),
+  hasPassed: s(
+    "Today's clear windows have already passed.",
+    "இன்றைய தெளிவான நேரங்கள் ஏற்கனவே கடந்துவிட்டன.",
+  ),
+  otherSystemsTitle: s("Other traditional timings", "பிற பாரம்பரிய நேரக் கணக்குகள்"),
+  otherSystemsIntro: s(
+    "Use the window above. These are the systems it was chosen from — shown so you can check it, not so you have to choose between them.",
+    "மேலே உள்ள நேரத்தைப் பயன்படுத்துங்கள். அது எந்தக் கணக்குகளிலிருந்து தேர்ந்தெடுக்கப்பட்டது என்பதைச் சரிபார்க்க இவை காட்டப்படுகின்றன; இவற்றுள் ஒன்றைத் தேர்வு செய்ய அல்ல.",
+  ),
+  whatIsNallaNeram: s(
+    "Nalla Neram — the almanac's good windows for the day, cut from the Gowri table and always chosen clear of the avoid periods.",
+    "நல்ல நேரம் — கௌரி பஞ்சாங்க அட்டவணையிலிருந்து எடுக்கப்பட்ட, தவிர்க்க வேண்டிய நேரங்களில் படாத, அன்றைய நல்ல நேரங்கள்.",
+  ),
+  whatIsAbhijit: s(
+    "Abhijit — a fixed slot of about 48 minutes around midday, counted auspicious for anyone, whatever their chart.",
+    "அபிஜித் — நண்பகலைச் சுற்றி வரும் சுமார் 48 நிமிட நிலையான நேரம்; ஜாதகம் எதுவாயினும் அனைவருக்கும் நல்லதாகக் கருதப்படுகிறது.",
+  ),
+  whatIsHorai: s(
+    "Horai — the planetary hour. Every hour of the day is ruled by one planet, in a fixed weekly cycle.",
+    "ஓரை — கிரக மணி. நாளின் ஒவ்வொரு மணி நேரமும் ஒரு கிரகத்தின் ஆட்சியில், நிலையான வாராந்திர சுழற்சியில் அமைகிறது.",
+  ),
+  whatIsAvoidKalas: s(
+    "Rahu Kalam, Yamagandam, Kuligai — three stretches of every day traditionally kept free of new beginnings. Work already under way is not affected.",
+    "ராகு காலம், யமகண்டம், குளிகை — ஒவ்வொரு நாளிலும் புதிய தொடக்கங்களுக்குத் தவிர்க்கப்படும் மூன்று நேரங்கள். ஏற்கனவே நடந்துகொண்டிருக்கும் வேலைகளுக்கு இது பொருந்தாது.",
+  ),
+} as const;
