@@ -358,6 +358,7 @@ export function NovaPoruthamPanel({
                 <PlaceCombobox
                   value={form.birthPlace}
                   aria-label={t("field_birth_place", lang)}
+                  lang={lang}
                   onChange={(city, raw) => setForm({ ...form, birthPlace: raw, ...(city ? { birthLatitude: city.lat, birthLongitude: city.lng, birthTimezone: city.timezone } : {}) })}
                 />
               </Field>

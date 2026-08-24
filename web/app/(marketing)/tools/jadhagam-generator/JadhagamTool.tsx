@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { PlaceCombobox } from "@/components/dashboard-ui";
+import { PlaceCombobox } from "@/components/place-combobox";
 import type { ChartCalculateResponseData, ChartPlanet, ChartYogaInsight } from "@/lib/types";
 import { readErrorMessage } from "@/lib/api";
 import {
@@ -813,6 +813,7 @@ export function JadhagamTool() {
           </span>
           <PlaceCombobox
             value={form.birthPlace}
+            lang={lang}
             onChange={(city, raw) => setForm((f) => ({
               ...f, birthPlace: raw,
               ...(city ? { birthLatitude: city.lat, birthLongitude: city.lng, birthTimezone: city.timezone } : {}),

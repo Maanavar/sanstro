@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Lang } from "@/lib/i18n";
 import { readErrorMessage } from "@/lib/api";
 import { useBirthProfileForm } from "@/hooks/useBirthProfileForm";
-import type { CityEntry } from "@/lib/tn-cities";
+import type { CityEntry } from "./place-combobox";
 import {
   getPublicBabyNamesPreview,
   type BabyNameGender,
@@ -230,6 +230,7 @@ export function DashboardBabyNamesTool({ lang }: Props) {
               value={form.birthPlace}
               onChange={onPlaceChange}
               placeholder={isTamil ? "நகரத்தைத் தட்டச்சு செய்யவும்…" : "Type a city…"}
+              lang={isTamil ? "ta" : "en"}
             />
           </Field>
         </div>

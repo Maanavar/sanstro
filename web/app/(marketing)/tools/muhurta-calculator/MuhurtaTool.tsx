@@ -4,18 +4,14 @@ import { useState } from "react";
 import { getPersonalizedMuhurta } from "@vinaadi/shared/api";
 import { readErrorMessage } from "@/lib/api";
 import { useLang } from "@/components/lang-toggle";
-import { TN_CITIES, type CityEntry } from "@/lib/tn-cities";
+import { PlaceCombobox, type CityEntry } from "@/components/place-combobox";
 import { romanNakshathiramName } from "@/lib/tamil-astro";
 import Link from "next/link";
 
-const EXTRA_CITIES: CityEntry[] = [
-  { name: "Bengaluru, Karnataka, India", lat: "12.9716", lng: "77.5946", timezone: "Asia/Kolkata" },
-  { name: "Mumbai, Maharashtra, India", lat: "19.0760", lng: "72.8777", timezone: "Asia/Kolkata" },
-  { name: "Singapore", lat: "1.3521", lng: "103.8198", timezone: "Asia/Singapore" },
-  { name: "Houston, Texas, USA", lat: "29.7604", lng: "-95.3698", timezone: "America/Chicago" },
-];
-const CITY_OPTIONS = [...TN_CITIES, ...EXTRA_CITIES];
-const DEFAULT_CITY = CITY_OPTIONS.find((c) => c.name === "Chennai, Tamil Nadu, India") ?? CITY_OPTIONS[0];
+// B-006: was `CITY_OPTIONS.find(...)` over a static array; that array is gone
+// (live search via PlaceCombobox replaced it), so the default is now a plain
+// constant carrying the same coordinates Chennai always had in that array.
+const DEFAULT_CITY: CityEntry = { name: "Chennai, Tamil Nadu, India", lat: "13.0667", lng: "80.2833", timezone: "Asia/Kolkata" };
 
 // Values must match `app.api.public_tools._PUBLIC_MUHURTA_ACTIVITIES`, which is
 // kept in step with the signed-in picker on purpose — the same question must
@@ -275,12 +271,11 @@ export function MuhurtaTool() {
           </div>
           <label style={labelStyle}>
             {lang === "en" ? "Birth city" : "பிறந்த ஊர்"}
-            <select value={birthCity.name} onChange={(e) => {
-              const found = CITY_OPTIONS.find((c) => c.name === e.target.value);
-              if (found) setBirthCity(found);
-            }} style={inputStyle}>
-              {CITY_OPTIONS.map((c) => <option key={c.name} value={c.name}>{compactCityName(c.name)}</option>)}
-            </select>
+            <PlaceCombobox
+              value={birthCity.name}
+              lang={lang}
+              onChange={(selected, raw) => setBirthCity(selected ?? { ...birthCity, name: raw })}
+            />
           </label>
           <span style={{ fontSize: "0.76rem", color: "var(--cl-ink-2)" }}>{lang === "en" ? "Used only for this calculation; it is not saved." : "இந்தக் கணக்கீட்டிற்கு மட்டும் பயன்படுத்தப்படும்; சேமிக்கப்படாது."}</span>
         </div>
@@ -318,20 +313,11 @@ export function MuhurtaTool() {
         {/* Location */}
         <label style={labelStyle}>
           {lang === "en" ? "Location" : "இடம்"}
-          <select
+          <PlaceCombobox
             value={city.name}
-            onChange={(e) => {
-              const found = CITY_OPTIONS.find((c) => c.name === e.target.value);
-              if (found) setCity(found);
-            }}
-            style={inputStyle}
-          >
-            {CITY_OPTIONS.map((c) => (
-              <option key={c.name} value={c.name}>
-                {compactCityName(c.name)}
-              </option>
-            ))}
-          </select>
+            lang={lang}
+            onChange={(selected, raw) => setCity(selected ?? { ...city, name: raw })}
+          />
         </label>
 
         <button

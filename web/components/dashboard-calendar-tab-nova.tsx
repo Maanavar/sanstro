@@ -1366,6 +1366,7 @@ export function DashboardCalendarTabNova({
                     </p>
                     <PlaceCombobox
                       value={overrideLocation?.label ?? ""}
+                      lang={lang}
                       onChange={(city) => {
                         if (city) {
                           setOverrideLocation({ lat: parseFloat(city.lat), lng: parseFloat(city.lng), timezone: city.timezone, label: city.name });

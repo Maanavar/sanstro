@@ -6,18 +6,14 @@ import { useLang } from "@/components/lang-toggle";
 import { addDays, formatClockLabel, formatDateLabel } from "@/lib/format";
 import { gowriCategoryLabel, gowriPeriodLabel, gowriPurposeLabel } from "@/lib/gowri";
 import { t, tAmirdhadhiYogam, tJeevan, tKarana, tMoonPhase, tNakshatra, tNethiram, tParigaram, tPlanetLord, tSoolamDirection, tTithi, tWeekday, tYoga, type Lang } from "@/lib/i18n";
-import { TN_CITIES, type CityEntry } from "@/lib/tn-cities";
+import { PlaceCombobox, type CityEntry } from "@/components/place-combobox";
 import type { PanchangamDailyResponseData, PanchangamFestival } from "@/lib/types";
 import { PanchangamShareButton } from "@/components/public-share-card";
 
-const EXTRA_CITIES: CityEntry[] = [
-  { name: "Bengaluru, Karnataka, India", lat: "12.9716", lng: "77.5946", timezone: "Asia/Kolkata" },
-  { name: "Mumbai, Maharashtra, India", lat: "19.0760", lng: "72.8777", timezone: "Asia/Kolkata" },
-  { name: "Singapore", lat: "1.3521", lng: "103.8198", timezone: "Asia/Singapore" },
-  { name: "Houston, Texas, USA", lat: "29.7604", lng: "-95.3698", timezone: "America/Chicago" },
-];
-const CITY_OPTIONS = [...TN_CITIES, ...EXTRA_CITIES];
-const DEFAULT_CITY = CITY_OPTIONS.find((city) => city.name === "Chennai, Tamil Nadu, India") ?? CITY_OPTIONS[0];
+// B-006: was `CITY_OPTIONS.find(...)` over a static array; that array is gone
+// (live search via PlaceCombobox replaced it), so the default is now a plain
+// constant carrying the same coordinates Chennai always had in that array.
+const DEFAULT_CITY: CityEntry = { name: "Chennai, Tamil Nadu, India", lat: "13.0667", lng: "80.2833", timezone: "Asia/Kolkata" };
 
 const RASI_LABELS: Record<number, { en: string; ta: string }> = {
   1: { en: "Mesham", ta: "மேஷம்" },
@@ -362,10 +358,9 @@ export function PanchangamTool() {
   }
 
   const currentCityDisplay = (() => {
-    const c = CITY_OPTIONS.find((c) => c.name === cityKey);
     if (cityKey === "Browser") return en ? "Current location" : "தற்போதைய இடம்";
-    if (!c) return en ? "Custom" : "தனிப்பயன்";
-    return compactCityName(c.name);
+    if (cityKey === "Custom") return en ? "Custom" : "தனிப்பயன்";
+    return compactCityName(cityKey);
   })();
 
   async function fetchPanchangam(next = { date, lat, lng, timezone }) {
@@ -507,25 +502,18 @@ export function PanchangamTool() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "12px", alignItems: "end" }}>
           <label style={labelStyle}>
             {en ? "Location" : "இடம்"}
-            <select
-              style={inputStyle}
-              value={CITY_OPTIONS.some((city) => city.name === cityKey) ? cityKey : ""}
-              onChange={(e) => {
-                const city = CITY_OPTIONS.find((option) => option.name === e.target.value);
-                if (city) selectCity(city);
+            <PlaceCombobox
+              value={
+                cityKey === "Browser" ? (en ? "Current location" : "தற்போதைய இடம்")
+                : cityKey === "Custom" ? (en ? "Custom" : "தனிப்பயன்")
+                : cityKey
+              }
+              lang={lang}
+              onChange={(city, raw) => {
+                if (city) { selectCity(city); return; }
+                setCityKey(raw);
               }}
-            >
-              <option value="" disabled>
-                {cityKey === "Browser"
-                  ? (en ? "Current location" : "தற்போதைய இடம்")
-                  : (en ? "Custom coordinates" : "தனிப்பயன் இடம்")}
-              </option>
-              {CITY_OPTIONS.map((city) => (
-                <option key={city.name} value={city.name}>
-                  {city.name}
-                </option>
-              ))}
-            </select>
+            />
           </label>
           <button
             type="button"

@@ -227,7 +227,12 @@ export function EditProfileModal({
             </WField>
             <WField label={t("field_birth_place", lang)} required error={fieldErrors.birthPlace}>
               <PlaceCombobox required value={birthForm.birthPlace}
-                onChange={(city, raw) => { onChange(applyPlaceSelection(birthForm, city, raw)); clearError("birthPlace"); }} />
+                lang={lang}
+                onChange={(city, raw) => {
+                  onChange(applyPlaceSelection(birthForm, city, raw));
+                  clearError("birthPlace");
+                  coordsConfirm.setMatched(city !== null);
+                }} />
             </WField>
             <WField label={t("field_timezone", lang)} required error={fieldErrors.birthTimezone}>
               <WInput required hasError={!!fieldErrors.birthTimezone} value={birthForm.birthTimezone}
@@ -253,6 +258,7 @@ export function EditProfileModal({
             )}
             <WField label={lang === "ta" ? "தினசரி நேரங்களுக்கான தற்போதைய நகரம்" : "Current City (Daily Timings)"}>
               <PlaceCombobox value={birthForm.currentPlace}
+                lang={lang}
                 onChange={(city, raw) => onChange({
                   ...birthForm,
                   currentPlace: raw,

@@ -117,6 +117,13 @@ const STRINGS = {
   place_use_matched:   { ta: "பொருந்திய ஆயத்தொலைவுகளைப் பயன்படுத்து", en: "Use matched coordinates" },
   place_unmatched_hint:{ ta: "இந்த இடத்தை பட்டியலில் காணவில்லை — பெயரை சரிபார்க்கவும் அல்லது கீழே ஆயத்தொலைவுகளை நேரடியாக உள்ளிடவும்.", en: "We couldn't match this place to a known city — check the spelling above, or enter coordinates directly below." },
 
+  // ── Place search (B-006 — bundled offline dataset, online geocode is an
+  // explicit opt-in fallback, never automatic). New Tamil, pending native review.
+  place_searching:          { ta: "தேடுகிறது…", en: "Searching…" },
+  place_no_results:         { ta: "பொருத்தங்கள் கிடைக்கவில்லை", en: "No matches found" },
+  place_search_online:      { ta: "கிடைக்கவில்லையா? ஆன்லைனில் தேடு", en: "Can't find it? Search online" },
+  place_search_online_failed: { ta: "அந்த இடத்தையும் ஆன்லைனில் கண்டுபிடிக்க முடியவில்லை", en: "Couldn't find that place online either" },
+
   // ── Family Vault cold-start (#4/#60 — empty on day 1, exact-time friction)
   family_coldstart_title: { ta: "இன்னும் நீங்கள் மட்டும்தான்", en: "It's just you here so far" },
   family_coldstart_body:  { ta: "மனைவி, பெற்றோர், குழந்தை — ஒருவரை சேர்த்தால் குடும்ப ஒற்றுமை மதிப்பெண், பகிர்ந்த சிறந்த நேரங்கள், பொருத்தம் ஆகியவை தெரியும்.", en: "Add a spouse, parent, or child to see family harmony, shared best-time windows, and compatibility together — the reason most people come here." },

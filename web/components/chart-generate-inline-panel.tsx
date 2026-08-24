@@ -897,6 +897,7 @@ export function ChartGenerateInlinePanel({ lang }: ChartGenerateInlinePanelProps
             <PlaceCombobox
               value={form.birthPlace}
               aria-label={t("field_birth_place", lang)}
+              lang={lang}
               onChange={(city, raw) => setForm((f) => applyPlaceSelection(f, city, raw))}
             />
           </Field>

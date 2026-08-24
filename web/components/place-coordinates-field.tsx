@@ -1,18 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { PLACE_CITIES } from "@/lib/tn-cities";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
-
-/** Finds the known city that exactly produced these lat/lng values, so we can
- * tell "auto-filled from a matched city" apart from "hand-typed coordinates"
- * (#3/#16/#90 — raw lat/lng was unverifiable and looked the same either way). */
-export function findMatchedCity(place: string, latitude: string, longitude: string) {
-  return PLACE_CITIES.find(
-    (city) => city.name === place && city.lat === latitude && city.lng === longitude,
-  );
-}
 
 function formatDegrees(value: string, positiveLabel: string, negativeLabel: string): string {
   const n = Number(value);
@@ -21,12 +11,22 @@ function formatDegrees(value: string, positiveLabel: string, negativeLabel: stri
 }
 
 /** Drives the matched-badge / edit-coordinates toggle. `showRawFields` tells
- * the caller whether to render its own lat/lng inputs instead of the badge. */
+ * the caller whether to render its own lat/lng inputs instead of the badge.
+ *
+ * B-006: place search moved from a static in-memory array to the bundled
+ * `/places/search` endpoint (async), so "matched" can no longer be
+ * re-derived on every render by looking the current place/lat/lng up in that
+ * array (#3/#16/#90's original fix). Instead the caller's `PlaceCombobox`
+ * `onChange` — which already knows directly whether a real record was
+ * selected — calls `setMatched` at selection time. `matched` starts `true`
+ * when the field already carries a saved place + coordinates (an existing
+ * profile being edited), so reopening the form shows the badge rather than
+ * raw fields; it starts `false` for a blank field. */
 export function usePlaceCoordinatesConfirm(place: string, latitude: string, longitude: string) {
   const [editing, setEditing] = useState(false);
-  const matched = findMatchedCity(place, latitude, longitude);
+  const [matched, setMatched] = useState(() => Boolean(place && latitude && longitude));
   const showRawFields = !matched || editing;
-  return { matched, editing, setEditing, showRawFields };
+  return { matched, setMatched, editing, setEditing, showRawFields };
 }
 
 const W = {

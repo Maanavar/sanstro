@@ -458,9 +458,11 @@ export function DashboardSetupTab({
                 <FieldShell label={t("field_birth_place", lang)}>
                   <PlaceCombobox value={birthForm.birthPlace}
                     aria-label={t("field_birth_place", lang)}
+                    lang={lang}
                     onChange={(city, raw) => {
                       onBirthFormChange(applyPlaceSelection(birthForm, city, raw));
                       onFormErrorChange({ birthPlace: "", birthTimezone: "" });
+                      ownCoordsConfirm.setMatched(city !== null);
                     }} />
                   {formErrors.birthPlace ? (
                     <span className="ui-field__error" role="alert" aria-live="polite">{formErrors.birthPlace}</span>
@@ -530,6 +532,7 @@ export function DashboardSetupTab({
                 <FieldShell label={lang === "ta" ? "நீங்கள் இப்போது வசிக்கும் ஊர்" : "Where you live now"}>
                   <PlaceCombobox value={birthForm.currentPlace}
                     aria-label={lang === "ta" ? "நீங்கள் இப்போது வசிக்கும் ஊர்" : "Where you live now"}
+                    lang={lang}
                     onChange={(city, raw) => onBirthFormChange({
                       ...birthForm,
                       currentPlace: raw,
@@ -848,9 +851,11 @@ export function DashboardSetupTab({
               <FieldShell label={t("field_birth_place", lang)}>
                 <PlaceCombobox value={memberForm.birthPlace}
                   aria-label={t("field_birth_place", lang)}
+                  lang={lang}
                   onChange={(city, raw) => {
                     onMemberFormChange(applyPlaceSelection(memberForm, city, raw));
                     onFormErrorChange({ memberBirthPlace: "", memberTimezone: "" });
+                    memberCoordsConfirm.setMatched(city !== null);
                   }} />
                 {formErrors.memberBirthPlace && (
                   <span className="ui-field__error" role="alert" aria-live="polite">{formErrors.memberBirthPlace}</span>

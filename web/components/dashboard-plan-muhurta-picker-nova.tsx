@@ -11,7 +11,7 @@ import { addDays, formatClockLabel, formatDateLabel, tamilMonthOnly, todayIso } 
 import { convertMuhurtaTime } from "@/lib/timezone";
 import { NovaSelect } from "./nova-select";
 import { PlaceCombobox } from "./place-combobox";
-import type { CityEntry } from "@/lib/tn-cities";
+import type { CityEntry } from "./place-combobox";
 import { Card } from "./ui";
 import { Field, FieldShell, Input } from "./ui/field";
 import { ModalShell } from "./modal-shell";
@@ -718,6 +718,7 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
           <FieldShell label={label} style={{ marginBottom: "14px", maxWidth: "560px" }}>
             <PlaceCombobox
               value={activityCityQuery}
+              lang={lang}
               onChange={(city, raw) => { setActivityCityQuery(raw); setActivityCity(city); }}
               placeholder={lang === "ta" ? "இயல்புநிலை: உங்கள் சுயவிவரத்தில் உள்ள இடம்" : "Defaults to your profile's location"}
               aria-label={label}
@@ -835,6 +836,7 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
               <FieldShell label={compareLabel} style={{ marginBottom: "16px", maxWidth: "560px" }}>
                 <PlaceCombobox
                   value={compareCityQuery}
+                  lang={lang}
                   onChange={(city, raw) => { setCompareCityQuery(raw); setCompareCity(city); }}
                   placeholder={lang === "ta" ? "எ.கா. மெல்போர்ன், ஆஸ்திரேலியா" : "e.g. Melbourne, Australia"}
                   aria-label={compareLabel}

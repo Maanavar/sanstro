@@ -5,7 +5,7 @@ import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { PlaceCombobox } from "@/components/place-combobox";
 import { apiFetchJson } from "@/lib/api";
-import type { CityEntry } from "@/lib/tn-cities";
+import type { CityEntry } from "@/components/place-combobox";
 import { FriendshipResultCard, type FriendshipReport } from "@/components/friendship-result-card";
 
 type Lang = "ta" | "en";
@@ -120,7 +120,7 @@ export function FriendshipTool() {
                         </Field>
                       </div>
                       <Field label={lang === "ta" ? "ஊர்" : "Place"}>
-                        <PlaceCombobox value={p.place} onChange={(city, raw) => onPlace(which, city, raw)} />
+                        <PlaceCombobox value={p.place} lang={lang} onChange={(city, raw) => onPlace(which, city, raw)} />
                       </Field>
                     </div>
                   </div>

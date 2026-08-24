@@ -234,6 +234,7 @@ export function GuestChartModal({ lang, onClose, onCreateAccount }: GuestChartMo
           >
             <PlaceCombobox
               value={birthPlace}
+              lang={lang}
               onChange={(city, raw) => {
                 setValue("birthPlace", raw, { shouldValidate: true });
                 if (city) {

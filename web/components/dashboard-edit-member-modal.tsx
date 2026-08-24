@@ -165,10 +165,14 @@ export function EditMemberModal({ lang, editMember, busySaving, onClose, onChang
           </WField>
           <WField label={t("field_birth_place", lang)}>
             <PlaceCombobox value={editMember.birthPlace}
-              onChange={(city, raw) => onChange({
-                ...editMember, birthPlace: raw,
-                ...(city ? { birthLatitude: city.lat, birthLongitude: city.lng, birthTimezone: city.timezone } : {}),
-              })} />
+              lang={lang}
+              onChange={(city, raw) => {
+                onChange({
+                  ...editMember, birthPlace: raw,
+                  ...(city ? { birthLatitude: city.lat, birthLongitude: city.lng, birthTimezone: city.timezone } : {}),
+                });
+                coordsConfirm.setMatched(city !== null);
+              }} />
           </WField>
           <WField label={t("field_timezone", lang)}>
             <WInput value={editMember.birthTimezone}
@@ -194,6 +198,7 @@ export function EditMemberModal({ lang, editMember, busySaving, onClose, onChang
           )}
           <WField label={lang === "ta" ? "தினசரி நேரங்களுக்கான தற்போதைய நகரம்" : "Current City (Daily Timings)"}>
             <PlaceCombobox value={editMember.currentPlace}
+              lang={lang}
               onChange={(city, raw) => onChange({
                 ...editMember,
                 currentPlace: raw,

@@ -10,7 +10,7 @@ import { useLang } from "@/components/lang-toggle";
 import { useBirthProfileForm } from "@/hooks/useBirthProfileForm";
 import { readErrorMessage } from "@/lib/api";
 import { VERDICT_LABEL, plainSummaryText } from "@/lib/numerology-labels";
-import type { CityEntry } from "@/lib/tn-cities";
+import type { CityEntry } from "@/components/place-combobox";
 import {
   getPublicBabyNamesPreview,
   type AlignmentVerdict,
@@ -275,6 +275,7 @@ export function BabyNameFinderContent() {
                       value={form.birthPlace}
                       onChange={onPlaceChange}
                       placeholder={ta ? "நகரத்தைத் தட்டச்சு செய்யவும்…" : "Type a city…"}
+                      lang={ta ? "ta" : "en"}
                     />
                   </label>
                 </div>
