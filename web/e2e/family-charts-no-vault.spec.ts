@@ -12,6 +12,16 @@
  * loaded independently of the family vault — whenever there is no member at
  * all. This spec creates a birth profile and deliberately no vault, so it
  * exercises the simplest case that hits the same empty-`memberMeta` path.
+ *
+ * Also covers T5 (UX_BLINDSPOT_HANDOFF_2026-08-23.md): the section that fix
+ * left blanked out was not just "Full technical reading" but the WHOLE
+ * "═══ 3 · MEMBER OVERVIEW ═══" block, which is where "Your chart in two
+ * minutes" mounts — the entire reason a first-time solo user, sent straight
+ * here after calculating their chart, was landing on nothing. That block was
+ * gated on `activeMember` (null with no family vault); it now gates on
+ * `readingChartId`, which already had the owner fallback. The first
+ * assertion below is the section existing at all; the second is that the
+ * plain-language reading — not just the chrome around it — is what's in it.
  */
 import { test, expect, type Page, type BrowserContext } from "@playwright/test";
 
@@ -87,6 +97,23 @@ test("Family & Charts renders the owner's own reading with no family vault", asy
   await expect(
     page.getByRole("heading", { name: /Full technical reading/i }),
     "the Full technical reading section did not render for an owner with no family vault",
+  ).toBeVisible({ timeout: 60_000 });
+
+  // T5: the member-overview block ("Vanakkam, <name>") sits ABOVE the
+  // technical reading above and is where "Your chart in two minutes" mounts —
+  // it was the other, larger casualty of the same `activeMember` gate.
+  await expect(
+    page.getByRole("heading", { name: /Vanakkam, E2E No-Vault Owner/i }),
+    "the member-overview section did not render for an owner with no family vault",
+  ).toBeVisible({ timeout: 60_000 });
+
+  // The reading itself, not just the section chrome around it — this is the
+  // plain-language prose T5 is meant to promote, and a passing section header
+  // with an empty body underneath would satisfy the assertion above but not
+  // this one.
+  await expect(
+    page.getByRole("heading", { name: /in two minutes/i }),
+    "the one-minute reading did not render inside the member-overview section",
   ).toBeVisible({ timeout: 60_000 });
 
   await context.close();

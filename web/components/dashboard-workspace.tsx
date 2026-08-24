@@ -257,6 +257,7 @@ type PersistedState = {
   memberForm: MemberFormState;
   activeTab: Tab;
   lang: Lang;
+  hasVisitedReading: boolean;
 };
 
 const defaultBirthForm: BirthFormState = {
@@ -611,6 +612,12 @@ export function DashboardWorkspace() {
   }, [currentPaneKey, activeTool]);
 
   const [onboardingDone, setOnboardingDone] = useState(false);
+  // Onboarding step 3 — "read your two-minute chart result." Set once the
+  // reader has actually been on Family & Charts (where the reading renders)
+  // with a calculated chart, not merely once step 1 has a birth profile — the
+  // two used to share step 1's condition, which marked step 3 done before the
+  // reader had read anything.
+  const [hasVisitedReading, setHasVisitedReading] = useState(false);
 
   // Notification inbox
   const [inboxItems, setInboxItems] = useState<NotificationInboxItem[]>([]);
@@ -792,6 +799,7 @@ export function DashboardWorkspace() {
           if (typeof parsed.selectedVaultId === "string") family.setSelectedVaultId(parsed.selectedVaultId);
           if (typeof parsed.birthProfileId === "string") personal.setBirthProfileId(parsed.birthProfileId);
           if (typeof parsed.chartId === "string") personal.setChartId(parsed.chartId);
+          if (typeof parsed.hasVisitedReading === "boolean") setHasVisitedReading(parsed.hasVisitedReading);
           if (parsed.birthForm) setBirthForm((c) => ({ ...c, ...parsed.birthForm }));
           if (parsed.vaultForm) setVaultForm((c) => ({ ...c, ...parsed.vaultForm }));
           if (parsed.memberForm) setMemberForm((c) => ({ ...c, ...parsed.memberForm }));
@@ -921,14 +929,24 @@ export function DashboardWorkspace() {
         memberForm,
         activeTab,
         lang,
+        hasVisitedReading,
       } as PersistedState));
     }, 500);
     return () => window.clearTimeout(timer);
   }, [
     session.hydrated, ownerUserId, selectedDate,
     family.selectedVaultId, personal.birthProfileId, personal.chartId,
-    birthForm, vaultForm, memberForm, activeTab, lang,
+    birthForm, vaultForm, memberForm, activeTab, lang, hasVisitedReading,
   ]);
+
+  // Fires once, the first time the reader is actually on Family & Charts with
+  // a calculated chart — see the state's own comment for why this is not
+  // shared with step 1's condition.
+  useEffect(() => {
+    if (activeTab === "family" && personal.chartId && !hasVisitedReading) {
+      setHasVisitedReading(true);
+    }
+  }, [activeTab, personal.chartId, hasVisitedReading]);
 
   // Keep ownerUserId in sync with forms
   useEffect(() => {
@@ -1258,7 +1276,15 @@ export function DashboardWorkspace() {
       if (response.data.chartId) personal.setChartId(response.data.chartId);
       showToast(`${birthForm.displayName} – ${t("toast_profile_created", lang)}`);
       setStatus(`Profile created – ${response.data.birthProfileId.slice(0, 8)}`);
-      setActiveTab("personal");
+      // A calculated chart lands on Family & Charts, not Today — that tab
+      // opens on "Your chart in two/five minutes" (dashboard-family-charts-
+      // hybrid.tsx), the plain-language reading, above every score and table
+      // on the page. Today is a live dashboard built for a returning reader;
+      // shown first, it is the jargon wall neither persona has context for
+      // yet. `calculateNow` can be turned off (deferred to rectification), in
+      // which case there is no reading yet and Today — which still finishes
+      // the rest of onboarding — is the more useful landing.
+      setActiveTab(response.data.chartId ? "family" : "personal");
     } catch (error) {
       const msg = getFriendlyErrorMessage(error);
       showToast(msg, "error"); setStatus(msg, "error");
@@ -1738,10 +1764,10 @@ export function DashboardWorkspace() {
                   );
                 })()}
                 <div className="cd-onboarding__step">
-                  <span className={`cd-onboarding__step-badge ${personal.birthProfileId ? "is-done" : "is-pending"}`}>
-                    {personal.birthProfileId ? "✓" : "3"}
+                  <span className={`cd-onboarding__step-badge ${hasVisitedReading ? "is-done" : "is-pending"}`}>
+                    {hasVisitedReading ? "✓" : "3"}
                   </span>
-                  <span className={`cd-onboarding__step-text ${personal.birthProfileId ? "is-done" : ""}`}>
+                  <span className={`cd-onboarding__step-text ${hasVisitedReading ? "is-done" : ""}`}>
                     {t("onboarding_step3", lang)}
                   </span>
                 </div>

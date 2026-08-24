@@ -1011,8 +1011,21 @@ export function DashboardFamilyChartsHybrid({
           </HySection>
         )}
 
-        {/* ═══ 3 · MEMBER OVERVIEW ═══ */}
-        {activeMember && (
+        {/* ═══ 3 · MEMBER OVERVIEW ═══
+             Gated on `readingChartId`, not `activeMember`: `activeMember` is
+             null whenever `familyAggregate.members` is empty, which is every
+             reader who has a birth profile but no family vault yet — the
+             backend 422s before its owner-injection step runs (see the
+             `reading`/`readingChartId` fallback comment above). That used to
+             blank this ENTIRE section, including "Your chart in two/five
+             minutes" — the reading this tab exists to open with — for exactly
+             the reader it matters most for: someone who just calculated their
+             own chart and has not added anyone else yet. Every value read
+             below (`readingName`, `readingChartId`, `activeIsSelf`,
+             `readingSummary`, `dailyGuidance`, …) already resolves to the
+             owner's own data in that case, so the section itself needed no
+             other change. */}
+        {readingChartId && (
           <section id="hy-overview" style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)", scrollMarginTop: "72px" }}>
             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "var(--space-4)", flexWrap: "wrap" }}>
               <div>
