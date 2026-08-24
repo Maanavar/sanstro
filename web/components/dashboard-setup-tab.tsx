@@ -6,7 +6,7 @@ import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
 import { useBirthProfileForm } from "@/hooks/useBirthProfileForm";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
-import { dt, ONBOARDING_DETAIL_LEVEL } from "@/lib/dashboard-i18n";
+import { dt, FAMILY_ONBOARDING, ONBOARDING_DETAIL_LEVEL } from "@/lib/dashboard-i18n";
 import type { FamilyVaultListItem, FamilyAggregateMember } from "@/lib/types";
 import { PlaceCombobox } from "./place-combobox";
 import { RectificationWizard } from "./dashboard-rectification-wizard";
@@ -260,8 +260,9 @@ export function DashboardSetupTab({
     },
     {
       n: 2,
-      label: lang === "ta" ? "குடும்ப கொட்டில்" : "Family vault",
-      sub: lang === "ta" ? "உறுப்பினர்களை ஒரே இடத்தில்" : "Group members under one roof",
+      // A-010: "vault" everywhere a reader can see it is now "your family".
+      label: lang === "ta" ? "உங்கள் குடும்பம்" : "Your family",
+      sub: lang === "ta" ? "உறுப்பினர்களை ஒரே இடத்தில்" : "Everyone's charts in one place",
       done: !!selectedVaultId,
     },
     {
@@ -375,7 +376,8 @@ export function DashboardSetupTab({
               <h3 style={{ margin: 0, fontSize: "var(--text-md)", fontWeight: 700, color: "var(--color-text-strong)" }}>
                 {lang === "ta" ? "உங்கள் பிறந்த விவரங்கள்" : "Your birth details"}
               </h3>
-              <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)" }}>
+              <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)" }}>{dt(FAMILY_ONBOARDING.firstMember, lang)}</p>
+              <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
                 {lang === "ta" ? "பெயர், தேதி, நேரம் மற்றும் இடம்" : "Name, date, time and place"}
               </p>
             </div>
@@ -657,23 +659,23 @@ export function DashboardSetupTab({
           border: `1.5px solid ${selectedVaultId ? "var(--color-high)" : setupStep === 2 ? "var(--color-accent)" : "var(--color-border)"}`,
           borderRadius: "var(--radius-md)",
           padding: "var(--space-6)",
-          display: "flex", flexDirection: "column", gap: "var(--space-4)",
+          display: selectedVaultId ? "flex" : "none", flexDirection: "column", gap: "var(--space-4)",
           opacity: setupStep < 2 ? 0.45 : 1,
           pointerEvents: setupStep < 2 ? "none" : undefined,
         }}>
           {/* Card header — vault name updates live from vaultForm.name */}
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
             <StatusChip done={!!selectedVaultId} label={selectedVaultId
-              ? (lang === "ta" ? "கொட்டில் உள்ளது" : "Vault exists")
+              ? (lang === "ta" ? "குடும்பம் உருவாக்கப்பட்டது" : "Family created")
               : (lang === "ta" ? "தேவை" : "Required")} />
             <h3 style={{ margin: 0, fontSize: "var(--text-md)", fontWeight: 700, color: "var(--color-text-strong)" }}>
-              {/* Show live-typed name while editing, or saved vault name, or fallback */}
-              {vaultForm.name || selectedVault?.name || (lang === "ta" ? "குடும்ப கொட்டில்" : "Family vault")}
+              {/* Show live-typed name while editing, or the saved name, or fallback */}
+              {vaultForm.name || selectedVault?.name || (lang === "ta" ? "உங்கள் குடும்பம்" : "Your family")}
             </h3>
             <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)" }}>
               {familyMembers.length > 0
                 ? `${familyMembers.length} ${t("members_label_pl", lang)} · ${selectedVault?.defaultLanguage ?? vaultForm.defaultLanguage}`
-                : (lang === "ta" ? "உறுப்பினர்களை ஒரே கூரையின் கீழ் சேர்" : "Group members under one roof")}
+                : (lang === "ta" ? "உறுப்பினர்களை ஒரே கூரையின் கீழ் சேர்" : "Everyone's charts in one place")}
             </p>
           </div>
 
@@ -755,7 +757,7 @@ export function DashboardSetupTab({
       </div>
 
       {/* ── Step 3 — Add family member (separate card, outside vault card) ── */}
-      {selectedVaultId && (
+      {birthProfileId && (
         <div style={{
           background: "var(--color-surface)",
           border: `1.5px solid ${(selectedVault?.memberCount ?? 0) > 1 ? "var(--color-high)" : setupStep === 3 ? "var(--color-accent)" : "var(--color-border)"}`,
@@ -773,8 +775,8 @@ export function DashboardSetupTab({
               </h3>
               <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)" }}>
                 {lang === "ta"
-                  ? "மனைவி, பெற்றோர், குழந்தை — அவர்களின் ஜாதகம் மட்டும் கொடுங்கள். கொட்டில் விவரங்கள் தனியே உள்ளன."
-                  : "Add spouse, parent, child, etc. — only their birth details needed here. Vault settings are separate above."}
+                  ? "மனைவி, பெற்றோர், குழந்தை — அவர்களின் ஜாதகம் மட்டும் கொடுங்கள். குடும்ப அமைப்புகள் தனியே உள்ளன."
+                  : "Add spouse, parent, child, etc. — only their birth details needed here. Family settings are separate above."}
               </p>
             </div>
           </div>

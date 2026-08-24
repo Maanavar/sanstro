@@ -26,7 +26,7 @@ export function BirthProfilesManager({ lang, activeProfileId, onProfileSelect }:
       warnings.push("This is your active profile used in Life Areas and personal dashboard views.");
     }
     if (profile.familyMemberId) {
-      warnings.push("This profile is linked to a Family Vault member, so deleting it will remove that member's profile from Family views too.");
+      warnings.push("This profile is linked to a family member, so deleting it will remove that member's profile from Family views too.");
     }
     return warnings.join(" ");
   }

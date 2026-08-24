@@ -502,7 +502,7 @@ export function DashboardSettingsSessionTab({
     { label: lang === "ta" ? "உரிமையாளர் பயனர் ID" : "Owner user ID", value: ownerUserId },
     { label: lang === "ta" ? "பிறப்பு விவர ID" : "Birth profile ID", value: birthProfileId },
     { label: lang === "ta" ? "ஜாதக ID" : "Chart ID", value: chartId },
-    { label: lang === "ta" ? "கொட்டில் ID" : "Vault ID", value: selectedVaultId },
+    { label: lang === "ta" ? "குடும்ப ID" : "Family ID", value: selectedVaultId },
   ].filter((f) => f.value);
 
   const panelWrap: React.CSSProperties = { display: "flex", flexDirection: "column", gap: "var(--space-5)", animation: "vfade .3s ease" };
@@ -513,8 +513,8 @@ export function DashboardSettingsSessionTab({
       <PanelHeader
         title={lang === "ta" ? "கணக்கு" : "Account"}
         desc={lang === "ta"
-          ? "உங்கள் அடையாளம், இந்த அமர்வு படிக்கும் கொட்டில், மற்றும் ஒவ்வொரு கணிப்பும் நங்கூரமிடும் தேதி."
-          : "Your identity, the vault this session is reading from, and the date every forecast is anchored to."}
+          ? "உங்கள் அடையாளம், இந்த அமர்வு படிக்கும் குடும்பம், மற்றும் ஒவ்வொரு கணிப்பும் நங்கூரமிடும் தேதி."
+          : "Your identity, the family this session is reading from, and the date every forecast is anchored to."}
       />
 
       {/* identity hero */}
@@ -539,7 +539,7 @@ export function DashboardSettingsSessionTab({
             <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
               {lang === "ta" ? "படிக்கிறது " : "Reading "}
               <span style={{ color: "var(--color-accent-secondary)", fontWeight: 600 }}>{vaultName}</span>
-              {lang === "ta" ? " கொட்டில்" : " vault"}
+              {lang === "ta" ? " குடும்பம்" : " family"}
             </div>
           )}
         </div>
@@ -557,14 +557,14 @@ export function DashboardSettingsSessionTab({
             </Field>
           </div>
           <div>
-            <div style={{ ...KICKER, marginBottom: "8px" }}>{lang === "ta" ? "செயலில் உள்ள கொட்டில்" : "Active vault"}</div>
+            <div style={{ ...KICKER, marginBottom: "8px" }}>{lang === "ta" ? "செயலில் உள்ள குடும்பம்" : "Active family"}</div>
             {/* A read-only value that borrows the field box, not a control — it
                 keeps `.ui-input`'s look without becoming focusable, since the
-                vault is switched from the Family tab (see the note below). */}
+                family is switched from the Family tab (see the note below). */}
             <div className="ui-input">
               {vaultName?.trim() || (lang === "ta" ? "தேர்ந்தெடுக்கப்படவில்லை" : "None selected")}
             </div>
-            <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "7px" }}>{lang === "ta" ? "குடும்பத் தாவலில் கொட்டில்களை மாற்றவும்." : "Switch vaults from the Family tab."}</div>
+            <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "7px" }}>{lang === "ta" ? "குடும்பத் தாவலில் குடும்பங்களை மாற்றவும்." : "Switch families from the Family tab."}</div>
           </div>
         </div>
 

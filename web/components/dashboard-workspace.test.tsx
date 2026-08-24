@@ -49,3 +49,14 @@ describe("dashboard-workspace — first post-calculation screen (T5)", () => {
     expect(body).toMatch(/activeTab === "family" && personal\.chartId && !hasVisitedReading/);
   });
 });
+
+describe("dashboard-workspace — family onboarding (T19)", () => {
+  it("creates 'Your family' only when the first member is submitted", () => {
+    const fn = source.slice(source.indexOf("async function handleAddMember"));
+    const body = fn.slice(0, fn.indexOf("\n  async function handleSaveEdit"));
+
+    expect(body).toMatch(/if \(!targetVaultId\)/);
+    expect(body).toMatch(/name: lang === "ta" \? "உங்கள் குடும்பம்" : "Your family"/);
+    expect(body).toMatch(/family-vaults\/\$\{targetVaultId\}\/members/);
+  });
+});

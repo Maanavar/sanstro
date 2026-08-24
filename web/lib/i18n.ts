@@ -56,12 +56,16 @@ const STRINGS = {
   metric_bhukti:     { ta: "புக்தி",            en: "Bhukti" },
   metric_family_score: { ta: "குடும்ப மதிப்பெண்", en: "Family score" },
   metric_members:    { ta: "உறுப்பினர்கள்",    en: "members" },
-  metric_vault_select: { ta: "சேகரிப்பு தேர்வு செய்யவும்",  en: "select a vault" },
+  metric_vault_select: { ta: "குடும்பத்தைத் தேர்வு செய்யவும்",  en: "select a family" },
 
   // ── Setup wizard
   setup_kicker:       { ta: "தொடக்கம்",            en: "Setup" },
   setup_step1_label:  { ta: "உங்கள் ஜாதகம்",     en: "Your chart" },
-  setup_step2_label:  { ta: "குடும்ப சேகரிப்பு",      en: "Family vault" },
+  // A-010: "vault" is product jargon for what is simply the reader's family.
+  // Renamed across every surface a reader meets; the API resource is still
+  // family-vaults and is deliberately left alone.
+  // New Tamil, pending native review.
+  setup_step2_label:  { ta: "உங்கள் குடும்பம்",      en: "Your family" },
   setup_step3_label:  { ta: "உறுப்பினர் சேர்",   en: "Add member" },
   setup_step_done:    { ta: "✓ உருவாக்கப்பட்டது", en: "✓ Created" },
   setup_step1_title:  { ta: "உங்கள் ஜாதக விவரங்கள்", en: "Your birth details" },
@@ -70,21 +74,24 @@ const STRINGS = {
   setup_step1_edit:   { ta: "✎ திருத்து",         en: "✎ Edit" },
   setup_step1_creating: { ta: "உருவாக்குகிறது…",  en: "Creating…" },
   setup_step1_goto_personal: { ta: "தனிப்பட்ட பக்கம் →", en: "Go to Personal →" },
-  setup_step2_title:  { ta: "குடும்ப சேகரிப்பு உருவாக்கு", en: "Create a family vault" },
-  setup_step2_sub:    { ta: "குடும்பத்தினர் ஜாதகங்களை ஒரே இடத்தில் தொகுக்க சேகரிப்பு தேவை.", en: "A vault groups all family members' charts in one place." },
-  setup_step2_create: { ta: "சேகரிப்பு உருவாக்கு",   en: "Create vault" },
-  setup_step2_more:   { ta: "+ மேலும் ஒரு சேகரிப்பு", en: "+ Another vault" },
+  // New Tamil, pending native review.
+  setup_step2_title:  { ta: "உங்கள் குடும்பத்தை உருவாக்கு", en: "Create your family" },
+  setup_step2_sub:    { ta: "குடும்பத்தினர் ஜாதகங்கள் அனைத்தையும் ஒரே இடத்தில் வைக்கிறது.", en: "Keeps all your family members' charts in one place." },
+  setup_step2_create: { ta: "குடும்பத்தை உருவாக்கு",   en: "Create family" },
+  setup_step2_more:   { ta: "+ மேலும் ஒரு குடும்பம்", en: "+ Another family" },
   setup_step2_creating: { ta: "உருவாக்குகிறது…", en: "Creating…" },
   setup_step2_selected: { ta: "✓ தேர்ந்தெடுக்கப்பட்டது", en: "✓ Selected" },
   setup_step3_title:  { ta: "குடும்ப உறுப்பினரை சேர்க்கவும்", en: "Add a family member" },
-  setup_step3_sub_vault: { ta: "சேகரிப்பை தேர்வு செய்த பின் உறுப்பினரை சேர்க்கலாம்", en: "Pick a vault first, then add members" },
+  // New Tamil, pending native review.
+  setup_step3_sub_vault: { ta: "குடும்பத்தைத் தேர்வு செய்த பின் உறுப்பினரை சேர்க்கலாம்", en: "Pick a family first, then add members" },
   setup_step3_add:    { ta: "+ உறுப்பினரை சேர்", en: "+ Add member" },
   setup_step3_adding: { ta: "சேர்க்கிறது…",      en: "Adding…" },
   setup_done_title:   { ta: "✓ தொடக்கம் முடிந்தது!", en: "✓ Setup complete!" },
   setup_done_goto:    { ta: "தனிப்பட்ட பக்கம் →",  en: "Go to Personal →" },
   setup_required:     { ta: "* கட்டாய தகவல்கள்",  en: "* Required fields" },
   setup_calc_now:     { ta: "ஜாதகம் உடனே கணக்கிடு", en: "Calculate now" },
-  setup_vault_step_active: { ta: "✓ சேகரிப்பு உள்ளது", en: "✓ Vault exists" },
+  // New Tamil, pending native review.
+  setup_vault_step_active: { ta: "✓ குடும்பம் உருவாக்கப்பட்டது", en: "✓ Family created" },
 
   // ── Form field labels
   field_name:         { ta: "பெயர் *",           en: "Name *" },
@@ -96,7 +103,8 @@ const STRINGS = {
   field_latitude:     { ta: "அட்சரேகை (Lat) *",  en: "Latitude *" },
   field_longitude:    { ta: "தீர்க்கரேகை (Lng) *", en: "Longitude *" },
   field_weight:       { ta: "எடை (Weight)",       en: "Weight" },
-  field_vault_name:   { ta: "சேகரிப்பு பெயர்",        en: "Vault name" },
+  // New Tamil, pending native review.
+  field_vault_name:   { ta: "குடும்பப் பெயர்",        en: "Family name" },
   field_language:     { ta: "மொழி",               en: "Language" },
   field_owner_id:     { ta: "Owner ID",           en: "Owner ID" },
   // Was "Leave blank if unknown" alone, which told the reader what they were
@@ -320,11 +328,12 @@ const STRINGS = {
 
   // ── Family tab
   family_kicker:    { ta: "குடும்பம்",   en: "Family" },
-  family_title:     { ta: "குடும்ப சேகரிப்பு", en: "Family vault" },
+  family_title:     { ta: "உங்கள் குடும்பம்", en: "Your family" },
   family_desc:      { ta: "குடும்ப மதிப்பெண், உறுப்பினர் ராசி கட்டங்கள், பொதுவான சிறந்த நேரங்கள்", en: "Family score, member charts, shared best windows" },
-  surface_vaults:   { ta: "உங்கள் சேகரிப்புகள்",  en: "Your vaults" },
-  vaults_loading:   { ta: "சேகரிப்புகள் ஏற்றுகிறது…", en: "Loading vaults…" },
-  vaults_empty:     { ta: "சேகரிப்பு இல்லை. அமைப்புகள் > தொடக்கம்-ல் உருவாக்கவும்.", en: "No vaults found. Create one in Settings > Setup." },
+  // New Tamil, pending native review.
+  surface_vaults:   { ta: "உங்கள் குடும்பங்கள்",  en: "Your families" },
+  vaults_loading:   { ta: "குடும்பங்கள் ஏற்றுகிறது…", en: "Loading families…" },
+  vaults_empty:     { ta: "குடும்பம் இல்லை. அமைப்புகள் > தொடக்கம்-ல் உருவாக்கவும்.", en: "No families yet. Create one in Settings > Setup." },
   members_label:    { ta: "உறுப்பினர்",  en: "member" },
   members_label_pl: { ta: "உறுப்பினர்கள்", en: "members" },
   no_aggregate:     { ta: "சுருக்கம் இல்லை", en: "no aggregate yet" },
@@ -333,8 +342,9 @@ const STRINGS = {
   support_need:     { ta: "துணை தேவை",       en: "Support need" },
   decision_ready:   { ta: "முடிவு எடுக்க ஏற்ற நிலை", en: "Decision readiness" },
   best_windows:     { ta: "பொதுவான சிறந்த நேரங்கள்", en: "Shared best windows" },
-  no_members_yet:   { ta: "சேகரிப்பில் உறுப்பினர் இல்லை.", en: "No members in this vault yet." },
-  select_vault:     { ta: "சேகரிப்பு தேர்வு செய்யவும்.",   en: "Select a vault to see members." },
+  // New Tamil, pending native review.
+  no_members_yet:   { ta: "இந்தக் குடும்பத்தில் இன்னும் உறுப்பினர் இல்லை.", en: "No members in this family yet." },
+  select_vault:     { ta: "உறுப்பினர்களைக் காண குடும்பத்தைத் தேர்வு செய்யவும்.",   en: "Select a family to see members." },
   members_loading:  { ta: "உறுப்பினர்கள் ஏற்றுகிறது…", en: "Loading members…" },
   charts_loading:   { ta: "· கட்டங்கள் ஏற்றுகிறது…",  en: "· loading charts…" },
   dasha_bhukti_antaram: { ta: "வாழ்க்கைக் காலங்கள் — பெரிய, துணை, சிறு", en: "Life periods — major, sub, and minor" },
@@ -353,8 +363,9 @@ const STRINGS = {
   edit_profile_sub:    { ta: "புதிய பதிவு உருவாகும் — தரவு மீண்டும் கணக்கிடப்படும்", en: "A new profile will be created and data recalculated" },
 
   // ── Delete confirm
-  confirm_remove_member: { ta: "இந்த உறுப்பினரை நீக்கவா?", en: "Remove this member from the vault?" },
-  confirm_delete_vault:  { ta: "சேகரிப்பு மற்றும் அனைத்து உறுப்பினர்களையும் நீக்கவா? இதை மீட்க முடியாது.", en: "Delete vault and all members? This cannot be undone." },
+  // New Tamil, pending native review.
+  confirm_remove_member: { ta: "இந்த உறுப்பினரை நீக்கவா?", en: "Remove this member from your family?" },
+  confirm_delete_vault:  { ta: "இந்தக் குடும்பத்தையும் அனைத்து உறுப்பினர்களையும் நீக்கவா? இதை மீட்க முடியாது.", en: "Delete this family and all its members? This cannot be undone." },
 
   // ── Calendar tab
   calendar_kicker:  { ta: "கிரகநகர்வு & நிகழ்வுகள்", en: "Transits & Events" },
@@ -393,12 +404,13 @@ const STRINGS = {
   // ── Settings tab
   settings_kicker:  { ta: "அமைப்புகள்",   en: "Settings" },
   settings_title:   { ta: "தற்போதைய தேர்வுகள்", en: "Session state" },
-  settings_desc:    { ta: "இந்த மதிப்புகள் உரிமையாளர், தேதி மற்றும் சேகரிப்பை ஒரே நிலையில் வைக்கின்றன.", en: "These values anchor the session to one owner, one date, and one vault." },
+  // New Tamil, pending native review.
+  settings_desc:    { ta: "இந்த மதிப்புகள் உரிமையாளர், தேதி மற்றும் குடும்பத்தை ஒரே நிலையில் வைக்கின்றன.", en: "These values anchor the session to one owner, one date, and one family." },
   settings_owner:   { ta: "Owner user ID", en: "Owner user ID" },
-  settings_owner_hint: { ta: "அனைத்து ஜாதகம் மற்றும் சேகரிப்பு படிவங்களிலும் பகிரப்படுகிறது.", en: "Shared across all profile and vault forms." },
+  settings_owner_hint: { ta: "அனைத்து ஜாதகம் மற்றும் குடும்பப் படிவங்களிலும் பகிரப்படுகிறது.", en: "Shared across all profile and family forms." },
   settings_date:    { ta: "தேர்ந்தெடுத்த தேதி",  en: "Selected date" },
-  settings_vault:   { ta: "தேர்ந்தெடுத்த சேகரிப்பு", en: "Selected vault" },
-  settings_vault_hint: { ta: "குடும்பம் தாவலில் சேகரிப்பை கிளிக் செய்து மாற்றவும்.", en: "Click a vault in the Family tab to switch." },
+  settings_vault:   { ta: "தேர்ந்தெடுத்த குடும்பம்", en: "Selected family" },
+  settings_vault_hint: { ta: "குடும்பம் தாவலில் ஒரு குடும்பத்தைக் கிளிக் செய்து மாற்றவும்.", en: "Click a family in the Family tab to switch." },
   settings_profile: { ta: "Birth profile ID", en: "Birth profile ID" },
   settings_chart:   { ta: "Chart ID",          en: "Chart ID" },
   settings_quick:   { ta: "விரைவு புதுப்பிப்பு", en: "Quick refresh" },
@@ -458,7 +470,8 @@ const STRINGS = {
 
   // Toast messages
   toast_profile_created: { ta: "ஜாதகம் உருவாக்கப்பட்டது.", en: "Profile created." },
-  toast_vault_required:  { ta: "முதலில் குடும்ப சேகரிப்பை தேர்வு செய்யவும்.", en: "Please select a family vault first." },
+  // New Tamil, pending native review.
+  toast_vault_required:  { ta: "முதலில் ஒரு குடும்பத்தைத் தேர்வு செய்யவும்.", en: "Please select a family first." },
 
   // Metric strip hint
   hint_no_profile:      { ta: "பிறப்பு விவரம் உருவாக்கவும்", en: "create a profile" },
@@ -781,7 +794,7 @@ const STRINGS = {
 
   // ── Synastry & Relationship compatibility
   synastry_panel_title:    { ta: "உறவு பொருத்தம்",              en: "Relationship Compatibility" },
-  synastry_panel_desc:     { ta: "குடும்ப உறுப்பினர்களுடன் ஜாதக பொருத்தம் ஆய்வு",  en: "Synastry analysis with family vault members" },
+  synastry_panel_desc:     { ta: "குடும்ப உறுப்பினர்களுடன் ஜாதக பொருத்தம் ஆய்வு",  en: "Synastry analysis with your family members" },
   synastry_select_member:  { ta: "உறுப்பினரை தேர்வு செய்யவும்",  en: "Select a member to analyse" },
   synastry_loading:        { ta: "பொருத்தம் கணக்கிடுகிறது…",    en: "Calculating compatibility…" },
   synastry_score:          { ta: "பொருத்த மதிப்பெண்",            en: "Compatibility Score" },
@@ -792,7 +805,7 @@ const STRINGS = {
   synastry_aspect_supportive: { ta: "சாதகம்",                   en: "Supportive" },
   synastry_aspect_challenging:{ ta: "சவால்",                    en: "Challenging" },
   synastry_aspect_neutral: { ta: "நடுநிலை",                     en: "Neutral" },
-  synastry_no_vault:       { ta: "குடும்ப சேகரிப்பு உறுப்பினர்கள் தேவை. குடும்பம் தாவலில் சேர்க்கவும்.", en: "Family vault members needed. Add them in the Family tab." },
+  synastry_no_vault:       { ta: "குடும்ப உறுப்பினர்கள் தேவை. குடும்பம் தாவலில் சேர்க்கவும்.", en: "Family members needed. Add them in the Family tab." },
   synastry_no_members:     { ta: "உறுப்பினர்கள் இல்லை",         en: "No members available" },
   rel_alerts_title:        { ta: "உறவு அறிவிப்புகள்",           en: "Relationship Alerts" },
   rel_alerts_empty:        { ta: "தற்போது உறவு அறிவிப்புகள் இல்லை.", en: "No relationship alerts at this time." },
@@ -1087,7 +1100,7 @@ const STRINGS = {
 
   // ── Toasts (family vault, %s = name)
   toast_member_removed:    { ta: "%s நீக்கப்பட்டார்.",        en: "%s removed." },
-  toast_vault_deleted:     { ta: '"%s" சேகரிப்பு நீக்கப்பட்டது.', en: 'Vault "%s" deleted.' },
+  toast_vault_deleted:     { ta: '"%s" குடும்பம் நீக்கப்பட்டது.', en: 'Family "%s" deleted.' },
 
   // ── Today tab: fail-soft retry chip (DASH-02) + reminder consent (DASH-06)
   today_sections_failed:   { ta: "சில பகுதிகளை ஏற்ற முடியவில்லை.", en: "Some sections couldn't load." },

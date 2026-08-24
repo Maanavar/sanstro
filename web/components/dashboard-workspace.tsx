@@ -1316,18 +1316,40 @@ export function DashboardWorkspace() {
 
   async function handleAddMember(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!family.selectedVaultId) { showToast(t("toast_vault_required", lang), "error"); return; }
     const errors = validateMemberForm(memberForm);
     if (Object.keys(errors).length > 0) { setFormErrors(errors); return; }
     setFormErrors({});
     setBusyAddMember(true);
     try {
+      // T19: a family space is useful only once there is someone else to add.
+      // Do not make its creation a second onboarding gate; create it on the
+      // first member submission and keep the person moving toward a result.
+      let targetVaultId = family.selectedVaultId;
+      if (!targetVaultId) {
+        const vaultResponse = await apiFetchJson<ApiEnvelope<{
+          familyVaultId: string; ownerUserId: string;
+        }>>(
+          "/api/v1/family-vaults",
+          {
+            method: "POST",
+            body: JSON.stringify({
+              ownerUserId: ownerUserId || undefined,
+              name: lang === "ta" ? "உங்கள் குடும்பம்" : "Your family",
+              defaultLanguage: vaultForm.defaultLanguage,
+            }),
+          },
+        );
+        targetVaultId = vaultResponse.data.familyVaultId;
+        setOwnerUserId(vaultResponse.data.ownerUserId);
+        family.setSelectedVaultId(targetVaultId);
+        await family.loadVaults(vaultResponse.data.ownerUserId);
+      }
       const response = await apiFetchJson<ApiEnvelope<{ familyMemberId: string; displayName: string }>>(
-        `/api/v1/family-vaults/${family.selectedVaultId}/members`,
+        `/api/v1/family-vaults/${targetVaultId}/members`,
         {
           method: "POST",
           body: JSON.stringify({
-            ownerUserId, familyVaultId: family.selectedVaultId,
+            ownerUserId, familyVaultId: targetVaultId,
             relationshipToOwner: memberForm.relationshipToOwner,
             displayName: memberForm.displayName,
             birthDateLocal: memberForm.birthDateLocal,
@@ -1353,7 +1375,7 @@ export function DashboardWorkspace() {
       setStatus(`${response.data.displayName} added to vault.`);
       setMemberForm(defaultMemberForm);
       await family.loadVaults(ownerUserId);
-      await family.refreshFamilyBundle(family.selectedVaultId, selectedDate);
+      await family.refreshFamilyBundle(targetVaultId, selectedDate);
       setActiveTab("personal");
     } catch (error) {
       const msg = getFriendlyErrorMessage(error);

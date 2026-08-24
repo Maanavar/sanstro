@@ -177,3 +177,12 @@ describe("Setup — the detail-level question", () => {
     expect(screen.queryByRole("radiogroup", { name: QUESTION })).toBeNull();
   });
 });
+
+describe("Setup — family onboarding", () => {
+  it("lets a reader add their first family member without creating a vault first", async () => {
+    await renderSetup({ birthProfileId: "11111111-1111-1111-1111-111111111111" });
+
+    expect(screen.getByRole("heading", { name: "Add a family member" })).toBeInTheDocument();
+    expect(screen.getByText(/create your family automatically when you add the first person/i)).toBeInTheDocument();
+  });
+});

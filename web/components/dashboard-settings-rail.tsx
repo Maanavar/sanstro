@@ -107,9 +107,10 @@ export function SettingsRail({
   vaultName: string;
 }) {
   const displayName = userDisplayName?.trim() || (lang === "ta" ? "உங்கள் கணக்கு" : "Your account");
+  // A-010: the reader's own family, not a "vault".
   const vaultLine = vaultName?.trim()
-    ? `${vaultName} ${lang === "ta" ? "கொட்டில்" : "vault"}`
-    : (lang === "ta" ? "கொட்டில் தேர்ந்தெடுக்கப்படவில்லை" : "No vault selected");
+    ? `${vaultName} ${lang === "ta" ? "குடும்பம்" : "family"}`
+    : (lang === "ta" ? "குடும்பம் தேர்ந்தெடுக்கப்படவில்லை" : "No family selected");
 
   return (
     <div className="vs-settings-rail">
