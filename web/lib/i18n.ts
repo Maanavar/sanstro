@@ -598,8 +598,10 @@ const STRINGS = {
   pred_neutral_badge:      { ta: "நடுநிலை",                         en: "Neutral" },
 
   // ── Phase 2: Yogas & Doshams
-  yogas_title:             { ta: "யோகங்கள்",                         en: "Yogas" },
-  doshams_title:           { ta: "தோஷங்கள்",                         en: "Doshams" },
+  // B-032/B-033: lead with the plain meaning; retain the traditional name.
+  // New Tamil, pending native review.
+  yogas_title:             { ta: "ஜாதக அமைப்புகள் (யோகங்கள்)",       en: "Chart combinations (Yogas)" },
+  doshams_title:           { ta: "பாரம்பரிய கவன அமைப்புகள் (தோஷங்கள்)", en: "Traditional caution patterns (Doshams)" },
   yoga_present:            { ta: "இருக்கிறது",                       en: "Present" },
   yoga_absent:             { ta: "இல்லை",                            en: "Absent" },
   dosham_cancelled:        { ta: "ரத்தாகியது",                       en: "Cancelled" },

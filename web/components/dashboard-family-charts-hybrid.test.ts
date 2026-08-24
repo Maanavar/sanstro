@@ -22,3 +22,14 @@ describe("family Sani cycle copy", () => {
     expect(text.action).toContain("not the main verdict");
   });
 });
+
+describe("Dasha panel title wiring (T20)", () => {
+  it("uses the plain-language life-period title from the shared copy", async () => {
+    const { readFileSync } = await import("node:fs");
+    const source = readFileSync("components/dashboard-family-charts-hybrid.tsx", "utf8");
+
+    expect(source).toContain('title={dt(DASHA_PANEL.title, lang)}');
+    expect(source).toContain('sub={dt(DASHA_PANEL.subtitle, lang)}');
+    expect(source).not.toContain('title={lang === "ta" ? "தசா & காலவரிசை" : "Dashas & timeline"}');
+  });
+});

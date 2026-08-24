@@ -27,6 +27,7 @@ import { ageAtDate, DashaLordLabel } from "./dashboard-dasha";
 import type { Mode } from "@/lib/plainlang";
 import { Card, Kicker } from "./ui";
 import { GlossaryTerm } from "./glossary-term";
+import { dt, PLANET_ROW_DETAILS } from "@/lib/dashboard-i18n";
 
 /**
  * Net-new graphical leaf components for the Family & Charts "Hybrid v2"
@@ -447,8 +448,13 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
                         (strength bar, pada, D9, facet lines) are tucked one more
                         tap down in the "Technical details" toggle (Phase 3), so
                         nothing is lost but nothing ambushes a newcomer. */}
-                    <HyPlanetVerdict lang={lang} pl={pl} expl={expl} />
-                    <HyPlanetLifeAreas lang={lang} expl={expl} />
+                     <HyPlanetVerdict lang={lang} pl={pl} expl={expl} />
+                     <HyPlanetLifeAreas lang={lang} expl={expl} />
+                     {flags.length > 0 && (
+                       <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)" }}>
+                         {dt(PLANET_ROW_DETAILS.statusMarks, lang)}
+                       </p>
+                     )}
                     {remedy && (
                       <Card variant="high" style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "var(--space-3)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)" }}>
                         <span style={{ color: "var(--color-high)", fontSize: "var(--text-base)", flexShrink: 0 }}>⋔</span>
@@ -514,7 +520,7 @@ function HyTechnicalDetails({ lang, pl, expl }: {
           {/* Pada + Navamsa (D9) — surfaced unconditionally so the data is never
               lost (B-11). */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-3) var(--space-7)" }}>
-            <HyFact label={t("col_pada", lang)} value={String(pl.pada)} />
+            <HyFact label={t("col_pada", lang)} value={`${pl.pada} · ${dt(PLANET_ROW_DETAILS.pada, lang)}`} />
             <HyFact label={t("col_d9_rasi", lang)} value={RASI_NAMES[pl.d9Rasi] ?? String(pl.d9Rasi)} />
           </div>
           {bodyFacets.length > 0 ? (

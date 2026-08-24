@@ -5,7 +5,7 @@ import { ArrowRight, Sparkles } from "lucide-react";
 
 import { apiFetchJson } from "@/lib/api";
 import { formatClockLabel, scoreColor } from "@/lib/format";
-import { dt, SANI_CYCLE_CARD, SANI_CYCLE_LABELS } from "@/lib/dashboard-i18n";
+import { DASHA_PANEL, dt, SANI_CYCLE_CARD, SANI_CYCLE_LABELS } from "@/lib/dashboard-i18n";
 import { cycleDate, cycleText } from "@/lib/sani-cycle-card";
 import {
   CARE_FILTER_NOTE,
@@ -1311,8 +1311,8 @@ export function DashboardFamilyChartsHybrid({
         {reading?.dasha && (
           <HySection
             id="hy-dashas"
-            title={lang === "ta" ? "தசைகள் & காலவரிசை" : "Dashas & timeline"}
-            sub={lang === "ta" ? "தற்போதைய தசை மற்றும் துணைக் காலங்கள்" : "current dasa and sub-periods"}
+            title={dt(DASHA_PANEL.title, lang)}
+            sub={dt(DASHA_PANEL.subtitle, lang)}
             meta={
               <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
                 {lang === "ta" ? "விம்சோத்தரி · லாஹிரி அயனாம்சம்" : "Vimsottari · Lahiri ayanamsa"}

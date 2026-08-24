@@ -154,6 +154,18 @@ export const DASHA_PANEL = {
   ),
 } as const;
 
+// New Tamil, pending native review (CLAUDE.md new-Tamil rule).
+export const PLANET_ROW_DETAILS = {
+  statusMarks: s(
+    "Status marks explain conditions that modify a planet's expression: retrograde turns its themes inward; combust means it is close to the Sun; vargottama means it repeats the same sign in the D9 chart.",
+    "நிலை அடையாளங்கள் கிரகத்தின் வெளிப்பாட்டை மாற்றும் நிலைகளைக் காட்டுகின்றன: வக்ரம் அதன் கருப்பொருள்களை உள்ளார்ந்ததாக மாற்றும்; அஸ்தம் சூரியனுக்கு அருகில் இருப்பதைக் குறிக்கும்; வர்கோத்தமம் D9 ஜாதகத்திலும் அதே ராசியைப் பெறுவதைக் குறிக்கும்.",
+  ),
+  pada: s(
+    "Pada is one of the four equal parts of a birth star. It adds a finer layer to the star's placement.",
+    "பாதம் என்பது ஒரு பிறப்பு நட்சத்திரத்தின் நான்கு சம பாகங்களில் ஒன்று. இது நட்சத்திர நிலைக்கு நுணுக்கமான ஒரு அடுக்கைச் சேர்க்கிறது.",
+  ),
+} as const;
+
 // ─── Jathagam kattam legend (UX blindspot audit 2026-08-22, B-017/A-019) ─────
 //
 // The twelve boxes are filled with two-letter graha abbreviations and four

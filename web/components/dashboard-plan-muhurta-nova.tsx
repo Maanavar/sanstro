@@ -6,6 +6,7 @@ import { apiFetchJson, toQuery } from "@/lib/api";
 import { useElapsedSeconds } from "@/hooks/useElapsedSeconds";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { CULTURAL_CONTEXT, dt } from "@/lib/dashboard-i18n";
 import type { ActivityTimingData } from "@/lib/types";
 import { ACTIVITY_OPTIONS, ACTIVITY_TO_MUHURTA } from "./dashboard-plan-shared";
 import { MuhurtaPanchangamOverlay, NovaMuhurtaPicker } from "./dashboard-plan-muhurta-picker-nova";
@@ -58,6 +59,10 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
           </p>
         </div>
       </Card>
+
+      <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.55 }}>
+        {dt(CULTURAL_CONTEXT.muhurta, lang)}
+      </p>
 
       <Card>
         <div>

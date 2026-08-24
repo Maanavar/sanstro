@@ -107,6 +107,15 @@ function auspiciousCard(title: string): HTMLElement {
   return card as HTMLElement;
 }
 
+describe("Panchangam view — plain-language day summary", () => {
+  it("leads with an interpretation before the named calendar facts", () => {
+    renderPanchangam();
+    expect(screen.getByTestId("calendar-day-summary")).toHaveTextContent(
+      "A generally favourable day. Use a recommended window for a new start.",
+    );
+  });
+});
+
 describe("Panchangam view — auspicious windows name their kala", () => {
   it("labels each recommended Nalla Neram window with its Gowri kala and quality", () => {
     renderPanchangam();

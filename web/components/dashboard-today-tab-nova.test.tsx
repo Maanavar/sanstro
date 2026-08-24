@@ -394,6 +394,19 @@ describe("Today tab — glossary coverage (T11)", () => {
       "/dashboard/glossary#nallaNeram",
     );
   });
+
+  it("glosses the Chandrashtama hero alert when that day needs extra care", async () => {
+    await renderWithWindows([], {
+      personalDailyGuidance: {
+        ...guidanceFixture(),
+        isChandrashtama: true,
+      } as unknown as DailyGuidanceData,
+    });
+
+    expect(screen.getByRole("button", { name: /Chandrashtama today/i })).toHaveStyle({
+      cursor: "help",
+    });
+  });
 });
 
 describe("Today tab — userMode wiring", () => {
