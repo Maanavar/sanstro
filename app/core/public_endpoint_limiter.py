@@ -40,6 +40,7 @@ class PublicEndpointLimiter:
         "public_calendar_categories": {"max_requests": 30, "window_seconds": 60},  # 30/min per IP (GET, SEO content pages)
         "public_panchangam_share_card": {"max_requests": 30, "window_seconds": 60},  # 30/min per IP (GET, panchangam-backed)
         "public_numerology": {"max_requests": 30, "window_seconds": 60},  # 30/min per IP (pure integer arithmetic, no ephemeris)
+        "places_search": {"max_requests": 60, "window_seconds": 60},  # 60/min per IP (autocomplete-style, fires every keystroke debounce)
     }
 
     def __init__(self) -> None:

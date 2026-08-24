@@ -19,6 +19,7 @@ from app.models.numerology_name_session import NumerologyNameSession
 from app.models.panchangam_cache import PanchangamCache
 from app.models.password_reset_token import PasswordResetToken
 from app.models.peyarchi_alert import PeyarchiAlert
+from app.models.place import Place
 from app.models.porutham_share import PoruthamShare
 from app.models.prediction_log import PredictionLog
 from app.models.qa_golden_case import QaGoldenCase
@@ -56,6 +57,7 @@ __all__ = [
     "PanchangamCache",
     "PasswordResetToken",
     "PeyarchiAlert",
+    "Place",
     "PoruthamShare",
     "PredictionLog",
     "QaGoldenCase",

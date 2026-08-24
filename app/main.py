@@ -18,6 +18,7 @@ from app.api.daily_guidance import router as daily_guidance_router
 from app.api.daily_snapshot import router as daily_snapshot_router
 from app.api.decisions import router as decisions_router
 from app.api.geo import router as geo_router
+from app.api.places import router as places_router
 from app.api.family_vaults import router as family_vaults_router
 from app.api.feedback import router as feedback_router
 from app.api.goals import router as goals_router
@@ -200,8 +201,12 @@ def create_app() -> FastAPI:
     app.include_router(auth_router, prefix=f"{settings.api_v1_prefix}/auth", tags=["auth"])
     # Mobile-only: cookie-free Bearer + refresh-token auth (no CSRF needed — no cookies)
     app.include_router(mobile_auth_router, prefix=f"{settings.api_v1_prefix}/auth")
-    # Geocoding proxy — public, no auth, no CSRF (GET/POST, no cookie auth)
+    # Geocoding proxy — public, no auth, no CSRF (GET/POST, no cookie auth). Kept
+    # as the explicit opt-in fallback only — see app/api/places.py for the
+    # bundled dataset that is now the default (B-006, owner ruling 2026-08-24).
     app.include_router(geo_router, prefix=settings.api_v1_prefix)
+    # Bundled offline place search — public, no auth, no CSRF (GET only)
+    app.include_router(places_router, prefix=settings.api_v1_prefix)
     # Third-party inbound webhooks (no cookie auth, validated by shared secret)
     app.include_router(webhooks_router, prefix=settings.api_v1_prefix)
     app.include_router(users_router, prefix=settings.api_v1_prefix, dependencies=csrf_dependencies)
