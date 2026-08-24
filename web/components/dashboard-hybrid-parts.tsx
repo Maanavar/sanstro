@@ -26,6 +26,7 @@ import { HOUSE_MEANING, OWN_SIGN_RASI } from "./dashboard-chart-explanation-data
 import { ageAtDate, DashaLordLabel } from "./dashboard-dasha";
 import type { Mode } from "@/lib/plainlang";
 import { Card, Kicker } from "./ui";
+import { GlossaryTerm } from "./glossary-term";
 
 /**
  * Net-new graphical leaf components for the Family & Charts "Hybrid v2"
@@ -396,7 +397,10 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
       <Card style={{ display: "block", overflow: "hidden", padding: 0 }}>
         <div style={{ display: "grid", gridTemplateColumns: PLANET_ROW_COLS, columnGap: "var(--space-3)", alignItems: "center", padding: "var(--space-3) var(--space-5)", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderBottom: "1px solid var(--color-border)", fontSize: "var(--text-xs)", letterSpacing: "0.1em", fontWeight: 700, color: "var(--color-faint)" }}>
           <span /><span>{t("col_graha", lang)}</span><span>{t("col_rasi", lang)}</span><span>{t("col_degree", lang)}</span>
-          <span>{t("col_nakshatra", lang)}</span><span>{t("col_house", lang)}</span>
+          <span>{t("col_nakshatra", lang)}</span>
+          {/* B-013: this is the column the audit named — "House (from Lagna)"
+              is unrecoverable without knowing what a house is. */}
+          <span><GlossaryTerm term="house" lang={lang}>{t("col_house", lang)}</GlossaryTerm></span>
           <span>{t("col_special", lang)}</span><span />
         </div>
         {planets.map((pl) => {
@@ -571,7 +575,7 @@ export function HyBhavaTable({ lang, chart, explanationPlanets }: {
     <Card style={{ padding: "var(--space-5) var(--space-5)", display: "flex", flexDirection: "column", gap: 0 }}>
       <Kicker color="var(--color-mid)">{lang === "ta" ? "பாவ (வீடு) மேலோட்டம்" : "Bhava (house) overview"}</Kicker>
       <div style={{ display: "grid", gridTemplateColumns: cols, columnGap: "var(--space-3)", padding: "var(--space-3) var(--space-2) var(--space-2)", marginTop: "8px", fontSize: "var(--text-xs)", letterSpacing: "0.1em", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase" }}>
-        <span>{lang === "ta" ? "வீடு" : "House"}</span>
+        <span><GlossaryTerm term="house" lang={lang}>{lang === "ta" ? "வீடு" : "House"}</GlossaryTerm></span>
         <span>{lang === "ta" ? "ராசி (அதிபதி)" : "Sign (Lord)"}</span>
         <span>{lang === "ta" ? "கிரகங்கள்" : "Planets"}</span>
         <span style={{ textAlign: "center" }}>{lang === "ta" ? "நிலை" : "Status"}</span>
@@ -1813,7 +1817,11 @@ export function HyTransitOverview({ lang, transit, memberName, onOpenTransits }:
   return (
     <Card style={{ padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "var(--space-3)" }}>
-        <Kicker color="var(--color-accent-strong)">{lang === "ta" ? "கோச்சர மேலோட்டம்" : "Transit overview"}</Kicker>
+        {/* B-014: "Transit" reads as travel to a reader without the tradition,
+            and this is the word's first use on the Family & Charts screen. */}
+        <Kicker color="var(--color-accent-strong)">
+          <GlossaryTerm term="gochar" lang={lang}>{lang === "ta" ? "கோச்சர மேலோட்டம்" : "Transit overview"}</GlossaryTerm>
+        </Kicker>
         <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{lang === "ta" ? "முக்கிய கிரக நகர்வுகள்" : "major planetary transits"}</span>
       </div>
       {rows.length > 0 && moonRasi && (

@@ -56,7 +56,9 @@ export type GlossaryKey =
   | "lagnam"
   | "pada"
   | "peyarchi"
-  | "sadeSati";
+  | "sadeSati"
+  | "house"
+  | "yoga";
 
 export const GLOSSARY: Record<GlossaryKey, { ta: string; en: string }> = {
   dasha: {
@@ -157,6 +159,16 @@ export const GLOSSARY: Record<GlossaryKey, { ta: string; en: string }> = {
   vara: {
     en: "The weekday, and the planet that rules it — Sunday the Sun, Monday the Moon, and so on. It colours the whole day's character.",
     ta: "வாரத்தின் நாளும் அதை ஆளும் கிரகமும் — ஞாயிறு சூரியன், திங்கள் சந்திரன், என்று தொடரும். நாள் முழுவதன் தன்மையை இது வண்ணமிடுகிறது.",
+  },
+  // New Tamil, pending native review.
+  house: {
+    en: "A numbered area of the birth chart. Each of the twelve houses represents a part of life, such as self, work, relationships, or home.",
+    ta: "ஜாதகத்தின் எண் கொண்ட ஒரு பகுதி. பன்னிரண்டு வீடுகளில் ஒவ்வொன்றும் தன்மை, வேலை, உறவுகள் அல்லது வீடு போன்ற வாழ்க்கையின் ஒரு பகுதியைக் குறிக்கிறது.",
+  },
+  // New Tamil, pending native review.
+  yoga: {
+    en: "A chart combination — a particular relationship between planets and houses. It is not exercise yoga; its meaning depends on the whole chart.",
+    ta: "ஜாதக அமைப்பு — கிரகங்கள் மற்றும் வீடுகளுக்கு இடையிலான ஒரு குறிப்பிட்ட தொடர்பு. இது உடற்பயிற்சி யோகம் அல்ல; இதன் பொருள் முழு ஜாதகத்தைப் பொறுத்தது.",
   },
   yogam: {
     en: "One of 27 daily combinations of Sun and Moon position. Nothing to do with the exercise — it is an almanac reading of the day's quality.",

@@ -15,6 +15,8 @@ import type { CityEntry } from "./place-combobox";
 import { Card } from "./ui";
 import { Field, FieldShell, Input } from "./ui/field";
 import { ModalShell } from "./modal-shell";
+import { GlossaryTerm } from "./glossary-term";
+import type { GlossaryKey } from "@/lib/glossary";
 
 export type PanchangamOverlayLocation = Pick<MuhurtaResponseData["activityLocation"], "latitude" | "longitude" | "timezone">;
 
@@ -391,14 +393,20 @@ export function MuhurtaPanchangamOverlay({
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(135px, 1fr))", borderTop: "1px solid var(--color-border)", borderLeft: "1px solid var(--color-border)" }}>
-              {[
-                [t("label_tithi2", lang), `${tTithi(data.tithi.name, lang)} · ${limbUntil(data.tithi.endsAt)}`],
-                [t("label_nakshatra2", lang), `${tNakshatra(data.nakshatra.name, lang)} · ${limbUntil(data.nakshatra.endsAt)}`],
-                [t("label_yogam", lang), `${tYoga(data.yoga.name, lang)} · ${limbUntil(data.yoga.endsAt)}`],
-                [t("label_karanam", lang), `${tKarana(data.karana.name, lang)} · ${limbUntil(data.karana.endsAt)}`],
-              ].map(([label, value]) => (
+              {/* B-036 / B-012: the activity names on this screen read well, but
+                  the four factors underneath them are bare proper nouns — and
+                  "Yoga" in particular reads as exercise to anyone outside the
+                  tradition. Gloss the factors, leave the activities alone. */}
+              {([
+                [t("label_tithi2", lang), `${tTithi(data.tithi.name, lang)} · ${limbUntil(data.tithi.endsAt)}`, "tithi"],
+                [t("label_nakshatra2", lang), `${tNakshatra(data.nakshatra.name, lang)} · ${limbUntil(data.nakshatra.endsAt)}`, "nakshatra"],
+                [t("label_yogam", lang), `${tYoga(data.yoga.name, lang)} · ${limbUntil(data.yoga.endsAt)}`, "yogam"],
+                [t("label_karanam", lang), `${tKarana(data.karana.name, lang)} · ${limbUntil(data.karana.endsAt)}`, "karana"],
+              ] as Array<[string, string, GlossaryKey]>).map(([label, value, glossary]) => (
                 <div key={label} style={{ minHeight: "82px", padding: "var(--space-3)", borderRight: "1px solid var(--color-border)", borderBottom: "1px solid var(--color-border)" }}>
-                  <p style={{ margin: 0, color: "var(--color-faint)", fontSize: "var(--text-xs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</p>
+                  <p style={{ margin: 0, color: "var(--color-faint)", fontSize: "var(--text-xs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                    <GlossaryTerm term={glossary} lang={lang}>{label}</GlossaryTerm>
+                  </p>
                   <p style={{ margin: "6px 0 0", color: "var(--color-text)", fontSize: "var(--text-sm)", lineHeight: 1.45 }}>{value}</p>
                 </div>
               ))}

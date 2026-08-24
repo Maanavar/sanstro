@@ -68,6 +68,10 @@ const TERM_LABELS: Record<GlossaryKey, { en: string; ta: string }> = {
   pada: { en: "Pada", ta: "பாதம்" },
   peyarchi: { en: "Peyarchi", ta: "பெயர்ச்சி" },
   sadeSati: { en: "Sade Sati", ta: "ஏழரை சனி" },
+  // New Tamil, pending native review.
+  house: { en: "House", ta: "வீடு" },
+  // New Tamil, pending native review.
+  yoga: { en: "Yoga", ta: "யோகம்" },
 };
 
 // New Tamil, pending native review.

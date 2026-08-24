@@ -7,6 +7,7 @@ import { novaDetailCardStyle } from "./dashboard-explore-detail-nova";
 
 import type { Lang } from "@/lib/i18n";
 import { tPlanetLord } from "@/lib/i18n";
+import { dt, EXPLORE_VOCABULARY } from "@/lib/dashboard-i18n";
 import { tamilizeAstroEnglish } from "@/lib/tamil-astro";
 import type { ChartCalculateResponseData, ChartSummaryData, DailyGuidanceData, NakshatraCardData } from "@/lib/types";
 import type { MemberChart } from "@/hooks/useFamilyData";
@@ -17,6 +18,7 @@ import { DashboardExploreDoshamNova, DashboardExploreDoshamListNova } from "./da
 import { DashboardExploreYogamNova, DashboardExploreYogamListNova } from "./dashboard-explore-yogam-nova";
 import { DashboardExploreGuideNova, DashboardExploreGuideListNova } from "./dashboard-explore-guide-nova";
 import { DashboardExploreLearnNova } from "./dashboard-explore-learn-nova";
+import { GlossaryTerm } from "./glossary-term";
 
 /**
  * Nova "Explore" tab — Phase 6 of the dashboard revamp (see
@@ -501,6 +503,9 @@ export function DashboardExploreTabNova({
           <Kicker>{lang === "ta" ? "நூலகம்" : "The library"}</Kicker>
           <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{lang === "ta" ? "எளிய தமிழில் ஒவ்வொரு பதிவும்" : "every entry in plain Tamil-first language"}</span>
         </div>
+        <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5 }}>
+          {dt(EXPLORE_VOCABULARY.yoga, lang)} <GlossaryTerm term="yoga" lang={lang}>{lang === "ta" ? "மேலும் அறிய" : "Learn more"}</GlossaryTerm>
+        </p>
         {filteredLibrary.length > 0 ? (
           <div className="nova-grid-3">
             {filteredLibrary.map((item) => {

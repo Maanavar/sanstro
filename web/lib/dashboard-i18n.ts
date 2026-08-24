@@ -73,6 +73,87 @@ export const FIRST_RESULT_GUIDE = {
   learnLink: s("Vedic vs Western basics", "வேத ஜோதிடம் மற்றும் மேலை ஜோதிடத்தின் அடிப்படை"),
 } as const;
 
+// New Tamil, pending native review (CLAUDE.md new-Tamil rule).
+export const CALENDAR_DAY_SUMMARY = {
+  favourable: s(
+    "A generally favourable day. Use a recommended window for a new start.",
+    "பொதுவாக நல்ல நாள். புதிய தொடக்கத்திற்கு பரிந்துரைக்கப்பட்ட நேரத்தைப் பயன்படுத்துங்கள்.",
+  ),
+  care: s(
+    "A day to take care with new starts. Plan around the periods to avoid below.",
+    "புதிய தொடக்கங்களில் கவனம் தேவைப்படும் நாள். கீழே உள்ள தவிர்க்க வேண்டிய நேரங்களைப் பார்த்துத் திட்டமிடுங்கள்.",
+  ),
+  ordinary: s(
+    "An ordinary day. Keep routine work moving and use a recommended window for a new start.",
+    "வழக்கமான நாள். தினசரி பணிகளைத் தொடருங்கள்; புதிய தொடக்கத்திற்கு பரிந்துரைக்கப்பட்ட நேரத்தைப் பயன்படுத்துங்கள்.",
+  ),
+} as const;
+
+// New Tamil, pending native review (CLAUDE.md new-Tamil rule).
+export const EXPLORE_VOCABULARY = {
+  yoga: s(
+    "Here, Yoga means a chart combination — not exercise yoga.",
+    "இங்கே யோகம் என்பது ஜாதக அமைப்பு; உடற்பயிற்சி யோகம் அல்ல.",
+  ),
+} as const;
+
+// New Tamil, pending native review (CLAUDE.md new-Tamil rule).
+export const REMEDIES_CONTEXT = {
+  body: s(
+    "These are optional traditional practices that some people find supportive, not prescriptions. Choose secular actions for practical, non-religious alternatives.",
+    "இவை கட்டாயம் அல்லாத பாரம்பரிய நடைமுறைகள்; சிலருக்கு ஆதரவாக இருப்பவை. நடைமுறை, மதச்சார்பற்ற மாற்றுகளுக்கு மதச்சார்பற்ற செயல்களைத் தேர்ந்தெடுக்கவும்.",
+  ),
+} as const;
+
+// A-038. "Prescribed" / "Not prescribed" is medical register for something this
+// same panel's disclaimer calls a traditional belief system — and a reader who
+// takes it as a prescription is being told, in the app's own voice, that a
+// stone is medically indicated. Descriptive register throughout: what the
+// tradition does with the stone, not what the reader is instructed to do.
+// New Tamil, pending native review (CLAUDE.md new-Tamil rule).
+export const GEMSTONE_GROUPS = {
+  worn: s("Traditionally worn for your chart", "உங்கள் ஜாதகத்திற்கு பாரம்பரியமாக அணியப்படுபவை"),
+  optional: s("Traditionally optional — with care", "பாரம்பரியமாக விருப்பத் தேர்வு — கவனத்துடன்"),
+  avoided: s("Traditionally avoided", "பாரம்பரியமாக தவிர்க்கப்படுபவை"),
+  note: s(
+    "These are traditional recommendations, not requirements. Gemstones vary widely in cost and quality, and nothing here depends on buying one.",
+    "இவை பாரம்பரிய பரிந்துரைகள்; கட்டாயம் அல்ல. கற்களின் விலையும் தரமும் பெரிதும் வேறுபடும்; இங்குள்ள எதுவும் ஒரு கல் வாங்குவதைச் சார்ந்தது அல்ல.",
+  ),
+} as const;
+
+// New Tamil, pending native review (CLAUDE.md new-Tamil rule).
+export const CULTURAL_CONTEXT = {
+  porutham: s(
+    "Porutham is a traditional Tamil marriage-matching practice. Treat this as one input for a family conversation, alongside the people involved and both full charts.",
+    "பொருத்தம் என்பது பாரம்பரிய தமிழ் திருமணப் பொருத்தப் பார்வை. இருவரின் விருப்பங்கள் மற்றும் முழு ஜாதகங்களுடன் சேர்த்து, குடும்ப உரையாடலுக்கான ஒரு வழிகாட்டியாக இதைப் பயன்படுத்துங்கள்.",
+  ),
+  poruthamLearnMore: s("What is porutham?", "பொருத்தம் என்றால் என்ன?"),
+  muhurta: s(
+    "Muhurta is a traditional way of choosing a supportive time for an important beginning. It is optional guidance, not a guarantee or a requirement.",
+    "முகூர்த்தம் என்பது முக்கியமான தொடக்கத்திற்கு ஏற்ற நேரத்தைத் தேர்ந்தெடுக்கும் பாரம்பரிய வழிமுறை. இது விருப்பமான வழிகாட்டுதல்; உத்தரவாதமோ கட்டாயமோ அல்ல.",
+  ),
+} as const;
+
+// New Tamil, pending native review (CLAUDE.md new-Tamil rule).
+export const FAMILY_ONBOARDING = {
+  firstMember: s(
+    "Add a spouse, parent, child, or another relative. We create your family automatically when you add the first person.",
+    "துணைவர், பெற்றோர், குழந்தை அல்லது மற்றொரு உறவினரைச் சேர்க்கவும். முதல் நபரைச் சேர்க்கும்போது உங்கள் குடும்பம் தானாக உருவாக்கப்படும்.",
+  ),
+} as const;
+
+// New Tamil, pending native review (CLAUDE.md new-Tamil rule).
+export const DASHA_PANEL = {
+  title: s(
+    "Your life periods (Vimshottari system)",
+    "உங்கள் வாழ்க்கைக் காலங்கள் (விம்சோத்தரி முறை)",
+  ),
+  subtitle: s(
+    "Major, sub, and minor periods active in your chart.",
+    "உங்கள் ஜாதகத்தில் செயலிலுள்ள பெரிய, துணை, மற்றும் சிறு காலங்கள்.",
+  ),
+} as const;
+
 // ─── Jathagam kattam legend (UX blindspot audit 2026-08-22, B-017/A-019) ─────
 //
 // The twelve boxes are filled with two-letter graha abbreviations and four

@@ -20,6 +20,7 @@ import {
 import type { GowriSlotDayOffset } from "@/lib/gowri";
 import { t, tAmirdhadhiYogam, tJeevan, tKarana, tMoonPhase, tNakshatra, tNethiram, tParigaram, tPlanetLord, tSoolamDirection, tTithi, tWeekday, tYoga } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { CALENDAR_DAY_SUMMARY, dt } from "@/lib/dashboard-i18n";
 import { rasiGlyph } from "@/lib/astro-symbols";
 import { GlossaryTerm } from "./glossary-term";
 import type { GlossaryKey } from "@/lib/glossary";
@@ -1212,6 +1213,14 @@ export function DashboardCalendarTabNova({
     return panchangam.subhaMuhurtham?.reason || (lang === "ta" ? "இன்று அமைதியாக முன்னேறுங்கள்." : "Move steadily and keep the day intentional.");
   }, [panchangam, lang]);
 
+  // T15 / B-026: interpretation comes before the named panchangam facts. This
+  // is deliberately about new beginnings only; routine work stays unaffected.
+  const daySummary = panchangam?.isKarinaal
+    ? dt(CALENDAR_DAY_SUMMARY.care, lang)
+    : panchangam?.subhaMuhurtham.isSubha
+      ? dt(CALENDAR_DAY_SUMMARY.favourable, lang)
+      : dt(CALENDAR_DAY_SUMMARY.ordinary, lang);
+
   // Reading order is the astrologer's, not the textbook's: the day's fixed
   // identity first (Vara / Moon / Lagnam), then the moving limbs a reader checks
   // for timing (Nakshatra / Tithi / Naamyogam / Amirdhadhi Yogam / Karana), then
@@ -1258,6 +1267,14 @@ export function DashboardCalendarTabNova({
         { key: lang === "ta" ? "ஜீவன்" : "Jeevan", value: tJeevan(panchangam.jeevan, lang), hint: t("nethiram_jeevan_hint", lang) },
       ]
     : [];
+
+  // The primary calendar view repeats these facts outside the already-glossed
+  // day drawer. Keep its labels explainable too, rather than making the reader
+  // discover the definition only after opening another surface.
+  const calendarLimbGlossaries: Array<GlossaryKey | undefined> = [
+    "vara", undefined, "lagnam", "nakshatra", "tithi", "yogam",
+    "amirdhadhi", "karana", "soolam", undefined, undefined,
+  ];
 
   const avoidSlotsForOverlap = panchangam
     ? [
@@ -1316,6 +1333,9 @@ export function DashboardCalendarTabNova({
                 <h2 style={{ margin: "0 0 8px", fontSize: "var(--text-xs)", letterSpacing: "0.12em", color: "var(--color-text-accent)", textTransform: "uppercase", fontWeight: 700 }}>
                   {lang === "ta" ? "இன்று — ஒரு பார்வையில்" : "Day at a glance"}
                 </h2>
+                <p data-testid="calendar-day-summary" style={{ margin: "0 0 8px", fontSize: "var(--text-sm)", fontWeight: 600, lineHeight: 1.5, color: "var(--color-text)" }}>
+                  {daySummary}
+                </p>
                 <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 600, lineHeight: 1.25, color: "var(--color-text-strong)" }}>
                   {tTithi(tithiActive?.activeName ?? panchangam.tithi.name, lang)}. {tNakshatra(nakActive?.activeName ?? panchangam.nakshatra.name, lang)}. {tYoga(yogaActive?.activeName ?? panchangam.yoga.name, lang)}.
                 </div>
@@ -1522,9 +1542,13 @@ export function DashboardCalendarTabNova({
                   {lang === "ta" ? "பஞ்சாங்கம் · ஐந்து அங்கங்கள்" : "Panchangam · Five Limbs"}
                 </Kicker>
                 <div style={{ display: "flex", flexDirection: "column" }}>
-                  {fiveLimbRows.map((row) => (
+                  {fiveLimbRows.map((row, index) => (
                     <div key={row.key} className="cd-detail-spec-row">
-                      <span className="cd-detail-spec-row__label">{row.key}</span>
+                      <span className="cd-detail-spec-row__label">
+                        {calendarLimbGlossaries[index]
+                          ? <GlossaryTerm term={calendarLimbGlossaries[index]} lang={lang}>{row.key}</GlossaryTerm>
+                          : row.key}
+                      </span>
                       <div className="cd-detail-spec-row__body">
                         <p>{row.value}</p>
                         <p>{row.hint}</p>
