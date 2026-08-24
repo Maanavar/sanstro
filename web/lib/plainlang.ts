@@ -41,8 +41,17 @@ function graha(code: string, taGloss?: string, enGloss?: string): BiText {
  *
  * Each is the graha's natural kāraka stated for a first-time reader: Sun the
  * ātma-kāraka, Moon the mano-kāraka, Mars parākrama, Mercury speech/intellect,
- * Jupiter expansion, Venus kalatra. Rahu and Ketu read "force", not "planet",
- * because they are chāyā grahas — shadow points, not bodies.
+ * Guru the jñāna-kāraka, Venus kalatra. Rahu and Ketu read "force", not
+ * "planet", because they are chāyā grahas — shadow points, not bodies.
+ *
+ * OWNER RULING 2026-08-24 on Guru: the identity gloss is **wisdom**, not
+ * growth. Guru does signify expansion, prosperity, children and dharma, so
+ * "growth planet" was not wrong — but for a one-line identity the defining
+ * Tamil-Jyotisha karakatva is ஞானம், and every *detail* surface in this app
+ * already said so ("Wisdom & growth" in `dashboard-hybrid-parts.tsx`;
+ * "wisdom, wealth, children, teachers/guru" in `dashboard-chart-explanation`).
+ * This row was the one place that led with growth. Expansion keeps its place
+ * among Guru's secondary significations on those screens.
  *
  * Written ONCE per graha and expanded below into both key forms. Until
  * 2026-08-24 the two forms were separate literal rows and had already drifted:
@@ -56,7 +65,11 @@ const GRAHA_ROLE: Record<string, { ta: string; en: string }> = {
   MOON:     { ta: "மனம் கிரகம்",        en: "mind planet" },
   MARS:     { ta: "செயல் கிரகம்",       en: "action planet" },
   MERCURY:  { ta: "தகவல் கிரகம்",       en: "communication planet" },
-  JUPITER:  { ta: "வளர்ச்சி கிரகம்",    en: "growth planet" },
+  // The one row whose Tamil is a classical karaka title rather than the
+  // "X கிரகம்" pattern, and deliberately so: ஞானகாரகன் is the standard almanac
+  // label for Guru. Note it means *significator of* wisdom — the English
+  // "wisdom planet" is the beginner rendering, not a translation of it.
+  JUPITER:  { ta: "ஞானகாரகன்",          en: "wisdom planet" },
   VENUS:    { ta: "அன்பு கிரகம்",       en: "love planet" },
   SATURN:   { ta: "கட்டுப்பாடு கிரகம்", en: "discipline planet" },
   RAHU:     { ta: "மாற்றம்",            en: "change force" },

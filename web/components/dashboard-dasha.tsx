@@ -25,9 +25,21 @@ import { GlossaryTerm } from "./glossary-term";
  * panel actually rendered on Family & Charts — this file's own `DashaTimeline`
  * is unused there (only the Porutham/Jadhagam-generator tools render it). One
  * definition, so the two panels can't drift on what BALANCED mode means for a
- * planet name. */
-export function DashaLordLabel({ lord, mode, lang }: { lord: string; mode: Mode; lang: Lang }) {
-  if (mode === "BEGINNER") return <>{plainLangDashaLord(lord, "BEGINNER", lang)}</>;
+ * planet name.
+ *
+ * `suppressGloss` — OWNER RULING 2026-08-24. The first bhukti of every
+ * mahadasha carries its own lord, so a running stack repeats the name at two
+ * levels one time in nine, and BEGINNER printed the parenthetical twice:
+ * "Moon (mind planet) Mahadasha · Moon (mind planet) Bhukti". The ruling keeps
+ * both period names — "Moon Bhukti" is correct and meaningful, not a
+ * duplicate — and drops only the second gloss. **BEGINNER only.** In BALANCED
+ * the gloss is a tap target, not inline text: suppressing the repeat would
+ * leave one dotted word and one plain word for the same term, so the reader
+ * who taps the word in front of them would find nothing. */
+export function DashaLordLabel({ lord, mode, lang, suppressGloss = false }: { lord: string; mode: Mode; lang: Lang; suppressGloss?: boolean }) {
+  if (mode === "BEGINNER") {
+    return <>{suppressGloss ? tPlanetLord(lord, lang) : plainLangDashaLord(lord, "BEGINNER", lang)}</>;
+  }
   const name = tPlanetLord(lord, lang);
   if (mode !== "BALANCED") return <>{name}</>;
   const biText = plainLangBiText(lord);
@@ -326,7 +338,13 @@ export function DashaTimeline({
                         <div key={`antaram-${antaram.lord}`} style={{ display: "flex", alignItems: "center", gap: "var(--space-1_5)", padding: "var(--space-1) var(--space-2)", borderRadius: "var(--radius-xs)", background: `${antaramColor}18`, border: `1px solid ${antaramColor}44` }}>
                           <div style={{ width: "5px", height: "5px", borderRadius: "50%", background: antaramColor, flexShrink: 0, boxShadow: `0 0 4px ${antaramColor}` }} />
                           <span style={{ fontSize: "0.75rem", fontWeight: 700, color: antaramColor, minWidth: "72px" }}>
-                            <DashaLordLabel lord={antaram.lord} mode={mode} lang={lang} /> {t("antaram_word", lang)}
+                            {/* Nested directly under its parent bhukti row, whose
+                                lord it shares for the first antaram of every
+                                bhukti — same repeated parenthetical the owner
+                                ruling removes from the hybrid panel's hero. The
+                                bhukti LIST above keeps every gloss: those are
+                                nine different lords, not one repeated. */}
+                            <DashaLordLabel lord={antaram.lord} mode={mode} lang={lang} suppressGloss={antaram.lord === bhukti.lord} /> {t("antaram_word", lang)}
                           </span>
                           <span style={{ fontSize: "0.625rem", color: "var(--color-muted, var(--panel-mid-earth))", flex: 1 }}>
                             {String(antaram.startDate)} → {String(antaram.endDate)}

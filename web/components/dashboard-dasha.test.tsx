@@ -84,6 +84,33 @@ describe("DashaTimeline — lord name per mode (T12)", () => {
     expect(document.querySelector("[data-glossary-panel]")).toHaveTextContent("love planet");
   });
 
+  it("drops the repeated gloss on an antaram nested under its own bhukti", () => {
+    // Owner ruling 2026-08-24: the first antaram of every bhukti carries its
+    // parent's lord, so the nested pair read "Venus (love planet)" twice, one
+    // line under the other. Both period names stay; the second gloss goes.
+    render(
+      <DashaTimeline
+        dasha={{
+          ...buildDasha(),
+          current: {
+            mahadasha: { lord: "SATURN", startDate: "2020-01-01", endDate: "2039-01-01" },
+            antardasha: { lord: "VENUS", startDate: "2024-01-01", endDate: "2026-06-01" },
+            pratyantardasha: { lord: "VENUS", startDate: "2026-01-01", endDate: "2026-03-01" },
+          },
+        }}
+        dashaAntar={[{ level: "antar", lord: "VENUS", startDate: "2024-01-01", endDate: "2026-06-01" }]}
+        today="2026-02-01"
+        dashaSupport={62}
+        lang="en"
+        mode="BEGINNER"
+      />,
+    );
+
+    expect(screen.getByText(/Venus \(love planet\)/)).toBeInTheDocument();
+    expect(screen.getByText(/^Venus Antaram$/)).toBeInTheDocument();
+    expect(screen.queryByText(/Venus \(love planet\) Antaram/)).toBeNull();
+  });
+
   it("falls back to the bare name in BALANCED mode for a lord with no plain-lang entry", () => {
     // openingDasha/current use real graha codes; a defensive case for any lord
     // string plainLangBiText doesn't recognize should just render plainly

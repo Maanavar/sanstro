@@ -51,6 +51,17 @@ describe("PLAIN_LANG graha rows", () => {
     expect(plainLangBiText(full)!.en).toContain(tPlanetLord(full, "en"));
   });
 
+  it("leads Guru with wisdom, not growth (owner ruling 2026-08-24)", () => {
+    // Guru is the jñāna-kāraka. Expansion/prosperity are real significations
+    // and stay on the detail surfaces ("Wisdom & growth", "wisdom, wealth,
+    // children, teachers/guru"), but the one-line identity is wisdom — this
+    // row was the only place in the app that led with growth.
+    expect(plainLangBiText("JUPITER")!.en).toBe("Jupiter (wisdom planet)");
+    expect(plainLangBiText("JUPITER")!.ta).toContain("ஞானகாரகன்");
+    expect(plainLangBiText("JUPITER")!.en).not.toContain("growth");
+    expect(plainLangBiText("JUPITER")!.ta).not.toContain("வளர்ச்சி");
+  });
+
   it("reads the shadow grahas as forces, not planets", () => {
     // Rahu and Ketu are chāyā grahas — shadow points with no body. Calling
     // them planets in the beginner gloss would teach the wrong thing.

@@ -999,9 +999,25 @@ export function HyBhuktiTimeline({
                 BALANCED's tap-to-explain, both already how DashaLordLabel reads
                 `mode`. The bar segments below stay bare tPlanetLord: same
                 ellipsis + native `title` constraint as dashboard-dasha.tsx's own
-                timeline bar. */}
-            <DashaLordLabel lord={maha.lord} mode={mode} lang={lang} /> {mahaWord} · <DashaLordLabel lord={activeBhukti.lord} mode={mode} lang={lang} /> {bhuktiWord} ·{" "}
-            <span style={{ color: "var(--color-accent-strong)" }}><DashaLordLabel lord={activeAntaram.lord} mode={mode} lang={lang} /> {t("antaram_word", lang)}</span>
+                timeline bar.
+
+                `suppressGloss` (owner ruling 2026-08-24): a lord repeated
+                further down the same stack keeps its period name and loses the
+                second parenthetical — "Moon (mind planet) Mahadasha · Moon
+                Bhukti". The ruling names the maha/bhukti pair; the antaram gets
+                it against BOTH levels above because the first antaram of every
+                bhukti likewise carries its parent's lord, which is the same
+                repetition one slot over. */}
+            <DashaLordLabel lord={maha.lord} mode={mode} lang={lang} /> {mahaWord} ·{" "}
+            <DashaLordLabel lord={activeBhukti.lord} mode={mode} lang={lang} suppressGloss={activeBhukti.lord === maha.lord} /> {bhuktiWord} ·{" "}
+            <span style={{ color: "var(--color-accent-strong)" }}>
+              <DashaLordLabel
+                lord={activeAntaram.lord}
+                mode={mode}
+                lang={lang}
+                suppressGloss={activeAntaram.lord === maha.lord || activeAntaram.lord === activeBhukti.lord}
+              /> {t("antaram_word", lang)}
+            </span>
           </p>
           {dashaSupportText && (dashaSupportText.en || dashaSupportText.ta) && (
             <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.5 }}>

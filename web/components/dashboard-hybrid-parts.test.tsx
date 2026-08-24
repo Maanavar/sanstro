@@ -184,6 +184,32 @@ describe("HyBhuktiTimeline", () => {
       expect(document.querySelector("[data-glossary-panel]")).toHaveTextContent("mind planet");
     });
 
+    // Owner ruling 2026-08-24. The first bhukti of every mahadasha carries its
+    // own lord, so one running stack in nine names the same graha twice — and
+    // BEGINNER printed the parenthetical on both. Both PERIOD names stay
+    // ("Moon Bhukti" is correct and meaningful); only the second gloss goes.
+    it("glosses a repeated lord once in BEGINNER mode, keeping both period names", () => {
+      const { container } = render(
+        <HyBhuktiTimeline lang="en" dasha={dasha} dashaMaha={dashaMaha} dashaAntar={dashaAntar} today={TODAY} mode="BEGINNER" />,
+      );
+
+      expect(container.textContent).toContain("Moon (mind planet) Mahadasha");
+      expect(container.textContent).toContain("Moon Bhukti");
+      expect(container.textContent).not.toContain("Moon (mind planet) Bhukti");
+      // The antaram is a different lord, so it keeps its own gloss.
+      expect(container.textContent).toContain("Saturn (discipline planet) Antaram");
+    });
+
+    it("keeps BOTH repeated lords tappable in BALANCED mode", () => {
+      // The suppression is BEGINNER-only on purpose: here the gloss is a tap
+      // target, not inline text. Dropping the second would leave one dotted
+      // word and one plain word for the same term, and a reader tapping the
+      // one in front of them would get nothing.
+      render(<HyBhuktiTimeline lang="en" dasha={dasha} dashaMaha={dashaMaha} dashaAntar={dashaAntar} today={TODAY} mode="BALANCED" />);
+
+      expect(screen.getAllByRole("button", { name: "Moon" })).toHaveLength(2);
+    });
+
     it("leaves BEGINNER and TRADITIONAL modes as they were", () => {
       const balanced = render(<HyBhuktiTimeline lang="en" dasha={dasha} dashaMaha={dashaMaha} dashaAntar={dashaAntar} today={TODAY} mode="BALANCED" />);
       expect(screen.getByRole("button", { name: "Saturn" })).toBeInTheDocument();
