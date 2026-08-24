@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { ArrowRight, Minus, TrendingDown, TrendingUp, ChevronUp, ChevronDown } from "lucide-react";
 
 import { nakshatraLord } from "@vinaadi/shared/nakshatraLord";
@@ -27,7 +27,8 @@ import { ageAtDate, DashaLordLabel } from "./dashboard-dasha";
 import type { Mode } from "@/lib/plainlang";
 import { Card, Kicker } from "./ui";
 import { GlossaryTerm } from "./glossary-term";
-import { dt, PLANET_ROW_DETAILS } from "@/lib/dashboard-i18n";
+import { dt, PLANET_ROW_DETAILS, PLANET_STATUS_MARKS } from "@/lib/dashboard-i18n";
+import type { PlanetStatusMarkKey } from "@/lib/dashboard-i18n";
 
 /**
  * Net-new graphical leaf components for the Family & Charts "Hybrid v2"
@@ -406,7 +407,9 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
         </div>
         {planets.map((pl) => {
           const isOpen = open === pl.graha;
-          const flags: { key: string; label: string; tone: "success" | "warning" }[] = [];
+          // Keyed to `PLANET_STATUS_MARKS.marks`, so a chip added without an
+          // explanation is a type error rather than an unexplained badge.
+          const flags: { key: PlanetStatusMarkKey; label: string; tone: "success" | "warning" }[] = [];
           // Rahu/Ketu are retrograde every day of their existence, so the badge
           // separates nothing on them and reads as generated noise. The backend
           // already applies this rule (PlanetPosition.showRetrogradeBadge).
@@ -448,13 +451,18 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
                         (strength bar, pada, D9, facet lines) are tucked one more
                         tap down in the "Technical details" toggle (Phase 3), so
                         nothing is lost but nothing ambushes a newcomer. */}
-                     <HyPlanetVerdict lang={lang} pl={pl} expl={expl} />
-                     <HyPlanetLifeAreas lang={lang} expl={expl} />
-                     {flags.length > 0 && (
-                       <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)" }}>
-                         {dt(PLANET_ROW_DETAILS.statusMarks, lang)}
-                       </p>
-                     )}
+                    <HyPlanetVerdict lang={lang} pl={pl} expl={expl} />
+                    <HyPlanetLifeAreas lang={lang} expl={expl} />
+                    {flags.length > 0 && (
+                      <div data-testid={`status-marks-${pl.graha}`} style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+                        <Kicker color="var(--color-mid)">{dt(PLANET_STATUS_MARKS.heading, lang)}</Kicker>
+                        {flags.map((f) => (
+                          <p key={f.key} style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)" }}>
+                            {dt(PLANET_STATUS_MARKS.marks[f.key], lang)}
+                          </p>
+                        ))}
+                      </div>
+                    )}
                     {remedy && (
                       <Card variant="high" style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "var(--space-3)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)" }}>
                         <span style={{ color: "var(--color-high)", fontSize: "var(--text-base)", flexShrink: 0 }}>⋔</span>
@@ -472,7 +480,10 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
     </div>
   );
 }
-function HyFact({ label, value, tone = "NEUTRAL" }: { label: string; value: string; tone?: "NEUTRAL" | "BOOST" | "CAUTION" }) {
+// `label` is a ReactNode so a fact can carry a GlossaryTerm — safe here because
+// every HyFact renders inside the technical-details panel, never inside the
+// row's own <button>.
+function HyFact({ label, value, tone = "NEUTRAL" }: { label: ReactNode; value: string; tone?: "NEUTRAL" | "BOOST" | "CAUTION" }) {
   const labelColor = tone === "BOOST" ? "var(--color-high)" : tone === "CAUTION" ? "var(--color-low)" : "var(--color-mid)";
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
@@ -520,7 +531,14 @@ function HyTechnicalDetails({ lang, pl, expl }: {
           {/* Pada + Navamsa (D9) — surfaced unconditionally so the data is never
               lost (B-11). */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-3) var(--space-7)" }}>
-            <HyFact label={t("col_pada", lang)} value={`${pl.pada} · ${dt(PLANET_ROW_DETAILS.pada, lang)}`} />
+            {/* B-020: a bare "3" said nothing. "3 / 4 · quarter of the birth
+                star" is the plain rendering; the definition itself stays one
+                tap away in the glossary rather than becoming a paragraph
+                wedged into a fact row beside "D9 sign · Meena". */}
+            <HyFact
+              label={<GlossaryTerm term="pada" lang={lang}>{t("col_pada", lang)}</GlossaryTerm>}
+              value={`${pl.pada} / 4 · ${dt(PLANET_ROW_DETAILS.pada, lang)}`}
+            />
             <HyFact label={t("col_d9_rasi", lang)} value={RASI_NAMES[pl.d9Rasi] ?? String(pl.d9Rasi)} />
           </div>
           {bodyFacets.length > 0 ? (

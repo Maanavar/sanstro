@@ -124,6 +124,24 @@ export function NovaRemediesPanel({ lang, chartId, remedyPlan, gemstoneAdvice, l
         <p style={{ margin: "var(--space-2) 0 0" }}>{t("remedies_safety_note", lang)}</p>
       </div>
 
+      {remedyPlan && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", marginBottom: "12px" }}>
+          {/* New Tamil, pending native review */}
+          <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)", letterSpacing: "0.07em", textTransform: "uppercase" }}>{lang === "ta" ? "வழிகாட்டும் முறை" : "Guidance style"}</span>
+          <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", alignItems: "center" }}>
+            {(["traditional", "secular"] as const).map((mode) => {
+              const isActive = mode === practiceMode;
+              return (
+                <button key={mode} type="button" onClick={() => choosePracticeMode(mode)} style={{ padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", border: `1.5px solid ${isActive ? "var(--color-accent-strong)" : "var(--color-border)"}`, background: isActive ? "var(--color-accent-muted)" : "transparent", color: isActive ? "var(--color-accent-strong)" : "var(--color-muted)", fontWeight: isActive ? 700 : 500, fontSize: "var(--text-sm)", cursor: "pointer", fontFamily: "inherit" }}>
+                  {mode === "traditional" ? t("remedies_mode_traditional", lang) : t("remedies_mode_secular", lang)}
+                </button>
+              );
+            })}
+          </div>
+          {practiceMode === "secular" && <p style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", margin: 0, lineHeight: 1.5 }}>{t("remedies_secular_note", lang)}</p>}
+        </div>
+      )}
+
       <div style={{ display: "flex", gap: "var(--space-2)", marginBottom: "12px", flexWrap: "wrap", alignItems: "center" }}>
         {(["plan", "gemstone"] as const).map((tab) => {
           const isActive = tab === subTab;
@@ -159,36 +177,10 @@ export function NovaRemediesPanel({ lang, chartId, remedyPlan, gemstoneAdvice, l
 
       {subTab === "plan" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-          {remedyPlan && (
-            <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", alignItems: "center" }}>
-              {(["traditional", "secular"] as const).map((mode) => {
-                const isActive = mode === practiceMode;
-                return (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => choosePracticeMode(mode)}
-                    style={{
-                      padding: "var(--space-1) var(--space-3)",
-                      borderRadius: "var(--radius-pill)",
-                      border: `1.5px solid ${isActive ? "var(--color-accent-strong)" : "var(--color-border)"}`,
-                      background: isActive ? "var(--color-accent-muted)" : "transparent",
-                      color: isActive ? "var(--color-accent-strong)" : "var(--color-faint)",
-                      fontWeight: isActive ? 700 : 500,
-                      fontSize: "var(--text-sm)",
-                      cursor: "pointer",
-                      fontFamily: "inherit",
-                    }}
-                  >
-                    {mode === "traditional" ? t("remedies_mode_traditional", lang) : t("remedies_mode_secular", lang)}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          {remedyPlan && practiceMode === "secular" && (
-            <p style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", margin: 0, lineHeight: 1.5 }}>{t("remedies_secular_note", lang)}</p>
-          )}
+          {/* The traditional/secular switch used to live here, inside the plan
+              sub-tab. It now sits above the sub-tabs (T18) because it governs
+              the gemstone tab too — and from in here, a reader on that tab saw
+              gemstones disappear with no visible control to explain why. */}
           {!remedyPlan && <p style={{ fontSize: "var(--text-base)", color: "var(--color-faint)" }}>{t("remedies_empty", lang)}</p>}
           {remedyPlan?.map((item) => (
             <CollapsibleSection

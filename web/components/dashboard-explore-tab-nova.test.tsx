@@ -7,7 +7,7 @@
  * that list rather than all the way to the hub. Verifies real rendered text
  * at each step, not just that a handler fired.
  */
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi } from "vitest";
 import type {
@@ -153,7 +153,7 @@ describe("DashboardExploreTabNova — Nakshatram list-first navigation", () => {
     });
 
     // Back from detail returns to the list, not the Explore hub.
-    fireEvent.click(screen.getByText("Explore"));
+    fireEvent.click(screen.getByText("Understand"));
     expect(screen.getByText("All 27 stars")).toBeInTheDocument();
   });
 
@@ -167,7 +167,7 @@ describe("DashboardExploreTabNova — Nakshatram list-first navigation", () => {
       expect(screen.getAllByText(NATCHATHIRAM_LIST[0].name_en).length).toBeGreaterThan(0);
     });
 
-    fireEvent.click(screen.getByText("Explore"));
+    fireEvent.click(screen.getByText("Understand"));
     expect(screen.getByText("All 27 stars")).toBeInTheDocument();
   });
 });
@@ -200,7 +200,7 @@ describe("DashboardExploreTabNova — Dosham list-first navigation", () => {
     expect(screen.queryByText("All doshams")).not.toBeInTheDocument();
     expect(screen.getByText("Not present in your chart")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText("Explore"));
+    fireEvent.click(screen.getByText("Understand"));
     expect(screen.getByText("All doshams")).toBeInTheDocument();
   });
 });
@@ -233,7 +233,7 @@ describe("DashboardExploreTabNova — Yogam list-first navigation", () => {
     expect(screen.queryByText("All yogas")).not.toBeInTheDocument();
     expect(screen.getByText("Not present in your chart")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText("Explore"));
+    fireEvent.click(screen.getByText("Understand"));
     expect(screen.getByText("All yogas")).toBeInTheDocument();
   });
 
@@ -245,7 +245,80 @@ describe("DashboardExploreTabNova — Yogam list-first navigation", () => {
     expect(screen.queryByText("All yogas")).not.toBeInTheDocument();
     expect(screen.getAllByText("Gaja Kesari Yoga").length).toBeGreaterThan(0);
 
-    fireEvent.click(screen.getByText("Explore"));
+    fireEvent.click(screen.getByText("Understand"));
     expect(screen.getByText("All yogas")).toBeInTheDocument();
+  });
+});
+
+/**
+ * A-026 / A-027 — the tab's name, and the interface vocabulary in its search.
+ *
+ * The rename to "Understand" landed on the tab pill only; six sub-screen
+ * breadcrumbs kept the word "Explore" as their own string literals, so a reader
+ * drilled in from a tab called Understand and was offered a way back to a tab
+ * that no longer existed. The five `getByText("Understand")` calls above are the
+ * regression guard for that — they are clicking those breadcrumbs.
+ *
+ * The vocabulary list was added in the same pass and rendered `term.key`: the
+ * camelCase object identifier, straight onto the screen.
+ */
+function search(text: string) {
+  fireEvent.change(screen.getByPlaceholderText(/Search a star/i), { target: { value: text } });
+}
+
+/** The vocabulary results only. "Rahu Kalam" is also a search SUGGESTION chip
+ *  and a library entry, so an unscoped query matches three different things. */
+function vocabulary() {
+  return within(screen.getByTestId("interface-vocabulary"));
+}
+
+describe("DashboardExploreTabNova — interface vocabulary (A-027)", () => {
+  it("finds a term the interface uses and names it properly", () => {
+    renderWithQueryClient(<DashboardExploreTabNova {...baseProps()} />);
+    search("rahu kalam");
+    expect(vocabulary().getByText("Rahu Kalam")).toBeInTheDocument();
+  });
+
+  it("never renders the camelCase identifier as the chip label", () => {
+    // The defect verbatim: searching "bala" produced chips reading
+    // `sthanaBala`, `digBala`, `naisargikaBala`.
+    const { container } = renderWithQueryClient(<DashboardExploreTabNova {...baseProps()} />);
+    search("bala");
+    expect(vocabulary().getByText("Sthana Bala")).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/[a-z]+Bala/);
+  });
+
+  it("matches on the definition too, so a reader who forgot the name still finds it", () => {
+    // Someone who saw a red band this morning knows "avoid", not "Kuligai".
+    renderWithQueryClient(<DashboardExploreTabNova {...baseProps()} />);
+    search("avoided for starting anything new");
+    expect(vocabulary().getByText("Rahu Kalam")).toBeInTheDocument();
+  });
+
+  it("does not match on the identifier, which is not a word anyone searches", () => {
+    renderWithQueryClient(<DashboardExploreTabNova {...baseProps()} />);
+    search("sthanaBala");
+    expect(screen.queryByTestId("interface-vocabulary")).toBeNull();
+  });
+
+  it("shows no vocabulary section until something is searched", () => {
+    renderWithQueryClient(<DashboardExploreTabNova {...baseProps()} />);
+    expect(screen.queryByText("Terms you may have seen")).toBeNull();
+  });
+});
+
+describe("DashboardExploreTabNova — the four Basics articles (A-028)", () => {
+  it("lists an article for each of the four terms the app assumes you know", () => {
+    renderWithQueryClient(<DashboardExploreTabNova {...baseProps()} />);
+    expect(screen.getByText("What is a Dasha?")).toBeInTheDocument();
+    expect(screen.getByText("What is a house?")).toBeInTheDocument();
+    expect(screen.getByText("What is Lagnam?")).toBeInTheDocument();
+    expect(screen.getByText("What does the daily score mean?")).toBeInTheDocument();
+  });
+
+  it("opens a Basics article rather than listing a card that goes nowhere", () => {
+    renderWithQueryClient(<DashboardExploreTabNova {...baseProps()} />);
+    fireEvent.click(screen.getByText("What is a Dasha?"));
+    expect(screen.getByText(/timing lens, not a fixed prediction/i)).toBeInTheDocument();
   });
 });

@@ -256,3 +256,75 @@ export const GLOSSARY: Record<GlossaryKey, { ta: string; en: string }> = {
     ta: "உங்கள் ஜென்ம ராசியைச் சுற்றியுள்ள ராசிகளில் சனி நகரும் 7½ ஆண்டுக் காலம். ஒரு வாழ்நாளில் கிட்டத்தட்ட எல்லோரையும் மூன்று முறை வந்தடையும் — பேரிடர் அல்ல, பொறுமை கேட்கும் காலம்; முடியும் நாள் தெரிந்ததே.",
   },
 };
+
+/**
+ * The NAME of each term, as against its definition above.
+ *
+ * Every `GlossaryTerm` call site until now passed its own display text as
+ * children — the term was always already on screen, and the component only had
+ * to define it. Listing the vocabulary itself (the Understand tab's search)
+ * inverts that: there is no surrounding sentence to borrow a name from, so the
+ * first pass rendered the object key. English readers were shown `rahuKalam`,
+ * `sthanaBala`, `naisargikaBala` — the identifiers, camelCase and all — while
+ * Tamil got `definition.split(".")[0]`, a whole clause standing in for a name.
+ *
+ * Typed as a total `Record<GlossaryKey, …>`, so adding a glossary entry without
+ * a name is a compile error rather than a chip reading `charaDasha`.
+ *
+ * Tamil follows almanac usage, not Sanskrit transliteration — ஏழரைச் சனி for
+ * Sade Sati, எமகண்டம் for Yamagandam. `yoga` and `yogam` are different things
+ * that share a name in both languages (a chart combination vs. one of the
+ * almanac's five daily limbs), so both carry a disambiguator; a bare "Yogam"
+ * twice in one result list would be a worse answer than none.
+ */
+export const GLOSSARY_LABELS: Record<GlossaryKey, { ta: string; en: string }> = {
+  dasha: { en: "Dasha", ta: "தசை" },
+  bhukti: { en: "Bhukti", ta: "புக்தி" },
+  rasi: { en: "Rasi", ta: "ராசி" },
+  nakshatra: { en: "Nakshatra", ta: "நட்சத்திரம்" },
+  gochar: { en: "Gochar", ta: "கிரகநகர்வு" },
+  shadbala: { en: "Shadbala", ta: "ஷட்பலம்" },
+  sthanaBala: { en: "Sthana Bala", ta: "ஸ்தான பலம்" },
+  digBala: { en: "Dig Bala", ta: "திக் பலம்" },
+  kalaBala: { en: "Kala Bala", ta: "கால பலம்" },
+  chestaBala: { en: "Chesta Bala", ta: "சேஷ்டா பலம்" },
+  naisargikaBala: { en: "Naisargika Bala", ta: "நைசர்கிக பலம்" },
+  drikBala: { en: "Drik Bala", ta: "திருக் பலம்" },
+  varga: { en: "Varga", ta: "வர்க்கம்" },
+  navamsa: { en: "Navamsa (D9)", ta: "நவாம்சம் (D9)" },
+  atmakaraka: { en: "Atmakaraka", ta: "ஆத்மகாரகன்" },
+  karakamsa: { en: "Karakamsa", ta: "காரகாம்சம்" },
+  yoginiDasha: { en: "Yogini Dasha", ta: "யோகினி தசை" },
+  ashtottariDasha: { en: "Ashtottari Dasha", ta: "அஷ்டோத்தரி தசை" },
+  kalachakraDasha: { en: "Kalachakra Dasha", ta: "காலசக்கர தசை" },
+  charaDasha: { en: "Chara Dasha", ta: "சர தசை" },
+  panchangam: { en: "Panchangam", ta: "பஞ்சாங்கம்" },
+  tithi: { en: "Tithi", ta: "திதி" },
+  karana: { en: "Karana", ta: "கரணம்" },
+  vara: { en: "Vara (weekday)", ta: "வாரம்" },
+  yogam: { en: "Yogam (almanac limb)", ta: "யோகம் (பஞ்சாங்க அங்கம்)" },
+  paksham: { en: "Paksham", ta: "பட்சம்" },
+  rahuKalam: { en: "Rahu Kalam", ta: "ராகு காலம்" },
+  yamagandam: { en: "Yamagandam", ta: "எமகண்டம்" },
+  kuligai: { en: "Kuligai", ta: "குளிகை" },
+  nallaNeram: { en: "Nalla Neram", ta: "நல்ல நேரம்" },
+  abhijit: { en: "Abhijit", ta: "அபிஜித்" },
+  hora: { en: "Hora", ta: "ஹோரை" },
+  chandrashtama: { en: "Chandrashtama", ta: "சந்திராஷ்டமம்" },
+  karinaal: { en: "Karinaal", ta: "கரிநாள்" },
+  soolam: { en: "Soolam", ta: "சூலம்" },
+  parigaram: { en: "Parigaram", ta: "பரிகாரம்" },
+  amirdhadhi: { en: "Amirdhadhi Yogam", ta: "அமிர்தாதி யோகம்" },
+  muhurtham: { en: "Muhurtham", ta: "முகூர்த்தம்" },
+  lagnam: { en: "Lagnam", ta: "லக்னம்" },
+  pada: { en: "Pada", ta: "பாதம்" },
+  peyarchi: { en: "Peyarchi", ta: "பெயர்ச்சி" },
+  sadeSati: { en: "Sade Sati", ta: "ஏழரைச் சனி" },
+  house: { en: "House", ta: "வீடு" },
+  yoga: { en: "Yoga (chart combination)", ta: "யோகம் (ஜாதக அமைப்பு)" },
+};
+
+/** The display name for a term, in the reader's language. */
+export function glossaryLabel(key: GlossaryKey, lang: "ta" | "en"): string {
+  return lang === "ta" ? GLOSSARY_LABELS[key].ta : GLOSSARY_LABELS[key].en;
+}

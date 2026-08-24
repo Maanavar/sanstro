@@ -12,6 +12,7 @@ import { festivalGlyph } from "@/lib/astro-symbols";
 import type { PanchangamFestival, PanchangamMonthDayEntry } from "@/lib/types";
 
 import { MiniMoonGlyph } from "./celestial-glyph-nova";
+import { GlossaryTerm } from "./glossary-term";
 import {
   festivalImagePath,
   festivalTags,
@@ -90,6 +91,71 @@ const NOVA_LEGEND: Array<{ label: { en: string; ta: string }; icon: string | nul
 type CalCategory = "muhurtham" | "vratham" | "festivals" | "lunar" | "ekadashi" | "karinaal";
 
 const EKADASHI_PATTERN = /ekadashi|ekadasi|ஏகாதசி/i;
+
+// Written out rather than sliced from MONTH_LABELS_*. Tamil month names are
+// built from grapheme clusters, so "ஆகஸ்ட்".slice(0, 3) cuts between a
+// consonant and its pulli and renders as broken text — the abbreviation has to
+// be chosen, not truncated.
+const MONTH_SHORT_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTH_SHORT_TA = ["ஜன", "பிப்", "மார்", "ஏப்", "மே", "ஜூன்", "ஜூலை", "ஆக", "செப்", "அக்", "நவ", "டிச"];
+
+/**
+ * "2026-08-17" → "17 Aug" / "17 ஆக".
+ *
+ * Built from the tables above rather than `toLocaleDateString`, for two
+ * reasons. `new Date("2026-08-17")` is parsed as UTC and shifts a day west of
+ * Greenwich, which would silently misdate the Tamil month changeover; and
+ * `ta-IN` short-month output depends on the runtime's ICU build, so it differs
+ * between the browser and the Node the tests run in.
+ */
+export function formatGridDay(dateLocal: string, lang: Lang): string {
+  const [, mm, dd] = dateLocal.split("-");
+  const monthIndex = Number(mm) - 1;
+  const name = (lang === "ta" ? MONTH_SHORT_TA : MONTH_SHORT_EN)[monthIndex];
+  if (!name || !dd || Number.isNaN(Number(dd))) return dateLocal;
+  return `${Number(dd)} ${name}`;
+}
+
+/**
+ * B-027 — the Tamil month name(s) under the grid heading, anchored to the
+ * Gregorian date the month actually turns over: "Aadi → Aavani · 17 Aug".
+ *
+ * A Tamil month runs from one solar ingress to the next, so it straddles the
+ * middle of a Gregorian month rather than lining up with it, and a grid headed
+ * "August 2026" almost always shows two of them. The fact a reader needs is
+ * therefore WHERE the seam falls. A date range for the Gregorian month is not
+ * that fact — it restates the heading immediately above it. (The first pass
+ * printed exactly that: "Aadi & Aavani · 1 Aug–31 Aug 2026", directly under a
+ * heading reading "August 2026".)
+ *
+ * The seam is read off the data rather than computed: it is the first day in
+ * the grid whose Tamil month label differs from the previous day's. Only
+ * changeovers are dated — the FIRST segment was already running when the grid
+ * opened, and dating it to the 1st would claim a start it did not have.
+ *
+ * Entries are sorted defensively. The seam is the one thing this derives, and
+ * deriving it from adjacency means an out-of-order feed would invent seams.
+ */
+export function buildTamilMonthHeader(entries: PanchangamMonthDayEntry[], lang: Lang): string {
+  const segments: { label: string; startsOn: string }[] = [];
+
+  entries
+    .slice()
+    .sort((a, b) => a.dateLocal.localeCompare(b.dateLocal))
+    .forEach((entry) => {
+      if (!entry.tamilDate || !entry.dateLocal) return;
+      const label = tamilMonthOnly(tLang(entry.tamilDate, lang));
+      if (!label) return;
+      if (segments[segments.length - 1]?.label !== label) {
+        segments.push({ label, startsOn: entry.dateLocal });
+      }
+    });
+
+  if (segments.length === 0) return "";
+  const names = segments.map((s) => s.label).join(" → ");
+  const changeovers = segments.slice(1).map((s) => formatGridDay(s.startsOn, lang)).join(", ");
+  return changeovers ? `${names} · ${changeovers}` : names;
+}
 
 function festivalCalCategory(name: string): CalCategory {
   if (EKADASHI_PATTERN.test(name)) return "ekadashi";
@@ -271,15 +337,13 @@ export function MonthlyCalendarViewNova({
     return map;
   }, [monthly]);
 
-  const tamilMonthHeader = useMemo(() => {
-    const labels: string[] = [];
-    (monthly?.entries ?? []).forEach((entry) => {
-      if (!entry.tamilDate) return;
-      const label = tamilMonthOnly(tLang(entry.tamilDate, lang));
-      if (label && !labels.includes(label)) labels.push(label);
-    });
-    return labels.join(" & ");
-  }, [lang, monthly]);
+  /**
+   * B-027. See `buildTamilMonthHeader`.
+   */
+  const tamilMonthHeader = useMemo(
+    () => buildTamilMonthHeader(monthly?.entries ?? [], lang),
+    [lang, monthly],
+  );
 
   const cells = useMemo(() => {
     const firstOfMonth = new Date(year, month - 1, 1);
@@ -756,7 +820,9 @@ export function MonthlyCalendarViewNova({
                     <div key={cat} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-3)" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)", fontWeight: 600, color: on ? "var(--color-text-strong)" : "var(--color-muted)", minWidth: 0 }}>
                         <span aria-hidden="true" style={{ width: "10px", height: "10px", borderRadius: "var(--radius-sm)", background: swatch, opacity: on ? 1 : 0.4, flexShrink: 0 }} />
-                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{text}</span>
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {cat === "muhurtham" ? <GlossaryTerm term="muhurtham" lang={lang}>{text}</GlossaryTerm> : text}
+                        </span>
                       </span>
                       <FilterSwitch on={on} label={text} onToggle={() => toggleCat(cat)} />
                     </div>

@@ -1429,16 +1429,23 @@ export function DashboardFamilyChartsHybrid({
               renderYogaDoshamPanel={({ lang: l, yogas, doshams }) => <NovaYogaDoshamPanel lang={l} yogas={yogas} doshams={doshams} />}
             />
 
-            <VargasPanel
-              lang={lang}
-              vargas={readingChart.vargas}
-              d1Planets={Object.fromEntries(readingChart.planets.map((p) => [p.graha, p.rasi]))}
-              equalBhava={readingChart.equalBhava}
-              vargaReliability={readingChart.vargaReliability}
-            />
+            {/* Two gates, not one. Vargas and Shadbala are standard Thirukanitham
+                the reading already leans on — folded away for BEGINNER because
+                they are dense. The dasha panels below are comparison systems that
+                feed nothing. Sharing one toggle meant sharing one blurb, and the
+                blurb that fits the second slanders the first. */}
+            <AdvancedAstrologyGate lang={lang} mode={mode} kind="classical-detail">
+              <VargasPanel
+                lang={lang}
+                vargas={readingChart.vargas}
+                d1Planets={Object.fromEntries(readingChart.planets.map((p) => [p.graha, p.rasi]))}
+                equalBhava={readingChart.equalBhava}
+                vargaReliability={readingChart.vargaReliability}
+              />
+              {readingChartId && <ShadbalaPanel lang={lang} chartId={readingChartId} />}
+            </AdvancedAstrologyGate>
 
-            {readingChartId && <ShadbalaPanel lang={lang} chartId={readingChartId} />}
-            <AdvancedAstrologyGate lang={lang} mode={mode}>
+            <AdvancedAstrologyGate lang={lang} mode={mode} kind="experimental-dasha">
               {readingChartId && <YoginiDashaPanel lang={lang} chartId={readingChartId} />}
               {readingChartId && <AshtottariDashaPanel lang={lang} chartId={readingChartId} />}
               {readingChartId && <KalachakraDashaPanel lang={lang} chartId={readingChartId} />}

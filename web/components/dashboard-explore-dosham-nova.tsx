@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { useState } from "react";
 
-import type { Lang } from "@/lib/i18n";
+import { t, type Lang } from "@/lib/i18n";
 import { tamilizeAstroEnglish } from "@/lib/tamil-astro";
 import type { ChartDoshamInsight } from "@/lib/types";
 import type { MemberChart } from "@/hooks/useFamilyData";
@@ -219,7 +219,7 @@ export function DashboardExploreDoshamListNova({
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
       <NovaDetailBreadcrumb
         onBack={onBack}
-        backLabel={lang === "ta" ? "ஆராய்வு" : "Explore"}
+        backLabel={t("tab_explore", lang)}
         hubLabel={lang === "ta" ? "தோஷம்" : "Dosham"}
         currentLabel={lang === "ta" ? "அனைத்து தோஷங்களும்" : "All doshams"}
       />
@@ -290,7 +290,7 @@ export function DashboardExploreDoshamNova({
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
         <button type="button" onClick={onBack} style={{ alignSelf: "flex-start", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-          <><ArrowLeft size={14} strokeWidth={1.5} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "var(--space-1)" }} />{lang === "ta" ? "ஆராய்வுக்குத் திரும்பு" : "Back to Explore"}</>
+          <><ArrowLeft size={14} strokeWidth={1.5} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "var(--space-1)" }} />{t("tab_explore_back", lang)}</>
         </button>
         <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
           {lang === "ta" ? "தோஷ தரவு இல்லை." : "No dosham data available."}
@@ -328,7 +328,7 @@ export function DashboardExploreDoshamNova({
       {/* ===== Breadcrumb + dosham nav ===== */}
       <NovaDetailBreadcrumb
         onBack={onBack}
-        backLabel={lang === "ta" ? "ஆராய்வு" : "Explore"}
+        backLabel={t("tab_explore", lang)}
         hubLabel={lang === "ta" ? "தோஷம்" : "Dosham"}
         currentLabel={displayName(dosham.name, lang)}
         onPrev={{

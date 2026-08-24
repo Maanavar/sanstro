@@ -154,17 +154,51 @@ export const DASHA_PANEL = {
   ),
 } as const;
 
+// B-020. The full definition of a pada lives in the `pada` glossary entry, one
+// tap from the label. This is only the compact rendering that sits beside the
+// number, so the fact row stays a fact row next to "D9 sign · Meena".
 // New Tamil, pending native review (CLAUDE.md new-Tamil rule).
 export const PLANET_ROW_DETAILS = {
-  statusMarks: s(
-    "Status marks explain conditions that modify a planet's expression: retrograde turns its themes inward; combust means it is close to the Sun; vargottama means it repeats the same sign in the D9 chart.",
-    "நிலை அடையாளங்கள் கிரகத்தின் வெளிப்பாட்டை மாற்றும் நிலைகளைக் காட்டுகின்றன: வக்ரம் அதன் கருப்பொருள்களை உள்ளார்ந்ததாக மாற்றும்; அஸ்தம் சூரியனுக்கு அருகில் இருப்பதைக் குறிக்கும்; வர்கோத்தமம் D9 ஜாதகத்திலும் அதே ராசியைப் பெறுவதைக் குறிக்கும்.",
-  ),
-  pada: s(
-    "Pada is one of the four equal parts of a birth star. It adds a finer layer to the star's placement.",
-    "பாதம் என்பது ஒரு பிறப்பு நட்சத்திரத்தின் நான்கு சம பாகங்களில் ஒன்று. இது நட்சத்திர நிலைக்கு நுணுக்கமான ஒரு அடுக்கைச் சேர்க்கிறது.",
-  ),
+  pada: s("quarter of the birth star", "பிறப்பு நட்சத்திரத்தின் கால் பகுதி"),
 } as const;
+
+// A-021. The dignity chips sit inside the planet row's own <button>, so they
+// cannot carry a GlossaryTerm — a button nested in a button is invalid markup
+// and fails this repo's permanent axe gate. The explanation lives in the
+// expanded detail instead, and names ONLY the marks actually on this planet: a
+// paragraph that also explains two marks the reader cannot see on this row
+// reads as though those applied too.
+//
+// Cazimi is not a softer combustion — it is its rare opposite. `birth_conditions
+// .py` scores it BOOST ("Heart of the Sun (a strengthening condition)") while
+// combustion is a penalty, and the chip tones here follow that (success vs
+// warning). Copy must not blur the two.
+// New Tamil, pending native review (CLAUDE.md new-Tamil rule).
+export const PLANET_STATUS_MARKS = {
+  heading: s("What the marks on this row mean", "இந்த வரிசையின் அடையாளங்களின் பொருள்"),
+  marks: {
+    vakra: s(
+      "Retrograde — seen from Earth the planet appears to move backwards, which turns its themes inward and slows them down.",
+      "வக்ரம் — பூமியிலிருந்து பார்க்கும்போது கிரகம் பின்னோக்கி நகர்வது போல் தோன்றும்; அதன் கருப்பொருள்கள் உள்நோக்கித் திரும்பி மெதுவாகும்.",
+    ),
+    astam: s(
+      "Combust — the planet sits close enough to the Sun to be burnt by it, which weakens how visibly it can act.",
+      "அஸ்தம் — கிரகம் சூரியனுக்கு மிக அருகில் இருந்து எரியும் நிலை; அதன் வெளிப்படையான செயல்பாடு பலவீனமாகும்.",
+    ),
+    cazimi: s(
+      "Cazimi — the planet sits at the exact centre of the Sun. This is the rare opposite of combust: it strengthens the planet instead of burning it.",
+      "கசிமி — கிரகம் சூரியனின் சரியான மையத்தில் அமர்வது. இது அஸ்தத்தின் அரிய எதிர்நிலை: கிரகத்தை எரிக்காமல் பலப்படுத்துகிறது.",
+    ),
+    varga: s(
+      "Vargottama — the planet holds the same sign in the D9 chart as in the birth chart, which steadies how it behaves.",
+      "வர்கோத்தமம் — ஜாதகத்திலும் D9 ஜாதகத்திலும் கிரகம் ஒரே ராசியில் இருப்பது; இது அதன் செயல்பாட்டை உறுதிப்படுத்துகிறது.",
+    ),
+  },
+} as const;
+
+/** The dignity marks a planet row can carry — keyed to `PLANET_STATUS_MARKS.marks`
+ *  so a new chip cannot be added without its explanation. */
+export type PlanetStatusMarkKey = keyof typeof PLANET_STATUS_MARKS.marks;
 
 // ─── Jathagam kattam legend (UX blindspot audit 2026-08-22, B-017/A-019) ─────
 //

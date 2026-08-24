@@ -9,11 +9,11 @@
  * the same numbers the mockup itself shows, so a passing test also cross-
  * checks the component against the design reference.
  */
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { HyBhuktiTimeline } from "./dashboard-hybrid-parts";
-import type { DashaTimelineItem, DashaTimelineResponseData } from "@/lib/types";
+import { HyBhuktiTimeline, HyPlanetOrbs } from "./dashboard-hybrid-parts";
+import type { ChartCalculateResponseData, DashaTimelineItem, DashaTimelineResponseData } from "@/lib/types";
 
 function addMonths(iso: string, months: number): string {
   // Format back via local getters, not toISOString() (which converts to
@@ -278,5 +278,116 @@ describe("HyBhuktiTimeline", () => {
     );
     screen.getByText(/year-ahead forecast/).click();
     expect(clicked).toBe(true);
+  });
+});
+
+/**
+ * A-021 / B-020 — the planet row's dignity marks and pada.
+ *
+ * WHY RENDERED, NOT DATA. The chips were always computed correctly; the finding
+ * was that nothing on screen said what they meant. A data-shape test passes in
+ * either wording, which is exactly how the gap survived — so these assert what
+ * a reader can actually see.
+ *
+ * The marks cannot be glossed in place: they sit inside the row's own <button>,
+ * and a GlossaryTerm is itself a button. Nesting them is invalid markup and
+ * fails this repo's permanent axe gate, so the explanation lives in the
+ * expanded detail instead. That constraint is load-bearing — if someone
+ * "improves" this by wrapping the chips, CI should stop them, not this file.
+ */
+
+type OrbPlanet = ChartCalculateResponseData["planets"][number];
+
+function planet(partial: Partial<OrbPlanet> = {}): OrbPlanet {
+  return {
+    graha: "JUPITER",
+    rasiName: "Meena",
+    absoluteLongitude: 345.5,
+    rasi: 12,
+    degreeInRasi: 15.5,
+    nakshatra: 26,
+    nakshatraName: "Uthirattadhi",
+    pada: 3,
+    houseFromLagna: 5,
+    speedDegPerDay: 0.1,
+    isRetrograde: false,
+    isCombust: false,
+    isCazimi: false,
+    d9Rasi: 12,
+    isVargottama: false,
+    showRetrogradeBadge: false,
+    ...partial,
+  } as OrbPlanet;
+}
+
+/** Render the orbs and open one planet's detail row. */
+function openPlanet(pl: OrbPlanet) {
+  render(<HyPlanetOrbs lang="en" planets={[pl]} animate={false} />);
+  fireEvent.click(screen.getAllByRole("button", { name: /Jupiter/i })[0]!);
+}
+
+describe("Planet row — dignity marks (A-021)", () => {
+  it("explains a mark the planet actually carries", () => {
+    openPlanet(planet({ isCombust: true }));
+
+    const marks = screen.getByTestId("status-marks-JUPITER");
+    expect(within(marks).getByText(/close enough to the Sun to be burnt/i)).toBeInTheDocument();
+  });
+
+  it("explains Cazimi, and does not describe it as a weakening", () => {
+    // The one the first pass missed. Cazimi is combustion's rare OPPOSITE —
+    // `birth_conditions.py` scores it BOOST while combustion is a penalty, and
+    // the chip tone here is success vs warning. Copy that blurred the two would
+    // contradict the engine on the same screen.
+    openPlanet(planet({ isCazimi: true }));
+
+    const marks = screen.getByTestId("status-marks-JUPITER");
+    expect(within(marks).getByText(/exact centre of the Sun/i)).toBeInTheDocument();
+    expect(within(marks).getByText(/strengthens the planet instead of burning it/i)).toBeInTheDocument();
+  });
+
+  it("names only the marks on this row, not every mark that exists", () => {
+    // A single paragraph that also explained combust and vargottama on a merely
+    // retrograde planet read as though those applied to it too.
+    openPlanet(planet({ isRetrograde: true, showRetrogradeBadge: true }));
+
+    const marks = screen.getByTestId("status-marks-JUPITER");
+    expect(within(marks).getByText(/appears to move backwards/i)).toBeInTheDocument();
+    expect(within(marks).queryByText(/burnt by it/i)).toBeNull();
+    expect(within(marks).queryByText(/same sign in the D9 chart/i)).toBeNull();
+  });
+
+  it("says nothing at all when the planet carries no marks", () => {
+    openPlanet(planet());
+
+    expect(screen.queryByTestId("status-marks-JUPITER")).toBeNull();
+  });
+
+  it("explains each of several marks when a planet carries more than one", () => {
+    openPlanet(planet({ isCombust: true, isVargottama: true }));
+
+    const marks = screen.getByTestId("status-marks-JUPITER");
+    expect(within(marks).getByText(/burnt by it/i)).toBeInTheDocument();
+    expect(within(marks).getByText(/same sign in the D9 chart/i)).toBeInTheDocument();
+  });
+});
+
+describe("Planet row — pada (B-020)", () => {
+  it("renders the pada as a plain quantity, not a bare number", () => {
+    openPlanet(planet({ pada: 3 }));
+    fireEvent.click(screen.getByRole("button", { name: /Technical details/i }));
+
+    expect(screen.getByText("3 / 4 · quarter of the birth star")).toBeInTheDocument();
+  });
+
+  it("keeps the definition one tap away instead of inline in the fact row", () => {
+    // The fact sits in a wrap row beside "D9 sign · Meena". A two-sentence
+    // definition as its VALUE makes that row lopsided, so the definition
+    // belongs to the glossary entry the label opens.
+    openPlanet(planet({ pada: 3 }));
+    fireEvent.click(screen.getByRole("button", { name: /Technical details/i }));
+
+    expect(screen.getByRole("button", { name: /^Pada$/i })).toHaveStyle({ cursor: "help" });
+    expect(screen.queryByText(/four equal parts of a birth star/i)).toBeNull();
   });
 });

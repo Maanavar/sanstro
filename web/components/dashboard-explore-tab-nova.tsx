@@ -6,7 +6,7 @@ import { Kicker } from "./ui";
 import { novaDetailCardStyle } from "./dashboard-explore-detail-nova";
 
 import type { Lang } from "@/lib/i18n";
-import { tPlanetLord } from "@/lib/i18n";
+import { t, tPlanetLord } from "@/lib/i18n";
 import { dt, EXPLORE_VOCABULARY } from "@/lib/dashboard-i18n";
 import { tamilizeAstroEnglish } from "@/lib/tamil-astro";
 import type { ChartCalculateResponseData, ChartSummaryData, DailyGuidanceData, NakshatraCardData } from "@/lib/types";
@@ -19,6 +19,7 @@ import { DashboardExploreYogamNova, DashboardExploreYogamListNova } from "./dash
 import { DashboardExploreGuideNova, DashboardExploreGuideListNova } from "./dashboard-explore-guide-nova";
 import { DashboardExploreLearnNova } from "./dashboard-explore-learn-nova";
 import { GlossaryTerm } from "./glossary-term";
+import { GLOSSARY, GLOSSARY_LABELS, type GlossaryKey } from "@/lib/glossary";
 
 /**
  * Nova "Explore" tab — Phase 6 of the dashboard revamp (see
@@ -167,13 +168,20 @@ type LearnArticle = {
   slug: string;
 };
 
-// Real, already-shipped /learn/* marketing articles — substituted for the
-// mockup's 3 example topics (Rahu Kalam / Guru Peyarchi / Dasa timeline),
-// none of which exist as articles anywhere in the codebase. Writing new
-// astrology explainer prose for those specific topics would be inventing
-// content, not re-skinning; these 5 are real, already-shipped articles
-// instead, rendered in-app via dashboard-explore-learn-nova.tsx.
+// Every entry here resolves to a real article body in
+// `dashboard-learn-content.ts` and opens in-app via
+// dashboard-explore-learn-nova.tsx. The mockup's 3 example topics (Rahu Kalam /
+// Guru Peyarchi / Dasa timeline) were dropped rather than faked — listing a
+// card that opens nothing is worse than a shorter shelf.
+//
+// The four "Basics" articles below were written for A-028: what a dasha, a
+// house and the Lagnam are, and what the daily score does and does not claim.
+// The five after them are the pre-existing /learn/* pieces.
 const LEARN_ARTICLES: LearnArticle[] = [
+  { key: "dasha", kickerEn: "Basics", kickerTa: "அடிப்படை", titleEn: "What is a Dasha?", titleTa: "தசை என்றால் என்ன?", slug: "what-is-a-dasha" },
+  { key: "house", kickerEn: "Basics", kickerTa: "அடிப்படை", titleEn: "What is a house?", titleTa: "வீடு என்றால் என்ன?", slug: "what-is-a-house" },
+  { key: "lagnam", kickerEn: "Basics", kickerTa: "அடிப்படை", titleEn: "What is Lagnam?", titleTa: "லக்னம் என்றால் என்ன?", slug: "what-is-lagnam" },
+  { key: "daily-score", kickerEn: "Today", kickerTa: "இன்று", titleEn: "What does the daily score mean?", titleTa: "தினசரி மதிப்பெண் எதைக் குறிக்கிறது?", slug: "what-does-the-daily-score-mean" },
   {
     key: "thirukanitham",
     kickerEn: "Method", kickerTa: "முறை",
@@ -212,6 +220,19 @@ const LEARN_ARTICLES: LearnArticle[] = [
 ];
 
 const SEARCH_SUGGESTIONS = ["Guru Peyarchi 2026", "Sevvai dosham", "Rahu Kalam"];
+
+// A-027. The vocabulary the INTERFACE uses, made searchable here so a reader
+// who met "Kuligai" on a red band this morning can find out what it was.
+// Matched on the display name in both languages AND the definition text, so
+// searching "avoid" finds Rahu Kalam without the reader knowing its name — which
+// is the situation this exists for. The key itself is deliberately NOT matched:
+// it is an identifier, and matching it made `sthanaBala` a searchable string.
+const INTERFACE_VOCABULARY = (Object.keys(GLOSSARY) as GlossaryKey[]).map((key) => ({
+  key,
+  ...GLOSSARY[key],
+  labelEn: GLOSSARY_LABELS[key].en,
+  labelTa: GLOSSARY_LABELS[key].ta,
+}));
 
 function matchesQuery(q: string, ...fields: string[]): boolean {
   return fields.some((f) => f.toLowerCase().includes(q));
@@ -252,7 +273,8 @@ export function DashboardExploreTabNova({
   const q = query.trim().toLowerCase();
   const filteredLibrary = q ? LIBRARY_ITEMS.filter((i) => matchesQuery(q, i.titleEn, i.descEn, i.titleTa, i.descTa)) : LIBRARY_ITEMS;
   const filteredLearn = q ? LEARN_ARTICLES.filter((a) => matchesQuery(q, a.titleEn, a.kickerEn, a.titleTa)) : LEARN_ARTICLES;
-  const noMatches = q.length > 0 && filteredLibrary.length === 0 && filteredLearn.length === 0;
+  const filteredVocabulary = q ? INTERFACE_VOCABULARY.filter((term) => matchesQuery(q, term.labelEn, term.labelTa, term.en, term.ta)) : [];
+  const noMatches = q.length > 0 && filteredLibrary.length === 0 && filteredLearn.length === 0 && filteredVocabulary.length === 0;
 
   if (subview?.kind === "nakshatram" && nakshatraCard) {
     if (subview.screen === "list") {
@@ -367,7 +389,7 @@ export function DashboardExploreTabNova({
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
         <div>
           <Kicker>
-            {lang === "ta" ? <>ஆராயுங்கள் · <span style={{ fontFamily: "'Noto Sans Tamil', sans-serif" }}>அறிவுக் களஞ்சியம்</span></> : "Explore"}
+            {lang === "ta" ? <>ஆராயுங்கள் · <span style={{ fontFamily: "'Noto Sans Tamil', sans-serif" }}>அறிவுக் களஞ்சியம்</span></> : t("tab_explore", lang)}
           </Kicker>
           {/* audit B-1: page title is the Explore tab's sole page heading. */}
           <h1 style={{ margin: "6px 0 0", fontFamily: "var(--font-display)", fontSize: "var(--display-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>
@@ -498,6 +520,18 @@ export function DashboardExploreTabNova({
       )}
 
       {/* ===== The library ===== */}
+      {filteredVocabulary.length > 0 && (
+        <div data-testid="interface-vocabulary" style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+          <Kicker>{lang === "ta" ? "நீங்கள் பார்த்த சொற்கள்" : "Terms you may have seen"}</Kicker>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
+            {filteredVocabulary.map((term) => (
+              <GlossaryTerm key={term.key} term={term.key} lang={lang}>
+                {lang === "ta" ? term.labelTa : term.labelEn}
+              </GlossaryTerm>
+            ))}
+          </div>
+        </div>
+      )}
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-3)" }}>
           <Kicker>{lang === "ta" ? "நூலகம்" : "The library"}</Kicker>

@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { apiFetchJson } from "@/lib/api";
 import { STALE } from "@/lib/queryClient";
-import { tLang, tPlanetLord } from "@/lib/i18n";
+import { t, tLang, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { tamilizeAstroEnglish, normalizeTamilAstroText } from "@/lib/tamil-astro";
 import type { DailyGuidanceData, NakshatraCardData } from "@/lib/types";
@@ -149,7 +149,7 @@ export function DashboardExploreNakshatramListNova({
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
       <NovaDetailBreadcrumb
         onBack={onBack}
-        backLabel={lang === "ta" ? "ஆராய்வு" : "Explore"}
+        backLabel={t("tab_explore", lang)}
         hubLabel={lang === "ta" ? "நட்சத்திரம்" : "Natchathiram"}
         currentLabel={lang === "ta" ? "அனைத்து 27 நட்சத்திரங்களும்" : "All 27 stars"}
       />
@@ -225,7 +225,7 @@ export function DashboardExploreNakshatramNova({
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
         <button type="button" onClick={onBack} style={{ alignSelf: "flex-start", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-          <><ArrowLeft size={14} strokeWidth={1.5} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "var(--space-1)" }} />{lang === "ta" ? "ஆராய்வுக்குத் திரும்பு" : "Back to Explore"}</>
+          <><ArrowLeft size={14} strokeWidth={1.5} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "var(--space-1)" }} />{t("tab_explore_back", lang)}</>
         </button>
         <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>{lang === "ta" ? "ஏற்றுகிறது…" : "Loading…"}</p>
       </div>
@@ -255,7 +255,7 @@ export function DashboardExploreNakshatramNova({
       {/* ===== Breadcrumb + star nav ===== */}
       <NovaDetailBreadcrumb
         onBack={onBack}
-        backLabel={lang === "ta" ? "ஆராய்வு" : "Explore"}
+        backLabel={t("tab_explore", lang)}
         hubLabel={lang === "ta" ? "நட்சத்திரம்" : "Natchathiram"}
         currentLabel={lang === "ta" ? card.nameTa : astroText(card.nameEn)}
         onPrev={{

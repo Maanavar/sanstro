@@ -117,12 +117,14 @@ export const SECTION_META: Array<{ id: SectionId; title: BiCopy; hint: BiCopy }>
   },
   {
     id: "drishti",
-    title: { ta: "திருஷ்டி / பார்வை", en: "Drishti / Aspects" },
+    // New Tamil, pending native review
+    title: { ta: "எந்த கிரகம் எதைப் பார்க்கிறது", en: "Which planets look at which" },
     hint: { ta: "7-ஆம் பார்வை மற்றும் கிரகநகர்விலான குரு/சனி பார்வை", en: "7th aspect and Guru/Sani transit aspects" },
   },
   {
     id: "houses",
-    title: { ta: "கேந்திரம் / திரிகோணம் / துஷ்டானம்", en: "Kendra / Trikona / Dusthana" },
+    // New Tamil, pending native review
+    title: { ta: "கிரகங்கள் இருக்கும் வாழ்க்கைப் பகுதிகள்", en: "Which parts of life your planets sit in" },
     hint: { ta: "கிரகங்கள் எந்த வீட்டு குழுவில் உள்ளன", en: "Which house group each planet occupies" },
   },
   {
@@ -142,7 +144,8 @@ export const SECTION_META: Array<{ id: SectionId; title: BiCopy; hint: BiCopy }>
   },
   {
     id: "peyarchi",
-    title: { ta: "வரும் பெயர்ச்சி", en: "Upcoming Peyarchi" },
+    // New Tamil, pending native review
+    title: { ta: "உங்களுக்கான பெரிய கிரக மாற்றங்கள்", en: "Big planet moves coming for you" },
     hint: { ta: "குரு, சனி, ராகு, கேது இந்த ஜாதகத்தில் தொடும் வீடுகள்", en: "Guru, Sani, Rahu, Ketu houses for this chart" },
   },
 ];

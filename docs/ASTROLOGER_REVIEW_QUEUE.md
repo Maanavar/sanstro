@@ -10,6 +10,35 @@ decision inline and move it to "Resolved".
 
 ## Open
 
+### 2026-08-24 · New Tamil copy from the UX-blindspot defect pass
+
+- **Where:** `web/lib/login-i18n.ts` (~55 auth strings), `web/lib/glossary.ts`
+  (`GLOSSARY_LABELS`, 45 term names), `web/components/advanced-astrology-gate.tsx`
+  (`classical-detail` title + blurb), `web/lib/i18n.ts` (`chart_selected_box`,
+  `tab_explore_back`).
+- **What needs a native eye:** all of it is new Tamil written without review, per
+  the CLAUDE.md new-Tamil rule. Three specific calls worth checking:
+  1. **`tab_explore`** — the English tab was renamed Explore → **Understand**;
+     the Tamil was deliberately left as the shipped **ஆய்வு**, because picking its
+     replacement is a native-speaker call and ஆய்வு ("study") is not obviously
+     what "Understand" means here. `tab_explore_back` was written as
+     **ஆய்வுக்குத் திரும்பு** to agree with it; if ஆய்வு changes, that
+     changes with it (the two sit adjacent in `i18n.ts` for exactly this reason).
+  2. **`GLOSSARY_LABELS` follows almanac usage over Sanskrit** — ஏழரைச் சனி for
+     Sade Sati, எமகண்டம் for Yamagandam, கிரகநகர்வு for Gochar. Worth
+     confirming ஷட்பலம், திருக் பலம் and காரகாம்சம் read naturally.
+  3. **`yoga` vs `yogam`** now carry disambiguators in both languages
+     (யோகம் (ஜாதக அமைப்பு) vs யோகம் (பஞ்சாங்க அங்கம்)) because both render in
+     one search-result list where a bare repeated "யோகம்" would be useless.
+- **Doctrine check, not just language:** the `classical-detail` gate blurb now
+  asserts that vargas and shadbala are *standard* Thirukanitham the reading
+  already leans on — as against the alternate dasha systems (Yogini,
+  Ashtottari, Kalachakra), which the other gate still calls experimental and
+  score-irrelevant. Please confirm that split is how you would put it.
+- **Status:** live in the product. Locked down by
+  `web/components/advanced-astrology-gate.test.tsx`, `web/lib/glossary.test.ts`
+  and `web/app/login/page.test.tsx`, so a change here should update those too.
+
 ### 2026-08-10 · Nethiram cutoff formula contradicts a live case — reopens the 2026-07-16 confirmation
 
 - **Where:** `app/calculations/panchangam.py` (`_nethiram_value`, `NETHIRAM_LABELS`).

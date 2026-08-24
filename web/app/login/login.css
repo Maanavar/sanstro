@@ -157,6 +157,24 @@
   position: relative;
 }
 
+/* A-004 — language toggle, pinned to the corner of the form panel rather than
+   placed in the flow: .ca-right centres a single card, and a sibling in that
+   flex row would sit beside the card instead of above it. The panel is already
+   `position: relative`, so this anchors to it.
+
+   Top-RIGHT on desktop, top-LEFT on mobile: below 1024px the card carries its
+   own centred brand lockup (.ca-card-brand) and the right corner is where a
+   thumb rests, so the two would collide. */
+.ca-lang-row {
+  position: absolute;
+  top: 16px;
+  left: 20px;
+  z-index: 2;
+}
+@media (min-width: 1024px) {
+  .ca-lang-row { top: 24px; left: auto; right: 32px; }
+}
+
 /* Subtle decorative arc behind the form */
 .ca-right::before {
   content: '';

@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { useState } from "react";
 
-import type { Lang } from "@/lib/i18n";
+import { t, type Lang } from "@/lib/i18n";
 import { getGuideDetail, getGuideSlugs, getGuideVerifyNote, type GuideKind } from "@/lib/guide-detail-content";
 import { NovaAskEntryChip, NovaAttributeBand, NovaDetailBreadcrumb, NovaDetailHero, novaDetailCardStyle } from "./dashboard-explore-detail-nova";
 import { Card, Kicker } from "./ui";
@@ -70,7 +70,7 @@ export function DashboardExploreGuideListNova({
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
       <NovaDetailBreadcrumb
         onBack={onBack}
-        backLabel={lang === "ta" ? "ஆராய்வு" : "Explore"}
+        backLabel={t("tab_explore", lang)}
         hubLabel={text(kindLabel)}
         currentLabel={lang === "ta" ? "அனைத்து பதிவுகளும்" : "All entries"}
       />
@@ -122,7 +122,7 @@ export function DashboardExploreGuideNova({ lang, kind, initialSlug, onBack, onO
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", fontFamily: "var(--font-body)", color: "var(--color-text)" }}>
         <button type="button" onClick={onBack} style={{ alignSelf: "flex-start", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
-          <><ArrowLeft size={14} strokeWidth={1.5} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "var(--space-1)" }} />{lang === "ta" ? "ஆராய்வுக்குத் திரும்பு" : "Back to Explore"}</>
+          <><ArrowLeft size={14} strokeWidth={1.5} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "var(--space-1)" }} />{t("tab_explore_back", lang)}</>
         </button>
         <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
           {lang === "ta" ? "தரவு இல்லை." : "No entries available."}
@@ -145,7 +145,7 @@ export function DashboardExploreGuideNova({ lang, kind, initialSlug, onBack, onO
       {/* ===== Breadcrumb + prev/next nav ===== */}
       <NovaDetailBreadcrumb
         onBack={onBack}
-        backLabel={lang === "ta" ? "ஆராய்வு" : "Explore"}
+        backLabel={t("tab_explore", lang)}
         hubLabel={text(kindLabel)}
         currentLabel={text(content.title)}
         onPrev={slugs.length > 1 ? { label: text(prevContent.title), onClick: () => setViewedIndex((i) => wrapIndex(i - 1, slugs.length)) } : undefined}

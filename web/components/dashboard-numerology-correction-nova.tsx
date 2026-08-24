@@ -299,6 +299,10 @@ export function NumerologyCorrectionSection({ lang, chartId, onSaveSpelling }: P
             ? "உங்கள் பெயரின் எழுத்துக்கூட்டல் உங்கள் ஜாதகத்துடன் எப்படிப் பொருந்துகிறது என்பதைப் பாருங்கள். மாற்றம் தேவைப்பட்டால் மட்டுமே மாற்று எழுத்துக்கூட்டல்கள் காட்டப்படும் — ஏற்கனவே பொருந்தினால், அதுவே பதில்."
             : "See how a spelling sits against your own chart. Alternatives are offered only when the chart actually warrants a change — if your name already suits it, that is the answer."}
         </p>
+        {/* New Tamil, pending native review */}
+        <p style={{ margin: "var(--space-2) 0 0", fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.55, maxWidth: "62ch" }}>
+          {isTamil ? "பெயர் எண்ணியல் என்பது சில குடும்பங்கள் பயன்படுத்தும் பாரம்பரிய நடைமுறை; உங்கள் பெயர் தவறு என்று இது கூறுவதில்லை. முதலில் காரணத்தைப் பாருங்கள்; எந்த மாற்றமும் உங்கள் விருப்பம் மட்டுமே." : "Name numerology is a traditional practice some families use; it does not say your name is wrong. See the reason first, and treat any change as entirely optional."}
+        </p>
       </div>
 
       <div className="nova-grid-2" style={{ gap: "var(--space-3)", alignItems: "end" }}>

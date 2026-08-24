@@ -26,7 +26,21 @@ export function resolveLang(value: string | null | undefined, fallback: Lang = "
 const STRINGS = {
   // ── Tabs
   tab_today:      { ta: "இன்று",        en: "Today" },
-  tab_explore:    { ta: "ஆய்வு",         en: "Explore" },
+  // A-026. Renamed from "Explore", which named the gesture rather than the
+  // reason — the tab is where you go to find out what a word on another screen
+  // meant. This key is the ONE source for the name: the tab pill, and the back
+  // breadcrumb of every sub-screen under it (dosham, guide, learn, nakshatram),
+  // which used to carry the word as six separate string literals and so kept
+  // sending readers "back to Explore" from a tab no longer called that.
+  // Tamil is unchanged and deliberately so — ஆய்வு is a shipped, reviewed
+  // string, and picking its replacement is a native-speaker call, not a guess.
+  // Queued in docs/ASTROLOGER_REVIEW_QUEUE.md.
+  tab_explore:    { ta: "ஆய்வு",         en: "Understand" },
+  // Kept as its own string rather than composed as `"Back to " + tab_explore`:
+  // Tamil inflects the noun for the dative ("ஆய்வு" → "ஆய்வுக்கு"), so
+  // concatenation cannot build it. If `tab_explore` is renamed again, this
+  // moves with it — that is the whole reason the two sit adjacent.
+  tab_explore_back: { ta: "ஆய்வுக்குத் திரும்பு", en: "Back to Understand" },
   tab_tools:      { ta: "கருவிகள்",     en: "Tools" },
   tab_personal:   { ta: "தனிப்பட்ட",   en: "Personal" },
   tab_plan:       { ta: "இலக்குகள்",   en: "Goals" },
@@ -244,6 +258,12 @@ const STRINGS = {
   chart_view_d9:    { ta: "D9 நவாம்சம்", en: "D9 Navamsa" },
   navamsa_label:    { ta: "நவாம்சம்",   en: "Navamsa" },
   chart_tap_to_explain: { ta: "விளக்கத்திற்கு தட்டவும்", en: "Tap to explain" },
+  // A-025. The affordance ("Tap to explain") is now a visible chip ABOVE the
+  // kattam; the panel below it is the result of that tap, so it needs its own
+  // heading. Both read the same string previously, printing the same four words
+  // twice on one chart.
+  // New Tamil, pending native review (CLAUDE.md new-Tamil rule).
+  chart_selected_box: { ta: "தேர்ந்தெடுத்த கட்டம்", en: "Selected box" },
   chart_from_d1_lagna: { ta: "D1 லக்னத்திலிருந்து", en: "From D1 Lagna" },
   chart_from_d9_lagna: { ta: "D9 லக்னத்திலிருந்து", en: "From D9 Lagna" },
   chart_house_label: { ta: "இடம்", en: "House" },

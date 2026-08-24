@@ -13,6 +13,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { track } from "@/lib/analytics";
 import { estimatePasswordStrength } from "@/lib/password-strength";
+import { lt, LEFT_PANEL_FEATURES, type LoginKey } from "@/lib/login-i18n";
+import { LangToggle, useLang } from "@/components/lang-toggle";
 import { getAuthProviders } from "@vinaadi/shared/api/auth";
 import "@/lib/api"; // side effect: initializes the shared API client used by getAuthProviders
 import { GuestChartModal } from "@/components/dashboard-guest-chart-modal";
@@ -21,6 +23,28 @@ import { Eye, EyeOff, Check, Mail } from "lucide-react";
 import "./login.css";
 
 type Mode = "login" | "signup" | "forgot" | "reset";
+
+/**
+ * The error banner holds either one of OUR strings (by key, so it re-renders in
+ * the reader's language when they use the toggle) or a message the SERVER sent
+ * (as text, because we cannot translate what the API produced). Storing the
+ * rendered string for both would have frozen our own copy in whichever language
+ * was active at the moment the error occurred.
+ */
+type ErrorState = { key: LoginKey } | { text: string } | null;
+
+/** Thrown when a request fails with no `detail` — carries the fallback we own. */
+class AuthCopyError extends Error {
+  constructor(readonly key: LoginKey) {
+    super(key);
+  }
+}
+
+function toErrorState(err: unknown): ErrorState {
+  if (err instanceof AuthCopyError) return { key: err.key };
+  if (err instanceof Error && err.message) return { text: err.message };
+  return { key: "error_generic" };
+}
 
 /* Auth glyphs — lucide (SHD-02). */
 function EyeIcon({ open }: { open: boolean }) {
@@ -43,16 +67,15 @@ function isStrongPassword(pw: string): boolean {
   return pw.length >= 8;
 }
 
-const leftPanelFeatures = [
-  { text: "Thirukanitham accuracy — Lahiri ayanamsa, Drik ephemeris" },
-  { text: "Daily Dasa, Gochar & Panchangam in plain language" },
-  { text: "Family vault — group charts, shared fortune windows" },
-  { text: "Yogas & Dosham explained transparently, not just a verdict" },
-];
-
 export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("login");
+  // `useLang()` rather than a local read of localStorage. The provider in
+  // app/layout.tsx is seeded from the lang COOKIE server-side, so the page is
+  // rendered in the reader's language instead of painting English and swapping
+  // to Tamil a tick after hydration — and `<LangToggle/>` below gives a first
+  // -time visitor a way to choose, which a localStorage read alone never could.
+  const [lang] = useLang();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -62,7 +85,7 @@ export default function LoginPage() {
 
   const [resetToken, setResetToken] = useState<string | null>(null);
 
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorState>(null);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState<"signup" | "forgot" | "reset" | null>(null);
   const [googleEnabled, setGoogleEnabled] = useState(false);
@@ -89,7 +112,7 @@ export default function LoginPage() {
       setMode("signup");
     }
     if (params.get("error") === "oauth_failed") {
-      setError("Google sign-in didn't complete. Please try again or use email instead.");
+      setError({ key: "error_oauth_failed" });
     }
   }, []);
 
@@ -115,11 +138,11 @@ export default function LoginPage() {
 
     if (mode === "reset") {
       if (!passwordValid) {
-        setError("Password must be at least 8 characters.");
+        setError({ key: "error_password_short" });
         return;
       }
       if (!confirmMatch) {
-        setError("Passwords do not match.");
+        setError({ key: "error_password_mismatch" });
         return;
       }
       setLoading(true);
@@ -132,11 +155,12 @@ export default function LoginPage() {
         });
         if (!response.ok) {
           const payload = await response.json().catch(() => ({} as { detail?: string }));
-          throw new Error(payload.detail ?? "This reset link is invalid or has expired.");
+          if (payload.detail) throw new Error(payload.detail);
+          throw new AuthCopyError("error_reset_link_invalid");
         }
         setDone("reset");
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+        setError(toErrorState(err));
       } finally {
         setLoading(false);
       }
@@ -144,17 +168,17 @@ export default function LoginPage() {
     }
 
     if (!isValidEmail(email)) {
-      setError("Enter a valid email address.");
+      setError({ key: "error_email_required" });
       return;
     }
 
     if (mode !== "forgot") {
       if (!passwordValid) {
-        setError("Password must be at least 8 characters.");
+        setError({ key: "error_password_short" });
         return;
       }
       if (mode === "signup" && !confirmMatch) {
-        setError("Passwords do not match.");
+        setError({ key: "error_password_mismatch" });
         return;
       }
     }
@@ -171,7 +195,8 @@ export default function LoginPage() {
         });
         if (!response.ok) {
           const payload = await response.json().catch(() => ({} as { detail?: string }));
-          throw new Error(payload.detail ?? "Unable to create account.");
+          if (payload.detail) throw new Error(payload.detail);
+          throw new AuthCopyError("error_create_failed");
         }
         track("onboarding_step_completed", { step: "account_created" });
         setDone("signup");
@@ -184,7 +209,8 @@ export default function LoginPage() {
         });
         if (!response.ok) {
           const payload = await response.json().catch(() => ({} as { detail?: string }));
-          throw new Error(payload.detail ?? "Incorrect email or password.");
+          if (payload.detail) throw new Error(payload.detail);
+          throw new AuthCopyError("error_credentials");
         }
         let dest = "/dashboard";
         try {
@@ -207,31 +233,35 @@ export default function LoginPage() {
         });
         if (!response.ok) {
           const payload = await response.json().catch(() => ({} as { detail?: string }));
-          throw new Error(payload.detail ?? "Unable to process reset request.");
+          if (payload.detail) throw new Error(payload.detail);
+          throw new AuthCopyError("error_reset_failed");
         }
         setDone("forgot");
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setError(toErrorState(err));
     } finally {
       setLoading(false);
     }
   }
 
   const title =
-    mode === "login" ? "Welcome back"
-    : mode === "signup" ? "Create your account"
-    : mode === "reset" ? "Set a new password"
-    : "Reset your password";
+    mode === "login" ? lt("title_login", lang)
+    : mode === "signup" ? lt("title_signup", lang)
+    : mode === "reset" ? lt("title_reset", lang)
+    : lt("title_forgot", lang);
 
   const subtitle =
-    mode === "login" ? "Sign in to your Vinaadi workspace"
-    : mode === "signup" ? "Start your morning reading practice"
-    : mode === "reset" ? "Choose a new password for your account"
-    : "We'll send a reset link to your email";
+    mode === "login" ? lt("subtitle_login", lang)
+    : mode === "signup" ? lt("subtitle_signup", lang)
+    : mode === "reset" ? lt("subtitle_reset", lang)
+    : lt("subtitle_forgot", lang);
 
-  /* Password strength 0-4 — entropy-aware (UXD-22), not length-only. */
-  const pwStrengthResult = estimatePasswordStrength(password, "en");
+  /* Password strength 0-4 — entropy-aware (UXD-22), not length-only. The
+     helper has accepted a `lang` since it was written; this page passed "en"
+     regardless, so the strength label and the four requirement lines stayed
+     English underneath a Tamil form. */
+  const pwStrengthResult = estimatePasswordStrength(password, lang);
   const pwStrength = pwStrengthResult.score;
   const pwStrengthLabel = pwStrengthResult.label;
   const pwStrengthColor = ["", "var(--planet-saturn)", "var(--chart-d1-active)", "var(--chart-d9-active)", "var(--chart-d9-active-dark)"][pwStrength];
@@ -241,9 +271,9 @@ export default function LoginPage() {
       <div className="ca-root">
 
         {/* ── Left branding panel (desktop ≥1024px) ── */}
-        <aside className="ca-left" aria-label="Vinaadi features">
+        <aside className="ca-left" aria-label={lt("left_panel_aria", lang)}>
           <div className="ca-left-brand">
-            <Link href="/" aria-label="Vinaadi home" className="ca-brand-link">
+            <Link href="/" aria-label={lt("brand_home_aria", lang)} className="ca-brand-link">
               <Image
                 src="/brand/vinaadi-symbol-icon.png"
                 alt=""
@@ -255,35 +285,42 @@ export default function LoginPage() {
               />
               <span className="ca-left-wordmark">Vinaadi</span>
             </Link>
-            <p className="ca-left-tagline">
-              Thirukanitham-based Tamil astrology for daily life and family planning.
-            </p>
+            <p className="ca-left-tagline">{lt("left_tagline", lang)}</p>
           </div>
 
           <div>
             <p className="ca-left-headline">
-              One quiet<br />reading.<br /><em>Every morning.</em>
+              {lang === "ta" ? <>ஒரு அமைதியான<br />வாசிப்பு.<br /><em>ஒவ்வொரு காலையும்.</em></> : <>One quiet<br />reading.<br /><em>Every morning.</em></>}
             </p>
           </div>
 
           <ul className="ca-left-features" role="list">
-            {leftPanelFeatures.map((f) => (
-              <li key={f.text} className="ca-left-feature">
+            {LEFT_PANEL_FEATURES.map((f) => (
+              <li key={f.en} className="ca-left-feature">
                 <span className="ca-left-feature-dot" aria-hidden="true" />
-                <p className="ca-left-feature-text">{f.text}</p>
+                <p className="ca-left-feature-text">{f[lang]}</p>
               </li>
             ))}
           </ul>
 
-          <Link href="/" className="ca-left-back">← Back to home</Link>
+          <Link href="/" className="ca-left-back">{lt("left_back_home", lang)}</Link>
         </aside>
 
         {/* ── Right form panel ── */}
         <main className="ca-right">
+          {/* A-004. The page speaks the reader's language, which until now it
+              could only LEARN from a preference set elsewhere in the app —
+              unreachable for the one visitor who most needs it, someone
+              arriving at /login for the first time. `LangToggle` is the same
+              control the marketing pages carry, and writes the same cookie the
+              server reads, so the choice survives into the dashboard. */}
+          <div className="ca-lang-row">
+            <LangToggle />
+          </div>
           <div className="ca-card">
 
             {/* Mobile brand (hidden on desktop via CSS) */}
-            <Link href="/" className="ca-card-brand" aria-label="Vinaadi home">
+            <Link href="/" className="ca-card-brand" aria-label={lt("brand_home_aria", lang)}>
               <Image
                 src="/brand/vinaadi-symbol-icon.png"
                 alt=""
@@ -303,7 +340,7 @@ export default function LoginPage() {
 
             {/* Mode tabs (login / signup only) */}
             {mode !== "forgot" && mode !== "reset" && (
-              <div className="ca-tabs" role="tablist" aria-label="Authentication mode">
+              <div className="ca-tabs" role="tablist" aria-label={lt("tablist_aria", lang)}>
                 <button
                   type="button"
                   role="tab"
@@ -311,7 +348,7 @@ export default function LoginPage() {
                   className={`ca-tab${mode === "login" ? " active" : ""}`}
                   onClick={() => switchMode("login")}
                 >
-                  Sign in
+                  {lt("tab_sign_in", lang)}
                 </button>
                 <button
                   type="button"
@@ -320,7 +357,7 @@ export default function LoginPage() {
                   className={`ca-tab${mode === "signup" ? " active" : ""}`}
                   onClick={() => switchMode("signup")}
                 >
-                  Create account
+                  {lt("tab_create_account", lang)}
                 </button>
               </div>
             )}
@@ -342,9 +379,9 @@ export default function LoginPage() {
                     <path fill="#FBBC05" d="M5.27 14.27a7.2 7.2 0 0 1 0-4.54v-3.1H1.26a12 12 0 0 0 0 10.75l4.01-3.11Z"/>
                     <path fill="#EA4335" d="M12 4.77c1.76 0 3.34.6 4.58 1.79l3.44-3.44C17.94 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.26 6.63l4.01 3.1C6.22 6.88 8.87 4.77 12 4.77Z"/>
                   </svg>
-                  Continue with Google
+                  {lt("google_continue", lang)}
                 </a>
-                <div className="ca-divider"><span>or</span></div>
+                <div className="ca-divider"><span>{lt("divider_or", lang)}</span></div>
               </>
             )}
 
@@ -352,12 +389,10 @@ export default function LoginPage() {
             {done === "signup" && (
               <div className="ca-success" role="status">
                 <div className="ca-success-icon" aria-hidden="true"><CheckIcon /></div>
-                <p className="ca-success-title">Account created</p>
-                <p className="ca-success-body">
-                  Your account is ready. Sign in to open your dashboard.
-                </p>
+                <p className="ca-success-title">{lt("success_signup_title", lang)}</p>
+                <p className="ca-success-body">{lt("success_signup_body", lang)}</p>
                 <button type="button" className="ca-text-btn" onClick={() => switchMode("login")}>
-                  Go to sign in →
+                  {lt("success_go_sign_in", lang)}
                 </button>
               </div>
             )}
@@ -365,14 +400,14 @@ export default function LoginPage() {
             {done === "forgot" && (
               <div className="ca-success" role="status">
                 <div className="ca-success-icon" aria-hidden="true"><MailIcon /></div>
-                <p className="ca-success-title">Reset link sent</p>
+                <p className="ca-success-title">{lt("success_forgot_title", lang)}</p>
                 <p className="ca-success-body">
-                  If an account exists for{" "}
-                  <strong className="ca-email-strong">{email}</strong>,
-                  you&apos;ll receive a reset link shortly.
+                  {lt("success_forgot_prefix", lang)}{" "}
+                  <strong className="ca-email-strong">{email}</strong>,{" "}
+                  {lt("success_forgot_suffix", lang)}
                 </p>
                 <button type="button" className="ca-text-btn" onClick={() => switchMode("login")}>
-                  ← Back to sign in
+                  {lt("back_to_sign_in", lang)}
                 </button>
               </div>
             )}
@@ -380,12 +415,10 @@ export default function LoginPage() {
             {done === "reset" && (
               <div className="ca-success" role="status">
                 <div className="ca-success-icon" aria-hidden="true"><CheckIcon /></div>
-                <p className="ca-success-title">Password updated</p>
-                <p className="ca-success-body">
-                  Your password has been changed. Please sign in with your new password.
-                </p>
+                <p className="ca-success-title">{lt("success_reset_title", lang)}</p>
+                <p className="ca-success-body">{lt("success_reset_body", lang)}</p>
                 <button type="button" className="ca-text-btn" onClick={() => switchMode("login")}>
-                  Go to sign in →
+                  {lt("success_go_sign_in", lang)}
                 </button>
               </div>
             )}
@@ -400,7 +433,7 @@ export default function LoginPage() {
                 {/* Email — not shown for reset mode (identity comes from the token) */}
                 {mode !== "reset" && (
                   <div className="ca-field">
-                    <label className="ca-label" htmlFor="ca-email">Email</label>
+                    <label className="ca-label" htmlFor="ca-email">{lt("label_email", lang)}</label>
                     <input
                       id="ca-email"
                       className={`ca-input${emailTouched && !emailValid ? " is-error" : emailTouched && emailValid ? " is-valid" : ""}`}
@@ -414,7 +447,7 @@ export default function LoginPage() {
                       onChange={(e) => { setEmail(e.target.value); setError(null); }}
                     />
                     {emailTouched && !emailValid && (
-                      <span id="ca-email-error" className="ca-hint is-error" role="alert">Enter a valid email address</span>
+                      <span id="ca-email-error" className="ca-hint is-error" role="alert">{lt("error_email_invalid", lang)}</span>
                     )}
                   </div>
                 )}
@@ -422,7 +455,7 @@ export default function LoginPage() {
                 {/* Password */}
                 {mode !== "forgot" && (
                   <div className="ca-field">
-                    <label className="ca-label" htmlFor="ca-password">{mode === "reset" ? "New password" : "Password"}</label>
+                    <label className="ca-label" htmlFor="ca-password">{lt(mode === "reset" ? "label_new_password" : "label_password", lang)}</label>
                     <div className="ca-input-wrap">
                       <input
                         id="ca-password"
@@ -430,7 +463,7 @@ export default function LoginPage() {
                         type={showPassword ? "text" : "password"}
                         autoComplete={mode === "signup" || mode === "reset" ? "new-password" : "current-password"}
                         required
-                        placeholder={mode === "signup" || mode === "reset" ? "Min. 8 characters" : "••••••••"}
+                        placeholder={mode === "signup" || mode === "reset" ? lt("placeholder_password_new", lang) : "••••••••"}
                         value={password}
                         aria-invalid={passwordTouched && !passwordValid ? "true" : undefined}
                         aria-describedby={(mode === "signup" || mode === "reset") && password.length > 0 ? "ca-password-reqs" : undefined}
@@ -441,7 +474,7 @@ export default function LoginPage() {
                         className="ca-eye"
                         onClick={() => setShowPassword((v) => !v)}
                         tabIndex={-1}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        aria-label={lt(showPassword ? "hide_password" : "show_password", lang)}
                       >
                         <EyeIcon open={showPassword} />
                       </button>
@@ -503,7 +536,7 @@ export default function LoginPage() {
                           className="ca-text-btn"
                           onClick={() => switchMode("forgot")}
                         >
-                          Forgot password?
+                          {lt("forgot_password", lang)}
                         </button>
                       </div>
                     )}
@@ -513,7 +546,7 @@ export default function LoginPage() {
                 {/* Confirm password — signup and reset */}
                 {(mode === "signup" || mode === "reset") && (
                   <div className="ca-field">
-                    <label className="ca-label" htmlFor="ca-confirm">{mode === "reset" ? "Confirm new password" : "Confirm password"}</label>
+                    <label className="ca-label" htmlFor="ca-confirm">{lt(mode === "reset" ? "label_confirm_new" : "label_confirm", lang)}</label>
                     <div className="ca-input-wrap">
                       <input
                         id="ca-confirm"
@@ -521,7 +554,7 @@ export default function LoginPage() {
                         type={showConfirm ? "text" : "password"}
                         autoComplete="new-password"
                         required
-                        placeholder="Repeat your password"
+                        placeholder={lt("placeholder_confirm", lang)}
                         value={confirmPassword}
                         aria-invalid={confirmTouched && !confirmMatch ? "true" : undefined}
                         aria-describedby={confirmTouched && !confirmMatch ? "ca-confirm-error" : undefined}
@@ -532,38 +565,38 @@ export default function LoginPage() {
                         className="ca-eye"
                         onClick={() => setShowConfirm((v) => !v)}
                         tabIndex={-1}
-                        aria-label={showConfirm ? "Hide confirm password" : "Show confirm password"}
+                        aria-label={lt(showConfirm ? "hide_confirm" : "show_confirm", lang)}
                       >
                         <EyeIcon open={showConfirm} />
                       </button>
                     </div>
                     {confirmTouched && !confirmMatch && (
-                      <span id="ca-confirm-error" className="ca-hint is-error" role="alert">Passwords do not match</span>
+                      <span id="ca-confirm-error" className="ca-hint is-error" role="alert">{lt("error_confirm_mismatch", lang)}</span>
                     )}
                   </div>
                 )}
 
                 {/* Error banner */}
-                {error && <div className="ca-error" role="alert">{error}</div>}
+                {error && <div className="ca-error" role="alert">{"key" in error ? lt(error.key, lang) : error.text}</div>}
 
                 {/* Submit */}
                 <button type="submit" className="ca-btn" disabled={loading}>
                   {loading
-                    ? "Please wait…"
+                    ? lt("submit_loading", lang)
                     : mode === "login"
-                      ? "Sign in"
+                      ? lt("submit_sign_in", lang)
                       : mode === "signup"
-                        ? "Create account"
+                        ? lt("submit_create", lang)
                         : mode === "reset"
-                          ? "Update password"
-                          : "Send reset link"}
+                          ? lt("submit_update_password", lang)
+                          : lt("submit_send_reset", lang)}
                 </button>
 
                 {/* Back to sign in — forgot/reset modes */}
                 {(mode === "forgot" || mode === "reset") && (
                   <p className="ca-center-row">
                     <button type="button" className="ca-text-btn" onClick={() => switchMode("login")}>
-                      ← Back to sign in
+                      {lt("back_to_sign_in", lang)}
                     </button>
                   </p>
                 )}
@@ -573,8 +606,9 @@ export default function LoginPage() {
             {/* Terms — signup only */}
             {!done && mode === "signup" && (
               <p className="ca-terms">
-                By creating an account you agree to our{" "}
-                <Link href="/terms">Terms</Link> and <Link href="/privacy">Privacy Policy</Link>.
+                {lt("terms_prefix", lang)}{" "}
+                <Link href="/terms">{lt("terms_link", lang)}</Link> {lt("terms_and", lang)}{" "}
+                <Link href="/privacy">{lt("privacy_link", lang)}</Link>.
               </p>
             )}
 
@@ -582,15 +616,15 @@ export default function LoginPage() {
             {!done && mode !== "forgot" && mode !== "reset" && (
               <p className="ca-footer">
                 {mode === "login" ? (
-                  <>No account?{" "}
+                  <>{lt("footer_no_account", lang)}{" "}
                     <button type="button" className="ca-text-btn ca-footer-switch" onClick={() => switchMode("signup")}>
-                      Create one
+                      {lt("footer_create_one", lang)}
                     </button>
                   </>
                 ) : (
-                  <>Already have an account?{" "}
+                  <>{lt("footer_have_account", lang)}{" "}
                     <button type="button" className="ca-text-btn ca-footer-switch" onClick={() => switchMode("login")}>
-                      Sign in
+                      {lt("footer_sign_in", lang)}
                     </button>
                   </>
                 )}
@@ -603,7 +637,7 @@ export default function LoginPage() {
             {!done && mode !== "forgot" && mode !== "reset" && (
               <p className="ca-footer">
                 <button type="button" className="ca-text-btn" onClick={() => setShowGuestChart(true)}>
-                  Try a chart first — no account needed
+                  {lt("guest_chart_cta", lang)}
                 </button>
               </p>
             )}
@@ -614,7 +648,7 @@ export default function LoginPage() {
 
       {showGuestChart && (
         <GuestChartModal
-          lang="en"
+          lang={lang}
           onClose={() => setShowGuestChart(false)}
           onCreateAccount={() => { setShowGuestChart(false); switchMode("signup"); }}
         />

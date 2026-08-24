@@ -197,7 +197,7 @@ async function shot(name: string) {
  * dropdown gives its items `role="menuitem"` (dashboard-hero.tsx:321), which
  * REPLACES the implicit button role rather than adding to it. So a
  * `getByRole("button", { name: "Tools" })` matches nothing and Playwright waits
- * for it to appear until the test times out, taking Explore and QA down with it
+ * for it to appear until the test times out, taking Understand and QA down with it
  * under serial mode.
  */
 async function goToTab(label: string, role: "button" | "menuitem" = "button") {
@@ -289,7 +289,7 @@ const TOP_TABS: Array<{ label: string; subTabs?: RegExp[]; via: "nav" | "more" |
   { label: "Settings", via: "nav" },
   { label: "Journal", via: "url", path: "/dashboard/journal" },
   { label: "Tools", via: "more" },
-  { label: "Explore", via: "more" },
+  { label: "Understand", via: "more" },
   { label: "QA", via: "more" },
 ];
 
@@ -304,7 +304,7 @@ for (const tabDef of TOP_TABS) {
       await waitForContent(tabDef.label);
     } else {
       if (tabDef.via === "more") {
-        // Tools/Explore/QA live behind the "More" dropdown now — open it first
+        // Tools/Understand/QA live behind the "More" dropdown now — open it first
         // so the item exists for goToTab() to click. The trigger's accessible
         // name carries a caret ("More ▾"), hence exact: false.
         await dismissBlockingDialogs(3);

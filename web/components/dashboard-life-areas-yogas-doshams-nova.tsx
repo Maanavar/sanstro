@@ -171,8 +171,11 @@ function NovaYogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
       >
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flex: 1 }}>
           <span style={{ fontSize: "var(--text-base)", color }}>{yoga.isPresent ? "★" : "○"}</span>
-          <span style={{ fontSize: "var(--text-base)", fontWeight: 600, color: yoga.isPresent ? "var(--color-text-strong)" : "var(--color-faint)" }}>
-            {displayName(yoga.name, lang)}
+          <span style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0 }}>
+            <span style={{ fontSize: "var(--text-base)", fontWeight: 600, color: yoga.isPresent ? "var(--color-text-strong)" : "var(--color-faint)" }}>
+              {lang === "ta" ? yoga.effectTa : yoga.effectEn}
+            </span>
+            <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{displayName(yoga.name, lang)}</span>
           </span>
           {yoga.isPresent && yoga.dashaActivated && (
             <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-mid-text)", border: "1px solid var(--color-mid-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-2)" }}>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import type { Lang } from "@/lib/i18n";
+import { t, type Lang } from "@/lib/i18n";
 import { LEARN_ARTICLES_CONTENT } from "./dashboard-learn-content";
 import { NovaAskEntryChip, NovaDetailBreadcrumb, NovaDetailHero } from "./dashboard-explore-detail-nova";
 import { Card, Kicker } from "./ui";
@@ -41,7 +41,7 @@ export function DashboardExploreLearnNova({ lang, initialSlug, onBack, onOpenAsk
 
       <NovaDetailBreadcrumb
         onBack={onBack}
-        backLabel={lang === "ta" ? "ஆராய்வு" : "Explore"}
+        backLabel={t("tab_explore", lang)}
         hubLabel={lang === "ta" ? "கற்றுக்கொள்ளுங்கள்" : "Learn"}
         currentLabel={text(article.title)}
         onPrev={{ label: text(prevArticle.title), onClick: () => setViewedIndex((i) => wrapIndex(i - 1, LEARN_ARTICLES_CONTENT.length)) }}

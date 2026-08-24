@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { GLOSSARY, type GlossaryKey } from "./glossary";
+import { GLOSSARY, GLOSSARY_LABELS, glossaryLabel, type GlossaryKey } from "./glossary";
 
 /**
  * The glossary is the app's only mechanism for explaining a tradition-specific
@@ -62,5 +62,60 @@ describe("glossary integrity", () => {
     // period" makes the panic worse.
     expect(GLOSSARY.sadeSati.en).toMatch(/three times|7½|ends/i);
     expect(GLOSSARY.chandrashtama.en).toMatch(/each month|2¼/i);
+  });
+});
+
+/**
+ * A-027 — the display NAME of each term.
+ *
+ * Every call site until the Understand tab's search passed its own display text
+ * as children, so the glossary never needed names. Listing the vocabulary with
+ * no surrounding sentence exposed that: the first pass rendered the object key,
+ * putting `rahuKalam`, `sthanaBala` and `naisargikaBala` on screen for English
+ * readers, while Tamil got the first sentence of the definition standing in for
+ * a name. These guard the shape that failure took.
+ */
+describe("glossary labels", () => {
+  it("names every term in both languages", () => {
+    for (const key of keys) {
+      expect(GLOSSARY_LABELS[key]?.en.trim(), `${key}.en`).toBeTruthy();
+      expect(GLOSSARY_LABELS[key]?.ta.trim(), `${key}.ta`).toBeTruthy();
+    }
+  });
+
+  it("never leaks the identifier as the label", () => {
+    // The exact defect: `charaDasha` shown to a reader instead of "Chara Dasha".
+    for (const key of keys) {
+      expect(GLOSSARY_LABELS[key].en, `${key}.en is the raw key`).not.toBe(key);
+      expect(GLOSSARY_LABELS[key].en, `${key}.en is camelCase`).not.toMatch(/^[a-z]+[A-Z]/);
+    }
+  });
+
+  it("keeps labels short enough to be a name, not a definition", () => {
+    // The Tamil half of the first pass was `definition.split(".")[0]` — a whole
+    // clause. A name fits on a chip.
+    for (const key of keys) {
+      expect(GLOSSARY_LABELS[key].en.length, `${key}.en too long for a label`).toBeLessThan(30);
+      expect(GLOSSARY_LABELS[key].ta.length, `${key}.ta too long for a label`).toBeLessThan(40);
+      expect(GLOSSARY_LABELS[key].ta, `${key}.ta ends like a sentence`).not.toMatch(/[.!?]$/);
+    }
+  });
+
+  it("distinguishes the two things called Yogam", () => {
+    // `yoga` is a chart combination; `yogam` is one of the almanac's five daily
+    // limbs. They share a name in English AND Tamil, so a bare "Yogam" twice in
+    // one result list would be a worse answer than none.
+    expect(GLOSSARY_LABELS.yoga.en).not.toBe(GLOSSARY_LABELS.yogam.en);
+    expect(GLOSSARY_LABELS.yoga.ta).not.toBe(GLOSSARY_LABELS.yogam.ta);
+  });
+
+  it("uses almanac Tamil, not Sanskrit transliteration", () => {
+    expect(GLOSSARY_LABELS.sadeSati.ta).toBe("ஏழரைச் சனி");
+    expect(GLOSSARY_LABELS.yamagandam.ta).toBe("எமகண்டம்");
+  });
+
+  it("resolves a label through the accessor in both languages", () => {
+    expect(glossaryLabel("rahuKalam", "en")).toBe("Rahu Kalam");
+    expect(glossaryLabel("rahuKalam", "ta")).toBe("ராகு காலம்");
   });
 });

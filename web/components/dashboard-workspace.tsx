@@ -1733,7 +1733,7 @@ export function DashboardWorkspace() {
           <button
             type="button"
             onClick={returnToExplore}
-            aria-label={lang === "ta" ? "ஆராய் பக்கத்துக்கு திரும்பு" : "Back to Explore"}
+            aria-label={t("tab_explore_back", lang)}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -1750,7 +1750,7 @@ export function DashboardWorkspace() {
             }}
           >
             <span aria-hidden="true">←</span>
-            {lang === "ta" ? "ஆராய் பக்கத்துக்கு திரும்பு" : "Back to Explore"}
+            {t("tab_explore_back", lang)}
           </button>
         </div>
       )}
@@ -2232,7 +2232,7 @@ export function DashboardWorkspace() {
             <nav className="nova-footer__nav" aria-label={lang === "ta" ? "அடிக்குறிப்பு வழிசெலுத்தல்" : "Footer navigation"}>
               {(([
                 {
-                  head: { en: "Explore", ta: "ஆராயுங்கள்" },
+                  head: { en: "Understand", ta: "ஆராயுங்கள்" },
                   links: [
                     { tab: "personal" as Tab, ta: "இன்று", en: "Today" },
                     { tab: "calendar" as Tab, ta: "நாட்காட்டி", en: "Calendar" },

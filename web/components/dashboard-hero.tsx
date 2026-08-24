@@ -48,7 +48,7 @@ const TAB_DEFS: Array<{ id: Tab; labelEn: string; labelTaKey?: LabelKey }> = [
 // instead of their own pill — QA stays dev-only.
 const MORE_TAB_DEFS: Array<{ id: Tab; labelEn: string; labelTaKey?: LabelKey }> = [
   { id: "tools", labelEn: "Tools", labelTaKey: "tab_tools" },
-  { id: "explore", labelEn: "Explore", labelTaKey: "tab_explore" },
+  { id: "explore", labelEn: "Understand", labelTaKey: "tab_explore" },
   { id: "qa", labelEn: "QA" },
 ];
 

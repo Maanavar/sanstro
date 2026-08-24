@@ -130,3 +130,88 @@ describe("chart legend", () => {
     expect(screen.queryByText("Combust")).toBeNull();
   });
 });
+
+/**
+ * A-025 — the tap-to-explain affordance, and what a screen reader gets.
+ *
+ * The affordance used to be four `title=` attributes, which no touch user can
+ * reach. Replacing them with `aria-label` fixed the wrong half and broke the
+ * other: `aria-label` on the cell <button> REPLACES its content, so the planets
+ * in the box vanished from the accessible name; and `aria-label` on the
+ * occupant <span> is prohibited by ARIA (role=generic) and exposed by nothing.
+ * The repo's axe gate runs `color-contrast` only, so neither would have failed
+ * CI. These assert the accessible name a reader actually receives.
+ */
+describe("kattam cell — accessible name (A-025)", () => {
+  it("names the rasi AND every graha standing in it", () => {
+    render(<RasiChart chart={sampleChart()} lang="en" />);
+    const cell = screen.getByRole("button", { name: /Kanni/ });
+    expect(cell.getAttribute("aria-label")).toContain("Saturn");
+  });
+
+  it("spells out each occupant's conditions instead of leaving them as glyphs", () => {
+    // Saturn is retrograde AND vargottama; the grid shows that as a superscript
+    // "R" and "V", which read aloud as stray letters or not at all.
+    render(<RasiChart chart={sampleChart()} lang="en" />);
+    const label = screen.getByRole("button", { name: /Kanni/ }).getAttribute("aria-label")!;
+    expect(label).toContain("Retrograde");
+    expect(label).toContain("Vargottama");
+  });
+
+  it("says a box is empty rather than naming it and stopping", () => {
+    render(<RasiChart chart={sampleChart()} lang="en" />);
+    const label = screen.getByRole("button", { name: /Kumbam/ }).getAttribute("aria-label")!;
+    expect(label).toMatch(/No grahas in this rasi/i);
+  });
+
+  it("leads with the visible label, so the name contains what the eye reads", () => {
+    // WCAG 2.5.3 Label in Name — voice control users say what they can see.
+    render(<RasiChart chart={sampleChart()} lang="en" />);
+    const label = screen.getByRole("button", { name: /Kanni/ }).getAttribute("aria-label")!;
+    expect(label.startsWith("Kanni")).toBe(true);
+  });
+
+  it("puts no aria-label on the occupant chips, where ARIA prohibits naming", () => {
+    const { container } = render(<RasiChart chart={sampleChart()} lang="en" />);
+    expect(container.querySelectorAll("span[aria-label]").length).toBe(0);
+  });
+});
+
+describe("tap-to-explain chip (A-025)", () => {
+  it("is shown when there is a panel to receive the tap", () => {
+    render(<RasiChart chart={sampleChart()} lang="en" />);
+    expect(screen.getByText("Tap to explain")).toBeTruthy();
+  });
+
+  it("is NOT shown when the chart renders without an explain panel", () => {
+    // 10 of the 14 call sites pass showExplain={false}. A permanent "Tap to
+    // explain" line on those promised something that could not happen.
+    render(<RasiChart chart={sampleChart()} lang="en" showExplain={false} />);
+    expect(screen.queryByText("Tap to explain")).toBeNull();
+  });
+
+  it("does not print the affordance twice on one chart", () => {
+    // The panel below the grid used to carry the same four words as its own
+    // heading, so both read "Tap to explain".
+    render(<RasiChart chart={sampleChart()} lang="en" />);
+    expect(screen.getAllByText("Tap to explain").length).toBe(1);
+    expect(screen.getByText("Selected box")).toBeTruthy();
+  });
+
+  it("applies to the D9 grid on the same terms", () => {
+    render(<NavamsaChart chart={sampleChart()} lang="en" showExplain={false} />);
+    expect(screen.queryByText("Tap to explain")).toBeNull();
+  });
+});
+
+describe("kattam cell — accessible name in Tamil", () => {
+  it("voices graha names in Tamil, not as Latin enum codes", () => {
+    // `occupantName` returns the raw "SATURN" enum. Fine on screen (it never
+    // renders), fatal in an aria-label a Tamil reader hears spelled out.
+    render(<RasiChart chart={sampleChart()} lang="ta" />);
+    const label = screen.getByRole("button", { name: /^கன்னி/ }).getAttribute("aria-label")!;
+    expect(label).not.toContain("SATURN");
+    expect(label).toContain("சனி"); // Sani
+    expect(TAMIL.test(label)).toBe(true);
+  });
+});

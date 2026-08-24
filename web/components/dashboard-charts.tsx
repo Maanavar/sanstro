@@ -171,6 +171,66 @@ function occupantFlagLabels(
   return flags;
 }
 
+/**
+ * The accessible name for one kattam cell.
+ *
+ * A cell button's visible content is two-letter graha abbreviations with
+ * superscript flag glyphs (R / C / ✦ / V) — unreadable aloud, and the glyphs
+ * are decorative marks a screen reader spells out or skips. So the name is
+ * built explicitly.
+ *
+ * TWO THINGS THIS MUST NOT GO BACK TO. `aria-label` on the button REPLACES its
+ * content, so a label of just "Meena — Tap to explain" silently dropped every
+ * planet in the box from the accessible name. And the per-planet flags were
+ * briefly moved to `aria-label` on the occupant <span>, where ARIA prohibits
+ * naming (`role=generic`) and no screen reader exposes them — the axe gate here
+ * runs `color-contrast` only, so nothing would have caught it. Both facts live
+ * in this one string instead: visible rasi label first (WCAG 2.5.3 Label in
+ * Name), then each occupant with its conditions spelled out in words.
+ */
+function cellAccessibleName(
+  detail: ReturnType<typeof buildD1CellDetail> | ReturnType<typeof buildD9CellDetail>,
+  lang: Lang,
+): string {
+  const parts = [rasiLabel(detail.rasi, lang)];
+  if (detail.isLagna) parts.push(t("label_lagnam", lang));
+  if (detail.occupants.length === 0) return `${parts.join(" · ")}: ${t("chart_no_graha_in_rasi", lang)}`;
+  const occupants = detail.occupants.map((occ) => {
+    // `grahaFullName`, not `occupantName` — the latter returns the raw enum
+    // ("SATURN"), which a Tamil screen reader voices as Latin letters. This is
+    // the same accessor the legend under the grid uses, so the two agree.
+    const name = occ.key === "Lagna" ? t("label_lagnam", lang) : grahaFullName(occ.graha, lang);
+    const flags = occupantFlagLabels(occ, lang);
+    return flags.length ? `${name} (${flags.join(", ")})` : name;
+  });
+  return `${parts.join(" · ")}: ${occupants.join(", ")}`;
+}
+
+/** The tap-to-explain affordance, as a visible chip rather than a `title=`
+ *  attribute no touch user can reach (A-025). Rendered ONLY where an
+ *  `ExplainPanel` exists to receive the tap — 10 of the 14 call sites pass
+ *  `showExplain={false}`, and on those the promise had nothing behind it. */
+function TapToExplainChip({ lang }: { lang: Lang }) {
+  return (
+    <span style={{
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "4px",
+      alignSelf: "center",
+      fontSize: "0.6875rem",
+      color: "var(--color-muted)",
+      background: "var(--chartgrid-surface, var(--panel-cream))",
+      border: "1px solid var(--chartgrid-border-light, var(--panel-tan-light))",
+      borderRadius: "var(--radius-pill)",
+      padding: "2px 8px",
+      lineHeight: 1.4,
+    }}>
+      <span aria-hidden="true">☞</span>
+      {t("chart_tap_to_explain", lang)}
+    </span>
+  );
+}
+
 function ExplainPanel({
   title,
   subtitle,
@@ -267,6 +327,7 @@ export function RasiChart({
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
       {label ? <p style={{ fontSize: "0.875rem", color: "var(--color-faint)", margin: 0 }}>{label}</p> : null}
+      {showExplain ? <TapToExplainChip lang={lang} /> : null}
       <div style={{
         display: "grid",
         gridTemplateColumns: `repeat(4, ${cellSize}px)`,
@@ -285,7 +346,8 @@ export function RasiChart({
               key={rasi}
               type="button"
               onClick={() => selectRasi(rasi)}
-              title={`${detail.rasiName} - ${t("chart_tap_to_explain", lang)}`}
+              aria-label={cellAccessibleName(detail, lang)}
+              aria-pressed={isSelected}
               style={{
                 gridColumn: col + 1,
                 gridRow: row + 1,
@@ -316,11 +378,13 @@ export function RasiChart({
               </span>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "2px", alignItems: "flex-end" }}>
                 {detail.occupants.map((occ) => {
-                  const flagLabels = occupantFlagLabels(occ, lang);
+                  // No `aria-label` here: this is a bare <span> (role=generic),
+                  // where ARIA prohibits naming and no reader exposes it. Every
+                  // occupant and its conditions are in the cell button's own
+                  // accessible name — see `cellAccessibleName`.
                   return (
                     <span
                       key={occ.key}
-                      title={flagLabels.length ? `${occ.graha} — ${flagLabels.join(", ")}` : occ.graha}
                       style={{
                         fontSize: "0.625rem",
                         fontWeight: 700,
@@ -363,7 +427,7 @@ export function RasiChart({
       <ChartLegend chart={chart} lang={lang} />
       {showExplain ? (
         <ExplainPanel
-          title={t("chart_tap_to_explain", lang)}
+          title={t("chart_selected_box", lang)}
           subtitle={t("chart_from_d1_lagna", lang)}
           emptyText={t("chart_no_graha_in_rasi", lang)}
           houseLabel={t("chart_house_label", lang)}
@@ -402,6 +466,7 @@ export function NavamsaChart({
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
       {label ? <p style={{ fontSize: "0.875rem", color: "var(--color-faint)", margin: 0 }}>{label}</p> : null}
+      {showExplain ? <TapToExplainChip lang={lang} /> : null}
       <div style={{
         display: "grid",
         gridTemplateColumns: `repeat(4, ${cellSize}px)`,
@@ -420,7 +485,8 @@ export function NavamsaChart({
               key={rasi}
               type="button"
               onClick={() => selectRasi(rasi)}
-              title={`${detail.rasiName} - ${t("chart_tap_to_explain", lang)}`}
+              aria-label={cellAccessibleName(detail, lang)}
+              aria-pressed={isSelected}
               style={{
                 gridColumn: col + 1,
                 gridRow: row + 1,
@@ -451,11 +517,13 @@ export function NavamsaChart({
               </span>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "2px", alignItems: "flex-end" }}>
                 {detail.occupants.map((occ) => {
-                  const flagLabels = occupantFlagLabels(occ, lang);
+                  // No `aria-label` here: this is a bare <span> (role=generic),
+                  // where ARIA prohibits naming and no reader exposes it. Every
+                  // occupant and its conditions are in the cell button's own
+                  // accessible name — see `cellAccessibleName`.
                   return (
                     <span
                       key={occ.key}
-                      title={flagLabels.length ? `${occ.graha} — ${flagLabels.join(", ")}` : occ.graha}
                       style={{
                         fontSize: "0.625rem",
                         fontWeight: 700,
@@ -496,7 +564,7 @@ export function NavamsaChart({
       <ChartLegend chart={chart} lang={lang} d9 />
       {showExplain ? (
         <ExplainPanel
-          title={t("chart_tap_to_explain", lang)}
+          title={t("chart_selected_box", lang)}
           subtitle={t("chart_from_d9_lagna", lang)}
           emptyText={t("chart_no_graha_in_rasi", lang)}
           houseLabel={t("chart_house_label", lang)}
