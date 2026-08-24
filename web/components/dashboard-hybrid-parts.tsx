@@ -23,7 +23,8 @@ import type {
 import { RASI_NAMES } from "./dashboard-charts";
 import { displayName as yogaDoshamDisplayName } from "./dashboard-yoga-dosham-panel";
 import { HOUSE_MEANING, OWN_SIGN_RASI } from "./dashboard-chart-explanation-data";
-import { ageAtDate } from "./dashboard-dasha";
+import { ageAtDate, DashaLordLabel } from "./dashboard-dasha";
+import type { Mode } from "@/lib/plainlang";
 import { Card, Kicker } from "./ui";
 
 /**
@@ -937,6 +938,7 @@ export function HyBhuktiTimeline({
   birthDateLocal,
   dashaSupportText,
   onOpenForecast,
+  mode = "BALANCED",
 }: {
   lang: Lang;
   dasha: DashaTimelineResponseData | null;
@@ -946,6 +948,7 @@ export function HyBhuktiTimeline({
   birthDateLocal?: string | null;
   dashaSupportText?: BiText | null;
   onOpenForecast?: () => void;
+  mode?: Mode;
 }) {
   if (!dasha) return null;
   const maha = dasha.current.mahadasha;
@@ -991,8 +994,14 @@ export function HyBhuktiTimeline({
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1_5)", flex: "1 1 320px", minWidth: 0 }}>
           <Kicker>{lang === "ta" ? "இப்போது" : "Right now"}</Kicker>
           <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 600, color: "var(--color-text-strong)", lineHeight: 1.25 }}>
-            {tPlanetLord(maha.lord, lang)} {mahaWord} · {tPlanetLord(activeBhukti.lord, lang)} {bhuktiWord} ·{" "}
-            <span style={{ color: "var(--color-accent-strong)" }}>{tPlanetLord(activeAntaram.lord, lang)} {t("antaram_word", lang)}</span>
+            {/* The first place a reader meets these lord names, so it's the one
+                that carries the mode treatment (T12) — BEGINNER's inline gloss,
+                BALANCED's tap-to-explain, both already how DashaLordLabel reads
+                `mode`. The bar segments below stay bare tPlanetLord: same
+                ellipsis + native `title` constraint as dashboard-dasha.tsx's own
+                timeline bar. */}
+            <DashaLordLabel lord={maha.lord} mode={mode} lang={lang} /> {mahaWord} · <DashaLordLabel lord={activeBhukti.lord} mode={mode} lang={lang} /> {bhuktiWord} ·{" "}
+            <span style={{ color: "var(--color-accent-strong)" }}><DashaLordLabel lord={activeAntaram.lord} mode={mode} lang={lang} /> {t("antaram_word", lang)}</span>
           </p>
           {dashaSupportText && (dashaSupportText.en || dashaSupportText.ta) && (
             <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.5 }}>

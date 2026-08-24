@@ -1328,6 +1328,7 @@ export function DashboardFamilyChartsHybrid({
               birthDateLocal={readingChart?.birthProfile?.birthDateLocal}
               dashaSupportText={dailyGuidance?.reasons.dashaSupport ?? null}
               onOpenForecast={() => jumpTo("hy-forecast")}
+              mode={mode}
             />
           </HySection>
         )}

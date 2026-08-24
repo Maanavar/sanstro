@@ -9,7 +9,7 @@
  * the same numbers the mockup itself shows, so a passing test also cross-
  * checks the component against the design reference.
  */
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { HyBhuktiTimeline } from "./dashboard-hybrid-parts";
@@ -149,6 +149,46 @@ describe("HyBhuktiTimeline", () => {
     expect(container.textContent).toContain("Moon Mahadasha");
     expect(container.textContent).toContain("Moon Bhukti");
     expect(container.textContent).toContain("Saturn Antaram");
+  });
+
+  // T12 (UX_BLINDSPOT_HANDOFF_2026-08-23.md): mode_balanced_desc promises
+  // "some terms, with tooltips" for BALANCED mode. This is the panel that
+  // promise was silently not kept on — dashboard-dasha.tsx's own
+  // DashaLordLabel (BEGINNER's inline gloss / BALANCED's tap-to-explain) was
+  // wired into `DashaTimeline`, a component nothing in the app renders;
+  // `HyBhuktiTimeline`, the one Family & Charts actually mounts, called
+  // tPlanetLord directly with no mode awareness at all. Default mode is
+  // BALANCED (no `mode` prop passed) on purpose below — that's what a fresh
+  // account actually gets.
+  describe("dasha lord name — BALANCED mode (T12)", () => {
+    it("makes the running Saturn antaram a tap-to-explain term", () => {
+      render(<HyBhuktiTimeline lang="en" dasha={dasha} dashaMaha={dashaMaha} dashaAntar={dashaAntar} today={TODAY} />);
+
+      // "Right now" hero only — the bar segments stay bare (ellipsis + native
+      // title tooltip; see dashboard-hybrid-parts.tsx's own comment).
+      const trigger = screen.getByRole("button", { name: "Saturn" });
+      fireEvent.click(trigger);
+      expect(document.querySelector("[data-glossary-panel]")).toHaveTextContent("discipline planet");
+    });
+
+    it("does not turn the running Moon mahadasha/bhukti into a dead tap target", () => {
+      // Moon has no real plain-language gloss in PLAIN_LANG (graha() with no
+      // gloss arg returns the canonical name as its own "definition") — a
+      // button whose tooltip repeats its own label is worse than no button.
+      render(<HyBhuktiTimeline lang="en" dasha={dasha} dashaMaha={dashaMaha} dashaAntar={dashaAntar} today={TODAY} />);
+
+      expect(screen.queryByRole("button", { name: "Moon" })).toBeNull();
+    });
+
+    it("leaves BEGINNER and TRADITIONAL modes as they were", () => {
+      const balanced = render(<HyBhuktiTimeline lang="en" dasha={dasha} dashaMaha={dashaMaha} dashaAntar={dashaAntar} today={TODAY} mode="BALANCED" />);
+      expect(screen.getByRole("button", { name: "Saturn" })).toBeInTheDocument();
+      balanced.unmount();
+
+      render(<HyBhuktiTimeline lang="en" dasha={dasha} dashaMaha={dashaMaha} dashaAntar={dashaAntar} today={TODAY} mode="TRADITIONAL" />);
+      expect(screen.queryByRole("button", { name: "Saturn" })).toBeNull();
+      expect(screen.getByText(/Saturn Antaram/)).toBeInTheDocument();
+    });
   });
 
   it("renders one bar segment per period across all three levels", () => {

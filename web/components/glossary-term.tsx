@@ -38,15 +38,24 @@ type Placement = { top: number; left: number; below: boolean; maxHeight: number 
 /** Below this a clamped panel is not worth reading, so it scrolls instead. */
 const MIN_PANEL_HEIGHT = 120;
 
-export function GlossaryTerm({
-  term,
-  lang,
-  children,
-}: {
-  term: GlossaryKey;
-  lang: Lang;
-  children: React.ReactNode;
-}) {
+type GlossaryTermProps =
+  | { term: GlossaryKey; definition?: undefined; lang: Lang; children: React.ReactNode }
+  | {
+      term?: undefined;
+      /**
+       * An inline definition for vocabulary that isn't in `GLOSSARY` — a
+       * planet's plain-language role from `lib/plainlang.ts`
+       * (`plainLangBiText`), for instance, which is per-planet and keyed
+       * differently from the concept-level glossary. No "See all terms"
+       * link renders in this mode: there is no index entry to send the
+       * reader to.
+       */
+      definition: { ta: string; en: string };
+      lang: Lang;
+      children: React.ReactNode;
+    };
+
+export function GlossaryTerm({ term, definition, lang, children }: GlossaryTermProps) {
   const [open, setOpen] = useState(false);
   const [placement, setPlacement] = useState<Placement | null>(null);
   const anchorRef = useRef<HTMLButtonElement>(null);
@@ -151,7 +160,7 @@ export function GlossaryTerm({
     };
   }, [open, reposition, close, holdsFocus]);
 
-  const def = GLOSSARY[term];
+  const def = term ? GLOSSARY[term] : definition;
   if (!def) return <>{children}</>;
 
   const tip = open && (
@@ -213,21 +222,23 @@ export function GlossaryTerm({
           announces the definition and stops. Pointed at the panel it read the
           "See all terms" link as the tail of every definition on the dashboard. */}
       <span id={`${tipId}-def`}>{lang === "ta" ? def.ta : def.en}</span>
-      <Link
-        ref={linkRef}
-        // Deep-links to this term's own card rather than the top of a 42-card
-        // index — `GlossaryIndex` gives every article `id={key}`.
-        href={`/dashboard/glossary#${term}`}
-        style={{
-          display: "block",
-          marginTop: "var(--space-1_5)",
-          color: "var(--color-accent-secondary)",
-          fontWeight: 700,
-          textDecoration: "none",
-        }}
-      >
-        {lang === "ta" ? "எல்லா சொற்களும்" : "See all terms"}
-      </Link>
+      {term && (
+        <Link
+          ref={linkRef}
+          // Deep-links to this term's own card rather than the top of a 42-card
+          // index — `GlossaryIndex` gives every article `id={key}`.
+          href={`/dashboard/glossary#${term}`}
+          style={{
+            display: "block",
+            marginTop: "var(--space-1_5)",
+            color: "var(--color-accent-secondary)",
+            fontWeight: 700,
+            textDecoration: "none",
+          }}
+        >
+          {lang === "ta" ? "எல்லா சொற்களும்" : "See all terms"}
+        </Link>
+      )}
     </span>
   );
 

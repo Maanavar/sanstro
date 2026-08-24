@@ -2,11 +2,51 @@
 
 import { CheckGlyph, AlertGlyph } from "./icons";
 import { t, tPlanetLord } from "@/lib/i18n";
-import { plainLangDashaLord } from "@/lib/plainlang";
+import { plainLangDashaLord, plainLangBiText } from "@/lib/plainlang";
 import type { Mode } from "@/lib/plainlang";
 import type { Lang } from "@/lib/i18n";
 import type { DashaTimelineItem, DashaTimelineResponseData } from "@/lib/types";
 import { scoreColor, SCORE_HIGH, SCORE_MID } from "@/lib/format";
+import { GlossaryTerm } from "./glossary-term";
+
+/**
+ * A dasha lord's name, styled per mode (T12, UX_BLINDSPOT_HANDOFF_2026-08-23.md).
+ *
+ * BEGINNER prints the friendly gloss inline ("Saturn (discipline planet)").
+ * TRADITIONAL prints the bare canonical name. BALANCED used to also print the
+ * bare name — silently dropping the promise `mode_balanced_desc` makes to the
+ * reader ("Some terms, with tooltips"): the canonical name, but tap-to-explain.
+ * `plainLangBiText` is the same dictionary BEGINNER reads from; this just
+ * surfaces it as a tooltip instead of inlining it, via `GlossaryTerm`'s
+ * `definition` prop rather than its `term` lookup — dasha lords aren't in
+ * `GLOSSARY`, which is concept-level (dasha, bhukti, …), not per-planet.
+ *
+ * Exported for `HyBhuktiTimeline` (dashboard-hybrid-parts.tsx), the dasha
+ * panel actually rendered on Family & Charts — this file's own `DashaTimeline`
+ * is unused there (only the Porutham/Jadhagam-generator tools render it). One
+ * definition, so the two panels can't drift on what BALANCED mode means for a
+ * planet name. */
+export function DashaLordLabel({ lord, mode, lang }: { lord: string; mode: Mode; lang: Lang }) {
+  if (mode === "BEGINNER") return <>{plainLangDashaLord(lord, "BEGINNER", lang)}</>;
+  const name = tPlanetLord(lord, lang);
+  if (mode !== "BALANCED") return <>{name}</>;
+  const biText = plainLangBiText(lord);
+  // Six of the nine grahas (Sun/Moon/Mars/Mercury/Jupiter/Venus, keyed by
+  // their full name) have no gloss in PLAIN_LANG — `graha()` with no gloss
+  // arg returns the canonical name AS the BiText, by design (see that
+  // function's own comment). A tooltip whose content is identical to its own
+  // trigger tells the reader nothing; it would just be a dead tap target.
+  // Comparing against the ACTIVE-language string, not just null-checking
+  // `biText`, is what catches that case — `biText` is truthy here even for
+  // Moon.
+  const gloss = lang === "ta" ? biText?.ta : biText?.en;
+  if (!biText || !gloss || gloss === name) return <>{name}</>;
+  return (
+    <GlossaryTerm definition={biText} lang={lang}>
+      {name}
+    </GlossaryTerm>
+  );
+}
 
 /* Every entry must be a themed token, never a literal: these are read as a
    `color:` on prose (the dasha lord in the deep-dive paragraph, the graha cell
@@ -154,6 +194,12 @@ export function DashaTimeline({
                 }}
               >
                 {segWidth > 6 && (
+                  // Not `<DashaLordLabel>` here: `pointerEvents: "none"` deliberately
+                  // routes clicks through to the bar segment (which carries its own
+                  // native `title`), and `textOverflow: "ellipsis"` needs a plain text
+                  // run — a nested `<button>` (inline-block by default) would break
+                  // both. The rows below are where a BALANCED reader actually reads
+                  // names; this compact bar is a visual overview, not a tap target.
                   <span
                     style={{
                       fontSize: "0.625rem",
@@ -213,7 +259,7 @@ export function DashaTimeline({
             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
               <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: color, boxShadow: `0 0 8px ${color}` }} />
               <span style={{ fontSize: "0.875rem", fontWeight: 800, color }}>
-                {mode === "BEGINNER" ? plainLangDashaLord(activePeriod.lord, "BEGINNER", lang) : tPlanetLord(activePeriod.lord, lang)} {t("dasha_word", lang)}
+                <DashaLordLabel lord={activePeriod.lord} mode={mode} lang={lang} /> {t("dasha_word", lang)}
               </span>
             </div>
             <span style={{ fontSize: "0.75rem", color: "var(--color-muted, var(--panel-mid-earth))" }}>
@@ -253,7 +299,7 @@ export function DashaTimeline({
                 >
                   <div style={{ width: isCurrentBhukti ? "8px" : "5px", height: isCurrentBhukti ? "8px" : "5px", borderRadius: "50%", background: bhuktiColor, flexShrink: 0, boxShadow: isCurrentBhukti ? `0 0 5px ${bhuktiColor}` : "none" }} />
                   <span style={{ fontSize: isCurrentBhukti ? "0.875rem" : "0.75rem", fontWeight: isCurrentBhukti ? 700 : bhuktiPast ? 300 : 400, color: isCurrentBhukti ? bhuktiColor : bhuktiPast ? "var(--color-faint, var(--color-faint))" : "var(--color-text, var(--panel-earth))", minWidth: "80px" }}>
-                    {mode === "BEGINNER" ? plainLangDashaLord(bhukti.lord, "BEGINNER", lang) : tPlanetLord(bhukti.lord, lang)}
+                    <DashaLordLabel lord={bhukti.lord} mode={mode} lang={lang} />
                   </span>
                   <span style={{ fontSize: "0.625rem", color: "var(--color-muted, var(--panel-mid-earth))", flex: 1 }}>
                     {String(bhukti.startDate)} → {String(bhukti.endDate)}
@@ -280,7 +326,7 @@ export function DashaTimeline({
                         <div key={`antaram-${antaram.lord}`} style={{ display: "flex", alignItems: "center", gap: "var(--space-1_5)", padding: "var(--space-1) var(--space-2)", borderRadius: "var(--radius-xs)", background: `${antaramColor}18`, border: `1px solid ${antaramColor}44` }}>
                           <div style={{ width: "5px", height: "5px", borderRadius: "50%", background: antaramColor, flexShrink: 0, boxShadow: `0 0 4px ${antaramColor}` }} />
                           <span style={{ fontSize: "0.75rem", fontWeight: 700, color: antaramColor, minWidth: "72px" }}>
-                            {mode === "BEGINNER" ? plainLangDashaLord(antaram.lord, "BEGINNER", lang) : tPlanetLord(antaram.lord, lang)} {t("antaram_word", lang)}
+                            <DashaLordLabel lord={antaram.lord} mode={mode} lang={lang} /> {t("antaram_word", lang)}
                           </span>
                           <span style={{ fontSize: "0.625rem", color: "var(--color-muted, var(--panel-mid-earth))", flex: 1 }}>
                             {String(antaram.startDate)} → {String(antaram.endDate)}
