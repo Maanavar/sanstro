@@ -125,7 +125,14 @@ export function PlaceCombobox({ value, onChange, className = "", placeholder = "
     setLoading(true);
     const seq = ++requestSeq.current;
     const timer = setTimeout(() => {
-      searchPlaces(trimmed, SEARCH_LIMIT)
+      // `searchPlaces` calls `getApiClient()`, which THROWS synchronously when
+      // the client has not been initialised — so the throw escapes the
+      // `.catch()` below entirely and surfaces as an uncaught exception inside
+      // a timer, rather than degrading to "no results" the way a failed fetch
+      // does. Starting the chain from a resolved promise puts a synchronous
+      // throw on the same path as a rejection.
+      Promise.resolve()
+        .then(() => searchPlaces(trimmed, SEARCH_LIMIT))
         .then((res) => {
           if (requestSeq.current !== seq) return; // a later keystroke already superseded this
           setResults(res.data.map(toCityEntry));
