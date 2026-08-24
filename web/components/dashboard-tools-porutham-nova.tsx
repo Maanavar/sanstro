@@ -5,7 +5,7 @@ import { AlertTriangle, Check, X } from "lucide-react";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
-import { dt, PORUTHAM_VERDICT } from "@/lib/dashboard-i18n";
+import { CULTURAL_CONTEXT, dt, PORUTHAM_VERDICT } from "@/lib/dashboard-i18n";
 import { t, tPlanetLord, tNakshatra } from "@/lib/i18n";
 import { verdictPhrase } from "@/lib/verdict-lexicon";
 import type { Lang } from "@/lib/i18n";
@@ -20,6 +20,7 @@ import { PoruthamShareLinkButton } from "./porutham-share-link-button";
 import { ZodiacBadge } from "./zodiac-badge";
 import { NakshatraBadge } from "./nakshatra-badge";
 import { GlossaryTerm } from "./glossary-term";
+import { DashboardLearnArticleModal } from "./dashboard-learn-article-modal";
 import { Card } from "./ui/card";
 import { Kicker } from "./ui/kicker";
 
@@ -174,6 +175,7 @@ export function NovaPoruthamPanel({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [showPoruthamLearn, setShowPoruthamLearn] = useState(false);
 
   async function handleCompare() {
     const valid = (f: BirthForm) => f.displayName && f.birthDateLocal && f.birthPlace && f.birthLatitude && f.birthLongitude && f.birthTimezone;
@@ -289,6 +291,28 @@ export function NovaPoruthamPanel({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
+      <Card variant="soft" compact>
+        <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.55 }}>
+          {dt(CULTURAL_CONTEXT.porutham, lang)}{" "}
+          {/* B-022 asked for the shipped article rather than fresh prose. Modal,
+              not navigation — a half-entered pair of birth forms above must
+              survive the reader going to find out what porutham is. */}
+          <button
+            type="button"
+            onClick={() => setShowPoruthamLearn(true)}
+            style={{
+              padding: 0, border: "none", background: "none", font: "inherit",
+              color: "var(--color-accent-secondary)", fontWeight: 700, cursor: "pointer",
+              textDecoration: "underline", textUnderlineOffset: "2px",
+            }}
+          >
+            {dt(CULTURAL_CONTEXT.poruthamLearnMore, lang)}
+          </button>
+        </p>
+      </Card>
+      {showPoruthamLearn && (
+        <DashboardLearnArticleModal slug="what-is-porutham" lang={lang} onClose={() => setShowPoruthamLearn(false)} />
+      )}
       {/* Context selector */}
       <Card style={{ padding: "var(--space-4) var(--space-4)", borderRadius: "var(--radius-md)" }}>
         <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", alignItems: "center" }}>
