@@ -6,6 +6,7 @@ import { Gem, AlertTriangle } from "lucide-react";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { RemedyPlanItem, GemstoneAdviceItem } from "@/lib/types";
+import { dt, GEMSTONE_GROUPS, REMEDIES_CONTEXT } from "@/lib/dashboard-i18n";
 import { CollapsibleSection } from "./collapsible-section";
 
 /**
@@ -119,7 +120,8 @@ export function NovaRemediesPanel({ lang, chartId, remedyPlan, gemstoneAdvice, l
   return (
     <div style={{ fontFamily: "var(--font-body)" }}>
       <div style={{ padding: "var(--space-3) var(--space-3)", marginBottom: "12px", borderRadius: "var(--space-2)", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.55 }}>
-        {t("remedies_safety_note", lang)}
+        <p style={{ margin: 0 }}>{dt(REMEDIES_CONTEXT.body, lang)}</p>
+        <p style={{ margin: "var(--space-2) 0 0" }}>{t("remedies_safety_note", lang)}</p>
       </div>
 
       <div style={{ display: "flex", gap: "var(--space-2)", marginBottom: "12px", flexWrap: "wrap", alignItems: "center" }}>
@@ -236,17 +238,18 @@ export function NovaRemediesPanel({ lang, chartId, remedyPlan, gemstoneAdvice, l
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
           <div style={{ padding: "var(--space-3) var(--space-3)", borderRadius: "var(--space-2)", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5 }}>
             {lang === "ta"
-              ? "கற்கள் திருகணிதம் அடிப்படையில் கணக்கிடப்படுகின்றன — ஒவ்வொரு கிரகத்தின் செயல்பாட்டு தன்மை (பயனளிப்பவர் / தீங்கு செய்பவர்), வலிமை, மற்றும் லக்னம் அடிப்படையில். ஒரு கல் 'பரிந்துரைக்கப்பட்டது' என்றால் அந்த கிரகம் உங்கள் ஜாதகத்தில் நேர்மறையான கிரகம் மற்றும் வலிமை குறைவாக உள்ளது."
-              : "Gemstone recommendations follow Thirukanitham — each planet's functional nature (benefic/malefic for your Lagna), its strength, and whether strengthening it helps or harms your chart. 'Prescribed' means the planet is a functional benefic AND needs strengthening. 'Not prescribed' means the planet is either strong enough or would harm your chart if strengthened."}
+              ? "கற்கள் திருகணிதம் அடிப்படையில் கணக்கிடப்படுகின்றன — ஒவ்வொரு கிரகத்தின் செயல்பாட்டு தன்மை (பயனளிப்பவர் / தீங்கு செய்பவர்), வலிமை, மற்றும் லக்னம் அடிப்படையில். ஒரு கல் பாரம்பரியமாக அணியப்படுகிறது என்றால், அந்த கிரகம் உங்கள் ஜாதகத்தில் நேர்மறையான கிரகம் மற்றும் வலிமை குறைவாக உள்ளது என்று பொருள்."
+              : "Gemstone readings follow Thirukanitham — each planet's functional nature (benefic/malefic for your Lagna), its strength, and whether strengthening it helps or harms your chart. A stone is traditionally worn when the planet is a functional benefic AND needs strengthening, and traditionally avoided when the planet is either strong enough already or would harm your chart if strengthened."}
+            <p style={{ margin: "var(--space-2) 0 0" }}>{dt(GEMSTONE_GROUPS.note, lang)}</p>
           </div>
 
           {!gemstoneAdvice && <p style={{ fontSize: "var(--text-base)", color: "var(--color-faint)" }}>{t("remedies_empty", lang)}</p>}
           {gemstoneAdvice && (
             <>
               {[
-                { filter: (i: typeof gemstoneAdvice[0]) => i.isGemstonePrescribed, groupLabel: lang === "ta" ? "பரிந்துரைக்கப்பட்டவை" : "Prescribed — wear these", tone: "var(--color-high)", bg: "var(--color-high-bg)", border: "var(--color-high-border)" },
-                { filter: (i: typeof gemstoneAdvice[0]) => !i.isGemstonePrescribed && !!i.gemstoneNameEn, groupLabel: lang === "ta" ? "விருப்பப்பட்டால் (கவனமாக)" : "Optional — with caution", tone: "var(--color-mid)", bg: "var(--color-mid-bg)", border: "var(--color-mid-border)" },
-                { filter: (i: typeof gemstoneAdvice[0]) => !i.isGemstonePrescribed && !i.gemstoneNameEn, groupLabel: lang === "ta" ? "பரிந்துரைக்கப்படாதவை" : "Not recommended", tone: "var(--color-faint)", bg: "transparent", border: "var(--color-border)" },
+                { filter: (i: typeof gemstoneAdvice[0]) => i.isGemstonePrescribed, groupLabel: dt(GEMSTONE_GROUPS.worn, lang), tone: "var(--color-high)", bg: "var(--color-high-bg)", border: "var(--color-high-border)" },
+                { filter: (i: typeof gemstoneAdvice[0]) => !i.isGemstonePrescribed && !!i.gemstoneNameEn, groupLabel: dt(GEMSTONE_GROUPS.optional, lang), tone: "var(--color-mid)", bg: "var(--color-mid-bg)", border: "var(--color-mid-border)" },
+                { filter: (i: typeof gemstoneAdvice[0]) => !i.isGemstonePrescribed && !i.gemstoneNameEn, groupLabel: dt(GEMSTONE_GROUPS.avoided, lang), tone: "var(--color-faint)", bg: "transparent", border: "var(--color-border)" },
               ].map(({ filter, groupLabel, tone, bg, border }) => {
                 const group = gemstoneAdvice.filter(filter);
                 if (group.length === 0) return null;
