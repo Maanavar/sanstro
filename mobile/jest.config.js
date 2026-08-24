@@ -33,5 +33,19 @@ module.exports = {
         "^react-dom/(.*)$": "<rootDir>/node_modules/react-dom/$1",
       },
     },
+    {
+      // Full screen renders — real RN primitives via @testing-library/react-native
+      // and the jest-expo preset (derives react-native/jest-preset, gives us its
+      // node-based `react-native-env` test environment — RNTL renders into RN's
+      // own tree, not a DOM, so jsdom is neither needed nor correct here).
+      // Nothing used this before: 0 screen-level tests existed anywhere in this
+      // repo despite @testing-library/react-native and jest-expo already being
+      // installed — the config simply never wired a project to them.
+      displayName: "screens",
+      preset: "jest-expo",
+      testMatch: ["<rootDir>/__tests__/**/*.screen.test.tsx"],
+      moduleNameMapper: sharedModuleNameMapper,
+      setupFilesAfterEnv: ["<rootDir>/jest.setup.screens.js"],
+    },
   ],
 };

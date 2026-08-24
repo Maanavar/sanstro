@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   KeyboardAvoidingView, Platform, ScrollView,
   StyleSheet, Text, TextInput, TouchableOpacity, View,
@@ -13,8 +13,19 @@ import { useSession } from "@/hooks/useSession";
 import { OnboardingProgressBar } from "@/components/OnboardingProgressBar";
 import { fetchWithAuth } from "@/api/client";
 import { createBirthProfile } from "@/api/charts";
+import { searchPlaces, type PlaceSearchResult } from "@vinaadi/shared/api/places";
 import { setPrimaryChartId, setPrimaryProfileId } from "@/lib/userPrefs";
 import { trackEvent } from "@/lib/analytics";
+
+// Mirrors `app/api/places.py`'s `_MIN_QUERY_LENGTH` — below this the backend
+// returns no results, so there is no point firing a request.
+const PLACE_MIN_QUERY_LENGTH = 2;
+const PLACE_DEBOUNCE_MS = 200;
+
+function formatPlaceLabel(place: PlaceSearchResult): string {
+  const region = place.admin1Name ? `${place.admin1Name}, ` : "";
+  return `${place.name}, ${region}${place.countryName}`;
+}
 
 interface GeoResult {
   lat: number;
@@ -120,6 +131,79 @@ export default function BirthDetailsScreen() {
   const [detectedTimezone, setDetectedTimezone] = useState<string | null>(null);
   const [geocodeFailureCount, setGeocodeFailureCount] = useState(0);
 
+  // B-006: birthplace lookup defaults to the bundled offline dataset, not an
+  // automatic third-party geocode call. `selectedPlace` is the only source of
+  // truth for submit-time coordinates now — set by picking a suggestion below,
+  // or by the explicit "search online" fallback. Typing without picking one
+  // never sets it, so a stale selection can't silently ride along with new text.
+  const [suggestions, setSuggestions] = useState<PlaceSearchResult[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [selectedPlace, setSelectedPlace] = useState<{ lat: number; lon: number; timezone: string } | null>(null);
+  const [onlineSearching, setOnlineSearching] = useState(false);
+  const [onlineFailed, setOnlineFailed] = useState(false);
+  const placeSearchSeq = useRef(0);
+
+  useEffect(() => {
+    const trimmed = birthPlace.trim();
+    setOnlineFailed(false);
+    if (trimmed.length < PLACE_MIN_QUERY_LENGTH) {
+      setSuggestions([]);
+      setSearchLoading(false);
+      return;
+    }
+    setSearchLoading(true);
+    const seq = ++placeSearchSeq.current;
+    const timer = setTimeout(() => {
+      searchPlaces(trimmed, 20)
+        .then((res) => {
+          if (placeSearchSeq.current !== seq) return; // a later keystroke already superseded this
+          setSuggestions(res.data);
+          setSearchLoading(false);
+        })
+        .catch(() => {
+          if (placeSearchSeq.current !== seq) return;
+          setSuggestions([]);
+          setSearchLoading(false);
+        });
+    }, PLACE_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [birthPlace]);
+
+  function selectSuggestion(place: PlaceSearchResult) {
+    setBirthPlace(formatPlaceLabel(place));
+    setSelectedPlace({ lat: place.lat, lon: place.lng, timezone: place.timezone });
+    // GeoNames ships a correct IANA timezone per row (better than the geocode
+    // fallback's country/US-state heuristic) — pre-fill the existing override
+    // chip with it rather than adding a second "matched" indicator.
+    setDetectedTimezone(place.timezone);
+    setSuggestions([]);
+    setGeocodeFailureCount(0);
+  }
+
+  // Explicit, opt-in only (owner ruling B-006) — never fired automatically.
+  // Reuses the existing `geocodeBirthPlace` Nominatim proxy call below, which
+  // used to run on every blur/submit; it now only runs from this button.
+  async function handleSearchOnline() {
+    const trimmed = birthPlace.trim();
+    if (!trimmed) return;
+    setOnlineSearching(true);
+    setOnlineFailed(false);
+    try {
+      const geo = await geocodeBirthPlace(trimmed);
+      if (!geo || geo.error) {
+        setOnlineFailed(true);
+        setGeocodeFailureCount((count) => count + 1);
+        return;
+      }
+      const timezone = geo.timezone ?? countryCodeToTimezone(geo.countryCode);
+      setSelectedPlace({ lat: geo.lat, lon: geo.lon, timezone });
+      setDetectedTimezone(timezone);
+      setGeocodeFailureCount(0);
+    } finally {
+      setOnlineSearching(false);
+    }
+  }
+
   function validateStep0(): boolean {
     if (!displayName.trim()) {
       setError(isTamil ? "பெயர் தேவை." : "Name is required.");
@@ -139,6 +223,14 @@ export default function BirthDetailsScreen() {
   function validateStep1(): boolean {
     if (!birthPlace.trim()) {
       setError(isTamil ? "பிறந்த இடம் தேவை." : "Birth place is required.");
+      return false;
+    }
+    if (!selectedPlace) {
+      setError(
+        isTamil
+          ? "பட்டியலிலிருந்து ஒரு இடத்தைத் தேர்ந்தெடுக்கவும், அல்லது கீழே ஆன்லைனில் தேடவும்."
+          : "Select a place from the list, or search online below."
+      );
       return false;
     }
     if (!birthTimeUnknown) {
@@ -190,33 +282,13 @@ export default function BirthDetailsScreen() {
 
   async function handleSubmit() {
     if (!validateStep1()) return;
+    // `validateStep1` already required `selectedPlace` — a bundled-dataset
+    // pick or a completed explicit online search, never an automatic call.
+    const place = selectedPlace!;
     setLoading(true);
     try {
-      const geo = await geocodeBirthPlace(birthPlace.trim());
-      if (!geo || geo.error === "network") {
-        setGeocodeFailureCount((count) => count + 1);
-        setError(
-          isTamil
-            ? "இணைய இணைப்பு சிக்கல். மீண்டும் முயற்சிக்கவும்."
-            : "No internet connection. Check your connection and try again."
-        );
-        setLoading(false);
-        return;
-      }
-      if (geo.error === "not_found") {
-        setGeocodeFailureCount((count) => count + 1);
-        setError(
-          isTamil
-            ? "இடம் கிடைக்கவில்லை. நகரம் பெயர் மட்டும் கொடுங்கள் (எ.கா.: Chennai, Madurai, Kumbakonam)."
-            : "City not found. Try just the city name (e.g., 'Chennai' not 'Chennai, Tamil Nadu')."
-        );
-        setLoading(false);
-        return;
-      }
-
-      const birthTimezone = detectedTimezone?.trim() || geo.timezone || countryCodeToTimezone(geo.countryCode);
-      setGeocodeFailureCount(0);
-      await submitWithLocation(geo, birthTimezone, birthPlace.trim());
+      const birthTimezone = detectedTimezone?.trim() || place.timezone;
+      await submitWithLocation({ lat: place.lat, lon: place.lon, countryCode: "in" }, birthTimezone, birthPlace.trim());
     } catch {
       setError(isTamil ? "சர்வர் பிழை. மீண்டும் முயற்சிக்கவும்." : "Server error. Please try again.");
     } finally {
@@ -398,18 +470,56 @@ export default function BirthDetailsScreen() {
                 <TextInput
                   style={styles.input}
                   value={birthPlace}
-                  onChangeText={(v) => { setBirthPlace(v); setDetectedTimezone(null); setGeocodeFailureCount(0); }}
-                  onBlur={async () => {
-                    if (!birthPlace.trim()) return;
-                    const geo = await geocodeBirthPlace(birthPlace.trim());
-                    if (geo && !geo.error) {
-                      setDetectedTimezone(countryCodeToTimezone(geo.countryCode));
-                    }
-                  }}
-                  placeholder={isTamil ? "Chennai, Madurai, Coimbatore, Kumbakonam, Erode" : "Chennai, Madurai, Coimbatore, Kumbakonam, Erode"}
+                  onChangeText={(v) => { setBirthPlace(v); setSelectedPlace(null); setDetectedTimezone(null); setGeocodeFailureCount(0); }}
+                  placeholder={isTamil ? "நகரம் தட்டச்சு செய்யவும்" : "Type a city"}
                   placeholderTextColor={C.textTertiary}
                   autoCapitalize="words"
                 />
+                {suggestions.length > 0 && (
+                  <View style={styles.suggestionBox}>
+                    {suggestions.map((place) => (
+                      <TouchableOpacity
+                        key={place.geonameId}
+                        style={styles.suggestionRow}
+                        onPress={() => selectSuggestion(place)}
+                      >
+                        <Text style={[styles.suggestionText, isTamil ? TamilType.bodySmall : EnType.bodySmall]}>
+                          {formatPlaceLabel(place)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+                {searchLoading && suggestions.length === 0 && !selectedPlace && (
+                  <Text style={styles.placeSub}>{isTamil ? "தேடுகிறது…" : "Searching…"}</Text>
+                )}
+                {!searchLoading && !selectedPlace && suggestions.length === 0 && birthPlace.trim().length >= PLACE_MIN_QUERY_LENGTH && (
+                  <View style={styles.noResultsBox}>
+                    <Text style={styles.placeSub}>{isTamil ? "பொருத்தங்கள் இல்லை" : "No matches found"}</Text>
+                    {onlineFailed ? (
+                      <Text style={[styles.placeSub, { color: C.alert }]}>
+                        {isTamil ? "அந்த இடத்தையும் ஆன்லைனில் கண்டுபிடிக்க முடியவில்லை" : "Couldn't find that place online either"}
+                      </Text>
+                    ) : (
+                      <TouchableOpacity
+                        onPress={handleSearchOnline}
+                        disabled={onlineSearching}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Text style={styles.infoLink}>
+                          {onlineSearching
+                            ? (isTamil ? "தேடுகிறது…" : "Searching…")
+                            : (isTamil ? "கிடைக்கவில்லையா? ஆன்லைனில் தேடு" : "Can't find it? Search online")}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+                {!birthPlace.trim() && (
+                  <Text style={styles.placeSub}>
+                    {isTamil ? "எ.கா.: Chennai, Madurai, London, New York" : "e.g., Chennai, Madurai, London, New York"}
+                  </Text>
+                )}
                 {detectedTimezone && (
                   <View style={styles.timezoneChip}>
                     <Text style={styles.timezoneChipText}>Timezone</Text>
@@ -422,11 +532,6 @@ export default function BirthDetailsScreen() {
                       autoCapitalize="none"
                     />
                   </View>
-                )}
-                {!detectedTimezone && (
-                  <Text style={styles.placeSub}>
-                    {isTamil ? "எ.கா.: Chennai, Madurai, London, New York" : "e.g., Chennai, Madurai, London, New York"}
-                  </Text>
                 )}
               </View>
             </>
@@ -537,6 +642,21 @@ const styles = StyleSheet.create({
   },
   unknownText: { color: C.textSecond },
   placeSub: { fontFamily: "Inter_400Regular", fontSize: 12, color: C.textTertiary },
+  suggestionBox: {
+    backgroundColor: C.surfaceAlt,
+    borderRadius: RADIUS.input,
+    borderWidth: 1,
+    borderColor: C.divider,
+    overflow: "hidden",
+  },
+  suggestionRow: {
+    paddingHorizontal: S.md,
+    paddingVertical: S.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: C.divider,
+  },
+  suggestionText: { color: C.textPrimary },
+  noResultsBox: { gap: S.xs },
   timezoneChip: {
     flexDirection: "row", alignSelf: "flex-start", alignItems: "center", gap: S.sm,
     backgroundColor: C.surfaceAlt, borderRadius: RADIUS.chip,
