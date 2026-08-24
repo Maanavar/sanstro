@@ -214,6 +214,12 @@ function OtherTimingsDisclosure({
   const rows: Array<{
     key: string;
     name: string;
+    /** The traditional name, when the label above it had to lead with plain
+     *  language instead (A-017). English mode only, and always a Latin
+     *  transliteration — a Tamil-script echo beside an English label is the
+     *  banned bilingual title echo, and in Tamil mode the almanac word is
+     *  already the name a reader looks for. */
+    traditional?: string;
     value: ReactNode;
     what: string;
     /** Null when the row's own value carries the glosses instead — see the
@@ -238,8 +244,12 @@ function OtherTimingsDisclosure({
       : []),
     ...(horaLord
       ? [{
+          // A-017: "Horai" is a proper noun a reader without the tradition
+          // never clicks, so the hour-by-hour feature underneath it goes
+          // unread. Plain meaning leads; the almanac name stays beside it.
           key: "horai",
-          name: lang === "ta" ? "ஓரை" : "Horai",
+          name: lang === "ta" ? "ஓரை" : "Planetary hour",
+          traditional: lang === "ta" ? undefined : "Horai",
           value: nextHoraLord && nextHoraStart
             ? `${tPlanetLord(horaLord, lang)} · ${lang === "ta" ? "அடுத்தது" : "next"} ${tPlanetLord(nextHoraLord, lang)} ${formatClockLabel(nextHoraStart)}`
             : tPlanetLord(horaLord, lang),
@@ -306,6 +316,9 @@ function OtherTimingsDisclosure({
                 {row.glossary
                   ? <GlossaryTerm term={row.glossary} lang={lang}>{row.name}</GlossaryTerm>
                   : row.name}
+                {row.traditional && (
+                  <span style={{ fontWeight: 400, color: "var(--color-faint)" }}>{" · "}{row.traditional}</span>
+                )}
                 {row.value && (
                   <span style={{ fontWeight: 400, color: "var(--color-text)", fontVariantNumeric: "tabular-nums" }}>{" · "}{row.value}</span>
                 )}

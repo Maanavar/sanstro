@@ -313,6 +313,29 @@ describe("Today tab — the other timing systems (T8)", () => {
     }
   });
 
+  it("leads the hora row with 'Planetary hour' and keeps Horai beside it (A-017)", async () => {
+    // The feature underneath this row is genuinely usable hour-by-hour timing,
+    // and "Horai" is the reason a reader without the tradition never opens it.
+    // Plain meaning is the label; the almanac name stays visible as Layer 2.
+    horaStub = { current: { lord: "JUPITER" }, next: { lord: "MARS", start: "13:00" } };
+    try {
+      await renderWithWindows([
+        { type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "UTHI" },
+      ]);
+
+      fireEvent.click(screen.getByRole("button", { name: /Other traditional timings/i }));
+
+      // The glossed control is the plain-language phrase, not the proper noun.
+      expect(screen.getByRole("button", { name: /^Planetary hour$/i })).toHaveStyle({
+        cursor: "help",
+      });
+      // …and the traditional name did not simply disappear.
+      expect(screen.getByText(/Horai/)).toBeInTheDocument();
+    } finally {
+      horaStub = { current: null, next: null };
+    }
+  });
+
   it("keeps the avoid window promoted beside the recommendation, not buried", async () => {
     // Safety text precedes dense tables — the avoid card is the other axis,
     // not a competing recommendation, so it does not go into the disclosure.

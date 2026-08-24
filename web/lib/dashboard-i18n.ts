@@ -222,9 +222,11 @@ export const TODAY_TIMINGS = {
     "Abhijit — a fixed slot of about 48 minutes around midday, counted auspicious for anyone, whatever their chart.",
     "அபிஜித் — நண்பகலைச் சுற்றி வரும் சுமார் 48 நிமிட நிலையான நேரம்; ஜாதகம் எதுவாயினும் அனைவருக்கும் நல்லதாகக் கருதப்படுகிறது.",
   ),
+  // The row label now leads with "Planetary hour" and carries "Horai" beside it
+  // (A-017), so this line no longer restates the name it sits under.
   whatIsHorai: s(
-    "Horai — the planetary hour. Every hour of the day is ruled by one planet, in a fixed weekly cycle.",
-    "ஓரை — கிரக மணி. நாளின் ஒவ்வொரு மணி நேரமும் ஒரு கிரகத்தின் ஆட்சியில், நிலையான வாராந்திர சுழற்சியில் அமைகிறது.",
+    "Every hour of the day is ruled by one planet, in a fixed weekly cycle — a finer layer of timing under the day's own ruler.",
+    "நாளின் ஒவ்வொரு மணி நேரமும் ஒரு கிரகத்தின் ஆட்சியில், நிலையான வாராந்திர சுழற்சியில் அமைகிறது.",
   ),
   whatIsAvoidKalas: s(
     "Rahu Kalam, Yamagandam, Kuligai — three stretches of every day traditionally kept free of new beginnings. Work already under way is not affected.",
