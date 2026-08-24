@@ -62,13 +62,23 @@ describe("PLAIN_LANG graha rows", () => {
     expect(plainLangBiText("JUPITER")!.ta).not.toContain("வளர்ச்சி");
   });
 
-  it("reads the shadow grahas as forces, not planets", () => {
-    // Rahu and Ketu are chāyā grahas — shadow points with no body. Calling
-    // them planets in the beginner gloss would teach the wrong thing.
-    for (const node of ["RAHU", "KETU"]) {
-      expect(plainLangBiText(node)!.en).toMatch(/force\)$/);
-      expect(plainLangBiText(node)!.en).not.toContain("planet");
-    }
+  it("never calls Rahu or Ketu a planet — they're chāyā grahas, shadow points with no body", () => {
+    expect(plainLangBiText("RAHU")!.en).not.toContain("planet");
+    expect(plainLangBiText("KETU")!.en).not.toContain("planet");
+  });
+
+  it("replaces Rahu's old 'change force' gloss (owner ruling 2026-08-24)", () => {
+    // "Change" didn't identify Rahu specifically — nearly every graha can
+    // produce change. "Amplifying shadow" carries both load-bearing
+    // properties: shadow nature (no physical body) and that whatever Rahu
+    // touches becomes intensified rather than just altered.
+    expect(plainLangBiText("RAHU")!.en).toBe("Rahu (amplifying shadow)");
+    expect(plainLangBiText("RAHU")!.ta).toContain("தீவிரப்படுத்தும் நிழல்");
+    expect(plainLangBiText("RAHU")!.en).not.toContain("change force");
+  });
+
+  it("keeps Ketu's detachment-force gloss unchanged", () => {
+    expect(plainLangBiText("KETU")!.en).toBe("Ketu (detachment force)");
   });
 });
 

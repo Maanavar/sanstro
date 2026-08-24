@@ -227,9 +227,22 @@ beginnings — ongoing work is unaffected), one action, and a Why trail. Pairs w
 - **T12.** Wire `plainLangBiText` as the universal tooltip source in `BALANCED`
   mode — literally what `mode_balanced_desc` ("Some terms, with tooltips") already
   promises the user. (A-042, B-021)
-- **T13.** Decouple language from expertise: an English-language reader should get
-  English planet names regardless of detail level. Today `tPlanetLord`
-  Tamil-transliterates and the plain gloss is `BEGINNER`-only. (B-031)
+- **T13. ✅ AUDITED, CLOSED — no leak (2026-08-24).** Original premise was
+  stale: `tPlanetLord` does not Tamil-transliterate in English mode (it never
+  did by the time this was checked — `PLANET_LORDS` in `lib/i18n.ts:1142`
+  returns "Sun"/"Moon"/… for `lang: "en"`). Re-scoped per owner ruling to an
+  audit — find an actual leaking render path before changing anything.
+  Audited: every one of ~50 `tPlanetLord(x, lang)` call sites across
+  `components/` threads the caller's own `lang`, none derive it from `mode`;
+  `plainLangDashaLord`/`DashaLordLabel` gate the *gloss* on `mode` and the
+  *name* on `lang` as two independent axes in both directions (BEGINNER
+  glosses in ta and en, TRADITIONAL stays bare in both); the mode selector in
+  `dashboard-settings-session-tab.tsx` (`UserMode` state) has no shared
+  control with language selection. One bug found and fixed in passing, not a
+  leak: `plainLangDashaLord`'s own docstring claimed "TRADITIONAL: original
+  Tamil transliteration" — false, it returns the raw `lord` key untouched in
+  both BALANCED and TRADITIONAL; `lang` is applied later by the caller. (B-031
+  — closed on the audit finding, not by code change)
 - **T14.** Disambiguate the three false-familiarity terms in English mode on first
   use per screen: **Yoga** (reads as exercise), **House**, **Transit**. Glossary
   entries exist for two. (B-012/13/14)

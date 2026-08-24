@@ -72,7 +72,18 @@ const GRAHA_ROLE: Record<string, { ta: string; en: string }> = {
   JUPITER:  { ta: "ஞானகாரகன்",          en: "wisdom planet" },
   VENUS:    { ta: "அன்பு கிரகம்",       en: "love planet" },
   SATURN:   { ta: "கட்டுப்பாடு கிரகம்", en: "discipline planet" },
-  RAHU:     { ta: "மாற்றம்",            en: "change force" },
+  // OWNER RULING 2026-08-24: replaced "change force / மாற்றம்". Rahu is not
+  // merely "change" — nearly every graha can produce change, so the word
+  // didn't identify Rahu's actual character. "Amplifying shadow" carries both
+  // load-bearing properties: சாயா (shadow — Rahu is a chāyā graha with no
+  // physical body) and that whatever it touches becomes intensified, unusually
+  // magnified, obsessive, or hard to satisfy. This is the second row (after
+  // Jupiter) that departs from the "X கிரகம்" pattern, deliberately: Rahu is
+  // not a graha in the same sense the other seven are. This is an identity
+  // gloss, not a verdict — house/sign/lordship/dasha context can make Rahu
+  // read as ambition, foreign connection, technology, or outsized success;
+  // detail surfaces carry that nuance, this row does not attempt to.
+  RAHU:     { ta: "தீவிரப்படுத்தும் நிழல் கிரகம்", en: "amplifying shadow" },
   KETU:     { ta: "வைராக்கியம்",        en: "detachment force" },
 };
 
@@ -162,8 +173,11 @@ export function plainLangBiText(key: string): BiText | null {
 
 /**
  * Returns a plain-language dasha lord name.
- * In BEGINNER: "Saturn (discipline planet)" instead of "Sani".
- * In TRADITIONAL: original Tamil transliteration.
+ * In BEGINNER: "Saturn (discipline planet)" instead of the bare graha key.
+ * In BALANCED/TRADITIONAL: the raw `lord` string, unchanged — this function
+ * does not touch language at all. The caller is what turns that into a
+ * displayed name via `tPlanetLord(lord, lang)`, which is where `lang` (not
+ * `mode`) decides English vs Tamil (see `DashaLordLabel` in dashboard-dasha.tsx).
  */
 export function plainLangDashaLord(lord: string, mode: Mode, lang: Lang): string {
   if (mode === "BEGINNER") {
