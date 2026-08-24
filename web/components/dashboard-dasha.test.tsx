@@ -73,15 +73,15 @@ describe("DashaTimeline — lord name per mode (T12)", () => {
     expect(document.querySelector("[data-glossary-panel]")).toHaveTextContent("discipline planet");
   });
 
-  it("does not turn a graha with no real plain-lang gloss into a dead tap target", () => {
-    // PLAIN_LANG's full-name keys leave six of nine grahas bare (graha() with
-    // no gloss arg returns the canonical name as its own BiText) — Venus
-    // among them, and it's the active bhukti in this fixture. A tooltip that
-    // just repeats its own trigger text is worse than no tooltip.
+  it("glosses a graha that used to have no role of its own", () => {
+    // PLAIN_LANG's full-name keys left six of nine grahas bare until
+    // 2026-08-24 — Venus among them, and it's the active bhukti here — so the
+    // tooltip appeared only when Saturn, Rahu or Ketu happened to be running.
     renderTimeline("BALANCED");
 
-    expect(screen.queryByRole("button", { name: "Venus" })).toBeNull();
-    expect(screen.getAllByText("Venus").length).toBeGreaterThan(0);
+    const trigger = screen.getByRole("button", { name: "Venus" });
+    fireEvent.click(trigger);
+    expect(document.querySelector("[data-glossary-panel]")).toHaveTextContent("love planet");
   });
 
   it("falls back to the bare name in BALANCED mode for a lord with no plain-lang entry", () => {

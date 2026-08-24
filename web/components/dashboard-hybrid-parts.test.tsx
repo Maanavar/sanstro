@@ -171,13 +171,17 @@ describe("HyBhuktiTimeline", () => {
       expect(document.querySelector("[data-glossary-panel]")).toHaveTextContent("discipline planet");
     });
 
-    it("does not turn the running Moon mahadasha/bhukti into a dead tap target", () => {
-      // Moon has no real plain-language gloss in PLAIN_LANG (graha() with no
-      // gloss arg returns the canonical name as its own "definition") — a
-      // button whose tooltip repeats its own label is worse than no button.
+    it("glosses the running Moon mahadasha and bhukti too", () => {
+      // Moon had no role of its own in PLAIN_LANG's full-name rows until
+      // 2026-08-24, so this hero — the first place a reader meets the running
+      // stack — went silent for six of the nine grahas. Both levels are Moon
+      // in this fixture, so both get their own trigger.
       render(<HyBhuktiTimeline lang="en" dasha={dasha} dashaMaha={dashaMaha} dashaAntar={dashaAntar} today={TODAY} />);
 
-      expect(screen.queryByRole("button", { name: "Moon" })).toBeNull();
+      const triggers = screen.getAllByRole("button", { name: "Moon" });
+      expect(triggers).toHaveLength(2);
+      fireEvent.click(triggers[0]);
+      expect(document.querySelector("[data-glossary-panel]")).toHaveTextContent("mind planet");
     });
 
     it("leaves BEGINNER and TRADITIONAL modes as they were", () => {

@@ -36,33 +36,69 @@ function graha(code: string, taGloss?: string, enGloss?: string): BiText {
   };
 }
 
-const PLAIN_LANG: Record<string, BiText> = {
-  // ── Planets. Two-letter keys are the glossed BEGINNER-mode forms.
-  SU:       graha("SUN", "ஆன்மா கிரகம்", "soul planet"),
-  MO:       graha("MOON", "மனம் கிரகம்", "mind planet"),
-  MA:       graha("MARS", "செயல் கிரகம்", "action planet"),
-  ME:       graha("MERCURY", "தகவல் கிரகம்", "communication planet"),
-  JU:       graha("JUPITER", "வளர்ச்சி கிரகம்", "growth planet"),
-  VE:       graha("VENUS", "அன்பு கிரகம்", "love planet"),
-  SA:       graha("SATURN", "ஒழுக்க கிரகம்", "discipline planet"),
-  RA:       graha("RAHU", "மாற்றம்", "change force"),
-  KE:       graha("KETU", "வைராக்கியம்", "detachment force"),
+/**
+ * The plain-language role of each graha — the *only* thing this layer writes.
+ *
+ * Each is the graha's natural kāraka stated for a first-time reader: Sun the
+ * ātma-kāraka, Moon the mano-kāraka, Mars parākrama, Mercury speech/intellect,
+ * Jupiter expansion, Venus kalatra. Rahu and Ketu read "force", not "planet",
+ * because they are chāyā grahas — shadow points, not bodies.
+ *
+ * Written ONCE per graha and expanded below into both key forms. Until
+ * 2026-08-24 the two forms were separate literal rows and had already drifted:
+ * Saturn's role was "ஒழுக்க கிரகம்" (moral conduct) under `SA` and
+ * "கட்டுப்பாடு கிரகம்" (restraint) under `SATURN`, one English gloss with two
+ * Tamil readings, and only the second was reachable. Restraint is the better
+ * reading of Sani and it is the one that shipped, so it is the one kept.
+ */
+const GRAHA_ROLE: Record<string, { ta: string; en: string }> = {
+  SUN:      { ta: "ஆன்மா கிரகம்",      en: "soul planet" },
+  MOON:     { ta: "மனம் கிரகம்",        en: "mind planet" },
+  MARS:     { ta: "செயல் கிரகம்",       en: "action planet" },
+  MERCURY:  { ta: "தகவல் கிரகம்",       en: "communication planet" },
+  JUPITER:  { ta: "வளர்ச்சி கிரகம்",    en: "growth planet" },
+  VENUS:    { ta: "அன்பு கிரகம்",       en: "love planet" },
+  SATURN:   { ta: "கட்டுப்பாடு கிரகம்", en: "discipline planet" },
+  RAHU:     { ta: "மாற்றம்",            en: "change force" },
+  KETU:     { ta: "வைராக்கியம்",        en: "detachment force" },
+};
 
-  // Common string-key variants used in narrative engine. The gloss pattern is
-  // deliberately uneven here and was before this change — the first six are
-  // bare, the last three carry the same glosses as their two-letter twins.
-  // Preserved rather than "made consistent": these strings are what the
-  // narrative engine's output already reads as, and levelling them is a copy
-  // decision, not a refactor.
-  SUN:      graha("SUN"),
-  MOON:     graha("MOON"),
-  MARS:     graha("MARS"),
-  MERCURY:  graha("MERCURY"),
-  JUPITER:  graha("JUPITER"),
-  VENUS:    graha("VENUS"),
-  SATURN:   graha("SATURN", "கட்டுப்பாடு கிரகம்", "discipline planet"),
-  RAHU:     graha("RAHU", "மாற்றம்", "change force"),
-  KETU:     graha("KETU", "வைராக்கியம்", "detachment force"),
+/** Two-letter code for each graha. Both key forms resolve to the same row. */
+const GRAHA_SHORT_CODE: Record<string, string> = {
+  SUN: "SU", MOON: "MO", MARS: "MA", MERCURY: "ME", JUPITER: "JU",
+  VENUS: "VE", SATURN: "SA", RAHU: "RA", KETU: "KE",
+};
+
+/**
+ * Both key forms of all nine grahas, each carrying its role.
+ *
+ * The full-name rows used to be bare — `graha()` with no gloss returns the
+ * canonical name as its own "definition" — on the recorded grounds that the
+ * narrative engine embeds those keys mid-sentence, where a parenthetical reads
+ * worse than on a standalone label. That reason no longer describes the code:
+ * `plainLang()`, the sentence-level entry point, has no callers anywhere in the
+ * tree. The live readers are `plainLangDashaLord` and `plainLangBiText`, and
+ * both serve standalone dasha-lord labels — exactly the case the gloss is for.
+ *
+ * Leaving it uneven meant BEGINNER's inline gloss and BALANCED's tap-to-explain
+ * fired for Saturn/Rahu/Ketu only: whichever of nine grahas is running, so most
+ * readers most of the time saw neither mode keep its promise. No new copy was
+ * written to close that — the roles above are the strings the two-letter rows
+ * already carried. If a sentence-embedding caller ever appears, it wants a
+ * bare-name accessor, not nine deliberately half-filled dictionary rows.
+ */
+const GRAHA_ROWS: Record<string, BiText> = Object.fromEntries(
+  Object.entries(GRAHA_ROLE).flatMap(([name, role]) => {
+    const row = graha(name, role.ta, role.en);
+    return [
+      [name, row],
+      [GRAHA_SHORT_CODE[name], row],
+    ];
+  }),
+);
+
+const PLAIN_LANG: Record<string, BiText> = {
+  ...GRAHA_ROWS,
 
   // ── Rasis (Zodiac signs)
   MESHA:        { ta: "மேஷம் (ஆட்டுக்கிடா)", en: "Aries (Ram)" },

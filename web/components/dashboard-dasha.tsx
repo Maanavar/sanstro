@@ -31,14 +31,14 @@ export function DashaLordLabel({ lord, mode, lang }: { lord: string; mode: Mode;
   const name = tPlanetLord(lord, lang);
   if (mode !== "BALANCED") return <>{name}</>;
   const biText = plainLangBiText(lord);
-  // Six of the nine grahas (Sun/Moon/Mars/Mercury/Jupiter/Venus, keyed by
-  // their full name) have no gloss in PLAIN_LANG — `graha()` with no gloss
-  // arg returns the canonical name AS the BiText, by design (see that
-  // function's own comment). A tooltip whose content is identical to its own
-  // trigger tells the reader nothing; it would just be a dead tap target.
-  // Comparing against the ACTIVE-language string, not just null-checking
-  // `biText`, is what catches that case — `biText` is truthy here even for
-  // Moon.
+  // All nine grahas carry a role gloss as of 2026-08-24, so no real lord trips
+  // the guard below any more — keep it anyway. `graha()` with no gloss arg
+  // returns the canonical name AS the BiText, so a row added bare later would
+  // otherwise render a tooltip repeating its own trigger word: a dead tap
+  // target. Comparing the ACTIVE-language string, not just null-checking
+  // `biText`, is what catches that — `biText` is truthy in that case too.
+  // `lib/plainlang.test.ts` pins that no graha row is bare; this is the
+  // runtime half of the same contract.
   const gloss = lang === "ta" ? biText?.ta : biText?.en;
   if (!biText || !gloss || gloss === name) return <>{name}</>;
   return (
