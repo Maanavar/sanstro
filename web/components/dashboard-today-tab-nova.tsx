@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ArrowRight, X, Sparkle, AlertTriangle, Leaf, type LucideIcon } from "lucide-react";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
@@ -207,11 +207,19 @@ function OtherTimingsDisclosure({
   horaLord: string | null;
   nextHoraLord: string | null;
   nextHoraStart: string | null;
-  avoidKalas: Array<{ label: string; start: string; end: string }>;
+  avoidKalas: Array<{ label: string; start: string; end: string; glossary: GlossaryKey }>;
 }) {
   const [open, setOpen] = useState(false);
 
-  const rows: Array<{ key: string; name: string; value: string | null; what: string; glossary: GlossaryKey }> = [
+  const rows: Array<{
+    key: string;
+    name: string;
+    value: ReactNode;
+    what: string;
+    /** Null when the row's own value carries the glosses instead — see the
+     *  avoid-kalas row, which names three systems in one line. */
+    glossary: GlossaryKey | null;
+  }> = [
     {
       key: "nallaNeram",
       name: lang === "ta" ? "நல்ல நேரம்" : "Nalla Neram",
@@ -243,11 +251,23 @@ function OtherTimingsDisclosure({
       ? [{
           key: "avoidKalas",
           name: lang === "ta" ? "தவிர்க்க வேண்டிய நேரங்கள்" : "Avoid periods",
-          value: avoidKalas
-            .map((k) => `${k.label} ${formatClockLabel(k.start)}–${formatClockLabel(k.end)}`)
-            .join(" · "),
+          // Each kala glossed on its own name. One row-level gloss would have to
+          // pick a single definition for a row that names three different
+          // systems — tapping "Avoid periods" and being told what Rahu Kalam is
+          // teaches the reader that Yamagandam and Kuligai are the same thing.
+          value: (
+            <>
+              {avoidKalas.map((k, i) => (
+                <span key={k.glossary}>
+                  {i > 0 && " · "}
+                  <GlossaryTerm term={k.glossary} lang={lang}>{k.label}</GlossaryTerm>
+                  {` ${formatClockLabel(k.start)}–${formatClockLabel(k.end)}`}
+                </span>
+              ))}
+            </>
+          ),
           what: dt(TODAY_TIMINGS.whatIsAvoidKalas, lang),
-          glossary: "rahuKalam" as const,
+          glossary: null,
         }]
       : []),
   ];
@@ -283,7 +303,9 @@ function OtherTimingsDisclosure({
           {rows.map((row) => (
             <div key={row.key} style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
               <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-text-strong)" }}>
-                <GlossaryTerm term={row.glossary} lang={lang}>{row.name}</GlossaryTerm>
+                {row.glossary
+                  ? <GlossaryTerm term={row.glossary} lang={lang}>{row.name}</GlossaryTerm>
+                  : row.name}
                 {row.value && (
                   <span style={{ fontWeight: 400, color: "var(--color-text)", fontVariantNumeric: "tabular-nums" }}>{" · "}{row.value}</span>
                 )}
@@ -925,9 +947,9 @@ export function DashboardTodayTabNova({
                 nextHoraLord={heroNextHora?.lord ?? null}
                 nextHoraStart={heroNextHora?.start ?? null}
                 avoidKalas={panchangam ? [
-                  { label: windowTypeLabel("RAHU_KALAM", lang), ...panchangam.kalam.rahuKalam },
-                  { label: windowTypeLabel("YAMAGANDAM", lang), ...panchangam.kalam.yamagandam },
-                  { label: windowTypeLabel("KULIGAI", lang), ...panchangam.kalam.kuligai },
+                  { label: windowTypeLabel("RAHU_KALAM", lang), glossary: "rahuKalam" as const, ...panchangam.kalam.rahuKalam },
+                  { label: windowTypeLabel("YAMAGANDAM", lang), glossary: "yamagandam" as const, ...panchangam.kalam.yamagandam },
+                  { label: windowTypeLabel("KULIGAI", lang), glossary: "kuligai" as const, ...panchangam.kalam.kuligai },
                 ] : []}
               />
             </div>

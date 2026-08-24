@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
@@ -50,6 +51,26 @@ import { DashboardAskVinaadiWidget } from "./dashboard-ask-vinaadi-widget";
 
 const STORAGE_KEY = "jothidam-ai-dashboard-state";
 const ENABLE_QA_TAB = process.env.NODE_ENV !== "production";
+
+/**
+ * Footer link — either a workspace tab (local state + a URL rewrite, no
+ * remount) or a real route outside the workspace.
+ *
+ * The two are deliberately not collapsed into one shape. A tab entry MUST stay
+ * a `<button>`: routing it as a link would take the `(workspace)` layout out
+ * from under itself and bring back the nav bounce that layout exists to kill.
+ * An `href` entry MUST stay a `<Link>`: it genuinely leaves, and dressing a
+ * real navigation as a button costs the reader middle-click, open-in-new-tab
+ * and the status-bar preview (DASH-13's rule, in the other direction).
+ *
+ * Written out arm by arm rather than as `{ en; ta } & (A | B)`: TS does not
+ * narrow through an intersection whose right side is a union, so the factored
+ * version left `link.tab` as `Tab | undefined` in the branch that needs it.
+ */
+type FooterNavLink =
+  | { en: string; ta: string; tab: Tab; href?: undefined }
+  | { en: string; ta: string; href: string; tab?: undefined };
+type FooterNavColumn = { head: { en: string; ta: string }; links: FooterNavLink[] };
 
 import { SkeletonDashboardCard } from "@/components/skeleton";
 
@@ -2161,13 +2182,28 @@ export function DashboardWorkspace() {
             {/* Real navigation, not link-styled spans (DASH-13) — every
                 element styled as a link must actually go somewhere. */}
             <nav className="nova-footer__nav" aria-label={lang === "ta" ? "அடிக்குறிப்பு வழிசெலுத்தல்" : "Footer navigation"}>
-              {([
+              {(([
                 {
                   head: { en: "Explore", ta: "ஆராயுங்கள்" },
                   links: [
                     { tab: "personal" as Tab, ta: "இன்று", en: "Today" },
                     { tab: "calendar" as Tab, ta: "நாட்காட்டி", en: "Calendar" },
                     { tab: "life-areas" as Tab, ta: "வாழ்க்கைத் துறைகள்", en: "Life Areas" },
+                    // The glossary's ONLY other way in is tapping a glossed
+                    // term, which a reader who does not already suspect the
+                    // words are tappable will never do — so the page that
+                    // explains the vocabulary was reachable only by readers who
+                    // did not need it. This is the one entry point.
+                    //
+                    // In the footer rather than the hero nav on purpose: it is
+                    // a route outside `(workspace)`, so it unmounts the
+                    // workspace, and a tab strip must never do that. Reaching
+                    // the bottom of the page is already a "leaving" gesture,
+                    // and the cost is small — /dashboard/layout.tsx (and its
+                    // QueryProvider cache) is shared with this route and so
+                    // survives, and "Back to dashboard" lands on /dashboard,
+                    // which restores the last tab from localStorage.
+                    { href: "/dashboard/glossary", ta: "சொற்களஞ்சியம்", en: "Glossary" },
                   ],
                 },
                 {
@@ -2178,22 +2214,38 @@ export function DashboardWorkspace() {
                     { tab: "settings" as Tab, ta: "அமைப்புகள்", en: "Settings" },
                   ],
                 },
-              ]).map((col) => (
+              ]) as FooterNavColumn[]).map((col) => (
                 <div key={col.head.en} className="nova-footer__nav-col">
                   <h2 className="nova-footer__nav-head">
                     {lang === "ta" ? col.head.ta : col.head.en}
                   </h2>
                   <div className="nova-footer__nav-links">
-                    {col.links.map((link) => (
-                      <button
-                        key={link.tab}
-                        type="button"
-                        className="nova-footer__nav-link"
-                        onClick={() => goToTab(link.tab)}
-                      >
-                        {lang === "ta" ? link.ta : link.en}
-                      </button>
-                    ))}
+                    {col.links.map((link) => {
+                      // `!== undefined`, not truthiness: `href: string` includes
+                      // "", so a falsy test cannot rule that arm out and the
+                      // other branch keeps `tab` as `Tab | undefined`.
+                      if (link.href !== undefined) {
+                        return (
+                          <Link key={link.href} href={link.href} className="nova-footer__nav-link">
+                            {lang === "ta" ? link.ta : link.en}
+                          </Link>
+                        );
+                      }
+                      // Read out here, not inside the handler: narrowing on a
+                      // parameter does not survive into a nested closure, so
+                      // `link.tab` reads as `Tab | undefined` in there.
+                      const tab = link.tab;
+                      return (
+                        <button
+                          key={tab}
+                          type="button"
+                          className="nova-footer__nav-link"
+                          onClick={() => goToTab(tab)}
+                        >
+                          {lang === "ta" ? link.ta : link.en}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               ))}

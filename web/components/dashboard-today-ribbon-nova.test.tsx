@@ -78,6 +78,9 @@ describe("DashboardTodayRibbonNova glossary", () => {
     }
 
     fireEvent.click(screen.getByRole("button", { name: "Rahu Kalam" }));
-    expect(screen.getByRole("tooltip")).toHaveTextContent(/starting anything new/i);
+    // `[data-glossary-panel]`, not `role="tooltip"`: the panel is a click-toggled
+    // disclosure holding a keyboard-reachable link, which a tooltip may not be.
+    // See glossary-term.tsx.
+    expect(document.querySelector("[data-glossary-panel]")).toHaveTextContent(/starting anything new/i);
   });
 });

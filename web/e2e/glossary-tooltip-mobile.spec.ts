@@ -151,7 +151,12 @@ test("every open gloss is fully visible at 390px", async () => {
     await trigger.click({ force: true }).catch(() => {});
     await page.waitForTimeout(300);
 
-    const tip = page.locator('[role="tooltip"]').first();
+    // `[data-glossary-panel]`, not `[role="tooltip"]`: the panel dropped that
+    // role when its "See all terms" link became keyboard-reachable (a tooltip
+    // may hold no focusable content), and two OTHER components on this page do
+    // still render `role="tooltip"` — matching on the role would now resolve
+    // one of those and measure the wrong element.
+    const tip = page.locator("[data-glossary-panel]").first();
     if (!(await tip.isVisible().catch(() => false))) {
       // Not a glossary term — some other disclosure using aria-expanded.
       await page.keyboard.press("Escape").catch(() => {});
@@ -161,7 +166,7 @@ test("every open gloss is fully visible at 390px", async () => {
 
     const label = (await trigger.innerText().catch(() => "")).trim() || "an unnamed gloss";
     const report = await page.evaluate(() => {
-      const el = document.querySelector('[role="tooltip"]') as HTMLElement | null;
+      const el = document.querySelector("[data-glossary-panel]") as HTMLElement | null;
       if (!el) return null;
       const r = el.getBoundingClientRect();
       const cx = r.left + r.width / 2;
@@ -194,6 +199,71 @@ test("every open gloss is fully visible at 390px", async () => {
     await page.waitForTimeout(80);
   }
 
-  expect(opened, "no trigger opened a role=tooltip — the gloss may have stopped rendering").toBeGreaterThan(0);
+  expect(opened, "no trigger opened a glossary panel — the gloss may have stopped rendering").toBeGreaterThan(0);
   expect(failures).toEqual([]);
+});
+
+/**
+ * THE KEYBOARD HALF, and why it also has to be a browser test.
+ *
+ * The panel is portalled to `<body>`, so in DOM order it sits after everything
+ * else on the dashboard — and focus order follows DOM order, not screen
+ * position. "See all terms" was therefore a link only a mouse could reach: a
+ * real `<a href>`, correct target, invisible to Tab. `GlossaryTerm` now
+ * intercepts Tab while open and places focus itself.
+ *
+ * jsdom cannot check this at all — it implements no sequential focus
+ * navigation, so `Tab` moves nothing there and the unit tests
+ * (components/glossary-term.test.tsx) can only assert the component's keydown
+ * contract. Whether a real browser's Tab lands where the fix intends is exactly
+ * the question only a real browser answers.
+ */
+test("the keyboard reaches 'See all terms', and leaves again without losing its place", async () => {
+  await page.goto("/dashboard");
+  await page.waitForLoadState("networkidle", { timeout: 30_000 }).catch(() => {});
+  await dismissBlockingDialogs();
+
+  const trigger = page.getByRole("button", { name: "Rahu Kalam", exact: true }).first();
+  await trigger.waitFor({ state: "visible", timeout: 45_000 });
+  await trigger.scrollIntoViewIfNeeded();
+  // Opened the way a keyboard opens it, not with a click — the whole point is
+  // the path a reader who never touches a pointer takes.
+  await trigger.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("[data-glossary-panel]")).toBeVisible();
+
+  await page.keyboard.press("Tab");
+  const afterTab = await page.evaluate(() => {
+    const el = document.activeElement as HTMLElement | null;
+    const panel = document.querySelector("[data-glossary-panel]");
+    return {
+      insidePanel: !!panel && !!el && panel.contains(el),
+      tag: el?.tagName ?? null,
+      text: (el?.textContent ?? "").trim(),
+    };
+  });
+  expect(afterTab.insidePanel, `Tab left the gloss instead of entering it (landed on ${afterTab.tag}: "${afterTab.text}")`).toBe(true);
+  expect(afterTab.tag).toBe("A");
+
+  // Back out of the panel lands on the term it belongs to — not on whatever
+  // happens to precede <body>'s last child.
+  await page.keyboard.press("Shift+Tab");
+  const afterShiftTab = await page.evaluate(() => {
+    const el = document.activeElement as HTMLElement | null;
+    return { expanded: el?.getAttribute("aria-expanded"), text: (el?.textContent ?? "").trim() };
+  });
+  expect(afterShiftTab).toEqual({ expanded: "true", text: "Rahu Kalam" });
+
+  // Forward twice: into the link, then out of the gloss entirely.
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab");
+  await expect(page.locator("[data-glossary-panel]")).toHaveCount(0);
+  const afterLeaving = await page.evaluate(() => {
+    const el = document.activeElement as HTMLElement | null;
+    return { isBody: el === document.body, tag: el?.tagName ?? null };
+  });
+  // Which control it lands on is the browser's own business — that it is not
+  // <body> is ours: closing the panel out from under a focused link is what
+  // would drop the reader at the end of the document.
+  expect(afterLeaving.isBody, "focus fell to <body> when the gloss closed").toBe(false);
 });

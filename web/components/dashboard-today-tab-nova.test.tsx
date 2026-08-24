@@ -363,7 +363,13 @@ describe("Today tab — glossary coverage (T11)", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Best window/i }));
 
-    expect(screen.getByRole("link", { name: /See all terms/i })).toHaveAttribute("href", "/dashboard/glossary");
+    // Deep-linked to the term's own card, not the top of a 42-card index —
+    // `GlossaryIndex` gives every article `id={key}`, and landing a reader at
+    // the top of an alphabet-less wall is barely better than not linking.
+    expect(screen.getByRole("link", { name: /See all terms/i })).toHaveAttribute(
+      "href",
+      "/dashboard/glossary#nallaNeram",
+    );
   });
 });
 

@@ -3390,3 +3390,22 @@ button.ui-chip { cursor: pointer; }
     border-bottom: 1px solid var(--color-border);
   }
 }
+
+/* ── Glossary index — the card a deep link landed on ──────────────────────
+   `GlossaryTerm`'s "See all terms" points at /dashboard/glossary#<term>, so
+   the reader arrives already scrolled into the middle of a 42-card grid in
+   which every card is identical: same border, same size, same weight. The
+   browser put the right one under their eyes and nothing says which it is.
+   `:target` marks it for as long as the hash names it.
+
+   A ring, not a border-colour change: the card's border is an inline style on
+   the <article>, which no selector here can beat without `!important`.
+   `scroll-margin-top` keeps the card off the very top edge, where a card sits
+   flush against the viewport and reads as cut off. */
+[data-ui="nova"] .cd-shell .cd-glossary-card {
+  scroll-margin-top: var(--space-6);
+}
+
+[data-ui="nova"] .cd-shell .cd-glossary-card:target {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent-strong) 55%, transparent);
+}

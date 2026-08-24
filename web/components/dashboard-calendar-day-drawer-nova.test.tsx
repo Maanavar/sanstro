@@ -85,7 +85,11 @@ type RenderOptions = {
 };
 
 function renderDrawer(options: RenderOptions = {}) {
-  const onStepDay = options.onStepDay ?? vi.fn();
+  // `vi.fn(impl)` rather than `options.onStepDay ?? vi.fn()`: the `??` form has
+  // the union type `((delta: number) => void) | Mock`, so `.mock.calls` below
+  // does not typecheck (tsc caught it; vitest, which never typechecks the file,
+  // did not). Wrapping keeps any caller-supplied implementation AND the spy.
+  const onStepDay = vi.fn(options.onStepDay);
   const onOpenFull = options.onOpenFull ?? vi.fn();
   const onClose = options.onClose ?? vi.fn();
   render(

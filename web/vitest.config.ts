@@ -23,6 +23,21 @@ export default defineConfig({
       ["**/*.test.tsx", "jsdom"],
     ],
     setupFiles: ["./vitest.setup.ts"],
+    // Vitest's 5s default is tuned for small units. Several of these tests mount
+    // a real dashboard tab — the Today tab's first test measures ~3.4s on its
+    // own, because it pays this file's module import on top of rendering the
+    // whole tree in jsdom. That leaves under 2s of headroom, so the suite went
+    // red under load while every test passed in isolation.
+    //
+    // Raised because of HOW it failed, not just that it did. A test that times
+    // out mid-render never reaches testing-library's cleanup, so its DOM is
+    // still mounted when the next test renders — and the next test fails with
+    // "found multiple elements", which reads exactly like a duplicate-render
+    // bug in the component. One slow test therefore produced two failures, only
+    // one of them real, and pointed the second at innocent code. A timeout here
+    // should mean "this hung", so it has to sit clear of what merely renders
+    // slowly.
+    testTimeout: 15000,
     coverage: {
       provider: "v8",
       include: ["lib/**", "hooks/**", "components/**"],

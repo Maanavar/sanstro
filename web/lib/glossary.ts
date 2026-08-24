@@ -174,9 +174,22 @@ export const GLOSSARY: Record<GlossaryKey, { ta: string; en: string }> = {
     en: "A second daily stretch traditionally avoided for new beginnings, on the same weekday cycle as Rahu Kalam but a different slot.",
     ta: "புதிய தொடக்கங்களைத் தவிர்க்கும் இரண்டாவது தினசரி நேரம் — ராகு காலத்தின் அதே வாரநாள் சுழற்சி, ஆனால் வேறு நேரப் பகுதி.",
   },
+  // Said "favourable rather than avoided — the counterpart to Rahu Kalam and
+  // Yamagandam" until 2026-08-23, which contradicted the screen it opens on.
+  // Kuligai is Saturn's own (Mandi), the THIRD avoid-kala: the Today ribbon
+  // paints it with `--color-low` beside Rahu and Yama, the calendar rows mark
+  // it `avoid-soft` and the legend names it as a red cause, and the Today row
+  // it hangs off is literally headed "Avoid periods". A reader tapping a red
+  // band and being told it is the good one is the explanation contradicting
+  // the very thing it explains.
+  //
+  // The nuance the old wording was reaching for is real and kept in the second
+  // sentence: what begins in Kuligai is held to REPEAT, so Tamil practice puts
+  // it to deliberate use for things worth recurring (saving, buying gold) —
+  // which is a carve-out from an avoid period, not a reclassification of one.
   kuligai: {
-    en: "A daily stretch traditionally considered favourable rather than avoided — the counterpart to Rahu Kalam and Yamagandam.",
-    ta: "தினசரி நேரப் பகுதிகளில் தவிர்க்கத் தேவையில்லாத, மாறாக நல்லதாகக் கருதப்படும் ஒன்று — ராகு காலம், எமகண்டத்திற்கு எதிரானது.",
+    en: "The third stretch each day traditionally avoided for new starts, alongside Rahu Kalam and Yamagandam. It has a rule of its own: what begins in Kuligai is said to repeat — so it is used deliberately for things you want to happen again, like starting savings, and avoided for everything else.",
+    ta: "ராகு காலம், எமகண்டத்துடன் சேர்ந்து புதிய தொடக்கங்களுக்குத் தவிர்க்கப்படும் மூன்றாவது தினசரி நேரம். இதற்கு ஒரு தனி விதி உண்டு: குளிகையில் தொடங்குவது மீண்டும் நிகழும் என்பர் — எனவே திரும்பத் திரும்ப வேண்டியவற்றுக்கு (சேமிப்பு தொடங்குதல் போன்றவை) வேண்டுமென்றே பயன்படுத்தி, மற்ற அனைத்தையும் தவிர்ப்பர்.",
   },
   nallaNeram: {
     en: "The day's recommended good window — the stretch to aim for when you get to choose the hour for something that matters.",
