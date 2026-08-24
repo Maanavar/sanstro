@@ -57,6 +57,7 @@
     "./api/oneMinuteReading": "./src/api/oneMinuteReading.ts",
     "./api/fiveMinuteReading": "./src/api/fiveMinuteReading.ts",
     "./api/reports": "./src/api/reports.ts",
+    "./api/places": "./src/api/places.ts",
     "./data/nakshatras": "./src/data/nakshatras.ts",
     "./data/legal": "./src/data/legal.ts"
   },

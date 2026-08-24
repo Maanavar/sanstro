@@ -37,3 +37,4 @@ export * from "./snapshot";
 export * from "./reports";
 export * from "./oneMinuteReading";
 export * from "./fiveMinuteReading";
+export * from "./places";
