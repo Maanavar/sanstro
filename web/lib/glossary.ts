@@ -58,7 +58,13 @@ export type GlossaryKey =
   | "peyarchi"
   | "sadeSati"
   | "house"
-  | "yoga";
+  | "yoga"
+  | "pournami"
+  | "chathurthi"
+  | "sashti"
+  | "ekadashi"
+  | "pradosham"
+  | "vratham";
 
 export const GLOSSARY: Record<GlossaryKey, { ta: string; en: string }> = {
   dasha: {
@@ -169,6 +175,30 @@ export const GLOSSARY: Record<GlossaryKey, { ta: string; en: string }> = {
   yoga: {
     en: "A chart combination — a particular relationship between planets and houses. It is not exercise yoga; its meaning depends on the whole chart.",
     ta: "ஜாதக அமைப்பு — கிரகங்கள் மற்றும் வீடுகளுக்கு இடையிலான ஒரு குறிப்பிட்ட தொடர்பு. இது உடற்பயிற்சி யோகம் அல்ல; இதன் பொருள் முழு ஜாதகத்தைப் பொறுத்தது.",
+  },
+  pournami: {
+    en: "The full-moon day, when the Moon is opposite the Sun. Many Tamil households mark it with prayer, temple visits, or a simple observance.",
+    ta: "முழுநிலவு நாள் — சந்திரன் சூரியனுக்கு எதிரில் இருக்கும் திதி. பல தமிழ் குடும்பங்கள் இதை வழிபாடு, கோவில் தரிசனம் அல்லது எளிய அனுசரிப்புடன் கடைப்பிடிக்கின்றன.",
+  },
+  chathurthi: {
+    en: "The fourth lunar day. It is traditionally associated with Ganesha worship; Sankatahara Chathurthi is a widely observed monthly form.",
+    ta: "நான்காவது சந்திரத் திதி. இது பாரம்பரியமாக விநாயகர் வழிபாட்டுடன் தொடர்புடையது; சங்கடஹர சதுர்த்தி அதன் மாதாந்திர அனுசரிப்பாகும்.",
+  },
+  sashti: {
+    en: "The sixth lunar day. In Tamil tradition it is often associated with Murugan worship, especially the monthly Sashti observance.",
+    ta: "ஆறாவது சந்திரத் திதி. தமிழ் மரபில் இது பெரும்பாலும் முருகன் வழிபாட்டுடன், குறிப்பாக மாதாந்திர சஷ்டி அனுசரிப்புடன் தொடர்புடையது.",
+  },
+  ekadashi: {
+    en: "The eleventh lunar day. Many Vaishnava households observe it with prayer, a fast, or a simpler meal according to their own practice.",
+    ta: "பதினொன்றாவது சந்திரத் திதி. பல வைணவக் குடும்பங்கள் தங்கள் வழக்கத்தின்படி வழிபாடு, விரதம் அல்லது எளிய உணவுடன் இதை அனுசரிக்கின்றன.",
+  },
+  pradosham: {
+    en: "A twilight observance on the thirteenth lunar day, traditionally associated with Shiva worship. The exact observance window depends on local sunset and tithi timing.",
+    ta: "பதின்மூன்றாவது திதியில் வரும் மாலை நேர அனுசரிப்பு; பாரம்பரியமாக சிவ வழிபாட்டுடன் தொடர்புடையது. உள்ளூர் சூரிய அஸ்தமனம் மற்றும் திதி நேரத்தைப் பொறுத்து இதன் நேரம் மாறும்.",
+  },
+  vratham: {
+    en: "A voluntary religious observance, often involving prayer, a fast, or a chosen discipline for a particular day. Practices vary by household and tradition.",
+    ta: "ஒரு குறிப்பிட்ட நாளுக்கான விருப்பமான சமய அனுசரிப்பு — வழிபாடு, விரதம் அல்லது தேர்ந்தெடுத்த ஒழுக்கம் இதில் இருக்கலாம். குடும்பம் மற்றும் மரபுக்கு ஏற்ப நடைமுறை மாறும்.",
   },
   yogam: {
     en: "One of 27 daily combinations of Sun and Moon position. Nothing to do with the exercise — it is an almanac reading of the day's quality.",
@@ -322,6 +352,12 @@ export const GLOSSARY_LABELS: Record<GlossaryKey, { ta: string; en: string }> = 
   sadeSati: { en: "Sade Sati", ta: "ஏழரைச் சனி" },
   house: { en: "House", ta: "வீடு" },
   yoga: { en: "Yoga (chart combination)", ta: "யோகம் (ஜாதக அமைப்பு)" },
+  pournami: { en: "Pournami", ta: "பௌர்ணமி" },
+  chathurthi: { en: "Chathurthi", ta: "சதுர்த்தி" },
+  sashti: { en: "Sashti", ta: "சஷ்டி" },
+  ekadashi: { en: "Ekadashi", ta: "ஏகாதசி" },
+  pradosham: { en: "Pradosham", ta: "பிரதோஷம்" },
+  vratham: { en: "Vratham", ta: "விரதம்" },
 };
 
 /** The display name for a term, in the reader's language. */

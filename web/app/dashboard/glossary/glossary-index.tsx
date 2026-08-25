@@ -72,6 +72,12 @@ const TERM_LABELS: Record<GlossaryKey, { en: string; ta: string }> = {
   house: { en: "House", ta: "வீடு" },
   // New Tamil, pending native review.
   yoga: { en: "Yoga", ta: "யோகம்" },
+  pournami: { en: "Pournami", ta: "பௌர்ணமி" },
+  chathurthi: { en: "Chathurthi", ta: "சதுர்த்தி" },
+  sashti: { en: "Sashti", ta: "சஷ்டி" },
+  ekadashi: { en: "Ekadashi", ta: "ஏகாதசி" },
+  pradosham: { en: "Pradosham", ta: "பிரதோஷம்" },
+  vratham: { en: "Vratham", ta: "விரதம்" },
 };
 
 // New Tamil, pending native review.

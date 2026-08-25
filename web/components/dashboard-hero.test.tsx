@@ -55,3 +55,14 @@ describe("DashboardHero brand mark", () => {
     expect(onTabChange).toHaveBeenCalledWith("personal");
   });
 });
+
+describe("DashboardHero navigation guidance", () => {
+  it("gives each More destination a plain-language description", () => {
+    renderHero("personal", noop);
+
+    fireEvent.click(screen.getByRole("button", { name: /more/i }));
+
+    expect(screen.getByText("Use focused astrology tools for a specific question.")).toBeInTheDocument();
+    expect(screen.getByText("Learn the ideas behind your chart and guidance.")).toBeInTheDocument();
+  });
+});

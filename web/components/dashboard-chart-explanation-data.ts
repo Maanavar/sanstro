@@ -97,17 +97,17 @@ export const HOUSE_GROUP_COPY: Record<"kendra" | "trikona" | "dusthana" | "other
 export const SECTION_META: Array<{ id: SectionId; title: BiCopy; hint: BiCopy }> = [
   {
     id: "basics",
-    title: { ta: "ஜாதக அடிப்படை", en: "Chart Basics" },
+    title: { ta: "உங்கள் ஜாதகத்தின் அடித்தளம்", en: "What your chart is built around" },
     hint: { ta: "லக்னம், சந்திரன், நடப்பு தசை", en: "Lagna, Moon, current Dasa" },
   },
   {
     id: "activation",
-    title: { ta: "நடப்பு தசை செயல்பாடு", en: "Current Period Activation" },
+    title: { ta: "இப்போது உங்களுக்கு செயல்படும் காலம்", en: "What is active for you now" },
     hint: { ta: "தசை / புக்தி / அந்தரம் + கிரகநகர்வு", en: "Dasa / Bhukti / Antaram + transit" },
   },
   {
     id: "positions",
-    title: { ta: "கிரக நிலைகள்", en: "Planet Positions" },
+    title: { ta: "உங்கள் கிரகங்கள் எங்கு உள்ளன", en: "Where your planets are placed" },
     hint: { ta: "வீடு, ராசி, நட்சத்திரம், பலம்", en: "House, sign, nakshatra, strength" },
   },
   {
@@ -129,17 +129,17 @@ export const SECTION_META: Array<{ id: SectionId; title: BiCopy; hint: BiCopy }>
   },
   {
     id: "functional",
-    title: { ta: "செயல்பாட்டு தன்மை", en: "Functional Nature" },
+    title: { ta: "ஒவ்வொரு கிரகமும் உங்களுக்கு எப்படி செயல்படுகிறது", en: "How each planet works for you" },
     hint: { ta: "லக்னத்திற்கு கிரகத்தின் பங்கு", en: "Each planet's role for the Lagna" },
   },
   {
     id: "yogas",
-    title: { ta: "யோகங்கள் / தோஷங்கள்", en: "Yogas / Doshams" },
+    title: { ta: "ஜாதக அமைப்புகளும் கவனிக்க வேண்டிய நிலைகளும்", en: "Chart patterns and difficult placements" },
     hint: { ta: "ஏற்கனவே கணிக்கப்பட்ட யோக/தோஷ விளக்கம்", en: "Existing yoga and dosham interpretation" },
   },
   {
     id: "summary",
-    title: { ta: "நன்மை / கவனச் சுருக்கம்", en: "Positive / Caution Summary" },
+    title: { ta: "உங்கள் பலங்களும் கவனிக்க வேண்டிய பகுதிகளும்", en: "Your strengths and areas for care" },
     hint: { ta: "வலுவானது, ஆதரவு தேவைப்படுவது, நடைமுறை குறிப்பு", en: "Strongest, needs support, practical notes" },
   },
   {

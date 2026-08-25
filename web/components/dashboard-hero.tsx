@@ -35,21 +35,23 @@ const SHOW_QA_TAB = process.env.NODE_ENV !== "production";
 // (tab_life_area_nav) is untouched: Tamil pluralization isn't a mechanical
 // "add கள்" the way English's is, and this wants a native-speaker call, not a
 // guess — see docs/ASTROLOGER_REVIEW_QUEUE.md.
-const TAB_DEFS: Array<{ id: Tab; labelEn: string; labelTaKey?: LabelKey }> = [
-  { id: "personal", labelEn: "Today", labelTaKey: "tab_today" },
-  { id: "calendar", labelEn: "Calendar", labelTaKey: "tab_calendar" },
-  { id: "family", labelEn: "Family & Charts", labelTaKey: "tab_family" },
-  { id: "plan", labelEn: "Goals", labelTaKey: "tab_plan" },
-  { id: "life-areas", labelEn: "Life Areas", labelTaKey: "tab_life_area_nav" },
-  { id: "settings", labelEn: "Settings", labelTaKey: "tab_settings" },
+type TabDefinition = { id: Tab; labelEn: string; labelTaKey?: LabelKey; desc: { en: string; ta: string } };
+
+const TAB_DEFS: TabDefinition[] = [
+  { id: "personal", labelEn: "Today", labelTaKey: "tab_today", desc: { en: "Your day at a glance, with timing and guidance.", ta: "இன்றைய நேரங்களும் வழிகாட்டுதலும் ஒரே பார்வையில்." } },
+  { id: "calendar", labelEn: "Calendar", labelTaKey: "tab_calendar", desc: { en: "Choose a day or month and see its timing details.", ta: "ஒரு நாள் அல்லது மாதத்தைத் தேர்ந்து நேர விவரங்களைப் பாருங்கள்." } },
+  { id: "family", labelEn: "Family & Charts", labelTaKey: "tab_family", desc: { en: "View birth-chart details and family timing together.", ta: "ஜாதக விவரங்களையும் குடும்ப நேரங்களையும் ஒன்றாகப் பாருங்கள்." } },
+  { id: "plan", labelEn: "Goals", labelTaKey: "tab_plan", desc: { en: "Set an intention and find supportive times to act.", ta: "ஒரு நோக்கத்தை அமைத்து செயல்பட உதவும் நேரங்களைக் காணுங்கள்." } },
+  { id: "life-areas", labelEn: "Life Areas", labelTaKey: "tab_life_area_nav", desc: { en: "Explore guidance by the part of life that matters now.", ta: "இப்போது முக்கியமான வாழ்க்கைப் பகுதியின் வழிகாட்டுதலைப் பாருங்கள்." } },
+  { id: "settings", labelEn: "Settings", labelTaKey: "tab_settings", desc: { en: "Manage your preferences and account.", ta: "உங்கள் விருப்பங்களையும் கணக்கையும் நிர்வகியுங்கள்." } },
 ];
 
 // Destinations tucked behind the "More" dropdown (see `showMoreMenu` below)
 // instead of their own pill — QA stays dev-only.
-const MORE_TAB_DEFS: Array<{ id: Tab; labelEn: string; labelTaKey?: LabelKey }> = [
-  { id: "tools", labelEn: "Tools", labelTaKey: "tab_tools" },
-  { id: "explore", labelEn: "Understand", labelTaKey: "tab_explore" },
-  { id: "qa", labelEn: "QA" },
+const MORE_TAB_DEFS: TabDefinition[] = [
+  { id: "tools", labelEn: "Tools", labelTaKey: "tab_tools", desc: { en: "Use focused astrology tools for a specific question.", ta: "குறிப்பிட்ட கேள்விக்கான ஜோதிடக் கருவிகளைப் பயன்படுத்துங்கள்." } },
+  { id: "explore", labelEn: "Understand", labelTaKey: "tab_explore", desc: { en: "Learn the ideas behind your chart and guidance.", ta: "உங்கள் ஜாதகம் மற்றும் வழிகாட்டுதலின் பின்னுள்ள கருத்துகளை அறியுங்கள்." } },
+  { id: "qa", labelEn: "QA", desc: { en: "Check development diagnostics.", ta: "மேம்பாட்டு சோதனை விவரங்களைப் பாருங்கள்." } },
 ];
 
 interface DashboardHeroProps {
@@ -231,6 +233,7 @@ export function DashboardHero(props: DashboardHeroProps) {
         ref={isActive ? activeTabRef : undefined}
         className={`cd-tab${isActive ? " cd-tab--active" : ""}`}
         aria-current={isActive ? "page" : undefined}
+        title={lang === "ta" ? tab.desc.ta : tab.desc.en}
         onClick={() => onTabChange(tab.id)}
       >
         {lang === "ta" && tab.labelTaKey ? t(tab.labelTaKey, lang) : tab.labelEn}
@@ -328,6 +331,7 @@ export function DashboardHero(props: DashboardHeroProps) {
                         }}
                       >
                         <span>{lang === "ta" && tab.labelTaKey ? t(tab.labelTaKey, lang) : tab.labelEn}</span>
+                        <span className="cd-dropdown__desc">{lang === "ta" ? tab.desc.ta : tab.desc.en}</span>
                       </button>
                     ))}
                   </div>

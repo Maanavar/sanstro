@@ -13,6 +13,7 @@ import type { PanchangamFestival, PanchangamMonthDayEntry } from "@/lib/types";
 
 import { MiniMoonGlyph } from "./celestial-glyph-nova";
 import { GlossaryTerm } from "./glossary-term";
+import type { GlossaryKey } from "@/lib/glossary";
 import {
   festivalImagePath,
   festivalTags,
@@ -71,14 +72,14 @@ const NOVA_DOT_TONE: Record<"festival" | "vratha" | "global", string> = {
   global: "var(--color-accent-secondary)",
 };
 
-const NOVA_LEGEND: Array<{ label: { en: string; ta: string }; icon: string | null; emoji: string; swatch: string }> = [
+const NOVA_LEGEND: Array<{ label: { en: string; ta: string }; icon: string | null; emoji: string; swatch: string; term?: GlossaryKey }> = [
   { label: { en: "Muhurtham day", ta: "முகூர்த்த நாள்" }, icon: "/calendar/muhurtha.png", emoji: "🌟", swatch: NOVA_CAL_HILITE.muhurtham.dot },
-  { label: { en: "Pournami", ta: "பௌர்ணமி" }, icon: null, emoji: "🌕", swatch: NOVA_CAL_HILITE.pournami.dot },
+  { label: { en: "Pournami", ta: "பௌர்ணமி" }, icon: null, emoji: "🌕", swatch: NOVA_CAL_HILITE.pournami.dot, term: "pournami" },
   { label: { en: "Amavasai", ta: "அமாவாசை" }, icon: null, emoji: "🌑", swatch: NOVA_CAL_HILITE.amavasai.dot },
-  { label: { en: "Chathurthi", ta: "சதுர்த்தி" }, icon: "/calendar/chathurthi.png", emoji: "🐘", swatch: NOVA_CAL_HILITE.chathurthi.dot },
-  { label: { en: "Sashti", ta: "சஷ்டி" }, icon: "/calendar/shasti.png", emoji: "🦚", swatch: NOVA_CAL_HILITE.sashti.dot },
-  { label: { en: "Ekadashi", ta: "ஏகாதசி" }, icon: "/calendar/ekadashi.png", emoji: "🪷", swatch: "var(--color-faint)" },
-  { label: { en: "Pradosham", ta: "பிரதோஷம்" }, icon: null, emoji: "🪔", swatch: NOVA_CAL_HILITE.pradosham.dot },
+  { label: { en: "Chathurthi", ta: "சதுர்த்தி" }, icon: "/calendar/chathurthi.png", emoji: "🐘", swatch: NOVA_CAL_HILITE.chathurthi.dot, term: "chathurthi" },
+  { label: { en: "Sashti", ta: "சஷ்டி" }, icon: "/calendar/shasti.png", emoji: "🦚", swatch: NOVA_CAL_HILITE.sashti.dot, term: "sashti" },
+  { label: { en: "Ekadashi", ta: "ஏகாதசி" }, icon: "/calendar/ekadashi.png", emoji: "🪷", swatch: "var(--color-faint)", term: "ekadashi" },
+  { label: { en: "Pradosham", ta: "பிரதோஷம்" }, icon: null, emoji: "🪔", swatch: NOVA_CAL_HILITE.pradosham.dot, term: "pradosham" },
   { label: { en: "Festival", ta: "திருவிழா" }, icon: null, emoji: "🎉", swatch: "var(--color-accent-strong)" },
   { label: { en: "Karinaal (avoid)", ta: "கரிநாள் (தவிர்க்க)" }, icon: null, emoji: "🚫", swatch: "var(--color-alert-critical)" },
 ];
@@ -163,12 +164,12 @@ function festivalCalCategory(name: string): CalCategory {
   return "festivals";
 }
 
-const CAL_FILTERS: Array<{ cat: CalCategory; label: { en: string; ta: string }; swatch: string }> = [
+const CAL_FILTERS: Array<{ cat: CalCategory; label: { en: string; ta: string }; swatch: string; term?: GlossaryKey }> = [
   { cat: "muhurtham", label: { en: "Muhurtham", ta: "முகூர்த்தம்" }, swatch: NOVA_CAL_HILITE.muhurtham.dot },
-  { cat: "vratham", label: { en: "Vratham", ta: "விரதம்" }, swatch: NOVA_DOT_TONE.vratha },
+  { cat: "vratham", label: { en: "Vratham", ta: "விரதம்" }, swatch: NOVA_DOT_TONE.vratha, term: "vratham" },
   { cat: "festivals", label: { en: "Festivals", ta: "திருவிழாக்கள்" }, swatch: NOVA_DOT_TONE.festival },
   { cat: "lunar", label: { en: "Amavasai / Pournami", ta: "அமாவாசை / பௌர்ணமி" }, swatch: NOVA_CAL_HILITE.pournami.dot },
-  { cat: "ekadashi", label: { en: "Ekadashi", ta: "ஏகாதசி" }, swatch: "var(--color-faint)" },
+  { cat: "ekadashi", label: { en: "Ekadashi", ta: "ஏகாதசி" }, swatch: "var(--color-faint)", term: "ekadashi" },
   { cat: "karinaal", label: { en: "Karinaal (avoid)", ta: "கரிநாள் (தவிர்க்க)" }, swatch: "var(--color-alert-critical)" },
 ];
 const ALL_CATEGORIES: CalCategory[] = CAL_FILTERS.map((f) => f.cat);
@@ -684,7 +685,7 @@ export function MonthlyCalendarViewNova({
               {NOVA_LEGEND.map((item) => (
                 <span key={item.label.en} style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-xs)", color: "var(--color-muted)" }}>
                   <span aria-hidden="true" style={{ width: "9px", height: "9px", borderRadius: "var(--radius-sm)", background: item.swatch, display: "inline-block" }} />
-                  {lang === "ta" ? item.label.ta : item.label.en}
+                  {item.term ? <GlossaryTerm term={item.term} lang={lang}>{lang === "ta" ? item.label.ta : item.label.en}</GlossaryTerm> : (lang === "ta" ? item.label.ta : item.label.en)}
                 </span>
               ))}
             </div>
@@ -813,15 +814,16 @@ export function MonthlyCalendarViewNova({
                 </button>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-                {CAL_FILTERS.map(({ cat, label, swatch }) => {
+                {CAL_FILTERS.map(({ cat, label, swatch, term }) => {
                   const on = catOn(cat);
                   const text = lang === "ta" ? label.ta : label.en;
+                  const glossaryTerm = term ?? (cat === "muhurtham" ? "muhurtham" : undefined);
                   return (
                     <div key={cat} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-3)" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)", fontWeight: 600, color: on ? "var(--color-text-strong)" : "var(--color-muted)", minWidth: 0 }}>
                         <span aria-hidden="true" style={{ width: "10px", height: "10px", borderRadius: "var(--radius-sm)", background: swatch, opacity: on ? 1 : 0.4, flexShrink: 0 }} />
                         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {cat === "muhurtham" ? <GlossaryTerm term="muhurtham" lang={lang}>{text}</GlossaryTerm> : text}
+                          {glossaryTerm ? <GlossaryTerm term={glossaryTerm} lang={lang}>{text}</GlossaryTerm> : text}
                         </span>
                       </span>
                       <FilterSwitch on={on} label={text} onToggle={() => toggleCat(cat)} />

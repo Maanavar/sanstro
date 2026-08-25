@@ -49,6 +49,7 @@ describe("glossary integrity", () => {
       "rahuKalam", "yamagandam", "kuligai", "nallaNeram", "abhijit", "hora",
       "chandrashtama", "karinaal", "soolam", "parigaram", "amirdhadhi",
       "muhurtham", "lagnam", "pada", "peyarchi", "sadeSati",
+      "pournami", "chathurthi", "sashti", "ekadashi", "pradosham", "vratham",
     ];
     for (const key of daily) {
       expect(GLOSSARY[key], `missing daily-vocabulary entry: ${key}`).toBeDefined();

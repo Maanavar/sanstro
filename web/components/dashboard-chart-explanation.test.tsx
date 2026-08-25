@@ -65,7 +65,7 @@ describe("ChartExplanationPanel — Yogas section renderYogaDoshamPanel override
     );
 
     fireEvent.click(screen.getByText("Open chart explanation"));
-    fireEvent.click(screen.getByText("Yogas / Doshams"));
+    fireEvent.click(screen.getByText("Chart patterns and difficult placements"));
 
     expect(screen.getByText("NOVA_YOGA_OVERRIDE")).toBeInTheDocument();
     expect(renderYogaDoshamPanel).toHaveBeenCalledWith(
@@ -81,7 +81,7 @@ describe("ChartExplanationPanel — Yogas section renderYogaDoshamPanel override
     render(<ChartExplanationPanel {...baseProps} chart={makeChart([makeGajaKesari()])} />);
 
     fireEvent.click(screen.getByText("Open chart explanation"));
-    fireEvent.click(screen.getByText("Yogas / Doshams"));
+    fireEvent.click(screen.getByText("Chart patterns and difficult placements"));
 
     // Default YogaDoshamPanel renders the yoga's display name as a clickable row.
     expect(screen.getByText("Gaja Kesari Yoga")).toBeInTheDocument();
