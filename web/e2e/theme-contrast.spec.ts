@@ -158,7 +158,13 @@ async function applyTheme(theme: "light" | "dark") {
 const TABS = ["Today", "Calendar", "Family & Charts", "Goals", "Life Areas"] as const;
 
 async function goToTab(label: string) {
-  await dismissBlockingDialogs(3);
+  // dismissBlockingDialogs() returns immediately once no dialog is visible, so
+  // capping attempts below the default bought no speed on the common case —
+  // only a reliability loss on the rare one where a dialog takes a couple of
+  // render cycles to actually unmount after its dismiss click. Found live: the
+  // day-drawer flow below intercepted on a life-mode-picker dialog that a
+  // 3-attempt cap didn't clear in time on a cold dev build.
+  await dismissBlockingDialogs();
   await page.getByRole("button", { name: label, exact: true }).first().click();
   await page.waitForTimeout(1500);
   await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
@@ -244,7 +250,7 @@ for (const theme of ["light", "dark"] as const) {
 
     await page.getByRole("tab", { name: /Monthly/i }).click();
     await page.waitForTimeout(2000);
-    await dismissBlockingDialogs(3);
+    await dismissBlockingDialogs();
     await page.locator('button[aria-current="date"]').first().click();
     // The sheet fetches the day it was opened on; measuring the skeleton would
     // pass trivially.
