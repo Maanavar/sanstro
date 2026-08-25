@@ -78,7 +78,10 @@ test("action and safety guidance lead the dense day detail at phone widths", asy
     await page.waitForLoadState("networkidle", { timeout: 30_000 }).catch(() => {});
     await dismissBlockingDialogs();
 
-    await page.getByRole("button", { name: "Calendar", exact: true }).click();
+    // The hero pill nav ("cd-tab") and the footer nav both render a "Calendar"
+    // button — the footer's stays in the DOM (not removed) at phone widths, so
+    // an unscoped role query is ambiguous. Scope to the hero tab specifically.
+    await page.locator("button.cd-tab", { hasText: "Calendar" }).click();
     const summary = page.getByTestId("calendar-day-summary");
     const avoid = page.getByText("Avoid", { exact: true }).first();
     const detail = page.getByText("Panchangam · Five Limbs", { exact: true });
