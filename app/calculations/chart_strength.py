@@ -28,8 +28,21 @@ MAX_COMBUSTION_PENALTY = 22.0
 # than the bonus, since "exalted in Rasi, neecha in Navamsa" is classically
 # read as a severe loss of promise rather than a mild one. Flagged for
 # astrologer confirmation before the weighting is treated as settled.
+#
+# ANSWERED, 2026-08-27 (astrologer ruling; §7 Q12 of the function & calculation
+# review): heavier, but only where the classical case actually bites. The
+# severe reading is specifically "exalted in Rasi, neecha in Navamsa" — the
+# penalty should scale with how much promise the Navamsa is contradicting. A
+# graha already weak in Rasi and neecha in Navamsa is merely consistently weak,
+# and the six balas have said so already; charging it double would be
+# double-counting. So the base stays 5.0 and a Rasi-exalted graha (dignity 100)
+# is charged 10.0 — level with Gandanta, above Rasi sandhi, and still well
+# inside the combustion gradient's -22 maximum, which is the right neighbourhood
+# for a structural dignity failure in a score that is not Shadbala. Vargottama
+# remains exempt.
 D9_DIGNITY_BONUS = 5.0
 D9_DEBILITATION_PENALTY = 5.0
+D9_DEBILITATION_PENALTY_EXALTED = 10.0
 
 # Exaltation rasi (1-based)
 EXALTATION_RASI: dict[str, int] = {
@@ -44,9 +57,16 @@ DEBILITATION_RASI: dict[str, int] = {
 }
 
 # Moolatrikona: (rasi, degree_start_in_sign, degree_end_in_sign)
-# Convention note (2026-07 audit): Moon's zone here is 4°-30° Taurus; some
-# classical sources (e.g. BPHS) give 3°-30°. Not changed — documenting the
-# choice pending an astrologer's confirmation of which source this project follows.
+#
+# ANSWERED, 2026-08-27 (astrologer ruling; §7 Q11 of the function & calculation
+# review). On the degree itself: **4°-30° Taurus is retained.** The Moon's
+# exaltation *point* is 3° Taurus, and Moolatrikona begins after the exaltation
+# degree — a 3°-30° zone would overlap the exaltation point it is supposed to
+# follow. 4°-30° is the coherent reading and the one Tamil practice prints.
+#
+# But the degree was the smaller half of the question. The larger half is that
+# **the Moon's Moolatrikona zone was unreachable**, and so was Mercury's: see
+# EXALTATION_ZONE_END below.
 MOOLATRIKONA_ZONE: dict[str, tuple[int, float, float]] = {
     "SUN": (5, 0.0, 20.0),
     "MOON": (2, 4.0, 30.0),
@@ -55,6 +75,32 @@ MOOLATRIKONA_ZONE: dict[str, tuple[int, float, float]] = {
     "JUPITER": (9, 0.0, 10.0),
     "VENUS": (7, 0.0, 15.0),
     "SATURN": (11, 0.0, 20.0),
+}
+
+# Degree at which the exaltation zone ENDS inside the exaltation sign — carried
+# only for the two grahas whose exaltation rasi is ALSO their Moolatrikona rasi.
+#
+# 2026-08-27, found while ruling on §7 Q11. `_dignity_score` tests exaltation at
+# whole-sign granularity and returns 100 before it ever reaches the Moolatrikona
+# branch. For five grahas the two signs differ and that shortcut is harmless and
+# standard. For two they are the same sign, and the rung underneath could never
+# fire:
+#
+#   * MOON  — exalted Taurus, Moolatrikona Taurus 4°-30°. Every degree of Taurus
+#     scored 100, so the 26 degrees from 4° to 30° were over-scored by 10 dignity
+#     points. The Moon is in Taurus in about 1 chart in 12.
+#   * MERCURY — exalted Virgo, Moolatrikona Virgo 16°-20°, and Virgo is also an
+#     own sign. Every degree of Virgo scored 100. Classically 0°-15° is
+#     exaltation, 16°-20° Moolatrikona (90) and 21°-30° own sign (80), so the
+#     upper half of the sign was over-scored by 10 or by 20 points.
+#
+# Dignity carries 0.30 of the composite through Sthana Bala and flows on into
+# Bhava Bala, the life-area score and the prediction layer, so this was not
+# cosmetic. Bounding the exaltation test by degree for exactly these two grahas
+# restores the ladder without touching the other five.
+EXALTATION_ZONE_END: dict[str, float] = {
+    "MOON": 4.0,     # Taurus: 0°-4° exalted, 4°-30° Moolatrikona
+    "MERCURY": 16.0,  # Virgo: 0°-16° exalted, 16°-20° Moolatrikona, 20°-30° own
 }
 
 # Own-sign rasis per planet
@@ -92,14 +138,49 @@ OWN_SIGN_RASI: dict[str, frozenset[int]] = {
 # depending on argument order. Resolved toward FRIEND, which is what the node
 # rows here already asserted and what the Tamil practice table this row came
 # from states (Venus: friends Mercury, Saturn, Rahu, Ketu).
+#
+# ── STR-01 ANSWERED, 2026-08-27 (astrologer ruling; §7 Q2 of the function &
+# calculation review) ───────────────────────────────────────────────────────
+#
+# THE PRINCIPLE: a classical naisargika asymmetry is *derived*, never asserted.
+# Every one of the seven-graha asymmetries falls out of the Moolatrikona
+# arithmetic described above — that is why Moon-regards-Mercury-friend /
+# Mercury-regards-Moon-enemy is doctrine rather than a typo. The nodes have no
+# Moolatrikona sign, so no such derivation exists for them, and therefore
+# **no node asymmetry can be justified from any source.** Every node row must
+# be symmetric with its counterpart; an asymmetric one is a transcription
+# accident by construction. The review named two; a fourth-pass sweep of all
+# 9x9 ordered pairs found three.
+#
+#   1. KETU held RAHU an enemy while RAHU did not list KETU (neutral).
+#      -> ENEMY both ways. The nodes are permanently in exact mutual
+#      opposition, share no benefic agency, and Tamil practice reads the
+#      reciprocal antardasha (Rahu in Ketu, Ketu in Rahu) as an unsettled
+#      period, never a supported one. KETU added to RAHU's enemy row.
+#
+#   2. KETU held MARS a friend while MARS held KETU neutral.
+#      -> FRIEND both ways, on the classical dictum "Kuja-vat Ketu" — Ketu
+#      acts as Mars does, and shares Mars's Scorpio agency. KETU added to
+#      MARS's friend row.
+#
+#   3. NOT NAMED BY THE REVIEW: RAHU held SATURN a friend while SATURN listed
+#      neither node (neutral). -> FRIEND both ways, on the counterpart dictum
+#      "Shani-vat Rahu". RAHU added to SATURN's friend row. This one mattered
+#      most in practice: Saturn is the heaviest-weighted graha in the daily
+#      transit component, so a Rahu/Saturn dasha pairing graded friend one way
+#      and neutral the other landed on the score readers see most often.
+#
+# All 9x9 ordered pairs are now symmetric. `tests/test_chart_strength.py`
+# asserts the symmetry of the two node rows directly, so a future edit cannot
+# reintroduce a one-way node grade without failing.
 _NATURAL_FRIENDS: dict[str, frozenset[str]] = {
     "SUN": frozenset({"MOON", "MARS", "JUPITER"}),
     "MOON": frozenset({"SUN", "MERCURY"}),
-    "MARS": frozenset({"SUN", "MOON", "JUPITER"}),
+    "MARS": frozenset({"SUN", "MOON", "JUPITER", "KETU"}),
     "MERCURY": frozenset({"SUN", "VENUS"}),
     "JUPITER": frozenset({"SUN", "MOON", "MARS"}),
     "VENUS": frozenset({"MERCURY", "SATURN", "RAHU", "KETU"}),
-    "SATURN": frozenset({"MERCURY", "VENUS"}),
+    "SATURN": frozenset({"MERCURY", "VENUS", "RAHU"}),
     "RAHU": frozenset({"VENUS", "SATURN"}),
     "KETU": frozenset({"MARS", "VENUS"}),
 }
@@ -111,7 +192,7 @@ _NATURAL_ENEMIES: dict[str, frozenset[str]] = {
     "JUPITER": frozenset({"MERCURY", "VENUS", "RAHU", "KETU"}),
     "VENUS": frozenset({"SUN", "MOON"}),
     "SATURN": frozenset({"SUN", "MOON", "MARS"}),
-    "RAHU": frozenset({"SUN", "MOON", "MARS", "JUPITER"}),
+    "RAHU": frozenset({"SUN", "MOON", "MARS", "JUPITER", "KETU"}),
     "KETU": frozenset({"SUN", "MOON", "JUPITER", "RAHU"}),
 }
 
@@ -175,7 +256,13 @@ def _dignity_score(planet: str, natal_rasi: int, natal_longitude: float) -> int:
         return 15
 
     if planet in EXALTATION_RASI and natal_rasi == EXALTATION_RASI[planet]:
-        return 100
+        # Whole-sign for the five grahas whose exaltation and Moolatrikona signs
+        # differ. Degree-bounded for the Moon and Mercury, whose Moolatrikona
+        # zone sits inside their own exaltation sign and was unreachable without
+        # this bound — see EXALTATION_ZONE_END.
+        zone_end = EXALTATION_ZONE_END.get(planet)
+        if zone_end is None or (natal_longitude % 30) < zone_end:
+            return 100
 
     if planet in MOOLATRIKONA_ZONE:
         mt_rasi, mt_start, mt_end = MOOLATRIKONA_ZONE[planet]
@@ -196,12 +283,44 @@ def _dignity_score(planet: str, natal_rasi: int, natal_longitude: float) -> int:
     return 50
 
 
+# ── Baladi avastha multipliers — [PRODUCT], not [CLASSICAL] ─────────────────
+#
+# **The zoning is classical; these five numbers are ours.** Relabelled
+# 2026-08-27 after the astrologer review declined to sign them (§9.1 item 2 of
+# `docs/VINAADI_FUNCTION_CALCULATION_AND_SCORING_REFERENCE_2026-08-27.md`).
+# Keeping them inside a block marked [CLASSICAL] put a product judgement under
+# Parashara's name, which is the one thing the provenance labels exist to stop.
+#
+# What *is* classical: the five 6-degree zones, their Bala..Mrita order, and the
+# reversal in even signs. That is the BPHS avastha rule and it is signed.
+#
+# What is not: the curve. The texts express avastha as fractions of effect —
+# broadly a quarter for the infant, a half for the youth, full for the adult,
+# little for the aged and nil for the dead — and they differ among themselves at
+# the tails. This curve is deliberately smoothed against that: it doubles the
+# infant (0.50 against a classical quarter) and floors the dead at 0.25 where
+# the texts give nothing. That is a defensible engineering choice — a graha
+# should not fall off a cliff at 24 degrees 01 minutes, and a zero would erase a
+# graha from a composite score it is supposed to be one input to — but it is a
+# choice, and it moves real numbers: avastha scales 0.60 of sthana bala, which
+# carries 0.30 of the composite, so the divergence is worth ~4-5 points of a
+# 10-95 score at the tails, on the ~40% of grahas that sit in a first- or
+# last-6-degree zone in any chart.
+#
+# Do not restore a [CLASSICAL] label here on the strength of the zoning alone.
+# It comes back only with the lineage's own printed fractions — see
+# `docs/VINAADI_PAGE_NEEDED_REGISTER_2026-08-27.md`, item PN-2.
 _AVASTHA_MULTIPLIER_ODD = (0.50, 0.75, 1.00, 0.65, 0.25)
 _AVASTHA_MULTIPLIER_EVEN = (0.25, 0.65, 1.00, 0.75, 0.50)
 
 
 def _avastha_multiplier(natal_longitude: float, rasi: int) -> float:
-    """Classical Baladi avastha multiplier with odd/even sign reversal."""
+    """Baladi avastha multiplier — classical zoning, [PRODUCT] curve.
+
+    The 6-degree zones and the odd/even reversal are BPHS. The five multiplier
+    values are a smoothed product curve, not the classical fractions; see the
+    block comment above before changing either.
+    """
     deg = natal_longitude % 30.0
     zone = min(int(deg / 6.0), 4)
     is_odd = (rasi % 2 == 1)
@@ -705,8 +824,15 @@ def explain_natal_planet_score(
         # correction is a Rasi-exalted (dignity == 100) planet sitting neecha
         # in Navamsa. Vargottama is exempt, as in the Kala Bala branch above.
         elif d9_tier < 0 and not is_vargottama:
-            shadbala -= D9_DEBILITATION_PENALTY
-            contributions.append(ScoreContribution("d9_debilitated", -D9_DEBILITATION_PENALTY))
+            # Graded 2026-08-27 (§7 Q12): a Rasi-exalted graha sitting neecha in
+            # Navamsa is the case the D9 exists to catch — "exalted in name,
+            # powerless in effect" — and is charged double. Anything else is a
+            # graha the balas already scored low, so the base penalty stands.
+            penalty = (
+                D9_DEBILITATION_PENALTY_EXALTED if dignity == 100 else D9_DEBILITATION_PENALTY
+            )
+            shadbala -= penalty
+            contributions.append(ScoreContribution("d9_debilitated", -penalty))
 
     if planet not in {"SUN", "RAHU", "KETU"}:
         if is_cazimi(planet, natal_longitude, sun_longitude):

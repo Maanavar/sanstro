@@ -676,10 +676,18 @@ def test_compatibility_layers_numbers_over_the_poruthams(client, enabled: None) 
     if body["clampedByAstrology"]:
         assert flagged and body["adjustment"] == 0
 
-    # ── Peyar Porutham's pairs, and the asymmetry that is the point ──
-    # (the psychic pair below still carries it: Rahu regards Saturn a friend
-    # while Saturn is neutral toward Rahu, so directional regard survives at the
-    # boundary even after the destiny pair stopped being spuriously one-sided)
+    # ── Peyar Porutham's pairs, and the two doctrines disagreeing ──
+    # Neither pair here is directional any more, and that is now the correct
+    # state rather than a loss. This block used to say the psychic pair "still
+    # carries" the asymmetry because Rahu regarded Saturn a friend while Saturn
+    # was neutral toward Rahu — but that was the last of three one-sided node
+    # grades, and `FCR-02` (2026-08-27) ruled all three transcription accidents.
+    # The one genuine directional pair in the whole table is Moon/Mercury,
+    # numbers 2 and 5, which this fixture's charts do not produce; it is asserted
+    # in `test_numerology_compatibility.test_the_only_one_sided_pair_is_moon_mercury`.
+    # What this block still pins is the property it was really for: the Cheiro
+    # basis and the graha basis reaching different verdicts on the same pair, and
+    # saying so out loud through `basesAgree`.
     peyar = body["peyarPorutham"]
     assert peyar["method"] == "peyar_porutham"
     assert peyar["basis"] == "cheiro_series", "doctrine D4 default"
@@ -711,9 +719,19 @@ def test_compatibility_layers_numbers_over_the_poruthams(client, enabled: None) 
     psychic = pairs["psychic"]
     assert (psychic["a"]["number"], psychic["b"]["number"]) == (4, 8)
     # Cheiro gives 8 the interchangeable number 4, so this IS a same-series pair.
+    #
+    # Rahu/Saturn used to assert supportive + (friend, neutral) here, and the
+    # comment above this block used to present that one-sidedness as the feature
+    # the pair demonstrated. It was the same defect as the Rahu/Venus one fixed
+    # in 2026-08-17 — a node graded in one direction and left out of the other
+    # row — one graha over, and it survived that pass. Ruled and closed by
+    # `FCR-02` on 2026-08-27 under the principle that the nodes have no
+    # Moolatrikona sign, so no node asymmetry can be derived from anything and
+    # every one of them is a transcription accident. Rahu and Saturn are now
+    # mutual friends on the "Shani-vat Rahu" dictum.
     assert psychic["relation"] == "harmonious"
-    assert psychic["grahaRelation"] == "supportive"
-    assert (psychic["grahaRegardAToB"], psychic["grahaRegardBToA"]) == ("friend", "neutral")
+    assert psychic["grahaRelation"] == "harmonious"
+    assert (psychic["grahaRegardAToB"], psychic["grahaRegardBToA"]) == ("friend", "friend")
 
     # Each side is aligned against its OWN chart, so each carries its own lagna's
     # verdict rather than both being scored against one of them.

@@ -163,6 +163,19 @@ def test_the_measured_grade_distribution() -> None:
     45 unordered pairs including a number with itself. Pinned so that editing
     the friendship source — or "tidying" the grade thresholds — has to
     acknowledge how it moved the spread.
+
+    **Moved 2026-08-27 by `FCR-02`**, and this is the acknowledgement the
+    docstring above asks for. Three one-sided node grades in
+    `chart_strength._NATURAL_FRIENDS` / `_NATURAL_ENEMIES` were made symmetric,
+    which moved exactly three of these 45 pairs and nothing else:
+
+        4/8  Rahu/Saturn  SUPPORTIVE -> HARMONIOUS   (friend+neutral -> friend both ways)
+        7/9  Ketu/Mars    SUPPORTIVE -> HARMONIOUS   (friend+neutral -> friend both ways)
+        4/7  Rahu/Ketu    STRAINED   -> DIFFICULT    (enemy+neutral  -> enemy both ways)
+
+    So HARMONIOUS 17 -> 19, SUPPORTIVE 6 -> 4, STRAINED 7 -> 6, DIFFICULT 9 -> 10.
+    NEUTRAL and ONE_SIDED are untouched: the single ONE_SIDED pair is Moon/Mercury
+    and it is doctrine, not a node accident — see the test below.
     """
     counts: Counter[NumberRelation] = Counter()
     for a in range(1, 10):
@@ -170,12 +183,12 @@ def test_the_measured_grade_distribution() -> None:
             counts[relation_between(NUMBER_TO_GRAHA[a], NUMBER_TO_GRAHA[b])[2]] += 1
 
     assert sum(counts.values()) == 45
-    assert counts[NumberRelation.HARMONIOUS] == 17
-    assert counts[NumberRelation.SUPPORTIVE] == 6
+    assert counts[NumberRelation.HARMONIOUS] == 19
+    assert counts[NumberRelation.SUPPORTIVE] == 4
     assert counts[NumberRelation.NEUTRAL] == 5
     assert counts[NumberRelation.ONE_SIDED] == 1
-    assert counts[NumberRelation.STRAINED] == 7
-    assert counts[NumberRelation.DIFFICULT] == 9
+    assert counts[NumberRelation.STRAINED] == 6
+    assert counts[NumberRelation.DIFFICULT] == 10
 
 
 # ── Asymmetry ────────────────────────────────────────────────────────────────

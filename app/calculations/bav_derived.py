@@ -28,9 +28,37 @@ Two rules govern everything here, and both are deliberate:
    0-8 scale, matching the reading the chart-explanation screen already renders
    (`binduReading` in web/components/dashboard-chart-explanation.tsx).
 
-Sourcing note: the Mercury rule for maternal relations deliberately *replaces*
-the weaker Moon-BAV-4th formulation. Budhan is matula-karaka; the Moon variant
-conflates the mother with her siblings.
+Sourcing note, CORRECTED 2026-08-27 (astrologer ruling; §7 Q1 of the function &
+calculation review):
+
+    The reference point is **the karaka's own rasi, not Lagna** — confirmed as
+    coded. That pairing, where the same graha supplies both the table read and
+    the rasi counted from, is the signature of this family of rules. Counting
+    the same bhavas from Lagna gives the ordinary bhava-bindu reading, which is
+    a legitimate but *different* reading and one `life_areas_service` already
+    exposes.
+
+    The Mercury rule is CORRECT AND KEPT, but the justification this docstring
+    used to carry was backwards. It said the Mercury rule "replaces the weaker
+    Moon-BAV-4th formulation" because "the Moon variant conflates the mother
+    with her siblings." It is the other way round. Budhan is mātula-karaka —
+    karaka of the *mother's brother*, of the maternal relatives. Chandran is
+    mātṛ-karaka, karaka of the mother herself, and is the exact counterpart of
+    Suriyan as pitṛ-karaka in the 9th-from-Suriyan rule sitting beside it.
+
+    So Budhan-4th and Chandran-4th are **two different classical rules, not two
+    formulations of one.** They do not compete and neither replaces the other.
+    The classical set runs: 9th from Suriyan (father), 4th from Chandran
+    (mother), 4th from Budhan (maternal relatives), 3rd from Sevvai (co-borns,
+    strictly the younger ones), 5th from Guru (children), 7th from Sukran
+    (spouse), 8th from Sani (longevity).
+
+    What is shipped is therefore right, and what was wrong was believing we had
+    chosen between two readings when we had simply implemented one of them. A
+    Chandran-4th mother rule may be ADDED later — it was never displaced. The
+    last two of the classical set stay deliberately unbuilt: the Sukran rule
+    asserts a spouse the profile may not have, and the Sani rule is longevity,
+    which doctrine bans outright.
 """
 from __future__ import annotations
 

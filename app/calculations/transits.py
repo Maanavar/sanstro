@@ -424,6 +424,17 @@ def find_saturn_egress_jd(current_rasi: int, after_jd: float) -> float:
     return hi
 
 
+# Kandaka's three limbs from the Janma Rasi. Same cycle, same single penalty —
+# the labels differ only so the reader can place the pressure. Keys are the
+# house from the natal Moon; the 1st is absent because it is Janma Sani, which
+# has its own name. Display copy only: nothing matches on these strings.
+_KANDAKA_LIMB_LABEL: dict[int, str] = {
+    4: "Obstruction cycle at the fourth: home, land and inner settledness under strain — hold ground rather than move",
+    7: "Obstruction cycle at the seventh: partnership and agreement slow to close — patience with sustained effort",
+    10: "Obstruction cycle at the tenth: position, standing and the weight of the work itself — effort tells slowly, and late",
+}
+
+
 def classify_kandaka_cycle(position_from_moon: int) -> CycleAssessment:
     """Kandaka Sani: Saturn in the 4th, 7th or 10th from the Janma Rasi.
 
@@ -445,12 +456,33 @@ def classify_kandaka_cycle(position_from_moon: int) -> CycleAssessment:
 
     Callers must therefore pass the house from the natal Moon and must render
     this alongside `classify_sani_cycle`, never instead of it.
+
+    **The three limbs read differently, and the label now says which one fired**
+    (`FCR-04`, 2026-08-27). The penalty is unchanged and deliberately so — one
+    number, scored once, for all three. What changed is only the copy, because a
+    single generic "obstruction" line was doing two things badly:
+
+    * The **4th** always coincides with Ardhashtama Sani, so the reader is
+      already being told about that cycle; repeating an unattributed obstruction
+      line beside it reads as a second, independent affliction.
+    * The **10th** is the contested limb. Standard gochar reads Saturn's 3rd,
+      6th and 11th from the Moon as supportive and the 10th as *mixed*, so a
+      reader who knows gochar meets a flat penalty here that their own reading
+      does not corroborate. Naming what the 10th actually governs — position,
+      standing, the weight of the work itself — is the difference between a
+      verdict they can place and one that looks like an error.
+
+    The astrologer's ruling stands: this is a real lineage rule and one
+    competing reading is not grounds to overrule it. But the 10th is the limb to
+    revisit first if the penalty is ever retuned, and the 7th is the one to
+    leave alone.
     """
-    if position_from_moon in {4, 7, 10}:
+    label = _KANDAKA_LIMB_LABEL.get(position_from_moon)
+    if label is not None:
         return CycleAssessment(
             type="KANDAKA_SANI",
             is_active=True,
-            supportive_label="Obstruction and blocked-effort cycle: patience with sustained effort",
+            supportive_label=label,
         )
     return CycleAssessment(type=None, is_active=False)
 

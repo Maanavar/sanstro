@@ -17,6 +17,7 @@ from app.calculations.chart_strength import (
     _NATURAL_FRIENDS,
     compute_natal_planet_score,
 )
+from app.calculations.maturation import MATURATION_AGE
 from app.calculations.panchangam import (
     PanchangamLimbSpan,
     limb_fraction,
@@ -128,18 +129,72 @@ def _age_dasha_modifier(age: int, planet: str) -> float:
     peaks during the physically active years, Venus during the romantic/creative prime,
     Jupiter during the wisdom-expansion years, and the Moon colours the emotionally
     receptive phases.
+
+    ── ANSWERED, 2026-08-27 (astrologer ruling; §7 Q3 of the function &
+    calculation review). Two corrections, one principle. ──
+
+    **The direction was right; the thresholds were unsourced — and the sourced
+    table was already in this repository.** The doctrine underneath this
+    function is the classical **graha maturity (paripakva) ages**, at which a
+    graha begins to deliver its dasha in full. They live in
+    `app.calculations.maturation.MATURATION_AGE` and have all along:
+
+        Jupiter 16 · Sun 22 · Moon 24 · Venus 25 · Mars 28
+        Mercury 32 · Saturn 36 · Rahu 42 · Ketu 48
+
+    This function had hand-rolled its own round numbers beside them. Every youth
+    threshold below is now **read from that table** rather than restated, so the
+    two cannot drift: Saturn moved 30 -> 36, Mars 25 -> 28, Venus 20 -> 25, the
+    Moon's childhood arm 20 -> 24. Nothing about the shape of the curve changed;
+    it is the same teaching, now cut where the tradition cuts it.
+
+    The *curve* stays separate from `maturation_multiplier`, which uses the same
+    ages on a different shape (0.70 before, 1.10 in a +/-2 window, 1.00 after)
+    for a different consumer, the prediction layer's L3. Two consumers may hold
+    two calibrations of one doctrine — the same precedent as the two Tara tables
+    (doctrine A-11) — but they may not hold two copies of the ages.
+
+    **Sun, Rahu and Ketu should not have been flat.** Rahu matures at 42 and
+    Ketu at 48 — the two latest ages in the whole scheme, and the two grahas
+    whose dashas are most notoriously difficult when they run early. An 18-year
+    Rahu mahadasha opening at 5 and one opening at 45 are not the same period,
+    and leaving both nodes flat was the least defensible line in the function.
+    The Sun matures at 22: a 6-year Sun dasha in early childhood finds a native
+    with no independent standing to express it.
+
+    **Mercury stays flat, and now for a stated reason rather than by omission.**
+    It matures at 32, but a Mercury mahadasha running through childhood is the
+    *education* dasha and is classically favourable exactly then — the discount
+    the maturity age would imply is contradicted by the practice, so Mercury is
+    a genuine exception.
+
+    **Jupiter keeps 35-60, and the comment above is what changed.** Jupiter
+    matures earliest of all, at 16, so its uplift is NOT a maturity effect and
+    must not be described as one; a Guru dasha in childhood is a blessing, which
+    is why there is correctly no youth discount here. The 35-60 uplift rests on
+    ashrama fitness — the grihastha and vanaprastha years are where Guru's
+    significations have somewhere to land — and is a [LINEAGE] product judgement,
+    kept as coded.
     """
+    immature = age < MATURATION_AGE.get(planet, 30)
     if planet == "SATURN":
-        return 0.88 if age < 30 else (1.05 if age > 55 else 1.0)
+        return 0.88 if immature else (1.05 if age > 55 else 1.0)
     if planet == "MARS":
-        return 0.92 if age < 25 else (1.05 if age <= 45 else 0.95)
+        return 0.92 if immature else (1.05 if age <= 45 else 0.95)
     if planet == "VENUS":
-        return 0.90 if age < 20 else (1.08 if age <= 40 else (0.95 if age > 55 else 1.0))
+        return 0.90 if immature else (1.08 if age <= 40 else (0.95 if age > 55 else 1.0))
     if planet == "JUPITER":
+        # No youth discount: Guru matures earliest of all, at 16, and a Guru
+        # dasha in childhood is a blessing. The 35-60 uplift is ashrama fitness,
+        # not maturity, which is why it does not read MATURATION_AGE.
         return 1.10 if 35 <= age <= 60 else 1.0
     if planet == "MOON":
-        return 1.05 if (age < 20 or age > 60) else 1.0
-    return 1.0  # SUN, MERCURY, RAHU, KETU — no strong age-dependency in Thirukanitham
+        return 1.05 if (immature or age > 60) else 1.0
+    if planet == "SUN":
+        return 0.92 if immature else 1.0
+    if planet in {"RAHU", "KETU"}:
+        return 0.90 if immature else 1.0
+    return 1.0  # MERCURY — matures at 32, but its dasha is the education dasha
 
 
 def _to_utc(datetime_value: datetime) -> datetime:

@@ -508,12 +508,12 @@ Directional: read across the row for what that graha thinks.
 |---|---|---|---|---|---|---|---|---|---|
 | Sun | - | F | F | N | F | E | E | E | E |
 | Moon | F | - | N | F | N | N | N | E | E |
-| Mars | F | F | - | E | F | N | N | E | N |
+| Mars | F | F | - | E | F | N | N | E | F |
 | Mercury | F | E | N | - | N | F | N | N | N |
 | Jupiter | F | F | F | E | - | E | N | E | E |
 | Venus | E | E | N | F | N | - | F | F | F |
-| Saturn | E | E | E | F | N | F | - | N | N |
-| Rahu | E | E | E | N | E | F | F | - | N |
+| Saturn | E | E | E | F | N | F | - | F | N |
+| Rahu | E | E | E | N | E | F | F | - | E |
 | Ketu | E | E | F | N | E | F | N | E | - |
 
 **Why this is `[VARIANT]`, not plain Parashari.** The table includes Rahu and

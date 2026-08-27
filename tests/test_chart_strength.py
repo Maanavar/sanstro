@@ -1,6 +1,8 @@
 import pytest
 
 from app.calculations.chart_strength import (
+    _AVASTHA_MULTIPLIER_EVEN,
+    _AVASTHA_MULTIPLIER_ODD,
     _NATURAL_ENEMIES,
     _NATURAL_FRIENDS,
     _baladi_avastha,
@@ -84,6 +86,29 @@ def test_baladi_avastha_even_sign_reverses_zones():
     # Rasi 2 (Taurus, even): zone order reverses.
     assert _baladi_avastha(33.0, 2) == "MRITA"    # 3 deg in sign
     assert _baladi_avastha(57.0, 2) == "BALA"     # 27 deg in sign
+
+
+def test_the_baladi_multiplier_curve_stays_a_declared_product_choice():
+    """These five numbers are `[PRODUCT]`, not `[CLASSICAL]` — see `PN-2` in
+    `docs/VINAADI_PAGE_NEEDED_REGISTER_2026-08-27.md`.
+
+    The zoning above is BPHS and signed. The curve is ours: the texts give
+    fractions of effect — broadly a quarter, a half, full, little, nil — while
+    this is deliberately smoothed, doubling the infant and flooring the dead at
+    0.25 where the texts give nothing. Both properties below are the ones that
+    make it *not* the classical curve, and either one changing means the
+    provenance label and the register row have to change with it.
+    """
+    assert _AVASTHA_MULTIPLIER_ODD == (0.50, 0.75, 1.00, 0.65, 0.25)
+    assert _AVASTHA_MULTIPLIER_EVEN == tuple(reversed(_AVASTHA_MULTIPLIER_ODD))
+    # Smoothed, not classical: the dead graha still contributes, and the infant
+    # is worth more than the classical quarter.
+    assert _AVASTHA_MULTIPLIER_ODD[4] > 0.0, "a zero here would be the classical Mrita"
+    assert _AVASTHA_MULTIPLIER_ODD[0] > 0.25, "a quarter here would be the classical Bala"
+    # Yuva is the single peak, and the curve only ever falls away from it.
+    assert _AVASTHA_MULTIPLIER_ODD[2] == 1.00
+    assert _AVASTHA_MULTIPLIER_ODD[:3] == tuple(sorted(_AVASTHA_MULTIPLIER_ODD[:3]))
+    assert _AVASTHA_MULTIPLIER_ODD[2:] == tuple(sorted(_AVASTHA_MULTIPLIER_ODD[2:], reverse=True))
 
 
 def test_jagradadi_avastha_odd_sign_thirds():
@@ -251,3 +276,37 @@ def test_moon_mercury_asymmetry_is_preserved():
     flattening every asymmetry would be the opposite error."""
     assert "MERCURY" in _NATURAL_FRIENDS["MOON"]
     assert "MOON" in _NATURAL_ENEMIES["MERCURY"]
+
+
+def test_node_rows_are_symmetric_in_both_directions():
+    """No node pair may be graded one way and left neutral the other. STR-01.
+
+    The test above catches a pair graded *friend one way and enemy the other*.
+    It cannot catch the quieter failure: a pair graded in one direction and
+    simply absent from the other row, which reads as NEUTRAL. Three of those
+    were live until the 2026-08-27 ruling — Ketu/Rahu, Ketu/Mars and (unnamed by
+    the review that prompted it) Rahu/Saturn.
+
+    The rule that settles them is not taste. Every asymmetry in the seven-graha
+    core is *derivable* from the Moolatrikona arithmetic — that is what makes
+    Moon/Mercury doctrine. The nodes have no Moolatrikona sign, so no derivation
+    is available to them, and therefore no node asymmetry can be justified from
+    any source. A one-sided node grade is a transcription accident by
+    construction, which is why this can be asserted as an invariant rather than
+    as a list of blessed exceptions.
+    """
+    def grade(a: str, b: str) -> str:
+        if b in _NATURAL_FRIENDS[a]:
+            return "FRIEND"
+        if b in _NATURAL_ENEMIES[a]:
+            return "ENEMY"
+        return "NEUTRAL"
+
+    for node in ("RAHU", "KETU"):
+        for other in _NATURAL_FRIENDS:
+            if other == node:
+                continue
+            assert grade(node, other) == grade(other, node), (
+                f"{node} grades {other} {grade(node, other)} "
+                f"but {other} grades {node} {grade(other, node)}"
+            )

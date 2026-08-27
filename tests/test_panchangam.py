@@ -544,7 +544,36 @@ def test_monthly_builder_exposes_sunrise_based_tamil_muhurtham_days():
 def test_nethiram_jeevan_use_sun_nakshatra_bands():
     assert _nethiram_value(5, 24) == 1
     assert _jeevan_value(5, 24) == 0.5
-    assert _jeevan_value(1, 10) == 0
+    # Ring distance 9 (|1-10|). Was pinned at 0 until the 2026-08-27 ruling
+    # deleted the `distance == 9 -> 0` special case; see `_jeevan_value`.
+    assert _jeevan_value(1, 10) == 1
+
+
+def test_nethiram_and_jeevan_never_disagree_across_the_whole_ring():
+    """The two are one paired rubric and must move together. §7 Q7, 2026-08-27.
+
+    An almanac prints Nethiram and Jeevan side by side and a reader takes them
+    as one verdict, so the best of one may never be printed beside the worst of
+    the other. Until this ruling exactly one cell did that — ring distance 9
+    gave இரு கண் (2, both eyes) together with ஜீவன் இல்லை (0, no life) — which
+    is how the defect was identified without a printed source to check against.
+
+    Also asserted: Jeevan is monotonic non-decreasing in the ring distance. The
+    old table dipped 0.5 -> 0 -> 1 across distances 8, 9, 10, and no graded ring
+    rule dips for a single value and recovers.
+    """
+    previous = -1.0
+    for distance in range(14):  # symmetric ring distance is 0..13
+        jeevan = _jeevan_value(1, 1 + distance)
+        nethiram = _nethiram_value(1, 1 + distance)
+        assert not (nethiram == 2 and jeevan == 0), (
+            f"ring distance {distance}: best Nethiram beside worst Jeevan"
+        )
+        assert not (nethiram == 0 and jeevan == 1), (
+            f"ring distance {distance}: worst Nethiram beside best Jeevan"
+        )
+        assert jeevan >= previous, f"Jeevan dips at ring distance {distance}"
+        previous = jeevan
 
 
 def test_amirdhadhi_yogam_uses_weekday_nakshatra_table():

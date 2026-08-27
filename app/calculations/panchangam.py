@@ -352,10 +352,38 @@ def _nakshatra_ring_distance(a: int, b: int) -> int:
 
 
 def _jeevan_value(sun_nakshatra: int, reference_nakshatra: int) -> float:
+    """Jeevan on the 0 / 0.5 / 1 scale, sharing Nethiram's 8|9 boundary.
+
+    ── 2026-08-27, astrologer ruling (§7 Q7 of the function & calculation
+    review). The `distance == 9 -> 0` line that used to sit here is deleted. ──
+
+    It could not be right, and that is provable from this file alone without a
+    printed panchangam. Nethiram and Jeevan are one paired rubric — an almanac
+    prints them together and they are read together. Their cutoffs agree
+    everywhere except at ring distance exactly 9, where the old table produced
+    **இரு கண் (both eyes, the best Nethiram) beside ஜீவன் இல்லை (no life, the
+    worst Jeevan)** — the only cell in the whole 0-13 domain that pairs the best
+    of one with the worst of the other, and a pairing no almanac prints. It also
+    made Jeevan non-monotonic in the ring distance: 0.5 at 8, 0 at 9, 1 at 10.
+    No graded ring rule dips for one value and recovers.
+
+    Ring distance 9 lands on roughly 7% of days (2 of 27 stars), which is
+    frequent enough to be the 2026-08-10 live case the review recorded as
+    contradicting our table.
+
+    With the line gone the two move together in three coherent grades:
+    குருடு+இல்லை, ஒரு கண்+அரை, இரு கண்+முழு.
+
+    This is a correction for internal consistency, NOT a sourced re-derivation.
+    The cutoffs themselves (<=1, <=8) are still the confirmed-by-review values
+    with no printed source captured in-repo, and Jeevan/Nethiram both keep their
+    standing status: **display-only, zero scoring reach.** Neither may be given
+    weight in the daily score, muhurta ranking or porutham until a named almanac
+    — publisher, edition, page, and whether Vakya or Thirukanitham — supplies
+    the table.
+    """
     distance = _nakshatra_ring_distance(sun_nakshatra, reference_nakshatra)
     if distance <= 1:
-        return 0
-    if distance == 9:
         return 0
     if distance <= 8:
         return 0.5

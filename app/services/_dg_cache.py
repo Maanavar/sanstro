@@ -27,7 +27,16 @@ from app.schemas.dasha import ResponseMeta
 # clipped by a 93-minute kala is shorter), and on a day whose supportive horas
 # all land in bad kalas `best_windows` can now hold only Abhijit — which lowers
 # `remedialActionSupport` and therefore the score. Warm rows must recompute.
-DAILY_SCORE_ENGINE_VERSION = "2026-08-14-v9"
+# v10 (2026-08-27): astrologer rulings from the function & calculation review.
+# Three of them move this score. (1) `_age_dasha_modifier` now cuts its youth
+# thresholds at the classical graha maturity ages instead of round numbers, and
+# the Sun, Rahu and Ketu are no longer flat — the dasha component (weight 0.19)
+# changes for every native under 48 running a node dasha. (2) Three naisargika
+# node grades became symmetric, and one of them is Rahu/Saturn, which the same
+# component reads through `_graha_relationship_score`. (3) Moon-in-Taurus and
+# Mercury-in-Virgo dignity is now degree-bounded, which moves the natal graha
+# scores the dasha component is built on. Warm rows must recompute.
+DAILY_SCORE_ENGINE_VERSION = "2026-08-27-v10"
 
 
 def _cache_version(calculation_version: str) -> str:

@@ -114,7 +114,13 @@ BAV_TABLE: dict[str, dict[str, list[int]]] = {
 
 # Rahu and Ketu do not have classical Bhinnashtakavarga tables.
 # Per spec §9.3 only 7 planets contribute to Sarvashtakavarga.
-# For Rahu/Ketu transit scoring, Saturn's table is used as a proxy.
+#
+# Doctrine A-15 (2026-08-19): the nodes get NO proxy table. `get_av_bindu`
+# returns None for them and every bindu-based transit score omits them. A line
+# that used to sit here said Saturn's table was "used as a proxy for Rahu/Ketu"
+# — it described behaviour this module had already deleted, and was removed
+# 2026-08-27 after the function/calculation review found the source and the
+# executing code saying opposite things. The ruling lives on `get_av_bindu`.
 BAV_PLANETS = list(BAV_TABLE.keys())  # SUN, MOON, MARS, MERCURY, JUPITER, VENUS, SATURN
 
 

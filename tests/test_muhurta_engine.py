@@ -225,20 +225,69 @@ def test_unsourced_activity_still_gets_the_personal_layer(snapshot) -> None:
     assert {"TARA_BALA", "CHANDRA_BALA"} <= names
 
 
-def test_marriage_tithi_conflict_is_surfaced_not_resolved_silently(snapshots) -> None:
-    """The best-tithi list and the 'after Krishna Ashtami' sweep overlap on
-    10/11/13 on the same page. The engine applies the more specific rule but
-    must report the ambiguity so the astrologer can settle it."""
-    conflicts = [
-        f
-        for snap in snapshots
-        for f in score_day(snap, "MARRIAGE", None).factors
-        if f.conflict is not None
-    ]
-    assert conflicts, "sweep hit no Krishna-paksha 10/11/13 day — widen the sweep"
-    for factor in conflicts:
-        assert "best-list" in factor.conflict
-        assert "pending astrologer confirmation" in factor.conflict
+def test_marriage_sweep_overlap_is_precedence_not_a_reported_conflict(snapshots) -> None:
+    """FCR-10d (2026-08-27). The best-tithi list and the 'after Krishna Ashtami'
+    sweep share in-paksha 10/11/13, which the engine used to report as an
+    unresolved `conflict`. The astrologer ruled it specificity precedence — a
+    general list meeting its own paksha qualification — so Krishna 10/11/13 are
+    swept, Shukla 10/11/13 stay best, and nothing is surfaced."""
+    overlap = marriage.MARRIAGE_TITHI_BEST & marriage.MARRIAGE_TITHI_INAUSPICIOUS_KRISHNA_AFTER_ASHTAMI
+    assert overlap == {10, 11, 13}, "the overlap this ruling settles has moved"
+
+    seen_krishna, seen_shukla = False, False
+    for snap in snapshots:
+        in_paksha = snap.tithi_number if snap.tithi_number <= 15 else snap.tithi_number - 15
+        if in_paksha not in overlap:
+            continue
+        tithi = next(f for f in score_day(snap, "MARRIAGE", None).factors if f.factor == "TITHI")
+        assert tithi.conflict is None, "the overlap is settled and must not be re-surfaced"
+        if snap.tithi_paksha == "KRISHNA":
+            seen_krishna = True
+            assert tithi.verdict is Verdict.PENALTY
+        else:
+            seen_shukla = True
+            assert tithi.verdict is Verdict.BONUS
+
+    assert seen_krishna, "sweep window hit no Krishna 10/11/13 day — widen SWEEP_DAYS"
+    assert seen_shukla, "sweep window hit no Shukla 10/11/13 day — widen SWEEP_DAYS"
+
+
+def test_no_factor_reports_an_unresolved_conflict(snapshots) -> None:
+    """Both of the engine's former conflicts were closed by ruling. The field
+    stays on the wire for the next genuinely unsettled page, but an emitter
+    appearing without a ruling behind it should be deliberate, not a leftover."""
+    for snap in snapshots:
+        for activity in ("MARRIAGE", "NAMING_CEREMONY", "EAR_BORING"):
+            for factor in score_day(snap, activity, None).factors:
+                assert factor.conflict is None, f"{activity}/{factor.factor}: {factor.conflict}"
+
+
+def test_marriage_amavasai_is_swept_by_its_own_chapter_not_the_generic_line(snapshots) -> None:
+    """FCR-10c (2026-08-27). 'All the Thithis after Ashtami of Krishna Paksha'
+    runs 9 through 15, and Krishna 15 is Amavasai — the first extraction stopped
+    at 14, so the new moon matched no marriage tier and scored a NEUTRAL 0 with
+    only the generic almanac -5 against it.
+
+    Two halves, and both must hold or the fix trades one defect for another: the
+    marriage branch has to price it, AND the generic Amavasai line has to stand
+    down, or the new moon is charged twice for one fact."""
+    amavasai = [s for s in snapshots if s.tithi_number == 30]
+    assert amavasai, "sweep window contains no Amavasai — widen SWEEP_DAYS"
+
+    for snap in amavasai:
+        factors = score_day(snap, "MARRIAGE", None).factors
+        tithi = next(f for f in factors if f.factor == "TITHI")
+
+        assert tithi.verdict is Verdict.PENALTY
+        assert tithi.contribution < 0
+        assert tithi.rule_id == "MARRIAGE_TITHI_ALLOWED_SET"
+        # Not a veto: the cited p.79 sentence establishes inauspiciousness, not
+        # absolute prohibition. Practice is stricter; the engine scores the page.
+        assert tithi.verdict is not Verdict.VETO
+
+        assert not any(f.factor == "ALMANAC_TITHI" for f in factors), (
+            "generic Amavasai line double-counts against marriage's own sweep"
+        )
 
 
 # ── reason copy ────────────────────────────────────────────────────────────
@@ -493,6 +542,13 @@ def test_marana_yogam_is_scored_against_the_day(snapshots) -> None:
     star alone.
 
     Asserted as a sign, not a magnitude — the weight is engine policy.
+
+    2026-08-27 (`FCR-09`): the two adverse classes no longer share a verdict.
+    Marana stays a graded PENALTY at -16. **Prabalarishta is a VETO** — it is the
+    almanac's worst class, and priced as a number it opened the day at 20 against
+    +104 of stackable bonuses, so nothing stopped a Prabalarishta day ranking
+    GOOD. Both still carry a negative contribution, so the sign assertion is
+    unchanged and only the verdict split.
     """
     seen_adverse = False
     for snap in snapshots:
@@ -500,7 +556,11 @@ def test_marana_yogam_is_scored_against_the_day(snapshots) -> None:
             f for f in score_day(snap, "MARRIAGE").factors
             if f.factor == "ALMANAC_AMIRDHADHI_YOGAM"
         )
-        if "Marana" in factor.reason_en or "Prabalarishta" in factor.reason_en:
+        if "Prabalarishta" in factor.reason_en:
+            seen_adverse = True
+            assert factor.verdict is Verdict.VETO
+            assert factor.contribution < 0
+        elif "Marana" in factor.reason_en:
             seen_adverse = True
             assert factor.verdict is Verdict.PENALTY
             assert factor.contribution < 0
@@ -552,3 +612,126 @@ def test_amirdhadhi_is_polarity_aware_for_terminative_intent(snapshots, monkeypa
             if f.factor == "ALMANAC_AMIRDHADHI_YOGAM"
         )
         assert factor.contribution >= 0, "an adverse class still penalised a terminative intent"
+
+
+# ── RULE_PRECEDENCE: one fact, one layer (FCR-10) ───────────────────────────
+#
+# L1 and L2 both feed one sum, so a fact judged by both is a fact counted
+# twice. Amavasai was the live case: 21 of 30 activities bind
+# `tithi_avoid_amavasya` to a sourced constant, and on the new moon they took
+# the generic -5 *and* their own chapter's verdict for the same thing.
+
+def _amavasai(snapshots):
+    for snap in snapshots:
+        if snap.tithi_number == 30:
+            return snap
+    pytest.skip("no Amavasai in the sweep window")
+
+
+def _chapter_ruled_activities() -> list[str]:
+    """Activities whose own chapter has judged the new moon.
+
+    MARRIAGE is appended by hand because it is not in the registry — its sweep
+    lives in `marriage_muhurta_rules` — and since FCR-10c that sweep runs to
+    in-paksha 15, so its chapter rules on Amavasai like any other. Deriving this
+    list from the registry alone is exactly how marriage slipped the one-chip and
+    stand-down properties below for as long as it did.
+    """
+    return sorted(
+        [a for a, e in ACTIVITY_RULES.items() if e.tithi_avoid_amavasya or e.tithi_exhaustive]
+        + ["MARRIAGE"]
+    )
+
+
+def _amavasai_silent_activities() -> list[str]:
+    """The remainder, where no chapter speaks and the almanac must."""
+    ruled = set(_chapter_ruled_activities())
+    return sorted(a for a in ACTIVITY_RULES if a not in ruled)
+
+
+def test_amavasai_is_named_by_exactly_one_layer(snapshots) -> None:
+    """One cause, one chip. Two factors both naming Amavasai told the reader the
+    same thing twice and, where the chapter graded a penalty rather than a veto,
+    charged them twice for it."""
+    snap = _amavasai(snapshots)
+    for activity in _chapter_ruled_activities():
+        naming = [
+            f for f in score_day(snap, activity, None).factors
+            if "amavas" in (f.reason_en or "").lower()
+        ]
+        assert len(naming) == 1, (
+            f"{activity}: {len(naming)} factors name Amavasai — {[f.factor for f in naming]}"
+        )
+
+
+def test_the_generic_amavasai_line_stands_down_for_the_cited_one(snapshots) -> None:
+    """Where the chapter has ruled, the surviving chip must be the *cited* one.
+    Standing down the wrong layer would drop the rule_id and leave the reader
+    with almanac convention where a page citation was available."""
+    snap = _amavasai(snapshots)
+    for activity in _chapter_ruled_activities():
+        factors = score_day(snap, activity, None).factors
+        assert not any(f.factor == "ALMANAC_TITHI" for f in factors), (
+            f"{activity} kept the generic tithi line over its own chapter"
+        )
+        tithi = next(f for f in factors if f.factor == "TITHI")
+        assert tithi.rule_id is not None, f"{activity} lost its citation"
+
+
+def test_amavasai_keeps_the_generic_reading_where_the_chapter_is_silent(snapshots) -> None:
+    """The stand-down is precedence, not suppression: where no chapter has judged
+    the new moon the almanac must still speak, or the day passes unjudged by any
+    layer.
+
+    MARRIAGE was this test's example until FCR-10c — its tiers stopped at the
+    fourteenth of the waning fortnight, so nothing had judged the new moon. That
+    turned out to be an extraction omission, not a silence, and marriage moved to
+    `_chapter_ruled_activities`. Annaprasana is the honest silence: its rite's
+    passage is recorded as not stating Amavasai at all."""
+    silent = _amavasai_silent_activities()
+    assert "ANNAPRASANA" in silent, "the documented not-stated case has moved"
+
+    snap = _amavasai(snapshots)
+    for activity in silent:
+        factors = score_day(snap, activity, None).factors
+        almanac = next(f for f in factors if f.factor == "ALMANAC_TITHI")
+        assert almanac.verdict is Verdict.PENALTY, activity
+        assert almanac.contribution < 0, activity
+        assert "amavas" in almanac.reason_en.lower(), activity
+
+
+def test_no_activity_is_charged_for_amavasai_twice(snapshots) -> None:
+    """The scoring half of the same property: at most one negative tithi
+    contribution on the new moon, from whichever layer is entitled to it."""
+    snap = _amavasai(snapshots)
+    for activity in sorted([*ACTIVITY_RULES, "MARRIAGE"]):
+        charged = [
+            f for f in score_day(snap, activity, None).factors
+            if f.factor in {"TITHI", "ALMANAC_TITHI"} and f.contribution < 0
+        ]
+        assert len(charged) <= 1, (
+            f"{activity} charged twice for one tithi: "
+            f"{[(f.factor, f.contribution) for f in charged]}"
+        )
+
+
+def test_the_auspicious_remainder_never_blesses_the_new_or_full_moon(snapshots) -> None:
+    """"All Thithis except X are auspicious" is a sentence about the ordinary
+    tithis. Read to the letter it certified Amavasai as *positively good* for
+    sowing, because that chapter's short exclusion list happens not to name it.
+    Amavasai and Pournami are their own category in every Tamil almanac — the
+    generic subha lists this module already uses admit neither."""
+    remainder = [a for a, e in ACTIVITY_RULES.items() if e.tithi_remainder_auspicious]
+    assert remainder, "fixture lost its subject"
+    for snap in snapshots:
+        in_paksha = snap.tithi_number if snap.tithi_number <= 15 else snap.tithi_number - 15
+        if in_paksha != 15:
+            continue
+        for activity in remainder:
+            tithi = next(
+                f for f in score_day(snap, activity, None).factors if f.factor == "TITHI"
+            )
+            assert tithi.contribution <= 0, (
+                f"{activity} scored tithi 15 ({snap.tithi_paksha}) as auspicious "
+                f"on the strength of a remainder clause"
+            )

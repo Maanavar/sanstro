@@ -253,6 +253,28 @@ def test_kandaka_layers_over_the_moon_cycles_rather_than_replacing_them():
     assert classify_kandaka_cycle(1).is_active is False
 
 
+def test_each_kandaka_limb_names_what_it_governs():
+    """FCR-04: one penalty, three readings.
+
+    The score is deliberately flat across 4/7/10 and scored once. The *copy* is
+    not, and must not go back to being one generic line. At the 4th, where
+    Kandaka always coincides with Ardhashtama, an unattributed obstruction line
+    beside the Ardhashtama reading looks like a second affliction. At the 10th —
+    the limb standard gochar reads as mixed rather than adverse — a flat penalty
+    the reader's own reading does not corroborate needs to say what it is about.
+    """
+    from app.calculations.transits import classify_kandaka_cycle
+
+    labels = {h: classify_kandaka_cycle(h).supportive_label for h in (4, 7, 10)}
+    assert all(labels.values()), "a Kandaka limb lost its label"
+    assert len(set(labels.values())) == 3, f"limbs share copy: {labels}"
+    # The contested limb must name the domain it governs, not caution in general.
+    tenth = labels[10].lower()
+    assert any(word in tenth for word in ("position", "standing", "work")), (
+        f"the 10th limb says nothing about what it governs: {labels[10]}"
+    )
+
+
 # ---------------------------------------------------------------------------
 # BUG-10 — Functional nature: Lagna-based transit and dasha modifiers
 # ---------------------------------------------------------------------------

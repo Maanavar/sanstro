@@ -47,11 +47,22 @@ Two layers, in evaluation order (`docs/MUHURTA_MASTER_REMEDIATION_2026-08-14.md`
   "Kalaprakasika names Poosam best for this activity" — the second is a much
   stronger claim.
 
+**RULE_PRECEDENCE across the layers: a generic almanac convention stands down
+where the activity's own chapter has ruled on the same fact.** L1 and L2 both
+contribute to one sum, so a fact both layers judge is a fact counted twice.
+Where the chapter is silent L1 is exactly the right fallback and applies in
+full; where the chapter speaks, the cited rule is the better authority *and* the
+better reason copy, and L1 returns `None` rather than adding a second chip
+naming the same cause. See `_almanac_tithi_factor` — Amavasai is the one place
+this bites today (`FCR-10`, 2026-08-27).
+
 L2 is table-driven off `app.data.muhurta_activity_registry` for every activity
 **except MARRIAGE**, which keeps its own branch. Marriage's tithi doctrine is
-paksha-conditional across three tiers and reports a real intra-page conflict
-that the registry's flat shape cannot carry; flattening it would have been a
-silent re-scoring of every marriage day, so it was not done.
+paksha-conditional across three tiers, which the registry's flat shape cannot
+carry; flattening it would have been a silent re-scoring of every marriage day,
+so it was not done. Because marriage sits outside the registry, anything that
+asks the registry a question about an activity must decide what MARRIAGE means
+separately — `_activity_rules_on_amavasai` is the live example.
 
 This module is the **only** thing in the repo that scores a day for a muhurta
 (`docs/MUHURTA_MASTER_REMEDIATION_2026-08-14.md` §9.4). `muhurta_service.
@@ -136,6 +147,13 @@ class FactorResult:
     rule_id: str | None = None
     # Set when two sourced rules both matched and the text does not settle which
     # wins. Surfaced rather than silently resolved.
+    #
+    # No factor emits this today: the only user, marriage's tithi sweep, was
+    # ruled a specificity precedence rather than a contradiction (FCR-10d,
+    # 2026-08-27). Kept because the mechanism is the right one for the next
+    # genuinely unsettled page and it is already on the wire —
+    # `app.schemas.muhurta` serialises it, so dropping the field is a four-surface
+    # contract change, not a local cleanup.
     conflict: str | None = None
 
 
@@ -163,6 +181,15 @@ class _W:
     # `_score_public_muhurta` scored it -5. Resolved toward the penalty: a day
     # we tell the user is "not ideal for new starts" and then score as though
     # we had not is exactly the silence-taken-for-approval this module forbids.
+    #
+    # This is the **generic** almanac reading and it now applies only where the
+    # activity's own chapter does not rule on Amavasai — 6 of the 30 sourced
+    # activities, plus every unsourced one. For the other 24 the chapter governs
+    # alone; see `_almanac_tithi_factor` and `_activity_rules_on_amavasai`.
+    # MARRIAGE joined those 24 with FCR-10c and is no longer scored here. Left at
+    # -5 deliberately: standing L1 down already moved those days by +5, and
+    # retuning the generic weight in the same change would make it impossible to
+    # tell which edit moved a ranking.
     ALMANAC_AMAVASAI = -5.0
     ALMANAC_SUBHA_TITHI_SHUKLA = 10.0
     ALMANAC_SUBHA_TITHI_KRISHNA = 8.0
@@ -349,16 +376,72 @@ def _tithi(snapshot) -> tuple[str, str]:
 
 # ── L1: generic almanac. Runs for every activity, sourced or not. ───────────
 
-def _almanac_tithi_factor(snapshot) -> FactorResult:
+def _activity_rules_on_amavasai(activity: str) -> bool:
+    """True when the activity's **own sourced chapter** has ruled on Amavasai.
+
+    Two ways a chapter can have ruled, and both must count or the generic line
+    speaks over a cited one:
+
+    * `tithi_avoid_amavasya` — the passage names the new moon (21 activities);
+    * `tithi_exhaustive` — the passage closes its list ("Other Thithis are not
+      to be considered"), which rules on *every* tithi including Amavasai
+      whether or not it is named. Ear-boring and the new-ornament rite are the
+      two, and without this branch they kept a redundant generic chip beside
+      their own veto.
+
+    MARRIAGE is the third way and is not in the registry at all: it keeps its own
+    branch, and since FCR-10c that branch's Krishna sweep runs to in-paksha 15,
+    so `_tithi_factor` now returns a cited -14 on Amavasai. The generic line has
+    to stand down here or the new moon is charged twice for one fact — the
+    marriage constant and this gate move together, and neither is safe to change
+    alone. Unsourced activities are not in the registry either and correctly keep
+    the generic reading, which is why this is a MARRIAGE test and not a
+    `not in ACTIVITY_RULES` one.
+    """
+    if activity == _MARRIAGE:
+        return True
+    entry = ACTIVITY_RULES.get(activity)
+    if entry is None:
+        return False
+    # Mirrors `_registry_tithi_factor`'s own `has_rule` gate. Without it, an
+    # entry that declared a closed list but carried no tithi table would stand
+    # L1 down while L2 returned UNSOURCED, leaving Amavasai judged by *no*
+    # layer. No entry is shaped that way today; the failure would be silent if
+    # one ever were, which is reason enough to check.
+    has_rule = bool(entry.tithi_best or entry.tithi_avoid or entry.tithi_avoid_amavasya)
+    return has_rule and (entry.tithi_avoid_amavasya or entry.tithi_exhaustive)
+
+
+def _almanac_tithi_factor(snapshot, activity: str) -> FactorResult | None:
     """The day's tithi judged by general almanac convention, not by any
     activity's own table. Amavasai, Rikta and the broad subha lists are mutually
     exclusive by construction (Amavasai is in-paksha 15; Rikta is 4/9/14), so
-    the branches below cannot double-count."""
+    the branches below cannot double-count *each other*.
+
+    **Amavasai defers to the activity's own chapter** (`FCR-10`, 2026-08-27).
+    They could double-count across layers, and did: 21 of the 30 activities bind
+    `tithi_avoid_amavasya` to a sourced constant, so on Amavasai they were taking
+    this generic -5 *and* their own L2 verdict for one and the same fact —
+    -19 where the chapter grades a penalty, and for the four that veto, a
+    redundant -5 plus two reason chips both naming Amavasai. The chapter is the
+    better authority and carries a `rule_id`; the generic line stands down to
+    `None` and L2 speaks alone. Counting the two exhaustive-list chapters and
+    MARRIAGE (`FCR-10c`), 24 of the 30 now stand this line down.
+
+    Standing down deliberately returns `None` rather than falling through to the
+    neutral branch below: that branch's copy reads "neither a favoured nor an
+    avoided tithi by general almanac reckoning", which is false of Amavasai and
+    would contradict the L2 chip sitting beside it. `15` is not in
+    `SUBHA_TITHIS_KRISHNA`, so no fall-through could turn the penalty into a
+    bonus either — but the copy alone settles it.
+    """
     tithi = snapshot.tithi_number
     in_paksha = _in_paksha_tithi(tithi)
     name_en, name_ta = _tithi(snapshot)
 
     if tithi == 30:
+        if _activity_rules_on_amavasai(activity):
+            return None
         return FactorResult(
             factor="ALMANAC_TITHI",
             verdict=Verdict.PENALTY,
@@ -590,12 +673,53 @@ def _almanac_amirdhadhi_factor(snapshot, activity: str) -> FactorResult:
                 "ஆனால் ஒன்றை முடிக்கும் செயலுக்குத் தடையல்ல"
             ),
         )
+    # ── 2026-08-27, astrologer ruling (§7 Q9). Prabalarishta is a VETO, not a
+    # graded penalty. ──
+    #
+    # The ratios asked about were fine: Amirtha +12 correctly sits above the
+    # broad subha-star +10 because the almanac treats the class as a
+    # day-selection gate; Siddha +4 is correctly small precisely BECAUSE it is
+    # the modal class in the 189-cell grid, so a larger value would be a
+    # constant offset rather than a discriminator; and Marana -16 against
+    # Amirtha +12 is correctly asymmetric, since a good day is a preference and
+    # a Marana day is a prohibition.
+    #
+    # Prabalarishta was the one that was wrong, and not by its size. The name
+    # says it: பிரபல ஆரிஷ்டம், *manifest* arishta. It is not a day the almanac
+    # grades down, it is a day the almanac does not offer. Priced at -30 from a
+    # base of 50 it opened at 20, and the L1+L2 bonuses available on a single
+    # day sum to +104 (subha tithi 10, subha nakshatra 10, subha muhurtham 20,
+    # Abhijit 5, Nalla Neram 5, nakshatra favoured 14, tithi best 10, lagna best
+    # 8, vara good 6, paksha preferred 6, chandra strong 10). Nothing in the
+    # arithmetic stopped a Prabalarishta day from ranking GOOD, or even BEST.
+    #
+    # The cost of vetoing is almost nothing: exactly 7 of the 189 cells are "P",
+    # one per weekday row — about 13 days a year. The same reasoning already
+    # governs Chandrashtama here ("the day is dropped, not merely docked,
+    # because no almanac strength offsets it"), and it applies with more force
+    # to the worst class in the table, not less.
+    #
+    # Marana stays a graded penalty at -16, and the `terminative` exemption
+    # above still clears BOTH classes for acts meant to end something — a veto
+    # that ignored that would be a harsher rule than the source states.
+    if klass == "P":
+        return FactorResult(
+            factor="ALMANAC_AMIRDHADHI_YOGAM",
+            verdict=Verdict.VETO,
+            contribution=_W.ALMANAC_PRABALARISHTA_YOGAM,
+            reason_en=(
+                f"{day_en} with {name_en} forms {adverse_en} — the almanac's worst day "
+                "class, and one no panchangam offers an auspicious undertaking on."
+            ),
+            reason_ta=(
+                f"{day_ta} + {name_ta} — {adverse_ta}; பஞ்சாங்கத்தின் மிக மோசமான நாள் வகை, "
+                "சுப காரியங்களுக்கு உகந்ததல்ல"
+            ),
+        )
     return FactorResult(
         factor="ALMANAC_AMIRDHADHI_YOGAM",
         verdict=Verdict.PENALTY,
-        contribution=(
-            _W.ALMANAC_MARANA_YOGAM if klass == "M" else _W.ALMANAC_PRABALARISHTA_YOGAM
-        ),
+        contribution=_W.ALMANAC_MARANA_YOGAM,
         reason_en=(
             f"{day_en} with {name_en} forms {adverse_en} — the almanac withholds "
             "auspicious undertakings on this weekday-and-star combination."
@@ -855,15 +979,17 @@ def _tithi_factor(snapshot, activity: str) -> FactorResult:
         # "All the Thithis after Ashtami of Krishna Paksha are inauspicious" is
         # the paksha-qualified — therefore more specific — statement, so it
         # governs the dark fortnight (RULE_PRECEDENCE: specific over general).
-        # Where the unqualified best-list also matches, that is a genuine
-        # ambiguity in the source and is reported, not silently resolved.
-        conflict = None
-        if is_best:
-            conflict = (
-                f"Tithi {in_paksha} appears in the best-list and in the "
-                "'after Krishna Ashtami' sweep on the same page; the sweep is applied "
-                "as the more specific rule, pending astrologer confirmation."
-            )
+        #
+        # It overlaps the unqualified best-list on 10/11/13, which this branch
+        # used to report as an unresolved `conflict`. FCR-10d (2026-08-27) closed
+        # that: a general list meeting its own paksha-specific qualification is
+        # not a contradiction, so the sweep simply wins and nothing is surfaced.
+        # Shukla 10/11/13 never reach here and keep their best classification.
+        #
+        # The sweep runs to in-paksha 15, so Amavasai lands here too (FCR-10c) —
+        # a penalty at the same weight, deliberately not a veto. `_almanac_
+        # tithi_factor` stands its generic Amavasai line down for MARRIAGE
+        # because of this branch; the two move together.
         return FactorResult(
             factor="TITHI",
             verdict=Verdict.PENALTY,
@@ -871,7 +997,6 @@ def _tithi_factor(snapshot, activity: str) -> FactorResult:
             reason_en=f"{name_en} falls after Ashtami in the waning fortnight — inauspicious for marriage.",
             reason_ta=f"தேய்பிறை அஷ்டமிக்குப் பின் வரும் {name_ta} திதி திருமணத்திற்கு உகந்ததல்ல.",
             rule_id="MARRIAGE_TITHI_ALLOWED_SET",
-            conflict=conflict,
         )
 
     if is_best:
@@ -979,9 +1104,20 @@ def _registry_tithi_factor(snapshot, activity: str) -> FactorResult:
             rule_id=entry.tithi_rule_id,
         )
 
-    if entry.tithi_remainder_auspicious:
+    if entry.tithi_remainder_auspicious and in_paksha != 15:
         # "All Thithis except X are auspicious" makes the remainder positively
         # good — a weaker claim than being named best, so it earns less.
+        #
+        # **The remainder stops short of the new and full moon** (`FCR-10`,
+        # 2026-08-27). Read without this guard the sentence certified Amavasai
+        # as auspicious for sowing — a +5 bonus on the new moon — because the
+        # chapter's short exclusion list happens not to name it. Amavasai and
+        # Pournami are their own category in every Tamil almanac, not two more
+        # entries in "all other tithis"; the generic subha lists this module
+        # already uses agree, admitting neither 15-shukla nor 15-krishna. A
+        # chapter that lists three tithis to avoid is not thereby blessing the
+        # new moon. They fall to NEUTRAL below and the generic L1 reading — the
+        # only layer that has actually judged them — stands.
         return FactorResult(
             factor="TITHI",
             verdict=Verdict.BONUS,
@@ -1782,16 +1918,23 @@ def score_day(
     """
     activity = activity.upper()
     factors: list[FactorResult] = [
-        # L1 — always, for every activity.
-        _almanac_tithi_factor(snapshot),
-        _almanac_nakshatra_factor(snapshot),
-        _almanac_day_quality_factor(snapshot),
-        _almanac_yoga_factor(snapshot),
-        _almanac_amirdhadhi_factor(snapshot, activity),
-        _almanac_windows_factor(snapshot),
-        # L2 — the activity's own sourced table, or an explicit UNSOURCED gap.
-        _nakshatra_factor(snapshot, activity),
-        _tithi_factor(snapshot, activity),
+        factor
+        for factor in (
+            # L1 — always, for every activity, except where a generic convention
+            # stands down for the activity's own cited rule (RULE_PRECEDENCE,
+            # module docstring). `_almanac_tithi_factor` is the only L1 member
+            # that can decline, and only on Amavasai.
+            _almanac_tithi_factor(snapshot, activity),
+            _almanac_nakshatra_factor(snapshot),
+            _almanac_day_quality_factor(snapshot),
+            _almanac_yoga_factor(snapshot),
+            _almanac_amirdhadhi_factor(snapshot, activity),
+            _almanac_windows_factor(snapshot),
+            # L2 — the activity's own sourced table, or an explicit UNSOURCED gap.
+            _nakshatra_factor(snapshot, activity),
+            _tithi_factor(snapshot, activity),
+        )
+        if factor is not None
     ]
     # Optional L2 factors: absent when the activity's chapter rules on neither.
     # A missing weekday or lagna table is not the same gap as a missing star
@@ -1846,6 +1989,13 @@ def score_day(
 # a point of the knee — so the mapping was not retuned. Recorded because the
 # numbers above are a measurement, and a factor that moves the distribution
 # without updating them turns a measured claim into a stale one.
+#
+# CHECKED 2026-08-27 after FCR-10c widened marriage's Krishna sweep to Amavasai.
+# Run as a paired before/after over one window (90 days from 2026-06-01, Chennai,
+# n = 1907 unvetoed) so the two are directly comparable: min 1, p50 81, p95 132,
+# max 150, 31.7% at or above 100 — **identical on both sides** at this precision.
+# Expected: the change moves ~3 marriage days per 90 by -9 each. Not folded into
+# the numbers above, whose sweep window is not recorded and so is not comparable.
 
 _DISPLAY_KNEE = 80.0
 """Raw score below which the scale already behaves; identity is applied there.

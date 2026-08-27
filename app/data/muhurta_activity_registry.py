@@ -5,12 +5,19 @@ text, to the `rule_id` that leads back to the page, and to the bilingual label
 the reason copy names it by. `muhurta_engine` reads this registry instead of
 growing an `if activity == ...` branch per chapter.
 
-**MARRIAGE is deliberately absent.** Its tithi doctrine is paksha-conditional,
-carries three tiers, and reports a genuine intra-page conflict that the flat
-shape below cannot express (`marriage_muhurta_rules.
-MARRIAGE_TITHI_INAUSPICIOUS_KRISHNA_AFTER_ASHTAMI`). Rather than flatten it —
-and silently re-score every marriage day in the process — the engine keeps its
-existing marriage branch and consults this registry for everything else.
+**MARRIAGE is deliberately absent.** Its tithi doctrine is paksha-conditional
+across three tiers — a sweep that applies in the dark fortnight only and
+overrides the best-list where they overlap (`marriage_muhurta_rules.
+MARRIAGE_TITHI_INAUSPICIOUS_KRISHNA_AFTER_ASHTAMI`) — which the flat shape below
+cannot express. Rather than flatten it, and silently re-score every marriage day
+in the process, the engine keeps its existing marriage branch and consults this
+registry for everything else.
+
+The cost of that absence: any code that asks this registry a question about an
+activity gets `None` for MARRIAGE and must decide what that means. See
+`muhurta_engine._activity_rules_on_amavasai`, where the `None` was read as "the
+chapter has not ruled" and left the new moon scored by generic convention alone
+for every wedding date (FCR-10c).
 
 **Severity grading is read off the source's verb, not chosen for convenience.**
 This is the one place in the pipeline where a translated sentence becomes a

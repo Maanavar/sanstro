@@ -108,15 +108,35 @@ MARRIAGE_TITHI_BEST: frozenset[int] = frozenset({2, 3, 5, 7, 10, 11, 13})
 MARRIAGE_TITHI_MIDDLING_KRISHNA_ONLY: frozenset[int] = frozenset({1})        # Prathama, dark fortnight only
 MARRIAGE_TITHI_MIDDLING_BOTH_PAKSHA: frozenset[int] = frozenset({6, 8, 12})  # Shashthi, Ashtami, Dwadashi
 MARRIAGE_TITHI_MIDDLING_SHUKLA_ONLY: frozenset[int] = frozenset({15})        # Purnima
-MARRIAGE_TITHI_INAUSPICIOUS_KRISHNA_AFTER_ASHTAMI: frozenset[int] = frozenset({9, 10, 11, 12, 13, 14})
-# OPEN QUESTION, flagged (not resolved) in the worksheet: the best-list
-# includes 10/11/13, which are also in-paksha day numbers covered by "all
-# Thithis after Ashtami of Krishna Paksha" if read paksha-agnostically. The
-# most defensible reading pending astrologer sign-off is that the unqualified
-# best-7 list is primarily a Shukla-paksha list, and the Krishna-paksha
-# post-Ashtami sweep is the operative rule once in the dark fortnight — but
-# nothing here decides that silently. Any future consumer of both constants
-# together must surface the overlap rather than resolve it.
+MARRIAGE_TITHI_INAUSPICIOUS_KRISHNA_AFTER_ASHTAMI: frozenset[int] = frozenset({9, 10, 11, 12, 13, 14, 15})
+# ASTROLOGER RULING FCR-10c (2026-08-27) — the 15 above is Amavasai.
+#
+# The first extraction stopped this set at 14 and Amavasai fell through every
+# marriage tier to a NEUTRAL 0, leaving the new moon scored only by the generic
+# almanac -5. The omission is explainable: the source never says "Amavasai",
+# while it *does* name Pournami, and that asymmetry read as deliberate. It was
+# not. "All the Thithis after Ashtami of Krishna Paksha" is inclusive in the
+# ordinary tithi sequence — Krishna Ashtami is the 8th of the dark fortnight, so
+# the tithis after it run 9 through 15, and Krishna 15 IS Amavasai. Pournami
+# being separately named does not change Amavasai's numerical identity.
+#
+# Amavasai is therefore swept at the same weight as the rest of the back half.
+# It is deliberately NOT a separate marriage veto: traditional practice does
+# treat the new moon as unsuitable for a wedding, and 21 chapters elsewhere in
+# this text close it (four as outright vetoes, first-milk among them), but the
+# cited p.79 sentence establishes inauspiciousness, not absolute prohibition.
+# Do not promote it to VETO without a marriage-specific passage that says the
+# new moon must be completely avoided. This engine scores the page, not the
+# practice.
+#
+# ASTROLOGER RULING FCR-10d (2026-08-27) — closes the former OPEN QUESTION here.
+# The best-7 list's 10/11/13 share in-paksha numbers with this sweep. That is a
+# general rule meeting its own specific qualification, not an unsettled
+# contradiction: the paksha-qualified Krishna statement is the narrower rule and
+# governs the dark fortnight. So Krishna 10/11/13 are swept, Shukla 10/11/13
+# keep MARRIAGE_TITHI_BEST, and the engine no longer reports the overlap at
+# runtime. Reopen only if the surrounding p.79 text turns out to state that the
+# best-7 hold in either paksha.
 
 # ── 6. Guru/Sukra Asthangata marriage buffers (p.80, CONFIRMED_WITH_CONDITION) ─
 # "Marriage within a week after the re-appearance (Udhayam) of Venus affects
@@ -382,15 +402,22 @@ RULE_SOURCES: dict[str, RuleSource] = {
         interpretation=(
             "Three tiers: best / middling / inauspicious. Different from the ear-boring 9-tithi "
             "list (Shashti is 'best' there, only 'middling' here). Paksha matters: Prathama is "
-            "middling only in Krishna paksha; the whole back half of Krishna paksha is bad."
+            "middling only in Krishna paksha; the whole back half of Krishna paksha is bad — "
+            "'after Ashtami' running 9 through 15 inclusive, so Amavasai (Krishna 15) is swept "
+            "by this sentence and needs no separate rule."
         ),
         notes=(
-            "OPEN QUESTION not resolved by this extraction: the best-7 list's 10/11/13 overlap "
-            "in-paksha numbers with the 'after Ashtami of Krishna Paksha' sweep. See the "
-            "comment beside MARRIAGE_TITHI_INAUSPICIOUS_KRISHNA_AFTER_ASHTAMI."
+            "Two questions this extraction left open were closed by astrologer ruling on "
+            "2026-08-27. FCR-10c: 'after Ashtami of Krishna Paksha' includes Amavasai, which the "
+            "first pass omitted because the source names Pournami but never names the new moon; "
+            "Amavasai is swept, NOT promoted to a veto on this sentence alone. FCR-10d: the "
+            "best-7 list's 10/11/13 overlap with the sweep is specificity precedence, not a "
+            "contradiction — the paksha-qualified rule governs Krishna paksha and the overlap is "
+            "no longer surfaced at runtime. See the comments beside "
+            "MARRIAGE_TITHI_INAUSPICIOUS_KRISHNA_AFTER_ASHTAMI."
         ),
         verified_on=_VERIFIED_ON,
-        verified_by="primary-text images p.79 (user-supplied)",
+        verified_by="primary-text images p.79 (user-supplied); tier extent by astrologer ruling FCR-10c/10d, 2026-08-27",
     ),
     "MARRIAGE_GURU_SUKRA_ASTHANGATA__TEXTUAL": RuleSource(
         rule_id="MARRIAGE_GURU_SUKRA_ASTHANGATA__TEXTUAL",
