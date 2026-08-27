@@ -17,6 +17,7 @@ This folder is the **single home** for mobile specification & reference. Read to
 | API contract for mobile | `08-api-contract.md` | endpoints, payloads |
 | Metrics & event taxonomy | `09-analytics-kpis.md` | KPI definitions, events |
 | Risks | `10-risk-register.md` | |
+| Delivery estimate, 0–100 task list, sequencing | `MOBILE_V1_DELIVERY_PLAN_2026-08-25.md` | durations, phase order, launch critical path |
 
 The authoritative docs for all mobile decisions, design, and build spec live in this folder (`MOBILE_DECISIONS.md`, `MOBILE_DESIGN_BRIEF.md`, `MOBILE_BUILD_SPEC.md`). No other planning docs exist at repo root.
 

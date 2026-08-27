@@ -263,8 +263,10 @@ beginnings — ongoing work is unaffected), one action, and a Why trail. Pairs w
   the shipped Learn articles. Surface the existing secular-remedy mode
   (`remedies_mode_secular`) as a first-class choice, not a hidden mode. Change
   "Prescribed — wear these" to descriptive register. (B-022, B-035, B-037, A-038)
-- **T19.** Defer Family Vault setup until after a first result; rename "vault" →
-  "your family"; auto-create on first member. (A-007, A-010)
+- **T19.** [x] Deferred Family Vault setup until after a first result; the UI
+  calls it “your family” and auto-creates it with the first member. The legacy
+  standalone setup flow was removed and the submission path is source-tested.
+  (A-007, A-010; verified 2026-08-25)
 - **T20.** Dasha panel titles: "Dasa · Bhukti · Antaram" → "Life periods — major,
   sub, and minor"; "Vimshottari Dasa timeline" → "Your life periods (Vimshottari
   system)". Wire the existing `dasha`/`bhukti` glossary entries, which this panel

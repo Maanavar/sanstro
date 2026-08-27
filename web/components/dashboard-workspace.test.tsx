@@ -59,4 +59,9 @@ describe("dashboard-workspace — family onboarding (T19)", () => {
     expect(body).toMatch(/name: lang === "ta" \? "உங்கள் குடும்பம்" : "Your family"/);
     expect(body).toMatch(/family-vaults\/\$\{targetVaultId\}\/members/);
   });
+
+  it("does not retain a separate family-creation handler", () => {
+    expect(source).not.toMatch(/async function handleCreateVault/);
+    expect(source).not.toMatch(/busyCreateVault/);
+  });
 });

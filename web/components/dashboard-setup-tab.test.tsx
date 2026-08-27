@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 
-import type { BirthFormState, MemberFormState, VaultFormState } from "./dashboard-setup-tab";
+import type { BirthFormState, MemberFormState } from "./dashboard-setup-tab";
 
 /**
  * T4 / A-039. `BEGINNER | BALANCED | TRADITIONAL` has existed for a long time,
@@ -52,12 +52,6 @@ const birthForm: BirthFormState = {
   birthTimeConfidenceMinutes: "",
 };
 
-const vaultForm: VaultFormState = {
-  ownerUserId: "00000000-0000-0000-0000-000000000000",
-  name: "",
-  defaultLanguage: "en",
-};
-
 const memberForm: MemberFormState = {
   displayName: "",
   relationshipToOwner: "spouse",
@@ -102,22 +96,17 @@ async function renderSetup(
       birthProfileId={overrides.birthProfileId ?? ""}
       selectedVaultId=""
       selectedVault={null}
-      vaults={[]}
       birthForm={birthForm}
-      vaultForm={vaultForm}
       memberForm={memberForm}
       formErrors={{}}
-      busy={{ createProfile: false, createVault: false, addMember: false }}
+      busy={{ createProfile: false, addMember: false }}
       userMode={overrides.userMode ?? "BALANCED"}
       onNavigate={vi.fn()}
       onBirthFormChange={vi.fn()}
-      onVaultFormChange={vi.fn()}
       onMemberFormChange={vi.fn()}
       onFormErrorChange={vi.fn()}
       onCreateProfile={vi.fn()}
-      onCreateVault={vi.fn()}
       onAddMember={vi.fn()}
-      onSelectVault={vi.fn()}
       onShowEditProfile={vi.fn()}
       onGoToPersonal={vi.fn()}
       onModeChange={overrides.onModeChange ?? vi.fn()}

@@ -282,6 +282,15 @@ export function GlossaryTerm({ term, definition, lang, children }: GlossaryTermP
           margin: 0,
           font: "inherit",
           fontWeight: "inherit",
+          // `font` shorthand does not cover text-transform, and the UA
+          // stylesheet gives <button> its own `text-transform: none` — so a
+          // glossed label silently dropped the uppercase its wrapping span
+          // applied, while an unglossed label right next to it kept it.
+          // Every caller that puts a glossed term inside an uppercase label
+          // (e.g. dashboard-calendar-tab-nova's Panchangam Five Limbs rows)
+          // saw that one term revert to its source casing.
+          textTransform: "inherit",
+          letterSpacing: "inherit",
           color: "inherit",
           cursor: "help",
         }}

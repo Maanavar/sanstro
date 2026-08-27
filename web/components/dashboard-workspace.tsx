@@ -221,12 +221,6 @@ type BirthFormState = {
   birthTimeConfidenceMinutes: string;
 };
 
-type VaultFormState = {
-  ownerUserId: string;
-  name: string;
-  defaultLanguage: string;
-};
-
 type MemberFormState = {
   displayName: string;
   relationshipToOwner: Relationship;
@@ -253,7 +247,6 @@ type PersistedState = {
   birthProfileId: string;
   chartId: string;
   birthForm: BirthFormState;
-  vaultForm: VaultFormState;
   memberForm: MemberFormState;
   activeTab: Tab;
   lang: Lang;
@@ -267,10 +260,6 @@ const defaultBirthForm: BirthFormState = {
   relationshipToOwner: "self", calculateNow: true,
   maritalStatus: "", employmentType: "", children: "",
   birthTimeSource: "unknown", birthTimeConfidenceMinutes: "0",
-};
-
-const defaultVaultForm: VaultFormState = {
-  ownerUserId: "", name: "", defaultLanguage: "ta-en",
 };
 
 const defaultMemberForm: MemberFormState = {
@@ -392,7 +381,6 @@ export function DashboardWorkspace() {
   // UI-only state: forms, modals, toast
   const [ownerUserId, setOwnerUserId] = useState("");
   const [birthForm, setBirthForm] = useState<BirthFormState>(defaultBirthForm);
-  const [vaultForm, setVaultForm] = useState<VaultFormState>(defaultVaultForm);
   const [memberForm, setMemberForm] = useState<MemberFormState>(defaultMemberForm);
   const [editMember, setEditMember] = useState<EditMemberState | null>(null);
   const [showEditProfile, setShowEditProfile] = useState(false);
@@ -541,7 +529,6 @@ export function DashboardWorkspace() {
     }
   }
   const [busyCreateProfile, setBusyCreateProfile] = useState(false);
-  const [busyCreateVault, setBusyCreateVault] = useState(false);
   const [busyAddMember, setBusyAddMember] = useState(false);
   const [busyEditingMember, setBusyEditingMember] = useState(false);
   const [busyEditingProfile, setBusyEditingProfile] = useState(false);
@@ -801,7 +788,6 @@ export function DashboardWorkspace() {
           if (typeof parsed.chartId === "string") personal.setChartId(parsed.chartId);
           if (typeof parsed.hasVisitedReading === "boolean") setHasVisitedReading(parsed.hasVisitedReading);
           if (parsed.birthForm) setBirthForm((c) => ({ ...c, ...parsed.birthForm }));
-          if (parsed.vaultForm) setVaultForm((c) => ({ ...c, ...parsed.vaultForm }));
           if (parsed.memberForm) setMemberForm((c) => ({ ...c, ...parsed.memberForm }));
           // Allowlist restore (DASH-11): only tabs the hero nav actually
           // offers come back. Settings/onboarding stay excluded — the
@@ -911,7 +897,7 @@ export function DashboardWorkspace() {
 
   // ── Persistence ────────────────────────────────────────
 
-  // Debounced (DASH-12): birthForm/vaultForm/memberForm are dependencies, so
+  // Debounced (DASH-12): birthForm/memberForm are dependencies, so
   // without the delay every keystroke in any form serialized and wrote the
   // whole persisted state. Trailing-edge write after 500ms of quiet; the
   // timer also flushes stale-closure-free because each effect run recreates it.
@@ -925,7 +911,6 @@ export function DashboardWorkspace() {
         birthProfileId: personal.birthProfileId,
         chartId: personal.chartId,
         birthForm,
-        vaultForm,
         memberForm,
         activeTab,
         lang,
@@ -936,7 +921,7 @@ export function DashboardWorkspace() {
   }, [
     session.hydrated, ownerUserId, selectedDate,
     family.selectedVaultId, personal.birthProfileId, personal.chartId,
-    birthForm, vaultForm, memberForm, activeTab, lang, hasVisitedReading,
+    birthForm, memberForm, activeTab, lang, hasVisitedReading,
   ]);
 
   // Fires once, the first time the reader is actually on Family & Charts with
@@ -948,12 +933,11 @@ export function DashboardWorkspace() {
     }
   }, [activeTab, personal.chartId, hasVisitedReading]);
 
-  // Keep ownerUserId in sync with forms
+  // Keep ownerUserId in sync with the profile form.
   useEffect(() => {
     if (!session.hydrated) return;
-    if (vaultForm.ownerUserId !== ownerUserId) setVaultForm((c) => ({ ...c, ownerUserId }));
     if (birthForm.ownerUserId !== ownerUserId) setBirthForm((c) => ({ ...c, ownerUserId }));
-  }, [session.hydrated, ownerUserId, birthForm.ownerUserId, vaultForm.ownerUserId]);
+  }, [session.hydrated, ownerUserId, birthForm.ownerUserId]);
 
   // ── Onboarding gate ────────────────────────────────────
 
@@ -1291,29 +1275,6 @@ export function DashboardWorkspace() {
     } finally { setBusyCreateProfile(false); }
   }
 
-  async function handleCreateVault(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBusyCreateVault(true);
-    try {
-      const response = await apiFetchJson<ApiEnvelope<{
-        familyVaultId: string; ownerUserId: string; name: string;
-        defaultLanguage: string; memberCount: number;
-      }>>(
-        "/api/v1/family-vaults",
-        { method: "POST", body: JSON.stringify({ ownerUserId: vaultForm.ownerUserId || undefined, name: vaultForm.name, defaultLanguage: vaultForm.defaultLanguage }) }
-      );
-      setOwnerUserId(response.data.ownerUserId);
-      family.setSelectedVaultId(response.data.familyVaultId);
-      showToast(`Vault "${response.data.name}" created.`);
-      setStatus(`Vault "${response.data.name}" created.`);
-      await family.loadVaults(response.data.ownerUserId);
-      setActiveTab("family");
-    } catch (error) {
-      const msg = getFriendlyErrorMessage(error);
-      showToast(msg, "error"); setStatus(msg, "error");
-    } finally { setBusyCreateVault(false); }
-  }
-
   async function handleAddMember(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const errors = validateMemberForm(memberForm);
@@ -1335,7 +1296,7 @@ export function DashboardWorkspace() {
             body: JSON.stringify({
               ownerUserId: ownerUserId || undefined,
               name: lang === "ta" ? "உங்கள் குடும்பம்" : "Your family",
-              defaultLanguage: vaultForm.defaultLanguage,
+              defaultLanguage: "ta-en",
             }),
           },
         );
@@ -1371,8 +1332,8 @@ export function DashboardWorkspace() {
           }),
         }
       );
-      showToast(`${response.data.displayName} added to vault.`);
-      setStatus(`${response.data.displayName} added to vault.`);
+      showToast(`${response.data.displayName} added to your family.`);
+      setStatus(`${response.data.displayName} added to your family.`);
       setMemberForm(defaultMemberForm);
       await family.loadVaults(ownerUserId);
       await family.refreshFamilyBundle(targetVaultId, selectedDate);
@@ -1580,7 +1541,6 @@ export function DashboardWorkspace() {
   function handleSelectVault(item: FamilyVaultListItem) {
     family.setSelectedVaultId(item.familyVaultId);
     setOwnerUserId(item.ownerUserId);
-    setVaultForm((c) => ({ ...c, ownerUserId: item.ownerUserId }));
     setBirthForm((c) => ({ ...c, ownerUserId: item.ownerUserId }));
   }
 
@@ -1822,24 +1782,17 @@ export function DashboardWorkspace() {
             birthProfileId={personal.birthProfileId}
             selectedVaultId={family.selectedVaultId}
             selectedVault={selectedVault}
-            vaults={family.vaults}
             birthForm={birthForm}
-            vaultForm={vaultForm}
             memberForm={memberForm}
             formErrors={formErrors}
-            busy={{ createProfile: busyCreateProfile, createVault: busyCreateVault, addMember: busyAddMember }}
+            busy={{ createProfile: busyCreateProfile, addMember: busyAddMember }}
             onNavigate={navigateSettings}
             onBirthFormChange={setBirthForm}
-            onVaultFormChange={setVaultForm}
             onMemberFormChange={setMemberForm}
             onFormErrorChange={(patch) => setFormErrors((c) => ({ ...c, ...patch }))}
             onCreateProfile={handleCreateProfile}
-            onCreateVault={handleCreateVault}
             onAddMember={handleAddMember}
-            onSelectVault={(vaultId, uid) => { family.setSelectedVaultId(vaultId); setOwnerUserId(uid); }}
             onShowEditProfile={() => setShowEditProfile(true)}
-            familyMembers={family.familyAggregate?.members ?? []}
-            onEditMember={handleEditFamilyMember}
             onGoToPersonal={() => setActiveTab("personal")}
             userMode={session.userMode}
             onModeChange={(mode) => void saveUserSettings(mode, session.goalTrack ?? null, { toast: true })}
