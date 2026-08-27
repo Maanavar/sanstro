@@ -30,6 +30,7 @@ from app.calculations import festivals as FE  # noqa: E402
 from app.calculations import panchangam as PA  # noqa: E402
 from app.calculations import porutham as PO  # noqa: E402
 from app.calculations import transits as TR  # noqa: E402
+from app.calculations import yoga_rules as YR  # noqa: E402
 from app.data import kuligai_polarity as KU  # noqa: E402
 
 OUTPUT_PATH = REPO_ROOT / "docs" / "VINAADI_RULEBOOK_TABLE_APPENDIX.md"
@@ -543,6 +544,109 @@ Sarpa-related houses: {{{", ".join(str(h) for h in sorted(YH.RAHU_KETU_SARPA_HOU
 
 
 # --------------------------------------------------------------------------- #
+# YOG-*  Per-yoga rule rows — the YOG-01 split
+# --------------------------------------------------------------------------- #
+def _yoga_activation_cell(rule) -> str:
+    """What actually activates the card this rule reaches.
+
+    Read from the merged activation table rather than from ``rule.key_planets``,
+    because two rules can share one emitted code: `YOG-RY-02` declares no key
+    grahas of its own but lands on the same `RAJA_YOGA` card as `YOG-RY-01`, and
+    printing "none" against it would be false.
+    """
+    if not rule.yoga_name:
+        return "— (not detected)"
+    if rule.yoga_name.endswith("_CAUTION"):
+        return "n/a — not scored"
+    effective = YR.activation_key_planets().get(rule.yoga_name, [])
+    if not effective:
+        return "**none — dormant-capped**"
+    cell = ", ".join(p.title() for p in effective)
+    if not rule.key_planets:
+        cell += " (via the shared card)"
+    return cell
+
+
+def section_yoga_rules() -> str:
+    codes = {rule.yoga_name for rule in YR.YOGA_RULES if rule.yoga_name}
+    index = _table(
+        ["Rule", "Yoga", "Emitted code", "Detector", "Markers", "Activation grahas"],
+        [
+            [
+                f"`{rule.rule_id}`",
+                rule.name_en,
+                f"`{rule.yoga_name}`" if rule.yoga_name else "— (not detected)",
+                f"`{rule.detector}`",
+                " ".join(f"`[{marker}]`" for marker in rule.markers),
+                _yoga_activation_cell(rule),
+            ]
+            for rule in YR.YOGA_RULES
+        ],
+    )
+
+    blocks: list[str] = []
+    for rule in YR.YOGA_RULES:
+        heading = f"#### `{rule.rule_id}` {rule.name_en}"
+        if rule.name_ta:
+            heading += f" ({rule.name_ta})"
+        fields = [
+            ["**Emitted as**", f"`{rule.yoga_name}`" if rule.yoga_name else "nothing — this row records a non-detection"],
+            ["**Detector**", f"`{rule.detector}`"],
+            ["**Markers**", " ".join(f"`[{marker}]`" for marker in rule.markers)],
+            ["**Present when**", rule.present_when],
+            ["**Strength**", rule.strength_rule],
+            ["**Cancellation**", rule.cancellation],
+            ["**Source**", rule.source],
+            ["**Activation grahas**", _yoga_activation_cell(rule)],
+        ]
+        if rule.note:
+            fields.append(["**Note**", rule.note])
+        blocks.append(heading + "\n\n" + _table(["", ""], fields))
+
+    return f"""## `YOG-*` Yoga detectors — one row per definition
+
+**This section is the `YOG-01` split.** Until 2026-08-27 every yoga in the engine
+sat behind a single rulebook ID, and the reviewing astrologer declined to sign
+that block: twenty independent definitions cannot take one verdict, and Raja
+Yoga alone has several legitimate classical formulations. Each definition below
+now carries its own ID, presence test, strength ladder, cancellation set and
+marker, so each can be marked **Correct / Incorrect / Incomplete / Variant**
+individually.
+
+Generated from `app/calculations/yoga_rules.py`, which is pinned to the emitted
+yoga codes by `tests/test_yoga_rules.py` — a new yoga cannot ship without a row
+here, and a row here cannot describe a yoga the engine does not emit.
+
+**{len(YR.YOGA_RULES)} rules over {len(codes)} emitted codes**, from 20 detector
+functions. Rules outnumber codes because `RAJA_YOGA` merges two independent
+formulations onto one card and one row records a deliberate non-detection; codes
+outnumber detectors because Pancha Mahapurusha emits five, the Chandra yogas
+three and Kartari three.
+
+**Scoring reach.** Every yoga reaches the reader as a card carrying a strength
+band, its `conditions_met` list and an activation score 0-100
+(`yoga_activation.yoga_activation_score`), and feeds the life-area and
+prediction layers through that score. The three `YOG-NKC-*` nakshatra cautions
+are the exception: display-only, no strength, no activation, no scoring reach.
+
+**Reading "Activation grahas".** These are the grahas whose maha/antar dasha
+raises a present yoga above the dormant rung. **"none — dormant-capped" means
+the yoga's activation score can never exceed `round(strength_base × 0.45)`**, no
+matter which dasha runs. That is a live behaviour, disclosed here rather than
+hidden. Where the true key grahas are lagna-dependent (Raja, Dhana, Vipareetha)
+the listed set is a `[PRODUCT]` approximation and the row says so.
+
+### Index
+
+{index}
+
+### The definitions
+
+{(chr(10) * 2).join(blocks)}
+"""
+
+
+# --------------------------------------------------------------------------- #
 # DAS / GO
 # --------------------------------------------------------------------------- #
 def section_dasha() -> str:
@@ -748,6 +852,7 @@ internal Monday-zero index.
         section_nadi(),
         section_moon_harmony(),
         section_friendship(),
+        section_yoga_rules(),
         section_sevvai(),
         section_dasha(),
         section_transit_vedha(),

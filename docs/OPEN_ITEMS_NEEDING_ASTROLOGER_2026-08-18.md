@@ -245,11 +245,19 @@ Listing these so they are not mistaken for blocked work.
   now provenance is enforced per-module (the samskara suite loops over its
   `RULE_SOURCES`) but there is **no global assertion across all seven
   Kalaprakasika rule modules**. I can add one.
-- **C-2. `YOG-01` split into per-yoga rule IDs.** One ID currently covers Raja
-  Yoga, Dhana Yoga, Pancha Mahapurusha, Gaja Kesari, Budha Aditya and Vipareeta
-  Raja Yoga. A reviewer cannot tell whether each is a legitimate classical
-  definition or a loose modern one. Each needs its own ID and condition set. The
-  gap is acknowledged in the rulebook; the split is real work.
+- **C-2. `YOG-01` split into per-yoga rule IDs — DONE 2026-08-27.** One ID
+  covered Raja Yoga, Dhana Yoga, Pancha Mahapurusha, Gaja Kesari, Budha Aditya
+  and Vipareeta Raja Yoga, so a reviewer could not tell whether each was a
+  legitimate classical definition or a loose modern one. `YOG-01` is now retired
+  to a signpost and **32 per-yoga rules** carry their own presence test, strength
+  ladder, cancellation set, marker and source, generated from
+  `app/calculations/yoga_rules.py` into the table appendix and pinned to the
+  emitted codes by `tests/test_yoga_rules.py`. Raja Yoga became three rows
+  (association, exchange, and a `[LIMIT]` row naming what we do not implement);
+  Pancha Mahapurusha became five. **The verdicts are still owed** — the split is
+  what unblocks the marking pass, not a substitute for it — and writing the rows
+  out exposed a live defect: nine yogas were capped at the dormant activation
+  rung because the activation table was keyed on names no detector emits.
 - **C-3. `DIV-01`/`DIV-02` varga boundary tests.** The divisional *names* are
   legitimate; the *mapping algorithms* are unverified by test. Navamsa in
   particular needs exact-boundary cases (0°00′, 3°20′, 6°40′, … 29°59′59″) for

@@ -13,6 +13,7 @@ from app.calculations.chart_strength import (
     SIGN_LORD,
 )
 from app.calculations.functional_nature import FunctionalNature, get_functional_nature
+from app.calculations.yoga_rules import rule_ids_for_yoga
 
 PlanetInput = int | Mapping[str, int | float | str]
 
@@ -55,6 +56,18 @@ class YogaResult:
     dasha_activated: bool
     description_ta: str
     description_en: str
+
+    @property
+    def rule_ids(self) -> tuple[str, ...]:
+        """The rulebook IDs whose definitions this result can come from.
+
+        Usually one. Two for ``RAJA_YOGA``, which merges an association
+        formulation (`YOG-RY-01`) and an exchange formulation (`YOG-RY-02`) onto
+        one card. A property rather than a field so it stays out of the wire
+        schema and out of ``dataclasses.asdict`` — the split is an audit
+        artefact, not an API change.
+        """
+        return rule_ids_for_yoga(self.name)
 
 
 @dataclass(frozen=True, slots=True)
