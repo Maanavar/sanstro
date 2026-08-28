@@ -16,6 +16,12 @@ Please get **the printed table or page reference** wherever the ask says so; a
 verbal "yes that's right" has burned us once already (Nethiram, A-2 below, was
 verbally confirmed in July and contradicted by a live case in August).
 
+**The page references, gathered by book:**
+[`SOURCE_PHOTOCOPY_REQUEST_2026-08-27.md`](SOURCE_PHOTOCOPY_REQUEST_2026-08-27.md)
+turns the asks below into a photocopying list — three volumes, which pages of
+each, and which items no page can close. Take that list to the books rather than
+this file.
+
 ---
 
 ## §A. Needs an astrologer — nothing else unblocks these
@@ -196,6 +202,30 @@ last rules claiming more certainty than we hold.
   reference spec counts boy-from-girl. Outcomes are identical *only* because
   `{4,7,10,13,16,19,22,25}` happens to be closed under `c → 29−c`. **Ask:** which
   direction is correct, so a future edit to the set cannot silently break it.
+- **A-19. `MUH-08` janma-tara polarity, inverted in two chapters.** Surfaced
+  while building the C-1 invariant, which forced every held rule to be named.
+  Six Kalaprakasika chapters prohibit the janma / Anu-Jenma / Thri-Jenma triad —
+  the book's most-repeated personal rule, and the one the engine implements.
+  **Two chapters, thirty pages apart, call the same counts beneficial**: Ch. III
+  p.30 offers the 10th tara as the good fallback day for first milk-feeding, and
+  Ch. X p.62 calls the whole triad beneficial for mantra initiation. The
+  ordinals decode identically in all eight passages, and "beneficial" is not
+  ambiguous in the transcription, so two independent chapters agreeing on the
+  reversal is hard to read as a transcription slip. Neither is scored in either
+  direction: the engine's janma-tara field is a *prohibition set*, and building
+  a favourable-count field around the two least-corroborated passages in the
+  book would be machinery ahead of doctrine. **Ask:** is the reversal real — do
+  these two rites genuinely invert the rule — or is one reading the other's
+  exception? Held in `MILK_FEEDING_JANMA_TARA` and
+  `MANTRA_INITIATION_JANMA_TARA_FAVOURABLE`.
+- **A-20. `MUH-08` Upanayanam's second janma-tara ban.** Same chapter, different
+  page, and it is the only janma-tara passage in the book whose counts are each
+  given a name (Karmam, Sanghatham, Saamudhayam, Vinasanam, Manasam) — which
+  survives OCR where a bare numeral may not. Both passages stand and neither is
+  said to supersede the other, so their union spans **11 of 27 counts**. That is
+  wide enough that widening the live prohibition set is a decision rather than a
+  fix, so only the first is scored today. **Ask:** does the union apply, or is
+  the named list the operative one?
 
 ---
 
@@ -236,15 +266,39 @@ than silent.
 
 ---
 
-## §C. Mine to build — needs nobody, not done yet
+## §C. Mine to build — needs nobody
 
-Listing these so they are not mistaken for blocked work.
+**All five are now closed** (C-2 on 2026-08-27, C-1/C-3/C-4/C-5 on 2026-08-27).
+Kept in place rather than deleted, because each records what a test now
+guarantees — and, more usefully, what it still does not.
 
-- **C-1. `MUH-08` source-id invariant.** The review's single best engineering
-  suggestion: *no activity rule may go live without a valid `source_id`.* Right
-  now provenance is enforced per-module (the samskara suite loops over its
-  `RULE_SOURCES`) but there is **no global assertion across all seven
-  Kalaprakasika rule modules**. I can add one.
+- **C-1. `MUH-08` source-id invariant — DONE 2026-08-27.** *No activity rule may
+  go live without a valid `source_id`.* Provenance was enforced per-module; what
+  nothing checked was **the join** between the registry and those records, which
+  is where a rule actually goes live unsourced — `resolve_rule_source` returning
+  `None` is read by the engine as "this factor has no rule", so the rule stops
+  running and no chapter's suite notices.
+  `app/data/muhurta_source_invariant.py` now walks the whole graph statically
+  and reports six failure kinds: **unresolvable**, **incomplete** (a record
+  without page, passage or verification stamp is an assertion, not a citation),
+  **out-of-scope**, **misfiled**, **colliding**, and **stranded** (the reverse
+  direction — sourced, scoreable doctrine the registry never runs).
+  `tests/test_muhurta_source_invariant.py` asserts it holds across all 29
+  activities and 194 records, and pins each detector so a checker that stops
+  checking fails too.
+  Two things fell out of building it. **Twelve citations were silently
+  cross-scope**: GOLD, GEMS and GRAIN cite Ch. XXI's tithi/karana/vara/lagna
+  rules, whose `source_scope` is `TREASURE_STORE`. `RuleSource`'s own docstring
+  names this the failure mode scope exists to stop, and nothing compared the
+  two. They are legitimate chapter-scope inheritance, so they are now
+  *declared* — a new `ActivityRules.inherits_scope_from` field — rather than
+  waived, and an undeclared borrowing is now a test failure. And **five sourced,
+  scoreable rules are held unwired**, each for a recorded reason (two chapters
+  invert janma-tara polarity; the per-subject and per-crop star lists need an
+  input the picker does not collect). They are listed in
+  `HELD_UNWIRED_RULE_IDS`, so a *sixth* is a finding rather than more of the
+  same. **Two of those five are astrologer questions**, not engineering ones —
+  see the janma-tara polarity note below.
 - **C-2. `YOG-01` split into per-yoga rule IDs — DONE 2026-08-27.** One ID
   covered Raja Yoga, Dhana Yoga, Pancha Mahapurusha, Gaja Kesari, Budha Aditya
   and Vipareeta Raja Yoga, so a reviewer could not tell whether each was a
@@ -258,16 +312,70 @@ Listing these so they are not mistaken for blocked work.
   what unblocks the marking pass, not a substitute for it — and writing the rows
   out exposed a live defect: nine yogas were capped at the dormant activation
   rung because the activation table was keyed on names no detector emits.
-- **C-3. `DIV-01`/`DIV-02` varga boundary tests.** The divisional *names* are
-  legitimate; the *mapping algorithms* are unverified by test. Navamsa in
-  particular needs exact-boundary cases (0°00′, 3°20′, 6°40′, … 29°59′59″) for
-  floating-point behaviour.
-- **C-4. `STR-04` BAV bindu contribution golden fixtures.** The seven-planet
-  Bhinnashtakavarga tables have no golden test.
-- **C-5. `DAS-06`/`DAS-08` secondary dasha certification.** Ashtottari, Yogini,
-  Kalachakra eligibility rules and the Jaimini 8-karaka reverse-Rahu scheme each
-  need their own verification. Currently `[LIMIT]`, so they cannot override
-  Vimshottari — which is the right guard, but it is not certification.
+- **C-3. `DIV-01`/`DIV-02` varga boundary tests — DONE 2026-08-27, and it found
+  a live bug.** The divisional *names* were never the question; the *mapping
+  algorithms* were unverified at their edges, and the existing suite sampled the
+  middle of amsas where every implementation agrees.
+  `tests/test_varga_boundaries.py` now walks all **3,336 amsa boundaries**
+  across the fifteen supported divisions, with expected values computed in exact
+  rational arithmetic rather than read back off the engine.
+  **324 of them were wrong.** `int(deg / step)` files a planet sitting exactly
+  on a boundary into the amsa it *closes* instead of the one it *opens*,
+  whenever the step is not exactly representable in binary. That is three
+  vargas: **D7 (30 of 84 boundaries), D27 (133 of 324) and D45 (161 of 540)**.
+  The second saptamsa of Taurus opens at 34.285714285714285, where `deg / step`
+  evaluates to 0.9999999999999998. Navamsa never had this bug because
+  `navamsa_rasi_from_degree` has always added `EPSILON_DEGREES` for exactly this
+  reason — the same correction is now applied in `divisional_charts._amsa`, and
+  the twelve divisions with exact steps are unaffected.
+  **This shipped as a wrong answer, not a cosmetic slip:** D7 feeds the children
+  propensity reading. The test also bounds the epsilon from the other side, so a
+  future "fix" that swallows real degrees fails too, and names *why* only
+  non-representable steps were ever at risk — so a future D11 or D22 is flagged
+  before anyone rediscovers it from a wrong chart.
+- **C-4. `STR-04` BAV bindu contribution golden fixtures — DONE 2026-08-27.**
+  `tests/test_ashtakavarga_golden.py` pins three independent things, which fail
+  for different reasons. **The published classical row totals** (Sun 48, Moon 49,
+  Mars 39, Mercury 54, Jupiter 56, Venus 52, Saturn 39, Sarva 337) — the one
+  genuinely external check available without a second engine, and the same
+  figures `STR-06` cuts its bands against, so a table edit that moved a baseline
+  is now visible. **A frozen grid for a synthetic chart**, cross-computed by a
+  *pull* traversal against the engine's *push* traversal, so an off-by-one shows
+  up as a disagreement rather than as two matching wrong answers. And
+  **invariants that hold for every chart** — rotation equivariance, totals
+  independent of placement, the 0..8 range, and the `STR-08` node exclusion
+  (asserting `None`, never a neutral 4).
+  No defect found: the tables are internally sound and match the published
+  totals. What that does *not* certify is the eight benefic-house lists
+  themselves against a printed table — the totals would survive two compensating
+  errors in one planet's rows.
+- **C-5. `DAS-06`/`DAS-08` secondary dasha certification — DONE 2026-08-27.**
+  `app/calculations/dasha_certification.py` separates the two things the
+  `[LIMIT]` marker was conflating, per system: what is **certified**, what is
+  **uncertified** with what would close it, and whether it may feed
+  interpretation.
+  **The `[LIMIT]` is now executable.** `DAS-06`/`DAS-07` said these systems must
+  not override the primary Vimshottari reading; that was a claim in a document.
+  The suite now walks the static import closure of all eighteen interpretive
+  services and fails if one can reach a limited system at any depth — with a
+  negative control proving the walker actually traverses, and a check that the
+  display route still *can* reach them, so deleting a system does not turn the
+  guard green. It holds today: only `app/api/charts.py` reaches them.
+  **Certification means the whole input domain, not a sample.** Every one of the
+  27 nakshatras for the lord-sequence systems and every one of the 108
+  nakshatra-padas for Kalachakra, at three points inside each, checked for
+  contiguity, exact partitioning of parent by child, and correct opening
+  balance — 683 assertions where the per-system suites had one reference chart
+  each. No defect found.
+  **What it cannot certify is named and still owed.** Ardra-adi vs Krittika-adi
+  for Ashtottari (the two assign different opening lords for the same Moon, and
+  we follow Raman); the Kalachakra pada tables, which have **no independent
+  second source in this repository** and where a transcription error would be
+  internally consistent and pass every test above; the Yogini antardasha
+  convention; and `DAS-08`'s 8-karaka vs 7-karaka scheme, which matters more
+  than the rest because Chara Karakas are the one item here that is **live** —
+  `chart_signature` reads the Atmakaraka today. An entry that certifies
+  everything and admits nothing now fails its own manifest test.
 
 ---
 
