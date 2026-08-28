@@ -131,6 +131,16 @@ class ActivityRules:
     # support must opt in per activity after an owner-approved policy decision.
     evening_policy: Literal["DAY_ONLY", "FORENOON_ONLY", "UNTIL_PRADOSHA", "EVENING_ALLOWED"] = "DAY_ONLY"
 
+    # Other `RuleSource.source_scope` values this activity may legitimately cite,
+    # because the chapter rules on a category and this activity is a member of it.
+    # `RuleSource`'s own docstring calls scope load-bearing: a rule confirmed for
+    # one scope must never be read as confirmed for another just because the
+    # wording fits. Borrowing therefore has to be written down —
+    # `muhurta_source_invariant` rejects any citation whose scope is neither this
+    # activity nor a scope named here. Keep it to categories the source itself
+    # groups; it is not a general escape hatch.
+    inherits_scope_from: tuple[str, ...] = ()
+
     # ── nakshatra ────────────────────────────────────────────────────────────
     star_groups: tuple[StarGroup, ...] = ()
     prohibited_stars: frozenset[int] = frozenset()
@@ -479,6 +489,10 @@ ACTIVITY_RULES: dict[str, ActivityRules] = {
     ),
     "GOLD": ActivityRules(
         activity="GOLD",
+        # Ch. XXI rules on the treasure-house as a category and this is one of
+        # its named contents, so the chapter's tithi/karana/vara/lagna rules are
+        # cited here under TREASURE_STORE scope rather than re-recorded.
+        inherits_scope_from=("TREASURE_STORE",),
         label_en="acquiring or storing gold and precious metals",
         label_ta="தங்கம் மற்றும் விலைமதிப்புள்ள உலோகங்களைச் சேமிப்பதற்கு",
         chapter="XXI",
@@ -516,6 +530,10 @@ ACTIVITY_RULES: dict[str, ActivityRules] = {
     ),
     "GEMS": ActivityRules(
         activity="GEMS",
+        # Ch. XXI rules on the treasure-house as a category and this is one of
+        # its named contents, so the chapter's tithi/karana/vara/lagna rules are
+        # cited here under TREASURE_STORE scope rather than re-recorded.
+        inherits_scope_from=("TREASURE_STORE",),
         label_en="acquiring or storing gems and jewels",
         label_ta="ரத்தினங்கள் மற்றும் நகைகளைச் சேமிப்பதற்கு",
         chapter="XXI",
@@ -551,6 +569,10 @@ ACTIVITY_RULES: dict[str, ActivityRules] = {
     ),
     "GRAIN": ActivityRules(
         activity="GRAIN",
+        # Ch. XXI rules on the treasure-house as a category and this is one of
+        # its named contents, so the chapter's tithi/karana/vara/lagna rules are
+        # cited here under TREASURE_STORE scope rather than re-recorded.
+        inherits_scope_from=("TREASURE_STORE",),
         label_en="storing grain",
         label_ta="தானியம் சேமிப்பதற்கு",
         chapter="XXI",
