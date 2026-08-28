@@ -173,6 +173,34 @@ OWN_SIGN_RASI: dict[str, frozenset[int]] = {
 # All 9x9 ordered pairs are now symmetric. `tests/test_chart_strength.py`
 # asserts the symmetry of the two node rows directly, so a future edit cannot
 # reintroduce a one-way node grade without failing.
+#
+# ── PN-1 CLOSED, 2026-08-28 (astrologer ruling). The node rows are [PRODUCT] ──
+#
+# The seven-graha core above is now SOURCED, not merely derivable: Kalaprakasika
+# printed p. 246 gives the general planetary-friendship table in full, and all
+# 49 ordered pairs of the core match it exactly — the Moon/Mercury asymmetry
+# included, which is printed on the page. (p. 246 also states "Moon — No
+# enemies", which is the classical position our Tamil overlay departs from in
+# holding Moon inimical to both nodes. That divergence is real, deliberate and
+# recorded; see STR-03.)
+#
+# **The two node rows are [PRODUCT] — Vinaadi house policy, no classical
+# authority claimed.** The astrologer's ruling: "No lineage table exists to
+# offer." That closes the search rather than the question:
+#
+#   * p. 246's general table has no Rahu or Ketu row;
+#   * pp. 74-75's porutham-scoped friendship table has no node rows either —
+#     two independent printed tables in this lineage, both seven grahas only;
+#   * the Moolatrikona table the derivation argument rests on (p. 119 footnote)
+#     contains no nodes, which is *why* nothing can be derived for them.
+#
+# So do not re-open this looking for a page. The values are unchanged and are
+# not in question; what changed is the claim made about them. Symmetry (above)
+# is an internal-consistency property and is NOT provenance — it was never
+# evidence that these rows are traditional, and must not be cited as such.
+#
+# If a lineage node table is ever produced, it supersedes these rows wholesale
+# and the [PRODUCT] label comes off. Nothing short of that does.
 _NATURAL_FRIENDS: dict[str, frozenset[str]] = {
     "SUN": frozenset({"MOON", "MARS", "JUPITER"}),
     "MOON": frozenset({"SUN", "MERCURY"}),
