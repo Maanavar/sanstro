@@ -108,26 +108,29 @@ MARRIAGE_TITHI_BEST: frozenset[int] = frozenset({2, 3, 5, 7, 10, 11, 13})
 MARRIAGE_TITHI_MIDDLING_KRISHNA_ONLY: frozenset[int] = frozenset({1})        # Prathama, dark fortnight only
 MARRIAGE_TITHI_MIDDLING_BOTH_PAKSHA: frozenset[int] = frozenset({6, 8, 12})  # Shashthi, Ashtami, Dwadashi
 MARRIAGE_TITHI_MIDDLING_SHUKLA_ONLY: frozenset[int] = frozenset({15})        # Purnima
-MARRIAGE_TITHI_INAUSPICIOUS_KRISHNA_AFTER_ASHTAMI: frozenset[int] = frozenset({9, 10, 11, 12, 13, 14, 15})
-# ASTROLOGER RULING FCR-10c (2026-08-27) — the 15 above is Amavasai.
+MARRIAGE_TITHI_INAUSPICIOUS_KRISHNA_AFTER_ASHTAMI: frozenset[int] = frozenset({9, 10, 11, 12, 13, 14})
+# ASTROLOGER RULING 2026-08-28 — this set stops at 14, and Amavasai is ruled
+# SEPARATELY. It supersedes FCR-10c (2026-08-27), which had extended it to 15.
 #
-# The first extraction stopped this set at 14 and Amavasai fell through every
-# marriage tier to a NEUTRAL 0, leaving the new moon scored only by the generic
-# almanac -5. The omission is explainable: the source never says "Amavasai",
-# while it *does* name Pournami, and that asymmetry read as deliberate. It was
-# not. "All the Thithis after Ashtami of Krishna Paksha" is inclusive in the
-# ordinary tithi sequence — Krishna Ashtami is the 8th of the dark fortnight, so
-# the tithis after it run 9 through 15, and Krishna 15 IS Amavasai. Pournami
-# being separately named does not change Amavasai's numerical identity.
+# FCR-10c reasoned that "the Thithis after Ashtami of Krishna Paksha" runs 9
+# through 15 and that Krishna 15 IS Amavasai. The Appendix, printed p.249,
+# states the book's own numbering and contradicts that arithmetic:
 #
-# Amavasai is therefore swept at the same weight as the rest of the back half.
-# It is deliberately NOT a separate marriage veto: traditional practice does
-# treat the new moon as unsuitable for a wedding, and 21 chapters elsewhere in
-# this text close it (four as outright vetoes, first-milk among them), but the
-# cited p.79 sentence establishes inauspiciousness, not absolute prohibition.
-# Do not promote it to VETO without a marriage-specific passage that says the
-# new moon must be completely avoided. This engine scores the page, not the
-# practice.
+#   "Thithis are 14 in number reckoned from a New-Moon day to the next
+#    Full-Moon or from the Full-Moon to the New-Moon. The 1st day, ie, the day
+#    following the New-Moon or the Full-Moon, is Prathamai; ... 14th,
+#    Chathurdhasi."
+#
+# Fourteen, and the count stops at Chathurdhasi: the New Moon and the Full Moon
+# BOUND the fortnight and are not numbered members of it. The same scheme holds
+# wherever the book counts tithis (pp. 31, 32, 45, and p.79 itself, which names
+# "Pournami (Full-Moon)" beside the numerals rather than calling it the 15th).
+# **There is no "Krishna 15" in this text**, so p.79's sweep runs 9 through 14.
+#
+# THE CITATION RULE THAT FOLLOWS FROM THAT, and it is the operative half of the
+# ruling: **never cite p.79 as authority for Amavasai.** Any marriage treatment
+# of the new moon must carry its own rule id — see MARRIAGE_AMAVASAI_IS_VETO
+# below, which is [TRADITION], not a page.
 #
 # ASTROLOGER RULING FCR-10d (2026-08-27) — closes the former OPEN QUESTION here.
 # The best-7 list's 10/11/13 share in-paksha numbers with this sweep. That is a
@@ -137,6 +140,30 @@ MARRIAGE_TITHI_INAUSPICIOUS_KRISHNA_AFTER_ASHTAMI: frozenset[int] = frozenset({9
 # keep MARRIAGE_TITHI_BEST, and the engine no longer reports the overlap at
 # runtime. Reopen only if the surrounding p.79 text turns out to state that the
 # best-7 hold in either paksha.
+
+# ── 5b. Amavasai for MARRIAGE — [TRADITION], not a page ─────────────────────
+# ASTROLOGER RULING 2026-08-28, answer (c) to the FCR-10c fork.
+#
+# The fork offered was "keep the 74 as a [VARIANT] inference, or revert to 83".
+# The astrologer took neither and ruled a third way: **the new moon is a VETO
+# for marriage, marked [TRADITION]**, with the day's score still computed and
+# shown as informational underneath it.
+#
+# So the strength of the treatment goes UP while its scriptural claim goes DOWN,
+# and those two moves are not in tension — they are the same correction. Tamil
+# practice does not elect a wedding on Amavasai at all; what it does not have is
+# a marriage-chapter sentence saying so, and FCR-10c manufactured one out of an
+# arithmetic slip. The veto rests on practice, is labelled as practice, and
+# cites no page. That is a stronger rule and an honester record than a -14
+# penalty wearing p.79's name.
+#
+# THE VETO AND THE STAND-DOWN MOVE TOGETHER. `muhurta_engine.
+# _activity_rules_on_amavasai` returns True for MARRIAGE so the generic almanac
+# -5 does not also fire — one cause, one chip. Removing this veto without also
+# removing that gate leaves the new moon judged by no layer at all, which is the
+# defect the whole FCR-10 thread was opened to fix.
+MARRIAGE_AMAVASAI_IS_VETO: bool = True
+MARRIAGE_AMAVASAI_VETO_RULE_ID: str = "MARRIAGE_AMAVASAI__TRADITION"
 
 # ── 6. Guru/Sukra Asthangata marriage buffers (p.80, CONFIRMED_WITH_CONDITION) ─
 # "Marriage within a week after the re-appearance (Udhayam) of Venus affects
@@ -403,21 +430,64 @@ RULE_SOURCES: dict[str, RuleSource] = {
             "Three tiers: best / middling / inauspicious. Different from the ear-boring 9-tithi "
             "list (Shashti is 'best' there, only 'middling' here). Paksha matters: Prathama is "
             "middling only in Krishna paksha; the whole back half of Krishna paksha is bad — "
-            "'after Ashtami' running 9 through 15 inclusive, so Amavasai (Krishna 15) is swept "
-            "by this sentence and needs no separate rule."
+            "'after Ashtami' running 9 through 14, which is the full extent of this text's own "
+            "numbered sequence (p.249: 'Thithis are 14 in number'). Amavasai is NOT reachable "
+            "from this sentence and is ruled separately by MARRIAGE_AMAVASAI__TRADITION."
         ),
         notes=(
-            "Two questions this extraction left open were closed by astrologer ruling on "
-            "2026-08-27. FCR-10c: 'after Ashtami of Krishna Paksha' includes Amavasai, which the "
-            "first pass omitted because the source names Pournami but never names the new moon; "
-            "Amavasai is swept, NOT promoted to a veto on this sentence alone. FCR-10d: the "
-            "best-7 list's 10/11/13 overlap with the sweep is specificity precedence, not a "
-            "contradiction — the paksha-qualified rule governs Krishna paksha and the overlap is "
-            "no longer surfaced at runtime. See the comments beside "
+            "Extent settled twice. FCR-10d (2026-08-27) closed the 10/11/13 overlap with the "
+            "best-7 list as specificity precedence, not a contradiction: the paksha-qualified "
+            "rule governs Krishna paksha, and the overlap is no longer surfaced at runtime. "
+            "FCR-10c, from the same day, extended the sweep to in-paksha 15 on the reading that "
+            "'Krishna 15 is Amavasai'; the astrologer ruling of 2026-08-28 REVERSED that half "
+            "against p.249, which numbers thithis 1-14 with New-Moon and Full-Moon named outside "
+            "the series. This page therefore says nothing about the new moon, and must never be "
+            "cited for it. See the comments beside "
             "MARRIAGE_TITHI_INAUSPICIOUS_KRISHNA_AFTER_ASHTAMI."
         ),
         verified_on=_VERIFIED_ON,
-        verified_by="primary-text images p.79 (user-supplied); tier extent by astrologer ruling FCR-10c/10d, 2026-08-27",
+        verified_by=(
+            "primary-text images p.79 (user-supplied); tier extent by astrologer rulings "
+            "FCR-10d 2026-08-27 and 2026-08-28 (sweep ends at 14, per p.249)"
+        ),
+    ),
+    "MARRIAGE_AMAVASAI__TRADITION": RuleSource(
+        rule_id="MARRIAGE_AMAVASAI__TRADITION",
+        factor="TITHI",
+        activity="MARRIAGE",
+        authority=Authority(
+            tradition="Tamil muhurta practice",
+            chapter=None,
+            page=None,
+            verse_or_passage=None,
+        ),
+        # TRADITIONALLY_REPORTED, deliberately. This is the strongest treatment
+        # the engine gives the new moon for marriage and it carries the weakest
+        # provenance claim in the file — because that is what is true. Do not
+        # "upgrade" it by attaching p.79: the ruling of 2026-08-28 exists
+        # precisely to break that link (p.249 numbers thithis 1-14, so p.79's
+        # sweep cannot reach Amavasai).
+        provenance_status=ProvenanceStatus.TRADITIONALLY_REPORTED,
+        source_scope="MUHURTA",
+        rule_type=RuleType.INTERPRETATION,
+        source_confidence=None,
+        outcome=VerificationOutcome.NOT_FOUND,
+        interpretation=(
+            "Amavasai vetoes a marriage muhurta. The day's score is still computed and shown "
+            "underneath the veto as informational, so a reader can see how the rest of the day "
+            "reads — but the day is not electable and must never be ranked against unvetoed days."
+        ),
+        notes=(
+            "NOT_FOUND is the honest outcome here and does not mean 'unsupported': the marriage "
+            "chapter was searched and contains no sentence prohibiting the new moon. Four other "
+            "chapters in this text do veto Amavasai for their own rites, and Tamil practice does "
+            "not elect a wedding on it. Ruled [TRADITION] by the astrologer on 2026-08-28 in "
+            "answer to FCR-10c, superseding that ruling's -14 penalty. Paired with "
+            "`muhurta_engine._activity_rules_on_amavasai` returning True for MARRIAGE, which "
+            "stands the generic almanac line down so the new moon is named once, not twice."
+        ),
+        verified_on=_VERIFIED_ON,
+        verified_by="astrologer ruling 2026-08-28 (FCR-10c answer (c))",
     ),
     "MARRIAGE_GURU_SUKRA_ASTHANGATA__TEXTUAL": RuleSource(
         rule_id="MARRIAGE_GURU_SUKRA_ASTHANGATA__TEXTUAL",

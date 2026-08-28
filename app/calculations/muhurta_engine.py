@@ -390,11 +390,12 @@ def _activity_rules_on_amavasai(activity: str) -> bool:
       their own veto.
 
     MARRIAGE is the third way and is not in the registry at all: it keeps its own
-    branch, and since FCR-10c that branch's Krishna sweep runs to in-paksha 15,
-    so `_tithi_factor` now returns a cited -14 on Amavasai. The generic line has
-    to stand down here or the new moon is charged twice for one fact — the
-    marriage constant and this gate move together, and neither is safe to change
-    alone. Unsourced activities are not in the registry either and correctly keep
+    branch, and since the astrologer ruling of 2026-08-28 that branch **vetoes**
+    Amavasai on the strength of Tamil practice ([TRADITION], no page — see
+    `marriage_muhurta_rules.MARRIAGE_AMAVASAI_IS_VETO`). The generic line has to
+    stand down here or the new moon is named twice for one fact — the marriage
+    veto and this gate move together, and neither is safe to change alone.
+    Unsourced activities are not in the registry either and correctly keep
     the generic reading, which is why this is a MARRIAGE test and not a
     `not in ACTIVITY_RULES` one.
     """
@@ -975,6 +976,28 @@ def _tithi_factor(snapshot, activity: str) -> FactorResult:
     is_best = in_paksha in marriage.MARRIAGE_TITHI_BEST
     swept = is_krishna and in_paksha in marriage.MARRIAGE_TITHI_INAUSPICIOUS_KRISHNA_AFTER_ASHTAMI
 
+    if is_krishna and in_paksha == 15 and marriage.MARRIAGE_AMAVASAI_IS_VETO:
+        # ASTROLOGER RULING 2026-08-28 — Amavasai vetoes a marriage muhurta.
+        #
+        # This branch must stay ABOVE the p.79 sweep and must not borrow its
+        # rule id. The sweep now ends at in-paksha 14 (p.249 numbers thithis
+        # 1-14, with New-Moon and Full-Moon outside the numbered series), so
+        # p.79 has nothing to say about the new moon; the veto rests on Tamil
+        # practice and is marked [TRADITION] at its own record.
+        #
+        # Contribution is 0.0, as every veto's is: the day is already removed,
+        # and pricing it as well would double-count it. The rest of the factor
+        # list still scores, which is what makes the informational score under
+        # the veto meaningful.
+        return FactorResult(
+            factor="TITHI",
+            verdict=Verdict.VETO,
+            contribution=0.0,
+            reason_en=f"{name_en} — the new moon is not elected for marriage.",
+            reason_ta=f"{name_ta} — அமாவாசையில் திருமண முகூர்த்தம் வைப்பதில்லை.",
+            rule_id=marriage.MARRIAGE_AMAVASAI_VETO_RULE_ID,
+        )
+
     if swept:
         # "All the Thithis after Ashtami of Krishna Paksha are inauspicious" is
         # the paksha-qualified — therefore more specific — statement, so it
@@ -986,10 +1009,12 @@ def _tithi_factor(snapshot, activity: str) -> FactorResult:
         # not a contradiction, so the sweep simply wins and nothing is surfaced.
         # Shukla 10/11/13 never reach here and keep their best classification.
         #
-        # The sweep runs to in-paksha 15, so Amavasai lands here too (FCR-10c) —
-        # a penalty at the same weight, deliberately not a veto. `_almanac_
-        # tithi_factor` stands its generic Amavasai line down for MARRIAGE
-        # because of this branch; the two move together.
+        # The sweep ends at in-paksha 14 — this text numbers thithis 1-14 and
+        # bounds the fortnight with the New and Full Moon (p.249), so Amavasai
+        # is not in it and is vetoed by the branch above instead (astrologer
+        # ruling 2026-08-28, superseding FCR-10c). `_almanac_tithi_factor`
+        # stands its generic Amavasai line down for MARRIAGE because of that
+        # veto; the two move together.
         return FactorResult(
             factor="TITHI",
             verdict=Verdict.PENALTY,

@@ -21,6 +21,7 @@ from pathlib import Path
 
 import pytest
 
+from app.calculations.muhurta_doctrine import ProvenanceStatus
 from app.calculations.muhurta_engine import (
     Subject,
     Verdict,
@@ -180,15 +181,23 @@ def test_every_explicitly_avoided_weekday_is_a_hard_veto(snapshots) -> None:
         assert result.vetoed is True, activity
 
 
-def test_no_almanac_factor_ever_vetoes_for_marriage(snapshots) -> None:
+def test_no_almanac_factor_vetoes_marriage_on_a_page_that_only_grades(snapshots) -> None:
     """Kalaprakasika lists the eleven stars as *best* and does not blanket-forbid
     the rest, so a non-listed star is a penalty. Promoting it to a veto would
-    assert something the cited page does not say."""
+    assert something the cited page does not say.
+
+    Two factors may veto marriage, and neither is a page that merely grades:
+    VARA (the chapter names the weekdays to avoid) and TITHI on Amavasai (Tamil
+    practice, ruled 2026-08-28 — see `MARRIAGE_AMAVASAI__TRADITION`). Everything
+    else must stay a penalty."""
     for snap in snapshots:
         result = score_day(snap, "MARRIAGE", subject=None)
         for factor in result.factors:
-            if factor.factor != "VARA":
-                assert factor.verdict is not Verdict.VETO
+            if factor.factor == "VARA":
+                continue
+            if factor.factor == "TITHI" and factor.rule_id == "MARRIAGE_AMAVASAI__TRADITION":
+                continue
+            assert factor.verdict is not Verdict.VETO
 
 
 # ── provenance surfacing ────────────────────────────────────────────────────
@@ -262,32 +271,51 @@ def test_no_factor_reports_an_unresolved_conflict(snapshots) -> None:
                 assert factor.conflict is None, f"{activity}/{factor.factor}: {factor.conflict}"
 
 
-def test_marriage_amavasai_is_swept_by_its_own_chapter_not_the_generic_line(snapshots) -> None:
-    """FCR-10c (2026-08-27). 'All the Thithis after Ashtami of Krishna Paksha'
-    runs 9 through 15, and Krishna 15 is Amavasai — the first extraction stopped
-    at 14, so the new moon matched no marriage tier and scored a NEUTRAL 0 with
-    only the generic almanac -5 against it.
+def test_marriage_amavasai_vetoes_on_tradition_and_never_cites_p79(snapshots) -> None:
+    """ASTROLOGER RULING 2026-08-28, superseding FCR-10c.
 
-    Two halves, and both must hold or the fix trades one defect for another: the
-    marriage branch has to price it, AND the generic Amavasai line has to stand
-    down, or the new moon is charged twice for one fact."""
+    The new moon is a VETO for marriage, and it is [TRADITION] — the marriage
+    chapter contains no sentence about Amavasai. FCR-10c had reached one by
+    reading p.79's 'after Ashtami of Krishna Paksha' as running to a 15th tithi;
+    p.249 numbers thithis 1-14 and bounds the fortnight with the New and Full
+    Moon, so no such tithi exists in this text.
+
+    Three properties, and all three must hold together:
+      1. the day is vetoed, not merely penalised;
+      2. the veto carries its own rule id, so no reader is led to p.79;
+      3. the generic almanac line still stands down, so the new moon is named
+         once. Dropping (3) while doing (1) is how one defect becomes two."""
     amavasai = [s for s in snapshots if s.tithi_number == 30]
     assert amavasai, "sweep window contains no Amavasai — widen SWEEP_DAYS"
 
     for snap in amavasai:
-        factors = score_day(snap, "MARRIAGE", None).factors
-        tithi = next(f for f in factors if f.factor == "TITHI")
+        day = score_day(snap, "MARRIAGE", None)
+        tithi = next(f for f in day.factors if f.factor == "TITHI")
 
-        assert tithi.verdict is Verdict.PENALTY
-        assert tithi.contribution < 0
-        assert tithi.rule_id == "MARRIAGE_TITHI_ALLOWED_SET"
-        # Not a veto: the cited p.79 sentence establishes inauspiciousness, not
-        # absolute prohibition. Practice is stricter; the engine scores the page.
-        assert tithi.verdict is not Verdict.VETO
-
-        assert not any(f.factor == "ALMANAC_TITHI" for f in factors), (
-            "generic Amavasai line double-counts against marriage's own sweep"
+        assert tithi.verdict is Verdict.VETO
+        assert day.vetoed
+        assert tithi.rule_id == "MARRIAGE_AMAVASAI__TRADITION"
+        assert tithi.rule_id != "MARRIAGE_TITHI_ALLOWED_SET", (
+            "the p.79 sweep must never be cited as authority for the new moon"
         )
+        # A veto removes the day; pricing it as well would double-count it. The
+        # rest of the factors still score, which is what the informational
+        # score shown under the veto is made of.
+        assert tithi.contribution == 0.0
+
+        assert not any(f.factor == "ALMANAC_TITHI" for f in day.factors), (
+            "generic Amavasai line double-counts against marriage's own veto"
+        )
+
+
+def test_marriage_krishna_sweep_stops_at_the_fourteenth(snapshots) -> None:
+    """p.249: 'Thithis are 14 in number.' The sweep set is the engine's copy of
+    p.79's sentence, and the sentence cannot reach past its own text's numbering.
+    Pinned as a set rather than through a snapshot because the defect FCR-10c
+    introduced was in the constant, not in a day."""
+    assert marriage.MARRIAGE_TITHI_INAUSPICIOUS_KRISHNA_AFTER_ASHTAMI == frozenset(
+        {9, 10, 11, 12, 13, 14}
+    )
 
 
 # ── reason copy ────────────────────────────────────────────────────────────
@@ -507,9 +535,21 @@ def test_the_yoga_is_reported_but_never_scored_as_support(snapshots) -> None:
 
 # ── provenance resolves ─────────────────────────────────────────────────────
 
-def test_every_emitted_rule_id_resolves_to_a_page_and_a_passage(snapshots) -> None:
+def test_every_emitted_rule_id_resolves_and_declares_what_it_rests_on(snapshots) -> None:
     """A rule_id the product cannot turn back into a citation is decoration.
-    This walks the sweep in both modes rather than trusting one day."""
+    This walks the sweep in both modes rather than trusting one day.
+
+    A rule may rest on a page or on practice, and it must say which. Until
+    2026-08-28 every emitted rule rested on a page, so this test required one
+    unconditionally. The Amavasai marriage veto is the first rule the astrologer
+    ruled `[TRADITION]` — its provenance is Tamil practice and it has no page by
+    design.
+
+    So the assertion moves from 'always a page' to 'a page, or an explicit
+    declaration that there is none'. That keeps the thing the test was built to
+    catch — a rule_id pointing at nothing, or at a record too thin to follow —
+    while allowing a rule to be honestly unsourced. What it must never allow is
+    a record that CLAIMS a page and does not have one."""
     seen = 0
     for snap in snapshots:
         for subject in (None, SYNTHETIC):
@@ -518,8 +558,18 @@ def test_every_emitted_rule_id_resolves_to_a_page_and_a_passage(snapshots) -> No
                     continue
                 record = resolve_rule_source(factor.rule_id)
                 assert record is not None, f"unresolvable rule_id {factor.rule_id}"
-                assert record.authority.page is not None
-                assert record.authority.verse_or_passage
+                if record.provenance_status is ProvenanceStatus.CONFIRMED:
+                    assert record.authority.page is not None
+                    assert record.authority.verse_or_passage
+                else:
+                    # Unsourced by ruling, not by omission: the tradition has to
+                    # be named, and the record has to explain itself.
+                    assert record.authority.tradition, (
+                        f"{factor.rule_id} has no page and names no tradition either"
+                    )
+                    assert record.notes, (
+                        f"{factor.rule_id} rests on practice and does not say why"
+                    )
                 seen += 1
     assert seen, "no factor cited a rule across the whole sweep"
 
