@@ -5,14 +5,37 @@ Produces an 8-level marriage compatibility report beyond the traditional 10-kuta
 Porutham check. Requires two fully computed chart snapshots (ChartCalculateResponseData)
 and the Porutham + Synastry scores already computed by the existing engines.
 
-Scoring model (total 100 points):
-  Porutham (kutas)          20 pts
+Scoring model (total 100 points) — REWEIGHTED by astrologer ruling 2026-08-28:
+  Porutham (kutas)          35 pts  (was 20)
   7th house strength        20 pts  (10 per person)
-  Navamsa (D9) quality      20 pts
+  Navamsa (D9) quality      15 pts  (was 20)
   Dasha alignment           15 pts
   Dosha analysis            10 pts  (Sevvai + Nadi combined)
-  Emotional compatibility   10 pts
-  Synastry (chart aspects)   5 pts  (mapped from 0-100)
+  Emotional compatibility    5 pts  (was 10)
+  Synastry (chart aspects)   0 pts  (was 5 — dropped from the composite)
+
+WHY THESE NUMBERS, and the instruction that came with them:
+
+  "De-duplicate by trimming Emotional and Navamsa, not by capping Porutham."
+
+20 of 100 was too low for a Tamil audience. The ten poruthams are the instrument
+the family actually uses, and a report that weights them at one fifth will
+sometimes disagree with the elder in the room and lose that argument whatever
+the other eighty points say.
+
+But raising Porutham alone would have INFLATED every score, because Moon-Moon
+harmony (Emotional) and the D9 Venus / 7th-lord agreement (Navamsa) partly
+RESTATE what the ten poruthams already measure. Trimming those two is what makes
+the raise honest rather than additive — the same agreement is no longer counted
+twice. Synastry, the Western-aspect layer, leaves the composite entirely; it is
+still computed and still reported on its own (`synastry_score`), just not
+weighted into the headline number.
+
+Each layer keeps its own native scale in its own dataclass — `NavamsaAnalysis.
+score` is still 0-20 and `EmotionalCompatibility.score` still 0-10, because
+those are what the layer detail panels display. Only the CONTRIBUTION to the
+composite is rescaled, in `compute_compatibility_intelligence`. Do not "tidy"
+that by rescaling the layer dataclasses: their ranges are on the wire.
 """
 from __future__ import annotations
 
@@ -35,6 +58,32 @@ from app.calculations.display_names import planet_en, planet_ta
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
+#: The composite's layer weights, ruled 2026-08-28. **This is the single source
+#: of truth** — the assembly rescales against it and `tests/
+#: test_compatibility_intelligence.py` asserts it sums to 100, so a weight can
+#: no longer be changed in one place and left stale in another.
+#:
+#: `web/components/compatibility-intelligence-panel.tsx` carries a hand-typed
+#: copy of these maxima for its bars. Nothing checks the two against each other
+#: — a change here that misses that file renders every bar against the wrong
+#: denominator while the numbers stay right, which is the hardest kind of wrong
+#: to spot. Update both or neither.
+COMPATIBILITY_LAYER_MAX: dict[str, int] = {
+    "porutham": 35,
+    "seventh_house": 20,
+    "navamsa": 15,
+    "dasha_harmony": 15,
+    "dosham_analysis": 10,
+    "emotional": 5,
+    "synastry": 0,
+}
+
+#: The native scales the layer scorers emit, before the composite trims them.
+#: Kept separate because each layer's own detail panel displays its native
+#: score, and those ranges are on the wire.
+_NAVAMSA_NATIVE_MAX = 20
+_EMOTIONAL_NATIVE_MAX = 10
 
 _MALEFICS = frozenset({"MARS", "SATURN", "RAHU", "KETU", "SUN"})
 _KENDRAS = frozenset({1, 4, 7, 10})
@@ -142,13 +191,15 @@ class EmotionalCompatibility:
 
 @dataclass
 class CompatibilityScoreBreakdown:
-    porutham: int = 0        # 0-20
+    # Weights ruled 2026-08-28; see the module docstring for why the raise to
+    # Porutham is paid for by Navamsa and Emotional rather than by capping.
+    porutham: int = 0        # 0-35
     seventh_house: int = 0   # 0-20
-    navamsa: int = 0         # 0-20
+    navamsa: int = 0         # 0-15
     dasha_harmony: int = 0   # 0-15
     dosham_analysis: int = 0 # 0-10
-    emotional: int = 0       # 0-10
-    synastry: int = 0        # 0-5
+    emotional: int = 0       # 0-5
+    synastry: int = 0        # always 0 — out of the composite, still reported alone
 
 
 @dataclass
@@ -703,8 +754,9 @@ def compute_compatibility_intelligence(
     if today_jd is None:
         today_jd = _jd_for_today()
 
-    # Layer 1: Porutham
-    porutham_pts = round(porutham_result.percentage / 100 * 20)
+    # Layer 1: Porutham — 35 of 100 since the 2026-08-28 ruling. The single
+    # heaviest layer, which is the point: it is the instrument the family uses.
+    porutham_pts = round(porutham_result.percentage / 100 * COMPATIBILITY_LAYER_MAX["porutham"])
 
     # Layer 2+3: Chart strength
     strength_a = _compute_chart_marriage_strength(snap_a)
@@ -730,17 +782,29 @@ def compute_compatibility_intelligence(
     # Layer 7: Emotional
     emotional = _compute_emotional_compatibility(snap_a, snap_b)
 
-    # Layer 8: Synastry → 0-5 pts
-    synastry_pts = round(synastry_score / 100 * 5)
+    # Layer 8: Synastry — WEIGHT ZERO since the 2026-08-28 ruling.
+    #
+    # Still computed and still reported in full as `synastry_score`; it simply
+    # no longer moves the headline number. Kept as an explicit 0 rather than
+    # deleted because the field is on the wire across four surfaces, and because
+    # a layer that was dropped deliberately should read as dropped rather than
+    # as absent.
+    synastry_pts = COMPATIBILITY_LAYER_MAX["synastry"]
 
     # Overall score
+    # Navamsa and Emotional are rescaled HERE, not in their own scorers: each
+    # layer keeps its native scale for its own detail panel (`navamsa.score` is
+    # 0-20, `emotional.score` is 0-10) and only its contribution is trimmed.
+    # This is the "de-duplicate by trimming, not by capping" half of the ruling.
     breakdown = CompatibilityScoreBreakdown(
         porutham=porutham_pts,
         seventh_house=seventh_house_pts,
-        navamsa=navamsa.score,
+        navamsa=round(navamsa.score / _NAVAMSA_NATIVE_MAX * COMPATIBILITY_LAYER_MAX["navamsa"]),
         dasha_harmony=dasha.score,
         dosham_analysis=dosham_pts,
-        emotional=emotional.score,
+        emotional=round(
+            emotional.score / _EMOTIONAL_NATIVE_MAX * COMPATIBILITY_LAYER_MAX["emotional"]
+        ),
         synastry=synastry_pts,
     )
     overall_score = (

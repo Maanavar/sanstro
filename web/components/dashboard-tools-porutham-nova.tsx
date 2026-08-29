@@ -559,12 +559,18 @@ export function NovaPoruthamPanel({
                 {porutham.kutas.map((k) => {
                   const pass = k.passed ?? k.score > 0;
                   const governs = kutaGoverns(k);
+                  const band = k.detail === "MADHYAMA"
+                    ? (lang === "ta" ? "மத்தியமம்" : "Madhyama")
+                    : k.detail === "UTTAMA"
+                      ? (lang === "ta" ? "உத்தமம்" : "Uttama")
+                      : null;
                   return (
                     <Card key={k.name} variant={governs?.critical ? "high" : "soft"} style={{
                       display: "flex", flexDirection: "row", alignItems: "center", gap: "var(--space-3)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)",
                     }}>
                       <div style={{ minWidth: "150px" }}>
                         <span style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>{lang === "ta" ? k.nameTa : k.name}</span>
+                        {band && <span style={{ marginLeft: "6px", fontSize: "var(--text-xs)", color: "var(--color-muted)" }}>{band}</span>}
                         {governs?.critical && (
                           <span style={{ marginLeft: "6px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-high)", borderRadius: "var(--radius-sm)", padding: "var(--space-1) var(--space-2)" }}>
                             {lang === "ta" ? "முக்கியம்" : "CRITICAL"}

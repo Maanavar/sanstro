@@ -263,14 +263,20 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
   const overallPct = d.overallScore / 100;
   const poruthamPct = d.poruthamScore / Math.max(1, d.poruthamMax);
 
+  // Maxima ruled 2026-08-28 and MUST track
+  // `compatibility_intelligence.CompatibilityScoreBreakdown`. They are hand-typed
+  // here — nothing checks them against the backend — so a weight change that
+  // updates only one side renders every bar against the wrong denominator while
+  // the numbers themselves stay correct, which is the hardest kind of wrong to
+  // notice. Synastry now weighs 0 in the composite and is dropped from this list
+  // rather than shown as a permanent 0/0; it keeps its own panel elsewhere.
   const breakdown = [
-    { key: "porutham", label: en ? "Porutham (Traditional)" : "பொருத்தம் (பாரம்பரியம்)", score: d.scoreBreakdown.porutham, max: 20 },
+    { key: "porutham", label: en ? "Porutham (Traditional)" : "பொருத்தம் (பாரம்பரியம்)", score: d.scoreBreakdown.porutham, max: 35 },
     { key: "seventh", label: en ? "7th House Strength" : "7ஆம் இடம் வலிமை", score: d.scoreBreakdown.seventhHouse, max: 20 },
-    { key: "navamsa", label: en ? "Navamsa (D9)" : "நவாம்சம் (D9)", score: d.scoreBreakdown.navamsa, max: 20 },
+    { key: "navamsa", label: en ? "Navamsa (D9)" : "நவாம்சம் (D9)", score: d.scoreBreakdown.navamsa, max: 15 },
     { key: "dasha", label: en ? "Dasa Alignment" : "தசை இணக்கம்", score: d.scoreBreakdown.dashaHarmony, max: 15 },
     { key: "dosham", label: en ? "Dosham Analysis" : "தோஷம் பகுப்பாய்வு", score: d.scoreBreakdown.doshamAnalysis, max: 10 },
-    { key: "emotional", label: en ? "Emotional Compatibility" : "உணர்வு இணக்கம்", score: d.scoreBreakdown.emotional, max: 10 },
-    { key: "synastry", label: en ? "Synastry" : "சினாஸ்ட்ரி", score: d.scoreBreakdown.synastry, max: 5 },
+    { key: "emotional", label: en ? "Emotional Compatibility" : "உணர்வு இணக்கம்", score: d.scoreBreakdown.emotional, max: 5 },
   ];
 
   return (
@@ -550,11 +556,16 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
           </span>
           <span style={{ fontSize: "0.88rem", color: W.muted }}>/100</span>
         </div>
-        <ScoreBar score={d.scoreBreakdown.synastry} max={5} label="" />
+        {/* The 0-5 contribution bar is gone with the weight: as of 2026-08-28
+            Synastry carries no points in the composite, so a bar would read as
+            a score of zero rather than as a layer that is shown for context.
+            The copy below states that outright — a panel that kept saying "up
+            to 5 points" beside a weight of 0 is the exact defect where an
+            explanation contradicts its own numbers. */}
         <p style={{ margin: "8px 0 0", fontSize: "0.78rem", color: W.muted }}>
           {en
-            ? "Synastry (planetary aspects between the two charts) contributes up to 5 points to the overall score."
-            : "சினாஸ்ட்ரி (இரு ஜாதகங்களுக்கிடையே கிரக தொடர்புகள்) ஒட்டுமொத்த மதிப்பெண்ணில் 5 புள்ளிகள் வரை பங்களிக்கிறது."}
+            ? "Synastry (planetary aspects between the two charts) is shown for context and does not contribute to the overall score."
+            : "சினாஸ்ட்ரி (இரு ஜாதகங்களுக்கிடையே கிரக தொடர்புகள்) விளக்கத்திற்காக மட்டுமே காட்டப்படுகிறது; ஒட்டுமொத்த மதிப்பெண்ணில் இது சேர்க்கப்படவில்லை."}
         </p>
       </SectionCard>
 

@@ -173,13 +173,66 @@ def test_moon_harmony_grades_shadashtaka_as_tense():
 def test_rasi_porutham_may_fail_positions_moon_harmony_does_not():
     """The corollary, asserted so the divergence is deliberate rather than drift.
 
-    A groom 2nd from the bride now fails Rasi porutham (a directional doctrinal
+    A groom 2nd from the bride fails Rasi porutham (a directional doctrinal
     rule) while the two Moons one sign apart are only dwirdwadasa (MIXED) as an
     emotional reading. Those are different claims about different things, and
     the product is allowed to make both.
+
+    Read on an ODD groom sign since 2026-08-28: Kalaprakasika p.74 lifts the 2nd
+    position when the groom's rasi is EVEN, so bride Mesha / groom Rishabha —
+    this test's original example — now passes for a sourced reason. The pairing
+    below keeps the divergence the test is actually about.
     """
-    assert _rasi_score(2, 1) == 0            # bride Mesha, groom Rishabha: count 2
-    assert _moon_harmony_label(2, 1) == "MIXED"
+    assert _rasi_score(3, 2) == 0            # bride Rishabha, groom Mithuna: count 2, odd groom
+    assert _moon_harmony_label(3, 2) == "MIXED"
+
+
+# ---------------------------------------------------------------------------
+# Composite layer weights — astrologer ruling 2026-08-28
+# ---------------------------------------------------------------------------
+
+def test_layer_weights_sum_to_one_hundred():
+    """The weights are the ruling. If they stop summing to 100 the headline
+    number silently stops being a percentage, and every band cutoff
+    (EXCELLENT >= 80, GOOD >= 65) starts meaning something else."""
+    from app.calculations.compatibility_intelligence import COMPATIBILITY_LAYER_MAX
+
+    assert sum(COMPATIBILITY_LAYER_MAX.values()) == 100
+
+
+def test_porutham_is_the_heaviest_layer_and_synastry_carries_none():
+    """The two halves of the 2026-08-28 ruling, pinned as properties rather than
+    as numbers — so a later retune can move the values without breaking this,
+    but cannot quietly undo the decision.
+
+    Porutham at 35 is deliberately the largest single layer: the ten poruthams
+    are the instrument the family uses, and a report that under-weights them
+    loses the argument with the elder in the room. Synastry at 0 is out of the
+    composite entirely while still being computed and reported on its own."""
+    from app.calculations.compatibility_intelligence import COMPATIBILITY_LAYER_MAX
+
+    weights = COMPATIBILITY_LAYER_MAX
+    assert weights["porutham"] == max(weights.values())
+    assert weights["porutham"] > weights["navamsa"] + weights["emotional"]
+    assert weights["synastry"] == 0
+
+
+def test_navamsa_and_emotional_were_trimmed_not_porutham_capped():
+    """"De-duplicate by trimming Emotional and Navamsa, not by capping Porutham."
+
+    Moon-Moon harmony and the D9 Venus / 7th-lord agreement partly restate what
+    the ten poruthams already measure, so raising Porutham without trimming them
+    would have counted the same agreement twice and inflated every score. This
+    asserts the trim actually happened — both layers now contribute less than
+    the native scale their own detail panels still display."""
+    from app.calculations.compatibility_intelligence import (
+        _EMOTIONAL_NATIVE_MAX,
+        _NAVAMSA_NATIVE_MAX,
+        COMPATIBILITY_LAYER_MAX,
+    )
+
+    assert COMPATIBILITY_LAYER_MAX["navamsa"] < _NAVAMSA_NATIVE_MAX
+    assert COMPATIBILITY_LAYER_MAX["emotional"] < _EMOTIONAL_NATIVE_MAX
 
 
 # ---------------------------------------------------------------------------

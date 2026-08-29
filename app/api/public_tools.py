@@ -338,6 +338,7 @@ def public_porutham(payload: PublicPoruthamRequest, request: Request) -> PublicP
             score=k.score,
             max_score=k.max_score,
             label=k.label,
+            detail=k.detail,
         )
         for k in result.kutas
     ]
@@ -487,7 +488,7 @@ def _compute_star_porutham(
         nadi_parihara_mode=get_flag("nadi_parihara_mode"),
     )
     kutas = [
-        KutaResult(name=k.name, name_ta=k.name_ta, score=k.score, max_score=k.max_score, label=k.label)
+        KutaResult(name=k.name, name_ta=k.name_ta, score=k.score, max_score=k.max_score, label=k.label, detail=k.detail)
         for k in result.kutas
     ]
     nadi = result.nadi_dosha

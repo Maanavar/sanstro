@@ -167,6 +167,11 @@ export default function PoruthamScreen() {
                       {isTamil ? k.nameTa : k.name}
                     </Text>
                     <Text style={styles.kutaScore}>{k.score}/{k.maxScore}</Text>
+                    {k.detail === "MADHYAMA" ? (
+                      <Text style={styles.kutaScore}>{isTamil ? "மத்தியமம்" : "Madhyama"}</Text>
+                    ) : k.detail === "UTTAMA" ? (
+                      <Text style={styles.kutaScore}>{isTamil ? "உத்தமம்" : "Uttama"}</Text>
+                    ) : null}
                   </View>
                   <View style={[
                     styles.kutaChip,

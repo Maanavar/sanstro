@@ -11,7 +11,8 @@ The 10 Poruthams (Tamil → calculation rule):
   1. Dinam      (தினம்)           — count boy's nak from girl's (1-based, 1-27); pass only for the classical good-count table (incl. the 9th/18th counts, Parama Mitra tara)
   2. Ganam      (கணம்)            — Deva/Manushya/Rakshasa; Deva+Deva or Deva+Manushya = pass
   3. Mahendra   (மகேந்திரம்)      — count boy's nak from girl's; pass if result ∈ {4,7,10,13,16,19,22,25}
-  4. Stree Dirgham (ஸ்திரீ தீர்கம்) — count boy's nak from girl's; pass if count > 7 (≥ 8)
+  4. Stree Dirgham (ஸ்திரீ தீர்கம்) — count boy's nak from girl's; 1–7 fail,
+     8–13 Madhyama, 14–27 Uttama (the binary point is awarded at ≥ 14)
   5. Yoni       (யோனி)            — same or neutral animal pair = pass; hostile pair = fail
   6. Rasi       (ராசி)            — pass unless 6th or 8th position (Shashtashtaka) between rasis
   7. Rasiyathipathi (ராசியாதிபதி) — FAIL if either rasi lord regards the other as an enemy (one-way enmity fails)
@@ -258,15 +259,22 @@ def _mahendra_score(nak_boy: int, nak_girl: int) -> int:
     return 1 if diff in {4, 7, 10, 13, 16, 19, 22, 25} else 0
 
 
-def _stree_dirgha_score(nak_boy: int, nak_girl: int) -> int:
-    """Stree Dirgham: count boy's nak from girl's (0-based); PASS if count > 7 (1-indexed ≥ 8).
+def _stree_dirgha_band(nak_boy: int, nak_girl: int) -> str:
+    """Return the ruled Sthree Deergham grade for the inclusive star count.
 
-    Convention note: this project uses the lenient ≥8 threshold. Some traditions
-    require a stricter ≥13 (half the 27-nakshatra circle) before passing. Not
-    changed — documenting the choice per the 2026-07 audit.
+    Astrologer ruling 2026-08-28: 1–7 FAIL, 8–13 MADHYAMA, 14–27 UTTAMA.
+    The public 10-kuta score remains binary, so only UTTAMA earns its point.
     """
-    diff = (nak_boy - nak_girl) % 27
-    return 1 if diff > 6 else 0
+    count = (nak_boy - nak_girl) % 27 + 1
+    if count <= 7:
+        return "FAIL"
+    if count <= 13:
+        return "MADHYAMA"
+    return "UTTAMA"
+
+
+def _stree_dirgha_score(nak_boy: int, nak_girl: int) -> int:
+    return int(_stree_dirgha_band(nak_boy, nak_girl) == "UTTAMA")
 
 
 def _yoni_score(nak_boy: int, nak_girl: int) -> int:
@@ -278,24 +286,105 @@ def _yoni_score(nak_boy: int, nak_girl: int) -> int:
     return 1
 
 
-# EC-RULING-01 (2026-08-17). The unverified exception clauses, shipped DISABLED.
+# EC-RULING-01 (2026-08-17) opened these DISABLED because neither reported
+# refinement arrived with a quoted passage. ASTROLOGER RULING 2026-08-28 (`A-5`)
+# ENABLES the two that now have one, and holds the third.
 #
-# Two candidate refinements were reported — an "even-sign exception" at the 2nd
-# position, and six enumerated pair exceptions at the 6th. Neither arrived with a
-# quoted passage, and that is precisely the failure mode where a plausible-
-# sounding completion of "what a rich classical rule probably contains" gets
-# mistaken for what is printed. So the schema exists and nothing fires.
+# The ruling: "Enable BOTH + the six enumerated pairs [CLASSICAL p.74]. 2nd =
+# [CLASSICAL:KP], 6th even-sign = [LINEAGE:Jothidam]. Enumerated pairs beat
+# even-sign generic at the 6th. Where both lift a pairing, show the more
+# conservative grade."
 #
-# To enable: supply the verbatim p.68 passage plus whatever page states the
-# 2nd/6th exceptions, fill the sets, and flip the flag in the same change.
-RASI_EXCEPTIONS_ENABLED = False
-RASI_EXCEPTION_GAP = (
-    "Directional skeleton only. The 2nd-position even-sign exception and the "
-    "six 6th-position pair exceptions are unverified against p.68 and do not fire."
-)
+# So this is not "which text governs" — it is BOTH texts, each marked with where
+# it comes from, plus a stated precedence. Kalaprakasika's 2nd-position
+# exception and Jothidam's 6th-position one are different claims about different
+# positions, not rival versions of one claim.
+RASI_EXCEPTIONS_ENABLED = True
 
 #: Inclusive bride->groom counts the source marks adverse.
 _RASI_ADVERSE_COUNTS: frozenset[int] = frozenset({2, 3, 4, 5, 6})
+
+# ── 2nd position — Kalaprakasika p.74, verbatim [CLASSICAL:KP] ───────────────
+#
+#   "Even if the Jenma-Rasi of the bridegroom be the 2nd from that of the bride,
+#    the effect will be good if such Jenma-Rasi be an even sign ... If it be an
+#    odd sign, it will do harm."
+#
+# The test is on the GROOM's rasi (the "such Jenma-Rasi" the sentence has just
+# named), not the bride's. Even signs are Rishabha, Kataka, Kanni, Vrichigam,
+# Makaram, Meenam — the even ordinals.
+RASI_SECOND_POSITION_EVEN_SIGN_LIFTS: bool = True
+
+# ── 6th position — Kalaprakasika p.74, verbatim [CLASSICAL:KP] ───────────────
+#
+#   "Aries and Virgo; Sagittari and Taurus; Libra and Pisces; Aquarius and
+#    Cancer; Leo and Capricorn; Gemini and Scorpio."
+#
+# Stored as (bride rasi, groom rasi). Each printed pair is a 6th-position
+# pairing in exactly one direction — the reverse direction is the 8th, which
+# this rule does not address — so the ordering is the text's, not a choice.
+_RASI_SIXTH_PAIR_EXCEPTIONS: frozenset[tuple[int, int]] = frozenset({
+    (1, 6),    # Mesham  -> Kanni
+    (9, 2),    # Dhanusu -> Rishabham
+    (7, 12),   # Thulam  -> Meenam
+    (11, 4),   # Kumbam  -> Kadagam
+    (5, 10),   # Simmam  -> Makaram
+    (3, 8),    # Mithunam-> Vrichigam
+})
+
+# ── 6th position — Jothidam p.68 [LINEAGE:Jothidam]. RULED IN, HELD UNFILLED ──
+#
+# The ruling enables this row. It is **not** filled here, and the reason is the
+# same one that kept the whole block disabled until today: we hold a paraphrase
+# of p.68 ("even sign from Rishabha, groom 6th -> Madhyama"), not the sentence.
+# Filling a set from a paraphrase is the exact failure EC-RULING-01 named.
+#
+# Two things must be settled on the page before this fires, and one of them is a
+# question for the astrologer rather than for the book:
+#
+#  1. **Scope.** Does "even sign" mean every even rasi, or the even signs
+#     counted *from* Rishabha (a subset)? The paraphrase carries both readings.
+#  2. **Coverage — and this is the substantive one.** At the 6th, the groom's
+#     rasi is always the bride's parity flipped, so the six enumerated pairs
+#     above are exactly the cases with an ODD bride and an EVEN groom. If
+#     Jothidam's exception is read as "every even sign", it covers precisely the
+#     six pairings the enumerated list does *not*, and the two rules together
+#     would lift **every** 6th-position pairing — retiring the 6th-position
+#     failure entirely. That is a much larger change than "enable an exception",
+#     and it is not what the ruling appears to intend.
+#
+# So the schema is live and the set is empty: enabling this row changes nothing
+# until the page settles it. That is deliberate and must not be read as the rule
+# being switched off.
+_RASI_SIXTH_EVEN_SIGN_JOTHIDAM: frozenset[int] = frozenset()
+RASI_EXCEPTION_GAP = (
+    "The 2nd-position even-sign exception and the six 6th-position pair "
+    "exceptions are live (Kalaprakasika p.74). Jothidam p.68's 6th-position "
+    "even-sign exception is ruled in but held: we hold a paraphrase, not the "
+    "sentence, and its scope decides whether the 6th-position failure survives "
+    "at all."
+)
+
+
+def _rasi_exception_lifts(count: int, rasi_girl: int, rasi_boy: int) -> bool:
+    """Whether a sourced exception lifts an otherwise-adverse rasi count.
+
+    PRECEDENCE, per the ruling: at the 6th the enumerated pairs are the specific
+    rule and beat the even-sign generic. Where more than one route would lift the
+    same pairing, the more conservative grade wins — which, while every criterion
+    is pass/fail, means a lift needs only one route and no route can *soften* a
+    verdict another route already gives. When the Madhyama grade lands (`A-7`
+    carries the same three-band shape), this is the function that has to return
+    the minimum rather than a boolean.
+    """
+    if count == 2:
+        return RASI_SECOND_POSITION_EVEN_SIGN_LIFTS and rasi_boy % 2 == 0
+    if count == 6:
+        if (rasi_girl, rasi_boy) in _RASI_SIXTH_PAIR_EXCEPTIONS:
+            return True
+        return rasi_boy in _RASI_SIXTH_EVEN_SIGN_JOTHIDAM
+    # 3rd, 4th and 5th: no exception is stated by either text.
+    return False
 
 
 def _inclusive_rasi_count(from_rasi: int, to_rasi: int) -> int:
@@ -334,8 +423,11 @@ def _rasi_score(rasi_boy: int, rasi_girl: int) -> int:
         return 1
 
     if count in _RASI_ADVERSE_COUNTS:
-        if RASI_EXCEPTIONS_ENABLED:  # pragma: no cover — disabled pending p.68
-            raise NotImplementedError(RASI_EXCEPTION_GAP)
+        if RASI_EXCEPTIONS_ENABLED and _rasi_exception_lifts(count, rasi_girl, rasi_boy):
+            # A MISSING PASS restored, never a new fail: every exception here
+            # moves a couple from FAIL to PASS. Same shape as the 2026-08-17
+            # Vasya defect — couples who should have cleared were being failed.
+            return 1
         return 0
 
     return 1
@@ -405,6 +497,7 @@ class KutaResult:
     score: int      # 1 = pass, 0 = fail (kept for API compatibility)
     max_score: int  # always 1
     label: str      # "PASS" or "FAIL"
+    detail: str | None = None  # optional grade such as MADHYAMA
 
 
 @dataclass(frozen=True, slots=True)
@@ -636,6 +729,7 @@ def compute_porutham(
         this module deliberately does not read flags itself (calculations
         layer stays flag-agnostic).
     """
+    stree_dirgha_band = _stree_dirgha_band(boy_nakshatra, girl_nakshatra)
     scores = {
         "Dinam":           _dinam_score(boy_nakshatra, girl_nakshatra),
         "Ganam":           _ganam_score(boy_nakshatra, girl_nakshatra),
@@ -664,6 +758,7 @@ def compute_porutham(
             score=sc,
             max_score=1,
             label="PASS" if sc else "FAIL",
+            detail=stree_dirgha_band if name == "Stree Dirgha" else None,
         )
         for name, sc in scores.items()
     ]

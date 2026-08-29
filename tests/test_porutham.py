@@ -12,6 +12,7 @@ from app.calculations.porutham import (
     _mahendra_score,
     _rajju_score,
     _rasi_score,
+    _stree_dirgha_band,
     _stree_dirgha_score,
     _vasya_score,
     _vedha_score,
@@ -118,7 +119,8 @@ def test_mahendra_good_set_symmetric_under_direction_reversal():
 
 def test_stree_dirgha_good():
     # boy=20 (Uthiradam), girl=1 (Aswini): (20-1)%27=19 > 6 → PASS
-    assert _stree_dirgha_score(20, 1) == 1
+    assert _stree_dirgha_score(14, 1) == 1
+    assert _stree_dirgha_band(14, 1) == "UTTAMA"
 
 
 def test_stree_dirgha_bad():
@@ -128,7 +130,9 @@ def test_stree_dirgha_bad():
 
 def test_stree_dirgha_boundary():
     # boy=8 (Poosam), girl=1 (Aswini): diff=7 > 6 → PASS (count=8, meets >7)
-    assert _stree_dirgha_score(8, 1) == 1
+    assert _stree_dirgha_score(13, 1) == 0
+    assert _stree_dirgha_band(8, 1) == "MADHYAMA"
+    assert _stree_dirgha_band(7, 1) == "FAIL"
     # boy=7 (Punarpoosam), girl=1 (Aswini): diff=6 ≤ 6 → FAIL (count=7, fails >7)
     assert _stree_dirgha_score(7, 1) == 0
 
@@ -164,8 +168,13 @@ def test_rasi_seventh():
 
 
 def test_rasi_sixth():
-    # girl=1 (Mesha) → boy=6 (Kanni): count 6 → adverse → FAIL
-    assert _rasi_score(6, 1) == 0
+    """girl=2 (Rishabham) → boy=7 (Thulam): count 6 → adverse → FAIL.
+
+    Read on an even-bride pairing since 2026-08-28. Mesha → Kanni, this test's
+    original example, is one of the six pairs Kalaprakasika p.74 lifts at the
+    6th, so it now passes — for a sourced reason, not because the base rule
+    changed. The base rule is what this test is for."""
+    assert _rasi_score(7, 2) == 0
 
 
 def test_rasi_eighth_from_bride_now_passes():
@@ -178,13 +187,17 @@ def test_rasi_eighth_from_bride_now_passes():
     assert _rasi_score(8, 1) == 1
 
 
-def test_rasi_positions_two_to_five_from_bride_now_fail():
-    """The other half of the change: these used to pass under Bhakoot, because
-    Bhakoot only ever looked at 6 and 8."""
-    for boy_offset, count in ((1, 2), (2, 3), (3, 4), (4, 5)):
-        girl = 1
-        boy = girl + boy_offset
-        assert _rasi_score(boy, girl) == 0, f"count {count} should be adverse"
+def test_rasi_positions_three_to_five_from_bride_fail_with_no_exception():
+    """The other half of EC-RULING-01: these used to pass under Bhakoot, because
+    Bhakoot only ever looked at 6 and 8.
+
+    Counts 3, 4 and 5 are the ones NEITHER text carves an exception out of, so
+    they fail plainly whatever the signs are. The 2nd and the 6th are exception-
+    bearing and are tested separately — this test is the control."""
+    for offset, count in ((2, 3), (3, 4), (4, 5)):
+        for girl in range(1, 13):
+            boy = (girl - 1 + offset) % 12 + 1
+            assert _rasi_score(boy, girl) == 0, f"count {count}, bride {girl}"
 
 
 def test_rasi_count_is_directional_not_symmetric():
@@ -193,9 +206,14 @@ def test_rasi_count_is_directional_not_symmetric():
     Mesha bride with Kanni groom is a 6th-position match and fails; swap the two
     and it is an 8th-position match and passes. A symmetric rule cannot express
     that, which is exactly why the old one could not be patched into shape.
+
+    Read with an exception-free pairing (Rishabham bride, Thulam groom) so the
+    property under test is the direction and not p.74's enumerated list — bride
+    Mesha / groom Kanni, the original example, is now one of the six lifted
+    pairs and would pass for an unrelated reason.
     """
-    assert _rasi_score(6, 1) == 0   # bride Mesha, groom Kanni  → count 6
-    assert _rasi_score(1, 6) == 1   # bride Kanni, groom Mesha  → count 8
+    assert _rasi_score(7, 2) == 0   # bride Rishabham, groom Thulam → count 6
+    assert _rasi_score(2, 7) == 1   # bride Thulam, groom Rishabham → count 8
 
 
 def test_rasi_same_is_routed_out_of_this_rule():
@@ -203,19 +221,68 @@ def test_rasi_same_is_routed_out_of_this_rule():
     assert _rasi_score(3, 3) == 1
 
 
-def test_rasi_exception_clauses_ship_disabled():
-    """EC-RULING-01 explicitly holds the exception clauses until p.68 is read
-    verbatim. The schema is present so enabling is a one-line change; nothing
-    fires until then."""
+def test_rasi_second_position_lifts_only_for_an_even_groom_sign():
+    """ASTROLOGER RULING 2026-08-28 (`A-5`), Kalaprakasika p.74:
+
+        "Even if the Jenma-Rasi of the bridegroom be the 2nd from that of the
+         bride, the effect will be good if such Jenma-Rasi be an EVEN sign ...
+         If it be an ODD sign, it will do harm."
+
+    The parity test is on the GROOM's sign — "such Jenma-Rasi" is the one the
+    sentence has just named. Reading it off the bride's sign inverts the rule on
+    every chart, and at the 2nd position the two parities are always opposite,
+    so the error would be total rather than occasional."""
+    for girl in range(1, 13):
+        boy = girl % 12 + 1                      # the 2nd from the bride
+        assert _rasi_score(boy, girl) == (1 if boy % 2 == 0 else 0), (
+            f"bride {girl}, groom {boy}"
+        )
+
+
+def test_rasi_sixth_position_lifts_exactly_the_six_printed_pairs():
+    """The six enumerated pairs of p.74, and nothing else at the 6th.
+
+    Each printed pair is a 6th-position pairing in one direction only — the
+    reverse is the 8th, which passes anyway — so the list is directional as
+    printed, not a set of unordered pairs to be applied both ways."""
+    from app.calculations.porutham import _RASI_SIXTH_PAIR_EXCEPTIONS
+
+    assert len(_RASI_SIXTH_PAIR_EXCEPTIONS) == 6
+    for girl, boy in _RASI_SIXTH_PAIR_EXCEPTIONS:
+        assert (boy - girl) % 12 + 1 == 6, f"({girl}, {boy}) is not a 6th-position pair"
+        assert _rasi_score(boy, girl) == 1
+
+    lifted = {g for g, _ in _RASI_SIXTH_PAIR_EXCEPTIONS}
+    for girl in range(1, 13):
+        boy = (girl - 1 + 5) % 12 + 1             # the 6th from the bride
+        if girl not in lifted:
+            assert _rasi_score(boy, girl) == 0, f"bride {girl} lifted without a source"
+
+
+def test_jothidam_sixth_even_sign_exception_is_ruled_in_but_unfilled():
+    """Ruled in on 2026-08-28 and deliberately empty.
+
+    We hold a paraphrase of Jothidam p.68, not its sentence, and filling a set
+    from a paraphrase is the failure EC-RULING-01 was opened over. The empty set
+    is the honest state: the row is live and changes nothing.
+
+    The reason it must stay empty until the page is read is arithmetic. At the
+    6th the groom's parity is always the bride's flipped, so p.74's six pairs are
+    exactly the odd-bride/even-groom cases. If Jothidam's exception means "every
+    even sign", it covers precisely the other six — and the two rules together
+    would lift EVERY 6th-position pairing, retiring the 6th-position failure
+    altogether. That is a doctrine change, not an exception."""
     from app.calculations.porutham import (
+        _RASI_SIXTH_EVEN_SIGN_JOTHIDAM,
         RASI_EXCEPTION_GAP,
         RASI_EXCEPTIONS_ENABLED,
     )
 
-    assert RASI_EXCEPTIONS_ENABLED is False
+    assert RASI_EXCEPTIONS_ENABLED is True
+    assert _RASI_SIXTH_EVEN_SIGN_JOTHIDAM == frozenset()
     assert "p.68" in RASI_EXCEPTION_GAP
-    # With them disabled, every adverse count fails plainly — no clause rescues one.
-    assert all(_rasi_score(1 + n, 1) == 0 for n in range(1, 6))
+    # At least one 6th-position pairing must still fail, or the 6th is retired.
+    assert any(_rasi_score((g - 1 + 5) % 12 + 1, g) == 0 for g in range(1, 13))
 
 
 # ---------------------------------------------------------------------------

@@ -1519,7 +1519,7 @@ export interface SynastryData {
   summary: BiText; caution: BiText | null;
 }
 
-export interface KutaResult { name: string; nameTa: string; passed: boolean; score: number; maxScore: number; label: string }
+export interface KutaResult { name: string; nameTa: string; passed: boolean; score: number; maxScore: number; label: string; detail?: string | null }
 
 export interface PorutthamData {
   familyVaultId: string; memberId: string;

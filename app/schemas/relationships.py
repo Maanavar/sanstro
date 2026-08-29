@@ -17,6 +17,7 @@ class KutaResult(BaseModel):
     score: int
     max_score: int = Field(alias="maxScore")
     label: str
+    detail: str | None = None
 
     model_config = ConfigDict(populate_by_name=True)
 
