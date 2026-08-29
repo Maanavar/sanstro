@@ -250,27 +250,41 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         markers=("TRADITION", "PRODUCT"),
         detector="_yoga_detect.detect_dhana_yoga",
         present_when=(
-            "Any one of three conditions on the 2nd and 11th lords: they share a "
-            "rasi (`second_eleventh_conjunction`); each occupies the sign the "
-            "other rules (`second_eleventh_exchange`); or **both** stand in a "
-            "kendra or a trikona (`both_lords_in_strong_houses`)."
+            "Either of two conditions on the 2nd and 11th lords: they share a "
+            "rasi (`second_eleventh_conjunction`), or each occupies the sign the "
+            "other rules (`second_eleventh_exchange`). The third, parentless "
+            "condition no longer lives on this card — see `YOG-DN-02`."
         ),
-        strength_rule=(
-            "STRONG if the conjunction or the exchange fired; PARTIAL if only the "
-            "both-in-strong-houses condition fired. Then gated over the two lords."
-        ),
+        strength_rule="STRONG when either condition fires. Then gated over the two lords.",
         cancellation="—",
-        source="The 2nd/11th dhana formulation of the BPHS dhana yoga chapter, for the first two conditions only.",
+        source="The 2nd/11th dhana formulation of the BPHS dhana yoga chapter.",
         key_planets=("JUPITER", "VENUS", "MERCURY"),
         note=(
-            "**The third condition is not a classical dhana yoga.** It is a "
-            "Vinaadi proxy for 'both wealth lords are well placed', and it is much "
-            "the commonest of the three, so `DHANA_YOGA` reads present at PARTIAL "
-            "on a large share of charts. Two questions for the reviewer: should "
-            "that third condition survive at all, and should the classical set "
-            "widen to the 5th and 9th lords as most dhana treatments do. "
+            "**Separated by the 2026-08-28 ruling** ('Separate `[PRODUCT]`'). "
+            "This card now carries only the two sourced conditions, so a reader "
+            "meeting `DHANA_YOGA` sees a claim with a printed classical parent. "
             "`key_planets` is a `[PRODUCT]` approximation for the same reason as "
             f"`YOG-RY-01`. {_GATE_NOTE}"
+        ),
+    ),
+    YogaRule(
+        rule_id="YOG-DN-02",
+        yoga_name="DHANA_SUPPORTIVE_YOGA",
+        name_en="Dhana Yoga (supportive)",
+        name_ta="தன யோகம் (துணை)",
+        markers=("PRODUCT",),
+        detector="_yoga_detect.detect_dhana_yoga_supportive",
+        present_when="Both the 2nd and 11th lords stand in a kendra or a trikona (`both_lords_in_strong_houses`).",
+        strength_rule="PARTIAL when formed, gated over the two lords; WEAK otherwise.",
+        cancellation="—",
+        source="No single source claimed. A Vinaadi proxy for 'both wealth lords are well placed', not a classical dhana yoga.",
+        key_planets=("JUPITER", "VENUS", "MERCURY"),
+        note=(
+            "**Split off `YOG-DN-01` by ruling, kept rather than dropped.** This "
+            "is much the commonest of the original three Dhana conditions, so it "
+            "fires on a large share of charts — now on its own labelled card "
+            "rather than under the classical name. `key_planets` is a "
+            f"`[PRODUCT]` approximation for the same reason as `YOG-RY-01`. {_GATE_NOTE}"
         ),
     ),
     # ── Neecha Bhanga ────────────────────────────────────────────────────────
@@ -541,21 +555,26 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         ),
         strength_rule=(
             "Four bhanga are tested. `planet_kendra_from_moon` is a **full** bhanga "
-            "on its own → WEAK. Of the other three — Chandran in a kendra from "
+            "on its own → the card no longer shows as present at all (WEAK, "
+            "`is_present=False`). Of the other three — Chandran in a kendra from "
             "Lagna, Guru's drishti on Chandran, full moon opposite Suriyan — one → "
-            "PARTIAL, two or more → WEAK. None → STRONG."
+            "PARTIAL, two or more → WEAK (still present, softened). None → STRONG."
         ),
         cancellation="The four bhanga above; all four are recorded in `cancellation_factors`.",
         source="Kemadruma and its bhanga, BPHS and Phaladeepika.",
         key_planets=(),
         note=(
-            "The full-bhanga carve-out is doctrine, not calibration: a graha in a "
-            "kendra from Chandran destroys Kemadruma outright in both texts, and "
-            "grading it produced a self-contradicting reading — Guru in a kendra "
-            "from Chandran **is** Gaja Kesari, so one chart reported Gaja Kesari "
-            "and Kemadruma as simultaneously active. The 1→PARTIAL / 2→WEAK "
-            "grading of the remaining three is `[PRODUCT]`; those three are "
-            "mitigating, not annulling."
+            "**Bhanga is now mandatory before display (2026-08-28 ruling).** "
+            "Before this, the full bhanga only lowered the reported strength to "
+            "WEAK while `is_present` stayed True, so a cancelled Kemadruma could "
+            "still surface as present to a reader. The full-bhanga carve-out "
+            "itself is doctrine, not calibration: a graha in a kendra from "
+            "Chandran destroys Kemadruma outright in both texts, and grading it "
+            "produced a self-contradicting reading — Guru in a kendra from "
+            "Chandran **is** Gaja Kesari, so one chart reported Gaja Kesari and "
+            "Kemadruma as simultaneously active. The 1→PARTIAL / 2→WEAK grading "
+            "of the remaining three is `[PRODUCT]`; those three still soften "
+            "rather than cancel, matching Sakata's posture."
         ),
     ),
     # ── Kartari ──────────────────────────────────────────────────────────────
@@ -627,17 +646,40 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         name_ta="சண்டாள யோகம்",
         markers=("TRADITION", "LIMIT"),
         detector="_yoga_detect.detect_chandala_yoga",
-        present_when="Guru and Rahu share a rasi.",
+        present_when="Guru and Rahu share a rasi. **Guru-Ketu does not form this yoga** — see `YOG-CH-02`.",
         strength_rule="STRONG when formed, WEAK otherwise. Ungated.",
         cancellation="—",
         source="Guru Chandala, standard in the Tamil dosha/yoga lists.",
         key_planets=(),
         note=(
-            "Whole sign, **no degree orb**: a Guru-Rahu pair 25° apart inside one "
-            "rasi forms it, while a 3° pair straddling a rasi boundary does not. "
-            "Name the orb your lineage uses and it can be tightened. **Kethu is "
-            "not tested** — schools that form Guru Chandala with either node would "
-            "report more. No key grahas defined, so activation is dormant-capped."
+            "**Guru+Rahu ONLY (2026-08-28 ruling).** Whole sign, **no degree "
+            "orb**: a Guru-Rahu pair 25° apart inside one rasi forms it, while a "
+            "3° pair straddling a rasi boundary does not. Name the orb your "
+            "lineage uses and it can be tightened. The Guru-Ketu form some "
+            "schools also use is split into its own `[VARIANT]` card "
+            "(`YOG-CH-02`, `CHANDALA_KETU_YOGA`) rather than folded in here, so "
+            "the Ketu form never reads as the same yoga. No key grahas defined, "
+            "so activation is dormant-capped."
+        ),
+    ),
+    YogaRule(
+        rule_id="YOG-CH-02",
+        yoga_name="CHANDALA_KETU_YOGA",
+        name_en="Guru Chandala Yoga (Ketu variant)",
+        name_ta="சண்டாள யோகம் (குரு-கேது வேறுபாடு)",
+        markers=("VARIANT",),
+        detector="_yoga_detect.detect_chandala_yoga_ketu_variant",
+        present_when="Guru and Kethu share a rasi.",
+        strength_rule="STRONG when formed, WEAK otherwise. Ungated.",
+        cancellation="—",
+        source="Not classical Guru Chandala (Guru+Rahu). Some schools extend the yoga to either node; no printed source claimed for the extension.",
+        key_planets=(),
+        note=(
+            "Split off `YOG-CH-01` by the 2026-08-28 ruling: **'Guru + Rahu "
+            "ONLY. Guru + Ketu = separate [VARIANT] card.'** Same whole-sign, "
+            "no-orb test as the Rahu form, applied to Kethu instead. Emitted "
+            "unconditionally alongside `CHANDALA_YOGA` on its own card. No key "
+            "grahas defined, so activation is dormant-capped."
         ),
     ),
     # ── Amala ────────────────────────────────────────────────────────────────
@@ -674,30 +716,30 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         markers=("VARIANT", "PRODUCT"),
         detector="_yoga_detect.detect_adhi_yoga",
         present_when=(
-            "**At least one** of Guru, Sukran or Budhan occupies the 6th, 7th or "
-            "8th rasi from Chandran."
+            "**At least two** of Guru, Sukran and Budhan occupy the 6th, 7th or "
+            "8th rasi from Chandran (2026-08-28 ruling: '≥2 of Guru/Sukran/Budhan "
+            "= present; 3 = full; grade by planets, not houses')."
         ),
         strength_rule=(
-            "By the number of those three *houses* covered: 3 → STRONG, 2 → "
-            "PARTIAL, 1 → WEAK. Two benefics in one house count once."
+            "By the count of qualifying *planets*, not houses: 3 → STRONG "
+            "('full'), 2 → PARTIAL. Below 2, absent."
         ),
         cancellation="—",
         source="Adhi yoga, BPHS and Phaladeepika — the three benefics in the 6th/7th/8th from Chandran.",
         key_planets=(),
         note=(
-            "**This is the loosest presence test in the yoga set, and it is looser "
-            "than the classical rule.** Adhi Yoga proper asks for the benefics in "
-            "those houses as a set, graded by how many of the three *benefics* are "
-            "so placed. Firing on one benefic in one of three houses makes Adhi "
-            "Yoga present on most charts; counting distinct houses rather than "
-            "distinct benefics is a second departure. **Both are surfaced for the "
-            "reviewer's verdict rather than changed unilaterally** — tightening the "
-            "presence test would remove a yoga from charts that currently show it, "
-            "which is a doctrine decision, not a bug fix. `dasha_activated` here is "
-            "read from the functional nature of Guru, Sukran and Budhan for the "
-            "lagna — **all three, whether or not they are among the grahas that "
-            "formed the yoga** — so it is neither a dasha test nor restricted to "
-            "this yoga's own participants."
+            "**Tightened by ruling from the loosest presence test in the yoga "
+            "set.** The old test fired on a single benefic in a single house, "
+            "which made Adhi present on most charts and near-universal, so a "
+            "present Adhi carried no information — `tests/test_drishti_yoga_"
+            "golden.py` pinned that as the live evidence behind this ruling. "
+            "Presence and grading now both count distinct *benefics* found in the "
+            "6th/7th/8th, matching the classical 'three as a set' reading. "
+            "`dasha_activated` here is read from the functional nature of Guru, "
+            "Sukran and Budhan for the lagna — **all three, whether or not they "
+            "are among the grahas that formed the yoga** — so it is neither a "
+            "dasha test nor restricted to this yoga's own participants; left "
+            "unchanged, since the ruling addressed only presence and grading."
         ),
     ),
     # ── Daridra ──────────────────────────────────────────────────────────────
@@ -706,17 +748,10 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         yoga_name="DARIDRA_YOGA",
         name_en="Daridra Yoga",
         name_ta="தரித்ர யோகம்",
-        markers=("VARIANT", "PRODUCT"),
+        markers=("VARIANT",),
         detector="_yoga_detect.detect_daridra_yoga",
-        present_when=(
-            "The 11th lord occupies a dusthana (6/8/12), **or** its composite "
-            "natal score is below 40 and a natural malefic other than itself "
-            "shares its rasi."
-        ),
-        strength_rule=(
-            "STRONG when the dusthana condition fired, PARTIAL when only the "
-            "weak-plus-malefic condition did."
-        ),
+        present_when="The 11th lord occupies a dusthana (6/8/12). The weak-plus-malefic condition no longer lives on this card — see `YOG-DR-02`.",
+        strength_rule="STRONG when formed, WEAK otherwise.",
         cancellation="—",
         source=(
             "No single source claimed. Daridra yogas are a family — variously on "
@@ -725,12 +760,32 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         ),
         key_planets=(),
         note=(
-            "The `< 40` cut-off reads the composite natal graha score (§3.3.4), a "
-            "`[PRODUCT]` number, not a classical strength. **When the 11th lord's "
-            "rasi is absent from the chart map the function silently defaults it to "
-            "the Lagna rasi**, which makes the dusthana test read house 1 — a "
-            "silent default a reviewer should know about, though every production "
-            "call site supplies all nine grahas. Adverse yoga; no key grahas "
+            "**Separated by the 2026-08-28 ruling** ('Proxy split'). **When the "
+            "11th lord's rasi is absent from the chart map the function silently "
+            "defaults it to the Lagna rasi**, which makes the dusthana test read "
+            "house 1 — a silent default a reviewer should know about, though every "
+            "production call site supplies all nine grahas. Adverse yoga; no key "
+            "grahas defined, so activation is dormant-capped."
+        ),
+    ),
+    YogaRule(
+        rule_id="YOG-DR-02",
+        yoga_name="DARIDRA_PROXY_YOGA",
+        name_en="Daridra Yoga (Vinaadi proxy)",
+        name_ta="தரித்ர யோகம் (வினாடி அளவுகோல்)",
+        markers=("PRODUCT",),
+        detector="_yoga_detect.detect_daridra_yoga_proxy",
+        present_when="The 11th lord's composite natal score is below 40 **and** a natural malefic other than itself shares its rasi.",
+        strength_rule="PARTIAL when formed, WEAK otherwise.",
+        cancellation="—",
+        source="No source claimed. A Vinaadi proxy, not a classical daridra yoga.",
+        key_planets=(),
+        note=(
+            "**Split off `YOG-DR-01` by ruling** ('the weak-and-afflicted proxy is "
+            "labelled as ours'), kept rather than dropped. The `< 40` cut-off "
+            "reads the composite natal graha score (§3.3.4), a `[PRODUCT]` number, "
+            "not a classical strength. Shares the same silent-default behaviour on "
+            "a missing 11th-lord rasi as `YOG-DR-01`. Adverse yoga; no key grahas "
             "defined, so activation is dormant-capped."
         ),
     ),
@@ -746,7 +801,10 @@ YOGA_RULES: tuple[YogaRule, ...] = (
             "The 9th lord scores 60 or more **and** stands in a kendra or trikona, "
             "**and** the Lagna lord scores 60 or more."
         ),
-        strength_rule="STRONG when formed, WEAK otherwise. Ungated.",
+        strength_rule=(
+            "STRONG when formed, then gated over the two lords (2026-08-28 "
+            "ruling: 'Presence gated on strength'). WEAK when not formed."
+        ),
         cancellation="—",
         source="Lakshmi yoga, Phaladeepika — a strong and well-placed 9th lord with a strong lagna lord.",
         key_planets=(),
@@ -757,7 +815,10 @@ YOGA_RULES: tuple[YogaRule, ...] = (
             "(§3.3.4) with a 60 cut-off in both places. A reviewer should judge the "
             "direction, not the number. Note this yoga is one of the four that "
             "silently go inert if `planet_scores_in` is not threaded from the real "
-            "chart-strength computation, since the fallback yields a uniform 50."
+            "chart-strength computation, since the fallback yields a uniform 50. "
+            f"Now runs `gate_yoga_strength` like the other TRADITION+PRODUCT rows "
+            f"rather than reporting flat STRONG/WEAK; presence itself is unchanged "
+            f"— the gate only lowers a *present* yoga's reported strength. {_GATE_NOTE}"
         ),
     ),
     # ── Sunapha / Anapha / Durudhura ─────────────────────────────────────────
@@ -831,17 +892,21 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         detector="_yoga_detect.detect_vasumati_yoga",
         present_when=(
             "Two or more of Guru, Sukran, Budhan and Chandran occupy an upachaya "
-            "rasi (3/6/10/11) counted from Chandran."
+            "rasi (3/6/10/11) counted from **either the Lagna or Chandran** "
+            "(2026-08-28 ruling: 'Lagna-or-Moon')."
         ),
         strength_rule="STRONG at three or more, PARTIAL at two.",
         cancellation="—",
         source="Vasumati yoga — benefics in the upachayas.",
         key_planets=(),
         note=(
-            "Counted from **Chandran only**; the usual statement of the rule allows "
-            "the Lagna as well. Chandran is in the candidate set but can never "
-            "satisfy the test — it is always the 1st from itself — so it is inert "
-            "and the effective set is three grahas. The 2-and-3 rungs are Vinaadi's."
+            "**Widened by ruling from Chandran-only.** Each graha counts once if "
+            "*either* reference places it in an upachaya — the union, not the "
+            "intersection. Chandran was previously inert in the candidate set (it "
+            "is always the 1st from itself, so it could never satisfy a "
+            "Chandran-only test); it is no longer inert now that the Lagna "
+            "reference is live, since Chandran can stand in an upachaya from the "
+            "Lagna. The 2-and-3 rungs are Vinaadi's."
         ),
     ),
     # ── Nakshatra cautions — not yogas, and display-only ─────────────────────

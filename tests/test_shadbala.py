@@ -10,8 +10,6 @@ Rupa totals is the remaining gate before the experimental label is removed
 """
 from __future__ import annotations
 
-import math
-
 import pytest
 
 from app.calculations.shadbala import (
@@ -212,6 +210,11 @@ def test_drik_bala_benefic_aspect_adds():
     # Jupiter in rasi 1 aspects its 5th/7th/9th; a planet in rasi 7 gains 10.
     rasi_map = {"MARS": 7, "JUPITER": 1}
     assert _drik_bala("MARS", 7, rasi_map) == pytest.approx(40.0)
+
+
+def test_drik_bala_ignores_nodes_even_if_a_direct_map_includes_them():
+    # Rahu/Ketu are excluded from classical seven-graha Shadbala.
+    assert _drik_bala("MARS", 7, {"MARS": 7, "RAHU": 1}) == pytest.approx(30.0)
 
 
 # ---------------------------------------------------------------------------

@@ -10,6 +10,7 @@ from app.calculations.chart_strength import (
     _deeptadi_avastha,
     _jagradadi_avastha,
     _kala_bala_score,
+    compute_bhava_bala,
     compute_natal_planet_score,
     compute_strength_breakdown,
     detect_planetary_wars,
@@ -22,6 +23,18 @@ pytestmark = pytest.mark.no_db
 def test_detect_planetary_war_marks_lower_degree_as_loser():
     wars = detect_planetary_wars({"MARS": 45.0, "MERCURY": 45.5, "SUN": 45.2})
     assert wars["MARS"] == "MERCURY"
+
+
+def test_bhava_bala_penalizes_a_malefic_classified_mercury():
+    # Mercury alone is contextually malefic. It must reduce an occupied bhava,
+    # rather than falling through the former fixed-maleﬁc set untouched.
+    score = compute_bhava_bala(
+        house_number=1,
+        lagna_rasi=1,
+        planets_rasi={"SUN": 8, "MERCURY": 1},
+        planet_scores={"MARS": 50},
+    )
+    assert score == 48
 
 
 def test_detect_planetary_war_sign_boundary_uses_absolute_longitude():

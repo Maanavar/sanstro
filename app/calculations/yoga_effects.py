@@ -100,6 +100,12 @@ YOGA_EFFECT: dict[str, tuple[str, str]] = {
         "Describes resources built by your own effort — a financial position that does not depend on "
         "someone else's decision.",
     ),
+    "DHANA_SUPPORTIVE_YOGA": (
+        "செல்வ அதிபதிகள் வலுவான இடங்களில் இருப்பதால் கிடைக்கும் துணைப் பலம்; "
+        "முக்கிய வருமான யோகங்களுக்கு ஆதரவாக செயல்படும்.",
+        "A supporting signal from the wealth lords sitting in strong houses — it reinforces the main "
+        "income indicators rather than driving growth on its own.",
+    ),
     # Pancha Mahapurusha — the five "great person" yogas.
     "RUCHAKA_YOGA": (
         "தைரியம், தலைமை, உடல் வலிமை ஆகியவற்றுடன் இணைக்கப்படுகிறது; "
@@ -164,11 +170,23 @@ YOGA_EFFECT: dict[str, tuple[str, str]] = {
         "Sets up tension between inherited guidance and your own conviction; examining what you "
         "believe rather than inheriting it is where this pattern matures.",
     ),
+    "CHANDALA_KETU_YOGA": (
+        "குருவும் கேதுவும் இணையும் இந்த வேறுபட்ட அமைப்பு பற்றின்மையான, தனிமையான ஞானத் தேடலைச் சுட்டுகிறது; "
+        "பாரம்பரிய வழிகாட்டல் இங்கு பின்னணிக்குச் சென்று சொந்தத் தேடலே முன்னிற்கும்.",
+        "A variant form some schools recognise, pointing to a detached, solitary search for meaning "
+        "rather than tension with an outside authority.",
+    ),
     "DARIDRA_YOGA": (
         "வருமான வழிகளில் அழுத்தம் இருக்கும் அமைப்பு; "
         "பல வருமான ஆதாரங்களும் கவனமான செலவுத் திட்டமும் தேவை.",
         "Indicates pressure on income channels; diversified earnings and deliberate spending "
         "discipline are what this asks for.",
+    ),
+    "DARIDRA_PROXY_YOGA": (
+        "11ஆம் அதிபதி பலவீனமாகவும் பாதக கிரகத்துடன் சேர்ந்தும் இருக்கும் வினாடி அளவுகோல்; "
+        "வருமான ஆதாரங்களைப் பலப்படுத்துவதில் கவனம் தேவை என்பதைச் சுட்டுகிறது.",
+        "A Vinaadi measure of a weak, malefic-pressured 11th lord — it points to the same need to "
+        "shore up income sources as the classical Daridra reading, at a lighter grade.",
     ),
     "PAPA_KARTARI_YOGA": (
         "இரு பக்கமும் அழுத்தம் தரும் அமைப்பு; "

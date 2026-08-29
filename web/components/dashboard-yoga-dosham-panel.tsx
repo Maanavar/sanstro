@@ -100,6 +100,7 @@ const MARKER_LABELS: Record<string, { ta: string; en: string }> = {
   jupiter_aspects_seventh_lord: { ta: "குரு 7-ம் அதிபதியை பார்க்கிறார் — திருமண சுட்டிக்கு பாதுகாப்பு", en: "Jupiter aspects the 7th lord — a protective influence on marriage significations" },
   // Chandala / guru-chandala
   jupiter_rahu_conjunction: { ta: "குருவும் ராகுவும் ஒரே வீட்டில் — குரு சண்டாள அமைப்பு", en: "Jupiter and Rahu are in the same house — the Guru-Chandala combination" },
+  jupiter_ketu_conjunction: { ta: "குருவும் கேதுவும் ஒரே வீட்டில் — குரு சண்டாள (கேது வேறுபாடு)", en: "Jupiter and Ketu are in the same house — the Guru-Chandala Ketu variant" },
   // Sevvai / Chandra-Mangala detail
   moon_mars_same_rasi:      { ta: "சந்திரனும் செவ்வாயும் ஒரே ராசியில் உள்ளனர்", en: "Moon and Mars are in the same sign" },
   moon_mars_mutual_seventh: { ta: "சந்திரனும் செவ்வாயும் ஒருவரையொருவர் 7-ல் பார்க்கின்றனர்", en: "Moon and Mars are in mutual 7th-house aspect" },
@@ -146,17 +147,17 @@ const MARKER_PATTERNS: { re: RegExp; label: (m: RegExpMatchArray, lang: Lang) =>
     }),
   },
   {
-    re: /^([A-Z]+)_upachaya_from_moon$/,
+    re: /^([A-Z]+)_upachaya_from_lagna_or_moon$/,
     label: (m, lang) => ({
-      ta: `${planetLabel(m[1], lang)} சந்திரனிலிருந்து உபச்சய வீட்டில் (3/6/10/11) உள்ளார்`,
-      en: `${planetLabel(m[1], lang)} is in an upachaya house (3/6/10/11) from the Moon`,
+      ta: `${planetLabel(m[1], lang)} லக்னம் அல்லது சந்திரனிலிருந்து உபச்சய வீட்டில் (3/6/10/11) உள்ளார்`,
+      en: `${planetLabel(m[1], lang)} is in an upachaya house (3/6/10/11) from either the Lagna or the Moon`,
     }),
   },
   {
-    re: /^benefic_in_house_(\d+)_from_moon$/,
+    re: /^([A-Z]+)_in_house_(\d+)_from_moon$/,
     label: (m, lang) => ({
-      ta: `சந்திரனிலிருந்து ${m[1]}-ம் வீட்டில் சுபக்கிரகம் உள்ளது`,
-      en: `A benefic sits in the ${m[1]}th house from the Moon`,
+      ta: `${planetLabel(m[1], lang)} சந்திரனிலிருந்து ${m[2]}-ம் வீட்டில் உள்ளார்`,
+      en: `${planetLabel(m[1], lang)} is in the ${m[2]}th house from the Moon`,
     }),
   },
   {

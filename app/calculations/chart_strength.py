@@ -7,7 +7,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from app.calculations.aspects import aspects_house
+from app.calculations.aspects import aspect_strength, aspects_house, effective_natural_class
 from app.calculations.astro import house_from_reference
 from app.calculations.transits import combustion_severity, is_cazimi, is_gandanta
 from app.constants.astrology import SIGN_LORD as _SIGN_LORD_CONSTANT
@@ -560,10 +560,18 @@ def _drik_bala_score(benefic_aspect_count: int, malefic_aspect_count: int) -> fl
     return max(0.0, min(1.0, 0.5 + benefic_aspect_count * 0.15 - malefic_aspect_count * 0.15))
 
 
-_BHAVA_BALA_BENEFICS: frozenset[str] = frozenset({"JUPITER", "VENUS", "MERCURY", "MOON"})
 # Mandhi/Gulika occupies and aspects houses like a malefic graha in classical
 # Tamil Thirukanitham practice (see aspects.py's ASPECT_HOUSES documentation).
 _BHAVA_BALA_MALEFICS: frozenset[str] = frozenset({"SATURN", "MARS", "RAHU", "KETU", "SUN", "MANDHI"})
+_BHAVA_BALA_CONTEXTUAL: frozenset[str] = frozenset({"MOON", "MERCURY"})
+
+
+def _is_bhava_bala_malefic(planet: str, planets_rasi: dict[str, int]) -> bool:
+    """Classify an afflictor without widening Bhava Bala to unknown bodies."""
+    return planet in _BHAVA_BALA_MALEFICS or (
+        planet in _BHAVA_BALA_CONTEXTUAL
+        and effective_natural_class(planet, planets_rasi) == "MALEFIC"
+    )
 
 
 def compute_bhava_bala(
@@ -589,21 +597,21 @@ def compute_bhava_bala(
     for planet, rasi in planets_rasi.items():
         if rasi != house_rasi:
             continue
-        if planet in _BHAVA_BALA_BENEFICS:
+        if effective_natural_class(planet, planets_rasi) == "BENEFIC":
             occupant_score += 10
-        elif planet in _BHAVA_BALA_MALEFICS:
+        elif _is_bhava_bala_malefic(planet, planets_rasi):
             occupant_score -= 10
     occupant_score = max(0, min(100, occupant_score))
 
     drishti_score = 50
     for planet, rasi in planets_rasi.items():
-        has_aspect = aspects_house(planet, rasi, house_rasi)
-        if not has_aspect:
+        strength = aspect_strength(planet, rasi, house_rasi)
+        if strength <= 0:
             continue
-        if planet in _BHAVA_BALA_BENEFICS:
-            drishti_score += 8
-        elif planet in _BHAVA_BALA_MALEFICS:
-            drishti_score -= 8
+        if effective_natural_class(planet, planets_rasi) == "BENEFIC":
+            drishti_score += round(8 * strength)
+        elif _is_bhava_bala_malefic(planet, planets_rasi):
+            drishti_score -= round(8 * strength)
     drishti_score = max(0, min(100, drishti_score))
 
     total = round(bhavadhipati_score * 0.5 + occupant_score * 0.25 + drishti_score * 0.25)

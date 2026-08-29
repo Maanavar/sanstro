@@ -1,6 +1,12 @@
 import pytest
 
-from app.calculations.aspects import aspect_houses, aspect_target_rasis, aspects_house
+from app.calculations.aspects import (
+    aspect_houses,
+    aspect_strength,
+    aspect_target_rasis,
+    aspects_house,
+    effective_natural_class,
+)
 
 pytestmark = pytest.mark.no_db
 
@@ -59,3 +65,25 @@ def test_aspect_target_rasis_round_trips_against_aspects_house():
             for target_rasi in range(1, 13):
                 expected = target_rasi in targets
                 assert aspects_house(planet, source_rasi, target_rasi) is expected
+
+
+def test_fractional_drishti_keeps_boolean_api_poorna_only():
+    assert aspect_strength("SUN", 1, 5) == 0.75
+    assert aspects_house("SUN", 1, 5) is False
+    assert aspect_strength("MARS", 1, 4) == 1.0
+    assert aspects_house("MARS", 1, 4) is True
+
+
+def test_effective_natural_class_uses_paksha_and_mercury_association():
+    waxing = {"SUN": 1, "MOON": 4, "MERCURY": 10, "JUPITER": 10}
+    waning = {"SUN": 1, "MOON": 8, "MERCURY": 10, "SATURN": 10}
+    alone = {"SUN": 1, "MOON": 4, "MERCURY": 10}
+    assert effective_natural_class("MOON", waxing) == "BENEFIC"
+    assert effective_natural_class("MOON", waning) == "MALEFIC"
+    assert effective_natural_class("MERCURY", waxing) == "BENEFIC"
+    assert effective_natural_class("MERCURY", waning) == "MALEFIC"
+    assert effective_natural_class("MERCURY", alone) == "MALEFIC"
+
+
+def test_effective_natural_class_keeps_moon_benefic_without_sun_context():
+    assert effective_natural_class("MOON", {"MOON": 4}) == "BENEFIC"

@@ -17,7 +17,7 @@ def require_db():  # noqa: F811 — shadows conftest require_db; no DB needed
     return
 
 
-from app.calculations.propensities import PlanetView, PropensityChartInput
+from app.calculations.propensities import PlanetView, PropensityChartInput, _Reader
 from app.services.propensity_models import PropensityTier
 from app.services.propensity_service import assess_propensities
 
@@ -87,6 +87,20 @@ def test_returns_all_cards():
     } <= keys
     # P2-3 — Foreign/PR + Litigation sub-topics
     assert {"pr_immigration_prospects", "legal_outcome_favor", "contract_dispute_risk"} <= keys
+
+
+def test_reader_uses_contextual_moon_and_mercury_classes():
+    planets = _base()
+    planets["SUN"] = PlanetView(1, 1, 1)
+    planets["MOON"] = PlanetView(8, 8, 8)  # Krishna-paksha by rasi fallback
+    planets["MERCURY"] = PlanetView(10, 10, 10)
+    planets["SATURN"] = PlanetView(10, 10, 10)  # Mercury's malefic associate
+    reader = _Reader(_mk(planets))
+
+    assert reader.is_malefic("MOON")
+    assert reader.is_malefic("MERCURY")
+    assert not reader.is_benefic("MOON")
+    assert not reader.is_benefic("MERCURY")
 
 
 def test_every_caution_card_carries_a_disclaimer():
@@ -530,12 +544,14 @@ def test_hora_softens_savings_capacity():
     chart where all three wealth karakas land in Surya Hora is the inverse
     of the auspicious pattern — it should soften the card to MIXED."""
     planets = {
-        "SUN": PlanetView(rasi=1, house=9, d9_rasi=1),
-        "MOON": PlanetView(rasi=2, house=10, d9_rasi=2),
+            "SUN": PlanetView(rasi=8, house=9, d9_rasi=1),
+            # A waxing Moon shares Mercury's rasi, making Mercury benefic
+            # without adding Venus/Jupiter dignity to this Hora fixture.
+            "MOON": PlanetView(rasi=12, house=10, d9_rasi=2),
         "MARS": PlanetView(rasi=3, house=11, d9_rasi=3),
         "MERCURY": PlanetView(rasi=12, house=8, d9_rasi=12, strength=30),  # debilitated (2nd lord)
         "JUPITER": PlanetView(rasi=7, house=3, d9_rasi=7, strength=50),   # neutral
-        "VENUS": PlanetView(rasi=9, house=5, d9_rasi=9, strength=50),     # neutral
+            "VENUS": PlanetView(rasi=9, house=5, d9_rasi=9, strength=50),     # neutral
         "SATURN": PlanetView(rasi=6, house=6, d9_rasi=6),
         "RAHU": PlanetView(rasi=10, house=6, d9_rasi=10),
         "KETU": PlanetView(rasi=4, house=12, d9_rasi=4),

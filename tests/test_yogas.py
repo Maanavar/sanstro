@@ -5,6 +5,7 @@ from app.calculations.yogas import (
     detect_badhaka_dosham,
     detect_chandala_yoga,
     detect_daridra_yoga,
+    detect_daridra_yoga_proxy,
     detect_dhana_yoga,
     detect_gaja_kesari,
     detect_kalathra_dosham,
@@ -568,9 +569,23 @@ def test_rahu_ketu_female_high_attention_8th():
 
 def test_sakata_kemadruma_and_chandala_detect():
     assert detect_sakata_yoga(moon_rasi=6, jupiter_rasi=1, lagna_rasi=3).is_present is True
-    planets = {"MOON": 1, "SUN": 1, "RAHU": 5, "KETU": 11}
+    # No graha besides Moon/Rahu/Ketu at all, so no full bhanga fires — a
+    # clean, uncancelled Kemadruma.
+    planets = {"MOON": 1, "RAHU": 5, "KETU": 11}
     assert detect_kemadruma_yoga(planets, moon_rasi=1, lagna_rasi=2).is_present is True
     assert detect_chandala_yoga(jupiter_rasi=5, rahu_rasi=5).is_present is True
+
+
+def test_kemadruma_full_bhanga_cancels_the_card_not_just_the_strength():
+    """YOG-KD-01 ruling (2026-08-28): 'Bhanga mandatory before display.' The
+    Sun conjunct the Moon is trivially in a kendra (house 1, itself) from the
+    Moon — a full bhanga — so this Kemadruma must not surface as present at
+    all, not merely read WEAK while still is_present=True."""
+    planets = {"MOON": 1, "SUN": 1, "RAHU": 5, "KETU": 11}
+    result = detect_kemadruma_yoga(planets, moon_rasi=1, lagna_rasi=2)
+    assert result.is_present is False
+    assert result.strength == "WEAK"
+    assert "planet_kendra_from_moon" in result.cancellation_factors
 
 
 def test_adhi_daridra_lakshmi_vasumati_and_sunapha_family():
@@ -578,8 +593,12 @@ def test_adhi_daridra_lakshmi_vasumati_and_sunapha_family():
     lagna_nature_map = {k: "TRIKONA" for k in planets}
     assert detect_adhi_yoga(planets, 1, lagna_nature_map).is_present is True
 
+    # This chart fires the proxy condition only (11th lord weak + malefic
+    # conjunct), not the classical dusthana condition — split off as
+    # YOG-DR-02 by the 2026-08-28 ruling.
     daridra_planets = {"MERCURY": 6, "SUN": 6, "SATURN": 2}
-    assert detect_daridra_yoga(daridra_planets, lagna_rasi=8, planet_scores={"MERCURY": 30}).is_present is True
+    assert detect_daridra_yoga(daridra_planets, lagna_rasi=8, planet_scores={"MERCURY": 30}).is_present is False
+    assert detect_daridra_yoga_proxy(daridra_planets, lagna_rasi=8, planet_scores={"MERCURY": 30}).is_present is True
 
     lakshmi_planets = {"MOON": 5, "MARS": 9, "JUPITER": 5}
     assert detect_lakshmi_yoga(
@@ -588,7 +607,9 @@ def test_adhi_daridra_lakshmi_vasumati_and_sunapha_family():
         planet_scores={"MARS": 80, "MOON": 75, "JUPITER": 78},
     ).is_present is True
 
-    assert detect_vasumati_yoga({"MOON": 1, "JUPITER": 3, "VENUS": 6, "MERCURY": 10}, moon_rasi=1).is_present is True
+    assert detect_vasumati_yoga(
+        {"MOON": 1, "JUPITER": 3, "VENUS": 6, "MERCURY": 10}, moon_rasi=1, lagna_rasi=1,
+    ).is_present is True
     tri = detect_sunapha_anapha_durudhura({"MOON": 1, "MARS": 2, "JUPITER": 12, "SUN": 5}, moon_rasi=1)
     assert any(x.name == "DURUDHURA_YOGA" for x in tri)
 

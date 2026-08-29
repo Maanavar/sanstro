@@ -67,8 +67,11 @@ from app.calculations._yoga_detect import (
     detect_budha_aditya,
     detect_chandra_mangala,
     detect_chandala_yoga,
+    detect_chandala_yoga_ketu_variant,
     detect_daridra_yoga,
+    detect_daridra_yoga_proxy,
     detect_dhana_yoga,
+    detect_dhana_yoga_supportive,
     detect_gaja_kesari,
     detect_kartari_yoga,
     detect_kemadruma_yoga,
@@ -107,6 +110,12 @@ def detect_yogas_and_doshams(
 ) -> tuple[list[YogaResult], list[DoshamResult], list[NakshatraCautionResult]]:
     _ = equal_bhava_map
     planets_rasi = _planets_as_rasi_map(planets)
+    if longitudes_in and {"SUN", "MOON"} <= set(longitudes_in):
+        paksha_is_shukla = ((longitudes_in["MOON"] - longitudes_in["SUN"]) % 360.0) < 180.0
+    else:
+        # The shared classifier can derive this rasi-only fallback itself; keep
+        # the decision here explicit because this facade owns chart context.
+        paksha_is_shukla = None
     lagna_nature_map = {
         planet: get_functional_nature(lagna_rasi, planet, node_rasi_map=planets_rasi).value
         for planet in planets_rasi
@@ -179,6 +188,10 @@ def detect_yogas_and_doshams(
         planets, lagna_rasi, active_lords=active_lords,
         planet_scores=planet_scores, combust_planets=combust_planets,
     ))
+    yogas.append(detect_dhana_yoga_supportive(
+        planets, lagna_rasi, active_lords=active_lords,
+        planet_scores=planet_scores, combust_planets=combust_planets,
+    ))
     neecha_list = detect_neecha_bhanga(
         planets, lagna_rasi,
         active_lords=active_lords,
@@ -230,13 +243,23 @@ def detect_yogas_and_doshams(
     yogas.append(detect_sakata_yoga(moon_rasi, planets_rasi.get("JUPITER", moon_rasi), lagna_rasi))
     yogas.append(detect_kemadruma_yoga(planets_rasi, moon_rasi, lagna_rasi))
     yogas.append(detect_chandala_yoga(planets_rasi.get("JUPITER", moon_rasi), planets_rasi.get("RAHU", moon_rasi)))
-    yogas.append(detect_amala_yoga(planets_rasi, lagna_rasi, moon_rasi, lagna_nature_map))
-    yogas.append(detect_adhi_yoga(planets_rasi, moon_rasi, lagna_nature_map))
+    yogas.append(detect_chandala_yoga_ketu_variant(planets_rasi.get("JUPITER", moon_rasi), planets_rasi.get("KETU", moon_rasi)))
+    yogas.append(detect_amala_yoga(
+        planets_rasi, lagna_rasi, moon_rasi, lagna_nature_map, paksha_is_shukla=paksha_is_shukla,
+    ))
+    yogas.append(detect_adhi_yoga(
+        planets_rasi, moon_rasi, lagna_nature_map, paksha_is_shukla=paksha_is_shukla,
+    ))
     yogas.append(detect_daridra_yoga(planets_rasi, lagna_rasi, planet_scores))
-    yogas.append(detect_lakshmi_yoga(planets_rasi, lagna_rasi, planet_scores))
+    yogas.append(detect_daridra_yoga_proxy(planets_rasi, lagna_rasi, planet_scores))
+    yogas.append(detect_lakshmi_yoga(planets_rasi, lagna_rasi, planet_scores, combust_planets=combust_planets))
     yogas.extend(detect_sunapha_anapha_durudhura(planets_rasi, moon_rasi))
-    yogas.append(detect_vasumati_yoga(planets_rasi, moon_rasi))
-    yogas.append(detect_kartari_yoga(planets_rasi, lagna_rasi, "LAGNA"))
+    yogas.append(detect_vasumati_yoga(
+        planets_rasi, moon_rasi, lagna_rasi, paksha_is_shukla=paksha_is_shukla,
+    ))
+    yogas.append(detect_kartari_yoga(
+        planets_rasi, lagna_rasi, "LAGNA", paksha_is_shukla=paksha_is_shukla,
+    ))
 
     # Doctrine A-4: Kala Sarpa is judged on actual longitudes where the caller
     # has them. `planets` is a rasi-only map at every production call site (the

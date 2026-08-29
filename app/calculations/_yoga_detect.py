@@ -5,7 +5,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from itertools import combinations
 
-from app.calculations.aspects import aspects_house
+from app.calculations.aspects import aspects_house, effective_natural_class
 from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import (
     DEBILITATION_RASI,
@@ -17,7 +17,6 @@ from app.calculations.chart_strength import (
 )
 from app.calculations._yoga_helpers import (
     KENDRA_HOUSES,
-    NATURAL_BENEFICS,
     NATURAL_MALEFICS,
     PlanetInput,
     TRIKONA_HOUSES,
@@ -153,6 +152,11 @@ def detect_dhana_yoga(
     planet_scores: Mapping[str, int] | None = None,
     combust_planets: frozenset[str] = frozenset(),
 ) -> YogaResult:
+    # YOG-DN-01 ruling (2026-08-28): the classical card carries only the two
+    # sourced conditions (conjunction, exchange). The third — "both wealth
+    # lords in a kendra/trikona" — has no classical parent and is split into
+    # its own `[PRODUCT]` card by `detect_dhana_yoga_supportive` below, so a
+    # Vinaadi proxy never reads as though it were BPHS dhana yoga.
     active = set(active_lords or ())
     second_lord = _house_lord(lagna_rasi, 2)
     eleventh_lord = _house_lord(lagna_rasi, 11)
@@ -168,13 +172,8 @@ def detect_dhana_yoga(
     if second_rasi_owned_by_eleventh and eleventh_rasi_owned_by_second:
         conditions.append("second_eleventh_exchange")
 
-    second_house = house_from_reference(lagna_rasi, second_rasi)
-    eleventh_house = house_from_reference(lagna_rasi, eleventh_rasi)
-    if second_house in KENDRA_HOUSES | TRIKONA_HOUSES and eleventh_house in KENDRA_HOUSES | TRIKONA_HOUSES:
-        conditions.append("both_lords_in_strong_houses")
-
     present = len(conditions) > 0
-    base_strength = "STRONG" if "second_eleventh_conjunction" in conditions or "second_eleventh_exchange" in conditions else ("PARTIAL" if present else "WEAK")
+    base_strength = "STRONG" if present else "WEAK"
     strength, gate_notes = gate_yoga_strength(
         base_strength, (second_lord, eleventh_lord), planet_scores, combust_planets
     )
@@ -185,8 +184,43 @@ def detect_dhana_yoga(
         conditions_met=conditions,
         cancellation_factors=gate_notes,
         dasha_activated=_is_active(active, second_lord, eleventh_lord),
-        description_ta="2ம் மற்றும் 11ம் அதிபதிகளின் உறவு தனயோக சுட்டியாக பார்க்கப்படுகிறது.",
-        description_en="A link between 2nd and 11th lords is treated as a Dhana Yoga indicator.",
+        description_ta="2ம் மற்றும் 11ம் அதிபதிகளின் சேர்க்கை/பரிவர்த்தனை தனயோகமாக கருதப்படுகிறது.",
+        description_en="A conjunction or exchange between the 2nd and 11th lords is treated as classical Dhana Yoga.",
+    )
+
+
+def detect_dhana_yoga_supportive(
+    planets: Mapping[str, PlanetInput],
+    lagna_rasi: int,
+    *,
+    active_lords: Iterable[str] | None = None,
+    planet_scores: Mapping[str, int] | None = None,
+    combust_planets: frozenset[str] = frozenset(),
+) -> YogaResult:
+    """YOG-DN-02: Vinaadi's own proxy — both wealth lords well placed, with no
+    classical parent. Kept, but split off DHANA_YOGA per the 2026-08-28 ruling
+    so it never folds in under the classical name."""
+    active = set(active_lords or ())
+    second_lord = _house_lord(lagna_rasi, 2)
+    eleventh_lord = _house_lord(lagna_rasi, 11)
+    second_rasi = _planet_rasi(planets, second_lord)
+    eleventh_rasi = _planet_rasi(planets, eleventh_lord)
+    second_house = house_from_reference(lagna_rasi, second_rasi)
+    eleventh_house = house_from_reference(lagna_rasi, eleventh_rasi)
+    present = second_house in KENDRA_HOUSES | TRIKONA_HOUSES and eleventh_house in KENDRA_HOUSES | TRIKONA_HOUSES
+    conditions = ["both_lords_in_strong_houses"] if present else []
+    strength, gate_notes = gate_yoga_strength(
+        "PARTIAL" if present else "WEAK", (second_lord, eleventh_lord), planet_scores, combust_planets
+    )
+    return YogaResult(
+        name="DHANA_SUPPORTIVE_YOGA",
+        is_present=present,
+        strength=strength,
+        conditions_met=conditions,
+        cancellation_factors=gate_notes,
+        dasha_activated=_is_active(active, second_lord, eleventh_lord),
+        description_ta="தன யோகம் (துணை) — 2ம்/11ம் அதிபதிகள் இருவரும் கேந்திர/திரிகோணத்தில் — வினாடி அளவுகோல், பாரம்பரிய யோகம் அல்ல.",
+        description_en="Dhana Yoga (supportive) — both the 2nd and 11th lords stand in a kendra or trikona. A Vinaadi proxy, not a classical dhana yoga.",
     )
 
 
@@ -507,7 +541,7 @@ def detect_kemadruma_yoga(planets: dict[str, int], moon_rasi: int, lagna_rasi: i
         p for p, rasi in planets.items()
         if p not in {"SUN", "RAHU", "KETU", "MOON"} and rasi in {second, twelfth}
     ]
-    present = len(surrounding) == 0
+    formed = len(surrounding) == 0
 
     # Four classical Bhanga (cancellation) rules — any single one softens the yoga to
     # PARTIAL; two or more void it (STRENGTH=WEAK), matching the graded-severity approach
@@ -528,7 +562,7 @@ def detect_kemadruma_yoga(planets: dict[str, int], moon_rasi: int, lagna_rasi: i
         ("jupiter_aspects_moon", jupiter_aspects_moon),
         ("moon_full_opposite_sun", moon_full_opposite_sun),
     ]
-    cancellation_factors = [name for name, ok in cancellation_checks if present and ok]
+    cancellation_factors = [name for name, ok in cancellation_checks if formed and ok]
 
     # `planet_kendra_from_moon` is a FULL bhanga on its own, not a graded one.
     # Classical authority is explicit and unconditional here (BPHS, Phaladeepika):
@@ -539,7 +573,14 @@ def detect_kemadruma_yoga(planets: dict[str, int], moon_rasi: int, lagna_rasi: i
     # stay graded (1 -> PARTIAL, 2+ -> WEAK); they are mitigating, not annulling.
     full_bhanga = "planet_kendra_from_moon" in cancellation_factors
 
-    if not present:
+    # YOG-KD-01 ruling (2026-08-28): "Bhanga mandatory before display" — a
+    # full bhanga must cancel the card outright, not just soften its strength.
+    # Before this, a fully cancelled Kemadruma still reported `is_present=True`
+    # at WEAK, which read to a user as present. The three graded (non-full)
+    # factors keep softening rather than cancelling, matching Sakata's posture.
+    present = formed and not full_bhanga
+
+    if not formed:
         strength = "WEAK"
     elif full_bhanga or len(cancellation_factors) >= 2:
         strength = "WEAK"
@@ -552,7 +593,7 @@ def detect_kemadruma_yoga(planets: dict[str, int], moon_rasi: int, lagna_rasi: i
         name="KEMADRUMA_YOGA",
         is_present=present,
         strength=strength,
-        conditions_met=["no_planets_2nd_12th_from_moon"] if present else [],
+        conditions_met=["no_planets_2nd_12th_from_moon"] if formed else [],
         cancellation_factors=cancellation_factors,
         dasha_activated=False,
         description_ta="கேமத்ரும யோகம் — சந்திரனைச் சுற்றி 2/12இல் கிரக ஆதரவு இல்லாமை. நான்கு பங்க விதிகள் ஆராயப்படுகின்றன: லக்னத்திலிருந்து சந்திரன் கேந்திரத்தில், சந்திரனிலிருந்து ஒரு கிரகம் கேந்திரத்தில், குரு பார்வை சந்திரன் மீது, முழு நிலவு (சூரியனுக்கு எதிரே).",
@@ -560,7 +601,10 @@ def detect_kemadruma_yoga(planets: dict[str, int], moon_rasi: int, lagna_rasi: i
     )
 
 
-def detect_kartari_yoga(planets: dict[str, int], target_rasi: int, target_label: str = "LAGNA") -> YogaResult:
+def detect_kartari_yoga(
+    planets: dict[str, int], target_rasi: int, target_label: str = "LAGNA", *,
+    paksha_is_shukla: bool | None = None,
+) -> YogaResult:
     """Papa/Shubha Kartari Yoga — a house 'hemmed' by malefics (Papa, afflicting)
     or benefics (Shubha, protective) placed in the 2nd and 12th signs from it."""
     second = ((target_rasi - 1 + 1) % 12) + 1
@@ -569,10 +613,13 @@ def detect_kartari_yoga(planets: dict[str, int], target_rasi: int, target_label:
     second_occupants = [planet for planet, rasi in planets.items() if rasi == second]
     twelfth_occupants = [planet for planet, rasi in planets.items() if rasi == twelfth]
 
-    second_has_malefic = any(planet in NATURAL_MALEFICS for planet in second_occupants)
-    second_has_benefic = any(planet in NATURAL_BENEFICS for planet in second_occupants)
-    twelfth_has_malefic = any(planet in NATURAL_MALEFICS for planet in twelfth_occupants)
-    twelfth_has_benefic = any(planet in NATURAL_BENEFICS for planet in twelfth_occupants)
+    natural_class = lambda planet: effective_natural_class(
+        planet, planets, paksha_is_shukla=paksha_is_shukla
+    )
+    second_has_malefic = any(natural_class(planet) == "MALEFIC" for planet in second_occupants)
+    second_has_benefic = any(natural_class(planet) == "BENEFIC" for planet in second_occupants)
+    twelfth_has_malefic = any(natural_class(planet) == "MALEFIC" for planet in twelfth_occupants)
+    twelfth_has_benefic = any(natural_class(planet) == "BENEFIC" for planet in twelfth_occupants)
 
     is_papa = bool(second_occupants and twelfth_occupants and second_has_malefic and twelfth_has_malefic
                    and not second_has_benefic and not twelfth_has_benefic)
@@ -623,11 +670,33 @@ def detect_chandala_yoga(jupiter_rasi: int, rahu_rasi: int) -> YogaResult:
     )
 
 
-def detect_amala_yoga(planets: dict[str, int], lagna_rasi: int, moon_rasi: int, lagna_nature_map: dict[str, str]) -> YogaResult:
+def detect_chandala_yoga_ketu_variant(jupiter_rasi: int, ketu_rasi: int) -> YogaResult:
+    """YOG-CH-02 (2026-08-28 ruling): Guru+Ketu is a separate `[VARIANT]` card,
+    not the same yoga as Guru+Rahu — some schools form Guru Chandala with
+    either node, but the Ketu form must not read as `CHANDALA_YOGA` itself."""
+    present = jupiter_rasi == ketu_rasi
+    return YogaResult(
+        name="CHANDALA_KETU_YOGA",
+        is_present=present,
+        strength="STRONG" if present else "WEAK",
+        conditions_met=["jupiter_ketu_conjunction"] if present else [],
+        cancellation_factors=[],
+        dasha_activated=False,
+        description_ta="சண்டாள யோகம் (குரு-கேது வேறுபாடு) — சில பாரம்பரியங்கள் மட்டும் ஏற்கும் வடிவம்.",
+        description_en="Chandala Yoga — Jupiter conjunct Ketu, a variant recognised by some schools; distinct from the Guru-Rahu form.",
+    )
+
+
+def detect_amala_yoga(
+    planets: dict[str, int], lagna_rasi: int, moon_rasi: int, lagna_nature_map: dict[str, str], *,
+    paksha_is_shukla: bool | None = None,
+) -> YogaResult:
     tenth_lagna = ((lagna_rasi - 1 + 9) % 12) + 1
     tenth_moon = ((moon_rasi - 1 + 9) % 12) + 1
     found = []
-    for planet in NATURAL_BENEFICS:
+    for planet in planets:
+        if effective_natural_class(planet, planets, paksha_is_shukla=paksha_is_shukla) != "BENEFIC":
+            continue
         rasi = planets.get(planet)
         if rasi in {tenth_lagna, tenth_moon}:
             found.append(planet)
@@ -644,72 +713,113 @@ def detect_amala_yoga(planets: dict[str, int], lagna_rasi: int, moon_rasi: int, 
     )
 
 
-def detect_adhi_yoga(planets: dict[str, int], moon_rasi: int, lagna_nature_map: dict[str, str]) -> YogaResult:
+def detect_adhi_yoga(
+    planets: dict[str, int], moon_rasi: int, lagna_nature_map: dict[str, str], *,
+    paksha_is_shukla: bool | None = None,
+) -> YogaResult:
+    # YOG-AD-01 ruling (2026-08-28): "≥2 of Guru/Sukran/Budhan = present; 3 =
+    # full; grade by planets, not houses." The old test fired on a single
+    # benefic in a single house (near-universal, no information); presence
+    # now requires two of the three benefics themselves in 6th/7th/8th from
+    # Chandran, and the grade counts those planets, not the houses they cover.
     target_houses = {6, 7, 8}
-    coverage = set()
-    for planet in {"JUPITER", "VENUS", "MERCURY"}:
+    benefic_hits: list[tuple[str, int]] = []
+    for planet in ("JUPITER", "VENUS", "MERCURY"):
+        if effective_natural_class(planet, planets, paksha_is_shukla=paksha_is_shukla) != "BENEFIC":
+            continue
         rasi = planets.get(planet)
         if rasi is None:
             continue
         h = house_from_reference(moon_rasi, rasi)
         if h in target_houses:
-            coverage.add(h)
-    count = len(coverage)
+            benefic_hits.append((planet, h))
+    count = len(benefic_hits)
+    present = count >= 2
     return YogaResult(
         name="ADHI_YOGA",
-        is_present=count > 0,
-        strength="STRONG" if count == 3 else ("PARTIAL" if count == 2 else ("WEAK" if count == 1 else "WEAK")),
-        conditions_met=[f"benefic_in_house_{h}_from_moon" for h in sorted(coverage)],
+        is_present=present,
+        strength="STRONG" if count == 3 else ("PARTIAL" if count == 2 else "WEAK"),
+        conditions_met=[f"{p}_in_house_{h}_from_moon" for p, h in benefic_hits] if present else [],
         cancellation_factors=[],
         dasha_activated=any(lagna_nature_map.get(p, "") in {"YOGAKARAKA", "TRIKONA"} for p in {"JUPITER", "VENUS", "MERCURY"}),
-        description_ta="அதி யோகம் — சந்திரனிலிருந்து 6/7/8இல் சுபகிரக ஆதரவு.",
-        description_en="Adhi Yoga — benefics in 6th/7th/8th from Moon.",
+        description_ta="அதி யோகம் — சந்திரனிலிருந்து 6/7/8இல் இரண்டு அல்லது மூன்று சுபகிரகங்கள்.",
+        description_en="Adhi Yoga — two or more of Jupiter, Venus and Mercury in the 6th/7th/8th from Moon.",
     )
 
 
 def detect_daridra_yoga(planets: dict[str, int], lagna_rasi: int, planet_scores: dict[str, int]) -> YogaResult:
+    # YOG-DR-01 ruling (2026-08-28): "Proxy split" — the classical dusthana
+    # condition and the parentless weak-plus-malefic proxy no longer share one
+    # card. This function is the classical half only; see
+    # `detect_daridra_yoga_proxy` for the split-off proxy (YOG-DR-02).
+    _ = planet_scores
     eleventh_lord = _house_lord(lagna_rasi, 11)
     eleventh_rasi = planets.get(eleventh_lord, lagna_rasi)
     eleventh_house = house_from_reference(lagna_rasi, eleventh_rasi)
+    in_dusthana = eleventh_house in {6, 8, 12}
+    conditions_met = [f"eleventh_lord_in_{eleventh_house}"] if in_dusthana else []
+    return YogaResult(
+        name="DARIDRA_YOGA",
+        is_present=in_dusthana,
+        strength="STRONG" if in_dusthana else "WEAK",
+        conditions_met=conditions_met,
+        cancellation_factors=[],
+        dasha_activated=False,
+        description_ta="தரித்ர யோகம் — 11ஆம் அதிபதி துஷ்டானத்தில்.",
+        description_en="Daridra Yoga — 11th lord in a dusthana (6th/8th/12th).",
+    )
+
+
+def detect_daridra_yoga_proxy(planets: dict[str, int], lagna_rasi: int, planet_scores: dict[str, int]) -> YogaResult:
+    """YOG-DR-02: Vinaadi's own proxy — 11th lord weak and conjunct a
+    malefic. No classical parent; split off `DARIDRA_YOGA` per the
+    2026-08-28 ruling ("the weak-and-afflicted proxy is labelled as ours")."""
+    eleventh_lord = _house_lord(lagna_rasi, 11)
+    eleventh_rasi = planets.get(eleventh_lord, lagna_rasi)
     weak = planet_scores.get(eleventh_lord, 50) < 40
     malefic_conj = any(
         planets.get(m) == eleventh_rasi for m in NATURAL_MALEFICS if m != eleventh_lord
     )
-    in_dusthana = eleventh_house in {6, 8, 12}
-    weak_malefic_conj = weak and malefic_conj
-    present = in_dusthana or weak_malefic_conj
-    # L-6: list only the condition(s) that actually fired, not both strings
-    # unconditionally whenever either one is true.
-    conditions_met: list[str] = []
-    if in_dusthana:
-        conditions_met.append(f"eleventh_lord_in_{eleventh_house}")
-    if weak_malefic_conj:
-        conditions_met.append("eleventh_lord_weak_malefic_conj")
+    present = weak and malefic_conj
     return YogaResult(
-        name="DARIDRA_YOGA",
+        name="DARIDRA_PROXY_YOGA",
         is_present=present,
-        strength="STRONG" if present and in_dusthana else ("PARTIAL" if present else "WEAK"),
-        conditions_met=conditions_met,
+        strength="PARTIAL" if present else "WEAK",
+        conditions_met=["eleventh_lord_weak_malefic_conj"] if present else [],
         cancellation_factors=[],
         dasha_activated=False,
-        description_ta="தரித்ர யோகம் — 11ஆம் அதிபதி துஷ்டானத்தில்/பலஹீனம்.",
-        description_en="Daridra Yoga — 11th lord in dusthana or weak with malefics.",
+        description_ta="தரித்ர யோகம் (வினாடி அளவுகோல்) — 11ஆம் அதிபதி பலவீனமாகவும் பாதக கிரகத்துடன் சேர்ந்தும்.",
+        description_en="Daridra Yoga (Vinaadi proxy) — 11th lord weak and conjunct a malefic. Our own measure, not a classical daridra yoga.",
     )
 
 
-def detect_lakshmi_yoga(planets: dict[str, int], lagna_rasi: int, planet_scores: dict[str, int]) -> YogaResult:
+def detect_lakshmi_yoga(
+    planets: dict[str, int],
+    lagna_rasi: int,
+    planet_scores: dict[str, int],
+    *,
+    combust_planets: frozenset[str] = frozenset(),
+) -> YogaResult:
+    # YOG-LK-01 ruling (2026-08-28): "Strength-gated" — bring this row in line
+    # with the other TRADITION+PRODUCT yogas that run `gate_yoga_strength`
+    # (Dhana, Gaja Kesari, Chandra Mangala, …), rather than reporting a flat
+    # STRONG/WEAK. Presence still requires both scores >= 60; the gate can
+    # only lower the reported strength of a present yoga, never its presence.
     ninth_lord = _house_lord(lagna_rasi, 9)
     lagna_lord = _house_lord(lagna_rasi, 1)
     ninth_house = house_from_reference(lagna_rasi, planets.get(ninth_lord, lagna_rasi))
     ninth_strong = planet_scores.get(ninth_lord, 50) >= 60 and ninth_house in KENDRA_HOUSES | TRIKONA_HOUSES
     lagna_strong = planet_scores.get(lagna_lord, 50) >= 60
     present = ninth_strong and lagna_strong
+    strength, gate_notes = gate_yoga_strength(
+        "STRONG" if present else "WEAK", (ninth_lord, lagna_lord), planet_scores, combust_planets
+    )
     return YogaResult(
         name="LAKSHMI_YOGA",
         is_present=present,
-        strength="STRONG" if present else "WEAK",
+        strength=strength,
         conditions_met=[f"ninth_lord_{ninth_lord}_strong", f"lagna_lord_{lagna_lord}_strong"] if present else [],
-        cancellation_factors=[],
+        cancellation_factors=gate_notes,
         dasha_activated=False,
         description_ta="லக்ஷ்மி யோகம் — 9ஆம் அதிபதி வலிமை + லக்ன அதிபதி வலிமை.",
         description_en="Lakshmi Yoga — strong 9th lord and strong Lagna lord.",
@@ -738,23 +848,34 @@ def detect_sunapha_anapha_durudhura(planets: dict[str, int], moon_rasi: int) -> 
     return out
 
 
-def detect_vasumati_yoga(planets: dict[str, int], moon_rasi: int) -> YogaResult:
+def detect_vasumati_yoga(
+    planets: dict[str, int], moon_rasi: int, lagna_rasi: int, *, paksha_is_shukla: bool | None = None,
+) -> YogaResult:
+    # YOG-VS-01 ruling (2026-08-28): "Lagna-or-Moon" — upachaya counted from
+    # either reference, not from Chandran alone. A hit from either reference
+    # counts the graha once; Chandran itself is no longer inert, since it can
+    # satisfy the test from the Lagna even though it is always the 1st from
+    # itself.
     upachaya = {3, 6, 10, 11}
     benefic_hits = []
-    for planet in {"JUPITER", "VENUS", "MERCURY", "MOON"}:
+    for planet in ("JUPITER", "VENUS", "MERCURY", "MOON"):
+        if effective_natural_class(planet, planets, paksha_is_shukla=paksha_is_shukla) != "BENEFIC":
+            continue
         rasi = planets.get(planet)
         if rasi is None:
             continue
-        if house_from_reference(moon_rasi, rasi) in upachaya:
+        from_moon = house_from_reference(moon_rasi, rasi) in upachaya
+        from_lagna = house_from_reference(lagna_rasi, rasi) in upachaya
+        if from_moon or from_lagna:
             benefic_hits.append(planet)
     present = len(benefic_hits) >= 2
     return YogaResult(
         name="VASUMATI_YOGA",
         is_present=present,
         strength="STRONG" if len(benefic_hits) >= 3 else ("PARTIAL" if present else "WEAK"),
-        conditions_met=[f"{p}_upachaya_from_moon" for p in benefic_hits],
+        conditions_met=[f"{p}_upachaya_from_lagna_or_moon" for p in benefic_hits],
         cancellation_factors=[],
         dasha_activated=False,
-        description_ta="வசுமதி யோகம் — சுபகிரகங்கள் உபசய ஸ்தானங்களில்.",
-        description_en="Vasumati Yoga — benefics in upachaya houses from Moon.",
+        description_ta="வசுமதி யோகம் — லக்னம் அல்லது சந்திரனிலிருந்து உபசய ஸ்தானங்களில் சுபகிரகங்கள்.",
+        description_en="Vasumati Yoga — benefics in upachaya houses counted from either the Lagna or the Moon.",
     )

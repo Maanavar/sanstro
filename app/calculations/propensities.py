@@ -17,6 +17,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date
 
+from app.calculations.aspects import effective_natural_class
 from app.calculations.chart_strength import (
     DEBILITATION_RASI,
     EXALTATION_RASI,
@@ -27,7 +28,8 @@ from app.calculations.chart_strength import (
 from app.services.life_area_prediction_models import AstroFactor, BiText
 
 NATURAL_MALEFICS: frozenset[str] = frozenset({"SUN", "MARS", "SATURN", "RAHU", "KETU"})
-NATURAL_BENEFICS: frozenset[str] = frozenset({"JUPITER", "VENUS", "MERCURY", "MOON"})
+_UNCONDITIONAL_BENEFICS: frozenset[str] = frozenset({"JUPITER", "VENUS"})
+_CONTEXTUAL_GRAHAS: frozenset[str] = frozenset({"MOON", "MERCURY"})
 DUSTHANA: frozenset[int] = frozenset({6, 8, 12})
 FIXED_SIGNS: frozenset[int] = frozenset({2, 5, 8, 11})  # Rishaba, Simha, Vrischika, Kumbha
 
@@ -152,11 +154,23 @@ class _VargaReader:
     def occupants(self, house: int) -> list[str]:
         return [p for p in self.rasi if self.house_of(p) == house]
 
+    def is_benefic(self, planet: str) -> bool:
+        return planet in _UNCONDITIONAL_BENEFICS or (
+            planet in _CONTEXTUAL_GRAHAS
+            and effective_natural_class(planet, self.rasi) == "BENEFIC"
+        )
+
+    def is_malefic(self, planet: str) -> bool:
+        return planet in NATURAL_MALEFICS or (
+            planet in _CONTEXTUAL_GRAHAS
+            and effective_natural_class(planet, self.rasi) == "MALEFIC"
+        )
+
     def malefics_in(self, house: int) -> list[str]:
-        return [p for p in self.occupants(house) if p in NATURAL_MALEFICS]
+        return [p for p in self.occupants(house) if self.is_malefic(p)]
 
     def benefics_in(self, house: int) -> list[str]:
-        return [p for p in self.occupants(house) if p in NATURAL_BENEFICS]
+        return [p for p in self.occupants(house) if self.is_benefic(p)]
 
     def aspects_house(self, planet: str, target_house: int) -> bool:
         h = self.house_of(planet)
@@ -164,14 +178,18 @@ class _VargaReader:
 
     def malefic_hits(self, house: int) -> list[str]:
         hits = set(self.malefics_in(house))
-        for m in NATURAL_MALEFICS:
+        for m in self.rasi:
+            if not self.is_malefic(m):
+                continue
             if self.aspects_house(m, house):
                 hits.add(m)
         return sorted(hits)
 
     def benefic_hits(self, house: int) -> list[str]:
         hits = set(self.benefics_in(house))
-        for b in NATURAL_BENEFICS:
+        for b in self.rasi:
+            if not self.is_benefic(b):
+                continue
             if self.aspects_house(b, house):
                 hits.add(b)
         return sorted(hits)
@@ -201,7 +219,7 @@ class _VargaReader:
             return True
         if h in DUSTHANA:
             return True
-        return any(m != planet and self.house_of(m) == h for m in NATURAL_MALEFICS)
+        return any(m != planet and self.house_of(m) == h for m in self.rasi if self.is_malefic(m))
 
 
 class _Reader:
@@ -222,6 +240,22 @@ class _Reader:
         pv = self.pv(planet)
         return pv.rasi if pv else None
 
+    @property
+    def rasi_map(self) -> dict[str, int]:
+        return {planet: view.rasi for planet, view in self.c.planets.items()}
+
+    def is_benefic(self, planet: str) -> bool:
+        return planet in _UNCONDITIONAL_BENEFICS or (
+            planet in _CONTEXTUAL_GRAHAS
+            and effective_natural_class(planet, self.rasi_map) == "BENEFIC"
+        )
+
+    def is_malefic(self, planet: str) -> bool:
+        return planet in NATURAL_MALEFICS or (
+            planet in _CONTEXTUAL_GRAHAS
+            and effective_natural_class(planet, self.rasi_map) == "MALEFIC"
+        )
+
     def house_rasi(self, house: int) -> int:
         return ((self.c.lagna_rasi + house - 2) % 12) + 1
 
@@ -240,10 +274,10 @@ class _Reader:
         return [p for p, pv in self.c.planets.items() if pv.house == house]
 
     def malefics_in(self, house: int) -> list[str]:
-        return [p for p in self.occupants(house) if p in NATURAL_MALEFICS]
+        return [p for p in self.occupants(house) if self.is_malefic(p)]
 
     def benefics_in(self, house: int) -> list[str]:
-        return [p for p in self.occupants(house) if p in NATURAL_BENEFICS]
+        return [p for p in self.occupants(house) if self.is_benefic(p)]
 
     def conjunct(self, p1: str, p2: str) -> bool:
         h1, h2 = self.house_of(p1), self.house_of(p2)
@@ -281,7 +315,7 @@ class _Reader:
         if pv.house in DUSTHANA:
             return True
         # conjunct a natural malefic (other than itself)
-        return any(m != planet and self.conjunct(planet, m) for m in NATURAL_MALEFICS)
+        return any(m != planet and self.conjunct(planet, m) for m in self.c.planets if self.is_malefic(m))
 
     def aspects_house(self, planet: str, target_house: int) -> bool:
         h = self.house_of(planet)
@@ -290,14 +324,18 @@ class _Reader:
     def malefic_hits(self, house: int) -> list[str]:
         """Malefics occupying OR aspecting a house."""
         hits = set(self.malefics_in(house))
-        for m in NATURAL_MALEFICS:
+        for m in self.c.planets:
+            if not self.is_malefic(m):
+                continue
             if self.aspects_house(m, house):
                 hits.add(m)
         return sorted(hits)
 
     def benefic_hits(self, house: int) -> list[str]:
         hits = set(self.benefics_in(house))
-        for b in NATURAL_BENEFICS:
+        for b in self.c.planets:
+            if not self.is_benefic(b):
+                continue
             if self.aspects_house(b, house):
                 hits.add(b)
         return sorted(hits)
@@ -381,7 +419,7 @@ class _Reader:
             h = hora.get(p)
             if h is None:
                 continue
-            benefic = p in NATURAL_BENEFICS
+            benefic = self.is_benefic(p)
             in_chandra = h == 4
             if benefic == in_chandra:
                 positives += 1
@@ -1007,7 +1045,10 @@ def eval_income_growth(r: _Reader) -> Signals:
 def eval_savings_capacity(r: _Reader) -> Signals:
     s = Signals()
     second_lord = r.lord_of(2)
-    if "DHANA_YOGA" in r.c.yogas_present:
+    # DHANA_YOGA (classical) and DHANA_SUPPORTIVE_YOGA (split off as its own
+    # card 2026-08-28 — YOG-DN-01/YOG-DN-02) both count here, so the card
+    # split does not silently narrow this signal.
+    if "DHANA_YOGA" in r.c.yogas_present or "DHANA_SUPPORTIVE_YOGA" in r.c.yogas_present:
         s.support("dhana_yoga", "தன யோகம் செயலில் — சேமிப்பு திறன்.",
                   "A Dhana yoga is active — a natural capacity to save.")
     if r.is_strong(second_lord) or r.benefic_hits(2):

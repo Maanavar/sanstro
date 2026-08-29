@@ -11,9 +11,10 @@ explicit factors and (b) feed them into the promise gate as an
 area-specific dosham.
 
 Conventions (documented, per this repo's aspect table in aspects.py):
-  - Natural malefics for drishti/occupancy: Saturn, Mars, Rahu, Ketu.
-    (Sun's affliction is combustion, handled elsewhere; it is counted only
-    for kartari hemming, where classical papa includes the Sun.)
+  - Affliction candidates are Saturn, Mars, Rahu, Ketu, Moon and Mercury.
+    Moon's paksha and Mercury's association decide their effective class.
+    Sun's affliction is combustion, handled elsewhere; it is counted only for
+    kartari hemming, where classical papa includes the Sun.
   - A malefic that *owns* the bhava is exempt from afflicting that bhava
     (Saturn aspecting its own house reads as stability/delay, not denial).
   - Kartari: papa when malefics stand in both the 12th and 2nd from the
@@ -24,12 +25,28 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.calculations.aspects import aspects_house
+from app.calculations.aspects import aspects_house, effective_natural_class
 from app.calculations.chart_strength import SIGN_LORD
 
-NATURAL_MALEFICS: frozenset[str] = frozenset({"SATURN", "MARS", "RAHU", "KETU"})
-KARTARI_MALEFICS: frozenset[str] = NATURAL_MALEFICS | {"SUN"}
-KARTARI_BENEFICS: frozenset[str] = frozenset({"JUPITER", "VENUS", "MERCURY", "MOON"})
+_AFFLICTION_CANDIDATES: frozenset[str] = frozenset(
+    {"SATURN", "MARS", "RAHU", "KETU", "MOON", "MERCURY"}
+)
+
+
+def _effective_malefics(planet_rasis: dict[str, int]) -> set[str]:
+    return {
+        planet
+        for planet in _AFFLICTION_CANDIDATES & planet_rasis.keys()
+        if effective_natural_class(planet, planet_rasis) == "MALEFIC"
+    }
+
+
+def _effective_benefics(planet_rasis: dict[str, int]) -> set[str]:
+    return {
+        planet
+        for planet in {"JUPITER", "VENUS", "MOON", "MERCURY"} & planet_rasis.keys()
+        if effective_natural_class(planet, planet_rasis) == "BENEFIC"
+    }
 
 
 @dataclass(frozen=True, slots=True)
@@ -73,7 +90,7 @@ def _planet_afflictors(
     if target_rasi is None:
         return ()
     hits = []
-    for malefic in sorted(NATURAL_MALEFICS):
+    for malefic in sorted(_effective_malefics(planet_rasis)):
         if malefic == target:
             continue
         rasi = planet_rasis.get(malefic)
@@ -96,12 +113,12 @@ def assess_bhava_afflictions(
 
     occupying = tuple(
         malefic
-        for malefic in sorted(NATURAL_MALEFICS)
+        for malefic in sorted(_effective_malefics(planet_rasis))
         if malefic != bhava_lord and planet_rasis.get(malefic) == bhava_rasi
     )
     aspecting = tuple(
         malefic
-        for malefic in sorted(NATURAL_MALEFICS)
+        for malefic in sorted(_effective_malefics(planet_rasis))
         if malefic != bhava_lord
         and (rasi := planet_rasis.get(malefic)) is not None
         and rasi != bhava_rasi
@@ -117,13 +134,10 @@ def assess_bhava_afflictions(
     after_rasi = (bhava_rasi % 12) + 1  # 2nd from the bhava
     before = {p for p, r in planet_rasis.items() if r == before_rasi}
     after = {p for p, r in planet_rasis.items() if r == after_rasi}
-    papa_kartari = bool(before & KARTARI_MALEFICS) and bool(after & KARTARI_MALEFICS)
-    shubha_kartari = (
-        bool(before & KARTARI_BENEFICS)
-        and bool(after & KARTARI_BENEFICS)
-        and not (before & KARTARI_MALEFICS)
-        and not (after & KARTARI_MALEFICS)
-    )
+    benefics = _effective_benefics(planet_rasis)
+    malefics = _effective_malefics(planet_rasis)
+    papa_kartari = bool(before & (malefics | {"SUN"})) and bool(after & (malefics | {"SUN"}))
+    shubha_kartari = bool(before & benefics) and bool(after & benefics) and not (before & malefics) and not (after & malefics)
 
     severity = (
         len(occupying)

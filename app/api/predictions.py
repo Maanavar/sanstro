@@ -304,7 +304,14 @@ def get_wealth_prediction(
         session, chart_id, current_user, on_date
     )
 
-    has_dhana_yoga = any(y.name.upper() == "DHANA_YOGA" and y.is_present for y in snapshot.data.yogas)
+    # DHANA_YOGA (classical) and DHANA_SUPPORTIVE_YOGA (the parentless "both
+    # wealth lords well placed" proxy, split into its own card 2026-08-28 —
+    # YOG-DN-01/YOG-DN-02) both feed this flag, so the split card-display
+    # ruling does not silently narrow what counts as wealth-supportive here.
+    has_dhana_yoga = any(
+        y.name.upper() in {"DHANA_YOGA", "DHANA_SUPPORTIVE_YOGA"} and y.is_present
+        for y in snapshot.data.yogas
+    )
     doshams_by_name = {d.name.upper(): d for d in snapshot.data.doshams}
     pitru = doshams_by_name.get("PITRU_DOSHAM")
     rahu_ketu = doshams_by_name.get("RAHU_KETU_DOSHAM")

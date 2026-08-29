@@ -29,18 +29,18 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 
-from app.calculations.aspects import aspects_house
+from app.calculations.aspects import aspect_strength, effective_natural_class
 from app.calculations.astro import (
     house_from_reference,
     navamsa_rasi_from_degree,
     rasi_from_degree,
 )
 from app.calculations.chart_strength import (
+    _NATURAL_ENEMIES,
+    _NATURAL_FRIENDS,
     MOOLATRIKONA_ZONE,
     OWN_SIGN_RASI,
     SIGN_LORD,
-    _NATURAL_ENEMIES,
-    _NATURAL_FRIENDS,
 )
 from app.calculations.divisional_charts import (
     compute_d2,
@@ -363,7 +363,12 @@ def _nathonnatha_bala(planet: str, ctx: ShadbalaContext) -> float:
 def _paksha_bala(planet: str, sun_lon: float, moon_lon: float) -> float:
     """Lunar-phase strength. BPHS: benefics gain with the waxing Moon,
     malefics with the waning Moon; measured by Sun-Moon elongation. The
-    Moon's own Paksha Bala is doubled (classical special rule)."""
+    Moon's own Paksha Bala is doubled (classical special rule).
+
+    This is a fixed classical component formula, not the product-level
+    contextual natural-class classifier used for predictive benefic/malefic
+    effects below.
+    """
     elong = _angular_sep(sun_lon, moon_lon)  # 0-180
     if planet in _NAT_BENEFICS:
         bala = elong / 3.0
@@ -488,14 +493,18 @@ def _drik_bala(planet: str, planet_rasi: int, rasi_map: dict[str, int]) -> float
     (documented simplification of the full graded form)."""
     bala = 30.0
     for other, other_rasi in rasi_map.items():
-        if other == planet:
+        # Classical Shadbala is defined only for the seven grahas.  In
+        # particular, do not let an incidental Rahu/Ketu entry turn into a new
+        # Drik Bala aspector merely because it is naturally malefic elsewhere.
+        if other == planet or other not in SHADBALA_GRAHAS:
             continue
-        if not aspects_house(other, other_rasi, planet_rasi):
+        strength = aspect_strength(other, other_rasi, planet_rasi)
+        if strength <= 0:
             continue
-        if other in _NAT_BENEFICS:
-            bala += 10.0
-        elif other in _NAT_MALEFICS:
-            bala -= 10.0
+        if effective_natural_class(other, rasi_map) == "BENEFIC":
+            bala += 10.0 * strength
+        else:
+            bala -= 10.0 * strength
     return max(0.0, min(60.0, bala))
 
 
