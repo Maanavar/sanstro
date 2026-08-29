@@ -216,8 +216,8 @@ That is an accident of this set, not a general guarantee — locked by
 **Sthree Deergham threshold.** Vinaadi uses the **lenient** >= 8. Some traditions
 require >= 13 (half the circle). This is a declared school choice.
 
-**Rasi exception clauses.** `RASI_EXCEPTIONS_ENABLED = False`.
-Directional skeleton only. The 2nd-position even-sign exception and the six 6th-position pair exceptions are unverified against p.68 and do not fire.
+**Rasi exception clauses.** `RASI_EXCEPTIONS_ENABLED = True`.
+The 2nd-position even-sign exception and the six 6th-position pair exceptions are live (Kalaprakasika p.74). Jothidam p.68's 6th-position even-sign exception is ruled in but held: we hold a paraphrase, not the sentence, and its scope decides whether the 6th-position failure survives at all.
 
 ---
 
@@ -551,7 +551,7 @@ Generated from `app/calculations/yoga_rules.py`, which is pinned to the emitted
 yoga codes by `tests/test_yoga_rules.py` — a new yoga cannot ship without a row
 here, and a row here cannot describe a yoga the engine does not emit.
 
-**32 rules over 30 emitted codes**, from 20 detector
+**35 rules over 33 emitted codes**, from 20 detector
 functions. Rules outnumber codes because `RAJA_YOGA` merges two independent
 formulations onto one card and one row records a deliberate non-detection; codes
 outnumber detectors because Pancha Mahapurusha emits five, the Chandra yogas
@@ -579,6 +579,7 @@ the listed set is a `[PRODUCT]` approximation and the row says so.
 | `YOG-RY-02` | Raja Yoga — trikona/kendra lord exchange | `RAJA_YOGA` | `yogas.detect_yogas_and_doshams` | `[VARIANT]` | Sun, Moon, Mars, Jupiter (via the shared card) |
 | `YOG-RY-03` | Raja Yoga — formulations deliberately not implemented | — (not detected) | `—` | `[LIMIT]` | — (not detected) |
 | `YOG-DN-01` | Dhana Yoga | `DHANA_YOGA` | `_yoga_detect.detect_dhana_yoga` | `[TRADITION]` `[PRODUCT]` | Jupiter, Venus, Mercury |
+| `YOG-DN-02` | Dhana Yoga (supportive) | `DHANA_SUPPORTIVE_YOGA` | `_yoga_detect.detect_dhana_yoga_supportive` | `[PRODUCT]` | Jupiter, Venus, Mercury |
 | `YOG-NBR-01` | Neecha Bhanga Raja Yoga | `NEECHA_BHANGA_RAJA_YOGA` | `_yoga_detect.detect_neecha_bhanga` | `[TRADITION]` | Jupiter |
 | `YOG-PMP-01` | Ruchaka Yoga (Chevvai) | `RUCHAKA_YOGA` | `_yoga_detect.detect_pancha_mahapurusha` | `[TRADITION]` | Mars |
 | `YOG-PMP-02` | Bhadra Yoga (Budhan) | `BHADRA_YOGA` | `_yoga_detect.detect_pancha_mahapurusha` | `[TRADITION]` | Mercury |
@@ -595,9 +596,11 @@ the listed set is a `[PRODUCT]` approximation and the row says so.
 | `YOG-KT-02` | Shubha Kartari Yoga | `SHUBHA_KARTARI_YOGA` | `_yoga_detect.detect_kartari_yoga` | `[TRADITION]` | **none — dormant-capped** |
 | `YOG-KT-03` | Kartari — neither formation present | `KARTARI_YOGA` | `_yoga_detect.detect_kartari_yoga` | `[PRODUCT]` | **none — dormant-capped** |
 | `YOG-CH-01` | Guru Chandala Yoga | `CHANDALA_YOGA` | `_yoga_detect.detect_chandala_yoga` | `[TRADITION]` `[LIMIT]` | **none — dormant-capped** |
+| `YOG-CH-02` | Guru Chandala Yoga (Ketu variant) | `CHANDALA_KETU_YOGA` | `_yoga_detect.detect_chandala_yoga_ketu_variant` | `[VARIANT]` | **none — dormant-capped** |
 | `YOG-AM-01` | Amala Yoga | `AMALA_YOGA` | `_yoga_detect.detect_amala_yoga` | `[TRADITION]` `[PRODUCT]` | **none — dormant-capped** |
 | `YOG-AD-01` | Adhi Yoga | `ADHI_YOGA` | `_yoga_detect.detect_adhi_yoga` | `[VARIANT]` `[PRODUCT]` | **none — dormant-capped** |
-| `YOG-DR-01` | Daridra Yoga | `DARIDRA_YOGA` | `_yoga_detect.detect_daridra_yoga` | `[VARIANT]` `[PRODUCT]` | **none — dormant-capped** |
+| `YOG-DR-01` | Daridra Yoga | `DARIDRA_YOGA` | `_yoga_detect.detect_daridra_yoga` | `[VARIANT]` | **none — dormant-capped** |
+| `YOG-DR-02` | Daridra Yoga (Vinaadi proxy) | `DARIDRA_PROXY_YOGA` | `_yoga_detect.detect_daridra_yoga_proxy` | `[PRODUCT]` | **none — dormant-capped** |
 | `YOG-LK-01` | Lakshmi Yoga | `LAKSHMI_YOGA` | `_yoga_detect.detect_lakshmi_yoga` | `[TRADITION]` `[PRODUCT]` | **none — dormant-capped** |
 | `YOG-SAD-01` | Sunapha Yoga | `SUNAPHA_YOGA` | `_yoga_detect.detect_sunapha_anapha_durudhura` | `[TRADITION]` `[PRODUCT]` | **none — dormant-capped** |
 | `YOG-SAD-02` | Anapha Yoga | `ANAPHA_YOGA` | `_yoga_detect.detect_sunapha_anapha_durudhura` | `[TRADITION]` `[PRODUCT]` | **none — dormant-capped** |
@@ -672,12 +675,26 @@ the listed set is a `[PRODUCT]` approximation and the row says so.
 | **Emitted as** | `DHANA_YOGA` |
 | **Detector** | `_yoga_detect.detect_dhana_yoga` |
 | **Markers** | `[TRADITION]` `[PRODUCT]` |
-| **Present when** | Any one of three conditions on the 2nd and 11th lords: they share a rasi (`second_eleventh_conjunction`); each occupies the sign the other rules (`second_eleventh_exchange`); or **both** stand in a kendra or a trikona (`both_lords_in_strong_houses`). |
-| **Strength** | STRONG if the conjunction or the exchange fired; PARTIAL if only the both-in-strong-houses condition fired. Then gated over the two lords. |
+| **Present when** | Either of two conditions on the 2nd and 11th lords: they share a rasi (`second_eleventh_conjunction`), or each occupies the sign the other rules (`second_eleventh_exchange`). The third, parentless condition no longer lives on this card — see `YOG-DN-02`. |
+| **Strength** | STRONG when either condition fires. Then gated over the two lords. |
 | **Cancellation** | — |
-| **Source** | The 2nd/11th dhana formulation of the BPHS dhana yoga chapter, for the first two conditions only. |
+| **Source** | The 2nd/11th dhana formulation of the BPHS dhana yoga chapter. |
 | **Activation grahas** | Jupiter, Venus, Mercury |
-| **Note** | **The third condition is not a classical dhana yoga.** It is a Vinaadi proxy for 'both wealth lords are well placed', and it is much the commonest of the three, so `DHANA_YOGA` reads present at PARTIAL on a large share of charts. Two questions for the reviewer: should that third condition survive at all, and should the classical set widen to the 5th and 9th lords as most dhana treatments do. `key_planets` is a `[PRODUCT]` approximation for the same reason as `YOG-RY-01`. Strength is then lowered one rung per condition by `_yoga_helpers.gate_yoga_strength` — a key graha's composite natal score below 45, or a key graha combust — and floored at PARTIAL, so a gate never hides a formed yoga. |
+| **Note** | **Separated by the 2026-08-28 ruling** ('Separate `[PRODUCT]`'). This card now carries only the two sourced conditions, so a reader meeting `DHANA_YOGA` sees a claim with a printed classical parent. `key_planets` is a `[PRODUCT]` approximation for the same reason as `YOG-RY-01`. Strength is then lowered one rung per condition by `_yoga_helpers.gate_yoga_strength` — a key graha's composite natal score below 45, or a key graha combust — and floored at PARTIAL, so a gate never hides a formed yoga. |
+
+#### `YOG-DN-02` Dhana Yoga (supportive) (தன யோகம் (துணை))
+
+|  |  |
+|---|---|
+| **Emitted as** | `DHANA_SUPPORTIVE_YOGA` |
+| **Detector** | `_yoga_detect.detect_dhana_yoga_supportive` |
+| **Markers** | `[PRODUCT]` |
+| **Present when** | Both the 2nd and 11th lords stand in a kendra or a trikona (`both_lords_in_strong_houses`). |
+| **Strength** | PARTIAL when formed, gated over the two lords; WEAK otherwise. |
+| **Cancellation** | — |
+| **Source** | No single source claimed. A Vinaadi proxy for 'both wealth lords are well placed', not a classical dhana yoga. |
+| **Activation grahas** | Jupiter, Venus, Mercury |
+| **Note** | **Split off `YOG-DN-01` by ruling, kept rather than dropped.** This is much the commonest of the original three Dhana conditions, so it fires on a large share of charts — now on its own labelled card rather than under the classical name. `key_planets` is a `[PRODUCT]` approximation for the same reason as `YOG-RY-01`. Strength is then lowered one rung per condition by `_yoga_helpers.gate_yoga_strength` — a key graha's composite natal score below 45, or a key graha combust — and floored at PARTIAL, so a gate never hides a formed yoga. |
 
 #### `YOG-NBR-01` Neecha Bhanga Raja Yoga (நீசபங்க ராஜ யோகம்)
 
@@ -841,11 +858,11 @@ the listed set is a `[PRODUCT]` approximation and the row says so.
 | **Detector** | `_yoga_detect.detect_kemadruma_yoga` |
 | **Markers** | `[TRADITION]` `[PRODUCT]` |
 | **Present when** | No graha other than Suriyan, Rahu, Kethu and Chandran itself occupies the 2nd or the 12th rasi from Chandran. |
-| **Strength** | Four bhanga are tested. `planet_kendra_from_moon` is a **full** bhanga on its own → WEAK. Of the other three — Chandran in a kendra from Lagna, Guru's drishti on Chandran, full moon opposite Suriyan — one → PARTIAL, two or more → WEAK. None → STRONG. |
+| **Strength** | Four bhanga are tested. `planet_kendra_from_moon` is a **full** bhanga on its own → the card no longer shows as present at all (WEAK, `is_present=False`). Of the other three — Chandran in a kendra from Lagna, Guru's drishti on Chandran, full moon opposite Suriyan — one → PARTIAL, two or more → WEAK (still present, softened). None → STRONG. |
 | **Cancellation** | The four bhanga above; all four are recorded in `cancellation_factors`. |
 | **Source** | Kemadruma and its bhanga, BPHS and Phaladeepika. |
 | **Activation grahas** | **none — dormant-capped** |
-| **Note** | The full-bhanga carve-out is doctrine, not calibration: a graha in a kendra from Chandran destroys Kemadruma outright in both texts, and grading it produced a self-contradicting reading — Guru in a kendra from Chandran **is** Gaja Kesari, so one chart reported Gaja Kesari and Kemadruma as simultaneously active. The 1→PARTIAL / 2→WEAK grading of the remaining three is `[PRODUCT]`; those three are mitigating, not annulling. |
+| **Note** | **Bhanga is now mandatory before display (2026-08-28 ruling).** Before this, the full bhanga only lowered the reported strength to WEAK while `is_present` stayed True, so a cancelled Kemadruma could still surface as present to a reader. The full-bhanga carve-out itself is doctrine, not calibration: a graha in a kendra from Chandran destroys Kemadruma outright in both texts, and grading it produced a self-contradicting reading — Guru in a kendra from Chandran **is** Gaja Kesari, so one chart reported Gaja Kesari and Kemadruma as simultaneously active. The 1→PARTIAL / 2→WEAK grading of the remaining three is `[PRODUCT]`; those three still soften rather than cancel, matching Sakata's posture. |
 
 #### `YOG-KT-01` Papa Kartari Yoga (பாப கர்த்தரி யோகம்)
 
@@ -896,12 +913,26 @@ the listed set is a `[PRODUCT]` approximation and the row says so.
 | **Emitted as** | `CHANDALA_YOGA` |
 | **Detector** | `_yoga_detect.detect_chandala_yoga` |
 | **Markers** | `[TRADITION]` `[LIMIT]` |
-| **Present when** | Guru and Rahu share a rasi. |
+| **Present when** | Guru and Rahu share a rasi. **Guru-Ketu does not form this yoga** — see `YOG-CH-02`. |
 | **Strength** | STRONG when formed, WEAK otherwise. Ungated. |
 | **Cancellation** | — |
 | **Source** | Guru Chandala, standard in the Tamil dosha/yoga lists. |
 | **Activation grahas** | **none — dormant-capped** |
-| **Note** | Whole sign, **no degree orb**: a Guru-Rahu pair 25° apart inside one rasi forms it, while a 3° pair straddling a rasi boundary does not. Name the orb your lineage uses and it can be tightened. **Kethu is not tested** — schools that form Guru Chandala with either node would report more. No key grahas defined, so activation is dormant-capped. |
+| **Note** | **Guru+Rahu ONLY (2026-08-28 ruling).** Whole sign, **no degree orb**: a Guru-Rahu pair 25° apart inside one rasi forms it, while a 3° pair straddling a rasi boundary does not. Name the orb your lineage uses and it can be tightened. The Guru-Ketu form some schools also use is split into its own `[VARIANT]` card (`YOG-CH-02`, `CHANDALA_KETU_YOGA`) rather than folded in here, so the Ketu form never reads as the same yoga. No key grahas defined, so activation is dormant-capped. |
+
+#### `YOG-CH-02` Guru Chandala Yoga (Ketu variant) (சண்டாள யோகம் (குரு-கேது வேறுபாடு))
+
+|  |  |
+|---|---|
+| **Emitted as** | `CHANDALA_KETU_YOGA` |
+| **Detector** | `_yoga_detect.detect_chandala_yoga_ketu_variant` |
+| **Markers** | `[VARIANT]` |
+| **Present when** | Guru and Kethu share a rasi. |
+| **Strength** | STRONG when formed, WEAK otherwise. Ungated. |
+| **Cancellation** | — |
+| **Source** | Not classical Guru Chandala (Guru+Rahu). Some schools extend the yoga to either node; no printed source claimed for the extension. |
+| **Activation grahas** | **none — dormant-capped** |
+| **Note** | Split off `YOG-CH-01` by the 2026-08-28 ruling: **'Guru + Rahu ONLY. Guru + Ketu = separate [VARIANT] card.'** Same whole-sign, no-orb test as the Rahu form, applied to Kethu instead. Emitted unconditionally alongside `CHANDALA_YOGA` on its own card. No key grahas defined, so activation is dormant-capped. |
 
 #### `YOG-AM-01` Amala Yoga (அமல யோகம்)
 
@@ -924,12 +955,12 @@ the listed set is a `[PRODUCT]` approximation and the row says so.
 | **Emitted as** | `ADHI_YOGA` |
 | **Detector** | `_yoga_detect.detect_adhi_yoga` |
 | **Markers** | `[VARIANT]` `[PRODUCT]` |
-| **Present when** | **At least one** of Guru, Sukran or Budhan occupies the 6th, 7th or 8th rasi from Chandran. |
-| **Strength** | By the number of those three *houses* covered: 3 → STRONG, 2 → PARTIAL, 1 → WEAK. Two benefics in one house count once. |
+| **Present when** | **At least two** of Guru, Sukran and Budhan occupy the 6th, 7th or 8th rasi from Chandran (2026-08-28 ruling: '≥2 of Guru/Sukran/Budhan = present; 3 = full; grade by planets, not houses'). |
+| **Strength** | By the count of qualifying *planets*, not houses: 3 → STRONG ('full'), 2 → PARTIAL. Below 2, absent. |
 | **Cancellation** | — |
 | **Source** | Adhi yoga, BPHS and Phaladeepika — the three benefics in the 6th/7th/8th from Chandran. |
 | **Activation grahas** | **none — dormant-capped** |
-| **Note** | **This is the loosest presence test in the yoga set, and it is looser than the classical rule.** Adhi Yoga proper asks for the benefics in those houses as a set, graded by how many of the three *benefics* are so placed. Firing on one benefic in one of three houses makes Adhi Yoga present on most charts; counting distinct houses rather than distinct benefics is a second departure. **Both are surfaced for the reviewer's verdict rather than changed unilaterally** — tightening the presence test would remove a yoga from charts that currently show it, which is a doctrine decision, not a bug fix. `dasha_activated` here is read from the functional nature of Guru, Sukran and Budhan for the lagna — **all three, whether or not they are among the grahas that formed the yoga** — so it is neither a dasha test nor restricted to this yoga's own participants. |
+| **Note** | **Tightened by ruling from the loosest presence test in the yoga set.** The old test fired on a single benefic in a single house, which made Adhi present on most charts and near-universal, so a present Adhi carried no information — `tests/test_drishti_yoga_golden.py` pinned that as the live evidence behind this ruling. Presence and grading now both count distinct *benefics* found in the 6th/7th/8th, matching the classical 'three as a set' reading. `dasha_activated` here is read from the functional nature of Guru, Sukran and Budhan for the lagna — **all three, whether or not they are among the grahas that formed the yoga** — so it is neither a dasha test nor restricted to this yoga's own participants; left unchanged, since the ruling addressed only presence and grading. |
 
 #### `YOG-DR-01` Daridra Yoga (தரித்ர யோகம்)
 
@@ -937,13 +968,27 @@ the listed set is a `[PRODUCT]` approximation and the row says so.
 |---|---|
 | **Emitted as** | `DARIDRA_YOGA` |
 | **Detector** | `_yoga_detect.detect_daridra_yoga` |
-| **Markers** | `[VARIANT]` `[PRODUCT]` |
-| **Present when** | The 11th lord occupies a dusthana (6/8/12), **or** its composite natal score is below 40 and a natural malefic other than itself shares its rasi. |
-| **Strength** | STRONG when the dusthana condition fired, PARTIAL when only the weak-plus-malefic condition did. |
+| **Markers** | `[VARIANT]` |
+| **Present when** | The 11th lord occupies a dusthana (6/8/12). The weak-plus-malefic condition no longer lives on this card — see `YOG-DR-02`. |
+| **Strength** | STRONG when formed, WEAK otherwise. |
 | **Cancellation** | — |
 | **Source** | No single source claimed. Daridra yogas are a family — variously on the 2nd/11th lords in dusthanas, the lagna lord in the 6/8/12, and other combinations. This implements one narrow member of it. |
 | **Activation grahas** | **none — dormant-capped** |
-| **Note** | The `< 40` cut-off reads the composite natal graha score (§3.3.4), a `[PRODUCT]` number, not a classical strength. **When the 11th lord's rasi is absent from the chart map the function silently defaults it to the Lagna rasi**, which makes the dusthana test read house 1 — a silent default a reviewer should know about, though every production call site supplies all nine grahas. Adverse yoga; no key grahas defined, so activation is dormant-capped. |
+| **Note** | **Separated by the 2026-08-28 ruling** ('Proxy split'). **When the 11th lord's rasi is absent from the chart map the function silently defaults it to the Lagna rasi**, which makes the dusthana test read house 1 — a silent default a reviewer should know about, though every production call site supplies all nine grahas. Adverse yoga; no key grahas defined, so activation is dormant-capped. |
+
+#### `YOG-DR-02` Daridra Yoga (Vinaadi proxy) (தரித்ர யோகம் (வினாடி அளவுகோல்))
+
+|  |  |
+|---|---|
+| **Emitted as** | `DARIDRA_PROXY_YOGA` |
+| **Detector** | `_yoga_detect.detect_daridra_yoga_proxy` |
+| **Markers** | `[PRODUCT]` |
+| **Present when** | The 11th lord's composite natal score is below 40 **and** a natural malefic other than itself shares its rasi. |
+| **Strength** | PARTIAL when formed, WEAK otherwise. |
+| **Cancellation** | — |
+| **Source** | No source claimed. A Vinaadi proxy, not a classical daridra yoga. |
+| **Activation grahas** | **none — dormant-capped** |
+| **Note** | **Split off `YOG-DR-01` by ruling** ('the weak-and-afflicted proxy is labelled as ours'), kept rather than dropped. The `< 40` cut-off reads the composite natal graha score (§3.3.4), a `[PRODUCT]` number, not a classical strength. Shares the same silent-default behaviour on a missing 11th-lord rasi as `YOG-DR-01`. Adverse yoga; no key grahas defined, so activation is dormant-capped. |
 
 #### `YOG-LK-01` Lakshmi Yoga (லக்ஷ்மி யோகம்)
 
@@ -953,11 +998,11 @@ the listed set is a `[PRODUCT]` approximation and the row says so.
 | **Detector** | `_yoga_detect.detect_lakshmi_yoga` |
 | **Markers** | `[TRADITION]` `[PRODUCT]` |
 | **Present when** | The 9th lord scores 60 or more **and** stands in a kendra or trikona, **and** the Lagna lord scores 60 or more. |
-| **Strength** | STRONG when formed, WEAK otherwise. Ungated. |
+| **Strength** | STRONG when formed, then gated over the two lords (2026-08-28 ruling: 'Presence gated on strength'). WEAK when not formed. |
 | **Cancellation** | — |
 | **Source** | Lakshmi yoga, Phaladeepika — a strong and well-placed 9th lord with a strong lagna lord. |
 | **Activation grahas** | **none — dormant-capped** |
-| **Note** | **The principle is classical; the two 60s are Vinaadi's.** The source rule reads dignity — the 9th lord in its own or exaltation sign in a kendra/trikona — and Vinaadi substitutes the composite natal score (§3.3.4) with a 60 cut-off in both places. A reviewer should judge the direction, not the number. Note this yoga is one of the four that silently go inert if `planet_scores_in` is not threaded from the real chart-strength computation, since the fallback yields a uniform 50. |
+| **Note** | **The principle is classical; the two 60s are Vinaadi's.** The source rule reads dignity — the 9th lord in its own or exaltation sign in a kendra/trikona — and Vinaadi substitutes the composite natal score (§3.3.4) with a 60 cut-off in both places. A reviewer should judge the direction, not the number. Note this yoga is one of the four that silently go inert if `planet_scores_in` is not threaded from the real chart-strength computation, since the fallback yields a uniform 50. Now runs `gate_yoga_strength` like the other TRADITION+PRODUCT rows rather than reporting flat STRONG/WEAK; presence itself is unchanged — the gate only lowers a *present* yoga's reported strength. Strength is then lowered one rung per condition by `_yoga_helpers.gate_yoga_strength` — a key graha's composite natal score below 45, or a key graha combust — and floored at PARTIAL, so a gate never hides a formed yoga. |
 
 #### `YOG-SAD-01` Sunapha Yoga (சுனபா யோகம்)
 
@@ -1008,12 +1053,12 @@ the listed set is a `[PRODUCT]` approximation and the row says so.
 | **Emitted as** | `VASUMATI_YOGA` |
 | **Detector** | `_yoga_detect.detect_vasumati_yoga` |
 | **Markers** | `[VARIANT]` `[PRODUCT]` |
-| **Present when** | Two or more of Guru, Sukran, Budhan and Chandran occupy an upachaya rasi (3/6/10/11) counted from Chandran. |
+| **Present when** | Two or more of Guru, Sukran, Budhan and Chandran occupy an upachaya rasi (3/6/10/11) counted from **either the Lagna or Chandran** (2026-08-28 ruling: 'Lagna-or-Moon'). |
 | **Strength** | STRONG at three or more, PARTIAL at two. |
 | **Cancellation** | — |
 | **Source** | Vasumati yoga — benefics in the upachayas. |
 | **Activation grahas** | **none — dormant-capped** |
-| **Note** | Counted from **Chandran only**; the usual statement of the rule allows the Lagna as well. Chandran is in the candidate set but can never satisfy the test — it is always the 1st from itself — so it is inert and the effective set is three grahas. The 2-and-3 rungs are Vinaadi's. |
+| **Note** | **Widened by ruling from Chandran-only.** Each graha counts once if *either* reference places it in an upachaya — the union, not the intersection. Chandran was previously inert in the candidate set (it is always the 1st from itself, so it could never satisfy a Chandran-only test); it is no longer inert now that the Lagna reference is live, since Chandran can stand in an upachaya from the Lagna. The 2-and-3 rungs are Vinaadi's. |
 
 #### `YOG-NKC-01` Ayilyam (Ashlesha) caution (ஆயில்ய தோஷம்)
 

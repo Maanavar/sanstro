@@ -24,6 +24,18 @@ this file.
 
 ---
 
+**RULED 2026-08-28 — read
+[`ASTROLOGER_RULINGS_2026-08-28.md`](ASTROLOGER_RULINGS_2026-08-28.md) first.**
+`A-5`, `A-6`, `A-7`, `A-8`, `A-19` and `A-20` all now have verdicts, and this
+file's entries for them are kept only as the *statement of the question*. Where
+an entry below describes what ships today, **check the ruling before believing
+it** — `A-20`'s entry was already stale when the ruling arrived (it says the
+narrower list is scored; the union has in fact been live all along, and is now
+pinned by a test). `A-10`, `A-11` and `A-18` were closed earlier by printed
+pages. Do not re-ask any of these.
+
+---
+
 ## §A. Needs an astrologer — nothing else unblocks these
 
 ### Tier 1 — answering differently changes what a user is told
@@ -224,8 +236,16 @@ last rules claiming more certainty than we hold.
   survives OCR where a bare numeral may not. Both passages stand and neither is
   said to supersede the other, so their union spans **11 of 27 counts**. That is
   wide enough that widening the live prohibition set is a decision rather than a
-  fix, so only the first is scored today. **Ask:** does the union apply, or is
-  the named list the operative one?
+  fix. **Ask:** does the union apply, or is the named list the operative one?
+
+  > **RULED 2026-08-28: UNION.** And a correction to the sentence above, which
+  > was stale when it was written: **the union was already the scored set** —
+  > `UPANAYANAM_JANMA_TARA_PROHIBITED` has been `GENERAL | NAMED` (11 of 27
+  > counts) in the registry all along, so "only the first is scored today" was
+  > never true. Nothing pinned it, which is how the claim survived. The ruling
+  > therefore changes no behaviour and instead makes the width **deliberate**:
+  > `test_upanayanam_janma_tara_is_the_union_of_both_passages` now fails if
+  > anyone narrows it to either passage alone.
 
 ---
 

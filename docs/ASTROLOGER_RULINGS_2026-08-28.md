@@ -101,7 +101,7 @@ harsher than the text. Recorded, not ruled.
 
 ---
 
-## 4. Porutham — which text governs 🔨
+## 4. Porutham — which text governs ✅ (4a partial) · 🔨 (4b)
 
 ### 4a — Rasi exceptions: **both, with a precedence rule**
 
@@ -122,8 +122,37 @@ from. Two mechanical consequences:
   so enabling exceptions can never be a back door to a softer verdict than
   either source alone would give.
 
-`RASI_EXCEPTIONS_ENABLED` flips, the two sets get filled, and the precedence
-above needs a test each.
+**Shipped ✅ — two of the three halves.** `RASI_EXCEPTIONS_ENABLED` is on, the
+2nd-position even-sign test and the six enumerated pairs are live in
+[porutham.py](../app/calculations/porutham.py), and `_rasi_exception_lifts`
+carries the precedence. Every exception is a **missing PASS restored** — no
+couple newly fails.
+
+One reading needed care and is worth stating: p.74's parity test is on the
+**groom's** sign (*"such Jenma-Rasi"* is the one the sentence has just named).
+At the 2nd position the two parities are always opposite, so reading it off the
+bride would invert the rule on **every** chart rather than occasionally. Pinned
+by test.
+
+**Held: Jothidam p.68's 6th-position even-sign row — ruled in, deliberately
+unfilled, and there is a question in it for you.**
+
+We hold a *paraphrase* of p.68 ("even sign from Rishabha, groom 6th →
+Madhyama"), not its sentence, and filling a set from a paraphrase is the exact
+failure `EC-RULING-01` was opened over. But the arithmetic raises something
+beyond the missing quote:
+
+> At the 6th position the groom's rasi is always the bride's parity **flipped**.
+> So p.74's six enumerated pairs are precisely the **odd-bride / even-groom**
+> cases — all six of them. If Jothidam's exception is read as "any even sign",
+> it covers exactly the **other** six, and the two rules together lift **every
+> 6th-position pairing**, retiring the 6th-position failure altogether.
+
+That is a doctrine change, not an exception, and it is almost certainly not what
+"enable both" was meant to authorise. **Two questions when convenient:** does
+p.68's "even sign" mean every even rasi or the even signs counted *from*
+Rishabha; and is the 6th-position failure meant to survive at all? The schema is
+live and the set is empty, so nothing moves until you say.
 
 ### 4b — Sthree Deergham: **three bands, not a threshold**
 
@@ -153,7 +182,7 @@ since it is plausibly a Leo/Libra OCR slip.
 
 ---
 
-## 5. Compatibility weights 🔨
+## 5. Compatibility weights ✅
 
 > **Porutham 35 / 7th 20 / Navamsa 15 / Dasha 15 / Dosham 10 / Emotional 5 /
 > Synastry 0. De-duplicate by trimming Emotional and Navamsa, not by capping
@@ -178,11 +207,34 @@ D9 Venus/7th-lord agreement **restate** things the ten poruthams already measure
 so raising Porutham without trimming them would count the same agreement twice
 and inflate every score. The trim is what makes the raise honest.
 
-**Scope:** each layer's max is baked into its own scoring function in
-[compatibility_intelligence.py](../app/calculations/compatibility_intelligence.py),
-not held in one weights table, so each rescales individually — and
-`porutham_max` and the per-layer maxima are on the wire, so web and mobile
-display need checking in the same change.
+**Shipped.** The weights are now a single table,
+`COMPATIBILITY_LAYER_MAX`, rather than seven literals scattered through the
+assembly — a test asserts it sums to 100, and two more pin the ruling as
+properties (Porutham is the heaviest layer; Synastry carries none), so a later
+retune can move the numbers without being able to quietly undo the decision.
+
+Each layer keeps its **native** scale in its own dataclass (`NavamsaAnalysis.
+score` is still 0–20, `EmotionalCompatibility.score` still 0–10) because those
+are what the layer detail panels display; only the *contribution* is trimmed.
+
+**One follow-up the ruling implies but did not name: the band cutoffs.**
+EXCELLENT at >= 80 and GOOD at >= 65 were tuned against the *old* mix. Porutham
+now supplies 35 points driven by a percentage, so the composite spreads wider in
+both directions — strong porutham matches climb and weak ones fall further than
+before, on the same cutoffs. The maximum is still exactly 100 (verified), so
+nothing is broken; the question is whether 80/65 still land where they should
+now that a third of the score moves with the ten poruthams. Worth a look at real
+pairs before anyone reads too much into a band change.
+
+**Two things the web surface needed, and one of them was a live contradiction.**
+[compatibility-intelligence-panel.tsx](../web/components/compatibility-intelligence-panel.tsx)
+hand-types the maxima for its bars, with nothing checking them against the
+backend — stale maxima would have rendered every bar against the wrong
+denominator while the numbers themselves stayed correct. Updated, with the
+coupling written down at both ends. And the Synastry section still said
+*"contributes up to 5 points to the overall score"*, which the ruling makes
+false; it now says it is shown for context and does not contribute, and the
+0-of-5 bar is gone rather than left reading as a score of zero.
 
 ---
 
@@ -205,28 +257,64 @@ by default.**
 
 There is no `PR-A2` in this repository — that identifier is the astrologer's,
 not ours. Read as: land it as one reviewable change, not a drive-by.
-**Golden-fixture diffs are a condition of the ruling, not a nicety**, and this
-item does not ship until they are read.
+
+**The gate now exists: [`tests/test_drishti_yoga_golden.py`](../tests/test_drishti_yoga_golden.py).**
+
+It had to be built, because the condition could not be met as written.
+`run_golden_validation` covers ten modules — UTC conversion, rasi and nakshatra
+boundaries, D9, vargottama, dasha balance, panchangam timing, the Sani cycle,
+chandrashtama, family aggregation, safety text — and **not one of them touches
+an aspect or a yoga.** The two changes with the widest blast radius in the whole
+ruling set were the two with no way to see what they moved.
+
+The new file freezes, on three synthetic charts, every yoga's presence and
+strength and every graha's aspect targets, as they stand *before* either ruling
+lands. It is not a correctness test: **a failure is the diff**, and the job is to
+read it and confirm every moved cell was meant to move. Alongside it are the
+properties that must survive both changes — every graha still aspects its own
+7th (the one claim no formulation disputes), and the aspect pattern still
+rotates with the source rasi rather than being keyed on absolute houses, which
+is what catches a fractional-drishti implementation that hardcodes house numbers.
+
+**The fixture already earned its keep:** `ADHI_YOGA` is present on all three
+charts, which is exactly the "fires on most charts" problem behind
+`YOG-AD-01`'s ruling. That observation is pinned as a test which is *designed to
+fail* when the tightening lands — if all three still show Adhi afterwards, the
+change did not take.
 
 ---
 
-## 7. Yoga verdicts — **7 changed, 25 signed** 🔨
+## 7. Yoga verdicts — **7 changed, 25 signed** ✅ (per-yoga rows) · 🔨 (benefic set)
 
 > **Rest: SIGNED.** — 25 of the 32 rows are now doctrine and need no further
 > review.
 
-| Rule | Ruling | Shape of the change |
-|---|---|---|
-| `YOG-AD-01` Adhi | **≥ 2 of Guru/Sukran/Budhan = present; 3 = full; grade by planets, not houses** | Tightens presence *and* replaces the strength axis. Removes the yoga from charts that show it today |
-| `YOG-CH-01` Chandala | **Guru + Rahu ONLY. Guru + Ketu = separate `[VARIANT]` card** | Splits one detector into two cards; the Ketu form must not read as the same yoga |
-| `YOG-DN-01` Dhana | **Separate `[PRODUCT]`** | The parentless third condition is kept but emitted as its own labelled row, not folded in under a classical name |
-| `YOG-VS-01` Vasumati | **Lagna-or-Moon** | Upachaya counted from either reference, not from Chandran alone |
-| `YOG-KD-01` Kemadruma | **Bhanga mandatory before display** | Cancellation must be evaluated *before* the card is shown — today a cancelled Kemadruma can still surface |
-| `YOG-DR-01` Daridra | **Proxy split** | The two conditions separate; the weak-and-afflicted proxy is labelled as ours |
-| `YOG-LK-01` Lakshmi | **Strength-gated** | Presence gated on strength rather than reported and then graded |
-| `YOG-ACT-01` | **`[PRODUCT]`; activation never gates existence** | The load-bearing one — see below |
-| Pancha Mahapurusha ×5 | **Lagna only** | Confirmed as shipped |
-| Sunapha/Anapha/Durudhura ×3 | **Exclusions correct** | Confirmed as shipped |
+**The seven per-yoga changes have shipped.** They were independently
+testable and not gated on the golden fixture, so they landed ahead of item 6
+and the benefic set below. `tests/test_drishti_yoga_golden.py`'s `GOLDEN_YOGAS`
+table is now frozen *after* this change; its `test_adhi_yoga_fires_on_every_
+chart_here` canary was inverted to `test_adhi_yoga_no_longer_fires_on_every_
+chart_here`, per its own instruction, once the tightening took.
+
+| Rule | Ruling | Shape of the change | Status |
+|---|---|---|---|
+| `YOG-AD-01` Adhi | **≥ 2 of Guru/Sukran/Budhan = present; 3 = full; grade by planets, not houses** | Tightens presence *and* replaces the strength axis. Removes the yoga from charts that show it today | ✅ Shipped — no chart in the golden fixture shows Adhi any more |
+| `YOG-CH-01`/`YOG-CH-02` Chandala | **Guru + Rahu ONLY. Guru + Ketu = separate `[VARIANT]` card** | Splits one detector into two cards; the Ketu form must not read as the same yoga | ✅ Shipped — `CHANDALA_KETU_YOGA` is its own card (`detect_chandala_yoga_ketu_variant`) |
+| `YOG-DN-01`/`YOG-DN-02` Dhana | **Separate `[PRODUCT]`** | The parentless third condition is kept but emitted as its own labelled row, not folded in under a classical name | ✅ Shipped — `DHANA_SUPPORTIVE_YOGA` split off `DHANA_YOGA`; both feed the wealth-prediction and savings-capacity signals that used to read the merged card |
+| `YOG-VS-01` Vasumati | **Lagna-or-Moon** | Upachaya counted from either reference, not from Chandran alone | ✅ Shipped — Chandran is no longer permanently inert in its own candidate set |
+| `YOG-KD-01` Kemadruma | **Bhanga mandatory before display** | Cancellation must be evaluated *before* the card is shown — today a cancelled Kemadruma can still surface | ✅ Shipped — a full bhanga now sets `is_present=False`, not just `strength="WEAK"` |
+| `YOG-DR-01`/`YOG-DR-02` Daridra | **Proxy split** | The two conditions separate; the weak-and-afflicted proxy is labelled as ours | ✅ Shipped — `DARIDRA_PROXY_YOGA` split off `DARIDRA_YOGA` |
+| `YOG-LK-01` Lakshmi | **Strength-gated** | Presence gated on strength rather than reported and then graded | ✅ Shipped — runs `gate_yoga_strength` over the 9th and Lagna lords like the other TRADITION+PRODUCT rows |
+| `YOG-ACT-01` | **`[PRODUCT]`; activation never gates existence** | The load-bearing one — see below | ✅ Already true of the arithmetic; no change needed |
+| Pancha Mahapurusha ×5 | **Lagna only** | Confirmed as shipped | ✅ |
+| Sunapha/Anapha/Durudhura ×3 | **Exclusions correct** | Confirmed as shipped | ✅ |
+
+Every new card (`CHANDALA_KETU_YOGA`, `DHANA_SUPPORTIVE_YOGA`,
+`DARIDRA_PROXY_YOGA`) has its own registry row (`app/calculations/yoga_rules.py`),
+plain-language effect (`app/calculations/yoga_effects.py`), and shared display
+name (`packages/shared/src/yogaDisplay.ts`, used by both web and mobile) — the
+same three coverage tests that gate every other yoga code
+(`test_yoga_rules.py`, `test_yoga_effects.py`) now gate these too.
 
 **`YOG-ACT-01`: "activation never gates existence."** A yoga that is present is
 present whether or not its lord is running. Activation may scale how loudly it
@@ -253,8 +341,8 @@ count in the engine.
 | Item | Ruling | Status |
 |---|---|---|
 | **`A-6` Dinam pada exceptions** | **Keep the Tamil Dinam; Kalaprakasika as `[VARIANT]`** | 📋 Our 12-count table stands. The book's more permissive pada-level reading is recorded as a variant, not adopted — no behaviour change, but the omission is now explicit rather than implied |
-| **`A-20` Upanayanam janma-tara** | **UNION** | 🔨 Both passages stand; the prohibition widens from p.50's named list to the union of p.50 and p.51 — **11 of 27 counts**. Real behaviour change for Upanayanam elections |
-| **`MUH-06` Kuligai / medical** | **KEEP adverse, relabel `[LINEAGE]`; cite p.192 as counter-citation** | 🔨 The divergence stands and gets stronger provenance hygiene: p.192 is cited *against* us, on our own rule. A rule that names its own counter-evidence is the pattern to copy |
+| **`A-20` Upanayanam janma-tara** | **UNION** | ✅ **No behaviour change — the union was already live.** `UPANAYANAM_JANMA_TARA_PROHIBITED` has been `GENERAL \| NAMED` (11 of 27 counts) in the registry all along; the open-items entry claiming the narrower list was scored had gone stale, and nothing pinned the width. Now pinned by `test_upanayanam_janma_tara_is_the_union_of_both_passages`, so the ruling is enforced rather than merely true |
+| **`MUH-06` Kuligai / medical** | **KEEP adverse, relabel `[LINEAGE]`; cite p.192 as counter-citation** | ✅ Shipped in [kuligai_polarity.py](../app/data/kuligai_polarity.py). The divergence stands and gains the printed sentence that argues against it, recorded beside itself. **The same page settled SPIRITUAL in the opposite direction** — p.192 names five spiritual acts on Gulika's favourable side, so that entry stops being a reasoned call and becomes a quoted one |
 | **Ashtottari seed** | **Hold until applicability + mapping lock together** | 📋 Neither Ardra-adi nor Krittika-adi. The seed question is not answerable apart from *when Ashtottari applies at all*, and locking one without the other produces a dasha that runs on the wrong charts with confident dates |
 
 ---
@@ -264,14 +352,32 @@ count in the engine.
 **Shipped now (this change):** item 1, item 2, and the `A-6`/`4c` records —
 nothing gated, and item 1 was the live defect.
 
-**Next, independently testable:** `A-20` union · `MUH-06` relabel · item 4a
-(rasi exceptions + precedence) · item 5 (weights, four surfaces) · item 4b
-(Sthree Deergham bands — needs the before/after sweep read first) · item 3
+**Also shipped:** `A-20` (already live; now pinned) and `MUH-06` (relabelled,
+counter-citation recorded).
+
+**Also shipped:** item 4a (both sourced halves; the Jothidam row held — see
+above), item 5 (weights, backend + web), and **item 7's seven per-yoga rows**
+(`YOG-AD-01`, `YOG-CH-01`/`02`, `YOG-DN-01`/`02`, `YOG-VS-01`, `YOG-KD-01`,
+`YOG-DR-01`/`02`, `YOG-LK-01`) — independently testable and not gated on the
+fixture, so they landed ahead of the two items below.
+
+**Next:** item 4b (Sthree Deergham bands — needs the before/after sweep read
+first, and it shares a detail field with 4a's Madhyama grade) · item 3
 (janma-tara grading + the two safe exemptions).
 
-**Gated on golden-fixture diffs, by the astrologer's own instruction:** item 6
-(fractional drishti) and the benefic-set half of item 7. The rest of item 7's
-per-yoga changes can land before those.
+**Shipped, gated on golden-fixture diffs as the astrologer instructed:** item 6
+(fractional drishti) and the benefic-set half of item 7. `aspect_strength()`
+and `effective_natural_class()` landed in `aspects.py` and are wired into
+`chart_strength.py` (Bhava Bala occupant/drishti scoring), `shadbala.py`
+(Drik Bala), `bhava_afflictions.py` (every malefic/benefic affliction count),
+`propensities.py` (benefic/malefic house-and-aspect helpers), and
+`_yoga_detect.py`'s Kartari/Amala/Adhi/Vasumati detectors. Yoga/dosham
+*presence* deliberately stayed on the poorna-only `aspects_house()` API per
+the ruling's own clause. `tests/test_drishti_yoga_golden.py` is the gate that
+was read before this landed — see its module docstring for the diff read
+(on these three synthetic fixtures the benefic-set change happens not to move
+any golden cell, verified directly against `effective_natural_class()` output
+rather than relying on the fixture alone).
 
 **Blocked on the physical page, not on us:** p. 34's Annaprasana numeral
 (11th or 12th) inside item 3, and Kalaprakasika's Taurus vasya row.
