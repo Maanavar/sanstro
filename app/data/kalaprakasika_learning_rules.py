@@ -352,11 +352,9 @@ MANTRA_INITIATION_LAGNA_AVOID: frozenset[int] = _FIXED_SIGNS
 # thirty printed pages apart, both reversing the same rule, is much harder to
 # read as a transcription slip than either would be alone.
 #
-# NOT SCORED, in either direction. The engine has one janma-tara field and it is
-# a prohibition set; there is no "favourable count" field, and adding one to
-# score a single inverted passage would build an engine shape around the least
-# corroborated reading in the chapter. Recorded here, flagged in the activity's
-# unscored dimensions, and raised for the astrologer.
+# This is a source-specific exemption from the general janma-tara bar, not a
+# favourable-score boost. The activity registry applies it only to mantra
+# initiation (apavada > utsarga).
 MANTRA_INITIATION_JANMA_TARA_FAVOURABLE: frozenset[int] = frozenset({1, 10, 19})
 MANTRA_INITIATION_SANKRAMANA_DAY_IS_FAVOURABLE: bool = True     # p.62
 

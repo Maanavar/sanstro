@@ -225,6 +225,10 @@ class ActivityRules:
     # recurs almost verbatim across six chapters — see `_JANMA_TARA_NOTE`.
     janma_tara_prohibited: frozenset[int] = frozenset()
     janma_tara_rule_id: str | None = None
+    # A source-specific favourable tara lifts the general janma-tara bar only
+    # for this rite (apavada > utsarga). It is not a favourable-score boost.
+    janma_tara_exempt: frozenset[int] = frozenset()
+    janma_tara_exempt_rule_id: str | None = None
 
     # Dimensions the source covers but the engine cannot check, surfaced so a
     # UI can say what is *not* being judged rather than implying full coverage.
@@ -356,11 +360,12 @@ ACTIVITY_RULES: dict[str, ActivityRules] = {
         # month at a time by the same sentence's Sun clause.
         lagna_avoid=samskara.MILK_FEEDING_LAGNA_AVOID,
         lagna_rule_id="KP_CH3_MILK_FEEDING_LAGNA_001",
+        # p.32 explicitly makes Anu-Jenma (the 10th tara) a good fallback for
+        # this rite; its apavada overrides the general janma-tara bar.
+        janma_tara_exempt=frozenset({samskara.MILK_FEEDING_FALLBACK_JANMA_TARA}),
+        janma_tara_exempt_rule_id="KP_CH3_MILK_FEEDING_JANMA_TARA_001",
         unscored_dimensions=(
             "the 31st day from the child's birth, which p.32 states first",
-            "p.32 offers the 10th tara from the child's birth star as the fallback good day — "
-            "a count six other chapters PROHIBIT. Recorded, deliberately not scored, and "
-            "raised for the astrologer; Ch. X p.62 states the same reversal independently",
             "'the sign occupied by the Sun' is a fourth prohibited sign that moves through the "
             "year, so the nine signs the page calls favourable are not credited either",
             _KARANA_TRANSITION_GAP,
@@ -1061,10 +1066,11 @@ ACTIVITY_RULES: dict[str, ActivityRules] = {
         lagna_middling=learning.MANTRA_INITIATION_LAGNA_MIDDLING,
         lagna_avoid=learning.MANTRA_INITIATION_LAGNA_AVOID,
         lagna_rule_id="KP_CH10_MANTRA_LAGNA_001",
+        # p.62 calls the full janma / Anu-Jenma / Thri-Jenma triad beneficial
+        # for this rite, so its specific rule overrides the general bar.
+        janma_tara_exempt=learning.MANTRA_INITIATION_JANMA_TARA_FAVOURABLE,
+        janma_tara_exempt_rule_id="KP_CH10_MANTRA_JANMA_TARA_001",
         unscored_dimensions=(
-            "p.62 calls the janma / Anu-Jenma / Thri-Jenma triad BENEFICIAL, where six other "
-            "chapters prohibit it. Recorded and deliberately not scored — the engine's "
-            "janma-tara field is a prohibition set — and raised for the astrologer",
             "the Sankaranthi day is called beneficial (p.62), which no other chapter says",
             "the four Pithur-Masa months in which no mantra may be commenced, and the per-month "
             "effect table (p.61)",

@@ -280,6 +280,8 @@ MILK_FEEDING_VARA_AVOID: frozenset[str] = frozenset()     # none named
 
 # p.32, sourced and unscored.
 MILK_FEEDING_DAY_FROM_BIRTH: int = 31
+# The 10th tara is an activity-specific exemption from the general janma-tara
+# bar, applied only to first milk-feeding in the registry (apavada > utsarga).
 MILK_FEEDING_FALLBACK_JANMA_TARA: int = 10   # "the day of the 10th asterism from the
                                              # Jenma-Nakshatra of the child will be good"
 MILK_FEEDING_TENTH_HOUSE_MUST_BE_EMPTY: bool = True

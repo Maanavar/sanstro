@@ -29,21 +29,45 @@ the most auspicious acts there are — but because each is meant to happen once
 per person. A second naming, a second ear-boring, a second upanayanam means the
 first did not stand.
 
-**Where this departs from Kalaprakasika, deliberately.** A Kalaprakasika reading
-lists medical treatment among Gulika's favoured acts. Under the Tamil repetition
-rule it cannot be: treatment recurring means illness recurring. The owner's
-ruling is that Tamil Jothidam governs, so MEDICAL is ADVERSE here. Recorded
-because it is a real divergence, not an oversight.
+**Where this departs from Kalaprakasika, deliberately. MEDICAL is `[LINEAGE]`,
+and the page that contradicts us is cited here on purpose.**
 
-SPIRITUAL is FAVOURABLE, and that is a reasoned call rather than a quoted line:
-worship repeated is the point of worship, and the same source has devotees
-performing special abhisheka *during* Rahu Kalam and Yamagandam (p.81) and
-recommends Rahu Kalam for Amman worship (p.257). The inauspicious kalams are
-used for propitiation, not avoided for it.
+Kalaprakasika **printed p. 192** puts medical treatment on Gulika's favourable
+list in so many words — eighteen acts for which *"Gulika has no evil force. It
+is a benefic"*, **medical treatment among them**. We rule the opposite: under
+the Tamil repetition rule, treatment recurring means illness recurring.
+
+**ASTROLOGER RULING 2026-08-28 (`MUH-06`): keep MEDICAL adverse, relabel
+`[LINEAGE]`, and cite p. 192 as a counter-citation.** The divergence stands with
+the page in hand — it is not an extraction gap that better reading would close.
+What changes is the honesty of the record: this rule now carries the printed
+sentence that argues against it, next to itself. **A rule that names its own
+counter-evidence is the pattern to copy** — the failure this file exists to
+prevent is a Tamil override quietly wearing a Sanskrit source's authority, and
+the inverse failure is an override that hides the page it overrode.
+
+SPIRITUAL is FAVOURABLE, and **since the full book arrived it is quoted, not
+merely reasoned.** p. 192's same favourable list names *worship of fire,
+initiation, installation, the study of the Vedas* and *making eyes on the image
+of a Deity* — five spiritual acts, in print, on Gulika's benefic side. The
+earlier reasoning still holds and now has corroboration rather than standing
+alone: worship repeated is the point of worship, the same source has devotees
+performing special abhisheka *during* Rahu Kalam and Yamagandam (Jothidam p.81),
+and it recommends Rahu Kalam for Amman worship (p.257). The inauspicious kalams
+are used for propitiation, not avoided for it.
+
+**So p. 192 settles the two divergences in opposite directions**, which is worth
+noticing: it closes SPIRITUAL by agreeing with us, and it confirms MEDICAL as a
+knowing departure by disagreeing. Neither outcome was available before the page
+was read, and neither is a reason to import the chapter wholesale — p. 198 has
+the book itself saying its chapters are regionally variable.
 
 RULE_SOURCE: Jothidam p.152 (the multiplying mechanism, and the cremation case);
 owner ruling 2026-08-17 (gold favourable, marriage adverse, and the instruction
-to extend the same reasoning to every activity).
+to extend the same reasoning to every activity). Kalaprakasika p. 192 for the
+eighteen-item favourable list — SPIRITUAL's supporting citation and MEDICAL's
+counter-citation, both from that one page; astrologer ruling 2026-08-28 keeping
+MEDICAL adverse as `[LINEAGE]` with the counter-citation recorded.
 """
 from __future__ import annotations
 
@@ -86,7 +110,8 @@ FAVOURABLE: frozenset[str] = frozenset({
     "HARVEST",
     "HARVEST_INGATHERING",
     "NEW_GRAIN_MEAL",
-    # Worship repeated is the point of worship; see the module docstring.
+    # Worship repeated is the point of worship — and p. 192 puts five spiritual
+    # acts on Gulika's favourable list in print, so this is quoted, not inferred.
     "SPIRITUAL",
 })
 
@@ -114,8 +139,11 @@ ADVERSE: frozenset[str] = frozenset({
     "JOB_START",
     # Sitting the exam again means it was not passed.
     "EXAM",
-    # Treatment recurring is illness recurring. Diverges from Kalaprakasika on
-    # purpose — see the module docstring.
+    # Treatment recurring is illness recurring. [LINEAGE] — this is a KNOWING
+    # divergence from Kalaprakasika p. 192, which puts medical treatment on
+    # Gulika's favourable list in print. Ruled 2026-08-28: divergence stands,
+    # counter-citation recorded. See the module docstring; do not "correct" this
+    # entry to FAVOURABLE by finding p. 192.
     "MEDICAL",
     # Setting out again means the journey had to be made over.
     "TRAVEL",

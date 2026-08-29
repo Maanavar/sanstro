@@ -216,6 +216,33 @@ def test_attributed_dissents_are_recorded_and_never_applied() -> None:
     assert lifecycle.SEEMANTHAM_TITHI_DISPUTED <= lifecycle.SEEMANTHAM_TITHI_AVOID_IN_PAKSHA
 
 
+def test_upanayanam_janma_tara_is_the_union_of_both_passages() -> None:
+    """ASTROLOGER RULING 2026-08-28 (`A-20`): **UNION**.
+
+    Ch. VII states the prohibition twice — p.51 as a bare ordinal list, p.50 as
+    five *named* asterisms (Karmam, Sanghatham, Saamudhayam, Vinasanam, Manasam).
+    Neither is said to supersede the other, so both stand and the scored set is
+    their union: 11 of 27 counts, which is wide.
+
+    The union was already what the registry shipped; this test is what makes it
+    a ruling rather than a coincidence. Until now nothing pinned it, and the
+    open-items file still described the narrower set as live — so a future
+    reader trying to 'fix' the width had nothing telling them it was chosen.
+    Narrowing to either passage alone must now fail here."""
+    general = lifecycle.UPANAYANAM_JANMA_TARA_PROHIBITED_GENERAL
+    named = lifecycle.UPANAYANAM_JANMA_TARA_PROHIBITED_NAMED
+    scored = ACTIVITY_RULES["UPANAYANAM"].janma_tara_prohibited
+
+    assert scored == general | named
+    assert len(scored) == 11
+    # Each passage must contribute something the other does not — otherwise the
+    # union is decorative and the ruling had no effect.
+    assert general - named and named - general
+    # The named list is the OCR-robust half: a garbled ordinal survives where a
+    # bare numeral would not, so every named count must be in the scored set.
+    assert set(lifecycle.UPANAYANAM_JANMA_TARA_NAMES) == set(named) <= scored
+
+
 def test_vidyarambham_paksha_exemption_cannot_contradict_its_tithi_ban() -> None:
     """Ch. VI p.41 calls the dark fortnight's first five good and bans Prathamai
     in the next sentence. The exemption is encoded 2-5 so the two rules can never
@@ -261,7 +288,7 @@ def test_a_middling_star_scores_neutral_not_penalised(snapshot_factory) -> None:
     assert factor.contribution == 0.0
 
 
-def test_janma_tara_count_vetoes_only_with_a_subject(snapshot_factory) -> None:
+def test_janma_tara_count_is_personal_and_anu_jenma_is_half_weight(snapshot_factory) -> None:
     """The book's most-repeated personal rule. General mode must never fire it —
     a general result vetoed by a personal factor breaks the mode's definition."""
     subject = Subject(janma_nakshatra=1, janma_rasi=1, lagna_rasi=1)
@@ -274,8 +301,9 @@ def test_janma_tara_count_vetoes_only_with_a_subject(snapshot_factory) -> None:
 
     personal = score_day(snap, "HARVEST", subject)
     factor = next(f for f in personal.factors if f.factor == "JANMA_TARA_COUNT")
-    assert factor.verdict is Verdict.VETO
-    assert personal.vetoed
+    assert factor.verdict is Verdict.PENALTY
+    assert factor.contribution == -10.0
+    assert factor not in personal.veto_reasons
     assert "Anu-Jenma" in factor.reason_en
     assert resolve_rule_source(factor.rule_id) is not None
 

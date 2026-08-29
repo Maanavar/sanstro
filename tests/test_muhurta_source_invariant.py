@@ -201,6 +201,7 @@ def test_rule_id_fields_are_discovered_not_hardcoded() -> None:
         "paksha_rule_id",
         "janma_nakshatra_rule_id",
         "janma_tara_rule_id",
+        "janma_tara_exempt_rule_id",
     }
 
 

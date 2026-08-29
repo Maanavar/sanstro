@@ -39,13 +39,25 @@ def test_every_rule_source_is_self_consistent() -> None:
         assert source.rule_id == rule_id, f"{rule_id} keyed under a different rule_id"
         assert source.activity.startswith("MARRIAGE"), rule_id
         assert source.source_scope, rule_id
-        # A textual claim must cite a page and a passage; an engine concept must not
-        # pretend to.
+        # A textual claim must cite a page and a passage; a non-textual rule must
+        # not pretend to one — but it may still rest on declared practice rather
+        # than pure engine arithmetic, and if it does it must say so and explain
+        # itself (2026-08-28 ruling, FCR-10c: MARRIAGE_AMAVASAI__TRADITION is the
+        # first such row — see `test_every_emitted_rule_id_resolves_and_declares_
+        # what_it_rests_on` in test_muhurta_engine.py for the same invariant
+        # applied engine-wide).
         if source.rule_type is RuleType.TEXTUAL_RULE:
             assert source.authority.tradition == "KALAPRAKASIKA", rule_id
             assert source.authority.page is not None, rule_id
             assert source.authority.verse_or_passage, rule_id
             assert source.verified_on and source.verified_by, rule_id
+        elif source.provenance_status is ProvenanceStatus.TRADITIONALLY_REPORTED:
+            assert source.authority.page is None, rule_id
+            assert source.authority.verse_or_passage is None, rule_id
+            assert source.authority.tradition, (
+                f"{rule_id} rests on practice and must name it"
+            )
+            assert source.notes, f"{rule_id} rests on practice and does not say why"
         else:
             assert source.provenance_status is ProvenanceStatus.ENGINE_CONCEPT, rule_id
             assert source.authority.verse_or_passage is None, rule_id

@@ -171,6 +171,9 @@ class DayScore:
 # ── ENGINE_POLICY weights. Not doctrine. See module docstring. ──────────────
 class _W:
     BASE = 50.0
+    # Engine policy: A-19 scales this full Janma-tara caution by the
+    # source-ruled 1.0 / .5 / .25 grade rather than vetoing every occurrence.
+    JANMA_TARA_FULL = -20.0
     # L1 generic almanac. These values are carried over unchanged from
     # `muhurta_service._score_panchangam`, which is where they were tuned, so
     # that folding the two former copies into one engine is not also a silent
@@ -1743,6 +1746,15 @@ def _janma_nakshatra_factor(snapshot, activity: str, subject: Subject) -> Factor
     )
 
 
+_JANMA_TARA_GRADES: dict[int, float] = {
+    1: 1.0,
+    10: 0.5,
+    # A-19 / ruling 3c (2026-08-28): the 19th is adverse as Thri-Jenma, the
+    # third occurrence of the birth star, not because it falls in Pariyaya.
+    19: 0.25,
+}
+
+
 def _janma_tara_count_factor(snapshot, activity: str, subject: Subject) -> FactorResult | None:
     """Counts from the subject's birth star that the chapter shuts out.
 
@@ -1763,10 +1775,13 @@ def _janma_tara_count_factor(snapshot, activity: str, subject: Subject) -> Facto
     uses: the birth star itself is 1.
     """
     entry = _rules(activity)
-    if entry is None or not entry.janma_tara_prohibited:
+    if entry is None:
+        return None
+    prohibited = entry.janma_tara_prohibited - entry.janma_tara_exempt
+    if not prohibited:
         return None
     count = ((snapshot.nakshatra_number - subject.janma_nakshatra) % 27) + 1
-    if count not in entry.janma_tara_prohibited:
+    if count not in prohibited:
         return None
 
     who_en = subject.label or "this chart"
@@ -1782,10 +1797,13 @@ def _janma_tara_count_factor(snapshot, activity: str, subject: Subject) -> Facto
     else:
         which_en = f"the {_ordinal(count)} star from"
         which_ta = f"{count}வது நட்சத்திரம்"
+    grade = _JANMA_TARA_GRADES.get(count, 1.0)
+    verdict = Verdict.VETO if grade == 1.0 else Verdict.PENALTY
+    contribution = 0.0 if verdict is Verdict.VETO else _W.JANMA_TARA_FULL * grade
     return FactorResult(
         factor="JANMA_TARA_COUNT",
-        verdict=Verdict.VETO,
-        contribution=0.0,
+        verdict=verdict,
+        contribution=contribution,
         reason_en=(
             f"{star_en} is {which_en} {who_en}'s birth star, which Kalaprakasika "
             f"shuts out for {entry.label_en}."

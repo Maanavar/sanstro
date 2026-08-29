@@ -90,16 +90,6 @@ SCOREABLE_FACTORS: frozenset[str] = frozenset(
 # length; the point of naming them here is that the list is finite and reviewed,
 # so a *sixth* stranded rule is a finding rather than more of the same.
 HELD_UNWIRED_RULE_IDS: dict[str, str] = {
-    "KP_CH3_MILK_FEEDING_JANMA_TARA_001": (
-        "Recommends the 10th tara that six other chapters prohibit. The engine's "
-        "janma-tara field is a prohibition set; scoring an inverted passage needs "
-        "a favourable-count field and an astrologer's ruling first."
-    ),
-    "KP_CH10_MANTRA_JANMA_TARA_001": (
-        "The second of the two passages that invert janma-tara polarity, calling "
-        "the janma/Anu-Jenma/Thri-Jenma triad beneficial. Held with the above, "
-        "for the same reason and pending the same ruling."
-    ),
     "KP_CH7_UPANAYANAM_JANMA_TARA_002": (
         "A second janma-tara ban in the same chapter. Its union with "
         "KP_CH7_UPANAYANAM_JANMA_TARA_001 spans 11 of 27 counts, which is wide "

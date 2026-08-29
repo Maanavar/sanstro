@@ -138,26 +138,21 @@ def test_ch10_inverts_the_sign_doctrine_the_other_learning_chapters_share() -> N
     assert mantra.lagna_avoid == {2, 5, 8, 11}     # fixed rejected, as in all four
 
 
-def test_the_janma_tara_reversal_is_recorded_twice_and_scored_never() -> None:
+def test_the_janma_tara_reversal_lifts_only_its_own_rite() -> None:
     """Six chapters PROHIBIT the janma / Anu-Jenma / Thri-Jenma triad. Two
     reverse it — Ch. X p.62 outright, and Ch. III p.32 by offering the 10th tara
-    as a fallback good day. Both are recorded; neither is scored, because the
-    engine's janma-tara field is a prohibition set and there is no honest way to
-    express "favourable" in it."""
+    as a fallback good day. Both are explicit apavada exemptions: they remove
+    the general bar for their own rite without manufacturing a bonus."""
     assert learning.MANTRA_INITIATION_JANMA_TARA_FAVOURABLE == {1, 10, 19}
     assert samskara.MILK_FEEDING_FALLBACK_JANMA_TARA == 10
 
-    # Neither activity may carry a janma-tara rule of any polarity.
-    for activity in ("MANTRA_INITIATION", "MILK_FEEDING"):
-        entry = ACTIVITY_RULES[activity]
-        assert entry.janma_tara_prohibited == frozenset(), activity
-        assert entry.janma_tara_rule_id is None, activity
+    mantra = ACTIVITY_RULES["MANTRA_INITIATION"]
+    assert mantra.janma_tara_exempt == {1, 10, 19}
+    assert mantra.janma_tara_exempt_rule_id == "KP_CH10_MANTRA_JANMA_TARA_001"
 
-    # And the reversal must be visible to a reader of the UI, not only to a
-    # reader of the source.
-    for activity in ("MANTRA_INITIATION", "MILK_FEEDING"):
-        gaps = " ".join(ACTIVITY_RULES[activity].unscored_dimensions).lower()
-        assert "tara" in gaps and "prohibit" in gaps, activity
+    milk = ACTIVITY_RULES["MILK_FEEDING"]
+    assert milk.janma_tara_exempt == {10}
+    assert milk.janma_tara_exempt_rule_id == "KP_CH3_MILK_FEEDING_JANMA_TARA_001"
 
 
 def test_ch19_contradicts_itself_on_the_tillage_sign_and_both_readings_survive() -> None:
