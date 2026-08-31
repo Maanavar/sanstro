@@ -85,6 +85,20 @@ export const RASI_LORDS: Record<number, string> = {
 // unreachable, because `getNilai` looks up a sign lord; again caught only by
 // `lib/doctrine-parity.test.ts`, which had been red since that commit. Both
 // Venus rows below are now the backend's.
+//
+// AND A THIRD TIME. `dad309b` (FCR-02) symmetrised the node rows in the backend
+// — Kuja-vat Ketu, so Mars and Ketu are friends; Shani-vat Rahu, so Saturn and
+// Rahu are; and the nodes are mutual enemies both ways — and this copy again
+// kept the old rows. THREE cells, not the two the symmetry change obviously
+// touches: `RAHU`'s enemy row was also missing `KETU`, hidden because the
+// friends assertion fails first and the enemies assertion never runs. The
+// parity test was red from that commit until 2026-08-31, across four commits.
+//
+// Three drifts, one shape every time: a backend doctrine edit that no reader of
+// this file was told about, latent because `getNilai` compares against a sign
+// lord and a sign lord is never a node. Latency is why it keeps happening — the
+// only thing that has ever caught it is the parity test, so a red parity test
+// is a DRIFT REPORT, not a flaky suite. Fix it the day it goes red.
 export const EXALTATION_RASI: Record<string, number> = {
   SUN: 1, MOON: 2, MARS: 10, MERCURY: 6, JUPITER: 4, VENUS: 12, SATURN: 7,
 };
@@ -112,14 +126,20 @@ export const OWN_SIGN_RASI: Record<string, number[]> = {
   RAHU: [], KETU: [],
 };
 
+// The seven-graha core is SOURCED — Kalaprakasika p. 246 prints the general
+// friendship table and all 49 ordered pairs match it, the Moon/Mercury asymmetry
+// included. The RAHU and KETU rows are [PRODUCT]: Vinaadi house policy, no
+// classical authority claimed. Two printed tables in this lineage (p. 246, and
+// pp. 74-75 for porutham) carry seven grahas and no node rows at all. Keep the
+// label with the values; the backend carries the full argument.
 export const NATURAL_FRIENDS: Record<string, string[]> = {
   SUN: ["MOON", "MARS", "JUPITER"],
   MOON: ["SUN", "MERCURY"],
-  MARS: ["SUN", "MOON", "JUPITER"],
+  MARS: ["SUN", "MOON", "JUPITER", "KETU"],
   MERCURY: ["SUN", "VENUS"],
   JUPITER: ["SUN", "MOON", "MARS"],
   VENUS: ["MERCURY", "SATURN", "RAHU", "KETU"],
-  SATURN: ["MERCURY", "VENUS"],
+  SATURN: ["MERCURY", "VENUS", "RAHU"],
   RAHU: ["VENUS", "SATURN"],
   KETU: ["MARS", "VENUS"],
 };
@@ -132,7 +152,7 @@ export const NATURAL_ENEMIES: Record<string, string[]> = {
   JUPITER: ["MERCURY", "VENUS", "RAHU", "KETU"],
   VENUS: ["SUN", "MOON"],
   SATURN: ["SUN", "MOON", "MARS"],
-  RAHU: ["SUN", "MOON", "MARS", "JUPITER"],
+  RAHU: ["SUN", "MOON", "MARS", "JUPITER", "KETU"],
   KETU: ["SUN", "MOON", "JUPITER", "RAHU"],
 };
 

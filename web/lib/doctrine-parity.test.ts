@@ -99,7 +99,7 @@ describe("web dignity doctrine matches the backend", () => {
     expect(debilitation).toEqual(DEBILITATION_RASI);
   });
 
-  it("natural friends and enemies — the pair that had already drifted", () => {
+  it("natural friends and enemies — the pair that has drifted three times", () => {
     const source = read(CHART_STRENGTH);
     const friends = parseStrToSet(literalBody(source, "_NATURAL_FRIENDS"));
     const enemies = parseStrToSet(literalBody(source, "_NATURAL_ENEMIES"));
@@ -109,8 +109,12 @@ describe("web dignity doctrine matches the backend", () => {
     expect(Object.keys(friends)).toHaveLength(9);
     expect(Object.keys(enemies)).toHaveLength(9);
 
-    expect(friends).toEqual(sortValues(NATURAL_FRIENDS));
-    expect(enemies).toEqual(sortValues(NATURAL_ENEMIES));
+    // SOFT, so both tables report. When this went red on `dad309b` the hard
+    // form stopped at friends and never ran the enemies comparison — which was
+    // also drifted (RAHU was missing KETU). A drift report that shows half the
+    // drift invites a half fix.
+    expect.soft(friends).toEqual(sortValues(NATURAL_FRIENDS));
+    expect.soft(enemies).toEqual(sortValues(NATURAL_ENEMIES));
   });
 
   it("catches the exact drift that shipped, so this file is not decoration", () => {
