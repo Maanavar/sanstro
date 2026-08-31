@@ -311,6 +311,12 @@ function drawPoruthamCard(
     ctx.fill();
 
     if (kpct > 0) {
+      // The middle band is the madhyama state and became reachable on
+      // 2026-08-31, when a madhyama started scoring 0.5. Deliberately colour
+      // only — no grade word. This is a fixed-size rendered image, and an amber
+      // bar between a green and a red one reads as "in between" on its own, so
+      // it carries the grade honestly without crowding the picture or putting
+      // an unglossed Sanskrit word in front of a stranger (ruling Q2a/Q2b).
       const barColor = kpct >= 0.7 ? "#3a6b40" : kpct >= 0.4 ? accent : "#F87171";
       ctx.fillStyle  = barColor;
       roundRect(ctx, px + labelW, by, barW * kpct, barH, 7);

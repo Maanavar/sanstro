@@ -5,6 +5,7 @@ import { useLang } from "@/components/lang-toggle";
 import { romanNakshathiramName } from "@/lib/tamil-astro";
 import { readErrorMessage } from "@/lib/api";
 import { verdictPhrase } from "@/lib/verdict-lexicon";
+import { madhyamaLabel, madhyamaGloss, hasMadhyama } from "@/lib/kuta-grade";
 import { getPorutham, getPoruthamGrid } from "@vinaadi/shared/api/porutham";
 import type { PublicPoruthamGridItem, PublicPoruthamStarData } from "@vinaadi/shared";
 
@@ -464,9 +465,14 @@ export function PoruthamTool() {
                       </thead>
                       <tbody>
                         {detailData.kutas.map((k, i) => {
-                          const pass = k.score >= k.maxScore;
+                          // Three states since 2026-08-31. `pass` was
+                          // `score >= maxScore`, which reads a madhyama's 0.5
+                          // as a bare ✗ — the false Fail the grade exists to
+                          // prevent, on the surface anonymous visitors see.
+                          const madhyama = k.grade === "MADHYAMA";
+                          const pass = k.passed;
                           const isCritical = k.name === "Rajju" || k.name === "Vedha";
-                          const criticalRow = isCritical && !pass;
+                          const criticalRow = isCritical && !pass;  // Rajju/Vedha are permanently binary — never madhyama
                           return (
                             <tr key={i} style={{ background: criticalRow ? "var(--cl-caution-soft)" : i % 2 === 0 ? "var(--cl-surface)" : "var(--cl-bg)" }}>
                               <td style={{ padding: "7px 8px", borderBottom: "1px solid var(--cl-border)", color: "var(--cl-muted)", fontSize: 11 }}>{i+1}</td>
@@ -480,8 +486,8 @@ export function PoruthamTool() {
                                   )}
                                 </div>
                               </td>
-                              <td style={{ padding: "7px 8px", textAlign: "center", borderBottom: "1px solid var(--cl-border)", fontSize: 15, fontWeight: 700, color: pass ? "var(--cl-sage)" : "var(--cl-caution)" }}>
-                                {pass ? "✓" : "✗"}
+                              <td style={{ padding: "7px 8px", textAlign: "center", borderBottom: "1px solid var(--cl-border)", fontSize: madhyama ? 11 : 15, fontWeight: 700, color: madhyama ? "var(--cl-gold)" : pass ? "var(--cl-sage)" : "var(--cl-caution)" }}>
+                                {madhyama ? madhyamaLabel(!ta) : pass ? "✓" : "✗"}
                               </td>
                             </tr>
                           );
@@ -489,6 +495,11 @@ export function PoruthamTool() {
                       </tbody>
                     </table>
                   </div>
+                  {hasMadhyama(detailData.kutas) && (
+                    <p style={{ margin: "8px 0 0", fontSize: "11px", color: "var(--cl-muted)", lineHeight: 1.6 }}>
+                      {madhyamaGloss(!ta, true)}
+                    </p>
+                  )}
 
                   {/* How to read the numbers */}
                   <div style={{ marginTop: "12px", padding: "10px 14px", background: "var(--cl-bg-2)", borderRadius: "8px", borderLeft: "3px solid var(--cl-border-2)", fontSize: "11px", color: "var(--cl-muted)", lineHeight: 1.7 }}>
@@ -543,14 +554,30 @@ export function PoruthamTool() {
                 </p>
               )}
 
-              {/* Grouped results */}
+              {/* Grouped results.
+
+                  Bucketed by the engine's own `label`, not by re-deriving the
+                  ladder from the score here. These filters used to read
+                  `>= 9`, `>= 7`, `>= 5` — a second copy of the rungs, which
+                  went wrong the moment a madhyama made half-point totals
+                  possible: an 8.5 is EXCELLENT to the engine (ties break
+                  upward) but landed in the "Good Match (7–8)" bucket here, so
+                  the group heading contradicted the verdict printed inside it.
+                  The numeric ranges are gone from the headings for the same
+                  reason — a heading that cites a range it does not actually
+                  filter on is the contradiction, not the fix. */}
               {gridData && [
-                { label: ta?"மிக நல்ல பொருத்தம் (9–10)":"Excellent Match (9–10)", items: gridData.filter(c => !(c.rajjuDosha || c.vedhaDosha) && c.totalScore >= 9) },
-                { label: ta?"நல்ல பொருத்தம் (7–8)":"Good Match (7–8)",           items: gridData.filter(c => !(c.rajjuDosha || c.vedhaDosha) && c.totalScore >= 7 && c.totalScore < 9) },
-                { label: ta?"சராசரி (5–6)":"Average (5–6)",                      items: gridData.filter(c => !(c.rajjuDosha || c.vedhaDosha) && c.totalScore >= 5 && c.totalScore < 7) },
-                { label: ta?"குறைவு (0–4)":"Below Average (0–4)",                items: gridData.filter(c => !(c.rajjuDosha || c.vedhaDosha) && c.totalScore < 5) },
-                { label: ta?"⚠ தோஷம் — தவிர்க்கவும்":"⚠ Dosham - Avoid",       items: gridData.filter(c => c.rajjuDosha || c.vedhaDosha) },
-              ].map(group => {
+                { key: "EXCELLENT", label: ta?"மிக நல்ல பொருத்தம்":"Excellent Match" },
+                { key: "GOOD",      label: ta?"நல்ல பொருத்தம்":"Good Match" },
+                { key: "AVERAGE",   label: ta?"சராசரி":"Average" },
+                { key: "CAUTION",   label: ta?"குறைவு":"Below Average" },
+              ].map(g => ({
+                label: g.label,
+                items: gridData.filter(c => !(c.rajjuDosha || c.vedhaDosha) && c.label === g.key),
+              })).concat([
+                { label: ta?"⚠ தோஷம் — தவிர்க்கவும்":"⚠ Dosham - Avoid",
+                  items: gridData.filter(c => c.rajjuDosha || c.vedhaDosha) },
+              ]).map(group => {
                 if (group.items.length === 0) return null;
                 const best = group.items[0];
                 const bestCritical = best.rajjuDosha || best.vedhaDosha;

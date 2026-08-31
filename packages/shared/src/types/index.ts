@@ -1519,7 +1519,15 @@ export interface SynastryData {
   summary: BiText; caution: BiText | null;
 }
 
-export interface KutaResult { name: string; nameTa: string; passed: boolean; score: number; maxScore: number; label: string; detail?: string | null }
+/**
+ * One porutham. `score` (1 / 0.5 / 0), `grade` and `passed` are three fields
+ * because they answer three different questions and diverge exactly at
+ * MADHYAMA — see the backend `KutaResult` docstrings. Paint from `grade` where
+ * three states fit; `passed` is the two-state floor and is true for a madhyama,
+ * so no surface renders Fail for a couple the doctrine passes.
+ */
+export type KutaGrade = "UTTAMA" | "MADHYAMA" | "ADHAMA";
+export interface KutaResult { name: string; nameTa: string; passed: boolean; score: number; maxScore: number; label: string; grade: KutaGrade }
 
 export interface PorutthamData {
   familyVaultId: string; memberId: string;

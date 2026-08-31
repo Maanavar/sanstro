@@ -167,25 +167,32 @@ export default function PoruthamScreen() {
                       {isTamil ? k.nameTa : k.name}
                     </Text>
                     <Text style={styles.kutaScore}>{k.score}/{k.maxScore}</Text>
-                    {k.detail === "MADHYAMA" ? (
-                      <Text style={styles.kutaScore}>{isTamil ? "மத்தியமம்" : "Madhyama"}</Text>
-                    ) : k.detail === "UTTAMA" ? (
-                      <Text style={styles.kutaScore}>{isTamil ? "உத்தமம்" : "Uttama"}</Text>
-                    ) : null}
                   </View>
                   <View style={[
                     styles.kutaChip,
-                    { backgroundColor: k.score === k.maxScore ? C.greenLight : k.score === 0 ? C.alertLight : C.cautionLight },
+                    { backgroundColor: k.grade === "UTTAMA" ? C.greenLight : k.grade === "MADHYAMA" ? C.cautionLight : C.alertLight },
                   ]}>
                     <Text style={[
                       styles.kutaChipText,
-                      { color: k.score === k.maxScore ? C.green : k.score === 0 ? C.alert : C.caution },
+                      { color: k.grade === "UTTAMA" ? C.green : k.grade === "MADHYAMA" ? C.caution : C.alert },
                     ]}>
-                      {k.score === k.maxScore ? (isTamil ? "பொருந்தும்" : "Match") : k.score === 0 ? (isTamil ? "பொருந்தாது" : "No match") : (isTamil ? "நடுத்தரம்" : "Partial")}
+                      {k.grade === "MADHYAMA"
+                        ? (isTamil ? "மத்யமம்" : "Madhyama")
+                        : k.passed ? (isTamil ? "பொருந்தும்" : "Match") : (isTamil ? "பொருந்தாது" : "No match")}
                     </Text>
                   </View>
                 </View>
               ))}
+              {/* The gloss travels with the word: a bare Sanskrit grade strands
+                  a non-astrologer reader exactly as badly as an unexplained
+                  Fail. The load-bearing clause is "not a failure". */}
+              {result.kutas.some((k) => k.grade === "MADHYAMA") ? (
+                <Text style={styles.kutaGloss}>
+                  {isTamil
+                    ? "மத்யமம் — இந்தப் பொருத்தத்தில் நடுத்தர நிலை. பரவாயில்லை, ஆனால் உயர்ந்தது அல்ல. இது தோல்வி அல்ல, மிதமான பொருத்தமே."
+                    : "Madhyama — a middling result on this porutham. Acceptable, but not the strongest grade. It counts as a soft pass, not a failure."}
+                </Text>
+              ) : null}
             </>
           ) : null}
         </BottomSheetScrollView>
@@ -196,6 +203,7 @@ export default function PoruthamScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.parchment },
+  kutaGloss: { fontFamily: "Inter_400Regular", marginTop: S.sm, color: C.textSecond, fontSize: 12, lineHeight: 18 },
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     paddingHorizontal: S.base, paddingVertical: S.md,

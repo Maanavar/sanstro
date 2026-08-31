@@ -52,46 +52,157 @@ pytestmark = pytest.mark.no_db
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 WRAPPER_DIR = REPO_ROOT / "packages" / "shared" / "src" / "api"
+#: Wrapper response interfaces routinely nest a shared type declared in
+#: ``src/types`` (``kutas: KutaResult[]``). Parsing only ``src/api`` meant
+#: ``_base_type`` resolved such a field to a name this file had never seen, and
+#: the walk stopped — the guard's documented "silence where a schema cannot be
+#: resolved", swallowing whole subtrees rather than one field.
+#:
+#: **That blind spot cost us a live bug.** ``KutaResult.passed`` was declared in
+#: ``src/types`` and never emitted by any backend schema, so the public porutham
+#: share page — whose row renders ``passed ? "Pass" : "Fail"`` — printed
+#: "✗ Fail" on all ten poruthams of every shared link. Undetected until
+#: 2026-08-31, by which time it had been in the type for months. Nesting is
+#: exactly where a field goes unread longest, which is where the guard is worth
+#: the most.
+TYPES_DIR = REPO_ROOT / "packages" / "shared" / "src" / "types"
 
 _SPEC = app.openapi()
 _SCHEMAS = _SPEC.get("components", {}).get("schemas", {})
 
 # export interface Foo { ... }  /  export interface Foo extends Bar { ... }
-# The body ends at a `}` in column 0; every nested inline object closes indented.
-_INTERFACE_RE = re.compile(
-    r"^export interface (?P<name>\w+)[^{]*\{(?P<body>.*?)^\}",
-    re.DOTALL | re.MULTILINE,
-)
-# Top-level members only — exactly two spaces of indent. Nested inline-object
-# members sit at four or more and belong to their own anonymous type, which has
-# no interface name to recurse into.
-_FIELD_RE = re.compile(r"^  (?P<name>\w+)(?P<optional>\?)?\s*:\s*(?P<type>[^;]+);", re.MULTILINE)
+# Brace-matched rather than regex-delimited. The original pattern ended the body
+# at a `}` in column 0 and read members at exactly two spaces of indent, which
+# silently skipped every **single-line** interface — and `src/types/index.ts`,
+# where the shared shapes live, writes many of them that way:
+#
+#     export interface KutaResult { name: string; passed: boolean; ... }
+#
+# An interface the parser cannot see is not reported as unparsed; it simply
+# never enters `INTERFACES`, so any wrapper field typed with it resolves to an
+# unknown name and the walk stops — indistinguishable from the honest silence
+# this guard keeps for genuinely unresolvable schemas. `KutaResult.passed` hid
+# in that gap and shipped a public page that printed "Fail" on every row.
+_INTERFACE_HEAD_RE = re.compile(r"^export interface (?P<name>\w+)[^{]*\{", re.MULTILINE)
+_MEMBER_RE = re.compile(r"^\s*(?P<name>\w+)(?P<optional>\?)?\s*:\s*(?P<type>.+)$", re.DOTALL)
+
+
+#: A member ends at a top-level `;` or at a newline (one-per-line style).
+_MEMBER_SEPARATORS = ";" + chr(10)
+
+
+def _interface_bodies(text: str) -> list[tuple[str, str]]:
+    """(name, body) for each interface, with the body brace-matched."""
+    out: list[tuple[str, str]] = []
+    for head in _INTERFACE_HEAD_RE.finditer(text):
+        depth, i = 1, head.end()
+        while i < len(text) and depth:
+            if text[i] == "{":
+                depth += 1
+            elif text[i] == "}":
+                depth -= 1
+            i += 1
+        if depth == 0:
+            out.append((head.group("name"), text[head.end():i - 1]))
+    return out
+
+
+def _top_level_members(body: str) -> list[tuple[str, str, bool]]:
+    """Members declared at depth 0, however the file lays them out.
+
+    Depth tracking replaces the old indent rule and preserves its intent: a
+    member of a nested inline object sits at depth >= 1 and belongs to an
+    anonymous type with no interface name to recurse into, so it is skipped.
+    """
+    chunks, depth, buf = [], 0, []
+    for ch in body:
+        if ch in "{[(":
+            depth += 1
+        elif ch in "}])":
+            depth -= 1
+        if depth == 0 and ch in _MEMBER_SEPARATORS:
+            chunks.append("".join(buf))
+            buf = []
+        else:
+            buf.append(ch)
+    chunks.append("".join(buf))
+
+    members: list[tuple[str, str, bool]] = []
+    for chunk in chunks:
+        chunk = chunk.strip()
+        # Drop comment lines; a `//` or `*` line can otherwise look like a member.
+        if not chunk or chunk.startswith(("//", "/*", "*")):
+            continue
+        m = _MEMBER_RE.match(chunk)
+        if m:
+            members.append((m.group("name"), m.group("type").strip(), bool(m.group("optional"))))
+    return members
 
 # getApiClient().get("/x", …) as Promise<FooResponse>
-# `[^;]` keeps the match inside one statement so a cast-less call cannot borrow
-# the next function's cast.
+#              …or as Promise<{ success: boolean; data: FooData }>
+#
+# **The inline-envelope form was skipped entirely until 2026-08-31**, on the
+# stated grounds that it "has no identifier to look up". It has one — the `data`
+# member's type — and the form is not a rare corner: 45 of the client's 83 casts
+# are written this way, so more than half the shared client had never been
+# checked by this guard at all. Every porutham wrapper is in that half, which is
+# why `KutaResult.passed` could be declared, never sent, and consumed by the
+# public share page for months without this test noticing.
+#
+# The regex stops at the opening of the type argument; the type itself is
+# brace-matched below, because a regex cannot balance `{}` inside `<>`.
 _WRAPPER_CAST_RE = re.compile(
     r"""getApiClient\(\)\s*\.\s*(?P<verb>get|post|patch|put|delete)\s*\(\s*
         (?P<q>["'`])(?P<path>/[^"'`]*)(?P=q)
-        [^;]{0,500}?as\s+Promise<\s*(?P<type>\w+)\s*>""",
+        [^;]{0,500}?as\s+Promise<\s*""",
     re.VERBOSE | re.DOTALL,
 )
+
+
+def _cast_type_at(text: str, pos: int) -> tuple[str, str] | None:
+    """The cast's type argument, as ("named", Name) or ("envelope", DataType).
+
+    An envelope resolves to the named type of its `data` member — the payload
+    every consumer actually reads. An envelope whose `data` is itself anonymous
+    has no interface to compare and returns None, which is the guard's usual
+    honest silence.
+    """
+    if pos >= len(text):
+        return None
+    if text[pos] != "{":
+        m = re.match(r"\w+", text[pos:])
+        return ("named", m.group(0)) if m else None
+    depth, i = 1, pos + 1
+    while i < len(text) and depth:
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+        i += 1
+    if depth:
+        return None
+    for name, declared, _optional in _top_level_members(text[pos + 1:i - 1]):
+        if name == "data":
+            base = _base_type(declared)
+            if base:
+                return ("envelope", base)
+    return None
 
 
 def _parse_interfaces() -> dict[str, list[tuple[str, str, bool]]]:
     """Interface name -> [(field, declared type, optional)] for the shared client."""
     out: dict[str, list[tuple[str, str, bool]]] = {}
-    for ts_file in sorted(WRAPPER_DIR.rglob("*.ts")):
+    # `src/api` last: a wrapper-local interface wins over a same-named shared
+    # one, matching how TypeScript resolves the wrapper's own declaration.
+    sources = sorted(TYPES_DIR.rglob("*.ts")) + sorted(WRAPPER_DIR.rglob("*.ts"))
+    for ts_file in sources:
         if ts_file.name.endswith(".test.ts"):
             continue
         text = ts_file.read_text(encoding="utf-8")
-        for match in _INTERFACE_RE.finditer(text):
-            fields = [
-                (f.group("name"), f.group("type").strip(), bool(f.group("optional")))
-                for f in _FIELD_RE.finditer(match.group("body"))
-            ]
+        for name, body in _interface_bodies(text):
+            fields = _top_level_members(body)
             if fields:
-                out[match.group("name")] = fields
+                out[name] = fields
     return out
 
 
@@ -163,12 +274,19 @@ def _iter_wrapper_casts():
         text = ts_file.read_text(encoding="utf-8")
         rel = ts_file.relative_to(REPO_ROOT).as_posix()
         for match in _WRAPPER_CAST_RE.finditer(text):
-            line = text.count("\n", 0, match.start()) + 1
+            found = _cast_type_at(text, match.end())
+            if found is None:
+                continue
+            kind, type_name = found
+            line = text.count(chr(10), 0, match.start()) + 1
             yield (
                 match.group("verb").upper(),
                 _normalise_wrapper_path(_to_absolute(match.group("path"))),
-                match.group("type"),
+                type_name,
                 f"{rel}:{line}",
+                # Where in the 200 body this type sits: the whole response, or
+                # the `data` member of an envelope.
+                "data" if kind == "envelope" else None,
             )
 
 
@@ -194,17 +312,43 @@ RESPONSE_SCHEMAS = _response_schemas()
 #: first run of this guard found that mobile stored ``undefined`` as the session
 #: tier whenever RevenueCat was unavailable, because no route had ever sent the
 #: field. ``AuthUserResponse.tier`` now derives it from the subscription table.
+#: ``GuidanceEnvelope.data.chandrashtamaEnds`` — **found 2026-08-31, the moment
+#: this guard learned to descend into ``src/types``.** The backend has
+#: ``isChandrashtama`` (bool) and ``chandrashtamaDays`` (list[date]); it has no
+#: end *timestamp* anywhere. So ``ChandrashtamaCard``'s "Ends: <time>" line
+#: (``dashboard-personal-shared.tsx``) has never once rendered, on web or in the
+#: hybrid charts page, and mobile's defensive ``chandrashtamaEnds ??
+#: chandrashtama_ends`` fallback is dead on both branches — someone hit this and
+#: patched around the symptom rather than the wire.
+#:
+#: Recorded rather than fixed because sending it is a real change, not a rename:
+#: the end instant has to come from the Moon's rasi span
+#: (``_dg_scoring.py``'s ``rasi_spans`` already computes exactly this), and
+#: which instant counts as "ends" — the span boundary, or the following sunrise
+#: — is a doctrine question, not a typo. Delete this entry when the field is
+#: either sent or removed from the TS type.
 KNOWN_DRIFT: dict[str, set[str]] = {
     "MeResponse": {"MeResponse.displayName"},
+    "GuidanceEnvelope": {"GuidanceEnvelope.data.chandrashtamaEnds"},
 }
 
-# Only the casts naming an interface this file actually parsed. An inline cast
-# like `as Promise<{ success: boolean; data: X }>` has no identifier to look up
-# and is skipped by the regex; a cast naming a type declared elsewhere is
-# skipped here.
+# Only the casts resolving to an interface this file actually parsed. A cast
+# naming a type declared outside `src/api` and `src/types` is still skipped.
 WRAPPER_CASTS = sorted(
-    {row for row in _iter_wrapper_casts() if row[2] in INTERFACES}
+    {row for row in _iter_wrapper_casts() if row[2] in INTERFACES},
+    key=lambda row: (row[2], row[0], row[1]),
 )
+
+
+def _schema_to_walk(verb: str, path: str, envelope_field: str | None) -> dict | None:
+    """The part of the 200 body the cast's type describes."""
+    schema = RESPONSE_SCHEMAS.get((verb, path))
+    if schema is None or envelope_field is None:
+        return schema
+    resolved = _resolve(schema)
+    if resolved is None:
+        return None
+    return (resolved.get("properties") or {}).get(envelope_field)
 
 
 def _walk(
@@ -243,14 +387,17 @@ def _walk(
 def test_interfaces_and_casts_were_discovered():
     """Guard the guard: a parser that silently matches nothing proves nothing.
 
-    Floors sit below what was actually measured when this was written — 132
-    interfaces and 29 typed casts — rather than at a round number guessed at.
+    Floors sit below what was actually measured — 287 interfaces and 72 typed
+    casts as of 2026-08-31 (was 132/29 when written, before the parser learned
+    single-line interfaces and inline `{ success, data }` envelopes) — rather
+    than at a round number guessed at. Raise them when the reach grows; a floor
+    left at an old number is how a guard quietly loses half its coverage again.
     """
-    assert len(INTERFACES) > 100, (
+    assert len(INTERFACES) > 250, (
         f"Only {len(INTERFACES)} shared interfaces parsed — the interface regex "
         "has probably drifted from the source style."
     )
-    assert len(WRAPPER_CASTS) >= 25, (
+    assert len(WRAPPER_CASTS) >= 65, (
         f"Only {len(WRAPPER_CASTS)} typed wrapper casts parsed — the cast regex "
         "has probably drifted from the wrapper style."
     )
@@ -263,25 +410,26 @@ def test_the_walk_actually_reaches_nested_fields():
     per-wrapper test below while checking only a handful of top-level names.
     """
     total = 0
-    for verb, path, interface, _location in WRAPPER_CASTS:
-        schema = RESPONSE_SCHEMAS.get((verb, path))
+    for verb, path, interface, _location, envelope in WRAPPER_CASTS:
+        schema = _schema_to_walk(verb, path, envelope)
         if schema is None:
             continue
         total += _walk(interface, schema, interface, [], set())
-    assert total > 500, (
+    assert total > 2400, (
         f"Only {total} fields compared across every wrapper — the schema "
         "resolver is probably bailing out early and the guard is hollow. "
-        "704 were compared when this was written."
+        "704 were compared when this was written; 2699 after the parser was "
+        "taught the two shapes it had been silently skipping (2026-08-31)."
     )
 
 
 @pytest.mark.parametrize(
-    ("verb", "path", "interface", "location"),
+    ("verb", "path", "interface", "location", "envelope"),
     WRAPPER_CASTS,
-    ids=[f"{interface} <- {verb} {path}" for verb, path, interface, _ in WRAPPER_CASTS],
+    ids=[f"{interface} <- {verb} {path}" for verb, path, interface, _, _e in WRAPPER_CASTS],
 )
 def test_wrapper_fields_exist_on_the_backend_response(
-    verb: str, path: str, interface: str, location: str
+    verb: str, path: str, interface: str, location: str, envelope: str | None
 ):
     """Every field the wrapper's type declares must be one the route sends.
 
@@ -291,7 +439,7 @@ def test_wrapper_fields_exist_on_the_backend_response(
     — or, if the backend is the one that is wrong, by changing the alias and
     every consumer in the same change (CLAUDE.md, API contracts).
     """
-    schema = RESPONSE_SCHEMAS.get((verb, path))
+    schema = _schema_to_walk(verb, path, envelope)
     if schema is None:
         # The route-existence guard owns "this path does not exist"; a route with
         # no JSON 200/201 body has nothing to compare.

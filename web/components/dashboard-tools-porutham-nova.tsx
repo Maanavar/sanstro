@@ -8,6 +8,7 @@ import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
 import { CULTURAL_CONTEXT, dt, PORUTHAM_VERDICT } from "@/lib/dashboard-i18n";
 import { t, tPlanetLord, tNakshatra } from "@/lib/i18n";
 import { verdictPhrase } from "@/lib/verdict-lexicon";
+import { kutaTone, madhyamaLabel, madhyamaGloss, hasMadhyama } from "@/lib/kuta-grade";
 import type { Lang } from "@/lib/i18n";
 import type { ChartCalculateResponseData, ChartDoshamInsight, DashaTimelineResponseData, DirectPoruthamData, KutaResult } from "@/lib/types";
 
@@ -558,19 +559,14 @@ export function NovaPoruthamPanel({
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", marginTop: "4px" }}>
                 {porutham.kutas.map((k) => {
                   const pass = k.passed ?? k.score > 0;
+                  const tone = kutaTone(k.grade);
                   const governs = kutaGoverns(k);
-                  const band = k.detail === "MADHYAMA"
-                    ? (lang === "ta" ? "மத்தியமம்" : "Madhyama")
-                    : k.detail === "UTTAMA"
-                      ? (lang === "ta" ? "உத்தமம்" : "Uttama")
-                      : null;
                   return (
                     <Card key={k.name} variant={governs?.critical ? "high" : "soft"} style={{
                       display: "flex", flexDirection: "row", alignItems: "center", gap: "var(--space-3)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)",
                     }}>
                       <div style={{ minWidth: "150px" }}>
                         <span style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>{lang === "ta" ? k.nameTa : k.name}</span>
-                        {band && <span style={{ marginLeft: "6px", fontSize: "var(--text-xs)", color: "var(--color-muted)" }}>{band}</span>}
                         {governs?.critical && (
                           <span style={{ marginLeft: "6px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-high)", borderRadius: "var(--radius-sm)", padding: "var(--space-1) var(--space-2)" }}>
                             {lang === "ta" ? "முக்கியம்" : "CRITICAL"}
@@ -581,23 +577,35 @@ export function NovaPoruthamPanel({
                       {!governs && <span style={{ flex: 1 }} />}
                       <span style={{
                         fontSize: "var(--text-xs)", fontWeight: 700, padding: "var(--space-1) var(--space-2)", borderRadius: "var(--radius-pill)",
-                        color: pass ? "var(--color-high)" : "var(--color-low)",
-                        background: pass ? "var(--color-high-bg)" : "var(--color-low-bg)",
-                        border: pass ? "1px solid var(--color-high-border)" : "1px solid var(--color-low-border)",
+                        color: `var(--color-${tone === "good" ? "high" : tone === "mixed" ? "mid" : "low"})`,
+                        background: `var(--color-${tone === "good" ? "high" : tone === "mixed" ? "mid" : "low"}-bg)`,
+                        border: `1px solid var(--color-${tone === "good" ? "high" : tone === "mixed" ? "mid" : "low"}-border)`,
                       }}>
-                        {pass ? (lang === "ta" ? "✓ பொருத்தம்" : "✓ match") : (lang === "ta" ? "✗ இல்லை" : "✗ no match")}
+                        {/* The grade replaces the match/no-match word for a
+                            madhyama; it never sits beside it. */}
+                        {k.grade === "MADHYAMA"
+                          ? madhyamaLabel(lang !== "ta")
+                          : pass ? (lang === "ta" ? "✓ பொருத்தம்" : "✓ match") : (lang === "ta" ? "✗ இல்லை" : "✗ no match")}
                       </span>
                     </Card>
                   );
                 })}
               </div>
+              {hasMadhyama(porutham.kutas) && (
+                <p style={{ margin: "4px 0 0", fontSize: "var(--text-xs)", color: "var(--color-muted)" }}>
+                  {madhyamaGloss(lang !== "ta")}
+                </p>
+              )}
               <p style={{ margin: "4px 0 0", fontSize: "var(--text-xs)", color: "var(--color-faint)", fontStyle: "italic", borderTop: "1px solid var(--color-border)", paddingTop: "var(--space-2_5)" }}>
-                {/* The engine is strict pass/fail (1 point per porutham, no
-                    half scores) — the earlier "partial matches score half"
-                    copy misdescribed the calculation (2026-07 audit). */}
+                {/* Half scores DO exist since the 2026-08-31 ruling: a
+                    madhyama earns 0.5. This copy said "no half scores" until
+                    then — itself a correction of an earlier wrong claim
+                    (2026-07 audit), so it has now been wrong in both
+                    directions. It describes the engine; check it against
+                    `GRADE_SCORE` before editing it a third time. */}
                 {lang === "ta"
-                  ? "ஒவ்வொரு பொருத்தமும் பொருந்தும்/பொருந்தாது என்ற நேரடிச் சோதனை — தலா ஒரு மதிப்பெண். இது குடும்பங்களுக்கிடையேயான உரையாடலுக்கான வழிகாட்டி — கட்டாய நிபந்தனை அல்ல."
-                  : "Each porutham is a strict pass/fail check — one point each. A porutham is guidance for conversation between families — not a gate."}
+                  ? "ஒவ்வொரு பொருத்தமும் ஒரு மதிப்பெண்; மத்யமப் படி அரை மதிப்பெண். இது குடும்பங்களுக்கிடையேயான உரையாடலுக்கான வழிகாட்டி — கட்டாய நிபந்தனை அல்ல."
+                  : "Each porutham is worth one point, and a madhyama grade half a point. A porutham is guidance for conversation between families — not a gate."}
               </p>
             </Card>
 

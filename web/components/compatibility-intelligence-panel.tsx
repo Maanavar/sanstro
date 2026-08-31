@@ -6,6 +6,8 @@ import { t, tNakshatra } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { CompatibilityIntelligenceData } from "@/lib/types";
 import { scoreColorPct } from "@/lib/format";
+import { madhyamaLabel, madhyamaGloss, hasMadhyama } from "@/lib/kuta-grade";
+import type { KutaGrade } from "@vinaadi/shared";
 import { ZodiacBadge } from "./zodiac-badge";
 import { NakshatraBadge } from "./nakshatra-badge";
 import { GlossaryTerm } from "./glossary-term";
@@ -70,6 +72,19 @@ function poruthamLabelBadge(label: string): { bg: string; color: string } {
   if (label === "GOOD") return { bg: "var(--cl-brand-fill)", color: W.gold };
   if (label === "AVERAGE") return { bg: "var(--cl-brand-fill)", color: W.terracotta };
   return { bg: "var(--cl-rust-soft)", color: W.rust };
+}
+
+// One verdict per row. The band REPLACES the bare PASS/FAIL rather than sitting
+// beside it — two ratings on one row read as the system contradicting itself,
+// and the band is the same judgement at finer resolution, not a second opinion.
+//
+// Only MADHYAMA is named. Since 2026-08-31 every porutham carries a grade, so
+// naming UTTAMA/ADHAMA too would turn all ten rows into Sanskrit and would make
+// the ends look graded when they are simply the two-valued projection of the
+// same ladder. Madhyama is named because there is no plain word for it.
+function kutaVerdict(k: { label: string; grade?: KutaGrade }, en: boolean): string {
+  if (k.grade === "MADHYAMA") return madhyamaLabel(en);
+  return k.label;
 }
 
 // Plain-language meaning of the Level-7 harmony labels, so a reader with no
@@ -402,11 +417,16 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           {d.poruthamKutas.map(k => (
             <div key={k.name} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <span style={{ minWidth: "120px", fontSize: "0.8rem", color: W.inkMid }}>{k.name}</span>
-              <ScoreBar score={k.score} max={k.maxScore} label={k.label} />
+              <span style={{ minWidth: "120px", fontSize: "0.8rem", color: W.inkMid }}>{en ? k.name : k.nameTa}</span>
+              <ScoreBar score={k.score} max={k.maxScore} label={kutaVerdict(k, en)} />
             </div>
           ))}
         </div>
+        {hasMadhyama(d.poruthamKutas) && (
+          <p style={{ margin: "8px 0 0", fontSize: "0.76rem", color: W.muted }}>
+            {madhyamaGloss(en)}
+          </p>
+        )}
       </SectionCard>
 
       {/* ── 7th House ── */}

@@ -3,7 +3,9 @@ import Link from "next/link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { scoreColorPct } from "@/lib/format";
+import { madhyamaLabel, madhyamaGloss, hasMadhyama } from "@/lib/kuta-grade";
 import type { PoruthamShareViewData } from "@vinaadi/shared/api/porutham-shares";
+import type { KutaGrade } from "@vinaadi/shared";
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
 
@@ -38,7 +40,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-function KutaRow({ nameEn, nameTa, passed }: { nameEn: string; nameTa: string; passed: boolean }) {
+/**
+ * One porutham on the page a couple forwards to their family.
+ *
+ * This row took only `passed` — and `passed` was declared in the shared types
+ * but never emitted by the backend, so it arrived `undefined` and **every
+ * porutham on every shared link rendered "✗ Fail"**, whatever the real result.
+ * Found 2026-08-31. The field is now sent; the grade is read here directly so
+ * the row cannot silently fall back to a bare boolean again.
+ */
+function KutaRow({ nameEn, nameTa, passed, grade }: { nameEn: string; nameTa: string; passed: boolean; grade?: KutaGrade }) {
+  const madhyama = grade === "MADHYAMA";
   return (
     <div style={{
       display: "flex", alignItems: "center", gap: "10px", padding: "10px 14px",
@@ -49,11 +61,11 @@ function KutaRow({ nameEn, nameTa, passed }: { nameEn: string; nameTa: string; p
       </p>
       <span style={{
         fontSize: "0.68rem", fontWeight: 700, padding: "3px 10px", borderRadius: "999px",
-        background: passed ? "rgba(74,222,128,0.12)" : "rgba(248,113,113,0.12)",
-        color: passed ? "#22a55a" : "#e5484d",
-        border: `1px solid ${passed ? "rgba(74,222,128,0.35)" : "rgba(248,113,113,0.35)"}`,
+        background: madhyama ? "rgba(234,179,8,0.12)" : passed ? "rgba(74,222,128,0.12)" : "rgba(248,113,113,0.12)",
+        color: madhyama ? "#a16207" : passed ? "#22a55a" : "#e5484d",
+        border: `1px solid ${madhyama ? "rgba(234,179,8,0.35)" : passed ? "rgba(74,222,128,0.35)" : "rgba(248,113,113,0.35)"}`,
       }}>
-        {passed ? "✓ Pass" : "✗ Fail"}
+        {madhyama ? madhyamaLabel(true) : passed ? "✓ Pass" : "✗ Fail"}
       </span>
     </div>
   );
@@ -168,8 +180,13 @@ export default async function PoruthamSharePage({ params }: Props) {
                 </p>
               </div>
               {data.kutas.map((k) => (
-                <KutaRow key={k.name} nameEn={k.name} nameTa={k.nameTa} passed={k.passed} />
+                <KutaRow key={k.name} nameEn={k.name} nameTa={k.nameTa} passed={k.passed} grade={k.grade} />
               ))}
+              {hasMadhyama(data.kutas) && (
+                <p style={{ margin: "10px 14px 0", fontSize: "0.72rem", color: "var(--cl-muted)", lineHeight: 1.6 }}>
+                  {madhyamaGloss(true, true)}
+                </p>
+              )}
             </div>
 
             <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--cl-muted)", fontStyle: "italic" }}>

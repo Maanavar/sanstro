@@ -5,6 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { readErrorMessage } from "@/lib/api";
 import { t, tLang, tPlanetLord } from "@/lib/i18n";
 import { verdictPhrase } from "@/lib/verdict-lexicon";
+import { kutaTone, madhyamaLabel, madhyamaGloss, hasMadhyama } from "@/lib/kuta-grade";
 import { ConfidenceBadge } from "./dashboard-ui";
 import { NavamsaChart, RasiChart } from "./dashboard-charts";
 import { CompatibilityIntelligencePanel } from "./compatibility-intelligence-panel";
@@ -152,13 +153,6 @@ function weightTone(weight: PoruthamWeight) {
   if (weight === "High")     return { color: "var(--color-mid-text)", bg: "var(--chart-d1-lagna-bg)",  border: "var(--color-mid-border)" };
   if (weight === "Medium")   return { color: "var(--color-muted)", bg: "var(--color-surface-2)",  border: "var(--color-border)" };
   return                            { color: "var(--color-faint)", bg: "var(--color-surface-2)",  border: "var(--color-border)" };
-}
-
-function scoreStatusOf(score: number, max: number): "good" | "mixed" | "caution" {
-  const p = max > 0 ? score / max : 0;
-  if (p >= 0.7) return "good";
-  if (p >= 0.4) return "mixed";
-  return "caution";
 }
 
 function defaultContextForRelationship(relationship: string | undefined): string {
@@ -689,11 +683,22 @@ export function SynastryPanel({
                     </div>
                   </div>
 
+                  {hasMadhyama(porutham.kutas) && (
+                    <p style={{ margin: "0 0 var(--space-2)", fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.45 }}>
+                      {madhyamaGloss(lang !== "ta")}
+                    </p>
+                  )}
+
                   {/* 10-kuta rows */}
                   <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                     {porutham.kutas.map((k) => {
                       const meta = getPoruthamMeta(k.name, k.nameTa, poruthamContext);
-                      const status = scoreStatusOf(k.score, k.maxScore);
+                      // Driven by the engine's grade, not re-derived from the
+                      // score. This row's amber "mixed" state existed and was
+                      // structurally unreachable for years — every kuta scored
+                      // 0 or 1, so the 0.4-0.7 band could never be hit. It is
+                      // the madhyama state, and now it is fed as one.
+                      const status = kutaTone(k.grade);
                       const stTone = statusTone(status);
                       const wtTone = weightTone(meta.weight);
                       const isCriticalFail =
@@ -721,7 +726,9 @@ export function SynastryPanel({
                                 {weightLabel(meta.weight, lang)}
                               </span>
                               <span style={{ fontSize: "var(--text-2xs)", fontWeight: 700, padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", background: stTone.bg, color: stTone.color, border: `1px solid ${stTone.border}`, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                                {lang === "ta" ? (status === "good" ? "நல்லது" : status === "mixed" ? "கலப்பு" : "கவனம்") : (status === "good" ? "Good" : status === "mixed" ? "Mixed" : "Caution")}
+                                {k.grade === "MADHYAMA"
+                                  ? madhyamaLabel(lang !== "ta")
+                                  : lang === "ta" ? (status === "good" ? "நல்லது" : "கவனம்") : (status === "good" ? "Good" : "Caution")}
                               </span>
                               <span style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)", fontFamily: "var(--font-mono)" }}>
                                 {k.score}/{k.maxScore}
