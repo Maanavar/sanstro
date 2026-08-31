@@ -226,7 +226,15 @@ class ActivityRules:
     janma_tara_prohibited: frozenset[int] = frozenset()
     janma_tara_rule_id: str | None = None
     # A source-specific favourable tara lifts the general janma-tara bar only
-    # for this rite (apavada > utsarga). It is not a favourable-score boost.
+    # for this rite (apavada > utsarga), and — because both chapters that state
+    # one state it POSITIVELY ("are beneficial" Ch. X p.62, "will be good"
+    # Ch. III p.32) rather than merely declining to bar it — also scores a
+    # bonus. Setting this on a rite whose chapter only *omits* the bar would be
+    # wrong; it means the chapter commends the count.
+    #
+    # Neither of those two rites carries `janma_tara_prohibited`, so for a long
+    # while this field could only ever cancel an empty set and the factor never
+    # fired. `_janma_tara_count_factor` now reads it directly.
     janma_tara_exempt: frozenset[int] = frozenset()
     janma_tara_exempt_rule_id: str | None = None
 

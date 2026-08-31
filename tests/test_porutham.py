@@ -5,6 +5,7 @@ import pytest
 
 pytestmark = pytest.mark.no_db
 
+from app.calculations.astro import nakshatra_to_rasi
 from app.calculations.porutham import (
     _dinam_score,
     _ganam_score,
@@ -12,8 +13,14 @@ from app.calculations.porutham import (
     _mahendra_score,
     _rajju_score,
     _rasi_score,
+    BINARY_ONLY_KUTAS,
+    GRADE_ADHAMA,
+    GRADE_MADHYAMA,
+    GRADE_SCORE,
+    GRADE_UTTAMA,
     _stree_dirgha_band,
-    _stree_dirgha_score,
+    format_porutham_total,
+    porutham_band_label,
     _vasya_score,
     _vedha_score,
     _yoni_score,
@@ -113,28 +120,95 @@ def test_mahendra_good_set_symmetric_under_direction_reversal():
 
 
 # ---------------------------------------------------------------------------
-# Stree Dirgham (ஸ்திரீ தீர்கம்) — count boy's nak FROM girl's (0-based); pass if > 6
-# Threshold: boy must be ≥ 8th nakshatra from girl (count > 7 in 1-indexed)
+# Stree Dirgham (ஸ்திரீ தீர்கம்) — count boy's nak FROM girl's, 1-indexed.
+# Astrologer ruling 2026-08-28: 1-7 ADHAMA, 8-13 MADHYAMA, 14-27 UTTAMA.
+# Astrologer ruling 2026-08-31: MADHYAMA scores 0.5, not 0 — it is a weak pass.
 # ---------------------------------------------------------------------------
 
 def test_stree_dirgha_good():
-    # boy=20 (Uthiradam), girl=1 (Aswini): (20-1)%27=19 > 6 → PASS
-    assert _stree_dirgha_score(14, 1) == 1
-    assert _stree_dirgha_band(14, 1) == "UTTAMA"
+    # boy=14, girl=1: count=14 → UTTAMA, full point.
+    assert _stree_dirgha_band(14, 1) == GRADE_UTTAMA
+    assert GRADE_SCORE[_stree_dirgha_band(14, 1)] == 1.0
 
 
 def test_stree_dirgha_bad():
-    # boy=4 (Rohini), girl=1 (Aswini): (4-1)%27=3 ≤ 6 → FAIL
-    assert _stree_dirgha_score(4, 1) == 0
+    # boy=4, girl=1: count=4 → ADHAMA, no credit.
+    assert _stree_dirgha_band(4, 1) == GRADE_ADHAMA
+    assert GRADE_SCORE[_stree_dirgha_band(4, 1)] == 0.0
 
 
 def test_stree_dirgha_boundary():
-    # boy=8 (Poosam), girl=1 (Aswini): diff=7 > 6 → PASS (count=8, meets >7)
-    assert _stree_dirgha_score(13, 1) == 0
-    assert _stree_dirgha_band(8, 1) == "MADHYAMA"
-    assert _stree_dirgha_band(7, 1) == "FAIL"
-    # boy=7 (Punarpoosam), girl=1 (Aswini): diff=6 ≤ 6 → FAIL (count=7, fails >7)
-    assert _stree_dirgha_score(7, 1) == 0
+    # Both edges of the madhyama band, and the two rungs either side of it.
+    assert _stree_dirgha_band(7, 1) == GRADE_ADHAMA
+    assert _stree_dirgha_band(8, 1) == GRADE_MADHYAMA
+    assert _stree_dirgha_band(13, 1) == GRADE_MADHYAMA
+    assert _stree_dirgha_band(14, 1) == GRADE_UTTAMA
+
+
+def test_madhyama_scores_half_not_zero():
+    """The 2026-08-31 ruling, pinned at the value.
+
+    A hard 0 here was an artifact of the engine being unable to express
+    anything but true/false, and it was stricter than the doctrine: a madhyama
+    is the acceptable-with-reservation tier, not a failure.
+    """
+    assert GRADE_SCORE[GRADE_MADHYAMA] == 0.5
+    r = compute_porutham(boy_nakshatra=8, girl_nakshatra=1, boy_rasi=3, girl_rasi=1)
+    sd = next(k for k in r.kutas if k.name == "Stree Dirgha")
+    assert sd.grade == GRADE_MADHYAMA
+    assert sd.score == 0.5
+    # `passed` is the binary floor and follows the doctrine, not the full point:
+    # no two-state surface may render Fail for a couple the doctrine passes.
+    assert sd.passed is True
+    assert sd.label == "PASS"
+    assert sd.is_uttama is False
+
+
+def test_veto_kutas_are_never_graded():
+    """Rajju and Vedha are permanently binary — the veto depends on it.
+
+    The veto fires on ``score == 0``. A graded veto kuta would carry 0.5 and
+    slip straight past it, so "the grade mechanism is general" and "the veto
+    reads score == 0" are not independent facts and are pinned together.
+    """
+    assert BINARY_ONLY_KUTAS == {"Rajju", "Vedha"}
+    for boy in range(1, 28):
+        for girl in range(1, 28):
+            r = compute_porutham(
+                boy_nakshatra=boy, girl_nakshatra=girl,
+                boy_rasi=nakshatra_to_rasi(boy), girl_rasi=nakshatra_to_rasi(girl),
+            )
+            for k in r.kutas:
+                if k.name in BINARY_ONLY_KUTAS:
+                    assert k.grade in {GRADE_UTTAMA, GRADE_ADHAMA}, (
+                        f"{k.name} graded {k.grade} — this opens a hole in the veto"
+                    )
+                    assert k.score in {0.0, 1.0}
+
+
+def test_porutham_band_ties_break_upward():
+    """A trailing .5 rounds to the pass side (ruling 2026-08-31).
+
+    Only a madhyama can produce one, and a madhyama is a weak pass, so at a
+    boundary it must tip toward passing. Rounding down would restore the binary
+    under-credit through the label after it was paid off in the score — and
+    Python's own ``round()`` is banker's, so ``round(8.5) == 8`` would do
+    exactly that if it were used here.
+    """
+    assert porutham_band_label(8.5) == "EXCELLENT"
+    assert porutham_band_label(8.0) == "GOOD"
+    assert porutham_band_label(6.5) == "GOOD"
+    assert porutham_band_label(6.0) == "AVERAGE"
+    assert porutham_band_label(4.5) == "AVERAGE"
+    assert porutham_band_label(4.0) == "CAUTION"
+
+
+def test_total_formats_without_a_trailing_decimal():
+    """A whole score must not start reading "8.0/10" now the total is a float."""
+    assert format_porutham_total(8.0) == "8"
+    assert format_porutham_total(8.5) == "8.5"
+    assert format_porutham_total(10.0) == "10"
+    assert format_porutham_total(0.0) == "0"
 
 
 # ---------------------------------------------------------------------------

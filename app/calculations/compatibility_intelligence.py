@@ -829,12 +829,23 @@ def compute_compatibility_intelligence(
         overall_label = "CAUTION"
 
     # Doctrine §12 — Rajju/Vedha veto hard-caps the headline label at CAUTION
-    # regardless of the weighted 0-100 score (WI-21). Porutham is only 20 of
-    # the 100 weighted points, so a Rajju/Vedha dosha can otherwise be
-    # outweighed by the other 7 levels; the traditional veto must still
-    # govern the headline verdict, matching the porutham engine's own
-    # shipped label-veto. overall_score itself and the full breakdown are
-    # unaffected — only the label is capped.
+    # regardless of the weighted 0-100 score (WI-21). Porutham is 35 of the 100
+    # weighted points (raised from 20 by the 2026-08-28 ruling; this comment
+    # said 20 until 2026-08-31), so a Rajju/Vedha dosha can still be outweighed
+    # by the other 7 levels; the traditional veto must therefore govern the
+    # headline verdict, matching the porutham engine's own shipped label-veto.
+    # overall_score itself and the full breakdown are unaffected — only the
+    # label is capped.
+    #
+    # THE 80/65/50 RUNGS BELOW HAVE NOT BEEN RETUNED SINCE porutham went 20 -> 35,
+    # and that is a deliberate hold, not an oversight. Raising the share gave one
+    # kuta of ten 3.5 composite points instead of 2, and the same ruling set made
+    # Sthree Deergham's MADHYAMA band score zero — which is 22.2% of the 729 star
+    # pairs (measured), each losing exactly 3.5 points. Retuning the rungs in the
+    # same change as the rulings that moved the distribution would make it
+    # impossible to attribute any verdict change to either one. The retune needs
+    # a measured composite distribution over real charts, not over the star grid:
+    # 65 of the 100 points come from layers no star pair determines.
     if porutham_result.rajju_dosha or porutham_result.vedha_dosha:
         overall_label = "CAUTION"
 

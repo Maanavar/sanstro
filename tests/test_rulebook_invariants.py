@@ -162,12 +162,34 @@ def test_all_729_nakshatra_pairs_produce_a_wellformed_result(girl_nak):
     "score_fn",
     [
         PO._dinam_score, PO._ganam_score, PO._mahendra_score,
-        PO._stree_dirgha_score, PO._yoni_score, PO._rajju_score, PO._vedha_score,
+        PO._yoni_score, PO._rajju_score, PO._vedha_score,
     ],
 )
-def test_every_nakshatra_kuta_is_binary_over_all_729_pairs(score_fn):
+def test_every_binary_nakshatra_kuta_is_binary_over_all_729_pairs(score_fn):
+    """Sthree Deergham is deliberately absent — see the graded test below.
+
+    Its `_stree_dirgha_score` helper is gone entirely rather than left returning
+    a third value, so a caller that still assumes binary fails to import rather
+    than silently rounding a madhyama away.
+    """
     for boy, girl in itertools.product(ALL_NAKSHATRAS, ALL_NAKSHATRAS):
         assert score_fn(boy, girl) in (0, 1), f"{score_fn.__name__}({boy},{girl}) is not binary"
+
+
+def test_stree_dirgha_is_graded_not_binary_over_all_729_pairs():
+    """The one graded porutham (astrologer ruling 2026-08-31).
+
+    Madhyama earns 0.5 because it is a weak pass, not a soft fail. This test is
+    the counterpart of the binary one above: it pins that exactly one porutham
+    leaves the two-valued ladder, so a second one cannot join it unnoticed.
+    """
+    seen = set()
+    for boy, girl in itertools.product(ALL_NAKSHATRAS, ALL_NAKSHATRAS):
+        band = PO._stree_dirgha_band(boy, girl)
+        assert band in (PO.GRADE_UTTAMA, PO.GRADE_MADHYAMA, PO.GRADE_ADHAMA)
+        assert PO.GRADE_SCORE[band] in (0.0, 0.5, 1.0)
+        seen.add(band)
+    assert seen == {PO.GRADE_UTTAMA, PO.GRADE_MADHYAMA, PO.GRADE_ADHAMA}
 
 
 def test_nakshatra_keyed_tables_cover_all_27_stars():

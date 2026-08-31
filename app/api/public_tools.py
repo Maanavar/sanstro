@@ -338,7 +338,8 @@ def public_porutham(payload: PublicPoruthamRequest, request: Request) -> PublicP
             score=k.score,
             max_score=k.max_score,
             label=k.label,
-            detail=k.detail,
+            passed=k.passed,
+            grade=k.grade,
         )
         for k in result.kutas
     ]
@@ -409,7 +410,9 @@ class PublicPoruthamStarData(BaseModel):
     boy_nakshatra: int = Field(alias="boyNakshatra")
     girl_nakshatra: int = Field(alias="girlNakshatra")
     kutas: list[KutaResult]
-    total_score: int = Field(alias="totalScore")
+    # float since 2026-08-31: a madhyama contributes 0.5. Rendered via
+    # `format_porutham_total` so a whole score never reads "8.0/10".
+    total_score: float = Field(alias="totalScore")
     max_score: int = Field(alias="maxScore")
     percentage: float
     label: str
@@ -439,7 +442,9 @@ class PublicPoruthamGridRequest(BaseModel):
 
 class PublicPoruthamGridItem(BaseModel):
     boy_nakshatra: int = Field(alias="boyNakshatra")
-    total_score: int = Field(alias="totalScore")
+    # float since 2026-08-31: a madhyama contributes 0.5. Rendered via
+    # `format_porutham_total` so a whole score never reads "8.0/10".
+    total_score: float = Field(alias="totalScore")
     max_score: int = Field(alias="maxScore")
     percentage: float
     label: str
@@ -488,7 +493,8 @@ def _compute_star_porutham(
         nadi_parihara_mode=get_flag("nadi_parihara_mode"),
     )
     kutas = [
-        KutaResult(name=k.name, name_ta=k.name_ta, score=k.score, max_score=k.max_score, label=k.label, detail=k.detail)
+        KutaResult(name=k.name, name_ta=k.name_ta, score=k.score, max_score=k.max_score,
+                   label=k.label, passed=k.passed, grade=k.grade)
         for k in result.kutas
     ]
     nadi = result.nadi_dosha

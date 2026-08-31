@@ -141,8 +141,8 @@ def test_ch10_inverts_the_sign_doctrine_the_other_learning_chapters_share() -> N
 def test_the_janma_tara_reversal_lifts_only_its_own_rite() -> None:
     """Six chapters PROHIBIT the janma / Anu-Jenma / Thri-Jenma triad. Two
     reverse it — Ch. X p.62 outright, and Ch. III p.32 by offering the 10th tara
-    as a fallback good day. Both are explicit apavada exemptions: they remove
-    the general bar for their own rite without manufacturing a bonus."""
+    as a fallback good day. The exemption is scoped to its own rite: no other
+    activity inherits it."""
     assert learning.MANTRA_INITIATION_JANMA_TARA_FAVOURABLE == {1, 10, 19}
     assert samskara.MILK_FEEDING_FALLBACK_JANMA_TARA == 10
 
@@ -153,6 +153,50 @@ def test_the_janma_tara_reversal_lifts_only_its_own_rite() -> None:
     milk = ACTIVITY_RULES["MILK_FEEDING"]
     assert milk.janma_tara_exempt == {10}
     assert milk.janma_tara_exempt_rule_id == "KP_CH3_MILK_FEEDING_JANMA_TARA_001"
+
+    exempting = {a for a, e in ACTIVITY_RULES.items() if e.janma_tara_exempt}
+    assert exempting == {"MANTRA_INITIATION", "MILK_FEEDING"}
+
+
+@pytest.mark.parametrize(
+    ("activity", "exempt_counts", "rule_id"),
+    [
+        ("MANTRA_INITIATION", {1, 10, 19}, "KP_CH10_MANTRA_JANMA_TARA_001"),
+        ("MILK_FEEDING", {10}, "KP_CH3_MILK_FEEDING_JANMA_TARA_001"),
+    ],
+)
+def test_the_janma_tara_reversal_actually_reaches_the_score(
+    activity: str, exempt_counts: set[int], rule_id: str, snapshots
+) -> None:
+    """The exemption must SCORE, not merely sit in the registry.
+
+    It shipped as `janma_tara_prohibited - janma_tara_exempt`, and neither of
+    these two rites carries a `janma_tara_prohibited` set — their chapters are
+    not among the six that state the bar. So the subtraction had an empty
+    left-hand side, the factor returned None at every count, and the whole
+    reversal was dead configuration. This test walks the counts.
+
+    Both chapters state the count POSITIVELY — "are beneficial" (Ch. X p.62),
+    "will be good" (Ch. III p.32) — so a bonus is what the page says, and the
+    factor must never come back negative for these two.
+    """
+    subject = Subject(janma_nakshatra=4, janma_rasi=2, lagna_rasi=5)
+    seen: set[int] = set()
+    for snap in snapshots:
+        count = ((snap.nakshatra_number - subject.janma_nakshatra) % 27) + 1
+        factors = [
+            f for f in score_day(snap, activity, subject).factors
+            if f.factor == "JANMA_TARA_COUNT"
+        ]
+        if count in exempt_counts:
+            assert factors, f"{activity}: no janma-tara factor at the exempt count {count}"
+            assert factors[0].verdict is Verdict.BONUS
+            assert factors[0].contribution > 0
+            assert factors[0].rule_id == rule_id
+            seen.add(count)
+        else:
+            assert not factors, f"{activity}: unexpected janma-tara factor at count {count}"
+    assert seen == exempt_counts, f"{activity}: counts never exercised: {exempt_counts - seen}"
 
 
 def test_ch19_contradicts_itself_on_the_tillage_sign_and_both_readings_survive() -> None:

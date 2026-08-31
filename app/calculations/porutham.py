@@ -1,18 +1,25 @@
 """
 Tamil 10-Porutham compatibility engine (Thirukanitham tradition).
 
-Implements the classical Tamil panchangam 10-porutham system as a pass/fail
-check on each of the 10 criteria. The result is expressed as a score out of 10
-(one point per porutham that passes). Rajju and Vedha are absolute vetoes:
-if either is present the union is traditionally considered inauspicious regardless
-of the overall score.
+Implements the classical Tamil panchangam 10-porutham system. Each criterion is
+graded on the classical three-fold ladder — **உத்தமம் / மத்யமம் / அதமம்**
+(Uttama / Madhyama / Adhama) — and the result is expressed as a score out of 10.
+Rajju and Vedha are absolute vetoes: if either is present the union is
+traditionally considered inauspicious regardless of the overall score.
+
+**Madhyama scores 0.5, and that is doctrine, not a convenience** (astrologer
+ruling 2026-08-31). Madhyama is the acceptable-with-reservation tier — a weak
+pass, not a soft fail; a practitioner never tells a family that a madhyama
+porutham "failed". The hard 0 it used to carry was an artifact of this engine
+being unable to express anything but true/false (the 2026-08-28 binary fallback),
+and it was stricter than the sastra. Half a point is what madhyama means.
 
 The 10 Poruthams (Tamil → calculation rule):
   1. Dinam      (தினம்)           — count boy's nak from girl's (1-based, 1-27); pass only for the classical good-count table (incl. the 9th/18th counts, Parama Mitra tara)
   2. Ganam      (கணம்)            — Deva/Manushya/Rakshasa; Deva+Deva or Deva+Manushya = pass
   3. Mahendra   (மகேந்திரம்)      — count boy's nak from girl's; pass if result ∈ {4,7,10,13,16,19,22,25}
-  4. Stree Dirgham (ஸ்திரீ தீர்கம்) — count boy's nak from girl's; 1–7 fail,
-     8–13 Madhyama, 14–27 Uttama (the binary point is awarded at ≥ 14)
+  4. Stree Dirgham (ஸ்திரீ தீர்கம்) — count boy's nak from girl's; 1–7 Adhama,
+     8–13 Madhyama (0.5), 14–27 Uttama
   5. Yoni       (யோனி)            — same or neutral animal pair = pass; hostile pair = fail
   6. Rasi       (ராசி)            — pass unless 6th or 8th position (Shashtashtaka) between rasis
   7. Rasiyathipathi (ராசியாதிபதி) — FAIL if either rasi lord regards the other as an enemy (one-way enmity fails)
@@ -24,10 +31,107 @@ Nakshatra numbers are 1-indexed (1 = Aswini … 27 = Revathi).
 """
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 from app.calculations.astro import nakshatra_to_rasi
 from app.calculations.chart_strength import SIGN_LORD
+
+# ---------------------------------------------------------------------------
+# The three-fold grade (astrologer ruling 2026-08-31)
+#
+# உத்தமம் / மத்யமம் / அதமம் — best / middling / worst. This ladder is general
+# across Jyotisha, so the *mechanism* here is general: hard-coding 0.5 as a
+# Sthree-Deergham special case would assert that only that one porutham has a
+# middle state, which is false.
+#
+# A porutham's madhyama band is *populated* only where its thresholds are
+# authored rather than paraphrased. Today that is Sthree Deergham alone; Rasi
+# carries a classical madhyama too (see `_rasi_exception_lifts`) and drops in
+# when Jothidam p.68 settles. Gana and arguably Yoni are the other real
+# candidates. Dinam, Vasya, Rasyadipathi and Mahendra are rendered binary in
+# practice. An ungraded porutham is simply the two-valued projection of the same
+# ladder — a full pass reads UTTAMA, a fail reads ADHAMA, and no third state can
+# arise.
+# ---------------------------------------------------------------------------
+GRADE_UTTAMA = "UTTAMA"
+GRADE_MADHYAMA = "MADHYAMA"
+GRADE_ADHAMA = "ADHAMA"
+
+#: Score credit per grade. **Madhyama is a weak pass, so it earns half a point**
+#: — see the module docstring for why a hard 0 was stricter than the doctrine.
+GRADE_SCORE: dict[str, float] = {
+    GRADE_UTTAMA: 1.0,
+    GRADE_MADHYAMA: 0.5,
+    GRADE_ADHAMA: 0.0,
+}
+
+#: **PERMANENTLY BINARY — never populate a madhyama band for these two.**
+#:
+#: Not "not yet": never. A gate is open or shut; there is no middling Rajju. This
+#: is pinned on the same line as the reason, because the two facts read
+#: separately look independent and are not: the veto below fires on
+#: `score == 0`, so a graded Rajju would carry `score == 0.5` and **slip
+#: straight past the veto**. The general grade mechanism would then have quietly
+#: punched a hole in the hardest gate in the engine.
+#: `test_porutham.py::test_veto_kutas_are_never_graded` enforces it.
+BINARY_ONLY_KUTAS = frozenset({"Rajju", "Vedha"})
+
+
+def format_porutham_total(total: float) -> str:
+    """Render a half-point total for display: 8.5 -> "8.5", 8.0 -> "8".
+
+    Without this every whole-number score starts reading "8.0/10" to every
+    family the moment the total becomes a float — a silent cosmetic regression
+    across all four surfaces, introduced by a change none of them asked for.
+    """
+    return f"{total:g}"
+
+
+def porutham_band_label(total: float) -> str:
+    """The porutham layer's own EXCELLENT/GOOD/AVERAGE/CAUTION word.
+
+    **This is not the composite's 80/65/50 ladder and must not be lockstepped to
+    it** (astrologer ruling 2026-08-31). The two answer different questions —
+    this one is "how strong is the star-matching, on its own?", the composite's
+    is "should this marriage proceed, all seven layers weighed?" — and they are
+    allowed to differ. A couple with strong stars and ordinary charts *should*
+    read "Porutham EXCELLENT" under a composite of GOOD; that reads correctly.
+
+    **Ties break upward.** The total is rounded to the nearest band, and a
+    trailing .5 — which only a madhyama can ever produce — rounds *up*, to the
+    pass side. The justification is the same one behind the 0.5 itself: a
+    madhyama is a weak pass, so at a boundary it tips toward passing, never
+    away. Rounding it down would mean a madhyama never helps at a rung, which is
+    the old binary under-credit creeping back in through the label after we paid
+    to remove it from the score.
+
+    So in effect EXCELLENT >= 8.5, GOOD >= 6.5, AVERAGE >= 4.5 — but as a
+    *derived* rule, not a fresh cut of the rungs. The rungs are still 9/7/5.
+
+    `math.floor(total + 0.5)` rather than `round()`: Python's `round()` is
+    banker's rounding, so `round(8.5)` is 8 — it would break the tie *downward*,
+    which is precisely the under-credit this rule exists to prevent.
+
+    The band is composition-blind: 8.5 might be 8 clean poruthams plus one
+    madhyama, or 7 clean plus three. That is the standing "which seven, not just
+    how many" limitation, inherited here rather than created here.
+
+    The nine anchor cases these rungs answer to — stated as verdicts an
+    astrologer would give a family, which is the record, not the numbers — are
+    in ``docs/RULINGS_2026-08-31_MADHYAMA_HALF_POINT.md``. Anchor 2 is the one
+    that bites here: 8 clean plus a madhyama shortfall must still read
+    EXCELLENT, which is what the upward tie-break delivers.
+    """
+    rounded = math.floor(total + 0.5)
+    if rounded >= 9:
+        return "EXCELLENT"
+    if rounded >= 7:
+        return "GOOD"
+    if rounded >= 5:
+        return "AVERAGE"
+    return "CAUTION"
+
 
 # ---------------------------------------------------------------------------
 # Nakshatra → Gana mapping (1-based nakshatra index)
@@ -262,19 +366,20 @@ def _mahendra_score(nak_boy: int, nak_girl: int) -> int:
 def _stree_dirgha_band(nak_boy: int, nak_girl: int) -> str:
     """Return the ruled Sthree Deergham grade for the inclusive star count.
 
-    Astrologer ruling 2026-08-28: 1–7 FAIL, 8–13 MADHYAMA, 14–27 UTTAMA.
-    The public 10-kuta score remains binary, so only UTTAMA earns its point.
+    Astrologer ruling 2026-08-28: 1–7 ADHAMA, 8–13 MADHYAMA, 14–27 UTTAMA.
+
+    The 2026-08-28 ruling added a binary fallback ("the point is awarded at
+    >= 14") because the engine could not then express anything but 0 or 1. The
+    2026-08-31 ruling removed that constraint: Madhyama now scores 0.5 via
+    `GRADE_SCORE`, which is what the grade actually means. The band itself is
+    unchanged — only the credit it earns.
     """
     count = (nak_boy - nak_girl) % 27 + 1
     if count <= 7:
-        return "FAIL"
+        return GRADE_ADHAMA
     if count <= 13:
-        return "MADHYAMA"
-    return "UTTAMA"
-
-
-def _stree_dirgha_score(nak_boy: int, nak_girl: int) -> int:
-    return int(_stree_dirgha_band(nak_boy, nak_girl) == "UTTAMA")
+        return GRADE_MADHYAMA
+    return GRADE_UTTAMA
 
 
 def _yoni_score(nak_boy: int, nak_girl: int) -> int:
@@ -491,19 +596,43 @@ def _vasya_score(rasi_boy: int, rasi_girl: int) -> int:
 
 @dataclass(frozen=True, slots=True)
 class KutaResult:
+    """One porutham's result.
+
+    **`score` and `passed` answer different questions, and they diverge exactly
+    at Madhyama — which is the whole reason the grade exists.** Do not collapse
+    them into one flag (ruling 2026-08-31):
+
+    * `score`  — the weighted credit: 1.0 / 0.5 / 0.0. All arithmetic reads
+      this, and so does the Rajju/Vedha veto (`score == 0`).
+    * `grade`  — UTTAMA / MADHYAMA / ADHAMA. Drives green / amber / red on any
+      consumer that can paint three states.
+    * `passed` — derived, `grade != ADHAMA`. **The floor for binary consumers.**
+      A madhyama is a pass, so this is True for it. A surface that can only
+      paint two states then *overstates* a weak pass as a full pass — an error
+      on the correct side of the doctrine — instead of the one error that is
+      not permitted anywhere: rendering Fail for a couple the doctrine passes.
+
+    `is_uttama` is the "earned full marks" concept, for consumers that need it;
+    it is deliberately not smuggled into `passed`.
+    """
+
     name: str
     name_ta: str
     passed: bool
-    score: int      # 1 = pass, 0 = fail (kept for API compatibility)
+    score: float    # 1.0 = uttama, 0.5 = madhyama, 0.0 = adhama
     max_score: int  # always 1
     label: str      # "PASS" or "FAIL"
-    detail: str | None = None  # optional grade such as MADHYAMA
+    grade: str      # UTTAMA / MADHYAMA / ADHAMA
+
+    @property
+    def is_uttama(self) -> bool:
+        return self.grade == GRADE_UTTAMA
 
 
 @dataclass(frozen=True, slots=True)
 class PorutthamResult:
     kutas: list[KutaResult]
-    total_score: int   # 0–10
+    total_score: float  # 0–10, in halves (a .5 can only come from a madhyama)
     max_score: int     # always 10
     percentage: float
     label: str         # EXCELLENT / GOOD / AVERAGE / CAUTION
@@ -734,7 +863,7 @@ def compute_porutham(
         "Dinam":           _dinam_score(boy_nakshatra, girl_nakshatra),
         "Ganam":           _ganam_score(boy_nakshatra, girl_nakshatra),
         "Mahendra":        _mahendra_score(boy_nakshatra, girl_nakshatra),
-        "Stree Dirgha":    _stree_dirgha_score(boy_nakshatra, girl_nakshatra),
+        "Stree Dirgha":    GRADE_SCORE[stree_dirgha_band],
         "Yoni":            _yoni_score(boy_nakshatra, girl_nakshatra),
         "Rasi":            _rasi_score(boy_rasi, girl_rasi),
         "Graha Maitri":    _graha_maitri_kuta(boy_rasi, girl_rasi),
@@ -750,22 +879,43 @@ def compute_porutham(
         "Rajju": "ராஜ்ஜு", "Vedha": "வேதம்",
     }
 
-    kutas: list[KutaResult] = [
-        KutaResult(
-            name=name,
-            name_ta=_names_ta[name],
-            passed=bool(sc),
-            score=sc,
-            max_score=1,
-            label="PASS" if sc else "FAIL",
-            detail=stree_dirgha_band if name == "Stree Dirgha" else None,
+    # An authored madhyama band, per porutham. Only Sthree Deergham carries one
+    # today; every other porutham projects onto the two-valued ends of the same
+    # ladder. `BINARY_ONLY_KUTAS` must never appear as a key here — see its
+    # comment for the veto hole that would open if it did.
+    graded_bands = {"Stree Dirgha": stree_dirgha_band}
+    assert not (graded_bands.keys() & BINARY_ONLY_KUTAS), (
+        "Rajju/Vedha are permanently binary: a graded veto kuta would score 0.5 "
+        "and slip past the `score == 0` veto."
+    )
+
+    def _grade_for(name: str, sc: float) -> str:
+        if name in graded_bands:
+            return graded_bands[name]
+        return GRADE_UTTAMA if sc >= 1 else GRADE_ADHAMA
+
+    kutas: list[KutaResult] = []
+    for name, sc in scores.items():
+        grade = _grade_for(name, sc)
+        # `passed` is the binary floor and follows the doctrine, not the full
+        # point: a madhyama is a pass. See KutaResult's docstring.
+        passed = grade != GRADE_ADHAMA
+        kutas.append(
+            KutaResult(
+                name=name,
+                name_ta=_names_ta[name],
+                passed=passed,
+                score=sc,
+                max_score=1,
+                label="PASS" if passed else "FAIL",
+                grade=grade,
+            )
         )
-        for name, sc in scores.items()
-    ]
 
     total = sum(scores.values())
     MAX_SCORE = 10
     percentage = round(total / MAX_SCORE * 100, 1)
+    total_str = format_porutham_total(total)
 
     rajju_dosha = scores["Rajju"] == 0
     vedha_dosha = scores["Vedha"] == 0
@@ -781,44 +931,42 @@ def compute_porutham(
         rajju_failed=rajju_dosha,
     )
 
-    if total >= 9:
-        label = "EXCELLENT"
+    label = porutham_band_label(total)
+    if label == "EXCELLENT":
         summary_en = (
-            f"Tamil 10-Porutham: {total}/10 — Outstanding compatibility across all poruthams. "
+            f"Tamil 10-Porutham: {total_str}/10 — Outstanding compatibility across all poruthams. "
             "Traditionally considered a highly auspicious match."
         )
         summary_ta = (
-            f"தமிழ் 10 பொருத்தம்: {total}/10 — அனைத்து பொருத்தங்களிலும் மிகச் சிறந்த இணக்கம். "
+            f"தமிழ் 10 பொருத்தம்: {total_str}/10 — அனைத்து பொருத்தங்களிலும் மிகச் சிறந்த இணக்கம். "
             "பாரம்பரியமாக மிகவும் சாதகமான திருமணமாக கருதப்படுகிறது."
         )
-    elif total >= 7:
-        label = "GOOD"
+    elif label == "GOOD":
         summary_en = (
-            f"Tamil 10-Porutham: {total}/10 — Good compatibility with minor differences. "
+            f"Tamil 10-Porutham: {total_str}/10 — Good compatibility with minor differences. "
             "Traditionally considered a suitable match."
         )
         summary_ta = (
-            f"தமிழ் 10 பொருத்தம்: {total}/10 — சில சிறு வேறுபாடுகளுடன் நல்ல இணக்கம். "
+            f"தமிழ் 10 பொருத்தம்: {total_str}/10 — சில சிறு வேறுபாடுகளுடன் நல்ல இணக்கம். "
             "பாரம்பரியமாக ஏற்புடைய திருமணமாக கருதப்படுகிறது."
         )
-    elif total >= 5:
-        label = "AVERAGE"
+    elif label == "AVERAGE":
         summary_en = (
-            f"Tamil 10-Porutham: {total}/10 — Moderate compatibility. "
+            f"Tamil 10-Porutham: {total_str}/10 — Moderate compatibility. "
             "Some poruthams need attention; consultation with a jyotishi is advised."
         )
         summary_ta = (
-            f"தமிழ் 10 பொருத்தம்: {total}/10 — நடுத்தர இணக்கம். "
+            f"தமிழ் 10 பொருத்தம்: {total_str}/10 — நடுத்தர இணக்கம். "
             "சில பொருத்தங்களில் கவனம் தேவை; ஜோதிடர் ஆலோசனை உதவும்."
         )
     else:
         label = "CAUTION"
         summary_en = (
-            f"Tamil 10-Porutham: {total}/10 — Significant incompatibilities found. "
+            f"Tamil 10-Porutham: {total_str}/10 — Significant incompatibilities found. "
             "Traditional guidance recommends careful consultation before proceeding."
         )
         summary_ta = (
-            f"தமிழ் 10 பொருத்தம்: {total}/10 — குறிப்பிடத்தக்க பொருத்தமின்மை கண்டறியப்பட்டுள்ளது. "
+            f"தமிழ் 10 பொருத்தம்: {total_str}/10 — குறிப்பிடத்தக்க பொருத்தமின்மை கண்டறியப்பட்டுள்ளது. "
             "தொடரும் முன் ஜோதிட ஆலோசனை அவசியம்."
         )
 

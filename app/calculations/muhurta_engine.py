@@ -174,6 +174,19 @@ class _W:
     # Engine policy: A-19 scales this full Janma-tara caution by the
     # source-ruled 1.0 / .5 / .25 grade rather than vetoing every occurrence.
     JANMA_TARA_FULL = -20.0
+    # The two chapters that REVERSE the janma-tara bar and call the count good
+    # (Ch. X p.62 mantra initiation, Ch. III p.32 first milk feeding).
+    #
+    # Deliberately NOT the mirror of JANMA_TARA_FULL. The book's prohibitions on
+    # this triad are stated with its strongest verbs -- "should be strictly
+    # avoided", "No manner of celebration should be held" -- while its two
+    # commendations are mild: "are beneficial", "will be good". Pricing a mild
+    # commendation like a grave prohibition would let one favourable tara
+    # outweigh a chapter's own star doctrine. Sized above VARA_GOOD (6) because
+    # the personal layer outranks a broad weekday preference in Tamil practice,
+    # and below NAKSHATRA_FAVOURED (14) because the chapter calls the day good,
+    # not best.
+    JANMA_TARA_FAVOURED = 8.0
     # L1 generic almanac. These values are carried over unchanged from
     # `muhurta_service._score_panchangam`, which is where they were tuned, so
     # that folding the two former copies into one engine is not also a silent
@@ -1755,8 +1768,25 @@ _JANMA_TARA_GRADES: dict[int, float] = {
 }
 
 
+def _janma_tara_naming(count: int) -> tuple[str, str]:
+    """How a tara count is named in reason copy, in both languages.
+
+    The book names only the janma / 10th / 19th triad — Jenma, Anu-Jenma,
+    Thri-Jenma (Ch. XVI p.92). Any other count is printed as a bare ordinal
+    rather than given an invented name.
+    """
+    named = {1: ("Jenma", "ஜென்ம"), 10: ("Anu-Jenma", "அனுஜென்ம"), 19: ("Thri-Jenma", "த்ரிஜென்ம")}
+    if count in named:
+        label_en, label_ta = named[count]
+        return (
+            f"{label_en}, the {_ordinal(count)} star from",
+            f"{label_ta} நட்சத்திரம் ({count}வது)",
+        )
+    return f"the {_ordinal(count)} star from", f"{count}வது நட்சத்திரம்"
+
+
 def _janma_tara_count_factor(snapshot, activity: str, subject: Subject) -> FactorResult | None:
-    """Counts from the subject's birth star that the chapter shuts out.
+    """Counts from the subject's birth star that the chapter rules on.
 
     The book's most-repeated personal rule: six chapters name a set of counts
     from the native's own Jenma-Nakshathra and forbid days ruled by them. The
@@ -1771,32 +1801,54 @@ def _janma_tara_count_factor(snapshot, activity: str, subject: Subject) -> Facto
     it can only ever remove days for one subject, never for everybody, and it is
     absent from general mode by construction.
 
+    Two chapters REVERSE the bar and this factor carries both polarities, the
+    way `_paksha_factor` does. Ch. X p.62 calls the whole janma / Anu-Jenma /
+    Thri-Jenma triad "beneficial" for mantra initiation; Ch. III p.32 offers the
+    10th tara as the good fallback day for the first milk feeding. Those are
+    positive statements, not mere silence, so they score a bonus rather than
+    only cancelling a bar — and cancelling was all they could ever do before,
+    because neither chapter is among the six that state the bar, so the
+    subtraction they were wired into had an empty left-hand side and this factor
+    returned None at every count.
+
+    The exemption is checked FIRST: apavada > utsarga, so where a chapter has
+    ruled its own count favourable, the general bar does not also get a say.
+
     Counting is inclusive of both ends, the convention `tara_number` already
     uses: the birth star itself is 1.
     """
     entry = _rules(activity)
     if entry is None:
         return None
-    prohibited = entry.janma_tara_prohibited - entry.janma_tara_exempt
-    if not prohibited:
+    if not entry.janma_tara_prohibited and not entry.janma_tara_exempt:
         return None
     count = ((snapshot.nakshatra_number - subject.janma_nakshatra) % 27) + 1
-    if count not in prohibited:
-        return None
 
     who_en = subject.label or "this chart"
     who_ta = f"{subject.label} " if subject.label else ""
     star_en, star_ta = _star(snapshot)
-    # The book names only the janma/10th/19th triad. Anything else is printed as
-    # a bare ordinal rather than given an invented name.
-    named = {1: ("Jenma", "ஜென்ம"), 10: ("Anu-Jenma", "அனுஜென்ம"), 19: ("Thri-Jenma", "த்ரிஜென்ம")}
-    if count in named:
-        label_en, label_ta = named[count]
-        which_en = f"{label_en}, the {_ordinal(count)} star from"
-        which_ta = f"{label_ta} நட்சத்திரம் ({count}வது)"
-    else:
-        which_en = f"the {_ordinal(count)} star from"
-        which_ta = f"{count}வது நட்சத்திரம்"
+    which_en, which_ta = _janma_tara_naming(count)
+
+    if count in entry.janma_tara_exempt:
+        return FactorResult(
+            factor="JANMA_TARA_COUNT",
+            verdict=Verdict.BONUS,
+            contribution=_W.JANMA_TARA_FAVOURED,
+            reason_en=(
+                f"{star_en} is {which_en} {who_en}'s birth star, which Kalaprakasika "
+                f"calls good for {entry.label_en} — this chapter commends the count "
+                f"that most others shut out."
+            ),
+            reason_ta=(
+                f"{star_ta} — {who_ta}ஜென்ம நட்சத்திரத்திலிருந்து {which_ta}; "
+                f"{entry.label_ta} இந்நாள் நல்லதென கலப்பிரகாசிகை கூறுகிறது."
+            ),
+            rule_id=entry.janma_tara_exempt_rule_id,
+        )
+
+    if count not in entry.janma_tara_prohibited:
+        return None
+
     grade = _JANMA_TARA_GRADES.get(count, 1.0)
     verdict = Verdict.VETO if grade == 1.0 else Verdict.PENALTY
     contribution = 0.0 if verdict is Verdict.VETO else _W.JANMA_TARA_FULL * grade

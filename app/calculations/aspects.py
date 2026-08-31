@@ -43,12 +43,29 @@ ASPECT_HOUSES: dict[str, frozenset[int]] = {
     "MANDHI": frozenset({7}),
 }
 
-# Kalaprakasika p.245's fractional drishti.  The regular sight rises toward
-# the seventh and falls symmetrically afterwards.  Mars 4/8, Jupiter 5/9 and
-# Saturn 3/10 are the classical poorna special aspects; the product's existing
-# Rahu/Ketu 5/9 convention remains poorna too.
+# Kalaprakasika p.245's fractional drishti, transcribed from the page:
+#
+#   "All planets throw a full aspect to the 7th house.  The 4th and 8th houses
+#    are aspected with three quarters of a sight; 5th and 9th houses with half
+#    a sight; 3rd and 10th houses with quarter sight."
+#
+# The table is NOT a symmetric ramp toward the seventh -- 4th is three-quarter
+# while its mirror 10th is a quarter.  It pairs by tier instead: (4,8) three
+# quarters, (5,9) half, (3,10) quarter, which is also standard Parashari.
+#
+# The tiers are what the special aspects are built on, and that is the internal
+# check on this table: each special-aspect graha promotes exactly ONE tier.
+# Mars takes the three-quarter pair (4,8), Jupiter the half pair (5,9), Saturn
+# the quarter pair (3,10) -- and p.245 says so in the same breath, naming Mars
+# strongest of those aspecting with three quarters and Jupiter strongest of
+# those aspecting with half.  A table where a graha's own two houses sat at two
+# different tiers could not be the one the special aspects came from.
+#
+# Mars 4/8, Jupiter 5/9 and Saturn 3/10 are promoted to poorna per the
+# 2026-08-28 ruling 6; the product's existing Rahu/Ketu 5/9 convention remains
+# poorna too.
 _FRACTIONAL_DRISHTI: dict[int, float] = {
-    3: 0.25, 4: 0.50, 5: 0.75, 7: 1.00, 8: 0.75, 9: 0.50, 10: 0.25,
+    3: 0.25, 4: 0.75, 5: 0.50, 7: 1.00, 8: 0.75, 9: 0.50, 10: 0.25,
 }
 
 
@@ -106,13 +123,34 @@ def effective_natural_class(
 ) -> str:
     """Return the chart-contextual natural class: ``BENEFIC`` or ``MALEFIC``.
 
-    Moon is benefic only in Shukla paksha. Mercury is benefic only when it is
-    associated (same rasi) with an effective benefic; malefic association, or
-    no association, makes it malefic. If degrees are unavailable, paksha is
-    derived from Sun/Moon rasi separation (the seven-rasi opposition belongs to
-    Krishna, matching the longitude boundary). If that context is absent, Moon
-    retains the historical benefic fallback rather than being silently turned
-    into a malefic.
+    Moon is benefic only in Shukla paksha. Mercury takes the colour of its
+    company: a malefic sharing its rasi makes it malefic, a benefic keeps it
+    benefic — and **Mercury with no company at all stays BENEFIC** (ruled
+    2026-08-31).
+
+    That last clause is a correction, not a preference. It shipped as MALEFIC
+    and neither classical reading of Budha supports that:
+
+    * Parashara lists Budha among the *natural benefics* and makes the malefic
+      turn conditional on malefic association. A condition that never occurs
+      cannot fire — "no association" is not "malefic association".
+    * The other common reading makes Budha neutral and coloured by its company.
+      An uncoloured neutral does not round to malefic either.
+
+    It also contradicted the Moon branch directly above, which refuses to be
+    "silently turned into a malefic" when its context is missing. Mercury alone
+    is the same absence, and it is not rare: Mercury sits unaccompanied in a
+    large minority of charts, so the wrong default was reaching real readings
+    through Drik Bala, Bhava Bala, bhava affliction and yoga benefic counts.
+
+    A missing Mercury position is likewise benign. That is absent *data*, not a
+    chart fact, and manufacturing a malefic out of a gap is the same error in a
+    quieter form.
+
+    If degrees are unavailable, paksha is derived from Sun/Moon rasi separation
+    (the seven-rasi opposition belongs to Krishna, matching the longitude
+    boundary). If that context is absent, Moon likewise retains its benefic
+    fallback.
     """
     if planet in {"JUPITER", "VENUS"}:
         return "BENEFIC"
@@ -129,10 +167,10 @@ def effective_natural_class(
 
     mercury_rasi = planet_rasis.get("MERCURY")
     if mercury_rasi is None:
-        return "MALEFIC"
+        return "BENEFIC"
     associates = [p for p, rasi in planet_rasis.items() if p != "MERCURY" and rasi == mercury_rasi]
     if any(effective_natural_class(p, planet_rasis, paksha_is_shukla=paksha_is_shukla) == "MALEFIC" for p in associates):
         return "MALEFIC"
-    if any(effective_natural_class(p, planet_rasis, paksha_is_shukla=paksha_is_shukla) == "BENEFIC" for p in associates):
-        return "BENEFIC"
-    return "MALEFIC"
+    # Benefic company, and empty company, both leave Budha benefic. Only a
+    # malefic sharing the rasi turns it — see the docstring.
+    return "BENEFIC"

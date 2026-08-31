@@ -943,7 +943,9 @@ class PoruthamVerdictOut(BaseModel):
     want the full reading — the ten kutas and the summary — call that route.
     """
 
-    total_score: int = Field(alias="totalScore")
+    # float since 2026-08-31: a madhyama contributes 0.5. Rendered via
+    # `format_porutham_total` so a whole score never reads "8.0/10".
+    total_score: float = Field(alias="totalScore")
     max_score: int = Field(alias="maxScore")
     percentage: float
     #: EXCELLENT | GOOD | AVERAGE | CAUTION. Authoritative; numerology never

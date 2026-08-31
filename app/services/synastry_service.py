@@ -668,7 +668,8 @@ def compare_chart_snapshots_direct(
     shaped = _contextualize_porutham_result(result, compatibility_context)
 
     kutas = [
-        KutaResult(name=k.name, name_ta=k.name_ta, score=k.score, max_score=k.max_score, label=k.label, detail=k.detail)
+        KutaResult(name=k.name, name_ta=k.name_ta, score=k.score, max_score=k.max_score,
+                   label=k.label, passed=k.passed, grade=k.grade)
         for k in shaped["kutas"]
     ]
 
@@ -750,7 +751,8 @@ def build_compatibility_intelligence_from_snapshots(
     )
 
     kutas = [
-        KutaResult(name=k.name, name_ta=k.name_ta, score=k.score, max_score=k.max_score, label=k.label, detail=k.detail)
+        KutaResult(name=k.name, name_ta=k.name_ta, score=k.score, max_score=k.max_score,
+                   label=k.label, passed=k.passed, grade=k.grade)
         for k in porutham_result.kutas
     ]
 
@@ -934,7 +936,8 @@ def get_porutham_for_member(
             score=k.score,
             max_score=k.max_score,
             label=k.label,
-            detail=k.detail,
+            passed=k.passed,
+            grade=k.grade,
         )
         for k in shaped["kutas"]
     ]

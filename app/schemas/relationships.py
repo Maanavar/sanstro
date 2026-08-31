@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.schemas.dasha import ResponseMeta
 
@@ -12,14 +12,62 @@ from app.schemas.dasha import ResponseMeta
 # ---------------------------------------------------------------------------
 
 class KutaResult(BaseModel):
+    """One porutham on the wire.
+
+    **`passed` was declared in `packages/shared` for months and never emitted
+    here** — so `k.passed` was `undefined` on every consumer that read it, and
+    the public share page (whose `KutaRow` takes only that boolean) printed
+    "✗ Fail" on all ten poruthams of every shared link. Found 2026-08-31 while
+    wiring the grade. It is now emitted, and it is the binary floor the
+    2026-08-31 ruling requires: a madhyama is a pass, so no two-state surface
+    ever renders Fail for a couple the doctrine passes.
+
+    See `app.calculations.porutham.KutaResult` for why `score`, `grade` and
+    `passed` are three fields and not one.
+    """
+
     name: str
     name_ta: str = Field(alias="nameTa")
-    score: int
+    score: float
     max_score: int = Field(alias="maxScore")
     label: str
-    detail: str | None = None
+    passed: bool
+    grade: str
 
     model_config = ConfigDict(populate_by_name=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _backfill_pre_grade_snapshots(cls, data: object) -> object:
+        """Derive `passed`/`grade` for share snapshots stored before the grade.
+
+        Porutham shares persist a `model_dump` of this schema, so every link
+        created before 2026-08-31 holds `{score, maxScore, label, detail}` and
+        no grade. Those snapshots are strictly binary — the derivation below is
+        exact for them, not a guess — and without it every existing share link
+        would 500 on a required field.
+
+        The stored `score` is left exactly as computed at the time. A snapshot
+        whose band was MADHYAMA was scored 0 under the old binary rule, and its
+        stored total was summed from that; re-crediting the row to 0.5 here
+        would leave it disagreeing with its own total. History stays as it was
+        recorded — only the grade and the pass floor are recovered.
+        """
+        if not isinstance(data, dict) or "grade" in data:
+            return data
+        patched = dict(data)
+        score = patched.get("score", 0) or 0
+        # A pre-grade snapshot may carry the old `detail` band ("MADHYAMA"), in
+        # which case it is better evidence than the score it was scored under.
+        band = patched.pop("detail", None)
+        if band in {"UTTAMA", "MADHYAMA", "ADHAMA"}:
+            patched["grade"] = band
+        elif band == "FAIL":  # the pre-2026-08-31 spelling of ADHAMA
+            patched["grade"] = "ADHAMA"
+        else:
+            patched["grade"] = "UTTAMA" if score >= 1 else "ADHAMA"
+        patched.setdefault("passed", patched["grade"] != "ADHAMA")
+        return patched
 
 
 VALID_COMPATIBILITY_CONTEXTS = {"MARRIAGE", "FRIENDSHIP", "BUSINESS", "FAMILY", "GENERAL"}
@@ -52,7 +100,9 @@ class PorutthamData(BaseModel):
     girl_nakshatra: int = Field(alias="girlNakshatra")
     girl_nakshatra_name: str = Field(alias="girlNakshatraName")
     kutas: list[KutaResult]
-    total_score: int = Field(alias="totalScore")
+    # float since 2026-08-31: a madhyama contributes 0.5. Rendered via
+    # `format_porutham_total` so a whole score never reads "8.0/10".
+    total_score: float = Field(alias="totalScore")
     max_score: int = Field(alias="maxScore")
     percentage: float
     label: str
@@ -172,7 +222,9 @@ class DirectPoruthamData(BaseModel):
     girl_nakshatra: int = Field(alias="girlNakshatra")
     girl_nakshatra_name: str = Field(alias="girlNakshatraName")
     kutas: list[KutaResult]
-    total_score: int = Field(alias="totalScore")
+    # float since 2026-08-31: a madhyama contributes 0.5. Rendered via
+    # `format_porutham_total` so a whole score never reads "8.0/10".
+    total_score: float = Field(alias="totalScore")
     max_score: int = Field(alias="maxScore")
     percentage: float
     label: str

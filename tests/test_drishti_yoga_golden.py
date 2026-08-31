@@ -126,6 +126,17 @@ CHARTS: dict[str, tuple[dict[str, int], int, int]] = {
 
 #: Frozen 2026-08-28, AFTER item 7's per-yoga rulings land, BEFORE the drishti
 #: and benefic-set rulings land. (yoga code, is_present, strength) sorted by code.
+#:
+#: RE-FROZEN 2026-08-31 for exactly one cell — `spread`/`VASUMATI_YOGA`, see the
+#: note there. Two changes landed that day and this fixture is how we know what
+#: each one moved:
+#:
+#:   * the p.245 fractional drishti table (4th and 5th were transposed) moved
+#:     NOTHING here, which is correct and worth stating: yoga presence requires
+#:     poorna drishti and `aspect_target_rasis` returns poorna only, so a change
+#:     to the *fractional* tiers cannot reach either frozen surface. It reaches
+#:     Drik Bala and Bhava Bala instead, which this fixture does not cover.
+#:   * the solitary-Mercury ruling moved the one cell.
 GOLDEN_YOGAS: dict[str, tuple[tuple[str, bool, str], ...]] = {
     "clustered": (
         ("ADHI_YOGA", False, "WEAK"),
@@ -208,7 +219,12 @@ GOLDEN_YOGAS: dict[str, tuple[tuple[str, bool, str], ...]] = {
         ("SAKATA_YOGA", False, "WEAK"),
         ("SASA_YOGA", False, "WEAK"),
         ("SUNAPHA_YOGA", True, "PARTIAL"),
-        ("VASUMATI_YOGA", False, "WEAK"),
+        # MOVED 2026-08-31 by the solitary-Mercury ruling, and the only cell
+        # of 78 that moved. Budha sits alone in rasi 2 on this chart, the 11th
+        # from Chandran; reclassed BENEFIC it joins Guru in an upachaya and
+        # tips the count from one hit to two. Vasumati asks for benefics in
+        # upachaya, and a solitary Budha is one, so the yoga is right to fire.
+        ("VASUMATI_YOGA", True, "PARTIAL"),
         ("VIPAREETHA_RAJA_YOGA", False, "WEAK"),
     ),
 }

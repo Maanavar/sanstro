@@ -25,16 +25,34 @@ def test_detect_planetary_war_marks_lower_degree_as_loser():
     assert wars["MARS"] == "MERCURY"
 
 
-def test_bhava_bala_penalizes_a_malefic_classified_mercury():
-    # Mercury alone is contextually malefic. It must reduce an occupied bhava,
-    # rather than falling through the former fixed-maleﬁc set untouched.
-    score = compute_bhava_bala(
-        house_number=1,
-        lagna_rasi=1,
-        planets_rasi={"SUN": 8, "MERCURY": 1},
-        planet_scores={"MARS": 50},
-    )
-    assert score == 48
+def test_bhava_bala_follows_mercurys_contextual_class():
+    """Bhava Bala must read Budha's *contextual* class, not a fixed malefic set.
+
+    Varying only Mercury's company, with the same graha occupying the same
+    house each time, is what separates "the contextual rule is wired in" from
+    "Mercury happens to be on a hardcoded list".
+
+    Solitary Mercury is BENEFIC as of the 2026-08-31 ruling — it shipped as
+    malefic, which no classical reading of Budha supports; see
+    `aspects.effective_natural_class`. So the alone case now credits the bhava
+    rather than penalising it, and only malefic company turns it.
+    """
+    def bala(planets_rasi):
+        return compute_bhava_bala(
+            house_number=1,
+            lagna_rasi=1,
+            planets_rasi=planets_rasi,
+            planet_scores={"MARS": 50},
+        )
+
+    alone = bala({"SUN": 8, "MERCURY": 1})
+    with_malefic = bala({"SUN": 8, "MERCURY": 1, "SATURN": 1})
+    with_benefic = bala({"SUN": 8, "MERCURY": 1, "JUPITER": 1})
+
+    assert alone == 52          # benefic occupant, credited
+    assert with_malefic == 45   # Saturn turns Budha; two malefic occupants
+    assert with_benefic == 55   # two benefic occupants
+    assert with_malefic < alone < with_benefic
 
 
 def test_detect_planetary_war_sign_boundary_uses_absolute_longitude():
