@@ -1,5 +1,18 @@
 # Handoff — remaining work from the 2026-08-28 astrologer rulings
 
+**CLOSED 2026-08-29 — nothing left open from this file.** Items 3 and 4b
+(the last two open items, tracked below) shipped in the same sitting as items
+6/7b, one commit before this file's own last edit — so the "🔨 remaining"
+framing below went stale within minutes of being written. This is the same
+failure mode as `A-20` (see `ASTROLOGER_RULINGS_2026-08-28.md` §"optional
+four" and `project_ux_blindspot_stale_audit_2026-08-25` in the project's
+memory index): a status file that says "still open" outlives the commit that
+closed it. Verified against current code and 264 passing tests in the touched
+doctrine suites before writing this note — see `ASTROLOGER_RULINGS_2026-08-28.md`
+§3 and §4b for the shipped-state summary. The rest of this file is kept
+as-is below for the historical record of what was built and why; do not treat
+it as a live task list.
+
 Source of truth for everything below: [`ASTROLOGER_RULINGS_2026-08-28.md`](ASTROLOGER_RULINGS_2026-08-28.md).
 That file has the full reasoning for every ruling; this file is scoped to just
 the items still open, with exact code locations so any agent can pick one up
@@ -17,7 +30,7 @@ and they're independent of each other.
 
 ---
 
-## Item 3 — janma-tara grading (A-19) 🔨
+## Item 3 — janma-tara grading (A-19) ✅ SHIPPED 2026-08-29
 
 **Ruling:** "3a y — activity-specific rule > general bar (apavada > utsarga).
 3b y — full / half / quarter. 3c QUARTER. Dosha attaches to the 19th as
@@ -77,7 +90,7 @@ Thri-janma, not qua Pariyaya; record that reading on the rule." Rulings doc
 
 ---
 
-## Item 4b — Sthree Deergham bands (porutham) 🔨
+## Item 4b — Sthree Deergham bands (porutham) ✅ SHIPPED 2026-08-29
 
 **Ruling:** "1-7 FAIL / 8-13 MADHYAMA / 14-27 UTTAMA. Binary fallback: >=14."
 Rulings doc §4, subsection 4b.

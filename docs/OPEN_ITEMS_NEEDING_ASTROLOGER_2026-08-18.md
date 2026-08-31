@@ -148,6 +148,12 @@ then.
 - **The ask:** confirm ≥ 8 is right for Tamil practice as we present it. This
   changes pass/fail for counts 8–12, which is a broad band.
 
+  > **RULED 2026-08-28: three bands, not a threshold.** 1–7 FAIL / 8–13
+  > MADHYAMA / 14–27 UTTAMA, with the binary wire fallback at **≥ 14** (was
+  > ≥ 8). Shipped 2026-08-29 — `_stree_dirgha_band()` in `porutham.py` carries
+  > the grade in `KutaResult.detail`, rendered on web and mobile. See
+  > `ASTROLOGER_RULINGS_2026-08-28.md` §4b.
+
 #### A-8. `POR-04` Vasya — Simmam → Thulaam vs the book's Simmam → Makaram
 
 - **Ships today:** Simmam → Thulaam. Jothidam p.69 prints Simmam → **Makaram**,
@@ -230,6 +236,16 @@ last rules claiming more certainty than we hold.
   these two rites genuinely invert the rule — or is one reading the other's
   exception? Held in `MILK_FEEDING_JANMA_TARA` and
   `MANTRA_INITIATION_JANMA_TARA_FAVOURABLE`.
+
+  > **RULED 2026-08-28: real, and it is apavada over utsarga** — an
+  > activity-specific rule overrides the general bar, not a transcription
+  > slip. Also ruled: the general bar itself becomes **graded** (janma 1.0 /
+  > 10th-Anu-Jenma 0.5 / 19th-Thri-Jenma 0.25, the 19th read as the third
+  > occurrence of the birth star itself, not as a Pariyaya-cycle position).
+  > Shipped 2026-08-29 as `janma_tara_exempt` (mantra initiation p.62,
+  > milk-feeding p.32) plus `_JANMA_TARA_GRADES` in `muhurta_engine.py`.
+  > Annaprasana's own exemption (p.34) stays held on the OCR-ambiguous
+  > numeral. See `ASTROLOGER_RULINGS_2026-08-28.md` §3.
 - **A-20. `MUH-08` Upanayanam's second janma-tara ban.** Same chapter, different
   page, and it is the only janma-tara passage in the book whose counts are each
   given a name (Karmam, Sanghatham, Saamudhayam, Vinasanam, Manasam) — which

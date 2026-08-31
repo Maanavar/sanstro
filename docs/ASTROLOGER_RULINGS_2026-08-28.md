@@ -69,7 +69,7 @@ across the boundary** into the node rows.
 
 ---
 
-## 3. `A-19` — janma / anu-janma / thri-janma 🔨
+## 3. `A-19` — janma / anu-janma / thri-janma ✅
 
 > **3a  y — activity-specific rule > general bar (apavada > utsarga)**
 > **3b  y — full / half / quarter**
@@ -99,9 +99,45 @@ kind of thing that gets silently re-derived the wrong way in two years.
 neutralizations (pp. 189–197), so affliction scoring stays systematically
 harsher than the text. Recorded, not ruled.
 
+**Shipped 2026-08-29.** `_JANMA_TARA_GRADES` in
+[muhurta_engine.py](../app/calculations/muhurta_engine.py) (janma=1.0 → VETO,
+10th/Anu-Jenma=0.5 → PENALTY, 19th/Thri-Jenma=0.25 → PENALTY), with the 3c
+reading recorded as a comment directly on the table rather than left to be
+re-derived.
+
+**Correction, 2026-08-31 — the exemptions were NOT live as this paragraph
+claimed.** It said both were applied "before the graded weight so a per-rite
+favourable reading always wins". They were wired as
+`janma_tara_prohibited - janma_tara_exempt`, and neither mantra initiation nor
+first milk feeding carries a `janma_tara_prohibited` set — their chapters are
+not among the six that state the bar. So the subtraction had an empty left-hand
+side, the factor returned `None` at every count, and the field was dead
+configuration. `test_kalaprakasika_agriculture_doctrine.py` asserted the
+registry values and never the behaviour, which is why it stayed green.
+
+**Ruled and fixed 2026-08-31: a missing wire, not a doc overclaim — and the
+right shape is a BONUS, not an exemption.** Both chapters state the count
+*positively*: "are beneficial" (Ch. X p.62), "will be good" (Ch. III p.32).
+Modelling a commendation as a subtraction discards its polarity. Ch. X p.62 is
+the clearest case — it names three things in one sentence, the tara, the
+Sankaranthi day and Wednesday; Wednesday was credited as `vara_good`,
+Sankaranthi was honestly recorded as unscored, and the tara was silently turned
+into a no-op. One sentence, three different treatments.
+
+`_janma_tara_count_factor` now reads `janma_tara_exempt` directly and emits
+`BONUS` / `_W.JANMA_TARA_FAVOURED` (+8), checked *before* the prohibition so
+apavada still beats utsarga. The weight is deliberately not the mirror of the
+−20 bar: the book's prohibitions here use its strongest verbs and its two
+commendations are mild, so the asymmetry is faithful rather than tidy.
+Annaprasana's exemption (p.34) stays unencoded, per the OCR-ambiguous-numeral
+hold below. Before/after sweep read via the updated assertions in
+`test_kalaprakasika_expansion_doctrine.py` (Anu-Jenma now `PENALTY`/`-10.0`,
+not `VETO`) and `test_marriage_muhurta_doctrine.py`; `264 passed` across the
+touched doctrine suites.
+
 ---
 
-## 4. Porutham — which text governs ✅ (4a partial) · 🔨 (4b)
+## 4. Porutham — which text governs ✅ (4a partial) · ✅ (4b)
 
 ### 4a — Rasi exceptions: **both, with a precedence rule**
 
@@ -169,6 +205,18 @@ do where the product cannot express it. **Porutham is integer 0/1 per criterion,
 **This is the most user-visible change in the whole set**: counts 8–13 currently
 pass and will stop passing. It needs the before/after sweep run and read before
 it ships.
+
+**Shipped 2026-08-29.** `_stree_dirgha_band()` in
+[porutham.py](../app/calculations/porutham.py) returns the three-band grade;
+`_stree_dirgha_score()` now passes only at count ≥ 14, per the binary
+fallback. `KutaResult.detail` is the generic `str | None` field 4a's Held
+paragraph asked for — reused, not duplicated — and is threaded through
+`compute_porutham`, `packages/shared`'s `KutaResult` type, and both the web
+(`compatibility-intelligence-panel.tsx`, `dashboard-tools-porutham-nova.tsx`)
+and mobile (`porutham.tsx`) detail panels, which render MADHYAMA/UTTAMA next
+to the kuta name. Before/after sweep read via `test_porutham.py`'s updated
+boundary assertions (count 13 now fails; counts 8–12 flip from pass to
+MADHYAMA-not-UTTAMA).
 
 ### 4c — Vasya Simmam → Thulaam: **confirmed** 📋
 
@@ -361,9 +409,13 @@ above), item 5 (weights, backend + web), and **item 7's seven per-yoga rows**
 `YOG-DR-01`/`02`, `YOG-LK-01`) — independently testable and not gated on the
 fixture, so they landed ahead of the two items below.
 
-**Next:** item 4b (Sthree Deergham bands — needs the before/after sweep read
-first, and it shares a detail field with 4a's Madhyama grade) · item 3
-(janma-tara grading + the two safe exemptions).
+**Also shipped 2026-08-29:** item 4b (Sthree Deergham bands, sweep read) and
+item 3 (janma-tara grading + the two safe exemptions, sweep read) — both
+independent of each other and of items 6/7b, so they landed in the same
+sitting as the fixture-gated pair below without waiting on the golden-fixture
+read. Nothing remains queued from this file; see
+[`HANDOFF_2026-08-28_RULINGS_REMAINING_WORK.md`](HANDOFF_2026-08-28_RULINGS_REMAINING_WORK.md)
+for the closure note.
 
 **Shipped, gated on golden-fixture diffs as the astrologer instructed:** item 6
 (fractional drishti) and the benefic-set half of item 7. `aspect_strength()`
