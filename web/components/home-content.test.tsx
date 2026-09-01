@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 /**
  * B-001 gave the marketing page a "New to Vedic astrology? Start here" link
@@ -145,5 +145,79 @@ describe("Marketing sample card — the signal row", () => {
 
     const chips = signals(container).querySelectorAll(".cl-daily-card__chip");
     expect(chips).toHaveLength(3);
+  });
+});
+
+/**
+ * The newsletter form posted to `/api/v1/newsletter` with a bare `fetch`. The
+ * only Next route handler in this app is `app/api/backend/[...path]/route.ts`,
+ * so that request 404'd at the Next layer and never reached FastAPI — the
+ * endpoint was real the whole time, unreachable from the one form that used it.
+ *
+ * The failure is invisible in a diff: the URL matches the backend route
+ * exactly, and `fetch` returning a 404 Response is not an exception, so the old
+ * `setStatus(res.ok ? ...)` just showed a generic error. What is pinned here is
+ * the prefix, because that is the part that was wrong and the part no type
+ * checks.
+ */
+describe("Newsletter form — request shape", () => {
+  function stubNewsletterFetch() {
+    const calls: Array<{ url: string; init?: RequestInit }> = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (!url.includes("newsletter")) {
+          // Mount-time panchangam/stat fetches: left pending, as above.
+          return new Promise<Response>(() => {});
+        }
+        calls.push({ url, init });
+        return Promise.resolve(
+          new Response(JSON.stringify({ success: true }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+        );
+      }),
+    );
+    return calls;
+  }
+
+  async function submitEmail() {
+    const calls = stubNewsletterFetch();
+    await renderHome();
+    fireEvent.change(screen.getByLabelText(/email address/i), {
+      target: { value: "reader@example.invalid" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /subscribe/i }));
+    await waitFor(() => expect(calls).toHaveLength(1));
+    return calls[0];
+  }
+
+  it("posts through the Next backend proxy, not a bare /api/v1 path", async () => {
+    const { url } = await submitEmail();
+
+    expect(url).toBe("/api/backend/api/v1/newsletter");
+  });
+
+  it("sends the CSRF header the mutating backend path requires", async () => {
+    const { init } = await submitEmail();
+
+    expect(init?.method).toBe("POST");
+    const headers = new Headers(init?.headers);
+    expect(headers.get("X-Vinaadi-CSRF")).toBe("1");
+    expect(headers.get("Content-Type")).toBe("application/json");
+    expect(JSON.parse(String(init?.body))).toEqual({
+      email: "reader@example.invalid",
+      source: "web_home",
+    });
+  });
+
+  it("confirms on success", async () => {
+    await submitEmail();
+
+    await waitFor(() =>
+      expect(screen.getByText(/you're subscribed/i)).toBeInTheDocument(),
+    );
   });
 });

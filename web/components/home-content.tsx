@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useLang } from "@/components/lang-toggle";
+import { apiFetchJson } from "@/lib/api";
 import { formatClockLabel } from "@/lib/format";
 import { tNakshatra, tTithi, tYoga } from "@/lib/i18n";
 import { limbNow } from "@/lib/panchangam-limb";
@@ -630,12 +631,14 @@ function NewsletterForm({ lang }: { lang: "en" | "ta" }) {
     if (!email.trim()) return;
     setStatus("loading");
     try {
-      const res = await fetch("/api/v1/newsletter", {
+      // Must go through apiFetchJson: it prefixes /api/backend (the only Next
+      // route handler) and sets the CSRF + request-ID headers the mutating
+      // backend path expects. A bare fetch("/api/v1/...") 404s at the Next layer.
+      await apiFetchJson("/newsletter", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), source: "web_home" }),
       });
-      setStatus(res.ok ? "done" : "error");
+      setStatus("done");
     } catch {
       setStatus("error");
     }

@@ -43,6 +43,10 @@ def subscribe_newsletter(
     except Exception:
         session.rollback()
         log.exception("newsletter_subscribe_error")
-        raise HTTPException(status_code=500, detail="Could not save subscription.")
+        # `from None`: the original error is already in the log above and must
+        # not leak to the client.
+        raise HTTPException(
+            status_code=500, detail="Could not save subscription."
+        ) from None
 
     return {"success": True}
