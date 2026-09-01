@@ -79,7 +79,10 @@ def test_blocked_chart_cannot_be_lifted_by_any_timing_combination():
             _inp(
                 house_lord_strength=5, karaka_strength=5,
                 dosham_present=True, dosham_cancelled=False, dosham_strength="STRONG",
-                **dict(zip(keys, combo)),
+                # strict=True: combo is a product over these same keys, so a
+                # length mismatch means the sweep silently stopped covering a
+                # dimension.
+                **dict(zip(keys, combo, strict=True)),
             ),
             use_reasoning_gate=True,
         )

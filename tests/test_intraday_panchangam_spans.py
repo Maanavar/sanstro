@@ -58,7 +58,9 @@ class TestSpansDescribeTheWholeSolarDay:
         spans = getattr(snapshot, limb)
         assert spans, f"{limb} must be populated"
         assert sum(s.fraction for s in spans) == pytest.approx(1.0, abs=1e-6)
-        for earlier, later in zip(spans, spans[1:]):
+        # Pairwise over consecutive spans: the two sequences differ in length by
+        # one by construction, so strict=False is required, not a concession.
+        for earlier, later in zip(spans, spans[1:], strict=False):
             assert earlier.end == later.start
 
     def test_the_day_runs_sunrise_to_next_sunrise_not_midnight_to_midnight(self, snapshot):

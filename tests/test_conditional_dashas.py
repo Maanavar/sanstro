@@ -305,8 +305,9 @@ def test_engine_reproduces_vimshottari_mahadashas() -> None:
     generalized = _build_periods(vim, BIRTH_JD, lord, balance)
     reference = dasha._build_periods(BIRTH_JD, lord, balance)
 
-    # dasha.py builds 2 cycles (18); the generalised engine builds >= that.
-    for gen, ref in zip(generalized, reference):
+    # dasha.py builds 2 cycles (18); the generalised engine builds >= that, so
+    # strict=False here is the point of the comparison, not an oversight.
+    for gen, ref in zip(generalized, reference, strict=False):
         assert gen.lord == ref.lord
         assert gen.start_jd == pytest.approx(ref.start_jd)
         assert gen.end_jd == pytest.approx(ref.end_jd)
@@ -325,7 +326,8 @@ def test_engine_reproduces_vimshottari_antardashas() -> None:
     reference = dasha._build_subperiods(maha, "antar")
 
     assert [p.lord for p in generalized] == [p.lord for p in reference]
-    for gen, ref in zip(generalized, reference):
+    # The assertion above already pins the two to the same length.
+    for gen, ref in zip(generalized, reference, strict=True):
         assert gen.start_jd == pytest.approx(ref.start_jd)
         assert gen.end_jd == pytest.approx(ref.end_jd)
 

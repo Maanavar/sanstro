@@ -53,7 +53,13 @@ async def revenuecat_webhook(request: Request, db: Session = Depends(get_db)) ->
     try:
         body: dict[str, Any] = await request.json()
     except Exception:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON body.")
+        # A provider sending us a body we cannot parse is an operational signal,
+        # not a client error to discard silently. `from None`: the parse error is
+        # recorded here and must not reach the caller.
+        _logger.warning("revenuecat_unparseable_body")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON body."
+        ) from None
 
     event: dict[str, Any] = body.get("event", {})
     event_type: str = event.get("type", "")

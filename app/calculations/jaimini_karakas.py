@@ -57,7 +57,30 @@ def compute_char_karakas(planet_longitudes: Mapping[str, float]) -> dict[str, st
         if planet in planet_longitudes
     ]
     ranked = sorted(candidates, key=lambda item: item[1], reverse=True)
-    return {karaka: planet for karaka, (planet, _degree) in zip(CHARA_KARAKA_ORDER, ranked)}
+
+    # A 7-graha map that is missing RAHU is the one shape where truncating below
+    # silently converts the ratified 8-karaka scheme into the 7-karaka variant
+    # this module explicitly rejects: DAARAKARAKA would just be absent, and the
+    # spouse significations it carries would vanish from the reading with no
+    # error anywhere. Refuse it rather than answer wrongly.
+    if len(ranked) == len(_KARAKA_CANDIDATES) - 1 and not any(
+        planet == "RAHU" for planet, _degree in ranked
+    ):
+        raise ValueError(
+            "Chara Karakas need RAHU: a Sun..Saturn-only map would silently drop "
+            "DAARAKARAKA and produce the 7-karaka variant (Doctrine §4)."
+        )
+
+    # strict=False is deliberate. Callers may legitimately pass a partial
+    # longitude map — the Rahu-reversal and tie-break tests each probe with two
+    # or three grahas — and ranking what you were given is the intended
+    # behaviour there. Production callers (app/api/charts.py,
+    # app/reasoning/chart_signature.py) always supply all 8, so the guard above
+    # is what covers the case where truncation would change doctrine.
+    return {
+        karaka: planet
+        for karaka, (planet, _degree) in zip(CHARA_KARAKA_ORDER, ranked, strict=False)
+    }
 
 
 def compute_karakamsa(atmakaraka: str, d9_rasi_map: Mapping[str, int]) -> int:

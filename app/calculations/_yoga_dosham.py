@@ -14,7 +14,6 @@ from app.calculations._yoga_helpers import (
     RAHU_KETU_UPACHAYA_HOUSES,
     SEVEN_PLANETS,
     SEVVAI_BENEFIC_REDUCERS,
-    SIGN_LORD,
     TAMIL_SEVVAI_HOUSES,
     TRIKONA_HOUSES,
     DoshamResult,

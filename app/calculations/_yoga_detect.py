@@ -613,9 +613,11 @@ def detect_kartari_yoga(
     second_occupants = [planet for planet, rasi in planets.items() if rasi == second]
     twelfth_occupants = [planet for planet, rasi in planets.items() if rasi == twelfth]
 
-    natural_class = lambda planet: effective_natural_class(
-        planet, planets, paksha_is_shukla=paksha_is_shukla
-    )
+    def natural_class(planet: str) -> str:
+        return effective_natural_class(
+            planet, planets, paksha_is_shukla=paksha_is_shukla
+        )
+
     second_has_malefic = any(natural_class(planet) == "MALEFIC" for planet in second_occupants)
     second_has_benefic = any(natural_class(planet) == "BENEFIC" for planet in second_occupants)
     twelfth_has_malefic = any(natural_class(planet) == "MALEFIC" for planet in twelfth_occupants)

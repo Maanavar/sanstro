@@ -884,10 +884,15 @@ def compute_porutham(
     # ladder. `BINARY_ONLY_KUTAS` must never appear as a key here — see its
     # comment for the veto hole that would open if it did.
     graded_bands = {"Stree Dirgha": stree_dirgha_band}
-    assert not (graded_bands.keys() & BINARY_ONLY_KUTAS), (
-        "Rajju/Vedha are permanently binary: a graded veto kuta would score 0.5 "
-        "and slip past the `score == 0` veto."
-    )
+    # Raised, not asserted: `python -O` strips asserts, and this is the guard
+    # that keeps a graded veto kuta from scoring 0.5 and slipping past the
+    # `score == 0` veto. A doctrine guard that disappears under an optimisation
+    # flag is not a guard.
+    if graded_bands.keys() & BINARY_ONLY_KUTAS:
+        raise ValueError(
+            "Rajju/Vedha are permanently binary: a graded veto kuta would score "
+            "0.5 and slip past the `score == 0` veto."
+        )
 
     def _grade_for(name: str, sc: float) -> str:
         if name in graded_bands:
