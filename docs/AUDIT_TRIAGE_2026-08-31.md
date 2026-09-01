@@ -162,6 +162,11 @@ above. That is as far as verification can go on this machine.
 
 - The full backend suite takes **~50 minutes**. Budget for it; a targeted
   subset per step and one full run at the end is the workable rhythm.
+- Final state after all of the above: 
+uff check app tests exits 0 (from
+  121 findings), and the suite is **4641 passed, 22 skipped, 0 failed** in
+  53m03s — 4606 before this work, so the 35 tests added along the way pass
+  alongside everything that already did.
 - The suite caught one regression from this work that no targeted run did:
   `yogas.py`'s new `__all__` is ~70 quoted function names, and
   `test_marker_label_coverage.py` scrapes those four files for exactly that
