@@ -1,0 +1,41 @@
+# Context scope for `docker build -f web/Dockerfile .`
+#
+# BuildKit prefers `<dockerfile>.dockerignore` over the root `.dockerignore`.
+# That root file is tuned for the API image and excludes `web` outright, so
+# without this file the web build would receive a context with no web/ in it.
+
+# Never ship an install or a build from the host — the image makes its own.
+**/node_modules
+**/.next
+**/.turbo
+
+# Backend: not part of this image.
+app
+tests
+migrations
+scripts/*.py
+.venv
+**/__pycache__
+**/*.pyc
+.pytest_cache
+*.sql
+pytest_local_test.db
+
+# Mobile: only its package.json is needed, for lockfile validation.
+mobile/android
+mobile/ios
+mobile/.expo
+mobile/assets
+
+# Repo furniture.
+.git
+.github
+docs
+backups
+web/test-results
+web/playwright-report
+web/screenshots
+web/e2e
+.env
+.env.*
+!.env.example

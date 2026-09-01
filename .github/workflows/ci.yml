@@ -119,7 +119,10 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # pnpm 11.8.0's engines require Node >=22.13. On Node 20 the install
+          # dies with ERR_UNKNOWN_BUILTIN_MODULE before it reads a single
+          # manifest — verified by building web/Dockerfile on node:20-slim.
+          node-version: "22"
           cache: pnpm
       - name: Install
         run: pnpm install --frozen-lockfile
@@ -156,7 +159,8 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # See the web job: pnpm 11.8.0 requires Node >=22.13.
+          node-version: "22"
           cache: pnpm
       - name: Install
         run: pnpm install --frozen-lockfile
