@@ -27,6 +27,117 @@ described, stop and write down what you found rather than expanding scope.
 
 ---
 
+---
+
+## 0. Status — 2026-09-01
+
+Worked in the order given, one task per commit, on
+`harden/production-readiness`. Every **Verify** step below was run and its
+output observed; where one was not, it says so.
+
+| Task | State | Commit |
+|---|---|---|
+| P0-1 newsletter route | **Done** | `d6edb1c` |
+| P0-2 web CI job | **Done** | `b0a1f06` |
+| P0-2a *(new — found by P0-2)* | **Done** | `a19cdac` |
+| P0-3 ruff gate, **121 → 0** | **Done** | `440f285` `80f99f3` `21c2103` `587e415` `cf6cfa2` |
+| P0-4 rate limits | **Done** | `b774815` |
+| P0-5 web Docker image | **Partly** — see below | *(uncommitted)* |
+| P1-1 daily-snapshot failures | **Done** | `28e5728` |
+| P1-2 X-Forwarded-For | **Done** | `ee828dd` |
+| P1-3 geocoding logs | **Done** | `bc4b8b6` |
+| P1-4 admin key | **Not started** — needs its own sitting, per §P1-4 |  |
+| P1-5 production edge | **Not started** — infrastructure, not code |  |
+| P1-6 refresh + quota races | **Done** — races were real | `82a0a34` |
+| P2-2 pnpm overrides | **Done** — pin was indeed ignored | `0c68275` |
+| P2-1, P2-3…P2-8 | **Not started** |  |
+
+### Corrections to this document
+
+Six claims here did not survive being executed. Recorded so the next reader
+trusts the file rather than the plan in it.
+
+1. **The P0-2 CI snippet pins Node 20, which cannot work.** pnpm 11.8.0's
+   `engines` require **Node >= 22.13**; on Node 20 the install dies with
+   `ERR_UNKNOWN_BUILTIN_MODULE` before reading a manifest. Found by building
+   `web/Dockerfile` on `node:20-slim`. Both the workflow and the image are on
+   Node 22. `mobile.yml` escapes this only because it pins `version: 9`
+   against a `packageManager` of 11.8.0 — that drift is still there and is
+   left alone deliberately (separate job, separate task).
+
+2. **The API image never installed `redis`.** `requirements.txt` did not list
+   it and the Dockerfile does `pip install --no-deps .`, so the optional extra
+   in pyproject was unreachable. P0-4's "correct at scale" option would have
+   silently fallen back to memory — and then tripped P0-4's own new startup
+   guard. `redis==5.3.1` is now in the lock.
+
+3. **`_chart_persist.py`, `_chart_planets.py` and `_chart_summary.py` are not
+   facades.** §P0-3 step 3(a) lists them as such. `chart_service.py` is the
+   facade and already carries `# noqa: F401` on each re-export block; it pulls
+   `RASI_NUMBERS` from `_chart_build`, not from these. Their flagged imports
+   were genuinely dead. Only `yogas.py` needed `__all__`.
+
+4. **"B905 — 4 of the 5 are in tests and are safe" is wrong.** Two of those
+   four zip pairs differ in length *by design* — `test_conditional_dashas.py:309`
+   (its own comment says the generalised engine builds more periods than the
+   reference) and `test_intraday_panchangam_spans.py:61` (`zip(spans, spans[1:])`
+   is pairwise). Mechanically adding `strict=True` would have broken both.
+   Each of the five was decided individually.
+
+5. **`mypy app` is red too — 147 errors in 29 files.** §P0-3 asks only that
+   mypy be installed and runnable, which it now is, but the CI step it feeds
+   has never been green either. Confirmed as pre-existing by running mypy in a
+   worktree at the pre-P0-3 commit: 147 before, 147 after, and the only
+   difference in the entire output is one error's line number moving by the two
+   import lines P0-3 deleted.
+
+6. **The `design-tokens` CI job is a fifth permanently-red gate**, unlisted
+   here. `node scripts/audit-color-literals.mjs` reports 347 new literals and
+   exits 1, both before and after this work — a stale ratchet baseline.
+
+### P0-5, precisely
+
+Two real defects found and fixed, plus a third the document did not mention:
+
+- `web/next.config.mjs` had no `output: "standalone"`, so `.next/standalone`
+  — the directory the image copies and the `CMD` runs from — was never
+  produced. It also now sets `outputFileTracingRoot` to the repo root, without
+  which tracing follows the `workspace:*` symlinks out of the traced tree and
+  ships a bundle missing `@vinaadi/shared`.
+- The Dockerfile is rewritten for pnpm with the **repo root** as build context
+  (`docker build -f web/Dockerfile .`), scoped by a new
+  `web/Dockerfile.dockerignore` — BuildKit prefers that over the root
+  `.dockerignore`, which is tuned for the API image and excludes `web/`
+  outright. `docker-compose.app.yml` passes the new context.
+- Not in the document: the runner needs `ENV HOSTNAME=0.0.0.0`. Docker sets
+  `HOSTNAME` to the container id and Next's standalone server binds to it, so
+  the container would have started and then never accepted a connection.
+
+**Not verified.** The image has not been built to completion on this machine.
+`pnpm install` inside the container makes ~1442 registry requests for its
+supply-chain policy pass and this network serves them at roughly one per five
+seconds; two attempts ran 9 and 111 minutes before being stopped. The Node 20
+finding above came out of the first attempt, so the build reached and passed the
+stage that matters — but **"docker build succeeds and the container serves on
+3000" is still an unmade claim.** Do not mark P0-5 done until someone has run
+it. The commit is deliberately being held back until then.
+
+### Also worth knowing
+
+- The full backend suite takes **~50 minutes**. Budget for it; a targeted
+  subset per step and one full run at the end is the workable rhythm.
+- The suite caught one regression from this work that no targeted run did:
+  `yogas.py`'s new `__all__` is ~70 quoted function names, and
+  `test_marker_label_coverage.py` scrapes those four files for exactly that
+  shape, so they arrived as 35 "unlabelled markers". Fixed in `cf6cfa2` by
+  excluding `__all__` blocks from the scraper — 118 literals scanned before,
+  83 after, and all 35 removed are provably `__all__` entries.
+- Two P1-6 questions were put to the astrologer and answered: Redis over
+  dropping to one worker, and a hard guard on the Chara Karaka map rather than
+  a bare comment. Both are implemented as ruled.
+
+---
+
 ## 1. Non-negotiable safety rules
 
 Read this section before touching anything. Most of it exists because the listed
