@@ -1,23 +1,12 @@
 {
-    "name":  "sanstro",
-    "private":  true,
-    "packageManager":  "pnpm@11.8.0",
-    "pnpm": {
-        "overrides": {
-            "@types/react": "19.2.17",
-            "@types/react-dom": "19.2.3"
-        }
-    },
-    "workspaces":  [
-                       "mobile",
-                       "packages/*",
-                       "web"
-                   ],
-    "scripts":  {
-                    "qa:colors":  "node scripts/audit-color-literals.mjs",
-                    "qa:colors:update":  "node scripts/audit-color-literals.mjs --update-baseline",
-                    "i18n:dashboard":  "node scripts/extract-dashboard-i18n.mjs",
-                    "i18n:dashboard:json":  "node scripts/extract-dashboard-i18n.mjs --json > docs/dashboard-i18n-catalog.json",
-                    "qa:phase7":  "pnpm qa:colors \u0026\u0026 pnpm --filter mobile qa:touch-targets \u0026\u0026 pnpm --filter jothidam-ai-web test:visual"
-                }
+    "name": "sanstro",
+    "private": true,
+    "packageManager": "pnpm@11.8.0",
+    "scripts": {
+        "qa:colors": "node scripts/audit-color-literals.mjs",
+        "qa:colors:update": "node scripts/audit-color-literals.mjs --update-baseline",
+        "i18n:dashboard": "node scripts/extract-dashboard-i18n.mjs",
+        "i18n:dashboard:json": "node scripts/extract-dashboard-i18n.mjs --json > docs/dashboard-i18n-catalog.json",
+        "qa:phase7": "pnpm qa:colors && pnpm --filter mobile qa:touch-targets && pnpm --filter jothidam-ai-web test:visual"
+    }
 }
