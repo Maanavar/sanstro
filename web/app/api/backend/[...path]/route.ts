@@ -2,6 +2,56 @@ import { NextRequest, NextResponse } from "next/server";
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
 
+/**
+ * How many reverse-proxy hops sit in FRONT OF THIS NEXT SERVER (a CDN, an
+ * ingress, a load balancer). 0 means the browser reaches Next directly.
+ *
+ * This must be kept in step with the backend's JOTHIDAM_TRUSTED_PROXY_COUNT,
+ * which counts the hops in front of *the backend* — that is, this value plus
+ * one for Next itself, but only while Next actually forwards a value. Change
+ * one and you must change the other; they describe the same deployment.
+ */
+const TRUSTED_HOPS_BEFORE_WEB = Number.parseInt(
+  process.env.TRUSTED_PROXY_HOPS_BEFORE_WEB ?? "0",
+  10,
+);
+
+/**
+ * Headers a client must never be able to set on the backend's behalf.
+ *
+ * The proxy used to copy every inbound header verbatim, `x-forwarded-for`
+ * included. The backend reads the rightmost entries of that header to decide
+ * who a request came from, so the moment JOTHIDAM_TRUSTED_PROXY_COUNT is raised
+ * above 0 for a real edge — which is exactly what the production-edge task
+ * involves — a caller could name any IP it liked and walk around every IP-keyed
+ * rate limit. It was not exploitable at count 0; it was one config change away.
+ */
+const CLIENT_SPOOFABLE_HEADERS = [
+  "x-forwarded-for",
+  "x-forwarded-host",
+  "x-forwarded-proto",
+  "x-forwarded-port",
+  "x-real-ip",
+  "forwarded",
+];
+
+/**
+ * The forwarded-for value we are willing to vouch for.
+ *
+ * Only the rightmost `TRUSTED_HOPS_BEFORE_WEB` entries were written by a hop we
+ * control; everything to the left of them is whatever the caller typed. With no
+ * edge in front of Next (the default) that is nothing at all, and we forward no
+ * header rather than an unverifiable one.
+ */
+function trustedForwardedFor(request: NextRequest): string | null {
+  if (TRUSTED_HOPS_BEFORE_WEB <= 0) return null;
+  const inbound = request.headers.get("x-forwarded-for");
+  if (!inbound) return null;
+  const hops = inbound.split(",").map((entry) => entry.trim()).filter(Boolean);
+  if (hops.length === 0) return null;
+  return hops.slice(-TRUSTED_HOPS_BEFORE_WEB).join(", ");
+}
+
 async function proxyRequest(request: NextRequest, method: string, path: string[]) {
   const url = new URL(request.url);
   const target = new URL(`${BACKEND_URL}/${path.join("/")}`);
@@ -10,6 +60,17 @@ async function proxyRequest(request: NextRequest, method: string, path: string[]
   const headers = new Headers(request.headers);
   headers.delete("host");
   headers.delete("content-length");
+
+  // Strip first, then re-add only what we can vouch for. Deleting
+  // unconditionally is what makes this safe: a client that sends the header
+  // gets it dropped whatever the deployment looks like.
+  for (const header of CLIENT_SPOOFABLE_HEADERS) {
+    headers.delete(header);
+  }
+  const forwardedFor = trustedForwardedFor(request);
+  if (forwardedFor) {
+    headers.set("x-forwarded-for", forwardedFor);
+  }
 
   const init: RequestInit = {
     method,
