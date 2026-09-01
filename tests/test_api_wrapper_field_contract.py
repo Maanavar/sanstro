@@ -312,24 +312,18 @@ RESPONSE_SCHEMAS = _response_schemas()
 #: first run of this guard found that mobile stored ``undefined`` as the session
 #: tier whenever RevenueCat was unavailable, because no route had ever sent the
 #: field. ``AuthUserResponse.tier`` now derives it from the subscription table.
-#: ``GuidanceEnvelope.data.chandrashtamaEnds`` — **found 2026-08-31, the moment
-#: this guard learned to descend into ``src/types``.** The backend has
-#: ``isChandrashtama`` (bool) and ``chandrashtamaDays`` (list[date]); it has no
-#: end *timestamp* anywhere. So ``ChandrashtamaCard``'s "Ends: <time>" line
-#: (``dashboard-personal-shared.tsx``) has never once rendered, on web or in the
-#: hybrid charts page, and mobile's defensive ``chandrashtamaEnds ??
-#: chandrashtama_ends`` fallback is dead on both branches — someone hit this and
-#: patched around the symptom rather than the wire.
-#:
-#: Recorded rather than fixed because sending it is a real change, not a rename:
-#: the end instant has to come from the Moon's rasi span
-#: (``_dg_scoring.py``'s ``rasi_spans`` already computes exactly this), and
-#: which instant counts as "ends" — the span boundary, or the following sunrise
-#: — is a doctrine question, not a typo. Delete this entry when the field is
-#: either sent or removed from the TS type.
+#: ``GuidanceEnvelope.data.chandrashtamaEnds`` **was** here, found 2026-08-31 the
+#: moment this guard learned to descend into ``src/types``, and is now fixed
+#: (2026-09-01). It had never once rendered: ``ChandrashtamaCard``'s
+#: "Ends: <time>" line always fell through to its untimed fallback, on web and on
+#: the hybrid charts page, and mobile's defensive
+#: ``chandrashtamaEnds ?? chandrashtama_ends`` was dead on both branches.
+#: ``daily_guidance_service`` now sends it, derived from the same
+#: ``moon_rasi_spans`` that decide the badge. This guard is what reported the
+#: fix: it failed with "the bug is fixed — delete those entries", which is the
+#: self-cleaning property working as designed.
 KNOWN_DRIFT: dict[str, set[str]] = {
     "MeResponse": {"MeResponse.displayName"},
-    "GuidanceEnvelope": {"GuidanceEnvelope.data.chandrashtamaEnds"},
 }
 
 # Only the casts resolving to an interface this file actually parsed. A cast

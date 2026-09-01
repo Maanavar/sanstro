@@ -514,6 +514,60 @@ def chandrashtama_share(panchangam, natal_moon_rasi: int) -> float:
     return limb_fraction(rasi_spans, lambda span: span.number == target)
 
 
+def chandrashtama_rasi_for(natal_moon_rasi: int) -> int:
+    """The 8th rasi from the natal Moon — the one whose transit is Chandrashtama.
+
+    One definition, used by both the share below and `chandrashtama_end`, so the
+    badge and the time printed beside it cannot come from different arithmetic.
+    """
+    return ((natal_moon_rasi - 1 + 7) % 12) + 1
+
+
+def _chandrashtama_rasi_spans(panchangam, natal_moon_rasi: int):
+    """Today's Moon-rasi spans that fall in the Chandrashtama rasi."""
+    rasi_spans = _spans_or_flat(
+        panchangam.moon_rasi_spans, panchangam.sunrise,
+        panchangam.chandrashtamam_moon_rasi_number, panchangam.chandrashtamam_moon_rasi_name,
+    )
+    target = chandrashtama_rasi_for(natal_moon_rasi)
+    return [span for span in rasi_spans if span.number == target]
+
+
+def chandrashtama_end(panchangam, *, natal_moon_rasi: int) -> datetime | None:
+    """When Chandrashtama lifts today, or None if it does not lift today.
+
+    Read off the same `moon_rasi_spans` that produce the share in
+    `weighted_moon_score` rather than computed a second time — the same
+    reasoning `PanchangamChandrashtamamToday.nakshatras` records for deriving
+    itself from its own windows: two computations of one fact can disagree.
+
+    Returns None when the Moon is still in the 8th rasi at the end of the solar
+    day, and that is the whole point. `moon_rasi_spans` is built by
+    `limb_spans_between(..., sunrise_jd, next_sunrise_jd, ...)`, so every span is
+    CLIPPED to today. Taking the last span's end unconditionally would therefore
+    report the next sunrise as the end of Chandrashtama on the first day of a
+    stretch that actually runs two or three days — a precise-looking time that is
+    simply false. The Moon spends about 2.25 days per rasi, so that is the common
+    case, not the edge one.
+
+    So: a time only when the Moon genuinely leaves the 8th rasi before the day
+    is out. Otherwise nothing, and the card keeps its untimed "Extra care advised
+    today." line, which is true on every day of the stretch.
+    """
+    spans = _chandrashtama_rasi_spans(panchangam, natal_moon_rasi)
+    if not spans:
+        return None
+    end = max(span.end for span in spans)
+    day_end = max(
+        span.end
+        for span in _spans_or_flat(
+            panchangam.moon_rasi_spans, panchangam.sunrise,
+            panchangam.chandrashtamam_moon_rasi_number, panchangam.chandrashtamam_moon_rasi_name,
+        )
+    )
+    return end if end < day_end else None
+
+
 def weighted_moon_score(
     panchangam,
     *,
@@ -529,7 +583,7 @@ def weighted_moon_score(
         panchangam.moon_rasi_spans, sunrise,
         panchangam.chandrashtamam_moon_rasi_number, panchangam.chandrashtamam_moon_rasi_name,
     )
-    chandrashtama_rasi = ((natal_moon_rasi - 1 + 7) % 12) + 1
+    chandrashtama_rasi = chandrashtama_rasi_for(natal_moon_rasi)
     share = limb_fraction(rasi_spans, lambda span: span.number == chandrashtama_rasi)
 
     score = 70.0

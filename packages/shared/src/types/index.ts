@@ -602,6 +602,10 @@ export interface DailyGuidanceData {
   pratyantarNarrative?: BiText | null;
   tithiCard: BiText | null;
   isChandrashtama?: boolean;
+  /** ISO datetime at which Chandrashtama LIFTS TODAY, or null when it runs past
+   *  the end of the day — which is most days of a 2-3 day stretch. Null is the
+   *  normal case, not a gap: render the untimed "extra care advised today" line,
+   *  which stays true for the whole stretch. Never render a countdown from it. */
   chandrashtamaEnds?: string | null;
   /** Today's green/red light across all activity types. Optional — older
    *  cached rows predate it, so callers must handle undefined. */

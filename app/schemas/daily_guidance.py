@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import Literal
 from uuid import UUID
 
@@ -223,6 +223,13 @@ class DailyGuidanceData(BaseModel):
     pratyantar_narrative: DailyGuidanceText | None = Field(default=None, alias="pratyantarNarrative")
     tithi_card: DailyGuidanceText | None = Field(default=None, alias="tithiCard")
     is_chandrashtama: bool = Field(default=False, alias="isChandrashtama")
+    # When Chandrashtama LIFTS TODAY — null when it runs past the end of the
+    # solar day, which is most days of a 2-3 day stretch (ruling 2026-09-01).
+    # Null is therefore normal, not a gap: the card keeps its untimed "Extra
+    # care advised today." line, which is true on every day of the stretch.
+    # Also null when `is_chandrashtama` is false, and for cache rows built
+    # before this field existed.
+    chandrashtama_ends: datetime | None = Field(default=None, alias="chandrashtamaEnds")
     saturn_cycle_alert: str | None = Field(default=None, alias="saturnCycleAlert")
     activity_board: DailyActivityBoardData | None = Field(default=None, alias="activityBoard")
 

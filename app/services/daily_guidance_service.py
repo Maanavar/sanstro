@@ -113,6 +113,7 @@ from app.services._dg_scoring import (
     _rasi_lord,
     _score_label,
     _transit_with_av_score,
+    chandrashtama_end,
     weighted_moon_score,
     weighted_panchangam_score,
 )
@@ -1041,6 +1042,11 @@ def build_daily_guidance_response(
             ),
             tithiCard=_build_tithi_card(day_tithi),
             isChandrashtama=chandrashtama,
+            chandrashtamaEnds=(
+                chandrashtama_end(panchangam, natal_moon_rasi=natal_moon.rasi)
+                if chandrashtama
+                else None
+            ),
             saturnCycleAlert=saturn_cycle.type if saturn_cycle.is_active and saturn_cycle.type in {"JANMA_SANI", "ASHTAMA_SANI"} else None,
             activityBoard=_build_activity_board(
                 tithi_number=day_tithi,
