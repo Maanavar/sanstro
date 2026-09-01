@@ -189,7 +189,7 @@ def _count(model: object, session: Session) -> int:
 def delete_user_data(
     owner_user_id: UUID,
     session: Session = Depends(get_db),
-    _: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_admin_user),
 ) -> DataDeletionResult:
     _assert_admin_delete_enabled()
 
@@ -261,6 +261,7 @@ def delete_user_data(
         target_type="user",
         target_id=str(owner_user_id),
         payload_summary=f"profiles={len(profiles)},charts={charts_deleted}",
+        actor_user_id=admin_user.user_id,
     )
     return DataDeletionResult(
         owner_user_id=str(owner_user_id),
@@ -292,7 +293,7 @@ def list_users(
     search: str | None = None,
     suspended_only: bool = False,
     session: Session = Depends(get_db),
-    _: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_admin_user),
 ) -> UserListResponse:
     page = max(1, page)
     page_size = max(1, min(page_size, 100))
@@ -400,7 +401,7 @@ def suspend_user(
     user_id: UUID,
     body: SuspendRequest,
     session: Session = Depends(get_db),
-    _: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_admin_user),
 ) -> dict[str, Any]:
     user = session.get(User, user_id)
     if user is None:
@@ -413,6 +414,7 @@ def suspend_user(
         target_type="user",
         target_id=str(user_id),
         payload_summary=body.reason,
+        actor_user_id=admin_user.user_id,
     )
     return {
         "user_id": str(user_id),
@@ -427,7 +429,7 @@ def list_jobs(_: User = Depends(get_admin_user)) -> list[JobInfo]:
 
 
 @router.post("/jobs/{job_id}/trigger", response_model=JobRunResult, summary="Manually trigger a background job")
-def trigger_job(job_id: str, _: User = Depends(get_admin_user)) -> JobRunResult:
+def trigger_job(job_id: str, admin_user: User = Depends(get_admin_user)) -> JobRunResult:
     job = get_job(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not registered.")
@@ -441,7 +443,13 @@ def trigger_job(job_id: str, _: User = Depends(get_admin_user)) -> JobRunResult:
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=f"Job failed: {exc}") from exc
 
-    log_admin_action("trigger_job", target_type="job", target_id=job_id, payload_summary=summary)
+    log_admin_action(
+        "trigger_job",
+        target_type="job",
+        target_id=job_id,
+        payload_summary=summary,
+        actor_user_id=admin_user.user_id,
+    )
     return JobRunResult(
         job_id=job_id,
         started_at=started.isoformat(),
@@ -489,7 +497,7 @@ def get_audit_log(
 def broadcast_notification(
     body: BroadcastRequest,
     session: Session = Depends(get_db),
-    _: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_admin_user),
 ) -> BroadcastResult:
     if body.target_user_id:
         try:
@@ -509,6 +517,7 @@ def broadcast_notification(
             target_type="segment",
             target_id=target_label,
             payload_summary="push_disabled",
+            actor_user_id=admin_user.user_id,
         )
         return BroadcastResult(
             sent=0,
@@ -538,6 +547,7 @@ def broadcast_notification(
         target_type="segment",
         target_id=target_label,
         payload_summary=f"title={body.title!r}, sent={sent}",
+        actor_user_id=admin_user.user_id,
     )
     return BroadcastResult(
         sent=sent,
@@ -556,22 +566,33 @@ def list_flags(_: User = Depends(get_admin_user)) -> list[FlagEntry]:
 def set_flag_value(
     flag_name: str,
     body: FlagUpdate,
-    _: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_admin_user),
 ) -> FlagEntry:
     try:
         set_flag(flag_name, body.value)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    log_admin_action("set_flag", target_type="flag", target_id=flag_name, payload_summary=f"value={body.value!r}")
+    log_admin_action(
+        "set_flag",
+        target_type="flag",
+        target_id=flag_name,
+        payload_summary=f"value={body.value!r}",
+        actor_user_id=admin_user.user_id,
+    )
     return FlagEntry(**all_flags()[flag_name])
 
 
 @router.delete("/flags/{flag_name}/reset", summary="Reset a feature flag to its default value")
-def reset_flag_value(flag_name: str, _: User = Depends(get_admin_user)) -> dict[str, Any]:
+def reset_flag_value(flag_name: str, admin_user: User = Depends(get_admin_user)) -> dict[str, Any]:
     if flag_name not in all_flags():
         raise HTTPException(status_code=404, detail=f"Unknown flag: {flag_name}")
     reset_flag(flag_name)
-    log_admin_action("reset_flag", target_type="flag", target_id=flag_name)
+    log_admin_action(
+        "reset_flag",
+        target_type="flag",
+        target_id=flag_name,
+        actor_user_id=admin_user.user_id,
+    )
     return {"flag_name": flag_name, "reset": True, "current_value": all_flags()[flag_name]["value"]}
 
 

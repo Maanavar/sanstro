@@ -11,6 +11,7 @@ Design:
 """
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime, timedelta
 from hmac import compare_digest
 from typing import Annotated
@@ -24,6 +25,8 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.db.session import get_db
 from app.models.user import User
+
+logger = logging.getLogger(__name__)
 
 _bearer = HTTPBearer(auto_error=False)
 _MUTATING_METHODS = {"POST", "PATCH", "PUT", "DELETE"}
@@ -214,7 +217,19 @@ def is_admin_user(user: User) -> bool:
     return False
 
 
+def _looks_browser_originated(request: Request) -> bool:
+    """True when this request was made by a page in a browser.
+
+    `Origin` and `Referer` are set by the browser itself and cannot be forged by
+    page JavaScript — `fetch` refuses to set either — so their presence is a
+    reliable signal in the direction that matters here. A server-to-server
+    caller has no reason to send them.
+    """
+    return bool(request.headers.get("origin") or request.headers.get("referer"))
+
+
 def get_admin_user(
+    request: Request,
     current_user: Annotated[User, Depends(get_current_user)],
     x_admin_key: Annotated[str | None, Header()] = None,
 ) -> User:
@@ -223,14 +238,28 @@ def get_admin_user(
     Primary path: the authenticated session is itself admin (``is_admin`` column
     or a bootstrap ``JOTHIDAM_ADMIN_EMAILS`` entry) — no browser-held secret.
 
-    Fallback: the legacy ``X-Admin-Key`` header, retained for server-to-server
-    callers and the existing admin console until it moves to session-only auth.
+    Fallback: the legacy ``X-Admin-Key`` header, retained for genuine
+    server-to-server callers only. It is a single long-lived shared secret that
+    names nobody, so an action taken with it cannot be attributed to a person —
+    which is exactly why it must not be reachable from a browser, where an XSS,
+    an extension or a shared machine can read it out of storage and where every
+    use of it is anonymous by construction.
     """
     if is_admin_user(current_user):
         return current_user
 
     settings = get_settings()
     if settings.admin_api_key is not None and x_admin_key is not None and compare_digest(x_admin_key, settings.admin_api_key):
+        if _looks_browser_originated(request):
+            logger.warning(
+                "admin_key_rejected_from_browser_origin origin=%s user_id=%s",
+                request.headers.get("origin"),
+                getattr(current_user, "user_id", None),
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Admin access required.",
+            )
         return current_user
 
     raise HTTPException(

@@ -153,8 +153,6 @@ type AdminTab =
   | "audit"
   | "privacy";
 
-const ADMIN_KEY_STORAGE = "vinaadi:admin-key";
-
 const tabs: Array<{ id: AdminTab; label: string }> = [
   { id: "overview", label: "Overview" },
   { id: "health", label: "Health" },
@@ -174,10 +172,9 @@ function numberLabel(value: number | null | undefined) {
   return new Intl.NumberFormat().format(value);
 }
 
-function adminHeaders(adminKey: string, init: RequestInit) {
+function adminHeaders(init: RequestInit) {
   const headers = new Headers(init.headers);
   headers.set("Content-Type", headers.get("Content-Type") ?? "application/json");
-  headers.set("X-Admin-Key", adminKey);
   const method = (init.method ?? "GET").toUpperCase();
   if (["POST", "PATCH", "PUT", "DELETE"].includes(method)) {
     headers.set("X-Vinaadi-CSRF", "1");
@@ -187,13 +184,12 @@ function adminHeaders(adminKey: string, init: RequestInit) {
 
 async function adminFetchJson<T>(
   path: string,
-  adminKey: string,
   init: RequestInit = {},
 ): Promise<T> {
   const response = await fetch(`/api/backend${path}`, {
     ...init,
     credentials: "include",
-    headers: adminHeaders(adminKey, init),
+    headers: adminHeaders(init),
   });
 
   if (!response.ok) {
@@ -220,10 +216,12 @@ async function adminFetchJson<T>(
 
 export function AdminConsole() {
   const { hydrated, userEmail, signOut } = useSession();
-  const [adminKey, setAdminKey] = useState("");
-  const [keyDraft, setKeyDraft] = useState("");
+  // No credential is held here any more. Admin authority is a property of the
+  // signed-in session and is checked server-side; the console only needs to
+  // know whether this session has it, which it learns by asking.
+  const [access, setAccess] = useState<"checking" | "granted" | "denied">("checking");
   const [activeTab, setActiveTab] = useState<AdminTab>("overview");
-  const [status, setStatus] = useState("Enter the admin key to unlock operations.");
+  const [status, setStatus] = useState("Checking admin access…");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -254,73 +252,87 @@ export function AdminConsole() {
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleteResult, setDeleteResult] = useState<DataDeletionResult | null>(null);
 
-  const isUnlocked = adminKey.trim().length > 0;
+  const isUnlocked = access === "granted";
 
+  // Probe once on mount. The backend is the only thing that can answer this:
+  // get_admin_user checks the is_admin column and the bootstrap admin-email
+  // list against the session cookie. A 403 here is a legitimate answer about
+  // this account, not a failure to report as an error.
   useEffect(() => {
-    const saved = window.sessionStorage.getItem(ADMIN_KEY_STORAGE) ?? "";
-    if (saved) {
-      setAdminKey(saved);
-      setKeyDraft(saved);
-      setStatus("Admin key restored for this browser session.");
-    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        await adminFetchJson<AdminStats>("/api/v1/admin/stats");
+        if (cancelled) return;
+        setAccess("granted");
+        setStatus("Signed in as an administrator.");
+      } catch {
+        if (cancelled) return;
+        setAccess("denied");
+        setStatus("This account does not have administrator access.");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
-    if (!adminKey || activeTab !== "overview") return;
-    void loadOverview(adminKey);
-  }, [adminKey, activeTab]);
+    if (!isUnlocked || activeTab !== "overview") return;
+    void loadOverview();
+  }, [isUnlocked, activeTab]);
 
   useEffect(() => {
-    if (!adminKey || activeTab !== "health") return;
-    void loadHealthDetail(adminKey);
-  }, [adminKey, activeTab]);
+    if (!isUnlocked || activeTab !== "health") return;
+    void loadHealthDetail();
+  }, [isUnlocked, activeTab]);
 
   useEffect(() => {
-    if (!adminKey || activeTab !== "users") return;
+    if (!isUnlocked || activeTab !== "users") return;
     // Read the current userSearch when the tab is opened, but intentionally do
     // NOT react to it: the search input updates userSearch on every keystroke and
     // search is submitted explicitly (Search button), so depending on it here
     // would fire a request per keystroke. This reads the latest value at
     // activation, which is the intended behaviour — not a stale closure.
-    void loadUsers(adminKey, 1, userSearch);
+    void loadUsers(1, userSearch);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [adminKey, activeTab]);
+  }, [isUnlocked, activeTab]);
 
   useEffect(() => {
-    if (!adminKey || activeTab !== "analytics") return;
-    void loadAnalytics(adminKey);
-  }, [adminKey, activeTab]);
+    if (!isUnlocked || activeTab !== "analytics") return;
+    void loadAnalytics();
+  }, [isUnlocked, activeTab]);
 
   useEffect(() => {
-    if (!adminKey || activeTab !== "calibration") return;
-    void loadCalibration(adminKey);
-  }, [adminKey, activeTab]);
+    if (!isUnlocked || activeTab !== "calibration") return;
+    void loadCalibration();
+  }, [isUnlocked, activeTab]);
 
   useEffect(() => {
-    if (!adminKey || activeTab !== "feedback") return;
-    void loadFeedback(adminKey);
-  }, [adminKey, activeTab]);
+    if (!isUnlocked || activeTab !== "feedback") return;
+    void loadFeedback();
+  }, [isUnlocked, activeTab]);
 
   useEffect(() => {
-    if (!adminKey || activeTab !== "operations") return;
-    void loadJobs(adminKey);
-  }, [adminKey, activeTab]);
+    if (!isUnlocked || activeTab !== "operations") return;
+    void loadJobs();
+  }, [isUnlocked, activeTab]);
 
   useEffect(() => {
-    if (!adminKey || activeTab !== "config") return;
-    void loadFlags(adminKey);
-  }, [adminKey, activeTab]);
+    if (!isUnlocked || activeTab !== "config") return;
+    void loadFlags();
+  }, [isUnlocked, activeTab]);
 
   useEffect(() => {
-    if (!adminKey || activeTab !== "audit") return;
-    void loadAuditLog(adminKey);
-  }, [adminKey, activeTab]);
+    if (!isUnlocked || activeTab !== "audit") return;
+    void loadAuditLog();
+  }, [isUnlocked, activeTab]);
 
-  async function loadOverview(key: string) {
+  async function loadOverview() {
     setLoading(true);
     setError(null);
     try {
-      const data = await adminFetchJson<AdminStats>("/api/v1/admin/stats", key);
+      const data = await adminFetchJson<AdminStats>("/api/v1/admin/stats");
       setStats(data);
       setStatus("Overview refreshed.");
     } catch (err) {
@@ -331,11 +343,11 @@ export function AdminConsole() {
     }
   }
 
-  async function loadHealthDetail(key: string) {
+  async function loadHealthDetail() {
     setLoading(true);
     setError(null);
     try {
-      const data = await adminFetchJson<HealthDetailResponse>("/api/v1/admin/health/detail", key);
+      const data = await adminFetchJson<HealthDetailResponse>("/api/v1/admin/health/detail");
       setHealthDetail(data);
       setStatus("Health check refreshed.");
     } catch (err) {
@@ -345,13 +357,13 @@ export function AdminConsole() {
     }
   }
 
-  async function loadUsers(key: string, page = 1, search = "") {
+  async function loadUsers(page = 1, search = "") {
     setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams({ page: String(page), page_size: "50" });
       if (search) params.set("search", search);
-      const data = await adminFetchJson<UserListResponse>(`/api/v1/admin/users?${params}`, key);
+      const data = await adminFetchJson<UserListResponse>(`/api/v1/admin/users?${params}`);
       setUserList(data);
       setUserPage(page);
       setStatus("User list refreshed.");
@@ -362,11 +374,11 @@ export function AdminConsole() {
     }
   }
 
-  async function loadUserDetail(key: string, userId: string) {
+  async function loadUserDetail(userId: string) {
     setLoading(true);
     setError(null);
     try {
-      const data = await adminFetchJson<UserDetail>(`/api/v1/admin/users/${encodeURIComponent(userId)}`, key);
+      const data = await adminFetchJson<UserDetail>(`/api/v1/admin/users/${encodeURIComponent(userId)}`);
       setUserDetail(data);
       setStatus("User details loaded.");
     } catch (err) {
@@ -376,17 +388,17 @@ export function AdminConsole() {
     }
   }
 
-  async function toggleSuspend(key: string, userId: string, suspend: boolean) {
+  async function toggleSuspend(userId: string, suspend: boolean) {
     setLoading(true);
     setError(null);
     try {
-      await adminFetchJson(`/api/v1/admin/users/${encodeURIComponent(userId)}/suspend`, key, {
+      await adminFetchJson(`/api/v1/admin/users/${encodeURIComponent(userId)}/suspend`, {
         method: "PATCH",
         body: JSON.stringify({ suspend, reason: suspend ? suspendReason || null : null }),
       });
       setSuspendReason("");
-      await loadUserDetail(key, userId);
-      await loadUsers(key, userPage, userSearch);
+      await loadUserDetail(userId);
+      await loadUsers(userPage, userSearch);
       setStatus(suspend ? "User suspended." : "User reinstated.");
     } catch (err) {
       setError(readErrorMessage(err));
@@ -395,14 +407,14 @@ export function AdminConsole() {
     }
   }
 
-  async function loadAnalytics(key: string) {
+  async function loadAnalytics() {
     setLoading(true);
     setError(null);
     try {
       const [daily, features, ret] = await Promise.all([
-        adminFetchJson<DailyMetrics>("/api/v1/admin/analytics/daily?days=30", key),
-        adminFetchJson<FeatureUsage>("/api/v1/admin/analytics/features", key),
-        adminFetchJson<RetentionReport>("/api/v1/admin/analytics/retention", key),
+        adminFetchJson<DailyMetrics>("/api/v1/admin/analytics/daily?days=30"),
+        adminFetchJson<FeatureUsage>("/api/v1/admin/analytics/features"),
+        adminFetchJson<RetentionReport>("/api/v1/admin/analytics/retention"),
       ]);
       setDailyMetrics(daily);
       setFeatureUsage(features);
@@ -415,11 +427,11 @@ export function AdminConsole() {
     }
   }
 
-  async function loadCalibration(key: string) {
+  async function loadCalibration() {
     setLoading(true);
     setError(null);
     try {
-      const data = await adminFetchJson<CalibrationReport>("/api/v1/admin/calibration", key);
+      const data = await adminFetchJson<CalibrationReport>("/api/v1/admin/calibration");
       setCalibration(data);
       setStatus("Calibration report refreshed.");
     } catch (err) {
@@ -429,11 +441,11 @@ export function AdminConsole() {
     }
   }
 
-  async function loadFeedback(key: string) {
+  async function loadFeedback() {
     setLoading(true);
     setError(null);
     try {
-      const data = await adminFetchJson<FeedbackResponse>("/api/v1/feedback", key);
+      const data = await adminFetchJson<FeedbackResponse>("/api/v1/feedback");
       setFeedback(data);
       setStatus("Feedback refreshed.");
     } catch (err) {
@@ -443,11 +455,11 @@ export function AdminConsole() {
     }
   }
 
-  async function toggleRewardQualified(key: string, feedbackId: string, rewardQualified: boolean) {
+  async function toggleRewardQualified(feedbackId: string, rewardQualified: boolean) {
     setLoading(true);
     setError(null);
     try {
-      const updated = await adminFetchJson<FeedbackItem>(`/api/v1/feedback/${encodeURIComponent(feedbackId)}/reward`, key, {
+      const updated = await adminFetchJson<FeedbackItem>(`/api/v1/feedback/${encodeURIComponent(feedbackId)}/reward`, {
         method: "PATCH",
         body: JSON.stringify({ reward_qualified: rewardQualified }),
       });
@@ -460,11 +472,11 @@ export function AdminConsole() {
     }
   }
 
-  async function loadJobs(key: string) {
+  async function loadJobs() {
     setLoading(true);
     setError(null);
     try {
-      const data = await adminFetchJson<JobInfo[]>("/api/v1/admin/jobs", key);
+      const data = await adminFetchJson<JobInfo[]>("/api/v1/admin/jobs");
       setJobs(data);
       setStatus("Job registry refreshed.");
     } catch (err) {
@@ -474,13 +486,12 @@ export function AdminConsole() {
     }
   }
 
-  async function triggerJob(key: string, jobId: string) {
+  async function triggerJob(jobId: string) {
     setRunningJob(jobId);
     setError(null);
     try {
       const result = await adminFetchJson<JobRunResult>(
         `/api/v1/admin/jobs/${encodeURIComponent(jobId)}/trigger`,
-        key,
         { method: "POST" },
       );
       setJobResults((prev) => ({ ...prev, [jobId]: result }));
@@ -492,7 +503,7 @@ export function AdminConsole() {
     }
   }
 
-  async function sendBroadcast(key: string) {
+  async function sendBroadcast() {
     if (!notifTitle.trim() || !notifBody.trim()) {
       setError("Title and body are required.");
       return;
@@ -500,7 +511,7 @@ export function AdminConsole() {
     setLoading(true);
     setError(null);
     try {
-      const result = await adminFetchJson<BroadcastResult>("/api/v1/admin/notify/broadcast", key, {
+      const result = await adminFetchJson<BroadcastResult>("/api/v1/admin/notify/broadcast", {
         method: "POST",
         body: JSON.stringify({
           title: notifTitle.trim(),
@@ -520,11 +531,11 @@ export function AdminConsole() {
     }
   }
 
-  async function loadFlags(key: string) {
+  async function loadFlags() {
     setLoading(true);
     setError(null);
     try {
-      const data = await adminFetchJson<FlagEntry[]>("/api/v1/admin/flags", key);
+      const data = await adminFetchJson<FlagEntry[]>("/api/v1/admin/flags");
       setFlags(data);
       setFlagDrafts(Object.fromEntries(data.map((flag) => [flag.name, String(flag.value)])));
       setStatus("Config flags refreshed.");
@@ -535,7 +546,7 @@ export function AdminConsole() {
     }
   }
 
-  async function saveFlag(key: string, name: string, rawValue: string) {
+  async function saveFlag(name: string, rawValue: string) {
     let value: unknown = rawValue;
     if (rawValue === "true") value = true;
     else if (rawValue === "false") value = false;
@@ -544,12 +555,12 @@ export function AdminConsole() {
     setLoading(true);
     setError(null);
     try {
-      await adminFetchJson(`/api/v1/admin/flags/${encodeURIComponent(name)}`, key, {
+      await adminFetchJson(`/api/v1/admin/flags/${encodeURIComponent(name)}`, {
         method: "PATCH",
         body: JSON.stringify({ value }),
       });
       setStatus(`Flag ${name} updated.`);
-      await loadFlags(key);
+      await loadFlags();
     } catch (err) {
       setError(readErrorMessage(err));
     } finally {
@@ -557,15 +568,15 @@ export function AdminConsole() {
     }
   }
 
-  async function resetFlag(key: string, name: string) {
+  async function resetFlag(name: string) {
     setLoading(true);
     setError(null);
     try {
-      await adminFetchJson(`/api/v1/admin/flags/${encodeURIComponent(name)}/reset`, key, {
+      await adminFetchJson(`/api/v1/admin/flags/${encodeURIComponent(name)}/reset`, {
         method: "DELETE",
       });
       setStatus(`Flag ${name} reset to default.`);
-      await loadFlags(key);
+      await loadFlags();
     } catch (err) {
       setError(readErrorMessage(err));
     } finally {
@@ -573,13 +584,12 @@ export function AdminConsole() {
     }
   }
 
-  async function loadAuditLog(key: string, page = 1) {
+  async function loadAuditLog(page = 1) {
     setLoading(true);
     setError(null);
     try {
       const data = await adminFetchJson<AuditLogResponse>(
         `/api/v1/admin/audit-log?page=${page}&page_size=100`,
-        key,
       );
       setAuditLog(data);
       setAuditPage(page);
@@ -593,7 +603,7 @@ export function AdminConsole() {
 
   async function deleteUserData(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!adminKey) return;
+    if (!isUnlocked) return;
     const userId = deleteUserId.trim();
     if (!userId || deleteConfirm.trim() !== "DELETE") {
       setError("Enter a user id and type DELETE to confirm.");
@@ -604,14 +614,13 @@ export function AdminConsole() {
     try {
       const result = await adminFetchJson<DataDeletionResult>(
         `/api/v1/admin/users/${encodeURIComponent(userId)}/data`,
-        adminKey,
         { method: "DELETE" },
       );
       setDeleteResult(result);
       setDeleteConfirm("");
       setStatus("User data deletion completed.");
       if (activeTab === "overview") {
-        await loadOverview(adminKey);
+        await loadOverview();
       }
     } catch (err) {
       setError(readErrorMessage(err));
@@ -621,25 +630,7 @@ export function AdminConsole() {
     }
   }
 
-  function handleUnlock(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const nextKey = keyDraft.trim();
-    if (!nextKey) {
-      setError("Admin key is required.");
-      return;
-    }
-    window.sessionStorage.setItem(ADMIN_KEY_STORAGE, nextKey);
-    setAdminKey(nextKey);
-    setStatus("Admin key accepted for this session.");
-    setError(null);
-  }
-
-  function lockConsole() {
-    window.sessionStorage.removeItem(ADMIN_KEY_STORAGE);
-    setAdminKey("");
-    setKeyDraft("");
-    setError(null);
-    setStatus("Admin console locked.");
+  function clearLoadedData() {
     setStats(null);
     setHealthDetail(null);
     setUserList(null);
@@ -714,7 +705,16 @@ export function AdminConsole() {
           <span>{error ?? status}</span>
         </div>
         {isUnlocked ? (
-          <button className="admin-button admin-button--quiet" type="button" onClick={lockConsole}>Lock</button>
+          <button
+            className="admin-button admin-button--quiet"
+            type="button"
+            onClick={() => {
+              clearLoadedData();
+              signOut();
+            }}
+          >
+            Sign out
+          </button>
         ) : null}
       </section>
 
@@ -722,24 +722,17 @@ export function AdminConsole() {
         <section className="admin-unlock" aria-labelledby="admin-unlock-title">
           <div>
             <p className="admin-kicker">Protected Area</p>
-            <h2 id="admin-unlock-title">Unlock admin operations</h2>
+            <h2 id="admin-unlock-title">
+              {access === "checking" ? "Checking access…" : "Administrator access required"}
+            </h2>
             <p>
-              Use the production admin key only on trusted devices. The key is stored in session storage
-              and cleared when you lock the console or close the browser session.
+              {access === "checking"
+                ? "Confirming whether this account has administrator access."
+                : "This console is available to accounts with administrator access. " +
+                  "There is no key to enter — authority comes from who you are signed in as, " +
+                  "so ask an existing administrator to grant it to this account."}
             </p>
           </div>
-          <form className="admin-unlock__form" onSubmit={handleUnlock}>
-            <label htmlFor="admin-key">Admin key</label>
-            <input
-              id="admin-key"
-              className="admin-input"
-              type="password"
-              autoComplete="off"
-              value={keyDraft}
-              onChange={(event) => setKeyDraft(event.target.value)}
-            />
-            <button className="admin-button admin-button--primary" type="submit">Unlock console</button>
-          </form>
         </section>
       ) : (
         <>
@@ -764,7 +757,7 @@ export function AdminConsole() {
                   <h2 id="overview-title">System Overview</h2>
                   <p>Counts refresh from the backend admin stats endpoint.</p>
                 </div>
-                <button className="admin-button" type="button" onClick={() => void loadOverview(adminKey)} disabled={loading}>
+                <button className="admin-button" type="button" onClick={() => void loadOverview()} disabled={loading}>
                   {loading ? "Refreshing..." : "Refresh"}
                 </button>
               </div>
@@ -803,7 +796,7 @@ export function AdminConsole() {
                     <p>Database, scheduler, and secrets health checks.</p>
                   )}
                 </div>
-                <button className="admin-button" type="button" onClick={() => void loadHealthDetail(adminKey)} disabled={loading}>
+                <button className="admin-button" type="button" onClick={() => void loadHealthDetail()} disabled={loading}>
                   Refresh
                 </button>
               </div>
@@ -841,7 +834,7 @@ export function AdminConsole() {
                 className="admin-search-row"
                 onSubmit={(event) => {
                   event.preventDefault();
-                  void loadUsers(adminKey, 1, userSearch);
+                  void loadUsers(1, userSearch);
                 }}
               >
                 <input
@@ -857,7 +850,7 @@ export function AdminConsole() {
                   type="button"
                   onClick={() => {
                     setUserSearch("");
-                    void loadUsers(adminKey, 1, "");
+                    void loadUsers(1, "");
                   }}
                 >
                   Clear
@@ -890,7 +883,7 @@ export function AdminConsole() {
                       <button
                         className="admin-button"
                         type="button"
-                        onClick={() => void toggleSuspend(adminKey, userDetail.user_id, false)}
+                        onClick={() => void toggleSuspend(userDetail.user_id, false)}
                         disabled={loading}
                       >
                         Reinstate account
@@ -907,7 +900,7 @@ export function AdminConsole() {
                         <button
                           className="admin-button admin-button--danger"
                           type="button"
-                          onClick={() => void toggleSuspend(adminKey, userDetail.user_id, true)}
+                          onClick={() => void toggleSuspend(userDetail.user_id, true)}
                           disabled={loading}
                         >
                           Suspend account
@@ -946,7 +939,7 @@ export function AdminConsole() {
                           <button
                             className="admin-button admin-button--quiet"
                             type="button"
-                            onClick={() => void loadUserDetail(adminKey, user.user_id)}
+                            onClick={() => void loadUserDetail(user.user_id)}
                           >
                             View
                           </button>
@@ -965,7 +958,7 @@ export function AdminConsole() {
                     className="admin-button admin-button--quiet"
                     type="button"
                     disabled={userPage <= 1 || loading}
-                    onClick={() => void loadUsers(adminKey, userPage - 1, userSearch)}
+                    onClick={() => void loadUsers(userPage - 1, userSearch)}
                   >
                     Previous
                   </button>
@@ -974,7 +967,7 @@ export function AdminConsole() {
                     className="admin-button admin-button--quiet"
                     type="button"
                     disabled={userPage * 50 >= (userList?.total ?? 0) || loading}
-                    onClick={() => void loadUsers(adminKey, userPage + 1, userSearch)}
+                    onClick={() => void loadUsers(userPage + 1, userSearch)}
                   >
                     Next
                   </button>
@@ -990,7 +983,7 @@ export function AdminConsole() {
                   <h2 id="analytics-title">Analytics</h2>
                   <p>Growth and feature usage over the last 30 days.</p>
                 </div>
-                <button className="admin-button" type="button" onClick={() => void loadAnalytics(adminKey)} disabled={loading}>
+                <button className="admin-button" type="button" onClick={() => void loadAnalytics()} disabled={loading}>
                   Refresh
                 </button>
               </div>
@@ -1073,7 +1066,7 @@ export function AdminConsole() {
                       : "Hit/near/miss rates per life area, band, and dasha lord."}
                   </p>
                 </div>
-                <button className="admin-button" type="button" onClick={() => void loadCalibration(adminKey)} disabled={loading}>
+                <button className="admin-button" type="button" onClick={() => void loadCalibration()} disabled={loading}>
                   Refresh
                 </button>
               </div>
@@ -1175,7 +1168,7 @@ export function AdminConsole() {
                   <h2 id="feedback-title">Feedback Inbox</h2>
                   <p>{numberLabel(feedback?.total)} submissions in the feedback store.</p>
                 </div>
-                <button className="admin-button" type="button" onClick={() => void loadFeedback(adminKey)} disabled={loading}>
+                <button className="admin-button" type="button" onClick={() => void loadFeedback()} disabled={loading}>
                   Refresh
                 </button>
               </div>
@@ -1199,7 +1192,7 @@ export function AdminConsole() {
                           className="admin-button admin-button--quiet"
                           type="button"
                           disabled={loading}
-                          onClick={() => void toggleRewardQualified(adminKey, item.id, !item.reward_qualified)}
+                          onClick={() => void toggleRewardQualified(item.id, !item.reward_qualified)}
                         >
                           {item.reward_qualified ? "Remove reward flag" : "Mark reward-qualified"}
                         </button>
@@ -1220,7 +1213,7 @@ export function AdminConsole() {
                   <h2 id="operations-title">Background Jobs</h2>
                   <p>Manually trigger any registered background job.</p>
                 </div>
-                <button className="admin-button" type="button" onClick={() => void loadJobs(adminKey)} disabled={loading}>
+                <button className="admin-button" type="button" onClick={() => void loadJobs()} disabled={loading}>
                   Refresh
                 </button>
               </div>
@@ -1240,7 +1233,7 @@ export function AdminConsole() {
                   <button
                     className="admin-button admin-button--primary"
                     type="button"
-                    onClick={() => void triggerJob(adminKey, job.job_id)}
+                    onClick={() => void triggerJob(job.job_id)}
                     disabled={runningJob !== null}
                   >
                     {runningJob === job.job_id ? "Running..." : "Run now"}
@@ -1292,7 +1285,7 @@ export function AdminConsole() {
                 <button
                   className="admin-button admin-button--primary"
                   type="button"
-                  onClick={() => void sendBroadcast(adminKey)}
+                  onClick={() => void sendBroadcast()}
                   disabled={loading || !notifTitle.trim() || !notifBody.trim()}
                 >
                   {notifTarget.trim() ? "Send to user" : "Broadcast to all"}
@@ -1316,7 +1309,7 @@ export function AdminConsole() {
                   <h2 id="config-title">Feature Flags</h2>
                   <p>Runtime overrides reset on process restart. Permanent changes still belong in environment config.</p>
                 </div>
-                <button className="admin-button" type="button" onClick={() => void loadFlags(adminKey)} disabled={loading}>
+                <button className="admin-button" type="button" onClick={() => void loadFlags()} disabled={loading}>
                   Refresh
                 </button>
               </div>
@@ -1338,7 +1331,7 @@ export function AdminConsole() {
                       <button
                         className="admin-button"
                         type="button"
-                        onClick={() => void saveFlag(adminKey, flag.name, flagDrafts[flag.name] ?? String(flag.value))}
+                        onClick={() => void saveFlag(flag.name, flagDrafts[flag.name] ?? String(flag.value))}
                         disabled={loading}
                       >
                         Save
@@ -1347,7 +1340,7 @@ export function AdminConsole() {
                         <button
                           className="admin-button admin-button--quiet"
                           type="button"
-                          onClick={() => void resetFlag(adminKey, flag.name)}
+                          onClick={() => void resetFlag(flag.name)}
                           disabled={loading}
                         >
                           Reset
@@ -1367,7 +1360,7 @@ export function AdminConsole() {
                   <h2 id="audit-title">Audit Log</h2>
                   <p>{numberLabel(auditLog?.total)} admin actions recorded.</p>
                 </div>
-                <button className="admin-button" type="button" onClick={() => void loadAuditLog(adminKey)} disabled={loading}>
+                <button className="admin-button" type="button" onClick={() => void loadAuditLog()} disabled={loading}>
                   Refresh
                 </button>
               </div>
@@ -1401,7 +1394,7 @@ export function AdminConsole() {
                     className="admin-button admin-button--quiet"
                     type="button"
                     disabled={auditPage <= 1}
-                    onClick={() => void loadAuditLog(adminKey, auditPage - 1)}
+                    onClick={() => void loadAuditLog(auditPage - 1)}
                   >
                     Previous
                   </button>
@@ -1410,7 +1403,7 @@ export function AdminConsole() {
                     className="admin-button admin-button--quiet"
                     type="button"
                     disabled={auditPage * 100 >= (auditLog?.total ?? 0)}
-                    onClick={() => void loadAuditLog(adminKey, auditPage + 1)}
+                    onClick={() => void loadAuditLog(auditPage + 1)}
                   >
                     Next
                   </button>
