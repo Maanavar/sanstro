@@ -42,19 +42,28 @@ output observed; where one was not, it says so.
 | P0-2a *(new — found by P0-2)* | **Done** | `a19cdac` |
 | P0-3 ruff gate, **121 → 0** | **Done** | `440f285` `80f99f3` `21c2103` `587e415` `cf6cfa2` |
 | P0-4 rate limits | **Done** | `b774815` |
-| P0-5 web Docker image | **Partly** — see below | *(uncommitted)* |
+| P0-5 web Docker image | **Code done, build unverified** — see below | `0984023` |
 | P1-1 daily-snapshot failures | **Done** | `28e5728` |
 | P1-2 X-Forwarded-For | **Done** | `ee828dd` |
 | P1-3 geocoding logs | **Done** | `bc4b8b6` |
-| P1-4 admin key | **Not started** — needs its own sitting, per §P1-4 |  |
+| P1-4 admin key | **(a)(b)(c) done**, (d) elevation deferred | `a302127` |
 | P1-5 production edge | **Not started** — infrastructure, not code |  |
 | P1-6 refresh + quota races | **Done** — races were real | `82a0a34` |
 | P2-2 pnpm overrides | **Done** — pin was indeed ignored | `0c68275` |
 | P2-1, P2-3…P2-8 | **Not started** |  |
 
+P1-4 was scoped down after checking the tree: its step 1 (session-based
+admin authority) already existed — `User.is_admin`, `is_admin_user()`, a
+bootstrap admin-email list, and a `get_admin_user` that already preferred
+the session. The engine was ahead of the UI, which is a pattern this repo
+has hit before. What was actually missing was the console still holding the
+key, the header being usable from a browser, and the audit log not naming
+an actor. Short-lived elevation for destructive operations (step 2) is the
+one genuinely new piece and is deliberately left as its own task.
+
 ### Corrections to this document
 
-Six claims here did not survive being executed. Recorded so the next reader
+Seven claims here did not survive being executed. Recorded so the next reader
 trusts the file rather than the plan in it.
 
 1. **The P0-2 CI snippet pins Node 20, which cannot work.** pnpm 11.8.0's
@@ -95,6 +104,13 @@ trusts the file rather than the plan in it.
    here. `node scripts/audit-color-literals.mjs` reports 347 new literals and
    exits 1, both before and after this work — a stale ratchet baseline.
 
+7. **P1-4 is much smaller than §P1-4 assumes.** It describes step 1 — moving
+   admin authorisation onto the normal authenticated session — as the bulk of
+   the work. It was already built and had been for some time; `get_admin_user`
+   even documents `X-Admin-Key` as retained "until it moves to session-only
+   auth". Check the backend before planning frontend-visible security work
+   here; this repo's engine has run ahead of its UI before.
+
 ### P0-5, precisely
 
 Two real defects found and fixed, plus a third the document did not mention:
@@ -121,6 +137,26 @@ finding above came out of the first attempt, so the build reached and passed the
 stage that matters — but **"docker build succeeds and the container serves on
 3000" is still an unmade claim.** Do not mark P0-5 done until someone has run
 it. The commit is deliberately being held back until then.
+
+Since first writing this section, a fourth P0-5 defect was found — mine.
+`output: "standalone"` assembles its bundle out of symlinks, and creating a
+symlink on Windows needs Developer Mode or an elevated shell, so turning it on
+unconditionally made `next build` fail with EPERM on the development machine.
+It would have broken every local Windows build in order to serve an image
+nobody builds locally. It is now opt-in behind `NEXT_OUTPUT_STANDALONE=1`,
+which the Dockerfile sets.
+
+Worth noting how that surfaced: `pnpm --filter jothidam-ai-web lint` and the
+unit tests both stayed green, and the failure only appeared on `build`. The
+web CI job runs all three, so CI would have caught it — but only after the
+push, which is the argument for running the Verify step locally rather than
+trusting that the change was obviously safe.
+
+Building with the flag on does produce `.next/standalone`, laid out as
+`web/`, `packages/` and `node_modules/` at the top level — which is the layout
+the Dockerfile's `COPY` paths and `CMD ["node", "web/server.js"]` assume, so
+`outputFileTracingRoot` is correct. It then fails on the Windows symlink, as
+above. That is as far as verification can go on this machine.
 
 ### Also worth knowing
 
