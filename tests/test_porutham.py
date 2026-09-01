@@ -7,25 +7,25 @@ pytestmark = pytest.mark.no_db
 
 from app.calculations.astro import nakshatra_to_rasi
 from app.calculations.porutham import (
+    BINARY_ONLY_KUTAS,
+    GRADE_ADHAMA,
+    GRADE_MADHYAMA,
+    GRADE_SCORE,
+    GRADE_UTTAMA,
     _dinam_score,
     _ganam_score,
     _graha_maitri_kuta,
     _mahendra_score,
     _rajju_score,
     _rasi_score,
-    BINARY_ONLY_KUTAS,
-    GRADE_ADHAMA,
-    GRADE_MADHYAMA,
-    GRADE_SCORE,
-    GRADE_UTTAMA,
     _stree_dirgha_band,
-    format_porutham_total,
-    porutham_band_label,
     _vasya_score,
     _vedha_score,
     _yoni_score,
     check_nadi_dosha,
     compute_porutham,
+    format_porutham_total,
+    porutham_band_label,
 )
 
 # ---------------------------------------------------------------------------
@@ -730,9 +730,9 @@ def test_the_chitra_vedha_gap_is_flagged_not_silently_assumed():
     move together, so neither can drift from the other.
     """
     from app.calculations.porutham import (
+        _VEDHA_PAIRS,
         VEDHA_OPEN_QUESTION,
         VEDHA_TABLE_UNVERIFIED,
-        _VEDHA_PAIRS,
     )
 
     paired = {n for pair in _VEDHA_PAIRS for n in pair}

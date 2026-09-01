@@ -23,7 +23,6 @@ from app.calculations.chart_strength import (
     detect_planetary_wars,
 )
 from app.calculations.dasha import DashaPeriod, calculate_vimshottari_timeline
-from app.constants.astrology import SIGN_LORD
 from app.calculations.display_names import planet_en, planet_ta, sani_cycle_en, sani_cycle_ta
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.functional_nature import get_functional_nature
@@ -37,13 +36,14 @@ from app.calculations.planet_conditions import (
     retrograde_meaning,
 )
 from app.calculations.remedies import PLANET_REMEDY_CATALOG
+from app.constants.astrology import SIGN_LORD
 from app.models import Chart
 from app.schemas.chart_explanation import (
     ChartExplanationActivationSignal,
     ChartExplanationAspect,
-    ChartExplanationConjunctionGroup,
     ChartExplanationBhava,
     ChartExplanationBhavaSection,
+    ChartExplanationConjunctionGroup,
     ChartExplanationCoreIdentity,
     ChartExplanationCurrentActivationSection,
     ChartExplanationDashaLordActivation,

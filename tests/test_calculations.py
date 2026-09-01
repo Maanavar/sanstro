@@ -505,7 +505,7 @@ def test_combust_planet_lower_score():
 # ---------------------------------------------------------------------------
 
 def test_combustion_severity_is_graded_by_nearness():
-    from app.calculations.transits import combustion_severity, CAZIMI_ORB
+    from app.calculations.transits import CAZIMI_ORB, combustion_severity
 
     # Mercury direct: 14° combustion orb.
     orb = 14.0

@@ -379,7 +379,7 @@ def _owner_day_view(
     session: Session,
     owner_user_id: UUID,
     on_date: date,
-) -> "FamilyMemberDayView | None":
+) -> FamilyMemberDayView | None:
     """Build a FamilyMemberDayView for the vault owner's own personal profile.
 
     Mirrors _owner_aggregate_member: the owner's personal birth profile

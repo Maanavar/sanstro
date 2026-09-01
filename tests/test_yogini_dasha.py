@@ -11,9 +11,9 @@ from app.calculations.yogini_dasha import (
     YOGINI_RULING_PLANET,
     YOGINI_SEQUENCE,
     YOGINI_YEARS,
+    _yogini_sequence_from,
     calculate_opening_yogini,
     calculate_yogini_timeline,
-    _yogini_sequence_from,
 )
 
 pytestmark = pytest.mark.no_db

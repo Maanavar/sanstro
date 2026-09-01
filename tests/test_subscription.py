@@ -3,9 +3,10 @@
 These tests use the no_db marker — they bypass the DB and mock the ORM
 query directly so they run offline (SQLite/no container required).
 """
-import pytest
 from unittest.mock import MagicMock, patch
 from uuid import UUID
+
+import pytest
 
 from app.core.subscription import is_premium
 from app.models.subscription import Subscription

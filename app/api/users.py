@@ -29,13 +29,13 @@ router = APIRouter(prefix="/users", tags=["users"])
 class SubscriptionInfo(BaseModel):
     tier: str
     status: str
-    provider: Optional[str] = None
-    current_period_end: Optional[str] = None
+    provider: str | None = None
+    current_period_end: str | None = None
 
 
 class SubscriptionInfoResponse(BaseModel):
     success: bool = True
-    data: Optional[SubscriptionInfo] = None
+    data: SubscriptionInfo | None = None
 
 
 @router.get(

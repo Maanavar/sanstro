@@ -4,18 +4,18 @@ from datetime import datetime
 
 import pytest
 
-from app.calculations.astro import local_datetime_to_utc, utc_datetime_to_julian_day
-from app.calculations.dasha import JULIAN_YEAR_DAYS
 from app.calculations.ashtottari_dasha import (
     ASHTOTTARI_SEQUENCE,
     ASHTOTTARI_YEARS,
     NAK_LORD,
     TOTAL_CYCLE_YEARS,
+    _sequence_from,
     calculate_ashtottari_timeline,
     calculate_opening_ashtottari,
     evaluate_ashtottari_applicability,
-    _sequence_from,
 )
+from app.calculations.astro import local_datetime_to_utc, utc_datetime_to_julian_day
+from app.calculations.dasha import JULIAN_YEAR_DAYS
 
 pytestmark = pytest.mark.no_db
 

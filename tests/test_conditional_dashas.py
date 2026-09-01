@@ -15,8 +15,8 @@ import pytest
 from app.calculations import dasha
 from app.calculations.chart_strength import SIGN_LORD
 from app.calculations.conditional_dashas import (
-    CONDITIONAL_DASHA_SYSTEMS,
     _SIGN_LORD,
+    CONDITIONAL_DASHA_SYSTEMS,
     ConditionalDashaSystem,
     _build_periods,
     _build_subperiods,

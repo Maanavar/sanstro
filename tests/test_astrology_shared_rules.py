@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import pytest
 from datetime import UTC, date, datetime, time
+
+import pytest
 
 from app.calculations.astro import (
     chandrashtama_rasi_from_janma,

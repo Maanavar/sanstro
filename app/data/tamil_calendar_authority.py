@@ -15,7 +15,6 @@ from __future__ import annotations
 
 from datetime import date
 
-
 CALENDAR_AUTHORITY_NAME = "Sri Gnanananda Panchangam"
 CALENDAR_AUTHORITY_EDITION = "2026–27"
 CALENDAR_AUTHORITY_SOURCE_URL = "https://gnanananda.org/wp-content/uploads/2026/03/panchangam26_27.pdf"

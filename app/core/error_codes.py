@@ -6,6 +6,7 @@ that are helpful to end users while maintaining consistency.
 """
 
 from enum import Enum
+
 from fastapi import status
 
 

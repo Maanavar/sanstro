@@ -13,8 +13,8 @@ from pathlib import Path
 
 import pytest
 
-from app.services.chart_explanation_service import _build_bhava_section
 from app.schemas.charts import PlanetPosition
+from app.services.chart_explanation_service import _build_bhava_section
 
 pytestmark = pytest.mark.no_db
 

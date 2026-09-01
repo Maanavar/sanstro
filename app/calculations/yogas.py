@@ -9,54 +9,10 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 
-from app.calculations.astro import house_from_reference
-from app.calculations.functional_nature import get_functional_nature
-
 # ── Re-export everything from sub-modules so callers don't need to change ──────
-from app.calculations._yoga_helpers import (
-    FEMALE_HIGH_ATTENTION_SEVVAI_HOUSES,
-    HOUSE_SIGN_NIVARTHI,
-    KADAGAM_SIMMAM_LAGNA_EXCEPTION,
-    KENDRA_HOUSES,
-    KalasarpaResult,
-    MALE_HIGH_ATTENTION_SEVVAI_HOUSES,
-    NATURAL_BENEFICS,
-    NATURAL_MALEFICS,
-    PlanetInput,
-    RAHU_KETU_MARRIAGE_HOUSES,
-    RAHU_KETU_SARPA_HOUSES,
-    RAHU_KETU_UPACHAYA_HOUSES,
-    SEVEN_PLANETS,
-    SEVVAI_BENEFIC_REDUCERS,
-    TAMIL_SEVVAI_HOUSES,
-    TRIKONA_HOUSES,
-    DoshamResult,
-    YogaResult,
-    _build_dosham_explanations,
-    _house_lord,
-    _is_active,
-    _is_functional_benefic,
-    _is_kendra_from,
-    _marker_explain,
-    _marker_explain_ta,
-    _planet_is_strong,
-    _planet_rasi,
-    _planets_as_rasi_map,
-    _strong_planet_house,
-)
-
-from app.calculations._yoga_dosham import (
-    detect_badhaka_dosham,
-    detect_kalasarpa,
-    detect_kalathra_dosham,
-    detect_marana_karaka_sthana,
-    detect_pitru_dosham,
-    detect_putra_sarpa_dosham,
-    detect_rahu_ketu_dosham,
-    detect_sevvai_dosham,
-    get_badhaka_lord,
-)
-
+# The names below are imported to be re-exported, not because this file uses
+# them. `__all__` at the foot of this module is what keeps Ruff from deleting
+# them as F401 — see docs/AUDIT_TRIAGE_2026-08-31.md §1.1.
 from app.calculations._yoga_detect import (
     NakshatraCautionResult,
     ParivartanaResult,
@@ -65,9 +21,9 @@ from app.calculations._yoga_detect import (
     detect_adhi_yoga,
     detect_amala_yoga,
     detect_budha_aditya,
-    detect_chandra_mangala,
     detect_chandala_yoga,
     detect_chandala_yoga_ketu_variant,
+    detect_chandra_mangala,
     detect_daridra_yoga,
     detect_daridra_yoga_proxy,
     detect_dhana_yoga,
@@ -86,8 +42,51 @@ from app.calculations._yoga_detect import (
     detect_vasumati_yoga,
     detect_vipareetha_raja,
 )
-
+from app.calculations._yoga_dosham import (
+    detect_badhaka_dosham,
+    detect_kalasarpa,
+    detect_kalathra_dosham,
+    detect_marana_karaka_sthana,
+    detect_pitru_dosham,
+    detect_putra_sarpa_dosham,
+    detect_rahu_ketu_dosham,
+    detect_sevvai_dosham,
+    get_badhaka_lord,
+)
+from app.calculations._yoga_helpers import (
+    FEMALE_HIGH_ATTENTION_SEVVAI_HOUSES,
+    HOUSE_SIGN_NIVARTHI,
+    KADAGAM_SIMMAM_LAGNA_EXCEPTION,
+    KENDRA_HOUSES,
+    MALE_HIGH_ATTENTION_SEVVAI_HOUSES,
+    NATURAL_BENEFICS,
+    NATURAL_MALEFICS,
+    RAHU_KETU_MARRIAGE_HOUSES,
+    RAHU_KETU_SARPA_HOUSES,
+    RAHU_KETU_UPACHAYA_HOUSES,
+    SEVEN_PLANETS,
+    SEVVAI_BENEFIC_REDUCERS,
+    TAMIL_SEVVAI_HOUSES,
+    TRIKONA_HOUSES,
+    DoshamResult,
+    KalasarpaResult,
+    PlanetInput,
+    YogaResult,
+    _build_dosham_explanations,
+    _house_lord,
+    _is_active,
+    _is_functional_benefic,
+    _is_kendra_from,
+    _marker_explain,
+    _marker_explain_ta,
+    _planet_is_strong,
+    _planet_rasi,
+    _planets_as_rasi_map,
+    _strong_planet_house,
+)
+from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import SIGN_LORD
+from app.calculations.functional_nature import get_functional_nature
 
 
 def detect_yogas_and_doshams(

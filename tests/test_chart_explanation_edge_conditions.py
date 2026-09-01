@@ -12,8 +12,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from app.services.chart_explanation_service import _planet_explanation, _summary_section
 from app.schemas.charts import ChartBirthCondition
+from app.services.chart_explanation_service import _planet_explanation, _summary_section
 
 
 def test_planet_explanation_appends_cazimi_clause_when_cazimi() -> None:

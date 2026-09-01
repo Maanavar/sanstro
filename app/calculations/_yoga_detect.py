@@ -5,6 +5,18 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from itertools import combinations
 
+from app.calculations._yoga_helpers import (
+    KENDRA_HOUSES,
+    NATURAL_MALEFICS,
+    TRIKONA_HOUSES,
+    PlanetInput,
+    YogaResult,
+    _house_lord,
+    _is_active,
+    _planet_rasi,
+    _planets_as_rasi_map,
+    gate_yoga_strength,
+)
 from app.calculations.aspects import aspects_house, effective_natural_class
 from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import (
@@ -14,18 +26,6 @@ from app.calculations.chart_strength import (
     OWN_SIGN_RASI,
     SIGN_LORD,
     neecha_bhanga_cancelled,
-)
-from app.calculations._yoga_helpers import (
-    KENDRA_HOUSES,
-    NATURAL_MALEFICS,
-    PlanetInput,
-    TRIKONA_HOUSES,
-    YogaResult,
-    _house_lord,
-    _is_active,
-    _planet_rasi,
-    _planets_as_rasi_map,
-    gate_yoga_strength,
 )
 
 _PANCHA_MAHAPURUSHA: dict[str, tuple[str, str]] = {

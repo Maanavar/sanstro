@@ -12,10 +12,10 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, time, timedelta
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from zoneinfo import ZoneInfo
 
 from app.calculations.astro import (
     julian_day_to_utc_datetime,

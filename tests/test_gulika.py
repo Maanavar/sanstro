@@ -22,11 +22,11 @@ from datetime import UTC, date, time
 
 import pytest
 
+from app.calculations._yoga_helpers import NATURAL_MALEFICS
 from app.calculations.astro import house_from_reference, utc_datetime_to_julian_day
 from app.calculations.chart_strength import _BHAVA_BALA_MALEFICS, detect_planetary_wars
 from app.calculations.ephemeris import calculate_lagna_degree
 from app.calculations.panchangam import KULIGAI_SLOT, calculate_daily_panchangam
-from app.calculations._yoga_helpers import NATURAL_MALEFICS
 from app.services._chart_planets import (
     MANDHI_DAY_SLOT,
     MANDHI_NIGHT_SLOT,

@@ -8,18 +8,19 @@ calculation can never blank the whole dashboard (DASH-02).
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
-from typing import Callable, TypeVar
+from typing import TypeVar
 from uuid import UUID
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+from app.schemas.dasha import ResponseMeta
 from app.schemas.dashboard_bundle import (
     ChartDashboardBundleData,
     ChartDashboardBundleResponse,
 )
-from app.schemas.dasha import ResponseMeta
 from app.schemas.panchangam import PanchangamDailyQuery
 from app.services._chart_summary import get_chart_summary_from_snapshot
 from app.services.chart_explanation_service import build_chart_explanation

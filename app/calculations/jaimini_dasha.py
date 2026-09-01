@@ -18,7 +18,6 @@ from __future__ import annotations
 # note. This implementation is internally consistent with those published
 # sources but has NOT been cross-checked against JHora or another live
 # reference-software chart.
-
 from collections.abc import Mapping
 from datetime import date, timedelta
 from typing import Final

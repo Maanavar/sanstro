@@ -101,7 +101,6 @@ from dataclasses import dataclass
 from typing import Final
 
 from app.calculations.astro import normalize_longitude
-from app.constants.astrology import SIGN_LORD
 from app.calculations.dasha import (
     EPSILON_DEGREES,
     JULIAN_YEAR_DAYS,
@@ -110,6 +109,7 @@ from app.calculations.dasha import (
     _find_period,
     _period_dates,
 )
+from app.constants.astrology import SIGN_LORD
 
 ASHTOTTARI_SEQUENCE: Final[list[str]] = [
     "SUN", "MOON", "MARS", "MERCURY", "SATURN", "JUPITER", "RAHU", "VENUS",

@@ -29,8 +29,8 @@ from app.db.session import get_db
 from app.middleware import resolve_client_ip
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
-from app.services.email_service import enqueue_existing_account_registration_email
 from app.schemas.auth import AuthUserResponse, RegisterResponse
+from app.services.email_service import enqueue_existing_account_registration_email
 
 router = APIRouter(prefix="/mobile", tags=["mobile-auth"])
 

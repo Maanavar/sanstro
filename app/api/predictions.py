@@ -20,12 +20,12 @@ from app.models.user import User
 from app.reasoning.verdict import legacy_confidence_to_band
 from app.services.career_service import CareerAssessmentInput, assess_career_prediction
 from app.services.chart_service import load_persisted_chart_response
+from app.services.context_service import get_context_row
 from app.services.feature_flags import get_flag
 from app.services.health_service import HealthAssessmentInput, assess_health_prediction
 from app.services.life_area_prediction_models import LifeAreaPrediction
 from app.services.location_service import resolve_effective_daily_timezone
 from app.services.marriage_service import MarriageAssessmentInput, assess_marriage_prediction
-from app.services.context_service import get_context_row
 from app.services.prediction_log_service import log_prediction
 from app.services.propensity_service import assess_propensities, build_chart_input
 from app.services.wealth_service import WealthAssessmentInput, assess_wealth_prediction
