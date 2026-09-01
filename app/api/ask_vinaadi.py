@@ -32,9 +32,9 @@ from app.schemas.ask_vinaadi import (
 from app.schemas.dasha import ResponseMeta
 from app.services.ask_vinaadi_service import answer_question
 from app.services.ask_vinaadi_usage_service import (
-    assert_chip_available,
-    consume_chip,
     get_daily_status,
+    refund_chip,
+    reserve_chip,
 )
 
 router = APIRouter()
@@ -270,16 +270,25 @@ def ask_vinaadi(
         if any(k in q_lower for k in SENIOR_MARRIAGE_REDIRECT_KEYWORDS):
             return _senior_marriage_redirect_response(payload.question)
 
-    # Feature 3 — enforce the free-tier daily chip limit before processing.
-    assert_chip_available(session, current_user.user_id)
+    # Feature 3 — claim the chip BEFORE the provider call, not after.
+    #
+    # Checking availability and then counting afterwards left a window in which
+    # concurrent questions all passed the check and all called the provider: the
+    # user got more answers than their quota allowed and we paid for every one.
+    # Reserving first closes it; the cost is that a reservation must be given
+    # back if the answer never arrives, which is what the except clause is for.
+    chips_remaining = reserve_chip(session, current_user.user_id)
 
-    response = answer_question(
-        session,
-        chart_id,
-        payload.question,
-        owner_user_id=current_user.user_id,
-    )
+    try:
+        response = answer_question(
+            session,
+            chart_id,
+            payload.question,
+            owner_user_id=current_user.user_id,
+        )
+    except Exception:
+        refund_chip(session, current_user.user_id)
+        raise
 
-    # Count this successful question and surface remaining chips to the client.
-    response.data.chips_remaining = consume_chip(session, current_user.user_id)
+    response.data.chips_remaining = chips_remaining
     return response

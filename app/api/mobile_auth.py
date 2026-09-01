@@ -239,10 +239,37 @@ def mobile_refresh(
     if user is None or user.is_suspended:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not resolve user.")
 
-    # Rotate: mark old token used and revoked
+    # Rotate. The claim has to be conditional, not an attribute set.
+    #
+    # Reading the row and then assigning `row.revoked_at = now` emits an
+    # unconditional `UPDATE ... WHERE id = ?`. Two requests carrying the same
+    # token can therefore both read revoked_at IS NULL, both pass every check
+    # above, and both write — so one stolen refresh token becomes two live
+    # sessions, and the revoked-token theft signal never fires because neither
+    # request ever saw a revoked row. Reproduced against Postgres by driving two
+    # sessions through that interleaving by hand; the second commit succeeded.
+    #
+    # `UPDATE ... WHERE revoked_at IS NULL` makes the database the arbiter. The
+    # loser blocks on the winner's row lock, re-evaluates the predicate against
+    # the committed row, and matches nothing.
     now = datetime.now(UTC)
-    row.revoked_at = now
-    row.last_used_at = now
+    claimed = (
+        db.query(RefreshToken)
+        .filter(RefreshToken.id == row.id, RefreshToken.revoked_at.is_(None))
+        .update({"revoked_at": now, "last_used_at": now}, synchronize_session=False)
+    )
+    if claimed == 0:
+        # Lost the race to a concurrent refresh of the same token. Deliberately
+        # NOT the theft-signal burn above: that path is for a token reused after
+        # rotation, whereas this is the same token in flight twice, which a
+        # client retry produces legitimately. Logging users out of every device
+        # for a double-submit would be a worse bug than the one being fixed. The
+        # loser simply gets nothing.
+        _logger.warning("refresh_token_rotation_lost_race user_id=%s", row.user_id)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token.",
+        )
 
     return _build_response(db, user, payload.device_id or row.device_id)
 
