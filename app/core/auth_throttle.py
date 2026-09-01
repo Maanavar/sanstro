@@ -21,7 +21,7 @@ class AuthThrottleAction(str, Enum):
     """Auth endpoints that have throttle protection."""
     LOGIN = "login"
     REGISTER = "register"
-    FORGOT_PASSWORD = "forgot_password"
+    FORGOT_PASSWORD = "forgot_password"  # noqa: S105 — an endpoint name, not a credential
     OAUTH = "oauth"
 
 

@@ -55,7 +55,7 @@ _PASSWORD_RESET_TTL = timedelta(minutes=15)
 _OAUTH_STATE_COOKIE = "vinaadi_oauth_state"
 _OAUTH_STATE_MAX_AGE_SECONDS = 5 * 60
 _GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-_GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+_GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"  # noqa: S105 — an OAuth endpoint URL, not a credential
 _GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo"
 _REGISTER_NEUTRAL_DETAIL = "If this email can be used, your account is ready. Please sign in to continue."
 _RESET_NEUTRAL_DETAIL = "If an account exists for this email, you will receive a password reset link shortly."

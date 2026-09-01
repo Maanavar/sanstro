@@ -28,8 +28,8 @@ from app.models.user import User
 _bearer = HTTPBearer(auto_error=False)
 _MUTATING_METHODS = {"POST", "PATCH", "PUT", "DELETE"}
 _CSRF_HEADER_VALUE = "1"
-TOKEN_TYPE_ACCESS = "access"
-TOKEN_TYPE_PASSWORD_RESET = "pwreset"
+TOKEN_TYPE_ACCESS = "access"  # noqa: S105 — a JWT `typ` discriminator, not a credential
+TOKEN_TYPE_PASSWORD_RESET = "pwreset"  # noqa: S105 — a JWT `typ` discriminator, not a credential
 
 
 # ── Token helpers ─────────────────────────────────────────────────────────────

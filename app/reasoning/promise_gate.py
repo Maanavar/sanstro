@@ -35,7 +35,7 @@ _DUSTHANA_HOUSES: frozenset[int] = frozenset({6, 8, 12})
 
 
 class GateGrade(str, Enum):
-    PASS = "PASS"
+    PASS = "PASS"  # noqa: S105 — a promise-gate grade; "PASS" as in passed, not a password
     WEAK = "WEAK"
     BLOCKED = "BLOCKED"
     SILENT = "SILENT"

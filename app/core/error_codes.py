@@ -31,9 +31,9 @@ class ErrorCode(str, Enum):
 
     # 401 - Unauthorized
     NOT_AUTHENTICATED = "NOT_AUTHENTICATED"
-    TOKEN_EXPIRED = "TOKEN_EXPIRED"
-    TOKEN_INVALID = "TOKEN_INVALID"
-    TOKEN_REVOKED = "TOKEN_REVOKED"
+    TOKEN_EXPIRED = "TOKEN_EXPIRED"  # noqa: S105 — an error code sent to clients, not a credential
+    TOKEN_INVALID = "TOKEN_INVALID"  # noqa: S105 — an error code sent to clients, not a credential
+    TOKEN_REVOKED = "TOKEN_REVOKED"  # noqa: S105 — an error code sent to clients, not a credential
 
     # 409 - Conflict
     RESOURCE_LIMIT_EXCEEDED = "RESOURCE_LIMIT_EXCEEDED"

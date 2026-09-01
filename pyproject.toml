@@ -70,6 +70,15 @@ select = ["E", "F", "W", "I", "UP", "B", "S"]
 ignore = [
     "E501",  # line length handled by the formatter, not enforced as an error
     "B008",  # FastAPI uses function calls (Depends(...)) in argument defaults
+    # UP042 (str-Enum -> enum.StrEnum) is a RUNTIME BEHAVIOUR CHANGE here, not a
+    # style fix: with `class Band(str, Enum)`, str(Band.GOOD) == "Band.GOOD";
+    # with StrEnum it becomes "GOOD". Six of these classes sit on the verdict
+    # path (VerdictRung, Band, GateGrade, Reading, ErrorCode,
+    # AuthThrottleAction), so any of them reaching an f-string, a log line, a
+    # JSON body or a template changes what a user reads. If the migration is
+    # ever wanted it is its own task — one enum per PR, with a grep for every
+    # interpolation site. See docs/AUDIT_TRIAGE_2026-08-31.md §1.2.
+    "UP042",
 ]
 
 [tool.ruff.lint.per-file-ignores]
