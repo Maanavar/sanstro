@@ -19,12 +19,27 @@ services:
       timeout: 5s
       retries: 5
 
+  # Shared state for the rate limiter across uvicorn workers. With
+  # WEB_CONCURRENCY=2 and the in-memory limiter, every limit was per process —
+  # so a "5 per minute" login throttle was really up to 10, and which counter a
+  # request hit depended on which worker accepted it.
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   api:
     build:
       context: .
       dockerfile: Dockerfile
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     environment:
       JOTHIDAM_ENVIRONMENT: production
@@ -43,9 +58,13 @@ services:
       # advisory leader lock). Set false and start the `worker` service (compose
       # profile `scaled`) to move scheduling to a dedicated process.
       JOTHIDAM_RUN_SCHEDULER_IN_WEB: ${JOTHIDAM_RUN_SCHEDULER_IN_WEB:-true}
-      # Optional shared-state backends for a multi-box deploy (see .env.example).
-      JOTHIDAM_REDIS_URL: ${JOTHIDAM_REDIS_URL:-}
-      JOTHIDAM_RATE_LIMIT_BACKEND: ${JOTHIDAM_RATE_LIMIT_BACKEND:-memory}
+      # Shared state. The rate limiter MUST NOT be "memory" while
+      # WEB_CONCURRENCY > 1 — each worker would keep its own counters and every
+      # limit would be multiplied by the worker count. app.main refuses to boot
+      # on that combination outside debug, so these two settings are now tied
+      # together deliberately rather than by luck.
+      JOTHIDAM_REDIS_URL: ${JOTHIDAM_REDIS_URL:-redis://redis:6379/0}
+      JOTHIDAM_RATE_LIMIT_BACKEND: ${JOTHIDAM_RATE_LIMIT_BACKEND:-redis}
       JOTHIDAM_CACHE_BACKEND: ${JOTHIDAM_CACHE_BACKEND:-memory}
     ports:
       - "8000:8000"
@@ -68,14 +87,17 @@ services:
       JOTHIDAM_JWT_SECRET: ${JOTHIDAM_JWT_SECRET:?set JOTHIDAM_JWT_SECRET}
       JOTHIDAM_ADMIN_API_KEY: ${JOTHIDAM_ADMIN_API_KEY:?set JOTHIDAM_ADMIN_API_KEY}
       JOTHIDAM_ENCRYPTION_KEY: ${JOTHIDAM_ENCRYPTION_KEY:?set JOTHIDAM_ENCRYPTION_KEY}
-      JOTHIDAM_REDIS_URL: ${JOTHIDAM_REDIS_URL:-}
+      JOTHIDAM_REDIS_URL: ${JOTHIDAM_REDIS_URL:-redis://redis:6379/0}
     # Migrations are owned by the api container; the worker just runs the scheduler.
     entrypoint: ["tini", "--", "python", "-m", "app.worker"]
 
   web:
     build:
-      context: ./web
-      dockerfile: Dockerfile
+      # Root context, not ./web — the image needs pnpm-lock.yaml,
+      # pnpm-workspace.yaml and packages/* to resolve web's `workspace:*`
+      # dependencies. Scoped by web/Dockerfile.dockerignore.
+      context: .
+      dockerfile: web/Dockerfile
     depends_on:
       - api
     environment:

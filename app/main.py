@@ -1,5 +1,6 @@
 import logging
 import logging.config
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
@@ -84,9 +85,54 @@ _LOGGING_CONFIG = {
     "root": {"level": "INFO", "handlers": ["console"]},
 }
 
+def _assert_rate_limiter_matches_worker_count() -> None:
+    """Refuse to serve a worker pool whose rate limits are silently multiplied.
+
+    The in-memory limiter keeps its counters per process. Run it under
+    ``--workers N`` and a documented limit of "5 attempts per minute" becomes up
+    to 5N, with which counter a request hits decided by whichever worker
+    happened to accept it. Nothing logs, nothing fails, and login throttling and
+    the public-endpoint abuse controls are the things quietly weakened.
+
+    The effective backend is what matters, not the setting: ``redis`` falls back
+    to memory when Redis is unreachable, so a deploy can be configured correctly
+    and still be running multiplied limits.
+    """
+    from app.core.rate_limit import InMemoryRateLimitBackend, get_rate_limit_backend
+
+    log = logging.getLogger(__name__)
+    settings = get_settings()
+    if not settings.rate_limit_enabled:
+        return
+
+    try:
+        workers = int(os.getenv("WEB_CONCURRENCY", "1"))
+    except ValueError:
+        workers = 1
+    if workers <= 1:
+        return
+
+    if not isinstance(get_rate_limit_backend(), InMemoryRateLimitBackend):
+        return
+
+    message = (
+        f"Rate limits are silently up to {workers}x looser than configured: "
+        f"WEB_CONCURRENCY={workers} with a per-process in-memory rate limiter. "
+        "Set JOTHIDAM_RATE_LIMIT_BACKEND=redis with a reachable "
+        "JOTHIDAM_REDIS_URL, or set WEB_CONCURRENCY=1."
+    )
+    if settings.debug:
+        log.warning("rate_limit_worker_mismatch: %s", message)
+        return
+    # A crash on boot is recoverable and visible. A 2x rate limit is neither.
+    raise RuntimeError(message)
+
+
 def _build_lifespan():
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
+        _assert_rate_limiter_matches_worker_count()
+
         # Register job metadata regardless of who schedules them, so the admin
         # trigger endpoints work even when a dedicated worker owns the scheduler.
         register_all_jobs()
