@@ -6,9 +6,7 @@ from dataclasses import dataclass
 
 from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import (
-    DEBILITATION_RASI,
     EXALTATION_RASI,
-    MOOLATRIKONA_ZONE,
     OWN_SIGN_RASI,
     SIGN_LORD,
 )

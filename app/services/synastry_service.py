@@ -1050,9 +1050,6 @@ def get_compatibility_intelligence_for_member(
     otherwise the report can silently compare the owner against the member even
     when the user meant two different people.
     """
-    from app.calculations.astro import utc_datetime_to_julian_day
-    from app.calculations.compatibility_intelligence import compute_compatibility_intelligence
-    from app.calculations.porutham import compute_porutham
 
     _assert_vault_owner(session, family_vault_id, owner_user_id)
     member = _member_in_vault(session, family_vault_id, member_id)

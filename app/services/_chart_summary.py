@@ -39,7 +39,7 @@ from app.schemas.charts import (
     JadhagamReportYogaDoshamSummary,
     ResponseMeta,
 )
-from app.services._chart_build import RASI_NUMBERS, _value
+from app.services._chart_build import _value
 from app.services._chart_persist import _require_active_birth_profile, load_persisted_chart_response
 from app.services._chart_planets import (
     _NATAL_GRAHAS,

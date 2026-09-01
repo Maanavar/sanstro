@@ -11,10 +11,10 @@ from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
-from fastapi import HTTPException, Request, status
+from fastapi import HTTPException, status
 
 from app.core.config import get_settings
-from app.core.rate_limit import RateLimitBackend, get_rate_limit_backend
+from app.core.rate_limit import get_rate_limit_backend
 from app.middleware import resolve_client_ip
 
 logger = logging.getLogger(__name__)

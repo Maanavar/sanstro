@@ -7,7 +7,6 @@ from app.calculations.aspects import aspects_house
 from app.calculations.astro import (
     degree_in_rasi,
     house_from_reference,
-    local_datetime_to_utc,
     nakshatra_from_degree,
     navamsa_rasi_from_degree,
     pada_from_degree,
@@ -16,7 +15,6 @@ from app.calculations.astro import (
 )
 from app.calculations.chart_strength import (
     compute_strength_breakdown,
-    detect_planetary_wars,
     explain_natal_planet_score,
 )
 from app.calculations.divisional_charts import get_varga

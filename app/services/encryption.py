@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import date, time
 
-from cryptography.fernet import Fernet, InvalidToken
+from cryptography.fernet import Fernet
 from sqlalchemy import LargeBinary
 from sqlalchemy.types import TypeDecorator
 

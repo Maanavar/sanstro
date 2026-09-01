@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 from app.reasoning.contradiction import classify
-from app.reasoning.promise_gate import GateGrade, assess_promise
+from app.reasoning.promise_gate import assess_promise
 from app.reasoning.timing_vote import combine_gate_and_timing, timing_band_from_score
 
 pytestmark = pytest.mark.no_db

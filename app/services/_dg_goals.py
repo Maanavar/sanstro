@@ -8,7 +8,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.calculations.activity_timing_rules import ActivityType, assess_activity_timing
+from app.calculations.activity_timing_rules import assess_activity_timing
 from app.models import JournalEntry
 from app.schemas.daily_guidance import (
     DailyGuidanceJournalInsight,

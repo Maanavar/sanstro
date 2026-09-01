@@ -12,8 +12,6 @@ Do not re-add an anonymise-on-delete path without fixing both first.
 """
 from __future__ import annotations
 
-from typing import Optional
-
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session

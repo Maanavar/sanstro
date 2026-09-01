@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
-from uuid import UUID, uuid4
+from uuid import UUID
 
 import pytest
 from fastapi.testclient import TestClient

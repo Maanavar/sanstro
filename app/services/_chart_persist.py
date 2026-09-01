@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -17,7 +17,6 @@ from app.schemas.birth_profiles import BirthProfileCreate
 from app.schemas.charts import ChartCalculateRequest, ChartCalculateResponse
 from app.services._chart_build import (
     DEFAULT_CALCULATION_VERSION,
-    RASI_NUMBERS,
     _birth_datetime_utc,
     _chart_response_from_profile,
     _chart_response_from_record,

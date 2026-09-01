@@ -10,9 +10,8 @@ from __future__ import annotations
 
 import logging
 from enum import Enum
-from typing import Any
 
-from app.core.rate_limit import RateLimitBackend, get_rate_limit_backend
+from app.core.rate_limit import get_rate_limit_backend
 
 logger = logging.getLogger(__name__)
 

@@ -5,11 +5,9 @@ Covers per-IP and per-account rate limiting for login, register, and forgot-pass
 from __future__ import annotations
 
 import pytest
-from fastapi.testclient import TestClient
 
 from app.core.auth_throttle import AuthThrottleAction, AuthThrottler
 from app.core.rate_limit import reset_rate_limit_backend
-from app.main import app
 
 pytestmark = pytest.mark.no_db
 
