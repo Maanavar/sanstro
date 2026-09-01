@@ -323,9 +323,29 @@ following sunrise — is a doctrine question.
   distribution, which is measurement and needs no ruling.
 * **"Which seven, not just how many"** — flat 1-point weighting cannot hear a
   Gana clash. Named by the astrologer, deferred by the astrologer.
-* **Anchor #4's duty** — a *cancelled* Sevvai dosham must be reported as
-  cancelled, not as absent: "no dosham" and "dosham present but cancelled" are
-  different readings, and a cancelled dosham carries a residue a clear chart
-  does not. Not yet verified against what the surfaces currently say.
-* **`chandrashtamaEnds`** — above.
+* **Anchor #4's duty** — **half closed 2026-09-01** (`c4c226e`). Audited: the
+  client surfaces were already right — the compatibility panel renders
+  Cancelled / <severity> / No Dosham as three distinct chips, and
+  `dashboard-yoga-dosham-panel.tsx` already carries the explicit "should not be
+  called 'dosham free'" copy. The *report narrative* was not: both Sevvai
+  branches required `not is_cancelled`, so a cancelled dosham produced no line
+  at all and read word-for-word like a couple who never had it. Fixed, and the
+  block extracted to `sevvai_risk_lines` so the rule is reachable by a test.
+
+  **Still open — the scoring half.** Anchor #4 also says present-but-cancelled
+  "caps an otherwise-excellent match one rung down". There is no such cap: the
+  only label cap is Rajju/Vedha → CAUTION, and a cancelled dosham costs 1 point
+  of a 5-point sub-score inside a 10-point layer (~2 composite points), which
+  crosses the 80 rung only from a narrow band. A real cap changes verdicts, so
+  it wants its own change and an explicit go-ahead — the same attribution
+  reasoning as the rung retune.
+* **`chandrashtamaEnds`** — **closed 2026-09-01** (`53281b6`). Now sent, and
+  the wrapper-parity guard reported the fix itself by failing with "the bug is
+  fixed — delete those entries from KNOWN_DRIFT". Ruled: report a time only
+  when Chandrashtama actually lifts that day. `moon_rasi_spans` is clipped to
+  `[sunrise, next_sunrise]` and the Moon spends ~2.25 days per rasi, so taking
+  the last span's end unconditionally would have named the next sunrise as the
+  end on every day but the last — a false, precise-looking time, and the common
+  case rather than an edge one. It returns null while the stretch continues,
+  and the card keeps its untimed line, which is true throughout.
 * **Rasi's madhyama band** — mechanism ready, still gated on Jothidam p.68.
