@@ -106,24 +106,29 @@ jobs:
   web:
     name: Web (lint, test, build)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: web
+    # No `working-directory: web`. This is a pnpm workspace: `web` depends on
+    # `@vinaadi/shared` and `@vinaadi/design-tokens` via `workspace:*`, which
+    # only resolve when the install runs from the repo root. Installing inside
+    # `web/` is what npm could never do here.
     steps:
       - uses: actions/checkout@v4
+      # Version comes from the root package.json `packageManager` field
+      # (pnpm@11.8.0). Do not pin it here as well — two sources of truth for
+      # the package manager is how CI ends up on a different pnpm to the one
+      # that wrote pnpm-lock.yaml.
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: npm
-          cache-dependency-path: web/package-lock.json
+          cache: pnpm
       - name: Install
-        run: npm ci
+        run: pnpm install --frozen-lockfile
       - name: Lint
-        run: npm run lint
+        run: pnpm --filter jothidam-ai-web lint
       - name: Unit tests
-        run: npm test -- --coverage
+        run: pnpm --filter jothidam-ai-web test -- --coverage
       - name: Build
-        run: npm run build
+        run: pnpm --filter jothidam-ai-web build
 
   design-tokens:
     name: Design token ratchet (no new color literals)
@@ -146,26 +151,25 @@ jobs:
     # Only run e2e when BASE_URL is provided (staging / preview deploy).
     # On PRs without a preview deploy the job is skipped automatically.
     if: vars.E2E_BASE_URL != ''
-    defaults:
-      run:
-        working-directory: web
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: npm
-          cache-dependency-path: web/package-lock.json
+          cache: pnpm
       - name: Install
-        run: npm ci
+        run: pnpm install --frozen-lockfile
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        working-directory: web
+        run: pnpm exec playwright install --with-deps chromium
       - name: Run Playwright tests
+        working-directory: web
         env:
           BASE_URL: ${{ vars.E2E_BASE_URL }}
           TEST_USER_EMAIL: ${{ secrets.E2E_TEST_USER_EMAIL }}
           TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
-        run: npx playwright test
+        run: pnpm exec playwright test
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
