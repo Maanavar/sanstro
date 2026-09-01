@@ -285,6 +285,62 @@ def _compute_sevvai(snap: Any) -> SevvaiDoshamDetail:
     )
 
 
+_SEVERITY_TA = {"SEVERE": "தீவிரம்", "MODERATE": "நடுத்தரம்", "MILD": "லேசானது", "NONE": "இல்லை"}
+
+
+def sevvai_risk_lines(
+    sevvai_a: SevvaiDoshamDetail, sevvai_b: SevvaiDoshamDetail
+) -> tuple[list[str], list[str]]:
+    """The report's Sevvai Dosham lines, (english, tamil).
+
+    Three states, three readings — and the third one used to be silent.
+
+    An *active* dosham is a live risk. A *cancelled* dosham is not the same
+    thing as no dosham at all: it carries a residue a clear chart does not,
+    which is why `_compute_sevvai` scores it 4 rather than 5, and why anchor
+    case 4 (2026-08-31) says the family must be told it was cancelled, **not**
+    that it was absent. Before this, both branches required
+    ``not is_cancelled``, so a cancelled dosham produced no line anywhere — not
+    a risk, not a strength — and the report read exactly like one for a couple
+    who never had it.
+
+    Cancellation lands in risks rather than strengths because it is a qualified
+    concern, not an asset. That is the same position the dosham panel already
+    takes in words: "for marriage matching, this should not be called 'dosham
+    free', but the protective factors mean the practical impact is mild."
+
+    Extracted from the narrative block so the rule can be tested directly; it
+    was thirty lines of inline branching that nothing could reach.
+    """
+    risks_en: list[str] = []
+    risks_ta: list[str] = []
+
+    for person, sevvai in (("A", sevvai_a), ("B", sevvai_b)):
+        if not sevvai.has_dosham:
+            continue
+        if sevvai.is_cancelled:
+            risks_en.append(
+                f"Person {person} has Sevvai Dosham, cancelled by protective "
+                "factors — reduced, not absent"
+            )
+            risks_ta.append(
+                f"நபர் {person}-க்கு செவ்வாய் தோஷம் உள்ளது, நிவர்த்தி காரணங்களால் "
+                "நீக்கப்பட்டுள்ளது — குறைந்துள்ளது, இல்லாமல் இல்லை"
+            )
+        else:
+            severity_ta = _SEVERITY_TA.get(sevvai.severity, sevvai.severity)
+            risks_en.append(
+                f"Person {person} has active Sevvai Dosham "
+                f"({sevvai.severity.lower()}) — matching recommended"
+            )
+            risks_ta.append(
+                f"நபர் {person}-க்கு செவ்வாய் தோஷம் உள்ளது ({severity_ta}) — "
+                "பொருத்தம் பரிந்துரை"
+            )
+
+    return risks_en, risks_ta
+
+
 def _apply_mutual_sevvai_cancellation(a: SevvaiDoshamDetail, b: SevvaiDoshamDetail) -> tuple[SevvaiDoshamDetail, SevvaiDoshamDetail]:
     """Both persons having uncancelled Sevvai Dosham cancels each other out."""
     if (
@@ -886,15 +942,9 @@ def compute_compatibility_intelligence(
         risks_en.append(f"Current dasha lords are in tension ({dasha_pair_en})")
         risks_ta.append(f"தற்போதைய தசை அதிபதிகள் மோதலில் உள்ளனர் ({dasha_pair_ta})")
 
-    _SEVERITY_TA = {"SEVERE": "தீவிரம்", "MODERATE": "நடுத்தரம்", "MILD": "லேசானது", "NONE": "இல்லை"}
-    if sevvai_a.has_dosham and not sevvai_a.is_cancelled:
-        severity_a_ta = _SEVERITY_TA.get(sevvai_a.severity, sevvai_a.severity)
-        risks_en.append(f"Person A has active Sevvai Dosham ({sevvai_a.severity.lower()}) — matching recommended")
-        risks_ta.append(f"நபர் A-க்கு செவ்வாய் தோஷம் உள்ளது ({severity_a_ta}) — பொருத்தம் பரிந்துரை")
-    if sevvai_b.has_dosham and not sevvai_b.is_cancelled:
-        severity_b_ta = _SEVERITY_TA.get(sevvai_b.severity, sevvai_b.severity)
-        risks_en.append(f"Person B has active Sevvai Dosham ({sevvai_b.severity.lower()}) — matching recommended")
-        risks_ta.append(f"நபர் B-க்கு செவ்வாய் தோஷம் உள்ளது ({severity_b_ta}) — பொருத்தம் பரிந்துரை")
+    sevvai_risks_en, sevvai_risks_ta = sevvai_risk_lines(sevvai_a, sevvai_b)
+    risks_en.extend(sevvai_risks_en)
+    risks_ta.extend(sevvai_risks_ta)
 
     if porutham_result.rajju_dosha:
         risks_en.append("Rajju Dosha is present — health/longevity remedies advised")
