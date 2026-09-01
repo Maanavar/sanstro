@@ -46,6 +46,24 @@ _NOT_MARKERS = frozenset(
 )
 
 
+def _without_dunder_all(source: str) -> str:
+    """Drop an ``__all__`` block before scanning for markers.
+
+    yogas.py is a facade, and its ``__all__`` is a list of ~70 quoted function
+    names — `"detect_gaja_kesari"`, `"get_badhaka_lord"` — which are exactly the
+    shape this scraper looks for. Scanned, they arrive as 35 "unlabelled
+    markers" that no detector ever emits and no panel should ever have a label
+    for.
+
+    Narrow on purpose. The alternative was adding those names to _NOT_MARKERS,
+    and that list's own comment says to keep it short and specific because a
+    broad entry there hides real gaps. An export declaration is categorically
+    not a marker emission, so excluding the construct is exact where naming the
+    35 names would be a standing invitation to bury a real one among them.
+    """
+    return re.sub(r"__all__\s*=\s*[\[(].*?[\])]", "", source, flags=re.DOTALL)
+
+
 def _emitted_markers() -> set[str]:
     """Tokens the detectors put into conditions_met / cancellation_factors."""
     markers: set[str] = set()
@@ -53,7 +71,7 @@ def _emitted_markers() -> set[str]:
         path = _CALC / filename
         if not path.exists():
             continue
-        source = path.read_text(encoding="utf-8")
+        source = _without_dunder_all(path.read_text(encoding="utf-8"))
         # The `{}` in the class is what lets f-string markers through
         # (`rahu_house_{rahu_house}`). Without it they are skipped entirely and
         # the whole parametrized family goes unchecked — which is precisely the
