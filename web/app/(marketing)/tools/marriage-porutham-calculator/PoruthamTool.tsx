@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useLang } from "@/components/lang-toggle";
 import { romanNakshathiramName } from "@/lib/tamil-astro";
@@ -668,9 +669,9 @@ export function PoruthamTool() {
             {ta ? "இலவச கணக்கு — ஜாதகம் சேமிக்கவும், பல பொருத்தங்களை ஒப்பிடவும், தினசரி வழிகாட்டுதல் பெறவும்." : "Free account — save horoscopes, compare multiple matches, get daily guidance."}
           </p>
         </div>
-        <a href="/dashboard" className="cl-mobile-cta" style={{ display: "inline-flex", alignItems: "center", padding: "9px 22px", background: "var(--cl-ink)", color: "var(--cl-bg)", borderRadius: "999px", fontWeight: 600, fontSize: "0.88rem", textDecoration: "none" }}>
+        <Link href="/dashboard" className="cl-mobile-cta" style={{ display: "inline-flex", alignItems: "center", padding: "9px 22px", background: "var(--cl-ink)", color: "var(--cl-bg)", borderRadius: "999px", fontWeight: 600, fontSize: "0.88rem", textDecoration: "none" }}>
           {ta ? "இலவசமாக தொடங்கு →" : "Get started free →"}
-        </a>
+        </Link>
       </div>
 
     </div>

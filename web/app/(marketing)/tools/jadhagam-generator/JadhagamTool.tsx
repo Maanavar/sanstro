@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { PlaceCombobox } from "@/components/place-combobox";
@@ -1018,13 +1019,13 @@ export function JadhagamTool() {
                 {en ? "Free account — daily reading, family vault, dasha tracking." : "இலவச கணக்கு — தினசரி வாசிப்பு, குடும்ப சேகரிப்பு, தசை கண்காணிப்பு."}
               </p>
             </div>
-            <a href="/dashboard" className="cl-mobile-cta" style={{
+            <Link href="/dashboard" className="cl-mobile-cta" style={{
               display: "inline-flex", alignItems: "center", padding: "9px 22px",
               background: "var(--cl-ink)", color: "var(--cl-bg)", borderRadius: "999px",
               fontWeight: 600, fontSize: "0.88rem", textDecoration: "none",
             }}>
               {en ? "Get started free →" : "இலவசமாக தொடங்கு →"}
-            </a>
+            </Link>
           </div>
         </div>
       )}

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import { readErrorMessage } from "@/lib/api";
 import { useLang } from "@/components/lang-toggle";
@@ -326,13 +327,13 @@ export function RasippalanTool({ hideCta = false }: { hideCta?: boolean } = {}) 
                 : "இலவச கணக்கு — தசை, ஜாதகம், பஞ்சாங்கம் ஒன்றாக இணைந்த தினசரி வழிகாட்டுதல்."}
             </p>
           </div>
-          <a href="/dashboard" className="cl-mobile-cta" style={{
+          <Link href="/dashboard" className="cl-mobile-cta" style={{
             display: "inline-flex", alignItems: "center", padding: "9px 22px",
             background: "var(--cl-ink)", color: "var(--cl-bg)", borderRadius: "999px",
             fontWeight: 600, fontSize: "0.88rem", textDecoration: "none",
           }}>
             {en ? "Get started free →" : "இலவசமாக தொடங்கு →"}
-          </a>
+          </Link>
         </div>
       )}
     </div>
