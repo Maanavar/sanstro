@@ -106,7 +106,11 @@ def daily_snapshot(
             # worse outcome for the user than one section marked unavailable.
             # `logger.exception` under a stable event name is what makes these
             # countable instead of invisible.
-            log.exception("daily_snapshot_panchangam_failed lat=%s lng=%s tz=%s", lat, lng, tz)
+            # No coordinates: they are the user's location, and the timezone is
+            # enough to reproduce an ephemeris failure. Same reasoning as
+            # app/api/geo.py's geocode_ok.
+            log.exception("daily_snapshot_panchangam_failed tz=%s", tz)
+            log.debug("daily_snapshot_panchangam_failed_detail lat=%s lng=%s", lat, lng)
             sections["panchangam"] = SECTION_UNAVAILABLE
 
     # ── Rasi Palan ────────────────────────────────────────────────────────────

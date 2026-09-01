@@ -175,7 +175,13 @@ def geocode_place(req: GeocodeRequest) -> GeocodeResponse:
         resp.raise_for_status()
         data = resp.json()
     except Exception as exc:
-        logger.warning("geocode_network_error query=%r exc=%s", query, exc)
+        # No `query=`: see geocode_ok below. The exception type and the length
+        # are what you need to tell a timeout from a malformed request, and
+        # neither identifies anybody.
+        logger.warning(
+            "geocode_network_error query_len=%d exc=%s", len(query), type(exc).__name__
+        )
+        logger.debug("geocode_network_error_detail query=%r exc=%s", query, exc)
         return GeocodeResponse(error="network")
 
     if not data:
@@ -195,5 +201,22 @@ def geocode_place(req: GeocodeRequest) -> GeocodeResponse:
         "error": None,
     }
     _cache_set(cache_key, result)
-    logger.info("geocode_ok query=%r lat=%.4f lon=%.4f country=%s tz=%s", query, result["lat"], result["lon"], country_code, timezone_str)
+    # Deliberately no query text and no coordinates.
+    #
+    # A geocode here is somebody typing where they were born. The query is a
+    # place name they have a personal connection to, and lat/lon at 4 decimal
+    # places is about 11 metres — together that is personal data, and logging it
+    # at INFO on every successful lookup ships it into log aggregation, whatever
+    # retention that has, and everyone with read access to it.
+    #
+    # What is left is what operations actually needs: did it resolve, how many
+    # results, which country, which timezone. The identifying half is available
+    # at DEBUG for a developer reproducing a specific bad lookup, and DEBUG is
+    # off in production.
+    logger.info(
+        "geocode_ok results=%d country=%s tz=%s", len(data), country_code, timezone_str
+    )
+    logger.debug(
+        "geocode_ok_detail query=%r lat=%.4f lon=%.4f", query, result["lat"], result["lon"]
+    )
     return GeocodeResponse(**result)
