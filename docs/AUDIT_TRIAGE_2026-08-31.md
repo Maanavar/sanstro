@@ -208,9 +208,11 @@ Both `--config.` flags are gone. They were also redundant: the repo `.npmrc`
 already sets `fetch-timeout` and `fetch-retries` in a file pnpm parses with real
 types.
 
-`--network-concurrency=4` is deliberately kept for one more run so the CI build
-changes a single variable against a comparable failure. It is **not** a fix and
-was never shown to do anything; remove it once the image is green.
+`--network-concurrency=4` was kept for exactly one CI run, so that build changed
+a single variable against a comparable failure. **That run passed — `Web Docker
+image (build and boot)` green in 4m55s, both the build and the boot step** — so
+the cap has served its only purpose and is now removed. It was never a fix and
+was never shown to do anything. Do not re-add it without evidence.
 
 **What was done about it instead.** Local buildkit has now produced three
 different outcomes from one unchanged Dockerfile, so this machine cannot
@@ -259,9 +261,10 @@ That also retires the `ENV HOSTNAME=0.0.0.0` worry as *verified* rather than
 reasoned: the server reports binding `0.0.0.0:3000` and answers, which is
 exactly the failure mode that setting exists to prevent.
 
-**P0-5 is done.** What remains is cosmetic, not a gate: drop
-`--network-concurrency=4` once CI is green (see above — it is a leftover of a
-wrong diagnosis, kept for one run to isolate the variable).
+**P0-5 is done, and confirmed on a clean runner** — CI run `33668433255`, `Web
+Docker image (build and boot)` green in **4m55s**, from a job that had previously
+burned 4h47m without finishing. The concurrency cap has since been removed (see
+above); nothing else about this item is outstanding.
 
 The parts of the original rewrite that could have been wrong are proven right:
 the repo-root build context reaches `pnpm-lock.yaml` and `pnpm-workspace.yaml`,

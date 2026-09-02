@@ -94,10 +94,12 @@ COPY packages/design-tokens/build.js packages/design-tokens/tokens.json packages
 # `.npmrc` already sets fetch-timeout and fetch-retries, in a file pnpm parses
 # with real types. If these ever need setting here, set them there.
 #
-# --network-concurrency=4 is KEPT for now, and it is NOT a fix — it was never
-# shown to do anything. It stays only so this build changes one variable at a
-# time against a run we can compare to. Once the image is green, remove it; it
-# is a leftover of a wrong diagnosis, not a requirement.
+# --network-concurrency=4 is GONE too, as of the run that proved the above.
+# It was never a fix and was never shown to do anything; it was kept for exactly
+# one CI run so that build changed a single variable against a comparable
+# failure. That run passed (4m55s, build and boot), so the cap has served its
+# only purpose and pnpm's default fan-out is restored. Do not re-add it without
+# evidence — it is the residue of a wrong diagnosis, not a tuning decision.
 #
 # The retry loop stays as insurance, and it is what produced this diagnosis:
 # three bounded attempts instead of one unbounded hang turned a 4h47m
@@ -114,7 +116,6 @@ RUN set -eu; \
     for attempt in 1 2 3; do \
       echo "==> pnpm install, attempt ${attempt}/3"; \
       if timeout --kill-after=30 480 pnpm install --frozen-lockfile --filter jothidam-ai-web... \
-            --network-concurrency=4 \
             --reporter=append-only; then \
         echo "==> pnpm install succeeded on attempt ${attempt}"; \
         exit 0; \
