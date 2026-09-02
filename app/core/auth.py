@@ -239,6 +239,16 @@ def _looks_browser_originated(request: Request) -> bool:
     return bool(request.headers.get("origin") or request.headers.get("referer"))
 
 
+def _admin_key_matches(x_admin_key: str | None) -> bool:
+    """True when the header carries the configured server-to-server admin key."""
+    settings = get_settings()
+    return (
+        settings.admin_api_key is not None
+        and x_admin_key is not None
+        and compare_digest(x_admin_key, settings.admin_api_key)
+    )
+
+
 def get_admin_user(
     request: Request,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -259,8 +269,7 @@ def get_admin_user(
     if is_admin_user(current_user):
         return current_user
 
-    settings = get_settings()
-    if settings.admin_api_key is not None and x_admin_key is not None and compare_digest(x_admin_key, settings.admin_api_key):
+    if _admin_key_matches(x_admin_key):
         if _looks_browser_originated(request):
             logger.warning(
                 "admin_key_rejected_from_browser_origin origin=%s user_id=%s",
@@ -310,6 +319,7 @@ def create_admin_elevation_token(user: User) -> tuple[str, datetime]:
 def get_elevated_admin_user(
     request: Request,
     current_user: Annotated[User, Depends(get_admin_user)],
+    x_admin_key: Annotated[str | None, Header()] = None,
 ) -> User:
     """Admin **and** freshly re-authenticated. For destructive operations only.
 
@@ -325,6 +335,24 @@ def get_elevated_admin_user(
     attached automatically: it has to be passed deliberately, per call, which is
     also what stops a CSRF-shaped request from carrying it for free.
     """
+    # A genuine server-to-server caller is already past this bar and cannot clear
+    # it any other way: it has no password to re-enter, so `/admin/elevate` would
+    # refuse it and these routes would be permanently closed to automation.
+    #
+    # This is a deliberate scoping of the control, not a hole. Elevation exists
+    # for one threat — a *browser session* being used by someone who is not the
+    # account holder (XSS, an extension, an unlocked laptop). A process holding a
+    # deployment secret is not that actor, and `get_admin_user` has already
+    # refused this key if the request came from a browser origin
+    # (`_looks_browser_originated`), so this branch is unreachable from a page.
+    #
+    # The residual risk is unchanged from before elevation existed: whoever holds
+    # JOTHIDAM_ADMIN_API_KEY can still run destructive operations without naming a
+    # person. That is P1-4 step 3's known trade-off, recorded there. If the key is
+    # ever retired, delete this branch with it.
+    if _admin_key_matches(x_admin_key) and not _looks_browser_originated(request):
+        return current_user
+
     raw = request.headers.get(ADMIN_ELEVATION_HEADER)
     if not raw:
         raise HTTPException(

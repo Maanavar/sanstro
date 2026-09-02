@@ -277,6 +277,71 @@ def test_bumping_token_version_revokes_a_live_elevation(admin_client, admin_user
     assert response.status_code == 403
 
 
+def test_a_server_to_server_key_caller_does_not_need_elevation(raw_client, monkeypatch):
+    """Machines have no password, so requiring one would close these routes to
+    automation entirely — `/admin/elevate` refuses an account with no
+    `hashed_password`, which every key caller is.
+
+    Scoping, not a hole: elevation defends against a *browser session* used by
+    someone who is not the account holder. A process holding a deployment secret
+    is not that actor, and the test below pins that the key still cannot be used
+    from a browser. The residual risk (key holder acts unnamed) is P1-4 step 3's
+    known trade-off and is unchanged by elevation existing.
+    """
+    from app.core.config import get_settings
+
+    key = "synthetic-server-to-server-key"  # noqa: S105 — test fixture value
+    monkeypatch.setattr(get_settings(), "admin_api_key", key, raising=False)
+
+    user_id = uuid4()
+    with SessionLocal() as session, session.begin():
+        session.add(User(user_id=user_id, email=f"svc-{uuid4().hex}@example.invalid"))
+
+    method, url, body = _DESTRUCTIVE_CALL
+    response = raw_client.request(
+        method,
+        url,
+        json=body,
+        headers={
+            "Authorization": f"Bearer {create_access_token(subject=str(user_id))}",
+            "X-Admin-Key": key,
+        },
+    )
+    assert response.status_code != 403, response.text
+
+
+@pytest.mark.parametrize("browser_header", ["origin", "referer"])
+def test_the_key_still_cannot_reach_a_destructive_route_from_a_browser(
+    raw_client, monkeypatch, browser_header
+):
+    """The bypass above must not become a way to spend a stolen key from a page.
+
+    `Origin` and `Referer` are set by the browser itself and cannot be forged by
+    page JavaScript, so their presence is reliable in the direction that matters.
+    """
+    from app.core.config import get_settings
+
+    key = "synthetic-server-to-server-key"  # noqa: S105 — test fixture value
+    monkeypatch.setattr(get_settings(), "admin_api_key", key, raising=False)
+
+    user_id = uuid4()
+    with SessionLocal() as session, session.begin():
+        session.add(User(user_id=user_id, email=f"svc-{uuid4().hex}@example.invalid"))
+
+    method, url, body = _DESTRUCTIVE_CALL
+    response = raw_client.request(
+        method,
+        url,
+        json=body,
+        headers={
+            "Authorization": f"Bearer {create_access_token(subject=str(user_id))}",
+            "X-Admin-Key": key,
+            browser_header: "https://vinaadi.example",
+        },
+    )
+    assert response.status_code == 403
+
+
 def test_an_admin_with_no_password_is_refused_rather_than_waved_through(admin_client, admin_user_row):
     """An OAuth admin has no password to re-enter, so there is no second proof
     available. Refusing is the fail-safe direction: the alternative is that the
