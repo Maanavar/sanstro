@@ -133,6 +133,61 @@ jobs:
       - name: Build
         run: pnpm --filter jothidam-ai-web build
 
+  web-image:
+    name: Web Docker image (build and boot)
+    runs-on: ubuntu-latest
+    # P0-5's Verify step, run somewhere with bandwidth.
+    #
+    # The image was unbuildable (npm + a lockfile that does not exist, and a
+    # `.next/standalone` that `next.config.mjs` never produced) and the fix went
+    # in unverified, because `pnpm install` inside the container makes one
+    # registry request per lockfile entry — ~1442 of them — and the development
+    # connection serves them at roughly one per five seconds. Five local
+    # attempts ran 9, 72, 111, 183 and 95 minutes without clearing that step.
+    #
+    # So the check lives here instead of in someone's terminal. It also stops
+    # the image rotting again: `web/Dockerfile` is not exercised by any other
+    # job, which is exactly how it came to be broken in three separate ways at
+    # once while every other gate stayed green.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      # Context is the repo root, NOT web/. This is a pnpm workspace and
+      # web/package.json depends on @vinaadi/shared and @vinaadi/design-tokens
+      # as `workspace:*`, which cannot resolve unless pnpm-lock.yaml,
+      # pnpm-workspace.yaml and packages/ are all inside the context.
+      # web/Dockerfile.dockerignore scopes it; BuildKit prefers that over the
+      # root .dockerignore, which is tuned for the API image and excludes web/.
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: web/Dockerfile
+          tags: vinaadi-web:ci
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      # A build that succeeds and a container that serves are two claims. This
+      # one specifically catches the HOSTNAME trap: Docker sets HOSTNAME to the
+      # container id and Next's standalone server binds to $HOSTNAME, so without
+      # `ENV HOSTNAME=0.0.0.0` the container starts cleanly and then never
+      # accepts a connection — a green build and a dead service.
+      - name: Boot it and require a response on 3000
+        run: |
+          docker run -d --name web -p 3000:3000 vinaadi-web:ci
+          for i in $(seq 1 30); do
+            if curl -fsS -o /dev/null http://localhost:3000/; then
+              echo "served on 3000 after ${i}s"
+              docker rm -f web
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::container never answered on 3000"
+          docker logs web
+          docker rm -f web
+          exit 1
+
   design-tokens:
     name: Design token ratchet (no new color literals)
     runs-on: ubuntu-latest
