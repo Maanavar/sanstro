@@ -132,11 +132,36 @@ Two real defects found and fixed, plus a third the document did not mention:
 **Not verified.** The image has not been built to completion on this machine.
 `pnpm install` inside the container makes ~1442 registry requests for its
 supply-chain policy pass and this network serves them at roughly one per five
-seconds; two attempts ran 9 and 111 minutes before being stopped. The Node 20
-finding above came out of the first attempt, so the build reached and passed the
-stage that matters — but **"docker build succeeds and the container serves on
-3000" is still an unmade claim.** Do not mark P0-5 done until someone has run
-it. The commit is deliberately being held back until then.
+seconds; attempts have run 9, 72, 111 and 183 minutes before being stopped, none
+reaching the end of the install step. The Node 20 finding above came out of the
+first attempt, so the build reached and passed the stage that matters — but
+**"docker build succeeds and the container serves on 3000" is still an unmade
+claim.** Do not mark P0-5 done until someone has run it. The commit is
+deliberately being held back until then.
+
+**How far it does get, from the build log** — this is the useful part, because it
+narrows what is left to prove. Inside the container the deps stage completes the
+whole workspace copy, and then:
+
+```
+#16 [deps 6/6] RUN pnpm install --frozen-lockfile --filter jothidam-ai-web...
+#16 7.361 Scope: 3 of 5 workspace projects
+#16 7.590 Verifying lockfile against supply-chain policies (1441 entries)...
+#16 7.605 Lockfile is up to date, resolution step is skipped
+#16 7.950 .            | +855 ++++++++++++++++++++++++++++++++
+#16 8.723 Progress: resolved 855, reused 0, downloaded 0, added 0
+#16 CANCELED
+```
+
+So the parts of the rewrite that could have been wrong are already proven right:
+the repo-root build context reaches `pnpm-lock.yaml` and `pnpm-workspace.yaml`,
+the `web/Dockerfile.dockerignore` scoping does not exclude what the install
+needs, `--frozen-lockfile` finds the lockfile current against the manifests (so
+no regeneration is owed), and `--filter jothidam-ai-web...` resolves to the right
+3 of 5 projects. What remains unproven is the package **download**, and
+everything after it: `next build`, the `.next/standalone` copy, and the
+container answering on 3000. That is a bandwidth problem, not a Dockerfile
+problem — ten minutes on a normal connection.
 
 Since first writing this section, a fourth P0-5 defect was found — mine.
 `output: "standalone"` assembles its bundle out of symlinks, and creating a
