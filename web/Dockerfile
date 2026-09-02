@@ -36,13 +36,43 @@ COPY packages/design-tokens/package.json packages/design-tokens/
 # mobile is not built here, but pnpm validates the lockfile against every
 # workspace manifest — a missing one is reported as a stale lockfile.
 COPY mobile/package.json mobile/
-# The store cache survives between builds, so a retry does not re-download 1442
-# packages. The raised timeout is for pnpm 11's supply-chain policy pass, which
-# makes one registry request per lockfile entry and trips the 60s default on a
-# cold store.
-RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-    pnpm install --frozen-lockfile --filter jothidam-ai-web... \
-      --config.store-dir=/pnpm/store \
+# @vinaadi/design-tokens declares `prepare: node build.js`, and pnpm runs a
+# workspace project's prepare script as part of install. Its manifest alone is
+# not enough: the script and the token source it reads have to be present, or
+# the deps stage dies with MODULE_NOT_FOUND *after* all 855 packages have
+# already been downloaded. build.js reads only tokens.json, so these two files
+# are the whole input.
+COPY packages/design-tokens/build.js packages/design-tokens/tokens.json packages/design-tokens/
+# This install used to hang forever, and the two reasons are worth recording
+# because neither is what the previous diagnosis assumed (bandwidth: "ten minutes
+# on a normal connection"). The symptom was always identical — it prints
+# `resolved 855, reused 0, downloaded 0` and then transfers nothing at all, for
+# 240s locally and for 4h47m on a GitHub-hosted runner, with an empty store to
+# show for it. Measured, not guessed: a host NIC counter validated against a
+# known 28MB container pull showed 0.0MB moving during those stalls.
+#
+# 1. --network-concurrency=4. At pnpm's default of 16 the install stalls inside
+#    buildkit. /proc showed pnpm holding 18 threads and ~14 sockets open to :443
+#    with nothing flowing. The identical command under `docker run` finishes in
+#    ~90s and fills an 800MB store, so it is neither the registry nor the link —
+#    buildkit's network namespace does not survive that fan-out. Capped at 4,
+#    downloads begin within 5 seconds. A single sequential request always
+#    succeeded, which is why a naive connectivity check proves nothing here.
+#
+# 2. No --mount=type=cache for the store. The mount was an optimisation ("a retry
+#    does not re-download 1442 packages"), but with it present the install stalls
+#    even at concurrency 4, and the mount itself stays 4.0K across nine builds —
+#    nothing was ever cached by it. It also buys nothing in CI, where cache
+#    mounts are runner-local and every run starts fresh; layer caching is already
+#    handled by cache-from/cache-to type=gha in the workflow.
+#
+# Mind the flag spelling. `--network-concurrency=4` is a real CLI option;
+# `--config.network-concurrency=4` passes the value as a *string* and pnpm
+# rejects it outright ("Expected `concurrency` to be a number from 1 and up,
+# got `4` (string)"). The `--config.` forms below are strings for the same
+# reason — they are tolerated, but do not assume they take effect.
+RUN pnpm install --frozen-lockfile --filter jothidam-ai-web... \
+      --network-concurrency=4 \
       --config.fetch-timeout=300000 \
       --config.fetch-retries=5
 

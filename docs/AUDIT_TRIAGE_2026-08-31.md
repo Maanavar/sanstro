@@ -42,7 +42,7 @@ output observed; where one was not, it says so.
 | P0-2a *(new — found by P0-2)* | **Done** | `a19cdac` |
 | P0-3 ruff gate, **121 → 0** | **Done** | `440f285` `80f99f3` `21c2103` `587e415` `cf6cfa2` |
 | P0-4 rate limits | **Done** | `b774815` |
-| P0-5 web Docker image | **Code done, build unverified** — see below | `0984023` |
+| P0-5 web Docker image | **3 build defects fixed 2026-09-02; boot still unproven** — see below | `0984023` |
 | P1-1 daily-snapshot failures | **Done** | `28e5728` |
 | P1-2 X-Forwarded-For | **Done** | `ee828dd` |
 | P1-3 geocoding logs | **Done** | `bc4b8b6` |
@@ -129,39 +129,65 @@ Two real defects found and fixed, plus a third the document did not mention:
   `HOSTNAME` to the container id and Next's standalone server binds to it, so
   the container would have started and then never accepted a connection.
 
-**Not verified.** The image has not been built to completion on this machine.
-`pnpm install` inside the container makes ~1442 registry requests for its
-supply-chain policy pass and this network serves them at roughly one per five
-seconds; attempts have run 9, 72, 111 and 183 minutes before being stopped, none
-reaching the end of the install step. The Node 20 finding above came out of the
-first attempt, so the build reached and passed the stage that matters — but
-**"docker build succeeds and the container serves on 3000" is still an unmade
-claim.** Do not mark P0-5 done until someone has run it. The commit is
-deliberately being held back until then.
-
-**How far it does get, from the build log** — this is the useful part, because it
-narrows what is left to prove. Inside the container the deps stage completes the
-whole workspace copy, and then:
+**Diagnosed 2026-09-02 — the bandwidth explanation above was wrong.** This section
+used to blame the development connection: ~1442 registry requests served "at
+roughly one per five seconds", attempts running 9, 72, 111 and 183 minutes, and
+the conclusion "a bandwidth problem, not a Dockerfile problem — ten minutes on a
+normal connection". That claim was testable, and it is false. The `web-image` CI
+job — a GitHub-hosted runner on a fast link — sat at the byte-identical line for
+**4 hours 47 minutes**:
 
 ```
-#16 [deps 6/6] RUN pnpm install --frozen-lockfile --filter jothidam-ai-web...
-#16 7.361 Scope: 3 of 5 workspace projects
-#16 7.590 Verifying lockfile against supply-chain policies (1441 entries)...
-#16 7.605 Lockfile is up to date, resolution step is skipped
-#16 7.950 .            | +855 ++++++++++++++++++++++++++++++++
-#16 8.723 Progress: resolved 855, reused 0, downloaded 0, added 0
-#16 CANCELED
+#19 2.403 Progress: resolved 855, reused 0, downloaded 0, added 0
 ```
 
-So the parts of the rewrite that could have been wrong are already proven right:
+Measurements taken while a build was in that state:
+
+- A host NIC counter, first **validated** against a known ~28MB container pull
+  (29.4MB observed), showed **0.0MB** moving during the stall. Not slow — nothing.
+- The `--mount=type=cache` pnpm store stood at **4.0K, zero entries, after nine
+  builds.** No package was ever cached by it.
+- `/proc` inside a running install showed pnpm holding **18 threads and ~14
+  concurrent sockets to :443**, with nothing flowing.
+- The **identical command under `docker run`** finished in ~90 seconds and filled
+  an 800MB store. Same image, same host, same network, same flags.
+
+So neither the link nor the registry was ever the constraint. Three separate
+defects kept the image unbuildable, each isolated by holding one variable:
+
+1. **pnpm's default `network-concurrency` of 16 stalls inside buildkit.** Capped
+   to `--network-concurrency=4`, downloads begin within 5 seconds. A single
+   sequential request always succeeded — which is why an ordinary connectivity
+   check proves nothing here, and is how the original diagnosis went wrong.
+2. **The `--mount=type=cache` store mount stalls the install even at concurrency
+   4.** Removed. It cached nothing (see the 4.0K above) and buys nothing in CI,
+   where cache mounts are runner-local and every run starts cold; layer caching
+   is already handled by `cache-from`/`cache-to type=gha`.
+3. **`@vinaadi/design-tokens` declares `prepare: node build.js`,** and pnpm runs a
+   workspace project's prepare during install. The deps stage copied only its
+   `package.json`, so the stage died `MODULE_NOT_FOUND` *after* all 855 packages
+   had already downloaded — a failure only reachable once 1 and 2 were fixed.
+   `build.js` and `tokens.json` are now copied in; they are its only inputs.
+
+Two traps worth recording. `--config.fetch-timeout=300000` and
+`--config.fetch-retries=5` pass their values as **strings**; pnpm rejects
+`--config.network-concurrency=4` outright for that reason ("Expected
+`concurrency` to be a number from 1 and up, got `4` (string)"), so neither of
+those settings should be assumed to take effect. And pnpm's default reporter
+prints **nothing** while stalled, which is the single reason this read as "slow
+network" for months rather than as a hang.
+
+**Still an unmade claim: the boot.** "docker build succeeds and the container
+serves on 3000" is two claims, and the fixes above only bring the first within
+reach. Do not mark P0-5 done until a container from this image has answered on
+3000.
+
+The parts of the original rewrite that could have been wrong are proven right:
 the repo-root build context reaches `pnpm-lock.yaml` and `pnpm-workspace.yaml`,
-the `web/Dockerfile.dockerignore` scoping does not exclude what the install
-needs, `--frozen-lockfile` finds the lockfile current against the manifests (so
-no regeneration is owed), and `--filter jothidam-ai-web...` resolves to the right
-3 of 5 projects. What remains unproven is the package **download**, and
-everything after it: `next build`, the `.next/standalone` copy, and the
-container answering on 3000. That is a bandwidth problem, not a Dockerfile
-problem — ten minutes on a normal connection.
+`web/Dockerfile.dockerignore` does not exclude what the install needs,
+`--frozen-lockfile` finds the lockfile current against the manifests (so no
+regeneration is owed), and `--filter jothidam-ai-web...` resolves to the right
+3 of 5 projects.
 
 Since first writing this section, a fourth P0-5 defect was found — mine.
 `output: "standalone"` assembles its bundle out of symlinks, and creating a
