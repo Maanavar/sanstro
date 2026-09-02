@@ -64,6 +64,7 @@ from app.constants.astrology import NAKSHATRA_NAMES, SIGN_LORD
 from app.data.kuligai_polarity import favours as kuligai_favours
 from app.data.kuligai_polarity import rejects as kuligai_rejects
 from app.models import BirthProfile, Chart
+from app.schemas.charts import ChartCalculateResponseData
 from app.schemas.muhurta import (
     BiText,
     MuhurtaActivityLocation,
@@ -613,7 +614,7 @@ def find_best_muhurta_slots(
     activity_timezone: str | None = None,
     include_excluded: bool = False,
     paksha: str | None = None,
-    chart_data: object | None = None,
+    chart_data: ChartCalculateResponseData | None = None,
     activity_place: str | None = None,
 ) -> MuhurtaResponse:
     activity = normalize_activity(activity)
@@ -647,7 +648,7 @@ def find_best_muhurta_slots(
     has_personal_chart = chart_id is not None or chart_data is not None
 
     if chart_data is not None:
-        if not has_activity_location:
+        if activity_latitude is None or activity_longitude is None or activity_timezone is None:
             raise HTTPException(status_code=422, detail="lat, lon, and tz are required for an in-memory chart")
         lat = float(activity_latitude)
         lon = float(activity_longitude)
@@ -678,7 +679,7 @@ def find_best_muhurta_slots(
         except Exception as exc:
             logger.debug("Muhurta dasha lookup failed for in-memory chart: %s", exc)
     elif chart_id is None:
-        if not has_activity_location:
+        if activity_latitude is None or activity_longitude is None or activity_timezone is None:
             raise HTTPException(status_code=422, detail="lat, lon, and tz are required without chartId")
         lat = float(activity_latitude)
         lon = float(activity_longitude)
@@ -696,7 +697,7 @@ def find_best_muhurta_slots(
             raise HTTPException(status_code=404, detail="Birth profile not found")
 
         daily_location = resolve_effective_daily_location(bp)
-        if has_activity_location:
+        if activity_latitude is not None and activity_longitude is not None and activity_timezone is not None:
             lat = float(activity_latitude)
             lon = float(activity_longitude)
             tz_name = str(activity_timezone)

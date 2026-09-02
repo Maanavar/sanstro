@@ -1711,7 +1711,7 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
         for p in chart_snapshot.data.planets
     }
     natal_planet_rasis = {p.graha: p.rasi for p in chart_snapshot.data.planets}
-    _node_rasi_map = {g: natal_planet_rasis[g] for g in ("RAHU", "KETU") if g in natal_planet_rasis}
+    _node_rasi_map: dict[str, int] = {g: natal_planet_rasis[g] for g in ("RAHU", "KETU") if g in natal_planet_rasis}
     functional_nature_map = {
         planet: get_functional_nature(natal_lagna_rasi, planet, node_rasi_map=_node_rasi_map)
         for planet in {"SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU"}

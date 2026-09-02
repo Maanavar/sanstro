@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time
 from itertools import combinations
@@ -24,7 +25,7 @@ from app.calculations.chart_strength import (
 )
 from app.calculations.dasha import DashaPeriod, calculate_vimshottari_timeline
 from app.calculations.display_names import planet_en, planet_ta, sani_cycle_en, sani_cycle_ta
-from app.calculations.ephemeris import calculate_sidereal_planets
+from app.calculations.ephemeris import EphemerisBody, calculate_sidereal_planets
 from app.calculations.functional_nature import get_functional_nature
 from app.calculations.nakshatra_lord_dynamics import nakshatra_lord, nakshatra_lord_note
 from app.calculations.planet_conditions import (
@@ -407,7 +408,7 @@ def _contact_rank(source: str, aspect_house: int, is_return: bool) -> int:
 
 def _planet_transit_contacts(
     natal_planet: PlanetPosition,
-    transit_bodies: dict[str, object],
+    transit_bodies: Mapping[str, EphemerisBody],
 ) -> list[_TransitContact]:
     """Current gochar contacts on this natal planet's sign, strongest first.
 
@@ -1255,7 +1256,7 @@ def _build_planet_sections(
     planets: list[PlanetPosition],
     lagna_rasi: int,
     timeline,
-    transit_bodies: dict[str, object],
+    transit_bodies: Mapping[str, EphemerisBody],
     stage: str = STAGE_ADULT,
 ) -> tuple[list[ChartExplanationPlanet], dict[str, str]]:
     node_rasi_map = {p.graha: p.rasi for p in planets if p.graha in ("RAHU", "KETU")}
@@ -1759,7 +1760,7 @@ def _activation_signal_text(source_planet: str, active_lord: str, signal_type: s
 def _activation_signals(
     active_lord: str,
     natal_planet: PlanetPosition,
-    transit_bodies: dict[str, object],
+    transit_bodies: Mapping[str, EphemerisBody],
 ) -> list[ChartExplanationActivationSignal]:
     signals: list[ChartExplanationActivationSignal] = []
     active_transit = transit_bodies.get(active_lord)
@@ -1828,12 +1829,12 @@ def _build_current_activation_section(
     moon: PlanetPosition,
     timeline,
     as_of: date,
-    transit_bodies: dict[str, object],
+    transit_bodies: Mapping[str, EphemerisBody],
 ) -> ChartExplanationCurrentActivationSection:
     natal_by_planet = {planet.graha: planet for planet in planets}
     # node_rasi_map so a Rahu/Ketu dasha lord resolves via dispositor+house, not
     # the NEUTRAL table fallback — consistent with every other consumer (audit C4).
-    _node_rasi_map = {g: natal_by_planet[g].rasi for g in ("RAHU", "KETU") if g in natal_by_planet}
+    _node_rasi_map: dict[str, int] = {g: natal_by_planet[g].rasi for g in ("RAHU", "KETU") if g in natal_by_planet}
     periods: list[tuple[str, DashaPeriod]] = [
         ("MAHADASHA", timeline.current_mahadasha),
         ("BHUKTI", timeline.current_antardasha),
