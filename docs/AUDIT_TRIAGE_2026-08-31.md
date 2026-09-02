@@ -42,7 +42,7 @@ output observed; where one was not, it says so.
 | P0-2a *(new — found by P0-2)* | **Done** | `a19cdac` |
 | P0-3 ruff gate, **121 → 0** | **Done** | `440f285` `80f99f3` `21c2103` `587e415` `cf6cfa2` |
 | P0-4 rate limits | **Done** | `b774815` |
-| P0-5 web Docker image | **3 build defects fixed 2026-09-02; boot still unproven** — see below | `0984023` |
+| P0-5 web Docker image | **DONE 2026-09-03.** Root cause was our own `--config.fetch-timeout` flag. Builds in 2m16s; container answers **HTTP 200 on 3000** | `0984023` + below |
 | P1-1 daily-snapshot failures | **Done** | `28e5728` |
 | P1-2 X-Forwarded-For | **Done** | `ee828dd` |
 | P1-3 geocoding logs | **Done** | `bc4b8b6` |
@@ -152,47 +152,65 @@ Measurements taken while a build was in that state:
 - The **identical command under `docker run`** finished in ~90 seconds and filled
   an 800MB store. Same image, same host, same network, same flags.
 
-So neither the link nor the registry was ever the constraint. But that is where
-the confident part of this diagnosis ends, and an earlier revision of this
-section did not say so. **Corrected 2026-09-02, same day:** it presented three
-findings as equally established. One is. Two are not.
+## ROOT CAUSE, 2026-09-03 — it was our own flag
 
-| Claim | Status |
+Every measurement above is accurate. Every conclusion drawn from them was wrong.
+From CI run `33663590784`, once `--reporter=append-only` made pnpm's output
+visible:
+
+```
+TypeError [ERR_INVALID_ARG_TYPE]: The "delay" argument must be of type number.
+Received type string ('300000')
+    at AbortSignal.timeout (node:internal/abort_controller:240:5)
+    at fetch (pnpm.mjs:32177:18)
+```
+
+**`--config.fetch-timeout=300000` passed its value as a string.** pnpm handed it
+to `AbortSignal.timeout()`, which throws on a non-number — and it throws on
+*every tarball fetch, before a socket is opened*. **201 exceptions in one run and
+not one successful download.**
+
+It explains the whole symptom exactly, including every measurement that made the
+other theories look plausible:
+
+| Observation | What it actually meant |
 | --- | --- |
-| The image genuinely could not build as it was | **Proven.** CI hung 4h47m on a clean runner — not one machine's problem |
-| `design-tokens` `prepare` has no source → `MODULE_NOT_FOUND` | **Proven.** Deterministic, reproduced, and plain from the file list |
-| `--network-concurrency=4` fixes the stall | **Not established.** Worked in an isolated repro twice and in one full build; has not reproduced since |
-| Removing the cache mount fixes the stall | **Not established.** A later build has no cache mount and stalls anyway |
-| Bandwidth | **Disproven** (above) |
-| A buildkit/`docker run` MTU mismatch | **Disproven** (below) |
+| `resolved 855` in 1s, then `downloaded 0` forever | Metadata resolution doesn't take that code path. Every tarball does. |
+| 0.0MB on a validated host NIC counter | Nothing was ever requested. Not slow — never sent. |
+| `docker run` with the "identical" command worked in ~90s | **It was not identical.** It didn't carry the flag. This confound is what kept aiming the investigation at buildkit. |
+| Capping concurrency "started downloads in 5s" | That run didn't carry the flag either. |
 
-1. **`@vinaadi/design-tokens` declares `prepare: node build.js`,** and pnpm runs a
-   workspace project's prepare during install. The deps stage copied only its
-   `package.json`, so the stage died `MODULE_NOT_FOUND` *after* all 855 packages
-   had already downloaded. `build.js` and `tokens.json` are now copied in; they
-   are its only inputs. This one is a fix.
-2. **`--network-concurrency=4` is a mitigation under test.** `/proc` showed pnpm
-   holding 18 threads and ~14 concurrent sockets to :443 with nothing flowing,
-   and capping the fan-out started downloads within 5 seconds — twice in an
-   isolated repro, once in a full build. Then a build with the cap in place
-   stalled anyway. One good run is not a controlled result. (A single sequential
-   request always succeeded, which is why an ordinary connectivity check proves
-   nothing here, and is how the bandwidth diagnosis went wrong.)
-3. **Dropping the `--mount=type=cache` store is justified, but not as a cause.**
-   Proven about the mount: it cached nothing — 4.0K, zero entries, nine builds.
-   That plus "cache mounts are runner-local, so it buys nothing in CI where
-   layer caching is already `cache-from`/`cache-to type=gha`" is enough to drop
-   it on its own merits. What is *not* proven is that it caused the stall: a
-   clean build with no mount and the cap in place stalled 7 minutes at
-   `downloaded 0` after a full cache prune.
+**Verified both directions, 2026-09-03.** With the two `--config.` flags removed
+and nothing else changed, on the same machine that had stalled three times:
+`downloaded 855, added 855, done` — **`Done in 2m 15.8s`, succeeded on attempt 1.**
 
-**Disproven: MTU.** Worth recording because it is the most attractive remaining
-theory and it is wrong. A smaller MTU inside buildkit than on the working
-`docker run` path would have explained the exact signature — small metadata
-fetches succeeding (855 resolved) while large tarball transfers hang at zero
-bytes — and would have explained it in *both* environments at once. Probed
-directly: a buildkit `RUN` step reports `mtu 1500`, and `docker run` on the
-default bridge reports `mtu 1500`. Same value. Not the cause.
+Every prior diagnosis is therefore retired. Recorded because each cost real time
+and would otherwise be re-derived:
+
+| Theory | Verdict |
+| --- | --- |
+| Bandwidth ("ten minutes on a normal connection") | **False.** A fast GitHub runner stalled 4h47m on the identical line. |
+| `network-concurrency` 16 vs 4 | **False.** Three fresh attempts capped at 4, clean runner, all stalled. |
+| The `--mount=type=cache` store | **False as a cause.** Still dropped on its own merits: 4.0K, zero entries, nine builds, and cache mounts are runner-local so they buy nothing in CI. |
+| Buildkit/`docker run` MTU mismatch | **False.** Probed directly — both report 1500. |
+| `design-tokens` `prepare` had no source | **True.** Real, deterministic, and independently a fix. |
+
+**The lesson, because it is the expensive part.** The comment sitting directly
+above the offending line said these `--config.` flags "are tolerated, but do not
+assume they take effect." The doubt was recorded, correctly, and then treated as
+a footnote instead of a suspect — for the entire investigation, while four
+increasingly exotic theories were tested against the network. A flag you have
+written down that you are unsure about is the **first** thing to remove, not the
+last. Bisecting the environment before eliminating your own inputs is how five
+months go by.
+
+Both `--config.` flags are gone. They were also redundant: the repo `.npmrc`
+already sets `fetch-timeout` and `fetch-retries` in a file pnpm parses with real
+types.
+
+`--network-concurrency=4` is deliberately kept for one more run so the CI build
+changes a single variable against a comparable failure. It is **not** a fix and
+was never shown to do anything; remove it once the image is green.
 
 **What was done about it instead.** Local buildkit has now produced three
 different outcomes from one unchanged Dockerfile, so this machine cannot
@@ -220,10 +238,30 @@ those settings should be assumed to take effect. And pnpm's default reporter
 prints **nothing** while stalled, which is the single reason this read as "slow
 network" for months rather than as a hang.
 
-**Still an unmade claim: the boot.** "docker build succeeds and the container
-serves on 3000" is two claims, and the fixes above only bring the first within
-reach. Do not mark P0-5 done until a container from this image has answered on
-3000.
+**Both claims now made, 2026-09-03.** "docker build succeeds" and "the container
+serves on 3000" are two claims, and this section rightly refused to call P0-5
+done on the first alone. Both are now observed end to end:
+
+```
+#15 151.6 Done in 2m 15.8s using pnpm v11.8.0
+#15 152.1 ==> pnpm install succeeded on attempt 1
+#18  91.4  ✓ Compiled successfully in 73s
+#23 naming to docker.io/library/vinaadi-web:local done
+
+$ docker run -d -p 3200:3000 vinaadi-web:local
+ ▲ Next.js 15.5.19   - Network: http://0.0.0.0:3000
+ ✓ Ready in 338ms
+$ curl -o /dev/null -w "%{http_code} %{size_download}" localhost:3200/
+200 59798
+```
+
+That also retires the `ENV HOSTNAME=0.0.0.0` worry as *verified* rather than
+reasoned: the server reports binding `0.0.0.0:3000` and answers, which is
+exactly the failure mode that setting exists to prevent.
+
+**P0-5 is done.** What remains is cosmetic, not a gate: drop
+`--network-concurrency=4` once CI is green (see above — it is a leftover of a
+wrong diagnosis, kept for one run to isolate the variable).
 
 The parts of the original rewrite that could have been wrong are proven right:
 the repo-root build context reaches `pnpm-lock.yaml` and `pnpm-workspace.yaml`,

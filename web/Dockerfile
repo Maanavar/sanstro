@@ -43,71 +43,79 @@ COPY mobile/package.json mobile/
 # already been downloaded. build.js reads only tokens.json, so these two files
 # are the whole input.
 COPY packages/design-tokens/build.js packages/design-tokens/tokens.json packages/design-tokens/
-# This install stalls. The stall is real and environment-independent — the
-# symptom is byte-identical on a development machine and on a GitHub-hosted
-# runner, which sat at
+# THE STALL WAS SELF-INFLICTED. Root cause, finally, from CI run 33663590784:
 #
-#   Progress: resolved 855, reused 0, downloaded 0, added 0
+#   TypeError [ERR_INVALID_ARG_TYPE]: The "delay" argument must be of type
+#   number. Received type string ('300000')
+#       at AbortSignal.timeout (node:internal/abort_controller:240:5)
+#       at fetch (pnpm.mjs:32177:18)
 #
-# for 4h47m. Measured, not guessed: a host NIC counter, validated first against a
-# known ~28MB container pull, showed 0.0MB moving during the stall. It is not
-# slow. It transfers nothing. The identical command under `docker run` finishes
-# in ~90s and fills an 800MB store, so it is neither the registry nor the link.
-# That also retires the earlier bandwidth explanation ("ten minutes on a normal
-# connection"), which was testable and is false.
+# `--config.fetch-timeout=300000` passed the value as a **string**. pnpm handed
+# it straight to AbortSignal.timeout(), which throws for a non-number, and it
+# throws on EVERY tarball fetch — before a socket is ever opened. 201 of those
+# exceptions in one run, and not a single successful download.
 #
-# WHAT CAUSES IT IS NOT ESTABLISHED. The two flags below correlate with one good
-# run each; they are mitigations under test, not a diagnosis. Read them that way
-# before building anything on top of them.
+# That accounts for the entire symptom, exactly, and for why every earlier theory
+# failed to:
 #
-# 1. --network-concurrency=4. /proc showed pnpm holding 18 threads and ~14
-#    sockets open to :443 with nothing flowing, and capping the fan-out started
-#    downloads within 5 seconds — in an isolated repro twice, and in one full
-#    build. It has not reproduced since: a later build with the cap in place
-#    stalled anyway. One good run, not a controlled result.
+#   - `resolved 855` in one second, then `downloaded 0` forever. Metadata
+#     resolution does not take that code path; every tarball does.
+#   - 0.0MB on a host NIC counter validated against a known ~28MB pull. Nothing
+#     was ever requested, so there was nothing to measure. Not slow — never sent.
+#   - `docker run` with the "identical" command finishing in ~90s. It was not
+#     identical. It did not carry this flag. That confound is what kept pointing
+#     the investigation at buildkit.
 #
-# 2. No --mount=type=cache for the store. What is proven about the mount is only
-#    that it cached nothing — 4.0K and zero entries after nine builds. It is
-#    dropped on that, and because cache mounts are runner-local so it buys
-#    nothing in CI where layer caching is already cache-from/cache-to type=gha.
-#    It is NOT dropped on the claim that it caused the stall: a build with no
-#    mount and the cap in place still stalled 7 minutes at `downloaded 0` after
-#    a full cache prune.
+# Every previous diagnosis is therefore wrong, and each is recorded here because
+# each cost real time and would otherwise be re-derived:
 #
-# Disproven, recorded so nobody spends a day re-deriving it: MTU. A smaller MTU
-# inside buildkit than on the working `docker run` path would have explained
-# small metadata fetches succeeding while large tarballs hang at zero bytes, in
-# both environments at once. Probed directly — a buildkit RUN step and
-# `docker run` both report 1500. Not the cause.
+#   BANDWIDTH ("ten minutes on a normal connection") — false. A GitHub-hosted
+#     runner on a fast link stalled 4h47m on the byte-identical line.
+#   NETWORK-CONCURRENCY 16 vs 4 — false. Three fresh attempts with the cap at 4,
+#     on a clean runner, all stalled identically. The one "good run" that made
+#     this look right was a run without the broken flag.
+#   THE --mount=type=cache STORE — false as a cause. Dropping it changed nothing;
+#     a clean build with no mount still stalled. (Still dropped, on its own
+#     merits: it measured 4.0K with zero entries after nine builds, and cache
+#     mounts are runner-local so they buy nothing in CI, where layer caching is
+#     already cache-from/cache-to type=gha.)
+#   MTU — false. A smaller MTU inside buildkit would have explained small
+#     metadata fetches succeeding while large tarballs hang at zero. Probed: a
+#     buildkit RUN step and `docker run` both report 1500.
 #
-# So the install is made SURVIVABLE rather than understood: three attempts, each
-# with its own timeout. A working install is 90s to a few minutes, so 8 minutes
-# is roughly ten times the margin it needs; past that it is a hang, and a hung
-# attempt now dies, says so, and hands over to a fresh process instead of
-# holding the build open until the job's 30-minute cap. TERM before KILL
-# (--kill-after) so pnpm can drop its store lock — a KILLed attempt leaves one
-# behind and blocks the retry. This is control flow, not network behaviour, so
-# it cannot confound the two mitigations above, and the log names the attempt
-# that won: if attempt 1 stalls and attempt 2 succeeds on identical inputs,
-# non-determinism is the finding.
+# The lesson worth keeping: the comment that used to sit here said these
+# `--config.` flags "are tolerated, but do not assume they take effect." That was
+# half-right in the worst way. They are not tolerated — they are the bug — and
+# the note recording the doubt sat directly above the line causing the outage for
+# the entire investigation. A flag you are unsure about is a suspect, not a
+# footnote.
 #
-# --reporter=append-only because pnpm's default reporter rewrites one line in
-# place and prints nothing at all while stalled, which is the single reason this
-# read as "slow network" for months rather than as a hang.
+# Both --config. flags are simply gone. They were also redundant: the repo
+# `.npmrc` already sets fetch-timeout and fetch-retries, in a file pnpm parses
+# with real types. If these ever need setting here, set them there.
 #
-# Mind the flag spelling. `--network-concurrency=4` is a real CLI option;
-# `--config.network-concurrency=4` passes the value as a *string* and pnpm
-# rejects it outright ("Expected `concurrency` to be a number from 1 and up,
-# got `4` (string)"). The `--config.` forms below are strings for the same
-# reason — they are tolerated, but do not assume they take effect.
+# --network-concurrency=4 is KEPT for now, and it is NOT a fix — it was never
+# shown to do anything. It stays only so this build changes one variable at a
+# time against a run we can compare to. Once the image is green, remove it; it
+# is a leftover of a wrong diagnosis, not a requirement.
+#
+# The retry loop stays as insurance, and it is what produced this diagnosis:
+# three bounded attempts instead of one unbounded hang turned a 4h47m
+# cancellation into a 24-minute failure with a readable stack trace. A working
+# install is 90s to a few minutes, so 8 minutes is ~10x margin. TERM before KILL
+# (--kill-after) so pnpm drops its store lock and the next attempt is not blocked
+# by the previous corpse.
+#
+# --reporter=append-only is why the stack trace was visible at all: pnpm's
+# default reporter rewrites one line in place, and CI captures that as silence.
+# It is the single reason this read as "slow network" for months, and the reason
+# it read as a TypeError within one run of turning it on.
 RUN set -eu; \
     for attempt in 1 2 3; do \
       echo "==> pnpm install, attempt ${attempt}/3"; \
       if timeout --kill-after=30 480 pnpm install --frozen-lockfile --filter jothidam-ai-web... \
             --network-concurrency=4 \
-            --reporter=append-only \
-            --config.fetch-timeout=300000 \
-            --config.fetch-retries=5; then \
+            --reporter=append-only; then \
         echo "==> pnpm install succeeded on attempt ${attempt}"; \
         exit 0; \
       fi; \
