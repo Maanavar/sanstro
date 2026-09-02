@@ -39,8 +39,23 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+      # Install what production installs, in the order the Dockerfile does it.
+      #
+      # `pip install -e .[dev]` resolved pyproject's ranges to whatever was
+      # newest that morning, so CI silently tested a dependency set nothing
+      # ships: FastAPI 0.141.1 / Starlette 1.6.0 against production's pinned
+      # 0.136.1 / 1.0.0. That is not academic — `route.path` differs between
+      # them, so `_chart_id_routes()` in tests/test_chart_access_guard.py found
+      # 0 routes instead of 53 and the ownership guard failed against a
+      # combination that exists nowhere but this runner.
       - name: Install backend
-        run: pip install -e .[dev]
+        run: |
+          pip install -r requirements.txt
+          # The package itself, without letting pip re-resolve the pins above.
+          pip install --no-deps -e .
+          # Test-only tooling; deliberately absent from requirements.txt
+          # because the production image has no use for it.
+          pip install "pytest>=8.0,<9.0" "pytest-cov>=5.0,<7.0"
       - name: Run pytest
         run: pytest -q
 
@@ -95,8 +110,13 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+      # Pinned, for the same reason as the backend-tests job above: a migration
+      # round-trip proves nothing about production if it runs against a
+      # different SQLAlchemy or Alembic than production has.
       - name: Install backend
-        run: pip install -e .
+        run: |
+          pip install -r requirements.txt
+          pip install --no-deps -e .
       - name: Upgrade -> downgrade -> upgrade
         run: |
           alembic upgrade head
