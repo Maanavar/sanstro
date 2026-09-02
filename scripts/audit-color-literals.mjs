@@ -49,7 +49,20 @@ function collectFindings() {
         let match;
         while ((match = COLOR_RE.exec(line)) !== null) {
           findings.push({
-            key: `${repoPath}:${index + 1}:${match[0]}:${line.trim()}`,
+            // NO LINE NUMBER IN THE KEY. It used to be
+            // `file:line:value:source`, which made the ratchet
+            // line-sensitive: inserting a single line at the top of a file
+            // shifted every literal below it and the gate reported them all
+            // as new. That is how a baseline of 200 came to report 347 "new"
+            // literals without anyone adding a colour, and why the gate has
+            // been failing continuously rather than guarding anything.
+            //
+            // `file:value:source` still distinguishes different literals and
+            // different usages of the same literal, but survives edits
+            // elsewhere in the file. Two identical usages on different lines
+            // collapse to one entry, which is the right trade: the gate exists
+            // to catch a NEW hardcoded colour, not to count repetitions.
+            key: `${repoPath}:${match[0]}:${line.trim()}`,
             file: repoPath,
             line: index + 1,
             value: match[0],
@@ -59,7 +72,14 @@ function collectFindings() {
       });
     }
   }
-  return findings.sort((a, b) => a.key.localeCompare(b.key));
+  // Keys are no longer unique per occurrence (see above), so collapse repeats.
+  // The first occurrence keeps its line number, which is only ever used to
+  // point a human at the code — it is deliberately not part of the key.
+  const byKey = new Map();
+  for (const finding of findings) {
+    if (!byKey.has(finding.key)) byKey.set(finding.key, finding);
+  }
+  return [...byKey.values()].sort((a, b) => a.key.localeCompare(b.key));
 }
 
 function loadBaseline() {
