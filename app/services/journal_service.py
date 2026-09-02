@@ -13,6 +13,7 @@ from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.transits import RASI_NAMES
 from app.models import BirthProfile, Chart, FamilyMember, FamilyVault, JournalEntry
+from app.schemas.charts import ChartCalculateResponse
 from app.schemas.dasha import ResponseMeta
 from app.schemas.journal import (
     FamilyVaultJournalResponse,
@@ -246,7 +247,7 @@ def _extract_tags(note_text: str, life_area: str) -> list[str]:
     return tags[:8]
 
 
-def _anchor_payload(chart_snapshot: object, entry_date: date) -> JournalAnchorData:
+def _anchor_payload(chart_snapshot: ChartCalculateResponse, entry_date: date) -> JournalAnchorData:
     birth_timezone = chart_snapshot.data.birth_profile.birth_timezone
     tz = resolve_timezone(birth_timezone)
     local_noon = datetime.combine(entry_date, time(12, 0), tzinfo=tz)

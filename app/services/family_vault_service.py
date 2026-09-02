@@ -16,12 +16,12 @@ from app.calculations.family_harmony_remedies import (
     MemberPlanet,
     synthesize_family_harmony_remedies,
 )
-from app.calculations.panchangam import calculate_daily_panchangam
+from app.calculations.panchangam import PanchangamSnapshot, calculate_daily_panchangam
 from app.calculations.remedies import remedy_disclaimer
 from app.core.subscription import is_premium
 from app.core.tier_limits import get_limits
 from app.models import BirthProfile, Chart, FamilyDailyScore, FamilyMember, FamilyVault, User
-from app.schemas.daily_guidance import DailyGuidanceWindow
+from app.schemas.daily_guidance import DailyGuidanceResponse, DailyGuidanceWindow
 from app.schemas.dasha import ResponseMeta
 from app.schemas.family_vaults import (
     CompositeMemberScore,
@@ -61,6 +61,7 @@ from app.schemas.family_vaults import (
     FamilyVaultTodayData,
     FamilyVaultTodayResponse,
 )
+from app.schemas.transits import SaniCycleResponse, TransitSnapshotResponse
 from app.services.chart_service import (
     calculate_chart_for_persisted_profile,
     create_birth_profile_record,
@@ -80,10 +81,10 @@ class _MemberSnapshot:
     member: FamilyMember
     birth_profile: BirthProfile
     chart_id: UUID
-    daily_guidance: object
-    gochar: object
-    sani_cycle: object
-    panchangam: object
+    daily_guidance: DailyGuidanceResponse
+    gochar: TransitSnapshotResponse
+    sani_cycle: SaniCycleResponse
+    panchangam: PanchangamSnapshot
 
 
 def _ensure_user(session: Session, owner_user_id: UUID) -> None:

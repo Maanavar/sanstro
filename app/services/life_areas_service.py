@@ -20,6 +20,7 @@ import hashlib
 import logging
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta, tzinfo
+from typing import TypedDict
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -1179,14 +1180,20 @@ def _score_area(
     # inheriting today's segmentation for a date months away.
     sade_sati_severity: str | None = None,
     sade_sati_mitigation_count: int = 0,
-) -> tuple[int, dict[str, int]]:
+) -> tuple[int, dict[str, int], str | None]:
+    """(total, per-layer breakdown, gate grade).
+
+    The annotation said two values while the body returned three; the three
+    call sites all unpack three, so the code was right and the signature was
+    stale from when `gate_grade` was added.
+    """
     karakas = _AREA_KARAKA.get(area, ["JUPITER"])
     primary_karaka = karakas[0]
     primary_house = _AREA_PRIMARY_HOUSE.get(area, 1)
     primary_house_rasi = ((lagna_rasi + primary_house - 2) % 12) + 1
     house_lord = SIGN_LORD.get(primary_house_rasi, "SUN")
 
-    transit_rasi = transit_bodies.get(primary_karaka).rasi if primary_karaka in transit_bodies else natal_moon_rasi
+    transit_rasi = transit_bodies[primary_karaka].rasi if primary_karaka in transit_bodies else natal_moon_rasi
     karaka_house_from_moon = house_from_reference(natal_moon_rasi, transit_rasi)  # noqa: F841 — retained scaffolding; jupiter_house is used below
     jupiter_house = house_from_reference(natal_moon_rasi, transit_bodies["JUPITER"].rasi)
     saturn_house = house_from_reference(natal_moon_rasi, transit_bodies["SATURN"].rasi)
@@ -1373,6 +1380,15 @@ _GOAL_TO_AREA: dict[str, str | None] = {
 }
 
 
+class _MarakaGuard(TypedDict):
+    """The maraka override payload. Was `dict[str, object]`, which made every
+    read an `object` and so unusable without a cast at the call site."""
+
+    override_caution_ta: str
+    override_caution_en: str
+    suppress_score_display: bool
+
+
 def _maraka_safety_check(
     area: str,
     maha_lord: str,
@@ -1380,7 +1396,7 @@ def _maraka_safety_check(
     lagna_rasi: int,
     native_age: int,
     node_rasi_map: dict[str, int] | None = None,
-) -> dict[str, object] | None:
+) -> _MarakaGuard | None:
     # node_rasi_map so a Rahu/Ketu dasha lord can inherit a MARAKA nature from
     # its dispositor instead of defaulting to NEUTRAL (audit C4).
     maha_fn = get_functional_nature(lagna_rasi, maha_lord, node_rasi_map=node_rasi_map)
@@ -2036,7 +2052,16 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
                 narrative=bundle.narrative,
                 outlook=_with_improvement_hint(bundle.outlook, next_improvement),
                 remedy=bundle.remedy,
-                caution=_duration_caution(area, next_improvement) if score < 50 else bundle.caution,
+                # `next_improvement` is always set when score < 50 — that is the
+            # first disjunct of the condition above, and
+            # `_find_next_improvement_date` always returns a date. The
+            # explicit check states an invariant across two separate `if`s
+            # that a reader (and a type checker) cannot otherwise see.
+            caution=(
+                _duration_caution(area, next_improvement)
+                if score < 50 and next_improvement is not None
+                else bundle.caution
+            ),
             )
 
         maraka_guard = _maraka_safety_check(

@@ -2,12 +2,26 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any, TypedDict
 from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+
+if TYPE_CHECKING:
+    # The calculation dataclasses, aliased because the schema models below
+    # carry the same two names. Imported only for annotations:
+    # `compute_compatibility_intelligence` is deliberately imported inside its
+    # caller rather than at module scope, and a module-level import here would
+    # undo that.
+    from app.calculations.compatibility_intelligence import (
+        ChartMarriageStrength as CalcChartMarriageStrength,
+    )
+    from app.calculations.compatibility_intelligence import (
+        SevvaiDoshamDetail as CalcSevvaiDoshamDetail,
+    )
+    from app.calculations.porutham import KutaResult as CalcKutaResult
 
 from app.calculations.astro import NAKSHATRA_NAMES, utc_datetime_to_julian_day
 from app.calculations.ephemeris import calculate_sidereal_planets
@@ -582,7 +596,28 @@ def _label_for_percentage(percentage: float) -> str:
     return "CAUTION"
 
 
-def _contextualize_porutham_result(result, compatibility_context: str) -> dict[str, object]:
+class ContextualizedPorutham(TypedDict):
+    """What `_contextualize_porutham_result` returns.
+
+    It was `dict[str, object]`, which is true but useless: every read came back
+    as `object`, so `for k in shaped["kutas"]` was "not iterable" and
+    `NadiDoshaData(**shaped["nadi_dosha"])` was "not a mapping" — four of this
+    module's type errors, all from one annotation. Spelling the shape out fixes
+    the callers and documents the payload in one place.
+    """
+
+    kutas: list[CalcKutaResult]
+    total_score: int
+    max_score: int
+    percentage: float
+    label: str
+    rajju_dosha: bool
+    vedha_dosha: bool
+    nadi_dosha: dict[str, object]
+    summary: RelationshipBiText
+
+
+def _contextualize_porutham_result(result, compatibility_context: str) -> ContextualizedPorutham:
     allowed = set(_CONTEXT_KUTA_MASK.get(compatibility_context, _CONTEXT_KUTA_MASK["GENERAL"]))
     selected = [k for k in result.kutas if k.name in allowed]
     if not selected:
@@ -756,7 +791,7 @@ def build_compatibility_intelligence_from_snapshots(
         for k in porutham_result.kutas
     ]
 
-    def _sevvai_schema(s: object) -> SevvaiDoshamDetail:
+    def _sevvai_schema(s: CalcSevvaiDoshamDetail) -> SevvaiDoshamDetail:
         return SevvaiDoshamDetail(
             has_dosham=s.has_dosham,
             mars_house=s.mars_house,
@@ -768,7 +803,7 @@ def build_compatibility_intelligence_from_snapshots(
             score=s.score,
         )
 
-    def _cms_schema(c: object) -> ChartMarriageStrength:
+    def _cms_schema(c: CalcChartMarriageStrength) -> ChartMarriageStrength:
         return ChartMarriageStrength(
             seventh_house_rasi=c.seventh_house_rasi,
             seventh_lord=c.seventh_lord,
