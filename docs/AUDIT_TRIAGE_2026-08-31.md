@@ -152,22 +152,65 @@ Measurements taken while a build was in that state:
 - The **identical command under `docker run`** finished in ~90 seconds and filled
   an 800MB store. Same image, same host, same network, same flags.
 
-So neither the link nor the registry was ever the constraint. Three separate
-defects kept the image unbuildable, each isolated by holding one variable:
+So neither the link nor the registry was ever the constraint. But that is where
+the confident part of this diagnosis ends, and an earlier revision of this
+section did not say so. **Corrected 2026-09-02, same day:** it presented three
+findings as equally established. One is. Two are not.
 
-1. **pnpm's default `network-concurrency` of 16 stalls inside buildkit.** Capped
-   to `--network-concurrency=4`, downloads begin within 5 seconds. A single
-   sequential request always succeeded — which is why an ordinary connectivity
-   check proves nothing here, and is how the original diagnosis went wrong.
-2. **The `--mount=type=cache` store mount stalls the install even at concurrency
-   4.** Removed. It cached nothing (see the 4.0K above) and buys nothing in CI,
-   where cache mounts are runner-local and every run starts cold; layer caching
-   is already handled by `cache-from`/`cache-to type=gha`.
-3. **`@vinaadi/design-tokens` declares `prepare: node build.js`,** and pnpm runs a
+| Claim | Status |
+| --- | --- |
+| The image genuinely could not build as it was | **Proven.** CI hung 4h47m on a clean runner — not one machine's problem |
+| `design-tokens` `prepare` has no source → `MODULE_NOT_FOUND` | **Proven.** Deterministic, reproduced, and plain from the file list |
+| `--network-concurrency=4` fixes the stall | **Not established.** Worked in an isolated repro twice and in one full build; has not reproduced since |
+| Removing the cache mount fixes the stall | **Not established.** A later build has no cache mount and stalls anyway |
+| Bandwidth | **Disproven** (above) |
+| A buildkit/`docker run` MTU mismatch | **Disproven** (below) |
+
+1. **`@vinaadi/design-tokens` declares `prepare: node build.js`,** and pnpm runs a
    workspace project's prepare during install. The deps stage copied only its
    `package.json`, so the stage died `MODULE_NOT_FOUND` *after* all 855 packages
-   had already downloaded — a failure only reachable once 1 and 2 were fixed.
-   `build.js` and `tokens.json` are now copied in; they are its only inputs.
+   had already downloaded. `build.js` and `tokens.json` are now copied in; they
+   are its only inputs. This one is a fix.
+2. **`--network-concurrency=4` is a mitigation under test.** `/proc` showed pnpm
+   holding 18 threads and ~14 concurrent sockets to :443 with nothing flowing,
+   and capping the fan-out started downloads within 5 seconds — twice in an
+   isolated repro, once in a full build. Then a build with the cap in place
+   stalled anyway. One good run is not a controlled result. (A single sequential
+   request always succeeded, which is why an ordinary connectivity check proves
+   nothing here, and is how the bandwidth diagnosis went wrong.)
+3. **Dropping the `--mount=type=cache` store is justified, but not as a cause.**
+   Proven about the mount: it cached nothing — 4.0K, zero entries, nine builds.
+   That plus "cache mounts are runner-local, so it buys nothing in CI where
+   layer caching is already `cache-from`/`cache-to type=gha`" is enough to drop
+   it on its own merits. What is *not* proven is that it caused the stall: a
+   clean build with no mount and the cap in place stalled 7 minutes at
+   `downloaded 0` after a full cache prune.
+
+**Disproven: MTU.** Worth recording because it is the most attractive remaining
+theory and it is wrong. A smaller MTU inside buildkit than on the working
+`docker run` path would have explained the exact signature — small metadata
+fetches succeeding (855 resolved) while large tarball transfers hang at zero
+bytes — and would have explained it in *both* environments at once. Probed
+directly: a buildkit `RUN` step reports `mtu 1500`, and `docker run` on the
+default bridge reports `mtu 1500`. Same value. Not the cause.
+
+**What was done about it instead.** Local buildkit has now produced three
+different outcomes from one unchanged Dockerfile, so this machine cannot
+adjudicate either mitigation, and continuing to bisect flags against a
+non-deterministic hang is not the best use of the next session. The install is
+therefore made *survivable* rather than understood: three attempts, each under
+`timeout --kill-after=30 480`. A working install is 90s to a few minutes, so
+8 minutes is ~10x margin; past that it is a hang, and a hung attempt dies,
+reports, and hands over to a fresh process. `timeout-minutes: 30` on the job
+caps the whole thing and is sized to fit that budget (3 x 8 = 24, plus room for
+the pull, the build and the boot check).
+
+That change is control flow, not network behaviour, so it cannot confound
+claims 2 and 3 — and it produces the measurement local builds could not: the log
+names the attempt that won. If attempt 1 stalls and attempt 2 succeeds on
+byte-identical inputs, then the stall is non-deterministic and neither flag is
+the mechanism. **CI is now the adjudicator for 2 and 3.** It is clean, it hung
+there before, and a hang there now costs 30 minutes and a readable log.
 
 Two traps worth recording. `--config.fetch-timeout=300000` and
 `--config.fetch-retries=5` pass their values as **strings**; pnpm rejects

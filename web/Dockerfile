@@ -43,38 +43,78 @@ COPY mobile/package.json mobile/
 # already been downloaded. build.js reads only tokens.json, so these two files
 # are the whole input.
 COPY packages/design-tokens/build.js packages/design-tokens/tokens.json packages/design-tokens/
-# This install used to hang forever, and the two reasons are worth recording
-# because neither is what the previous diagnosis assumed (bandwidth: "ten minutes
-# on a normal connection"). The symptom was always identical — it prints
-# `resolved 855, reused 0, downloaded 0` and then transfers nothing at all, for
-# 240s locally and for 4h47m on a GitHub-hosted runner, with an empty store to
-# show for it. Measured, not guessed: a host NIC counter validated against a
-# known 28MB container pull showed 0.0MB moving during those stalls.
+# This install stalls. The stall is real and environment-independent — the
+# symptom is byte-identical on a development machine and on a GitHub-hosted
+# runner, which sat at
 #
-# 1. --network-concurrency=4. At pnpm's default of 16 the install stalls inside
-#    buildkit. /proc showed pnpm holding 18 threads and ~14 sockets open to :443
-#    with nothing flowing. The identical command under `docker run` finishes in
-#    ~90s and fills an 800MB store, so it is neither the registry nor the link —
-#    buildkit's network namespace does not survive that fan-out. Capped at 4,
-#    downloads begin within 5 seconds. A single sequential request always
-#    succeeded, which is why a naive connectivity check proves nothing here.
+#   Progress: resolved 855, reused 0, downloaded 0, added 0
 #
-# 2. No --mount=type=cache for the store. The mount was an optimisation ("a retry
-#    does not re-download 1442 packages"), but with it present the install stalls
-#    even at concurrency 4, and the mount itself stays 4.0K across nine builds —
-#    nothing was ever cached by it. It also buys nothing in CI, where cache
-#    mounts are runner-local and every run starts fresh; layer caching is already
-#    handled by cache-from/cache-to type=gha in the workflow.
+# for 4h47m. Measured, not guessed: a host NIC counter, validated first against a
+# known ~28MB container pull, showed 0.0MB moving during the stall. It is not
+# slow. It transfers nothing. The identical command under `docker run` finishes
+# in ~90s and fills an 800MB store, so it is neither the registry nor the link.
+# That also retires the earlier bandwidth explanation ("ten minutes on a normal
+# connection"), which was testable and is false.
+#
+# WHAT CAUSES IT IS NOT ESTABLISHED. The two flags below correlate with one good
+# run each; they are mitigations under test, not a diagnosis. Read them that way
+# before building anything on top of them.
+#
+# 1. --network-concurrency=4. /proc showed pnpm holding 18 threads and ~14
+#    sockets open to :443 with nothing flowing, and capping the fan-out started
+#    downloads within 5 seconds — in an isolated repro twice, and in one full
+#    build. It has not reproduced since: a later build with the cap in place
+#    stalled anyway. One good run, not a controlled result.
+#
+# 2. No --mount=type=cache for the store. What is proven about the mount is only
+#    that it cached nothing — 4.0K and zero entries after nine builds. It is
+#    dropped on that, and because cache mounts are runner-local so it buys
+#    nothing in CI where layer caching is already cache-from/cache-to type=gha.
+#    It is NOT dropped on the claim that it caused the stall: a build with no
+#    mount and the cap in place still stalled 7 minutes at `downloaded 0` after
+#    a full cache prune.
+#
+# Disproven, recorded so nobody spends a day re-deriving it: MTU. A smaller MTU
+# inside buildkit than on the working `docker run` path would have explained
+# small metadata fetches succeeding while large tarballs hang at zero bytes, in
+# both environments at once. Probed directly — a buildkit RUN step and
+# `docker run` both report 1500. Not the cause.
+#
+# So the install is made SURVIVABLE rather than understood: three attempts, each
+# with its own timeout. A working install is 90s to a few minutes, so 8 minutes
+# is roughly ten times the margin it needs; past that it is a hang, and a hung
+# attempt now dies, says so, and hands over to a fresh process instead of
+# holding the build open until the job's 30-minute cap. TERM before KILL
+# (--kill-after) so pnpm can drop its store lock — a KILLed attempt leaves one
+# behind and blocks the retry. This is control flow, not network behaviour, so
+# it cannot confound the two mitigations above, and the log names the attempt
+# that won: if attempt 1 stalls and attempt 2 succeeds on identical inputs,
+# non-determinism is the finding.
+#
+# --reporter=append-only because pnpm's default reporter rewrites one line in
+# place and prints nothing at all while stalled, which is the single reason this
+# read as "slow network" for months rather than as a hang.
 #
 # Mind the flag spelling. `--network-concurrency=4` is a real CLI option;
 # `--config.network-concurrency=4` passes the value as a *string* and pnpm
 # rejects it outright ("Expected `concurrency` to be a number from 1 and up,
 # got `4` (string)"). The `--config.` forms below are strings for the same
 # reason — they are tolerated, but do not assume they take effect.
-RUN pnpm install --frozen-lockfile --filter jothidam-ai-web... \
-      --network-concurrency=4 \
-      --config.fetch-timeout=300000 \
-      --config.fetch-retries=5
+RUN set -eu; \
+    for attempt in 1 2 3; do \
+      echo "==> pnpm install, attempt ${attempt}/3"; \
+      if timeout --kill-after=30 480 pnpm install --frozen-lockfile --filter jothidam-ai-web... \
+            --network-concurrency=4 \
+            --reporter=append-only \
+            --config.fetch-timeout=300000 \
+            --config.fetch-retries=5; then \
+        echo "==> pnpm install succeeded on attempt ${attempt}"; \
+        exit 0; \
+      fi; \
+      echo "==> attempt ${attempt} failed or exceeded 480s; retrying"; \
+    done; \
+    echo "==> pnpm install did not complete in 3 attempts"; \
+    exit 1
 
 # ---- builder ----
 FROM base AS builder

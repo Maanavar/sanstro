@@ -168,6 +168,17 @@ jobs:
   web-image:
     name: Web Docker image (build and boot)
     runs-on: ubuntu-latest
+    # This job has burned 4h47m on a single stalled `pnpm install` that was never
+    # going to finish, and it would have run to the 6h default before anyone
+    # learned anything. A hang should cost 30 minutes and a readable log, not six
+    # hours and a cancellation.
+    #
+    # 30 is chosen to fit the Dockerfile's retry budget, not picked round: the
+    # install runs at most 3 attempts x 8 minutes = 24, leaving ~6 for the base
+    # image pull, `next build` and the boot check. If this cap is ever raised,
+    # raise it above 24 + those, or the retry loop gets cut off mid-attempt and
+    # the log stops just short of the evidence.
+    timeout-minutes: 30
     # P0-5's Verify step, run somewhere with bandwidth.
     #
     # The image was unbuildable (npm + a lockfile that does not exist, and a
