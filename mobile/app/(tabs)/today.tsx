@@ -139,7 +139,15 @@ function getCosmicAlert(g: ExtendedGuidance | undefined, transit: TransitItem | 
     const end = g.chandrashtamaEnds ?? g.chandrashtama_ends;
     return {
       title: isTamil ? "Chandrashtama alert" : "Chandrashtama alert",
-      body: end ? `${isTamil ? "Ends" : "Ends"}: ${new Date(end).toLocaleDateString()}` : (isTamil ? "Move slowly today." : "Move slowly today."),
+      // `end` is always an instant later today — the backend sends it only when
+      // Chandrashtama actually lifts before the day is out, and null (the
+      // untimed branch) whenever the stretch runs on. So the date part carries
+      // no information and the time is the whole point; toLocaleDateString here
+      // rendered "Ends: 9/1/2026", which tells the reader nothing they did not
+      // already know.
+      body: end
+        ? `Ends: ${new Date(end).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+        : (isTamil ? "Move slowly today." : "Move slowly today."),
       tone: "caution",
     };
   }
