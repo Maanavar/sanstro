@@ -210,8 +210,10 @@ def validate_muhurta_sources() -> list[SourceViolation]:
         permitted_scopes = {activity, *rules.inherits_scope_from}
         for rule_id in cited_rule_ids(rules):
             cited.setdefault(rule_id, activity)
-            source = resolve(rule_id)
-            if source is None:
+            # Its own name: the collision loop above binds `source` to a table
+            # entry, which is always present, while this one may not resolve.
+            resolved = resolve(rule_id)
+            if resolved is None:
                 violations.append(
                     SourceViolation(
                         "unresolvable",
@@ -222,26 +224,26 @@ def validate_muhurta_sources() -> list[SourceViolation]:
                     )
                 )
                 continue
-            violations.extend(_check_record_is_a_citation(activity, rule_id, source))
-            if source.source_scope not in permitted_scopes:
+            violations.extend(_check_record_is_a_citation(activity, rule_id, resolved))
+            if resolved.source_scope not in permitted_scopes:
                 violations.append(
                     SourceViolation(
                         "out-of-scope",
                         activity,
                         rule_id,
-                        f"confirmed for scope {source.source_scope!r} but cited by "
+                        f"confirmed for scope {resolved.source_scope!r} but cited by "
                         f"{activity!r}; declare it in that activity's "
                         f"inherits_scope_from if the chapter really does group them",
                     )
                 )
-            if source.authority.chapter != rules.chapter:
+            if resolved.authority.chapter != rules.chapter:
                 violations.append(
                     SourceViolation(
                         "misfiled",
                         activity,
                         rule_id,
                         f"cited by an activity filed under Ch. {rules.chapter} but "
-                        f"the record claims Ch. {source.authority.chapter}",
+                        f"the record claims Ch. {resolved.authority.chapter}",
                     )
                 )
 

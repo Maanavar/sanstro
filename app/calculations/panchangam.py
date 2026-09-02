@@ -619,7 +619,7 @@ def best_gowri_slot(
 ) -> PanchangamSlot | None:
     if not slots:
         return None
-    if hasattr(slots, "start") and hasattr(slots, "end"):
+    if isinstance(slots, PanchangamSlot):
         candidates = [slots]
     else:
         candidates = list(slots)

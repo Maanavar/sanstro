@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import TypedDict
 
 from app.calculations.astro import (
     NAKSHATRA_NAMES,
@@ -13,7 +14,15 @@ from app.calculations.astro import (
 from app.calculations.chart_strength import SIGN_LORD
 from app.calculations.ephemeris import calculate_lagna_degree, calculate_sidereal_planets
 
-_PRASNA_QUESTION_AREAS = {
+
+class _QuestionArea(TypedDict):
+    houses: list[int]
+    karaka: str
+
+
+# Typed: a bare dict literal joins the two value types to Sequence[object], and
+# `area["karaka"]` then stops being a planet name.
+_PRASNA_QUESTION_AREAS: dict[str, _QuestionArea] = {
     "JOB": {"houses": [10, 6, 2, 11], "karaka": "MERCURY"},
     "MARRIAGE": {"houses": [7, 2, 8], "karaka": "VENUS"},
     "HEALTH": {"houses": [1, 6, 8, 12], "karaka": "SUN"},

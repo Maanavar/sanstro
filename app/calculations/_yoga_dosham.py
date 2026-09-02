@@ -725,7 +725,10 @@ def detect_kalasarpa(
 
     # Name the naga from Rahu's house. When lagna is unknown (older callers),
     # fall back to the un-named formation so behavior never regresses.
-    naga = KALASARPA_NAGAS.get(house_from_reference(lagna_rasi, rahu_rasi)) if lagna_rasi else None
+    # Bound once and reused below, where the naga lookup having succeeded is
+    # what proves the lagna was known.
+    rahu_house = house_from_reference(lagna_rasi, rahu_rasi) if lagna_rasi else None
+    naga = KALASARPA_NAGAS.get(rahu_house) if rahu_house is not None else None
     if naga is None:
         return KalasarpaResult(
             is_present=True,
@@ -735,7 +738,6 @@ def detect_kalasarpa(
             description_en="All seven planets fall on one side of the Rahu-Ketu axis, indicating a Kalasarpa formation.",
         )
 
-    rahu_house = house_from_reference(lagna_rasi, rahu_rasi)
     conditions_met.append(f"rahu_house_{rahu_house}")
     conditions_met.append(f"variant_{naga['code'].lower()}")
     return KalasarpaResult(

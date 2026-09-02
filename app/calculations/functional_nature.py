@@ -18,6 +18,7 @@ These classifications affect:
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
 from enum import Enum
 
 from app.constants.astrology import SIGN_LORD
@@ -233,11 +234,16 @@ FUNCTIONAL_NATURE_TABLE: dict[int, dict[str, str]] = {
 # property survives and the equality is structural now instead of asserted.
 _SIGN_LORD: dict[int, str] = SIGN_LORD
 
-# Planet → the set of rasis it rules (Rahu/Ketu own none).
-PLANET_OWNED_RASIS: dict[str, frozenset[int]] = {}
+# Planet → the set of rasis it rules (Rahu/Ketu own none). Accumulated in a
+# mutable dict and frozen into the public one, rather than built in place and
+# frozen over itself — same result, and the intermediate no longer has to
+# pretend to already hold frozensets.
+_owned_rasis: dict[str, set[int]] = {}
 for _rasi, _lord in _SIGN_LORD.items():
-    PLANET_OWNED_RASIS.setdefault(_lord, set()).add(_rasi)  # type: ignore[attr-defined]
-PLANET_OWNED_RASIS = {planet: frozenset(rasis) for planet, rasis in PLANET_OWNED_RASIS.items()}
+    _owned_rasis.setdefault(_lord, set()).add(_rasi)
+PLANET_OWNED_RASIS: dict[str, frozenset[int]] = {
+    planet: frozenset(rasis) for planet, rasis in _owned_rasis.items()
+}
 
 _KENDRA = frozenset({4, 7, 10})
 _TRIKONA = frozenset({5, 9})
@@ -376,7 +382,7 @@ def get_functional_nature(
     lagna_rasi: int,
     planet: str,
     *,
-    node_rasi_map: dict[str, int] | None = None,
+    node_rasi_map: Mapping[str, int] | None = None,
 ) -> FunctionalNature:
     """Return the functional nature of a planet for a given Lagna Rasi (1–12).
 

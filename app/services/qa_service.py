@@ -4,7 +4,7 @@
 """
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from app.calculations.astro import (
     house_from_reference,
@@ -78,7 +78,10 @@ def _run_time_conversion() -> QAModuleResult:
         _case("T010-c", "2000-01-01 00:00 IST -> 1999-12-31 18:30 UTC (millennium rollover)", "1999-12-31T18:30:00+00:00", utc3.isoformat()),
         _case("T010-d", "1947-08-15 00:00 IST -> 1947-08-14 18:30 UTC (independence day)", "1947-08-14T18:30:00+00:00", utc4.isoformat()),
         _case("T010-e", "1975-06-10 18:45 IST -> 1975-06-10 13:15 UTC", "1975-06-10T13:15:00+00:00", utc5.isoformat()),
-        _case("T010-f", "UTC result has zero offset", True, utc1.utcoffset().total_seconds() == 0),
+        # Compared against timedelta(0) rather than calling .total_seconds():
+        # utcoffset() is None for a naive datetime, which this check must fail,
+        # not crash on.
+        _case("T010-f", "UTC result has zero offset", True, utc1.utcoffset() == timedelta(0)),
     ]
     passed = sum(1 for c in cases if c.passed)
     return QAModuleResult(module="utc_conversion", passed=passed, failed=len(cases) - passed, cases=cases)

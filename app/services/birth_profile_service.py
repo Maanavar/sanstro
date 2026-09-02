@@ -137,9 +137,20 @@ def _schedule_post_chart_d1_nudge(session: Session, *, owner_user_id: UUID, char
 
 
 def create_birth_profile(session: Session, payload: BirthProfileCreate, *, calculation_version: str) -> BirthProfileCreateResult:
+    # The schema field is optional because the request body does not carry it;
+    # the route overwrites it with the authenticated user's id before calling
+    # here. Enforced rather than assumed: a None owner would look up duplicates
+    # across every unowned profile and ask is_premium() to tier nobody.
+    owner_user_id = payload.owner_user_id
+    if owner_user_id is None:
+        raise ValueError(
+            "create_birth_profile requires payload.owner_user_id — the route sets it "
+            "from the authenticated user."
+        )
+
     duplicate_profile = _find_duplicate_birth_profile(
         session,
-        owner_user_id=payload.owner_user_id,
+        owner_user_id=owner_user_id,
         display_name=payload.display_name,
         birth_date_local=payload.birth_date_local,
         birth_time_local=payload.birth_time_local,
@@ -151,13 +162,13 @@ def create_birth_profile(session: Session, payload: BirthProfileCreate, *, calcu
     if duplicate_profile is not None:
         _raise_duplicate_birth_profile()
 
-    tier = "premium" if is_premium(payload.owner_user_id, session) else "registered"
+    tier = "premium" if is_premium(owner_user_id, session) else "registered"
     max_profiles = get_limits(tier).birth_profiles_max
     active_profile_count = session.execute(
         select(func.count())
         .select_from(BirthProfile)
         .where(
-            BirthProfile.owner_user_id == payload.owner_user_id,
+            BirthProfile.owner_user_id == owner_user_id,
             BirthProfile.deleted_at.is_(None),
         )
     ).scalar_one()
@@ -189,7 +200,7 @@ def create_birth_profile(session: Session, payload: BirthProfileCreate, *, calcu
         )
         chart_id = chart_response.data.chart_id
         warnings = chart_response.data.warnings
-        _schedule_post_chart_d1_nudge(session, owner_user_id=payload.owner_user_id, chart_id=chart_id)
+        _schedule_post_chart_d1_nudge(session, owner_user_id=owner_user_id, chart_id=chart_id)
     elif payload.calculate_now and payload.birth_time_local is None:
         warnings = warnings + ["Birth time is required to calculate a Lagna-based chart, so the profile was saved without chart calculation."]
 

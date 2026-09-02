@@ -556,9 +556,9 @@ def _almanac_yoga_factor(snapshot) -> FactorResult:
     day was good. A yoga table graded for muhurta is not sourced yet, so the
     honest move is to report the yoga and score nothing on it.
     """
-    number = getattr(snapshot, "yoga_number", None)
-    name_en = YOGA_NAME_EN.get(number) or str(snapshot.yoga_name or "").title()
-    name_ta = YOGA_NAME_TA.get(number)
+    number: int | None = getattr(snapshot, "yoga_number", None)
+    name_en = (YOGA_NAME_EN.get(number) if number is not None else None) or str(snapshot.yoga_name or "").title()
+    name_ta = YOGA_NAME_TA.get(number) if number is not None else None
     if not name_en:
         return FactorResult(
             factor="ALMANAC_YOGA",
@@ -1433,6 +1433,14 @@ def lagna_sign_factor_at_window(activity: str, rasi: int) -> FactorResult | None
     schedule is calculated only after the picker has shortlisted its dates.
     """
     entry = _rules(activity)
+    # Declared before the branch: the marriage arm binds a bare frozenset() and
+    # a str literal, which would otherwise fix `middling` as frozenset[Never]
+    # and `rule_id` as str — and the registry's lagna_rule_id is str | None,
+    # which FactorResult.rule_id accepts.
+    best: frozenset[int]
+    middling: frozenset[int]
+    avoid: frozenset[int]
+    rule_id: str | None
     if activity == _MARRIAGE:
         best, middling, avoid = marriage.MARRIAGE_LAGNA_BEST, frozenset(), marriage.MARRIAGE_LAGNA_AVOID
         rule_id = "MARRIAGE_LAGNA_SIGN_PREFERENCE"

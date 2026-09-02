@@ -218,6 +218,12 @@ def reserve_chip(session: Session, user_id: UUID) -> int | None:
         )
 
     usage = _get_usage(session, user_id, today)
+    if usage is None:
+        # The UPDATE above matched a row (reserved != 0), so the row is there.
+        # Stated rather than assumed: if the reserve query is ever rewritten to
+        # insert-on-miss, this fails with its own name instead of inside
+        # session.refresh(None).
+        raise RuntimeError("Chip reserved but no usage row to read back.")
     session.refresh(usage)
     return max(0, limit - usage.chip_count)
 

@@ -9,6 +9,7 @@ never read as doom (D6).
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import date
 
@@ -57,7 +58,7 @@ class _Spec:
     tier: PropensityTier
     title: BiText
     topic: BiText              # short noun-phrase used to compose the summary
-    evaluator: object          # Callable[[_Reader], Signals]
+    evaluator: Callable[[_Reader], Signals]
     age_min: int = 0
     age_max: int = 200
     disclaimer: BiText | None = None

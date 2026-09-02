@@ -127,7 +127,12 @@ def send_push(
         return "sent"
 
     s = get_settings()
-    project_id: str = s.fcm_project_id  # type: ignore[attr-defined]
+    project_id = s.fcm_project_id
+    if project_id is None:
+        # Unreachable via _fcm_configured() above, which returns False without
+        # it. Re-checked here so the narrowing is the code's, not a comment's.
+        logger.error("FCM project id went missing between the config check and the send.")
+        return "failed"
 
     try:
         access_token = _get_access_token()

@@ -34,7 +34,11 @@ class PiranthaNaalAlert:
 _MAJORITY_SHARE = 0.5
 
 
-def _format_clock_label(value: datetime | time | object | None) -> str:
+def _format_clock_label(value: datetime | time | None) -> str:
+    """`| object` used to sit in this union, which collapsed it to plain
+    ``object`` and hid `.hour`/`.strftime` from the checker. Every caller
+    passes a datetime; the fallbacks below stay as belt-and-braces for
+    values that survive a cache round-trip."""
     if value is None:
         return "N/A"
     try:

@@ -35,9 +35,16 @@ from typing import Protocol
 
 
 class _Bi(Protocol):
-    """Anything bilingual: BiText, ChartExplanationText, DailyGuidanceText…"""
-    ta: str
-    en: str
+    """Anything bilingual: BiText, ChartExplanationText, DailyGuidanceText…
+
+    Read-only members: the synthesizer never writes back, and every real
+    implementer is a frozen dataclass, which a settable protocol member
+    would exclude.
+    """
+    @property
+    def ta(self) -> str: ...
+    @property
+    def en(self) -> str: ...
 
 
 @dataclass(frozen=True)

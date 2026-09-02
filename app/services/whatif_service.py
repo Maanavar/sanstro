@@ -32,7 +32,7 @@ from app.calculations.panchangam import (
     calculate_daily_panchangam,
     limb_fraction,
 )
-from app.calculations.transits import classify_sani_cycle
+from app.calculations.transits import CycleAssessment, classify_sani_cycle
 from app.constants.astrology import SIGN_LORD
 from app.models import BirthProfile, Chart
 from app.reasoning.chart_signature import detect_signature
@@ -984,13 +984,10 @@ def evaluate_whatif(
         saturn_house = house_from_reference(natal_moon.rasi, saturn_transit.rasi)
         sani_cycle = classify_sani_cycle(saturn_house)
     else:
-        sani_cycle_active = False  # noqa: F841 — mirrors the if-branch shape; _FakeCycle below is what's used
-        sani_cycle_type = None  # noqa: F841 — mirrors the if-branch shape; _FakeCycle below is what's used
-
-        class _FakeCycle:
-            is_active = False
-            type = None
-        sani_cycle = _FakeCycle()
+        # The real type, not a stand-in class: CycleAssessment is a frozen
+        # dataclass whose "no cycle running" value is exactly this, so the two
+        # branches now agree on what sani_cycle is.
+        sani_cycle = CycleAssessment(type=None, is_active=False)
 
     # ── Triple confirmation ──
     natal = _assess_natal_promise(scenario, chart_snapshot.data.planets, natal_lagna_rasi)

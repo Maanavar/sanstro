@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from functools import lru_cache
 from threading import RLock
-from typing import Final
 
 from app.calculations.astro import degree_in_rasi, normalize_longitude, rasi_from_degree
 
@@ -17,6 +16,15 @@ from app.calculations.astro import degree_in_rasi, normalize_longitude, rasi_fro
 # flipping nakshatra pada (which can shift a Vimshottari dasha start). A
 # true-node settings toggle is a possible future follow-up (needs product
 # sign-off) — not implemented here; this module only computes mean node.
+
+# Declared once here rather than in each backend branch below. The two branches
+# are mutually exclusive at runtime, but a type checker reads both, so a
+# per-branch annotation is a redefinition. Not `Final` either: the fallback
+# chain for _RSMI_HINDU_RISING legitimately assigns it more than once. Both are
+# write-once-per-process in practice; nothing outside this header rebinds them.
+_RSMI_HINDU_RISING: int
+SIDEREAL_FLAGS: int
+
 try:
     import swisseph as swe_module  # type: ignore[import-not-found]
 
@@ -48,7 +56,7 @@ except ImportError:  # pragma: no cover - exercised in this environment via swis
         SwissEph,
     )
 
-    _RSMI_HINDU_RISING: Final[int] = SE_BIT_HINDU_RISING
+    _RSMI_HINDU_RISING = SE_BIT_HINDU_RISING
 
     _SWISS = SwissEph()
 
@@ -62,7 +70,7 @@ except ImportError:  # pragma: no cover - exercised in this environment via swis
         "SATURN": SE_SATURN,
         "RAHU": SE_MEAN_NODE,
     }
-    SIDEREAL_FLAGS: Final[int] = SEFLG_SPEED | SEFLG_SIDEREAL | SEFLG_SWIEPH
+    SIDEREAL_FLAGS = SEFLG_SPEED | SEFLG_SIDEREAL | SEFLG_SWIEPH
 else:
     from swisseph import (  # type: ignore[import-not-found]
         CALC_RISE,
@@ -82,7 +90,9 @@ else:
     )
 
     try:
-        from swisseph import BIT_HINDU_RISING as _RSMI_HINDU_RISING  # type: ignore[import-not-found]
+        from swisseph import BIT_HINDU_RISING  # type: ignore[import-not-found]
+
+        _RSMI_HINDU_RISING = BIT_HINDU_RISING
     except ImportError:
         try:
             from swisseph import (  # type: ignore[import-not-found]
@@ -109,7 +119,7 @@ else:
         "SATURN": SATURN,
         "RAHU": MEAN_NODE,
     }
-    SIDEREAL_FLAGS: Final[int] = FLG_SPEED | FLG_SIDEREAL | FLG_SWIEPH
+    SIDEREAL_FLAGS = FLG_SPEED | FLG_SIDEREAL | FLG_SWIEPH
 
 RETROGRADE_BADGE_EXEMPT = frozenset({"SUN", "MOON", "RAHU", "KETU"})
 _SWISS_LOCK = RLock()
@@ -351,7 +361,9 @@ def calculate_rise_transit_jd(jd_start: float, latitude: float, longitude: float
                 f"Swiss Ephemeris rise_trans returned an unexpected shape: {result!r}"
             )
 
-        geopos = (c_double * 3)(longitude, latitude, 0.0)
+        # Distinct name from the module-API branch's `geopos` tuple above: the
+        # two backends want different objects, and one local cannot be both.
+        geopos_buf = (c_double * 3)(longitude, latitude, 0.0)
         tret = (c_double * 10)()
         serr = create_string_buffer(256)
         _SWISS.swe_rise_trans(
@@ -360,7 +372,7 @@ def calculate_rise_transit_jd(jd_start: float, latitude: float, longitude: float
             None,
             SEFLG_SWIEPH,
             rsmi,
-            geopos,
+            geopos_buf,
             0.0,
             0.0,
             tret,

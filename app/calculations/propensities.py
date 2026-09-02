@@ -479,7 +479,8 @@ def eval_love(r: _Reader) -> Signals:
     if fifth_lord_h is not None and fifth_lord_h in {5, 7, 1, 11}:
         s.support("fifth_lord_placed", "5ஆம் அதிபதி நல்ல நிலையில்.",
                   "The 5th lord is well placed for romance.")
-    if venus == "DEBILITATED" or (r.pv("VENUS") and r.pv("VENUS").combust):
+    venus_pv = r.pv("VENUS")
+    if venus == "DEBILITATED" or (venus_pv is not None and venus_pv.combust):
         s.caution("venus_weak", "சுக்கிரன் பலவீனம் — உறவில் பொறுமை தேவை.",
                   "Venus is weak — relationships need patience.")
     if seventh_lord_h is not None and seventh_lord_h in DUSTHANA:
@@ -528,7 +529,8 @@ def eval_higher_education(r: _Reader) -> Signals:
     if r.is_strong("MERCURY"):
         s.support("mercury_strong", "புதன் வலு — கூர்மையான பகுப்பாய்வு.",
                   "Mercury is strong — sharp analytical mind.")
-    if r.conjunct("SUN", "MERCURY") and not (r.pv("MERCURY") and r.pv("MERCURY").combust):
+    mercury_pv = r.pv("MERCURY")
+    if r.conjunct("SUN", "MERCURY") and not (mercury_pv is not None and mercury_pv.combust):
         s.support("budha_aditya", "புத ஆதித்ய யோகம் — அறிவுத் திறன்.",
                   "Budha-Aditya yoga — intellectual brilliance.")
     if r.benefic_hits(5):
@@ -1542,7 +1544,8 @@ def eval_early_marriage_readiness(r: _Reader) -> Signals:
     progress, not its timing)."""
     s = Signals()
     seventh_lord = r.lord_of(7)
-    if r.is_strong("VENUS") and not (r.pv("VENUS") and r.pv("VENUS").combust):
+    venus_pv = r.pv("VENUS")
+    if r.is_strong("VENUS") and not (venus_pv is not None and venus_pv.combust):
         s.support("venus_strong", "சுக்கிரன் வலு, அழுத்தமின்றி — சரியான காலத்தில் திருமணம்.",
                   "A strong, unafflicted Venus favours marriage arriving in good time.")
     if r.benefic_hits(7):

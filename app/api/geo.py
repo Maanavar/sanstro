@@ -185,7 +185,12 @@ def geocode_place(req: GeocodeRequest) -> GeocodeResponse:
         return GeocodeResponse(error="network")
 
     if not data:
-        result = {"lat": None, "lon": None, "countryCode": None, "error": "not_found"}
+        # Annotated because the success path below puts floats in the same
+        # variable; without it the not-found shape fixes the value type to
+        # str | None and the coordinates read as errors.
+        result: dict[str, float | str | None] = {
+            "lat": None, "lon": None, "countryCode": None, "error": "not_found",
+        }
         _cache_set(cache_key, result)
         return GeocodeResponse(**result)
 

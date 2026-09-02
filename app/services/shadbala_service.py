@@ -169,10 +169,16 @@ def build_shadbala_response(session: Session, chart_id: UUID) -> dict:
             "kalaComponents": ps.kala_components,
         })
 
-    # Rank strongest-first by strength ratio.
+    # Rank strongest-first by strength ratio. Sorted over the typed results
+    # rather than the serialised payload above, whose values are a join of
+    # str/float/bool/dict and so have no ordering.
     ranking = [
-        p["graha"]
-        for p in sorted(planets_payload, key=lambda p: p["strengthRatio"], reverse=True)
+        ps.graha
+        for ps in sorted(
+            (result[graha] for graha in SHADBALA_GRAHAS),
+            key=lambda ps: ps.strength_ratio,
+            reverse=True,
+        )
     ]
 
     return {

@@ -164,7 +164,13 @@ def _to_view(
         pirai=BiLabel(ta=pirai_ta, en=pirai_en),
         tamil_month=BiLabel(ta=month_ta, en=month_en),
         tamil_day=n.tamil_day,
-        nakshatra=BiLabel(ta=nakshatra_ta(n.nakshatra_number), en=n.nakshatra_name.title()),
+        # `or` the English name: nakshatra_ta() returns None for a number
+        # outside 1-27, and the same `<tamil> or <fallback>` shape is what
+        # muhurta_engine uses for rasi labels.
+        nakshatra=BiLabel(
+            ta=nakshatra_ta(n.nakshatra_number) or n.nakshatra_name.title(),
+            en=n.nakshatra_name.title(),
+        ),
         tithi_number=n.tithi_number,
         paksha=n.paksha,
         nalla_neram=nalla_neram if nalla_neram is not None else _nalla_neram_windows(n.weekday),
@@ -308,8 +314,8 @@ def match_muhurtham_naals(
 
     janma_nak, janma_rasi, janma_name = _resolve_janma(session, chart_id)
     chandra_rasi = chandrashtama_rasi_from_janma(janma_rasi)
-    janma_star_ta = nakshatra_ta(janma_nak)
     janma_star_en = janma_name.title()
+    janma_star_ta = nakshatra_ta(janma_nak) or janma_star_en
     location = _chart_daily_location(session, chart_id)
     nalla_neram_by_date = (
         _computed_nalla_neram_by_date(naals, location, session)

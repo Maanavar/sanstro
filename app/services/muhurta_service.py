@@ -52,6 +52,7 @@ from app.calculations.muhurta_engine import (
     wealth_house_heuristic_factor,
 )
 from app.calculations.panchangam import (
+    PanchangamSnapshot,
     best_gowri_slot,
     calculate_daily_panchangam_range,
     gowri_category_rank,
@@ -148,7 +149,7 @@ class _ScoredDay(NamedTuple):
     hora_support: BiText | None
     cautions: list[BiText]
     factors: list[MuhurtaFactor]
-    snapshot: object
+    snapshot: PanchangamSnapshot
     window_start: datetime
     window_end: datetime
     # False only for a one-date assessment requested with `include_excluded`.

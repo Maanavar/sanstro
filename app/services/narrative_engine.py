@@ -11,7 +11,7 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import compute_natal_planet_score
@@ -22,6 +22,16 @@ if TYPE_CHECKING:
 
 
 # ── Bilingual string helper ────────────────────────────────────────────────────
+
+class _Bilingual(Protocol):
+    """Any object exposing ``.ta``/``.en`` — BiText here, or the LifeAreaText
+    and AstroFactor equivalents callers already build. Read-only, so the
+    frozen dataclasses that actually implement it are accepted."""
+    @property
+    def ta(self) -> str: ...
+    @property
+    def en(self) -> str: ...
+
 
 @dataclass(frozen=True)
 class BiText:
@@ -1597,7 +1607,7 @@ def signature_framing(motif: str) -> BiText:
     return SIGNATURE_VOICE.get(motif, SIGNATURE_VOICE[_DEFAULT_SIGNATURE_MOTIF])
 
 
-def render_causal_chain(steps: Sequence[object], conclusion: object) -> BiText:
+def render_causal_chain(steps: Sequence[_Bilingual], conclusion: _Bilingual) -> BiText:
     """Join ordered evidence into a "because ... -> therefore ..." chain (Phase 5).
 
     Root-cause chains (plan §Phase 5) replace a flat, parallel factor list

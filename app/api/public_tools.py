@@ -1074,10 +1074,11 @@ def _resolve_rasi_number(rasi: str) -> int:
         "simmam": 5, "simham": 5, "kanni": 6, "thulam": 7, "viruchigam": 8,
         "dhanusu": 9, "makaram": 10, "kumbam": 11, "meenam": 12,
     }
-    n = _extra.get(lookup_key) or _extra.get(key) or RASI_NAME_TO_NUMBER.get(lookup_key) or RASI_NAME_TO_NUMBER.get(key)
-    if n is None:
+    # Its own name: `n` above holds the already-validated numeric form.
+    resolved = _extra.get(lookup_key) or _extra.get(key) or RASI_NAME_TO_NUMBER.get(lookup_key) or RASI_NAME_TO_NUMBER.get(key)
+    if resolved is None:
         raise ValueError(f"Unknown rasi: '{rasi}'. Use a number 1-12 or a name like 'mesham'.")
-    return n
+    return resolved
 
 
 def _rasi_palan_prediction(janma_rasi: int, moon_house: int) -> dict:

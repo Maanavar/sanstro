@@ -20,6 +20,7 @@ import hashlib
 import logging
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta, tzinfo
+from functools import partial
 from typing import TypedDict
 from uuid import UUID
 
@@ -1732,15 +1733,19 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
     # them inside the loop below.
     _date_6mo = on_date + timedelta(days=_FORECAST_HORIZON_6MO_DAYS)
     _date_12mo = on_date + timedelta(days=_FORECAST_HORIZON_12MO_DAYS)
-    _fc_kwargs = dict(
+    # partial, not a kwargs dict: a dict of mixed value types collapses to its
+    # join (float | tzinfo | ...), so unpacking it loses which key is which and
+    # every argument looks wrong at the call.
+    _forecast_at = partial(
+        _forecast_context,
         tz=tz,
         birth_jd=birth_jd,
         moon_longitude=natal_moon.absolute_longitude,
         natal_moon_rasi=natal_moon.rasi,
         natal_lagna_rasi=natal_lagna_rasi,
     )
-    forecast_ctx_6mo = _forecast_context(check_date=_date_6mo, **_fc_kwargs)
-    forecast_ctx_12mo = _forecast_context(check_date=_date_12mo, **_fc_kwargs)
+    forecast_ctx_6mo = _forecast_at(check_date=_date_6mo)
+    forecast_ctx_12mo = _forecast_at(check_date=_date_12mo)
     age_6mo = _compute_age(_date_6mo, birth_profile.birth_date_local)
     age_12mo = _compute_age(_date_12mo, birth_profile.birth_date_local)
 

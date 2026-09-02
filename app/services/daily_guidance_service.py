@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from calendar import monthrange
 from datetime import UTC, date, datetime, timedelta
+from typing import get_args
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -10,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.calculations.activity_timing_rules import (
     ActivityAudience,
+    ActivityType,
     assess_activity_timing,
     daily_activity_board,
 )
@@ -169,6 +171,14 @@ _SPECIAL_TITHI: dict[int, str] = {
 }
 
 _MIN_JOURNAL_ENTRIES = 30
+
+# Goal type → the activity the timing rules know, derived from ActivityType
+# rather than re-listed by hand: the membership test this replaces was a copy of
+# the same names, free to drift from the signature it was checked against.
+# Anything unmapped falls through to "other", as before.
+_TIMING_ACTIVITY_BY_GOAL: dict[str, ActivityType] = {
+    activity: activity for activity in get_args(ActivityType)
+}
 
 
 def _tz_continent(tz_name: str | None) -> str:
@@ -607,12 +617,7 @@ def build_daily_guidance_response(
     # Activity-specific timing adjustment: when a goal is active, check
     # Thirukanitham timing rules and modulate panchangam score accordingly.
     if active_goals:
-        _goal_type = active_goals[0].goal_type
-        _activity = _goal_type if _goal_type in (
-            "job_change", "business_start", "marriage", "education",
-            "property", "health", "travel_abroad", "spiritual",
-            "family_harmony", "money", "child_birth",
-        ) else "other"
+        _activity = _TIMING_ACTIVITY_BY_GOAL.get(active_goals[0].goal_type, "other")
         _timing = assess_activity_timing(
             activity=_activity,
             tithi_number=day_tithi,
@@ -1063,6 +1068,23 @@ def build_daily_guidance_response(
     )
 
 
+def _persisted_chart_owner(chart_snapshot: ChartCalculateResponse) -> UUID:
+    """Owner of a chart that was loaded from the database.
+
+    ``BirthProfileResponse.owner_user_id`` is optional because the same
+    response type is built for ephemeral, never-persisted profiles (the
+    public tools hand ``_chart_response_from_profile`` a shim with no owner).
+    A chart read back out of the database always has one —
+    ``birth_profiles.owner_user_id`` is NOT NULL — so the callers below can
+    ask for it rather than carrying the None through to a query that would
+    silently match on it.
+    """
+    owner_user_id = chart_snapshot.data.birth_profile.owner_user_id
+    if owner_user_id is None:
+        raise ValueError("A persisted chart is missing its owner.")
+    return owner_user_id
+
+
 def get_daily_guidance(
     session: Session,
     chart_id: UUID,
@@ -1075,7 +1097,7 @@ def get_daily_guidance(
     from app.models.user import User as _User
     chart_snapshot = chart_snapshot or load_persisted_chart_response(session, chart_id)
     active_goals = get_active_goals_for_chart(session, chart_id)
-    owner_user_id = chart_snapshot.data.birth_profile.owner_user_id
+    owner_user_id = _persisted_chart_owner(chart_snapshot)
     _user_row = session.get(_User, owner_user_id)
     goal_track = getattr(_user_row, "goal_track", None) if _user_row else None
     context_row = get_context_row(session, owner_user_id, chart_id)
@@ -1406,7 +1428,7 @@ def get_activity_timing(
 
     chart_snapshot = load_persisted_chart_response(session, chart_id)
     active_goals = get_active_goals_for_chart(session, chart_id)
-    owner_user_id = chart_snapshot.data.birth_profile.owner_user_id
+    owner_user_id = _persisted_chart_owner(chart_snapshot)
     context_row = get_context_row(session, owner_user_id, chart_id)
     birth_profile_id = chart_snapshot.data.birth_profile.birth_profile_id
     base_cache_eligible = not active_goals and context_row is None

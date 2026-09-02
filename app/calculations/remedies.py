@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from typing import Protocol
 
@@ -127,11 +128,15 @@ _BENEFIC_FUNCTIONAL_ROLES: frozenset[FunctionalNature] = frozenset(
 
 
 class _DoshamLike(Protocol):
-    is_present: bool
-    name: str
+    # Read-only: the caller's ChartDoshamInsight does not expose settable
+    # attributes, and this function only reads them.
+    @property
+    def is_present(self) -> bool: ...
+    @property
+    def name(self) -> str: ...
 
 
-def active_dosham_planet(doshams: list[_DoshamLike], lagna_rasi: int) -> str | None:
+def active_dosham_planet(doshams: Sequence[_DoshamLike], lagna_rasi: int) -> str | None:
     """First present dosham → the graha whose remedy eases it.
 
     Duck-typed on the dosham insight objects (needs only `.is_present`/`.name`)
