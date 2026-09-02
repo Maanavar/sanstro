@@ -100,13 +100,34 @@ def _chart_id_routes() -> list[tuple[str, str, str]]:
     return rows
 
 
+# The exact number of `{chart_id}` routes the app serves today. An exact count,
+# not a floor, because a floor is the wrong shape of tripwire for what actually
+# goes wrong here — see the test below.
+EXPECTED_CHART_ID_ROUTES = 53
+
+
 def test_there_are_chart_id_routes_to_check():
     """The other tests here are vacuous if the enumeration silently returns [].
 
     An import shuffle or a router that stops being mounted would empty
     `_chart_id_routes()` and turn every assertion below green.
+
+    This asserted `> 40` until 2026-09-02. That catches the total collapse and
+    misses the partial one: 53 routes becoming 41 is a *quarter* of this file's
+    coverage disappearing with the suite still green, and the way that happens is
+    not an import shuffle — it is Starlette changing the shape of `route.path`
+    under a version bump, which is a live plan item (REFACTOR_PLAN 1.3) and the
+    reason this number is pinned before that bump rather than after it.
+
+    If this fails after you deliberately added or removed a `{chart_id}` route,
+    update the constant. If it fails and you did not, coverage moved on its own
+    and that is the bug.
     """
-    assert len(_chart_id_routes()) > 40
+    assert len(_chart_id_routes()) == EXPECTED_CHART_ID_ROUTES, (
+        f"expected {EXPECTED_CHART_ID_ROUTES} {{chart_id}} routes, enumerated "
+        f"{len(_chart_id_routes())}. Every ownership assertion in this file "
+        "covers only what this enumeration returns."
+    )
 
 
 def test_every_chart_id_route_declares_how_it_checks_ownership():

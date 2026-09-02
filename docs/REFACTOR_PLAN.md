@@ -156,17 +156,33 @@ highest fix version. They are currently passed to `--ignore-vuln` in the CI
 dependency-audit step. That is a holding position, not a verdict: `fastapi`
 constrains the starlette range, so this is a two-package bump.
 
-**Why it needs care.** This combination has already produced a silent failure
-here. Under FastAPI 0.141.1 / Starlette 1.6.0, `route.path` changed shape, and
-`_chart_id_routes()` in `tests/test_chart_access_guard.py` matched **0 routes
-instead of 53** — the chart ownership guard asserted over an empty set and stayed
-green while covering nothing. A guard that passes vacuously is worse than one
-that fails.
+**Why it needs care.** This combination has already produced a route-shape
+change here. Under FastAPI 0.141.1 / Starlette 1.6.0, `route.path` changed shape
+and `_chart_id_routes()` in `tests/test_chart_access_guard.py` matched **0 routes
+instead of 53**. Everything in that file asserts over that enumeration, so the
+blast radius is the whole chart-ownership guard.
+
+**Corrected 2026-09-02.** An earlier revision of this entry said the suite
+"stayed green while covering nothing", and step 1 below asked for a zero-match
+guard to be written. Checked before acting on: that guard already existed, and
+had since the file was created in `e4ce594` —
+`test_there_are_chart_id_routes_to_check` asserted `len(...) > 40`, which fails
+at zero, and the `stale` half of
+`test_every_chart_id_route_declares_how_it_checks_ownership` fails as soon as any
+declared module stops appearing. A total collapse was caught.
+
+The real gap was narrower and the floor was the wrong shape for it: `> 40`
+tolerated **53 routes becoming 41** — a quarter of the coverage gone, suite
+green. That is the plausible partial outcome of a route-shape change, not the
+total one. Now pinned to an exact `EXPECTED_CHART_ID_ROUTES = 53`, verified
+against the live app on the current pins (53 routes across 13 modules).
 
 **Steps:**
-1. Rewrite `_chart_id_routes()` so it *fails* when it matches zero routes, and
-   assert the expected route count explicitly. Do this first, on the current
-   pins, so the guard cannot go vacuous again.
+1. ~~Rewrite `_chart_id_routes()` so it fails when it matches zero routes, and
+   assert the expected route count explicitly.~~ **Done 2026-09-02.** Exact count
+   pinned at 53; `tests/test_chart_access_guard.py` passes 25/25 on the current
+   pins. This is now the tripwire for step 2: if the bump changes route shape,
+   this test names the number it changed to instead of quietly covering less.
 2. Bump `starlette` and `fastapi` together to a compatible pair at or above
    starlette 1.3.1.
 3. Run the full suite (not a targeted subset) and drop the five `--ignore-vuln`
