@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "node build.js"
+    "build": "node build.js",
+    "prepare": "node build.js"
   },
   "exports": {
     "./dist/web/tokens.css": "./dist/web/tokens.css",
