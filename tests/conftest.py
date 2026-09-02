@@ -16,7 +16,12 @@ from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 
 import app.models as app_models  # noqa: F401  (registers all models with Base)
-from app.core.auth import create_access_token, get_admin_user, get_current_user
+from app.core.auth import (
+    create_access_token,
+    get_admin_user,
+    get_current_user,
+    get_elevated_admin_user,
+)
 from app.core.rate_limit import reset_rate_limit_backend
 from app.db.base import Base
 from app.db.session import SessionLocal, engine
@@ -137,6 +142,16 @@ def client() -> TestClient:
 
     app.dependency_overrides[get_current_user] = lambda: stub_user
     app.dependency_overrides[get_admin_user] = lambda: stub_user
+    # Destructive admin routes additionally require a short-lived elevation token
+    # (P1-4 step 2). This fixture already stands in for "is an admin"; standing in
+    # for "re-authenticated a moment ago" as well keeps every admin endpoint test
+    # about the endpoint rather than about the password prompt in front of it.
+    #
+    # It does NOT weaken the gate's coverage. tests/test_admin_elevation.py drives
+    # the real dependency through `raw_client`, which has no override here, and its
+    # structural test fails on any destructive route that forgets elevation — so a
+    # route losing its gate still breaks a test, just not this one.
+    app.dependency_overrides[get_elevated_admin_user] = lambda: stub_user
     reset_rate_limit_backend()
 
     with TestClient(app) as test_client:

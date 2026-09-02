@@ -33,6 +33,17 @@ _MUTATING_METHODS = {"POST", "PATCH", "PUT", "DELETE"}
 _CSRF_HEADER_VALUE = "1"
 TOKEN_TYPE_ACCESS = "access"  # noqa: S105 — a JWT `typ` discriminator, not a credential
 TOKEN_TYPE_PASSWORD_RESET = "pwreset"  # noqa: S105 — a JWT `typ` discriminator, not a credential
+TOKEN_TYPE_ADMIN_ELEVATION = "admin_elev"  # noqa: S105 — a JWT `typ` discriminator, not a credential
+
+# Header carrying the elevation token. Deliberately NOT Authorization: the
+# elevation token never replaces the session, it accompanies it, and both are
+# checked. A caller holding only this proves nothing.
+ADMIN_ELEVATION_HEADER = "X-Admin-Elevation"  # noqa: S105 — a header name, not a credential
+
+# Sent as the `detail` when elevation is missing or spent, so the console can
+# tell "you may not do this at all" (plain 403) apart from "you may, but you must
+# re-authenticate first" and prompt for a password rather than showing a dead end.
+ADMIN_ELEVATION_REQUIRED_DETAIL = "Admin elevation required for this operation."
 
 
 # ── Token helpers ─────────────────────────────────────────────────────────────
@@ -266,6 +277,112 @@ def get_admin_user(
         status_code=status.HTTP_403_FORBIDDEN,
         detail="Admin access required.",
     )
+
+
+def create_admin_elevation_token(user: User) -> tuple[str, datetime]:
+    """Mint a short-lived token authorising destructive admin operations.
+
+    Returns the token and its expiry, so the caller can tell the operator how
+    long they have rather than making them discover it by being refused.
+
+    Bound to three things on purpose, because an elevation that outlives any of
+    them is worse than none:
+
+    - `sub`, the user id — so one admin's elevation cannot authorise another's
+      action. Being admin is not a shared capability here.
+    - `ver`, the user's token_version — so the existing "log everyone out"
+      lever (bumping token_version on password change, suspension or forced
+      logout) revokes live elevations too. Without this, revoking a compromised
+      session would leave its elevation usable for the rest of the window.
+    - `exp`, minutes not hours — see `admin_elevation_minutes`.
+    """
+    settings = get_settings()
+    expires_delta = timedelta(minutes=settings.admin_elevation_minutes)
+    token = create_access_token(
+        str(user.user_id),
+        expires_delta=expires_delta,
+        token_type=TOKEN_TYPE_ADMIN_ELEVATION,
+        token_version=int(getattr(user, "token_version", 0) or 0),
+    )
+    return token, datetime.now(UTC) + expires_delta
+
+
+def get_elevated_admin_user(
+    request: Request,
+    current_user: Annotated[User, Depends(get_admin_user)],
+) -> User:
+    """Admin **and** freshly re-authenticated. For destructive operations only.
+
+    `get_admin_user` answers "may this person act as an admin at all". This adds
+    "did they prove, in the last few minutes, that they are still the person
+    holding that account" — which is the question a stolen session cannot answer.
+
+    Depending on `get_admin_user` rather than re-implementing it means the
+    X-Admin-Key browser-origin refusal and the audit trail keep applying here;
+    this is strictly a second gate, never an alternative route in.
+
+    The elevation token is read from a header rather than a cookie so it is not
+    attached automatically: it has to be passed deliberately, per call, which is
+    also what stops a CSRF-shaped request from carrying it for free.
+    """
+    raw = request.headers.get(ADMIN_ELEVATION_HEADER)
+    if not raw:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=ADMIN_ELEVATION_REQUIRED_DETAIL,
+        )
+
+    try:
+        payload = decode_token(raw)
+    except HTTPException as exc:
+        # decode_token answers 401 for an expired or malformed token. Re-shape it
+        # to the elevation 403 so the console sees one prompt-for-password signal
+        # instead of two, and does not mistake a stale elevation for a dead session
+        # and log the operator out.
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=ADMIN_ELEVATION_REQUIRED_DETAIL,
+        ) from exc
+
+    if payload.get("typ") != TOKEN_TYPE_ADMIN_ELEVATION:
+        # An ordinary access token must never be accepted here, or "elevation"
+        # would be satisfied by the session it is supposed to be independent of.
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=ADMIN_ELEVATION_REQUIRED_DETAIL,
+        )
+
+    if str(payload.get("sub")) != str(current_user.user_id):
+        logger.warning(
+            "admin_elevation_subject_mismatch actor=%s token_sub=%s",
+            current_user.user_id,
+            payload.get("sub"),
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=ADMIN_ELEVATION_REQUIRED_DETAIL,
+        )
+
+    # _payload_token_version raises 401 on a malformed `ver`, which is right for a
+    # session token and wrong here: the console reads 401 as "your session died"
+    # and signs the operator out, when the truth is only that this elevation is no
+    # good. Every rejection on this path has to look the same from outside — a 403
+    # asking for the password again.
+    try:
+        token_version = _payload_token_version(payload)
+    except HTTPException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=ADMIN_ELEVATION_REQUIRED_DETAIL,
+        ) from exc
+
+    if token_version != int(getattr(current_user, "token_version", 0) or 0):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=ADMIN_ELEVATION_REQUIRED_DETAIL,
+        )
+
+    return current_user
 
 
 def require_csrf_header(

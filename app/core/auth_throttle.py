@@ -22,6 +22,7 @@ class AuthThrottleAction(str, Enum):
     REGISTER = "register"
     FORGOT_PASSWORD = "forgot_password"  # noqa: S105 — an endpoint name, not a credential
     OAUTH = "oauth"
+    ADMIN_ELEVATION = "admin_elevation"
 
 
 class AuthThrottler:
@@ -40,6 +41,11 @@ class AuthThrottler:
         AuthThrottleAction.REGISTER: {"max_requests": 3, "window_seconds": 60},
         AuthThrottleAction.FORGOT_PASSWORD: {"max_requests": 3, "window_seconds": 60},
         AuthThrottleAction.OAUTH: {"max_requests": 10, "window_seconds": 60},
+        # Tighter than LOGIN. The caller is already an authenticated admin, so a
+        # legitimate operator needs one attempt and a typo needs two; anything
+        # approaching five is someone with a stolen session guessing the password
+        # that stands between them and the destructive endpoints.
+        AuthThrottleAction.ADMIN_ELEVATION: {"max_requests": 3, "window_seconds": 60},
     }
 
     def __init__(self) -> None:

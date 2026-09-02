@@ -2,9 +2,16 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
+import { ModalShell } from "@/components/modal-shell";
 import { useSession } from "@/hooks/useSession";
 import { readErrorMessage } from "@/lib/api";
 import { formatDateTimeLabel } from "@/lib/format";
+
+type ElevationGrant = {
+  token: string;
+  expires_at: string;
+  expires_in_seconds: number;
+};
 
 type AdminStats = {
   total_users: number;
@@ -172,6 +179,68 @@ function numberLabel(value: number | null | undefined) {
   return new Intl.NumberFormat().format(value);
 }
 
+// ── Admin elevation (P1-4 step 2) ────────────────────────────────────────────
+//
+// Holding an admin session is authority to look. Destructive operations —
+// erasing a user's data, suspending an account, broadcasting a push, moving a
+// feature flag — additionally need proof that the person at the keyboard is
+// still the account holder, given in the last few minutes.
+//
+// The token lives in a module variable and NEVER in sessionStorage. Persisting
+// it would repeat the exact mistake this whole item exists to undo: the console
+// used to keep a long-lived admin key in sessionStorage, readable by any XSS on
+// the origin, any extension, anyone on a shared machine. A credential that dies
+// with the tab is the design, not a limitation of it.
+const ELEVATION_HEADER = "X-Admin-Elevation";
+
+let elevationToken: string | null = null;
+let elevationExpiresAtMs = 0;
+
+// Treat the token as spent slightly before the server will, so a request sent
+// right on the boundary fails in the UI's hands rather than the server's.
+const ELEVATION_SKEW_MS = 5_000;
+
+function liveElevationToken(): string | null {
+  if (!elevationToken) return null;
+  if (Date.now() >= elevationExpiresAtMs - ELEVATION_SKEW_MS) {
+    elevationToken = null;
+    return null;
+  }
+  return elevationToken;
+}
+
+function rememberElevation(token: string, expiresInSeconds: number) {
+  elevationToken = token;
+  elevationExpiresAtMs = Date.now() + expiresInSeconds * 1000;
+}
+
+function forgetElevation() {
+  elevationToken = null;
+  elevationExpiresAtMs = 0;
+}
+
+/**
+ * Asks the operator for their password and returns whether elevation succeeded.
+ * The console registers one on mount.
+ *
+ * This lives in the shared fetch layer rather than at each destructive call
+ * site on purpose. Five operations need elevation today; the sixth one written
+ * must not depend on its author remembering to wrap it — which is the same
+ * failure mode the server-side structural test in tests/test_admin_elevation.py
+ * exists to catch, handled here the same way: centrally, not by discipline.
+ */
+type ElevationPrompt = () => Promise<boolean>;
+let elevationPrompt: ElevationPrompt | null = null;
+
+function registerElevationPrompt(prompt: ElevationPrompt | null) {
+  elevationPrompt = prompt;
+}
+
+/** The server's signal that this session may act, but must re-authenticate first. */
+function needsElevation(status: number, detail: string) {
+  return status === 403 && detail.toLowerCase().includes("elevation");
+}
+
 function adminHeaders(init: RequestInit) {
   const headers = new Headers(init.headers);
   headers.set("Content-Type", headers.get("Content-Type") ?? "application/json");
@@ -179,12 +248,31 @@ function adminHeaders(init: RequestInit) {
   if (["POST", "PATCH", "PUT", "DELETE"].includes(method)) {
     headers.set("X-Vinaadi-CSRF", "1");
   }
+  const elevation = liveElevationToken();
+  if (elevation) {
+    headers.set(ELEVATION_HEADER, elevation);
+  }
   return headers;
+}
+
+/** Pull `detail` out of an error body, falling back to the raw text. */
+function errorDetail(text: string): string {
+  try {
+    const json = JSON.parse(text) as { detail?: unknown; message?: unknown };
+    if (typeof json.detail === "string") return json.detail;
+    if (typeof json.message === "string") return json.message;
+  } catch {
+    // Not JSON — the raw body is the best detail available.
+  }
+  return text;
 }
 
 async function adminFetchJson<T>(
   path: string,
   init: RequestInit = {},
+  // Guards the retry to a single attempt. Without it, a server that kept
+  // answering "elevation required" would prompt the operator in a loop.
+  { allowElevationRetry = true }: { allowElevationRetry?: boolean } = {},
 ): Promise<T> {
   const response = await fetch(`/api/backend${path}`, {
     ...init,
@@ -194,21 +282,17 @@ async function adminFetchJson<T>(
 
   if (!response.ok) {
     const text = await response.text().catch(() => "");
-    try {
-      const json = JSON.parse(text) as { detail?: unknown; message?: unknown };
-      const detail =
-        typeof json.detail === "string"
-          ? json.detail
-          : typeof json.message === "string"
-            ? json.message
-            : text;
-      throw new Error(`${response.status}: ${detail}`);
-    } catch (error) {
-      if (error instanceof Error && error.message.startsWith(`${response.status}:`)) {
-        throw error;
+    const detail = errorDetail(text);
+
+    if (allowElevationRetry && needsElevation(response.status, detail) && elevationPrompt) {
+      // Whatever we were holding is spent or was never right; do not send it again.
+      forgetElevation();
+      if (await elevationPrompt()) {
+        return adminFetchJson<T>(path, init, { allowElevationRetry: false });
       }
-      throw new Error(text || `Request failed with status ${response.status}`);
     }
+
+    throw new Error(detail ? `${response.status}: ${detail}` : `Request failed with status ${response.status}`);
   }
 
   return (await response.json()) as T;
@@ -224,6 +308,10 @@ export function AdminConsole() {
   const [status, setStatus] = useState("Checking admin access…");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // Non-null means the elevation modal is up and a destructive request is parked
+  // on its answer. Resolving with `false` (cancel/Escape) lets that request fail
+  // normally rather than hanging.
+  const [elevationAsk, setElevationAsk] = useState<{ resolve: (ok: boolean) => void } | null>(null);
 
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [healthDetail, setHealthDetail] = useState<HealthDetailResponse | null>(null);
@@ -256,6 +344,22 @@ export function AdminConsole() {
 
   // Probe once on mount. The backend is the only thing that can answer this:
   // get_admin_user checks the is_admin column and the bootstrap admin-email
+  // Hand the fetch layer a way to ask for a password, so a destructive call that
+  // comes back "elevation required" can raise the prompt and retry itself. No
+  // call site needs to know elevation exists.
+  //
+  // Elevation is dropped on unmount: leaving the console should not leave a live
+  // destructive credential behind in the tab.
+  useEffect(() => {
+    registerElevationPrompt(
+      () => new Promise<boolean>((resolve) => setElevationAsk({ resolve })),
+    );
+    return () => {
+      registerElevationPrompt(null);
+      forgetElevation();
+    };
+  }, []);
+
   // list against the session cookie. A 403 here is a legitimate answer about
   // this account, not a failure to report as an error.
   useEffect(() => {
@@ -1464,6 +1568,103 @@ export function AdminConsole() {
           ) : null}
         </>
       )}
+
+      {elevationAsk ? (
+        <ElevationDialog
+          onResolve={(ok) => {
+            elevationAsk.resolve(ok);
+            setElevationAsk(null);
+          }}
+        />
+      ) : null}
     </main>
+  );
+}
+
+/**
+ * Re-authentication prompt for destructive operations.
+ *
+ * Deliberately narrow: it takes a password, exchanges it for a short-lived
+ * elevation token, and reports success. It does not know which operation is
+ * waiting on it, so it cannot leak what the operator was about to do into a
+ * dialog that might be screenshotted or shoulder-read.
+ *
+ * Cancelling resolves `false` rather than leaving the request hanging — a
+ * dialog that can be escaped into a stuck UI is its own bug.
+ */
+function ElevationDialog({ onResolve }: { onResolve: (ok: boolean) => void }) {
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    setFailure(null);
+    try {
+      const grant = await adminFetchJson<ElevationGrant>(
+        "/api/v1/admin/elevate",
+        { method: "POST", body: JSON.stringify({ password }) },
+        // This endpoint is what satisfies elevation; it must never try to elevate
+        // to reach itself.
+        { allowElevationRetry: false },
+      );
+      rememberElevation(grant.token, grant.expires_in_seconds);
+      setPassword("");
+      onResolve(true);
+    } catch (error) {
+      setFailure(error instanceof Error ? error.message : "Could not confirm your password.");
+      setPassword("");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <ModalShell
+      label="Confirm your password to continue"
+      onClose={() => onResolve(false)}
+      overlayClassName="admin-elevate-overlay"
+      panelClassName="admin-elevate-panel"
+    >
+      <form className="admin-elevate" onSubmit={submit}>
+        <h2 className="admin-elevate__title">Confirm it&rsquo;s you</h2>
+        <p className="admin-elevate__body">
+          This action changes or removes data that people depend on. Re-enter your
+          password to authorise it. The confirmation lasts a few minutes and is
+          never stored.
+        </p>
+        <label className="admin-elevate__label" htmlFor="admin-elevation-password">
+          Password
+        </label>
+        <input
+          id="admin-elevation-password"
+          className="admin-input"
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          disabled={busy}
+          required
+        />
+        {failure ? (
+          <p className="admin-elevate__error" role="alert">{failure}</p>
+        ) : null}
+        <div className="admin-elevate__actions">
+          <button
+            className="admin-button admin-button--quiet"
+            type="button"
+            onClick={() => onResolve(false)}
+            disabled={busy}
+          >
+            Cancel
+          </button>
+          <button className="admin-button" type="submit" disabled={busy || !password}>
+            {busy ? "Confirming…" : "Confirm"}
+          </button>
+        </div>
+      </form>
+    </ModalShell>
   );
 }

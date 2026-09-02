@@ -687,3 +687,75 @@ button:focus-visible,
     width: 100%;
   }
 }
+
+/* ── Elevation prompt (P1-4 step 2) ───────────────────────────────────────────
+   Shown when a destructive operation needs the operator to re-enter their
+   password. ModalShell owns the dialog behaviour (focus trap, Escape, restore);
+   these rules are only its look. Tokens only — the colour-literal ratchet fails
+   CI on a new hex here, and it is right to. */
+.admin-elevate {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(420px, calc(100vw - 32px));
+}
+
+.admin-elevate__title {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--admin-ink);
+}
+
+.admin-elevate__body {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--admin-muted);
+}
+
+.admin-elevate__label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--admin-ink);
+}
+
+.admin-elevate__error {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--admin-radius);
+  background: var(--admin-danger-soft);
+  color: var(--admin-danger);
+  font-size: 0.85rem;
+}
+
+.admin-elevate__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* ModalShell paints no panel of its own and its default overlay reads
+   `--ink-overlay`, a dashboard token this page does not load. So the admin
+   console supplies both. color-mix keeps it token-derived — a raw rgba() here
+   would be a new colour literal and the ratchet would (rightly) fail. */
+.admin-elevate-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--admin-ink) 55%, transparent);
+  backdrop-filter: blur(4px);
+}
+
+.admin-elevate-panel {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius);
+  padding: 20px;
+  box-shadow: 0 18px 48px color-mix(in srgb, var(--admin-ink) 22%, transparent);
+}

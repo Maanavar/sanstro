@@ -5,13 +5,21 @@ from datetime import UTC, date, datetime
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import bcrypt
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 from sqlalchemy import func, select, text, update
 from sqlalchemy.orm import Session
 
-from app.core.auth import get_admin_user
+from app.core.auth import (
+    create_admin_elevation_token,
+    get_admin_user,
+    get_elevated_admin_user,
+)
+from app.core.auth_throttle import AuthThrottleAction, get_auth_throttler
+from app.core.config import get_settings
 from app.db.session import get_db
+from app.middleware import resolve_client_ip
 from app.models import (
     BirthProfile,
     Chart,
@@ -33,6 +41,103 @@ from app.services.job_registry import get_all_jobs, get_job
 from app.services.push_service import send_push_to_token
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+_throttler = get_auth_throttler()
+
+
+class ElevationRequest(BaseModel):
+    password: str
+
+
+class ElevationGrant(BaseModel):
+    token: str
+    expires_at: str
+    expires_in_seconds: int
+
+
+def _client_ip(request: Request) -> str:
+    return resolve_client_ip(request, max(0, int(get_settings().trusted_proxy_count)))
+
+
+@router.post(
+    "/elevate",
+    response_model=ElevationGrant,
+    summary="Re-authenticate to authorise destructive admin operations",
+)
+def elevate_admin(
+    payload: ElevationRequest,
+    request: Request,
+    admin_user: User = Depends(get_admin_user),
+) -> ElevationGrant:
+    """Exchange the admin's own password for a short-lived elevation token.
+
+    Holding an admin session is authority to *look*. Destructive operations —
+    erasing a user's data, suspending an account, broadcasting a push, moving a
+    feature flag — additionally require proof that the person at the keyboard is
+    still the account holder, within the last few minutes. That is the one thing
+    a stolen session, an open laptop or an XSS-driven request cannot supply.
+
+    The password is never stored and the grant is not a cookie: the caller has to
+    attach it per request, deliberately, which is also why a CSRF-shaped request
+    cannot pick it up for free.
+    """
+    client_ip = _client_ip(request)
+    allowed, retry_after = _throttler.check(
+        AuthThrottleAction.ADMIN_ELEVATION,
+        ip=client_ip,
+        account_identifier=str(admin_user.user_id),
+    )
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many elevation attempts. Please try again later.",
+            headers={"Retry-After": str(retry_after)},
+        )
+
+    # An admin who signed up through OAuth has no password to re-enter, so there
+    # is no second factor available and elevation must be refused rather than
+    # waved through. Refusing is the fail-safe direction: the alternative is that
+    # the accounts hardest to re-verify are the ones that skip verification.
+    if not admin_user.hashed_password:
+        log_admin_action(
+            action="admin_elevation_unavailable_no_password",
+            actor_user_id=admin_user.user_id,
+            ip_address=client_ip,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "This admin account has no password set, so it cannot be elevated. "
+                "Set a password on the account to perform destructive operations."
+            ),
+        )
+
+    if not bcrypt.checkpw(payload.password.encode("utf-8"), admin_user.hashed_password.encode("utf-8")):
+        # Logged as an admin action, not just an auth warning: a failed elevation
+        # is somebody holding a valid admin session who does not know the
+        # password, which is the exact shape of a session compromise.
+        log_admin_action(
+            action="admin_elevation_denied",
+            actor_user_id=admin_user.user_id,
+            ip_address=client_ip,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Password is incorrect.",
+        )
+
+    token, expires_at = create_admin_elevation_token(admin_user)
+    log_admin_action(
+        action="admin_elevation_granted",
+        actor_user_id=admin_user.user_id,
+        ip_address=client_ip,
+        payload_summary=f"expires_at={expires_at.isoformat()}",
+    )
+    return ElevationGrant(
+        token=token,
+        expires_at=expires_at.isoformat(),
+        expires_in_seconds=get_settings().admin_elevation_minutes * 60,
+    )
 
 
 class DataDeletionResult(BaseModel):
@@ -189,7 +294,7 @@ def _count(model: object, session: Session) -> int:
 def delete_user_data(
     owner_user_id: UUID,
     session: Session = Depends(get_db),
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_elevated_admin_user),
 ) -> DataDeletionResult:
     _assert_admin_delete_enabled()
 
@@ -401,7 +506,7 @@ def suspend_user(
     user_id: UUID,
     body: SuspendRequest,
     session: Session = Depends(get_db),
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_elevated_admin_user),
 ) -> dict[str, Any]:
     user = session.get(User, user_id)
     if user is None:
@@ -497,7 +602,7 @@ def get_audit_log(
 def broadcast_notification(
     body: BroadcastRequest,
     session: Session = Depends(get_db),
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_elevated_admin_user),
 ) -> BroadcastResult:
     if body.target_user_id:
         try:
@@ -566,7 +671,7 @@ def list_flags(_: User = Depends(get_admin_user)) -> list[FlagEntry]:
 def set_flag_value(
     flag_name: str,
     body: FlagUpdate,
-    admin_user: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_elevated_admin_user),
 ) -> FlagEntry:
     try:
         set_flag(flag_name, body.value)
@@ -583,7 +688,10 @@ def set_flag_value(
 
 
 @router.delete("/flags/{flag_name}/reset", summary="Reset a feature flag to its default value")
-def reset_flag_value(flag_name: str, admin_user: User = Depends(get_admin_user)) -> dict[str, Any]:
+def reset_flag_value(
+    flag_name: str,
+    admin_user: User = Depends(get_elevated_admin_user),
+) -> dict[str, Any]:
     if flag_name not in all_flags():
         raise HTTPException(status_code=404, detail=f"Unknown flag: {flag_name}")
     reset_flag(flag_name)

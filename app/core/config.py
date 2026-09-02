@@ -52,6 +52,12 @@ class Settings(BaseSettings):
     # browser never has to hold the admin key. Bootstraps the server-side admin role.
     admin_emails: str = Field(default="")
     enable_admin_data_delete: bool = Field(default=False)
+    # Minutes an admin elevation token stays valid. Being admin is not enough to
+    # run a destructive operation: the operator re-enters their password and gets
+    # a short-lived, single-user token scoped to those endpoints. Short on
+    # purpose — this window is how long a stolen elevation token is useful, and
+    # unlike the session it cannot be silently refreshed.
+    admin_elevation_minutes: int = Field(default=10)
     frontend_url: str = Field(default="http://localhost:3000")
     cookie_secure: bool = Field(default=False)
     encryption_key: str = Field(default="")

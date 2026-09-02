@@ -46,7 +46,7 @@ output observed; where one was not, it says so.
 | P1-1 daily-snapshot failures | **Done** | `28e5728` |
 | P1-2 X-Forwarded-For | **Done** | `ee828dd` |
 | P1-3 geocoding logs | **Done** | `bc4b8b6` |
-| P1-4 admin key | **(a)(b)(c) done**, (d) elevation deferred | `a302127` |
+| P1-4 admin key | **All four steps done.** Steps 1/3/4 in `a302127`; step 2 (short-lived elevation for destructive operations) below | `a302127` + below |
 | P1-5 production edge | **Not started** — infrastructure, not code |  |
 | P1-6 refresh + quota races | **Done** — races were real | `82a0a34` |
 | P2-2 pnpm overrides | **Done** — pin was indeed ignored | `0c68275` |
@@ -825,6 +825,48 @@ works. With a stolen key and no session, browser-origin admin calls are refused.
 
 **Risk.** Highest-touch item in P1. Do it after P0 is stable. Do not start it as a
 drive-by.
+
+**Step 2 done 2026-09-03 — short-lived elevation.** `POST /admin/elevate` takes
+the admin's *own* password and returns a token valid for
+`admin_elevation_minutes` (default 10). Five destructive routes now require it
+via `get_elevated_admin_user`: GDPR erasure, suspend, broadcast, set flag, reset
+flag.
+
+The token is bound to three things, because an elevation outliving any of them
+is worse than none:
+
+- `sub` — one admin's elevation cannot authorise another's action. Admin is not
+  a shared capability here.
+- `ver` — a `token_version` bump (password change, suspension, forced logout)
+  revokes live elevations too. Without it, revoking a compromised session would
+  leave its elevation usable for the rest of the window, which is the worst few
+  minutes to hand an attacker.
+- `exp` — minutes, and not silently refreshable like the session.
+
+Throttled tighter than login (3/min): the caller is already an authenticated
+admin, so a real operator needs one attempt and a typo needs two. Grants **and
+denials** are audit-logged — a failed elevation is somebody holding a valid admin
+session who does not know the password, which is the shape of a session
+compromise. An OAuth admin with no password is refused rather than waved
+through: the fail-safe direction, or the accounts hardest to re-verify become
+the ones that skip verification.
+
+**The structural half is the part that lasts.** Every mutating admin-guarded
+route must appear in `_ELEVATION_REQUIRED` or `_ELEVATION_NOT_REQUIRED` in
+`tests/test_admin_elevation.py`, keyed on the dependency *object*. Route N+1
+fails until a person classifies it — the same guard shape as
+`tests/test_chart_access_guard.py`, and for the same reason: `muhurta.py` and
+`share_card.py` shipped unguarded precisely because nobody had to say anything.
+
+Checked rather than assumed: `jobs/{job_id}/trigger` stays unelevated because
+every entry in `scheduler.SCHEDULED_JOBS` is an idempotent recompute that sends
+nothing outward. If a job that notifies or destroys is registered, move it.
+
+In the console, elevation lives in the shared `adminFetchJson` layer, not at the
+five call sites — a 403-with-elevation raises the password modal and retries
+once, so the sixth destructive call written later gets it for free. The token is
+a module variable and **never `sessionStorage`**: persisting it would re-commit
+the exact mistake this whole item exists to undo.
 
 ---
 
