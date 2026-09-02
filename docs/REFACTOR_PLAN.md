@@ -146,15 +146,30 @@ everything; the endpoint shrinks to one delete + audit log.
 
 ---
 
-### 1.3 Bump `starlette` off 1.0.0 (and FastAPI with it)
+### 1.3 Bump `starlette` off 1.0.0 — **DONE 2026-09-02**
 
-**Current pins:** `fastapi==0.136.1`, `starlette==1.0.0` (`requirements.txt`).
+**Pins now:** `fastapi==0.136.1` (unchanged), `starlette==1.3.1`
+(`requirements.txt`). The five advisories are cleared and their `--ignore-vuln`
+flags are gone from CI.
 
-**Why it is deferred, not ignored.** `pip-audit` reports five advisories against
-starlette 1.0.0 — PYSEC-2026-161, -248, -249, -2280, -2281 — with 1.3.1 the
-highest fix version. They are currently passed to `--ignore-vuln` in the CI
-dependency-audit step. That is a holding position, not a verdict: `fastapi`
-constrains the starlette range, so this is a two-package bump.
+**The premise that deferred this was false, and it cost the delay.** This entry
+said `fastapi` constrained the starlette range, making it a two-package bump and
+therefore risky enough to hold behind a suppression. `fastapi==0.136.1` requires
+`starlette>=0.46.0` — **no upper bound.** Starlette moved alone, FastAPI was
+never touched, and the blast radius was one package.
+
+Both of this entry's blocking claims turned out to be wrong on inspection (see
+the correction below for the other). The advisories sat suppressed on a
+production-readiness branch behind an assumption nobody had re-read. The general
+lesson is cheap and worth the line: **when a task is deferred because of a
+constraint, record the constraint verbatim, because the next reader will inherit
+the conclusion and not the check.**
+
+**Why 1.3.1 and not latest.** 1.3.1 is the highest fix version among the five
+(-161 → 1.0.1, -2280/-2281 → 1.1.0, -248 → 1.3.0, -249 → 1.3.1, confirmed
+against OSV). The known route-shape breakage is FastAPI 0.141.1 with Starlette
+1.6.0; 1.3.1 stops short of both, so this takes the security fix without taking
+the change that has bitten here before.
 
 **Why it needs care.** This combination has already produced a route-shape
 change here. Under FastAPI 0.141.1 / Starlette 1.6.0, `route.path` changed shape
@@ -183,12 +198,25 @@ against the live app on the current pins (53 routes across 13 modules).
    pinned at 53; `tests/test_chart_access_guard.py` passes 25/25 on the current
    pins. This is now the tripwire for step 2: if the bump changes route shape,
    this test names the number it changed to instead of quietly covering less.
-2. Bump `starlette` and `fastapi` together to a compatible pair at or above
-   starlette 1.3.1.
-3. Run the full suite (not a targeted subset) and drop the five `--ignore-vuln`
-   flags plus the note above `starlette` in `requirements.txt`.
+2. ~~Bump `starlette` and `fastapi` together to a compatible pair at or above
+   starlette 1.3.1.~~ **Done 2026-09-02, as `starlette` alone → 1.3.1.** The
+   tripwire from step 1 held immediately: still 53 routes across 13 modules,
+   `tests/test_chart_access_guard.py` 25/25 on the new pin. No route-shape drift
+   at 1.3.1.
+3. ~~Run the full suite and drop the five `--ignore-vuln` flags plus the note
+   above `starlette`.~~ **Done 2026-09-02.** `pip-audit -r requirements.txt`
+   with the starlette suppressions removed reports **no known vulnerabilities**.
 
-**Effort:** 0.5d. **Risk:** medium — route-shape changes are silent.
+**Left behind deliberately.** One suppression remains: `ecdsa` PYSEC-2026-1325
+(the Minerva timing issue), which has **no fix version** upstream and is off our
+signing path — HS256/HMAC only. It is listed in CI under two IDs,
+`GHSA-wj6h-64fc-37mp` and `CVE-2024-23342`; those plus `PYSEC-2026-1325` are
+aliases of **one** advisory and each alone suppresses it. Both are kept because
+which alias the database reports under has changed before. It is the only finding
+pip-audit still reports.
+
+**Actual effort:** ~1h, not the estimated 0.5d — the estimate was sized against
+the two-package bump that was never required.
 
 ---
 
