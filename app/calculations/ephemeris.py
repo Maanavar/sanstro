@@ -314,34 +314,42 @@ def calculate_rise_transit_jd(jd_start: float, latitude: float, longitude: float
             if not hasattr(swe_module, "rise_trans"):
                 raise RuntimeError("Swiss Ephemeris rise_trans is unavailable in this module backend.")
             geopos = (longitude, latitude, 0.0)
-            try:
-                result = swe_module.rise_trans(
-                    jd_start,
-                    SUN,
-                    None,
-                    rsmi,
-                    geopos,
-                    0.0,
-                    0.0,
-                    FLG_SWIEPH,
-                )
-            except TypeError:
-                result = swe_module.rise_trans(
-                    jd_start,
-                    SUN,
-                    None,
-                    rsmi,
-                    FLG_SWIEPH,
-                    geopos,
-                    0.0,
-                    0.0,
-                )
-            if isinstance(result, tuple):
-                if len(result) >= 2 and isinstance(result[1], (tuple, list)) and result[1]:
-                    return _require_valid_rise_jd(float(result[1][0]), jd_start, rise=rise)
-                if len(result) >= 1 and isinstance(result[0], (tuple, list)) and result[0]:
-                    return _require_valid_rise_jd(float(result[0][0]), jd_start, rise=rise)
-            raise RuntimeError("Swiss Ephemeris rise_trans did not return a usable Julian Day.")
+            # pyswisseph 2.10.3.2, pyswisseph.c pyswe_rise_trans:
+            #   kwlist = tjdut, body, rsmi, geopos, atpress, attemp, flags
+            #   PyArg_ParseTupleAndKeywords format "dOiO|ddi"  -> SEVEN args, max.
+            # This used to pass EIGHT, in the pre-2.x order (body, starname,
+            # rsmi, geopos, ...), with a second eight-argument call in the
+            # `except TypeError` fallback — so both branches raised and the
+            # exception propagated. It could not fail on the development
+            # machine: Python >= 3.14 has no pyswisseph wheel, so this repo
+            # resolves to swisseph-ffi there and never enters this branch at
+            # all (see the pyproject markers). It failed on every 3.12 CI run
+            # and would have failed in the production image, where sunrise
+            # anchors every panchangam field this docstring lists.
+            # The optional tail is passed by keyword deliberately: a future
+            # reordering then raises TypeError instead of silently binding
+            # atmospheric pressure to the ephemeris flags.
+            result = swe_module.rise_trans(
+                jd_start,
+                SUN,
+                rsmi,
+                geopos,
+                atpress=0.0,
+                attemp=0.0,
+                flags=FLG_SWIEPH,
+            )
+            # Documented return: (res, tret) — res 0 = event found, -2 = the
+            # body is circumpolar, tret[0] = Julian Day of the event.
+            if isinstance(result, tuple) and len(result) >= 2 and isinstance(result[1], (tuple, list)) and result[1]:
+                if result[0] == -2:
+                    raise RiseTransitUndefinedError(
+                        f"No sun{'rise' if rise else 'set'} at this location on this date "
+                        "(polar day/night) — panchangam is undefined here."
+                    )
+                return _require_valid_rise_jd(float(result[1][0]), jd_start, rise=rise)
+            raise RuntimeError(
+                f"Swiss Ephemeris rise_trans returned an unexpected shape: {result!r}"
+            )
 
         geopos = (c_double * 3)(longitude, latitude, 0.0)
         tret = (c_double * 10)()
