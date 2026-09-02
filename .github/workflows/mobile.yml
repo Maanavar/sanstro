@@ -21,13 +21,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # No `version:` here. It used to pin 9 while the root package.json
+      # `packageManager` field says pnpm@11.8.0, and action-setup@v4 refuses a
+      # conflict between the two — which is why every run of this workflow has
+      # failed at this step. One source of truth for the package manager.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # pnpm 11.8.0's engines require Node >=22.13; on 20 the install dies
+          # with ERR_UNKNOWN_BUILTIN_MODULE. Same finding as the web job.
+          node-version: "22"
           cache: pnpm
 
       - name: Install dependencies
@@ -50,13 +54,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # No `version:` here. It used to pin 9 while the root package.json
+      # `packageManager` field says pnpm@11.8.0, and action-setup@v4 refuses a
+      # conflict between the two — which is why every run of this workflow has
+      # failed at this step. One source of truth for the package manager.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # pnpm 11.8.0's engines require Node >=22.13; on 20 the install dies
+          # with ERR_UNKNOWN_BUILTIN_MODULE. Same finding as the web job.
+          node-version: "22"
           cache: pnpm
 
       - name: Install dependencies
