@@ -146,6 +146,36 @@ everything; the endpoint shrinks to one delete + audit log.
 
 ---
 
+### 1.3 Bump `starlette` off 1.0.0 (and FastAPI with it)
+
+**Current pins:** `fastapi==0.136.1`, `starlette==1.0.0` (`requirements.txt`).
+
+**Why it is deferred, not ignored.** `pip-audit` reports five advisories against
+starlette 1.0.0 — PYSEC-2026-161, -248, -249, -2280, -2281 — with 1.3.1 the
+highest fix version. They are currently passed to `--ignore-vuln` in the CI
+dependency-audit step. That is a holding position, not a verdict: `fastapi`
+constrains the starlette range, so this is a two-package bump.
+
+**Why it needs care.** This combination has already produced a silent failure
+here. Under FastAPI 0.141.1 / Starlette 1.6.0, `route.path` changed shape, and
+`_chart_id_routes()` in `tests/test_chart_access_guard.py` matched **0 routes
+instead of 53** — the chart ownership guard asserted over an empty set and stayed
+green while covering nothing. A guard that passes vacuously is worse than one
+that fails.
+
+**Steps:**
+1. Rewrite `_chart_id_routes()` so it *fails* when it matches zero routes, and
+   assert the expected route count explicitly. Do this first, on the current
+   pins, so the guard cannot go vacuous again.
+2. Bump `starlette` and `fastapi` together to a compatible pair at or above
+   starlette 1.3.1.
+3. Run the full suite (not a targeted subset) and drop the five `--ignore-vuln`
+   flags plus the note above `starlette` in `requirements.txt`.
+
+**Effort:** 0.5d. **Risk:** medium — route-shape changes are silent.
+
+---
+
 ## Phase 2 — Type/lint gate hardening (cheap ratchet)
 
 > **Status (2026-06-20): DONE.** ruff `S` rules enabled and pinned (`ruff==0.15.17`
