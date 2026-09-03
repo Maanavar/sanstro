@@ -2,17 +2,50 @@ import logging
 import os
 import secrets
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _logger = logging.getLogger(__name__)
 
+_ENV_PREFIX = "JOTHIDAM_"
+
+# Process roles. Only "api" serves HTTP, so only "api" needs the secrets that
+# exist to authenticate a request. See _require_strong_secrets_in_production.
+_ROLE_API = "api"
+_ROLE_WORKER = "worker"
+_ROLES = (_ROLE_API, _ROLE_WORKER)
+
+
+def _config_error(message: str) -> RuntimeError:
+    """Raise a configuration failure WITHOUT pydantic echoing the input.
+
+    Not a stylistic choice. Pydantic converts ValueError and AssertionError
+    raised inside a validator into a ValidationError, and that carries
+    ``input_value=`` — the whole settings dict. So a validator that raised
+    ValueError printed every secret it had been given, into the boot log, at
+    precisely the moment it fires: a misconfigured production start. Verified
+    against pydantic 2.13; `test_production_secret_error_does_not_echo_the_values`
+    pins it.
+
+    Any exception that is not ValueError/AssertionError propagates untouched.
+    """
+    return RuntimeError(message)
+
 
 class Settings(BaseSettings):
     app_name: str = "Vinaadi AI API"
     app_version: str = "0.1.0"
     environment: str = "development"
+    # Which process this is. "api" serves HTTP and needs every auth secret;
+    # "worker" runs only the scheduler (app/worker.py) and needs none of them.
+    #
+    # Defaults to "api" deliberately. An unset or misspelled role must demand
+    # MORE secrets rather than fewer — the failure mode of guessing "worker" is
+    # an HTTP process booting in production with no JWT secret, which the
+    # validator below exists to prevent.
+    process_role: str = _ROLE_API
     debug: bool = False
     host: str = "127.0.0.1"
     port: int = 8000
@@ -131,15 +164,81 @@ class Settings(BaseSettings):
         """Normalised set of bootstrap admin emails (lower-cased, trimmed)."""
         return {e.strip().lower() for e in self.admin_emails.split(",") if e.strip()}
 
+    @model_validator(mode="before")
+    @classmethod
+    def _load_file_backed_secrets(cls, values):
+        """Fill any field from ``JOTHIDAM_<FIELD>_FILE`` when that path is set.
+
+        A secret delivered as a file — a Docker/Compose secret at
+        ``/run/secrets/<name>``, a mounted Kubernetes secret — should be *read*
+        as a file. Re-exporting it into the environment first (the obvious
+        entrypoint shim) puts it straight back into ``/proc/<pid>/environ`` and
+        into ``docker inspect``, discarding the containment that mounting it
+        bought. See docs/SEC1_SECRET_CUSTODY_RULING.md §6.
+
+        This lives here rather than in a free-standing ``get_secret()`` helper
+        because a helper nothing calls does not reach ``settings.encryption_key``
+        — every consumer reads the settings object, so the file has to be
+        resolved as the object is built.
+        """
+        if not isinstance(values, dict):
+            return values
+
+        # Only the model's own fields. An arbitrary FOO_FILE in the environment
+        # is not ours to interpret.
+        for name in cls.model_fields:
+            env_var = f"{_ENV_PREFIX}{name}_FILE".upper()
+            path_value = os.getenv(env_var)
+            if not path_value or not path_value.strip():
+                continue
+            path = Path(path_value.strip())
+            try:
+                # Trailing newline: files written by an editor or `echo` almost
+                # always have one, and a Fernet key with "\n" on the end is not
+                # a Fernet key. Strip whitespace at both ends, nothing else.
+                file_value = path.read_text(encoding="utf-8").strip()
+            except OSError as exc:
+                # Name the variable and the path, never speculate about content.
+                raise _config_error(f"{env_var} points at {path}, which could not be read: {exc}") from exc
+            if not file_value:
+                # A zero-byte secret file is a mount that did not work. Booting
+                # with an empty secret defers the failure to first use, which for
+                # the encryption key means writing data under a key nobody has.
+                raise _config_error(f"{env_var} points at {path}, which is empty.")
+
+            existing = values.get(name)
+            if existing not in (None, "") and str(existing).strip() != file_value:
+                # Two different values for one secret, and no rule anyone would
+                # guess about which wins. For the encryption key, picking wrong
+                # writes rows under a key the operator does not think is live.
+                # Identical values are allowed — that happens mid-migration.
+                raise _config_error(
+                    f"{env_var} and {_ENV_PREFIX}{name}".upper()
+                    + " are both set and disagree. Set one. (Values not shown.)"
+                )
+            values[name] = file_value
+        return values
+
     @model_validator(mode="after")
     def _require_strong_secrets_in_production(self) -> "Settings":
         app_env = os.getenv("APP_ENV", self.environment).strip().lower()
         real_user_envs = {"production", "staging"}
 
+        role = (self.process_role or "").strip().lower()
+        if role not in _ROLES:
+            raise _config_error(
+                f"JOTHIDAM_PROCESS_ROLE must be one of {', '.join(_ROLES)}; got {self.process_role!r}"
+            )
+        # Least privilege, per docs/SEC1_SECRET_CUSTODY_RULING.md §5.2: the
+        # scheduler process never authenticates a request, so it has no business
+        # holding the secrets that do. Requiring them of every process is what
+        # made per-service secret grants impossible before.
+        serves_http = role == _ROLE_API
+
         missing: list[str] = []
-        if not self.jwt_secret:
+        if serves_http and not self.jwt_secret:
             missing.append("JOTHIDAM_JWT_SECRET")
-        if not self.admin_api_key:
+        if serves_http and not self.admin_api_key:
             missing.append("JOTHIDAM_ADMIN_API_KEY")
 
         if app_env not in real_user_envs:
@@ -156,18 +255,25 @@ class Settings(BaseSettings):
         # Either form satisfies this. A production deployment mid-rotation sets
         # only JOTHIDAM_ENCRYPTION_KEYS, and refusing to boot on that would make
         # rotating the key an outage.
+        #
+        # Required of BOTH roles, unlike the auth secrets above: the scheduler
+        # reads birth profiles for the morning push, so it decrypts too.
         if not self.encryption_key.strip() and not self.encryption_keys.strip():
             missing.append("JOTHIDAM_ENCRYPTION_KEY")
         if missing:
-            raise ValueError(f"Production requires these secrets to be set: {', '.join(missing)}")
+            raise _config_error(f"Production requires these secrets to be set: {', '.join(missing)}")
 
         insecure: list[str] = []
-        if not self.cookie_secure:
+        # An HTTP concern, so an HTTP-role concern. Enforcing it on the worker
+        # meant the `scaled` compose profile could not boot in production at all:
+        # the worker service sets JOTHIDAM_ENVIRONMENT=production and there is no
+        # .env in the image, so cookie_secure defaulted false and this raised.
+        if serves_http and not self.cookie_secure:
             insecure.append("JOTHIDAM_COOKIE_SECURE must be true (JWT cookie over HTTPS only)")
         if self.debug:
             insecure.append("JOTHIDAM_DEBUG must be false in production")
         if insecure:
-            raise ValueError("Insecure production configuration: " + "; ".join(insecure))
+            raise _config_error("Insecure production configuration: " + "; ".join(insecure))
         return self
 
 

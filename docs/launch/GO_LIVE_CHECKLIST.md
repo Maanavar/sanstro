@@ -213,6 +213,10 @@ Security audit findings — must clear before go-live:
   `production`/`staging` if either is unset (it also requires `JOTHIDAM_ENCRYPTION_KEY`,
   `JOTHIDAM_COOKIE_SECURE=true`, `JOTHIDAM_DEBUG=false`). Outside those environments it
   generates a fresh ephemeral secret per boot instead of falling back to a fixed value.
+  **Amended 2026-09-03:** the JWT/admin/cookie checks now apply to the `api` role only
+  (`JOTHIDAM_PROCESS_ROLE`, default `api`); a `worker` process needs none of them but
+  still requires the encryption key. The failure message no longer echoes the settings
+  it was given — see `SEC1_SECRET_CUSTODY_RULING.md` §5.2 and §11.
   - [ ] **Residual risk to close out**: an earlier commit (`de48707`, 2026-06-16) shipped
     fixed literal fallback secrets — not placeholders, actual fixed strings
     (`faLe6vxFC4K4...`, `J2xfyx5Z2Hf...`) — before the current design landed in `8277a5a`.

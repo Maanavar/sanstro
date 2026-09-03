@@ -44,9 +44,21 @@ services:
     environment:
       JOTHIDAM_ENVIRONMENT: production
       JOTHIDAM_DATABASE_URL: postgresql://${POSTGRES_USER:-vinaadi}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-vinaadi}
-      JOTHIDAM_JWT_SECRET: ${JOTHIDAM_JWT_SECRET:?set JOTHIDAM_JWT_SECRET}
-      JOTHIDAM_ADMIN_API_KEY: ${JOTHIDAM_ADMIN_API_KEY:?set JOTHIDAM_ADMIN_API_KEY}
-      JOTHIDAM_ENCRYPTION_KEY: ${JOTHIDAM_ENCRYPTION_KEY:?set JOTHIDAM_ENCRYPTION_KEY}
+      # No `${VAR:?}` guard on these three. It used to be here, and it was the
+      # right guard while .env was the only channel — but compose interpolates
+      # each file at load time, before overlays merge, so a `:?` in this file
+      # fires even when docker-compose.secrets.yml is supplying the value from
+      # /run/secrets. That would make the file-backed path impossible to use
+      # without also keeping the plaintext in .env, which is the whole point of
+      # the overlay.
+      #
+      # Nothing is lost: app/core/config.py refuses to boot in production
+      # without them, knows about the _FILE channel, and knows which role needs
+      # which secret. The failure moves from `compose up` to a container that
+      # exits immediately with a named error.
+      JOTHIDAM_JWT_SECRET: ${JOTHIDAM_JWT_SECRET:-}
+      JOTHIDAM_ADMIN_API_KEY: ${JOTHIDAM_ADMIN_API_KEY:-}
+      JOTHIDAM_ENCRYPTION_KEY: ${JOTHIDAM_ENCRYPTION_KEY:-}
       JOTHIDAM_ANTHROPIC_API_KEY: ${JOTHIDAM_ANTHROPIC_API_KEY:-}
       JOTHIDAM_COOKIE_SECURE: "true"
       JOTHIDAM_DEBUG: "false"
@@ -107,10 +119,18 @@ services:
         condition: service_healthy
     environment:
       JOTHIDAM_ENVIRONMENT: production
+      # Least privilege: this process serves no HTTP, so it authenticates
+      # nothing and holds neither JOTHIDAM_JWT_SECRET nor
+      # JOTHIDAM_ADMIN_API_KEY. The role is what lets it boot without them —
+      # app/core/config.py requires those of the "api" role only.
+      #
+      # It does still need the encryption key: the morning push reads birth
+      # profiles, which are encrypted at rest.
+      JOTHIDAM_PROCESS_ROLE: worker
       JOTHIDAM_DATABASE_URL: postgresql://${POSTGRES_USER:-vinaadi}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-vinaadi}
-      JOTHIDAM_JWT_SECRET: ${JOTHIDAM_JWT_SECRET:?set JOTHIDAM_JWT_SECRET}
-      JOTHIDAM_ADMIN_API_KEY: ${JOTHIDAM_ADMIN_API_KEY:?set JOTHIDAM_ADMIN_API_KEY}
-      JOTHIDAM_ENCRYPTION_KEY: ${JOTHIDAM_ENCRYPTION_KEY:?set JOTHIDAM_ENCRYPTION_KEY}
+      # See the api service: guard removed so the overlay can supply this by
+      # file. app/core/config.py still refuses to boot without it, for both roles.
+      JOTHIDAM_ENCRYPTION_KEY: ${JOTHIDAM_ENCRYPTION_KEY:-}
       JOTHIDAM_REDIS_URL: ${JOTHIDAM_REDIS_URL:-redis://redis:6379/0}
     # Migrations are owned by the api container; the worker just runs the scheduler.
     entrypoint: ["tini", "--", "python", "-m", "app.worker"]

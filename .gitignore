@@ -75,3 +75,7 @@ artifacts/
 
 # Claude Design source exports — reference-only, never commit
 /Astrology App Dashboard Redesign/
+
+# Compose file-backed secrets (docker-compose.secrets.yml). Plaintext key
+# material — never tracked. SEC-1 §5.4: no secrets in Git.
+/secrets/
