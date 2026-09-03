@@ -120,17 +120,35 @@ Move from `.env` interpolation into `environment:` to file-backed Compose
 secrets granted per service. Use a `file:` source — Compose also accepts an
 `environment:` source for secrets, which would defeat the purpose.
 
-Prerequisite: make the production secret validator process-aware, or the worker
-cannot legally drop `JWT_SECRET` / `ADMIN_API_KEY` (§4).
+Prerequisite, now met: the production secret validator is process-aware
+(`JOTHIDAM_PROCESS_ROLE`, defaulting to `api` so an unset role demands *more*),
+which is what lets the worker drop `JWT_SECRET` / `ADMIN_API_KEY` (§4).
 
-Target matrix, to be confirmed against the code before it is applied:
+**As built.** The base `docker-compose.app.yml` no longer hands the worker either
+Class B secret. The file-backed path is `docker-compose.secrets.yml`, layered on
+top:
+
+```
+docker compose -f docker-compose.app.yml -f docker-compose.secrets.yml up -d
+```
+
+One thing that had to change to make the overlay usable: the base file's
+`${JOTHIDAM_JWT_SECRET:?…}` guards are gone. Compose interpolates each file at
+load time, *before* overlays merge, so a `:?` in the base file fires even when
+the overlay is supplying that value from `/run/secrets` — which would have forced
+the plaintext to stay in `.env`, defeating the whole overlay. Nothing is lost:
+`app/core/config.py` refuses to boot in production without them, and unlike
+compose it knows about the `_FILE` channel and about roles. The failure moves
+from `compose up` to a container that exits immediately with a named error.
+
+Applied matrix:
 
 | Secret | api | worker | web |
 |---|---|---|---|
 | `JOTHIDAM_DATABASE_URL` | ✓ | ✓ | ✗ |
 | `JOTHIDAM_ENCRYPTION_KEYS` | ✓ | ✓ | ✗ |
-| `JOTHIDAM_JWT_SECRET` | ✓ | ✗ (needs §4 fix) | ✗ |
-| `JOTHIDAM_ADMIN_API_KEY` | ✓ | ✗ (needs §4 fix) | ✗ |
+| `JOTHIDAM_JWT_SECRET` | ✓ | ✗ **removed** | ✗ |
+| `JOTHIDAM_ADMIN_API_KEY` | ✓ | ✗ **removed** | ✗ |
 | `JOTHIDAM_ANTHROPIC_API_KEY` | ✓ | ✓ if a job calls it | ✗ |
 | `JOTHIDAM_REVENUECAT_WEBHOOK_SECRET` | ✓ | ✗ | ✗ |
 | `JOTHIDAM_SMTP_PASS` | ✓ | ✓ if a job sends mail | ✗ |
@@ -195,6 +213,22 @@ not reach `Settings`, and `settings.encryption_key` would keep reading the plain
 env var. This belongs as a `model_validator(mode="before")` on `Settings` that,
 for any field, fills the value from `<JOTHIDAM_FIELD>_FILE` when that path is
 set. Ordinary non-secret configuration stays in environment variables.
+
+**As built** (`_load_file_backed_secrets` in `app/core/config.py`):
+
+- Any field, not just secrets — `JOTHIDAM_<FIELD>_FILE` works for all of them.
+  Only the model's own fields; a stray `FOO_FILE` in the environment is not ours
+  to interpret.
+- Contents are whitespace-stripped. `echo key > file` is how these get written,
+  and a Fernet key with a newline on the end is not a Fernet key.
+- An unreadable path and an **empty file** both fail at boot, naming the variable
+  and the path. A zero-byte secret file is a mount that did not work; booting on
+  it defers the failure to first use, which for the encryption key means writing
+  rows under a key nobody holds.
+- Setting both channels to **different** values is refused — there is no rule
+  anyone would guess about which wins. Identical values are allowed, because that
+  is what a half-finished migration looks like.
+- No error message contains key material. See the second defect in §11.
 
 `app/core/encryption.py` and its `MultiFernet` contract need no change either
 way — `configured_keys()` reads `settings`, not `os.environ`.
@@ -373,22 +407,45 @@ A backup that has never been restored is an assumption, not a backup.
 
 ## 11. Work items
 
-| # | Item | Stage | Blocked on |
+| # | Item | Stage | Status |
 |---|---|---|---|
-| 1 | Encryption-key escrow, two independent copies + key register | 1 (S0) | nothing |
-| 2 | Restore test: restore a backup, decrypt a birth profile and a journal entry | 1 (S0) | item 1 |
-| 3 | Replace the go-live checklist line with the S0 block (§10) | 1 | nothing — **done in this change** |
-| 4 | `*_FILE` support on `Settings` via `model_validator(mode="before")` | 1 | nothing |
-| 5 | Make the production secret validator process-aware so the worker can drop Class B secrets | 1 | nothing |
-| 6 | File-backed Compose secrets with per-service grants (§5.2) | 1 | items 4, 5 |
-| 7 | VERIFY pass in `rotate_encryption_key.py`: single-key `Fernet(K2)` decrypt census | 1 | nothing |
-| 8 | Document key-retention ≥ backup-retention in `DATA_PROTECTION.md` | 1 | nothing |
-| 9 | Migrate custody to the provider's Secret Manager/KMS with workload identity | 2 | hosting decision |
-| 10 | Explicit key IDs; envelope encryption via KMS | later | item 9 |
+| 1 | Encryption-key escrow, two independent copies + key register | 1 (S0) | **Open — owner only.** Acts on real key material on the production host. |
+| 2 | Restore test: restore a backup, decrypt a birth profile and a journal entry | 1 (S0) | **Open — owner only.** Needs item 1 and a real backup. |
+| 3 | Replace the go-live checklist line with the S0 block (§10) | 1 | **Done** — `089ab8d` |
+| 4 | `*_FILE` support on `Settings` via `model_validator(mode="before")` | 1 | **Done** — §6 |
+| 5 | Make the production secret validator process-aware so the worker can drop Class B secrets | 1 | **Done** — §5.2 |
+| 6 | File-backed Compose secrets with per-service grants (§5.2) | 1 | **Done** — `docker-compose.secrets.yml` |
+| 7 | VERIFY pass in `rotate_encryption_key.py`: single-key `Fernet(K2)` decrypt census | 1 | **Done** — §8 |
+| 8 | Document key-retention ≥ backup-retention in `DATA_PROTECTION.md` | 1 | **Done** |
+| 9 | Migrate custody to the provider's Secret Manager/KMS with workload identity | 2 | Open — hosting decision |
+| 10 | Explicit key IDs; envelope encryption via KMS | later | Open — after item 9 |
 
 Items 1, 2 and 7 are the ones that prevent permanent data loss. Items 4–6 reduce
 exposure breadth. Item 9 is the only one that genuinely needed the hosting answer,
 which is why holding all of SEC-1 behind it was the wrong call.
+
+**Items 1 and 2 are the whole remaining S0 surface.** Nothing in the code can
+substitute for them: the verify pass proves a rotation is complete, and the
+per-service grants narrow who holds what, but neither puts a second copy of the
+key somewhere the production host's disk failure cannot reach.
+
+### Two defects found while building Stage 1
+
+Both pre-existing, neither in the ruling, both fixed here:
+
+- **The `scaled` compose profile could not boot in production at all.** The
+  worker service sets `JOTHIDAM_ENVIRONMENT=production`, the image carries no
+  `.env`, so `cookie_secure` defaulted false and the production check rejected
+  it — a cookie setting blocking a process that serves no cookies. Found by
+  asking which secrets the worker legitimately needs. Pinned by
+  `test_worker_boots_in_production_without_cookie_secure`.
+- **Every config failure printed the secrets it was given.** Pydantic converts a
+  `ValueError` raised inside a validator into a `ValidationError` carrying
+  `input_value=` — the whole settings dict. So a misconfigured production boot
+  wrote every secret that *was* set into the log, at exactly the moment an
+  operator would be pasting that log somewhere. Config failures now raise
+  `RuntimeError`, which pydantic propagates untouched. Pinned by
+  `test_production_secret_error_does_not_echo_the_values`.
 
 ---
 
