@@ -129,15 +129,25 @@ CI is authoritative. A green local run is evidence; a red one is a hypothesis.
 
 ## 1. Order of work
 
-| Item | Size | Depends on | Recommendation |
+**Status as of 2026-09-03: every code item is closed.** What remains is one
+unscoped cleanup pass and one decision that is not ours to make.
+
+| Item | Size | Depends on | Status |
 |---|---|---|---|
-| **P2-4** stale docs | Trivial (~20 min) | nothing | Do first. Zero risk. |
-| **P2-5** newsletter ORM | Small (~1–2 h) | nothing | Do second. Self-contained, closes a real testability gap. |
-| **P2-6** mobile storage | Small–medium | nothing | Independent of the others. |
-| **P2-3** typed errors | **Large** | P1-1 (done) | The big one. Groundwork is fresh — good time. |
-| **P2-7** observability etc. | Needs sizing | nothing | Split into 7a–7d; 7a is now a confirmed bug, not an investigation. |
-| **P2-8** cleanup | Unscoped | all gates green | Last, by definition. |
-| **SEC-1** secret manager | Decision, not code | deployment target | Blocked on a human choice. See §8. |
+| **P2-4** stale docs | Trivial (~20 min) | nothing | **Done** — `2683dc4` |
+| **P2-5** newsletter ORM | Small (~1–2 h) | nothing | **Done** — `3ca3da6` |
+| **P2-6** mobile storage | Small–medium | nothing | **Done** — `be86654`, `a5c42de` (all four defects) |
+| **P2-3** typed errors | **Large** | P1-1 (done) | **Done** — `249edc6`, `985b554`, `947eb51` |
+| **P2-7a** structured logs | Small | nothing | **Done** — `a79c2b9` |
+| **P2-7b** N+1 | Small | nothing | **Done** — `406b2b2`, `10b291f` (all three paths) |
+| **P2-7c** contract tests | Small | nothing | **Done** — §6.3 |
+| **P2-7d** coverage floor | Trivial | a measured number | **Done** — 40 → 88 on 90.53% measured |
+| **P2-8** cleanup | Unscoped | all gates green | **Open.** Last, by definition. |
+| **SEC-1** secret custody | Decision + work | — | **Ruled 2026-09-03.** Stage 1 open, not blocked. See §8. |
+
+Also fixed in passing, from the review's own side-notes: `_latest_active_profile`
+in `daily_push_cron.py` omitted `.limit(1)`, so any user with two active birth
+profiles hit `MultipleResultsFound` and silently received no morning alert.
 
 P2-4 and P2-5 do not touch each other and can be done in either order or together.
 P2-3 and P2-7a both touch the error/logging path — if both are being done, do **7a
@@ -626,15 +636,27 @@ response shape identical. Do not change response shapes here; that is P2-3's bus
 
 ### 6.3 7c — Contract tests for `packages/shared/src/api/`
 
-Validate every wrapper's path, HTTP verb and param style against the FastAPI OpenAPI
-schema in CI. This is the guard that would have caught both known drifts
-(`getDailyGuidance` query-vs-path; `registerFcmToken` PATCH-vs-PUT).
+**Done (2026-09-03).** All four failure modes are covered in
+`tests/test_api_wrapper_route_contract.py`, which generates the schema from
+`app.openapi()` at import — no checked-in copy to go stale.
 
-- Generate the schema from the app (`app.openapi()`), do not check in a stale copy.
-- Fail on: unknown path, path-template mismatch, verb mismatch, a required param the
-  wrapper never sends.
-- A repo precedent exists — the TS↔OpenAPI field-parity guard. Extend that harness if
-  it fits rather than starting a second one.
+| Fail on | Where | Status |
+|---|---|---|
+| Unknown path | `test_wrapper_path_exists_on_backend` | Pre-existing |
+| Path-template mismatch | same, via segment normalisation | Pre-existing |
+| Verb mismatch | same test's second assertion | Pre-existing |
+| A required param the wrapper never sends | `test_wrapper_sends_every_required_query_param` | **Added** |
+
+The harness was extended rather than duplicated, as this item asked. 40 routes
+declare a required query param and 14 wrapper calls reach them; all 14 were already
+correct, so the new guard is a tripwire rather than a fix. Two tests keep it honest —
+one asserts the discovery counts are non-trivial (a parser that matches nothing would
+otherwise pass), and one unit-tests the check against a known omission.
+
+The check asks whether a required param *name appears* in the source around the call,
+not how the query string is assembled — wrappers build them inline, via
+`URLSearchParams`, and by spreading a params object, and a parser that understood all
+three would be a bigger liability than the bug it guards.
 
 ### 6.4 7d — Coverage
 
@@ -680,10 +702,26 @@ user-visible string, it is not cleanup — stop and raise it.
 
 ---
 
-## 8. SEC-1 · Secret manager (P1-5 loose end)
+## 8. SEC-1 · Secret custody (P1-5 loose end)
 
-**Status: a decision, not a build. Do not start coding this without a chosen
-deployment target.** Full write-up: [`PRODUCTION_EDGE.md` §4](PRODUCTION_EDGE.md).
+**Status: RULED 2026-09-03. Stage 1 is not blocked on anything and includes an S0
+pre-launch blocker.** Ruling and work items:
+[`SEC1_SECRET_CUSTODY_RULING.md`](SEC1_SECRET_CUSTODY_RULING.md). Original
+write-up: [`PRODUCTION_EDGE.md` §4](PRODUCTION_EDGE.md).
+
+The ruling: no Vault at this scale, no move to Kubernetes for secrets alone, and
+Compose secrets are a containment step rather than the destination. Two stages —
+escrow, per-service grants and `*_FILE` config support now; the hosting
+provider's managed Secret Manager/KMS with workload identity once hosting is
+final. `JOTHIDAM_ENCRYPTION_KEYS` is classified as a data-encryption root secret,
+and **no historical key may be destroyed while a retained database backup may
+still require it**.
+
+Holding all of SEC-1 behind the hosting answer was wrong: only the Stage 2
+migration needed it. Escrow, restore testing and the rotation VERIFY pass never
+did, and two of those prevent permanent data loss.
+
+The text below records the state as it stood before the ruling.
 
 Five of P1-5's six parts shipped on 2026-09-03 (TLS ingress, port exposure, response
 headers, nonce CSP, readiness probe). The sixth was deliberately left as a written

@@ -130,11 +130,27 @@ These are hard blockers for this repo.
 - [ ] `JOTHIDAM_DATABASE_URL` points to the production database
 - [ ] `JOTHIDAM_JWT_SECRET` is set to a strong random secret
 - [ ] `JOTHIDAM_ADMIN_API_KEY` is set to a strong random secret
-- [ ] `JOTHIDAM_ENCRYPTION_KEY` is set and backed up securely
+- [ ] `JOTHIDAM_ENCRYPTION_KEY` (or `JOTHIDAM_ENCRYPTION_KEYS`) is set
 - [ ] `JOTHIDAM_COOKIE_SECURE=true`
 - [ ] `JOTHIDAM_DEBUG=false`
 - [ ] `JOTHIDAM_FRONTEND_URL` is the real domain
 - [ ] `JOTHIDAM_CORS_ALLOW_ORIGINS` is restricted to real origins only
+
+### Encryption-key custody — S0 blocker
+
+Ruled in [`SEC1_SECRET_CUSTODY_RULING.md`](../SEC1_SECRET_CUSTODY_RULING.md).
+`JOTHIDAM_ENCRYPTION_KEYS` is a data-encryption root secret, not a credential:
+there is no revoke-and-replace path. Lose it and every birth profile and journal
+entry stays in the database as ciphertext permanently. A backup that has never
+been restored is an assumption, not a backup.
+
+- [ ] Encryption key escrow exists in >= 2 independent locations
+- [ ] Database backup exists
+- [ ] Encryption key and DB backup are NOT stored together
+- [ ] Restore procedure has been tested end to end
+- [ ] A restored encrypted birth profile decrypts successfully
+- [ ] A restored journal entry decrypts successfully
+- [ ] Old-key recovery has been tested after a rotation
 
 Strongly recommended:
 - [ ] `JOTHIDAM_RATE_LIMIT_ENABLED=true`

@@ -208,6 +208,14 @@ got `'none'` and `DENY`.
 
 ## 4. Secrets — not done, and what to do
 
+> **Superseded 2026-09-03** by
+> [`SEC1_SECRET_CUSTODY_RULING.md`](SEC1_SECRET_CUSTODY_RULING.md). Two claims
+> below are overturned there: keeping the env-var interface is **not** a design
+> requirement (`*_FILE` sources are preferred, because re-exporting a mounted
+> secret puts it back in `/proc/<pid>/environ`), and this is **not** wholly
+> blocked on a deployment target — only the Stage 2 migration is. The rest of
+> this section stands.
+
 Secrets are environment variables read from a `.env` file next to the compose
 file. `app/core/config.py` already refuses to boot in production without
 `JOTHIDAM_JWT_SECRET`, `JOTHIDAM_ADMIN_API_KEY` and `JOTHIDAM_ENCRYPTION_KEY`,
@@ -233,7 +241,9 @@ Whichever target:
 
 ## 5. What is still open
 
-- **Secret manager** — §4. Blocked on choosing a deployment target, not on work.
+- **Secret custody** — §4. Ruled 2026-09-03; Stage 1 is not blocked on the
+  deployment target and carries an S0 pre-launch blocker (encryption-key escrow
+  plus a tested restore). See [`SEC1_SECRET_CUSTODY_RULING.md`](SEC1_SECRET_CUSTODY_RULING.md).
 - **Certificate issuance** — the compose `edge` service expects certificates
   mounted at `${CERTBOT_CONF_DIR}`. Renewal (a certbot sidecar or an ACME-native
   proxy) is not wired up; the `/.well-known/acme-challenge/` webroot is.
