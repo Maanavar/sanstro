@@ -245,10 +245,17 @@ total.
 
 **One change in the tree was not from either half of this task, and was dropped:**
 `pyproject.toml` raising `--cov-fail-under` from 40 to 65 is P2-7d, which the
-review recorded as *not started*. It was never verified. Per the handoff's own
-condition — *"raise the floor only after the real number already clears it"* —
-the line was reverted to 40 rather than merged on trust; it can land in its own
-commit once a real coverage number exists that clears the new floor.
+review recorded as *not started*. It was never verified at the time, so per the
+handoff's own condition — *"raise the floor only after the real number already
+clears it"* — the line was reverted to 40 rather than merged on trust.
+
+**The number now exists: 90.53%**, measured on the full run in §9 (which executed
+while the floor was still 65, and cleared it). So a raise is justified — but 65 is
+not the right target. The same condition says to move the floor to *just under*
+the achieved number, and 65 sits 25 points below it, which gates almost nothing.
+Whoever picks up P2-7d should land ~88 in its own commit, or record why a loose
+floor is deliberate. Left reverted here because P2-7d is not this task's scope and
+a floor is a decision, not a side effect.
 
 ---
 
@@ -256,11 +263,17 @@ commit once a real coverage number exists that clears the new floor.
 
 | Suite | Result |
 |---|---|
-| Backend (`pytest tests/`) | see below |
+| Backend (`pytest tests/`) | **4741 passed, 22 skipped, 0 failed** (65 min, exit 0) |
 | Web (`vitest`) | **717 passed**, 80 files |
 | Mobile (`jest`) | **90 passed**, 10 suites |
 | `ruff check app/ tests/` | clean |
 | `tsc --noEmit` (web, mobile) | clean |
+| Coverage | **90.53%** |
+
+The backend run the review could not obtain is now on the record: a single clean
+run against the dedicated Docker test DB, with no competing pytest process. The 22
+skips are all pre-existing and self-describing (missing OpenAPI response schemas
+for nine chart routes; WI-07 sunrise reference values not yet on file).
 
 ---
 
