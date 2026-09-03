@@ -15,6 +15,7 @@ from typing import Any
 
 from app.services.daily_push_cron import run_daily_push_cron
 from app.services.job_registry import register_job
+from app.services.journal_purge import run_journal_purge_cron
 from app.services.panchangam_prewarm import run_panchangam_prewarm_cron
 from app.services.peyarchi_alert_service import daily_peyarchi_refresh
 from app.services.synastry_service import daily_relationship_alert_refresh
@@ -30,6 +31,12 @@ class ScheduledJob:
     func: Callable[[], Any]
     # APScheduler cron trigger kwargs (e.g. hour=2, minute=0).
     trigger: dict[str, int] = field(default_factory=dict)
+    # Deletes data, or sends something outward. Admin `jobs/{id}/trigger`
+    # requires a short-lived elevation for these; an idempotent recompute needs
+    # only the admin session. See P1-4 step 2 in docs/AUDIT_TRIAGE_2026-08-31.md,
+    # which pre-committed to exactly this: "If a job that notifies or destroys is
+    # registered, move it."
+    destructive: bool = False
 
 
 SCHEDULED_JOBS: tuple[ScheduledJob, ...] = (
@@ -61,6 +68,24 @@ SCHEDULED_JOBS: tuple[ScheduledJob, ...] = (
         run_panchangam_prewarm_cron,
         {"hour": 2, "minute": 10},
     ),
+    # The only job here that DESTROYS data, and therefore the first `destructive`
+    # one. P1-4 step 2 left `jobs/{id}/trigger` unelevated on the explicit
+    # grounds that "every entry in scheduler.SCHEDULED_JOBS is an idempotent
+    # recompute that sends nothing outward. If a job that notifies or destroys is
+    # registered, move it." This is that job.
+    #
+    # It is a no-op unless an operator has configured a retention window, so on a
+    # default deployment it destroys nothing either way — but relying on that
+    # would make the safety of an access control depend on an unrelated setting.
+    ScheduledJob(
+        "journal_purge",
+        "Journal Hard Delete",
+        "Permanently delete journal entries archived beyond the retention window "
+        "(daily, 03:00 UTC; disabled unless JOTHIDAM_JOURNAL_PURGE_AFTER_DAYS > 0)",
+        run_journal_purge_cron,
+        {"hour": 3, "minute": 0},
+        destructive=True,
+    ),
 )
 
 
@@ -71,7 +96,7 @@ def register_all_jobs() -> None:
     admin trigger endpoints read from.
     """
     for job in SCHEDULED_JOBS:
-        register_job(job.id, job.name, job.description, job.func)
+        register_job(job.id, job.name, job.description, job.func, destructive=job.destructive)
 
 
 def schedule_all_jobs(scheduler: Any) -> None:

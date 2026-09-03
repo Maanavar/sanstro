@@ -6,7 +6,7 @@ from typing import Any
 from uuid import UUID
 
 import bcrypt
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from pydantic import BaseModel
 from sqlalchemy import func, select, text, update
 from sqlalchemy.orm import Session
@@ -195,6 +195,9 @@ class JobInfo(BaseModel):
     job_id: str
     label: str
     description: str
+    # Surfaced so the console can mark the job before an operator runs it, rather
+    # than only discovering it needs elevation from a 403.
+    destructive: bool = False
 
 
 class JobRunResult(BaseModel):
@@ -534,10 +537,24 @@ def list_jobs(_: User = Depends(get_admin_user)) -> list[JobInfo]:
 
 
 @router.post("/jobs/{job_id}/trigger", response_model=JobRunResult, summary="Manually trigger a background job")
-def trigger_job(job_id: str, admin_user: User = Depends(get_admin_user)) -> JobRunResult:
+def trigger_job(
+    job_id: str,
+    request: Request,
+    admin_user: User = Depends(get_admin_user),
+    x_admin_key: str | None = Header(default=None),
+) -> JobRunResult:
     job = get_job(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not registered.")
+
+    # A destructive job gets the same gate as the five destructive routes: admin
+    # session *and* a fresh password proof. Checked here rather than as a route
+    # dependency because which job this is only exists as a path parameter — but
+    # it calls the real dependency function, so the X-Admin-Key browser refusal,
+    # the token binding and the audit trail all still apply. Reimplementing the
+    # check would be how the two drift apart.
+    if job.get("destructive"):
+        get_elevated_admin_user(request, admin_user, x_admin_key)
 
     started = datetime.now(UTC)
     summary: str | None = None

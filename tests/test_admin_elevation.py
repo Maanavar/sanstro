@@ -69,10 +69,14 @@ _ELEVATION_NOT_REQUIRED: dict[tuple[str, str], str] = {
         "This IS the elevation endpoint. Requiring elevation to elevate is a "
         "deadlock — it is guarded by get_admin_user plus the password itself.",
     ("POST", "/api/v1/admin/jobs/{job_id}/trigger"):
-        "Checked, not assumed: every entry in scheduler.SCHEDULED_JOBS is an "
-        "idempotent recompute (transit alerts, synastry alerts). None sends "
-        "anything outward and none deletes. If a job that notifies or destroys "
-        "is ever registered, move this line to _ELEVATION_REQUIRED.",
+        "No longer true of every job: `journal_purge` (P2-1) permanently deletes "
+        "journal entries. Because which job runs is a path parameter, the gate "
+        "cannot be a route dependency — the route still depends on "
+        "get_admin_user, which is why this stays here — so trigger_job calls "
+        "get_elevated_admin_user itself for any job flagged `destructive`. "
+        "test_destructive_job_cannot_be_triggered_without_elevation is what "
+        "actually holds that, and test_every_destructive_job_is_flagged is what "
+        "stops the next destructive job from slipping through unflagged.",
     ("PATCH", "/api/v1/feedback/{feedback_id}/reward"):
         "Toggles an internal 'this reviewer may qualify for extended access' "
         "flag. Reversible, affects no user data, promises nothing to the user.",
@@ -352,3 +356,62 @@ def test_an_admin_with_no_password_is_refused_rather_than_waved_through(admin_cl
     response = _elevate(admin_client)
     assert response.status_code == 403
     assert "no password" in response.json()["detail"].lower()
+
+
+# ── Destructive background jobs (P2-1) ───────────────────────────────────────
+#
+# `jobs/{job_id}/trigger` runs whichever job the path names, so the gate cannot
+# be a route dependency the way the five destructive routes above have one. The
+# route keeps `get_admin_user` and the handler calls `get_elevated_admin_user`
+# itself when the job is flagged destructive. That means the structural test
+# above cannot see this gate — these two tests are what hold it instead.
+
+def test_every_destructive_job_is_flagged(admin_client):
+    """Registration, not the endpoint: a job that deletes must say so.
+
+    P1-4 step 2 left this endpoint unelevated on the explicit grounds that every
+    scheduled job was an idempotent recompute, and pre-committed to revisiting it
+    the moment one destroyed something. `journal_purge` is that job.
+    """
+    from app.scheduler import SCHEDULED_JOBS
+
+    flagged = {job.id for job in SCHEDULED_JOBS if job.destructive}
+    assert "journal_purge" in flagged, (
+        "journal_purge permanently deletes journal entries and must be flagged "
+        "destructive, or an admin session alone can trigger it."
+    )
+
+
+def test_a_recompute_job_still_needs_no_elevation(admin_client):
+    """The flag must not quietly elevate everything — that would be a different
+    change from the one intended, and a costlier one for operators."""
+    response = admin_client.post("/api/v1/admin/jobs/panchangam_prewarm/trigger")
+
+    assert response.status_code != 403, response.text
+
+
+def test_destructive_job_cannot_be_triggered_without_elevation(admin_client):
+    response = admin_client.post("/api/v1/admin/jobs/journal_purge/trigger")
+
+    assert response.status_code == 403, response.text
+    assert "elevation" in response.json()["detail"].lower()
+
+
+def test_destructive_job_runs_once_elevated(admin_client):
+    granted = _elevate(admin_client)
+    assert granted.status_code == 200, granted.text
+
+    response = admin_client.post(
+        "/api/v1/admin/jobs/journal_purge/trigger",
+        headers={ADMIN_ELEVATION_HEADER: granted.json()["token"]},
+    )
+
+    assert response.status_code == 200, response.text
+
+
+def test_an_unknown_job_is_404_not_a_way_to_probe_elevation(admin_client):
+    """404 before the elevation check would leak which job ids exist; 404 after
+    it is fine. Either way an unregistered id must not run anything."""
+    response = admin_client.post("/api/v1/admin/jobs/no_such_job/trigger")
+
+    assert response.status_code == 404

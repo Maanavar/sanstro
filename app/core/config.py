@@ -71,7 +71,21 @@ class Settings(BaseSettings):
     admin_elevation_minutes: int = Field(default=10)
     frontend_url: str = Field(default="http://localhost:3000")
     cookie_secure: bool = Field(default=False)
+    # Single-key form. Still supported and still the right choice for a
+    # deployment that has never rotated.
     encryption_key: str = Field(default="")
+    # Rotation form: comma-separated Fernet keys, NEWEST FIRST. The first
+    # encrypts; all of them decrypt. Takes precedence over encryption_key when
+    # set. Removing a key before scripts/rotate_encryption_key.py has finished
+    # makes every row still written under it permanently unreadable — see
+    # app/core/encryption.py and docs/DATA_PROTECTION.md.
+    encryption_keys: str = Field(default="")
+    # Days after a journal entry is ARCHIVED (deleted_at set) before it is
+    # permanently deleted. 0 = never, which is the default: the right window is a
+    # product and legal decision, and the cost of an engineer guessing it is a
+    # user's writing being destroyed. See app/services/journal_purge.py and
+    # docs/DATA_PROTECTION.md.
+    journal_purge_after_days: int = Field(default=0)
 
     # Email / SMTP — leave unset to disable email delivery (stub mode)
     smtp_host: str | None = Field(default=None)
@@ -139,7 +153,10 @@ class Settings(BaseSettings):
 
         # Birth data is encrypted at rest with this key. Without it the app boots
         # fine and only 500s the first time it touches encrypted data — fail now.
-        if not self.encryption_key.strip():
+        # Either form satisfies this. A production deployment mid-rotation sets
+        # only JOTHIDAM_ENCRYPTION_KEYS, and refusing to boot on that would make
+        # rotating the key an outage.
+        if not self.encryption_key.strip() and not self.encryption_keys.strip():
             missing.append("JOTHIDAM_ENCRYPTION_KEY")
         if missing:
             raise ValueError(f"Production requires these secrets to be set: {', '.join(missing)}")

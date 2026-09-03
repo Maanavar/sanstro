@@ -50,7 +50,8 @@ output observed; where one was not, it says so.
 | P1-5 production edge | **Done 2026-09-03**, except the secret manager. It was *not* only infrastructure: the web origin had no security headers at all | below |
 | P1-6 refresh + quota races | **Done** — races were real | `82a0a34` |
 | P2-2 pnpm overrides | **Done** — pin was indeed ignored | `0c68275` |
-| P2-1, P2-3…P2-8 | **Not started** |  |
+| P2-1 journal encryption | **Done 2026-09-03** | below |
+| P2-3…P2-8 | **Not started** |  |
 
 P1-4 was scoped down after checking the tree: its step 1 (session-based
 admin authority) already existed — `User.is_admin`, `is_admin_user()`, a
@@ -975,6 +976,46 @@ rotation should land in the same change or the migration path gets painful.
 Also define hard-delete and backup-expiry policy — journal retention currently
 archives via `deleted_at` and never removes. And only after the implementation
 matches should the privacy policy claim it.
+
+**Done 2026-09-03.** Full write-up: `docs/DATA_PROTECTION.md`.
+
+`journal_entries.note_text` is now `EncryptedString`
+(`app/services/encryption.py`), migrated in place
+(`migrations/versions/oo8e9f0a1b2c_encrypt_journal_note_text.py`, verified
+apply → decrypt-check → downgrade → decrypt-check against real Postgres). The
+"key versioning and rotation should land in the same change" instruction above
+is why `app/core/encryption.py` was rewritten rather than left alone: it had two
+independent `Fernet` constructions (this module and `app/services/encryption.py`
+each read `settings.encryption_key` and built their own), which was harmless
+only because both read one single-key setting. Rotation needed exactly one key
+path, so the services module now imports from core instead of duplicating it.
+`JOTHIDAM_ENCRYPTION_KEYS` (comma-separated, newest first) rotates via
+`MultiFernet`; `scripts/rotate_encryption_key.py` re-encrypts existing rows and
+is guarded by a test that fails when a new encrypted column is not added to it.
+
+Hard-delete: `app/services/journal_purge.py`, a new `journal_purge` scheduled
+job, gated by `JOTHIDAM_JOURNAL_PURGE_AFTER_DAYS` (default `0` — never — on
+purpose; the window is a product and legal decision, not a default to guess).
+Only rows already archived (`deleted_at` set) are ever eligible, regardless of
+age.
+
+**This is the first `destructive` scheduled job, and P1-4 pre-committed to
+exactly this case.** Its step 2 write-up (above) left `jobs/{id}/trigger`
+unelevated with the explicit condition "if a job that notifies or destroys is
+registered, move it." `journal_purge` permanently deletes rows, so
+`ScheduledJob` gained a `destructive` flag and `trigger_job`
+(`app/api/admin.py`) now calls `get_elevated_admin_user` itself for any job so
+flagged — a route dependency cannot express this because which job runs is a
+path parameter, not something FastAPI's dependency graph sees. Held down by
+`tests/test_admin_elevation.py::test_destructive_job_cannot_be_triggered_without_elevation`
+and `::test_every_destructive_job_is_flagged`, the same guard shape as the
+structural test for the five original elevated routes.
+
+Backup expiry is written up but not automated — it is an operational policy
+(retain dumps no longer than the purge window, and never past a key's
+retirement), not something this branch's code touches. The privacy policy has
+also not been updated to reflect any of this; §1 of `docs/DATA_PROTECTION.md`
+states exactly what to say and what not to overclaim.
 
 ### P2-2 · pnpm overrides are in a location pnpm ignores
 
