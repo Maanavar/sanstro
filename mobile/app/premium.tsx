@@ -11,14 +11,14 @@ import { useToast } from "@/context/ToastContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import type { PurchasesPackage } from "react-native-purchases";
-let Purchases: typeof import("react-native-purchases").default | null = null;
-try { Purchases = require("react-native-purchases").default; } catch { /* Expo Go */ }
 import { useColors } from "@/hooks/useColors";
 import type { ColorTokens } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
+let Purchases: typeof import("react-native-purchases").default | null = null;
+try { Purchases = require("react-native-purchases").default; } catch { /* Expo Go */ }
 
 const FEATURES = [
   { ta: "வரம்பற்ற ஜாதகங்கள் (3 இலவசத்திற்கு பதிலாக)", en: "Unlimited charts (vs 3 total free)" },

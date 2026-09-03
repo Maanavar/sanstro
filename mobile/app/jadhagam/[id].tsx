@@ -2,8 +2,6 @@ import React, { useMemo, useState } from "react";
 import * as Haptics from "expo-haptics";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useToast } from "@/context/ToastContext";
-let Share: typeof import("react-native-share").default | null = null;
-try { Share = require("react-native-share").default; } catch { /* Expo Go */ }
 import { fetchWithAuth } from "@/api/client";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams, type Href } from "expo-router";
@@ -19,6 +17,8 @@ import { ThirukanithamBadge } from "@/components/ThirukanithamBadge";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
 import { RASI_LIST, type ChartCalculateResponseData } from "@vinaadi/shared";
+let Share: typeof import("react-native-share").default | null = null;
+try { Share = require("react-native-share").default; } catch { /* Expo Go */ }
 
 const PLANET_SHORT_TA: Record<string, string> = {
   Sun: "சூ", Moon: "சந்", Mars: "செ", Mercury: "பு",

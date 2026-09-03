@@ -288,7 +288,7 @@ export default function TodayTab() {
   const refreshing = isSnapshotFetching;
   const activityChips = useMemo(() => {
     if (!g) return [];
-    const chips = [] as Array<{ label: string; ok: boolean; detail: string }>;
+    const chips = [] as { label: string; ok: boolean; detail: string }[];
     if (g.bestWindows?.[0]) {
       const w = g.bestWindows[0];
       chips.push({ label: t(strings.chips.start_work), ok: true, detail: `${w.type}: ${fmt(w.start)} - ${fmt(w.end)}` });
@@ -1066,7 +1066,7 @@ function ActivityChipRow({
   onSelect,
   styles,
 }: {
-  chips: Array<{ label: string; ok: boolean; detail: string }>;
+  chips: { label: string; ok: boolean; detail: string }[];
   onSelect: (chip: { label: string; ok: boolean; detail: string }) => void;
   styles: ReturnType<typeof makeStyles>;
 }) {

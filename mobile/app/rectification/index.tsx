@@ -32,12 +32,12 @@ import { getPrimaryChartId, getPrimaryProfileId } from "@/lib/userPrefs";
 
 type Step = "events" | "results" | "applied";
 
-const EVENT_FIELDS: Array<{
+const EVENT_FIELDS: {
   key: RectificationEventType;
   label: string;
   hint: string;
   house: string;
-}> = [
+}[] = [
   { key: "MARRIAGE", label: "Marriage / major relationship", hint: "Year it began", house: "7th / 2nd" },
   { key: "CAREER_BREAK", label: "Career shift or job loss", hint: "Year of the turning point", house: "10th / 6th" },
   { key: "RELOCATION", label: "Moved city or country", hint: "Year of relocation", house: "12th / 4th" },

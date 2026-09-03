@@ -93,7 +93,7 @@ function citationLine(slot: MuhurtaSlot): string | null {
   return seen.size > 0 ? Array.from(seen).join(" · ") : null;
 }
 
-const LIFE_AREAS: Array<{ key: DecisionPriority; label: string; action: string }> = [
+const LIFE_AREAS: { key: DecisionPriority; label: string; action: string }[] = [
   { key: "career", label: "Career", action: "make the career move" },
   { key: "relationship", label: "Relationship", action: "move the relationship forward" },
   { key: "money", label: "Money", action: "make the financial decision" },

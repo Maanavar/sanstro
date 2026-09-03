@@ -6,9 +6,6 @@ import * as ExpoFont from "expo-font";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-// Lazy-loaded to avoid crashing in Expo Go — JSI modules fail at import time when native bridge is absent.
-let Purchases: typeof import("react-native-purchases").default | null = null;
-try { Purchases = require("react-native-purchases").default; } catch { /* Expo Go */ }
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SessionProvider, useSession } from "@/state/sessionContext";
 import { LanguageProvider } from "@/state/languageContext";
@@ -23,6 +20,9 @@ import { loadGuestPrefs } from "@/features/guest/guestStore";
 import { ENV } from "@/lib/env";
 import { getMe } from "@/api/auth";
 import { FONT_MAP } from "@/theme/typography";
+// Lazy-loaded to avoid crashing in Expo Go — JSI modules fail at import time when native bridge is absent.
+let Purchases: typeof import("react-native-purchases").default | null = null;
+try { Purchases = require("react-native-purchases").default; } catch { /* Expo Go */ }
 
 SplashScreen.preventAutoHideAsync();
 

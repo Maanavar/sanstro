@@ -70,7 +70,7 @@ export default function PanchangamCalendarScreen() {
   // Build calendar grid
   const firstDay = new Date(year, month - 1, 1).getDay();
   type DayEntry = NonNullable<typeof d>["entries"][0];
-  const cells: Array<DayEntry | null> = [];
+  const cells: (DayEntry | null)[] = [];
   for (let i = 0; i < firstDay; i++) cells.push(null);
   if (d) for (const entry of d.entries) cells.push(entry);
 
