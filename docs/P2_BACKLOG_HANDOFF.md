@@ -340,8 +340,9 @@ The last two were missed on the first pass because the grep `233 passing|233 tes
 matches neither `233+ tests` nor `≥ 233`. Line 1001 is the worse one: "never shrinks"
 forbids deleting a redundant or wrong test. Delete both lines.
 
-The real backend coverage floor is `--cov-fail-under=40`
-([`pyproject.toml:55`](../pyproject.toml#L55)).
+The real backend coverage floor is `--cov-fail-under=88`
+([`pyproject.toml:55`](../pyproject.toml#L55)) — raised from 40 by P2-7d once a
+measured number existed to justify it (§6.4).
 
 ### 3.3 Scope
 
@@ -637,12 +638,24 @@ schema in CI. This is the guard that would have caught both known drifts
 
 ### 6.4 7d — Coverage
 
-Current floor: `--cov-fail-under=40` ([`pyproject.toml:55`](../pyproject.toml#L55)).
+**Done (2026-09-03).** Floor is now `--cov-fail-under=88`
+([`pyproject.toml:55`](../pyproject.toml#L55)), raised from 40.
 
-**Condition: raise the floor only after the real number already clears it.** A gate
-that has to be lowered later is worse than no gate. Add tests first — prioritising
-auth, payments, access control and calculations — measure, then move the floor to just
-under the achieved number.
+**The condition was: raise the floor only after the real number already clears it.**
+It was met rather than waived. The measured number is **90.53%** (32296 statements,
+3058 missed) from the clean full run recorded in
+[`P2_BACKLOG_REVIEW_RESPONSE_2026-09-03.md` §9](P2_BACKLOG_REVIEW_RESPONSE_2026-09-03.md) —
+4741 passed, 22 skipped, 0 failed, exit 0. No tests were added to reach it; the
+coverage was already there and the floor was simply 50 points stale.
+
+**One trap for whoever moves this next:** coverage.py compares the total *rounded to
+the configured precision*, which defaults to 0. At 90.53% actual, a `fail-under` of
+**91 still passes** (90.53 rounds to 91) and only 92 fails. If you want the floor to
+mean the literal number, set `--cov-precision` too. 88 was chosen to sit clear of that
+ambiguity with ~3 points of headroom, so an unrelated refactor does not trip the gate.
+
+Note also that a raised floor makes *targeted* runs fail on coverage — use
+`--no-cov` when running a single test file.
 
 ---
 
