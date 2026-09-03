@@ -148,9 +148,18 @@ export default function PanchangamDayScreen() {
               <Text style={[styles.tamilDate, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
                 {p.tamilDate ? (isTamil ? p.tamilDate.ta : p.tamilDate.en) : dateStr}
               </Text>
+              {/* Labelled in words, not with the sunrise/sunset emoji that used
+                  to be here. Those had been double-mojibaked into six visible
+                  garbage characters, and restoring them would have put emoji
+                  back where this project's rules say icons should not be emoji.
+                  A word also gives a screen reader something to announce. */}
               <View style={styles.sunRow}>
-                <Text style={styles.sunText}>ÃƒÂ°Ã…Â¸Ã…â€™Ã¢â‚¬Â¦ {fmt(p.sunrise)}</Text>
-                <Text style={styles.sunText}>ÃƒÂ°Ã…Â¸Ã…â€™Ã¢â‚¬Â¡ {fmt(p.sunset)}</Text>
+                <Text style={[styles.sunText, isTamil && styles.sunTextTamil]}>
+                  {isTamil ? "உதயம்" : "Sunrise"} {fmt(p.sunrise)}
+                </Text>
+                <Text style={[styles.sunText, isTamil && styles.sunTextTamil]}>
+                  {isTamil ? "அஸ்தமனம்" : "Sunset"} {fmt(p.sunset)}
+                </Text>
               </View>
             </View>
 
@@ -264,6 +273,10 @@ function makeStyles(C: ColorTokens) {
   tamilDate: { fontSize: 16, lineHeight: 24, color: C.textPrimary },
   sunRow: { flexDirection: "row", gap: S.xl },
   sunText: { fontFamily: "Inter_400Regular", fontSize: 13, color: C.textSecond },
+  // Inter has no Tamil glyphs, so the label alone would render as boxes.
+  // NotoSansTamil_400Regular is in FONT_MAP; the 600 weight is declared in the
+  // typography types but not actually loaded, so do not reach for it here.
+  sunTextTamil: { fontFamily: "NotoSansTamil_400Regular" },
 
   kalamRow: { marginLeft: -S.base, paddingLeft: S.base },
 
