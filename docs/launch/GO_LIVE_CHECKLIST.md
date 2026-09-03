@@ -144,13 +144,24 @@ there is no revoke-and-replace path. Lose it and every birth profile and journal
 entry stays in the database as ciphertext permanently. A backup that has never
 been restored is an assumption, not a backup.
 
-- [ ] Encryption key escrow exists in >= 2 independent locations
-- [ ] Database backup exists
-- [ ] Encryption key and DB backup are NOT stored together
-- [ ] Restore procedure has been tested end to end
-- [ ] A restored encrypted birth profile decrypts successfully
-- [ ] A restored journal entry decrypts successfully
-- [ ] Old-key recovery has been tested after a rotation
+**Follow [`runbooks/KEY_ESCROW_AND_RESTORE.md`](../runbooks/KEY_ESCROW_AND_RESTORE.md)**
+— about 40 minutes, and it ticks all seven. The last four are a command with an
+exit code (`scripts/verify_restore.py`), not a judgement call. Date every tick:
+an undated tick decays into an assumption, and each of these is true only for the
+backup and the key it was run against.
+
+- [ ] Encryption key escrow exists in >= 2 independent locations — runbook Part 1.1
+- [ ] Database backup exists — runbook Part 2.1
+- [ ] Encryption key and DB backup are NOT stored together — runbook Part 1.2
+- [ ] Restore procedure has been tested end to end — `verify_restore.py` exits 0
+- [ ] A restored encrypted birth profile decrypts successfully — same run
+- [ ] A restored journal entry decrypts successfully — same run
+- [ ] Old-key recovery has been tested after a rotation — runbook Part 2.4
+
+The escrowed key must be the one you verify with. Retrieve it **from escrow**, not
+from the host: escrowing a key from a previous deployment, a truncated paste, and
+one with a trailing newline all look identical in a password manager, and the
+drill is what tells them apart.
 
 Strongly recommended:
 - [ ] `JOTHIDAM_RATE_LIMIT_ENABLED=true`

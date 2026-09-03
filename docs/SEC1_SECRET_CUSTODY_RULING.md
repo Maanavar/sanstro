@@ -409,8 +409,8 @@ A backup that has never been restored is an assumption, not a backup.
 
 | # | Item | Stage | Status |
 |---|---|---|---|
-| 1 | Encryption-key escrow, two independent copies + key register | 1 (S0) | **Open — owner only.** Acts on real key material on the production host. |
-| 2 | Restore test: restore a backup, decrypt a birth profile and a journal entry | 1 (S0) | **Open — owner only.** Needs item 1 and a real backup. |
+| 1 | Encryption-key escrow, two independent copies + key register | 1 (S0) | **Open — owner performs.** Procedure written: [`runbooks/KEY_ESCROW_AND_RESTORE.md`](runbooks/KEY_ESCROW_AND_RESTORE.md) Part 1. |
+| 2 | Restore test: restore a backup, decrypt a birth profile and a journal entry | 1 (S0) | **Open — owner performs.** Now executable: `scripts/verify_restore.py`, runbook Part 2. |
 | 3 | Replace the go-live checklist line with the S0 block (§10) | 1 | **Done** — `089ab8d` |
 | 4 | `*_FILE` support on `Settings` via `model_validator(mode="before")` | 1 | **Done** — §6 |
 | 5 | Make the production secret validator process-aware so the worker can drop Class B secrets | 1 | **Done** — §5.2 |
@@ -428,6 +428,20 @@ which is why holding all of SEC-1 behind it was the wrong call.
 substitute for them: the verify pass proves a rotation is complete, and the
 per-service grants narrow who holds what, but neither puts a second copy of the
 key somewhere the production host's disk failure cannot reach.
+
+What *could* be done for them has been. [`runbooks/KEY_ESCROW_AND_RESTORE.md`](runbooks/KEY_ESCROW_AND_RESTORE.md)
+turns both into a followed procedure rather than a design exercise, and
+`scripts/verify_restore.py` turns item 2's four checklist lines into a command
+with an exit code: it restores a dump into a guarded scratch database, decrypts a
+real birth profile and a real journal entry, and reports **which key** read each
+one — the last part being what makes an old-key recovery drill mean anything, and
+what a `MultiFernet` cannot tell you.
+
+It reports the *shape* of each decrypted value and never the value, because the
+output of a restore drill is exactly the sort of thing that gets pasted into a
+ticket. It also reads keys straight from the environment rather than through
+`get_settings()`: a recovery tool that depended on the production config
+validator booting would refuse to start in the situation it exists for.
 
 ### Two defects found while building Stage 1
 
