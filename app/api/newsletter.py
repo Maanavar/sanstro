@@ -5,10 +5,11 @@ import re
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
+from app.models.newsletter_subscriber import NewsletterSubscriber
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -32,14 +33,12 @@ def subscribe_newsletter(
         raise HTTPException(status_code=422, detail="Invalid email address.")
 
     try:
-        session.execute(
-            text(
-                "INSERT INTO newsletter_subscribers (email, source) "
-                "VALUES (:email, :source) ON CONFLICT (email) DO NOTHING"
-            ),
-            {"email": email, "source": body.source[:64]},
-        )
+        session.add(NewsletterSubscriber(email=email, source=body.source[:64]))
         session.commit()
+    except IntegrityError:
+        # An existing address is deliberately indistinguishable from a fresh
+        # subscription, including when two requests race to insert it.
+        session.rollback()
     except Exception:
         session.rollback()
         log.exception("newsletter_subscribe_error")

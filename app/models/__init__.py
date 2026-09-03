@@ -14,6 +14,7 @@ from app.models.family_vault import FamilyVault
 from app.models.feedback import Feedback
 from app.models.interpretation_output import InterpretationOutput
 from app.models.journal_entry import JournalEntry
+from app.models.newsletter_subscriber import NewsletterSubscriber
 from app.models.notification import Notification
 from app.models.numerology_name_session import NumerologyNameSession
 from app.models.panchangam_cache import PanchangamCache
@@ -52,6 +53,7 @@ __all__ = [
     "Feedback",
     "InterpretationOutput",
     "JournalEntry",
+    "NewsletterSubscriber",
     "Notification",
     "NumerologyNameSession",
     "PanchangamCache",
