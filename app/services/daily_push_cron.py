@@ -133,6 +133,7 @@ def _latest_active_profile(session: Session, user_id: UUID) -> BirthProfile | No
             BirthProfile.deleted_at.is_(None),
         )
         .order_by(BirthProfile.created_at.desc())
+        .limit(1)
     ).scalar_one_or_none()
 
 

@@ -291,5 +291,8 @@ for nine chart routes; WI-07 sunrise reference values not yet on file).
 - **`_latest_active_profile` in `daily_push_cron.py`** has the same
   `scalar_one_or_none()`-without-`limit(1)` shape as the family helper: a user with
   two active profiles raises `MultipleResultsFound` and the cron logs an error for
-  them. Its sibling `_latest_completed_chart` has the `.limit(1)`. Not fixed here —
-  it is outside P2-7b's stated paths and deserves its own change.
+  them. Its sibling `_latest_completed_chart` has the `.limit(1)`. **Fixed
+  2026-09-03** in its own change, as this note asked: `.limit(1)` added, with
+  `tests/test_daily_push_cron_db.py` covering it. That test raises rather than
+  fails against the unfixed code, which is the proof it bites. The affected user
+  silently received no morning alert, so this was a live defect, not a latent one.
