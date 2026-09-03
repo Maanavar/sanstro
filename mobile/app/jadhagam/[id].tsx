@@ -18,6 +18,10 @@ import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
 import { RASI_LIST, type ChartCalculateResponseData } from "@vinaadi/shared";
 let Share: typeof import("react-native-share").default | null = null;
+// A static import would run at module load and crash Expo Go, where the
+// native bridge these JSI modules need does not exist. The require has to
+// stay a require: that is the point, not an oversight.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 try { Share = require("react-native-share").default; } catch { /* Expo Go */ }
 
 const PLANET_SHORT_TA: Record<string, string> = {

@@ -22,6 +22,10 @@ import { getMe } from "@/api/auth";
 import { FONT_MAP } from "@/theme/typography";
 // Lazy-loaded to avoid crashing in Expo Go — JSI modules fail at import time when native bridge is absent.
 let Purchases: typeof import("react-native-purchases").default | null = null;
+// A static import would run at module load and crash Expo Go, where the
+// native bridge these JSI modules need does not exist. The require has to
+// stay a require: that is the point, not an oversight.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 try { Purchases = require("react-native-purchases").default; } catch { /* Expo Go */ }
 
 SplashScreen.preventAutoHideAsync();

@@ -18,6 +18,10 @@ import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
 let Purchases: typeof import("react-native-purchases").default | null = null;
+// A static import would run at module load and crash Expo Go, where the
+// native bridge these JSI modules need does not exist. The require has to
+// stay a require: that is the point, not an oversight.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 try { Purchases = require("react-native-purchases").default; } catch { /* Expo Go */ }
 
 const FEATURES = [
