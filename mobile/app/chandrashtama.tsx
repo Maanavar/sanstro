@@ -49,9 +49,9 @@ const CAN_DO = {
     "ஆலய தரிசனம், தர்மம் செய்வது நல்லது",
   ],
   en: [
-    "Spiritual practice â€” meditation, japa, puja",
+    "Spiritual practice — meditation, japa, puja",
     "Spend quiet time with family and loved ones",
-    "Rest and restore â€” build inner reserves",
+    "Rest and restore — build inner reserves",
     "Temple visit and charitable giving are beneficial",
   ],
 };
@@ -102,7 +102,7 @@ export default function ChandrashtamaScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Text style={styles.backArrow}>â†</Text>
+          <Text style={styles.backArrow}>←</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, isTamil ? TamilType.heading : EnType.heading]}>
           {isTamil ? "சந்திராஷ்டமம்" : "Chandrashtama"}
@@ -147,7 +147,7 @@ export default function ChandrashtamaScreen() {
           <View style={styles.bulletList}>
             {(isTamil ? AVOID.ta : AVOID.en).map((item, i) => (
               <View key={i} style={styles.bulletRow}>
-                <Text style={[styles.bulletIcon, { color: C.alert }]}>âœ•</Text>
+                <Text style={[styles.bulletIcon, { color: C.alert }]}>✕</Text>
                 <Text style={[styles.bulletText, isTamil ? TamilType.body : EnType.body]}>{item}</Text>
               </View>
             ))}
@@ -162,7 +162,7 @@ export default function ChandrashtamaScreen() {
           <View style={styles.bulletList}>
             {(isTamil ? CAN_DO.ta : CAN_DO.en).map((item, i) => (
               <View key={i} style={styles.bulletRow}>
-                <Text style={[styles.bulletIcon, { color: C.green }]}>âœ“</Text>
+                <Text style={[styles.bulletIcon, { color: C.green }]}>✓</Text>
                 <Text style={[styles.bulletText, isTamil ? TamilType.body : EnType.body]}>{item}</Text>
               </View>
             ))}
@@ -186,7 +186,7 @@ export default function ChandrashtamaScreen() {
           <Text style={[styles.toneText, isTamil ? TamilType.caption : EnType.caption]}>
             {isTamil
               ? "சந்திராஷ்டமம் 'கெட்ட நாள்' அல்ல — இது கவனமாக செயல்பட வேண்டிய காலம். சரியாக திட்டமிட்டால் நன்மை பெறலாம்."
-              : "Chandrashtama is not a 'bad day' â€” it's a time for awareness and care. With right planning, you can still thrive."}
+              : "Chandrashtama is not a 'bad day' — it's a time for awareness and care. With right planning, you can still thrive."}
           </Text>
         </View>
       </ScrollView>
