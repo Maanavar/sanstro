@@ -41,7 +41,7 @@ export default function PrivacyPage() {
           <div className="cl-container">
             <p className="cl-eyebrow">Legal</p>
             <h1 className="cl-trust-h1">Privacy Policy</h1>
-            <p className="cl-trust-sub">Last updated: June 2026</p>
+            <p className="cl-trust-sub">Last updated: September 2026</p>
           </div>
         </section>
 
@@ -73,6 +73,22 @@ export default function PrivacyPage() {
               positions, panchangam timings, porutham results, and jadhagam charts.
               We do not sell, share, or transfer your personal data to third parties
               for marketing purposes.
+            </p>
+
+            <h2>Ask Vinaadi and processing outside India</h2>
+            <p>
+              When you use <strong>Ask Vinaadi</strong>, your question and a derived
+              summary of your chart are sent to Anthropic PBC (United States), which
+              generates the answer on our behalf as a data processor. That summary
+              contains your age, marital status, employment type, and calculated
+              astrological positions — your rasi, nakshatra, and current dasa and
+              transit periods.
+            </p>
+            <p>
+              It does <strong>not</strong> contain your name, your email address, or
+              your date, time or place of birth. Anthropic processes it only to
+              produce your answer. If you do not use Ask Vinaadi, none of your data
+              is sent there.
             </p>
 
             <h2>Data storage and security</h2>

@@ -265,15 +265,39 @@ Security audit findings — must clear before go-live:
   Done when: all seven endpoints above have an endpoint-level limit, FUP-2 is answered
   with a named CDN/WAF vendor and rule set (or the gap is explicitly accepted as a launch
   risk by the go/no-go owner), and `rasi-palan/grid` has a per-IP daily cap.
+
+  **Re-verified 2026-09-03 — two of the three are now closed:**
+  - ~~All seven endpoints~~ **Done**, and done before this check: every one of them
+    already carried `@public_endpoint_rate_limit(...)`. An audit of the whole router
+    found **25 public routes, 25 with an endpoint-level limit, 0 without** — so the
+    list above had been stale for some time. Trust the router, not this paragraph.
+  - ~~`rasi-palan/grid` daily cap~~ **Done.** It also no longer shares the
+    `public_panchangam` budget with `/panchangam`, `/rasi-palan` and
+    `/panchangam/monthly`: a daily cap on the shared key would have silently applied
+    to all four, one of which the dashboard calls. It now has its own key at 30/min
+    plus **120/day**, cutting a single-IP mirror of the full content library from
+    43,200 pulls a day to 120.
+  - **FUP-2 (CDN/WAF) is the only part left, and it is an owner decision** — name a
+    vendor and rule set, or accept the gap explicitly. App-level per-IP limits are
+    still trivially defeated by IP rotation; that has not changed.
 - [ ] **DPDP Act 2023 consent**: No logged affirmative consent record exists at registration.
   Section 6 requires a specific, informed, unambiguous consent action before collecting
   birth data. Add a consent checkbox + store `consent_given_at` timestamp on the User
   model before launch.
-- [ ] **Ask Vinaadi — Anthropic data processor disclosure** *(before enabling the feature)*:
-  When Ask Vinaadi is live, user chart context (birth date/time/place + planetary data)
-  is sent to Anthropic (USA). Add one sentence to `web/app/privacy/page.tsx`:
-  "When you use Ask Vinaadi, your anonymised chart context is processed by Anthropic PBC
-  (USA) to generate your answer." Required under DPDP Act Section 9.
+- [x] **Ask Vinaadi — Anthropic data processor disclosure** — **done 2026-09-03.**
+  Added to `web/app/(marketing)/privacy/page.tsx` (not `web/app/privacy/page.tsx`; that
+  path does not exist), with the "last updated" date moved to September 2026.
+
+  **The wording this item proposed was not accurate, and a privacy policy is a binding
+  statement, so it was checked against `app/services/ask_vinaadi_service.py` before
+  being written.** Two corrections:
+  - It said birth date/time/place is sent. **It is not.** `_build_context_block` sends
+    age (derived), marital status, employment type, and calculated positions — rasi,
+    nakshatra, dasa lords, transits, yogas — plus the user's own question. No name, no
+    email, no birth date, time or place.
+  - It said "anonymised". That would have been a misrepresentation: age + marital
+    status + employment + the user's free-text question is personal data, pseudonymous
+    at best. The published wording says exactly what is sent and exactly what is not.
 
 ## 8. Quality, testing, and release gates
 
