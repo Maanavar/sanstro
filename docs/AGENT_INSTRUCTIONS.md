@@ -1,6 +1,6 @@
 # Vinaadi AI — Agent Instructions
-**Last updated:** 2026-06-07  
-**Test suite:** 233 passing  
+**Last updated:** 2026-09-03  
+**Test suite:** see CI  
 **Stack:** FastAPI + PostgreSQL + SQLAlchemy (backend) · Next.js 15 + TypeScript (frontend)
 
 ---
@@ -58,7 +58,7 @@ Tamil-first bilingual astrology daily companion. Users enter their birth details
 - All JSON responses must include `Content-Type: application/json; charset=utf-8` (handled by `SecurityHeadersMiddleware` in `app/middleware.py`).
 - Calculation version: `"jothidam-formula-engine-v1.1-2026"` — bump only when score formula changes (invalidates `DailyScore` cache rows).
 - Panchangam results are cached in `panchangam_cache` table. Clear it (`DELETE FROM panchangam_cache`) after any kalam/tithi calculation fix.
-- Run the full test suite before marking any task done. All 233 tests must pass.
+- Run the full test suite before marking any task done; it must be green.
 
 ---
 
