@@ -30,10 +30,10 @@ try { Purchases = require("react-native-purchases").default; } catch { /* Expo G
 
 SplashScreen.preventAutoHideAsync();
 
-// Init analytics once at module load â€” safe before React tree mounts.
+// Init analytics once at module load — safe before React tree mounts.
 initAnalytics(ENV.SENTRY_DSN, ENV.POSTHOG_API_KEY, ENV.POSTHOG_HOST);
 
-// Configure RevenueCat â€” only if a key is provided (won't fire in CI/dev without keys).
+// Configure RevenueCat — only if a key is provided (won't fire in CI/dev without keys).
 const rcKey = Platform.OS === "ios" ? ENV.REVENUECAT_PUBLIC_KEY : ENV.REVENUECAT_ANDROID_KEY;
 if (rcKey && Purchases) {
   try {
@@ -79,7 +79,7 @@ function RootNavigation() {
       try {
         await ExpoFont.loadAsync(FONT_MAP);
       } catch {
-        // Non-fatal â€” system fonts will render.
+        // Non-fatal — system fonts will render.
       }
 
       try {

@@ -261,9 +261,9 @@ export default function TodayTab() {
     const firstNalla = p.kalam.nallaNeram[0];
     pushWidgetData({
       nallaNeram: firstNalla
-        ? `${formatTime(firstNalla.start)} â€“ ${formatTime(firstNalla.end)}`
-        : "â€“",
-      rahuKalam: `${formatTime(p.kalam.rahuKalam.start)} â€“ ${formatTime(p.kalam.rahuKalam.end)}`,
+        ? `${formatTime(firstNalla.start)} – ${formatTime(firstNalla.end)}`
+        : "–",
+      rahuKalam: `${formatTime(p.kalam.rahuKalam.start)} – ${formatTime(p.kalam.rahuKalam.end)}`,
       rasiPalan: g ? (lang === "ta" ? g.text?.ta ?? "" : g.text?.en ?? "") : "",
       tamilDate: p.tamilDate ? (lang === "ta" ? p.tamilDate.ta : p.tamilDate.en) : "",
       lang,
