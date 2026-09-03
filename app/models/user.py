@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -25,6 +26,16 @@ class User(TimestampMixin, Base):
     # never needs to hold a long-lived admin secret (see app/core/auth.get_admin_user).
     is_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     token_version: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    # DPDP Act 2023 §6 consent. Both columns or neither: the timestamp says a
+    # consent action happened, the version says what text it was given for, and
+    # "informed consent" is a claim about the text. See app/core/privacy_policy.py.
+    #
+    # Nullable, and null on every account that registered before this existed.
+    # That is not a gap being papered over — `consent_is_current` treats null as
+    # "not consented", so those users are asked on their next authenticated
+    # request rather than being silently counted as having agreed.
+    consent_given_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    consent_policy_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
     birth_profiles = relationship(
         "BirthProfile", back_populates="owner_user", cascade="all, delete-orphan", passive_deletes=True

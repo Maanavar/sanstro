@@ -84,7 +84,7 @@ def test_valid_uuid_subject_token_rejected_when_user_does_not_exist(raw_client):
 def test_valid_uuid_subject_token_accepted_for_existing_user(raw_client):
     register = raw_client.post(
         "/api/v1/auth/register",
-        json={"email": "tokenuser@example.com", "password": "password123"},
+        json={"email": "tokenuser@example.com", "password": "password123", "consentGiven": True},
     )
     assert register.status_code == 200
     login = raw_client.post(
@@ -102,7 +102,7 @@ def test_valid_uuid_subject_token_accepted_for_existing_user(raw_client):
 def test_admin_stats_requires_admin_key(raw_client):
     register = raw_client.post(
         "/api/v1/auth/register",
-        json={"email": "adminprobe@example.com", "password": "password123"},
+        json={"email": "adminprobe@example.com", "password": "password123", "consentGiven": True},
     )
     assert register.status_code == 200
     login = raw_client.post(
@@ -118,7 +118,7 @@ def test_admin_stats_requires_admin_key(raw_client):
 def test_admin_stats_wrong_key_rejected(raw_client):
     register = raw_client.post(
         "/api/v1/auth/register",
-        json={"email": "adminkeyprobe@example.com", "password": "password123"},
+        json={"email": "adminkeyprobe@example.com", "password": "password123", "consentGiven": True},
     )
     assert register.status_code == 200
     login = raw_client.post(

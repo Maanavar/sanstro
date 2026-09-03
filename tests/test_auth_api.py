@@ -44,7 +44,7 @@ def assert_response(response, status=200, required_keys=()):
 def test_register_sets_cookie_and_returns_user(raw_client):
     response = raw_client.post(
         "/api/v1/auth/register",
-        json={"email": "authuser@example.com", "password": "password123"},
+        json={"email": "authuser@example.com", "password": "password123", "consentGiven": True},
     )
     payload = assert_response(response, status=200, required_keys=("detail",))
     assert payload["detail"]
@@ -67,7 +67,7 @@ def test_register_sets_cookie_and_returns_user(raw_client):
 def _register_and_login(raw_client, email: str) -> str:
     """Register, sign in, and return the user id. Leaves the cookie on the client."""
     assert raw_client.post(
-        "/api/v1/auth/register", json={"email": email, "password": "password123"}
+        "/api/v1/auth/register", json={"email": email, "password": "password123", "consentGiven": True}
     ).status_code == 200
     login = raw_client.post(
         "/api/v1/auth/login", json={"email": email, "password": "password123"}
@@ -154,14 +154,14 @@ def test_login_and_patch_me_carry_the_same_tier_as_me(raw_client):
 def test_register_duplicate_email_returns_neutral_response(raw_client):
     first = raw_client.post(
         "/api/v1/auth/register",
-        json={"email": "duplicate@example.com", "password": "password123"},
+        json={"email": "duplicate@example.com", "password": "password123", "consentGiven": True},
     )
     assert first.status_code == 200
 
     # Hardened endpoint: duplicate registration returns neutral 200 (no email enumeration)
     second = raw_client.post(
         "/api/v1/auth/register",
-        json={"email": "duplicate@example.com", "password": "password123"},
+        json={"email": "duplicate@example.com", "password": "password123", "consentGiven": True},
     )
     assert second.status_code == 200
     assert second.json()["detail"]
@@ -170,7 +170,7 @@ def test_register_duplicate_email_returns_neutral_response(raw_client):
 def test_login_rejects_wrong_password_with_generic_message(raw_client):
     register = raw_client.post(
         "/api/v1/auth/register",
-        json={"email": "loginuser@example.com", "password": "password123"},
+        json={"email": "loginuser@example.com", "password": "password123", "consentGiven": True},
     )
     assert register.status_code == 200
 
@@ -185,7 +185,7 @@ def test_login_rejects_wrong_password_with_generic_message(raw_client):
 def test_logout_clears_cookie(raw_client):
     register = raw_client.post(
         "/api/v1/auth/register",
-        json={"email": "logoutuser@example.com", "password": "password123"},
+        json={"email": "logoutuser@example.com", "password": "password123", "consentGiven": True},
     )
     assert register.status_code == 200
 
@@ -212,7 +212,7 @@ def test_reset_password_confirm_updates_password_and_kills_sessions(raw_client):
 
     register = raw_client.post(
         "/api/v1/auth/register",
-        json={"email": "reset-flow@example.com", "password": "password123"},
+        json={"email": "reset-flow@example.com", "password": "password123", "consentGiven": True},
     )
     assert register.status_code == 200
     login = raw_client.post(
@@ -267,7 +267,7 @@ def test_reset_password_token_cannot_access_authenticated_endpoints(raw_client):
 
     register = raw_client.post(
         "/api/v1/auth/register",
-        json={"email": "reset-scope@example.com", "password": "password123"},
+        json={"email": "reset-scope@example.com", "password": "password123", "consentGiven": True},
     )
     assert register.status_code == 200
     login = raw_client.post(
@@ -294,7 +294,7 @@ def test_reset_password_confirm_rejects_replay(raw_client):
 
     register = raw_client.post(
         "/api/v1/auth/register",
-        json={"email": "reset-replay@example.com", "password": "password123"},
+        json={"email": "reset-replay@example.com", "password": "password123", "consentGiven": True},
     )
     assert register.status_code == 200
     login = raw_client.post(
@@ -327,7 +327,7 @@ def test_reset_password_confirm_rejects_expired_token(raw_client):
 
     register = raw_client.post(
         "/api/v1/auth/register",
-        json={"email": "reset-expired@example.com", "password": "password123"},
+        json={"email": "reset-expired@example.com", "password": "password123", "consentGiven": True},
     )
     assert register.status_code == 200
     login = raw_client.post(
@@ -357,7 +357,7 @@ def test_reset_password_confirm_rejects_normal_access_token(raw_client):
     """A normal login-issued access token must not work as a reset token."""
     register = raw_client.post(
         "/api/v1/auth/register",
-        json={"email": "reset-wrongtyp@example.com", "password": "password123"},
+        json={"email": "reset-wrongtyp@example.com", "password": "password123", "consentGiven": True},
     )
     assert register.status_code == 200
     login = raw_client.post(
@@ -378,7 +378,7 @@ def test_reset_password_confirm_rejects_normal_access_token(raw_client):
 def test_delete_me_handles_daily_scores_linked_by_birth_profile(raw_client):
     register = raw_client.post(
         "/api/v1/auth/register",
-        json={"email": "deleteuser@example.com", "password": "password123"},
+        json={"email": "deleteuser@example.com", "password": "password123", "consentGiven": True},
     )
     assert register.status_code == 200
     login = raw_client.post(
@@ -447,7 +447,7 @@ def test_delete_me_does_not_delete_other_users_profiles_or_charts(raw_client):
     with TestClient(app, raise_server_exceptions=False) as user_a_client, TestClient(app, raise_server_exceptions=False) as user_b_client:
         reg_a = user_a_client.post(
             "/api/v1/auth/register",
-            json={"email": "delete-a@example.com", "password": "password123"},
+            json={"email": "delete-a@example.com", "password": "password123", "consentGiven": True},
         )
         assert reg_a.status_code == 200
         login_a = user_a_client.post(
@@ -459,7 +459,7 @@ def test_delete_me_does_not_delete_other_users_profiles_or_charts(raw_client):
 
         reg_b = user_b_client.post(
             "/api/v1/auth/register",
-            json={"email": "delete-b@example.com", "password": "password123"},
+            json={"email": "delete-b@example.com", "password": "password123", "consentGiven": True},
         )
         assert reg_b.status_code == 200
         login_b = user_b_client.post(
@@ -549,7 +549,7 @@ def test_delete_me_leaves_no_orphaned_rows_across_every_owned_table(raw_client):
     """
     register = raw_client.post(
         "/api/v1/auth/register",
-        json={"email": "full-erasure@example.com", "password": "password123"},
+        json={"email": "full-erasure@example.com", "password": "password123", "consentGiven": True},
     )
     assert register.status_code == 200
     login = raw_client.post(
@@ -681,7 +681,7 @@ def test_deleted_user_cannot_login_until_registering_again(raw_client):
 
     first_register = raw_client.post(
         "/api/v1/auth/register",
-        json={"email": email, "password": password},
+        json={"email": email, "password": password, "consentGiven": True},
     )
     assert first_register.status_code == 200
     first_login = raw_client.post("/api/v1/auth/login", json={"email": email, "password": password})
@@ -700,7 +700,7 @@ def test_deleted_user_cannot_login_until_registering_again(raw_client):
 
     second_register = raw_client.post(
         "/api/v1/auth/register",
-        json={"email": email, "password": password},
+        json={"email": email, "password": password, "consentGiven": True},
     )
     assert second_register.status_code == 200
     second_login = raw_client.post("/api/v1/auth/login", json={"email": email, "password": password})
@@ -715,7 +715,7 @@ def test_deleted_user_cannot_login_until_registering_again(raw_client):
 def test_register_rejects_empty_email(raw_client):
     response = raw_client.post(
         "/api/v1/auth/register",
-        json={"email": "", "password": "password123"},
+        json={"email": "", "password": "password123", "consentGiven": True},
     )
     assert response.status_code == 422
 
@@ -723,7 +723,7 @@ def test_register_rejects_empty_email(raw_client):
 def test_register_rejects_invalid_email_format(raw_client):
     response = raw_client.post(
         "/api/v1/auth/register",
-        json={"email": "not-an-email", "password": "password123"},
+        json={"email": "not-an-email", "password": "password123", "consentGiven": True},
     )
     assert response.status_code == 422
 
@@ -731,7 +731,7 @@ def test_register_rejects_invalid_email_format(raw_client):
 def test_register_rejects_weak_password(raw_client):
     response = raw_client.post(
         "/api/v1/auth/register",
-        json={"email": "weakpass@example.com", "password": "short"},
+        json={"email": "weakpass@example.com", "password": "short", "consentGiven": True},
     )
     assert response.status_code == 422
 
@@ -748,7 +748,7 @@ def test_login_non_existent_email_returns_401(raw_client):
 def test_suspended_user_cannot_log_in_or_load_me(raw_client):
     register = raw_client.post(
         "/api/v1/auth/register",
-        json={"email": "suspended@example.com", "password": "password123"},
+        json={"email": "suspended@example.com", "password": "password123", "consentGiven": True},
     )
     assert register.status_code == 200
     login = raw_client.post(
@@ -783,7 +783,7 @@ def test_suspended_user_cannot_log_in_or_load_me(raw_client):
 def test_suspended_user_cannot_patch_or_delete_me(raw_client):
     register = raw_client.post(
         "/api/v1/auth/register",
-        json={"email": "suspended-mutating@example.com", "password": "password123"},
+        json={"email": "suspended-mutating@example.com", "password": "password123", "consentGiven": True},
     )
     assert register.status_code == 200
     login = raw_client.post(
@@ -821,7 +821,7 @@ def test_logout_when_already_logged_out_returns_204(raw_client):
 def test_cookie_auth_mutation_requires_csrf_header(raw_client):
     raw_client.post(
         "/api/v1/auth/register",
-        json={"email": "csrf-user@example.com", "password": "password123"},
+        json={"email": "csrf-user@example.com", "password": "password123", "consentGiven": True},
     )
     login = raw_client.post(
         "/api/v1/auth/login",
@@ -936,7 +936,7 @@ def test_oauth_google_callback_links_existing_password_account_by_email(
 ):
     register = raw_client.post(
         "/api/v1/auth/register",
-        json={"email": "oauth-linkme@example.com", "password": "password123"},
+        json={"email": "oauth-linkme@example.com", "password": "password123", "consentGiven": True},
     )
     assert register.status_code == 200
     raw_client.post("/api/v1/auth/logout", headers=CSRF_HEADERS)

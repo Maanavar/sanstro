@@ -24,6 +24,15 @@ export interface MeResponse {
   /** Derived live from the subscription table — never a stored flag on the user. */
   tier: "registered" | "premium";
   /**
+   * True when the consent panel should be shown: the user has never consented,
+   * or consented to a policy version older than the live one (DPDP Act 2023 §6).
+   * Answer it with `recordConsent()` below.
+   *
+   * Non-blocking by decision — an account with this true still works normally.
+   * Do not use it to gate routes.
+   */
+  consentRequired: boolean;
+  /**
    * NOT SENT BY THE BACKEND. There is no user display name anywhere in this
    * system: `users` has no such column, registration does not accept one, and
    * `updateMe({ displayName })` below patches a field
@@ -44,8 +53,29 @@ export function register(
   email: string,
   password: string,
   displayName?: string,
+  /**
+   * DPDP Act 2023 §6. Required, not optional with a default: the backend rejects
+   * a missing or false value rather than treating it as consent, and a default
+   * here would send `true` for a box the user never ticked.
+   */
+  consentGiven?: boolean,
 ): Promise<RegisterResponse> {
-  return getApiClient().post("/auth/mobile/register", { email, password, displayName }) as Promise<RegisterResponse>;
+  return getApiClient().post("/auth/mobile/register", {
+    email,
+    password,
+    displayName,
+    consentGiven,
+  }) as Promise<RegisterResponse>;
+}
+
+/**
+ * Record consent for an already-signed-in account, when `MeResponse.consentRequired`
+ * is true. Returns the refreshed user, on which `consentRequired` is then false.
+ *
+ * POST, and the backend requires the CSRF header — the shared client adds it.
+ */
+export function recordConsent(): Promise<MeResponse> {
+  return getApiClient().post("/auth/consent", { consentGiven: true }) as Promise<MeResponse>;
 }
 
 export function logout(): Promise<void> {
