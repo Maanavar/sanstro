@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Device from "expo-device";
+import { randomUUID } from "expo-crypto";
 import type { Lang } from "@vinaadi/shared";
+import { encryptedStorage } from "@/lib/encryptedStorage";
 
 const STORAGE_KEY = "vinaadi_guest_prefs";
 
@@ -17,10 +18,9 @@ export interface GuestPrefs {
 }
 
 function makeAnonymousId(): string {
-  const deviceId = Device.osInternalBuildId ?? Device.modelId ?? "";
-  const ts = Date.now().toString(36);
-  const rand = Math.random().toString(36).slice(2, 8);
-  return `anon_${deviceId.slice(0, 8)}_${ts}_${rand}`;
+  // A random opaque ID supports anonymous local state without creating a
+  // device-linkable identifier from operating-system build metadata.
+  return `anon_${randomUUID()}`;
 }
 
 const DEFAULT_PREFS: Omit<GuestPrefs, "anonymousId"> = {
@@ -37,7 +37,23 @@ const DEFAULT_PREFS: Omit<GuestPrefs, "anonymousId"> = {
 let _initPromise: Promise<GuestPrefs> | null = null;
 
 async function _doLoad(): Promise<GuestPrefs> {
-  const raw = await AsyncStorage.getItem(STORAGE_KEY);
+  let raw = await encryptedStorage.getItem(STORAGE_KEY);
+  if (!raw) {
+    // One-time migration from the released plaintext key. Remove it only after
+    // the authenticated encrypted write succeeds, preserving an interrupted
+    // migration for the next launch.
+    const legacyRaw = await AsyncStorage.getItem(STORAGE_KEY);
+    if (legacyRaw) {
+      try {
+        JSON.parse(legacyRaw) as GuestPrefs;
+        await encryptedStorage.setItem(STORAGE_KEY, legacyRaw);
+        await AsyncStorage.removeItem(STORAGE_KEY);
+        raw = legacyRaw;
+      } catch {
+        await AsyncStorage.removeItem(STORAGE_KEY);
+      }
+    }
+  }
   if (raw) {
     try {
       return JSON.parse(raw) as GuestPrefs;
@@ -46,7 +62,7 @@ async function _doLoad(): Promise<GuestPrefs> {
     }
   }
   const fresh: GuestPrefs = { ...DEFAULT_PREFS, anonymousId: makeAnonymousId() };
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
+  await encryptedStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
   return fresh;
 }
 
@@ -62,10 +78,13 @@ export function loadGuestPrefs(): Promise<GuestPrefs> {
 export async function saveGuestPrefs(patch: Partial<GuestPrefs>): Promise<GuestPrefs> {
   const current = await loadGuestPrefs();
   const next = { ...current, ...patch };
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  await encryptedStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   return next;
 }
 
 export async function clearGuestPrefs(): Promise<void> {
-  await AsyncStorage.removeItem(STORAGE_KEY);
+  await Promise.all([
+    encryptedStorage.removeItem(STORAGE_KEY),
+    AsyncStorage.removeItem(STORAGE_KEY),
+  ]);
 }

@@ -15,12 +15,17 @@ jest.mock("@react-native-async-storage/async-storage", () => ({
     delete _store[key];
     return Promise.resolve();
   }),
+  getAllKeys: jest.fn(() => Promise.resolve(Object.keys(_store))),
+  multiRemove: jest.fn((keys: string[]) => {
+    keys.forEach((key) => delete _store[key]);
+    return Promise.resolve();
+  }),
 }));
 
-// --- expo-device mock --------------------------------------------------------
-jest.mock("expo-device", () => ({
-  osInternalBuildId: "test-build-id",
-  modelId: "test-model",
+jest.mock("expo-secure-store", () => ({
+  getItemAsync: jest.fn(() => Promise.resolve(null)),
+  setItemAsync: jest.fn(() => Promise.resolve()),
+  deleteItemAsync: jest.fn(() => Promise.resolve()),
 }));
 
 import { clearGuestPrefs, loadGuestPrefs, saveGuestPrefs } from "@/features/guest/guestStore";
@@ -53,6 +58,16 @@ describe("loadGuestPrefs — fresh store", () => {
     expect(Object.keys(_store).length).toBe(1);
   });
 
+  it("does not leave new guest location or rasi data as plaintext in AsyncStorage", async () => {
+    await saveGuestPrefs({ city: "Example City", rasi: "mesham", lat: 12.34, lon: 56.78 });
+
+    expect(_store.vinaadi_guest_prefs).toBeUndefined();
+    const encrypted = _store["vinaadi_encrypted:vinaadi_guest_prefs"];
+    expect(encrypted).toMatch(/^v3:/);
+    expect(encrypted).not.toContain("Example City");
+    expect(encrypted).not.toContain("mesham");
+  });
+
   it("returns pushOptedIn=false by default", async () => {
     const prefs = await loadGuestPrefs();
     expect(prefs.pushOptedIn).toBe(false);
@@ -60,7 +75,7 @@ describe("loadGuestPrefs — fresh store", () => {
 });
 
 describe("loadGuestPrefs — existing stored prefs", () => {
-  it("returns stored lang when storage has valid JSON", async () => {
+  it("migrates released plaintext prefs to encrypted storage", async () => {
     _store["vinaadi_guest_prefs"] = JSON.stringify({
       rasi: "mesham",
       nakshatra: "ashwini",
@@ -75,6 +90,9 @@ describe("loadGuestPrefs — existing stored prefs", () => {
     const prefs = await loadGuestPrefs();
     expect(prefs.lang).toBe("en");
     expect(prefs.anonymousId).toBe("anon_existing");
+    expect(_store.vinaadi_guest_prefs).toBeUndefined();
+    expect(_store["vinaadi_encrypted:vinaadi_guest_prefs"]).toMatch(/^v3:/);
+    expect(_store["vinaadi_encrypted:vinaadi_guest_prefs"]).not.toContain("Example City");
   });
 
   it("resets to defaults when stored JSON is corrupt", async () => {

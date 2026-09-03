@@ -14,6 +14,49 @@ type AnalyticsClient = {
 
 let _sentry: SentryModule | null = null;
 let _posthog: AnalyticsClient | null = null;
+let _analyticsConsent = false;
+
+const ALLOWED_EVENTS = new Set([
+  "onboarding_step_completed",
+  "jadhagam_teaser_shown",
+  "register_from_teaser",
+  "share_card_opened",
+  "share_card_shared",
+  "onboarding_complete",
+  "whatsapp_share_tapped",
+]);
+
+const ALLOWED_EVENT_PROPERTIES = new Set([
+  "step",
+  "skipped",
+  "source",
+  "report_upsell",
+  "pages",
+]);
+
+/**
+ * Consent is deliberately opt-in. The caller owns persistence/UI, while this
+ * module is the non-bypassable transport gate for both identity and events.
+ */
+export function setAnalyticsConsent(granted: boolean): void {
+  _analyticsConsent = granted;
+  if (!granted) {
+    _sentry?.setUser(null);
+    _posthog?.reset();
+  }
+}
+
+export function hasAnalyticsConsent(): boolean {
+  return _analyticsConsent;
+}
+
+function allowedProperties(props?: Record<string, unknown>): Record<string, unknown> | undefined {
+  if (!props) return undefined;
+  const filtered = Object.fromEntries(
+    Object.entries(props).filter(([key]) => ALLOWED_EVENT_PROPERTIES.has(key)),
+  );
+  return Object.keys(filtered).length > 0 ? filtered : undefined;
+}
 
 function isValidSentryDsn(dsn: string): boolean {
   if (!dsn) return false;
@@ -70,6 +113,7 @@ export function captureError(err: unknown, context?: Record<string, unknown>) {
 }
 
 export function setUser(userId: string | null) {
+  if (!_analyticsConsent) return;
   _sentry?.setUser(userId ? { id: userId } : null);
   if (userId) {
     _posthog?.identify(userId);
@@ -79,5 +123,6 @@ export function setUser(userId: string | null) {
 }
 
 export function trackEvent(name: string, props?: Record<string, unknown>) {
-  _posthog?.capture(name, props);
+  if (!_analyticsConsent || !ALLOWED_EVENTS.has(name)) return;
+  _posthog?.capture(name, allowedProperties(props));
 }
