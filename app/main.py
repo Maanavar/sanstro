@@ -73,7 +73,7 @@ _LOGGING_CONFIG = {
     "disable_existing_loggers": False,
     "formatters": {
         "json": {
-            "format": '{"time":"%(asctime)s","level":"%(levelname)s","logger":"%(name)s","message":"%(message)s"}',
+            "()": "app.core.json_logging.JsonLogFormatter",
         },
     },
     "handlers": {
