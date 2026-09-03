@@ -35,6 +35,46 @@ refuses to start without a real certificate and a real domain would send people
 straight back to running the stack on plain HTTP. A default that fails closed
 into the insecure configuration is not a safe default.
 
+### Certificates: one bootstrap, then it renews itself
+
+The `edge` profile carries a `certbot` service that runs `certbot renew` twice a
+day, and the edge reloads every six hours. Both halves are needed and neither is
+obvious:
+
+- `certbot renew` writes the new certificate to disk and knows nothing about
+  nginx. nginx re-reads certificates on **SIGHUP only**, so without the reload a
+  renewal lands on disk and the expiring certificate keeps being served until
+  someone restarts the container by hand — ninety days after go-live, as a total
+  site outage.
+- The reload loop lives in the edge's `entrypoint`, not its `command`, and that
+  is not a style choice. `/docker-entrypoint.sh` runs the envsubst template step
+  **only when its first argument is `nginx`**. The recipe everyone copies —
+  `command: /bin/sh -c "…loop… & nginx -g 'daemon off;'"` — therefore skips it
+  silently, and nginx comes up with a literal `${VINAADI_DOMAIN}` for its
+  `server_name` and a certificate path that does not exist.
+
+`certbot renew` is a no-op when there is nothing to renew, so **it does not issue
+the first certificate**. Issuance needs port 80, which the edge holds. Do it once,
+before the edge starts:
+
+```bash
+# 1. Point the DNS A/AAAA record at this host and let it propagate.
+# 2. With the edge NOT running, so port 80 is free:
+docker compose -f docker-compose.app.yml --profile edge run --rm \
+  -p 80:80 --entrypoint certbot certbot certonly --standalone \
+  -d "$VINAADI_DOMAIN" --email you@example.com --agree-tos --no-eff-email
+# 3. Then bring the stack up. Renewal is automatic from here.
+docker compose -f docker-compose.app.yml --profile edge up -d
+```
+
+`--standalone` rather than `--webroot` for this one command only: the webroot
+challenge is served by nginx, and nginx cannot start until the certificate it is
+bootstrapping exists. Renewals use `--webroot` through the running edge, which
+already serves `/.well-known/acme-challenge/`.
+
+Add `--dry-run` to rehearse against the staging ACME server. Let's Encrypt's
+rate limits are per-domain and unforgiving; a failed real issuance costs hours.
+
 ### The two proxy-hop counts
 
 These are the settings most likely to be got wrong, because they describe the
@@ -258,9 +298,12 @@ Whichever target:
 - **Secret custody** — §4. Ruled 2026-09-03; Stage 1 is not blocked on the
   deployment target and carries an S0 pre-launch blocker (encryption-key escrow
   plus a tested restore). See [`SEC1_SECRET_CUSTODY_RULING.md`](SEC1_SECRET_CUSTODY_RULING.md).
-- **Certificate issuance** — the compose `edge` service expects certificates
-  mounted at `${CERTBOT_CONF_DIR}`. Renewal (a certbot sidecar or an ACME-native
-  proxy) is not wired up; the `/.well-known/acme-challenge/` webroot is.
-- **No automated check that the two proxy-hop counts agree.** They are coupled
-  by documentation only. A boot-time assertion would be better and is a small,
-  separate task.
+- ~~**Certificate issuance**~~ — **closed 2026-09-03.** A `certbot` sidecar
+  renews twice a day and the edge reloads every six hours; §1 has the one-time
+  issuance command. First issuance stays manual on purpose: it needs DNS to have
+  propagated and port 80 to be free, and a service that retried it on every boot
+  would burn Let's Encrypt's per-domain rate limit.
+- ~~**No automated check that the two proxy-hop counts agree**~~ — **closed
+  2026-09-03.** `_check_proxy_hops_agree` in `app/core/config.py` refuses to boot
+  in production on a mismatch. Writing it found that the rule the docs recorded
+  was wrong; see the correction note in §1.

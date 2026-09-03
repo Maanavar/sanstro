@@ -79,3 +79,9 @@ artifacts/
 # Compose file-backed secrets (docker-compose.secrets.yml). Plaintext key
 # material — never tracked. SEC-1 §5.4: no secrets in Git.
 /secrets/
+
+# Let's Encrypt state, created by the certbot service on first issuance.
+# live/<domain>/privkey.pem is a private key; the webroot holds ACME challenge
+# tokens. Both are per-deployment, neither belongs in the repo.
+/docker/nginx/certs/
+/docker/nginx/webroot/

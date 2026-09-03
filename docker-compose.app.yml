@@ -178,10 +178,33 @@ services:
       - web
     environment:
       VINAADI_DOMAIN: ${VINAADI_DOMAIN:?set VINAADI_DOMAIN}
+    # Reload every six hours so a certificate certbot renewed overnight is
+    # actually served. nginx re-reads certificates on SIGHUP and never on its
+    # own, so without this a renewal lands on disk and the expired one keeps
+    # being presented until someone restarts the container by hand.
+    #
+    # THE TRAP: the obvious form of this — `command: /bin/sh -c "…loop… & nginx
+    # -g 'daemon off;'"` — is the recipe everyone copies, and it silently breaks
+    # this deployment. `/docker-entrypoint.sh` runs the envsubst template step
+    # ONLY when its first argument is `nginx`. Replace the command with a shell
+    # and ${VINAADI_DOMAIN} is never substituted, so nginx starts with a literal
+    # `${VINAADI_DOMAIN}` server_name and a certificate path that does not exist.
+    #
+    # So the loop goes in the entrypoint, backgrounded before exec, and `command`
+    # stays `nginx …` — the entrypoint still sees what it needs to see. `--` is
+    # $0; "$@" is the command below.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - '(while :; do sleep 21600; nginx -s reload 2>/dev/null || true; done) & exec /docker-entrypoint.sh "$$@"'
+      - "--"
+    command: ["nginx", "-g", "daemon off;"]
     volumes:
       # nginx:1.27-alpine expands ${VINAADI_DOMAIN} in anything under
       # templates/ and writes the result to conf.d at container start.
       - ./docker/nginx/vinaadi.conf:/etc/nginx/templates/vinaadi.conf.template:ro
+      # Read-only here on purpose: nginx serves certificates, certbot owns them.
+      # The certbot service below mounts the same directory writable.
       - ${CERTBOT_CONF_DIR:-./docker/nginx/certs}:/etc/letsencrypt:ro
       - ${CERTBOT_WEBROOT_DIR:-./docker/nginx/webroot}:/var/www/certbot
     ports:
@@ -192,6 +215,35 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  # Certificate renewal. Certificates were mounted read-only and nothing renewed
+  # them, so the stack was ninety days from an outage that looks like a total
+  # site failure. docs/PRODUCTION_EDGE.md §5.
+  #
+  # This service RENEWS. It does not issue the first certificate — `certbot
+  # renew` is a no-op when there is nothing to renew, and issuance needs port 80
+  # free, which the edge is holding. Bootstrap is a one-time command, documented
+  # in PRODUCTION_EDGE.md §1 and run before the edge starts.
+  #
+  # Twice a day is what Let's Encrypt asks for: renewal happens at 30 days
+  # remaining, so a run that fails has ~60 attempts left before anything breaks,
+  # and the jitter keeps the ACME servers from being hit by every deployment at
+  # midnight. A pass with nothing due exits 0 having made no network call.
+  certbot:
+    image: certbot/certbot:latest
+    profiles: ["edge"]
+    volumes:
+      # Writable, unlike the edge's mount of the same directory.
+      - ${CERTBOT_CONF_DIR:-./docker/nginx/certs}:/etc/letsencrypt
+      - ${CERTBOT_WEBROOT_DIR:-./docker/nginx/webroot}:/var/www/certbot
+    # `trap exit TERM` so `compose down` stops it during the sleep instead of
+    # waiting out the ten-second kill timeout. `sleep … & wait` rather than a
+    # bare sleep for the same reason: a shell blocked in `sleep` ignores signals.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 43200 & wait $${!}; done'
+    restart: unless-stopped
 
 volumes:
   vinaadi_db_data:
