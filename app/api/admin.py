@@ -417,20 +417,30 @@ def list_users(
         q.order_by(User.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
     ).scalars().all()
 
+    user_ids = [user.user_id for user in users]
+    birth_profile_counts: dict[UUID, int] = {}
+    chart_counts: dict[UUID, int] = {}
+    if user_ids:
+        birth_profile_counts = {
+            owner_user_id: int(count)
+            for owner_user_id, count in session.execute(
+                select(BirthProfile.owner_user_id, func.count())
+                .where(BirthProfile.owner_user_id.in_(user_ids))
+                .group_by(BirthProfile.owner_user_id)
+            ).all()
+        }
+        chart_counts = {
+            owner_user_id: int(count)
+            for owner_user_id, count in session.execute(
+                select(BirthProfile.owner_user_id, func.count(Chart.chart_id))
+                .join(Chart, Chart.birth_profile_id == BirthProfile.birth_profile_id)
+                .where(BirthProfile.owner_user_id.in_(user_ids))
+                .group_by(BirthProfile.owner_user_id)
+            ).all()
+        }
+
     items: list[UserSummary] = []
     for user in users:
-        birth_profile_count = int(
-            session.execute(
-                select(func.count()).where(BirthProfile.owner_user_id == user.user_id)
-            ).scalar_one()
-        )
-        chart_count = int(
-            session.execute(
-                select(func.count(Chart.chart_id))
-                .join(BirthProfile, Chart.birth_profile_id == BirthProfile.birth_profile_id)
-                .where(BirthProfile.owner_user_id == user.user_id)
-            ).scalar_one()
-        )
         items.append(
             UserSummary(
                 user_id=str(user.user_id),
@@ -438,8 +448,8 @@ def list_users(
                 user_mode=user.user_mode,
                 is_suspended=user.is_suspended,
                 suspension_reason=user.suspension_reason,
-                birth_profile_count=birth_profile_count,
-                chart_count=chart_count,
+                birth_profile_count=birth_profile_counts.get(user.user_id, 0),
+                chart_count=chart_counts.get(user.user_id, 0),
                 created_at=user.created_at.isoformat() if user.created_at else "",
             )
         )

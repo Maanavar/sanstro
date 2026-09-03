@@ -1,4 +1,6 @@
 import os
+from contextlib import contextmanager
+from dataclasses import dataclass
 
 # Must run before any `app.*` import touches app.core.config.get_settings()
 # (lru_cache'd — first call wins). Tests reset the DB schema between every
@@ -12,7 +14,7 @@ os.environ.setdefault("JOTHIDAM_RUN_SCHEDULER_IN_WEB", "false")
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import text
+from sqlalchemy import event, text
 from sqlalchemy.exc import OperationalError
 
 import app.models as app_models  # noqa: F401  (registers all models with Base)
@@ -30,6 +32,33 @@ from app.models.user import User
 
 TEST_USER_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
 TEST_USER_EMAIL = "test@jothidam.test"
+
+
+@dataclass
+class QueryCounter:
+    """The SQL statements observed inside one explicitly-scoped assertion."""
+
+    count: int = 0
+
+
+@pytest.fixture
+def query_counter():
+    """Return a context manager that counts SQL emitted through the app engine."""
+
+    @contextmanager
+    def _count_queries():
+        counter = QueryCounter()
+
+        def _before_cursor_execute(*_args, **_kwargs) -> None:
+            counter.count += 1
+
+        event.listen(engine, "before_cursor_execute", _before_cursor_execute)
+        try:
+            yield counter
+        finally:
+            event.remove(engine, "before_cursor_execute", _before_cursor_execute)
+
+    return _count_queries
 
 
 def _all_selected_tests_are_no_db(request: pytest.FixtureRequest) -> bool:
