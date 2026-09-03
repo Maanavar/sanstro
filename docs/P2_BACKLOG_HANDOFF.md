@@ -129,8 +129,13 @@ CI is authoritative. A green local run is evidence; a red one is a hypothesis.
 
 ## 1. Order of work
 
-**Status as of 2026-09-03: every code item is closed.** What remains is one
-unscoped cleanup pass and one decision that is not ours to make.
+**Status as of 2026-09-03: every code item is closed.** What remains is **two items
+only the owner can do** — SEC-1's escrow and restore test, which act on real key
+material and a real backup — plus one survey-sized cleanup item in §7.
+
+Per-item headers below carry their own status line. They were once out of step
+with this table, which is the trap §9 warns about; when either changes, change
+both.
 
 | Item | Size | Depends on | Status |
 |---|---|---|---|
@@ -142,8 +147,10 @@ unscoped cleanup pass and one decision that is not ours to make.
 | **P2-7b** N+1 | Small | nothing | **Done** — `406b2b2`, `10b291f` (all three paths) |
 | **P2-7c** contract tests | Small | nothing | **Done** — §6.3 |
 | **P2-7d** coverage floor | Trivial | a measured number | **Done** — 40 → 88 on 90.53% measured |
-| **P2-8** cleanup | Unscoped | all gates green | **Open.** Last, by definition. |
-| **SEC-1** secret custody | Decision + work | — | **Ruled 2026-09-03.** Stage 1 open, not blocked. See §8. |
+| **P2-8** cleanup | Measured — see §7 | all gates green | **Mostly done** — mobile lint 70 → 4, BOMs cleared. One survey-sized item left. |
+| **SEC-1** secret custody | Decision + work | — | **6 of Stage 1's 8 items done** (`c68a3f3`, `da1c56b`, `dc6bab7`). Items 1–2 owner-only, S0. See §8. |
+| **Edge:** cert renewal | Small | nothing | **Done** — `69034bd`. certbot sidecar + 6-hourly nginx reload. |
+| **Edge:** proxy-hop assertion | Small | nothing | **Done** — `a6a9836`. Found the documented CDN pair was wrong. |
 
 Also fixed in passing, from the review's own side-notes: `_latest_active_profile`
 in `daily_push_cron.py` omitted `.limit(1)`, so any user with two active birth
@@ -159,7 +166,8 @@ logs, and right now they do not (§7.1).
 ## 2. P2-3 · Typed error and empty-state system
 
 **Size:** Large. **Risk:** Medium — touches the error path on every surface.
-**Status:** Not started. Unblocked; P1-1 established the per-section status vocabulary.
+**Status: Done** — `249edc6`, `985b554`, `947eb51`. The scope below is kept as the
+record of what was built and why, not as a to-do list.
 
 ### 2.1 Why
 
@@ -327,7 +335,7 @@ and no test that would catch it.
 
 ## 3. P2-4 · Stale documentation
 
-**Size:** Trivial. **Risk:** None. **Do this first.**
+**Size:** Trivial. **Risk:** None. **Status: Done** — `2683dc4`.
 
 ### 3.1 Why
 
@@ -380,7 +388,7 @@ Raising the coverage floor. That is P2-7d and has its own conditions.
 
 ## 4. P2-5 · Newsletter ORM model
 
-**Size:** Small. **Risk:** Low. **Self-contained.**
+**Size:** Small. **Risk:** Low. **Self-contained. Status: Done** — `3ca3da6`.
 
 ### 4.1 Why
 
@@ -466,6 +474,7 @@ zero tests today.
 
 **Size:** Small–medium. **Risk:** Medium — touches an encryption format with existing
 data on real devices. **Read §5.4 before writing code.**
+**Status: Done** — `be86654`, `a5c42de` (all four defects).
 
 ### 5.1 What is already correct (do not "fix")
 
@@ -570,12 +579,14 @@ use it.
 
 ## 6. P2-7 · Observability, N+1, contract tests, coverage
 
-**Size:** Was "unscoped". It is now four separately-shippable sub-items. **7a is a
-confirmed bug** and is the one to do first.
+**Size:** Was "unscoped". It is now four separately-shippable sub-items.
+**Status: Done** — 7a `a79c2b9`, 7b `406b2b2` + `10b291f`, 7c §6.3, 7d 40 → 88 on a
+measured 90.53%.
 
 ### 6.1 7a — The structured request log discards every field it collects
 
-**This is not an investigation. It is broken right now, and it is small.**
+**Done — `a79c2b9`.** It was broken when this was written; the diagnosis below is
+kept because it is the reason the fix looks the way it does.
 
 `RequestLoggingMiddleware` builds a rich record
 ([`app/middleware.py:88-100`](../app/middleware.py#L88-L100)):
@@ -686,26 +697,69 @@ Note also that a raised floor makes *targeted* runs fail on coverage — use
 **Do last.** Cleanup verified against a red or unstable CI is unverifiable by
 definition.
 
-Known items:
-
-- Mobile lint warnings.
-- UTF-8 BOMs. **Care required:** a BOM previously hid the 38 heaviest files from a
-  bundle-analysis tool here. Removing BOMs is right, but do it with a tool that
-  preserves content byte-for-byte otherwise, and never by round-tripping through
-  PowerShell.
-- Consolidating duplicated web/mobile UI mappings (name maps, enum→label tables).
-  Precedent: the panchangam name-map consolidation, where mobile was rendering raw
-  enum values because it had its own partial copy.
-
 **Conditions:** one concern per commit; no behaviour change; if a "cleanup" changes a
 user-visible string, it is not cleanup — stop and raise it.
+
+### Done 2026-09-03 — mobile lint, 70 warnings → 4
+
+| Commit | Concern | Warnings |
+|---|---|---|
+| `8530cf7` | Strip the UTF-8 BOM from 5 mobile files | −4 |
+| `5b7d1e6` | eslint's own fixes: `import/first`, `array-type` | −40 |
+| `b25ac3c` | 12 dead references, each checked by hand | −12 |
+| `0baae84` | Name 6 anonymous learn-route components | −6 |
+| `40d290e` | A ternary used as a statement → `if`/`else` | −1 |
+| `fa82ac7` | Mark the 3 Expo Go `require()` guards deliberate | −3 |
+
+`tsc --noEmit` clean and `jest` 90/90 green after each.
+
+Three things worth carrying forward:
+
+- **The BOM condition was met literally.** Read the bytes, drop three, write the
+  bytes, assert the result equals the input minus those three. The fifth file,
+  `mobile/src/components/ScoreRing.tsx`, was invisible to eslint: the lint script
+  globs `app/**` only.
+- **`import/first` did not hoist imports.** All three files had the same shape — a
+  lazy `try { X = require(...) } catch {}` guard for a JSI module that crashes Expo
+  Go, sitting mid-import-block. eslint moved the *guard* below the imports, which
+  keeps its comment and its position relative to its reader.
+- **`no-require-imports` was firing on correct code.** Converting those three to
+  static imports would have fixed the warning by restoring the Expo Go crash. They
+  now carry a scoped disable with three lines of reason.
+
+**The 4 that remain are deliberate.** All `react-hooks/exhaustive-deps`
+(`today.tsx:306`, `_layout.tsx:145`, `muhurtham-naal/index.tsx:63`,
+`synastry/index.tsx:45`). Each is a real judgement about when an effect or memo
+should re-run; adding the missing dependency changes render behaviour, which this
+section's own rule puts outside cleanup. They need a sitting, not a sweep.
+
+### Also done
+
+- `eb75e62` — **deleted `scripts/migrate-error-messages.py`** (owner-approved). Not
+  because P2-3 finished, but because running it showed it reports all 188 remaining
+  `HTTPException` raises as needing migration, and maps by substring-matching English
+  prose — the pattern P2-3 existed to delete. It mapped
+  `"target_user_id must be a valid UUID."` to `INVALID_DATE_RANGE`.
+  `docs/error-handling.md` carries a tombstone in place of its two references.
+
+### Still open
+
+- Consolidating duplicated web/mobile UI mappings (name maps, enum→label tables).
+  Precedent: the panchangam name-map consolidation, where mobile was rendering raw
+  enum values because it had its own partial copy. Not started — this one needs a
+  survey before it needs a commit.
 
 ---
 
 ## 8. SEC-1 · Secret custody (P1-5 loose end)
 
-**Status: RULED 2026-09-03. Stage 1 is not blocked on anything and includes an S0
-pre-launch blocker.** Ruling and work items:
+**Status: RULED 2026-09-03. Six of Stage 1's eight items are built** (`c68a3f3`,
+`da1c56b`, `dc6bab7`): `*_FILE` config support, the process-aware validator,
+`docker-compose.secrets.yml` with per-service grants, the rotation VERIFY census,
+and the key-retention documentation. **Items 1 and 2 remain and are owner-only —
+they are the S0 pre-launch blockers**, and no code substitutes for either:
+encryption-key escrow in two independent locations, and a restore test that
+actually decrypts a birth profile and a journal entry. Ruling and work items:
 [`SEC1_SECRET_CUSTODY_RULING.md`](SEC1_SECRET_CUSTODY_RULING.md). Original
 write-up: [`PRODUCTION_EDGE.md` §4](PRODUCTION_EDGE.md).
 
@@ -751,16 +805,18 @@ running as that user, and rotated by editing a file.
 manager (AWS/GCP/Azure), HashiCorp Vault, or Docker/Kubernetes secrets on the existing
 compose deployment? The answer picks the implementation; nothing else is blocking.
 
-**Two smaller open items recorded alongside it** (`PRODUCTION_EDGE.md` §5), neither
-blocked on anything:
+**Two smaller items recorded alongside it** (`PRODUCTION_EDGE.md` §5) — **both closed
+2026-09-03**:
 
-- Certificate **renewal** is not wired up. The `edge` compose service expects certs
-  mounted at `${CERTBOT_CONF_DIR}` and the `/.well-known/acme-challenge/` webroot
-  exists, but no certbot sidecar or ACME-native proxy renews them.
-- **Nothing checks that the two proxy-hop counts agree.** `TRUSTED_PROXY_HOPS_BEFORE_WEB`
-  and `JOTHIDAM_TRUSTED_PROXY_COUNT` describe the same deployment from two ends and are
-  coupled by documentation only. A boot-time assertion would be better, and is a small
-  standalone task.
+- Certificate **renewal** — done, `69034bd`. A `certbot` sidecar renews twice a day and
+  the edge reloads every six hours, because `certbot renew` writes to disk and nginx
+  re-reads certificates on SIGHUP only. First issuance stays a documented one-time
+  command: it needs port 80, which the edge holds.
+- **The two proxy-hop counts** — done, `a6a9836`. `_check_proxy_hops_agree` refuses to
+  boot in production on a mismatch. Writing the assertion is what found that the rule
+  four documents recorded was **wrong**: they said the API's count stays 1 behind a CDN,
+  but the Next proxy forwards `hops.slice(-N)`, so at the documented pair the API would
+  have read the CDN's own address for every request.
 
 ---
 
