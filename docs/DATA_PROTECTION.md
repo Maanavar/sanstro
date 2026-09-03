@@ -71,25 +71,74 @@ Generate a key with:
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
 
-### The three steps, in order
+### The four stages, in order
 
-1. **Prepend the new key** to `JOTHIDAM_ENCRYPTION_KEYS` and deploy. New writes
-   use it; existing rows still decrypt under the old key. The app is fully
-   functional here and this step is reversible.
-2. **Re-encrypt existing rows:**
+1. **ADD** — prepend the new key to `JOTHIDAM_ENCRYPTION_KEYS` and deploy. New
+   writes use it; existing rows still decrypt under the old key. The app is
+   fully functional here and this stage is reversible.
+2. **SWITCH** — automatic, and the same deploy: the list is newest-first and
+   `MultiFernet` encrypts with index 0. Named separately because "did new writes
+   actually switch?" is a question worth being able to ask.
+3. **RE-ENCRYPT** existing rows:
    ```bash
    python -m scripts.rotate_encryption_key --dry-run   # counts, writes nothing
    python -m scripts.rotate_encryption_key
    ```
-   Safe to interrupt and safe to re-run: it commits per batch and re-wrapping an
-   already-rotated row is a no-op in effect.
-3. **Drop the old key** from the list once step 2 reports completion.
+   Safe to interrupt and safe to re-run: it commits per batch, and a value
+   already under the newest key is skipped rather than rewritten.
+4. **VERIFY, then retire:**
+   ```bash
+   python -m scripts.rotate_encryption_key --verify
+   ```
+   Read-only. Decrypts every stored value with the newest key **alone** and
+   reports what still needs an older one. Exits non-zero unless nothing does.
+   Only on a pass, and only after taking a backup, drop the old key.
 
-> **Running step 3 before step 2 finishes destroys data.** Every row still
+> **Stage 3 completing is not evidence that stage 4 will pass.** The re-encryption
+> pass runs through `MultiFernet.rotate`, which succeeds under *any* configured
+> key — so "finished without an error" says nothing about which key a row now
+> needs. `--verify` builds a single-key `Fernet` from the newest key and is the
+> only thing that answers the retirement question.
+
+> **Retiring the old key before stage 4 passes destroys data.** Every row still
 > holding old ciphertext becomes permanently unreadable, and there is no way to
 > find them afterwards — Fernet tells you whether the keys you offered worked,
 > never which key a token actually needs. `test_rotate_bytes_makes_the_old_key_droppable`
 > demonstrates exactly this failure.
+
+### Retiring a key is not destroying it
+
+```
+old key retention  >=  old database backup retention
+```
+
+Dropping a key from `JOTHIDAM_ENCRYPTION_KEYS` stops the running system from
+needing it. It does not make the backups stop needing it. A dump taken before
+the rotation still contains old-key ciphertext, so:
+
+```
+Monday    the database is fully under K2, K1 dropped from the config
+Tuesday   K1 destroyed
+Friday    a backup from last month is restored -> unreadable, permanently
+```
+
+If database backups are retained 90 days, K1 stays in restricted archival escrow
+for at least 90 days past the rotation, and is destroyed only as a dated,
+recorded action. Retire on the config; destroy on the calendar.
+
+### What the census means
+
+`--verify` reports four numbers per table and in total:
+
+| Line | Meaning | Blocks retirement? |
+|---|---|---|
+| Scanned | Non-null encrypted values examined | — |
+| Readable by newest key | Fine. Under the encrypting key already | No |
+| Still requiring an older key | Stage 3 is incomplete for these rows | **Yes** — re-run stage 3 |
+| Unreadable by any key | A key is missing from the config, or the data is corrupt | **Yes** — do not retire anything; this is a restore situation |
+
+Rows in the last two categories are logged by table, column and primary key, so
+they can be looked at. Never by value.
 
 ### Adding an encrypted column later
 

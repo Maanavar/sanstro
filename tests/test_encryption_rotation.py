@@ -124,6 +124,123 @@ def test_rotate_bytes_makes_the_old_key_droppable(keys):
         core_encryption.decrypt_bytes(ciphertext)
 
 
+# ---------------------------------------------------------------------------
+# Stage 4 — the verify census
+# ---------------------------------------------------------------------------
+
+def test_rotate_pass_cannot_tell_you_a_key_is_droppable(keys):
+    """Why --verify exists at all, stated as a test.
+
+    MultiFernet.rotate succeeds under ANY configured key. So a stage-3 run that
+    completes without an exception is not evidence that a row now needs only the
+    newest key — the script used to end by saying it was safe to drop the old
+    key, and it could not know that.
+    """
+    keys(OLD_KEY)
+    old_ciphertext = core_encryption.encrypt_bytes(b"never rotated")
+
+    keys(NEW_KEY, OLD_KEY)
+    # rotate_bytes on a value we never fetched: the row is untouched, exactly as
+    # if the pass had skipped it. Nothing about the pass's success says otherwise.
+    assert core_encryption.rotate_bytes(old_ciphertext)
+
+    # The census question, asked directly: can the newest key alone read it?
+    with pytest.raises(InvalidToken):
+        Fernet(NEW_KEY.encode()).decrypt(old_ciphertext)
+
+
+def test_verify_counts_a_value_still_under_the_old_key(keys, monkeypatch):
+    from scripts import rotate_encryption_key as script
+
+    keys(OLD_KEY)
+    stale = core_encryption.encrypt_bytes(b"written before the rotation")
+    keys(NEW_KEY, OLD_KEY)
+    fresh = core_encryption.encrypt_bytes(b"written after")
+
+    monkeypatch.setattr(
+        script,
+        "_iter_rows",
+        lambda *_args: iter([(1, "note_text", stale), (2, "note_text", fresh)]),
+    )
+    census = script.verify_table(None, "journal_entries", "journal_id", ("note_text",))
+
+    assert census.scanned == 2
+    assert census.already_newest == 1
+    assert census.needs_older_key == 1
+    assert census.unreadable == 0
+
+
+def test_verify_counts_a_value_no_configured_key_can_read(keys, monkeypatch):
+    """The alarming outcome: a key is missing from the config, or the row is
+    corrupt. Either way retirement is not the next move."""
+    from scripts import rotate_encryption_key as script
+
+    orphan_key = Fernet.generate_key().decode()
+    keys(orphan_key)
+    orphaned = core_encryption.encrypt_bytes(b"encrypted under a key nobody kept")
+
+    keys(NEW_KEY, OLD_KEY)
+    monkeypatch.setattr(script, "_iter_rows", lambda *_args: iter([(7, "note_text", orphaned)]))
+    census = script.verify_table(None, "journal_entries", "journal_id", ("note_text",))
+
+    assert census.unreadable == 1
+    assert census.needs_older_key == 0
+
+
+def test_verify_never_logs_the_plaintext(keys, monkeypatch, caplog):
+    from scripts import rotate_encryption_key as script
+
+    keys(OLD_KEY)
+    stale = core_encryption.encrypt_bytes("என் ரகசியம்".encode())
+    keys(NEW_KEY, OLD_KEY)
+
+    monkeypatch.setattr(script, "_iter_rows", lambda *_args: iter([(42, "note_text", stale)]))
+    with caplog.at_level("WARNING"):
+        script.verify_table(None, "journal_entries", "journal_id", ("note_text",))
+
+    assert "என் ரகசியம்" not in caplog.text
+    # It does say which row, so the operator can go and look.
+    assert "42" in caplog.text
+
+
+def test_rotate_skips_a_value_already_under_the_newest_key(keys, monkeypatch):
+    """Not just an optimisation — it is what separates `already newest` from
+    `rewritten` in the summary, and it makes a re-run cost reads not writes."""
+    from scripts import rotate_encryption_key as script
+
+    keys(NEW_KEY, OLD_KEY)
+    fresh = core_encryption.encrypt_bytes(b"already current")
+
+    executed: list[str] = []
+
+    class _Session:
+        def execute(self, statement, params=None):
+            sql = str(statement)
+            executed.append(sql)
+            if params and params.get("last") is not None:
+                return _Result([])
+            if sql.strip().upper().startswith("SELECT"):
+                return _Result([(1, fresh)])
+            return _Result([])
+
+        def commit(self):
+            pass
+
+    class _Result:
+        def __init__(self, rows):
+            self._rows = rows
+
+        def fetchall(self):
+            return self._rows
+
+    census = script.rotate_table(_Session(), "journal_entries", "journal_id", ("note_text",), False)
+
+    assert census.scanned == 1
+    assert census.already_newest == 1
+    assert census.rewritten == 0
+    assert not any(sql.strip().upper().startswith("UPDATE") for sql in executed)
+
+
 # Columns encrypted by hand rather than by a TypeDecorator, so the metadata scan
 # below cannot see them — they are plain LargeBinary in the model. Listed here so
 # the guard is honest about its own blind spot instead of quietly having one.
