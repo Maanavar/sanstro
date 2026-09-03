@@ -1,4 +1,10 @@
-import { initApiClient, type ApiQueryParams } from "@vinaadi/shared/api/client";
+import {
+  apiErrorDetail,
+  initApiClient,
+  parseApiError,
+  type ApiError,
+  type ApiQueryParams,
+} from "@vinaadi/shared/api";
 
 const BACKEND_PREFIX = "/api/backend";
 const API_V1_PREFIX = "/api/v1";
@@ -54,33 +60,30 @@ export async function apiFetchJson<T>(path: string, init?: RequestInit): Promise
   }
 
   if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    try {
-      const json = JSON.parse(text) as Record<string, unknown>;
-      const validationDetail = Array.isArray(json.detail)
-        ? (json.detail as Array<{ loc?: unknown[]; msg?: string }>).map((d) => {
-            const where = Array.isArray(d.loc) ? d.loc.map(String).join(".") : "";
-            return where ? `${where}: ${d.msg ?? "Invalid value"}` : (d.msg ?? String(d));
-          }).join("; ")
-        : null;
-      const msg =
-        (typeof json.detail === "string" ? json.detail : null) ??
-        (typeof json.message === "string" ? json.message : null) ??
-        validationDetail ??
-        text;
-      throw new Error(`${response.status}: ${path}: ${msg}`);
-    } catch (parseErr) {
-      if (parseErr instanceof Error && parseErr.message.startsWith(`${response.status}:`)) {
-        throw parseErr;
-      }
-      throw new Error(text ? `${response.status}: ${path}: ${text}` : `Request failed with status ${response.status} for ${path}`);
-    }
+    const apiError = await parseApiError(response);
+    throw new ApiRequestError(response.status, path, apiError);
   }
 
   if (response.status === 204 || response.headers.get("content-length") === "0") {
     return undefined as T;
   }
   return (await response.json()) as T;
+}
+
+/** A transport error carrying the typed backend envelope when one was returned. */
+export class ApiRequestError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly path: string,
+    public readonly apiError: ApiError,
+  ) {
+    super(`${status}: ${path}: ${apiErrorDetail(apiError)}`);
+    this.name = "ApiRequestError";
+  }
+}
+
+export function getApiError(error: unknown): ApiError | null {
+  return error instanceof ApiRequestError ? error.apiError : null;
 }
 
 initApiClient({
@@ -101,6 +104,8 @@ initApiClient({
 });
 
 export function readErrorMessage(error: unknown): string {
+  const apiError = getApiError(error);
+  if (apiError) return apiErrorDetail(apiError);
   if (error instanceof Error) return error.message;
   if (typeof error === "string") return error;
   return "Unexpected error. Please try again.";

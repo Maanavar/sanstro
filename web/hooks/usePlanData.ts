@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
+import { apiFetchJson, getApiError, readErrorMessage, toQuery } from "@/lib/api";
 import { STALE } from "@/lib/queryClient";
 import type { ApiEnvelope, GoalData, GoalListData, WhatIfData } from "@/lib/types";
 
@@ -41,8 +41,10 @@ export function usePlanData({ chartId, onError, onGoalAdded, onGoalRemoved }: Us
       try {
         return await fetchGoals(chartId);
       } catch (error) {
-        const msg = readErrorMessage(error);
-        if (!msg.includes("404")) reportError(msg);
+        const apiError = getApiError(error);
+        if (apiError?.code !== "GOAL_NOT_FOUND" && apiError?.code !== "RESOURCE_NOT_FOUND") {
+          reportError(readErrorMessage(error));
+        }
         return [];
       }
     },

@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { todayIso } from "@/lib/format";
-import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
+import { apiFetchJson, getApiError, readErrorMessage, toQuery } from "@/lib/api";
 import { STALE } from "@/lib/queryClient";
 import {
   getChartDashboardBundle,
@@ -572,8 +572,14 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
       );
     } catch (error) {
       if (isAbortError(error)) return;
-      const message = readErrorMessage(error);
-      if (allowRecovery && (message.startsWith("403:") || message.startsWith("404:"))) {
+      const apiError = getApiError(error);
+      if (
+        allowRecovery &&
+        (apiError?.code === "ACCESS_DENIED" ||
+          apiError?.code === "BIRTH_PROFILE_NOT_FOUND" ||
+          apiError?.code === "PROFILE_NOT_FOUND" ||
+          apiError?.code === "CHART_NOT_FOUND")
+      ) {
         setBirthProfileId("");
         setChartId("");
         const recovered = await loadLatestBirthProfileForCurrentUser();
@@ -582,7 +588,7 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
           return;
         }
       }
-      reportStatus(message, "error");
+      reportStatus(readErrorMessage(error), "error");
     } finally {
       if (isPersonalRequestCurrent(requestId)) {
         setBusyPersonalState(false);

@@ -1,49 +1,69 @@
-"""
-Centralized error code definitions and user-friendly error messages.
+"""Stable, bilingual API error codes.
 
-Maps HTTP status codes and error types to human-readable descriptions
-that are helpful to end users while maintaining consistency.
+Error codes are API contract values. Add new values when needed; never rename or
+reuse a value that has reached a client. The English ``detail`` field remains in
+responses for compatibility, while clients should render ``message`` in their
+active language.
 """
+from __future__ import annotations
 
 from enum import Enum
+from typing import TypedDict
 
-from fastapi import status
+
+class BilingualMessage(TypedDict):
+    ta: str
+    en: str
+
+
+class ErrorMessageDefinition(TypedDict):
+    status: int
+    message: BilingualMessage
+    technical: str
 
 
 class ErrorCode(str, Enum):
-    """Error codes for consistent error handling throughout the app."""
+    """Error codes that can safely be handled without parsing English prose."""
 
-    # 404 - Not Found
+    # Generic and resource lookup failures.
     RESOURCE_NOT_FOUND = "RESOURCE_NOT_FOUND"
+    PROFILE_NOT_FOUND = "PROFILE_NOT_FOUND"
     BIRTH_PROFILE_NOT_FOUND = "BIRTH_PROFILE_NOT_FOUND"
     CHART_NOT_FOUND = "CHART_NOT_FOUND"
+    VAULT_NOT_FOUND = "VAULT_NOT_FOUND"
     FAMILY_VAULT_NOT_FOUND = "FAMILY_VAULT_NOT_FOUND"
+    MEMBER_NOT_FOUND = "MEMBER_NOT_FOUND"
     FAMILY_MEMBER_NOT_FOUND = "FAMILY_MEMBER_NOT_FOUND"
     USER_NOT_FOUND = "USER_NOT_FOUND"
     JOURNAL_ENTRY_NOT_FOUND = "JOURNAL_ENTRY_NOT_FOUND"
     GOAL_NOT_FOUND = "GOAL_NOT_FOUND"
     FEEDBACK_NOT_FOUND = "FEEDBACK_NOT_FOUND"
 
-    # 403 - Forbidden
+    # Authentication and authorization.
     ACCESS_DENIED = "ACCESS_DENIED"
     PERMISSION_DENIED = "PERMISSION_DENIED"
+    ELEVATION_REQUIRED = "ELEVATION_REQUIRED"
     ACCOUNT_SUSPENDED = "ACCOUNT_SUSPENDED"
-
-    # 401 - Unauthorized
     NOT_AUTHENTICATED = "NOT_AUTHENTICATED"
-    TOKEN_EXPIRED = "TOKEN_EXPIRED"  # noqa: S105 — an error code sent to clients, not a credential
-    TOKEN_INVALID = "TOKEN_INVALID"  # noqa: S105 — an error code sent to clients, not a credential
-    TOKEN_REVOKED = "TOKEN_REVOKED"  # noqa: S105 — an error code sent to clients, not a credential
+    SESSION_INVALID = "SESSION_INVALID"
+    TOKEN_EXPIRED = "TOKEN_EXPIRED"  # noqa: S105 - client-visible code, never a credential
+    TOKEN_INVALID = "TOKEN_INVALID"  # noqa: S105 - client-visible code, never a credential
+    TOKEN_REVOKED = "TOKEN_REVOKED"  # noqa: S105 - client-visible code, never a credential
 
-    # 409 - Conflict
+    # Limits and conflicts.
+    PROFILE_LIMIT_REACHED = "PROFILE_LIMIT_REACHED"
     RESOURCE_LIMIT_EXCEEDED = "RESOURCE_LIMIT_EXCEEDED"
+    DAILY_LIMIT_REACHED = "DAILY_LIMIT_REACHED"
     DUPLICATE_RESOURCE = "DUPLICATE_RESOURCE"
     EMAIL_ALREADY_EXISTS = "EMAIL_ALREADY_EXISTS"
 
-    # 422 - Validation
-    INVALID_INPUT = "INVALID_INPUT"
+    # Caller-correctable input errors.
+    VALIDATION_FAILED = "VALIDATION_FAILED"
     VALIDATION_ERROR = "VALIDATION_ERROR"
+    INVALID_INPUT = "INVALID_INPUT"
     MISSING_REQUIRED_FIELD = "MISSING_REQUIRED_FIELD"
+    BIRTH_TIME_REQUIRED = "BIRTH_TIME_REQUIRED"
+    DATE_RANGE_INVALID = "DATE_RANGE_INVALID"
     INVALID_DATE_RANGE = "INVALID_DATE_RANGE"
     MISSING_DATA = "MISSING_DATA"
     INVALID_FORMAT = "INVALID_FORMAT"
@@ -51,209 +71,89 @@ class ErrorCode(str, Enum):
     MISSING_MOON_DATA = "MISSING_MOON_DATA"
     MISSING_SUN_DATA = "MISSING_SUN_DATA"
 
-    # 503 - Service Unavailable
+    # Service failures.
     SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE"
     CONFIGURATION_ERROR = "CONFIGURATION_ERROR"
+    INTERNAL_ERROR = "INTERNAL_ERROR"
 
 
-# Map error codes to user-friendly messages and HTTP status codes
-ERROR_MESSAGES = {
-    ErrorCode.RESOURCE_NOT_FOUND: {
-        "status": status.HTTP_404_NOT_FOUND,
-        "user_message": "The requested resource was not found. Please check and try again.",
-        "technical": "Resource not found.",
-    },
-    ErrorCode.BIRTH_PROFILE_NOT_FOUND: {
-        "status": status.HTTP_404_NOT_FOUND,
-        "user_message": "Birth profile not found. Please create one to get started.",
-        "technical": "Birth profile not found.",
-    },
-    ErrorCode.CHART_NOT_FOUND: {
-        "status": status.HTTP_404_NOT_FOUND,
-        "user_message": "Chart not found. Your birth profile may need a birth time to calculate it.",
-        "technical": "Chart not found.",
-    },
-    ErrorCode.FAMILY_VAULT_NOT_FOUND: {
-        "status": status.HTTP_404_NOT_FOUND,
-        "user_message": "Family vault not found. It may have been deleted.",
-        "technical": "Family vault not found.",
-    },
-    ErrorCode.FAMILY_MEMBER_NOT_FOUND: {
-        "status": status.HTTP_404_NOT_FOUND,
-        "user_message": "Family member not found in the vault.",
-        "technical": "Family member not found.",
-    },
-    ErrorCode.USER_NOT_FOUND: {
-        "status": status.HTTP_404_NOT_FOUND,
-        "user_message": "User not found. Please check the user ID and try again.",
-        "technical": "User not found.",
-    },
-    ErrorCode.JOURNAL_ENTRY_NOT_FOUND: {
-        "status": status.HTTP_404_NOT_FOUND,
-        "user_message": "Journal entry not found. It may have been deleted.",
-        "technical": "Journal entry not found.",
-    },
-    ErrorCode.GOAL_NOT_FOUND: {
-        "status": status.HTTP_404_NOT_FOUND,
-        "user_message": "Goal not found. It may have been deleted.",
-        "technical": "Goal not found.",
-    },
-    ErrorCode.FEEDBACK_NOT_FOUND: {
-        "status": status.HTTP_404_NOT_FOUND,
-        "user_message": "Feedback not found.",
-        "technical": "Feedback not found.",
-    },
-    ErrorCode.ACCESS_DENIED: {
-        "status": status.HTTP_403_FORBIDDEN,
-        "user_message": "You don't have permission to access this resource.",
-        "technical": "Access denied.",
-    },
-    ErrorCode.PERMISSION_DENIED: {
-        "status": status.HTTP_403_FORBIDDEN,
-        "user_message": "You don't have permission to perform this action.",
-        "technical": "Permission denied.",
-    },
-    ErrorCode.ACCOUNT_SUSPENDED: {
-        "status": status.HTTP_403_FORBIDDEN,
-        "user_message": "Your account has been suspended. Please contact support for assistance.",
-        "technical": "Account suspended.",
-    },
-    ErrorCode.NOT_AUTHENTICATED: {
-        "status": status.HTTP_401_UNAUTHORIZED,
-        "user_message": "Please log in to continue.",
-        "technical": "Not authenticated.",
-    },
-    ErrorCode.TOKEN_EXPIRED: {
-        "status": status.HTTP_401_UNAUTHORIZED,
-        "user_message": "Your session has expired. Please log in again.",
-        "technical": "Token has expired.",
-    },
-    ErrorCode.TOKEN_INVALID: {
-        "status": status.HTTP_401_UNAUTHORIZED,
-        "user_message": "Your session is invalid. Please log in again.",
-        "technical": "Invalid token.",
-    },
-    ErrorCode.TOKEN_REVOKED: {
-        "status": status.HTTP_401_UNAUTHORIZED,
-        "user_message": "Your session has been revoked. Please log in again.",
-        "technical": "Token has been revoked.",
-    },
-    ErrorCode.RESOURCE_LIMIT_EXCEEDED: {
-        # Deliberately carries no number. This is a generic code, and the number
-        # that belongs in it is per-tier and per-resource — it can only be known
-        # at the call site. It used to read "(10)" here while the registered
-        # tier's actual birth-profile cap was 3, so the only users who ever saw
-        # this message were told a limit that was more than three times the one
-        # actually stopping them. Callers interpolate the real figure; see
-        # goals_service and family_vault_service for the pattern.
-        "status": status.HTTP_409_CONFLICT,
-        "user_message": "You have reached a plan limit. Delete an unused item to make room, or upgrade for more.",
-        "technical": "Resource limit exceeded.",
-    },
-    ErrorCode.DUPLICATE_RESOURCE: {
-        "status": status.HTTP_409_CONFLICT,
-        "user_message": "This resource already exists.",
-        "technical": "Resource already exists.",
-    },
-    ErrorCode.EMAIL_ALREADY_EXISTS: {
-        "status": status.HTTP_409_CONFLICT,
-        "user_message": "An account with this email already exists.",
-        "technical": "Email already registered.",
-    },
-    ErrorCode.INVALID_INPUT: {
-        "status": status.HTTP_422_UNPROCESSABLE_ENTITY,
-        "user_message": "The provided input is invalid. Please check and try again.",
-        "technical": "Invalid input.",
-    },
-    ErrorCode.VALIDATION_ERROR: {
-        "status": status.HTTP_422_UNPROCESSABLE_ENTITY,
-        "user_message": "Please check your input and try again.",
-        "technical": "Validation failed.",
-    },
-    ErrorCode.MISSING_REQUIRED_FIELD: {
-        "status": status.HTTP_422_UNPROCESSABLE_ENTITY,
-        "user_message": "Some required information is missing. Please fill in all fields.",
-        "technical": "Required field missing.",
-    },
-    ErrorCode.INVALID_DATE_RANGE: {
-        "status": status.HTTP_422_UNPROCESSABLE_ENTITY,
-        "user_message": "The date range is invalid. Please check the start and end dates.",
-        "technical": "Invalid date range.",
-    },
-    ErrorCode.MISSING_DATA: {
-        "status": status.HTTP_422_UNPROCESSABLE_ENTITY,
-        "user_message": "Required data is missing. Please provide all necessary information.",
-        "technical": "Missing required data.",
-    },
-    ErrorCode.INVALID_FORMAT: {
-        "status": status.HTTP_422_UNPROCESSABLE_ENTITY,
-        "user_message": "The format of your input is invalid. Please check and try again.",
-        "technical": "Invalid format.",
-    },
-    ErrorCode.VALUE_OUT_OF_RANGE: {
-        "status": status.HTTP_422_UNPROCESSABLE_ENTITY,
-        "user_message": "One of the values you entered is outside the acceptable range.",
-        "technical": "Value out of range.",
-    },
-    ErrorCode.MISSING_MOON_DATA: {
-        "status": status.HTTP_422_UNPROCESSABLE_ENTITY,
-        "user_message": "Moon position data is not available. Your profile may need a more accurate birth time.",
-        "technical": "Moon data not available.",
-    },
-    ErrorCode.MISSING_SUN_DATA: {
-        "status": status.HTTP_422_UNPROCESSABLE_ENTITY,
-        "user_message": "Sun position data is not available. Your profile may need a more accurate birth time.",
-        "technical": "Sun data not available.",
-    },
-    ErrorCode.SERVICE_UNAVAILABLE: {
-        "status": status.HTTP_503_SERVICE_UNAVAILABLE,
-        "user_message": "The service is temporarily unavailable. Please try again in a few moments.",
-        "technical": "Service unavailable.",
-    },
-    ErrorCode.CONFIGURATION_ERROR: {
-        "status": status.HTTP_503_SERVICE_UNAVAILABLE,
-        "user_message": "A system configuration error has occurred. Please contact support.",
-        "technical": "Configuration error.",
-    },
+def _entry(http_status: int, ta: str, en: str, technical: str) -> ErrorMessageDefinition:
+    return {"status": http_status, "message": {"ta": ta, "en": en}, "technical": technical}
+
+
+ERROR_MESSAGES: dict[ErrorCode, ErrorMessageDefinition] = {
+    ErrorCode.RESOURCE_NOT_FOUND: _entry(404, "கோரிய தகவல் கிடைக்கவில்லை.", "The requested resource was not found.", "Resource not found."),
+    ErrorCode.PROFILE_NOT_FOUND: _entry(404, "பிறப்புத் தகவல் கிடைக்கவில்லை.", "The birth profile was not found.", "Profile not found."),
+    ErrorCode.BIRTH_PROFILE_NOT_FOUND: _entry(404, "பிறப்புத் தகவல் கிடைக்கவில்லை.", "The birth profile was not found.", "Birth profile not found."),
+    ErrorCode.CHART_NOT_FOUND: _entry(404, "ஜாதகம் கிடைக்கவில்லை.", "The birth chart was not found.", "Chart not found."),
+    ErrorCode.VAULT_NOT_FOUND: _entry(404, "குடும்பப் பெட்டகம் கிடைக்கவில்லை.", "The family vault was not found.", "Vault not found."),
+    ErrorCode.FAMILY_VAULT_NOT_FOUND: _entry(404, "குடும்பப் பெட்டகம் கிடைக்கவில்லை.", "The family vault was not found.", "Family vault not found."),
+    ErrorCode.MEMBER_NOT_FOUND: _entry(404, "குடும்ப உறுப்பினர் கிடைக்கவில்லை.", "The family member was not found.", "Member not found."),
+    ErrorCode.FAMILY_MEMBER_NOT_FOUND: _entry(404, "குடும்ப உறுப்பினர் கிடைக்கவில்லை.", "The family member was not found.", "Family member not found."),
+    ErrorCode.USER_NOT_FOUND: _entry(404, "பயனர் கிடைக்கவில்லை.", "The user was not found.", "User not found."),
+    ErrorCode.JOURNAL_ENTRY_NOT_FOUND: _entry(404, "குறிப்பேட்டு பதிவு கிடைக்கவில்லை.", "The journal entry was not found.", "Journal entry not found."),
+    ErrorCode.GOAL_NOT_FOUND: _entry(404, "இலக்கு கிடைக்கவில்லை.", "The goal was not found.", "Goal not found."),
+    ErrorCode.FEEDBACK_NOT_FOUND: _entry(404, "கருத்துப் பதிவு கிடைக்கவில்லை.", "The feedback entry was not found.", "Feedback not found."),
+    ErrorCode.ACCESS_DENIED: _entry(403, "இந்தத் தகவலை அணுக உங்களுக்கு அனுமதி இல்லை.", "You do not have permission to access this resource.", "Access denied."),
+    ErrorCode.PERMISSION_DENIED: _entry(403, "இந்தச் செயலைச் செய்ய உங்களுக்கு அனுமதி இல்லை.", "You do not have permission to perform this action.", "Permission denied."),
+    ErrorCode.ELEVATION_REQUIRED: _entry(403, "இந்த நிர்வாகச் செயலுக்கு மீண்டும் உறுதிப்படுத்தல் தேவை.", "Please re-authenticate before this administrative action.", "Admin elevation required."),
+    ErrorCode.ACCOUNT_SUSPENDED: _entry(403, "இந்தக் கணக்கு தற்காலிகமாக நிறுத்தப்பட்டுள்ளது.", "This account has been suspended.", "Account suspended."),
+    ErrorCode.NOT_AUTHENTICATED: _entry(401, "தொடர உள்நுழையவும்.", "Please log in to continue.", "Not authenticated."),
+    ErrorCode.SESSION_INVALID: _entry(401, "உங்கள் அமர்வு செல்லுபடியாக இல்லை. மீண்டும் உள்நுழையவும்.", "Your session is invalid. Please log in again.", "Session invalid."),
+    ErrorCode.TOKEN_EXPIRED: _entry(401, "உங்கள் அமர்வு முடிந்துவிட்டது. மீண்டும் உள்நுழையவும்.", "Your session has expired. Please log in again.", "Token expired."),
+    ErrorCode.TOKEN_INVALID: _entry(401, "உங்கள் அமர்வு செல்லுபடியாக இல்லை. மீண்டும் உள்நுழையவும்.", "Your session is invalid. Please log in again.", "Token invalid."),
+    ErrorCode.TOKEN_REVOKED: _entry(401, "உங்கள் அமர்வு நிறுத்தப்பட்டுள்ளது. மீண்டும் உள்நுழையவும்.", "Your session has been revoked. Please log in again.", "Token revoked."),
+    ErrorCode.PROFILE_LIMIT_REACHED: _entry(409, "உங்கள் பிறப்புத் தகவல் வரம்பை அடைந்துவிட்டீர்கள்.", "You have reached your birth-profile limit.", "Profile limit reached."),
+    ErrorCode.RESOURCE_LIMIT_EXCEEDED: _entry(409, "உங்கள் திட்ட வரம்பை அடைந்துவிட்டீர்கள்.", "You have reached a plan limit.", "Resource limit exceeded."),
+    ErrorCode.DAILY_LIMIT_REACHED: _entry(429, "இன்றைக்கான வரம்பை அடைந்துவிட்டீர்கள். நாளை மீண்டும் முயற்சிக்கவும்.", "You have reached today's limit. Please try again tomorrow.", "Daily limit reached."),
+    ErrorCode.DUPLICATE_RESOURCE: _entry(409, "இதே தகவல் ஏற்கனவே உள்ளது.", "This resource already exists.", "Duplicate resource."),
+    ErrorCode.EMAIL_ALREADY_EXISTS: _entry(409, "இந்த மின்னஞ்சலுடன் ஏற்கனவே ஒரு கணக்கு உள்ளது.", "An account with this email already exists.", "Email already exists."),
+    ErrorCode.VALIDATION_FAILED: _entry(422, "உள்ளிட்ட தகவலைச் சரிபார்த்து மீண்டும் முயற்சிக்கவும்.", "Please check the information entered and try again.", "Validation failed."),
+    ErrorCode.VALIDATION_ERROR: _entry(422, "உள்ளிட்ட தகவலைச் சரிபார்த்து மீண்டும் முயற்சிக்கவும்.", "Please check the information entered and try again.", "Validation error."),
+    ErrorCode.INVALID_INPUT: _entry(422, "உள்ளிட்ட தகவல் சரியல்ல.", "The information entered is invalid.", "Invalid input."),
+    ErrorCode.MISSING_REQUIRED_FIELD: _entry(422, "தேவையான தகவல் விடுபட்டுள்ளது.", "Required information is missing.", "Required field missing."),
+    ErrorCode.BIRTH_TIME_REQUIRED: _entry(422, "இந்தக் கணக்கீட்டிற்கு பிறந்த நேரம் தேவை.", "A birth time is required for this calculation.", "Birth time required."),
+    ErrorCode.DATE_RANGE_INVALID: _entry(422, "தேர்ந்தெடுத்த தேதிவரம்பு சரியல்ல.", "The selected date range is invalid.", "Date range invalid."),
+    ErrorCode.INVALID_DATE_RANGE: _entry(422, "தேர்ந்தெடுத்த தேதிவரம்பு சரியல்ல.", "The selected date range is invalid.", "Invalid date range."),
+    ErrorCode.MISSING_DATA: _entry(422, "தேவையான தரவு கிடைக்கவில்லை.", "Required data is missing.", "Missing data."),
+    ErrorCode.INVALID_FORMAT: _entry(422, "தகவலின் வடிவம் சரியல்ல.", "The information format is invalid.", "Invalid format."),
+    ErrorCode.VALUE_OUT_OF_RANGE: _entry(422, "உள்ளிட்ட மதிப்பு அனுமதிக்கப்பட்ட வரம்பிற்கு வெளியே உள்ளது.", "A value is outside the allowed range.", "Value out of range."),
+    ErrorCode.MISSING_MOON_DATA: _entry(422, "சந்திரன் நிலைத் தகவல் கிடைக்கவில்லை.", "Moon-position data is unavailable.", "Moon data missing."),
+    ErrorCode.MISSING_SUN_DATA: _entry(422, "சூரியன் நிலைத் தகவல் கிடைக்கவில்லை.", "Sun-position data is unavailable.", "Sun data missing."),
+    ErrorCode.SERVICE_UNAVAILABLE: _entry(503, "சேவை இப்போது கிடைக்கவில்லை. சிறிது நேரத்தில் முயற்சிக்கவும்.", "The service is temporarily unavailable. Please try again shortly.", "Service unavailable."),
+    ErrorCode.CONFIGURATION_ERROR: _entry(503, "சேவை அமைப்பில் சிக்கல் உள்ளது. பின்னர் முயற்சிக்கவும்.", "The service is not configured correctly. Please try again later.", "Configuration error."),
+    ErrorCode.INTERNAL_ERROR: _entry(500, "எதிர்பாராத சிக்கல் ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்.", "An unexpected error occurred. Please try again.", "Internal error."),
 }
 
 
-def get_error_message(error_code: ErrorCode | str, context: str | None = None) -> dict:
-    """
-    Get error message details for a given error code.
-
-    Args:
-        error_code: The error code (ErrorCode enum or string)
-        context: Optional context to include in the message
-
-    Returns:
-        Dictionary with 'status', 'user_message', and 'technical' keys
-    """
-    if isinstance(error_code, str):
+def coerce_error_code(value: ErrorCode | str | None) -> ErrorCode:
+    """Return a stable code, degrading unknown values to ``INTERNAL_ERROR``."""
+    if isinstance(value, ErrorCode):
+        return value
+    if isinstance(value, str):
         try:
-            error_code = ErrorCode(error_code)
+            return ErrorCode(value)
         except ValueError:
-            return {
-                "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
-                "user_message": "An unexpected error occurred. Please try again.",
-                "technical": f"Unknown error code: {error_code}",
-            }
+            pass
+    return ErrorCode.INTERNAL_ERROR
 
-    error_info = ERROR_MESSAGES.get(error_code)
-    if not error_info:
-        return {
-            "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
-            "user_message": "An unexpected error occurred. Please try again.",
-            "technical": f"Unmapped error code: {error_code}",
-        }
 
+def get_bilingual_error_message(error_code: ErrorCode | str | None) -> BilingualMessage:
+    """Return a copy so callers cannot mutate the shared message catalogue."""
+    entry = ERROR_MESSAGES[coerce_error_code(error_code)]
+    return {"ta": entry["message"]["ta"], "en": entry["message"]["en"]}
+
+
+def get_error_message(error_code: ErrorCode | str, context: str | None = None) -> dict:
+    """Legacy adapter for existing raisers while the codebase migrates to AppError."""
+    code = coerce_error_code(error_code)
+    entry = ERROR_MESSAGES[code]
+    message = get_bilingual_error_message(code)
     if context:
-        user_message = f"{error_info['user_message']}\n\nDetails: {context}"
-    else:
-        user_message = error_info["user_message"]
-
+        message["en"] = f"{message['en']}\n\nDetails: {context}"
     return {
-        "status": error_info["status"],
-        "user_message": user_message,
-        "technical": error_info["technical"],
+        "status": entry["status"],
+        "message": message,
+        "user_message": message["en"],
+        "technical": entry["technical"],
     }

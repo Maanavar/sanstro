@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Sparkles } from "lucide-react";
-import { apiFetchJson } from "@/lib/api";
+import { apiFetchJson, getApiError } from "@/lib/api";
 import type { Lang } from "@/lib/i18n";
 import type { AskVinaadiResponseData, ConfidenceTier, LifeMode } from "@/lib/types";
 import { getChipsForMode } from "@/lib/ask-vinaadi-chips";
@@ -161,8 +161,8 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
       }
       setQuestion("");
     } catch (e) {
-      const msg = String((e as Error)?.message ?? "");
-      if (msg.includes("429") || msg.includes("DAILY_LIMIT_REACHED")) {
+      const apiError = getApiError(e);
+      if (apiError?.code === "DAILY_LIMIT_REACHED") {
         setStatus((prev) => (prev ? { ...prev, chipsRemaining: 0 } : prev));
         setShowUpgrade(true);
       } else {
