@@ -30,6 +30,17 @@ class Settings(BaseSettings):
     rate_limit_backend: str = "memory"
     cache_backend: str = "memory"
     redis_url: str | None = Field(default=None)
+    # Whether GET /health/ready reports not-ready when Redis is unreachable.
+    # None (the default) derives it: required only when the rate limiter uses
+    # Redis, because that fallback loosens a security control rather than merely
+    # cooling a cache. See app.api.health._cache_is_required for the full reason
+    # and for why an explicit override is worth having.
+    readiness_require_cache: bool | None = Field(default=None)
+    # Bounds on every Redis call, not just the readiness probe. redis-py defaults
+    # both to None — an unbounded wait — and Redis sits in the request path of the
+    # rate limiter, so a Redis that accepts connections and then stops answering
+    # would hang requests rather than fall back. Seconds.
+    redis_socket_timeout_seconds: float = Field(default=2.0)
     # When true (single-box default), the API process also runs the APScheduler
     # cron jobs (behind the advisory leader lock). Set false in a scaled deploy
     # where a dedicated `app.worker` process owns scheduling. See REFACTOR_PLAN 3.3.

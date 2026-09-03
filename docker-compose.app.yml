@@ -50,7 +50,17 @@ services:
       JOTHIDAM_ANTHROPIC_API_KEY: ${JOTHIDAM_ANTHROPIC_API_KEY:-}
       JOTHIDAM_COOKIE_SECURE: "true"
       JOTHIDAM_DEBUG: "false"
-      # If the API sits behind a single reverse proxy / load balancer, set this to 1.
+      # Trusted hops in front of *the API*. Set this and
+      # TRUSTED_PROXY_HOPS_BEFORE_WEB (on the web service) together — they
+      # describe the same deployment from two ends:
+      #
+      #   no edge (default)   both 0 — Next forwards no X-Forwarded-For at all,
+      #                       so there is nothing for the API to trust.
+      #   `edge` profile      both 1 — nginx appends the real peer, Next keeps
+      #                       the rightmost entry, the API reads that one entry.
+      #
+      # One is 1 while the other is 0 = the API reads an entry no trusted hop
+      # wrote, or ignores the only one that was written.
       JOTHIDAM_TRUSTED_PROXY_COUNT: ${JOTHIDAM_TRUSTED_PROXY_COUNT:-0}
       JOTHIDAM_CORS_ALLOW_ORIGINS: ${JOTHIDAM_CORS_ALLOW_ORIGINS:-}
       WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
@@ -66,8 +76,22 @@ services:
       JOTHIDAM_REDIS_URL: ${JOTHIDAM_REDIS_URL:-redis://redis:6379/0}
       JOTHIDAM_RATE_LIMIT_BACKEND: ${JOTHIDAM_RATE_LIMIT_BACKEND:-redis}
       JOTHIDAM_CACHE_BACKEND: ${JOTHIDAM_CACHE_BACKEND:-memory}
+    # Loopback only. This used to be "8000:8000", which publishes on 0.0.0.0 and
+    # puts the unfronted API — every admin route, no TLS — on the public
+    # interface of whatever box runs this. Browsers never need it: they reach the
+    # API through the Next proxy at /api/backend/*. Kept bound to localhost so
+    # `curl` from the host still works for debugging.
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      # Readiness, not liveness: compose gates dependent services on this, and
+      # what they need to know is whether the API can actually serve, not merely
+      # whether the process exists.
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=5).status==200 else 1)\""]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   # Dedicated scheduler process for scaled deploys. Not started by default; bring
   # it up with `--profile scaled` and set JOTHIDAM_RUN_SCHEDULER_IN_WEB=false on
@@ -104,8 +128,44 @@ services:
       NODE_ENV: production
       # Server-to-server base URL the Next proxy uses to reach the API.
       API_BASE_URL: ${API_BASE_URL:-http://api:8000}
+      # Hops in front of *Next*. 0 without the `edge` profile, 1 with it. See the
+      # api service's JOTHIDAM_TRUSTED_PROXY_COUNT — set both or neither.
+      TRUSTED_PROXY_HOPS_BEFORE_WEB: ${TRUSTED_PROXY_HOPS_BEFORE_WEB:-0}
+    # Loopback only, for the same reason as the api service. With the `edge`
+    # profile nginx reaches it over the compose network as `web:3000`; without
+    # it, open http://localhost:3000.
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
+
+  # TLS ingress. Opt-in: `docker compose -f docker-compose.app.yml --profile edge up`.
+  #
+  # Not started by default because it needs a real certificate and a real
+  # domain, and a stack that fails to start without one would push people back
+  # to running the app on plain HTTP — the thing this exists to stop.
+  #
+  # Enabling it means setting VINAADI_DOMAIN, mounting certificates, and setting
+  # BOTH proxy-hop counts to 1.
+  edge:
+    image: nginx:1.27-alpine
+    profiles: ["edge"]
+    depends_on:
+      - web
+    environment:
+      VINAADI_DOMAIN: ${VINAADI_DOMAIN:?set VINAADI_DOMAIN}
+    volumes:
+      # nginx:1.27-alpine expands ${VINAADI_DOMAIN} in anything under
+      # templates/ and writes the result to conf.d at container start.
+      - ./docker/nginx/vinaadi.conf:/etc/nginx/templates/vinaadi.conf.template:ro
+      - ${CERTBOT_CONF_DIR:-./docker/nginx/certs}:/etc/letsencrypt:ro
+      - ${CERTBOT_WEBROOT_DIR:-./docker/nginx/webroot}:/var/www/certbot
+    ports:
+      - "80:80"
+      - "443:443"
+    healthcheck:
+      test: ["CMD-SHELL", "nginx -t || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   vinaadi_db_data:

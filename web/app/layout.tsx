@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter, JetBrains_Mono, Noto_Sans_Tamil } from "next/font/google";
+import { headers } from "next/headers";
 import type { ReactNode } from "react";
 // F6 — what every visitor used to get here before a single pixel of content:
 // QueryProvider (react-query), PostHogProvider (-> posthog-js), BetaSystem
@@ -168,6 +169,11 @@ export default async function RootLayout({
   // Resolved through `getServerLang()` so this layout and every server-rendered
   // marketing page read the language exactly one way — see lib/server-lang.ts.
   const initialLang = await getServerLang();
+  // Minted per request in middleware.ts and handed over on the request headers.
+  // Reading headers() forces dynamic rendering, which costs nothing here: the
+  // `getServerLang()` call above already awaits cookies(), so this layout — and
+  // so every route beneath it — was dynamic before the CSP existed.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   return (
     <html
@@ -189,13 +195,19 @@ export default async function RootLayout({
         {/* UXD-03 — resolve the theme before first paint. Explicit light/dark win;
             "system" (or unset) follows the OS via prefers-color-scheme. Kept in
             sync with hooks/useTheme.ts. */}
-        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem("vinaadi-theme");var r=(t==="light"||t==="dark")?t:((window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches)?"light":"dark");document.documentElement.setAttribute("data-theme",r);}catch(e){}})();` }} />
+        {/* The only executable inline script in the app, and therefore the only
+            one needing the CSP nonce minted in middleware.ts. The ld+json blocks
+            below carry it for consistency; browsers never execute a non-JS
+            script type, so CSP does not gate them. */}
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem("vinaadi-theme");var r=(t==="light"||t==="dark")?t:((window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches)?"light":"dark");document.documentElement.setAttribute("data-theme",r);}catch(e){}})();` }} />
         <script
           type="application/ld+json"
+          nonce={nonce}
           dangerouslySetInnerHTML={{ __html: JSON.stringify(ORG_JSONLD) }}
         />
         <script
           type="application/ld+json"
+          nonce={nonce}
           dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_JSONLD) }}
         />
       </head>
