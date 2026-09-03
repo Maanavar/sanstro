@@ -81,6 +81,10 @@ from app.services.pirantha_naal_service import next_janma_nakshatra_date
 
 logger = logging.getLogger(__name__)
 
+# Bounded so a large opted-in cohort cannot build an IN clause past the
+# driver's parameter limit.
+_USER_LOOKUP_CHUNK = 500
+
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
@@ -429,6 +433,23 @@ def _payload_text(notification: Notification, field: str, lang: str) -> str | No
     return None
 
 
+def _load_users_by_id(session: Session, user_ids: set[UUID]) -> dict[UUID, User]:
+    """Fetch a batch of users in one round trip per chunk (P2-7b).
+
+    The cron used to resolve each user with its own ``session.get``, so a run
+    cost one SELECT per opted-in user on top of the work that actually sends
+    anything. Chunked because the id list grows with the user base and a single
+    ``IN`` clause is bounded by the driver's parameter limit.
+    """
+    users: dict[UUID, User] = {}
+    ids = list(user_ids)
+    for start in range(0, len(ids), _USER_LOOKUP_CHUNK):
+        chunk = ids[start : start + _USER_LOOKUP_CHUNK]
+        rows = session.execute(select(User).where(User.user_id.in_(chunk))).scalars()
+        users.update({user.user_id: user for user in rows})
+    return users
+
+
 def _process_due_queued_notifications(session: Session, now_utc: datetime) -> dict[str, int]:
     """Deliver due one-time onboarding notification rows."""
     due_rows = session.execute(
@@ -442,9 +463,11 @@ def _process_due_queued_notifications(session: Session, now_utc: datetime) -> di
         .limit(200)
     ).scalars().all()
 
+    users_by_id = _load_users_by_id(session, {row.user_id for row in due_rows})
+
     dispatched = skipped = errors = 0
     for notification in due_rows:
-        user = session.get(User, notification.user_id)
+        user = users_by_id.get(notification.user_id)
         if user is None:
             notification.status = "failed"
             notification.suppression_reason = "user_not_found"
@@ -509,12 +532,14 @@ def run_daily_push_cron(run_at_utc: datetime | None = None) -> dict[str, int]:
             )
         ).scalars().all()
 
+        users_by_id = _load_users_by_id(session, {pref.owner_user_id for pref in prefs})
+
         for pref in prefs:
             if not (pref.morning_alert_enabled or pref.dasha_alert_enabled or pref.pirantha_naal_alert_enabled):
                 skipped += 1
                 continue
 
-            user = session.get(User, pref.owner_user_id)
+            user = users_by_id.get(pref.owner_user_id)
             if user is None:
                 skipped += 1
                 continue

@@ -134,6 +134,50 @@ def _latest_birth_profile(session: Session, member: FamilyMember) -> BirthProfil
     return birth_profile
 
 
+def _latest_birth_profiles_for_members(
+    session: Session, members: list[FamilyMember]
+) -> dict[UUID, BirthProfile]:
+    """Resolve every member's latest birth profile in one query (P2-7b).
+
+    Ordered oldest-first so the newest row overwrites, matching the
+    ``created_at DESC`` + take-one intent of ``_latest_birth_profile``. That
+    single-row helper uses ``scalar_one_or_none`` on an unlimited query, so a
+    member holding two profiles raises ``MultipleResultsFound`` there; the batch
+    returns the latest, which is what its name and ordering always promised.
+    """
+    member_ids = [member.family_member_id for member in members]
+    if not member_ids:
+        return {}
+    rows = session.execute(
+        select(BirthProfile)
+        .where(
+            BirthProfile.family_member_id.in_(member_ids),
+            BirthProfile.deleted_at.is_(None),
+        )
+        .order_by(BirthProfile.created_at.asc())
+    ).scalars()
+    return {profile.family_member_id: profile for profile in rows if profile.family_member_id}
+
+
+def _latest_charts_for_profiles(
+    session: Session, birth_profiles: list[BirthProfile]
+) -> dict[UUID, Chart]:
+    """Resolve every profile's latest completed chart in one query (P2-7b).
+
+    A profile with no completed chart is simply absent, so the caller falls back
+    to ``_latest_chart``, which computes one.
+    """
+    profile_ids = [profile.birth_profile_id for profile in birth_profiles]
+    if not profile_ids:
+        return {}
+    rows = session.execute(
+        select(Chart)
+        .where(Chart.birth_profile_id.in_(profile_ids), Chart.status == "completed")
+        .order_by(Chart.created_at.asc())
+    ).scalars()
+    return {chart.birth_profile_id: chart for chart in rows}
+
+
 def _latest_chart(session: Session, birth_profile: BirthProfile) -> Chart:
     chart = session.execute(
         select(Chart)
@@ -185,9 +229,21 @@ def _find_duplicate_family_member(session: Session, family_vault_id: UUID, paylo
     return None
 
 
-def _member_snapshot(session: Session, member: FamilyMember, on_date: date) -> _MemberSnapshot:
-    birth_profile = _latest_birth_profile(session, member)
-    chart = _latest_chart(session, birth_profile)
+def _member_snapshot(
+    session: Session,
+    member: FamilyMember,
+    on_date: date,
+    *,
+    birth_profile: BirthProfile | None = None,
+    chart: Chart | None = None,
+) -> _MemberSnapshot:
+    # ``birth_profile``/``chart`` are the batch-prefetched rows when the caller
+    # has them. Absent, this falls back to the per-member queries, so single-member
+    # callers are unchanged.
+    if birth_profile is None:
+        birth_profile = _latest_birth_profile(session, member)
+    if chart is None:
+        chart = _latest_chart(session, birth_profile)
     chart_id = chart.chart_id
     chart_snapshot = load_persisted_chart_response(session, chart_id)
     daily_location = resolve_effective_daily_location(birth_profile)
@@ -229,12 +285,15 @@ def _cached_member_snapshot(
     member: FamilyMember,
     on_date: date,
     snapshot_cache: dict[tuple[UUID, date], _MemberSnapshot],
+    *,
+    birth_profile: BirthProfile | None = None,
+    chart: Chart | None = None,
 ) -> _MemberSnapshot:
     key = (member.family_member_id, on_date)
     cached = snapshot_cache.get(key)
     if cached is not None:
         return cached
-    snapshot = _member_snapshot(session, member, on_date)
+    snapshot = _member_snapshot(session, member, on_date, birth_profile=birth_profile, chart=chart)
     snapshot_cache[key] = snapshot
     return snapshot
 
@@ -245,11 +304,23 @@ def _collect_member_snapshots(
     on_date: date,
     snapshot_cache: dict[tuple[UUID, date], _MemberSnapshot],
 ) -> list[_MemberSnapshot]:
+    # Two queries for the whole vault instead of two per member (P2-7b).
+    profiles_by_member = _latest_birth_profiles_for_members(session, list(family_members))
+    charts_by_profile = _latest_charts_for_profiles(session, list(profiles_by_member.values()))
+
     snapshots: list[_MemberSnapshot] = []
     for member in family_members:
+        profile = profiles_by_member.get(member.family_member_id)
+        chart = charts_by_profile.get(profile.birth_profile_id) if profile is not None else None
         try:
-            snapshots.append(_cached_member_snapshot(session, member, on_date, snapshot_cache))
+            snapshots.append(
+                _cached_member_snapshot(
+                    session, member, on_date, snapshot_cache, birth_profile=profile, chart=chart
+                )
+            )
         except HTTPException:
+            # A member with no profile at all still raises from _latest_birth_profile
+            # below, and is still skipped rather than failing the whole vault.
             continue
     return snapshots
 
@@ -1673,9 +1744,17 @@ def get_family_vault_today(
     if owner_day_view is not None:
         day_views.append(owner_day_view)
 
+    # Two queries for the whole vault instead of two per member (P2-7b).
+    profiles_by_member = _latest_birth_profiles_for_members(session, list(members))
+    charts_by_profile = _latest_charts_for_profiles(session, list(profiles_by_member.values()))
+
     for member in members:
+        profile = profiles_by_member.get(member.family_member_id)
+        chart = charts_by_profile.get(profile.birth_profile_id) if profile is not None else None
         try:
-            snapshot = _member_snapshot(session, member, on_date)
+            snapshot = _member_snapshot(
+                session, member, on_date, birth_profile=profile, chart=chart
+            )
         except HTTPException:
             continue
 
