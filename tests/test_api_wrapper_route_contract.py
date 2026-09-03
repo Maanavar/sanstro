@@ -93,8 +93,15 @@ def _to_absolute(path: str) -> str:
     return f"{API_V1_PREFIX}{path}"
 
 
+# How much source around a call site counts as "this call". Query params are
+# built either inline in the path or in a URLSearchParams/params object a few
+# lines above, so the window has to reach backwards as well as forwards.
+_PARAM_WINDOW_BEFORE = 700
+_PARAM_WINDOW_AFTER = 700
+
+
 def _iter_wrapper_calls():
-    """Yield (verb, raw_path, source_location) for every wrapper HTTP call."""
+    """Yield (verb, raw_path, source_location, surrounding_source) per wrapper call."""
     for directory in WRAPPER_DIRS:
         if not directory.is_dir():
             continue
@@ -103,14 +110,14 @@ def _iter_wrapper_calls():
                 continue
             text = ts_file.read_text(encoding="utf-8")
             rel = ts_file.relative_to(REPO_ROOT).as_posix()
-            for match in _METHOD_CALL_RE.finditer(text):
-                verb, _, path = match.groups()
-                line = text.count("\n", 0, match.start()) + 1
-                yield verb.upper(), path, f"{rel}:{line}"
-            for match in _HELPER_CALL_RE.finditer(text):
-                verb, _, path = match.groups()
-                line = text.count("\n", 0, match.start()) + 1
-                yield verb.upper(), path, f"{rel}:{line}"
+            for regex in (_METHOD_CALL_RE, _HELPER_CALL_RE):
+                for match in regex.finditer(text):
+                    verb, _, path = match.groups()
+                    line = text.count("\n", 0, match.start()) + 1
+                    window = text[
+                        max(0, match.start() - _PARAM_WINDOW_BEFORE): match.start() + _PARAM_WINDOW_AFTER
+                    ]
+                    yield verb.upper(), path, f"{rel}:{line}", window
 
 
 def _backend_routes() -> dict[str, set[str]]:
@@ -256,7 +263,10 @@ def _iter_unwrapping_calls():
                 yield verb, _normalise_wrapper_path(_to_absolute(match.group("path"))), f"{rel}:{line}"
 
 
-WRAPPER_CALLS = sorted(set(_iter_wrapper_calls()))
+_WRAPPER_CALLS_WITH_SOURCE = sorted(set(_iter_wrapper_calls()))
+# The path/verb tests below judge a call by its (verb, path, location) alone; the
+# surrounding source only matters to the required-param guard at the end.
+WRAPPER_CALLS = sorted({(verb, path, loc) for verb, path, loc, _ in _WRAPPER_CALLS_WITH_SOURCE})
 BACKEND_ROUTES = _backend_routes()
 RESPONSE_DATA_FIELDS = _response_data_fields()
 UNWRAPPING_CALLS = sorted(set(_iter_unwrapping_calls()))
@@ -331,4 +341,103 @@ def test_data_unwrapping_matches_response_shape(verb: str, path: str, location: 
         "undefined, so this silently renders nothing.\n"
         "Read the payload directly instead — see "
         "docs/WEB_MOBILE_PARITY_AUDIT_2026-07-17.md §8.3."
+    )
+
+
+# ── Required-query-param guard (P2-7c) ───────────────────────────────────────
+# The checks above catch a wrapper aimed at the wrong route (404) or the wrong
+# verb (405). They say nothing about a wrapper aimed at the *right* route that
+# omits a parameter the route declares required — FastAPI answers 422, and the
+# feature fails on first real use exactly like the two drifts that motivated
+# this file. `getDailyGuidance` was of this family: it sent `date` as a query
+# param to a route that wanted it in the path.
+
+
+def _required_query_params() -> dict[tuple[str, str], list[str]]:
+    """(verb, normalised path) -> names of query params the route requires."""
+    out: dict[tuple[str, str], list[str]] = {}
+    for path, operations in _SPEC["paths"].items():
+        key = _normalise_backend_path(path)
+        for verb, op in operations.items():
+            if verb.upper() in {"HEAD", "OPTIONS"}:
+                continue
+            names = [
+                param["name"]
+                for param in op.get("parameters", [])
+                if param.get("required") and param.get("in") == "query"
+            ]
+            if names:
+                out[(verb.upper(), key)] = names
+    return out
+
+
+def _unsent_required_params(source_window: str, required_names: list[str]) -> list[str]:
+    """Required param names that never appear as a word in the call's source.
+
+    Deliberately a mention check rather than an attempt to evaluate how the query
+    string is assembled — wrappers build them inline, via URLSearchParams, and by
+    spreading a params object, and a parser that understood all three would be a
+    bigger liability than the bug it guards. A param name that appears *nowhere*
+    near the call is unambiguous; anything subtler is left to review.
+    """
+    return [
+        name
+        for name in required_names
+        if not re.search(rf"\b{re.escape(name)}\b", source_window)
+    ]
+
+
+REQUIRED_QUERY_PARAMS = _required_query_params()
+
+CALLS_NEEDING_PARAMS = sorted(
+    {
+        (verb, _normalise_wrapper_path(_to_absolute(path)), loc, window)
+        for verb, path, loc, window in _WRAPPER_CALLS_WITH_SOURCE
+        if (verb, _normalise_wrapper_path(_to_absolute(path))) in REQUIRED_QUERY_PARAMS
+    }
+)
+
+
+def test_required_param_routes_were_discovered():
+    """Guard the guard — see test_wrapper_calls_were_discovered."""
+    assert len(REQUIRED_QUERY_PARAMS) > 25, (
+        f"Only {len(REQUIRED_QUERY_PARAMS)} routes with required query params found "
+        "in the OpenAPI schema — the schema or this extractor has drifted."
+    )
+    assert len(CALLS_NEEDING_PARAMS) >= 10, (
+        f"Only {len(CALLS_NEEDING_PARAMS)} wrapper calls matched to a route with "
+        "required query params — the wrapper parser has probably drifted, and this "
+        "guard would then pass by matching nothing."
+    )
+
+
+def test_unsent_required_params_detects_an_omission():
+    """Prove the check bites — it finds nothing in the tree today, by design.
+
+    A guard that is green because the code is correct and a guard that is green
+    because it inspects nothing look identical from the outside. This pins the
+    difference.
+    """
+    assert _unsent_required_params("get(`/panchangam/daily?date=${d}&lat=${lat}`)", ["date", "lat"]) == []
+    assert _unsent_required_params("get(`/panchangam/daily?date=${d}`)", ["date", "lat"]) == ["lat"]
+    # A substring must not count as a mention: `date` does not satisfy `dateFrom`.
+    assert _unsent_required_params("get(`/muhurta?date=${d}`)", ["dateFrom"]) == ["dateFrom"]
+
+
+@pytest.mark.parametrize(
+    ("verb", "path", "location", "window"),
+    CALLS_NEEDING_PARAMS,
+    ids=[f"{verb} {path} ({loc})" for verb, path, loc, _ in CALLS_NEEDING_PARAMS],
+)
+def test_wrapper_sends_every_required_query_param(verb: str, path: str, location: str, window: str):
+    """A wrapper omitting a required param 422s on first real use."""
+    required_names = REQUIRED_QUERY_PARAMS[(verb, path)]
+    missing = _unsent_required_params(window, required_names)
+
+    assert not missing, (
+        f"{location}: wrapper calls {verb} {path!r}, which requires query "
+        f"param(s) {required_names}, but {missing} appear nowhere in the "
+        "surrounding source. Every real call to this wrapper 422s.\n"
+        "Add the param, or — if the backend should not require it — give it a "
+        "default so the contract matches the caller."
     )
