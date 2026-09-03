@@ -38,22 +38,36 @@ into the insecure configuration is not a safe default.
 ### The two proxy-hop counts
 
 These are the settings most likely to be got wrong, because they describe the
-same deployment from two ends and nothing checks them against each other.
+same deployment from two ends.
+
+**They are equal. Always.**
 
 | | `TRUSTED_PROXY_HOPS_BEFORE_WEB` | `JOTHIDAM_TRUSTED_PROXY_COUNT` |
 |---|---|---|
 | No edge (default) | `0` | `0` |
 | `--profile edge` | `1` | `1` |
-| Edge behind a CDN | `2` | `1` |
+| Edge behind a CDN | `2` | `2` |
 
-The API's number stays `1` in the last row, and that trips people up. Next does
-not *append* to `X-Forwarded-For` — it deletes whatever the client sent and
-writes back only the rightmost entries a hop we control actually produced (see
-`web/app/api/backend/[...path]/route.ts`). Whatever the depth in front of Next,
-the API receives exactly one entry.
+Next does not *append* to `X-Forwarded-For` — it deletes whatever the client
+sent and writes back only the rightmost entries a hop we control actually
+produced. But "the rightmost entries" is `hops.slice(-N)` where N is
+`TRUSTED_PROXY_HOPS_BEFORE_WEB` (`web/app/api/backend/[...path]/route.ts`), so
+the API receives **N entries, not one**, and must step back N to reach the
+address the outermost trusted hop observed.
 
 Set one without the other and the API either reads an address no trusted hop
-wrote, or ignores the only one that was.
+wrote, or ignores the only one that was. `app/core/config.py` cross-checks the
+pair at boot: a mismatch is a hard failure in production and staging, a warning
+elsewhere. The `api` service is passed `TRUSTED_PROXY_HOPS_BEFORE_WEB` for that
+purpose alone.
+
+> **Corrected 2026-09-03.** This table used to say the API's count stays `1`
+> behind a CDN, on the reasoning that Next forwards exactly one entry. It does
+> not — `proxy-forwarding.test.ts` has pinned the two-entry behaviour ("keeps
+> two hops when two are declared") the whole time. Deployed as written, the API
+> would have read the CDN's own address for every request and put all anonymous
+> traffic in one rate-limit bucket: the exact failure the setting exists to
+> prevent. The boot assertion exists so a wrong pair cannot be silent again.
 
 ### Anonymous rate limiting only works with the edge
 

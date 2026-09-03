@@ -219,3 +219,95 @@ def test_an_unrelated_FILE_variable_is_not_interpreted(tmp_path, monkeypatch):
     settings = _production(process_role="worker")
 
     assert settings.encryption_key == "configured"
+
+
+# ---------------------------------------------------------------------------
+# Proxy-hop cross-check. The two counts describe one deployment from two ends
+# and were coupled by comments alone until this landed.
+# ---------------------------------------------------------------------------
+
+def test_matching_proxy_hop_counts_boot(monkeypatch):
+    monkeypatch.delenv("APP_ENV", raising=False)
+    monkeypatch.setenv("TRUSTED_PROXY_HOPS_BEFORE_WEB", "1")
+
+    settings = _production(jwt_secret="j", admin_api_key="a", trusted_proxy_count=1)
+
+    assert settings.trusted_proxy_count == 1
+
+
+def test_mismatched_proxy_hop_counts_refuse_to_boot_in_production(monkeypatch):
+    """The failure this exists to catch is silent in both directions: the API
+    reads an entry no trusted hop wrote, or ignores the only one that was."""
+    monkeypatch.delenv("APP_ENV", raising=False)
+    monkeypatch.setenv("TRUSTED_PROXY_HOPS_BEFORE_WEB", "1")
+
+    with pytest.raises(RuntimeError) as excinfo:
+        _production(jwt_secret="j", admin_api_key="a", trusted_proxy_count=0)
+
+    message = str(excinfo.value)
+    assert "TRUSTED_PROXY_HOPS_BEFORE_WEB=1" in message
+    assert "JOTHIDAM_TRUSTED_PROXY_COUNT=0" in message
+
+
+def test_the_cdn_pair_the_docs_used_to_recommend_is_now_rejected(monkeypatch):
+    """`BEFORE_WEB=2` with `PROXY_COUNT=1` was the documented CDN row.
+
+    It is wrong. The Next proxy forwards `hops.slice(-N)` -- N entries, not one
+    -- so at this pair the API steps back a single entry and reads the CDN's own
+    address for every request, putting all anonymous traffic in one rate-limit
+    bucket. See docs/PRODUCTION_EDGE.md and the `keeps two hops when two are
+    declared` case in web/app/api/backend/proxy-forwarding.test.ts.
+    """
+    monkeypatch.delenv("APP_ENV", raising=False)
+    monkeypatch.setenv("TRUSTED_PROXY_HOPS_BEFORE_WEB", "2")
+
+    with pytest.raises(RuntimeError, match="must be equal"):
+        _production(jwt_secret="j", admin_api_key="a", trusted_proxy_count=1)
+
+
+def test_a_mismatch_outside_production_warns_rather_than_blocking(monkeypatch, caplog):
+    """A developer running the edge locally should be told, not stopped."""
+    monkeypatch.delenv("APP_ENV", raising=False)
+    monkeypatch.setenv("TRUSTED_PROXY_HOPS_BEFORE_WEB", "1")
+
+    with caplog.at_level("WARNING"):
+        settings = Settings(
+            database_url="postgresql://example/test",
+            environment="development",
+            trusted_proxy_count=0,
+            _env_file=None,
+        )
+
+    assert settings.trusted_proxy_count == 0
+    assert "Proxy-hop counts disagree" in caplog.text
+
+
+def test_an_unsupplied_web_count_cannot_be_checked_and_says_so(monkeypatch, caplog):
+    """A hand-rolled deployment that never passed the variable to this container
+    is not thereby misconfigured -- but silence would hide a real mismatch."""
+    monkeypatch.delenv("APP_ENV", raising=False)
+    monkeypatch.delenv("TRUSTED_PROXY_HOPS_BEFORE_WEB", raising=False)
+
+    with caplog.at_level("WARNING"):
+        settings = _production(jwt_secret="j", admin_api_key="a", trusted_proxy_count=1)
+
+    assert settings.trusted_proxy_count == 1
+    assert "cross-check is inactive" in caplog.text
+
+
+def test_a_non_integer_web_count_is_a_boot_failure(monkeypatch):
+    monkeypatch.delenv("APP_ENV", raising=False)
+    monkeypatch.setenv("TRUSTED_PROXY_HOPS_BEFORE_WEB", "yes")
+
+    with pytest.raises(RuntimeError, match="must be an integer"):
+        _production(jwt_secret="j", admin_api_key="a", trusted_proxy_count=1)
+
+
+def test_the_worker_is_not_subject_to_the_cross_check(monkeypatch):
+    """It resolves no client IP, and its container is not given the variable."""
+    monkeypatch.delenv("APP_ENV", raising=False)
+    monkeypatch.setenv("TRUSTED_PROXY_HOPS_BEFORE_WEB", "2")
+
+    settings = _production(process_role="worker", trusted_proxy_count=0)
+
+    assert settings.process_role == "worker"

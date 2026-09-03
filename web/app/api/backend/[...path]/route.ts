@@ -6,10 +6,12 @@ const BACKEND_URL = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
  * How many reverse-proxy hops sit in FRONT OF THIS NEXT SERVER (a CDN, an
  * ingress, a load balancer). 0 means the browser reaches Next directly.
  *
- * This must be kept in step with the backend's JOTHIDAM_TRUSTED_PROXY_COUNT,
- * which counts the hops in front of *the backend* — that is, this value plus
- * one for Next itself, but only while Next actually forwards a value. Change
- * one and you must change the other; they describe the same deployment.
+ * This must EQUAL the backend's JOTHIDAM_TRUSTED_PROXY_COUNT. Not "this plus
+ * one" — an earlier version of this comment said that, and it was wrong.
+ * `trustedForwardedFor` below forwards the rightmost N entries, so the backend
+ * receives exactly N and must step back exactly N to reach the address the
+ * outermost trusted hop observed. Change one and you must change the other;
+ * `app/core/config.py` refuses to boot in production on a mismatch.
  */
 const TRUSTED_HOPS_BEFORE_WEB = Number.parseInt(
   process.env.TRUSTED_PROXY_HOPS_BEFORE_WEB ?? "0",

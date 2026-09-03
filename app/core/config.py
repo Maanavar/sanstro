@@ -34,6 +34,71 @@ def _config_error(message: str) -> RuntimeError:
     return RuntimeError(message)
 
 
+_WEB_HOPS_ENV = "TRUSTED_PROXY_HOPS_BEFORE_WEB"
+
+
+def _check_proxy_hops_agree(api_count: int, enforce: bool) -> None:
+    """Cross-check ``JOTHIDAM_TRUSTED_PROXY_COUNT`` against the web tier's twin.
+
+    The two describe the same deployment from opposite ends and were coupled by
+    comments alone. Get them out of step and one of two things happens, neither
+    visible in a log line: the API reads an ``X-Forwarded-For`` entry no trusted
+    hop wrote (a caller names any address it likes and walks around every
+    IP-keyed rate limit), or it ignores the only entry that *was* written and
+    attributes every anonymous request to one address.
+
+    **The rule is equality**, and the docs used to say otherwise — they claimed
+    the API's count stays 1 behind a CDN because "Next forwards exactly one
+    entry". Next does not. ``trustedForwardedFor`` in
+    ``web/app/api/backend/[...path]/route.ts`` forwards the rightmost
+    ``TRUSTED_PROXY_HOPS_BEFORE_WEB`` entries — ``hops.slice(-N)``, pinned by
+    "keeps two hops when two are declared" in ``proxy-forwarding.test.ts``. So
+    at web=2/api=1 the API steps back one entry from the right and reads the
+    CDN's own address for every request, which is the shared-bucket failure the
+    setting exists to prevent.
+
+    The variable carries no ``JOTHIDAM_`` prefix on purpose: it belongs to the
+    Next process, and one value has to serve both. Read from the environment
+    rather than declared as a field for the same reason — it is not this
+    process's configuration, it is a claim about a sibling's. ``APP_ENV`` is
+    read the same way a few lines below.
+
+    Unset means the check cannot run: a hand-rolled deployment that never passed
+    it to this container is not thereby misconfigured. Say so once, in the
+    environments where it matters, rather than failing or staying silent.
+    """
+    raw = os.getenv(_WEB_HOPS_ENV)
+    if raw is None or not raw.strip():
+        if enforce:
+            _logger.warning(
+                "%s is not set for this process, so the proxy-hop cross-check is "
+                "inactive. It must equal JOTHIDAM_TRUSTED_PROXY_COUNT (%d).",
+                _WEB_HOPS_ENV,
+                api_count,
+            )
+        return
+
+    try:
+        web_hops = int(raw.strip())
+    except ValueError:
+        raise _config_error(f"{_WEB_HOPS_ENV} must be an integer; got {raw.strip()!r}") from None
+
+    if web_hops == api_count:
+        return
+
+    message = (
+        f"Proxy-hop counts disagree: {_WEB_HOPS_ENV}={web_hops} but "
+        f"JOTHIDAM_TRUSTED_PROXY_COUNT={api_count}. They must be equal — the Next "
+        f"proxy forwards the rightmost {_WEB_HOPS_ENV} entries of X-Forwarded-For, "
+        "so the API must step back exactly that many to reach the address the "
+        "outermost trusted hop observed. Set both to 0 with no edge, 1 for the "
+        "`edge` profile, 2 for an edge behind a CDN. See docs/PRODUCTION_EDGE.md."
+    )
+    if enforce:
+        raise _config_error(message)
+    _logger.warning(message)
+
+
 class Settings(BaseSettings):
     app_name: str = "Vinaadi AI API"
     app_version: str = "0.1.0"
@@ -81,6 +146,10 @@ class Settings(BaseSettings):
     # Number of trusted reverse-proxy hops in front of the app. When > 0 the rate
     # limiter resolves the real client IP from the right-most-but-N entry of
     # X-Forwarded-For instead of the immediate peer. Leave 0 when there is no proxy.
+    #
+    # Must EQUAL the web tier's TRUSTED_PROXY_HOPS_BEFORE_WEB — not "one less",
+    # whatever the older docs said. _check_proxy_hops_agree enforces it at boot
+    # and explains why.
     trusted_proxy_count: int = 0
 
     # CORS — comma-separated list of allowed origins (e.g. "https://app.vinaadi.ai").
@@ -234,6 +303,16 @@ class Settings(BaseSettings):
         # holding the secrets that do. Requiring them of every process is what
         # made per-service secret grants impossible before.
         serves_http = role == _ROLE_API
+
+        # Before the early return below, so a developer running the edge locally
+        # is told rather than silently mis-attributing every anonymous request.
+        # Scoped to the HTTP role: the scheduler never resolves a client IP, and
+        # its container is not given the web tier's variable.
+        if serves_http:
+            _check_proxy_hops_agree(
+                max(0, int(self.trusted_proxy_count)),
+                enforce=app_env in real_user_envs,
+            )
 
         missing: list[str] = []
         if serves_http and not self.jwt_secret:

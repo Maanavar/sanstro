@@ -62,18 +62,22 @@ services:
       JOTHIDAM_ANTHROPIC_API_KEY: ${JOTHIDAM_ANTHROPIC_API_KEY:-}
       JOTHIDAM_COOKIE_SECURE: "true"
       JOTHIDAM_DEBUG: "false"
-      # Trusted hops in front of *the API*. Set this and
-      # TRUSTED_PROXY_HOPS_BEFORE_WEB (on the web service) together — they
-      # describe the same deployment from two ends:
+      # Trusted hops in front of *the API*. This and TRUSTED_PROXY_HOPS_BEFORE_WEB
+      # describe the same deployment from two ends and must be EQUAL:
       #
       #   no edge (default)   both 0 — Next forwards no X-Forwarded-For at all,
       #                       so there is nothing for the API to trust.
-      #   `edge` profile      both 1 — nginx appends the real peer, Next keeps
-      #                       the rightmost entry, the API reads that one entry.
+      #   `edge` profile      both 1 — nginx appends the real peer, Next forwards
+      #                       that one entry, the API steps back one to read it.
+      #   edge behind a CDN   both 2 — Next forwards the rightmost TWO entries
+      #                       (`hops.slice(-N)`), so the API must step back two.
       #
-      # One is 1 while the other is 0 = the API reads an entry no trusted hop
-      # wrote, or ignores the only one that was written.
+      # Out of step = the API reads an entry no trusted hop wrote, or ignores the
+      # only one that was. Both are silent. The same variable is passed to this
+      # service purely so app/core/config.py can cross-check the pair at boot; it
+      # is the web tier's setting and the API reads nothing else from it.
       JOTHIDAM_TRUSTED_PROXY_COUNT: ${JOTHIDAM_TRUSTED_PROXY_COUNT:-0}
+      TRUSTED_PROXY_HOPS_BEFORE_WEB: ${TRUSTED_PROXY_HOPS_BEFORE_WEB:-0}
       JOTHIDAM_CORS_ALLOW_ORIGINS: ${JOTHIDAM_CORS_ALLOW_ORIGINS:-}
       WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
       # Single-box default: the API also runs the cron scheduler (behind the
@@ -148,8 +152,10 @@ services:
       NODE_ENV: production
       # Server-to-server base URL the Next proxy uses to reach the API.
       API_BASE_URL: ${API_BASE_URL:-http://api:8000}
-      # Hops in front of *Next*. 0 without the `edge` profile, 1 with it. See the
-      # api service's JOTHIDAM_TRUSTED_PROXY_COUNT — set both or neither.
+      # Hops in front of *Next*. 0 without the `edge` profile, 1 with it, 2 for
+      # an edge behind a CDN. Must equal the api service's
+      # JOTHIDAM_TRUSTED_PROXY_COUNT, which now refuses to boot in production if
+      # it does not.
       TRUSTED_PROXY_HOPS_BEFORE_WEB: ${TRUSTED_PROXY_HOPS_BEFORE_WEB:-0}
     # Loopback only, for the same reason as the api service. With the `edge`
     # profile nginx reaches it over the compose network as `web:3000`; without
