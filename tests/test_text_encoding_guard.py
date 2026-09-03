@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from pathlib import Path
 
@@ -9,7 +9,7 @@ pytestmark = pytest.mark.no_db
 ROOT = Path(__file__).resolve().parents[1]
 SCAN_DIRS = [ROOT / "app", ROOT / "web", ROOT / "docs", ROOT / "tests"]
 TEXT_SUFFIXES = {".py", ".ts", ".tsx", ".js", ".mjs", ".json", ".md", ".css", ".yml", ".yaml", ".toml", ".ps1", ".sql"}
-EXCLUDE_PARTS = {"node_modules", ".next", ".git", "__pycache__", "artifacts"}
+EXCLUDE_PARTS = {"node_modules", ".next", ".git", "__pycache__", "artifacts", "playwright-report", "test-results"}
 
 # Common mojibake markers seen when UTF-8 Tamil gets decoded/written incorrectly.
 MOJIBAKE_MARKERS = (
@@ -35,6 +35,29 @@ def _iter_text_files() -> list[Path]:
                 continue
             files.append(path)
     return files
+
+
+def test_no_utf8_bom() -> None:
+    """A BOM is the other half of the same accident this file already guards.
+
+    Round-tripping a source file through PowerShell's `Get-Content`/`Set-Content`
+    mojibakes non-ASCII *and* prepends a UTF-8 BOM. Only the first half was
+    checked here, so BOMs accumulated silently: Python's tokenizer strips one
+    from a module it imports, so nothing fails at runtime, and two `app/` files
+    carried one undetected until an AST-based guard read them with plain `utf-8`
+    and died on `U+FEFF`. Anything that reads source as text rather than importing
+    it - static analysis, bundlers, `grep` for a leading pattern - hits the same
+    wall, and the byte is invisible in every editor and every diff.
+    """
+    findings = [
+        str(path.relative_to(ROOT))
+        for path in _iter_text_files()
+        if path.read_bytes()[:3] == b"\xef\xbb\xbf"
+    ]
+    assert not findings, (
+        "Files start with a UTF-8 BOM (write them as UTF-8 without BOM; the Edit "
+        "tool does this, `Set-Content` does not):\n" + "\n".join(findings)
+    )
 
 
 def test_no_mojibake_text_markers() -> None:

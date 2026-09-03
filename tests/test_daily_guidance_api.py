@@ -1,3 +1,5 @@
+from datetime import date
+
 from app.db.session import SessionLocal
 from app.models import DailyScore
 
@@ -62,7 +64,17 @@ def test_daily_guidance_endpoint_returns_daily_card(client, birth_profile_payloa
         "personalCautions",
         "remedialActionSupport",
     }
-    assert body["data"]["bestWindows"][0]["type"] == "ABHIJIT"
+    # Abhijit used to be listed first and the hero then had to demote it. The
+    # computed windows — a hora trimmed to the good Gowri kala it falls in — now
+    # lead, and Abhijit follows as the classical always-auspicious fallback.
+    best = body["data"]["bestWindows"]
+    assert best[0]["type"] != "ABHIJIT"
+    assert any(w["type"] == "ABHIJIT" for w in best)
+    # A computed window carries what it is made of, so a surface can say why.
+    assert best[0]["kala"]
+    assert best[0]["horaLord"]
+    assert best[0]["text"]["en"] and best[0]["text"]["ta"]
+    assert "bestWindowConflicts" in body["data"]
     assert body["data"]["cautionWindows"][0]["type"] == "RAHU_KALAM"
     # caution suggestion always references Rahu Kalam regardless of day label
     assert "Rahu" in body["data"]["cautionSuggestion"]["en"] or "Rahu" in body["data"]["cautionSuggestion"]["ta"]
@@ -80,6 +92,82 @@ def test_daily_guidance_endpoint_returns_daily_card(client, birth_profile_payloa
     assert body["data"]["emotionalWeather"]["bestUseOfDayText"]["en"]
     assert "contextInsight" in body["data"]
     assert "journalInsight" in body["data"]
+
+
+def test_daily_guidance_remedy_focus_is_chart_driven_and_structured(client, birth_profile_payload_factory):
+    chart_id = _create_chart(client, birth_profile_payload_factory)
+
+    # Query for today so the daily-guidance maha lord aligns with the remedy-plan
+    # endpoint (which selects as-of now) — both route through select_remedy_focus,
+    # so the anchor planet must agree across the two surfaces.
+    dg = client.get(
+        f"/api/v1/charts/{chart_id}/daily-guidance",
+        params={"date": date.today().isoformat(), "language": "ta-en"},
+    )
+    focus = assert_response(dg, status=200, required_keys=("data",))["data"]["remedyFocus"]
+    assert focus is not None
+
+    plan = client.get(f"/api/v1/charts/{chart_id}/remedy-plan")
+    assert plan.status_code == 200
+    assert focus["planet"] == plan.json()["data"]["currentMahaLord"]
+
+    assert focus["role"] in {"DASHA_LORD", "WEAK_BENEFIC", "DOSHA"}
+    assert focus["weekday"] in {"SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"}
+    assert isinstance(focus["isWeak"], bool)
+    assert focus["lead"]["en"].strip() and focus["lead"]["ta"].strip()
+    assert focus["why"]["en"].strip() and focus["why"]["ta"].strip()
+
+    actions = focus["actions"]
+    assert 1 <= len(actions) <= 3
+    # The first act is always the weekday temple ritual; seva acts follow.
+    assert actions[0]["kind"] == "TEMPLE"
+    assert actions[0]["cadence"] == "RITUAL_ON_DAY"
+    for action in actions:
+        assert action["kind"] in {"TEMPLE", "SEVA"}
+        assert action["cadence"] in {"RITUAL_ON_DAY", "ANY_DAY"}
+        assert action["text"]["en"].strip() and action["text"]["ta"].strip()
+
+
+def test_daily_guidance_briefing_flag_gates_synthesis(client, birth_profile_payload_factory):
+    from app.services.feature_flags import reset_flag, set_flag
+
+    chart_id = _create_chart(client, birth_profile_payload_factory)
+
+    # Flag OFF: the synthesis field is present but null, and the existing
+    # six-row reasons stack is untouched. Set explicitly rather than relying on
+    # the default, which now ships ON (this asserts the gate still works both ways).
+    set_flag("daily_briefing_synth", False)
+    try:
+        off = client.get(
+            f"/api/v1/charts/{chart_id}/daily-guidance",
+            params={"date": "2026-05-21", "language": "ta-en"},
+        )
+    finally:
+        reset_flag("daily_briefing_synth")
+    assert off.status_code == 200
+    assert off.json()["data"]["briefing"] is None
+
+    set_flag("daily_briefing_synth", True)
+    try:
+        # A different date, so this is not served from the flag-off cached row
+        # above (the daily-score cache is keyed by date, not by flag state).
+        on = client.get(
+            f"/api/v1/charts/{chart_id}/daily-guidance",
+            params={"date": "2026-06-11", "language": "ta-en"},
+        )
+    finally:
+        reset_flag("daily_briefing_synth")
+
+    assert on.status_code == 200
+    data = on.json()["data"]
+    briefing = data["briefing"]
+    assert briefing is not None
+    assert briefing["en"].strip()
+    assert briefing["ta"].strip()
+    # Synthesis leads with the verdict, so the day's label band is reflected in copy,
+    # and the six-row reasons stack still ships alongside it (additive, not a replacement).
+    assert data["reasons"]["moonTransit"]["en"].strip()
+    assert data["reasons"]["summary"]["en"].strip()
 
 
 def test_daily_guidance_all_text_fields_bilingual(client, birth_profile_payload_factory):
@@ -242,6 +330,8 @@ def test_activity_timing_endpoint_avoids_recursive_daily_guidance_calls(client, 
     assert body["activity"] == "job_change"
     assert body["month"] == "2026-05"
     assert 0 < len(body["topDates"]) <= 5
+    assert body["dailyLocation"]["source"] in {"current", "birth"}
+    assert body["dailyLocation"]["timezone"]
 
 
 def test_activity_timing_endpoint_accepts_plan_tab_aliases(client, birth_profile_payload_factory):

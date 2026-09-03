@@ -99,13 +99,19 @@ def test_day_of_does_not_also_fire_1d(client, birth_profile_payload_factory):
         assert pending[0].due_tiers == ("day_of",)
 
 
-def test_admin_run_peyarchi_refresh_endpoint(client, birth_profile_payload_factory):
+def test_admin_can_trigger_peyarchi_refresh_via_generic_job_endpoint(client, birth_profile_payload_factory):
+    """The dedicated `/admin/run-peyarchi-refresh` route was deleted (WIRE-11) as
+    redundant with the generic job trigger, which registers the same
+    `daily_peyarchi_refresh` callable (see app/scheduler.py). This exercises the
+    real end-to-end refresh through that generic path to prove the claim."""
     _create_chart(client, birth_profile_payload_factory)
-    response = client.post("/api/v1/admin/run-peyarchi-refresh")
+    response = client.post("/api/v1/admin/jobs/daily_peyarchi_refresh/trigger")
     assert response.status_code == 200
     body = response.json()
-    assert body["charts_refreshed"] >= 1
-    assert body["notifications_marked"] >= 0
+    assert body["job_id"] == "daily_peyarchi_refresh"
+    assert "charts_refreshed=" in body["result_summary"]
+    charts_refreshed = int(body["result_summary"].split("charts_refreshed=")[1].split(",")[0])
+    assert charts_refreshed >= 1
 
 
 def test_daily_refresh_does_not_mark_failed_email_notification(client, monkeypatch, birth_profile_payload_factory):

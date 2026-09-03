@@ -17,7 +17,7 @@ class UserPreference(TimestampMixin, Base):
     )
 
     preference_id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    owner_user_id: Mapped[UUID] = mapped_column(ForeignKey("users.user_id"), nullable=False)
+    owner_user_id: Mapped[UUID] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
     journal_retention_days: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
@@ -26,7 +26,7 @@ class UserPreference(TimestampMixin, Base):
     )
     last_retention_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     dashboard_lang: Mapped[str] = mapped_column(
-        String(8), nullable=False, default="ta", server_default=text("'ta'")
+        String(8), nullable=False, default="en", server_default=text("'en'")
     )
     # Feature 2 — Life Mode (focus intent). Distinct from users.user_mode (dashboard
     # complexity mode). Allowed values live in app/core/life_mode.py.

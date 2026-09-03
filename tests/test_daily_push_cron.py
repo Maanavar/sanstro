@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, time
-from unittest.mock import MagicMock, patch
-from uuid import UUID, uuid4
+from unittest.mock import MagicMock
+from uuid import uuid4
 
 import pytest
 
@@ -177,7 +177,7 @@ def test_dispatch_for_user_uses_current_location_for_daily_panchangam(monkeypatc
         slot = MagicMock()
         slot.start = datetime(2026, 5, 26, 9, 0, tzinfo=UTC)
         slot.end = datetime(2026, 5, 26, 10, 0, tzinfo=UTC)
-        slot.name = "LAABAM"
+        slot.name = "LABHAM"
         rahu = MagicMock()
         rahu.start = datetime(2026, 5, 26, 13, 30, tzinfo=UTC)
         rahu.end = datetime(2026, 5, 26, 15, 0, tzinfo=UTC)
@@ -214,5 +214,5 @@ def test_dispatch_for_user_uses_current_location_for_daily_panchangam(monkeypatc
     assert longitude == -74.006
     assert timezone_name == "America/New_York"
     notification_kwargs = captured["notification_kwargs"]
-    assert notification_kwargs["nalla_neram_category_en"] == "Laabam"
+    assert notification_kwargs["nalla_neram_category_en"] == "Labham"
     assert "profit" in notification_kwargs["nalla_neram_purpose_en"]

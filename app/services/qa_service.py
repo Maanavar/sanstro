@@ -4,7 +4,7 @@
 """
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from app.calculations.astro import (
     house_from_reference,
@@ -78,7 +78,10 @@ def _run_time_conversion() -> QAModuleResult:
         _case("T010-c", "2000-01-01 00:00 IST -> 1999-12-31 18:30 UTC (millennium rollover)", "1999-12-31T18:30:00+00:00", utc3.isoformat()),
         _case("T010-d", "1947-08-15 00:00 IST -> 1947-08-14 18:30 UTC (independence day)", "1947-08-14T18:30:00+00:00", utc4.isoformat()),
         _case("T010-e", "1975-06-10 18:45 IST -> 1975-06-10 13:15 UTC", "1975-06-10T13:15:00+00:00", utc5.isoformat()),
-        _case("T010-f", "UTC result has zero offset", True, utc1.utcoffset().total_seconds() == 0),
+        # Compared against timedelta(0) rather than calling .total_seconds():
+        # utcoffset() is None for a naive datetime, which this check must fail,
+        # not crash on.
+        _case("T010-f", "UTC result has zero offset", True, utc1.utcoffset() == timedelta(0)),
     ]
     passed = sum(1 for c in cases if c.passed)
     return QAModuleResult(module="utc_conversion", passed=passed, failed=len(cases) - passed, cases=cases)
@@ -138,7 +141,7 @@ def _run_navamsa() -> QAModuleResult:
     d1_rishabam = rasi_from_degree(43.5)                 # Rishabam 13°30'
     d9_rishabam = navamsa_rasi_from_degree(43.5)
     d9_mesham_start = navamsa_rasi_from_degree(0.0)      # Mesham start → D9 Mesham
-    d9_mesham_mid = navamsa_rasi_from_degree(15.0)       # Mesham mid
+    d9_mesham_mid = navamsa_rasi_from_degree(15.0)       # Mesham mid  # noqa: F841 — verification fixture; kept for reference
     d9_kadagam = navamsa_rasi_from_degree(90.0)          # Kadagam start (movable) → D9 Kadagam
     d9_kanni_fixed = navamsa_rasi_from_degree(150.0)     # Kanni (fixed) → starts from 9th = Makaram
     d9_midhunam_dual = navamsa_rasi_from_degree(60.0)    # Midhunam (dual) → starts from 5th = Thulam
@@ -263,12 +266,16 @@ def _run_sani_cycle() -> QAModuleResult:
     ezhara_12 = classify_sani_cycle(house_from_reference("Rishabam", "Mesham"))  # 12th
     ezhara_1 = classify_sani_cycle(house_from_reference("Mesham", "Mesham"))     # 1st
     ezhara_2 = classify_sani_cycle(house_from_reference("Meenam", "Mesham"))     # 2nd
-    # Kandaka sani (from lagna)
+    # Kandaka Sani: 4/7/10 from the Janma Rasi (doctrine A-1, ruled 2026-08-19).
+    # The 1st is Janma Sani's place and is no longer a Kandaka position, and the
+    # reference is the Moon, not the Lagna.
     kandaka_10 = classify_kandaka_cycle(house_from_reference("Mesham", "Magaram"))
     kandaka_4 = classify_kandaka_cycle(house_from_reference("Mesham", "Kadagam"))
     kandaka_7 = classify_kandaka_cycle(house_from_reference("Mesham", "Thulaam"))
     kandaka_1 = classify_kandaka_cycle(house_from_reference("Mesham", "Mesham"))
     not_kandaka = classify_kandaka_cycle(house_from_reference("Mesham", "Rishabam"))
+    # Layering: the 4th from the Moon must return BOTH names, not one.
+    layered_ardhashtama = classify_sani_cycle(house_from_reference("Mesham", "Kadagam"))
     cases = [
         _case("T050-a", "Dhanusu Moon + Meenam Sani -> Ardhashtama type", "ARDHASHTAMA_SANI", ardhashtama.type),
         _case("T050-b", "Ardhashtama Sani is_active = True", True, ardhashtama.is_active),
@@ -278,11 +285,12 @@ def _run_sani_cycle() -> QAModuleResult:
         _case("T051-a", "Sani in 12th from Moon -> Ezharai active", True, ezhara_12.is_active),
         _case("T051-b", "Sani in 1st from Moon -> Ezharai active", True, ezhara_1.is_active),
         _case("T051-c", "Sani in 2nd from Moon -> Ezharai active", True, ezhara_2.is_active),
-        _case("T052-a", "Sani in 10th from Lagna -> Kandaka Sani", "KANDAKA_SANI", kandaka_10.type),
-        _case("T052-b", "Sani in 4th from Lagna -> Kandaka Sani", "KANDAKA_SANI", kandaka_4.type),
-        _case("T052-c", "Sani in 7th from Lagna -> Kandaka Sani", "KANDAKA_SANI", kandaka_7.type),
-        _case("T052-d", "Sani in 1st from Lagna -> Kandaka Sani", "KANDAKA_SANI", kandaka_1.type),
-        _case("T052-e", "Sani in 2nd from Lagna -> NOT Kandaka", False, not_kandaka.is_active),
+        _case("T052-a", "Sani in 10th from Janma Rasi -> Kandaka Sani", "KANDAKA_SANI", kandaka_10.type),
+        _case("T052-b", "Sani in 4th from Janma Rasi -> Kandaka Sani", "KANDAKA_SANI", kandaka_4.type),
+        _case("T052-c", "Sani in 7th from Janma Rasi -> Kandaka Sani", "KANDAKA_SANI", kandaka_7.type),
+        _case("T052-d", "Sani in 1st from Janma Rasi -> NOT Kandaka (that is Janma Sani)", False, kandaka_1.is_active),
+        _case("T052-e", "Sani in 2nd from Janma Rasi -> NOT Kandaka", False, not_kandaka.is_active),
+        _case("T052-f", "Sani in 4th from Janma Rasi -> Ardhashtama as well (layered)", "ARDHASHTAMA_SANI", layered_ardhashtama.type),
     ]
     passed = sum(1 for c in cases if c.passed)
     return QAModuleResult(module="sani_cycle", passed=passed, failed=len(cases) - passed, cases=cases)

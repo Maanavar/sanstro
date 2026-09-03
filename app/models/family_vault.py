@@ -13,13 +13,19 @@ class FamilyVault(TimestampMixin, Base):
     __table_args__ = (Index("idx_family_vault_owner", "owner_user_id"),)
 
     family_vault_id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    owner_user_id: Mapped[UUID] = mapped_column(ForeignKey("users.user_id"), nullable=False)
+    owner_user_id: Mapped[UUID] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     default_language: Mapped[str] = mapped_column(
         String(16), nullable=False, default="ta-en", server_default=text("'ta-en'")
     )
 
     owner_user = relationship("User", back_populates="family_vaults")
-    family_members = relationship("FamilyMember", back_populates="family_vault", cascade="all, delete-orphan")
-    family_daily_scores = relationship("FamilyDailyScore", back_populates="family_vault")
-    relationship_alerts = relationship("RelationshipAlert", back_populates="vault")
+    family_members = relationship(
+        "FamilyMember", back_populates="family_vault", cascade="all, delete-orphan", passive_deletes=True
+    )
+    family_daily_scores = relationship(
+        "FamilyDailyScore", back_populates="family_vault", cascade="all, delete-orphan", passive_deletes=True
+    )
+    relationship_alerts = relationship(
+        "RelationshipAlert", back_populates="vault", cascade="all, delete-orphan", passive_deletes=True
+    )

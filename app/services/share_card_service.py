@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, date
+from datetime import UTC, date, datetime
 from uuid import UUID
 
 from fastapi import HTTPException
@@ -9,10 +9,10 @@ from sqlalchemy.orm import Session
 from app.calculations.astro import utc_datetime_to_julian_day
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.schemas.dasha import ResponseMeta
-from app.schemas.share_card import ShareCardBiText, ShareCardData, ShareCardResponse, VALID_CARD_TYPES
+from app.schemas.share_card import VALID_CARD_TYPES, ShareCardBiText, ShareCardData, ShareCardResponse
 from app.services.chart_service import load_persisted_chart_response
 from app.services.daily_guidance_service import get_daily_guidance
-from app.services.nakshatra_content_static import get_nakshatra_card
+from app.services.nakshatra_content import get_nakshatra_card
 
 # Maps score label → headline copy
 _SCORE_HEADLINES: dict[str, dict[str, str]] = {

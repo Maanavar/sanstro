@@ -7,17 +7,31 @@ on calculated values (score band, active planet, dasha lord, cycle type, etc.).
 """
 from __future__ import annotations
 
+import re
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from datetime import date
+from typing import TYPE_CHECKING, Protocol
 
 from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import compute_natal_planet_score
+from app.calculations.display_names import YOGA_NAME_EN, YOGA_NAME_TA
 
 if TYPE_CHECKING:
     from app.schemas.charts import PlanetPosition
 
 
 # ── Bilingual string helper ────────────────────────────────────────────────────
+
+class _Bilingual(Protocol):
+    """Any object exposing ``.ta``/``.en`` — BiText here, or the LifeAreaText
+    and AstroFactor equivalents callers already build. Read-only, so the
+    frozen dataclasses that actually implement it are accepted."""
+    @property
+    def ta(self) -> str: ...
+    @property
+    def en(self) -> str: ...
+
 
 @dataclass(frozen=True)
 class BiText:
@@ -50,7 +64,7 @@ def _format_time_range(start: str | None, end: str | None) -> str:
     return f"{_format_clock_label(start)}-{_format_clock_label(end)}"
 
 
-def build_strength_narrative(planets: list["PlanetPosition"], lagna_rasi: int) -> BiText:
+def build_strength_narrative(planets: list[PlanetPosition], lagna_rasi: int) -> BiText:
     if not planets:
         return _bi(
             "கிரக பல விவரம் தற்போது கிடைக்கவில்லை.",
@@ -81,6 +95,8 @@ def build_strength_narrative(planets: list["PlanetPosition"], lagna_rasi: int) -
     strongest_name = PLANET_NAME.get(strongest_planet, _bi(strongest_planet, strongest_planet))
     weakest_name = PLANET_NAME.get(weakest_planet, _bi(weakest_planet, weakest_planet))
 
+    # D2/D7: band words carry the judgement; the numeric score stays alongside
+    # it (product decision 2026-07-13 — show both, not one or the other).
     return _bi(
         f"{strongest_name.ta} {strongest_house}ஆம் இடத்தில் ({strongest_score}/100) பலமாக உள்ளது. "
         f"{weakest_name.ta} {weakest_house}ஆம் இடத்தில் ({weakest_score}/100) கவனம் தேவை.",
@@ -151,15 +167,15 @@ NAKSHATRA_NAME: dict[int, BiText] = {
 _NAK_QUALITY: dict[int, BiText] = {
     1: _bi("வேகமான தொடக்கம் மற்றும் குணப்படுத்தும் எண்ணம்", "quick starts and healing intent"),
     2: _bi("பொறுப்பு, எல்லை, ஆழமான முடிவு", "responsibility, boundaries, and deep choices"),
-    3: _bi("தெளிவு, தீச்சக்தி, வெட்டியான முடிவு", "clarity, fire, and decisive cutting through"),
+    3: _bi("தெளிவு, துணிவு, தீர்க்கமான முடிவு", "clarity, fire, and decisive cutting through"),
     4: _bi("வளர்ச்சி, அழகு, உறவு மென்மை", "growth, beauty, and relational softness"),
-    5: _bi("தேடல், ஆர்வம், மென்மையான விசாரணை", "seeking, curiosity, and gentle inquiry"),
+    5: _bi("தேடல், ஆர்வம், அறிய விரும்பும் மனது", "seeking, curiosity, and gentle inquiry"),
     6: _bi("மாற்றம், உண்மை, உள்ளழுத்த சுத்திகரிப்பு", "change, truth, and inner cleansing"),
     7: _bi("மீளெழுச்சி, பாதுகாப்பு, நம்பிக்கை", "renewal, protection, and restored hope"),
     8: _bi("பராமரிப்பு, குரு அருள், ஒழுங்கான வளர்ப்பு", "nourishment, guidance, and disciplined care"),
     9: _bi("உணர்ச்சி ஆழம், உள்ளுணர்வு, பாதுகாப்பு தேவை", "emotional depth, instinct, and a need for care"),
     10: _bi("மரபு, கௌரவம், குடும்ப அடையாளம்", "lineage, dignity, and family identity"),
-    11: _bi("படைப்பு, மகிழ்ச்சி, மனதள திறப்பு", "creativity, pleasure, and emotional opening"),
+    11: _bi("படைப்பு, மகிழ்ச்சி, உள்ளம் திறத்தல்", "creativity, pleasure, and emotional opening"),
     12: _bi("ஒப்பந்தம், நிலைநிறுத்தல், பொறுப்பான உறுதி", "agreements, steadiness, and responsible commitment"),
     13: _bi("திறமை, கைநுணுக்கம், நடைமுறை தீர்வு", "skill, craftsmanship, and practical solutions"),
     14: _bi("வடிவமைப்பு, அழகு, துல்லிய செயல்", "design, beauty, and precise action"),
@@ -168,7 +184,7 @@ _NAK_QUALITY: dict[int, BiText] = {
     17: _bi("நட்பு, பக்தி, உறவின் நம்பிக்கை", "friendship, devotion, and relational trust"),
     18: _bi("ஆழமான கவனம், மரியாதை, உள்ளக கட்டுப்பாடு", "deep focus, respect, and inner discipline"),
     19: _bi("வேர் தேடல், உண்மை, பழையதை விடுதல்", "root-seeking, truth, and releasing the old"),
-    20: _bi("நம்பிக்கை, நீர் தன்மை, மன உறுதி", "confidence, fluidity, and emotional resolve"),
+    20: _bi("நம்பிக்கை, நெகிழ்வுத் தன்மை, மன உறுதி", "confidence, fluidity, and emotional resolve"),
     21: _bi("நிலைத்த வெற்றி, தர்மம், நீண்ட முயற்சி", "lasting success, dharma, and sustained effort"),
     22: _bi("கேட்பது, கற்றல், ஒழுங்கான தொடர்பு", "listening, learning, and ordered communication"),
     23: _bi("இசைவு, ஆற்றல், குழு ஒத்துழைப்பு", "rhythm, energy, and group cooperation"),
@@ -180,6 +196,18 @@ _NAK_QUALITY: dict[int, BiText] = {
 
 
 # ── Score band labels ──────────────────────────────────────────────────────────
+
+def _as_prose_list(items: str) -> str:
+    """Turn an English chip list ("a, b, c") into something sayable ("a, b, and c").
+
+    Tamil is left alone — it conjoins with case endings, not a word, so the
+    comma form already reads correctly there.
+    """
+    parts = [p.strip() for p in items.split(",") if p.strip()]
+    if len(parts) < 2:
+        return items.strip()
+    return ", ".join(parts[:-1]) + ", and " + parts[-1]
+
 
 def _rasi_name_safe(rasi_number: int) -> BiText:
     """Return a non-empty bilingual rasi label, even for out-of-range inputs."""
@@ -277,31 +305,50 @@ def moon_transit_reason(
 # ── Dasha support reasoning ────────────────────────────────────────────────────
 
 def dasha_support_reason(maha_lord: str, antar_lord: str, dasha_score: int) -> BiText:
+    """RP-12: spoken sentences, not stacked em-dash fragments — the same
+    catalogue tails, inflected the way an astrologer would actually say them."""
     maha = _DASHA_CHARACTER.get(maha_lord, _bi(maha_lord, maha_lord))
     antar = _ANTARA_NOTE.get(antar_lord, _bi(antar_lord, antar_lord))
 
+    maha_name_ta = maha.ta.split(" — ")[0]        # "சனி தசை"
+    maha_name_en = maha.en.split(" — ")[0]        # "Saturn dasa"
     maha_quality_ta = maha.ta.split(" — ")[1] if " — " in maha.ta else "நல்ல வளர்ச்சி"
-    maha_quality_en = maha.en.split(" — ")[1] if " — " in maha.en else "growth"
+    # The catalogue tails are chip lists ("duty, discipline, endurance"). Read
+    # aloud inside a sentence — "a period that brings duty, discipline,
+    # endurance to the fore" — the missing conjunction is a plain copy tell.
+    maha_quality_en = _as_prose_list(maha.en.split(" — ")[1] if " — " in maha.en else "growth")
+    antar_name_ta = antar.ta.split(" — ")[0]      # "கேது புக்தி"
+    antar_name_en = antar.en.split(" — ")[0]      # "Ketu bhukti"
+    antar_tail_ta = antar.ta.split(" — ")[1] if " — " in antar.ta else ""
+    antar_tail_en = antar.en.split(" — ")[1] if " — " in antar.en else ""
+    antar_clause_ta = f"உள்ளே {antar_name_ta} நடக்கிறது" + (f"; {antar_tail_ta}" if antar_tail_ta else "")
+    antar_clause_en = f"Within it runs the {antar_name_en}" + (f" — {antar_tail_en}" if antar_tail_en else "")
 
+    # D2/D7: the band word ("strong/moderate/reduced") carries the public
+    # confidence; the numeric score is kept alongside it (show both, 2026-07-13).
+    score_suffix_ta = f" ({dasha_score}/100)"
+    score_suffix_en = f" ({dasha_score}/100)"
     if dasha_score >= 65:
         return _bi(
-            f"நடப்பில் {maha.ta}. இந்த தசை காலத்தில் {maha_quality_ta} கிடைக்கும். "
-            f"உள்ளே {antar.ta}. தசை ஆதரவு வலுவானது ({dasha_score}/100) — திட்டமிட்ட செயல்களுக்கு நல்ல நேரம்.",
-            f"Currently in {maha.en}. This dasha period supports {maha_quality_en}. "
-            f"Sub-period: {antar.en}. Dasha support is strong ({dasha_score}/100) — a favourable time for planned action.",
+            f"இப்போது உங்களுக்கு {maha_name_ta} நடக்கிறது — இந்தக் காலம் {maha_quality_ta} "
+            f"சார்ந்த விஷயங்களை முன்னிலைப்படுத்தும். {antar_clause_ta}. "
+            f"தசை ஆதரவு வலுவாக உள்ளது{score_suffix_ta} — திட்டமிட்டதைச் செயல்படுத்த நல்ல நேரம்.",
+            f"You are currently in the {maha_name_en} — a period that brings {maha_quality_en} to the fore. "
+            f"{antar_clause_en}. Dasha support is strong{score_suffix_en} — a favourable time for planned action.",
         )
     if dasha_score >= 50:
         return _bi(
-            f"நடப்பில் {maha.ta}. {antar.ta}. "
-            f"தசை ஆதரவு மிதமானது ({dasha_score}/100) — முடிவுகளில் அவசரம் வேண்டாம், பொறுமையுடன் செயல்படுங்கள்.",
-            f"Currently in {maha.en}. {antar.en}. "
-            f"Dasha support is moderate ({dasha_score}/100) — avoid rushing decisions; steady effort works better.",
+            f"இப்போது உங்களுக்கு {maha_name_ta} நடக்கிறது. {antar_clause_ta}. "
+            f"தசை ஆதரவு மிதமானது{score_suffix_ta} — அவசரப்படாமல், நிதானமான முயற்சி நல்ல பலன் தரும்.",
+            f"You are currently in the {maha_name_en}. {antar_clause_en}. "
+            f"Dasha support is moderate{score_suffix_en} — steady, unhurried effort works better than rushing.",
         )
     return _bi(
-        f"நடப்பில் {maha.ta}. {antar.ta}. "
-        f"தசை ஆதரவு குறைவு ({dasha_score}/100) — பெரிய புதிய முயற்சிகளை ஒத்திவைத்து, தற்போதுள்ளதை நிலைநிறுத்துவதில் கவனம் செலுத்துங்கள்.",
-        f"Currently in {maha.en}. {antar.en}. "
-        f"Dasha support is reduced ({dasha_score}/100) — defer major new ventures and focus on consolidating what you have.",
+        f"இப்போது உங்களுக்கு {maha_name_ta} நடக்கிறது. {antar_clause_ta}. "
+        f"தசை ஆதரவு குறைவாக உள்ளது{score_suffix_ta} — பெரிய புதிய முயற்சிகளை ஒத்திவைத்து, "
+        f"இருப்பதை நிலைப்படுத்துவதில் முனையுங்கள்.",
+        f"You are currently in the {maha_name_en}. {antar_clause_en}. "
+        f"Dasha support is reduced{score_suffix_en} — defer major new ventures and focus on consolidating what you have.",
     )
 
 
@@ -310,16 +357,6 @@ def dasha_support_reason(maha_lord: str, antar_lord: str, dasha_score: int) -> B
 _TITHI_CAUTION = {4, 9, 14, 19, 24, 29}
 _TITHI_MILD = {8, 23, 30}
 _YOGA_CAUTION = {1, 6, 9, 10, 17, 27}
-
-# Yoga names aligned with YOGA_NAMES in panchangam.py (Tamil Thirukanitham spelling)
-_YOGA_NAME: dict[int, str] = {
-    1: "Vishkambha", 2: "Priti", 3: "Ayushman", 4: "Saubhagya", 5: "Shobhana",
-    6: "Atiganda", 7: "Sukarma", 8: "Dhriti", 9: "Shoola", 10: "Ganda",
-    11: "Vriddhi", 12: "Dhruva", 13: "Vyaghata", 14: "Harshana", 15: "Vajra",
-    16: "Siddhi", 17: "Vyatipata", 18: "Variyana", 19: "Parigha", 20: "Shiva",
-    21: "Siddha", 22: "Sadhya", 23: "Shubha", 24: "Shukla", 25: "Brahma",
-    26: "Indra", 27: "Vaidhriti",
-}
 
 
 def panchangam_reason(
@@ -343,25 +380,33 @@ def panchangam_reason(
         notes_ta.append(f"திதி {tithi_number} — சாதகமானது")
         notes_en.append(f"Tithi {tithi_number} — favourable")
 
-    yoga_name = _YOGA_NAME.get(yoga_number, str(yoga_number))
+    yoga_name_ta = YOGA_NAME_TA.get(yoga_number, str(yoga_number))
+    yoga_name_en = YOGA_NAME_EN.get(yoga_number, str(yoga_number))
     if yoga_number in _YOGA_CAUTION:
-        notes_ta.append(f"யோகம்: {yoga_name} — முக்கியமான பணிகளை தவிர்க்கவும்")
-        notes_en.append(f"Yoga: {yoga_name} — avoid important tasks")
+        notes_ta.append(f"யோகம்: {yoga_name_ta} — முக்கியமான பணிகளை தவிர்க்கவும்")
+        notes_en.append(f"Yoga: {yoga_name_en} — avoid important tasks")
     else:
-        notes_ta.append(f"யோகம்: {yoga_name} — சாதாரண நாள்")
-        notes_en.append(f"Yoga: {yoga_name} — ordinary day")
+        notes_ta.append(f"யோகம்: {yoga_name_ta} — சாதாரண நாள்")
+        notes_en.append(f"Yoga: {yoga_name_en} — ordinary day")
 
     if karana_name == "VISHTI":
-        notes_ta.append("கரணம் விஷ்டி — தீய கரணம், புது துவக்கங்கள் தவிர்க்கவும்")
-        notes_en.append("Karana Vishti — a traditionally cautious karana; prefer completing existing tasks")
+        notes_ta.append("கரணம் பத்திரை — பாரம்பரியப்படி கவனம் தேவைப்படும் கரணம்; ஏற்கனவே தொடங்கியவற்றை முடிப்பது நல்லது")
+        notes_en.append("Karana Paththirai — a traditionally cautious karana; prefer completing existing tasks")
 
     nak_name = NAKSHATRA_NAME.get(nakshatra_number, _bi(str(nakshatra_number), str(nakshatra_number)))
     notes_ta.append(f"நட்சத்திரம்: {nak_name.ta}")
     notes_en.append(f"Nakshatra: {nak_name.en}")
 
+    # D2/D7: band word tail plus the numeric score (show both, 2026-07-13).
+    if panchangam_score >= 65:
+        tail_ta, tail_en = "பஞ்சாங்கம் ஆதரவாக உள்ளது", "the Panchangam is supportive"
+    elif panchangam_score >= 45:
+        tail_ta, tail_en = "பஞ்சாங்கம் நடுநிலையாக உள்ளது", "the Panchangam is steady"
+    else:
+        tail_ta, tail_en = "பஞ்சாங்கம் கவனம் கோருகிறது", "the Panchangam calls for attention"
     return _bi(
-        " · ".join(notes_ta) + f" (பஞ்சாங்க மதிப்பெண்: {panchangam_score}/100).",
-        " · ".join(notes_en) + f" (Panchangam score: {panchangam_score}/100).",
+        " · ".join(notes_ta) + f" — {tail_ta} (பஞ்சாங்க மதிப்பெண்: {panchangam_score}/100).",
+        " · ".join(notes_en) + f" — {tail_en} (Panchangam score: {panchangam_score}/100).",
     )
 
 
@@ -374,8 +419,13 @@ _TRANSIT_QUALITY: dict[str, dict[int, BiText]] = {
     },
     "SATURN": {
         **{h: _bi("சனி சாதகமான இடத்தில்", "Saturn transit is favourable") for h in (3, 6, 11)},
-        **{h: _bi("சனி கஷ்டமான இடத்தில் — ஜன்ம சனி / அஷ்டம சனி கவனம்",
-                  "Saturn transit is challenging — watch Janma Sani / Ashtama Sani") for h in (1, 4, 8, 12)},
+        # Generic on purpose: houses 1/4/8/12 each map to a *different* Sani
+        # cycle (1=Janma, 4=Ardhashtama, 8=Ashtama), so naming a fixed pair
+        # here mislabelled the other houses (e.g. an Ardhashtama native saw
+        # "watch Janma Sani / Ashtama Sani"). The actual running cycle is
+        # appended authoritatively from _SANI_CYCLE_WARN in gochar_reason, so
+        # this line stays cycle-agnostic — symmetric with Jupiter's above.
+        **{h: _bi("சனி கஷ்டமான இடத்தில்", "Saturn transit is challenging") for h in (1, 4, 8, 12)},
     },
 }
 
@@ -388,13 +438,58 @@ _SANI_CYCLE_WARN: dict[str, BiText] = {
                                 "Ashtama Sani active — exercise caution in major decisions"),
     "KANTAKA_SANI":         _bi("கண்டக சனி — தொழில், உடல்நலம் கவனம்",
                                 "Kantaka Sani — career and health need attention"),
-    "KANDAKA_SANI":         _bi("கண்டக சனி (லக்னத்திலிருந்து) — கட்டமைப்பு மறுசீரமைப்பு காலம்",
-                                "Kantaka Sani (from Lagna) — structural restructuring and responsibility cycle"),
+    "KANDAKA_SANI":         _bi("கண்டக சனி (ஜென்ம ராசியிலிருந்து) — தடைகளையும் முயற்சிக்கான எதிர்ப்பையும் குறிக்கும் காலம்",
+                                "Kantaka Sani (from Janma Rasi) — obstruction and blocked-effort cycle"),
     "EZHARAI_SANI_PHASE_1": _bi("ஏழரை சனி — முதல் கட்டம். மாற்றங்களை ஏற்க தயாராகுங்கள்.",
                                 "Ezhara Sani — phase 1. Prepare to accept transitions."),
+    "EZHARAI_SANI_PHASE_2": _bi("ஏழரை சனி — இரண்டாம் கட்டம் (ஜன்ம சனி). உடல் மற்றும் முயற்சிகளில் கவனம்.",
+                                "Ezhara Sani — phase 2 (Janma Sani). Take care of health and efforts."),
     "EZHARAI_SANI_PHASE_3": _bi("ஏழரை சனி — மூன்றாம் கட்டம். குடும்ப, பொருள் விஷயங்களில் கவனம்.",
                                 "Ezhara Sani — phase 3. Attention to family and financial matters."),
 }
+
+# Same cycles, said as a *backdrop* instead of a today-alert. _SANI_CYCLE_WARN
+# above is written in today register ("sudden difficulties possible") because the
+# tiles it feeds sit under a "Why this prediction?" heading that already scopes
+# them. The woven briefing has no such heading: dropped in beside "a steady day",
+# the warn text reads as a forecast for the next few hours — and since a Sani
+# cycle runs 2½ to 7½ years, the same alarm then leads the briefing every single
+# morning for years. A flag has to name its scope as well as its cause, so these
+# say how long they last and what they ask for over that span.
+#
+# Kept deliberately short. This is the one sentence in the briefing that will
+# read the same tomorrow, so it must not be the longest thing on the card — it
+# is there to scope the day, not to compete with it.
+_SANI_CYCLE_BACKGROUND: dict[str, BiText] = {
+    "JANMA_SANI":           _bi("பின்னணியில் ஜன்ம சனி — மாதங்கள் நீளும் கட்டம், உடல்நலத்தில் கவனம்.",
+                                "In the background, Janma Sani — a months-long phase; mind your health across it."),
+    "ARDHASHTAMA_SANI":     _bi("பின்னணியில் அர்த்தாஷ்டம சனி — ஆண்டுகள் நீளும் கட்டம், இன்றைய நிகழ்வு அல்ல.",
+                                "In the background, Ardhashtama Sani — a years-long phase, not a today event."),
+    "ASHTAMA_SANI":         _bi("பின்னணியில் அஷ்டம சனி — ஆண்டுகள் நீளும் கட்டம், பெரிய முடிவுகளை நிதானமாக.",
+                                "In the background, Ashtama Sani — a years-long phase; take big decisions slowly."),
+    "KANTAKA_SANI":         _bi("பின்னணியில் கண்டக சனி — நீண்ட கட்டம், தொழிலிலும் உடலிலும் பொறுமை தேவை.",
+                                "In the background, Kantaka Sani — a long phase; work and health need patience."),
+    "KANDAKA_SANI":         _bi("பின்னணியில் கண்டக சனி — முயற்சிக்கு எதிர்ப்பு வரும் நீண்ட கட்டம்.",
+                                "In the background, Kantaka Sani — a long phase where effort meets resistance."),
+    "EZHARAI_SANI_PHASE_1": _bi("பின்னணியில் ஏழரை சனி, முதல் கட்டம் — மாற்றங்களுக்குத் தயாராகும் நீண்ட காலம்.",
+                                "In the background, Ezhara Sani phase 1 — a long stretch that asks you to prepare."),
+    "EZHARAI_SANI_PHASE_2": _bi("பின்னணியில் ஏழரை சனி, இரண்டாம் கட்டம் — நீண்ட கட்டம், உடல்நலத்தில் கவனம்.",
+                                "In the background, Ezhara Sani phase 2 — a long phase; mind your health across it."),
+    "EZHARAI_SANI_PHASE_3": _bi("பின்னணியில் ஏழரை சனி, முடிவுக் கட்டம் — குடும்ப, பொருள் விஷயங்களில் கவனம்.",
+                                "In the background, Ezhara Sani phase 3 — the closing stretch; watch family and money."),
+}
+
+
+def sani_cycle_background(sani_cycle_type: str | None) -> BiText | None:
+    """The running Saturn cycle said as a backdrop, for the woven briefing.
+
+    Returns None when no cycle is running, or when the cycle type has no
+    background phrasing — the caller then simply omits the clause rather than
+    falling back to the today-register warn text.
+    """
+    if not sani_cycle_type:
+        return None
+    return _SANI_CYCLE_BACKGROUND.get(sani_cycle_type)
 
 
 def gochar_reason(
@@ -434,9 +529,196 @@ def gochar_reason(
         notes_ta.append("சந்திராஷ்டமம் கோசார தாக்கத்தை பலவீனப்படுத்துகிறது")
         notes_en.append("Chandrashtamam weakens the overall transit support")
 
+    # D2/D7: band word tail plus the numeric score (show both, 2026-07-13).
+    if transit_score >= 65:
+        tail_ta, tail_en = "கோசார ஆதரவு வலுவாக உள்ளது", "transit support is strong"
+    elif transit_score >= 45:
+        tail_ta, tail_en = "கோசார ஆதரவு நடுநிலையாக உள்ளது", "transit support is steady"
+    else:
+        tail_ta, tail_en = "கோசாரம் கவனம் கோருகிறது", "transits call for attention"
     return _bi(
-        " · ".join(notes_ta) + f" (கோசார மதிப்பெண்: {transit_score}/100).",
-        " · ".join(notes_en) + f" (Gochar score: {transit_score}/100).",
+        " · ".join(notes_ta) + f" — {tail_ta} (கோசார மதிப்பெண்: {transit_score}/100).",
+        " · ".join(notes_en) + f" — {tail_en} (Gochar score: {transit_score}/100).",
+    )
+
+
+# ── Spoken leads for the woven briefing (RP-10) ────────────────────────────────
+# panchangam_reason/gochar_reason join chip fragments with " · " — right for the
+# "Why this prediction?" tiles, wrong inside the flowing briefing, where the
+# synthesizer's _first_sentence would inherit the telegraphic register. These
+# builders say the ONE most salient fact as a full sentence; the synthesizer
+# consumes these, the tiles keep the chip variants.
+
+def panchangam_spoken(
+    tithi_number: int,
+    yoga_number: int,
+    karana_name: str,
+    panchangam_score: int,
+    nakshatra_number: int,
+) -> BiText:
+    yoga_ta = YOGA_NAME_TA.get(yoga_number, str(yoga_number))
+    yoga_en = YOGA_NAME_EN.get(yoga_number, str(yoga_number))
+    if tithi_number in _TITHI_CAUTION:
+        return _bi(
+            f"பஞ்சாங்கப்படி இன்று {tithi_number}ஆம் திதி ரிக்த திதி என்பதால் புதிய தொடக்கங்களுக்கு சாதகம் இல்லை.",
+            f"By the Panchangam, today's tithi {tithi_number} is a Rikta tithi, so it doesn't favour new beginnings.",
+        )
+    if yoga_number in _YOGA_CAUTION:
+        return _bi(
+            f"இன்றைய {yoga_ta} யோகம் சற்று நிதானம் கேட்கிறது — முக்கியமான பணிகளை சிறந்த நேரத்தில் செய்யுங்கள்.",
+            f"Today's {yoga_en} yoga asks for a lighter touch — keep key tasks to the better windows.",
+        )
+    if karana_name == "VISHTI":
+        return _bi(
+            "இன்று பத்திரை கரணம் என்பதால் புதிய தொடக்கங்களை விட, நடப்பதை முடிப்பது நல்லது.",
+            "With Paththirai karana today, finishing what's underway beats starting something new.",
+        )
+    nak = NAKSHATRA_NAME.get(nakshatra_number)
+    if panchangam_score >= 65 and nak is not None:
+        return _bi(
+            f"இன்றைய பஞ்சாங்கம் ({nak.ta} நட்சத்திரம், {tithi_number}ஆம் திதி) நல்ல ஆதரவு தருகிறது.",
+            f"Today's Panchangam ({nak.en} nakshatra, tithi {tithi_number}) lends good support.",
+        )
+    return _bi(
+        "இன்றைய பஞ்சாங்கம் பெரிய தடையும் இல்லாமல், தனிச்சிறப்பும் இல்லாமல் நடுநிலையாக உள்ளது.",
+        "Today's Panchangam sits even — no major obstacle, no special lift.",
+    )
+
+
+def gochar_spoken(
+    jupiter_house: int,
+    saturn_house: int,
+    sani_cycle_type: str | None,
+    sani_cycle_active: bool,
+    transit_score: int,
+) -> BiText:
+    if sani_cycle_active and sani_cycle_type:
+        warn = _SANI_CYCLE_WARN.get(sani_cycle_type)
+        if warn:
+            return warn
+    # No house numbers here. "Jupiter in house 5 … Saturn in house 6" is the same
+    # coordinates-without-a-read that made the Moon line useless to a normal
+    # reader — the number is only meaningful to someone who already knows what
+    # the 5th from a Moon sign does. The classification those numbers feed is
+    # what the reader actually needs, so the classification is what gets said;
+    # `gochar_reason`'s tile keeps the houses for the astrologer-facing view.
+    jup_ta = "ஆதரவாக" if jupiter_house in (2, 5, 7, 9, 11) else ("சற்று கடினமாக" if jupiter_house in (4, 8, 12) else "நடுநிலையாக")
+    jup_en = ("is lending support" if jupiter_house in (2, 5, 7, 9, 11)
+              else "is passing through a harder spot" if jupiter_house in (4, 8, 12)
+              else "is neither helping nor hindering")
+    sat_ta = "சாதகமாக" if saturn_house in (3, 6, 11) else ("அழுத்தமாக" if saturn_house in (1, 4, 8, 12) else "அமைதியாக")
+    sat_en = ("is sitting easy" if saturn_house in (3, 6, 11)
+              else "is pressing" if saturn_house in (1, 4, 8, 12)
+              else "is quiet")
+    if transit_score >= 65:
+        tail_ta, tail_en = "மொத்தக் கோசார ஆதரவு நல்லது", "the wider currents run with you"
+    elif transit_score >= 45:
+        tail_ta, tail_en = "மொத்தத்தில் நடுநிலையான ஓட்டம்", "overall an even current"
+    else:
+        tail_ta, tail_en = "நிதானமான நகர்வே இன்று நல்லது", "a measured pace serves best today"
+    return _bi(
+        f"கோசாரத்தில் குரு {jup_ta}வும், சனி {sat_ta}வும் உள்ளனர் — {tail_ta}.",
+        f"Right now Guru {jup_en} and Sani {sat_en} — {tail_en}.",
+    )
+
+
+def dasha_spoken(maha_lord: str, dasha_score: int) -> BiText:
+    """The dasha's day-lead for the woven briefing — the verdict first.
+
+    `dasha_support_reason`'s moderate and reduced branches both open with a bare
+    "You are currently in the Saturn dasa." and put the actual judgement in their
+    third sentence. Trimmed to its lead clause, the reduced branch therefore
+    reached the briefing saying nothing cautionary at all — which mattered the
+    moment the synthesizer started promoting a lone caution into the second slot
+    to keep a strong day from reading uniformly rosy: it promoted the signal and
+    then printed a sentence with the warning cut off.
+
+    No numeric score here, matching the other spoken leads; the tile keeps it.
+    """
+    maha = _DASHA_CHARACTER.get(maha_lord, _bi(maha_lord, maha_lord))
+    name_ta = maha.ta.split(" — ")[0]
+    name_en = maha.en.split(" — ")[0]
+    quality_ta = maha.ta.split(" — ")[1] if " — " in maha.ta else "நல்ல வளர்ச்சி"
+    quality_en = _as_prose_list(maha.en.split(" — ")[1] if " — " in maha.en else "growth")
+
+    if dasha_score >= 65:
+        return _bi(
+            f"தசை ஆதரவு தற்போது வலுவாக உள்ளது — {name_ta} {quality_ta} "
+            f"சார்ந்தவற்றை முன்னிலைப்படுத்துகிறது.",
+            f"Your dasha is firmly behind you right now — the {name_en} is bringing "
+            f"{quality_en} to the fore.",
+        )
+    if dasha_score >= 50:
+        return _bi(
+            f"தசை ஆதரவு தற்போது மிதமானது — {name_ta}யில் அவசரப்படாத தொடர் முயற்சியே பலன் தரும்.",
+            f"Dasha support is moderate right now — under the {name_en}, steady effort "
+            f"carries further than a push.",
+        )
+    return _bi(
+        "தசை ஆதரவு தற்போது குறைவாக உள்ளது — புதிய பெரிய முயற்சிகளை விட, "
+        "இருப்பதை நிலைப்படுத்தும் காலம் இது.",
+        "Dasha support is running low right now — this is a stretch for consolidating "
+        "what you have rather than launching something new.",
+    )
+
+
+def moon_spoken(
+    current_nakshatra: int,
+    janma_nakshatra: int,
+    chandrashtama: bool,
+    moon_score: int,
+) -> BiText:
+    """The Moon's day-lead for the woven briefing — effect first, no coordinates.
+
+    ``moon_transit_reason`` opens with the position ("Moon is in Anusham,
+    Viruchigam, house 12 from birth sign.") and only *then* says what it means.
+    That order is right for the "Why this prediction?" tile, where an astrologer
+    wants the working shown — but the synthesizer trims each fragment to its lead
+    clause, so inside the briefing the position survives and the meaning is the
+    part that gets cut. The reader was left with three coordinates and no read.
+
+    So this builder says the read as one sentence and prints no rasi, no house
+    number, and no star name; the tile keeps all three. The nakshatra *quality*
+    still drives the wording, which is what makes this line change day to day —
+    the Moon crosses a new star roughly every day.
+    """
+    quality = _NAK_QUALITY.get(
+        current_nakshatra, _bi("மிதமான மன ஓட்டம்", "an even emotional current")
+    )
+
+    if chandrashtama:
+        return _bi(
+            "இன்று உங்களுக்குச் சந்திராஷ்டமம் — மனம் வழக்கத்தை விட வேகமாகச் சோர்வடையும், "
+            "எனவே திரும்பப் பெற முடியாத முடிவுகளைத் தள்ளிப் போடுங்கள்.",
+            "Today is a Chandrashtama day for you — the mind tires faster than usual, "
+            "so put off anything you can't take back.",
+        )
+
+    if current_nakshatra == janma_nakshatra:
+        return _bi(
+            "இன்று சந்திரன் உங்கள் ஜென்ம நட்சத்திரத்திற்குத் திரும்பியுள்ளது — உணர்வுகள் "
+            "மேற்பரப்பில் நிற்கும், உங்களுக்கு நீங்களே சற்று இடம் கொடுங்கள்.",
+            "The Moon is back on your birth star today — feelings sit close to the "
+            "surface, so give yourself a little more room than usual.",
+        )
+
+    if moon_score >= 65:
+        return _bi(
+            f"மனநிலை இன்று உறுதியாக இருக்கும் — {quality.ta} சார்ந்த செயல்களுக்கு நாள் சாதகம்.",
+            f"Your mood should hold steady today — it's a day that favours {quality.en}.",
+        )
+
+    if moon_score <= 42:
+        return _bi(
+            f"மனநிலை இன்று சற்றுத் தளர்வாக இருக்கலாம் — {quality.ta} பக்கம் நாள் சாய்கிறது; "
+            f"அவசரப்படாமல் தொடங்குங்கள்.",
+            f"Your mood may run a little flat today — the day leans toward {quality.en}, "
+            f"so ease into things rather than pushing.",
+        )
+
+    return _bi(
+        f"உணர்வு ரீதியாக இன்று சாதாரண நாள் — {quality.ta} பக்கம் லேசாகச் சாய்கிறது.",
+        f"Emotionally an ordinary day — it tilts gently toward {quality.en}.",
     )
 
 
@@ -545,6 +827,8 @@ def remedy_suggestion(
     chandrashtama: bool,
     score: int,
     afflicted_planets: list[str] | None = None,
+    weekday_lord: str | None = None,
+    antar_lord: str | None = None,
 ) -> BiText:
     if afflicted_planets:
         primary = afflicted_planets[0]
@@ -560,9 +844,17 @@ def remedy_suggestion(
             return primary_remedy
 
     if score >= 70:
-        planet_remedy = _PLANET_REMEDY.get(maha_lord)
-        if planet_remedy:
-            return planet_remedy
+        # Prefer the remedy tied to *today* over the mahadasha lord — the maha
+        # lord is constant for years, so leading with it made this card read
+        # as static on any calm stretch. weekday_lord rotates every day and
+        # each _PLANET_REMEDY entry is already written for its own weekday
+        # (e.g. Sun's text says "on Sundays"), so it stays thematically
+        # correct. antar_lord (bhukti, changes over weeks/months) is the next
+        # most personalized signal before falling back to maha_lord.
+        for candidate in (weekday_lord, antar_lord, maha_lord):
+            planet_remedy = _PLANET_REMEDY.get(candidate) if candidate else None
+            if planet_remedy:
+                return planet_remedy
         return _bi("இன்று நல்ல நாள். வழக்கமான வழிபாட்டை தொடரவும்.",
                    "Today is a good day. Continue your regular worship practice.")
 
@@ -617,7 +909,6 @@ _SUMMARY_TEMPLATES: dict[str, tuple[str, str]] = {
     ),
 }
 
-
 def daily_summary(
     score: int,
     maha_lord: str,
@@ -631,6 +922,8 @@ def daily_summary(
     current_nakshatra: int | None = None,
 ) -> BiText:
     band = _band(score)
+    # D2/D7: the band word carries the judgement; the numeric score is kept
+    # alongside it (show both, 2026-07-13).
     ta_tmpl, en_tmpl = _SUMMARY_TEMPLATES[band]
 
     maha_char = _DASHA_CHARACTER.get(maha_lord, _bi(maha_lord, maha_lord))
@@ -644,7 +937,7 @@ def daily_summary(
         nak = NAKSHATRA_NAME.get(current_nakshatra)
         quality = _NAK_QUALITY.get(current_nakshatra)
         if nak and quality:
-            ta += f" சந்திரன் {nak.ta} வழியாக {quality.ta} நிறத்தை சேர்க்கிறது."
+            ta += f" சந்திரன் {nak.ta} வழியாக {quality.ta} சாயலைச் சேர்க்கிறது."
             en += f" Moon through {nak.en} adds a tone of {quality.en}."
 
     if jupiter_house is not None and saturn_house is not None:
@@ -661,15 +954,11 @@ def daily_summary(
             ta += f" {warn.ta}."
             en += f" {warn.en}."
 
-    if best_window_label and band in ("STRONG_SUPPORT", "GOOD"):
-        best_window_display = (
-            _format_time_range(*best_window_label.split("-", 1))
-            if "-" in best_window_label
-            else _format_clock_label(best_window_label)
-        )
-        ta += f" சிறந்த நேரம்: {best_window_display}."
-        en += f" Best window: {best_window_display}."
-
+    # No "Best window: HH:MM" suffix here either — same reason as action_suggestion.
+    # The live best-window chip is the single, self-updating source of that time;
+    # a static copy in this paragraph drifted out of sync with it as the day
+    # advanced and read as a competing window. best_window_label is retained in
+    # the signature for callers/back-compat but no longer printed.
     return _bi(ta, en)
 
 
@@ -686,11 +975,16 @@ def action_suggestion(
     planet_ta = PLANET_NAME.get(maha_lord, _bi(maha_lord, maha_lord)).ta
 
     if best_window_start and band in ("STRONG_SUPPORT", "GOOD", "BALANCED"):
-        best_window_display = _format_time_range(best_window_start, best_window_end)
+        # Deliberately no clock time here. The window's exact time is shown once,
+        # live (with a countdown), by the UI's own best-window chip — which on
+        # "today" advances to the next upcoming slot as the day passes. A static
+        # time baked into this sentence cannot track that, so it drifted out of
+        # sync (chip said 3:35pm, this said 8:16am) and read as a third,
+        # contradicting window. "Your best window" points at the chip instead.
         return _bi(
-            f"சிறந்த நேரம் {best_window_display}-ல் முக்கிய பணிகளை தொடங்குங்கள். "
+            f"இன்று உங்கள் சிறந்த நேரத்தில் முக்கிய பணிகளை தொடங்குங்கள். "
             f"{planet_ta} தசையில் தொடர்ச்சியான முயற்சி நல்ல பலன் தரும்.",
-            f"Begin your most important task during the best window {best_window_display}. "
+            f"Begin your most important task during your best window today. "
             f"Consistent effort under {planet_en} dasa yields good results.",
         )
 
@@ -927,13 +1221,34 @@ def build_score_reasons(
         ),
         remedy=remedy_suggestion(
             maha_lord, sani_cycle_type, sani_cycle_active, chandrashtama, score, afflicted_planets=afflicted_planets,
+            weekday_lord=weekday_lord, antar_lord=antar_lord,
         ),
     )
 
 
 # ── Tone validator ──────────────────────────────────────────────────────────
+#
+# Two classes, kept apart because they fail for different reasons and a future
+# editor must not "tidy" them into one list.
+#
+# TONE is the original set: fatalistic vocabulary. A hit here means the copy is
+# needlessly bleak and should be rewritten.
+#
+# MORTALITY is EC-A11/EC-RULING-06 class: assertions that a spouse (or the
+# native) will die. A hit here is *not* a tone problem to be softened — the
+# ruling is excise, don't reword, and no conversion-operator form of these is
+# acceptable. Added 2026-08-17 after "traditionally associated with widowhood
+# risk" shipped to anonymous visitors on the public porutham calculator for
+# months: the single-keyword list caught "danger" and "crisis" while sailing
+# past "widowhood", because nobody had thought of that particular word.
+#
+# The lesson encoded here is that a hand-listed keyword set only blocks what its
+# author happened to imagine. Hence: enumerate the *class* (every inflection,
+# the Sanskrit term, and the Tamil equivalents), and sweep templates and i18n
+# strings in CI rather than trusting runtime-only checks — runtime never sees a
+# template that no test exercised, which is exactly how this one survived.
 
-_BANNED_PHRASES: list[str] = [
+_BANNED_TONE_PHRASES: tuple[str, ...] = (
     "bad day",
     "danger",
     "will fail",
@@ -942,7 +1257,43 @@ _BANNED_PHRASES: list[str] = [
     "crisis",
     "hardship",
     "inauspicious",
-]
+)
+
+_BANNED_MORTALITY_PHRASES: tuple[str, ...] = (
+    # English. "widow" is a SUBSTRING check, so it already subsumes widower,
+    # widowhood and widowed — listing the inflections separately only made every
+    # hit report itself two or three times. One entry, deliberately.
+    "widow",
+    # Sanskrit/transliterated, across the spellings that actually appear.
+    "vaidhavya",
+    "vaidavya",
+    "vaithavya",
+    # The event assertions themselves, however phrased.
+    "spouse death",
+    "spouse loss",
+    "death of the husband",
+    "death of the wife",
+    "death of the spouse",
+    "husband's death",
+    "wife's death",
+    "loss of husband",
+    "loss of wife",
+    "early death",
+    "premature death",
+    # Tamil. வைதவ்யம் is the direct equivalent; கைம்மை/விதவை are the everyday
+    # words; மாங்கல்ய பங்கம் is the euphemism that means the same event and is
+    # exactly the phrasing a well-meaning rewrite would reach for.
+    "வைதவ்ய",
+    "விதவை",
+    "கைம்மை",
+    "மாங்கல்ய பங்கம்",
+    "மாங்கல்யப் பங்கம்",
+    "கணவன் இறப்பு",
+    "மனைவி இறப்பு",
+)
+
+# Public: the union, for callers that just want "is this string admissible".
+_BANNED_PHRASES: tuple[str, ...] = _BANNED_TONE_PHRASES + _BANNED_MORTALITY_PHRASES
 
 
 # ── Shadow Work Prompts — P3-A ────────────────────────────────────────────────
@@ -961,7 +1312,7 @@ _SHADOW_PROMPTS_8TH: dict[str, tuple[tuple[str, str], ...]] = {
     "MARS": (
         ("என் கோபம் அல்லது ஆக்ரோஷம் உண்மையில் என்ன பாதுகாக்கிறது?",
          "What is my anger or frustration really protecting?"),
-        ("நான் எங்கு ஆற்றலை மிகவும் கடுமையாக உட்புகுத்துகிறேன்?",
+        ("நான் எங்கு அதிக அழுத்தம் கொடுத்து முயற்சிக்கிறேன்? சற்று தளர்த்தினால் எப்படி இருக்கும்?",
          "Where am I pushing too hard, and what would softening feel like?"),
     ),
     "RAHU": (
@@ -971,7 +1322,7 @@ _SHADOW_PROMPTS_8TH: dict[str, tuple[tuple[str, str], ...]] = {
          "What part of myself am I hiding, and am I ready to acknowledge it?"),
     ),
     "DEFAULT": (
-        ("என்னிடம் உள்ள இருண்ட அல்லது ஒளிவிலக்கப்பட்ட பகுதி என்ன?",
+        ("எனக்குள் மறைந்திருக்கும், நான் ஏற்றுக்கொள்ள வேண்டிய பகுதி எது?",
          "What hidden or shadowed part of me needs acknowledgement today?"),
         ("நான் அடிக்கடி தவிர்க்கும் உணர்வு எது?",
          "Which emotion do I most often avoid, and what would it say if I listened?"),
@@ -982,11 +1333,11 @@ _SHADOW_PROMPTS_12TH: dict[str, tuple[tuple[str, str], ...]] = {
     "JUPITER": (
         ("என்னில் ஆன்மீக தேடல் எந்த திசையில் உள்ளது?",
          "In which direction is my spiritual longing pointing?"),
-        ("நான் கொடுத்தது மற்றும் தியாகிப்பது, அது என்னை எப்படி உணர வைக்கிறது?",
+        ("நான் விட்டுக்கொடுத்தது அல்லது தியாகம் செய்தது எது? அதை நினைக்கும்போது என் மனம் என்ன சொல்கிறது?",
          "What have I given up or sacrificed, and how does that feel in my body?"),
     ),
     "VENUS": (
-        ("நான் எந்த உறவில் அல்லது அனுபவத்தில் தன்னை இழந்தேன்?",
+        ("நான் எந்த உறவில் அல்லது அனுபவத்தில் என்னையே இழந்தேன்? இப்போது என்ன மிச்சம் இருக்கிறது?",
          "In which relationship or experience have I lost myself, and what remains?"),
         ("என்னில் ஒளிந்திருக்கும் ஆசை என்ன?",
          "What desire within me is hiding in the shadows?"),
@@ -1009,7 +1360,7 @@ _SHADOW_PROMPTS_TAMASIC = (
 
 def generate_shadow_prompts(
     lagna_rasi: int,
-    planets: "list[PlanetPosition]",
+    planets: list[PlanetPosition],
     moon_nakshatra: str,
 ) -> list[BiText]:
     """Generate 3 shadow-work journal prompts based on 8th lord, 12th lord, and Moon nakshatra."""
@@ -1050,6 +1401,227 @@ def tone_validator(text: str) -> list[str]:
 
     Returns an empty list when text is compliant.
     Used in tests to verify non-fatalistic language across all narrative output.
+
+    Covers both banned classes. Use `mortality_validator` when you need to know
+    specifically that an EC-A11 spouse-death assertion is present, because the
+    two classes call for different responses: a tone hit gets rewritten, a
+    mortality hit gets deleted.
     """
     lower = text.lower()
     return [phrase for phrase in _BANNED_PHRASES if phrase in lower]
+
+
+def mortality_validator(text: str) -> list[str]:
+    """Return only the EC-A11-class spouse/native death assertions in `text`.
+
+    Separate from `tone_validator` because the remedy differs. A hit here is
+    never fixed by softening the sentence — EC-RULING-06 is explicit that this
+    class gets no conversion-operator form. Delete the claim; keep the finding
+    as a reason code.
+    """
+    lower = text.lower()
+    return [phrase for phrase in _BANNED_MORTALITY_PHRASES if phrase in lower]
+
+
+# ── Band voice (Phase 2, D2/D3) ────────────────────────────────────────────────
+# One confidence vocabulary for every surface. SILENT is the honest "the chart
+# is quiet" voice; BLOCKED must read as "not indicated / redirect", never doom
+# (D6 — tone_validator applies to these strings too).
+
+BAND_PHRASE: dict[str, BiText] = {
+    "STRONG": _bi("வலுவான ஆதரவு", "strongly supported"),
+    "LIKELY": _bi("நல்ல ஆதரவு", "well supported"),
+    "MIXED": _bi("கலவையான நிலை", "mixed"),
+    "WEAK": _bi("கவனம் தேவை", "needs attention"),
+    "BLOCKED": _bi("இப்போதைக்கு வேறு பாதை நல்லது", "not indicated — a redirect is wiser"),
+    "SILENT": _bi("ஜாதகம் அமைதியாக உள்ளது", "the chart is quiet"),
+}
+
+SILENT_VOICE = _bi(
+    "இந்த கேள்விக்கு ஜாதகம் அமைதியாக உள்ளது — உறுதியான கணிப்பு தர போதிய சமிக்ஞை இல்லை.",
+    "The chart is quiet on this question — there isn't enough signal for a confident call.",
+)
+
+BLOCKED_VOICE = _bi(
+    "இந்த விஷயத்தில் ஜாதகம் வலுவான வாக்கு தரவில்லை — ஜாதகம் ஆதரிக்கும் பகுதிகளில் கவனம் செலுத்துவது நல்லது.",
+    "The chart does not strongly promise this — redirecting focus to areas the chart does support is wiser.",
+)
+
+
+def band_phrase(band: str) -> BiText:
+    """Bilingual phrase for a reasoning Band value (accepts the str value)."""
+    return BAND_PHRASE.get(band, BAND_PHRASE["MIXED"])
+
+
+# X/100, X /100, or "மதிப்பெண்: X" — false precision the D2 doctrine bans.
+_PRECISION_PATTERNS = (
+    re.compile(r"\d+\s*/\s*100"),
+    re.compile(r"மதிப்பெண்\s*[:：]\s*\d+"),
+    re.compile(r"\bscore\s*[:：]?\s*\d+", re.IGNORECASE),
+    re.compile(r"\bindex\s+\d+", re.IGNORECASE),
+)
+
+
+def precision_validator(text: str) -> list[str]:
+    """Return numeric-precision leaks found in `text`.
+
+    Companion to tone_validator; used in tests to confirm the epistemic-state
+    voices (SILENT/BLOCKED/reading) stay band-only even though score-bearing
+    narrative strings elsewhere deliberately show both a band word and the
+    numeric score (product decision 2026-07-13).
+    """
+    return [m.group(0) for pattern in _PRECISION_PATTERNS for m in pattern.finditer(text)]
+
+
+# ── Reading voice (Phase 3, D4) ────────────────────────────────────────────────
+# Contradiction readings get their own honest templates instead of the
+# band-only branch. "Promised but not now" (wait) versus "active but not
+# this" (redirect) is the discrimination that separates an expert reading
+# from an averaged one. Tone rules (D6) apply to every string here.
+
+READING_VOICE: dict[str, BiText] = {
+    "PROMISED_AND_TIMED": _bi(
+        "ஜாதக வாக்கும் கால ஆதரவும் இணைந்துள்ளன — முன்னேற ஏற்ற தருணம்.",
+        "The chart's promise and the timing are aligned — a supportive moment to act.",
+    ),
+    "PROMISED_NOT_NOW": _bi(
+        "இது உங்கள் ஜாதகத்தில் வாக்களிக்கப்பட்டுள்ளது; ஆனால் தற்போதைய காலம் இன்னும் செயலூக்கம் பெறவில்லை. பொறுமையாக காத்திருப்பது பலன் தரும்.",
+        "This is promised in your chart, but the timing isn't active yet. Waiting patiently will serve you.",
+    ),
+    "ACTIVE_BUT_UNPROMISED": _bi(
+        "இது ஒரு செயலூக்கமான காலம்; ஆனால் ஜாதகம் இந்த ஆற்றலை வேறு திசையில் காட்டுகிறது.",
+        "This is an active period, but your chart points the energy in a different direction.",
+    ),
+    # §15.2 Option B (specialist decision, 2026-07-13): WEAK gate + active
+    # timing is a genuinely different epistemic state from SILENT/BLOCKED's
+    # full redirect — one of the two promise conditions did hold. Draft
+    # text from the plan's own Option-B proposal.
+    "PARTIALLY_PROMISED": _bi(
+        "இது ஒரு செயலூக்கமான காலம்; ஜாதகம் ஓரளவு ஆதரவு தருகிறது, ஆனால் முழுமையான உறுதி இல்லை.",
+        "This is an active period, and your chart offers partial support — though not a full promise.",
+    ),
+    "NOT_PROMISED": BLOCKED_VOICE,
+    "MIXED": _bi(
+        "சமிக்ஞைகள் கலந்த நிலையில் உள்ளன — சிறிய, மீளக்கூடிய அடிகளுடன் முன்னேறலாம்.",
+        "The signals are mixed — proceed with small, reversible steps.",
+    ),
+    "SILENT": SILENT_VOICE,
+}
+
+
+def reading_phrase(reading: str) -> BiText:
+    """Bilingual voice for a contradiction Reading (accepts the str value)."""
+    return READING_VOICE.get(reading, READING_VOICE["MIXED"])
+
+
+def promised_not_now_voice(window_opens: date | None) -> BiText:
+    """PROMISED_NOT_NOW, with the concrete next-window date when one is known."""
+    base = READING_VOICE["PROMISED_NOT_NOW"]
+    if window_opens is None:
+        return base
+    return _bi(
+        f"{base.ta} {window_opens.strftime('%d-%m-%Y')} அளவில் காலச் சாளரம் திறக்கத் தொடங்கும்.",
+        f"{base.en} The window begins to open around {window_opens.strftime('%d %B %Y')}.",
+    )
+
+
+def active_but_unpromised_voice(dominant_area: BiText | None) -> BiText:
+    """ACTIVE_BUT_UNPROMISED, naming where the chart points instead when known.
+
+    ``dominant_area`` is any bilingual label (``.ta``/``.en`` attributes).
+    """
+    if dominant_area is None:
+        return READING_VOICE["ACTIVE_BUT_UNPROMISED"]
+    return _bi(
+        f"இது ஒரு செயலூக்கமான காலம்; ஆனால் ஜாதகம் இந்த ஆற்றலை {dominant_area.ta} பக்கம் காட்டுகிறது.",
+        f"This is an active period, but your chart points the energy toward {dominant_area.en.lower()} instead.",
+    )
+
+
+# ── Chart signature voice (Phase 5, dominant-theme framing) ────────────────────
+# One framing sentence per dominant-graha motif (app.reasoning.chart_signature).
+# "This is a Saturn chart" is the frame every other reading sits inside for
+# that user — tone rules (D6) apply here exactly as everywhere else.
+
+SIGNATURE_VOICE: dict[str, BiText] = {
+    "authority_and_visibility": _bi(
+        "உங்கள் ஜாதகம் சூரியனை மையமாகக் கொண்டுள்ளது — அதிகாரம், தன்னம்பிக்கை மற்றும் அங்கீகாரம் "
+        "வழியாக முன்னேற்றம் வரும்.",
+        "Your chart revolves around the Sun — progress comes through authority, self-confidence, "
+        "and visibility.",
+    ),
+    "adaptability_and_care": _bi(
+        "உங்கள் ஜாதகம் சந்திரனை மையமாகக் கொண்டுள்ளது — மனநிலை உறுதி, பராமரிப்பு மற்றும் நெருங்கிய "
+        "உறவுகள் வழியாக பலன் கிடைக்கும்.",
+        "Your chart revolves around the Moon — outcomes flow through emotional steadiness, care, "
+        "and close relationships.",
+    ),
+    "courage_and_initiative": _bi(
+        "உங்கள் ஜாதகம் செவ்வாயை மையமாகக் கொண்டுள்ளது — தைரியம், முன்முயற்சி மற்றும் உறுதியான "
+        "செயல்பாடு வழியாக முன்னேற்றம் வரும்.",
+        "Your chart revolves around Mars — progress comes through courage, initiative, and "
+        "decisive action.",
+    ),
+    "intellect_and_communication": _bi(
+        "உங்கள் ஜாதகம் புதனை மையமாகக் கொண்டுள்ளது — அறிவு, தொடர்பு மற்றும் தகவமைப்புத் திறன் "
+        "வழியாக பலன் கிடைக்கும்.",
+        "Your chart revolves around Mercury — outcomes flow through intellect, communication, "
+        "and adaptability.",
+    ),
+    "wisdom_and_growth": _bi(
+        "உங்கள் ஜாதகம் குருவை மையமாகக் கொண்டுள்ளது — ஞானம், நெறிமுறை மற்றும் நிலையான வளர்ச்சி "
+        "வழியாக முன்னேற்றம் வரும்.",
+        "Your chart revolves around Jupiter — progress comes through wisdom, ethics, and steady "
+        "growth.",
+    ),
+    "harmony_and_relationship": _bi(
+        "உங்கள் ஜாதகம் சுக்கிரனை மையமாகக் கொண்டுள்ளது — உறவுகள், நல்லிணக்கம் மற்றும் நளினம் "
+        "வழியாக பலன் கிடைக்கும்.",
+        "Your chart revolves around Venus — outcomes flow through relationships, harmony, and "
+        "refinement.",
+    ),
+    "delay_then_reward": _bi(
+        "உங்கள் ஜாதகம் சனியை மையமாகக் கொண்டுள்ளது — தாமதத்திற்குப் பின் ஒழுக்கத்துடன் அர்த்தமுள்ள "
+        "பலன் கிடைக்கும்.",
+        "Your chart revolves around Saturn — meaningful gains arrive after delay and discipline.",
+    ),
+    "ambition_and_reinvention": _bi(
+        "உங்கள் ஜாதகம் ராகுவை மையமாகக் கொண்டுள்ளது — லட்சியம், புதிய பாதைகள் மற்றும் "
+        "மறுகண்டுபிடிப்பு வழியாக முன்னேற்றம் வரும்.",
+        "Your chart revolves around Rahu — progress comes through ambition, unconventional "
+        "paths, and reinvention.",
+    ),
+    "detachment_and_depth": _bi(
+        "உங்கள் ஜாதகம் கேதுவை மையமாகக் கொண்டுள்ளது — பற்றின்மை, உள்நோக்கு கவனம் மற்றும் ஆழமான "
+        "நிபுணத்துவம் வழியாக பலன் கிடைக்கும்.",
+        "Your chart revolves around Ketu — outcomes flow through detachment, inner focus, and "
+        "specialised depth.",
+    ),
+}
+
+_DEFAULT_SIGNATURE_MOTIF = "wisdom_and_growth"
+
+
+def signature_framing(motif: str) -> BiText:
+    """Bilingual framing sentence for a chart-signature motif (Phase 5)."""
+    return SIGNATURE_VOICE.get(motif, SIGNATURE_VOICE[_DEFAULT_SIGNATURE_MOTIF])
+
+
+def render_causal_chain(steps: Sequence[_Bilingual], conclusion: _Bilingual) -> BiText:
+    """Join ordered evidence into a "because ... -> therefore ..." chain (Phase 5).
+
+    Root-cause chains (plan §Phase 5) replace a flat, parallel factor list
+    with an ordered "why" for low-confidence readings. ``steps``/``conclusion``
+    accept any bilingual object exposing ``.ta``/``.en`` (BiText, or the
+    LifeAreaText/AstroFactor equivalents callers already build) — this stays
+    a formatting helper, not a new bilingual type.
+    """
+    if not steps:
+        return _bi(conclusion.ta, conclusion.en)
+    # Spoken prose, not an arrow chain (RP-09) — arrow glyphs read machine-printed.
+    ta_chain = "; ".join(step.ta for step in steps)
+    en_chain = "; ".join(step.en for step in steps)
+    return _bi(
+        f"காரணம்: {ta_chain}. எனவே: {conclusion.ta}",
+        f"Because {en_chain} — therefore {conclusion.en}",
+    )

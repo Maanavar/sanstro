@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import time
-
 from pydantic import BaseModel, ConfigDict, Field
 
 

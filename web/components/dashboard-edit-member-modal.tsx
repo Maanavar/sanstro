@@ -4,6 +4,8 @@ import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
 import { PlaceCombobox } from "./place-combobox";
+import { usePlaceCoordinatesConfirm, PlaceMatchedBadge, PlaceCoordinatesFooter } from "./place-coordinates-field";
+import { ModalShell } from "./modal-shell";
 
 type Relationship = "self" | "spouse" | "child" | "parent" | "sibling" | "grandparent" | "other";
 
@@ -40,16 +42,16 @@ interface EditMemberModalProps {
 
 /* ── Warm design tokens ── */
 const W = {
-  ink:      "#1A1612",
-  inkMid:   "#3D352B",
-  muted:    "#7A6F5E",
+  ink:      "var(--deepdive-ink, var(--panel-earth-dark))",
+  inkMid:   "var(--deepdive-ink-mid, var(--panel-earth))",
+  muted:    "var(--color-faint)",
   mutedLt:  "var(--color-faint)",
-  border:   "#D4C8AE",
-  borderLt: "#E4DBC8",
-  surface:  "#FAF5EA",
-  surfaceMd:"#F4EEE2",
-  card:     "#FFFFFF",
-  terracota:"#B85A2C",
+  border:   "var(--deepdive-border, var(--panel-tan))",
+  borderLt: "var(--deepdive-border-light, var(--panel-tan-light))",
+  surface:  "var(--deepdive-surface, var(--panel-cream))",
+  surfaceMd:"var(--deepdive-surface-strong, var(--panel-hover))",
+  card:     "var(--chart-cell-default)",
+  terracota:"var(--deepdive-accent, var(--panel-brand))",
 } as const;
 
 function WField({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
@@ -93,18 +95,12 @@ function WSelect(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
 }
 
 export function EditMemberModal({ lang, editMember, busySaving, onClose, onChange, onSave }: EditMemberModalProps) {
+  const coordsConfirm = usePlaceCoordinatesConfirm(editMember.birthPlace, editMember.birthLatitude, editMember.birthLongitude);
   return (
-    <div
-      style={{
-        position: "fixed", inset: 0, zIndex: 200,
-        background: "rgba(26,22,18,0.55)",
-        backdropFilter: "blur(4px)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "16px", overflowY: "auto",
-      }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div style={{
+    <ModalShell
+      label={lang === "ta" ? "உறுப்பினர் திருத்து" : "Edit member"}
+      onClose={onClose}
+      panelStyle={{
         width: "min(580px, 100%)",
         background: W.surface,
         border: `1.5px solid ${W.borderLt}`,
@@ -112,7 +108,8 @@ export function EditMemberModal({ lang, editMember, busySaving, onClose, onChang
         padding: "28px",
         display: "flex", flexDirection: "column", gap: "20px",
         boxShadow: "0 24px 64px rgba(26,22,18,0.18)",
-      }}>
+      }}
+    >
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
@@ -168,25 +165,40 @@ export function EditMemberModal({ lang, editMember, busySaving, onClose, onChang
           </WField>
           <WField label={t("field_birth_place", lang)}>
             <PlaceCombobox value={editMember.birthPlace}
-              onChange={(city, raw) => onChange({
-                ...editMember, birthPlace: raw,
-                ...(city ? { birthLatitude: city.lat, birthLongitude: city.lng, birthTimezone: city.timezone } : {}),
-              })} />
+              lang={lang}
+              onChange={(city, raw) => {
+                onChange({
+                  ...editMember, birthPlace: raw,
+                  ...(city ? { birthLatitude: city.lat, birthLongitude: city.lng, birthTimezone: city.timezone } : {}),
+                });
+                coordsConfirm.setMatched(city !== null);
+              }} />
           </WField>
           <WField label={t("field_timezone", lang)}>
             <WInput value={editMember.birthTimezone}
               onChange={(e) => onChange({ ...editMember, birthTimezone: e.target.value })} />
           </WField>
-          <WField label={t("field_latitude", lang)}>
-            <WInput inputMode="decimal" value={editMember.birthLatitude}
-              onChange={(e) => onChange({ ...editMember, birthLatitude: e.target.value })} />
-          </WField>
-          <WField label={t("field_longitude", lang)}>
-            <WInput inputMode="decimal" value={editMember.birthLongitude}
-              onChange={(e) => onChange({ ...editMember, birthLongitude: e.target.value })} />
-          </WField>
+          {coordsConfirm.showRawFields ? (
+            <>
+              <WField label={t("field_latitude", lang)}>
+                <WInput inputMode="decimal" value={editMember.birthLatitude}
+                  onChange={(e) => onChange({ ...editMember, birthLatitude: e.target.value })} />
+              </WField>
+              <WField label={t("field_longitude", lang)}>
+                <WInput inputMode="decimal" value={editMember.birthLongitude}
+                  onChange={(e) => onChange({ ...editMember, birthLongitude: e.target.value })} />
+              </WField>
+              <PlaceCoordinatesFooter lang={lang} place={editMember.birthPlace} matched={!!coordsConfirm.matched}
+                onUseMatched={() => coordsConfirm.setEditing(false)} />
+            </>
+          ) : (
+            <PlaceMatchedBadge lang={lang} place={editMember.birthPlace}
+              latitude={editMember.birthLatitude} longitude={editMember.birthLongitude}
+              onEditClick={() => coordsConfirm.setEditing(true)} />
+          )}
           <WField label={lang === "ta" ? "தினசரி நேரங்களுக்கான தற்போதைய நகரம்" : "Current City (Daily Timings)"}>
             <PlaceCombobox value={editMember.currentPlace}
+              lang={lang}
               onChange={(city, raw) => onChange({
                 ...editMember,
                 currentPlace: raw,
@@ -243,7 +255,6 @@ export function EditMemberModal({ lang, editMember, busySaving, onClose, onChang
             {busySaving ? t("btn_saving", lang) : t("btn_save_recalc", lang)}
           </button>
         </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 }

@@ -8,7 +8,10 @@ from app.models.user import User
 
 
 def _create_chart(client, birth_profile_payload_factory) -> str:
-    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory())
+    created = client.post(
+        "/api/v1/birth-profiles",
+        json=birth_profile_payload_factory(display_name=f"Journal Chart {uuid4()}"),
+    )
     assert created.status_code == 200
     birth_profile_id = created.json()["data"]["birthProfileId"]
 

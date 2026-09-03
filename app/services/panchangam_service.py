@@ -1,28 +1,25 @@
 from __future__ import annotations
 
 import calendar
-from datetime import UTC, date, datetime
 import logging
+from datetime import UTC, date, datetime, timedelta
+
 from sqlalchemy.orm import Session
 
 from app.calculations.festivals import get_festivals_for_date
 from app.calculations.panchangam import (
-    NAKSHATRA_NAMES,
     _compute_subha_muhurtham_broad,
     _compute_subha_muhurtham_strict,
-    _tithi_name,
-    _yoga_name,
     calculate_daily_panchangam,
     calculate_daily_panchangam_range,
-    dominant_nakshatra_for_civil_day,
-    dominant_tithi_for_civil_day,
-    dominant_yoga_for_civil_day,
 )
 from app.calculations.tamil_calendar import format_tamil_date, tamil_solar_date
+from app.data.muhurtham_naals import get_muhurtham_naals
 from app.schemas.panchangam import (
     BiText,
     PanchangamAbhijit,
     PanchangamAmirdhadhiYogam,
+    PanchangamChandrashtamamNakshatraWindow,
     PanchangamChandrashtamamToday,
     PanchangamDailyQuery,
     PanchangamDailyResponse,
@@ -32,6 +29,7 @@ from app.schemas.panchangam import (
     PanchangamKalam,
     PanchangamKarana,
     PanchangamLagnam,
+    PanchangamLimbSpan,
     PanchangamLocation,
     PanchangamMeta,
     PanchangamMonthDayEntry,
@@ -39,17 +37,17 @@ from app.schemas.panchangam import (
     PanchangamMonthlyQuery,
     PanchangamMonthlyResponse,
     PanchangamNakshatra,
+    PanchangamNethiramJeevan,
     PanchangamSlot,
-    PanchangamSpecialTithiDay,
     PanchangamSoolam,
+    PanchangamSpecialTithiDay,
     PanchangamSubhaMuhurtham,
+    PanchangamTimingsData,
+    PanchangamTimingsResponse,
     PanchangamTithi,
     PanchangamVara,
     PanchangamYoga,
-    PanchangamTimingsData,
-    PanchangamTimingsResponse,
 )
-from app.data.muhurtham_naals import get_muhurtham_naals
 from app.services.panchangam_events_service import is_karinaal
 
 PANCHANGAM_CALCULATION_VERSION = "thirukanitham-2026-v5"
@@ -120,9 +118,10 @@ def _build_festivals(
     tithi_number: int | None = None,
     tithi_paksha: str | None = None,
     nakshatra_name: str | None = None,
+    previous_day_snapshot=None,
 ) -> list[PanchangamFestival]:
     try:
-        tamil_month_index, _ = tamil_solar_date(
+        tamil_month_index, tamil_day_of_month = tamil_solar_date(
             snapshot.date_local,
             snapshot.timezone_name,
             snapshot.latitude,
@@ -131,6 +130,7 @@ def _build_festivals(
     except Exception as exc:
         logger.debug("Tamil month lookup failed for %s: %s", snapshot.date_local, exc)
         tamil_month_index = None
+        tamil_day_of_month = None
 
     return [
         PanchangamFestival(name=f["name"], category=f["category"], tags=f.get("tags", [f["category"]]))
@@ -142,8 +142,41 @@ def _build_festivals(
             weekday=snapshot.weekday,
             tamil_month_index=tamil_month_index,
             special_tithi_day_number=snapshot.special_tithi_day_number,
+            pradhosham_tithi_number=snapshot.pradhosham_tithi_number or None,
+            nishita_tithi_number=snapshot.nishita_tithi_number or None,
+            tamil_day_of_month=tamil_day_of_month,
+            previous_day_tithi_number=previous_day_snapshot.tithi_number if previous_day_snapshot else None,
+            previous_day_tithi_paksha=previous_day_snapshot.tithi_paksha if previous_day_snapshot else None,
         )
     ]
+
+
+def _previous_day_snapshot(snapshot, session: Session | None):
+    """Yesterday's snapshot, for the Ekadashi two-consecutive-sunrise dedup
+    (WI-12) — best-effort: on any failure, festivals still compute, just
+    without that one dedup refinement (see _build_festivals' docstring note
+    on the equivalent parameter in festivals.py).
+
+    Only fetched when today's own sunrise tithi is 11 (Ekadashi) — the only
+    case _recurring_tithi_festivals actually consults it — so the other
+    ~26 days of every lunar month pay no extra ephemeris call or cache write
+    per request (a real cost: this doubles panchangam cache rows otherwise,
+    see tests/test_panchangam_api.py's cache-row-count assertions).
+    """
+    tithi_in_paksha = snapshot.tithi_number if snapshot.tithi_number <= 15 else snapshot.tithi_number - 15
+    if tithi_in_paksha != 11:
+        return None
+    try:
+        return calculate_daily_panchangam(
+            snapshot.date_local - timedelta(days=1),
+            snapshot.latitude,
+            snapshot.longitude,
+            snapshot.timezone_name,
+            session=session,
+        )
+    except Exception as exc:
+        logger.debug("Previous-day panchangam lookup failed for %s: %s", snapshot.date_local, exc)
+        return None
 
 
 def _build_tamil_date(snapshot) -> BiText | None:
@@ -168,8 +201,31 @@ def _build_special_tithi_day(snapshot) -> PanchangamSpecialTithiDay | None:
     return None
 
 
+def _spans(spans) -> list[PanchangamLimbSpan]:
+    """Map engine spans onto the wire shape.
+
+    Both a bare "HH:MM" and a full ISO local datetime go out for each edge. A
+    limb boundary routinely lands on the next calendar day (this is a solar day,
+    sunrise to sunrise), and a clock-only string cannot say which day — the same
+    trap the tithi-rollover fix already hit once.
+    """
+    return [
+        PanchangamLimbSpan(
+            number=span.number,
+            name=span.name,
+            starts_at=span.start.strftime("%H:%M"),
+            ends_at=span.end.strftime("%H:%M"),
+            starts_at_iso=span.start.isoformat(),
+            ends_at_iso=span.end.isoformat(),
+            fraction=round(span.fraction, 4),
+        )
+        for span in spans
+    ]
+
+
 def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = None) -> PanchangamDailyResponse:
     snapshot = calculate_daily_panchangam(query.date, query.lat, query.lng, query.timezone, session=session)
+    previous_day_snapshot = _previous_day_snapshot(snapshot, session)
 
     return PanchangamDailyResponse(
         data=PanchangamDailyResponseData(
@@ -185,26 +241,34 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
                 name=snapshot.tithi_name,
                 paksha=snapshot.tithi_paksha,
                 ends_at=snapshot.tithi_ends_at.strftime("%H:%M"),
+                ends_at_iso=snapshot.tithi_ends_at.isoformat(),
                 next_number=snapshot.tithi_next_number,
                 next_name=snapshot.tithi_next_name,
                 next_paksha=snapshot.tithi_next_paksha,
+                spans=_spans(snapshot.tithi_spans),
             ),
             nakshatra=PanchangamNakshatra(
                 name=snapshot.nakshatra_name,
                 pada=snapshot.nakshatra_pada,
                 ends_at=snapshot.nakshatra_ends_at.strftime("%H:%M"),
+                ends_at_iso=snapshot.nakshatra_ends_at.isoformat(),
                 next_name=snapshot.nakshatra_next_name,
+                spans=_spans(snapshot.nakshatra_spans),
             ),
             yoga=PanchangamYoga(
                 number=snapshot.yoga_number,
                 name=snapshot.yoga_name,
                 ends_at=snapshot.yoga_ends_at.strftime("%H:%M"),
+                ends_at_iso=snapshot.yoga_ends_at.isoformat(),
                 next_name=snapshot.yoga_next_name,
+                spans=_spans(snapshot.yoga_spans),
             ),
             karana=PanchangamKarana(
                 name=snapshot.karana_name,
                 ends_at=snapshot.karana_ends_at.strftime("%H:%M"),
+                ends_at_iso=snapshot.karana_ends_at.isoformat(),
                 next_name=snapshot.karana_next_name,
+                spans=_spans(snapshot.karana_spans),
             ),
             kalam=_build_kalam(snapshot),
             abhijit=PanchangamAbhijit(
@@ -218,7 +282,7 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
                 is_subha_strict=snapshot.is_subha_muhurtham_strict,
                 strict_reason=snapshot.subha_muhurtham_strict_reason,
             ),
-            festivals=_build_festivals(snapshot),
+            festivals=_build_festivals(snapshot, previous_day_snapshot=previous_day_snapshot),
             hora=[
                 PanchangamHoraEntry(
                     index=entry.index,
@@ -232,20 +296,35 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
             soolam=PanchangamSoolam(
                 direction=snapshot.soolam_direction,
                 parigaram=snapshot.soolam_parigaram,
+                status="preliminary",
             ),
             lagnam=PanchangamLagnam(
                 rasi_number=snapshot.lagna_rasi_number,
                 rasi_name=snapshot.lagna_rasi_name,
                 ends_at=snapshot.lagna_ends_at.strftime("%H:%M"),
+                ends_at_iso=snapshot.lagna_ends_at.isoformat(),
                 nazhigai=snapshot.lagna_nazhigai,
                 vinadi=snapshot.lagna_vinadi,
             ),
             nethiram=snapshot.nethiram,
             jeevan=snapshot.jeevan,
+            # The bare strings above stay for existing clients. This object adds
+            # the boundary they never had: both values are derived from the
+            # Moon's star, so they flip at nakshatra_ends_at like Nokku does.
+            nethiram_jeevan=PanchangamNethiramJeevan(
+                nethiram=snapshot.nethiram,
+                jeevan=snapshot.jeevan,
+                nethiram_next=snapshot.nethiram_next,
+                jeevan_next=snapshot.jeevan_next,
+                ends_at=snapshot.nakshatra_ends_at.strftime("%H:%M"),
+                ends_at_iso=snapshot.nakshatra_ends_at.isoformat(),
+            ),
             amirdhadhi_yogam=PanchangamAmirdhadhiYogam(
                 name=snapshot.amirdhadhi_yogam_name,
                 ends_at=snapshot.amirdhadhi_yogam_ends_at.strftime("%H:%M"),
+                ends_at_iso=snapshot.amirdhadhi_yogam_ends_at.isoformat(),
                 next_name=snapshot.amirdhadhi_yogam_next_name,
+                status="preliminary",
             ),
             chandrashtamam_today=PanchangamChandrashtamamToday(
                 moon_rasi_number=snapshot.chandrashtamam_moon_rasi_number,
@@ -253,6 +332,15 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
                 affected_janma_rasi_number=snapshot.chandrashtamam_affected_janma_rasi_number,
                 affected_janma_rasi_name=snapshot.chandrashtamam_affected_janma_rasi_name,
                 nakshatras=list(snapshot.chandrashtamam_today_nakshatras),
+                janma_nakshatra_windows=[
+                    PanchangamChandrashtamamNakshatraWindow(
+                        name=window.name,
+                        start=window.start,
+                        end=window.end,
+                    )
+                    for window in snapshot.chandrashtamam_janma_nakshatra_windows
+                ],
+                status="preliminary",
             ),
             special_tithi_day=_build_special_tithi_day(snapshot),
             is_karinaal=is_karinaal(snapshot.date_local),
@@ -266,6 +354,7 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
 
 def calculate_panchangam_timings(query: PanchangamDailyQuery, session: Session | None = None) -> PanchangamTimingsResponse:
     snapshot = calculate_daily_panchangam(query.date, query.lat, query.lng, query.timezone, session=session)
+    previous_day_snapshot = _previous_day_snapshot(snapshot, session)
 
     return PanchangamTimingsResponse(
         data=PanchangamTimingsData(
@@ -286,7 +375,7 @@ def calculate_panchangam_timings(query: PanchangamDailyQuery, session: Session |
                 is_subha_strict=snapshot.is_subha_muhurtham_strict,
                 strict_reason=snapshot.subha_muhurtham_strict_reason,
             ),
-            festivals=_build_festivals(snapshot),
+            festivals=_build_festivals(snapshot, previous_day_snapshot=previous_day_snapshot),
             hora=[
                 PanchangamHoraEntry(
                     index=entry.index,
@@ -325,42 +414,42 @@ def build_monthly_panchangam(query: PanchangamMonthlyQuery, session: Session | N
         first_day, last_day, query.lat, query.lng, query.timezone, session=session,
     )
 
+    # Ekadashi two-consecutive-sunrise dedup (WI-12) needs the prior civil
+    # day's snapshot. Only day 1 needs an extra ephemeris call (the last day
+    # of the previous month, outside this range) — every other day reuses
+    # the previous loop iteration's already-computed snapshot for free.
+    # snapshots_by_date can be missing polar-day/night days (no sunrise/sunset),
+    # so guard the day-1 lookup and skip any absent day below.
+    first_snapshot = snapshots_by_date.get(first_day)
+    previous_snapshot = _previous_day_snapshot(first_snapshot, session) if first_snapshot else None
+
     for day_number in range(1, days_in_month + 1):
         date_local = date(query.year, query.month, day_number)
-        snapshot = snapshots_by_date[date_local]
-        # Prefer the dominant values persisted on the cached snapshot (schema v22+);
-        # only re-walk the ephemeris for snapshots produced without the cache.
-        dominant_tithi_number = (
-            snapshot.dominant_tithi_number
-            or dominant_tithi_for_civil_day(date_local, snapshot.timezone_name)
-            or snapshot.tithi_number
-        )
-        dominant_tithi_paksha = "SHUKLA" if dominant_tithi_number <= 15 else "KRISHNA"
-        dominant_tithi_name = _tithi_name(dominant_tithi_number)
-        dominant_nakshatra_number = (
-            snapshot.dominant_nakshatra_number
-            or dominant_nakshatra_for_civil_day(date_local, snapshot.timezone_name)
-            or snapshot.nakshatra_number
-        )
-        dominant_nakshatra_name = NAKSHATRA_NAMES[dominant_nakshatra_number - 1]
-        dominant_yoga_number = (
-            snapshot.dominant_yoga_number
-            or dominant_yoga_for_civil_day(date_local, snapshot.timezone_name)
-            or snapshot.yoga_number
-        )
-        dominant_yoga_name = _yoga_name(dominant_yoga_number)
+        snapshot = snapshots_by_date.get(date_local)
+        if snapshot is None:
+            continue
+        # Sunrise-governing (உதய) tithi / nakshatra / yoga: the value present at
+        # sunrise names the whole civil day. This is the classical Tamil rule the
+        # daily endpoint and the dashboard home already use — the monthly grid now
+        # matches them instead of showing a separate longest-span (dominant) value
+        # (issue #9). Boundary crossings are still surfaced per-day via the daily
+        # endpoint's *_ends_at / *_next_* fields.
+        governing_tithi_number = snapshot.tithi_number
+        governing_tithi_paksha = snapshot.tithi_paksha
+        governing_tithi_name = snapshot.tithi_name
+        governing_nakshatra_name = snapshot.nakshatra_name
+        governing_yoga_name = snapshot.yoga_name
         is_subha_muhurtham, _ = _compute_subha_muhurtham_broad(
-            dominant_tithi_number,
-            dominant_nakshatra_name,
+            governing_tithi_number,
+            governing_nakshatra_name,
             date_local.weekday(),
         )
         is_subha_muhurtham_strict, _ = _compute_subha_muhurtham_strict(
-            dominant_tithi_number,
-            dominant_tithi_paksha,
-            dominant_nakshatra_name,
-            dominant_yoga_name,
+            governing_tithi_number,
+            governing_tithi_paksha,
+            governing_nakshatra_name,
+            governing_yoga_name,
             date_local.weekday(),
-            snapshot.abhijit_restricted,
         )
 
         tamil_date = _build_tamil_date(snapshot)
@@ -372,16 +461,17 @@ def build_monthly_panchangam(query: PanchangamMonthlyQuery, session: Session | N
                 date_local=snapshot.date_local,
                 tamil_date=tamil_date,
                 weekday=snapshot.weekday,
-                tithi_number=dominant_tithi_number,
-                tithi_name=dominant_tithi_name,
-                tithi_paksha=dominant_tithi_paksha,
-                nakshatra_name=dominant_nakshatra_name,
+                tithi_number=governing_tithi_number,
+                tithi_name=governing_tithi_name,
+                tithi_paksha=governing_tithi_paksha,
+                nakshatra_name=governing_nakshatra_name,
                 special_tithi_day_number=snapshot.special_tithi_day_number,
                 festivals=_build_festivals(
                     snapshot,
-                    tithi_number=dominant_tithi_number,
-                    tithi_paksha=dominant_tithi_paksha,
-                    nakshatra_name=dominant_nakshatra_name,
+                    tithi_number=governing_tithi_number,
+                    tithi_paksha=governing_tithi_paksha,
+                    nakshatra_name=governing_nakshatra_name,
+                    previous_day_snapshot=previous_snapshot,
                 ),
                 is_tamil_muhurtham_day=date_local in almanac_muhurtham_dates,
                 is_subha_muhurtham=is_subha_muhurtham,
@@ -389,6 +479,7 @@ def build_monthly_panchangam(query: PanchangamMonthlyQuery, session: Session | N
                 is_karinaal=is_karinaal(date_local),
             )
         )
+        previous_snapshot = snapshot
 
     return PanchangamMonthlyResponse(
         data=PanchangamMonthlyData(

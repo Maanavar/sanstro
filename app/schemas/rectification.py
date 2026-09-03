@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, time
-from typing import Literal, Optional
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -10,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class RectificationEvent(BaseModel):
     event_type: Literal["MARRIAGE", "CAREER_BREAK", "RELOCATION", "HEALTH_MAJOR", "PARENT_BIRTH"] = Field(alias="eventType")
     event_year: int = Field(alias="eventYear", ge=1900, le=2100)
-    event_month: Optional[int] = Field(default=None, alias="eventMonth", ge=1, le=12)
+    event_month: int | None = Field(default=None, alias="eventMonth", ge=1, le=12)
 
     model_config = ConfigDict(populate_by_name=True)
 

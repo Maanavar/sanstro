@@ -1,8 +1,6 @@
 """Tests for Career and Finance event window types (PRES-11)."""
 from __future__ import annotations
 
-from unittest.mock import MagicMock
-
 import pytest
 
 from app.calculations.astro import julian_day_to_utc_datetime
@@ -12,7 +10,6 @@ from app.calculations.event_windows import (
     find_event_windows,
     find_finance_windows,
 )
-
 
 # ---------------------------------------------------------------------------
 # Shared test helpers (mirror test_event_windows.py pattern)
@@ -65,7 +62,12 @@ def test_find_career_windows_with_support(monkeypatch):
 
 def test_find_career_windows_no_dasha_support(monkeypatch):
     def fake_timeline(_b, _m, _jd):
-        return _Timeline("MOON", "VENUS")  # neither 10th lord, SUN, nor MERCURY
+        # Moon/Mars: no lordship of 10/2/6/11 for Aries lagna, not career
+        # karakas, and no natal positions in the fake snapshot — genuinely
+        # unconnected under connection-match activation. (Venus, the old
+        # fixture's antardasha lord, is the 2nd lord and now legitimately
+        # qualifies a window.)
+        return _Timeline("MOON", "MARS")
 
     def fake_snapshot(_jd):
         return _Snapshot({"JUPITER": _Body(10), "SUN": _Body(10)})
@@ -117,7 +119,11 @@ def test_find_finance_windows_with_support(monkeypatch):
 
 def test_find_finance_windows_no_support(monkeypatch):
     def fake_timeline(_b, _m, _jd):
-        return _Timeline("SUN", "MARS")
+        # Moon/Mars: no lordship of 2/11/5 for Aries lagna, not finance
+        # karakas, no natal positions in the fake — unconnected under
+        # connection-match activation. (Sun, the old fixture's maha lord,
+        # is the 5th lord — a wealth-trikona lord — and now qualifies.)
+        return _Timeline("MOON", "MARS")
 
     def fake_snapshot(_jd):
         return _Snapshot({"JUPITER": _Body(6)})

@@ -19,6 +19,8 @@ export function PublicFooter() {
     { href: "/tools/daily-panchangam-planner", label: mt(FOOTER.tool_panch, lang) },
     { href: "/tools/birth-time-rectification", label: mt(FOOTER.tool_btr, lang) },
     { href: "/tools/indraiya-rasipalan", label: mt(FOOTER.tool_rasipalan, lang) },
+    { href: "/tools/numerology-calculator", label: mt(FOOTER.tool_numerology, lang) },
+    { href: "/tools/baby-name-finder", label: mt(FOOTER.tool_baby_names, lang) },
   ];
   const learnLinks = [
     { href: "/learn/what-is-porutham", label: mt(FOOTER.learn_porutham, lang) },
@@ -32,10 +34,13 @@ export function PublicFooter() {
     { href: "/yogam", label: mt(FOOTER.guide_yogam, lang) },
     { href: "/pariharam", label: mt(FOOTER.guide_pariharam, lang) },
     { href: "/temples", label: mt(FOOTER.guide_temples, lang) },
+    { href: "/panchangam/today", label: mt(FOOTER.guide_panchangam, lang) },
+    { href: "/tamil-calendar", label: mt(FOOTER.guide_calendar, lang) },
   ];
   const companyLinks = [
     { href: "/trust/about-vinaadi", label: mt(FOOTER.about, lang) },
     { href: "/trust/methodology", label: mt(FOOTER.methodology, lang) },
+    { href: "/pricing", label: lang === "en" ? "Pricing" : "விலை" },
     { href: "/privacy", label: mt(FOOTER.privacy, lang) },
     { href: "/terms", label: mt(FOOTER.terms, lang) },
   ];
@@ -55,8 +60,8 @@ export function PublicFooter() {
               src="/brand/vinaadi-symbol-icon.png"
               alt=""
               aria-hidden
-              width={512}
-              height={512}
+              width={52}
+              height={52}
               className="cl-footer__symbol"
             />
             <div className="cl-footer__brand-copy">

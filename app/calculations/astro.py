@@ -4,6 +4,8 @@ from datetime import UTC, datetime, timedelta, timezone
 from math import floor
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from app.constants.astrology import NAKSHATRA_NAMES
+
 EPSILON_DEGREES = 1e-9
 NAKSHATRA_SIZE_DEGREES = 40 / 3
 PADA_SIZE_DEGREES = 10 / 3
@@ -31,35 +33,6 @@ RASI_NAME_TO_NUMBER.update(
         "thulaam": 7,
         "vrichigam": 8,
     }
-)
-NAKSHATRA_NAMES = (
-    "ASWINI",
-    "BHARANI",
-    "KARTHIGAI",
-    "ROHINI",
-    "MIRUGASEERIDAM",
-    "THIRUVATHIRAI",
-    "PUNARPOOSAM",
-    "POOSAM",
-    "AYILYAM",
-    "MAGAM",
-    "POORAM",
-    "UTHIRAM",
-    "HASTHAM",
-    "CHITHIRAI",
-    "SWATHI",
-    "VISAKAM",
-    "ANUSHAM",
-    "KETTAI",
-    "MOOLAM",
-    "POORADAM",
-    "UTHIRADAM",
-    "THIRUVONAM",
-    "AVITTAM",
-    "SADAYAM",
-    "POORATTATHI",
-    "UTHIRATTATHI",
-    "REVATHI",
 )
 NAKSHATRA_NAME_TO_NUMBER = {
     "".join(char for char in name.lower() if char.isalnum()): index + 1
@@ -113,7 +86,17 @@ def house_from_reference(reference_rasi: int | str, target_rasi: int | str) -> i
 
 
 def nakshatra_to_rasi(nakshatra: int | str, pada: int = 1) -> int:
-    """Return rasi (1-12) using the standard 9-pada-per-rasi mapping."""
+    """Return rasi (1-12) using the standard 9-pada-per-rasi mapping.
+
+    Convention note (2026-07 audit): when `pada` is unknown/omitted this
+    defaults to pada 1, which for the 8 nakshatras that straddle two rasis
+    (Karthigai, Mirugaseeridam, Punarpoosam, Uthiram, Chithirai, Visakam,
+    Uthiradam, Avittam) can differ from
+    `web/app/tools/marriage-porutham-calculator/PoruthamTool.tsx`'s default,
+    which uses the majority-pada rasi (and the later half on exact 50/50
+    splits). Not changed — pass an explicit `pada` when it's known; this
+    default only matters when it genuinely isn't.
+    """
     if isinstance(nakshatra, str):
         normalized = "".join(char for char in nakshatra.strip().lower() if char.isalnum())
         nakshatra_number = NAKSHATRA_NAME_TO_NUMBER.get(normalized)
@@ -177,6 +160,14 @@ def resolve_timezone(timezone_name: str) -> timezone | ZoneInfo:
 
 
 def utc_datetime_to_julian_day(utc_datetime: datetime) -> float:
+    """Meeus Gregorian-calendar JD conversion.
+
+    L-17 (docs/ASTROLOGY_FULL_CODE_AUDIT_2026-07-16.md): the Gregorian
+    leap-year correction below is applied unconditionally, i.e. proleptic
+    Gregorian for any date before the 1582-10-15 Gregorian reform. No action
+    needed for birth charts (all realistic birth dates postdate the reform);
+    noted for completeness only.
+    """
     if utc_datetime.tzinfo is None:
         raise ValueError("utc_datetime_to_julian_day requires a timezone-aware UTC datetime.")
 

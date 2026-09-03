@@ -1,21 +1,53 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useId } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { LangToggle, useLang } from "@/components/lang-toggle";
-import { NAV, mt } from "@/lib/marketing-i18n";
+import { SiteSearch } from "@/components/site-search";
+import { LEARN_VEDIC_WESTERN, NAV, mt } from "@/lib/marketing-i18n";
+import { LATEST_MUHURTHAM_NAAL_YEAR } from "@/lib/muhurtham-naal";
+import "./public-nav.css";
 
+// MKT-06 — a plain disclosure (not a `role="menu"`), so aria-expanded reflects
+// the real open state and it works by keyboard (Tab/Enter/Escape) and on touch,
+// not only CSS :hover. Opens on hover, focus, or click; closes on Escape, blur
+// out of the group, or a second click.
 function Dropdown({ label, children }: { label: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const menuId = useId();
+
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") setOpen(false); }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
   return (
-    <div className="cl-nav-dropdown">
-      <button type="button" className="cl-nav__link cl-nav-dropdown__trigger" aria-haspopup="true">
+    <div
+      className="cl-nav-dropdown"
+      ref={ref}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onFocus={() => setOpen(true)}
+      onBlur={(e) => { if (!ref.current?.contains(e.relatedTarget as Node)) setOpen(false); }}
+    >
+      <button
+        type="button"
+        className="cl-nav__link cl-nav-dropdown__trigger"
+        aria-haspopup="true"
+        aria-expanded={open}
+        aria-controls={menuId}
+        onClick={() => setOpen((o) => !o)}
+      >
         {label}
         <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true" className="cl-nav-dropdown__chevron">
           <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
-      <div className="cl-nav-dropdown__menu" role="menu">
+      <div className="cl-nav-dropdown__menu" id={menuId} data-open={open}>
         <div className="cl-nav-dropdown__menu-inner">{children}</div>
       </div>
     </div>
@@ -25,24 +57,28 @@ function Dropdown({ label, children }: { label: string; children: React.ReactNod
 export function PublicNav() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [lang] = useLang();
+  const calendarYear = new Date().getFullYear();
 
   function closeMobileMenu() { setMobileOpen(false); }
 
   const FEATURES = [
-    { href: "/features/daily-guidance",     label: mt(NAV.feat_daily,   lang) },
-    { href: "/features/family-planning",    label: mt(NAV.feat_family,  lang) },
-    { href: "/features/chart-guidance",     label: mt(NAV.feat_chart,   lang) },
-    { href: "/features/timing-and-decisions", label: mt(NAV.feat_timing, lang) },
+    { href: "/features/daily-guidance",       label: mt(NAV.feat_daily,          lang) },
+    { href: "/features/family-planning",      label: mt(NAV.feat_family,         lang) },
+    { href: "/family",                         label: mt(NAV.feat_family_vault,   lang), desc: mt(NAV.feat_family_vault_desc, lang) },
+    { href: "/features/chart-guidance",       label: mt(NAV.feat_chart,          lang) },
+    { href: "/features/timing-and-decisions", label: mt(NAV.feat_timing,         lang) },
   ];
 
   const TOOLS = [
     { href: "/tools/marriage-porutham-calculator", label: mt(NAV.tool_porutham, lang), desc: mt(NAV.tool_porutham_desc, lang) },
     { href: "/tools/jadhagam-generator",           label: mt(NAV.tool_jad,      lang), desc: mt(NAV.tool_jad_desc,      lang) },
     { href: "/tools/daily-panchangam-planner",     label: mt(NAV.tool_panch,    lang), desc: mt(NAV.tool_panch_desc,    lang) },
-    { href: "/muhurtham-naal",                     label: lang === "en" ? "Muhurtham Naal 2026" : "முகூர்த்த நாள் 2026", desc: lang === "en" ? "Verified Tamil wedding dates" : "சரிபார்த்த திருமண நாட்கள்" },
-    { href: "/tamil-calendar",                     label: lang === "en" ? "Tamil Calendar 2026" : "தமிழ் நாட்காட்டி 2026", desc: lang === "en" ? "Pournami, Amavasai, Pradosham dates" : "பௌர்ணமி, அமாவாசை, பிரதோஷ நாட்கள்" },
+    { href: "/muhurtham-naal",                     label: `${lang === "en" ? "Muhurtham Naal" : "முகூர்த்த நாள்"} ${LATEST_MUHURTHAM_NAAL_YEAR}`, desc: lang === "en" ? "Verified Tamil wedding dates" : "சரிபார்த்த திருமண நாட்கள்" },
+    { href: "/tamil-calendar",                     label: `${lang === "en" ? "Tamil Calendar" : "தமிழ் நாட்காட்டி"} ${calendarYear}`, desc: lang === "en" ? "Pournami, Amavasai, Pradosham dates" : "பௌர்ணமி, அமாவாசை, பிரதோஷ நாட்கள்" },
     { href: "/tools/birth-time-rectification",     label: mt(NAV.tool_btr,      lang), desc: mt(NAV.tool_btr_desc,      lang) },
     { href: "/tools/indraiya-rasipalan",           label: mt(NAV.tool_rasipalan, lang), desc: mt(NAV.tool_rasipalan_desc, lang) },
+    { href: "/tools/numerology-calculator",        label: mt(NAV.tool_numerology, lang), desc: mt(NAV.tool_numerology_desc, lang) },
+    { href: "/tools/baby-name-finder",             label: mt(NAV.tool_baby_names, lang), desc: mt(NAV.tool_baby_names_desc, lang) },
   ];
 
   const GUIDE = [
@@ -53,101 +89,27 @@ export function PublicNav() {
   ];
 
   return (
-    <>
-      <style>{`
-        .cl-nav-dropdown { position: relative; }
-        .cl-nav-dropdown__trigger {
-          background: none; border: none; cursor: pointer;
-          font-family: inherit;
-          display: inline-flex; align-items: center; gap: 5px; padding: 0;
-        }
-        .cl-nav-dropdown__chevron { transition: transform 150ms ease; opacity: 0.6; }
-        .cl-nav-dropdown__menu {
-          position: absolute; top: 100%; left: 50%;
-          transform: translateX(-50%); padding-top: 12px;
-          min-width: 240px; z-index: 200;
-          opacity: 0; pointer-events: none; visibility: hidden;
-          transition: opacity 120ms ease, visibility 120ms ease;
-        }
-        .cl-nav-dropdown__menu-inner {
-          background: var(--cl-surface); border: 1px solid var(--cl-border);
-          border-radius: 14px; box-shadow: 0 8px 32px var(--cl-shadow);
-          padding: 8px; display: flex; flex-direction: column; gap: 2px;
-        }
-        .cl-nav-dropdown:hover .cl-nav-dropdown__menu,
-        .cl-nav-dropdown:focus-within .cl-nav-dropdown__menu {
-          opacity: 1; pointer-events: auto; visibility: visible;
-        }
-        .cl-nav-dropdown:hover .cl-nav-dropdown__chevron { transform: rotate(180deg); }
-        .cl-nav-dropdown__item {
-          display: flex; flex-direction: column; gap: 2px;
-          padding: 10px 12px; border-radius: 10px;
-          text-decoration: none; transition: background 120ms ease;
-        }
-        .cl-nav-dropdown__item:hover { background: var(--cl-bg-2); }
-        .cl-nav-dropdown__item-label { font-size: 0.88rem; font-weight: 600; color: var(--cl-ink); line-height: 1.2; }
-        .cl-nav-dropdown__item-desc  { font-size: 0.75rem; color: var(--cl-muted); line-height: 1.3; }
-        .cl-nav__menu-btn {
-          display: none; min-width: 44px; min-height: 44px;
-          border-radius: 999px; border: 1.5px solid var(--cl-border);
-          background: var(--cl-surface); color: var(--cl-ink);
-          cursor: pointer; align-items: center; justify-content: center;
-        }
-        .cl-nav__mobile { display: none; }
-        @media (max-width: 1024px) {
-          .cl-nav__menu-btn { display: inline-flex; }
-          .cl-nav__links { display: none; }
-          .cl-nav-dropdown__menu { left: auto; right: 0; transform: none; }
-          .cl-nav__mobile {
-            display: block; border-top: 1px solid var(--cl-border);
-            background: rgba(244, 238, 226, 0.98);
-          }
-          .cl-nav__mobile-inner {
-            width: min(1200px, calc(100% - 40px)); margin: 0 auto;
-            padding: 16px 0 18px; display: grid; gap: 14px;
-          }
-          .cl-nav__mobile-group { display: grid; gap: 8px; }
-          .cl-nav__mobile-label {
-            margin: 0; font-size: 0.68rem; font-weight: 700;
-            letter-spacing: 0.14em; text-transform: uppercase; color: var(--cl-muted);
-          }
-          .cl-nav__mobile-link {
-            display: flex; align-items: center; justify-content: space-between;
-            gap: 12px; padding: 12px 14px; border-radius: 12px;
-            background: var(--cl-surface); border: 1px solid var(--cl-border);
-            color: var(--cl-ink); font-size: 0.9rem; font-weight: 500; text-decoration: none;
-          }
-          .cl-nav__mobile-link span:first-child { min-width: 0; overflow-wrap: anywhere; }
-          .cl-nav__mobile-link span:last-child { color: var(--cl-muted); font-size: 0.78rem; font-weight: 400; max-width: 24ch; text-align: right; }
-        }
-        @media (max-width: 560px) {
-          .cl-nav__mobile-link {
-            align-items: flex-start;
-            flex-direction: column;
-          }
-          .cl-nav__mobile-link span:last-child {
-            max-width: none;
-            text-align: left;
-          }
-        }
-      `}</style>
-
-      <header className="cl-nav">
+    <header className="cl-nav">
         <div className="cl-nav__inner">
           <Link href="/" className="cl-nav__brand" aria-label={mt(NAV.home, lang)}>
             <Image
               src="/brand/vinaadi-symbol-icon.png"
               alt="" aria-hidden
-              width={512} height={512}
+              width={28} height={28}
               className="cl-nav__symbol" priority
             />
-            <span className="cl-nav__wordmark">Vinaadi</span>
+            <div className="cl-nav__brand-text">
+              <span className="cl-nav__wordmark">Vinaadi</span>
+              <span className="cl-nav__tagline">
+                {lang === "en" ? "Thirukanitham-precise astrology" : "திருக்கணித ஜோதிடம்"}
+              </span>
+            </div>
           </Link>
 
           <nav className="cl-nav__links" aria-label={lang === "en" ? "Primary navigation" : "முதன்மை வழிசெலுத்தல்"}>
             <Dropdown label={mt(NAV.features, lang)}>
               {FEATURES.map((f) => (
-                <Link key={f.href} href={f.href} className="cl-nav-dropdown__item" role="menuitem">
+                <Link key={f.href} href={f.href} className="cl-nav-dropdown__item">
                   <span className="cl-nav-dropdown__item-label">{f.label}</span>
                 </Link>
               ))}
@@ -155,7 +117,7 @@ export function PublicNav() {
 
             <Dropdown label={mt(NAV.tools, lang)}>
               {TOOLS.map((t) => (
-                <Link key={t.href} href={t.href} className="cl-nav-dropdown__item" role="menuitem">
+                <Link key={t.href} href={t.href} className="cl-nav-dropdown__item">
                   <span className="cl-nav-dropdown__item-label">{t.label}</span>
                   <span className="cl-nav-dropdown__item-desc">{t.desc}</span>
                 </Link>
@@ -164,15 +126,16 @@ export function PublicNav() {
 
             <Dropdown label={mt(NAV.guide, lang)}>
               {GUIDE.map((g) => (
-                <Link key={g.href} href={g.href} className="cl-nav-dropdown__item" role="menuitem">
+                <Link key={g.href} href={g.href} className="cl-nav-dropdown__item">
                   <span className="cl-nav-dropdown__item-label">{g.label}</span>
                   <span className="cl-nav-dropdown__item-desc">{g.desc}</span>
                 </Link>
               ))}
             </Dropdown>
 
-            <Link href="/natchathiram" className="cl-nav__link">{lang === "en" ? "Nakshathirams" : "நட்சத்திரங்கள்"}</Link>
-            <Link href="/learn/what-is-thirukanitham" className="cl-nav__link">{mt(NAV.learn, lang)}</Link>
+            <Link href="/natchathiram" className="cl-nav__link">{lang === "en" ? "Natchathirams" : "நட்சத்திரங்கள்"}</Link>
+            <Link href="/pricing" className="cl-nav__link">{lang === "en" ? "Pricing" : "விலை"}</Link>
+            <Link href="/learn/vedic-vs-western" className="cl-nav__link">{mt(NAV.learn, lang)}</Link>
             <Link href="/trust/methodology" className="cl-nav__link">{mt(NAV.method, lang)}</Link>
 
             <LangToggle />
@@ -182,14 +145,16 @@ export function PublicNav() {
             </Link>
           </nav>
 
-          <button
-            type="button"
-            className="cl-nav__menu-btn"
-            aria-expanded={mobileOpen}
-            aria-controls="public-mobile-nav"
-            aria-label={mobileOpen ? mt(NAV.close_menu, lang) : mt(NAV.open_menu, lang)}
-            onClick={() => setMobileOpen((o) => !o)}
-          >
+          <div className="cl-nav__actions">
+            <SiteSearch />
+            <button
+              type="button"
+              className="cl-nav__menu-btn"
+              aria-expanded={mobileOpen}
+              aria-controls="public-mobile-nav"
+              aria-label={mobileOpen ? mt(NAV.close_menu, lang) : mt(NAV.open_menu, lang)}
+              onClick={() => setMobileOpen((o) => !o)}
+            >
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
               {mobileOpen ? (
                 <>
@@ -204,7 +169,8 @@ export function PublicNav() {
                 </>
               )}
             </svg>
-          </button>
+            </button>
+          </div>
         </div>
 
         {mobileOpen && (
@@ -238,16 +204,23 @@ export function PublicNav() {
                 ))}
               </div>
               <div className="cl-nav__mobile-group">
-                <p className="cl-nav__mobile-label">{lang === "en" ? "Nakshathirams" : "நட்சத்திரங்கள்"}</p>
+                <p className="cl-nav__mobile-label">{lang === "en" ? "Natchathirams" : "நட்சத்திரங்கள்"}</p>
                 <Link href="/natchathiram" className="cl-nav__mobile-link" onClick={closeMobileMenu}>
-                  <span>{lang === "en" ? "27 Nakshathirams" : "27 நட்சத்திரங்கள்"}</span>
+                  <span>{lang === "en" ? "27 Natchathirams" : "27 நட்சத்திரங்கள்"}</span>
                   <span>{lang === "en" ? "Nakshathiram guide" : "குண நலன்கள் & பலன்கள்"}</span>
                 </Link>
               </div>
               <div className="cl-nav__mobile-group">
+                <p className="cl-nav__mobile-label">{lang === "en" ? "Pricing" : "விலை"}</p>
+                <Link href="/pricing" className="cl-nav__mobile-link" onClick={closeMobileMenu}>
+                  <span>{lang === "en" ? "Guest, free, and premium" : "விருந்தினர், இலவசம், பிரீமியம்"}</span>
+                  <span>{lang === "en" ? "Plans and access" : "திட்டங்கள் மற்றும் அணுகல்"}</span>
+                </Link>
+              </div>
+              <div className="cl-nav__mobile-group">
                 <p className="cl-nav__mobile-label">{mt(NAV.learn, lang)}</p>
-                <Link href="/learn/what-is-thirukanitham" className="cl-nav__mobile-link" onClick={closeMobileMenu}>
-                  <span>{mt(NAV.learn, lang)}</span>
+                <Link href="/learn/vedic-vs-western" className="cl-nav__mobile-link" onClick={closeMobileMenu}>
+                  <span>{mt(LEARN_VEDIC_WESTERN.h1, lang)}</span>
                   <span>{lang === "en" ? "Concepts and guides" : "கருத்துகளும் வழிகாட்டிகளும்"}</span>
                 </Link>
                 <Link href="/trust/methodology" className="cl-nav__mobile-link" onClick={closeMobileMenu}>
@@ -261,7 +234,6 @@ export function PublicNav() {
             </div>
           </div>
         )}
-      </header>
-    </>
+    </header>
   );
 }

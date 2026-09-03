@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
-from app.services.nakshatra_content_static import get_nakshatra_card, NakshatraCardResponse
+from app.services.nakshatra_content import NakshatraCardResponse, get_nakshatra_card
 
 router = APIRouter()
 

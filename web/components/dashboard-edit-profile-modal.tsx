@@ -1,11 +1,15 @@
 "use client";
 
-import type { FormEvent } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { useState, type FormEvent } from "react";
 import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { EASE_NOVA } from "@/lib/motion";
 import { useBirthProfileForm } from "@/hooks/useBirthProfileForm";
+import { ModalShell } from "./modal-shell";
 import { PlaceCombobox } from "./place-combobox";
+import { usePlaceCoordinatesConfirm, PlaceMatchedBadge, PlaceCoordinatesFooter } from "./place-coordinates-field";
 
 type Relationship = "self" | "spouse" | "child" | "parent" | "sibling" | "grandparent" | "other";
 
@@ -26,6 +30,7 @@ export type BirthFormState = {
   calculateNow: boolean;
   maritalStatus: string;
   employmentType: string;
+  children: string;
   birthTimeSource: string;
   birthTimeConfidenceMinutes: string;
 };
@@ -44,39 +49,51 @@ interface EditProfileModalProps {
 
 /* ── Warm design tokens ── */
 const W = {
-  ink:      "#1A1612",
-  inkMid:   "#3D352B",
-  muted:    "#7A6F5E",
+  ink:      "var(--deepdive-ink, var(--panel-earth-dark))",
+  inkMid:   "var(--deepdive-ink-mid, var(--panel-earth))",
+  muted:    "var(--color-faint)",
   mutedLt:  "var(--color-faint)",
-  border:   "#D4C8AE",
-  borderLt: "#E4DBC8",
-  surface:  "#FAF5EA",
-  surfaceMd:"#F4EEE2",
-  card:     "#FFFFFF",
-  terracota:"#B85A2C",
-  sage:     "#5C7654",
-  error:    "#A8482F",
+  border:   "var(--deepdive-border, var(--panel-tan))",
+  borderLt: "var(--deepdive-border-light, var(--panel-tan-light))",
+  surface:  "var(--deepdive-surface, var(--panel-cream))",
+  surfaceMd:"var(--deepdive-surface-strong, var(--panel-hover))",
+  card:     "var(--chart-cell-default)",
+  terracota:"var(--deepdive-accent, var(--panel-brand))",
+  sage:     "var(--chart-d9-active)",
+  error:    "var(--color-low, var(--planet-saturn))",
 } as const;
 
-function WField({ label, children }: { label: string; children: React.ReactNode }) {
+function WField({ label, children, required, error }: { label: string; children: React.ReactNode; required?: boolean; error?: string }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-      <label style={{ fontSize: "0.75rem", fontWeight: 700, color: W.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</label>
+      <label style={{ fontSize: "0.75rem", fontWeight: 700, color: W.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        {label}{required ? <span aria-hidden="true"> *</span> : null}
+      </label>
       {children}
+      {error && (
+        <span role="alert" style={{ fontSize: "0.74rem", color: W.error, lineHeight: 1.4, marginTop: "1px", display: "flex", alignItems: "center", gap: "4px" }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          {error}
+        </span>
+      )}
     </div>
   );
 }
 
-function WInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+function WInput(props: React.InputHTMLAttributes<HTMLInputElement> & { hasError?: boolean }) {
+  const { hasError, style, ...rest } = props;
   return (
     <input
-      {...props}
+      {...rest}
+      aria-invalid={hasError || undefined}
       style={{
         width: "100%", padding: "9px 12px", borderRadius: "10px",
-        border: `1.5px solid ${W.borderLt}`,
+        border: `1.5px solid ${hasError ? W.error : W.borderLt}`,
         background: W.card, color: W.inkMid,
         fontSize: "0.875rem", fontFamily: "inherit", outline: "none",
-        ...(props.style ?? {}),
+        boxShadow: hasError ? "0 0 0 3px rgba(168,72,47,0.08)" : undefined,
+        transition: "border-color 150ms ease, box-shadow 150ms ease",
+        ...(style ?? {}),
       }}
     />
   );
@@ -97,23 +114,44 @@ function WSelect(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
   );
 }
 
+function validateBirthForm(form: BirthFormState): Record<string, string> {
+  const e: Record<string, string> = {};
+  if (!form.displayName.trim()) e.displayName = "Name is required";
+  if (!form.birthDateLocal) e.birthDateLocal = "Birth date is required";
+  if (!form.birthPlace.trim()) e.birthPlace = "Birth place is required";
+  else if (!form.birthLatitude || isNaN(Number(form.birthLatitude))) e.birthPlace = "Select a place from the dropdown";
+  if (!form.birthTimezone.trim()) e.birthTimezone = "Timezone is required";
+  return e;
+}
+
 export function EditProfileModal({
   lang, birthForm, busySaving, isExistingProfile,
   onClose, onChange, onSubmit, onOpenRectification, onDeleteProfile,
 }: EditProfileModalProps) {
   const { nextBirthDateOrCurrent, applyPlaceSelection } = useBirthProfileForm();
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const coordsConfirm = usePlaceCoordinatesConfirm(birthForm.birthPlace, birthForm.birthLatitude, birthForm.birthLongitude);
+  const reduce = useReducedMotion();
+
+  function handleValidatedSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const errors = validateBirthForm(birthForm);
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+    onSubmit(e);
+  }
+
+  function clearError(field: string) {
+    if (fieldErrors[field]) setFieldErrors((prev) => { const n = { ...prev }; delete n[field]; return n; });
+  }
+
   return (
-    <div
-      style={{
-        position: "fixed", inset: 0, zIndex: 200,
-        background: "rgba(26,22,18,0.55)",
-        backdropFilter: "blur(4px)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "16px", overflowY: "auto",
-      }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div style={{
+    <ModalShell label={t("modal_edit_profile_title", lang)} onClose={onClose}>
+      <motion.div
+        initial={reduce ? false : { opacity: 0, scale: 0.96, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: reduce ? 0 : 0.28, ease: EASE_NOVA }}
+        style={{
         width: "min(580px, 100%)",
         background: W.surface,
         border: `1.5px solid ${W.borderLt}`,
@@ -144,11 +182,11 @@ export function EditProfileModal({
         </div>
 
         {/* Form */}
-        <form id="form-edit-profile" onSubmit={onSubmit}>
+        <form id="form-edit-profile" onSubmit={handleValidatedSubmit}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "14px" }}>
-            <WField label={t("field_display_name", lang)}>
-              <WInput value={birthForm.displayName}
-                onChange={(e) => onChange({ ...birthForm, displayName: e.target.value })} />
+            <WField label={t("field_display_name", lang)} required error={fieldErrors.displayName}>
+              <WInput required hasError={!!fieldErrors.displayName} value={birthForm.displayName}
+                onChange={(e) => { onChange({ ...birthForm, displayName: e.target.value }); clearError("displayName"); }} />
             </WField>
             <WField label={t("field_relationship", lang)}>
               <WSelect value={birthForm.relationshipToOwner}
@@ -162,13 +200,11 @@ export function EditProfileModal({
                 <option value="other">{t("rel_other", lang)}</option>
               </WSelect>
             </WField>
-            <WField label={t("field_birth_date", lang)}>
-              <WInput type="date" value={birthForm.birthDateLocal} min={MIN_BIRTH_DATE} max={maxBirthDateIso()}
+            <WField label={t("field_birth_date", lang)} required error={fieldErrors.birthDateLocal}>
+              <WInput required hasError={!!fieldErrors.birthDateLocal} type="date" value={birthForm.birthDateLocal} min={MIN_BIRTH_DATE} max={maxBirthDateIso()}
                 onChange={(e) => {
-                  onChange({
-                    ...birthForm,
-                    birthDateLocal: nextBirthDateOrCurrent(birthForm.birthDateLocal, e.target.value),
-                  });
+                  onChange({ ...birthForm, birthDateLocal: nextBirthDateOrCurrent(birthForm.birthDateLocal, e.target.value) });
+                  clearError("birthDateLocal");
                 }} />
             </WField>
             <WField label={t("field_birth_time", lang)}>
@@ -189,24 +225,40 @@ export function EditProfileModal({
                 </button>
               )}
             </WField>
-            <WField label={t("field_birth_place", lang)}>
-              <PlaceCombobox value={birthForm.birthPlace}
-                onChange={(city, raw) => onChange(applyPlaceSelection(birthForm, city, raw))} />
+            <WField label={t("field_birth_place", lang)} required error={fieldErrors.birthPlace}>
+              <PlaceCombobox required value={birthForm.birthPlace}
+                lang={lang}
+                onChange={(city, raw) => {
+                  onChange(applyPlaceSelection(birthForm, city, raw));
+                  clearError("birthPlace");
+                  coordsConfirm.setMatched(city !== null);
+                }} />
             </WField>
-            <WField label={t("field_timezone", lang)}>
-              <WInput value={birthForm.birthTimezone}
-                onChange={(e) => onChange({ ...birthForm, birthTimezone: e.target.value })} />
+            <WField label={t("field_timezone", lang)} required error={fieldErrors.birthTimezone}>
+              <WInput required hasError={!!fieldErrors.birthTimezone} value={birthForm.birthTimezone}
+                onChange={(e) => { onChange({ ...birthForm, birthTimezone: e.target.value }); clearError("birthTimezone"); }} />
             </WField>
-            <WField label={t("field_latitude", lang)}>
-              <WInput inputMode="decimal" value={birthForm.birthLatitude}
-                onChange={(e) => onChange({ ...birthForm, birthLatitude: e.target.value })} />
-            </WField>
-            <WField label={t("field_longitude", lang)}>
-              <WInput inputMode="decimal" value={birthForm.birthLongitude}
-                onChange={(e) => onChange({ ...birthForm, birthLongitude: e.target.value })} />
-            </WField>
+            {coordsConfirm.showRawFields ? (
+              <>
+                <WField label={t("field_latitude", lang)} required>
+                  <WInput required inputMode="decimal" value={birthForm.birthLatitude}
+                    onChange={(e) => onChange({ ...birthForm, birthLatitude: e.target.value })} />
+                </WField>
+                <WField label={t("field_longitude", lang)} required>
+                  <WInput required inputMode="decimal" value={birthForm.birthLongitude}
+                    onChange={(e) => onChange({ ...birthForm, birthLongitude: e.target.value })} />
+                </WField>
+                <PlaceCoordinatesFooter lang={lang} place={birthForm.birthPlace} matched={!!coordsConfirm.matched}
+                  onUseMatched={() => coordsConfirm.setEditing(false)} />
+              </>
+            ) : (
+              <PlaceMatchedBadge lang={lang} place={birthForm.birthPlace}
+                latitude={birthForm.birthLatitude} longitude={birthForm.birthLongitude}
+                onEditClick={() => coordsConfirm.setEditing(true)} />
+            )}
             <WField label={lang === "ta" ? "தினசரி நேரங்களுக்கான தற்போதைய நகரம்" : "Current City (Daily Timings)"}>
               <PlaceCombobox value={birthForm.currentPlace}
+                lang={lang}
                 onChange={(city, raw) => onChange({
                   ...birthForm,
                   currentPlace: raw,
@@ -233,6 +285,16 @@ export function EditProfileModal({
                 <option value="married">{t("marital_married", lang)}</option>
                 <option value="divorced">{t("marital_divorced", lang)}</option>
                 <option value="widowed">{t("marital_widowed", lang)}</option>
+                <option value="undisclosed">{t("marital_undisclosed", lang)}</option>
+              </WSelect>
+            </WField>
+            <WField label={t("field_children", lang)}>
+              <WSelect value={birthForm.children}
+                onChange={(e) => onChange({ ...birthForm, children: e.target.value })}>
+                <option value="">{t("children_select", lang)}</option>
+                <option value="has">{t("children_has", lang)}</option>
+                <option value="none">{t("children_none", lang)}</option>
+                <option value="undisclosed">{t("children_undisclosed", lang)}</option>
               </WSelect>
             </WField>
             <WField label={t("field_employment_type", lang)}>
@@ -300,7 +362,7 @@ export function EditProfileModal({
             {busySaving ? t("btn_saving", lang) : t("btn_save_recalc", lang)}
           </button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </ModalShell>
   );
 }

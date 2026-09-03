@@ -5,34 +5,85 @@ Produces an 8-level marriage compatibility report beyond the traditional 10-kuta
 Porutham check. Requires two fully computed chart snapshots (ChartCalculateResponseData)
 and the Porutham + Synastry scores already computed by the existing engines.
 
-Scoring model (total 100 points):
-  Porutham (kutas)          20 pts
+Scoring model (total 100 points) — REWEIGHTED by astrologer ruling 2026-08-28:
+  Porutham (kutas)          35 pts  (was 20)
   7th house strength        20 pts  (10 per person)
-  Navamsa (D9) quality      20 pts
+  Navamsa (D9) quality      15 pts  (was 20)
   Dasha alignment           15 pts
   Dosha analysis            10 pts  (Sevvai + Nadi combined)
-  Emotional compatibility   10 pts
-  Synastry (chart aspects)   5 pts  (mapped from 0-100)
+  Emotional compatibility    5 pts  (was 10)
+  Synastry (chart aspects)   0 pts  (was 5 — dropped from the composite)
+
+WHY THESE NUMBERS, and the instruction that came with them:
+
+  "De-duplicate by trimming Emotional and Navamsa, not by capping Porutham."
+
+20 of 100 was too low for a Tamil audience. The ten poruthams are the instrument
+the family actually uses, and a report that weights them at one fifth will
+sometimes disagree with the elder in the room and lose that argument whatever
+the other eighty points say.
+
+But raising Porutham alone would have INFLATED every score, because Moon-Moon
+harmony (Emotional) and the D9 Venus / 7th-lord agreement (Navamsa) partly
+RESTATE what the ten poruthams already measure. Trimming those two is what makes
+the raise honest rather than additive — the same agreement is no longer counted
+twice. Synastry, the Western-aspect layer, leaves the composite entirely; it is
+still computed and still reported on its own (`synastry_score`), just not
+weighted into the headline number.
+
+Each layer keeps its own native scale in its own dataclass — `NavamsaAnalysis.
+score` is still 0-20 and `EmotionalCompatibility.score` still 0-10, because
+those are what the layer detail panels display. Only the CONTRIBUTION to the
+composite is rescaled, in `compute_compatibility_intelligence`. Do not "tidy"
+that by rescaling the layer dataclasses: their ranges are on the wire.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 from typing import Any
 
+from app.calculations._yoga_dosham import detect_sevvai_dosham
 from app.calculations.astro import utc_datetime_to_julian_day
 from app.calculations.chart_strength import (
+    _NATURAL_ENEMIES,
+    _NATURAL_FRIENDS,
     EXALTATION_RASI,
     OWN_SIGN_RASI,
     SIGN_LORD,
-    _NATURAL_ENEMIES,
-    _NATURAL_FRIENDS,
 )
-from app.calculations.dasha import DASHA_YEARS, calculate_vimshottari_timeline
+from app.calculations.dasha import calculate_vimshottari_timeline
+from app.calculations.display_names import planet_en, planet_ta
 
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
+#: The composite's layer weights, ruled 2026-08-28. **This is the single source
+#: of truth** — the assembly rescales against it and `tests/
+#: test_compatibility_intelligence.py` asserts it sums to 100, so a weight can
+#: no longer be changed in one place and left stale in another.
+#:
+#: `web/components/compatibility-intelligence-panel.tsx` carries a hand-typed
+#: copy of these maxima for its bars. Nothing checks the two against each other
+#: — a change here that misses that file renders every bar against the wrong
+#: denominator while the numbers stay right, which is the hardest kind of wrong
+#: to spot. Update both or neither.
+COMPATIBILITY_LAYER_MAX: dict[str, int] = {
+    "porutham": 35,
+    "seventh_house": 20,
+    "navamsa": 15,
+    "dasha_harmony": 15,
+    "dosham_analysis": 10,
+    "emotional": 5,
+    "synastry": 0,
+}
+
+#: The native scales the layer scorers emit, before the composite trims them.
+#: Kept separate because each layer's own detail panel displays its native
+#: score, and those ranges are on the wire.
+_NAVAMSA_NATIVE_MAX = 20
+_EMOTIONAL_NATIVE_MAX = 10
 
 _MALEFICS = frozenset({"MARS", "SATURN", "RAHU", "KETU", "SUN"})
 _KENDRAS = frozenset({1, 4, 7, 10})
@@ -53,12 +104,20 @@ def _seventh_house_rasi(lagna_rasi: int) -> int:
 
 
 def _graha_relation(a: str, b: str) -> str:
+    """Compound relationship (Doctrine §11): enemy in either direction wins
+    over friend in either direction — matches porutham._graha_maitri_kuta's
+    existing enemy-priority logic, so the two modules cannot silently
+    diverge on the same relationship concept."""
     if a == b:
         return "friend"
-    if b in _NATURAL_FRIENDS.get(a, frozenset()) or a in _NATURAL_FRIENDS.get(b, frozenset()):
-        return "friend"
-    if b in _NATURAL_ENEMIES.get(a, frozenset()) or a in _NATURAL_ENEMIES.get(b, frozenset()):
+    a_enemy_b = b in _NATURAL_ENEMIES.get(a, frozenset())
+    b_enemy_a = a in _NATURAL_ENEMIES.get(b, frozenset())
+    if a_enemy_b or b_enemy_a:
         return "enemy"
+    a_friend_b = b in _NATURAL_FRIENDS.get(a, frozenset())
+    b_friend_a = a in _NATURAL_FRIENDS.get(b, frozenset())
+    if a_friend_b and b_friend_a:
+        return "friend"
     return "neutral"
 
 
@@ -132,13 +191,15 @@ class EmotionalCompatibility:
 
 @dataclass
 class CompatibilityScoreBreakdown:
-    porutham: int = 0        # 0-20
+    # Weights ruled 2026-08-28; see the module docstring for why the raise to
+    # Porutham is paid for by Navamsa and Emotional rather than by capping.
+    porutham: int = 0        # 0-35
     seventh_house: int = 0   # 0-20
-    navamsa: int = 0         # 0-20
+    navamsa: int = 0         # 0-15
     dasha_harmony: int = 0   # 0-15
     dosham_analysis: int = 0 # 0-10
-    emotional: int = 0       # 0-10
-    synastry: int = 0        # 0-5
+    emotional: int = 0       # 0-5
+    synastry: int = 0        # always 0 — out of the composite, still reported alone
 
 
 @dataclass
@@ -189,81 +250,95 @@ class CompatibilityIntelligenceResult:
 
 
 # ---------------------------------------------------------------------------
-# Level 5: Sevvai Dosham
+# Level 5: Sevvai Dosham — delegates to the main dosham engine's
+# detect_sevvai_dosham (Lagna + Moon + Venus references, nivarthi rules) so
+# this report and the Jadhagam card can never disagree on has_dosham/
+# is_cancelled for the same chart (WI-13).
 # ---------------------------------------------------------------------------
-
-_SEVVAI_HOUSES = frozenset({1, 2, 4, 7, 8, 12})
-_SEVVAI_SEVERE = frozenset({7, 8})
-_SEVVAI_MODERATE = frozenset({1, 4})
-_SEVVAI_MILD = frozenset({2, 12})
-
 
 def _compute_sevvai(snap: Any) -> SevvaiDoshamDetail:
     mars = _get_planet(snap, "MARS")
-    h = mars.house_from_lagna
-    has_dosham = h in _SEVVAI_HOUSES
+    lagna_rasi = snap.data.lagna.rasi
+    planets_rasi_map = {p.graha: p.rasi for p in snap.data.planets}
+    gender = getattr(snap.data.birth_profile, "gender_for_traditional_rules", None)
 
-    if not has_dosham:
-        return SevvaiDoshamDetail(
-            has_dosham=False, mars_house=h, is_cancelled=False,
-            severity="NONE", cancellation_reasons=[],
-            note_en=f"No Sevvai Dosham — Mars is in house {h}.",
-            note_ta=f"செவ்வாய் தோஷம் இல்லை — செவ்வாய் {h}ஆம் இடத்தில்.",
-            score=5,
-        )
+    result = detect_sevvai_dosham(planets_rasi_map, lagna_rasi, gender=gender)
 
-    # Severity
-    if h in _SEVVAI_SEVERE:
-        severity = "SEVERE"
-    elif h in _SEVVAI_MODERATE:
-        severity = "MODERATE"
+    if not result.is_present:
+        severity, score = "NONE", 5
+    elif result.is_cancelled:
+        severity, score = "NONE", 4
+    elif result.strength == "STRONG":
+        severity, score = "SEVERE", 0
     else:
-        severity = "MILD"
-
-    cancellations: list[str] = []
-
-    # Mars in own sign
-    if mars.rasi in OWN_SIGN_RASI.get("MARS", frozenset()):
-        cancellations.append("Mars in own sign (Aries/Scorpio) — dosham significantly reduced")
-
-    # Mars exalted (Capricorn = rasi 10)
-    if mars.rasi == EXALTATION_RASI.get("MARS"):
-        cancellations.append("Mars exalted in Capricorn — dosham considerably mitigated")
-
-    # Mars in 1st house with strong lagna lord
-    if h == 1:
-        cancellations.append("Mars in 1st house — Lagna placement is disputed as full dosham by many schools")
-
-    # Jupiter conjunction or aspect (houses differ by 5, 7, 9 for Vedic aspect)
-    try:
-        jupiter = _get_planet(snap, "JUPITER")
-        if jupiter.house_from_lagna == h:
-            cancellations.append("Jupiter conjunct Mars — cancels dosham")
-        elif abs(jupiter.house_from_lagna - h) in {4, 6, 8}:
-            cancellations.append("Jupiter aspects Mars — partial mitigation")
-    except ValueError:
-        pass
-
-    is_cancelled = bool(cancellations and severity != "SEVERE")
-    final_severity = "NONE" if is_cancelled else severity
-
-    score_map = {"NONE": 5, "MILD": 4, "MODERATE": 2, "SEVERE": 0}
-    score = score_map.get(final_severity, 2)
-    if is_cancelled:
-        score = 4
-
-    if is_cancelled:
-        note_en = f"Sevvai Dosham (Mars in house {h}) is cancelled: {'; '.join(cancellations)}."
-        note_ta = f"செவ்வாய் தோஷம் ({h}ஆம் இடம்) நீக்கப்படுகிறது: {'; '.join(cancellations)}."
-    else:
-        note_en = f"Sevvai Dosham present — Mars in house {h} ({severity}). Matching partner's dosham level is recommended."
-        note_ta = f"செவ்வாய் தோஷம் உள்ளது — {h}ஆம் இடத்தில் செவ்வாய் ({severity}). இணைவரின் தோஷ நிலையுடன் பொருத்துவது பரிந்துரைக்கப்படுகிறது."
+        severity, score = "MODERATE", 2
 
     return SevvaiDoshamDetail(
-        has_dosham=has_dosham, mars_house=h, is_cancelled=is_cancelled,
-        severity=final_severity, cancellation_reasons=cancellations,
-        note_en=note_en, note_ta=note_ta, score=score,
+        has_dosham=result.is_present,
+        mars_house=mars.house_from_lagna,
+        is_cancelled=result.is_cancelled,
+        severity=severity,
+        cancellation_reasons=list(result.cancellation_factors),
+        note_en=result.explanation_why_en,
+        note_ta=result.explanation_why_ta,
+        score=score,
     )
+
+
+_SEVERITY_TA = {"SEVERE": "தீவிரம்", "MODERATE": "நடுத்தரம்", "MILD": "லேசானது", "NONE": "இல்லை"}
+
+
+def sevvai_risk_lines(
+    sevvai_a: SevvaiDoshamDetail, sevvai_b: SevvaiDoshamDetail
+) -> tuple[list[str], list[str]]:
+    """The report's Sevvai Dosham lines, (english, tamil).
+
+    Three states, three readings — and the third one used to be silent.
+
+    An *active* dosham is a live risk. A *cancelled* dosham is not the same
+    thing as no dosham at all: it carries a residue a clear chart does not,
+    which is why `_compute_sevvai` scores it 4 rather than 5, and why anchor
+    case 4 (2026-08-31) says the family must be told it was cancelled, **not**
+    that it was absent. Before this, both branches required
+    ``not is_cancelled``, so a cancelled dosham produced no line anywhere — not
+    a risk, not a strength — and the report read exactly like one for a couple
+    who never had it.
+
+    Cancellation lands in risks rather than strengths because it is a qualified
+    concern, not an asset. That is the same position the dosham panel already
+    takes in words: "for marriage matching, this should not be called 'dosham
+    free', but the protective factors mean the practical impact is mild."
+
+    Extracted from the narrative block so the rule can be tested directly; it
+    was thirty lines of inline branching that nothing could reach.
+    """
+    risks_en: list[str] = []
+    risks_ta: list[str] = []
+
+    for person, sevvai in (("A", sevvai_a), ("B", sevvai_b)):
+        if not sevvai.has_dosham:
+            continue
+        if sevvai.is_cancelled:
+            risks_en.append(
+                f"Person {person} has Sevvai Dosham, cancelled by protective "
+                "factors — reduced, not absent"
+            )
+            risks_ta.append(
+                f"நபர் {person}-க்கு செவ்வாய் தோஷம் உள்ளது, நிவர்த்தி காரணங்களால் "
+                "நீக்கப்பட்டுள்ளது — குறைந்துள்ளது, இல்லாமல் இல்லை"
+            )
+        else:
+            severity_ta = _SEVERITY_TA.get(sevvai.severity, sevvai.severity)
+            risks_en.append(
+                f"Person {person} has active Sevvai Dosham "
+                f"({sevvai.severity.lower()}) — matching recommended"
+            )
+            risks_ta.append(
+                f"நபர் {person}-க்கு செவ்வாய் தோஷம் உள்ளது ({severity_ta}) — "
+                "பொருத்தம் பரிந்துரை"
+            )
+
+    return risks_en, risks_ta
 
 
 def _apply_mutual_sevvai_cancellation(a: SevvaiDoshamDetail, b: SevvaiDoshamDetail) -> tuple[SevvaiDoshamDetail, SevvaiDoshamDetail]:
@@ -347,34 +422,39 @@ def _compute_chart_marriage_strength(snap: Any) -> ChartMarriageStrength:
     score = max(0, min(10, score))
 
     # Build notes
+    seventh_lord_ta, seventh_lord_en = planet_ta(seventh_lord), planet_en(seventh_lord)
+    malefics_ta = ", ".join(planet_ta(p) for p in malefics_in_7th)
+    malefics_en = ", ".join(planet_en(p) for p in malefics_in_7th)
     if score >= 8:
         note_en = (
-            f"Strong marriage indicators: 7th lord {seventh_lord} in house {seventh_lord_house} "
+            f"Strong marriage indicators: 7th lord {seventh_lord_en} in house {seventh_lord_house} "
             f"with strength {seventh_lord_strength}/100; Venus strength {venus.strength_score}/100."
         )
         note_ta = (
-            f"திருமண அறிகுறிகள் வலுவானவை: 7ஆம் அதிபதி {seventh_lord} {seventh_lord_house}ஆம் இடத்தில், "
+            f"திருமண அறிகுறிகள் வலுவானவை: 7ஆம் அதிபதி {seventh_lord_ta} {seventh_lord_house}ஆம் இடத்தில், "
             f"வலிமை {seventh_lord_strength}/100; சுக்கிர வலிமை {venus.strength_score}/100."
         )
     elif score >= 5:
         note_en = (
-            f"Moderate marriage strength: 7th lord {seventh_lord} in house {seventh_lord_house}; "
+            f"Moderate marriage strength: 7th lord {seventh_lord_en} in house {seventh_lord_house}; "
             f"Venus in house {venus.house_from_lagna}."
-            + (f" Note: {', '.join(malefics_in_7th)} in 7th house." if malefics_in_7th else "")
+            + (f" Note: {malefics_en} in 7th house." if malefics_in_7th else "")
         )
         note_ta = (
-            f"நடுத்தர திருமண வலிமை: 7ஆம் அதிபதி {seventh_lord} {seventh_lord_house}ஆம் இடத்தில்; "
+            f"நடுத்தர திருமண வலிமை: 7ஆம் அதிபதி {seventh_lord_ta} {seventh_lord_house}ஆம் இடத்தில்; "
             f"சுக்கிரன் {venus.house_from_lagna}ஆம் இடத்தில்."
+            + (f" கவனிக்க: 7ஆம் வீட்டில் {malefics_ta}." if malefics_in_7th else "")
         )
     else:
         note_en = (
-            f"Marriage house needs attention: 7th lord {seventh_lord} in house {seventh_lord_house} "
+            f"Marriage house needs attention: 7th lord {seventh_lord_en} in house {seventh_lord_house} "
             f"(strength {seventh_lord_strength}/100)."
-            + (f" {', '.join(malefics_in_7th)} in 7th house — remedies advised." if malefics_in_7th else "")
+            + (f" {malefics_en} in 7th house — remedies advised." if malefics_in_7th else "")
         )
         note_ta = (
-            f"திருமண இடம் கவனம் தேவை: 7ஆம் அதிபதி {seventh_lord} {seventh_lord_house}ஆம் இடத்தில் "
+            f"திருமண இடம் கவனம் தேவை: 7ஆம் அதிபதி {seventh_lord_ta} {seventh_lord_house}ஆம் இடத்தில் "
             f"(வலிமை {seventh_lord_strength}/100)."
+            + (f" 7ஆம் வீட்டில் {malefics_ta} — பரிகாரம் பரிந்துரை." if malefics_in_7th else "")
         )
 
     return ChartMarriageStrength(
@@ -396,6 +476,12 @@ def _compute_chart_marriage_strength(snap: Any) -> ChartMarriageStrength:
 # ---------------------------------------------------------------------------
 # Level 4: Navamsa (D9)
 # ---------------------------------------------------------------------------
+
+def _d9_dignified(planet: str, d9_rasi: int) -> bool:
+    """Is this planet in its own sign or exaltation sign in the D9 (WI-04)."""
+    return (d9_rasi in OWN_SIGN_RASI.get(planet, frozenset())
+            or d9_rasi == EXALTATION_RASI.get(planet))
+
 
 def _compute_navamsa(snap_a: Any, snap_b: Any) -> NavamsaCompatibility:
     venus_a = _get_planet(snap_a, "VENUS")
@@ -442,10 +528,14 @@ def _compute_navamsa(snap_a: Any, snap_b: Any) -> NavamsaCompatibility:
     elif vb_d9 == EXALTATION_RASI.get("VENUS"):
         score += 3
 
-    # 7th lords D9
-    if sla_d9 and sla_d9 in (_KENDRAS | _TRIKONAS):
+    # 7th lords D9 — dignity check (own sign or exaltation), not a
+    # kendra/trikona house test: sla_d9/slb_d9 are D9 SIGN numbers (1-12), and
+    # _KENDRAS|_TRIKONAS is a set of HOUSE positions — comparing a sign number
+    # against a house set is a category error that awarded points on 6 of 12
+    # signs regardless of dignity (WI-04).
+    if sla_d9 and _d9_dignified(seventh_lord_a, sla_d9):
         score += 3
-    if slb_d9 and slb_d9 in (_KENDRAS | _TRIKONAS):
+    if slb_d9 and _d9_dignified(seventh_lord_b, slb_d9):
         score += 3
 
     score = max(0, min(20, score))
@@ -484,7 +574,6 @@ def _compute_navamsa(snap_a: Any, snap_b: Any) -> NavamsaCompatibility:
 # ---------------------------------------------------------------------------
 
 def _jd_for_today() -> float:
-    from app.calculations.astro import utc_datetime_to_julian_day
     return utc_datetime_to_julian_day(datetime.now(tz=UTC))
 
 
@@ -510,26 +599,29 @@ def _compute_dasha_harmony(snap_a: Any, snap_b: Any, today_jd: float) -> DashaHa
     both_supportive = maha_a in _MARRIAGE_DASHAS and maha_b in _MARRIAGE_DASHAS
     one_supportive = maha_a in _MARRIAGE_DASHAS or maha_b in _MARRIAGE_DASHAS
 
+    maha_a_ta, maha_a_en = planet_ta(maha_a), planet_en(maha_a)
+    maha_b_ta, maha_b_en = planet_ta(maha_b), planet_en(maha_b)
+
     if relation == "friend" and both_supportive:
         score = 15
         harmony_label = "SUPPORTIVE"
         note_en = (
-            f"Both partners are in supportive dashas ({maha_a} and {maha_b}) and their dasha lords "
+            f"Both partners are in supportive dashas ({maha_a_en} and {maha_b_en}) and their dasha lords "
             f"are mutually friendly — an auspicious time for marriage planning."
         )
         note_ta = (
-            f"இரு நபர்களும் சாதகமான தசைகளில் உள்ளனர் ({maha_a} மற்றும் {maha_b}); தசை அதிபதிகள் "
+            f"இரு நபர்களும் சாதகமான தசைகளில் உள்ளனர் ({maha_a_ta} மற்றும் {maha_b_ta}); தசை அதிபதிகள் "
             f"நண்பர்கள் — திருமண திட்டமிடலுக்கு நல்ல காலம்."
         )
     elif relation == "friend":
         score = 12
         harmony_label = "SUPPORTIVE"
         note_en = (
-            f"Dasha lords {maha_a} and {maha_b} are friendly planets — supportive period for the relationship, "
+            f"Dasha lords {maha_a_en} and {maha_b_en} are friendly planets — supportive period for the relationship, "
             f"though timing may need checking against transit support."
         )
         note_ta = (
-            f"தசை அதிபதிகள் {maha_a} மற்றும் {maha_b} நண்பர்கள் — உறவுக்கு சாதகமான காலம்; "
+            f"தசை அதிபதிகள் {maha_a_ta} மற்றும் {maha_b_ta} நண்பர்கள் — உறவுக்கு சாதகமான காலம்; "
             f"கோச்சார ஆதரவையும் சரிபார்க்கவும்."
         )
     elif relation == "neutral":
@@ -537,32 +629,34 @@ def _compute_dasha_harmony(snap_a: Any, snap_b: Any, today_jd: float) -> DashaHa
         harmony_label = "MIXED"
         if one_supportive:
             score = 10
+            supportive_en = maha_a_en if maha_a in _MARRIAGE_DASHAS else maha_b_en
+            supportive_ta = maha_a_ta if maha_a in _MARRIAGE_DASHAS else maha_b_ta
             note_en = (
-                f"One partner is in a marriage-supportive dasha ({maha_a if maha_a in _MARRIAGE_DASHAS else maha_b}); "
+                f"One partner is in a marriage-supportive dasha ({supportive_en}); "
                 f"the dasha lords are neutral to each other. Moderately favourable."
             )
             note_ta = (
-                f"ஒரு நபர் திருமண சாதகமான தசையில் உள்ளார்; தசை அதிபதிகள் நடுநிலையானவர்கள். "
-                f"நடுத்தர சாதகம்."
+                f"ஒரு நபர் திருமண சாதகமான தசையில் ({supportive_ta}) உள்ளார்; தசை அதிபதிகள் நடுநிலையானவர்கள். "
+                "நடுத்தர சாதகம்."
             )
         else:
             note_en = (
-                f"Dasha lords {maha_a} and {maha_b} are neutral — stable but not particularly activated "
+                f"Dasha lords {maha_a_en} and {maha_b_en} are neutral — stable but not particularly activated "
                 f"for relationship matters in this period."
             )
             note_ta = (
-                f"தசை அதிபதிகள் {maha_a} மற்றும் {maha_b} நடுநிலையானவர்கள் — நிலையான ஆனால் "
+                f"தசை அதிபதிகள் {maha_a_ta} மற்றும் {maha_b_ta} நடுநிலையானவர்கள் — நிலையான ஆனால் "
                 f"திருமண விஷயங்களுக்கு குறிப்பாக செயல்படவில்லை."
             )
     else:  # enemy
         score = 4
         harmony_label = "CHALLENGING"
         note_en = (
-            f"Dasha lords {maha_a} and {maha_b} are in an inimical relationship — this period may "
+            f"Dasha lords {maha_a_en} and {maha_b_en} are in an inimical relationship — this period may "
             f"bring friction; patience and communication are especially important."
         )
         note_ta = (
-            f"தசை அதிபதிகள் {maha_a} மற்றும் {maha_b} எதிர் தன்மை கொண்டவர்கள் — இந்த காலம் "
+            f"தசை அதிபதிகள் {maha_a_ta} மற்றும் {maha_b_ta} எதிர் தன்மை கொண்டவர்கள் — இந்த காலம் "
             f"சில மோதல்களை கொண்டுவரலாம்; பொறுமை மற்றும் தொடர்பு முக்கியம்."
         )
 
@@ -584,20 +678,32 @@ def _compute_dasha_harmony(snap_a: Any, snap_b: Any, today_jd: float) -> DashaHa
 # Level 7: Emotional Compatibility
 # ---------------------------------------------------------------------------
 
+# Doctrine §10 (ratified 2026-07-16) — reconciled, symmetric table. Keys are
+# the inclusive 1-based count (a-b) % 12 + 1; the table is kept verbatim in
+# both directions (k and 14-k share a value) even though the lookup below
+# only ever indexes the smaller-side keys 1-7 (see _moon_harmony_label).
 _MOON_HARMONY_TABLE: dict[int, str] = {
-    1: "GOOD",   # same rasi
-    2: "EXCELLENT", 12: "EXCELLENT",
-    5: "EXCELLENT", 9: "EXCELLENT",  # trikona
-    3: "GOOD", 11: "GOOD",
-    4: "MIXED", 8: "MIXED",   # kendra (some tension)
-    6: "TENSE", 7: "TENSE",
-    10: "MIXED",
+    1: "GOOD",                        # same rasi
+    2: "MIXED", 12: "MIXED",          # dwirdwadasa
+    3: "GOOD", 11: "GOOD",            # upachaya
+    4: "GOOD", 10: "GOOD",            # kendra
+    5: "EXCELLENT", 9: "EXCELLENT",   # trikona
+    6: "TENSE", 8: "TENSE",           # shadashtaka
+    7: "GOOD",                        # samasaptama
 }
 
 
 def _moon_harmony_label(rasi_a: int, rasi_b: int) -> str:
-    diff = (rasi_a - rasi_b) % 12 + 1
-    return _MOON_HARMONY_TABLE.get(diff, "MIXED")
+    """Symmetric lookup: harmony(a, b) == harmony(b, a) for all rasi pairs.
+
+    Folds to the smaller directional distance using the 0-indexed difference
+    (0..11) before mapping into the table — NOT by folding the 1-based count
+    directly (e.g. min(count, 13-count)), which is a trap that wrongly
+    collapses samasaptama (7) into the shadashtaka (6/8) bucket (WI-05).
+    """
+    d = (rasi_a - rasi_b) % 12
+    normalized = min(d, 12 - d)
+    return _MOON_HARMONY_TABLE.get(normalized + 1, "MIXED")
 
 
 def _compute_emotional_compatibility(snap_a: Any, snap_b: Any) -> EmotionalCompatibility:
@@ -615,8 +721,8 @@ def _compute_emotional_compatibility(snap_a: Any, snap_b: Any) -> EmotionalCompa
     vm_diff_ba = abs(venus_b.house_from_lagna - mars_a.house_from_lagna)
     vm_diff_ab_alt = 12 - vm_diff_ab
     vm_diff_ba_alt = 12 - vm_diff_ba
-    vm_ab = min(vm_diff_ab, vm_diff_ab_alt)
-    vm_ba = min(vm_diff_ba, vm_diff_ba_alt)
+    vm_ab = min(vm_diff_ab, vm_diff_ab_alt)  # noqa: F841 — retained scaffolding; harmony uses rasi distance below
+    vm_ba = min(vm_diff_ba, vm_diff_ba_alt)  # noqa: F841 — retained scaffolding; harmony uses rasi distance below
 
     # Use rasi distance between Venus A and Venus B for overall Venus harmony
     venus_rasi_diff = (venus_a.rasi - venus_b.rasi) % 12 + 1
@@ -635,12 +741,19 @@ def _compute_emotional_compatibility(snap_a: Any, snap_b: Any) -> EmotionalCompa
     score = moon_score_map.get(moon_harmony, 2) + vm_score_map.get(venus_mars_harmony, 3)
     score = max(0, min(10, score))
 
-    moon_diff_desc = (moon_b.rasi - moon_a.rasi) % 12 + 1
+    moon_diff_desc = (moon_b.rasi - moon_a.rasi) % 12 + 1  # noqa: F841 — retained scaffolding for future moon-distance note
     communication_note = (
         "Natural emotional wavelength — communication will feel effortless."
         if moon_harmony in {"EXCELLENT", "GOOD"}
         else "Different emotional styles — intentional communication and empathy bridge the gap."
     )
+
+    _HARMONY_TA = {
+        "EXCELLENT": "மிகச் சிறந்த", "GOOD": "நல்ல", "STRONG": "வலுவான",
+        "MIXED": "கலப்பான", "TENSE": "இறுக்கமான",
+    }
+    moon_harmony_ta = _HARMONY_TA.get(moon_harmony, "கலப்பான")
+    venus_harmony_ta = _HARMONY_TA.get(venus_mars_harmony, "கலப்பான")
 
     if score >= 8:
         note_en = (
@@ -648,8 +761,8 @@ def _compute_emotional_compatibility(snap_a: Any, snap_b: Any) -> EmotionalCompa
             f"Venus compatibility is {venus_mars_harmony.lower()}. The relationship will feel emotionally nourishing."
         )
         note_ta = (
-            f"வலுவான உணர்வு இணக்கம்: சந்திர நிலைகள் {moon_harmony.lower()} இணக்கம் காட்டுகின்றன; "
-            f"சுக்கிர இணக்கம் {venus_mars_harmony.lower()}. உறவு உணர்வு ரீதியாக நல்லதாக இருக்கும்."
+            f"வலுவான உணர்வு இணக்கம்: சந்திர நிலைகள் {moon_harmony_ta} இணக்கம் காட்டுகின்றன; "
+            f"சுக்கிர இணக்கம் {venus_harmony_ta}. உறவு உணர்வு ரீதியாக நல்லதாக இருக்கும்."
         )
     elif score >= 5:
         note_en = (
@@ -657,8 +770,8 @@ def _compute_emotional_compatibility(snap_a: Any, snap_b: Any) -> EmotionalCompa
             f"Venus shows {venus_mars_harmony.lower()} alignment. Mutual understanding grows with time."
         )
         note_ta = (
-            f"நடுத்தர உணர்வு இணக்கம்: சந்திர இணக்கம் {moon_harmony.lower()}, "
-            f"சுக்கிரன் {venus_mars_harmony.lower()} அமைப்பு. பரஸ்பர புரிதல் நேரத்துடன் வளரும்."
+            f"நடுத்தர உணர்வு இணக்கம்: சந்திர இணக்கம் {moon_harmony_ta}, "
+            f"சுக்கிர இணக்கம் {venus_harmony_ta}. பரஸ்பர புரிதல் நேரத்துடன் வளரும்."
         )
     else:
         note_en = (
@@ -666,7 +779,7 @@ def _compute_emotional_compatibility(snap_a: Any, snap_b: Any) -> EmotionalCompa
             f"Building shared emotional vocabulary is the key investment for this relationship."
         )
         note_ta = (
-            f"உணர்வு வேறுபாடுகளுக்கு கவனம் தேவை: சந்திர இணக்கம் {moon_harmony.lower()}. "
+            f"உணர்வு வேறுபாடுகளுக்கு கவனம் தேவை: சந்திர இணக்கம் {moon_harmony_ta}. "
             f"பகிரப்பட்ட உணர்வு மொழியை உருவாக்குவது இந்த உறவிற்கான முக்கிய முதலீடு."
         )
 
@@ -697,8 +810,9 @@ def compute_compatibility_intelligence(
     if today_jd is None:
         today_jd = _jd_for_today()
 
-    # Layer 1: Porutham
-    porutham_pts = round(porutham_result.percentage / 100 * 20)
+    # Layer 1: Porutham — 35 of 100 since the 2026-08-28 ruling. The single
+    # heaviest layer, which is the point: it is the instrument the family uses.
+    porutham_pts = round(porutham_result.percentage / 100 * COMPATIBILITY_LAYER_MAX["porutham"])
 
     # Layer 2+3: Chart strength
     strength_a = _compute_chart_marriage_strength(snap_a)
@@ -724,17 +838,29 @@ def compute_compatibility_intelligence(
     # Layer 7: Emotional
     emotional = _compute_emotional_compatibility(snap_a, snap_b)
 
-    # Layer 8: Synastry → 0-5 pts
-    synastry_pts = round(synastry_score / 100 * 5)
+    # Layer 8: Synastry — WEIGHT ZERO since the 2026-08-28 ruling.
+    #
+    # Still computed and still reported in full as `synastry_score`; it simply
+    # no longer moves the headline number. Kept as an explicit 0 rather than
+    # deleted because the field is on the wire across four surfaces, and because
+    # a layer that was dropped deliberately should read as dropped rather than
+    # as absent.
+    synastry_pts = COMPATIBILITY_LAYER_MAX["synastry"]
 
     # Overall score
+    # Navamsa and Emotional are rescaled HERE, not in their own scorers: each
+    # layer keeps its native scale for its own detail panel (`navamsa.score` is
+    # 0-20, `emotional.score` is 0-10) and only its contribution is trimmed.
+    # This is the "de-duplicate by trimming, not by capping" half of the ruling.
     breakdown = CompatibilityScoreBreakdown(
         porutham=porutham_pts,
         seventh_house=seventh_house_pts,
-        navamsa=navamsa.score,
+        navamsa=round(navamsa.score / _NAVAMSA_NATIVE_MAX * COMPATIBILITY_LAYER_MAX["navamsa"]),
         dasha_harmony=dasha.score,
         dosham_analysis=dosham_pts,
-        emotional=emotional.score,
+        emotional=round(
+            emotional.score / _EMOTIONAL_NATIVE_MAX * COMPATIBILITY_LAYER_MAX["emotional"]
+        ),
         synastry=synastry_pts,
     )
     overall_score = (
@@ -758,6 +884,27 @@ def compute_compatibility_intelligence(
     else:
         overall_label = "CAUTION"
 
+    # Doctrine §12 — Rajju/Vedha veto hard-caps the headline label at CAUTION
+    # regardless of the weighted 0-100 score (WI-21). Porutham is 35 of the 100
+    # weighted points (raised from 20 by the 2026-08-28 ruling; this comment
+    # said 20 until 2026-08-31), so a Rajju/Vedha dosha can still be outweighed
+    # by the other 7 levels; the traditional veto must therefore govern the
+    # headline verdict, matching the porutham engine's own shipped label-veto.
+    # overall_score itself and the full breakdown are unaffected — only the
+    # label is capped.
+    #
+    # THE 80/65/50 RUNGS BELOW HAVE NOT BEEN RETUNED SINCE porutham went 20 -> 35,
+    # and that is a deliberate hold, not an oversight. Raising the share gave one
+    # kuta of ten 3.5 composite points instead of 2, and the same ruling set made
+    # Sthree Deergham's MADHYAMA band score zero — which is 22.2% of the 729 star
+    # pairs (measured), each losing exactly 3.5 points. Retuning the rungs in the
+    # same change as the rulings that moved the distribution would make it
+    # impossible to attribute any verdict change to either one. The retune needs
+    # a measured composite distribution over real charts, not over the star grid:
+    # 65 of the 100 points come from layers no star pair determines.
+    if porutham_result.rajju_dosha or porutham_result.vedha_dosha:
+        overall_label = "CAUTION"
+
     # Strengths and risks
     strengths_en: list[str] = []
     strengths_ta: list[str] = []
@@ -779,33 +926,36 @@ def compute_compatibility_intelligence(
         risks_ta.append("ஒரு அல்லது இரு ஜாதகங்களிலும் 7ஆம் இடம் அல்லது சுக்கிரன் கவனம் தேவை")
 
     if navamsa.harmony_label in {"STRONG", "GOOD"}:
+        navamsa_ta = "வலுவானது" if navamsa.harmony_label == "STRONG" else "நல்லது"
         strengths_en.append(f"Navamsa (D9) alignment is {navamsa.harmony_label.lower()}")
-        strengths_ta.append(f"நவாம்ச (D9) இணக்கம் {navamsa.harmony_label.lower()}")
+        strengths_ta.append(f"நவாம்ச (D9) இணக்கம் {navamsa_ta}")
     elif navamsa.harmony_label == "WEAK":
         risks_en.append("Navamsa (D9) placement shows weaker marriage potential")
         risks_ta.append("நவாம்ச (D9) நிலை பலவீனமான திருமண சாத்தியத்தை காட்டுகிறது")
 
+    dasha_pair_ta = f"{planet_ta(dasha.person_a_maha_lord)} × {planet_ta(dasha.person_b_maha_lord)}"
+    dasha_pair_en = f"{planet_en(dasha.person_a_maha_lord)} × {planet_en(dasha.person_b_maha_lord)}"
     if dasha.harmony_label == "SUPPORTIVE":
-        strengths_en.append(f"Dasha period is supportive ({dasha.person_a_maha_lord} × {dasha.person_b_maha_lord})")
-        strengths_ta.append(f"தசை காலம் சாதகமானது ({dasha.person_a_maha_lord} × {dasha.person_b_maha_lord})")
+        strengths_en.append(f"Dasha period is supportive ({dasha_pair_en})")
+        strengths_ta.append(f"தசை காலம் சாதகமானது ({dasha_pair_ta})")
     elif dasha.harmony_label == "CHALLENGING":
-        risks_en.append(f"Current dasha lords are in tension ({dasha.person_a_maha_lord} × {dasha.person_b_maha_lord})")
-        risks_ta.append(f"தற்போதைய தசை அதிபதிகள் மோதலில் உள்ளனர் ({dasha.person_a_maha_lord} × {dasha.person_b_maha_lord})")
+        risks_en.append(f"Current dasha lords are in tension ({dasha_pair_en})")
+        risks_ta.append(f"தற்போதைய தசை அதிபதிகள் மோதலில் உள்ளனர் ({dasha_pair_ta})")
 
-    if sevvai_a.has_dosham and not sevvai_a.is_cancelled:
-        risks_en.append(f"Person A has active Sevvai Dosham ({sevvai_a.severity}) — matching recommended")
-        risks_ta.append(f"நபர் A-க்கு செவ்வாய் தோஷம் உள்ளது ({sevvai_a.severity}) — பொருத்தம் பரிந்துரை")
-    if sevvai_b.has_dosham and not sevvai_b.is_cancelled:
-        risks_en.append(f"Person B has active Sevvai Dosham ({sevvai_b.severity}) — matching recommended")
-        risks_ta.append(f"நபர் B-க்கு செவ்வாய் தோஷம் உள்ளது ({sevvai_b.severity}) — பொருத்தம் பரிந்துரை")
+    sevvai_risks_en, sevvai_risks_ta = sevvai_risk_lines(sevvai_a, sevvai_b)
+    risks_en.extend(sevvai_risks_en)
+    risks_ta.extend(sevvai_risks_ta)
 
     if porutham_result.rajju_dosha:
         risks_en.append("Rajju Dosha is present — health/longevity remedies advised")
         risks_ta.append("ரஜ்ஜு தோஷம் உள்ளது — ஆரோக்யம்/ஆயுள் பரிகாரம் பரிந்துரை")
 
     if emotional.score >= 8:
+        moon_harmony_summary_ta = {
+            "EXCELLENT": "மிகச் சிறந்தது", "GOOD": "நல்லது", "MIXED": "கலப்பானது", "TENSE": "இறுக்கமானது",
+        }.get(emotional.moon_moon_harmony, "நல்லது")
         strengths_en.append(f"Strong emotional resonance — Moon harmony is {emotional.moon_moon_harmony.lower()}")
-        strengths_ta.append(f"வலுவான உணர்வு இணக்கம் — சந்திர இணக்கம் {emotional.moon_moon_harmony.lower()}")
+        strengths_ta.append(f"வலுவான உணர்வு இணக்கம் — சந்திர இணக்கம் {moon_harmony_summary_ta}")
     elif emotional.score <= 3:
         risks_en.append("Emotional styles differ significantly — communication investment needed")
         risks_ta.append("உணர்வு முறைகள் வேறுபட்டுள்ளன — தொடர்பு முயற்சி தேவை")

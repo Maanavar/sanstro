@@ -8,7 +8,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
-from app.calculations.panchangam import calculate_daily_panchangam
+from app.calculations.panchangam import calculate_daily_panchangam, limb_fraction
 from app.services.narrative_engine import NAKSHATRA_NAME
 
 
@@ -21,14 +21,29 @@ class PiranthaNaalAlert:
     nakshatra_ends_at: str    # Local time when the Nakshatra ends on that day
     days_away: int
     is_today: bool
+    # True when this date was found by the majority-share rescue below rather
+    # than by the classical sunrise match, i.e. the star never touched a sunrise
+    # in this cycle. Callers can say so if they want to; nothing is hidden.
+    matched_by_overlap: bool = False
 
 
-def _format_clock_label(value: datetime | time | object | None) -> str:
+# A star that never holds a sunrise still runs for most of a day, and this is the
+# share at which the rescue below calls that day the native's Pirantha Naal.
+# Majority rather than "any overlap" on purpose: every star touches two civil
+# days, so any-overlap would fire the alert twice a cycle.
+_MAJORITY_SHARE = 0.5
+
+
+def _format_clock_label(value: datetime | time | None) -> str:
+    """`| object` used to sit in this union, which collapsed it to plain
+    ``object`` and hid `.hour`/`.strftime` from the checker. Every caller
+    passes a datetime; the fallbacks below stay as belt-and-braces for
+    values that survive a cache round-trip."""
     if value is None:
         return "N/A"
     try:
-        hour = int(getattr(value, "hour"))
-        minute = int(getattr(value, "minute"))
+        hour = int(value.hour)
+        minute = int(value.minute)
     except Exception:
         try:
             raw = str(value.strftime("%H:%M"))
@@ -52,29 +67,74 @@ def next_janma_nakshatra_date(
 ) -> PiranthaNaalAlert | None:
     """
     Scans forward up to 30 days from from_date.
-    Returns a PiranthaNaalAlert when the day's nakshatra_number matches janma_nakshatra.
-    The Moon completes one cycle in ~27.3 days, so this always finds a match within 28 days.
+
+    The classical rule dates a Pirantha Naal by the star present at **sunrise**,
+    and that is still the first thing checked here — a native's observance does
+    not move because of this function.
+
+    What it adds is a rescue. A nakshatra span runs 20.8–27.2 h against a ~24 h
+    day, so a span that begins shortly after one sunrise can end before the next:
+    measured at Chennai, ten spans a year contain no sunrise at all. Under the
+    old sunrise-only test those natives were simply skipped — the scan rolled on
+    and returned the *next* cycle, ~27 days later, so the alert silently went
+    missing for a month with nothing to show it had. When a star holds the
+    majority of a day and does not hold the following sunrise either, that day is
+    its Pirantha Naal (doctrine ruling R-3, 2026-08-19).
     """
     current = from_date
     for _ in range(30):
         panchang = calculate_daily_panchangam(current, latitude, longitude, timezone_name)
         if panchang.nakshatra_number == janma_nakshatra:
-            nak_bi = NAKSHATRA_NAME.get(janma_nakshatra)
-            name_ta = nak_bi.ta if nak_bi else str(janma_nakshatra)
-            name_en = nak_bi.en if nak_bi else str(janma_nakshatra)
-            ends_at = _format_clock_label(panchang.nakshatra_ends_at)
-            days_away = (current - from_date).days
-            return PiranthaNaalAlert(
-                janma_nakshatra=janma_nakshatra,
-                nakshatra_name_ta=name_ta,
-                nakshatra_name_en=name_en,
-                alert_date=current,
-                nakshatra_ends_at=ends_at,
-                days_away=days_away,
-                is_today=(days_away == 0),
+            return _build_alert(janma_nakshatra, panchang, current, from_date, by_overlap=False)
+
+        # Rescue, only for a star with no sunrise this cycle. The `tomorrow`
+        # check is what keeps this from pre-empting the classical answer: on an
+        # ordinary day the star that owns most of today owns tomorrow's sunrise
+        # too, and the loop is left to reach it.
+        share = limb_fraction(panchang.nakshatra_spans, lambda span: span.number == janma_nakshatra)
+        if share >= _MAJORITY_SHARE:
+            tomorrow = calculate_daily_panchangam(
+                current + timedelta(days=1), latitude, longitude, timezone_name,
             )
+            if tomorrow.nakshatra_number != janma_nakshatra:
+                return _build_alert(janma_nakshatra, panchang, current, from_date, by_overlap=True)
+
         current += timedelta(days=1)
     return None
+
+
+def _build_alert(
+    janma_nakshatra: int,
+    panchang,
+    alert_date: date,
+    from_date: date,
+    *,
+    by_overlap: bool,
+) -> PiranthaNaalAlert:
+    nak_bi = NAKSHATRA_NAME.get(janma_nakshatra)
+    days_away = (alert_date - from_date).days
+    # On a rescue day the star started *after* sunrise, so the snapshot's
+    # `nakshatra_ends_at` — measured forward from sunrise — belongs to the
+    # star that was running then, not to this one. Read the end off the span
+    # that actually is this star.
+    ends_source = panchang.nakshatra_ends_at
+    if by_overlap:
+        span = next(
+            (sp for sp in panchang.nakshatra_spans if sp.number == janma_nakshatra),
+            None,
+        )
+        if span is not None:
+            ends_source = span.end
+    return PiranthaNaalAlert(
+        janma_nakshatra=janma_nakshatra,
+        nakshatra_name_ta=nak_bi.ta if nak_bi else str(janma_nakshatra),
+        nakshatra_name_en=nak_bi.en if nak_bi else str(janma_nakshatra),
+        alert_date=alert_date,
+        nakshatra_ends_at=_format_clock_label(ends_source),
+        days_away=days_away,
+        is_today=(days_away == 0),
+        matched_by_overlap=by_overlap,
+    )
 
 
 def build_pirantha_naal_notification(

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Annotated, Literal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -33,14 +33,66 @@ class PanchangamVara(BaseModel):
     lord: str
 
 
+class PanchangamLimbSpan(BaseModel):
+    """One stretch of a single limb value inside the solar day.
+
+    Every limb ships its full day's spans, not just the first transition. That
+    matters most for karana, which averages 11.79 h: a solar day carries three
+    karanas on most days, so `nextName` alone left the third unrepresented and
+    no client could show the real timeline even if it wanted to.
+
+    `fraction` is the span's share of the solar day, so a client can rank or
+    label a stretch ("most of the day", "the last two hours") without doing
+    date arithmetic.
+    """
+
+    number: int
+    name: str
+    starts_at: str = Field(alias="startsAt")
+    ends_at: str = Field(alias="endsAt")
+    starts_at_iso: str = Field(alias="startsAtIso")
+    ends_at_iso: str = Field(alias="endsAtIso")
+    fraction: float
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PanchangamNethiramJeevan(BaseModel):
+    """Nethiram and Jeevan with the boundary they change at.
+
+    Both are a function of (Sun's star, Moon's star). Inside one day only the
+    Moon's star moves, so both flip at the nakshatra boundary — which is why
+    they belong beside Nokku, which is derived from the same star and already
+    rolls over live on the calendar card. Without `endsAt` on the wire no client
+    could make them agree.
+    """
+
+    nethiram: str
+    jeevan: str
+    nethiram_next: str = Field(alias="nethiramNext")
+    jeevan_next: str = Field(alias="jeevanNext")
+    ends_at: str = Field(alias="endsAt")
+    ends_at_iso: str = Field(alias="endsAtIso")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class PanchangamTithi(BaseModel):
     number: int
     name: str
     paksha: Literal["SHUKLA", "KRISHNA"]
     ends_at: str = Field(alias="endsAt")
+    # Full local-datetime ISO string alongside the bare "HH:MM" above — the
+    # boundary is the first crossing after sunrise, so it routinely lands on
+    # the next calendar day, and a clock-only string can't say which day.
+    # Clients must use this (not endsAt + a guessed date) for same-day-rollover
+    # promotion. See docs/... project_tithi_rollover_bug_2026-07-20 note.
+    ends_at_iso: str = Field(alias="endsAtIso")
     next_number: int = Field(alias="nextNumber")
     next_name: str = Field(alias="nextName")
     next_paksha: Literal["SHUKLA", "KRISHNA"] = Field(alias="nextPaksha")
+
+    spans: list[PanchangamLimbSpan] = Field(default_factory=list)
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -49,7 +101,12 @@ class PanchangamNakshatra(BaseModel):
     name: str
     pada: int
     ends_at: str = Field(alias="endsAt")
+    ends_at_iso: str = Field(alias="endsAtIso")
     next_name: str = Field(alias="nextName")
+    # `name` above is the value at sunrise — the உதய rule, which names the day.
+    # `spans` is what the limb actually did. Additive, so existing clients are
+    # untouched; a client that wants to show the star in effect *now* reads this.
+    spans: list[PanchangamLimbSpan] = Field(default_factory=list)
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -58,7 +115,10 @@ class PanchangamYoga(BaseModel):
     number: int
     name: str
     ends_at: str = Field(alias="endsAt")
+    ends_at_iso: str = Field(alias="endsAtIso")
     next_name: str = Field(alias="nextName")
+
+    spans: list[PanchangamLimbSpan] = Field(default_factory=list)
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -66,7 +126,10 @@ class PanchangamYoga(BaseModel):
 class PanchangamKarana(BaseModel):
     name: str
     ends_at: str = Field(alias="endsAt")
+    ends_at_iso: str = Field(alias="endsAtIso")
     next_name: str = Field(alias="nextName")
+
+    spans: list[PanchangamLimbSpan] = Field(default_factory=list)
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -127,12 +190,16 @@ class PanchangamHoraEntry(BaseModel):
 class PanchangamSoolam(BaseModel):
     direction: str
     parigaram: str
+    status: str = Field(default="preliminary", description="Verification status: 'preliminary' indicates pending source verification")
+
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class PanchangamLagnam(BaseModel):
     rasi_number: int = Field(alias="rasiNumber")
     rasi_name: str = Field(alias="rasiName")
     ends_at: str = Field(alias="endsAt")
+    ends_at_iso: str = Field(alias="endsAtIso")
     nazhigai: int
     vinadi: int
 
@@ -142,16 +209,26 @@ class PanchangamLagnam(BaseModel):
 class PanchangamAmirdhadhiYogam(BaseModel):
     name: str
     ends_at: str = Field(alias="endsAt")
+    ends_at_iso: str = Field(alias="endsAtIso")
     next_name: str = Field(alias="nextName")
+    status: str = Field(default="preliminary", description="Verification status: 'preliminary' indicates pending source verification")
 
     model_config = ConfigDict(populate_by_name=True)
+
+
+class PanchangamChandrashtamamNakshatraWindow(BaseModel):
+    name: str
+    start: datetime
+    end: datetime
 
 
 class PanchangamChandrashtamamToday(BaseModel):
     """Rasi-based Chandrashtamam for the current Moon rasi.
 
-    nakshatras is retained for older clients that display the generic almanac
-    nakshatra-count list.
+    nakshatras is retained for older clients as a flat name list; it is derived
+    from janma_nakshatra_windows (not an independent computation) so the two
+    fields can never disagree. janma_nakshatra_windows carries the rasi-specific
+    nakshatra timing windows that Tamil almanacs usually call out.
     """
 
     moon_rasi_number: int = Field(alias="moonRasiNumber")
@@ -159,6 +236,8 @@ class PanchangamChandrashtamamToday(BaseModel):
     affected_janma_rasi_number: int = Field(alias="affectedJanmaRasiNumber")
     affected_janma_rasi_name: str = Field(alias="affectedJanmaRasiName")
     nakshatras: list[str] = Field(default_factory=list)
+    janma_nakshatra_windows: list[PanchangamChandrashtamamNakshatraWindow] = Field(default_factory=list, alias="janmaNakshatraWindows")
+    status: str = Field(default="preliminary", description="Verification status: 'preliminary' indicates pending source verification")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -193,6 +272,9 @@ class PanchangamDailyResponseData(BaseModel):
     lagnam: PanchangamLagnam
     nethiram: str
     jeevan: str
+    # Additive: the two bare strings above kept their shape for existing
+    # clients; this carries the boundary and the post-boundary values.
+    nethiram_jeevan: PanchangamNethiramJeevan | None = Field(default=None, alias="nethiramJeevan")
     amirdhadhi_yogam: PanchangamAmirdhadhiYogam = Field(alias="amirdhadhiYogam")
     chandrashtamam_today: PanchangamChandrashtamamToday = Field(alias="chandrashtamamToday")
     special_tithi_day: PanchangamSpecialTithiDay | None = Field(default=None, alias="specialTithiDay")

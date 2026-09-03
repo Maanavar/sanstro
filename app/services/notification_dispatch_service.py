@@ -14,7 +14,7 @@ All notifications are opt-in — if channel == 'none' the call is a no-op.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Literal
 from uuid import UUID
 
@@ -25,19 +25,44 @@ from app.calculations.astro import resolve_timezone
 from app.models.birth_profile import BirthProfile
 from app.models.notification import Notification
 from app.models.user_notification_preference import UserNotificationPreference
-from app.services.email_service import EmailMessage, build_notification_email, send_email
+from app.services.email_service import build_notification_email, send_email
 from app.services.fcm_service import send_push
 from app.services.feature_flags import get_flag
 from app.services.location_service import resolve_effective_daily_timezone
 
 logger = logging.getLogger(__name__)
 
-# Heavy Sani cycle tags that trigger the smart silence rule
-_HEAVY_SANI_CYCLES = {"JANMA_SANI", "ASHTAMA_SANI", "EZHARAI_SANI_PHASE_1", "EZHARAI_SANI_PHASE_3"}
+_FCM_BODY_MAX_CHARS = 240
+
+
+def _truncate_body(body: str) -> str:
+    """Truncate notification body to FCM Android display limit (≤240 chars)."""
+    if len(body) <= _FCM_BODY_MAX_CHARS:
+        return body
+    truncated = body[: _FCM_BODY_MAX_CHARS - 1]
+    # Try to cut at the last sentence boundary
+    for sep in ("\n", "।", ".", "!", "?"):
+        pos = truncated.rfind(sep)
+        if pos > _FCM_BODY_MAX_CHARS // 2:
+            return truncated[: pos + 1] + "…"
+    return truncated + "…"
+
+
+# Heavy Sani cycle tags that trigger the smart silence rule.
+# JANMA_SANI is the code-level name for Ezhurai Sani Phase 2 (Saturn over natal Moon).
+# EZHARAI_SANI_PHASE_2 is kept as a forward-compatible alias.
+_HEAVY_SANI_CYCLES = {
+    "JANMA_SANI",           # Ezhurai Sani Phase 2 — peak
+    "ASHTAMA_SANI",
+    "EZHARAI_SANI_PHASE_1",
+    "EZHARAI_SANI_PHASE_2", # alias for JANMA_SANI naming convention
+    "EZHARAI_SANI_PHASE_3",
+}
 
 NotificationType = Literal[
     "MORNING_NALLA_NERAM",
     "DASHA_TRANSITION",
+    "JADHAGAM_D1_NUDGE",
     "PIRANTHA_NAAL",
     "PEYARCHI",
     "GENERAL",
@@ -77,10 +102,10 @@ def _push_count_today(session: Session, user_id: UUID, user_tz_str: str = "UTC")
     try:
         user_tz = resolve_timezone(user_tz_str)
     except Exception:
-        user_tz = timezone.utc
+        user_tz = UTC
     now_local = datetime.now(user_tz)
     today_start_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
-    today_start = today_start_local.astimezone(timezone.utc)
+    today_start = today_start_local.astimezone(UTC)
     return session.execute(
         select(func.count(Notification.notification_id)).where(
             Notification.user_id == user_id,
@@ -108,7 +133,7 @@ def _persist_notification(
         priority=priority,
         title=title,
         body=body,
-        send_at=datetime.now(timezone.utc),
+        send_at=datetime.now(UTC),
         status=status,
         suppression_reason=suppression_reason,
         payload={},
@@ -170,12 +195,17 @@ def dispatch_notification(
 
     # Build language-merged strings: Tamil first, English below
     combined_title = f"{title_ta} / {title_en}"
-    combined_body = f"{body_ta}\n{body_en}"
+    combined_body = _truncate_body(f"{body_ta}\n{body_en}")
 
     push_ok = email_ok = False
 
     if wants_push and pref.fcm_device_token:
-        push_ok = send_push(pref.fcm_device_token, combined_title, combined_body)
+        fcm_result = send_push(pref.fcm_device_token, combined_title, combined_body)
+        push_ok = fcm_result == "sent"
+        if fcm_result == "invalid_token":
+            # Token is no longer registered; remove it so we stop trying
+            pref.fcm_device_token = None
+            session.flush()
 
     wants_email = channel in ("email", "both")
     if wants_email and user_email:
@@ -201,3 +231,74 @@ def dispatch_notification(
         priority,
     )
     return result
+
+def dispatch_queued_notification(
+    session: Session,
+    notification: Notification,
+    *,
+    user_email: str | None = None,
+    title_ta: str | None = None,
+    title_en: str | None = None,
+    body_ta: str | None = None,
+    body_en: str | None = None,
+    sani_cycle: str | None = None,
+) -> str:
+    """Deliver an existing queued notification row and update it in place."""
+    pref = get_or_create_preferences(session, notification.user_id)
+
+    combined_title = (
+        f"{title_ta} / {title_en}"
+        if title_ta and title_en
+        else notification.title
+    )
+    combined_body = _truncate_body(
+        f"{body_ta}\n{body_en}"
+        if body_ta and body_en
+        else notification.body
+    )
+
+    def _finish(status: str, result: str, suppression_reason: str | None = None) -> str:
+        notification.status = status
+        notification.title = combined_title
+        notification.body = combined_body
+        notification.suppression_reason = suppression_reason
+        notification.sent_at = datetime.now(UTC) if status == "sent" else None
+        session.flush()
+        return result
+
+    channel = pref.notification_channel
+    if channel == "none":
+        logger.debug("queued_dispatch_in_app_only user=%s type=%s", notification.user_id, notification.type)
+        return _finish("sent", "in_app_only")
+
+    wants_push = channel in ("push", "both") and bool(get_flag("enable_push_notifications"))
+    if wants_push and pref.smart_silence_enabled and sani_cycle in _HEAVY_SANI_CYCLES:
+        user_tz = _resolve_user_timezone(session, notification.user_id)
+        if _push_count_today(session, notification.user_id, user_tz) >= 1:
+            logger.info("queued_smart_silence user=%s sani=%s", notification.user_id, sani_cycle)
+            return _finish("suppressed", "suppressed", f"smart_silence:{sani_cycle}")
+
+    push_ok = email_ok = False
+    if wants_push and pref.fcm_device_token:
+        fcm_result = send_push(pref.fcm_device_token, combined_title, combined_body)
+        push_ok = fcm_result == "sent"
+        if fcm_result == "invalid_token":
+            pref.fcm_device_token = None
+            session.flush()
+
+    wants_email = channel in ("email", "both")
+    if wants_email and user_email:
+        msg = build_notification_email(user_email, combined_title, combined_body)
+        email_ok = send_email(msg)
+
+    if wants_push and wants_email:
+        sent = push_ok or email_ok
+        result = "sent_both" if (push_ok and email_ok) else ("sent_push" if push_ok else ("sent_email" if email_ok else "failed"))
+    elif wants_push:
+        sent = push_ok
+        result = "sent_push" if push_ok else "failed"
+    else:
+        sent = email_ok
+        result = "sent_email" if sent else "failed"
+
+    return _finish("sent" if sent else "failed", result, None if sent else "delivery_error")

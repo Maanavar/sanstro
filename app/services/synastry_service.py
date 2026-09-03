@@ -2,34 +2,50 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any, TypedDict
 from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.calculations.astro import utc_datetime_to_julian_day
+if TYPE_CHECKING:
+    # The calculation dataclasses, aliased because the schema models below
+    # carry the same two names. Imported only for annotations:
+    # `compute_compatibility_intelligence` is deliberately imported inside its
+    # caller rather than at module scope, and a module-level import here would
+    # undo that.
+    from app.calculations.compatibility_intelligence import (
+        ChartMarriageStrength as CalcChartMarriageStrength,
+    )
+    from app.calculations.compatibility_intelligence import (
+        SevvaiDoshamDetail as CalcSevvaiDoshamDetail,
+    )
+    from app.calculations.porutham import KutaResult as CalcKutaResult
+
+from app.calculations.astro import NAKSHATRA_NAMES, utc_datetime_to_julian_day
 from app.calculations.ephemeris import calculate_sidereal_planets
+from app.calculations.porutham import compute_porutham
 from app.calculations.transits import angular_distance
+from app.calculations.verdict_lexicon import verdict_phrase
 from app.db.session import SessionLocal
 from app.models import BirthProfile, Chart, FamilyMember, FamilyVault, RelationshipAlert
 from app.schemas.dasha import ResponseMeta
-from app.calculations.astro import NAKSHATRA_NAMES
-from app.calculations.porutham import compute_porutham
 from app.schemas.relationships import (
     ChartMarriageStrength,
     CompatibilityIntelligenceData,
     CompatibilityIntelligenceResponse,
     CompatibilityScoreBreakdown,
     DashaHarmony,
-    DirectCompareRequest,
     DirectPoruthamData,
     DirectPoruthamResponse,
+    DirectSynastryData,
+    DirectSynastryResponse,
     EmotionalCompatibility,
     KutaResult,
     NadiDoshaData,
     NavamsaCompatibility,
+    PersonAstroIdentity,
     PorutthamData,
     PorutthamResponse,
     RelationshipAlertData,
@@ -42,10 +58,26 @@ from app.schemas.relationships import (
     SynastryResponse,
 )
 from app.services.chart_service import load_persisted_chart_response
+from app.services.feature_flags import get_flag
 from app.services.location_service import local_noon_as_utc_for_profile
 
 _CALC_VERSION = "jothidam-formula-engine-v1.0-2026"
 _TRANSIT_ALERT_PLANETS = ("JUPITER", "SATURN", "MARS", "RAHU", "VENUS")
+
+
+def _assign_bride_groom(moon_a: Any, moon_b: Any, gender_a: str | None, gender_b: str | None) -> tuple[Any, Any]:
+    """Return (boy_moon, girl_moon).
+
+    When one person is explicitly 'female' and the other 'male', the female's
+    Moon is girl_nakshatra and the male's is boy_nakshatra.  In all other cases
+    (same gender, either unknown/not_specified) fall back to a=boy, b=girl so
+    the API behaves identically to the old default.
+    """
+    a_gender = (gender_a or "not_specified").lower()
+    b_gender = (gender_b or "not_specified").lower()
+    if a_gender == "female" and b_gender == "male":
+        return moon_b, moon_a  # boy=b, girl=a
+    return moon_a, moon_b
 
 
 @dataclass(frozen=True, slots=True)
@@ -194,22 +226,78 @@ def _aspect_between(a: float, b: float) -> tuple[str, float] | None:
     return None
 
 
+# Plain-language meaning for each synastry pair, keyed by the semantic pairing
+# rather than the raw A_/B_ token (which must never reach the UI). Written for a
+# reader with no astrology background: it says what the pairing governs and what
+# a supportive vs. a straining aspect implies for the relationship. The heading
+# in the UI already shows the readable planets + aspect ("Venus ↔ Venus ·
+# conjunction"), so these notes deliberately do not restate the aspect name.
+# Tamil below is written in-script; flag for the standard native-review pass
+# before it is treated as locked (see the Nadi Tamil review convention).
+_PAIR_MEANING: dict[str, dict[str, str]] = {
+    # Venus ↔ Venus — tastes, affection style, what each finds beautiful.
+    "VENUS_VENUS": {
+        "harmony_en": "You're drawn to similar things — tastes, style and the way you each show love feel familiar, so affection comes easily.",
+        "tension_en": "You show love and value pleasures differently — small give-and-take around romance and tastes keeps this warm.",
+        "harmony_ta": "இருவரின் ரசனை, பாணி மற்றும் அன்பு காட்டும் விதம் ஒத்துப்போகிறது — பாசம் இயல்பாக வெளிப்படும்.",
+        "tension_ta": "அன்பு காட்டும் விதமும் விருப்பங்களும் வேறுபடுகின்றன — காதல், ரசனை விஷயங்களில் சிறு சமரசம் இதை இதமாக வைக்கும்.",
+    },
+    # Venus ↔ Mars — romantic and physical chemistry / attraction.
+    "VENUS_MARS": {
+        "harmony_en": "There's natural romantic and physical chemistry here — attraction and desire flow easily between you.",
+        "tension_en": "The attraction is real, but your styles of desire differ — a little patience and pacing lets the spark settle.",
+        "harmony_ta": "இயல்பான காதல் மற்றும் உடல் ஈர்ப்பு உள்ளது — கவர்ச்சியும் விருப்பமும் எளிதாக பாய்கின்றன.",
+        "tension_ta": "ஈர்ப்பு உண்மைதான், ஆனால் விருப்ப வெளிப்பாட்டு பாணி வேறுபடுகிறது — சிறிது பொறுமையும் நிதானமும் இதை சமன்செய்யும்.",
+    },
+    # Moon ↔ Moon — emotional rhythm, feeling understood.
+    "MOON_MOON": {
+        "harmony_en": "Your emotional rhythms are in sync — you tend to feel understood and at ease with one another.",
+        "tension_en": "You process feelings on different wavelengths — saying what you need out loud prevents quiet misreads.",
+        "harmony_ta": "உங்கள் உணர்வுத் தாளம் ஒத்திசைகிறது — ஒருவரை ஒருவர் புரிந்துகொண்டு நிம்மதியாக உணர்வீர்கள்.",
+        "tension_ta": "உணர்வுகளை வெவ்வேறு விதமாக அணுகுகிறீர்கள் — தேவைகளை வெளிப்படையாகச் சொல்வது தவறான புரிதலைத் தவிர்க்கும்.",
+    },
+    # Sun ↔ Moon — one partner's identity nourishing the other's feelings.
+    "SUN_MOON": {
+        "harmony_en": "One partner's sense of self naturally nourishes the other's emotional world — a steadying, supportive fit.",
+        "tension_en": "Identity and emotional needs can pull in different directions here — mutual respect keeps it balanced.",
+        "harmony_ta": "ஒருவரின் ஆளுமை மற்றொருவரின் உணர்வு உலகை இயல்பாக ஊக்குவிக்கிறது — நிலையான, ஆதரவான பொருத்தம்.",
+        "tension_ta": "ஆளுமையும் உணர்வுத் தேவைகளும் வெவ்வேறு திசையில் இழுக்கலாம் — பரஸ்பர மரியாதை சமநிலையைக் காக்கும்.",
+    },
+}
+
+
+def _pair_meaning_key(pair: str) -> str:
+    """Map a raw synastry pair token (e.g. 'A_VENUS-B_MARS') to its semantic key,
+    order-independent so 'A_SUN-B_MOON' and 'B_SUN-A_MOON' share one meaning."""
+    planets = frozenset(tok.split("_", 1)[1] for tok in pair.split("-"))
+    if planets == {"VENUS"}:
+        return "VENUS_VENUS"
+    if planets == {"MOON"}:
+        return "MOON_MOON"
+    if planets == {"VENUS", "MARS"}:
+        return "VENUS_MARS"
+    if planets == {"SUN", "MOON"}:
+        return "SUN_MOON"
+    return "MOON_MOON"  # defensive fallback; every current check maps above
+
+
 def _aspect_eval(pair: str, a: float, b: float) -> _AspectEval | None:
     out = _aspect_between(a, b)
     if out is None:
         return None
     aspect, orb = out
 
+    meaning = _PAIR_MEANING[_pair_meaning_key(pair)]
     if aspect in {"conjunction", "trine", "sextile"}:
         tone = "harmony"
         delta = 8 if aspect != "sextile" else 5
-        note_en = f"{pair} shows {aspect} support; this is traditionally associated with smoother understanding."
-        note_ta = f"{pair} il {aspect} support kaanappadugiradhu; idhu inakkamaana puridhaludan traditionally associated."
+        note_en = meaning["harmony_en"]
+        note_ta = meaning["harmony_ta"]
     else:
         tone = "tension"
         delta = -7 if aspect == "square" else -5
-        note_en = f"{pair} shows {aspect} pressure; this is traditionally associated with differences needing patience."
-        note_ta = f"{pair} il {aspect} pressure kaanappadugiradhu; idhu porumai thevaiana vithyasangaludan traditionally associated."
+        note_en = meaning["tension_en"]
+        note_ta = meaning["tension_ta"]
 
     return _AspectEval(
         pair=pair,
@@ -271,19 +359,21 @@ def compute_synastry_score(chart_a_snapshot: Any, chart_b_snapshot: Any) -> Syna
         for a in aspects
     ]
 
+    # Tamil script (was romanized) leading with the shared verdict word (C-5).
+    verdict_ta = verdict_phrase("synastry", label, "ta") or "கவனம் தேவை"
     if label == "SUPPORTIVE":
         summary = RelationshipBiText(
-            ta=f"Synastry score {score}/100. Inakkam nandraaga kaanappadugiradhu; uravugalai nilaiyaana paadhaiyil munnerka support ulladhu.",
+            ta=f"இணக்க மதிப்பெண் {score}/100 — {verdict_ta}. உறவு நிலையாக முன்னேற வலுவான ஆதரவு உள்ளது.",
             en=f"Synastry score {score}/100. Overall alignment looks supportive for steady relationship progress.",
         )
     elif label == "MIXED":
         summary = RelationshipBiText(
-            ta=f"Synastry score {score}/100. Inakkamum sila tension point-galum serntha nilai; thelivana pesudhal mukkiyam.",
+            ta=f"இணக்க மதிப்பெண் {score}/100 — {verdict_ta}. இணக்கமும் சில பதற்றப் புள்ளிகளும் சேர்ந்த நிலை; தெளிவான உரையாடல் முக்கியம்.",
             en=f"Synastry score {score}/100. Mixed pattern with both harmony and pressure points; clear communication is key.",
         )
     else:
         summary = RelationshipBiText(
-            ta=f"Synastry score {score}/100. Sila tension activation kaanappadugiradhu; porumai, varambu, amaidiyana nadai mukkiyam.",
+            ta=f"இணக்க மதிப்பெண் {score}/100 — {verdict_ta}. சில பதற்ற அறிகுறிகள் வலுவாக உள்ளன; பொறுமை, எல்லைகள், அமைதியான அணுகுமுறை முக்கியம்.",
             en=f"Synastry score {score}/100. Pressure signatures are stronger; patience, boundaries, and calm pacing matter.",
         )
 
@@ -493,16 +583,41 @@ _CONTEXT_NOTE: dict[str, dict[str, str]] = {
 
 
 def _label_for_percentage(percentage: float) -> str:
-    if percentage >= 80:
+    # Mirrors compute_porutham's rungs (9/7/5 out of 10 → 90/70/50%) so a
+    # context-masked subset never grades more generously than the engine —
+    # the old 80/60/40 rungs read 8/10 as EXCELLENT while the engine (and the
+    # by-star marketing tool) call it GOOD (2026-07 porutham audit).
+    if percentage >= 90:
         return "EXCELLENT"
-    if percentage >= 60:
+    if percentage >= 70:
         return "GOOD"
-    if percentage >= 40:
+    if percentage >= 50:
         return "AVERAGE"
     return "CAUTION"
 
 
-def _contextualize_porutham_result(result, compatibility_context: str) -> dict[str, object]:
+class ContextualizedPorutham(TypedDict):
+    """What `_contextualize_porutham_result` returns.
+
+    It was `dict[str, object]`, which is true but useless: every read came back
+    as `object`, so `for k in shaped["kutas"]` was "not iterable" and
+    `NadiDoshaData(**shaped["nadi_dosha"])` was "not a mapping" — four of this
+    module's type errors, all from one annotation. Spelling the shape out fixes
+    the callers and documents the payload in one place.
+    """
+
+    kutas: list[CalcKutaResult]
+    total_score: int
+    max_score: int
+    percentage: float
+    label: str
+    rajju_dosha: bool
+    vedha_dosha: bool
+    nadi_dosha: dict[str, object]
+    summary: RelationshipBiText
+
+
+def _contextualize_porutham_result(result, compatibility_context: str) -> ContextualizedPorutham:
     allowed = set(_CONTEXT_KUTA_MASK.get(compatibility_context, _CONTEXT_KUTA_MASK["GENERAL"]))
     selected = [k for k in result.kutas if k.name in allowed]
     if not selected:
@@ -511,14 +626,28 @@ def _contextualize_porutham_result(result, compatibility_context: str) -> dict[s
     total_score = sum(k.score for k in selected)
     max_score = sum(k.max_score for k in selected)
     percentage = round((total_score / max_score) * 100, 1) if max_score > 0 else 0.0
-    label = _label_for_percentage(percentage)
     rajju_dosha = any(k.name == "Rajju" and k.score == 0 for k in selected)
     vedha_dosha = any(k.name == "Vedha" and k.score == 0 for k in selected)
+    if compatibility_context == "MARRIAGE":
+        # All 10 kutas are selected, so the engine's label — including the A-4
+        # Rajju/Vedha → CAUTION veto downgrade — is authoritative. Re-deriving
+        # it from percentage here is what let a Rajju-dosha match read
+        # EXCELLENT on dashboard surfaces while the by-star marketing tool
+        # correctly said CAUTION (2026-07 porutham audit).
+        label = result.label
+    else:
+        label = _label_for_percentage(percentage)
+        # A failed veto kuta that this context evaluates (Vedha in
+        # FRIENDSHIP/FAMILY; both in none of the masked contexts today carry
+        # Rajju) caps the label the same way the engine does for MARRIAGE.
+        if rajju_dosha or vedha_dosha:
+            label = "CAUTION"
 
     if compatibility_context == "MARRIAGE":
         summary = RelationshipBiText(ta=result.summary_ta, en=result.summary_en)
     else:
-        factors = ", ".join(k.name for k in selected[:6])
+        factors_en = ", ".join(k.name for k in selected[:6])
+        factors_ta = ", ".join(k.name_ta for k in selected[:6])
         scope = _CONTEXT_TITLE_EN.get(compatibility_context, _CONTEXT_TITLE_EN["GENERAL"])
         scope_ta = {
             "FRIENDSHIP": "நட்பு பொருத்தம்",
@@ -528,11 +657,11 @@ def _contextualize_porutham_result(result, compatibility_context: str) -> dict[s
         }.get(compatibility_context, "பொது பொருத்தம்")
         en = (
             f"{scope}: {label.lower()} alignment ({total_score}/{max_score} · {percentage}%). "
-            f"Evaluated factors: {factors}."
+            f"Evaluated factors: {factors_en}."
         )
         ta = (
             f"{scope_ta}: {label.lower()} இணக்கம் ({total_score}/{max_score} · {percentage}%). "
-            f"மதிப்பிடப்பட்ட கூறுகள்: {factors}."
+            f"மதிப்பிடப்பட்ட கூறுகள்: {factors_ta}."
         )
         summary = RelationshipBiText(ta=ta, en=en)
 
@@ -549,123 +678,44 @@ def _contextualize_porutham_result(result, compatibility_context: str) -> dict[s
     }
 
 
-def get_porutham_for_member(
-    session: Session,
-    owner_user_id: UUID,
-    family_vault_id: UUID,
-    member_id: UUID,
-    *,
-    compatibility_context: str = "GENERAL",
-) -> PorutthamResponse:
-    _assert_vault_owner(session, family_vault_id, owner_user_id)
-    member = _member_in_vault(session, family_vault_id, member_id)
-    if compatibility_context == "MARRIAGE" and member.relationship_to_owner in {"parent", "child", "sibling", "grandparent"}:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Marriage compatibility analysis is not applicable for this relationship type.",
-        )
-    owner_chart = _owner_chart_for_vault(session, family_vault_id, owner_user_id)
-    member_chart = _latest_chart(session, _latest_birth_profile(session, member))
-
-    owner_snap = load_persisted_chart_response(session, owner_chart.chart_id)
-    member_snap = load_persisted_chart_response(session, member_chart.chart_id)
-
-    owner_moon = _planet(owner_snap, "MOON")
-    member_moon = _planet(member_snap, "MOON")
-
-    # Convention: owner=boy, member=girl for the kuta direction
-    result = compute_porutham(
-        boy_nakshatra=owner_moon.nakshatra,
-        girl_nakshatra=member_moon.nakshatra,
-        boy_rasi=owner_moon.rasi,
-        girl_rasi=member_moon.rasi,
-    )
-    shaped = _contextualize_porutham_result(result, compatibility_context)
-
-    kutas = [
-        KutaResult(
-            name=k.name,
-            name_ta=k.name_ta,
-            score=k.score,
-            max_score=k.max_score,
-            label=k.label,
-        )
-        for k in shaped["kutas"]
-    ]
-
-    _note_raw = _CONTEXT_NOTE.get(compatibility_context, _CONTEXT_NOTE["GENERAL"])
-    data = PorutthamData(
-        family_vault_id=family_vault_id,
-        member_id=member_id,
-        boy_nakshatra=owner_moon.nakshatra,
-        boy_nakshatra_name=NAKSHATRA_NAMES[owner_moon.nakshatra - 1],
-        girl_nakshatra=member_moon.nakshatra,
-        girl_nakshatra_name=NAKSHATRA_NAMES[member_moon.nakshatra - 1],
-        kutas=kutas,
-        total_score=shaped["total_score"],
-        max_score=shaped["max_score"],
-        percentage=shaped["percentage"],
-        label=shaped["label"],
-        rajju_dosha=shaped["rajju_dosha"],
-        vedha_dosha=shaped["vedha_dosha"],
-        nadi_dosha=NadiDoshaData(**shaped["nadi_dosha"]),
-        summary=shaped["summary"],
-        compatibility_context=compatibility_context,
-        context_note=RelationshipBiText(ta=_note_raw["ta"], en=_note_raw["en"]),
-    )
-    return PorutthamResponse(data=data, meta=_meta())
-
-
-def compare_charts_direct(
-    session: Session,
-    owner_user_id: UUID,
-    chart_id_a: UUID,
-    chart_id_b: UUID,
+def compare_chart_snapshots_direct(
+    snap_a: Any,
+    snap_b: Any,
     *,
     compatibility_context: str = "GENERAL",
 ) -> DirectPoruthamResponse:
-    """Compute Porutham for any two charts owned by the current user."""
-    from app.models import Chart
-
-    def _assert_owned(cid: UUID) -> Chart:
-        chart = session.get(Chart, cid)
-        if chart is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Chart {cid} not found.")
-        profile = session.get(BirthProfile, chart.birth_profile_id)
-        if profile is None or profile.owner_user_id != owner_user_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
-        return chart
-
-    chart_a = _assert_owned(chart_id_a)
-    chart_b = _assert_owned(chart_id_b)
-
-    snap_a = load_persisted_chart_response(session, chart_a.chart_id)
-    snap_b = load_persisted_chart_response(session, chart_b.chart_id)
-
     moon_a = _planet(snap_a, "MOON")
     moon_b = _planet(snap_b, "MOON")
 
+    gender_a = getattr(snap_a.data.birth_profile, "gender_for_traditional_rules", None)
+    gender_b = getattr(snap_b.data.birth_profile, "gender_for_traditional_rules", None)
+    boy_moon, girl_moon = _assign_bride_groom(moon_a, moon_b, gender_a, gender_b)
+
     result = compute_porutham(
-        boy_nakshatra=moon_a.nakshatra,
-        girl_nakshatra=moon_b.nakshatra,
-        boy_rasi=moon_a.rasi,
-        girl_rasi=moon_b.rasi,
+        boy_nakshatra=boy_moon.nakshatra,
+        girl_nakshatra=girl_moon.nakshatra,
+        boy_rasi=boy_moon.rasi,
+        girl_rasi=girl_moon.rasi,
+        boy_pada=boy_moon.pada,
+        girl_pada=girl_moon.pada,
+        nadi_parihara_mode=get_flag("nadi_parihara_mode"),
     )
     shaped = _contextualize_porutham_result(result, compatibility_context)
 
     kutas = [
-        KutaResult(name=k.name, name_ta=k.name_ta, score=k.score, max_score=k.max_score, label=k.label)
+        KutaResult(name=k.name, name_ta=k.name_ta, score=k.score, max_score=k.max_score,
+                   label=k.label, passed=k.passed, grade=k.grade)
         for k in shaped["kutas"]
     ]
 
     _note_raw = _CONTEXT_NOTE.get(compatibility_context, _CONTEXT_NOTE["GENERAL"])
     data = DirectPoruthamData(
-        chart_id_a=chart_id_a,
-        chart_id_b=chart_id_b,
-        boy_nakshatra=moon_a.nakshatra,
-        boy_nakshatra_name=NAKSHATRA_NAMES[moon_a.nakshatra - 1],
-        girl_nakshatra=moon_b.nakshatra,
-        girl_nakshatra_name=NAKSHATRA_NAMES[moon_b.nakshatra - 1],
+        chart_id_a=snap_a.data.chart_id,
+        chart_id_b=snap_b.data.chart_id,
+        boy_nakshatra=boy_moon.nakshatra,
+        boy_nakshatra_name=NAKSHATRA_NAMES[boy_moon.nakshatra - 1],
+        girl_nakshatra=girl_moon.nakshatra,
+        girl_nakshatra_name=NAKSHATRA_NAMES[girl_moon.nakshatra - 1],
         kutas=kutas,
         total_score=shaped["total_score"],
         max_score=shaped["max_score"],
@@ -681,62 +731,33 @@ def compare_charts_direct(
     return DirectPoruthamResponse(data=data, meta=_meta())
 
 
-def get_compatibility_intelligence_for_member(
-    session: Session,
-    owner_user_id: UUID,
-    family_vault_id: UUID,
-    member_id: UUID,
-    person_a_chart_id: UUID | None = None,
+def build_compatibility_intelligence_from_snapshots(
+    snap_a: Any,
+    snap_b: Any,
 ) -> CompatibilityIntelligenceResponse:
-    """Full 8-level Compatibility Intelligence Report for marriage (signed users only).
-
-    Person A defaults to the vault owner's chart. Callers that already know who
-    Person A is (the Porutham tool, where the user fills two explicit people) can
-    pass ``person_a_chart_id`` to pin Person A to that chart instead of the owner —
-    otherwise the report can silently compare the owner against the member even
-    when the user meant two different people.
-    """
     from app.calculations.astro import utc_datetime_to_julian_day
     from app.calculations.compatibility_intelligence import compute_compatibility_intelligence
-    from app.calculations.porutham import compute_porutham, check_nadi_dosha
-
-    _assert_vault_owner(session, family_vault_id, owner_user_id)
-    member = _member_in_vault(session, family_vault_id, member_id)
-
-    if member.relationship_to_owner in {"parent", "child", "sibling", "grandparent"}:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Compatibility Intelligence analysis requires a spouse/partner relationship context.",
-        )
-
-    owner_chart = (
-        _load_owned_chart(session, person_a_chart_id, owner_user_id)
-        if person_a_chart_id is not None
-        else _owner_chart_for_vault(session, family_vault_id, owner_user_id)
-    )
-    member_chart = _latest_chart(session, _latest_birth_profile(session, member))
-
-    snap_a = load_persisted_chart_response(session, owner_chart.chart_id)
-    snap_b = load_persisted_chart_response(session, member_chart.chart_id)
+    from app.calculations.porutham import compute_porutham
 
     moon_a = _planet(snap_a, "MOON")
     moon_b = _planet(snap_b, "MOON")
 
-    # Layer 1: compute porutham
+    gender_a = getattr(snap_a.data.birth_profile, "gender_for_traditional_rules", None)
+    gender_b = getattr(snap_b.data.birth_profile, "gender_for_traditional_rules", None)
+    boy_moon, girl_moon = _assign_bride_groom(moon_a, moon_b, gender_a, gender_b)
+
     porutham_result = compute_porutham(
-        boy_nakshatra=moon_a.nakshatra,
-        girl_nakshatra=moon_b.nakshatra,
-        boy_rasi=moon_a.rasi,
-        girl_rasi=moon_b.rasi,
+        boy_nakshatra=boy_moon.nakshatra,
+        girl_nakshatra=girl_moon.nakshatra,
+        boy_rasi=boy_moon.rasi,
+        girl_rasi=girl_moon.rasi,
+        boy_pada=boy_moon.pada,
+        girl_pada=girl_moon.pada,
+        nadi_parihara_mode=get_flag("nadi_parihara_mode"),
     )
-
-    # Layer 8: compute synastry
     synastry_data = compute_synastry_score(snap_a, snap_b)
-
-    # Today's JD
     today_jd = utc_datetime_to_julian_day(datetime.now(tz=UTC))
 
-    # Get display names
     name_a = snap_a.data.birth_profile.display_name or "Person A"
     name_b = snap_b.data.birth_profile.display_name or "Person B"
 
@@ -750,7 +771,6 @@ def get_compatibility_intelligence_for_member(
         person_b_name=name_b,
     )
 
-    # Build nadi dosha schema
     nadi = porutham_result.nadi_dosha
     nadi_data = NadiDoshaData(
         boy_nadi=nadi["boy_nadi"],
@@ -758,16 +778,20 @@ def get_compatibility_intelligence_for_member(
         has_nadi_dosha=nadi["has_nadi_dosha"],
         cancellations=nadi.get("cancellations", []),
         severity=nadi["severity"],
+        mitigation=nadi.get("mitigation", "NONE"),
+        nadi_parihara_mode=nadi.get("nadi_parihara_mode", "strict"),
+        rajju_guard_warning=nadi.get("rajju_guard_warning"),
         note_ta=nadi["note_ta"],
         note_en=nadi["note_en"],
     )
 
     kutas = [
-        KutaResult(name=k.name, name_ta=k.name_ta, score=k.score, max_score=k.max_score, label=k.label)
+        KutaResult(name=k.name, name_ta=k.name_ta, score=k.score, max_score=k.max_score,
+                   label=k.label, passed=k.passed, grade=k.grade)
         for k in porutham_result.kutas
     ]
 
-    def _sevvai_schema(s: object) -> SevvaiDoshamDetail:
+    def _sevvai_schema(s: CalcSevvaiDoshamDetail) -> SevvaiDoshamDetail:
         return SevvaiDoshamDetail(
             has_dosham=s.has_dosham,
             mars_house=s.mars_house,
@@ -779,7 +803,7 @@ def get_compatibility_intelligence_for_member(
             score=s.score,
         )
 
-    def _cms_schema(c: object) -> ChartMarriageStrength:
+    def _cms_schema(c: CalcChartMarriageStrength) -> ChartMarriageStrength:
         return ChartMarriageStrength(
             seventh_house_rasi=c.seventh_house_rasi,
             seventh_lord=c.seventh_lord,
@@ -798,6 +822,24 @@ def get_compatibility_intelligence_for_member(
     data = CompatibilityIntelligenceData(
         person_a_name=ci.person_a_name,
         person_b_name=ci.person_b_name,
+        person_a_identity=PersonAstroIdentity(
+            rasi=moon_a.rasi,
+            rasi_name=moon_a.rasi_name,
+            nakshatra=moon_a.nakshatra,
+            nakshatra_name=moon_a.nakshatra_name,
+            pada=moon_a.pada,
+            lagna_rasi=snap_a.data.lagna.rasi,
+            lagna_rasi_name=snap_a.data.lagna.rasi_name,
+        ),
+        person_b_identity=PersonAstroIdentity(
+            rasi=moon_b.rasi,
+            rasi_name=moon_b.rasi_name,
+            nakshatra=moon_b.nakshatra,
+            nakshatra_name=moon_b.nakshatra_name,
+            pada=moon_b.pada,
+            lagna_rasi=snap_b.data.lagna.rasi,
+            lagna_rasi_name=snap_b.data.lagna.rasi_name,
+        ),
         porutham_score=ci.porutham_score,
         porutham_max=ci.porutham_max,
         porutham_percentage=ci.porutham_percentage,
@@ -859,6 +901,210 @@ def get_compatibility_intelligence_for_member(
         summary=RelationshipBiText(ta=ci.summary_ta, en=ci.summary_en),
     )
     return CompatibilityIntelligenceResponse(data=data, meta=_meta())
+
+
+def get_compatibility_intelligence_for_member_with_snapshot(
+    session: Session,
+    owner_user_id: UUID,
+    family_vault_id: UUID,
+    member_id: UUID,
+    *,
+    person_a_snapshot: Any,
+) -> CompatibilityIntelligenceResponse:
+    _assert_vault_owner(session, family_vault_id, owner_user_id)
+    member = _member_in_vault(session, family_vault_id, member_id)
+
+    if member.relationship_to_owner in {"parent", "child", "sibling", "grandparent"}:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Compatibility Intelligence analysis requires a spouse/partner relationship context.",
+        )
+
+    member_chart = _latest_chart(session, _latest_birth_profile(session, member))
+    snap_b = load_persisted_chart_response(session, member_chart.chart_id)
+    return build_compatibility_intelligence_from_snapshots(person_a_snapshot, snap_b)
+
+
+def get_porutham_for_member(
+    session: Session,
+    owner_user_id: UUID,
+    family_vault_id: UUID,
+    member_id: UUID,
+    *,
+    compatibility_context: str = "GENERAL",
+) -> PorutthamResponse:
+    _assert_vault_owner(session, family_vault_id, owner_user_id)
+    member = _member_in_vault(session, family_vault_id, member_id)
+    if compatibility_context == "MARRIAGE" and member.relationship_to_owner in {"parent", "child", "sibling", "grandparent"}:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Marriage compatibility analysis is not applicable for this relationship type.",
+        )
+    owner_chart = _owner_chart_for_vault(session, family_vault_id, owner_user_id)
+    member_chart = _latest_chart(session, _latest_birth_profile(session, member))
+
+    owner_snap = load_persisted_chart_response(session, owner_chart.chart_id)
+    member_snap = load_persisted_chart_response(session, member_chart.chart_id)
+
+    owner_moon = _planet(owner_snap, "MOON")
+    member_moon = _planet(member_snap, "MOON")
+
+    gender_owner = getattr(owner_snap.data.birth_profile, "gender_for_traditional_rules", None)
+    gender_member = member.gender_for_traditional_rules
+    boy_moon, girl_moon = _assign_bride_groom(owner_moon, member_moon, gender_owner, gender_member)
+
+    result = compute_porutham(
+        boy_nakshatra=boy_moon.nakshatra,
+        girl_nakshatra=girl_moon.nakshatra,
+        boy_rasi=boy_moon.rasi,
+        girl_rasi=girl_moon.rasi,
+        boy_pada=boy_moon.pada,
+        girl_pada=girl_moon.pada,
+        nadi_parihara_mode=get_flag("nadi_parihara_mode"),
+    )
+    shaped = _contextualize_porutham_result(result, compatibility_context)
+
+    kutas = [
+        KutaResult(
+            name=k.name,
+            name_ta=k.name_ta,
+            score=k.score,
+            max_score=k.max_score,
+            label=k.label,
+            passed=k.passed,
+            grade=k.grade,
+        )
+        for k in shaped["kutas"]
+    ]
+
+    _note_raw = _CONTEXT_NOTE.get(compatibility_context, _CONTEXT_NOTE["GENERAL"])
+    data = PorutthamData(
+        family_vault_id=family_vault_id,
+        member_id=member_id,
+        boy_nakshatra=boy_moon.nakshatra,
+        boy_nakshatra_name=NAKSHATRA_NAMES[boy_moon.nakshatra - 1],
+        girl_nakshatra=girl_moon.nakshatra,
+        girl_nakshatra_name=NAKSHATRA_NAMES[girl_moon.nakshatra - 1],
+        kutas=kutas,
+        total_score=shaped["total_score"],
+        max_score=shaped["max_score"],
+        percentage=shaped["percentage"],
+        label=shaped["label"],
+        rajju_dosha=shaped["rajju_dosha"],
+        vedha_dosha=shaped["vedha_dosha"],
+        nadi_dosha=NadiDoshaData(**shaped["nadi_dosha"]),
+        summary=shaped["summary"],
+        compatibility_context=compatibility_context,
+        context_note=RelationshipBiText(ta=_note_raw["ta"], en=_note_raw["en"]),
+    )
+    return PorutthamResponse(data=data, meta=_meta())
+
+
+def compare_charts_direct(
+    session: Session,
+    owner_user_id: UUID,
+    chart_id_a: UUID,
+    chart_id_b: UUID,
+    *,
+    compatibility_context: str = "GENERAL",
+) -> DirectPoruthamResponse:
+    """Compute Porutham for any two charts owned by the current user."""
+    from app.models import Chart
+
+    def _assert_owned(cid: UUID) -> Chart:
+        chart = session.get(Chart, cid)
+        if chart is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Chart {cid} not found.")
+        profile = session.get(BirthProfile, chart.birth_profile_id)
+        if profile is None or profile.owner_user_id != owner_user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+        return chart
+
+    chart_a = _assert_owned(chart_id_a)
+    chart_b = _assert_owned(chart_id_b)
+
+    snap_a = load_persisted_chart_response(session, chart_a.chart_id)
+    snap_b = load_persisted_chart_response(session, chart_b.chart_id)
+    return compare_chart_snapshots_direct(snap_a, snap_b, compatibility_context=compatibility_context)
+
+
+def compare_synastry_direct(
+    session: Session,
+    owner_user_id: UUID,
+    chart_id_a: UUID,
+    chart_id_b: UUID,
+) -> DirectSynastryResponse:
+    """Compute the same general Venus/Mars/Moon/Sun synastry score as
+    get_synastry_for_member, but for any two charts owned by the current user
+    (e.g. two family members, neither of whom is the vault owner) — mirrors
+    compare_charts_direct's Porutham pattern above."""
+    from app.models import Chart
+
+    def _assert_owned(cid: UUID) -> Chart:
+        chart = session.get(Chart, cid)
+        if chart is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Chart {cid} not found.")
+        profile = session.get(BirthProfile, chart.birth_profile_id)
+        if profile is None or profile.owner_user_id != owner_user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+        return chart
+
+    chart_a = _assert_owned(chart_id_a)
+    chart_b = _assert_owned(chart_id_b)
+
+    snap_a = load_persisted_chart_response(session, chart_a.chart_id)
+    snap_b = load_persisted_chart_response(session, chart_b.chart_id)
+    scored = compute_synastry_score(snap_a, snap_b)
+
+    data = DirectSynastryData(
+        chartIdA=chart_id_a,
+        chartIdB=chart_id_b,
+        score=scored.score,
+        label=scored.label,
+        harmonyNotes=scored.harmony_notes,
+        tensionNotes=scored.tension_notes,
+        keyAspects=scored.key_aspects,
+        summary=scored.summary,
+        timingIndicators=scored.timing_indicators,
+    )
+    return DirectSynastryResponse(data=data, meta=_meta())
+
+
+def get_compatibility_intelligence_for_member(
+    session: Session,
+    owner_user_id: UUID,
+    family_vault_id: UUID,
+    member_id: UUID,
+    person_a_chart_id: UUID | None = None,
+) -> CompatibilityIntelligenceResponse:
+    """Full 8-level Compatibility Intelligence Report for marriage (signed users only).
+
+    Person A defaults to the vault owner's chart. Callers that already know who
+    Person A is (the Porutham tool, where the user fills two explicit people) can
+    pass ``person_a_chart_id`` to pin Person A to that chart instead of the owner —
+    otherwise the report can silently compare the owner against the member even
+    when the user meant two different people.
+    """
+
+    _assert_vault_owner(session, family_vault_id, owner_user_id)
+    member = _member_in_vault(session, family_vault_id, member_id)
+
+    if member.relationship_to_owner in {"parent", "child", "sibling", "grandparent"}:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Compatibility Intelligence analysis requires a spouse/partner relationship context.",
+        )
+
+    owner_chart = (
+        _load_owned_chart(session, person_a_chart_id, owner_user_id)
+        if person_a_chart_id is not None
+        else _owner_chart_for_vault(session, family_vault_id, owner_user_id)
+    )
+    member_chart = _latest_chart(session, _latest_birth_profile(session, member))
+
+    snap_a = load_persisted_chart_response(session, owner_chart.chart_id)
+    snap_b = load_persisted_chart_response(session, member_chart.chart_id)
+    return build_compatibility_intelligence_from_snapshots(snap_a, snap_b)
 
 
 def daily_relationship_alert_refresh(run_at_utc: datetime | None = None) -> dict[str, int]:

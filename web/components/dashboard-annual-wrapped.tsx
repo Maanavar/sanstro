@@ -5,31 +5,33 @@ import { apiFetchJson } from "@/lib/api";
 import type { Lang } from "@/lib/i18n";
 import type { AnnualWrappedData, ApiEnvelope, WrappedSlide } from "@/lib/types";
 import { ShareCardButton } from "./dashboard-share-card";
+import { WrappedShareCard } from "./wrapped-share-card";
+import { Card } from "./ui/card";
 
 const W = {
-  inkMid: "#3D352B",
-  muted: "#7A6F5E",
+  inkMid: "var(--panel-earth)",
+  muted: "var(--color-faint)",
   mutedLt: "var(--color-faint)",
-  border: "#D4C8AE",
-  borderLt: "#E4DBC8",
-  surface: "#FAF5EA",
-  surfaceMd: "#F4EEE2",
-  card: "#FFFFFF",
-  terracotta: "#B85A2C",
-  rust: "#A8482F",
+  border: "var(--panel-tan)",
+  borderLt: "var(--panel-tan-light)",
+  surface: "var(--panel-cream)",
+  surfaceMd: "var(--panel-hover)",
+  card: "var(--chart-cell-default)",
+  terracotta: "var(--panel-brand)",
+  rust: "var(--planet-saturn)",
 } as const;
 
 // ── Planet accent colours ─────────────────────────────────────────────────────
 const PLANET_COLORS: Record<string, string> = {
   SUN: "#D2873B",
   MOON: "#668FA3",
-  MARS: "#A8482F",
-  MERCURY: "#5C7654",
-  JUPITER: "#B85A2C",
+  MARS: "var(--planet-saturn)",
+  MERCURY: "var(--chart-d9-active)",
+  JUPITER: "var(--panel-brand)",
   VENUS: "#956A8A",
   SATURN: "#6B7280",
   RAHU: "#7E6B99",
-  KETU: "#7A6F5E",
+  KETU: "var(--color-faint)",
 };
 
 // ── Slide icon map ────────────────────────────────────────────────────────────
@@ -106,21 +108,16 @@ function StatsSummary({ data, lang }: { data: AnnualWrappedData; lang: Lang }) {
     { label: lang === "ta" ? "சராசரி மதிப்பெண்" : "Avg Score", value: `${data.averageScore}/100` },
     { label: lang === "ta" ? "உயர் நாட்கள்" : "High Days", value: String(data.highDays) },
     { label: lang === "ta" ? "நாட்கள் கண்காணிப்பு" : "Days Tracked", value: String(data.totalDaysScored) },
-    { label: lang === "ta" ? "தலைமை தசை" : "Dominant Dasha", value: data.dominantDashaLord, color: lordColor },
+    { label: lang === "ta" ? "தலைமை தசை" : "Dominant Dasa", value: data.dominantDashaLord, color: lordColor },
   ];
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: "8px" }}>
       {stats.map((s) => (
-        <div key={s.label} style={{
-          padding: "12px 14px",
-          borderRadius: "10px",
-          background: W.card,
-          border: `1px solid ${W.borderLt}`,
-        }}>
+        <Card key={s.label} variant="soft" style={{ padding: "12px 14px", borderRadius: "10px" }}>
           <p style={{ margin: "0 0 3px", fontSize: "0.625rem", color: W.mutedLt, textTransform: "uppercase", letterSpacing: "0.04em" }}>{s.label}</p>
           <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: s.color ?? W.terracotta }}>{s.value}</p>
-        </div>
+        </Card>
       ))}
     </div>
   );
@@ -184,12 +181,11 @@ export function DashboardAnnualWrapped({ chartId, lang }: DashboardAnnualWrapped
   return (
     <>
       {/* Entry card */}
-      <div style={{
+      <Card style={{
         padding: "18px 20px",
         borderRadius: "14px",
-        background: W.surface,
-        border: `1px solid ${W.border}`,
         display: "flex",
+        flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
         gap: "12px",
@@ -213,7 +209,7 @@ export function DashboardAnnualWrapped({ chartId, lang }: DashboardAnnualWrapped
                 style={{
                   padding: "4px 10px", borderRadius: "6px", fontSize: "0.75rem", fontWeight: 600,
                   border: `1px solid ${W.border}`,
-                  background: selectedYear === y ? "#F8E4D2" : W.card,
+                  background: selectedYear === y ? "var(--panel-warm-light)" : W.card,
                   color: selectedYear === y ? W.terracotta : W.muted,
                   cursor: "pointer",
                 }}
@@ -229,7 +225,7 @@ export function DashboardAnnualWrapped({ chartId, lang }: DashboardAnnualWrapped
             disabled={loading}
             style={{
               padding: "6px 16px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 700,
-              background: "#F8E4D2", border: `1px solid ${W.terracotta}66`,
+              background: "var(--panel-warm-light)", border: `1px solid ${W.terracotta}66`,
               color: W.terracotta, cursor: loading ? "wait" : "pointer",
               opacity: loading ? 0.6 : 1,
             }}
@@ -237,7 +233,7 @@ export function DashboardAnnualWrapped({ chartId, lang }: DashboardAnnualWrapped
             {loading ? "..." : (lang === "ta" ? "திற" : "Open")}
           </button>
         </div>
-      </div>
+      </Card>
 
       {/* Error */}
       {error && (
@@ -346,9 +342,11 @@ export function DashboardAnnualWrapped({ chartId, lang }: DashboardAnnualWrapped
               </button>
             </div>
 
-            {/* Share DASHA_ERA card from within the wrapped view */}
-            <div style={{ paddingTop: "4px", display: "flex", justifyContent: "center" }}>
-              <ShareCardButton chartId={chartId} cardType="DASHA_ERA" lang={lang} label={lang === "ta" ? "தசை அட்டை பகிர்" : "Share Dasha Card"} />
+            {/* Share the full 9:16 year-in-review image (UXD-18) — the primary
+                share; the dasha-era card stays as a secondary option. */}
+            <div style={{ paddingTop: "4px", display: "flex", justifyContent: "center", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+              <WrappedShareCard wrapped={data} lang={lang} year={data.year} label={lang === "ta" ? "ஆண்டைப் பகிர்" : "Share your year"} />
+              <ShareCardButton chartId={chartId} cardType="DASHA_ERA" lang={lang} label={lang === "ta" ? "தசை அட்டை பகிர்" : "Share Dasa Card"} />
             </div>
 
           </div>

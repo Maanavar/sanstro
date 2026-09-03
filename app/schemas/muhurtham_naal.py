@@ -1,7 +1,7 @@
 """Response schemas for muhurtham-naal listing and chart-matched ranking."""
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -54,6 +54,15 @@ class MuhurthamNaalMatchItem(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class MuhurthamNaalLocation(BaseModel):
+    """Location used to calculate the Nalla Neram displayed with a matched date."""
+
+    latitude: float
+    longitude: float
+    timezone: str
+    source: Literal["current", "birth"]
+
+
 class MuhurthamNaalMatchContext(BaseModel):
     janma_nakshatra: BiText = Field(serialization_alias="janmaNakshatra")
     janma_rasi_number: int = Field(serialization_alias="janmaRasiNumber")
@@ -61,6 +70,7 @@ class MuhurthamNaalMatchContext(BaseModel):
     recommended_count: int = Field(serialization_alias="recommendedCount")
     total_count: int = Field(serialization_alias="totalCount")
     source: str
+    daily_location: MuhurthamNaalLocation | None = Field(default=None, serialization_alias="dailyLocation")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -118,4 +128,5 @@ def context_from_dict(ctx: dict) -> MuhurthamNaalMatchContext:
         recommended_count=ctx["recommended_count"],
         total_count=ctx["total_count"],
         source=ctx["source"],
+        daily_location=ctx.get("daily_location"),
     )

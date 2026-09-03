@@ -244,6 +244,38 @@ PANCHANGAM_EVENTS_2026: dict[str, list[dict]] = {
         {"date": "2026-11-10", "weekday": "TUESDAY", "tamilMonthIndex": 6, "tamilDay": 24},
         {"date": "2026-12-10", "weekday": "THURSDAY", "tamilMonthIndex": 7, "tamilDay": 24},
     ],
+    # ---------------------------------------------------------------------------
+    # Major Tamil festivals (annual; one entry per year)
+    # ---------------------------------------------------------------------------
+    "thai-pongal": [
+        # தைப் பொங்கல் — Thai 1, when Sun enters Capricorn (Makara Sankranti)
+        {"date": "2026-01-15", "weekday": "THURSDAY", "tamilMonthIndex": 9, "tamilDay": 1},
+    ],
+    "tamil-puthandu": [
+        # தமிழ் புத்தாண்டு / சித்திரை விஷு — Chithirai 1, when Sun enters Mesha
+        {"date": "2026-04-14", "weekday": "TUESDAY", "tamilMonthIndex": 0, "tamilDay": 1},
+    ],
+    "chithirai-vishu": [
+        # சித்திரை விஷு — same day as Tamil Puthandu (Mesha Sankranti)
+        {"date": "2026-04-14", "weekday": "TUESDAY", "tamilMonthIndex": 0, "tamilDay": 1},
+    ],
+    "panguni-uthiram": [
+        # பங்குனி உத்திரம் — Panguni full moon with Uthiram nakshatra
+        {"date": "2026-04-01", "weekday": "WEDNESDAY", "tamilMonthIndex": 11, "tamilDay": 18},
+    ],
+    "karthigai-deepam": [
+        # கார்த்திகை தீபம் — Karthigai month pournami coinciding with Karthigai nakshatra
+        {"date": "2026-11-24", "weekday": "TUESDAY", "tamilMonthIndex": 7, "tamilDay": 8},
+    ],
+    "vaikunta-ekadasi": [
+        # வைகுந்த ஏகாதசி — Shukla Paksha Ekadasi (11th lunar day) in Margazhi month
+        {"date": "2026-12-20", "weekday": "SUNDAY", "tamilMonthIndex": 8, "tamilDay": 5},
+    ],
+    "aadi-perukku": [
+        # ஆடி பெருக்கு — Aadi 18 (18th day of Tamil month Aadi)
+        {"date": "2026-08-03", "weekday": "MONDAY", "tamilMonthIndex": 3, "tamilDay": 18},
+    ],
+    # ---------------------------------------------------------------------------
     "karinaal": [
         {"date": "2026-01-15", "weekday": "THURSDAY", "tamilMonthIndex": 9, "tamilDay": 1},
         {"date": "2026-01-16", "weekday": "FRIDAY", "tamilMonthIndex": 9, "tamilDay": 2},

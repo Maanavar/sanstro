@@ -4,8 +4,8 @@ from types import SimpleNamespace
 
 import pytest
 
+from app.calculations.muhurta_engine import Verdict, score_day
 from app.calculations.panchangam import _compute_subha_muhurtham_strict
-from app.services.muhurta_service import _score_panchangam
 
 pytestmark = pytest.mark.no_db
 
@@ -18,7 +18,6 @@ def test_ashubha_nitya_yogas_block_subha_muhurtham(yoga_name: str) -> None:
         "ROHINI",
         yoga_name,
         weekday_index=0,
-        abhijit_restricted=False,
     )
 
     assert is_subha is False
@@ -33,7 +32,6 @@ def test_variyana_is_the_matching_subha_nitya_yoga_spelling() -> None:
         "ROHINI",
         "VARIYANA",
         weekday_index=0,
-        abhijit_restricted=False,
     )
 
     assert is_subha is True
@@ -57,19 +55,20 @@ def _muhurta_snapshot(tithi_number: int) -> SimpleNamespace:
 
 
 def test_muhurta_scores_krishna_paksha_favourable_tithi_by_paksha_number() -> None:
-    favourable_score, favourable_support, _ = _score_panchangam(
-        _muhurta_snapshot(17),  # Krishna Dwitiya: within-paksha tithi 2
-        activity="general",
-        moon_rasi=1,
-        lagna_rasi=1,
-    )
-    neutral_score, neutral_support, _ = _score_panchangam(
-        _muhurta_snapshot(20),  # Krishna Panchami: within-paksha tithi 5
-        activity="general",
-        moon_rasi=1,
-        lagna_rasi=1,
-    )
+    """A Krishna tithi is matched on its *within-paksha* number, not its 1-30 one.
 
-    assert favourable_score == neutral_score + 8
-    assert "Favourable tithi" in favourable_support.en
-    assert "Favourable tithi" not in neutral_support.en
+    Ported from `muhurta_service._score_panchangam` when the two copies of the
+    generic almanac layer were folded into `muhurta_engine.score_day`; the
+    regression it guards is in the fold, so it moved rather than went away.
+    """
+    favourable = score_day(_muhurta_snapshot(17), "PURCHASE")  # Krishna Dwitiya: in-paksha 2
+    neutral = score_day(_muhurta_snapshot(20), "PURCHASE")     # Krishna Panchami: in-paksha 5
+
+    assert favourable.score == neutral.score + 8
+
+    def tithi_factor(day):
+        return next(f for f in day.factors if f.factor == "ALMANAC_TITHI")
+
+    assert tithi_factor(favourable).verdict is Verdict.BONUS
+    assert "favourable tithi" in tithi_factor(favourable).reason_en.lower()
+    assert tithi_factor(neutral).verdict is Verdict.NEUTRAL

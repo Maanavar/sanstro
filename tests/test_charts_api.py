@@ -44,13 +44,16 @@ def test_chart_calculate_endpoint_uses_persisted_birth_profile(client, birth_pro
     assert all("dashaActivated" in item for item in body["data"]["yogas"])
     assert all(item["descriptionTa"] and item["descriptionEn"] for item in body["data"]["yogas"])
     assert all(item["descriptionTa"] and item["descriptionEn"] for item in body["data"]["doshams"])
-    assert "bhavaChalit" in body["data"]
+    assert "equalBhava" in body["data"]
     assert "vargas" in body["data"]
     assert "nakshatraAnalysis" in body["data"]
     assert "birthPanchangamSignature" in body["data"]
 
     planets = {planet["graha"]: planet for planet in body["data"]["planets"]}
-    assert len(planets) == 9
+    # 9 classical grahas + Mandhi/Gulika, exposed as a chart point per
+    # docs/THIRUKANITHAM_DEPTH_EXPANSION_PLAN.md Phase 1.2.
+    assert len(planets) == 10
+    assert "MANDHI" in planets
     assert planets["SUN"]["absoluteLongitude"] == pytest.approx(95.0158, abs=0.01)
     assert planets["MOON"]["absoluteLongitude"] == pytest.approx(223.5993, abs=0.01)
     assert planets["RAHU"]["absoluteLongitude"] == pytest.approx(264.6921, abs=0.01)
@@ -72,6 +75,72 @@ def test_chart_calculate_endpoint_uses_persisted_birth_profile(client, birth_pro
         (planets["RAHU"]["absoluteLongitude"] + 180.0) % 360.0,
         abs=1e-9,
     )
+
+
+def test_chart_response_returns_every_life_stage_answer_the_profile_form_reads_back(
+    client, birth_profile_payload_factory
+):
+    """The chart's birthProfile is the only copy of these the profile form sees.
+
+    The web form hydrates its three life-stage selects from POST
+    /charts/calculate, not from GET /birth-profiles — so a field the chart
+    response drops is a field the reader can have stored and can never see or
+    change. `children` was dropped here while `maritalStatus` and
+    `employmentType` were not, which made it exactly that: write-only. The
+    one-minute reading now asks one of these questions inline and PATCHes the
+    answer, so a mistaken tap has to be correctable.
+
+    Asserted per-field rather than as a set membership check, because the
+    failure this guards is one field silently missing from a builder that
+    lists every field by hand.
+    """
+    payload = birth_profile_payload_factory()
+    payload["maritalStatus"] = "married"
+    payload["employmentType"] = "self_employed"
+    payload["children"] = "has"
+    created = client.post("/api/v1/birth-profiles", json=payload).json()
+    birth_profile_id = created["data"]["birthProfileId"]
+
+    body = client.post(
+        "/api/v1/charts/calculate",
+        json={
+            "birthProfileId": birth_profile_id,
+            "calculationVersion": "thirukanitham-2026-v1",
+            "forceRecalculate": False,
+        },
+    ).json()
+
+    profile = body["data"]["birthProfile"]
+    assert profile["maritalStatus"] == "married"
+    assert profile["employmentType"] == "self_employed"
+    assert profile["children"] == "has"
+
+
+def test_chart_response_never_invents_a_life_stage_answer_that_was_not_given(
+    client, birth_profile_payload_factory
+):
+    """Silence must survive the round trip as silence.
+
+    `null` here means "we hold no answer"; it is not "single", not "no
+    children", and not "undisclosed" (which is the reader actively declining).
+    A builder that defaulted any of these to a settled string would let the
+    form show the reader an answer they never gave.
+    """
+    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
+
+    body = client.post(
+        "/api/v1/charts/calculate",
+        json={
+            "birthProfileId": created["data"]["birthProfileId"],
+            "calculationVersion": "thirukanitham-2026-v1",
+            "forceRecalculate": False,
+        },
+    ).json()
+
+    profile = body["data"]["birthProfile"]
+    assert profile["maritalStatus"] is None
+    assert profile["employmentType"] is None
+    assert profile["children"] is None
 
 
 def test_chart_summary_endpoint_returns_dashboard_payload(client, birth_profile_payload_factory):
@@ -149,6 +218,39 @@ def test_dasha_endpoint_honours_level_parameter(client, birth_profile_payload_fa
     assert all(item["level"] == "maha" for item in body["timeline"])
 
 
+def test_chara_dasha_endpoint_includes_atmakaraka_and_karakamsa(client, birth_profile_payload_factory):
+    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
+    birth_profile_id = created["data"]["birthProfileId"]
+    chart_id = client.post(
+        "/api/v1/charts/calculate",
+        json={
+            "birthProfileId": birth_profile_id,
+            "calculationVersion": "thirukanitham-2026-v1",
+            "forceRecalculate": False,
+        },
+    ).json()["data"]["chartId"]
+
+    response = client.get(f"/api/v1/charts/{chart_id}/chara-dasha")
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert body["chartId"] == chart_id
+    assert body["periods"]
+
+    karakas = body["charKarakas"]
+    expected_karakas = {
+        "ATMAKARAKA", "AMATYAKARAKA", "BHRATRUKARAKA", "MATRUKARAKA",
+        "PITRUKARAKA", "PUTRAKARAKA", "GNATIKARAKA", "DAARAKARAKA",
+    }
+    assert set(karakas.keys()) == expected_karakas
+    assert set(karakas.values()) == {
+        "SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU",
+    }
+    assert body["atmakaraka"] == karakas["ATMAKARAKA"]
+    assert body["karakamsaRasi"] in range(1, 13)
+    assert body["karakamsaRasiName"]
+
+
 def test_jadhagam_report_endpoint_returns_structured_payload(client, birth_profile_payload_factory):
     created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
     birth_profile_id = created["data"]["birthProfileId"]
@@ -172,6 +274,12 @@ def test_jadhagam_report_endpoint_returns_structured_payload(client, birth_profi
     assert "JUPITER" in body["functionalNatureTable"]
     assert "planetaryStrengthSummary" in body
     assert "executiveSummary" in body
+    assert "primaryConcerns" in body
+    assert body["primaryConcerns"]
+    top_concern = body["primaryConcerns"][0]
+    assert top_concern["confidence"] in {"high", "medium", "low"}
+    assert top_concern["rationaleEn"]
+    assert top_concern["rationaleTa"]
 
 
 def test_chart_explanation_endpoint_returns_structured_payload(client, birth_profile_payload_factory):
@@ -262,6 +370,64 @@ def test_varshaphala_endpoint_returns_annual_outlook(client, birth_profile_paylo
     assert data["year"] == 2026
     assert "yearLord" in data
     assert isinstance(data["areaOutlook"], list) and len(data["areaOutlook"]) >= 5
+
+
+def test_varshaphala_area_outlook_scores_vary_by_area(client, birth_profile_payload_factory):
+    # Regression guard: area_outlook previously computed every area from the
+    # same chart-wide year_lord_house/muntha_house pair and ignored
+    # _AREA_KARAKA entirely, so all 10 areas rendered an identical score and
+    # narrative. Each area's own karaka placement must now drive a
+    # per-area difference.
+    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
+    chart_id = created["data"]["chartId"]
+    response = client.get(f"/api/v1/charts/{chart_id}/varshaphala", params={"year": 2026})
+    assert response.status_code == 200
+    area_outlook = response.json()["data"]["areaOutlook"]
+
+    scores = {row["area"]: row["score"] for row in area_outlook}
+    assert len(set(scores.values())) > 1, f"expected varied scores across areas, got {scores}"
+
+    narratives_en = {row["area"] for row in area_outlook}
+    assert len({row["narrativeEn"] for row in area_outlook}) > 1
+    assert narratives_en == {
+        "CAREER", "RELATIONSHIPS", "HEALTH", "WEALTH", "EDUCATION",
+        "CHILDREN", "PROPERTY", "FOREIGN", "LITIGATION", "SPIRITUALITY",
+    }
+
+
+def test_varshaphala_area_outlook_scores_ignore_itthasala_isarafa_wi18(
+    client, birth_profile_payload_factory, monkeypatch,
+):
+    # Doctrine §9 / WI-18: itthasala_pairs/isarafa_pairs are the "Simplified"
+    # Tajaka approximation and must be display-only — the area_outlook scores
+    # must be identical whether or not any pairs are present.
+    import app.services.tajaka_service as tajaka_service_module
+
+    created = client.post("/api/v1/birth-profiles", json=birth_profile_payload_factory()).json()
+    chart_id = created["data"]["chartId"]
+
+    real_calculate_tajaka_chart = tajaka_service_module.calculate_tajaka_chart
+
+    def _inject_pairs(pairs):
+        def _wrapped(*args, **kwargs):
+            result = real_calculate_tajaka_chart(*args, **kwargs)
+            result["itthasala_pairs"] = pairs
+            result["isarafa_pairs"] = pairs
+            return result
+        return _wrapped
+
+    monkeypatch.setattr(tajaka_service_module, "calculate_tajaka_chart", _inject_pairs([]))
+    no_pairs = client.get(f"/api/v1/charts/{chart_id}/varshaphala", params={"year": 2026}).json()["data"]
+
+    monkeypatch.setattr(
+        tajaka_service_module, "calculate_tajaka_chart",
+        _inject_pairs(["SUN-SATURN", "MOON-VENUS", "MARS-JUPITER", "MERCURY-VENUS", "RAHU-MARS"]),
+    )
+    with_pairs = client.get(f"/api/v1/charts/{chart_id}/varshaphala", params={"year": 2026}).json()["data"]
+
+    no_pairs_scores = {row["area"]: row["score"] for row in no_pairs["areaOutlook"]}
+    with_pairs_scores = {row["area"]: row["score"] for row in with_pairs["areaOutlook"]}
+    assert no_pairs_scores == with_pairs_scores
 
 
 def test_chart_calculate_rejects_inline_birth_profile(client):

@@ -5,6 +5,9 @@ import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
 import { t, tLang, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ApiEnvelope, RetrospectiveData, RetrospectiveListData } from "@/lib/types";
+import { Card } from "./ui/card";
+import { Field, Input, Select, Textarea } from "./ui/field";
+import { Kicker } from "./ui/kicker";
 
 const EVENT_TYPES = [
   "career", "health", "relationship", "finance", "family", "travel", "spiritual", "other",
@@ -17,32 +20,19 @@ type Props = {
 };
 
 const W = {
-  ink: "#1A1612",
-  inkMid: "#3D352B",
-  muted: "#7A6F5E",
+  ink: "var(--panel-earth-dark)",
+  inkMid: "var(--panel-earth)",
+  muted: "var(--color-faint)",
   mutedLt: "var(--color-faint)",
-  border: "#D4C8AE",
-  borderLt: "#E4DBC8",
-  surface: "#FAF5EA",
-  surfaceMd: "#F4EEE2",
-  card: "#FFFFFF",
-  terracotta: "#B85A2C",
-  rust: "#A8482F",
-  sage: "#5C7654",
+  border: "var(--panel-tan)",
+  borderLt: "var(--panel-tan-light)",
+  surface: "var(--panel-cream)",
+  surfaceMd: "var(--panel-hover)",
+  card: "var(--chart-cell-default)",
+  terracotta: "var(--panel-brand)",
+  rust: "var(--planet-saturn)",
+  sage: "var(--chart-d9-active)",
 } as const;
-
-const fieldStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "var(--space-2) var(--space-2_5)",
-  borderRadius: "var(--radius-md)",
-  background: W.card,
-  border: `1.5px solid ${W.borderLt}`,
-  color: W.inkMid,
-  fontSize: "0.875rem",
-  outline: "none",
-  boxSizing: "border-box",
-  fontFamily: "inherit",
-};
 
 function intensityLabel(intensity: string, lang: Lang): string {
   if (intensity === "similar") return t("retro_intensity_similar", lang);
@@ -116,48 +106,36 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
       </div>
 
       {/* Input form */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)", padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)", background: W.card, border: `1px solid ${W.borderLt}` }}>
+      <Card variant="soft" style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)", padding: "var(--space-3_5) var(--space-4)", borderRadius: "var(--radius-md)" }}>
         <div style={{ display: "flex", gap: "var(--space-2_5)", flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: "160px" }}>
-            <label className="cd-kicker" style={{ display: "block" }}>
-              {t("retro_event_date", lang)} *
-            </label>
-            <input
+          <Field label={t("retro_event_date", lang)} required style={{ flex: 1, minWidth: "160px" }}>
+            <Input
               type="date"
               value={eventDate}
               onChange={(e) => setEventDate(e.target.value)}
-              style={fieldStyle}
             />
-          </div>
-          <div style={{ flex: 1, minWidth: "140px" }}>
-            <label className="cd-kicker" style={{ display: "block" }}>
-              {t("retro_event_type", lang)}
-            </label>
-            <select
+          </Field>
+          <Field label={t("retro_event_type", lang)} style={{ flex: 1, minWidth: "140px" }}>
+            <Select
               value={eventType}
               onChange={(e) => setEventType(e.target.value as EventType)}
-              style={fieldStyle}
             >
               {EVENT_TYPES.map((et) => (
                 <option key={et} value={et}>
                   {t(`retro_event_${et}` as any, lang)}
                 </option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
         </div>
-        <div>
-          <label className="cd-kicker" style={{ display: "block" }}>
-            {t("retro_event_desc", lang)}
-          </label>
-          <textarea
+        <Field label={t("retro_event_desc", lang)}>
+          <Textarea
             value={eventDesc}
             onChange={(e) => setEventDesc(e.target.value)}
             rows={2}
             placeholder={lang === "ta" ? "உதாரணம்: வேலை கிடைத்தது, திருமணம்…" : "e.g. Got a job offer, had an accident…"}
-            style={{ ...fieldStyle, resize: "vertical" }}
           />
-        </div>
+        </Field>
         <div style={{ display: "flex", gap: "var(--space-2)" }}>
           <button
             type="button"
@@ -166,7 +144,7 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
             style={{
               padding: "var(--space-2) var(--space-4_5)", borderRadius: "var(--radius-sm)", cursor: "pointer",
               fontSize: "0.875rem", fontWeight: 700,
-              background: loading || !chartId || !eventDate || !eventDesc.trim() ? W.surfaceMd : "#F8E4D2",
+              background: loading || !chartId || !eventDate || !eventDesc.trim() ? W.surfaceMd : "var(--panel-warm-light)",
               border: `1px solid ${W.terracotta}55`,
               color: loading || !chartId || !eventDate || !eventDesc.trim() ? W.mutedLt : W.terracotta,
             }}
@@ -181,30 +159,30 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
             {lang === "ta" ? "வரலாறு" : "History"}
           </button>
         </div>
-        {error && <p style={{ margin: 0, fontSize: "0.75rem", color: W.rust }}>{error}</p>}
-      </div>
+        {error && <p role="alert" style={{ margin: 0, fontSize: "0.75rem", color: W.rust }}>{error}</p>}
+      </Card>
 
       {/* Result */}
       {result && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
           {/* Active dasha */}
           <div style={{ display: "flex", gap: "var(--space-2_5)", alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ fontSize: "0.625rem", fontWeight: 700, color: W.mutedLt, textTransform: "uppercase" }}>
+            <Kicker color="var(--color-faint)" style={{ letterSpacing: "normal" }}>
               {t("retro_active_dasha", lang)}:
-            </span>
+            </Kicker>
             <span style={{ fontSize: "0.875rem", color: W.terracotta, fontWeight: 700 }}>{result.activeDasha}</span>
             <span style={{ fontSize: "0.625rem", color: W.mutedLt }}>{result.eventDate}</span>
           </div>
 
           {/* Correlation explanation */}
-          <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-sm)", background: W.surface, border: `1px solid ${W.border}` }}>
+          <Card style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-sm)" }}>
             <p className="cd-kicker" style={{ marginBottom: "var(--space-1_5)", color: W.terracotta }}>
               {t("retro_correlation", lang)}
             </p>
             <p style={{ margin: 0, fontSize: "0.875rem", color: W.inkMid, lineHeight: 1.5 }}>
               {tLang(result.correlationExplanation, lang)}
             </p>
-          </div>
+          </Card>
 
           {/* Key transits */}
           {result.keyTransits.length > 0 && (
@@ -225,7 +203,7 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
 
           {/* Future recurrences */}
           {result.futureRecurrences.length > 0 && (
-          <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-sm)", background: "#FFF7EB", border: `1px solid ${W.border}` }}>
+          <Card variant="accent" style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-sm)" }}>
               <p className="cd-kicker" style={{ marginBottom: "var(--space-2)", color: W.terracotta }}>
                 {t("retro_future_recurrence", lang)}
               </p>
@@ -242,19 +220,19 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
                   </div>
                 ))}
               </div>
-            </div>
+            </Card>
           )}
 
           {/* Caution */}
           {result.caution && (
-          <div style={{ padding: "var(--space-2_5) var(--space-3_5)", borderRadius: "var(--radius-sm)", background: "#FCE7E2", border: `1px solid ${W.rust}44` }}>
+          <Card variant="low" style={{ padding: "var(--space-2_5) var(--space-3_5)", borderRadius: "var(--radius-sm)" }}>
               <p className="cd-kicker" style={{ color: W.rust }}>
-                âš  {t("retro_caution", lang)}
+                ⚠ {t("retro_caution", lang)}
               </p>
               <p style={{ margin: 0, fontSize: "0.75rem", color: W.rust, lineHeight: 1.5 }}>
                 {tLang(result.caution, lang)}
               </p>
-            </div>
+            </Card>
           )}
         </div>
       )}
@@ -272,7 +250,7 @@ export function RetrospectivePanel({ lang, chartId }: Props) {
               onClick={() => setResult(h)}
               style={{
                 padding: "var(--space-2_5) var(--space-3_5)", borderRadius: "var(--radius-sm)", textAlign: "left", cursor: "pointer",
-                background: result?.retrospectiveId === h.retrospectiveId ? "#F8E4D2" : W.card,
+                background: result?.retrospectiveId === h.retrospectiveId ? "var(--panel-warm-light)" : W.card,
                 border: result?.retrospectiveId === h.retrospectiveId ? `1px solid ${W.terracotta}55` : `1px solid ${W.borderLt}`,
               }}
             >

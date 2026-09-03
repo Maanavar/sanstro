@@ -4,6 +4,34 @@ Source: Formula Engine Spec §9.1-9.4, Thirukanitham / Brihat Parashara traditio
 
 BAV_TABLE[planet][reference_point] = list of houses (from that reference point's Rasi)
 that contribute 1 bindu when the planet transits there.
+
+P2-05 RULING, 2026-08-18 — the bindu grid is APPROVED for the Jadhagam screen, and the
+boundary it must respect is why this note replaced the open question rather than answering
+it in a roadmap row.
+
+**A bindu grid states a count. It never states a subject.**
+
+What this module returns is a measurement, in the same sense a graha's longitude is one. It
+is part of a chart's face — printed beside the rasi and navamsa charts in any almanac — and
+an astrologer inspecting their own jadhagam is entitled to their own arithmetic. It says
+nothing about a person and does not change with age, so it is ungated, correctly. It also
+already ships to every client on `ChartSummaryData.ashtakavarga` (app/schemas/charts.py) and
+`dashboard-chart-explanation.tsx` reads it for the peyarchi bindu line — so "keep it
+internal-only" was never the status quo on offer; it would have been a removal that broke a
+live surface.
+
+What is NOT approved — and what a grid must not quietly acquire — is a reading counted from
+a **karaka graha**: the 5th from Guru, the 3rd from Sevvai, the 4th from Budhan, the 9th
+from Suriyan. Those speak about a person's children, siblings, mother and father. They live
+in `bav_derived.py`, they reach a surface only through `disclosable_indications()`, and they
+are gated on the life-area age band, the life-phase gate, the propensity band and the
+declared-fact gate. A grid cell that gains a band word, a life-domain label, or a highlight
+on "the 5th from Guru" has stopped being the grid and has bypassed all four — and nothing in
+a diff of the grid's own file would look wrong.
+
+That is not left to memory: `tests/test_bav_disclosure_boundary.py` fails when it happens.
+Rationale in docs/BAV_DERIVED_INDICATIONS_2026-08-18.md, doctrine in
+docs/DOCTRINE_DECISIONS_V1.md §13.
 """
 from __future__ import annotations
 
@@ -37,7 +65,10 @@ BAV_TABLE: dict[str, dict[str, list[int]]] = {
         "JUPITER": [6, 10, 11, 12],
         "VENUS":   [6, 8, 11, 12],
         "SATURN":  [1, 4, 7, 8, 9, 10, 11],
-        "LAGNA":   [1, 2, 4, 7, 8, 10, 11],
+        # Classical BPHS/Phala Deepika Mars-from-Lagna row is [1,3,6,10,11] — the spec
+        # doc's verbatim table duplicated the Mars-from-Mars row here by error; corrected
+        # per domain audit (Mars total 41→39 bindus, SAV 339→337).
+        "LAGNA":   [1, 3, 6, 10, 11],
     },
     "MERCURY": {
         "SUN":     [5, 6, 9, 11, 12],
@@ -83,7 +114,13 @@ BAV_TABLE: dict[str, dict[str, list[int]]] = {
 
 # Rahu and Ketu do not have classical Bhinnashtakavarga tables.
 # Per spec §9.3 only 7 planets contribute to Sarvashtakavarga.
-# For Rahu/Ketu transit scoring, Saturn's table is used as a proxy.
+#
+# Doctrine A-15 (2026-08-19): the nodes get NO proxy table. `get_av_bindu`
+# returns None for them and every bindu-based transit score omits them. A line
+# that used to sit here said Saturn's table was "used as a proxy for Rahu/Ketu"
+# — it described behaviour this module had already deleted, and was removed
+# 2026-08-27 after the function/calculation review found the source and the
+# executing code saying opposite things. The ruling lives on `get_av_bindu`.
 BAV_PLANETS = list(BAV_TABLE.keys())  # SUN, MOON, MARS, MERCURY, JUPITER, VENUS, SATURN
 
 
@@ -117,16 +154,33 @@ def get_av_bindu(
     bav: dict[str, dict[int, int]],
     planet: str,
     transit_rasi: int,
-) -> int:
+) -> int | None:
+    """Ashtakavarga bindus for `planet` transiting `transit_rasi`, or None.
+
+    Doctrine A-15 (ruled 2026-08-19): Rahu and Ketu have no Bhinnashtakavarga
+    table, and we no longer invent one for them. This used to substitute
+    Saturn's table for both nodes, attributed in a comment to "common
+    Thirukanitham practice" — an attribution nothing in this repository
+    sourced. For a release-quality engine "no value" beats a borrowed one, so
+    the nodes are now omitted from bindu-based transit scoring entirely.
+
+    Do not replace this with a different proxy (Saturn for Rahu, Mars for Ketu,
+    or any other pairing) without a named system to cite. The failure here was
+    never which graha was borrowed; it was borrowing without a source.
+
+    Returning None rather than a neutral 4 also closes a scoring bug: callers
+    treat `>= 4` as a supportive transit worth +8, so the old neutral default
+    silently handed every table-less graha a bonus.
+
+    `bav_derived.bav_house_from_planet` has always refused the proxy for the
+    karaka-relative indications; the two layers now agree.
     """
-    Get Ashtakavarga bindu for a planet transiting a specific Rasi.
-    For RAHU and KETU, uses SATURN's table as proxy (common Thirukanitham practice).
-    Returns 4 (neutral default) if planet has no BAV table.
-    """
-    lookup = planet if planet in BAV_TABLE else ("SATURN" if planet in {"RAHU", "KETU"} else None)
-    if lookup is None:
-        return 4
-    return bav.get(lookup, {}).get(transit_rasi, 4)
+    if planet not in BAV_TABLE:
+        return None
+    planet_bav = bav.get(planet)
+    if planet_bav is None:
+        return None
+    return planet_bav.get(transit_rasi)
 
 
 def compute_sarvashtakavarga(bav: dict[str, dict[int, int]]) -> dict[int, int]:

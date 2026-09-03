@@ -28,13 +28,19 @@ from app.calculations.astro import (
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.transits import classify_kandaka_cycle, classify_sani_cycle
+from app.core.age_gate import CAREER_REDIRECT_KEYWORDS, MINOR_REDIRECT_KEYWORDS, STUDY_REDIRECT_KEYWORDS
 from app.core.config import get_settings
 from app.models import BirthProfile, Chart
-from app.schemas.ask_vinaadi import AskVinaadiResponse, AskVinaadiResponseData, BiText
+from app.reasoning.verdict import legacy_confidence_to_band
+from app.schemas.ask_vinaadi import AskVinaadiResponse, AskVinaadiResponseData, AskVinaadiVerdict, BiText
 from app.schemas.dasha import ResponseMeta
 from app.services.chart_service import load_persisted_chart_response
+from app.services.prediction_log_service import log_prediction
+from app.services.safety_filter import run_safety_pass
 
 logger = logging.getLogger("jothidam.ask_vinaadi")
+
+_CALC_VERSION = "thirukanitham-2026-v1"
 
 # Hard ceiling on how long we will wait for the Anthropic API before giving up,
 # so a hung request cannot pin a worker thread indefinitely.
@@ -73,8 +79,19 @@ YOGAS AND SPECIAL CONDITIONS:
 - If Chandrashtamam is active, always mention it when answering timing questions
 - If Janma Sani / Ashtama Sani / Ezhara Sani is active, name it specifically
 
+LEAD WITH A PLAIN VERDICT:
+- Many people ask a yes/no decision question ("should I travel / sign / start / go today?"). They need the answer FIRST, then the reasoning.
+- Set "verdict.kind" to one of:
+  - "GO" — favourable, go ahead
+  - "WAIT" — not now; a better window is coming
+  - "CAUTION" — possible but proceed carefully / with a remedy
+  - "MIXED" — genuinely two-sided, depends on specifics
+  - "NA" — the question is informational, not a decision (no go/stay applies)
+- "verdict.ta" / "verdict.en": a SHORT plain verdict, max 6 words, folk-readable — e.g. "இன்று சாதகம், போகலாம்" / "Favourable today, you can go"; "இன்னும் சில நாள் பொறுங்கள்" / "Wait a few more days". Never fatalistic.
+- The prose ta/en answer still carries the full reasoning. Keep the verdict consistent with the prose.
+
 RESPONSE FORMAT — respond ONLY as valid JSON (no other text):
-{"ta": "<Tamil answer in flowing prose, 250-350 words>", "en": "<English answer in flowing prose, 200-300 words>", "signals_used": ["SIGNAL1", "SIGNAL2"], "confidence": "HIGH|MEDIUM|LOW"}
+{"verdict": {"kind": "GO|WAIT|CAUTION|MIXED|NA", "ta": "<≤6-word Tamil verdict>", "en": "<≤6-word English verdict>"}, "ta": "<Tamil answer in flowing prose, 250-350 words>", "en": "<English answer in flowing prose, 200-300 words>", "signals_used": ["SIGNAL1", "SIGNAL2"], "confidence": "HIGH|MEDIUM|LOW"}
 
 CONSTRAINTS:
 - Never provide medical, legal, or financial advice — direct to professionals
@@ -84,14 +101,87 @@ CONSTRAINTS:
 """
 
 
+# ── Calibration-log area classifier (P1-3) ──────────────────────────────────
+#
+# Lightweight keyword match to route a freeform question to one of the
+# canonical life areas prediction_log_service._SCENARIO_TO_AREA already logs
+# for whatif/life-areas, so Ask Vinaadi's rows aggregate into the same
+# calibration buckets instead of a parallel, unjoinable taxonomy. Reuses
+# age_gate's redirect-keyword tuples where they already cover a canonical
+# area (same EN+TA term-list pattern); unmapped questions return None and
+# the caller skips logging rather than guessing.
+_HEALTH_AREA_KEYWORDS: tuple[str, ...] = (
+    "health", "illness", "sick", "disease", "surgery", "recovery", "medical",
+    "ஆரோக்கியம்", "உடல்நலம்", "நோய்",
+)
+_MONEY_AREA_KEYWORDS: tuple[str, ...] = (
+    "money", "income", "finance", "financial", "loan", "debt", "savings", "investment",
+    "பணம்", "வருமானம்", "கடன்",
+)
+_PROPERTY_AREA_KEYWORDS: tuple[str, ...] = (
+    "property", "house", "land", "flat", "apartment", "real estate",
+    "வீடு", "நிலம்", "சொத்து",
+)
+_FOREIGN_AREA_KEYWORDS: tuple[str, ...] = (
+    "abroad", "overseas", "visa", "immigration", "foreign country", "relocate", "settle abroad",
+    "வெளிநாடு", "வீசா",
+)
+_SPIRITUAL_AREA_KEYWORDS: tuple[str, ...] = (
+    "spiritual", "pooja", "temple", "meditation", "remedy",
+    # Both spellings, deliberately. The display copy standardised on ஆன்மீகம்
+    # (2026-08-13, the long vowel is correct), but this tuple is matched against
+    # what the USER TYPED, not against anything we render — so the misspelling
+    # has to stay accepted or we drop questions from everyone who writes it the
+    # common way. It was also the only spelling here until now, which means a
+    # user typing it correctly matched nothing; adding the correct form fixes a
+    # live miss rather than merely tidying a string.
+    "ஆன்மீகம்", "ஆன்மிகம்", "பூஜை", "கோவில்",
+)
+_FAMILY_HARMONY_AREA_KEYWORDS: tuple[str, ...] = (
+    "family", "parents", "siblings", "in-laws", "family harmony",
+    "குடும்பம்", "பெற்றோர்",
+)
+_CHILDREN_AREA_KEYWORDS: tuple[str, ...] = (
+    "children", "kids", "son", "daughter", "progeny",
+    "குழந்தைகள்", "மகன்", "மகள்",
+)
+
+# Order matters: first keyword match wins for questions that touch more than
+# one area. MARRIAGE/CAREER/EDUCATION reuse the exact tuples age_gate.py
+# already curated for the minor-redirect gate above.
+_AREA_CLASSIFIER_KEYWORDS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("MARRIAGE", MINOR_REDIRECT_KEYWORDS),
+    ("CAREER", CAREER_REDIRECT_KEYWORDS),
+    ("EDUCATION", STUDY_REDIRECT_KEYWORDS),
+    ("HEALTH", _HEALTH_AREA_KEYWORDS),
+    ("MONEY", _MONEY_AREA_KEYWORDS),
+    ("PROPERTY", _PROPERTY_AREA_KEYWORDS),
+    ("FOREIGN", _FOREIGN_AREA_KEYWORDS),
+    ("CHILDREN", _CHILDREN_AREA_KEYWORDS),
+    ("SPIRITUAL", _SPIRITUAL_AREA_KEYWORDS),
+    ("FAMILY_HARMONY", _FAMILY_HARMONY_AREA_KEYWORDS),
+)
+
+
+def _classify_life_area(question: str) -> str | None:
+    """Map a freeform question to a canonical life area for calibration
+    logging only — never shown to the user. None means no keyword matched
+    confidently; the caller must skip logging rather than guess an area."""
+    q_lower = question.lower()
+    for area, keywords in _AREA_CLASSIFIER_KEYWORDS:
+        if any(k in q_lower for k in keywords):
+            return area
+    return None
+
+
 # ── Context assembly ──────────────────────────────────────────────────────────
 
 def _build_context_block(
     session: Session,
     chart_id: UUID,
     owner_user_id: UUID,
-) -> tuple[str, list[str], str | None]:
-    """Returns (context_text, signals_list, caveat_en_or_None)."""
+) -> tuple[str, list[str], str | None, str, str]:
+    """Returns (context_text, signals_list, caveat_en_or_None, maha_lord, antar_lord)."""
     chart_snapshot = load_persisted_chart_response(session, chart_id)
 
     chart = session.get(Chart, chart_id)
@@ -124,11 +214,12 @@ def _build_context_block(
     chandrashtama = moon_transit.rasi == chandrashtama_rasi
 
     sat_house_moon = house_from_reference(natal_moon.rasi, saturn.rasi)
-    sat_house_lagna = house_from_reference(natal_lagna_rasi, saturn.rasi)
     jup_house_moon = house_from_reference(natal_moon.rasi, jupiter.rasi)
 
     sani_cycle = classify_sani_cycle(sat_house_moon)
-    kandaka = classify_kandaka_cycle(sat_house_lagna)
+    # Kandaka is counted from the Janma Rasi and layers over the cycle above —
+    # the 4th from the Moon is both Ardhashtama and Kandaka (doctrine A-1).
+    kandaka = classify_kandaka_cycle(sat_house_moon)
 
     # Active transit snapshot (top 5 planets)
     transit_lines = []
@@ -194,10 +285,19 @@ def _build_context_block(
         + yogas_text
     )
 
-    return context_text, signals, caveat
+    return context_text, signals, caveat, maha_lord, antar_lord
 
 
 # ── Claude API call ───────────────────────────────────────────────────────────
+
+def _is_credit_balance_error(exc: Exception) -> bool:
+    """True when Claude rejected the request because the org has no API credit left.
+
+    Anthropic reports this as a plain 400 invalid_request_error with no dedicated
+    error type, so we key off the message text rather than exc.type.
+    """
+    return "credit balance" in str(exc).lower()
+
 
 def _call_claude(context: str, question: str) -> dict:
     settings = get_settings()
@@ -231,6 +331,65 @@ def _call_claude(context: str, question: str) -> dict:
         raise HTTPException(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
             detail="Vinaadi is taking too long to respond. Please try again.",
+        ) from exc
+    except anthropic.RateLimitError as exc:
+        logger.warning("Ask Vinaadi Claude request rate-limited: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Vinaadi is getting a lot of questions right now. Please try again in a moment.",
+        ) from exc
+    except (anthropic.AuthenticationError, anthropic.PermissionDeniedError) as exc:
+        # Bad/expired API key, or an account-level block (e.g. zero credit balance) —
+        # not something the caller can fix by retrying. Log the API's own error type
+        # so this is diagnosable from server logs instead of looking identical to
+        # every other Claude failure (this is what a $0 balance surfaces as).
+        logger.error(
+            "Ask Vinaadi Claude auth/permission failure (type=%s): %s",
+            getattr(exc, "type", None),
+            exc,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Ask Vinaadi is not configured on this instance.",
+        ) from exc
+    except anthropic.BadRequestError as exc:
+        if _is_credit_balance_error(exc):
+            # Permanent, operator-side condition — retrying will never succeed until
+            # credits are topped up, so don't tell the caller to "try again shortly".
+            logger.error(
+                "Ask Vinaadi Claude request rejected — organization credit balance is too low: %s",
+                exc,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Ask Vinaadi is not configured on this instance.",
+            ) from exc
+        logger.error(
+            "Ask Vinaadi Claude request failed (status=%s, type=%s): %s",
+            exc.status_code,
+            getattr(exc, "type", None),
+            exc,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Vinaadi could not be reached. Please try again shortly.",
+        ) from exc
+    except anthropic.APIConnectionError as exc:
+        logger.error("Ask Vinaadi could not reach the Claude API: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Vinaadi could not be reached. Please try again shortly.",
+        ) from exc
+    except anthropic.APIStatusError as exc:
+        logger.error(
+            "Ask Vinaadi Claude request failed (status=%s, type=%s): %s",
+            exc.status_code,
+            getattr(exc, "type", None),
+            exc,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Vinaadi could not be reached. Please try again shortly.",
         ) from exc
     except anthropic.APIError as exc:
         logger.error("Ask Vinaadi Claude request failed: %s", exc)
@@ -282,8 +441,11 @@ def answer_question(
     daily_status = get_daily_status(session, owner_user_id)
     used_before = daily_status["chipsUsed"]
     daily_limit = daily_status["dailyLimit"]
+    monthly_limit = daily_status["monthlyLimit"]
 
-    context_text, signals, caveat_en = _build_context_block(session, chart_id, owner_user_id)
+    context_text, signals, caveat_en, maha_lord, antar_lord = _build_context_block(
+        session, chart_id, owner_user_id
+    )
 
     result = _call_claude(context_text, question)
     count = used_before + 1
@@ -295,6 +457,18 @@ def answer_question(
     if confidence not in ("HIGH", "MEDIUM", "LOW"):
         confidence = "MEDIUM"
 
+    # Lead-with-a-verdict (UX #6). Only surface it when the model returned a
+    # decision verdict with both labels; otherwise leave it None and the client
+    # shows prose only.
+    verdict: AskVinaadiVerdict | None = None
+    raw_verdict = result.get("verdict")
+    if isinstance(raw_verdict, dict):
+        kind = str(raw_verdict.get("kind", "")).upper()
+        v_ta = str(raw_verdict.get("ta", "")).strip()
+        v_en = str(raw_verdict.get("en", "")).strip()
+        if kind in ("GO", "WAIT", "CAUTION", "MIXED") and v_ta and v_en:
+            verdict = AskVinaadiVerdict(kind=kind, ta=v_ta, en=v_en)
+
     all_signals = list(dict.fromkeys(signals + claude_signals))
 
     caveat_bitext: BiText | None = None
@@ -304,18 +478,46 @@ def answer_question(
             en=caveat_en,
         )
 
+    # P1-3/D15: this is the one surface with non-template, LLM-generated text
+    # rather than a pre-validated template, so this check can actually catch
+    # something real (fatalistic phrasing Claude introduced on its own).
+    answer_bitext = BiText(ta=ta_answer, en=en_answer)
+    run_safety_pass(answer_bitext, source="ask_vinaadi")
+
+    # P1-3/D5: log to the calibration spine only when the question maps
+    # confidently to an existing life area and Claude's own confidence is
+    # HIGH/MEDIUM — LOW and unmapped questions are skipped rather than
+    # polluting calibration buckets with noise. No timing window (this is
+    # conversational, not a scored claim) and no reading (no gate/
+    # contradiction classification runs on this surface).
+    if confidence in ("HIGH", "MEDIUM"):
+        life_area = _classify_life_area(question)
+        if life_area is not None:
+            log_prediction(
+                session,
+                chart_id=chart_id,
+                source="ask_vinaadi",
+                life_area=life_area,
+                band=legacy_confidence_to_band(confidence).value,
+                calc_version=_CALC_VERSION,
+                active_maha=maha_lord,
+                active_antar=antar_lord,
+            )
+
     return AskVinaadiResponse(
         data=AskVinaadiResponseData(
             question=question,
-            answer=BiText(ta=ta_answer, en=en_answer),
+            answer=answer_bitext,
+            verdict=verdict,
             signalsUsed=all_signals,
             confidence=confidence,
             caveat=caveat_bitext,
             questionsUsedToday=count,
             dailyLimit=daily_limit,
+            monthlyLimit=monthly_limit,
         ),
         meta=ResponseMeta(
-            calculation_version="thirukanitham-2026-v1",
+            calculation_version=_CALC_VERSION,
             generated_at=datetime.now(tz=UTC),
         ),
     )

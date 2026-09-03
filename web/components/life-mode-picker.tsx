@@ -1,24 +1,27 @@
 "use client";
 
 import { useState } from "react";
+import { BookOpen, Briefcase, Heart, Home, Coins, Leaf, Star, Flame, Scale } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { apiFetchJson } from "@/lib/api";
+import { ModalShell } from "@/components/modal-shell";
 import type { Lang } from "@/lib/i18n";
 import type { LifeMode, LifeModeStatus } from "@/lib/types";
 
 // ── Mode metadata ─────────────────────────────────────────────────────────────
-type ModeMeta = { icon: string; labelEn: string; labelTa: string; descEn: string; descTa: string };
+type ModeMeta = { Icon: LucideIcon; labelEn: string; labelTa: string; descEn: string; descTa: string };
 
 const MODE_META: Record<LifeMode, ModeMeta> = {
-  STUDY:        { icon: "📚", labelEn: "Studies",      labelTa: "படிப்பு",     descEn: "Focus, exams, learning",      descTa: "கவனம், தேர்வு, கற்றல்" },
-  CAREER:       { icon: "💼", labelEn: "Career",       labelTa: "தொழில்",      descEn: "Work timing & decisions",     descTa: "வேலை நேரம் & முடிவுகள்" },
-  LOVE:         { icon: "❤️", labelEn: "Love",         labelTa: "காதல்",       descEn: "Communication & connection",  descTa: "தொடர்பு & நெருக்கம்" },
-  MARRIAGE:     { icon: "💍", labelEn: "Marriage",     labelTa: "திருமணம்",    descEn: "Relationship & timing",       descTa: "உறவு & நேரம்" },
-  FAMILY:       { icon: "🏠", labelEn: "Family",       labelTa: "குடும்பம்",   descEn: "Harmony & home",              descTa: "ஒற்றுமை & வீடு" },
-  WEALTH:       { icon: "💰", labelEn: "Wealth",       labelTa: "செல்வம்",     descEn: "Money & finance timing",      descTa: "பணம் & நிதி நேரம்" },
-  HEALTH:       { icon: "🌿", labelEn: "Health",       labelTa: "ஆரோக்கியம்",  descEn: "Energy, rest, vitality",      descTa: "சக்தி, ஓய்வு, உடல்நலம்" },
-  SPIRITUALITY: { icon: "🕉️", labelEn: "Spirituality", labelTa: "ஆன்மிகம்",    descEn: "Prayer & inner growth",       descTa: "வழிபாடு & உள் வளர்ச்சி" },
-  REMEDIES:     { icon: "🪔", labelEn: "Remedies",     labelTa: "பரிகாரம்",    descEn: "Parihara & practices",        descTa: "பரிகாரம் & பயிற்சிகள்" },
-  BALANCED:     { icon: "⚖️", labelEn: "Balanced",     labelTa: "சமநிலை",      descEn: "A bit of everything",         descTa: "எல்லாமே சிறிது" },
+  STUDY:        { Icon: BookOpen,  labelEn: "Studies",      labelTa: "படிப்பு",     descEn: "Focus, exams, learning",      descTa: "கவனம், தேர்வு, கற்றல்" },
+  CAREER:       { Icon: Briefcase, labelEn: "Career",       labelTa: "தொழில்",      descEn: "Work timing & decisions",     descTa: "வேலை நேரம் & முடிவுகள்" },
+  LOVE:         { Icon: Heart,     labelEn: "Love",         labelTa: "காதல்",       descEn: "Communication & connection",  descTa: "தொடர்பு & நெருக்கம்" },
+  MARRIAGE:     { Icon: Heart,     labelEn: "Marriage",     labelTa: "திருமணம்",    descEn: "Relationship & timing",       descTa: "உறவு & நேரம்" },
+  FAMILY:       { Icon: Home,      labelEn: "Family",       labelTa: "குடும்பம்",   descEn: "Harmony & home",              descTa: "ஒற்றுமை & வீடு" },
+  WEALTH:       { Icon: Coins,     labelEn: "Wealth",       labelTa: "செல்வம்",     descEn: "Money & finance timing",      descTa: "பணம் & நிதி நேரம்" },
+  HEALTH:       { Icon: Leaf,      labelEn: "Health",       labelTa: "ஆரோக்கியம்",  descEn: "Energy, rest, vitality",      descTa: "சக்தி, ஓய்வு, உடல்நலம்" },
+  SPIRITUALITY: { Icon: Star,      labelEn: "Spirituality", labelTa: "ஆன்மீகம்",    descEn: "Prayer & inner growth",       descTa: "வழிபாடு & உள் வளர்ச்சி" },
+  REMEDIES:     { Icon: Flame,     labelEn: "Remedies",     labelTa: "பரிகாரம்",    descEn: "Parihara & practices",        descTa: "பரிகாரம் & பயிற்சிகள்" },
+  BALANCED:     { Icon: Scale,     labelEn: "Balanced",     labelTa: "சமநிலை",      descEn: "A bit of everything",         descTa: "எல்லாமே சிறிது" },
 };
 
 const MODE_ORDER: LifeMode[] = [
@@ -58,34 +61,26 @@ export function LifeModePicker({ lang, currentMode, blockedModes, onClose, onSel
   }
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      style={{
-        position: "fixed", inset: 0, zIndex: 9998,
-        background: "rgba(26,22,18,0.55)", backdropFilter: "blur(4px)",
-        display: "flex", alignItems: "flex-end", justifyContent: "center",
+    <ModalShell
+      label={lang === "ta" ? "இப்போது எதில் கவனம்?" : "What are you focused on right now?"}
+      onClose={onClose}
+      overlayStyle={{ zIndex: 9998 }}
+      panelStyle={{
+        width: "100%", maxWidth: "600px", maxHeight: "88vh", overflowY: "auto",
+        background: "var(--color-surface-soft)",
+        border: "1px solid var(--color-border)",
+        borderRadius: "20px",
+        padding: "clamp(20px, 4vw, 32px)", boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
+        fontFamily: "var(--font-body)",
       }}
-      onClick={onClose}
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "100%", maxWidth: "640px", maxHeight: "88vh", overflowY: "auto",
-          background: "#FBF7EF", borderTopLeftRadius: "24px", borderTopRightRadius: "24px",
-          padding: "clamp(20px, 4vw, 32px)", boxShadow: "0 -12px 48px rgba(0,0,0,0.3)",
-          fontFamily: "var(--font-body)",
-        }}
-      >
-        <div style={{ width: "40px", height: "4px", borderRadius: "2px", background: "#D4C8AE", margin: "0 auto 18px" }} />
-
-        <p style={{ margin: "0 0 6px", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#B85A2C" }}>
+        <p style={{ margin: "0 0 6px", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent, var(--panel-brand))" }}>
           {lang === "ta" ? "உங்கள் கவனம்" : "Your focus"}
         </p>
-        <h2 style={{ margin: "0 0 4px", fontFamily: "var(--font-display)", fontSize: "clamp(1.5rem, 4vw, 2rem)", fontWeight: 500, color: "#1A1612", letterSpacing: "-0.02em" }}>
+        <h2 style={{ margin: "0 0 4px", fontFamily: "var(--font-display)", fontSize: "clamp(1.5rem, 4vw, 2rem)", fontWeight: 500, color: "var(--color-text-strong, var(--panel-earth-dark))", letterSpacing: "-0.02em" }}>
           {lang === "ta" ? "இப்போது எதில் கவனம்?" : "What are you focused on right now?"}
         </h2>
-        <p style={{ margin: "0 0 20px", fontSize: "0.875rem", color: "#5a4f42", lineHeight: 1.5 }}>
+        <p style={{ margin: "0 0 20px", fontSize: "0.875rem", color: "var(--color-muted, var(--panel-mid-earth))", lineHeight: 1.5 }}>
           {lang === "ta"
             ? "உங்கள் தேர்வைப் பொறுத்து தினசரி வழிகாட்டுதலை முன்னிலைப்படுத்துகிறோம். எப்போது வேண்டுமானாலும் மாற்றலாம்."
             : "We'll surface daily guidance around your choice. You can change it anytime."}
@@ -105,17 +100,17 @@ export function LifeModePicker({ lang, currentMode, blockedModes, onClose, onSel
                   display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "4px",
                   padding: "14px", borderRadius: "16px", cursor: saving ? "wait" : "pointer",
                   textAlign: "left", border: "1.5px solid",
-                  borderColor: isCurrent ? "#B85A2C" : "#E4DAC6",
-                  background: saving === mode ? "#F0D9C4" : isCurrent ? "#F7E8DA" : "#FFFFFF",
+                  borderColor: isCurrent ? "var(--color-accent, var(--panel-brand))" : "var(--color-border, #E4DAC6)",
+                  background: saving === mode ? "var(--chart-d1-lagna-bg)" : isCurrent ? "var(--color-mid-bg, #F7E8DA)" : "var(--chart-cell-default)",
                   opacity: saving !== null && saving !== mode ? 0.5 : 1,
                   transition: "all 0.12s ease", fontFamily: "inherit",
                 }}
               >
-                <span style={{ fontSize: "1.5rem", lineHeight: 1 }} aria-hidden="true">{meta.icon}</span>
-                <span style={{ fontSize: "0.95rem", fontWeight: 700, color: "#1A1612" }}>
+                <meta.Icon size={22} strokeWidth={1.5} aria-hidden="true" />
+                <span style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--color-text-strong, var(--panel-earth-dark))" }}>
                   {lang === "ta" ? meta.labelTa : meta.labelEn}
                 </span>
-                <span style={{ fontSize: "0.72rem", color: "#7A6F5E", lineHeight: 1.35 }}>
+                <span style={{ fontSize: "0.72rem", color: "var(--color-faint)", lineHeight: 1.35 }}>
                   {lang === "ta" ? meta.descTa : meta.descEn}
                 </span>
               </button>
@@ -123,24 +118,23 @@ export function LifeModePicker({ lang, currentMode, blockedModes, onClose, onSel
           })}
         </div>
 
-        {error && <p style={{ margin: "14px 0 0", fontSize: "0.8rem", color: "#A8482F" }}>{error}</p>}
+        {error && <p style={{ margin: "14px 0 0", fontSize: "0.8rem", color: "var(--color-low, var(--planet-saturn))" }}>{error}</p>}
 
         <div style={{ display: "flex", justifyContent: "center", marginTop: "18px" }}>
           <button
             type="button"
             disabled={saving !== null}
-            onClick={() => void choose("BALANCED")}
+            onClick={onClose}
             style={{
               padding: "8px 18px", borderRadius: "var(--radius-pill)", background: "transparent",
-              border: "none", color: "#7A6F5E", fontSize: "0.8rem", fontWeight: 600,
+              border: "none", color: "var(--color-faint)", fontSize: "0.8rem", fontWeight: 600,
               cursor: "pointer", fontFamily: "inherit", textDecoration: "underline",
             }}
           >
             {lang === "ta" ? "இப்போது தவிர்க்கவும்" : "Skip for now"}
           </button>
         </div>
-      </div>
-    </div>
+    </ModalShell>
   );
 }
 
@@ -155,11 +149,11 @@ export function LifeModeBadge({ mode, lang, onClick }: { mode: LifeMode; lang: L
       style={{
         display: "inline-flex", alignItems: "center", gap: "6px",
         padding: "4px 12px", borderRadius: "var(--radius-pill)",
-        border: "1.5px solid #E4DAC6", background: "#FFFFFF", cursor: "pointer",
-        fontSize: "0.75rem", fontWeight: 700, color: "#8c3e18", fontFamily: "var(--font-body)",
+        border: "1.5px solid var(--color-border, #E4DAC6)", background: "var(--chart-cell-default)", cursor: "pointer",
+        fontSize: "0.75rem", fontWeight: 700, color: "var(--planet-lagna)", fontFamily: "var(--font-body)",
       }}
     >
-      <span aria-hidden="true">{meta.icon}</span>
+      <meta.Icon size={14} strokeWidth={1.5} aria-hidden="true" />
       {lang === "ta" ? meta.labelTa : meta.labelEn}
     </button>
   );

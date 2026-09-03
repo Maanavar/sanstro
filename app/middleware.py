@@ -2,18 +2,22 @@
 from __future__ import annotations
 
 import logging
-import math
 import time
 import uuid
-from collections import defaultdict
 from ipaddress import ip_address
-from threading import Lock
+
+try:
+    from jose import jwt as _jose_jwt
+    _JOSE_AVAILABLE = True
+except ImportError:  # pragma: no cover
+    _JOSE_AVAILABLE = False
 
 from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import get_settings
+from app.core.rate_limit import get_rate_limit_backend
 from app.services.feature_flags import get_flag
 
 logger = logging.getLogger("jothidam.access")
@@ -98,15 +102,11 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
 
 # ---------------------------------------------------------------------------
-# Sliding-window rate limiter (in-process, per client IP)
-# Known limitation: counters live inside each Python worker. In a single-process
-# deployment the limit is exact, but in multi-worker Gunicorn/Uvicorn setups the
-# effective allowance becomes roughly N x max_requests. Move this state into a
-# shared store (for example Redis) when enforcing a cluster-wide production limit.
+# Sliding-window rate limiter (per client IP)
+# The counting state lives in a pluggable backend (app.core.rate_limit): an
+# in-process default, or Redis for a cluster-wide limit across workers/boxes.
+# Select with JOTHIDAM_RATE_LIMIT_BACKEND=redis + JOTHIDAM_REDIS_URL.
 # ---------------------------------------------------------------------------
-
-_counters: dict[str, list[float]] = defaultdict(list)
-_lock = Lock()
 
 RATE_LIMIT_EXEMPT_PREFIXES = ("/health", "/docs", "/redoc", "/openapi.json")
 
@@ -116,6 +116,32 @@ def _is_loopback_ip(value: str) -> bool:
         return ip_address(value).is_loopback
     except ValueError:
         return False
+
+
+def _extract_user_id(request: Request) -> str | None:
+    """Attempt to extract a stable user identifier from the Bearer token.
+
+    Used to key authenticated rate limits by user rather than IP so that
+    users behind a shared NAT (office, mobile carrier) are not penalised
+    by the aggregate rate of their IP.
+    Returns None when no valid Bearer token is present (unauthenticated).
+    """
+    if not _JOSE_AVAILABLE:
+        return None
+    auth = request.headers.get("authorization", "")
+    if not auth.lower().startswith("bearer "):
+        return None
+    token = auth[7:]
+    try:
+        from app.core.config import get_settings
+        settings = get_settings()
+        if settings.jwt_secret is None:
+            return None
+        payload = _jose_jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        sub = payload.get("sub")
+        return f"uid:{sub}" if sub else None
+    except Exception:
+        return None
 
 
 def resolve_client_ip(request: Request, trusted_proxy_count: int) -> str:
@@ -152,6 +178,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             and settings.environment.lower() != "production"
         )
         self.trusted_proxy_count = max(0, int(settings.trusted_proxy_count))
+        self.backend = get_rate_limit_backend()
 
     async def dispatch(self, request: Request, call_next):
         if not self.enabled:
@@ -165,32 +192,24 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if self.exempt_loopback and _is_loopback_ip(client_ip):
             return await call_next(request)
 
-        now = time.monotonic()
-        window_start = now - self.window_seconds
-
-        with _lock:
-            timestamps = _counters[client_ip]
-            # Evict old timestamps
-            _counters[client_ip] = [t for t in timestamps if t > window_start]
-            current_count = len(_counters[client_ip])
-            if current_count >= self.max_requests:
-                oldest = _counters[client_ip][0] if _counters[client_ip] else now
-                retry_after = max(1, int(math.ceil((oldest + self.window_seconds) - now)))
-                return JSONResponse(
-                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                    content={"detail": "Rate limit exceeded. Please slow down."},
-                    headers={
-                        "Retry-After": str(retry_after),
-                        "X-RateLimit-Limit": str(self.max_requests),
-                        "X-RateLimit-Remaining": "0",
-                    },
-                )
-            _counters[client_ip].append(now)
-            remaining = max(0, self.max_requests - len(_counters[client_ip]))
+        # Use user_id as key for authenticated requests to avoid penalising
+        # multiple users behind a shared NAT (office, mobile carrier).
+        rate_key = _extract_user_id(request) or client_ip
+        result = self.backend.check(rate_key, self.max_requests, self.window_seconds)
+        if not result.allowed:
+            return JSONResponse(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                content={"detail": "Rate limit exceeded. Please slow down."},
+                headers={
+                    "Retry-After": str(result.retry_after),
+                    "X-RateLimit-Limit": str(self.max_requests),
+                    "X-RateLimit-Remaining": "0",
+                },
+            )
 
         response: Response = await call_next(request)
         response.headers["X-RateLimit-Limit"] = str(self.max_requests)
-        response.headers["X-RateLimit-Remaining"] = str(remaining)
+        response.headers["X-RateLimit-Remaining"] = str(result.remaining)
         return response
 
 

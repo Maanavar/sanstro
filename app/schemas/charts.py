@@ -36,6 +36,25 @@ class LagnaPosition(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class PlanetScoreTerm(BaseModel):
+    """One signed term of ``strength_score``, on the final 0-100 scale.
+
+    Mirrors ``chart_strength.ScoreContribution``. The terms of a planet sum to
+    its ``strength_score``, so a client can render an addable column rather than
+    asking the reader to take the number on trust. ``key`` is a machine token —
+    bilingual labels are attached by the narration layer.
+    """
+
+    key: str
+    points: float
+    # Language-neutral qualifier (a house number, a graha code, a percentage).
+    # Rendered bilingually by the narration layer — see chart_explanation_service.
+    detail_key: str | None = Field(default=None, alias="detailKey")
+    detail_value: str | None = Field(default=None, alias="detailValue")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class PlanetPosition(BaseModel):
     graha: str
     rasi_name: str = Field(alias="rasiName")
@@ -49,6 +68,7 @@ class PlanetPosition(BaseModel):
     speed_deg_per_day: float = Field(alias="speedDegPerDay")
     is_retrograde: bool = Field(alias="isRetrograde")
     is_combust: bool = Field(alias="isCombust")
+    is_cazimi: bool = Field(default=False, alias="isCazimi")
     d9_rasi: int = Field(alias="d9Rasi")
     is_vargottama: bool = Field(alias="isVargottama")
     show_retrograde_badge: bool = Field(alias="showRetrogradeBadge")
@@ -61,9 +81,15 @@ class PlanetPosition(BaseModel):
             "chesta": "NEUTRAL",
             "naisargika": "NEUTRAL",
             "drik": "NEUTRAL",
+            "baladi": "YUVA",
+            "jagradadi": "SWAPNA",
+            "deeptadi": "DEENA",
         },
         alias="strengthBreakdown",
     )
+    # Additive derivation of `strength_score`. Defaults to [] so older persisted
+    # payloads and existing clients are unaffected; populated by both build paths.
+    score_terms: list[PlanetScoreTerm] = Field(default_factory=list, alias="scoreTerms")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -79,6 +105,11 @@ class ChartYogaInsight(BaseModel):
     is_currently_active: bool = Field(default=False, alias="isCurrentlyActive")
     description_ta: str = Field(alias="descriptionTa")
     description_en: str = Field(alias="descriptionEn")
+    # The "so what": what this yoga is traditionally held to do, in one
+    # sentence. description_* is the mechanism; these are the effect. Defaulted
+    # to "" so an unmapped code renders as a hidden line, never a raw enum.
+    effect_ta: str = Field(default="", alias="effectTa")
+    effect_en: str = Field(default="", alias="effectEn")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -102,6 +133,8 @@ class ChartDoshamInsight(BaseModel):
     explanation_why_en: str = Field(default="", alias="explanationWhyEn")
     explanation_how_ta: str = Field(default="", alias="explanationHowTa")
     explanation_how_en: str = Field(default="", alias="explanationHowEn")
+    variant_ta: str = Field(default="", alias="variantTa")
+    variant_en: str = Field(default="", alias="variantEn")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -115,6 +148,20 @@ class ChartNakshatraCaution(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class ChartBirthCondition(BaseModel):
+    """One birth-time junction/edge condition — the "Border Alert" module."""
+    code: str
+    is_present: bool = Field(alias="isPresent")
+    severity: str  # "BOOST" | "ALERT" | "INFO"
+    title_ta: str = Field(alias="titleTa")
+    title_en: str = Field(alias="titleEn")
+    description_ta: str = Field(alias="descriptionTa")
+    description_en: str = Field(alias="descriptionEn")
+    detail: dict[str, object] = Field(default_factory=dict)
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class ChartCalculateResponseData(BaseModel):
     chart_id: UUID = Field(alias="chartId")
     birth_profile: BirthProfileResponse = Field(alias="birthProfile")
@@ -123,9 +170,11 @@ class ChartCalculateResponseData(BaseModel):
     ayanamsa: AyanamsaInfo
     lagna: LagnaPosition
     planets: list[PlanetPosition]
-    bhava_chalit: dict[str, int] = Field(default_factory=dict, alias="bhavaChalit")
+    equal_bhava: dict[str, int] = Field(default_factory=dict, alias="equalBhava")
     vargas: dict[str, dict[str, int]] = Field(default_factory=dict)
+    varga_reliability: dict[str, str] = Field(default_factory=dict, alias="vargaReliability")
     nakshatra_analysis: dict[str, object] = Field(default_factory=dict, alias="nakshatraAnalysis")
+    birth_conditions: list[ChartBirthCondition] = Field(default_factory=list, alias="birthConditions")
     birth_panchangam_signature: dict[str, object] = Field(default_factory=dict, alias="birthPanchangamSignature")
     yogas: list[ChartYogaInsight] = Field(default_factory=list)
     doshams: list[ChartDoshamInsight] = Field(default_factory=list)
@@ -153,6 +202,26 @@ class ChartCalculateResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class AdhipathiReading(BaseModel):
+    """One house's bhava-lord (அதிபதி) placement reading — audit T3."""
+    house: int
+    house_rasi: int = Field(alias="houseRasi")
+    lord: str
+    lord_rasi: int = Field(alias="lordRasi")
+    lord_house: int = Field(alias="lordHouse")
+    strength_score: int = Field(alias="strengthScore")
+    strength_band: str = Field(alias="strengthBand")
+    functional_nature: str = Field(alias="functionalNature")
+    adhipathi_ta: str = Field(alias="adhipathiTa")
+    adhipathi_en: str = Field(alias="adhipathiEn")
+    significations_ta: str = Field(alias="significationsTa")
+    significations_en: str = Field(alias="significationsEn")
+    reading_ta: str = Field(alias="readingTa")
+    reading_en: str = Field(alias="readingEn")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class ChartSummaryText(BaseModel):
     ta: str
     en: str
@@ -171,6 +240,7 @@ class ChartSummaryData(BaseModel):
     current_mahadasha: str = Field(alias="currentMahadasha")
     current_antardasha: str = Field(alias="currentAntardasha")
     functional_nature: dict[str, str] = Field(alias="functionalNature")
+    adhipathi_report: list[AdhipathiReading] = Field(default_factory=list, alias="adhipathiReport")
     ashtakavarga: dict[str, dict[int, int]] = Field(alias="ashtakavarga")
     planets: list[PlanetPosition] = Field(default_factory=list)
     yogas: list[ChartYogaInsight] = Field(default_factory=list)
@@ -260,6 +330,15 @@ class JadhagamReportAgeWiseTimeline(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class JadhagamReportPrimaryConcern(BaseModel):
+    concern: str
+    confidence: str
+    rationale_en: str = Field(alias="rationaleEn")
+    rationale_ta: str = Field(alias="rationaleTa")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class JadhagamReportExecutiveSummary(BaseModel):
     ta: str
     en: str
@@ -274,13 +353,14 @@ class JadhagamReportData(BaseModel):
     rasi_chart_summary: JadhagamReportRasiSummary = Field(alias="rasiChartSummary")
     navamsam_summary: JadhagamReportNavamsaSummary = Field(alias="navamsamSummary")
     functional_nature_table: dict[str, str] = Field(alias="functionalNatureTable")
+    adhipathi_report: list[AdhipathiReading] = Field(default_factory=list, alias="adhipathiReport")
     yoga_dosham_summary: JadhagamReportYogaDoshamSummary = Field(alias="yogaDoshamSummary")
     planetary_strength_summary: JadhagamReportPlanetStrengthSummary = Field(alias="planetaryStrengthSummary")
     dasha_analysis: JadhagamReportDashaAnalysis = Field(alias="dashaAnalysis")
     life_area_predictions: list[dict[str, str]] = Field(alias="lifeAreaPredictions")
     age_wise_timeline: JadhagamReportAgeWiseTimeline = Field(alias="ageWiseTimeline")
+    primary_concerns: list[JadhagamReportPrimaryConcern] = Field(default_factory=list, alias="primaryConcerns")
     current_year_guidance: dict[str, str] = Field(alias="currentYearGuidance")
-    upcoming_periods: list[dict[str, str]] = Field(alias="upcomingPeriods")
     practical_guidance: dict[str, list[str]] = Field(alias="practicalGuidance")
     optional_remedies: dict[str, list[str]] = Field(alias="optionalRemedies")
     executive_summary: JadhagamReportExecutiveSummary = Field(alias="executiveSummary")
@@ -316,6 +396,8 @@ class EventWindowsData(BaseModel):
     from_year: int = Field(alias="fromYear")
     to_year: int = Field(alias="toYear")
     windows: list[EventWindowItem]
+    age_gated: bool = Field(default=False, alias="ageGated")
+    alternative_framing: str | None = Field(default=None, alias="alternativeFraming")
 
     model_config = ConfigDict(populate_by_name=True)
 

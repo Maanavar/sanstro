@@ -5,14 +5,21 @@ from datetime import UTC, date, datetime
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import bcrypt
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 from sqlalchemy import func, select, text, update
 from sqlalchemy.orm import Session
 
-from app.core.auth import get_admin_user
-from app.core.config import _DEFAULT_ADMIN_API_KEY
+from app.core.auth import (
+    create_admin_elevation_token,
+    get_admin_user,
+    get_elevated_admin_user,
+)
+from app.core.auth_throttle import AuthThrottleAction, get_auth_throttler
+from app.core.config import get_settings
 from app.db.session import get_db
+from app.middleware import resolve_client_ip
 from app.models import (
     BirthProfile,
     Chart,
@@ -26,13 +33,111 @@ from app.models import (
 )
 from app.models.ask_vinaadi_usage import AskVinaadiUsage
 from app.models.family_daily_score import FamilyDailyScore
+from app.models.prediction_log import PredictionLog
+from app.reasoning.calibration import GradedPrediction, build_calibration_report
 from app.services.audit_service import log_admin_action
 from app.services.feature_flags import all_flags, get_flag, reset_flag, set_flag
 from app.services.job_registry import get_all_jobs, get_job
-from app.services.peyarchi_alert_service import daily_peyarchi_refresh
 from app.services.push_service import send_push_to_token
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+_throttler = get_auth_throttler()
+
+
+class ElevationRequest(BaseModel):
+    password: str
+
+
+class ElevationGrant(BaseModel):
+    token: str
+    expires_at: str
+    expires_in_seconds: int
+
+
+def _client_ip(request: Request) -> str:
+    return resolve_client_ip(request, max(0, int(get_settings().trusted_proxy_count)))
+
+
+@router.post(
+    "/elevate",
+    response_model=ElevationGrant,
+    summary="Re-authenticate to authorise destructive admin operations",
+)
+def elevate_admin(
+    payload: ElevationRequest,
+    request: Request,
+    admin_user: User = Depends(get_admin_user),
+) -> ElevationGrant:
+    """Exchange the admin's own password for a short-lived elevation token.
+
+    Holding an admin session is authority to *look*. Destructive operations —
+    erasing a user's data, suspending an account, broadcasting a push, moving a
+    feature flag — additionally require proof that the person at the keyboard is
+    still the account holder, within the last few minutes. That is the one thing
+    a stolen session, an open laptop or an XSS-driven request cannot supply.
+
+    The password is never stored and the grant is not a cookie: the caller has to
+    attach it per request, deliberately, which is also why a CSRF-shaped request
+    cannot pick it up for free.
+    """
+    client_ip = _client_ip(request)
+    allowed, retry_after = _throttler.check(
+        AuthThrottleAction.ADMIN_ELEVATION,
+        ip=client_ip,
+        account_identifier=str(admin_user.user_id),
+    )
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many elevation attempts. Please try again later.",
+            headers={"Retry-After": str(retry_after)},
+        )
+
+    # An admin who signed up through OAuth has no password to re-enter, so there
+    # is no second factor available and elevation must be refused rather than
+    # waved through. Refusing is the fail-safe direction: the alternative is that
+    # the accounts hardest to re-verify are the ones that skip verification.
+    if not admin_user.hashed_password:
+        log_admin_action(
+            action="admin_elevation_unavailable_no_password",
+            actor_user_id=admin_user.user_id,
+            ip_address=client_ip,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "This admin account has no password set, so it cannot be elevated. "
+                "Set a password on the account to perform destructive operations."
+            ),
+        )
+
+    if not bcrypt.checkpw(payload.password.encode("utf-8"), admin_user.hashed_password.encode("utf-8")):
+        # Logged as an admin action, not just an auth warning: a failed elevation
+        # is somebody holding a valid admin session who does not know the
+        # password, which is the exact shape of a session compromise.
+        log_admin_action(
+            action="admin_elevation_denied",
+            actor_user_id=admin_user.user_id,
+            ip_address=client_ip,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Password is incorrect.",
+        )
+
+    token, expires_at = create_admin_elevation_token(admin_user)
+    log_admin_action(
+        action="admin_elevation_granted",
+        actor_user_id=admin_user.user_id,
+        ip_address=client_ip,
+        payload_summary=f"expires_at={expires_at.isoformat()}",
+    )
+    return ElevationGrant(
+        token=token,
+        expires_at=expires_at.isoformat(),
+        expires_in_seconds=get_settings().admin_elevation_minutes * 60,
+    )
 
 
 class DataDeletionResult(BaseModel):
@@ -52,12 +157,6 @@ class AdminStats(BaseModel):
     total_family_vaults: int
     total_family_members: int
     as_of: str
-
-
-class PeyarchiRefreshResult(BaseModel):
-    charts_refreshed: int
-    notifications_marked: int
-    run_at_utc: str
 
 
 class UserSummary(BaseModel):
@@ -156,6 +255,24 @@ class HealthDetailResponse(BaseModel):
     checked_at: str
 
 
+class CalibrationBucketOut(BaseModel):
+    key: str
+    hit: int
+    near: int
+    miss: int
+    n: int
+    hit_rate: float | None
+
+
+class CalibrationReportOut(BaseModel):
+    total_logged: int
+    total_open: int
+    total_graded: int
+    by_area_band: list[CalibrationBucketOut]
+    by_dasha_lord: list[CalibrationBucketOut]
+    as_of: str
+
+
 def _assert_admin_delete_enabled() -> None:
     if not bool(get_flag("enable_admin_data_delete")):
         raise HTTPException(
@@ -177,7 +294,7 @@ def _count(model: object, session: Session) -> int:
 def delete_user_data(
     owner_user_id: UUID,
     session: Session = Depends(get_db),
-    _: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_elevated_admin_user),
 ) -> DataDeletionResult:
     _assert_admin_delete_enabled()
 
@@ -249,6 +366,7 @@ def delete_user_data(
         target_type="user",
         target_id=str(owner_user_id),
         payload_summary=f"profiles={len(profiles)},charts={charts_deleted}",
+        actor_user_id=admin_user.user_id,
     )
     return DataDeletionResult(
         owner_user_id=str(owner_user_id),
@@ -273,27 +391,6 @@ def get_admin_stats(session: Session = Depends(get_db), _: User = Depends(get_ad
     )
 
 
-@router.post(
-    "/run-peyarchi-refresh",
-    response_model=PeyarchiRefreshResult,
-    summary="Run peyarchi alert refresh and notification marking now",
-)
-def run_peyarchi_refresh_now(_: User = Depends(get_admin_user)) -> PeyarchiRefreshResult:
-    run_at = datetime.now(UTC)
-    result = daily_peyarchi_refresh(run_at_utc=run_at)
-    log_admin_action(
-        "trigger_job",
-        target_type="job",
-        target_id="daily_peyarchi_refresh",
-        payload_summary=f"charts={result['charts_refreshed']}",
-    )
-    return PeyarchiRefreshResult(
-        charts_refreshed=int(result["charts_refreshed"]),
-        notifications_marked=int(result["notifications_marked"]),
-        run_at_utc=run_at.isoformat(),
-    )
-
-
 @router.get("/users", response_model=UserListResponse, summary="List all users (paginated)")
 def list_users(
     page: int = 1,
@@ -301,7 +398,7 @@ def list_users(
     search: str | None = None,
     suspended_only: bool = False,
     session: Session = Depends(get_db),
-    _: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_admin_user),
 ) -> UserListResponse:
     page = max(1, page)
     page_size = max(1, min(page_size, 100))
@@ -409,7 +506,7 @@ def suspend_user(
     user_id: UUID,
     body: SuspendRequest,
     session: Session = Depends(get_db),
-    _: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_elevated_admin_user),
 ) -> dict[str, Any]:
     user = session.get(User, user_id)
     if user is None:
@@ -422,6 +519,7 @@ def suspend_user(
         target_type="user",
         target_id=str(user_id),
         payload_summary=body.reason,
+        actor_user_id=admin_user.user_id,
     )
     return {
         "user_id": str(user_id),
@@ -436,7 +534,7 @@ def list_jobs(_: User = Depends(get_admin_user)) -> list[JobInfo]:
 
 
 @router.post("/jobs/{job_id}/trigger", response_model=JobRunResult, summary="Manually trigger a background job")
-def trigger_job(job_id: str, _: User = Depends(get_admin_user)) -> JobRunResult:
+def trigger_job(job_id: str, admin_user: User = Depends(get_admin_user)) -> JobRunResult:
     job = get_job(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not registered.")
@@ -450,7 +548,13 @@ def trigger_job(job_id: str, _: User = Depends(get_admin_user)) -> JobRunResult:
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=f"Job failed: {exc}") from exc
 
-    log_admin_action("trigger_job", target_type="job", target_id=job_id, payload_summary=summary)
+    log_admin_action(
+        "trigger_job",
+        target_type="job",
+        target_id=job_id,
+        payload_summary=summary,
+        actor_user_id=admin_user.user_id,
+    )
     return JobRunResult(
         job_id=job_id,
         started_at=started.isoformat(),
@@ -498,7 +602,7 @@ def get_audit_log(
 def broadcast_notification(
     body: BroadcastRequest,
     session: Session = Depends(get_db),
-    _: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_elevated_admin_user),
 ) -> BroadcastResult:
     if body.target_user_id:
         try:
@@ -518,6 +622,7 @@ def broadcast_notification(
             target_type="segment",
             target_id=target_label,
             payload_summary="push_disabled",
+            actor_user_id=admin_user.user_id,
         )
         return BroadcastResult(
             sent=0,
@@ -547,6 +652,7 @@ def broadcast_notification(
         target_type="segment",
         target_id=target_label,
         payload_summary=f"title={body.title!r}, sent={sent}",
+        actor_user_id=admin_user.user_id,
     )
     return BroadcastResult(
         sent=sent,
@@ -565,23 +671,82 @@ def list_flags(_: User = Depends(get_admin_user)) -> list[FlagEntry]:
 def set_flag_value(
     flag_name: str,
     body: FlagUpdate,
-    _: User = Depends(get_admin_user),
+    admin_user: User = Depends(get_elevated_admin_user),
 ) -> FlagEntry:
     try:
         set_flag(flag_name, body.value)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    log_admin_action("set_flag", target_type="flag", target_id=flag_name, payload_summary=f"value={body.value!r}")
+    log_admin_action(
+        "set_flag",
+        target_type="flag",
+        target_id=flag_name,
+        payload_summary=f"value={body.value!r}",
+        actor_user_id=admin_user.user_id,
+    )
     return FlagEntry(**all_flags()[flag_name])
 
 
 @router.delete("/flags/{flag_name}/reset", summary="Reset a feature flag to its default value")
-def reset_flag_value(flag_name: str, _: User = Depends(get_admin_user)) -> dict[str, Any]:
+def reset_flag_value(
+    flag_name: str,
+    admin_user: User = Depends(get_elevated_admin_user),
+) -> dict[str, Any]:
     if flag_name not in all_flags():
         raise HTTPException(status_code=404, detail=f"Unknown flag: {flag_name}")
     reset_flag(flag_name)
-    log_admin_action("reset_flag", target_type="flag", target_id=flag_name)
+    log_admin_action(
+        "reset_flag",
+        target_type="flag",
+        target_id=flag_name,
+        actor_user_id=admin_user.user_id,
+    )
     return {"flag_name": flag_name, "reset": True, "current_value": all_flags()[flag_name]["value"]}
+
+
+@router.get(
+    "/calibration",
+    response_model=CalibrationReportOut,
+    summary="D5 prediction calibration report — hit/near/miss per area, band, and dasha lord",
+)
+def get_calibration_report(
+    session: Session = Depends(get_db),
+    _: User = Depends(get_admin_user),
+) -> CalibrationReportOut:
+    """Read-only aggregate over prediction_log (plan Phase 4 step 3).
+
+    Silent-launch: numbers are only meaningful once n per bucket is ~30+;
+    any weight recalibration stays a manual owner + specialist decision.
+    """
+    rows = session.execute(
+        select(
+            PredictionLog.life_area,
+            PredictionLog.band,
+            PredictionLog.outcome_grade,
+            PredictionLog.active_maha,
+        ).where(PredictionLog.deleted_at.is_(None))
+    ).all()
+    report = build_calibration_report(
+        [
+            GradedPrediction(life_area=r[0], band=r[1], outcome_grade=r[2], active_maha=r[3])
+            for r in rows
+        ]
+    )
+    def _out(buckets) -> list[CalibrationBucketOut]:
+        return [
+            CalibrationBucketOut(
+                key=b.key, hit=b.hit, near=b.near, miss=b.miss, n=b.n, hit_rate=b.hit_rate
+            )
+            for b in buckets
+        ]
+    return CalibrationReportOut(
+        total_logged=report.total_logged,
+        total_open=report.total_open,
+        total_graded=report.total_graded,
+        by_area_band=_out(report.by_area_band),
+        by_dasha_lord=_out(report.by_dasha_lord),
+        as_of=datetime.now(tz=UTC).isoformat(),
+    )
 
 
 @router.get("/health/detail", response_model=HealthDetailResponse, summary="Detailed system health for admin")
@@ -632,8 +797,8 @@ def get_health_detail(
     from app.core.config import get_settings
 
     settings = get_settings()
-    if settings.environment.strip().lower() == "production" and settings.admin_api_key == _DEFAULT_ADMIN_API_KEY:
-        components.append(ComponentHealth(name="secrets", status="error", detail="Default admin key in production"))
+    if not settings.admin_api_key:
+        components.append(ComponentHealth(name="secrets", status="error", detail="Admin key is not configured"))
     else:
         components.append(ComponentHealth(name="secrets", status="ok", detail="Secrets appear configured"))
 

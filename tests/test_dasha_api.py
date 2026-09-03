@@ -92,3 +92,31 @@ def test_chart_dasha_maha_timeline_has_transition_notes(client):
     assert len(timeline) >= 2
     assert any("transitionNote" in item for item in timeline[1:])
     assert all("maturationStatus" in item for item in timeline[:3])
+
+
+def test_dasha_no_as_of_defaults_to_today(client):
+    created = client.post(
+        "/api/v1/birth-profiles",
+        json={
+            "ownerUserId": "33333333-3333-3333-3333-333333333333",
+            "displayName": "Arjun Kumar",
+            "birthDateLocal": "1991-07-22",
+            "birthTimeLocal": "06:30:00",
+            "birthPlace": "Chennai, Tamil Nadu, India",
+            "birthLatitude": 13.0827,
+            "birthLongitude": 80.2707,
+            "birthTimezone": "Asia/Kolkata",
+            "calculateNow": True,
+        },
+    ).json()["data"]
+
+    chart_id = created["chartId"]
+    response = client.get(f"/api/v1/charts/{chart_id}/dasha", params={"level": "maha"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["success"] is True
+    assert body["data"]["chartId"] == chart_id
+    assert body["data"]["current"]["mahadasha"]["lord"]
+    assert body["data"]["current"]["antardasha"]["lord"]
+    assert len(body["data"]["timeline"]) > 0

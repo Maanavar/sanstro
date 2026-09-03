@@ -1,12 +1,28 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import TypedDict
 
-from app.calculations.astro import NAKSHATRA_NAMES, RASI_NAMES, house_from_reference, nakshatra_from_degree, resolve_timezone, utc_datetime_to_julian_day
+from app.calculations.astro import (
+    NAKSHATRA_NAMES,
+    RASI_NAMES,
+    house_from_reference,
+    nakshatra_from_degree,
+    resolve_timezone,
+    utc_datetime_to_julian_day,
+)
 from app.calculations.chart_strength import SIGN_LORD
 from app.calculations.ephemeris import calculate_lagna_degree, calculate_sidereal_planets
 
-_PRASNA_QUESTION_AREAS = {
+
+class _QuestionArea(TypedDict):
+    houses: list[int]
+    karaka: str
+
+
+# Typed: a bare dict literal joins the two value types to Sequence[object], and
+# `area["karaka"]` then stops being a planet name.
+_PRASNA_QUESTION_AREAS: dict[str, _QuestionArea] = {
     "JOB": {"houses": [10, 6, 2, 11], "karaka": "MERCURY"},
     "MARRIAGE": {"houses": [7, 2, 8], "karaka": "VENUS"},
     "HEALTH": {"houses": [1, 6, 8, 12], "karaka": "SUN"},
@@ -125,7 +141,12 @@ def prasna_outlook(
     negatives = len(prasna_chart.get("negative_indicators", []))
     karaka_house = int(prasna_chart.get("karaka_house", 0))
 
-    if karaka_house in {3, 6, 10, 11} and positives >= negatives:
+    # DELAY houses are the pure upachaya set {3, 6, 11} (L-15) — matching
+    # this module's own karaka-placement split above, which already treats
+    # the 10th as kendra (positive), not upachaya. The 10th was previously
+    # double-counted in both sets, so a 10th-house karaka could earn a
+    # positive indicator and a DELAY verdict at the same time.
+    if karaka_house in {3, 6, 11} and positives >= negatives:
         return "DELAY"
     if positives >= 2 and negatives == 0:
         return "FAVOURABLE"

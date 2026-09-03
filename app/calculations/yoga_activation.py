@@ -1,29 +1,30 @@
+"""Yoga activation intensity scorer.
+
+A yoga is a standing promise; this module converts presence into *timed
+intensity*. A yoga is strongest when one of its key grahas is the running
+Mahadasha or Antardasha lord.
+
+The key-graha table is **derived from `yoga_rules.YOGA_RULES`**, keyed by the
+code the detectors actually emit. It used to be hand-maintained here and keyed
+on near-miss names — ``GAJA_KESARI`` for a code emitted as
+``GAJA_KESARI_YOGA``, ``PANCHA_MAHAPURUSHA_MARS`` for a code emitted as
+``RUCHAKA_YOGA`` — so nine yogas looked up nothing, were treated as never
+activated, and were capped at the dormant rung no matter which dasha ran. See
+`YOG-01` split, 2026-08-27.
+
+A yoga whose registry row declares no key grahas (Parivartana, Sakata,
+Kemadruma, Chandala, Amala, Adhi, Daridra, Lakshmi, Sunapha/Anapha/Durudhura,
+Vasumati, Kartari) is still dormant-capped. That is disclosed per rule in the
+registry rather than fixed here, because choosing a key graha for a yoga that
+has none is a doctrine call, not a code fix.
+"""
 from __future__ import annotations
 
-"""
-Yoga activation intensity scorer.
-A yoga is strongest when its key planet is the current Mahadasha or
-Antardasha lord. This module converts yoga presence into a timed intensity.
-"""
+from app.calculations.yoga_rules import activation_key_planets
 
-YOGA_KEY_PLANETS: dict[str, list[str]] = {
-    "GAJA_KESARI": ["JUPITER", "MOON"],
-    "RAJA_YOGA": ["SUN", "MOON", "MARS", "JUPITER"],
-    "DHANA_YOGA": ["JUPITER", "VENUS", "MERCURY"],
-    "NEECHA_BHANGA_RAJA_YOGA": ["JUPITER"],
-    "KALASARPA": ["RAHU", "KETU"],
-    "PANCHA_MAHAPURUSHA_SUN": ["SUN"],
-    "PANCHA_MAHAPURUSHA_MOON": ["MOON"],
-    "PANCHA_MAHAPURUSHA_MARS": ["MARS"],
-    "PANCHA_MAHAPURUSHA_MERCURY": ["MERCURY"],
-    "PANCHA_MAHAPURUSHA_JUPITER": ["JUPITER"],
-    "PANCHA_MAHAPURUSHA_VENUS": ["VENUS"],
-    "PANCHA_MAHAPURUSHA_SATURN": ["SATURN"],
-    "BUDHA_ADITYA": ["SUN", "MERCURY"],
-    "VIPAREETHA_RAJA": ["SATURN", "MARS", "JUPITER"],
-    "PARIVARTANA": [],
-    "CHANDRA_MANGALA": ["MOON", "MARS"],
-}
+#: Grahas whose maha/antar dasha activates a yoga, keyed by ``YogaResult.name``.
+#: Built from the per-yoga rule registry — edit the rule row, not this dict.
+YOGA_KEY_PLANETS: dict[str, list[str]] = activation_key_planets()
 
 
 def yoga_activation_score(

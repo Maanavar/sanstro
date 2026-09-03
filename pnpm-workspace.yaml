@@ -1,0 +1,21 @@
+packages:
+  - "mobile"
+  - "packages/*"
+  - "web"
+overrides:
+  react-native-worklets: "0.8.3"
+  # Moved here from the root package.json `pnpm.overrides` block, which pnpm 11
+  # no longer reads — it says so on every command ("The 'pnpm' field in
+  # package.json is no longer read"). The pin was therefore inert: `web` resolved
+  # @types/react 19.2.17 while `mobile` resolved 19.1.17, which is exactly the
+  # split the pin exists to prevent.
+  "@types/react": "19.2.17"
+  "@types/react-dom": "19.2.3"
+allowBuilds:
+  '@firebase/util': true
+  '@sentry/cli': true
+  core-js: true
+  esbuild: true
+  protobufjs: true
+  sharp: true
+  unrs-resolver: true

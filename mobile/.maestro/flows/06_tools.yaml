@@ -1,0 +1,25 @@
+appId: ai.vinaadi.app
+---
+# Tools tab: grid renders and Muhurta screen opens without crash.
+- launchApp
+- waitForAnimationToEnd
+- tapOn:
+    anyOf:
+      - text: "Tools"
+      - text: "கருவிகள்"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertNotVisible:
+    text: "Something went wrong"
+# Tap Muhurta tool.
+- tapOn:
+    anyOf:
+      - text: "Muhurta"
+      - text: "முகூர்த்தம்"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertNotVisible:
+    text: "Something went wrong"
+# Go back to tools grid.
+- back
+- waitForAnimationToEnd

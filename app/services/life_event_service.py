@@ -12,23 +12,22 @@ Confidence = count of active timing categories currently implemented
 """
 from __future__ import annotations
 
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime
 from typing import Literal
 from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.calculations.astro import house_from_reference, resolve_timezone, utc_datetime_to_julian_day
+from app.calculations.astro import utc_datetime_to_julian_day
 from app.calculations.chart_strength import SIGN_LORD
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.transits import get_jupiter_aspects, get_saturn_aspects
 from app.models import BirthProfile, Chart
 from app.schemas.dasha import ResponseMeta
-from app.schemas.life_events import BiText, LifeEventWindow, LifeEventsResponse, LifeEventsResponseData
+from app.schemas.life_events import BiText, LifeEventsResponse, LifeEventsResponseData, LifeEventWindow
 from app.services.chart_service import load_persisted_chart_response
-
 
 # ── Bilingual helper ──────────────────────────────────────────────────────────
 

@@ -180,7 +180,7 @@ function drawPoruthamCard(
   w: number, h: number,
 ) {
   const pct    = d.percentage;
-  const accent = pct >= 70 ? "#4ade80" : pct >= 40 ? "#e5b84d" : "#f87171";
+  const accent = pct >= 70 ? "#3a6b40" : pct >= 40 ? "#E5B84D" : "#F87171";
   const bg     = pct >= 70 ? "#020d05" : pct >= 40 ? "#0c0800" : "#0c0202";
   const text   = pct >= 70 ? "#e2fcea" : pct >= 40 ? "#fef9c3" : "#fee2e2";
 
@@ -311,7 +311,13 @@ function drawPoruthamCard(
     ctx.fill();
 
     if (kpct > 0) {
-      const barColor = kpct >= 0.7 ? "#4ade80" : kpct >= 0.4 ? accent : "#f87171";
+      // The middle band is the madhyama state and became reachable on
+      // 2026-08-31, when a madhyama started scoring 0.5. Deliberately colour
+      // only — no grade word. This is a fixed-size rendered image, and an amber
+      // bar between a green and a red one reads as "in between" on its own, so
+      // it carries the grade honestly without crowding the picture or putting
+      // an unglossed Sanskrit word in front of a stranger (ruling Q2a/Q2b).
+      const barColor = kpct >= 0.7 ? "#3a6b40" : kpct >= 0.4 ? accent : "#F87171";
       ctx.fillStyle  = barColor;
       roundRect(ctx, px + labelW, by, barW * kpct, barH, 7);
       ctx.fill();
@@ -358,14 +364,14 @@ function drawPanchangamCard(
   d: PanchangamShareData,
   w: number, h: number,
 ) {
-  const accent = "#6366f1";
+  const accent = "#6366F1";
   const text   = "#e0e7ff";
 
   ctx.fillStyle = "#050616";
   ctx.fillRect(0, 0, w, h);
 
   const grd = ctx.createRadialGradient(w / 2, h / 2, 20, w / 2, h / 2, 700);
-  grd.addColorStop(0, "#6366f11c");
+  grd.addColorStop(0, "#6366F11c");
   grd.addColorStop(1, "transparent");
   ctx.fillStyle = grd;
   ctx.fillRect(0, 0, w, h);
@@ -471,7 +477,7 @@ function drawPanchangamCard(
   // Time info
   const timeY = divY + 32;
 
-  ctx.fillStyle = "#f87171";
+  ctx.fillStyle = "#F87171";
   ctx.font      = "bold 28px system-ui, sans-serif";
   ctx.textAlign = "left";
   ctx.fillText("⚠", 56, timeY + 40);
@@ -481,7 +487,7 @@ function drawPanchangamCard(
     100, timeY + 40,
   );
 
-  ctx.fillStyle = "#4ade80";
+  ctx.fillStyle = "#3a6b40";
   ctx.font      = "bold 28px system-ui, sans-serif";
   ctx.fillText("✓", 56, timeY + 96);
   ctx.font      = "28px system-ui, sans-serif";
@@ -509,7 +515,7 @@ function drawPanchangamCard(
     const rahuE  = toMinutes(d.rahuKalamEnd);
     const rahuX  = tlX + Math.max((rahuS - sunriseMin) / dayDur, 0) * tlW;
     const rahuW  = Math.max((rahuE - rahuS) / dayDur * tlW, 4);
-    ctx.fillStyle = "#f87171aa";
+    ctx.fillStyle = "#F87171aa";
     roundRect(ctx, rahuX, tlY, rahuW, tlH, 4);
     ctx.fill();
 
@@ -519,7 +525,7 @@ function drawPanchangamCard(
       const nallaE = toMinutes(nParts[1]);
       const nallaX = tlX + Math.max((nallaS - sunriseMin) / dayDur, 0) * tlW;
       const nallaW = Math.max((nallaE - nallaS) / dayDur * tlW, 4);
-      ctx.fillStyle = "#4ade80aa";
+      ctx.fillStyle = "#3a6b40aa";
       roundRect(ctx, nallaX, tlY, nallaW, tlH, 4);
       ctx.fill();
     }
@@ -735,7 +741,7 @@ export function JadhagamShareButton({ data }: { data: JadhagamShareData }) {
           ? (lang === "ta" ? "உருவாக்குகிறது…" : "Generating…")
           : (lang === "ta" ? "ஜாதகம் பகிர்" : "Share chart snapshot")}
       </button>
-      {error && <p style={{ color: "var(--cl-warn, #f87171)", fontSize: "0.78rem", marginTop: "6px" }}>{error}</p>}
+      {error && <p style={{ color: "var(--cl-warn, var(--color-error-light))", fontSize: "0.78rem", marginTop: "6px" }}>{error}</p>}
       {preview && (
         <div
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.84)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: "24px" }}
@@ -817,7 +823,7 @@ export function PoruthamShareButton({ data }: { data: PoruthamShareData }) {
           ? (lang === "ta" ? "உருவாக்குகிறது…" : "Generating…")
           : (lang === "ta" ? "முடிவை பகிர்" : "Share result")}
       </button>
-      {error && <p style={{ color: "var(--cl-warn, #f87171)", fontSize: "0.78rem", marginTop: "6px" }}>{error}</p>}
+      {error && <p style={{ color: "var(--cl-warn, var(--color-error-light))", fontSize: "0.78rem", marginTop: "6px" }}>{error}</p>}
       {preview && (
         <div
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.84)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: "24px" }}
@@ -831,7 +837,7 @@ export function PoruthamShareButton({ data }: { data: PoruthamShareData }) {
               style={{ borderRadius: "12px", maxWidth: "min(100%, 420px)", maxHeight: "75vh", objectFit: "contain", boxShadow: "0 8px 32px rgba(0,0,0,0.7)" }}
             />
             <div style={{ display: "flex", gap: "10px" }}>
-              <a href={preview} download="vinaadi-porutham.png" style={{ padding: "8px 20px", borderRadius: "8px", background: "#e5b84d", color: "#0d1117", fontWeight: 700, fontSize: "0.875rem", textDecoration: "none" }}>
+              <a href={preview} download="vinaadi-porutham.png" style={{ padding: "8px 20px", borderRadius: "8px", background: "var(--chart-amber)", color: "#0d1117", fontWeight: 700, fontSize: "0.875rem", textDecoration: "none" }}>
                 {lang === "ta" ? "பதிவிறக்கம்" : "Download PNG"}
               </a>
               <button type="button" onClick={() => setPreview(null)} style={{ padding: "8px 20px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.2)", background: "transparent", color: "rgba(255,255,255,0.65)", fontSize: "0.875rem", cursor: "pointer" }}>
@@ -899,7 +905,7 @@ export function PanchangamShareButton({ data }: { data: PanchangamShareData }) {
           ? (lang === "ta" ? "உருவாக்குகிறது…" : "Generating…")
           : (lang === "ta" ? "பஞ்சாங்கம் பகிர்" : "Share panchangam")}
       </button>
-      {error && <p style={{ color: "var(--cl-warn, #f87171)", fontSize: "0.78rem", marginTop: "6px" }}>{error}</p>}
+      {error && <p style={{ color: "var(--cl-warn, var(--color-error-light))", fontSize: "0.78rem", marginTop: "6px" }}>{error}</p>}
       {preview && (
         <div
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.84)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: "24px" }}
@@ -913,7 +919,7 @@ export function PanchangamShareButton({ data }: { data: PanchangamShareData }) {
               style={{ borderRadius: "12px", maxWidth: "min(100%, 420px)", maxHeight: "75vh", objectFit: "contain", boxShadow: "0 8px 32px rgba(0,0,0,0.7)" }}
             />
             <div style={{ display: "flex", gap: "10px" }}>
-              <a href={preview} download="vinaadi-panchangam.png" style={{ padding: "8px 20px", borderRadius: "8px", background: "#6366f1", color: "#fff", fontWeight: 700, fontSize: "0.875rem", textDecoration: "none" }}>
+              <a href={preview} download="vinaadi-panchangam.png" style={{ padding: "8px 20px", borderRadius: "8px", background: "var(--color-indigo)", color: "#fff", fontWeight: 700, fontSize: "0.875rem", textDecoration: "none" }}>
                 {lang === "ta" ? "பதிவிறக்கம்" : "Download PNG"}
               </a>
               <button type="button" onClick={() => setPreview(null)} style={{ padding: "8px 20px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.2)", background: "transparent", color: "rgba(255,255,255,0.65)", fontSize: "0.875rem", cursor: "pointer" }}>

@@ -20,6 +20,13 @@ class AstroFactor:
 
 
 @dataclass(frozen=True, slots=True)
+class ChartSignature:
+    """Dominant-graha framing for the whole chart (plan Phase 5)."""
+    dominant: str
+    framing: BiText
+
+
+@dataclass(frozen=True, slots=True)
 class LifeAreaPrediction:
     life_area: str
     main_prediction_ta: str
@@ -32,6 +39,15 @@ class LifeAreaPrediction:
     confidence: str
     challenges: list[BiText]
     supports: list[BiText]
+    # Ordinal reasoning band (STRONG/LIKELY/MIXED/WEAK/BLOCKED/SILENT).
+    # Additive — populated only when the reasoning_gate flag is on (Phase 1).
+    band: str | None = None
+    # Chart-level dominant-graha framing + a LOW-confidence causal chain
+    # (plan Phase 5). Additive — populated only when reasoning_chart_signature
+    # is on. Shared across every LifeAreaPrediction caller (career, health,
+    # marriage, wealth); only marriage_service currently populates them (P0-4).
+    chart_signature: ChartSignature | None = None
+    causal_chain: BiText | None = None
 
 
 def house_lord_for_lagna(lagna_rasi: int, house: int) -> str:

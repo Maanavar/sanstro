@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
+import { STALE } from "@/lib/queryClient";
 import type { ApiEnvelope, GoalData, GoalListData, WhatIfData } from "@/lib/types";
 
 type UsePlanDataOptions = {
@@ -12,110 +14,132 @@ type UsePlanDataOptions = {
   onGoalRemoved?: () => void;
 };
 
+const goalsKey = (chartId: string) => ["goals", chartId, true] as const;
+
+async function fetchGoals(targetChartId: string): Promise<GoalData[]> {
+  const response = await apiFetchJson<ApiEnvelope<GoalListData>>(
+    `/api/v1/goals${toQuery({ chartId: targetChartId, activeOnly: true })}`,
+  );
+  return response.data.goals ?? [];
+}
+
 export function usePlanData({ chartId, onError, onGoalAdded, onGoalRemoved }: UsePlanDataOptions) {
-  const [goals, setGoals] = useState<GoalData[]>([]);
-  const [goalsBusy, setGoalsBusy] = useState(false);
+  const queryClient = useQueryClient();
   const [addingGoalType, setAddingGoalType] = useState("");
   const [removingGoalId, setRemovingGoalId] = useState("");
 
   const [whatIfScenario, setWhatIfScenario] = useState("job_change");
   const [whatIfDate, setWhatIfDate] = useState("");
-  const [whatIfResult, setWhatIfResult] = useState<WhatIfData | null>(null);
-  const [whatIfBusy, setWhatIfBusy] = useState(false);
-  const [whatIfError, setWhatIfError] = useState("");
 
   function reportError(message: string) {
-    if (onError) onError(message);
+    onError?.(message);
   }
+
+  const goalsQuery = useQuery({
+    queryKey: goalsKey(chartId),
+    queryFn: async () => {
+      try {
+        return await fetchGoals(chartId);
+      } catch (error) {
+        const msg = readErrorMessage(error);
+        if (!msg.includes("404")) reportError(msg);
+        return [];
+      }
+    },
+    enabled: !!chartId,
+    staleTime: STALE.today,
+  });
 
   async function loadGoals(targetChartId = chartId) {
     if (!targetChartId) return;
-    try {
-      const response = await apiFetchJson<ApiEnvelope<GoalListData>>(
-        `/api/v1/goals${toQuery({ chartId: targetChartId, activeOnly: true })}`,
-      );
-      setGoals(response.data.goals ?? []);
-    } catch (error) {
-      // Goals might not exist yet; only report actual errors
-      const msg = readErrorMessage(error);
-      if (!msg.includes("404")) reportError(msg);
-      setGoals([]);
-    }
+    await queryClient.invalidateQueries({ queryKey: goalsKey(targetChartId) });
   }
 
-  async function addGoal(goalType: string) {
-    if (!chartId) return;
-    setGoalsBusy(true);
-    setAddingGoalType(goalType);
-    try {
+  const addGoalMutation = useMutation({
+    mutationFn: async (goalType: string) => {
       await apiFetchJson<ApiEnvelope<unknown>>("/api/v1/goals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ chartId, goalType, languagePreference: "ta-en" }),
       });
-      await loadGoals(chartId);
+      return goalType;
+    },
+    onMutate: (goalType) => {
+      setAddingGoalType(goalType);
+    },
+    onSuccess: async (goalType) => {
+      await queryClient.invalidateQueries({ queryKey: goalsKey(chartId) });
       onGoalAdded?.(goalType);
-    } catch (error) {
+    },
+    onError: (error) => {
       reportError(readErrorMessage(error));
-    } finally {
-      setGoalsBusy(false);
+    },
+    onSettled: () => {
       setAddingGoalType("");
-    }
-  }
+    },
+  });
 
-  async function removeGoal(goalId: string) {
-    setRemovingGoalId(goalId);
-    try {
+  const removeGoalMutation = useMutation({
+    mutationFn: async (goalId: string) => {
       await apiFetchJson<ApiEnvelope<unknown>>(`/api/v1/goals/${goalId}`, { method: "DELETE" });
-      setGoals((prev) => prev.filter((goal) => goal.goalId !== goalId));
+      return goalId;
+    },
+    onMutate: (goalId) => {
+      setRemovingGoalId(goalId);
+    },
+    onSuccess: async (goalId) => {
+      queryClient.setQueryData<GoalData[]>(goalsKey(chartId), (prev) =>
+        prev ? prev.filter((goal) => goal.goalId !== goalId) : prev,
+      );
+      await queryClient.invalidateQueries({ queryKey: goalsKey(chartId) });
       onGoalRemoved?.();
-    } catch (error) {
+    },
+    onError: (error) => {
       reportError(readErrorMessage(error));
-    } finally {
+    },
+    onSettled: () => {
       setRemovingGoalId("");
-    }
-  }
+    },
+  });
 
-  async function runWhatIf() {
-    if (!chartId || !whatIfDate) return;
-    setWhatIfBusy(true);
-    setWhatIfError("");
-    setWhatIfResult(null);
-    try {
+  const whatIfMutation = useMutation({
+    mutationFn: async () => {
       const response = await apiFetchJson<ApiEnvelope<WhatIfData>>("/api/v1/whatif", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ chartId, scenario: whatIfScenario, targetDate: whatIfDate }),
       });
-      setWhatIfResult(response.data);
-    } catch (error) {
-      const message = readErrorMessage(error);
-      setWhatIfError(message);
-      reportError(message);
-    } finally {
-      setWhatIfBusy(false);
-    }
+      return response.data;
+    },
+    onError: (error) => {
+      reportError(readErrorMessage(error));
+    },
+  });
+
+  async function addGoal(goalType: string) {
+    if (!chartId) return;
+    await addGoalMutation.mutateAsync(goalType).catch(() => {});
   }
 
-  useEffect(() => {
-    if (!chartId) {
-      setGoals([]);
-      return;
-    }
-    void loadGoals(chartId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload only when chartId changes; loadGoals is recreated each render
-  }, [chartId]);
+  async function removeGoal(goalId: string) {
+    await removeGoalMutation.mutateAsync(goalId).catch(() => {});
+  }
+
+  async function runWhatIf() {
+    if (!chartId || !whatIfDate) return;
+    await whatIfMutation.mutateAsync().catch(() => {});
+  }
 
   return {
-    goals,
-    goalsBusy,
+    goals: goalsQuery.data ?? [],
+    goalsBusy: goalsQuery.isFetching || addGoalMutation.isPending,
     addingGoalType,
     removingGoalId,
     whatIfScenario,
     whatIfDate,
-    whatIfResult,
-    whatIfBusy,
-    whatIfError,
+    whatIfResult: whatIfMutation.data ?? null,
+    whatIfBusy: whatIfMutation.isPending,
+    whatIfError: whatIfMutation.error ? readErrorMessage(whatIfMutation.error) : "",
     setAddingGoalType,
     setWhatIfScenario,
     setWhatIfDate,
@@ -125,4 +149,3 @@ export function usePlanData({ chartId, onError, onGoalAdded, onGoalRemoved }: Us
     loadGoals,
   };
 }
-

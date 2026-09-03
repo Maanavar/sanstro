@@ -1,16 +1,31 @@
 import os
 
+# Must run before any `app.*` import touches app.core.config.get_settings()
+# (lru_cache'd — first call wins). Tests reset the DB schema between every
+# `client`/`raw_client` fixture use (DROP SCHEMA public CASCADE); a real
+# APScheduler + its session-level Postgres advisory-lock connection
+# (app.core.leader_lock.SchedulerLease) racing that reset is a confirmed
+# source of intermittent "relation X does not exist" failures — the
+# scheduler's `shutdown(wait=False)` doesn't wait for in-flight jobs/queries
+# before the next test's reset runs. Tests have no need for real cron jobs.
+os.environ.setdefault("JOTHIDAM_RUN_SCHEDULER_IN_WEB", "false")
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 
 import app.models as app_models  # noqa: F401  (registers all models with Base)
-from app.core.auth import create_access_token, get_current_user, get_admin_user
+from app.core.auth import (
+    create_access_token,
+    get_admin_user,
+    get_current_user,
+    get_elevated_admin_user,
+)
+from app.core.rate_limit import reset_rate_limit_backend
 from app.db.base import Base
-from app.db.session import engine, SessionLocal
+from app.db.session import SessionLocal, engine
 from app.main import app
-from app.middleware import _counters
 from app.models.user import User
 
 TEST_USER_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
@@ -103,10 +118,13 @@ def _reset_db() -> None:
 
 def _make_test_user(session) -> User:
     from uuid import UUID
+
+    from app.models.subscription import Subscription
     uid = UUID(TEST_USER_ID)
     user = User(user_id=uid, email=TEST_USER_EMAIL)
     session.add(user)
     session.flush()
+    session.add(Subscription(user_id=uid, tier="premium", status="active"))
     return user
 
 
@@ -124,13 +142,23 @@ def client() -> TestClient:
 
     app.dependency_overrides[get_current_user] = lambda: stub_user
     app.dependency_overrides[get_admin_user] = lambda: stub_user
-    _counters.clear()
+    # Destructive admin routes additionally require a short-lived elevation token
+    # (P1-4 step 2). This fixture already stands in for "is an admin"; standing in
+    # for "re-authenticated a moment ago" as well keeps every admin endpoint test
+    # about the endpoint rather than about the password prompt in front of it.
+    #
+    # It does NOT weaken the gate's coverage. tests/test_admin_elevation.py drives
+    # the real dependency through `raw_client`, which has no override here, and its
+    # structural test fails on any destructive route that forgets elevation — so a
+    # route losing its gate still breaks a test, just not this one.
+    app.dependency_overrides[get_elevated_admin_user] = lambda: stub_user
+    reset_rate_limit_backend()
 
     with TestClient(app) as test_client:
         yield test_client
 
     app.dependency_overrides.clear()
-    _counters.clear()
+    reset_rate_limit_backend()
 
 
 @pytest.fixture()
@@ -143,8 +171,10 @@ def token() -> str:
 def raw_client() -> TestClient:
     """Unauthenticated client — resets DB so auth provisioning tests start clean."""
     _reset_db()
+    reset_rate_limit_backend()
     with TestClient(app, raise_server_exceptions=False) as test_client:
         yield test_client
+    reset_rate_limit_backend()
 
 
 @pytest.fixture

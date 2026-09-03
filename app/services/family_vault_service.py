@@ -6,13 +6,22 @@ from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.calculations.astro import utc_datetime_to_julian_day
 from app.calculations.ephemeris import calculate_sidereal_planets
-from app.calculations.panchangam import calculate_daily_panchangam
+from app.calculations.family_harmony_remedies import (
+    MemberChartInput,
+    MemberPlanet,
+    synthesize_family_harmony_remedies,
+)
+from app.calculations.panchangam import PanchangamSnapshot, calculate_daily_panchangam
+from app.calculations.remedies import remedy_disclaimer
+from app.core.subscription import is_premium
+from app.core.tier_limits import get_limits
 from app.models import BirthProfile, Chart, FamilyDailyScore, FamilyMember, FamilyVault, User
-from app.schemas.daily_guidance import DailyGuidanceWindow
+from app.schemas.daily_guidance import DailyGuidanceResponse, DailyGuidanceWindow
 from app.schemas.dasha import ResponseMeta
 from app.schemas.family_vaults import (
     CompositeMemberScore,
@@ -27,6 +36,9 @@ from app.schemas.family_vaults import (
     FamilyCalendarResponse,
     FamilyCompositeTimelineData,
     FamilyCompositeTimelineResponse,
+    FamilyHarmonyRemediesData,
+    FamilyHarmonyRemediesResponse,
+    FamilyHarmonyRemedyItem,
     FamilyMemberCreate,
     FamilyMemberCreateResponse,
     FamilyMemberCreateResult,
@@ -36,26 +48,30 @@ from app.schemas.family_vaults import (
     FamilyMemberListResponse,
     FamilyMemberResponse,
     FamilyMemberUpdate,
-    FamilyVaultDetailData,
-    FamilyVaultDetailResponse,
+    FamilySummaryData,
+    FamilySummaryResponse,
     FamilyVaultCreate,
     FamilyVaultCreateResponse,
     FamilyVaultData,
+    FamilyVaultDetailData,
+    FamilyVaultDetailResponse,
     FamilyVaultListData,
     FamilyVaultListItem,
     FamilyVaultListResponse,
     FamilyVaultTodayData,
     FamilyVaultTodayResponse,
-    FamilySummaryData,
-    FamilySummaryResponse,
 )
-from app.services.chart_service import calculate_chart_for_persisted_profile, create_birth_profile_record
-from app.services.chart_service import load_persisted_chart_response
+from app.schemas.transits import SaniCycleResponse, TransitSnapshotResponse
+from app.services.chart_service import (
+    calculate_chart_for_persisted_profile,
+    create_birth_profile_record,
+    load_persisted_chart_response,
+)
 from app.services.daily_guidance_service import build_daily_guidance_response
 from app.services.location_service import local_midnight_as_jd_for_profile, resolve_effective_daily_location
 from app.services.transit_service import build_sani_cycle_response, build_transit_snapshot
 
-DEFAULT_CALCULATION_VERSION = "jothidam-formula-engine-v1.1-2026"
+DEFAULT_CALCULATION_VERSION = "jothidam-formula-engine-v1.2-2026"
 MAJOR_SANI_TAGS = {"JANMA_SANI", "ARDHASHTAMA_SANI", "ASHTAMA_SANI", "KANTAKA_SANI", "KANDAKA_SANI"}
 SUPPORTIVE_HORA_TAGS = {"JUPITER_HORA", "VENUS_HORA", "MERCURY_HORA"}
 
@@ -65,10 +81,10 @@ class _MemberSnapshot:
     member: FamilyMember
     birth_profile: BirthProfile
     chart_id: UUID
-    daily_guidance: object
-    gochar: object
-    sani_cycle: object
-    panchangam: object
+    daily_guidance: DailyGuidanceResponse
+    gochar: TransitSnapshotResponse
+    sani_cycle: SaniCycleResponse
+    panchangam: PanchangamSnapshot
 
 
 def _ensure_user(session: Session, owner_user_id: UUID) -> None:
@@ -136,9 +152,13 @@ def _latest_chart(session: Session, birth_profile: BirthProfile) -> Chart:
 
 
 def _find_duplicate_family_member(session: Session, family_vault_id: UUID, payload: FamilyMemberCreate) -> FamilyMember | None:
+    # BirthProfile.birth_date_local/birth_time_local/birth_latitude/birth_longitude are
+    # stored Fernet-encrypted, which is non-deterministic — equal plaintexts produce
+    # different ciphertext, so they can't be filtered in SQL. Narrow by the
+    # plaintext-comparable fields first, then compare the decrypted values in Python.
     normalized_name = payload.display_name.strip().lower()
-    existing = session.execute(
-        select(FamilyMember)
+    candidates = session.execute(
+        select(FamilyMember, BirthProfile)
         .join(BirthProfile, BirthProfile.family_member_id == FamilyMember.family_member_id)
         .where(
             FamilyMember.family_vault_id == family_vault_id,
@@ -148,16 +168,21 @@ def _find_duplicate_family_member(session: Session, family_vault_id: UUID, paylo
             func.lower(func.trim(BirthProfile.display_name)) == normalized_name,
             FamilyMember.relationship_to_owner == payload.relationship_to_owner,
             FamilyMember.date_of_birth_local == payload.birth_date_local,
-            BirthProfile.birth_date_local == payload.birth_date_local,
-            BirthProfile.birth_time_local == payload.birth_time_local,
             BirthProfile.birth_place == payload.birth_place,
-            BirthProfile.birth_latitude == payload.birth_latitude,
-            BirthProfile.birth_longitude == payload.birth_longitude,
             BirthProfile.birth_timezone == payload.birth_timezone,
         )
         .order_by(FamilyMember.created_at.desc())
-    ).scalar_one_or_none()
-    return existing
+    ).all()
+
+    for member, profile in candidates:
+        if (
+            profile.birth_date_local == payload.birth_date_local
+            and profile.birth_time_local == payload.birth_time_local
+            and float(profile.birth_latitude) == payload.birth_latitude
+            and float(profile.birth_longitude) == payload.birth_longitude
+        ):
+            return member
+    return None
 
 
 def _member_snapshot(session: Session, member: FamilyMember, on_date: date) -> _MemberSnapshot:
@@ -214,6 +239,21 @@ def _cached_member_snapshot(
     return snapshot
 
 
+def _collect_member_snapshots(
+    session: Session,
+    family_members: list[FamilyMember],
+    on_date: date,
+    snapshot_cache: dict[tuple[UUID, date], _MemberSnapshot],
+) -> list[_MemberSnapshot]:
+    snapshots: list[_MemberSnapshot] = []
+    for member in family_members:
+        try:
+            snapshots.append(_cached_member_snapshot(session, member, on_date, snapshot_cache))
+        except HTTPException:
+            continue
+    return snapshots
+
+
 def _member_active_tags(snapshot: _MemberSnapshot) -> list[str]:
     tags: list[str] = []
     score = snapshot.daily_guidance.data.score
@@ -256,6 +296,170 @@ def _member_response(snapshot: _MemberSnapshot) -> FamilyAggregateMember:
     )
 
 
+def _owner_aggregate_member(
+    session: Session,
+    owner_user_id: UUID,
+    on_date: date,
+) -> FamilyAggregateMember | None:
+    """Build a FamilyAggregateMember for the vault owner's direct personal profile.
+
+    The owner's personal birth profile (family_member_id IS NULL) is not a FamilyMember
+    row, so _collect_member_snapshots never includes it. This fetches it separately so
+    the owner is counted in the family score aggregate alongside the family members they
+    manage. Returns None if the owner has no personal profile or valid chart.
+    """
+    birth_profile = session.execute(
+        select(BirthProfile)
+        .where(
+            BirthProfile.owner_user_id == owner_user_id,
+            BirthProfile.family_member_id.is_(None),
+            BirthProfile.deleted_at.is_(None),
+        )
+        .order_by(BirthProfile.created_at.asc())
+    ).scalars().first()
+    if birth_profile is None:
+        return None
+    try:
+        chart = _latest_chart(session, birth_profile)
+        chart_snapshot = load_persisted_chart_response(session, chart.chart_id)
+    except HTTPException:
+        return None
+    daily_location = resolve_effective_daily_location(birth_profile)
+    panchangam = calculate_daily_panchangam(
+        on_date,
+        daily_location.latitude,
+        daily_location.longitude,
+        daily_location.timezone,
+        session=session,
+    )
+    solar_noon_utc = panchangam.solar_noon.astimezone(UTC)
+    current_jd = utc_datetime_to_julian_day(solar_noon_utc)
+    transit_snapshot = calculate_sidereal_planets(current_jd)
+    midnight_jd = local_midnight_as_jd_for_profile(on_date, birth_profile)
+    midnight_snapshot = calculate_sidereal_planets(midnight_jd)
+    daily_guidance = build_daily_guidance_response(
+        chart_snapshot,
+        on_date,
+        panchangam=panchangam,
+        transit_snapshot=transit_snapshot,
+    )
+    gochar = build_transit_snapshot(chart_snapshot, solar_noon_utc, current_snapshot=transit_snapshot)
+    sani_cycle = build_sani_cycle_response(chart_snapshot, on_date, saturn_snapshot=midnight_snapshot)
+    score = daily_guidance.data.score
+    tags: list[str] = []
+    if score >= 80:
+        tags.append("STRONG_DAY")
+    elif score >= 50:
+        tags.append("NORMAL_DAY")
+    elif score >= 35:
+        tags.append("SUPPORT_DAY")
+    else:
+        tags.append("AVOID_NEW_START_DAY")
+    if gochar.data.is_chandrashtama:
+        tags.append("CHANDRASHTAMA")
+    if sani_cycle.data.moon_based_cycle.is_active and sani_cycle.data.moon_based_cycle.type:
+        tags.append(sani_cycle.data.moon_based_cycle.type)
+    if sani_cycle.data.lagna_based_cycle.is_active and sani_cycle.data.lagna_based_cycle.type:
+        tags.append(sani_cycle.data.lagna_based_cycle.type)
+    return FamilyAggregateMember(
+        familyMemberId=birth_profile.birth_profile_id,
+        displayName=birth_profile.display_name,
+        birthProfileId=birth_profile.birth_profile_id,
+        chartId=chart.chart_id,
+        individualScore=score,
+        label=daily_guidance.data.label,
+        memberWeight=1.0,
+        birthTimeConfidenceMinutes=int(birth_profile.birth_time_confidence_minutes or 0),
+        activeCycleTags=tags,
+        bestWindows=daily_guidance.data.best_windows,
+        cautionWindows=daily_guidance.data.caution_windows,
+    )
+
+
+def _owner_day_view(
+    session: Session,
+    owner_user_id: UUID,
+    on_date: date,
+) -> FamilyMemberDayView | None:
+    """Build a FamilyMemberDayView for the vault owner's own personal profile.
+
+    Mirrors _owner_aggregate_member: the owner's personal birth profile
+    (family_member_id IS NULL) is not a FamilyMember row, so the members loop in
+    get_family_vault_today never emits a card for it — which left the owner's own
+    tile in the Family grid with no day highlight while every managed member had
+    one. Returns None when the owner has no personal profile or valid chart.
+
+    memberId is set to the birth_profile_id (not a family_member_id) so it lines
+    up with _owner_aggregate_member's familyMemberId — the web grid matches the
+    today highlight to the aggregate row on that id and flags it as "You".
+    """
+    birth_profile = session.execute(
+        select(BirthProfile)
+        .where(
+            BirthProfile.owner_user_id == owner_user_id,
+            BirthProfile.family_member_id.is_(None),
+            BirthProfile.deleted_at.is_(None),
+        )
+        .order_by(BirthProfile.created_at.asc())
+    ).scalars().first()
+    if birth_profile is None:
+        return None
+    try:
+        chart = _latest_chart(session, birth_profile)
+        chart_snapshot = load_persisted_chart_response(session, chart.chart_id)
+    except HTTPException:
+        return None
+    daily_location = resolve_effective_daily_location(birth_profile)
+    panchangam = calculate_daily_panchangam(
+        on_date,
+        daily_location.latitude,
+        daily_location.longitude,
+        daily_location.timezone,
+        session=session,
+    )
+    solar_noon_utc = panchangam.solar_noon.astimezone(UTC)
+    current_jd = utc_datetime_to_julian_day(solar_noon_utc)
+    transit_snapshot = calculate_sidereal_planets(current_jd)
+    midnight_jd = local_midnight_as_jd_for_profile(on_date, birth_profile)
+    midnight_snapshot = calculate_sidereal_planets(midnight_jd)
+    daily_guidance = build_daily_guidance_response(
+        chart_snapshot,
+        on_date,
+        panchangam=panchangam,
+        transit_snapshot=transit_snapshot,
+    )
+    gochar = build_transit_snapshot(chart_snapshot, solar_noon_utc, current_snapshot=transit_snapshot)
+    sani_cycle = build_sani_cycle_response(chart_snapshot, on_date, saturn_snapshot=midnight_snapshot)
+
+    label = daily_guidance.data.label
+    highlight = _SCORE_HIGHLIGHT.get(label, _SCORE_HIGHLIGHT["BALANCED"])
+    sani_active = sani_cycle.data.moon_based_cycle.is_active or sani_cycle.data.lagna_based_cycle.is_active
+    sani_type = (
+        sani_cycle.data.moon_based_cycle.type
+        if sani_cycle.data.moon_based_cycle.is_active
+        else (sani_cycle.data.lagna_based_cycle.type if sani_cycle.data.lagna_based_cycle.is_active else None)
+    )
+    nalla_neram_start = daily_guidance.data.best_windows[0].start if daily_guidance.data.best_windows else "N/A"
+
+    return FamilyMemberDayView(
+        memberId=birth_profile.birth_profile_id,
+        profileId=birth_profile.birth_profile_id,
+        chartId=chart.chart_id,
+        name=birth_profile.display_name,
+        relationship="self",
+        score=daily_guidance.data.score,
+        label=label,
+        highlightTa=highlight["ta"],
+        highlightEn=highlight["en"],
+        chandrashtama=gochar.data.is_chandrashtama,
+        saniCycleActive=sani_active,
+        saniCycleType=sani_type,
+        nallaNeramStart=nalla_neram_start,
+        rahuKalamStart=panchangam.rahu_kalam.start.strftime("%H:%M"),
+        rahuKalamEnd=panchangam.rahu_kalam.end.strftime("%H:%M"),
+    )
+
+
 def _family_label(score: int) -> str:
     if score >= 80:
         return "STRONG_FAMILY_DAY"
@@ -294,7 +498,18 @@ def _format_time_range(start: str, end: str) -> str:
     return f"{_format_clock_label(start)} - {_format_clock_label(end)}"
 
 
+# A shared window must be long enough to actually use — a 4-minute sliver left
+# after clipping Yamagandam out of a Nalla Neram slot is not worth prescribing.
+_MIN_SHARED_WINDOW_MIN = 10
+
+
 def _intersect_windows(windows: list[list[DailyGuidanceWindow]]) -> list[DailyGuidanceWindow]:
+    """All time ranges common to every member's best-window list, earliest first.
+
+    (Previously returned only the single earliest overlap; it now returns every
+    common range so the caller can skip any that fall inside an inauspicious
+    period and still have later candidates to choose from.)
+    """
     if not windows:
         return []
 
@@ -315,16 +530,71 @@ def _intersect_windows(windows: list[list[DailyGuidanceWindow]]) -> list[DailyGu
             return []
 
     common_ranges.sort(key=lambda item: (item[0], item[1]))
-    start, end, window_type = common_ranges[0]
-    return [DailyGuidanceWindow(type=window_type, start=_format_minutes(start), end=_format_minutes(end))]
+    return [
+        DailyGuidanceWindow(type=window_type, start=_format_minutes(start), end=_format_minutes(end))
+        for start, end, window_type in common_ranges
+    ]
 
 
-def _family_best_windows(member_snapshots: list[_MemberSnapshot]) -> list[DailyGuidanceWindow]:
+def _clip_out_avoid(
+    window: DailyGuidanceWindow,
+    avoid_windows: list[DailyGuidanceWindow],
+) -> list[DailyGuidanceWindow]:
+    """Remove any overlap with Rahu Kalam / Yamagandam / Kuligai from `window`.
+
+    A single good window can be split into 0, 1 or 2 usable pieces once an
+    inauspicious span is carved out of the middle. Pieces shorter than
+    `_MIN_SHARED_WINDOW_MIN` are dropped as unusable.
+    """
+    segments: list[tuple[int, int]] = [(_minutes(window.start), _minutes(window.end))]
+    for avoid in avoid_windows:
+        avoid_start = _minutes(avoid.start)
+        avoid_end = _minutes(avoid.end)
+        remaining: list[tuple[int, int]] = []
+        for seg_start, seg_end in segments:
+            if avoid_end <= seg_start or avoid_start >= seg_end:
+                remaining.append((seg_start, seg_end))  # no overlap
+                continue
+            if seg_start < avoid_start:
+                remaining.append((seg_start, avoid_start))  # clean piece before
+            if avoid_end < seg_end:
+                remaining.append((avoid_end, seg_end))  # clean piece after
+        segments = remaining
+    return [
+        DailyGuidanceWindow(type=window.type, start=_format_minutes(s), end=_format_minutes(e))
+        for s, e in segments
+        if e - s >= _MIN_SHARED_WINDOW_MIN
+    ]
+
+
+def _family_best_windows(
+    member_snapshots: list[_MemberSnapshot],
+    avoid_windows: list[DailyGuidanceWindow],
+) -> list[DailyGuidanceWindow]:
+    """The earliest shared good window that does NOT overlap an inauspicious span.
+
+    A "good time for all N" that sits inside Yamagandam/Rahu Kalam/Kuligai is
+    self-contradictory — users spotted exactly this. So every candidate (the
+    windows common to all members, then a single-member fallback) is clipped
+    against the avoid list, and only a clean, usable remainder is prescribed.
+    If nothing clean survives, we return no shared window rather than a wrong one
+    (the UI simply omits the "good time for all" chip).
+    """
     common = _intersect_windows([snapshot.daily_guidance.data.best_windows for snapshot in member_snapshots])
-    if common:
-        return common
-    first_windows = member_snapshots[0].daily_guidance.data.best_windows
-    return first_windows[:1]
+    clean: list[DailyGuidanceWindow] = []
+    for window in common:
+        clean.extend(_clip_out_avoid(window, avoid_windows))
+    if clean:
+        clean.sort(key=lambda window: _minutes(window.start))
+        return clean[:1]
+
+    # No window common to everyone survived — offer the first member's own best
+    # window, still clipped, so at least it is never an inauspicious slot.
+    for window in member_snapshots[0].daily_guidance.data.best_windows:
+        pieces = _clip_out_avoid(window, avoid_windows)
+        if pieces:
+            return pieces[:1]
+    return []
 
 
 def _family_avoid_windows(member_snapshots: list[_MemberSnapshot]) -> list[DailyGuidanceWindow]:
@@ -338,7 +608,6 @@ def _family_avoid_windows(member_snapshots: list[_MemberSnapshot]) -> list[Daily
 
 def _family_summary(
     label: str,
-    best_windows: list[DailyGuidanceWindow],
     avoid_windows: list[DailyGuidanceWindow],
     support_member: FamilyAggregateMember | None,
 ) -> FamilyAggregateSummary:
@@ -358,16 +627,17 @@ def _family_summary(
         en = "A quieter day will suit the family best. Keep commitments light and avoid major new starts."
         ta = "குடும்பத்திற்கு அமைதியான நாள் ஏற்றது. பொறுப்புகளை இலகுவாக வைத்துக்கொண்டு பெரிய புதிய தொடக்கங்களைத் தவிர்க்குங்கள்."
 
-    if best_windows:
-        window = best_windows[0]
-        window_label = _format_time_range(window.start, window.end)
-        en += f" Best shared window: {window_label}."
-        ta += f" சிறந்த பகிர்ந்த நேரம்: {window_label}."
+    # Best shared window is not repeated here — the UI already surfaces it as
+    # its own dedicated card directly below this summary, and restating it
+    # in prose duplicated the same sentence twice on screen.
 
     if avoid_windows:
         window = avoid_windows[0]
-        en += f" Avoid beginning important new work during {window.type.replace('_', ' ').title()}."
-        ta += f" {window.type.replace('_', ' ')} நேரத்தில் முக்கியமான புதிய பணிகளைத் தொடங்க வேண்டாம்."
+        window_label = _format_time_range(window.start, window.end)
+        window_name_en = window.type.replace("_", " ").title()
+        window_name_ta = window.type.replace("_", " ")
+        en += f" Avoid beginning important new work during {window_name_en} ({window_label})."
+        ta += f" {window_name_ta} நேரத்தில் ({window_label}) முக்கியமான புதிய பணிகளைத் தொடங்க வேண்டாம்."
 
     if support_member is not None:
         en += f" {support_member.display_name} may benefit from a gentler pace today."
@@ -401,7 +671,7 @@ def _family_breakdown(
 
     lowest_score_penalty = max(0, 55 - lowest_score) * 0.35
     high_stress_count_penalty = low_score_count * 4
-    chandrashtama_penalty = chandrashtama_count * 3
+    chandrashtama_penalty = chandrashtama_count * 8
     major_sani_penalty = major_sani_count * 4
     family_score_raw = (
         weighted_mean
@@ -476,13 +746,14 @@ def _persist_family_daily_score(
     support_need_index: int,
     decision_readiness_index: int,
 ) -> None:
-    existing = session.execute(
-        select(FamilyDailyScore).where(
-            FamilyDailyScore.family_vault_id == family_vault_id,
-            FamilyDailyScore.date_local == aggregate.date_local,
-            FamilyDailyScore.timezone == timezone_name,
-        )
-    ).scalar_one_or_none()
+    def _find_existing() -> FamilyDailyScore | None:
+        return session.execute(
+            select(FamilyDailyScore).where(
+                FamilyDailyScore.family_vault_id == family_vault_id,
+                FamilyDailyScore.date_local == aggregate.date_local,
+                FamilyDailyScore.timezone == timezone_name,
+            )
+        ).scalar_one_or_none()
 
     payload_breakdown = aggregate.aggregate_breakdown.model_dump(mode="json", by_alias=True)
     payload_members = [member.model_dump(mode="json", by_alias=True) for member in member_summaries]
@@ -491,32 +762,39 @@ def _persist_family_daily_score(
         window.model_dump(mode="json", by_alias=True) for window in aggregate.avoid_for_family_decisions
     ]
 
-    if existing is None:
-        existing = FamilyDailyScore(
-            family_vault_id=family_vault_id,
-            date_local=aggregate.date_local,
-            timezone=timezone_name,
-            family_score=aggregate.family_score,
-            family_label=aggregate.family_label,
-            aggregate_breakdown=payload_breakdown,
-            member_scores=payload_members,
-            best_family_windows=payload_best_windows,
-            avoid_for_family_decisions=payload_avoid_windows,
-            support_need_index=support_need_index,
-            decision_readiness_index=decision_readiness_index,
-        )
-        session.add(existing)
-    else:
-        existing.family_score = aggregate.family_score
-        existing.family_label = aggregate.family_label
-        existing.aggregate_breakdown = payload_breakdown
-        existing.member_scores = payload_members
-        existing.best_family_windows = payload_best_windows
-        existing.avoid_for_family_decisions = payload_avoid_windows
-        existing.support_need_index = support_need_index
-        existing.decision_readiness_index = decision_readiness_index
+    def _apply(row: FamilyDailyScore) -> None:
+        row.family_score = aggregate.family_score
+        row.family_label = aggregate.family_label
+        row.aggregate_breakdown = payload_breakdown
+        row.member_scores = payload_members
+        row.best_family_windows = payload_best_windows
+        row.avoid_for_family_decisions = payload_avoid_windows
+        row.support_need_index = support_need_index
+        row.decision_readiness_index = decision_readiness_index
 
-    session.flush()
+    existing = _find_existing()
+    if existing is not None:
+        _apply(existing)
+        session.flush()
+        return
+
+    existing = FamilyDailyScore(family_vault_id=family_vault_id, date_local=aggregate.date_local, timezone=timezone_name)
+    _apply(existing)
+    session.add(existing)
+    try:
+        session.flush()
+    except IntegrityError:
+        # Lost a race with a concurrent request computing the same vault/date/timezone
+        # cache row (daily-aggregate, composite and today can all compute the same day
+        # concurrently). Roll back and fall back to updating the row the other request
+        # just committed rather than 500ing - the aggregate we already computed and are
+        # about to return to the caller is unaffected either way.
+        session.rollback()
+        existing = _find_existing()
+        if existing is None:
+            raise
+        _apply(existing)
+        session.flush()
 
 
 def create_family_vault(session: Session, payload: FamilyVaultCreate, *, calculation_version: str = DEFAULT_CALCULATION_VERSION) -> FamilyVaultCreateResponse:
@@ -698,6 +976,20 @@ def add_family_member(
             detail="This family member already exists in the vault.",
         )
 
+    tier = "premium" if is_premium(owner_user_id, session) else "registered"
+    vault_limit = get_limits(tier).family_vault_profiles_max
+    existing_count = session.execute(
+        select(func.count(FamilyMember.family_member_id)).where(
+            FamilyMember.family_vault_id == family_vault.family_vault_id,
+            FamilyMember.deleted_at.is_(None),
+        )
+    ).scalar_one()
+    if int(existing_count) >= vault_limit:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Family Vault limit reached ({vault_limit} profile{'s' if vault_limit != 1 else ''}). Upgrade to Premium to add more.",
+        )
+
     family_member = FamilyMember(
         owner_user_id=owner_user_id,
         family_vault_id=family_vault.family_vault_id,
@@ -714,6 +1006,12 @@ def add_family_member(
     session.flush()
 
     birth_profile = create_birth_profile_record(session, payload, family_member_id=family_member.family_member_id)
+    # Spouse relationship implies married on both sides — override marital status so all
+    # prediction gates (marriage timing, life mode blocking) fire correctly automatically.
+    if payload.relationship_to_owner == "spouse" and birth_profile.marital_status != "married":
+        birth_profile.marital_status = "married"
+        session.flush()
+
     chart_response = None
     if payload.calculate_now:
         chart_response = calculate_chart_for_persisted_profile(
@@ -768,13 +1066,21 @@ def get_family_daily_aggregate(
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Family vault has no members.")
 
     request_cache = snapshot_cache if snapshot_cache is not None else {}
-    member_snapshots = [
-        _cached_member_snapshot(session, member, on_date, request_cache)
-        for member in family_members
-    ]
+    member_snapshots = _collect_member_snapshots(session, family_members, on_date, request_cache)
+    if not member_snapshots:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Family vault has no active members with valid birth profiles.",
+        )
+
     member_summaries = [_member_response(snapshot) for snapshot in member_snapshots]
-    best_family_windows = _family_best_windows(member_snapshots)
+    # Include the vault owner's personal score (family_member_id IS NULL profile) so
+    # the aggregate reflects all household members, not just the managed family members.
+    owner_member = _owner_aggregate_member(session, family_vault.owner_user_id, on_date)
+    if owner_member is not None:
+        member_summaries = [owner_member, *member_summaries]
     avoid_for_family_decisions = _family_avoid_windows(member_snapshots)
+    best_family_windows = _family_best_windows(member_snapshots, avoid_for_family_decisions)
 
     breakdown, family_score, decision_readiness_index = _family_breakdown(
         member_summaries,
@@ -783,7 +1089,7 @@ def get_family_daily_aggregate(
     )
     family_label = _family_label(family_score)
     support_member = min(member_summaries, key=lambda item: item.individual_score) if member_summaries else None
-    summary = _family_summary(family_label, best_family_windows, avoid_for_family_decisions, support_member)
+    summary = _family_summary(family_label, avoid_for_family_decisions, support_member)
     # v1 assumption: family aggregate windows share one local context.
     timezone_name = resolve_effective_daily_location(member_snapshots[0].birth_profile).timezone
 
@@ -972,6 +1278,134 @@ def get_family_composite_timeline(
     )
 
 
+def _chart_to_member_input(
+    display_name: str,
+    relationship: str,
+    is_minor: bool,
+    chart_data: object,
+) -> MemberChartInput:
+    planets = tuple(
+        MemberPlanet(
+            graha=p.graha,
+            house_from_lagna=p.house_from_lagna,
+            rasi=p.rasi,
+            is_combust=p.is_combust,
+            is_retrograde=p.is_retrograde,
+            strength_score=int(p.strength_score or 0),
+        )
+        for p in chart_data.planets  # type: ignore[attr-defined]
+    )
+    return MemberChartInput(
+        display_name=display_name,
+        relationship=relationship,
+        is_minor=is_minor,
+        lagna_rasi=chart_data.lagna.rasi,  # type: ignore[attr-defined]
+        planets=planets,
+    )
+
+
+def get_family_harmony_remedies(
+    session: Session,
+    family_vault_id: UUID,
+    *,
+    calculation_version: str = DEFAULT_CALCULATION_VERSION,
+) -> FamilyHarmonyRemediesResponse:
+    """Consolidated family-harmony parigaram read across every chart in the vault.
+
+    Loads each member's persisted chart (plus the owner's own personal profile,
+    which is not a FamilyMember row) and runs the cross-chart synthesizer over
+    the real combust / retrograde / house / strength values. Unlike the
+    single-chart remedy plan, the output is one shared list keyed to patterns
+    that span the household. Chart-derived, so it takes no date.
+    """
+    family_vault = _load_family_vault(session, family_vault_id)
+    inputs: list[MemberChartInput] = []
+
+    # Owner's own personal profile (family_member_id IS NULL) is the "self" chart
+    # and, like the daily aggregate, is not a FamilyMember row — fetch it first.
+    owner_profile = session.execute(
+        select(BirthProfile)
+        .where(
+            BirthProfile.owner_user_id == family_vault.owner_user_id,
+            BirthProfile.family_member_id.is_(None),
+            BirthProfile.deleted_at.is_(None),
+        )
+        .order_by(BirthProfile.created_at.asc())
+    ).scalars().first()
+    if owner_profile is not None:
+        try:
+            owner_chart = _latest_chart(session, owner_profile)
+            owner_snapshot = load_persisted_chart_response(session, owner_chart.chart_id)
+            inputs.append(_chart_to_member_input(owner_profile.display_name, "self", False, owner_snapshot.data))
+        except HTTPException:
+            pass
+
+    members = session.execute(
+        select(FamilyMember)
+        .where(
+            FamilyMember.family_vault_id == family_vault.family_vault_id,
+            FamilyMember.deleted_at.is_(None),
+        )
+        .order_by(FamilyMember.created_at.asc())
+    ).scalars().all()
+    for member in members:
+        try:
+            birth_profile = _latest_birth_profile(session, member)
+            chart = _latest_chart(session, birth_profile)
+            snapshot = load_persisted_chart_response(session, chart.chart_id)
+        except HTTPException:
+            continue
+        inputs.append(
+            _chart_to_member_input(
+                member.display_name,
+                member.relationship_to_owner,
+                member.is_minor,
+                snapshot.data,
+            )
+        )
+
+    if not inputs:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Family vault has no members with a calculated chart yet.",
+        )
+
+    items = synthesize_family_harmony_remedies(inputs)
+    return FamilyHarmonyRemediesResponse(
+        data=FamilyHarmonyRemediesData(
+            familyVaultId=family_vault.family_vault_id,
+            membersConsidered=[member_input.display_name for member_input in inputs],
+            items=[
+                FamilyHarmonyRemedyItem(
+                    signal=item.signal,
+                    priority=item.priority,
+                    planet=item.planet,
+                    titleTa=item.title_ta,
+                    titleEn=item.title_en,
+                    findingTa=item.finding_ta,
+                    findingEn=item.finding_en,
+                    remedyTa=item.remedy_ta,
+                    remedyEn=item.remedy_en,
+                    members=item.members,
+                    day=item.day,
+                    templeTa=item.temple_ta,
+                    templeEn=item.temple_en,
+                    mantraTa=item.mantra_ta,
+                    daanamTa=item.daanam_ta,
+                    daanamEn=item.daanam_en,
+                    tags=item.tags,
+                )
+                for item in items
+            ],
+            disclaimer=remedy_disclaimer(),
+        ),
+        meta=ResponseMeta(
+            calculation_version=calculation_version,
+            generated_at=datetime.now(tz=UTC),
+        ),
+    )
+
+
 def _load_family_member(session: Session, family_vault_id: UUID, family_member_id: UUID) -> FamilyMember:
     member = session.execute(
         select(FamilyMember).where(
@@ -1142,6 +1576,17 @@ def update_family_member(
             profile.current_location_updated_at = datetime.now(tz=UTC)
         profile.updated_at = datetime.now(tz=UTC)
 
+    # When relationship becomes spouse, ensure profile reflects married status
+    # so all prediction gates fire without requiring an explicit separate update.
+    if (
+        payload.relationship_to_owner == "spouse"
+        and profile is not None
+        and profile.marital_status != "married"
+        and payload.marital_status is None
+    ):
+        profile.marital_status = "married"
+        profile.updated_at = datetime.now(tz=UTC)
+
     session.flush()
     return FamilyMemberResponse(
         data=_member_data(member, profile),
@@ -1208,7 +1653,7 @@ def get_family_vault_today(
     FEATURE-04: Combined today view for all members in a family vault.
     Calls the existing score engine for each member and assembles a concise per-member card.
     """
-    _load_family_vault(session, family_vault_id)
+    family_vault = _load_family_vault(session, family_vault_id)
 
     members = session.execute(
         select(FamilyMember)
@@ -1220,6 +1665,14 @@ def get_family_vault_today(
     ).scalars().all()
 
     day_views: list[FamilyMemberDayView] = []
+    # Owner's own profile first — it's not a FamilyMember row, so without this the
+    # owner's grid tile had a score but no day highlight (unlike every managed
+    # member). Mirrors _owner_aggregate_member prepending the owner to the score
+    # aggregate; the web grid sorts owner-first anyway.
+    owner_day_view = _owner_day_view(session, family_vault.owner_user_id, on_date)
+    if owner_day_view is not None:
+        day_views.append(owner_day_view)
+
     for member in members:
         try:
             snapshot = _member_snapshot(session, member, on_date)
@@ -1251,6 +1704,7 @@ def get_family_vault_today(
         birth_profile = _latest_birth_profile(session, member)
 
         day_views.append(FamilyMemberDayView(
+            memberId=member.family_member_id,
             profileId=birth_profile.birth_profile_id,
             chartId=snapshot.chart_id,
             name=member.display_name,

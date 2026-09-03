@@ -1,19 +1,31 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import { Fraunces, Inter, JetBrains_Mono, Noto_Sans_Tamil } from "next/font/google";
 import type { ReactNode } from "react";
-import { BetaSystem } from "@/components/beta-system";
-import { PostHogProvider } from "@/components/posthog-provider";
+// F6 — what every visitor used to get here before a single pixel of content:
+// QueryProvider (react-query), PostHogProvider (-> posthog-js), BetaSystem
+// (-> 524 KB marketing-i18n) and Toaster (sonner). Measured against the real
+// import graph (scripts/payload-probe.mjs), the public site reaches NONE of
+// react-query or sonner, and neither does /login or /admin — so those two moved
+// to the dashboard layout, which is the only context that uses them. The other
+// two are deferred past first paint; see components/deferred-chrome.tsx.
+import { DeferredChrome } from "@/components/deferred-chrome";
 import { LangProvider } from "@/components/lang-toggle";
-import { LANG_COOKIE_NAME, type Lang } from "@/lib/i18n";
+import { getServerLang } from "@/lib/server-lang";
 
+import "@vinaadi/design-tokens/dist/web/tokens.css";
 import "./globals.css";
 
 const BASE = "https://vinaadi.com";
 
+// The single Fraunces instance for the whole product. 700 is here because the
+// dashboard renders it (Nova declared its own 500/600/700 instance until this
+// merged them); 400 and the italics are here because marketing renders them
+// (`.cl-hero__h1 em`, `.cl-num-quote`, `/login`'s `.ca-left-headline em`). The
+// union is what each surface already used — no cut was added speculatively and
+// none was dropped, so this changes what is *declared*, not what is rendered.
 const fraunces = Fraunces({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
   style: ["normal", "italic"],
   display: "swap",
   variable: "--font-display",
@@ -34,8 +46,11 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 const notoSansTamil = Noto_Sans_Tamil({
+  // SHD-04 — 700 is loaded so the UI's 700/800 Tamil headings/chips render a real
+  // bold cut instead of the browser synthesising faux-bold on the script the
+  // brand is named after.
   subsets: ["tamil"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
   variable: "--font-tamil",
 });
@@ -79,13 +94,13 @@ export const metadata: Metadata = {
   keywords: [
     "Tamil astrology",
     "Thirukanitham",
-    "daily jyotish",
+    "daily jothidam",
     "porutham calculator",
     "jadhagam generator",
     "panchangam planner",
     "birth time rectification",
     "Tamil astrology app",
-    "dasha calculator",
+    "dasa calculator",
     "family astrology planning",
   ],
   authors: [{ name: "Vinaadi" }],
@@ -146,18 +161,35 @@ export default async function RootLayout({
 }: Readonly<{
   children: ReactNode;
 }>) {
-  const cookieStore = await cookies();
-  const langCookie = cookieStore.get(LANG_COOKIE_NAME)?.value;
-  const initialLang: Lang = langCookie === "ta" ? "ta" : "en";
+  // English-by-default: the site loads in English unless the visitor saved an
+  // explicit Tamil preference (the language toggle / Settings card persists a
+  // cookie, so returning Tamil users are unaffected). Signed-in users can set
+  // their default load language in Settings; it syncs across devices via the DB.
+  // Resolved through `getServerLang()` so this layout and every server-rendered
+  // marketing page read the language exactly one way — see lib/server-lang.ts.
+  const initialLang = await getServerLang();
 
   return (
     <html
       lang={initialLang}
+      data-ui="nova"
       suppressHydrationWarning
       className={`${fraunces.variable} ${inter.variable} ${jetbrainsMono.variable} ${notoSansTamil.variable}`}
     >
       <head>
         <meta charSet="utf-8" />
+        {/* MKT-19 — public pages are light-only; the Nova dashboard opts back
+            into dark via `color-scheme: dark` on its own shell. Declaring "light
+            dark" here made dark-OS visitors get dark native form controls on the
+            cream marketing pages. */}
+        <meta name="color-scheme" content="light" />
+        {/* Apply saved theme before first paint to prevent flash of wrong theme.
+            data-ui="nova" is set statically on <html> above (Nova is the only
+            dashboard look now — see docs/NOVA_ONLY_MIGRATION_PLAN.md Phase 3). */}
+        {/* UXD-03 — resolve the theme before first paint. Explicit light/dark win;
+            "system" (or unset) follows the OS via prefers-color-scheme. Kept in
+            sync with hooks/useTheme.ts. */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem("vinaadi-theme");var r=(t==="light"||t==="dark")?t:((window.matchMedia&&window.matchMedia("(prefers-color-scheme: light)").matches)?"light":"dark");document.documentElement.setAttribute("data-theme",r);}catch(e){}})();` }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(ORG_JSONLD) }}
@@ -167,7 +199,12 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_JSONLD) }}
         />
       </head>
-      <body><LangProvider initialLang={initialLang}><PostHogProvider /><BetaSystem />{children}</LangProvider></body>
+      <body>
+        <LangProvider initialLang={initialLang}>
+          <DeferredChrome />
+          {children}
+        </LangProvider>
+      </body>
     </html>
   );
 }

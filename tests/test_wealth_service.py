@@ -15,7 +15,6 @@ def require_db():  # noqa: F811  — shadows conftest require_db; no DB needed f
 
 from app.services.wealth_service import WealthAssessmentInput, assess_wealth_prediction
 
-
 # ---------------------------------------------------------------------------
 # Shared test data — Mesh Lagna (lagna_rasi=1)
 # 2nd lord = Venus (Rishabam=2), placed in 2nd → strong house

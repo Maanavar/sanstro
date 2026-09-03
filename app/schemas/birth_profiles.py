@@ -6,8 +6,20 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-
-_VALID_MARITAL_STATUSES: frozenset[str] = frozenset({"single", "married", "divorced", "widowed", "breakup"})
+# "undisclosed" is a declined answer and behaves exactly like NULL everywhere
+# that reads this field — no surface may treat it as "single". It exists so a
+# reader who does not want to say has a way to say so: without one, the only way
+# to dismiss the one-minute reading's marital question was to pick a status that
+# is not true, which then fed every other surface through the same PATCH. Same
+# reasoning, same shape as `children` below.
+_VALID_MARITAL_STATUSES: frozenset[str] = frozenset(
+    {"single", "married", "divorced", "widowed", "breakup", "undisclosed"}
+)
+# Whether the reader has children. Absent (None) means we have never asked and
+# is NOT a synonym for "none" — conflating the two is what let progeny be
+# inferred from age and gender. "undisclosed" is a declined answer, which the
+# reading must treat exactly as it treats an absent one: no progeny claim.
+_VALID_CHILDREN_STATUSES: frozenset[str] = frozenset({"has", "none", "undisclosed"})
 _VALID_EMPLOYMENT_TYPES: frozenset[str] = frozenset({
     "employed_salaried", "self_employed", "business_owner", "student",
     "unemployed", "recently_unemployed", "retired", "homemaker",
@@ -50,12 +62,20 @@ class BirthProfileCreate(BaseModel):
     marital_status: str | None = Field(
         default=None,
         alias="maritalStatus",
-        description="single | married | divorced | widowed | breakup",
+        description=(
+            "single | married | divorced | widowed | breakup | undisclosed — "
+            "absent and 'undisclosed' both mean we hold no status, which is not 'single'"
+        ),
     )
     employment_type: str | None = Field(
         default=None,
         alias="employmentType",
         description="employed_salaried | self_employed | business_owner | student | unemployed | recently_unemployed | retired | homemaker",
+    )
+    children: str | None = Field(
+        default=None,
+        alias="children",
+        description="has | none | undisclosed — absent means not asked, which is not 'none'",
     )
 
     model_config = ConfigDict(populate_by_name=True)
@@ -89,9 +109,22 @@ class BirthProfileCreate(BaseModel):
             )
         return normalized
 
+    @field_validator("children", mode="before")
+    @classmethod
+    def validate_children(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        normalized = v.strip().lower()
+        if normalized not in _VALID_CHILDREN_STATUSES:
+            raise ValueError(
+                f"children must be one of: {', '.join(sorted(_VALID_CHILDREN_STATUSES))}"
+            )
+        return normalized
+
 
 class BirthProfileResponse(BirthProfileCreate):
     birth_profile_id: UUID = Field(alias="birthProfileId")
+    chart_id: UUID | None = Field(default=None, alias="chartId")
     birth_datetime_utc: datetime | None = Field(default=None, alias="birthDatetimeUtc")
     calculation_status: Literal["pending", "completed", "failed"] = Field(default="pending", alias="calculationStatus")
     warnings: list[str] = Field(default_factory=list, alias="warnings")
@@ -124,8 +157,10 @@ class BirthProfileUpdate(BaseModel):
     current_location_updated_at: datetime | None = Field(default=None, alias="currentLocationUpdatedAt")
     birth_time_source: str | None = Field(default=None, alias="birthTimeSource")
     birth_time_confidence_minutes: int | None = Field(default=None, alias="birthTimeConfidenceMinutes", ge=0)
+    gender_for_traditional_rules: str | None = Field(default=None, alias="genderForTraditionalRules")
     marital_status: str | None = Field(default=None, alias="maritalStatus")
     employment_type: str | None = Field(default=None, alias="employmentType")
+    children: str | None = Field(default=None, alias="children")
     recalculate: bool = Field(default=True, alias="recalculate")
 
     model_config = ConfigDict(populate_by_name=True)
@@ -161,6 +196,18 @@ class BirthProfileUpdate(BaseModel):
             )
         return normalized
 
+    @field_validator("children", mode="before")
+    @classmethod
+    def validate_children(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        normalized = v.strip().lower()
+        if normalized not in _VALID_CHILDREN_STATUSES:
+            raise ValueError(
+                f"children must be one of: {', '.join(sorted(_VALID_CHILDREN_STATUSES))}"
+            )
+        return normalized
+
 
 class BirthProfileResponseMeta(BaseModel):
     calculation_version: str = Field(alias="calculationVersion")
@@ -180,6 +227,14 @@ class BirthProfileCreateResponse(BaseModel):
 class BirthProfileGetResponse(BaseModel):
     success: bool = True
     data: BirthProfileResponse
+    meta: BirthProfileResponseMeta
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class BirthProfileListResponse(BaseModel):
+    success: bool = True
+    data: list[BirthProfileResponse]
     meta: BirthProfileResponseMeta
 
     model_config = ConfigDict(populate_by_name=True)

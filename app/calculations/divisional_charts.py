@@ -1,6 +1,8 @@
+# P2-05 CLOSED, 2026-08-18. Divisional charts are surfaced in mobile/app/vargas/index.tsx
+# and the jadhagam varga strip; the note had already recorded that and was never cleared.
 from __future__ import annotations
 
-from app.calculations.astro import navamsa_rasi_from_degree
+from app.calculations.astro import EPSILON_DEGREES, navamsa_rasi_from_degree
 
 
 def _norm(longitude: float) -> tuple[int, float]:
@@ -8,6 +10,31 @@ def _norm(longitude: float) -> tuple[int, float]:
     rasi = int(lon // 30.0) + 1
     deg = lon % 30.0
     return rasi, deg
+
+
+def _amsa(deg: float, step: float, count: int) -> int:
+    """Which 0-based amsa `deg` falls in, for a varga of `count` divisions.
+
+    A degree that lands exactly on an amsa boundary belongs to the amsa it
+    *opens*, never to the one it closes. Plain `int(deg / step)` breaks that for
+    any varga whose step is not exactly representable in binary — D7 (30/7),
+    D27 (30/27) and D45 (2/3). The second saptamsa of Taurus opens at
+    34.285714285714285, and `34.285714285714285 % 30 / (30 / 7)` evaluates to
+    0.9999999999999998, so the planet was filed one amsa too low. That misplaced
+    30 of D7's 84 boundaries, 133 of D27's 324 and 161 of D45's 540 — D7 feeds
+    the children propensity reading, so the wrong saptamsa sign shipped as a
+    confident answer.
+
+    `navamsa_rasi_from_degree` has always added `EPSILON_DEGREES` for exactly
+    this reason (D9's step is 10/3); this is the same correction applied to the
+    vargas that were computed here instead. Vargas with exactly-representable
+    steps (D2, D3, D4, D10, D12, D16, D20, D24, D40, D60) were already correct
+    and are unaffected — the epsilon is far smaller than one amsa, so it can
+    only rescue a value that was within a rounding error of the boundary.
+
+    Clamped to `count - 1` so 29.999...° cannot spill into a non-existent amsa.
+    """
+    return min(int(deg / step + EPSILON_DEGREES), count - 1)
 
 
 def _add_signs(rasi: int, count: int) -> int:
@@ -46,7 +73,7 @@ def compute_d3(planet_longitudes: dict[str, float]) -> dict[str, int]:
 def compute_d4(planet_longitudes: dict[str, float]) -> dict[str, int]:
     def _d4(lon: float) -> int:
         rasi, deg = _norm(lon)
-        part = min(int(deg / 7.5), 3)
+        part = _amsa(deg, 7.5, 4)
         return _add_signs(rasi, part * 3)
     return _map_divisional(planet_longitudes, _d4)
 
@@ -56,7 +83,7 @@ def compute_d7(planet_longitudes: dict[str, float]) -> dict[str, int]:
 
     def _d7(lon: float) -> int:
         rasi, deg = _norm(lon)
-        part = min(int(deg / step), 6)
+        part = _amsa(deg, step, 7)
         if rasi % 2 == 1:
             return _add_signs(rasi, part)
         return _add_signs(_add_signs(rasi, 6), part)
@@ -66,7 +93,7 @@ def compute_d7(planet_longitudes: dict[str, float]) -> dict[str, int]:
 def compute_d10(planet_longitudes: dict[str, float]) -> dict[str, int]:
     def _d10(lon: float) -> int:
         rasi, deg = _norm(lon)
-        part = min(int(deg / 3.0), 9)
+        part = _amsa(deg, 3.0, 10)
         start = rasi if (rasi % 2 == 1) else _add_signs(rasi, 8)
         return _add_signs(start, part)
     return _map_divisional(planet_longitudes, _d10)
@@ -75,7 +102,7 @@ def compute_d10(planet_longitudes: dict[str, float]) -> dict[str, int]:
 def compute_d12(planet_longitudes: dict[str, float]) -> dict[str, int]:
     def _d12(lon: float) -> int:
         rasi, deg = _norm(lon)
-        part = min(int(deg / 2.5), 11)
+        part = _amsa(deg, 2.5, 12)
         return _add_signs(rasi, part)
     return _map_divisional(planet_longitudes, _d12)
 
@@ -87,7 +114,7 @@ def compute_d16(planet_longitudes: dict[str, float]) -> dict[str, int]:
 
     def _d16(lon: float) -> int:
         rasi, deg = _norm(lon)
-        part = min(int(deg / step), 15)
+        part = _amsa(deg, step, 16)
         if rasi in movable:
             start = 1
         elif rasi in fixed:
@@ -105,7 +132,7 @@ def compute_d20(planet_longitudes: dict[str, float]) -> dict[str, int]:
 
     def _d20(lon: float) -> int:
         rasi, deg = _norm(lon)
-        part = min(int(deg / step), 19)
+        part = _amsa(deg, step, 20)
         if rasi in movable:
             start = 1
         elif rasi in fixed:
@@ -121,7 +148,7 @@ def compute_d24(planet_longitudes: dict[str, float]) -> dict[str, int]:
 
     def _d24(lon: float) -> int:
         rasi, deg = _norm(lon)
-        part = min(int(deg / step), 23)
+        part = _amsa(deg, step, 24)
         start = 5 if (rasi % 2 == 1) else 4
         return _add_signs(start, part)
     return _map_divisional(planet_longitudes, _d24)
@@ -135,12 +162,14 @@ def compute_d30(planet_longitudes: dict[str, float]) -> dict[str, int]:
         (7.0, 3),   # Mercury
         (5.0, 7),   # Venus
     ]
+    # Even signs: each lord's portion maps to the lord's OWN EVEN sign (BPHS
+    # Trimsamsa), not a repeat of the odd-sign targets (WI-03).
     even_segments = [
-        (5.0, 7),   # Venus
-        (7.0, 3),   # Mercury
-        (8.0, 9),   # Jupiter
-        (5.0, 11),  # Saturn
-        (5.0, 1),   # Mars
+        (5.0, 2),   # Venus  -> Taurus
+        (7.0, 6),   # Mercury-> Virgo
+        (8.0, 12),  # Jupiter-> Pisces
+        (5.0, 10),  # Saturn -> Capricorn
+        (5.0, 8),   # Mars   -> Scorpio
     ]
 
     def _d30(lon: float) -> int:
@@ -160,19 +189,68 @@ def compute_d40(planet_longitudes: dict[str, float]) -> dict[str, int]:
 
     def _d40(lon: float) -> int:
         rasi, deg = _norm(lon)
-        part = min(int(deg / step), 39)
+        part = _amsa(deg, step, 40)
         start = 1 if (rasi % 2 == 1) else 7
         return _add_signs(start, part)
     return _map_divisional(planet_longitudes, _d40)
 
 
+def compute_d27(planet_longitudes: dict[str, float]) -> dict[str, int]:
+    # Nakshatramsa/Bhamsa: not in this project's frozen spec. Standard Parashari
+    # element-group rule (fire/earth/air/water quartets, each 90 deg apart) —
+    # cross-check against a second source before using in scoring.
+    step = 30.0 / 27.0
+    fire = {1, 5, 9}
+    earth = {2, 6, 10}
+    air = {3, 7, 11}
+
+    def _d27(lon: float) -> int:
+        rasi, deg = _norm(lon)
+        part = _amsa(deg, step, 27)
+        if rasi in fire:
+            start = 1
+        elif rasi in earth:
+            start = 4
+        elif rasi in air:
+            start = 7
+        else:
+            start = 10
+        return _add_signs(start, part)
+    return _map_divisional(planet_longitudes, _d27)
+
+
+def compute_d45(planet_longitudes: dict[str, float]) -> dict[str, int]:
+    # Akshavedamsa: not in this project's frozen spec. Standard Parashari rule —
+    # movable signs start Aries, fixed start Leo, dual start Sagittarius.
+    step = 30.0 / 45.0
+    movable = {1, 4, 7, 10}
+    fixed = {2, 5, 8, 11}
+
+    def _d45(lon: float) -> int:
+        rasi, deg = _norm(lon)
+        part = _amsa(deg, step, 45)
+        if rasi in movable:
+            start = 1
+        elif rasi in fixed:
+            start = 5
+        else:
+            start = 9
+        return _add_signs(start, part)
+    return _map_divisional(planet_longitudes, _d45)
+
+
 def compute_d60(planet_longitudes: dict[str, float]) -> dict[str, int]:
+    # Shashtiamsa: spec section 3.13. 60 divisions of 0 deg 30' each. Odd signs
+    # count forward from their own rasi; even signs count backward. Previous
+    # implementation ignored the natal rasi and always counted from Aries.
     step = 0.5
 
     def _d60(lon: float) -> int:
-        _, deg = _norm(lon)
-        part = min(int(deg / step), 59)
-        return _add_signs(1, part)
+        rasi, deg = _norm(lon)
+        index = _amsa(deg, step, 60)
+        if rasi % 2 == 1:
+            return _add_signs(rasi, index)
+        return _add_signs(rasi, -index)
     return _map_divisional(planet_longitudes, _d60)
 
 
@@ -200,10 +278,14 @@ def get_varga(
         return compute_d20(planet_longitudes)
     if division == 24:
         return compute_d24(planet_longitudes)
+    if division == 27:
+        return compute_d27(planet_longitudes)
     if division == 30:
         return compute_d30(planet_longitudes)
     if division == 40:
         return compute_d40(planet_longitudes)
+    if division == 45:
+        return compute_d45(planet_longitudes)
     if division == 60:
         return compute_d60(planet_longitudes)
     raise ValueError(f"Unsupported varga division: D{division}")

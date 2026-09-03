@@ -1,5 +1,9 @@
 import { apiFetchJson, toQuery } from "@/lib/api";
 
+export const MUHURTHAM_NAAL_YEARS = [2027, 2026] as const;
+export const LATEST_MUHURTHAM_NAAL_YEAR = MUHURTHAM_NAAL_YEARS[0];
+export type MuhurthamNaalYear = (typeof MUHURTHAM_NAAL_YEARS)[number];
+
 export interface BiText {
   ta: string;
   en: string;
@@ -49,6 +53,8 @@ export interface MuhurthamNaalMatchContext {
   recommendedCount: number;
   totalCount: number;
   source: string;
+  /** The chart's effective daily location, used for the displayed Nalla Neram. */
+  dailyLocation?: { latitude: number; longitude: number; timezone: string; source: "current" | "birth" } | null;
 }
 
 export interface MuhurthamNaalMatchResponse {
@@ -76,7 +82,7 @@ export function fetchPublicMuhurthamNaals(
 
 export function fetchChartMuhurthamNaals(
   chartId: string,
-  year = 2026,
+  year: number = LATEST_MUHURTHAM_NAAL_YEAR,
   recommendedOnly = false,
 ): Promise<MuhurthamNaalMatchResponse> {
   const query = toQuery({ year, recommendedOnly });

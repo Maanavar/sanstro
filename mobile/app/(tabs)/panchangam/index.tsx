@@ -1,0 +1,294 @@
+import React, { useEffect, useMemo, useState } from "react";
+import { Star } from "lucide-react-native";
+import {
+  RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { router } from "expo-router";
+import { useQuery } from "@tanstack/react-query";
+import { useColors } from "@/hooks/useColors";
+import type { ColorTokens } from "@/theme/colors";
+import { RADIUS, S } from "@/theme/spacing";
+import { TamilType, EnType } from "@/theme/typography";
+import { useI18n } from "@/hooks/useI18n";
+import { tKarana, tNakshatra, tTithi, tYoga } from "@vinaadi/shared";
+import { TimeCard } from "@/components/TimeCard";
+import { SkeletonCard } from "@/components/SkeletonCard";
+import { ErrorCard } from "@/components/ErrorCard";
+import { getPanchangamDay } from "@/api/panchangam";
+import { loadGuestPrefs } from "@/features/guest/guestStore";
+import { formatTimeLang } from "@/lib/formatLocale";
+import type { GuestPrefs } from "@/features/guest/guestStore";
+import { SwipeRouteView } from "@/components/SwipeRouteView";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
+import { entranceDelay, spring, staggerInterval, duration } from "@/theme/motion";
+
+const TZ = "Asia/Kolkata";
+
+function isoToHHMM(iso: string): string {
+  try {
+    return new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false });
+  } catch {
+    return iso;
+  }
+}
+
+function dateString(offset: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return d.toISOString().slice(0, 10);
+}
+
+export default function PanchangamDayScreen() {
+  const C = useColors();
+  const styles = useMemo(() => makeStyles(C), [C]);
+  const { t, strings, lang } = useI18n();
+  const isTamil = lang === "ta";
+  const fmt = (iso: string) => formatTimeLang(iso, lang);
+  const [dayOffset, setDayOffset] = useState(0);
+  const [prefs, setPrefs] = useState<GuestPrefs | null>(null);
+
+  useEffect(() => {
+    loadGuestPrefs().then(setPrefs);
+  }, []);
+
+  const dateStr = dateString(dayOffset);
+  const prefsLoaded = prefs !== null;
+  const lat = prefs?.lat ?? undefined;
+  const lon = prefs?.lon ?? undefined;
+  const hasLocation = lat != null && lon != null;
+  const isLocationMissing = prefsLoaded && !hasLocation;
+  const locationLabel = prefs?.city
+    ?? (prefs === null
+      ? (isTamil ? "இடம் ஏற்றுகிறது…" : "Loading location…")
+      : (isTamil ? "இடத்தை அமைக்கவும்" : "Set location"));
+
+  const { data, isLoading, isError, isFetching, refetch } = useQuery({
+    queryKey: ["panchangam-day", dateStr, lat, lon],
+    queryFn: () => getPanchangamDay(dateStr, { lat: lat!, lng: lon!, tz: TZ }),
+    staleTime: 1000 * 60 * 60 * 12,
+    enabled: hasLocation,
+  });
+  const p = data?.data;
+
+  const dayChips = [-2, -1, 0, 1, 2].map((i) => {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    const label = d.toLocaleDateString("en-IN", { weekday: "short" });
+    const num = d.getDate();
+    return { offset: i, label, num, isToday: i === 0 };
+  });
+
+  return (
+    <SwipeRouteView leftRoute="/(tabs)/panchangam/calendar">
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <Animated.View style={styles.header} entering={FadeInDown.delay(entranceDelay.hero).springify().stiffness(spring.default.stiffness).damping(spring.default.damping)}>
+        <Text style={[styles.headerTitle, isTamil ? TamilType.heading : EnType.heading]}>
+          {t(strings.panchangam.title)}
+        </Text>
+        <View style={styles.headerActions}>
+          <Text style={styles.locationLabel}>{locationLabel}</Text>
+          <TouchableOpacity onPress={() => router.push("/(tabs)/panchangam/calendar")}>
+            <Text style={styles.calendarLink}>{isTamil ? "மாதம் ▸" : "Month ▸"}</Text>
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
+
+      {/* Day strip */}
+      <Animated.View entering={FadeInDown.delay(entranceDelay.supporting).springify().stiffness(spring.default.stiffness).damping(spring.default.damping)}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dayStrip}>
+        {dayChips.map((chip) => (
+          <TouchableOpacity
+            key={chip.offset}
+            style={[styles.dayChip, chip.offset === dayOffset && styles.dayChipActive]}
+            onPress={() => setDayOffset(chip.offset)}
+          >
+            <Text style={[styles.dayChipLabel, chip.offset === dayOffset && styles.dayChipLabelActive]}>
+              {chip.label}
+            </Text>
+            <Text style={[styles.dayChipNum, chip.offset === dayOffset && styles.dayChipNumActive]}>
+              {chip.num}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+      </Animated.View>
+
+      <Animated.View style={{ flex: 1 }} entering={FadeIn.delay(entranceDelay.supporting + staggerInterval).duration(duration.medium)}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+        refreshControl={
+          <RefreshControl
+            refreshing={hasLocation && isFetching}
+            onRefresh={() => { if (hasLocation) void refetch(); }}
+            tintColor={C.saffron}
+          />
+        }
+      >
+        {!prefsLoaded || isLoading ? (
+          <>
+            <SkeletonCard height={80} />
+            <SkeletonCard height={200} />
+            <SkeletonCard height={160} />
+          </>
+        ) : isLocationMissing ? (
+          <TouchableOpacity
+            style={styles.locationPrompt}
+            activeOpacity={0.86}
+            onPress={() => router.push("/(onboarding)/location")}
+          >
+            <Text style={[styles.locationPromptTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
+              {isTamil ? "சரியான பஞ்சாங்க நேரங்களுக்கு உங்கள் நகரத்தை அமைக்கவும்" : "Set your city for accurate Panchangam timings"}
+            </Text>
+            <Text style={styles.locationPromptBody}>
+              {isTamil ? "சூரியோதயம், ராகு காலம், நல்ல நேரம் போன்றவை இடத்தை சார்ந்தவை." : "Sunrise, Rahu Kalam, and Nalla Neram all depend on your location."}
+            </Text>
+            <Text style={styles.locationPromptCta}>{isTamil ? "இடத்தை புதுப்பிக்கவும்" : "Update location"}</Text>
+          </TouchableOpacity>
+        ) : isError ? (
+          <ErrorCard onRetry={refetch} />
+        ) : p ? (
+          <>
+            {/* Date hero */}
+            <View style={styles.dateHero}>
+              <Text style={[styles.tamilDate, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
+                {p.tamilDate ? (isTamil ? p.tamilDate.ta : p.tamilDate.en) : dateStr}
+              </Text>
+              <View style={styles.sunRow}>
+                <Text style={styles.sunText}>ÃƒÂ°Ã…Â¸Ã…â€™Ã¢â‚¬Â¦ {fmt(p.sunrise)}</Text>
+                <Text style={styles.sunText}>ÃƒÂ°Ã…Â¸Ã…â€™Ã¢â‚¬Â¡ {fmt(p.sunset)}</Text>
+              </View>
+            </View>
+
+            {/* Primary timings */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.kalamRow}>
+              {p.kalam.nallaNeram.slice(0, 2).map((slot, i) => (
+                <TimeCard key={`n-${i}`} kind="nalla_neram" start={fmt(slot.start)} end={fmt(slot.end)} />
+              ))}
+              <TimeCard kind="rahu_kalam" start={fmt(p.kalam.rahuKalam.start)} end={fmt(p.kalam.rahuKalam.end)} />
+              <TimeCard kind="yamagandam" start={fmt(p.kalam.yamagandam.start)} end={fmt(p.kalam.yamagandam.end)} />
+              <TimeCard kind="kuligai" start={fmt(p.kalam.kuligai.start)} end={fmt(p.kalam.kuligai.end)} />
+            </ScrollView>
+
+            {/* Five elements */}
+            <View style={styles.fiveCard}>
+              <Text style={[styles.fiveTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
+                {isTamil ? "பஞ்சாங்க அம்சங்கள்" : "Panchangam Elements"}
+              </Text>
+              {[
+                { label: t(strings.panchangam.tithi),     value: `${tTithi(p.tithi.name, lang)} (${p.tithi.paksha === "SHUKLA" ? "வளர்பிறை" : "தேய்பிறை"})` },
+                { label: t(strings.panchangam.nakshatra), value: `${tNakshatra(p.nakshatra.name, lang)}, ${isTamil ? "பாதம்" : "Pada"} ${p.nakshatra.pada}` },
+                { label: t(strings.panchangam.yoga),     value: tYoga(p.yoga.name, lang) },
+                { label: t(strings.panchangam.karana),   value: tKarana(p.karana.name, lang) },
+                { label: t(strings.panchangam.vara),     value: p.vara.weekday },
+              ].map((row) => (
+                <View key={row.label} style={styles.fiveRow}>
+                  <Text style={styles.fiveLabel}>{row.label}</Text>
+                  <Text style={[styles.fiveValue, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
+                    {row.value}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Festivals */}
+            {p.festivals.length > 0 && (
+              <View style={styles.festivalCard}>
+                <Text style={[styles.festivalTitle, isTamil ? TamilType.subheading : EnType.subheading]}>
+                  {t(strings.panchangam.festivals)}
+                </Text>
+                {p.festivals.map((f, i) => (
+                  <View key={i} style={styles.festivalRow}>
+                    <Star size={12} color={C.gold} strokeWidth={1.5} fill={C.gold} />
+                    <Text style={[styles.festivalItem, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_600SemiBold" }]}>
+                      {f.name}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </>
+        ) : null}
+      </ScrollView>
+      </Animated.View>
+    </SafeAreaView>
+    </SwipeRouteView>
+  );
+}
+
+function makeStyles(C: ColorTokens) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: C.parchment },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: S.base,
+    paddingVertical: S.md,
+    borderBottomWidth: 1,
+    borderBottomColor: C.divider,
+  },
+  headerTitle: { color: C.textPrimary },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: S.sm },
+  locationLabel: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: C.textTertiary },
+  calendarLink: { fontFamily: "Inter_600SemiBold", fontSize: 13, color: C.saffron },
+  locationPrompt: {
+    backgroundColor: C.surface,
+    borderRadius: RADIUS.card,
+    padding: S.base,
+    gap: S.sm,
+    borderWidth: 1,
+    borderColor: C.divider,
+  },
+  locationPromptTitle: { color: C.textPrimary },
+  locationPromptBody: { fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 20, color: C.textSecond },
+  locationPromptCta: { fontFamily: "Inter_700Bold", fontSize: 13, color: C.saffron },
+
+  dayStrip: { paddingHorizontal: S.base, paddingVertical: S.sm, borderBottomWidth: 1, borderBottomColor: C.divider },
+  dayChip: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: S.md,
+    paddingVertical: S.sm,
+    borderRadius: RADIUS.chip,
+    marginRight: S.sm,
+    minWidth: 52,
+  },
+  dayChipActive: { backgroundColor: C.saffron },
+  dayChipLabel: { fontFamily: "Inter_400Regular", fontSize: 11, color: C.textTertiary },
+  dayChipLabelActive: { color: C.surface },
+  dayChipNum: { fontFamily: "Inter_700Bold", fontSize: 18, color: C.textPrimary },
+  dayChipNumActive: { color: C.surface },
+
+  scroll: { padding: S.base, gap: S.base },
+  dateHero: {
+    backgroundColor: C.surface,
+    borderRadius: RADIUS.card,
+    padding: S.base,
+    gap: S.sm,
+  },
+  tamilDate: { fontSize: 16, lineHeight: 24, color: C.textPrimary },
+  sunRow: { flexDirection: "row", gap: S.xl },
+  sunText: { fontFamily: "Inter_400Regular", fontSize: 13, color: C.textSecond },
+
+  kalamRow: { marginLeft: -S.base, paddingLeft: S.base },
+
+  fiveCard: {
+    backgroundColor: C.surface,
+    borderRadius: RADIUS.card,
+    padding: S.base,
+    gap: S.sm,
+  },
+  fiveTitle: { color: C.textPrimary, marginBottom: S.xs },
+  fiveRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: S.xs, borderBottomWidth: 1, borderBottomColor: C.divider },
+  fiveLabel: { fontFamily: "Inter_400Regular", fontSize: 13, color: C.textTertiary, flex: 1 },
+  fiveValue: { fontSize: 14, lineHeight: 20, color: C.textPrimary, flex: 2, textAlign: "right" },
+
+  festivalCard: { backgroundColor: C.surface, borderRadius: RADIUS.card, padding: S.base, gap: S.sm },
+  festivalTitle: { color: C.textPrimary },
+  festivalRow: { flexDirection: "row" as const, alignItems: "center" as const, gap: 6 },
+  festivalItem: { fontSize: 14, lineHeight: 22, color: C.textPrimary, flex: 1 },
+  });
+}

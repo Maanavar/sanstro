@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from datetime import date
 from uuid import UUID
@@ -23,7 +23,28 @@ class LifeAreaData(BaseModel):
     area: str
     label: LifeAreaText
     score: int
+    #: UP / DOWN / STABLE from the six-month slope (score vs score_6mo), not
+    #: from how high the current score happens to be.
     trend: str
+    #: True when Chandrashtamam is currently docking this area's score. A
+    #: life-area score is otherwise a period number that holds for weeks; this
+    #: is the one input that turns over on a ~2-day cycle, so a surface can name
+    #: the cause instead of letting the tile move for no visible reason.
+    #: Defaults False for backward-compatibility with cached payloads.
+    chandrashtama_applied: bool = Field(default=False, alias="chandrashtamaApplied")
+    # Forward-projected scores: the SAME engine re-run at +6 and +12 months
+    # (real transits + the dasha/antardasha in force then), blended exactly as
+    # the current score is. Not a cosmetic slope. Flagged for astrologer review.
+    score_6mo: int = Field(default=0, alias="score6mo")
+    score_12mo: int = Field(default=0, alias="score12mo")
+    # Life-stage relevance, decided by the engine's age/phase gate (single
+    # source of truth — surfaces must NOT re-derive this from age on the client).
+    # False when the area is skipped for the native's current life phase
+    # (e.g. Career for a child, Relationships for an unmarried elder). The area
+    # is still returned — with a "becomes relevant later / was active earlier"
+    # reading — so a surface can choose to dim it or hide it, but never invents
+    # its own gate. Defaults True for backward-compatibility with cached payloads.
+    age_relevant: bool = Field(default=True, alias="ageRelevant")
     confidence: str = "MEDIUM"
     confidence_reason: LifeAreaText = Field(
         default_factory=lambda: LifeAreaText(ta="இரண்டு சமிக்ஞைகள் சீரமைக்கப்பட்டுள்ளன", en="Two signals aligned"),
@@ -41,10 +62,26 @@ class LifeAreaData(BaseModel):
     next_30_day_outlook: LifeAreaText = Field(alias="next30DayOutlook")
     caution: LifeAreaText | None = None
     is_goal_focus: bool = Field(default=False, alias="isGoalFocus")
+    # Contradiction reading (PROMISED_AND_TIMED / PROMISED_NOT_NOW /
+    # ACTIVE_BUT_UNPROMISED / PARTIALLY_PROMISED / NOT_PROMISED / MIXED /
+    # SILENT). Additive — populated only when the reasoning_contradiction
+    # flag is on (Phase 3, D4).
+    reading: str | None = Field(default=None)
     score_breakdown: dict[str, int] | None = Field(default=None, alias="scoreBreakdown")
     structured_remedy: dict[str, object] | None = Field(default=None, alias="structuredRemedy")
+    # Root-cause chain (plan Phase 5, D-synthesis): an ordered "because ...
+    # therefore ..." reading in place of the flat factor list, for LOW-
+    # confidence areas only. Additive — populated only when the
+    # reasoning_chart_signature flag is on.
+    causal_chain: LifeAreaText | None = Field(default=None, alias="causalChain")
 
     model_config = ConfigDict(populate_by_name=True)
+
+
+class ChartSignatureData(BaseModel):
+    """Dominant-graha framing for the whole chart (plan Phase 5)."""
+    dominant: str
+    framing: LifeAreaText
 
 
 class LifeAreasResponseData(BaseModel):
@@ -52,6 +89,8 @@ class LifeAreasResponseData(BaseModel):
     date_local: date = Field(alias="dateLocal")
     chart_validation_status: str | None = Field(default=None, alias="chartValidationStatus")
     areas: list[LifeAreaData]
+    # Additive — populated only when the reasoning_chart_signature flag is on.
+    chart_signature: ChartSignatureData | None = Field(default=None, alias="chartSignature")
 
     model_config = ConfigDict(populate_by_name=True)
 

@@ -1,0 +1,30 @@
+appId: ai.vinaadi.app
+---
+# Premium screen: opens without crash; offerings load or skeleton shows.
+# RevenueCat must be initialized with a valid sandbox key for offerings to load.
+- launchApp
+- waitForAnimationToEnd
+# Open Me tab → Premium.
+- tapOn:
+    anyOf:
+      - text: "Me"
+      - text: "நான்"
+- waitForAnimationToEnd
+- tapOn:
+    anyOf:
+      - text: "Upgrade"
+      - text: "Premium"
+      - text: "Go Premium"
+      - text: "Vinaadi Pro"
+- waitForAnimationToEnd:
+    timeout: 8000
+- assertNotVisible:
+    text: "Something went wrong"
+# Either offering cards or a loading skeleton should be visible — not a blank screen.
+- assertVisible:
+    anyOf:
+      - text: "Monthly"
+      - text: "Annual"
+      - text: "Yearly"
+      - text: "Restore"
+      - id: "premium-skeleton"

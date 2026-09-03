@@ -213,12 +213,14 @@ def test_ashtami_in_penalty_set():
 
 
 # ---------------------------------------------------------------------------
-# BUG-03 — Kandaka Sani from Lagna: must fire for houses 1, 4, 7, 10
+# BUG-03 — Kandaka Sani from the Janma Rasi: fires for 4, 7, 10
+# Doctrine A-1 (ruled 2026-08-19) moved the reference from Lagna to Janma Rasi
+# and dropped the 1st, which is Janma Sani's position.
 # ---------------------------------------------------------------------------
 
-def test_kandaka_sani_from_lagna_detected():
+def test_kandaka_sani_from_janma_rasi_detected():
     from app.calculations.transits import classify_kandaka_cycle
-    for house in [1, 4, 7, 10]:
+    for house in [4, 7, 10]:
         result = classify_kandaka_cycle(house)
         assert result.is_active is True
         assert result.type == "KANDAKA_SANI"
@@ -226,9 +228,51 @@ def test_kandaka_sani_from_lagna_detected():
 
 def test_kandaka_sani_not_active_for_other_houses():
     from app.calculations.transits import classify_kandaka_cycle
-    for house in [2, 3, 5, 6, 8, 9, 11, 12]:
+    for house in [1, 2, 3, 5, 6, 8, 9, 11, 12]:
         result = classify_kandaka_cycle(house)
         assert result.is_active is False
+
+
+def test_kandaka_layers_over_the_moon_cycles_rather_than_replacing_them():
+    """Doctrine A-1: the overlap is the rule, not a modelling defect.
+
+    Saturn in the 4th from the Janma Rasi is Ardhashtama Sani *and* Kandaka
+    Sani. We used to count Kandaka from the Lagna precisely so this could never
+    happen; a reader in that position must now be told both names.
+    """
+    from app.calculations.transits import classify_kandaka_cycle, classify_sani_cycle
+
+    assert classify_sani_cycle(4).type == "ARDHASHTAMA_SANI"
+    assert classify_kandaka_cycle(4).type == "KANDAKA_SANI"
+    # The 7th and 10th are Kandaka alone — no Moon-reference cycle names them.
+    for house in (7, 10):
+        assert classify_sani_cycle(house).is_active is False
+        assert classify_kandaka_cycle(house).is_active is True
+    # The 1st is Janma Sani alone, no longer also Kandaka.
+    assert classify_sani_cycle(1).type == "JANMA_SANI"
+    assert classify_kandaka_cycle(1).is_active is False
+
+
+def test_each_kandaka_limb_names_what_it_governs():
+    """FCR-04: one penalty, three readings.
+
+    The score is deliberately flat across 4/7/10 and scored once. The *copy* is
+    not, and must not go back to being one generic line. At the 4th, where
+    Kandaka always coincides with Ardhashtama, an unattributed obstruction line
+    beside the Ardhashtama reading looks like a second affliction. At the 10th —
+    the limb standard gochar reads as mixed rather than adverse — a flat penalty
+    the reader's own reading does not corroborate needs to say what it is about.
+    """
+    from app.calculations.transits import classify_kandaka_cycle
+
+    labels = {h: classify_kandaka_cycle(h).supportive_label for h in (4, 7, 10)}
+    assert all(labels.values()), "a Kandaka limb lost its label"
+    assert len(set(labels.values())) == 3, f"limbs share copy: {labels}"
+    # The contested limb must name the domain it governs, not caution in general.
+    tenth = labels[10].lower()
+    assert any(word in tenth for word in ("position", "standing", "work")), (
+        f"the 10th limb says nothing about what it governs: {labels[10]}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -261,7 +305,7 @@ def test_jupiter_dasha_modifier_differs_by_lagna():
 
 
 def test_all_lagnas_all_planets_covered():
-    from app.calculations.functional_nature import get_functional_nature, FunctionalNature
+    from app.calculations.functional_nature import FunctionalNature, get_functional_nature
     planets = ["SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU"]
     for lagna in range(1, 13):
         for planet in planets:
@@ -270,7 +314,7 @@ def test_all_lagnas_all_planets_covered():
 
 
 def test_saturn_yogakaraka_for_rishabam_and_thulaam():
-    from app.calculations.functional_nature import get_functional_nature, FunctionalNature
+    from app.calculations.functional_nature import FunctionalNature, get_functional_nature
     # Saturn rules 9th+10th for Rishabam → Yogakaraka
     assert get_functional_nature(2, "SATURN") == FunctionalNature.YOGAKARAKA
     # Saturn rules 4th+5th for Thulaam → Yogakaraka
@@ -278,7 +322,7 @@ def test_saturn_yogakaraka_for_rishabam_and_thulaam():
 
 
 def test_venus_yogakaraka_for_magaram_and_kumbam():
-    from app.calculations.functional_nature import get_functional_nature, FunctionalNature
+    from app.calculations.functional_nature import FunctionalNature, get_functional_nature
     # Venus rules 5th+10th for Magaram → Yogakaraka
     assert get_functional_nature(10, "VENUS") == FunctionalNature.YOGAKARAKA
     # Venus rules 4th+9th for Kumbam → Yogakaraka
@@ -390,6 +434,7 @@ def test_bav_bindu_range_0_to_8():
     for planet in ["SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN"]:
         for rasi in range(1, 13):
             b = get_av_bindu(bav, planet, rasi)
+            assert b is not None, f"Missing bindu for {planet} rasi {rasi}"
             assert 0 <= b <= 8, f"Out of range bindu {b} for {planet} rasi {rasi}"
 
 
@@ -416,14 +461,22 @@ def test_two_different_charts_produce_different_bindus():
     assert diffs > 0, "Two different charts must produce different Jupiter AV bindus"
 
 
-def test_rahu_ketu_use_saturn_proxy():
+def test_rahu_ketu_have_no_bav_table_and_get_no_proxy():
+    """Doctrine A-15 (ruled 2026-08-19): the nodes are omitted, not proxied.
+
+    Saturn's table used to be substituted for both nodes on an attribution
+    ("common Thirukanitham practice") that nothing in this repository sourced.
+    None is the honest answer; it also stops a table-less graha collecting the
+    +8 that callers award for `bindus >= 4`.
+    """
     from app.calculations.ashtakavarga import compute_bhinnashtakavarga, get_av_bindu
     natal = {"SUN": 5, "MOON": 3, "MARS": 8, "MERCURY": 4, "JUPITER": 9, "VENUS": 6, "SATURN": 11, "LAGNA": 1}
     bav = compute_bhinnashtakavarga(natal)
-    # RAHU and KETU use SATURN's bindu — should return a valid 0-8 value
     for rasi in range(1, 13):
-        assert 0 <= get_av_bindu(bav, "RAHU", rasi) <= 8
-        assert 0 <= get_av_bindu(bav, "KETU", rasi) <= 8
+        assert get_av_bindu(bav, "RAHU", rasi) is None
+        assert get_av_bindu(bav, "KETU", rasi) is None
+        # Specifically not Saturn's value — the shape of the old proxy.
+        assert get_av_bindu(bav, "RAHU", rasi) != get_av_bindu(bav, "SATURN", rasi)
 
 
 # ---------------------------------------------------------------------------
@@ -444,6 +497,63 @@ def test_combust_planet_lower_score():
     assert clear > combust
 
 
+# ---------------------------------------------------------------------------
+# EC-7.1 — Graded combustion + calibrated cazimi (2026-07-15 astrologer ruling)
+# Combustion is a gradient, not a hard boundary: full weight near an exact
+# conjunction, tapering to zero at the planet's combustion orb edge. Cazimi
+# (within 0°17') flips the penalty to a fixed bonus.
+# ---------------------------------------------------------------------------
+
+def test_combustion_severity_is_graded_by_nearness():
+    from app.calculations.transits import CAZIMI_ORB, combustion_severity
+
+    # Mercury direct: 14° combustion orb.
+    orb = 14.0
+    # Just outside the cazimi boundary — maximally burnt.
+    near = combustion_severity("MERCURY", CAZIMI_ORB + 1e-4, 0.0, False)
+    # Midpoint of the taper band ≈ 0.5.
+    mid_sep = (orb + CAZIMI_ORB) / 2.0
+    mid = combustion_severity("MERCURY", mid_sep, 0.0, False)
+    assert near == pytest.approx(1.0, abs=1e-3)
+    assert mid == pytest.approx(0.5, abs=1e-3)
+    # At and beyond the orb edge → no combustion.
+    assert combustion_severity("MERCURY", orb, 0.0, False) == 0.0
+    assert combustion_severity("MERCURY", orb + 0.5, 0.0, False) == 0.0
+    # Inside the cazimi heart → 0.0 (caller applies the bonus, not a penalty).
+    assert combustion_severity("MERCURY", CAZIMI_ORB / 2.0, 0.0, False) == 0.0
+    # Non-combusting bodies never register severity.
+    assert combustion_severity("SUN", 0.05, 0.0, False) == 0.0
+    assert combustion_severity("RAHU", 0.05, 0.0, False) == 0.0
+    assert combustion_severity("MOON", 0.05, 0.0, False) == 0.0
+
+
+def test_graded_combustion_scoring_orders_by_depth():
+    from app.calculations.chart_strength import compute_natal_planet_score
+
+    # Same Mercury, only the Sun's separation changes (sun_longitude feeds only
+    # the combustion/cazimi term in this scorer).
+    natal = 5 * 30 + 2.0  # 152.0
+    deep_combust    = compute_natal_planet_score("MERCURY", 5, natal, 1, natal - 1.0, False)   # sep 1°
+    shallow_combust = compute_natal_planet_score("MERCURY", 5, natal, 1, natal - 12.5, False)  # sep 12.5° (< 14° orb)
+    not_combust     = compute_natal_planet_score("MERCURY", 5, natal, 1, natal - 60.0, False)  # far
+    cazimi          = compute_natal_planet_score("MERCURY", 5, natal, 1, natal - 0.1, False)   # sep 0.1° (< 0°17')
+
+    # Graded, not flat: a shallowly-combust planet outscores a deeply-combust one.
+    assert shallow_combust > deep_combust
+    # A non-combust planet outscores any combust one.
+    assert not_combust > shallow_combust
+    # Cazimi flips weak→fortified: it outscores the plain non-combust baseline.
+    assert cazimi > not_combust
+
+
+def test_ec71_magnitudes_locked():
+    # Regression lock on the EC-7.1 ruling. Change deliberately with sourcing.
+    from app.calculations.chart_strength import CAZIMI_BONUS, MAX_COMBUSTION_PENALTY
+
+    assert CAZIMI_BONUS == 10.0
+    assert MAX_COMBUSTION_PENALTY == 22.0
+
+
 def test_vargottama_bonus_improves_natal_strength():
     from app.calculations.chart_strength import compute_natal_planet_score
     without_bonus = compute_natal_planet_score("JUPITER", 2, 2 * 30 + 0.0, 1, 0.0, False, False)
@@ -456,6 +566,28 @@ def test_d9_dignity_bonus_applies_when_d1_is_average():
     baseline = compute_natal_planet_score("JUPITER", 11, 11 * 30 + 5.0, 1, 0.0, False)
     with_d9_dignity = compute_natal_planet_score("JUPITER", 11, 11 * 30 + 5.0, 1, 0.0, False, d9_rasi=9)
     assert with_d9_dignity > baseline
+
+
+def test_d9_debilitation_penalises_a_rasi_exalted_planet():
+    """Exalted in Rasi, neecha in Navamsa must score below the same placement
+    with a neutral D9. This is the case the D9 chart exists to catch, and it
+    previously scored identically because only the bonus half was applied."""
+    from app.calculations.chart_strength import compute_natal_planet_score
+    # Jupiter exalted in Cancer (rasi 4), debilitated in Capricorn (rasi 10).
+    neutral_d9 = compute_natal_planet_score("JUPITER", 4, 4 * 30 + 5.0, 1, 0.0, False, d9_rasi=2)
+    neecha_d9 = compute_natal_planet_score("JUPITER", 4, 4 * 30 + 5.0, 1, 0.0, False, d9_rasi=10)
+    assert neecha_d9 < neutral_d9
+
+
+def test_d9_debilitation_is_exempt_when_vargottama():
+    """Vargottama holds the sign across D1/D9, which is stabilising even in a
+    debilitation sign — it must not be charged the neecha penalty as well."""
+    from app.calculations.chart_strength import compute_natal_planet_score
+    plain = compute_natal_planet_score("JUPITER", 10, 10 * 30 + 5.0, 1, 0.0, False, d9_rasi=10)
+    vargottama = compute_natal_planet_score(
+        "JUPITER", 10, 10 * 30 + 5.0, 1, 0.0, False, is_vargottama=True, d9_rasi=10
+    )
+    assert vargottama > plain
 
 
 def test_benefic_aspects_improve_natal_strength():
@@ -500,3 +632,34 @@ def test_vedha_returns_false_for_planet_with_no_table():
     # MARS has no Vedha table entry
     all_houses = {"MARS": 5, "JUPITER": 7}
     assert check_vedha("MARS", 5, all_houses) is False
+
+
+# ---------------------------------------------------------------------------
+# WI-14 — classical Sun<->Saturn and Moon<->Mercury Vedha exemptions
+# ---------------------------------------------------------------------------
+
+def test_vedha_sun_saturn_exemption_both_directions():
+    from app.calculations.transits import check_vedha
+    # Sun in house 3 from Moon; Sun's Vedha house = 9. Saturn occupying 9
+    # must NOT cancel Sun's transit benefit (classical exemption).
+    assert check_vedha("SUN", 3, {"SATURN": 9}) is False
+    # Saturn in house 6 from Moon; Saturn's Vedha house = 9. Sun occupying 9
+    # must NOT cancel Saturn's transit benefit either.
+    assert check_vedha("SATURN", 6, {"SUN": 9}) is False
+
+
+def test_vedha_moon_mercury_exemption_both_directions():
+    from app.calculations.transits import check_vedha
+    # Moon in house 1 from Moon (i.e. conjunct); Moon's Vedha house = 5.
+    # Mercury occupying 5 must NOT cancel Moon's transit benefit.
+    assert check_vedha("MOON", 1, {"MERCURY": 5}) is False
+    # Mercury in house 2 from Moon; Mercury's Vedha house = 5. Moon occupying
+    # 5 must NOT cancel Mercury's transit benefit either.
+    assert check_vedha("MERCURY", 2, {"MOON": 5}) is False
+
+
+def test_vedha_unrelated_planet_still_blocks_despite_exemptions():
+    from app.calculations.transits import check_vedha
+    # Sun's Vedha house (9) occupied by an unrelated planet (Jupiter, not
+    # part of any exempt pair) still blocks as normal.
+    assert check_vedha("SUN", 3, {"JUPITER": 9}) is True

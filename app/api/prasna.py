@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -21,7 +21,11 @@ def ask_prasna(
     current_user: User = Depends(get_current_user),
 ) -> PrasnaResponse:
     _ = session, current_user
-    question_dt = payload.question_datetime_local or datetime.now()
+    # Fallback must be timezone-aware: cast_prasna_chart treats a naive
+    # datetime as wall-clock in payload.timezone_name, so a naive server-side
+    # now() would cast the chart for the server's clock labeled as the user's.
+    # No client currently sends questionDateTimeLocal, making this the hot path.
+    question_dt = payload.question_datetime_local or datetime.now(UTC)
     chart = cast_prasna_chart(
         question_datetime_local=question_dt,
         timezone_name=payload.timezone_name,

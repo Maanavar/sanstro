@@ -3,10 +3,11 @@ from __future__ import annotations
 from datetime import date, datetime, time
 from uuid import UUID, uuid4
 
-from sqlalchemy import Date, DateTime, ForeignKey, Index, Integer, LargeBinary, Numeric, String, Time, text
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, LargeBinary, Numeric, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
+from app.services.encryption import EncryptedDate, EncryptedFloat, EncryptedTime
 
 
 class BirthProfile(TimestampMixin, Base):
@@ -17,15 +18,17 @@ class BirthProfile(TimestampMixin, Base):
     )
 
     birth_profile_id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    owner_user_id: Mapped[UUID] = mapped_column(ForeignKey("users.user_id"), nullable=False)
-    family_member_id: Mapped[UUID | None] = mapped_column(ForeignKey("family_members.family_member_id"), nullable=True)
+    owner_user_id: Mapped[UUID] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
+    family_member_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("family_members.family_member_id", ondelete="SET NULL"), nullable=True
+    )
     display_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    birth_date_local: Mapped[date] = mapped_column(Date, nullable=False)
-    birth_time_local: Mapped[time | None] = mapped_column(Time, nullable=True)
+    birth_date_local: Mapped[date] = mapped_column(EncryptedDate, nullable=False)
+    birth_time_local: Mapped[time | None] = mapped_column(EncryptedTime, nullable=True)
     birth_datetime_utc: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     birth_place: Mapped[str] = mapped_column(String(255), nullable=False)
-    birth_latitude: Mapped[float] = mapped_column(Numeric(9, 6), nullable=False)
-    birth_longitude: Mapped[float] = mapped_column(Numeric(9, 6), nullable=False)
+    birth_latitude: Mapped[float] = mapped_column(EncryptedFloat, nullable=False)
+    birth_longitude: Mapped[float] = mapped_column(EncryptedFloat, nullable=False)
     birth_timezone: Mapped[str] = mapped_column(String(64), nullable=False)
     current_place: Mapped[str | None] = mapped_column(String(255), nullable=True)
     current_latitude: Mapped[float | None] = mapped_column(Numeric(9, 6), nullable=True)
@@ -45,7 +48,14 @@ class BirthProfile(TimestampMixin, Base):
     encrypted_birth_payload: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     marital_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
     employment_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # "has" | "none" | "undisclosed" | NULL. NULL means we have not asked, which
+    # is NOT the same as "none" — only a declared "has" may unlock a progeny
+    # reading of the 5th house. See age_phase_service.get_active_life_phases.
+    children: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    gender_for_traditional_rules: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="not_specified", server_default=text("'not_specified'")
+    )
 
     owner_user = relationship("User", back_populates="birth_profiles")
     family_member = relationship("FamilyMember", back_populates="birth_profiles")
-    charts = relationship("Chart", back_populates="birth_profile", cascade="all, delete-orphan")
+    charts = relationship("Chart", back_populates="birth_profile", cascade="all, delete-orphan", passive_deletes=True)

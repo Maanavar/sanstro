@@ -1,0 +1,150 @@
+"use client";
+
+import { tPlanetLord, type Lang } from "@/lib/i18n";
+import { getShadbala, type PlanetShadbala } from "@vinaadi/shared/api/shadbala";
+import { useApiQuery } from "@/hooks/useApiQuery";
+import { CollapsibleSection } from "./collapsible-section";
+import { GlossaryTerm } from "./glossary-term";
+import { AsyncSection } from "./ui/async-section";
+import { Card } from "./ui/card";
+import type { GlossaryKey } from "@/lib/glossary";
+
+// The local seven-row planet map is gone — it spelled Venus "சுக்ரன்" against the
+// app's "சுக்கிரன்", as did three sibling panels. `tPlanetLord` is canonical.
+const COMPONENTS: [keyof PlanetShadbala, string, GlossaryKey][] = [
+  ["sthana", "Sthana", "sthanaBala"],
+  ["dig", "Dig", "digBala"],
+  ["kala", "Kala", "kalaBala"],
+  ["chesta", "Chesta", "chestaBala"],
+  ["naisargika", "Naisargika", "naisargikaBala"],
+  ["drik", "Drik", "drikBala"],
+];
+
+type Props = {
+  lang: Lang;
+  chartId: string;
+};
+
+export function ShadbalaPanel({ lang, chartId }: Props) {
+  const isTamil = lang === "ta";
+  const { data, state, refetch } = useApiQuery({
+    key: ["shadbala", chartId],
+    queryFn: () => getShadbala(chartId).then((res) => res.data),
+    enabled: !!chartId,
+  });
+
+  const title = isTamil ? "ஷட்பலம் — கிரக பலம்" : "Shadbala — Planetary Strength";
+  const subtitle = isTamil
+    ? "ஆறு பகுதி செம்மொழி பலம் (ரூபம்) · சோதனை நிலை"
+    : "Six-component classical strength (Rupas) · Experimental";
+
+  return (
+    <CollapsibleSection title={title} defaultOpen={false}>
+      <p style={{ color: "var(--color-faint)", fontSize: "var(--text-sm)", margin: "0 0 var(--space-2) 0" }}>{subtitle}</p>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)", marginBottom: "var(--space-2_5)" }}>
+        {COMPONENTS.map(([key, name, glossaryKey]) => (
+          <GlossaryTerm key={key} term={glossaryKey} lang={lang}>
+            <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{name} bala</span>
+          </GlossaryTerm>
+        ))}
+      </div>
+      <AsyncSection
+        state={state}
+        lang={lang}
+        onRetry={refetch}
+        error={{ ta: "ஷட்பலத்தை ஏற்ற முடியவில்லை.", en: "Could not load Shadbala." }}
+      />
+      {data && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)" }}>
+          <p style={{ color: "var(--color-text-strong)", fontSize: "var(--text-sm)", margin: 0, lineHeight: 1.55 }}>
+            {isTamil
+              ? "ரூபம் என்பது கிரக பலத்தின் செம்மொழி அளவு. ஒவ்வொரு கிரகமும் ஆறு மூலங்களிலிருந்து (இடம், திசை, காலம், இயக்கம், இயற்கைத் தரம், பார்வை) பலம் பெறுகிறது; அது ரூபங்களாகக் கூட்டப்படுகிறது. ஒரு கிரகம் அதற்குத் தேவையான ரூபத்தைத் தாண்டினால், அதன் வீடு மற்றும் தசை பலன்களை முழுமையாகத் தரும் அளவு வலிமையானது; குறைவாக இருந்தால், அப்பலன்கள் மெதுவாக வரும், முயற்சியும் பரிகாரமும் உதவும்."
+              : "A Rupa is the classical unit of planetary strength. Each planet earns strength from six sources (position, direction, time, motion, natural rank, and aspects), summed in Rupas. Clear the required Rupas and the planet is strong enough to deliver its house and dasha results fully; below that, those results come slower and benefit from effort or remedies."}
+          </p>
+          {data.note && <p style={{ color: "var(--color-faint)", fontSize: "var(--text-sm)", margin: 0, lineHeight: 1.5 }}>{data.note}</p>}
+          {data.planets.map((p) => (
+            <PlanetCard key={p.graha} p={p} isTamil={isTamil} />
+          ))}
+        </div>
+      )}
+    </CollapsibleSection>
+  );
+}
+
+function PlanetCard({ p, isTamil }: { p: PlanetShadbala; isTamil: boolean }) {
+  // Language resolved once, fallback folded in, so the five uses below are a
+  // bare `{label}` instead of five copies of `label?.ta ?? p.graha`.
+  const label = tPlanetLord(p.graha, isTamil ? "ta" : "en") || p.graha;
+  const ratioPct = Math.min(100, Math.round(p.strengthRatio * 100));
+  return (
+    <Card
+      variant="soft"
+      style={{
+        borderRadius: "var(--radius-md)",
+        padding: "var(--space-3) var(--space-3_5)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <strong style={{ color: "var(--color-text-strong)", fontSize: "var(--text-md)" }}>
+          {label}
+        </strong>
+        <span
+          style={{
+            fontSize: "var(--text-xs)",
+            fontWeight: 700,
+            color: p.isStrong ? "var(--color-high)" : "var(--color-low)",
+            background: p.isStrong ? "var(--color-high-bg)" : "var(--color-low-bg)",
+            borderRadius: "var(--radius-pill)",
+            padding: "var(--space-1) var(--space-2)",
+          }}
+        >
+          {p.isStrong ? (isTamil ? "பலம்" : "Strong") : isTamil ? "பலவீனம்" : "Weak"}
+        </span>
+      </div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-2)", marginTop: "var(--space-1)" }}>
+        <span style={{ fontSize: "var(--text-lg)", fontWeight: 800, color: "var(--color-text-strong)" }}>{p.rupas.toFixed(2)}</span>
+        <span style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)" }}>
+          {isTamil ? "தேவை" : "req"} {p.requiredRupas.toFixed(1)} {isTamil ? "ரூபம்" : "Rupas"} · {ratioPct}%
+        </span>
+      </div>
+      <div style={{ height: 6, borderRadius: "var(--radius-sm)", background: "var(--color-surface)", overflow: "hidden", marginTop: "var(--space-2)" }}>
+        <div
+          style={{
+            height: 6,
+            width: `${ratioPct}%`,
+            borderRadius: "var(--radius-sm)",
+            background: p.isStrong ? "var(--color-high)" : "var(--color-low)",
+          }}
+        />
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
+        {COMPONENTS.map(([key, name]) => (
+          <span
+            key={name}
+            style={{
+              display: "inline-flex",
+              gap: "var(--space-1)",
+              alignItems: "center",
+              fontSize: "var(--text-xs)",
+              background: "var(--color-surface)",
+              borderRadius: "var(--radius-pill)",
+              padding: "var(--space-1) var(--space-2)",
+            }}
+          >
+            <span style={{ color: "var(--color-faint)" }}>{name}</span>
+            <strong style={{ color: "var(--color-text-strong)" }}>{Number(p[key]).toFixed(0)}</strong>
+          </span>
+        ))}
+      </div>
+      <p style={{ color: "var(--color-faint)", fontSize: "var(--text-sm)", margin: "8px 0 0", lineHeight: 1.5 }}>
+        {p.isStrong
+          ? isTamil
+            ? `${label} தேவையான பலத்தைத் தாண்டுகிறது — அதன் வீடு மற்றும் தசை பலன்கள் தானாகவே நிலைக்கும்.`
+            : `${label} clears its required strength — its house and dasha results tend to hold up on their own.`
+          : isTamil
+            ? `${label} தேவையான பலத்திற்குக் குறைவு — அதன் பலன்கள் மெதுவாக வரும்; முயற்சி அல்லது பரிகாரம் உதவும்.`
+            : `${label} is below the required strength — its results come slower and benefit from conscious effort or remedies.`}
+      </p>
+    </Card>
+  );
+}

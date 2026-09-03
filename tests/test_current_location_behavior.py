@@ -56,6 +56,8 @@ def test_update_birth_profile_current_only_update_does_not_recalculate():
     session = MagicMock()
     profile = SimpleNamespace(
         birth_profile_id=uuid4(),
+        owner_user_id=uuid4(),
+        display_name="Test Profile",
         birth_date_local=date(1991, 7, 22),
         birth_time_local=time(6, 30),
         birth_place="Chennai",
@@ -78,6 +80,7 @@ def test_update_birth_profile_current_only_update_does_not_recalculate():
 
     with (
         patch("app.services.birth_profile_service.calculate_chart_for_persisted_profile") as recalc,
+        patch("app.services.birth_profile_service._find_duplicate_birth_profile", return_value=None),
         patch("app.services.birth_profile_service.get_birth_profile", return_value=SimpleNamespace(success=True)) as get_profile,
     ):
         result = update_birth_profile(

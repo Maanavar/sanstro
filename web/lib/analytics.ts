@@ -67,3 +67,13 @@ export function resetAnalytics(): void {
   if (!enabled()) return;
   posthog.reset();
 }
+
+/**
+ * Read a PostHog feature flag synchronously from the local cache.
+ * Returns null when PostHog is not initialised (server, no key, or not yet booted).
+ * Always call after initAnalytics() has run (i.e. inside a useEffect).
+ */
+export function getFeatureFlag(flagKey: string): string | boolean | undefined | null {
+  if (!enabled()) return null;
+  return posthog.getFeatureFlag(flagKey) ?? null;
+}

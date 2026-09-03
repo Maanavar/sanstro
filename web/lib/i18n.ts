@@ -1,24 +1,59 @@
+// Panchangam element names live in the shared package so web and mobile render
+// the same strings — see packages/shared/src/i18n/panchangam-names.ts.
+import {
+  TITHI_NAMES,
+  NAKSHATRA_NAMES,
+  YOGA_NAMES,
+  KARANA_NAMES,
+} from "@vinaadi/shared";
+
 export type Lang = "ta" | "en";
 
 export const LANG_STORAGE_KEY = "jothidam-lang";
 export const LANG_COOKIE_NAME = "jothidam-lang";
 
+// F7 — one coercion rule for "is this stored value a language?". Before this
+// there were two, and they disagreed on shape: the root layout wrote
+// `v === "ta" ? "ta" : "en"` (only Tamil recognised, English the sink) while
+// LangProvider wrote `v === "ta" || v === "en" ? v : initialLang` (a different
+// fallback). Both are correct for their own call site and neither is reusable,
+// which is how a language ends up resolved differently depending on who asks.
+export function resolveLang(value: string | null | undefined, fallback: Lang = "en"): Lang {
+  return value === "ta" || value === "en" ? value : fallback;
+}
+
 // All UI strings. Key = stable identifier, value = { ta, en }
 const STRINGS = {
   // ── Tabs
   tab_today:      { ta: "இன்று",        en: "Today" },
-  tab_explore:    { ta: "ஆராய்",        en: "Explore" },
+  // A-026. Renamed from "Explore", which named the gesture rather than the
+  // reason — the tab is where you go to find out what a word on another screen
+  // meant. This key is the ONE source for the name: the tab pill, and the back
+  // breadcrumb of every sub-screen under it (dosham, guide, learn, nakshatram),
+  // which used to carry the word as six separate string literals and so kept
+  // sending readers "back to Explore" from a tab no longer called that.
+  // Tamil is unchanged and deliberately so — ஆய்வு is a shipped, reviewed
+  // string, and picking its replacement is a native-speaker call, not a guess.
+  // Queued in docs/ASTROLOGER_REVIEW_QUEUE.md.
+  tab_explore:    { ta: "ஆய்வு",         en: "Understand" },
+  // Kept as its own string rather than composed as `"Back to " + tab_explore`:
+  // Tamil inflects the noun for the dative ("ஆய்வு" → "ஆய்வுக்கு"), so
+  // concatenation cannot build it. If `tab_explore` is renamed again, this
+  // moves with it — that is the whole reason the two sit adjacent.
+  tab_explore_back: { ta: "ஆய்வுக்குத் திரும்பு", en: "Back to Understand" },
   tab_tools:      { ta: "கருவிகள்",     en: "Tools" },
   tab_personal:   { ta: "தனிப்பட்ட",   en: "Personal" },
-  tab_plan:       { ta: "திட்டமிடு",   en: "Plan" },
-  tab_family:     { ta: "குடும்பம்",    en: "Family" },
-  tab_calendar:   { ta: "கிரகநகர்வு & நிகழ்வுகள்", en: "Transits & Events" },
-  tab_setup:      { ta: "அமைவு",        en: "Setup" },
-  tab_settings:   { ta: "அமைவுகள்",     en: "Settings" },
+  tab_plan:       { ta: "இலக்குகள்",   en: "Goals" },
+  tab_family:     { ta: "குடும்பம் & ஜாதகம்",    en: "Family & Charts" },
+  tab_calendar:   { ta: "கிரகநகர்வு & நிகழ்வு", en: "Transits & Events" },
+  tab_setup:      { ta: "தொடக்கம்",     en: "Setup" },
+  tab_settings:   { ta: "அமைப்புகள்",     en: "Settings" },
+  tab_life_area_nav: { ta: "வாழ்க்கை பகுதி", en: "Life Areas" },
+  tab_more:       { ta: "மேலும்",       en: "More" },
   nav_label:      { ta: "பக்க வழிகாட்டி", en: "App navigation" },
 
   // ── Header / status
-  chart_ready:    { ta: "கட்டம் தயார்", en: "Chart ready" },
+  chart_ready:    { ta: "ஜாதகம் தயார்", en: "Chart ready" },
   today_score:    { ta: "இன்று",        en: "Today" },
   chandrashtamam_active: { ta: "சந்திராஷ்டமம் நடப்பு", en: "Chandrashtamam active" },
   status_restored:       { ta: "அமர்வு மீட்டெடுக்கப்பட்டது", en: "Session restored" },
@@ -35,12 +70,16 @@ const STRINGS = {
   metric_bhukti:     { ta: "புக்தி",            en: "Bhukti" },
   metric_family_score: { ta: "குடும்ப மதிப்பெண்", en: "Family score" },
   metric_members:    { ta: "உறுப்பினர்கள்",    en: "members" },
-  metric_vault_select: { ta: "சேகரிப்பு தேர்வு செய்யவும்",  en: "select a vault" },
+  metric_vault_select: { ta: "குடும்பத்தைத் தேர்வு செய்யவும்",  en: "select a family" },
 
   // ── Setup wizard
-  setup_kicker:       { ta: "அமைவு",              en: "Setup" },
+  setup_kicker:       { ta: "தொடக்கம்",            en: "Setup" },
   setup_step1_label:  { ta: "உங்கள் ஜாதகம்",     en: "Your chart" },
-  setup_step2_label:  { ta: "குடும்ப சேகரிப்பு",      en: "Family vault" },
+  // A-010: "vault" is product jargon for what is simply the reader's family.
+  // Renamed across every surface a reader meets; the API resource is still
+  // family-vaults and is deliberately left alone.
+  // New Tamil, pending native review.
+  setup_step2_label:  { ta: "உங்கள் குடும்பம்",      en: "Your family" },
   setup_step3_label:  { ta: "உறுப்பினர் சேர்",   en: "Add member" },
   setup_step_done:    { ta: "✓ உருவாக்கப்பட்டது", en: "✓ Created" },
   setup_step1_title:  { ta: "உங்கள் ஜாதக விவரங்கள்", en: "Your birth details" },
@@ -49,21 +88,24 @@ const STRINGS = {
   setup_step1_edit:   { ta: "✎ திருத்து",         en: "✎ Edit" },
   setup_step1_creating: { ta: "உருவாக்குகிறது…",  en: "Creating…" },
   setup_step1_goto_personal: { ta: "தனிப்பட்ட பக்கம் →", en: "Go to Personal →" },
-  setup_step2_title:  { ta: "குடும்ப சேகரிப்பு உருவாக்கு", en: "Create a family vault" },
-  setup_step2_sub:    { ta: "குடும்பத்தினர் ஜாதகங்களை ஒரே இடத்தில் தொகுக்க சேகரிப்பு தேவை.", en: "A vault groups all family members' charts in one place." },
-  setup_step2_create: { ta: "சேகரிப்பு உருவாக்கு",   en: "Create vault" },
-  setup_step2_more:   { ta: "+ மேலும் ஒரு சேகரிப்பு", en: "+ Another vault" },
+  // New Tamil, pending native review.
+  setup_step2_title:  { ta: "உங்கள் குடும்பத்தை உருவாக்கு", en: "Create your family" },
+  setup_step2_sub:    { ta: "குடும்பத்தினர் ஜாதகங்கள் அனைத்தையும் ஒரே இடத்தில் வைக்கிறது.", en: "Keeps all your family members' charts in one place." },
+  setup_step2_create: { ta: "குடும்பத்தை உருவாக்கு",   en: "Create family" },
+  setup_step2_more:   { ta: "+ மேலும் ஒரு குடும்பம்", en: "+ Another family" },
   setup_step2_creating: { ta: "உருவாக்குகிறது…", en: "Creating…" },
   setup_step2_selected: { ta: "✓ தேர்ந்தெடுக்கப்பட்டது", en: "✓ Selected" },
   setup_step3_title:  { ta: "குடும்ப உறுப்பினரை சேர்க்கவும்", en: "Add a family member" },
-  setup_step3_sub_vault: { ta: "சேகரிப்பை தேர்வு செய்த பின் உறுப்பினரை சேர்க்கலாம்", en: "Pick a vault first, then add members" },
+  // New Tamil, pending native review.
+  setup_step3_sub_vault: { ta: "குடும்பத்தைத் தேர்வு செய்த பின் உறுப்பினரை சேர்க்கலாம்", en: "Pick a family first, then add members" },
   setup_step3_add:    { ta: "+ உறுப்பினரை சேர்", en: "+ Add member" },
   setup_step3_adding: { ta: "சேர்க்கிறது…",      en: "Adding…" },
-  setup_done_title:   { ta: "✓ அமைவு முடிந்தது!", en: "✓ Setup complete!" },
+  setup_done_title:   { ta: "✓ தொடக்கம் முடிந்தது!", en: "✓ Setup complete!" },
   setup_done_goto:    { ta: "தனிப்பட்ட பக்கம் →",  en: "Go to Personal →" },
   setup_required:     { ta: "* கட்டாய தகவல்கள்",  en: "* Required fields" },
   setup_calc_now:     { ta: "ஜாதகம் உடனே கணக்கிடு", en: "Calculate now" },
-  setup_vault_step_active: { ta: "✓ சேகரிப்பு உள்ளது", en: "✓ Vault exists" },
+  // New Tamil, pending native review.
+  setup_vault_step_active: { ta: "✓ குடும்பம் உருவாக்கப்பட்டது", en: "✓ Family created" },
 
   // ── Form field labels
   field_name:         { ta: "பெயர் *",           en: "Name *" },
@@ -75,13 +117,40 @@ const STRINGS = {
   field_latitude:     { ta: "அட்சரேகை (Lat) *",  en: "Latitude *" },
   field_longitude:    { ta: "தீர்க்கரேகை (Lng) *", en: "Longitude *" },
   field_weight:       { ta: "எடை (Weight)",       en: "Weight" },
-  field_vault_name:   { ta: "சேகரிப்பு பெயர்",        en: "Vault name" },
+  // New Tamil, pending native review.
+  field_vault_name:   { ta: "குடும்பப் பெயர்",        en: "Family name" },
   field_language:     { ta: "மொழி",               en: "Language" },
   field_owner_id:     { ta: "Owner ID",           en: "Owner ID" },
-  field_time_optional: { ta: "தெரியாவிட்டால் விட்டுவிடலாம்", en: "Leave blank if unknown" },
+  // Was "Leave blank if unknown" alone, which told the reader what they were
+  // ALLOWED to do and nothing about what it costs. Birth time is the highest-
+  // stakes field on the form — it sets the lagna, and with it every house
+  // placement, the whole chart-explanation surface, and the dasa balance — and
+  // a reader who has never opened their own jathagam has no way to know that.
+  // They shrug, leave it blank, and silently receive a degraded chart they
+  // believe is complete. Naming the consequence is the entire fix.
+  field_time_optional: { ta: "15 நிமிட வித்தியாசம் கூட லக்னத்தையும் வீட்டு நிலைகளையும் மாற்றும். தெரியாவிட்டால் விட்டுவிடலாம் — பின்னர் திருத்தலாம்.", en: "Even 15 minutes changes your Lagna and every house in the chart. Leave blank if unknown — you can refine it later." },
   field_place_helper: { ta: "நகரத்தைத் தேர்வு செய்தால் அட்சரேகை, தீர்க்கரேகை தானாக நிரம்பும்", en: "Select a city to auto-fill lat/lng" },
   field_tz_helper:    { ta: "நகரத்தைத் தேர்வு செய்தவுடன் நேர மண்டலம் தானாக வரும்", en: "Auto-filled when city is selected" },
   field_weight_helper:{ ta: "உறவு முறையால் தானாக அமையும்", en: "Auto-set by relationship" },
+
+  // ── Place coordinate confirmation (#3/#16/#90 — trust in auto-filled lat/lng)
+  place_matched:       { ta: "தெரிந்த இடத்துடன் பொருந்தியது", en: "Matched to a known location" },
+  place_edit_coords:   { ta: "சரியான ஆயத்தொலைவுகளை திருத்து", en: "Edit exact coordinates" },
+  place_use_matched:   { ta: "பொருந்திய ஆயத்தொலைவுகளைப் பயன்படுத்து", en: "Use matched coordinates" },
+  place_unmatched_hint:{ ta: "இந்த இடத்தை பட்டியலில் காணவில்லை — பெயரை சரிபார்க்கவும் அல்லது கீழே ஆயத்தொலைவுகளை நேரடியாக உள்ளிடவும்.", en: "We couldn't match this place to a known city — check the spelling above, or enter coordinates directly below." },
+
+  // ── Place search (B-006 — bundled offline dataset, online geocode is an
+  // explicit opt-in fallback, never automatic). New Tamil, pending native review.
+  place_searching:          { ta: "தேடுகிறது…", en: "Searching…" },
+  place_no_results:         { ta: "பொருத்தங்கள் கிடைக்கவில்லை", en: "No matches found" },
+  place_search_online:      { ta: "கிடைக்கவில்லையா? ஆன்லைனில் தேடு", en: "Can't find it? Search online" },
+  place_search_online_failed: { ta: "அந்த இடத்தையும் ஆன்லைனில் கண்டுபிடிக்க முடியவில்லை", en: "Couldn't find that place online either" },
+
+  // ── Family Vault cold-start (#4/#60 — empty on day 1, exact-time friction)
+  family_coldstart_title: { ta: "இன்னும் நீங்கள் மட்டும்தான்", en: "It's just you here so far" },
+  family_coldstart_body:  { ta: "மனைவி, பெற்றோர், குழந்தை — ஒருவரை சேர்த்தால் குடும்ப ஒற்றுமை மதிப்பெண், பகிர்ந்த சிறந்த நேரங்கள், பொருத்தம் ஆகியவை தெரியும்.", en: "Add a spouse, parent, or child to see family harmony, shared best-time windows, and compatibility together — the reason most people come here." },
+  family_coldstart_cta:   { ta: "முதல் உறுப்பினரைச் சேர் →", en: "Add your first family member →" },
+  family_coldstart_time_note: { ta: "அவர்களின் சரியான பிறந்த நேரம் கையில் இல்லையா? தோராயம் போதும் — பின்னர் திருத்தலாம்.", en: "Don't have their exact birth time on hand? Approximate is fine — you can refine it later." },
 
   // ── Relationship options
   rel_self:        { ta: "தான் (Self)",       en: "Self" },
@@ -99,13 +168,30 @@ const STRINGS = {
   marital_married:       { ta: "திருமணமானவர்",           en: "Married" },
   marital_divorced:      { ta: "விவாகரத்தானவர்",         en: "Divorced / Separated" },
   marital_widowed:       { ta: "விதவை / விதுரர்",        en: "Widowed" },
+  // Same argument as children_undisclosed below, and the same treatment: a
+  // declined status and an unasked one both mean we hold no status, and neither
+  // may be read as "single". The one-minute reading withholds its fifth beat on
+  // either. Without this option the only way to dismiss that reading's question
+  // was to claim a status that is not true.
+  marital_undisclosed:   { ta: "சொல்ல விரும்பவில்லை",    en: "Prefer not to say" },
+
+  // ── Children field + options
+  // "Prefer not to say" is a real option, not politeness: a declined answer and
+  // an unasked one are treated identically by the reading (neither reads the
+  // 5th house as progeny), and offering the decline is what makes the other
+  // answers trustworthy.
+  field_children:        { ta: "குழந்தைகள்",              en: "Children" },
+  children_select:       { ta: "தேர்ந்தெடுக்கவும்",      en: "Select…" },
+  children_has:          { ta: "குழந்தைகள் உள்ளனர்",     en: "Yes" },
+  children_none:         { ta: "இல்லை",                    en: "No" },
+  children_undisclosed:  { ta: "சொல்ல விரும்பவில்லை",    en: "Prefer not to say" },
 
   // ── Employment type field + options
   field_employment_type:        { ta: "வேலை நிலை",            en: "Employment Status" },
   employment_select:            { ta: "தேர்ந்தெடுக்கவும்",   en: "Select…" },
-  employment_salaried:          { ta: "ஊழியர் (சம்பளம்)",    en: "Employed (salaried)" },
-  employment_self_employed:     { ta: "சுய தொழில்",           en: "Self-employed / Freelance" },
-  employment_business:          { ta: "வியாபாரம்",             en: "Business owner" },
+  employment_salaried:          { ta: "சம்பளதாரர் (ஆசிரியர், அலுவலகம், தொழிற்சாலை)", en: "Salaried (teacher, office, factory)" },
+  employment_self_employed:     { ta: "சுயதொழில் (டிரைவர், விவசாயி, மீனவர், நெசவாளர்)", en: "Self-employed (driver, farmer, fisherman, weaver)" },
+  employment_business:          { ta: "சொந்த தொழில் / வியாபாரம்", en: "Business Owner / Trade" },
   employment_student:           { ta: "மாணவர்",               en: "Student" },
   employment_retired:           { ta: "ஓய்வு பெற்றவர்",       en: "Retired" },
   employment_homemaker:         { ta: "இல்லத்தரசி/ர்",        en: "Homemaker" },
@@ -134,13 +220,13 @@ const STRINGS = {
   btn_go_personal:    { ta: "தனிப்பட்டது →",     en: "Personal →" },
 
   // ── Transits tab
-  tab_transits:       { ta: "தசை & கிரகநகர்வு",    en: "Transits & Dasha" },
-  transits_tab_desc:  { ta: "விம்சோத்தரி தசை காலவரிசை, கிரகநகர்வு நிலைகள், குறிப்பேடு ஒப்பீடுகள்", en: "Vimshottari dasha timeline, transit positions, journal comparisons" },
+  tab_transits:       { ta: "தசை & கிரகநகர்வு",    en: "Transits & Dashas" },
+  transits_tab_desc:  { ta: "உங்கள் வாழ்க்கைக் காலங்கள் (விம்சோத்தரி முறை), கிரகநகர்வு நிலைகள், குறிப்பேடு ஒப்பீடுகள்", en: "Your life periods (Vimshottari system), transit positions, journal comparisons" },
 
   // ── TODAY tab (Phase 2)
-  today_greeting:       { ta: "வணக்கம்",           en: "Good morning" },
+  today_greeting:       { ta: "காலை வணக்கம்",      en: "Good morning" },
   today_date_line:      { ta: "இன்றைய தேதி",       en: "Today" },
-  today_remedy_label:   { ta: "இன்றைய தீர்வு",     en: "Today's remedy" },
+  today_remedy_label:   { ta: "இன்றைய பரிகாரம்",   en: "Today's remedy" },
   today_family_section: { ta: "குடும்பம் இன்று",    en: "Family today" },
   today_week_ahead:     { ta: "வரும் வாரம்",        en: "Week ahead" },
   today_panchangam:     { ta: "பஞ்சாங்கம்",         en: "Panchangam" },
@@ -150,7 +236,7 @@ const STRINGS = {
   // ── Personal tab
   personal_kicker:    { ta: "தனிப்பட்ட",        en: "Personal" },
   personal_title_default: { ta: "ஜாதகம், வழிகாட்டுதல் & கிரகநகர்வு", en: "Chart, guidance & transits" },
-  personal_desc:      { ta: "தசை, பஞ்சாங்கம், கிரகநகர்வு தரவு", en: "Dasha, panchangam, transit data" },
+  personal_desc:      { ta: "தசை, பஞ்சாங்கம், கிரகநகர்வு தரவு", en: "Dasa, panchangam, transit data" },
   personal_today:     { ta: "இன்று",            en: "Today" },
   personal_you:       { ta: "நீங்கள்",           en: "You" },
   chandrashtama_warning: { ta: "⚠ சந்திராஷ்டமம் — சந்திரன் உங்கள் பிறப்பு ராசியிலிருந்து 8ஆம் ராசியில் உள்ளது. முக்கிய முடிவுகளைத் தவிர்க்கவும்.", en: "⚠ Chandrashtamam — Moon is in the 8th rasi from your natal Moon sign. Avoid important decisions." },
@@ -172,6 +258,12 @@ const STRINGS = {
   chart_view_d9:    { ta: "D9 நவாம்சம்", en: "D9 Navamsa" },
   navamsa_label:    { ta: "நவாம்சம்",   en: "Navamsa" },
   chart_tap_to_explain: { ta: "விளக்கத்திற்கு தட்டவும்", en: "Tap to explain" },
+  // A-025. The affordance ("Tap to explain") is now a visible chip ABOVE the
+  // kattam; the panel below it is the result of that tap, so it needs its own
+  // heading. Both read the same string previously, printing the same four words
+  // twice on one chart.
+  // New Tamil, pending native review (CLAUDE.md new-Tamil rule).
+  chart_selected_box: { ta: "தேர்ந்தெடுத்த கட்டம்", en: "Selected box" },
   chart_from_d1_lagna: { ta: "D1 லக்னத்திலிருந்து", en: "From D1 Lagna" },
   chart_from_d9_lagna: { ta: "D9 லக்னத்திலிருந்து", en: "From D9 Lagna" },
   chart_house_label: { ta: "இடம்", en: "House" },
@@ -198,12 +290,19 @@ const STRINGS = {
   label_panchangam: { ta: "பஞ்சாங்கம்", en: "Panchangam" },
   label_tithi:      { ta: "திதி",         en: "Tithi" },
   label_rahu_kalam: { ta: "ரா.காலம்",    en: "Rahu Kalam" },
-  label_yamagandam: { ta: "யேமகண்டம்",   en: "Yamagandam" },
+  label_yamagandam: { ta: "எமகண்டம்",     en: "Yamagandam" },
   label_kuligai:    { ta: "குளிகை",       en: "Kuligai" },
   label_mandhi:     { ta: "மாந்தி",       en: "Mandhi" },
   label_nalla_neram:      { ta: "நல்ல நேரம்",       en: "Nalla Neram" },
   label_gowri_nalla_neram:{ ta: "கௌரி நல்ல நேரம்", en: "Gowri Nalla Neram" },
   label_abhijit:    { ta: "அபிஜித்",           en: "Abhijit" },
+  title_recommended_nalla_neram: { ta: "\u0b87\u0ba9\u0bcd\u0bb1\u0bc8\u0baf\u0020\u0baa\u0bb0\u0bbf\u0ba8\u0bcd\u0ba4\u0bc1\u0bb0\u0bc8\u0b95\u0bcd\u0b95\u0baa\u0bcd\u0baa\u0b9f\u0bcd\u0b9f\u0020\u0ba8\u0bb2\u0bcd\u0bb2\u0020\u0ba8\u0bc7\u0bb0\u0bae\u0bcd", en: "Today's recommended Nalla Neram" },
+  title_additional_gowri_good_times: { ta: "\u0b95\u0bc2\u0b9f\u0bc1\u0ba4\u0bb2\u0bcd\u0020\u0b95\u0bcc\u0bb0\u0bbf\u0020\u0ba8\u0bb2\u0bcd\u0bb2\u0020\u0ba8\u0bc7\u0bb0\u0b99\u0bcd\u0b95\u0bb3\u0bcd", en: "Additional Gowri good times" },
+  gowri_summary_hint: {
+    ta: "\u0b87\u0bb5\u0bc8\u0020\u0b87\u0ba9\u0bcd\u0bb1\u0bc8\u0baf\u0020\u0ba8\u0bb2\u0bcd\u0bb2\u0020\u0b95\u0bcc\u0bb0\u0bbf\u0020\u0b95\u0bbe\u0bb2\u0b99\u0bcd\u0b95\u0bb3\u0bbf\u0bb2\u0bbf\u0bb0\u0bc1\u0ba8\u0bcd\u0ba4\u0bc1\u0020\u0ba4\u0bc7\u0bb0\u0bcd\u0ba8\u0bcd\u0ba4\u0bc6\u0b9f\u0bc1\u0ba4\u0bcd\u0ba4\u0020\u0baa\u0bb0\u0bbf\u0ba8\u0bcd\u0ba4\u0bc1\u0bb0\u0bc8\u0b95\u0bb3\u0bcd\u002e\u0020\u0b85\u0ba9\u0bc8\u0ba4\u0bcd\u0ba4\u0bc1\u0020\u0ba8\u0bb2\u0bcd\u0bb2\u0020\u0b95\u0bbe\u0bb2\u0b99\u0bcd\u0b95\u0bb3\u0bc8\u0baf\u0bc1\u0bae\u0bcd\u0020\u0b95\u0bc0\u0bb4\u0bc7\u0020\u0b89\u0bb3\u0bcd\u0bb3\u0020\u0b95\u0bcc\u0bb0\u0bbf\u0020\u0baa\u0b9e\u0bcd\u0b9a\u0bbe\u0b99\u0bcd\u0b95\u0020\u0bb5\u0bbf\u0bb5\u0bb0\u0ba4\u0bcd\u0ba4\u0bbf\u0bb2\u0bcd\u0020\u0b95\u0bbe\u0ba3\u0bb2\u0bbe\u0bae\u0bcd\u002e",
+    en: "These are selected recommendations from today's favourable Gowri periods. See the Gowri Panchangam details below for every auspicious kala.",
+  },
+  gowri_panchangam_details: { ta: "\u0b95\u0bcc\u0bb0\u0bbf\u0020\u0baa\u0b9e\u0bcd\u0b9a\u0bbe\u0b99\u0bcd\u0b95\u0020\u0bb5\u0bbf\u0bb5\u0bb0\u0bae\u0bcd", en: "Gowri Panchangam details" },
   label_subha_muhurtham: { ta: "சுப முஹூர்த்தம்", en: "Subha Muhurtham" },
   label_subha_day:  { ta: "சுப தினம்",         en: "Auspicious Day" },
   label_not_subha:  { ta: "சாதாரண தினம்",       en: "Ordinary Day" },
@@ -222,17 +321,22 @@ const STRINGS = {
   col_degree:       { ta: "பாகை",      en: "Degree" },
   col_nakshatra:    { ta: "நட்சத்திரம்", en: "Birth Star" },
   col_pada:         { ta: "பாதம்",     en: "Pada" },
-  col_house:        { ta: "இடம் (L)",  en: "House (L)" },
+  col_house:        { ta: "இடம் (லக்னத்திலிருந்து)",  en: "House (from Lagna)" },
   col_d9_rasi:      { ta: "D9 ராசி",   en: "D9 Sign" },
   col_special:      { ta: "சிறப்பு",   en: "Special" },
   flag_vakra:       { ta: "வக்ரம்",    en: "Retrograde" },
   flag_astam:       { ta: "அஸ்தம்",   en: "Combust" },
   flag_vargottamam: { ta: "வர்கோத்தமம்", en: "Vargottama" },
+  flag_cazimi:      { ta: "கசிமி",     en: "Cazimi" },
+
+  // ── Border Alert (birth-time junction conditions)
+  surface_border_alert: { ta: "எல்லை எச்சரிக்கை — பிறப்பு நுண் நிலைகள்", en: "Border Alert — birth-time conditions" },
+  border_alert_empty:   { ta: "இந்த ஜாதகத்தில் சிறப்பு எல்லை நிலைகள் எதுவும் இல்லை.", en: "No special junction conditions in this chart." },
 
   // ── Dasha surface
-  surface_dasha:    { ta: "தசை · புக்தி · அந்தரம்", en: "Dasa · Bhukti · Antaram" },
+  surface_dasha:    { ta: "வாழ்க்கைக் காலங்கள் — பெரிய, துணை, சிறு", en: "Life periods — major, sub, and minor" },
   dasha_all_bhukti: { ta: "அனைத்து புக்திகள்", en: "All Bhukti periods" },
-  dasha_timeline_label: { ta: "விம்சோத்தரி தசை காலவரிசை — அனைத்து தசைகள்", en: "Vimshottari Dasa timeline — all periods" },
+  dasha_timeline_label: { ta: "உங்கள் வாழ்க்கைக் காலங்கள் (விம்சோத்தரி முறை)", en: "Your life periods (Vimshottari system)" },
   dasha_word:       { ta: "தசை",    en: "Dasa" },
   bhukti_word:      { ta: "புக்தி", en: "Bhukti" },
   antaram_word:     { ta: "அந்தரம்", en: "Antaram" },
@@ -244,24 +348,26 @@ const STRINGS = {
 
   // ── Family tab
   family_kicker:    { ta: "குடும்பம்",   en: "Family" },
-  family_title:     { ta: "குடும்ப சேகரிப்பு", en: "Family vault" },
+  family_title:     { ta: "உங்கள் குடும்பம்", en: "Your family" },
   family_desc:      { ta: "குடும்ப மதிப்பெண், உறுப்பினர் ராசி கட்டங்கள், பொதுவான சிறந்த நேரங்கள்", en: "Family score, member charts, shared best windows" },
-  surface_vaults:   { ta: "உங்கள் சேகரிப்புகள்",  en: "Your vaults" },
-  vaults_loading:   { ta: "சேகரிப்புகள் ஏற்றுகிறது…", en: "Loading vaults…" },
-  vaults_empty:     { ta: "சேகரிப்பு இல்லை. அமைவுகள் > அமைவு-ல் உருவாக்கவும்.", en: "No vaults found. Create one in Settings > Setup." },
+  // New Tamil, pending native review.
+  surface_vaults:   { ta: "உங்கள் குடும்பங்கள்",  en: "Your families" },
+  vaults_loading:   { ta: "குடும்பங்கள் ஏற்றுகிறது…", en: "Loading families…" },
+  vaults_empty:     { ta: "குடும்பம் இல்லை. அமைப்புகள் > தொடக்கம்-ல் உருவாக்கவும்.", en: "No families yet. Create one in Settings > Setup." },
   members_label:    { ta: "உறுப்பினர்",  en: "member" },
   members_label_pl: { ta: "உறுப்பினர்கள்", en: "members" },
   no_aggregate:     { ta: "சுருக்கம் இல்லை", en: "no aggregate yet" },
   surface_family_score: { ta: "குடும்ப மதிப்பெண்", en: "Family score" },
   family_score_label: { ta: "குடும்ப மதிப்பெண்", en: "Family score" },
   support_need:     { ta: "துணை தேவை",       en: "Support need" },
-  decision_ready:   { ta: "முடிவு தயார்நிலை", en: "Decision readiness" },
+  decision_ready:   { ta: "முடிவு எடுக்க ஏற்ற நிலை", en: "Decision readiness" },
   best_windows:     { ta: "பொதுவான சிறந்த நேரங்கள்", en: "Shared best windows" },
-  no_members_yet:   { ta: "சேகரிப்பில் உறுப்பினர் இல்லை.", en: "No members in this vault yet." },
-  select_vault:     { ta: "சேகரிப்பு தேர்வு செய்யவும்.",   en: "Select a vault to see members." },
+  // New Tamil, pending native review.
+  no_members_yet:   { ta: "இந்தக் குடும்பத்தில் இன்னும் உறுப்பினர் இல்லை.", en: "No members in this family yet." },
+  select_vault:     { ta: "உறுப்பினர்களைக் காண குடும்பத்தைத் தேர்வு செய்யவும்.",   en: "Select a family to see members." },
   members_loading:  { ta: "உறுப்பினர்கள் ஏற்றுகிறது…", en: "Loading members…" },
   charts_loading:   { ta: "· கட்டங்கள் ஏற்றுகிறது…",  en: "· loading charts…" },
-  dasha_bhukti_antaram: { ta: "தசை · புக்தி · அந்தரம்", en: "Dasa · Bhukti · Antaram" },
+  dasha_bhukti_antaram: { ta: "வாழ்க்கைக் காலங்கள் — பெரிய, துணை, சிறு", en: "Life periods — major, sub, and minor" },
   best_time:        { ta: "சிறந்த நேரம்",    en: "Best time" },
   caution_time:     { ta: "எச்சரிக்கை",     en: "Caution" },
   identity_lagnam:  { ta: "லக்னம்",          en: "Lagna" },
@@ -277,12 +383,13 @@ const STRINGS = {
   edit_profile_sub:    { ta: "புதிய பதிவு உருவாகும் — தரவு மீண்டும் கணக்கிடப்படும்", en: "A new profile will be created and data recalculated" },
 
   // ── Delete confirm
-  confirm_remove_member: { ta: "இந்த உறுப்பினரை நீக்கவா?", en: "Remove this member from the vault?" },
-  confirm_delete_vault:  { ta: "சேகரிப்பு மற்றும் அனைத்து உறுப்பினர்களையும் நீக்கவா? இதை மீட்க முடியாது.", en: "Delete vault and all members? This cannot be undone." },
+  // New Tamil, pending native review.
+  confirm_remove_member: { ta: "இந்த உறுப்பினரை நீக்கவா?", en: "Remove this member from your family?" },
+  confirm_delete_vault:  { ta: "இந்தக் குடும்பத்தையும் அனைத்து உறுப்பினர்களையும் நீக்கவா? இதை மீட்க முடியாது.", en: "Delete this family and all its members? This cannot be undone." },
 
   // ── Calendar tab
   calendar_kicker:  { ta: "கிரகநகர்வு & நிகழ்வுகள்", en: "Transits & Events" },
-  calendar_title:   { ta: "கிரகநகர்வு, தசை & நிகழ்வுகள்", en: "Transits, Dasha & Events" },
+  calendar_title:   { ta: "கிரகநகர்வு, தசை & நிகழ்வுகள்", en: "Transits, Dasa & Events" },
   cal_panchangam:   { ta: "📅 பஞ்சாங்கம்",  en: "📅 Panchangam" },
   cal_monthly:      { ta: "🗓️ மாத காலெண்டர்", en: "🗓️ Monthly" },
   cal_monthly_loading: { ta: "மாத பஞ்சாங்கம் ஏற்றப்படுகிறது…", en: "Loading monthly panchangam…" },
@@ -303,21 +410,27 @@ const STRINGS = {
   label_rahu_avoid: { ta: "தவிர்க்கவும்",     en: "Avoid" },
   label_restricted: { ta: "(இந்த வாரம் தடை)", en: "(restricted today)" },
   hora_word:        { ta: "ஹோரை",    en: "Hora" },
-  paksha_shukla:    { ta: "வளர்பிறை", en: "Shukla" },
-  paksha_krishna:   { ta: "தேய்பிறை", en: "Krishna" },
+  paksha_shukla:    { ta: "வளர்பிறை", en: "Valarpirai" },
+  paksha_krishna:   { ta: "தேய்பிறை", en: "Theipirai" },
   lord_word:        { ta: "அதிபதி",   en: "lord" },
   until_word:       { ta: "வரை",     en: "until" },
   slot_word:        { ta: "இடை",     en: "slot" },
+  // Jeevan/Nethiram render classical panchangam terms verbatim (see Doctrine §7,
+  // panchangam.py JEEVAN_LABELS/NETHIRAM_LABELS) — this hint exists so a reader
+  // unfamiliar with the muhurtham grid doesn't mistake the term for a personal
+  // claim. Self-declared first-draft copy, queued for the C-4 native-Tamil pass.
+  nethiram_jeevan_hint: { ta: "இன்று முழுவதும் — முகூர்த்தத் தகுதிக் குறி, தனிநபர் கணிப்பு அல்ல", en: "Throughout today — a muhurtham-suitability marker, not a personal reading" },
 
   // ── Settings tab
-  settings_kicker:  { ta: "அமைவுகள்",   en: "Settings" },
-  settings_title:   { ta: "அமர்வு நிலை", en: "Session state" },
-  settings_desc:    { ta: "இந்த மதிப்புகள் உரிமையாளர், தேதி மற்றும் சேகரிப்பை ஒரே நிலையில் வைக்கின்றன.", en: "These values anchor the session to one owner, one date, and one vault." },
+  settings_kicker:  { ta: "அமைப்புகள்",   en: "Settings" },
+  settings_title:   { ta: "தற்போதைய தேர்வுகள்", en: "Session state" },
+  // New Tamil, pending native review.
+  settings_desc:    { ta: "இந்த மதிப்புகள் உரிமையாளர், தேதி மற்றும் குடும்பத்தை ஒரே நிலையில் வைக்கின்றன.", en: "These values anchor the session to one owner, one date, and one family." },
   settings_owner:   { ta: "Owner user ID", en: "Owner user ID" },
-  settings_owner_hint: { ta: "அனைத்து ஜாதகம் மற்றும் சேகரிப்பு படிவங்களிலும் பகிரப்படுகிறது.", en: "Shared across all profile and vault forms." },
+  settings_owner_hint: { ta: "அனைத்து ஜாதகம் மற்றும் குடும்பப் படிவங்களிலும் பகிரப்படுகிறது.", en: "Shared across all profile and family forms." },
   settings_date:    { ta: "தேர்ந்தெடுத்த தேதி",  en: "Selected date" },
-  settings_vault:   { ta: "தேர்ந்தெடுத்த சேகரிப்பு", en: "Selected vault" },
-  settings_vault_hint: { ta: "குடும்பம் தாவலில் சேகரிப்பை கிளிக் செய்து மாற்றவும்.", en: "Click a vault in the Family tab to switch." },
+  settings_vault:   { ta: "தேர்ந்தெடுத்த குடும்பம்", en: "Selected family" },
+  settings_vault_hint: { ta: "குடும்பம் தாவலில் ஒரு குடும்பத்தைக் கிளிக் செய்து மாற்றவும்.", en: "Click a family in the Family tab to switch." },
   settings_profile: { ta: "Birth profile ID", en: "Birth profile ID" },
   settings_chart:   { ta: "Chart ID",          en: "Chart ID" },
   settings_quick:   { ta: "விரைவு புதுப்பிப்பு", en: "Quick refresh" },
@@ -340,7 +453,7 @@ const STRINGS = {
 
   // ── Tools tab
   tools_heading:          { ta: "கருவிகள்",                      en: "Tools" },
-  tools_subtitle:         { ta: "ஜோதிட பகுப்பாய்வு கருவிகள்",   en: "Jyotish analysis tools" },
+  tools_subtitle:         { ta: "ஜோதிட பகுப்பாய்வு கருவிகள்",   en: "Jothida analysis tools" },
   tool_porutham_name:     { ta: "பொருத்தம் சோதனை",               en: "Compatibility Check" },
   tool_porutham_desc:     { ta: "திருமணப் பொருத்தம் — 10 பொருத்தங்கள், தோஷச் சோதனை.",  en: "Marriage compatibility — 10 poruthams + dosha checks." },
   tool_chart_gen_name:    { ta: "ஜாதகம் உருவாக்கு",              en: "Generate Chart" },
@@ -348,7 +461,7 @@ const STRINGS = {
   tool_rectify_name:      { ta: "பிறந்த நேர திருத்தம்",          en: "Birth Time Rectification" },
   tool_rectify_desc:      { ta: "வாழ்க்கை நிகழ்வுகளை பயன்படுத்தி பிறந்த நேரத்தை நிரூபிக்கவும்.", en: "Confirm birth time using life events as evidence." },
   tool_wrapped_name:      { ta: "வருடாந்திர சுருக்கம்",          en: "Annual Wrapped" },
-  tool_wrapped_desc:      { ta: "கடந்த ஆண்டின் ஜோதிட ஆய்வு — முக்கிய தசைகள் மற்றும் நிகழ்வுகள்.", en: "Year-in-review astrology — key dashas and events." },
+  tool_wrapped_desc:      { ta: "கடந்த ஆண்டின் ஜோதிட ஆய்வு — முக்கிய தசைகள் மற்றும் நிகழ்வுகள்.", en: "Year-in-review astrology — key dasas and events." },
   tool_retro_name:        { ta: "பின்னோக்கு பகுப்பாய்வு",        en: "Retrospective Analysis" },
   tool_retro_desc:        { ta: "கடந்த காலத்தை ஜோதிட கண்ணோட்டத்தில் பகுப்பாய்வு செய்யவும்.", en: "Review past periods through an astrological lens." },
   tool_open:              { ta: "திறக்கவும்",                     en: "Open" },
@@ -377,7 +490,8 @@ const STRINGS = {
 
   // Toast messages
   toast_profile_created: { ta: "ஜாதகம் உருவாக்கப்பட்டது.", en: "Profile created." },
-  toast_vault_required:  { ta: "முதலில் குடும்ப சேகரிப்பை தேர்வு செய்யவும்.", en: "Please select a family vault first." },
+  // New Tamil, pending native review.
+  toast_vault_required:  { ta: "முதலில் ஒரு குடும்பத்தைத் தேர்வு செய்யவும்.", en: "Please select a family first." },
 
   // Metric strip hint
   hint_no_profile:      { ta: "பிறப்பு விவரம் உருவாக்கவும்", en: "create a profile" },
@@ -401,14 +515,17 @@ const STRINGS = {
   feedback_cancel:     { ta: "ரத்து",               en: "Cancel" },
 
   // Privacy & disclaimer
-  disclaimer_astro:    { ta: "இந்த பயன்பாடு ஜோதிடம் சார்ந்த வழிகாட்டுதல்களை வழங்குகிறது. இவை அறிவியல் உண்மைகள் அல்ல — நம்பிக்கை சார்ந்த பாரம்பரிய கலை. மருத்துவ, சட்டம், நிதி முடிவுகளுக்கு தகுதிவாய்ந்த நிபுணரை அணுகுங்கள்.", en: "This app provides Jyotish-based guidance. Astrology is a traditional belief system, not a science. For medical, legal, or financial decisions, consult a qualified professional." },
-  disclaimer_data:     { ta: "உங்கள் தரவு இந்தச் சாதனத்திலும் சேவையகத்திலும் மட்டும் சேமிக்கப்படுகிறது. உங்கள் தரவை நீக்க அமைவுகள் பகுதிக்கு செல்லவும் அல்லது ஆதரவை தொடர்புகொள்ளவும்.", en: "Your data is stored only on this device and our server. To delete your data, visit Settings or contact support." },
+  disclaimer_astro:    { ta: "இந்த பயன்பாடு ஜோதிடம் சார்ந்த வழிகாட்டுதல்களை வழங்குகிறது. இவை அறிவியல் உண்மைகள் அல்ல — நம்பிக்கை சார்ந்த பாரம்பரிய கலை. மருத்துவ, சட்டம், நிதி முடிவுகளுக்கு தகுதிவாய்ந்த நிபுணரை அணுகுங்கள்.", en: "This app provides Jothida-based guidance. Astrology is a traditional belief system, not a science. For medical, legal, or financial decisions, consult a qualified professional." },
+  disclaimer_data:     { ta: "உங்கள் தரவு இந்தச் சாதனத்திலும் சேவையகத்திலும் மட்டும் சேமிக்கப்படுகிறது. உங்கள் தரவை நீக்க அமைப்புகள் பகுதிக்கு செல்லவும் அல்லது ஆதரவை தொடர்புகொள்ளவும்.", en: "Your data is stored only on this device and our server. To delete your data, visit Settings or contact support." },
   disclaimer_no_doom:  { ta: "இந்தப் பயன்பாடு அச்சுறுத்தல், மோசமான சகுனம், அல்லது உறுதிப்படுத்தப்பட்ட தோல்வி பற்றி எந்த வார்த்தையும் பயன்படுத்துவதில்லை.", en: "This app never uses fear, doom language, or guaranteed negative predictions." },
+  safeguard_health:    { ta: "இது கிரக காலங்களின் பாரம்பரிய வாசிப்பு — மருத்துவ மதிப்பீடு அல்ல. ஏதேனும் உடல்நலக் கவலை இருந்தால் மருத்துவரை அணுகுங்கள். ஜோதிடம் காலத்தையும் போக்கையும் சுட்டுகிறது, நோய் கண்டறிதலை அல்ல.", en: "This is a traditional reading of planetary periods, not a medical assessment. For any health concern, please see a doctor — the stars point to timing and tendency, never a diagnosis." },
+  safeguard_decision:  { ta: "ஜோதிடம் ஒரு சாதகமான காலத்தை சுட்டலாம்; ஆனால் உங்கள் கட்டுப்பாட்டில் இல்லாத ஒரு முடிவை (விசா அலுவலகம், சந்தை, மற்றொருவர்) கட்டுப்படுத்த முடியாது. இதை தொழில்முறை மற்றும் நடைமுறை ஆலோசனையுடன் ஒரு உள்ளீடாக மட்டுமே கருதுங்கள் — விலையுயர்ந்த முடிவுக்கு ஒரே அடிப்படையாக அல்ல.", en: "Astrology can suggest a favourable window, but it can't control an outcome you don't (a visa office, a market, another person). Treat this as one input alongside professional and practical advice — never the only basis for a costly decision." },
+  safeguard_reflection:{ ta: "இந்த நாட்குறிப்பு சிந்தனைக்கான இடம் — மனநல சிகிச்சைக்கு மாற்றல்ல. நீங்கள் கடினமான காலத்தைக் கடந்து சென்றால், நீங்கள் நம்பும் ஒருவரையோ அல்லது ஒரு நிபுணரையோ அணுகுங்கள்.", en: "This journal is a space for reflection, not a substitute for mental-health care. If you're going through a hard time, please reach out to someone you trust or a professional." },
   privacy_link:        { ta: "தனியுரிமை கொள்கை",   en: "Privacy policy" },
   terms_link:          { ta: "சேவை விதிமுறைகள்",   en: "Terms of service" },
 
   // Account deletion
-  danger_zone_title:        { ta: "ஆபத்து மண்டலம்",                          en: "Danger zone" },
+  danger_zone_title:        { ta: "எச்சரிக்கை பகுதி",                          en: "Danger zone" },
   delete_account_label:     { ta: "கணக்கை நிரந்தரமாக நீக்கு",                en: "Delete account permanently" },
   delete_account_warning:   { ta: "இந்தச் செயல் திரும்பப்பெற முடியாது. உங்கள் அனைத்து ஜாதகங்கள், குடும்பத் தரவு மற்றும் வரலாறு அழிக்கப்படும்.", en: "This cannot be undone. All your birth profiles, family data, and history will be permanently erased." },
   delete_account_confirm_prompt: { ta: "உறுதிப்படுத்த கீழே உள்ள பொத்தானை அழுத்தவும்:", en: "Press the button below to confirm:" },
@@ -447,7 +564,7 @@ const STRINGS = {
   whatif_running:      { ta: "ஆய்வு செய்கிறது…",       en: "Analysing…" },
   whatif_result_title: { ta: "மூன்று தூண் திருக்கணித ஆய்வு",  en: "Triple-confirmation analysis" },
   whatif_natal:        { ta: "ஜாதக வாக்கு",            en: "Natal Promise" },
-  whatif_dasha:        { ta: "தசை ஆதரவு",              en: "Dasha Support" },
+  whatif_dasha:        { ta: "தசை ஆதரவு",              en: "Dasa Support" },
   whatif_gochar:       { ta: "கிரகநகர்வு ஆதரவு",        en: "Transit Support" },
   whatif_overall:      { ta: "ஒட்டுமொத்த நிலை",        en: "Overall verdict" },
   whatif_best_period:  { ta: "சிறந்த காலம்",           en: "Best period" },
@@ -455,14 +572,14 @@ const STRINGS = {
   whatif_remedy:       { ta: "பரிகாரம்",               en: "Remedy" },
   whatif_disclaimer:   { ta: "குறிப்பு",               en: "Note" },
   strength_strong:     { ta: "வலிமையான",               en: "Strong" },
-  strength_moderate:   { ta: "நடுநிலை",                en: "Moderate" },
+  strength_moderate:   { ta: "மிதமான",                 en: "Moderate" },
   strength_weak:       { ta: "குறைவான",                en: "Weak" },
   verdict_favourable:  { ta: "சாதகம்",                 en: "Favourable" },
   verdict_neutral:     { ta: "நடுநிலை",                en: "Neutral" },
   verdict_caution:     { ta: "கவன நிலை",              en: "Caution" },
 
   // ── Emotional weather / nakshatra / context / journal / alerts
-  emotional_weather_label:    { ta: "உணர்வு வானிலை",    en: "Emotional Weather" },
+  emotional_weather_label:    { ta: "இன்றைய மனநிலை",    en: "Emotional Weather" },
   nakshatra_lens_label:       { ta: "நட்சத்திர பார்வை",  en: "Birth Star Lens" },
   context_insight_label:      { ta: "இன்றைய சூழல்",      en: "Today's Context" },
   journal_insight_label:      { ta: "குறிப்பு வடிவம்",   en: "Journal Pattern" },
@@ -481,8 +598,8 @@ const STRINGS = {
   pred_career_title:       { ta: "தொழில் கணிப்பு",                  en: "Career Prediction" },
   pred_wealth_title:       { ta: "பண வரவு கணிப்பு",                 en: "Wealth Prediction" },
   pred_health_title:       { ta: "உடல்நலம் கணிப்பு",                en: "Health Prediction" },
-  pred_confidence:         { ta: "நம்பிக்கை நிலை",                  en: "Confidence" },
-  pred_dasha_support:      { ta: "தசை ஆதரவு",                       en: "Dasha support" },
+  pred_confidence:         { ta: "நம்பகத்தன்மை நிலை",                  en: "Confidence" },
+  pred_dasha_support:      { ta: "தசை ஆதரவு",                       en: "Dasa support" },
   pred_transit_support:    { ta: "கிரகநகர்வு ஆதரவு",                 en: "Transit support" },
   pred_timing_window:      { ta: "கால வரம்பு",                      en: "Timing window" },
   pred_supports:           { ta: "சாதகங்கள்",                       en: "Supporting factors" },
@@ -493,21 +610,23 @@ const STRINGS = {
   pred_strong:             { ta: "வலிமையான",                        en: "Strong" },
   pred_partial:            { ta: "ஓரளவு",                           en: "Partial" },
   pred_weak:               { ta: "குறைவான",                         en: "Weak" },
-  pred_high:               { ta: "அதிக நம்பிக்கை",                  en: "High" },
-  pred_medium:             { ta: "நடுத்தர நம்பிக்கை",               en: "Medium" },
-  pred_low:                { ta: "குறைவான நம்பிக்கை",               en: "Low" },
+  pred_high:               { ta: "அதிக நம்பகத்தன்மை",                  en: "High" },
+  pred_medium:             { ta: "நடுத்தர நம்பகத்தன்மை",               en: "Medium" },
+  pred_low:                { ta: "குறைவான நம்பகத்தன்மை",               en: "Low" },
   pred_support_badge:      { ta: "ஆதரவு",                           en: "Support" },
   pred_caution_badge:      { ta: "கவனம்",                           en: "Caution" },
   pred_neutral_badge:      { ta: "நடுநிலை",                         en: "Neutral" },
 
   // ── Phase 2: Yogas & Doshams
-  yogas_title:             { ta: "யோகங்கள்",                         en: "Yogas" },
-  doshams_title:           { ta: "தோஷங்கள்",                         en: "Doshams" },
+  // B-032/B-033: lead with the plain meaning; retain the traditional name.
+  // New Tamil, pending native review.
+  yogas_title:             { ta: "ஜாதக அமைப்புகள் (யோகங்கள்)",       en: "Chart patterns (Yogas)" },
+  doshams_title:           { ta: "கவனிக்க வேண்டிய நிலைகள் (தோஷங்கள்)", en: "Difficult placements (Doshams)" },
   yoga_present:            { ta: "இருக்கிறது",                       en: "Present" },
   yoga_absent:             { ta: "இல்லை",                            en: "Absent" },
   dosham_cancelled:        { ta: "ரத்தாகியது",                       en: "Cancelled" },
   dosham_active:           { ta: "செயலில் உள்ளது",                   en: "Active" },
-  yoga_dasha_activated:    { ta: "தசையில் செயல்படுகிறது",            en: "Dasha-activated" },
+  yoga_dasha_activated:    { ta: "தசையில் செயல்படுகிறது",            en: "Dasa-activated" },
   yoga_conditions_met:     { ta: "நிறைவேறிய நிபந்தனைகள்",           en: "Conditions met" },
   yoga_cancellation:       { ta: "ரத்து காரணங்கள்",                  en: "Cancellation factors" },
   yogas_empty:             { ta: "ஜாதகம் கணக்கிட்ட பின் யோக/தோஷ விவரம் தெரியும்.", en: "Yoga/Dosham details appear after chart calculation." },
@@ -571,12 +690,16 @@ const STRINGS = {
   qa_no_regressions:   { ta: "சேமிக்கப்பட்ட தோல்விகள் இல்லை.", en: "No stored failures." },
 
   // ── FEATURE-10: Nakshatra personality card
-  nakshatra_card_label:    { ta: "நட்சத்திர குணாதிசயம்", en: "Birth Star Profile" },
+  nakshatra_card_label:    { ta: "நட்சத்திர சுபாவம்", en: "Birth Star Profile" },
   nakshatra_deity:         { ta: "தேவதை",                en: "Deity" },
   nakshatra_symbol:        { ta: "சின்னம்",               en: "Symbol" },
-  nakshatra_ruling_planet: { ta: "அதிபதி கிரகம்",        en: "Ruling Planet" },
+  nakshatra_ruling_planet: { ta: "அதிபதி",        en: "Ruling Planet" },
   nakshatra_strengths:     { ta: "பலங்கள்",              en: "Strengths" },
   nakshatra_cautions:      { ta: "கவனிக்க",              en: "Cautions" },
+  rasi_trait_card_label:   { ta: "ராசி குணாதிசயம்",      en: "Rasi Profile" },
+  lagna_trait_card_label:  { ta: "லக்ன குணாதிசயம்",      en: "Lagnam Profile" },
+  rasi_trait_element:      { ta: "பூதம்",                 en: "Element" },
+  rasi_running_dasha:      { ta: "நடப்பு",                en: "Running" },
 
   // ── ARCH-02: Notification preferences
   notif_section_title:     { ta: "அறிவிப்புகள்",                    en: "Notifications" },
@@ -587,7 +710,7 @@ const STRINGS = {
   notif_channel_both:      { ta: "இரண்டும்",                        en: "Both" },
   notif_morning_alert:     { ta: "காலை அறிவிப்பு",                  en: "Morning alert" },
   notif_morning_time:      { ta: "நேரம்",                           en: "Time" },
-  notif_dasha_alert:       { ta: "தசை மாற்ற அறிவிப்பு",            en: "Dasha transition alert" },
+  notif_dasha_alert:       { ta: "தசை மாற்ற அறிவிப்பு",            en: "Dasa transition alert" },
   notif_pirantha_alert:    { ta: "பிறந்த நாள் அறிவிப்பு",           en: "Pirantha Naal alert" },
   notif_smart_silence:     { ta: "நுட்பமான அமைதி",                 en: "Smart silence" },
   notif_fcm_registered:    { ta: "FCM பதிவு செய்யப்பட்டது",         en: "Push token registered" },
@@ -597,7 +720,7 @@ const STRINGS = {
   notif_saved:             { ta: "அறிவிப்பு அமைப்புகள் சேமிக்கப்பட்டன.", en: "Notification settings saved." },
 
   // ── FEATURE-05: Tithi special content card
-  tithi_card_label:        { ta: "இன்றைய தினம்",   en: "Today's Significance" },
+  tithi_card_label:        { ta: "இன்றைய சிறப்பு",   en: "Today's Significance" },
 
   // ── FEATURE-11: Peyarchi report
   peyarchi_outlook_label:  { ta: "பெயர்ச்சி விளைவு", en: "Peyarchi Outlook" },
@@ -607,7 +730,7 @@ const STRINGS = {
   // ── FEATURE-07: Week-ahead digest
   week_ahead_label:        { ta: "வாரக் கண்ணோட்டம்",          en: "Week Ahead" },
   week_best_day:           { ta: "சிறந்த நாள்",               en: "Best day" },
-  week_dasha_theme:        { ta: "தசை கருப்பொருள்",           en: "Dasha theme" },
+  week_dasha_theme:        { ta: "தசை கருப்பொருள்",           en: "Dasa theme" },
   week_chandrashtama_badge:{ ta: "⚠ சந்திராஷ்டமம்",           en: "⚠ Chandrashtama" },
   week_special_tithi:      { ta: "சிறப்பு திதி",              en: "Special tithi" },
 
@@ -624,16 +747,16 @@ const STRINGS = {
   activity_property:       { ta: "சொத்து",                     en: "Property" },
   activity_health:         { ta: "உடல்நலம்",                   en: "Health" },
   activity_travel:         { ta: "பயணம்",                      en: "Travel" },
-  activity_spiritual:      { ta: "ஆன்மிகம்",                  en: "Spiritual" },
+  activity_spiritual:      { ta: "ஆன்மீகம்",                  en: "Spiritual" },
   activity_family:         { ta: "குடும்பம்",                  en: "Family" },
   activity_money:          { ta: "பணம்",                       en: "Money" },
   activity_child:          { ta: "குழந்தை",                    en: "Child" },
   activity_other:          { ta: "மற்றவை",                     en: "Other" },
 
   // ── FEATURE-09: Dasha story timeline
-  dasha_story_label:       { ta: "முழு தசை வரலாறு",            en: "Full Dasha Story" },
+  dasha_story_label:       { ta: "முழு தசை வரலாறு",            en: "Full Dasa Story" },
   dasha_story_age:         { ta: "வயது",                        en: "Age" },
-  btn_expand_dasha_story:  { ta: "தசை வரலாறு காண்",             en: "View Dasha Story" },
+  btn_expand_dasha_story:  { ta: "தசை வரலாறு காண்",             en: "View Dasa Story" },
   btn_collapse_dasha_story:{ ta: "மூடு",                        en: "Collapse" },
 
   // ── FEATURE-12: Journal correlations
@@ -668,9 +791,9 @@ const STRINGS = {
   journal_area_family:     { ta: "குடும்பம்",                        en: "Family" },
   journal_area_finance:    { ta: "பணம்",                            en: "Finance" },
   journal_area_education:  { ta: "கல்வி",                           en: "Education" },
-  journal_area_spiritual:  { ta: "ஆன்மிகம்",                       en: "Spiritual" },
+  journal_area_spiritual:  { ta: "ஆன்மீகம்",                       en: "Spiritual" },
   journal_area_general:    { ta: "பொதுவான",                         en: "General" },
-  journal_anchor_dasha:    { ta: "தசை",                             en: "Dasha" },
+  journal_anchor_dasha:    { ta: "தசை",                             en: "Dasa" },
   // ── Context events
   context_section_label:   { ta: "வரவிருக்கும் நிகழ்வுகள்",         en: "Upcoming Events" },
   context_section_desc:    { ta: "வரவிருக்கும் முக்கிய நிகழ்வுகளை பதிவு செய்யுங்கள். இவை உங்கள் தினசரி வழிகாட்டுதலை மேம்படுத்தும்.", en: "Register key upcoming events. They enhance your daily context insight." },
@@ -693,7 +816,7 @@ const STRINGS = {
 
   // ── Synastry & Relationship compatibility
   synastry_panel_title:    { ta: "உறவு பொருத்தம்",              en: "Relationship Compatibility" },
-  synastry_panel_desc:     { ta: "குடும்ப உறுப்பினர்களுடன் ஜாதக பொருத்தம் ஆய்வு",  en: "Synastry analysis with family vault members" },
+  synastry_panel_desc:     { ta: "குடும்ப உறுப்பினர்களுடன் ஜாதக பொருத்தம் ஆய்வு",  en: "Synastry analysis with your family members" },
   synastry_select_member:  { ta: "உறுப்பினரை தேர்வு செய்யவும்",  en: "Select a member to analyse" },
   synastry_loading:        { ta: "பொருத்தம் கணக்கிடுகிறது…",    en: "Calculating compatibility…" },
   synastry_score:          { ta: "பொருத்த மதிப்பெண்",            en: "Compatibility Score" },
@@ -704,7 +827,7 @@ const STRINGS = {
   synastry_aspect_supportive: { ta: "சாதகம்",                   en: "Supportive" },
   synastry_aspect_challenging:{ ta: "சவால்",                    en: "Challenging" },
   synastry_aspect_neutral: { ta: "நடுநிலை",                     en: "Neutral" },
-  synastry_no_vault:       { ta: "குடும்ப சேகரிப்பு உறுப்பினர்கள் தேவை. குடும்பம் தாவலில் சேர்க்கவும்.", en: "Family vault members needed. Add them in the Family tab." },
+  synastry_no_vault:       { ta: "குடும்ப உறுப்பினர்கள் தேவை. குடும்பம் தாவலில் சேர்க்கவும்.", en: "Family members needed. Add them in the Family tab." },
   synastry_no_members:     { ta: "உறுப்பினர்கள் இல்லை",         en: "No members available" },
   rel_alerts_title:        { ta: "உறவு அறிவிப்புகள்",           en: "Relationship Alerts" },
   rel_alerts_empty:        { ta: "தற்போது உறவு அறிவிப்புகள் இல்லை.", en: "No relationship alerts at this time." },
@@ -736,7 +859,7 @@ const STRINGS = {
   retro_intensity_milder:  { ta: "குறைவான",                     en: "Milder" },
   retro_intensity_stronger:{ ta: "அதிகமான",                    en: "Stronger" },
   retro_key_transits:      { ta: "முக்கிய கிரகநகர்வுகள்",       en: "Key Transits" },
-  retro_active_dasha:      { ta: "நடப்பு தசை",                  en: "Active Dasha" },
+  retro_active_dasha:      { ta: "நடப்பு தசை",                  en: "Active Dasa" },
 
   // ── Decision support tool
   decision_panel_title:       { ta: "முடிவு ஆதரவு",               en: "Decision Support" },
@@ -752,7 +875,7 @@ const STRINGS = {
   decision_analyse:        { ta: "ஆய்வு செய்",                  en: "Analyse" },
   decision_analysing:      { ta: "ஆய்வு செய்கிறது…",            en: "Analysing…" },
   decision_recommended:    { ta: "பரிந்துரை",                   en: "Recommended" },
-  decision_confidence:     { ta: "நம்பிக்கை",                   en: "Confidence" },
+  decision_confidence:     { ta: "நம்பகத்தன்மை",                   en: "Confidence" },
   decision_reasoning:      { ta: "காரணம்",                      en: "Reasoning" },
   decision_caution:        { ta: "கவனிக்கவும்",                 en: "Caution" },
   decision_score:          { ta: "மதிப்பெண்",                   en: "Score" },
@@ -795,7 +918,7 @@ const STRINGS = {
   ask_placeholder:         { ta: "ஒரு கேள்வி கேளுங்கள்...",   en: "Ask a question..." },
   ask_submit:              { ta: "கேள்",                        en: "Ask" },
   ask_submitting:          { ta: "கேட்கிறது…",                 en: "Asking…" },
-  ask_low_confidence:      { ta: "பிறந்த நேரம் திட்டமற்றது — லக்கன வாசிப்புகள் மாறலாம்", en: "Birth time estimated — Lagna readings may vary" },
+  ask_low_confidence:      { ta: "பிறந்த நேரம் திட்டமற்றது — லக்ன வாசிப்புகள் மாறலாம்", en: "Birth time estimated — Lagna readings may vary" },
   ask_quota:               { ta: "இன்று %d / 10 கேள்விகள்",   en: "%d of 10 questions today" },
   ask_panel_title:         { ta: "விநாடி கேளு",                en: "Ask Vinaadi" },
   ask_panel_desc:          { ta: "உங்கள் ஜாதகம் அடிப்படையில் கேள்விகளுக்கு பதில் கிடைக்கும்.", en: "Get personalised answers based on your chart." },
@@ -827,6 +950,10 @@ const STRINGS = {
   muhurta_empty:           { ta: "தேதி வரம்பும் செயலும் தேர்வு செய்து தேடவும்.", en: "Select a date range and activity to search." },
   muhurta_score:           { ta: "மதிப்பெண்",                  en: "Score" },
   muhurta_cautions:        { ta: "கவனிக்க",                    en: "Cautions" },
+  muhurta_check_date:      { ta: "தேதியைச் சரிபார்க்கவும்",    en: "Check a date" },
+  muhurta_day_suitability: { ta: "இந்த நாளின் பொருத்தம்",      en: "This day's suitability" },
+  muhurta_day_not_recommended: { ta: "இந்தச் செயலுக்கு இந்நாள் உகந்தது அல்ல", en: "This day is not recommended for this activity" },
+  muhurta_view_all_reasons: { ta: "அனைத்து காரணங்களையும் காண்க", en: "View all reasons" },
 
   // ── P2-A: Dasha scrubber
   dasha_you_are_here:      { ta: "நீங்கள் இங்கே",              en: "You are here" },
@@ -836,10 +963,10 @@ const STRINGS = {
   // ── P2-B: Shareable cards
   share_card:              { ta: "பகிர்",                       en: "Share" },
   share_daily_vibe:        { ta: "இன்றைய ஆற்றல்",              en: "Today's energy" },
-  share_dasha_era:         { ta: "என் தசை காலம்",              en: "My dasha era" },
+  share_dasha_era:         { ta: "என் தசை காலம்",              en: "My dasa era" },
 
   // ── P2-C: Annual wrapped
-  wrapped_title:           { ta: "என் வருட விமர்சனம்",         en: "My Year Wrapped" },
+  wrapped_title:           { ta: "என் வருடாந்திர சுருக்கம்",         en: "My Year Wrapped" },
   wrapped_generate:        { ta: "உருவாக்கு",                  en: "Generate" },
   wrapped_year_theme:      { ta: "வருட தீம்",                  en: "Year theme" },
   wrapped_next_preview:    { ta: "வரும் ஆண்டு",               en: "Next year preview" },
@@ -849,7 +976,7 @@ const STRINGS = {
   rectify_start:           { ta: "நேரம் கண்டுபிடி",            en: "Find your birth time" },
   rectify_estimated:       { ta: "மதிப்பீட்டு நேரம்",          en: "Estimated time" },
   rectify_disclaimer:      { ta: "இது தோராயமான மதிப்பீடு — பாரம்பரிய ஜாதக திருத்தம் அல்ல.", en: "Approximate — heuristic estimate, not classical rectification." },
-  rectify_banner:          { ta: "பிறந்த நேரம் மதிப்பீடு — லக்கன சார் வாசிப்புகள் மாறலாம்", en: "Birth time estimated — Lagna-dependent readings may vary" },
+  rectify_banner:          { ta: "பிறந்த நேரம் மதிப்பீடு — லக்ன சார் வாசிப்புகள் மாறலாம்", en: "Birth time estimated — Lagna-dependent readings may vary" },
 
   // ── P2-E: Compatibility context
   compat_friendship:       { ta: "நட்பு இணக்கம்",              en: "Friendship" },
@@ -866,9 +993,12 @@ const STRINGS = {
   // ── P3-A: Shadow work prompts
   shadow_prompts_title:    { ta: "ஆழ்மன பயிற்சி",              en: "Shadow work" },
   shadow_prompts_cta:      { ta: "உங்கள் உள்நோக்கை ஆராயுங்கள்", en: "Explore your inner landscape today" },
+  shadow_prompts_desc:     { ta: "உங்கள் 8, 12ஆம் இடங்களின் அமைப்பை அடிப்படையாகக் கொண்ட ஆழமான சிந்தனை தூண்டல்கள்.", en: "Deep reflective prompts based on your 8th and 12th house placements" },
+  shadow_prompts_reflect_on: { ta: "சிந்தியுங்கள்…",             en: "Reflect on…" },
+  shadow_prompts_empty:    { ta: "தற்போது தூண்டல்கள் கிடைக்கவில்லை.", en: "No prompts available at the moment." },
 
   // ── Vargas (Divisional Charts)
-  vargas_title:            { ta: "வர்க கட்டங்கள்",              en: "Divisional Charts" },
+  vargas_title:            { ta: "வர்க்க கட்டங்கள்",              en: "Divisional Charts" },
   vargas_d1_label:         { ta: "D1 ராசி",                     en: "D1 Rasi" },
   vargas_confirmed:        { ta: "உறுதி",                       en: "Confirmed" },
   vargas_differs:          { ta: "வேறுபாடு",                    en: "Differs" },
@@ -882,8 +1012,11 @@ const STRINGS = {
   vargas_desc_d12:         { ta: "பெற்றோர் — துவாதசாம்சம்",    en: "Parents — Dwadashamsa" },
   vargas_desc_d30:         { ta: "உடல்நலம் — திரிம்சாம்சம்",   en: "Health — Trimsamsa" },
   vargas_desc_d60:         { ta: "முழு ஆன்மீக — ஷஷ்டியாம்சம்", en: "Spiritual — Shashtiamsa" },
-  bhava_chalit_title:      { ta: "பாவ சாலித்",                  en: "Bhava Chalit" },
-  bhava_chalit_desc:       { ta: "ராசி வீட்டிலிருந்து பாவ வீட்டில் மாற்றம் உள்ள கிரகங்கள் மட்டும்", en: "Planets that differ between Rasi and Bhava house" },
+  // WI-11 (Doctrine §6): renamed from "Bhava Chalit" — this is equal-house
+  // from the Lagna degree, NOT Sripati chalit. New Tamil string, pending
+  // native review.
+  equal_bhava_title:       { ta: "சம பாவம்",                    en: "Equal Bhava (House)" },
+  equal_bhava_desc:        { ta: "ராசி வீட்டிலிருந்து பாவ வீட்டில் மாற்றம் உள்ள கிரகங்கள் மட்டும்", en: "Planets that differ between Rasi and equal-house (a secondary lens, not Sripati chalit)" },
 
   // ── Varshaphala (Annual Chart)
   varshaphala_title:       { ta: "வர்ஷபல — ஆண்டு கட்டம்",      en: "Varshaphala — Annual Chart" },
@@ -893,6 +1026,10 @@ const STRINGS = {
   varshaphala_house:       { ta: "வீடு",                         en: "House" },
   varshaphala_itthasala:   { ta: "இத்தாஸல (பொருந்தும் அம்சம்)", en: "Itthasala (Applying)" },
   varshaphala_isarafa:     { ta: "இஸாரஃபா (விலகும் அம்சம்)",   en: "Isarafa (Separating)" },
+  // WI-18 (Doctrine §9): prominent label that this is the simplified
+  // same-rasi approximation, not full classical Tajika. New Tamil string,
+  // pending native review.
+  varshaphala_simplified_badge: { ta: "எளிமையாக்கப்பட்டது",     en: "Simplified" },
   varshaphala_area_outlook:{ ta: "இந்த ஆண்டு துறை நிலை",        en: "Area outlook this year" },
   varshaphala_fav_months:  { ta: "சாதகமான மாதங்கள்",            en: "Favourable months" },
   varshaphala_load:        { ta: "ஆண்டு கட்டம் காண்",           en: "View Annual Chart" },
@@ -912,6 +1049,9 @@ const STRINGS = {
   remedies_fasting:        { ta: "விரதம்",                       en: "Fasting" },
   remedies_behaviour:      { ta: "நடத்தை மாற்றம்",              en: "Behavioural" },
   remedies_seva:           { ta: "சேவை பரிகாரம்",               en: "Service remedy" },
+  remedies_mode_traditional: { ta: "பாரம்பரிய வழிமுறை",         en: "Traditional practice" },
+  remedies_mode_secular:   { ta: "மதச்சார்பற்ற செயல்கள்",       en: "Secular actions" },
+  remedies_secular_note:   { ta: "ஒவ்வொரு கிரகத்திற்கும் நடத்தை மாற்றமும் சேவை பரிகாரமும் மட்டும் காட்டப்படும் — கோவில், மந்திரம், விரதம், ரத்தினம் இல்லை.", en: "Shows only the behavioural action and the service (seva) action for each planet — no temple, mantra, fasting, or gemstone." },
   remedies_gemstone_title: { ta: "ரத்தின ஆலோசனை",               en: "Gemstone Advice" },
   remedies_prescribed:     { ta: "அணியலாம்",                    en: "Prescribed" },
   remedies_not_prescribed: { ta: "அணிய வேண்டாம் (தோஷ கிரகம்)", en: "Not prescribed (malefic)" },
@@ -922,6 +1062,27 @@ const STRINGS = {
   remedies_empty:          { ta: "ஜாதகம் கணக்கிட்ட பின் பரிகாரங்கள் கிடைக்கும்.", en: "Remedies load after chart calculation." },
   remedies_safety_note:    { ta: "பரிகாரம் மனதை நிலைப்படுத்தி, சரியான காலத்தோடு உங்கள் முயற்சியை இணைக்கிறது — ஒரு குறிப்பிட்ட பலனையோ துல்லியமான தேதியையோ உறுதி செய்ய முடியாது. நாங்கள் சாதகமான கால வரம்புகளை மட்டுமே சுட்டிக்காட்டுகிறோம், உறுதிகளை அல்ல. இவை மருத்துவ, சட்ட அல்லது நிதி ஆலோசனைக்கு மாற்றல்ல.", en: "Pariharam steadies the mind and aligns your effort with the right time — it cannot guarantee a specific outcome or an exact date. We point to favourable ranges, not certainties, and this is not a substitute for medical, legal, or financial advice." },
   remedies_fasting_caution:{ ta: "விரதம் விருப்பத்திற்குரியது — மனதை நிலைப்படுத்தவே, உடலை வருத்த அல்ல. நீரிழிவு, குறைந்த ரத்த அழுத்தம், கர்ப்பம், பாலூட்டுதல், வயது முதிர்வு, உடல்நலக் குறைவு அல்லது தொடர் மருந்து உட்கொள்பவர்கள் கடுமையான உணவு விரதம் வேண்டாம் — லேசான சாத்வீக உணவு உண்ணலாம், அல்லது மந்திரம், வழிபாடு, தானம் செய்யலாம். முன்பு மருத்துவரை அணுகவும்.", en: "Fasting is optional and meant to steady the mind, never to harm the body. If you have diabetes, low blood pressure, are pregnant or breastfeeding, are elderly or unwell, or take regular medication, do not keep a strict food-fast — keep a light sattvic meal instead, or replace the fast with the mantra, worship, or charity. Consult your doctor first." },
+
+  // ── Remedy For You (Today card) — chart-driven anchor-planet remedy
+  remedy_focus_title:      { ta: "உங்களுக்கான பரிகாரம்",          en: "Remedy for you" },
+  // Used as "<Name> · <this word>" when the card is showing another household
+  // member's remedy, so the title stops claiming "for you" while the reader is
+  // looking at someone else's. Deliberately the bare noun and joined with a
+  // separator rather than an inflected "<Name>க்கான": the name can arrive in
+  // either script, and appending a Tamil case suffix to an arbitrary name is
+  // the inflection bug this codebase has already been bitten by.
+  remedy_focus_title_short: { ta: "பரிகாரம்",                      en: "Remedy" },
+  remedy_focus_member_rail: { ta: "யாருடைய பரிகாரம்",              en: "Whose remedy" },
+  remedy_focus_dasa:       { ta: "தசை",                           en: "Dasa" },
+  remedy_focus_why:        { ta: "ஏன் இது?",                       en: "Why this?" },
+  remedy_focus_best_on:    { ta: "சிறந்த நாள்",                    en: "Best on" },
+  remedy_focus_next:       { ta: "அடுத்து",                        en: "next" },
+  remedy_focus_reminder:   { ta: "நினைவூட்டல் இயக்கு",             en: "Turn on reminders" },
+  remedy_focus_reminder_saving: { ta: "இயக்குகிறது…",              en: "Saving…" },
+  remedy_focus_more:       { ta: "மேலும் பரிகாரங்கள்",             en: "More remedies" },
+  remedy_focus_none:       { ta: "இன்று குறிப்பிட்ட பரிகாரம் இல்லை.", en: "No specific remedy today." },
+  remedy_cadence_ritual:   { ta: "இந்நாளில் · கோவிலில்",           en: "On this day · at the temple" },
+  remedy_cadence_anyday:   { ta: "எந்நாளிலும் · சேவை",             en: "Any day · service" },
 
   // ── Prasna (Horary)
   prasna_title:            { ta: "ப்ரஸ்ன ஜோதிடம்",              en: "Prasna (Horary)" },
@@ -954,6 +1115,46 @@ const STRINGS = {
   validation_medium:       { ta: "நடுத்தர நம்பகம் — %d/%d பொருந்தின",          en: "Moderate confidence — %d/%d matched" },
   validation_low:          { ta: "குறைவான நம்பகம் — %d/%d பொருந்தின",          en: "Low confidence — %d/%d matched" },
   validation_unvalidated:  { ta: "நிகழ்வுகள் பதிவு செய்யப்படவில்லை",            en: "No life events on record" },
+
+  // ── Toasts (goal track)
+  toast_goal_added:        { ta: "இலக்கு சேர்க்கப்பட்டது",   en: "Goal saved" },
+  toast_goal_removed:      { ta: "இலக்கு நீக்கப்பட்டது",     en: "Goal removed" },
+
+  // ── Toasts (family vault, %s = name)
+  toast_member_removed:    { ta: "%s நீக்கப்பட்டார்.",        en: "%s removed." },
+  toast_vault_deleted:     { ta: '"%s" குடும்பம் நீக்கப்பட்டது.', en: 'Family "%s" deleted.' },
+
+  // ── Today tab: fail-soft retry chip (DASH-02) + reminder consent (DASH-06)
+  today_sections_failed:   { ta: "சில பகுதிகளை ஏற்ற முடியவில்லை.", en: "Some sections couldn't load." },
+  today_retry:             { ta: "மீண்டும் முயற்சி",              en: "Retry" },
+  reminder_pick_channel:   { ta: "முதலில் அறிவிப்பு வழியைத் தேர்ந்தெடுங்கள் — அமைப்புகள் திறக்கிறது.", en: "Choose how you'd like to be reminded — opening notification settings." },
+  reminder_channel_off:    { ta: "அறிவிப்புகள் அணைக்கப்பட்டுள்ளன. அமைப்புகள் → அறிவிப்புகளில் ஒரு வழியைத் தேர்ந்தெடுங்கள்.", en: "Notifications are off. Pick a channel in Settings → Notifications first." },
+  reminder_saved:          { ta: "காலை நினைவூட்டல் சேமிக்கப்பட்டது.", en: "Morning reminder saved." },
+  reminder_save_failed:    { ta: "சேமிக்க முடியவில்லை: %s",        en: "Could not save reminder: %s" },
+
+  // ── Validation (date range)
+  err_date_out_of_range:   { ta: "பிறந்த தேதி 1900 முதல் இன்றைய தேதிக்குள் இருக்க வேண்டும்.", en: "Birth date must be between 1900 and today." },
+
+  // ── Delete profile confirm dialog (%s = profile display name)
+  confirm_delete_profile_body: { ta: '"%s" ஜாதகம் மற்றும் அனைத்து கணக்கீட்டு தரவையும் நிரந்தரமாக நீக்கவா? இதை மீட்டெடுக்க முடியாது.', en: 'Permanently delete "%s" and all its chart data? This cannot be undone.' },
+
+  // ── Onboarding banner
+  onboarding_title:        { ta: "தொடங்க சில படிகள் மீதம்",                         en: "A few steps to get started" },
+  onboarding_step1:        { ta: "உங்கள் ஜாதக விவரங்களை சேர்க்கவும்",              en: "Add your birth profile" },
+  onboarding_step2:        { ta: "ஒப்பிட ஒரு குடும்ப உறுப்பினரைச் சேர்க்கவும்", en: "Add a family member to compare charts" },
+  // New Tamil, pending native review
+  onboarding_step3:        { ta: "உங்கள் இரண்டு நிமிட வாசிப்பைப் படிக்கவும்",      en: "Read your two-minute chart result" },
+  onboarding_go_setup:     { ta: "தொடக்கத்திற்கு செல்",                                   en: "Go to Setup" },
+
+  // ── Notification inbox popover
+  notif_sent:              { ta: "அனுப்பிய அறிவிப்புகள்",             en: "Sent notifications" },
+  notif_mark_all_read:     { ta: "அனைத்தும் படித்தது",                 en: "Mark all read" },
+  notif_inbox_empty:       { ta: "இன்று எந்த அறிவிப்பும் இல்லை.",     en: "No notifications yet." },
+  notif_sent_empty:        { ta: "அனுப்பிய அறிவிப்புகள் இல்லை.",       en: "No sent notifications yet." },
+  notif_mark_read:         { ta: "படித்தது",                          en: "Mark read" },
+
+  // ── Account button aria-label
+  label_account:           { ta: "கணக்கு",   en: "Account" },
 } as const;
 
 export type StringKey = keyof typeof STRINGS;
@@ -969,55 +1170,6 @@ export function tLang(obj: { ta: string; en: string }, lang: Lang): string {
 }
 
 // ── Panchangam name lookup maps (Thirukanitham tradition) ─────────────────────
-
-const TITHI_NAMES: Record<string, { ta: string; en: string }> = {
-  PRATHAMA:    { ta: "பிரதமை",    en: "Prathama" },
-  DVITHIYAI:   { ta: "துவிதியை",  en: "Dvithiyai" },
-  THRITHIYAI:  { ta: "திரிதியை",  en: "Thrithiyai" },
-  CHATHURTHI:  { ta: "சதுர்த்தி", en: "Chathurthi" },
-  PANCHAMI:    { ta: "பஞ்சமி",    en: "Panchami" },
-  SHASHTI:     { ta: "சஷ்டி",     en: "Shashti" },
-  SAPTAMI:     { ta: "சப்தமி",    en: "Saptami" },
-  ASHTAMI:     { ta: "அஷ்டமி",   en: "Ashtami" },
-  NAVAMI:      { ta: "நவமி",      en: "Navami" },
-  DASAMI:      { ta: "தசமி",      en: "Dasami" },
-  EKADASI:     { ta: "ஏகாதசி",   en: "Ekadasi" },
-  DVADASI:     { ta: "துவாதசி",   en: "Dvadasi" },
-  THRAYODASI:  { ta: "திரயோதசி", en: "Thrayodasi" },
-  CHATHURDASI: { ta: "சதுர்தசி",  en: "Chathurdasi" },
-  POURNAMI:    { ta: "பௌர்ணமி",   en: "Pournami" },
-  AMAVASAI:    { ta: "அமாவாசை",  en: "Amavasai" },
-};
-
-const NAKSHATRA_NAMES: Record<string, { ta: string; en: string }> = {
-  ASWINI:         { ta: "அஸ்வினி",        en: "Aswini" },
-  BHARANI:        { ta: "பரணி",            en: "Bharani" },
-  KARTHIGAI:      { ta: "கார்த்திகை",     en: "Karthigai" },
-  ROHINI:         { ta: "ரோகிணி",         en: "Rohini" },
-  MIRUGASEERIDAM: { ta: "மிருகசீரிடம்",   en: "Mirugaseeridam" },
-  THIRUVATHIRAI:  { ta: "திருவாதிரை",     en: "Thiruvathirai" },
-  PUNARPOOSAM:    { ta: "புனர்பூசம்",     en: "Punarpoosam" },
-  POOSAM:         { ta: "பூசம்",           en: "Poosam" },
-  AYILYAM:        { ta: "ஆயில்யம்",       en: "Ayilyam" },
-  MAGAM:          { ta: "மகம்",            en: "Magam" },
-  POORAM:         { ta: "பூரம்",           en: "Pooram" },
-  UTHIRAM:        { ta: "உத்திரம்",        en: "Uthiram" },
-  HASTHAM:        { ta: "ஹஸ்தம்",         en: "Hastham" },
-  CHITHIRAI:      { ta: "சித்திரை",        en: "Chithirai" },
-  SWATHI:         { ta: "சுவாதி",          en: "Swathi" },
-  VISAKAM:        { ta: "விசாகம்",         en: "Visakam" },
-  ANUSHAM:        { ta: "அனுஷம்",         en: "Anusham" },
-  KETTAI:         { ta: "கேட்டை",          en: "Kettai" },
-  MOOLAM:         { ta: "மூலம்",           en: "Moolam" },
-  POORADAM:       { ta: "பூராடம்",         en: "Pooradam" },
-  UTHIRADAM:      { ta: "உத்திராடம்",      en: "Uthiradam" },
-  THIRUVONAM:     { ta: "திருவோணம்",       en: "Thiruvonam" },
-  AVITTAM:        { ta: "அவிட்டம்",        en: "Avittam" },
-  SADAYAM:        { ta: "சதயம்",           en: "Sadayam" },
-  POORATTATHI:    { ta: "பூரட்டாதி",       en: "Poorattathi" },
-  UTHIRATTATHI:   { ta: "உத்திரட்டாதி",    en: "Uthirattathi" },
-  REVATHI:        { ta: "ரேவதி",           en: "Revathi" },
-};
 
 const WEEKDAY_NAMES: Record<string, { ta: string; en: string }> = {
   SUNDAY:    { ta: "ஞாயிறு",   en: "Sunday" },
@@ -1042,50 +1194,6 @@ const PLANET_LORDS: Record<string, { ta: string; en: string }> = {
   KETU:    { ta: "கேது",     en: "Ketu" },
 };
 
-const YOGA_NAMES: Record<string, { ta: string; en: string }> = {
-  VISHKAMBHA: { ta: "விஷ்கம்பம்", en: "Vishkambha" },
-  PRITI:      { ta: "பிரீதி",     en: "Priti" },
-  AYUSHMAN:   { ta: "ஆயுஷ்மான்", en: "Ayushman" },
-  SAUBHAGYA:  { ta: "சௌபாக்கியம்", en: "Saubhagya" },
-  SHOBHANA:   { ta: "சோபன",       en: "Shobhana" },
-  ATIGANDA:   { ta: "அதிகண்ட",    en: "Atiganda" },
-  SUKARMA:    { ta: "சுகர்ம",      en: "Sukarma" },
-  DHRITI:     { ta: "திருதி",      en: "Dhriti" },
-  SHOOLA:     { ta: "சூல",         en: "Shoola" },
-  GANDA:      { ta: "கண்ட",        en: "Ganda" },
-  VRIDDHI:    { ta: "விருத்தி",    en: "Vriddhi" },
-  DHRUVA:     { ta: "த்ருவ",       en: "Dhruva" },
-  VYAGHATA:   { ta: "வியாகாத",    en: "Vyaghata" },
-  HARSHANA:   { ta: "ஹர்ஷண",      en: "Harshana" },
-  VAJRA:      { ta: "வஜ்ர",        en: "Vajra" },
-  SIDDHI:     { ta: "சித்தி",      en: "Siddhi" },
-  VYATIPATA:  { ta: "வியதீபாத",   en: "Vyatipata" },
-  VARIYANA:   { ta: "வரியான",      en: "Variyana" },
-  PARIGHA:    { ta: "பரிகம்",      en: "Parigha" },
-  SHIVA:      { ta: "சிவ",          en: "Shiva" },
-  SIDDHA:     { ta: "சித்த",        en: "Siddha" },
-  SADHYA:     { ta: "சாத்ய",        en: "Sadhya" },
-  SHUBHA:     { ta: "சுப",           en: "Shubha" },
-  SHUKLA:     { ta: "சுக்ல",         en: "Shukla" },
-  BRAHMA:     { ta: "பிரம்ம",       en: "Brahma" },
-  INDRA:      { ta: "இந்திர",        en: "Indra" },
-  VAIDHRITI:  { ta: "வைத்ருதி",     en: "Vaidhriti" },
-};
-
-const KARANA_NAMES: Record<string, { ta: string; en: string }> = {
-  BAVA:    { ta: "பவ",     en: "Bava" },
-  BALAVA:  { ta: "பாலவ",  en: "Balava" },
-  KAULAVA: { ta: "கௌலவ", en: "Kaulava" },
-  TAITILA: { ta: "தைதில", en: "Taitila" },
-  GARAJA:  { ta: "கரஜ",   en: "Garaja" },
-  VANIJA:  { ta: "வணிஜ",  en: "Vanija" },
-  VISHTI:  { ta: "விஷ்டி", en: "Vishti" },
-  SHAKUNI: { ta: "சகுனி",  en: "Shakuni" },
-  CHATUSHPADA: { ta: "சதுஷ்பாத", en: "Chatushpada" },
-  NAGA:    { ta: "நாக",    en: "Naga" },
-  KIMSTUGHNA: { ta: "கிம்ஸ்துக்ன", en: "Kimstughna" },
-};
-
 type PanchangamNameMap = Record<string, { ta: string; en: string }>;
 
 function _lookupName(map: PanchangamNameMap, key: string | null | undefined, lang: Lang): string {
@@ -1104,6 +1212,32 @@ export function tNakshatra(key: string | null | undefined, lang: Lang): string {
   return _lookupName(NAKSHATRA_NAMES, key, lang);
 }
 
+// Ordered canonical keys (Aswini=1 … Revathi=27), matching the nakshatra
+// number used across the app. Built once from NAKSHATRA_NAMES insertion order.
+const _NAKSHATRA_KEYS = Object.keys(NAKSHATRA_NAMES);
+
+/**
+ * Resolve a nakshatra *name* to its canonical number 1..27, or null if
+ * unrecognised. Tolerant of the shapes the app passes around: the uppercase
+ * key ("MOOLAM"), the romanised display name ("Moolam"), or the Tamil name
+ * ("மூலம்"). Case/whitespace-insensitive for the key and English forms.
+ * Used to resolve name-only surfaces (identity strip, rasipalan banner) to a
+ * number for <NakshatraBadge>.
+ */
+export function nakshatraNumberFromName(name: string | null | undefined): number | null {
+  if (!name) return null;
+  const trimmed = name.trim();
+  const norm = trimmed.toLowerCase();
+  for (let i = 0; i < _NAKSHATRA_KEYS.length; i++) {
+    const key = _NAKSHATRA_KEYS[i];
+    const entry = NAKSHATRA_NAMES[key];
+    if (key.toLowerCase() === norm || entry.en.toLowerCase() === norm || entry.ta === trimmed) {
+      return i + 1;
+    }
+  }
+  return null;
+}
+
 export function tWeekday(key: string | null | undefined, lang: Lang): string {
   return _lookupName(WEEKDAY_NAMES, key, lang);
 }
@@ -1118,4 +1252,82 @@ export function tYoga(key: string | null | undefined, lang: Lang): string {
 
 export function tKarana(key: string | null | undefined, lang: Lang): string {
   return _lookupName(KARANA_NAMES, key, lang);
+}
+
+// The backend emits these panchangam sub-fields as fixed Tamil display strings
+// (see app/calculations/panchangam.py: SOOLAM_DIRECTION, SOOLAM_PARIGARAM_BY_DIRECTION,
+// NETHIRAM_LABELS, JEEVAN_LABELS, AMIRDHADHI_YOGAM_LABELS, moon-phase label) rather
+// than language-neutral keys, so they can't go through _lookupName (which uppercases
+// an English key). Match on the exact Tamil string the API sends; fall back to the
+// raw value if an unmapped string ever appears.
+const SOOLAM_DIRECTION_NAMES: PanchangamNameMap = {
+  "கிழக்கு": { ta: "கிழக்கு", en: "East" },
+  "மேற்கு": { ta: "மேற்கு", en: "West" },
+  "வடக்கு": { ta: "வடக்கு", en: "North" },
+  "தெற்கு": { ta: "தெற்கு", en: "South" },
+};
+
+const PARIGARAM_NAMES: PanchangamNameMap = {
+  "வெல்லம்": { ta: "வெல்லம்", en: "Jaggery" },
+  "தயிர்": { ta: "தயிர்", en: "Curd" },
+  "பசும்பால்": { ta: "பசும்பால்", en: "Fresh milk" },
+  "நல்லெண்ணெய்": { ta: "நல்லெண்ணெய்", en: "Sesame oil" },
+};
+
+const NETHIRAM_NAMES: PanchangamNameMap = {
+  "குருடு": { ta: "குருடு", en: "Blind" },
+  "ஒரு கண்": { ta: "ஒரு கண்", en: "One eye" },
+  "இரு கண்": { ta: "இரு கண்", en: "Two eyes" },
+};
+
+const JEEVAN_NAMES: PanchangamNameMap = {
+  "இல்லை": { ta: "இல்லை", en: "None" },
+  "அரை வாழ்க்கை": { ta: "அரை வாழ்க்கை", en: "Half life" },
+  "முழு வாழ்க்கை": { ta: "முழு வாழ்க்கை", en: "Full life" },
+};
+
+const AMIRDHADHI_YOGAM_NAMES: PanchangamNameMap = {
+  "அமிர்தயோகம்": { ta: "அமிர்தயோகம்", en: "Amirdha Yogam" },
+  "சித்தயோகம்": { ta: "சித்தயோகம்", en: "Siddha Yogam" },
+  "மரணயோகம்": { ta: "மரணயோகம்", en: "Marana Yogam" },
+  "பிரபலாரிஷ்ட யோகம்": { ta: "பிரபலாரிஷ்ட யோகம்", en: "Prabalarishta Yogam" },
+};
+
+// Moon phase arrives as "வளர்பிறை (Waxing)" / "தேய்பிறை (Waning)" — one string
+// carrying both scripts. Strip to the language-appropriate half.
+const MOON_PHASE_NAMES: PanchangamNameMap = {
+  "வளர்பிறை (Waxing)": { ta: "வளர்பிறை", en: "Waxing" },
+  "தேய்பிறை (Waning)": { ta: "தேய்பிறை", en: "Waning" },
+};
+
+function _lookupExact(map: PanchangamNameMap, key: string | null | undefined, lang: Lang): string {
+  const rawKey = typeof key === "string" ? key.trim() : "";
+  if (!rawKey) return "";
+  const entry = map[rawKey];
+  if (!entry) return rawKey; // fallback: return the raw value unchanged
+  return entry[lang];
+}
+
+export function tSoolamDirection(key: string | null | undefined, lang: Lang): string {
+  return _lookupExact(SOOLAM_DIRECTION_NAMES, key, lang);
+}
+
+export function tParigaram(key: string | null | undefined, lang: Lang): string {
+  return _lookupExact(PARIGARAM_NAMES, key, lang);
+}
+
+export function tNethiram(key: string | null | undefined, lang: Lang): string {
+  return _lookupExact(NETHIRAM_NAMES, key, lang);
+}
+
+export function tJeevan(key: string | null | undefined, lang: Lang): string {
+  return _lookupExact(JEEVAN_NAMES, key, lang);
+}
+
+export function tAmirdhadhiYogam(key: string | null | undefined, lang: Lang): string {
+  return _lookupExact(AMIRDHADHI_YOGAM_NAMES, key, lang);
+}
+
+export function tMoonPhase(key: string | null | undefined, lang: Lang): string {
+  return _lookupExact(MOON_PHASE_NAMES, key, lang);
 }

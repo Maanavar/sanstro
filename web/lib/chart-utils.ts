@@ -16,6 +16,146 @@ export const D1_RASI_NAMES = [
   "Meenam",
 ];
 
+/**
+ * The same twelve rasis in Tamil script.
+ *
+ * D1_RASI_NAMES above is Tamil transliterated into Latin, which is the right
+ * label in English mode and the wrong one in Tamil mode — a Tamil reader was
+ * being shown "Viruchigam" where the almanac says விருச்சிகம். The table was
+ * already hand-copied in two files (`chart-generate-inline-panel`, the
+ * marketing `JadhagamTool`); it lives here so the grids can read the reader's
+ * language without a third copy appearing.
+ */
+export const D1_RASI_NAMES_TA = [
+  "",
+  "மேஷம்",
+  "ரிஷபம்",
+  "மிதுனம்",
+  "கடகம்",
+  "சிம்மம்",
+  "கன்னி",
+  "துலாம்",
+  "விருச்சிகம்",
+  "தனுசு",
+  "மகரம்",
+  "கும்பம்",
+  "மீனம்",
+];
+
+/** Rasi label in the reader's language. */
+export function rasiLabel(rasi: number, lang: "ta" | "en"): string {
+  const table = lang === "ta" ? D1_RASI_NAMES_TA : D1_RASI_NAMES;
+  return table[rasi] ?? `Rasi ${rasi}`;
+}
+
+// Classical, fixed rasi→ruling-planet mapping (never changes per-chart, so it's
+// safe to hardcode client-side — same tier of fact as GRAHA_ABBR/D1_RASI_NAMES
+// above). Keyed the same way DASHA_COLORS/tPlanetLord are (SUN/MOON/MARS/...).
+export const RASI_LORDS: Record<number, string> = {
+  1: "MARS", 2: "VENUS", 3: "MERCURY", 4: "MOON", 5: "SUN", 6: "MERCURY",
+  7: "VENUS", 8: "MARS", 9: "JUPITER", 10: "SATURN", 11: "SATURN", 12: "JUPITER",
+};
+
+// ── Dignity (Nilai) doctrine ─────────────────────────────────────────────────
+//
+// THE TABLES LIVE HERE RATHER THAN IN A DASHBOARD FILE, and the reason is the
+// [M]/[D] split. They were duplicated between
+// `components/dashboard-chart-explanation-data.ts` and the public
+// `app/tools/jadhagam-generator/JadhagamTool.tsx`. Pointing the marketing tool at
+// the dashboard module would have fixed the duplication and created a worse
+// problem: that file also holds `HOUSE_MEANING` and `SECTION_META`, several KB of
+// bilingual dashboard prose, which would then ship on an SEO-indexed page.
+//
+// These are pure doctrine — fixed, chart-independent, no copy — so `lib/` is the
+// honest home. `chart-utils` was already imported by both surfaces.
+//
+// NATURAL_ENEMIES HAD ALREADY DRIFTED. `JadhagamTool`'s copy omitted RAHU/KETU as
+// enemies for SUN, MARS, JUPITER, VENUS and KETU. The values below are the
+// dashboard's, which match the backend's `chart_strength._NATURAL_ENEMIES`
+// exactly. The drift was LATENT, not live: its only consumer, `getNilai`, looks up
+// a SIGN LORD, and a sign lord is never Rahu or Ketu, so those five rows were
+// never reached. That is the argument for consolidating rather than a reason to
+// relax — the copy was already wrong, and only an accident of the caller kept it
+// from showing.
+//
+// It drifted a SECOND time, the same latent way. `20a27af` resolved the
+// Venus-node contradiction in `chart_strength.py` — Venus and the nodes are
+// mutually friendly — and this copy kept the old rows, listing Rahu and Ketu as
+// Venus's enemies while its own RAHU and KETU rows called Venus a friend. Again
+// unreachable, because `getNilai` looks up a sign lord; again caught only by
+// `lib/doctrine-parity.test.ts`, which had been red since that commit. Both
+// Venus rows below are now the backend's.
+//
+// AND A THIRD TIME. `dad309b` (FCR-02) symmetrised the node rows in the backend
+// — Kuja-vat Ketu, so Mars and Ketu are friends; Shani-vat Rahu, so Saturn and
+// Rahu are; and the nodes are mutual enemies both ways — and this copy again
+// kept the old rows. THREE cells, not the two the symmetry change obviously
+// touches: `RAHU`'s enemy row was also missing `KETU`, hidden because the
+// friends assertion fails first and the enemies assertion never runs. The
+// parity test was red from that commit until 2026-08-31, across four commits.
+//
+// Three drifts, one shape every time: a backend doctrine edit that no reader of
+// this file was told about, latent because `getNilai` compares against a sign
+// lord and a sign lord is never a node. Latency is why it keeps happening — the
+// only thing that has ever caught it is the parity test, so a red parity test
+// is a DRIFT REPORT, not a flaky suite. Fix it the day it goes red.
+export const EXALTATION_RASI: Record<string, number> = {
+  SUN: 1, MOON: 2, MARS: 10, MERCURY: 6, JUPITER: 4, VENUS: 12, SATURN: 7,
+};
+
+export const DEBILITATION_RASI: Record<string, number> = {
+  SUN: 7, MOON: 8, MARS: 4, MERCURY: 12, JUPITER: 10, VENUS: 6, SATURN: 1,
+};
+
+export const MOOLATRIKONA_ZONE: Record<string, { rasi: number; start: number; end: number }> = {
+  SUN: { rasi: 5, start: 0, end: 20 },
+  MOON: { rasi: 2, start: 4, end: 30 },
+  MARS: { rasi: 1, start: 0, end: 12 },
+  MERCURY: { rasi: 6, start: 16, end: 20 },
+  JUPITER: { rasi: 9, start: 0, end: 10 },
+  VENUS: { rasi: 7, start: 0, end: 15 },
+  SATURN: { rasi: 11, start: 0, end: 20 },
+};
+
+// RAHU/KETU own no sign. Present as empty arrays rather than absent so a caller
+// doing `OWN_SIGN_RASI[graha].includes(...)` cannot throw on the two grahas most
+// likely to be passed in by accident.
+export const OWN_SIGN_RASI: Record<string, number[]> = {
+  SUN: [5], MOON: [4], MARS: [1, 8], MERCURY: [3, 6],
+  JUPITER: [9, 12], VENUS: [2, 7], SATURN: [10, 11],
+  RAHU: [], KETU: [],
+};
+
+// The seven-graha core is SOURCED — Kalaprakasika p. 246 prints the general
+// friendship table and all 49 ordered pairs match it, the Moon/Mercury asymmetry
+// included. The RAHU and KETU rows are [PRODUCT]: Vinaadi house policy, no
+// classical authority claimed. Two printed tables in this lineage (p. 246, and
+// pp. 74-75 for porutham) carry seven grahas and no node rows at all. Keep the
+// label with the values; the backend carries the full argument.
+export const NATURAL_FRIENDS: Record<string, string[]> = {
+  SUN: ["MOON", "MARS", "JUPITER"],
+  MOON: ["SUN", "MERCURY"],
+  MARS: ["SUN", "MOON", "JUPITER", "KETU"],
+  MERCURY: ["SUN", "VENUS"],
+  JUPITER: ["SUN", "MOON", "MARS"],
+  VENUS: ["MERCURY", "SATURN", "RAHU", "KETU"],
+  SATURN: ["MERCURY", "VENUS", "RAHU"],
+  RAHU: ["VENUS", "SATURN"],
+  KETU: ["MARS", "VENUS"],
+};
+
+export const NATURAL_ENEMIES: Record<string, string[]> = {
+  SUN: ["VENUS", "SATURN", "RAHU", "KETU"],
+  MOON: ["RAHU", "KETU"],
+  MARS: ["MERCURY", "RAHU"],
+  MERCURY: ["MOON"],
+  JUPITER: ["MERCURY", "VENUS", "RAHU", "KETU"],
+  VENUS: ["SUN", "MOON"],
+  SATURN: ["SUN", "MOON", "MARS"],
+  RAHU: ["SUN", "MOON", "MARS", "JUPITER", "KETU"],
+  KETU: ["SUN", "MOON", "JUPITER", "RAHU"],
+};
+
 export const GRAHA_ABBR: Record<string, string> = {
   SUN: "சூ",
   MOON: "சந்",
@@ -72,6 +212,10 @@ export type RasiCellDetail = {
     abbr: string;
     degreeInRasi: number | null;
     isRetrograde: boolean;
+    /** D1-only (physical proximity to the Sun) — left undefined on D9 occupants. */
+    isCombust?: boolean;
+    isCazimi?: boolean;
+    isVargottama?: boolean;
   }>;
 };
 
@@ -84,6 +228,9 @@ export function buildD1CellDetail(chart: ChartCalculateResponseData, rasi: numbe
       abbr: GRAHA_ABBR[p.graha] ?? p.graha.slice(0, 2),
       degreeInRasi: p.degreeInRasi,
       isRetrograde: p.isRetrograde,
+      isCombust: p.isCombust,
+      isCazimi: p.isCazimi ?? false,
+      isVargottama: p.isVargottama,
     }));
 
   if (chart.lagna.rasi === rasi) {
@@ -93,6 +240,9 @@ export function buildD1CellDetail(chart: ChartCalculateResponseData, rasi: numbe
       abbr: "La",
       degreeInRasi: chart.lagna.degreeInRasi,
       isRetrograde: false,
+      isCombust: false,
+      isCazimi: false,
+      isVargottama: false,
     });
   }
 
@@ -115,6 +265,7 @@ export function buildD9CellDetail(chart: ChartCalculateResponseData, rasi: numbe
       abbr: GRAHA_ABBR[p.graha] ?? p.graha.slice(0, 2),
       degreeInRasi: null,
       isRetrograde: p.isRetrograde,
+      isVargottama: p.isVargottama,
     }));
 
   if (d9LagnaRasi === rasi) {
@@ -124,6 +275,7 @@ export function buildD9CellDetail(chart: ChartCalculateResponseData, rasi: numbe
       abbr: "La",
       degreeInRasi: null,
       isRetrograde: false,
+      isVargottama: false,
     });
   }
 

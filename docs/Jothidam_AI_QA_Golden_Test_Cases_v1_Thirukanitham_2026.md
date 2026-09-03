@@ -125,10 +125,19 @@ Friday    (4): SUGAM, SORAM, UTHI, VISHAM
 Saturday  (5): SORAM, UTHI, VISHAM, AMIRDHA
 ```
 
-Each day's 8-name sequence (and the corresponding `GOWRI_NIGHT_TABLE` night
-sequence) must remain a fixed cyclic rotation of
-`AMIRDHA, VISHAM, ROGAM, LAABAM, DHANAM, SUGAM, SORAM, UTHI` — only the
-starting offset changes per weekday. Saturday's night sequence
+**Do not assert that each 8-name sequence is a cyclic rotation of
+`AMIRDHA, VISHAM, ROGAM, LAABAM, DHANAM, SUGAM, SORAM, UTHI`.** This case said
+exactly that until 2026-07-17, and it is the invariant that let a real bug ship
+twice: only *seven* categories rotate, and Visham is inserted at a weekday-
+specific slot. A table with Visham on the wrong slot is still a perfect rotation
+of the 8-cycle, so the check passes while the output is wrong. Assert against the
+published reference rows instead — `GOWRI_DAY_REFERENCE` / `GOWRI_NIGHT_REFERENCE`
+in `tests/test_panchangam.py`.
+
+Structural checks that *are* safe: each row contains all 8 categories exactly
+once; daytime Visham sits on `RAHU_SLOT[weekday]`; night Visham sits on
+`NIGHT_VISHAM_SLOT[weekday]` (and never on the Rahu slot); the night rotation
+starts 4 kalas after the day rotation. Saturday's night sequence
 (`GOWRI_NIGHT_TABLE[5]`) must end with `ROGAM`.
 
 ### T034 - Nalla Neram derivation and Gowri category ranking

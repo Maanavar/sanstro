@@ -6,7 +6,7 @@
  * Never pass plain-lang output to backend endpoints.
  */
 
-import type { Lang } from "./i18n";
+import { tPlanetLord, type Lang } from "./i18n";
 
 export type Mode = "BEGINNER" | "BALANCED" | "TRADITIONAL";
 
@@ -15,28 +15,114 @@ interface BiText {
   en: string;
 }
 
-const PLAIN_LANG: Record<string, BiText> = {
-  // ── Planets
-  SU:       { ta: "சூரியன் (ஆன்மா கிரகம்)", en: "Sun (soul planet)" },
-  MO:       { ta: "சந்திரன் (மனம் கிரகம்)", en: "Moon (mind planet)" },
-  MA:       { ta: "செவ்வாய் (செயல் கிரகம்)", en: "Mars (action planet)" },
-  ME:       { ta: "புதன் (தகவல் கிரகம்)", en: "Mercury (communication planet)" },
-  JU:       { ta: "குரு (வளர்ச்சி கிரகம்)", en: "Jupiter (growth planet)" },
-  VE:       { ta: "சுக்கிரன் (அன்பு கிரகம்)", en: "Venus (love planet)" },
-  SA:       { ta: "சனி (ஒழுக்க கிரகம்)", en: "Saturn (discipline planet)" },
-  RA:       { ta: "ராகு (மாற்றம்)", en: "Rahu (change force)" },
-  KE:       { ta: "கேது (வைராக்கியம்)", en: "Ketu (detachment force)" },
+/**
+ * A planet's canonical name, optionally with this layer's plain-language gloss.
+ *
+ * THE NAME IS NEVER TYPED HERE. Eighteen of the rows below re-typed the nine
+ * graha names that `tPlanetLord` already owns, which is how four dashboard
+ * panels came to spell Venus "சுக்ரன்" while the rest of the app said
+ * "சுக்கிரன்" — every copy internally consistent, so no test could see it.
+ *
+ * What this layer legitimately adds is the parenthetical role ("soul planet",
+ * "மனம் கிரகம்"), and that is now the only thing written out. Rows with no gloss
+ * are exactly the canonical name, by construction rather than by coincidence.
+ */
+function graha(code: string, taGloss?: string, enGloss?: string): BiText {
+  const ta = tPlanetLord(code, "ta");
+  const en = tPlanetLord(code, "en");
+  return {
+    ta: taGloss ? `${ta} (${taGloss})` : ta,
+    en: enGloss ? `${en} (${enGloss})` : en,
+  };
+}
 
-  // Common string-key variants used in narrative engine
-  SUN:      { ta: "சூரியன்", en: "Sun" },
-  MOON:     { ta: "சந்திரன்", en: "Moon" },
-  MARS:     { ta: "செவ்வாய்", en: "Mars" },
-  MERCURY:  { ta: "புதன்", en: "Mercury" },
-  JUPITER:  { ta: "குரு", en: "Jupiter" },
-  VENUS:    { ta: "சுக்கிரன்", en: "Venus" },
-  SATURN:   { ta: "சனி (கட்டுப்பாடு கிரகம்)", en: "Saturn (discipline planet)" },
-  RAHU:     { ta: "ராகு (மாற்றம்)", en: "Rahu (change force)" },
-  KETU:     { ta: "கேது (வைராக்கியம்)", en: "Ketu (detachment force)" },
+/**
+ * The plain-language role of each graha — the *only* thing this layer writes.
+ *
+ * Each is the graha's natural kāraka stated for a first-time reader: Sun the
+ * ātma-kāraka, Moon the mano-kāraka, Mars parākrama, Mercury speech/intellect,
+ * Guru the jñāna-kāraka, Venus kalatra. Rahu and Ketu read "force", not
+ * "planet", because they are chāyā grahas — shadow points, not bodies.
+ *
+ * OWNER RULING 2026-08-24 on Guru: the identity gloss is **wisdom**, not
+ * growth. Guru does signify expansion, prosperity, children and dharma, so
+ * "growth planet" was not wrong — but for a one-line identity the defining
+ * Tamil-Jyotisha karakatva is ஞானம், and every *detail* surface in this app
+ * already said so ("Wisdom & growth" in `dashboard-hybrid-parts.tsx`;
+ * "wisdom, wealth, children, teachers/guru" in `dashboard-chart-explanation`).
+ * This row was the one place that led with growth. Expansion keeps its place
+ * among Guru's secondary significations on those screens.
+ *
+ * Written ONCE per graha and expanded below into both key forms. Until
+ * 2026-08-24 the two forms were separate literal rows and had already drifted:
+ * Saturn's role was "ஒழுக்க கிரகம்" (moral conduct) under `SA` and
+ * "கட்டுப்பாடு கிரகம்" (restraint) under `SATURN`, one English gloss with two
+ * Tamil readings, and only the second was reachable. Restraint is the better
+ * reading of Sani and it is the one that shipped, so it is the one kept.
+ */
+const GRAHA_ROLE: Record<string, { ta: string; en: string }> = {
+  SUN:      { ta: "ஆன்மா கிரகம்",      en: "soul planet" },
+  MOON:     { ta: "மனம் கிரகம்",        en: "mind planet" },
+  MARS:     { ta: "செயல் கிரகம்",       en: "action planet" },
+  MERCURY:  { ta: "தகவல் கிரகம்",       en: "communication planet" },
+  // The one row whose Tamil is a classical karaka title rather than the
+  // "X கிரகம்" pattern, and deliberately so: ஞானகாரகன் is the standard almanac
+  // label for Guru. Note it means *significator of* wisdom — the English
+  // "wisdom planet" is the beginner rendering, not a translation of it.
+  JUPITER:  { ta: "ஞானகாரகன்",          en: "wisdom planet" },
+  VENUS:    { ta: "அன்பு கிரகம்",       en: "love planet" },
+  SATURN:   { ta: "கட்டுப்பாடு கிரகம்", en: "discipline planet" },
+  // OWNER RULING 2026-08-24: replaced "change force / மாற்றம்". Rahu is not
+  // merely "change" — nearly every graha can produce change, so the word
+  // didn't identify Rahu's actual character. "Amplifying shadow" carries both
+  // load-bearing properties: சாயா (shadow — Rahu is a chāyā graha with no
+  // physical body) and that whatever it touches becomes intensified, unusually
+  // magnified, obsessive, or hard to satisfy. This is the second row (after
+  // Jupiter) that departs from the "X கிரகம்" pattern, deliberately: Rahu is
+  // not a graha in the same sense the other seven are. This is an identity
+  // gloss, not a verdict — house/sign/lordship/dasha context can make Rahu
+  // read as ambition, foreign connection, technology, or outsized success;
+  // detail surfaces carry that nuance, this row does not attempt to.
+  RAHU:     { ta: "தீவிரப்படுத்தும் நிழல் கிரகம்", en: "amplifying shadow" },
+  KETU:     { ta: "வைராக்கியம்",        en: "detachment force" },
+};
+
+/** Two-letter code for each graha. Both key forms resolve to the same row. */
+const GRAHA_SHORT_CODE: Record<string, string> = {
+  SUN: "SU", MOON: "MO", MARS: "MA", MERCURY: "ME", JUPITER: "JU",
+  VENUS: "VE", SATURN: "SA", RAHU: "RA", KETU: "KE",
+};
+
+/**
+ * Both key forms of all nine grahas, each carrying its role.
+ *
+ * The full-name rows used to be bare — `graha()` with no gloss returns the
+ * canonical name as its own "definition" — on the recorded grounds that the
+ * narrative engine embeds those keys mid-sentence, where a parenthetical reads
+ * worse than on a standalone label. That reason no longer describes the code:
+ * `plainLang()`, the sentence-level entry point, has no callers anywhere in the
+ * tree. The live readers are `plainLangDashaLord` and `plainLangBiText`, and
+ * both serve standalone dasha-lord labels — exactly the case the gloss is for.
+ *
+ * Leaving it uneven meant BEGINNER's inline gloss and BALANCED's tap-to-explain
+ * fired for Saturn/Rahu/Ketu only: whichever of nine grahas is running, so most
+ * readers most of the time saw neither mode keep its promise. No new copy was
+ * written to close that — the roles above are the strings the two-letter rows
+ * already carried. If a sentence-embedding caller ever appears, it wants a
+ * bare-name accessor, not nine deliberately half-filled dictionary rows.
+ */
+const GRAHA_ROWS: Record<string, BiText> = Object.fromEntries(
+  Object.entries(GRAHA_ROLE).flatMap(([name, role]) => {
+    const row = graha(name, role.ta, role.en);
+    return [
+      [name, row],
+      [GRAHA_SHORT_CODE[name], row],
+    ];
+  }),
+);
+
+const PLAIN_LANG: Record<string, BiText> = {
+  ...GRAHA_ROWS,
 
   // ── Rasis (Zodiac signs)
   MESHA:        { ta: "மேஷம் (ஆட்டுக்கிடா)", en: "Aries (Ram)" },
@@ -87,8 +173,11 @@ export function plainLangBiText(key: string): BiText | null {
 
 /**
  * Returns a plain-language dasha lord name.
- * In BEGINNER: "Saturn (discipline planet)" instead of "Sani".
- * In TRADITIONAL: original Tamil transliteration.
+ * In BEGINNER: "Saturn (discipline planet)" instead of the bare graha key.
+ * In BALANCED/TRADITIONAL: the raw `lord` string, unchanged — this function
+ * does not touch language at all. The caller is what turns that into a
+ * displayed name via `tPlanetLord(lord, lang)`, which is where `lang` (not
+ * `mode`) decides English vs Tamil (see `DashaLordLabel` in dashboard-dasha.tsx).
  */
 export function plainLangDashaLord(lord: string, mode: Mode, lang: Lang): string {
   if (mode === "BEGINNER") {

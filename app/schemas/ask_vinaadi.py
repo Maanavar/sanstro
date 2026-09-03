@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-from uuid import UUID
-
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.dasha import ResponseMeta
@@ -25,15 +22,30 @@ class AskVinaadiQuery(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class AskVinaadiVerdict(BaseModel):
+    """A plain go/stay answer led *before* the reasoning, for decision/voice
+    users who want a verdict, not a paragraph (UX #6). ``kind`` is one of
+    GO | WAIT | CAUTION | MIXED | NA; NA means the question was informational,
+    not a decision, and the client hides the chip."""
+
+    kind: str
+    ta: str
+    en: str
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class AskVinaadiResponseData(BaseModel):
     question: str
     answer: BiText
+    verdict: AskVinaadiVerdict | None = None
     signals_used: list[str] = Field(alias="signalsUsed")
     confidence: str
-    caveat: Optional[BiText] = None
+    caveat: BiText | None = None
     questions_used_today: int = Field(alias="questionsUsedToday")
-    daily_limit: int = Field(alias="dailyLimit")
-    chips_remaining: Optional[int] = Field(default=None, alias="chipsRemaining")
+    daily_limit: int | None = Field(alias="dailyLimit")
+    monthly_limit: int | None = Field(default=None, alias="monthlyLimit")
+    chips_remaining: int | None = Field(default=None, alias="chipsRemaining")
 
     model_config = ConfigDict(populate_by_name=True)
 

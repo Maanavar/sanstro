@@ -10,6 +10,7 @@ from app.core.age_gate import MINOR_BLOCKED_LIFE_EVENT_TYPES, is_minor
 from app.core.auth import get_current_user
 from app.db.session import get_db
 from app.models import BirthProfile, Chart
+from app.models.family_member import FamilyMember
 from app.models.user import User
 from app.schemas.life_events import LifeEventsResponse
 from app.services.life_event_service import get_life_event_windows
@@ -34,13 +35,23 @@ def get_chart_life_events(
         owner_user_id=current_user.user_id,
     )
 
-    # Feature 5 — filter marriage/romantic-timing windows for minors.
     chart = session.get(Chart, chart_id)
     profile = session.get(BirthProfile, chart.birth_profile_id) if chart else None
-    if profile is not None and is_minor(profile.birth_date_local):
-        response.data.windows = [
-            w for w in response.data.windows
-            if w.event_type not in MINOR_BLOCKED_LIFE_EVENT_TYPES
-        ]
+
+    if profile is not None:
+        # Filter marriage/romantic-timing windows for minors (Feature 5).
+        if is_minor(profile.birth_date_local):
+            response.data.windows = [
+                w for w in response.data.windows
+                if w.event_type not in MINOR_BLOCKED_LIFE_EVENT_TYPES
+            ]
+        # Filter marriage windows for parent/grandparent profiles — not contextually relevant.
+        if profile.family_member_id is not None:
+            member = session.get(FamilyMember, profile.family_member_id)
+            if member is not None and member.relationship_to_owner in {"parent", "grandparent"}:
+                response.data.windows = [
+                    w for w in response.data.windows
+                    if w.event_type != "MARRIAGE"
+                ]
 
     return response

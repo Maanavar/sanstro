@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from app.calculations.dasha import SEQUENCE, calculate_vimshottari_timeline
-
+from app.calculations.display_names import PLANET_TA
 
 TRANSITION_COPY: dict[str, dict[str, dict[str, str]]] = {
     "MAHADASHA": {
@@ -49,17 +49,9 @@ TRANSITION_COPY: dict[str, dict[str, dict[str, str]]] = {
     },
 }
 
-PLANET_NAME_TA: dict[str, str] = {
-    "SUN":     "சூரியன்",
-    "MOON":    "சந்திரன்",
-    "MARS":    "செவ்வாய்",
-    "MERCURY": "புதன்",
-    "JUPITER": "குரு",
-    "VENUS":   "சுக்கிரன்",
-    "SATURN":  "சனி",
-    "RAHU":    "ராகு",
-    "KETU":    "கேது",
-}
+# Was a byte-identical copy of `display_names.PLANET_TA`. Public name kept — other
+# modules import it from here.
+PLANET_NAME_TA: dict[str, str] = PLANET_TA
 
 
 def _next_lord(current_lord: str) -> str:

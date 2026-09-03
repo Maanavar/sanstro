@@ -1,0 +1,818 @@
+{
+  "generatedAt": "2026-06-24T09:37:47.997Z",
+  "count": 94,
+  "findings": [
+    {
+      "key": "mobile/app/(auth)/forgot-password.tsx:54:missing-accessibility-label:<TouchableOpacity style={styles.backBtn} onPress={() =>",
+      "type": "missing-accessibility-label",
+      "file": "mobile/app/(auth)/forgot-password.tsx",
+      "line": 54,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity style={styles.backBtn} onPress={() =>"
+    },
+    {
+      "key": "mobile/app/(auth)/forgot-password.tsx:71:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/(auth)/forgot-password.tsx",
+      "line": 71,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/(auth)/login.tsx:128:unstyled-touchable:<TouchableOpacity>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/(auth)/login.tsx",
+      "line": 128,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity>"
+    },
+    {
+      "key": "mobile/app/(auth)/login.tsx:61:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/(auth)/login.tsx",
+      "line": 61,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/(auth)/register.tsx:128:unstyled-touchable:<TouchableOpacity>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/(auth)/register.tsx",
+      "line": 128,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity>"
+    },
+    {
+      "key": "mobile/app/(auth)/register.tsx:64:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/(auth)/register.tsx",
+      "line": 64,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/(onboarding)/birth-details.tsx:160:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/(onboarding)/birth-details.tsx",
+      "line": 160,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/(onboarding)/birth-details.tsx:364:small-interactive-dimension:genderChip:height:40",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/(onboarding)/birth-details.tsx",
+      "line": 364,
+      "styleName": "genderChip",
+      "property": "height",
+      "value": 40,
+      "source": "flex: 1, height: 40, alignItems: \"center\", justifyContent: \"center\", borderRadius: RADIUS.chip, borderWidth: 1, borderColor: C.divider, backgroundColor: C.surfaceAlt,"
+    },
+    {
+      "key": "mobile/app/(onboarding)/birth-details.tsx:377:small-interactive-dimension:ampmChip:height:40",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/(onboarding)/birth-details.tsx",
+      "line": 377,
+      "styleName": "ampmChip",
+      "property": "height",
+      "value": 40,
+      "source": "height: 40, paddingHorizontal: S.md, alignItems: \"center\", justifyContent: \"center\", borderRadius: RADIUS.chip, borderWidth: 1, borderColor: C.divider, backgroundColor: C.surfaceAl"
+    },
+    {
+      "key": "mobile/app/(tabs)/insights/index.tsx:306:unstyled-touchable:<TouchableOpacity onPress={onPress}>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/(tabs)/insights/index.tsx",
+      "line": 306,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={onPress}>"
+    },
+    {
+      "key": "mobile/app/(tabs)/me.tsx:113:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/(tabs)/me.tsx",
+      "line": 113,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/(tabs)/panchangam/calendar.tsx:74:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/(tabs)/panchangam/calendar.tsx",
+      "line": 74,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/(tabs)/panchangam/index.tsx:82:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/(tabs)/panchangam/index.tsx",
+      "line": 82,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/(tabs)/today.tsx:1108:small-interactive-dimension:gowriChip:height:28",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/(tabs)/today.tsx",
+      "line": 1108,
+      "styleName": "gowriChip",
+      "property": "height",
+      "value": 28,
+      "source": "width: 28, height: 28, borderRadius: 14, alignItems: \"center\", justifyContent: \"center\", marginBottom: S.xs, backgroundColor: C.gold"
+    },
+    {
+      "key": "mobile/app/(tabs)/today.tsx:1108:small-interactive-dimension:gowriChip:width:28",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/(tabs)/today.tsx",
+      "line": 1108,
+      "styleName": "gowriChip",
+      "property": "width",
+      "value": 28,
+      "source": "width: 28, height: 28, borderRadius: 14, alignItems: \"center\", justifyContent: \"center\", marginBottom: S.xs, backgroundColor: C.gold"
+    },
+    {
+      "key": "mobile/app/(tabs)/today.tsx:375:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/(tabs)/today.tsx",
+      "line": 375,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/(tabs)/today.tsx:761:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/(tabs)/today.tsx",
+      "line": 761,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/(tabs)/today.tsx:773:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/(tabs)/today.tsx",
+      "line": 773,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/(tabs)/today.tsx:908:unstyled-touchable:<TouchableOpacity key={chip.label} activeOpacity={0.82} onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/(tabs)/today.tsx",
+      "line": 908,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity key={chip.label} activeOpacity={0.82} onPress={() =>"
+    },
+    {
+      "key": "mobile/app/(tabs)/tools/dosham.tsx:194:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/(tabs)/tools/dosham.tsx",
+      "line": 194,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/(tabs)/tools/dosham.tsx:238:small-interactive-dimension:back:width:40",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/(tabs)/tools/dosham.tsx",
+      "line": 238,
+      "styleName": "back",
+      "property": "width",
+      "value": 40,
+      "source": "fontFamily: \"Inter_400Regular\", fontSize: 22, color: C.textSecond, width: 40"
+    },
+    {
+      "key": "mobile/app/(tabs)/tools/index.tsx:276:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/(tabs)/tools/index.tsx",
+      "line": 276,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/(tabs)/tools/muhurta.tsx:153:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/(tabs)/tools/muhurta.tsx",
+      "line": 153,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/(tabs)/tools/muhurta.tsx:341:small-interactive-dimension:back:width:40",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/(tabs)/tools/muhurta.tsx",
+      "line": 341,
+      "styleName": "back",
+      "property": "width",
+      "value": 40,
+      "source": "fontFamily: \"Inter_700Bold\", fontSize: 18, color: C.textSecond, width: 40"
+    },
+    {
+      "key": "mobile/app/(tabs)/tools/natchathiram.tsx:118:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/(tabs)/tools/natchathiram.tsx",
+      "line": 118,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/(tabs)/tools/natchathiram.tsx:356:small-interactive-dimension:back:width:40",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/(tabs)/tools/natchathiram.tsx",
+      "line": 356,
+      "styleName": "back",
+      "property": "width",
+      "value": 40,
+      "source": "fontFamily: \"Inter_400Regular\", fontSize: 22, color: C.textSecond, width: 40"
+    },
+    {
+      "key": "mobile/app/(tabs)/tools/natchathiram.tsx:363:small-interactive-dimension:pageButton:height:36",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/(tabs)/tools/natchathiram.tsx",
+      "line": 363,
+      "styleName": "pageButton",
+      "property": "height",
+      "value": 36,
+      "source": "width: 36, height: 36, borderRadius: 18, alignItems: \"center\", justifyContent: \"center\", backgroundColor: C.surface, borderWidth: 1, borderColor: C.divider,"
+    },
+    {
+      "key": "mobile/app/(tabs)/tools/natchathiram.tsx:363:small-interactive-dimension:pageButton:width:36",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/(tabs)/tools/natchathiram.tsx",
+      "line": 363,
+      "styleName": "pageButton",
+      "property": "width",
+      "value": 36,
+      "source": "width: 36, height: 36, borderRadius: 18, alignItems: \"center\", justifyContent: \"center\", backgroundColor: C.surface, borderWidth: 1, borderColor: C.divider,"
+    },
+    {
+      "key": "mobile/app/(tabs)/tools/pariharam.tsx:142:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/(tabs)/tools/pariharam.tsx",
+      "line": 142,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/(tabs)/tools/pariharam.tsx:176:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/(tabs)/tools/pariharam.tsx",
+      "line": 176,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/(tabs)/tools/pariharam.tsx:195:small-interactive-dimension:back:width:40",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/(tabs)/tools/pariharam.tsx",
+      "line": 195,
+      "styleName": "back",
+      "property": "width",
+      "value": 40,
+      "source": "fontFamily: \"Inter_400Regular\", fontSize: 22, color: C.textSecond, width: 40"
+    },
+    {
+      "key": "mobile/app/(tabs)/tools/pariharam.tsx:218:small-interactive-dimension:doneBtn:height:28",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/(tabs)/tools/pariharam.tsx",
+      "line": 218,
+      "styleName": "doneBtn",
+      "property": "height",
+      "value": 28,
+      "source": "width: 28, height: 28, borderRadius: 14, borderWidth: 1.5, borderColor: C.divider, alignItems: \"center\", justifyContent: \"center\","
+    },
+    {
+      "key": "mobile/app/(tabs)/tools/pariharam.tsx:218:small-interactive-dimension:doneBtn:width:28",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/(tabs)/tools/pariharam.tsx",
+      "line": 218,
+      "styleName": "doneBtn",
+      "property": "width",
+      "value": 28,
+      "source": "width: 28, height: 28, borderRadius: 14, borderWidth: 1.5, borderColor: C.divider, alignItems: \"center\", justifyContent: \"center\","
+    },
+    {
+      "key": "mobile/app/(tabs)/tools/porutham.tsx:199:small-interactive-dimension:back:width:40",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/(tabs)/tools/porutham.tsx",
+      "line": 199,
+      "styleName": "back",
+      "property": "width",
+      "value": 40,
+      "source": "fontFamily: \"Inter_400Regular\", fontSize: 22, color: C.textSecond, width: 40"
+    },
+    {
+      "key": "mobile/app/(tabs)/tools/porutham.tsx:86:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/(tabs)/tools/porutham.tsx",
+      "line": 86,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/(tabs)/tools/prashan.tsx:150:small-interactive-dimension:back:width:40",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/(tabs)/tools/prashan.tsx",
+      "line": 150,
+      "styleName": "back",
+      "property": "width",
+      "value": 40,
+      "source": "fontFamily: \"Inter_400Regular\", fontSize: 22, color: C.textSecond, width: 40"
+    },
+    {
+      "key": "mobile/app/(tabs)/tools/prashan.tsx:62:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/(tabs)/tools/prashan.tsx",
+      "line": 62,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/(tabs)/tools/prashan.tsx:69:unstyled-touchable:<TouchableOpacity onPress={handleReset}>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/(tabs)/tools/prashan.tsx",
+      "line": 69,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={handleReset}>"
+    },
+    {
+      "key": "mobile/app/(tabs)/tools/yogam.tsx:154:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/(tabs)/tools/yogam.tsx",
+      "line": 154,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/(tabs)/tools/yogam.tsx:187:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/(tabs)/tools/yogam.tsx",
+      "line": 187,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/(tabs)/tools/yogam.tsx:218:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/(tabs)/tools/yogam.tsx",
+      "line": 218,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/(tabs)/tools/yogam.tsx:237:small-interactive-dimension:back:width:40",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/(tabs)/tools/yogam.tsx",
+      "line": 237,
+      "styleName": "back",
+      "property": "width",
+      "value": 40,
+      "source": "fontFamily: \"Inter_400Regular\", fontSize: 22, color: C.textSecond, width: 40"
+    },
+    {
+      "key": "mobile/app/ask-vinaadi.tsx:107:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/ask-vinaadi.tsx",
+      "line": 107,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/ask-vinaadi.tsx:192:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/ask-vinaadi.tsx",
+      "line": 192,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/ask-vinaadi.tsx:348:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/ask-vinaadi.tsx",
+      "line": 348,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/ask-vinaadi.tsx:378:small-interactive-dimension:chipCountBadge:height:24",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/ask-vinaadi.tsx",
+      "line": 378,
+      "styleName": "chipCountBadge",
+      "property": "height",
+      "value": 24,
+      "source": "backgroundColor: C.saffron, borderRadius: RADIUS.chip, minWidth: 24, height: 24, alignItems: \"center\", justifyContent: \"center\", paddingHorizontal: S.xs,"
+    },
+    {
+      "key": "mobile/app/ask-vinaadi.tsx:378:small-interactive-dimension:chipCountBadge:minWidth:24",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/ask-vinaadi.tsx",
+      "line": 378,
+      "styleName": "chipCountBadge",
+      "property": "minWidth",
+      "value": 24,
+      "source": "backgroundColor: C.saffron, borderRadius: RADIUS.chip, minWidth: 24, height: 24, alignItems: \"center\", justifyContent: \"center\", paddingHorizontal: S.xs,"
+    },
+    {
+      "key": "mobile/app/ask-vinaadi.tsx:72:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/ask-vinaadi.tsx",
+      "line": 72,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/chandrashtama.tsx:104:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/chandrashtama.tsx",
+      "line": 104,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/chandrashtama.tsx:177:unstyled-touchable:<TouchableOpacity>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/chandrashtama.tsx",
+      "line": 177,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity>"
+    },
+    {
+      "key": "mobile/app/daily-score.tsx:53:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/daily-score.tsx",
+      "line": 53,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/dasha/index.tsx:104:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/dasha/index.tsx",
+      "line": 104,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/dasha/index.tsx:255:small-interactive-dimension:back:width:40",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/dasha/index.tsx",
+      "line": 255,
+      "styleName": "back",
+      "property": "width",
+      "value": 40,
+      "source": "fontFamily: \"Inter_400Regular\", fontSize: 22, color: C.textSecond, width: 40"
+    },
+    {
+      "key": "mobile/app/dasha/index.tsx:75:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/dasha/index.tsx",
+      "line": 75,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/family-vault.tsx:566:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/family-vault.tsx",
+      "line": 566,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/family-vault.tsx:619:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/family-vault.tsx",
+      "line": 619,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/goals/index.tsx:249:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/goals/index.tsx",
+      "line": 249,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/goals/index.tsx:270:missing-accessibility-label:<TouchableOpacity onPress={onRemove} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>",
+      "type": "missing-accessibility-label",
+      "file": "mobile/app/goals/index.tsx",
+      "line": 270,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={onRemove} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>"
+    },
+    {
+      "key": "mobile/app/goals/index.tsx:292:small-interactive-dimension:back:width:32",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/goals/index.tsx",
+      "line": 292,
+      "styleName": "back",
+      "property": "width",
+      "value": 32,
+      "source": "fontFamily: \"Inter_400Regular\", fontSize: 22, color: C.textSecond, width: 32"
+    },
+    {
+      "key": "mobile/app/jadhagam/[id].tsx:152:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/jadhagam/[id].tsx",
+      "line": 152,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/jadhagam/[id].tsx:366:small-interactive-dimension:planetChip:height:32",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/jadhagam/[id].tsx",
+      "line": 366,
+      "styleName": "planetChip",
+      "property": "height",
+      "value": 32,
+      "source": "width: 32, height: 32, borderRadius: 16, backgroundColor: C.skyBlue + \"22\", alignItems: \"center\", justifyContent: \"center\","
+    },
+    {
+      "key": "mobile/app/jadhagam/[id].tsx:366:small-interactive-dimension:planetChip:width:32",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/jadhagam/[id].tsx",
+      "line": 366,
+      "styleName": "planetChip",
+      "property": "width",
+      "value": 32,
+      "source": "width: 32, height: 32, borderRadius: 16, backgroundColor: C.skyBlue + \"22\", alignItems: \"center\", justifyContent: \"center\","
+    },
+    {
+      "key": "mobile/app/jadhagam/upsell.tsx:62:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/jadhagam/upsell.tsx",
+      "line": 62,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/learn/_article.tsx:23:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/learn/_article.tsx",
+      "line": 23,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/learn/_article.tsx:56:small-interactive-dimension:back:width:32",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/learn/_article.tsx",
+      "line": 56,
+      "styleName": "back",
+      "property": "width",
+      "value": 32,
+      "source": "fontFamily: \"Inter_400Regular\", fontSize: 22, color: C.textSecond, width: 32"
+    },
+    {
+      "key": "mobile/app/learn/[slug].tsx:247:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/learn/[slug].tsx",
+      "line": 247,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/learn/[slug].tsx:302:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/learn/[slug].tsx",
+      "line": 302,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/learn/[slug].tsx:319:small-interactive-dimension:back:width:32",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/learn/[slug].tsx",
+      "line": 319,
+      "styleName": "back",
+      "property": "width",
+      "value": 32,
+      "source": "fontFamily: \"Inter_400Regular\", fontSize: 22, color: C.textSecond, width: 32"
+    },
+    {
+      "key": "mobile/app/notifications/inbox.tsx:71:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/notifications/inbox.tsx",
+      "line": 71,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/notifications/inbox.tsx:77:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/notifications/inbox.tsx",
+      "line": 77,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/notifications/settings.tsx:61:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/notifications/settings.tsx",
+      "line": 61,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/premium.tsx:109:missing-accessibility-label:<TouchableOpacity style={styles.closeBtn} onPress={() =>",
+      "type": "missing-accessibility-label",
+      "file": "mobile/app/premium.tsx",
+      "line": 109,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity style={styles.closeBtn} onPress={() =>"
+    },
+    {
+      "key": "mobile/app/premium.tsx:226:small-interactive-dimension:closeBtn:height:32",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/premium.tsx",
+      "line": 226,
+      "styleName": "closeBtn",
+      "property": "height",
+      "value": 32,
+      "source": "position: \"absolute\", top: S.md, right: S.base, width: 32, height: 32, borderRadius: 16, backgroundColor: C.indigoText + \"1F\", alignItems: \"center\", justifyContent: \"center\","
+    },
+    {
+      "key": "mobile/app/premium.tsx:226:small-interactive-dimension:closeBtn:width:32",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/premium.tsx",
+      "line": 226,
+      "styleName": "closeBtn",
+      "property": "width",
+      "value": 32,
+      "source": "position: \"absolute\", top: S.md, right: S.base, width: 32, height: 32, borderRadius: 16, backgroundColor: C.indigoText + \"1F\", alignItems: \"center\", justifyContent: \"center\","
+    },
+    {
+      "key": "mobile/app/rectification/index.tsx:210:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/rectification/index.tsx",
+      "line": 210,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/rectification/index.tsx:232:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/rectification/index.tsx",
+      "line": 232,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/rectification/index.tsx:442:small-interactive-dimension:back:width:34",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/rectification/index.tsx",
+      "line": 442,
+      "styleName": "back",
+      "property": "width",
+      "value": 34,
+      "source": "fontFamily: \"Inter_700Bold\", fontSize: 20, color: C.textPrimary, width: 34"
+    },
+    {
+      "key": "mobile/app/transits/index.tsx:213:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/transits/index.tsx",
+      "line": 213,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/transits/index.tsx:93:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/transits/index.tsx",
+      "line": 93,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/vargas/index.tsx:191:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/vargas/index.tsx",
+      "line": 191,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/vargas/index.tsx:206:small-interactive-dimension:back:width:32",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/vargas/index.tsx",
+      "line": 206,
+      "styleName": "back",
+      "property": "width",
+      "value": 32,
+      "source": "fontFamily: \"Inter_400Regular\", fontSize: 22, color: C.textSecond, width: 32"
+    },
+    {
+      "key": "mobile/app/varshaphala/index.tsx:213:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/varshaphala/index.tsx",
+      "line": 213,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/varshaphala/index.tsx:232:small-interactive-dimension:back:width:40",
+      "type": "small-interactive-dimension",
+      "file": "mobile/app/varshaphala/index.tsx",
+      "line": 232,
+      "styleName": "back",
+      "property": "width",
+      "value": 40,
+      "source": "fontFamily: \"Inter_400Regular\", fontSize: 22, color: C.textSecond, width: 40"
+    },
+    {
+      "key": "mobile/app/wrapped/index.tsx:163:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/wrapped/index.tsx",
+      "line": 163,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/wrapped/index.tsx:167:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/wrapped/index.tsx",
+      "line": 167,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/app/wrapped/index.tsx:378:unstyled-touchable:<TouchableOpacity onPress={onPress}>",
+      "type": "unstyled-touchable",
+      "file": "mobile/app/wrapped/index.tsx",
+      "line": 378,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={onPress}>"
+    },
+    {
+      "key": "mobile/src/components/share/ShareCaptureView.tsx:81:unstyled-touchable:<Pressable onLongPress={share} delayLongPress={delayLongPress} disabled={disabled}>",
+      "type": "unstyled-touchable",
+      "file": "mobile/src/components/share/ShareCaptureView.tsx",
+      "line": 81,
+      "component": "Pressable",
+      "source": "<Pressable onLongPress={share} delayLongPress={delayLongPress} disabled={disabled}>"
+    },
+    {
+      "key": "mobile/src/components/TimeCard.tsx:61:small-interactive-dimension:chip:height:28",
+      "type": "small-interactive-dimension",
+      "file": "mobile/src/components/TimeCard.tsx",
+      "line": 61,
+      "styleName": "chip",
+      "property": "height",
+      "value": 28,
+      "source": "width: 28, height: 28, borderRadius: 14, alignItems: \"center\", justifyContent: \"center\", marginBottom: S.xs,"
+    },
+    {
+      "key": "mobile/src/components/TimeCard.tsx:61:small-interactive-dimension:chip:width:28",
+      "type": "small-interactive-dimension",
+      "file": "mobile/src/components/TimeCard.tsx",
+      "line": 61,
+      "styleName": "chip",
+      "property": "width",
+      "value": 28,
+      "source": "width: 28, height: 28, borderRadius: 14, alignItems: \"center\", justifyContent: \"center\", marginBottom: S.xs,"
+    },
+    {
+      "key": "mobile/src/components/WhyThisResultSheet.tsx:60:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/src/components/WhyThisResultSheet.tsx",
+      "line": 60,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/src/context/ConfirmContext.tsx:113:missing-accessibility-label:<TouchableOpacity style={[ styles.btn, styles.confirmBtn, { backgroundColor: isDestructive ? C.alert : C.gold }, ]} onPress={handleConfirm} ",
+      "type": "missing-accessibility-label",
+      "file": "mobile/src/context/ConfirmContext.tsx",
+      "line": 113,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity style={[ styles.btn, styles.confirmBtn, { backgroundColor: isDestructive ? C.alert : C.gold }, ]} onPress={handleConfirm} accessibilityRole=\"button\" >"
+    },
+    {
+      "key": "mobile/src/screens/ProfileManager.tsx:142:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/src/screens/ProfileManager.tsx",
+      "line": 142,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/src/screens/ProfileManager.tsx:157:unstyled-touchable:<TouchableOpacity onPress={() =>",
+      "type": "unstyled-touchable",
+      "file": "mobile/src/screens/ProfileManager.tsx",
+      "line": 157,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={() =>"
+    },
+    {
+      "key": "mobile/src/screens/ProfileManager.tsx:96:missing-accessibility-label:<TouchableOpacity onPress={loadProfiles} style={{ padding: 12, backgroundColor: C.surfaceAlt, borderRadius: 8 }}>",
+      "type": "missing-accessibility-label",
+      "file": "mobile/src/screens/ProfileManager.tsx",
+      "line": 96,
+      "component": "TouchableOpacity",
+      "source": "<TouchableOpacity onPress={loadProfiles} style={{ padding: 12, backgroundColor: C.surfaceAlt, borderRadius: 8 }}>"
+    }
+  ]
+}

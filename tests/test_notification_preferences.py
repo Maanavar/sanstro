@@ -128,12 +128,12 @@ def test_build_notification_email_structure(client):
 # ── fcm_service stub-mode test ────────────────────────────────────────────────
 
 def test_send_push_stub_mode_returns_true(client):
-    """send_push returns True in stub mode (no FCM config)."""
+    """send_push returns 'sent' in stub mode (no FCM config)."""
     from app.services.fcm_service import send_push
 
     with patch("app.services.fcm_service._fcm_configured", return_value=False):
         result = send_push("fake_token_abc123", "Title", "Body")
-    assert result is True
+    assert result == "sent"
 
 
 # ── dispatch service tests ────────────────────────────────────────────────────

@@ -25,7 +25,7 @@ from app.core.config import get_settings
 logger = logging.getLogger(__name__)
 
 _FCM_SEND_URL = "https://fcm.googleapis.com/v1/projects/{project_id}/messages:send"
-_OAUTH_TOKEN_URL = "https://oauth2.googleapis.com/token"
+_OAUTH_TOKEN_URL = "https://oauth2.googleapis.com/token"  # noqa: S105 — public OAuth endpoint URL, not a secret
 _FCM_SCOPE = "https://www.googleapis.com/auth/firebase.messaging"
 
 # Simple in-process token cache: (access_token, expiry_epoch)
@@ -52,17 +52,14 @@ def _get_access_token() -> str:
     sa_json: dict[str, Any] = json.loads(s.fcm_service_account_json)  # type: ignore[arg-type]
 
     import base64
-    import hashlib
-    import hmac
-    import struct
 
     # Build a minimal JWT for the service account → exchange for access token
     # Using RS256 requires the rsa or cryptography package. We fall back to
     # the google-auth flow via httpx if available, otherwise raise clearly.
     try:
+        from cryptography.hazmat.backends import default_backend
         from cryptography.hazmat.primitives import hashes, serialization
         from cryptography.hazmat.primitives.asymmetric import padding
-        from cryptography.hazmat.backends import default_backend
     except ImportError as exc:
         raise RuntimeError(
             "FCM push requires the 'cryptography' package. "
@@ -109,30 +106,39 @@ def _get_access_token() -> str:
     return access_token
 
 
+FCMResult = str  # "sent" | "invalid_token" | "failed"
+
+
 def send_push(
     device_token: str,
     title: str,
     body: str,
     data: dict[str, str] | None = None,
-) -> bool:
-    """
-    Send an FCM push notification to a single device token.
+) -> FCMResult:
+    """Send an FCM push notification to a single device token.
 
-    Returns True on success or when FCM is unconfigured (stub mode).
-    Returns False on delivery failure (logs error, does not raise).
+    Returns:
+      "sent"          — delivered successfully (or FCM not configured → stub).
+      "invalid_token" — FCM says the token is unregistered; caller should delete it.
+      "failed"        — transient error; token may still be valid.
     """
     if not _fcm_configured():
         logger.info("FCM not configured — skipping push to token %s…: %s", device_token[:12], title)
-        return True
+        return "sent"
 
     s = get_settings()
-    project_id: str = s.fcm_project_id  # type: ignore[attr-defined]
+    project_id = s.fcm_project_id
+    if project_id is None:
+        # Unreachable via _fcm_configured() above, which returns False without
+        # it. Re-checked here so the narrowing is the code's, not a comment's.
+        logger.error("FCM project id went missing between the config check and the send.")
+        return "failed"
 
     try:
         access_token = _get_access_token()
     except Exception as exc:
         logger.error("FCM token fetch failed: %s", exc)
-        return False
+        return "failed"
 
     message: dict[str, Any] = {
         "message": {
@@ -153,16 +159,16 @@ def send_push(
         )
         if resp.status_code == 200:
             logger.info("fcm_sent token=%s… title=%s", device_token[:12], title)
-            return True
+            return "sent"
 
-        # 404 = token invalid / unregistered — not worth retrying
+        # 404 = token invalid / unregistered — caller should remove it
         if resp.status_code == 404:
             logger.warning("fcm_token_invalid token=%s…", device_token[:12])
-            return False
+            return "invalid_token"
 
         logger.error("fcm_failed status=%d body=%s", resp.status_code, resp.text[:200])
-        return False
+        return "failed"
 
     except Exception as exc:
         logger.error("fcm_exception token=%s… exc=%s", device_token[:12], exc)
-        return False
+        return "failed"

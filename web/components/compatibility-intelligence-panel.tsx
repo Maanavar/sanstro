@@ -2,9 +2,15 @@
 
 import { useState } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
+import { t, tNakshatra } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { CompatibilityIntelligenceData } from "@/lib/types";
 import { scoreColorPct } from "@/lib/format";
+import { madhyamaLabel, madhyamaGloss, hasMadhyama } from "@/lib/kuta-grade";
+import type { KutaGrade } from "@vinaadi/shared";
+import { ZodiacBadge } from "./zodiac-badge";
+import { NakshatraBadge } from "./nakshatra-badge";
+import { GlossaryTerm } from "./glossary-term";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -15,21 +21,30 @@ interface Props {
   /** Pins Person A to a specific chart (e.g. the Porutham tool's Person 1).
    *  When omitted, Person A defaults to the vault owner. */
   chartIdA?: string;
+  personABirth?: {
+    displayName: string;
+    birthDateLocal: string;
+    birthTimeLocal: string | null;
+    birthPlace: string;
+    birthLatitude: number;
+    birthLongitude: number;
+    birthTimezone: string;
+  };
 }
 
 // ── Palette ──────────────────────────────────────────────────────────────────
 
 const W = {
-  inkMid: "#3D352B",
-  muted: "#7A6F5E",
-  border: "#D4C8AE",
-  borderLt: "#E4DBC8",
-  surface: "#FAF5EA",
-  card: "#FFFFFF",
-  terracotta: "#B85A2C",
-  sage: "#5C7654",
-  rust: "#A8482F",
-  gold: "#A0852A",
+  inkMid: "var(--synastry-ink, var(--panel-earth))",
+  muted: "var(--color-faint)",
+  border: "var(--synastry-border, var(--panel-tan))",
+  borderLt: "var(--synastry-border-light, var(--panel-tan-light))",
+  surface: "var(--panel-cream)",
+  card: "var(--chart-cell-default)",
+  terracotta: "var(--synastry-accent, var(--panel-brand))",
+  sage: "var(--chart-d9-active)",
+  rust: "var(--planet-saturn)",
+  gold: "var(--synastry-accent, var(--color-gold-mid))",
 } as const;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -44,9 +59,57 @@ function overallColor(label: string): string {
 }
 
 function harmonyBadge(label: string): { bg: string; color: string } {
-  if (label === "STRONG" || label === "SUPPORTIVE" || label === "EXCELLENT") return { bg: "rgba(92,118,84,0.1)", color: W.sage };
-  if (label === "GOOD" || label === "MIXED") return { bg: "rgba(184,90,44,0.1)", color: W.terracotta };
-  return { bg: "rgba(168,72,47,0.1)", color: W.rust };
+  if (label === "STRONG" || label === "SUPPORTIVE" || label === "EXCELLENT") return { bg: "var(--cl-sage-10)", color: W.sage };
+  if (label === "GOOD" || label === "MIXED") return { bg: "var(--cl-brand-fill)", color: W.terracotta };
+  return { bg: "var(--cl-rust-soft)", color: W.rust };
+}
+
+// Porutham verdict badge tones keyed on the label itself — the engine forces
+// CAUTION on a Rajju/Vedha veto even at 9/10, so colouring this badge by
+// percentage could render a green "CAUTION" (2026-07 porutham audit).
+function poruthamLabelBadge(label: string): { bg: string; color: string } {
+  if (label === "EXCELLENT") return { bg: "var(--cl-sage-10)", color: W.sage };
+  if (label === "GOOD") return { bg: "var(--cl-brand-fill)", color: W.gold };
+  if (label === "AVERAGE") return { bg: "var(--cl-brand-fill)", color: W.terracotta };
+  return { bg: "var(--cl-rust-soft)", color: W.rust };
+}
+
+// One verdict per row. The band REPLACES the bare PASS/FAIL rather than sitting
+// beside it — two ratings on one row read as the system contradicting itself,
+// and the band is the same judgement at finer resolution, not a second opinion.
+//
+// Only MADHYAMA is named. Since 2026-08-31 every porutham carries a grade, so
+// naming UTTAMA/ADHAMA too would turn all ten rows into Sanskrit and would make
+// the ends look graded when they are simply the two-valued projection of the
+// same ladder. Madhyama is named because there is no plain word for it.
+function kutaVerdict(k: { label: string; grade?: KutaGrade }, en: boolean): string {
+  if (k.grade === "MADHYAMA") return madhyamaLabel(en);
+  return k.label;
+}
+
+// Plain-language meaning of the Level-7 harmony labels, so a reader with no
+// astrology background understands what "TENSE" or "STRONG" actually implies.
+// Moon = how the two people sense/process feelings; Venus = how they express
+// affection and attraction.
+function moonGloss(label: string, en: boolean): string {
+  const map: Record<string, [string, string]> = {
+    EXCELLENT: ["You read each other's moods easily and feel understood.", "ஒருவரை ஒருவர் எளிதில் உணர்ந்து புரிந்துகொள்வீர்கள்."],
+    GOOD: ["Comfortable emotional understanding between you.", "வசதியான உணர்வுப் புரிதல் உள்ளது."],
+    MIXED: ["Your emotional styles differ a little — some tuning-in helps.", "உணர்வுப் பாணிகள் சற்று வேறுபடுகின்றன — கொஞ்சம் ஒத்திசைவு உதவும்."],
+    TENSE: ["You process feelings quite differently — this needs patient, open talk.", "உணர்வுகளை மிகவும் வேறுவிதமாக அணுகுகிறீர்கள் — பொறுமையான, திறந்த உரையாடல் தேவை."],
+  };
+  const pair = map[label] ?? map.MIXED!;
+  return en ? pair[0] : pair[1];
+}
+function venusGloss(label: string, en: boolean): string {
+  const map: Record<string, [string, string]> = {
+    STRONG: ["Warm, easy attraction and shared tastes in affection.", "வெதுவெதுப்பான, எளிதான ஈர்ப்பும் பொதுவான ரசனையும் உள்ளன."],
+    GOOD: ["Affection and romance flow well between you.", "பாசமும் காதலும் நன்றாக வெளிப்படுகின்றன."],
+    MIXED: ["Different love-languages to bridge with small effort.", "வெவ்வேறு அன்பு மொழிகளை சிறு முயற்சியால் இணைக்கலாம்."],
+    TENSE: ["Your romance styles differ — showing love takes conscious effort.", "காதல் பாணிகள் வேறுபடுகின்றன — அன்பைக் காட்ட உணர்வுபூர்வ முயற்சி தேவை."],
+  };
+  const pair = map[label] ?? map.MIXED!;
+  return en ? pair[0] : pair[1];
 }
 
 function ScoreBar({ score, max, label }: { score: number; max: number; label: string }) {
@@ -91,27 +154,82 @@ function Badge({ text, color, bg }: { text: string; color: string; bg: string })
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, chartIdA }: Props) {
+export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, chartIdA, personABirth }: Props) {
   const en = lang === "en";
   const [data, setData] = useState<CompatibilityIntelligenceData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   async function load() {
     setLoading(true);
     setError("");
     try {
       const params = new URLSearchParams({ familyVaultId });
-      if (chartIdA) params.set("chartIdA", chartIdA);
-      const res = await apiFetchJson<{ success: boolean; data: CompatibilityIntelligenceData }>(
-        `/api/v1/relationships/${memberId}/compatibility-intelligence?${params.toString()}`
-      );
+      const res = personABirth
+        ? await apiFetchJson<{ success: boolean; data: CompatibilityIntelligenceData }>(
+            `/api/v1/relationships/${memberId}/compatibility-intelligence/direct?${params.toString()}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ personA: personABirth }),
+            }
+          )
+        : await apiFetchJson<{ success: boolean; data: CompatibilityIntelligenceData }>(
+            `/api/v1/relationships/${memberId}/compatibility-intelligence?${(() => {
+              if (chartIdA) params.set("chartIdA", chartIdA);
+              return params.toString();
+            })()}`
+          );
       setData(res.data);
     } catch (e) {
       setError(readErrorMessage(e));
     } finally {
       setLoading(false);
+    }
+  }
+  async function downloadPdf() {
+    if (!data || downloadingPdf) return;
+    setDownloadingPdf(true);
+    setError("");
+    try {
+      const params = new URLSearchParams({ familyVaultId, lang });
+      let response: Response;
+      if (personABirth) {
+        response = await fetch(
+          `/api/backend/api/v1/relationships/${memberId}/compatibility-intelligence/direct/pdf?${params.toString()}`,
+          {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json", "X-Vinaadi-CSRF": "1" },
+            body: JSON.stringify({ personA: personABirth }),
+          }
+        );
+      } else {
+        if (chartIdA) params.set("chartIdA", chartIdA);
+        response = await fetch(
+          `/api/backend/api/v1/relationships/${memberId}/compatibility-intelligence/pdf?${params.toString()}`,
+          {
+            method: "GET",
+            credentials: "include",
+            headers: { "X-Vinaadi-CSRF": "1" },
+          }
+        );
+      }
+
+      if (!response.ok) throw new Error(`${response.status}: PDF export failed`);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `compatibility_intelligence_${data.personAName}_${data.personBName}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(readErrorMessage(e));
+    } finally {
+      setDownloadingPdf(false);
     }
   }
 
@@ -128,11 +246,11 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
           </p>
           <p style={{ margin: "0 0 14px", fontSize: "0.82rem", color: W.muted, lineHeight: 1.65 }}>
             {en
-              ? "Full 8-level analysis: Porutham · 7th House · Navamsa (D9) · Dasha Timing · Sevvai Dosham · Emotional Compatibility · Synastry · Overall Score (0–100)"
+              ? "Full 8-level analysis: Porutham · 7th House · Navamsa (D9) · Dasa Timing · Sevvai Dosham · Emotional Compatibility · Synastry · Overall Score (0–100)"
               : "8 அடுக்கு பகுப்பாய்வு: பொருத்தம் · 7ஆம் இடம் · நவாம்சம் · தசை நேரம் · செவ்வாய் தோஷம் · உணர்வு இணக்கம் · சினாஸ்ட்ரி · ஒட்டுமொத்த மதிப்பெண்"}
           </p>
           {error && (
-            <p style={{ margin: "0 0 12px", fontSize: "0.82rem", color: W.rust, background: "rgba(168,72,47,0.08)", border: "1px solid rgba(168,72,47,0.25)", borderRadius: "8px", padding: "10px 14px" }}>
+            <p style={{ margin: "0 0 12px", fontSize: "0.82rem", color: W.rust, background: "var(--ring-error)", border: "1px solid var(--cl-rust-25)", borderRadius: "8px", padding: "10px 14px" }}>
               {error}
             </p>
           )}
@@ -160,14 +278,20 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
   const overallPct = d.overallScore / 100;
   const poruthamPct = d.poruthamScore / Math.max(1, d.poruthamMax);
 
+  // Maxima ruled 2026-08-28 and MUST track
+  // `compatibility_intelligence.CompatibilityScoreBreakdown`. They are hand-typed
+  // here — nothing checks them against the backend — so a weight change that
+  // updates only one side renders every bar against the wrong denominator while
+  // the numbers themselves stay correct, which is the hardest kind of wrong to
+  // notice. Synastry now weighs 0 in the composite and is dropped from this list
+  // rather than shown as a permanent 0/0; it keeps its own panel elsewhere.
   const breakdown = [
-    { key: "porutham", label: en ? "Porutham (Traditional)" : "பொருத்தம் (பாரம்பரியம்)", score: d.scoreBreakdown.porutham, max: 20 },
+    { key: "porutham", label: en ? "Porutham (Traditional)" : "பொருத்தம் (பாரம்பரியம்)", score: d.scoreBreakdown.porutham, max: 35 },
     { key: "seventh", label: en ? "7th House Strength" : "7ஆம் இடம் வலிமை", score: d.scoreBreakdown.seventhHouse, max: 20 },
-    { key: "navamsa", label: en ? "Navamsa (D9)" : "நவாம்சம் (D9)", score: d.scoreBreakdown.navamsa, max: 20 },
-    { key: "dasha", label: en ? "Dasha Alignment" : "தசை இணக்கம்", score: d.scoreBreakdown.dashaHarmony, max: 15 },
+    { key: "navamsa", label: en ? "Navamsa (D9)" : "நவாம்சம் (D9)", score: d.scoreBreakdown.navamsa, max: 15 },
+    { key: "dasha", label: en ? "Dasa Alignment" : "தசை இணக்கம்", score: d.scoreBreakdown.dashaHarmony, max: 15 },
     { key: "dosham", label: en ? "Dosham Analysis" : "தோஷம் பகுப்பாய்வு", score: d.scoreBreakdown.doshamAnalysis, max: 10 },
-    { key: "emotional", label: en ? "Emotional Compatibility" : "உணர்வு இணக்கம்", score: d.scoreBreakdown.emotional, max: 10 },
-    { key: "synastry", label: en ? "Synastry" : "சினாஸ்ட்ரி", score: d.scoreBreakdown.synastry, max: 5 },
+    { key: "emotional", label: en ? "Emotional Compatibility" : "உணர்வு இணக்கம்", score: d.scoreBreakdown.emotional, max: 5 },
   ];
 
   return (
@@ -203,6 +327,39 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
         </div>
       </SectionCard>
 
+      {/* ── Birth details (Rasi/Nakshatra/Lagnam) — the plain-language
+          identity facts a non-astrologer needs before the score tables
+          (2026-07 UX gap: this report jumped straight into score
+          breakdowns without ever stating either person's Rasi/Nakshatra). ── */}
+      <SectionCard title={en ? "Birth Details" : "பிறப்பு விவரங்கள்"}>
+        <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
+          {([[d.personAName, d.personAIdentity], [d.personBName, d.personBIdentity]] as const).map(([name, identity], i) => (
+            <div key={i} style={{ flex: 1, minWidth: "220px", display: "flex", flexDirection: "column", gap: "8px" }}>
+              <p style={{ margin: 0, fontSize: "0.82rem", fontWeight: 700, color: W.inkMid }}>{name}</p>
+              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "14px" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "7px" }}>
+                  <ZodiacBadge rasi={identity.rasi} size={32} />
+                  <span style={{ fontSize: "0.8rem", color: W.inkMid }}>
+                    {identity.rasiName}{" "}
+                    <GlossaryTerm term="rasi" lang={lang}>{en ? "Rasi" : "ராசி"}</GlossaryTerm>
+                  </span>
+                </span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "7px" }}>
+                  <NakshatraBadge nakshatra={identity.nakshatra} size={32} />
+                  <span style={{ fontSize: "0.8rem", color: W.inkMid }}>
+                    {tNakshatra(identity.nakshatraName, lang)} {en ? "Pada" : "பாதம்"} {identity.pada}{" "}
+                    <GlossaryTerm term="nakshatra" lang={lang}>{en ? "Nakshatra" : "நட்சத்திரம்"}</GlossaryTerm>
+                  </span>
+                </span>
+              </div>
+              <div style={{ fontSize: "0.78rem", color: W.muted }}>
+                {identity.lagnaRasiName} {en ? "Lagnam" : "லக்னம்"}
+              </div>
+            </div>
+          ))}
+        </div>
+      </SectionCard>
+
       {/* ── Score breakdown ── */}
       <SectionCard title={en ? "Score Breakdown" : "மதிப்பெண் விவரம்"}>
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -219,7 +376,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
       {(d.strengthsEn.length > 0 || d.risksEn.length > 0) && (
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
           {d.strengthsEn.length > 0 && (
-            <div style={{ flex: 1, minWidth: "240px", background: "rgba(92,118,84,0.06)", border: `1px solid rgba(92,118,84,0.25)`, borderRadius: "12px", padding: "14px 18px" }}>
+            <div style={{ flex: 1, minWidth: "240px", background: "var(--synastry-good-bg, var(--cl-sage-06))", border: `1px solid var(--synastry-good-border, var(--cl-sage-25))`, borderRadius: "12px", padding: "14px 18px" }}>
               <p style={{ margin: "0 0 8px", fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: W.sage }}>
                 {en ? "Strengths" : "சாதகங்கள்"}
               </p>
@@ -231,7 +388,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
             </div>
           )}
           {d.risksEn.length > 0 && (
-            <div style={{ flex: 1, minWidth: "240px", background: "rgba(168,72,47,0.06)", border: `1px solid rgba(168,72,47,0.25)`, borderRadius: "12px", padding: "14px 18px" }}>
+            <div style={{ flex: 1, minWidth: "240px", background: "var(--cl-rust-06)", border: "1px solid var(--cl-rust-25)", borderRadius: "12px", padding: "14px 18px" }}>
               <p style={{ margin: "0 0 8px", fontSize: "0.68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: W.rust }}>
                 {en ? "Areas to Watch" : "கவனிக்க வேண்டியவை"}
               </p>
@@ -252,19 +409,24 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
             <span style={{ fontSize: "2rem", fontWeight: 700, color: scoreColor(poruthamPct) }}>{d.poruthamScore}</span>
             <span style={{ fontSize: "0.9rem", color: W.muted }}>/{d.poruthamMax}</span>
           </div>
-          <Badge text={d.poruthamLabel} color={scoreColor(poruthamPct)} bg={`${scoreColor(poruthamPct)}18`} />
-          {d.rajjuDosha && <Badge text={en ? "⚠ Rajju Dosha" : "⚠ ரஜ்ஜு தோஷம்"} color={W.rust} bg="rgba(168,72,47,0.1)" />}
-          {d.vedhaDosha && <Badge text={en ? "⚠ Vedha Dosha" : "⚠ வேத தோஷம்"} color={W.rust} bg="rgba(168,72,47,0.1)" />}
-          {d.nadiDosha.hasNadiDosha && <Badge text={en ? "⚠ Nadi Dosha" : "⚠ நாடி தோஷம்"} color={W.rust} bg="rgba(168,72,47,0.1)" />}
+          <Badge text={d.poruthamLabel} {...poruthamLabelBadge(d.poruthamLabel)} />
+          {d.rajjuDosha && <Badge text={en ? "⚠ Rajju Dosha" : "⚠ ரஜ்ஜு தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
+          {d.vedhaDosha && <Badge text={en ? "⚠ Vedha Dosha" : "⚠ வேத தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
+          {d.nadiDosha.hasNadiDosha && <Badge text={en ? "⚠ Nadi Dosha" : "⚠ நாடி தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           {d.poruthamKutas.map(k => (
             <div key={k.name} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <span style={{ minWidth: "120px", fontSize: "0.8rem", color: W.inkMid }}>{k.name}</span>
-              <ScoreBar score={k.score} max={k.maxScore} label={k.label} />
+              <span style={{ minWidth: "120px", fontSize: "0.8rem", color: W.inkMid }}>{en ? k.name : k.nameTa}</span>
+              <ScoreBar score={k.score} max={k.maxScore} label={kutaVerdict(k, en)} />
             </div>
           ))}
         </div>
+        {hasMadhyama(d.poruthamKutas) && (
+          <p style={{ margin: "8px 0 0", fontSize: "0.76rem", color: W.muted }}>
+            {madhyamaGloss(en)}
+          </p>
+        )}
       </SectionCard>
 
       {/* ── 7th House ── */}
@@ -326,13 +488,13 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
             { label: d.personAName, sevvai: d.sevvaiA },
             { label: d.personBName, sevvai: d.sevvaiB },
           ].map(({ label, sevvai }, i) => (
-            <div key={i} style={{ flex: 1, minWidth: "200px", background: sevvai.hasDosham && !sevvai.isCancelled ? "rgba(168,72,47,0.05)" : W.surface, borderRadius: "10px", padding: "12px 16px", border: `1px solid ${sevvai.hasDosham && !sevvai.isCancelled ? "rgba(168,72,47,0.2)" : W.borderLt}` }}>
+            <div key={i} style={{ flex: 1, minWidth: "200px", background: sevvai.hasDosham && !sevvai.isCancelled ? "var(--cl-rust-faint)" : W.surface, borderRadius: "10px", padding: "12px 16px", border: `1px solid ${sevvai.hasDosham && !sevvai.isCancelled ? "var(--cl-rust-ring)" : W.borderLt}` }}>
               <p style={{ margin: "0 0 6px", fontSize: "0.78rem", fontWeight: 700, color: W.terracotta }}>{label}</p>
               <div style={{ display: "flex", gap: "6px", marginBottom: "8px", flexWrap: "wrap" }}>
                 <Badge
                   text={sevvai.hasDosham ? (sevvai.isCancelled ? (en ? "Cancelled" : "நீக்கப்பட்டது") : `${sevvai.severity}`) : (en ? "No Dosham" : "தோஷம் இல்லை")}
                   color={sevvai.hasDosham && !sevvai.isCancelled ? W.rust : W.sage}
-                  bg={sevvai.hasDosham && !sevvai.isCancelled ? "rgba(168,72,47,0.1)" : "rgba(92,118,84,0.1)"}
+                  bg={sevvai.hasDosham && !sevvai.isCancelled ? "var(--cl-rust-soft)" : "var(--cl-sage-10)"}
                 />
                 <span style={{ fontSize: "0.76rem", color: W.muted }}>
                   {en ? `Mars: House ${sevvai.marsHouse}` : `செவ்வாய்: ${sevvai.marsHouse}ஆம் இடம்`}
@@ -347,7 +509,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
       </SectionCard>
 
       {/* ── Dasha Harmony ── */}
-      <SectionCard title={en ? "Level 6 — Dasha Alignment (Next Period)" : "நிலை 6 — தசை இணக்கம்"}>
+      <SectionCard title={en ? "Level 6 — Dasa Alignment (Current Period)" : "நிலை 6 — தசை இணக்கம்"}>
         <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap", marginBottom: "10px" }}>
           <Badge text={d.dashaHarmony.harmonyLabel} {...harmonyBadge(d.dashaHarmony.harmonyLabel)} />
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
@@ -367,14 +529,34 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
 
       {/* ── Emotional Compatibility ── */}
       <SectionCard title={en ? "Level 7 — Emotional Compatibility" : "நிலை 7 — உணர்வு இணக்கம்"}>
-        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "10px" }}>
-          <div>
-            <span style={{ fontSize: "0.74rem", color: W.muted, marginRight: "6px" }}>{en ? "Moon harmony:" : "சந்திர இணக்கம்:"}</span>
-            <Badge text={d.emotional.moonMoonHarmony} {...harmonyBadge(d.emotional.moonMoonHarmony)} />
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "12px" }}>
+          {/* Emotional wavelength (Moon) */}
+          <div style={{ background: W.surface, borderRadius: "10px", padding: "12px 14px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: "5px" }}>
+              <span style={{ fontSize: "0.8rem", fontWeight: 700, color: W.inkMid }}>
+                {en ? "Emotional wavelength" : "உணர்வுத் தாளம்"}
+              </span>
+              <Badge text={d.emotional.moonMoonHarmony} {...harmonyBadge(d.emotional.moonMoonHarmony)} />
+            </div>
+            <p style={{ margin: 0, fontSize: "0.78rem", color: W.muted, lineHeight: 1.55 }}>
+              {en
+                ? `How you each sense and process feelings (Moon). ${moonGloss(d.emotional.moonMoonHarmony, true)}`
+                : `உணர்வுகளை நீங்கள் எப்படி உணர்ந்து அணுகுகிறீர்கள் (சந்திரன்). ${moonGloss(d.emotional.moonMoonHarmony, false)}`}
+            </p>
           </div>
-          <div>
-            <span style={{ fontSize: "0.74rem", color: W.muted, marginRight: "6px" }}>{en ? "Venus harmony:" : "சுக்கிர இணக்கம்:"}</span>
-            <Badge text={d.emotional.venusMarsHarmony} {...harmonyBadge(d.emotional.venusMarsHarmony)} />
+          {/* Affection & romance (Venus) */}
+          <div style={{ background: W.surface, borderRadius: "10px", padding: "12px 14px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: "5px" }}>
+              <span style={{ fontSize: "0.8rem", fontWeight: 700, color: W.inkMid }}>
+                {en ? "Affection & romance style" : "அன்பு & காதல் பாணி"}
+              </span>
+              <Badge text={d.emotional.venusMarsHarmony} {...harmonyBadge(d.emotional.venusMarsHarmony)} />
+            </div>
+            <p style={{ margin: 0, fontSize: "0.78rem", color: W.muted, lineHeight: 1.55 }}>
+              {en
+                ? `How you express love and attraction (Venus). ${venusGloss(d.emotional.venusMarsHarmony, true)}`
+                : `அன்பையும் ஈர்ப்பையும் எப்படி வெளிப்படுத்துகிறீர்கள் (சுக்கிரன்). ${venusGloss(d.emotional.venusMarsHarmony, false)}`}
+            </p>
           </div>
         </div>
         <ScoreBar score={d.emotional.score} max={10} label="" />
@@ -394,16 +576,35 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
           </span>
           <span style={{ fontSize: "0.88rem", color: W.muted }}>/100</span>
         </div>
-        <ScoreBar score={d.scoreBreakdown.synastry} max={5} label="" />
+        {/* The 0-5 contribution bar is gone with the weight: as of 2026-08-28
+            Synastry carries no points in the composite, so a bar would read as
+            a score of zero rather than as a layer that is shown for context.
+            The copy below states that outright — a panel that kept saying "up
+            to 5 points" beside a weight of 0 is the exact defect where an
+            explanation contradicts its own numbers. */}
         <p style={{ margin: "8px 0 0", fontSize: "0.78rem", color: W.muted }}>
           {en
-            ? "Synastry (planetary aspects between the two charts) contributes up to 5 points to the overall score."
-            : "சினாஸ்ட்ரி (இரு ஜாதகங்களுக்கிடையே கிரக தொடர்புகள்) ஒட்டுமொத்த மதிப்பெண்ணில் 5 புள்ளிகள் வரை பங்களிக்கிறது."}
+            ? "Synastry (planetary aspects between the two charts) is shown for context and does not contribute to the overall score."
+            : "சினாஸ்ட்ரி (இரு ஜாதகங்களுக்கிடையே கிரக தொடர்புகள்) விளக்கத்திற்காக மட்டுமே காட்டப்படுகிறது; ஒட்டுமொத்த மதிப்பெண்ணில் இது சேர்க்கப்படவில்லை."}
         </p>
       </SectionCard>
 
       {/* ── Refresh ── */}
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", flexWrap: "wrap" }}>
+        <button
+          type="button"
+          onClick={() => void downloadPdf()}
+          disabled={downloadingPdf}
+          style={{
+            fontSize: "0.8rem", color: downloadingPdf ? W.muted : W.inkMid, background: W.surface,
+            border: `1px solid ${W.border}`, borderRadius: "999px", padding: "6px 16px",
+            cursor: downloadingPdf ? "wait" : "pointer", fontFamily: "inherit", fontWeight: 600,
+          }}
+        >
+          {downloadingPdf
+            ? (en ? "Downloading PDF…" : "PDF பதிவிறக்குகிறது…")
+            : (en ? "Download Full Report PDF" : "முழு அறிக்கை PDF பதிவிறக்கம்")}
+        </button>
         <button
           type="button"
           onClick={() => void load()}

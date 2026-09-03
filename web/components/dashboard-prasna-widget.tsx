@@ -9,19 +9,19 @@ import { Button } from "./dashboard-ui";
 import { DrawerPanel } from "./drawer-panel";
 
 const W = {
-  ink: "#1A1612",
-  inkMid: "#3D352B",
-  muted: "#7A6F5E",
-  border: "#D4C8AE",
-  borderLt: "#E4DBC8",
-  surface: "#FAF5EA",
-  surfaceMd: "#F4EEE2",
-  sage: "#5C7654",
-  terracotta: "#B85A2C",
-  rust: "#A8482F",
+  ink: "var(--panel-earth-dark)",
+  inkMid: "var(--panel-earth)",
+  muted: "var(--color-faint)",
+  border: "var(--panel-tan)",
+  borderLt: "var(--panel-tan-light)",
+  surface: "var(--panel-cream)",
+  surfaceMd: "var(--panel-hover)",
+  sage: "var(--chart-d9-active)",
+  terracotta: "var(--panel-brand)",
+  rust: "var(--planet-saturn)",
 } as const;
 
-const QUESTION_AREAS = [
+export const QUESTION_AREAS = [
   { key: "JOB",       labelKey: "prasna_area_job" as const },
   { key: "MARRIAGE",  labelKey: "prasna_area_marriage" as const },
   { key: "HEALTH",    labelKey: "prasna_area_health" as const },
@@ -40,7 +40,7 @@ function outlookColor(outlook: PrasnaResponse["outlook"]) {
   return W.muted;
 }
 
-function outlookLabel(outlook: PrasnaResponse["outlook"], lang: Lang): string {
+export function outlookLabel(outlook: PrasnaResponse["outlook"], lang: Lang): string {
   const map = {
     FAVOURABLE:   t("prasna_outlook_favourable", lang),
     UNFAVOURABLE: t("prasna_outlook_unfavourable", lang),
@@ -70,7 +70,9 @@ export function PrasnaWidget({ lang, open, onClose, timezone, latitude, longitud
     setError(null);
     setResult(null);
     try {
-      const res = await apiFetchJson<{ success: boolean; data: PrasnaResponse }>("/api/v1/prasna", {
+      // POST /prasna responds with the payload flat — there is no
+      // { success, data } envelope, so don't unwrap one.
+      const res = await apiFetchJson<PrasnaResponse>("/api/v1/prasna", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -80,8 +82,8 @@ export function PrasnaWidget({ lang, open, onClose, timezone, latitude, longitud
           longitude,
         }),
       });
-      if (res.success && res.data) {
-        setResult(res.data);
+      if (res?.outlook) {
+        setResult(res);
       } else {
         setError(lang === "ta" ? "பதில் கிடைக்கவில்லை." : "No result returned.");
       }

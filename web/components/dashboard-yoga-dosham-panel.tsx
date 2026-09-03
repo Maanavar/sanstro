@@ -1,38 +1,23 @@
 "use client";
 
 import React, { useState } from "react";
-import { t } from "@/lib/i18n";
+import { t, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ChartYogaInsight, ChartDoshamInsight } from "@/lib/types";
+import {
+  YOGA_DISPLAY,
+  resolveYogaKey,
+  displayName,
+  yogaReadingStatus,
+  yogaReadingStatusLabel,
+} from "@vinaadi/shared/yogaDisplay";
+import { Card } from "./ui/card";
 
 // ── Display name maps ────────────────────────────────────────────────────────
+// These now live in @vinaadi/shared so mobile renders the same names. Re-exported
+// here because a dozen web call sites already import them from this module.
 
-const YOGA_DISPLAY: Record<string, { ta: string; en: string }> = {
-  GAJA_KESARI_YOGA: { ta: "Gaja Kesari Yoga", en: "Gaja Kesari Yoga" },
-  GAJA_KESARI:      { ta: "Gaja Kesari Yoga", en: "Gaja Kesari Yoga" },
-  RAJA_YOGA:        { ta: "Raja Yoga",         en: "Raja Yoga" },
-  DHANA_YOGA:       { ta: "Dhana Yoga",        en: "Dhana Yoga" },
-  NEECHA_BHANGA_RAJA_YOGA: { ta: "Neecha Bhanga Raja Yoga", en: "Neecha Bhanga Raja Yoga" },
-  KALASARPA:        { ta: "Kala Sarpa Yoga",   en: "Kala Sarpa Yoga" },
-  BUDHA_ADITYA_YOGA:   { ta: "Budha-Aditya Yoga",    en: "Budha-Aditya Yoga" },
-  VIPAREETHA_RAJA_YOGA:{ ta: "Vipareetha Raja Yoga", en: "Vipareetha Raja Yoga" },
-  PARIVARTANA_YOGA:    { ta: "Parivartana Yoga",     en: "Parivartana Yoga" },
-  CHANDRA_MANGALA_YOGA:{ ta: "Chandra-Mangala Yoga", en: "Chandra-Mangala Yoga" },
-  SAKATA_YOGA:         { ta: "Sakata Yoga",          en: "Sakata Yoga" },
-  KEMADRUMA_YOGA:      { ta: "Kemadruma Yoga",       en: "Kemadruma Yoga" },
-  CHANDALA_YOGA:       { ta: "Guru-Chandala Yoga",   en: "Guru-Chandala Yoga" },
-  AMALA_YOGA:          { ta: "Amala Yoga",           en: "Amala Yoga" },
-  ADHI_YOGA:           { ta: "Adhi Yoga",            en: "Adhi Yoga" },
-  DARIDRA_YOGA:        { ta: "Daridra Yoga",         en: "Daridra Yoga" },
-  LAKSHMI_YOGA:        { ta: "Lakshmi Yoga",         en: "Lakshmi Yoga" },
-  VASUMATI_YOGA:       { ta: "Vasumati Yoga",        en: "Vasumati Yoga" },
-  SEVVAI_DOSHAM:    { ta: "Sevvai Dosham",      en: "Sevvai Dosham" },
-  RAHU_KETU_DOSHAM: { ta: "Rahu-Ketu Dosham",  en: "Rahu-Ketu Dosham" },
-  PITRU_DOSHAM:     { ta: "Pitru Dosham",       en: "Pitru Dosham" },
-  KALATHRA_DOSHAM:  { ta: "Kalathra Dosham",    en: "Kalathra Dosham" },
-  PUTRA_SARPA_DOSHAM: { ta: "Putra Sarpa Dosham", en: "Putra Sarpa Dosham" },
-  BADHAKA_DOSHAM:   { ta: "Badhaka Dosham",     en: "Badhaka Dosham" },
-};
+export { YOGA_DISPLAY, resolveYogaKey, displayName, yogaReadingStatus, yogaReadingStatusLabel };
 
 // ── Human-readable marker labels ─────────────────────────────────────────────
 // Used only for bullet lists — write them as complete short sentences
@@ -86,6 +71,10 @@ const MARKER_LABELS: Record<string, { ta: string; en: string }> = {
   exaltation_sign_lord_aspects_debilitated: { ta: "உச்ச ராசி அதிபதி நீசக் கிரகத்தை பார்க்கிறார்", en: "The exaltation sign's lord aspects the debilitated planet" },
   all_planets_between_rahu_and_ketu:        { ta: "அனைத்து 7 கிரகங்களும் ராகு-கேது வில்லுக்குள் — கால சர்ப்ப அமைப்பு", en: "All 7 planets are within the Rahu–Ketu arc — Kala Sarpa pattern" },
   all_planets_between_ketu_and_rahu:        { ta: "அனைத்து 7 கிரகங்களும் கேது-ராகு வில்லுக்குள் — கால சர்ப்ப அமைப்பு", en: "All 7 planets are within the Ketu–Rahu arc — Kala Sarpa pattern" },
+  // Doctrine A-4: how the arc was judged is disclosed, so a reader can tell an
+  // exact qualification from an approximate one.
+  arc_test_degree_exact:                    { ta: "வில் சரியான பாகை அளவில் கணக்கிடப்பட்டது", en: "The arc was measured on exact longitudes" },
+  arc_test_whole_sign:                      { ta: "வில் ராசி அளவில் மட்டும் கணக்கிடப்பட்டது (தோராயம்)", en: "The arc was measured by whole sign only — an approximation" },
   // Badhaka
   badhaka_active:        { ta: "லக்னப்படி பாதக அதிபதி உங்கள் லக்னம்/சந்திரன்/லக்னாதிபதியை அல்லது தற்போதைய தசையை பாதிக்கிறது", en: "The badhaka lord (by your lagna) is touching your Lagna, Moon, lagna-lord, or current Dasha — the obstruction significator is active" },
   badhaka_lord_strong:   { ta: "பாதக அதிபதி வலுவாக உள்ளார் — தடைகள் வேகமாக கடக்கப்படும்", en: "The badhaka lord is strong — obstacles tend to clear faster" },
@@ -102,19 +91,161 @@ const MARKER_LABELS: Record<string, { ta: string; en: string }> = {
   fifth_afflicted:       { ta: "5-ம் வீடு/அதிபதி ராகு-கேது அல்லது பாதக கிரகங்களால் பாதிக்கப்பட்டுள்ளது", en: "The 5th house or its lord is afflicted by the nodes or malefics (progeny/creativity house)" },
   strong_fifth_lord:     { ta: "5-ம் அதிபதி வலுவாக உள்ளார் — தாக்கம் குறைகிறது", en: "The 5th lord is strong — impact is reduced" },
   jupiter_kendra:        { ta: "குரு கேந்திரத்தில் — சந்தான காரகன் பாதுகாக்கிறார்", en: "Jupiter is in a kendra — the progeny significator protects" },
+  // Neecha Bhanga / debilitation-cancellation detail
+  debilitated_planet_strong_d9:      { ta: "நீசக் கிரகம் நவாம்சத்தில் வலுவாக உள்ளது — நீசம் கணிசமாக ரத்தாகிறது", en: "The debilitated planet is strong in the Navamsa (D9) — the debilitation is substantially cancelled" },
+  debilitated_planet_retrograde_note: { ta: "நீசக் கிரகம் வக்ர கதியில் உள்ளது — பாரம்பரியமாக நீசத்தை மென்மையாக்கும் காரணி", en: "The debilitated planet is retrograde — traditionally read as softening the debilitation" },
+  // Dhana / Daridra (wealth axis)
+  eleventh_lord_weak_malefic_conj: { ta: "11-ம் அதிபதி பலவீனமாக, பாபக்கிரகத்துடன் சேர்ந்துள்ளார் — வருமான வழியில் அழுத்தம்", en: "The 11th lord is weak and joined by a malefic — pressure on the income channel" },
+  // Kalathra / marriage protection
+  jupiter_aspects_seventh_lord: { ta: "குரு 7-ம் அதிபதியை பார்க்கிறார் — திருமண சுட்டிக்கு பாதுகாப்பு", en: "Jupiter aspects the 7th lord — a protective influence on marriage significations" },
+  // Chandala / guru-chandala
+  jupiter_rahu_conjunction: { ta: "குருவும் ராகுவும் ஒரே வீட்டில் — குரு சண்டாள அமைப்பு", en: "Jupiter and Rahu are in the same house — the Guru-Chandala combination" },
+  jupiter_ketu_conjunction: { ta: "குருவும் கேதுவும் ஒரே வீட்டில் — குரு சண்டாள (கேது வேறுபாடு)", en: "Jupiter and Ketu are in the same house — the Guru-Chandala Ketu variant" },
+  // Sevvai / Chandra-Mangala detail
+  moon_mars_same_rasi:      { ta: "சந்திரனும் செவ்வாயும் ஒரே ராசியில் உள்ளனர்", en: "Moon and Mars are in the same sign" },
+  moon_mars_mutual_seventh: { ta: "சந்திரனும் செவ்வாயும் ஒருவரையொருவர் 7-ல் பார்க்கின்றனர்", en: "Moon and Mars are in mutual 7th-house aspect" },
+  // Budha-Aditya detail
+  mercury_sun_same_rasi:   { ta: "புதனும் சூரியனும் ஒரே ராசியில் உள்ளனர்", en: "Mercury and the Sun are in the same sign" },
+  mercury_combust_partial: { ta: "புதன் சூரியனுக்கு அருகில் அஸ்தங்கம் அடைந்துள்ளது — யோகப் பலன் ஓரளவு குறைகிறது", en: "Mercury is combust (asthangamam) close to the Sun — the yoga's result is partly reduced" },
+  // Gaja Kesari / Moon-strength detail
+  jupiter_aspects_moon:    { ta: "குரு சந்திரனை பார்க்கிறார்", en: "Jupiter aspects the Moon" },
+  moon_kendra_from_lagna:  { ta: "சந்திரன் லக்னத்திலிருந்து கேந்திரத்தில் உள்ளார்", en: "The Moon is in a kendra from the Lagna" },
+  moon_full_opposite_sun:  { ta: "சந்திரன் சூரியனுக்கு எதிராக முழு நிலவாக உள்ளார் — சந்திர பலம் அதிகம்", en: "The Moon is full, opposite the Sun — lunar strength is high" },
+  // Sunapha / Anapha / Durudhura / Kemadruma (Moon-flanking family)
+  planets_in_2nd_from_moon:          { ta: "சந்திரனிலிருந்து 2-ல் கிரகங்கள் உள்ளன", en: "There are planets in the 2nd from the Moon" },
+  planets_in_12th_from_moon:         { ta: "சந்திரனிலிருந்து 12-ல் கிரகங்கள் உள்ளன", en: "There are planets in the 12th from the Moon" },
+  planets_in_2nd_and_12th_from_moon: { ta: "சந்திரனுக்கு இருபுறமும் (2 மற்றும் 12) கிரகங்கள் உள்ளன", en: "There are planets on both sides of the Moon (2nd and 12th)" },
+  no_planets_2nd_12th_from_moon:     { ta: "சந்திரனுக்கு இருபுறமும் கிரகங்கள் இல்லை — கேமத்ரும நிலை", en: "No planets flank the Moon on either side — the Kemadruma condition" },
+  planet_kendra_from_moon:           { ta: "சந்திரனிலிருந்து கேந்திரத்தில் ஒரு கிரகம் உள்ளது — கேமத்ரும நிலையை மென்மையாக்கும்", en: "A planet sits in a kendra from the Moon — this softens the Kemadruma condition" },
 };
 
-function markerLabel(marker: string, lang: Lang): string {
-  const entry = MARKER_LABELS[marker];
-  if (!entry) return marker.replaceAll("_", " ");
-  return lang === "ta" ? entry.ta : entry.en;
+// Planet display names for the parametrized markers below.
+//
+// The comment that used to sit here said this map was "local to this file on
+// purpose … there is no shared web-side planet-name helper to reuse." That was
+// not true when it was written: `tPlanetLord` in `lib/i18n.ts` is canonical and
+// already served ~10 surfaces. Worth recording, because a justification nobody
+// re-checks is more durable than the duplication it defends — and four sibling
+// panels drifted to "சுக்ரன்" for Venus behind exactly this kind of reasoning.
+function planetLabel(code: string, lang: Lang): string {
+  return tPlanetLord(code, lang) || code;
 }
 
-function displayName(name: string, lang: Lang): string {
-  const key = name.toUpperCase();
-  const entry = YOGA_DISPLAY[key] ?? YOGA_DISPLAY[key.replace("GAJA_KESARI", "GAJA_KESARI_YOGA")];
-  if (!entry) return name;
-  return lang === "ta" ? entry.ta : entry.en;
+/**
+ * Markers the engine builds with an f-string, so they carry a planet code or a
+ * house number and can never be enumerated as fixed keys (e.g.
+ * `JUPITER_in_10th`, `rahu_house_7`, `benefic_in_house_6_from_moon`). Without
+ * these rules they fell through to the raw-token fallback and rendered to the
+ * user as "JUPITER in 10th" or "rahu house 7".
+ */
+const MARKER_PATTERNS: { re: RegExp; label: (m: RegExpMatchArray, lang: Lang) => { ta: string; en: string } }[] = [
+  {
+    re: /^([A-Z]+)_in_10th$/,
+    label: (m, lang) => ({
+      ta: `${planetLabel(m[1], lang)} 10-ம் வீட்டில் (தொழில் இடம்) உள்ளார்`,
+      en: `${planetLabel(m[1], lang)} is in the 10th house (the house of work and standing)`,
+    }),
+  },
+  {
+    re: /^([A-Z]+)_upachaya_from_lagna_or_moon$/,
+    label: (m, lang) => ({
+      ta: `${planetLabel(m[1], lang)} லக்னம் அல்லது சந்திரனிலிருந்து உபச்சய வீட்டில் (3/6/10/11) உள்ளார்`,
+      en: `${planetLabel(m[1], lang)} is in an upachaya house (3/6/10/11) from either the Lagna or the Moon`,
+    }),
+  },
+  {
+    re: /^([A-Z]+)_in_house_(\d+)_from_moon$/,
+    label: (m, lang) => ({
+      ta: `${planetLabel(m[1], lang)} சந்திரனிலிருந்து ${m[2]}-ம் வீட்டில் உள்ளார்`,
+      en: `${planetLabel(m[1], lang)} is in the ${m[2]}th house from the Moon`,
+    }),
+  },
+  {
+    re: /^seventh_lord_in_house_(\d+)$/,
+    label: (m, lang) => ({
+      ta: `7-ம் அதிபதி ${m[1]}-ம் வீட்டில் உள்ளார்`,
+      en: `The 7th lord is in house ${m[1]}`,
+    }),
+  },
+  {
+    re: /^eleventh_lord_in_(\d+)$/,
+    label: (m, lang) => ({
+      ta: `11-ம் அதிபதி ${m[1]}-ம் வீட்டில் உள்ளார்`,
+      en: `The 11th lord is in house ${m[1]}`,
+    }),
+  },
+  {
+    // Doctrine A-4: a graha exactly on a node qualifies, but the boundary is
+    // named rather than silently resolved in or out.
+    re: /^graha_on_node_([A-Z]+)$/,
+    label: (m, lang) => ({
+      ta: `${planetLabel(m[1], lang)} ராகு/கேது மீது சரியாக அமர்ந்துள்ளார் — எல்லை நிலை`,
+      en: `${planetLabel(m[1], lang)} sits exactly on a node — a boundary case`,
+    }),
+  },
+  {
+    re: /^rahu_house_(\d+)$/,
+    label: (m, lang) => ({
+      ta: `ராகு ${m[1]}-ம் வீட்டில் உள்ளது`,
+      en: `Rahu is in house ${m[1]}`,
+    }),
+  },
+  {
+    re: /^moon_from_jupiter_(\d+)$/,
+    label: (m, lang) => ({
+      ta: `குருவிலிருந்து சந்திரன் ${m[1]}-ம் இடத்தில் உள்ளார்`,
+      en: `The Moon is ${m[1]} houses from Jupiter`,
+    }),
+  },
+  {
+    re: /^([a-z]+)_lord_([A-Z]+)_strong$/,
+    label: (m, lang) => ({
+      ta: `${m[1] === "ninth" ? "9" : m[1]}-ம் அதிபதி ${planetLabel(m[2], lang)} வலுவாக உள்ளார்`,
+      en: `The ${m[1]} lord (${planetLabel(m[2], lang)}) is strong`,
+    }),
+  },
+  {
+    // Raja Yoga: the trikona lord and the kendra lord are linked.
+    re: /^([A-Z]+)_([A-Z]+)_link$/,
+    label: (m, lang) => ({
+      ta: `திரிகோண அதிபதி ${planetLabel(m[1], lang)} கேந்திர அதிபதி ${planetLabel(m[2], lang)} உடன் தொடர்பில் உள்ளார்`,
+      en: `The trikona lord (${planetLabel(m[1], lang)}) is linked with the kendra lord (${planetLabel(m[2], lang)})`,
+    }),
+  },
+  {
+    // Parivartana: two planets sit in each other's sign of rulership.
+    re: /^([a-z]+)_([a-z]+)_parivartana_link$/,
+    label: (m, lang) => ({
+      ta: `${planetLabel(m[1], lang)} மற்றும் ${planetLabel(m[2], lang)} ஒருவர் ராசியில் மற்றொருவர் — பரிவர்த்தனை`,
+      en: `${planetLabel(m[1], lang)} and ${planetLabel(m[2], lang)} each occupy the other's sign — a parivartana (mutual exchange)`,
+    }),
+  },
+  {
+    // Emitted as a lowercase, underscore-joined list of planets, so this can
+    // carry more than one: `combust_key_planet_mercury_venus`.
+    re: /^combust_key_planet_([a-z_]+)$/,
+    label: (m, lang) => {
+      const names = m[1].split("_").filter(Boolean).map((p) => planetLabel(p, lang));
+      const joined = lang === "ta" ? names.join(", ") : names.join(" and ");
+      return {
+        ta: `${joined} அஸ்தங்கம் அடைந்துள்ளது — சூரியனுக்கு மிக அருகில் இருப்பதால் பலன் குறைகிறது`,
+        en: `${joined} ${names.length > 1 ? "are" : "is"} combust (asthangamam) — too close to the Sun to give results freely`,
+      };
+    },
+  },
+];
+
+export function markerLabel(marker: string, lang: Lang): string {
+  const entry = MARKER_LABELS[marker];
+  if (entry) return lang === "ta" ? entry.ta : entry.en;
+  for (const rule of MARKER_PATTERNS) {
+    const m = marker.match(rule.re);
+    if (m) {
+      const built = rule.label(m, lang);
+      return lang === "ta" ? built.ta : built.en;
+    }
+  }
+  return marker.replaceAll("_", " ");
 }
 
 // ── What is this yoga/dosham — plain explanation ─────────────────────────────
@@ -142,7 +273,7 @@ const YOGA_WHAT: Record<string, { ta: string; en: string }> = {
   },
 };
 
-const DOSHAM_WHAT: Record<string, { ta: string; en: string }> = {
+export const DOSHAM_WHAT: Record<string, { ta: string; en: string }> = {
   SEVVAI_DOSHAM: {
     ta: "செவ்வாய் (Mars) லக்னம், சந்திரன், அல்லது சுக்கிரனிலிருந்து 2, 4, 7, 8, அல்லது 12-ம் வீட்டில் இருக்கும்போது உருவாகும் பாரம்பரிய திருமண பொருத்த சுட்டி. இது ஒரு சாத்தியமான தாக்கம் மட்டுமே — நிவர்த்தி காரணங்கள் இருந்தால் தீவிரம் மிகவும் குறையும்.",
     en: "A traditional marriage-compatibility sensitivity indicator formed when Mars is in the 2nd, 4th, 7th, 8th, or 12th from your Lagna, Moon, or Venus. It is a tendency signal only — cancellation factors can significantly reduce its intensity.",
@@ -226,13 +357,25 @@ const YOGA_WHAT_EXTRA: Record<string, { ta: string; en: string }> = {
   },
 };
 
-function getWhat(name: string, isYoga: boolean, lang: Lang, fallback?: { ta?: string; en?: string }): string {
+export function getWhat(
+  name: string,
+  isYoga: boolean,
+  lang: Lang,
+  fallback?: { ta?: string; en?: string },
+  effect?: { ta?: string; en?: string },
+): string {
   const key = name.toUpperCase();
   const entry = isYoga
     ? (YOGA_WHAT[key] ?? YOGA_WHAT[key.replace("GAJA_KESARI", "GAJA_KESARI_YOGA")] ?? YOGA_WHAT_EXTRA[key])
     : DOSHAM_WHAT[key];
   if (entry) return lang === "ta" ? entry.ta : entry.en;
-  // Fall back to the engine-authored description so nothing renders generic filler.
+  // Then the engine's plain-language *effect* — what the yoga is held to do.
+  // This covers every detectable yoga, so it is what most cards land on.
+  const eff = lang === "ta" ? effect?.ta : effect?.en;
+  if (eff && eff.trim()) return eff;
+  // Only then the engine description, which states the *mechanism*. For yogas
+  // like Sunapha that description is barely more than the name ("Sunapha
+  // Yoga."), which is exactly why effect is preferred above it.
   const fb = lang === "ta" ? fallback?.ta : fallback?.en;
   if (fb && fb.trim()) return fb;
   return lang === "ta" ? "பாரம்பரிய ஜோதிட சுட்டி." : "A traditional astrology indicator.";
@@ -240,7 +383,7 @@ function getWhat(name: string, isYoga: boolean, lang: Lang, fallback?: { ta?: st
 
 // ── "Why you have this" — builds from actual chart conditions ─────────────────
 
-function buildWhyText(
+export function buildWhyText(
   conditionsMet: string[],
   cancellationFactors: string[],
   isPresent: boolean,
@@ -313,7 +456,7 @@ function buildWhyText(
 
 // ── Outcomes, Remedies, and Enhancement advice ──────────────────────────────
 
-const YOGA_OUTCOMES: Record<string, { ta: string; en: string }> = {
+export const YOGA_OUTCOMES: Record<string, { ta: string; en: string }> = {
   GAJA_KESARI_YOGA: {
     ta: "இந்த யோகம் உள்ளவர்களுக்கு தொழில்முறை மரியாதை, நல்ல நினைவாற்றல், மக்கள் தொடர்பு திறன், சமூக அங்கீகாரம் ஆகியவை சாத்தியம். கல்வி, ஆலோசனை, பொது சேவை, கற்பித்தல் துறைகளில் சிறப்பாக செயல்படலாம்.",
     en: "People with this yoga may experience professional respect, strong memory, good public relations skills, and social recognition. They can excel in education, counseling, public service, and teaching roles.",
@@ -336,7 +479,7 @@ const YOGA_OUTCOMES: Record<string, { ta: string; en: string }> = {
   },
 };
 
-const YOGA_REMEDIES: Record<string, { ta: string; en: string }> = {
+export const YOGA_REMEDIES: Record<string, { ta: string; en: string }> = {
   GAJA_KESARI_YOGA: {
     ta: "வியாழக்கிழமை குரு வழிபாடு, மஞ்சள் வஸ்திரம் அணிவது, குரு மந்திரம் ஜபிப்பது (ஓம் குரவே நமஹ), தட்சிணாமூர்த்தி வழிபாடு, கல்வி நிறுவனங்களில் தானம் செய்வது.",
     en: "Jupiter worship on Thursdays, wearing yellow cloth, chanting Jupiter mantra (Om Gurave Namah), Dakshinamurti worship, donating to educational institutions.",
@@ -359,7 +502,7 @@ const YOGA_REMEDIES: Record<string, { ta: string; en: string }> = {
   },
 };
 
-const YOGA_HOW_TO: Record<string, { ta: string; en: string }> = {
+export const YOGA_HOW_TO: Record<string, { ta: string; en: string }> = {
   GAJA_KESARI_YOGA: {
     ta: "யோகத்தை பலப்படுத்த: குரு தசை காலத்தில் முக்கிய முடிவுகள் எடுங்கள், வியாழக்கிழமை விரதம், ஆசிரியர்கள்/வழிகாட்டிகளை மரியாதையுடன் நடத்துங்கள், நிலையான கல்வி தொடருங்கள். ஒரு தகுதியான மாணவரின் கல்வி அல்லது ஆசிரியர் மேம்பாட்டிற்கு நன்கொடை செய்வது இந்த யோகத்தின் அருளை மேலும் செயல்படுத்தும்.",
     en: "To strengthen this yoga: make major decisions during Jupiter Dasha, observe Thursday fasts, treat teachers and mentors with respect, continue lifelong learning. Sponsoring a deserving student's education or donating to a teacher welfare fund brings this yoga's blessings into action.",
@@ -382,7 +525,7 @@ const YOGA_HOW_TO: Record<string, { ta: string; en: string }> = {
   },
 };
 
-const DOSHAM_OUTCOMES: Record<string, { ta: string; en: string }> = {
+export const DOSHAM_OUTCOMES: Record<string, { ta: string; en: string }> = {
   SEVVAI_DOSHAM: {
     ta: "திருமண வாழ்க்கையில் உணர்வு ரீதியான கடுமை, சுதந்திரத்திற்கான ஆசை, சில நேரங்களில் சண்டை-சச்சரவு, துணையுடன் ஒத்துழைக்கும் சவால் ஆகியவை சாத்தியம். செவ்வாய் பலமாக இருந்தால் இவை ஆற்றலாக மாறும்.",
     en: "Emotional intensity in married life, desire for independence, occasional conflicts, and challenges in adjustment with partner are possible. When Mars is strong, these become energetic drive and assertiveness.",
@@ -408,12 +551,12 @@ const DOSHAM_OUTCOMES: Record<string, { ta: string; en: string }> = {
     en: "Possible delay in marriage, a need for extra care in choosing a partner, or adjustment/communication challenges after marriage. Tradition also notes attention to a partner's health. With full compatibility matching and cancellation factors present, these reduce considerably.",
   },
   PUTRA_SARPA_DOSHAM: {
-    ta: "குழந்தைப்பேறில் தாமதம் அல்லது மருத்துவ கவனம் தேவைப்படலாம்; படைப்புத் திறன், கல்வி, முதலீடு சம்பந்தப்பட்ட திட்டங்களில் தடைகள் வரலாம். வலுவான 5-ம் அதிபதி அல்லது குரு ஆதரவு இருந்தால் இவை மென்மையாகும்.",
-    en: "Possible delay or medical attention around having children; creative, educational, or speculative ventures may meet blocks. A strong 5th lord or Jupiter's support softens these.",
+    ta: "குழந்தைப்பேறில் தாமதம் அல்லது மருத்துவ கவனம் தேவைப்படலாம்; படைப்புத் திறன், கல்வி, முதலீடு சம்பந்தப்பட்ட திட்டங்களில் தடைகள் வரலாம். வலுவான 5-ம் அதிபதி அல்லது குரு ஆதரவு இருந்தால் இவை மென்மையாகும். இது ஒரு பாரம்பரிய சுட்டி மட்டுமே, மருத்துவ கணிப்பு அல்ல — பலர் பொறுமையுடனும் சரியான மருத்துவ கவனிப்புடனும் இயல்பாக கருத்தரிக்கின்றனர்.",
+    en: "Possible delay or medical attention around having children; creative, educational, or speculative ventures may meet blocks. A strong 5th lord or Jupiter's support softens these. This is a traditional reading, not a medical prediction — many people conceive naturally with time and the right care.",
   },
 };
 
-const DOSHAM_REMEDIES: Record<string, { ta: string; en: string }> = {
+export const DOSHAM_REMEDIES: Record<string, { ta: string; en: string }> = {
   SEVVAI_DOSHAM: {
     ta: "செவ்வாய்க்கிழமை திருவிடைமருதூர் அல்லது வைத்தீஸ்வரன் கோயில் வழிபாடு, முருகன் வழிபாடு, கரும்மாரியம்மன் வேண்டல், திருவெள்ளிக்கேணி வழிபாடு. ஒரே போன்ற செவ்வாய் நிலை உள்ள துணையை தேர்ந்தெடுப்பது பொருத்தத்தை சீர்படுத்தும்.",
     en: "Tuesday worship at Vaitheeswaran Koil or Thiruvidaimarudur, Murugan worship, Karumariamman vow, Thiruvellikeni visit. Choosing a partner with a similar Sevvai position can balance the compatibility.",
@@ -444,7 +587,7 @@ const DOSHAM_REMEDIES: Record<string, { ta: string; en: string }> = {
   },
 };
 
-const DOSHAM_HOW_TO: Record<string, { ta: string; en: string }> = {
+export const DOSHAM_HOW_TO: Record<string, { ta: string; en: string }> = {
   SEVVAI_DOSHAM: {
     ta: "தீவிரத்தை குறைக்க: திருமண பொருத்தம் முழுமையாக பார்க்கவும், நிவர்த்தி காரணங்கள் இருக்கின்றனவா சரிபார்க்கவும், வாழ்க்கையில் செவ்வாயின் ஆற்றலை விளையாட்டு/உடற்பயிற்சி/சாதனை வழியாக வெளிப்படுத்தவும்.",
     en: "To reduce impact: do thorough marriage compatibility matching, check for cancellation factors, channel Mars energy through sports/exercise/achievement in life rather than conflict.",
@@ -555,9 +698,8 @@ const DOSHAM_POWER_CONTEXT: Record<string, {
   },
 };
 
-function getYogaPowerContext(name: string, strength: string, dashaActivated: boolean, lang: Lang): string {
-  const key = name.toUpperCase().replace("GAJA_KESARI", "GAJA_KESARI_YOGA");
-  const entry = YOGA_POWER_CONTEXT[key];
+export function getYogaPowerContext(name: string, strength: string, dashaActivated: boolean, lang: Lang): string {
+  const entry = resolveYogaKey(YOGA_POWER_CONTEXT, name);
   if (!entry) {
     return lang === "ta"
       ? "இந்த யோகத்தின் தாக்கம் உங்கள் தற்போதைய தசை மற்றும் கிரகநகர்வு நிலையைப் பொறுத்து மாறுபடும்."
@@ -574,7 +716,7 @@ function getYogaPowerContext(name: string, strength: string, dashaActivated: boo
   return base;
 }
 
-function getDoshamPowerContext(dosham: ChartDoshamInsight, lang: Lang): string {
+export function getDoshamPowerContext(dosham: ChartDoshamInsight, lang: Lang): string {
   const key = dosham.name.toUpperCase();
   const entry = DOSHAM_POWER_CONTEXT[key];
   const label = dosham.label.toUpperCase();
@@ -605,7 +747,7 @@ function getDoshamPowerContext(dosham: ChartDoshamInsight, lang: Lang): string {
 
 // ── Strength display ──────────────────────────────────────────────────────────
 
-function strengthBand(strength: string, present: boolean, lang: Lang): string {
+export function strengthBand(strength: string, present: boolean, lang: Lang): string {
   if (!present) return lang === "ta" ? "செயல்பாட்டில் இல்லை" : "Not active";
   if (strength === "STRONG") return lang === "ta" ? "வலுவான" : "Strong";
   if (strength === "PARTIAL") return lang === "ta" ? "மிதமான" : "Moderate";
@@ -617,10 +759,10 @@ function strengthBand(strength: string, present: boolean, lang: Lang): string {
 function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
   const [open, setOpen] = useState(false);
   const color = yoga.isPresent
-    ? yoga.strength === "STRONG" ? "#5C7654"
-    : yoga.strength === "PARTIAL" ? "#B85A2C"
+    ? yoga.strength === "STRONG" ? "var(--chart-d9-active)"
+    : yoga.strength === "PARTIAL" ? "var(--color-mid)"
     : "var(--color-faint)"
-    : "#D4C8AE";
+    : "var(--color-border)";
 
   const whyText = buildWhyText(
     yoga.conditionsMet,
@@ -636,29 +778,29 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
     : null;
 
   const cardBg = yoga.isPresent
-    ? yoga.strength === "STRONG" ? "#DCE4D2"
-    : yoga.strength === "PARTIAL" ? "#F0D9C4"
-    : "#FAF5EA"
-    : "#FAF5EA";
+    ? yoga.strength === "STRONG" ? "var(--chart-d9-active-bg)"
+    : yoga.strength === "PARTIAL" ? "var(--chart-d1-lagna-bg)"
+    : "var(--color-surface-2)"
+    : "var(--color-surface-2)";
   const cardBorder = yoga.isPresent
-    ? yoga.strength === "STRONG" ? "rgba(92,118,84,0.35)"
-    : yoga.strength === "PARTIAL" ? "rgba(184,90,44,0.35)"
-    : "#D4C8AE"
-    : "#E4DBC8";
+    ? yoga.strength === "STRONG" ? "var(--color-high-border)"
+    : yoga.strength === "PARTIAL" ? "var(--color-mid-border)"
+    : "var(--color-border)"
+    : "var(--color-border)";
 
   return (
-    <div style={{ borderRadius: "var(--radius-md)", border: `1px solid ${cardBorder}`, background: "#FFFFFF", overflow: "hidden", fontFamily: "var(--font-body)" }}>
+    <Card style={{ display: "block", padding: 0, borderRadius: "var(--radius-md)", border: `1px solid ${cardBorder}`, overflow: "hidden", fontFamily: "var(--font-body)" }}>
       <button
         onClick={() => setOpen((v) => !v)}
         style={{ width: "100%", padding: "var(--space-4) var(--space-5)", background: cardBg, border: "none", cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-2_5)" }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flex: 1 }}>
-          <span style={{ fontSize: "0.875rem", color }}>{yoga.isPresent ? "★" : "○"}</span>
-          <span style={{ fontSize: "0.875rem", fontWeight: 600, color: yoga.isPresent ? "#1A1612" : "var(--color-faint)" }}>
+          <span style={{ fontSize: "var(--text-base)", color }}>{yoga.isPresent ? "★" : "○"}</span>
+          <span style={{ fontSize: "var(--text-base)", fontWeight: 600, color: yoga.isPresent ? "var(--color-text-strong)" : "var(--color-faint)" }}>
             {displayName(yoga.name, lang)}
           </span>
           {yoga.isPresent && yoga.dashaActivated && (
-            <span style={{ fontSize: "0.625rem", fontWeight: 700, color: "#B85A2C", border: "1px solid rgba(184,90,44,0.4)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)" }}>
+            <span style={{ fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-mid-text)", border: "1px solid var(--color-mid-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)" }}>
               {t("yoga_dasha_activated", lang)}
             </span>
           )}
@@ -667,24 +809,24 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
           {yoga.isPresent ? (
             <span
               title={lang === "ta" ? "ஜாதக பலம் (நேட்டல் சார்ட்)" : "Natal chart strength — how strong this yoga is in your birth chart"}
-              style={{ fontSize: "0.625rem", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2_5)" }}
+              style={{ fontSize: "var(--text-2xs)", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2_5)" }}
             >
               {strengthBand(yoga.strength, yoga.isPresent, lang)}
             </span>
           ) : (
-            <span style={{ fontSize: "0.625rem", color: "var(--color-faint)" }}>{t("yoga_absent", lang)}</span>
+            <span style={{ fontSize: "var(--text-2xs)", color: "var(--color-faint)" }}>{t("yoga_absent", lang)}</span>
           )}
           {yoga.isPresent && typeof yoga.activationScore === "number" && (
             <span
               title={lang === "ta" ? "இன்றைய செயல்பாட்டு மதிப்பெண் (தசை + கிரகநகர்வு)" : "Today's activation score — how strongly Dasha and transits are triggering this yoga now"}
               style={{
-                fontSize: "0.625rem",
+                fontSize: "var(--text-2xs)",
                 fontWeight: 700,
                 padding: "var(--space-0_5) var(--space-2)",
                 borderRadius: "var(--radius-pill)",
-                background: yoga.isCurrentlyActive ? "rgba(92,118,84,0.18)" : "var(--color-surface-soft)",
+                background: yoga.isCurrentlyActive ? "var(--color-high-bg)" : "var(--color-surface-soft)",
                 color: yoga.isCurrentlyActive ? "var(--color-score-high)" : "var(--color-faint)",
-                border: `1px solid ${yoga.isCurrentlyActive ? "rgba(92,118,84,0.4)" : "var(--color-border)"}`,
+                border: `1px solid ${yoga.isCurrentlyActive ? "var(--color-high-border)" : "var(--color-border)"}`,
                 flexShrink: 0,
               }}
             >
@@ -702,8 +844,8 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
             <p className="cd-kicker" style={{ letterSpacing: "0.08em" }}>
               {lang === "ta" ? "இது என்ன" : "What This Is"}
             </p>
-            <p style={{ margin: 0, fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.55 }}>
-              {getWhat(yoga.name, true, lang, { ta: yoga.descriptionTa, en: yoga.descriptionEn })}
+            <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
+              {getWhat(yoga.name, true, lang, { ta: yoga.descriptionTa, en: yoga.descriptionEn }, { ta: yoga.effectTa, en: yoga.effectEn })}
             </p>
           </div>
 
@@ -711,13 +853,13 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
             <p className="cd-kicker" style={{ letterSpacing: "0.08em" }}>
               {lang === "ta" ? "உங்கள் ஜாதகத்தில் ஏன்" : "Why Your Chart Has This"}
             </p>
-            <p style={{ margin: 0, fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.55 }}>
+            <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
               {whyText}
             </p>
             {yoga.isPresent && yoga.conditionsMet.length > 0 && (
-              <ul style={{ margin: "var(--space-2) 0 0", padding: "0 0 0 var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
+              <ul style={{ margin: "var(--space-2) 0 0", paddingLeft: "var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
                 {yoga.conditionsMet.map((c, i) => (
-                  <li key={i} style={{ fontSize: "0.75rem", color: "#5a4f42", lineHeight: 1.45 }}>{markerLabel(c, lang)}</li>
+                  <li key={i} style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.45 }}>{markerLabel(c, lang)}</li>
                 ))}
               </ul>
             )}
@@ -726,7 +868,7 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
                 <p
                   style={{
                     margin: "0 0 var(--space-1)",
-                    fontSize: "0.625rem",
+                    fontSize: "var(--text-2xs)",
                     fontWeight: 700,
                     color: "var(--color-faint)",
                     textTransform: "uppercase",
@@ -740,7 +882,7 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
                     key={factor}
                     style={{
                       margin: "var(--space-0_75) 0",
-                      fontSize: "0.875rem",
+                      fontSize: "var(--text-base)",
                       color: "var(--color-muted)",
                     }}
                   >
@@ -753,58 +895,57 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
           </div>
 
           {yoga.isPresent && (() => {
-            const key = yoga.name.toUpperCase().replace("GAJA_KESARI", "GAJA_KESARI_YOGA");
-            const outcomes = YOGA_OUTCOMES[key];
-            const howTo = YOGA_HOW_TO[key];
-            const remedies = YOGA_REMEDIES[key];
+            const outcomes = resolveYogaKey(YOGA_OUTCOMES, yoga.name);
+            const howTo = resolveYogaKey(YOGA_HOW_TO, yoga.name);
+            const remedies = resolveYogaKey(YOGA_REMEDIES, yoga.name);
             return (
               <>
                 {outcomes && (
                   <div>
-                    <p className="cd-kicker" style={{ color: "#5C7654", letterSpacing: "0.08em" }}>
+                    <p className="cd-kicker" style={{ color: "var(--chart-d9-active)", letterSpacing: "0.08em" }}>
                       {lang === "ta" ? "வாழ்க்கையில் என்ன தரும்" : "What This Brings"}
                     </p>
-                    <p style={{ margin: 0, fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.55 }}>
+                    <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
                       {lang === "ta" ? outcomes.ta : outcomes.en}
                     </p>
                   </div>
                 )}
                 {howTo && (
                   <div>
-                    <p className="cd-kicker" style={{ color: "#5C7654", letterSpacing: "0.08em" }}>
+                    <p className="cd-kicker" style={{ color: "var(--chart-d9-active)", letterSpacing: "0.08em" }}>
                       {lang === "ta" ? "யோகத்தை பலப்படுத்துவது எப்படி" : "How to Strengthen This Yoga"}
                     </p>
-                    <p style={{ margin: 0, fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.55 }}>
+                    <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
                       {lang === "ta" ? howTo.ta : howTo.en}
                     </p>
                   </div>
                 )}
                 {remedies && (
-                  <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", background: "#EEF6EA", border: "1px solid rgba(92,118,84,0.2)" }}>
-                    <p className="cd-kicker" style={{ color: "#5C7654", letterSpacing: "0.08em" }}>
+                  <Card variant="high" style={{ display: "block", padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)" }}>
+                    <p className="cd-kicker" style={{ color: "var(--chart-d9-active)", letterSpacing: "0.08em" }}>
                       {lang === "ta" ? "பரிகாரங்கள்" : "Remedies"}
                     </p>
-                    <p style={{ margin: 0, fontSize: "0.875rem", color: "#1A1612", lineHeight: 1.55 }}>
+                    <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text-strong)", lineHeight: 1.55 }}>
                       {lang === "ta" ? remedies.ta : remedies.en}
                     </p>
-                  </div>
+                  </Card>
                 )}
               </>
             );
           })()}
           {yoga.isPresent && powerText && (
-            <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", background: cardBg, border: `1px solid ${cardBorder}` }}>
+            <Card variant={yoga.strength === "STRONG" ? "high" : yoga.strength === "PARTIAL" ? "mid" : "soft"} style={{ display: "block", padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)" }}>
               <p className="cd-kicker" style={{ color, letterSpacing: "0.08em" }}>
                 {lang === "ta" ? "இப்போது என்ன செய்யலாம்" : "What It Can Do Now"}
               </p>
-              <p style={{ margin: 0, fontSize: "0.875rem", color: "#1A1612", lineHeight: 1.55 }}>
+              <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text-strong)", lineHeight: 1.55 }}>
                 {powerText}
               </p>
-            </div>
+            </Card>
           )}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -813,21 +954,47 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
 // Doshams carry no numeric field from the engine, so derive a 0–100 severity
 // from the same signals the yoga badge uses (strength band + dasha activation +
 // cancellation). This gives doshams a score on par with yogas so the UI is
-// consistent ("some have scores, some don't" → all do now).
-function doshamSeverityScore(dosham: ChartDoshamInsight): number | null {
+// consistent ("some have scores, some don't" -> all do now).
+export function doshamSeverityScore(dosham: ChartDoshamInsight): number | null {
   if (!dosham.isPresent) return null;
   let base = dosham.strength === "STRONG" ? 80 : dosham.strength === "PARTIAL" ? 55 : 35;
   if (dosham.dashaActivated) base += 10;
-  if (dosham.isCancelled) base = Math.round(base * 0.35); // mitigated → much lower
+  if (dosham.isCancelled) base = Math.round(base * 0.35); // mitigated -> much lower
   return Math.max(0, Math.min(100, base));
+}
+
+/**
+ * Qualitative severity band — what this data can actually support.
+ *
+ * `doshamSeverityScore` above is a step function over a THREE-level enum
+ * (`strength`) plus two booleans, so it can only ever emit about eight distinct
+ * values. Rendering one of them as "12/100" implied a continuous, computed
+ * precision that does not exist, and every mitigated-weak dosham in a chart
+ * landed on exactly 12 — which read to a reviewing astrologer as an
+ * uncomputed placeholder (2026-07-18). It was not a placeholder; it was real
+ * arithmetic presented at a resolution its inputs never had.
+ *
+ * The band below carries the same information without the false precision. The
+ * numeric function is kept (it still drives the meter width, where relative
+ * length is meaningful and an exact readout is not).
+ */
+export function doshamSeverityBand(
+  dosham: ChartDoshamInsight,
+  lang: Lang,
+): string | null {
+  const score = doshamSeverityScore(dosham);
+  if (score === null) return null;
+  if (score >= 70) return lang === "ta" ? "தீவிரம்: அதிகம்" : "High intensity";
+  if (score >= 40) return lang === "ta" ? "தீவிரம்: மிதமானது" : "Moderate intensity";
+  return lang === "ta" ? "தீவிரம்: குறைவு" : "Low intensity";
 }
 
 function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }) {
   const [open, setOpen] = useState(false);
   const isActiveAndPresent = dosham.isPresent && !dosham.isCancelled;
   const isCancelledAndPresent = dosham.isPresent && dosham.isCancelled;
-  const color = isActiveAndPresent ? "#A8482F" : isCancelledAndPresent ? "#5C7654" : "var(--color-faint)";
-  const severityScore = doshamSeverityScore(dosham);
+  const color = isActiveAndPresent ? "var(--planet-saturn)" : isCancelledAndPresent ? "var(--chart-d9-active)" : "var(--color-faint)";
+  const severityBand = doshamSeverityBand(dosham, lang);
 
   const statusLabel =
     !dosham.isPresent
@@ -852,11 +1019,11 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
   const triggerBullets = dosham.conditionsMet.filter((c) => !annotationMarkers.has(c));
   const attentionBullets = dosham.conditionsMet.filter((c) => annotationMarkers.has(c));
 
-  const cardBg = isActiveAndPresent ? "#F2D8CC" : isCancelledAndPresent ? "#DCE4D2" : "#FAF5EA";
-  const cardBorder = isActiveAndPresent ? "rgba(168,72,47,0.35)" : isCancelledAndPresent ? "rgba(92,118,84,0.35)" : "#E4DBC8";
+  const cardBg = isActiveAndPresent ? "var(--color-low-bg)" : isCancelledAndPresent ? "var(--chart-d9-active-bg)" : "var(--color-surface-2)";
+  const cardBorder = isActiveAndPresent ? "var(--color-mid-border)" : isCancelledAndPresent ? "var(--color-high-border)" : "var(--color-border)";
 
   return (
-    <div style={{ borderRadius: "var(--radius-md)", border: `1px solid ${cardBorder}`, background: "#FFFFFF", overflow: "hidden", fontFamily: "var(--font-body)" }}>
+    <Card style={{ display: "block", padding: 0, borderRadius: "var(--radius-md)", border: `1px solid ${cardBorder}`, overflow: "hidden", fontFamily: "var(--font-body)" }}>
       <button
         onClick={() => setOpen((v) => !v)}
         style={{ width: "100%", padding: "var(--space-4) var(--space-5)", background: cardBg, border: "none", cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-2_5)" }}
@@ -870,25 +1037,25 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
               : <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="2"/></svg>
             }
           </span>
-          <span style={{ fontSize: "0.875rem", fontWeight: 600, color: dosham.isPresent ? "#1A1612" : "var(--color-faint)" }}>
+          <span style={{ fontSize: "var(--text-base)", fontWeight: 600, color: dosham.isPresent ? "var(--color-text-strong)" : "var(--color-faint)" }}>
             {displayName(dosham.name, lang)}
           </span>
           {dosham.isPresent && dosham.dashaActivated && (
-            <span style={{ fontSize: "0.625rem", fontWeight: 700, color: "#B85A2C", border: "1px solid rgba(184,90,44,0.4)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)" }}>
+            <span style={{ fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-mid-text)", border: "1px solid var(--color-mid-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)" }}>
               {t("yoga_dasha_activated", lang)}
             </span>
           )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-1_5)", flexShrink: 0 }}>
-          <span style={{ fontSize: "0.625rem", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2_5)" }}>
+          <span style={{ fontSize: "var(--text-2xs)", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2_5)" }}>
             {statusLabel}
           </span>
-          {severityScore !== null && (
+          {severityBand !== null && (
             <span
               title={lang === "ta" ? "தீவிரம் — ஜாதக பலம் + தசை செயல்பாடு ஆகியவற்றின் அடிப்படையில்" : "Severity — based on natal strength + current Dasha activation"}
-              style={{ fontSize: "0.625rem", fontWeight: 700, padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", background: `${color}14`, color, border: `1px solid ${color}40`, flexShrink: 0 }}
+              style={{ fontSize: "var(--text-2xs)", fontWeight: 700, padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", background: `${color}14`, color, border: `1px solid ${color}40`, flexShrink: 0 }}
             >
-              {severityScore}/100
+              {severityBand}
             </span>
           )}
           <span style={{ color: "var(--color-faint)" }} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" width="12" height="12" style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 150ms ease" }}><path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
@@ -902,7 +1069,7 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
             <p className="cd-kicker" style={{ letterSpacing: "0.08em" }}>
               {lang === "ta" ? "இது என்ன" : "What This Is"}
             </p>
-            <p style={{ margin: 0, fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.55 }}>
+            <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
               {getWhat(dosham.name, false, lang, {
                 ta: dosham.explanationWhatTa || dosham.descriptionTa,
                 en: dosham.explanationWhatEn || dosham.descriptionEn,
@@ -914,16 +1081,16 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
             <p className="cd-kicker" style={{ letterSpacing: "0.08em" }}>
               {lang === "ta" ? "உங்கள் ஜாதகத்தில் ஏன்" : "Why Your Chart Has This"}
             </p>
-            <p style={{ margin: 0, fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.55 }}>{whyText}</p>
+            <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>{whyText}</p>
 
             {triggerBullets.length > 0 && (
               <div style={{ marginTop: "var(--space-2_5)" }}>
-                <p className="cd-kicker" style={{ color: "#A8482F", letterSpacing: "0.08em" }}>
+                <p className="cd-kicker" style={{ color: "var(--planet-saturn)", letterSpacing: "0.08em" }}>
                   {lang === "ta" ? "கிரக நிலைகள்" : "Planet Positions"}
                 </p>
-                <ul style={{ margin: 0, padding: "0 0 0 var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
+                <ul style={{ margin: 0, paddingLeft: "var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
                   {triggerBullets.map((c, i) => (
-                    <li key={i} style={{ fontSize: "0.75rem", color: "#5a4f42", lineHeight: 1.45 }}>{markerLabel(c, lang)}</li>
+                    <li key={i} style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.45 }}>{markerLabel(c, lang)}</li>
                   ))}
                 </ul>
               </div>
@@ -931,12 +1098,12 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
 
             {dosham.cancellationFactors.length > 0 && (
               <div style={{ marginTop: "var(--space-2_5)" }}>
-                <p className="cd-kicker" style={{ color: "#5C7654", letterSpacing: "0.08em" }}>
+                <p className="cd-kicker" style={{ color: "var(--chart-d9-active)", letterSpacing: "0.08em" }}>
                   {lang === "ta" ? "பாதுகாப்பு காரணங்கள்" : "Protective Factors"}
                 </p>
-                <ul style={{ margin: 0, padding: "0 0 0 var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
+                <ul style={{ margin: 0, paddingLeft: "var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
                   {dosham.cancellationFactors.map((c, i) => (
-                    <li key={i} style={{ fontSize: "0.75rem", color: "#5a4f42", lineHeight: 1.45 }}>{markerLabel(c, lang)}</li>
+                    <li key={i} style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.45 }}>{markerLabel(c, lang)}</li>
                   ))}
                 </ul>
               </div>
@@ -944,12 +1111,12 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
 
             {attentionBullets.length > 0 && (
               <div style={{ marginTop: "var(--space-2_5)" }}>
-                <p className="cd-kicker" style={{ color: "#B85A2C", letterSpacing: "0.08em" }}>
+                <p className="cd-kicker" style={{ color: "var(--color-mid-text)", letterSpacing: "0.08em" }}>
                   {lang === "ta" ? "கவன குறிப்பு" : "Attention Note"}
                 </p>
-                <ul style={{ margin: 0, padding: "0 0 0 var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
+                <ul style={{ margin: 0, paddingLeft: "var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-0_75)" }}>
                   {attentionBullets.map((c, i) => (
-                    <li key={i} style={{ fontSize: "0.75rem", color: "#5a4f42", lineHeight: 1.45 }}>{markerLabel(c, lang)}</li>
+                    <li key={i} style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.45 }}>{markerLabel(c, lang)}</li>
                   ))}
                 </ul>
               </div>
@@ -964,40 +1131,40 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
                 <>
                   {outcomes && dosham.isPresent && (
                     <div style={{ marginTop: "var(--space-2_5)" }}>
-                      <p className="cd-kicker" style={{ color: "#A8482F", letterSpacing: "0.08em" }}>
+                      <p className="cd-kicker" style={{ color: "var(--planet-saturn)", letterSpacing: "0.08em" }}>
                         {lang === "ta" ? "வாழ்க்கையில் என்ன ஆகலாம்" : "How This May Affect You"}
                       </p>
-                      <p style={{ margin: 0, fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.55 }}>
+                      <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
                         {lang === "ta" ? outcomes.ta : outcomes.en}
                       </p>
                     </div>
                   )}
                   {howTo && dosham.isPresent && (
                     <div style={{ marginTop: "var(--space-2_5)" }}>
-                      <p className="cd-kicker" style={{ color: "#5C7654", letterSpacing: "0.08em" }}>
+                      <p className="cd-kicker" style={{ color: "var(--chart-d9-active)", letterSpacing: "0.08em" }}>
                         {lang === "ta" ? "தாக்கத்தை குறைப்பது எப்படி" : "How to Reduce Impact"}
                       </p>
-                      <p style={{ margin: 0, fontSize: "0.875rem", color: "#3D352B", lineHeight: 1.55 }}>
+                      <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
                         {lang === "ta" ? howTo.ta : howTo.en}
                       </p>
                     </div>
                   )}
                   {remedies && dosham.isPresent && (
-                    <div style={{ marginTop: "var(--space-2_5)", padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", background: "#F8E4D2", border: "1px solid rgba(168,72,47,0.2)" }}>
-                      <p className="cd-kicker" style={{ color: "#A8482F", letterSpacing: "0.08em" }}>
+                    <Card variant="accent" style={{ display: "block", marginTop: "var(--space-2_5)", padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-mid-border)" }}>
+                      <p className="cd-kicker" style={{ color: "var(--planet-saturn)", letterSpacing: "0.08em" }}>
                         {lang === "ta" ? "பரிகாரங்கள்" : "Remedies"}
                       </p>
-                      <p style={{ margin: 0, fontSize: "0.875rem", color: "#1A1612", lineHeight: 1.55 }}>
+                      <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text-strong)", lineHeight: 1.55 }}>
                         {lang === "ta" ? remedies.ta : remedies.en}
                       </p>
-                    </div>
+                    </Card>
                   )}
                 </>
               );
             })()}
 
             {dosham.missingData && dosham.missingData.length > 0 && (
-              <p style={{ margin: "var(--space-2_5) 0 0", fontSize: "0.75rem", color: "var(--color-score-mid)", fontStyle: "italic", lineHeight: 1.5 }}>
+              <p style={{ margin: "var(--space-2_5) 0 0", fontSize: "var(--text-sm)", color: "var(--color-mid-text)", fontStyle: "italic", lineHeight: 1.5 }}>
                 {lang === "ta"
                   ? "குறிப்பு: பிறந்த நேரம் இல்லாததால் இந்த மதிப்பீடு தோராயமானது."
                   : "Note: this assessment is estimated because exact birth time is unavailable."}
@@ -1005,15 +1172,15 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
             )}
           </div>
 
-          <div style={{ padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", background: cardBg, border: `1px solid ${cardBorder}` }}>
+          <Card variant={isActiveAndPresent ? "low" : isCancelledAndPresent ? "high" : "soft"} style={{ display: "block", padding: "var(--space-3) var(--space-3_5)", borderRadius: "var(--radius-md)", border: `1px solid ${cardBorder}` }}>
             <p className="cd-kicker" style={{ color, letterSpacing: "0.08em" }}>
               {lang === "ta" ? "இப்போது என்ன பொருள்" : "What This Means For You Now"}
             </p>
-            <p style={{ margin: 0, fontSize: "0.875rem", color: "#1A1612", lineHeight: 1.55 }}>{powerText}</p>
-          </div>
+            <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text-strong)", lineHeight: 1.55 }}>{powerText}</p>
+          </Card>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -1028,7 +1195,7 @@ type Props = {
 export function YogaDoshamPanel({ lang, yogas, doshams }: Props) {
   if (yogas.length === 0 && doshams.length === 0) {
     return (
-      <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-faint)", fontFamily: "var(--font-body)" }}>
+      <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)", fontFamily: "var(--font-body)" }}>
         {t("yogas_empty", lang)}
       </p>
     );
@@ -1042,11 +1209,11 @@ export function YogaDoshamPanel({ lang, yogas, doshams }: Props) {
       {yogas.length > 0 && (
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2_5)", marginBottom: "var(--space-3)" }}>
-            <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 500, color: "#1A1612" }}>
+            <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 500, color: "var(--color-text-strong)" }}>
               {t("yogas_title", lang)}
             </p>
             {presentYogas.length > 0 && (
-              <span style={{ fontSize: "0.625rem", fontWeight: 700, color: "#5C7654", background: "#DCE4D2", border: "1px solid rgba(92,118,84,0.35)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)" }}>
+              <span style={{ fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--chart-d9-active)", background: "var(--chart-d9-active-bg)", border: "1px solid var(--color-high-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)" }}>
                 {presentYogas.length} {t("yoga_present", lang)}
               </span>
             )}
@@ -1060,7 +1227,7 @@ export function YogaDoshamPanel({ lang, yogas, doshams }: Props) {
 
       {doshams.length > 0 && (
         <div>
-          <p style={{ margin: "0 0 var(--space-3)", fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 500, color: "#1A1612" }}>
+          <p style={{ margin: "0 0 var(--space-3)", fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 500, color: "var(--color-text-strong)" }}>
             {t("doshams_title", lang)}
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>

@@ -2,16 +2,19 @@
 from __future__ import annotations
 
 from datetime import date, time
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
 
 from app.services.pdf_export_service import (
+    _section_couple_identity,
     _section_dasha,
     _section_planets,
     _styles,
     generate_chart_pdf,
+    generate_compatibility_intelligence_pdf,
+    generate_porutham_pdf,
 )
 
 pytestmark = pytest.mark.no_db
@@ -123,6 +126,30 @@ def test_section_dasha_contains_lord_names():
 
 
 # ---------------------------------------------------------------------------
+# _section_couple_identity — Rasi/Nakshatra/Lagna/Dasha for both people
+# ---------------------------------------------------------------------------
+
+def test_section_couple_identity_contains_rasi_nakshatra_and_dasha():
+    chart_a = _make_chart_response().data
+    chart_b = _make_chart_response().data
+    dasha_a = _make_dasha_response().data
+    dasha_b = _make_dasha_response().data
+    _, heading_s, body_s, _ = _styles()
+    elements = _section_couple_identity("Arjun Kumar", chart_a, dasha_a, "Anitha", chart_b, dasha_b, heading_s, body_s)
+    combined = " ".join(str(e) for e in elements)
+    assert "Arjun Kumar" in combined
+    assert "Anitha" in combined
+    assert "Rishabam" in combined  # the MOON planet's rasi_name in _make_chart_response
+    assert "ROHINI" in combined  # the MOON planet's nakshatra_name
+    assert "JUPITER" in combined  # current mahadasha lord
+
+
+def test_section_couple_identity_returns_empty_without_chart_data():
+    _, heading_s, body_s, _ = _styles()
+    assert _section_couple_identity("A", None, None, "B", None, None, heading_s, body_s) == []
+
+
+# ---------------------------------------------------------------------------
 # generate_chart_pdf — full mock
 # ---------------------------------------------------------------------------
 
@@ -166,3 +193,225 @@ def test_generate_chart_pdf_chart_not_found():
     with pytest.raises(HTTPException) as exc_info:
         generate_chart_pdf(session, uuid4(), date(2026, 5, 26))
     assert exc_info.value.status_code == 404
+
+
+def _make_compatibility_report():
+    from app.schemas.relationships import CompatibilityIntelligenceData
+
+    return CompatibilityIntelligenceData.model_validate({
+        "personAName": "Arjun Kumar",
+        "personBName": "Anitha",
+        "personAIdentity": {
+            "rasi": 1, "rasiName": "Mesham",
+            "nakshatra": 1, "nakshatraName": "ASWINI", "pada": 2,
+            "lagnaRasi": 4, "lagnaRasiName": "Kadagam",
+        },
+        "personBIdentity": {
+            "rasi": 7, "rasiName": "Thulam",
+            "nakshatra": 12, "nakshatraName": "UTTARA PHALGUNI", "pada": 1,
+            "lagnaRasi": 10, "lagnaRasiName": "Magaram",
+        },
+        "poruthamScore": 14,
+        "poruthamMax": 20,
+        "poruthamPercentage": 70.0,
+        "poruthamLabel": "GOOD",
+        "poruthamKutas": [
+            {"name": "Dinam", "nameTa": "தினம்", "score": 2, "maxScore": 3, "label": "Good"},
+            {"name": "Ganam", "nameTa": "கணம்", "score": 5, "maxScore": 6, "label": "Strong"},
+        ],
+        "rajjuDosha": False,
+        "vedhaDosha": False,
+        "nadiDosha": {
+            "boyNadi": "Madhya",
+            "girlNadi": "Adi",
+            "hasNadiDosha": False,
+            "cancellations": [],
+            "severity": "NONE",
+            "noteTa": "",
+            "noteEn": "No nadi dosha.",
+        },
+        "chartAStrength": {
+            "seventhHouseRasi": 7,
+            "seventhLord": "Venus",
+            "seventhLordHouse": 5,
+            "seventhLordStrength": 72,
+            "venusHouse": 2,
+            "venusStrength": 74,
+            "jupiterHouse": 9,
+            "jupiterStrength": 68,
+            "hasMaleficInSeventh": False,
+            "score": 8,
+            "noteEn": "Stable partnership indicators.",
+            "noteTa": "",
+        },
+        "chartBStrength": {
+            "seventhHouseRasi": 1,
+            "seventhLord": "Mars",
+            "seventhLordHouse": 7,
+            "seventhLordStrength": 66,
+            "venusHouse": 11,
+            "venusStrength": 70,
+            "jupiterHouse": 4,
+            "jupiterStrength": 63,
+            "hasMaleficInSeventh": False,
+            "score": 7,
+            "noteEn": "Good support for commitment.",
+            "noteTa": "",
+        },
+        "navamsa": {
+            "personAVenusD9": 2,
+            "personBVenusD9": 7,
+            "personASeventhLordD9": 5,
+            "personBSeventhLordD9": 9,
+            "harmonyLabel": "SUPPORTIVE",
+            "noteEn": "Navamsa supports emotional maturity.",
+            "noteTa": "",
+            "score": 15,
+        },
+        "sevvaiA": {
+            "hasDosham": False,
+            "marsHouse": 3,
+            "isCancelled": False,
+            "severity": "NONE",
+            "cancellationReasons": [],
+            "noteEn": "No dosham for person A.",
+            "noteTa": "",
+            "score": 5,
+        },
+        "sevvaiB": {
+            "hasDosham": True,
+            "marsHouse": 7,
+            "isCancelled": True,
+            "severity": "MILD",
+            "cancellationReasons": ["Mars in own sign"],
+            "noteEn": "Dosham is cancelled by chart support.",
+            "noteTa": "",
+            "score": 4,
+        },
+        "dashaHarmony": {
+            "personAMahaLord": "Jupiter",
+            "personAantarLord": "Moon",
+            "personAMahaEnd": "2031-04-01",
+            "personBMahaLord": "Venus",
+            "personBAntarLord": "Mercury",
+            "personBMahaEnd": "2030-09-12",
+            "harmonyLabel": "GOOD",
+            "noteEn": "Current periods support growth and clarity.",
+            "noteTa": "",
+            "score": 11,
+        },
+        "emotional": {
+            "moonMoonHarmony": "STRONG",
+            "venusMarsHarmony": "GOOD",
+            "communicationNote": "Clear and affectionate communication is likely.",
+            "noteEn": "Emotional rhythms are broadly aligned.",
+            "noteTa": "",
+            "score": 8,
+        },
+        "synastryScore": 71,
+        "overallScore": 78,
+        "overallLabel": "GOOD",
+        "scoreBreakdown": {
+            "porutham": 14,
+            "seventhHouse": 15,
+            "navamsa": 15,
+            "dashaHarmony": 11,
+            "doshamAnalysis": 9,
+            "emotional": 8,
+            "synastry": 4,
+        },
+        "strengthsEn": ["Shared values", "Supportive dasha overlap"],
+        "strengthsTa": [""],
+        "risksEn": ["Needs patience during stressful routines"],
+        "risksTa": [""],
+        "summary": {"ta": "", "en": "A balanced match with strong long-term support."},
+    })
+
+
+def test_generate_compatibility_intelligence_pdf_returns_bytes():
+    report = _make_compatibility_report()
+    result = generate_compatibility_intelligence_pdf(report, "Arjun Kumar", "Anitha")
+    assert isinstance(result, bytes)
+    assert len(result) > 100
+    assert result[:4] == b"%PDF"
+
+
+
+
+def _make_direct_porutham(rajju_dosha=False, vedha_dosha=False):
+    from app.schemas.relationships import DirectPoruthamData
+
+    return DirectPoruthamData.model_validate({
+        "chartIdA": str(uuid4()),
+        "chartIdB": str(uuid4()),
+        "boyNakshatra": 1,
+        "boyNakshatraName": "ASWINI",
+        "girlNakshatra": 4,
+        "girlNakshatraName": "ROHINI",
+        "kutas": [
+            {"name": "Dinam", "nameTa": "தினம்", "score": 1, "maxScore": 1, "label": "Good"},
+            {"name": "Ganam", "nameTa": "கணம்", "score": 1, "maxScore": 1, "label": "Good"},
+            {"name": "Rajju", "nameTa": "ரஜ்ஜு", "score": 0 if rajju_dosha else 1, "maxScore": 1, "label": "Caution" if rajju_dosha else "Good"},
+        ],
+        "totalScore": 7,
+        "maxScore": 10,
+        "percentage": 70.0,
+        "label": "GOOD",
+        "rajjuDosha": rajju_dosha,
+        "vedhaDosha": vedha_dosha,
+        "nadiDosha": {
+            "boyNadi": "Madhya",
+            "girlNadi": "Adi",
+            "hasNadiDosha": False,
+            "cancellations": [],
+            "severity": "NONE",
+            "noteTa": "",
+            "noteEn": "No nadi dosha.",
+        },
+        "summary": {"ta": "நல்ல பொருத்தம்.", "en": "A good match overall."},
+        "compatibilityContext": "MARRIAGE",
+        "contextNote": {"ta": "", "en": "Marriage context applied."},
+    })
+
+
+def test_generate_porutham_pdf_returns_bytes_en():
+    result = generate_porutham_pdf(_make_direct_porutham(), "Arjun Kumar", "Anitha", lang="en")
+    assert isinstance(result, bytes)
+    assert len(result) > 100
+    assert result[:4] == b"%PDF"
+
+
+def test_generate_porutham_pdf_returns_bytes_ta():
+    result = generate_porutham_pdf(_make_direct_porutham(), "Arjun Kumar", "Anitha", lang="ta")
+    assert isinstance(result, bytes)
+    assert len(result) > 100
+    assert result[:4] == b"%PDF"
+
+
+def test_generate_porutham_pdf_with_doshas():
+    result = generate_porutham_pdf(
+        _make_direct_porutham(rajju_dosha=True, vedha_dosha=True),
+        "Arjun Kumar",
+        "Anitha",
+        lang="ta",
+    )
+    assert isinstance(result, bytes)
+    assert result[:4] == b"%PDF"
+
+
+def test_generate_porutham_pdf_with_identity_still_builds():
+    """Widened signature (chart_a/chart_b/dasha_a/dasha_b, 2026-07 UX gap fix)
+    must still produce a valid PDF when the new optional args are supplied."""
+    result = generate_porutham_pdf(
+        _make_direct_porutham(),
+        "Arjun Kumar",
+        "Anitha",
+        lang="en",
+        chart_a=_make_chart_response().data,
+        chart_b=_make_chart_response().data,
+        dasha_a=_make_dasha_response().data,
+        dasha_b=_make_dasha_response().data,
+    )
+    assert isinstance(result, bytes)
+    assert len(result) > 100
+    assert result[:4] == b"%PDF"

@@ -1,0 +1,26 @@
+appId: ai.vinaadi.app
+---
+# Today tab: score ring and panchangam strip render (or skeleton shows without crash).
+- launchApp
+- waitForAnimationToEnd
+# Assumes user is already logged in from prior state.
+- tapOn:
+    anyOf:
+      - text: "Today"
+      - text: "இன்று"
+- waitForAnimationToEnd:
+    timeout: 6000
+# Score ring SVG is identified by its testID in ScoreRing component,
+# or we assert the surrounding screen doesn't show an error card.
+- assertNotVisible:
+    text: "Something went wrong"
+- assertNotVisible:
+    text: "பிழை ஏற்பட்டது"
+# Scroll down to confirm panchangam strip loaded.
+- scroll:
+    direction: DOWN
+    duration: 1000
+- waitForAnimationToEnd
+- scroll:
+    direction: UP
+    duration: 500

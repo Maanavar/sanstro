@@ -1,0 +1,2142 @@
+"""One muhurta scoring engine, with an optional personal layer.
+
+`subject=None` **is** general mode — every personal rule short-circuits and
+nothing else changes. There is no second code path to keep in sync; the two
+modes drifting apart is exactly how `_score_public_muhurta` and
+`find_best_muhurta_slots` ended up disagreeing.
+
+Design contract (see `docs/MUHURTA_MASTER_REMEDIATION_2026-08-14.md` §6):
+
+* **Pure.** No DB, no HTTP, no ephemeris calls — a snapshot in, a score out.
+  That is what makes it testable over a 60-day sweep without a database.
+* **Veto vs penalty are distinct.** A veto removes the day and names the factor
+  that killed it; a penalty is a weighted reduction that something else can
+  outweigh. They are never collapsed into one number, because some defects
+  (Chandrashtama) can never be numerically cancelled.
+* **Every factor reports itself.** `DayScore.factors` carries what fired, what
+  it contributed, and — where the rule came from a classical text — the
+  `rule_id` whose `RULE_SOURCES` record holds the page and passage. That is the
+  audit trail that lets the product answer "why did you allow Moolam?" with a
+  citation instead of a scoring opinion.
+* **Silence is never taken for approval.** An activity with no sourced rule
+  table does not quietly score as fine: `_nakshatra_factor` and friends emit an
+  explicit UNSOURCED verdict naming the gap. That gap is now smaller but has not
+  closed: MARRIAGE (Kalaprakasika Ch. XIV), the three samskaras (Ch. III-IV) and
+  the Ch. XXI treasure activities have primary-text tables; JOB_START, EXAM,
+  TRAVEL, MEDICAL, SPIRITUAL and the generic PURCHASE/INVESTMENT still do not,
+  and must not pretend otherwise.
+* **Sourced does not mean fully judged.** An activity's registry entry lists the
+  dimensions its chapter covers that this engine *cannot* check — house
+  occupancy, named yogas, day part. `unscored_dimensions_for` exposes them so a
+  surface can say what was left unexamined instead of implying the day passed
+  every rule on the page.
+
+Two layers, in evaluation order (`docs/MUHURTA_MASTER_REMEDIATION_2026-08-14.md`
+§6.2):
+
+* **L1 generic almanac** (`_almanac_*`) — rikta/subha tithi, the broad subha
+  nakshatra list, subha-muhurtham status, Amirdhadhi Yogam, Abhijit and Nalla
+  Neram. Runs for **every** activity, because "we have no table for gold" must
+  not mean "we have nothing to say about the day". Its factors are prefixed
+  `ALMANAC_` and carry no `rule_id`: they are almanac convention, not cited
+  doctrine.
+* **L2 activity doctrine** (`_nakshatra_factor`, `_tithi_factor`,
+  `_vara_factor`, `_lagna_sign_factor`) — the per-activity rules from the
+  classical text, cited. Deliberately named without the prefix and kept separate
+  from L1 so a UI can tell "Poosam is on the general auspicious list" apart from
+  "Kalaprakasika names Poosam best for this activity" — the second is a much
+  stronger claim.
+
+**RULE_PRECEDENCE across the layers: a generic almanac convention stands down
+where the activity's own chapter has ruled on the same fact.** L1 and L2 both
+contribute to one sum, so a fact both layers judge is a fact counted twice.
+Where the chapter is silent L1 is exactly the right fallback and applies in
+full; where the chapter speaks, the cited rule is the better authority *and* the
+better reason copy, and L1 returns `None` rather than adding a second chip
+naming the same cause. See `_almanac_tithi_factor` — Amavasai is the one place
+this bites today (`FCR-10`, 2026-08-27).
+
+L2 is table-driven off `app.data.muhurta_activity_registry` for every activity
+**except MARRIAGE**, which keeps its own branch. Marriage's tithi doctrine is
+paksha-conditional across three tiers, which the registry's flat shape cannot
+carry; flattening it would have been a silent re-scoring of every marriage day,
+so it was not done. Because marriage sits outside the registry, anything that
+asks the registry a question about an activity must decide what MARRIAGE means
+separately — `_activity_rules_on_amavasai` is the live example.
+
+This module is the **only** thing in the repo that scores a day for a muhurta
+(`docs/MUHURTA_MASTER_REMEDIATION_2026-08-14.md` §9.4). `muhurta_service.
+_score_panchangam` and `public_tools._score_public_muhurta` were two copies of
+L1 that had already drifted apart — they are gone, and this is where they
+landed. Do not add a third.
+
+**Provenance of the numbers.** Every weight in `_W` is `ENGINE_POLICY` —
+Vinaadi's product decision, not sastra. The classical texts rank factors
+(best / middling / avoid) without assigning arithmetic. Do not present these
+values to users as traditional, and do not tune them by fitting to a result we
+already like; they change only with a stated reason.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from enum import Enum
+
+from app.calculations.chart_strength import DEBILITATION_RASI
+from app.calculations.display_names import (
+    YOGA_NAME_EN,
+    YOGA_NAME_TA,
+    nakshatra_en,
+    nakshatra_ta,
+    rasi_en,
+    rasi_ta,
+    tithi_display,
+)
+from app.calculations.ephemeris import EphemerisBody
+from app.calculations.muhurta_doctrine import RuleSource
+from app.calculations.panchangam import (
+    RIKTA_TITHIS_IN_PAKSHA,
+    SUBHA_NAKSHATRA_NUMBERS,
+    SUBHA_TITHIS_KRISHNA,
+    SUBHA_TITHIS_SHUKLA,
+    amirdhadhi_yogam_class,
+)
+from app.calculations.tara_bala import TARA_SCORE, chandra_bala, tara_number
+from app.calculations.transits import is_cazimi, is_combust
+from app.data import marriage_muhurta_rules as marriage
+from app.data.muhurta_activity_registry import (
+    ACTIVITY_RULES,
+    RULE_SOURCE_TABLES,
+    ActivityRules,
+)
+
+
+class Verdict(str, Enum):  # noqa: UP042 — str-mixin enum kept; StrEnum changes str()/format() output
+    VETO = "VETO"
+    PENALTY = "PENALTY"
+    NEUTRAL = "NEUTRAL"
+    BONUS = "BONUS"
+    # The rule table for this activity has not been sourced yet. Distinct from
+    # NEUTRAL on purpose: "we checked and it is fine" and "we have nothing to
+    # check against" must never render as the same thing.
+    UNSOURCED = "UNSOURCED"
+
+
+@dataclass(frozen=True, slots=True)
+class Subject:
+    """The personal layer's entire input. `None` in place of one of these is
+    general mode — never a subject with placeholder values."""
+
+    janma_nakshatra: int          # 1..27
+    janma_rasi: int               # 1..12
+    lagna_rasi: int | None = None  # 1..12, for lagna-lord hora
+    maha_lord: str | None = None
+    antar_lord: str | None = None
+    label: str | None = None       # "Meera" — for copy; never used in scoring
+
+
+@dataclass(frozen=True, slots=True)
+class FactorResult:
+    factor: str
+    verdict: Verdict
+    contribution: float
+    reason_en: str
+    reason_ta: str
+    # Provenance link into `RULE_SOURCES` — present only when a classical rule
+    # decided this factor. `None` means engine heuristic, and the UI must not
+    # dress it up as sourced doctrine.
+    rule_id: str | None = None
+    # Set when two sourced rules both matched and the text does not settle which
+    # wins. Surfaced rather than silently resolved.
+    #
+    # No factor emits this today: the only user, marriage's tithi sweep, was
+    # ruled a specificity precedence rather than a contradiction (FCR-10d,
+    # 2026-08-27). Kept because the mechanism is the right one for the next
+    # genuinely unsettled page and it is already on the wire —
+    # `app.schemas.muhurta` serialises it, so dropping the field is a four-surface
+    # contract change, not a local cleanup.
+    conflict: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class DayScore:
+    score: float
+    vetoed: bool
+    factors: tuple[FactorResult, ...]
+
+    @property
+    def veto_reasons(self) -> tuple[FactorResult, ...]:
+        return tuple(f for f in self.factors if f.verdict is Verdict.VETO)
+
+
+# ── ENGINE_POLICY weights. Not doctrine. See module docstring. ──────────────
+class _W:
+    BASE = 50.0
+    # Engine policy: A-19 scales this full Janma-tara caution by the
+    # source-ruled 1.0 / .5 / .25 grade rather than vetoing every occurrence.
+    JANMA_TARA_FULL = -20.0
+    # The two chapters that REVERSE the janma-tara bar and call the count good
+    # (Ch. X p.62 mantra initiation, Ch. III p.32 first milk feeding).
+    #
+    # Deliberately NOT the mirror of JANMA_TARA_FULL. The book's prohibitions on
+    # this triad are stated with its strongest verbs -- "should be strictly
+    # avoided", "No manner of celebration should be held" -- while its two
+    # commendations are mild: "are beneficial", "will be good". Pricing a mild
+    # commendation like a grave prohibition would let one favourable tara
+    # outweigh a chapter's own star doctrine. Sized above VARA_GOOD (6) because
+    # the personal layer outranks a broad weekday preference in Tamil practice,
+    # and below NAKSHATRA_FAVOURED (14) because the chapter calls the day good,
+    # not best.
+    JANMA_TARA_FAVOURED = 8.0
+    # L1 generic almanac. These values are carried over unchanged from
+    # `muhurta_service._score_panchangam`, which is where they were tuned, so
+    # that folding the two former copies into one engine is not also a silent
+    # re-scoring of every day. The one place the two copies disagreed was
+    # Amavasai — see ALMANAC_AMAVASAI.
+    ALMANAC_RIKTA = -15.0
+    # `_score_panchangam` printed the Amavasai caution and scored it 0;
+    # `_score_public_muhurta` scored it -5. Resolved toward the penalty: a day
+    # we tell the user is "not ideal for new starts" and then score as though
+    # we had not is exactly the silence-taken-for-approval this module forbids.
+    #
+    # This is the **generic** almanac reading and it now applies only where the
+    # activity's own chapter does not rule on Amavasai — 6 of the 30 sourced
+    # activities, plus every unsourced one. For the other 24 the chapter governs
+    # alone; see `_almanac_tithi_factor` and `_activity_rules_on_amavasai`.
+    # MARRIAGE joined those 24 with FCR-10c and is no longer scored here. Left at
+    # -5 deliberately: standing L1 down already moved those days by +5, and
+    # retuning the generic weight in the same change would make it impossible to
+    # tell which edit moved a ranking.
+    ALMANAC_AMAVASAI = -5.0
+    ALMANAC_SUBHA_TITHI_SHUKLA = 10.0
+    ALMANAC_SUBHA_TITHI_KRISHNA = 8.0
+    ALMANAC_SUBHA_NAKSHATRA = 10.0
+    ALMANAC_SUBHA_MUHURTHAM = 20.0
+    ALMANAC_ABHIJIT = 5.0
+    ALMANAC_NALLA_NERAM = 5.0
+    # Amirdhadhi Yogam — the weekday x nakshatra classification Tamil almanacs
+    # print beside every date. Sized ABOVE the broad subha-star bonus (10) and
+    # level with the heaviest L2 star penalty, because the almanac tradition
+    # treats this as a day-selection gate rather than a preference: no printed
+    # panchangam offers a muhurtam on a Marana Yogam day. Prabalarishta is the
+    # fourth and worst class and is priced roughly double, matching how the
+    # source that supplied the table describes it.
+    ALMANAC_AMIRTHA_YOGAM = 12.0
+    ALMANAC_SIDDHA_YOGAM = 4.0
+    ALMANAC_MARANA_YOGAM = -16.0
+    ALMANAC_PRABALARISHTA_YOGAM = -30.0
+    # L2 activity doctrine.
+    NAKSHATRA_FAVOURED = 14.0
+    NAKSHATRA_NOT_LISTED = -6.0
+    # A star outside a list the chapter explicitly closed ("the remaining
+    # asterisms should be avoided"). Heavier than merely unlisted, and set level
+    # with TITHI_INAUSPICIOUS because both come from the same grade: a stated
+    # exclusion that carries no stated consequence.
+    NAKSHATRA_EXCLUDED = -14.0
+    TITHI_BEST = 10.0
+    TITHI_MIDDLING = 0.0
+    TITHI_INAUSPICIOUS = -14.0
+    # A known prohibited karana transition without a complete time schedule.
+    KARANA_TRANSITION = -10.0
+    LAGNA_BEST = 8.0
+    LAGNA_AVOID = -10.0
+    # Product heuristic approved by the owner, not a Kalaprakasika rule. It is
+    # applied only in the picker after the actual window lagna is known, and
+    # the service keeps it inside the result's existing display band.
+    WEALTH_HOUSE_HEURISTIC = 1.0
+    # A sourced weekday preference. Weaker than the star, which is why VARA_GOOD
+    # sits below NAKSHATRA_FAVOURED — Tamil practice ranks the star above the
+    # weekday, and three of these chapters name the same four benefic weekdays,
+    # so crediting the weekday heavily would flatten the ranking toward "any
+    # Monday or Thursday".
+    VARA_GOOD = 6.0
+    VARA_AVOID = -8.0
+    # The fortnight, where a chapter rules on it. Sized near the weekday: both
+    # are broad calendar preferences that would flatten the ranking if priced
+    # like a star, and half the days in any range share the verdict.
+    PAKSHA_PREFERRED = 6.0
+    PAKSHA_AGAINST = -8.0
+    CHANDRA_STRONG = 10.0
+    CHANDRA_BONUS = 5.0
+    CHANDRA_WEAK = -12.0
+    # Karaka transit dignity for acquisitions (A5). The *classification* is Tamil
+    # practice consensus, not a Kalaprakasika page: almanacs print குரு மௌட்யம் /
+    # சுக்ர மௌட்யம் as dated spans and offer no muhurtham inside them. Mapping it
+    # to numbers is engine policy, and each is anchored to an existing weight
+    # rather than chosen to produce a result:
+    #   COMBUST     — set to exactly cancel NAKSHATRA_FAVOURED (+14), so a fine
+    #                 star alone can never carry a purchase made while its karaka
+    #                 is invisible. Penalty, never veto: moudyam suspends
+    #                 samskaras in practice, but this factor scopes to purchases,
+    #                 and vetoing would blank ~2 months of every year.
+    #   DEBILITATED — level with LAGNA_AVOID (-10): the karaka is visible but
+    #                 cannot deliver quality.
+    #
+    # Retrogression is deliberately NOT penalised, though A5 lists it. Vakri is a
+    # *strength* in this codebase and in the classical rule behind it:
+    # `chart_strength._chesta_bala_score` returns its maximum (1.0 vs 0.6 direct)
+    # for a retrograde planet. Docking it here would put two engines in one app
+    # on opposite sides of the same condition, and a 2026-07-18 astrologer review
+    # already flagged mis-signed retrogression once (see the note above
+    # `planetary_wars` in that file). Tamil practice suspends muhurthams inside
+    # மௌட்யம், not inside a vakri period — no almanac blanks the four months a
+    # year Jupiter is retrograde.
+    KARAKA_COMBUST = -14.0
+    KARAKA_DEBILITATED = -10.0
+
+
+# Navatara quality. The adverse *classification* (Vipat 3 / Pratyak 5 / Vadha 7)
+# is practice consensus; mapping it to a number below is engine policy.
+#
+# Doctrine A-11 (ruled 2026-08-19) draws a line these three used to blur. The
+# *severe* taras — the ones that carry a scoring penalty — are 3/5/7 and only
+# those. But Janma tara (1) is commonly marked "not good" in general Tarabala
+# presentations, so a reader-facing panel may reasonably show it as unfavourable
+# without the engine treating it as a defect. Keep the two ideas separate: this
+# set governs scoring, `TARA_GENERAL_CAUTION` governs display, and
+# activity-specific rules decide how Janma is treated for a given beginning.
+_TARA_ADVERSE = frozenset({3, 5, 7})
+TARA_GENERAL_CAUTION = frozenset({1, 3, 5, 7})
+_TARA_NAMES: dict[int, tuple[str, str]] = {
+    1: ("ஜென்மம்", "Janma"), 2: ("சம்பத்", "Sampat"), 3: ("விபத்", "Vipat"),
+    4: ("க்ஷேமம்", "Kshema"), 5: ("பிரத்யரி", "Pratyari"), 6: ("சாதனை", "Sadhana"),
+    7: ("நைதனம்", "Naidhana"), 8: ("மித்திரம்", "Mitra"), 9: ("பரம மித்திரம்", "Parama Mitra"),
+}
+
+# Chandra Bala by house from Janma Rasi (spec Q5). Position 8 is Chandrashtama
+# and vetoes — practice consensus, and the most rigorously observed rule in
+# Tamil household practice. The rest of the mapping is engine policy.
+_CHANDRA_STRONG = frozenset({3, 6, 10, 11})
+_CHANDRA_BONUS = frozenset({1, 7})
+_CHANDRA_WEAK = frozenset({4, 12})
+_CHANDRASHTAMA = 8
+
+# Weekday names for the bilingual reason copy. Keyed by the uppercase English
+# name `PanchangamSnapshot.weekday` carries, so a Latin day name never lands
+# inside an otherwise-Tamil sentence.
+_WEEKDAY_TA: dict[str, str] = {
+    "MONDAY": "திங்கள்", "TUESDAY": "செவ்வாய்", "WEDNESDAY": "புதன்",
+    "THURSDAY": "வியாழன்", "FRIDAY": "வெள்ளி", "SATURDAY": "சனி", "SUNDAY": "ஞாயிறு",
+}
+
+# Activities with a primary-text rule table. Everything else scores on the
+# generic almanac layer and says so.
+#
+# MARRIAGE is listed separately because it is the one activity the engine still
+# handles by its own branch (see the module docstring); everything else arrives
+# through the registry, so this set never needs editing when a chapter is added.
+_MARRIAGE = "MARRIAGE"
+_SOURCED_ACTIVITIES: frozenset[str] = frozenset({_MARRIAGE}) | frozenset(ACTIVITY_RULES)
+# Public alias. `muhurta_service` builds its accepted-activity list from this so
+# an activity cannot be sourced by the engine and unreachable through the API —
+# which is what happened while `_ACTIVITY_LORDS` doubled as the validity check.
+SOURCED_ACTIVITIES: frozenset[str] = _SOURCED_ACTIVITIES
+
+
+# Every `RULE_SOURCES` table whose rule_ids this engine can emit. A factor's
+# `rule_id` is worthless to the product unless something can turn it back into a
+# page and a passage, so the lookup lives here beside the code that emits it —
+# and `tests/test_muhurta_engine.py` asserts every emitted id resolves. Add the
+# activity's table here in the same change that starts citing it.
+_RULE_SOURCE_TABLES: tuple[dict[str, RuleSource], ...] = (
+    marriage.RULE_SOURCES,
+    *RULE_SOURCE_TABLES,
+)
+
+
+def resolve_rule_source(rule_id: str) -> RuleSource | None:
+    """The `RuleSource` behind a factor's `rule_id`, or None for an unsourced id."""
+    for table in _RULE_SOURCE_TABLES:
+        found = table.get(rule_id)
+        if found is not None:
+            return found
+    return None
+
+
+def _in_paksha_tithi(tithi_number: int) -> int:
+    """1..30 tithi -> its 1..15 number within the paksha."""
+    return tithi_number if tithi_number <= 15 else tithi_number - 15
+
+
+def _ordinal(n: int) -> str:
+    """English ordinal for a house number. `f"{n}th"` produces "1th"/"2th"/"3th",
+    which reached the reason copy before this existed."""
+    if 11 <= (n % 100) <= 13:
+        return f"{n}th"
+    return f"{n}{ {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th') }"
+
+
+def _star(snapshot) -> tuple[str, str]:
+    """(en, ta) display names for the day's nakshatra.
+
+    Reason copy is bilingual, so the star must be too: `nakshatra_name.title()`
+    put a Latin "Aswini" inside an otherwise-Tamil sentence. Falls back to the
+    title-cased raw name only if the number is somehow off the 1..27 map, which
+    is a broken snapshot rather than a display choice.
+    """
+    fallback = str(snapshot.nakshatra_name).title()
+    number = snapshot.nakshatra_number
+    return (nakshatra_en(number) or fallback, nakshatra_ta(number) or fallback)
+
+
+def _tithi(snapshot) -> tuple[str, str]:
+    """(en, ta) display names for the day's tithi.
+
+    The snapshot's `tithi_name` is an uppercase code, so composing prose from it
+    put "CHATHURTHI" beside "Aswini" in English and a Latin word inside the
+    Tamil copy. Both come from the shared display table now.
+    """
+    number = snapshot.tithi_number
+    name_ta, name_en = tithi_display(number)
+    return (name_en, name_ta)
+
+
+# ── L1: generic almanac. Runs for every activity, sourced or not. ───────────
+
+def _activity_rules_on_amavasai(activity: str) -> bool:
+    """True when the activity's **own sourced chapter** has ruled on Amavasai.
+
+    Two ways a chapter can have ruled, and both must count or the generic line
+    speaks over a cited one:
+
+    * `tithi_avoid_amavasya` — the passage names the new moon (21 activities);
+    * `tithi_exhaustive` — the passage closes its list ("Other Thithis are not
+      to be considered"), which rules on *every* tithi including Amavasai
+      whether or not it is named. Ear-boring and the new-ornament rite are the
+      two, and without this branch they kept a redundant generic chip beside
+      their own veto.
+
+    MARRIAGE is the third way and is not in the registry at all: it keeps its own
+    branch, and since the astrologer ruling of 2026-08-28 that branch **vetoes**
+    Amavasai on the strength of Tamil practice ([TRADITION], no page — see
+    `marriage_muhurta_rules.MARRIAGE_AMAVASAI_IS_VETO`). The generic line has to
+    stand down here or the new moon is named twice for one fact — the marriage
+    veto and this gate move together, and neither is safe to change alone.
+    Unsourced activities are not in the registry either and correctly keep
+    the generic reading, which is why this is a MARRIAGE test and not a
+    `not in ACTIVITY_RULES` one.
+    """
+    if activity == _MARRIAGE:
+        return True
+    entry = ACTIVITY_RULES.get(activity)
+    if entry is None:
+        return False
+    # Mirrors `_registry_tithi_factor`'s own `has_rule` gate. Without it, an
+    # entry that declared a closed list but carried no tithi table would stand
+    # L1 down while L2 returned UNSOURCED, leaving Amavasai judged by *no*
+    # layer. No entry is shaped that way today; the failure would be silent if
+    # one ever were, which is reason enough to check.
+    has_rule = bool(entry.tithi_best or entry.tithi_avoid or entry.tithi_avoid_amavasya)
+    return has_rule and (entry.tithi_avoid_amavasya or entry.tithi_exhaustive)
+
+
+def _almanac_tithi_factor(snapshot, activity: str) -> FactorResult | None:
+    """The day's tithi judged by general almanac convention, not by any
+    activity's own table. Amavasai, Rikta and the broad subha lists are mutually
+    exclusive by construction (Amavasai is in-paksha 15; Rikta is 4/9/14), so
+    the branches below cannot double-count *each other*.
+
+    **Amavasai defers to the activity's own chapter** (`FCR-10`, 2026-08-27).
+    They could double-count across layers, and did: 21 of the 30 activities bind
+    `tithi_avoid_amavasya` to a sourced constant, so on Amavasai they were taking
+    this generic -5 *and* their own L2 verdict for one and the same fact —
+    -19 where the chapter grades a penalty, and for the four that veto, a
+    redundant -5 plus two reason chips both naming Amavasai. The chapter is the
+    better authority and carries a `rule_id`; the generic line stands down to
+    `None` and L2 speaks alone. Counting the two exhaustive-list chapters and
+    MARRIAGE (`FCR-10c`), 24 of the 30 now stand this line down.
+
+    Standing down deliberately returns `None` rather than falling through to the
+    neutral branch below: that branch's copy reads "neither a favoured nor an
+    avoided tithi by general almanac reckoning", which is false of Amavasai and
+    would contradict the L2 chip sitting beside it. `15` is not in
+    `SUBHA_TITHIS_KRISHNA`, so no fall-through could turn the penalty into a
+    bonus either — but the copy alone settles it.
+    """
+    tithi = snapshot.tithi_number
+    in_paksha = _in_paksha_tithi(tithi)
+    name_en, name_ta = _tithi(snapshot)
+
+    if tithi == 30:
+        if _activity_rules_on_amavasai(activity):
+            return None
+        return FactorResult(
+            factor="ALMANAC_TITHI",
+            verdict=Verdict.PENALTY,
+            contribution=_W.ALMANAC_AMAVASAI,
+            reason_en="Amavasai tithi — generally not ideal for new starts.",
+            reason_ta="அமாவாசை திதி — புதிய தொடக்கத்திற்கு ஏற்றதல்ல",
+        )
+
+    if in_paksha in RIKTA_TITHIS_IN_PAKSHA:
+        return FactorResult(
+            factor="ALMANAC_TITHI",
+            verdict=Verdict.PENALTY,
+            contribution=_W.ALMANAC_RIKTA,
+            reason_en=f"{name_en} is a Rikta tithi — generally avoided for auspicious starts.",
+            reason_ta=f"{name_ta} திதி — சுப நிகழ்வுகளுக்கு தவிர்க்கவும்",
+        )
+
+    is_krishna = snapshot.tithi_paksha == "KRISHNA"
+    if not is_krishna and in_paksha in SUBHA_TITHIS_SHUKLA:
+        return FactorResult(
+            factor="ALMANAC_TITHI",
+            verdict=Verdict.BONUS,
+            contribution=_W.ALMANAC_SUBHA_TITHI_SHUKLA,
+            reason_en=f"{name_en} in the waxing fortnight — a generally favourable tithi.",
+            reason_ta=f"சாதக திதி: {name_ta}",
+        )
+    if is_krishna and in_paksha in SUBHA_TITHIS_KRISHNA:
+        return FactorResult(
+            factor="ALMANAC_TITHI",
+            verdict=Verdict.BONUS,
+            contribution=_W.ALMANAC_SUBHA_TITHI_KRISHNA,
+            reason_en=f"{name_en} in the waning fortnight — a generally favourable tithi.",
+            reason_ta=f"சாதக திதி: {name_ta}",
+        )
+
+    return FactorResult(
+        factor="ALMANAC_TITHI",
+        verdict=Verdict.NEUTRAL,
+        contribution=0.0,
+        reason_en=f"{name_en} is neither a favoured nor an avoided tithi by general almanac reckoning.",
+        reason_ta=f"{name_ta} திதி — பொது பஞ்சாங்கப்படி நடுநிலை",
+    )
+
+
+def _almanac_nakshatra_factor(snapshot) -> FactorResult:
+    """The broad Thirukanitham subha-nakshatra list — activity-agnostic.
+
+    Distinct from `_nakshatra_factor`, which is the *activity's own* sourced
+    table. Both may fire on the same day and they are not the same claim: "a
+    generally auspicious star" is far weaker than "Kalaprakasika names this star
+    best for marriage", and collapsing them would overstate the second.
+    """
+    name_en, name_ta = _star(snapshot)
+    if snapshot.nakshatra_number in SUBHA_NAKSHATRA_NUMBERS:
+        return FactorResult(
+            factor="ALMANAC_NAKSHATRA",
+            verdict=Verdict.BONUS,
+            contribution=_W.ALMANAC_SUBHA_NAKSHATRA,
+            reason_en=f"{name_en} is on the general auspicious-star list.",
+            reason_ta=f"சுப நட்சத்திரம்: {name_ta}",
+        )
+    return FactorResult(
+        factor="ALMANAC_NAKSHATRA",
+        verdict=Verdict.NEUTRAL,
+        contribution=0.0,
+        reason_en=f"{name_en} is not on the general auspicious-star list.",
+        reason_ta=f"{name_ta} — பொது சுப நட்சத்திரப் பட்டியலில் இல்லை",
+    )
+
+
+def _almanac_day_quality_factor(snapshot) -> FactorResult:
+    if snapshot.is_subha_muhurtham:
+        return FactorResult(
+            factor="ALMANAC_DAY_QUALITY",
+            verdict=Verdict.BONUS,
+            contribution=_W.ALMANAC_SUBHA_MUHURTHAM,
+            reason_en="The almanac marks this a subha muhurtham day.",
+            reason_ta="சுப முகூர்த்த நாள்",
+        )
+    return FactorResult(
+        factor="ALMANAC_DAY_QUALITY",
+        verdict=Verdict.NEUTRAL,
+        contribution=0.0,
+        reason_en="The almanac does not mark this a subha muhurtham day.",
+        reason_ta="இந்நாள் சுப முகூர்த்த நாளாகக் குறிக்கப்படவில்லை",
+    )
+
+
+def _almanac_yoga_factor(snapshot) -> FactorResult:
+    """Names the day's yoga without judging it.
+
+    Deliberately zero-contribution and NEUTRAL. Both former copies of L1
+    appended `"Yoga: {name}"` to the *support* string unconditionally, so an
+    inauspicious yoga (Vyatipata, Vaidhriti) read to the user as a reason the
+    day was good. A yoga table graded for muhurta is not sourced yet, so the
+    honest move is to report the yoga and score nothing on it.
+    """
+    number: int | None = getattr(snapshot, "yoga_number", None)
+    name_en = (YOGA_NAME_EN.get(number) if number is not None else None) or str(snapshot.yoga_name or "").title()
+    name_ta = YOGA_NAME_TA.get(number) if number is not None else None
+    if not name_en:
+        return FactorResult(
+            factor="ALMANAC_YOGA",
+            verdict=Verdict.NEUTRAL,
+            contribution=0.0,
+            reason_en="No yoga recorded for this day.",
+            reason_ta="இந்நாளுக்கு யோகம் பதிவாகவில்லை",
+        )
+    return FactorResult(
+        factor="ALMANAC_YOGA",
+        verdict=Verdict.NEUTRAL,
+        contribution=0.0,
+        reason_en=f"Yoga is {name_en} — not graded for muhurta by any sourced table yet.",
+        # Named only when the Tamil table has it. A yoga number off the 1..27
+        # map means a broken snapshot, and dropping an English name into Tamil
+        # prose to cover for it is worse than the unnamed sentence.
+        reason_ta=(
+            f"யோகம்: {name_ta} — முகூர்த்தத்திற்கான தரவரிசை இன்னும் உறுதி செய்யப்படவில்லை"
+            if name_ta
+            else "இந்நாளின் யோகம் முகூர்த்தத்திற்கு இன்னும் தரவரிசைப்படுத்தப்படவில்லை"
+        ),
+    )
+
+
+# ── EC-A08: activity polarity ───────────────────────────────────────────────
+#
+# Muhurta rules are polarity-dependent, and the clearest statement of it in the
+# Tamil literature is about this very yoga: a "destructive" kala is not adverse
+# for an intent that is itself destructive. The source that supplies the Marana
+# Yogam rule says in the same breath that one may *repay a debt* on such a day,
+# with the belief that the debt relationship then ends, and generalises it —
+# "activities intended to terminate or cut off something may be done on such a
+# day."
+#
+# So the adverse classes below must be evaluated relative to intent, never
+# absolutely. Everything this engine currently scores is GROWTH / ACQUISITION /
+# UNION intent, which is why the set is empty rather than populated with
+# guesses: naming a child, boring ears, marrying, buying gold, taking possession
+# of land and storing treasure are all acquisitive or unitive acts.
+#
+# MEDICAL is the one live candidate and is deliberately NOT listed. A surgery is
+# terminative in one reading and restorative in another, the picker's MEDICAL
+# key covers both, and no sourced table settles it — adding it here would be
+# inventing the polarity rather than reading it. When an activity is added whose
+# intent really is terminative (debt closure, dissolving a partnership), it goes
+# here and the adverse classes stop counting against it.
+_TERMINATIVE_ACTIVITIES: frozenset[str] = frozenset()
+
+
+def _almanac_amirdhadhi_factor(snapshot, activity: str) -> FactorResult:
+    """The day's Amirdhadhi Yogam — Amirtha / Siddha / Marana / Prabalarishta.
+
+    **Which Marana this is** (EC-RULING-08's blocking question, answered here so
+    the next reader does not have to re-derive it). It is the **vara x nakshatra**
+    classification: a full 7 x 27 = 189-cell grid in
+    `panchangam.AMIRDHADHI_YOGAM_TABLE`, sourced from the Ungal Vazhkkai
+    Vazhikatti almanac and cross-checked against the publisher's own article and
+    the classical Dagdha set. It is emphatically NOT one of the 27 nithya yogas —
+    those are Vishkambha … Vaidhriti, live in `YOGA_NAMES`, and are handled by
+    `_almanac_yoga_factor`, which deliberately scores zero on them. Nor is it a
+    muhurta-specific Marana kalam; no such thing exists in this codebase.
+
+    **On the incidence.** The ruling flagged ~19% as not matching "7 fixed
+    weekday-nakshatra combinations". It does not, and should not: the grid holds
+    30 Amirtha, 115 Siddha, 37 Marana and 7 Prabalarishta cells, so adverse
+    classes are 44/189 = 23.3% of all weekday-star pairs, and a 90-day window
+    sampling 19% sits comfortably inside that. The "7" expectation most likely
+    comes from **Prabalarishta**, the fourth class, which has exactly one cell
+    per weekday — seven in total. For what it is worth the printed Marana list
+    in the source text is 22 combinations, not 7, so neither the engine nor the
+    book matches that framing.
+
+    Graded PENALTY, not VETO, per EC-RULING-08: promotion to L0 requires the
+    source to use explicit reject/no-remedy language with no exception clause in
+    that section, and absence of a spotted bhanga is not the same as the text
+    commanding rejection. Flipping it later is a one-constant change.
+    """
+    number = snapshot.nakshatra_number
+    try:
+        klass = amirdhadhi_yogam_class(snapshot.weekday, number)
+    except (KeyError, ValueError):
+        # A snapshot with an unrecognised weekday is broken, not a day with no
+        # yogam. Say nothing rather than score it.
+        return FactorResult(
+            factor="ALMANAC_AMIRDHADHI_YOGAM",
+            verdict=Verdict.NEUTRAL,
+            contribution=0.0,
+            reason_en="The day's Amirdhadhi Yogam could not be determined.",
+            reason_ta="இந்நாளின் அமிர்தாதி யோகத்தைக் கண்டறிய முடியவில்லை",
+        )
+
+    name_en, name_ta = _star(snapshot)
+    day_en = str(snapshot.weekday).title()
+    day_ta = _WEEKDAY_TA.get(str(snapshot.weekday).upper(), day_en)
+    terminative = activity in _TERMINATIVE_ACTIVITIES
+
+    if klass == "A":
+        return FactorResult(
+            factor="ALMANAC_AMIRDHADHI_YOGAM",
+            verdict=Verdict.BONUS,
+            contribution=_W.ALMANAC_AMIRTHA_YOGAM,
+            reason_en=f"{day_en} with {name_en} forms Amirtha Yogam — the almanac's best day class.",
+            reason_ta=f"{day_ta} + {name_ta} — அமிர்தயோகம், பஞ்சாங்கத்தின் சிறந்த நாள் வகை",
+        )
+    if klass == "C":
+        return FactorResult(
+            factor="ALMANAC_AMIRDHADHI_YOGAM",
+            verdict=Verdict.BONUS,
+            contribution=_W.ALMANAC_SIDDHA_YOGAM,
+            reason_en=f"{day_en} with {name_en} forms Siddha Yogam — a workable day class.",
+            reason_ta=f"{day_ta} + {name_ta} — சித்தயோகம், ஏற்புடைய நாள் வகை",
+        )
+
+    # Marana and Prabalarishta. Both are adverse for anything one begins in
+    # order to grow, and neither is adverse for an act meant to end something.
+    adverse_en = "Marana Yogam" if klass == "M" else "Prabalarishta Yogam"
+    adverse_ta = "மரணயோகம்" if klass == "M" else "பிரபலாரிஷ்ட யோகம்"
+    if terminative:
+        return FactorResult(
+            factor="ALMANAC_AMIRDHADHI_YOGAM",
+            verdict=Verdict.NEUTRAL,
+            contribution=0.0,
+            reason_en=(
+                f"{day_en} with {name_en} forms {adverse_en}, which counts against a new "
+                "undertaking but not against one meant to close something out."
+            ),
+            reason_ta=(
+                f"{day_ta} + {name_ta} — {adverse_ta}; புதிய தொடக்கத்திற்கு உகந்ததல்ல, "
+                "ஆனால் ஒன்றை முடிக்கும் செயலுக்குத் தடையல்ல"
+            ),
+        )
+    # ── 2026-08-27, astrologer ruling (§7 Q9). Prabalarishta is a VETO, not a
+    # graded penalty. ──
+    #
+    # The ratios asked about were fine: Amirtha +12 correctly sits above the
+    # broad subha-star +10 because the almanac treats the class as a
+    # day-selection gate; Siddha +4 is correctly small precisely BECAUSE it is
+    # the modal class in the 189-cell grid, so a larger value would be a
+    # constant offset rather than a discriminator; and Marana -16 against
+    # Amirtha +12 is correctly asymmetric, since a good day is a preference and
+    # a Marana day is a prohibition.
+    #
+    # Prabalarishta was the one that was wrong, and not by its size. The name
+    # says it: பிரபல ஆரிஷ்டம், *manifest* arishta. It is not a day the almanac
+    # grades down, it is a day the almanac does not offer. Priced at -30 from a
+    # base of 50 it opened at 20, and the L1+L2 bonuses available on a single
+    # day sum to +104 (subha tithi 10, subha nakshatra 10, subha muhurtham 20,
+    # Abhijit 5, Nalla Neram 5, nakshatra favoured 14, tithi best 10, lagna best
+    # 8, vara good 6, paksha preferred 6, chandra strong 10). Nothing in the
+    # arithmetic stopped a Prabalarishta day from ranking GOOD, or even BEST.
+    #
+    # The cost of vetoing is almost nothing: exactly 7 of the 189 cells are "P",
+    # one per weekday row — about 13 days a year. The same reasoning already
+    # governs Chandrashtama here ("the day is dropped, not merely docked,
+    # because no almanac strength offsets it"), and it applies with more force
+    # to the worst class in the table, not less.
+    #
+    # Marana stays a graded penalty at -16, and the `terminative` exemption
+    # above still clears BOTH classes for acts meant to end something — a veto
+    # that ignored that would be a harsher rule than the source states.
+    if klass == "P":
+        return FactorResult(
+            factor="ALMANAC_AMIRDHADHI_YOGAM",
+            verdict=Verdict.VETO,
+            contribution=_W.ALMANAC_PRABALARISHTA_YOGAM,
+            reason_en=(
+                f"{day_en} with {name_en} forms {adverse_en} — the almanac's worst day "
+                "class, and one no panchangam offers an auspicious undertaking on."
+            ),
+            reason_ta=(
+                f"{day_ta} + {name_ta} — {adverse_ta}; பஞ்சாங்கத்தின் மிக மோசமான நாள் வகை, "
+                "சுப காரியங்களுக்கு உகந்ததல்ல"
+            ),
+        )
+    return FactorResult(
+        factor="ALMANAC_AMIRDHADHI_YOGAM",
+        verdict=Verdict.PENALTY,
+        contribution=_W.ALMANAC_MARANA_YOGAM,
+        reason_en=(
+            f"{day_en} with {name_en} forms {adverse_en} — the almanac withholds "
+            "auspicious undertakings on this weekday-and-star combination."
+        ),
+        reason_ta=(
+            f"{day_ta} + {name_ta} — {adverse_ta}; இந்நாளில் சுப காரியங்கள் "
+            "தொடங்குவதை பஞ்சாங்கம் தவிர்க்கச் சொல்கிறது"
+        ),
+    )
+
+
+def _almanac_windows_factor(snapshot) -> FactorResult:
+    """Whether the day carries usable auspicious windows at all — Abhijit and
+    Nalla Neram. A day with neither has nowhere good to put the event."""
+    has_abhijit = snapshot.weekday != "WEDNESDAY" and not snapshot.abhijit_restricted
+    has_nalla_neram = bool(snapshot.nalla_neram)
+    contribution = (_W.ALMANAC_ABHIJIT if has_abhijit else 0.0) + (
+        _W.ALMANAC_NALLA_NERAM if has_nalla_neram else 0.0
+    )
+
+    parts_en = []
+    parts_ta = []
+    if has_abhijit:
+        parts_en.append("an Abhijit muhurta window")
+        parts_ta.append("அபிஜித் முகூர்த்தம்")
+    if has_nalla_neram:
+        parts_en.append("Nalla Neram slots")
+        parts_ta.append("நல்ல நேரம்")
+
+    if not parts_en:
+        return FactorResult(
+            factor="ALMANAC_WINDOWS",
+            verdict=Verdict.NEUTRAL,
+            contribution=0.0,
+            reason_en="This day carries neither an Abhijit window nor Nalla Neram slots.",
+            reason_ta="இந்நாளில் அபிஜித் முகூர்த்தமும் நல்ல நேரமும் இல்லை",
+        )
+    return FactorResult(
+        factor="ALMANAC_WINDOWS",
+        verdict=Verdict.BONUS,
+        contribution=contribution,
+        reason_en=f"This day carries {' and '.join(parts_en)}.",
+        reason_ta=f"இந்நாளில் {' மற்றும் '.join(parts_ta)} உள்ளது",
+    )
+
+
+# ── L2/L5: activity-specific almanac factors ────────────────────────────────
+
+def _rules(activity: str) -> ActivityRules | None:
+    """The registry entry for an activity, or None for MARRIAGE (own branch)
+    and for anything with no sourced table."""
+    return ACTIVITY_RULES.get(activity)
+
+
+def unscored_dimensions_for(activity: str) -> tuple[str, ...]:
+    """Dimensions this activity's chapter covers that the engine cannot check.
+
+    A day that clears every scored factor has *not* cleared the chapter, and a
+    surface that shows a sourced citation without saying so overstates what was
+    verified. Empty for MARRIAGE and for unsourced activities — in the first
+    case its gaps are recorded on `marriage_muhurta_rules.RULE_SOURCES`, in the
+    second there is nothing to be silent about.
+    """
+    entry = _rules(activity.upper())
+    return entry.unscored_dimensions if entry is not None else ()
+
+
+def _unsourced(
+    factor: str,
+    activity: str,
+    dimension_en: str,
+    dimension_ta_stem: str,
+    dimension_ta_noun: str,
+) -> FactorResult:
+    """The explicit "we have no table for this" verdict.
+
+    Deliberately not NEUTRAL: "we checked and it is fine" and "we have nothing
+    to check against" must never render the same way.
+
+    Tamil takes the dimension name twice in two different forms, and one
+    variable cannot serve both: the compound needs the adjectival stem
+    (நட்சத்திரப் பட்டியல்) while the standalone subject needs the nominative
+    (இந்நாளின் நட்சத்திரம்). Reusing the stem in the second slot produces
+    "இந்நாளின் நட்சத்திர இச்செயலுக்கு", which is ungrammatical — the same
+    case-inflection bug class this repo has hit before.
+    """
+    name = activity.replace("_", " ").title()
+    return FactorResult(
+        factor=factor,
+        verdict=Verdict.UNSOURCED,
+        contribution=0.0,
+        reason_en=(
+            f"No primary-text {dimension_en} list has been sourced for {name} yet — "
+            f"this day's {dimension_en} was not judged for this activity."
+        ),
+        reason_ta=(
+            f"{name} செயலுக்கான {dimension_ta_stem}ப் பட்டியல் இன்னும் மூல நூலிலிருந்து "
+            f"உறுதி செய்யப்படவில்லை — இந்நாளின் {dimension_ta_noun} இச்செயலுக்கு "
+            "மதிப்பிடப்படவில்லை."
+        ),
+    )
+
+
+def _nakshatra_factor(snapshot, activity: str) -> FactorResult:
+    if activity not in _SOURCED_ACTIVITIES:
+        return _unsourced("NAKSHATRA", activity, "nakshatra", "நட்சத்திர", "நட்சத்திரம்")
+    if activity != _MARRIAGE:
+        return _registry_nakshatra_factor(snapshot, activity)
+
+    number = snapshot.nakshatra_number
+    name_en, name_ta = _star(snapshot)
+    if number in marriage.MARRIAGE_NAKSHATRA_ALLOWED:
+        return FactorResult(
+            factor="NAKSHATRA",
+            verdict=Verdict.BONUS,
+            contribution=_W.NAKSHATRA_FAVOURED,
+            reason_en=f"{name_en} is among the eleven asterisms Kalaprakasika names best for marriage.",
+            reason_ta=f"கலப்பிரகாசிகை திருமணத்திற்குச் சிறந்ததெனக் கூறும் பதினொரு நட்சத்திரங்களுள் {name_ta} ஒன்று.",
+            rule_id="MARRIAGE_NAKSHATRA_ALLOWED_SET",
+        )
+    # The text lists the eleven as "best" and does not blanket-forbid the rest,
+    # so a non-listed star is a mild penalty, never a veto.
+    return FactorResult(
+        factor="NAKSHATRA",
+        verdict=Verdict.PENALTY,
+        contribution=_W.NAKSHATRA_NOT_LISTED,
+        reason_en=f"{name_en} is not among the eleven asterisms named best for marriage.",
+        reason_ta=f"திருமணத்திற்குச் சிறந்ததெனக் கூறப்பட்ட பதினொரு நட்சத்திரங்களுள் {name_ta} இல்லை.",
+        rule_id="MARRIAGE_NAKSHATRA_ALLOWED_SET",
+    )
+
+
+def _registry_nakshatra_factor(snapshot, activity: str) -> FactorResult:
+    """The activity's own sourced star lists, from the registry.
+
+    Three outcomes, and the gap between the second and third is the doctrine:
+
+    * **VETO** — the star is on a list the chapter *prohibits* with a stated
+      consequence. Only Annaprasana has one (Ch. III p.34: eight stars that
+      "will cause misery... one should not start any function of feeding on
+      those days"). Nothing else in the sourced tables forbids a star.
+    * **BONUS** — the star is on one of the activity's "best" lists. Which list
+      is named, because for cattle the difference between the buy-only six and
+      the buy-or-sell nine *is* the rule.
+    * **PENALTY** — the star is on neither. Mild, never a veto: none of these
+      chapters closes its star list, so an unlisted star is unlisted, not
+      forbidden.
+    """
+    entry = ACTIVITY_RULES[activity]
+    number = snapshot.nakshatra_number
+    name_en, name_ta = _star(snapshot)
+
+    if number in entry.prohibited_stars:
+        verdict = Verdict.VETO if entry.prohibited_stars_is_veto else Verdict.PENALTY
+        return FactorResult(
+            factor="NAKSHATRA",
+            verdict=verdict,
+            # A veto removes the day; pricing it as well would double-count it
+            # against a score nobody should rank on anyway.
+            contribution=0.0 if verdict is Verdict.VETO else _W.NAKSHATRA_NOT_LISTED,
+            reason_en=(
+                f"{name_en} is among the stars Kalaprakasika expressly forbids for "
+                f"{entry.label_en}."
+            ),
+            reason_ta=(
+                f"கலப்பிரகாசிகை {entry.label_ta} தவிர்க்கச் சொல்லும் நட்சத்திரங்களுள் "
+                f"{name_ta} ஒன்று."
+            ),
+            rule_id=entry.prohibited_stars_rule_id,
+        )
+
+    # Best tiers first: a star on both a best and a middling list takes the
+    # stronger reading, and ordering the scan this way makes that explicit
+    # rather than dependent on how the groups happen to be declared.
+    for group in entry.star_groups:
+        if group.tier != "BEST" or number not in group.stars:
+            continue
+        # GRAIN reaches its list through the chapter heading rather than a
+        # sentence naming grain, so its copy says "the chapter's list", not
+        # "the grain list". Overstating that inheritance is the one way this
+        # factor could lie.
+        hedge_en = (
+            " — the chapter names no star list for grain specifically"
+            if entry.stars_inherited_by_chapter_scope
+            else ""
+        )
+        return FactorResult(
+            factor="NAKSHATRA",
+            verdict=Verdict.BONUS,
+            contribution=_W.NAKSHATRA_FAVOURED,
+            reason_en=f"{name_en} is {group.what_en} in Kalaprakasika{hedge_en}.",
+            reason_ta=f"கலப்பிரகாசிகையில் {group.what_ta} நட்சத்திரங்களுள் {name_ta} ஒன்று.",
+            rule_id=group.rule_id,
+        )
+
+    # A middling star is *named* and approved — it is not the same as a star the
+    # chapter never mentions, so it scores neutral rather than taking the
+    # not-listed penalty below.
+    for group in entry.star_groups:
+        if group.tier == "BEST" or number not in group.stars:
+            continue
+        return FactorResult(
+            factor="NAKSHATRA",
+            verdict=Verdict.NEUTRAL,
+            contribution=0.0,
+            reason_en=f"{name_en} is {group.what_en} in Kalaprakasika.",
+            reason_ta=f"கலப்பிரகாசிகையில் {group.what_ta} நட்சத்திரங்களுள் {name_ta} ஒன்று.",
+            rule_id=group.rule_id,
+        )
+
+    if not entry.star_groups:
+        return _unsourced("NAKSHATRA", activity, "nakshatra", "நட்சத்திர", "நட்சத்திரம்")
+
+    # An unlisted star is only mildly against the day — unless the chapter shut
+    # the list ("the remaining asterisms should be avoided"), which turns silence
+    # into exclusion. Still a penalty, not a veto: these are bare imperatives
+    # with no stated consequence. See the registry's grading rule.
+    if entry.stars_exhaustive:
+        return FactorResult(
+            factor="NAKSHATRA",
+            verdict=Verdict.PENALTY,
+            contribution=_W.NAKSHATRA_EXCLUDED,
+            reason_en=(
+                f"{name_en} is outside the stars Kalaprakasika names for {entry.label_en}, "
+                "and the text closes that list — the remaining stars are to be avoided."
+            ),
+            reason_ta=(
+                f"{entry.label_ta} கலப்பிரகாசிகை கூறும் நட்சத்திரப் பட்டியலுக்கு வெளியே "
+                f"{name_ta} உள்ளது; எஞ்சியவை தவிர்க்கப்பட வேண்டும் என நூல் கூறுகிறது."
+            ),
+            rule_id=entry.star_groups[0].rule_id,
+        )
+
+    return FactorResult(
+        factor="NAKSHATRA",
+        verdict=Verdict.PENALTY,
+        contribution=_W.NAKSHATRA_NOT_LISTED,
+        reason_en=f"{name_en} is not among the stars named good for {entry.label_en}.",
+        reason_ta=f"{entry.label_ta} உகந்ததெனக் கூறப்பட்ட நட்சத்திரங்களுள் {name_ta} இல்லை.",
+        rule_id=entry.star_groups[0].rule_id,
+    )
+
+
+def _tithi_factor(snapshot, activity: str) -> FactorResult:
+    if activity not in _SOURCED_ACTIVITIES:
+        return _unsourced("TITHI", activity, "tithi", "திதி", "திதி")
+    if activity != _MARRIAGE:
+        return _registry_tithi_factor(snapshot, activity)
+
+    in_paksha = _in_paksha_tithi(snapshot.tithi_number)
+    is_krishna = snapshot.tithi_paksha == "KRISHNA"
+    name_en, name_ta = _tithi(snapshot)
+    is_best = in_paksha in marriage.MARRIAGE_TITHI_BEST
+    swept = is_krishna and in_paksha in marriage.MARRIAGE_TITHI_INAUSPICIOUS_KRISHNA_AFTER_ASHTAMI
+
+    if is_krishna and in_paksha == 15 and marriage.MARRIAGE_AMAVASAI_IS_VETO:
+        # ASTROLOGER RULING 2026-08-28 — Amavasai vetoes a marriage muhurta.
+        #
+        # This branch must stay ABOVE the p.79 sweep and must not borrow its
+        # rule id. The sweep now ends at in-paksha 14 (p.249 numbers thithis
+        # 1-14, with New-Moon and Full-Moon outside the numbered series), so
+        # p.79 has nothing to say about the new moon; the veto rests on Tamil
+        # practice and is marked [TRADITION] at its own record.
+        #
+        # Contribution is 0.0, as every veto's is: the day is already removed,
+        # and pricing it as well would double-count it. The rest of the factor
+        # list still scores, which is what makes the informational score under
+        # the veto meaningful.
+        return FactorResult(
+            factor="TITHI",
+            verdict=Verdict.VETO,
+            contribution=0.0,
+            reason_en=f"{name_en} — the new moon is not elected for marriage.",
+            reason_ta=f"{name_ta} — அமாவாசையில் திருமண முகூர்த்தம் வைப்பதில்லை.",
+            rule_id=marriage.MARRIAGE_AMAVASAI_VETO_RULE_ID,
+        )
+
+    if swept:
+        # "All the Thithis after Ashtami of Krishna Paksha are inauspicious" is
+        # the paksha-qualified — therefore more specific — statement, so it
+        # governs the dark fortnight (RULE_PRECEDENCE: specific over general).
+        #
+        # It overlaps the unqualified best-list on 10/11/13, which this branch
+        # used to report as an unresolved `conflict`. FCR-10d (2026-08-27) closed
+        # that: a general list meeting its own paksha-specific qualification is
+        # not a contradiction, so the sweep simply wins and nothing is surfaced.
+        # Shukla 10/11/13 never reach here and keep their best classification.
+        #
+        # The sweep ends at in-paksha 14 — this text numbers thithis 1-14 and
+        # bounds the fortnight with the New and Full Moon (p.249), so Amavasai
+        # is not in it and is vetoed by the branch above instead (astrologer
+        # ruling 2026-08-28, superseding FCR-10c). `_almanac_tithi_factor`
+        # stands its generic Amavasai line down for MARRIAGE because of that
+        # veto; the two move together.
+        return FactorResult(
+            factor="TITHI",
+            verdict=Verdict.PENALTY,
+            contribution=_W.TITHI_INAUSPICIOUS,
+            reason_en=f"{name_en} falls after Ashtami in the waning fortnight — inauspicious for marriage.",
+            reason_ta=f"தேய்பிறை அஷ்டமிக்குப் பின் வரும் {name_ta} திதி திருமணத்திற்கு உகந்ததல்ல.",
+            rule_id="MARRIAGE_TITHI_ALLOWED_SET",
+        )
+
+    if is_best:
+        return FactorResult(
+            factor="TITHI",
+            verdict=Verdict.BONUS,
+            contribution=_W.TITHI_BEST,
+            reason_en=f"{name_en} is among the seven tithis Kalaprakasika names best for marriage.",
+            reason_ta=f"கலப்பிரகாசிகை திருமணத்திற்குச் சிறந்ததெனக் கூறும் ஏழு திதிகளுள் {name_ta} ஒன்று.",
+            rule_id="MARRIAGE_TITHI_ALLOWED_SET",
+        )
+
+    middling = (
+        in_paksha in marriage.MARRIAGE_TITHI_MIDDLING_BOTH_PAKSHA
+        or (is_krishna and in_paksha in marriage.MARRIAGE_TITHI_MIDDLING_KRISHNA_ONLY)
+        or (not is_krishna and in_paksha in marriage.MARRIAGE_TITHI_MIDDLING_SHUKLA_ONLY)
+    )
+    if middling:
+        return FactorResult(
+            factor="TITHI",
+            verdict=Verdict.NEUTRAL,
+            contribution=_W.TITHI_MIDDLING,
+            reason_en=f"{name_en} is of middling influence for marriage.",
+            reason_ta=f"{name_ta} திதி திருமணத்திற்கு நடுத்தரமான பலனைத் தரும்.",
+            rule_id="MARRIAGE_TITHI_ALLOWED_SET",
+        )
+
+    return FactorResult(
+        factor="TITHI",
+        verdict=Verdict.NEUTRAL,
+        contribution=0.0,
+        reason_en=f"{name_en} is not named in the marriage tithi tiers.",
+        reason_ta=f"{name_ta} திதி திருமணத் திதிப் பட்டியலில் குறிப்பிடப்படவில்லை.",
+        rule_id="MARRIAGE_TITHI_ALLOWED_SET",
+    )
+
+
+def _registry_tithi_factor(snapshot, activity: str) -> FactorResult:
+    """The activity's own sourced tithi rule, from the registry.
+
+    The chapters state tithi doctrine in two opposite shapes and the difference
+    survives here rather than being normalised away:
+
+    * an **exclusion** list ("the Thithis to be avoided are…"), where everything
+      not excluded is positively auspicious — naming, Annaprasana, treasure;
+    * an **exhaustive inclusion** list ("…are favourable. Other Thithis are not
+      to be considered") — ear-boring, the only one in the sourced doctrine.
+
+    Whether the exclusion vetoes or merely penalises is read off the verb and
+    recorded per activity in the registry: "should be totally avoided" vetoes,
+    "all Thithis except X are auspicious" does not.
+    """
+    entry = ACTIVITY_RULES[activity]
+    tithi = snapshot.tithi_number
+    in_paksha = _in_paksha_tithi(tithi)
+    is_krishna = snapshot.tithi_paksha == "KRISHNA"
+    name_en, name_ta = _tithi(snapshot)
+
+    has_rule = bool(entry.tithi_best or entry.tithi_avoid or entry.tithi_avoid_amavasya)
+    if not has_rule:
+        return _unsourced("TITHI", activity, "tithi", "திதி", "திதி")
+
+    is_amavasya = tithi == 30
+    # Purnima is in-paksha 15 of the bright fortnight; Amavasya is in-paksha 15
+    # of the dark one. Checking `is_krishna` keeps the two apart, which matters
+    # because Annaprasana bans neither and naming bans both.
+    is_purnima = in_paksha == 15 and not is_krishna
+
+    banned = (
+        in_paksha in entry.tithi_avoid
+        or (is_purnima and entry.tithi_avoid_purnima)
+        or (is_amavasya and entry.tithi_avoid_amavasya)
+        or (entry.tithi_exhaustive and in_paksha not in entry.tithi_best)
+    )
+    if banned:
+        verdict = Verdict.VETO if entry.tithi_avoid_is_veto else Verdict.PENALTY
+        if entry.tithi_exhaustive:
+            reason_en = (
+                f"{name_en} is outside the nine tithis Kalaprakasika lists for {entry.label_en}, "
+                "and the text closes that list — other tithis are not to be considered."
+            )
+            reason_ta = (
+                f"{entry.label_ta} கலப்பிரகாசிகை கூறும் திதிப் பட்டியலுக்கு வெளியே "
+                f"{name_ta} உள்ளது; பிற திதிகள் கணக்கில் கொள்ளப்படக் கூடாது என நூல் கூறுகிறது."
+            )
+        else:
+            reason_en = f"{name_en} is among the tithis Kalaprakasika says to avoid for {entry.label_en}."
+            reason_ta = f"கலப்பிரகாசிகை {entry.label_ta} தவிர்க்கச் சொல்லும் திதிகளுள் {name_ta} ஒன்று."
+        return FactorResult(
+            factor="TITHI",
+            verdict=verdict,
+            contribution=0.0 if verdict is Verdict.VETO else _W.TITHI_INAUSPICIOUS,
+            reason_en=reason_en,
+            reason_ta=reason_ta,
+            rule_id=entry.tithi_rule_id,
+        )
+
+    if in_paksha in entry.tithi_best:
+        return FactorResult(
+            factor="TITHI",
+            verdict=Verdict.BONUS,
+            contribution=_W.TITHI_BEST,
+            reason_en=f"{name_en} is among the tithis Kalaprakasika names favourable for {entry.label_en}.",
+            reason_ta=f"கலப்பிரகாசிகை {entry.label_ta} உகந்ததெனக் கூறும் திதிகளுள் {name_ta} ஒன்று.",
+            rule_id=entry.tithi_rule_id,
+        )
+
+    if entry.tithi_remainder_auspicious and in_paksha != 15:
+        # "All Thithis except X are auspicious" makes the remainder positively
+        # good — a weaker claim than being named best, so it earns less.
+        #
+        # **The remainder stops short of the new and full moon** (`FCR-10`,
+        # 2026-08-27). Read without this guard the sentence certified Amavasai
+        # as auspicious for sowing — a +5 bonus on the new moon — because the
+        # chapter's short exclusion list happens not to name it. Amavasai and
+        # Pournami are their own category in every Tamil almanac, not two more
+        # entries in "all other tithis"; the generic subha lists this module
+        # already uses agree, admitting neither 15-shukla nor 15-krishna. A
+        # chapter that lists three tithis to avoid is not thereby blessing the
+        # new moon. They fall to NEUTRAL below and the generic L1 reading — the
+        # only layer that has actually judged them — stands.
+        return FactorResult(
+            factor="TITHI",
+            verdict=Verdict.BONUS,
+            contribution=_W.TITHI_BEST / 2,
+            reason_en=(
+                f"{name_en} is not among the tithis excluded for {entry.label_en}, and the text "
+                "calls every other tithi auspicious."
+            ),
+            reason_ta=(
+                f"{entry.label_ta} விலக்கப்பட்ட திதிகளுள் {name_ta} இல்லை; "
+                "மற்ற அனைத்து திதிகளும் உகந்தவை என நூல் கூறுகிறது."
+            ),
+            rule_id=entry.tithi_rule_id,
+        )
+
+    return FactorResult(
+        factor="TITHI",
+        verdict=Verdict.NEUTRAL,
+        contribution=0.0,
+        reason_en=f"{name_en} is not named either way in the {entry.label_en} tithi rule.",
+        reason_ta=f"{entry.label_ta} உரிய திதி விதியில் {name_ta} குறிப்பிடப்படவில்லை.",
+        rule_id=entry.tithi_rule_id,
+    )
+
+
+def _karana_factor(snapshot, activity: str) -> FactorResult | None:
+    """Judge cited karana exclusions without pretending a day has one karana.
+
+    A snapshot carries its active karana and the next one only. The source says
+    to avoid the karana at the elected moment, so the rule is VETO-class there.
+    At date-ranking scope, one prohibited side of the supplied transition is a
+    penalty: it identifies a period that needs time-level exclusion without
+    discarding the rest of the date. Only two adjacent prohibited karanas veto
+    the day. This is intentionally conservative and does not certify later
+    unrepresented transitions; window selection needs a full karana schedule.
+    """
+    entry = _rules(activity)
+    if entry is None or not entry.karana_avoid:
+        return None
+
+    current = snapshot.karana_name
+    following = snapshot.karana_next_name
+    current_avoided = current in entry.karana_avoid
+    next_avoided = following in entry.karana_avoid
+    if not current_avoided and not next_avoided:
+        return FactorResult(
+            factor="KARANA", verdict=Verdict.NEUTRAL, contribution=0.0,
+            reason_en="Neither of the snapshot's supplied karanas is excluded for this activity.",
+            reason_ta="பஞ்சாங்கத்தில் வழங்கப்பட்ட இரு கரணங்களிலும் இந்தச் செயலுக்குத் தவிர்க்கப்பட்ட கரணம் இல்லை.",
+            rule_id=entry.karana_rule_id,
+        )
+
+    current_en = current.replace("_", " ").title()
+    next_en = following.replace("_", " ").title() if following else "the next karana"
+    current_ta = "இந்தக் கரணம்"
+    next_ta = "அடுத்த கரணம்"
+    if current_avoided and next_avoided:
+        return FactorResult(
+            factor="KARANA", verdict=Verdict.VETO, contribution=0.0,
+            reason_en=(f"{current_en} and the following {next_en} are both excluded for "
+                       f"{entry.label_en}."),
+            reason_ta=(f"{current_ta} மற்றும் அடுத்த {next_ta} இரண்டும் "
+                       f"{entry.label_ta} தவிர்க்கப்பட வேண்டிய கரணங்கள்."),
+            rule_id=entry.karana_rule_id,
+        )
+    avoided_en = current_en if current_avoided else next_en
+    avoided_ta = current_ta if current_avoided else next_ta
+    return FactorResult(
+        factor="KARANA", verdict=Verdict.PENALTY, contribution=_W.KARANA_TRANSITION,
+        reason_en=(f"{avoided_en} is excluded for {entry.label_en} in one side of the "
+                   "snapshot's karana transition; choose a verified time outside it."),
+        reason_ta=(f"{avoided_ta} இந்தக் கரண மாற்றத்தின் ஒரு பகுதியில் {entry.label_ta} "
+                   "தவிர்க்கப்பட வேண்டியது; அதற்கு வெளியிலான சரிபார்க்கப்பட்ட நேரத்தைத் தேர்க."),
+        rule_id=entry.karana_rule_id,
+    )
+
+
+def _vara_factor(snapshot, activity: str) -> FactorResult | None:
+    """The day of the week, where the activity's chapter rules on it.
+
+    Returns None rather than an UNSOURCED factor when no weekday rule exists,
+    because — unlike nakshatra and tithi — a missing weekday table is not a gap
+    a reader would expect to be filled. MARRIAGE returns None too: Ch. XIV's
+    weekday guidance was not part of the Ch. XIV extraction, and inventing one
+    here would be exactly the drive-by doctrine this module forbids.
+
+    An activity's explicitly avoided weekday is a categorical date veto. This
+    remains activity-specific: some sources name Saturday favourable, so no
+    global Saturday rule exists.
+    """
+    weekday = str(snapshot.weekday).upper()
+    day_en = weekday.title()
+    day_ta = _WEEKDAY_TA.get(weekday, day_en)
+
+    # Product doctrine: Tuesday and Saturday are traditionally not selected for
+    # a Tamil marriage muhurta. This is intentionally separate from the
+    # Kalaprakasika extraction (which has no encoded marriage weekday table),
+    # so the response does not falsely present the custom as a sourced text
+    # citation. Like every explicit activity-weekday avoidance, it excludes the
+    # date from search results rather than merely lowering its score.
+    if activity == _MARRIAGE and weekday in {"TUESDAY", "SATURDAY"}:
+        return FactorResult(
+            factor="VARA",
+            verdict=Verdict.VETO,
+            contribution=0.0,
+            reason_en=f"{day_en} is traditionally avoided for a Tamil marriage muhurta.",
+            reason_ta=f"தமிழ் திருமண முகூர்த்தத்திற்கு {day_ta} பாரம்பரியமாகத் தவிர்க்கப்படும் நாள்.",
+        )
+
+    entry = _rules(activity)
+    if entry is None or not (entry.vara_good or entry.vara_avoid):
+        return None
+
+    if weekday in entry.vara_avoid:
+        return FactorResult(
+            factor="VARA",
+            verdict=Verdict.VETO if entry.vara_avoid_is_veto else Verdict.PENALTY,
+            contribution=0.0 if entry.vara_avoid_is_veto else _W.VARA_AVOID,
+            reason_en=f"{day_en} is a day Kalaprakasika says to avoid for {entry.label_en}.",
+            reason_ta=f"கலப்பிரகாசிகை {entry.label_ta} தவிர்க்கச் சொல்லும் நாள் {day_ta}.",
+            rule_id=entry.vara_rule_id,
+        )
+    if weekday in entry.vara_good:
+        # Where the chapter attaches a condition the snapshot cannot check, the
+        # weekday is still credited but the sentence says what was not verified.
+        # A half-met rule that reads as met is worse than no rule.
+        extra_en = f" ({entry.vara_unmet_condition_en})" if entry.vara_unmet_condition_en else ""
+        extra_ta = f" ({entry.vara_unmet_condition_ta})" if entry.vara_unmet_condition_ta else ""
+        return FactorResult(
+            factor="VARA",
+            verdict=Verdict.BONUS,
+            contribution=_W.VARA_GOOD,
+            reason_en=f"{day_en} is named good for {entry.label_en}{extra_en}.",
+            reason_ta=f"{entry.label_ta} உகந்த நாளெனக் கூறப்பட்டது {day_ta}{extra_ta}.",
+            rule_id=entry.vara_rule_id,
+        )
+    return FactorResult(
+        factor="VARA",
+        verdict=Verdict.NEUTRAL,
+        contribution=0.0,
+        reason_en=f"{day_en} is named neither good nor adverse for {entry.label_en}.",
+        reason_ta=f"{entry.label_ta} {day_ta} உகந்ததெனவோ தவிர்க்க வேண்டியதெனவோ கூறப்படவில்லை.",
+        rule_id=entry.vara_rule_id,
+    )
+
+
+def _lagna_sign_factor(snapshot, activity: str) -> FactorResult | None:
+    """Sunrise lagna only. A full-day lagna schedule (A3) does not exist yet, so
+    this judges the day's rising sign, not the rising sign at the candidate
+    minute — the reason text says so rather than implying a precision we lack."""
+    if activity not in _SOURCED_ACTIVITIES:
+        return None
+    if activity != _MARRIAGE:
+        return _registry_lagna_sign_factor(snapshot, activity)
+
+    rasi = snapshot.lagna_rasi_number
+    fallback = str(snapshot.lagna_rasi_name)
+    name_en = rasi_en(rasi) or fallback
+    name_ta = rasi_ta(rasi) or fallback
+    if rasi in marriage.MARRIAGE_LAGNA_BEST:
+        return FactorResult(
+            factor="LAGNA_SIGN_AT_SUNRISE",
+            verdict=Verdict.BONUS,
+            contribution=_W.LAGNA_BEST,
+            reason_en=f"{name_en} rises at sunrise — among the best marriage lagnas.",
+            reason_ta=f"சூரிய உதயத்தில் {name_ta} லக்னம் — திருமணத்திற்குச் சிறந்த லக்னங்களுள் ஒன்று.",
+            rule_id="MARRIAGE_LAGNA_SIGN_PREFERENCE",
+        )
+    if rasi in marriage.MARRIAGE_LAGNA_AVOID:
+        return FactorResult(
+            factor="LAGNA_SIGN_AT_SUNRISE",
+            verdict=Verdict.PENALTY,
+            contribution=_W.LAGNA_AVOID,
+            reason_en=f"{name_en} rises at sunrise — a marriage lagna the text says to avoid.",
+            reason_ta=f"சூரிய உதயத்தில் {name_ta} லக்னம் — திருமணத்தில் தவிர்க்கச் சொல்லப்பட்ட லக்னம்.",
+            rule_id="MARRIAGE_LAGNA_SIGN_PREFERENCE",
+        )
+    return FactorResult(
+        factor="LAGNA_SIGN_AT_SUNRISE",
+        verdict=Verdict.NEUTRAL,
+        contribution=0.0,
+        reason_en=f"{name_en} rises at sunrise — middling influence for marriage.",
+        reason_ta=f"சூரிய உதயத்தில் {name_ta} லக்னம் — திருமணத்திற்கு நடுத்தரமான பலன்.",
+        rule_id="MARRIAGE_LAGNA_SIGN_PREFERENCE",
+    )
+
+
+def limb_factors_at_window(snapshot, midpoint, activity: str) -> list[FactorResult]:
+    """Judge the selected window on the limbs actually in force *during it*.
+
+    `_karana_factor` above says plainly what it cannot do: "this is intentionally
+    conservative and does not certify later unrepresented transitions; window
+    selection needs a full karana schedule." The snapshot now carries that
+    schedule, so the picker can finally close the gap.
+
+    This matters because the picker already reads the lagna and the planets at
+    the window midpoint while every limb factor stayed pinned to sunrise — so it
+    could hand back a 16:00 window whose stated reason was "Swathi is on the
+    general auspicious-star list" on a day where Swathi ended at 06:47. The same
+    class of defect as the D1/D2/D3 hora-overlap bug fixed 2026-08-16: a window
+    certified by a reason that did not hold during it.
+
+    Returns an empty list when the snapshot has no spans (a pre-v43 cache
+    record), which leaves the caller on exactly its previous behaviour rather
+    than on a fabricated one.
+    """
+    results: list[FactorResult] = []
+
+    def _at(spans):
+        return next((span for span in spans if span.start <= midpoint < span.end), None)
+
+    karana_span = _at(snapshot.karana_spans)
+    entry = _rules(activity)
+    if karana_span is not None and entry is not None and entry.karana_avoid:
+        name_en = karana_span.name.replace("_", " ").title()
+        if karana_span.name in entry.karana_avoid:
+            # VETO-class here, unlike the day-level factor. The distinction is
+            # the source's own: it forbids the karana *at the elected moment*,
+            # and this is the elected moment — no longer a transition we can
+            # only half-see.
+            results.append(FactorResult(
+                factor="KARANA_AT_WINDOW",
+                verdict=Verdict.VETO,
+                contribution=0.0,
+                reason_en=(f"{name_en} runs through the selected window "
+                           f"({karana_span.start:%H:%M}–{karana_span.end:%H:%M}), and it is "
+                           f"excluded for {entry.label_en}."),
+                reason_ta=(f"தேர்ந்தெடுத்த நேரத்தில் {name_en} கரணம் "
+                           f"({karana_span.start:%H:%M}–{karana_span.end:%H:%M}) நடைபெறுகிறது; "
+                           f"{entry.label_ta} இது தவிர்க்கப்பட வேண்டியது."),
+                rule_id=entry.karana_rule_id,
+            ))
+        else:
+            results.append(FactorResult(
+                factor="KARANA_AT_WINDOW",
+                verdict=Verdict.NEUTRAL,
+                contribution=0.0,
+                reason_en=(f"{name_en} runs through the selected window and is not "
+                           f"excluded for {entry.label_en}."),
+                reason_ta=(f"தேர்ந்தெடுத்த நேரத்தில் {name_en} கரணம்; {entry.label_ta} "
+                           "இது தவிர்க்கப்பட்டதல்ல."),
+                rule_id=entry.karana_rule_id,
+            ))
+
+    star_span = _at(snapshot.nakshatra_spans)
+    if star_span is not None and star_span.number != snapshot.nakshatra_number:
+        # Not scored — the day's star factors already priced the star, and
+        # charging again here would double-count. This exists so the reason list
+        # cannot silently attribute the window to a star that had already ended.
+        day_en = nakshatra_en(snapshot.nakshatra_number) or str(snapshot.nakshatra_number)
+        win_en = nakshatra_en(star_span.number) or str(star_span.number)
+        day_ta = nakshatra_ta(snapshot.nakshatra_number) or day_en
+        win_ta = nakshatra_ta(star_span.number) or win_en
+        results.append(FactorResult(
+            factor="NAKSHATRA_AT_WINDOW",
+            verdict=Verdict.NEUTRAL,
+            contribution=0.0,
+            reason_en=(f"The day is named for {day_en} (the star at sunrise), but "
+                       f"{win_en} is what runs during the selected window."),
+            reason_ta=(f"இந்நாள் {day_ta} நட்சத்திரம் எனப் பெயரிடப்படுகிறது (உதய நட்சத்திரம்); "
+                       f"ஆனால் தேர்ந்தெடுத்த நேரத்தில் நடப்பது {win_ta}."),
+            rule_id="LIMB_AT_WINDOW_DISCLOSURE",
+        ))
+
+    return results
+
+
+def lagna_sign_factor_at_window(activity: str, rasi: int) -> FactorResult | None:
+    """Apply a sourced lagna-sign rule to the selected window's actual lagna.
+
+    The all-day engine deliberately does not call this: the expensive lagna
+    schedule is calculated only after the picker has shortlisted its dates.
+    """
+    entry = _rules(activity)
+    # Declared before the branch: the marriage arm binds a bare frozenset() and
+    # a str literal, which would otherwise fix `middling` as frozenset[Never]
+    # and `rule_id` as str — and the registry's lagna_rule_id is str | None,
+    # which FactorResult.rule_id accepts.
+    best: frozenset[int]
+    middling: frozenset[int]
+    avoid: frozenset[int]
+    rule_id: str | None
+    if activity == _MARRIAGE:
+        best, middling, avoid = marriage.MARRIAGE_LAGNA_BEST, frozenset(), marriage.MARRIAGE_LAGNA_AVOID
+        rule_id = "MARRIAGE_LAGNA_SIGN_PREFERENCE"
+        label_en, label_ta = "marriage", "திருமணம்"
+    elif entry is not None:
+        best, middling, avoid = entry.lagna_best, entry.lagna_middling, entry.lagna_avoid
+        rule_id = entry.lagna_rule_id
+        label_en, label_ta = entry.label_en, entry.label_ta
+    else:
+        return None
+    if not (best or middling or avoid):
+        return None
+
+    name_en = rasi_en(rasi) or str(rasi)
+    name_ta = rasi_ta(rasi) or str(rasi)
+    if rasi in avoid:
+        verdict, contribution = Verdict.PENALTY, _W.LAGNA_AVOID
+        reason_en = f"{name_en} rises during the selected window — a sign the text says to avoid for {label_en}."
+        reason_ta = f"தேர்ந்தெடுத்த நேரத்தில் {name_ta} லக்னம் — {label_ta} தவிர்க்கச் சொல்லப்பட்ட ராசி."
+    elif rasi in best:
+        verdict, contribution = Verdict.BONUS, _W.LAGNA_BEST
+        reason_en = f"{name_en} rises during the selected window — among the signs named best for {label_en}."
+        reason_ta = f"தேர்ந்தெடுத்த நேரத்தில் {name_ta} லக்னம் — {label_ta} சிறந்ததெனக் கூறப்பட்ட ராசிகளுள் ஒன்று."
+    elif rasi in middling:
+        verdict, contribution = Verdict.NEUTRAL, 0.0
+        reason_en = f"{name_en} rises during the selected window — of middling quality for {label_en}."
+        reason_ta = f"தேர்ந்தெடுத்த நேரத்தில் {name_ta} லக்னம் — {label_ta} நடுத்தரமான பலன்."
+    else:
+        verdict, contribution = Verdict.NEUTRAL, 0.0
+        reason_en = f"{name_en} rises during the selected window — the text names it neither way for {label_en}."
+        reason_ta = f"தேர்ந்தெடுத்த நேரத்தில் {name_ta} லக்னம் — {label_ta} நூல் இதைக் குறிப்பிடவில்லை."
+    return FactorResult(
+        factor="LAGNA_SIGN_AT_WINDOW",
+        verdict=verdict,
+        contribution=contribution,
+        reason_en=reason_en,
+        reason_ta=reason_ta,
+        rule_id=rule_id,
+    )
+
+
+_WEALTH_HEURISTIC_ACTIVITIES = frozenset({
+    "TREASURE_STORE",
+    "GOLD",
+    "GEMS",
+    "LAND_PURCHASE",
+    "LAND_POSSESSION",
+    "NEW_ORNAMENT",
+})
+_NATURAL_BENEFICS = frozenset({"JUPITER", "VENUS", "MERCURY"})
+_NATURAL_MALEFICS = frozenset({"SUN", "MARS", "SATURN", "RAHU", "KETU"})
+
+
+def wealth_house_heuristic_factor(
+    activity: str,
+    lagna_rasi: int,
+    bodies: dict[str, EphemerisBody],
+) -> FactorResult | None:
+    """Return the owner-approved, explicitly unsourced wealth-house bonus.
+
+    This deliberately evaluates only the agreed condition: an unafflicted
+    natural benefic in the 2nd or 11th from the *selected-window* lagna, with
+    no natural malefic in the 2nd. Sign dignity and aspect are not inferred.
+    The caller supplies planets at the recommended-window midpoint, preserving
+    this engine's no-ephemeris-call contract.
+    """
+    if activity not in _WEALTH_HEURISTIC_ACTIVITIES or not 1 <= lagna_rasi <= 12:
+        return None
+
+    second_rasi = (lagna_rasi % 12) + 1
+    eleventh_rasi = ((lagna_rasi + 9) % 12) + 1
+    sun = bodies.get("SUN")
+    if sun is None:
+        return None
+
+    # The approved condition requires the second house to be free of a natural
+    # malefic even if a qualifying benefic is found in the eleventh.
+    if any(body is not None and body.rasi == second_rasi for name in _NATURAL_MALEFICS if (body := bodies.get(name))):
+        return None
+
+    for benefic_name in _NATURAL_BENEFICS:
+        benefic = bodies.get(benefic_name)
+        if benefic is None or benefic.rasi not in {second_rasi, eleventh_rasi}:
+            continue
+        combust = is_combust(
+            benefic_name,
+            benefic.absolute_longitude,
+            sun.absolute_longitude,
+            benefic.is_retrograde,
+        ) and not is_cazimi(benefic_name, benefic.absolute_longitude, sun.absolute_longitude)
+        if combust:
+            continue
+        if any(
+            body is not None and body.rasi == benefic.rasi
+            for name in _NATURAL_MALEFICS
+            if (body := bodies.get(name))
+        ):
+            continue
+        return FactorResult(
+            factor="WEALTH_HOUSE_HEURISTIC",
+            verdict=Verdict.BONUS,
+            contribution=_W.WEALTH_HOUSE_HEURISTIC,
+            reason_en=(
+                "An unafflicted natural benefic occupies the 2nd or 11th from the selected lagna, "
+                "supporting this wealth purchase. This is a product heuristic, not a Kalaprakasika rule."
+            ),
+            reason_ta=(
+                "தேர்ந்தெடுத்த லக்னத்திலிருந்து 2 அல்லது 11ஆம் வீட்டில் பாதிப்பில்லாத சுபகிரகம் உள்ளது — "
+                "இந்தச் செல்வக் கொள்முதலுக்கு ஆதரவு. இது கலப்பிரகாசிகை விதியல்ல; செயலி வழிகாட்டல்."
+            ),
+        )
+    return None
+
+
+# A5 — the acquisition family, where Jupiter (dhana) and Venus (bhoga) are the
+# significators of the thing being acquired. Deliberately excludes the grain and
+# harvest activities: their doctrine is agricultural season, and no chapter makes
+# Venus the karaka of a granary.
+_KARAKA_ACTIVITIES = frozenset({
+    "TREASURE_STORE", "GOLD", "GEMS", "NEW_ORNAMENT", "NEW_CLOTHES",
+    "LAND_PURCHASE", "LAND_POSSESSION", "CATTLE_PURCHASE",
+    "PURCHASE", "INVESTMENT",
+})
+
+# Tamil takes each planet in two forms and one variable cannot serve both — the
+# case-inflection bug class this repo has already shipped once (see `_unsourced`).
+#
+# மௌட்யம் is the term Tamil almanacs print for the combust span, and it takes the
+# planet's COMPOUND form: "சுக்கிர மௌட்யம்", never "சுக்கிரன் மௌட்யம்". நீசம் and
+# every subject slot take the nominative back: "சுக்கிரன் நீசம்". Jupiter is
+# குரு in both, which is exactly why keeping one column would have looked correct
+# in review and been wrong only for Venus.
+#
+# The role is stored as an adjectival participle (காரகரான) because it qualifies
+# the planet that follows it — "செல்வத்தின் காரகரான குரு". All Tamil below is the
+# owner's own wording, approved 2026-08-18.
+_KARAKA_NAMES: dict[str, tuple[str, str, str, str, str]] = {
+    # planet -> (TA nominative, TA compound stem, EN name, TA role adjectival, EN role)
+    "JUPITER": ("குரு", "குரு", "Jupiter", "செல்வத்தின் காரகரான", "the karaka of wealth"),
+    "VENUS": ("சுக்கிரன்", "சுக்கிர", "Venus", "மதிப்புமிக்க பொருட்களின் காரகரான", "the karaka of valuables"),
+}
+
+
+def karaka_dignity_factors(
+    activity: str,
+    bodies: dict[str, EphemerisBody],
+) -> list[FactorResult]:
+    """A5 — the wealth karakas' transit condition on the candidate day.
+
+    An almanac can read perfectly while the very planet that signifies the thing
+    being bought is combust, retrograde or fallen. Tamil practice does not treat
+    that as neutral: no almanac prints a muhurtham inside குரு/சுக்ர மௌட்யம்.
+
+    **Provenance: practice consensus, not a Kalaprakasika page.** The reason copy
+    must never imply the text says this — the same standing this file already
+    gives `_TARA_ADVERSE` and `_CHANDRASHTAMA`. Severities are `_W` policy and
+    are anchored there.
+
+    At most one factor per karaka, combustion before fall, so a planet that is
+    both is docked once rather than compounded. Cazimi is not combustion and
+    earns no penalty at all — a planet in the Sun's heart gains. Retrogression is
+    deliberately absent; see `_W.KARAKA_COMBUST` for why A5's third condition is
+    not implemented. The caller supplies the planets, preserving this engine's
+    no-ephemeris-call contract.
+    """
+    if activity not in _KARAKA_ACTIVITIES:
+        return []
+    sun = bodies.get("SUN")
+    if sun is None:
+        return []
+
+    factors: list[FactorResult] = []
+    for planet, (name_ta, stem_ta, name_en, role_ta, role_en) in _KARAKA_NAMES.items():
+        body = bodies.get(planet)
+        if body is None:
+            continue
+
+        combust = is_combust(
+            planet, body.absolute_longitude, sun.absolute_longitude, body.is_retrograde,
+        ) and not is_cazimi(planet, body.absolute_longitude, sun.absolute_longitude)
+        if combust:
+            factors.append(FactorResult(
+                factor="KARAKA_DIGNITY",
+                verdict=Verdict.PENALTY,
+                contribution=_W.KARAKA_COMBUST,
+                # The English tracks the approved Tamil rather than the earlier
+                # "hidden in the Sun's glare": one card must not state two
+                # different reasons in two languages.
+                reason_en=(
+                    f"{name_en} is combust — {role_en} is so close to the Sun that it has lost "
+                    f"its natural strength."
+                ),
+                reason_ta=(
+                    f"{stem_ta} மௌட்யம் — {role_ta} {name_ta}, சூரியனுக்கு மிக அருகில் "
+                    f"இருப்பதால் தனது இயல்பான வலிமையை இழந்துள்ளார்."
+                ),
+            ))
+            continue
+
+        if DEBILITATION_RASI.get(planet) == body.rasi:
+            factors.append(FactorResult(
+                factor="KARAKA_DIGNITY",
+                verdict=Verdict.PENALTY,
+                contribution=_W.KARAKA_DEBILITATED,
+                reason_en=f"{name_en} is debilitated — {role_en} is in its own sign of fall.",
+                reason_ta=f"{name_ta} நீசம் — {role_ta} {name_ta}, தனது நீச ராசியில் உள்ளார்.",
+            ))
+    return factors
+
+
+def _registry_lagna_sign_factor(snapshot, activity: str) -> FactorResult | None:
+    """The activity's own sourced lagna-sign preference.
+
+    Graded PENALTY rather than VETO for the avoid set, following the precedent
+    `MARRIAGE_LAGNA_SIGN_PREFERENCE` already set: "should be avoided" is a
+    strong penalty, not automatically a hard veto.
+
+    Signs the chapter approves *conditionally* (Namakarana's common signs, good
+    only "when occupied by a benefic") score NEUTRAL with the condition spelled
+    out. Crediting them would claim a benefic placement nobody computed.
+    """
+    entry = _rules(activity)
+    if entry is None or not (entry.lagna_best or entry.lagna_avoid or entry.lagna_conditional):
+        return None
+
+    rasi = snapshot.lagna_rasi_number
+    fallback = str(snapshot.lagna_rasi_name)
+    name_en = rasi_en(rasi) or fallback
+    name_ta = rasi_ta(rasi) or fallback
+
+    if rasi in entry.lagna_avoid:
+        return FactorResult(
+            factor="LAGNA_SIGN_AT_SUNRISE",
+            verdict=Verdict.PENALTY,
+            contribution=_W.LAGNA_AVOID,
+            reason_en=f"{name_en} rises at sunrise — a sign the text says to avoid for {entry.label_en}.",
+            reason_ta=f"சூரிய உதயத்தில் {name_ta} லக்னம் — {entry.label_ta} தவிர்க்கச் சொல்லப்பட்ட ராசி.",
+            rule_id=entry.lagna_rule_id,
+        )
+    if rasi in entry.lagna_best:
+        return FactorResult(
+            factor="LAGNA_SIGN_AT_SUNRISE",
+            verdict=Verdict.BONUS,
+            contribution=_W.LAGNA_BEST,
+            reason_en=f"{name_en} rises at sunrise — among the signs named best for {entry.label_en}.",
+            reason_ta=f"சூரிய உதயத்தில் {name_ta} லக்னம் — {entry.label_ta} சிறந்ததெனக் கூறப்பட்ட ராசிகளுள் ஒன்று.",
+            rule_id=entry.lagna_rule_id,
+        )
+    if rasi in entry.lagna_conditional:
+        return FactorResult(
+            factor="LAGNA_SIGN_AT_SUNRISE",
+            verdict=Verdict.NEUTRAL,
+            contribution=0.0,
+            reason_en=(
+                f"{name_en} rises at sunrise — {entry.lagna_conditional_en or 'approved only conditionally'}."
+            ),
+            reason_ta=(
+                f"சூரிய உதயத்தில் {name_ta} லக்னம் — "
+                f"{entry.lagna_conditional_ta or 'நிபந்தனையுடன் மட்டுமே ஏற்கப்படும்'}."
+            ),
+            rule_id=entry.lagna_rule_id,
+        )
+    if rasi in entry.lagna_middling:
+        return FactorResult(
+            factor="LAGNA_SIGN_AT_SUNRISE",
+            verdict=Verdict.NEUTRAL,
+            contribution=0.0,
+            reason_en=f"{name_en} rises at sunrise — of middling quality for {entry.label_en}.",
+            reason_ta=f"சூரிய உதயத்தில் {name_ta} லக்னம் — {entry.label_ta} நடுத்தரமான பலன்.",
+            rule_id=entry.lagna_rule_id,
+        )
+    return FactorResult(
+        factor="LAGNA_SIGN_AT_SUNRISE",
+        verdict=Verdict.NEUTRAL,
+        contribution=0.0,
+        reason_en=f"{name_en} rises at sunrise — the text names it neither way for {entry.label_en}.",
+        reason_ta=f"சூரிய உதயத்தில் {name_ta} லக்னம் — {entry.label_ta} நூல் இதைக் குறிப்பிடவில்லை.",
+        rule_id=entry.lagna_rule_id,
+    )
+
+
+# ── L3/L4: personal layer. Only runs when a subject is supplied. ────────────
+
+def _janma_nakshatra_factor(snapshot, activity: str, subject: Subject) -> FactorResult | None:
+    """Activities whose chapter forbids the subject's own birth star.
+
+    Only Annaprasana states one (Ch. III p.34: "The child should not be fed for
+    the first time on a day ruled by its asterism at birth, for this will
+    shorten its life"). Personal-layer by nature — it needs a birth star — so it
+    is absent from general mode, which is the definition of that mode.
+
+    The reason copy names *whose* star was used. The picker's subject is the
+    chart owner's, which is exact when the chart is the child's and wrong when a
+    parent runs it against their own chart; saying which star was compared is
+    the difference between a checkable claim and a misleading one.
+    """
+    entry = _rules(activity)
+    if entry is None or not entry.janma_nakshatra_prohibited:
+        return None
+    if snapshot.nakshatra_number != subject.janma_nakshatra:
+        return None
+
+    # The fallback is bilingual, not one English string reused in both. The
+    # picker builds its `Subject` without a label, so the unlabelled path is the
+    # *production* path — a shared `or "this chart"` would put a Latin phrase
+    # inside the Tamil sentence on every real result, not just in a rare corner.
+    # A supplied label is a personal name and is printed as given in both.
+    who_en = subject.label or "this chart"
+    who_ta = f"{subject.label} " if subject.label else ""
+    star_en, star_ta = _star(snapshot)
+    return FactorResult(
+        factor="JANMA_NAKSHATRA",
+        verdict=Verdict.VETO,
+        contribution=0.0,
+        reason_en=(
+            f"{star_en} is {who_en}'s own birth star, and Kalaprakasika forbids "
+            f"{entry.label_en} on the birth star."
+        ),
+        reason_ta=(
+            f"{star_ta} {who_ta}ஜென்ம நட்சத்திரம்; ஜென்ம நட்சத்திர நாளில் "
+            f"{entry.label_ta} கூடாது என கலப்பிரகாசிகை கூறுகிறது."
+        ),
+        rule_id=entry.janma_nakshatra_rule_id,
+    )
+
+
+_JANMA_TARA_GRADES: dict[int, float] = {
+    1: 1.0,
+    10: 0.5,
+    # A-19 / ruling 3c (2026-08-28): the 19th is adverse as Thri-Jenma, the
+    # third occurrence of the birth star, not because it falls in Pariyaya.
+    19: 0.25,
+}
+
+
+def _janma_tara_naming(count: int) -> tuple[str, str]:
+    """How a tara count is named in reason copy, in both languages.
+
+    The book names only the janma / 10th / 19th triad — Jenma, Anu-Jenma,
+    Thri-Jenma (Ch. XVI p.92). Any other count is printed as a bare ordinal
+    rather than given an invented name.
+    """
+    named = {1: ("Jenma", "ஜென்ம"), 10: ("Anu-Jenma", "அனுஜென்ம"), 19: ("Thri-Jenma", "த்ரிஜென்ம")}
+    if count in named:
+        label_en, label_ta = named[count]
+        return (
+            f"{label_en}, the {_ordinal(count)} star from",
+            f"{label_ta} நட்சத்திரம் ({count}வது)",
+        )
+    return f"the {_ordinal(count)} star from", f"{count}வது நட்சத்திரம்"
+
+
+def _janma_tara_count_factor(snapshot, activity: str, subject: Subject) -> FactorResult | None:
+    """Counts from the subject's birth star that the chapter rules on.
+
+    The book's most-repeated personal rule: six chapters name a set of counts
+    from the native's own Jenma-Nakshathra and forbid days ruled by them. The
+    recurring core is janma / 10th / 19th, which Ch. XVI p.92 names outright as
+    Jenma, **Anu-Jenma** and **Thri-Jenma** — and that naming is what decodes the
+    same two ordinals where the scan garbles them (see the registry).
+
+    Graded VETO. Unlike the weekday and lagna imperatives this module downgrades
+    to penalties, these passages state a consequence or use the strongest verbs
+    the book has — "should be strictly avoided" (Ch. XVI p.92), "No manner of
+    celebration should be held" (Ch. VII p.50). It is also a *personal* rule, so
+    it can only ever remove days for one subject, never for everybody, and it is
+    absent from general mode by construction.
+
+    Two chapters REVERSE the bar and this factor carries both polarities, the
+    way `_paksha_factor` does. Ch. X p.62 calls the whole janma / Anu-Jenma /
+    Thri-Jenma triad "beneficial" for mantra initiation; Ch. III p.32 offers the
+    10th tara as the good fallback day for the first milk feeding. Those are
+    positive statements, not mere silence, so they score a bonus rather than
+    only cancelling a bar — and cancelling was all they could ever do before,
+    because neither chapter is among the six that state the bar, so the
+    subtraction they were wired into had an empty left-hand side and this factor
+    returned None at every count.
+
+    The exemption is checked FIRST: apavada > utsarga, so where a chapter has
+    ruled its own count favourable, the general bar does not also get a say.
+
+    Counting is inclusive of both ends, the convention `tara_number` already
+    uses: the birth star itself is 1.
+    """
+    entry = _rules(activity)
+    if entry is None:
+        return None
+    if not entry.janma_tara_prohibited and not entry.janma_tara_exempt:
+        return None
+    count = ((snapshot.nakshatra_number - subject.janma_nakshatra) % 27) + 1
+
+    who_en = subject.label or "this chart"
+    who_ta = f"{subject.label} " if subject.label else ""
+    star_en, star_ta = _star(snapshot)
+    which_en, which_ta = _janma_tara_naming(count)
+
+    if count in entry.janma_tara_exempt:
+        return FactorResult(
+            factor="JANMA_TARA_COUNT",
+            verdict=Verdict.BONUS,
+            contribution=_W.JANMA_TARA_FAVOURED,
+            reason_en=(
+                f"{star_en} is {which_en} {who_en}'s birth star, which Kalaprakasika "
+                f"calls good for {entry.label_en} — this chapter commends the count "
+                f"that most others shut out."
+            ),
+            reason_ta=(
+                f"{star_ta} — {who_ta}ஜென்ம நட்சத்திரத்திலிருந்து {which_ta}; "
+                f"{entry.label_ta} இந்நாள் நல்லதென கலப்பிரகாசிகை கூறுகிறது."
+            ),
+            rule_id=entry.janma_tara_exempt_rule_id,
+        )
+
+    if count not in entry.janma_tara_prohibited:
+        return None
+
+    grade = _JANMA_TARA_GRADES.get(count, 1.0)
+    verdict = Verdict.VETO if grade == 1.0 else Verdict.PENALTY
+    contribution = 0.0 if verdict is Verdict.VETO else _W.JANMA_TARA_FULL * grade
+    return FactorResult(
+        factor="JANMA_TARA_COUNT",
+        verdict=verdict,
+        contribution=contribution,
+        reason_en=(
+            f"{star_en} is {which_en} {who_en}'s birth star, which Kalaprakasika "
+            f"shuts out for {entry.label_en}."
+        ),
+        reason_ta=(
+            f"{star_ta} — {who_ta}ஜென்ம நட்சத்திரத்திலிருந்து {which_ta}; "
+            f"{entry.label_ta} இந்நாள் கூடாது என கலப்பிரகாசிகை கூறுகிறது."
+        ),
+        rule_id=entry.janma_tara_rule_id,
+    )
+
+
+def _paksha_factor(snapshot, activity: str) -> FactorResult | None:
+    """The fortnight itself, where a chapter rules on it.
+
+    Ch. V p.37 is the clearest: "The bright fortnight bestows longevity; the dark
+    fortnight tells upon life and fortune." Most chapters say nothing about the
+    paksha and this factor stays silent for them.
+
+    Two chapters then carve an exception out of the disfavoured half — Ch. V p.38
+    and Ch. VII p.44 both call the first five tithis of the dark fortnight
+    beneficent — so an exempt day scores neutral rather than taking the penalty.
+    """
+    entry = _rules(activity)
+    if entry is None or entry.paksha_preferred is None:
+        return None
+
+    paksha = snapshot.tithi_paksha
+    if paksha == entry.paksha_preferred:
+        return FactorResult(
+            factor="PAKSHA", verdict=Verdict.BONUS, contribution=_W.PAKSHA_PREFERRED,
+            reason_en=f"The waxing fortnight is the half Kalaprakasika favours for {entry.label_en}.",
+            reason_ta=f"{entry.label_ta} கலப்பிரகாசிகை உகந்ததெனக் கூறும் வளர்பிறைப் பக்கம்.",
+            rule_id=entry.paksha_rule_id,
+        )
+    if _in_paksha_tithi(snapshot.tithi_number) in entry.paksha_exempt_in_paksha:
+        return FactorResult(
+            factor="PAKSHA", verdict=Verdict.NEUTRAL, contribution=0.0,
+            reason_en=(
+                "The waning fortnight is the disfavoured half, but the text calls its "
+                "opening tithis beneficent and this day is among them."
+            ),
+            reason_ta=(
+                "தேய்பிறை உகந்ததல்ல; எனினும் அதன் முதல் திதிகள் நல்லவை என நூல் கூறுகிறது — "
+                "இந்நாள் அவற்றுள் ஒன்று."
+            ),
+            rule_id=entry.paksha_rule_id,
+        )
+    return FactorResult(
+        factor="PAKSHA", verdict=Verdict.PENALTY, contribution=_W.PAKSHA_AGAINST,
+        reason_en=f"The waning fortnight is the half Kalaprakasika counts against {entry.label_en}.",
+        reason_ta=f"{entry.label_ta} கலப்பிரகாசிகை உகந்ததல்ல எனக் கூறும் தேய்பிறைப் பக்கம்.",
+        rule_id=entry.paksha_rule_id,
+    )
+
+
+def _chandra_bala_factor(snapshot, subject: Subject) -> FactorResult:
+    house = chandra_bala(subject.janma_rasi, snapshot.chandrashtamam_moon_rasi_number)
+    who_en = subject.label or "this person"
+    who_ta = f"{subject.label} " if subject.label else ""
+
+    if house == _CHANDRASHTAMA:
+        return FactorResult(
+            factor="CHANDRA_BALA",
+            verdict=Verdict.VETO,
+            contribution=0.0,
+            reason_en=f"Moon is 8th from {who_en}'s birth sign — Chandrashtama, which no other strength offsets.",
+            reason_ta=f"{who_ta}ஜென்ம ராசிக்கு 8ல் சந்திரன் — சந்திராஷ்டமம், வேறு எந்த பலமும் இதை ஈடுசெய்யாது.",
+        )
+    nth = _ordinal(house)
+    if house in _CHANDRA_WEAK:
+        return FactorResult(
+            factor="CHANDRA_BALA",
+            verdict=Verdict.PENALTY,
+            contribution=_W.CHANDRA_WEAK,
+            reason_en=f"Moon is {nth} from {who_en}'s birth sign — a weak position.",
+            reason_ta=f"{who_ta}ஜென்ம ராசிக்கு {house}ல் சந்திரன் — பலவீனமான நிலை.",
+        )
+    if house in _CHANDRA_STRONG:
+        return FactorResult(
+            factor="CHANDRA_BALA",
+            verdict=Verdict.BONUS,
+            contribution=_W.CHANDRA_STRONG,
+            reason_en=f"Moon is {nth} from {who_en}'s birth sign — a strong position.",
+            reason_ta=f"{who_ta}ஜென்ம ராசிக்கு {house}ல் சந்திரன் — வலிமையான நிலை.",
+        )
+    if house in _CHANDRA_BONUS:
+        return FactorResult(
+            factor="CHANDRA_BALA",
+            verdict=Verdict.BONUS,
+            contribution=_W.CHANDRA_BONUS,
+            reason_en=f"Moon is {nth} from {who_en}'s birth sign — favourable.",
+            reason_ta=f"{who_ta}ஜென்ம ராசிக்கு {house}ல் சந்திரன் — சாதகமானது.",
+        )
+    return FactorResult(
+        factor="CHANDRA_BALA",
+        verdict=Verdict.NEUTRAL,
+        contribution=0.0,
+        reason_en=f"Moon is {nth} from {who_en}'s birth sign — neutral.",
+        reason_ta=f"{who_ta}ஜென்ம ராசிக்கு {house}ல் சந்திரன் — நடுநிலை.",
+    )
+
+
+def _tara_bala_factor(snapshot, subject: Subject) -> FactorResult:
+    tara = tara_number(subject.janma_nakshatra, snapshot.nakshatra_number)
+    tara_ta, tara_en = _TARA_NAMES[tara]
+    who_en = subject.label or "this person"
+    who_ta = f"{subject.label} " if subject.label else ""
+    star_en, star_ta = _star(snapshot)
+
+    if tara in _TARA_ADVERSE:
+        return FactorResult(
+            factor="TARA_BALA",
+            verdict=Verdict.PENALTY,
+            contribution=float(TARA_SCORE[tara]),
+            reason_en=f"{star_en} is {tara_en} tara from {who_en}'s birth star — an adverse count.",
+            reason_ta=f"{who_ta}ஜென்ம நட்சத்திரத்திலிருந்து {star_ta} {tara_ta} தாரா — உகந்ததல்ல.",
+        )
+    if tara == 1:
+        return FactorResult(
+            factor="TARA_BALA",
+            verdict=Verdict.BONUS,
+            contribution=float(TARA_SCORE[tara]),
+            reason_en=f"{star_en} is {who_en}'s own birth star — Janma tara.",
+            reason_ta=f"{star_ta} {who_ta}சொந்த நட்சத்திரம் — ஜென்ம தாரா.",
+        )
+    return FactorResult(
+        factor="TARA_BALA",
+        verdict=Verdict.BONUS,
+        contribution=float(TARA_SCORE[tara]),
+        reason_en=f"{star_en} is {tara_en} tara from {who_en}'s birth star — favourable.",
+        reason_ta=f"{who_ta}ஜென்ம நட்சத்திரத்திலிருந்து {star_ta} {tara_ta} தாரா — சாதகமானது.",
+    )
+
+
+# ── the entry point ─────────────────────────────────────────────────────────
+
+def score_day(
+    snapshot,
+    activity: str,
+    subject: Subject | None = None,
+    *,
+    include_lagna_sign: bool = True,
+) -> DayScore:
+    """Score one day for one activity, optionally for one person.
+
+    `subject=None` is general mode: the personal factors are not computed, not
+    scored, and not mentioned. A general result can never be vetoed by a
+    personal factor — that is the definition of the mode.
+
+    The returned score is **not clamped**. Callers add their own layers on top
+    (`muhurta_service` adds a dasha and a hora bonus) and clamping here would
+    silently eat those before they were applied; clamp at the point of display
+    instead.
+    """
+    activity = activity.upper()
+    factors: list[FactorResult] = [
+        factor
+        for factor in (
+            # L1 — always, for every activity, except where a generic convention
+            # stands down for the activity's own cited rule (RULE_PRECEDENCE,
+            # module docstring). `_almanac_tithi_factor` is the only L1 member
+            # that can decline, and only on Amavasai.
+            _almanac_tithi_factor(snapshot, activity),
+            _almanac_nakshatra_factor(snapshot),
+            _almanac_day_quality_factor(snapshot),
+            _almanac_yoga_factor(snapshot),
+            _almanac_amirdhadhi_factor(snapshot, activity),
+            _almanac_windows_factor(snapshot),
+            # L2 — the activity's own sourced table, or an explicit UNSOURCED gap.
+            _nakshatra_factor(snapshot, activity),
+            _tithi_factor(snapshot, activity),
+        )
+        if factor is not None
+    ]
+    # Optional L2 factors: absent when the activity's chapter rules on neither.
+    # A missing weekday or lagna table is not the same gap as a missing star
+    # table, so these stay silent rather than emitting UNSOURCED noise on every
+    # activity that happens not to have one.
+    for optional in (
+        _karana_factor(snapshot, activity),
+        _vara_factor(snapshot, activity),
+        _paksha_factor(snapshot, activity),
+    ):
+        if optional is not None:
+            factors.append(optional)
+    if include_lagna_sign:
+        lagna_factor = _lagna_sign_factor(snapshot, activity)
+        if lagna_factor is not None:
+            factors.append(lagna_factor)
+
+    if subject is not None:
+        factors.append(_chandra_bala_factor(snapshot, subject))
+        factors.append(_tara_bala_factor(snapshot, subject))
+        for personal in (
+            _janma_nakshatra_factor(snapshot, activity, subject),
+            _janma_tara_count_factor(snapshot, activity, subject),
+        ):
+            if personal is not None:
+                factors.append(personal)
+
+    vetoed = any(f.verdict is Verdict.VETO for f in factors)
+    # A vetoed day keeps its factor list — the UI needs to name what killed it —
+    # but its score is not a number anyone should rank on.
+    return DayScore(
+        score=_W.BASE + sum(f.contribution for f in factors),
+        vetoed=vetoed,
+        factors=tuple(factors),
+    )
+
+
+# ── the display mapping ─────────────────────────────────────────────────────
+#
+# `score_day` is unclamped by design (see its docstring). Every surface that
+# shows a number to a human must therefore map it into 0–100 first, and every
+# such surface must use *this* function: a plain `min(100, raw)` collapses the
+# whole top of the range into an identical "100" and destroys the ranking the
+# picker exists to communicate. Measured over a 90-day Chennai sweep of all
+# sourced activities (n = 3244 usable day-scores): min −9, p50 80, p95 130,
+# max 161, with 29.3% of scores at or above 100.
+#
+# RE-MEASURED 2026-08-17, after `ALMANAC_AMIRDHADHI_YOGAM` joined L1 (90 days x
+# 30 sourced activities, general mode, vetoed days excluded, n = 1975): min 1,
+# p50 81, p95 131, max 150, with 31.2% at or above 100. The knee and the ceiling
+# below therefore still hold — nothing reaches CEIL, and the p50 is still within
+# a point of the knee — so the mapping was not retuned. Recorded because the
+# numbers above are a measurement, and a factor that moves the distribution
+# without updating them turns a measured claim into a stale one.
+#
+# CHECKED 2026-08-27 after FCR-10c widened marriage's Krishna sweep to Amavasai.
+# Run as a paired before/after over one window (90 days from 2026-06-01, Chennai,
+# n = 1907 unvetoed) so the two are directly comparable: min 1, p50 81, p95 132,
+# max 150, 31.7% at or above 100 — **identical on both sides** at this precision.
+# Expected: the change moves ~3 marriage days per 90 by -9 each. Not folded into
+# the numbers above, whose sweep window is not recorded and so is not comparable.
+
+_DISPLAY_KNEE = 80.0
+"""Raw score below which the scale already behaves; identity is applied there.
+
+Chosen so that every value below it stays byte-identical to what shipped
+before this mapping existed, which is what lets `SCORE_COLOR` (75/55) and the
+shared `scoreTone` (65/45) keep their exact current meaning on every surface.
+"""
+
+_DISPLAY_CEIL = 180.0
+"""Raw score that maps to a displayed 100.
+
+Deliberately a *fixed* constant comfortably above the observed maximum of 161,
+never a value derived from the observed distribution: a data-derived ceiling
+would drift every time a weight or a rule table changed, silently moving every
+displayed number. That drift is exactly why linear rescaling was rejected.
+"""
+
+
+def display_score(raw: float) -> float:
+    """Map an unclamped `score_day` result onto a 0–100 display scale.
+
+    Identity on ``[0, KNEE]``, then piecewise-linear compression of
+    ``[KNEE, CEIL]`` into ``[KNEE, 100]``, saturating above ``CEIL``. The
+    mapping is strictly monotonic below the ceiling, so it never reorders two
+    days and never invents a tie between two different raw scores — it only
+    stops the top of the range from flattening into a single value.
+
+    Callers should round to one decimal, not to an integer: at integer
+    precision the compressed band recovers only 66 of 110 distinct top-five
+    values across the sourced activities, against 93 of 110 at one decimal.
+    """
+    if raw <= 0.0:
+        return 0.0
+    if raw <= _DISPLAY_KNEE:
+        return raw
+    if raw >= _DISPLAY_CEIL:
+        return 100.0
+    return _DISPLAY_KNEE + (raw - _DISPLAY_KNEE) * (100.0 - _DISPLAY_KNEE) / (
+        _DISPLAY_CEIL - _DISPLAY_KNEE
+    )

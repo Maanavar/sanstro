@@ -6,6 +6,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.calculations.display_names import planet_en, planet_ta
 from app.models import BirthProfile, Chart, FamilyMember, FamilyVault, PeyarchiAlert, RelationshipAlert
 from app.schemas.ambient_alerts import AmbientAlertItem, AmbientAlertsData, AmbientAlertsResponse
 from app.schemas.dasha import ResponseMeta
@@ -106,11 +107,11 @@ def _collect_peyarchi_items(session: Session, owner_user_id: UUID, as_of_date: d
                     tier=tier,
                     chartId=str(alert.chart_id),
                     title=RelationshipBiText(
-                        ta=f"{display_name} - {alert.planet} peyarchi signal",
-                        en=f"{display_name} - {alert.planet} transit signal",
+                        ta=f"{display_name} — {planet_ta(alert.planet)} பெயர்ச்சி குறிப்பு",
+                        en=f"{display_name} - {planet_en(alert.planet)} transit signal",
                     ),
                     message=RelationshipBiText(
-                        ta="Idhu traditionally associated with planning and steady routines; amaidiyana nadai payanulla kaalap pagudhi.",
+                        ta="பாரம்பரியப்படி இது திட்டமிடலுக்கும் நிலையான வழக்கங்களுக்கும் ஏற்ற காலம்; அமைதியான நடை நல்ல பலன் தரும்.",
                         en="Traditionally associated with planning and steady routines; this is a useful period for calm pacing.",
                     ),
                 )

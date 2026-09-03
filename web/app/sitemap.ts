@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
-import { DOSHAM_DETAILS, YOGAM_DETAILS, TEMPLE_DETAILS, PARIHARAM_DETAILS } from "@/lib/guide-detail-content";
-import { CALENDAR_CATEGORY_SLUGS } from "./tamil-calendar/calendar-category-api";
+import { DOSHAM_DETAILS, DRAFT_GUIDE_SLUGS, YOGAM_DETAILS, TEMPLE_DETAILS, PARIHARAM_DETAILS } from "@/lib/guide-detail-content";
+import { CALENDAR_CATEGORY_SLUGS } from "./(marketing)/tamil-calendar/calendar-category-api";
 
 const BASE = "https://vinaadi.com";
 
@@ -108,6 +108,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     {
+      url: `${BASE}/muhurtham-naal/2027`,
+      changeFrequency: "monthly",
+      priority: 0.9,
+    },
+    {
+      url: `${BASE}/muhurtham-naal/2026`,
+      changeFrequency: "monthly",
+      priority: 0.75,
+    },
+    {
       url: `${BASE}/tamil-calendar`,
       changeFrequency: "weekly",
       priority: 0.9,
@@ -122,6 +132,20 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${BASE}/tools/friendship-compatibility`,
       changeFrequency: "monthly",
       priority: 0.8,
+    },
+    {
+      url: `${BASE}/tools/numerology-calculator`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      // Draft: numerology_baby_naming defaults true (access-gating only, see
+      // app/services/feature_flags.py) but the pada canon and name corpus
+      // are both still unreviewed. Lower priority than the launched tools
+      // above for that reason.
+      url: `${BASE}/tools/baby-name-finder`,
+      changeFrequency: "monthly",
+      priority: 0.6,
     },
     /* ── Share pages ── */
     {
@@ -151,6 +175,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.4,
     },
     /* ── Learn pages ── */
+    {
+      // The orientation article, and the only one addressed to a reader who has
+      // no Vedic vocabulary at all — which makes search its primary route in.
+      // Ranked above the rest of Learn for that reason.
+      url: `${BASE}/learn/vedic-vs-western`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
     {
       url: `${BASE}/learn/what-is-porutham`,
       changeFrequency: "monthly",
@@ -187,7 +219,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.8,
     },
-    ...guideEntries("dosham", Object.keys(DOSHAM_DETAILS)),
+    // Draft, not-yet-reviewed dosham slugs are excluded — see DRAFT_GUIDE_SLUGS.
+    ...guideEntries("dosham", Object.keys(DOSHAM_DETAILS).filter((slug) => !DRAFT_GUIDE_SLUGS.has(slug))),
     /* ── Yogam pages ── */
     {
       url: `${BASE}/yogam`,

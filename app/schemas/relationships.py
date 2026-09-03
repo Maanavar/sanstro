@@ -3,23 +3,71 @@ from __future__ import annotations
 from datetime import date, datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.schemas.dasha import ResponseMeta
-
 
 # ---------------------------------------------------------------------------
 # Porutham (10-kuta compatibility)
 # ---------------------------------------------------------------------------
 
 class KutaResult(BaseModel):
+    """One porutham on the wire.
+
+    **`passed` was declared in `packages/shared` for months and never emitted
+    here** — so `k.passed` was `undefined` on every consumer that read it, and
+    the public share page (whose `KutaRow` takes only that boolean) printed
+    "✗ Fail" on all ten poruthams of every shared link. Found 2026-08-31 while
+    wiring the grade. It is now emitted, and it is the binary floor the
+    2026-08-31 ruling requires: a madhyama is a pass, so no two-state surface
+    ever renders Fail for a couple the doctrine passes.
+
+    See `app.calculations.porutham.KutaResult` for why `score`, `grade` and
+    `passed` are three fields and not one.
+    """
+
     name: str
     name_ta: str = Field(alias="nameTa")
-    score: int
+    score: float
     max_score: int = Field(alias="maxScore")
     label: str
+    passed: bool
+    grade: str
 
     model_config = ConfigDict(populate_by_name=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _backfill_pre_grade_snapshots(cls, data: object) -> object:
+        """Derive `passed`/`grade` for share snapshots stored before the grade.
+
+        Porutham shares persist a `model_dump` of this schema, so every link
+        created before 2026-08-31 holds `{score, maxScore, label, detail}` and
+        no grade. Those snapshots are strictly binary — the derivation below is
+        exact for them, not a guess — and without it every existing share link
+        would 500 on a required field.
+
+        The stored `score` is left exactly as computed at the time. A snapshot
+        whose band was MADHYAMA was scored 0 under the old binary rule, and its
+        stored total was summed from that; re-crediting the row to 0.5 here
+        would leave it disagreeing with its own total. History stays as it was
+        recorded — only the grade and the pass floor are recovered.
+        """
+        if not isinstance(data, dict) or "grade" in data:
+            return data
+        patched = dict(data)
+        score = patched.get("score", 0) or 0
+        # A pre-grade snapshot may carry the old `detail` band ("MADHYAMA"), in
+        # which case it is better evidence than the score it was scored under.
+        band = patched.pop("detail", None)
+        if band in {"UTTAMA", "MADHYAMA", "ADHAMA"}:
+            patched["grade"] = band
+        elif band == "FAIL":  # the pre-2026-08-31 spelling of ADHAMA
+            patched["grade"] = "ADHAMA"
+        else:
+            patched["grade"] = "UTTAMA" if score >= 1 else "ADHAMA"
+        patched.setdefault("passed", patched["grade"] != "ADHAMA")
+        return patched
 
 
 VALID_COMPATIBILITY_CONTEXTS = {"MARRIAGE", "FRIENDSHIP", "BUSINESS", "FAMILY", "GENERAL"}
@@ -31,6 +79,13 @@ class NadiDoshaData(BaseModel):
     has_nadi_dosha: bool = Field(alias="hasNadiDosha")
     cancellations: list[str] = Field(default_factory=list)
     severity: str
+    # A-9 v2 (2026-07-14): internal mitigation tier (NONE/LIGHT/MODERATE/FULL),
+    # the active nadi_parihara_mode ("strict"/"classical_lenient"), and a
+    # Rajju-guard warning (non-null only when Rajju fails) — see
+    # app/calculations/porutham.py::check_nadi_dosha.
+    mitigation: str = "NONE"
+    nadi_parihara_mode: str = Field(default="strict", alias="nadiPariharaMode")
+    rajju_guard_warning: str | None = Field(default=None, alias="rajjuGuardWarning")
     note_ta: str = Field(alias="noteTa")
     note_en: str = Field(alias="noteEn")
 
@@ -45,7 +100,9 @@ class PorutthamData(BaseModel):
     girl_nakshatra: int = Field(alias="girlNakshatra")
     girl_nakshatra_name: str = Field(alias="girlNakshatraName")
     kutas: list[KutaResult]
-    total_score: int = Field(alias="totalScore")
+    # float since 2026-08-31: a madhyama contributes 0.5. Rendered via
+    # `format_porutham_total` so a whole score never reads "8.0/10".
+    total_score: float = Field(alias="totalScore")
     max_score: int = Field(alias="maxScore")
     percentage: float
     label: str
@@ -165,7 +222,9 @@ class DirectPoruthamData(BaseModel):
     girl_nakshatra: int = Field(alias="girlNakshatra")
     girl_nakshatra_name: str = Field(alias="girlNakshatraName")
     kutas: list[KutaResult]
-    total_score: int = Field(alias="totalScore")
+    # float since 2026-08-31: a madhyama contributes 0.5. Rendered via
+    # `format_porutham_total` so a whole score never reads "8.0/10".
+    total_score: float = Field(alias="totalScore")
     max_score: int = Field(alias="maxScore")
     percentage: float
     label: str
@@ -182,6 +241,39 @@ class DirectPoruthamData(BaseModel):
 class DirectPoruthamResponse(BaseModel):
     success: bool = True
     data: DirectPoruthamData
+    meta: ResponseMeta
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class DirectSynastryRequest(BaseModel):
+    chart_id_a: UUID = Field(alias="chartIdA")
+    chart_id_b: UUID = Field(alias="chartIdB")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class DirectSynastryData(BaseModel):
+    """SynastryData without vault/member IDs — for direct chart-to-chart comparison
+    (e.g. two family members, neither of whom is the vault owner)."""
+    chart_id_a: UUID = Field(alias="chartIdA")
+    chart_id_b: UUID = Field(alias="chartIdB")
+    score: int
+    label: str
+    harmony_notes: list[RelationshipBiText] = Field(alias="harmonyNotes")
+    tension_notes: list[RelationshipBiText] = Field(alias="tensionNotes")
+    key_aspects: list[SynastryAspect] = Field(alias="keyAspects")
+    summary: RelationshipBiText
+    timing_indicators: list[SynastryTimingIndicator] = Field(
+        default_factory=list, alias="timingIndicators"
+    )
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class DirectSynastryResponse(BaseModel):
+    success: bool = True
+    data: DirectSynastryData
     meta: ResponseMeta
 
     model_config = ConfigDict(populate_by_name=True)
@@ -234,6 +326,23 @@ class NavamsaCompatibility(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class PersonAstroIdentity(BaseModel):
+    """Rasi/Nakshatra/Lagnam identity facts for one person in a compatibility
+    report — the plain-language facts a non-astrologer needs alongside the
+    score breakdowns (2026-07 porutham UX gap: neither surface stated either
+    person's Rasi/Nakshatra/current Dasha in text)."""
+
+    rasi: int
+    rasi_name: str = Field(alias="rasiName")
+    nakshatra: int
+    nakshatra_name: str = Field(alias="nakshatraName")
+    pada: int
+    lagna_rasi: int = Field(alias="lagnaRasi")
+    lagna_rasi_name: str = Field(alias="lagnaRasiName")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class DashaHarmony(BaseModel):
     person_a_maha_lord: str = Field(alias="personAMahaLord")
     person_a_antar_lord: str = Field(alias="personAantarLord")
@@ -275,6 +384,8 @@ class CompatibilityScoreBreakdown(BaseModel):
 class CompatibilityIntelligenceData(BaseModel):
     person_a_name: str = Field(alias="personAName")
     person_b_name: str = Field(alias="personBName")
+    person_a_identity: PersonAstroIdentity = Field(alias="personAIdentity")
+    person_b_identity: PersonAstroIdentity = Field(alias="personBIdentity")
 
     # Layer 1: Porutham
     porutham_score: int = Field(alias="poruthamScore")

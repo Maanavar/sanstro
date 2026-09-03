@@ -301,7 +301,7 @@ def analyse_and_save_retrospective(
     )
     correlation = _correlation_explanation(event_type, event_description, dasha_text, key_transits)
     caution = RetrospectiveBiText(
-        ta="Idhu adhe nigazhchi thirumba nadakkum endru alla; idhe thanmai ullla kaalathai therivikkum oru signal-aaga paarungal.",
+        ta="இதே நிகழ்வு மீண்டும் நடக்கும் என்பது இதன் பொருள் அல்ல; இதே தன்மையுள்ள காலம் வருகிறது என்பதற்கான ஒரு குறிப்பாக மட்டும் பாருங்கள்.",
         en="This does not mean the same event repeats; it indicates a similar quality window for mindful planning.",
     )
 

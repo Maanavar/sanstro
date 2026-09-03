@@ -1,18 +1,19 @@
 "use client";
 
 import React, { useState } from "react";
-import { t } from "@/lib/i18n";
+import { ArrowRight } from "lucide-react";
+import { t, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
-import type { JadhagamReportData } from "@/lib/types";
+import type { AdhipathiReading, JadhagamReportData } from "@/lib/types";
 import { YogaDoshamPanel } from "./dashboard-yoga-dosham-panel";
+import { Card } from "./ui/card";
 
 // ── Shared section wrapper ────────────────────────────────────────────────────
 
 function Section({ title, children }: { title: string; accent?: string; children: React.ReactNode }) {
   return (
-    <div style={{
+    <Card style={{
       padding: "var(--space-5) var(--space-6)", borderRadius: "var(--radius-md)",
-      background: "var(--color-surface)", border: "1px solid var(--color-border)",
       display: "flex", flexDirection: "column", gap: "var(--space-3)",
       fontFamily: "var(--font-body)",
     }}>
@@ -20,36 +21,40 @@ function Section({ title, children }: { title: string; accent?: string; children
         {title}
       </p>
       {children}
-    </div>
+    </Card>
   );
 }
 
 function Row({ label, value }: { label: string; value: string | number }) {
   return (
     <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "baseline", borderBottom: "1px solid var(--color-bg)", paddingBottom: "var(--space-2)" }}>
-      <span style={{ fontSize: "0.75rem", color: "var(--color-faint)", minWidth: "130px", flexShrink: 0 }}>{label}</span>
-      <span style={{ fontSize: "0.875rem", color: "var(--color-text-strong)", fontWeight: 500 }}>{value}</span>
+      <span style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)", minWidth: "130px", flexShrink: 0 }}>{label}</span>
+      <span style={{ fontSize: "var(--text-base)", color: "var(--color-text-strong)", fontWeight: 500 }}>{value}</span>
     </div>
   );
 }
 
 // ── Planetary strength bar ────────────────────────────────────────────────────
 
-const PLANET_NAMES_TA: Record<string, string> = {
-  SUN: "சூரியன்", MOON: "சந்திரன்", MARS: "செவ்வாய்", MERCURY: "புதன்",
-  JUPITER: "குரு", VENUS: "சுக்கிரன்", SATURN: "சனி", RAHU: "ராகு", KETU: "கேது",
-};
+// TAMIL ONLY, and that is this panel's existing choice rather than an omission:
+// the English side shows the raw enum ("SUN", not "Sun"). Replaces a local
+// nine-row Tamil map plus six copies of `lang === "ta" ? (MAP[x] ?? x) : x` —
+// `tPlanetLord` is canonical, and four sibling panels had drifted to "சுக்ரன்"
+// for Venus behind maps exactly like the one this deletes.
+function planetNameTA(code: string, lang: Lang): string {
+  return lang === "ta" ? (tPlanetLord(code, "ta") || code) : code;
+}
 
 function StrengthBar({ planet, score, lang }: { planet: string; score: number; lang: Lang }) {
   const color = score >= 70 ? "var(--color-score-high)" : score >= 40 ? "var(--color-score-mid)" : "var(--color-score-low)";
-  const label = lang === "ta" ? (PLANET_NAMES_TA[planet] ?? planet) : planet;
+  const label = planetNameTA(planet, lang);
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
-      <span style={{ fontSize: "0.75rem", color: "var(--color-muted)", minWidth: "76px" }}>{label}</span>
-      <div style={{ flex: 1, height: "5px", borderRadius: "3px", background: "var(--color-border)" }}>
-        <div style={{ width: `${score}%`, height: "100%", borderRadius: "3px", background: color, transition: "width 0.6s ease" }} />
+      <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", minWidth: "76px" }}>{label}</span>
+      <div style={{ flex: 1, height: "5px", borderRadius: "var(--radius-sm)", background: "var(--color-border)" }}>
+        <div style={{ width: `${score}%`, height: "100%", borderRadius: "var(--radius-sm)", background: color, transition: "width 0.6s ease" }} />
       </div>
-      <span style={{ fontSize: "0.75rem", fontWeight: 700, color, minWidth: "30px", textAlign: "right" }}>{score}</span>
+      <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color, minWidth: "30px", textAlign: "right" }}>{score}</span>
     </div>
   );
 }
@@ -58,9 +63,9 @@ function StrengthBar({ planet, score, lang }: { planet: string; score: number; l
 
 const NATURE_COLORS: Record<string, string> = {
   LAGNA_LORD: "var(--color-score-high)",
-  YOGAKARAKA: "#5a4880",
-  TRIKONA:    "#1e5a8c",
-  KENDRA:     "#3a6b40",
+  YOGAKARAKA: "var(--planet-nodes)",
+  TRIKONA:    "var(--planet-other)",
+  KENDRA:     "var(--chart-d9-active-dark)",
   MARAKA:     "var(--color-score-low)",
   DUSTHANA:   "var(--color-score-low)",
   NEUTRAL:    "var(--color-faint)",
@@ -71,18 +76,102 @@ const NATURE_LABELS_TA: Record<string, string> = {
   KENDRA: "கேந்திர", MARAKA: "மாரகன்", DUSTHANA: "துஷ்டான", NEUTRAL: "நடுநிலை",
 };
 
-function NatureBadge({ planet, nature, lang }: { planet: string; nature: string; lang: Lang }) {
+// Humanization (docs/family-charts-humanization-audit.md — Phase 5): the
+// functional-nature enum is Level-5 jargon on its own. Each gloss is the role's
+// universal, textbook meaning (true for the role, not fabricated per person), so
+// a newcomer reads what the classification *means* instead of a bare label. The
+// two "hard" roles (Maraka / Dusthana) are framed as growth, never as a scare.
+const NATURE_GLOSS: Record<string, { ta: string; en: string }> = {
+  LAGNA_LORD: { ta: "உங்கள் ஆளுமை, உடல்நலம் மற்றும் வழியை வழிநடத்தும் கிரகம்.", en: "steers your overall self, health and direction." },
+  YOGAKARAKA: { ta: "உங்களுக்கு வெற்றியும் வளர்ச்சியும் தரும் சாதக காரகன்.", en: "a success-bringing planet that lifts your chart." },
+  TRIKONA:    { ta: "அதிர்ஷ்டம், தர்மம் மற்றும் நல்வாய்ப்புகளுக்கு ஆதரவு.", en: "supports fortune, purpose and good opportunities." },
+  KENDRA:     { ta: "வாழ்க்கைக்கு நிலைத்தன்மை தரும் ஆதார கிரகம்.", en: "an anchor planet that lends stability to life." },
+  MARAKA:     { ta: "வாழ்க்கையின் முக்கியத் திருப்பங்களைக் குறிக்கிறது — விழிப்புடன் அணுகுங்கள்.", en: "marks life's turning points — meet them with awareness." },
+  DUSTHANA:   { ta: "சவால்கள் மற்றும் அவற்றின் வழியாக வரும் வளர்ச்சியைச் சுமக்கிறது.", en: "carries life's challenges — and the growth that comes through them." },
+  NEUTRAL:    { ta: "சமநிலையான, பின்னணியில் இயங்கும் தாக்கம்.", en: "a balanced, background influence." },
+};
+
+// One planet's functional role rendered meaning-first: name + role chip, then a
+// plain-language gloss of what that role does. Replaces the bare enum pill.
+function NatureRow({ planet, nature, lang }: { planet: string; nature: string; lang: Lang }) {
   const color = NATURE_COLORS[nature] ?? "var(--color-faint)";
-  const planetLabel = lang === "ta" ? (PLANET_NAMES_TA[planet] ?? planet) : planet;
+  const planetLabel = planetNameTA(planet, lang);
   const natureLabel = lang === "ta" ? (NATURE_LABELS_TA[nature] ?? nature) : nature.replace(/_/g, " ");
+  const gloss = NATURE_GLOSS[nature];
   return (
     <div style={{
-      display: "flex", alignItems: "center", gap: "var(--space-1)",
-      padding: "var(--space-1) var(--space-2_5)", borderRadius: "var(--radius-pill)",
-      background: "#FAF5EA", border: "1px solid var(--color-border)",
+      display: "flex", flexDirection: "column", gap: "var(--space-0_75)",
+      borderBottom: "1px solid var(--color-bg)", paddingBottom: "var(--space-2)",
     }}>
-      <span style={{ fontSize: "0.75rem", color: "var(--color-text)", fontWeight: 600 }}>{planetLabel}</span>
-      <span style={{ fontSize: "0.625rem", fontWeight: 700, color, textTransform: "uppercase", letterSpacing: "0.04em" }}>{natureLabel}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
+        <span style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)" }}>{planetLabel}</span>
+        <span style={{
+          fontSize: "var(--text-2xs)", fontWeight: 700, color, textTransform: "uppercase", letterSpacing: "0.04em",
+          border: `1px solid ${color}44`, borderRadius: "var(--radius-pill)",
+          padding: "var(--space-0_5) var(--space-2)", background: "var(--color-surface-2)",
+        }}>{natureLabel}</span>
+      </div>
+      {gloss && (
+        <span style={{ fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.45 }}>
+          {lang === "ta" ? gloss.ta : gloss.en}
+        </span>
+      )}
+    </div>
+  );
+}
+
+// Collapsed "Technical details" disclosure — the file-local twin of
+// HyTechnicalDetails on Family & Charts. Keeps Level-5 mechanics one tap down so
+// the meaning-first summary above it always leads.
+function TechnicalDisclosure({ label, children }: { label: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          display: "flex", alignItems: "center", gap: "var(--space-1_5)",
+          background: "transparent", border: "none", cursor: "pointer",
+          fontFamily: "var(--font-body)", padding: 0,
+          fontSize: "var(--text-xs)", letterSpacing: "0.1em", fontWeight: 700,
+          color: "var(--color-faint)", textTransform: "uppercase",
+        }}
+      >
+        <span style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform .15s", fontSize: "var(--text-2xs)" }}>▸</span>
+        {label}
+      </button>
+      {open && <div style={{ marginTop: "var(--space-2_5)" }}>{children}</div>}
+    </div>
+  );
+}
+
+// ── Adhipathi (house-lord) placement row ──────────────────────────────────────
+
+const BAND_COLORS: Record<string, string> = {
+  STRONG: "var(--color-score-high)",
+  MODERATE: "var(--color-score-mid)",
+  WEAK: "var(--color-score-low)",
+};
+
+function AdhipathiRow({ item, lang }: { item: AdhipathiReading; lang: Lang }) {
+  const bandColor = BAND_COLORS[item.strengthBand] ?? "var(--color-faint)";
+  return (
+    <div style={{
+      display: "flex", flexDirection: "column", gap: "var(--space-0_75)",
+      borderBottom: "1px solid var(--color-bg)", paddingBottom: "var(--space-2)",
+    }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-2)" }}>
+        <span style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)" }}>
+          {lang === "ta" ? item.adhipathiTa : item.adhipathiEn}
+        </span>
+        <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: bandColor, marginLeft: "auto" }}>
+          {item.strengthScore}
+        </span>
+      </div>
+      <span style={{ fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.45 }}>
+        {lang === "ta" ? item.readingTa : item.readingEn}
+      </span>
     </div>
   );
 }
@@ -91,15 +180,15 @@ function NatureBadge({ planet, nature, lang }: { planet: string; nature: string;
 
 const FOCUS_AREA_COLORS: Record<string, string> = {
   health: "var(--color-score-high)", health_focus: "var(--color-score-high)", health_priority: "var(--color-score-high)", health_senior: "var(--color-score-high)",
-  education: "#1e5a8c", education_foundation: "#1e5a8c",
+  education: "var(--planet-other)", education_foundation: "var(--planet-other)",
   career: "var(--color-score-mid)", career_preparation: "var(--color-score-mid)", career_growth: "var(--color-score-mid)",
   career_peak: "var(--color-score-mid)", career_legacy: "var(--color-score-mid)",
-  marriage_prospect: "#7a4880", marriage_stability: "#7a4880",
-  wealth_foundation: "#5a4880", wealth_building: "#5a4880",
-  wealth_consolidation: "#5a4880", wealth_protection: "#5a4880",
-  property: "#3a6b40",
-  children: "#1e5a8c", children_education: "#1e5a8c", children_settlement: "#1e5a8c",
-  spirituality: "#5a4880", family_legacy: "#5a4880", ancestral_duty: "#5a4880",
+  marriage_prospect: "var(--color-purple-mid)", marriage_stability: "var(--color-purple-mid)",
+  wealth_foundation: "var(--planet-nodes)", wealth_building: "var(--planet-nodes)",
+  wealth_consolidation: "var(--planet-nodes)", wealth_protection: "var(--planet-nodes)",
+  property: "var(--chart-d9-active-dark)",
+  children: "var(--planet-other)", children_education: "var(--planet-other)", children_settlement: "var(--planet-other)",
+  spirituality: "var(--planet-nodes)", family_legacy: "var(--planet-nodes)", ancestral_duty: "var(--planet-nodes)",
   family: "var(--color-score-low)", family_nurture: "var(--color-score-low)", family_responsibility: "var(--color-score-low)",
   family_support: "var(--color-score-low)",
 };
@@ -145,11 +234,30 @@ function FocusBadge({ area, lang }: { area: string; lang: Lang }) {
   const label = labels ? (lang === "ta" ? labels.ta : labels.en) : area;
   return (
     <span style={{
-      fontSize: "0.75rem", fontWeight: 600, color,
+      fontSize: "var(--text-sm)", fontWeight: 600, color,
       border: `1px solid ${color}44`, borderRadius: "var(--radius-pill)",
-      padding: "var(--space-0_75) var(--space-3)", background: "#FAF5EA",
+      padding: "var(--space-0_75) var(--space-3)", background: "var(--color-surface-2)",
     }}>
       {label}
+    </span>
+  );
+}
+
+const CONFIDENCE_LABELS: Record<string, { ta: string; en: string }> = {
+  high:   { ta: "உயர் நம்பகத்தன்மை",   en: "High confidence" },
+  medium: { ta: "நடுத்தர நம்பகத்தன்மை", en: "Medium confidence" },
+  low:    { ta: "குறைந்த நம்பகத்தன்மை", en: "Low confidence" },
+};
+
+function ConfidencePill({ confidence, lang }: { confidence: string; lang: Lang }) {
+  const label = CONFIDENCE_LABELS[confidence];
+  return (
+    <span style={{
+      fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--color-faint)",
+      border: "1px solid var(--color-border)", borderRadius: "var(--radius-pill)",
+      padding: "var(--space-0_5) var(--space-2_5)", textTransform: "uppercase", letterSpacing: "0.04em",
+    }}>
+      {label ? (lang === "ta" ? label.ta : label.en) : confidence}
     </span>
   );
 }
@@ -161,9 +269,19 @@ type Props = {
   report: JadhagamReportData | null;
   loading: boolean;
   onLoad: () => void;
+  /**
+   * Optional override for the "Yogas & Doshams" section's renderer — added
+   * for Life Areas Nova's Full-report re-skin (docs/DASHBOARD_UI_REVAMP_PLAN.md
+   * §6.8) so it can substitute NovaYogaDoshamPanel (Nova-token styled) for
+   * this file's own YogaDoshamPanel import (Classic-token, confirmed unsafe
+   * under Nova) without duplicating the rest of this component, which is
+   * already ~95% Nova-safe on its own. Classic callers omit this prop and
+   * get the exact previous behavior.
+   */
+  renderYogaDoshamPanel?: (props: { yogas: JadhagamReportData["yogaDoshamSummary"]["yogas"]; doshams: JadhagamReportData["yogaDoshamSummary"]["doshams"] }) => React.ReactNode;
 };
 
-export function JadhagamReportPanel({ lang, report, loading, onLoad }: Props) {
+export function JadhagamReportPanel({ lang, report, loading, onLoad, renderYogaDoshamPanel }: Props) {
   const [showNavamsa, setShowNavamsa] = useState(false);
 
   if (!report && !loading) {
@@ -173,7 +291,7 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad }: Props) {
         style={{
           padding: "var(--space-3) var(--space-7)", borderRadius: "var(--radius-pill)",
           background: "var(--color-text-strong)", border: "none",
-          color: "var(--color-bg)", fontSize: "0.875rem",
+          color: "var(--color-bg)", fontSize: "var(--text-base)",
           cursor: "pointer", fontWeight: 600,
           fontFamily: "var(--font-body)",
           display: "inline-block", alignSelf: "flex-start",
@@ -186,7 +304,7 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad }: Props) {
 
   if (loading) {
     return (
-      <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-faint)", fontFamily: "var(--font-body)" }}>
+      <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)", fontFamily: "var(--font-body)" }}>
         {t("jadhagam_report_loading", lang)}
       </p>
     );
@@ -199,8 +317,10 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad }: Props) {
     coreIdentity,
     planetaryStrengthSummary,
     functionalNatureTable,
+    adhipathiReport,
     yogaDoshamSummary,
     ageWiseTimeline,
+    primaryConcerns,
     currentYearGuidance,
     practicalGuidance,
     optionalRemedies,
@@ -215,24 +335,53 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad }: Props) {
   ];
 
   const strongNames = planetaryStrengthSummary.strong.map((p) =>
-    lang === "ta" ? (PLANET_NAMES_TA[p.planet] ?? p.planet) : p.planet
+    planetNameTA(p.planet, lang)
   );
   const weakNames = planetaryStrengthSummary.weak.map((p) =>
-    lang === "ta" ? (PLANET_NAMES_TA[p.planet] ?? p.planet) : p.planet
+    planetNameTA(p.planet, lang)
   );
+
+  const [topConcern, ...otherConcerns] = primaryConcerns ?? [];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3_5)" }}>
 
+      {/* ── Primary concern — the veteran's "you came about X" opening statement ── */}
+      {topConcern && (
+        <div style={{
+          padding: "var(--space-5) var(--space-6)", borderRadius: "var(--radius-md)",
+          background: "var(--color-surface)", border: "2px solid var(--color-score-high)",
+          fontFamily: "var(--font-body)", display: "flex", flexDirection: "column", gap: "var(--space-2)",
+        }}>
+          <p className="cd-kicker" style={{ margin: 0, color: "var(--color-score-high)", letterSpacing: "0.1em" }}>
+            {lang === "ta" ? "இப்போது முதன்மையான கவலை" : "The primary concern right now"}
+          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
+            <FocusBadge area={topConcern.concern} lang={lang} />
+            <ConfidencePill confidence={topConcern.confidence} lang={lang} />
+          </div>
+          <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.5 }}>
+            {lang === "ta" ? topConcern.rationaleTa : topConcern.rationaleEn}
+          </p>
+          {otherConcerns.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-1_5)", marginTop: "var(--space-1)" }}>
+              {otherConcerns.map((c) => (
+                <FocusBadge key={c.concern} area={c.concern} lang={lang} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Executive summary ── */}
-      <div style={{ padding: "var(--space-5) var(--space-6)", borderRadius: "var(--radius-md)", background: "var(--color-surface)", border: "1px solid var(--color-border)", fontFamily: "var(--font-body)" }}>
-        <p className="cd-kicker" style={{ marginBottom: "var(--space-1_5)", color: "var(--color-score-mid)", letterSpacing: "0.1em" }}>
+      <Card style={{ padding: "var(--space-5) var(--space-6)", borderRadius: "var(--radius-md)", fontFamily: "var(--font-body)", gap: 0 }}>
+        <p className="cd-kicker" style={{ marginBottom: "var(--space-1_5)", color: "var(--color-mid-text)", letterSpacing: "0.1em" }}>
           {t("jadhagam_executive", lang)}
         </p>
-        <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "1.125rem", fontWeight: 500, color: "var(--color-text-strong)", lineHeight: 1.55 }}>
+        <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 500, color: "var(--color-text-strong)", lineHeight: 1.55 }}>
           {lang === "ta" ? executiveSummary.ta : executiveSummary.en}
         </p>
-      </div>
+      </Card>
 
       {/* ── Birth profile ── */}
       <Section title={lang === "ta" ? "பிறப்பு விவரம்" : "Birth Profile"} accent="rgba(255,255,255,0.15)">
@@ -255,7 +404,7 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad }: Props) {
 
       {/* ── Age-appropriate life focus ── */}
       <Section title={t("jadhagam_age_focus", lang)} accent="rgba(52,211,153,0.4)">
-        <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)", lineHeight: 1.5 }}>
+        <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.5 }}>
           {lang === "ta"
             ? `${ageWiseTimeline.currentAge} வயதில் கீழ்கண்ட வாழ்க்கை துறைகள் தற்போது முன்னுரிமை பெறுகின்றன:`
             : `At age ${ageWiseTimeline.currentAge}, the following life areas are the active priorities for this phase:`}
@@ -265,53 +414,86 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad }: Props) {
             <FocusBadge key={area} area={area} lang={lang} />
           ))}
         </div>
-        <p style={{ margin: "var(--space-1) 0 0", fontSize: "0.75rem", color: "var(--color-faint)", lineHeight: 1.4 }}>
+        <p style={{ margin: "var(--space-1) 0 0", fontSize: "var(--text-sm)", color: "var(--color-faint)", lineHeight: 1.4 }}>
           {lang === "ta"
             ? "இந்த வயது-நிலைக்கு பொருந்தாத துறைகள் இந்த அறிக்கையில் சேர்க்கப்படவில்லை."
             : "Life areas not relevant to this age phase are excluded from this report."}
         </p>
       </Section>
 
-      {/* ── Planet strength ── */}
+      {/* ── Planet strength ──────────────────────────────────────────────────
+          Humanization (docs/family-charts-humanization-audit.md — Phase 5):
+          lead with plain-language meaning + a reassurance frame for the weak
+          planets (a bare score is what creates anxiety), then tuck the raw
+          per-planet bars one tap down. Both lines are built from the engine's
+          own strong/weak buckets — not Barnum — and nothing is recomputed. */}
       <Section title={t("jadhagam_planet_strength", lang)} accent="rgba(251,191,36,0.35)">
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-          {allPlanets.map((item) => (
-            <StrengthBar key={item.planet} planet={item.planet} score={item.score} lang={lang} />
-          ))}
-        </div>
-        {strongNames.length > 0 && (
-          <p style={{ margin: "var(--space-1) 0 0", fontSize: "0.75rem", color: "var(--color-score-high)", lineHeight: 1.4 }}>
-            {lang === "ta" ? `வலுவான: ${strongNames.join(", ")}` : `Strong: ${strongNames.join(", ")}`}
-          </p>
-        )}
+        <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>
+          {strongNames.length > 0
+            ? (lang === "ta"
+                ? `உங்கள் ஜாதகத்தின் உறுதியான ஆதரவுகள்: ${strongNames.join(", ")}. வேகம் தேவைப்படும்போது இவற்றை நம்பலாம்.`
+                : `Your steadiest supports are ${strongNames.join(", ")}. Lean on them when you need momentum.`)
+            : (lang === "ta"
+                ? "உங்கள் ஜாதகம் சமநிலையாக இயங்குகிறது — எந்த ஒரு கிரகமும் தனித்து மேலோங்கவில்லை."
+                : "Your chart runs fairly even — no single planet dominates the rest.")}
+        </p>
         {weakNames.length > 0 && (
-          <p style={{ margin: "0", fontSize: "0.75rem", color: "var(--color-score-low)", lineHeight: 1.4 }}>
-            {lang === "ta" ? `ஆதரவு தேவை: ${weakNames.join(", ")}` : `Needs support: ${weakNames.join(", ")}`}
+          <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.5 }}>
+            {lang === "ta"
+              ? `${weakNames.join(", ")} கூடுதல் கவனம் கேட்கின்றன — இது குறையல்ல; அந்தத் துறைகள் பொறுமையையும் தொடர் முயற்சியையும் வெகுமதி செய்கின்றன.`
+              : `${weakNames.join(", ")} ${weakNames.length > 1 ? "ask" : "asks"} for more care — that isn't a flaw; those areas simply reward patience and steady effort.`}
           </p>
         )}
+        <TechnicalDisclosure label={lang === "ta" ? "தொழில்நுட்ப விவரங்கள்" : "Technical details"}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+            {allPlanets.map((item) => (
+              <StrengthBar key={item.planet} planet={item.planet} score={item.score} lang={lang} />
+            ))}
+          </div>
+        </TechnicalDisclosure>
       </Section>
 
       {/* ── Functional nature ── */}
       <Section title={t("jadhagam_func_nature", lang)}>
-        <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)", lineHeight: 1.4 }}>
+        <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.4 }}>
           {lang === "ta"
             ? "ஒவ்வொரு கிரகத்தின் லக்னத்திற்கு உரிய செயல்பாட்டு பொறுப்பு:"
             : "Each planet's functional role relative to the lagna:"}
         </p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-1_5)" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
           {Object.entries(functionalNatureTable).map(([planet, nature]) => (
-            <NatureBadge key={planet} planet={planet} nature={nature} lang={lang} />
+            <NatureRow key={planet} planet={planet} nature={nature} lang={lang} />
           ))}
         </div>
       </Section>
 
+      {/* ── Adhipathi (bhava-lord placements) ── */}
+      {adhipathiReport && adhipathiReport.length > 0 && (
+        <Section title={lang === "ta" ? "அதிபதி நிலைகள்" : "Adhipathi (House Lords)"}>
+          <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.4 }}>
+            {lang === "ta"
+              ? "ஒவ்வொரு வீட்டின் அதிபதி எங்கு அமர்ந்துள்ளார், அவரது வலிமை என்ன என்பதை காட்டுகிறது:"
+              : "Where each house's lord sits, and how strong that lord is:"}
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+            {adhipathiReport.map((item) => (
+              <AdhipathiRow key={item.house} item={item} lang={lang} />
+            ))}
+          </div>
+        </Section>
+      )}
+
       {/* ── Yogas & Doshams ── */}
       <Section title={`${t("yogas_title", lang)} & ${t("doshams_title", lang)}`} accent="rgba(167,139,250,0.3)">
-        <YogaDoshamPanel
-          lang={lang}
-          yogas={yogaDoshamSummary.yogas}
-          doshams={yogaDoshamSummary.doshams}
-        />
+        {renderYogaDoshamPanel ? (
+          renderYogaDoshamPanel({ yogas: yogaDoshamSummary.yogas, doshams: yogaDoshamSummary.doshams })
+        ) : (
+          <YogaDoshamPanel
+            lang={lang}
+            yogas={yogaDoshamSummary.yogas}
+            doshams={yogaDoshamSummary.doshams}
+          />
+        )}
       </Section>
 
       {/* ── Navamsa summary (collapsible) ── */}
@@ -322,7 +504,7 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad }: Props) {
             style={{
               alignSelf: "flex-start", padding: "var(--space-1) var(--space-4)", borderRadius: "var(--radius-pill)",
               background: "transparent", border: "1.5px solid var(--color-border-strong)",
-              color: "var(--color-muted)", fontSize: "0.75rem", cursor: "pointer", fontWeight: 600,
+              color: "var(--color-muted)", fontSize: "var(--text-sm)", cursor: "pointer", fontWeight: 600,
               fontFamily: "var(--font-body)",
             }}
           >
@@ -331,20 +513,22 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad }: Props) {
           {showNavamsa && (
             <div>
               {navamsamSummary.vargottamaPlanets.length > 0 && (
-                <p style={{ margin: "var(--space-1) 0 var(--space-2_5)", fontSize: "0.875rem", color: "#1e5a8c", lineHeight: 1.4 }}>
+                <p style={{ margin: "var(--space-1) 0 var(--space-2_5)", fontSize: "var(--text-base)", color: "var(--planet-other)", lineHeight: 1.4 }}>
                   {lang === "ta" ? "வர்கோத்தமம்: " : "Vargottama: "}
-                  {navamsamSummary.vargottamaPlanets.map((p) => (lang === "ta" ? (PLANET_NAMES_TA[p] ?? p) : p)).join(", ")}
+                  {navamsamSummary.vargottamaPlanets.map((p) => (planetNameTA(p, lang))).join(", ")}
                 </p>
               )}
               <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-1_5)" }}>
                 {Object.entries(navamsamSummary.d9ByPlanet).map(([planet, rasi]) => (
                   <div key={planet} style={{
                     padding: "var(--space-1) var(--space-2_5)", borderRadius: "var(--radius-pill)",
-                    background: "#FAF5EA", border: "1px solid var(--color-border)",
-                    fontSize: "0.75rem", color: "var(--color-text)",
+                    background: "var(--color-surface-2)", border: "1px solid var(--color-border)",
+                    fontSize: "var(--text-sm)", color: "var(--color-text)",
                   }}>
-                    {lang === "ta" ? (PLANET_NAMES_TA[planet] ?? planet) : planet}
-                    <span style={{ color: "var(--color-faint)", margin: "0 var(--space-1)" }}>→</span>
+                    {planetNameTA(planet, lang)}
+                    <span style={{ color: "var(--color-faint)", margin: "0 var(--space-1)", display: "inline-flex", verticalAlign: "middle" }} aria-hidden="true">
+                      <ArrowRight size={12} strokeWidth={1.5} />
+                    </span>
                     {rasi}
                   </div>
                 ))}
@@ -355,50 +539,50 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad }: Props) {
       )}
 
       {/* ── This year's guidance ── */}
-      <div style={{ padding: "var(--space-5) var(--space-6)", borderRadius: "var(--radius-md)", background: "var(--color-surface)", border: "1px solid var(--color-border)", fontFamily: "var(--font-body)" }}>
-        <p className="cd-kicker" style={{ marginBottom: "var(--space-2)", color: "#1e5a8c", letterSpacing: "0.1em" }}>
+      <Card style={{ padding: "var(--space-5) var(--space-6)", borderRadius: "var(--radius-md)", fontFamily: "var(--font-body)", gap: 0 }}>
+        <p className="cd-kicker" style={{ marginBottom: "var(--space-2)", color: "var(--planet-other)", letterSpacing: "0.1em" }}>
           {t("jadhagam_year_guidance", lang)}
         </p>
-        <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-text-strong)", lineHeight: 1.6 }}>
+        <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text-strong)", lineHeight: 1.6 }}>
           {lang === "ta" ? currentYearGuidance.ta : currentYearGuidance.en}
         </p>
-      </div>
+      </Card>
 
       {/* ── Practical guidance ── */}
       <Section title={t("jadhagam_practical", lang)}>
-        <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--color-muted)", lineHeight: 1.4 }}>
+        <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.4 }}>
           {lang === "ta"
             ? "இந்த ஆலோசனைகள் உங்கள் வயது, நடப்பு தசை மற்றும் கிரக நிலை ஆகியவற்றின் அடிப்படையில் வழங்கப்பட்டுள்ளன:"
             : "These recommendations are specific to your age phase, current dasha, and planetary state:"}
         </p>
-        <ul style={{ margin: 0, padding: "0 0 0 var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
+        <ul style={{ margin: 0, paddingLeft: "var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-1_5)" }}>
           {(lang === "ta" ? practicalGuidance.ta : practicalGuidance.en).map((item, i) => (
-            <li key={i} style={{ fontSize: "0.875rem", color: "var(--color-text)", lineHeight: 1.55 }}>{item}</li>
+            <li key={i} style={{ fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.55 }}>{item}</li>
           ))}
         </ul>
       </Section>
 
       {/* ── Remedies ── */}
-      <div style={{ padding: "var(--space-5) var(--space-6)", borderRadius: "var(--radius-md)", background: "#F0D9C4", border: "1px solid rgba(184,90,44,0.25)", fontFamily: "var(--font-body)" }}>
-        <p className="cd-kicker" style={{ marginBottom: "var(--space-1_5)", color: "var(--color-score-mid)", letterSpacing: "0.1em" }}>
+      <Card variant="mid" style={{ padding: "var(--space-5) var(--space-6)", borderRadius: "var(--radius-md)", fontFamily: "var(--font-body)", gap: 0 }}>
+        <p className="cd-kicker" style={{ marginBottom: "var(--space-1_5)", color: "var(--color-mid-text)", letterSpacing: "0.1em" }}>
           {t("jadhagam_remedies", lang)}
         </p>
-        <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "0.875rem", color: "#7a3412", lineHeight: 1.4 }}>
+        <p style={{ margin: "0 0 var(--space-2_5)", fontSize: "var(--text-base)", color: "var(--color-text)", lineHeight: 1.4 }}>
           {lang === "ta"
             ? "இந்த பரிகாரங்கள் உங்கள் நடப்பு தசை மற்றும் பலவீனமான கிரகங்களின் அடிப்படையில் பரிந்துரைக்கப்படுகின்றன:"
             : "These remedies are suggested based on your current dasha and planets needing support:"}
         </p>
-        <ul style={{ margin: 0, padding: "0 0 0 var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
+        <ul style={{ margin: 0, paddingLeft: "var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
           {(lang === "ta" ? optionalRemedies.ta : optionalRemedies.en).map((item, i) => (
-            <li key={i} style={{ fontSize: "0.875rem", color: "var(--color-text-strong)", lineHeight: 1.5 }}>{item}</li>
+            <li key={i} style={{ fontSize: "var(--text-base)", color: "var(--color-text-strong)", lineHeight: 1.5 }}>{item}</li>
           ))}
         </ul>
-        <p style={{ margin: "var(--space-3) 0 0", fontSize: "0.75rem", color: "var(--color-score-mid)", lineHeight: 1.4 }}>
+        <p style={{ margin: "var(--space-3) 0 0", fontSize: "var(--text-sm)", color: "var(--color-mid-text)", lineHeight: 1.4 }}>
           {lang === "ta"
             ? "இந்த பரிகாரங்கள் விருப்பமானவை. எந்தவொரு கல் அல்லது பரிகாரமும் தகுதிவாய்ந்த ஜோதிடரின் ஆலோசனையின் பேரில் மட்டுமே மேற்கொள்ளவும்."
             : "Remedies are optional. Any gemstone or pariharam should only be undertaken after consulting a qualified astrologer."}
         </p>
-      </div>
+      </Card>
 
     </div>
   );

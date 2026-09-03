@@ -1,10 +1,11 @@
-﻿"use client";
+"use client";
 
 import { getScoreBand } from "@/lib/format";
 import { WarningGlyph } from "./icons";
 import { t, tLang } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { LifeAreaData } from "@/lib/types";
+import { readingPhrase, readingTone } from "@/lib/reasoning";
 
 interface LifeAreaCardProps {
   area: LifeAreaData;
@@ -19,6 +20,50 @@ const FACTOR_LABELS: Record<string, { ta: string; en: string }> = {
   house_av_weak: { en: "Ashtakavarga bindus weak (<=22)", ta: "அஷ்டகவர்க்க பிந்துக்கள் பலவீனமானவை (<=22)" },
   too_young: { en: "Not yet the typical age for this area", ta: "இந்த பகுதிக்கான பொதுவான வயது இன்னும் வரவில்லை" },
   age_limit: { en: "Past the typical active age", ta: "இந்த பகுதியின் செயலூக்கமான வயது கடந்துவிட்டது" },
+  // Connection-match dasha keys (life_areas_service → dasha_activation.py).
+  dasha_lords_bhava: { en: "Dasha lord owns this house", ta: "தசை அதிபதியே இந்த வீட்டின் அதிபதி" },
+  dasha_lords_related_house: { en: "Dasha lord owns a supporting house", ta: "தசை அதிபதி துணை வீட்டின் அதிபதி" },
+  dasha_is_karaka: { en: "Dasha lord is the area karaka", ta: "தசை அதிபதியே இந்த பகுதியின் காரகன்" },
+  dasha_occupies_bhava: { en: "Dasha lord sits in this house", ta: "தசை அதிபதி இந்த வீட்டில் அமர்ந்துள்ளார்" },
+  dasha_aspects_bhava: { en: "Dasha lord aspects this house", ta: "தசை அதிபதியின் பார்வை இந்த வீட்டின் மீது உள்ளது" },
+  dasha_dispositor_of_bhava_lord: { en: "House lord sits in the dasha lord's sign", ta: "வீட்டு அதிபதி தசை அதிபதியின் ராசியில் உள்ளார்" },
+  dasha_node_agent: { en: "Rahu/Ketu dasha delivers a connected planet's results", ta: "ராகு/கேது தசை தொடர்புடைய கிரகத்தின் பலனை தருகிறது" },
+  // Bhinnashtakavarga indications counted from the karaka graha's own rasi
+  // (app/calculations/bav_derived.py). These read a bindu band on the classical
+  // 0-8 scale — deliberately never a number of children or of relatives, which
+  // is how these sutras are often misquoted. See
+  // docs/BAV_DERIVED_INDICATIONS_2026-08-18.md.
+  progeny_bav_strong: {
+    en: "Guru's bindus support the 5th from Guru — a classical progeny indication",
+    ta: "குருவின் பிந்துக்கள், குருவிலிருந்து 5ஆம் இடத்திற்கு நல்ல வலிமை அளிக்கின்றன — புத்திர பாக்கியத்திற்கு நல்ல அறிகுறி",
+  },
+  siblings_bav_strong: {
+    en: "Sevvai's bindus support the 3rd from Sevvai — sahodara indications are well placed",
+    ta: "செவ்வாயின் பிந்துக்கள், செவ்வாயிலிருந்து 3ஆம் இடத்திற்கு நல்ல வலிமை அளிக்கின்றன — சகோதர உறவிற்கு நல்ல அறிகுறி",
+  },
+  siblings_bav_thin: {
+    en: "Sevvai's bindus are thin in the 3rd from Sevvai — sahodara support is lighter",
+    ta: "செவ்வாயிலிருந்து 3ஆம் இடத்தில் பிந்துக்கள் குறைவாக உள்ளன — சகோதர உறவிற்கான ஆதரவு குறைவாக உள்ளது",
+  },
+  maternal_bav_strong: {
+    en: "Budhan's bindus support the 4th from Budhan — the maternal line is well placed",
+    ta: "புதனின் பிந்துக்கள், புதனிலிருந்து 4ஆம் இடத்திற்கு நல்ல வலிமை அளிக்கின்றன — தாய்வழி உறவிற்கு நல்ல அறிகுறி",
+  },
+  maternal_bav_thin: {
+    en: "Budhan's bindus are thin in the 4th from Budhan — the maternal line has lighter support",
+    ta: "புதனிலிருந்து 4ஆம் இடத்தில் பிந்துக்கள் குறைவாக உள்ளன — தாய்வழி உறவிற்கான ஆதரவு குறைவாக உள்ளது",
+  },
+  paternal_bav_strong: {
+    en: "Suriyan's bindus support the 9th from Suriyan — the paternal line is well placed",
+    ta: "சூரியனின் பிந்துக்கள், சூரியனிலிருந்து 9ஆம் இடத்திற்கு நல்ல வலிமை அளிக்கின்றன — தந்தைவழி உறவிற்கு நல்ல அறிகுறி",
+  },
+  paternal_bav_thin: {
+    en: "Suriyan's bindus are thin in the 9th from Suriyan — the paternal line has lighter support",
+    ta: "சூரியனிலிருந்து 9ஆம் இடத்தில் பிந்துக்கள் குறைவாக உள்ளன — தந்தைவழி உறவிற்கான ஆதரவு குறைவாக உள்ளது",
+  },
+  // Named affliction keys (life_areas_service → bhava_afflictions.py).
+  papa_kartari_hems_house: { en: "Papa kartari — malefics hem this house", ta: "பாப கர்த்தரி — இரு பக்கமும் பாப கிரகங்கள்" },
+  shubha_kartari_protects_house: { en: "Shubha kartari — benefics protect this house", ta: "சுப கர்த்தரி — இரு பக்கமும் சுப கிரகங்கள்" },
 };
 
 function humaniseFactorKey(key: string, lang: Lang): string {
@@ -40,6 +85,10 @@ function humaniseFactorKey(key: string, lang: Lang): string {
         ? (lang === "ta" ? "கிரகநகர்வு ஆதரவு" : "transit supportive")
         : suffix === "transit_difficult"
         ? (lang === "ta" ? "கிரகநகர்வு சவால்" : "transit difficult")
+        : suffix === "occupies_house"
+        ? (lang === "ta" ? "இந்த வீட்டில் அமர்வு" : "occupies this house")
+        : suffix === "aspects_house"
+        ? (lang === "ta" ? "இந்த வீட்டின் மீது பார்வை" : "aspects this house")
         : suffix.replaceAll("_", " ");
     return `${planet}: ${suffixLabel}`;
   }
@@ -85,12 +134,32 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeArea
                 fontWeight: 700,
                 padding: "2px 8px",
                 borderRadius: "999px",
-                background: "#F0D9C4",
-                color: "#8C3E18",
+                background: "var(--chart-d1-lagna-bg)",
+                color: "var(--planet-lagna)",
                 border: "1px solid rgba(184,90,44,0.3)",
               }}
             >
               {lang === "ta" ? "உங்கள் இலக்கு" : "Your focus"}
+            </span>
+          )}
+          {/* D4 contradiction reading (reasoning Phase 3): additive, present
+              only when reasoning_contradiction is on. The server already
+              rewrites the narrative below for PROMISED_NOT_NOW/NOT_PROMISED/
+              ACTIVE_BUT_UNPROMISED; this chip surfaces the raw state for
+              every area, including the ones that don't change the copy. */}
+          {area.reading && (
+            <span
+              style={{
+                fontSize: "0.625rem",
+                fontWeight: 700,
+                padding: "2px 8px",
+                borderRadius: "999px",
+                background: readingTone(area.reading).bg,
+                color: readingTone(area.reading).text,
+                border: `1px solid ${readingTone(area.reading).border}`,
+              }}
+            >
+              {readingPhrase(area.reading, lang)}
             </span>
           )}
         </div>
@@ -132,7 +201,16 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeArea
         </span>
       </div>
 
-      {((area.supportingFactors?.length ?? 0) > 0 || (area.blockingFactors?.length ?? 0) > 0) && (
+      {/* Root-cause chain (reasoning Phase 5): when the server sends a
+          "because ... therefore ..." reading for LOW-confidence areas, it
+          replaces the flat factor list below. */}
+      {area.causalChain && (
+        <p style={{ margin: "var(--space-2_5) 0 0", fontSize: "0.75rem", color: "var(--color-muted)", lineHeight: 1.55, fontStyle: "italic" }}>
+          {tLang(area.causalChain, lang)}
+        </p>
+      )}
+
+      {!area.causalChain && ((area.supportingFactors?.length ?? 0) > 0 || (area.blockingFactors?.length ?? 0) > 0) && (
         <div style={{ marginTop: "var(--space-2_5)", display: "grid", gap: "var(--space-1)" }}>
           {(area.supportingFactors ?? []).slice(0, 3).map((factor) => (
             <p key={`support-${factor}`} style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-score-high)", lineHeight: 1.4 }}>
@@ -155,8 +233,8 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeArea
       </div>
 
       {area.caution && (
-        <div style={{ marginTop: "var(--space-3)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "#F2D8CC", border: "1px solid rgba(168,72,47,0.3)" }}>
-          <p style={{ margin: 0, fontSize: "0.75rem", color: "#8c3e18", lineHeight: 1.45, display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}>
+        <div style={{ marginTop: "var(--space-3)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--panel-warm-tint)", border: "1px solid rgba(168,72,47,0.3)" }}>
+          <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--planet-lagna)", lineHeight: 1.45, display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}>
             <WarningGlyph />
             {tLang(area.caution, lang)}
           </p>
@@ -164,11 +242,11 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeArea
       )}
 
       {area.remedy && (
-        <div style={{ marginTop: "var(--space-2_5)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "#F0D9C4", border: "1px solid rgba(184,90,44,0.25)" }}>
-          <p className="cd-kicker" style={{ margin: "0 0 var(--space-0_5)", color: "var(--color-score-mid)", letterSpacing: "0.08em" }}>
+        <div style={{ marginTop: "var(--space-2_5)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-sm)", background: "var(--chart-d1-lagna-bg)", border: "1px solid rgba(184,90,44,0.25)" }}>
+          <p className="cd-kicker" style={{ margin: "0 0 var(--space-0_5)", color: "var(--color-mid-text)", letterSpacing: "0.08em" }}>
             {t("remedy_label", lang)}
           </p>
-          <p style={{ margin: 0, fontSize: "0.75rem", color: "#7a3412", lineHeight: 1.45 }}>{tLang(area.remedy, lang)}</p>
+          <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-text)", lineHeight: 1.45 }}>{tLang(area.remedy, lang)}</p>
         </div>
       )}
 

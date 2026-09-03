@@ -14,18 +14,18 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.calculations.astro import RASI_NAME_TO_NUMBER, RASI_NAMES, resolve_timezone, utc_datetime_to_julian_day
+from app.calculations.astro import utc_datetime_to_julian_day
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.models import BirthProfile, Chart
 from app.models.user_life_events import UserLifeEvent
 from app.schemas.life_event_log import (
+    VALID_EVENT_TYPES,
     BiText,
     EventCorrelation,
     LifeEventLogCreate,
     LifeEventLogCreateResponse,
     LifeEventLogItem,
     LifeEventLogResponse,
-    VALID_EVENT_TYPES,
 )
 
 logger = logging.getLogger(__name__)
@@ -143,6 +143,17 @@ def log_life_event(
     session.add(row)
     session.flush()  # get the id
 
+    # D5 accountability (plan Phase 4): grade any open predictions this real
+    # outcome resolves. Best-effort inside join_outcome — never blocks the log.
+    from app.services.prediction_log_service import join_outcome
+    join_outcome(
+        session,
+        chart_id=chart_id,
+        event_id=row.id,
+        event_type=row.event_type,
+        event_date=row.event_date,
+    )
+
     # Compute correlation
     try:
         from app.services.chart_service import load_persisted_chart_response
@@ -194,7 +205,7 @@ def get_life_event_log(
         birth_jd = snap.data.julian_day
         moon_lon = natal_moon.absolute_longitude
         moon_rasi_name = str(chart.moon_rasi) if chart else ""
-    except Exception:
+    except Exception:  # noqa: S110 — best-effort natal context; correlation skipped without it
         pass
 
     for row in rows:
@@ -202,7 +213,7 @@ def get_life_event_log(
         if birth_jd is not None and moon_lon is not None:
             try:
                 corr = _correlate(birth_jd, moon_lon, row.event_date, row.event_type, moon_rasi_name)
-            except Exception:
+            except Exception:  # noqa: S110 — best-effort per-row correlation; row kept uncorrelated
                 pass
         items.append(_item_from_row(row, corr))
 

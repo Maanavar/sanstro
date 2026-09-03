@@ -1,9 +1,7 @@
-"use client";
-
 import Link from "next/link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
-import { useLang } from "@/components/lang-toggle";
+import { getServerLang } from "@/lib/server-lang";
 import { NATCHATHIRAM_DETAIL, mt } from "@/lib/marketing-i18n";
 import { NATCHATHIRAM_LIST, type NatchathiramEntry } from "@/lib/natchathiram-data";
 import { NATCHATHIRAM_EN, NATCHATHIRAM_EN_FACTS, JYOTISH_TERM_EN, type NatchathiramEnSections } from "@/lib/natchathiram-data-en";
@@ -20,8 +18,12 @@ function toEnName(taName: string): string {
   return romanNakshathiramName(found ? found.name_en : taName);
 }
 
-export function NatchathiramPageContent({ data }: Props) {
-  const [lang] = useLang();
+// F7 part two — a Server Component, and the highest-value one: this backs all
+// 27 `/natchathiram/*` routes, and being `"use client"` put `natchathiram-data`
+// + `natchathiram-data-en` in the client bundle of every one of them. All 27
+// callers are already Server Components passing a serialisable `data` prop.
+export async function NatchathiramPageContent({ data }: Props) {
+  const lang = await getServerLang();
   const d = NATCHATHIRAM_DETAIL;
   const { sections } = data;
   const englishName = romanNakshathiramName(data.name_en);
@@ -85,7 +87,15 @@ export function NatchathiramPageContent({ data }: Props) {
             </div>
             <div className="cl-hero-figure">
               <p className="cl-hero-figure__label">{mt(d.fig_label_suffix, lang)} · {data.rasi_en}</p>
-              <NatchathiramFactVisual data={data} />
+              <NatchathiramFactVisual
+                data={{
+                  number: data.number,
+                  name_en: data.name_en,
+                  name_ta: data.name_ta,
+                  rasi_en: data.rasi_en,
+                  rasi_ta: data.rasi_ta,
+                }}
+              />
             </div>
           </div>
         </section>
@@ -172,7 +182,7 @@ export function NatchathiramPageContent({ data }: Props) {
             <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", margin: "1rem 0" }}>
               {data.compatible_nakshatras.map((n) => (
                 <span key={n} style={{
-                  background: "var(--cl-accent, #6366f1)",
+                  background: "var(--cl-accent, var(--color-indigo))",
                   color: "#fff",
                   borderRadius: "2rem",
                   padding: "0.25rem 0.75rem",

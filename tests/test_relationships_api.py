@@ -99,3 +99,83 @@ def test_relationship_alerts_endpoint_filters_unread(
     assert all_body["unreadOnly"] is False
     assert all_body["totalCount"] == 1
 
+
+
+def test_relationship_compatibility_intelligence_includes_astro_identity(
+    client,
+    family_vault_payload_factory,
+    family_member_payload_factory,
+):
+    """Rasi/Nakshatra/Lagnam identity facts (2026-07 UX gap fix) must be
+    present for both people, not just the score breakdowns."""
+    family_vault_id, member_id = _create_family_with_two_members(
+        client,
+        family_vault_payload_factory,
+        family_member_payload_factory,
+    )
+
+    response = client.get(
+        f"/api/v1/relationships/{member_id}/compatibility-intelligence",
+        params={"familyVaultId": family_vault_id},
+    )
+    assert response.status_code == 200
+    body = response.json()["data"]
+    for identity in (body["personAIdentity"], body["personBIdentity"]):
+        assert 1 <= identity["rasi"] <= 12
+        assert identity["rasiName"]
+        assert 1 <= identity["nakshatra"] <= 27
+        assert identity["nakshatraName"]
+        assert 1 <= identity["pada"] <= 4
+        assert 1 <= identity["lagnaRasi"] <= 12
+        assert identity["lagnaRasiName"]
+
+
+def test_relationship_compatibility_intelligence_pdf_endpoint_returns_pdf(
+    client,
+    family_vault_payload_factory,
+    family_member_payload_factory,
+):
+    family_vault_id, member_id = _create_family_with_two_members(
+        client,
+        family_vault_payload_factory,
+        family_member_payload_factory,
+    )
+
+    response = client.get(
+        f"/api/v1/relationships/{member_id}/compatibility-intelligence/pdf",
+        params={"familyVaultId": family_vault_id},
+    )
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/pdf")
+    assert response.content[:4] == b"%PDF"
+
+
+def test_relationship_compatibility_intelligence_direct_pdf_endpoint_returns_pdf(
+    client,
+    family_vault_payload_factory,
+    family_member_payload_factory,
+):
+    family_vault_id, member_id = _create_family_with_two_members(
+        client,
+        family_vault_payload_factory,
+        family_member_payload_factory,
+    )
+
+    response = client.post(
+        f"/api/v1/relationships/{member_id}/compatibility-intelligence/direct/pdf",
+        params={"familyVaultId": family_vault_id},
+        json={
+            "personA": {
+                "displayName": "Arjun Kumar",
+                "birthDateLocal": "1991-07-22",
+                "birthTimeLocal": "06:30:00",
+                "birthPlace": "Chennai, Tamil Nadu, India",
+                "birthLatitude": 13.0827,
+                "birthLongitude": 80.2707,
+                "birthTimezone": "Asia/Kolkata",
+            }
+        },
+    )
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/pdf")
+    assert response.content[:4] == b"%PDF"

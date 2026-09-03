@@ -12,6 +12,7 @@ from app.core.age_gate import (
     MINOR_REDIRECT_KEYWORDS,
     SENIOR_MARRIAGE_REDIRECT_KEYWORDS,
     STUDY_REDIRECT_KEYWORDS,
+    WELLBEING_REDIRECT_KEYWORDS,
     compute_age,
     is_married_settled,
     is_minor,
@@ -31,9 +32,9 @@ from app.schemas.ask_vinaadi import (
 from app.schemas.dasha import ResponseMeta
 from app.services.ask_vinaadi_service import answer_question
 from app.services.ask_vinaadi_usage_service import (
-    assert_chip_available,
-    consume_chip,
     get_daily_status,
+    refund_chip,
+    reserve_chip,
 )
 
 router = APIRouter()
@@ -101,6 +102,38 @@ def _minor_career_redirect_response(question: str) -> AskVinaadiResponse:
         ),
         meta=ResponseMeta(
             calculation_version="minor-career-gate-redirect-v1",
+            generated_at=datetime.now(tz=UTC),
+        ),
+    )
+
+
+def _minor_wellbeing_redirect_response(question: str) -> AskVinaadiResponse:
+    """P1-2/D11 hard gate mirrored here: propensity_service hard-suppresses
+    the sensitive WELLBEING/CAUTION cards for minors, so Ask Vinaadi must not
+    answer the same topics in free text instead."""
+    return AskVinaadiResponse(
+        data=AskVinaadiResponseData(
+            question=question,
+            answer=BiText(
+                ta=(
+                    "இந்த வயதில் இது போன்ற தனிப்பட்ட நல்வாழ்வு கேள்விகளை நாம் பார்ப்பதில்லை. "
+                    "ஏதேனும் கவலை இருந்தால் பெற்றோர் அல்லது நம்பகமான பெரியவருடன் பேசுவது நல்லது. "
+                    "படிப்பு, ஆரோக்கியமான பழக்கவழக்கங்கள் மற்றும் ஆன்மிக வளர்ச்சி பற்றி கேட்கலாம்."
+                ),
+                en=(
+                    "We don't cover personal wellbeing questions like this at your age. If something is "
+                    "worrying you, please talk to a parent or a trusted adult. You can ask about studies, "
+                    "healthy habits, and spiritual growth instead."
+                ),
+            ),
+            signalsUsed=[],
+            confidence="HIGH",
+            caveat=None,
+            questionsUsedToday=0,
+            dailyLimit=0,
+        ),
+        meta=ResponseMeta(
+            calculation_version="minor-wellbeing-gate-redirect-v1",
             generated_at=datetime.now(tz=UTC),
         ),
     )
@@ -218,6 +251,9 @@ def ask_vinaadi(
         # Under-18: block career/job topics.
         if any(k in q_lower for k in CAREER_REDIRECT_KEYWORDS):
             return _minor_career_redirect_response(payload.question)
+        # Under-18: block wellbeing/fertility/health-sensitive topics (P1-2, D11).
+        if any(k in q_lower for k in WELLBEING_REDIRECT_KEYWORDS):
+            return _minor_wellbeing_redirect_response(payload.question)
 
     # Under-6: additionally block study/education topics.
     if is_young_child(age):
@@ -234,16 +270,25 @@ def ask_vinaadi(
         if any(k in q_lower for k in SENIOR_MARRIAGE_REDIRECT_KEYWORDS):
             return _senior_marriage_redirect_response(payload.question)
 
-    # Feature 3 — enforce the free-tier daily chip limit before processing.
-    assert_chip_available(session, current_user.user_id)
+    # Feature 3 — claim the chip BEFORE the provider call, not after.
+    #
+    # Checking availability and then counting afterwards left a window in which
+    # concurrent questions all passed the check and all called the provider: the
+    # user got more answers than their quota allowed and we paid for every one.
+    # Reserving first closes it; the cost is that a reservation must be given
+    # back if the answer never arrives, which is what the except clause is for.
+    chips_remaining = reserve_chip(session, current_user.user_id)
 
-    response = answer_question(
-        session,
-        chart_id,
-        payload.question,
-        owner_user_id=current_user.user_id,
-    )
+    try:
+        response = answer_question(
+            session,
+            chart_id,
+            payload.question,
+            owner_user_id=current_user.user_id,
+        )
+    except Exception:
+        refund_chip(session, current_user.user_id)
+        raise
 
-    # Count this successful question and surface remaining chips to the client.
-    response.data.chips_remaining = consume_chip(session, current_user.user_id)
+    response.data.chips_remaining = chips_remaining
     return response

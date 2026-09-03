@@ -87,7 +87,12 @@ def test_valid_uuid_subject_token_accepted_for_existing_user(raw_client):
         json={"email": "tokenuser@example.com", "password": "password123"},
     )
     assert register.status_code == 200
-    user_id = register.json()["userId"]
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "tokenuser@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
+    user_id = login.json()["userId"]
 
     token = create_access_token(subject=user_id)
     resp = raw_client.get("/api/v1/family-vaults", headers={"Authorization": f"Bearer {token}"})
@@ -100,7 +105,12 @@ def test_admin_stats_requires_admin_key(raw_client):
         json={"email": "adminprobe@example.com", "password": "password123"},
     )
     assert register.status_code == 200
-    token = create_access_token(subject=register.json()["userId"])
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "adminprobe@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
+    token = create_access_token(subject=login.json()["userId"])
     resp = raw_client.get("/api/v1/admin/stats", headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 403
 
@@ -111,7 +121,12 @@ def test_admin_stats_wrong_key_rejected(raw_client):
         json={"email": "adminkeyprobe@example.com", "password": "password123"},
     )
     assert register.status_code == 200
-    token = create_access_token(subject=register.json()["userId"])
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "adminkeyprobe@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
+    token = create_access_token(subject=login.json()["userId"])
     resp = raw_client.get(
         "/api/v1/admin/stats",
         headers={"Authorization": f"Bearer {token}", "X-Admin-Key": "wrong_key"},

@@ -1,0 +1,23 @@
+appId: ai.vinaadi.app
+---
+# Panchangam tab: calendar renders, user can scroll months.
+- launchApp
+- waitForAnimationToEnd
+- tapOn:
+    anyOf:
+      - text: "Panchangam"
+      - text: "பஞ்சாங்கம்"
+- waitForAnimationToEnd:
+    timeout: 6000
+- assertNotVisible:
+    text: "Something went wrong"
+# Swipe left to next month on the calendar.
+- swipe:
+    direction: LEFT
+    duration: 400
+- waitForAnimationToEnd
+# Swipe back.
+- swipe:
+    direction: RIGHT
+    duration: 400
+- waitForAnimationToEnd

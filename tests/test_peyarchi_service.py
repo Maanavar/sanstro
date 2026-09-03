@@ -6,7 +6,6 @@ from app.calculations.astro import utc_datetime_to_julian_day
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.services.peyarchi_service import find_next_permanent_rasi_change
 
-
 AS_OF_DATE = date(2026, 5, 22)
 AS_OF_UTC = datetime(2026, 5, 22, 12, 0, tzinfo=UTC)
 

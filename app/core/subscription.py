@@ -12,7 +12,11 @@ from sqlalchemy.orm import Session
 from app.models.subscription import Subscription
 
 # Tiers that do NOT grant premium access even when a row exists with status="active".
-_NON_PREMIUM_TIERS = {"free", "none", "trial_expired", "cancelled"}
+# "trial" is intentionally absent — an active trial row grants premium access.
+# RevenueCat INITIAL_PURCHASE during a trial period stores tier="premium" (see webhooks.py),
+# so "trial" as a stored value is unlikely, but it is treated as premium if it ever appears.
+# "trial_expired" IS in the set — RevenueCat sends EXPIRATION at trial end if not converted.
+_NON_PREMIUM_TIERS = {"free", "none", "trial_expired", "cancelled", ""}
 
 
 def is_premium(user_id: UUID, db: Session) -> bool:

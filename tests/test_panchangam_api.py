@@ -35,22 +35,64 @@ def test_daily_panchangam_endpoint_returns_structured_daily_data(client):
     assert body["data"]["yoga"]["nextName"]
     assert body["data"]["karana"]["endsAt"]
     assert body["data"]["karana"]["nextName"]
+    # endsAtIso is the full local datetime alongside the bare "HH:MM" endsAt —
+    # clients must use it (not endsAt + a guessed date) to tell whether a
+    # boundary falls later today or on a future day. See the 2026-07-25
+    # Kettai/Moolam regression below.
+    for limb in ("tithi", "nakshatra", "yoga", "karana"):
+        ends_at = body["data"][limb]["endsAt"]
+        ends_at_iso = body["data"][limb]["endsAtIso"]
+        assert ends_at_iso[:10] in ("2026-05-21", "2026-05-22")
+        assert ends_at_iso[11:16] == ends_at
     chandra = body["data"]["chandrashtamamToday"]
     assert 1 <= chandra["moonRasiNumber"] <= 12
     assert 1 <= chandra["affectedJanmaRasiNumber"] <= 12
     assert chandra["affectedJanmaRasiNumber"] == ((chandra["moonRasiNumber"] - 8) % 12) + 1
-    # Summary windows are compact daily-calendar timings; the full named
-    # Gowri engine remains available under gowriPanchangam.
+    assert isinstance(chandra["janmaNakshatraWindows"], list)
+    assert chandra["janmaNakshatraWindows"]
+    assert {"name", "start", "end"}.issubset(chandra["janmaNakshatraWindows"][0])
+    # Summary windows are compact daily-calendar timings cut from the full named
+    # Gowri engine (also served whole under gowriPanchangam), and each carries the
+    # name of the kala it came from so the UI can say *which* good time it is.
+    good_kalas = {"AMIRTHAM", "UTHI", "LABHAM", "DHANAM", "SUGAM"}
     assert len(body["data"]["kalam"]["gowriNallaNeram"]) == 2
     assert {s["period"] for s in body["data"]["kalam"]["gowriNallaNeram"]} == {"DAY", "NIGHT"}
-    assert all(s["name"] is None and s["isGood"] is True for s in body["data"]["kalam"]["gowriNallaNeram"])
+    assert all(s["name"] in good_kalas and s["isGood"] is True for s in body["data"]["kalam"]["gowriNallaNeram"])
     assert len(body["data"]["kalam"]["nallaNeram"]) == 2
     assert {s["period"] for s in body["data"]["kalam"]["nallaNeram"]} == {"AM", "PM"}
     for s in body["data"]["kalam"]["nallaNeram"]:
-        assert s["name"] is None
+        assert s["name"] in good_kalas
         assert s["isGood"] is True
         assert s["warning"] is None
     assert len(body["data"]["hora"]) == 24
+
+
+def test_nakshatra_ends_at_iso_carries_the_real_next_day_boundary(client):
+    """Regression: 2026-07-25 Chennai. Kettai (Jyeshtha) nakshatra runs from
+    before sunrise (05:56) until 07:35 the *next* morning (2026-07-26). Before
+    endsAtIso existed, clients had to guess the missing date from the bare
+    "07:35" clock string; because 07:35 is numerically later than sunrise's
+    05:56, that guess read it as "ends later today" and promoted the headline
+    to Moolam a full day early, as soon as the clock passed 7:35 AM on the
+    25th. This pins the wire value so a client comparing endsAtIso can never
+    make that mistake again.
+    """
+    response = client.get(
+        "/api/v1/panchangam/daily",
+        params={
+            "date": "2026-07-25",
+            "lat": 13.0827,
+            "lng": 80.2707,
+            "timezone": "Asia/Kolkata",
+        },
+    )
+
+    assert response.status_code == 200
+    nakshatra = response.json()["data"]["nakshatra"]
+    assert nakshatra["name"] == "KETTAI"
+    assert nakshatra["nextName"] == "MOOLAM"
+    assert nakshatra["endsAt"] == "07:35"
+    assert nakshatra["endsAtIso"].startswith("2026-07-26T07:35")
 
 
 def test_panchangam_timings_endpoint_returns_timing_windows(client):
@@ -159,17 +201,15 @@ def test_monthly_panchangam_uses_cached_dominant_values(client, monkeypatch):
     first_entries = first.json()["data"]["entries"]
     assert first_entries
 
-    import app.services.panchangam_service as service_module
+    import app.calculations.panchangam as panchangam_module
 
-    def _unexpected_dominant_walk(*args, **kwargs):
-        raise AssertionError("Warm monthly load must read dominant values from the cache.")
+    def _unexpected_recompute(*args, **kwargs):
+        raise AssertionError("Warm monthly load must read snapshots from the cache, not re-walk the ephemeris.")
 
-    # The civil-day dominant tithi/nakshatra/yoga are the expensive per-day ephemeris
-    # walk. On a warm load they come off the cached snapshot, so these fallbacks must
-    # never be invoked.
-    monkeypatch.setattr(service_module, "dominant_tithi_for_civil_day", _unexpected_dominant_walk)
-    monkeypatch.setattr(service_module, "dominant_nakshatra_for_civil_day", _unexpected_dominant_walk)
-    monkeypatch.setattr(service_module, "dominant_yoga_for_civil_day", _unexpected_dominant_walk)
+    # The per-day sidereal ephemeris walk is the expensive part of building a
+    # snapshot. On a fully warm load every day is served from the cached snapshot,
+    # so the ephemeris must never be touched.
+    monkeypatch.setattr(panchangam_module, "calculate_sidereal_planets", _unexpected_recompute)
 
     second = client.get("/api/v1/panchangam/monthly", params=params)
     assert second.status_code == 200
@@ -205,3 +245,26 @@ def test_daily_panchangam_endpoint_ignores_stale_cache_schema(client):
     with SessionLocal() as session:
         row = session.query(PanchangamCache).one()
         assert row.data["schema_version"] == PANCHANGAM_CACHE_DATA_VERSION
+
+
+def test_daily_panchangam_polar_day_returns_422_not_500(client):
+    # Tromso during polar day has no sunrise/sunset — the endpoint must degrade to
+    # a clean 422 (undefined input), never a 500.
+    response = client.get(
+        "/api/v1/panchangam/daily",
+        params={"date": "2026-06-21", "lat": 69.6492, "lng": 18.9553, "timezone": "Europe/Oslo"},
+    )
+    assert response.status_code == 422
+    assert "polar" in response.json()["detail"].lower()
+
+
+def test_monthly_panchangam_polar_month_omits_undefined_days_not_500(client):
+    # A fully-polar month returns 200 with the no-sunrise days simply omitted,
+    # rather than failing the whole request.
+    response = client.get(
+        "/api/v1/panchangam/monthly",
+        params={"year": 2026, "month": 6, "lat": 69.6492, "lng": 18.9553, "timezone": "Europe/Oslo"},
+    )
+    assert response.status_code == 200
+    # June at Tromso is entirely polar day → all days omitted.
+    assert response.json()["data"]["entries"] == []

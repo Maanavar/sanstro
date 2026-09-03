@@ -15,6 +15,7 @@ from app.models.chart import Chart
 from app.models.family_member import FamilyMember
 from app.models.family_vault import FamilyVault
 from app.models.feedback import Feedback
+from app.models.prediction_log import PredictionLog
 from app.models.subscription import Subscription
 from app.models.user import User
 from app.models.user_notification_preference import UserNotificationPreference
@@ -345,6 +346,47 @@ def test_feature_flags_round_trip(raw_client):
         "enable_push_notifications",
         "maintenance_mode",
         "max_birth_profiles_per_user",
+        "reasoning_gate",
+        "reasoning_bands",
+        "reasoning_contradiction",
+        "reasoning_calibration_log",
+        "reasoning_chart_signature",
+        "daily_briefing_synth",
+        "propensity_insights",
+        "timing_band_strong_cutoff",
+        "timing_band_likely_cutoff",
+        "timing_band_mixed_cutoff",
+        "nadi_parihara_mode",
+        # Added in bc2cf32 (holistic strength synthesis, shipped ON) but never
+        # added here, so this exact-set assertion has been red since that commit.
+        "holistic_strength_synthesis",
+        # Numerology engine (docs/NUMEROLOGY_IMPLEMENTATION_PLAN_2026-07-25.md).
+        # Master gate ships ON (flipped 2026-07-28); the two string flags carry
+        # doctrine rulings D1 and D2 so a ruling is a PATCH /admin/flags call,
+        # not a code change.
+        # Same failure mode as the line above: this is an exact-set assertion,
+        # so every new flag has to be added here in the same change.
+        "numerology_engine",
+        "numerology_personal_year_epoch",
+        "numerology_naming_mode",
+        # Registered with Phase 5 (name correction) — the first feature capable
+        # of violating "a number never overrides a graha", because it is the
+        # first one that recommends an action.
+        "numerology_alignment_required",
+        # Doctrine D4 (NUM-34) — whether the number-pair relation reads Cheiro's
+        # sympathetic series or Parashari natural friendship.
+        "numerology_compatibility_basis",
+        # Baby naming (NUM-50/51/52, Phase 5's other half). Independent of
+        # `numerology_engine` — see app/services/feature_flags.py for why.
+        "numerology_baby_naming",
+        # The reading-length modules, and the THIRD time this exact-set
+        # assertion has gone red for the reason the two comments above already
+        # describe: `one_minute_reading` shipped ON in 930689c and
+        # `five_minute_reading` in 926b030, neither was added here, and the
+        # test stayed red across both rollouts. Registering a flag and listing
+        # it here is one change, not two.
+        "one_minute_reading",
+        "five_minute_reading",
     } == names
 
     set_response = raw_client.patch(
@@ -360,3 +402,97 @@ def test_feature_flags_round_trip(raw_client):
     assert reset_response.status_code == 200
     assert reset_response.json()["reset"] is True
     assert reset_response.json()["current_value"] is False
+
+
+def test_calibration_requires_admin(raw_client):
+    non_admin_user_id = _create_user("non-admin@example.com")
+    response = raw_client.get(
+        "/api/v1/admin/calibration",
+        headers={"Authorization": f"Bearer {create_access_token(subject=non_admin_user_id)}"},
+    )
+    assert response.status_code == 403
+
+
+def test_calibration_report_aggregates_prediction_log(raw_client):
+    admin_user_id = _create_user("admin@example.com")
+    target_user_id = UUID(_create_user("calibration-target@example.com"))
+    headers = _admin_headers(admin_user_id, "test-admin-key")
+
+    with SessionLocal() as session:
+        profile = BirthProfile(
+            owner_user_id=target_user_id,
+            display_name="Calibration Target",
+            birth_date_local=date(1990, 4, 12),
+            birth_time_local=time(9, 15),
+            birth_place="Madurai, Tamil Nadu, India",
+            birth_latitude=Decimal("9.925200"),
+            birth_longitude=Decimal("78.119800"),
+            birth_timezone="Asia/Kolkata",
+        )
+        session.add(profile)
+        session.flush()
+
+        chart = Chart(
+            birth_profile_id=profile.birth_profile_id,
+            calculation_version="test-v1",
+            julian_day=Decimal("2451545.00000000"),
+            lagna_rasi="Simha",
+            lagna_longitude=Decimal("135.00000000"),
+            moon_rasi="Kanni",
+            janma_nakshatra="Hastha",
+            janma_pada=2,
+        )
+        session.add(chart)
+        session.flush()
+
+        session.add_all(
+            [
+                PredictionLog(
+                    chart_id=chart.chart_id,
+                    source="life_areas",
+                    life_area="CAREER",
+                    band="STRONG",
+                    active_maha="JUPITER",
+                    outcome_grade="HIT",
+                    calc_version="test-v1",
+                ),
+                PredictionLog(
+                    chart_id=chart.chart_id,
+                    source="life_areas",
+                    life_area="CAREER",
+                    band="STRONG",
+                    active_maha="JUPITER",
+                    outcome_grade="MISS",
+                    calc_version="test-v1",
+                ),
+                PredictionLog(
+                    chart_id=chart.chart_id,
+                    source="whatif",
+                    life_area="MARRIAGE",
+                    band="LIKELY",
+                    active_maha="VENUS",
+                    outcome_grade=None,
+                    calc_version="test-v1",
+                ),
+            ]
+        )
+        session.commit()
+
+    response = raw_client.get("/api/v1/admin/calibration", headers=headers)
+    assert response.status_code == 200
+    body = response.json()
+
+    assert body["total_logged"] == 3
+    assert body["total_open"] == 1
+    assert body["total_graded"] == 2
+
+    area_band = {b["key"]: b for b in body["by_area_band"]}
+    assert area_band["CAREER/STRONG"]["hit"] == 1
+    assert area_band["CAREER/STRONG"]["miss"] == 1
+    assert area_band["CAREER/STRONG"]["n"] == 2
+    assert area_band["CAREER/STRONG"]["hit_rate"] == 0.5
+    assert "MARRIAGE/LIKELY" not in area_band  # open rows are excluded from buckets
+
+    dasha_lord = {b["key"]: b for b in body["by_dasha_lord"]}
+    assert dasha_lord["JUPITER"]["n"] == 2
+    assert "VENUS" not in dasha_lord

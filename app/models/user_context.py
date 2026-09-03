@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID, uuid4
 
-from sqlalchemy import ForeignKey, Index, JSON, UniqueConstraint
+from sqlalchemy import JSON, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin
@@ -17,9 +17,8 @@ class UserContext(TimestampMixin, Base):
     )
 
     context_id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    owner_user_id: Mapped[UUID] = mapped_column(ForeignKey("users.user_id"), nullable=False)
-    chart_id: Mapped[UUID] = mapped_column(ForeignKey("charts.chart_id"), nullable=False)
+    owner_user_id: Mapped[UUID] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
+    chart_id: Mapped[UUID] = mapped_column(ForeignKey("charts.chart_id", ondelete="CASCADE"), nullable=False)
     life_situation: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False, default=dict)
     active_events: Mapped[list[dict[str, object]]] = mapped_column(JSON, nullable=False, default=list)
     reaction_history: Mapped[list[dict[str, object]]] = mapped_column(JSON, nullable=False, default=list)
-

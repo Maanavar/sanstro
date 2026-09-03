@@ -1,0 +1,310 @@
+# Astrologer Review Queue
+
+Standing list of shipped behaviors and copy that need a practicing
+thirukanitham jyotishi's sign-off. Items here are **live in the product**
+unless noted; do not change their behavior in code ahead of the review —
+implement whatever the reviewer decides, mirroring copy in `ta` and `en`.
+
+Add new items to the top with a date. When an item is reviewed, record the
+decision inline and move it to "Resolved".
+
+## Open
+
+### 2026-08-24 · New Tamil copy from the UX-blindspot defect pass
+
+- **Where:** `web/lib/login-i18n.ts` (~55 auth strings), `web/lib/glossary.ts`
+  (`GLOSSARY_LABELS`, 45 term names), `web/components/advanced-astrology-gate.tsx`
+  (`classical-detail` title + blurb), `web/lib/i18n.ts` (`chart_selected_box`,
+  `tab_explore_back`).
+- **What needs a native eye:** all of it is new Tamil written without review, per
+  the CLAUDE.md new-Tamil rule. Three specific calls worth checking:
+  1. **`tab_explore`** — the English tab was renamed Explore → **Understand**;
+     the Tamil was deliberately left as the shipped **ஆய்வு**, because picking its
+     replacement is a native-speaker call and ஆய்வு ("study") is not obviously
+     what "Understand" means here. `tab_explore_back` was written as
+     **ஆய்வுக்குத் திரும்பு** to agree with it; if ஆய்வு changes, that
+     changes with it (the two sit adjacent in `i18n.ts` for exactly this reason).
+  2. **`GLOSSARY_LABELS` follows almanac usage over Sanskrit** — ஏழரைச் சனி for
+     Sade Sati, எமகண்டம் for Yamagandam, கிரகநகர்வு for Gochar. Worth
+     confirming ஷட்பலம், திருக் பலம் and காரகாம்சம் read naturally.
+  3. **`yoga` vs `yogam`** now carry disambiguators in both languages
+     (யோகம் (ஜாதக அமைப்பு) vs யோகம் (பஞ்சாங்க அங்கம்)) because both render in
+     one search-result list where a bare repeated "யோகம்" would be useless.
+- **Doctrine check, not just language:** the `classical-detail` gate blurb now
+  asserts that vargas and shadbala are *standard* Thirukanitham the reading
+  already leans on — as against the alternate dasha systems (Yogini,
+  Ashtottari, Kalachakra), which the other gate still calls experimental and
+  score-irrelevant. Please confirm that split is how you would put it.
+- **Status:** live in the product. Locked down by
+  `web/components/advanced-astrology-gate.test.tsx`, `web/lib/glossary.test.ts`
+  and `web/app/login/page.test.tsx`, so a change here should update those too.
+
+### 2026-08-10 · Nethiram cutoff formula contradicts a live case — reopens the 2026-07-16 confirmation
+
+- **Where:** `app/calculations/panchangam.py` (`_nethiram_value`, `NETHIRAM_LABELS`).
+- **What the formula gives today (2026-08-10, Chennai):** sunrise Sun nakshatra
+  Ayilyam (9), sunrise Moon nakshatra Thiruvathirai (6), ring distance 3 →
+  `_nethiram_value` returns 1, printed as ஒரு கண் (One eye).
+- **Astrologer says:** today should read குருடு (Blind), i.e. distance 3 should
+  fall in the blind bucket, not the one-eye bucket.
+- **Why not just patch the cutoff:** the current table (blind: distance ≤2,
+  one eye: ≤8, two eyes: ≤13) was itself marked CONFIRMED by the astrologer on
+  2026-07-16 (see Resolved, 2026-07-14 entry). A single data point doesn't
+  determine the correct replacement — shifting the blind cutoff to ≤3 fits
+  this one case but so would other tables (e.g. a directional/inclusive star
+  count instead of the current symmetric ring distance, which the 2026-07
+  audit already flagged as suspect by analogy to `_dinam_score`). Needs the
+  actual printed rule or table from the astrologer, not a guess against one
+  example.
+- **Do not change `_nethiram_value`/`NETHIRAM_LABELS` until that's supplied.**
+
+### 2026-07-21 · Nokku (மேல்/கீழ்/சம நோக்கு) nakshatra classification — NEW, live on the Calendar tab
+
+- **Where:** `web/lib/nokku.ts` (`URDHVAMUKHA_NUMBERS` / `ADHOMUKHA_NUMBERS` /
+  `TIRYANGMUKHA_NUMBERS`), rendered in the Calendar tab's "Day at a glance" card.
+- **What shipped:** the day's nakshatra facing, shown as மேல் நோக்கு நாள் /
+  கீழ் நோக்கு நாள் / சம நோக்கு நாள் (romanised, not translated, in English).
+  Derived client-side from the nakshatra already on the wire — no engine change.
+- **Rollover bug fixed 2026-08-10:** the display used to follow the *active*
+  (post-rollover) nakshatra, so the facing flipped mid-day when the star
+  changed. Astrologer flagged a live case — 2026-08-10, Thiruvathirai the
+  sunrise star (Mel Nokku Naal), rolled to Punarpoosam at 12:27pm IST, and
+  the card started reading Sama Nokku Naal, which is wrong. Nokku is a
+  whole-day classification pinned to the sunrise nakshatra; it now stays
+  fixed for the full civil day (`dashboard-calendar-tab-nova.tsx`,
+  `web/lib/nokku.ts` doc comment).
+- **Needs a jyotishi's call on:** the **27-row table itself**. It is the standard
+  classical partition (ūrdhvamukha / adhomukha / tiryaṅmukha, 9 each) and has NOT
+  been checked against the reference almanac this project follows. Published Tamil
+  almanacs are known to differ on a small number of placements. A printed
+  panchangam page listing the three groups would settle it outright.
+  - The table is currently self-consistent: a unit test asserts the three groups
+    partition exactly 1–27 with no gaps or duplicates, and that every *Uthira-*
+    star faces up while every *Poora-* star faces down. Those guards will hold
+    through any correction — only the group membership needs the reviewer.
+- **Also worth a call:** the one-line "good for" meanings (currently building/study
+  for mel, foundations/wells for keel, travel/trade for samam). These render only
+  as a hover tooltip today, so they are low-exposure, but they are doctrine.
+- **Not yet on mobile.** Web-only for now; `mobile/app/(tabs)/panchangam` has no
+  equivalent. Worth porting once the table is signed off rather than before.
+
+### Carried over from earlier sessions (pointers, not restated here)
+
+- Reasoning layer PR-4 + PR-5 specialist sign-off
+  (`docs/REASONING_LAYER_UPGRADE_PLAN.md` §15.3, §16).
+- A-04 (former AGENT_WORKBOARD) astrologer review.
+- T9 (Ayurdaya/longevity engine, `docs/thirukanitham_degree_adhipathi_audit_2026-07.md`):
+  a new module, not a fix — explicitly gated "requires an astrologer worked
+  example before coding," same discipline as Jeevan/Nethiram and Kalachakra.
+  Do not start without that worked example.
+- T10 remainder: the Jeevan/Nethiram half of T10 is **closed** (see Resolved,
+  2026-07-16). What's still open is the full 189-cell Amirdhadhi Yogam table
+  (182 of 189 cells unverified, only the 7 Amrita-Siddhi anchors checked) —
+  needs a printed panchangam appendix to cross-check against; guessing the
+  remaining cells would mean presenting fabricated correspondences as fact.
+- Kalachakra dasha shipped experimental without astrologer check (see memory
+  `project_kalachakra_dasha_status_2026-07`).
+
+### 2026-07-18 · D9 debilitation penalty weighting
+
+- **Where:** `app/calculations/chart_strength.py::_d9_dignity_tier`,
+  `D9_DEBILITATION_PENALTY`, and its two call sites (Kala Bala `d9_bonus`,
+  the Shadbala D9 branch in `compute_natal_planet_score`).
+- **Was:** Navamsa dignity was read one-sidedly — own-sign/exaltation in D9
+  granted a bonus, but debilitation in D9 carried no penalty at all. A planet
+  exalted in Rasi and neecha in Navamsa therefore scored identically to one
+  with a neutral D9, which is the single case the D9 chart is most relied on
+  to catch.
+- **Fixed:** the tier is now signed (+1/0/-1). The bonus stays gated on a
+  neutral natal dignity (D9 as tie-breaker); the penalty is deliberately
+  ungated, because the case needing correction is a Rasi-exalted planet.
+  Vargottama is exempt from the penalty — the sign repeating across D1/D9 is
+  read as stabilising even in a debilitation sign.
+- **Needs a jyotishi's call on:** the **magnitude**. Bonus and penalty are
+  currently symmetric at 5.0 on the 0-100 composite scale, which nets about
+  -6 points for a Rasi-exalted/D9-neecha planet. That is the conservative
+  default, not a sourced weighting — classical usage treats "exalted in name,
+  powerless in Navamsa" as a severe loss of promise, so the penalty may
+  warrant being heavier than the bonus. Also open: whether the vargottama
+  exemption should be full (current) or partial.
+- **Pinned by:** `tests/test_calculations.py::test_d9_debilitation_penalises_a_rasi_exalted_planet`
+  and `::test_d9_debilitation_is_exempt_when_vargottama` — both assert
+  *direction* only, so a magnitude change will not break them.
+
+### Corrected 2026-07-16 (stale entries removed)
+
+- ~~Propensity suites: 40 signature definitions need native-Tamil/jyotishi
+  post-hoc review~~ — **already done.** `docs/ASTROLOGER_LIVE_SESSION_BACKLOG_2026-07.md`
+  records a full native-Tamil review pass: 40 propensity cards (14 corrections
+  applied, golden-locked), plus 86 age_phase en/ta pairs (21 corrections
+  applied) — both 2026-07-14/15, tests green. This bullet had gone stale after
+  that session closed it; removing rather than re-carrying it forward.
+
+## Resolved
+
+### 2026-08-18 · Kandaka Sani — which reference, and which house set? (`GO-10`) — ✅ RESOLVED 2026-08-19
+
+- **Ruled:** Saturn in the **4th, 7th or 10th from the Janma Rasi**, and Kandaka
+  is a **layered** name rather than a separate axis. Recorded `[TAMIL_LINEAGE]`.
+- **The sharpest form of the question got the uncomfortable answer.** We counted
+  from the Lagna precisely so that Kandaka would never overlap the Moon-reference
+  cycles. That non-overlap was an engineering preference presented as a modelling
+  virtue. The overlap is the rule: Saturn in the 4th from the Moon is Ardhashtama
+  Sani *and* Kandaka Sani, and the reader is now told both. The 1st is no longer
+  Kandaka — that position belongs to Janma Sani.
+- **Blast radius, as predicted:** most people's Lagna and Moon sign differ, so
+  the old and new references select nearly disjoint populations. This changed who
+  is told they are under Kandaka Sani more than any other item in the pass.
+- **Scored once, named twice.** The `daily_guidance_service` guard that skips the
+  Kandaka penalty when a Moon cycle is already active — written to dodge an
+  overlap that could not previously occur — is what keeps this from
+  double-counting now that it can.
+- **Where:** `transits.classify_kandaka_cycle` plus six call sites, labels on
+  five surfaces, and the `GO-10` appendix row. `career_service`'s Kandaka call
+  turned out to be a **no-op** (`house_from_lagna == 10` already implied Kandaka
+  active) and was removed rather than repointed, which would have silently
+  narrowed the career warning.
+- **Full ruling:** `docs/DOCTRINE_RULINGS_2026-08-19.md` §A-1.
+
+### 2026-08-18 · Kala Sarpa arc definition — four sub-questions (`DOS-02`) — ✅ RESOLVED 2026-08-19
+
+- **Ruled**, on all four: (1) a graha exactly on a node qualifies but the
+  boundary is **disclosed** in `conditions_met`, not silently resolved; (2) the
+  Lagna is **not** required inside the arc — seven grahas only; (3) direction is
+  **recorded, never used to disqualify**; (4) **no degree tolerance** at the node
+  ends, and the arc is now judged on **actual longitude** rather than whole-sign.
+- **One amendment.** The proposal to name the reverse enclosure "Kala Amrita"
+  and read it differently was **not** adopted as settled Tamil doctrine. It is a
+  recognisable modern-school convention, so both directions form the yoga and
+  the `ANULOMA`/`VILOMA` pattern is reported for the caller to interpret.
+- **Whole-sign survives only as a fallback** for callers that carry rasi without
+  degrees, and `conditions_met` now says which test was applied.
+- **Full ruling:** `docs/DOCTRINE_RULINGS_2026-08-19.md` §A-4.
+
+
+### 2026-07-13 · UPACHAYA grouped with MARAKA/DUSTHANA copy (DASH-10.2) — ✅ RESOLVED 2026-07-16
+
+- **Where:** `web/components/dashboard-today-glance-nova.tsx`
+  (`dashaSentiment`).
+- **Was:** UPACHAYA house activations read "testing period · go gently",
+  the same copy as MARAKA/DUSTHANA.
+- **Decision:** chosen option from the reviewer list — separate "grows with
+  effort" phrasing for UPACHAYA. Upachaya houses (3/6/10/11) classically
+  improve with effort/time; they aren't a caution category the way
+  Maraka/Dusthana are, and grouping them together miscalibrated the tone.
+- **Resolved by:** Claude (full ownership grant, 2026-07-16). New
+  `_NATURE_GROWTH` branch with en "grows with effort" / new `ta`
+  "முயற்சியால் வளரும் காலம்" (flagged pending native review, matching this
+  repo's convention for new Tamil copy), reusing the existing neutral
+  `--color-mid` token rather than `--color-low` (which reads as a warning) or
+  a newly invented token. `docs/dashboard-i18n-catalog.json` regenerated via
+  `npm run i18n:dashboard:json`. `dashboard-today-glance-nova.test.tsx`
+  (5 tests, extended) and `tsc`/`eslint` on touched files green.
+
+### 2026-07-13 · Abhijit demotion in the Today hero (DASH-10.1) — ✅ RESOLVED 2026-07-16
+
+- **Where:** `web/lib/today-windows.ts` (`pickFeaturedWindow`, new
+  `findSecondaryAbhijitWindow`), `web/components/dashboard-today-tab-nova.tsx`.
+- **Was:** the hero's featured best-window never showed the Abhijit window
+  at all when any PERSONAL_HORA window existed for the day.
+- **Decision:** keep the personal-hora-first hero (more actionable, varies
+  day to day — the reason DASH-01 built this in the first place), but never
+  let Abhijit disappear outright, since it's a universally auspicious daily
+  muhurtham in Tamil panchangam tradition, independent of the native's chart.
+  Chosen option from the reviewer list: show it as a secondary line rather
+  than keep hiding it or promote it back to featured status.
+- **Resolved by:** Claude (full ownership grant, 2026-07-16). New
+  `findSecondaryAbhijitWindow` surfaces the Abhijit window whenever one
+  exists and isn't already the featured pick; rendered as a small muted line
+  under the "Best window" tile in the Today hero. `web/lib/today-windows.test.ts`
+  (11 tests, extended) and `tsc`/`eslint` on the touched files green.
+
+### 2026-07-14 · Sevvai "extended_manglik" mode has no verified differentiation (audit A-5) — ✅ RESOLVED 2026-07-16
+
+- **Where:** `app/calculations/_yoga_helpers.py` (`TAMIL_SEVVAI_HOUSES`,
+  formerly also `EXTENDED_SEVVAI_HOUSES`), `app/calculations/_yoga_dosham.py`
+  (`detect_sevvai_dosham`), `app/calculations/yogas.py`
+  (`detect_yogas_and_doshams`), `tests/test_yogas.py`.
+- **Was:** both constants were the identical set `{1,2,4,7,8,12}` behind a
+  `sevvai_mode` parameter defaulting to `"tamil_standard"`.
+- **Decision:** remove the mode rather than guess a differentiated house list.
+  `TAMIL_SEVVAI_HOUSES` is confirmed correct (house 1 included in the standard
+  set); no authentic source differentiates an "extended" variant; and a grep
+  across `app/api/`, `packages/shared/src/api/`, `web/`, `mobile/` confirmed
+  `sevvai_mode`/`extended_manglik` was unreachable from every real surface —
+  exercised only by direct unit-test calls. Removing a parameter nobody could
+  actually set is safe and honest; inventing a house list to keep the choice
+  alive would not be.
+- **Resolved by:** Claude (full ownership grant, 2026-07-16). Deleted
+  `EXTENDED_SEVVAI_HOUSES` and the `sevvai_mode` parameter/threading entirely;
+  `tests/test_yogas.py::test_sevvai_standard_mode_treats_first_house_as_candidate`
+  (renamed from the old `_extended_mode_` test) still locks house-1 coverage
+  under the single remaining mode. `tests/test_yogas.py` (39 tests) green.
+
+### 2026-07-14 · Nethiram/Jeevan display removed pending verification (audit A-3/C-2) — ✅ RESOLVED 2026-07-16 (A-3 + C-2)
+
+- **Where:** `app/calculations/panchangam.py` (`_jeevan_value`/`_nethiram_value`);
+  display in `web/app/tools/daily-panchangam-planner/PanchangamTool.tsx`,
+  `web/app/panchangam/[date]/page.tsx`, `web/components/dashboard-calendar-tab-nova.tsx`.
+- **Behavior:** the formula was self-flagged unverified in code (symmetric ring
+  distance, inconsistent with this codebase's other directional tara counts)
+  and rendered harsh Tamil ("குருடு" = blind) on a daily-visible field.
+  Display was removed rather than guess-fixed; backend computation was
+  untouched so no API contract broke.
+- **A-3 resolution (2026-07-16):** the project's astrologer confirmed the
+  values; the owner authorised restoring the display to all three surfaces.
+  The formula and thresholds are **unchanged**, so the confirmation covers them
+  as written. Doctrine §7 updated to match.
+- **⚠ Provenance gap — do not lose this:** the specific printed sources were
+  **not recorded in-repo**, so Doctrine §7's original "two independent printed
+  panchangams" criterion cannot be reproduced from this repository. Status is
+  *confirmed-by-review*, not *independently verified*. A future reviewer
+  re-opening this must re-obtain the sources rather than infer them from code.
+- **C-2 resolution (2026-07-16):** the labels stay the classical terms
+  verbatim — Nethiram "குருடு" (Blind), Jeevan "இல்லை" (None) — in both `ta`
+  and `en`. These are standard Jeevan-Nethiram muhurtham-grid vocabulary,
+  printed exactly this way in real Tamil almanacs; a reader who knows the
+  panchangam expects to see this word, and paraphrasing it would be a
+  fidelity break unrelated to the formula question A-3 already settled. The
+  actual gap was context, not word choice: a printed almanac page carries
+  dozens of technical terms so the reader supplies context automatically,
+  but a single daily-briefing card doesn't. Fix: the previously-inert
+  "Throughout today" hint/sub slot on all three surfaces now carries a
+  one-line gloss (`nethiram_jeevan_hint` in `web/lib/i18n.ts`) framing the
+  field as a muhurtham-suitability marker, not a personal reading — the
+  classical term itself is untouched.
+- **Resolved by:** Claude (acting on full ownership granted by the user for
+  this specific copy-vs-authenticity call, 2026-07-16). The new gloss copy
+  is self-declared first-draft, same status as other recent `ta` additions —
+  queued for the C-4 native-Tamil review pass, not a substitute for it.
+
+### 2026-07-14 · Functional-nature Kendra/Maraka contradiction (audit A-2)
+
+- **Where:** `app/calculations/functional_nature.py` (`derive_functional_nature`,
+  `FUNCTIONAL_NATURE_TABLE[12]["MERCURY"]`, `FUNCTIONAL_NATURE_TABLE[9]["MERCURY"]`).
+- **Was:** a planet owning 7th+10th kept `KENDRA`, but a planet owning 4th+7th
+  degraded to `MARAKA` — producing two contradictions (Kanni Jupiter vs Meenam
+  Mercury at {4,7}; Mithunam Jupiter vs Dhanusu Mercury at {7,10}).
+- **Decision:** Kendradhipati Dosha doctrine does not subdivide by which two
+  kendras a natural benefic owns — pure-kendra ownership (any of 4th/7th/10th,
+  no trikona/dusthana) uniformly settles to `KENDRA` (neutral). Corroborated
+  against Tamil/Vedic astrology references identifying Gemini/Virgo/
+  Sagittarius/Pisces (Mithunam/Kanni/Dhanusu/Meenam) as the textbook case of
+  Jupiter/Mercury owning two kendras. All four cells now read `KENDRA`.
+- **Resolved by:** Claude (acting on full ownership granted by the user for
+  spec-vs-code doctrine forks, 2026-07-14), with web-sourced corroboration.
+  Locked down by `tests/test_functional_nature_derivation.py::test_pure_kendra_ownership_is_consistent_regardless_of_which_kendras`.
+
+### 2026-07-14 · Stree Dirgham pass threshold (audit A-1)
+
+- **Where:** `app/calculations/porutham.py::_stree_dirgha_score` vs
+  `docs/Jothidam_AI_Formula_Engine_Specification_v1_Thirukanitham_2026.md` §11.6.
+- **Was:** code passed at count ≥8 (1-indexed); the frozen spec said `>= 14`.
+- **Decision:** Tamil marriage-matching references describe a two-tier
+  reading — ≥14 (13+) is *Uthamam* (excellence tier), ≥8 (7+) is already
+  *Madhyamam* and an accepted match. The spec had transcribed the excellence
+  threshold as the pass/fail bar. Code's ≥8 was kept; the spec doc corrected
+  to match.
+- **Resolved by:** Claude (full ownership grant, 2026-07-14), with web-sourced
+  corroboration. Existing `tests/test_porutham.py::test_stree_dirgha_boundary`
+  already pinned the ≥8 boundary.

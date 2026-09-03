@@ -1,0 +1,5 @@
+appId: ai.vinaadi.app
+---
+# Override per-platform in CI:
+#   maestro test --device ios .maestro/flows
+#   maestro test --device android .maestro/flows

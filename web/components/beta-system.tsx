@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { useLang } from "@/components/lang-toggle";
@@ -14,13 +15,18 @@ const WELCOME_KEY = "vinaadi_beta_welcome_seen";
  * Sitewide beta layer: a dismissible top banner plus a one-time welcome modal
  * on first visit. State persists in localStorage so we never nag a returning
  * user. Rendered once from the root layout so it covers both the public site
- * and the dashboard.
+ * and the dashboard — except the dashboard itself, which suppresses this
+ * entirely (both the banner and the welcome modal's CTA link to `/beta`, a
+ * marketing page, and the dashboard must never link out to the marketing
+ * site except sign-out).
  */
 export function BetaSystem() {
+  const pathname = usePathname();
   const [lang] = useLang();
   const [mounted, setMounted] = useState(false);
   const [bannerOpen, setBannerOpen] = useState(false);
   const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const onDashboard = pathname?.startsWith("/dashboard") ?? false;
 
   useEffect(() => {
     setMounted(true);
@@ -53,6 +59,7 @@ export function BetaSystem() {
 
   // Avoid hydration mismatch: render nothing until we've read localStorage.
   if (!mounted) return null;
+  if (onDashboard) return null;
 
   return (
     <>

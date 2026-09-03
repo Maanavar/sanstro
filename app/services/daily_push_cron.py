@@ -1,8 +1,13 @@
 """
 Daily push notification cron.
 
-Runs once per day (wired at 06:00 UTC in main.py).  For each user who has
-opted into morning_alert or dasha_alert or pirantha_naal_alert, it:
+Runs every hour on the hour (trigger: ``minute=0`` in app/scheduler.py).
+``_morning_alert_due`` checks each user's preferred alert time against the
+current UTC clock, so each user receives the notification in a ±30-minute
+window around their chosen local time — not all at once.
+
+For each user who has opted into morning_alert, dasha_alert, or
+pirantha_naal_alert the function:
 
   1. Loads their primary birth profile + chart.
   2. Computes the panchangam-based daily score for today (local date).
@@ -12,6 +17,24 @@ opted into morning_alert or dasha_alert or pirantha_naal_alert, it:
 
 All delivery is opt-in and goes through dispatch_notification, which handles
 FCM/email routing, smart-silence suppression, and audit logging.
+
+Deployment model
+----------------
+Single-box (default)
+    ``JOTHIDAM_RUN_SCHEDULER_IN_WEB=true`` (the default).  APScheduler runs
+    inside the FastAPI lifespan.  A PostgreSQL advisory lock (SchedulerLease)
+    ensures only one worker fires the cron when uvicorn spawns multiple workers.
+    On SQLite the lock is a no-op (always granted).
+
+Dedicated worker (scaled deploy)
+    Set ``JOTHIDAM_RUN_SCHEDULER_IN_WEB=false`` on API processes, then start
+    one scheduler process per deployment::
+
+        python -m app.worker
+
+    The worker acquires the same advisory lock; replicated worker containers
+    elect a leader automatically.  A crashed leader releases the lock when its
+    DB connection drops and a replica takes over on next startup.
 
 Designed to be callable as a plain function (no async) so APScheduler can
 invoke it as a standard job.
@@ -44,11 +67,15 @@ from app.models.chart_planet import ChartPlanet
 from app.models.notification import Notification
 from app.models.user import User
 from app.models.user_notification_preference import UserNotificationPreference
+from app.services._dg_scoring import (
+    AUSPICIOUS_DAILY_NAKSHATRAS,
+    CAUTION_DAILY_NAKSHATRAS,
+)
 from app.services.daily_guidance_service import get_daily_guidance
 from app.services.dasha_transition_service import get_dasha_transition_alerts
 from app.services.location_service import resolve_effective_daily_location
 from app.services.nakshatra_content import build_nakshatra_perspective
-from app.services.notification_dispatch_service import dispatch_notification
+from app.services.notification_dispatch_service import dispatch_notification, dispatch_queued_notification
 from app.services.notification_service import build_morning_notification
 from app.services.pirantha_naal_service import next_janma_nakshatra_date
 
@@ -70,12 +97,16 @@ def _score_label(score: int) -> str:
     return "RESTORATIVE"
 
 
-def _format_clock_label(value: datetime | time | object | None) -> str:
+def _format_clock_label(value: datetime | time | None) -> str:
+    """`| object` used to sit in this union, which collapsed it to plain
+    ``object`` and hid `.hour`/`.strftime` from the checker. Every caller
+    passes a datetime; the fallbacks below stay as belt-and-braces for
+    values that survive a cache round-trip."""
     if value is None:
         return "N/A"
     try:
-        hour = int(getattr(value, "hour"))
-        minute = int(getattr(value, "minute"))
+        hour = int(value.hour)
+        minute = int(value.minute)
     except Exception:
         try:
             raw = str(value.strftime("%H:%M"))
@@ -125,6 +156,19 @@ def _morning_alert_due(pref: UserNotificationPreference, now_utc: datetime, tz_n
     alert_dt = datetime.combine(local_now.date(), alert_time)
     delta = abs((local_now.replace(tzinfo=None) - alert_dt).total_seconds())
     return delta <= 1800  # ±30 minutes
+
+
+def _morning_alert_in_catchup_window(pref: UserNotificationPreference, now_utc: datetime, tz_name: str) -> bool:
+    """True when the alert window was missed: it ended 30-120 minutes ago (server restart catch-up)."""
+    try:
+        tz = resolve_timezone(tz_name)
+        local_now = now_utc.astimezone(tz)
+    except Exception:
+        return False
+    alert_time = pref.morning_alert_time or time(6, 0)
+    alert_dt = datetime.combine(local_now.date(), alert_time)
+    elapsed = (local_now.replace(tzinfo=None) - alert_dt).total_seconds()
+    return 1800 < elapsed <= 7200  # missed 30 min–2 hours ago
 
 
 def _already_sent_today(
@@ -183,15 +227,26 @@ def _dispatch_for_user(
     try:
         user_tz = resolve_timezone(tz_name)
         run_date = now_utc.astimezone(user_tz).date()
-    except Exception:
+    except Exception:  # noqa: S110 — fall back to the UTC run_date computed above
         pass
 
     # ----------------------------------------------------------------
     # 1. Morning Nalla Neram (MORNING_NALLA_NERAM)
+    # Regular window ±30 min + catch-up window 30-120 min after (P2-09).
+    # The _already_sent_today check prevents double-sending on overlapping ticks.
     # ----------------------------------------------------------------
-    if pref.morning_alert_enabled and _morning_alert_due(pref, now_utc, tz_name) and not _already_sent_today(session, user.user_id, "MORNING_NALLA_NERAM", run_date, tz_name):
+    _alert_due = (
+        _morning_alert_due(pref, now_utc, tz_name)
+        or _morning_alert_in_catchup_window(pref, now_utc, tz_name)
+    )
+    if pref.morning_alert_enabled and _alert_due and not _already_sent_today(session, user.user_id, "MORNING_NALLA_NERAM", run_date, tz_name):
         try:
             panchang = calculate_daily_panchangam(run_date, lat, lon, tz_name)
+            # The star this push speaks about. Dominant rather than sunrise: the
+            # sunrise star holds under half the day on 46.6% of days, and a
+            # morning notification naming a star that ended fifteen minutes
+            # after sunrise is the defect this whole change is about.
+            fallback_star = panchang.dominant_nakshatra_number or panchang.nakshatra_number
             nalla_slot = best_gowri_slot(panchang.nalla_neram)
             nalla_start = _format_clock_label(nalla_slot.start) if nalla_slot else "-"
             nalla_end = _format_clock_label(nalla_slot.end) if nalla_slot else "-"
@@ -212,18 +267,25 @@ def _dispatch_for_user(
                 dasha_ctx_ta = guidance.data.reasons.dasha_support.ta
                 dasha_ctx_en = guidance.data.reasons.dasha_support.en
             except Exception:
-                # Fall back to panchangam-only signal if full guidance fails
+                # Fall back to panchangam-only signal if full guidance fails.
+                # Star sets imported, not restated: this branch used to carry
+                # 14 (Chithirai) in BOTH its auspicious and its caution literal,
+                # and because auspicious was tested first the caution arm for 14
+                # was unreachable — the two lists agreed on 14 by accident while
+                # disagreeing in their source. Keyed on the day's dominant star
+                # rather than the sunrise one, to match the guidance score this
+                # is standing in for.
                 score = 50
-                if panchang.nakshatra_number in {1, 4, 5, 7, 8, 13, 14, 15, 17, 22, 27}:
+                if fallback_star in AUSPICIOUS_DAILY_NAKSHATRAS:
                     score = 72
-                elif panchang.nakshatra_number in {2, 9, 10, 14, 19}:
+                elif fallback_star in CAUTION_DAILY_NAKSHATRAS:
                     score = 32
                 label = _score_label(score)
                 is_chandrashtama = False
                 action_ta = action_en = ""
                 dasha_ctx_ta = dasha_ctx_en = ""
 
-            nak_content = build_nakshatra_perspective(panchang.nakshatra_number, label)
+            nak_content = build_nakshatra_perspective(fallback_star, label)
             nak_ta = nak_content.ta if nak_content else str(panchang.nakshatra_number)
             nak_en = nak_content.en if nak_content else str(panchang.nakshatra_number)
 
@@ -356,6 +418,62 @@ def _dispatch_for_user(
     return results
 
 
+
+
+def _payload_text(notification: Notification, field: str, lang: str) -> str | None:
+    value = (notification.payload or {}).get(field)
+    if isinstance(value, dict):
+        text_value = value.get(lang)
+        if isinstance(text_value, str) and text_value.strip():
+            return text_value
+    return None
+
+
+def _process_due_queued_notifications(session: Session, now_utc: datetime) -> dict[str, int]:
+    """Deliver due one-time onboarding notification rows."""
+    due_rows = session.execute(
+        select(Notification)
+        .where(
+            Notification.type == "JADHAGAM_D1_NUDGE",
+            Notification.status == "queued",
+            Notification.send_at <= now_utc,
+        )
+        .order_by(Notification.send_at.asc())
+        .limit(200)
+    ).scalars().all()
+
+    dispatched = skipped = errors = 0
+    for notification in due_rows:
+        user = session.get(User, notification.user_id)
+        if user is None:
+            notification.status = "failed"
+            notification.suppression_reason = "user_not_found"
+            skipped += 1
+            session.commit()
+            continue
+
+        try:
+            result = dispatch_queued_notification(
+                session,
+                notification,
+                user_email=user.email,
+                title_ta=_payload_text(notification, "title", "ta"),
+                title_en=_payload_text(notification, "title", "en"),
+                body_ta=_payload_text(notification, "body", "ta"),
+                body_en=_payload_text(notification, "body", "en"),
+            )
+            if result == "failed":
+                errors += 1
+            else:
+                dispatched += 1
+            session.commit()
+        except Exception as exc:
+            logger.error("queued_notification_error notification=%s exc=%s", notification.notification_id, exc)
+            session.rollback()
+            errors += 1
+
+    return {"dispatched": dispatched, "skipped": skipped, "errors": errors}
+
 # ---------------------------------------------------------------------------
 # Cron entry point
 # ---------------------------------------------------------------------------
@@ -371,6 +489,11 @@ def run_daily_push_cron(run_at_utc: datetime | None = None) -> dict[str, int]:
     dispatched = skipped = errors = 0
 
     with SessionLocal() as session:
+        queued_results = _process_due_queued_notifications(session, now_utc)
+        dispatched += queued_results['dispatched']
+        skipped += queued_results['skipped']
+        errors += queued_results['errors']
+
         # Fetch all users with at least one alert opt-in. The notification_channel
         # is intentionally NOT filtered here: the in-app inbox is decoupled from
         # push/email delivery (dispatch_notification persists an in-app row even

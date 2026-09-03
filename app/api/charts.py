@@ -1,23 +1,26 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 from uuid import UUID
-
-from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.calculations.astro import RASI_NAMES, resolve_rasi
+from app.calculations.event_windows import ChartData, EventType, find_event_windows
+from app.calculations.jaimini_dasha import calculate_chara_dasha, current_chara_dasha
+from app.calculations.jaimini_karakas import compute_char_karakas, compute_karakamsa
+from app.calculations.tajaka import calculate_tajaka_chart
+from app.core.age_gate import is_married_settled, is_minor, is_past_prime_marriage_age
 from app.core.auth import get_current_user
+from app.core.chart_access import assert_chart_owner as _assert_chart_owner
 from app.db.session import get_db
 from app.models import BirthProfile, Chart
-from app.models.user import User
-from app.calculations.astro import NAKSHATRA_NAME_TO_NUMBER, resolve_rasi
-from app.calculations.jaimini_dasha import calculate_chara_dasha, current_chara_dasha
-from app.calculations.tajaka import calculate_tajaka_chart
-from app.calculations.event_windows import ChartData, EventType, find_event_windows
 from app.models.chart_planet import ChartPlanet
+from app.models.family_member import FamilyMember
+from app.models.user import User
+from app.schemas.chart_explanation import ChartExplanationResponse
 from app.schemas.charts import (
     ChartCalculateRequest,
     ChartCalculateResponse,
@@ -28,32 +31,39 @@ from app.schemas.charts import (
     JadhagamReportResponse,
     ResponseMeta,
 )
-from app.schemas.chart_explanation import ChartExplanationResponse
 from app.schemas.dasha import DashaTimelineResponse
+from app.schemas.dashboard_bundle import ChartDashboardBundleResponse
+from app.schemas.five_minute_reading import FiveMinuteReadingResponse
+from app.schemas.one_minute_reading import OneMinuteReadingResponse
+from app.services.ashtottari_dasha_service import build_ashtottari_dasha_response
+from app.services.chart_explanation_service import build_chart_explanation
 from app.services.chart_service import (
     calculate_chart as calculate_chart_snapshot,
+)
+from app.services.chart_service import (
     get_chart_summary,
     get_jadhagam_report,
     load_persisted_chart_response,
 )
-from app.services.chart_explanation_service import build_chart_explanation
+from app.services.conditional_dashas_service import build_conditional_dashas_response
 from app.services.dasha_service import get_chart_dasha
+from app.services.dashboard_bundle_service import get_chart_dashboard_bundle
+from app.services.five_minute_reading_service import (
+    build_five_minute_reading,
+    require_five_minute_reading_enabled,
+)
+from app.services.kalachakra_dasha_service import build_kalachakra_dasha_response
+from app.services.one_minute_reading_service import (
+    build_chart_context,
+    build_one_minute_reading,
+    require_one_minute_reading_enabled,
+)
 from app.services.pdf_export_service import generate_chart_pdf
+from app.services.shadbala_service import build_shadbala_response
 from app.services.tajaka_service import get_varshaphala
+from app.services.yogini_dasha_service import build_yogini_dasha_response
 
 router = APIRouter()
-
-
-def _assert_chart_owner(session: Session, chart_id: UUID, current_user: User) -> Chart:
-    chart = session.get(Chart, chart_id)
-    if chart is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chart not found.")
-    profile = session.get(BirthProfile, chart.birth_profile_id)
-    if profile is None or profile.deleted_at is not None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Birth profile not found.")
-    if profile.owner_user_id != current_user.user_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
-    return chart
 
 
 def _load_chart_and_profile(session: Session, owner_user_id: UUID, chart_id: UUID) -> tuple[Chart | None, BirthProfile | None]:
@@ -94,13 +104,38 @@ def get_chart(
 @router.get("/charts/{chart_id}/dasha", response_model=DashaTimelineResponse, tags=["charts"])
 def get_dasha(
     chart_id: UUID,
-    as_of: date = Query(alias="asOf"),
+    as_of: date | None = Query(default=None, alias="asOf"),
     level: str = Query(default="pratyantar"),
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> DashaTimelineResponse:
     _assert_chart_owner(session, chart_id, current_user)
+    if as_of is None:
+        as_of = date.today()
     return get_chart_dasha(session, chart_id, as_of, level=level)
+
+
+@router.get(
+    "/charts/{chart_id}/dashboard-bundle",
+    response_model=ChartDashboardBundleResponse,
+    tags=["charts"],
+    summary="Everything the dashboard needs for one chart+date in a single response (DASH-04)",
+)
+def get_dashboard_bundle(
+    chart_id: UUID,
+    date_value: date | None = Query(default=None, alias="date"),
+    language: str = Query(default="ta-en"),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ChartDashboardBundleResponse:
+    _assert_chart_owner(session, chart_id, current_user)
+    return get_chart_dashboard_bundle(
+        session,
+        chart_id,
+        date_value or date.today(),
+        owner_user_id=current_user.user_id,
+        language=language,
+    )
 
 
 @router.get("/charts/{chart_id}/summary", response_model=ChartSummaryResponse, tags=["charts"])
@@ -122,6 +157,54 @@ def get_report(
 ) -> JadhagamReportResponse:
     _assert_chart_owner(session, chart_id, current_user)
     return get_jadhagam_report(session, chart_id)
+
+
+@router.get(
+    "/charts/{chart_id}/one-minute",
+    response_model=OneMinuteReadingResponse,
+    tags=["charts"],
+    summary="Your Chart in Two Minutes — the astrologer's opening reading, in plain language",
+)
+def get_one_minute_reading(
+    chart_id: UUID,
+    as_of: date | None = Query(default=None, alias="asOf"),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> OneMinuteReadingResponse:
+    # Flag first, chart second — see require_one_minute_reading_enabled's docstring.
+    require_one_minute_reading_enabled()
+    context = build_chart_context(
+        session,
+        chart_id,
+        owner_user_id=current_user.user_id,
+        as_of=as_of,
+    )
+    return build_one_minute_reading(context)
+
+
+@router.get(
+    "/charts/{chart_id}/five-minute",
+    response_model=FiveMinuteReadingResponse,
+    tags=["charts"],
+    # "Four Minutes" is the measured length (spec §8.7); the path stays
+    # `/five-minute`, same split the two-minute reading's own rename made.
+    summary="Your Chart in Four Minutes — nature, its mechanism, and one thing to do",
+)
+def get_five_minute_reading(
+    chart_id: UUID,
+    as_of: date | None = Query(default=None, alias="asOf"),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> FiveMinuteReadingResponse:
+    # Flag first, chart second — see require_five_minute_reading_enabled's docstring.
+    require_five_minute_reading_enabled()
+    context = build_chart_context(
+        session,
+        chart_id,
+        owner_user_id=current_user.user_id,
+        as_of=as_of,
+    )
+    return build_five_minute_reading(context)
 
 
 @router.get("/charts/{chart_id}/explanation", response_model=ChartExplanationResponse, tags=["charts"])
@@ -150,12 +233,54 @@ def get_event_windows(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> EventWindowsResponse:
-    chart = _assert_chart_owner(session, chart_id, current_user)
+    chart, _ = _assert_chart_owner(session, chart_id, current_user)
 
     if from_year > to_year:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="fromYear must be <= toYear.")
     if to_year - from_year > 20:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Range must not exceed 20 years.")
+
+    # Marriage-timing windows are subject to the same age/relationship gating
+    # as every other marriage surface (predictions.py, life_events.py) — this
+    # endpoint previously had none.
+    age_gated = False
+    alternative_framing: str | None = None
+    hard_blocked = False
+    if event == "MARRIAGE":
+        profile = session.get(BirthProfile, chart.birth_profile_id)
+        birth_age = date.today().year - profile.birth_date_local.year - (
+            (date.today().month, date.today().day) < (profile.birth_date_local.month, profile.birth_date_local.day)
+        )
+        relationship_to_owner = "self"
+        if profile.family_member_id is not None:
+            member = session.get(FamilyMember, profile.family_member_id)
+            if member is not None:
+                relationship_to_owner = member.relationship_to_owner or "self"
+
+        is_parental = relationship_to_owner in {"parent", "grandparent"}
+        if is_minor(profile.birth_date_local) or is_past_prime_marriage_age(birth_age) or is_parental:
+            hard_blocked = True
+            age_gated = True
+        elif is_married_settled(profile.marital_status):
+            age_gated = True
+            alternative_framing = "RELATIONSHIP_HARMONY"
+
+    if hard_blocked:
+        return EventWindowsResponse(
+            data=EventWindowsData(
+                chart_id=chart_id,
+                event=event,
+                from_year=from_year,
+                to_year=to_year,
+                windows=[],
+                age_gated=age_gated,
+                alternative_framing=alternative_framing,
+            ),
+            meta=ResponseMeta(
+                calculation_version="event-windows-v1.0-2026",
+                generated_at=datetime.now(tz=UTC),
+            ),
+        )
 
     moon_row = session.execute(
         select(ChartPlanet).where(
@@ -193,6 +318,8 @@ def get_event_windows(
             from_year=from_year,
             to_year=to_year,
             windows=items,
+            age_gated=age_gated,
+            alternative_framing=alternative_framing,
         ),
         meta=ResponseMeta(
             calculation_version="event-windows-v1.0-2026",
@@ -210,12 +337,13 @@ def get_event_windows(
 def export_chart_pdf(
     chart_id: UUID,
     as_of: date = Query(default=None, alias="asOf"),
+    lang: str = Query(default="en", pattern="^(en|ta)$"),
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Response:
     _assert_chart_owner(session, chart_id, current_user)
     report_date = as_of or datetime.now(tz=UTC).date()
-    pdf_bytes = generate_chart_pdf(session, chart_id, report_date)
+    pdf_bytes = generate_chart_pdf(session, chart_id, report_date, lang=lang)
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
@@ -238,8 +366,19 @@ def get_chara_dasha(
     lagna_rasi = resolve_rasi(chart.lagna_rasi)
     birth_date = birth_profile.birth_date_local
 
-    periods = calculate_chara_dasha(lagna_rasi, planet_rasi_map, birth_date)
-    current = current_chara_dasha(lagna_rasi, planet_rasi_map, birth_date)
+    # planet_longitudes feeds the Scorpio/Aquarius co-lord degree tiebreak
+    # (WI-10) below, ahead of its other use for Chara Karakas/Karakamsa.
+    planet_longitudes = {p.graha: float(p.absolute_longitude) for p in planets}
+
+    periods = calculate_chara_dasha(lagna_rasi, planet_rasi_map, birth_date, planet_longitudes)
+    current = current_chara_dasha(lagna_rasi, planet_rasi_map, birth_date, planet_longitudes=planet_longitudes)
+
+    # Jaimini Chara Karakas + Karakamsa (BPHS Ch. 32) — see jaimini_karakas.py for
+    # the documented Rahu/tie-break conventions. Naturally pairs with Chara Dasha.
+    d9_rasi_map = {p.graha: resolve_rasi(p.d9_rasi) for p in planets if p.d9_rasi}
+    char_karakas = compute_char_karakas(planet_longitudes)
+    atmakaraka = char_karakas.get("ATMAKARAKA")
+    karakamsa_rasi = compute_karakamsa(atmakaraka, d9_rasi_map) if atmakaraka and atmakaraka in d9_rasi_map else None
 
     return {
         "success": True,
@@ -248,8 +387,98 @@ def get_chara_dasha(
             "lagnaRasi": lagna_rasi,
             "currentPeriod": current,
             "periods": periods,
+            "charKarakas": char_karakas,
+            "atmakaraka": atmakaraka,
+            "karakamsaRasi": karakamsa_rasi,
+            "karakamsaRasiName": RASI_NAMES.get(karakamsa_rasi) if karakamsa_rasi else None,
         },
     }
+
+
+@router.get("/charts/{chart_id}/yogini-dasha", tags=["charts"])
+def get_yogini_dasha(
+    chart_id: UUID,
+    as_of: date | None = Query(default=None, alias="asOf"),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Yogini Dasha — 36-year secondary/comparison dasha (BPHS-adjacent,
+    Devi Bhagavata/Muhurta Chintamani tradition). See yogini_dasha.py for
+    the cited starting-offset convention. Advanced/additive, not a
+    replacement for the primary Vimshottari timeline."""
+    _assert_chart_owner(session, chart_id, current_user)
+    try:
+        data = build_yogini_dasha_response(session, chart_id, as_of)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"success": True, "data": data}
+
+
+@router.get("/charts/{chart_id}/ashtottari-dasha", tags=["charts"])
+def get_ashtottari_dasha(
+    chart_id: UUID,
+    as_of: date | None = Query(default=None, alias="asOf"),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Ashtottari Dasha — 108-year secondary/comparison dasha (no Ketu, 8
+    lords). See ashtottari_dasha.py for the cited Ardra-adi (B.V. Raman /
+    Jataka Parijata) nakshatra-lord convention. The response also carries an
+    informational classical-applicability verdict (never gates the timeline).
+    Advanced/additive, display only — not a replacement for the primary
+    Vimshottari timeline, and not used in any scoring path."""
+    _assert_chart_owner(session, chart_id, current_user)
+    try:
+        data = build_ashtottari_dasha_response(session, chart_id, as_of)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"success": True, "data": data}
+
+
+@router.get("/charts/{chart_id}/kalachakra-dasha", tags=["charts"])
+def get_kalachakra_dasha(
+    chart_id: UUID,
+    as_of: date | None = Query(default=None, alias="asOf"),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Kalachakra Dasha — rasi-based Navamsa-Nakshatra dasha, non-uniform
+    period lengths (4-21 years). See kalachakra_dasha.py for the cited
+    Saravali source (itself citing Parasara's Hora Shastra and Vaidhyanatha
+    Dikshita's Jataka Parijata), the documented Portion-Zero cycle
+    convention, and a discovered inconsistency in the source's own worked
+    example. Experimental / display only — no independent second-source
+    cross-check has been done yet, not used in any scoring path."""
+    _assert_chart_owner(session, chart_id, current_user)
+    try:
+        data = build_kalachakra_dasha_response(session, chart_id, as_of)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"success": True, "data": data}
+
+
+@router.get("/charts/{chart_id}/conditional-dashas", tags=["charts"])
+def get_conditional_dashas(
+    chart_id: UUID,
+    as_of: date | None = Query(default=None, alias="asOf"),
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Conditional nakshatra dashas — the seven Parashari *conditional* udu
+    dashas (Shodashottari 116y, Dwadashottari 112y, Panchottari 105y,
+    Shatabdika 100y, Chaturashiti-sama 84y, Dwisaptati-sama 72y, Shashtihayani
+    60y), each a Vimshottari variant selected classically by a birth condition,
+    plus an INFORMATIONAL applicability report. Tables anchored to a single
+    cited source (satyori/Santhanam BPHS); see conditional_dashas.py for the
+    documented single-source posture and the divergences logged for the
+    astrologer pass. Advanced/additive, display only — not used in any scoring
+    path, and the applicability report never auto-hides a system."""
+    _assert_chart_owner(session, chart_id, current_user)
+    try:
+        data = build_conditional_dashas_response(session, chart_id, as_of)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"success": True, "data": data}
 
 
 @router.get("/charts/{chart_id}/solar-return", tags=["charts"])
@@ -318,3 +547,21 @@ def get_varshaphala_endpoint(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return response.model_dump(mode="json", by_alias=True)
+
+
+@router.get("/charts/{chart_id}/shadbala", tags=["charts"])
+def get_shadbala(
+    chart_id: UUID,
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Full classical six-component Shadbala (Rupas) — advanced/experimental,
+    additive to the product strength score. See shadbala_service."""
+    _assert_chart_owner(session, chart_id, current_user)
+    try:
+        data = build_shadbala_response(session, chart_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"success": True, "data": data}
+
+

@@ -1,0 +1,3411 @@
+/* ═══════════════════════════════════════════════════════════
+   NOVA LOOK — the dashboard shell's only look.
+   Activated via [data-ui="nova"], set statically on <html> in app/layout.tsx.
+   Source: Claude Design "Vinaadi Prototype" / "Design Tokens"
+   (D:\sanstro\Astrology App Dashboard Redesign\ — gitignored,
+   never referenced by path from shipped code; values only).
+
+   Strategy: .cd-shell already defines every --color-* and --radius-*
+   custom property that the rest of dashboard.css/globals.css
+   consumes (topbar, tabnav, chips, buttons, cards, tables...).
+   Redefining those same variable names under a higher-specificity
+   [data-ui="nova"] .cd-shell selector re-themes all of that
+   existing, working chrome for free — no per-component rewrite.
+   Classic is untouched: these rules only ever match when
+   [data-ui="nova"] is present on <html>.
+
+   The one thing variable overrides can't reach: globals.css's
+   legacy [style*="#hex"] attribute-selector hacks, which target
+   literal inline styles directly. Those are separately scoped to
+   html:not([data-ui="nova"]) at their source in globals.css.
+   ═══════════════════════════════════════════════════════════ */
+
+/* Nova's pages tend to be shorter/more compact than Classic's, so a
+   trackpad's momentum scrolling reaches the top/bottom edge sooner and
+   the browser's native elastic rubber-band overscroll becomes visible
+   and jarring (mouse-wheel scrolling has no momentum, so it stops flush
+   at the edge and never shows this). `overscroll-behavior-y: contain`
+   stops the rubber-band bounce at the page boundary without touching
+   Classic (scoped to <html data-ui="nova">). */
+:root[data-ui="nova"] {
+  overscroll-behavior-y: contain;
+}
+
+/* Structural only (nav shape, spacing, radii, type) — stays unconditional
+   so layout is identical in both Nova-dark and Nova-light. Color custom
+   properties live in the two theme-conditional blocks below. */
+[data-ui="nova"] .cd-shell {
+  --cd-container-max: 1240px;
+
+  /* UXD-07 — gold keyboard-focus ring on the Nova shell (the global rule in
+     globals.css reads var(--focus-ring); here it resolves to the active
+     theme's gold accent, dark or light). */
+  --focus-ring: var(--color-accent, #d4af5f);
+
+  /* ── Shape ── */
+  --radius-lg: 14px; /* cards */
+  --radius-xl: 16px; /* hero sections */
+
+  /* ── Type: the display font (headings/logo/score) is Fraunces, inherited
+     from the root layout's `--font-display` — this block used to re-point
+     `--font-display` at a second, dashboard-only Fraunces instance
+     (`--font-nova-display`), which is what put 27 @font-face blocks for one
+     typeface in front of a signed-in visitor. There is one instance now, so
+     there is nothing to re-point: the value inherits.
+
+     (The comment that stood here said "display font is Cormorant Garamond".
+     SHD-01 replaced Cormorant with Fraunces and left the note behind — the
+     same stale-justification pattern F2 and F3 each turned up.)
+
+     Body font stays the system-ui stack per the source tokens: the "UI"
+     family is reserved for nav/labels/chips/data, not a serif takeover of
+     every string in the shell. Source Serif 4 (loaded as --font-nova-prose
+     in dashboard/layout.tsx) is applied selectively to prose/guidance copy
+     as each screen is built, not blanket here. ── */
+  --font-body: system-ui, -apple-system, sans-serif;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DESIGN-SYSTEM SCALE TOKENS (audit B-6/B-3/B-10).
+   Scoped to :root[data-ui="nova"] — set on <html> app-wide (see the file
+   header) — NOT .cd-shell, so `var(--text-xs)` resolves in EVERY Nova
+   surface: the dashboard shell, standalone routes (share/porutham), and
+   shared primitives (nova-select), not just inside the dashboard. Custom-
+   property references resolve lazily at use-time, so --motion-* below still
+   finds the --dur-* scale defined further down this file.
+   ═══════════════════════════════════════════════════════════ */
+:root[data-ui="nova"] {
+  /* ── Type scale ──────────────────────────────────────────────────────────
+     A real 7-step ladder that retires the 23 freehand px literals and the
+     sub-11px floor found across the tab files. `xs` (11px) is the legibility
+     floor — nothing rendering real content, Tamil or Latin, goes below it
+     (audit B-2). Half-pixel steps (8.5/9.5/…/15.5) are gone. Consumed by the
+     component kit (web/components/ui/) and, going forward, every tab that
+     converts to it. Mode-invariant, so identical in dark + light. */
+  --text-2xs: 10px;  /* micro-labels · char counters (below the xs floor; use sparingly) */
+  --text-xs: 11px;   /* data labels · captions · table headers (floor) */
+  --text-sm: 12px;   /* secondary UI · chips · pills */
+  --text-base: 14px; /* body / UI default */
+  --text-md: 16px;   /* emphasised body · lead-in */
+  --text-lg: 20px;   /* card title (h3) */
+  --text-xl: 26px;   /* section title (h2) */
+  --text-2xl: 34px;  /* page title (h1) */
+
+  /* ── Display ramp (headings, fluid). Grounded in the 3 clamp() ramps already
+     in use for page/section hero titles. Fluid so heroes scale on narrow
+     viewports (audit A9); body/label text stays on the fixed --text-* ladder.
+     Mode-invariant — identical in Nova Galaxy + Warm. */
+  --display-sm: clamp(1.5rem, 2.5vw, 1.9rem);  /* card / detail hero */
+  --display-md: clamp(1.7rem, 3vw, 2.2rem);    /* section / tab hero */
+  --display-lg: clamp(1.9rem, 3.5vw, 2.6rem);  /* page title (h1) */
+
+  /* Line-heights paired to the scale (unitless → scale with font-size). */
+  --leading-tight: 1.2;
+  --leading-snug: 1.4;
+  --leading-normal: 1.55;
+
+  /* ── Touch-target floor (audit B-3): 44px (Apple HIG) / 48dp (Material).
+     The kit's <Button>/<Pill>/<Segmented> enforce this on coarse pointers via
+     the `@media (pointer: coarse)` rules in the COMPONENT KIT section below,
+     which an inline style can't express — the reason those must be primitives. */
+  --touch-target: 44px;
+
+  /* ── Named motion aliases (audit B-10) over the --dur-* scale, so the kit
+     reads intent, not raw ms. Interactions settle fast (toggle/nav), content
+     reveals slower. All still collapse to instant under the reduced-motion
+     guard at the end of this file. ── */
+  --motion-toggle: var(--dur-fast); /* 120ms — press / toggle feedback */
+  --motion-nav: var(--dur-base);    /* 240ms — nav / colour settle */
+  --motion-reveal: var(--dur-slow); /* 360ms — content reveal */
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Nova-dark palette. Matches whenever data-theme isn't explicitly
+   "light" — i.e. data-theme="dark", plus the "system" case on a device
+   whose OS is set to dark.
+
+   NOTE (colour audit 2026-08-21, F1): System does NOT pin to dark. UXD-03
+   changed it to follow the OS preference, and both the pre-paint script in
+   app/layout.tsx and useTheme.ts always stamp an explicit data-theme, so an
+   OS-light device lands in the Light block below *by default* — no opt-in.
+   This comment used to claim the opposite and used that claim to justify
+   leaving the light palette less-verified; that justification was void, and
+   the light block's AA failures were default-path defects. F2/F3/F4 of the
+   same audit closed them. Light is now a first-class theme: any Nova-
+   exclusive token added to this block needs a verified light twin below.
+   See dashboard-settings-session-tab.tsx's Appearance card.
+   ═══════════════════════════════════════════════════════════ */
+[data-ui="nova"]:not([data-theme="light"]) .cd-shell {
+  color-scheme: dark;
+
+  /* ── Ambient page glow (designer 2026-07-19): a purple top-left + blue
+     bottom-right + a whisper of hero gold over the navy base. `fixed` anchors
+     the glows to the viewport so they hold their corners as the page scrolls
+     instead of sliding down a tall shell. Overrides the shared
+     `.cd-shell { background: var(--color-bg) }` rule via higher specificity.
+     Stored as a var (not just inlined here) so .cd-topbar can paint the same
+     viewport-pinned glow under its own translucent tint instead of a flat
+     color that hides it — see the .cd-topbar rule further down. ── */
+  --nova-ambient-glow:
+    radial-gradient(circle at 15% 10%,
+      rgba(118, 82, 255, 0.16) 0%, rgba(118, 82, 255, 0.08) 18%, transparent 45%),
+    radial-gradient(circle at 90% 95%,
+      rgba(70, 120, 255, 0.12) 0%, rgba(70, 120, 255, 0.05) 20%, transparent 45%),
+    radial-gradient(circle at 55% 15%,
+      rgba(214, 168, 95, 0.05) 0%, transparent 40%);
+  background: var(--nova-ambient-glow), #04050E;
+  background-attachment: fixed;
+
+  /* ── Backgrounds — Apple-ref navy ramp (designer palette 2026-07-19).
+     Darkest base → progressively lighter elevated surfaces. ── */
+  --color-bg:           #04050E; /* bg-base — site background */
+  --color-surface:      #151827; /* bg-card — standard card */
+  --color-surface-soft: #1A1E31; /* bg-surface — elevated card */
+  --color-surface-2:    #1A1E31;
+  --color-surface-3:    #0A0E20; /* bg-deep — deep panels/charts */
+  --color-bg-glass:         color-mix(in srgb, #04050E 95%, transparent);
+  --color-bg-glass-97:      color-mix(in srgb, #04050E 97%, transparent);
+  --color-hover-bg:         rgba(255, 255, 255, 0.05);
+
+  /* ── Borders — soft cool blue-grey (designer intentionally avoids hard
+     outlines; gold is reserved for accent, not chrome). ── */
+  --color-border:        #2A3147; /* primary border */
+  --color-border-strong: #343B56; /* soft border (raised) */
+
+  /* ── Text (cool off-white, opacity-stepped). Cooled from the old cream to
+     sit on the navy base; the darker base only raises every contrast ratio,
+     so the AA notes below still hold. ── */
+  --color-text-strong: #ECEEF7;
+  --color-text:         rgba(236, 238, 247, 0.85);
+  --color-muted:        rgba(236, 238, 247, 0.66);
+  /* faint carries the highest-traffic small-text roles in the UI (metric
+     labels, captions, table headers, snapshot kickers — 200+ sites). At 0.45
+     it was AA-large-only (3.7–3.9:1) on both base and raised surfaces, and
+     those roles are small text (needs 4.5:1). 0.55 clears AA everywhere
+     (5.19:1 on bg, 4.89:1 on surface) with no perceptible loss of hierarchy. */
+  --color-faint:        rgba(236, 238, 247, 0.60);
+
+  /* ── Accent — gold (designer palette 2026-07-19) ── */
+  --color-accent:           #D6A85F; /* primary gold */
+  --color-accent-strong:    #E2BA76; /* hover gold */
+  --color-accent-muted:     rgba(214, 168, 95, 0.12);
+  --color-on-accent:        #04050E;
+  /* Text-safe accent: the color we brand with (--color-accent gold) is a
+     fill/border color, not always a type color. On dark it passes as text
+     (8:1), but light-mode gold-on-cream is 2.48:1 (fail) — so kicker/label
+     TEXT reads this token, which resolves per-theme to a legible gold, while
+     borders/fills keep raw --color-accent. Dark = the lighter highlight gold
+     (10.4:1). Light override lives in the light block. */
+  --color-text-accent:      var(--color-accent-strong);
+
+  /* ── Semantic ── */
+  --color-accent-alt:            #8fbf9a; /* green — success/favourable */
+  /* purple (designer palette 2026-07-19): text/accent uses the light "soft
+     glow" tone for legibility on dark; fills/glows use the deeper #7A63E6/
+     #6552D8 (see --color-accent-secondary-muted and --nova-hero-gradient). */
+  --color-accent-secondary:       #A58BFF; /* purple — soft glow */
+  --color-accent-secondary-muted: rgba(122, 99, 230, 0.22);
+  /* Score bands must read good / okay / caution — NOT the brand gold (issue #13).
+     --color-score-mid was #d4af5f, identical to --color-accent, so every mid-band
+     score on the Nova home rendered as plain gold. Retuned to a distinct
+     amber-orange so the three bands are clearly green / amber / coral. */
+  --color-score-high: #8fbf9a;
+  --color-score-mid:  #e39a3e;
+  --color-score-low:  #e08a72;
+  /* Four-band score palette (product-set 2026-07): ≥70 dark green · 60–70 light
+     green · 50–60 gold · <50 red. Drives every 0–100 score dot/tile/ring/dial
+     via scoreBandColor(). Two distinct greens: `strong` is the richer, more
+     saturated "best day" green; `good` reuses the softer sage so 60s and 70s
+     read apart at a glance on the dark surface. */
+  --color-score-strong: #46b478;
+  --color-score-good:   #8fbf9a;
+  --color-score-fair:   #e39a3e;
+  --color-score-weak:   #e0685a;
+  --color-high:        #8fbf9a;
+  --color-high-bg:     rgba(143, 191, 154, 0.14);
+  --color-high-border: rgba(143, 191, 154, 0.32);
+  --color-mid:         #e39a3e;
+  --color-mid-bg:      rgba(227, 154, 62, 0.12);
+  --color-mid-border:  rgba(227, 154, 62, 0.32);
+  --color-low:         #e08a72;
+  --color-low-bg:      rgba(179, 87, 61, 0.14);
+  --color-low-border:  rgba(179, 87, 61, 0.34);
+  /* Cool slate — the "steady / business as usual" third tone for the activity
+     board, so NEUTRAL reads as a deliberate legible state, not a greyed-out
+     one. Distinct in hue from high (green) and mid (amber). */
+  --color-neutral:        #8fb0c9;
+  --color-neutral-bg:     rgba(143, 176, 201, 0.13);
+  --color-neutral-border: rgba(143, 176, 201, 0.32);
+  --color-alert-critical: #b3573d;
+  /* alert-critical plays two roles: a fill/swatch (Rahu ribbon, calendar
+     legend dot) AND small alert TEXT (calendar "avoid" label, Chandrashtama
+     mark). As text #b3573d is 3.47:1 — a fail on the one surface where
+     legibility is non-negotiable. Text sites read this lightened sibling
+     (4.83:1 AA); the fill role keeps #b3573d. */
+  --color-alert-critical-text: #cf6f52;
+  /* Text-safe twin of --color-mid, same split as --color-alert-critical-text
+     above (audit 2026-08-21 F2). Dark's amber needs no correction — #e39a3e is
+     7.03–8.67 across every dark surface, AAA — so this is a pure alias and the
+     dark rendering is byte-identical. The token exists so the ~50 amber-as-text
+     call sites can name one thing in both themes while Light substitutes a
+     darker amber that actually clears AA on cream. Keep --color-mid itself for
+     FILL roles (score bands, chip backgrounds, borders, the mid ring segment),
+     which only owe 3:1. */
+  --color-mid-text:       var(--color-mid);
+  --color-alert-caution:  #e08a72;
+  --color-positive:       #8fbf9a;
+
+  /* ── Toast state colors (error/success banners + dropdown danger button) ── */
+  --color-toast-error-bg:     var(--color-low-bg);
+  --color-toast-error-border: var(--color-low-border);
+  --color-toast-error-text:   var(--color-low);
+  --color-toast-success-bg:     var(--color-high-bg);
+  --color-toast-success-border: var(--color-high-border);
+  --color-toast-success-text:   var(--color-high);
+
+  /* ── Classic-only custom properties (defined at bare :root in globals.css,
+     used directly by inline styles in components like dashboard-family-tab.tsx's
+     MemberDetailExpanded/ScoreRing) redirected to Nova's own high/mid/low triplet
+     above. Same free-inheritance mechanism as the --color-* and --radius-* block this
+     comment lives in — reused components need zero code changes. ── */
+  --chart-d9-active-bg: var(--color-high-bg);
+  --chart-d1-lagna-bg:  var(--color-mid-bg);
+  --panel-warm-tint:    var(--color-low-bg);
+  --cl-sage-edge:       var(--color-high-border);
+  --cl-rust-edge:       var(--color-low-border);
+  --cl-rust-30:         var(--color-low-border);
+  /* Found building the Life Areas Predictions/Yogas-Doshams panel re-skin
+     (2026-07-06): these 3 near-miss siblings of the "-edge"/"-30" trio above
+     read the same rgba families but were never added to this block, leaving
+     dashboard-synastry-panel.tsx's Compatibility sub-view (already reused
+     verbatim under Nova, §6.3) and lib/reasoning.ts's bandTone() (used by
+     LifeAreaCard's causalChain path, also already shipped) with Classic's
+     warm sage/rust border color on badge/chip borders — low-visibility, same
+     class as the Phase 5 chart-grid gap. Grepped app-wide first: both are
+     also used by several Classic-only components and 2 marketing pages
+     (tamil-calendar, jadhagam-generator) that never set [data-ui="nova"],
+     so scoping the redirect here (not at bare :root) is safe. */
+  --cl-sage-border:     var(--color-high-border);
+  --cl-rust-35:         var(--color-low-border);
+  --cl-brand-edge:      var(--color-mid-border);
+  --panel-cream:        var(--color-surface-2);
+  --panel-mid-earth:    var(--color-muted);
+  --shadow-faint:       rgba(0, 0, 0, 0.35);
+
+  /* ── Found building Phase 5 (family-member): dashboard-charts.tsx's
+     RasiChart/NavamsaChart/JathagamKattam read a much larger set of
+     Classic-only literal-hex vars than the block above covered — Phase 4's
+     progress log claimed these were "100% var(--color-*)-driven" but that
+     was wrong, they use --panel-tan/--chart-bg/--planet-*, etc. directly.
+     This means Phase 4's inline MemberDetailExpanded chart grids have been
+     rendering with Classic's tan/cream colors on Nova's dark background
+     since they shipped. Same mechanical redirect as above — but unlike the
+     --chart-* / --planet-* names below (grep-confirmed narrowly scoped to
+     dashboard-charts.tsx, or used consistently as accent-text colors
+     elsewhere), --panel-tan/--panel-tan-light/--panel-earth/--panel-earth-dark
+     turned out to be generic tokens reused across 50+ Classic components in
+     CONFLICTING roles (mostly text color, but sometimes a solid "selected
+     pill" background paired with --panel-hover as its text) — redirecting
+     them here broke every one of those "selected" pills app-wide (reported
+     2026-07-06: selected-tab background and text both went light, making
+     the label invisible on Life Areas' member/sub-tab pills and similar
+     spots elsewhere). Reverted these 4 — **the properly-scoped fix these
+     4 names still need has since landed** (2026-07-06, white-background-leak
+     audit): see the `--chartgrid-*`/`--deepdive-*` blocks further below,
+     which redirect brand-new, component-scoped names instead of these
+     shared ones, so dashboard-charts.tsx and ~10 other components can be
+     fixed without repeating this exact regression. ── */
+  --chart-bg:              var(--color-surface-3);
+  --chart-cell-default:    var(--color-surface);
+  --chart-cell-selected:   var(--color-surface-soft);
+  --chart-d1-lagna-border: var(--color-mid-border);
+  --chart-d1-active:       var(--color-accent);
+  --chart-d1-active-text:  var(--color-mid-text);
+  --chart-d9-lagna-bg:     var(--color-high-bg);
+  --chart-d9-lagna-border: var(--color-high-border);
+  --chart-d9-active:       var(--color-high);
+  --chart-d9-active-dark:  var(--color-high);
+  --planet-lagna:          var(--color-accent-strong);
+  --planet-saturn:         var(--color-low);
+  --planet-nodes:          var(--color-accent-secondary);
+  --planet-other:          #7fa3c9; /* same one-off blue as NOVA_CAL_HILITE.sashti, dashboard-calendar-monthly-nova.tsx — Nova has no existing blue semantic slot */
+  /* Audit 2026-08-21 F6 — Venus and Ketu were the only 2 of DASHA_COLORS' 7
+     planets pinned to raw hex (#7a4880 / #8c7a6e in dashboard-dasha.tsx), so
+     they alone couldn't follow a theme. Both now have a slot like their five
+     siblings. The audit measured them as glyph fills against the 3:1 floor,
+     but DASHA_COLORS is read as a `color:` on real prose — the dasha lord in
+     the deep-dive paragraph, the bold graha cell in the family table — so 4.5
+     is the bar, and on it BOTH failed here: Venus #7a4880 bottomed at 2.41
+     and Ketu #8c7a6e at 4.02 across the three dark surfaces. These values
+     hold the same violet and grey-brown identities lifted for a dark ground:
+     Venus 6.57–8.10, Ketu 5.67–6.99. Light keeps its own hexes below. */
+  --planet-venus:          #C094CE;
+  --planet-ketu:           #A79486;
+
+  /* ── Closes the "dashboard-charts.tsx chart-grid cosmetic gap" flagged since
+     Phase 5 (see Progress Log): RasiChart/NavamsaChart/JathagamKattam's
+     ExplainPanel and toggle chrome read --panel-tan/--panel-tan-light/
+     --panel-cream/--panel-earth/--panel-earth-dark directly, the same
+     generic tokens the 2026-07-06 browser-QA round found reused in
+     CONFLICTING roles across 50+ components (reverted from this block for
+     that reason). Rather than redirect those shared names again (which
+     would re-trigger the same regression), dashboard-charts.tsx itself was
+     changed to read new component-scoped names with a same-value fallback
+     (`var(--chartgrid-ink, var(--panel-earth))`) — Classic is a no-op (the
+     fallback resolves to the exact old value), and only these Nova
+     definitions, which no other component can ever reach, override it. ── */
+  --chartgrid-ink:          var(--color-text-strong);
+  --chartgrid-ink-strong:   var(--color-text-strong);
+  --chartgrid-border:       var(--color-border);
+  --chartgrid-border-light: var(--color-border);
+  --chartgrid-surface:      var(--color-surface-soft);
+
+  /* ── place-combobox.tsx (birthplace/location autocomplete). Its field bg
+     rode --chart-cell-default (already redirected above, so that part was
+     fine) but its text/borders/active-option used --panel-earth/--panel-tan/
+     --panel-tan-light/--panel-hover — the shared "conflicting-role" tokens we
+     can't globally remap. Under Nova those stayed at Classic light values:
+     dark-on-dark invisible input text, tan borders, and a near-white
+     (--panel-hover #F4EEE2) highlighted-option row — the "white dropdown"
+     reported in the Nova Porutham tool (2026-07-07). Same component-scoped
+     fallback trick as --chartgrid-* above: place-combobox reads --pcbx-* with
+     the old values as fallback (Classic no-op), only these Nova definitions
+     override it. ── */
+  --pcbx-field-bg:         var(--color-surface);
+  --pcbx-field-border:     var(--color-border);
+  --pcbx-list-border:      var(--color-border);
+  --pcbx-ink:              var(--color-text-strong);
+  --pcbx-option-active-bg: var(--color-hover-bg);
+
+  /* ── Same fix, same reasoning, for a second cluster of components found the
+     same way while auditing "white background leak" reports (2026-07-06):
+     dashboard-vargas-panel.tsx / dashboard-shadbala-panel.tsx / dashboard-
+     yogini-dasha-panel.tsx / dashboard-ashtottari-dasha-panel.tsx / dashboard-
+     kalachakra-dasha-panel.tsx have all been reused directly (unwrapped) in
+     Today Nova's Deep Dive section since Phase 1 (2026-07-05) without ever
+     being grepped for token safety — every one of them reads the identical
+     reverted `ink`/`border`/`borderLt`/`surface`/`surfaceMd`/`accent` W-map
+     this session already found unsafe elsewhere (their own `surface`/
+     `surfaceMd` — `--panel-cream`/`--panel-hover` — ARE redirected below,
+     while `ink`/`border` are not, the exact broken combo). Same fallback-
+     chain fix as `--chartgrid-*` above, one shared name set since all 5
+     files use the same convention. --cl-sage-soft (the "current period"
+     highlight fill in the 3 dasha panels) is a bare redirect rather than a
+     new scoped name — grepped first and confirmed its only other consumers
+     (dashboard-personal-tab.tsx, dashboard-plan-tab.tsx, a marketing tool
+     page) are Classic-only paths Nova never reaches, so no collision risk. ── */
+  --deepdive-ink:            var(--color-text-strong);
+  --deepdive-ink-mid:        var(--color-text);
+  --deepdive-border:         var(--color-border);
+  --deepdive-border-light:   var(--color-border);
+  --deepdive-surface:        var(--color-surface-soft);
+  --deepdive-surface-strong: var(--color-surface);
+  --deepdive-accent:         var(--color-mid-text);
+  /* Propensities panel tone colors (DASH-14) — were raw hex in
+     dashboard-propensities-panel-nova.tsx, illegible on the dark theme. */
+  --deepdive-good:           var(--color-high);
+  --deepdive-warn:           var(--color-mid-text);
+  --deepdive-info:           #8fb4dc; /* info blue, dark-theme-legible */
+  --cl-sage-soft:            var(--color-high-bg);
+
+  /* ── Found investigating a "Dosham/Yogam headings render in black" report
+     (2026-07-06): dashboard-yoga-dosham-panel.tsx (YogaCard/DoshamCard, plus
+     the panel's own "Yogas"/"Doshams" section titles) reads --panel-earth/
+     --panel-earth-dark/--panel-tan/--panel-tan-light/--panel-warm-light
+     directly — the exact same reverted Classic-only token family flagged in
+     the --chartgrid- / --deepdive- comments above, just never grepped for
+     in this file. It's reused unwrapped in two Nova spots: Today Nova's Deep
+     Dive (via ChartExplanationPanel) and Family Nova's inline member expand
+     (via MemberDetailExpanded → ChartExplanationPanel). --panel-earth-dark
+     is `#1A1612` ("darkest warm text — headings on light") — near-black
+     Yoga/Dosham names and section headings on Nova's dark plum surfaces.
+     Same component-scoped fallback fix as above, new name set since no
+     existing block covers this file's tokens. ── */
+  --yogadosham-ink:          var(--color-text);
+  --yogadosham-ink-strong:   var(--color-text-strong);
+  --yogadosham-border:       var(--color-border);
+  --yogadosham-border-light: var(--color-border);
+  --yogadosham-remedy-bg:    var(--color-accent-muted);
+
+  /* ── Same audit, same session: the Family tab's "Compatibility" button opens
+     synastry-matrix.tsx / dashboard-synastry-panel.tsx / compatibility-
+     intelligence-panel.tsx (all reused unwrapped, per §6.3's "already
+     var(--color-*)-driven" claim — which, like Phase 4's chart-grid claim,
+     turned out wrong once actually grepped). dashboard-synastry-panel.tsx's
+     root wrapper even sets `color: var(--panel-earth)` on the whole panel,
+     so every unstyled paragraph inside inherits near-black text, not just
+     the few spots with an explicit color. Same component-scoped fallback
+     fix, new name set. --synastry-active-ink is the inverse case: the active
+     Pill's background is --panel-earth-dark (→ light cream under Nova via
+     --synastry-ink-strong below), so its text needs a dark ink, mirroring
+     the --color-on-accent pattern used for other selected-chip text. ── */
+  --synastry-ink:            var(--color-text);
+  --synastry-ink-strong:     var(--color-text-strong);
+  --synastry-active-ink:     var(--color-on-accent);
+  --synastry-border:         var(--color-border);
+  --synastry-border-light:   var(--color-border);
+  --synastry-accent:         var(--color-mid-text);
+  --synastry-accent-border:  var(--color-mid-border);
+  --synastry-caution-border: var(--color-low-border);
+  --synastry-good-bg:        var(--color-high-bg);
+  --synastry-good-border:    var(--color-high-border);
+
+  /* ── compatibility-intelligence-panel.tsx's own badge/harmony fills
+     (--cl-sage-10/--cl-brand-fill/--cl-rust-soft) are grep-confirmed used
+     nowhere else, so — unlike the shared --panel-* / --cl-*-edge tokens above —
+     they're safe to redirect directly rather than needing a new component-
+     scoped name. Newly reached from the Nova Porutham tool's Compatibility
+     Intelligence report (2026-07-09); same rgba-fill-behind-colored-text role
+     as --color-high-bg/--color-mid-bg/--color-low-bg elsewhere in this file. ── */
+  --cl-sage-10:    var(--color-high-bg);
+  --cl-brand-fill: var(--color-mid-bg);
+  --cl-rust-soft:  var(--color-low-bg);
+
+  /* ── dashboard-ui.tsx's shared Button primitive (used unwrapped across many
+     Nova components — charts-panel, explore-detail, tools-porutham, life-areas-
+     remedies, …) inline-styled its primary/secondary/ghost variants with the
+     shared Classic tokens --panel-brand/--panel-cream/--panel-earth/--panel-tan/
+     --panel-brand-border, so under Nova its buttons rendered in Classic rust/tan
+     rather than Nova gold. Same component-scoped fallback trick as the
+     --pcbx-x / --chartgrid-x sets above (the raw --panel-x names are reused in
+     conflicting roles by 50+ Classic components and can't be globally remapped). */
+  --dui-btn-accent:        var(--color-accent);
+  --dui-btn-on-accent:     var(--color-on-accent);
+  --dui-btn-ink:           var(--color-text);
+  --dui-btn-border:        var(--color-border);
+  --dui-btn-accent-border: var(--color-accent);
+
+  /* ── Nova-only component tokens (calendar highlight dots, plan hero
+     gradient, panchangam Rahu/Yama ribbon) — see dashboard-calendar-
+     monthly-nova.tsx, dashboard-plan-tab-nova.tsx, dashboard-today-
+     ribbon-nova.tsx. Previously hardcoded literal hex directly in those
+     files (broke under Light since they never varied by theme); moved
+     here as Phase 1's dark value, with a light-tuned sibling below. ── */
+  /* Signature light: a single low-opacity gold aurora anchored top-left over a
+     directional plum. The old 6%-delta plum-on-plum gradient was imperceptible;
+     this gives the hero one restrained source of light without breaking the
+     dark editorial base. Gold held at 10% so it reads as glow, not tint. */
+  --nova-hero-gradient:
+    radial-gradient(120% 140% at 14% 0%, rgba(101, 82, 216, 0.24), transparent 50%),
+    radial-gradient(90% 120% at 88% 4%, rgba(165, 139, 255, 0.08), transparent 44%),
+    linear-gradient(150deg, #151827 0%, #0A0E20 62%);
+  /* Card lift — a whisper of shadow so cards sit above the base plane instead
+     of floating on it borderless-flat. Kept to 1px depth on dark. */
+  --nova-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.30);
+  /* Hover-lift twin of the above (.nova-interactive:hover). */
+  --nova-hover-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  /* Shadow pigment as a bare rgb triple, for the shadows that compose their own
+     alpha inline (the .button--primary pair). Neutral black on navy. */
+  --nova-shadow-ink: 0, 0, 0;
+
+  /* ── Celestial sky furniture (celestial-ambient-nova.tsx). These live in CSS
+     rather than being branched in JS because their consumers — the rasi-chakra
+     wheel and the orbit glyph's specks — render without a mounted guard, so a
+     JS read of data-theme would paint dark on the server and light on the
+     client and trip hydration. `speck` is the twinkling dot; `chakra-ink` is
+     the hairline wheel. Both carry their alpha, since every stroke that uses
+     them does so at one fixed opacity. ── */
+  --nova-speck:      #f3ecdd;
+  --nova-chakra-ink: rgba(212, 175, 95, 0.9);
+
+  /* "Your day" timeline — dark-mode-specific inks (the rest of the ribbon
+     token set is mode-invariant and lives in the shared block below the
+     Light palette). Empty rail is a faint light-on-dark wash; Rahu carries
+     pure white on the saturated rust fill.
+     Audit 2026-08-21 F5: this was --color-text-strong (#ECEEF7), which is
+     4.17:1 on --color-alert-critical (#b3573d) — the label renders at
+     --text-xs (11px, dashboard-today-ribbon-nova.tsx), so it needed 4.5.
+     Light had already reached #FFFFFF for the same reason (4.83:1 here);
+     the reasoning had simply never been carried across to its twin. Yama
+     and Kuligai stay on --color-text-strong: they blend toward the surface
+     (8.94 and 11.73) and don't have the problem. */
+  --ribbon-track-bg: color-mix(in srgb, var(--color-text-strong) 10%, transparent);
+  --ribbon-rahu-fg:  #FFFFFF;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Nova-light palette — only when the user explicitly picks Light
+   (data-theme="light"). Reuses Classic's already-tuned light values
+   wherever a direct equivalent exists (surface/border/text/accent scale
+   — via var(--surface-N)/var(--text-*)/var(--accent*), the same base
+   tokens globals.css's Classic aliases resolve to, so this stays in sync
+   if that palette is ever retuned). Nova-exclusive tokens with no Classic
+   equivalent (glass overlays, on-accent, the 4-band score palette, the
+   Classic-token redirects) are hand-tuned for contrast on a light/cream
+   base instead of falling back to Classic's originals — several of those
+   originals are documented above (see the --panel-tan/--panel-earth
+   "reverted" comments) as reused in conflicting roles by 50+ other Classic
+   components, so redirecting Nova-light's own instances at those names
+   again would risk repeating that exact regression. Same green/amber/red
+   hue families as Nova-dark throughout, so score meaning stays legible. ── */
+[data-ui="nova"][data-theme="light"] .cd-shell {
+  color-scheme: light;
+
+  /* ── Ambient page glow — the light twin of the dark block's three-corner
+     wash. Without this rule Light fell through to the plain
+     `.cd-shell { background: var(--color-bg) }` in dashboard.css and rendered
+     as one flat sheet of cream, while Dark got a lit, dimensional page: the
+     ambience read as a dark-only feature rather than a Nova one. Same three
+     sources and same corners, re-pigmented for a cream ground — pigments
+     *darker* than the base (a light wash on light is invisible) and held to
+     roughly half the dark alphas, since tinting cream shows far more readily
+     than lifting navy. `fixed` anchors them to the viewport exactly as in
+     dark. Stored as a var for the same reason as the dark block: .cd-topbar
+     reuses it so the header shows the same glow instead of hiding it under
+     a flat tint. ── */
+  --nova-ambient-glow:
+    radial-gradient(circle at 15% 10%,
+      rgba(124, 90, 166, 0.10) 0%, rgba(124, 90, 166, 0.05) 18%, transparent 45%),
+    radial-gradient(circle at 90% 95%,
+      rgba(60, 110, 143, 0.09) 0%, rgba(60, 110, 143, 0.04) 20%, transparent 45%),
+    radial-gradient(circle at 55% 15%,
+      rgba(201, 151, 28, 0.07) 0%, transparent 40%);
+  background: var(--nova-ambient-glow), var(--surface-0);
+  background-attachment: fixed;
+
+  /* ── Backgrounds — reuse Classic's light surface scale where the value is
+     right, hand-set where the ramp's *direction* matters (see below). ── */
+  --color-bg:           var(--surface-0);  /* #FAF7F2 */
+
+  /* Audit 2026-08-21 F4: --color-surface and --color-border used to be omitted
+     here on the belief that they'd fall through to globals.css's Classic
+     aliases (var(--surface-1) / var(--surface-5)). They don't. `.cd-shell` in
+     dashboard.css sets both as literal Classic hex, and `.cd-shell` is a
+     NEARER ancestor than :root — custom properties inherit from the nearest
+     declaring ancestor, so the literal is handed to every descendant before
+     the :root alias is ever consulted. Specificity never enters into it, which
+     is exactly why the omission read as correct. Nova-dark overrides both
+     explicitly, so only Light fell through: cards came out #ffffff (the one
+     hueless element in an otherwise warm palette, sitting beside a hero
+     gradient built from the *warm* --surface-1/--surface-2), and the hairline
+     came out Classic tan #e4dbc8 while its own sibling --color-border-strong
+     had been retuned to gold. Both are declared explicitly now.
+
+     --color-surface is a warm near-white rather than var(--surface-1): the
+     card must stay LIGHTER than the page (surface-1 #F3EEE5 is darker than
+     bg, and is now surface-soft's value — see F3 below), so the elevation
+     step survives. #FFFCF6 is bg's own hue one step brighter; it separates
+     from bg at 1.04 vs #ffffff's 1.07, a difference no eye resolves, and the
+     card's real definition comes from --nova-card-shadow plus the border. The
+     file already argues this principle for shadows ("a pure-black drop on a
+     warm cream palette reads as dirt, not depth") — the same logic rejects a
+     cold white card. */
+  --color-surface:      #FFFCF6;
+
+  /* Audit 2026-08-21 F3: was var(--surface-2) #EAE3D6, on the reasoning that
+     "dark's surface-soft mirrors surface-2 too". Mirroring the INDEX instead
+     of the RELATIONSHIP is what broke it — dark steps bg #04050E → surface
+     #151827 → surface-soft #1A1E31, each one *away* from the page and each
+     one buying ink headroom, while light's surface-2 lands *darker* than the
+     page background and two rungs down the ramp, skipping surface-1 entirely.
+     Result: all eight semantic inks (muted/faint, text-accent, high, low,
+     neutral, deepdive-info, score-weak, mid) sat in a 4.1–4.5 band on it —
+     each one passing on --color-bg and --color-surface, each one failing on
+     the third surface nobody measured, which happens to back the Muhurta
+     notice boxes and most raised panels. surface-1 restores the one-step
+     relationship and clears 7 of the 8 (4.53–4.93 AA). The 8th is --color-mid,
+     which needs its own text token — see --color-mid-text below. ── */
+  --color-surface-soft: var(--surface-1);  /* #F3EEE5 — one step, not two */
+
+  --color-bg-glass:     color-mix(in srgb, var(--surface-0) 95%, transparent);
+  --color-bg-glass-97:  color-mix(in srgb, var(--surface-0) 97%, transparent);
+  --color-hover-bg:     rgba(201, 151, 28, 0.08);
+  /* --color-surface-2 / --color-surface-3 / --color-text / --color-muted /
+     --color-accent / --color-accent-muted are deliberately NOT redeclared
+     here — those genuinely do fall through to globals.css's Classic aliases
+     (:root only; `.cd-shell` doesn't shadow them) and resolve correctly under
+     [data-theme="light"] at the base token layer. Verified name by name in the
+     2026-08-21 audit. Omitting them keeps this block in sync if Classic's
+     light palette is ever retuned. */
+
+  /* ── Borders — surface-3, not the surface-5 the old fall-through comment
+     named. Same lesson as F3 above: match dark's border-vs-surface
+     RELATIONSHIP (#2A3147 on #151827 = 1.37), not an index. surface-3 on the
+     new card gives 1.41 — a hairline that defines the card edge without the
+     heavy 2.12 box surface-5 would draw, and it finally puts --color-border in
+     the same warm family as its retuned --color-border-strong sibling. ── */
+  --color-border:        var(--surface-3);  /* #DDD6C8 */
+  --color-border-strong: rgba(201, 151, 28, 0.4);
+
+  /* ── Text — reuse Classic's light text scale directly. Nova's 4-tier
+     text-strong/text/muted/faint ladder maps onto the base token system's
+     own 4-tier primary/secondary/tertiary/disabled ladder; note this is
+     NOT the same mapping globals.css's Classic aliases use for --color-text/
+     --color-muted (those alias to primary/secondary, one tier "stronger"
+     than Nova's own text/muted) — Nova needs a 4th step Classic's aliases
+     don't provide, so all four tiers are set explicitly here rather than
+     mixing an omitted alias with hand-set siblings. ── */
+  --color-text-strong: var(--text-primary);   /* #1C1008 */
+  --color-text:         var(--text-secondary); /* #4A3820 */
+  /* Both tiers were var(--text-tertiary) #7A6448. That came from an earlier
+     fix - --text-disabled #A89880 was 2.2-2.6:1 on cream, a hard fail - and
+     text-tertiary was the honest reuse rather than invented hex. But it lands
+     at 4.40 on --color-surface-2 and lower still on the chart grid's tinted
+     cells, so it fails the ink contract below on exactly the small-text roles
+     faint exists for. #6F5B41 is the same warm brown one step down (5.07 worst
+     case). The visible ladder step between muted and faint still comes from
+     weight and size rather than hue - the same accepted trade as before, now
+     on a value that actually passes. */
+  --color-muted:        #6F5B41;
+  --color-faint:        #6F5B41;
+
+  /* ══ THE LIGHT INK CONTRACT ══════════════════════════════════════════════
+     Every ink below clears WCAG AA (4.5:1) on FIVE grounds, not the three the
+     2026-08-21 audit measured:
+
+       plain      bg #FAF7F2 · surface #FFFCF6 · surface-soft #F3EEE5
+                  (which is also --chart-bg) · surface-2 #EAE3D6 ·
+                  accent-muted #FDF3DC
+       tinted     its OWN --color-*-bg (12%, 16% for accent-secondary)
+                  composited over bg, surface, and surface-soft
+
+     Stated precisely, because an overstated guarantee in a comment is how
+     three of this file's defects survived review. A tint composited on top of
+     surface-2 is NOT in the set — nothing renders that pairing, and darkening
+     the whole palette far enough to cover it would muddy every chip to buy
+     nothing. Cross-tints (green ink on a red tint) are likewise not real. The
+     worst real pair in the set today is --color-low at 4.59.
+
+     That last ground is the one that kept biting. The audit's static pass
+     cleared the palette on bg/surface/surface-soft and stopped; the browser
+     pass added by e2e/theme-contrast.spec.ts then found 42 more failing nodes
+     across 11 ink/ground pairs, and almost every one was an ink sitting on a
+     tint of ITSELF — the exact chip/callout/score-pill idiom this palette is
+     built around (#2D7A4F on #E6ECE2 = 4.35, #C0392B on #F7E5DE = 4.45, and so
+     on down). A 12% tint costs roughly 0.5 of ratio; inks tuned to land at
+     4.6–5.1 on a plain surface have nothing left to pay it with.
+
+     So: when adding or retuning any ink here, measure it on its own tint too.
+     The e2e gate will catch it if you don't, which is the point of the gate,
+     but it is cheaper to get right at the token.
+     ═══════════════════════════════════════════════════════════════════════ */
+
+  /* ── Accent — a three-rung gold ladder, monotonic on purpose.
+     --color-accent is the FILL (selected tabs, CTAs, chips, badges): #8A6410
+     is dark enough to carry white on-accent type at 5.37:1, where Classic's
+     light gold #C9971C manages only 2.64. The two ink rungs then go DARKER
+     from there, so "strong" reads stronger than plain.
+
+     --color-accent-strong used to be var(--accent-hover) #A87D18, which is
+     LIGHTER than --color-accent — the same inverted-step mistake F3 found in
+     the surface ramp, with the same consequence: at 3.24–3.65 it failed AA as
+     text on every surface, and it is used as text in 20+ components (the
+     calendar's festival and "Now" labels, every Explore category heading, the
+     hybrid chart headers, --planet-lagna). It reads as a hover token and had
+     quietly become an ink. Its three fill uses (the .nova-fmg switch, the
+     primary-button hover, a 2px hybrid divider) carry white type or no type,
+     so going darker only helps them. ── */
+  --color-accent:        #8A6410; /* deep bronze-gold FILL — white on it = 5.37 AA */
+  --color-text-accent:   #7A5709; /* the amber-gold INK (kickers, links, labels) */
+  --color-accent-strong: #6E4E0C; /* emphatic ink + fill-hover — now genuinely darker */
+  --color-on-accent:     #FFFFFF; /* white type on the deep-gold fill */
+
+  /* ── Alert / amber ink. Both of these used to be the design system's raw
+     light tokens (--error #C0392B, --warning #B86A00), sourced deliberately so
+     the bands would "track the same red/amber already proven to read correctly
+     on Classic's light surfaces". The sourcing was right; the "already proven"
+     was not — nobody had measured them, and #B86A00 is 3.85:1 on plain cream
+     before a tint is anywhere near it.
+
+     --color-mid-text exists as its own name because the audit's F2 proposed
+     splitting the fill role from the text role. The split turned out to be
+     both unnecessary and insufficient: unnecessary because #8A5000 is a
+     perfectly good fill (a slightly deeper amber, still unmistakably amber
+     beside the green and red bands), and insufficient because much of the
+     amber-as-text in this app never names --color-mid at all — it comes out of
+     lib/format.ts's scoreBandColor() at runtime as --color-score-fair, which
+     no repointing of call sites can reach. Moving the underlying value fixes
+     both paths at once. The names are kept so the ~50 repointed call sites
+     still say what they mean, and so the dark block has a home for its alias. ── */
+  --color-alert-critical-text: var(--color-alert-critical);
+  --color-mid-text:            var(--color-mid);
+
+  /* ── Semantic — darkened from Nova-dark's pastel green/purple for contrast on cream ── */
+  --color-accent-alt:            #276A45; /* green — success/favourable */
+  --color-accent-secondary:       #6B4A8F; /* purple */
+  --color-accent-secondary-muted: rgba(107, 74, 143, 0.16);
+
+  /* Four-band score palette. Same green/amber/red hue families as Nova-dark so
+     score meaning survives a theme switch, each one landing on the dark side of
+     the ink contract above. strong/good keep a 1.36 step between them so the
+     two greens are still two greens, and low/weak keep the ordering they always
+     had (weak darker than low). */
+  --color-score-high: #276A45;
+  --color-score-mid:  #8A5000;
+  --color-score-low:  #AF3326;
+  --color-score-strong: #17552F;
+  --color-score-good:   #276A45;
+  --color-score-fair:   #8A5000;
+  --color-score-weak:   #A33826;
+  --color-high:        #276A45;
+  --color-high-bg:     rgba(39, 106, 69, 0.12);
+  --color-high-border: rgba(39, 106, 69, 0.34);
+  --color-mid:         #8A5000;
+  --color-mid-bg:      rgba(138, 80, 0, 0.12);
+  --color-mid-border:  rgba(138, 80, 0, 0.34);
+  --color-low:         #AF3326;
+  --color-low-bg:      rgba(175, 51, 38, 0.12);
+  --color-low-border:  rgba(175, 51, 38, 0.34);
+  /* Cool slate for the activity board's "steady" NEUTRAL tone — darkened for
+     legible text on the cream light-theme surface. See the dark block above. */
+  --color-neutral:        #335E7A;
+  --color-neutral-bg:     rgba(51, 94, 122, 0.12);
+  --color-neutral-border: rgba(51, 94, 122, 0.34);
+  --color-alert-critical: #AF3326;
+  --color-alert-caution:  #A33826;
+  --color-positive:       #276A45;
+
+  /* ── Toast state colors (error/success banners + dropdown danger button) ── */
+  --color-toast-error-bg:     var(--color-low-bg);
+  --color-toast-error-border: var(--color-low-border);
+  --color-toast-error-text:   var(--color-low);
+  --color-toast-success-bg:     var(--color-high-bg);
+  --color-toast-success-border: var(--color-high-border);
+  --color-toast-success-text:   var(--color-high);
+
+  /* ── Classic-token redirects — re-pointed at Nova-light's OWN high/mid/low
+     triplet above (not Classic's originals) for the "conflicting roles"
+     reason explained in this block's header comment. Same names, same
+     structure as the Nova-dark block above, just resolving against this
+     block's light-tuned --color-high/mid/low/text/border/surface. ── */
+  --chart-d9-active-bg: var(--color-high-bg);
+  --chart-d1-lagna-bg:  var(--color-mid-bg);
+  --panel-warm-tint:    var(--color-low-bg);
+  --cl-sage-edge:       var(--color-high-border);
+  --cl-rust-edge:       var(--color-low-border);
+  --cl-rust-30:         var(--color-low-border);
+  --cl-sage-border:     var(--color-high-border);
+  --cl-rust-35:         var(--color-low-border);
+  --cl-brand-edge:      var(--color-mid-border);
+  --panel-cream:        var(--color-surface-2);
+  --panel-mid-earth:    var(--color-muted);
+  --shadow-faint:       rgba(28, 16, 8, 0.12);
+
+  /* The rasi-square grid. Was var(--color-surface-3) #DDD6C8 - the same
+     mirror-the-index reflex F3 found in the surface ramp and the accent ladder,
+     a third time: dark's --chart-bg #0A0E20 is one step UP from its page, while
+     light's surface-3 is three steps DOWN from its own. That made the grid a
+     fourth, darker ground nothing in the palette was measured against, and the
+     lagna and D9-active cells then tint it darker still - #D3C6B0 and #C7C9B8,
+     where the 10px rasi label (--color-faint) lands at 3.84. Sitting the grid
+     on surface-soft instead puts those same tinted cells at 4.73 and 4.74, and
+     a recessed-well grid is what one step down is FOR. ── */
+  --chart-bg:              var(--color-surface-soft);
+  --chart-cell-default:    var(--color-surface);
+  --chart-cell-selected:   var(--color-surface-soft);
+  --chart-d1-lagna-border: var(--color-mid-border);
+  --chart-d1-active:       var(--color-accent);
+  --chart-d1-active-text:  var(--color-mid-text);
+  --chart-d9-lagna-bg:     var(--color-high-bg);
+  --chart-d9-lagna-border: var(--color-high-border);
+  --chart-d9-active:       var(--color-high);
+  --chart-d9-active-dark:  var(--color-high);
+  --planet-lagna:          var(--color-accent-strong);
+  --planet-saturn:         var(--color-low);
+  --planet-nodes:          var(--color-accent-secondary);
+  --planet-other:          #1e5a8c; /* same blue Classic already uses for this exact slot (globals.css) — no invented hex */
+  /* Twins of the dark block's F6 additions. Venus keeps its original #7a4880
+     unchanged — on cream it was already 5.93–6.69, the hue is the established
+     identity, and it stays distinguishable from --planet-nodes' lavender.
+     Ketu could not stay: #8c7a6e is 3.55 on --color-surface-soft, a fail on
+     the same third surface F3 was about. #665C55 cools the grey-brown just
+     enough to also pull it away from --color-faint's warm ochre (5.63–6.35). */
+  --planet-venus:          #7a4880;
+  --planet-ketu:           #665C55;
+
+  --chartgrid-ink:          var(--color-text-strong);
+  --chartgrid-ink-strong:   var(--color-text-strong);
+  --chartgrid-border:       var(--color-border);
+  --chartgrid-border-light: var(--color-border);
+  --chartgrid-surface:      var(--color-surface-soft);
+
+  --pcbx-field-bg:         var(--color-surface);
+  --pcbx-field-border:     var(--color-border);
+  --pcbx-list-border:      var(--color-border);
+  --pcbx-ink:              var(--color-text-strong);
+  --pcbx-option-active-bg: var(--color-hover-bg);
+
+  --deepdive-ink:            var(--color-text-strong);
+  --deepdive-ink-mid:        var(--color-text);
+  --deepdive-border:         var(--color-border);
+  --deepdive-border-light:   var(--color-border);
+  --deepdive-surface:        var(--color-surface-soft);
+  --deepdive-surface-strong: var(--color-surface);
+  --deepdive-accent:         var(--color-mid-text);
+  /* Propensities panel tone colors (DASH-14) — light-theme values. */
+  --deepdive-good:           var(--color-high);
+  --deepdive-warn:           var(--color-mid-text);
+  --deepdive-info:           #316095; /* info blue - darkened for the ink contract (was #3A6EA5, 3.96 on its own tint) */
+  --cl-sage-soft:            var(--color-high-bg);
+
+  --yogadosham-ink:          var(--color-text);
+  --yogadosham-ink-strong:   var(--color-text-strong);
+  --yogadosham-border:       var(--color-border);
+  --yogadosham-border-light: var(--color-border);
+  --yogadosham-remedy-bg:    var(--color-accent-muted);
+
+  --synastry-ink:            var(--color-text);
+  --synastry-ink-strong:     var(--color-text-strong);
+  --synastry-active-ink:     var(--color-on-accent);
+  --synastry-border:         var(--color-border);
+  --synastry-border-light:   var(--color-border);
+  --synastry-accent:         var(--color-mid-text);
+  --synastry-accent-border:  var(--color-mid-border);
+  --synastry-caution-border: var(--color-low-border);
+  --synastry-good-bg:        var(--color-high-bg);
+  --synastry-good-border:    var(--color-high-border);
+
+  --cl-sage-10:    var(--color-high-bg);
+  --cl-brand-fill: var(--color-mid-bg);
+  --cl-rust-soft:  var(--color-low-bg);
+
+  /* dashboard-ui.tsx Button primitive — see dark block for rationale. */
+  --dui-btn-accent:        var(--color-accent);
+  --dui-btn-on-accent:     var(--color-on-accent);
+  --dui-btn-ink:           var(--color-text);
+  --dui-btn-border:        var(--color-border);
+  --dui-btn-accent-border: var(--color-accent);
+
+  /* ── Nova-only component tokens (calendar highlight dots, plan hero
+     gradient, panchangam Rahu/Yama ribbon) — see dashboard-calendar-
+     monthly-nova.tsx, dashboard-plan-tab-nova.tsx, dashboard-today-
+     ribbon-nova.tsx. Dark values are the literal hex those files used to
+     hardcode before Phase 1; light values are hand-tuned here instead. ── */
+  --nova-hero-gradient:
+    radial-gradient(130% 150% at 12% 0%, rgba(201, 151, 28, 0.08), transparent 46%),
+    linear-gradient(150deg, var(--surface-1), var(--surface-2));
+  --nova-card-shadow: 0 1px 3px rgba(28, 16, 8, 0.08);
+  /* Warm brown-black at a third of dark's alpha: on cream a shadow only needs
+     to suggest lift, and a neutral black would grey the warm palette. */
+  --nova-hover-shadow: 0 6px 18px rgba(28, 16, 8, 0.10);
+  /* Warm brown rather than neutral black — see --nova-shadow-ink in the dark
+     block. A pure-black drop on a warm cream palette reads as dirt, not depth. */
+  --nova-shadow-ink: 28, 16, 8;
+
+  /* Celestial sky furniture — see the dark block. Both flip from "lighter than
+     the ground" to "darker than the ground": a cream speck and a highlight-gold
+     hairline are invisible on cream, so the twinkle and the 240s wheel spin
+     were animating nothing here. Deep bronze is Nova-light's own accent hex. */
+  --nova-speck:      #8A6410;
+  --nova-chakra-ink: rgba(138, 100, 16, 0.9);
+
+  /* "Your day" timeline — light-mode-specific inks (mode-invariant tokens
+     live in the shared block below). The empty rail is an opaque warm
+     greige so the spine reads as a defined channel on cream rather than the
+     near-invisible 9%-ink wash it used to be. Rahu carries white on its
+     saturated red — near-black type was a muddy ~3:1.
+     Pinned to --surface-2 rather than --color-surface-soft: audit F3 moved
+     surface-soft one rung lighter (#EAE3D6 → #F3EEE5) to buy ink headroom,
+     which the empty rail doesn't need and can't afford — nothing is printed
+     on it, and at #F3EEE5 it separates from the cream page at 1.03 and the
+     channel disappears. The greige the original comment describes is the
+     value it wanted; it just used to spell it "surface-soft". */
+  --ribbon-track-bg: var(--surface-2);
+  --ribbon-rahu-fg:  #FFFFFF;
+}
+
+/* ── "Your day" panchangam timeline (dashboard-today-ribbon-nova.tsx) —
+   mode-invariant ribbon tokens. These were literal hex/rgba pinned to
+   --color-text-strong / --color-alert-critical at fixed opacities back
+   when Nova was always dark; under Light the translucent fills washed out
+   on cream and dark type landed on saturated fills. Every value here is an
+   expression over --color-* tokens that already flip correctly per theme,
+   so one definition serves both modes; only --ribbon-track-bg and
+   --ribbon-rahu-fg genuinely differ and are overridden in the two palette
+   blocks above. Lower specificity than those blocks, so the overrides win.
+   Yama blends 46% toward --color-surface: opaque and one clear step lighter
+   than Rahu's solid fill on either base, with --color-text-strong ink that
+   contrasts in both. Kuligai continues the same severity ramp one step
+   lighter again (26%), so the three caution kalams read as one family:
+   Rahu darkest, Yama mid, Kuligai lightest. ── */
+[data-ui="nova"] .cd-shell {
+  --ribbon-track-border: color-mix(in srgb, var(--color-text-strong) 14%, transparent);
+  --ribbon-rahu-bg:  var(--color-alert-critical);
+  --ribbon-yama-bg:  color-mix(in srgb, var(--color-alert-critical) 46%, var(--color-surface));
+  --ribbon-yama-fg:  var(--color-text-strong);
+  --ribbon-kuligai-bg: color-mix(in srgb, var(--color-alert-critical) 26%, var(--color-surface));
+  --ribbon-kuligai-fg: var(--color-text-strong);
+  --ribbon-best-bg:  var(--color-accent);
+  --ribbon-best-fg:  var(--color-on-accent);
+  --ribbon-good-bg:  var(--color-high);
+  --ribbon-good-fg:  var(--color-on-accent);
+  --ribbon-now-bg:   var(--color-text-strong);
+  --ribbon-now-fg:   var(--color-on-accent);
+}
+
+/* globals.css's .card/.input/.select are a "dark glass" convention (fixed
+   rgba(255,255,255,*) borders/fills over a fixed dark navy input background,
+   see globals.css ~L866 and ~L1127) built for the public marketing pages that
+   still use them — never theme-aware, so they read fine on Classic's own
+   permanently-dark hero sections but go illegible (near-invisible borders,
+   dark-on-dark text) the moment a Nova page with these classes switches to
+   Light. A handful of standalone dashboard routes (porutham, chart-generate)
+   reuse public-tool components built on these classes. Rather than rewrite
+   every consuming component, redirect the classes themselves to the --color-*
+   names .cd-shell already resolves per-theme — same free-inheritance
+   mechanism as the rest of this file. */
+[data-ui="nova"] .cd-shell .card {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+[data-ui="nova"] .cd-shell .input,
+[data-ui="nova"] .cd-shell .select {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Nav shell: top-bar-only layout, no left rail.
+   Under Nova the tab links render inline in the topbar itself
+   (cd-topnav, dashboard-hero.tsx) and the cd-tabnav strip is not
+   mounted at all, so only the left rail needs suppressing here.
+   These higher-specificity rules win at every viewport width
+   without needing !important.
+   ═══════════════════════════════════════════════════════════ */
+
+[data-ui="nova"] .cd-app-body {
+  display: block;
+}
+
+[data-ui="nova"] .cd-left-rail {
+  display: none;
+}
+
+[data-ui="nova"] .cd-main-content {
+  min-width: 0;
+}
+
+/* Today tab (activeTab === "personal"): dashboard.css's .cd-app-body /
+   .cd-main-content stretch to calc(100vh - 54px) so short tabs (e.g. a
+   1-member Family view) don't leave the footer floating right under the
+   content. But Today's last block is the collapsible Deep Dive section —
+   collapsing it drops this tab's content well below viewport height, and
+   that same stretch turns into a big dead gap before the footer instead
+   of a normal short page. Let the footer follow content here instead. */
+[data-ui="nova"] .cd-app-body[data-active-tab="personal"],
+[data-ui="nova"] .cd-main-content[data-active-tab="personal"] {
+  min-height: 0;
+}
+[data-ui="nova"] .cd-main-content[data-active-tab="personal"] .cd-main-content__body {
+  flex: 0 0 auto;
+}
+
+/* .cd-page's 150px right padding (dashboard.css) exists to clear the
+   Classic floating "Ask Vinaadi" launcher pill, which used to run the full
+   height of the page next to scrollable content. Nova hides that launcher
+   entirely (hideLauncher={uiVariant === "nova"} in dashboard-workspace.tsx)
+   and moves the affordance into the topbar's cd-ask-nav-btn instead — the
+   only fixed element left over Nova content is the 44px feedback FAB
+   pinned at the very bottom-right corner (globals.css .cd-feedback-fab),
+   which is a normal floating-button overlap, not something that needs a
+   lane reserved across the whole scroll height. Without this override,
+   content grids stop well short of the topbar's right edge for no reason. */
+[data-ui="nova"] .cd-page {
+  padding-right: 0;
+}
+
+/* Scrollbars inside the shell.
+   These are the one surviving declaration pair from globals.css's "Clarity
+   dashboard shell" block, which was deleted once every other rule in it was
+   shown to be shadowed by this file. That block painted a warm brown
+   (rgba(60,40,20,0.18)) thumb — authored for the always-light Clarity era, and
+   still applying to a shell that defaults to dark, where it is close to
+   invisible. globals.css's base pair has the mirror-image problem: a white
+   thumb, unreadable on the light theme.
+   Deriving both from --color-text, which each theme block already defines,
+   reproduces the intended contrast on either theme instead of picking one. */
+[data-ui="nova"] .cd-shell ::-webkit-scrollbar-track {
+  background: color-mix(in srgb, var(--color-text) 4%, transparent);
+}
+[data-ui="nova"] .cd-shell ::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-text) 18%, transparent);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Nova navbar (dashboard-hero.tsx, uiVariant === "nova"):
+   one topbar row — serif wordmark · inline tab links · right
+   cluster (Ask Vinaadi pill, date pill, bell, lang, avatar) —
+   plus the cd-subbar identity row underneath (name + lagna/rasi
+   on the left, refresh status + family-vault pill on the right).
+   cd-topnav / cd-subbar / cd-ask-nav-btn / cd-date-display only
+   ever render under Nova, but every rule stays [data-ui="nova"]-
+   prefixed for consistency with the rest of this file.
+   ═══════════════════════════════════════════════════════════ */
+
+/* Wordmark alone — the screenshot look is a serif "Vinaadi", no symbol. */
+[data-ui="nova"] .cd-brand__symbol {
+  display: none;
+}
+
+[data-ui="nova"] .cd-brand__name {
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* Inline tab links, stretched to the full topbar height so the active
+   underline (cd-tab__indicator) sits on the row's bottom edge. Reuses the
+   cd-tab button styling from dashboard.css; overflow scrolls horizontally
+   on narrow viewports, scrollbar hidden (same pattern as cd-tabnav__scroll). */
+[data-ui="nova"] .cd-topnav {
+  align-self: stretch;
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  margin: 0 var(--space-2);
+}
+
+/* Wraps the scrollable tab strip + its overflow chevron together, separate
+   from the "More" dropdown anchor below — the chevron's position:absolute
+   needs to resolve against this wrapper (not the whole .cd-topnav), or it
+   would float on top of the always-visible "More" pill at the nav's right
+   edge instead of hugging the scrollable region it belongs to. */
+[data-ui="nova"] .cd-topnav__scrollwrap {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  position: relative; /* anchor for the UXD-02 scroll fade + chevron */
+}
+
+/* "More" dropdown anchor — a fixed-width sibling of the scroll wrapper, not
+   inside it, so it never scrolls out of view and its dropdown never gets
+   clipped by the scroll wrapper's overflow. */
+[data-ui="nova"] .cd-topnav__more-anchor {
+  flex-shrink: 0;
+  display: flex;
+  align-items: stretch;
+}
+
+[data-ui="nova"] .cd-topnav__scroll {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+  /* UXD-02 — theme-agnostic edge fade: the tab strip fades to transparent on
+     whichever side has more content off-screen, signalling that it scrolls.
+     Widths are driven by data-scroll-start/end on .cd-topnav (0 = no fade). */
+  --fade-l: 0px;
+  --fade-r: 0px;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
+}
+
+[data-ui="nova"] .cd-topnav[data-scroll-start="false"] .cd-topnav__scroll { --fade-l: 22px; }
+[data-ui="nova"] .cd-topnav[data-scroll-end="false"] .cd-topnav__scroll { --fade-r: 28px; }
+
+[data-ui="nova"] .cd-topnav__scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Right-edge chevron: appears only when tabs overflow to the right; tap scrolls
+   the strip forward. aria-hidden — keyboard users Tab through the tabs. */
+[data-ui="nova"] .cd-topnav__more {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 26px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-accent-strong);
+  cursor: pointer;
+  z-index: 2;
+}
+[data-ui="nova"] .cd-topnav[data-scroll-end="false"] .cd-topnav__more { display: inline-flex; }
+
+[data-ui="nova"] .cd-topnav .cd-tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-3);
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+[data-ui="nova"] .cd-topnav .cd-tab--active {
+  color: var(--color-accent-strong);
+}
+
+/* The tabs are stretched to the topbar's full height inside .cd-topnav__scroll,
+   and that strip's `overflow-x: auto` forces overflow-y to auto too — so the
+   global :focus-visible ring (2px, offset 2px) has its top and bottom edges
+   clipped away and paints as two stray gold bars either side of the tab. Draw
+   the ring *inside* the button instead, where nothing can crop it. */
+[data-ui="nova"] .cd-topnav__scroll .cd-tab:focus-visible {
+  outline-offset: -3px;
+  border-radius: var(--radius-md, 8px);
+}
+
+[data-ui="nova"] .cd-topnav .cd-tab__indicator {
+  bottom: 0;
+}
+
+/* "✦ Ask Vinaadi anything… ⌘K" — search-styled pill in the right cluster
+   (homepage redesign 2026-07-18). Still a button that opens the Ask panel;
+   the search framing is an affordance, not an input. Flexes down before the
+   nav does so a narrow topbar never overflows. */
+[data-ui="nova"] .cd-ask-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 36px;
+  flex: 0 1 250px;
+  min-width: 130px;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid var(--color-border-strong);
+  background: color-mix(in srgb, var(--color-text-strong) 5%, transparent);
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 150ms ease;
+}
+
+[data-ui="nova"] .cd-ask-search:hover {
+  border-color: var(--color-accent);
+}
+
+[data-ui="nova"] .cd-ask-search__star {
+  color: var(--color-accent-strong);
+  font-size: 0.75rem;
+  flex: none;
+}
+
+[data-ui="nova"] .cd-ask-search__hint {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  color: var(--color-faint);
+}
+
+[data-ui="nova"] .cd-ask-search__kbd {
+  flex: none;
+  font-family: inherit;
+  font-size: 0.62rem;
+  color: var(--color-faint);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+/* Date pill: the native input stays mounted as an invisible overlay that
+   fills the pill (keeps the OS picker + a11y), while cd-date-display
+   renders the "05 · Jul · 2026 ▾" face underneath it. The input is
+   positioned, the span is static, so the input paints on top and takes
+   the clicks (showPicker() opens the calendar — see dashboard-hero.tsx).
+   Lives in the cd-subbar__right row (second header row), sized to match
+   its row-mates (cd-subbar__vault) rather than the topbar's taller row. */
+[data-ui="nova"] .cd-date-field {
+  position: relative;
+  flex-shrink: 0;
+}
+
+[data-ui="nova"] .cd-date-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  opacity: 0;
+  cursor: pointer;
+  /* UXD-16 — reset the iOS Safari date-control chrome so the invisible input
+     genuinely fills the pill (its intrinsic sizing otherwise shrinks the tap
+     target); 16px font stops iOS zoom-on-focus. Tapping the overlay opens the
+     OS picker natively, which is the fallback when showPicker() is absent. */
+  -webkit-appearance: none;
+  appearance: none;
+  font-size: 16px;
+}
+/* iOS renders an inner date/edit box that can intercept/limit the tap area. */
+[data-ui="nova"] .cd-date-input::-webkit-date-and-time-value { text-align: left; }
+[data-ui="nova"] .cd-date-input::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+[data-ui="nova"] .cd-date-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-soft);
+  color: var(--color-text-strong);
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+[data-ui="nova"] .cd-date-input:focus-visible ~ .cd-date-display {
+  border-color: var(--color-accent);
+}
+
+[data-ui="nova"] .cd-date-display__caret {
+  font-size: 0.6rem;
+  color: var(--color-muted);
+}
+
+/* Identity sub-bar — second header row. */
+[data-ui="nova"] .cd-subbar {
+  border-top: 1px solid var(--color-border);
+}
+
+[data-ui="nova"] .cd-subbar__inner {
+  width: min(var(--cd-container-max), calc(100% - 2 * var(--space-4)));
+  margin: 0 auto;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  padding: 4px 0;
+}
+
+[data-ui="nova"] .cd-subbar__identity {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+[data-ui="nova"] .cd-subbar__name {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-strong);
+  white-space: nowrap;
+}
+
+[data-ui="nova"] .cd-subbar__caveat {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  /* --color-fair is never defined anywhere (the four-band palette's name is
+     --color-score-fair), so all three of these silently resolved to the literal
+     fallback in BOTH themes — the pill looked token-driven but was pinned to
+     dark's amber, which is 2.4:1 as text on the cream light canvas, an AA fail
+     on a pill whose whole job is to be read. --color-mid is the same #e39a3e in
+     dark (no visual change there) and the light-tuned #B86A00 in light. */
+  color: var(--color-mid-text);
+  background: color-mix(in srgb, var(--color-mid) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-mid) 30%, transparent);
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+  cursor: help;
+}
+
+[data-ui="nova"] .cd-subbar__chart {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--color-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-ui="nova"] .cd-subbar__right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+[data-ui="nova"] .cd-subbar__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+[data-ui="nova"] .cd-subbar__status-check {
+  color: var(--color-positive);
+  flex-shrink: 0;
+}
+
+[data-ui="nova"] .cd-subbar__vault {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-soft);
+  color: var(--color-text-strong);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: border-color 150ms ease;
+}
+
+[data-ui="nova"] .cd-subbar__vault:hover {
+  border-color: var(--color-border-strong);
+}
+
+[data-ui="nova"] .cd-subbar__vault-caret {
+  font-size: 0.6rem;
+  color: var(--color-muted);
+  flex-shrink: 0;
+}
+
+/* Narrow viewports: the chart summary is the first thing to go (the name
+   keeps the row meaningful), and the status text yields to the vault pill. */
+/* Nova merges the 9-tab strip into the topbar's own row (cd-topnav sits
+   between the brand and the identity cluster), which is far busier than
+   Classic's topbar — Classic never puts tabs there, so its wrap threshold
+   below (dashboard.css, 720px) was tuned for just "brand + a couple of
+   buttons" and leaves Nova's identity cluster (Ask Vinaadi, date, bell,
+   lang, avatar) with nowhere to shrink to between ~720-1024px. Measured
+   overflow: the avatar/lang buttons paint past the topbar's own width and
+   the page grows a horizontal scrollbar. Reuse the exact same wrap
+   treatment Classic gets at 720px, just starting from a wider breakpoint
+   sized for Nova's heavier row. */
+@media (max-width: 1024px) {
+  [data-ui="nova"] .cd-topbar__inner {
+    flex-wrap: wrap;
+    row-gap: var(--space-2);
+  }
+
+  [data-ui="nova"] .cd-topbar__right {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 720px) {
+  /* UXD-02 — status yields to the vault pill, but the chart identity is
+     restacked onto its own line under the name (not dropped), so a phone user
+     still sees which chart they're reading. */
+  [data-ui="nova"] .cd-subbar__status {
+    display: none;
+  }
+  [data-ui="nova"] .cd-subbar__identity {
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+  [data-ui="nova"] .cd-subbar__chart {
+    flex-basis: 100%;
+    white-space: normal;
+  }
+
+  /* dashboard.css wraps cd-topbar__right onto its own full-width line at
+     this width; let the inline nav take the remaining first-line space. */
+  [data-ui="nova"] .cd-topnav {
+    margin: 0;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Gap fix (found building Phase 1's Deep Dive reuse): globals.css's
+   `.cd-shell .surface/.chip/.metric/.card/.table/.button--*` (etc.)
+   rules hardcode literal Classic hex values directly (not var()
+   references), so they are NOT reached by the --color-* redefinitions
+   above via cascade — they win by specificity regardless of [data-ui].
+   These mirror the same selector list, reading Nova's own vars, at
+   one class-level higher specificity ([data-ui="nova"] .cd-shell .X
+   vs .cd-shell .X) so they win instead. Needed by any Nova screen
+   that reuses the shared Surface/Chip/Metric/CollapsibleSection
+   primitive library (dashboard-ui.tsx, collapsible-section.tsx),
+   not just the Today tab's Deep Dive panels.
+   ═══════════════════════════════════════════════════════════ */
+
+[data-ui="nova"] .cd-shell .card,
+[data-ui="nova"] .cd-shell .surface {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  box-shadow: var(--nova-card-shadow);
+}
+[data-ui="nova"] .cd-shell .card--sm,
+[data-ui="nova"] .cd-shell .card--xs {
+  background: var(--color-surface-soft);
+  border-color: var(--color-border);
+}
+
+[data-ui="nova"] .cd-shell .chip {
+  background: var(--color-surface-soft);
+  border-color: var(--color-border);
+  color: var(--color-text-strong);
+}
+[data-ui="nova"] .cd-shell .chip--success {
+  background: var(--color-high-bg);
+  border-color: var(--color-high-border);
+  color: var(--color-high);
+}
+[data-ui="nova"] .cd-shell .chip--warning {
+  background: var(--color-low-bg);
+  border-color: var(--color-low-border);
+  color: var(--color-low);
+}
+[data-ui="nova"] .cd-shell .chip--accent {
+  background: var(--color-accent-muted);
+  border-color: var(--color-border-strong);
+  color: var(--color-accent-strong);
+}
+[data-ui="nova"] .cd-shell .chip--neutral {
+  background: var(--color-surface-soft);
+  border-color: var(--color-border);
+  color: var(--color-muted);
+}
+
+[data-ui="nova"] .cd-shell .metric {
+  background: var(--color-surface-soft);
+  border-color: var(--color-border);
+}
+[data-ui="nova"] .cd-shell .metric__label { color: var(--color-faint); }
+[data-ui="nova"] .cd-shell .metric__value { color: var(--color-text-strong); }
+[data-ui="nova"] .cd-shell .metric__hint  { color: var(--color-faint); }
+[data-ui="nova"] .cd-shell .metric--high  { border-color: var(--color-high-border); }
+[data-ui="nova"] .cd-shell .metric--low   { border-color: var(--color-low-border); }
+
+[data-ui="nova"] .cd-shell .empty-state {
+  background: var(--color-surface-soft);
+  border-color: var(--color-border);
+  color: var(--color-faint);
+}
+
+[data-ui="nova"] .cd-shell .section-kicker  { color: var(--color-text-accent); }
+[data-ui="nova"] .cd-shell .section-title   { color: var(--color-text-strong); }
+[data-ui="nova"] .cd-shell .section-description { color: var(--color-muted); }
+
+[data-ui="nova"] .cd-shell .surface__title    { color: var(--color-faint); }
+[data-ui="nova"] .cd-shell .surface__headline { color: var(--color-text-strong); }
+/* Profile cards (Birth Star / Rasi / Lagnam) carry a zodiac badge image ahead
+   of the name on some cards but not others, which used to leave the ruling-
+   planet chip inline on the badge-less Birth Star card yet wrapped mid-label on
+   the badged Rasi/Lagnam cards. Stack the chip beneath the name row on all
+   three so they read identically regardless of whether a badge is present. */
+[data-ui="nova"] .cd-shell .surface__headline--profile {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+[data-ui="nova"] .cd-shell .surface__headline--profile .chip { flex-shrink: 0; white-space: nowrap; }
+[data-ui="nova"] .cd-shell .surface__subhead  { color: var(--color-faint); }
+[data-ui="nova"] .cd-shell .surface__text,
+[data-ui="nova"] .cd-shell .surface__body p   { color: var(--color-text); }
+
+[data-ui="nova"] .cd-shell .button--primary {
+  /* Subtle top-lit gold gradient + a soft gold-tinted shadow give the primary
+     action real press-me affordance vs. the old flat fill. Restrained: one
+     tonal step of gold, 1px depth. */
+  background: linear-gradient(180deg, var(--color-accent-strong), var(--color-accent));
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+  box-shadow: 0 1px 2px rgba(var(--nova-shadow-ink), 0.24), 0 2px 7px color-mix(in srgb, var(--color-accent) 20%, transparent);
+  transition: box-shadow 150ms ease, filter 150ms ease;
+}
+[data-ui="nova"] .cd-shell .button--primary:hover {
+  background: linear-gradient(180deg, var(--color-accent-strong), var(--color-accent-strong));
+  border-color: var(--color-accent-strong);
+  filter: brightness(1.02);
+  box-shadow: 0 2px 4px rgba(var(--nova-shadow-ink), 0.28), 0 5px 14px color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
+[data-ui="nova"] .cd-shell .button--ghost,
+[data-ui="nova"] .cd-shell .button--secondary {
+  background: var(--color-surface-soft);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+[data-ui="nova"] .cd-shell .button--ghost:hover,
+[data-ui="nova"] .cd-shell .button--secondary:hover {
+  background: var(--color-hover-bg);
+}
+[data-ui="nova"] .cd-shell .button--solid {
+  background: var(--color-text-strong);
+  border-color: var(--color-text-strong);
+  color: var(--color-bg);
+}
+
+[data-ui="nova"] .cd-shell .snapshot-box {
+  background: var(--color-surface-soft);
+  border-color: var(--color-border);
+}
+[data-ui="nova"] .cd-shell .snapshot-kicker { color: var(--color-faint); }
+[data-ui="nova"] .cd-shell .snapshot-value  { color: var(--color-text-strong); }
+[data-ui="nova"] .cd-shell .snapshot-hint   { color: var(--color-muted); }
+[data-ui="nova"] .cd-shell .snapshot-action {
+  background: var(--color-high-bg);
+  border-color: var(--color-high-border);
+}
+
+[data-ui="nova"] .cd-shell .alert-banner--critical {
+  background: var(--color-low-bg);
+  border-color: var(--color-low-border);
+  color: var(--color-low);
+}
+[data-ui="nova"] .cd-shell .alert-banner--caution {
+  background: var(--color-mid-bg);
+  border-color: var(--color-mid-border);
+  color: var(--color-mid-text);
+}
+
+[data-ui="nova"] .cd-shell .collapsible__trigger { color: var(--color-text-strong); }
+[data-ui="nova"] .cd-shell .collapsible__arrow   { color: var(--color-faint); }
+
+/* "See why this score →" (dashboard-today-tab-nova.tsx) jumps to this anchor via
+   native #hash scrolling, which aligns the target flush with the viewport top by
+   default — right under the sticky .cd-topbar (topnav + subbar, ~92px tall). That
+   left the collapsible's trigger row hidden/unclickable behind the header and made
+   the section look permanently "mid-open" with no way to toggle it. */
+#nova-deep-dive {
+  scroll-margin-top: 108px;
+}
+
+[data-ui="nova"] .cd-shell .dasha-bar-bg {
+  background: var(--color-surface-2);
+  border-color: var(--color-border);
+}
+
+/* Sticky header (.cd-topbar, dashboard.css) — same root cause as the footer
+   fix below, but the header can't just go transparent: it's sticky, so page
+   content scrolls underneath it and needs to stay unreadable through the
+   blur, which means it needs its own opaque-ish layer. The bug was pairing
+   that opaque layer with the WRONG paint: a flat 95%-opacity mix of
+   --color-bg alone, which is only the gradient's trailing solid stop, not
+   the gradient itself — so the header rendered as a flat near-black bar
+   sitting on top of a visibly purple/gold body instead of showing any glow
+   at all. Fix: paint --nova-ambient-glow (the same three viewport-pinned
+   radial gradients .cd-shell uses) under a translucent version of the same
+   base tint, also `background-attachment: fixed` — so the header shows the
+   literal same glow pattern as whatever's beneath it at that scroll
+   position, just frosted by blur(14px), instead of a different flat color. */
+[data-ui="nova"] .cd-shell .cd-topbar {
+  background: var(--nova-ambient-glow), color-mix(in srgb, var(--color-bg) 80%, transparent);
+  background-attachment: fixed;
+}
+
+/* Dashboard shell footer (dashboard-workspace.tsx) — same gap-fix class
+   as above: globals.css's .cd-footer* rules hardcode literal Classic
+   cream/tan hex, not var()s, so they aren't reached by the --color-*
+   redefinitions. Border/background were themselves hardcoded (not
+   theme-aware) until Phase 1.
+   2026-07-22, take 2: Phase 1 gave the footer an opaque flat fill (first a
+   hardcoded black/brown, then --color-surface-3) — but .cd-shell's ambient
+   background is a *moving* multi-stop radial gradient (three glow corners
+   over the base hex), not a flat color, and .cd-main-content in between
+   carries no background of its own. So the "body" region only looks
+   consistent because it has NO opaque layer sitting on it — every card
+   floats directly on .cd-shell's gradient. Any flat swatch dropped in for
+   the footer, however well hue-matched, was always going to read as a
+   distinct block next to a *gradient*, not a solid. Fix: let the footer
+   stay transparent so .cd-shell's fixed gradient paints straight through
+   it, same as it does everywhere else on the page — zero seam, since it's
+   literally the same pixels. The hairline top border (already theme-aware)
+   stays as the only separator, matching how footers usually read against
+   a page rather than as a boxed-off panel. */
+[data-ui="nova"]:not([data-theme="light"]) .cd-shell .cd-footer {
+  border-top-color: rgba(212, 175, 95, 0.13);
+  background: transparent;
+}
+[data-ui="nova"]:not([data-theme="light"]) .cd-shell .cd-footer__divider { background: rgba(212, 175, 95, 0.13); }
+[data-ui="nova"][data-theme="light"] .cd-shell .cd-footer {
+  border-top-color: color-mix(in srgb, var(--color-accent) 25%, transparent);
+  background: transparent;
+}
+[data-ui="nova"][data-theme="light"] .cd-shell .cd-footer__divider { background: color-mix(in srgb, var(--color-accent) 25%, transparent); }
+[data-ui="nova"] .cd-shell .cd-footer__wordmark {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 700;
+  color: var(--color-accent-strong);
+}
+[data-ui="nova"] .cd-shell .cd-footer__tagline { color: var(--color-muted); }
+[data-ui="nova"] .cd-shell .cd-footer__link { color: var(--color-faint); }
+[data-ui="nova"] .cd-shell .cd-footer__disclaimer { color: var(--color-muted); }
+[data-ui="nova"] .cd-shell .cd-footer__copy {
+  font-family: var(--font-display), Georgia, serif;
+  color: var(--color-faint);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Responsive grid utilities for the Today tab's multi-column rows.
+   Nova primitives otherwise use inline styles (see dashboard-ui-nova.tsx),
+   but a @media breakpoint can't be expressed inline — these are the
+   one exception, used by dashboard-today-tab-nova.tsx and friends.
+   ═══════════════════════════════════════════════════════════ */
+
+.nova-grid-2,
+.nova-grid-3,
+.nova-grid-anticipation,
+.nova-grid-detail,
+.nova-deepdive-grid,
+.nova-grid-4 {
+  display: grid;
+  gap: 16px;
+}
+/* minmax(0, Nfr), not a bare Nfr: a grid track's default minimum sizing
+   function is `auto`, which floors the track at its content's min-content
+   width — a single unbreakable run inside a cell (a nowrap price/label
+   string, a long word) refuses to shrink and drags the whole row, and with
+   it document width, wider than the viewport. minmax(0, …) removes that
+   floor so cells shrink normally and rely on their own text-overflow
+   handling instead. This was shipping a real horizontal-overflow bug on
+   every viewport ⩽ ~1220px wide (tablet/mobile). */
+.nova-grid-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.nova-grid-3 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); }
+.nova-grid-anticipation { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
+.nova-grid-detail { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); }
+/* Today tab's "Why this prediction?" tiles-vs-illustration row — its own
+   ratio (not .nova-grid-detail, which 6 other components share) so the
+   tiles' column can run wider than the 1.5fr:1fr split gives them
+   (1.5/2.5 = 60% → 2.3/3.3 ≈ 70%) without moving anyone else's layout. */
+.nova-deepdive-grid { grid-template-columns: minmax(0, 2.3fr) minmax(0, 1fr); }
+.nova-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+
+/* Activity-board carousel ("Is today okay for…?"): the ‹ › header arrows and
+   touch-swipe are the scroll affordance, so the native scrollbar is hidden to
+   keep the tile row clean. Row still keeps normal keyboard/wheel scrolling. */
+.nova-activity-scroller {
+  scrollbar-width: none;         /* Firefox */
+  -ms-overflow-style: none;      /* legacy Edge */
+}
+.nova-activity-scroller::-webkit-scrollbar {
+  display: none;                 /* WebKit */
+}
+
+/* Today tab's Family/Life-areas/Dasa-chapter glance row (design 8a §4):
+   same 3-up idea as .nova-grid-3 but with an asymmetric ratio (Family gets
+   more room, Dasa chapter less). A media query can't be expressed via the
+   inline style dashboard-today-glance-nova.tsx used to set directly, so
+   that inline gridTemplateColumns permanently beat this file's 860px
+   single-column collapse below — on phones the 3 cards squeezed to
+   ~90px-wide slivers instead of stacking, clipping "Open →" et al. past
+   the viewport edge. Owning the ratio here restores the collapse. */
+.nova-grid-today-glance {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1.15fr) minmax(0, 0.9fr);
+}
+@media (max-width: 860px) {
+  .nova-grid-today-glance {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Life Areas · Dasa Chapter row (homepage redesign 2026-07-18): Life Areas
+   gets the wider track for its five stat tiles. */
+.nova-grid-la-dasa {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+}
+@media (max-width: 860px) {
+  .nova-grid-la-dasa {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Soft pulse for the hero banner's status dot (homepage redesign
+   2026-07-18) — opacity only, and stilled entirely under reduced motion. */
+@keyframes nova-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+.nova-pulse-dot {
+  animation: nova-pulse 2.4s ease infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nova-pulse-dot {
+    animation: none;
+  }
+}
+
+@media (max-width: 860px) {
+  .nova-grid-2,
+  .nova-grid-3,
+  .nova-grid-anticipation,
+  .nova-grid-detail,
+  .nova-deepdive-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Life Areas tab (screen 11, life-areas): 4-up card rows need an extra
+   mid-width step (4 columns is too cramped to jump straight to 1). */
+@media (max-width: 1240px) {
+  .nova-grid-4 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .nova-grid-4 { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Monthly calendar tab: grid + 300px sidebar, used by
+   dashboard-calendar-monthly-nova.tsx (screen 3, cal-monthly). */
+@media (max-width: 960px) {
+  .nova-cal-monthly-layout {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Events & Festivals tab row inside that 300px rail. The card's 22px side
+   padding leaves ~256px, and three label+count tabs consume nearly all of it
+   in English — Tamil (வரவிருப்பவை / விரதம் / முகூர்த்தம்) does not fit at all.
+   Without this the flex children shrink and the labels clip mid-word, so the
+   row scrolls instead, matching .cd-tabnav__scroll / .ui-segmented. The tabs
+   themselves set flex-shrink:0 + nowrap inline. */
+.nova-cal-sidebar-tabs {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;         /* Firefox */
+  -ms-overflow-style: none;      /* legacy Edge */
+}
+.nova-cal-sidebar-tabs::-webkit-scrollbar {
+  display: none;                 /* WebKit */
+}
+
+/* Today's cell in the month grid — a light that travels around its border.
+   The cell already carries a steady inset ring (set inline); this rides on top
+   of it, so the day still reads as "today" the instant the grid paints and the
+   motion only adds life.
+
+   Colour is --color-text-strong, not gold, for the same reason the inline ring
+   is: gold is this grid's lunar/auspicious language (pournami's fill, the
+   muhurtham/pradosham dots), and a gold traveller would make "today" and
+   "auspicious day" read as the same cell — worst on load, when today is also
+   the selected day.
+
+   Built as a masked ring rather than a sweep across the tile so the light never
+   passes over the date, tithi or festival text underneath it. */
+@keyframes nova-cal-today-travel {
+  from { background-position: 190% 0; }
+  to   { background-position: -90% 0; }
+}
+[data-ui="nova"] .cd-shell .nova-cal-today::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  padding: 1.5px;                /* ring thickness */
+  background-repeat: no-repeat;
+  background-size: 260% 100%;
+  background-image: linear-gradient(
+    100deg,
+    transparent 34%,
+    color-mix(in srgb, var(--color-text-strong) 45%, transparent) 44%,
+    var(--color-text-strong) 50%,
+    color-mix(in srgb, var(--color-text-strong) 45%, transparent) 56%,
+    transparent 66%
+  );
+  /* Standard gradient-border mask: paint the whole box, then punch out the
+     content box, leaving only the `padding`-wide ring lit. */
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: nova-cal-today-travel 3.6s linear infinite;
+}
+/* Frozen frame is a plain even ring, not a stalled traveller parked mid-sweep. */
+@media (prefers-reduced-motion: reduce) {
+  [data-ui="nova"] .cd-shell .nova-cal-today::after {
+    animation: none;
+    background-size: 100% 100%;
+    background-image: linear-gradient(
+      to right,
+      color-mix(in srgb, var(--color-text-strong) 55%, transparent),
+      color-mix(in srgb, var(--color-text-strong) 55%, transparent)
+    );
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MOTION — the "celestial reveal" language.
+   One easing family, one timing scale. The JS twins of these
+   tokens live in web/lib/motion.ts (EASE_NOVA / DUR) — keep the
+   two in sync. Every animation below is gated so it never runs
+   when the user prefers reduced motion (guard at the very end).
+   ═══════════════════════════════════════════════════════════ */
+:root[data-ui="nova"] {
+  /* Celestial settle: content decelerates into place, like a value
+     resolving. Mirrors EASE_NOVA in web/lib/motion.ts. */
+  --ease-nova: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 120ms;   /* press / hover feedback */
+  --dur-base: 240ms;   /* navigation + colour/shadow settles */
+  --dur-slow: 360ms;   /* content reveal */
+  --dur-reveal: 900ms; /* signature draws (score ring) */
+}
+
+/* The single reveal keyframe: fade + gentle rise. Reused by the tab-enter
+   stagger and any element tagged .nova-reveal. */
+@keyframes nova-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Stagger utility — put on a container to have its direct children rise in
+   sequence. `both` fill-mode holds the first frame (opacity 0) before the
+   delay elapses so nothing flashes at full opacity first. Applied to the
+   Today-tab glance row as the flagship; opt-in elsewhere. */
+[data-ui="nova"] .nova-stagger > * {
+  animation: nova-rise var(--dur-slow) var(--ease-nova) both;
+}
+[data-ui="nova"] .nova-stagger > *:nth-child(1) { animation-delay: 0ms; }
+[data-ui="nova"] .nova-stagger > *:nth-child(2) { animation-delay: 70ms; }
+[data-ui="nova"] .nova-stagger > *:nth-child(3) { animation-delay: 140ms; }
+[data-ui="nova"] .nova-stagger > *:nth-child(4) { animation-delay: 210ms; }
+[data-ui="nova"] .nova-stagger > *:nth-child(5) { animation-delay: 280ms; }
+[data-ui="nova"] .nova-stagger > *:nth-child(n + 6) { animation-delay: 340ms; }
+
+/* One-off reveal for a single element (no stagger). */
+[data-ui="nova"] .nova-reveal {
+  animation: nova-rise var(--dur-slow) var(--ease-nova) both;
+}
+
+/* ── Interaction feedback ──────────────────────────────────
+   Smooth the colour/shadow transitions the shell already changes on
+   hover, and add tactile press/lift. GPU-only props (transform, box-
+   shadow, opacity) so nothing thrashes layout. */
+[data-ui="nova"] .cd-shell .card,
+[data-ui="nova"] .cd-shell .surface,
+[data-ui="nova"] .cd-shell .chip,
+[data-ui="nova"] .cd-shell .button--primary,
+[data-ui="nova"] .cd-shell .button--secondary,
+[data-ui="nova"] .cd-shell .button--ghost,
+[data-ui="nova"] .cd-shell .button--solid {
+  transition:
+    transform var(--dur-fast) var(--ease-nova),
+    box-shadow var(--dur-base) var(--ease-nova),
+    border-color var(--dur-base) var(--ease-nova),
+    background var(--dur-base) var(--ease-nova),
+    filter var(--dur-base) var(--ease-nova);
+}
+
+/* Buttons depress on press for a physical "click". */
+[data-ui="nova"] .cd-shell .button--primary:active,
+[data-ui="nova"] .cd-shell .button--secondary:active,
+[data-ui="nova"] .cd-shell .button--ghost:active,
+[data-ui="nova"] .cd-shell .button--solid:active {
+  transform: translateY(1px);
+}
+
+/* Opt-in hover-lift for clickable cards/tiles. Not applied blanket to every
+   .card — a static content card that floats on hover reads as a bug — so a
+   surface only lifts when its author tags it .nova-interactive. */
+[data-ui="nova"] .cd-shell .nova-interactive {
+  cursor: pointer;
+}
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+  [data-ui="nova"] .cd-shell .nova-interactive:hover {
+    transform: translateY(-2px);
+    /* --nova-hover-shadow is per-theme (see both palette blocks). It used to be
+       a literal rgba(0,0,0,0.28) — tuned for navy, where a heavy black bloom
+       reads as depth. On cream that same shadow is a grey smudge under every
+       hovered tile, which is why --nova-card-shadow was already themed while
+       its hover twin was not. */
+    box-shadow:
+      var(--nova-hover-shadow),
+      0 0 0 1px var(--color-border-strong);
+  }
+}
+
+/* ── Celestial hero glyph (sun / moon beside the greeting) ──
+   Ambient loops only — the base frame of each element is already a finished
+   picture, so the reduced-motion guard below can freeze all of these to a
+   correct still. */
+@keyframes nova-celestial-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes nova-celestial-breathe {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.08);
+  }
+}
+@keyframes nova-celestial-twinkle {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+[data-ui="nova"] .nova-celestial__rays {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: nova-celestial-spin 120s linear infinite;
+}
+[data-ui="nova"] .nova-celestial__glow {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: nova-celestial-breathe 6s var(--ease-nova) infinite;
+}
+[data-ui="nova"] .nova-celestial__star {
+  animation: nova-celestial-twinkle 3.6s ease-in-out infinite;
+}
+/* Hairline drift for the decorative rasi-chakra wheel (RasiChakraBackdrop)
+   and the deep-dive orbit glyph (DeepDiveOrbitGlyph) — slow enough over a
+   240s loop that it reads as "time turning" ambience, not a moving graphic
+   competing with real content. */
+[data-ui="nova"] .nova-wheel-spin {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: nova-celestial-spin 240s linear infinite;
+}
+/* Hero/deep-dive celestial backdrops (chakra wheel, big moon) are purely
+   atmospheric corner bleed — on narrow viewports the hero/card is too
+   cramped for them not to compete with the greeting text and score dial, so
+   they're dropped rather than shrunk. */
+@media (max-width: 640px) {
+  [data-ui="nova"] .nova-hero-glyph {
+    display: none;
+  }
+}
+/* Note: the page sky's light-theme behaviour (drop stars + night indigo, keep a
+   soft daytime-gold crown) is handled in JS inside CelestialAmbientNova via
+   useIsLightTheme(), not a CSS display:none gate — so the gold crown can still
+   show on the cream canvas. */
+/* Special-day (Pournami / Amavasai) signature draw: a single gold light sweep
+   across the hero glyph tile. Runs once and settles transparent, so the
+   reduced-motion guard collapses it to a clean, invisible still. */
+@keyframes nova-celestial-shimmer {
+  0% {
+    transform: translateX(-160%) skewX(-16deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(320%) skewX(-16deg);
+    opacity: 0;
+  }
+}
+[data-ui="nova"] .nova-celestial__shimmer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 55%;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent,
+    rgba(255, 224, 150, 0.55) 50%,
+    transparent
+  );
+  transform: translateX(-160%) skewX(-16deg);
+  animation: nova-celestial-shimmer 1.9s var(--ease-nova) 0.25s 1 both;
+}
+
+/* ── Settings preferences shell (rail + panels) ───────────────
+   Two-column layout used by the redesigned Settings/Onboarding surface
+   (dashboard-settings-session-tab.tsx, dashboard-setup-tab.tsx). The left
+   rail is a sticky vertical nav on wide screens; on narrow screens it
+   collapses to a horizontally-scrolling row of chips above the content. */
+@keyframes vfade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.vs-settings-grid {
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr);
+  gap: 44px;
+  align-items: start;
+}
+.vs-settings-rail {
+  position: sticky;
+  top: 88px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.vs-settings-railnav {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.vs-settings-railnav > button { width: 100%; }
+@media (max-width: 880px) {
+  .vs-settings-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  .vs-settings-rail {
+    position: static;
+    top: auto;
+  }
+  .vs-settings-railnav {
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 8px;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+  }
+  .vs-settings-railnav::-webkit-scrollbar { display: none; }
+  .vs-settings-railnav > * { flex: 0 0 auto; }
+  .vs-settings-railnav > button { width: auto; }
+  .vs-settings-rail-heading,
+  .vs-settings-rail-divider,
+  .vs-settings-identity { display: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Footer — Apple pass 2026-07-20, over the 2026-07-18 redesign (which had
+   already replaced a flex-wrap row that orphaned the morning-guidance
+   toggle onto its own line at mid widths; the 3-column grid below is that
+   fix, kept). Nests inside `.cd-footer`/`.cd-footer__inner` for the
+   sticky-footer flex mechanics and the Tamil font-family hooks
+   (dashboard.css) those classes carry. 100% token-driven — no literal hex
+   — so it needs no per-theme patch like the `.cd-footer` block above.
+
+   What "Apple standards" changed here, and why each one:
+
+   1. ONE TYPE SIZE. Apple's footer runs on a single 12px step: column
+      heads and links are the same size, separated by weight and color
+      alone, never by size. The old eyebrow (0.66rem, uppercase,
+      0.12em tracking, 700, gold) was a third size AND a third color AND a
+      case change AND a tracking change — four signals to express one level
+      of hierarchy. Heads are now 0.75rem/600/text-strong, sentence case.
+
+   2. LINKS DO NOT CHANGE COLOR ON HOVER. The old rule shifted links to
+      gold. Apple moves the underline, never the hue: color carries meaning
+      (accent = brand/active), so spending it on "the pointer is here"
+      makes the accent mean nothing. Hover/focus adds an underline at a
+      fixed offset instead, which also survives a monochrome or
+      high-contrast rendering where a hue shift vanishes.
+
+   3. HAIRLINES, NOT BOXES. Regions divide by 1px rules on the same ground,
+      never by nested panels — hence the morning-guidance control losing
+      its border+fill card (see .nova-fmg below).
+   ═══════════════════════════════════════════════════════════ */
+
+/* Legal footnote — sits ABOVE the link grid, Apple's ordering: it
+   qualifies the product above it, so it reads before the navigation
+   rather than as an afterthought wedged beside the copyright. */
+.nova-footer__legal {
+  margin: 0 0 20px;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--color-muted);
+  max-width: 76ch;
+}
+
+/* The shared divider carries `margin-bottom` only (dashboard.css). This
+   footer now has a hairline on BOTH sides of the grid, so it needs
+   symmetric breathing room at each one. */
+.cd-shell .cd-footer__divider {
+  margin: 0 0 24px;
+}
+
+.nova-footer__grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.85fr) minmax(0, 1.5fr) minmax(200px, 0.85fr);
+  gap: 36px;
+  align-items: start;
+  margin-bottom: 28px;
+}
+@media (max-width: 860px) {
+  .nova-footer__grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    row-gap: 28px;
+  }
+  .nova-footer__quick { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+  .nova-footer__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .nova-footer__quick { grid-column: auto; }
+}
+
+.nova-footer__brand {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+/* dashboard.css gives the wordmark `margin: 0 0 4px`, which compounds with
+   the flex `gap` above into an uneven 12px. Spacing is the column's job. */
+.nova-footer__brand .cd-footer__wordmark {
+  margin: 0;
+}
+.nova-footer__tagline {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--color-muted);
+  max-width: 30ch;
+}
+
+.nova-footer__nav {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 24px;
+  min-width: 0;
+}
+.nova-footer__nav-col {
+  min-width: 0;
+}
+
+/* Column head. Same 0.75rem as the links beneath it — weight and color do
+   the separating. `<h2>` for the outline; the heading default size/margin
+   must be zeroed explicitly. */
+.nova-footer__nav-head {
+  margin: 0 0 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-text-strong);
+}
+
+.nova-footer__nav-links {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+.nova-footer__nav-link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-faint);
+  text-align: left;
+  cursor: pointer;
+  width: fit-content;
+  text-decoration: none;
+}
+.nova-footer__nav-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.nova-footer__nav-link:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.nova-footer__quick {
+  min-width: 0;
+}
+
+/* ── Footer morning-guidance control (dashboard-footer-morning-nova.tsx) ──
+   Deliberately unboxed: a bordered, tinted panel inside a footer reads as a
+   second surface floating on the first, and Apple footers hold no such
+   container — controls sit directly on the footer ground and are separated
+   by space alone. */
+.nova-fmg {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+}
+.nova-fmg__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.nova-fmg__label {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-faint);
+}
+.nova-fmg__status {
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  color: var(--color-muted);
+}
+
+/* Switch. Apple's proportions scaled to a footer-weight control: track
+   width ≈ 1.73 × height, knob = height − 2×inset, fully rounded. The knob
+   shadow is what makes it read as a physical control rather than a flat
+   pill, and is the one part that must stay a literal rgba — it is a
+   shadow, not a themed surface. */
+.nova-fmg__switch {
+  flex: none;
+  position: relative;
+  width: 38px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--color-text-strong) 18%, transparent);
+  transition: background 0.2s ease;
+}
+.nova-fmg__switch[data-on="true"] {
+  background: var(--color-accent-strong);
+}
+.nova-fmg__switch:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+.nova-fmg__switch:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 3px;
+}
+.nova-fmg__knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 1px rgba(0, 0, 0, 0.16);
+  transition: transform 0.2s ease;
+}
+.nova-fmg__switch[data-on="true"] .nova-fmg__knob {
+  transform: translateX(16px);
+}
+
+/* Copyright baseline — the quietest line on the page. */
+.cd-shell .cd-footer__copy {
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FAMILY & CHARTS — "Hybrid v2" graphical redesign.
+   Imported from the Claude Design mockup (Family & Charts Hybrid v2).
+   Colour comes entirely from the existing token set — these are only
+   the layout grids + the graphical-motion keyframes the mockup adds.
+   Every animation is stilled by the global reduced-motion guard at
+   the very end of this file (scoped to [data-ui="nova"]).
+   ═══════════════════════════════════════════════════════════ */
+
+/* Hero / member-overview split: wide left column, aside on the right. */
+.hy-grid-hero { display: grid; grid-template-columns: 1.9fr 1fr; gap: 16px; align-items: stretch; }
+/* Charts & houses: D1 · D9 · bhava overview. */
+.hy-grid-charts { display: grid; grid-template-columns: 1fr 1fr 1.25fr; gap: 16px; align-items: stretch; }
+/* Predictions/forecast split (life-area table · transit overview). */
+.hy-grid-forecast { display: grid; grid-template-columns: 1.9fr 1fr; gap: 16px; align-items: start; }
+/* Yogas · strengths & watch-outs · remedies — three equal-weight cards. */
+.hy-grid-triad { display: grid; grid-template-columns: 1fr 1fr 1.1fr; gap: 16px; align-items: stretch; }
+/* Planet "orbs" — nine celestial bodies across the top of the positions table. */
+.hy-orbs { display: grid; grid-template-columns: repeat(9, 1fr); gap: 11px; }
+
+@media (max-width: 1180px) {
+  .hy-orbs { grid-template-columns: repeat(5, 1fr); }
+}
+@media (max-width: 1180px) {
+  .hy-grid-triad { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 960px) {
+  .hy-grid-hero,
+  .hy-grid-charts,
+  .hy-grid-forecast,
+  .hy-grid-triad { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  .hy-orbs { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* Gentle vertical bob for the planet orbs (transform only — cheap, GPU). */
+@keyframes hy-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+/* Slow radial-glow breathe behind hero panels (opacity only). */
+@keyframes hy-glow {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+/* Soft ring pulse around the family harmony dial (box-shadow only). */
+@keyframes hy-ring-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(226, 181, 99, 0.18); }
+  50% { box-shadow: 0 0 34px 6px rgba(226, 181, 99, 0.10); }
+}
+.hy-float { animation: hy-float 6s ease-in-out infinite; }
+.hy-glow  { animation: hy-glow 5s ease-in-out infinite; }
+.hy-ring-pulse { animation: hy-ring-pulse 4s ease-in-out infinite; }
+
+/* Expandable planet row chevron. */
+.hy-chev { transition: transform 0.15s ease; display: inline-block; }
+
+/* ── Chart-explanation section (Hybrid Family view, §9) ──────────────────
+   2026-07-22: this section used to be a bespoke "cosmic panel" — a
+   nebula-image background plus a full parallel set of --color-* overrides
+   (class `hy-cosmic-explain`, removed), reused from the login welcome
+   screen. It made the densest, most read-heavy section on the page (chart
+   data, sticky tabs, tables) the one visual outlier among its 8 sibling
+   sections, all of which are plain --color-surface cards directly on the
+   page background. Retired: the section now renders like every other one,
+   via its own children's normal --color-surface / --color-surface-soft
+   cards (the ChartExplanationPanel box, VargasPanel, ShadbalaPanel, the
+   dasha panels below it — none of which need help from a wrapper). */
+
+/* ═══════════════════════════════════════════════════════════
+   COMPONENT KIT (audit B-7 — "the keystone").
+   The shared primitives in web/components/ui/ apply these classes.
+   They exist as CSS (not inline styles) for the one thing inline
+   styles cannot do: `@media (pointer: coarse)` for the 44px touch
+   floor (audit B-3), and one definition every screen is consistent
+   *to* (audit A-1's 7 nav patterns collapse to <Segmented>). All read
+   the token layer above, so dark/light + reduced-motion come for free.
+   Scoped under .cd-shell so tokens resolve and Classic never sees them.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Card / Panel — mirrors the long-standing novaDetailCardStyle so the
+   two are interchangeable during the incremental rollout. ── */
+[data-ui="nova"] .cd-shell .ui-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+[data-ui="nova"] .cd-shell .ui-card--soft { background: var(--color-surface-soft); }
+[data-ui="nova"] .cd-shell .ui-card--accent {
+  background: var(--color-accent-muted);
+  border-color: var(--color-border-strong);
+}
+[data-ui="nova"] .cd-shell .ui-card--dashed {
+  background: color-mix(in srgb, var(--color-text-strong) 3%, transparent);
+  border-style: dashed;
+  border-color: var(--color-border-strong);
+}
+[data-ui="nova"] .cd-shell .ui-card--high {
+  background: var(--color-high-bg);
+  border-color: var(--color-high-border);
+}
+[data-ui="nova"] .cd-shell .ui-card--low {
+  background: var(--color-low-bg);
+  border-color: var(--color-low-border);
+}
+[data-ui="nova"] .cd-shell .ui-card--mid {
+  background: var(--color-mid-bg);
+  border-color: var(--color-mid-border);
+}
+[data-ui="nova"] .cd-shell .ui-card--pad-sm { padding: 14px 16px; }
+
+/* ── Numerology "how this was worked out" disclosure ──
+   A native <details> so keyboard and screen-reader behaviour, find-in-page and
+   print-expanded all come for free. Only the *derivation* folds away — the
+   doctrine D3 scored-from string and the D6 surrogate warning render outside
+   it, because a caveat a reader has to opt into is a caveat that goes unread. */
+[data-ui="nova"] .cd-shell .num-calc-details > summary {
+  display: list-item;
+  width: fit-content;
+  padding: 2px 0;
+  border-radius: var(--radius-sm, 6px);
+  transition: color 120ms ease;
+}
+[data-ui="nova"] .cd-shell .num-calc-details > summary:hover {
+  color: var(--color-text) !important;
+}
+[data-ui="nova"] .cd-shell .num-calc-details > summary:focus-visible {
+  outline: 2px solid var(--color-border-strong);
+  outline-offset: 2px;
+}
+
+/* ── Baby Name Finder — one collapsed row per name ──
+   A search can return >100 names, and every one of them used to render its
+   full five-step derivation inline: unscannable, with the one comparable fact
+   (the chart-fit score) buried under a paragraph each. The summary IS the row,
+   so it spans the full width rather than `fit-content`, and the marker sits at
+   the end where it reads as an affordance rather than a bullet. */
+[data-ui="nova"] .cd-shell .num-name-details > summary {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  padding: 2px 0;
+  cursor: pointer;
+  border-radius: var(--radius-sm, 6px);
+  list-style: none;
+  transition: color 120ms ease;
+}
+/* Safari still paints the default triangle without this. */
+[data-ui="nova"] .cd-shell .num-name-details > summary::-webkit-details-marker {
+  display: none;
+}
+[data-ui="nova"] .cd-shell .num-name-details > summary::after {
+  content: "›";
+  margin-left: auto;
+  flex: none;
+  font-size: var(--text-lg, 18px);
+  line-height: 1;
+  color: var(--color-faint);
+  transform: rotate(90deg);
+  transition: transform 140ms ease;
+}
+[data-ui="nova"] .cd-shell .num-name-details[open] > summary::after {
+  transform: rotate(-90deg);
+}
+[data-ui="nova"] .cd-shell .num-name-details > summary:focus-visible {
+  outline: 2px solid var(--color-border-strong);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-ui="nova"] .cd-shell .num-name-details > summary::after { transition: none; }
+}
+
+/* ── Segmented — the one replacement for the 7 hand-rolled sub-navs. ── */
+[data-ui="nova"] .cd-shell .ui-segmented {
+  display: inline-flex;
+  gap: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 11px;
+  padding: 4px;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+[data-ui="nova"] .cd-shell .ui-segmented::-webkit-scrollbar { display: none; }
+[data-ui="nova"] .cd-shell .ui-segmented__btn {
+  appearance: none;
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  border-radius: 8px;
+  padding: 9px 13px;
+  min-height: 34px;
+  cursor: pointer;
+  transition:
+    background var(--motion-nav) var(--ease-nova),
+    color var(--motion-nav) var(--ease-nova);
+}
+[data-ui="nova"] .cd-shell .ui-segmented__btn:hover:not([aria-selected="true"]) {
+  color: var(--color-text-strong);
+}
+[data-ui="nova"] .cd-shell .ui-segmented__btn[aria-selected="true"] {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-weight: 700;
+}
+[data-ui="nova"] .cd-shell .ui-segmented__btn:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 2px;
+}
+
+/* ── Remedy member rail ────────────────────────────────────
+   The Today tab's "Remedy for you" card lets you read any household member's
+   remedy. That one choice used to carry three stacked controls: a pill row, an
+   `<input type="range">`, and ‹ › arrows — all writing the same value. The
+   range was the wrong instrument twice over: a slider expresses a *continuous
+   quantity*, so dragging one to pick a person reads as a volume control, and a
+   native range paints OS chrome that no token in either theme can reach
+   (`accentColor` colours the thumb, never the track).
+
+   One rail now owns the choice. Each chip carries that member's own graha
+   glyph in that graha's colour (`--chip-accent`, set per chip), so the switch
+   shows *what changes* instead of offering three ways to move the same index.
+   Unscoped selectors (like .nova-activity-scroller above) — the card is not
+   .cd-shell-only. */
+.nova-remedy-rail {
+  display: flex;
+  gap: 6px;
+  /* 4px/2px of breathing room so a chip's focus ring and selected-state
+     halo are not clipped by the scroll box; pulled back out with the
+     matching negative margin so the rail still aligns to the card's text. */
+  padding: 4px 2px;
+  margin: -4px -2px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;         /* Firefox */
+  -ms-overflow-style: none;      /* legacy Edge */
+  /* Edge fade, same technique as the topnav strip: whichever side still has
+     chips off-screen fades out, so an overflowing rail announces itself.
+     Driven by data-scroll-start/end, set from the scroll listener. */
+  --fade-l: 0px;
+  --fade-r: 0px;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
+}
+.nova-remedy-rail::-webkit-scrollbar { display: none; }
+.nova-remedy-rail[data-scroll-start="false"] { --fade-l: 18px; }
+.nova-remedy-rail[data-scroll-end="false"] { --fade-r: 22px; }
+
+.nova-remedy-chip {
+  --chip-accent: var(--color-accent-secondary);
+  appearance: none;
+  flex: 0 0 auto;
+  scroll-snap-align: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 172px;
+  min-height: 36px;
+  padding: 4px 13px 4px 4px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-muted);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background var(--motion-nav) var(--ease-nova),
+    border-color var(--motion-nav) var(--ease-nova),
+    color var(--motion-nav) var(--ease-nova);
+}
+.nova-remedy-chip__glyph {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: var(--text-sm);
+  line-height: 1;
+  color: var(--chip-accent);
+  background: color-mix(in srgb, var(--chip-accent) 13%, transparent);
+  border: 1px solid color-mix(in srgb, var(--chip-accent) 28%, transparent);
+  transition:
+    background var(--motion-nav) var(--ease-nova),
+    border-color var(--motion-nav) var(--ease-nova);
+}
+.nova-remedy-chip__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nova-remedy-chip:hover:not([aria-selected="true"]) {
+  color: var(--color-text-strong);
+  border-color: var(--color-border-strong);
+}
+.nova-remedy-chip[aria-selected="true"] {
+  color: var(--color-text-strong);
+  background: color-mix(in srgb, var(--chip-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--chip-accent) 55%, transparent);
+}
+.nova-remedy-chip[aria-selected="true"] .nova-remedy-chip__glyph {
+  background: color-mix(in srgb, var(--chip-accent) 26%, transparent);
+  border-color: color-mix(in srgb, var(--chip-accent) 52%, transparent);
+}
+.nova-remedy-chip:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 2px;
+}
+
+/* The panel is keyed on the selected member, so switching remounts it. An
+   opacity-only fade (no translate) marks the change without the content
+   appearing to jump inside a card that keeps its own position. */
+.nova-remedy-panel {
+  animation: nova-remedy-fade var(--dur-slow) var(--ease-nova) both;
+}
+@keyframes nova-remedy-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nova-remedy-rail { scroll-behavior: auto; }
+  .nova-remedy-panel { animation: none; }
+}
+
+/* ── Button / Pill — the 44px-safe replacement for inline buttons. ── */
+[data-ui="nova"] .cd-shell .ui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1;
+  border-radius: 9px;
+  padding: 10px 16px;
+  min-height: 38px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    background var(--motion-nav) var(--ease-nova),
+    border-color var(--motion-nav) var(--ease-nova),
+    color var(--motion-nav) var(--ease-nova),
+    transform var(--motion-toggle) var(--ease-nova);
+}
+[data-ui="nova"] .cd-shell .ui-btn:active { transform: translateY(1px); }
+[data-ui="nova"] .cd-shell .ui-btn:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 2px;
+}
+[data-ui="nova"] .cd-shell .ui-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+[data-ui="nova"] .cd-shell .ui-btn--primary {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border-color: var(--color-accent);
+}
+[data-ui="nova"] .cd-shell .ui-btn--primary:hover:not(:disabled) {
+  background: var(--color-accent-strong);
+  border-color: var(--color-accent-strong);
+}
+[data-ui="nova"] .cd-shell .ui-btn--secondary {
+  background: transparent;
+  color: var(--color-text-accent);
+  border-color: var(--color-border-strong);
+}
+[data-ui="nova"] .cd-shell .ui-btn--secondary:hover:not(:disabled) { border-color: var(--color-accent); }
+[data-ui="nova"] .cd-shell .ui-btn--ghost {
+  background: transparent;
+  color: var(--color-text-accent);
+  border-color: transparent;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+[data-ui="nova"] .cd-shell .ui-btn--ghost:hover:not(:disabled) { color: var(--color-accent-strong); }
+[data-ui="nova"] .cd-shell .ui-btn--sm {
+  font-size: var(--text-xs);
+  padding: 6px 12px;
+  min-height: 32px;
+  border-radius: 8px;
+}
+/* Pill — a toggle chip (member switcher, filters). Selected = gold fill. */
+[data-ui="nova"] .cd-shell .ui-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1;
+  border-radius: 999px;
+  padding: 7px 14px;
+  min-height: 32px;
+  background: transparent;
+  color: var(--color-muted);
+  border: 1px solid var(--color-border-strong);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background var(--motion-nav) var(--ease-nova),
+    border-color var(--motion-nav) var(--ease-nova),
+    color var(--motion-nav) var(--ease-nova);
+}
+[data-ui="nova"] .cd-shell .ui-pill:hover:not([aria-pressed="true"]) { color: var(--color-text-strong); }
+[data-ui="nova"] .cd-shell .ui-pill[aria-pressed="true"] {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border-color: var(--color-accent);
+  font-weight: 700;
+}
+[data-ui="nova"] .cd-shell .ui-pill:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 2px;
+}
+
+/* ── Score chip — the bucketed zoom of the one score model (audit A-3).
+   Colours come from the canonical scoreBandColor() in JS, applied inline;
+   this only carries layout. ── */
+[data-ui="nova"] .cd-shell .ui-score-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1;
+  border-radius: 999px;
+  padding: 4px 10px;
+  min-height: 22px;
+}
+
+/* ── Kicker / SectionHeader — the one uppercase eyebrow (audit §1.3).
+   Replaces the 4× NovaKicker, HyKicker, and ~220 inline uppercase labels. ── */
+[data-ui="nova"] .cd-shell .ui-kicker {
+  display: block;
+  font-family: inherit;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-accent);
+  line-height: 1.3;
+}
+[data-ui="nova"] .cd-shell .ui-kicker--muted { color: var(--color-muted); }
+[data-ui="nova"] .cd-shell .ui-section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+[data-ui="nova"] .cd-shell .ui-section-header__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+[data-ui="nova"] .cd-shell .ui-section-header__hint {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  line-height: var(--leading-snug);
+}
+[data-ui="nova"] .cd-shell .ui-section-header__right {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ── Field / Input / Select / Textarea — the one form stack (audit §1.3, §3a).
+   a11y wiring is ported from the Classic Field in dashboard-ui.tsx. ── */
+[data-ui="nova"] .cd-shell .ui-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+[data-ui="nova"] .cd-shell .ui-field__label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+}
+[data-ui="nova"] .cd-shell .ui-field__error {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-xs);
+  color: var(--color-low);
+}
+[data-ui="nova"] .cd-shell .ui-field__helper {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+[data-ui="nova"] .cd-shell .ui-input,
+[data-ui="nova"] .cd-shell .ui-select,
+[data-ui="nova"] .cd-shell .ui-textarea {
+  width: 100%;
+  font-family: inherit;
+  font-size: var(--text-base);
+  color: var(--color-text-strong);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  padding: 9px 12px;
+  outline: none;
+  transition:
+    border-color var(--motion-nav) var(--ease-nova),
+    box-shadow var(--motion-nav) var(--ease-nova);
+}
+[data-ui="nova"] .cd-shell .ui-textarea {
+  min-height: 96px;
+  resize: vertical;
+  line-height: var(--leading-normal);
+}
+[data-ui="nova"] .cd-shell .ui-input:focus-visible,
+[data-ui="nova"] .cd-shell .ui-select:focus-visible,
+[data-ui="nova"] .cd-shell .ui-textarea:focus-visible {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-muted);
+}
+[data-ui="nova"] .cd-shell .ui-input[aria-invalid="true"],
+[data-ui="nova"] .cd-shell .ui-select[aria-invalid="true"],
+[data-ui="nova"] .cd-shell .ui-textarea[aria-invalid="true"] {
+  border-color: var(--color-low);
+}
+[data-ui="nova"] .cd-shell .ui-input::placeholder,
+[data-ui="nova"] .cd-shell .ui-textarea::placeholder { color: var(--color-faint); }
+
+/* ── Chip / StatusChip — the one status/label pill (audit §1.3). ── */
+[data-ui="nova"] .cd-shell .ui-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: inherit;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1;
+  border-radius: var(--radius-full, 999px);
+  padding: 5px 11px;
+  border: 1px solid var(--color-border-strong);
+  background: transparent;
+  color: var(--color-muted);
+}
+button.ui-chip { cursor: pointer; }
+[data-ui="nova"] .cd-shell .ui-chip--neutral { color: var(--color-neutral); border-color: var(--color-neutral-border); }
+[data-ui="nova"] .cd-shell .ui-chip--high { color: var(--color-high); border-color: var(--color-high-border); background: var(--color-high-bg); }
+[data-ui="nova"] .cd-shell .ui-chip--mid { color: var(--color-mid-text); border-color: var(--color-mid-border); background: var(--color-mid-bg); }
+[data-ui="nova"] .cd-shell .ui-chip--low { color: var(--color-low); border-color: var(--color-low-border); background: var(--color-low-bg); }
+[data-ui="nova"] .cd-shell .ui-chip--accent { color: var(--color-text-accent); border-color: var(--color-border-strong); background: var(--color-accent-muted); }
+[data-ui="nova"] .cd-shell button.ui-chip--active {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border-color: var(--color-accent);
+}
+[data-ui="nova"] .cd-shell button.ui-chip:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 2px;
+}
+[data-ui="nova"] .cd-shell .ui-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1;
+  border-radius: var(--radius-full, 999px);
+  padding: 4px 10px;
+  color: var(--color-faint);
+  border: 1px solid var(--color-border);
+}
+[data-ui="nova"] .cd-shell .ui-status-chip--done {
+  color: var(--color-high);
+  border-color: var(--color-high-border);
+  background: var(--color-high-bg);
+}
+
+/* ── Toggle — the one switch (audit §1.3). ── */
+[data-ui="nova"] .cd-shell .ui-toggle {
+  position: relative;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  cursor: pointer;
+  padding: 0;
+  transition:
+    background var(--motion-nav) var(--ease-nova),
+    border-color var(--motion-nav) var(--ease-nova);
+}
+[data-ui="nova"] .cd-shell .ui-toggle--on {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+[data-ui="nova"] .cd-shell .ui-toggle:disabled { opacity: 0.55; cursor: not-allowed; }
+[data-ui="nova"] .cd-shell .ui-toggle__knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-text-strong);
+  transition: transform var(--motion-toggle) var(--ease-nova);
+}
+[data-ui="nova"] .cd-shell .ui-toggle--on .ui-toggle__knob {
+  transform: translateX(18px);
+  background: var(--color-on-accent);
+}
+[data-ui="nova"] .cd-shell .ui-toggle:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 2px;
+}
+
+/* The 44px touch floor — the reason these are primitives, not inline styles
+   (audit B-3). Coarse pointers (touch) get a full 44px target while the
+   desktop variants stay visually compact. */
+@media (pointer: coarse) {
+  [data-ui="nova"] .cd-shell .ui-segmented__btn,
+  [data-ui="nova"] .cd-shell .ui-btn,
+  [data-ui="nova"] .cd-shell .ui-pill,
+  [data-ui="nova"] .cd-shell button.ui-chip,
+  [data-ui="nova"] .cd-shell .ui-toggle { min-height: var(--touch-target); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   "YOUR CHART IN ONE MINUTE" — the reading surface.
+   docs/ONE_MINUTE_READING_2026-08-04.md §2, component
+   web/components/dashboard-one-minute-reading.tsx.
+
+   Deliberately NOT a <Card>. Everything else on Family & Charts is a card of
+   facts; this is the one thing on the page written to be *read* rather than
+   scanned, and the spec's first rendering rule ("prose, not panels") only
+   means anything if the surface itself stops looking like the panels around
+   it. So: an opening page — one centred measure, a warm wash at the head,
+   real paragraph rhythm, and no chrome competing with the words.
+
+   Unscoped (no .cd-shell prefix) purely so it never has to out-specify
+   .ui-card; it still reads the token layer by inheritance, which is where
+   every colour, radius and step below comes from.
+   ═══════════════════════════════════════════════════════════ */
+.om {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-accent) 5%, transparent) 0%,
+      transparent 260px
+    ),
+    var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: clamp(24px, 3.6vw, 46px) clamp(20px, 3.4vw, 40px);
+}
+
+/* The measure, capped AND centred. A 62ch column pinned to the left edge of a
+   1200px card leaves half the surface empty and reads as a layout bug rather
+   than as a margin — the single loudest thing wrong with the first build.
+   In px, not ch: `ch` resolves against THIS element's font (the UI sans), not
+   the serif the paragraphs are actually set in, so it sizes the wrong text.
+   620px holds ~75 characters of the prose face — the top of the readable band. */
+.om__col {
+  max-width: 620px;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.om__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-4);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+/* Takes the remaining width so the toggle sits hard right, and wraps the whole
+   control below the text rather than crushing it once the row runs out. */
+.om__head-text {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+.om__title {
+  margin: 0;
+  font-family: var(--font-display, Georgia, serif);
+  font-size: var(--display-sm);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--color-text-strong);
+}
+/* Says WHY it will look the same tomorrow. The reading moves at the antardasha
+   boundary, never daily; unlabelled, that stability reads as a page that failed
+   to refresh, which is the opposite of the trust it is meant to buy. */
+.om__meta {
+  margin: 8px 0 0;
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  color: var(--color-faint);
+}
+
+/* ONE control for all seven bases, not seven. The per-beat links repeated the
+   same five underlined words down the column, fragmenting a piece of writing
+   into a list of toggles — whether the reader wants the astrological layer at
+   all is a single decision, so it is asked once, out of the prose column. */
+.om__basis-toggle {
+  flex: 0 0 auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-muted);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  line-height: 1;
+  padding: 9px 15px;
+  cursor: pointer;
+  transition:
+    color var(--motion-toggle) var(--ease-nova),
+    border-color var(--motion-toggle) var(--ease-nova);
+}
+.om__basis-toggle:hover {
+  color: var(--color-text-strong);
+  border-color: var(--color-border-strong);
+}
+.om__basis-toggle:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 2px;
+}
+
+/* One blank line between paragraphs — 28px against a 28.5px computed line. */
+.om__beats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
+.om__beat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.om__beat--close {
+  margin-top: var(--space-1);
+}
+/* The terms the reading is offered under, not a beat of the reading. It sits
+   second, right under the lead, so at body weight it reads as the reading's own
+   second sentence — which turns the strongest trust device we have into cold
+   water two paragraphs in. Pulled up tight against the opening it qualifies and
+   set quieter than the body, it reads as what it is: an aside about the inputs.
+   Quiet, not hidden — a reader who needs it must still be able to find it. */
+.om__beat--terms {
+  margin-top: calc(var(--space-7) * -0.5);
+}
+
+.om__p {
+  margin: 0;
+  font-family: var(--font-nova-prose, var(--font-body, system-ui, sans-serif));
+  font-size: var(--text-md);
+  line-height: 1.78;
+  color: var(--color-text);
+}
+/* The opening beat is the sentence a reader can look at and say "no, that is
+   not me" — it carries the whole reading, so it is set as a lead rather than
+   as the first of seven identical blocks. */
+.om__p--lead {
+  font-size: var(--text-lg);
+  line-height: 1.5;
+  color: var(--color-text-strong);
+}
+
+/* --color-muted, not --color-faint: faint is the disclosure register and this
+   is not a disclosure — a reader whose birth time IS wrong needs to read this
+   line, and it is the only thing in the piece that can tell them. One step
+   down from the body, not two. */
+.om__p--terms {
+  font-size: var(--text-sm);
+  line-height: 1.65;
+  color: var(--color-muted);
+}
+
+.om__basis {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--color-faint);
+  animation: om-basis-in var(--motion-nav) var(--ease-nova) both;
+}
+@keyframes om-basis-in {
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* The close lands on its own surface so the eye knows the piece has finished —
+   a tint, never a coloured edge stripe. */
+.om__close {
+  background: color-mix(in srgb, var(--color-accent) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 24%, transparent);
+  border-radius: var(--radius-md);
+  padding: clamp(16px, 2.2vw, 22px) clamp(18px, 2.4vw, 26px);
+}
+.om__close .om__p {
+  font-weight: 500;
+  line-height: 1.66;
+  color: var(--color-text-strong);
+}
+
+/* The one question the reading is allowed to ask, rendered in the gap left by
+   the beat that was withheld for want of the answer — its copy says a part is
+   held back, so it has to stand where that part would have been. */
+.om__ask {
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 22%, transparent);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.om__ask-prompt {
+  margin: 0;
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--color-text-strong);
+}
+.om__ask-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.om__ask-btn {
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-strong);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  padding: 9px 16px;
+  cursor: pointer;
+  transition:
+    border-color var(--motion-toggle) var(--ease-nova),
+    background var(--motion-toggle) var(--ease-nova);
+}
+.om__ask-btn:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  background: var(--color-accent-muted);
+}
+.om__ask-btn:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 2px;
+}
+.om__ask-btn:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.om__next {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: var(--text-base);
+  color: var(--color-accent-strong);
+  cursor: pointer;
+  text-underline-offset: 4px;
+}
+.om__next:hover { text-decoration: underline; }
+.om__next:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+/* Held back 200ms by the component so a flag-off deployment's fast 404 never
+   flashes a skeleton for a feature that is not there. */
+.om__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.om__skeleton span {
+  display: block;
+  height: 13px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-text-strong) 9%, transparent);
+  animation: om-pulse 1.6s var(--ease-nova) infinite;
+}
+@keyframes om-pulse {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 0.9; }
+}
+
+@media (pointer: coarse) {
+  .om__basis-toggle,
+  .om__ask-btn { min-height: var(--touch-target); }
+}
+
+/* ── Reduced-motion guard ──────────────────────────────────
+   First-class a11y path: honour the OS preference by collapsing every
+   Nova animation/transition to instant. Scoped to [data-ui="nova"] so it
+   only governs this dashboard. Keep this LAST so it wins the cascade. */
+@media (prefers-reduced-motion: reduce) {
+  [data-ui="nova"],
+  [data-ui="nova"] *,
+  [data-ui="nova"] *::before,
+  [data-ui="nova"] *::after {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Tool island — legacy-token bridge (audit A1). The deferred Classic
+   panels (chart generation / annual wrapped / retrospective / rasipalan)
+   read the older --panel-*, --cl-*, --veil-* token family directly. Rather
+   than blanket-redirecting those widely-shared raw names globally, this
+   scopes the redirect to the island so each maps to its Nova --color-*
+   equivalent (via var() so it tracks the ambient palette). Moved here from
+   an inline CSSProperties object in dashboard-tools-tab-nova.tsx so the
+   component stays literal-free while the bridge behaviour is unchanged.
+   ═══════════════════════════════════════════════════════════ */
+[data-ui="nova"] .cd-shell .nova-tool-island {
+  --panel-brand: var(--color-accent);
+  --panel-cream: var(--color-surface);
+  --panel-earth: var(--color-text);
+  --panel-earth-dark: var(--color-text-strong);
+  --panel-tan: var(--color-border);
+  --panel-tan-light: var(--color-border);
+  --panel-hover: var(--color-surface-2);
+  --panel-warm-light: var(--color-accent-muted);
+  --chart-cell-default: var(--color-surface-soft);
+  --chart-d9-active: var(--color-high);
+  --chart-amber: var(--color-accent-strong);
+  --planet-saturn: var(--color-low);
+  --dignity-neecha: var(--color-low);
+  --ring-brand: var(--color-accent-muted);
+  --chartgrid-ink: var(--color-text-strong);
+  --chartgrid-ink-strong: var(--color-text-strong);
+  --chartgrid-border: var(--color-border);
+  --chartgrid-border-light: var(--color-border);
+  --chartgrid-surface: var(--color-surface-soft);
+  --cl-surface: var(--color-surface);
+  --cl-bg: var(--color-bg);
+  --cl-bg-2: var(--color-surface-soft);
+  --cl-border: var(--color-border);
+  --cl-accent: var(--color-accent);
+  --cl-ink: var(--color-text-strong);
+  --cl-ink-2: var(--color-text);
+  --cl-muted: var(--color-muted);
+  --cl-brand-tint: var(--color-accent-muted);
+  --cl-brand-ring-md: var(--color-border-strong);
+  --cl-sage-tint: var(--color-high-bg);
+  --cl-sage-mid: var(--color-high-border);
+  --cl-neutral-tint: var(--color-surface-soft);
+  --cl-neutral-ring: var(--color-border);
+  --cl-neutral-mid: var(--color-border-strong);
+  --cl-neutral-ink: var(--color-text);
+  --cl-rust-tint: var(--color-low-bg);
+  --cl-rust-fill: var(--color-low-bg);
+  --cl-rust-ring: var(--color-low-border);
+  --cl-rust-mid: var(--color-low-border);
+  --veil-white-55: var(--color-surface);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6) var(--space-6);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Planet-identity orb gradients (audit A1). Theme-independent artwork —
+   each graha's 3D sphere gradient + glow, the visual identity used by the
+   Family & Charts planet orbs (HyPlanetOrbs). Moved out of an inline JS map
+   in dashboard-hybrid-parts.tsx so that component stays literal-free; these
+   are data-viz artwork (like DASHA_COLORS), intentionally the same in both
+   Nova Galaxy and Warm themes.
+   ═══════════════════════════════════════════════════════════ */
+:root[data-ui="nova"] {
+  --orb-sun: radial-gradient(circle at 35% 30%, #ffd98a, #e8963c 55%, #9c5518);
+  --orb-sun-glow: rgba(232,150,60,.35);
+  --orb-moon: radial-gradient(circle at 35% 30%, #f2f4ff, #b9c4dd 55%, #5e6a8c);
+  --orb-moon-glow: rgba(185,196,221,.3);
+  --orb-mars: radial-gradient(circle at 35% 30%, #ffb28a, #d95f3a 55%, #7c2c14);
+  --orb-mars-glow: rgba(217,95,58,.35);
+  --orb-mercury: radial-gradient(circle at 35% 30%, #c8f0d4, #7fbf94 55%, #35664a);
+  --orb-mercury-glow: rgba(127,191,148,.3);
+  --orb-jupiter: radial-gradient(circle at 35% 30%, #ffe6a8, #e0b654 55%, #8a641f);
+  --orb-jupiter-glow: rgba(224,182,84,.35);
+  --orb-venus: radial-gradient(circle at 35% 30%, #fff3f8, #e8bcd8 55%, #96608a);
+  --orb-venus-glow: rgba(232,188,216,.32);
+  --orb-saturn: radial-gradient(circle at 35% 30%, #cfd8ea, #8a9bc0 55%, #43507a);
+  --orb-saturn-glow: rgba(138,155,192,.3);
+  --orb-rahu: radial-gradient(circle at 35% 30%, #d8c8f0, #9a7fc4 55%, #4a3670);
+  --orb-rahu-glow: rgba(154,127,196,.32);
+  --orb-ketu: radial-gradient(circle at 35% 30%, #e6ddf2, #a89ac0 55%, #55486e);
+  --orb-ketu-glow: rgba(168,154,192,.3);
+  --orb-inset: inset -6px -8px 14px rgba(0,0,0,.45);
+}
+
+/* Planet lucky-colour swatches — content colours for the Family & Charts
+   "lucky colour" reference (the swatch IS the named colour). Theme-independent
+   artwork tokens, moved out of dashboard-hybrid-parts.tsx (audit A1). */
+:root[data-ui="nova"] {
+  --swatch-sun: #e8963c;
+  --swatch-moon: #dfe4f2;
+  --swatch-mars: #d95f3a;
+  --swatch-mercury: #7fbf94;
+  --swatch-jupiter: #e0b654;
+  --swatch-venus: #e8bcd8;
+  --swatch-saturn: #6b7ba8;
+  --swatch-rahu: #9a7fc4;
+  --swatch-ketu: #a89ac0;
+}
+
+/* Muhurta result rows reserve real reading width for the reasoning column.
+   On small screens the same hierarchy becomes a natural vertical sequence. */
+[data-ui="nova"] .cd-shell .muhurta-slot-summary {
+  display: grid;
+  grid-template-columns: minmax(74px, auto) minmax(180px, 1fr) minmax(220px, 1fr);
+  gap: var(--space-4);
+  align-items: center;
+}
+
+[data-ui="nova"] .cd-shell .muhurta-slot-details {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.7fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+@media (max-width: 640px) {
+  [data-ui="nova"] .cd-shell .muhurta-slot-summary {
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+
+  [data-ui="nova"] .cd-shell .muhurta-slot-summary > :last-child {
+    grid-column: 1 / -1;
+  }
+
+  [data-ui="nova"] .cd-shell .muhurta-slot-details {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+  }
+
+  [data-ui="nova"] .cd-shell .muhurta-slot-dasha {
+    padding-right: 0 !important;
+    padding-bottom: var(--space-4);
+    border-right: 0 !important;
+    border-bottom: 1px solid var(--color-border);
+  }
+}
+
+/* ── Glossary index — the card a deep link landed on ──────────────────────
+   `GlossaryTerm`'s "See all terms" points at /dashboard/glossary#<term>, so
+   the reader arrives already scrolled into the middle of a 42-card grid in
+   which every card is identical: same border, same size, same weight. The
+   browser put the right one under their eyes and nothing says which it is.
+   `:target` marks it for as long as the hash names it.
+
+   A ring, not a border-colour change: the card's border is an inline style on
+   the <article>, which no selector here can beat without `!important`.
+   `scroll-margin-top` keeps the card off the very top edge, where a card sits
+   flush against the viewport and reads as cut off. */
+[data-ui="nova"] .cd-shell .cd-glossary-card {
+  scroll-margin-top: var(--space-6);
+}
+
+[data-ui="nova"] .cd-shell .cd-glossary-card:target {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent-strong) 55%, transparent);
+}

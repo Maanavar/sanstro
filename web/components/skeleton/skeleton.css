@@ -1,0 +1,179 @@
+/* ── Skeleton component layout classes ───────────────────────
+   Structural styles for skeleton components.
+   Shimmer animation lives in globals.css (.skel class).
+   ─────────────────────────────────────────────────────────── */
+
+/* Shared card shell */
+.skel-card {
+  padding: var(--space-lg);
+  background: var(--surface-1);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--surface-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* SkeletonMetricStrip */
+.skel-metric-cell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  background: var(--surface-1);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--surface-5);
+}
+
+/* SkeletonDashboardCard */
+.skel-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.skel-card-header-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+.skel-icon-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+.skel-line-full   { height: 13px; width: 100%; border-radius: var(--radius-sm); }
+.skel-line-short  { height: 13px; width: 65%;  border-radius: var(--radius-sm); }
+.skel-label-sm    { height: 11px; width: 35%;  border-radius: var(--radius-sm); }
+.skel-title       { height: 14px; width: 60%;  border-radius: var(--radius-sm); }
+
+/* SkeletonDashaTimeline */
+.skel-dasha-bar {
+  display: flex;
+  gap: 3px;
+  height: 20px;
+}
+.skel-dasha-labels {
+  display: flex;
+  gap: var(--space-lg);
+}
+.skel-dasha-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.skel-dasha-seg-first {
+  height: 100%;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  flex-shrink: 0;
+}
+.skel-dasha-seg-last {
+  height: 100%;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  flex-shrink: 0;
+}
+.skel-dasha-seg-mid {
+  height: 100%;
+  border-radius: 0;
+  flex-shrink: 0;
+}
+
+/* SkeletonChartPanel */
+.skel-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.skel-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 3px;
+  aspect-ratio: 1;
+  max-width: 320px;
+  align-self: center;
+  width: 100%;
+}
+.skel-chart-corner {
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+.skel-chart-cell {
+  height: 100%;
+  border-radius: var(--radius-sm);
+}
+.skel-chart-tab {
+  height: 28px;
+  width: 80px;
+  border-radius: var(--radius-sm);
+}
+.skel-chart-title {
+  height: 14px;
+  width: 35%;
+  border-radius: var(--radius-sm);
+}
+
+/* SkeletonTransitRow */
+.skel-transit-list {
+  padding: var(--space-lg);
+  background: var(--surface-1);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--surface-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.skel-transit-section-title {
+  height: 14px;
+  width: 28%;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-xs);
+}
+.skel-transit-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
+}
+.skel-transit-row + .skel-transit-row {
+  border-top: 1px solid var(--surface-5);
+}
+.skel-transit-planet {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+.skel-transit-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+.skel-transit-name   { height: 13px; width: 60%; border-radius: var(--radius-sm); }
+.skel-transit-sub    { height: 11px; width: 40%; border-radius: var(--radius-sm); }
+.skel-transit-badge  { height: 22px; width: 60px; border-radius: var(--radius-sm); flex-shrink: 0; }
+
+/* metric-strip label/value shapes */
+.skel-metric-label { height: 11px; width: 55%; border-radius: var(--radius-sm); }
+.skel-metric-value { height: 28px; width: 80%; border-radius: var(--radius-sm); }
+.skel-metric-sub   { height: 10px; width: 40%; border-radius: var(--radius-sm); }
+
+/* Dasha timeline segment widths (fixed set matching typical dasha distribution) */
+.skel-dasha-w1 { width: 18%; }
+.skel-dasha-w2 { width: 14%; }
+.skel-dasha-w3 { width: 20%; }
+.skel-dasha-w4 { width: 12%; }
+.skel-dasha-w5 { width: 16%; }
+.skel-dasha-w6 { width: 20%; }
+
+/* Dasha label widths (pixel widths for tight label chips) */
+.skel-dasha-lbl-1 { height: 10px; width: 40px; border-radius: var(--radius-sm); }
+.skel-dasha-lbl-2 { height: 10px; width: 50px; border-radius: var(--radius-sm); }
+.skel-dasha-lbl-3 { height: 10px; width: 35px; border-radius: var(--radius-sm); }
+.skel-dasha-lbl-4 { height: 10px; width: 45px; border-radius: var(--radius-sm); }
+
+/* Dasha detail line widths */
+.skel-dasha-detail-1 { height: 13px; width: 75%; border-radius: var(--radius-sm); }
+.skel-dasha-detail-2 { height: 13px; width: 55%; border-radius: var(--radius-sm); }

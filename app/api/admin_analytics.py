@@ -160,7 +160,7 @@ def get_retention(
         if not cohort_user_ids:
             continue
 
-        def active_count(after: datetime) -> int:
+        def active_count(after: datetime, cohort_user_ids: list = cohort_user_ids) -> int:
             return int(
                 session.execute(
                     select(func.count(func.distinct(BirthProfile.owner_user_id)))

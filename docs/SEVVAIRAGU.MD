@@ -231,14 +231,28 @@ SEVVAI_REFERENCE_POINTS = [
 Core Tamil mode dosha houses:
 
 ```python
-TAMIL_SEVVAI_DOSHA_HOUSES = [2, 4, 7, 8, 12]
+TAMIL_SEVVAI_DOSHA_HOUSES = [1, 2, 4, 7, 8, 12]
 ```
+
+Correction (2026-07 audit A-5): this section previously excluded the 1st
+house (`[2, 4, 7, 8, 12]`), reserving it for "extended manglik" mode only.
+Tamil/mainstream Kuja Dosham references describe Mars in 1, 2, 4, 7, 8, or 12
+(from Lagna, Moon, and Venus) as the standard house list without a narrower
+subdivision — house 1 included. The shipped code
+(`app/calculations/_yoga_helpers.py::TAMIL_SEVVAI_HOUSES`) already used the
+6-house set and was kept; this spec line is corrected to match.
 
 Extended Manglik mode, optional:
 
 ```python
 EXTENDED_MANGLIK_HOUSES = [1, 2, 4, 7, 8, 12]
 ```
+
+Open question (2026-07 audit A-5): with house 1 confirmed as part of the
+*standard* Tamil set above, what should actually differentiate "extended
+manglik" from "tamil_standard"? No authentic source found describing a wider
+house list — tracked as an open question in
+`docs/ASTROLOGER_REVIEW_QUEUE.md` rather than guessed.
 
 The app should support:
 

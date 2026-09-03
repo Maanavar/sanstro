@@ -14,28 +14,52 @@ Rules (agents.md / formula spec):
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.calculations.astro import house_from_reference, utc_datetime_to_julian_day
-from app.calculations.dasha import DASHA_YEARS, calculate_vimshottari_timeline
+from app.calculations.dasha import calculate_vimshottari_timeline
+from app.calculations.dasha_activation import assess_dasha_activation
+from app.calculations.display_names import sani_cycle_en, sani_cycle_ta
 from app.calculations.ephemeris import calculate_sidereal_planets
-from app.calculations.panchangam import calculate_daily_panchangam
-from app.calculations.transits import classify_sani_cycle
+from app.calculations.panchangam import (
+    PanchangamLimbSpan,
+    calculate_daily_panchangam,
+    limb_fraction,
+)
+from app.calculations.transits import CycleAssessment, classify_sani_cycle
+from app.constants.astrology import SIGN_LORD
+from app.models import BirthProfile, Chart
+from app.reasoning.chart_signature import detect_signature
+from app.reasoning.contradiction import Reading, classify
+from app.reasoning.promise_gate import GateGrade
+from app.reasoning.timing_vote import timing_band_from_score, weighted_timing_vote
+from app.reasoning.verdict import Band, cap_band
 from app.schemas.dasha import ResponseMeta
 from app.schemas.whatif import (
     TripleConfirmation,
     WhatIfBiText,
+    WhatIfChartSignature,
     WhatIfData,
     WhatIfResponse,
 )
-from app.models import BirthProfile, Chart
+from app.services._dg_scoring import (
+    AUSPICIOUS_DAILY_NAKSHATRAS,
+    weighted_panchangam_score,
+)
 from app.services.chart_service import load_persisted_chart_response
+from app.services.feature_flags import get_flag
 from app.services.location_service import local_noon_as_utc_for_profile, resolve_effective_daily_location
+from app.services.narrative_engine import render_causal_chain, signature_framing
+from app.services.prediction_log_service import log_prediction, scenario_to_area
+from app.services.safety_filter import run_safety_pass
+
+logger = logging.getLogger(__name__)
 
 _CALC_VERSION = "jothidam-formula-engine-v1.0-2026"
 
@@ -67,6 +91,13 @@ _SCENARIO_KARAKA: dict[str, list[str]] = {
     "family_harmony":  ["MOON", "JUPITER"],      # 4th karaka
     "money":           ["JUPITER", "VENUS"],     # 2nd/11th karaka
     "child_birth":     ["JUPITER", "MOON"],      # 5th house karaka
+    # P2-3 parity: FOREIGN/LITIGATION already exist as full life_areas_service
+    # areas (docs/PREDICTION_TAXONOMY.md §1) but whatif's own scenario dicts
+    # never grew matching entries. foreign_settlement is Rahu-Saturn (long-term
+    # settlement/permanence), distinct from travel_abroad's Rahu-Jupiter
+    # (short trip/pilgrimage-adjacent) framing.
+    "foreign_settlement": ["RAHU", "SATURN"],    # 12th house karaka, settlement emphasis
+    "litigation":      ["MARS", "SATURN"],       # 6th house karaka (dispute houses)
     "other":           ["JUPITER", "SUN"],       # generic benefics
 }
 
@@ -86,6 +117,8 @@ _SCENARIO_NATAL_HOUSES: dict[str, list[int]] = {
     "family_harmony":  [4, 2, 7],
     "money":           [2, 11, 5],
     "child_birth":     [5, 2, 9],
+    "foreign_settlement": [12, 9, 3],
+    "litigation":      [6, 8, 7],
     "other":           [9, 5, 1],
 }
 
@@ -135,6 +168,14 @@ _DASHA_SCENARIO_SCORE: dict[str, dict[str, int]] = {
     "child_birth": {
         "SUN": 60, "MOON": 68, "MARS": 55, "MERCURY": 55,
         "JUPITER": 78, "VENUS": 65, "SATURN": 42, "RAHU": 48, "KETU": 42,
+    },
+    "foreign_settlement": {
+        "SUN": 50, "MOON": 55, "MARS": 52, "MERCURY": 55,
+        "JUPITER": 60, "VENUS": 55, "SATURN": 68, "RAHU": 78, "KETU": 45,
+    },
+    "litigation": {
+        "SUN": 55, "MOON": 50, "MARS": 42, "MERCURY": 68,
+        "JUPITER": 72, "VENUS": 58, "SATURN": 48, "RAHU": 40, "KETU": 38,
     },
     "other": {
         "SUN": 58, "MOON": 58, "MARS": 55, "MERCURY": 60,
@@ -221,6 +262,8 @@ _SCENARIO_LABEL_TA = {
     "family_harmony":  "குடும்ப நலம்",
     "money":           "பணம் / செல்வம்",
     "child_birth":     "குழந்தை பாக்கியம்",
+    "foreign_settlement": "வெளிநாட்டு குடியேற்றம்",
+    "litigation":      "சட்ட வழக்கு / சர்ச்சை",
     "other":           "பொது",
 }
 _SCENARIO_LABEL_EN = {
@@ -235,6 +278,8 @@ _SCENARIO_LABEL_EN = {
     "family_harmony":  "Family Harmony",
     "money":           "Money / Wealth",
     "child_birth":     "Child Birth",
+    "foreign_settlement": "Foreign Settlement / Immigration",
+    "litigation":      "Legal Dispute / Litigation",
     "other":           "General",
 }
 
@@ -342,10 +387,19 @@ def _assess_dasha_support(
     scenario: str,
     timeline,
     target_jd: float,
+    *,
+    natal_lagna_rasi: int | None = None,
+    natal_planet_rasis: dict[str, int] | None = None,
 ) -> _DashaAssessment:
     """
     Assess dasha lord alignment for the scenario at the target date.
     Uses both mahadasha and antardasha lords.
+
+    The affinity table is chart-blind (it cannot know that Saturn is *this*
+    lagna's 7th lord), so when natal data is supplied the score also blends
+    a connection-match adjustment (dasha_activation.py): lordship of the
+    scenario houses, occupancy/aspect on the primary bhava, dispositorship,
+    or node agency.
     """
     # Find which dasha period contains the target JD
     maha = timeline.current_mahadasha
@@ -366,6 +420,21 @@ def _assess_dasha_support(
     # Blend: 60% maha, 40% antar
     score = round(maha_score * 0.60 + antar_score * 0.40)
 
+    if natal_lagna_rasi is not None and natal_planet_rasis:
+        scenario_houses = _SCENARIO_NATAL_HOUSES.get(scenario, [1])
+        activation = assess_dasha_activation(
+            lagna_rasi=natal_lagna_rasi,
+            bhava_house=scenario_houses[0],
+            dasha_lords=[maha_lord, antar_lord],
+            natal_planet_rasis=natal_planet_rasis,
+            karakas=_SCENARIO_KARAKA.get(scenario, ()),
+            related_houses=scenario_houses[1:],
+        )
+        if activation.strength == "STRONG":
+            score = min(100, score + 8)
+        elif activation.strength == "MODERATE":
+            score = min(100, score + 4)
+
     ta_maha = _PLANET_TA[maha_lord]
     en_maha = _PLANET_EN[maha_lord]
     ta_antar = _PLANET_TA[antar_lord]
@@ -373,6 +442,9 @@ def _assess_dasha_support(
     scenario_ta = _SCENARIO_LABEL_TA[scenario]
     scenario_en = _SCENARIO_LABEL_EN[scenario]
 
+    # D2/D7: the band word carries the judgement; the numeric index is kept
+    # alongside it (show both, 2026-07-13). English copy only — Tamil never had it.
+    idx = f" (dasha index {score}/100)"
     if score >= 65:
         text_ta = (
             f"{ta_maha} மஹாதசையும் {ta_antar} அந்தர்தசையும் {scenario_ta}க்கு "
@@ -380,7 +452,7 @@ def _assess_dasha_support(
         )
         text_en = (
             f"{en_maha} Mahadasha and {en_antar} Antardasha provide strong support "
-            f"for {scenario_en} (dasha index {score}/100)."
+            f"for {scenario_en}{idx}."
         )
     elif score >= 45:
         text_ta = (
@@ -389,7 +461,7 @@ def _assess_dasha_support(
         )
         text_en = (
             f"{en_maha} Mahadasha offers moderate support for {scenario_en}. "
-            f"{en_antar} Antardasha encourages careful action (dasha index {score}/100)."
+            f"{en_antar} Antardasha encourages careful action{idx}."
         )
     else:
         text_ta = (
@@ -398,7 +470,7 @@ def _assess_dasha_support(
         )
         text_en = (
             f"Dasha support for {scenario_en} is lower in {en_maha} Mahadasha. "
-            f"View this as a preparation period rather than a setback (dasha index {score}/100)."
+            f"View this as a preparation period rather than a setback{idx}."
         )
 
     return _DashaAssessment(
@@ -453,7 +525,7 @@ def _assess_gochar_support(
     if sani_cycle_active and scenario in ("job_change", "business_start", "property", "marriage"):
         if sani_cycle_type == "ASHTAMA_SANI":
             score = max(score - 12, 0)
-        elif sani_cycle_type in ("JANMA_SANI", "EZHARAI_SANI_PHASE_1", "EZHARAI_SANI_PHASE_3", "ARDHASHTAMA_SANI"):
+        elif sani_cycle_type in ("JANMA_SANI", "EZHARAI_SANI_PHASE_1", "EZHARAI_SANI_PHASE_2", "EZHARAI_SANI_PHASE_3", "ARDHASHTAMA_SANI"):
             score = max(score - 8, 0)
 
     ta_prim = _PLANET_TA[primary]
@@ -461,6 +533,8 @@ def _assess_gochar_support(
     scenario_ta = _SCENARIO_LABEL_TA[scenario]
     scenario_en = _SCENARIO_LABEL_EN[scenario]
 
+    # D2/D7: band word plus the numeric index (show both, 2026-07-13).
+    idx = f" (gochar index {score}/100)"
     if score >= 65:
         text_ta = (
             f"கோசர நிலை சாதகமாக உள்ளது. {ta_prim} {h}ஆம் இடத்தில் கோசரிக்கிறது — "
@@ -468,7 +542,7 @@ def _assess_gochar_support(
         )
         text_en = (
             f"Transit position is favourable. {en_prim} transiting house {h} — "
-            f"planetary support for {scenario_en} is good (gochar index {score}/100)."
+            f"planetary support for {scenario_en} is good{idx}."
         )
     elif score >= 45:
         text_ta = (
@@ -477,15 +551,15 @@ def _assess_gochar_support(
         )
         text_en = (
             f"Transit position is neutral. {en_prim} is in house {h}. "
-            f"Planning ahead for a better transit window is advised (gochar index {score}/100)."
+            f"Planning ahead for a better transit window is advised{idx}."
         )
     else:
         sani_note_ta = (
-            f" {sani_cycle_type.replace('_', ' ')} நடப்பில் உள்ளது — கவனமான நடவடிக்கை தேவை."
+            f" {sani_cycle_ta(sani_cycle_type)} நடப்பில் உள்ளது — கவனமான நடவடிக்கை தேவை."
             if sani_cycle_active and sani_cycle_type else ""
         )
         sani_note_en = (
-            f" {sani_cycle_type.replace('_', ' ')} is active — careful action is needed."
+            f" {sani_cycle_en(sani_cycle_type)} is active — careful action is needed."
             if sani_cycle_active and sani_cycle_type else ""
         )
         text_ta = (
@@ -494,7 +568,7 @@ def _assess_gochar_support(
         )
         text_en = (
             f"Transit position is challenging. {en_prim} is in house {h}.{sani_note_en} "
-            f"Waiting for a better planetary window is advisable (gochar index {score}/100)."
+            f"Waiting for a better planetary window is advisable{idx}."
         )
 
     return _GocharAssessment(
@@ -505,12 +579,7 @@ def _assess_gochar_support(
 
 # ── Panchangam quality score for a given date ─────────────────────────────────
 
-_CAUTION_YOGAS = {1, 6, 9, 10, 17, 27}
-_AUSPICIOUS_NAKSHATRAS = {1, 4, 5, 7, 8, 13, 14, 15, 17, 22, 27}
-_SIGN_LORDS = {
-    1: "MARS", 2: "VENUS", 3: "MERCURY", 4: "MOON", 5: "SUN", 6: "MERCURY",
-    7: "VENUS", 8: "MARS", 9: "JUPITER", 10: "SATURN", 11: "SATURN", 12: "JUPITER",
-}
+_SIGN_LORDS = SIGN_LORD
 
 
 def _compute_panchangam_score(
@@ -522,7 +591,14 @@ def _compute_panchangam_score(
     maha_lord: str,
 ) -> int:
     """Compute a 0-100 panchangam quality score for target_date.
-    Uses the same logic as daily_guidance_service panchangam_score section.
+
+    Shares `weighted_panchangam_score` with daily guidance rather than restating
+    it. This module previously carried a hand-copy of that block plus its own
+    `_CAUTION_YOGAS` / `_AUSPICIOUS_NAKSHATRAS` sets, so every doctrine fix to
+    the daily scorer — including the duration weighting of 2026-08-19 — would
+    have had to be remembered here separately, and the Vishti term would have
+    kept missing two thirds of its days on the what-if surface alone.
+
     Returns 70 (neutral) if panchangam cannot be computed.
     """
     try:
@@ -530,44 +606,168 @@ def _compute_panchangam_score(
     except Exception:
         return 70
 
-    score = 70
-    if panchang.tithi_number in {4, 9, 14, 19, 24, 29}:
-        score -= 15
-    if panchang.tithi_number in {8, 23}:
-        score -= 10
-    if panchang.yoga_number in _CAUTION_YOGAS:
-        score -= 10
-    if panchang.karana_name == "VISHTI":
-        score -= 10
-    lagna_lord = _SIGN_LORDS.get(natal_lagna_rasi)
-    if lagna_lord and panchang.weekday_lord == lagna_lord:
-        score += 8
-    if panchang.weekday_lord == maha_lord:
-        score += 5
-    if panchang.nakshatra_number in _AUSPICIOUS_NAKSHATRAS:
-        score += 8
+    score = weighted_panchangam_score(
+        panchang,
+        lagna_lord=_SIGN_LORDS.get(natal_lagna_rasi),
+        maha_lord=maha_lord,
+    )
+    # The auspicious-star bonus is what-if's own term — daily guidance carries it
+    # on the Moon score instead, where chandrashtama can cancel it. Weighted the
+    # same way as everything else here.
+    score += round(8 * limb_fraction(
+        _spans_or_flat_nakshatra(panchang),
+        lambda span: span.number in AUSPICIOUS_DAILY_NAKSHATRAS,
+    ))
     return max(0, min(100, score))
+
+
+def _spans_or_flat_nakshatra(panchang):
+    """Nakshatra spans, or the sunrise star as a single full-day span.
+
+    A snapshot cached before spans existed has an empty tuple, and scoring that
+    as zero coverage would silently delete the bonus rather than fall back.
+    """
+    if panchang.nakshatra_spans:
+        return panchang.nakshatra_spans
+    return (
+        PanchangamLimbSpan(
+            number=panchang.nakshatra_number,
+            name=panchang.nakshatra_name,
+            start=panchang.sunrise,
+            end=panchang.sunrise + timedelta(days=1),
+            fraction=1.0,
+        ),
+    )
 
 
 # ── Combined verdict and narrative ────────────────────────────────────────────
 
+# Natal-promise gate thresholds over _assess_natal_promise's 0-100 scale
+# (karaka base is 65 when well-housed, 38 when not, 50 when unknown):
+#   ≥ 60 → PASS (karakas well-placed), 42–59 → WEAK (mixed / unknown),
+#   < 42 → BLOCKED (every karaka in an unsupportive house).
+_GATE_PASS_MIN = 60
+_GATE_WEAK_MIN = 42
+
+
 def _overall_verdict(
-    natal_score: int, dasha_score: int, gochar_score: int, panchangam_score: int = 70
-) -> tuple[int, str]:
-    # Four-pillar formula: natal + dasha + gochar + panchangam
-    overall = round(
-        natal_score * 0.25
-        + dasha_score * 0.35
-        + gochar_score * 0.25
-        + panchangam_score * 0.15
+    natal_score: int,
+    dasha_score: int,
+    gochar_score: int,
+    panchangam_score: int = 70,
+    *,
+    use_reasoning_gate: bool = False,
+) -> tuple[int, str, str | None, str | None]:
+    """Returns (overall_score, verdict, band, reading).
+
+    Legacy path: four-pillar weighted sum + soft AND-floor (unchanged);
+    band and reading are None.
+
+    Reasoning-gate path (D1, plan Phase 1 step 3): promise is the GATE,
+    not a vote member — its 0.25 weight is removed and the timing pillars
+    are renormalised (dasha 0.45, gochar 0.35, panchangam 0.20). A chart
+    whose natal promise is BLOCKED cannot be lifted by any dasha/gochar
+    combination.
+
+    reading (D4, plan Phase 3) classifies gate-vs-timing disagreement
+    from the *pre-cap* timing band — "promised but not now" is about what
+    the timing itself says, not the published (possibly capped) band.
+    """
+    if not use_reasoning_gate:
+        # Four-pillar formula: natal + dasha + gochar + panchangam
+        overall = round(
+            natal_score * 0.25
+            + dasha_score * 0.35
+            + gochar_score * 0.25
+            + panchangam_score * 0.15
+        )
+        if overall >= 62 and natal_score >= 50 and dasha_score >= 50 and gochar_score >= 50:
+            verdict = "FAVOURABLE"
+        elif overall >= 45:
+            verdict = "NEUTRAL"
+        else:
+            verdict = "CAUTION"
+        return overall, verdict, None, None
+
+    if natal_score < _GATE_WEAK_MIN:
+        # Gate BLOCKED — timing is not consulted (D1 veto).
+        reading = classify(GateGrade.BLOCKED, None)
+        return min(natal_score, 25), "CAUTION", Band.BLOCKED.value, reading.value
+
+    timing_score = weighted_timing_vote(
+        [(dasha_score, 0.45), (gochar_score, 0.35), (panchangam_score, 0.20)]
     )
-    if overall >= 62 and natal_score >= 50 and dasha_score >= 50 and gochar_score >= 50:
+    band = timing_band_from_score(timing_score)
+    gate_grade = GateGrade.PASS if natal_score >= _GATE_PASS_MIN else GateGrade.WEAK
+    reading = classify(gate_grade, band)
+    if gate_grade is GateGrade.WEAK:
+        # Gate WEAK — proceed, but cap the band at LIKELY (plan §Phase 1).
+        band = cap_band(band, Band.LIKELY)
+
+    if band in (Band.STRONG, Band.LIKELY):
         verdict = "FAVOURABLE"
-    elif overall >= 45:
+    elif band is Band.MIXED:
         verdict = "NEUTRAL"
     else:
         verdict = "CAUTION"
-    return overall, verdict
+    return timing_score, verdict, band.value, reading.value
+
+
+def _reading_summary(
+    reading: str,
+    scenario_ta: str,
+    scenario_en: str,
+    target_str_ta: str,
+    target_str_en: str,
+) -> tuple[str, str] | None:
+    """Summary override for the discriminating readings (D4, plan Phase 3).
+
+    PROMISED_AND_TIMED / MIXED keep the verdict copy — alignment and genuine
+    middles are already what those templates say. Whatif has no computed
+    next-window date, so PROMISED_NOT_NOW points at the best-period guidance
+    the response already carries.
+    """
+    if reading == Reading.PROMISED_NOT_NOW.value:
+        return (
+            f"{target_str_ta} தேதிக்கு {scenario_ta} பற்றிய ஆய்வு: "
+            f"இது உங்கள் ஜாதகத்தில் வாக்களிக்கப்பட்டுள்ளது; ஆனால் இந்த தேதியை சுற்றிய காலம் "
+            f"இன்னும் செயலூக்கம் பெறவில்லை. அவசரப்படாமல், கீழே பரிந்துரைக்கப்படும் "
+            f"சிறந்த காலத்தை நோக்கி திட்டமிடுவது நல்லது.",
+            f"Analysis for {scenario_en} around {target_str_en}: "
+            f"This is promised in your chart, but the timing around this date isn't active yet. "
+            f"Rather than forcing it now, plan toward the better window suggested below.",
+        )
+    if reading == Reading.ACTIVE_BUT_UNPROMISED.value:
+        return (
+            f"{target_str_ta} தேதிக்கு {scenario_ta} பற்றிய ஆய்வு: "
+            f"இது ஒரு செயலூக்கமான காலம்; ஆனால் ஜாதகம் இந்த ஆற்றலை {scenario_ta} பக்கம் அல்லாமல் "
+            f"வேறு திசையில் காட்டுகிறது. ஜாதகம் வலுவாக ஆதரிக்கும் பகுதிகளில் இந்த காலத்தை "
+            f"பயன்படுத்துவது சிறந்த பலன் தரும்.",
+            f"Analysis for {scenario_en} around {target_str_en}: "
+            f"This is an active period, but your chart points its energy in a direction other than "
+            f"{scenario_en.lower()}. Using this period for the areas your chart strongly supports "
+            f"will serve you better.",
+        )
+    if reading == Reading.PARTIALLY_PROMISED.value:
+        return (
+            f"{target_str_ta} தேதிக்கு {scenario_ta} பற்றிய ஆய்வு: "
+            f"இது ஒரு செயலூக்கமான காலம்; ஜாதகம் {scenario_ta} விஷயத்தில் ஓரளவு ஆதரவு "
+            f"தருகிறது, ஆனால் முழுமையான உறுதி இல்லை. கவனமான, படிப்படியான அணுகுமுறை நல்லது.",
+            f"Analysis for {scenario_en} around {target_str_en}: "
+            f"This is an active period, and your chart offers partial support for "
+            f"{scenario_en.lower()} — though not a full promise. A careful, incremental "
+            f"approach serves you best here.",
+        )
+    if reading == Reading.NOT_PROMISED.value:
+        return (
+            f"{target_str_ta} தேதிக்கு {scenario_ta} பற்றிய ஆய்வு: "
+            f"இந்த விஷயத்தில் ஜாதகம் வலுவான வாக்கு தரவில்லை — சாதகமான தசையிலும் இது "
+            f"முதன்மை பாதை அல்ல. ஜாதகம் ஆதரிக்கும் பகுதிகளில் கவனம் செலுத்துவது நல்லது.",
+            f"Analysis for {scenario_en} around {target_str_en}: "
+            f"The chart does not strongly promise this — even in a good dasha it is not the "
+            f"primary path. Redirecting focus to areas the chart does support is wiser.",
+        )
+    return None
 
 
 def _build_summary(
@@ -580,6 +780,7 @@ def _build_summary(
     target_date: date,
     sani_cycle_active: bool,
     sani_cycle_type: str | None,
+    reading: str | None = None,
 ) -> tuple[WhatIfBiText, WhatIfBiText, WhatIfBiText, WhatIfBiText, WhatIfBiText]:
     """Returns (summary, best_period, caution_note, remedy, disclaimer)."""
 
@@ -592,42 +793,55 @@ def _build_summary(
     target_str_ta = target_date.strftime("%d-%m-%Y")
 
     # ── Summary ──
-    if verdict == "FAVOURABLE":
+    # D4 (reasoning_contradiction, plan Phase 3): a disagreement reading is
+    # spoken as its own template instead of the verdict-only branch — the
+    # "promised but not now" vs "active but not this" discrimination.
+    summary_override = (
+        _reading_summary(reading, scenario_ta, scenario_en, target_str_ta, target_str_en)
+        if reading and get_flag("reasoning_contradiction")
+        else None
+    )
+    # D2/D7: the verdict word carries the judgement; the numeric score is kept
+    # alongside it (show both, 2026-07-13).
+    sc = f" ({overall_score}/100)"
+    if summary_override is not None:
+        summary_ta, summary_en = summary_override
+    elif verdict == "FAVOURABLE":
         summary_ta = (
             f"{target_str_ta} தேதிக்கு {scenario_ta} பற்றிய ஆய்வு: "
-            f"மூன்று தூண்களும் ({overall_score}/100) சாதகமாக உள்ளன. "
+            f"மூன்று தூண்களும்{sc} சாதகமாக உள்ளன. "
             f"{ta_maha} தசை, கோசர கிரக நிலை, மற்றும் ஜாதக வாக்கு ஒருங்கிணைந்து ஆதரவளிக்கின்றன. "
             f"இது ஒரு சாதகமான காலகட்டமாக தெரிகிறது."
         )
         summary_en = (
             f"Analysis for {scenario_en} around {target_str_en}: "
-            f"All three pillars ({overall_score}/100) are aligned favourably. "
+            f"All three pillars{sc} are aligned favourably. "
             f"{en_maha} dasha, transit positions, and natal promise converge in support. "
             f"This appears to be a favourable period for this intent."
         )
     elif verdict == "NEUTRAL":
         summary_ta = (
             f"{target_str_ta} தேதிக்கு {scenario_ta} பற்றிய ஆய்வு: "
-            f"நடுநிலை ஆதரவு உள்ளது ({overall_score}/100). "
+            f"நடுநிலை ஆதரவு உள்ளது{sc}. "
             f"சில தூண்கள் ஆதரவளிக்கின்றன, சில கவனம் தேவைப்படுகின்றன. "
             f"கவனமான திட்டமிடலுடன் முன்னேறலாம்."
         )
         summary_en = (
             f"Analysis for {scenario_en} around {target_str_en}: "
-            f"Moderate support is present ({overall_score}/100). "
+            f"Moderate support is present{sc}. "
             f"Some pillars are supportive while others call for attention. "
             f"Careful planning can help you move forward."
         )
     else:
         summary_ta = (
             f"{target_str_ta} தேதிக்கு {scenario_ta} பற்றிய ஆய்வு: "
-            f"கவன நிலை ({overall_score}/100). "
+            f"கவன நிலை{sc}. "
             f"இந்த காலகட்டத்தில் முக்கிய நடவடிக்கைகளை ஒத்திவைப்பது கருத்தில் கொள்ளலாம். "
             f"சரியான கிரக நிலைக்காக காத்திருப்பது நல்லது."
         )
         summary_en = (
             f"Analysis for {scenario_en} around {target_str_en}: "
-            f"Caution is indicated ({overall_score}/100). "
+            f"Caution is indicated{sc}. "
             f"Consider postponing major steps during this period. "
             f"Waiting for a more supportive planetary window is advisable."
         )
@@ -770,18 +984,20 @@ def evaluate_whatif(
         saturn_house = house_from_reference(natal_moon.rasi, saturn_transit.rasi)
         sani_cycle = classify_sani_cycle(saturn_house)
     else:
-        from dataclasses import dataclass as _dc
-        sani_cycle_active = False
-        sani_cycle_type = None
-
-        class _FakeCycle:
-            is_active = False
-            type = None
-        sani_cycle = _FakeCycle()
+        # The real type, not a stand-in class: CycleAssessment is a frozen
+        # dataclass whose "no cycle running" value is exactly this, so the two
+        # branches now agree on what sani_cycle is.
+        sani_cycle = CycleAssessment(type=None, is_active=False)
 
     # ── Triple confirmation ──
     natal = _assess_natal_promise(scenario, chart_snapshot.data.planets, natal_lagna_rasi)
-    dasha = _assess_dasha_support(scenario, timeline, target_jd)
+    dasha = _assess_dasha_support(
+        scenario,
+        timeline,
+        target_jd,
+        natal_lagna_rasi=natal_lagna_rasi,
+        natal_planet_rasis={p.graha: p.rasi for p in chart_snapshot.data.planets},
+    )
     gochar = _assess_gochar_support(
         scenario,
         natal_moon.rasi,
@@ -801,7 +1017,10 @@ def evaluate_whatif(
         timeline.current_mahadasha.lord,
     )
 
-    overall_score, verdict = _overall_verdict(natal.score, dasha.score, gochar.score, panchang_score)
+    overall_score, verdict, band, reading = _overall_verdict(
+        natal.score, dasha.score, gochar.score, panchang_score,
+        use_reasoning_gate=bool(get_flag("reasoning_gate")),
+    )
 
     summary, best_period, caution_note, remedy, disclaimer = _build_summary(
         scenario, verdict, overall_score,
@@ -809,6 +1028,7 @@ def evaluate_whatif(
         target_date,
         sani_cycle.is_active,
         sani_cycle.type if sani_cycle.is_active else None,
+        reading=reading,
     )
 
     triple = TripleConfirmation(
@@ -822,18 +1042,97 @@ def evaluate_whatif(
         overallVerdict=verdict,
     )
 
+    # D5 accountability (plan Phase 4): log the served claim so a later real
+    # outcome can grade it. Legacy-path verdicts carry no Band — map them to
+    # a conservative ordinal equivalent for the log only. The reading fills
+    # whenever the gate computed one (Phase 3), independent of whether the
+    # contradiction copy is user-visible yet.
+    log_prediction(
+        session,
+        chart_id=chart_id,
+        source="whatif",
+        life_area=scenario_to_area(scenario),
+        band=band or {"FAVOURABLE": "LIKELY", "NEUTRAL": "MIXED"}.get(verdict, "WEAK"),
+        reading=reading,
+        calc_version=_CALC_VERSION,
+        window_start=target_date,
+        window_end=target_date,
+        active_maha=timeline.current_mahadasha.lord,
+        active_antar=timeline.current_antardasha.lord,
+    )
+
+    # Phase 5 (D6, plan §Phase 5): chart-level dominant-graha framing +
+    # causal chain — extended here from life-areas-only (PR-5's original
+    # scope) to whatif per P0-4. Same shape as life_areas_service's own
+    # wiring: compute once, attach a framing sentence, and build a 2-step
+    # "because -> therefore" chain from evidence already computed above
+    # (natal/dasha/gochar reason text) for non-favourable verdicts only —
+    # whatif has no cross-area LOW/HIGH confidence tier the way life-areas
+    # does, so "not FAVOURABLE" is the equivalent low-confidence signal here.
+    chart_signature_out: WhatIfChartSignature | None = None
+    causal_chain_text: WhatIfBiText | None = None
+    if bool(get_flag("reasoning_chart_signature")):
+        planet_longitudes = {
+            p.graha: p.absolute_longitude
+            for p in chart_snapshot.data.planets
+            if p.graha in {"SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU"}
+        }
+        planet_rasis = {
+            p.graha: p.rasi
+            for p in chart_snapshot.data.planets
+            if p.graha in {"SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU"}
+        }
+        try:
+            signature = detect_signature(
+                planet_longitudes=planet_longitudes,
+                planet_rasis=planet_rasis,
+                current_maha_lord=timeline.current_mahadasha.lord,
+                current_antar_lord=timeline.current_antardasha.lord,
+            )
+        except ValueError:
+            # Malformed/incomplete chart data — skip the optional overlay
+            # rather than failing the whole whatif response (mirrors
+            # life_areas_service's handling of the same exception).
+            logger.exception("chart signature detection failed for whatif chart %s", chart_id)
+        else:
+            framing = signature_framing(signature.motif)
+            chart_signature_out = WhatIfChartSignature(
+                dominant=signature.dominant,
+                framing=WhatIfBiText(ta=framing.ta, en=framing.en),
+            )
+            if verdict != "FAVOURABLE":
+                chain = render_causal_chain(
+                    steps=[
+                        WhatIfBiText(ta=natal.text_ta, en=natal.text_en),
+                        WhatIfBiText(ta=dasha.text_ta, en=dasha.text_en),
+                    ],
+                    conclusion=WhatIfBiText(ta=gochar.text_ta, en=gochar.text_en),
+                )
+                causal_chain_text = WhatIfBiText(ta=chain.ta, en=chain.en)
+
+    run_safety_pass(
+        summary, best_period, caution_note, remedy, disclaimer,
+        chart_signature_out.framing if chart_signature_out else None,
+        causal_chain_text,
+        source="whatif",
+    )
+
     data = WhatIfData(
         chartId=chart_id,
         scenario=scenario,
         targetDate=target_date,
         overallScore=overall_score,
         verdict=verdict,
+        band=band,
+        reading=reading if get_flag("reasoning_contradiction") else None,
         tripleConfirmation=triple,
         summary=summary,
         bestPeriodInWindow=best_period,
         cautionNote=caution_note,
         remedy=remedy,
         disclaimer=disclaimer,
+        chartSignature=chart_signature_out,
+        causalChain=causal_chain_text,
     )
 
     return WhatIfResponse(

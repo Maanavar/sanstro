@@ -17,10 +17,14 @@ These classifications affect:
 2. Dasha score modifier (how beneficial is this planet's Mahadasha/Antardasha)
 """
 from __future__ import annotations
+
+from collections.abc import Mapping
 from enum import Enum
 
+from app.constants.astrology import SIGN_LORD
 
-class FunctionalNature(str, Enum):
+
+class FunctionalNature(str, Enum):  # noqa: UP042 — str-mixin enum kept; StrEnum changes str()/format() output
     YOGAKARAKA = "YOGAKARAKA"
     LAGNA_LORD = "LAGNA_LORD"
     TRIKONA    = "TRIKONA"
@@ -61,9 +65,20 @@ FUNCTIONAL_DASHA_MODIFIER: dict[FunctionalNature, float] = {
 # Derived from house ownership using house_from(lagna_rasi, planet_owned_rasi).
 # Rahu/Ketu have no house ownership — default NEUTRAL; caller may use dispositor logic.
 #
-# IMPORTANT: Verify against a Tamil Jyothidam reference before production use.
+# IMPORTANT: this table is now cross-checked by `derive_functional_nature`
+# (see below) and pinned by tests/test_functional_nature_derivation.py — every
+# cell must match the mechanical derivation except the 1 documented expert
+# override in KNOWN_FUNCTIONAL_NATURE_OVERRIDES — do NOT edit a cell without
+# also updating the derivation/test.
+#
+# 2026-07 audit A-2 resolved two internal contradictions (Lagna 6 Jupiter vs
+# Lagna 12 Mercury both owning {4,7}; Lagna 3 Jupiter vs Lagna 9 Mercury both
+# owning {7,10}): Kendradhipati Dosha doctrine does not subdivide by which two
+# kendras are owned, so all four cells now read KENDRA (matching the
+# mechanical derivation) — see the `derive_functional_nature` comment for the
+# citation. These two are no longer overrides.
 # Edge cases (planet owns Trikona + Dusthana simultaneously) follow the rule:
-#   Trikona+Dusthana → NEUTRAL (pollution reduces pure benefit)
+#   Trikona+Dusthana → TRIKONA, except {5,8}/{6,9} which → NEUTRAL
 #   Trikona+Kendra   → YOGAKARAKA
 #   Lagna lordship   → always LAGNA_LORD regardless of other ownership
 FUNCTIONAL_NATURE_TABLE: dict[int, dict[str, str]] = {
@@ -159,7 +174,7 @@ FUNCTIONAL_NATURE_TABLE: dict[int, dict[str, str]] = {
         "SUN":     "TRIKONA",     # 9th lord (Simmam=9th from Dhanusu)
         "MOON":    "DUSTHANA",    # 8th lord (Kadagam=8th from Dhanusu)
         "MARS":    "TRIKONA",     # 5th+12th lord (5th=Trikona overrides 12th=Dusthana)
-        "MERCURY": "NEUTRAL",     # 7th+10th lord (Kendra+Kendra = Kendradhipati → Neutral)
+        "MERCURY": "KENDRA",      # 7th+10th lord (Kendra+Kendra = Kendradhipati)
         "JUPITER": "LAGNA_LORD",  # 1st+4th lord (Lagna+Kendra; Lagna overrides)
         "VENUS":   "DUSTHANA",    # 6th+11th lord (Dusthana+Upachaya → Dusthana)
         "SATURN":  "MARAKA",      # 2nd+3rd lord (Maraka+Upachaya → Maraka)
@@ -192,7 +207,7 @@ FUNCTIONAL_NATURE_TABLE: dict[int, dict[str, str]] = {
         "SUN":     "DUSTHANA",    # 6th lord (Simmam=6th from Meenam)
         "MOON":    "TRIKONA",     # 5th lord (Kadagam=5th from Meenam)
         "MARS":    "TRIKONA",     # 2nd+9th lord (9th=Trikona; 2nd adds Dhana quality → Trikona)
-        "MERCURY": "MARAKA",      # 4th+7th lord (Kendra+Maraka → Maraka)
+        "MERCURY": "KENDRA",      # 4th+7th lord (Kendra+Kendra = Kendradhipati)
         "JUPITER": "LAGNA_LORD",  # 1st+10th lord (Lagna+Kendra; Lagna overrides)
         "VENUS":   "DUSTHANA",    # 3rd+8th lord (Upachaya+Dusthana → Dusthana)
         "SATURN":  "DUSTHANA",    # 11th+12th lord (Upachaya+Dusthana → Dusthana)
@@ -202,8 +217,183 @@ FUNCTIONAL_NATURE_TABLE: dict[int, dict[str, str]] = {
 }
 
 
-def get_functional_nature(lagna_rasi: int, planet: str) -> FunctionalNature:
-    """Return the functional nature of a planet for a given Lagna Rasi (1–12)."""
+# ── Derivation from house ownership (audit T4) ────────────────────────────────
+# The 108-cell table above is hand-authored and therefore vulnerable to a silent
+# typo corrupting every prediction for a lagna. `derive_functional_nature`
+# recomputes each cell mechanically from house ownership + the documented
+# classical overrides, and a golden test asserts the table equals the derivation
+# for all cells except the small, explicitly-listed expert overrides below.
+#
+# This mirror is a *validation oracle*, not the production path — `get_functional_nature`
+# still reads FUNCTIONAL_NATURE_TABLE so behaviour is unchanged. Reconciling the
+# flagged inconsistencies requires astrologer sign-off (see KNOWN_FUNCTIONAL_NATURE_OVERRIDES).
+
+# Sign → ruling planet (1=Mesha … 12=Meenam). Was a local copy to keep this module
+# a dependency-light leaf, with a golden test asserting it matched
+# chart_strength.SIGN_LORD. `app.constants.astrology` imports nothing, so the leaf
+# property survives and the equality is structural now instead of asserted.
+_SIGN_LORD: dict[int, str] = SIGN_LORD
+
+# Planet → the set of rasis it rules (Rahu/Ketu own none). Accumulated in a
+# mutable dict and frozen into the public one, rather than built in place and
+# frozen over itself — same result, and the intermediate no longer has to
+# pretend to already hold frozensets.
+_owned_rasis: dict[str, set[int]] = {}
+for _rasi, _lord in _SIGN_LORD.items():
+    _owned_rasis.setdefault(_lord, set()).add(_rasi)
+PLANET_OWNED_RASIS: dict[str, frozenset[int]] = {
+    planet: frozenset(rasis) for planet, rasis in _owned_rasis.items()
+}
+
+_KENDRA = frozenset({4, 7, 10})
+_TRIKONA = frozenset({5, 9})
+_DUSTHANA = frozenset({6, 8, 12})
+_MARAKA = frozenset({2, 7})
+_UPACHAYA = frozenset({3, 11})
+
+
+def _house_from(lagna_rasi: int, rasi: int) -> int:
+    return ((rasi - lagna_rasi) % 12) + 1
+
+
+# Cells where the hand-authored table intentionally diverges from the
+# mechanical derivation. Each entry: (lagna, planet) → (table_value, note).
+# NOT auto-reconciled — changing this alters production predictions and needs
+# astrologer sign-off.
+#
+# 2026-07 audit A-2: this dict previously also carried (6, "JUPITER") and
+# (9, "MERCURY") as a pair of internal contradictions (same house-set, {4,7}
+# or {7,10}, yielding different verdicts at another lagna). Both are resolved
+# — see the FUNCTIONAL_NATURE_TABLE module comment and the
+# `derive_functional_nature` Kendradhipati citation — so they no longer
+# diverge from the derivation and were removed from this dict.
+KNOWN_FUNCTIONAL_NATURE_OVERRIDES: dict[tuple[int, str], tuple[str, str]] = {
+    (1, "SATURN"): (
+        "NEUTRAL",
+        "10th+11th lord for Mesha: Kendra+Upachaya, treated as functional-neutral "
+        "(mechanical rule yields KENDRA). Expert call, defensible.",
+    ),
+}
+
+
+def derive_functional_nature(lagna_rasi: int, planet: str) -> FunctionalNature:
+    """Mechanically derive functional nature from house ownership + classical overrides.
+
+    Validation oracle for FUNCTIONAL_NATURE_TABLE (see module note). Rahu/Ketu
+    have no ownership → NEUTRAL (dispositor logic lives in get_functional_nature).
+    """
+    owned = PLANET_OWNED_RASIS.get(planet)
+    if not owned:
+        return FunctionalNature.NEUTRAL
+    houses = {_house_from(lagna_rasi, rasi) for rasi in owned}
+
+    if 1 in houses:
+        return FunctionalNature.LAGNA_LORD
+
+    has_trikona = bool(houses & _TRIKONA)
+    has_kendra = bool(houses & _KENDRA)
+    has_dusthana = bool(houses & _DUSTHANA)
+
+    if has_trikona and has_kendra:
+        return FunctionalNature.YOGAKARAKA
+    if has_trikona:
+        if has_dusthana:
+            # A trine lord keeps its benefit unless paired with the specifically
+            # polluting {5,8} or {6,9} dusthana combination.
+            return FunctionalNature.NEUTRAL if houses in ({5, 8}, {6, 9}) else FunctionalNature.TRIKONA
+        return FunctionalNature.TRIKONA
+    if has_kendra:
+        if has_dusthana:
+            # Kendra + dusthana → dusthana, except {7,8} (maraka-7 + dusthana-8).
+            return FunctionalNature.MARAKA if houses == {7, 8} else FunctionalNature.DUSTHANA
+        if 7 in houses:
+            # 7th is both kendra and maraka. Pure two-kendra ownership (no
+            # trikona/dusthana admixture) is Kendradhipati Dosha territory
+            # regardless of *which* second kendra is owned — {4,7} and {7,10}
+            # are treated the same (2026-07 audit A-2: previously only
+            # {7,10} kept KENDRA while {4,7} fell to MARAKA, producing two
+            # internally inconsistent table cells — see
+            # KNOWN_FUNCTIONAL_NATURE_OVERRIDES history). A sole 7th lord (no
+            # second kendra — only possible for Sun/Moon, which own a single
+            # sign) or 7th combined with a non-kendra house (e.g. {2,7}, both
+            # maraka) keeps the plain maraka reading.
+            return FunctionalNature.KENDRA if houses in ({7, 10}, {4, 7}) else FunctionalNature.MARAKA
+        return FunctionalNature.KENDRA
+    if has_dusthana:
+        return FunctionalNature.DUSTHANA
+    if houses & _MARAKA:
+        return FunctionalNature.MARAKA
+    if houses & _UPACHAYA:
+        return FunctionalNature.UPACHAYA
+    return FunctionalNature.NEUTRAL
+
+
+_NODES = ("RAHU", "KETU")
+
+
+def owned_houses(lagna_rasi: int, planet: str) -> tuple[int, ...]:
+    """Houses this graha rules counted from this lagna, ascending.
+
+    The reason a functional nature came out as it did — `MARAKA` for Venus at
+    Mesha lagna *is* "Venus rules the 2nd and the 7th", not a separate fact
+    about it. Surfaces that show a verdict need this to explain one, so the
+    derivation is exported rather than left inside `derive_functional_nature`.
+
+    Empty for RAHU/KETU, which own no sign; `node_dispositor` and the occupied
+    house carry their story instead (see `_node_functional_nature`).
+    """
+    owned = PLANET_OWNED_RASIS.get(planet)
+    if not owned:
+        return ()
+    return tuple(sorted(_house_from(lagna_rasi, rasi) for rasi in owned))
+
+
+def house_of(lagna_rasi: int, rasi: int) -> int:
+    """Which house a rasi is, counted from this lagna. 1-12."""
+    return _house_from(lagna_rasi, rasi)
+
+
+def node_dispositor(node_rasi: int) -> str:
+    """Lord of the sign a node occupies — whose nature the node borrows."""
+    return _SIGN_LORD[node_rasi]
+
+
+def is_dusthana_house(house: int) -> bool:
+    """6th, 8th, 12th — the houses that override a node's dispositor."""
+    return house in _DUSTHANA
+
+
+def _node_functional_nature(lagna_rasi: int, node_rasi: int) -> FunctionalNature:
+    """Functional nature of a node (audit T5).
+
+    Classical rule: a node has no house ownership, so it behaves as (a) the
+    functional nature of its **dispositor** (the lord of the sign it occupies),
+    tempered by (b) the house it occupies — a node sitting in a dusthana
+    (6/8/12) acts as a malefic regardless of a benefic dispositor.
+    """
+    occupied_house = _house_from(lagna_rasi, node_rasi)
+    if occupied_house in _DUSTHANA:
+        return FunctionalNature.DUSTHANA
+    dispositor = _SIGN_LORD[node_rasi]
+    return get_functional_nature(lagna_rasi, dispositor)
+
+
+def get_functional_nature(
+    lagna_rasi: int,
+    planet: str,
+    *,
+    node_rasi_map: Mapping[str, int] | None = None,
+) -> FunctionalNature:
+    """Return the functional nature of a planet for a given Lagna Rasi (1–12).
+
+    Rahu/Ketu have no house ownership. When ``node_rasi_map`` (planet → occupied
+    rasi) is supplied and contains the node, its nature is resolved via
+    dispositor + occupied house (`_node_functional_nature`). Without chart
+    context the nodes fall back to the table default (NEUTRAL) — preserving the
+    behaviour of legacy callers that pass only lagna + planet.
+    """
+    if planet in _NODES and node_rasi_map is not None and planet in node_rasi_map:
+        return _node_functional_nature(lagna_rasi, node_rasi_map[planet])
     row = FUNCTIONAL_NATURE_TABLE.get(lagna_rasi, {})
     nature_str = row.get(planet, "NEUTRAL")
     return FunctionalNature(nature_str)

@@ -1,21 +1,22 @@
-"use client";
-
 import Link from "next/link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
-import { useLang } from "@/components/lang-toggle";
+import { getServerLang } from "@/lib/server-lang";
 import { TopicSymbolPanel } from "@/components/astro-symbols";
 import { ContextualSignupCta } from "@/components/contextual-signup-cta";
 import { SlokamBlock, FaithNote, FaqSection } from "@/components/devotional";
 import { GuideVerifyNote } from "@/components/guide-traditional-notes";
 import { getGuideVerifyNote, type GuideDetail } from "@/lib/guide-detail-content";
+import { getReviewer } from "@/lib/reviewers";
 
 function text(value: { en: string; ta: string }, lang: string) {
   return lang === "ta" ? value.ta : value.en;
 }
 
-export function GuideDetailPage({ content }: { content: GuideDetail }) {
-  const [lang] = useLang();
+// F7 part two — a Server Component. Backs the four `[slug]` guide routes; all
+// four callers are already Server Components passing a serialisable `content`.
+export async function GuideDetailPage({ content }: { content: GuideDetail }) {
+  const lang = await getServerLang();
   const topic =
     content.kind === "yogam" ? "yogam" : content.kind === "temple" ? "temple" : content.topic;
   const verifyNote = getGuideVerifyNote(content);
@@ -30,6 +31,24 @@ export function GuideDetailPage({ content }: { content: GuideDetail }) {
               <p className="cl-eyebrow">{text(content.eyebrow, lang)}</p>
               <h1 className="cl-pub-h1">{text(content.title, lang)}</h1>
               <p className="cl-pub-lead">{text(content.lead, lang)}</p>
+              {/* MKT-20 — a named human authority converts the trust-seeking
+                  cohort; sourced from lib/reviewers.ts (one place to swap). */}
+              {(() => {
+                const reviewer = getReviewer(content.kind);
+                return (
+                  <p style={{ display: "flex", alignItems: "center", gap: "8px", margin: "16px 0 0", fontSize: "0.85rem", color: "var(--cl-muted)" }}>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--cl-accent)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M12 2.6l2.3 2 3-.5 1 2.9 2.7 1.3-.9 2.9.9 2.9-2.7 1.3-1 2.9-3-.5-2.3 2-2.3-2-3 .5-1-2.9-2.7-1.3.9-2.9-.9-2.9 2.7-1.3 1-2.9 3 .5z" />
+                      <path d="M8.7 12.4l2.4 2.3 4.2-4.6" />
+                    </svg>
+                    <span>
+                      {lang === "ta" ? "பரிசீலனை: " : "Reviewed by "}
+                      <strong style={{ color: "var(--cl-ink)" }}>{text(reviewer.name, lang)}</strong>
+                      {" · "}{text(reviewer.credential, lang)}
+                    </span>
+                  </p>
+                );
+              })()}
             </div>
             <TopicSymbolPanel topic={topic} />
           </div>

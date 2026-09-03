@@ -7,10 +7,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
+from app.core.chart_access import assert_chart_owner as _assert_chart_owner
 from app.db.session import get_db
-from app.models import BirthProfile, Chart
 from app.models.user import User
 from app.schemas.journal import (
+    VALID_LIFE_AREAS,
+    VALID_SCORE_LABELS,
     FamilyVaultJournalResponse,
     FamilyVaultJournalSummaryResponse,
     JournalCreateRequest,
@@ -22,8 +24,6 @@ from app.schemas.journal import (
     JournalRetentionApplyRequest,
     JournalRetentionApplyResponse,
     JournalUpdateRequest,
-    VALID_LIFE_AREAS,
-    VALID_SCORE_LABELS,
 )
 from app.services.chart_service import load_persisted_chart_response
 from app.services.daily_guidance_service import get_daily_guidance
@@ -41,15 +41,6 @@ from app.services.journal_service import (
 from app.services.settings_service import get_or_create_user_preference
 
 router = APIRouter()
-
-
-def _assert_chart_owner(session: Session, chart_id: UUID, current_user: User) -> None:
-    chart = session.get(Chart, chart_id)
-    if chart is None:
-        raise HTTPException(status_code=404, detail="Chart not found.")
-    profile = session.get(BirthProfile, chart.birth_profile_id)
-    if profile is None or profile.owner_user_id != current_user.user_id:
-        raise HTTPException(status_code=403, detail="Access denied.")
 
 
 @router.post("/journal", response_model=JournalCreateResponse, tags=["journal"])
@@ -152,7 +143,6 @@ def get_prompts_for_journal(
 
     # Shadow work prompts path (P3-A)
     if prompt_type == "SHADOW":
-        from app.calculations.astro import RASI_NAME_TO_NUMBER
         from app.schemas.journal import JournalPromptItem, JournalPromptText
         from app.services.narrative_engine import generate_shadow_prompts
 
@@ -169,8 +159,9 @@ def get_prompts_for_journal(
             )
             for i, p in enumerate(bitext_prompts)
         ]
-        from app.schemas.dasha import ResponseMeta
         from datetime import UTC, datetime
+
+        from app.schemas.dasha import ResponseMeta
         return JournalPromptsResponse(
             data={
                 "chartId": chart_id,

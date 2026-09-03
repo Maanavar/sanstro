@@ -1,0 +1,48 @@
+appId: ai.vinaadi.app
+---
+# Golden path: user logs in with sandbox credentials and reaches Today tab.
+# Set TEST_EMAIL and TEST_PASSWORD via `maestro test --env TEST_EMAIL=... --env TEST_PASSWORD=...`
+- launchApp:
+    clearState: true
+- waitForAnimationToEnd
+# Navigate to login if on welcome/onboarding screen.
+- runFlow:
+    when:
+      visible: "Get Started"
+    commands:
+      - tapOn: "Get Started"
+- runFlow:
+    when:
+      visible: "தொடங்குங்கள்"
+    commands:
+      - tapOn: "தொடங்குங்கள்"
+- runFlow:
+    when:
+      visible: "Login"
+    commands:
+      - tapOn: "Login"
+- runFlow:
+    when:
+      visible: "உள்நுழை"
+    commands:
+      - tapOn: "உள்நுழை"
+- tapOn:
+    text: "you@example.com"
+- inputText: ${TEST_EMAIL}
+- tapOn:
+    text: "••••••••"
+- inputText: ${TEST_PASSWORD}
+- hideKeyboard
+- tapOn:
+    anyOf:
+      - text: "Log in"
+      - text: "Login"
+      - text: "Sign in"
+      - text: "உள்நுழை"
+- waitForAnimationToEnd:
+    timeout: 8000
+# Should land on Today tab
+- assertVisible:
+    anyOf:
+      - text: "Today"
+      - text: "இன்று"

@@ -1,231 +1,381 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
+import { dt, GUEST_CHART } from "@/lib/dashboard-i18n";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
-import type { ApiEnvelope, ChartCalculateResponseData } from "@/lib/types";
+import type { ChartCalculateResponseData } from "@/lib/types";
+import { guestChartSchema, type GuestChartFormValues } from "@/lib/schemas";
+import { ValidatedField, ValidatedInput } from "@/components/form/ValidatedField";
 import { RasiChart, NavamsaChart } from "./dashboard-charts";
 import { Field } from "./dashboard-ui";
+import { ModalShell } from "./modal-shell";
 import { PlaceCombobox } from "./place-combobox";
-
-type BirthForm = {
-  displayName: string;
-  birthDateLocal: string;
-  birthTimeLocal: string;
-  birthPlace: string;
-  birthLatitude: string;
-  birthLongitude: string;
-  birthTimezone: string;
-};
-
-const EMPTY_FORM: BirthForm = {
-  displayName: "",
-  birthDateLocal: "",
-  birthTimeLocal: "12:00",
-  birthPlace: "",
-  birthLatitude: "",
-  birthLongitude: "",
-  birthTimezone: "Asia/Kolkata",
-};
+import "./dashboard-guest-chart-modal.css";
 
 interface GuestChartModalProps {
   lang: Lang;
   onClose: () => void;
+  onCreateAccount?: () => void;
 }
 
-export function GuestChartModal({ lang, onClose }: GuestChartModalProps) {
-  const [form, setForm] = useState<BirthForm>(EMPTY_FORM);
+const MONTHS_EN = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+function formatBirthDate(iso: string): string {
+  const parts = iso.split("-").map(Number);
+  if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return iso;
+  const [y, m, d] = parts;
+  if (m < 1 || m > 12) return iso;
+  return `${d} ${MONTHS_EN[m - 1]} ${y}`;
+}
+
+function formatBirthTime(hhmm: string | null): string | null {
+  if (!hhmm) return null;
+  const [hStr, mStr] = hhmm.split(":");
+  const h = Number(hStr);
+  const m = Number(mStr);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  const period = h < 12 ? "AM" : "PM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${String(m).padStart(2, "0")} ${period}`;
+}
+
+/**
+ * The timezone this visitor's browser is in, or IST when the browser won't say.
+ *
+ * The form used to default to `Asia/Kolkata` for everyone. That is right for
+ * most of this product's visitors and silently catastrophic for the rest: a
+ * guest outside India who does not notice the timezone field gets their chart
+ * computed hours off — a different lagna, a different dasa balance, sometimes a
+ * different janma rasi — and the result is presented with no indication that
+ * anything was assumed. A wrong chart shown confidently is worse than no chart.
+ *
+ * Resolved once per module load rather than per render: it cannot change during
+ * a session, and `defaultValues` is only consumed on mount.
+ */
+function browserTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Kolkata";
+  } catch {
+    return "Asia/Kolkata";
+  }
+}
+
+const BROWSER_TIMEZONE = browserTimezone();
+
+/**
+ * What we compute against when the visitor leaves the birth time blank.
+ *
+ * The form used to pre-fill this into the field itself, so a visitor who never
+ * touched it submitted noon as though they had stated it, and the chart came
+ * back with a lagna and twelve house placements presented as fact. The backend
+ * cannot take the blank instead — `_birth_datetime_utc` raises without a time —
+ * so the assumption has to be made SOMEWHERE. Making it here, explicitly, is
+ * what lets the result label itself: the field starts empty, and whether it was
+ * still empty at submit is the flag that puts the approximation notice on the
+ * chart.
+ */
+const ASSUMED_BIRTH_TIME = "12:00";
+
+export function GuestChartModal({ lang, onClose, onCreateAccount }: GuestChartModalProps) {
   const [chart, setChart] = useState<ChartCalculateResponseData | null>(null);
-  const [tempBirthProfileId, setTempBirthProfileId] = useState<string | null>(null);
-  const tempBirthProfileIdRef = useRef<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [submitError, setSubmitError] = useState("");
   const [view, setView] = useState<"D1" | "D9">("D1");
+  const [showManualLocation, setShowManualLocation] = useState(false);
+  // Whether the chart on screen rests on ASSUMED_BIRTH_TIME. Held next to the
+  // chart rather than read back off it, because the response cannot tell us:
+  // the request has to carry a time either way, so a stated 12:00 and an
+  // assumed one come back identical.
+  const [birthTimeAssumed, setBirthTimeAssumed] = useState(false);
 
-  useEffect(() => {
-    tempBirthProfileIdRef.current = tempBirthProfileId;
-  }, [tempBirthProfileId]);
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<GuestChartFormValues>({
+    resolver: zodResolver(guestChartSchema) as any,
+    defaultValues: {
+      displayName: "",
+      birthDateLocal: "",
+      birthTimeLocal: "",
+      birthPlace: "",
+      birthLatitude: "",
+      birthLongitude: "",
+      birthTimezone: BROWSER_TIMEZONE,
+    },
+  });
 
-  useEffect(() => {
-    return () => {
-      const id = tempBirthProfileIdRef.current;
-      if (!id) return;
-      fetch(`/api/v1/birth-profiles/${id}`, { method: "DELETE", keepalive: true }).catch(() => {});
-    };
-  }, []);
+  const [birthPlace, birthLatitude, birthLongitude, birthTimezone] = watch([
+    "birthPlace",
+    "birthLatitude",
+    "birthLongitude",
+    "birthTimezone",
+  ]);
 
-  async function handleGenerate() {
-    if (!form.displayName || !form.birthDateLocal || !form.birthPlace || !form.birthLatitude || !form.birthLongitude || !form.birthTimezone) {
-      setError(lang === "ta" ? "அனைத்து தகவல்களையும் நிரப்பவும்." : "Please fill all required fields.");
-      return;
-    }
-    setError("");
-    setLoading(true);
-    if (tempBirthProfileId) {
-      await apiFetchJson(`/api/v1/birth-profiles/${tempBirthProfileId}`, { method: "DELETE" }).catch(() => {});
-      setTempBirthProfileId(null);
-    }
+  const locationResolved = birthLatitude !== "" && birthLongitude !== "";
+  const hasLocationError = !!(errors.birthLatitude || errors.birthLongitude || errors.birthTimezone);
+  const manualLocationOpen = showManualLocation || hasLocationError;
+
+  async function onSubmit(values: GuestChartFormValues) {
+    setSubmitError("");
+    const statedBirthTime = values.birthTimeLocal.trim();
     try {
-      const profileRes = await apiFetchJson<{ data: { birthProfileId: string } }>("/api/v1/birth-profiles", {
+      const chartRes = await apiFetchJson<{ success: boolean; data: ChartCalculateResponseData }>("/api/v1/public/chart", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          displayName: form.displayName,
-          birthDateLocal: form.birthDateLocal,
-          birthTimeLocal: form.birthTimeLocal || null,
-          birthPlace: form.birthPlace,
-          birthLatitude: parseFloat(form.birthLatitude),
-          birthLongitude: parseFloat(form.birthLongitude),
-          birthTimezone: form.birthTimezone,
-          relationshipToOwner: "other",
-          calculateNow: false,
+          birth: {
+            displayName: values.displayName,
+            birthDateLocal: values.birthDateLocal,
+            birthTimeLocal: statedBirthTime || ASSUMED_BIRTH_TIME,
+            birthPlace: values.birthPlace,
+            birthLatitude: parseFloat(values.birthLatitude),
+            birthLongitude: parseFloat(values.birthLongitude),
+            birthTimezone: values.birthTimezone,
+          },
         }),
       });
-      const birthProfileId = profileRes.data.birthProfileId;
-      setTempBirthProfileId(birthProfileId);
-
-      const chartRes = await apiFetchJson<ApiEnvelope<ChartCalculateResponseData>>("/api/v1/charts/calculate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ birthProfileId, calculationVersion: "thirukanitham-2026-v1" }),
-      });
+      setBirthTimeAssumed(statedBirthTime === "");
       setChart(chartRes.data);
     } catch (err) {
-      setError(readErrorMessage(err));
-    } finally {
-      setLoading(false);
+      setSubmitError(readErrorMessage(err));
     }
   }
 
-  async function handleClose() {
-    if (tempBirthProfileId) {
-      await apiFetchJson(`/api/v1/birth-profiles/${tempBirthProfileId}`, { method: "DELETE" }).catch(() => {});
-    }
-    onClose();
-  }
+  const profileDate = chart ? formatBirthDate(chart.birthProfile.birthDateLocal) : "";
+  // An assumed noon is not a fact about this person, so it does not get printed
+  // beside their name and place as though it were one. The notice below says
+  // what was assumed instead.
+  const profileTime = chart && !birthTimeAssumed ? formatBirthTime(chart.birthProfile.birthTimeLocal) : null;
+  const profileInitial = chart ? chart.birthProfile.displayName.trim().charAt(0).toUpperCase() || "?" : "";
 
   return (
-    <div
-      style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(26,22,18,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--space-4)" }}
-      onClick={(e) => { if (e.target === e.currentTarget) void handleClose(); }}
+    <ModalShell
+      label={lang === "ta" ? "யாரின் ஜாதகமும் காண்க" : "Generate Anyone's Chart"}
+      onClose={onClose}
+      overlayClassName="gcm-overlay"
+      panelClassName="gcm-panel"
     >
-      <div style={{
-        width: "min(520px, 100%)", maxHeight: "90vh", overflowY: "auto",
-        background: "var(--color-surface)", border: "1px solid var(--color-border)",
-        borderRadius: "var(--radius-lg)", padding: "var(--space-6)",
-        display: "flex", flexDirection: "column", gap: "var(--space-4)",
-        boxShadow: "0 24px 64px rgba(26,22,18,0.18)",
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h3 style={{ margin: 0, fontSize: "1rem", color: "var(--color-text-strong)", fontFamily: "var(--font-display)", fontWeight: 500 }}>
-            {lang === "ta" ? "யாரின் ஜாதகமும் காண்க" : "Generate Anyone's Chart"}
-          </h3>
+        <div className="gcm-header">
+          <div>
+            <h3 className="gcm-title">
+              {lang === "ta" ? "யாரின் ஜாதகமும் காண்க" : "Generate Anyone's Chart"}
+            </h3>
+            <p className="gcm-subtitle">
+              {lang === "ta"
+                ? "இலவச முன்னோட்ட ஜாதகம் — கணக்கு தேவையில்லை."
+                : "A free preview chart for anyone — no account needed."}
+            </p>
+          </div>
           <button
             type="button"
-            onClick={() => void handleClose()}
+            onClick={onClose}
             aria-label="Close"
-            style={{ width: "32px", height: "32px", borderRadius: "50%", border: "1px solid var(--color-border)", background: "transparent", color: "var(--color-muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+            className="gcm-close"
           >
-            <svg viewBox="0 0 24 24" fill="none" width="14" height="14" aria-hidden="true"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" width="15" height="15" aria-hidden="true">
+              <path d="M6 6L18 18M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
           </button>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))", gap: "var(--space-3)" }}>
-          <div style={{ gridColumn: "1 / -1" }}>
-            <Field label={lang === "ta" ? "பெயர்" : "Name"}>
-              <input className="input" value={form.displayName}
-                onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
-                placeholder={lang === "ta" ? "எ.கா. ராமேஷ் குமார்" : "e.g. Ramesh Kumar"} />
+        <form className="gcm-form" onSubmit={handleSubmit(onSubmit)} noValidate>
+          <ValidatedField
+            id="displayName"
+            label={lang === "ta" ? "பெயர்" : "Name"}
+            error={errors.displayName?.message}
+            required
+          >
+            <ValidatedInput
+              id="displayName"
+              error={!!errors.displayName}
+              placeholder={lang === "ta" ? "எ.கா. ராமேஷ் குமார்" : "e.g. Ramesh Kumar"}
+              {...register("displayName")}
+            />
+          </ValidatedField>
+
+          <div className="gcm-row-2">
+            <ValidatedField
+              id="birthDateLocal"
+              label={lang === "ta" ? "பிறந்த தேதி" : "Birth Date"}
+              error={errors.birthDateLocal?.message}
+              required
+            >
+              <ValidatedInput
+                id="birthDateLocal"
+                type="date"
+                min={MIN_BIRTH_DATE}
+                max={maxBirthDateIso()}
+                error={!!errors.birthDateLocal}
+                {...register("birthDateLocal")}
+              />
+            </ValidatedField>
+
+            <Field label={lang === "ta" ? "பிறந்த நேரம்" : "Birth Time"} helper={t("field_time_optional", lang)}>
+              <input className="input" type="time" {...register("birthTimeLocal")} />
             </Field>
           </div>
 
-          <Field label={lang === "ta" ? "பிறந்த தேதி" : "Birth Date"}>
-            <input
-              className="input"
-              type="date"
-              value={form.birthDateLocal}
-              min={MIN_BIRTH_DATE}
-              max={maxBirthDateIso()}
-              onChange={(e) => {
-                const next = e.target.value;
-                setForm((f) => ({ ...f, birthDateLocal: next }));
+          <ValidatedField
+            id="birthPlace"
+            label={t("field_birth_place", lang)}
+            helper={t("field_place_helper", lang)}
+            error={errors.birthPlace?.message}
+            required
+          >
+            <PlaceCombobox
+              value={birthPlace}
+              lang={lang}
+              onChange={(city, raw) => {
+                setValue("birthPlace", raw, { shouldValidate: true });
+                if (city) {
+                  setValue("birthLatitude", city.lat, { shouldValidate: true });
+                  setValue("birthLongitude", city.lng, { shouldValidate: true });
+                  setValue("birthTimezone", city.timezone, { shouldValidate: true });
+                }
               }}
             />
-          </Field>
+          </ValidatedField>
 
-          <Field label={lang === "ta" ? "பிறந்த நேரம்" : "Birth Time"}>
-            <input className="input" type="time" value={form.birthTimeLocal}
-              onChange={(e) => setForm((f) => ({ ...f, birthTimeLocal: e.target.value }))} />
-          </Field>
+          {locationResolved && !manualLocationOpen ? (
+            <p className="gcm-location-status">
+              <svg viewBox="0 0 24 24" fill="none" width="13" height="13" aria-hidden="true">
+                <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              {lang === "ta" ? "இடம் கண்டறியப்பட்டது" : "Location detected"} · {birthTimezone}
+              <button
+                type="button"
+                className="gcm-location-edit"
+                onClick={() => setShowManualLocation(true)}
+              >
+                {lang === "ta" ? "மாற்ற" : "Edit"}
+              </button>
+            </p>
+          ) : (
+            <button
+              type="button"
+              className="gcm-location-manual-toggle"
+              onClick={() => setShowManualLocation((v) => !v)}
+              aria-expanded={manualLocationOpen}
+            >
+              {manualLocationOpen
+                ? (lang === "ta" ? "தானியங்கு கண்டறிதலைப் பயன்படுத்த" : "Use auto-detect instead")
+                : (lang === "ta" ? "நகரம் கிடைக்கவில்லையா? கைமுறையாக இடத்தை உள்ளிடவும்" : "Can't find your city? Enter location manually")}
+            </button>
+          )}
 
-          <div style={{ gridColumn: "1 / -1" }}>
-            <Field label={t("field_birth_place", lang)} helper={t("field_place_helper", lang)}>
-              <PlaceCombobox
-                value={form.birthPlace}
-                onChange={(city, raw) => {
-                  setForm((f) => ({
-                    ...f,
-                    birthPlace: raw,
-                    ...(city ? { birthLatitude: city.lat, birthLongitude: city.lng, birthTimezone: city.timezone } : {}),
-                  }));
-                }}
-              />
-            </Field>
-          </div>
+          {manualLocationOpen && (
+            <div className="gcm-manual-location">
+              <ValidatedField
+                id="birthTimezone"
+                label={t("field_timezone", lang)}
+                helper={t("field_tz_helper", lang)}
+                error={errors.birthTimezone?.message}
+              >
+                <ValidatedInput
+                  id="birthTimezone"
+                  error={!!errors.birthTimezone}
+                  {...register("birthTimezone")}
+                />
+              </ValidatedField>
 
-          <Field label={t("field_timezone", lang)} helper={t("field_tz_helper", lang)}>
-            <input className="input" value={form.birthTimezone}
-              onChange={(e) => setForm((f) => ({ ...f, birthTimezone: e.target.value }))} />
-          </Field>
+              <div className="gcm-coord-grid">
+                <ValidatedField
+                  id="birthLatitude"
+                  label={t("field_latitude", lang)}
+                  error={errors.birthLatitude?.message}
+                >
+                  <ValidatedInput
+                    id="birthLatitude"
+                    inputMode="decimal"
+                    error={!!errors.birthLatitude}
+                    {...register("birthLatitude")}
+                  />
+                </ValidatedField>
+                <ValidatedField
+                  id="birthLongitude"
+                  label={t("field_longitude", lang)}
+                  error={errors.birthLongitude?.message}
+                >
+                  <ValidatedInput
+                    id="birthLongitude"
+                    inputMode="decimal"
+                    error={!!errors.birthLongitude}
+                    {...register("birthLongitude")}
+                  />
+                </ValidatedField>
+              </div>
+            </div>
+          )}
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: "var(--space-2)", gridColumn: "1 / -1" }}>
-            <Field label={t("field_latitude", lang)}>
-              <input className="input" inputMode="decimal" value={form.birthLatitude}
-                onChange={(e) => setForm((f) => ({ ...f, birthLatitude: e.target.value }))} />
-            </Field>
-            <Field label={t("field_longitude", lang)}>
-              <input className="input" inputMode="decimal" value={form.birthLongitude}
-                onChange={(e) => setForm((f) => ({ ...f, birthLongitude: e.target.value }))} />
-            </Field>
-          </div>
-        </div>
+          {submitError && (
+            <p className="gcm-submit-error">{submitError}</p>
+          )}
 
-        {error && <p style={{ margin: 0, color: "var(--color-score-low)", fontSize: "0.875rem" }}>{error}</p>}
-
-        <button
-          type="button"
-          style={{
-            alignSelf: "flex-start", padding: "var(--space-2) var(--space-5)",
-            borderRadius: "var(--radius-pill)", border: "none",
-            background: "var(--color-text-strong)", color: "var(--color-bg)",
-            fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-            opacity: loading ? 0.6 : 1,
-          }}
-          onClick={() => void handleGenerate()}
-          disabled={loading}
-        >
-          {loading ? (lang === "ta" ? "கணக்கிடுகிறது…" : "Calculating…") : (lang === "ta" ? "ஜாதகம் காண்க" : "Generate Chart")}
-        </button>
+          <button type="submit" className="gcm-submit" disabled={isSubmitting}>
+            {isSubmitting
+              ? (lang === "ta" ? "கணக்கிடுகிறது…" : "Calculating…")
+              : (lang === "ta" ? "ஜாதகம் காண்க" : "Generate Chart")}
+          </button>
+        </form>
 
         {chart && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-            <div style={{ padding: "var(--space-3) var(--space-4)", borderRadius: "var(--radius-md)", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)" }}>
-              <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 700, color: "var(--color-accent)", fontFamily: "var(--font-display)" }}>{chart.birthProfile.displayName}</p>
-              <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "0.75rem", color: "var(--color-faint)" }}>{chart.birthProfile.birthDateLocal}</p>
+          <div className="gcm-chart-section">
+            <div className="gcm-profile-card">
+              <span className="gcm-profile-avatar" aria-hidden="true">{profileInitial}</span>
+              <div>
+                <p className="gcm-profile-name">{chart.birthProfile.displayName}</p>
+                <p className="gcm-profile-date">
+                  {profileDate}{profileTime ? ` · ${profileTime}` : ""}{chart.birthProfile.birthPlace ? ` · ${chart.birthProfile.birthPlace}` : ""}
+                </p>
+              </div>
             </div>
 
-            <div style={{ display: "flex", gap: "var(--space-1_5)" }}>
+            {/* B-008: a guest who leaves the birth time blank still gets a
+                chart, because the calculation cannot proceed without a time —
+                but it is labelled for what it is, in the same viewport as the
+                grid it qualifies, before the reader reads a lagna off it. */}
+            {birthTimeAssumed && (
+              <div
+                role="note"
+                style={{
+                  border: "1px solid var(--color-mid-border)",
+                  background: "var(--color-mid-bg)",
+                  borderRadius: "var(--radius-md)",
+                  padding: "var(--space-3) var(--space-4)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "4px",
+                }}
+              >
+                <b style={{ fontSize: "var(--text-sm)", color: "var(--color-mid-text)" }}>
+                  {dt(GUEST_CHART.assumedTimeTitle, lang)}
+                </b>
+                <span style={{ fontSize: "var(--text-xs)", lineHeight: 1.55, color: "var(--color-muted)" }}>
+                  {dt(GUEST_CHART.assumedTimeBody, lang)}
+                </span>
+              </div>
+            )}
+
+            <div className="gcm-view-tabs" role="tablist">
               {(["D1", "D9"] as const).map((v) => (
-                <button key={v} type="button" onClick={() => setView(v)}
-                  style={{
-                    padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)",
-                    fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-                    border: view === v ? "1.5px solid var(--color-accent)" : "1px solid var(--color-border)",
-                    background: view === v ? "#F0D9C4" : "transparent",
-                    color: view === v ? "var(--color-accent)" : "var(--color-faint)",
-                  }}
+                <button
+                  key={v}
+                  type="button"
+                  role="tab"
+                  aria-selected={view === v}
+                  className="gcm-view-tab"
+                  data-active={view === v}
+                  onClick={() => setView(v)}
                 >
                   {v === "D1" ? t("label_d1", lang) : t("label_d9", lang)}
                 </button>
@@ -237,14 +387,31 @@ export function GuestChartModal({ lang, onClose }: GuestChartModalProps) {
               : <NavamsaChart chart={chart} label={t("label_d9", lang)} lang={lang} showExplain={false} />
             }
 
-            <p style={{ margin: 0, fontSize: "0.625rem", color: "var(--color-faint)", fontStyle: "italic" }}>
+            <p className="gcm-preview-note">
               {lang === "ta"
                 ? "இந்த ஜாதகம் தற்காலிகமானது. மூடியதும் தானாக நீக்கப்படும்."
-                : "Temporary chart — auto-deleted when you close."}
+                : "Preview only — this chart isn't saved anywhere."}
             </p>
+
+            <div className="gcm-cta-card">
+              <p className="gcm-cta-text">
+                {lang === "ta"
+                  ? "இலவச கணக்கு உருவாக்கினால்: இந்த ஜாதகத்தை சேமிக்கலாம், தினசரி தனிப்பயன் வழிகாட்டுதலை பெறலாம், மேலும் குடும்ப உறுப்பினர்களை சேர்க்கலாம் — எப்போதும் இலவசம்."
+                  : "Create a free account to save this chart, get daily personalised guidance, and add family members — free forever."}
+              </p>
+              <button
+                type="button"
+                className="gcm-cta-btn"
+                onClick={onCreateAccount ?? onClose}
+              >
+                {lang === "ta" ? "இலவசக் கணக்கு உருவாக்க" : "Create free account"}
+                <svg viewBox="0 0 24 24" fill="none" width="15" height="15" aria-hidden="true">
+                  <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </div>
           </div>
         )}
-      </div>
-    </div>
+    </ModalShell>
   );
 }

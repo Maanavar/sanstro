@@ -1,18 +1,36 @@
 from __future__ import annotations
 
-from datetime import date, time
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from uuid import UUID
 
+import pytest
 from fastapi.testclient import TestClient
 
+from app.core.config import get_settings
 from app.db.session import SessionLocal
 from app.main import app
+from app.models.ask_vinaadi_usage import AskVinaadiUsage
 from app.models.birth_profile import BirthProfile
 from app.models.chart import Chart
 from app.models.daily_score import DailyScore
 from app.models.family_member import FamilyMember
+from app.models.family_vault import FamilyVault
+from app.models.interpretation_output import InterpretationOutput
+from app.models.journal_entry import JournalEntry
+from app.models.notification import Notification
+from app.models.password_reset_token import PasswordResetToken
+from app.models.refresh_token import RefreshToken
+from app.models.retrospective_entry import RetrospectiveEntry
+from app.models.subscription import Subscription
 from app.models.user import User
+from app.models.user_context import UserContext
+from app.models.user_goal import UserGoal
+from app.models.user_notification_preference import UserNotificationPreference
+from app.models.user_preference import UserPreference
+from app.models.user_streak import UserStreak
+
+CSRF_HEADERS = {"X-Vinaadi-CSRF": "1"}
 
 
 def assert_response(response, status=200, required_keys=()):
@@ -28,30 +46,125 @@ def test_register_sets_cookie_and_returns_user(raw_client):
         "/api/v1/auth/register",
         json={"email": "authuser@example.com", "password": "password123"},
     )
+    payload = assert_response(response, status=200, required_keys=("detail",))
+    assert payload["detail"]
 
-    payload = assert_response(response, status=200, required_keys=("email", "userId"))
-    assert payload["email"] == "authuser@example.com"
-    assert payload["userId"]
-    assert "vinaadi_token" in response.headers.get("set-cookie", "")
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "authuser@example.com", "password": "password123"},
+    )
+    login_payload = assert_response(login, status=200, required_keys=("email", "userId"))
+    assert login_payload["email"] == "authuser@example.com"
+    assert login_payload["userId"]
+    assert "vinaadi_token" in login.headers.get("set-cookie", "")
 
     me_response = raw_client.get("/api/v1/auth/me")
     me_payload = assert_response(me_response, status=200, required_keys=("email", "userId"))
     assert me_payload["email"] == "authuser@example.com"
-    assert me_payload["userId"] == payload["userId"]
+    assert me_payload["userId"] == login_payload["userId"]
 
 
-def test_register_duplicate_email_returns_409(raw_client):
+def _register_and_login(raw_client, email: str) -> str:
+    """Register, sign in, and return the user id. Leaves the cookie on the client."""
+    assert raw_client.post(
+        "/api/v1/auth/register", json={"email": email, "password": "password123"}
+    ).status_code == 200
+    login = raw_client.post(
+        "/api/v1/auth/login", json={"email": email, "password": "password123"}
+    )
+    assert login.status_code == 200
+    return login.json()["userId"]
+
+
+def test_auth_me_reports_the_registered_tier_by_default(raw_client):
+    """``tier`` must be a real value, not absent.
+
+    Added 2026-07-27. ``MeResponse`` in the shared client had declared ``tier``
+    since it was written and no route had ever sent it, so
+    ``mobile/app/_layout.tsx`` stored ``undefined`` as the session tier whenever
+    RevenueCat was unavailable or reported no entitlement. The schema-level
+    guard (``tests/test_api_wrapper_field_contract.py``) proves the field
+    *exists*; only this proves it carries the right value.
+    """
+    _register_and_login(raw_client, "tierdefault@example.com")
+
+    me = raw_client.get("/api/v1/auth/me")
+    assert me.status_code == 200
+    assert me.json()["tier"] == "registered"
+
+
+def test_auth_me_reports_premium_from_an_active_subscription(raw_client):
+    """Derived live from the subscription row, never a stored flag on the user."""
+    user_id = _register_and_login(raw_client, "tierpremium@example.com")
+
+    with SessionLocal() as session:
+        with session.begin():
+            session.add(
+                Subscription(user_id=UUID(user_id), tier="premium", status="active")
+            )
+
+    me = raw_client.get("/api/v1/auth/me")
+    assert me.status_code == 200
+    assert me.json()["tier"] == "premium"
+
+
+def test_auth_me_does_not_report_premium_for_an_inactive_subscription(raw_client):
+    """An expired row must not read as premium — the safe default is lower privilege."""
+    user_id = _register_and_login(raw_client, "tierexpired@example.com")
+
+    with SessionLocal() as session:
+        with session.begin():
+            session.add(
+                Subscription(user_id=UUID(user_id), tier="premium", status="cancelled")
+            )
+
+    me = raw_client.get("/api/v1/auth/me")
+    assert me.status_code == 200
+    assert me.json()["tier"] == "registered"
+
+
+def test_login_and_patch_me_carry_the_same_tier_as_me(raw_client):
+    """All three AuthUserResponse sites agree.
+
+    ``tier`` is defaulted on the model so no construction site can fail to
+    serialise; the risk that creates is a site that silently ships the default
+    for a premium user. Login and PATCH are the two that would.
+    """
+    user_id = _register_and_login(raw_client, "tierparity@example.com")
+    with SessionLocal() as session:
+        with session.begin():
+            session.add(
+                Subscription(user_id=UUID(user_id), tier="premium", status="active")
+            )
+
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "tierparity@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
+    assert login.json()["tier"] == "premium"
+
+    patched = raw_client.patch(
+        "/api/v1/auth/me", json={"userMode": "TRADITIONAL"}, headers=CSRF_HEADERS
+    )
+    assert patched.status_code == 200
+    assert patched.json()["tier"] == "premium"
+
+
+def test_register_duplicate_email_returns_neutral_response(raw_client):
     first = raw_client.post(
         "/api/v1/auth/register",
         json={"email": "duplicate@example.com", "password": "password123"},
     )
     assert first.status_code == 200
 
+    # Hardened endpoint: duplicate registration returns neutral 200 (no email enumeration)
     second = raw_client.post(
         "/api/v1/auth/register",
         json={"email": "duplicate@example.com", "password": "password123"},
     )
-    assert second.status_code == 409
+    assert second.status_code == 200
+    assert second.json()["detail"]
 
 
 def test_login_rejects_wrong_password_with_generic_message(raw_client):
@@ -76,7 +189,7 @@ def test_logout_clears_cookie(raw_client):
     )
     assert register.status_code == 200
 
-    logout = raw_client.post("/api/v1/auth/logout")
+    logout = raw_client.post("/api/v1/auth/logout", headers=CSRF_HEADERS)
     assert logout.status_code == 204
 
     me = raw_client.get("/api/v1/auth/me")
@@ -92,13 +205,188 @@ def test_forgot_password_returns_generic_message(raw_client):
     assert "If an account exists for this email" in response.json()["detail"]
 
 
+def test_reset_password_confirm_updates_password_and_kills_sessions(raw_client):
+    """SEC-4/WIRE-1: a completed reset must invalidate the old web session
+    and any mobile refresh tokens, not just the password hash."""
+    from app.api.auth import _issue_password_reset_token
+
+    register = raw_client.post(
+        "/api/v1/auth/register",
+        json={"email": "reset-flow@example.com", "password": "password123"},
+    )
+    assert register.status_code == 200
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "reset-flow@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
+    user_id = UUID(login.json()["userId"])
+
+    with SessionLocal() as session:
+        user = session.get(User, user_id)
+        session.add(RefreshToken(
+            token_hash="c" * 64, user_id=user_id,
+            expires_at=datetime.now(UTC) + timedelta(days=60),
+        ))
+        reset_token = _issue_password_reset_token(session, user)
+        session.commit()
+
+    me_before = raw_client.get("/api/v1/auth/me")
+    assert me_before.status_code == 200
+
+    confirm = raw_client.post(
+        "/api/v1/auth/reset-password/confirm",
+        json={"token": reset_token, "password": "newpassword456"},
+    )
+    assert confirm.status_code == 200
+
+    me_after = raw_client.get("/api/v1/auth/me")
+    assert me_after.status_code == 401
+
+    relogin = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "reset-flow@example.com", "password": "newpassword456"},
+    )
+    assert relogin.status_code == 200
+
+    old_login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "reset-flow@example.com", "password": "password123"},
+    )
+    assert old_login.status_code == 401
+
+    with SessionLocal() as session:
+        refresh_rows = session.query(RefreshToken).filter(RefreshToken.user_id == user_id).all()
+        assert refresh_rows
+        assert all(r.revoked_at is not None for r in refresh_rows)
+
+
+def test_reset_password_token_cannot_access_authenticated_endpoints(raw_client):
+    """SEC-4: a pwreset-typed token must be rejected by get_current_user."""
+    from app.api.auth import _issue_password_reset_token
+
+    register = raw_client.post(
+        "/api/v1/auth/register",
+        json={"email": "reset-scope@example.com", "password": "password123"},
+    )
+    assert register.status_code == 200
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "reset-scope@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
+    user_id = UUID(login.json()["userId"])
+
+    with SessionLocal() as session:
+        user = session.get(User, user_id)
+        reset_token = _issue_password_reset_token(session, user)
+        session.commit()
+
+    response = raw_client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {reset_token}"},
+    )
+    assert response.status_code == 401
+
+
+def test_reset_password_confirm_rejects_replay(raw_client):
+    from app.api.auth import _issue_password_reset_token
+
+    register = raw_client.post(
+        "/api/v1/auth/register",
+        json={"email": "reset-replay@example.com", "password": "password123"},
+    )
+    assert register.status_code == 200
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "reset-replay@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
+    user_id = UUID(login.json()["userId"])
+
+    with SessionLocal() as session:
+        user = session.get(User, user_id)
+        reset_token = _issue_password_reset_token(session, user)
+        session.commit()
+
+    first = raw_client.post(
+        "/api/v1/auth/reset-password/confirm",
+        json={"token": reset_token, "password": "newpassword456"},
+    )
+    assert first.status_code == 200
+
+    replay = raw_client.post(
+        "/api/v1/auth/reset-password/confirm",
+        json={"token": reset_token, "password": "anotherpassword789"},
+    )
+    assert replay.status_code == 401
+
+
+def test_reset_password_confirm_rejects_expired_token(raw_client):
+    from app.api.auth import _issue_password_reset_token
+
+    register = raw_client.post(
+        "/api/v1/auth/register",
+        json={"email": "reset-expired@example.com", "password": "password123"},
+    )
+    assert register.status_code == 200
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "reset-expired@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
+    user_id = UUID(login.json()["userId"])
+
+    with SessionLocal() as session:
+        user = session.get(User, user_id)
+        reset_token = _issue_password_reset_token(session, user)
+        session.flush()
+        session.query(PasswordResetToken).filter(
+            PasswordResetToken.user_id == user_id
+        ).update({"expires_at": datetime.now(UTC) - timedelta(minutes=1)})
+        session.commit()
+
+    response = raw_client.post(
+        "/api/v1/auth/reset-password/confirm",
+        json={"token": reset_token, "password": "newpassword456"},
+    )
+    assert response.status_code == 401
+
+
+def test_reset_password_confirm_rejects_normal_access_token(raw_client):
+    """A normal login-issued access token must not work as a reset token."""
+    register = raw_client.post(
+        "/api/v1/auth/register",
+        json={"email": "reset-wrongtyp@example.com", "password": "password123"},
+    )
+    assert register.status_code == 200
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "reset-wrongtyp@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
+    access_token = raw_client.cookies.get("vinaadi_token")
+    assert access_token
+
+    response = raw_client.post(
+        "/api/v1/auth/reset-password/confirm",
+        json={"token": access_token, "password": "newpassword456"},
+    )
+    assert response.status_code == 401
+
+
 def test_delete_me_handles_daily_scores_linked_by_birth_profile(raw_client):
     register = raw_client.post(
         "/api/v1/auth/register",
         json={"email": "deleteuser@example.com", "password": "password123"},
     )
     assert register.status_code == 200
-    user_id = UUID(register.json()["userId"])
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "deleteuser@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
+    user_id = UUID(login.json()["userId"])
 
     with SessionLocal() as session:
         member = FamilyMember(
@@ -145,7 +433,7 @@ def test_delete_me_handles_daily_scores_linked_by_birth_profile(raw_client):
         profile_id = profile.birth_profile_id
         session.commit()
 
-    delete_response = raw_client.delete("/api/v1/auth/me")
+    delete_response = raw_client.delete("/api/v1/auth/me", headers=CSRF_HEADERS)
     assert delete_response.status_code == 200
     assert delete_response.json()["detail"] == "Account permanently deleted."
 
@@ -162,14 +450,24 @@ def test_delete_me_does_not_delete_other_users_profiles_or_charts(raw_client):
             json={"email": "delete-a@example.com", "password": "password123"},
         )
         assert reg_a.status_code == 200
-        user_a_id = UUID(reg_a.json()["userId"])
+        login_a = user_a_client.post(
+            "/api/v1/auth/login",
+            json={"email": "delete-a@example.com", "password": "password123"},
+        )
+        assert login_a.status_code == 200
+        user_a_id = UUID(login_a.json()["userId"])
 
         reg_b = user_b_client.post(
             "/api/v1/auth/register",
             json={"email": "delete-b@example.com", "password": "password123"},
         )
         assert reg_b.status_code == 200
-        user_b_id = UUID(reg_b.json()["userId"])
+        login_b = user_b_client.post(
+            "/api/v1/auth/login",
+            json={"email": "delete-b@example.com", "password": "password123"},
+        )
+        assert login_b.status_code == 200
+        user_b_id = UUID(login_b.json()["userId"])
 
         with SessionLocal() as session:
             profile_a = BirthProfile(
@@ -229,7 +527,7 @@ def test_delete_me_does_not_delete_other_users_profiles_or_charts(raw_client):
             profile_b_id = profile_b.birth_profile_id
             chart_b_id = chart_b.chart_id
 
-        delete_response = user_a_client.delete("/api/v1/auth/me")
+        delete_response = user_a_client.delete("/api/v1/auth/me", headers=CSRF_HEADERS)
         assert delete_response.status_code == 200
 
         with SessionLocal() as session:
@@ -241,6 +539,142 @@ def test_delete_me_does_not_delete_other_users_profiles_or_charts(raw_client):
             assert session.get(Chart, chart_b_id) is not None
 
 
+def test_delete_me_leaves_no_orphaned_rows_across_every_owned_table(raw_client):
+    """WIRE-2 regression: DELETE /auth/me is the sole surviving deletion path
+    (docs/API_FRONTEND_WIRING_AUDIT_2026-07.md). Seed one row in every table
+    that carries a direct or transitive FK back to this user — including
+    interpretation_outputs and refresh/reset tokens, the two tables the retired
+    users.py anonymise-path variant was found to mishandle — and assert the
+    hard delete leaves zero orphans and zero live sessions behind.
+    """
+    register = raw_client.post(
+        "/api/v1/auth/register",
+        json={"email": "full-erasure@example.com", "password": "password123"},
+    )
+    assert register.status_code == 200
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "full-erasure@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
+    user_id = UUID(login.json()["userId"])
+    now = datetime.now(UTC)
+
+    with SessionLocal() as session:
+        vault = FamilyVault(owner_user_id=user_id, name="Erasure Test Family")
+        session.add(vault)
+        session.flush()
+
+        member = FamilyMember(
+            owner_user_id=user_id,
+            family_vault_id=vault.family_vault_id,
+            display_name="Family Member",
+        )
+        session.add(member)
+        session.flush()
+
+        profile = BirthProfile(
+            owner_user_id=user_id,
+            family_member_id=member.family_member_id,
+            display_name="Erasure User",
+            birth_date_local=date(1991, 7, 22),
+            birth_time_local=time(6, 30),
+            birth_place="Chennai, Tamil Nadu, India",
+            birth_latitude=Decimal("13.082700"),
+            birth_longitude=Decimal("80.270700"),
+            birth_timezone="Asia/Kolkata",
+        )
+        session.add(profile)
+        session.flush()
+
+        chart = Chart(
+            birth_profile_id=profile.birth_profile_id,
+            calculation_version="test-v1",
+            julian_day=Decimal("2451545.00000000"),
+            lagna_rasi="Mesha",
+            lagna_longitude=Decimal("15.25000000"),
+            moon_rasi="Rishabha",
+            janma_nakshatra="Ashwini",
+            janma_pada=1,
+        )
+        session.add(chart)
+        session.flush()
+
+        session.add(Subscription(user_id=user_id, tier="premium", status="active"))
+        session.add(RefreshToken(
+            token_hash="a" * 64, user_id=user_id,
+            expires_at=now.replace(year=now.year + 1),
+        ))
+        session.add(PasswordResetToken(
+            user_id=user_id, jti_hash="b" * 64,
+            expires_at=now.replace(year=now.year + 1),
+        ))
+        session.add(UserStreak(user_id=user_id, current_days=1, longest_days=1, last_active_date=date.today()))
+        session.add(UserPreference(owner_user_id=user_id))
+        session.add(UserNotificationPreference(owner_user_id=user_id))
+        session.add(AskVinaadiUsage(user_id=user_id, usage_date=date.today(), chip_count=1))
+        session.add(UserContext(owner_user_id=user_id, chart_id=chart.chart_id))
+        session.add(UserGoal(owner_user_id=user_id, chart_id=chart.chart_id, goal_type="marriage"))
+        session.add(JournalEntry(
+            owner_user_id=user_id, chart_id=chart.chart_id, entry_date=date.today(),
+            note_text="test entry",
+        ))
+        session.add(RetrospectiveEntry(
+            owner_user_id=user_id, chart_id=chart.chart_id, event_date=date.today(),
+            event_type="job_change", event_description="test event",
+        ))
+        session.add(Notification(
+            user_id=user_id, family_vault_id=vault.family_vault_id, chart_id=chart.chart_id,
+            type="test", priority=50, title="t", body="b", send_at=now,
+        ))
+        interp_chart = InterpretationOutput(
+            chart_id=chart.chart_id, output_type="daily", language="ta-en",
+            structured_input={"birth_date": "1991-07-22"}, output_text={"ta": "..."},
+        )
+        interp_vault = InterpretationOutput(
+            family_vault_id=vault.family_vault_id, output_type="family_summary", language="ta-en",
+            structured_input={"members": 1}, output_text={"ta": "..."},
+        )
+        session.add_all([interp_chart, interp_vault])
+        session.commit()
+
+        owned_ids = {
+            "vault": vault.family_vault_id,
+            "member": member.family_member_id,
+            "profile": profile.birth_profile_id,
+            "chart": chart.chart_id,
+            "interp_chart": interp_chart.interpretation_output_id,
+            "interp_vault": interp_vault.interpretation_output_id,
+        }
+
+    delete_response = raw_client.delete("/api/v1/auth/me", headers=CSRF_HEADERS)
+    assert delete_response.status_code == 200
+
+    with SessionLocal() as session:
+        assert session.get(User, user_id) is None
+        assert session.get(FamilyVault, owned_ids["vault"]) is None
+        assert session.get(FamilyMember, owned_ids["member"]) is None
+        assert session.get(BirthProfile, owned_ids["profile"]) is None
+        assert session.get(Chart, owned_ids["chart"]) is None
+        assert session.query(Subscription).filter(Subscription.user_id == user_id).count() == 0
+        assert session.query(RefreshToken).filter(RefreshToken.user_id == user_id).count() == 0
+        assert session.query(PasswordResetToken).filter(PasswordResetToken.user_id == user_id).count() == 0
+        assert session.get(UserStreak, user_id) is None
+        assert session.query(UserPreference).filter(UserPreference.owner_user_id == user_id).count() == 0
+        assert session.query(UserNotificationPreference).filter(
+            UserNotificationPreference.owner_user_id == user_id
+        ).count() == 0
+        assert session.query(AskVinaadiUsage).filter(AskVinaadiUsage.user_id == user_id).count() == 0
+        assert session.query(UserContext).filter(UserContext.owner_user_id == user_id).count() == 0
+        assert session.query(UserGoal).filter(UserGoal.owner_user_id == user_id).count() == 0
+        assert session.query(JournalEntry).filter(JournalEntry.owner_user_id == user_id).count() == 0
+        assert session.query(RetrospectiveEntry).filter(RetrospectiveEntry.owner_user_id == user_id).count() == 0
+        assert session.query(Notification).filter(Notification.user_id == user_id).count() == 0
+        # The two rows the retired anonymise-path variant would have orphaned:
+        assert session.get(InterpretationOutput, owned_ids["interp_chart"]) is None
+        assert session.get(InterpretationOutput, owned_ids["interp_vault"]) is None
+
+
 def test_deleted_user_cannot_login_until_registering_again(raw_client):
     email = "recoverable-delete@example.com"
     password = "password123"
@@ -250,9 +684,11 @@ def test_deleted_user_cannot_login_until_registering_again(raw_client):
         json={"email": email, "password": password},
     )
     assert first_register.status_code == 200
-    first_user_id = first_register.json()["userId"]
+    first_login = raw_client.post("/api/v1/auth/login", json={"email": email, "password": password})
+    assert first_login.status_code == 200
+    first_user_id = first_login.json()["userId"]
 
-    delete_response = raw_client.delete("/api/v1/auth/me")
+    delete_response = raw_client.delete("/api/v1/auth/me", headers=CSRF_HEADERS)
     assert delete_response.status_code == 200
 
     login_after_delete = raw_client.post(
@@ -267,7 +703,9 @@ def test_deleted_user_cannot_login_until_registering_again(raw_client):
         json={"email": email, "password": password},
     )
     assert second_register.status_code == 200
-    assert second_register.json()["userId"] != first_user_id
+    second_login = raw_client.post("/api/v1/auth/login", json={"email": email, "password": password})
+    assert second_login.status_code == 200
+    assert second_login.json()["userId"] != first_user_id
 
     me_response = raw_client.get("/api/v1/auth/me")
     assert_response(me_response, status=200, required_keys=("email", "userId"))
@@ -313,7 +751,12 @@ def test_suspended_user_cannot_log_in_or_load_me(raw_client):
         json={"email": "suspended@example.com", "password": "password123"},
     )
     assert register.status_code == 200
-    user_id = UUID(register.json()["userId"])
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "suspended@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
+    user_id = UUID(login.json()["userId"])
 
     with SessionLocal() as session:
         user = session.get(User, user_id)
@@ -326,7 +769,7 @@ def test_suspended_user_cannot_log_in_or_load_me(raw_client):
     assert me_response.status_code == 403
     assert me_response.json()["detail"] == "Account suspended. Contact support."
 
-    logout = raw_client.post("/api/v1/auth/logout")
+    logout = raw_client.post("/api/v1/auth/logout", headers=CSRF_HEADERS)
     assert logout.status_code == 204
 
     login_response = raw_client.post(
@@ -337,11 +780,192 @@ def test_suspended_user_cannot_log_in_or_load_me(raw_client):
     assert login_response.json()["detail"] == "Account suspended. Contact support."
 
 
+def test_suspended_user_cannot_patch_or_delete_me(raw_client):
+    register = raw_client.post(
+        "/api/v1/auth/register",
+        json={"email": "suspended-mutating@example.com", "password": "password123"},
+    )
+    assert register.status_code == 200
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "suspended-mutating@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
+    user_id = UUID(login.json()["userId"])
+
+    with SessionLocal() as session:
+        user = session.get(User, user_id)
+        assert user is not None
+        user.is_suspended = True
+        user.suspension_reason = "support action"
+        session.commit()
+
+    patch_response = raw_client.patch(
+        "/api/v1/auth/me",
+        headers=CSRF_HEADERS,
+        json={"userMode": "TRADITIONAL"},
+    )
+    assert patch_response.status_code == 403
+    assert patch_response.json()["detail"] == "Account suspended. Contact support."
+
+    delete_response = raw_client.delete("/api/v1/auth/me", headers=CSRF_HEADERS)
+    assert delete_response.status_code == 403
+    assert delete_response.json()["detail"] == "Account suspended. Contact support."
+
+
 def test_logout_when_already_logged_out_returns_204(raw_client):
     logout = raw_client.post("/api/v1/auth/logout")
     assert logout.status_code == 204
 
 
+def test_cookie_auth_mutation_requires_csrf_header(raw_client):
+    raw_client.post(
+        "/api/v1/auth/register",
+        json={"email": "csrf-user@example.com", "password": "password123"},
+    )
+    login = raw_client.post(
+        "/api/v1/auth/login",
+        json={"email": "csrf-user@example.com", "password": "password123"},
+    )
+    assert login.status_code == 200
+
+    response = raw_client.patch("/api/v1/auth/me", json={"userMode": "TRADITIONAL"})
+    assert response.status_code == 403
+    assert response.json()["detail"] == "CSRF header required."
+
+    ok = raw_client.patch(
+        "/api/v1/auth/me",
+        headers=CSRF_HEADERS,
+        json={"userMode": "TRADITIONAL"},
+    )
+    assert ok.status_code == 200
+    assert ok.json()["userMode"] == "TRADITIONAL"
+
+
 def test_delete_me_requires_authentication(raw_client):
     response = raw_client.delete("/api/v1/auth/me")
     assert response.status_code == 401
+
+
+# ── Google SSO scaffold (#55) ──────────────────────────────────────────────
+
+
+@pytest.fixture
+def _google_oauth_configured_env(monkeypatch):
+    monkeypatch.setenv("JOTHIDAM_GOOGLE_CLIENT_ID", "test-client-id")
+    monkeypatch.setenv("JOTHIDAM_GOOGLE_CLIENT_SECRET", "test-client-secret")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
+def test_oauth_providers_reports_google_disabled_by_default(raw_client, monkeypatch):
+    monkeypatch.delenv("JOTHIDAM_GOOGLE_CLIENT_ID", raising=False)
+    monkeypatch.delenv("JOTHIDAM_GOOGLE_CLIENT_SECRET", raising=False)
+    get_settings.cache_clear()
+    response = raw_client.get("/api/v1/auth/oauth/providers")
+    assert response.status_code == 200
+    assert response.json() == {"google": False}
+    get_settings.cache_clear()
+
+
+def test_oauth_providers_reports_google_enabled_when_configured(raw_client, _google_oauth_configured_env):
+    response = raw_client.get("/api/v1/auth/oauth/providers")
+    assert response.status_code == 200
+    assert response.json() == {"google": True}
+
+
+def test_oauth_google_start_503_when_not_configured(raw_client, monkeypatch):
+    monkeypatch.delenv("JOTHIDAM_GOOGLE_CLIENT_ID", raising=False)
+    monkeypatch.delenv("JOTHIDAM_GOOGLE_CLIENT_SECRET", raising=False)
+    get_settings.cache_clear()
+    response = raw_client.get("/api/v1/auth/oauth/google/start", follow_redirects=False)
+    assert response.status_code == 503
+    get_settings.cache_clear()
+
+
+def test_oauth_google_start_redirects_to_google_with_state_cookie(raw_client, _google_oauth_configured_env):
+    response = raw_client.get("/api/v1/auth/oauth/google/start", follow_redirects=False)
+    assert response.status_code in (302, 307)
+    assert response.headers["location"].startswith("https://accounts.google.com/o/oauth2/v2/auth?")
+    assert "vinaadi_oauth_state" in response.headers.get("set-cookie", "")
+
+
+def test_oauth_google_callback_rejects_missing_state(raw_client, _google_oauth_configured_env):
+    response = raw_client.get(
+        "/api/v1/auth/oauth/google/callback",
+        params={"code": "some-code", "state": "mismatched"},
+        follow_redirects=False,
+    )
+    assert response.status_code in (302, 307)
+    assert "error=oauth_failed" in response.headers["location"]
+
+
+def test_oauth_google_callback_creates_new_user_on_success(raw_client, _google_oauth_configured_env, monkeypatch):
+    def fake_exchange(code, redirect_uri, settings):
+        assert code == "fake-code"
+        return "fake-access-token"
+
+    def fake_userinfo(access_token):
+        assert access_token == "fake-access-token"
+        return {"sub": "google-sub-123", "email": "oauth-newuser@example.com", "email_verified": True}
+
+    monkeypatch.setattr("app.api.auth._google_exchange_code_for_token", fake_exchange)
+    monkeypatch.setattr("app.api.auth._google_fetch_userinfo", fake_userinfo)
+
+    start = raw_client.get("/api/v1/auth/oauth/google/start", follow_redirects=False)
+    state = start.cookies.get("vinaadi_oauth_state")
+    assert state
+
+    callback = raw_client.get(
+        "/api/v1/auth/oauth/google/callback",
+        params={"code": "fake-code", "state": state},
+        follow_redirects=False,
+    )
+    assert callback.status_code in (302, 307)
+    assert callback.headers["location"].endswith("/dashboard")
+    assert "vinaadi_token" in callback.headers.get("set-cookie", "")
+
+    me = raw_client.get("/api/v1/auth/me")
+    assert me.status_code == 200
+    assert me.json()["email"] == "oauth-newuser@example.com"
+
+
+def test_oauth_google_callback_links_existing_password_account_by_email(
+    raw_client, _google_oauth_configured_env, monkeypatch
+):
+    register = raw_client.post(
+        "/api/v1/auth/register",
+        json={"email": "oauth-linkme@example.com", "password": "password123"},
+    )
+    assert register.status_code == 200
+    raw_client.post("/api/v1/auth/logout", headers=CSRF_HEADERS)
+
+    def fake_exchange(code, redirect_uri, settings):
+        return "fake-access-token"
+
+    def fake_userinfo(access_token):
+        return {"sub": "google-sub-link-456", "email": "oauth-linkme@example.com", "email_verified": True}
+
+    monkeypatch.setattr("app.api.auth._google_exchange_code_for_token", fake_exchange)
+    monkeypatch.setattr("app.api.auth._google_fetch_userinfo", fake_userinfo)
+
+    start = raw_client.get("/api/v1/auth/oauth/google/start", follow_redirects=False)
+    state = start.cookies.get("vinaadi_oauth_state")
+
+    callback = raw_client.get(
+        "/api/v1/auth/oauth/google/callback",
+        params={"code": "fake-code", "state": state},
+        follow_redirects=False,
+    )
+    assert callback.status_code in (302, 307)
+
+    me = raw_client.get("/api/v1/auth/me")
+    assert me.status_code == 200
+    assert me.json()["email"] == "oauth-linkme@example.com"
+
+    with SessionLocal() as session:
+        linked = session.query(User).filter(User.email == "oauth-linkme@example.com").first()
+        assert linked is not None
+        assert linked.google_sub == "google-sub-link-456"
+        assert linked.hashed_password is not None  # password login still works

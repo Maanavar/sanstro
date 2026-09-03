@@ -91,6 +91,10 @@ Recommended core message:
 
 **Vinaadi brings Thirukanitham-based Tamil astrology into a modern planning tool for daily guidance, porutham, charts, and family decisions.**
 
+### Reflective artifacts, not gamification
+
+**Streaks, Wrapped, and share cards are reflective, data-backed artifacts in the calm brand voice — not gamification.** They exist so users can notice patterns in their own data and share something genuinely worth showing, not to manufacture engagement. Concretely: share cards look like the score dial — elegant, screenshot-worthy, quietly branded. No confetti, no fire emojis, no streak-shaming. Any future young-user feature is judged against this paragraph instead of being relitigated one by one.
+
 ---
 
 ## What To Prioritize First

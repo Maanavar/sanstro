@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import logging
 import random
 import smtplib
@@ -9,9 +10,17 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import NamedTuple
 
+from fastapi import BackgroundTasks
+
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
+
+
+def _hash_email(address: str) -> str:
+    """Return a 12-char SHA-256 prefix of the email address for safe log output."""
+    return hashlib.sha256(address.encode()).hexdigest()[:12]
+
 
 # ── Generic email delivery with retry ────────────────────────────────────────
 
@@ -27,6 +36,66 @@ class EmailMessage(NamedTuple):
     body_html: str | None = None
 
 
+def _password_reset_link(token: str) -> str:
+    settings = get_settings()
+    return f"{settings.frontend_url.rstrip('/')}/login?resetToken={token}"
+
+
+def send_password_reset_email(to_address: str, token: str) -> bool:
+    reset_link = _password_reset_link(token)
+    message = EmailMessage(
+        to_address=to_address,
+        subject="Vinaadi AI password reset",
+        body_text=(
+            "You requested a password reset for your Vinaadi AI account.\n\n"
+            f"Use this link to continue: {reset_link}\n\n"
+            "This link is single-use and expires shortly. If you did not request this, you can ignore this message."
+        ),
+        body_html=(
+            "<html><body style='font-family:sans-serif;max-width:600px;margin:auto;padding:24px'>"
+            "<h2>Reset your Vinaadi AI password</h2>"
+            "<p>You requested a password reset for your Vinaadi AI account.</p>"
+            f"<p><a href='{reset_link}'>Reset your password</a></p>"
+            "<p>This link is single-use and expires shortly. If you did not request this, you can ignore this message.</p>"
+            "</body></html>"
+        ),
+    )
+    return send_email(message)
+
+
+def enqueue_password_reset_email(background_tasks: BackgroundTasks, to_address: str, token: str) -> None:
+    background_tasks.add_task(send_password_reset_email, to_address, token)
+
+
+def send_existing_account_registration_email(to_address: str) -> bool:
+    settings = get_settings()
+    login_link = f"{settings.frontend_url.rstrip('/')}/login"
+    message = EmailMessage(
+        to_address=to_address,
+        subject="Vinaadi AI account sign-in reminder",
+        body_text=(
+            "Someone tried to create a Vinaadi AI account with this email address.\n\n"
+            "You already have an account, so no new account was created. "
+            f"You can sign in here: {login_link}\n\n"
+            "If this was not you, you can ignore this message."
+        ),
+        body_html=(
+            "<html><body style='font-family:sans-serif;max-width:600px;margin:auto;padding:24px'>"
+            "<h2>Your Vinaadi AI account already exists</h2>"
+            "<p>Someone tried to create a Vinaadi AI account with this email address.</p>"
+            "<p>You already have an account, so no new account was created.</p>"
+            f"<p><a href='{login_link}'>Sign in to Vinaadi AI</a></p>"
+            "<p>If this was not you, you can ignore this message.</p>"
+            "</body></html>"
+        ),
+    )
+    return send_email(message)
+
+
+def enqueue_existing_account_registration_email(background_tasks: BackgroundTasks, to_address: str) -> None:
+    background_tasks.add_task(send_existing_account_registration_email, to_address)
+
+
 def _smtp_configured() -> bool:
     s = get_settings()
     return bool(s.smtp_host and s.smtp_user and s.smtp_pass)
@@ -39,7 +108,7 @@ def send_email(message: EmailMessage) -> bool:
     Returns False only on permanent/exhausted failure.
     """
     if not _smtp_configured():
-        logger.info("SMTP not configured — skipping email to %s: %s", message.to_address, message.subject)
+        logger.info("SMTP not configured — skipping email to %s: %s", _hash_email(message.to_address), message.subject)
         return True
 
     s = get_settings()
@@ -62,19 +131,19 @@ def send_email(message: EmailMessage) -> bool:
                 server.login(s.smtp_user, s.smtp_pass)  # type: ignore[arg-type]
                 server.sendmail(from_addr, [message.to_address], msg.as_string())  # type: ignore[arg-type]
 
-            logger.info("email_sent to=%s subject=%s", message.to_address, message.subject)
+            logger.info("email_sent to=%s subject=%s", _hash_email(message.to_address), message.subject)
             return True
 
         except smtplib.SMTPRecipientsRefused:
-            logger.warning("email_rejected to=%s — server refused recipient, not retrying", message.to_address)
+            logger.warning("email_rejected to=%s — server refused recipient, not retrying", _hash_email(message.to_address))
             return False
 
         except Exception as exc:
             if attempt == _MAX_ATTEMPTS:
-                logger.error("email_failed to=%s after %d attempts: %s", message.to_address, _MAX_ATTEMPTS, exc)
+                logger.error("email_failed to=%s after %d attempts: %s", _hash_email(message.to_address), _MAX_ATTEMPTS, exc)
                 return False
-            delay = _BASE_DELAY_S * (2 ** (attempt - 1)) * (1 + random.uniform(-_JITTER, _JITTER))
-            logger.warning("email_retry attempt=%d/%d to=%s exc=%s delay=%.1fs", attempt, _MAX_ATTEMPTS, message.to_address, exc, delay)
+            delay = _BASE_DELAY_S * (2 ** (attempt - 1)) * (1 + random.uniform(-_JITTER, _JITTER))  # noqa: S311 — retry-backoff jitter, not security-sensitive
+            logger.warning("email_retry attempt=%d/%d to=%s exc=%s delay=%.1fs", attempt, _MAX_ATTEMPTS, _hash_email(message.to_address), exc, delay)
             time.sleep(delay)
 
     return False
@@ -118,6 +187,10 @@ _SANI_REMEDY = {
     "EZHARAI_SANI_PHASE_1": (
         "Focus on letting go of what no longer serves you. Saturn brings restructuring — trust the process.",
         "உங்களுக்கு உதவாதவற்றை விட்டுவிட கவனம் செலுத்துங்கள். சனி மறுகட்டமைப்பை கொண்டுவருகிறார்.",
+    ),
+    "EZHARAI_SANI_PHASE_2": (
+        "Strengthen daily routines and physical health. Hanuman or Sani stotra recitation supports resilience.",
+        "தினசரி ஒழுக்கம் மற்றும் உடல்நலத்தை பலப்படுத்துங்கள். ஹனுமான் அல்லது சனி ஸ்தோத்திரம் உதவும்.",
     ),
     "EZHARAI_SANI_PHASE_3": (
         "Family and financial matters need patience. Avoid major commitments; focus on consolidation.",
@@ -241,7 +314,7 @@ def send_peyarchi_notification(ctx: PeyarchiEmailContext) -> bool:
             "email_stub planet=%s tier=%s to=%s — SMTP not configured, skipping send",
             ctx.planet,
             ctx.tier,
-            ctx.to_address,
+            _hash_email(ctx.to_address),
         )
         return False
 
@@ -253,7 +326,7 @@ def send_peyarchi_notification(ctx: PeyarchiEmailContext) -> bool:
     )
     sent = send_email(message)
     if sent:
-        logger.info("email_sent planet=%s tier=%s to=%s", ctx.planet, ctx.tier, ctx.to_address)
+        logger.info("email_sent planet=%s tier=%s to=%s", ctx.planet, ctx.tier, _hash_email(ctx.to_address))
     else:
-        logger.error("email_failed planet=%s tier=%s to=%s", ctx.planet, ctx.tier, ctx.to_address)
+        logger.error("email_failed planet=%s tier=%s to=%s", ctx.planet, ctx.tier, _hash_email(ctx.to_address))
     return sent

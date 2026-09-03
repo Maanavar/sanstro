@@ -1,0 +1,61 @@
+{
+  "_comment": [
+    "Golden reasoning cases — SYNTHETIC charts only (CLAUDE.md rule: never real birth data).",
+    "Placements are constructed rasi maps, hand-annotated with the expected promise-gate",
+    "outcome per docs/REASONING_LAYER_UPGRADE_PLAN.md §7. Expand toward ~20 charts with",
+    "chief-specialist annotation before flag-on (astrological review gate, plan §8)."
+  ],
+  "cases": [
+    {
+      "name": "denied_marriage",
+      "annotation": "Gemini lagna; 7th lord Jupiter debilitated in Capricorn = 8th house (dusthana + affliction); Venus debilitated in Virgo in both D1 and D9 → chart does not promise marriage. A strong Venus dasha must NOT lift this (D1).",
+      "input": {
+        "lagna_rasi": 3,
+        "planets_rasi": {"SUN": 10, "MOON": 2, "MARS": 10, "MERCURY": 6, "JUPITER": 10, "VENUS": 6, "SATURN": 12, "RAHU": 1, "KETU": 7},
+        "d9_rasi_by_planet": {"VENUS": 6, "JUPITER": 3, "MOON": 5},
+        "active_dasha_lords": ["VENUS"],
+        "transit_jupiter_rasi": 9,
+        "transit_venus_rasi": 9,
+        "age": 29,
+        "marital_status": "single",
+        "venus_combust": false,
+        "sevvai_dosham_cancelled": true
+      },
+      "expected": {"gate": "BLOCKED", "band": "BLOCKED", "confidence": "LOW", "timing_window_claimed": false}
+    },
+    {
+      "name": "delayed_marriage",
+      "annotation": "Aries lagna; 7th lord Venus own-sign in Libra (7th, kendra), Venus own-sign in D9 → PASS gate. Mercury dasha has NO connection to the 7th complex under connection-match rules (not 7/2/11 lord, not karaka, from Virgo neither occupies nor aspects Libra, and Venus in own sign leaves no dispositor link) → timing not yet active: promised, not now. (2026-07-17: dasha lord changed from Saturn — as 11th lord aspecting Libra from Capricorn, Saturn now legitimately supports marriage timing.)",
+      "input": {
+        "lagna_rasi": 1,
+        "planets_rasi": {"SUN": 5, "MOON": 4, "MARS": 8, "MERCURY": 6, "JUPITER": 12, "VENUS": 7, "SATURN": 10, "RAHU": 2, "KETU": 8},
+        "d9_rasi_by_planet": {"VENUS": 2},
+        "active_dasha_lords": ["MERCURY"],
+        "transit_jupiter_rasi": 8,
+        "transit_venus_rasi": 3,
+        "age": 29,
+        "marital_status": "single",
+        "venus_combust": false,
+        "sevvai_dosham_cancelled": true
+      },
+      "expected": {"gate": "PASS", "dasha_support": "WEAK", "timing_window_claimed": true}
+    },
+    {
+      "name": "promised_and_timed_marriage",
+      "annotation": "Same promised chart as delayed_marriage, but Venus dasha is running and transit Venus sits on the 7th → promised AND timed. Regression guard: the gate must not dim genuinely strong charts.",
+      "input": {
+        "lagna_rasi": 1,
+        "planets_rasi": {"SUN": 5, "MOON": 4, "MARS": 8, "MERCURY": 6, "JUPITER": 12, "VENUS": 7, "SATURN": 10, "RAHU": 2, "KETU": 8},
+        "d9_rasi_by_planet": {"VENUS": 2},
+        "active_dasha_lords": ["VENUS"],
+        "transit_jupiter_rasi": 11,
+        "transit_venus_rasi": 7,
+        "age": 29,
+        "marital_status": "single",
+        "venus_combust": false,
+        "sevvai_dosham_cancelled": true
+      },
+      "expected": {"gate": "PASS", "dasha_support": "STRONG", "confidence": "HIGH", "band": "STRONG", "timing_window_claimed": true}
+    }
+  ]
+}

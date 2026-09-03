@@ -1,0 +1,466 @@
+"""Chaldean numerology core (NUM-10..12, NUM-20..23).
+
+Pure module: no DB, no ephemeris, no clock, no settings. Every function is
+deterministic and sub-millisecond.
+
+System choice
+-------------
+**Chaldean, not Pythagorean.** Tamil Nadu practice is Chaldean; a Pythagorean
+table would be dismissed on sight by any practitioner. Two properties of the
+Chaldean system break naive implementations, and both are enforced here:
+
+1. **No letter carries the value 9.** Nine is held apart. The table below is
+   *data*, not an ``A=1..Z=26 mod 9`` formula — deriving it arithmetically
+   produces a different, wrong table.
+
+2. **The compound number outranks the root.** 43 and 34 both reduce to 7 and
+   mean different things. Every reading therefore carries ``total``,
+   ``reduction_chain``, ``compound`` and ``root``; the compound is never
+   discarded. Reducing to a single digit and stopping is the clearest tell of a
+   low-quality implementation.
+
+Script discipline (doctrine D3)
+-------------------------------
+Chaldean values are defined over the Latin alphabet, and Tamil Nadu name
+correction operates on the **document spelling** (Aadhaar/passport/certificate).
+``score_text`` therefore rejects non-Latin letters with ``ScriptMismatchError``
+rather than skipping them — silently ignoring Tamil characters would return a
+plausible, wrong number, which is the exact failure mode this codebase keeps
+getting bitten by. Characters that are legitimately not letters (spaces,
+hyphens, apostrophes, dots) are ignored *and reported* in
+``NumberReading.ignored_characters`` so a caller can show what was dropped.
+
+Where the compound comes from, and where the series runs out (doctrine D6)
+--------------------------------------------------------------------------
+"The compound" is **the first value in the chain that falls within Cheiro's
+documented 10..52 series**. A name totalling 37 has compound 37, not 10.
+
+That rule has a sharp edge, and it is not a detail: **Cheiro's series stops at
+52, and Indian document names routinely exceed it.** Of twelve realistic
+three-part names measured, ten totalled above 52. For those the rule reduces
+until something lands in range, so a name totalling 87 is read as 15 — the
+meaning of a number the name does not make. Worse, a name totalling 63 reduces
+straight to 9 with nothing landing in 10..52 at all, and would otherwise report
+``compound=None``, which is indistinguishable from a genuinely single-digit
+total.
+
+Pandit Sethuraman extended the series to **1..108** for exactly this reason, and
+his is the tradition this product follows (see doctrine D5/D6). That corpus is
+not in hand, so the meanings are not encoded — but the *fact* is:
+``compound_beyond_series`` carries the real total whenever the reading describes
+a surrogate, and ``compound_is_surrogate`` says so outright. Encoding the
+53..108 meanings from an unsourced guess would be the failure the NU-8a
+print-over-online protocol exists to prevent.
+
+``reduction_chain`` is always exposed so a different convention can be derived
+without recomputation.
+"""
+from __future__ import annotations
+
+import unicodedata
+from dataclasses import dataclass
+from enum import StrEnum
+
+from app.calculations.display_names import planet_en, planet_ta
+
+#: Chaldean letter groups. NOTE the absence of 9 — see module docstring.
+CHALDEAN_GROUPS: dict[int, str] = {
+    1: "AIJQY",
+    2: "BKR",
+    3: "CGLS",
+    4: "DMT",
+    5: "EHNX",
+    6: "UVW",
+    7: "OZ",
+    8: "FP",
+}
+
+CHALDEAN_VALUES: dict[str, int] = {
+    letter: value for value, letters in CHALDEAN_GROUPS.items() for letter in letters
+}
+
+#: Number -> graha. The one place Chaldean numerology touches jyotisha, and the
+#: bridge the Fortune Alignment Score (Phase 3) is built on. Enum keys match
+#: ``app.calculations.display_names`` so Tamil/English display is not forked.
+NUMBER_TO_GRAHA: dict[int, str] = {
+    1: "SUN",
+    2: "MOON",
+    3: "JUPITER",
+    4: "RAHU",
+    5: "MERCURY",
+    6: "VENUS",
+    7: "KETU",
+    8: "SATURN",
+    9: "MARS",
+}
+
+#: Cheiro's documented compound series. A compound outside this range is
+#: reduced further rather than interpreted.
+COMPOUND_SERIES_MIN = 10
+COMPOUND_SERIES_MAX = 52
+
+#: Non-letter characters that may appear in a real written name and are dropped
+#: without complaint (but are still reported).
+_IGNORABLE = frozenset(" \t\n.'’-_/,()")
+
+
+class ScriptMismatchError(ValueError):
+    """Raised when a non-Latin script reaches the Chaldean scorer.
+
+    Chaldean values are Latin-only. Scoring a Tamil string by skipping its
+    characters would return a confident wrong answer; refusing is the only safe
+    behaviour. Callers must romanise first and record which string they scored.
+    """
+
+
+class ObjectKind(StrEnum):
+    """Non-person subjects that carry a number (NUM-21..23)."""
+
+    MOBILE = "mobile"
+    VEHICLE = "vehicle"
+    HOUSE = "house"
+
+
+@dataclass(frozen=True, slots=True)
+class NumberReading:
+    """One computed number, with its full derivation kept intact."""
+
+    total: int
+    reduction_chain: tuple[int, ...]
+    compound: int | None
+    root: int
+    graha: str
+    ignored_characters: tuple[str, ...] = ()
+    #: ``(character, value)`` for every scored token, in the order encountered.
+    #: Empty for readings built from a date or an already-summed total, which
+    #: have no letters to break down.
+    #:
+    #: This is the arithmetic a practitioner writes out by hand, and its absence
+    #: is what makes a name total unverifiable: "adds up to 65" is an assertion,
+    #: while ``S·3 E·5 N·5 …`` is a claim the reader can check and — the reason
+    #: it matters for name correction — can see *move* when a spelling changes.
+    #: Emitted rather than left to clients because ``CHALDEAN_GROUPS`` is data,
+    #: not a formula (see module docstring): a second copy of the table in
+    #: TypeScript is a second copy to get wrong.
+    letter_values: tuple[tuple[str, int], ...] = ()
+    #: The name's own total, when that total lies **above** the encoded 10-52
+    #: series and the reading therefore describes a reduced surrogate rather
+    #: than the number the name actually makes. ``None`` whenever ``compound``
+    #: is the real thing.
+    #:
+    #: This exists because Cheiro's series stops at 52 and Indian document names
+    #: routinely exceed it — of twelve realistic three-part names measured,
+    #: **ten totalled above 52**. Without this field two opposite situations are
+    #: both reported as ``compound=None``: a genuinely single-digit total, and a
+    #: name totalling 63 (which reduces straight to 9 with nothing landing in
+    #: 10..52). The second is not "no compound" — 63 *is* the compound, and
+    #: Pandit Sethuraman's series reads it. See doctrine D6.
+    compound_beyond_series: int | None = None
+
+    @property
+    def graha_ta(self) -> str:
+        return planet_ta(self.graha)
+
+    @property
+    def graha_en(self) -> str:
+        return planet_en(self.graha)
+
+    @property
+    def has_compound(self) -> bool:
+        """Whether a compound *within the encoded series* was found.
+
+        Note this is False both for a single-digit total and for a total above
+        52 that reduces straight past the series — check
+        ``compound_beyond_series`` to tell those apart.
+        """
+        return self.compound is not None
+
+    @property
+    def compound_is_surrogate(self) -> bool:
+        """True when ``compound`` is a reduction of the name's real total.
+
+        A caller showing a compound reading for such a name is showing the
+        meaning of a *different number* than the one the name adds up to, and
+        should say so.
+        """
+        return self.compound_beyond_series is not None
+
+
+def digit_sum(value: int) -> int:
+    """Sum of the decimal digits of ``value``. Public: the timing engine needs it."""
+    return sum(int(ch) for ch in str(abs(value)))
+
+
+def reduction_chain(total: int) -> tuple[int, ...]:
+    """Full reduction path, starting at ``total`` and ending at a single digit.
+
+    Exposed (rather than kept internal) because the compound convention is an
+    open doctrine question — a caller can re-derive a different reading from the
+    chain without recomputing the sum.
+    """
+    if total < 0:
+        raise ValueError("total must be non-negative")
+    chain = [total]
+    current = total
+    while current > 9:
+        current = digit_sum(current)
+        chain.append(current)
+    return tuple(chain)
+
+
+def compound_from_chain(chain: tuple[int, ...]) -> int | None:
+    """First value in Cheiro's 10..52 series, or None for a single-digit total."""
+    for value in chain:
+        if COMPOUND_SERIES_MIN <= value <= COMPOUND_SERIES_MAX:
+            return value
+    return None
+
+
+def reading_from_total(
+    total: int,
+    ignored: tuple[str, ...] = (),
+    letter_values: tuple[tuple[str, int], ...] = (),
+) -> NumberReading:
+    """Build a full reading from an already-summed total.
+
+    Public so sibling modules (``numerology_timing``) build readings the same
+    way rather than re-deriving compound/root/graha and drifting.
+
+    ``letter_values`` is supplied only by the two scorers below; a reading built
+    from a date or a running total legitimately has no letters, and an empty
+    tuple means exactly that rather than "not computed".
+    """
+    chain = reduction_chain(total)
+    root = chain[-1]
+    if root == 0:
+        raise ValueError("cannot build a reading from a zero total")
+    if letter_values and sum(value for _, value in letter_values) != total:
+        # The breakdown is shown to users as the *proof* of the total. If the
+        # two ever disagree the page is displaying a lie in a font that invites
+        # checking, so this is an assertion rather than a lenient reconcile.
+        raise ValueError(
+            f"letter_values sum to {sum(v for _, v in letter_values)}, total is {total}"
+        )
+    return NumberReading(
+        total=total,
+        reduction_chain=chain,
+        compound=compound_from_chain(chain),
+        # Single construction site, so this cannot drift out of step with
+        # ``compound`` the way a field set by each caller would.
+        compound_beyond_series=total if total > COMPOUND_SERIES_MAX else None,
+        root=root,
+        graha=NUMBER_TO_GRAHA[root],
+        ignored_characters=ignored,
+        letter_values=letter_values,
+    )
+
+
+def chaldean_value(char: str) -> int | None:
+    """Chaldean value of a single Latin letter, or None if it is not a letter."""
+    return CHALDEAN_VALUES.get(char.upper())
+
+
+def _strip_diacritics(text: str) -> str:
+    decomposed = unicodedata.normalize("NFD", text)
+    return "".join(ch for ch in decomposed if not unicodedata.combining(ch))
+
+
+def score_text(text: str) -> NumberReading:
+    """Chaldean reading of a written name.
+
+    Raises ``ScriptMismatchError`` on non-Latin letters (doctrine D3) and
+    ``ValueError`` on input with no scoreable letters at all.
+    """
+    if not text or not text.strip():
+        raise ValueError("cannot score an empty name")
+
+    normalized = _strip_diacritics(text)
+    total = 0
+    ignored: list[str] = []
+    letters: list[tuple[str, int]] = []
+    for char in normalized:
+        if char in _IGNORABLE:
+            ignored.append(char)
+            continue
+        value = chaldean_value(char)
+        if value is not None:
+            total += value
+            letters.append((char.upper(), value))
+            continue
+        if char.isalpha():
+            raise ScriptMismatchError(
+                f"{char!r} (U+{ord(char):04X}, {unicodedata.name(char, 'unnamed')}) is not a "
+                "Latin letter. Chaldean values are Latin-only and Tamil Nadu name correction "
+                "scores the document spelling — romanise the name first and record which "
+                "string was scored."
+            )
+        ignored.append(char)
+
+    if total == 0:
+        raise ValueError(f"no scoreable Latin letters in {text!r}")
+    return reading_from_total(total, tuple(dict.fromkeys(ignored)), tuple(letters))
+
+
+def score_digits(text: str) -> NumberReading:
+    """Reading of a digit string (mobile, house, plate digits).
+
+    Letters are scored with the Chaldean table too — vehicle plates and house
+    numbers like "12A" are alphanumeric in practice.
+    """
+    if not text or not text.strip():
+        raise ValueError("cannot score an empty number")
+
+    normalized = _strip_diacritics(text)
+    total = 0
+    ignored: list[str] = []
+    letters: list[tuple[str, int]] = []
+    seen_token = False
+    for char in normalized:
+        if char.isdigit():
+            total += int(char)
+            # A digit scores as itself, which reads as trivial until a plate
+            # mixes digits and letters ("TN 09 BX 4512") and the reader needs to
+            # see that N counted 5 while 9 counted 9.
+            letters.append((char, int(char)))
+            seen_token = True
+            continue
+        value = chaldean_value(char)
+        if value is not None:
+            total += value
+            letters.append((char.upper(), value))
+            seen_token = True
+            continue
+        if char.isalpha():
+            raise ScriptMismatchError(
+                f"{char!r} is not a Latin letter or digit; cannot score it."
+            )
+        ignored.append(char)
+
+    if not seen_token or total == 0:
+        raise ValueError(f"no scoreable digits or letters in {text!r}")
+    return reading_from_total(total, tuple(dict.fromkeys(ignored)), tuple(letters))
+
+
+# ---------------------------------------------------------------------------
+# The four core numbers (NUM-11)
+# ---------------------------------------------------------------------------
+@dataclass(frozen=True, slots=True)
+class NumerologyProfile:
+    """The four numbers a Tamil practitioner reads for a person.
+
+    ``scored_name``/``scored_namesake`` record the exact string that produced
+    each number. Doctrine D3 requires this: an English-spelling reading and a
+    Tamil-spelling reading are different numbers, and a response that does not
+    say which it computed is unusable for name correction.
+    """
+
+    psychic: NumberReading
+    destiny: NumberReading
+    name: NumberReading | None = None
+    namesake: NumberReading | None = None
+    scored_name: str | None = None
+    scored_namesake: str | None = None
+
+
+def psychic_number(birth_day: int) -> NumberReading:
+    """Day-of-month reading. Strongest roughly 1..35 years."""
+    if not 1 <= birth_day <= 31:
+        raise ValueError(f"birth_day must be 1..31, got {birth_day}")
+    return reading_from_total(birth_day)
+
+
+def destiny_number(year: int, month: int, day: int) -> NumberReading:
+    """Life-path reading: every digit of the full date of birth.
+
+    Sums all digits of YYYY+MM+DD rather than summing pre-reduced components.
+    Because digit sums are congruent mod 9 the two methods always agree on the
+    *root* — but they produce different totals and therefore different
+    **compounds** (1990-05-17: all-digits 32, pre-reduced 14; both root 5). The
+    compound outranks the root, so this is a real difference, not a stylistic
+    one. All-digits is the Chaldean/Cheiro standard.
+    """
+    if not 1 <= month <= 12:
+        raise ValueError(f"month must be 1..12, got {month}")
+    if not 1 <= day <= 31:
+        raise ValueError(f"day must be 1..31, got {day}")
+    if year < 1:
+        raise ValueError(f"year must be positive, got {year}")
+    total = digit_sum(year) + digit_sum(month) + digit_sum(day)
+    return reading_from_total(total)
+
+
+def build_profile(
+    *,
+    year: int,
+    month: int,
+    day: int,
+    document_name: str | None = None,
+    called_name: str | None = None,
+) -> NumerologyProfile:
+    """Assemble the four numbers.
+
+    ``document_name`` is the spelling on official records — the one name
+    correction targets. ``called_name`` is what people actually use day to day;
+    it frequently differs, and practitioners read it separately.
+    """
+    return NumerologyProfile(
+        psychic=psychic_number(day),
+        destiny=destiny_number(year, month, day),
+        name=score_text(document_name) if document_name else None,
+        namesake=score_text(called_name) if called_name else None,
+        scored_name=document_name or None,
+        scored_namesake=called_name or None,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Object numerology (NUM-20..23)
+# ---------------------------------------------------------------------------
+@dataclass(frozen=True, slots=True)
+class ObjectReading:
+    kind: ObjectKind
+    raw: str
+    scored: str
+    reading: NumberReading
+    #: Mobile numbers are read both whole and by their last four digits; this
+    #: carries the secondary reading where a convention calls for one.
+    secondary_label: str | None = None
+    secondary: NumberReading | None = None
+
+
+def _digits_only(text: str) -> str:
+    return "".join(ch for ch in text if ch.isdigit())
+
+
+def analyze_object(
+    raw: str,
+    kind: ObjectKind,
+    *,
+    mobile_tail_length: int = 4,
+) -> ObjectReading:
+    """Score a mobile / vehicle / house number.
+
+    Mobile also returns a last-``mobile_tail_length``-digits reading, which is
+    the more commonly quoted number in Tamil Nadu practice. Vehicle plates and
+    house numbers are scored whole, letters included ("TN 09 BX 4512", "12A").
+    """
+    if not raw or not raw.strip():
+        raise ValueError("cannot analyze an empty value")
+
+    if kind is ObjectKind.MOBILE:
+        digits = _digits_only(raw)
+        if not digits:
+            raise ValueError(f"no digits in mobile number {raw!r}")
+        primary = score_digits(digits)
+        tail = digits[-mobile_tail_length:] if len(digits) >= mobile_tail_length else None
+        return ObjectReading(
+            kind=kind,
+            raw=raw,
+            scored=digits,
+            reading=primary,
+            secondary_label=f"last {mobile_tail_length}" if tail else None,
+            secondary=score_digits(tail) if tail else None,
+        )
+
+    scored = raw.strip()
+    return ObjectReading(kind=kind, raw=raw, scored=scored, reading=score_digits(scored))

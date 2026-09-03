@@ -7,8 +7,8 @@ Each area is scored 0–100 using:
   - House signification rules (which house governs this area)
   - Current transit of the area's karaka (significator) planet
   - Dasha lord relevance (maha 70% + antardasha 30%)
-  - Active Sani cycle penalty — from Moon (Sade Sati phases/Ardhashtama/Ashtama)
-    and from Lagna (Kandaka Sani)
+  - Active Sani cycle penalty — all counted from the Moon: Sade Sati phases,
+    Ardhashtama, Ashtama, and Kandaka (4/7/10, doctrine A-1)
   - Chandrashtamam penalty for mind-sensitive areas
 
 All planet-house tables follow South Indian Thirukanitham tradition.
@@ -16,8 +16,12 @@ Whole Sign house system assumed throughout (consistent with chart engine).
 """
 from __future__ import annotations
 
+import hashlib
+import logging
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta, tzinfo
+from functools import partial
+from typing import TypedDict
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -26,8 +30,17 @@ from sqlalchemy.orm import Session
 
 from app.calculations.ashtakavarga import compute_bhinnashtakavarga, compute_sarvashtakavarga
 from app.calculations.astro import house_from_reference, resolve_timezone, utc_datetime_to_julian_day
-from app.calculations.chart_strength import SIGN_LORD
+from app.calculations.bav_derived import (
+    BAND_THIN,
+    compute_bav_derived_indications,
+    disclosable_indications,
+    factor_code,
+)
+from app.calculations.bhava_afflictions import affliction_dosham_strength, assess_bhava_afflictions
+from app.calculations.chart_strength import SIGN_LORD, compute_bhava_bala
 from app.calculations.dasha import calculate_vimshottari_timeline
+from app.calculations.dasha_activation import assess_dasha_activation
+from app.calculations.display_names import planet_en as dn_planet_en
 from app.calculations.double_transit import score_double_transit
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.functional_nature import FunctionalNature, get_functional_nature
@@ -35,22 +48,50 @@ from app.calculations.karaka_chains import LIFE_AREA_KARAKA
 from app.calculations.maturation import maturation_multiplier
 from app.calculations.prediction_score import PredictionScoreInput, compute_prediction_score
 from app.calculations.remedies import get_area_remedy
-from app.calculations.transits import classify_kandaka_cycle, classify_sani_cycle
-from app.schemas.dasha import ResponseMeta
-from app.schemas.life_areas import (
-    LifeAreaData,
-    LifeAreaDriver,
-    LifeAreaText,
-    LifeAreasResponse,
-    LifeAreasResponseData,
+from app.calculations.sade_sati import (
+    assess_mitigation,
+    elapsed_month,
+    severity_for_month,
 )
+from app.calculations.transits import (
+    classify_ezharai_sani_murthi_ingress,
+    classify_kandaka_cycle,
+    classify_sani_cycle,
+    find_saturn_ingress_jd,
+)
+from app.core.age_gate import get_house_locus
 from app.models import BirthProfile, Chart
 from app.models.user_life_events import UserLifeEvent
+from app.reasoning.chart_signature import detect_signature
+from app.reasoning.contradiction import Reading, classify
+from app.reasoning.promise_gate import GateGrade
+from app.reasoning.timing_vote import timing_band_from_score
+from app.reasoning.verdict import legacy_confidence_to_band
+from app.schemas.dasha import ResponseMeta
+from app.schemas.life_areas import (
+    ChartSignatureData,
+    LifeAreaData,
+    LifeAreaDriver,
+    LifeAreasResponse,
+    LifeAreasResponseData,
+    LifeAreaText,
+)
 from app.services.chart_service import load_persisted_chart_response
+from app.services.feature_flags import get_flag
 from app.services.goals_service import get_active_goals_for_chart
 from app.services.location_service import resolve_effective_daily_timezone
+from app.services.narrative_engine import (
+    active_but_unpromised_voice,
+    promised_not_now_voice,
+    reading_phrase,
+    render_causal_chain,
+    signature_framing,
+)
+from app.services.prediction_log_service import log_prediction
 from app.services.rectification_service import validate_chart_against_events
+from app.services.safety_filter import run_safety_pass
 
+logger = logging.getLogger(__name__)
 
 # ── Bilingual helper ───────────────────────────────────────────────────────────
 
@@ -87,7 +128,7 @@ _AREA_LABELS = {
     "PROPERTY":        _t("சொத்து",          "Property"),
     "FOREIGN":         _t("வெளிநாடு",        "Foreign"),
     "LITIGATION":      _t("வழக்கு",          "Litigation"),
-    "SPIRITUALITY":    _t("ஆன்மிகம்",        "Spirituality"),
+    "SPIRITUALITY":    _t("ஆன்மீகம்",        "Spirituality"),
 }
 
 # ── House quality tables (from Moon — Tamil Thirukanitham) ────────────────────
@@ -274,10 +315,42 @@ _AREA_ROUTING: dict[str, dict] = {
 
 # ── Trend calculation ──────────────────────────────────────────────────────────
 
-def _trend(score: int, dasha_score: int) -> str:
-    if dasha_score >= 65 and score >= 60:
+#: The mind-sensitive areas Chandrashtamam is allowed to drag, and by how much.
+#: Named here rather than inline in `_score_area` so the flag reported to the
+#: client (`chandrashtamaApplied`) is derived from the SAME set that applies the
+#: penalty — a life-area score is otherwise a period number, and this is the one
+#: input in it that turns over on a ~2-day cycle, so a surface has to be able to
+#: say why the tile moved.
+_CHANDRASHTAMA_AREAS: frozenset[str] = frozenset(
+    {"HEALTH", "RELATIONSHIPS", "FAMILY_HARMONY", "EDUCATION"}
+)
+_CHANDRASHTAMA_PENALTY = 8
+
+#: Smallest score move the arrow will call a direction. Chosen from measured
+#: behaviour: the ashtakavarga term alone jitters a score by up to ±4 when the
+#: area's karaka changes rasi (monthly for Sun/Mercury/Venus areas), while a
+#: real structural move — Jupiter or Saturn changing rasi, a dasha turning over
+#: — measured 5–11 points. So 5 is the floor that separates signal from jitter.
+_TREND_DELTA = 5
+
+
+def _trend(score: int, score_6mo: int) -> str:
+    """Direction the area is actually heading, over the next six months.
+
+    This used to be ``_trend(score, dasha_score)`` — a function of the CURRENT
+    score alone, with no time delta anywhere in it: score < 45 returned "DOWN"
+    and a high dasha score returned "UP". So a tile reading "Money 16 ↓" was not
+    saying money was falling, it was saying 16 is a low number — the same fact
+    the score, its colour and its verdict word already carried, restated a
+    fourth time as a direction it never measured.
+
+    ``score_6mo`` is the same engine re-run against the transits and dasha in
+    force six months out, so comparing the two is a real slope.
+    """
+    delta = score_6mo - score
+    if delta >= _TREND_DELTA:
         return "UP"
-    if score < 45 or dasha_score < 45:
+    if delta <= -_TREND_DELTA:
         return "DOWN"
     return "STABLE"
 
@@ -444,21 +517,23 @@ def _build_area_reason(
     planet_ta = _PLANET_LABEL[karaka_planet].ta
     transit_quality_en = "well-placed" if karaka_house_from_moon in {1, 2, 3, 4, 5, 7, 9, 10, 11} else "in a challenging position"
     transit_quality_ta = "சாதகமான இடத்தில்" if transit_quality_en == "well-placed" else "சவாலான இடத்தில்"
-    level_en = "strong" if score >= 70 else ("moderate" if score >= 45 else "needs attention")
-    level_ta = "வலிமையாக" if score >= 70 else ("மிதமாக" if score >= 45 else "கவனம் தேவை")
+    maha_lord_ta = _PLANET_LABEL[maha_lord].ta if maha_lord in _PLANET_LABEL else maha_lord
+    antar_lord_ta = _PLANET_LABEL[antar_lord].ta if antar_lord in _PLANET_LABEL else antar_lord
+    maha_lord_en = dn_planet_en(maha_lord)
+    antar_lord_en = dn_planet_en(antar_lord)
 
     if maha_relevant and antar_relevant:
-        dasha_en = f"{maha_lord} mahadasha and {antar_lord} antardasha both support {area_en.lower()}."
-        dasha_ta = f"{maha_lord} மகாதசையும் {antar_lord} அந்தர்தசையும் {area_ta}க்கு ஆதரவு அளிக்கின்றன."
+        dasha_en = f"{maha_lord_en} mahadasha and {antar_lord_en} antardasha both support {area_en.lower()}."
+        dasha_ta = f"{maha_lord_ta} மகாதசையும் {antar_lord_ta} அந்தர்தசையும் {area_ta}க்கு ஆதரவு அளிக்கின்றன."
     elif maha_relevant:
-        dasha_en = f"{maha_lord} mahadasha supports {area_en.lower()}; {antar_lord} antardasha is neutral."
-        dasha_ta = f"{maha_lord} மகாதசை {area_ta}க்கு ஆதரவு; {antar_lord} அந்தர்தசை நடுநிலை."
+        dasha_en = f"{maha_lord_en} mahadasha supports {area_en.lower()}; {antar_lord_en} antardasha is neutral."
+        dasha_ta = f"{maha_lord_ta} மகாதசை {area_ta}க்கு ஆதரவு; {antar_lord_ta} அந்தர்தசை நடுநிலை."
     elif antar_relevant:
-        dasha_en = f"{maha_lord} mahadasha is neutral; {antar_lord} antardasha adds support for {area_en.lower()}."
-        dasha_ta = f"{maha_lord} மகாதசை நடுநிலை; {antar_lord} அந்தர்தசை {area_ta}க்கு துணை."
+        dasha_en = f"{maha_lord_en} mahadasha is neutral; {antar_lord_en} antardasha adds support for {area_en.lower()}."
+        dasha_ta = f"{maha_lord_ta} மகாதசை நடுநிலை; {antar_lord_ta} அந்தர்தசை {area_ta}க்கு துணை."
     else:
-        dasha_en = f"Neither {maha_lord} mahadasha nor {antar_lord} antardasha is strongly aligned with {area_en.lower()}."
-        dasha_ta = f"{maha_lord} மகாதசையும் {antar_lord} அந்தர்தசையும் {area_ta}க்கு வலுவான இணைப்பில் இல்லை."
+        dasha_en = f"Neither {maha_lord_en} mahadasha nor {antar_lord_en} antardasha is strongly aligned with {area_en.lower()}."
+        dasha_ta = f"{maha_lord_ta} மகாதசையும் {antar_lord_ta} அந்தர்தசையும் {area_ta}க்கு வலுவான இணைப்பில் இல்லை."
 
     sani_en = ""
     sani_ta = ""
@@ -467,9 +542,37 @@ def _build_area_reason(
         sani_en = f" {sani_label} is active, so patience and structure are important."
         sani_ta = f" {_sani_label_ta(sani_phase)} நடப்பில் இருப்பதால் பொறுமையுடன் திட்டமிட்டு செயல்பட வேண்டும்."
 
+    # RP-11: three seeded skeletons keyed by area, so the cards on one page
+    # don't all read as one mail-merged template.
+    _OPENERS = (
+        ("{planet_ta} ({area_ta} காரகன்) சந்திரனிலிருந்து {house}ஆம் இடத்தில் {quality_ta} உள்ளது.",
+         "{planet_en} (karaka for {area_en}) is in house {house} from Moon and is {quality_en}."),
+        ("{area_ta} காரகனான {planet_ta} இப்போது சந்திரனிலிருந்து {house}ஆம் இடத்தில் {quality_ta} உள்ளது.",
+         "{planet_en}, the karaka for {area_en}, currently sits in house {house} from Moon — {quality_en}."),
+        ("சந்திரனிலிருந்து {house}ஆம் இடத்தில் இருக்கும் {planet_ta} ({area_ta} காரகன்) இப்போது {quality_ta} உள்ளது.",
+         "From the Moon, {planet_en} — the karaka for {area_en} — occupies house {house} and is {quality_en}."),
+    )
+    digest = hashlib.sha256(area_key.encode("utf-8")).digest()
+    opener_ta, opener_en = _OPENERS[int.from_bytes(digest[:8], "big") % len(_OPENERS)]
+    opener_ta = opener_ta.format(planet_ta=planet_ta, area_ta=area_ta, house=karaka_house_from_moon, quality_ta=transit_quality_ta)
+    opener_en = opener_en.format(planet_en=planet_en, area_en=area_en.lower(), house=karaka_house_from_moon, quality_en=transit_quality_en)
+
+    # D2/D7: the level word carries the judgement; the numeric score is kept
+    # alongside it (show both, 2026-07-13). RP-11 also fixes the previously
+    # dangling close ("தொழில் வலிமையாக (72/100)") into a full clause.
+    if score >= 70:
+        close_ta = f"மொத்தமாக, {area_ta} பலன் வலுவாக உள்ளது ({score}/100)."
+        close_en = f"Overall, {area_en.lower()} is strong right now ({score}/100)."
+    elif score >= 45:
+        close_ta = f"மொத்தமாக, {area_ta} பலன் மிதமாக உள்ளது ({score}/100)."
+        close_en = f"Overall, {area_en.lower()} is moderate and steady ({score}/100)."
+    else:
+        close_ta = f"மொத்தமாக, {area_ta} பகுதி இப்போது கூடுதல் நிதானம் கேட்கிறது ({score}/100)."
+        close_en = f"Overall, {area_en.lower()} needs attention — extra patience helps right now ({score}/100)."
+
     return _t(
-        f"{planet_ta} ({area_ta} காரகன்) சந்திரனிலிருந்து {karaka_house_from_moon}ஆம் இடத்தில் {transit_quality_ta} உள்ளது. {dasha_ta}{sani_ta} மொத்தப் பலன்: {area_ta} {level_ta} ({score}/100).",
-        f"{planet_en} (karaka for {area_en.lower()}) is in house {karaka_house_from_moon} from Moon and is {transit_quality_en}. {dasha_en}{sani_en} Net effect: {area_en.lower()} is {level_en} ({score}/100).",
+        f"{opener_ta} {dasha_ta}{sani_ta} {close_ta}",
+        f"{opener_en} {dasha_en}{sani_en} {close_en}",
     )
 
 
@@ -502,10 +605,11 @@ def _find_next_improvement_date(
         chandrashtama_rasi = ((natal_moon_rasi - 1 + 7) % 12) + 1
         chandrashtama = moon.rasi == chandrashtama_rasi
         saturn_house_from_moon = house_from_reference(natal_moon_rasi, saturn.rasi)
-        saturn_house_from_lagna = house_from_reference(natal_lagna_rasi, saturn.rasi)
         sani_cycle = classify_sani_cycle(saturn_house_from_moon)
-        kandaka_cycle = classify_kandaka_cycle(saturn_house_from_lagna)
-        projected, _ = _score_area(
+        # Kandaka counts from the Janma Rasi and layers over `sani_cycle` — the
+        # 4th from the Moon is both Ardhashtama and Kandaka (doctrine A-1).
+        kandaka_cycle = classify_kandaka_cycle(saturn_house_from_moon)
+        projected, _, _ = _score_area(
             area,
             natal_moon_rasi,
             transit.bodies,
@@ -528,6 +632,110 @@ def _find_next_improvement_date(
     return on_date + timedelta(days=90)
 
 
+# ── Forward-projected forecast horizons (6- and 12-month) ─────────────────────
+# The life-area table shows where each area is *heading*, not only where it sits
+# today. Instead of a cosmetic ± slope, we re-run the same engine at the future
+# date — real transits, the mahadasha/antardasha in force then, and the Sani /
+# Kandaka cycles — and blend it exactly as the current score is blended
+# (0.65 gate + 0.35 karaka chain, matching the loop below). The two future
+# transit snapshots are computed once per request and reused across all areas,
+# so the added cost is two ephemeris calls, not two-per-area. Astrologer review.
+_FORECAST_HORIZON_6MO_DAYS = 182
+_FORECAST_HORIZON_12MO_DAYS = 365
+
+
+@dataclass
+class _ForecastContext:
+    transit_bodies: dict
+    transit_planet_rasis: dict[str, int]
+    maha_lord: str
+    antar_lord: str
+    sani_type: str | None
+    sani_active: bool
+    kandaka_active: bool
+    chandrashtama: bool
+
+
+def _forecast_context(
+    *,
+    check_date: date,
+    tz: tzinfo,
+    birth_jd: float,
+    moon_longitude: float,
+    natal_moon_rasi: int,
+    natal_lagna_rasi: int,
+) -> _ForecastContext:
+    check_jd = utc_datetime_to_julian_day(
+        datetime.combine(check_date, time(12, 0), tzinfo=tz).astimezone(UTC)
+    )
+    transit = calculate_sidereal_planets(check_jd)
+    timeline = calculate_vimshottari_timeline(birth_jd, moon_longitude, check_jd)
+    moon = transit.bodies["MOON"]
+    saturn = transit.bodies["SATURN"]
+    chandrashtama_rasi = ((natal_moon_rasi - 1 + 7) % 12) + 1
+    saturn_house_from_moon = house_from_reference(natal_moon_rasi, saturn.rasi)
+    sani_cycle = classify_sani_cycle(saturn_house_from_moon)
+    # Kandaka counts from the Janma Rasi and layers over `sani_cycle` — the 4th
+    # from the Moon is both Ardhashtama and Kandaka (doctrine A-1).
+    kandaka_cycle = classify_kandaka_cycle(saturn_house_from_moon)
+    return _ForecastContext(
+        transit_bodies=transit.bodies,
+        transit_planet_rasis={g: b.rasi for g, b in transit.bodies.items()},
+        maha_lord=timeline.current_mahadasha.lord,
+        antar_lord=timeline.current_antardasha.lord,
+        sani_type=sani_cycle.type if sani_cycle.is_active else None,
+        sani_active=sani_cycle.is_active,
+        kandaka_active=kandaka_cycle.is_active,
+        chandrashtama=(moon.rasi == chandrashtama_rasi),
+    )
+
+
+def _projected_area_score(
+    area: str,
+    ctx: _ForecastContext,
+    *,
+    natal_moon_rasi: int,
+    natal_lagna_rasi: int,
+    natal_planet_scores: dict[str, int],
+    natal_planet_rasis: dict[str, int],
+    vargas: dict[str, dict[str, int]] | None,
+    bav: dict[str, dict[int, int]] | None,
+    sav: dict[int, int] | None,
+    native_age: int,
+) -> int:
+    gate, _, _ = _score_area(
+        area,
+        natal_moon_rasi,
+        ctx.transit_bodies,
+        ctx.maha_lord,
+        ctx.antar_lord,
+        ctx.sani_type,
+        ctx.sani_active,
+        ctx.kandaka_active,
+        ctx.chandrashtama,
+        lagna_rasi=natal_lagna_rasi,
+        natal_planet_scores=natal_planet_scores,
+        natal_planet_rasis=natal_planet_rasis,
+        vargas=vargas,
+        bav=bav,
+        sav=sav,
+        native_age=native_age,
+    )
+    chain = _karaka_chain_score(
+        area_key=_AREA_TO_CHAIN_KEY.get(area, area),
+        lagna_rasi=natal_lagna_rasi,
+        moon_rasi=natal_moon_rasi,
+        planet_scores=natal_planet_scores,
+        planet_rasis=natal_planet_rasis,
+        current_mahadasha_lord=ctx.maha_lord,
+        current_antardasha_lord=ctx.antar_lord,
+        transit_planet_rasis=ctx.transit_planet_rasis,
+        native_age=native_age,
+        sarvashtakavarga=sav,
+    )
+    return max(0, min(100, round(gate * 0.65 + chain["score"] * 0.35)))
+
+
 # ── Narrative templates per area × score band ─────────────────────────────────
 
 @dataclass
@@ -541,38 +749,49 @@ class _NarrativeBundle:
 _SANI_TYPE_LABEL_TA = {
     "JANMA_SANI":           "ஜன்ம சனி",
     "EZHARAI_SANI_PHASE_1": "ஏழரை சனி (தொடக்கம்)",
+    "EZHARAI_SANI_PHASE_2": "ஏழரை சனி (நடுவு — ஜன்ம சனி)",
     "EZHARAI_SANI_PHASE_3": "ஏழரை சனி (முடிவு)",
     "ARDHASHTAMA_SANI":     "அர்த்தாஷ்டம சனி",
     "ASHTAMA_SANI":         "அஷ்டம சனி",
     "KANTAKA_SANI":         "கண்டக சனி",
-    "KANDAKA_SANI":         "கண்டக சனி (லக்னம்)",
+    "KANDAKA_SANI":         "கண்டக சனி (ஜென்ம ராசி)",
 }
 _SANI_TYPE_LABEL_EN = {
     "JANMA_SANI":           "Janma Sani",
     "EZHARAI_SANI_PHASE_1": "Sade Sati (beginning)",
+    "EZHARAI_SANI_PHASE_2": "Sade Sati (peak — Janma Sani)",
     "EZHARAI_SANI_PHASE_3": "Sade Sati (ending)",
     "ARDHASHTAMA_SANI":     "Ardhashtama Sani",
     "ASHTAMA_SANI":         "Ashtama Sani",
     "KANTAKA_SANI":         "Kantaka Sani",
-    "KANDAKA_SANI":         "Kandaka Sani (Lagna)",
+    "KANDAKA_SANI":         "Kandaka Sani (Janma Rasi)",
 }
 
 
-def _sani_label_ta(sani_type: str | None) -> str:
-    return _SANI_TYPE_LABEL_TA.get(sani_type or "", "சனி சுழற்சி")
+_SADE_SATI_SANI_TYPES = frozenset({"JANMA_SANI", "EZHARAI_SANI_PHASE_1", "EZHARAI_SANI_PHASE_2", "EZHARAI_SANI_PHASE_3"})
 
 
-def _sani_label_en(sani_type: str | None) -> str:
-    return _SANI_TYPE_LABEL_EN.get(sani_type or "", "Sani cycle")
+def _sani_label_ta(sani_type: str | None, murthi: dict[str, str] | None = None) -> str:
+    base = _SANI_TYPE_LABEL_TA.get(sani_type or "", "சனி சுழற்சி")
+    if sani_type in _SADE_SATI_SANI_TYPES and murthi:
+        return f"{base} ({murthi['ta']})"
+    return base
 
 
-def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_type: str | None, chandrashtama: bool, jupiter_house: int, saturn_house: int) -> _NarrativeBundle:
+def _sani_label_en(sani_type: str | None, murthi: dict[str, str] | None = None) -> str:
+    base = _SANI_TYPE_LABEL_EN.get(sani_type or "", "Sani cycle")
+    if sani_type in _SADE_SATI_SANI_TYPES and murthi:
+        return f"{base} — {murthi['en']}"
+    return base
+
+
+def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_type: str | None, chandrashtama: bool, jupiter_house: int, saturn_house: int, murthi: dict[str, str] | None = None, house_4_locus: str = "self") -> _NarrativeBundle:
     planet_ta = _PLANET_LABEL[maha_lord].ta
     planet_en = _PLANET_LABEL[maha_lord].en
     jup_h = jupiter_house
     sat_h = saturn_house
-    sani_ta = _sani_label_ta(sani_type) if sani_active else ""
-    sani_en = _sani_label_en(sani_type) if sani_active else ""
+    sani_ta = _sani_label_ta(sani_type, murthi) if sani_active else ""
+    sani_en = _sani_label_en(sani_type, murthi) if sani_active else ""
 
     match area:
         case "CAREER":
@@ -589,6 +808,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                 )
                 remedy = _t("வியாழக்கிழமை தட்சிணாமூர்த்தி தரிசனம். சனிக்கிழமை சனீஸ்வரன் வழிபாடு. ஒரு மாணவரின் கல்வி அல்லது தொழில் பயிற்சிக்கு நன்கொடை செய்வது தொழில் வழியில் சேவை.",
                             "Visit Dakshinamurthy temple on Thursdays. Worship Saneeswaran on Saturdays. Sponsoring a student's education or skills training is an effective career seva.")
+                return _NarrativeBundle(narr, outlook, remedy)
             elif score >= 50:
                 narr = _t(
                     f"தொழில் நடுநிலையான நிலையில் உள்ளது. {planet_ta} தசையில் படிப்படியான முன்னேற்றம் சாத்தியம். "
@@ -602,6 +822,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                 )
                 remedy = _t("சனிக்கிழமை விரதம் (உடல்நலம் இடம் தந்தால்) அல்லது ஹனுமான் வழிபாடு உதவும். தினக்கூலி தொழிலாளிக்கு உதவுவது தொழில் நிலைப்படுத்தலுக்கு சேவை.",
                             "Saturday fasting (only if your health permits) or Hanuman worship is helpful. Helping a daily wage worker or donating to a skills training program supports career stability.")
+                return _NarrativeBundle(narr, outlook, remedy)
             else:
                 narr = _t(
                     f"தொழிலில் தற்காலிக சவால்கள் உள்ளன. {planet_ta} தசையில் பொறுமை மிக முக்கியம். "
@@ -632,6 +853,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                              "Good time for savings and investment in the next 30 days.")
                 remedy = _t("வெள்ளிக்கிழமை மகாலட்சுமி வழிபாடு. தான தர்மம் செய்யுங்கள். அன்னதானம் அல்லது ஒரு மாணவரின் கல்விக்கு நன்கொடை லட்சுமி கடாட்சத்தை செயல்பட வைக்கும்.",
                             "Worship Mahalakshmi on Fridays. Practice charity and giving. Annadhanam or sponsoring a student's education is the most effective Lakshmi seva for money flow.")
+                return _NarrativeBundle(narr, outlook, remedy)
             elif score >= 50:
                 narr = _t(
                     f"நிதி நிலை நடுநிலையாக உள்ளது. {planet_ta} தசையில் கவனமான நிதி முடிவுகள் தேவை.",
@@ -641,6 +863,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                              "Avoid unnecessary expenses in the next 30 days.")
                 remedy = _t("வியாழக்கிழமை குரு வழிபாடு. மஞ்சள் தானம் உதவும். மஞ்சள் பொருட்கள் தானம் அல்லது கல்வி நன்கொடை நிதியை உறுதிப்படுத்தும்.",
                             "Jupiter worship on Thursdays. Donating yellow items is helpful. Donating yellow items or contributing to education funds helps stabilise finances.")
+                return _NarrativeBundle(narr, outlook, remedy)
             else:
                 narr = _t(
                     f"நிதியில் சவால்கள் உள்ளன. {sani_ta + ' — செலவுகள் அதிகரிக்கலாம்.' if sani_active else 'கவனமான நிதி மேலாண்மை தேவை.'}",
@@ -665,6 +888,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                              "Continue exercise and healthy routines in the next 30 days.")
                 remedy = _t("ஞாயிற்றுக்கிழமை சூரியனை வணங்குங்கள். நீர் அதிகம் அருந்துங்கள். தாய்மார்கள் அல்லது நோயாளிகளுக்கு உணவு வழங்குவது சூரிய சேவை.",
                             "Worship the Sun on Sundays. Drink plenty of water. Offering food to mothers or patients who cannot afford care is a Sun seva that maintains health.")
+                return _NarrativeBundle(narr, outlook, remedy)
             elif score >= 50:
                 narr = _t(
                     f"உடல்நலம் நடுநிலையில் உள்ளது. {'சந்திராஷ்டமம் — மன அழுத்தம் கவனம்.' if chandrashtama else f'{planet_ta} தசையில் சாதாரண கவனம் தேவை.'}",
@@ -674,6 +898,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                              "Pay attention to sleep and diet in the next 30 days.")
                 remedy = _t("திங்கட்கிழமை சந்திர வழிபாடு. யோகா அல்லது தியானம் உதவும். நோயாளிகளுக்கோ வயதான தனிமையில் இருப்பவருக்கோ உதவுவது சந்திர சேவை.",
                             "Moon worship on Mondays. Yoga or meditation will help. Helping a sick or isolated elderly person is an effective Moon seva for steady health.")
+                return _NarrativeBundle(narr, outlook, remedy)
             else:
                 narr = _t(
                     f"உடல்நலத்தில் கவனம் தேவை. {sani_ta + ' — ஓய்வு மிக முக்கியம்.' if sani_active else 'சக்தி குறைவு சாத்தியம்.'}",
@@ -713,6 +938,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                              "Good time for marriage discussions in the next 30 days.")
                 remedy = _t("வெள்ளிக்கிழமை மகாலட்சுமி வழிபாடு. வெள்ளை அல்லது வண்ணப் பூக்கள் சமர்ப்பிக்கவும். ஆதரவற்ற பெண்ணுக்கு அல்லது இளம் தாய்க்கு உதவுவது சுக்கிர சேவை.",
                             "Worship Mahalakshmi on Fridays. Offer white or colourful flowers. Supporting an underprivileged woman or young mother is an effective Venus seva for relationships.")
+                return _NarrativeBundle(narr, outlook, remedy)
             elif score >= 50:
                 narr = _t(
                     f"உறவுகளில் நடுநிலை நிலை. {planet_ta} தசையில் பொறுமையும் புரிதலும் முக்கியம்.",
@@ -722,6 +948,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                              "Maintain honest communication in relationships over the next 30 days.")
                 remedy = _t("வெள்ளிக்கிழமை விரதம் (உடல்நலம் இடம் தந்தால்) மற்றும் சுக்கிர வழிபாடு உதவும். பெண் குழந்தை கல்விக்கு உதவுவது அல்லது ஆதரவற்ற பெண்ணுக்கு மருந்து வழங்குவது சுக்கிர சேவை.",
                             "Friday fasting (only if your health permits) and Venus worship will help. Sponsoring a girl child's education or supporting a woman in need deepens Venus harmony.")
+                return _NarrativeBundle(narr, outlook, remedy)
             else:
                 narr = _t(
                     f"உறவுகளில் சவால்கள் உள்ளன. {'சந்திராஷ்டமம் — உணர்வு மோதல் தவிர்க்கவும்.' if chandrashtama else 'அமைதியான உரையாடல் தேவை.'}",
@@ -757,6 +984,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                              "Good time to learn new skills and appear for exams in the next 30 days.")
                 remedy = _t("வியாழக்கிழமை சரஸ்வதி மற்றும் தட்சிணாமூர்த்தி வழிபாடு.",
                             "Worship Saraswati and Dakshinamurthy on Thursdays.")
+                return _NarrativeBundle(narr, outlook, remedy)
             elif score >= 50:
                 narr = _t(
                     f"கல்வியில் நடுநிலை ஆதரவு. {planet_ta} தசையில் தொடர்ச்சியான முயற்சி தேவை.",
@@ -766,6 +994,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                              "Continue studies without distraction over the next 30 days.")
                 remedy = _t("புதன்கிழமை பெருமாள் (திருமால்) வழிபாடு. ஓலை எழுதுவது நல்லது.",
                             "Worship Perumal on Wednesdays. Writing on a leaf is auspicious.")
+                return _NarrativeBundle(narr, outlook, remedy)
             else:
                 narr = _t(
                     f"கல்வியில் கவன சிதறல் மற்றும் தடைகள் சாத்தியம். {planet_ta} தசையில் மிகுந்த முயற்சி தேவை.",
@@ -808,6 +1037,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                     f"The next 30 days are supportive for progress. {action['en']}",
                 )
                 remedy = _t("தொடர்ச்சியான வழிபாடு மற்றும் ஒழுக்கமான முயற்சி தொடரவும்.", "Continue steady worship and disciplined effort.")
+                return _NarrativeBundle(narr, outlook, remedy)
             elif score >= 50:
                 narr = _t(
                     f"{area_text[0]} விஷயங்களில் நடுநிலை பலன். பொறுமையுடன் முன்னேறவும்.",
@@ -818,6 +1048,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                     "Steady improvement is possible over the next 30 days.",
                 )
                 remedy = _t("நேரம் தவறாமல் பரிகாரத்தை பின்பற்றவும்.", "Follow remedies consistently and on schedule.")
+                return _NarrativeBundle(narr, outlook, remedy)
             else:
                 narr = _t(
                     f"{area_text[0]} விஷயங்களில் தற்கால சவால் உள்ளது. அவசர முடிவுகளைத் தவிர்க்கவும்.",
@@ -848,6 +1079,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                              "Good time for temple visits and meditation practice in the next 30 days.")
                 remedy = _t("வியாழக்கிழமை குரு வழிபாடு. கீதை அல்லது திருவாசகம் ஒரு அத்தியாயம் தினமும் படிக்கலாம்.",
                             "Guru worship on Thursdays. Read one chapter of Gita or Thiruvasagam daily.")
+                return _NarrativeBundle(narr, outlook, remedy)
             else:
                 narr = _t(
                     f"ஆன்மீக கவனம் சிதறும் காலம். {planet_ta} தசையில் நிலையான வழிபாட்டு வழக்கம் தேவை.",
@@ -857,6 +1089,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                              "Continue a short daily meditation practice over the next 30 days.")
                 remedy = _t("தினமும் காலையில் சூரியனை வணங்கி ஆரம்பிக்கவும். மவுன நேரம் வைத்திருங்கள்.",
                             "Begin each day by worshipping the Sun. Keep a period of silence daily.")
+                return _NarrativeBundle(narr, outlook, remedy)
 
         case "FAMILY_HARMONY":
             if score >= 70:
@@ -868,6 +1101,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                              "Good time for family events and travel in the next 30 days.")
                 remedy = _t("திங்கட்கிழமை குடும்பத்தினருடன் சந்திர வழிபாடு செய்யுங்கள்.",
                             "Perform Moon worship with family on Mondays.")
+                return _NarrativeBundle(narr, outlook, remedy)
             elif score >= 50:
                 narr = _t(
                     f"குடும்ப நலம் நடுநிலையில் உள்ளது. {planet_ta} தசையில் கவனமான தொடர்பு முக்கியம்.",
@@ -877,6 +1111,7 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                              "Allocate time for family members over the next 30 days.")
                 remedy = _t("திங்கட்கிழமை விரதம் (உடல்நலம் இடம் தந்தால்), சந்திர வழிபாடு உதவும்.",
                             "Monday fasting (only if your health permits) and Moon worship will help.")
+                return _NarrativeBundle(narr, outlook, remedy)
             else:
                 narr = _t(
                     f"குடும்பத்தில் மோதல் மற்றும் கருத்து வேறுபாடு சாத்தியம். {'சந்திராஷ்டமம் — உணர்வுகளை கவனமாக வெளிப்படுத்துங்கள்.' if chandrashtama else 'பொறுமை மிக முக்கியம்.'}",
@@ -886,23 +1121,34 @@ def _narrative(area: str, score: int, maha_lord: str, sani_active: bool, sani_ty
                              "Make family decisions together over the next 30 days.")
                 remedy = _t("திங்கட்கிழமை அம்மன் வழிபாடு. கடும் வார்த்தைகளை முற்றிலும் தவிர்க்கவும்.",
                             "Worship Amman on Mondays. Avoid harsh words completely.")
+                caution_ta = (
+                    "சந்திராஷ்டமம் நாட்களில் குடும்ப நடவடிக்கைகளில் கோபத்தை கட்டுப்படுத்துங்கள்."
+                    if chandrashtama
+                    else "குடும்ப உரையாடல்களில் அவசர பதில்களை தவிர்த்து பொறுமையுடன் நடந்துகொள்ளுங்கள்."
+                )
+                caution_en = (
+                    "Control anger in family interactions on Chandrashtamam days."
+                    if chandrashtama
+                    else "Avoid reactive speech in family interactions and respond with patience."
+                )
+                if house_4_locus == "family":
+                    # Gate-1 re-signification: before independence/marriage, the 4th
+                    # house reading centres on the parental home rather than the
+                    # native's own household.
+                    caution_ta += " இந்த வயதில் 4ஆம் இடம் பெற்றோர் இல்லத்தையே முதன்மையாக குறிக்கிறது."
+                    caution_en += " At this life stage, the 4th house primarily reflects the parental home, not your own household yet."
                 return _NarrativeBundle(
                     narr,
                     outlook,
                     remedy,
-                    caution=_t(
-                        "சந்திராஷ்டமம் நாட்களில் குடும்ப நடவடிக்கைகளில் கோபத்தை கட்டுப்படுத்துங்கள்."
-                        if chandrashtama
-                        else "குடும்ப உரையாடல்களில் அவசர பதில்களை தவிர்த்து பொறுமையுடன் நடந்துகொள்ளுங்கள்.",
-                        "Control anger in family interactions on Chandrashtamam days."
-                        if chandrashtama
-                        else "Avoid reactive speech in family interactions and respond with patience.",
-                    ),
+                    caution=_t(caution_ta, caution_en),
                 )
 
-    # Default fallback
-    narr = _t(f"{planet_ta} தசையில் இந்த துறையில் {score}/100 ஆதரவு உள்ளது.",
-              f"{score}/100 support in this area under {planet_en} dasa.")
+    # Default fallback — D2/D7: band word plus the numeric score (show both).
+    support_ta = "நல்ல" if score >= 60 else ("நடுநிலை" if score >= 45 else "குறைந்த")
+    support_en = "good" if score >= 60 else ("steady" if score >= 45 else "reduced")
+    narr = _t(f"{planet_ta} தசையில் இந்த துறையில் {support_ta} ஆதரவு உள்ளது ({score}/100).",
+              f"{support_en.capitalize()} support in this area under {planet_en} dasa ({score}/100).")
     outlook = _t("அடுத்த 30 நாட்களில் நிலையான முன்னேற்றம் எதிர்பார்க்கலாம்.",
                  "Steady progress expected in the next 30 days.")
     remedy = _t("வழக்கமான வழிபாட்டை தொடரவும்.", "Continue regular worship practice.")
@@ -929,15 +1175,27 @@ def _score_area(
     bav: dict[str, dict[int, int]] | None = None,
     sav: dict[int, int] | None = None,
     native_age: int = 30,
-) -> tuple[int, dict[str, int]]:
+    # EC-RULING-05. Both default to the "not evaluated" values, so the two
+    # `_score_area` call sites that project a future date (and therefore have no
+    # ingress search of their own) keep the previous flat behaviour rather than
+    # inheriting today's segmentation for a date months away.
+    sade_sati_severity: str | None = None,
+    sade_sati_mitigation_count: int = 0,
+) -> tuple[int, dict[str, int], str | None]:
+    """(total, per-layer breakdown, gate grade).
+
+    The annotation said two values while the body returned three; the three
+    call sites all unpack three, so the code was right and the signature was
+    stale from when `gate_grade` was added.
+    """
     karakas = _AREA_KARAKA.get(area, ["JUPITER"])
     primary_karaka = karakas[0]
     primary_house = _AREA_PRIMARY_HOUSE.get(area, 1)
     primary_house_rasi = ((lagna_rasi + primary_house - 2) % 12) + 1
     house_lord = SIGN_LORD.get(primary_house_rasi, "SUN")
 
-    transit_rasi = transit_bodies.get(primary_karaka).rasi if primary_karaka in transit_bodies else natal_moon_rasi
-    karaka_house_from_moon = house_from_reference(natal_moon_rasi, transit_rasi)
+    transit_rasi = transit_bodies[primary_karaka].rasi if primary_karaka in transit_bodies else natal_moon_rasi
+    karaka_house_from_moon = house_from_reference(natal_moon_rasi, transit_rasi)  # noqa: F841 — retained scaffolding; jupiter_house is used below
     jupiter_house = house_from_reference(natal_moon_rasi, transit_bodies["JUPITER"].rasi)
     saturn_house = house_from_reference(natal_moon_rasi, transit_bodies["SATURN"].rasi)
 
@@ -978,20 +1236,51 @@ def _score_area(
 
     # W12: maturation multiplier from mahadasha lord
     m_mult = maturation_multiplier(maha_lord, native_age)
-    maha_conn = house_from_reference(lagna_rasi, natal_planet_rasis.get(maha_lord, lagna_rasi)) in relevant_houses
-    antar_conn = house_from_reference(lagna_rasi, natal_planet_rasis.get(antar_lord, lagna_rasi)) in relevant_houses
+    # Connection-match (dasha_activation.py): occupying a relevant house was
+    # the old rule; lordship, aspect on the bhava, dispositorship, and node
+    # agency now also connect a dasha lord to the area.
+    activation = assess_dasha_activation(
+        lagna_rasi=lagna_rasi,
+        bhava_house=primary_house,
+        dasha_lords=[maha_lord, antar_lord],
+        natal_planet_rasis=natal_planet_rasis,
+        karakas=karakas,
+        related_houses=relevant_houses,
+    )
+    maha_conn = any(c.startswith("maha:") for c in activation.connections) or (
+        house_from_reference(lagna_rasi, natal_planet_rasis.get(maha_lord, lagna_rasi)) in relevant_houses
+    )
+    antar_conn = any(c.startswith("antar:") for c in activation.connections) or (
+        house_from_reference(lagna_rasi, natal_planet_rasis.get(antar_lord, lagna_rasi)) in relevant_houses
+    )
 
+    # Named malefic afflictions on the area bhava feed the promise gate as an
+    # area-specific dosham (previously hardcoded to NONE): papa kartari plus
+    # multiple malefic drishti can qualify the birth promise itself, and
+    # shubha kartari acts as the cancellation channel.
+    affliction = assess_bhava_afflictions(
+        lagna_rasi=lagna_rasi,
+        bhava_house=primary_house,
+        planet_rasis=natal_planet_rasis,
+        karaka=primary_karaka,
+    )
+    area_dosham_strength = affliction_dosham_strength(affliction.severity)
+
+    use_gate = bool(get_flag("reasoning_gate"))
     inp = PredictionScoreInput(
         house_lord_strength=natal_planet_scores.get(house_lord, 50),
         karaka_strength=natal_planet_scores.get(primary_karaka, 50),
         yoga_present=False,
         yoga_strength="NONE",
-        dosham_present=False,
-        dosham_cancelled=False,
-        dosham_strength="NONE",
+        dosham_present=area_dosham_strength != "NONE",
+        dosham_cancelled=affliction.shubha_kartari,
+        dosham_strength=area_dosham_strength,
         key_planet_strengths=[natal_planet_scores.get(p, 50) for p in set([house_lord] + karakas)],
-        maha_lord_functional_nature=get_functional_nature(lagna_rasi, maha_lord).value,
-        antar_lord_functional_nature=get_functional_nature(lagna_rasi, antar_lord).value,
+        # node_rasi_map so a Rahu/Ketu dasha lord resolves via dispositor+house
+        # (its real functional nature), not the NEUTRAL table fallback — matching
+        # every other consumer (audit C4).
+        maha_lord_functional_nature=get_functional_nature(lagna_rasi, maha_lord, node_rasi_map=natal_planet_rasis).value,
+        antar_lord_functional_nature=get_functional_nature(lagna_rasi, antar_lord, node_rasi_map=natal_planet_rasis).value,
         maha_lord_house_connection=maha_conn,
         antar_lord_house_connection=antar_conn,
         maha_lord_strength=natal_planet_scores.get(maha_lord, 50),
@@ -1000,16 +1289,18 @@ def _score_area(
         jupiter_house_score=jupiter_house_score,
         saturn_house_score=saturn_house_score,
         double_transit_score=double_transit_score,
-        is_sade_sati=sani_cycle_type in {"JANMA_SANI", "EZHARAI_SANI_PHASE_1", "EZHARAI_SANI_PHASE_3"},
+        is_sade_sati=sani_cycle_type in {"JANMA_SANI", "EZHARAI_SANI_PHASE_1", "EZHARAI_SANI_PHASE_2", "EZHARAI_SANI_PHASE_3"},
         is_ashtama_sani=sani_cycle_type == "ASHTAMA_SANI",
         bav_delta=bav_delta,
         sav_delta=sav_delta,
+        sade_sati_severity=sade_sati_severity,
+        sade_sati_mitigation_count=sade_sati_mitigation_count,
     )
-    scored = compute_prediction_score(inp)
+    scored = compute_prediction_score(inp, use_reasoning_gate=use_gate)
     if kandaka_sani_active:
         scored.total = max(0, scored.total - _SANI_AREA_PENALTY["KANDAKA_SANI"].get(area, 0))
-    if chandrashtama and area in ("HEALTH", "RELATIONSHIPS", "FAMILY_HARMONY", "EDUCATION"):
-        scored.total = max(0, scored.total - 8)
+    if chandrashtama and area in _CHANDRASHTAMA_AREAS:
+        scored.total = max(0, scored.total - _CHANDRASHTAMA_PENALTY)
 
     return scored.total, {
         "l1": scored.l1_birth_promise,
@@ -1018,7 +1309,7 @@ def _score_area(
         "l4": scored.l4_varga_confirmation,
         "l5": scored.l5_transit_support,
         "l6": scored.l6_ashtakavarga,
-    }
+    }, scored.gate_grade
 
 
 # ── Public service function ────────────────────────────────────────────────────
@@ -1050,6 +1341,30 @@ _AREA_TO_CHAIN_KEY: dict[str, str] = {
     "LITIGATION": "CAREER",
 }
 
+# Age band per AREA, overriding the band on whatever karaka chain that area
+# borrows above.
+#
+# The bands used to live only on LIFE_AREA_KARAKA, so a borrowed chain dragged
+# its age gate along with it and applied it to a different area. Three areas
+# were mis-banded as a result:
+#
+#   EDUCATION      borrowed CHILDREN (18-52) — a 10-year-old's Education card is
+#                  phase-relevant, so it was not skipped; it was scored at 30
+#                  with a "too_young" chip on a CHILD's education reading.
+#   FAMILY_HARMONY borrowed PROPERTY (25+)   — same shape, for everyone under 25.
+#   LITIGATION     borrowed CAREER (16-70)   — capped at 70 for no reason of its
+#                  own; the life-phase gate already keeps it away from minors.
+#
+# Areas absent from this table keep their chain's band, which for them is their
+# own (CAREER, CHILDREN, RELATIONSHIPS, PROPERTY, HEALTH, MONEY/WEALTH,
+# SPIRITUAL, FOREIGN). None means "no age bound" — the life-phase gate above is
+# the only age gate that area needs.
+_AREA_AGE_BAND: dict[str, tuple[int | None, int | None]] = {
+    "EDUCATION": (None, None),
+    "FAMILY_HARMONY": (None, None),
+    "LITIGATION": (None, None),
+}
+
 _GOAL_TO_AREA: dict[str, str | None] = {
     "job_change": "CAREER",
     "business_start": "CAREER",
@@ -1066,15 +1381,27 @@ _GOAL_TO_AREA: dict[str, str | None] = {
 }
 
 
+class _MarakaGuard(TypedDict):
+    """The maraka override payload. Was `dict[str, object]`, which made every
+    read an `object` and so unusable without a cast at the call site."""
+
+    override_caution_ta: str
+    override_caution_en: str
+    suppress_score_display: bool
+
+
 def _maraka_safety_check(
     area: str,
     maha_lord: str,
     antar_lord: str,
     lagna_rasi: int,
     native_age: int,
-) -> dict[str, object] | None:
-    maha_fn = get_functional_nature(lagna_rasi, maha_lord)
-    antar_fn = get_functional_nature(lagna_rasi, antar_lord)
+    node_rasi_map: dict[str, int] | None = None,
+) -> _MarakaGuard | None:
+    # node_rasi_map so a Rahu/Ketu dasha lord can inherit a MARAKA nature from
+    # its dispositor instead of defaulting to NEUTRAL (audit C4).
+    maha_fn = get_functional_nature(lagna_rasi, maha_lord, node_rasi_map=node_rasi_map)
+    antar_fn = get_functional_nature(lagna_rasi, antar_lord, node_rasi_map=node_rasi_map)
     if (
         area == "HEALTH"
         and maha_fn == FunctionalNature.MARAKA
@@ -1106,6 +1433,7 @@ def _karaka_chain_score(
     transit_planet_rasis: dict[str, int],
     native_age: int,
     sarvashtakavarga: dict[int, int] | None = None,
+    age_band: tuple[int | None, int | None] | None = None,
 ) -> dict:
     chain = LIFE_AREA_KARAKA.get(area_key)
     if chain is None:
@@ -1119,8 +1447,14 @@ def _karaka_chain_score(
             "supporting_factors": [],
         }
 
-    age_min = chain.get("age_min")
-    age_max = chain.get("age_max")
+    # The age band belongs to the AREA THE READER SEES, not to the karaka chain
+    # it happens to borrow — see _AREA_AGE_BAND. Falling back to the chain's own
+    # band keeps every direct caller (forecasts, tests) behaving as before.
+    if age_band is not None:
+        age_min, age_max = age_band
+    else:
+        age_min = chain.get("age_min")
+        age_max = chain.get("age_max")
     if age_min is not None and native_age < age_min:
         return {
             "score": 30,
@@ -1150,6 +1484,9 @@ def _karaka_chain_score(
     primary_house_rasi = ((lagna_rasi + primary_house - 2) % 12) + 1
     house_lord = SIGN_LORD.get(primary_house_rasi, "SUN")
     lord_score = planet_scores.get(house_lord, 50)
+    # Bhava Bala: house strength as its own metric (lord + occupants + aspects),
+    # not just the lord's planet-level score — see chart_strength.compute_bhava_bala.
+    bhava_bala_score = compute_bhava_bala(primary_house, lagna_rasi, planet_rasis, planet_scores)
     if lord_score >= 65:
         supporting_factors.append(f"{house_lord}_lord_strong")
     elif lord_score <= 35:
@@ -1165,10 +1502,50 @@ def _karaka_chain_score(
             blocking_factors.append(f"{karaka}_karaka_weak")
     karaka_score_avg = karaka_score_avg // max(1, len(karaka_planets))
 
-    dasha_lords = {current_mahadasha_lord, current_antardasha_lord}
-    dasha_activation = bool(dasha_lords & ({house_lord} | set(karaka_planets)))
+    # Connection-match dasha activation (dasha_activation.py): a dasha lord
+    # also activates the area by occupying/aspecting the bhava, lording a
+    # secondary house, being the bhava lord's dispositor, or via node agency —
+    # not only by being the lord/karaka itself.
+    activation = assess_dasha_activation(
+        lagna_rasi=lagna_rasi,
+        bhava_house=primary_house,
+        dasha_lords=[current_mahadasha_lord, current_antardasha_lord],
+        natal_planet_rasis=planet_rasis,
+        karakas=karaka_planets,
+        related_houses=chain.get("secondary_houses", ()),
+    )
+    dasha_activation = activation.activated
     if dasha_activation:
         supporting_factors.append("dasha_activates_area")
+        # Surface the connection *kinds* as stable snake_case keys the
+        # frontends can localize (raw "maha:VENUS:lords_bhava" tokens would
+        # render verbatim on the Life Area cards). Node agency collapses to
+        # one key regardless of which planet the node fronts for.
+        seen_kinds: list[str] = []
+        for conn in activation.connections:
+            kind = conn.split(":", 2)[2]
+            if kind.startswith("node_agent_of_"):
+                kind = "node_agent"
+            key = f"dasha_{kind}"
+            if key not in seen_kinds:
+                seen_kinds.append(key)
+        supporting_factors.extend(seen_kinds[:2])
+
+    # Named malefic afflictions on the bhava/lord/karaka (bhava_afflictions.py).
+    affliction = assess_bhava_afflictions(
+        lagna_rasi=lagna_rasi,
+        bhava_house=primary_house,
+        planet_rasis=planet_rasis,
+        karaka=karaka_planets[0] if karaka_planets else None,
+    )
+    for malefic in affliction.malefics_occupying:
+        blocking_factors.append(f"{malefic}_occupies_house")
+    for malefic in affliction.malefics_aspecting:
+        blocking_factors.append(f"{malefic}_aspects_house")
+    if affliction.papa_kartari:
+        blocking_factors.append("papa_kartari_hems_house")
+    if affliction.shubha_kartari:
+        supporting_factors.append("shubha_kartari_protects_house")
 
     transit_support = 50
     for karaka in karaka_planets:
@@ -1191,18 +1568,26 @@ def _karaka_chain_score(
         elif sarva <= 22:
             blocking_factors.append("house_av_weak")
 
+    # STRONG activation keeps the historical +15; a MODERATE (secondary)
+    # connection earns a partial +8 instead of the old all-or-nothing.
+    dasha_bonus = {"STRONG": 15, "MODERATE": 8}.get(activation.strength, 0)
+    # Named afflictions subtract only past the background threshold
+    # (severity ≥ 3) so ordinary malefic scatter doesn't move scores;
+    # shubha kartari adds a small protective credit.
+    affliction_penalty = min(12, (affliction.severity - 2) * 3) if affliction.is_afflicted else 0
     score = (
-        lord_score * 0.35
+        bhava_bala_score * 0.35
         + karaka_score_avg * 0.30
         + transit_support * 0.20
-        + (15 if dasha_activation else 0)
+        + dasha_bonus
+        - affliction_penalty
+        + (3 if affliction.shubha_kartari else 0)
     )
     score = max(10, min(95, round(score)))
 
-    lord_house = house_from_reference(lagna_rasi, planet_rasis.get(house_lord, lagna_rasi))
-    if lord_house in {1, 4, 7, 10, 5, 9}:
+    if bhava_bala_score >= 65:
         primary_house_strength = "STRONG"
-    elif lord_house in {6, 8, 12}:
+    elif bhava_bala_score <= 40:
         primary_house_strength = "WEAK"
     else:
         primary_house_strength = "NEUTRAL"
@@ -1271,25 +1656,98 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
     chandrashtama = moon.rasi == chandrashtama_rasi
 
     saturn_house_from_moon = house_from_reference(natal_moon.rasi, saturn.rasi)
-    saturn_house_from_lagna = house_from_reference(natal_lagna_rasi, saturn.rasi)
     jupiter_house = house_from_reference(natal_moon.rasi, jupiter.rasi)
 
     sani_cycle = classify_sani_cycle(saturn_house_from_moon)
-    kandaka_cycle = classify_kandaka_cycle(saturn_house_from_lagna)
+    # Kandaka counts from the Janma Rasi and layers over `sani_cycle` — the 4th
+    # from the Moon is both Ardhashtama and Kandaka (doctrine A-1).
+    kandaka_cycle = classify_kandaka_cycle(saturn_house_from_moon)
+    # Ezharai Sani Murthi grade — ingress-Moon method (Doctrine §3, WI-08),
+    # computed once per request (not per life-area) and only when a Sade Sati
+    # phase is actually active, since it requires a Saturn-ingress ephemeris
+    # search.
+    ezharai_murthi: dict[str, str] | None = None
+    # EC-RULING-05 (A26 + A25), computed here for the same reason the murthi is:
+    # both need the Saturn-ingress search, it is the same search, and doing it
+    # once per request rather than once per life-area is the difference between
+    # one ephemeris walk and eleven.
+    sade_sati_severity: str | None = None
+    sade_sati_mitigation_count = 0
+    if sani_cycle.is_active and sani_cycle.type in _SADE_SATI_SANI_TYPES:
+        _ingress_jd = find_saturn_ingress_jd(saturn.rasi, transit.jd_ut)
+        _ingress_moon_rasi = calculate_sidereal_planets(_ingress_jd).bodies["MOON"].rasi
+        ezharai_murthi = classify_ezharai_sani_murthi_ingress(natal_moon.rasi, _ingress_moon_rasi)
+
+        # A26 — where in the ninety months this native actually is. The phase
+        # offset is the table's own arithmetic; the position inside the phase
+        # comes from the real ingress instant, so a native three months into
+        # Janma Sani is not scored like one three months from its end.
+        _months_into_sign = (transit.jd_ut - _ingress_jd) / 30.4375
+        sade_sati_severity = severity_for_month(
+            elapsed_month(saturn_house_from_moon, _months_into_sign)
+        ).value
+
+        # A25 — the stated gates. The bindu gate is included because
+        # Sarvashtakavarga is already computed for this request anyway (see
+        # below); the ruling allows it only on that condition.
+        _natal_saturn_rasi = next(
+            (p.rasi for p in chart_snapshot.data.planets if p.graha == "SATURN"), None
+        )
+        if _natal_saturn_rasi is not None:
+            _bav = compute_bhinnashtakavarga(
+                {
+                    **{p.graha: p.rasi for p in chart_snapshot.data.planets if p.graha != "MANDHI"},
+                    "LAGNA": natal_lagna_rasi,
+                }
+            )
+            sade_sati_mitigation_count = assess_mitigation(
+                natal_saturn_rasi=_natal_saturn_rasi,
+                natal_saturn_house_from_lagna=house_from_reference(
+                    natal_lagna_rasi, _natal_saturn_rasi
+                ),
+                transited_sign_sav_bindus=compute_sarvashtakavarga(_bav).get(saturn.rasi),
+            ).count
     natal_planet_scores = {
         p.graha: (p.strength_score if getattr(p, "strength_score", 0) > 0 else 50)
         for p in chart_snapshot.data.planets
     }
+    natal_planet_rasis = {p.graha: p.rasi for p in chart_snapshot.data.planets}
+    _node_rasi_map: dict[str, int] = {g: natal_planet_rasis[g] for g in ("RAHU", "KETU") if g in natal_planet_rasis}
     functional_nature_map = {
-        planet: get_functional_nature(natal_lagna_rasi, planet)
+        planet: get_functional_nature(natal_lagna_rasi, planet, node_rasi_map=_node_rasi_map)
         for planet in {"SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU"}
     }
-    natal_planet_rasis = {p.graha: p.rasi for p in chart_snapshot.data.planets}
     transit_planet_rasis = {g: b.rasi for g, b in transit.bodies.items()}
     natal_rasi_map = {p.graha: p.rasi for p in chart_snapshot.data.planets if p.graha != "MANDHI"}
     natal_rasi_map["LAGNA"] = natal_lagna_rasi
     bav_table = compute_bhinnashtakavarga(natal_rasi_map)
     sarvashtakavarga = compute_sarvashtakavarga(bav_table)
+    # Classical indications counted from the karaka graha's own rasi (5th from
+    # Guru, 3rd from Sevvai, 4th from Budhan, 9th from Suriyan). Computed once
+    # for the whole request off the BAV table already built above — no extra
+    # ephemeris work — and age-blind here; disclosure is gated per area below.
+    bav_derived = compute_bav_derived_indications(bav_table, natal_rasi_map)
+
+    # Forward horizons: build the +6mo / +12mo engine context once (two extra
+    # ephemeris snapshots for the whole request), then re-score each area against
+    # them inside the loop below.
+    _date_6mo = on_date + timedelta(days=_FORECAST_HORIZON_6MO_DAYS)
+    _date_12mo = on_date + timedelta(days=_FORECAST_HORIZON_12MO_DAYS)
+    # partial, not a kwargs dict: a dict of mixed value types collapses to its
+    # join (float | tzinfo | ...), so unpacking it loses which key is which and
+    # every argument looks wrong at the call.
+    _forecast_at = partial(
+        _forecast_context,
+        tz=tz,
+        birth_jd=birth_jd,
+        moon_longitude=natal_moon.absolute_longitude,
+        natal_moon_rasi=natal_moon.rasi,
+        natal_lagna_rasi=natal_lagna_rasi,
+    )
+    forecast_ctx_6mo = _forecast_at(check_date=_date_6mo)
+    forecast_ctx_12mo = _forecast_at(check_date=_date_12mo)
+    age_6mo = _compute_age(_date_6mo, birth_profile.birth_date_local)
+    age_12mo = _compute_age(_date_12mo, birth_profile.birth_date_local)
 
     # Label overrides based on life stage
     _retired = (getattr(birth_profile, "employment_type", None) or "").lower() == "retired"
@@ -1298,6 +1756,41 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
         area_label_override["RELATIONSHIPS"] = _t("உறவு நலம்", "Relationship Harmony")
     if _retired:
         area_label_override["CAREER"] = _t("வாழ்க்கை நோக்கம்", "Life Purpose / Legacy")
+
+    # D4 (plan Phase 3): whether contradiction readings are user-visible.
+    # Readings are computed whenever the gate runs (they also fill the
+    # calibration log), but only surface in copy/contract behind this flag.
+    contradiction_on = bool(get_flag("reasoning_contradiction"))
+
+    # Phase 5 (chart signature + root-cause chains): additive, off by default.
+    # Reuses natal longitudes/rasis/strength and the running dasha already
+    # computed above — no extra ephemeris or DB work.
+    signature_on = bool(get_flag("reasoning_chart_signature"))
+    chart_signature_data: ChartSignatureData | None = None
+    if signature_on:
+        planet_longitudes = {
+            p.graha: p.absolute_longitude
+            for p in chart_snapshot.data.planets
+            if p.graha in {"SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU"}
+        }
+        try:
+            signature = detect_signature(
+                planet_longitudes=planet_longitudes,
+                planet_rasis=natal_planet_rasis,
+                planet_strength=natal_planet_scores,
+                current_maha_lord=maha_lord,
+                current_antar_lord=antar_lord,
+            )
+        except ValueError:
+            # Malformed/incomplete chart data — skip the optional signature
+            # overlay rather than failing the whole life-areas response.
+            logger.exception("chart signature detection failed for chart %s", chart_id)
+        else:
+            framing = signature_framing(signature.motif)
+            chart_signature_data = ChartSignatureData(
+                dominant=signature.dominant,
+                framing=_t(framing.ta, framing.en),
+            )
 
     areas: list[LifeAreaData] = []
     for area in (
@@ -1316,7 +1809,7 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
     ):
         effective_label = area_label_override.get(area, _AREA_LABELS[area])
 
-        score, score_breakdown = _score_area(
+        score, score_breakdown, gate_grade = _score_area(
             area,
             natal_moon.rasi,
             transit.bodies,
@@ -1333,6 +1826,8 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             bav=bav_table,
             sav=sarvashtakavarga,
             native_age=current_age,
+            sade_sati_severity=sade_sati_severity,
+            sade_sati_mitigation_count=sade_sati_mitigation_count,
         )
         chain_key = _AREA_TO_CHAIN_KEY.get(area, area)
         chain_result = _karaka_chain_score(
@@ -1346,7 +1841,22 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             transit_planet_rasis=transit_planet_rasis,
             native_age=current_age,
             sarvashtakavarga=sarvashtakavarga,
+            age_band=_AREA_AGE_BAND.get(area),
         )
+        # D4 (plan Phase 3): classify gate-vs-timing disagreement from the
+        # prediction score's own pieces — on the gate path `score` is still
+        # the timing vote here (L2–L6 rescaled; BLOCKED/SILENT skipped it),
+        # and gate_grade is the promise-gate outcome.
+        area_reading: str | None = None
+        if gate_grade is not None:
+            _grade = GateGrade(gate_grade)
+            _timing_band = (
+                timing_band_from_score(score)
+                if _grade in (GateGrade.PASS, GateGrade.WEAK)
+                else None
+            )
+            area_reading = classify(_grade, _timing_band).value
+
         score = max(0, min(100, round(score * 0.65 + chain_result["score"] * 0.35)))
 
         karakas = _AREA_KARAKA[area]
@@ -1402,6 +1912,8 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             area, score, maha_lord,
             sani_cycle.is_active, sani_cycle.type if sani_cycle.is_active else None,
             chandrashtama, jupiter_house, saturn_house,
+            murthi=ezharai_murthi,
+            house_4_locus=get_house_locus(4, current_age, getattr(birth_profile, "marital_status", None)),
         )
         detailed_reason = _build_area_reason(
             area_key=area,
@@ -1414,12 +1926,18 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             antar_relevant=antar_score >= 60,
             sani_phase=sani_cycle.type if sani_cycle.is_active else None,
         )
-        bundle = _NarrativeBundle(
-            narrative=_t(f"{detailed_reason.ta} {bundle.narrative.ta}", f"{detailed_reason.en} {bundle.narrative.en}"),
-            outlook=bundle.outlook,
-            remedy=bundle.remedy,
-            caution=bundle.caution,
-        )
+        # Phase 5: for LOW confidence with signature_on, the causal chain
+        # below (driver_reason -> detailed_reason -> conclusion) already
+        # speaks detailed_reason as a step. Don't also bake it into the
+        # narrative paragraph, or the card repeats the same sentence twice —
+        # once plain, once inside the "because ... therefore ..." block.
+        if not (signature_on and _area_confidence == "LOW"):
+            bundle = _NarrativeBundle(
+                narrative=_t(f"{detailed_reason.ta} {bundle.narrative.ta}", f"{detailed_reason.en} {bundle.narrative.en}"),
+                outlook=bundle.outlook,
+                remedy=bundle.remedy,
+                caution=bundle.caution,
+            )
         is_goal_focus = area in goal_focus_areas
         if is_goal_focus:
             bundle = _NarrativeBundle(
@@ -1445,10 +1963,48 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
         if area == "CAREER" and student_under_18:
             relevant_areas = set(relevant_areas)
             relevant_areas.discard("CAREER")
-        if area not in relevant_areas:
+        # Spouse harmony is lifelong: a married native keeps the Relationships
+        # area (rendered as "Married life harmony" below) at every phase — the
+        # ELDER phase set drops Relationships for the unmarried (no marriage
+        # prospects), which would otherwise hide a married elder couple's
+        # harmony reading. No-op for YOUNG_ADULT/MID where it is already in-set.
+        if area == "RELATIONSHIPS" and married:
+            relevant_areas = set(relevant_areas) | {"RELATIONSHIPS"}
+        phase_skipped = area not in relevant_areas
+
+        # BAV-derived indications (5th from Guru etc.). Keyed on `area`, NEVER on
+        # `chain_key` — EDUCATION borrows the CHILDREN chain, and keying on the
+        # chain would put progeny indications on a child's education card.
+        #
+        # Both existing age gates must pass: the life-phase gate (which catches
+        # the infant and the elder) and the area's own band (which catches the
+        # 55-year-old, whose MID phase still lists CHILDREN but whose age is past
+        # the band). Neither is re-derived here.
+        # Prepended, not appended: surfaces slice the factor lists to three, and
+        # these are the only factors that speak about the area's actual subject
+        # (progeny, siblings, the maternal and paternal lines) rather than
+        # repeating the generic strength signals every area carries.
+        _disclosed = disclosable_indications(
+            bav_derived,
+            area,
+            age_relevant=(
+                not phase_skipped
+                and chain_result["karaka_status"] != "NOT_APPLICABLE_FOR_AGE"
+            ),
+        )
+        chain_result["supporting_factors"][:0] = [
+            factor_code(i) for i in _disclosed if i.band != BAND_THIN
+        ]
+        chain_result["blocking_factors"][:0] = [
+            factor_code(i) for i in _disclosed if i.band == BAND_THIN
+        ]
+
+        if phase_skipped:
             skip_text = _phase_skip_text(phase)
             if phase in {"INFANT", "CHILD"}:
                 score = 0
+            # A phase-skipped area makes no claim — no reading either.
+            area_reading = None
             _area_confidence = "LOW"
             _area_conf_reason = skip_text
             driver_reason = skip_text
@@ -1463,6 +2019,10 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
         label = effective_label
         if married and area == "RELATIONSHIPS" and area in relevant_areas:
             label = _t("தாம்பத்ய ஒற்றுமை", "Married life harmony")
+            # Harmony framing is not a new-event promise — married profiles
+            # are never promise-gated (PR-1 marriage decision), so a
+            # promise/timing reading would be a category error here.
+            area_reading = None
             married_narrative, married_outlook, married_caution = _married_relationship_text(score)
             bundle = _NarrativeBundle(
                 narrative=married_narrative,
@@ -1471,7 +2031,12 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
                 caution=married_caution,
             )
 
-        if score < 50 or bundle.caution is not None:
+        next_improvement: date | None = None
+        if score < 50 or bundle.caution is not None or (
+            # PROMISED_NOT_NOW must answer "then when?" (plan Phase 3) —
+            # compute the window date even when the blended score sits ≥ 50.
+            contradiction_on and area_reading == Reading.PROMISED_NOT_NOW.value
+        ):
             next_improvement = _find_next_improvement_date(
                 area=area,
                 current_score=score,
@@ -1487,11 +2052,21 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
                 sav=sarvashtakavarga,
                 native_age=current_age,
             )
+        if score < 50 or bundle.caution is not None:
             bundle = _NarrativeBundle(
                 narrative=bundle.narrative,
                 outlook=_with_improvement_hint(bundle.outlook, next_improvement),
                 remedy=bundle.remedy,
-                caution=_duration_caution(area, next_improvement) if score < 50 else bundle.caution,
+                # `next_improvement` is always set when score < 50 — that is the
+            # first disjunct of the condition above, and
+            # `_find_next_improvement_date` always returns a date. The
+            # explicit check states an invariant across two separate `if`s
+            # that a reader (and a type checker) cannot otherwise see.
+            caution=(
+                _duration_caution(area, next_improvement)
+                if score < 50 and next_improvement is not None
+                else bundle.caution
+            ),
             )
 
         maraka_guard = _maraka_safety_check(
@@ -1500,6 +2075,7 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             antar_lord=antar_lord,
             lagna_rasi=natal_lagna_rasi,
             native_age=current_age,
+            node_rasi_map=_node_rasi_map,
         )
         if maraka_guard is not None:
             bundle = _NarrativeBundle(
@@ -1510,14 +2086,112 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             )
             if maraka_guard.get("suppress_score_display"):
                 score = 0
+                # We chose not to show the claim — no reading to speak either.
+                area_reading = None
+
+        # D4 (plan Phase 3): speak the discriminating readings as a framing
+        # sentence. PROMISED_NOT_NOW carries the concrete next-window date;
+        # ACTIVE_BUT_UNPROMISED is completed in a post-pass below, once every
+        # area's score is known (it names where the chart points instead).
+        if contradiction_on and area_reading in (
+            Reading.PROMISED_NOT_NOW.value,
+            Reading.NOT_PROMISED.value,
+            Reading.PARTIALLY_PROMISED.value,
+        ):
+            _voice = (
+                promised_not_now_voice(next_improvement)
+                if area_reading == Reading.PROMISED_NOT_NOW.value
+                else reading_phrase(area_reading)
+            )
+            bundle = _NarrativeBundle(
+                narrative=_t(
+                    f"{_voice.ta} {bundle.narrative.ta}",
+                    f"{_voice.en} {bundle.narrative.en}",
+                ),
+                outlook=bundle.outlook,
+                remedy=bundle.remedy,
+                caution=bundle.caution,
+            )
+
+        # D5 accountability (plan Phase 4): only HIGH confidence (all three
+        # signals aligned) is a material claim worth holding ourselves to —
+        # logging all twelve areas every serve would drown the calibration
+        # report in non-claims. The window matches the 30-day outlook. A
+        # maraka-suppressed score means we chose not to show the claim, so
+        # it isn't logged either.
+        if _area_confidence == "HIGH" and not (
+            maraka_guard is not None and maraka_guard.get("suppress_score_display")
+        ):
+            log_prediction(
+                session,
+                chart_id=chart_id,
+                source="life_areas",
+                life_area=area,
+                band=legacy_confidence_to_band(_area_confidence).value,
+                reading=area_reading,
+                calc_version=chart_snapshot.meta.calculation_version,
+                window_start=on_date,
+                window_end=on_date + timedelta(days=30),
+                active_maha=maha_lord,
+                active_antar=antar_lord,
+            )
+
+        # Phase 5 root-cause chain: for LOW confidence only, replace the flat
+        # factor list with an ordered "because ... therefore ..." reading
+        # built from evidence already computed above (karaka transit, dasha,
+        # sani cycle, and net effect) instead of averaging it away silently.
+        causal_chain_text: LifeAreaText | None = None
+        _married_harmony = married and area == "RELATIONSHIPS" and area in relevant_areas
+        if signature_on and _area_confidence == "LOW" and not phase_skipped and not _married_harmony:
+            chain = render_causal_chain(
+                steps=[driver_reason, detailed_reason],
+                conclusion=_area_conf_reason,
+            )
+            causal_chain_text = _t(chain.ta, chain.en)
+
+        # Forward horizons. A maraka-suppressed score is a claim we chose NOT to
+        # make, and a phase-skipped area makes no claim at all — projecting a
+        # number forward for either would fabricate one, so we mirror `score`.
+        _suppressed = maraka_guard is not None and maraka_guard.get("suppress_score_display")
+        if _suppressed or phase_skipped:
+            score_6mo = score
+            score_12mo = score
+        else:
+            score_6mo = _projected_area_score(
+                area, forecast_ctx_6mo,
+                natal_moon_rasi=natal_moon.rasi,
+                natal_lagna_rasi=natal_lagna_rasi,
+                natal_planet_scores=natal_planet_scores,
+                natal_planet_rasis=natal_planet_rasis,
+                vargas=getattr(chart_snapshot.data, "vargas", {}),
+                bav=bav_table,
+                sav=sarvashtakavarga,
+                native_age=age_6mo,
+            )
+            score_12mo = _projected_area_score(
+                area, forecast_ctx_12mo,
+                natal_moon_rasi=natal_moon.rasi,
+                natal_lagna_rasi=natal_lagna_rasi,
+                natal_planet_scores=natal_planet_scores,
+                natal_planet_rasis=natal_planet_rasis,
+                vargas=getattr(chart_snapshot.data, "vargas", {}),
+                bav=bav_table,
+                sav=sarvashtakavarga,
+                native_age=age_12mo,
+            )
 
         areas.append(LifeAreaData(
             area=area,
             label=label,
             score=score,
-            trend=_trend(score, dasha_score),
+            trend=_trend(score, score_6mo),
+            chandrashtamaApplied=chandrashtama and area in _CHANDRASHTAMA_AREAS,
+            score6mo=score_6mo,
+            score12mo=score_12mo,
+            ageRelevant=not phase_skipped,
             confidence=_area_confidence,
             confidenceReason=_area_conf_reason,
+            causalChain=causal_chain_text,
             primaryHouseStrength=chain_result["primary_house_strength"],
             karakaStatus=chain_result["karaka_status"],
             dashaActivation=chain_result["dasha_activation"],
@@ -1530,9 +2204,33 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             next30DayOutlook=bundle.outlook,
             caution=bundle.caution,
             isGoalFocus=is_goal_focus,
+            reading=area_reading if contradiction_on else None,
             scoreBreakdown=score_breakdown,
             structuredRemedy=structured_remedy,
         ))
+
+    # D4 post-pass: ACTIVE_BUT_UNPROMISED names where the chart points the
+    # period's energy instead ("toward [dominant area] rather than [asked
+    # area]") — resolvable only after every area is scored.
+    if contradiction_on:
+        redirects = [a for a in areas if a.reading == Reading.ACTIVE_BUT_UNPROMISED.value]
+        if redirects:
+            best = max(areas, key=lambda a: a.score)
+            for entry in redirects:
+                dominant = best.label if best.area != entry.area and best.score >= 60 else None
+                _voice = active_but_unpromised_voice(dominant)
+                entry.narrative = _t(
+                    f"{_voice.ta} {entry.narrative.ta}",
+                    f"{_voice.en} {entry.narrative.en}",
+                )
+
+    for _area in areas:
+        run_safety_pass(
+            _area.narrative, _area.remedy, _area.next_30_day_outlook, _area.caution,
+            _area.causal_chain, source="life_areas",
+        )
+    if chart_signature_data is not None:
+        run_safety_pass(chart_signature_data.framing, source="life_areas.chart_signature")
 
     return LifeAreasResponse(
         data=LifeAreasResponseData(
@@ -1540,6 +2238,7 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             dateLocal=on_date,
             chartValidationStatus=chart_validation_status,
             areas=areas,
+            chartSignature=chart_signature_data,
         ),
         meta=ResponseMeta(
             calculation_version=chart_snapshot.meta.calculation_version,

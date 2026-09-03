@@ -666,6 +666,8 @@ if (response.status === 204) {
 }
 ```
 
+For the `packages/shared/src/api/` typed client (used genuinely by mobile, mostly bypassed by web today) see CLAUDE.md's "`packages/shared/src/api/` forward policy" — new endpoints get a wrapper there, and the wrapper's path/verb must be checked against the actual FastAPI route, not assumed.
+
 ### 17.2 South Indian chart grid — Jathagam Kattam (ஜாதகம் கட்டம்)
 The traditional South Indian **square** birth chart grid is the standard for Tamil astrology — never the North Indian circular/diamond format. Every chart in Vinaadi must use it.
 

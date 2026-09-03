@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Sun, Flame, Sparkles } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
@@ -55,30 +57,30 @@ export interface NatchathiramVisualData {
 // ── Design tokens ─────────────────────────────────────────────────────────
 
 const T = {
-  bg:          "#F4EEE2",
-  bg2:         "#EDE5D4",
-  surface:     "#FFFFFF",
-  surface2:    "#FAF5EA",
-  ink:         "#1A1612",
-  ink2:        "#3D352B",
-  muted:       "#7A6F5E",
-  border:      "#E4DBC8",
-  accent:      "#B85A2C",
-  accentSoft:  "#F0D9C4",
-  accentA10:   "rgba(184,90,44,0.10)",
-  accentA15:   "rgba(184,90,44,0.15)",
-  accentA20:   "rgba(184,90,44,0.20)",
-  accentA30:   "rgba(184,90,44,0.30)",
-  accentA40:   "rgba(184,90,44,0.40)",
-  sage:        "#5C7654",
-  sageSoft:    "#DCE4D2",
-  sageA15:     "rgba(92,118,84,0.15)",
-  sageA25:     "rgba(92,118,84,0.25)",
+  bg:          "var(--panel-hover)",
+  bg2:         "var(--chart-cell-selected)",
+  surface:     "var(--chart-cell-default)",
+  surface2:    "var(--panel-cream)",
+  ink:         "var(--panel-earth-dark)",
+  ink2:        "var(--panel-earth)",
+  muted:       "var(--color-faint)",
+  border:      "var(--panel-tan-light)",
+  accent:      "var(--panel-brand)",
+  accentSoft:  "var(--chart-d1-lagna-bg)",
+  accentA10:   "var(--panel-brand-a10)",
+  accentA15:   "var(--panel-brand-a15)",
+  accentA20:   "var(--panel-brand-a20)",
+  accentA30:   "var(--panel-brand-a30)",
+  accentA40:   "var(--panel-brand-a40)",
+  sage:        "var(--chart-d9-active)",
+  sageSoft:    "var(--chart-d9-active-bg)",
+  sageA15:     "var(--chart-d9-a15)",
+  sageA25:     "var(--chart-d9-a25)",
 };
 
 const DASHA_COLORS = [
-  "#B85A2C", "#5C7654", "#A8482F", "#7A8F5E",
-  "#C4714A", "#6B7A52", "#9E5024", "#3D352B",
+  "var(--panel-brand)", "var(--chart-d9-active)", "var(--planet-saturn)", "var(--dasha-earth-1)",
+  "var(--dasha-earth-2)", "var(--dasha-earth-3)", "var(--dasha-earth-4)", "var(--panel-earth)",
 ];
 
 const PLANET_GLYPHS: Record<string, string> = {
@@ -419,7 +421,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
   const familyLead = ta?.familyLead && lang === "ta" ? ta.familyLead
     : `Deep bonds, trust, and emotional loyalty shape ${englishName}'s relationships.`;
 
-  const spiritIcons = ["🙏", "🪔", "✨"];
+  const spiritIcons: LucideIcon[] = [Sun, Flame, Sparkles];
   const [selectedDasha, setSelectedDasha] = useState<number | null>(null);
 
   // ── Relationship hub labels ───────────────────────────────────────────
@@ -446,7 +448,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
               </p>
               <Link href={`/natchathiram/${data.slug}`}
                 style={{ fontSize:"0.8rem", fontWeight:600, color:T.accent, border:`1.5px solid ${T.accentA30}`, padding:"0.35rem 1rem", borderRadius:"999px", background:T.accentSoft, display:"flex", alignItems:"center", gap:"0.35rem" }}>
-                &#128196; {mtv(v.read_text)}
+                📄 {mtv(v.read_text)}
               </Link>
             </div>
 
@@ -591,7 +593,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
             </div>
             <div style={{ marginTop:"3rem" }}>
               <div style={{ display:"flex", alignItems:"center", gap:"0.75rem", padding:"0.85rem 1.25rem", background:T.surface, border:`1px solid ${T.accentA20}`, borderRadius:"0.75rem", fontSize:"0.82rem", color:T.ink2, boxShadow:`0 1px 4px ${T.accentA10}` }}>
-                <IconCircle size={34}><span style={{ fontSize:"0.85rem" }}>&#128196;</span></IconCircle>
+                <IconCircle size={34}><span style={{ fontSize:"0.85rem" }}>📄</span></IconCircle>
                 <span>
                   {mtv(v.nudge_want)}{" "}
                   <Link href={`/natchathiram/${data.slug}`} style={{ color:T.accent, fontWeight:600, textDecoration:"underline", textUnderlineOffset:3 }}>
@@ -705,7 +707,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
                   ))}
                 </div>
                 <div style={{ display:"flex", gap:"0.6rem", alignItems:"flex-start", padding:"0.875rem 1rem", background:T.surface, border:`1px solid ${T.border}`, borderRadius:10, marginBottom:"1.25rem" }}>
-                  <span style={{ color:T.accent, fontSize:"1rem", flexShrink:0 }}>&#9825;</span>
+                  <span style={{ color:T.accent, fontSize:"1rem", flexShrink:0 }}>♡</span>
                   <p style={{ fontSize:"0.78rem", color:T.muted, lineHeight:1.6, margin:0 }}>{compatNote}</p>
                 </div>
                 <Link href="/tools/marriage-porutham-calculator" className="cl-btn cl-btn--ghost" style={{ fontSize:"0.84rem", padding:"0.55rem 1.25rem" }}>
@@ -805,7 +807,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
               {spirituality.map((s, i) => (
                 <div key={s.title} style={{ background:T.surface, border:`1px solid ${T.border}`, borderRadius:14, padding:"1.5rem", boxShadow:`0 1px 6px ${T.accentA10}` }}>
                   <div style={{ display:"flex", gap:"0.875rem", alignItems:"flex-start" }}>
-                    <IconCircle size={46}><span style={{ fontSize:"1.1rem" }}>{spiritIcons[i%spiritIcons.length]}</span></IconCircle>
+                    <IconCircle size={46}>{(() => { const SI = spiritIcons[i%spiritIcons.length]; return <SI size={20} strokeWidth={1.5} aria-hidden="true" />; })()}</IconCircle>
                     <div>
                       <p style={{ fontWeight:700, fontSize:"0.95rem", color:T.ink, margin:"0 0 0.4rem" }}>{s.title}</p>
                       <p style={{ fontSize:"0.8rem", color:T.muted, margin:0, lineHeight:1.6 }}>{s.desc}</p>
@@ -816,7 +818,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
             </div>
             <div style={{ marginTop:"3rem" }}>
               <div style={{ display:"flex", alignItems:"center", gap:"0.75rem", padding:"0.85rem 1.25rem", background:T.surface, border:`1px solid ${T.accentA20}`, borderRadius:"0.75rem", fontSize:"0.82rem", color:T.ink2, boxShadow:`0 1px 4px ${T.accentA10}` }}>
-                <IconCircle size={34}><span style={{ fontSize:"0.85rem" }}>&#128196;</span></IconCircle>
+                <IconCircle size={34}><span style={{ fontSize:"0.85rem" }}>📄</span></IconCircle>
                 <span>
                   {mtv(v.nudge_want)}{" "}
                   <Link href={`/natchathiram/${data.slug}`} style={{ color:T.accent, fontWeight:600, textDecoration:"underline", textUnderlineOffset:3 }}>

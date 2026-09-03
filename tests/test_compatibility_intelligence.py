@@ -1,0 +1,368 @@
+"""Unit tests for app.calculations.compatibility_intelligence — WI-04, WI-05,
+WI-13, WI-20, WI-21 (docs/CALC_AUDIT_REMEDIATION_PLAN_2026-07.md).
+"""
+from __future__ import annotations
+
+from types import SimpleNamespace
+
+import pytest
+
+from app.calculations import compatibility_intelligence as ci_module
+from app.calculations._yoga_dosham import detect_sevvai_dosham
+from app.calculations.astro import house_from_reference
+from app.calculations.chart_strength import SIGN_LORD
+from app.calculations.compatibility_intelligence import (
+    ChartMarriageStrength,
+    DashaHarmony,
+    EmotionalCompatibility,
+    NavamsaCompatibility,
+    SevvaiDoshamDetail,
+    _compute_navamsa,
+    _compute_sevvai,
+    _d9_dignified,
+    _graha_relation,
+    _moon_harmony_label,
+    compute_compatibility_intelligence,
+)
+from app.calculations.porutham import _graha_maitri_kuta, _rasi_score
+
+pytestmark = pytest.mark.no_db
+
+
+def _planet(graha: str, d9_rasi: int) -> SimpleNamespace:
+    return SimpleNamespace(graha=graha, d9_rasi=d9_rasi)
+
+
+def _snap(lagna_rasi: int, planets: list[SimpleNamespace]) -> SimpleNamespace:
+    return SimpleNamespace(data=SimpleNamespace(
+        lagna=SimpleNamespace(rasi=lagna_rasi),
+        planets=planets,
+    ))
+
+
+# ---------------------------------------------------------------------------
+# WI-04 — Compatibility Navamsa: rasi compared against house sets (category
+# error). sla_d9/slb_d9 are D9 SIGN numbers; the old code tested them against
+# _KENDRAS|_TRIKONAS (a HOUSE set), which awards points on 6 of 12 signs
+# regardless of dignity. Fixed to a dignity check (own sign or exaltation).
+# ---------------------------------------------------------------------------
+
+def test_d9_dignified_own_sign_and_exaltation():
+    assert _d9_dignified("MARS", 1) is True   # own sign (Aries)
+    assert _d9_dignified("MARS", 8) is True   # own sign (Scorpio)
+    assert _d9_dignified("MARS", 10) is True  # exaltation (Capricorn)
+    assert _d9_dignified("MARS", 4) is False  # debilitation (Cancer)
+
+
+def test_seventh_lord_debilitated_in_kendra_sign_scores_zero_not_three():
+    # Lagna Cancer(4) -> 7th house rasi Capricorn(10) -> 7th lord SATURN.
+    # Saturn's D9 debilitation sign is Aries(1) — which is ALSO a
+    # kendra/trikona house number. The old category-error code awarded +3
+    # here purely because 1 is in _KENDRAS|_TRIKONAS; dignity says this
+    # placement is actually weak and must score 0.
+    snap_a = _snap(4, [_planet("VENUS", 0), _planet("SATURN", 1)])
+    snap_b = _snap(1, [_planet("VENUS", 0)])
+    result = _compute_navamsa(snap_a, snap_b)
+    assert result.score == 0
+
+
+def test_seventh_lord_own_sign_not_in_kendra_trikona_scores_three():
+    # Lagna Taurus(2) -> 7th house rasi Scorpio(8) -> 7th lord MARS.
+    # Mars's OTHER own sign is Scorpio(8) itself — which is NOT in
+    # _KENDRAS|_TRIKONAS ({1,4,5,7,9,10}). The old code wrongly withheld
+    # points for this genuinely dignified placement; the dignity check
+    # correctly awards +3.
+    snap_a = _snap(2, [_planet("VENUS", 0), _planet("MARS", 8)])
+    snap_b = _snap(1, [_planet("VENUS", 0)])
+    result = _compute_navamsa(snap_a, snap_b)
+    assert result.score == 3
+
+
+# ---------------------------------------------------------------------------
+# WI-13 — Compatibility Sevvai delegates to the main dosham engine
+# (detect_sevvai_dosham), so the CI report and the Jadhagam card can never
+# disagree on has_dosham/is_cancelled for the same chart.
+# ---------------------------------------------------------------------------
+
+def _sevvai_snap(lagna_rasi: int, planet_rasis: dict[str, int]) -> SimpleNamespace:
+    planets = [
+        SimpleNamespace(
+            graha=graha, rasi=rasi,
+            house_from_lagna=house_from_reference(lagna_rasi, rasi),
+        )
+        for graha, rasi in planet_rasis.items()
+    ]
+    return SimpleNamespace(data=SimpleNamespace(
+        lagna=SimpleNamespace(rasi=lagna_rasi),
+        planets=planets,
+        birth_profile=SimpleNamespace(gender_for_traditional_rules=None),
+    ))
+
+
+def test_compute_sevvai_agrees_with_main_engine_mars_clean_from_lagna_but_seventh_from_moon():
+    # Regression for the pre-WI-13 disagreement case: Mars is clean from
+    # Lagna (house 3, not a Sevvai house) but sits in the 7th house from
+    # Moon (a Sevvai house) — the compatibility report's old inline
+    # lagna-only check would have missed this; the main engine (which also
+    # checks the Moon and Venus references) correctly flags it.
+    lagna_rasi = 1
+    planet_rasis = {
+        "SUN": 5, "MOON": 9, "MARS": 3, "MERCURY": 6,
+        "JUPITER": 2, "VENUS": 6, "SATURN": 11, "RAHU": 4, "KETU": 10,
+    }
+    assert house_from_reference(lagna_rasi, planet_rasis["MARS"]) == 3       # clean from Lagna
+    assert house_from_reference(planet_rasis["MOON"], planet_rasis["MARS"]) == 7  # 7th from Moon
+
+    snap = _sevvai_snap(lagna_rasi, planet_rasis)
+    detail = _compute_sevvai(snap)
+    raw = detect_sevvai_dosham(planet_rasis, lagna_rasi)
+
+    assert detail.has_dosham == raw.is_present
+    assert detail.is_cancelled == raw.is_cancelled
+    assert detail.has_dosham is True  # the actual regression: caught via Moon reference
+
+
+# ---------------------------------------------------------------------------
+# WI-05 — Moon-Moon emotional harmony table (Doctrine §10 ratified table),
+# with a structurally-enforced symmetric lookup.
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize(
+    "rasi_a,rasi_b,expected",
+    [
+        (1, 1, "GOOD"),         # same rasi
+        (1, 2, "MIXED"), (1, 12, "MIXED"),      # dwirdwadasa
+        (1, 3, "GOOD"), (1, 11, "GOOD"),        # upachaya
+        (1, 4, "GOOD"), (1, 10, "GOOD"),        # kendra
+        (1, 5, "EXCELLENT"), (1, 9, "EXCELLENT"),  # trikona
+        (1, 6, "TENSE"), (1, 8, "TENSE"),       # shadashtaka
+        (1, 7, "GOOD"),        # samasaptama
+    ],
+)
+def test_moon_harmony_golden_distance_to_tier(rasi_a, rasi_b, expected):
+    assert _moon_harmony_label(rasi_a, rasi_b) == expected
+
+
+def test_moon_harmony_symmetric_for_all_144_rasi_pairs():
+    for a in range(1, 13):
+        for b in range(1, 13):
+            assert _moon_harmony_label(a, b) == _moon_harmony_label(b, a), (a, b)
+
+
+def test_moon_harmony_grades_shadashtaka_as_tense():
+    """The two engines must not contradict each other on shadashtaka.
+
+    Rewritten for EC-RULING-01 (2026-08-17). This used to assert that *every*
+    pair failing `porutham._rasi_score` also graded TENSE here, which held only
+    while both rules were the symmetric 6/8 Bhakoot check. Rasi porutham is now
+    the asymmetric bride->groom Tamil rule (adverse at counts 2..6), while Moon
+    harmony is — correctly — still symmetric: emotional resonance between two
+    Moons has no bride/groom direction to it, and `_moon_harmony_label`'s own
+    docstring commits to `harmony(a, b) == harmony(b, a)`.
+
+    So the invariant is narrowed to the positions the two genuinely share rather
+    than deleted: 6th/8th apart must read TENSE in both.
+    """
+    for a in range(1, 13):
+        for b in range(1, 13):
+            separation = min((a - b) % 12, (b - a) % 12) + 1
+            if separation in {6, 8}:
+                assert _moon_harmony_label(a, b) == "TENSE", (a, b)
+
+
+def test_rasi_porutham_may_fail_positions_moon_harmony_does_not():
+    """The corollary, asserted so the divergence is deliberate rather than drift.
+
+    A groom 2nd from the bride fails Rasi porutham (a directional doctrinal
+    rule) while the two Moons one sign apart are only dwirdwadasa (MIXED) as an
+    emotional reading. Those are different claims about different things, and
+    the product is allowed to make both.
+
+    Read on an ODD groom sign since 2026-08-28: Kalaprakasika p.74 lifts the 2nd
+    position when the groom's rasi is EVEN, so bride Mesha / groom Rishabha —
+    this test's original example — now passes for a sourced reason. The pairing
+    below keeps the divergence the test is actually about.
+    """
+    assert _rasi_score(3, 2) == 0            # bride Rishabha, groom Mithuna: count 2, odd groom
+    assert _moon_harmony_label(3, 2) == "MIXED"
+
+
+# ---------------------------------------------------------------------------
+# Composite layer weights — astrologer ruling 2026-08-28
+# ---------------------------------------------------------------------------
+
+def test_layer_weights_sum_to_one_hundred():
+    """The weights are the ruling. If they stop summing to 100 the headline
+    number silently stops being a percentage, and every band cutoff
+    (EXCELLENT >= 80, GOOD >= 65) starts meaning something else."""
+    from app.calculations.compatibility_intelligence import COMPATIBILITY_LAYER_MAX
+
+    assert sum(COMPATIBILITY_LAYER_MAX.values()) == 100
+
+
+def test_porutham_is_the_heaviest_layer_and_synastry_carries_none():
+    """The two halves of the 2026-08-28 ruling, pinned as properties rather than
+    as numbers — so a later retune can move the values without breaking this,
+    but cannot quietly undo the decision.
+
+    Porutham at 35 is deliberately the largest single layer: the ten poruthams
+    are the instrument the family uses, and a report that under-weights them
+    loses the argument with the elder in the room. Synastry at 0 is out of the
+    composite entirely while still being computed and reported on its own."""
+    from app.calculations.compatibility_intelligence import COMPATIBILITY_LAYER_MAX
+
+    weights = COMPATIBILITY_LAYER_MAX
+    assert weights["porutham"] == max(weights.values())
+    assert weights["porutham"] > weights["navamsa"] + weights["emotional"]
+    assert weights["synastry"] == 0
+
+
+def test_navamsa_and_emotional_were_trimmed_not_porutham_capped():
+    """"De-duplicate by trimming Emotional and Navamsa, not by capping Porutham."
+
+    Moon-Moon harmony and the D9 Venus / 7th-lord agreement partly restate what
+    the ten poruthams already measure, so raising Porutham without trimming them
+    would have counted the same agreement twice and inflated every score. This
+    asserts the trim actually happened — both layers now contribute less than
+    the native scale their own detail panels still display."""
+    from app.calculations.compatibility_intelligence import (
+        _EMOTIONAL_NATIVE_MAX,
+        _NAVAMSA_NATIVE_MAX,
+        COMPATIBILITY_LAYER_MAX,
+    )
+
+    assert COMPATIBILITY_LAYER_MAX["navamsa"] < _NAVAMSA_NATIVE_MAX
+    assert COMPATIBILITY_LAYER_MAX["emotional"] < _EMOTIONAL_NATIVE_MAX
+
+
+# ---------------------------------------------------------------------------
+# WI-20 — _graha_relation compound friendship rule (Doctrine §11): enemy in
+# either direction -> enemy; friend in both directions -> friend; else neutral.
+# ---------------------------------------------------------------------------
+
+def test_graha_relation_one_way_friend_one_way_enemy_is_enemy_not_friend():
+    # Moon regards Mercury as a friend, but Mercury regards Moon as an enemy
+    # (_NATURAL_ENEMIES["MERCURY"] == {"MOON"}). The old "or" logic checked
+    # friendship before enmity and returned "friend" outright; the Doctrine
+    # §11 compound rule ("enemy in either direction -> enemy") — and this
+    # repo's own porutham._graha_maitri_kuta precedent, which FAILs this
+    # exact pair — both resolve this to "enemy", order-independent.
+    #
+    # NOTE: WI-20's prose in CALC_AUDIT_REMEDIATION_PLAN_2026-07.md asserts
+    # this pair "should be neutral", which contradicts its own 3-bullet rule
+    # (enemy-either-direction wins), its own verbatim fix code, and the
+    # porutham precedent it cites as the model to match. Flagged for the
+    # astrologer/doc owner to amend that prose; the code below follows the
+    # rule + precedent, not the prose example.
+    assert _graha_relation("MOON", "MERCURY") == "enemy"
+    assert _graha_relation("MERCURY", "MOON") == "enemy"
+
+
+def test_graha_relation_enemy_either_direction_is_enemy():
+    assert _graha_relation("SUN", "VENUS") == "enemy"
+    assert _graha_relation("VENUS", "SUN") == "enemy"
+
+
+def test_graha_relation_friend_both_directions_is_friend():
+    assert _graha_relation("SUN", "MOON") == "friend"
+    assert _graha_relation("MOON", "SUN") == "friend"
+
+
+def test_graha_relation_same_planet_is_friend():
+    assert _graha_relation("MARS", "MARS") == "friend"
+
+
+def test_graha_relation_agrees_with_graha_maitri_kuta_fail_cases():
+    # Wherever porutham._graha_maitri_kuta fails a rasi-lord pair (enemy in
+    # either direction), compatibility_intelligence._graha_relation must also
+    # call the lords' relation "enemy" — same underlying concept, must not
+    # silently diverge between the two modules.
+    for rasi_a in range(1, 13):
+        for rasi_b in range(1, 13):
+            if _graha_maitri_kuta(rasi_a, rasi_b) == 0:
+                lord_a, lord_b = SIGN_LORD[rasi_a], SIGN_LORD[rasi_b]
+                assert _graha_relation(lord_a, lord_b) == "enemy", (rasi_a, rasi_b)
+
+
+# ---------------------------------------------------------------------------
+# WI-21 — Rajju/Vedha veto hard-caps the CI overall label at CAUTION
+# (Doctrine §12), regardless of the weighted 0-100 score.
+# ---------------------------------------------------------------------------
+
+_STRONG_STRENGTH = ChartMarriageStrength(
+    seventh_house_rasi=7, seventh_lord="VENUS", seventh_lord_house=1,
+    seventh_lord_strength=90, venus_house=1, venus_strength=90,
+    jupiter_house=1, jupiter_strength=90, has_malefic_in_seventh=False,
+    score=10, note_en="", note_ta="",
+)
+_STRONG_NAVAMSA = NavamsaCompatibility(
+    person_a_venus_d9=2, person_b_venus_d9=7, person_a_seventh_lord_d9=2,
+    person_b_seventh_lord_d9=7, harmony_label="STRONG", note_en="", note_ta="",
+    score=20,
+)
+_STRONG_SEVVAI = SevvaiDoshamDetail(
+    has_dosham=False, mars_house=3, is_cancelled=False, severity="NONE",
+    cancellation_reasons=[], note_en="", note_ta="", score=5,
+)
+_STRONG_DASHA = DashaHarmony(
+    person_a_maha_lord="VENUS", person_a_antar_lord="VENUS",
+    person_a_maha_end="2030-01-01", person_b_maha_lord="MOON",
+    person_b_antar_lord="MOON", person_b_maha_end="2030-01-01",
+    harmony_label="SUPPORTIVE", note_en="", note_ta="", score=15,
+)
+_STRONG_EMOTIONAL = EmotionalCompatibility(
+    moon_moon_harmony="EXCELLENT", venus_mars_harmony="STRONG",
+    communication_note="", note_en="", note_ta="", score=10,
+)
+
+
+def _stub_strong_layers(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Stub every sub-layer of compute_compatibility_intelligence to its
+    strongest possible score, so only the porutham/Rajju-Vedha veto varies —
+    isolates the WI-21 label-cap logic from needing real chart snapshots."""
+    monkeypatch.setattr(ci_module, "_compute_chart_marriage_strength", lambda snap: _STRONG_STRENGTH)
+    monkeypatch.setattr(ci_module, "_compute_navamsa", lambda a, b: _STRONG_NAVAMSA)
+    monkeypatch.setattr(ci_module, "_compute_sevvai", lambda snap: _STRONG_SEVVAI)
+    monkeypatch.setattr(ci_module, "_apply_mutual_sevvai_cancellation", lambda a, b: (a, b))
+    monkeypatch.setattr(ci_module, "_compute_dasha_harmony", lambda a, b, jd: _STRONG_DASHA)
+    monkeypatch.setattr(ci_module, "_compute_emotional_compatibility", lambda a, b: _STRONG_EMOTIONAL)
+
+
+def _fake_porutham_result(*, rajju_dosha: bool, vedha_dosha: bool) -> SimpleNamespace:
+    return SimpleNamespace(
+        total_score=10, max_score=10, percentage=100.0, label="EXCELLENT",
+        rajju_dosha=rajju_dosha, vedha_dosha=vedha_dosha,
+        nadi_dosha={"has_nadi_dosha": False},
+    )
+
+
+def test_rajju_dosha_caps_overall_label_at_caution_despite_high_score(monkeypatch):
+    _stub_strong_layers(monkeypatch)
+    porutham_result = _fake_porutham_result(rajju_dosha=True, vedha_dosha=False)
+    result = compute_compatibility_intelligence(
+        snap_a=SimpleNamespace(), snap_b=SimpleNamespace(),
+        porutham_result=porutham_result, synastry_score=100,
+    )
+    assert result.overall_score >= 65  # strong pre-cap score, per WI-21 acceptance
+    assert result.overall_label == "CAUTION"
+
+
+def test_vedha_dosha_caps_overall_label_at_caution_despite_high_score(monkeypatch):
+    _stub_strong_layers(monkeypatch)
+    porutham_result = _fake_porutham_result(rajju_dosha=False, vedha_dosha=True)
+    result = compute_compatibility_intelligence(
+        snap_a=SimpleNamespace(), snap_b=SimpleNamespace(),
+        porutham_result=porutham_result, synastry_score=100,
+    )
+    assert result.overall_score >= 65
+    assert result.overall_label == "CAUTION"
+
+
+def test_no_veto_overall_label_reflects_score_normally(monkeypatch):
+    _stub_strong_layers(monkeypatch)
+    porutham_result = _fake_porutham_result(rajju_dosha=False, vedha_dosha=False)
+    result = compute_compatibility_intelligence(
+        snap_a=SimpleNamespace(), snap_b=SimpleNamespace(),
+        porutham_result=porutham_result, synastry_score=100,
+    )
+    assert result.overall_label == "EXCELLENT"
