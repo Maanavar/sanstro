@@ -2,12 +2,9 @@
 
 export const API_ERROR_CODES = [
   "RESOURCE_NOT_FOUND",
-  "PROFILE_NOT_FOUND",
   "BIRTH_PROFILE_NOT_FOUND",
   "CHART_NOT_FOUND",
-  "VAULT_NOT_FOUND",
   "FAMILY_VAULT_NOT_FOUND",
-  "MEMBER_NOT_FOUND",
   "FAMILY_MEMBER_NOT_FOUND",
   "USER_NOT_FOUND",
   "JOURNAL_ENTRY_NOT_FOUND",
@@ -24,15 +21,15 @@ export const API_ERROR_CODES = [
   "TOKEN_REVOKED",
   "PROFILE_LIMIT_REACHED",
   "RESOURCE_LIMIT_EXCEEDED",
+  "RATE_LIMITED",
   "DAILY_LIMIT_REACHED",
+  "MONTHLY_LIMIT_REACHED",
   "DUPLICATE_RESOURCE",
   "EMAIL_ALREADY_EXISTS",
-  "VALIDATION_FAILED",
   "VALIDATION_ERROR",
   "INVALID_INPUT",
   "MISSING_REQUIRED_FIELD",
   "BIRTH_TIME_REQUIRED",
-  "DATE_RANGE_INVALID",
   "INVALID_DATE_RANGE",
   "MISSING_DATA",
   "INVALID_FORMAT",
@@ -83,8 +80,8 @@ function defaultCodeForStatus(status: number): ApiErrorCode {
   if (status === 403) return "ACCESS_DENIED";
   if (status === 404) return "RESOURCE_NOT_FOUND";
   if (status === 409) return "DUPLICATE_RESOURCE";
-  if (status === 422) return "VALIDATION_FAILED";
-  if (status === 429) return "DAILY_LIMIT_REACHED";
+  if (status === 422) return "VALIDATION_ERROR";
+  if (status === 429) return "RATE_LIMITED";
   if (status === 503) return "SERVICE_UNAVAILABLE";
   return "INTERNAL_ERROR";
 }
@@ -92,12 +89,9 @@ function defaultCodeForStatus(status: number): ApiErrorCode {
 function fallbackMessage(code: ApiErrorCode): ApiErrorMessage {
   const messages: Record<ApiErrorCode, ApiErrorMessage> = {
     RESOURCE_NOT_FOUND: { ta: "கோரிய தகவல் கிடைக்கவில்லை.", en: "The requested resource was not found." },
-    PROFILE_NOT_FOUND: { ta: "பிறப்புத் தகவல் கிடைக்கவில்லை.", en: "The birth profile was not found." },
     BIRTH_PROFILE_NOT_FOUND: { ta: "பிறப்புத் தகவல் கிடைக்கவில்லை.", en: "The birth profile was not found." },
     CHART_NOT_FOUND: { ta: "ஜாதகம் கிடைக்கவில்லை.", en: "The birth chart was not found." },
-    VAULT_NOT_FOUND: { ta: "குடும்பப் பெட்டகம் கிடைக்கவில்லை.", en: "The family vault was not found." },
     FAMILY_VAULT_NOT_FOUND: { ta: "குடும்பப் பெட்டகம் கிடைக்கவில்லை.", en: "The family vault was not found." },
-    MEMBER_NOT_FOUND: { ta: "குடும்ப உறுப்பினர் கிடைக்கவில்லை.", en: "The family member was not found." },
     FAMILY_MEMBER_NOT_FOUND: { ta: "குடும்ப உறுப்பினர் கிடைக்கவில்லை.", en: "The family member was not found." },
     USER_NOT_FOUND: { ta: "பயனர் கிடைக்கவில்லை.", en: "The user was not found." },
     JOURNAL_ENTRY_NOT_FOUND: { ta: "குறிப்பேட்டு பதிவு கிடைக்கவில்லை.", en: "The journal entry was not found." },
@@ -117,12 +111,10 @@ function fallbackMessage(code: ApiErrorCode): ApiErrorMessage {
     DAILY_LIMIT_REACHED: { ta: "இன்றைக்கான வரம்பை அடைந்துவிட்டீர்கள்.", en: "You have reached today's limit. Please try again tomorrow." },
     DUPLICATE_RESOURCE: { ta: "இதே தகவல் ஏற்கனவே உள்ளது.", en: "This resource already exists." },
     EMAIL_ALREADY_EXISTS: { ta: "இந்த மின்னஞ்சலுடன் ஏற்கனவே ஒரு கணக்கு உள்ளது.", en: "An account with this email already exists." },
-    VALIDATION_FAILED: { ta: "உள்ளிட்ட தகவலைச் சரிபார்க்கவும்.", en: "Please check the information entered and try again." },
     VALIDATION_ERROR: { ta: "உள்ளிட்ட தகவலைச் சரிபார்க்கவும்.", en: "Please check the information entered and try again." },
     INVALID_INPUT: { ta: "உள்ளிட்ட தகவல் சரியல்ல.", en: "The information entered is invalid." },
     MISSING_REQUIRED_FIELD: { ta: "தேவையான தகவல் விடுபட்டுள்ளது.", en: "Required information is missing." },
     BIRTH_TIME_REQUIRED: { ta: "பிறந்த நேரம் தேவை.", en: "A birth time is required for this calculation." },
-    DATE_RANGE_INVALID: { ta: "தேர்ந்தெடுத்த தேதிவரம்பு சரியல்ல.", en: "The selected date range is invalid." },
     INVALID_DATE_RANGE: { ta: "தேர்ந்தெடுத்த தேதிவரம்பு சரியல்ல.", en: "The selected date range is invalid." },
     MISSING_DATA: { ta: "தேவையான தரவு கிடைக்கவில்லை.", en: "Required data is missing." },
     INVALID_FORMAT: { ta: "தகவலின் வடிவம் சரியல்ல.", en: "The information format is invalid." },
@@ -132,6 +124,8 @@ function fallbackMessage(code: ApiErrorCode): ApiErrorMessage {
     SERVICE_UNAVAILABLE: { ta: "சேவை இப்போது கிடைக்கவில்லை.", en: "The service is temporarily unavailable. Please try again shortly." },
     CONFIGURATION_ERROR: { ta: "சேவை அமைப்பில் சிக்கல் உள்ளது.", en: "The service is not configured correctly. Please try again later." },
     INTERNAL_ERROR: { ta: "எதிர்பாராத சிக்கல் ஏற்பட்டது.", en: "An unexpected error occurred. Please try again." },
+    RATE_LIMITED: { ta: "மிக விரைவாக கோரிக்கைகள் வருகின்றன. சிறிது நேரம் கழித்து முயற்சிக்கவும்.", en: "Too many requests. Please wait a moment and try again." },
+    MONTHLY_LIMIT_REACHED: { ta: "இந்த மாதத்திற்கான வரம்பை அடைந்துவிட்டீர்கள்.", en: "You have reached this month's limit." },
   };
   return messages[code];
 }

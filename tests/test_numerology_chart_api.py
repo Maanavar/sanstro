@@ -26,6 +26,15 @@ from app.services import numerology_content
 from app.services.feature_flags import reset_flag, set_flag
 
 
+def _stable_error_body(response) -> dict:
+    """Compare anti-enumeration responses without their unique trace ids."""
+    body = response.json()
+    body.pop("request_id", None)
+    if isinstance(error := body.get("error"), dict):
+        error.pop("request_id", None)
+    return body
+
+
 @pytest.fixture
 def enabled() -> Iterator[None]:
     set_flag("numerology_engine", True)
@@ -202,7 +211,7 @@ def test_flag_off_hides_whether_the_chart_exists(client, numerology_off: None) -
         f"/api/v1/charts/{missing}/numerology/favourable-numbers"
     )
     assert real_response.status_code == missing_response.status_code == 404
-    assert real_response.json() == missing_response.json()
+    assert _stable_error_body(real_response) == _stable_error_body(missing_response)
 
 
 @pytest.mark.parametrize(("verb", "suffix", "payload"), ROUTES)
@@ -577,7 +586,7 @@ def test_compatibility_flag_off_hides_whether_the_charts_exist(
         COMPATIBILITY_URL, json={"chartIdA": str(uuid4()), "chartIdB": str(uuid4())}
     )
     assert with_real.status_code == with_neither.status_code == 404
-    assert with_real.json() == with_neither.json()
+    assert _stable_error_body(with_real) == _stable_error_body(with_neither)
 
 
 def test_compatibility_requires_auth(raw_client) -> None:

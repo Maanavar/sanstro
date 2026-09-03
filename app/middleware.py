@@ -17,10 +17,60 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import get_settings
+from app.core.error_codes import ErrorCode
+from app.core.errors import error_envelope
 from app.core.rate_limit import get_rate_limit_backend
 from app.services.feature_flags import get_flag
 
 logger = logging.getLogger("jothidam.access")
+
+
+# ---------------------------------------------------------------------------
+# Correlation id
+# ---------------------------------------------------------------------------
+
+def ensure_request_id(request: Request) -> str:
+    """Return this request's correlation id, minting one on first use.
+
+    RateLimitMiddleware and MaintenanceModeMiddleware are mounted *outside*
+    RequestLoggingMiddleware, so when either short-circuits, the logging
+    middleware never runs and ``request.state.request_id`` would be unset. Both
+    still owe the client a traceable id, so the mint moved here and every caller
+    is idempotent.
+    """
+    existing = getattr(request.state, "request_id", None)
+    if isinstance(existing, str) and existing:
+        return existing
+    request_id = request.headers.get("x-request-id") or uuid.uuid4().hex
+    request.state.request_id = request_id
+    return request_id
+
+
+def _middleware_error_response(
+    request: Request,
+    *,
+    status_code: int,
+    code: ErrorCode,
+    detail: str,
+    headers: dict[str, str] | None = None,
+) -> JSONResponse:
+    """Emit the same typed envelope the exception handlers produce.
+
+    A response returned from middleware never reaches an exception handler, so
+    without this the two most user-visible failures in the product — rate limit
+    and maintenance — would ship untyped English prose that a Tamil client has
+    to substring-match.
+    """
+    request_id = ensure_request_id(request)
+    response_headers = {"X-Request-ID": request_id}
+    if headers:
+        response_headers.update(headers)
+    return JSONResponse(
+        status_code=status_code,
+        content=error_envelope(code=code, request=request, detail=detail),
+        headers=response_headers,
+    )
+
 
 # ---------------------------------------------------------------------------
 # Security headers
@@ -80,8 +130,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         # Correlation id: reuse an inbound X-Request-ID (e.g. from the Next proxy)
         # or mint one, so a single request can be traced across log lines and the
         # 500 envelope.
-        request_id = request.headers.get("x-request-id") or uuid.uuid4().hex
-        request.state.request_id = request_id
+        request_id = ensure_request_id(request)
 
         start = time.perf_counter()
         response: Response = await call_next(request)
@@ -197,9 +246,13 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         rate_key = _extract_user_id(request) or client_ip
         result = self.backend.check(rate_key, self.max_requests, self.window_seconds)
         if not result.allowed:
-            return JSONResponse(
+            return _middleware_error_response(
+                request,
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                content={"detail": "Rate limit exceeded. Please slow down."},
+                # RATE_LIMITED, not DAILY_LIMIT_REACHED: this is "slow down and
+                # retry", which the client handles differently from a spent quota.
+                code=ErrorCode.RATE_LIMITED,
+                detail="Rate limit exceeded. Please slow down.",
                 headers={
                     "Retry-After": str(result.retry_after),
                     "X-RateLimit-Limit": str(self.max_requests),
@@ -228,8 +281,10 @@ class MaintenanceModeMiddleware(BaseHTTPMiddleware):
         if any(path.startswith(prefix) for prefix in _MAINTENANCE_EXEMPT_PREFIXES):
             return await call_next(request)
         if bool(get_flag("maintenance_mode")):
-            return JSONResponse(
+            return _middleware_error_response(
+                request,
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                content={"detail": "Service temporarily unavailable for maintenance."},
+                code=ErrorCode.SERVICE_UNAVAILABLE,
+                detail="Service temporarily unavailable for maintenance.",
             )
         return await call_next(request)

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import type { ApiError } from "@vinaadi/shared/api";
+import { API_ERROR_CODES, type ApiError } from "@vinaadi/shared/api";
 
 import { ApiRequestError } from "./api";
 import { formatErrorMessage } from "./error-messages";
@@ -45,5 +45,21 @@ describe("formatErrorMessage", () => {
 
     expect(info.code).toBeUndefined();
     expect(info.title).toBe("Something went wrong");
+  });
+
+  it("has an intentional presentation title for every typed API code", () => {
+    for (const code of API_ERROR_CODES) {
+      const typedError: ApiError = {
+        code,
+        message: { ta: "சோதனை", en: "Test" },
+        requestId: "req-error-catalogue",
+        detail: "Test",
+        status: 400,
+      };
+
+      expect(formatErrorMessage(new ApiRequestError(400, "/test", typedError)).title).not.toBe(
+        "Something went wrong",
+      );
+    }
   });
 });

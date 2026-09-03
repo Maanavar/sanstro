@@ -577,7 +577,6 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
         allowRecovery &&
         (apiError?.code === "ACCESS_DENIED" ||
           apiError?.code === "BIRTH_PROFILE_NOT_FOUND" ||
-          apiError?.code === "PROFILE_NOT_FOUND" ||
           apiError?.code === "CHART_NOT_FOUND")
       ) {
         setBirthProfileId("");

@@ -15,7 +15,7 @@ vi.mock("@vinaadi/shared/api/dashboardBundle", () => ({
   getChartDashboardBundle: vi.fn(),
 }));
 
-import { apiFetchJson } from "@/lib/api";
+import { ApiRequestError, apiFetchJson } from "@/lib/api";
 import { getChartDashboardBundle } from "@vinaadi/shared/api/dashboardBundle";
 
 const apiMock = vi.mocked(apiFetchJson);
@@ -63,7 +63,16 @@ function installApiMock(options: {
     if (path === "/api/v1/charts/calculate") {
       const body = JSON.parse(String(init?.body ?? "{}")) as { birthProfileId: string };
       if (options.failCalculateFor?.has(body.birthProfileId)) {
-        throw new Error(`403: /api/v1/charts/calculate: Access denied.`);
+        throw new ApiRequestError(403, path, {
+          code: "ACCESS_DENIED",
+          message: {
+            ta: "இந்தத் தகவலை அணுக உங்களுக்கு அனுமதி இல்லை.",
+            en: "You do not have permission to access this resource.",
+          },
+          requestId: "test-recovery-request",
+          detail: "Access denied.",
+          status: 403,
+        });
       }
       const gate = options.calcGate?.get(body.birthProfileId);
       if (gate) await gate;

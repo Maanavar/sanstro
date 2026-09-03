@@ -42,6 +42,15 @@ from app.services.one_minute_reading_service import (
 TODAY = date.today()
 
 
+def _stable_error_body(response) -> dict:
+    """Compare anti-enumeration responses without their unique trace ids."""
+    body = response.json()
+    body.pop("request_id", None)
+    if isinstance(error := body.get("error"), dict):
+        error.pop("request_id", None)
+    return body
+
+
 @pytest.fixture(autouse=True)
 def _reading_enabled():
     set_flag("one_minute_reading", True)
@@ -124,7 +133,7 @@ def test_flag_off_answers_404_identically_for_real_and_fake_chart_ids(
 
     assert real.status_code == 404
     assert fake.status_code == 404
-    assert real.json() == fake.json()
+    assert _stable_error_body(real) == _stable_error_body(fake)
 
 
 # ── The budget IS the product ────────────────────────────────────────────────

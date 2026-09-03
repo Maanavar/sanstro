@@ -24,13 +24,32 @@ const DEFAULT_META: ErrorMeta = {
   suggestion: { ta: "மீண்டும் முயற்சிக்கவும்.", en: "Please try again." },
 };
 
-const ERROR_META: Partial<Record<ApiErrorCode, ErrorMeta>> = {
-  PROFILE_NOT_FOUND: { title: { ta: "பிறப்புத் தகவல் கிடைக்கவில்லை", en: "Birth Profile Not Found" } },
+/**
+ * Exhaustive by type, not by convention: a new ApiErrorCode fails the build here
+ * until it is given a real title, rather than silently rendering "Something went
+ * wrong". Every backend code has exactly one entry — there are no alias keys,
+ * because the synonym codes they mirrored were removed before any client shipped.
+ */
+const ERROR_META: Record<ApiErrorCode, ErrorMeta> = {
+  RESOURCE_NOT_FOUND: { title: { ta: "கோரிய தகவல் கிடைக்கவில்லை", en: "Requested Item Not Found" } },
+  USER_NOT_FOUND: { title: { ta: "பயனர் கிடைக்கவில்லை", en: "User Not Found" } },
+  FEEDBACK_NOT_FOUND: { title: { ta: "கருத்துப்பதிவு கிடைக்கவில்லை", en: "Feedback Not Found" } },
+  PERMISSION_DENIED: { title: { ta: "செயல்படுத்த அனுமதி இல்லை", en: "Permission Denied" } },
+  ACCOUNT_SUSPENDED: { title: { ta: "கணக்கு தற்காலிகமாக நிறுத்தப்பட்டுள்ளது", en: "Account Suspended" } },
+  TOKEN_REVOKED: { title: { ta: "அமர்வு நிறுத்தப்பட்டுள்ளது", en: "Session Revoked" } },
+  RATE_LIMITED: { title: { ta: "கோரிக்கைகளை சிறிது நேரம் கழித்து முயற்சிக்கவும்", en: "Too Many Requests" } },
+  MONTHLY_LIMIT_REACHED: { title: { ta: "மாத வரம்பு முடிந்தது", en: "Monthly Limit Reached" } },
+  DUPLICATE_RESOURCE: { title: { ta: "இதே தகவல் ஏற்கனவே உள்ளது", en: "Already Exists" } },
+  MISSING_REQUIRED_FIELD: { title: { ta: "தேவையான தகவல் விடுபட்டுள்ளது", en: "Required Information Missing" } },
+  MISSING_DATA: { title: { ta: "தேவையான தரவு இல்லை", en: "Required Data Missing" } },
+  INVALID_FORMAT: { title: { ta: "தகவல் வடிவம் சரியல்ல", en: "Invalid Format" } },
+  VALUE_OUT_OF_RANGE: { title: { ta: "மதிப்பு அனுமதிக்கப்பட்ட வரம்புக்கு வெளியே உள்ளது", en: "Value Out of Range" } },
+  MISSING_MOON_DATA: { title: { ta: "சந்திர நிலைத்தகவல் இல்லை", en: "Moon Data Unavailable" } },
+  MISSING_SUN_DATA: { title: { ta: "சூரிய நிலைத்தகவல் இல்லை", en: "Sun Data Unavailable" } },
+  CONFIGURATION_ERROR: { title: { ta: "சேவை அமைப்பில் சிக்கல்", en: "Configuration Error" } },
   BIRTH_PROFILE_NOT_FOUND: { title: { ta: "பிறப்புத் தகவல் கிடைக்கவில்லை", en: "Birth Profile Not Found" } },
   CHART_NOT_FOUND: { title: { ta: "ஜாதகம் கிடைக்கவில்லை", en: "Birth Chart Not Found" } },
-  VAULT_NOT_FOUND: { title: { ta: "குடும்பப் பெட்டகம் கிடைக்கவில்லை", en: "Family Vault Not Found" } },
   FAMILY_VAULT_NOT_FOUND: { title: { ta: "குடும்பப் பெட்டகம் கிடைக்கவில்லை", en: "Family Vault Not Found" } },
-  MEMBER_NOT_FOUND: { title: { ta: "குடும்ப உறுப்பினர் கிடைக்கவில்லை", en: "Family Member Not Found" } },
   FAMILY_MEMBER_NOT_FOUND: { title: { ta: "குடும்ப உறுப்பினர் கிடைக்கவில்லை", en: "Family Member Not Found" } },
   JOURNAL_ENTRY_NOT_FOUND: { title: { ta: "குறிப்பேட்டு பதிவு கிடைக்கவில்லை", en: "Journal Entry Not Found" } },
   GOAL_NOT_FOUND: { title: { ta: "இலக்கு கிடைக்கவில்லை", en: "Goal Not Found" } },
@@ -45,9 +64,7 @@ const ERROR_META: Partial<Record<ApiErrorCode, ErrorMeta>> = {
   DAILY_LIMIT_REACHED: { title: { ta: "இன்றைய வரம்பு முடிந்தது", en: "Daily Limit Reached" } },
   EMAIL_ALREADY_EXISTS: { title: { ta: "மின்னஞ்சல் ஏற்கனவே உள்ளது", en: "Email Already Registered" } },
   BIRTH_TIME_REQUIRED: { title: { ta: "பிறந்த நேரம் தேவை", en: "Birth Time Required" } },
-  DATE_RANGE_INVALID: { title: { ta: "தேதிவரம்பு சரியல்ல", en: "Invalid Date Range" } },
   INVALID_DATE_RANGE: { title: { ta: "தேதிவரம்பு சரியல்ல", en: "Invalid Date Range" } },
-  VALIDATION_FAILED: { title: { ta: "தகவலைச் சரிபார்க்கவும்", en: "Check Your Information" } },
   VALIDATION_ERROR: { title: { ta: "தகவலைச் சரிபார்க்கவும்", en: "Check Your Information" } },
   INVALID_INPUT: { title: { ta: "தவறான தகவல்", en: "Invalid Information" } },
   SERVICE_UNAVAILABLE: { title: { ta: "சேவை தற்காலிகமாக கிடைக்கவில்லை", en: "Service Unavailable" } },
