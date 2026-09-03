@@ -1179,7 +1179,10 @@ class PublicRasiPalanGridResponse(BaseModel):
 
 
 @router.get("/rasi-palan/grid", response_model=PublicRasiPalanGridResponse)
-@public_endpoint_rate_limit("public_panchangam")
+# Its own budget, not the shared "public_panchangam" one: this returns all twelve
+# signs' full bilingual predictions and remedies in a single unauthenticated call,
+# so it carries a daily cap on top of the per-minute limit. See the config entry.
+@public_endpoint_rate_limit("public_rasi_palan_grid")
 def public_rasi_palan_grid(
     request: Request,
     query_date: date | None = None,

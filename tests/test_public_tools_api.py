@@ -368,3 +368,110 @@ def test_public_muhurtham_naals_rate_limit_enforced() -> None:
     assert responses[-1].status_code == 429, responses[-1].text
     assert "Retry-After" in responses[-1].headers
     assert all(r.status_code == 200 for r in responses[:30])
+
+
+# -- Daily cap on the rasi-palan grid ----------------------------------------
+#
+# A per-minute limit bounds a burst, not a day. The grid returns every sign's
+# full bilingual prediction and remedies in one unauthenticated call, so at
+# 30/min a single IP could pull the whole content library 43,200 times between
+# midnights and never once exceed its budget. GO_LIVE_CHECKLIST's public-API
+# scraping item asks for a daily cap in addition; these pin it.
+
+
+def test_rasi_palan_grid_has_its_own_budget_not_the_shared_panchangam_one() -> None:
+    """It used to share `public_panchangam` with three other routes.
+
+    That matters because a daily cap on the shared key would have silently
+    applied to /panchangam, /rasi-palan and /panchangam/monthly as well -- none
+    of which return a whole library, and one of which the dashboard calls.
+    """
+    from app.core.public_endpoint_limiter import PublicEndpointLimiter
+
+    config = PublicEndpointLimiter._ENDPOINT_CONFIG
+    assert "public_rasi_palan_grid" in config
+    assert config["public_rasi_palan_grid"]["daily_max_requests"] == 120
+    assert "daily_max_requests" not in config["public_panchangam"]
+
+
+def test_the_daily_cap_uses_a_separate_counter_from_the_burst_one() -> None:
+    """Sharing one key would make both windows increment the same counter, and
+    the tighter of the two would decide both."""
+    from app.core.public_endpoint_limiter import _ONE_DAY_SECONDS, PublicEndpointLimiter
+
+    reset_rate_limit_backend()
+    limiter = PublicEndpointLimiter()
+    seen: list[tuple[str, int, int]] = []
+
+    class _Recorder:
+        def check(self, key: str, max_requests: int, window_seconds: int):
+            seen.append((key, max_requests, window_seconds))
+
+            class _Result:
+                allowed = True
+                retry_after = 0
+
+            return _Result()
+
+    limiter._backend = _Recorder()
+    assert limiter.check("public_rasi_palan_grid", "203.0.113.9") == (True, 0)
+
+    assert seen == [
+        ("public:public_rasi_palan_grid:203.0.113.9", 30, 60),
+        ("public:public_rasi_palan_grid:daily:203.0.113.9", 120, _ONE_DAY_SECONDS),
+    ]
+
+
+def test_an_endpoint_without_a_daily_cap_checks_only_one_budget() -> None:
+    """The second window is opt-in. Every other endpoint keeps one check."""
+    from app.core.public_endpoint_limiter import PublicEndpointLimiter
+
+    reset_rate_limit_backend()
+    limiter = PublicEndpointLimiter()
+    seen: list[str] = []
+
+    class _Recorder:
+        def check(self, key: str, max_requests: int, window_seconds: int):
+            seen.append(key)
+
+            class _Result:
+                allowed = True
+                retry_after = 0
+
+            return _Result()
+
+    limiter._backend = _Recorder()
+    limiter.check("public_panchangam", "203.0.113.9")
+
+    assert seen == ["public:public_panchangam:203.0.113.9"]
+
+
+def test_exceeding_the_burst_limit_does_not_consume_the_daily_budget() -> None:
+    """Order of the two checks, stated as behaviour.
+
+    A caller already over the per-minute limit must not also burn a slot from the
+    daily allowance -- otherwise a burst of 429s would spend the day's budget on
+    requests that were all rejected.
+    """
+    from app.core.public_endpoint_limiter import PublicEndpointLimiter
+
+    reset_rate_limit_backend()
+    limiter = PublicEndpointLimiter()
+    daily_checks: list[str] = []
+
+    class _BurstExhausted:
+        def check(self, key: str, max_requests: int, window_seconds: int):
+            if "daily:" in key:
+                daily_checks.append(key)
+
+            class _Result:
+                allowed = "daily:" in key
+                retry_after = 0 if "daily:" in key else 42
+
+            return _Result()
+
+    limiter._backend = _BurstExhausted()
+    allowed, retry_after = limiter.check("public_rasi_palan_grid", "203.0.113.9")
+
+    assert (allowed, retry_after) == (False, 42)
+    assert daily_checks == []
