@@ -80,6 +80,9 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  // DPDP Act 2023 §6. Starts false, always: a pre-ticked box is not a consent
+  // action the user performed.
+  const [consentGiven, setConsentGiven] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -128,6 +131,9 @@ export default function LoginPage() {
     setDone(null);
     setPassword("");
     setConfirmPassword("");
+    // Cleared with the rest of the form. Consent carried across a mode switch
+    // would be a tick the user made in one context reused in another.
+    setConsentGiven(false);
     setShowPassword(false);
     setShowConfirm(false);
   }
@@ -181,6 +187,10 @@ export default function LoginPage() {
         setError({ key: "error_password_mismatch" });
         return;
       }
+      if (mode === "signup" && !consentGiven) {
+        setError({ key: "error_consent_required" });
+        return;
+      }
     }
 
     setLoading(true);
@@ -191,7 +201,7 @@ export default function LoginPage() {
           method: "POST",
           headers: { "Content-Type": "application/json", "X-Vinaadi-CSRF": "1" },
           credentials: "include",
-          body: JSON.stringify({ email: email.trim(), password }),
+          body: JSON.stringify({ email: email.trim(), password, consentGiven }),
         });
         if (!response.ok) {
           const payload = await response.json().catch(() => ({} as { detail?: string }));
@@ -573,6 +583,33 @@ export default function LoginPage() {
                     {confirmTouched && !confirmMatch && (
                       <span id="ca-confirm-error" className="ca-hint is-error" role="alert">{lt("error_confirm_mismatch", lang)}</span>
                     )}
+                  </div>
+                )}
+
+                {/* Privacy consent — signup only. DPDP Act 2023 §6 requires a
+                    specific, informed, unambiguous action before birth data is
+                    collected, so this starts unticked and the submit is blocked
+                    until it is ticked. A pre-ticked box is not an action the
+                    user took, and the backend rejects a missing or false value
+                    rather than inferring one. */}
+                {mode === "signup" && (
+                  <div className="ca-field">
+                    <label className="ca-consent" htmlFor="ca-consent">
+                      <input
+                        id="ca-consent"
+                        type="checkbox"
+                        checked={consentGiven}
+                        aria-describedby="ca-consent-text"
+                        onChange={(e) => { setConsentGiven(e.target.checked); setError(null); }}
+                      />
+                      <span id="ca-consent-text">
+                        {lt("consent_prefix", lang)}{" "}
+                        <Link href="/privacy" className="ca-link" target="_blank" rel="noreferrer">
+                          {lt("consent_privacy_link", lang)}
+                        </Link>
+                        {lt("consent_suffix", lang)}
+                      </span>
+                    </label>
                   </div>
                 )}
 

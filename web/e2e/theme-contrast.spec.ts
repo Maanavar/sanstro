@@ -68,7 +68,7 @@ test.beforeAll(async ({ browser }) => {
   context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const api = context.request;
 
-  const reg = await api.post("/api/backend/api/v1/auth/register", { data: { email: EMAIL, password: PASSWORD } });
+  const reg = await api.post("/api/backend/api/v1/auth/register", { data: { email: EMAIL, password: PASSWORD, consentGiven: true } });
   if (!reg.ok()) throw new Error(`register failed: ${reg.status()} ${await reg.text()}`);
   // `register` commits in a `yield` dependency's teardown, which runs as the
   // response goes out — so a login issued the instant the 200 lands can race

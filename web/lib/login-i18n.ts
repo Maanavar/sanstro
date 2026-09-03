@@ -111,6 +111,14 @@ const LOGIN_STRINGS = {
     en: "Google sign-in didn't complete. Please try again or use email instead.",
     ta: "Google உள்நுழைவு முடியவில்லை. மீண்டும் முயலவும், அல்லது மின்னஞ்சலைப் பயன்படுத்தவும்.",
   },
+  // ── Privacy consent (DPDP Act 2023 §6)
+  // Split into prefix/link/suffix so the policy link sits inside the sentence in
+  // both languages. Tamil puts the verb last, so the link cannot simply be
+  // appended — "தனியுரிமைக் கொள்கையை ஏற்கிறேன்" needs the link before the verb.
+  consent_prefix: { en: "I have read and accept the", ta: "நான் படித்து ஏற்றுக்கொள்கிறேன்:" },
+  consent_privacy_link: { en: "Privacy Policy", ta: "தனியுரிமைக் கொள்கை" },
+  consent_suffix: { en: ", and consent to my birth details being used to generate my readings.", ta: ". எனது பிறப்பு விவரங்கள் எனது பலன்களை உருவாக்கப் பயன்படுத்தப்படுவதற்கு சம்மதிக்கிறேன்." },
+  error_consent_required: { en: "Please accept the privacy policy to create your account.", ta: "கணக்கை உருவாக்க தனியுரிமைக் கொள்கையை ஏற்கவும்." },
   error_password_short: { en: "Password must be at least 8 characters.", ta: "கடவுச்சொல் குறைந்தது 8 எழுத்துகள் இருக்க வேண்டும்." },
   error_password_mismatch: { en: "Passwords do not match.", ta: "கடவுச்சொற்கள் பொருந்தவில்லை." },
   error_reset_link_invalid: { en: "This reset link is invalid or has expired.", ta: "இந்த மீட்டமைப்பு இணைப்பு செல்லாதது அல்லது காலாவதியானது." },

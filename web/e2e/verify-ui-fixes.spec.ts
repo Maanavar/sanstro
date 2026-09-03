@@ -26,7 +26,7 @@ test.beforeAll(async ({ browser }) => {
   fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
   context = await browser.newContext();
   const api = context.request;
-  await api.post("/api/backend/api/v1/auth/register", { data: { email: EMAIL, password: PASSWORD } });
+  await api.post("/api/backend/api/v1/auth/register", { data: { email: EMAIL, password: PASSWORD, consentGiven: true } });
   await api.post("/api/backend/api/v1/auth/login", { data: { email: EMAIL, password: PASSWORD } });
   const selfProfile = {
     displayName: "E2E Nova Owner", relationshipToOwner: "self",

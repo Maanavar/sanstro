@@ -76,7 +76,7 @@ test.beforeAll(async ({ browser }) => {
   context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const api = context.request;
 
-  const reg = await api.post("/api/backend/api/v1/auth/register", { data: { email: EMAIL, password: PASSWORD } });
+  const reg = await api.post("/api/backend/api/v1/auth/register", { data: { email: EMAIL, password: PASSWORD, consentGiven: true } });
   if (!reg.ok()) throw new Error(`register failed: ${reg.status()} ${await reg.text()}`);
   const login = await api.post("/api/backend/api/v1/auth/login", { data: { email: EMAIL, password: PASSWORD } });
   if (!login.ok()) throw new Error(`login failed: ${login.status()} ${await login.text()}`);
