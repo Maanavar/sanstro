@@ -733,6 +733,37 @@ Three things worth carrying forward:
 should re-run; adding the missing dependency changes render behaviour, which this
 section's own rule puts outside cleanup. They need a sitting, not a sweep.
 
+### The BOM hunt found eight live rendering bugs
+
+Checking that the BOM work had not damaged any encoding turned up mojibake that
+**predated all of it** — byte-identical to its state at `089ab8d`. web has
+`lib/text-encoding-guard.test.ts`; mobile had no equivalent, and that asymmetry is
+the whole explanation for where these accumulated.
+
+| Where | What the user saw | Commit |
+|---|---|---|
+| `today.tsx` → `pushWidgetData()` | The home-screen widget's time ranges separated by garbage; the empty state was garbage *entirely* | `a0cef35` |
+| `panchangam/index.tsx` date hero | Six garbage characters where the sunrise/sunset emoji were | `0559d2b` |
+| `chandrashtama.tsx` | Back arrow, every ✕ in "avoid", every ✓ in "can do", and three lines of English body copy | `c872f7b` |
+| `today.tsx:609` | Nakshatra and tithi separated by garbage in the hero | `c872f7b` |
+| `_layout.tsx` | Comments only — cosmetic | `a0cef35` |
+
+Three things to carry forward:
+
+- **Recovery was derived, not guessed.** This mojibake is UTF-8 bytes decoded as
+  cp1252, which has an exact inverse: encode back to cp1252, decode as UTF-8. Only
+  runs that round-tripped cleanly were replaced. Exactly one refused — a
+  cp1252/latin1 hybrid, because `0x90` is undefined in cp1252 — and it was rebuilt
+  byte by byte to `E2 86 90` with the result asserted before writing.
+- **Nothing else could have caught this.** Mojibake is valid TypeScript and a valid
+  string. `tsc`, eslint and 90 passing tests all saw nothing. Only reading the bytes
+  finds it, which is why the guard is a test.
+- **The Chandrashtama Tamil copy was fine while the English was broken**, on the
+  same line. Half-broken screens do not look broken in a spot check.
+
+`mobile/__tests__/text-encoding-guard.test.ts` now mirrors web's, plus a BOM check.
+It runs in the `utils` jest project (node, no RN), so it costs ~30 ms.
+
 ### Also done
 
 - `eb75e62` — **deleted `scripts/migrate-error-messages.py`** (owner-approved). Not
