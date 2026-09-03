@@ -283,11 +283,26 @@ for nine chart routes; WI-07 sunrise reference values not yet on file).
   (coverage floor) — untouched here beyond flagging the `pyproject.toml` line above.
 - **P2-8** (cleanup) and **SEC-1** (secret manager) — correctly not started; SEC-1
   is a decision awaiting a deployment target.
-- **`activeLanguage()` on a pre-hydration error** (review §5.4's last note) still
-  wants one manual check: set the language to Tamil, hard-reload, force an error,
-  confirm the message is Tamil. `document.documentElement.lang` is set
-  client-side, so a server-rendered error may still read the document default.
-  Not something a unit test can answer.
+- ~~**`activeLanguage()` on a pre-hydration error**~~ (review §5.4's last note) —
+  **answered 2026-09-03, and the premise was wrong.** `document.documentElement.lang`
+  is *not* set client-side. `app/layout.tsx:180` renders `<html lang={initialLang}>`
+  on the server from the language cookie (`getServerLang()`), so the attribute is
+  correct in the first byte of HTML, before any script runs. A hard reload in Tamil
+  therefore reads `"ta"`, and there is no pre-hydration gap to check.
+
+  What the note was groping towards is real but narrower, and it is a coupling
+  rather than a timing problem: `activeLanguage()` depends on
+  `persistLangPreference()` in `components/lang-toggle.tsx` being the one thing that
+  writes that attribute after the server's render. Nothing tested that line.
+  Delete it and a user who switches to Tamil in-session keeps a fully Tamil
+  interface and gets English errors — and no existing test notices, because
+  `error-messages.test.tsx` sets the attribute by hand and passes either way.
+
+  Now pinned by `lang-toggle.test.tsx`'s "writes both stores and `<html lang>` on
+  change", verified the way that file's other guards were: by removing the line and
+  watching it fail. The `typeof document === "undefined"` branch (SSR) remains, but
+  is unreachable — `formatErrorMessage` is reached only through
+  `readUserFriendlyError` in `lib/api.ts`, which only runs in client fetch handlers.
 - **`_latest_active_profile` in `daily_push_cron.py`** has the same
   `scalar_one_or_none()`-without-`limit(1)` shape as the family helper: a user with
   two active profiles raises `MultipleResultsFound` and the cron logs an error for

@@ -66,7 +66,16 @@ describe("LangProvider / LangToggle — server-rendered copy", () => {
     expect(refresh).toHaveBeenCalled();
   });
 
-  it("writes both stores on change, so the server sees the same language on the next request", async () => {
+  it("writes both stores and <html lang> on change, or error messages silently revert to English", async () => {
+    // The third assertion is the load-bearing one and has no other guard.
+    //
+    // `activeLanguage()` in lib/error-messages.ts decides the language of every
+    // error the user ever sees by reading `document.documentElement.lang`, and
+    // nothing else in the app writes that attribute after the server's first
+    // render — `persistLangPreference` here is the only writer. Delete that one
+    // line and a Tamil user who switched language in-session keeps a fully Tamil
+    // interface and gets English errors. error-messages.test.tsx cannot catch it:
+    // it sets the attribute by hand, so it passes either way.
     await act(async () => {
       render(
         <LangProvider initialLang="en">
@@ -81,6 +90,7 @@ describe("LangProvider / LangToggle — server-rendered copy", () => {
 
     expect(localStorage.getItem(LANG_STORAGE_KEY)).toBe("ta");
     expect(document.cookie).toContain(`${LANG_STORAGE_KEY}=ta`);
+    expect(document.documentElement.lang).toBe("ta");
   });
 
   it("self-heals a stored preference the server could not see", async () => {
