@@ -18,7 +18,8 @@ import { ToastProvider } from "@/context/ToastContext";
 import { ConfirmProvider } from "@/context/ConfirmContext";
 import { queryClient, asyncStoragePersister } from "@/lib/queryClient";
 import { getTokens, clearTokens } from "@/lib/secureStore";
-import { initAnalytics, setUser } from "@/lib/analytics";
+import { initAnalytics, setAnalyticsConsent, setUser } from "@/lib/analytics";
+import { loadGuestPrefs } from "@/features/guest/guestStore";
 import { ENV } from "@/lib/env";
 import { getMe } from "@/api/auth";
 import { FONT_MAP } from "@/theme/typography";
@@ -61,6 +62,16 @@ function RootNavigation() {
 
   useEffect(() => {
     async function bootstrap() {
+      // Restore the stored analytics choice before anything can call setUser or
+      // trackEvent. The module-level default is `false`, so a failed read leaves
+      // analytics off rather than on.
+      try {
+        const prefs = await loadGuestPrefs();
+        setAnalyticsConsent(prefs.analyticsOptedIn === true);
+      } catch {
+        // Storage unavailable — stay opted out.
+      }
+
       try {
         await ExpoFont.loadAsync(FONT_MAP);
       } catch {

@@ -13,7 +13,7 @@ jest.mock("@sentry/react-native", () => mockSentry);
 jest.mock("posthog-react-native", () => ({ PostHog: jest.fn(() => mockPosthog) }));
 jest.mock("@react-native-async-storage/async-storage", () => ({}));
 
-import { initAnalytics, setAnalyticsConsent, setUser, trackEvent } from "@/lib/analytics";
+import { captureError, initAnalytics, setAnalyticsConsent, setUser, trackEvent } from "@/lib/analytics";
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -52,5 +52,28 @@ describe("analytics consent and payload boundary", () => {
     trackEvent("birth_chart_opened", { rasi: "mesham" });
 
     expect(mockPosthog.capture).not.toHaveBeenCalled();
+  });
+});
+
+describe("analytics consent has a surface that can grant it", () => {
+  it("sends events once consent is granted, and stops the moment it is withdrawn", () => {
+    setAnalyticsConsent(true);
+    trackEvent("onboarding_step_completed", { step: "rasi_picker" });
+    expect(mockPosthog.capture).toHaveBeenCalledTimes(1);
+
+    // Withdrawal has to take effect immediately and drop the identity with it,
+    // not merely stop future sessions.
+    setAnalyticsConsent(false);
+    trackEvent("onboarding_step_completed", { step: "location_entry" });
+    expect(mockPosthog.capture).toHaveBeenCalledTimes(1);
+    expect(mockPosthog.reset).toHaveBeenCalled();
+    expect(mockSentry.setUser).toHaveBeenCalledWith(null);
+  });
+
+  it("keeps crash reporting outside the consent gate", () => {
+    // Deliberate split: crash reporting under legitimate interest, product
+    // analytics under consent. A test so nobody "harmonises" the two silently.
+    captureError(new Error("synthetic failure"));
+    expect(mockSentry.captureException).toHaveBeenCalled();
   });
 });

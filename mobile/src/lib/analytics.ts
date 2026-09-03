@@ -108,6 +108,12 @@ export function initAnalytics(sentryDsn: string, posthogApiKey: string, posthogH
   }
 }
 
+/**
+ * Deliberately NOT consent-gated, unlike setUser and trackEvent. Crash reporting
+ * runs under legitimate interest — a stack trace carries no identity once setUser
+ * has been withheld — while product analytics runs under consent. Do not
+ * "harmonise" the two in either direction without revisiting DATA_PROTECTION.md.
+ */
 export function captureError(err: unknown, context?: Record<string, unknown>) {
   _sentry?.captureException(err, { extra: context });
 }

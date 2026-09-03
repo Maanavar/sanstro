@@ -72,6 +72,11 @@ describe("loadGuestPrefs — fresh store", () => {
     const prefs = await loadGuestPrefs();
     expect(prefs.pushOptedIn).toBe(false);
   });
+
+  it("returns analyticsOptedIn=false by default", async () => {
+    const prefs = await loadGuestPrefs();
+    expect(prefs.analyticsOptedIn).toBe(false);
+  });
 });
 
 describe("loadGuestPrefs — existing stored prefs", () => {
@@ -90,6 +95,9 @@ describe("loadGuestPrefs — existing stored prefs", () => {
     const prefs = await loadGuestPrefs();
     expect(prefs.lang).toBe("en");
     expect(prefs.anonymousId).toBe("anon_existing");
+    // Stored before the field existed. Absent must read as an explicit refusal,
+    // not as undefined — consent is never inherited from an older install.
+    expect(prefs.analyticsOptedIn).toBe(false);
     expect(_store.vinaadi_guest_prefs).toBeUndefined();
     expect(_store["vinaadi_encrypted:vinaadi_guest_prefs"]).toMatch(/^v3:/);
     expect(_store["vinaadi_encrypted:vinaadi_guest_prefs"]).not.toContain("Example City");

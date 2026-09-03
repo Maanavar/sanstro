@@ -81,6 +81,8 @@ export const strings = {
     language_label:      { ta: "மொழி",                  en: "Language" },
     push_label:          { ta: "காலை அறிவிப்பு",        en: "Morning alert" },
     push_time:           { ta: "அறிவிப்பு நேரம்",       en: "Alert time" },
+    analytics_label:     { ta: "பயன்பாட்டுப் புள்ளிவிவரம்", en: "Usage analytics" },
+    analytics_help:      { ta: "செயலியை மேம்படுத்த அநாமதேயப் பயன்பாட்டுத் தகவல். ஜாதகத் தகவல் ஒருபோதும் அனுப்பப்படாது.", en: "Anonymous usage data to improve the app. Your chart details are never sent." },
     rasi_label:          { ta: "என் ராசி",              en: "My Rasi" },
     logout:              { ta: "வெளியேறு",               en: "Sign out" },
   },

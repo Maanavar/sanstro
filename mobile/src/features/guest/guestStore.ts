@@ -15,6 +15,8 @@ export interface GuestPrefs {
   anonymousId: string;
   pushOptedIn: boolean;
   pushTime: string;
+  /** Product analytics is opt-in and defaults off; see setAnalyticsConsent. */
+  analyticsOptedIn: boolean;
 }
 
 function makeAnonymousId(): string {
@@ -32,6 +34,7 @@ const DEFAULT_PREFS: Omit<GuestPrefs, "anonymousId"> = {
   lang: "ta",
   pushOptedIn: false,
   pushTime: "06:30",
+  analyticsOptedIn: false,
 };
 
 let _initPromise: Promise<GuestPrefs> | null = null;
@@ -56,7 +59,15 @@ async function _doLoad(): Promise<GuestPrefs> {
   }
   if (raw) {
     try {
-      return JSON.parse(raw) as GuestPrefs;
+      // Merged over the defaults, not cast: an install created before a field
+      // existed has no value for it, and `analyticsOptedIn` must read as an
+      // explicit `false` rather than `undefined` — consent is never implied.
+      const stored = JSON.parse(raw) as Partial<GuestPrefs>;
+      return {
+        ...DEFAULT_PREFS,
+        ...stored,
+        anonymousId: stored.anonymousId ?? makeAnonymousId(),
+      };
     } catch {
       // corrupt entry — reset
     }
