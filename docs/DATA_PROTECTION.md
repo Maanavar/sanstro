@@ -160,7 +160,61 @@ number of days as `JOTHIDAM_JOURNAL_PURGE_AFTER_DAYS`, and no longer.
 
 ---
 
-## 4. Still open
+## 4. Personal data that deliberately still reaches other systems
+
+Two decisions that are easy to mistake for oversights. Both are choices; change
+either only on purpose.
+
+### The caller IP is logged in full
+
+`RequestLoggingMiddleware` emits `client` on every request line, and
+`JsonLogFormatter`'s `_SENSITIVE_KEY_PARTS` does **not** redact it — bearer
+tokens and email addresses are stripped, the IP is not. This is the one piece of
+personal data still going to logs after P1-3 removed birth coordinates.
+
+It is kept because IP-keyed rate limiting, abuse investigation and incident
+triage all need it: `resolve_client_ip` feeds `RateLimitMiddleware`, and a log
+line without the caller is not much use during an incident. The exposure is
+bounded by log retention rather than by redaction, so log retention is the
+control that matters here.
+
+### Mobile crash reporting is not consent-gated; product analytics is
+
+`setUser` and `trackEvent` are gated behind `setAnalyticsConsent`, which
+defaults to `false` and is set from the **Usage analytics** toggle on the Me
+screen (persisted in `analyticsOptedIn`, restored at launch). `captureError` is
+deliberately **not** gated: crash reporting runs under legitimate interest and
+carries no identity while `setUser` is withheld, whereas product analytics runs
+under consent.
+
+Withdrawing consent takes effect immediately — `setAnalyticsConsent(false)`
+clears the Sentry user and resets the PostHog client rather than waiting for the
+next launch. Event *properties* are separately constrained by
+`ALLOWED_EVENT_PROPERTIES`, which is what stopped `rasi` reaching PostHog from
+two onboarding screens.
+
+Do not harmonise these two gates in either direction without revisiting this
+section.
+
+### Pre-existing mobile keys keep their original entropy — accepted, pre-launch
+
+`getMasterEncryptionKey` returns whatever key is already in SecureStore, and
+`hexToBytes` accepts any 64 hex characters — which a key from the old
+`Math.random()` derivation also satisfies. That compatibility is intentional:
+rejecting those keys would make existing installs undecryptable, and P2-6's
+v2→v3 migration exists precisely so nobody loses data.
+
+The consequence is that an install created before the entropy fix keeps a weak
+key indefinitely, even though its data is now v3-encrypted. **This is accepted,
+not overlooked**, on the grounds that the install base is pre-launch. Re-deciding
+it means versioning the key (`v2` key → generate a strong one → re-encrypt every
+value under it, with the same write-before-delete ordering the storage migration
+uses), and the trigger for re-deciding is a real install base — not a code
+review.
+
+---
+
+## 5. Still open
 
 - **The privacy policy has not been updated.** §1's qualification — dump
   protection, not host-compromise protection — must reach it before it claims
