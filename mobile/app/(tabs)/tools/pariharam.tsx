@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Lock, MapPin, Sparkles, Palette, Gem } from "lucide-react-native";
 import type { LucideIcon } from "lucide-react-native";
 import {

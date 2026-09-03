@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { AlertTriangle, Home } from "lucide-react-native";
 import {
   RefreshControl,
