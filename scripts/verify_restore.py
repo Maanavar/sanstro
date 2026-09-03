@@ -297,6 +297,21 @@ def verify_table(
         if value is None:
             logger.info("    %-26s null, skipped", column)
             continue
+        if not isinstance(value, bytes | bytearray | memoryview):
+            # The column is not ciphertext at all. Found on the first real run of
+            # this script: `journal_entries.note_text` was still `character
+            # varying` because the migration that encrypts it had never been
+            # applied to that database. Crashing on it was wrong — an unencrypted
+            # column is precisely the finding a drill exists to produce, and the
+            # operator needs to be told, not shown a traceback.
+            logger.error(
+                "    %-26s IS NOT ENCRYPTED — stored as %s, not ciphertext. The migration "
+                "that encrypts this column has not been applied to this database.",
+                column,
+                type(value).__name__,
+            )
+            ok = False
+            continue
         try:
             plaintext, key_index = decrypt_with_any(fernets, bytes(value))
         except InvalidToken:

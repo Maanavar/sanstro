@@ -179,6 +179,75 @@ def test_no_shape_check_returns_the_plaintext():
     assert "temple" not in described
 
 
+class _OneRowConnection:
+    """The two calls verify_table makes on a connection. Not a real one."""
+
+    def __init__(self, row):
+        self._row = row
+
+    def execute(self, _statement):
+        row = self._row
+
+        class _Result:
+            def fetchone(self):
+                return row
+
+        return _Result()
+
+
+def test_a_plaintext_column_is_reported_not_crashed_on(caplog):
+    """Found on this script's first real run, against a copy of the dev database.
+
+    `journal_entries.note_text` came back as `str` because the migration that
+    encrypts it had never been applied there, so `bytes(value)` raised
+    `TypeError: string argument without an encoding`. A traceback stood in place
+    of the single most important thing a restore drill can report: that a column
+    you believe is encrypted is not.
+    """
+    fernets = vr.build_fernets([Fernet.generate_key().decode()])
+    connection = _OneRowConnection((1, "a journal entry, in the clear"))
+
+    with caplog.at_level("ERROR"):
+        ok = vr.verify_table(
+            connection, "journal_entries", "journal_id", (("note_text", vr._check_text),), fernets
+        )
+
+    assert ok is False
+    assert "IS NOT ENCRYPTED" in caplog.text
+    # The finding, never the finding's contents.
+    assert "in the clear" not in caplog.text
+
+
+def test_an_empty_table_proves_nothing_and_says_so(caplog):
+    """An empty restore passes every check there is, so it must not pass this one."""
+    fernets = vr.build_fernets([Fernet.generate_key().decode()])
+
+    with caplog.at_level("WARNING"):
+        ok = vr.verify_table(
+            _OneRowConnection(None), "journal_entries", "journal_id", (("note_text", vr._check_text),), fernets
+        )
+
+    assert ok is False
+    assert "NO ROWS" in caplog.text
+
+
+def test_a_genuinely_encrypted_column_passes(caplog):
+    key = Fernet.generate_key().decode()
+    ciphertext = Fernet(key.encode()).encrypt("என் குறிப்பு".encode())
+
+    with caplog.at_level("ERROR"):
+        ok = vr.verify_table(
+            _OneRowConnection((1, ciphertext)),
+            "journal_entries",
+            "journal_id",
+            (("note_text", vr._check_text),),
+            vr.build_fernets([key]),
+        )
+
+    assert ok is True
+    assert "என் குறிப்பு" not in caplog.text
+
+
 def test_every_encrypted_column_in_the_rotation_script_is_verified_here():
     """The two lists drift apart silently otherwise.
 
