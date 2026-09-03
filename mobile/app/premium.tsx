@@ -36,7 +36,7 @@ type Plan = "monthly" | "annual";
 export default function PremiumScreen() {
   const { showToast, showError } = useToast();
   const { lang } = useI18n();
-  const { setSession, user, tier } = useSession();
+  const { setSession, user } = useSession();
   const isTamil = lang === "ta";
   const [selectedPlan, setSelectedPlan] = useState<Plan>("annual");
   const [monthlyPkg, setMonthlyPkg] = useState<PurchasesPackage | null>(null);

@@ -490,7 +490,7 @@ export default function FamilyVaultScreen() {
   const synastrySnapPoints = useMemo(() => ["58%", "92%"], []);
 
   // Vault name input sheet state
-  const [vaultNameSheetOpen, setVaultNameSheetOpen] = useState(false);
+  const [, setVaultNameSheetOpen] = useState(false);
   const [vaultNameInput, setVaultNameInput] = useState("");
   const vaultNameSheetRef = useRef<BottomSheet>(null);
   const vaultNameSnapPoints = useMemo(() => ["35%"], []);

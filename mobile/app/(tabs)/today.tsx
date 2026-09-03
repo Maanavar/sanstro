@@ -187,7 +187,7 @@ export default function TodayTab() {
   const [primaryChartId, setPrimaryChartId] = useState<string | null>(null);
   const [streakCount, setStreakCount] = useState(0);
   const [detailSheet, setDetailSheet] = useState<DetailSheetState>(null);
-  const [journalOpen, setJournalOpen] = useState(false);
+  const [, setJournalOpen] = useState(false);
   const detailSheetRef = useRef<BottomSheet>(null);
   const journalSheetRef = useRef<BottomSheet>(null);
   const [journalMoment, setJournalMoment] = useState(JOURNAL_MOMENTS[0].key);

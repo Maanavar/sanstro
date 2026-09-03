@@ -2,7 +2,6 @@ import React, { useMemo, useRef, useState } from "react";
 import { AlertTriangle, Sparkles, FolderOpen } from "lucide-react-native";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,

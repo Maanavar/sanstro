@@ -27,7 +27,7 @@ function TabLabel({ text, focused }: { text: string; focused: boolean }) {
 
 export default function TabLayout() {
   const C = useColors();
-  const { t, strings, lang } = useI18n();
+  const { t, strings } = useI18n();
 
   return (
     <Tabs

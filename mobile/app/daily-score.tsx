@@ -1,7 +1,6 @@
 import React, { useMemo } from "react";
 import { ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Animated from "react-native-reanimated";
 import { router, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { useColors } from "@/hooks/useColors";
@@ -16,13 +15,6 @@ import { ErrorCard } from "@/components/ErrorCard";
 import { SharedTransitionView } from "@/components/SharedTransitionView";
 import type { DailyGuidanceData } from "@vinaadi/shared";
 import { formatTimeLang } from "@/lib/formatLocale";
-
-function formatTime(iso: string): string {
-  try {
-    const d = new Date(iso);
-    return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false });
-  } catch { return iso; }
-}
 
 const BREAKDOWN_AREAS = [
   { ta: "தொழில்",        en: "Career",        key: "moonTransit" as const },

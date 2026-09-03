@@ -25,14 +25,6 @@ import { entranceDelay, spring, staggerInterval, duration } from "@/theme/motion
 
 const TZ = "Asia/Kolkata";
 
-function isoToHHMM(iso: string): string {
-  try {
-    return new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false });
-  } catch {
-    return iso;
-  }
-}
-
 function dateString(offset: number): string {
   const d = new Date();
   d.setDate(d.getDate() + offset);
