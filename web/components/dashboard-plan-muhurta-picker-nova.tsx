@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { getTamilMonths } from "@vinaadi/shared/api";
+import type { TamilMonthSpanEntry } from "@vinaadi/shared/api";
+
 import { apiFetchJson } from "@/lib/api";
 import { useElapsedSeconds } from "@/hooks/useElapsedSeconds";
 import { t, tKarana, tNakshatra, tTithi, tWeekday, tYoga } from "@/lib/i18n";
@@ -14,6 +17,7 @@ import { PlaceCombobox } from "./place-combobox";
 import type { CityEntry } from "./place-combobox";
 import { Card } from "./ui";
 import { Field, FieldShell, Input } from "./ui/field";
+import { Segmented } from "./ui/segmented";
 import { ModalShell } from "./modal-shell";
 import { GlossaryTerm } from "./glossary-term";
 import type { GlossaryKey } from "@/lib/glossary";
@@ -453,6 +457,65 @@ const DEFAULT_SEARCH_RANGE_DAYS = 30;
 // client-side and their top results are merged, so the picker itself has no
 // forward-date ceiling.
 const API_SEARCH_CHUNK_DAYS = 60;
+/** A Tamil year plus one, so the list always reaches a year past *today*
+ *  rather than a year past the Tamil new year that preceded it. */
+const TAMIL_MONTH_OPTION_COUNT = 13;
+const GREGORIAN_MONTH_OPTION_COUNT = 12;
+
+/**
+ * How the search window is chosen. Three ways of naming the same thing — a
+ * Gregorian date range — because the three are not interchangeable to the
+ * reader: an English month is how a calendar app is read, a Tamil month is how
+ * an almanac is read, and an explicit range is the only one that expresses "the
+ * fortnight around the wedding".
+ */
+type SearchMode = "month" | "tamil" | "range";
+
+/** A closed date window, always in the API's `dateFrom`/`dateTo` shape. */
+export type DateWindow = { from: string; to: string };
+
+/** Last civil day of the `YYYY-MM` month, as `YYYY-MM-DD`. */
+export function monthEndIso(yearMonth: string): string {
+  const [year, month] = yearMonth.split("-").map(Number);
+  if (!year || !month) return "";
+  // Day 0 of the *next* month is the last day of this one, leap years included.
+  return `${yearMonth}-${String(new Date(year, month, 0).getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * The searchable part of `[from, to]`, or null when the whole window is past.
+ *
+ * A named month is a fixed span, but muhurta is only ever elected forward — the
+ * date inputs have always carried `min={today}`, and the backend scores a past
+ * date no differently, so a month picked while it is half over must search from
+ * today rather than silently returning days that have already gone.
+ */
+export function clampWindowToToday(from: string, to: string, today: string): DateWindow | null {
+  if (!from || !to || to < today) return null;
+  return { from: from < today ? today : from, to };
+}
+
+export function windowDayCount(span: DateWindow): number {
+  const ms = new Date(`${span.to}T00:00:00`).getTime() - new Date(`${span.from}T00:00:00`).getTime();
+  return Math.round(ms / 86400000) + 1;
+}
+
+/** "17 Sep 2026" — the compact form used in the month options and range summary. */
+function shortDateLabel(iso: string, lang: Lang): string {
+  const parsed = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return iso;
+  return parsed.toLocaleDateString(lang === "ta" ? "ta-IN" : "en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+/** The current Gregorian month and the 11 after it, as `YYYY-MM` + a label. */
+export function gregorianMonthOptions(today: string, lang: Lang): Array<{ value: string; label: string }> {
+  const [year, month] = today.split("-").map(Number);
+  return Array.from({ length: GREGORIAN_MONTH_OPTION_COUNT }, (_, offset) => {
+    const d = new Date(year, (month - 1) + offset, 1);
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    return { value, label: d.toLocaleDateString(lang === "ta" ? "ta-IN" : "en-GB", { month: "long", year: "numeric" }) };
+  });
+}
 
 /** One contiguous run of result dates inside a single Tamil solar month. */
 type TamilMonthGroup = {
@@ -503,6 +566,17 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
   const today = todayIso();
   const [activity, setActivity] = useState(initialActivity ?? "");
   const [pakshaFilter, setPakshaFilter] = useState<"" | "SHUKLA" | "KRISHNA">("");
+  // A preset date arrives as one specific day, which only the explicit range
+  // can express — a month mode would silently widen the very date the user
+  // just clicked in the shortlist above.
+  const [searchMode, setSearchMode] = useState<SearchMode>(initialDateFrom ? "range" : "month");
+  const [gregorianMonth, setGregorianMonth] = useState(() => today.slice(0, 7));
+  // Keyed by the span's own start date: unique across the list even when a
+  // month name repeats, and already the value the search needs.
+  const [tamilMonthStart, setTamilMonthStart] = useState("");
+  const [tamilMonths, setTamilMonths] = useState<TamilMonthSpanEntry[] | null>(null);
+  const [tamilMonthsLoading, setTamilMonthsLoading] = useState(false);
+  const [tamilMonthsFailed, setTamilMonthsFailed] = useState(false);
   const [dateFrom, setDateFrom] = useState(initialDateFrom ?? today);
   const [dateTo, setDateTo] = useState(addDays(initialDateFrom ?? today, DEFAULT_SEARCH_RANGE_DAYS));
   const [loading, setLoading] = useState(false);
@@ -535,12 +609,63 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
   }, [initialActivity]);
   useEffect(() => {
     if (initialDateFrom) {
+      setSearchMode("range");
       setDateFrom(initialDateFrom);
       setDateTo(initialDateFrom);
       setCheckDate(initialDateFrom);
       rootRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [initialDateFrom]);
+
+  // Tamil month boundaries are fetched, never derived here: the start of a
+  // Tamil month is a sankranti instant plus a sunset rule plus, for some
+  // months, a published-almanac override. `dashboard-calendar-shared`'s
+  // year-independent approximation is already a day off the engine for three
+  // months of 2026 and is module-private for that reason — this list has to
+  // agree with the `tamilDate` the very same search prints on its results.
+  useEffect(() => {
+    if (searchMode !== "tamil") return;
+    // Without either, the backend has no location to resolve boundaries
+    // against; the search button is disabled in that state anyway.
+    if (!chartId && !activityCity) return;
+    let cancelled = false;
+    setTamilMonthsLoading(true);
+    setTamilMonthsFailed(false);
+    // `getTamilMonths` calls `getApiClient()`, which THROWS synchronously if
+    // the client is not initialised — starting from a resolved promise puts
+    // that throw on the same path as a rejection (see `place-combobox`).
+    Promise.resolve()
+      .then(() => getTamilMonths({
+        dateFrom: today,
+        count: TAMIL_MONTH_OPTION_COUNT,
+        chartId: chartId ?? undefined,
+        location: activityCity
+          ? { lat: Number(activityCity.lat), lng: Number(activityCity.lng), tz: activityCity.timezone }
+          : undefined,
+      }))
+      .then((response) => {
+        if (cancelled) return;
+        const months = response.data.months;
+        setTamilMonths(months);
+        // A re-fetch for a new activity location can move every boundary by a
+        // day, so re-anchor onto the month with the same name rather than
+        // keeping a start date that is no longer in the list.
+        setTamilMonthStart((previous) => {
+          if (months.some((month) => month.startDate === previous)) return previous;
+          const sameName = months.find((month) => month.startDate.slice(0, 7) === previous.slice(0, 7));
+          return sameName?.startDate ?? months[0]?.startDate ?? "";
+        });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setTamilMonths(null);
+        setTamilMonthsFailed(true);
+      })
+      .finally(() => {
+        if (!cancelled) setTamilMonthsLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [searchMode, chartId, activityCity, today]);
 
   /** lat/lon/tz must travel together or the backend 422s; place is display only. */
   function withActivityLocation(params: URLSearchParams): URLSearchParams {
@@ -562,19 +687,20 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
     setDateTo(nextDateTo < dateFrom ? dateFrom : nextDateTo);
   }
 
-  function searchDateRanges() {
-    const ranges: Array<{ from: string; to: string }> = [];
-    let rangeStart = dateFrom;
-    while (rangeStart <= dateTo) {
+  function searchDateRanges(searched: DateWindow) {
+    const ranges: DateWindow[] = [];
+    let rangeStart = searched.from;
+    while (rangeStart <= searched.to) {
       const rangeEnd = addDays(rangeStart, API_SEARCH_CHUNK_DAYS);
-      ranges.push({ from: rangeStart, to: rangeEnd < dateTo ? rangeEnd : dateTo });
+      ranges.push({ from: rangeStart, to: rangeEnd < searched.to ? rangeEnd : searched.to });
       rangeStart = addDays(rangeEnd, 1);
     }
     return ranges;
   }
 
   async function handleSearch() {
-    if (!chartId || !activity) return;
+    if (!chartId || !activity || !searchWindow) return;
+    const searched = searchWindow;
     setLoading(true);
     setError(null);
     setResult(null);
@@ -586,7 +712,7 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
     setAssessment(null);
     setAssessmentLocation(null);
     try {
-      const chunks = await Promise.all(searchDateRanges().map(async ({ from, to }) => {
+      const chunks = await Promise.all(searchDateRanges(searched).map(async ({ from, to }) => {
         const params = withActivityLocation(new URLSearchParams({ activity, dateFrom: from, dateTo: to }));
         if (pakshaFilter) params.set("paksha", pakshaFilter);
         return apiFetchJson<ApiEnvelope<MuhurtaResponseData>>(`/api/v1/charts/${chartId}/muhurta?${params}`);
@@ -595,8 +721,8 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
       if (firstResult) {
         setResult({
           ...firstResult,
-          dateFrom,
-          dateTo,
+          dateFrom: searched.from,
+          dateTo: searched.to,
           // Keep each API segment's best dates. Reducing a long search back to
           // five global winners could hide every viable date in a later Tamil
           // month, making an informational month custom look like an exclusion.
@@ -634,6 +760,34 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
 
   const selectedActivity = ACTIVITIES.find((a) => a.id === activity);
   const openPanchangam = (date: string, location: PanchangamOverlayLocation) => setPanchangamRequest({ date, location });
+
+  const monthOptions = useMemo(() => gregorianMonthOptions(today, lang), [today, lang]);
+  const selectedTamilMonth = tamilMonths?.find((month) => month.startDate === tamilMonthStart) ?? null;
+
+  /** The one window every mode resolves to — what is actually sent to the API.
+   *
+   *  Null means "nothing searchable is selected" (a Tamil month list that has
+   *  not loaded, or a range whose end is already past), which is what disables
+   *  the button. The resolved window is also printed under the controls: a
+   *  named month is only trustworthy if the reader can see the civil dates it
+   *  turned into, particularly a Tamil one they cannot check by counting. */
+  const searchWindow = useMemo<DateWindow | null>(() => {
+    if (searchMode === "range") return clampWindowToToday(dateFrom, dateTo, today);
+    if (searchMode === "month") {
+      const end = monthEndIso(gregorianMonth);
+      return end ? clampWindowToToday(`${gregorianMonth}-01`, end, today) : null;
+    }
+    return selectedTamilMonth
+      ? clampWindowToToday(selectedTamilMonth.startDate, selectedTamilMonth.endDate, today)
+      : null;
+  }, [searchMode, dateFrom, dateTo, gregorianMonth, selectedTamilMonth, today]);
+
+  // A month already under way is searched from today, not from its first day.
+  // Saying so is the difference between a trimmed result and a wrong one.
+  const windowClamped = Boolean(
+    searchWindow && searchMode !== "range"
+    && searchWindow.from !== (searchMode === "month" ? `${gregorianMonth}-01` : selectedTamilMonth?.startDate),
+  );
 
   const tamilMonthGroups = useMemo(() => groupSlotsByTamilMonth(result?.slots ?? []), [result]);
   const tamilMonthLabel = (group: TamilMonthGroup) => {
@@ -674,13 +828,68 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
           />
         </FieldShell>
 
-        <Field label={t("muhurta_date_from", lang)} style={{ flex: "1 1 130px" }}>
-          <Input type="date" value={dateFrom} min={today} onChange={(e) => handleDateFromChange(e.target.value)} />
-        </Field>
+        {/* Sits between the activity and the period, because that is the order
+            the question is asked in: what you are electing, then how you want
+            to name the stretch of time, then the stretch itself. */}
+        <FieldShell label={lang === "ta" ? "எப்படித் தேட" : "Search by"} style={{ flex: "0 1 auto" }}>
+          <Segmented<SearchMode>
+            value={searchMode}
+            onChange={setSearchMode}
+            ariaLabel={lang === "ta" ? "எப்படித் தேட" : "Search by"}
+            options={[
+              { key: "month", label: lang === "ta" ? "ஆங்கில மாதம்" : "English month" },
+              { key: "tamil", label: lang === "ta" ? "தமிழ் மாதம்" : "Tamil month" },
+              { key: "range", label: lang === "ta" ? "தேதி வரம்பு" : "Date range" },
+            ]}
+          />
+        </FieldShell>
 
-        <Field label={t("muhurta_date_to", lang)} style={{ flex: "1 1 130px" }}>
-          <Input type="date" value={dateTo} min={dateFrom} onChange={(e) => handleDateToChange(e.target.value)} />
-        </Field>
+        {searchMode === "month" && (
+          <FieldShell label={lang === "ta" ? "ஆங்கில மாதம்" : "English month"} style={{ flex: "1 1 200px" }}>
+            <NovaSelect
+              value={gregorianMonth}
+              onChange={setGregorianMonth}
+              ariaLabel={lang === "ta" ? "ஆங்கில மாதம்" : "English month"}
+              options={monthOptions.map((option) => ({ value: option.value, label: option.label }))}
+            />
+          </FieldShell>
+        )}
+
+        {searchMode === "tamil" && (
+          <FieldShell label={lang === "ta" ? "தமிழ் மாதம்" : "Tamil month"} style={{ flex: "1 1 260px" }}>
+            <NovaSelect
+              value={tamilMonthStart}
+              onChange={setTamilMonthStart}
+              disabled={tamilMonthsLoading || !tamilMonths?.length}
+              placeholder={
+                tamilMonthsLoading
+                  ? (lang === "ta" ? "மாதங்கள் ஏற்றப்படுகின்றன…" : "Loading months…")
+                  : tamilMonthsFailed
+                    ? (lang === "ta" ? "மாதங்களைப் பெற முடியவில்லை" : "Could not load months")
+                    : (lang === "ta" ? "-- தமிழ் மாதம் --" : "-- Select a Tamil month --")
+              }
+              ariaLabel={lang === "ta" ? "தமிழ் மாதம்" : "Tamil month"}
+              options={(tamilMonths ?? []).map((month) => ({
+                value: month.startDate,
+                // The civil dates ride in the option itself: a Tamil month name
+                // alone does not tell a reader which weeks they are electing.
+                label: `${lang === "ta" ? month.name.ta : month.name.en} · ${shortDateLabel(month.startDate, lang)} – ${shortDateLabel(month.endDate, lang)}`,
+              }))}
+            />
+          </FieldShell>
+        )}
+
+        {searchMode === "range" && (
+          <>
+            <Field label={t("muhurta_date_from", lang)} style={{ flex: "1 1 130px" }}>
+              <Input type="date" value={dateFrom} min={today} onChange={(e) => handleDateFromChange(e.target.value)} />
+            </Field>
+
+            <Field label={t("muhurta_date_to", lang)} style={{ flex: "1 1 130px" }}>
+              <Input type="date" value={dateTo} min={dateFrom} onChange={(e) => handleDateToChange(e.target.value)} />
+            </Field>
+          </>
+        )}
 
         <FieldShell label={lang === "ta" ? "பிறை" : "Lunar fortnight"} style={{ flex: "1 1 160px" }}>
           <NovaSelect
@@ -697,18 +906,18 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
 
         <button
           type="button"
-          disabled={!chartId || !activity || loading}
+          disabled={!chartId || !activity || !searchWindow || loading}
           onClick={handleSearch}
           style={{
             flex: "0 0 auto",
             padding: "var(--space-2) var(--space-5)",
             borderRadius: "var(--radius-md)",
             border: "1px solid var(--color-accent)",
-            background: !chartId || !activity || loading ? "var(--color-surface-soft)" : "var(--color-accent)",
-            color: !chartId || !activity || loading ? "var(--color-faint)" : "var(--color-on-accent)",
+            background: !chartId || !activity || !searchWindow || loading ? "var(--color-surface-soft)" : "var(--color-accent)",
+            color: !chartId || !activity || !searchWindow || loading ? "var(--color-faint)" : "var(--color-on-accent)",
             fontWeight: 700,
             fontSize: "var(--text-base)",
-            cursor: !chartId || !activity || loading ? "not-allowed" : "pointer",
+            cursor: !chartId || !activity || !searchWindow || loading ? "not-allowed" : "pointer",
             alignSelf: "flex-end",
             fontFamily: "inherit",
           }}
@@ -716,6 +925,29 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
           {loading ? `${t("muhurta_searching", lang)} ${searchElapsed}s` : t("muhurta_search", lang)}
         </button>
       </div>
+
+      {/* Every mode ends up as one Gregorian window; showing it is what makes a
+          named month checkable rather than something the reader has to trust. */}
+      <p style={{ margin: "-6px 0 14px", fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5 }}>
+        {searchWindow ? (
+          <>
+            {lang === "ta"
+              ? `தேடும் நாட்கள்: ${shortDateLabel(searchWindow.from, lang)} – ${shortDateLabel(searchWindow.to, lang)} (${windowDayCount(searchWindow)} நாட்கள்)`
+              : `Searching ${shortDateLabel(searchWindow.from, lang)} – ${shortDateLabel(searchWindow.to, lang)} · ${windowDayCount(searchWindow)} days`}
+            {windowClamped && (
+              <span style={{ color: "var(--color-faint)" }}>
+                {lang === "ta" ? " · இம்மாதம் ஏற்கனவே தொடங்கிவிட்டது, இன்று முதல் தேடப்படுகிறது." : " · this month is already under way, so the search starts today."}
+              </span>
+            )}
+          </>
+        ) : searchMode === "tamil" && tamilMonthsFailed ? (
+          lang === "ta" ? "தமிழ் மாத எல்லைகளைப் பெற முடியவில்லை — தேதி வரம்பைப் பயன்படுத்தவும்." : "Tamil month boundaries could not be loaded — use a date range instead."
+        ) : searchMode === "tamil" && tamilMonthsLoading ? (
+          lang === "ta" ? "தமிழ் மாதங்கள் ஏற்றப்படுகின்றன…" : "Loading Tamil months…"
+        ) : (
+          lang === "ta" ? "தேட ஒரு காலகட்டத்தைத் தேர்ந்தெடுக்கவும்." : "Choose a period to search."
+        )}
+      </p>
 
       {(() => {
         // Sits with the inputs, not with the results, because it changes what is
