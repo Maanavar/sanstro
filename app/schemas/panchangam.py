@@ -362,3 +362,36 @@ class PanchangamMonthlyResponse(BaseModel):
     meta: PanchangamMeta
 
     model_config = ConfigDict(populate_by_name=True)
+
+
+class TamilMonthSpanEntry(BaseModel):
+    """One Tamil solar month named, and bounded in civil dates.
+
+    Both dates are inclusive, so a client can hand `startDate`/`endDate`
+    straight to any date-range parameter without an off-by-one adjustment of
+    its own — which is the whole reason this is computed server-side. The Tamil
+    month boundary is a sankranti instant plus a sunset rule plus, for some
+    months, a published-almanac override; nothing a client can approximate.
+    """
+
+    index: int = Field(ge=0, le=11, description="0 = Chithirai .. 11 = Panguni")
+    name: BiText
+    start_date: date = Field(alias="startDate")
+    end_date: date = Field(alias="endDate")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class TamilMonthsData(BaseModel):
+    location: PanchangamLocation
+    months: list[TamilMonthSpanEntry] = []
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class TamilMonthsResponse(BaseModel):
+    success: bool = True
+    data: TamilMonthsData
+    meta: PanchangamMeta
+
+    model_config = ConfigDict(populate_by_name=True)

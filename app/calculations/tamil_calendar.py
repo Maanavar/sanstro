@@ -49,6 +49,7 @@ available before relying on it.
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, time, timedelta
+from typing import NamedTuple
 from zoneinfo import ZoneInfo
 
 from app.calculations.astro import (
@@ -231,3 +232,75 @@ def format_tamil_date(d: date, timezone_name: str, latitude: float, longitude: f
     rasi, day = tamil_solar_date(d, timezone_name, latitude, longitude)
     ta, en = TAMIL_MONTHS[rasi]
     return f"{ta} {day}", f"{en} {day}"
+
+
+class TamilMonthSpan(NamedTuple):
+    """One Tamil solar month as a closed civil-date interval.
+
+    `end` is the day *before* the next month's first civil day, so consecutive
+    spans tile the calendar with neither gap nor overlap — including across a
+    published-authority boundary (doctrine A-3), which shifts a month start
+    without moving the sankranti and so lengthens one month and shortens the
+    next. Deriving `end` by subtraction from the following start, rather than
+    by adding a nominal length, is what keeps that true.
+    """
+
+    rasi: int
+    start: date
+    end: date
+
+
+# A solar month is 29-32 civil days, so a probe this far past a month's first
+# civil day is always inside the *following* rasi and never past it.
+_NEXT_MONTH_PROBE_DAYS = 35
+
+
+def _next_month_start_date(
+    month_start: date,
+    next_rasi: int,
+    tz: ZoneInfo,
+    latitude: float,
+    longitude: float,
+) -> date:
+    """First civil day of the month following the one that began on `month_start`."""
+    probe_jd = _local_midnight_jd(month_start + timedelta(days=_NEXT_MONTH_PROBE_DAYS), tz)
+    # The probe is chosen to land inside `next_rasi`; the walk is a guard, not
+    # the mechanism, so a bad probe raises rather than silently returning the
+    # boundary of some other month.
+    for _ in range(_MAX_MONTH_DAYS):
+        if _sun_rasi_index_at_jd(probe_jd) == next_rasi:
+            break
+        probe_jd -= 1.0
+    else:
+        raise ValueError("could not locate the Tamil month following the given start")
+    sankranti_jd = find_sankranti_jd(next_rasi, probe_jd)
+    return month_start_date_for_sankranti(sankranti_jd, tz, latitude, longitude, next_rasi)
+
+
+def tamil_month_spans(
+    start: date,
+    count: int,
+    timezone_name: str,
+    latitude: float,
+    longitude: float,
+) -> list[TamilMonthSpan]:
+    """`count` consecutive Tamil months, beginning with the one containing `start`.
+
+    The first span starts on its month's own first civil day, which is on or
+    before `start` — a caller offering "search a Tamil month" needs the whole
+    month's extent, not the tail of it. Clamping to today (or to any other
+    window) is the caller's decision and is deliberately not made here.
+    """
+    if count < 1:
+        return []
+    tz = ZoneInfo(timezone_name)
+    rasi, day_of_month = tamil_solar_date(start, timezone_name, latitude, longitude)
+    month_start = start - timedelta(days=day_of_month - 1)
+
+    spans: list[TamilMonthSpan] = []
+    for _ in range(count):
+        next_rasi = (rasi + 1) % 12
+        next_start = _next_month_start_date(month_start, next_rasi, tz, latitude, longitude)
+        spans.append(TamilMonthSpan(rasi=rasi, start=month_start, end=next_start - timedelta(days=1)))
+        rasi, month_start = next_rasi, next_start
+    return spans

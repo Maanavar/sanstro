@@ -3,7 +3,10 @@ from __future__ import annotations
 import calendar
 import logging
 from datetime import UTC, date, datetime, timedelta
+from uuid import UUID
+from zoneinfo import ZoneInfoNotFoundError
 
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.calculations.festivals import get_festivals_for_date
@@ -13,8 +16,14 @@ from app.calculations.panchangam import (
     calculate_daily_panchangam,
     calculate_daily_panchangam_range,
 )
-from app.calculations.tamil_calendar import format_tamil_date, tamil_solar_date
+from app.calculations.tamil_calendar import (
+    TAMIL_MONTHS,
+    format_tamil_date,
+    tamil_month_spans,
+    tamil_solar_date,
+)
 from app.data.muhurtham_naals import get_muhurtham_naals
+from app.models import BirthProfile, Chart
 from app.schemas.panchangam import (
     BiText,
     PanchangamAbhijit,
@@ -47,7 +56,11 @@ from app.schemas.panchangam import (
     PanchangamTithi,
     PanchangamVara,
     PanchangamYoga,
+    TamilMonthsData,
+    TamilMonthSpanEntry,
+    TamilMonthsResponse,
 )
+from app.services.location_service import EffectiveDailyLocation, resolve_effective_daily_location
 from app.services.panchangam_events_service import is_karinaal
 
 PANCHANGAM_CALCULATION_VERSION = "thirukanitham-2026-v5"
@@ -487,6 +500,92 @@ def build_monthly_panchangam(query: PanchangamMonthlyQuery, session: Session | N
             month=query.month,
             tamil_month_name=tamil_month_name,
             entries=entries,
+        ),
+        meta=PanchangamMeta(
+            calculation_version=PANCHANGAM_CALCULATION_VERSION,
+            generated_at=datetime.now(tz=UTC),
+        ),
+    )
+
+
+#: A Tamil year is 12 months; one more lets the picker offer a full year ahead
+#: of *today* rather than a full year from the Tamil new year that preceded it.
+DEFAULT_TAMIL_MONTH_COUNT = 13
+MAX_TAMIL_MONTH_COUNT = 24
+
+
+def _chart_daily_location(session: Session, chart_id: UUID) -> EffectiveDailyLocation | None:
+    """The chart's current-or-birth daily location, or None if it has no profile."""
+    chart = session.get(Chart, chart_id)
+    if chart is None:
+        return None
+    profile_id = getattr(chart, "birth_profile_id", None)
+    if profile_id is None:
+        return None
+    profile = session.get(BirthProfile, profile_id)
+    if profile is None:
+        return None
+    return resolve_effective_daily_location(profile)
+
+
+def build_tamil_months(
+    session: Session,
+    *,
+    start: date,
+    count: int,
+    chart_id: UUID | None = None,
+    lat: float | None = None,
+    lng: float | None = None,
+    timezone_name: str | None = None,
+) -> TamilMonthsResponse:
+    """The Tamil solar months from the one containing `start`, with civil bounds.
+
+    Location matters and is not a formality: the month boundary is decided by
+    the sunset on the sankranti day, which moves with longitude, and the
+    published-almanac override applies only in Asia/Kolkata. A caller that
+    resolves its own dates against one location and reads these boundaries from
+    another will disagree with itself by a day at month edges — which is why
+    this takes the *same* explicit-location-else-chart-location precedence as
+    `find_best_muhurta_slots`, rather than defaulting to a fixed city.
+    """
+    if count < 1 or count > MAX_TAMIL_MONTH_COUNT:
+        raise HTTPException(
+            status_code=422,
+            detail=f"count must be between 1 and {MAX_TAMIL_MONTH_COUNT}",
+        )
+
+    explicit = (lat, lng, timezone_name)
+    if any(value is not None for value in explicit):
+        if not all(value is not None for value in explicit):
+            raise HTTPException(status_code=422, detail="lat, lng, and timezone must be supplied together")
+        latitude, longitude, tz_name = float(lat), float(lng), str(timezone_name)
+    elif chart_id is not None:
+        daily_location = _chart_daily_location(session, chart_id)
+        if daily_location is None:
+            raise HTTPException(status_code=404, detail="Chart not found")
+        latitude = daily_location.latitude
+        longitude = daily_location.longitude
+        tz_name = daily_location.timezone
+    else:
+        raise HTTPException(status_code=422, detail="lat, lng, and timezone are required without chartId")
+
+    try:
+        spans = tamil_month_spans(start, count, tz_name, latitude, longitude)
+    except (ValueError, ZoneInfoNotFoundError, KeyError) as exc:
+        raise HTTPException(status_code=422, detail=f"Could not derive Tamil months: {exc}") from exc
+
+    return TamilMonthsResponse(
+        data=TamilMonthsData(
+            location=PanchangamLocation(lat=latitude, lng=longitude, timezone=tz_name),
+            months=[
+                TamilMonthSpanEntry(
+                    index=span.rasi,
+                    name=BiText(ta=TAMIL_MONTHS[span.rasi][0], en=TAMIL_MONTHS[span.rasi][1]),
+                    start_date=span.start,
+                    end_date=span.end,
+                )
+                for span in spans
+            ],
         ),
         meta=PanchangamMeta(
             calculation_version=PANCHANGAM_CALCULATION_VERSION,
