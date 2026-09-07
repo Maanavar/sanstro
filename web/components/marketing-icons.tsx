@@ -17,6 +17,10 @@ import {
   Target,
   Mail,
   Smartphone,
+  TrendingUp,
+  Ban,
+  Star,
+  Sparkle,
   type LucideIcon,
 } from "lucide-react";
 
@@ -30,7 +34,11 @@ export type MarketingIconName =
   | "moon"
   | "target"
   | "mail"
-  | "phone";
+  | "phone"
+  | "rising"
+  | "block"
+  | "star"
+  | "sparkle";
 
 const ICONS: Record<MarketingIconName, LucideIcon> = {
   sun: Sun,
@@ -43,6 +51,13 @@ const ICONS: Record<MarketingIconName, LucideIcon> = {
   target: Target,
   mail: Mail,
   phone: Smartphone,
+  // Hero "Today, live" panel. Lucide glyphs, not emoji — the project's
+  // pre-delivery checklist bans emoji as icons, and a screen reader reads one
+  // aloud ("crescent moon") in the middle of a label.
+  rising: TrendingUp,  // the promoted window
+  block: Ban,          // the avoid window
+  star: Star,          // nakshatram
+  sparkle: Sparkle,    // tithi
 };
 
 export function MarketingIcon({

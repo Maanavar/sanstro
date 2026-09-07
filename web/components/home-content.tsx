@@ -3,14 +3,18 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useLang } from "@/components/lang-toggle";
+import { getPublicPanchangamDay } from "@vinaadi/shared/api";
 import { apiFetchJson } from "@/lib/api";
 import { formatClockLabel } from "@/lib/format";
 import { tNakshatra, tTithi, tYoga } from "@/lib/i18n";
 import { limbNow } from "@/lib/panchangam-limb";
+import { toDateKeyInZone } from "@/lib/tz";
+import { GUEST_LOCATION } from "@/lib/public-today";
 import type { PanchangamDailyResponseData } from "@/lib/types";
 import { HOME, LEARN_VEDIC_WESTERN, mt } from "@/lib/marketing-i18n";
 import { MarketingIcon, type MarketingIconName } from "@/components/marketing-icons";
-import { useGuestStore, RASI_LIST } from "@/hooks/useGuestStore";
+import { HomeTodayPanel } from "@/components/home-today-panel";
+import { useGuestStore } from "@/hooks/useGuestStore";
 import { getFeatureFlag, initAnalytics, track } from "@/lib/analytics";
 
 function makeSample(lang: "en" | "ta", rasiOverride?: { en: string; ta: string } | null) {
@@ -22,8 +26,6 @@ function makeSample(lang: "en" | "ta", rasiOverride?: { en: string; ta: string }
       : "சந்திர தசை · சந்திர புக்தி. சனி வீடும் உள்ளமைதியும் உறுதியாக நிற்கச் செய்கிறது. இன்று சீரான நாள்; தொடர்ச்சியாக செய்யும் வேலைகளுக்கு ஏற்றது, புதிய முயற்சிகளில் சற்று கவனம் நல்லது.",
     bestWindow: { start: "11:53", end: "12:41" },
     holdWindow: { start: "15:28", end: "17:03" },
-    lagna:      en ? "Kadagam"   : "கடகம்",
-    nakshatra:  en ? "Kettai"    : "கேட்டை",
     rasi:       rasiOverride ? (en ? rasiOverride.en : rasiOverride.ta) : (en ? "Viruchigam" : "விருச்சிகம்"),
     dasha:      en ? "Moon Dasa · Moon Bhukti"              : "சந்திர தசை · சந்திர புக்தி",
     transit:    en ? "Saturn in Kumbam · Jupiter in Mesham" : "சனி கும்பத்தில் · குரு மேஷத்தில்",
@@ -31,16 +33,16 @@ function makeSample(lang: "en" | "ta", rasiOverride?: { en: string; ta: string }
   };
 }
 
-const ARC_HOURS = ["6 am", "9 am", "12 pm", "3 pm", "6 pm"];
-
 // iOS app is not yet published — set the real store URL when it goes live to
 // re-render the App Store badge (null hides it; id0000000000 was a dead link).
 const APP_STORE_URL: string | null = null;
 
 export function HomeContent() {
   const [lang] = useLang();
-  const { selectedRasi, setRasi } = useGuestStore();
-  const [pickerOpen, setPickerOpen] = useState(false);
+  // Read-only here: the picker itself lives in the hero panel now, next to the
+  // reading it unlocks. This only keeps the section-3 sample card naming the
+  // visitor's own rasi once they have chosen one.
+  const { selectedRasi } = useGuestStore();
   const [chartsGenerated, setChartsGenerated] = useState<number | null>(null);
   const [countError, setCountError] = useState(false);
   const [displayCount, setDisplayCount] = useState(0);
@@ -49,6 +51,9 @@ export function HomeContent() {
   // swap after the flag resolves, not every visitor.
   const [ctaVariant, setCtaVariant] = useState<"A" | "B">("A");
   const [panchangam, setPanchangam] = useState<PanchangamDailyResponseData | null>(null);
+  // Distinguished from `panchangam === null` so the hero panel can say "could
+  // not load" instead of shimmering forever on a failed request.
+  const [panchangamFailed, setPanchangamFailed] = useState(false);
 
   useEffect(() => {
     fetch("/api/backend/api/v1/stats/public", { credentials: "include" })
@@ -82,18 +87,30 @@ export function HomeContent() {
     return () => cancelAnimationFrame(raf);
   }, [chartsGenerated]);
 
-  // MKT-04 — the hero "Today's Reading · Sample" card shows today's real
-  // panchangam (Chennai default) instead of a hardcoded stale date. Score /
-  // windows / dasha stay illustrative (a guest has no chart), but the date and
-  // tithi/nakshatra/yoga are the true values for the visitor's day.
+  // MKT-04 — today's real panchangam (Chennai default). Originally this only
+  // datestamped the sample card; it now supplies the entire hero panel, which
+  // is why the failure path is no longer silent (see `panchangamFailed`).
+  //
+  // Chennai-local, not browser-local: the request must ask for the day the
+  // *panchangam* is on. `new Date().toISOString()` is UTC, so a visitor reading
+  // at 06:30 IST asks for yesterday and gets an almanac a day stale — every
+  // time on the panel then disagrees with the reader's own clock.
+  const guestDateLocal = toDateKeyInZone(new Date(), GUEST_LOCATION.tz);
   useEffect(() => {
-    const iso = new Date().toISOString().slice(0, 10);
-    const qs = new URLSearchParams({ date: iso, lat: "13.0827", lng: "80.2707", timezone: "Asia/Kolkata" }).toString();
-    fetch(`/api/backend/api/v1/public/panchangam?${qs}`)
-      .then((r) => r.json())
-      .then((j: { data?: PanchangamDailyResponseData }) => setPanchangam(j.data ?? null))
-      .catch(() => { /* fail silently — sample falls back to today's date only */ });
-  }, []);
+    let cancelled = false;
+    // The typed shared wrapper, per the forward policy — this is a new
+    // consumption of the endpoint, so it does not grow the direct-fetch bypass.
+    getPublicPanchangamDay(guestDateLocal, {
+      lat: GUEST_LOCATION.lat, lng: GUEST_LOCATION.lng, tz: GUEST_LOCATION.tz,
+    })
+      .then((json) => {
+        if (cancelled) return;
+        if (json?.data) setPanchangam(json.data);
+        else setPanchangamFailed(true);
+      })
+      .catch(() => { if (!cancelled) setPanchangamFailed(true); });
+    return () => { cancelled = true; };
+  }, [guestDateLocal]);
 
   useEffect(() => {
     initAnalytics();
@@ -104,16 +121,10 @@ export function HomeContent() {
   const bestWindowLabel = `${formatClockLabel(SAMPLE.bestWindow.start)} - ${formatClockLabel(SAMPLE.bestWindow.end)}`;
   const holdWindowLabel = `${formatClockLabel(SAMPLE.holdWindow.start)} - ${formatClockLabel(SAMPLE.holdWindow.end)}`;
 
-  // Real, current date for the sample card (suppressHydrationWarning guards the
-  // rare server/client timezone day-flip). Panchangam facts fill in once fetched.
-  const todayLabel = new Intl.DateTimeFormat(lang === "ta" ? "ta-IN" : "en-GB", {
-    weekday: "long", day: "numeric", month: "long",
-  }).format(new Date());
-  // This card always shows *today*, so it must show the limbs actually running,
-  // not the ones the day is named after. Printing the sunrise value flat is how
-  // the hero came to read "Swathi" all day on 2026-08-19, when Swathi held 15
-  // minutes of it and Visakam held the rest. A visitor's first impression of the
-  // product's accuracy is this strip.
+  // The section-3 sample card always shows *today*, so it must show the limbs
+  // actually running, not the ones the day is named after. Printing the sunrise
+  // value flat is how this strip came to read "Swathi" all day on 2026-08-19,
+  // when Swathi held 15 minutes of it and Visakam held the rest.
   const nowIso = new Date().toISOString();
   const heroLimbs = panchangam
     ? {
@@ -122,7 +133,6 @@ export function HomeContent() {
         yoga: limbNow(panchangam.yoga, { isToday: true, nowIso }),
       }
     : null;
-  const sampleNakshatra = heroLimbs ? tNakshatra(heroLimbs.nakshatra.activeName, lang) : SAMPLE.nakshatra;
   const samplePanchangam = heroLimbs
     ? `${tTithi(heroLimbs.tithi.activeName, lang)} · ${tNakshatra(heroLimbs.nakshatra.activeName, lang)} · ${tYoga(heroLimbs.yoga.activeName, lang)}`
     : SAMPLE.panchangam;
@@ -200,122 +210,26 @@ export function HomeContent() {
               </Link>
               <a href="#how-it-works" className="cl-btn cl-btn--ghost">{mt(HOME.hero_cta_how, lang)}</a>
             </div>
-            {/* Guest rasi picker */}
-            <div className="cl-guest-rasi">
-              {!pickerOpen && !selectedRasi && (
-                <p className="cl-hero__guest-note">
-                  <button
-                    type="button"
-                    className="cl-guest-rasi__trigger"
-                    onClick={() => setPickerOpen(true)}
-                  >
-                    {lang === "en"
-                      ? "No account needed — Pick your Rasi to personalise →"
-                      : "கணக்கு தேவையில்லை — உங்கள் ராசி தேர்வு செய்யுங்கள் →"}
-                  </button>
-                </p>
-              )}
-              {selectedRasi && !pickerOpen && (
-                <p className="cl-hero__guest-note">
-                  <span className="cl-guest-rasi__badge">
-                    {lang === "ta" ? selectedRasi.ta : selectedRasi.en}
-                  </span>
-                  {" "}
-                  <Link href="/tools/indraiya-rasipalan" className="cl-guest-rasi__cta">
-                    {lang === "en" ? "See today's Rasi palan ->" : "இன்றைய ராசிபலன் பாருங்கள் ->"}
-                  </Link>
-                  {" · "}
-                  <button
-                    type="button"
-                    className="cl-guest-rasi__change"
-                    onClick={() => setPickerOpen(true)}
-                  >
-                    {lang === "en" ? "Change" : "மாற்று"}
-                  </button>
-                </p>
-              )}
-              {pickerOpen && (
-                <div className="cl-rasi-picker">
-                  <p className="cl-rasi-picker__label">
-                    {lang === "en" ? "Select your birth Rasi" : "உங்கள் ஜன்ம ராசி தேர்க"}
-                  </p>
-                  <div className="cl-rasi-picker__grid">
-                    {RASI_LIST.map((rasi) => (
-                      <button
-                        key={rasi.id}
-                        type="button"
-                        className="cl-rasi-picker__chip"
-                        data-active={selectedRasi?.id === rasi.id}
-                        onClick={() => {
-                          setRasi(rasi.id);
-                          setPickerOpen(false);
-                        }}
-                      >
-                        {lang === "ta" ? rasi.ta : rasi.en}
-                      </button>
-                    ))}
-                  </div>
-                  <button
-                    type="button"
-                    className="cl-rasi-picker__cancel"
-                    onClick={() => setPickerOpen(false)}
-                  >
-                    {lang === "en" ? "Cancel" : "ரத்து செய்"}
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
 
+          {/* The hero's demonstration of the product. Formerly a hardcoded
+              "Today's Reading · Sample" card — a fabricated 64, a fabricated
+              best window, and a day-arc SVG whose bars marked nothing — on a
+              page whose own trust proof reads "Method, not marketing".
+
+              It is now today's real almanac for Chennai, computed by the same
+              engine the dashboard uses and checkable line by line against the
+              printed panchangam the reader already owns. The guest rasi picker
+              moved inside it: the personalisation and its payoff belong in the
+              same object, rather than a link in the copy column pointing at a
+              reading three pages away. */}
           <div className="cl-hero__card-wrap" id="sample">
-            <span className="cl-sticker">{mt(HOME.card_today, lang)}</span>
-            <div className="cl-reading-card">
-              <div className="cl-card-head">
-                <div>
-                  <p className="cl-card-date" suppressHydrationWarning>{todayLabel}</p>
-                  <h2 className="cl-card-title">{mt(HOME.card_your_day, lang)}</h2>
-                </div>
-                <div className="cl-dial" aria-label={`Day score ${SAMPLE.score}`}>
-                  <svg className="cl-dial__svg" viewBox="0 0 80 80" width="80" height="80" aria-hidden="true">
-                    <circle cx="40" cy="40" r="34" fill="none" stroke="var(--cl-border)" strokeWidth="6" />
-                    <circle cx="40" cy="40" r="34" fill="none" stroke="var(--cl-ink)" strokeWidth="6"
-                      strokeDasharray={`${(SAMPLE.score / 100) * 213.6} 213.6`}
-                      strokeLinecap="round" transform="rotate(-90 40 40)" />
-                  </svg>
-                  <div className="cl-dial__num">{SAMPLE.score}</div>
-                </div>
-              </div>
-              <p className="cl-card-summary">{SAMPLE.summary}</p>
-              <div className="cl-arc-wrap" aria-hidden="true">
-                <svg viewBox="0 0 320 110" className="cl-arc__svg" preserveAspectRatio="xMidYMid meet">
-                  <path d="M20,82 Q160,18 300,82" fill="none" stroke="var(--panel-tan)" strokeWidth="1.5" strokeLinecap="round" />
-                  <rect x="20" y="79" width="280" height="5" rx="2.5" fill="var(--panel-tan-light)" />
-                  <rect x="157" y="78" width="19" height="7" rx="3.5" fill="var(--chart-d9-active)" />
-                  <rect x="241" y="78" width="37" height="7" rx="3.5" fill="var(--planet-saturn)" />
-                  {[20, 90, 160, 230, 300].map((x) => (
-                    <line key={x} x1={x} y1="86" x2={x} y2="93" stroke="#A89D89" strokeWidth="1.5" strokeLinecap="round" />
-                  ))}
-                  <circle cx="164" cy="50" r="6" fill="var(--panel-brand)" />
-                </svg>
-                <div className="cl-arc-labels">
-                  {ARC_HOURS.map((h) => <span key={h} className="cl-arc-label">{h}</span>)}
-                </div>
-              </div>
-              <div className="cl-window-row">
-                <div className="cl-window cl-window--best">
-                  <p className="cl-window__label">{mt(HOME.card_best, lang)}</p>
-                  <p className="cl-window__time">{bestWindowLabel}</p>
-                </div>
-                <div className="cl-window cl-window--hold">
-                  <p className="cl-window__label">{mt(HOME.card_hold, lang)}</p>
-                  <p className="cl-window__time">{holdWindowLabel}</p>
-                </div>
-              </div>
-              <div className="cl-card-foot">
-                <span className="cl-card-foot__meta">{SAMPLE.lagna} · {sampleNakshatra} · {SAMPLE.rasi}</span>
-                <span className="cl-card-foot__badge">{mt(HOME.card_d1_ready, lang)}</span>
-              </div>
-            </div>
+            <HomeTodayPanel
+              panchangam={panchangam}
+              failed={panchangamFailed}
+              lang={lang}
+              dateLocal={guestDateLocal}
+            />
           </div>
         </div>
       </section>

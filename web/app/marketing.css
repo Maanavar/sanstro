@@ -398,6 +398,490 @@
   position: relative;
 }
 
+/* ══════════════════════════════════════════════════════════════
+   HERO "TODAY, LIVE" PANEL  (.cl-today, home-today-panel.tsx)
+
+   Replaces the hardcoded sample card. Every value inside is today's
+   real almanac, so the styling job is legibility and hierarchy, not
+   decoration: one promoted window loud, the avoid window beside it at
+   equal weight (a caution the reader is standing inside must not read
+   quieter than an invitation), the rival systems folded away behind a
+   disclosure, and the rasi strip as the one interactive affordance.
+
+   Colour comes only from --cl-* tokens, all of which are already
+   contrast-audited on this parchment ground (see the .clarity-shell
+   block). No new literals — the repo runs a colour-literal ratchet.
+   ══════════════════════════════════════════════════════════════ */
+
+.cl-today {
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
+  border-radius: 20px;
+  box-shadow: 0 8px 40px var(--cl-shadow);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── head ─────────────────────────────────────────────────── */
+.cl-today__head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cl-today__eyebrow-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cl-today__eyebrow {
+  margin: 0;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cl-accent);
+}
+
+.cl-today__live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cl-sage);
+  background: var(--cl-sage-soft);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.cl-today__live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+  flex: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cl-today__live-dot { animation: cl-today-pulse 2.4s ease-in-out infinite; }
+}
+
+@keyframes cl-today-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.45; transform: scale(0.78); }
+}
+
+.cl-today__date {
+  margin: 0;
+  font-family: var(--cl-font-display);
+  font-size: 1.28rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--cl-ink);
+}
+
+.cl-today__date b { font-weight: 500; color: var(--cl-accent); }
+
+.cl-today__limbs {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  font-size: 0.8rem;
+  color: var(--cl-muted);
+  line-height: 1.5;
+}
+
+.cl-today__limb {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.cl-today__limb b { color: var(--cl-ink); font-weight: 600; }
+
+.cl-today__festival {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--cl-accent);
+  background: var(--cl-accent-soft);
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+
+/* ── the two window cards ─────────────────────────────────── */
+.cl-today__window {
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cl-today__window--best  { background: var(--cl-sage-soft); }
+.cl-today__window--avoid { background: var(--cl-caution-soft); }
+
+/* A window that is over is history, not guidance — it stays legible (it is
+   still a fact about today) but stops competing with the one still ahead. */
+.cl-today__window[data-phase="after"] { opacity: 0.62; }
+
+.cl-today__window-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cl-today__window-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.cl-today__window--best  .cl-today__window-label { color: var(--cl-sage); }
+.cl-today__window--avoid .cl-today__window-label { color: var(--cl-caution); }
+
+.cl-today__window-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  font-feature-settings: "tnum";
+}
+
+.cl-today__window--best  .cl-today__window-status { color: var(--cl-sage); }
+.cl-today__window--avoid .cl-today__window-status { color: var(--cl-caution); }
+
+.cl-today__window-time {
+  margin: 0;
+  font-family: var(--cl-font-mono);
+  font-size: 1.22rem;
+  font-weight: 500;
+  font-feature-settings: "tnum";
+  line-height: 1.2;
+}
+
+.cl-today__window--best  .cl-today__window-time { color: var(--cl-sage); }
+.cl-today__window--avoid .cl-today__window-time { color: var(--cl-caution); }
+
+.cl-today__window-why {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--cl-ink-2);
+}
+
+.cl-today__window-why b { color: var(--cl-ink); font-weight: 700; }
+
+/* ── other traditional timings (native disclosure) ────────── */
+.cl-today__more {
+  border: 1px solid var(--cl-border);
+  border-radius: 12px;
+  background: var(--cl-surface-2);
+}
+
+.cl-today__more-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  min-height: 44px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--cl-ink-2);
+  list-style: none;
+}
+
+.cl-today__more-summary::-webkit-details-marker { display: none; }
+
+/* The chevron is drawn, not typed: a "▸" character is read aloud and does not
+   rotate cleanly. It rotates on open via the parent's [open] state. */
+.cl-today__more-summary::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  margin-left: auto;
+  border-right: 1.6px solid var(--cl-muted);
+  border-bottom: 1.6px solid var(--cl-muted);
+  transform: rotate(45deg) translate(-2px, -2px);
+  transition: transform 160ms ease;
+  flex: none;
+}
+
+.cl-today__more[open] .cl-today__more-summary::after {
+  transform: rotate(-135deg) translate(-2px, -2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cl-today__more-summary::after { transition: none; }
+}
+
+.cl-today__more-count {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--cl-muted);
+  background: var(--cl-bg-2);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-feature-settings: "tnum";
+}
+
+.cl-today__more-note {
+  margin: 0;
+  padding: 0 14px 8px;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--cl-muted);
+}
+
+.cl-today__rows {
+  margin: 0;
+  padding: 0 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cl-today__row {
+  display: grid;
+  grid-template-columns: minmax(88px, auto) minmax(0, 1fr);
+  gap: 4px 12px;
+  align-items: baseline;
+}
+
+.cl-today__row-label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--cl-ink-2);
+}
+
+.cl-today__row-value {
+  margin: 0;
+  font-family: var(--cl-font-mono);
+  font-size: 0.76rem;
+  color: var(--cl-muted);
+  font-feature-settings: "tnum";
+  line-height: 1.5;
+}
+
+.cl-today__row-note {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--cl-font-sans);
+  font-size: 0.72rem;
+  color: var(--cl-caution);
+  line-height: 1.45;
+}
+
+/* ── rasi strip ───────────────────────────────────────────── */
+.cl-today__rasi {
+  border-top: 1px solid var(--cl-border);
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cl-today__rasi-prompt {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--cl-ink-2);
+}
+
+.cl-today__rasi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.cl-today__rasi-chip {
+  background: var(--cl-bg);
+  border: 1.5px solid var(--cl-border);
+  border-radius: 8px;
+  padding: 7px 4px;
+  min-height: 34px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.72rem;
+  color: var(--cl-ink);
+  text-align: center;
+  line-height: 1.3;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.cl-today__rasi-chip:hover {
+  background: var(--cl-accent-soft);
+  border-color: var(--cl-border-2);
+}
+
+.cl-today__rasi-chip[data-active="true"] {
+  background: var(--cl-ink);
+  color: var(--cl-bg);
+  border-color: var(--cl-ink);
+}
+
+.cl-today__rasi-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cl-today__rasi-name {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--cl-ink);
+  background: var(--cl-accent-soft);
+  border-radius: 6px;
+  padding: 2px 9px;
+}
+
+.cl-today__rasi-house {
+  font-size: 0.78rem;
+  color: var(--cl-muted);
+}
+
+.cl-today__rasi-change {
+  margin-left: auto;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.74rem;
+  color: var(--cl-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cl-today__rasi-change:hover { color: var(--cl-ink); }
+
+.cl-today__rasi-body {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--cl-ink-2);
+}
+
+/* The verdict word carries the tone; the sentence after it stays neutral so
+   the paragraph does not read as a coloured block. `warn` is the Moon in the
+   8th from the reader's rasi — Chandrashtama — which the app treats as a day
+   for care, not a bad day, so it takes the same caution tone as `caution`
+   rather than anything louder. */
+.cl-today__rasi-verdict { font-weight: 700; color: var(--cl-ink); }
+.cl-today__rasi-body[data-tone="positive"] .cl-today__rasi-verdict { color: var(--cl-sage); }
+.cl-today__rasi-body[data-tone="caution"]  .cl-today__rasi-verdict,
+.cl-today__rasi-body[data-tone="warn"]     .cl-today__rasi-verdict { color: var(--cl-caution); }
+
+.cl-today__rasi-link {
+  align-self: flex-start;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--cl-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ── foot, loading, empty ─────────────────────────────────── */
+.cl-today__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--cl-border);
+  padding-top: 10px;
+}
+
+.cl-today__foot-method {
+  font-size: 0.7rem;
+  color: var(--cl-muted);
+}
+
+.cl-today__foot-link {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--cl-ink-2);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cl-today__foot-link:hover { color: var(--cl-ink); }
+
+.cl-today__empty,
+.cl-today__loading {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--cl-muted);
+}
+
+.cl-today__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cl-today__skeleton-block {
+  height: 64px;
+  border-radius: 12px;
+  background: var(--cl-bg-2);
+}
+
+.cl-today__skeleton-block--tall  { height: 96px; }
+.cl-today__skeleton-block--short { height: 44px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .cl-today__skeleton-block {
+    background: linear-gradient(90deg, var(--cl-bg-2) 0%, var(--cl-surface-2) 50%, var(--cl-bg-2) 100%);
+    background-size: 200% 100%;
+    animation: cl-today-shimmer 1.5s ease-in-out infinite;
+  }
+}
+
+@keyframes cl-today-shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+/* Windows High Contrast strips backgrounds, which is what separates the two
+   window cards from each other and from the panel. Give each a real border so
+   the promoted window and the avoid window stay distinguishable — the same
+   class of defect as the dashboard hero's gradient-clipped <h1>. */
+@media (forced-colors: active) {
+  .cl-today,
+  .cl-today__window,
+  .cl-today__more {
+    border: 1px solid CanvasText;
+  }
+  .cl-today__live-dot { forced-color-adjust: none; background: Highlight; }
+  .cl-today__window[data-phase="after"] { opacity: 1; }
+}
+
+@media (max-width: 480px) {
+  .cl-today { padding: 18px; }
+  .cl-today__date { font-size: 1.15rem; }
+  .cl-today__rasi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .cl-today__row { grid-template-columns: 1fr; }
+}
+
 .cl-sticker {
   position: absolute;
   top: -14px;
@@ -4581,3 +5065,520 @@ details.cl-pub-faq-item > .cl-pub-faq-item__a {
   }
 }
 
+
+/* ══════════════════════════════════════════════════════════════
+   NOTIFICATION INBOX — /notifications
+   A signed-in surface rendered in the Clarity shell (it is reached
+   from the dashboard bell's "Open full inbox"), so it borrows the
+   cream tokens rather than Nova's dark ones.
+
+   Structure: one panel, hairline-divided rows, grouped by day — an
+   inbox reads as a continuous list, not as a stack of cards. Unread
+   is carried by a warm tint + a labelled dot + ink weight, and
+   deliberately NOT by an accent left-border: that treatment is ruled
+   out across this product.
+   ══════════════════════════════════════════════════════════════ */
+
+.cl-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.cl-inbox-shell {
+  min-height: 100vh;
+  background: var(--cl-bg);
+}
+
+/* ── Context bar ───────────────────────────────────────────────
+   The only chrome this page has. Without it you arrive from the
+   dashboard with no way back and no sense of where you are. */
+.cl-inbox-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--cl-bg-98, rgba(244, 238, 226, 0.98));
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--cl-border);
+}
+
+.cl-inbox-bar__inner {
+  width: min(900px, calc(100% - 40px));
+  margin: 0 auto;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cl-inbox-navlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 10px;
+  margin-inline: -10px;
+  border-radius: 10px;
+  color: var(--cl-ink-2);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 150ms ease, background 150ms ease;
+}
+
+.cl-inbox-navlink:hover {
+  color: var(--cl-accent);
+  background: var(--cl-bg-2);
+}
+
+.cl-inbox-navlink--muted {
+  color: var(--cl-muted);
+}
+
+/* ── Page head ─────────────────────────────────────────────── */
+.cl-inbox-main {
+  width: min(900px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 32px 0 88px;
+}
+
+.cl-inbox-head {
+  margin: 0 0 24px;
+}
+
+.cl-inbox-head__h1 {
+  margin: 0;
+  font-family: var(--cl-font-display);
+  font-size: clamp(1.85rem, 1.35rem + 1.6vw, 2.4rem);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  color: var(--cl-ink);
+}
+
+.cl-inbox-head__lead {
+  margin: 10px 0 0;
+  max-width: 58ch;
+  font-size: 0.94rem;
+  line-height: 1.65;
+  color: var(--cl-muted);
+}
+
+/* ── Toolbar: filter segment + mark-all ────────────────────── */
+.cl-inbox-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0 0 14px;
+}
+
+.cl-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--cl-bg-2);
+  border: 1px solid var(--cl-border);
+  border-radius: 999px;
+}
+
+.cl-seg__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 15px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--cl-muted);
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.cl-seg__btn:hover {
+  color: var(--cl-ink);
+}
+
+.cl-seg__btn[aria-pressed="true"] {
+  background: var(--cl-surface);
+  color: var(--cl-ink);
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.10);
+}
+
+.cl-seg__count {
+  min-width: 20px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cl-ink) 8%, transparent);
+  color: var(--cl-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.cl-seg__btn[aria-pressed="true"] .cl-seg__count {
+  background: var(--cl-accent);
+  color: var(--cl-surface);
+}
+
+.cl-inbox-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--cl-border-2);
+  border-radius: 999px;
+  background: var(--cl-surface);
+  color: var(--cl-ink);
+  font-family: inherit;
+  font-size: 0.83rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+}
+
+.cl-inbox-btn:hover:not(:disabled) {
+  border-color: var(--cl-accent);
+  color: var(--cl-accent);
+}
+
+.cl-inbox-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* "All caught up" is a state, not an action — it reads as a quiet
+   note beside the segment rather than as a dead disabled button. */
+.cl-inbox-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--cl-sage);
+  font-size: 0.83rem;
+  font-weight: 600;
+}
+
+/* ── The list ──────────────────────────────────────────────── */
+.cl-inbox-panel {
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.cl-inbox-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cl-inbox-group {
+  margin: 0;
+  padding: 9px 20px;
+  background: var(--cl-surface-2);
+  border-bottom: 1px solid var(--cl-border);
+  color: var(--cl-muted-2);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.cl-inbox-row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: 14px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--cl-border);
+  background: var(--cl-surface);
+  transition: background 150ms ease;
+}
+
+/* Only the very last row in the panel loses its rule — inside the panel a
+   group heading always sits below a row, and that row's hairline is the
+   separator between the two days. */
+.cl-inbox-panel > section:last-child .cl-inbox-row:last-child {
+  border-bottom: none;
+}
+
+.cl-inbox-row:hover {
+  background: var(--cl-surface-2);
+}
+
+.cl-inbox-row--unread {
+  background: color-mix(in srgb, var(--cl-accent) 4%, var(--cl-surface));
+}
+
+.cl-inbox-row--unread:hover {
+  background: color-mix(in srgb, var(--cl-accent) 7%, var(--cl-surface));
+}
+
+.cl-inbox-glyph {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--cl-accent) 10%, transparent);
+  color: var(--cl-accent);
+}
+
+.cl-inbox-glyph[data-tone="day"] {
+  background: color-mix(in srgb, var(--cl-sage) 14%, transparent);
+  color: var(--cl-sage);
+}
+
+.cl-inbox-glyph[data-tone="neutral"] {
+  background: var(--cl-bg-2);
+  color: var(--cl-muted);
+}
+
+.cl-inbox-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 4px;
+  font-size: 0.72rem;
+  color: var(--cl-muted-2);
+}
+
+.cl-inbox-kind {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--cl-muted);
+}
+
+.cl-inbox-sep {
+  color: var(--cl-border-2);
+}
+
+.cl-inbox-time {
+  font-variant-numeric: tabular-nums;
+}
+
+.cl-inbox-new {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--cl-accent);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.cl-inbox-new::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--cl-accent);
+}
+
+.cl-inbox-title {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--cl-ink);
+}
+
+.cl-inbox-row:not(.cl-inbox-row--unread) .cl-inbox-title {
+  font-weight: 500;
+  color: var(--cl-ink-2);
+}
+
+.cl-inbox-text {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--cl-muted);
+}
+
+.cl-inbox-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--cl-muted);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+}
+
+.cl-inbox-mark:hover:not(:disabled) {
+  border-color: var(--cl-border-2);
+  background: var(--cl-surface);
+  color: var(--cl-accent);
+}
+
+.cl-inbox-mark:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* ── Loading skeleton ──────────────────────────────────────── */
+.cl-inbox-skel {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 14px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--cl-border);
+}
+
+.cl-inbox-skel:last-child {
+  border-bottom: none;
+}
+
+.cl-inbox-skel__lines {
+  display: grid;
+  gap: 9px;
+  align-content: center;
+}
+
+.cl-inbox-skel__bar {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--cl-bg-2);
+  animation: cl-inbox-pulse 1.4s ease-in-out infinite;
+}
+
+.cl-inbox-skel__disc {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--cl-bg-2);
+  animation: cl-inbox-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes cl-inbox-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+
+/* ── Empty + error ─────────────────────────────────────────── */
+.cl-inbox-empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 60px 24px;
+  text-align: center;
+}
+
+.cl-inbox-empty__disc {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 4px;
+  border-radius: 999px;
+  background: var(--cl-bg-2);
+  color: var(--cl-muted);
+}
+
+.cl-inbox-empty__h {
+  margin: 0;
+  font-family: var(--cl-font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--cl-ink);
+}
+
+.cl-inbox-empty__p {
+  margin: 0;
+  max-width: 44ch;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--cl-muted);
+}
+
+.cl-inbox-error {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--cl-caution) 35%, transparent);
+  border-radius: 14px;
+  background: var(--cl-caution-soft);
+  color: var(--cl-caution);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.cl-inbox-error__retry {
+  margin-left: auto;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--cl-caution) 45%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--cl-caution);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .cl-inbox-row,
+  .cl-inbox-skel {
+    grid-template-columns: 34px minmax(0, 1fr);
+    padding: 14px 16px;
+  }
+  .cl-inbox-glyph {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+  }
+  .cl-inbox-mark {
+    grid-column: 2;
+    justify-self: start;
+    margin-top: 8px;
+    margin-left: -12px;
+  }
+  .cl-inbox-group {
+    padding: 9px 16px;
+  }
+  .cl-inbox-main {
+    padding-top: 24px;
+  }
+  .cl-inbox-tools {
+    align-items: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cl-inbox-skel__bar,
+  .cl-inbox-skel__disc {
+    animation: none;
+  }
+}
