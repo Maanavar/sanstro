@@ -158,6 +158,61 @@ def test_dispatch_in_app_only_when_channel_none(client):
     assert result == "in_app_only"
 
 
+def test_dispatch_uses_account_language_for_push_and_persists_both_translations(client, monkeypatch):
+    """An English account must receive English-only system notification copy."""
+    from app.db.session import SessionLocal
+    from app.models.notification import Notification
+    from app.models.user_preference import UserPreference
+    from app.services.notification_dispatch_service import dispatch_notification, get_or_create_preferences
+
+    captured: dict[str, str] = {}
+
+    def fake_send_push(token: str, title: str, body: str) -> str:
+        captured.update(token=token, title=title, body=body)
+        return "sent"
+
+    monkeypatch.setattr("app.services.notification_dispatch_service.get_flag", lambda _: True)
+    monkeypatch.setattr("app.services.notification_dispatch_service.send_push", fake_send_push)
+
+    with SessionLocal() as session:
+        with session.begin():
+            pref = get_or_create_preferences(session, UUID(TEST_USER_ID))
+            pref.notification_channel = "push"
+            pref.fcm_device_token = "english-device-token-123456"
+            ui_pref = session.query(UserPreference).filter_by(owner_user_id=UUID(TEST_USER_ID)).first()
+            if ui_pref is None:
+                ui_pref = UserPreference(owner_user_id=UUID(TEST_USER_ID), dashboard_lang="en")
+                session.add(ui_pref)
+            else:
+                ui_pref.dashboard_lang = "en"
+
+            result = dispatch_notification(
+                session=session,
+                user_id=UUID(TEST_USER_ID),
+                notification_type="MORNING_NALLA_NERAM",
+                title_ta="Tamil title",
+                title_en="English title",
+                body_ta="Tamil body",
+                body_en="English body",
+            )
+            stored = session.query(Notification).order_by(Notification.created_at.desc()).first()
+
+            assert result == "sent_push"
+            assert captured == {
+                "token": "english-device-token-123456",
+                "title": "English title",
+                "body": "English body",
+            }
+            assert stored is not None
+            assert stored.language == "en"
+            assert stored.title == "English title"
+            assert stored.body == "English body"
+            assert stored.payload == {
+                "title": {"ta": "Tamil title", "en": "English title"},
+                "body": {"ta": "Tamil body", "en": "English body"},
+            }
+
+
 def test_dispatch_smart_silence_suppresses_during_heavy_sani(client):
     """Smart silence suppresses second push on same day during JANMA_SANI."""
     from app.db.session import SessionLocal

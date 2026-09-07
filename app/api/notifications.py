@@ -13,6 +13,7 @@ from app.core.auth import get_current_user
 from app.db.session import get_db
 from app.models.notification import Notification
 from app.models.user import User
+from app.models.user_preference import UserPreference
 
 router = APIRouter()
 
@@ -42,6 +43,46 @@ def _due_status_filter(now: datetime):
     )
 
 
+def _active_language(session: Session, user_id: UUID) -> str:
+    """Resolve the account language used to render the inbox."""
+    language = session.execute(
+        select(UserPreference.dashboard_lang).where(UserPreference.owner_user_id == user_id)
+    ).scalar_one_or_none()
+    return "ta" if language == "ta" else "en"
+
+
+def _localized_notification_text(notification: Notification, field: str, language: str) -> str:
+    """Pick the active-language text, including a safe fallback for older rows."""
+    payload_value = (notification.payload or {}).get(field)
+    if isinstance(payload_value, dict):
+        translated = payload_value.get(language)
+        if isinstance(translated, str) and translated.strip():
+            return translated
+
+    stored = str(getattr(notification, field))
+    # Before notifications retained their translations in payload, they were
+    # stored as `Tamil / English` titles and `Tamil\nEnglish` bodies. Preserve
+    # a usable active-language inbox for those already-sent rows too.
+    if notification.language == "ta-en":
+        separator = " / " if field == "title" else "\n"
+        tamil, found, english = stored.partition(separator)
+        if found:
+            return tamil if language == "ta" else english
+    return stored
+
+
+def _notification_item(notification: Notification, language: str) -> NotificationItem:
+    return NotificationItem(
+        notification_id=notification.notification_id,
+        type=notification.type,
+        title=_localized_notification_text(notification, "title", language),
+        body=_localized_notification_text(notification, "body", language),
+        status=notification.status,
+        send_at=notification.send_at,
+        read_at=notification.read_at,
+    )
+
+
 @router.get(
     "/notifications",
     response_model=NotificationListResponse,
@@ -64,7 +105,8 @@ def list_notifications(
         .limit(limit)
     ).scalars().all()
 
-    items = [NotificationItem.model_validate(r) for r in rows]
+    language = _active_language(session, current_user.user_id)
+    items = [_notification_item(row, language) for row in rows]
     unread = sum(1 for i in items if i.read_at is None)
     return NotificationListResponse(data=items, unread_count=unread)
 

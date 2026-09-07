@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 from app.calculations.astro import resolve_timezone
 from app.models.birth_profile import BirthProfile
 from app.models.notification import Notification
+from app.models.user_preference import UserPreference
 from app.models.user_notification_preference import UserNotificationPreference
 from app.services.email_service import build_notification_email, send_email
 from app.services.fcm_service import send_push
@@ -67,6 +68,34 @@ NotificationType = Literal[
     "PEYARCHI",
     "GENERAL",
 ]
+
+NotificationLanguage = Literal["ta", "en"]
+
+
+def _notification_language(session: Session, user_id: UUID) -> NotificationLanguage:
+    """Return the account language used for push, email, and inbox copy.
+
+    The dashboard language is the account-level setting that already syncs
+    across devices.  A notification must use that setting rather than merge
+    two translations: Android and iOS previews give the first line prominence,
+    which made every merged notification appear Tamil-first in English mode.
+    """
+    language = session.execute(
+        select(UserPreference.dashboard_lang).where(UserPreference.owner_user_id == user_id)
+    ).scalar_one_or_none()
+    return "ta" if language == "ta" else "en"
+
+
+def _localized_text(language: NotificationLanguage, tamil: str, english: str) -> str:
+    return tamil if language == "ta" else english
+
+
+def _bilingual_payload(title_ta: str, title_en: str, body_ta: str, body_en: str) -> dict[str, dict[str, str]]:
+    """Keep both translations so the in-app inbox can follow later language changes."""
+    return {
+        "title": {"ta": title_ta, "en": title_en},
+        "body": {"ta": body_ta, "en": body_en},
+    }
 
 
 def get_or_create_preferences(session: Session, user_id: UUID) -> UserNotificationPreference:
@@ -122,6 +151,8 @@ def _persist_notification(
     notification_type: str,
     title: str,
     body: str,
+    language: NotificationLanguage,
+    payload: dict[str, dict[str, str]],
     status: str,
     suppression_reason: str | None,
     priority: int = 50,
@@ -133,10 +164,11 @@ def _persist_notification(
         priority=priority,
         title=title,
         body=body,
+        language=language,
         send_at=datetime.now(UTC),
         status=status,
         suppression_reason=suppression_reason,
-        payload={},
+        payload=payload,
     )
     session.add(notif)
     session.flush()
@@ -165,6 +197,10 @@ def dispatch_notification(
     still persisted to the in-app inbox; only push/email *delivery* is suppressed.
     """
     pref = get_or_create_preferences(session, user_id)
+    language = _notification_language(session, user_id)
+    title = _localized_text(language, title_ta, title_en)
+    body = _localized_text(language, body_ta, body_en)
+    payload = _bilingual_payload(title_ta, title_en, body_ta, body_en)
 
     channel = pref.notification_channel
     if channel == "none":
@@ -175,8 +211,7 @@ def dispatch_notification(
         logger.debug("dispatch_in_app_only user=%s type=%s — channel=none", user_id, notification_type)
         _persist_notification(
             session, user_id, chart_id, notification_type,
-            f"{title_ta} / {title_en}", f"{body_ta}\n{body_en}",
-            "sent", None, priority,
+            title, body, language, payload, "sent", None, priority,
         )
         return "in_app_only"
 
@@ -188,19 +223,18 @@ def dispatch_notification(
             logger.info("smart_silence user=%s sani=%s — push suppressed", user_id, sani_cycle)
             _persist_notification(
                 session, user_id, chart_id, notification_type,
-                title_en, body_en, "suppressed",
+                title, body, language, payload, "suppressed",
                 f"smart_silence:{sani_cycle}", priority,
             )
             return "suppressed"
 
-    # Build language-merged strings: Tamil first, English below
-    combined_title = f"{title_ta} / {title_en}"
-    combined_body = _truncate_body(f"{body_ta}\n{body_en}")
+    push_title = title
+    push_body = _truncate_body(body)
 
     push_ok = email_ok = False
 
     if wants_push and pref.fcm_device_token:
-        fcm_result = send_push(pref.fcm_device_token, combined_title, combined_body)
+        fcm_result = send_push(pref.fcm_device_token, push_title, push_body)
         push_ok = fcm_result == "sent"
         if fcm_result == "invalid_token":
             # Token is no longer registered; remove it so we stop trying
@@ -209,7 +243,7 @@ def dispatch_notification(
 
     wants_email = channel in ("email", "both")
     if wants_email and user_email:
-        msg = build_notification_email(user_email, combined_title, combined_body)
+        msg = build_notification_email(user_email, push_title, body)
         email_ok = send_email(msg)
 
     # Determine outcome
@@ -225,7 +259,7 @@ def dispatch_notification(
 
     _persist_notification(
         session, user_id, chart_id, notification_type,
-        combined_title, combined_body,
+        title, body, language, payload,
         "sent" if sent else "failed",
         None if sent else "delivery_error",
         priority,
@@ -245,22 +279,29 @@ def dispatch_queued_notification(
 ) -> str:
     """Deliver an existing queued notification row and update it in place."""
     pref = get_or_create_preferences(session, notification.user_id)
+    language = _notification_language(session, notification.user_id)
 
-    combined_title = (
-        f"{title_ta} / {title_en}"
+    title = (
+        _localized_text(language, title_ta, title_en)
         if title_ta and title_en
         else notification.title
     )
-    combined_body = _truncate_body(
-        f"{body_ta}\n{body_en}"
+    body = (
+        _localized_text(language, body_ta, body_en)
         if body_ta and body_en
         else notification.body
     )
 
     def _finish(status: str, result: str, suppression_reason: str | None = None) -> str:
         notification.status = status
-        notification.title = combined_title
-        notification.body = combined_body
+        notification.title = title
+        notification.body = body
+        notification.language = language
+        if title_ta and title_en and body_ta and body_en:
+            notification.payload = {
+                **(notification.payload or {}),
+                **_bilingual_payload(title_ta, title_en, body_ta, body_en),
+            }
         notification.suppression_reason = suppression_reason
         notification.sent_at = datetime.now(UTC) if status == "sent" else None
         session.flush()
@@ -280,7 +321,7 @@ def dispatch_queued_notification(
 
     push_ok = email_ok = False
     if wants_push and pref.fcm_device_token:
-        fcm_result = send_push(pref.fcm_device_token, combined_title, combined_body)
+        fcm_result = send_push(pref.fcm_device_token, title, _truncate_body(body))
         push_ok = fcm_result == "sent"
         if fcm_result == "invalid_token":
             pref.fcm_device_token = None
@@ -288,7 +329,7 @@ def dispatch_queued_notification(
 
     wants_email = channel in ("email", "both")
     if wants_email and user_email:
-        msg = build_notification_email(user_email, combined_title, combined_body)
+        msg = build_notification_email(user_email, title, body)
         email_ok = send_email(msg)
 
     if wants_push and wants_email:
