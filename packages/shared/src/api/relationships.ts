@@ -1,5 +1,5 @@
 import { getApiClient } from "./client";
-import type { BiText, DirectPoruthamData } from "../types";
+import type { BiText, CompatibilityIntelligenceData, DirectPoruthamData } from "../types";
 
 export interface SynastryAspect {
   pair: string;
@@ -76,4 +76,35 @@ export function compareCharts(
     chartIdB,
     compatibilityContext,
   }) as Promise<{ success: boolean; data: DirectPoruthamData }>;
+}
+export interface CompatibilityIntelligenceBirthInput {
+  displayName?: string;
+  birthDateLocal: string;
+  birthTimeLocal?: string | null;
+  birthPlace?: string;
+  birthLatitude: number;
+  birthLongitude: number;
+  birthTimezone: string;
+}
+
+/** Full 8-level Compatibility Intelligence report for two people the signed-in
+ * user typed in, neither of whom has to exist in a family vault.
+ *
+ * The `/relationships/{memberId}/compatibility-intelligence*` routes require
+ * Person B to be a saved vault member, which made the depth of the report a
+ * function of where the birth data was stored rather than of who was asking —
+ * a signed-in user entering two people by hand in the Porutham tool got the
+ * same shallow ten-porutham result as a logged-out visitor. Prefer the
+ * member-scoped route when Person B *is* a saved member (it reads that
+ * member's persisted chart and enforces the spouse/partner relationship
+ * check); use this for every other pair. Backend: POST
+ * /relationships/compatibility-intelligence/direct. */
+export function compareCompatibilityIntelligence(
+  personA: CompatibilityIntelligenceBirthInput,
+  personB: CompatibilityIntelligenceBirthInput,
+): Promise<{ success: boolean; data: CompatibilityIntelligenceData }> {
+  return getApiClient().post("/relationships/compatibility-intelligence/direct", {
+    personA,
+    personB,
+  }) as Promise<{ success: boolean; data: CompatibilityIntelligenceData }>;
 }
