@@ -1341,12 +1341,21 @@ export function DashboardTodayTabNova({
         <FirstResultGuide lang={lang} action={personalDailyGuidance.actionSuggestion} />
       )}
 
+      {/* The two-minute reading, but only while it has something new to say.
+          `readingWindow` is the current antardasha — months to years — and most
+          of its beats are natal and never move at all, so this slot was
+          spending ~240 words a day on a piece of writing whose own subtitle
+          says it will not change until March. Once read, it collapses to a
+          single line pointing at Family & Charts, and it expands again by
+          itself when the bhukti turns and the backend rewrites it. See
+          `collapseWhenRead`. */}
       {activeChartId && (
         <DashboardOneMinuteReading
           lang={lang}
           chartId={activeChartId}
           onOpenFullChart={onGoToCharts}
           deferUntilVisible
+          collapseWhenRead
         />
       )}
 

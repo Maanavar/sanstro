@@ -3237,9 +3237,90 @@ button.ui-chip { cursor: pointer; }
   50%      { opacity: 0.9; }
 }
 
+/* Back after an antardasha turn. An accent rule and nothing else — it has to
+   read as "this is different", not as an alert; the news underneath it is
+   neutral, and the reader has not done anything wrong. */
+.om__rewritten {
+  margin: 0 0 var(--space-2_5);
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--color-accent);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--color-accent-strong);
+}
+
+/* ── The recap row: the reading, already read ──────────────────────────────
+   Today's copy of a piece of writing that moves at the antardasha boundary,
+   once this reader has read it. One line, one way back, and it stays a row
+   rather than becoming a card — a card would claim the reading is a thing to
+   act on today, which is the exact overstatement being corrected. It expands
+   back to the full `.om` surface by itself when the backend rewrites it. */
+.om-recap {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-1_5) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+.om-recap__text {
+  flex: 1 1 260px;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2_5);
+}
+/* Still an h2 — it is the same section heading it was when expanded, and the
+   document outline should not change because the reader has read something. */
+.om-recap__title {
+  margin: 0;
+  font-family: var(--font-display, Georgia, serif);
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text-strong);
+}
+.om-recap__line {
+  flex: 1 1 220px;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--color-muted);
+  /* One sentence, and on a narrow viewport it is allowed two lines before it
+     is cut — a truncated first line would leave the row saying nothing. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+.om-recap__link {
+  flex: 0 0 auto;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-accent-strong);
+  cursor: pointer;
+}
+.om-recap__link:hover { text-decoration: underline; }
+.om-recap__link:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
 @media (pointer: coarse) {
   .om__basis-toggle,
-  .om__ask-btn { min-height: var(--touch-target); }
+  .om__ask-btn,
+  .om-recap__link { min-height: var(--touch-target); }
 }
 
 /* ── Reduced-motion guard ──────────────────────────────────
