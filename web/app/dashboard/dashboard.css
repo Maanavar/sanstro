@@ -374,6 +374,98 @@
   background: var(--color-surface-soft);
 }
 
+/* ── "More" nav menu items ────────────────────────────────────────────
+   icon · (label over description) · active check.
+
+   The base .cd-dropdown__btn is a centre-aligned flex ROW, so a label and
+   its description became two side-by-side columns — the descriptions were
+   written to sit underneath. This modifier restores the intended stack and
+   gives each destination an icon and a visible current-page mark. */
+/* min-width beats the width the ≤720px block sets, so it has to carry the
+   same viewport clamp or the menu overhangs a 320px screen. */
+.cd-dropdown--nav {
+  min-width: min(300px, calc(100vw - 24px));
+  max-width: min(340px, calc(100vw - 24px));
+}
+
+.cd-dropdown__btn--nav {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 16px;
+  align-items: start;
+  gap: 11px;
+  min-height: 44px;
+  padding: 10px var(--space-3);
+}
+
+.cd-dropdown__icon,
+.cd-dropdown__check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+.cd-dropdown__icon {
+  color: var(--color-faint);
+  transition: color 150ms ease;
+}
+
+.cd-dropdown__btn--nav:hover .cd-dropdown__icon {
+  color: var(--color-accent-strong);
+}
+
+.cd-dropdown__text {
+  display: block;
+  min-width: 0;
+}
+
+.cd-dropdown__label {
+  display: block;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.cd-dropdown__check {
+  color: var(--color-accent-strong);
+}
+
+.cd-dropdown__btn[aria-current="page"] {
+  background: var(--color-hover-bg);
+}
+
+.cd-dropdown__btn[aria-current="page"] .cd-dropdown__label,
+.cd-dropdown__btn[aria-current="page"] .cd-dropdown__icon {
+  color: var(--color-accent-strong);
+}
+
+/* The trigger's chevron turns to report the menu's state. */
+.cd-tab--more {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.cd-tab__chevron {
+  flex: none;
+  color: var(--color-faint);
+  transition: transform 180ms ease, color 150ms ease;
+}
+
+.cd-tab--more:hover .cd-tab__chevron,
+.cd-tab--more.cd-tab--active .cd-tab__chevron {
+  color: currentColor;
+}
+
+.cd-tab--more[aria-expanded="true"] .cd-tab__chevron {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cd-tab__chevron {
+    transition: none;
+  }
+}
+
 .cd-dropdown__btn--danger {
   color: var(--color-accent-strong);
 }

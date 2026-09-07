@@ -66,3 +66,50 @@ describe("DashboardHero navigation guidance", () => {
     expect(screen.getByText("Learn the ideas behind your chart and guidance.")).toBeInTheDocument();
   });
 });
+
+/**
+ * The More menu declared role="menu"/role="menuitem" — which promises the
+ * WAI-ARIA menu keys — while implementing none of them, and it marked the
+ * destination you were already on with aria-current and nothing visible.
+ */
+describe("DashboardHero More menu keyboard behaviour", () => {
+  function openMore() {
+    const trigger = screen.getByRole("button", { name: /more/i });
+    fireEvent.click(trigger);
+    return trigger;
+  }
+
+  it("moves focus onto the destination you are already on", () => {
+    renderHero("explore", noop);
+    openMore();
+
+    const current = screen.getByRole("menuitem", { name: /Understand/ });
+    expect(current).toHaveAttribute("aria-current", "page");
+    expect(document.activeElement).toBe(current);
+  });
+
+  it("cycles focus with the arrow keys", () => {
+    renderHero("personal", noop);
+    const trigger = openMore();
+
+    const items = screen.getAllByRole("menuitem");
+    expect(document.activeElement).toBe(items[0]);
+
+    fireEvent.keyDown(trigger.parentElement as HTMLElement, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(items[1]);
+
+    fireEvent.keyDown(trigger.parentElement as HTMLElement, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(items[0]);
+  });
+
+  it("closes on Escape and hands focus back to the trigger", () => {
+    renderHero("personal", noop);
+    const trigger = openMore();
+
+    fireEvent.keyDown(trigger.parentElement as HTMLElement, { key: "Escape" });
+
+    expect(screen.queryByRole("menu")).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+  });
+});
