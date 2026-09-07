@@ -127,6 +127,47 @@ export function spansOverlap(a: TimingSpan, b: TimingSpan): boolean {
   return aStart < bEnd && bStart < aEnd;
 }
 
+/**
+ * The parts of `span` left once every blocking span is cut out of it, in clock
+ * order. An empty result means the blockers cover it end to end.
+ *
+ * Hero review 2026-09-04, finding 7: Abhijit is a fixed ~48-minute slot around
+ * solar noon, and Friday's Rahu Kalam is the 4th of eight day-parts — so on a
+ * large fraction of Fridays it clips the head of Abhijit (24 of 49 minutes on
+ * the reviewed day). The panel called Abhijit "auspicious for anyone" with no
+ * qualifier, sitting one card away from a recommendation whose entire argument
+ * is that it is clear of the kalas. Either doctrine is defensible; saying
+ * nothing, while the app has already committed to the opposite one on screen,
+ * is not.
+ */
+export function clearSegments(span: TimingSpan, blockers: readonly TimingSpan[]): TimingSpan[] {
+  const start = hmToMinutes(span.start);
+  const end = hmToMinutes(span.end);
+  if (start === null || end === null || end <= start) return [];
+
+  const cuts = blockers
+    .map((b) => ({ from: hmToMinutes(b.start), to: hmToMinutes(b.end) }))
+    .filter((b): b is { from: number; to: number } => b.from !== null && b.to !== null && b.to > b.from)
+    .filter((b) => b.from < end && b.to > start)
+    .sort((a, b) => a.from - b.from);
+
+  const out: TimingSpan[] = [];
+  let cursor = start;
+  for (const cut of cuts) {
+    if (cut.from > cursor) out.push({ start: minutesToHm(cursor), end: minutesToHm(cut.from) });
+    cursor = Math.max(cursor, cut.to);
+    if (cursor >= end) break;
+  }
+  if (cursor < end) out.push({ start: minutesToHm(cursor), end: minutesToHm(end) });
+  return out;
+}
+
+function minutesToHm(total: number): string {
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
 export interface RecommendedWindow {
   window: DailyGuidanceWindow;
   /** Gowri rank of the promoted window (1 = Amirtham, 999 = unnamed). */

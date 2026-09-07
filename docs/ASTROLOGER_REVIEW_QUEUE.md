@@ -10,6 +10,55 @@ decision inline and move it to "Resolved".
 
 ## Open
 
+### 2026-09-04 · Does Abhijit muhurtham override Rahu Kalam and the other kalas?
+
+- **Where:** `web/components/dashboard-today-tab-nova.tsx` (`abhijitOverlapNote`,
+  and the Abhijit row of the hero rail's "Key timings for today" card),
+  `web/lib/today-windows.ts` (`clearSegments`), `web/lib/dashboard-i18n.ts`
+  (`TODAY_TIMINGS.abhijitOverlap`, `abhijitFullyCovered`). The note first
+  shipped in the "Other traditional timings" disclosure; that panel was removed
+  later the same day (owner call) and the note moved to the card that replaced
+  it, unchanged.
+- **What happens:** Abhijit is a fixed ~48-minute slot around solar noon; the
+  three avoid-kalas move by weekday. Friday's Rahu Kalam is the 4th of eight
+  day-parts, which on most Fridays straddles late morning into midday — so it
+  clips the head of Abhijit on a large fraction of Fridays, **structurally, not
+  as an edge case**. On 2026-09-04 the overlap was 24 of Abhijit's 49 minutes
+  (Abhijit 11:55–12:44, Rahu Kalam 10:48–12:19). Sunday's 8th part and
+  Saturday's 3rd collide on other days.
+- **Why it needs a ruling:** the panel described Abhijit as "counted auspicious
+  for anyone, whatever their chart", with no qualifier, sitting directly under a
+  card whose entire argument is *"Clear of Rahu Kalam, Yamagandam and Kuligai."*
+  A reader who took both at face value got two contradictory instructions from
+  one panel. The classical position is genuinely contested — many traditions
+  hold that Abhijit overrides the kalas, and many Tamil families do not. Either
+  ruling is defensible; **silence was not**, because the app had already
+  committed to the opposite doctrine one card away.
+- **What ships now (interim, and deliberately not a new doctrine call):** when
+  Abhijit intersects a kala, the row appends the overlap and states the app's
+  *already-implemented* position — the one the owner ruled on 2026-08-23, that a
+  window overlapping Rahu Kalam / Yamagandam / Kuligai is never promoted — and
+  names the clear remainder: "Overlaps Rahu Kalam here, and this app treats the
+  avoid periods as binding — so the clear part is 12:19 pm–12:44 pm." It renders
+  only on the days the two actually collide. Nothing about the recommendation
+  itself changed.
+- **The question for the reviewer:** is "kalas bind, Abhijit yields" the right
+  reading for this app, or should Abhijit be treated as overriding them (in
+  which case the copy, and possibly `pickRecommendedWindow`'s veto, both change)?
+  A third option — say the two disagree and let the reader choose — is available
+  but is the one posture the rest of this surface deliberately avoids.
+- **Status:** live in the product. Locked down by
+  `web/lib/today-windows.test.ts` (`clearSegments`) and
+  `web/components/dashboard-today-tab-nova.test.tsx` ("says when Abhijit runs
+  into an avoid period", plus "stays quiet on the days Abhijit is clear of all
+  three kalas"), so a change here should update those too. The Tamil
+  for both overlap strings is new and unreviewed.
+- **Also new Tamil in the same pass** (CLAUDE.md new-Tamil rule):
+  `EMOTIONAL_WEATHER_LABELS` (20 chip labels), `EMOTIONAL_WEATHER`,
+  `TODAY_HERO`, and the `TODAY_TIMINGS` window-phase copy. (The group headings
+  and the Nalla Neram "recommended" tag went out with the disclosure and no
+  longer need review.)
+
 ### 2026-08-24 · New Tamil copy from the UX-blindspot defect pass
 
 - **Where:** `web/lib/login-i18n.ts` (~55 auth strings), `web/lib/glossary.ts`

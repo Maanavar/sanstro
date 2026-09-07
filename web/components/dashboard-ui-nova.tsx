@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import { ArrowRight, ChevronDown } from "lucide-react";
 
 import { DUR, EASE_NOVA, useCountUp } from "@/lib/motion";
 import { scoreColor } from "@/lib/format";
@@ -44,94 +45,101 @@ type NovaClampedTextProps = {
   lines?: number;
   maxWidth?: string;
   style?: CSSProperties;
+  /** Trigger copy. Bilingual strings live in the caller's catalog; the defaults
+   *  keep this primitive usable without one. */
+  moreLabel?: string;
+  lessLabel?: string;
 };
 
 /**
- * Multi-line clamp that reveals the full text in a popover on hover, and
- * toggles it (pinned open) on click/tap so it also works on touch — same
- * click/tap-to-reveal convention as GlossaryTerm, applied to a paragraph
- * instead of a single term. Only becomes interactive if the text actually
- * overflows the clamp.
+ * Multi-line clamp with an explicit "Read more" trigger.
+ *
+ * Hero review 2026-09-04, finding 14. This used to reveal on hover and pin on
+ * click, with no visual affordance at all — the hero's briefing truncated mid
+ * sentence ("…Ardhashtama Sani — a years-long phase, no…"), cutting off exactly
+ * as the most consequential fact in the paragraph arrived, and nothing on
+ * screen said the rest existed. A hover-only reveal is also nothing on touch
+ * until you happen to tap the paragraph.
+ *
+ * The second half of the finding: `role="button"` was on the prose itself, so a
+ * screen reader announced the entire briefing as one button label. The
+ * paragraph is a paragraph again; the button is the button, and it owns the
+ * `aria-expanded` / `aria-controls` pair.
+ *
+ * Expansion is inline rather than a popover — the popover overlaid whatever sat
+ * under the hero and vanished on mouse-out mid-read.
  */
-export function NovaClampedText({ children, lines = 3, maxWidth, style }: NovaClampedTextProps) {
-  const [hovering, setHovering] = useState(false);
-  const [pinned, setPinned] = useState(false);
+export function NovaClampedText({
+  children,
+  lines = 3,
+  maxWidth,
+  style,
+  moreLabel = "Read more",
+  lessLabel = "Show less",
+}: NovaClampedTextProps) {
+  const [expanded, setExpanded] = useState(false);
   const [overflowing, setOverflowing] = useState(false);
   const textRef = useRef<HTMLDivElement>(null);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const open = overflowing && (hovering || pinned);
+  const textId = useId();
 
   useEffect(() => {
     const el = textRef.current;
-    if (el) setOverflowing(el.scrollHeight > el.clientHeight + 1);
-  }, [children, lines]);
+    if (!el) return;
+    // Measured against the clamped box, so the check has to run while clamped.
+    if (expanded) return;
+    setOverflowing(el.scrollHeight > el.clientHeight + 1);
+  }, [children, lines, expanded]);
 
-  useEffect(() => {
-    if (!pinned) return;
-    const onDocClick = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setPinned(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setPinned(false);
-    };
-    document.addEventListener("click", onDocClick);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("click", onDocClick);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [pinned]);
+  const clamped = !expanded;
 
   return (
-    <div
-      ref={wrapRef}
-      style={{ position: "relative", maxWidth }}
-      onMouseEnter={() => overflowing && setHovering(true)}
-      onMouseLeave={() => setHovering(false)}
-    >
+    <div style={{ maxWidth, display: "flex", flexDirection: "column", gap: "var(--space-1)", alignItems: "flex-start" }}>
       <div
         ref={textRef}
-        role="button"
-        tabIndex={overflowing ? 0 : -1}
-        aria-expanded={pinned}
-        onClick={() => overflowing && setPinned((v) => !v)}
-        onKeyDown={(e) => {
-          if (overflowing && (e.key === "Enter" || e.key === " ")) {
-            e.preventDefault();
-            setPinned((v) => !v);
-          }
-        }}
+        id={textId}
         style={{
           ...style,
-          display: "-webkit-box",
-          WebkitLineClamp: lines,
-          WebkitBoxOrient: "vertical",
-          overflow: "hidden",
-          cursor: overflowing ? "pointer" : "default",
+          ...(clamped
+            ? {
+              display: "-webkit-box",
+              WebkitLineClamp: lines,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }
+            : null),
         }}
       >
         {children}
       </div>
-      {open && (
-        <div
-          role="tooltip"
+      {(overflowing || expanded) && (
+        <button
+          type="button"
+          aria-expanded={expanded}
+          aria-controls={textId}
+          onClick={() => setExpanded((v) => !v)}
           style={{
-            position: "absolute",
-            zIndex: 40,
-            top: "calc(100% + 6px)",
-            left: 0,
-            right: 0,
-            padding: "12px 14px",
-            borderRadius: "var(--radius-md)",
-            border: "1px solid var(--color-border-strong)",
-            background: "var(--color-surface)",
-            boxShadow: "0 10px 28px rgba(var(--nova-shadow-ink, 0, 0, 0), 0.22)",
-            whiteSpace: "pre-wrap",
-            ...style,
+            display: "inline-flex", alignItems: "center", gap: "var(--space-1)",
+            padding: 0, border: "none", background: "none", fontFamily: "inherit",
+            fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-accent-strong)",
+            cursor: "pointer",
           }}
         >
-          {children}
-        </div>
+          {expanded ? lessLabel : moreLabel}
+          {/* Both call sites are the Today hero (2026-09-04), where this is the
+              lede's one continuation link — an arrow reads as "there is more of
+              this" where a chevron read as a disclosure caret. The collapse
+              direction still gets a chevron, since that is what it is. */}
+          {expanded ? (
+            <ChevronDown
+              size={14}
+              strokeWidth={2.5}
+              aria-hidden="true"
+              style={{ transform: "rotate(180deg)", transition: "transform 140ms ease" }}
+            />
+          ) : (
+            <ArrowRight size={14} strokeWidth={2.5} aria-hidden="true" />
+          )}
+        </button>
       )}
     </div>
   );

@@ -35,7 +35,16 @@
    so layout is identical in both Nova-dark and Nova-light. Color custom
    properties live in the two theme-conditional blocks below. */
 [data-ui="nova"] .cd-shell {
-  --cd-container-max: 1240px;
+  /* Hero layout review 2026-09-04. This was a flat 1240px, which on a 1912px
+     screen left ~336px of dead gutter on each side and squeezed the Today hero
+     into 1128px of usable row — against a design drawn for a ~1640px hero. The
+     hero's three columns could not hold their designed 51/22/27 split at that
+     width, so the left column (name, briefing, best window) was the one that
+     gave, ending up narrower than the two rails beside it.
+     The clamp keeps the old width as the floor, so nothing below ~1350px moves;
+     it only spends the gutter that was already empty. `min(...)` at each call
+     site still handles small viewports. */
+  --cd-container-max: clamp(1240px, 92vw, 1560px);
 
   /* UXD-07 — gold keyboard-focus ring on the Nova shell (the global rule in
      globals.css reads var(--focus-ring); here it resolves to the active
@@ -3408,4 +3417,447 @@ button.ui-chip { cursor: pointer; }
 
 [data-ui="nova"] .cd-shell .cd-glossary-card:target {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent-strong) 55%, transparent);
+}
+
+/* ── Forced colors / Windows High Contrast — gradient-clipped text ─────────
+   Hero review 2026-09-04, finding 11. The Today hero's greeting name is the
+   page's only <h1>, and it is painted by clipping a gradient background to the
+   glyphs (`background-clip: text` + `-webkit-text-fill-color: transparent`).
+   Under `forced-colors: active` the UA strips the background but keeps the
+   transparent fill — so the heading renders as nothing at all, and the reader
+   loses both their name and the document outline's top level.
+
+   `forced-color-adjust: none` is deliberately NOT used: the point is to hand
+   the glyphs back to the forced palette, not to re-assert ours. */
+@media (forced-colors: active) {
+  .nova-hero-name {
+    background: none !important;
+    -webkit-background-clip: border-box !important;
+    background-clip: border-box !important;
+    -webkit-text-fill-color: currentColor !important;
+    color: CanvasText;
+  }
+}
+
+/* ── Today hero ──────────────────────────────────────────────────────────
+   Layout pass 2026-09-04 (second). One card, two bands:
+
+     masthead  full-width almanac strip — date · star · tithi · paksha ·
+               observance, streak chip / evening switch at the right — closed
+               by a hairline.
+     row       the body grid. Three top-aligned columns at ≥1200px (greeting +
+               briefing + best window · score + epigraph · timing rail), two
+               at ≥860px, one below.
+
+   Two columns at ≥760px, not ≥860px: an iPad-portrait row is wide enough
+   for the score beside the briefing, and a full-width dial tile is not a
+   better use of it.
+
+   Everything is top-aligned. The previous pass bottom-aligned the row
+   (`align-items: end`) and pushed the rail down 120px to clear an epigraph
+   that was absolutely positioned over its corner — so all three columns
+   piled up at the bottom of a 650px row and the middle of the hero was
+   empty. The epigraph is in flow now, under the score card, and the almanac
+   line no longer shares the greeting's column, where it competed with the
+   name for the same width. */
+.nova-hero {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--color-surface-soft), var(--color-surface-3));
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5) var(--space-5) var(--space-6);
+}
+
+.nova-hero-masthead {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-5);
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+.nova-hero-masthead__date {
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+.nova-hero-masthead__limbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+.nova-hero-masthead__limb {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1_5);
+  font-size: var(--text-base);
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+.nova-hero-masthead__limb b {
+  color: var(--color-text-strong);
+  font-weight: 700;
+}
+.nova-hero-masthead__right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.nova-hero-row {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+.nova-hero-col-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.nova-hero-score {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.nova-hero-rail {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+@media (min-width: 760px) {
+  .nova-hero {
+    padding: var(--space-6) var(--space-8) var(--space-8);
+  }
+  .nova-hero-masthead {
+    margin-bottom: var(--space-6);
+  }
+  .nova-hero-row {
+    grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr);
+    column-gap: var(--space-6);
+    row-gap: var(--space-3);
+  }
+  /* Left column runs beside the score card stacked over the rail, so the
+     reading order (name -> briefing -> action) survives the two-column drop. */
+  .nova-hero-col-main {
+    grid-row: span 2;
+  }
+}
+
+@media (min-width: 1200px) {
+  .nova-hero {
+    padding: var(--space-7) var(--space-10) var(--space-8);
+  }
+  /* Proportions off the comp (51 / 22 / 27), with mins that keep the dial
+     (172px + padding) and the timing rows on one line each. */
+  .nova-hero-row {
+    grid-template-columns: minmax(0, 52fr) minmax(236px, 21fr) minmax(292px, 27fr);
+    column-gap: var(--space-7);
+    /* The three columns hold unrelated amounts of content (a greeting +
+       chips + the best-window card vs. a score dial vs. two timing cards),
+       so `start` left the two shorter columns pinned to the top with a bare
+       gap underneath — the emptiest-looking part of the hero. Stretching the
+       row and centering each short column's own content vertically turns
+       that gap into balanced breathing room instead of a hole. */
+    align-items: stretch;
+  }
+  .nova-hero-col-main {
+    grid-row: auto;
+  }
+  .nova-hero-score,
+  .nova-hero-rail {
+    justify-content: center;
+  }
+  /* No score (guidance still loading, or no profile yet): the rail takes the
+     two right-hand columns as a pair of cards instead of leaving the middle
+     column empty. */
+  .nova-hero-row:not(:has(.nova-hero-score)) > .nova-hero-rail {
+    grid-column: 2 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+    justify-content: start;
+  }
+  .nova-hero-row:not(:has(.nova-hero-score)) > .nova-hero-rail > :last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Epigraph: in flow under the score card, so it reserves its own space. Hidden
+   below 1200px, where the score column does not exist and a two-line quote
+   wedged between cards reads as a layout bug. */
+.nova-hero-quote {
+  display: none;
+}
+@media (min-width: 1200px) {
+  .nova-hero-quote {
+    display: block;
+    margin: 0;
+    padding: 0 var(--space-2);
+    text-align: center;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: var(--text-md);
+    line-height: 1.45;
+    color: var(--color-muted);
+  }
+  .nova-hero-quote__attribution {
+    display: block;
+    margin-top: var(--space-1);
+    font-style: normal;
+    font-size: var(--text-sm);
+    color: var(--color-faint);
+  }
+}
+
+/* ── Best-window action card (redesign 2026-09-07) ──────────────────────────
+   One hero, one supporting line, one footnote. Spacing does the grouping that
+   six equal-weight blocks and a divider used to fail at: eyebrow and time are
+   one unit (tight), the reason is a step away, the actions a clear step
+   further. Prefixed to outrank the `.ui-card` base rule. */
+[data-ui="nova"] .cd-shell .nova-hero-action {
+  border-radius: var(--radius-md);
+  padding: var(--space-4_5) var(--space-5);
+  gap: var(--space-4);
+}
+.nova-hero-action__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+/* Label + live state on one line. Two 11px uppercase runs would read as one
+   run, so the middle dot separates them; the tint difference alone was not
+   enough at this size. */
+.nova-hero-action__eyebrow {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+}
+.nova-hero-action__glyph {
+  color: var(--color-high);
+  flex: none;
+}
+.nova-hero-action__state {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1_5);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-faint);
+  /* The countdown reruns every minute — tabular figures keep it from
+     shifting the eyebrow's width as the digits change. */
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.nova-hero-action__state::before {
+  content: "·";
+  color: var(--color-faint);
+  font-weight: 400;
+}
+/* Running now: the state carries the tone and the live dot the puck used to
+   host, which is louder at 11px than a grey countdown was at 13px. */
+.nova-hero-action__state.is-live {
+  color: var(--color-high);
+}
+.nova-hero-action__live {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-pill);
+  background: var(--color-high);
+  flex: none;
+}
+/* The answer, and the actions it belongs to, on one row (owner ask,
+   2026-09-07). The buttons used to hold a row of their own below the reason,
+   which left the right half of the card empty and made the card ~45px taller
+   than its content. `space-between` because these are the two ends of one
+   thought — "this is the time" / "do something with it" — not a sequence.
+   Wraps to two rows on its own when the column can no longer hold both. */
+.nova-hero-action__topline {
+  width: 100%;
+  margin-top: var(--space-1_5);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+/* The answer. Was 17–20px — smaller than the sentence explaining it. */
+.nova-hero-action__time {
+  font-size: clamp(1.375rem, 2.4vw, 1.75rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--color-text-strong);
+  font-variant-numeric: tabular-nums;
+}
+/* Running now, the biggest element carries the tone. Deleting the badge puck
+   left an 11px eyebrow dot as the entire live signal, which made this card's
+   most important moment — the reader standing inside the window — its quietest
+   state. Tinting the headline costs no layout and shifts nothing between
+   states, unlike a border or a left stripe (owner ruling: no accent stripes). */
+.nova-hero-action__time.is-live {
+  color: var(--color-high);
+}
+/* The kala rides the end of the time line. It is a name, not a sentence — as
+   the opener of the mechanics paragraph it was holding a whole text row open
+   for four characters. */
+.nova-hero-action__kala {
+  margin-left: var(--space-2_5);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+.nova-hero-action__kala::before {
+  content: "·";
+  margin-right: var(--space-2_5);
+  color: var(--color-faint);
+  font-weight: 400;
+}
+/* Meaning then mechanics, on ONE line: what the window is good for, and the
+   clearance that let it win. These were two stacked paragraphs at two sizes;
+   they are one thought, and the second row was pure height in a hero the owner
+   has twice asked to shorten. `::first-letter` on the paragraph rather than a
+   capitalised string: both halves are kept word-for-word in sync with
+   panchangam.py, and Tamil is caseless so this is a no-op there. */
+.nova-hero-action__reason {
+  margin: var(--space-2_5) 0 0;
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  color: var(--color-faint);
+  /* Measure, not width: the card is ~690px wide here and 64ch clamped this
+     line to ~370px, so the English sentence broke after "Rahu Kalam," and
+     orphaned "Yamagandam and Kuligai." onto a second row beside half a card
+     of empty space. 90ch is still a readable measure for the longer Tamil
+     string when it does wrap, and lets the two-clause English line finish on
+     one row from ~1200px up. */
+  max-width: 90ch;
+}
+.nova-hero-action__reason::first-letter {
+  text-transform: uppercase;
+}
+.nova-hero-action__purpose {
+  color: var(--color-text);
+}
+/* Footnote. Same tint as the score card's "Why this prediction?", so the
+   hero's two "why" affordances read as one family. It rides the end of the
+   eyebrow row — `margin-left: auto` — in the card's top-right corner, instead
+   of taking a row of its own. */
+.nova-hero-action__footnote-toggle {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1_5);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-accent-secondary);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+.nova-hero-action__footnote-toggle .is-open {
+  transform: rotate(180deg);
+}
+.nova-hero-action__footnote-toggle svg {
+  flex: none;
+  transition: transform 150ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nova-hero-action__footnote-toggle svg {
+    transition: none;
+  }
+}
+/* The only thing left below the body, spaced by the card's own gap, and only
+   while the footnote is open. */
+.nova-hero-action__footnote-body {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  color: var(--color-muted);
+  max-width: 56ch;
+}
+.nova-hero-action__footnote-time {
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+/* Used by the avoid tile in the rail. It kept the badge puck and the stacked
+   kicker/time/state, which still suit a 292px secondary tile; the primary
+   card no longer shares that shape. Scales down through the two-column range
+   (760–1199px), where a 20px "10:36 am – 12:07 pm" broke across two lines. */
+.nova-hero-time {
+  font-size: clamp(1.0625rem, 2.2vw, 1.25rem);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-text-strong);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.nova-hero-action__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* Key-timings rows: name left, times right. A row with more than one span
+   (Nalla Neram runs twice a day) used to stack them one per line, which quietly
+   doubled that row's height with no second label to explain why — the "6 rows
+   of data" the Key timings card was flagged for was really 4 named items. They
+   now run inline, separated by a middle dot, and only wrap if the column is
+   too narrow to hold both. */
+.nova-hero-timing {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2_5);
+  font-size: var(--text-base);
+  line-height: 1.4;
+}
+.nova-hero-timing__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  flex: none;
+  margin-top: 6px;
+}
+.nova-hero-timing__name {
+  color: var(--color-text);
+  flex: none;
+}
+.nova-hero-timing__times {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: baseline;
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.nova-hero-timing__times > span:not(:last-child)::after {
+  content: " \00b7 ";
+  color: var(--color-faint);
 }
