@@ -45,7 +45,13 @@ from app.schemas.dasha import ResponseMeta
 # would put the hero and the family surfaces back out of step — the exact defect
 # the ruling was made to close. The score is unchanged (the -25 penalty still
 # reads the rasi share), so this bump exists only to retire stale booleans.
-DAILY_SCORE_ENGINE_VERSION = "2026-09-09-v11"
+# v12 (2026-09-09): `chandrashtamaEnds` follows the badge onto the star window.
+# v11 moved the badge and left this field reading the Moon's exit from the 8th
+# rasi, so a row written under v11 carries a correct badge next to an end time
+# hours late (at Chennai on 2026-09-09: 15:14 against a true 09:34) — and mobile
+# renders this field directly as *the* end time. Persisted field, so warm rows
+# must recompute for the same reason v11 existed.
+DAILY_SCORE_ENGINE_VERSION = "2026-09-09-v12"
 
 
 def _cache_version(calculation_version: str) -> str:

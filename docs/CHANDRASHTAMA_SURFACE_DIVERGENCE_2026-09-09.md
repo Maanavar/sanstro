@@ -379,3 +379,51 @@ two-star handover day, the pre-v44 fallback, and a star absent from the day).
 
 - The muhurtham-naal avoid rule (§6) — a decision, not a defect.
 - The 00:00 window edge (§6).
+
+---
+
+## 8. D7 — the end time never migrated with the badge
+
+Found while reviewing what else the ruling touched, and it is the same mistake
+as the §6 cache bump: a field was moved and the thing sitting beside it was not.
+
+`chandrashtama_end` still read `moon_rasi_spans` — when the Moon leaves the 8th
+**rasi** — while the badge had moved to the star window. Measured at Chennai:
+
+| Day | Belongs to | Their star window ends | `chandrashtamaEnds` said |
+|---|---|---|---|
+| 08-Sep | Moolam | **11:02** | `None` → "Extra care advised today." |
+| 09-Sep | Pooradam | **09:34** | **15:14** |
+
+So a Pooradam native was told their Chandrashtama ran 5 h 40 m past its actual
+close, and a Moolam native was told to take care all day when it lifted at 11:02.
+
+Web was partly shielded by §7 — the card leads with `ownWindowSummary` and only
+falls back to the end label. **Mobile was not**: `mobile/app/(tabs)/today.tsx:139`
+and `mobile/app/chandrashtama.tsx:78` render this field directly as *the* end
+time, with no window line to fall back on.
+
+### Fixed
+
+| File | Change |
+|---|---|
+| `app/services/_dg_scoring.py` | `chandrashtama_end` takes `janma_nakshatra` and reads `chandrashtamam_janma_nakshatra_windows`. The 2026-09-01 clipping guard is kept in the same shape — the window list is civil-day bounded, so a window still running at midnight must report `None`, not "ends 00:00". `_chandrashtama_rasi_spans` had no other caller and was removed. |
+| `app/services/daily_guidance_service.py` | Passes `janma_nakshatra` (already in scope) instead of `natal_moon.rasi`. |
+| `app/services/_dg_cache.py` | Engine v11 → **v12**. `chandrashtamaEnds` is persisted, so a row written under v11 pairs a correct badge with a stale time. |
+| `app/schemas/daily_guidance.py`, `packages/shared/src/types/index.ts` | Both comments described the rasi basis and told callers null was the *normal* answer. Under a ~1-day window that inverts: a real time is now normal, null the exception. Corrected on both sides rather than left to mislead. |
+| `tests/test_chandrashtama_end.py` | Rewritten against the star window. Keeps the `chandrashtama_rasi_for` tests — the ruling left the SCORE on the rasi share, so that rule is still live — and keeps the 2026-09-01 clipping case, which carries over unchanged. |
+
+Note the inversion this creates for callers: null used to mean "a normal middle
+day of a long stretch" and now means "your window outlasts the civil day". Both
+comments say so; neither should be trimmed to just "may be null".
+
+### Verified
+
+```
+2026-09-08  badge belongs to MOOLAM
+   MOOLAM    badge=True  ends=11:02
+   POORADAM  badge=False ends=None
+2026-09-09  badge belongs to POORADAM
+   MOOLAM    badge=False ends=None
+   POORADAM  badge=True  ends=09:34
+```

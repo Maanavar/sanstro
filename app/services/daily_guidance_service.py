@@ -1067,7 +1067,7 @@ def build_daily_guidance_response(
             tithiCard=_build_tithi_card(day_tithi),
             isChandrashtama=chandrashtama,
             chandrashtamaEnds=(
-                chandrashtama_end(panchangam, natal_moon_rasi=natal_moon.rasi)
+                chandrashtama_end(panchangam, janma_nakshatra=janma_nakshatra)
                 if chandrashtama
                 else None
             ),

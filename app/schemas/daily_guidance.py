@@ -223,12 +223,16 @@ class DailyGuidanceData(BaseModel):
     pratyantar_narrative: DailyGuidanceText | None = Field(default=None, alias="pratyantarNarrative")
     tithi_card: DailyGuidanceText | None = Field(default=None, alias="tithiCard")
     is_chandrashtama: bool = Field(default=False, alias="isChandrashtama")
-    # When Chandrashtama LIFTS TODAY — null when it runs past the end of the
-    # solar day, which is most days of a 2-3 day stretch (ruling 2026-09-01).
-    # Null is therefore normal, not a gap: the card keeps its untimed "Extra
-    # care advised today." line, which is true on every day of the stretch.
-    # Also null when `is_chandrashtama` is false, and for cache rows built
-    # before this field existed.
+    # When Chandrashtama LIFTS TODAY — the reader's own janma-star window
+    # closing (ruling 2026-09-09), not the Moon leaving the 8th rasi.
+    #
+    # The 2026-09-01 ruling read the rasi transit, so a stretch covered 2-3
+    # badged days and null was the normal answer. A star window is about a day
+    # and normally closes within the day it is badged on, so a real time is now
+    # normal and null the exception — the window still running at civil midnight,
+    # where reporting the clip would print a false "ends 00:00". Also null when
+    # `is_chandrashtama` is false, for cache rows built before this field
+    # existed, and for a panchangam snapshot cached before v44 (no windows).
     chandrashtama_ends: datetime | None = Field(default=None, alias="chandrashtamaEnds")
     saturn_cycle_alert: str | None = Field(default=None, alias="saturnCycleAlert")
     activity_board: DailyActivityBoardData | None = Field(default=None, alias="activityBoard")

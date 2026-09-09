@@ -602,10 +602,14 @@ export interface DailyGuidanceData {
   pratyantarNarrative?: BiText | null;
   tithiCard: BiText | null;
   isChandrashtama?: boolean;
-  /** ISO datetime at which Chandrashtama LIFTS TODAY, or null when it runs past
-   *  the end of the day — which is most days of a 2-3 day stretch. Null is the
-   *  normal case, not a gap: render the untimed "extra care advised today" line,
-   *  which stays true for the whole stretch. Never render a countdown from it. */
+  /** ISO datetime at which Chandrashtama LIFTS TODAY, or null when the reader's
+   *  janma-star window is still running at midnight.
+   *
+   *  The 2026-09-09 ruling inverted which case is common. This used to track the
+   *  Moon's 2-3 day transit of the 8th rasi, so null was the normal answer; it
+   *  now tracks the reader's own star window, which is about a day and normally
+   *  closes within the day it is badged on. A real time is now the normal answer.
+   *  Still handle null — render the untimed "extra care advised today" line. */
   chandrashtamaEnds?: string | null;
   /** Today's green/red light across all activity types. Optional — older
    *  cached rows predate it, so callers must handle undefined. */
