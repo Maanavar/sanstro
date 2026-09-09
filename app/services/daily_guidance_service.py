@@ -439,14 +439,33 @@ def build_daily_guidance_response(
         janma_nakshatra=janma_nakshatra,
         natal_moon_rasi=natal_moon.rasi,
     )
-    # Chandrashtama = Moon in the 8th Rasi from natal Janma Rasi (per spec §4.11),
-    # NOT the 8th Nakshatra — the two boundary systems do not align. The score
-    # above already carries the partial-day share; this boolean is the *display*
-    # and alert gate, so it asks whether the day is mostly chandrashtama rather
-    # than whether it touches it at all. A day that only clips the 8th rasi for
-    # an hour should not wear the badge, and the timed window is surfaced
-    # separately via chandrashtamam_janma_nakshatra_windows.
-    chandrashtama = chandrashtama_fraction >= 0.5
+    # Chandrashtama = Moon in the 8th Rasi from natal Janma Rasi (spec §4.11).
+    # The SCORE above reads that rule at rasi resolution and weights it by the
+    # share of the day, which is right: the penalty is graded.
+    #
+    # The BADGE is a different question and got a wrong answer for it until
+    # 2026-09-09. Owner ruling that day (see
+    # docs/CHANDRASHTAMA_SURFACE_DIVERGENCE_2026-09-09.md): a person's
+    # Chandrashtama is their janma STAR's window — about a day — not the Moon's
+    # whole 2¼-day transit of the 8th rasi. Same §4.11 offset of 210°, read at
+    # nakshatra resolution instead of rasi resolution; it is not the
+    # nakshatra-COUNT rule §4.11 forbids, which offsets by a different arc.
+    #
+    # The old `fraction >= 0.5` gate was rasi-granular and so could not tell the
+    # three stars of a sign apart: on 2026-09-09 at Chennai it withheld the badge
+    # from a Pooradam native on Pooradam's own day (share 0.384), while the noon
+    # sample the family surfaces used showed it to a Moolam native whose day had
+    # ended 22 hours earlier. Reading the sunrise star answers both at once, and
+    # matches what a printed almanac names for the day.
+    #
+    # A snapshot cached before v44 carries 0 here; fall back to the old gate
+    # rather than compare against a star number that does not exist.
+    affected_janma_nakshatra = panchangam.chandrashtamam_affected_janma_nakshatra_number
+    chandrashtama = (
+        affected_janma_nakshatra == janma_nakshatra
+        if affected_janma_nakshatra
+        else chandrashtama_fraction >= 0.5
+    )
 
     _transit_bodies = {
         "JUPITER": jupiter,

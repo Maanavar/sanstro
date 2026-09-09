@@ -36,7 +36,16 @@ from app.schemas.dasha import ResponseMeta
 # component reads through `_graha_relationship_score`. (3) Moon-in-Taurus and
 # Mercury-in-Virgo dignity is now degree-bounded, which moves the natal graha
 # scores the dasha component is built on. Warm rows must recompute.
-DAILY_SCORE_ENGINE_VERSION = "2026-08-27-v10"
+# v11 (2026-09-09): the Chandrashtama badge changed question. It was "was the
+# Moon in the 8th rasi for at least half the solar day" and is now "is the
+# reader's janma star the one standing in Chandrashtama at sunrise" — the owner
+# ruling in docs/CHANDRASHTAMA_SURFACE_DIVERGENCE_2026-09-09.md. `isChandrashtama`
+# is a persisted field, so a warm row would keep serving the old answer; worse,
+# the transit flag beside it is NOT cached and recomputes immediately, which
+# would put the hero and the family surfaces back out of step — the exact defect
+# the ruling was made to close. The score is unchanged (the -25 penalty still
+# reads the rasi share), so this bump exists only to retire stale booleans.
+DAILY_SCORE_ENGINE_VERSION = "2026-09-09-v11"
 
 
 def _cache_version(calculation_version: str) -> str:

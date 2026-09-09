@@ -9,12 +9,18 @@ from zoneinfo import ZoneInfo
 from sqlalchemy.orm import Session
 
 from app.calculations.astro import (
+    chandrashtama_janma_nakshatra,
     house_from_reference,
     is_chandrashtama,
     julian_day_to_utc_datetime,
+    nakshatra_from_degree,
     utc_datetime_to_julian_day,
 )
-from app.calculations.ephemeris import calculate_sidereal_planets
+from app.calculations.ephemeris import (
+    RiseTransitUndefinedError,
+    calculate_rise_transit_jd,
+    calculate_sidereal_planets,
+)
 from app.calculations.transits import (
     GRAHA_LABELS,
     MAJOR_GRAHAS,
@@ -42,6 +48,7 @@ from app.services.chart_service import load_persisted_chart_response
 from app.services.location_service import (
     local_midnight_as_jd_for_profile,
     local_noon_as_utc_for_profile,
+    resolve_effective_daily_location,
     resolve_effective_daily_timezone,
 )
 
@@ -54,6 +61,49 @@ def _to_utc_datetime(value: datetime) -> datetime:
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)
     return value.astimezone(UTC)
+
+
+def _chandrashtama_on_local_day(chart_snapshot, natal_moon, as_of_utc: datetime) -> bool:
+    """Is the local day containing `as_of_utc` this chart's Chandrashtama?
+
+    Asks the same question `daily_guidance_service` asks, deliberately. This
+    used to be `is_chandrashtama(natal_moon_rasi, moon_position.rasi)` — the
+    Moon's rasi at whatever instant the caller passed, which for every family
+    surface is local solar noon. That disagreed with the Today hero on every day
+    the Moon changed rasi, which is how the divergence was reported on
+    2026-09-09; it also could not tell the three stars of a sign apart, so it
+    flagged a Moolam native on Pooradam's day.
+
+    Owner ruling that day: a person's Chandrashtama is their janma star's
+    window, named by the star standing at sunrise — the உதய rule, one star per
+    day, which is what an almanac prints. Sunrise, not `as_of_utc`, is therefore
+    the instant sampled: sampling the caller's instant would put the two
+    surfaces back out of step for any request made after the star hands over.
+    See docs/CHANDRASHTAMA_SURFACE_DIVERGENCE_2026-09-09.md.
+    """
+    profile = chart_snapshot.data.birth_profile
+    location = resolve_effective_daily_location(profile)
+    local_day = as_of_utc.astimezone(ZoneInfo(location.timezone)).date()
+    try:
+        sunrise_jd = calculate_rise_transit_jd(
+            local_midnight_as_jd_for_profile(local_day, profile),
+            location.latitude,
+            location.longitude,
+            rise=True,
+        )
+    except RiseTransitUndefinedError:
+        # Polar latitudes with no sunrise on this date. The almanac's உதய rule
+        # has nothing to key on, so fall back to §4.11 read at the day's noon
+        # rather than reporting a flag we cannot stand behind.
+        noon_jd = utc_datetime_to_julian_day(local_noon_as_utc_for_profile(local_day, profile))
+        moon = calculate_sidereal_planets(noon_jd).bodies["MOON"]
+        return is_chandrashtama(natal_moon.rasi, moon.rasi)
+
+    moon_at_sunrise = calculate_sidereal_planets(sunrise_jd).bodies["MOON"]
+    return (
+        chandrashtama_janma_nakshatra(moon_at_sunrise.absolute_longitude)
+        == nakshatra_from_degree(natal_moon.absolute_longitude)
+    )
 
 
 def build_transit_snapshot(
@@ -87,8 +137,7 @@ def build_transit_snapshot(
         )
         positions.append(TransitPositionSchema(**asdict(transit_record)))
 
-    moon_position = current_snapshot.bodies["MOON"]
-    chandrashtama = is_chandrashtama(natal_moon_rasi, moon_position.rasi)
+    chandrashtama = _chandrashtama_on_local_day(chart_snapshot, natal_moon, as_of_utc)
 
     return TransitSnapshotResponse(
         data=TransitSnapshotData(

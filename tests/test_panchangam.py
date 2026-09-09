@@ -1,8 +1,9 @@
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 
 import pytest
 
+from app.calculations.astro import utc_datetime_to_julian_day
 from app.calculations.ephemeris import RiseTransitUndefinedError
 from app.calculations.festivals import get_festivals_for_date
 from app.calculations.panchangam import (
@@ -17,6 +18,7 @@ from app.calculations.panchangam import (
     SOOLAM_DIRECTION,
     SOOLAM_PARIGARAM_BY_DIRECTION,
     _amirdhadhi_yogam_name,
+    _chandrashtamam_janma_nakshatra_number_at_jd,
     _compute_subha_muhurtham_broad,
     _compute_subha_muhurtham_strict,
     _jeevan_value,
@@ -479,6 +481,89 @@ def test_yoga_karana_chandrashtamam_have_transition_metadata():
     assert snap.chandrashtamam_janma_nakshatra_windows[0].start <= snap.sunrise <= snap.chandrashtamam_janma_nakshatra_windows[-1].end
     assert all(window.start < window.end for window in snap.chandrashtamam_janma_nakshatra_windows)
     assert all(window.name in NAKSHATRA_NAMES for window in snap.chandrashtamam_janma_nakshatra_windows)
+
+
+def test_chandrashtamam_windows_tile_the_whole_civil_day():
+    """The walk used to stop at the Moon's sunrise rasi and drop the rest of the day.
+
+    2026-09-07 at Chennai is the regression case: the Moon crosses into Kadagam
+    that afternoon, so Moolam's Chandrashtama opens at 12:38 — and the old walk,
+    having started in Mithunam, reported only Kettai to 12:38 and nothing after.
+    A star whose window is missing cannot raise a flag for the natives born in
+    it, so the day must be covered end to end.
+    """
+    timezone_name = "Asia/Kolkata"
+    for day in (date(2026, 9, 7), date(2026, 9, 8), date(2026, 9, 9), date(2026, 9, 10)):
+        snap = calculate_daily_panchangam(day, 13.0827, 80.2707, timezone_name)
+        windows = snap.chandrashtamam_janma_nakshatra_windows
+        assert windows, day
+
+        assert windows[0].start.date() == day
+        assert windows[0].start.hour == 0 and windows[0].start.minute == 0, day
+        assert windows[-1].end.date() == day + timedelta(days=1), day
+        # No gaps: each window starts where the previous one ended.
+        for earlier, later in zip(windows, windows[1:], strict=False):
+            assert abs((later.start - earlier.end).total_seconds()) < 1, day
+        assert all(w.name in NAKSHATRA_NAMES for w in windows), day
+        assert len({w.name for w in windows}) == len(windows), day
+
+
+def test_chandrashtamam_window_boundaries_sit_on_the_affected_star_grid():
+    """210° is 15.75 nakshatras, so the affected star turns over 10° off the Moon's grid.
+
+    Searching the Moon's own nakshatra/rasi boundaries reported the handover
+    late by up to a full nakshatra — 2026-09-08's Moolam→Pooradam handover
+    printed 16:39 against a true 11:02. Each boundary must be an instant where
+    the affected star genuinely changes.
+    """
+    timezone_name = "Asia/Kolkata"
+    snap = calculate_daily_panchangam(date(2026, 9, 8), 13.0827, 80.2707, timezone_name)
+    windows = snap.chandrashtamam_janma_nakshatra_windows
+    assert [w.name for w in windows] == ["MOOLAM", "POORADAM"]
+
+    handover = windows[0].end
+    assert handover.hour == 11, handover
+    for window in windows:
+        # Sampled a minute inside each edge, the star is the one named — which
+        # is only true if the boundary is on the affected point's grid.
+        for probe in (window.start + timedelta(minutes=1), window.end - timedelta(minutes=1)):
+            jd = utc_datetime_to_julian_day(probe.astimezone(UTC))
+            assert NAKSHATRA_NAMES[_chandrashtamam_janma_nakshatra_number_at_jd(jd) - 1] == window.name
+
+
+def test_chandrashtamam_sunrise_star_gives_each_star_exactly_one_day():
+    """The உதய rule: one star owns each day, which is how an almanac prints it.
+
+    This scalar is what the personal Chandrashtama badge reads. Over a stretch
+    it must hand off star by star with no star claiming two days and none
+    skipped — the property that makes a Moolam native's badge fall on Moolam's
+    day and not on Pooradam's.
+    """
+    timezone_name = "Asia/Kolkata"
+    owners: list[str] = []
+    for offset in range(6):
+        snap = calculate_daily_panchangam(
+            date(2026, 9, 7) + timedelta(days=offset), 13.0827, 80.2707, timezone_name,
+        )
+        assert snap.chandrashtamam_affected_janma_nakshatra_number
+        assert snap.chandrashtamam_affected_janma_nakshatra_name in NAKSHATRA_NAMES
+        # The scalar names the window that is running at sunrise.
+        covering = [
+            w for w in snap.chandrashtamam_janma_nakshatra_windows
+            if w.start <= snap.sunrise < w.end
+        ]
+        assert len(covering) == 1
+        assert covering[0].name == snap.chandrashtamam_affected_janma_nakshatra_name
+        owners.append(snap.chandrashtamam_affected_janma_nakshatra_name)
+
+    assert len(set(owners)) == len(owners), owners
+    # Consecutive days take consecutive stars — no star skipped over.
+    for earlier, later in zip(owners, owners[1:], strict=False):
+        step = (NAKSHATRA_NAMES.index(later) - NAKSHATRA_NAMES.index(earlier)) % 27
+        assert step == 1, (earlier, later)
+    # The reported case: 08-Sep belongs to Moolam, 09-Sep to Pooradam.
+    assert owners[1] == "MOOLAM"
+    assert owners[2] == "POORADAM"
 
 
 def test_amavasai_pournami_use_dominant_civil_day_marker():

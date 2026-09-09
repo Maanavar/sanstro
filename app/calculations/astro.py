@@ -122,6 +122,34 @@ def is_chandrashtama(janma_rasi: int | str, transit_moon_rasi: int | str) -> boo
     return resolve_rasi(transit_moon_rasi) == chandrashtama_rasi_from_janma(janma_rasi)
 
 
+# The affected janma point sits 210° behind the transiting Moon — the 8th rasi,
+# counted inclusively (7 × 30°). `is_chandrashtama` above is that rule read at
+# rasi resolution, which is what spec §4.11 freezes.
+#
+# Reading the SAME offset at nakshatra resolution is what a Tamil almanac
+# prints ("சந்திராஷ்டமம் — பூராடம்"): of the natives of the affected rasi, the
+# ones whose janma star the shifted point is crossing right now. That is a
+# refinement of §4.11, not the nakshatra-COUNT rule §4.11 forbids — the count
+# rule would offset by 8 nakshatras (106°40'), a different arc entirely.
+#
+# The subtlety that made this worth naming: 210° is 15.75 nakshatras, so the
+# affected star's grid is offset 10° — three padas — from the Moon's own
+# nakshatra grid. A boundary search that steps on the Moon's nakshatra
+# boundaries reports the handover late by up to a full nakshatra. Step on
+# `chandrashtama_janma_angle`, never on the Moon's longitude.
+CHANDRASHTAMA_JANMA_OFFSET_DEGREES = 210.0
+
+
+def chandrashtama_janma_angle(transit_moon_longitude: float) -> float:
+    """The longitude whose natives the transiting Moon is currently 8th from."""
+    return normalize_longitude(transit_moon_longitude - CHANDRASHTAMA_JANMA_OFFSET_DEGREES)
+
+
+def chandrashtama_janma_nakshatra(transit_moon_longitude: float) -> int:
+    """The janma nakshatra (1..27) in Chandrashtama at this instant."""
+    return nakshatra_from_degree(chandrashtama_janma_angle(transit_moon_longitude))
+
+
 def local_datetime_to_utc(local_datetime: datetime, timezone_name: str) -> datetime:
     timezone_obj = resolve_timezone(timezone_name)
     if local_datetime.tzinfo is None:
