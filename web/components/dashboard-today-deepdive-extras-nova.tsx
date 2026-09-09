@@ -25,7 +25,7 @@ import type {
   TransitSnapshotData,
 } from "@/lib/types";
 
-import { formatChandrashtamaWindowSummary } from "./dashboard-calendar-shared";
+import { formatChandrashtamaWindowSummary, formatOwnChandrashtamaWindow } from "./dashboard-calendar-shared";
 import { DASHA_COLORS } from "./dashboard-dasha";
 import { GlossaryTerm } from "./glossary-term";
 import { ChandrashtamaCard, GUIDANCE_REASON_KEYS } from "./dashboard-personal-shared";
@@ -362,6 +362,16 @@ export function NovaGocharCard({
   const chandrashtamaWindowsSummary = panchangam
     ? formatChandrashtamaWindowSummary(panchangam.chandrashtamamToday?.janmaNakshatraWindows ?? [], panchangam.dateLocal, lang)
     : "";
+  // The card renders only on the reader's own Chandrashtama day, so the star
+  // standing at sunrise IS their star — no natal lookup needed on the client.
+  const chandrashtamaOwnWindow = panchangam
+    ? formatOwnChandrashtamaWindow(
+        panchangam.chandrashtamamToday?.janmaNakshatraWindows ?? [],
+        panchangam.chandrashtamamToday?.affectedJanmaNakshatraName,
+        panchangam.dateLocal,
+        lang,
+      )
+    : "";
 
   return (
         <Surface title={<GlossaryTerm term="gochar" lang={lang}>{t("surface_gochar", lang)}</GlossaryTerm>}>
@@ -374,6 +384,7 @@ export function NovaGocharCard({
                   descriptionTa={null}
                   descriptionEn={null}
                   windowsSummary={chandrashtamaWindowsSummary}
+                  ownWindowSummary={chandrashtamaOwnWindow}
                 />
               )}
               <div className="surface__metrics">

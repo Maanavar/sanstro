@@ -46,7 +46,8 @@ the afternoon of the 7th was missing altogether. Both are fixed.
 
 **So the owner's almanac is right, and this engine already agrees with it.**
 `calculate_daily_panchangam(2026-09-09, …).chandrashtamam_today_nakshatras`
-returns exactly `('POORADAM',)`. Moolam's window closed yesterday at 16:39.
+returns exactly `('POORADAM',)`. Moolam's window closed yesterday at 11:02
+(the engine said 16:39 — that is D6, below).
 
 Verdict on the report: **the Today hero is correct today and Family & Charts is
 wrong** — but the hero is correct by accident, for a reason unrelated to the
@@ -306,9 +307,8 @@ Local runs are not authoritative here; CI is.
   sunrise Moon rasi and can now name a different rasi from the one the later
   windows in the same payload imply on a rasi-change day. Nothing personal
   reads it; flagged so the next reader does not assume it agrees.
-- **D4** resolves as a consequence of D3 — the card's `windowsSummary` and its
-  visibility now derive from the same star — but the summary still prints every
-  star of the day rather than highlighting the reader's own. Worth doing.
+- ~~**D4** — the card still prints every star of the day rather than the
+  reader's own.~~ **Closed** in a follow-up the same day; see §7.
 - **`muhurtham_naal_service.py:363`** computes its own `is_chandra` and was not
   touched. Check it against this ruling before the next muhurtham change.
 
@@ -341,3 +341,41 @@ for d in (date(2026, 9, 7), date(2026, 9, 8), date(2026, 9, 9), date(2026, 9, 10
 ```
 
 No personal data is used: Dhanusu rasi is passed as the bare rasi number 9.
+
+---
+
+## 7. Follow-up: D4 closed
+
+The badge was fixed in §6, but `ChandrashtamaCard` still printed its subtitle
+from the day's whole star list. On a handover day that list holds two stars, so
+the card could still assert "Chandrashtama is active" to a reader and then name
+a star they were not born under — the original complaint in miniature, one
+heading further down the page.
+
+The client does not need the natal chart to fix this. The card renders only on
+the reader's own day, and the day belongs to the star standing at sunrise, so
+that star **is** theirs. Exposing it is enough.
+
+| File | Change |
+|---|---|
+| `app/schemas/panchangam.py` | `chandrashtamamToday` gains `affectedJanmaNakshatraNumber` / `Name`. Additive with defaults — no existing consumer changes behaviour. |
+| `app/services/panchangam_service.py` | Populated from the v44 snapshot scalars. |
+| `packages/shared/src/types/index.ts` | Both fields added, optional (absent on a pre-v44 cached snapshot). |
+| `web/components/dashboard-calendar-shared.tsx` | New `formatOwnChandrashtamaWindow` beside the existing list formatter; returns `""` when the star is unknown so callers fall back rather than render an empty alert. |
+| `web/components/dashboard-personal-shared.tsx` | `ChandrashtamaCard` takes `ownWindowSummary` and prefers it — "Your star: Pooradam 00:00 - 09:34" instead of the day's list. |
+| `web/components/dashboard-today-deepdive-extras-nova.tsx`, `dashboard-family-charts-hybrid.tsx` | Both call sites pass it. |
+
+The family call site carried a comment asserting that the affected janma rasi
+"is the same for everyone in the vault, so these windows are correct for the
+member being read". True of the rasi, and the ruling makes it misleading — a
+rasi holds 2¼ stars and they no longer share a day. Corrected in place rather
+than left for the next reader to inherit.
+
+Verified: `dashboard-calendar-shared.test.tsx` — 11 passed (3 new, covering the
+two-star handover day, the pre-v44 fallback, and a star absent from the day).
+`tsc --noEmit` clean, ruff clean.
+
+### Still open after this
+
+- The muhurtham-naal avoid rule (§6) — a decision, not a defect.
+- The 00:00 window edge (§6).

@@ -353,6 +353,8 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
                     )
                     for window in snapshot.chandrashtamam_janma_nakshatra_windows
                 ],
+                affected_janma_nakshatra_number=snapshot.chandrashtamam_affected_janma_nakshatra_number,
+                affected_janma_nakshatra_name=snapshot.chandrashtamam_affected_janma_nakshatra_name,
                 status="preliminary",
             ),
             special_tithi_day=_build_special_tithi_day(snapshot),

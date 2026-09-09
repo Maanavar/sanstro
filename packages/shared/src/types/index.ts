@@ -1114,6 +1114,11 @@ export interface PanchangamDailyResponseData {
     moonRasiNumber: number; moonRasiName: string;
     affectedJanmaRasiNumber: number; affectedJanmaRasiName: string; nakshatras: string[];
     janmaNakshatraWindows: Array<{ name: string; start: string; end: string }>;
+    /** The star the day BELONGS to — the one standing at sunrise. `nakshatras`
+     *  lists every star the day touches; this is the one an almanac prints.
+     *  Optional: absent on a panchangam snapshot cached before v44. */
+    affectedJanmaNakshatraNumber?: number;
+    affectedJanmaNakshatraName?: string;
   };
   specialTithiDay?: { tithiNumber: number; name: "POURNAMI" | "AMAVASAI"; moonPhase: "FULL" | "NEW" } | null;
   isKarinaal?: boolean;

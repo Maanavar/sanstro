@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { activeLimb, parseHmToMinutes } from "./dashboard-calendar-shared";
+import { activeLimb, formatOwnChandrashtamaWindow, parseHmToMinutes } from "./dashboard-calendar-shared";
 
 const hm = (value: string) => parseHmToMinutes(value);
 
@@ -79,5 +79,35 @@ describe("activeLimb", () => {
 
     expect(result.activeName).toBe("MOOLAM");
     expect(result.rolledOver).toBe(true);
+  });
+});
+
+describe("formatOwnChandrashtamaWindow", () => {
+  // 2026-09-09 at Chennai: the Moon hands Chandrashtama from Pooradam to
+  // Uthiradam at 09:34, so the day's window list names two stars. The day
+  // BELONGS to Pooradam — the star standing at sunrise — and the personal card
+  // must print that one. Printing the list is what told a Moolam native their
+  // day was Pooradam's; printing the wrong half of it would be no better.
+  const windows = [
+    { name: "POORADAM", start: "2026-09-09T00:00:00+05:30", end: "2026-09-09T09:34:00+05:30" },
+    { name: "UTHIRADAM", start: "2026-09-09T09:34:00+05:30", end: "2026-09-10T00:00:00+05:30" },
+  ];
+
+  it("picks the reader's own star out of a day that holds two", () => {
+    const summary = formatOwnChandrashtamaWindow(windows, "POORADAM", "2026-09-09", "en");
+    expect(summary).toContain("Pooradam");
+    expect(summary).not.toContain("Uthiradam");
+  });
+
+  it("returns empty when the star is absent, so callers fall back to the full list", () => {
+    // A panchangam snapshot cached before v44 carries no affected star. Falling
+    // back to the day's list is worse than naming the reader's own window, but
+    // it is not wrong the way rendering nothing under an active alert would be.
+    expect(formatOwnChandrashtamaWindow(windows, undefined, "2026-09-09", "en")).toBe("");
+    expect(formatOwnChandrashtamaWindow(windows, "", "2026-09-09", "en")).toBe("");
+  });
+
+  it("returns empty when the named star is not among the day's windows", () => {
+    expect(formatOwnChandrashtamaWindow(windows, "MOOLAM", "2026-09-09", "en")).toBe("");
   });
 });

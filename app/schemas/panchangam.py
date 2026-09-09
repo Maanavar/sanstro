@@ -237,6 +237,15 @@ class PanchangamChandrashtamamToday(BaseModel):
     affected_janma_rasi_name: str = Field(alias="affectedJanmaRasiName")
     nakshatras: list[str] = Field(default_factory=list)
     janma_nakshatra_windows: list[PanchangamChandrashtamamNakshatraWindow] = Field(default_factory=list, alias="janmaNakshatraWindows")
+    # The star standing in Chandrashtamam AT SUNRISE — the உதய rule, so exactly
+    # one star owns the day, which is the one an almanac prints. `nakshatras`
+    # above lists every star the day touches (two, whenever the handover falls
+    # after 00:00); this says which of them the day belongs to. A personal
+    # surface uses it to pick the reader's own window out of the list instead of
+    # printing all of them — see the 2026-09-09 ruling. 0/"" on a snapshot
+    # cached before panchangam v44.
+    affected_janma_nakshatra_number: int = Field(default=0, alias="affectedJanmaNakshatraNumber")
+    affected_janma_nakshatra_name: str = Field(default="", alias="affectedJanmaNakshatraName")
     status: str = Field(default="preliminary", description="Verification status: 'preliminary' indicates pending source verification")
 
     model_config = ConfigDict(populate_by_name=True)

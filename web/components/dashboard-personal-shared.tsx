@@ -57,12 +57,17 @@ const CHANDRASHTAMA_CAN_DO = {
   ],
 };
 
-export function ChandrashtamaCard({ lang, chandrashtamaEnds, descriptionTa, descriptionEn, windowsSummary }: {
+export function ChandrashtamaCard({ lang, chandrashtamaEnds, descriptionTa, descriptionEn, windowsSummary, ownWindowSummary = "" }: {
   lang: Lang;
   chandrashtamaEnds: string | null | undefined;
   descriptionTa: string | null | undefined;
   descriptionEn: string | null | undefined;
   windowsSummary: string;
+  /** The reader's own star and its timing, from `formatOwnChandrashtamaWindow`.
+   *  Preferred over `windowsSummary`, which lists every star of the day — on a
+   *  handover day that list names a star the reader was not born under, under a
+   *  heading that says Chandrashtama is active for them. Empty falls back. */
+  ownWindowSummary?: string;
 }) {
   const [showLearnModal, setShowLearnModal] = useState(false);
   const isTa = lang === "ta";
@@ -90,7 +95,11 @@ export function ChandrashtamaCard({ lang, chandrashtamaEnds, descriptionTa, desc
             {isTa ? "சந்திராஷ்டமம் நடப்பு" : "Chandrashtama is active"}
           </p>
           <p style={{ margin: 0, fontSize: "0.75rem", opacity: 0.9 }}>
-            {windowsSummary ? `${isTa ? "ஜன்ம நட்சத்திர நேரங்கள்" : "Janma star windows"}: ${windowsSummary}` : endLabel}
+            {ownWindowSummary
+              ? `${isTa ? "உங்கள் நட்சத்திரம்" : "Your star"}: ${ownWindowSummary}`
+              : windowsSummary
+                ? `${isTa ? "ஜன்ம நட்சத்திர நேரங்கள்" : "Janma star windows"}: ${windowsSummary}`
+                : endLabel}
           </p>
         </div>
         <button

@@ -195,6 +195,30 @@ export function formatChandrashtamaWindowEdge(value: string, dateLocal: string):
   return edgeDate === dateLocal ? clock : `${clock}, ${formatDateLabel(edgeDate)}`;
 }
 
+/** The reader's OWN Chandrashtama window — not the day's whole list.
+ *
+ *  A personal card that says "Chandrashtama is active" and then prints every
+ *  star of the day underneath is naming somebody else's star to the one person
+ *  it does not apply to: on 2026-09-09 the card would have told a Moolam native
+ *  their day was Pooradam's. The card only appears on the reader's own day, and
+ *  the day belongs to the star standing at sunrise, so `affectedJanmaNakshatraName`
+ *  identifies their window without the client needing the natal chart at all.
+ *
+ *  Returns "" when the star is absent (a panchangam snapshot cached before
+ *  v44) so callers fall back to the full list rather than showing nothing.
+ */
+export function formatOwnChandrashtamaWindow(
+  windows: PanchangamDailyResponseData["chandrashtamamToday"]["janmaNakshatraWindows"],
+  ownStarName: string | undefined,
+  dateLocal: string,
+  lang: Lang,
+): string {
+  if (!ownStarName) return "";
+  const mine = windows.find((window) => window.name === ownStarName);
+  if (!mine) return "";
+  return `${tNakshatra(mine.name, lang)} ${formatChandrashtamaWindowEdge(mine.start, dateLocal)} - ${formatChandrashtamaWindowEdge(mine.end, dateLocal)}`;
+}
+
 export function formatChandrashtamaWindowSummary(
   windows: PanchangamDailyResponseData["chandrashtamamToday"]["janmaNakshatraWindows"],
   dateLocal: string,
