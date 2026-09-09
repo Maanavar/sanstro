@@ -869,13 +869,13 @@ export function DashboardFamilyChartsHybrid({
   const readingChandrashtamaWindows = panchangam
     ? formatChandrashtamaWindowSummary(panchangam.chandrashtamamToday?.janmaNakshatraWindows ?? [], panchangam.dateLocal, lang)
     : "";
-  // The card shows only for a member whose own day it is, and the day belongs
-  // to the star standing at sunrise — the same star for every member, so this
-  // one lookup is right for whichever member is being read.
+  // The star must come from the member's own guidance: the badge is an overlap
+  // test, so on a handover day two members of the same rasi can each be in
+  // Chandrashtama from a different window of the same day.
   const readingChandrashtamaOwnWindow = panchangam
     ? formatOwnChandrashtamaWindow(
         panchangam.chandrashtamamToday?.janmaNakshatraWindows ?? [],
-        panchangam.chandrashtamamToday?.affectedJanmaNakshatraName,
+        dailyGuidance?.chandrashtamaStar ?? undefined,
         panchangam.dateLocal,
         lang,
       )

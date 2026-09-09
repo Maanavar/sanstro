@@ -26,6 +26,7 @@ from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.functional_nature import get_dasha_modifier, get_transit_modifier
 from app.calculations.panchangam import (
+    NAKSHATRA_NAMES,
     PanchangamSnapshot,
     calculate_daily_panchangam,
     calculate_daily_panchangam_range,
@@ -458,12 +459,32 @@ def build_daily_guidance_response(
     # ended 22 hours earlier. Reading the sunrise star answers both at once, and
     # matches what a printed almanac names for the day.
     #
-    # A snapshot cached before v44 carries 0 here; fall back to the old gate
-    # rather than compare against a star number that does not exist.
-    affected_janma_nakshatra = panchangam.chandrashtamam_affected_janma_nakshatra_number
+    # OVERLAP, not the star standing at sunrise. The first cut of this ruling
+    # used the sunrise (உதய) star, which gives at most one star per day — and a
+    # year-long audit at Chennai showed that silently DROPS a star whenever its
+    # whole window falls between two sunrises. A star window is 13°20' of Moon
+    # motion: 20.8 h at the Moon's fastest, 27.2 h at its slowest, against a 24 h
+    # day. In 2026 that skipped 11 stars outright (Pooradam had no badged day at
+    # all around 06-Jan and 19-Jun) and gave 15 others two consecutive days.
+    #
+    # A printed almanac never loses a star: it prints "Moolam until 11:02,
+    # Pooradam from 11:02" and a native whose star is named for any part of the
+    # day observes it. So the badge asks whether the reader's star appears in the
+    # day at all. Duration is unchanged (~1 day, the owner's 2026-09-09 ruling);
+    # it simply touches two dates when it straddles a sunrise, which is what the
+    # almanac shows. `chandrashtamaEnds` and the card's window line already carry
+    # the exact hours, so a reader sees which part of each day is theirs.
+    #
+    # To revert to one-star-per-day, compare against
+    # `panchangam.chandrashtamam_affected_janma_nakshatra_number` instead — that
+    # scalar is still computed and still names the day for almanac display.
+    own_star_name = NAKSHATRA_NAMES[(janma_nakshatra - 1) % 27]
+    chandrashtama_windows = panchangam.chandrashtamam_janma_nakshatra_windows
     chandrashtama = (
-        affected_janma_nakshatra == janma_nakshatra
-        if affected_janma_nakshatra
+        any(window.name == own_star_name for window in chandrashtama_windows)
+        if chandrashtama_windows
+        # A snapshot cached before panchangam v44 has no windows; fall back to
+        # the old share gate rather than clear a day we cannot read.
         else chandrashtama_fraction >= 0.5
     )
 
@@ -1071,6 +1092,7 @@ def build_daily_guidance_response(
                 if chandrashtama
                 else None
             ),
+            chandrashtamaStar=own_star_name if chandrashtama else None,
             saturnCycleAlert=saturn_cycle.type if saturn_cycle.is_active and saturn_cycle.type in {"JANMA_SANI", "ASHTAMA_SANI"} else None,
             activityBoard=_build_activity_board(
                 tithi_number=day_tithi,

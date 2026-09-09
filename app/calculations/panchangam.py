@@ -1569,6 +1569,20 @@ def _chandrashtamam_affected_janma_rasi(moon_rasi_number: int) -> int:
     return ((moon_rasi_number - 8) % 12) + 1
 
 
+def chandrashtamam_janma_nakshatra_windows_for_day(
+    date_local: date,
+    timezone_name: str,
+) -> tuple[PanchangamChandrashtamamNakshatraWindow, ...]:
+    """Public entry for callers that need the day's windows without a panchangam.
+
+    Deliberately takes no latitude/longitude: the affected star is a function of
+    the Moon's longitude alone, and only the civil-day bounds need a timezone. A
+    caller holding just a profile's timezone (`transit_service`) can therefore
+    ask this question without computing sunrise or a full snapshot.
+    """
+    return _chandrashtamam_janma_nakshatra_windows(date_local, timezone_name)
+
+
 def _chandrashtamam_janma_nakshatra_windows(
     date_local: date,
     timezone_name: str,

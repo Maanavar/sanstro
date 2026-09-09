@@ -566,6 +566,33 @@ def test_chandrashtamam_sunrise_star_gives_each_star_exactly_one_day():
     assert owners[2] == "POORADAM"
 
 
+def test_every_janma_star_gets_a_chandrashtama_day_in_a_lunar_cycle():
+    """The invariant the 2026-09-09 overlap ruling exists to protect.
+
+    The first cut badged the star standing at SUNRISE, giving at most one star
+    per day. A star window is 13°20' of Moon motion — 20.8 h when the Moon is
+    fast, 27.2 h when slow — against a 24 h day, so a short window can fall
+    entirely between two sunrises and that star gets no day at all. A year-long
+    audit at Chennai found 11 such skips in 2026: Pooradam had no badged day
+    around 06-Jan or 19-Jun, and its natives were never warned.
+
+    A printed almanac never loses a star. Testing the property rather than the
+    mechanism: across any 28-day stretch every one of the 27 stars must be named
+    at least once, because the affected point walks the full circle in ~27.3
+    days and the windows tile the days end to end.
+    """
+    timezone_name = "Asia/Kolkata"
+    for start in (date(2026, 1, 1), date(2026, 6, 10), date(2026, 11, 20)):
+        seen: set[str] = set()
+        for offset in range(28):
+            windows = calculate_daily_panchangam(
+                start + timedelta(days=offset), 13.0827, 80.2707, timezone_name,
+            ).chandrashtamam_janma_nakshatra_windows
+            seen.update(w.name for w in windows)
+        missing = [n for n in NAKSHATRA_NAMES if n not in seen]
+        assert not missing, f"stretch from {start} never names {missing}"
+
+
 def test_amavasai_pournami_use_dominant_civil_day_marker():
     timezone_name = "Asia/Kolkata"
     start = date(2026, 6, 1)

@@ -611,6 +611,13 @@ export interface DailyGuidanceData {
    *  closes within the day it is badged on. A real time is now the normal answer.
    *  Still handle null — render the untimed "extra care advised today" line. */
   chandrashtamaEnds?: string | null;
+  /** The reader's OWN janma star, sent when `isChandrashtama` is true. Not
+   *  always the star that names the day: the badge is an overlap test, so on the
+   *  day a window opens the reader's star can be the day's SECOND one. Use this
+   *  to pick their window out of `chandrashtamamToday.janmaNakshatraWindows` —
+   *  deriving it from the almanac's sunrise star finds nothing on exactly those
+   *  days. Null when not in Chandrashtama, and on rows cached before it existed. */
+  chandrashtamaStar?: string | null;
   /** Today's green/red light across all activity types. Optional — older
    *  cached rows predate it, so callers must handle undefined. */
   activityBoard?: DailyActivityBoard | null;

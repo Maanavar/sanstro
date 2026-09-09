@@ -362,12 +362,14 @@ export function NovaGocharCard({
   const chandrashtamaWindowsSummary = panchangam
     ? formatChandrashtamaWindowSummary(panchangam.chandrashtamamToday?.janmaNakshatraWindows ?? [], panchangam.dateLocal, lang)
     : "";
-  // The card renders only on the reader's own Chandrashtama day, so the star
-  // standing at sunrise IS their star — no natal lookup needed on the client.
+  // The reader's OWN star comes from their guidance, not from the almanac's
+  // sunrise star. The badge is an overlap test, so on the day a window opens
+  // their star can be the day's second one — and the sunrise star would then
+  // point at somebody else's window.
   const chandrashtamaOwnWindow = panchangam
     ? formatOwnChandrashtamaWindow(
         panchangam.chandrashtamamToday?.janmaNakshatraWindows ?? [],
-        panchangam.chandrashtamamToday?.affectedJanmaNakshatraName,
+        personalDailyGuidance?.chandrashtamaStar ?? undefined,
         panchangam.dateLocal,
         lang,
       )

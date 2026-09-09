@@ -331,13 +331,17 @@ def match_muhurtham_naals(
     location = _chart_daily_location(session, chart_id)
     snapshots = _panchangam_by_date(naals, location, session) if location is not None else {}
     nalla_neram_by_date = _computed_nalla_neram_by_date(naals, snapshots) if snapshots else {}
-    # The janma star each date's Chandrashtamam belongs to (0 = not known: no
-    # activity location for this chart, or a snapshot cached before panchangam
-    # v44). See the fallback in the loop below.
-    affected_star_by_date = {
-        day: snapshot.chandrashtamam_affected_janma_nakshatra_number
+    # Every janma star each date's Chandrashtamam touches — the overlap test the
+    # dashboard uses, not the single star standing at sunrise. A sunrise reading
+    # drops a star whenever its whole window falls between two sunrises, which
+    # would quietly clear a date that is genuinely the reader's. Empty = not
+    # known (no activity location for this chart, or a pre-v44 snapshot); see
+    # the fallback in the loop below.
+    chandra_stars_by_date = {
+        day: {window.name for window in snapshot.chandrashtamam_janma_nakshatra_windows}
         for day, snapshot in snapshots.items()
     }
+    janma_star_name = NAKSHATRA_NAMES[(janma_nak - 1) % 27]
 
     matches: list[MuhurthamNaalMatch] = []
     for n in naals:
@@ -351,12 +355,12 @@ def match_muhurtham_naals(
         # were a hard veto, which marked three dates "Chandrashtama for you,
         # avoid" where the dashboard badged one.
         # See docs/CHANDRASHTAMA_SURFACE_DIVERGENCE_2026-09-09.md.
-        affected_star = affected_star_by_date.get(n.date, 0)
+        day_stars = chandra_stars_by_date.get(n.date)
         in_chandra_rasi = n.moon_rasi_number == chandra_rasi
-        if affected_star:
-            is_chandra = affected_star == janma_nak
+        if day_stars:
+            is_chandra = janma_star_name in day_stars
         else:
-            # No snapshot to name the star. Fall back to the rasi reading rather
+            # No snapshot to name the stars. Fall back to the rasi reading rather
             # than silently clearing a date that may well be the reader's — the
             # fail-safe direction for an avoidance rule is toward the doctrine.
             is_chandra = in_chandra_rasi

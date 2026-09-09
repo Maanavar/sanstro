@@ -159,10 +159,10 @@ def test_chart_match_uses_computed_location_specific_nalla_neram(monkeypatch):
             period="AM",
         )
         return {
-            # 0 = "no affected star recorded", the pre-v44 cache case, which
-            # sends the Chandrashtama reading down its rasi fallback. This test
-            # is about Nalla Neram; the two-tier reading has its own below.
-            n.date: SimpleNamespace(nalla_neram=[slot], chandrashtamam_affected_janma_nakshatra_number=0)
+            # No windows = the pre-v44 cache case, which sends the Chandrashtama
+            # reading down its rasi fallback. This test is about Nalla Neram;
+            # the two-tier reading has its own below.
+            n.date: SimpleNamespace(nalla_neram=[slot], chandrashtamam_janma_nakshatra_windows=())
             for n in get_muhurtham_naals(2026)
         }
 
@@ -175,7 +175,7 @@ def test_chart_match_uses_computed_location_specific_nalla_neram(monkeypatch):
 
 
 def _match_with_affected_star(monkeypatch, affected_star_number: int):
-    """Run the chart match with every date's Chandrashtama belonging to one star."""
+    """Run the chart match with every date's Chandrashtama touching one star."""
     profile_id = uuid.uuid4()
 
     class _ChartWithProfile(_FakeChart):
@@ -204,10 +204,11 @@ def _match_with_affected_star(monkeypatch, affected_star_number: int):
     )
 
     def _snapshots(start, end, lat, lon, tz, *, session):
+        window = SimpleNamespace(name=svc.NAKSHATRA_NAMES[affected_star_number - 1])
         return {
             n.date: SimpleNamespace(
                 nalla_neram=[slot],
-                chandrashtamam_affected_janma_nakshatra_number=affected_star_number,
+                chandrashtamam_janma_nakshatra_windows=(window,),
             )
             for n in get_muhurtham_naals(2026)
         }

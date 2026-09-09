@@ -9,17 +9,15 @@ from zoneinfo import ZoneInfo
 from sqlalchemy.orm import Session
 
 from app.calculations.astro import (
-    chandrashtama_janma_nakshatra,
     house_from_reference,
-    is_chandrashtama,
     julian_day_to_utc_datetime,
     nakshatra_from_degree,
     utc_datetime_to_julian_day,
 )
-from app.calculations.ephemeris import (
-    RiseTransitUndefinedError,
-    calculate_rise_transit_jd,
-    calculate_sidereal_planets,
+from app.calculations.ephemeris import calculate_sidereal_planets
+from app.calculations.panchangam import (
+    NAKSHATRA_NAMES,
+    chandrashtamam_janma_nakshatra_windows_for_day,
 )
 from app.calculations.transits import (
     GRAHA_LABELS,
@@ -48,7 +46,6 @@ from app.services.chart_service import load_persisted_chart_response
 from app.services.location_service import (
     local_midnight_as_jd_for_profile,
     local_noon_as_utc_for_profile,
-    resolve_effective_daily_location,
     resolve_effective_daily_timezone,
 )
 
@@ -75,35 +72,25 @@ def _chandrashtama_on_local_day(chart_snapshot, natal_moon, as_of_utc: datetime)
     flagged a Moolam native on Pooradam's day.
 
     Owner ruling that day: a person's Chandrashtama is their janma star's
-    window, named by the star standing at sunrise — the உதய rule, one star per
-    day, which is what an almanac prints. Sunrise, not `as_of_utc`, is therefore
-    the instant sampled: sampling the caller's instant would put the two
-    surfaces back out of step for any request made after the star hands over.
+    window. The test is whether that window appears in the local day AT ALL, not
+    whether it happens to be standing at sunrise — a year-long audit found the
+    sunrise reading drops a star outright whenever its whole window falls
+    between two sunrises (11 times in 2026 at Chennai). It is deliberately not
+    sampled at `as_of_utc` either: that would make the answer depend on the hour
+    the client happened to ask, which is the original divergence.
+
+    Needs only a timezone, because the affected star is a function of the Moon's
+    longitude alone and only the civil-day bounds are local — so this costs two
+    boundary searches, not a panchangam.
     See docs/CHANDRASHTAMA_SURFACE_DIVERGENCE_2026-09-09.md.
     """
     profile = chart_snapshot.data.birth_profile
-    location = resolve_effective_daily_location(profile)
-    local_day = as_of_utc.astimezone(ZoneInfo(location.timezone)).date()
-    try:
-        sunrise_jd = calculate_rise_transit_jd(
-            local_midnight_as_jd_for_profile(local_day, profile),
-            location.latitude,
-            location.longitude,
-            rise=True,
-        )
-    except RiseTransitUndefinedError:
-        # Polar latitudes with no sunrise on this date. The almanac's உதய rule
-        # has nothing to key on, so fall back to §4.11 read at the day's noon
-        # rather than reporting a flag we cannot stand behind.
-        noon_jd = utc_datetime_to_julian_day(local_noon_as_utc_for_profile(local_day, profile))
-        moon = calculate_sidereal_planets(noon_jd).bodies["MOON"]
-        return is_chandrashtama(natal_moon.rasi, moon.rasi)
+    timezone_name = resolve_effective_daily_timezone(profile)
+    local_day = as_of_utc.astimezone(ZoneInfo(timezone_name)).date()
 
-    moon_at_sunrise = calculate_sidereal_planets(sunrise_jd).bodies["MOON"]
-    return (
-        chandrashtama_janma_nakshatra(moon_at_sunrise.absolute_longitude)
-        == nakshatra_from_degree(natal_moon.absolute_longitude)
-    )
+    own_star = NAKSHATRA_NAMES[(nakshatra_from_degree(natal_moon.absolute_longitude) - 1) % 27]
+    windows = chandrashtamam_janma_nakshatra_windows_for_day(local_day, timezone_name)
+    return any(window.name == own_star for window in windows)
 
 
 def build_transit_snapshot(

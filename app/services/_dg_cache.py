@@ -51,7 +51,13 @@ from app.schemas.dasha import ResponseMeta
 # hours late (at Chennai on 2026-09-09: 15:14 against a true 09:34) — and mobile
 # renders this field directly as *the* end time. Persisted field, so warm rows
 # must recompute for the same reason v11 existed.
-DAILY_SCORE_ENGINE_VERSION = "2026-09-09-v12"
+# v13 (2026-09-09): the badge became an OVERLAP test. v11/v12 asked whether the
+# reader's star stood at sunrise, which drops a star whenever its whole window
+# falls between two sunrises — a year-long audit at Chennai found 11 such skips
+# in 2026, so Pooradam had no badged day at all around 06-Jan and 19-Jun and
+# those natives were never warned. Both isChandrashtama and the new
+# chandrashtamaStar are persisted, so warm rows must recompute.
+DAILY_SCORE_ENGINE_VERSION = "2026-09-09-v13"
 
 
 def _cache_version(calculation_version: str) -> str:

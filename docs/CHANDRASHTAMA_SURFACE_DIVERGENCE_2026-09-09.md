@@ -503,3 +503,82 @@ Two test defects were found and fixed while adding coverage, both mine:
 ### Still open
 
 - The 00:00 window edge (§6) — cosmetic, and now the only item left.
+
+---
+
+## 10. D8 — the sunrise rule silently skipped stars
+
+Found by auditing the ruling rather than the code: §6 asserted one-star-per-day
+as a property and verified it over **six days**. Nothing guarantees it.
+
+A star window is 13°20′ of Moon motion. The Moon runs 11.76–15.4°/day, so the
+window is **20.8 h at its shortest and 27.2 h at its longest** — against a 24 h
+day. Two things follow, and both happen:
+
+- A window longer than 24 h straddles two sunrises → that star owns two days.
+- A window shorter than 24 h can fall **entirely between two sunrises** → that
+  star owns **no day at all**, and its natives are never warned.
+
+Measured over all 365 days of 2026 at Chennai under the sunrise rule:
+
+| | |
+|---|---|
+| Stars skipped outright | **11** |
+| Stars owning two consecutive days | 15 |
+| Badged days per star across the year | 11 to 17, not ~13.5 |
+
+Pooradam had no badged day around **06-Jan** or **19-Jun 2026**. Moolam — the
+reporting owner's own star — was skipped around **29-Nov**.
+
+### The rule is overlap, not sunrise
+
+A printed almanac never loses a star. It prints "Moolam until 11:02, Pooradam
+from 11:02", and a native whose star is named for *any part* of the day observes
+it. So the badge asks whether the reader's star appears in the day at all.
+
+This stays inside the owner's ruling: the duration is still about a day. It
+simply touches two dates when it straddles a midnight, which is what the almanac
+shows — and `chandrashtamaEnds` plus the card's window line carry the exact
+hours, so a reader sees which part of each day is theirs.
+
+Same year, same location, under overlap:
+
+| | Sunrise | Overlap |
+|---|---|---|
+| Stars never badged | 11 | **none** |
+| Badged days per star / year | 11–17 | 25–28 |
+| Longest gap between one star's days | — | **27 days** (one lunar cycle; no cycle skipped) |
+
+### Changed
+
+| File | Change |
+|---|---|
+| `app/calculations/panchangam.py` | `chandrashtamam_janma_nakshatra_windows_for_day` made public. Takes no lat/lon on purpose — the affected star is a function of the Moon's longitude alone, so a caller holding only a timezone can ask without computing sunrise or a snapshot. |
+| `app/services/daily_guidance_service.py` | Badge = the reader's star appears in the day's windows. Falls back to the old share gate on a pre-v44 snapshot. |
+| `app/services/transit_service.py` | Same test, now costing two boundary searches instead of a sunrise + ephemeris call. |
+| `app/services/muhurtham_naal_service.py` | The §9 veto reads the same overlap set, so the picker cannot clear a date the dashboard badges. |
+| `app/schemas/daily_guidance.py`, `packages/shared/src/types/index.ts` | New `chandrashtamaStar`. |
+| `app/services/_dg_cache.py` | Engine v12 → **v13**. |
+| web card call sites | Take the reader's star from their guidance, not the almanac's sunrise star. |
+
+**Why `chandrashtamaStar` had to be added.** §7 let the card find the reader's
+window using the day's sunrise star, on the reasoning that the card only renders
+on the reader's own day so the sunrise star *is* theirs. Overlap breaks that: on
+the day a window opens, the reader's star is the day's **second** one, and the
+sunrise star points at somebody else's window. The card would have silently
+found nothing on exactly the days this fix was made for. The personal star now
+comes from the personal payload.
+
+### Verified
+
+`tests/test_panchangam.py::test_every_janma_star_gets_a_chandrashtama_day_in_a_lunar_cycle`
+asserts the property, not the mechanism: across three separate 28-day stretches
+every one of the 27 stars is named at least once. Full run: 207 passed,
+9 skipped; ruff clean on `app` and `tests` (one pre-existing I001 in
+`notification_dispatch_service.py`, untouched and unrelated); `tsc` clean.
+
+### To revert to one-star-per-day
+
+`chandrashtamam_affected_janma_nakshatra_number` is still computed and still
+names the day for almanac display. Compare against it instead of the window set.
+Doing so reinstates the 11 annual skips.

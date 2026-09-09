@@ -234,6 +234,14 @@ class DailyGuidanceData(BaseModel):
     # `is_chandrashtama` is false, for cache rows built before this field
     # existed, and for a panchangam snapshot cached before v44 (no windows).
     chandrashtama_ends: datetime | None = Field(default=None, alias="chandrashtamaEnds")
+    # The reader's OWN janma star, sent when `is_chandrashtama` is true so a
+    # client can pick their window out of the day's list. It is not always the
+    # star that names the day: the badge is an overlap test, so on the day a
+    # window opens the reader's star may be the day's SECOND one. Deriving it
+    # client-side from the almanac's sunrise star would therefore find nothing
+    # on exactly those days. Null when not in Chandrashtama, and for rows cached
+    # before this field existed.
+    chandrashtama_star: str | None = Field(default=None, alias="chandrashtamaStar")
     saturn_cycle_alert: str | None = Field(default=None, alias="saturnCycleAlert")
     activity_board: DailyActivityBoardData | None = Field(default=None, alias="activityBoard")
 
