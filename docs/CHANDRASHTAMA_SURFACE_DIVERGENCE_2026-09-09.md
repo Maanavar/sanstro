@@ -427,3 +427,79 @@ comments say so; neither should be trimmed to just "may be null".
    MOOLAM    badge=False ends=None
    POORADAM  badge=True  ends=09:34
 ```
+
+---
+
+## 9. The two open decisions, ruled
+
+Both were put to the owner on 2026-09-09 and answered the same day.
+
+### Muhurtham picker: the star window vetoes, the rasi span cautions
+
+Picking a date is not the same act as reading today's dashboard — a wedding is
+chosen once — so the wider rasi transit keeps a voice, but only the reader's own
+star window can knock a date out of "recommended".
+
+| Case | Score | Vetoes "recommended"? | `isChandrashtama` |
+|---|---|---|---|
+| The reader's own star window | −40 | yes | true |
+| Moon in their 8th, day belongs to another star | **−10** | **no** | false |
+| Neither | — | no | false |
+
+Before this, all 2¼ days of the transit were a hard veto, so the picker marked
+three dates "Chandrashtama for you, avoid" where the dashboard badged one.
+
+Two implementation notes worth keeping:
+
+- The reason strings now name the **star** ("Chandrashtama for your star Moolam
+  — avoid"), not "your birth sign". Under this ruling the sign no longer decides
+  it, and copy that still said "sign" would re-teach the thing we removed.
+- Where a chart has no activity location there is no panchangam, so no star to
+  read. That case **falls back to the old rasi veto** rather than clearing the
+  date: for an avoidance rule the fail-safe direction is toward the doctrine.
+
+`_panchangam_by_date` was split out of `_computed_nalla_neram_by_date` so one
+batched range call feeds both. Two range calls over the same dates would have
+doubled the ephemeris work and could have disagreed.
+
+### Learn article: name both durations
+
+`/learn/what-is-chandrashtama` said Chandrashtama "lasts about 2.5 days" in
+three places. Not false — that is the rasi transit, and §4.11 still says so —
+but the app now badges about a day, so a reader moving from article to dashboard
+saw the product contradict its own explainer.
+
+Both durations are now named, in both languages: the sign transit runs ~2.5
+days, a Tamil almanac names one birth star per day within it, so the window that
+is yours is about a day of those 2.5.
+
+The visible copy lives in `web/lib/marketing-i18n/learn-chandrashtama.ts`, not
+in `page.tsx` — editing only the page metadata would have left the on-page lead
+still saying 2.5 days. Metadata, OpenGraph, the FAQ schema answer and the
+bilingual body were all updated. File re-checked for BOM afterwards (none), per
+the repo's UTF-8 rule.
+
+`/tools/chandrashtama` was checked and deliberately left alone: it is a
+rasi-only educational lookup with no dates and no personal day, so it
+contradicts nothing.
+
+### Verified
+
+`tests/test_muhurtham_naal.py` — 14 passed, ruff clean, `tsc` clean.
+
+Two test defects were found and fixed while adding coverage, both mine:
+
+1. The existing Nalla Neram test stubbed snapshots with a `SimpleNamespace`
+   carrying only `nalla_neram`. The stub was incomplete, not the code — real
+   snapshots always carry the field (dataclass default) — so the fake was
+   extended rather than the production read weakened to `getattr`.
+2. My first draft of the new tests filtered dates by star *name*
+   (`{"Moolam", "Pooradam", "Uthiradam"}`) on the assumption that all three sit
+   in Dhanusu. **Uthiradam is rasi 10 (Makaram) in this sheet** — only its first
+   pada is Dhanusu — so the filter swept in dates that were never in the
+   reader's 8th and the test failed against correct code. Now keyed off
+   `moon_rasi_number`, which is the fact the rule actually reads.
+
+### Still open
+
+- The 00:00 window edge (§6) — cosmetic, and now the only item left.

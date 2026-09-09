@@ -159,7 +159,10 @@ def test_chart_match_uses_computed_location_specific_nalla_neram(monkeypatch):
             period="AM",
         )
         return {
-            n.date: SimpleNamespace(nalla_neram=[slot])
+            # 0 = "no affected star recorded", the pre-v44 cache case, which
+            # sends the Chandrashtama reading down its rasi fallback. This test
+            # is about Nalla Neram; the two-tier reading has its own below.
+            n.date: SimpleNamespace(nalla_neram=[slot], chandrashtamam_affected_janma_nakshatra_number=0)
             for n in get_muhurtham_naals(2026)
         }
 
@@ -169,6 +172,106 @@ def test_chart_match_uses_computed_location_specific_nalla_neram(monkeypatch):
     )
 
     assert all(match.naal.nalla_neram[0].start == "08:12" for match in matches)
+
+
+def _match_with_affected_star(monkeypatch, affected_star_number: int):
+    """Run the chart match with every date's Chandrashtama belonging to one star."""
+    profile_id = uuid.uuid4()
+
+    class _ChartWithProfile(_FakeChart):
+        birth_profile_id = profile_id
+
+    class _Profile:
+        birth_place = "Synthetic birthplace"
+        birth_latitude = 10.0
+        birth_longitude = 76.0
+        birth_timezone = "Asia/Kolkata"
+        current_place = "Synthetic current place"
+        current_latitude = 11.0
+        current_longitude = 77.0
+        current_timezone = "Asia/Kolkata"
+
+    class _SessionWithProfile(_FakeSession):
+        def get(self, model, _id):
+            if model is Chart:
+                return self._chart
+            if model is BirthProfile:
+                return _Profile()
+            return None
+
+    slot = SimpleNamespace(
+        start=datetime(2026, 1, 1, 8, 12), end=datetime(2026, 1, 1, 9, 7), period="AM",
+    )
+
+    def _snapshots(start, end, lat, lon, tz, *, session):
+        return {
+            n.date: SimpleNamespace(
+                nalla_neram=[slot],
+                chandrashtamam_affected_janma_nakshatra_number=affected_star_number,
+            )
+            for n in get_muhurtham_naals(2026)
+        }
+
+    monkeypatch.setattr(svc, "calculate_daily_panchangam_range", _snapshots)
+    matches, _ = svc.match_muhurtham_naals(
+        uuid.uuid4(), 2026, _SessionWithProfile(_ChartWithProfile("ROHINI", "Rishabam")),
+    )
+    return matches
+
+
+# Rohini is star 4 and rasi Rishabam (2), so its Chandrashtama rasi is Dhanusu
+# (9) — the sign Moolam, Pooradam and Uthiradam sit in.
+ROHINI_STAR = 4
+KRITTIKA_STAR = 3
+
+
+def test_the_readers_own_star_window_vetoes_a_muhurtham_date(monkeypatch):
+    """Owner ruling 2026-09-09: the star window is the hard avoid."""
+    matches = _match_with_affected_star(monkeypatch, ROHINI_STAR)
+
+    # The stub gives every date to Rohini, so every date is this reader's.
+    assert matches
+    for m in matches:
+        assert m.is_chandrashtama is True
+        assert m.is_recommended is False
+        assert any("Chandrashtama for your star Rohini" in r.en for r in m.reasons)
+
+
+def test_the_rasi_span_cautions_without_vetoing(monkeypatch):
+    """Same dates, but the day belongs to another star.
+
+    Before the ruling all 2.25 days of the Moon's transit of the 8th were a hard
+    veto, so these dates were marked "Chandrashtama for you, avoid" while the
+    dashboard badged only one of them. They now carry a mild penalty and stay
+    eligible.
+    """
+    vetoed = {m.naal.date: m for m in _match_with_affected_star(monkeypatch, ROHINI_STAR)}
+    cautioned = _match_with_affected_star(monkeypatch, KRITTIKA_STAR)
+
+    # Keyed off the naal's own rasi number, not its star name: Uthiradam sits in
+    # Makaram in this sheet (only its first pada is Dhanusu), so a name filter
+    # would sweep in dates that are not in this reader's 8th at all.
+    dhanusu_dates = {
+        n.date.isoformat() for n in get_muhurtham_naals(2026) if n.moon_rasi_number == 9
+    }
+    in_rasi = [m for m in cautioned if m.naal.date in dhanusu_dates]
+    assert in_rasi, "expected Dhanusu-rasi dates in the 2026 sheet"
+
+    for soft in in_rasi:
+        assert soft.is_chandrashtama is False
+        assert any("mild caution" in r.en for r in soft.reasons)
+        # Cautioned, not cleared: scores above the same date's hard-veto reading,
+        # and never zeroed by Chandrashtama alone.
+        assert soft.match_score > vetoed[soft.naal.date].match_score
+        if soft.tara_quality == "GOOD":
+            assert soft.is_recommended is True
+
+    # And a date outside the 8th sign gets neither line.
+    outside = [m for m in cautioned if m.naal.date not in dhanusu_dates]
+    assert outside
+    assert all(
+        any("No Chandrashtama for your star" in r.en for r in m.reasons) for m in outside
+    )
 
 
 def test_match_unknown_chart_or_year():
