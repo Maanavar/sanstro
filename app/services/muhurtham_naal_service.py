@@ -191,6 +191,11 @@ def _panchangam_by_date(
     """
     if not naals:
         return {}
+    # `only` matters more than the range here. A curated sheet is ~55 dates
+    # scattered over a year, so without it this fills every day in between —
+    # ~360 computations to answer about 55, which the warm cache hid until a
+    # cache-version bump made the whole year cold and the endpoint 502'd at the
+    # proxy's 300 s limit.
     return calculate_daily_panchangam_range(
         min(n.date for n in naals),
         max(n.date for n in naals),
@@ -198,6 +203,7 @@ def _panchangam_by_date(
         location.longitude,
         location.timezone,
         session=session,
+        only={n.date for n in naals},
     )
 
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterator, Sequence
+from collections.abc import Collection, Iterator, Sequence
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 
@@ -2642,6 +2642,7 @@ def calculate_daily_panchangam_range(
     timezone_name: str,
     *,
     session: Session | None = None,
+    only: Collection[date] | None = None,
 ) -> dict[date, PanchangamSnapshot]:
     """Compute panchangam snapshots for a date range with batched cache I/O.
 
@@ -2649,13 +2650,26 @@ def calculate_daily_panchangam_range(
     performs when called in a loop (e.g. for a monthly calendar) with a single
     bulk SELECT covering the whole range and a single purge call. Cache misses
     fall back to the regular per-day computation, which also stores its result.
+
+    ``only`` restricts computation to the dates a caller actually needs, while
+    the cache SELECT still covers the whole range in one query. A caller with
+    SPARSE dates must pass it: the curated muhurtham sheet is ~55 dates spread
+    across a year, and filling the contiguous range between them computed ~360
+    days to answer about 55. That is invisible on a warm cache and a wall on a
+    cold one — a panchangam day costs ~600 ms, so the muhurtham-naals endpoint
+    spent ~220 s and returned 502 at the proxy's 300 s limit the first time it
+    was asked for a year whose snapshots had been invalidated (2026-09-09, by a
+    cache-version bump). Dates outside the range are ignored, not fetched.
     """
+    wanted = None if only is None else set(only)
     # A polar-latitude range can contain some days with no sunrise/sunset. Those
     # days are simply omitted from the result (the monthly grid skips them) rather
     # than failing the whole range — the caller iterates whatever days came back.
     if session is None:
         snapshots: dict[date, PanchangamSnapshot] = {}
         for current in _date_range(start_date, end_date):
+            if wanted is not None and current not in wanted:
+                continue
             try:
                 snapshots[current] = calculate_daily_panchangam(
                     current, latitude, longitude, timezone_name, session=None,
@@ -2675,6 +2689,8 @@ def calculate_daily_panchangam_range(
 
     snapshots = {}
     for current in _date_range(start_date, end_date):
+        if wanted is not None and current not in wanted:
+            continue
         existing = cached.get(current)
         if existing is not None:
             snapshots[current] = existing

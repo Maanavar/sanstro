@@ -151,8 +151,13 @@ def test_chart_match_uses_computed_location_specific_nalla_neram(monkeypatch):
                 return _Profile()
             return None
 
-    def _snapshots(start, end, lat, lon, tz, *, session):
+    def _snapshots(start, end, lat, lon, tz, *, session, only=None):
         assert (lat, lon, tz) == (11.0, 77.0, "Asia/Kolkata")
+        # The curated sheet is ~55 dates scattered over a year. Without `only`
+        # the range call fills every day between the first and last — ~360
+        # computations to answer about 55, which 502'd the endpoint at the
+        # proxy's 300 s limit the first time a year came up cache-cold.
+        assert only == {n.date for n in get_muhurtham_naals(2026)}
         slot = SimpleNamespace(
             start=datetime(2026, 1, 1, 8, 12),
             end=datetime(2026, 1, 1, 9, 7),
