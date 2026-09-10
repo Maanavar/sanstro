@@ -22,11 +22,13 @@ from sqlalchemy.orm import Session
 from app.calculations.astro import (
     RASI_NAMES,
     house_from_reference,
+    nakshatra_from_degree,
     resolve_timezone,
     utc_datetime_to_julian_day,
 )
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
+from app.calculations.panchangam import is_chandrashtama_day
 from app.calculations.transits import classify_kandaka_cycle, classify_sani_cycle
 from app.core.age_gate import CAREER_REDIRECT_KEYWORDS, MINOR_REDIRECT_KEYWORDS, STUDY_REDIRECT_KEYWORDS
 from app.core.config import get_settings
@@ -35,6 +37,7 @@ from app.reasoning.verdict import legacy_confidence_to_band
 from app.schemas.ask_vinaadi import AskVinaadiResponse, AskVinaadiResponseData, AskVinaadiVerdict, BiText
 from app.schemas.dasha import ResponseMeta
 from app.services.chart_service import load_persisted_chart_response
+from app.services.location_service import resolve_effective_daily_location
 from app.services.prediction_log_service import log_prediction
 from app.services.safety_filter import run_safety_pass
 
@@ -210,8 +213,20 @@ def _build_context_block(
     saturn = transit.bodies["SATURN"]
     jupiter = transit.bodies["JUPITER"]
 
-    chandrashtama_rasi = ((natal_moon.rasi - 1 + 7) % 12) + 1
-    chandrashtama = moon_transit.rasi == chandrashtama_rasi
+    # The system prompt tells the model to raise Chandrashtamam whenever it
+    # answers a TIMING question, which makes this a prohibition claim — so it
+    # must be the day the almanac names for this chart's own star, the identical
+    # test the Today hero badges with. It used to be `moon.rasi == 8th from
+    # natal` sampled at `datetime.now()`, so the same question asked at 10am and
+    # at 6pm on a rasi-change day got opposite answers, and neither had to agree
+    # with the reader's own dashboard. See §16 of
+    # docs/CHANDRASHTAMA_SURFACE_DIVERGENCE_2026-09-09.md.
+    _location = resolve_effective_daily_location(profile)
+    chandrashtama = is_chandrashtama_day(
+        now_local.date(), _location.timezone, _location.latitude, _location.longitude,
+        natal_moon_rasi=natal_moon.rasi,
+        janma_nakshatra=nakshatra_from_degree(natal_moon.absolute_longitude),
+    )
 
     sat_house_moon = house_from_reference(natal_moon.rasi, saturn.rasi)
     jup_house_moon = house_from_reference(natal_moon.rasi, jupiter.rasi)
