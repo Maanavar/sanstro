@@ -207,16 +207,53 @@ export function formatChandrashtamaWindowEdge(value: string, dateLocal: string):
  *  Returns "" when the star is absent (a panchangam snapshot cached before
  *  v44) so callers fall back to the full list rather than showing nothing.
  */
+/** The reader's own Chandrashtama window for this day, or "" when the day holds
+ *  none — callers fall back to the day's full list rather than render an empty
+ *  alert.
+ *
+ *  Takes the rasi as well as the star because the star alone does not identify a
+ *  window. Nine of the 27 stars straddle a rasi boundary, so a straddling star
+ *  appears twice in a day with two rasis, and its two halves of natives are in
+ *  Chandrashtama a fortnight apart. Matching on the name alone printed the
+ *  Dhanusu half's hours to a Magaram native — reported 2026-09-09.
+ *
+ *  `ownRasiNumber` may be absent (a guidance row cached before it was sent), and
+ *  a window's `rasiNumber` may be 0 (a panchangam snapshot before v45). Either
+ *  way this falls back to the name-only match, which is right for the 18 stars
+ *  that do not straddle and no worse than before for the nine that do. */
 export function formatOwnChandrashtamaWindow(
   windows: PanchangamDailyResponseData["chandrashtamamToday"]["janmaNakshatraWindows"],
   ownStarName: string | undefined,
   dateLocal: string,
   lang: Lang,
+  ownRasiNumber?: number | null,
 ): string {
   if (!ownStarName) return "";
-  const mine = windows.find((window) => window.name === ownStarName);
+  const named = windows.filter((window) => window.name === ownStarName);
+  const mine = (ownRasiNumber
+    ? named.find((window) => !window.rasiNumber || window.rasiNumber === ownRasiNumber)
+    : undefined) ?? named[0];
   if (!mine) return "";
   return `${tNakshatra(mine.name, lang)} ${formatChandrashtamaWindowEdge(mine.start, dateLocal)} - ${formatChandrashtamaWindowEdge(mine.end, dateLocal)}`;
+}
+
+/** Every distinct affected janma rasi the day touches, in the order they occur.
+ *
+ *  The Moon crosses a rasi boundary on roughly two days in five, and the
+ *  affected point crosses at the same instant seven signs away, so on those days
+ *  the day has TWO affected rasis. `affectedJanmaRasiNumber` is a sunrise scalar
+ *  and names only the first — which is how a Magaram reader saw an almanac card
+ *  headed "Affected Rasi: Dhanusu" on a day that was genuinely theirs from the
+ *  afternoon. `fallback` covers a pre-v45 snapshot, whose windows carry no rasi. */
+export function chandrashtamaAffectedRasiNumbers(
+  windows: PanchangamDailyResponseData["chandrashtamamToday"]["janmaNakshatraWindows"],
+  fallback: number,
+): number[] {
+  const seen: number[] = [];
+  for (const window of windows) {
+    if (window.rasiNumber && !seen.includes(window.rasiNumber)) seen.push(window.rasiNumber);
+  }
+  return seen.length > 0 ? seen : (fallback ? [fallback] : []);
 }
 
 export function formatChandrashtamaWindowSummary(
@@ -224,8 +261,21 @@ export function formatChandrashtamaWindowSummary(
   dateLocal: string,
   lang: Lang,
 ): string {
+  // A star is qualified by its rasi only when the day holds it twice — which
+  // happens exactly for the nine stars that straddle a rasi boundary, on the day
+  // the affected point crosses it. Without the qualifier the list reads as the
+  // same star twice over with no way to tell which half is yours; with it on
+  // every row it is noise on the four days in five that have one rasi.
+  const repeated = new Set(
+    windows.filter((w, i) => windows.findIndex((other) => other.name === w.name) !== i).map((w) => w.name),
+  );
   return windows
-    .map((window) => `${tNakshatra(window.name, lang)} ${formatChandrashtamaWindowEdge(window.start, dateLocal)} - ${formatChandrashtamaWindowEdge(window.end, dateLocal)}`)
+    .map((window) => {
+      const qualifier = repeated.has(window.name) && window.rasiNumber
+        ? ` (${rasiName(window.rasiNumber, lang)})`
+        : "";
+      return `${tNakshatra(window.name, lang)}${qualifier} ${formatChandrashtamaWindowEdge(window.start, dateLocal)} - ${formatChandrashtamaWindowEdge(window.end, dateLocal)}`;
+    })
     .join("; ");
 }
 

@@ -372,6 +372,9 @@ export function NovaGocharCard({
         personalDailyGuidance?.chandrashtamaStar ?? undefined,
         panchangam.dateLocal,
         lang,
+        // Star AND rasi: a straddling star holds two windows in a day, one per
+        // half of its natives, and they are a fortnight apart in Chandrashtama.
+        personalDailyGuidance?.chandrashtamaRasi ?? undefined,
       )
     : "";
 

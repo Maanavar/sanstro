@@ -44,6 +44,7 @@ import { DASHA_COLORS } from "./dashboard-dasha";
 import {
   activeLimb,
   chandrashtamaAffectedNatalRasi,
+  chandrashtamaAffectedRasiNumbers,
   DayTimeline,
   festivalIcon,
   festivalTags,
@@ -785,7 +786,13 @@ export function DayDetailDrawerNova({
 
   const moonRasi = data ? (data.chandrashtamamToday.moonRasiNumber || moonRasiFromNakshatra(data.nakshatra.name, data.nakshatra.pada)) : 0;
   const chandrashtama = data ? (data.chandrashtamamToday.affectedJanmaRasiNumber || chandrashtamaAffectedNatalRasi(moonRasi)) : 0;
-  const chandraName = chandrashtama ? rasiName(chandrashtama, lang) : "";
+  // Every affected rasi the day touches, not just the one standing at sunrise:
+  // on a Moon rasi-change day there are two, and naming only the first tells
+  // half the day's affected natives they are not affected. See
+  // docs/CHANDRASHTAMA_SURFACE_DIVERGENCE_2026-09-09.md.
+  const chandraRasis = data ? chandrashtamaAffectedRasiNumbers(data.chandrashtamamToday.janmaNakshatraWindows, chandrashtama) : [];
+  const chandraName = chandraRasis.map((rasi) => rasiName(rasi, lang)).join(" / ");
+  const chandraGlyphs = chandraRasis.map((rasi) => rasiGlyph(rasi)).join(" ");
   const chandraWindows = data ? formatChandrashtamaWindowSummary(data.chandrashtamamToday.janmaNakshatraWindows, data.dateLocal, lang) : "";
 
   // Muhurtham status and Karinaal are separate markings — see DayDrawerMark.
@@ -971,7 +978,7 @@ export function DayDetailDrawerNova({
               <Card variant="low" compact style={{ gap: "3px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-3)", fontSize: "var(--text-sm)" }}>
                   <span style={{ color: "var(--color-muted)" }}>{lang === "ta" ? "பாதிக்கப்படும் ராசி" : "Affected Rasi"}</span>
-                  <span style={{ fontWeight: 700, color: "var(--color-text-strong)" }}>{rasiGlyph(chandrashtama)} {chandraName}</span>
+                  <span style={{ fontWeight: 700, color: "var(--color-text-strong)" }}>{chandraGlyphs} {chandraName}</span>
                 </div>
                 {chandraWindows && (
                   <div style={{ fontSize: "var(--text-xs)", color: "var(--color-low)", fontWeight: 600, lineHeight: 1.45 }}>
@@ -1197,8 +1204,11 @@ export function DashboardCalendarTabNova({
   const moonRasi = panchangam?.chandrashtamamToday.moonRasiNumber || fallbackMoonRasi;
   const chandrashtama = panchangam?.chandrashtamamToday.affectedJanmaRasiNumber || chandrashtamaAffectedNatalRasi(moonRasi);
   const moonRasiName = moonRasi ? rasiName(moonRasi, lang) : "";
-  const chandraName = chandrashtama ? rasiName(chandrashtama, lang) : "";
   const chandraNakshatraWindows = panchangam?.chandrashtamamToday.janmaNakshatraWindows ?? [];
+  // See the day drawer above: two affected rasis on any Moon rasi-change day.
+  const chandraRasis = chandrashtamaAffectedRasiNumbers(chandraNakshatraWindows, chandrashtama);
+  const chandraName = chandraRasis.map((rasi) => rasiName(rasi, lang)).join(" / ");
+  const chandraGlyphs = chandraRasis.map((rasi) => rasiGlyph(rasi)).join(" ");
   const chandraNakshatraWindowSummary = panchangam ? formatChandrashtamaWindowSummary(chandraNakshatraWindows, panchangam.dateLocal, lang) : "";
   const todayMoonNakshatra = panchangam ? panchangam.nakshatra.name : "";
   const observanceFestivals = panchangam?.festivals.filter((f) => festivalTags(f).includes("observance")) ?? [];
@@ -1488,7 +1498,7 @@ export function DashboardCalendarTabNova({
                   <Card variant="low" compact>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-sm)" }}>
                       <span style={{ color: "var(--color-muted)" }}>{lang === "ta" ? "பாதிக்கப்படும் ராசி" : "Affected Rasi"}</span>
-                      <span style={{ fontWeight: 700, color: "var(--color-text-strong)" }}>{rasiGlyph(chandrashtama)} {chandraName}</span>
+                      <span style={{ fontWeight: 700, color: "var(--color-text-strong)" }}>{chandraGlyphs} {chandraName}</span>
                     </div>
                     {chandraNakshatraWindowSummary && (
                       <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-3)", fontSize: "var(--text-sm)" }}>

@@ -83,14 +83,19 @@ describe("activeLimb", () => {
 });
 
 describe("formatOwnChandrashtamaWindow", () => {
-  // 2026-09-09 at Chennai: the Moon hands Chandrashtama from Pooradam to
-  // Uthiradam at 09:34, so the day's window list names two stars. The day
-  // BELONGS to Pooradam — the star standing at sunrise — and the personal card
-  // must print that one. Printing the list is what told a Moolam native their
-  // day was Pooradam's; printing the wrong half of it would be no better.
+  // 2026-09-09 at Chennai, exactly as the backend now sends it. The list is
+  // bounded by the SOLAR day — 06:01 to the next sunrise — because that is the
+  // day a Tamil almanac page covers, and it holds three windows: Pooradam hands
+  // over to Uthiradam at 09:34, and Uthiradam is split again at 15:14 where the
+  // affected point crosses into Magaram.
+  //
+  // The day BELONGS to Pooradam, the star standing at sunrise, and the personal
+  // card must print that one. Printing the list is what told a Moolam native
+  // their day was Pooradam's; printing the wrong half of it would be no better.
   const windows = [
-    { name: "POORADAM", start: "2026-09-09T00:00:00+05:30", end: "2026-09-09T09:34:00+05:30" },
-    { name: "UTHIRADAM", start: "2026-09-09T09:34:00+05:30", end: "2026-09-10T00:00:00+05:30" },
+    { name: "POORADAM", start: "2026-09-09T06:01:00+05:30", end: "2026-09-09T09:34:00+05:30", rasiNumber: 9 },
+    { name: "UTHIRADAM", start: "2026-09-09T09:34:00+05:30", end: "2026-09-09T15:14:00+05:30", rasiNumber: 9 },
+    { name: "UTHIRADAM", start: "2026-09-09T15:14:00+05:30", end: "2026-09-10T06:01:00+05:30", rasiNumber: 10 },
   ];
 
   it("picks the reader's own star out of a day that holds two", () => {
@@ -109,5 +114,26 @@ describe("formatOwnChandrashtamaWindow", () => {
 
   it("returns empty when the named star is not among the day's windows", () => {
     expect(formatOwnChandrashtamaWindow(windows, "MOOLAM", "2026-09-09", "en")).toBe("");
+  });
+
+  it("gives each half of a straddling star its own hours", () => {
+    // Uthiradam appears twice on this day with two rasis, and its two audiences
+    // are in Chandrashtama a fortnight apart. Reported 2026-09-09 by an
+    // Uthiradam/Magaram reader shown the Dhanusu half's afternoon.
+    const dhanusu = formatOwnChandrashtamaWindow(windows, "UTHIRADAM", "2026-09-09", "en", 9);
+    const magaram = formatOwnChandrashtamaWindow(windows, "UTHIRADAM", "2026-09-09", "en", 10);
+
+    expect(dhanusu).toContain("9:34 am");
+    expect(dhanusu).toContain("3:14 pm");
+    expect(magaram).toContain("3:14 pm");
+    expect(magaram).not.toContain("9:34 am");
+  });
+
+  it("qualifies an edge that falls on another date", () => {
+    // The list runs sunrise to sunrise, so a window still open at the end of the
+    // solar day closes on tomorrow's date. A bare "6:01 am" would read as this
+    // morning — six hours before the window it is closing.
+    const magaram = formatOwnChandrashtamaWindow(windows, "UTHIRADAM", "2026-09-09", "en", 10);
+    expect(magaram).toMatch(/6:01 am,/);
   });
 });
