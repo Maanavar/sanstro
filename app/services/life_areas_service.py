@@ -20,7 +20,7 @@ import hashlib
 import logging
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta, tzinfo
-from functools import partial
+from functools import lru_cache, partial
 from typing import TypedDict
 from uuid import UUID
 
@@ -29,7 +29,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.calculations.ashtakavarga import compute_bhinnashtakavarga, compute_sarvashtakavarga
-from app.calculations.astro import house_from_reference, resolve_timezone, utc_datetime_to_julian_day
+from app.calculations.astro import (
+    house_from_reference,
+    nakshatra_from_degree,
+    resolve_timezone,
+    utc_datetime_to_julian_day,
+)
 from app.calculations.bav_derived import (
     BAND_THIN,
     compute_bav_derived_indications,
@@ -46,6 +51,12 @@ from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.functional_nature import FunctionalNature, get_functional_nature
 from app.calculations.karaka_chains import LIFE_AREA_KARAKA
 from app.calculations.maturation import maturation_multiplier
+from app.calculations.panchangam import (
+    _solar_day_bounds_jd,
+    is_chandrashtama_day,
+    limb_fraction,
+    limb_spans_between,
+)
 from app.calculations.prediction_score import PredictionScoreInput, compute_prediction_score
 from app.calculations.remedies import get_area_remedy
 from app.calculations.sade_sati import (
@@ -79,7 +90,11 @@ from app.schemas.life_areas import (
 from app.services.chart_service import load_persisted_chart_response
 from app.services.feature_flags import get_flag
 from app.services.goals_service import get_active_goals_for_chart
-from app.services.location_service import resolve_effective_daily_timezone
+from app.services.location_service import (
+    EffectiveDailyLocation,
+    resolve_effective_daily_location,
+    resolve_effective_daily_timezone,
+)
 from app.services.narrative_engine import (
     active_but_unpromised_voice,
     promised_not_now_voice,
@@ -313,6 +328,78 @@ _AREA_ROUTING: dict[str, dict] = {
 }
 
 
+# ── Chandrashtama: two registers, never one boolean ───────────────────────────
+# Tamil practice keeps two things apart that this file conflated until
+# 2026-09-10, and every place in this codebase that was CORRECT already keeps
+# them apart (see §16 of docs/CHANDRASHTAMA_SURFACE_DIVERGENCE_2026-09-09.md):
+#
+#   The CONDITION — the Moon transiting the 8th rasi from the natal Moon. ~2¼
+#   days, continuous, rasi-level. It drags the mind-sensitive areas, and it
+#   drags them in proportion to how much of the day it holds. This is what
+#   `weighted_moon_score` has always done with its graded `-25 × share`, and
+#   what §4 of the ruling deliberately left on the rasi share.
+#
+#   The PROHIBITION — சந்திராஷ்டம நாள், the day the almanac NAMES for one janma
+#   star. ~1 day, binary, star-and-rasi level. It is what "avoid surgery",
+#   "avoid major relationship decisions" mean, and it is what the Today hero
+#   badges.
+#
+# This file used ONE boolean — `moon.rasi == 8th from natal`, point-sampled at
+# local noon — for both. That is Question B from §2 of the ruling, the shape the
+# whole document exists to retire. It flagged ~30.4 days per star-and-rasi half
+# per year against the badge's 13.7, so the Life Areas tab docked four areas by
+# 8 points and told the reader to watch their mental stress on ~19 days a year
+# the Today hero, one tab across, showed them nothing.
+
+
+# Both registers need an ephemeris walk over the same solar day, and BOTH walks
+# are functions of (date, location) ALONE — the chart enters only afterwards, as
+# a cheap comparison. So the caches below are keyed on the walk's own arguments
+# and nothing else. Keying them on the chart as well (rasi, star) would look
+# harmless and would silently recompute the same boundary search once per chart:
+# a family vault reading eight members on one date at one place would pay for
+# eight identical walks. The repo's own `pure-function-recomputed-per-consumer`
+# note, which the first cut of this code walked straight into.
+
+
+@lru_cache(maxsize=4096)
+def _moon_rasi_spans_for_day(
+    check_date: date,
+    timezone_name: str,
+    latitude: float,
+    longitude: float,
+) -> tuple:
+    """The Moon's rasi spans across the solar day — the walk both registers need.
+
+    23 ms against 222 ms for a full panchangam, and verified to return exactly
+    the snapshot's own `moon_rasi_spans`. That matters because the forecast
+    horizons and the 26-date improvement scan ask per date: at panchangam cost
+    the scan alone would add ~5.8 s to the request, at this cost ~0.6 s.
+    """
+    start_jd, end_jd = _solar_day_bounds_jd(check_date, timezone_name, latitude, longitude)
+    return tuple(limb_spans_between("moon_rasi", start_jd, end_jd, timezone_name))
+
+
+def _chandrashtama_rasi_share(
+    check_date: date,
+    timezone_name: str,
+    latitude: float,
+    longitude: float,
+    natal_moon_rasi: int,
+) -> float:
+    """Fraction of the solar day the Moon spends in the 8th from `natal_moon_rasi`.
+
+    The CONDITION register. Deliberately the same quantity `weighted_moon_score`
+    weights the daily score by, over the same sunrise-to-sunrise day, so the two
+    graded penalties in this product cannot disagree about how much of a day was
+    Chandrashtama.
+    """
+    target = ((natal_moon_rasi - 1 + 7) % 12) + 1
+    spans = _moon_rasi_spans_for_day(check_date, timezone_name, latitude, longitude)
+    return limb_fraction(spans, lambda span: span.number == target)
+
+
+
 # ── Trend calculation ──────────────────────────────────────────────────────────
 
 #: The mind-sensitive areas Chandrashtamam is allowed to drag, and by how much.
@@ -324,6 +411,8 @@ _AREA_ROUTING: dict[str, dict] = {
 _CHANDRASHTAMA_AREAS: frozenset[str] = frozenset(
     {"HEALTH", "RELATIONSHIPS", "FAMILY_HARMONY", "EDUCATION"}
 )
+#: Full penalty, reached when the Moon is in the reader's 8th rasi for the whole
+#: solar day. Graded by the day's share below — see `_chandrashtama_rasi_share`.
 _CHANDRASHTAMA_PENALTY = 8
 
 #: Smallest score move the arrow will call a direction. Chosen from measured
@@ -576,6 +665,38 @@ def _build_area_reason(
     )
 
 
+@lru_cache(maxsize=4096)
+def _improvement_scan_at(
+    birth_jd: float,
+    moon_longitude: float,
+    check_jd: float,
+) -> tuple[dict, str, str]:
+    """Transit bodies and the dasha lords in force at one scan instant.
+
+    Memoised because the scan below runs **per life area** over the same 26
+    weekly dates, and everything here is a function of the instant and the
+    chart, not of the area — only `_score_area` differs. Ten areas were
+    therefore computing one identical ephemeris + timeline pair ten times:
+    profiled 2026-09-09 at 256 `calculate_vimshottari_timeline` calls and 1.8 s
+    of a 3.1 s dashboard bundle, the single largest item left in it.
+
+    This is the same sharing the forecast-horizon block below already documents
+    ("computed once per request and reused across all areas") — the insight was
+    applied there and not here.
+
+    The returned mapping is shared between areas, which is safe because nothing
+    in this module writes to it; `_score_area` and its callees only read. Keep
+    it that way, or copy at the call site.
+    """
+    transit = calculate_sidereal_planets(check_jd)
+    timeline = calculate_vimshottari_timeline(birth_jd, moon_longitude, check_jd)
+    return (
+        transit.bodies,
+        timeline.current_mahadasha.lord,
+        timeline.current_antardasha.lord,
+    )
+
+
 def _find_next_improvement_date(
     *,
     area: str,
@@ -591,34 +712,61 @@ def _find_next_improvement_date(
     bav: dict[str, dict[int, int]] | None,
     sav: dict[int, int] | None,
     native_age: int,
-) -> date:
+    location: EffectiveDailyLocation,
+) -> date | None:
+    """The first day within six months on which this area reaches a better score,
+    or None when no such day is found.
+
+    Two product rules, both of them about the promise the copy makes rather than
+    about the scan:
+
+    **The date printed must be a date that was actually tested.** This used to
+    fall back to `on_date + 90` after a fruitless 180-day scan — a date the scan
+    had passed either side of and rejected, handed to `_duration_caution`, which
+    then told the reader "this challenging period lasts until 9 Dec 2026.
+    Improvement starts clearly after this date." about a date at which the
+    engine had found no improvement at all. None now, and the caller falls back
+    to the area's own caution copy, which claims nothing it cannot support.
+
+    **The date printed must be the first improving day, not the first improving
+    sample.** The coarse pass steps a week at a time, deliberately: a week is
+    the resolution at which a transit change is a change of regime rather than a
+    one-day blip, and blips are not what "conditions improve after" means to a
+    reader. But once a week has been found, its date is an artifact of the grid
+    — the lift can have begun up to six days earlier. The refinement walks back
+    day by day from that week to the first day that holds the same improvement,
+    so the printed date is one the engine stands behind. It can only ever move
+    the answer EARLIER, and only within a week already known to improve.
+    """
     target_score = max(55, current_score + 8)
-    for offset_days in range(7, 181, 7):
-        check_date = on_date + timedelta(days=offset_days)
+
+    def _projected(check_date: date) -> int:
         check_jd = utc_datetime_to_julian_day(datetime.combine(check_date, time(12, 0), tzinfo=UTC))
-        transit = calculate_sidereal_planets(check_jd)
-        timeline = calculate_vimshottari_timeline(birth_jd, moon_longitude, check_jd)
-        maha_lord = timeline.current_mahadasha.lord
-        antar_lord = timeline.current_antardasha.lord
-        moon = transit.bodies["MOON"]
-        saturn = transit.bodies["SATURN"]
-        chandrashtama_rasi = ((natal_moon_rasi - 1 + 7) % 12) + 1
-        chandrashtama = moon.rasi == chandrashtama_rasi
+        transit_bodies, maha_lord, antar_lord = _improvement_scan_at(
+            birth_jd, moon_longitude, check_jd,
+        )
+        saturn = transit_bodies["SATURN"]
         saturn_house_from_moon = house_from_reference(natal_moon_rasi, saturn.rasi)
         sani_cycle = classify_sani_cycle(saturn_house_from_moon)
         # Kandaka counts from the Janma Rasi and layers over `sani_cycle` — the
         # 4th from the Moon is both Ardhashtama and Kandaka (doctrine A-1).
         kandaka_cycle = classify_kandaka_cycle(saturn_house_from_moon)
-        projected, _, _ = _score_area(
+        score, _, _ = _score_area(
             area,
             natal_moon_rasi,
-            transit.bodies,
+            transit_bodies,
             maha_lord,
             antar_lord,
             sani_cycle.type if sani_cycle.is_active else None,
             sani_cycle.is_active,
             kandaka_cycle.is_active,
-            chandrashtama,
+            # Same graded share as today's score and the two horizons. The
+            # cache on it is what keeps 26 dates x every low-scoring area from
+            # recomputing one pure function per consumer.
+            _chandrashtama_rasi_share(
+                check_date, location.timezone, location.latitude, location.longitude,
+                natal_moon_rasi,
+            ),
             lagna_rasi=natal_lagna_rasi,
             natal_planet_scores=natal_planet_scores,
             natal_planet_rasis=natal_planet_rasis,
@@ -627,9 +775,22 @@ def _find_next_improvement_date(
             sav=sav,
             native_age=native_age,
         )
-        if projected >= target_score:
-            return check_date
-    return on_date + timedelta(days=90)
+        return score
+
+    for offset_days in range(7, 181, 7):
+        check_date = on_date + timedelta(days=offset_days)
+        if _projected(check_date) < target_score:
+            continue
+        # Walk back into the week just cleared. `earliest` never precedes the
+        # previous sample, which was tested and did not improve.
+        earliest = check_date
+        for back in range(1, 7):
+            candidate = check_date - timedelta(days=back)
+            if candidate <= on_date or _projected(candidate) < target_score:
+                break
+            earliest = candidate
+        return earliest
+    return None
 
 
 # ── Forward-projected forecast horizons (6- and 12-month) ─────────────────────
@@ -653,7 +814,7 @@ class _ForecastContext:
     sani_type: str | None
     sani_active: bool
     kandaka_active: bool
-    chandrashtama: bool
+    chandrashtama_share: float
 
 
 def _forecast_context(
@@ -664,15 +825,14 @@ def _forecast_context(
     moon_longitude: float,
     natal_moon_rasi: int,
     natal_lagna_rasi: int,
+    location: EffectiveDailyLocation,
 ) -> _ForecastContext:
     check_jd = utc_datetime_to_julian_day(
         datetime.combine(check_date, time(12, 0), tzinfo=tz).astimezone(UTC)
     )
     transit = calculate_sidereal_planets(check_jd)
     timeline = calculate_vimshottari_timeline(birth_jd, moon_longitude, check_jd)
-    moon = transit.bodies["MOON"]
     saturn = transit.bodies["SATURN"]
-    chandrashtama_rasi = ((natal_moon_rasi - 1 + 7) % 12) + 1
     saturn_house_from_moon = house_from_reference(natal_moon_rasi, saturn.rasi)
     sani_cycle = classify_sani_cycle(saturn_house_from_moon)
     # Kandaka counts from the Janma Rasi and layers over `sani_cycle` — the 4th
@@ -686,7 +846,15 @@ def _forecast_context(
         sani_type=sani_cycle.type if sani_cycle.is_active else None,
         sani_active=sani_cycle.is_active,
         kandaka_active=kandaka_cycle.is_active,
-        chandrashtama=(moon.rasi == chandrashtama_rasi),
+        # The graded share, not a noon point-sample of the Moon's rasi. A
+        # projection is allowed to be coarse, but it must not be coarse in a
+        # DIFFERENT way from today's score — an 8-point term that is binary at
+        # the horizon and graded today would put a pure artefact into `_trend`,
+        # whose deadband is only ±5.
+        chandrashtama_share=_chandrashtama_rasi_share(
+            check_date, location.timezone, location.latitude, location.longitude,
+            natal_moon_rasi,
+        ),
     )
 
 
@@ -712,7 +880,7 @@ def _projected_area_score(
         ctx.sani_type,
         ctx.sani_active,
         ctx.kandaka_active,
-        ctx.chandrashtama,
+        ctx.chandrashtama_share,
         lagna_rasi=natal_lagna_rasi,
         natal_planet_scores=natal_planet_scores,
         natal_planet_rasis=natal_planet_rasis,
@@ -1166,7 +1334,7 @@ def _score_area(
     sani_cycle_type: str | None,
     sani_cycle_active: bool,
     kandaka_sani_active: bool,
-    chandrashtama: bool,
+    chandrashtama_share: float,
     *,
     lagna_rasi: int,
     natal_planet_scores: dict[str, int],
@@ -1299,8 +1467,8 @@ def _score_area(
     scored = compute_prediction_score(inp, use_reasoning_gate=use_gate)
     if kandaka_sani_active:
         scored.total = max(0, scored.total - _SANI_AREA_PENALTY["KANDAKA_SANI"].get(area, 0))
-    if chandrashtama and area in _CHANDRASHTAMA_AREAS:
-        scored.total = max(0, scored.total - _CHANDRASHTAMA_PENALTY)
+    if chandrashtama_share > 0 and area in _CHANDRASHTAMA_AREAS:
+        scored.total = max(0, scored.total - round(_CHANDRASHTAMA_PENALTY * chandrashtama_share))
 
     return scored.total, {
         "l1": scored.l1_birth_promise,
@@ -1648,12 +1816,23 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
     maha_lord = timeline.current_mahadasha.lord
     antar_lord = timeline.current_antardasha.lord
 
-    moon = transit.bodies["MOON"]
     saturn = transit.bodies["SATURN"]
     jupiter = transit.bodies["JUPITER"]
 
-    chandrashtama_rasi = ((natal_moon.rasi - 1 + 7) % 12) + 1
-    chandrashtama = moon.rasi == chandrashtama_rasi
+    # Two registers, never one boolean — see the block above `_chandrashtama_rasi_share`.
+    # The share drags the score; the named day drives the prohibition copy and the
+    # tile's marker, and is the identical test the Today hero badges with, so the
+    # two tabs can no longer contradict each other.
+    _daily_location = resolve_effective_daily_location(birth_profile)
+    _chandra_args = (
+        on_date, _daily_location.timezone, _daily_location.latitude, _daily_location.longitude,
+    )
+    chandrashtama_share = _chandrashtama_rasi_share(*_chandra_args, natal_moon.rasi)
+    chandrashtama = is_chandrashtama_day(
+        *_chandra_args,
+        natal_moon_rasi=natal_moon.rasi,
+        janma_nakshatra=nakshatra_from_degree(natal_moon.absolute_longitude),
+    )
 
     saturn_house_from_moon = house_from_reference(natal_moon.rasi, saturn.rasi)
     jupiter_house = house_from_reference(natal_moon.rasi, jupiter.rasi)
@@ -1743,6 +1922,7 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
         moon_longitude=natal_moon.absolute_longitude,
         natal_moon_rasi=natal_moon.rasi,
         natal_lagna_rasi=natal_lagna_rasi,
+        location=_daily_location,
     )
     forecast_ctx_6mo = _forecast_at(check_date=_date_6mo)
     forecast_ctx_12mo = _forecast_at(check_date=_date_12mo)
@@ -1818,7 +1998,7 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             sani_cycle.type if sani_cycle.is_active else None,
             sani_cycle.is_active,
             kandaka_cycle.is_active,
-            chandrashtama,
+            chandrashtama_share,
             lagna_rasi=natal_lagna_rasi,
             natal_planet_scores=natal_planet_scores,
             natal_planet_rasis=natal_planet_rasis,
@@ -2051,17 +2231,20 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
                 bav=bav_table,
                 sav=sarvashtakavarga,
                 native_age=current_age,
+                location=_daily_location,
             )
         if score < 50 or bundle.caution is not None:
             bundle = _NarrativeBundle(
                 narrative=bundle.narrative,
                 outlook=_with_improvement_hint(bundle.outlook, next_improvement),
                 remedy=bundle.remedy,
-                # `next_improvement` is always set when score < 50 — that is the
-            # first disjunct of the condition above, and
-            # `_find_next_improvement_date` always returns a date. The
-            # explicit check states an invariant across two separate `if`s
-            # that a reader (and a type checker) cannot otherwise see.
+                # `next_improvement` is None when the six-month scan found no
+            # improving day. `_duration_caution` names the date as the end of a
+            # challenging period, so with no date there is nothing true to say
+            # and the area's own caution stands. It used to be handed
+            # `on_date + 90` in that case — a date the scan had rejected either
+            # side of — which made the sentence assert exactly what the engine
+            # had disproved.
             caution=(
                 _duration_caution(area, next_improvement)
                 if score < 50 and next_improvement is not None
@@ -2185,7 +2368,18 @@ def get_life_areas(session: Session, chart_id: UUID, on_date: date, *, owner_use
             label=label,
             score=score,
             trend=_trend(score, score_6mo),
+            # The flag is the NAMED DAY — what a Tamil reader calls
+            # Chandrashtamam, and what the Today hero badges, so the two tabs
+            # agree. The points are the graded CONDITION and are a different
+            # number: `_score_area` subtracted `round(8 × share)` and a surface
+            # that prints "docked 8" beside a flag that no longer implies 8
+            # would contradict its own arithmetic. Both travel, neither is
+            # derivable from the other.
             chandrashtamaApplied=chandrashtama and area in _CHANDRASHTAMA_AREAS,
+            chandrashtamaPenalty=(
+                round(_CHANDRASHTAMA_PENALTY * chandrashtama_share)
+                if area in _CHANDRASHTAMA_AREAS else 0
+            ),
             score6mo=score_6mo,
             score12mo=score_12mo,
             ageRelevant=not phase_skipped,
