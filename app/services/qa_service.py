@@ -18,7 +18,12 @@ from app.calculations.astro import (
 )
 from app.calculations.dasha import NAK_LORD, calculate_opening_dasha, calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets, set_lahiri_ayanamsa
-from app.calculations.panchangam import calculate_daily_panchangam
+from app.calculations.panchangam import (
+    NAKSHATRA_NAMES,
+    PanchangamChandrashtamamNakshatraWindow,
+    calculate_daily_panchangam,
+    own_chandrashtama_windows,
+)
 from app.calculations.transits import classify_kandaka_cycle, classify_sani_cycle, is_gandanta
 from app.schemas.qa import QACaseResult, QAModuleResult, QAValidationResponse
 
@@ -297,15 +302,90 @@ def _run_sani_cycle() -> QAModuleResult:
 
 
 # ── Category 9: Chandrashtama ────────────────────────────────────────────────
+#
+# TWO REGISTERS, and this module asserts both, because the product ships both
+# and they are allowed to disagree. See §16 of
+# docs/CHANDRASHTAMA_SURFACE_DIVERGENCE_2026-09-09.md.
+#
+#   T060/T061 — the CONDITION. The Moon transiting the 8th rasi from the janma
+#   rasi: rasi-level, continuous, ~2¼ days, and it drags a score in proportion
+#   to how much of the day it holds. This is what grades the Life Areas penalty
+#   and what `weighted_moon_score` weights by.
+#
+#   T063 — the PROHIBITION. The day the almanac NAMES for one janma star:
+#   star-and-rasi level, binary, one day per cycle. This is what the Today hero
+#   badges, what both date pickers veto, and what `chandrashtamaApplied` means.
+#
+# Measured over 2026 at Chennai, the condition holds on 30.4 days per
+# star-and-rasi half per year and the prohibition names 13.7 of them. Until
+# 2026-09-10 this module asserted only the first — so the harness was signing
+# off a rule four product surfaces had stopped shipping, and would have passed
+# unchanged through every defect the divergence document records.
 
 
 def _chandrashtama_active(janma_rasi: int, transit_rasi: int) -> bool:
+    """The CONDITION register alone — not the badge, and not a date veto.
+
+    Deliberately still asserted: the graded rasi share is a real part of the
+    product. It is simply not the answer to "is today my Chandrashtamam?".
+    """
     chandrashtama_rasi = ((janma_rasi - 1 + 7) % 12) + 1
     return transit_rasi == chandrashtama_rasi
 
 
+# 2026-09-09 at Chennai as the engine now reports it — the day that opened the
+# divergence report — bounded by the SOLAR day, sunrise to next sunrise.
+# Pooradam hands over to Uthiradam at 09:34, and Uthiradam is split again at
+# 15:14 where the affected point crosses from Dhanusu into Magaram.
+#
+# Built by hand rather than computed. The rule under test is which window
+# belongs to whom, and a fixture that called the ephemeris would re-assert the
+# boundary search instead — and would change under it.
+_QA_DAY_START = datetime(2026, 9, 9, 6, 1)
+_QA_DAY_END = datetime(2026, 9, 10, 6, 1)
+_QA_POORADAM, _QA_UTHIRADAM, _QA_MOOLAM = 20, 21, 19
+_QA_DHANUSU, _QA_MAGARAM = 9, 10
+_QA_UTHIRADAM_DHANUSU_END = datetime(2026, 9, 9, 15, 14)
+
+
+def _qa_window(nakshatra: int, rasi: int, start: datetime, end: datetime):
+    return PanchangamChandrashtamamNakshatraWindow(
+        name=NAKSHATRA_NAMES[(nakshatra - 1) % 27], start=start, end=end, rasi_number=rasi,
+    )
+
+
+def _qa_window_no_rasi(window: PanchangamChandrashtamamNakshatraWindow):
+    return PanchangamChandrashtamamNakshatraWindow(
+        name=window.name, start=window.start, end=window.end, rasi_number=0,
+    )
+
+
+_QA_WINDOWS = (
+    _qa_window(_QA_POORADAM, _QA_DHANUSU, _QA_DAY_START, datetime(2026, 9, 9, 9, 34)),
+    _qa_window(_QA_UTHIRADAM, _QA_DHANUSU, datetime(2026, 9, 9, 9, 34), _QA_UTHIRADAM_DHANUSU_END),
+    _qa_window(_QA_UTHIRADAM, _QA_MAGARAM, _QA_UTHIRADAM_DHANUSU_END, _QA_DAY_END),
+)
+
+# The same day as a pre-v45 cache row carries it: windows with no rasi at all.
+_QA_WINDOWS_NO_RASI = tuple(
+    _qa_window_no_rasi(window) for window in _QA_WINDOWS
+)
+
+
+def _qa_own(janma_nakshatra: int, natal_moon_rasi: int, windows=_QA_WINDOWS):
+    return own_chandrashtama_windows(
+        windows, janma_nakshatra=janma_nakshatra, natal_moon_rasi=natal_moon_rasi,
+    )
+
+
+def _qa_is_named_day(janma_nakshatra: int, natal_moon_rasi: int, windows=_QA_WINDOWS) -> bool:
+    return bool(_qa_own(janma_nakshatra, natal_moon_rasi, windows))
+
+
 def _run_chandrashtama() -> QAModuleResult:
-    # Chandrashtamam = transit Moon in the 8th rasi from janma rasi (whole-sign count).
+    # T060/T061 are the CONDITION (transit Moon in the 8th rasi, whole-sign
+    # count); T063 is the PROHIBITION (the day the almanac names). See the note
+    # above `_chandrashtama_active` for why both are asserted.
     cases = [
         _case("T060-a", "Janma rasi 1, transit rasi 8 -> Chandrashtama", True, _chandrashtama_active(1, 8)),
         _case("T060-b", "Janma rasi 3, transit rasi 10 -> Chandrashtama", True, _chandrashtama_active(3, 10)),
@@ -320,6 +400,70 @@ def _run_chandrashtama() -> QAModuleResult:
         _case("T062-c", "119.0 deg is Gandanta (Kadagam-Simmam cusp)", True, is_gandanta(119.0)),
         _case("T062-d", "239.0 deg is Gandanta (Vrichigam-Dhanusu cusp)", True, is_gandanta(239.0)),
         _case("T062-e", "150.0 deg is NOT Gandanta", False, is_gandanta(150.0)),
+        # ── The PROHIBITION register: which day a window names, and whose it is.
+        # Fixture: 2026-09-09 at Chennai, the day the divergence report opened on.
+        _case(
+            "T063-a",
+            "Pooradam/Dhanusu: window covers sunrise -> the day is theirs",
+            True,
+            _qa_is_named_day(_QA_POORADAM, _QA_DHANUSU),
+        ),
+        _case(
+            "T063-b",
+            "Uthiradam/Dhanusu: window opens and closes inside the day -> theirs",
+            True,
+            _qa_is_named_day(_QA_UTHIRADAM, _QA_DHANUSU),
+        ),
+        # The reported defect. Plain overlap badged this reader today; the window
+        # opens at 15:14 and is still running at the next sunrise, so it names
+        # TOMORROW. Today belongs to Pooradam, which is what the almanac prints.
+        _case(
+            "T063-c",
+            "Uthiradam/Magaram: window opens late and outlasts the day -> names tomorrow",
+            False,
+            _qa_is_named_day(_QA_UTHIRADAM, _QA_MAGARAM),
+        ),
+        # Star AND rasi. Nine of the 27 stars straddle a rasi boundary, so the
+        # name alone selects the other half's hours — a fortnight out.
+        _case(
+            "T063-d",
+            "Uthiradam/Dhanusu is given its own hours, not the Magaram half's",
+            _QA_UTHIRADAM_DHANUSU_END.isoformat(),
+            _qa_own(_QA_UTHIRADAM, _QA_DHANUSU)[0].end.isoformat(),
+        ),
+        _case(
+            "T063-e",
+            "Moolam/Dhanusu: same sign, same transit, another star's day -> not theirs",
+            False,
+            _qa_is_named_day(_QA_MOOLAM, _QA_DHANUSU),
+        ),
+        # The two registers, disagreeing by design on one day. The Moon is in the
+        # 8th from Dhanusu (Kadagam, 4) for part of 2026-09-09, so every Dhanusu
+        # native carries the graded condition — but the almanac names the day for
+        # Pooradam, so a Moolam native is not under the prohibition. A surface
+        # that reads one and prints the other is the defect this document records.
+        _case(
+            "T063-f",
+            "Moolam/Dhanusu 2026-09-09: condition holds, prohibition does not",
+            True,
+            _chandrashtama_active(_QA_DHANUSU, 4) and not _qa_is_named_day(_QA_MOOLAM, _QA_DHANUSU),
+        ),
+        # Fail-safe direction: an avoidance rule must not clear a day it cannot
+        # read. A pre-v45 cache row carries no rasi, so the match falls back to
+        # the star name — right for the 18 stars that do not straddle, and no
+        # worse than before for the nine that do.
+        _case(
+            "T063-g",
+            "Pre-v45 window (no rasi): falls back to matching the star name",
+            True,
+            _qa_is_named_day(_QA_UTHIRADAM, _QA_MAGARAM, _QA_WINDOWS_NO_RASI),
+        ),
+        _case(
+            "T063-h",
+            "Unknown natal moon rasi (0): same fallback, same direction",
+            True,
+            _qa_is_named_day(_QA_UTHIRADAM, 0),
+        ),
     ]
     passed = sum(1 for c in cases if c.passed)
     return QAModuleResult(module="chandrashtama", passed=passed, failed=len(cases) - passed, cases=cases)

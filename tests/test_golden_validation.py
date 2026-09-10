@@ -113,7 +113,10 @@ def test_sani_cycle_all_pass(golden_result):
 
 def test_chandrashtama_all_pass(golden_result):
     mod = _get_module(golden_result, "chandrashtama")
-    assert mod.passed + mod.failed == 12, "Expected 12 cases in chandrashtama"
+    # 12 + the eight T063 star-window cases added 2026-09-10: the module used to
+    # assert only the rasi condition, which is not the rule the badge, the two
+    # date pickers or `chandrashtamaApplied` ship.
+    assert mod.passed + mod.failed == 20, "Expected 20 cases in chandrashtama"
     _assert_all_cases(mod)
 
 
@@ -140,7 +143,7 @@ def test_safety_text_all_pass(golden_result):
 
 def test_total_cases_count(golden_result):
     total = sum(m.passed + m.failed for m in golden_result.modules)
-    assert total == 140, f"Expected 140 total golden cases, got {total}"
+    assert total == 148, f"Expected 148 total golden cases, got {total}"
 
 
 def test_zero_failures(golden_result):
