@@ -22,12 +22,15 @@ from app.calculations.panchangam import (
     _compute_subha_muhurtham_broad,
     _compute_subha_muhurtham_strict,
     _jeevan_value,
+    _nakshatra_angle_at_jd,
     _nethiram_value,
     _special_tithi_durations_for_civil_day,
     best_gowri_slot,
     calculate_daily_panchangam,
+    chandrashtamam_janma_nakshatra_windows_for_day,
     dominant_special_tithi_for_civil_day,
     gowri_category_rank,
+    own_chandrashtama_windows,
 )
 from app.schemas.panchangam import PanchangamMonthlyQuery
 from app.services.panchangam_service import build_monthly_panchangam
@@ -483,7 +486,16 @@ def test_yoga_karana_chandrashtamam_have_transition_metadata():
     assert all(window.name in NAKSHATRA_NAMES for window in snap.chandrashtamam_janma_nakshatra_windows)
 
 
-def test_chandrashtamam_windows_tile_the_whole_civil_day():
+def _windows_for(day: date):
+    """The day's Chandrashtama windows at Chennai, without a full snapshot.
+
+    The location is not optional: the almanac day these windows divide runs
+    sunrise to sunrise, so the bounds need a horizon.
+    """
+    return chandrashtamam_janma_nakshatra_windows_for_day(day, "Asia/Kolkata", 13.0827, 80.2707)
+
+
+def test_chandrashtamam_windows_tile_the_whole_solar_day():
     """The walk used to stop at the Moon's sunrise rasi and drop the rest of the day.
 
     2026-09-07 at Chennai is the regression case: the Moon crosses into Kadagam
@@ -491,6 +503,11 @@ def test_chandrashtamam_windows_tile_the_whole_civil_day():
     having started in Mithunam, reported only Kettai to 12:38 and nothing after.
     A star whose window is missing cannot raise a flag for the natives born in
     it, so the day must be covered end to end.
+
+    "The day" is the SOLAR day, sunrise to next sunrise, since the 2026-09-09
+    D11 ruling. It was the civil day, which made this the only span list on the
+    snapshot measured over different bounds from the rest — and it is what
+    `own_chandrashtama_windows` reads to decide whose day it is.
     """
     timezone_name = "Asia/Kolkata"
     for day in (date(2026, 9, 7), date(2026, 9, 8), date(2026, 9, 9), date(2026, 9, 10)):
@@ -498,14 +515,21 @@ def test_chandrashtamam_windows_tile_the_whole_civil_day():
         windows = snap.chandrashtamam_janma_nakshatra_windows
         assert windows, day
 
-        assert windows[0].start.date() == day
-        assert windows[0].start.hour == 0 and windows[0].start.minute == 0, day
-        assert windows[-1].end.date() == day + timedelta(days=1), day
+        assert windows[0].start == snap.sunrise, day
+        # Against `moon_rasi_spans` rather than a next-sunrise scalar (the
+        # snapshot carries none): the point of D11 is that the whole feature now
+        # measures one day, so the two lists must share both edges exactly.
+        assert windows[-1].end == snap.moon_rasi_spans[-1].end, day
+        assert windows[0].start == snap.moon_rasi_spans[0].start, day
         # No gaps: each window starts where the previous one ended.
         for earlier, later in zip(windows, windows[1:], strict=False):
             assert abs((later.start - earlier.end).total_seconds()) < 1, day
         assert all(w.name in NAKSHATRA_NAMES for w in windows), day
-        assert len({w.name for w in windows}) == len(windows), day
+        # Distinct by star AND rasi, not by star. A straddling star is split at
+        # the rasi boundary and so legitimately appears twice in one day —
+        # 2026-09-09 holds Uthiradam in Dhanusu and again in Magaram. What must
+        # never repeat is the pair, which would mean a duplicated span.
+        assert len({(w.name, w.rasi_number) for w in windows}) == len(windows), day
 
 
 def test_chandrashtamam_window_boundaries_sit_on_the_affected_star_grid():
@@ -534,10 +558,12 @@ def test_chandrashtamam_window_boundaries_sit_on_the_affected_star_grid():
 def test_chandrashtamam_sunrise_star_gives_each_star_exactly_one_day():
     """The உதய rule: one star owns each day, which is how an almanac prints it.
 
-    This scalar is what the personal Chandrashtama badge reads. Over a stretch
-    it must hand off star by star with no star claiming two days and none
-    skipped — the property that makes a Moolam native's badge fall on Moolam's
-    day and not on Pooradam's.
+    This scalar is the day's almanac headline — what a printed page names as
+    today's Chandrashtamam. Over a stretch it must hand off star by star with no
+    star claiming two days and none skipped, which is what makes a Moolam
+    native's badge fall on Moolam's day and not on Pooradam's. The badge itself
+    reads the windows, not this scalar; `test_the_sunrise_scalars_are_the_first_window`
+    is what holds the two together.
     """
     timezone_name = "Asia/Kolkata"
     owners: list[str] = []
@@ -591,6 +617,191 @@ def test_every_janma_star_gets_a_chandrashtama_day_in_a_lunar_cycle():
             seen.update(w.name for w in windows)
         missing = [n for n in NAKSHATRA_NAMES if n not in seen]
         assert not missing, f"stretch from {start} never names {missing}"
+
+
+def test_a_straddling_stars_window_is_split_at_the_rasi_boundary():
+    """D9, reported 2026-09-09: an Uthiradam/Magaram native badged on the
+    Uthiradam/Dhanusu day.
+
+    30° is 2.25 nakshatras, so only every fourth rasi boundary lands on a
+    nakshatra boundary and nine of the 27 stars straddle one. Their natives sit
+    in two different signs and are therefore in Chandrashtama a fortnight apart,
+    which a window keyed on the star name alone cannot express.
+
+    2026-09-09 at Chennai is the handover: the affected point enters Uthiradam
+    at 09:34 in Dhanusu and crosses into Magaram at 15:14, when the Moon leaves
+    Kadagam. One star, one day, two windows, two audiences.
+    """
+    windows = _windows_for(date(2026, 9, 9))
+    uthiradam = [w for w in windows if w.name == "UTHIRADAM"]
+
+    assert [w.rasi_number for w in uthiradam] == [9, 10]
+    assert uthiradam[0].end == uthiradam[1].start
+    assert uthiradam[0].start.strftime("%H:%M") == "09:34"
+    assert uthiradam[0].end.strftime("%H:%M") == "15:14"
+
+    # The Dhanusu half's window opens and closes between two sunrises, so this
+    # day is theirs and no other is. The Magaram half's runs past tomorrow's
+    # sunrise, so it names tomorrow — see the D11 test below.
+    assert list(own_chandrashtama_windows(
+        windows, janma_nakshatra=21, natal_moon_rasi=9,
+    )) == uthiradam[:1]
+
+
+def test_a_window_that_opens_late_names_tomorrow_not_today():
+    """D11, reported 2026-09-09: "my daughter is Uthiradam MAGARAM and she is
+    shown Chandrashtamam today too", on a day the almanac gives to Pooradam.
+
+    Her window opens 15:14 on the 9th and runs to 08:20 on the 10th. Under the
+    உதய rule the day belongs to the star standing at SUNRISE, so that window
+    names the 10th — the day whose sunrise it covers — and the 9th belongs to
+    Pooradam/Dhanusu, which is what the printed almanac heads it with.
+
+    The previous rule was plain overlap: any window touching the day badged it.
+    That gave every straddling half two days and put this one on a date its
+    Chandrashtama had not started on at sunrise.
+    """
+    ninth = _windows_for(date(2026, 9, 9))
+    tenth = _windows_for(date(2026, 9, 10))
+
+    late = next(w for w in ninth if w.name == "UTHIRADAM" and w.rasi_number == 10)
+    assert late.start.strftime("%H:%M") == "15:14"
+    assert late.end == ninth[-1].end  # still running at the next sunrise
+
+    assert own_chandrashtama_windows(ninth, janma_nakshatra=21, natal_moon_rasi=10) == ()
+    assert own_chandrashtama_windows(tenth, janma_nakshatra=21, natal_moon_rasi=10) != ()
+    # And the day she is NOT badged on still belongs to somebody: Pooradam.
+    assert own_chandrashtama_windows(ninth, janma_nakshatra=20, natal_moon_rasi=9) != ()
+
+
+def test_a_window_between_two_sunrises_still_claims_its_day():
+    """The exception that keeps the உதய rule from losing a star.
+
+    A star window is 13°20' of Moon motion — 20.8 h when the Moon is fast,
+    against a 24 h day — so a window can open after one sunrise and close before
+    the next, covering none. Reading only the sunrise star drops those natives
+    entirely: 11 stars in 2026 at Chennai were never badged at all.
+
+    2026-09-09 holds one: Uthiradam/Dhanusu, 09:34 to 15:14. It has no other day
+    anywhere in the cycle, so it must claim this one.
+    """
+    windows = _windows_for(date(2026, 9, 9))
+    contained = next(w for w in windows if w.name == "UTHIRADAM" and w.rasi_number == 9)
+    assert windows[0].start < contained.start and contained.end < windows[-1].end
+
+    assert own_chandrashtama_windows(windows, janma_nakshatra=21, natal_moon_rasi=9) == (contained,)
+    # ...and nowhere else in the surrounding week.
+    for offset in (-2, -1, 1, 2):
+        day = date(2026, 9, 9) + timedelta(days=offset)
+        assert own_chandrashtama_windows(
+            _windows_for(day), janma_nakshatra=21, natal_moon_rasi=9,
+        ) == (), day
+
+
+def test_the_wrong_half_of_a_straddling_star_is_not_badged():
+    """The false positive the name-only match produced, in both directions.
+
+    On 2026-09-10 the affected point is in Magaram all day, so Uthiradam's
+    remaining window belongs to Magaram natives alone — the Dhanusu half's
+    Chandrashtama ended the previous afternoon. Matching on the name gave them a
+    whole extra day, 11 times over in 2026.
+    """
+    windows = _windows_for(date(2026, 9, 10))
+    assert any(w.name == "UTHIRADAM" for w in windows)
+
+    assert own_chandrashtama_windows(windows, janma_nakshatra=21, natal_moon_rasi=9) == ()
+    assert own_chandrashtama_windows(windows, janma_nakshatra=21, natal_moon_rasi=10) != ()
+
+
+def test_every_star_and_rasi_half_is_badged_exactly_once_a_cycle():
+    """The property both halves of the D11 ruling exist to protect, together.
+
+    36 halves exist — 27 stars plus the nine that straddle a rasi boundary and
+    so carry two audiences. Across a lunar cycle every one of them must own at
+    least one day (the sunrise rule alone skipped 11 in 2026) and none may own
+    a run of days it has no claim to (plain overlap gave every half two).
+
+    A run of two consecutive days is legitimate and left alone: a 27.2 h window
+    at the Moon's slowest genuinely covers two sunrises, and an almanac prints
+    that star on both pages. Three would not be — 27.2 h cannot reach a third —
+    and a gap shorter than a cycle would mean a second spell that no window
+    justifies.
+    """
+    start = date(2026, 3, 1)
+    days = [_windows_for(start + timedelta(days=offset)) for offset in range(29)]
+    halves = {(w.name, w.rasi_number) for windows in days for w in windows}
+    assert len(halves) == 36
+
+    for star, rasi in sorted(halves):
+        owned = [
+            index for index, windows in enumerate(days)
+            if own_chandrashtama_windows(
+                windows, janma_nakshatra=NAKSHATRA_NAMES.index(star) + 1, natal_moon_rasi=rasi,
+            )
+        ]
+        assert owned, f"{star}/{rasi} owns no day in the cycle from {start}"
+        # One spell per cycle. A 29-day stretch can catch the leading and
+        # trailing edge of two cycles, so days either follow each other or sit a
+        # full cycle apart — never a stray second spell mid-month.
+        runs = 1
+        for earlier, later in zip(owned, owned[1:], strict=False):
+            if later - earlier == 1:
+                continue
+            assert later - earlier >= 26, (star, rasi, owned)
+            runs += 1
+        assert len(owned) - runs <= runs, (star, rasi, owned)
+
+
+def test_the_sunrise_scalars_are_the_first_window():
+    """`chandrashtamam_affected_janma_{nakshatra,rasi}_*` were once flagged as a
+    trap — a sunrise scalar naming only the first of a rasi-change day's two
+    rasis, read by nothing personal.
+
+    D11 made them the day's headline instead: the day belongs to the star
+    standing at sunrise, so the pair IS the first window. Asserted here rather
+    than left as two independently-derived values that agree by habit — they are
+    computed from `moon_longitude` at sunrise and the windows from a boundary
+    walk, and nothing else would notice them parting company.
+    """
+    for offset in range(12):
+        snap = calculate_daily_panchangam(
+            date(2026, 9, 5) + timedelta(days=offset), 13.0827, 80.2707, "Asia/Kolkata",
+        )
+        first = snap.chandrashtamam_janma_nakshatra_windows[0]
+        assert first.name == snap.chandrashtamam_affected_janma_nakshatra_name
+        assert first.rasi_number == snap.chandrashtamam_affected_janma_rasi_number
+        assert first.rasi_name == snap.chandrashtamam_affected_janma_rasi_name
+
+
+def test_chandrashtama_windows_stay_inside_the_eighth_rasi_rule():
+    """The star reading is a REFINEMENT of spec §4.11, not a departure from it.
+
+    §4.11 freezes Chandrashtama as the Moon in the 8th rasi from natal Moon
+    rasi. The star reading refines it to a sub-interval, so throughout every
+    window the Moon must stand in the 8th rasi from the one the window names —
+    never merely for part of it, which is exactly what an unsplit straddling
+    window did.
+
+    Checked against the Moon's own longitude rather than the snapshot's
+    `moon_rasi_spans`, so this tests the rule and not the plumbing that now
+    hands one list to the other.
+    """
+    for offset in range(40):
+        day = date(2026, 3, 1) + timedelta(days=offset)
+        windows = _windows_for(day)
+        assert windows, day
+
+        for window in windows:
+            length = (window.end - window.start).total_seconds()
+            for step in (0.02, 0.5, 0.98):
+                at = window.start + timedelta(seconds=length * step)
+                moon_rasi = int(_nakshatra_angle_at_jd(
+                    utc_datetime_to_julian_day(at.astimezone(UTC))
+                ) // 30) + 1
+                assert window.rasi_number == ((moon_rasi - 8) % 12) + 1, (
+                    f"{day} {window.name} claims rasi {window.rasi_number} "
+                    f"while the Moon is in {moon_rasi}"
+                )
 
 
 def test_amavasai_pournami_use_dominant_civil_day_marker():

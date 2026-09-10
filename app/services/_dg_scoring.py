@@ -19,10 +19,10 @@ from app.calculations.chart_strength import (
 )
 from app.calculations.maturation import MATURATION_AGE
 from app.calculations.panchangam import (
-    NAKSHATRA_NAMES,
     PanchangamLimbSpan,
     limb_fraction,
     limb_weighted,
+    own_chandrashtama_windows,
 )
 from app.models import BirthProfile
 from app.services.narrative_engine import PLANET_NAME
@@ -524,7 +524,12 @@ def chandrashtama_rasi_for(natal_moon_rasi: int) -> int:
     return ((natal_moon_rasi - 1 + 7) % 12) + 1
 
 
-def chandrashtama_end(panchangam, *, janma_nakshatra: int) -> datetime | None:
+def chandrashtama_end(
+    panchangam,
+    *,
+    janma_nakshatra: int,
+    natal_moon_rasi: int,
+) -> datetime | None:
     """When Chandrashtama lifts today, or None if it does not lift today.
 
     Read off the reader's own janma-star window, because that is what the badge
@@ -537,9 +542,16 @@ def chandrashtama_end(panchangam, *, janma_nakshatra: int) -> datetime | None:
 
     The clipping trap the rasi version documented still applies, so the same
     guard is kept in the same shape. `chandrashtamam_janma_nakshatra_windows` is
-    bounded by the CIVIL day, so the last window's end is midnight whether or not
-    the star actually hands over then. Returning that unconditionally would print
-    "ends 00:00" — a precise-looking time that is simply false.
+    clipped to the day it describes — the SOLAR day since 2026-09-09's D11
+    ruling, the civil day before it — so the last window's end is the day's edge
+    whether or not the star actually hands over then. Returning that
+    unconditionally would print a precise-looking time that is simply false.
+
+    Under D11 that case is rarer than it was, and means something specific: a
+    window still running at the next sunrise belongs to tomorrow, so the only
+    way to be badged today AND end at the day's edge is a window that covers
+    both sunrises — a genuinely all-day Chandrashtama, where None is the honest
+    answer.
 
     What changed is which case is common. Under the rasi rule a stretch spanned
     2-3 badged days, so None was the normal answer; a star window is about a day
@@ -547,6 +559,11 @@ def chandrashtama_end(panchangam, *, janma_nakshatra: int) -> datetime | None:
     normal answer and None the exception (a window still running at midnight).
     Callers must still handle None — see the note on `chandrashtamaEnds` in
     packages/shared/src/types/index.ts.
+
+    `natal_moon_rasi` is needed as well as the star: for the nine stars that
+    straddle a rasi boundary, the star name alone selects a window belonging to
+    the OTHER half of that star's natives, whose Chandrashtama is a fortnight
+    away. The badge beside this field applies both tests, so this must too.
     """
     windows = getattr(panchangam, "chandrashtamam_janma_nakshatra_windows", ()) or ()
     if not windows:
@@ -554,8 +571,11 @@ def chandrashtama_end(panchangam, *, janma_nakshatra: int) -> datetime | None:
         # say when anything lifts, so it must not pretend to.
         return None
 
-    own_name = NAKSHATRA_NAMES[(janma_nakshatra - 1) % 27]
-    mine = [window for window in windows if window.name == own_name]
+    mine = own_chandrashtama_windows(
+        windows,
+        janma_nakshatra=janma_nakshatra,
+        natal_moon_rasi=natal_moon_rasi,
+    )
     if not mine:
         return None
 

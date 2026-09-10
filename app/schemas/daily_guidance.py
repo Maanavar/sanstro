@@ -242,6 +242,13 @@ class DailyGuidanceData(BaseModel):
     # on exactly those days. Null when not in Chandrashtama, and for rows cached
     # before this field existed.
     chandrashtama_star: str | None = Field(default=None, alias="chandrashtamaStar")
+    # The reader's own natal Moon rasi, sent alongside the star for the same
+    # reason and only when in Chandrashtama. The star name alone does not
+    # identify a window: nine stars straddle a rasi boundary, so their two
+    # halves have different windows a fortnight apart, and a client matching on
+    # the name would show one half the other half's hours. Null when not in
+    # Chandrashtama, and for rows cached before this field existed.
+    chandrashtama_rasi: int | None = Field(default=None, alias="chandrashtamaRasi")
     saturn_cycle_alert: str | None = Field(default=None, alias="saturnCycleAlert")
     activity_board: DailyActivityBoardData | None = Field(default=None, alias="activityBoard")
 

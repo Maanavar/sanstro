@@ -38,6 +38,7 @@ from app.calculations.panchangam import (
     NALLA_NERAM_SUMMARY_TABLE,
     WEEKDAY_NAMES,
     calculate_daily_panchangam_range,
+    own_chandrashtama_windows,
 )
 from app.calculations.tamil_calendar import TAMIL_MONTHS
 from app.calculations.tara_bala import TARA_NAMES, TARA_SCORE, tara_number
@@ -331,17 +332,30 @@ def match_muhurtham_naals(
     location = _chart_daily_location(session, chart_id)
     snapshots = _panchangam_by_date(naals, location, session) if location is not None else {}
     nalla_neram_by_date = _computed_nalla_neram_by_date(naals, snapshots) if snapshots else {}
-    # Every janma star each date's Chandrashtamam touches — the overlap test the
-    # dashboard uses, not the single star standing at sunrise. A sunrise reading
-    # drops a star whenever its whole window falls between two sunrises, which
-    # would quietly clear a date that is genuinely the reader's. Empty = not
-    # known (no activity location for this chart, or a pre-v44 snapshot); see
-    # the fallback in the loop below.
-    chandra_stars_by_date = {
-        day: {window.name for window in snapshot.chandrashtamam_janma_nakshatra_windows}
+    # Does each date's Chandrashtamam touch THIS reader — their star and their
+    # rasi — anywhere in the day? The overlap test the dashboard uses, not the
+    # single star standing at sunrise: a sunrise reading drops a star whenever
+    # its whole window falls between two sunrises, which would quietly clear a
+    # date that is genuinely the reader's.
+    #
+    # The rasi half of the test matters for the nine straddling stars, whose
+    # natives sit in two signs a fortnight apart in Chandrashtama; matching the
+    # star name alone vetoed the wrong dates for one of the two halves.
+    #
+    # The bool pair is (the day could be read at all, it is the reader's). They
+    # are not the same thing — a date with no snapshot must fall back, a date
+    # with a snapshot and no match must not.
+    chandra_own_by_date = {
+        day: (
+            bool(snapshot.chandrashtamam_janma_nakshatra_windows),
+            bool(own_chandrashtama_windows(
+                snapshot.chandrashtamam_janma_nakshatra_windows,
+                janma_nakshatra=janma_nak,
+                natal_moon_rasi=janma_rasi,
+            )),
+        )
         for day, snapshot in snapshots.items()
     }
-    janma_star_name = NAKSHATRA_NAMES[(janma_nak - 1) % 27]
 
     matches: list[MuhurthamNaalMatch] = []
     for n in naals:
@@ -355,12 +369,13 @@ def match_muhurtham_naals(
         # were a hard veto, which marked three dates "Chandrashtama for you,
         # avoid" where the dashboard badged one.
         # See docs/CHANDRASHTAMA_SURFACE_DIVERGENCE_2026-09-09.md.
-        day_stars = chandra_stars_by_date.get(n.date)
+        day_readable, day_is_own = chandra_own_by_date.get(n.date, (False, False))
         in_chandra_rasi = n.moon_rasi_number == chandra_rasi
-        if day_stars:
-            is_chandra = janma_star_name in day_stars
+        if day_readable:
+            is_chandra = day_is_own
         else:
-            # No snapshot to name the stars. Fall back to the rasi reading rather
+            # No snapshot to name the stars (no activity location for this
+            # chart, or a pre-v44 row). Fall back to the rasi reading rather
             # than silently clearing a date that may well be the reader's — the
             # fail-safe direction for an avoidance rule is toward the doctrine.
             is_chandra = in_chandra_rasi

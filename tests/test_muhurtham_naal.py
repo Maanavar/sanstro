@@ -203,8 +203,25 @@ def _match_with_affected_star(monkeypatch, affected_star_number: int):
         start=datetime(2026, 1, 1, 8, 12), end=datetime(2026, 1, 1, 9, 7), period="AM",
     )
 
-    def _snapshots(start, end, lat, lon, tz, *, session):
-        window = SimpleNamespace(name=svc.NAKSHATRA_NAMES[affected_star_number - 1])
+    def _snapshots(start, end, lat, lon, tz, *, session, only=None):
+        # `rasi_number` is part of a real window and part of the match: nine
+        # stars straddle a rasi boundary, so the veto tests star AND rasi. The
+        # reader below is Rohini/Rishabam, so 2 is the rasi that makes the day
+        # theirs — a stub without it would exercise the pre-v45 fallback instead
+        # of the rule. Rohini and Krittika both touch Rishabam, so this is a
+        # coherent value for either star the callers pass.
+        #
+        # `start`/`end` are the day's own edges, because the D11 ruling made the
+        # match ask which day a window NAMES: sunrise to next sunrise, with a
+        # window that opens late and outlasts the day belonging to tomorrow. A
+        # lone window spanning its whole day is the "all day, and it is yours"
+        # case, which is what these tests mean by "every date is this reader's".
+        window = SimpleNamespace(
+            name=svc.NAKSHATRA_NAMES[affected_star_number - 1],
+            rasi_number=2,
+            start=datetime(2026, 1, 1, 6, 0),
+            end=datetime(2026, 1, 2, 6, 0),
+        )
         return {
             n.date: SimpleNamespace(
                 nalla_neram=[slot],

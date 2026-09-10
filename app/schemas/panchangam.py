@@ -220,6 +220,13 @@ class PanchangamChandrashtamamNakshatraWindow(BaseModel):
     name: str
     start: datetime
     end: datetime
+    # Which of the star's natives this window belongs to. Nine of the 27 stars
+    # straddle a rasi boundary — 30° is 2.25 nakshatras — so their natives fall
+    # in two signs whose Chandrashtamas are about a fortnight apart, and a
+    # client picking "my window" by star name alone gets the other half's. 0/""
+    # on a snapshot cached before panchangam v45.
+    rasi_number: int = Field(default=0, alias="rasiNumber")
+    rasi_name: str = Field(default="", alias="rasiName")
 
 
 class PanchangamChandrashtamamToday(BaseModel):

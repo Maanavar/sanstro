@@ -16,8 +16,7 @@ from app.calculations.astro import (
 )
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.panchangam import (
-    NAKSHATRA_NAMES,
-    chandrashtamam_janma_nakshatra_windows_for_day,
+    is_chandrashtama_day,
 )
 from app.calculations.transits import (
     GRAHA_LABELS,
@@ -46,6 +45,7 @@ from app.services.chart_service import load_persisted_chart_response
 from app.services.location_service import (
     local_midnight_as_jd_for_profile,
     local_noon_as_utc_for_profile,
+    resolve_effective_daily_location,
     resolve_effective_daily_timezone,
 )
 
@@ -72,25 +72,32 @@ def _chandrashtama_on_local_day(chart_snapshot, natal_moon, as_of_utc: datetime)
     flagged a Moolam native on Pooradam's day.
 
     Owner ruling that day: a person's Chandrashtama is their janma star's
-    window. The test is whether that window appears in the local day AT ALL, not
-    whether it happens to be standing at sunrise — a year-long audit found the
-    sunrise reading drops a star outright whenever its whole window falls
-    between two sunrises (11 times in 2026 at Chennai). It is deliberately not
-    sampled at `as_of_utc` either: that would make the answer depend on the hour
-    the client happened to ask, which is the original divergence.
+    window, and the day it names is the day whose sunrise it covers (or, for a
+    window short enough to fall between two sunrises, the day containing it).
+    `own_chandrashtama_windows` is where that rule lives. It is deliberately not
+    sampled at `as_of_utc`: that would make the answer depend on the hour the
+    client happened to ask, which is the original divergence.
 
-    Needs only a timezone, because the affected star is a function of the Moon's
-    longitude alone and only the civil-day bounds are local — so this costs two
-    boundary searches, not a panchangam.
+    Matched on star AND rasi. The nine stars that straddle a rasi boundary have
+    natives in two signs whose Chandrashtamas fall a fortnight apart, so the
+    star name alone identifies the wrong half for one of them — the 2026-09-09
+    follow-up report. `own_chandrashtama_windows` is the single place that test
+    lives, shared with the badge and the muhurtham veto.
+
+    Needs the effective daily location, not just a timezone: the almanac day
+    these windows divide runs sunrise to sunrise. Still far short of a full
+    panchangam — two boundary searches and two rise times.
     See docs/CHANDRASHTAMA_SURFACE_DIVERGENCE_2026-09-09.md.
     """
-    profile = chart_snapshot.data.birth_profile
-    timezone_name = resolve_effective_daily_timezone(profile)
+    location = resolve_effective_daily_location(chart_snapshot.data.birth_profile)
+    timezone_name = location.timezone
     local_day = as_of_utc.astimezone(ZoneInfo(timezone_name)).date()
 
-    own_star = NAKSHATRA_NAMES[(nakshatra_from_degree(natal_moon.absolute_longitude) - 1) % 27]
-    windows = chandrashtamam_janma_nakshatra_windows_for_day(local_day, timezone_name)
-    return any(window.name == own_star for window in windows)
+    return is_chandrashtama_day(
+        local_day, timezone_name, location.latitude, location.longitude,
+        natal_moon_rasi=natal_moon.rasi,
+        janma_nakshatra=nakshatra_from_degree(natal_moon.absolute_longitude),
+    )
 
 
 def build_transit_snapshot(

@@ -42,6 +42,11 @@ DAY_END = DAY_START + timedelta(hours=24)
 # 21 Uthiradam — the three stars of Dhanusu/Makaram that the reported case walks.
 MOOLAM, POORADAM, UTHIRADAM = 19, 20, 21
 
+# Rasi numbers. Uthiradam is the straddling star of this stretch: pada 1 sits in
+# Dhanusu, padas 2-4 in Magaram, so its natives have two Chandrashtamas about a
+# fortnight apart. Moolam and Pooradam are wholly Dhanusu.
+DHANUSU, MAGARAM = 9, 10
+
 
 class _Panchangam:
     """Only the attribute `chandrashtama_end` reads."""
@@ -50,8 +55,10 @@ class _Panchangam:
         self.chandrashtamam_janma_nakshatra_windows = windows
 
 
-def _window(name: str, start: datetime, end: datetime):
-    return PanchangamChandrashtamamNakshatraWindow(name=name, start=start, end=end)
+def _window(name: str, start: datetime, end: datetime, rasi: int = DHANUSU):
+    return PanchangamChandrashtamamNakshatraWindow(
+        name=name, start=start, end=end, rasi_number=rasi, rasi_name=str(rasi),
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -90,7 +97,7 @@ def test_reports_the_time_the_readers_own_star_hands_over():
         _window("UTHIRADAM", hands_over, DAY_END),
     ))
 
-    assert chandrashtama_end(panchangam, janma_nakshatra=POORADAM) == hands_over
+    assert chandrashtama_end(panchangam, janma_nakshatra=POORADAM, natal_moon_rasi=DHANUSU) == hands_over
 
 
 def test_reads_the_readers_star_not_the_days_first_window():
@@ -106,7 +113,7 @@ def test_reads_the_readers_star_not_the_days_first_window():
         _window("UTHIRADAM", hands_over, DAY_END),
     ))
 
-    assert chandrashtama_end(panchangam, janma_nakshatra=UTHIRADAM) is None
+    assert chandrashtama_end(panchangam, janma_nakshatra=UTHIRADAM, natal_moon_rasi=DHANUSU) is None
 
 
 def test_reports_nothing_when_the_window_is_still_running_at_midnight():
@@ -118,7 +125,7 @@ def test_reports_nothing_when_the_window_is_still_running_at_midnight():
     """
     panchangam = _Panchangam((_window("MOOLAM", DAY_START, DAY_END),))
 
-    assert chandrashtama_end(panchangam, janma_nakshatra=MOOLAM) is None
+    assert chandrashtama_end(panchangam, janma_nakshatra=MOOLAM, natal_moon_rasi=DHANUSU) is None
 
 
 def test_reports_nothing_when_the_day_is_not_the_readers():
@@ -128,14 +135,14 @@ def test_reports_nothing_when_the_day_is_not_the_readers():
         _window("UTHIRADAM", hands_over, DAY_END),
     ))
 
-    assert chandrashtama_end(panchangam, janma_nakshatra=MOOLAM) is None
+    assert chandrashtama_end(panchangam, janma_nakshatra=MOOLAM, natal_moon_rasi=DHANUSU) is None
 
 
 def test_a_snapshot_without_windows_reports_nothing():
     """A panchangam cached before v44 carries no windows. It cannot say when
     anything lifts, so it must not pretend to."""
-    assert chandrashtama_end(_Panchangam(()), janma_nakshatra=MOOLAM) is None
-    assert chandrashtama_end(_Panchangam(None), janma_nakshatra=MOOLAM) is None
+    assert chandrashtama_end(_Panchangam(()), janma_nakshatra=MOOLAM, natal_moon_rasi=DHANUSU) is None
+    assert chandrashtama_end(_Panchangam(None), janma_nakshatra=MOOLAM, natal_moon_rasi=DHANUSU) is None
 
 
 def test_the_end_agrees_with_the_badge_beside_it():
@@ -155,6 +162,64 @@ def test_the_end_agrees_with_the_badge_beside_it():
     badged_star = next(w.name for w in windows if w.start <= sunrise < w.end)
     assert badged_star == "POORADAM"
 
-    end = chandrashtama_end(_Panchangam(windows), janma_nakshatra=POORADAM)
+    end = chandrashtama_end(_Panchangam(windows), janma_nakshatra=POORADAM, natal_moon_rasi=DHANUSU)
     assert end is not None
     assert sunrise < end < DAY_END
+
+
+# --------------------------------------------------------------------------- #
+# The nine straddling stars: the star name alone does not identify a window     #
+# --------------------------------------------------------------------------- #
+
+def test_a_straddling_stars_two_halves_get_their_own_end_times():
+    """Reported 2026-09-09 (D9): an Uthiradam/Magaram native shown the Dhanusu
+    half's window.
+
+    30° is 2.25 nakshatras, so nine of the 27 stars cross a rasi boundary and
+    their natives fall in two different signs. On 2026-09-09 at Chennai the
+    affected point crosses 270° at 15:14, splitting Uthiradam's day in two:
+    Dhanusu natives 09:34-15:14, Magaram natives 15:14 onward. Matching on the
+    name alone hands whichever window comes first to both.
+    """
+    opens = DAY_START + timedelta(hours=9, minutes=34)
+    crosses = DAY_START + timedelta(hours=15, minutes=14)
+    panchangam = _Panchangam((
+        _window("POORADAM", DAY_START, opens, DHANUSU),
+        _window("UTHIRADAM", opens, crosses, DHANUSU),
+        _window("UTHIRADAM", crosses, DAY_END, MAGARAM),
+    ))
+
+    # The Dhanusu half hands over mid-afternoon...
+    assert chandrashtama_end(
+        panchangam, janma_nakshatra=UTHIRADAM, natal_moon_rasi=DHANUSU,
+    ) == crosses
+    # ...while the Magaram half's window is still running at midnight, so under
+    # the civil-day clipping guard they get no time rather than a false 00:00.
+    assert chandrashtama_end(
+        panchangam, janma_nakshatra=UTHIRADAM, natal_moon_rasi=MAGARAM,
+    ) is None
+
+
+def test_a_pre_v45_window_falls_back_to_the_name_alone():
+    """`rasi_number` is 0 on a snapshot cached before panchangam v45.
+
+    That is "unknown", not "no rasi". The fail-safe direction for an avoidance
+    rule is toward the doctrine, so an unreadable rasi must not silently clear a
+    reader's day — it reverts to exactly the pre-v45 behaviour.
+    """
+    hands_over = DAY_START + timedelta(hours=9, minutes=34)
+    panchangam = _Panchangam((
+        PanchangamChandrashtamamNakshatraWindow(
+            name="POORADAM", start=DAY_START, end=hands_over,
+        ),
+        # A later window, so `hands_over` is a real handover rather than the end
+        # of the civil day — otherwise the clipping guard answers first and the
+        # fallback under test is never reached.
+        PanchangamChandrashtamamNakshatraWindow(
+            name="UTHIRADAM", start=hands_over, end=DAY_END,
+        ),
+    ))
+
+    assert chandrashtama_end(
+        panchangam, janma_nakshatra=POORADAM, natal_moon_rasi=MAGARAM,
+    ) == hands_over

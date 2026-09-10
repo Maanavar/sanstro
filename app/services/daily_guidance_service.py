@@ -33,6 +33,7 @@ from app.calculations.panchangam import (
     dominant_from_spans,
     dominant_span_name,
     limb_fraction,
+    own_chandrashtama_windows,
 )
 from app.calculations.remedies import (
     PLANET_REMEDY_CATALOG,
@@ -459,29 +460,38 @@ def build_daily_guidance_response(
     # ended 22 hours earlier. Reading the sunrise star answers both at once, and
     # matches what a printed almanac names for the day.
     #
-    # OVERLAP, not the star standing at sunrise. The first cut of this ruling
-    # used the sunrise (உதய) star, which gives at most one star per day — and a
-    # year-long audit at Chennai showed that silently DROPS a star whenever its
-    # whole window falls between two sunrises. A star window is 13°20' of Moon
-    # motion: 20.8 h at the Moon's fastest, 27.2 h at its slowest, against a 24 h
-    # day. In 2026 that skipped 11 stars outright (Pooradam had no badged day at
-    # all around 06-Jan and 19-Jun) and gave 15 others two consecutive days.
+    # WHICH DAY THE WINDOW NAMES. The first cut read the star standing at
+    # sunrise, which drops a star outright whenever its whole window falls
+    # between two sunrises (11 stars in 2026 at Chennai — a window is 20.8 h at
+    # the Moon's fastest against a 24 h day). The second cut answered that with
+    # plain overlap: any window touching the day badges it. That overshot in the
+    # other direction and was reported the same day — an Uthiradam/Magaram
+    # native badged on 2026-09-09, whose window opens at 15:14 that evening, on
+    # a day the almanac gives to Pooradam.
     #
-    # A printed almanac never loses a star: it prints "Moolam until 11:02,
-    # Pooradam from 11:02" and a native whose star is named for any part of the
-    # day observes it. So the badge asks whether the reader's star appears in the
-    # day at all. Duration is unchanged (~1 day, the owner's 2026-09-09 ruling);
-    # it simply touches two dates when it straddles a sunrise, which is what the
-    # almanac shows. `chandrashtamaEnds` and the card's window line already carry
-    # the exact hours, so a reader sees which part of each day is theirs.
+    # The rule that satisfies both, ruled by the owner on 2026-09-09 (D11): a
+    # window names the day whose SUNRISE it covers — the உதய rule — and a window
+    # that covers no sunrise at all names the day containing it. Exactly one
+    # day per cycle for every star, none skipped, and the badged day is the one
+    # the printed almanac heads with that star. `own_chandrashtama_windows` is
+    # where it lives, shared with `chandrashtamaEnds`, the family surfaces and
+    # the muhurtham veto so they cannot drift apart again.
     #
-    # To revert to one-star-per-day, compare against
-    # `panchangam.chandrashtamam_affected_janma_nakshatra_number` instead — that
-    # scalar is still computed and still names the day for almanac display.
+    # STAR AND RASI, not the star alone. Nine of the 27 stars straddle a rasi
+    # boundary, so their natives sit in two different signs and have two
+    # different Chandrashtamas about a fortnight apart. Name-only matching gave
+    # both halves the same window: reported 2026-09-09 by an Uthiradam/Magaram
+    # native badged on Uthiradam/Dhanusu's day. `own_chandrashtama_windows`
+    # applies both tests; see D9 in the divergence doc.
     own_star_name = NAKSHATRA_NAMES[(janma_nakshatra - 1) % 27]
     chandrashtama_windows = panchangam.chandrashtamam_janma_nakshatra_windows
+    own_chandrashtama = own_chandrashtama_windows(
+        chandrashtama_windows,
+        janma_nakshatra=janma_nakshatra,
+        natal_moon_rasi=natal_moon.rasi,
+    )
     chandrashtama = (
-        any(window.name == own_star_name for window in chandrashtama_windows)
+        bool(own_chandrashtama)
         if chandrashtama_windows
         # A snapshot cached before panchangam v44 has no windows; fall back to
         # the old share gate rather than clear a day we cannot read.
@@ -1088,11 +1098,16 @@ def build_daily_guidance_response(
             tithiCard=_build_tithi_card(day_tithi),
             isChandrashtama=chandrashtama,
             chandrashtamaEnds=(
-                chandrashtama_end(panchangam, janma_nakshatra=janma_nakshatra)
+                chandrashtama_end(
+                    panchangam,
+                    janma_nakshatra=janma_nakshatra,
+                    natal_moon_rasi=natal_moon.rasi,
+                )
                 if chandrashtama
                 else None
             ),
             chandrashtamaStar=own_star_name if chandrashtama else None,
+            chandrashtamaRasi=natal_moon.rasi if chandrashtama else None,
             saturnCycleAlert=saturn_cycle.type if saturn_cycle.is_active and saturn_cycle.type in {"JANMA_SANI", "ASHTAMA_SANI"} else None,
             activityBoard=_build_activity_board(
                 tithi_number=day_tithi,

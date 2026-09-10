@@ -57,7 +57,24 @@ from app.schemas.dasha import ResponseMeta
 # in 2026, so Pooradam had no badged day at all around 06-Jan and 19-Jun and
 # those natives were never warned. Both isChandrashtama and the new
 # chandrashtamaStar are persisted, so warm rows must recompute.
-DAILY_SCORE_ENGINE_VERSION = "2026-09-09-v13"
+# v14 (2026-09-09): the badge tests star AND rasi. Nine of the 27 stars straddle
+# a rasi boundary, so their natives sit in two signs whose Chandrashtamas are a
+# fortnight apart, and matching on the star name alone badged the wrong half —
+# reported by an Uthiradam/Magaram native on Uthiradam/Dhanusu's day (D9). The
+# new `chandrashtamaRasi` is persisted beside `chandrashtamaStar`, and a v13 row
+# carries neither, so warm rows must recompute. (Note added under v15: the
+# constant was bumped to v14 without this entry, which left the next reader with
+# a version whose reason lived only in the doc.)
+# v15 (2026-09-10): a window names ONE day, and which day is the உதய rule — the
+# day whose sunrise it covers, or, for a window falling entirely between two
+# sunrises, the day containing it. v13's overlap test badged every window that
+# merely touched the day, which gave a late-opening window two dates: reported
+# on 2026-09-09 by an Uthiradam/Magaram native badged on a day the almanac gives
+# to Pooradam (D11). `isChandrashtama`, `chandrashtamaEnds`, `chandrashtamaStar`
+# and `chandrashtamaRasi` are all persisted and all move, so warm rows must
+# recompute. Paired with panchangam cache v45 → v46, which reshapes the windows
+# this reads; a row written under v14 pairs the old badge with the new list.
+DAILY_SCORE_ENGINE_VERSION = "2026-09-10-v15"
 
 
 def _cache_version(calculation_version: str) -> str:

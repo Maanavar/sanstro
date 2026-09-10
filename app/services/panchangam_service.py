@@ -350,6 +350,8 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
                         name=window.name,
                         start=window.start,
                         end=window.end,
+                        rasi_number=window.rasi_number,
+                        rasi_name=window.rasi_name,
                     )
                     for window in snapshot.chandrashtamam_janma_nakshatra_windows
                 ],
