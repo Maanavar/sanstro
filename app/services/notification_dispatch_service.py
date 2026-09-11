@@ -24,8 +24,8 @@ from sqlalchemy.orm import Session
 from app.calculations.astro import resolve_timezone
 from app.models.birth_profile import BirthProfile
 from app.models.notification import Notification
-from app.models.user_preference import UserPreference
 from app.models.user_notification_preference import UserNotificationPreference
+from app.models.user_preference import UserPreference
 from app.services.email_service import build_notification_email, send_email
 from app.services.fcm_service import send_push
 from app.services.feature_flags import get_flag
