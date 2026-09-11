@@ -6,18 +6,29 @@ import type { Lang } from "@/lib/i18n";
 import type { ChartYogaInsight, ChartDoshamInsight } from "@/lib/types";
 import {
   YOGA_DISPLAY,
+  ADVERSE_YOGAS,
+  isAdverseYoga,
   resolveYogaKey,
   displayName,
   yogaReadingStatus,
   yogaReadingStatusLabel,
 } from "@vinaadi/shared/yogaDisplay";
+import type { YogaReadingStatus } from "@vinaadi/shared/yogaDisplay";
 import { Card } from "./ui/card";
 
 // ── Display name maps ────────────────────────────────────────────────────────
 // These now live in @vinaadi/shared so mobile renders the same names. Re-exported
 // here because a dozen web call sites already import them from this module.
 
-export { YOGA_DISPLAY, resolveYogaKey, displayName, yogaReadingStatus, yogaReadingStatusLabel };
+export {
+  YOGA_DISPLAY,
+  ADVERSE_YOGAS,
+  isAdverseYoga,
+  resolveYogaKey,
+  displayName,
+  yogaReadingStatus,
+  yogaReadingStatusLabel,
+};
 
 // ── Human-readable marker labels ─────────────────────────────────────────────
 // Used only for bullet lists — write them as complete short sentences
@@ -116,7 +127,9 @@ const MARKER_LABELS: Record<string, { ta: string; en: string }> = {
   planets_in_12th_from_moon:         { ta: "சந்திரனிலிருந்து 12-ல் கிரகங்கள் உள்ளன", en: "There are planets in the 12th from the Moon" },
   planets_in_2nd_and_12th_from_moon: { ta: "சந்திரனுக்கு இருபுறமும் (2 மற்றும் 12) கிரகங்கள் உள்ளன", en: "There are planets on both sides of the Moon (2nd and 12th)" },
   no_planets_2nd_12th_from_moon:     { ta: "சந்திரனுக்கு இருபுறமும் கிரகங்கள் இல்லை — கேமத்ரும நிலை", en: "No planets flank the Moon on either side — the Kemadruma condition" },
-  planet_kendra_from_moon:           { ta: "சந்திரனிலிருந்து கேந்திரத்தில் ஒரு கிரகம் உள்ளது — கேமத்ரும நிலையை மென்மையாக்கும்", en: "A planet sits in a kendra from the Moon — this softens the Kemadruma condition" },
+  // A FULL bhanga since YOG-KD-01 (2026-08-28), not a softener — it annuls the
+  // yoga outright. The copy said "softens" until 2026-09-11.
+  planet_kendra_from_moon:           { ta: "சந்திரனிலிருந்து கேந்திரத்தில் ஒரு கிரகம் உள்ளது — கேமத்ரும நிலை முற்றிலும் நிவர்த்தியாகிறது", en: "A planet sits in a kendra from the Moon — this cancels the Kemadruma condition outright" },
 };
 
 // Planet display names for the parametrized markers below.
@@ -188,6 +201,14 @@ const MARKER_PATTERNS: { re: RegExp; label: (m: RegExpMatchArray, lang: Lang) =>
     label: (m, lang) => ({
       ta: `ராகு ${m[1]}-ம் வீட்டில் உள்ளது`,
       en: `Rahu is in house ${m[1]}`,
+    }),
+  },
+  {
+    // Daridra's parivartana condition: `parivartana_<dusthana>_<dhana>`.
+    re: /^parivartana_(\d+)_(\d+)$/,
+    label: (m, lang) => ({
+      ta: `${m[1]}-ம் வீட்டு அதிபதியும் ${m[2]}-ம் வீட்டு அதிபதியும் இடம் மாறியுள்ளனர் (பரிவர்த்தனை)`,
+      en: `The ${m[1]}th lord and the ${m[2]}th lord have exchanged houses (parivartana)`,
     }),
   },
   {
@@ -323,9 +344,13 @@ const YOGA_WHAT_EXTRA: Record<string, { ta: string; en: string }> = {
     ta: "சந்திரனும் செவ்வாயும் இணையும்போது உருவாகும் யோகம். முயற்சி, வருமான ஆற்றல், தொழில் முனைவு ஆகியவற்றுடன் தொடர்புடையது; உணர்ச்சியை செயலாக மாற்றும் திறன்.",
     en: "Formed when the Moon and Mars combine. Linked to drive, earning energy, and entrepreneurial push — the ability to turn emotion into action.",
   },
+  // 6/8/12, matching `detect_sakata_yoga` and the YOG-SK-01 registry row. The
+  // earlier "6th or 8th" here was not a typo — it follows a real competing
+  // lineage — but the product speaks with one voice, and the 2026-09-11 ruling
+  // chose the dominant 6/8/12 (Phaladeepika) form. See the rule's `source`.
   SAKATA_YOGA: {
-    ta: "சந்திரன் குருவிலிருந்து 6/8-ம் வீட்டில் இருக்கும்போது உருவாகும் அமைப்பு. வாழ்க்கையில் ஏற்ற-இறக்கங்கள் சக்கரம் போல் வரலாம்; நிலையான ஒழுக்கம் உதவும்.",
-    en: "Formed when the Moon is in the 6th or 8th from Jupiter. Fortunes can rise and fall in cycles, like a wheel; steady discipline helps most.",
+    ta: "சந்திரன் குருவிலிருந்து 6/8/12-ம் வீட்டில் இருக்கும்போது உருவாகும் அமைப்பு. வாழ்க்கையில் ஏற்ற-இறக்கங்கள் சக்கரம் போல் வரலாம்; நிலையான ஒழுக்கம் உதவும்.",
+    en: "Formed when the Moon is in the 6th, 8th, or 12th from Jupiter. Fortunes can rise and fall in cycles, like a wheel; steady discipline helps most.",
   },
   KEMADRUMA_YOGA: {
     ta: "சந்திரனுக்கு இரு பக்கங்களிலும் (2/12) கிரகங்கள் இல்லாதபோது உருவாகும் அமைப்பு. சில காலங்களில் தனிமை அல்லது ஆதரவின்மை உணரலாம்; உறவுகளையும் வழக்கங்களையும் கட்டியெழுப்புவது நல்லது.",
@@ -343,9 +368,16 @@ const YOGA_WHAT_EXTRA: Record<string, { ta: string; en: string }> = {
     ta: "சந்திரனிலிருந்து 6, 7, 8-ம் வீடுகளில் சுபக்கிரகங்கள் இருக்கும்போது உருவாகும் யோகம். தலைமை, செல்வாக்கு, நிலையான முன்னேற்றம் ஆகியவற்றுடன் தொடர்புடையது.",
     en: "Formed when benefics occupy the 6th, 7th, and 8th from the Moon. Linked to leadership, influence, and steady advancement.",
   },
+  // Redefined 2026-09-11 to the parivartana form — see YOG-DR-01. The card
+  // described the pre-proxy-split merged condition until then, and the detector
+  // it now describes is a mutual exchange, not a placement.
   DARIDRA_YOGA: {
-    ta: "11-ம் அதிபதி (வருமான வீடு) துஸ்தானத்தில் அல்லது பாதக சேர்க்கையில் பலவீனமாக இருக்கும்போது உருவாகும் அமைப்பு. வருமான-செலவு சமநிலையில் கூடுதல் கவனம் தேவைப்படலாம்.",
-    en: "Formed when the 11th lord (income house) is weak — in a dusthana or with malefics. Extra care with the income-versus-expense balance may be needed.",
+    ta: "துஸ்தான (6/8/12) வீட்டு அதிபதியும் தன (2/11) வீட்டு அதிபதியும் ஒருவர் இடத்தில் மற்றவர் அமரும் பரிவர்த்தனையால் உருவாகும் அரிய அமைப்பு. வருமான வழிகளில் அழுத்தம் இருக்கலாம்; பல ஆதாரங்களும் கவனமான செலவுத் திட்டமும் உதவும்.",
+    en: "A rare combination formed when a lord of the difficult houses (6th, 8th, 12th) and a lord of the wealth houses (2nd, 11th) exchange places. Income channels can feel pressured; diversified earnings and deliberate spending help most.",
+  },
+  DARIDRA_PROXY_YOGA: {
+    ta: "11-ம் அதிபதி பலவீனமாகவும் பாதக கிரகத்துடன் சேர்ந்தும் இருக்கும்போது வினாடி பயன்படுத்தும் அளவுகோல் — பாரம்பரிய தரித்ர யோகம் அல்ல. வருமான ஆதாரங்களைப் பலப்படுத்துவதில் கவனம் தேவை.",
+    en: "A Vinaadi measure, not a classical daridra yoga: the 11th lord is weak and shares its sign with a malefic. It points to the same need to shore up income sources, at a lighter grade.",
   },
   LAKSHMI_YOGA: {
     ta: "9-ம் அதிபதியும் லக்னாதிபதியும் வலுவாக இருக்கும்போது உருவாகும் சுப யோகம். அதிர்ஷ்டம், செழிப்பு, நன்மதிப்பு ஆகியவற்றுடன் தொடர்புடையது.",
@@ -391,6 +423,20 @@ export function buildWhyText(
   dashaActivated: boolean,
   lang: Lang,
 ): string {
+  // Formed-and-annulled is NOT "never formed". A Kemadruma whose full bhanga
+  // fired arrives here with isPresent=false and bhanga factors populated — the
+  // Moon *was* isolated, and a graha in a kendra from it then cancelled the
+  // yoga. Telling that native "your chart does not have the positions needed"
+  // deletes a real reading: classically the native carries the yoga's signature
+  // (self-reliance, the rise-from-nothing pattern) *with* the resource to
+  // transcend it. Astrologer ruling, 2026-09-11.
+  if (!isPresent && cancellationFactors.length > 0) {
+    const cancelList = cancellationFactors.slice(0, 3).map((c) => markerLabel(c, lang)).join("; ");
+    return lang === "ta"
+      ? `இந்த அமைப்பு உருவானது, ஆனால் பங்க விதியால் நிவர்த்தியாகிவிட்டது: ${cancelList}. ஆகவே இதன் சுபாவம் உங்களிடம் உண்டு — ஆனால் அதை கடக்கும் வலிமையும் ஜாதகத்திலேயே உள்ளது.`
+      : `This combination did form in your chart, and was then annulled by a classical cancellation: ${cancelList}. The pattern's character is part of you — and so is the resource that carries you past it.`;
+  }
+
   if (!isPresent) {
     return lang === "ta"
       ? "உங்கள் ஜாதகத்தில் இந்த யோகம்/தோஷத்திற்கான தூண்டல் நிலைகள் இல்லை."
@@ -698,19 +744,100 @@ const DOSHAM_POWER_CONTEXT: Record<string, {
   },
 };
 
+// ── Adverse yogas: "what it can do now" ──────────────────────────────────────
+// Until 2026-09-11 every adverse yoga fell through to the generic fallback, so
+// the one band that tells a reader what to *do* about a finding was empty for
+// exactly the findings that need it. House style, inherited from
+// `yoga_effects.py`: a demand and its answer, never a prediction of misfortune —
+// name the pressure, then name the thing that answers it. No remedies here; the
+// Remedies card is a separate section.
+const ADVERSE_POWER_CONTEXT: Record<string, { strong: { ta: string; en: string }; partial: { ta: string; en: string }; weak: { ta: string; en: string } }> = {
+  SAKATA_YOGA: {
+    strong: {
+      ta: "இந்த அமைப்பு இப்போது முழு பலத்தில் உள்ளது. வருமானமும் வாய்ப்புகளும் சீராக ஏறாமல் ஏற்ற-இறக்கமாக நகரலாம். நல்ல காலத்தில் சேமித்து வைப்பதே இதற்கான பாரம்பரிய பதில் — உயர்வான காலத்தில் நிலையான செலவு முறையை வைத்திருங்கள்.",
+      en: "This pattern is at full strength now. Income and opportunity may move in cycles rather than climbing steadily. The traditional answer is to build reserves while the good stretch lasts — hold your spending steady through the highs, not just the lows.",
+    },
+    partial: {
+      ta: "அமைப்பு ஓரளவு செயல்பாட்டில் உள்ளது; ஏற்ற-இறக்கங்கள் மிதமாக இருக்கும். நீண்ட கால கடன்களை கவனமாக எடையிடுங்கள்.",
+      en: "Partially active — the swings should be moderate. Weigh long-term commitments carefully rather than assuming the current level holds.",
+    },
+    weak: {
+      ta: "தற்போது குறைந்த பலத்தில் உள்ளது. வழக்கமான சேமிப்புப் பழக்கமே போதும்.",
+      en: "At low strength currently. A regular saving habit is enough to cover it.",
+    },
+  },
+  KEMADRUMA_YOGA: {
+    strong: {
+      ta: "இந்த அமைப்பு இப்போது முழு பலத்தில் உள்ளது. சில காலங்களில் ஆதரவின்மை அல்லது தனிமை உணர்வு வரலாம். வேண்டுமென்றே பேணப்படும் நட்பும் சமூகத் தொடர்பும்தான் மரபு சொல்லும் நேரடி எதிர்விசை — உதவி தானாக வரும் என்று காத்திருக்காமல், தொடர்பை நீங்களே தொடங்குங்கள்.",
+      en: "This pattern is at full strength now. Some phases can feel unsupported or solitary. Deliberately maintained friendships and community are what classical sources offer as the direct counterweight — start the contact yourself rather than waiting for it to arrive.",
+    },
+    partial: {
+      ta: "ஓரளவு செயல்பாட்டில் உள்ளது; சில நேரங்களில் மட்டும் தனிமை உணர்வு தோன்றலாம். வழக்கமான சந்திப்புகள் இதை பெரிதும் தணிக்கும்.",
+      en: "Partially active — the solitary feeling may surface only in stretches. Regular, scheduled contact with people takes most of the weight off it.",
+    },
+    weak: {
+      ta: "தற்போது குறைந்த பலத்தில் உள்ளது; பங்க விதிகள் இதை மென்மையாக்கியுள்ளன.",
+      en: "At low strength currently — the cancellation factors in your chart have softened it.",
+    },
+  },
+  DARIDRA_YOGA: {
+    strong: {
+      ta: "இந்த அரிய பரிவர்த்தனை இப்போது முழு பலத்தில் உள்ளது. வருமான வழிகளில் அழுத்தம் தெரியலாம் — ஒரே ஆதாரத்தை நம்பாமல் பல வருமான வழிகளை உருவாக்குவதும், செலவைத் திட்டமிட்டு நடத்துவதும்தான் இதற்கான பதில்.",
+      en: "This rare exchange is at full strength now. Income channels can feel pressured — the answer is not to lean on a single source: build more than one earning line, and run spending to a plan rather than to what arrives.",
+    },
+    partial: {
+      ta: "ஓரளவு செயல்பாட்டில் உள்ளது. வருமான-செலவு சமநிலையில் கூடுதல் கவனம் போதும்.",
+      en: "Partially active. Extra attention to the income-versus-expense balance should be enough.",
+    },
+    weak: {
+      ta: "தற்போது குறைந்த பலத்தில் உள்ளது.",
+      en: "At low strength currently.",
+    },
+  },
+  DARIDRA_PROXY_YOGA: {
+    strong: {
+      ta: "இது வினாடியின் சொந்த அளவுகோல் — பாரம்பரிய தரித்ர யோகம் அல்ல. 11ஆம் அதிபதி பலவீனமாகவும் பாதக சேர்க்கையிலும் இருப்பதைச் சுட்டுகிறது. வருமான ஆதாரங்களை பலப்படுத்துவதில் கவனம் தேவை.",
+      en: "This is a Vinaadi measure, not a classical daridra yoga: it reads a weak, malefic-pressured 11th lord. Treat it as a prompt to shore up income sources, at a lighter grade than the classical reading.",
+    },
+    partial: {
+      ta: "வினாடி அளவுகோல், மிதமான நிலையில். வருமான வழிகளை கவனியுங்கள்.",
+      en: "A Vinaadi measure, at a moderate level. Worth a look at how many earning lines you actually have.",
+    },
+    weak: {
+      ta: "வினாடி அளவுகோல், குறைந்த நிலையில்.",
+      en: "A Vinaadi measure, at a low level.",
+    },
+  },
+};
+
 export function getYogaPowerContext(name: string, strength: string, dashaActivated: boolean, lang: Lang): string {
-  const entry = resolveYogaKey(YOGA_POWER_CONTEXT, name);
+  const entry =
+    resolveYogaKey(YOGA_POWER_CONTEXT, name) ?? resolveYogaKey(ADVERSE_POWER_CONTEXT, name);
   if (!entry) {
+    // Dasha only. `yoga_activation_score` reads the mahadasha lord, the
+    // antardasha lord and natal graha strength — there is no gochara input, so
+    // "and transit positions" described a calculation we do not perform. The
+    // tooltips were corrected on 2026-09-11; this body copy was missed in the
+    // same pass, and it is the string every adverse yoga lands on.
     return lang === "ta"
-      ? "இந்த யோகத்தின் தாக்கம் உங்கள் தற்போதைய தசை மற்றும் கிரகநகர்வு நிலையைப் பொறுத்து மாறுபடும்."
-      : "The impact of this yoga varies with your current Dasha and transit positions.";
+      ? "இந்த யோகத்தின் தாக்கம் உங்கள் தற்போதைய தசையைப் பொறுத்து மாறுபடும்."
+      : "The impact of this yoga varies with your current Dasha period.";
   }
   const band = strength === "STRONG" ? "strong" : strength === "PARTIAL" ? "partial" : "weak";
   const base = lang === "ta" ? entry[band].ta : entry[band].en;
   if (!dashaActivated) {
-    const suffix = lang === "ta"
-      ? " தற்போதைய தசை இந்த யோகத்தை நேரடியாக செயல்படுத்தவில்லை — அடுத்த ஆதரவு தசையில் வலுவாக வெளிப்படலாம்."
-      : " Your current Dasha does not directly activate this yoga — it may express more strongly in the next supporting Dasha.";
+    // "may express more strongly in the next supporting Dasha" is the wrong
+    // register for a demanding yoga — nobody is waiting for their Daridra to be
+    // supported. An unactivated adverse yoga is quieter now, which is the
+    // useful thing to say about it.
+    const adverse = isAdverseYoga(name);
+    const suffix = adverse
+      ? (lang === "ta"
+        ? " தற்போதைய தசை இதை நேரடியாக செயல்படுத்தவில்லை — இப்போது இதன் அழுத்தம் குறைவாகவே இருக்கும். இந்த அமைதியான காலத்தில் மேலே சொன்ன பழக்கங்களை கட்டியெழுப்புவதே பயனுள்ளது."
+        : " Your current Dasha does not directly activate it, so its pressure should sit lighter for now — which makes this the easier stretch in which to build the habits above.")
+      : (lang === "ta"
+        ? " தற்போதைய தசை இந்த யோகத்தை நேரடியாக செயல்படுத்தவில்லை — அடுத்த ஆதரவு தசையில் வலுவாக வெளிப்படலாம்."
+        : " Your current Dasha does not directly activate this yoga — it may express more strongly in the next supporting Dasha.");
     return base + suffix;
   }
   return base;
@@ -728,9 +855,12 @@ export function getDoshamPowerContext(dosham: ChartDoshamInsight, lang: Lang): s
   else variant = "active";
 
   if (!entry) {
+    // Dasha only, same as the yoga path above: every dosham detector sets
+    // `dasha_activated` from `_is_active(active_lords, ...)` in
+    // `_yoga_dosham.py`. No detector takes a transit input.
     return lang === "ta"
-      ? "இந்த தோஷத்தின் தாக்கம் தற்போதைய தசை மற்றும் கிரகநகர்வு நிலையைப் பொறுத்து மாறுபடும்."
-      : "The impact varies with your current Dasha and transit positions.";
+      ? "இந்த தோஷத்தின் தாக்கம் தற்போதைய தசையைப் பொறுத்து மாறுபடும்."
+      : "The impact varies with your current Dasha period.";
   }
 
   const base = lang === "ta" ? entry[variant].ta : entry[variant].en;
@@ -754,15 +884,91 @@ export function strengthBand(strength: string, present: boolean, lang: Lang): st
   return lang === "ta" ? "மென்மையான" : "Mild";
 }
 
+// ── Yoga card tone ────────────────────────────────────────────────────────────
+
+/**
+ * Colour and glyph for a yoga card, keyed on **valence first, strength second**.
+ *
+ * Strength alone was the whole of this decision until 2026-09-11, which is right
+ * for a benefic and inverted for the rest: a STRONG Kemadruma — emotional
+ * isolation — rendered with a ★ and the `--color-high` "good outcome" tokens,
+ * reading to the user as a prize. The Dosham card in this same file has always
+ * had the correct adverse grammar; adverse *yogas* were only ever styled as
+ * gifts because of which array the backend puts them in.
+ *
+ * Glyphs are decorative — every card also carries a text status beside them, so
+ * they are aria-hidden and never the only carrier of meaning.
+ *
+ * Exported for the Nova panel, which must not fork this.
+ */
+export function yogaCardTone(
+  name: string,
+  status: YogaReadingStatus,
+  strength: string,
+): { fg: string; bg: string; border: string; pillBg: string; glyph: string } {
+  if (status === "ABSENT") {
+    return {
+      fg: "var(--color-border)",
+      bg: "var(--color-surface-2)",
+      border: "var(--color-border)",
+      pillBg: "transparent",
+      glyph: "○",
+    };
+  }
+  // Formed then annulled — neither a win nor a warning. Neutral, and marked with
+  // a glyph that reads as "struck through" rather than "achieved".
+  if (status === "CANCELLED") {
+    return {
+      fg: "var(--color-mid)",
+      bg: "var(--color-surface-2)",
+      border: "var(--color-mid-border)",
+      pillBg: "var(--color-mid-bg)",
+      glyph: "⊘",
+    };
+  }
+  if (isAdverseYoga(name)) {
+    const strong = strength === "STRONG";
+    return {
+      fg: strong ? "var(--color-low)" : "var(--color-mid)",
+      bg: strong ? "var(--color-low-bg)" : "var(--color-surface-2)",
+      border: strong ? "var(--color-low-border)" : "var(--color-mid-border)",
+      pillBg: strong ? "var(--color-low-bg)" : "var(--color-mid-bg)",
+      glyph: "▲",
+    };
+  }
+  if (strength === "STRONG") {
+    return {
+      fg: "var(--chart-d9-active)",
+      bg: "var(--chart-d9-active-bg)",
+      border: "var(--color-high-border)",
+      pillBg: "var(--color-high-bg)",
+      glyph: "★",
+    };
+  }
+  if (strength === "PARTIAL") {
+    return {
+      fg: "var(--color-mid)",
+      bg: "var(--chart-d1-lagna-bg)",
+      border: "var(--color-mid-border)",
+      pillBg: "var(--color-mid-bg)",
+      glyph: "★",
+    };
+  }
+  return {
+    fg: "var(--color-faint)",
+    bg: "var(--color-surface-2)",
+    border: "var(--color-border)",
+    pillBg: "transparent",
+    glyph: "★",
+  };
+}
+
 // ── Yoga Card ─────────────────────────────────────────────────────────────────
 
 function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
   const [open, setOpen] = useState(false);
-  const color = yoga.isPresent
-    ? yoga.strength === "STRONG" ? "var(--chart-d9-active)"
-    : yoga.strength === "PARTIAL" ? "var(--color-mid)"
-    : "var(--color-faint)"
-    : "var(--color-border)";
+  const status = yogaReadingStatus(yoga);
+  const tone = yogaCardTone(yoga.name, status, yoga.strength);
 
   const whyText = buildWhyText(
     yoga.conditionsMet,
@@ -777,16 +983,9 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
     ? getYogaPowerContext(yoga.name, yoga.strength, yoga.dashaActivated, lang)
     : null;
 
-  const cardBg = yoga.isPresent
-    ? yoga.strength === "STRONG" ? "var(--chart-d9-active-bg)"
-    : yoga.strength === "PARTIAL" ? "var(--chart-d1-lagna-bg)"
-    : "var(--color-surface-2)"
-    : "var(--color-surface-2)";
-  const cardBorder = yoga.isPresent
-    ? yoga.strength === "STRONG" ? "var(--color-high-border)"
-    : yoga.strength === "PARTIAL" ? "var(--color-mid-border)"
-    : "var(--color-border)"
-    : "var(--color-border)";
+  const color = tone.fg;
+  const cardBg = tone.bg;
+  const cardBorder = tone.border;
 
   return (
     <Card style={{ display: "block", padding: 0, borderRadius: "var(--radius-md)", border: `1px solid ${cardBorder}`, overflow: "hidden", fontFamily: "var(--font-body)" }}>
@@ -795,7 +994,7 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
         style={{ width: "100%", padding: "var(--space-4) var(--space-5)", background: cardBg, border: "none", cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-2_5)" }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flex: 1 }}>
-          <span style={{ fontSize: "var(--text-base)", color }}>{yoga.isPresent ? "★" : "○"}</span>
+          <span aria-hidden="true" style={{ fontSize: "var(--text-base)", color }}>{tone.glyph}</span>
           <span style={{ fontSize: "var(--text-base)", fontWeight: 600, color: yoga.isPresent ? "var(--color-text-strong)" : "var(--color-faint)" }}>
             {displayName(yoga.name, lang)}
           </span>
@@ -809,24 +1008,34 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
           {yoga.isPresent ? (
             <span
               title={lang === "ta" ? "ஜாதக பலம் (நேட்டல் சார்ட்)" : "Natal chart strength — how strong this yoga is in your birth chart"}
-              style={{ fontSize: "var(--text-2xs)", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2_5)" }}
+              style={{ fontSize: "var(--text-2xs)", fontWeight: 700, color, background: tone.pillBg, border: `1px solid ${tone.border}`, borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2_5)" }}
             >
               {strengthBand(yoga.strength, yoga.isPresent, lang)}
             </span>
           ) : (
-            <span style={{ fontSize: "var(--text-2xs)", color: "var(--color-faint)" }}>{t("yoga_absent", lang)}</span>
+            // A formed-then-annulled yoga is not absent — say "நிவர்த்தி / Cancelled",
+            // which is the reading, not "Absent", which is a different chart.
+            <span style={{ fontSize: "var(--text-2xs)", color: status === "CANCELLED" ? "var(--color-mid-text)" : "var(--color-faint)" }}>
+              {status === "CANCELLED" ? yogaReadingStatusLabel(status, lang) : t("yoga_absent", lang)}
+            </span>
           )}
           {yoga.isPresent && typeof yoga.activationScore === "number" && (
             <span
-              title={lang === "ta" ? "இன்றைய செயல்பாட்டு மதிப்பெண் (தசை + கிரகநகர்வு)" : "Today's activation score — how strongly Dasha and transits are triggering this yoga now"}
+              // Dasha only — `yoga_activation_score` reads the mahadasha lord, the
+              // antardasha lord and natal graha strength. It has never taken a
+              // gochara input, so the old "+ கிரகநகர்வு / and transits" described a
+              // calculation we do not perform (ruling, 2026-09-11).
+              title={lang === "ta" ? "இன்றைய செயல்பாட்டு மதிப்பெண் (தசை அடிப்படையில்)" : "Today's activation score — how strongly your running Dasha is triggering this yoga"}
               style={{
                 fontSize: "var(--text-2xs)",
                 fontWeight: 700,
                 padding: "var(--space-0_5) var(--space-2)",
                 borderRadius: "var(--radius-pill)",
-                background: yoga.isCurrentlyActive ? "var(--color-high-bg)" : "var(--color-surface-soft)",
-                color: yoga.isCurrentlyActive ? "var(--color-score-high)" : "var(--color-faint)",
-                border: `1px solid ${yoga.isCurrentlyActive ? "var(--color-high-border)" : "var(--color-border)"}`,
+                // An activated *adverse* yoga is not a high score to celebrate —
+                // take the card's own tone rather than the high tokens.
+                background: yoga.isCurrentlyActive ? tone.pillBg : "var(--color-surface-soft)",
+                color: yoga.isCurrentlyActive ? tone.fg : "var(--color-faint)",
+                border: `1px solid ${yoga.isCurrentlyActive ? tone.border : "var(--color-border)"}`,
                 flexShrink: 0,
               }}
             >
@@ -1213,7 +1422,10 @@ export function YogaDoshamPanel({ lang, yogas, doshams }: Props) {
               {t("yogas_title", lang)}
             </p>
             {presentYogas.length > 0 && (
-              <span style={{ fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--chart-d9-active)", background: "var(--chart-d9-active-bg)", border: "1px solid var(--color-high-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)" }}>
+              // A count is not a verdict. This chip was in the high/"good outcome"
+              // tokens, so a chart whose present yogas are all adverse read
+              // "3 Present" in green. Neutral, because the cards carry the valence.
+              <span style={{ fontSize: "var(--text-2xs)", fontWeight: 700, color: "var(--color-text-strong)", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-0_5) var(--space-2)" }}>
                 {presentYogas.length} {t("yoga_present", lang)}
               </span>
             )}

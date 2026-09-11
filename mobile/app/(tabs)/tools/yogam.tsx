@@ -23,9 +23,18 @@ import {
 import { getYogam } from "@/api/tools";
 import { getPrimaryChartId } from "@/lib/userPrefs";
 import type { ChartYogaInsight } from "@vinaadi/shared/types";
-import { displayName } from "@vinaadi/shared/yogaDisplay";
+import { displayName, isAdverseYoga } from "@vinaadi/shared/yogaDisplay";
 
-function strengthColor(s: ChartYogaInsight["strength"], C: ColorTokens): string {
+/**
+ * Strength is not valence. `STRONG` on a Kemadruma means the isolation pattern is
+ * unmitigated, so painting it `C.green` — as this did until 2026-09-11 — told the
+ * reader their strongest finding was a good one. Adverse yogas take the amber/red
+ * end regardless of strength; see `ADVERSE_YOGAS` in `@vinaadi/shared`.
+ */
+function strengthColor(s: ChartYogaInsight["strength"], C: ColorTokens, name?: string): string {
+  if (name && isAdverseYoga(name)) {
+    return s === "STRONG" ? C.alert : C.caution;
+  }
   if (s === "STRONG") return C.green;
   if (s === "PARTIAL") return C.amber;
   return C.textTertiary;
@@ -64,6 +73,15 @@ function yogaHowCheckedItems(yoga: ChartYogaInsight): WhyItem[] {
         ? "A dasha lord tied to this yoga is currently running, so it is active now."
         : "No current dasha lord activates this yoga, so it is formed but dormant.",
     },
+    // Only claim the yoga is a highlight when it is one. See ADVERSE_YOGAS.
+    ...(isAdverseYoga(yoga.name)
+      ? [{
+          label: "Reading",
+          value:
+            "This is a demanding combination, not a favourable one. It names a pressure the chart " +
+            "carries and what answers it — it is not a prediction of misfortune.",
+        }]
+      : []),
     { label: "Method", value: "Thirukanitham — verified from Lagna, planetary dignities, and house lords" },
   ];
 }
@@ -92,7 +110,12 @@ export default function YogamScreen() {
   // The chart payload reports every yoga it checked, including the ones that did
   // not form — only the formed ones belong on this screen.
   const yogas: ChartYogaInsight[] = (data?.data ?? []).filter((y) => y.isPresent);
-  const top3 = yogas.filter((y) => y.strength === "STRONG").slice(0, 3);
+  // "Key Yogas" is a highlight rail — a gold rank medallion over the name. Until
+  // 2026-09-11 it was `filter(STRONG)` with no valence test, so a chart whose only
+  // strong yoga was Kemadruma opened this screen with "emotional isolation" at
+  // rank 1, presented as the headline achievement. Adverse yogas still appear in
+  // full below under "All Yogas" — they are excluded from the podium, not hidden.
+  const top3 = yogas.filter((y) => y.strength === "STRONG" && !isAdverseYoga(y.name)).slice(0, 3);
   const rest = yogas.filter((y) => !top3.includes(y));
 
   function openHow(yoga: ChartYogaInsight) {
@@ -148,8 +171,8 @@ export default function YogamScreen() {
                   <Text style={[styles.heroName, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]} numberOfLines={2}>
                     {displayName(y.name, isTamil ? "ta" : "en")}
                   </Text>
-                  <View style={[styles.strengthBadge, { backgroundColor: strengthColor(y.strength, C) + "22" }]}>
-                    <Text style={[styles.strengthBadgeText, { color: strengthColor(y.strength, C) }]}>
+                  <View style={[styles.strengthBadge, { backgroundColor: strengthColor(y.strength, C, y.name) + "22" }]}>
+                    <Text style={[styles.strengthBadgeText, { color: strengthColor(y.strength, C, y.name) }]}>
                       {strengthLabel(y.strength, isTamil)}
                     </Text>
                   </View>
@@ -165,14 +188,14 @@ export default function YogamScreen() {
               {isTamil ? "அனைத்து யோகங்கள்" : "All Yogas"}
             </Text>
             {yogas.map((y, i) => (
-              <View key={i} style={[styles.card, { borderLeftColor: strengthColor(y.strength, C) }]}>
+              <View key={i} style={styles.card}>
                 <View style={styles.cardHeader}>
                   <Text style={[styles.yogaName, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
                     {displayName(y.name, isTamil ? "ta" : "en")}
                   </Text>
                   <View style={styles.cardBadges}>
-                    <View style={[styles.strengthBadge, { backgroundColor: strengthColor(y.strength, C) + "22" }]}>
-                      <Text style={[styles.strengthBadgeText, { color: strengthColor(y.strength, C) }]}>
+                    <View style={[styles.strengthBadge, { backgroundColor: strengthColor(y.strength, C, y.name) + "22" }]}>
+                      <Text style={[styles.strengthBadgeText, { color: strengthColor(y.strength, C, y.name) }]}>
                         {strengthLabel(y.strength, isTamil)}
                       </Text>
                     </View>
@@ -198,14 +221,14 @@ export default function YogamScreen() {
               {isTamil ? "அனைத்து யோகங்கள்" : "All Yogas"}
             </Text>
             {yogas.map((y, i) => (
-              <View key={i} style={[styles.card, { borderLeftColor: strengthColor(y.strength, C) }]}>
+              <View key={i} style={styles.card}>
                 <View style={styles.cardHeader}>
                   <Text style={[styles.yogaName, { fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_700Bold" }]}>
                     {displayName(y.name, isTamil ? "ta" : "en")}
                   </Text>
                   <View style={styles.cardBadges}>
-                    <View style={[styles.strengthBadge, { backgroundColor: strengthColor(y.strength, C) + "22" }]}>
-                      <Text style={[styles.strengthBadgeText, { color: strengthColor(y.strength, C) }]}>
+                    <View style={[styles.strengthBadge, { backgroundColor: strengthColor(y.strength, C, y.name) + "22" }]}>
+                      <Text style={[styles.strengthBadgeText, { color: strengthColor(y.strength, C, y.name) }]}>
                         {strengthLabel(y.strength, isTamil)}
                       </Text>
                     </View>
@@ -278,7 +301,11 @@ function makeStyles(C: ColorTokens) {
   allYogasSection: { gap: S.md },
   card: {
     backgroundColor: C.surface, borderRadius: RADIUS.card, padding: S.base, gap: S.sm,
-    borderLeftWidth: 3,
+    // A plain full border, not a coloured left-edge stripe. The accent
+    // left-border is a standing owner ruling (2026-07-23) and it applies to all
+    // surfaces, not just the web card it was first flagged on. Strength and
+    // valence are carried by the badge, which is where a reader looks anyway.
+    borderWidth: 1, borderColor: C.divider,
     shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,
   },
   cardHeader: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: S.sm },

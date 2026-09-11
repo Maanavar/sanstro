@@ -496,10 +496,12 @@ def _merge_yoga_list(results: list[YogaResult], merged_name: str) -> YogaResult:
     base = results[0]
     all_conditions: list[str] = []
     all_cancellations: list[str] = []
+    all_key_grahas: list[str] = []
     dasha_activated = False
     for r in results:
         all_conditions.extend(r.conditions_met)
         all_cancellations.extend(r.cancellation_factors)
+        all_key_grahas.extend(r.key_grahas)
         if r.dasha_activated:
             dasha_activated = True
     strengths = [r.strength for r in present]
@@ -513,6 +515,9 @@ def _merge_yoga_list(results: list[YogaResult], merged_name: str) -> YogaResult:
         dasha_activated=dasha_activated,
         description_ta=base.description_ta,
         description_en=base.description_en,
+        # A merged card activates on the union of its parts' key grahas —
+        # dropping them here would silently re-dormant-cap any merged yoga.
+        key_grahas=tuple(dict.fromkeys(all_key_grahas)),
     )
 
 
@@ -749,26 +754,91 @@ def detect_adhi_yoga(
     )
 
 
+def _daridra_key_grahas(lagna_rasi: int) -> tuple[str, ...]:
+    """The grahas whose dasha activates a Daridra reading, for this lagna.
+
+    Astrologer ruling, 2026-09-11: the 11th lord alone under-reads it, so the
+    2nd lord (dhana / speech-and-holdings) carries equal weight. Both are house
+    lords and therefore differ by lagna, which is why this is resolved per chart
+    into ``YogaResult.key_grahas`` instead of a static registry row. One graha
+    can own both houses, hence the de-duplication.
+    """
+    lords = (_house_lord(lagna_rasi, 11), _house_lord(lagna_rasi, 2))
+    return tuple(dict.fromkeys(lords))
+
+
+_DUSTHANA_HOUSES = (6, 8, 12)
+_DHANA_HOUSES = (2, 11)
+
+
 def detect_daridra_yoga(planets: dict[str, int], lagna_rasi: int, planet_scores: dict[str, int]) -> YogaResult:
-    # YOG-DR-01 ruling (2026-08-28): "Proxy split" — the classical dusthana
-    # condition and the parentless weak-plus-malefic proxy no longer share one
-    # card. This function is the classical half only; see
-    # `detect_daridra_yoga_proxy` for the split-off proxy (YOG-DR-02).
+    """Daridra Yoga — a **parivartana** between a dusthana lord and a dhana lord.
+
+    Astrologer ruling, 2026-09-11. The previous test was "the 11th lord occupies
+    a dusthana", one narrow member of the daridra family, and the ruling replaced
+    it with the stronger classical formulation: *the lords of the difficult houses
+    connecting with the houses of wealth*.
+
+    "Connecting" is read here as a **mutual exchange only**, and the reason is
+    measured rather than asserted (`scripts/daridra_definition_sweep.py`, 200k
+    random charts). Over that sweep the looser readings of the same words fire far
+    more often than the rule they replaced, not less:
+
+    ===================================================  =========
+    reading                                              fire rate
+    ===================================================  =========
+    the old 11th-lord-in-dusthana test                       25.1%
+    a dusthana lord merely *occupying* the 2nd/11th           42.1%
+    a dusthana lord *conjunct* a dhana lord                   35.9%
+    either of those two ("connecting", read plainly)          63.2%
+    **a true parivartana — what this function tests**      **3.9%**
+    ===================================================  =========
+
+    The intent behind the ruling was a rarer, stronger Daridra, and only the
+    exchange delivers it. Two further reasons the looser forms were rejected:
+    a mutual exchange is a genuine *connection* between two houses rather than a
+    one-way placement, and it necessarily involves **two distinct grahas**. That
+    second property matters more than it looks — for lagnas 2, 3, 8, 9 and 12 a
+    single graha owns both a dusthana and a dhana house, so any rule counting
+    shared lordship as a connection would fire on 100% of those charts from the
+    lagna alone, before a single placement is read.
+    """
     _ = planet_scores
-    eleventh_lord = _house_lord(lagna_rasi, 11)
-    eleventh_rasi = planets.get(eleventh_lord, lagna_rasi)
-    eleventh_house = house_from_reference(lagna_rasi, eleventh_rasi)
-    in_dusthana = eleventh_house in {6, 8, 12}
-    conditions_met = [f"eleventh_lord_in_{eleventh_house}"] if in_dusthana else []
+    exchanges: list[str] = []
+    for dusthana in _DUSTHANA_HOUSES:
+        dusthana_lord = _house_lord(lagna_rasi, dusthana)
+        for dhana in _DHANA_HOUSES:
+            dhana_lord = _house_lord(lagna_rasi, dhana)
+            # One graha owning both houses is a lagna constant, not a chart
+            # finding — see the docstring.
+            if dusthana_lord == dhana_lord:
+                continue
+            dusthana_lord_house = house_from_reference(
+                lagna_rasi, planets.get(dusthana_lord, lagna_rasi)
+            )
+            dhana_lord_house = house_from_reference(
+                lagna_rasi, planets.get(dhana_lord, lagna_rasi)
+            )
+            if dusthana_lord_house == dhana and dhana_lord_house == dusthana:
+                exchanges.append(f"parivartana_{dusthana}_{dhana}")
+
+    present = bool(exchanges)
     return YogaResult(
         name="DARIDRA_YOGA",
-        is_present=in_dusthana,
-        strength="STRONG" if in_dusthana else "WEAK",
-        conditions_met=conditions_met,
+        is_present=present,
+        strength="STRONG" if present else "WEAK",
+        conditions_met=exchanges,
         cancellation_factors=[],
         dasha_activated=False,
-        description_ta="தரித்ர யோகம் — 11ஆம் அதிபதி துஷ்டானத்தில்.",
-        description_en="Daridra Yoga — 11th lord in a dusthana (6th/8th/12th).",
+        key_grahas=_daridra_key_grahas(lagna_rasi),
+        description_ta=(
+            "தரித்ர யோகம் — துஷ்டான அதிபதிக்கும் (6/8/12) தன அதிபதிக்கும் (2/11) "
+            "இடையே பரிவர்த்தனை."
+        ),
+        description_en=(
+            "Daridra Yoga — a parivartana (mutual exchange) between a dusthana "
+            "lord (6th/8th/12th) and a house-of-wealth lord (2nd/11th)."
+        ),
     )
 
 
@@ -790,6 +860,7 @@ def detect_daridra_yoga_proxy(planets: dict[str, int], lagna_rasi: int, planet_s
         conditions_met=["eleventh_lord_weak_malefic_conj"] if present else [],
         cancellation_factors=[],
         dasha_activated=False,
+        key_grahas=_daridra_key_grahas(lagna_rasi),
         description_ta="தரித்ர யோகம் (வினாடி அளவுகோல்) — 11ஆம் அதிபதி பலவீனமாகவும் பாதக கிரகத்துடன் சேர்ந்தும்.",
         description_en="Daridra Yoga (Vinaadi proxy) — 11th lord weak and conjunct a malefic. Our own measure, not a classical daridra yoga.",
     )

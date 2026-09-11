@@ -54,6 +54,15 @@ class YogaResult:
     dasha_activated: bool
     description_ta: str
     description_en: str
+    #: Activation grahas resolved **per chart**, for yogas whose key graha is a
+    #: house *lord* and so cannot be named in a static registry row (Daridra's
+    #: key graha is the 11th lord, which differs by lagna). When non-empty this
+    #: overrides ``yoga_rules.activation_key_planets()`` for this one result.
+    #:
+    #: An empty tuple means "no per-chart override" — it does NOT mean dormant;
+    #: the registry's ``key_planets`` still applies. Astrologer ruling,
+    #: 2026-09-11.
+    key_grahas: tuple[str, ...] = ()
 
     @property
     def rule_ids(self) -> tuple[str, ...]:

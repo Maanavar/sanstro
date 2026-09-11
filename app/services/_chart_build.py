@@ -33,7 +33,7 @@ from app.calculations.equal_bhava import compute_equal_bhava
 from app.calculations.functional_nature import get_functional_nature
 from app.calculations.panchangam import NAKSHATRA_NAMES, calculate_daily_panchangam
 from app.calculations.transits import RASI_NAMES, is_cazimi, is_combust
-from app.calculations.yoga_activation import yoga_activation_score
+from app.calculations.yoga_activation import key_planets_for, yoga_activation_score
 from app.calculations.yoga_effects import yoga_effect
 from app.calculations.yogas import detect_yogas_and_doshams
 from app.models import Chart
@@ -428,6 +428,23 @@ def _build_yoga_dosham_insights(
         longitudes_in={planet.graha: planet.absolute_longitude for planet in planets},
     )
 
+    # A detector that cannot see the running dasha hardcodes `dasha_activated`
+    # to False (Sakata, Kemadruma, Daridra all do). Before the 2026-09-11 ruling
+    # gave those yogas key grahas that was harmless — nothing could activate
+    # them anyway — but it left the surfaces *asserting* dormancy: mobile's
+    # how-sheet said "no current dasha lord activates this yoga" on a Kemadruma
+    # chart in a Chandran mahadasha. Now that key grahas exist, resolve the flag
+    # here, where the dasha lords are actually in scope, against the same table
+    # the activation score uses. The detector's own True is never overturned.
+    running_lords = {mahadasha_lord, antardasha_lord}
+
+    def _dasha_activated(item) -> bool:
+        if item.dasha_activated:
+            return True
+        if not item.is_present:
+            return False
+        return bool(running_lords & set(key_planets_for(item.name, item.key_grahas)))
+
     yoga_models = [
         ChartYogaInsight(
             name=item.name,
@@ -435,7 +452,7 @@ def _build_yoga_dosham_insights(
             strength=item.strength,
             conditionsMet=item.conditions_met,
             cancellationFactors=item.cancellation_factors,
-            dashaActivated=item.dasha_activated,
+            dashaActivated=_dasha_activated(item),
             activationScore=yoga_activation_score(
                 yoga_name=item.name,
                 yoga_is_present=item.is_present,
@@ -443,8 +460,9 @@ def _build_yoga_dosham_insights(
                 mahadasha_lord=mahadasha_lord,
                 antardasha_lord=antardasha_lord,
                 planet_scores=planet_scores,
+                chart_key_grahas=item.key_grahas,
             ),
-            isCurrentlyActive=item.dasha_activated,
+            isCurrentlyActive=_dasha_activated(item),
             descriptionTa=item.description_ta,
             descriptionEn=item.description_en,
             # description_* states the mechanism (how the yoga forms); effect_*

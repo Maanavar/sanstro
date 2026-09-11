@@ -13,6 +13,9 @@ import {
   getWhat,
   buildWhyText,
   strengthBand,
+  yogaCardTone,
+  yogaReadingStatus,
+  yogaReadingStatusLabel,
   doshamSeverityBand,
   getDoshamPowerContext,
   getYogaPowerContext,
@@ -137,25 +140,17 @@ function NovaYogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
     setOpen((v) => !v);
   }
 
-  const color = yoga.isPresent
-    ? yoga.strength === "STRONG" ? "var(--color-high)"
-    : yoga.strength === "PARTIAL" ? "var(--color-mid)"
-    : "var(--color-faint)"
-    : "var(--color-faint)";
+  // Valence before strength — see `yogaCardTone`'s docstring. Shared with the
+  // Classic panel so the two cannot drift on which yogas read as a warning.
+  const status = yogaReadingStatus(yoga);
+  const tone = yogaCardTone(yoga.name, status, yoga.strength);
+  const color = tone.fg;
 
   const whyText = buildWhyText(yoga.conditionsMet, yoga.cancellationFactors, yoga.isPresent, false, yoga.dashaActivated, lang);
   const powerText = yoga.isPresent ? getYogaPowerContext(yoga.name, yoga.strength, yoga.dashaActivated, lang) : null;
 
-  const cardBg = yoga.isPresent
-    ? yoga.strength === "STRONG" ? "var(--color-high-bg)"
-    : yoga.strength === "PARTIAL" ? "var(--color-mid-bg)"
-    : "var(--color-surface-soft)"
-    : "var(--color-surface-soft)";
-  const cardBorder = yoga.isPresent
-    ? yoga.strength === "STRONG" ? "var(--color-high-border)"
-    : yoga.strength === "PARTIAL" ? "var(--color-mid-border)"
-    : "var(--color-border)"
-    : "var(--color-border)";
+  const cardBg = tone.bg;
+  const cardBorder = tone.border;
 
   const outcomes = resolveYogaKey(YOGA_OUTCOMES, yoga.name);
   const howTo = resolveYogaKey(YOGA_HOW_TO, yoga.name);
@@ -170,7 +165,7 @@ function NovaYogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
         style={{ width: "100%", padding: "var(--space-4) var(--space-5)", background: cardBg, border: "none", cursor: "pointer", textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-3)", fontFamily: "inherit", overflowAnchor: "none" }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flex: 1 }}>
-          <span style={{ fontSize: "var(--text-base)", color }}>{yoga.isPresent ? "★" : "○"}</span>
+          <span aria-hidden="true" style={{ fontSize: "var(--text-base)", color }}>{tone.glyph}</span>
           <span style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0 }}>
             <span style={{ fontSize: "var(--text-base)", fontWeight: 600, color: yoga.isPresent ? "var(--color-text-strong)" : "var(--color-faint)" }}>
               {lang === "ta" ? yoga.effectTa : yoga.effectEn}
@@ -187,25 +182,30 @@ function NovaYogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
           {yoga.isPresent ? (
             <span
               title={lang === "ta" ? "ஜாதக பலம் (நேட்டல் சார்ட்)" : "Natal chart strength — how strong this yoga is in your birth chart"}
-              style={{ fontSize: "var(--text-xs)", fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}55`, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)", display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}
+              style={{ fontSize: "var(--text-xs)", fontWeight: 700, color, background: tone.pillBg, border: `1px solid ${tone.border}`, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)", display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}
             >
               <span style={{ fontWeight: 700, opacity: 0.65, textTransform: "uppercase", letterSpacing: "0.04em", fontSize: "var(--text-xs)" }}>{lang === "ta" ? "ஜாதகம்" : "Chart"}</span>
               {strengthBand(yoga.strength, yoga.isPresent, lang)}
             </span>
           ) : (
-            <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{t("yoga_absent", lang)}</span>
+            <span style={{ fontSize: "var(--text-xs)", color: status === "CANCELLED" ? "var(--color-mid-text)" : "var(--color-faint)" }}>
+              {status === "CANCELLED" ? yogaReadingStatusLabel(status, lang) : t("yoga_absent", lang)}
+            </span>
           )}
           {yoga.isPresent && typeof yoga.activationScore === "number" && (
             <span
-              title={lang === "ta" ? "இன்றைய செயல்பாட்டு மதிப்பெண் (தசை + கிரகநகர்வு)" : "Today's activation score — how strongly Dasha and transits are triggering this yoga now"}
+              // Dasha only — this score takes no gochara input. See yoga_activation.py.
+              title={lang === "ta" ? "இன்றைய செயல்பாட்டு மதிப்பெண் (தசை அடிப்படையில்)" : "Today's activation score — how strongly your running Dasha is triggering this yoga"}
               style={{
                 fontSize: "var(--text-xs)",
                 fontWeight: 700,
                 padding: "var(--space-1) var(--space-2)",
                 borderRadius: "var(--radius-pill)",
-                background: yoga.isCurrentlyActive ? "var(--color-high-bg)" : "var(--color-surface-soft)",
-                color: yoga.isCurrentlyActive ? "var(--color-high)" : "var(--color-faint)",
-                border: `1px solid ${yoga.isCurrentlyActive ? "var(--color-high-border)" : "var(--color-border)"}`,
+                // Tone, not the high tokens — an activated adverse yoga is a
+                // warning that is live, not a score to celebrate.
+                background: yoga.isCurrentlyActive ? tone.pillBg : "var(--color-surface-soft)",
+                color: yoga.isCurrentlyActive ? tone.fg : "var(--color-faint)",
+                border: `1px solid ${yoga.isCurrentlyActive ? tone.border : "var(--color-border)"}`,
                 flexShrink: 0,
                 display: "inline-flex",
                 alignItems: "center",
@@ -584,7 +584,8 @@ export function NovaYogaDoshamPanel({ lang, yogas, doshams }: Props) {
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: "12px" }}>
             <p style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 500, color: "var(--color-text-strong)" }}>{t("yogas_title", lang)}</p>
             {presentYogas.length > 0 && (
-              <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-high)", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-2)" }}>
+              // Neutral — a count is not a verdict; the cards carry the valence.
+              <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-text-strong)", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-2)" }}>
                 {presentYogas.length} {t("yoga_present", lang)}
               </span>
             )}

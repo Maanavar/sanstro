@@ -142,10 +142,15 @@ decision inline and move it to "Resolved".
 - Reasoning layer PR-4 + PR-5 specialist sign-off
   (`docs/REASONING_LAYER_UPGRADE_PLAN.md` §15.3, §16).
 - A-04 (former AGENT_WORKBOARD) astrologer review.
-- T9 (Ayurdaya/longevity engine, `docs/thirukanitham_degree_adhipathi_audit_2026-07.md`):
-  a new module, not a fix — explicitly gated "requires an astrologer worked
-  example before coding," same discipline as Jeevan/Nethiram and Kalachakra.
-  Do not start without that worked example.
+- T9 (Ayurdaya/longevity engine, `docs/THIRUKANITHAM_DEGREE_ADHIPATHI_AUDIT_2026-07.md`)
+  — **split 2026-09-11, and only half of it is still a queue item:**
+  - **Balarishta: ❌ CLOSED, permanent refusal.** Ruled 2026-09-11 — a child-
+    mortality reading with no responsible consumer form. The gate was lifted and
+    the answer was no. Not awaiting review; do not re-queue it.
+  - **Ayurdaya bands (Alpayu / Madhyayu / Purnayu) for adult charts: still open.**
+    A new module, not a fix — explicitly gated "requires an astrologer worked
+    example before coding," same discipline as Jeevan/Nethiram and Kalachakra.
+    Do not start without that worked example.
 - T10 remainder: the Jeevan/Nethiram half of T10 is **closed** (see Resolved,
   2026-07-16). What's still open is the full 189-cell Amirdhadhi Yogam table
   (182 of 189 cells unverified, only the 7 Amrita-Siddhi anchors checked) —

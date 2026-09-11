@@ -30,7 +30,7 @@ Everything through P2 is **built, wired, and tested**; only the domain-gated P3 
 | **T3** — bhava-lord (adhipathi) report + all 4 surfaces | ✅ Done | new `app/calculations/house_lords.py`; `AdhipathiReading` schema on `ChartSummaryData` + `JadhagamReportData`; shared types; web `JadhagamReportPanel` section; mobile via shared client; `tests/test_house_lords.py` |
 | **T6** — strength-gate the sign-only yogas | ✅ Done | `_yoga_helpers.gate_yoga_strength` fed into Gaja Kesari, Raja, Dhana, Pancha Mahapurusha, Chandra-Mangala (presence stays whole-sign); `tests/test_yoga_strength_gate.py` |
 | **T7 / T8** — degree-orb aspect strength · Sripati bhava lens | ⏳ Not started (P2 depth, optional) | — |
-| **T9 / T10** — Ayurdaya engine · Amirdhadhi/Jeevan-Nethiram | ⛔ Gated on astrologer sign-off (do not code yet) | — |
+| **T9 / T10** — Ayurdaya engine · Amirdhadhi/Jeevan-Nethiram | ⛔ Gated on astrologer sign-off (do not code yet) — **except Balarishta, ❌ CLOSED 2026-09-11 as a permanent refusal** | `docs/ADVERSE_YOGA_COVERAGE_AUDIT_2026-09-11.md` |
 
 **Known follow-ups:**
 - ~~dasha-interpretation *text* for a node mahadasha still reads NEUTRAL (the dasha-lord text path in `dasha_service` wasn't threaded a `node_rasi_map`).~~ **✅ Fixed 2026-07-11.** `get_chart_dasha_from_snapshot` now builds a `node_rasi_map` from the chart's Rahu/Ketu placements and threads it through `_build_dasha_interpretation`, `_dasha_transition_note`, and `_timeline_for_level`. A node maha/antar dasha now renders its dispositor-derived (or dusthana-malefic) nature instead of the table-default NEUTRAL. Backward-compatible (param optional); pinned by `tests/test_dasha_node_functional_nature.py` (5 tests). DB-backed dasha suite still green.
@@ -53,7 +53,7 @@ Two systems do this work:
 | 5 | கேந்திராதிபதி (Kendra) | ✅ Explicit | `KENDRA` |
 | 6 | திரிகோணாதிபதி (Trikona) | ✅ Explicit | `TRIKONA` |
 | 7 | துஷ்டானாதிபதி (6/8/12) | ✅ Explicit | `DUSTHANA` |
-| 8 | ஆயுஷாதிபதி (8th / longevity) | ⚠️ Folded into DUSTHANA — no longevity (Ayurdaya/Balarishta) engine | — |
+| 8 | ஆயுஷாதிபதி (8th / longevity) | ⚠️ Folded into DUSTHANA — no longevity engine. Balarishta ❌ closed permanently 2026-09-11; Ayurdaya bands (Alpayu/Madhyayu/Purnayu) still gated | — |
 | 9 | தனாதிபதி (2nd / wealth) | ⚠️ Folded into MARAKA — wealth/speech not separated | — |
 | 10 | பாக்கியாதிபதி (9th / fortune) | ⚠️ Folded into TRIKONA — not surfaced as "fortune lord" | — |
 | 11 | லாபாதிபதி (11th / gains) | ⚠️ Folded into UPACHAYA | — |
@@ -163,7 +163,12 @@ Gaja Kesari, Raja, Dhana, Pancha Mahapurusha, Chandra-Mangala take no strength a
 
 ### 🔵 P3 — New technique modules (gated)
 
-**T9. R5 — Ayurdaya / longevity engine (true #8 Ayushadhipathi)** — Balarishta + Ayurdaya. **Gate: requires an astrologer worked example before coding** (same discipline as Jeevan/Nethiram, Kalachakra). Effort ~1–2 weeks after sign-off.
+**T9. R5 — Ayurdaya / longevity engine (true #8 Ayushadhipathi).** **Split by astrologer ruling, 2026-09-11.** The two halves are no longer one item:
+
+- **Balarishta — ❌ CLOSED. A permanent product refusal, not a parked item.** Balarishta is a child-mortality reading, and the astrologer's ruling is that there is no responsible consumer form of it. The only defensible shape anyone proposed — an arishta-bhanga-first health-attention signal for the 0–8 band, never a survival statement, never on a living child's chart — is still a doctrine minefield and was declined. Do **not** reopen this on the strength of the old "gated on a worked example" wording: the gate was lifted and the answer was no. This is consistent with the longevity-vocabulary ban already enforced in `app/services/primary_concern_service.py`, `app/calculations/_yoga_dosham.py` and `docs/AGE_GATED_READING_AUDIT_2026-08-05.md`.
+- **Ayurdaya bands for adult charts — ⛔ still gated, still open.** The three bands are **Alpayu** (short), **Madhyayu** (middle) and **Purnayu** (full); *Alpayu is named here explicitly* because it appeared nowhere in the repo before 2026-09-11, so anyone searching for it concluded it had been missed rather than deliberately withheld. This half is a more defensible question than Balarishta and may be revisited. Gate unchanged: **requires an astrologer worked example before coding.** Effort ~1–2 weeks after sign-off.
+
+Note for greppers: `Prabalarishta` (12 hits, `panchangam.py` / `muhurta_engine.py`) is the fourth class of the Amirdhadhi Yogam day table — a muhurta-quality cell. It has nothing to do with natal Balarishta and is a false positive for this search.
 
 **T10. Carryover known-open items** — full 189-cell Amirdhadhi Yogam table beyond the 7 verified anchors; Jeevan/Nethiram directional-count formula. Both still UNVERIFIED, need astrologer input.
 

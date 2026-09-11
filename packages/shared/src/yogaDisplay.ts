@@ -31,7 +31,14 @@ export const YOGA_DISPLAY: Record<string, { ta: string; en: string }> = {
   AMALA_YOGA:          { ta: "Amala Yoga",           en: "Amala Yoga" },
   ADHI_YOGA:           { ta: "Adhi Yoga",            en: "Adhi Yoga" },
   DARIDRA_YOGA:        { ta: "Daridra Yoga",         en: "Daridra Yoga" },
-  DARIDRA_PROXY_YOGA:  { ta: "Daridra Yoga (துணை அளவுகோல்)", en: "Daridra Yoga (supportive measure)" },
+  // NOT "(supportive)" — that wording was copy-pasted from DHANA_SUPPORTIVE_YOGA
+  // above, where "supportive" means a supportive *variant of a wealth yoga*.
+  // Daridra-proxy is an adverse income-pressure indicator, so the same word told
+  // a reader their poverty-pressure signal was a blessing. The backend row
+  // (`yoga_rules.py` YOG-DR-02) names it "வினாடி அளவுகோல்" / "Vinaadi measure"
+  // precisely because the 2026-08-28 ruling required the proxy to be labelled as
+  // ours; keep the attribution.
+  DARIDRA_PROXY_YOGA:  { ta: "தரித்ர யோகம் (வினாடி அளவுகோல்)", en: "Daridra Yoga (Vinaadi measure)" },
   LAKSHMI_YOGA:        { ta: "Lakshmi Yoga",         en: "Lakshmi Yoga" },
   VASUMATI_YOGA:       { ta: "Vasumati Yoga",        en: "Vasumati Yoga" },
   RUCHAKA_YOGA:        { ta: "Ruchaka Yoga",         en: "Ruchaka Yoga" },
@@ -91,12 +98,51 @@ export function yogaReadingStatus(y: {
   strength: string;
   cancellationFactors?: string[] | null;
 }): YogaReadingStatus {
-  if (!y.isPresent) return "ABSENT";
   const cancelled = (y.cancellationFactors?.length ?? 0) > 0;
+  // `!isPresent` is NOT the same as "never formed". Since the YOG-KD-01 ruling a
+  // full Kemadruma-bhanga sets `is_present=false` on the backend while leaving
+  // `cancellationFactors` populated — the Moon *was* isolated and the bhanga
+  // then annulled it. Returning ABSENT on `!isPresent` alone (the previous
+  // behaviour) made this the dead branch it was written for, and told such a
+  // native their chart never had the geometry at all.
+  //
+  // Astrologer ruling, 2026-09-11: formed-and-cancelled is a reading in its own
+  // right — the native carries the yoga's signature together with the resource
+  // to transcend it — and deleting it deletes something valuable. Check the
+  // bhanga factors before presence, not after.
+  if (!y.isPresent) return cancelled ? "CANCELLED" : "ABSENT";
   // WEAK *with* bhanga factors means the annulment carried; WEAK on its own
   // just means a formed-but-feeble yoga, which still reads as present.
   if (cancelled && y.strength === "WEAK") return "CANCELLED";
   return "PRESENT";
+}
+
+/**
+ * Yogas that read as a demand rather than a gift.
+ *
+ * Presentation keys off `strength` alone almost everywhere, which is correct for
+ * a benefic and wrong for these: a STRONG Kemadruma was rendered with the ★ glyph
+ * and the `--color-high` tokens, and mobile's `Key Yogas` top-3 ranked "emotional
+ * isolation" at position 1 behind a gold medallion. Valence is not derivable from
+ * strength, and the backend registry already knows it — every row below is called
+ * "an adverse yoga" in its own `yoga_rules.py` note — so it is mirrored here, in
+ * the one module both surfaces already import.
+ *
+ * This is a *presentation* signal only. It must never suppress a card: an adverse
+ * yoga the chart has is still the reader's to see.
+ */
+export const ADVERSE_YOGAS: ReadonlySet<string> = new Set([
+  "SAKATA_YOGA",
+  "KEMADRUMA_YOGA",
+  "DARIDRA_YOGA",
+  "DARIDRA_PROXY_YOGA",
+  "PAPA_KARTARI_YOGA",
+  "CHANDALA_YOGA",
+  "CHANDALA_KETU_YOGA",
+]);
+
+export function isAdverseYoga(name: string): boolean {
+  return ADVERSE_YOGAS.has(name.toUpperCase());
 }
 
 export function yogaReadingStatusLabel(

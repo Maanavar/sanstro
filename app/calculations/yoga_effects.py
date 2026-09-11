@@ -177,10 +177,11 @@ YOGA_EFFECT: dict[str, tuple[str, str]] = {
         "rather than tension with an outside authority.",
     ),
     "DARIDRA_YOGA": (
-        "வருமான வழிகளில் அழுத்தம் இருக்கும் அமைப்பு; "
-        "பல வருமான ஆதாரங்களும் கவனமான செலவுத் திட்டமும் தேவை.",
-        "Indicates pressure on income channels; diversified earnings and deliberate spending "
-        "discipline are what this asks for.",
+        "துஷ்டான அதிபதியும் தன அதிபதியும் இடம் மாறும் அரிய அமைப்பு; வருமான வழிகளில் "
+        "அழுத்தம் இருக்கும், பல வருமான ஆதாரங்களும் கவனமான செலவுத் திட்டமும் தேவை.",
+        "A rare exchange between a difficult-house lord and a wealth-house lord; it indicates "
+        "pressure on income channels, and asks for diversified earnings and deliberate "
+        "spending discipline.",
     ),
     "DARIDRA_PROXY_YOGA": (
         "11ஆம் அதிபதி பலவீனமாகவும் பாதக கிரகத்துடன் சேர்ந்தும் இருக்கும் வினாடி அளவுகோல்; "
