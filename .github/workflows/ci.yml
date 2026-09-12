@@ -72,7 +72,13 @@ jobs:
         # Pin ruff so a newer release introducing rules can't silently turn the
         # lint gate red on an unrelated PR. Bump deliberately and fix findings in
         # the same PR. See REFACTOR_PLAN 2.1.
-        run: pip install ruff==0.15.17 mypy
+        #
+        # mypy is pinned for the same reason, which had been written down here
+        # for one of the two tools and applied to one of the two: a type checker
+        # that infers more each release is exactly as able to redden an
+        # untouched PR as a linter that lints more. 2.3.1 is the version this
+        # pin was verified against — clean across all 342 files.
+        run: pip install ruff==0.15.17 mypy==2.3.1
       - name: Ruff
         run: ruff check app tests
       - name: Mypy
@@ -118,6 +124,13 @@ jobs:
           --health-interval 10s --health-timeout 5s --health-retries 10
     env:
       JOTHIDAM_DATABASE_URL: postgresql://slw_admin:slw_dev_password@localhost:5440/vinaadi_migrate
+      # The same throwaway Fernet key the pytest job uses (scratch database
+      # only, never real data). The round-trip needs it because
+      # oo8e9f0a1b2c_encrypt_journal_note_text is a *data* migration: it
+      # refuses to run without a key rather than leave journal text in
+      # plaintext while reporting success, and its downgrade decrypts. So a job
+      # with no key cannot exercise either direction of it.
+      JOTHIDAM_ENCRYPTION_KEY: oIE2E5GlSD8XImPyokV8q3d27MolWWwtsbokjOvVSQA=
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

@@ -99,6 +99,15 @@ async function renderTab(overrides: Partial<TabProps> = {}) {
       personalSani={null}
       peyarchiUpcoming={[]}
       panchangam={null}
+      // Every wall-clock time in these fixtures — the kalam windows, the
+      // frozen clocks below, the "08:30 IST" in their comments — is written in
+      // Asia/Kolkata. Without this prop the tab falls back to the *runner's*
+      // local zone (tz.ts: "browser-local when absent"), so the suite asserted
+      // one thing on an IST laptop and another on a UTC CI runner: the avoid
+      // window's live phase and the 7pm evening-preview gate both read off a
+      // clock five and a half hours out. Pin the zone the fixtures are in and
+      // the cases mean the same thing everywhere.
+      panchangamTimezone="Asia/Kolkata"
       panchangamTimings={null}
       weekAhead={null}
       familyAggregate={null}

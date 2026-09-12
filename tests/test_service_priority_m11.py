@@ -105,19 +105,57 @@ def test_whatif_strength_buckets() -> None:
     assert ws._strength(30) == "WEAK"
 
 
+def _stub_dispatch_db(monkeypatch: pytest.MonkeyPatch) -> dict[str, str | None]:
+    """Keep `session=object()` sufficient, and capture the row dispatch persists.
+
+    The three tests below are about channel routing and the smart-silence rule,
+    so they hand dispatch a bare `object()` and stub every collaborator that
+    would reach a database. Two of those grew past the stubs:
+
+    * `_notification_language` was added to `dispatch_notification` afterwards
+      and queries `user_preferences` itself, which turned all three red with an
+      `AttributeError` naming the service rather than the missing stub.
+    * `_persist_notification` gained `language` and `payload`, and each test
+      captured it with its own 9-parameter lambda. Dispatch calls it with 11
+      positional arguments, so those lambdas no longer even bind — and had they
+      been permissive about arity, their parameters named `status` and
+      `suppression_reason` would have quietly received `language` and
+      `payload`. Sharing one stub that mirrors the real signature means the next
+      parameter added there fails once, here, loudly, rather than three times
+      over with the assertions reading the wrong field.
+
+    The language choice is not being waived: it is covered against a real
+    session, both values, in tests/test_notification_preferences.py.
+    """
+    persisted: dict[str, str | None] = {}
+
+    monkeypatch.setattr(nds, "_notification_language", lambda *_args, **_kwargs: "en")
+
+    def _capture(
+        _session: object,
+        _user_id: object,
+        _chart_id: object,
+        _notification_type: object,
+        _title: object,
+        _body: object,
+        _language: object,
+        _payload: object,
+        status: str,
+        suppression_reason: str | None,
+        _priority: int = 50,
+    ) -> None:
+        persisted.update({"status": status, "suppression_reason": suppression_reason})
+
+    monkeypatch.setattr(nds, "_persist_notification", _capture)
+    return persisted
+
+
 def test_dispatch_notification_in_app_only_when_channel_none(monkeypatch: pytest.MonkeyPatch) -> None:
     # channel="none" suppresses push/email delivery but still persists to the in-app
     # inbox (status="sent"); dispatch reflects that with "in_app_only".
     pref = SimpleNamespace(notification_channel="none", smart_silence_enabled=True, fcm_device_token=None)
-    persisted: dict[str, str | None] = {}
+    persisted = _stub_dispatch_db(monkeypatch)
     monkeypatch.setattr(nds, "get_or_create_preferences", lambda *_args, **_kwargs: pref)
-    monkeypatch.setattr(
-        nds,
-        "_persist_notification",
-        lambda _s, _u, _c, _t, _title, _body, status, suppression_reason, _p: persisted.update(
-            {"status": status, "suppression_reason": suppression_reason}
-        ),
-    )
     result = nds.dispatch_notification(
         session=object(),
         user_id=uuid4(),
@@ -133,18 +171,11 @@ def test_dispatch_notification_in_app_only_when_channel_none(monkeypatch: pytest
 
 def test_dispatch_notification_smart_silence_suppressed(monkeypatch: pytest.MonkeyPatch) -> None:
     pref = SimpleNamespace(notification_channel="push", smart_silence_enabled=True, fcm_device_token="token")
-    persisted: dict[str, str | None] = {}
 
+    persisted = _stub_dispatch_db(monkeypatch)
     monkeypatch.setattr(nds, "get_or_create_preferences", lambda *_args, **_kwargs: pref)
     monkeypatch.setattr(nds, "_resolve_user_timezone", lambda *_args, **_kwargs: "Asia/Calcutta")
     monkeypatch.setattr(nds, "_push_count_today", lambda *_args, **_kwargs: 1)
-    monkeypatch.setattr(
-        nds,
-        "_persist_notification",
-        lambda _s, _u, _c, _t, _title, _body, status, suppression_reason, _p: persisted.update(
-            {"status": status, "suppression_reason": suppression_reason}
-        ),
-    )
     monkeypatch.setattr(nds, "send_push", lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("push should be suppressed")))
 
     result = nds.dispatch_notification(
@@ -165,19 +196,12 @@ def test_dispatch_notification_smart_silence_suppressed(monkeypatch: pytest.Monk
 
 def test_dispatch_notification_both_channel_success(monkeypatch: pytest.MonkeyPatch) -> None:
     pref = SimpleNamespace(notification_channel="both", smart_silence_enabled=False, fcm_device_token="token")
-    persisted: dict[str, str | None] = {}
 
+    persisted = _stub_dispatch_db(monkeypatch)
     monkeypatch.setattr(nds, "get_or_create_preferences", lambda *_args, **_kwargs: pref)
     monkeypatch.setattr(nds, "send_push", lambda *_args, **_kwargs: "sent")
     monkeypatch.setattr(nds, "build_notification_email", lambda *_args, **_kwargs: object())
     monkeypatch.setattr(nds, "send_email", lambda *_args, **_kwargs: True)
-    monkeypatch.setattr(
-        nds,
-        "_persist_notification",
-        lambda _s, _u, _c, _t, _title, _body, status, suppression_reason, _p: persisted.update(
-            {"status": status, "suppression_reason": suppression_reason}
-        ),
-    )
 
     result = nds.dispatch_notification(
         session=object(),

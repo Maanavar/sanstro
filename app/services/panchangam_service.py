@@ -558,11 +558,15 @@ def build_tamil_months(
             detail=f"count must be between 1 and {MAX_TAMIL_MONTH_COUNT}",
         )
 
-    explicit = (lat, lng, timezone_name)
-    if any(value is not None for value in explicit):
-        if not all(value is not None for value in explicit):
+    # Named one by one rather than through `any(... for value in explicit)`: a
+    # generator over a tuple reads the same to a human and tells the type
+    # checker nothing, so `lat` stayed `float | None` at the assignment below
+    # and the mypy gate caught it. The partial-supply check has to be spelled
+    # out to be the narrowing that assignment depends on.
+    if lat is not None or lng is not None or timezone_name is not None:
+        if lat is None or lng is None or timezone_name is None:
             raise HTTPException(status_code=422, detail="lat, lng, and timezone must be supplied together")
-        latitude, longitude, tz_name = float(lat), float(lng), str(timezone_name)
+        latitude, longitude, tz_name = float(lat), float(lng), timezone_name
     elif chart_id is not None:
         daily_location = _chart_daily_location(session, chart_id)
         if daily_location is None:
