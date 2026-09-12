@@ -87,6 +87,14 @@ function readingFixture(): OneMinuteReadingData {
         text: { en: "You steady a room before you speak in it.", ta: "நீங்கள் அமைதியாகத் தொடங்குபவர்." },
         basis: null,
       },
+      {
+        id: "period_now",
+        text: {
+          en: "Guru bhukti asks you to finish things. It rewards the slower route.",
+          ta: "குரு புத்தி முடிக்கச் சொல்கிறது.",
+        },
+        basis: null,
+      },
     ],
     pendingQuestion: null,
     wordCount: { ta: 40, en: 40 },
@@ -159,5 +167,137 @@ describe("DashboardOneMinuteReading deferUntilVisible", () => {
 
     await waitFor(() => expect(getOneMinuteReading).toHaveBeenCalledWith("chart-1"));
     await screen.findByText(/Your chart in two minutes/i);
+  });
+});
+
+/**
+ * `collapseWhenRead` — the daily home stops re-serving a reading that has not
+ * changed.
+ *
+ * The reading moves at the antardasha boundary (`readingWindow` IS the current
+ * antardasha, months to years wide) and most of its beats are natal and never
+ * move at all, so Today was spending its third slot on ~240 words the reader
+ * had already read, under a subtitle that said so out loud.
+ *
+ * What has to hold, and what these pin:
+ *  - collapsed only where the caller asked for it — Family & Charts is the
+ *    reading's home and keeps it whole;
+ *  - the dismissal expires by itself, because what is stored is the reading
+ *    window and not a boolean. A boolean would bury the bhukti turn, which is
+ *    the one moment in the year this writing is news;
+ *  - a render is not a reading. Marking it read on mount would collapse it for
+ *    a reader who never scrolled to it;
+ *  - and marking it read never collapses it under the reader doing the
+ *    reading — that lands on the next visit.
+ */
+describe("DashboardOneMinuteReading collapseWhenRead", () => {
+  const FULL_BODY = /You steady a room before you speak in it/i;
+  const RECAP_LINE = /Guru bhukti asks you to finish things\./i;
+
+  beforeEach(() => {
+    observers = [];
+    localStorage.clear();
+    getOneMinuteReading.mockReset();
+    getOneMinuteReading.mockResolvedValue({ success: true, data: readingFixture() });
+    vi.stubGlobal("IntersectionObserver", TestIntersectionObserver);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    localStorage.clear();
+  });
+
+  it("collapses to one line and a way back, once this reading has been read", async () => {
+    localStorage.setItem("vinaadi-om-read:chart-1", "2026-08-01");
+    const { DashboardOneMinuteReading } = await import("./dashboard-one-minute-reading");
+    const onOpenFullChart = vi.fn();
+    render(
+      <DashboardOneMinuteReading
+        lang="en"
+        chartId="chart-1"
+        collapseWhenRead
+        onOpenFullChart={onOpenFullChart}
+      />,
+    );
+
+    // The heading survives — the document outline should not change because the
+    // reader has read something — but the 240 words do not.
+    await screen.findByText(/Your chart in two minutes/i);
+    expect(screen.queryByText(FULL_BODY)).toBeNull();
+
+    // The line it keeps is the beat that MOVED, not the natal opener.
+    expect(screen.getByText(RECAP_LINE)).toBeTruthy();
+
+    screen.getByRole("button", { name: /Read it again/i }).click();
+    expect(onOpenFullChart).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the reading whole on the surface that is its home", async () => {
+    // Family & Charts passes no `collapseWhenRead`: a reader who navigates there
+    // has gone TO the reading, and finding one line waiting would be a bug.
+    localStorage.setItem("vinaadi-om-read:chart-1", "2026-08-01");
+    const { DashboardOneMinuteReading } = await import("./dashboard-one-minute-reading");
+    render(<DashboardOneMinuteReading lang="en" chartId="chart-1" />);
+
+    await screen.findByText(FULL_BODY);
+    expect(screen.queryByRole("button", { name: /Read it again/i })).toBeNull();
+  });
+
+  it("comes back in full, and says why, when the antardasha has turned", async () => {
+    // Stored window is an older antardasha, so the backend has since rewritten
+    // the piece. This is the whole reason the stored value is a date.
+    localStorage.setItem("vinaadi-om-read:chart-1", "2026-02-01");
+    const { DashboardOneMinuteReading } = await import("./dashboard-one-minute-reading");
+    render(<DashboardOneMinuteReading lang="en" chartId="chart-1" collapseWhenRead />);
+
+    await screen.findByText(FULL_BODY);
+    expect(screen.getByText(/Rewritten/i)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Read it again/i })).toBeNull();
+  });
+
+  it("keeps a reading whole while it is still asking the reader something", async () => {
+    // A reading with an unanswered question is not finished, whatever the
+    // stored window says — collapsing it would hide the question for good.
+    const withQuestion = readingFixture();
+    withQuestion.pendingQuestion = {
+      field: "marital_status",
+      beforeBeat: "period_now",
+      prompt: { en: "Are you married?", ta: "திருமணமானவரா?" },
+      options: [{ value: "single", label: { en: "No", ta: "இல்லை" } }],
+    };
+    getOneMinuteReading.mockResolvedValue({ success: true, data: withQuestion });
+    localStorage.setItem("vinaadi-om-read:chart-1", "2026-08-01");
+
+    const { DashboardOneMinuteReading } = await import("./dashboard-one-minute-reading");
+    render(<DashboardOneMinuteReading lang="en" chartId="chart-1" collapseWhenRead />);
+
+    await screen.findByText(FULL_BODY);
+    expect(screen.getByText(/Are you married\?/i)).toBeTruthy();
+  });
+
+  it("does not count a render as a reading until it has been on screen", async () => {
+    const { DashboardOneMinuteReading } = await import("./dashboard-one-minute-reading");
+    render(<DashboardOneMinuteReading lang="en" chartId="chart-1" collapseWhenRead />);
+
+    await screen.findByText(FULL_BODY);
+    // Rendered, not read: nothing stored, so a reader who never scrolls this far
+    // gets the reading again tomorrow rather than losing it unread.
+    expect(localStorage.getItem("vinaadi-om-read:chart-1")).toBeNull();
+
+    // The read observer watches the section itself with no lead margin — the
+    // lazy-load one deliberately fires 360px early, which is why this is a
+    // second observer and not a reuse of that one.
+    const readObserver = observers.find((o) => o.options?.threshold === 0.2);
+    expect(readObserver).toBeTruthy();
+    intersect(readObserver!);
+
+    await waitFor(
+      () => expect(localStorage.getItem("vinaadi-om-read:chart-1")).toBe("2026-08-01"),
+      { timeout: 4000 },
+    );
+
+    // And it did NOT fold up under the reader who was reading it. The collapse
+    // is for the next visit.
+    expect(screen.getByText(FULL_BODY)).toBeTruthy();
   });
 });

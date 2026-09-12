@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-09-02T10:23:13.365Z",
-  "count": 363,
+  "generatedAt": "2026-09-11T13:04:52.570Z",
+  "count": 353,
   "findings": [
     {
       "key": "mobile/app.config.ts:#D4611A:color: \"#D4611A\",",
@@ -19,14 +19,14 @@
     {
       "key": "mobile/app/_layout.tsx:#7C3AED:backgroundColor: \"#7C3AED\", paddingVertical: 5,",
       "file": "mobile/app/_layout.tsx",
-      "line": 49,
+      "line": 54,
       "value": "#7C3AED",
       "source": "backgroundColor: \"#7C3AED\", paddingVertical: 5,"
     },
     {
       "key": "mobile/app/_layout.tsx:#fff:<Text style={{ color: \"#fff\", fontSize: 12, fontWeight: \"600\" }}>",
       "file": "mobile/app/_layout.tsx",
-      "line": 52,
+      "line": 57,
       "value": "#fff",
       "source": "<Text style={{ color: \"#fff\", fontSize: 12, fontWeight: \"600\" }}>"
     },
@@ -82,21 +82,21 @@
     {
       "key": "mobile/app/(tabs)/tools/yogam.tsx:#000:shadowColor: \"#000\", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,",
       "file": "mobile/app/(tabs)/tools/yogam.tsx",
-      "line": 282,
+      "line": 309,
       "value": "#000",
       "source": "shadowColor: \"#000\", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,"
     },
     {
       "key": "mobile/app/(tabs)/tools/yogam.tsx:#000:shadowColor: \"#000\", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1,",
       "file": "mobile/app/(tabs)/tools/yogam.tsx",
-      "line": 272,
+      "line": 295,
       "value": "#000",
       "source": "shadowColor: \"#000\", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1,"
     },
     {
       "key": "mobile/app/daily-score.tsx:#000:shadowColor: \"#000\", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,",
       "file": "mobile/app/daily-score.tsx",
-      "line": 220,
+      "line": 212,
       "value": "#000",
       "source": "shadowColor: \"#000\", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,"
     },
@@ -358,76 +358,6 @@
       "line": 168,
       "value": "#b00020",
       "source": "<p style={{ color: \"#b00020\" }}>"
-    },
-    {
-      "key": "web/app/(marketing)/notifications/page.tsx:#7A4B1F:<span style={{ display: \"inline-flex\", alignItems: \"center\", justifyContent: \"center\", padding: \"4px 10px\", borderRadius: \"999px\", background: item.read_at ? \"var(--cl-bg-2)\" : \"#F4E2CC\", color: \"#7A4B1F\", fontSize: \"0.72rem\", fontWeight: 700, textTransform: \"uppercase\", letterSpacing: \"0.06em\" }}>",
-      "file": "web/app/(marketing)/notifications/page.tsx",
-      "line": 131,
-      "value": "#7A4B1F",
-      "source": "<span style={{ display: \"inline-flex\", alignItems: \"center\", justifyContent: \"center\", padding: \"4px 10px\", borderRadius: \"999px\", background: item.read_at ? \"var(--cl-bg-2)\" : \"#F4E2CC\", color: \"#7A4B1F\", fontSize: \"0.72rem\", fontWeight: 700, textTransform: \"uppercase\", letterSpacing: \"0.06em\" }}>"
-    },
-    {
-      "key": "web/app/(marketing)/notifications/page.tsx:#8A4B1F:<span style={{ width: \"44px\", height: \"44px\", borderRadius: \"999px\", display: \"inline-flex\", alignItems: \"center\", justifyContent: \"center\", background: \"#FFF4E6\", color: \"#8A4B1F\" }}>",
-      "file": "web/app/(marketing)/notifications/page.tsx",
-      "line": 87,
-      "value": "#8A4B1F",
-      "source": "<span style={{ width: \"44px\", height: \"44px\", borderRadius: \"999px\", display: \"inline-flex\", alignItems: \"center\", justifyContent: \"center\", background: \"#FFF4E6\", color: \"#8A4B1F\" }}>"
-    },
-    {
-      "key": "web/app/(marketing)/notifications/page.tsx:#8A4B1F:style={{ marginTop: \"10px\", fontSize: \"0.78rem\", fontWeight: 700, color: \"#8A4B1F\", background: \"none\", border: \"none\", padding: 0, cursor: markingReadId === item.notification_id ? \"not-allowed\" : \"pointer\", fontFamily: \"inherit\" }}",
-      "file": "web/app/(marketing)/notifications/page.tsx",
-      "line": 145,
-      "value": "#8A4B1F",
-      "source": "style={{ marginTop: \"10px\", fontSize: \"0.78rem\", fontWeight: 700, color: \"#8A4B1F\", background: \"none\", border: \"none\", padding: 0, cursor: markingReadId === item.notification_id ? \"not-allowed\" : \"pointer\", fontFamily: \"inherit\" }}"
-    },
-    {
-      "key": "web/app/(marketing)/notifications/page.tsx:#8B2C2C:<div style={{ padding: \"14px 16px\", borderRadius: \"12px\", background: \"#FFF5F5\", border: \"1px solid #E9B4B4\", color: \"#8B2C2C\" }}>",
-      "file": "web/app/(marketing)/notifications/page.tsx",
-      "line": 114,
-      "value": "#8B2C2C",
-      "source": "<div style={{ padding: \"14px 16px\", borderRadius: \"12px\", background: \"#FFF5F5\", border: \"1px solid #E9B4B4\", color: \"#8B2C2C\" }}>"
-    },
-    {
-      "key": "web/app/(marketing)/notifications/page.tsx:#C45B2D:{!item.read_at && <span style={{ width: \"8px\", height: \"8px\", borderRadius: \"999px\", background: \"#C45B2D\", display: \"inline-block\" }} />}",
-      "file": "web/app/(marketing)/notifications/page.tsx",
-      "line": 134,
-      "value": "#C45B2D",
-      "source": "{!item.read_at && <span style={{ width: \"8px\", height: \"8px\", borderRadius: \"999px\", background: \"#C45B2D\", display: \"inline-block\" }} />}"
-    },
-    {
-      "key": "web/app/(marketing)/notifications/page.tsx:#E9B4B4:<div style={{ padding: \"14px 16px\", borderRadius: \"12px\", background: \"#FFF5F5\", border: \"1px solid #E9B4B4\", color: \"#8B2C2C\" }}>",
-      "file": "web/app/(marketing)/notifications/page.tsx",
-      "line": 114,
-      "value": "#E9B4B4",
-      "source": "<div style={{ padding: \"14px 16px\", borderRadius: \"12px\", background: \"#FFF5F5\", border: \"1px solid #E9B4B4\", color: \"#8B2C2C\" }}>"
-    },
-    {
-      "key": "web/app/(marketing)/notifications/page.tsx:#F4E2CC:<span style={{ display: \"inline-flex\", alignItems: \"center\", justifyContent: \"center\", padding: \"4px 10px\", borderRadius: \"999px\", background: item.read_at ? \"var(--cl-bg-2)\" : \"#F4E2CC\", color: \"#7A4B1F\", fontSize: \"0.72rem\", fontWeight: 700, textTransform: \"uppercase\", letterSpacing: \"0.06em\" }}>",
-      "file": "web/app/(marketing)/notifications/page.tsx",
-      "line": 131,
-      "value": "#F4E2CC",
-      "source": "<span style={{ display: \"inline-flex\", alignItems: \"center\", justifyContent: \"center\", padding: \"4px 10px\", borderRadius: \"999px\", background: item.read_at ? \"var(--cl-bg-2)\" : \"#F4E2CC\", color: \"#7A4B1F\", fontSize: \"0.72rem\", fontWeight: 700, textTransform: \"uppercase\", letterSpacing: \"0.06em\" }}>"
-    },
-    {
-      "key": "web/app/(marketing)/notifications/page.tsx:#FFF4E6:<span style={{ width: \"44px\", height: \"44px\", borderRadius: \"999px\", display: \"inline-flex\", alignItems: \"center\", justifyContent: \"center\", background: \"#FFF4E6\", color: \"#8A4B1F\" }}>",
-      "file": "web/app/(marketing)/notifications/page.tsx",
-      "line": 87,
-      "value": "#FFF4E6",
-      "source": "<span style={{ width: \"44px\", height: \"44px\", borderRadius: \"999px\", display: \"inline-flex\", alignItems: \"center\", justifyContent: \"center\", background: \"#FFF4E6\", color: \"#8A4B1F\" }}>"
-    },
-    {
-      "key": "web/app/(marketing)/notifications/page.tsx:#FFF5F5:<div style={{ padding: \"14px 16px\", borderRadius: \"12px\", background: \"#FFF5F5\", border: \"1px solid #E9B4B4\", color: \"#8B2C2C\" }}>",
-      "file": "web/app/(marketing)/notifications/page.tsx",
-      "line": 114,
-      "value": "#FFF5F5",
-      "source": "<div style={{ padding: \"14px 16px\", borderRadius: \"12px\", background: \"#FFF5F5\", border: \"1px solid #E9B4B4\", color: \"#8B2C2C\" }}>"
-    },
-    {
-      "key": "web/app/(marketing)/notifications/page.tsx:#FFF9F1:<article key={item.notification_id} style={{ borderRadius: \"14px\", border: \"1px solid var(--cl-border)\", background: item.read_at ? \"var(--cl-bg)\" : \"#FFF9F1\", padding: \"16px 18px\" }}>",
-      "file": "web/app/(marketing)/notifications/page.tsx",
-      "line": 128,
-      "value": "#FFF9F1",
-      "source": "<article key={item.notification_id} style={{ borderRadius: \"14px\", border: \"1px solid var(--cl-border)\", background: item.read_at ? \"var(--cl-bg)\" : \"#FFF9F1\", padding: \"16px 18px\" }}>"
     },
     {
       "key": "web/app/(marketing)/panchangam/[date]/page.tsx:#4ade80:<p style={{ margin: \"0 0 4px\", fontSize: \"1rem\", fontWeight: 700, color: data.subhaMuhurtham.isSubha ? \"#4ade80\" : \"#f87171\" }}>",
@@ -740,49 +670,49 @@
     {
       "key": "web/app/login/page.tsx:#34A853:<path fill=\"#34A853\" d=\"M12 24c3.24 0 5.95-1.07 7.94-2.9l-3.88-3.02c-1.08.72-2.45 1.15-4.06 1.15-3.13 0-5.78-2.11-6.73-4.96H1.26v3.11A11.998 11.998 0 0 0 12 24Z\"/>",
       "file": "web/app/login/page.tsx",
-      "line": 378,
+      "line": 388,
       "value": "#34A853",
       "source": "<path fill=\"#34A853\" d=\"M12 24c3.24 0 5.95-1.07 7.94-2.9l-3.88-3.02c-1.08.72-2.45 1.15-4.06 1.15-3.13 0-5.78-2.11-6.73-4.96H1.26v3.11A11.998 11.998 0 0 0 12 24Z\"/>"
     },
     {
       "key": "web/app/login/page.tsx:#3F7A4E:background: req.met ? \"var(--color-positive, #3F7A4E)\" : \"transparent\",",
       "file": "web/app/login/page.tsx",
-      "line": 521,
+      "line": 531,
       "value": "#3F7A4E",
       "source": "background: req.met ? \"var(--color-positive, #3F7A4E)\" : \"transparent\","
     },
     {
       "key": "web/app/login/page.tsx:#3F7A4E:color: req.met ? \"var(--color-positive, #3F7A4E)\" : \"var(--color-muted, #7A6F5E)\",",
       "file": "web/app/login/page.tsx",
-      "line": 514,
+      "line": 524,
       "value": "#3F7A4E",
       "source": "color: req.met ? \"var(--color-positive, #3F7A4E)\" : \"var(--color-muted, #7A6F5E)\","
     },
     {
       "key": "web/app/login/page.tsx:#4285F4:<path fill=\"#4285F4\" d=\"M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.53 5.53 0 0 1-2.4 3.63v3h3.88c2.27-2.09 3.57-5.17 3.57-8.82Z\"/>",
       "file": "web/app/login/page.tsx",
-      "line": 377,
+      "line": 387,
       "value": "#4285F4",
       "source": "<path fill=\"#4285F4\" d=\"M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.53 5.53 0 0 1-2.4 3.63v3h3.88c2.27-2.09 3.57-5.17 3.57-8.82Z\"/>"
     },
     {
       "key": "web/app/login/page.tsx:#7A6F5E:color: req.met ? \"var(--color-positive, #3F7A4E)\" : \"var(--color-muted, #7A6F5E)\",",
       "file": "web/app/login/page.tsx",
-      "line": 514,
+      "line": 524,
       "value": "#7A6F5E",
       "source": "color: req.met ? \"var(--color-positive, #3F7A4E)\" : \"var(--color-muted, #7A6F5E)\","
     },
     {
       "key": "web/app/login/page.tsx:#EA4335:<path fill=\"#EA4335\" d=\"M12 4.77c1.76 0 3.34.6 4.58 1.79l3.44-3.44C17.94 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.26 6.63l4.01 3.1C6.22 6.88 8.87 4.77 12 4.77Z\"/>",
       "file": "web/app/login/page.tsx",
-      "line": 380,
+      "line": 390,
       "value": "#EA4335",
       "source": "<path fill=\"#EA4335\" d=\"M12 4.77c1.76 0 3.34.6 4.58 1.79l3.44-3.44C17.94 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.26 6.63l4.01 3.1C6.22 6.88 8.87 4.77 12 4.77Z\"/>"
     },
     {
       "key": "web/app/login/page.tsx:#FBBC05:<path fill=\"#FBBC05\" d=\"M5.27 14.27a7.2 7.2 0 0 1 0-4.54v-3.1H1.26a12 12 0 0 0 0 10.75l4.01-3.11Z\"/>",
       "file": "web/app/login/page.tsx",
-      "line": 379,
+      "line": 389,
       "value": "#FBBC05",
       "source": "<path fill=\"#FBBC05\" d=\"M5.27 14.27a7.2 7.2 0 0 1 0-4.54v-3.1H1.26a12 12 0 0 0 0 10.75l4.01-3.11Z\"/>"
     },
@@ -1566,7 +1496,7 @@
     {
       "key": "web/components/dashboard-hero.tsx:#C0392B:style={status.tone === \"error\" ? { color: \"var(--color-low, #C0392B)\" } : undefined}",
       "file": "web/components/dashboard-hero.tsx",
-      "line": 539,
+      "line": 654,
       "value": "#C0392B",
       "source": "style={status.tone === \"error\" ? { color: \"var(--color-low, #C0392B)\" } : undefined}"
     },
@@ -1615,77 +1545,77 @@
     {
       "key": "web/components/dashboard-life-areas-yogas-doshams-nova.tsx:rgba(...) values with no var():* default, plus several literal inline rgba(...) values with no var() at all,",
       "file": "web/components/dashboard-life-areas-yogas-doshams-nova.tsx",
-      "line": 35,
+      "line": 38,
       "value": "rgba(...) values with no var()",
       "source": "* default, plus several literal inline rgba(...) values with no var() at all,"
     },
     {
       "key": "web/components/dashboard-personal-shared.tsx:#047857:<p style={{ margin: \"0 0 var(--space-1_5)\", fontSize: \"0.625rem\", fontWeight: 700, color: \"var(--chart-d9-active-dark, #047857)\", textTransform: \"uppercase\", letterSpacing: \"0.06em\" }}>",
       "file": "web/components/dashboard-personal-shared.tsx",
-      "line": 128,
+      "line": 137,
       "value": "#047857",
       "source": "<p style={{ margin: \"0 0 var(--space-1_5)\", fontSize: \"0.625rem\", fontWeight: 700, color: \"var(--chart-d9-active-dark, #047857)\", textTransform: \"uppercase\", letterSpacing: \"0.06em\" }}>"
     },
     {
       "key": "web/components/dashboard-personal-shared.tsx:#047857:<span style={{ color: \"var(--chart-d9-active-dark, #047857)\", marginRight: \"4px\" }}>✓</span>{item}",
       "file": "web/components/dashboard-personal-shared.tsx",
-      "line": 133,
+      "line": 142,
       "value": "#047857",
       "source": "<span style={{ color: \"var(--chart-d9-active-dark, #047857)\", marginRight: \"4px\" }}>✓</span>{item}"
     },
     {
       "key": "web/components/dashboard-personal-shared.tsx:#b45309:<p style={{ margin: \"0 0 var(--space-1_5)\", fontSize: \"0.625rem\", fontWeight: 700, color: \"var(--planet-saturn, #b45309)\", textTransform: \"uppercase\", letterSpacing: \"0.06em\" }}>",
       "file": "web/components/dashboard-personal-shared.tsx",
-      "line": 118,
+      "line": 127,
       "value": "#b45309",
       "source": "<p style={{ margin: \"0 0 var(--space-1_5)\", fontSize: \"0.625rem\", fontWeight: 700, color: \"var(--planet-saturn, #b45309)\", textTransform: \"uppercase\", letterSpacing: \"0.06em\" }}>"
     },
     {
       "key": "web/components/dashboard-personal-shared.tsx:#b45309:<span style={{ color: \"var(--planet-saturn, #b45309)\", marginRight: \"4px\" }}>✕</span>{item}",
       "file": "web/components/dashboard-personal-shared.tsx",
-      "line": 123,
+      "line": 132,
       "value": "#b45309",
       "source": "<span style={{ color: \"var(--planet-saturn, #b45309)\", marginRight: \"4px\" }}>✕</span>{item}"
     },
     {
       "key": "web/components/dashboard-personal-shared.tsx:#d97706:background: \"var(--color-amber, #d97706)\", color: \"white\",",
       "file": "web/components/dashboard-personal-shared.tsx",
-      "line": 85,
+      "line": 90,
       "value": "#d97706",
       "source": "background: \"var(--color-amber, #d97706)\", color: \"white\","
     },
     {
       "key": "web/components/dashboard-personal-shared.tsx:#d97706:border: \"1px solid var(--color-amber-border, #d97706)\",",
       "file": "web/components/dashboard-personal-shared.tsx",
-      "line": 77,
+      "line": 82,
       "value": "#d97706",
       "source": "border: \"1px solid var(--color-amber-border, #d97706)\","
     },
     {
       "key": "web/components/dashboard-personal-shared.tsx:#fde68a:<div style={{ padding: \"var(--space-2_5) var(--space-4)\", borderRight: \"1px solid var(--color-amber-border, #fde68a)\" }}>",
       "file": "web/components/dashboard-personal-shared.tsx",
-      "line": 117,
+      "line": 126,
       "value": "#fde68a",
       "source": "<div style={{ padding: \"var(--space-2_5) var(--space-4)\", borderRight: \"1px solid var(--color-amber-border, #fde68a)\" }}>"
     },
     {
       "key": "web/components/dashboard-personal-shared.tsx:#fde68a:<p style={{ margin: 0, padding: \"var(--space-2_5) var(--space-4)\", fontSize: \"0.875rem\", color: \"var(--color-text-strong)\", borderBottom: \"1px solid var(--color-amber-border, #fde68a)\" }}>",
       "file": "web/components/dashboard-personal-shared.tsx",
-      "line": 110,
+      "line": 119,
       "value": "#fde68a",
       "source": "<p style={{ margin: 0, padding: \"var(--space-2_5) var(--space-4)\", fontSize: \"0.875rem\", color: \"var(--color-text-strong)\", borderBottom: \"1px solid var(--color-amber-border, #fde68a)\" }}>"
     },
     {
       "key": "web/components/dashboard-personal-shared.tsx:#fde68a:<p style={{ margin: 0, padding: \"var(--space-2) var(--space-4)\", fontSize: \"0.6875rem\", color: \"var(--panel-mid-earth)\", borderTop: \"1px solid var(--color-amber-border, #fde68a)\", fontStyle: \"italic\" }}>",
       "file": "web/components/dashboard-personal-shared.tsx",
-      "line": 139,
+      "line": 148,
       "value": "#fde68a",
       "source": "<p style={{ margin: 0, padding: \"var(--space-2) var(--space-4)\", fontSize: \"0.6875rem\", color: \"var(--panel-mid-earth)\", borderTop: \"1px solid var(--color-amber-border, #fde68a)\", fontStyle: \"italic\" }}>"
     },
     {
       "key": "web/components/dashboard-personal-shared.tsx:#fffbeb:background: \"var(--color-amber-bg, #fffbeb)\",",
       "file": "web/components/dashboard-personal-shared.tsx",
-      "line": 78,
+      "line": 83,
       "value": "#fffbeb",
       "source": "background: \"var(--color-amber-bg, #fffbeb)\","
     },
@@ -1706,7 +1636,7 @@
     {
       "key": "web/components/dashboard-plan-muhurta-picker-nova.tsx:rgba(0,0,0,0.34):borderRadius: \"var(--radius-lg)\", boxShadow: \"0 24px 72px rgba(0,0,0,0.34)\",",
       "file": "web/components/dashboard-plan-muhurta-picker-nova.tsx",
-      "line": 361,
+      "line": 365,
       "value": "rgba(0,0,0,0.34)",
       "source": "borderRadius: \"var(--radius-lg)\", boxShadow: \"0 24px 72px rgba(0,0,0,0.34)\","
     },
@@ -1755,16 +1685,9 @@
     {
       "key": "web/components/dashboard-ui-nova.tsx:#ffffff:const tipColor = `color-mix(in srgb, ${arcColor}, #ffffff 34%)`;",
       "file": "web/components/dashboard-ui-nova.tsx",
-      "line": 261,
+      "line": 269,
       "value": "#ffffff",
       "source": "const tipColor = `color-mix(in srgb, ${arcColor}, #ffffff 34%)`;"
-    },
-    {
-      "key": "web/components/dashboard-ui-nova.tsx:rgba(var(--nova-shadow-ink, 0, 0, 0), 0.22):boxShadow: \"0 10px 28px rgba(var(--nova-shadow-ink, 0, 0, 0), 0.22)\",",
-      "file": "web/components/dashboard-ui-nova.tsx",
-      "line": 128,
-      "value": "rgba(var(--nova-shadow-ink, 0, 0, 0), 0.22)",
-      "source": "boxShadow: \"0 10px 28px rgba(var(--nova-shadow-ink, 0, 0, 0), 0.22)\","
     },
     {
       "key": "web/components/dashboard-varshaphala-panel.tsx:rgba(122,111,94,0.07):<p style={{ fontSize: \"0.72rem\", color: W.muted, lineHeight: 1.5, marginBottom: \"var(--space-2_5)\", padding: \"var(--space-1_5) var(--space-2_5)\", borderRadius: \"8px\", background: \"rgba(122,111,94,0.07)\", border: \"1px solid rgba(122,111,94,0.15)\" }}>",
@@ -1839,44 +1762,51 @@
     {
       "key": "web/components/home-content.tsx:#2E2118:<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"#2E2118\" aria-hidden=\"true\">",
       "file": "web/components/home-content.tsx",
-      "line": 604,
+      "line": 518,
       "value": "#2E2118",
       "source": "<svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"#2E2118\" aria-hidden=\"true\">"
     },
     {
       "key": "web/components/home-content.tsx:#34A853:<path d=\"M5.4 1.22L17.67 8.46l-2.97 2.07-9.3-9.31z\" fill=\"#34A853\"/>",
       "file": "web/components/home-content.tsx",
-      "line": 588,
+      "line": 502,
       "value": "#34A853",
       "source": "<path d=\"M5.4 1.22L17.67 8.46l-2.97 2.07-9.3-9.31z\" fill=\"#34A853\"/>"
     },
     {
       "key": "web/components/home-content.tsx:#4285F4:<path d=\"M21.14 10.53c.55.3.86.84.86 1.47s-.31 1.17-.86 1.47l-3.47 2.07-3.23-3.23 3.23-3.23 3.47 2.45z\" fill=\"#4285F4\"/>",
       "file": "web/components/home-content.tsx",
-      "line": 587,
+      "line": 501,
       "value": "#4285F4",
       "source": "<path d=\"M21.14 10.53c.55.3.86.84.86 1.47s-.31 1.17-.86 1.47l-3.47 2.07-3.23-3.23 3.23-3.23 3.47 2.45z\" fill=\"#4285F4\"/>"
     },
     {
-      "key": "web/components/home-content.tsx:#A89D89:<line key={x} x1={x} y1=\"86\" x2={x} y2=\"93\" stroke=\"#A89D89\" strokeWidth=\"1.5\" strokeLinecap=\"round\" />",
-      "file": "web/components/home-content.tsx",
-      "line": 296,
-      "value": "#A89D89",
-      "source": "<line key={x} x1={x} y1=\"86\" x2={x} y2=\"93\" stroke=\"#A89D89\" strokeWidth=\"1.5\" strokeLinecap=\"round\" />"
-    },
-    {
       "key": "web/components/home-content.tsx:#EA4335:<path d=\"M3.18 23.76C2.48 23.36 2 22.6 2 21.7V2.3C2 1.4 2.48.64 3.18.24L13.88 12 3.18 23.76z\" fill=\"#EA4335\"/>",
       "file": "web/components/home-content.tsx",
-      "line": 585,
+      "line": 499,
       "value": "#EA4335",
       "source": "<path d=\"M3.18 23.76C2.48 23.36 2 22.6 2 21.7V2.3C2 1.4 2.48.64 3.18.24L13.88 12 3.18 23.76z\" fill=\"#EA4335\"/>"
     },
     {
       "key": "web/components/home-content.tsx:#FBBC05:<path d=\"M17.67 15.54L5.4 22.78l9.3-9.3 2.97 2.06z\" fill=\"#FBBC05\"/>",
       "file": "web/components/home-content.tsx",
-      "line": 586,
+      "line": 500,
       "value": "#FBBC05",
       "source": "<path d=\"M17.67 15.54L5.4 22.78l9.3-9.3 2.97 2.06z\" fill=\"#FBBC05\"/>"
+    },
+    {
+      "key": "web/components/home-today-panel.tsx:#000:<circle cx={r + offset} cy={r} r={r} fill=\"#000\" />",
+      "file": "web/components/home-today-panel.tsx",
+      "line": 96,
+      "value": "#000",
+      "source": "<circle cx={r + offset} cy={r} r={r} fill=\"#000\" />"
+    },
+    {
+      "key": "web/components/home-today-panel.tsx:#fff:<circle cx={r} cy={r} r={r} fill=\"#fff\" />",
+      "file": "web/components/home-today-panel.tsx",
+      "line": 95,
+      "value": "#fff",
+      "source": "<circle cx={r} cy={r} r={r} fill=\"#fff\" />"
     },
     {
       "key": "web/components/life-area-card.tsx:rgba(168,72,47,0.3):<div style={{ marginTop: \"var(--space-3)\", padding: \"var(--space-2) var(--space-3)\", borderRadius: \"var(--radius-sm)\", background: \"var(--panel-warm-tint)\", border: \"1px solid rgba(168,72,47,0.3)\" }}>",

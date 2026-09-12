@@ -8,7 +8,8 @@ from fastapi import HTTPException, status
 from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
-from app.core.error_codes import ErrorCode, get_error_message
+from app.core.error_codes import ErrorCode
+from app.core.errors import AppError
 from app.core.subscription import is_premium
 from app.core.tier_limits import get_limits
 from app.models import BirthProfile, FamilyMember
@@ -176,10 +177,9 @@ def create_birth_profile(session: Session, payload: BirthProfileCreate, *, calcu
         # The number has to come from the tier, not from the error catalogue.
         # The catalogue's copy said "(10)" while this tier's cap was 3, so the
         # message named a limit nobody was ever held to.
-        error_info = get_error_message(ErrorCode.RESOURCE_LIMIT_EXCEEDED)
         limit = int(max_profiles)
-        raise HTTPException(
-            status_code=error_info["status"],
+        raise AppError(
+            ErrorCode.RESOURCE_LIMIT_EXCEEDED,
             detail=(
                 f"You have reached the maximum number of birth profiles "
                 f"({limit}). Delete unused profiles from your settings to make "
@@ -215,8 +215,7 @@ def create_birth_profile(session: Session, payload: BirthProfileCreate, *, calcu
 def get_birth_profile(session: Session, birth_profile_id: UUID, *, calculation_version: str) -> BirthProfileGetResponse:
     birth_profile = session.get(BirthProfile, birth_profile_id)
     if birth_profile is None or birth_profile.deleted_at is not None:
-        error_info = get_error_message(ErrorCode.BIRTH_PROFILE_NOT_FOUND)
-        raise HTTPException(status_code=error_info["status"], detail=error_info["user_message"])
+        raise AppError(ErrorCode.BIRTH_PROFILE_NOT_FOUND)
 
     family_member = birth_profile.family_member
     family_vault_id = family_member.family_vault_id if family_member is not None else None
@@ -409,8 +408,7 @@ def get_latest_birth_profile_for_owner(
     ).scalars().first()
 
     if birth_profile is None:
-        error_info = get_error_message(ErrorCode.BIRTH_PROFILE_NOT_FOUND)
-        raise HTTPException(status_code=error_info["status"], detail=error_info["user_message"])
+        raise AppError(ErrorCode.BIRTH_PROFILE_NOT_FOUND)
 
     return get_birth_profile(session, birth_profile.birth_profile_id, calculation_version=calculation_version)
 

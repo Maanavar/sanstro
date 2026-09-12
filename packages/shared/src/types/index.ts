@@ -46,11 +46,18 @@ export interface LifeAreaData {
   /** The six-month slope (score vs score6mo), not a restatement of how high
    *  the current score is. */
   trend: "UP" | "DOWN" | "STABLE";
-  /** True while Chandrashtamam is docking this area's score. The rest of a
-   *  life-area score holds for weeks at a time; this is its one ~2-day input,
-   *  so a surface can name the cause rather than let the tile move silently.
-   *  Optional for backward-compatibility with cached responses. */
+  /** True when TODAY is this chart's Chandrashtamam — the day a Tamil almanac
+   *  names for their birth star, the identical test the Today hero badges with.
+   *  The rest of a life-area score holds for weeks at a time; this is its one
+   *  ~1-day input, so a surface can name the cause rather than let the tile move
+   *  silently. Optional for backward-compatibility with cached responses. */
   chandrashtamaApplied?: boolean;
+  /** Points actually subtracted for Chandrashtamam, 0-8 — and NOT always 8. The
+   *  penalty is graded by the share of the solar day the Moon spends in the 8th
+   *  rasi, so a day the almanac names can still be a partial one (2026-09-09 at
+   *  Chennai: 0.384 of the day, three points). Any copy naming a number must
+   *  print THIS one. Absent on a payload cached before it was sent. */
+  chandrashtamaPenalty?: number;
   /** Engine re-run at +6 / +12 months (real transits + dasha in force then),
    *  blended as the current score is. Optional for backward-compatibility with
    *  older cached responses; falls back to the current score when absent. */
@@ -602,11 +609,29 @@ export interface DailyGuidanceData {
   pratyantarNarrative?: BiText | null;
   tithiCard: BiText | null;
   isChandrashtama?: boolean;
-  /** ISO datetime at which Chandrashtama LIFTS TODAY, or null when it runs past
-   *  the end of the day — which is most days of a 2-3 day stretch. Null is the
-   *  normal case, not a gap: render the untimed "extra care advised today" line,
-   *  which stays true for the whole stretch. Never render a countdown from it. */
+  /** ISO datetime at which Chandrashtama LIFTS TODAY, or null when the reader's
+   *  janma-star window is still running at midnight.
+   *
+   *  The 2026-09-09 ruling inverted which case is common. This used to track the
+   *  Moon's 2-3 day transit of the 8th rasi, so null was the normal answer; it
+   *  now tracks the reader's own star window, which is about a day and normally
+   *  closes within the day it is badged on. A real time is now the normal answer.
+   *  Still handle null — render the untimed "extra care advised today" line. */
   chandrashtamaEnds?: string | null;
+  /** The reader's OWN janma star, sent when `isChandrashtama` is true. Not
+   *  always the star that names the day: the badge is an overlap test, so on the
+   *  day a window opens the reader's star can be the day's SECOND one. Use this
+   *  to pick their window out of `chandrashtamamToday.janmaNakshatraWindows` —
+   *  deriving it from the almanac's sunrise star finds nothing on exactly those
+   *  days. Null when not in Chandrashtama, and on rows cached before it existed. */
+  chandrashtamaStar?: string | null;
+  /** The reader's own natal Moon rasi (1-12), sent alongside `chandrashtamaStar`
+   *  and needed WITH it to pick their window. Nine of the 27 stars straddle a
+   *  rasi boundary, so their natives sit in two signs whose Chandrashtamas are
+   *  a fortnight apart — matching a window on the star name alone shows one
+   *  half the other half's hours. Null when not in Chandrashtama, and on rows
+   *  cached before it existed. */
+  chandrashtamaRasi?: number | null;
   /** Today's green/red light across all activity types. Optional — older
    *  cached rows predate it, so callers must handle undefined. */
   activityBoard?: DailyActivityBoard | null;
@@ -1113,7 +1138,16 @@ export interface PanchangamDailyResponseData {
   chandrashtamamToday: {
     moonRasiNumber: number; moonRasiName: string;
     affectedJanmaRasiNumber: number; affectedJanmaRasiName: string; nakshatras: string[];
-    janmaNakshatraWindows: Array<{ name: string; start: string; end: string }>;
+    /** `rasiNumber` says which of a star's natives a window belongs to, and is
+     *  0 only on a snapshot cached before panchangam v45. It is not redundant
+     *  with `name`: a straddling star's window is split at the rasi boundary,
+     *  so the same star can appear twice in a day with two different rasis. */
+    janmaNakshatraWindows: Array<{ name: string; start: string; end: string; rasiNumber?: number; rasiName?: string }>;
+    /** The star the day BELONGS to — the one standing at sunrise. `nakshatras`
+     *  lists every star the day touches; this is the one an almanac prints.
+     *  Optional: absent on a panchangam snapshot cached before v44. */
+    affectedJanmaNakshatraNumber?: number;
+    affectedJanmaNakshatraName?: string;
   };
   specialTithiDay?: { tithiNumber: number; name: "POURNAMI" | "AMAVASAI"; moonPhase: "FULL" | "NEW" } | null;
   isKarinaal?: boolean;

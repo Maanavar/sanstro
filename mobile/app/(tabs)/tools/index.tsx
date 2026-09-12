@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View,
 } from "react-native";

@@ -530,15 +530,29 @@ YOGA_RULES: tuple[YogaRule, ...] = (
             "Chandran in a kendra from Lagna is the classical bhanga. Here it "
             "**softens** the yoga to PARTIAL rather than removing it."
         ),
-        source="Sakata yoga, Phaladeepika.",
-        key_planets=(),
+        source=(
+            "Sakata yoga, Phaladeepika (Mantreswara) — Chandran in the 6th, 8th "
+            "or 12th from Guru. **A lineage choice, not the only reading**: a "
+            "competing classical stream, followed by several Tamil texts, gives "
+            "Sakata as 6/8 only, with the kendra-from-Lagna bhanga. We follow "
+            "the 6/8/12 form as the dominant one (astrologer ruling, "
+            "2026-09-11). Any surface that says '6th or 8th' is following the "
+            "other lineage, not making an error — but the product speaks with "
+            "one voice, and that voice is 6/8/12."
+        ),
+        key_planets=("MOON", "JUPITER"),
         note=(
             "An adverse yoga. Softening rather than cancelling means the finding "
             "stays on the card with its mitigation shown, instead of vanishing — "
-            "the same posture as the Nadi parihara rule. Whether the classical "
-            "bhanga should **cancel** outright is a reviewer call. No key grahas "
-            "are defined, so activation is dormant-capped even in a Chandran or "
-            "Guru dasha."
+            "the same posture as the Nadi parihara rule. **The bhanga stays "
+            "graded by astrologer ruling, 2026-09-11**: unlike Kemadruma's, the "
+            "Chandran-in-kendra bhanga for Sakata is genuinely contested in the "
+            "texts — some treat it as full cancellation, others as mitigation — "
+            "so promoting it to a cancel would assert a settlement the sources "
+            "do not have. The asymmetry with `YOG-KD-01` is deliberate and "
+            "tracks how firm each bhanga's classical ground is, not a "
+            "consistency defect. Key grahas are Chandran and Guru, the two "
+            "grahas the yoga is defined on (same ruling)."
         ),
     ),
     # ── Kemadruma ────────────────────────────────────────────────────────────
@@ -562,7 +576,7 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         ),
         cancellation="The four bhanga above; all four are recorded in `cancellation_factors`.",
         source="Kemadruma and its bhanga, BPHS and Phaladeepika.",
-        key_planets=(),
+        key_planets=("MOON",),
         note=(
             "**Bhanga is now mandatory before display (2026-08-28 ruling).** "
             "Before this, the full bhanga only lowered the reported strength to "
@@ -574,7 +588,18 @@ YOGA_RULES: tuple[YogaRule, ...] = (
             "Chandran **is** Gaja Kesari, so one chart reported Gaja Kesari and "
             "Kemadruma as simultaneously active. The 1→PARTIAL / 2→WEAK grading "
             "of the remaining three is `[PRODUCT]`; those three still soften "
-            "rather than cancel, matching Sakata's posture."
+            "rather than cancel, matching Sakata's posture.\n\n"
+            "**A cancelled Kemadruma is a reading, not a non-event** "
+            "(astrologer ruling, 2026-09-11). `is_present=False` with a "
+            "non-empty `cancellation_factors` means the Moon *was* isolated and "
+            "the bhanga then annulled it — the native carries the Kemadruma "
+            "signature (self-reliance, the rise-from-nothing pattern) together "
+            "with the resource to transcend it. That is a different and more "
+            "valuable reading than 'the geometry never formed', and surfaces "
+            "MUST distinguish the two: see `yogaReadingStatus` in "
+            "`packages/shared/src/yogaDisplay.ts`, which resolves this case to "
+            "`CANCELLED` rather than `ABSENT`. Key graha is Chandran, on which "
+            "the whole yoga is defined (same ruling)."
         ),
     ),
     # ── Kartari ──────────────────────────────────────────────────────────────
@@ -748,24 +773,45 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         yoga_name="DARIDRA_YOGA",
         name_en="Daridra Yoga",
         name_ta="தரித்ர யோகம்",
-        markers=("VARIANT",),
+        markers=("TRADITION",),
         detector="_yoga_detect.detect_daridra_yoga",
-        present_when="The 11th lord occupies a dusthana (6/8/12). The weak-plus-malefic condition no longer lives on this card — see `YOG-DR-02`.",
+        present_when=(
+            "A **parivartana** between a dusthana lord (6/8/12) and a "
+            "house-of-wealth lord (2/11): the dusthana lord occupies the dhana "
+            "house **and** that dhana lord occupies that same dusthana. The two "
+            "must be different grahas. The weak-plus-malefic condition lives on "
+            "`YOG-DR-02`."
+        ),
         strength_rule="STRONG when formed, WEAK otherwise.",
         cancellation="—",
         source=(
-            "No single source claimed. Daridra yogas are a family — variously on "
-            "the 2nd/11th lords in dusthanas, the lagna lord in the 6/8/12, and "
-            "other combinations. This implements one narrow member of it."
+            "Daridra yogas are a family — variously on the 2nd/11th lords in "
+            "dusthanas, the lagna lord in the 6/8/12, and dusthana lords linking "
+            "to the dhana houses. **Astrologer ruling, 2026-09-11 chose the "
+            "dusthana↔dhana link**, the stronger and rarer member, over the "
+            "'11th lord in a dusthana' test this used to implement."
         ),
         key_planets=(),
         note=(
-            "**Separated by the 2026-08-28 ruling** ('Proxy split'). **When the "
-            "11th lord's rasi is absent from the chart map the function silently "
-            "defaults it to the Lagna rasi**, which makes the dusthana test read "
-            "house 1 — a silent default a reviewer should know about, though every "
-            "production call site supplies all nine grahas. Adverse yoga; no key "
-            "grahas defined, so activation is dormant-capped."
+            "**Redefined by the 2026-09-11 ruling**, and the *reading* of the "
+            "chosen words was settled by measurement rather than taste "
+            "(`scripts/daridra_definition_sweep.py`, 200k random charts). The "
+            "ruling's stated goal was far fewer false positives; every looser "
+            "reading of 'connecting' turned out to fire **more** often than the "
+            "rule it replaced — occupation alone 42.1%, conjunction 35.9%, either "
+            "63.2%, against the old test's 25.1%. Only the **mutual exchange** "
+            "delivers the intent, at **3.9%**. Requiring two distinct grahas is "
+            "load-bearing, not tidiness: for lagnas 2, 3, 8, 9 and 12 one graha "
+            "owns both a dusthana and a dhana house, so counting shared lordship "
+            "as a 'connection' would fire on 100% of those charts from the lagna "
+            "alone. Marker moved `[VARIANT]` → `[TRADITION]` — the parivartana "
+            "formulation is classical, where the old single-condition test was "
+            "one narrow pick from the family. **When a lord's rasi is absent "
+            "from the chart map the function silently defaults it to the Lagna "
+            "rasi**, which reads as house 1 and so cannot complete an exchange; "
+            "every production call site supplies all nine grahas. Adverse yoga. "
+            "No *static* key grahas — the detector emits the 11th and 2nd lords "
+            "per chart in `YogaResult.key_grahas`, which beats this table."
         ),
     ),
     YogaRule(

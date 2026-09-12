@@ -18,6 +18,7 @@
     "./utils/panchangamLimb": "./src/utils/panchangamLimb.ts",
     "./utils/format": "./src/utils/format.ts",
     "./api": "./src/api/index.ts",
+    "./api/errors": "./src/api/errors.ts",
     "./api/client": "./src/api/client.ts",
     "./api/auth": "./src/api/auth.ts",
     "./api/charts": "./src/api/charts.ts",

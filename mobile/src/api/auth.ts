@@ -8,6 +8,7 @@ import { setTokens, clearTokens } from "@/lib/secureStore";
 export type { RegisterResponse, MobileAuthResponse, MeResponse, SubscriptionInfo, SubscriptionInfoResponse, PasswordResetDetailResponse } from "@vinaadi/shared/api/auth";
 export {
   register,
+  recordConsent,
   getMe,
   updateMe,
   deleteAccount,

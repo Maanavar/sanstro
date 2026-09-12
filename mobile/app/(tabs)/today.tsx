@@ -187,7 +187,7 @@ export default function TodayTab() {
   const [primaryChartId, setPrimaryChartId] = useState<string | null>(null);
   const [streakCount, setStreakCount] = useState(0);
   const [detailSheet, setDetailSheet] = useState<DetailSheetState>(null);
-  const [journalOpen, setJournalOpen] = useState(false);
+  const [, setJournalOpen] = useState(false);
   const detailSheetRef = useRef<BottomSheet>(null);
   const journalSheetRef = useRef<BottomSheet>(null);
   const [journalMoment, setJournalMoment] = useState(JOURNAL_MOMENTS[0].key);
@@ -261,9 +261,9 @@ export default function TodayTab() {
     const firstNalla = p.kalam.nallaNeram[0];
     pushWidgetData({
       nallaNeram: firstNalla
-        ? `${formatTime(firstNalla.start)} â€“ ${formatTime(firstNalla.end)}`
-        : "â€“",
-      rahuKalam: `${formatTime(p.kalam.rahuKalam.start)} â€“ ${formatTime(p.kalam.rahuKalam.end)}`,
+        ? `${formatTime(firstNalla.start)} – ${formatTime(firstNalla.end)}`
+        : "–",
+      rahuKalam: `${formatTime(p.kalam.rahuKalam.start)} – ${formatTime(p.kalam.rahuKalam.end)}`,
       rasiPalan: g ? (lang === "ta" ? g.text?.ta ?? "" : g.text?.en ?? "") : "",
       tamilDate: p.tamilDate ? (lang === "ta" ? p.tamilDate.ta : p.tamilDate.en) : "",
       lang,
@@ -288,7 +288,7 @@ export default function TodayTab() {
   const refreshing = isSnapshotFetching;
   const activityChips = useMemo(() => {
     if (!g) return [];
-    const chips = [] as Array<{ label: string; ok: boolean; detail: string }>;
+    const chips = [] as { label: string; ok: boolean; detail: string }[];
     if (g.bestWindows?.[0]) {
       const w = g.bestWindows[0];
       chips.push({ label: t(strings.chips.start_work), ok: true, detail: `${w.type}: ${fmt(w.start)} - ${fmt(w.end)}` });
@@ -606,7 +606,7 @@ export default function TodayTab() {
                     </Text>
                     {p && (
                       <Text style={styles.heroSub}>
-                        {p.nakshatra.name} Â· {p.tithi.name}
+                        {p.nakshatra.name} · {p.tithi.name}
                       </Text>
                     )}
                   </View>
@@ -1066,7 +1066,7 @@ function ActivityChipRow({
   onSelect,
   styles,
 }: {
-  chips: Array<{ label: string; ok: boolean; detail: string }>;
+  chips: { label: string; ok: boolean; detail: string }[];
   onSelect: (chip: { label: string; ok: boolean; detail: string }) => void;
   styles: ReturnType<typeof makeStyles>;
 }) {

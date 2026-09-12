@@ -185,9 +185,11 @@ export default function JadhagamRevealScreen() {
               style={[styles.upsellCard, opt.best && styles.upsellCardBest]}
               onPress={() => {
                 trackEvent("onboarding_complete", { report_upsell: true, pages: opt.pages });
-                chartId
-                  ? router.push({ pathname: "/jadhagam/upsell", params: { chartId } })
-                  : router.replace("/(tabs)/today");
+                if (chartId) {
+                  router.push({ pathname: "/jadhagam/upsell", params: { chartId } });
+                } else {
+                  router.replace("/(tabs)/today");
+                }
               }}
               activeOpacity={0.85}
             >

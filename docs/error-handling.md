@@ -20,7 +20,6 @@ Component displays to user
 - `app/core/error_codes.py` — error definitions & messages (source of truth)
 - `web/lib/error-messages.ts` — web formatter
 - `mobile/src/lib/error-messages.ts` — mobile formatter
-- `scripts/migrate-error-messages.py` — migration scan helper
 
 ## Error Code Reference
 
@@ -169,10 +168,13 @@ try {
 **`app/api/daily_guidance.py`** (5 errors):
 - Lines 39–52: `CHART_NOT_FOUND`, `BIRTH_PROFILE_NOT_FOUND`, `ACCESS_DENIED`
 
-Run the migration report to get exact changes needed:
-```powershell
-python scripts/migrate-error-messages.py --report
-```
+There is deliberately no scanning tool for this. `scripts/migrate-error-messages.py`
+used to be one and was deleted in P2-8: it matched English prose with substrings —
+the exact pattern P2-3 removed from the frontend — so it mapped
+`"target_user_id must be a valid UUID."` to `INVALID_DATE_RANGE`, and reported all
+188 remaining `HTTPException` raises as needing migration long after they did not.
+A tool that answers confidently and wrongly costs more than no tool. Use the
+tables above.
 
 ## Security Notes
 

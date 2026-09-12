@@ -99,6 +99,15 @@ async function renderTab(overrides: Partial<TabProps> = {}) {
       personalSani={null}
       peyarchiUpcoming={[]}
       panchangam={null}
+      // Every wall-clock time in these fixtures — the kalam windows, the
+      // frozen clocks below, the "08:30 IST" in their comments — is written in
+      // Asia/Kolkata. Without this prop the tab falls back to the *runner's*
+      // local zone (tz.ts: "browser-local when absent"), so the suite asserted
+      // one thing on an IST laptop and another on a UTC CI runner: the avoid
+      // window's live phase and the 7pm evening-preview gate both read off a
+      // clock five and a half hours out. Pin the zone the fixtures are in and
+      // the cases mean the same thing everywhere.
+      panchangamTimezone="Asia/Kolkata"
       panchangamTimings={null}
       weekAhead={null}
       familyAggregate={null}
@@ -196,15 +205,31 @@ function panchangamFixture() {
   return {
     sunrise: "06:02",
     vara: { weekday: "SUNDAY", lord: "SUN" },
-    tithi: { number: 11, paksha: "SHUKLA" },
+    // Real limb shapes, not just `{number, paksha}` — the hero header promotes
+    // the star and tithi actually running through `limbNow`, which reads
+    // `spans` / `endsAtIso`. Both boundaries sit after the frozen 08:30 clock,
+    // so nothing has rolled over in these fixtures.
+    tithi: {
+      number: 11, name: "EKADASI", paksha: "SHUKLA",
+      endsAt: "18:40", endsAtIso: "2026-08-23T13:10:00Z",
+      nextNumber: 12, nextName: "DWADASI", nextPaksha: "SHUKLA",
+    },
+    nakshatra: {
+      name: "SWATHI", pada: 2,
+      endsAt: "14:20", endsAtIso: "2026-08-23T08:50:00Z", nextName: "VISAKAM",
+    },
     tamilDate: { en: "Aavani 6", ta: "ஆவணி 6" },
     festivals: [],
     hora: [],
+    abhijit: { start: "11:55", end: "12:44", isRestrictedByWeekday: false },
     kalam: {
       rahuKalam: { start: "09:00", end: "10:30", slot: 2 },
       yamagandam: { start: "13:30", end: "15:00", slot: 5 },
       kuligai: { start: "06:00", end: "07:30", slot: 1 },
-      nallaNeram: [],
+      nallaNeram: [
+        { start: "07:30", end: "08:18", slot: 2 },
+        { start: "11:00", end: "11:48", slot: 5 },
+      ],
       gowriNallaNeram: [],
     },
   };
@@ -278,67 +303,56 @@ describe("Today tab — the other timing systems (T8)", () => {
   beforeEach(freezeMorning);
   afterEach(() => vi.useRealTimers());
 
-  it("folds them behind one closed disclosure instead of peer cards", async () => {
-    // Abhijit deliberately ranks below the promoted window here — it only
-    // appears in "other timings" when something else won the recommendation.
+  /**
+   * T8 / A-013 shipped these as a collapsed "Other traditional timings"
+   * disclosure. The owner removed that panel on 2026-09-04: it had become a
+   * second, longer copy of the Key timings card in the same rail.
+   *
+   * What T8 actually ruled still has to hold, and it is the half that fails
+   * silently — one promoted window, with every other system named and *demoted*
+   * rather than deleted. A reader who knows only Rahu Kalam must still be able
+   * to find Nalla Neram and Abhijit by name, and must still not be able to
+   * mistake either for the recommendation. So these moved to the card that
+   * replaced the panel instead of being deleted with it.
+   */
+  function keyTimingsCard() {
+    return screen.getByText(/^Key timings for today$/i).closest(".ui-card")!;
+  }
+
+  it("no longer hides them behind a disclosure", async () => {
     await renderWithWindows([
       { type: "ABHIJIT", start: "12:02", end: "12:50", kala: "SUGAM" },
       { type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "UTHI" },
     ]);
 
-    const toggle = screen.getByRole("button", { name: /Other traditional timings/i });
-    expect(toggle).toHaveAttribute("aria-expanded", "false");
-    // Closed means closed: Abhijit must not still be sitting in the rail.
-    expect(screen.queryByText(/48 minutes around midday/i)).toBeNull();
+    expect(screen.queryByRole("button", { name: /Other traditional timings/i })).toBeNull();
   });
 
-  it("names what each system is, in words that need no vocabulary", async () => {
-    horaStub = { current: { lord: "JUPITER" }, next: { lord: "MARS", start: "13:00" } };
-    try {
-      await renderWithWindows([
-        { type: "ABHIJIT", start: "12:02", end: "12:50", kala: "SUGAM" },
-        { type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "UTHI" },
-      ]);
+  it("still names every system, with the day's times, at the same demoted weight", async () => {
+    await renderWithWindows([
+      { type: "ABHIJIT", start: "12:02", end: "12:50", kala: "SUGAM" },
+      { type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "UTHI" },
+    ]);
 
-      const { fireEvent } = await import("@testing-library/react");
-      fireEvent.click(screen.getByRole("button", { name: /Other traditional timings/i }));
-
-      expect(screen.getByText(/almanac's good windows for the day/i)).toBeInTheDocument();
-      expect(screen.getByText(/48 minutes around midday/i)).toBeInTheDocument();
-      expect(screen.getByText(/planetary hour/i)).toBeInTheDocument();
-      // The scope line the audit asked for: avoid does not mean "stop working".
-      expect(screen.getByText(/Work already under way is not affected/i)).toBeInTheDocument();
-    } finally {
-      horaStub = { current: null, next: null };
+    const card = keyTimingsCard();
+    for (const name of ["Nalla Neram", "Yamagandam", "Kuligai", "Abhijit muhurtham"]) {
+      expect(card).toHaveTextContent(name);
     }
+    // The Nalla Neram spans from the fixture, and Abhijit's own window.
+    expect(card).toHaveTextContent("7:30 am");
+    expect(card).toHaveTextContent("12:02 pm");
   });
 
-  it("leads the hora row with 'Planetary hour' and keeps Horai beside it (A-017)", async () => {
-    // The feature underneath this row is genuinely usable hour-by-hour timing,
-    // and "Horai" is the reason a reader without the tradition never opens it.
-    // Plain meaning is the label; the almanac name stays visible as Layer 2.
-    horaStub = { current: { lord: "JUPITER" }, next: { lord: "MARS", start: "13:00" } };
-    try {
-      await renderWithWindows([
-        { type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "UTHI" },
-      ]);
+  it("keeps Rahu Kalam out of the quiet list, because it is the loud card above", async () => {
+    await renderWithWindows([{ type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM" }]);
 
-      fireEvent.click(screen.getByRole("button", { name: /Other traditional timings/i }));
-
-      // The glossed control is the plain-language phrase, not the proper noun.
-      expect(screen.getByRole("button", { name: /^Planetary hour$/i })).toHaveStyle({
-        cursor: "help",
-      });
-      // …and the traditional name did not simply disappear.
-      expect(screen.getByText(/Horai/)).toBeInTheDocument();
-    } finally {
-      horaStub = { current: null, next: null };
-    }
+    expect(keyTimingsCard()).not.toHaveTextContent(/Rahu Kalam/);
+    expect(screen.getByText(/^Avoid window$/i)).toBeInTheDocument();
   });
 
   it("keeps the avoid window promoted beside the recommendation, not buried", async () => {
     // Safety text precedes dense tables — the avoid card is the other axis,
-    // not a competing recommendation, so it does not go into the disclosure.
+    // not a competing recommendation, so it leads the rail.
     await renderWithWindows([
       { type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM" },
     ]);
@@ -347,6 +361,35 @@ describe("Today tab — the other timing systems (T8)", () => {
   });
 });
 
+describe("Today tab — best-window conflict is a disclosure (redesign 2026-09-07)", () => {
+  // The card used to render the competing window's caveat open, permanently,
+  // as its own bordered row — a sixth stacked block under kicker/time/
+  // countdown/reason. It names a *different, non-promoted* window, not a
+  // caution on the one already recommended, so it collapses behind a toggle.
+  it("stays collapsed by default and reveals the clash on click", async () => {
+    freezeMorning();
+    await renderTab({
+      personalDailyGuidance: {
+        ...guidanceFixture(),
+        bestWindows: [{ type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "UTHI" }],
+        bestWindowConflicts: [{
+          start: "15:20", end: "16:13",
+          text: {
+            en: "The Jupiter hora suits your chart, but this stretch falls in Soram kala.",
+            ta: "வியாழன் ஹோரை உங்கள் ஜாதகத்திற்குப் பொருந்தும், ஆனால் இந்த நேரம் சோரம் காலத்தில் விழுகிறது.",
+          },
+        }],
+      } as unknown as DailyGuidanceData,
+      panchangam: panchangamFixture() as unknown as TabProps["panchangam"],
+    });
+
+    // The label names the losing window's own start time, so it teaches
+    // something before it is opened.
+    expect(screen.queryByText(/Jupiter hora/i)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Why not 3:20 pm\?/i }));
+    expect(screen.getByText(/Jupiter hora/i)).toBeInTheDocument();
+  });
+});
 describe("Today tab — glossary coverage (T11)", () => {
   beforeEach(freezeMorning);
   afterEach(() => vi.useRealTimers());
@@ -420,5 +463,247 @@ describe("Today tab — userMode wiring", () => {
     const source = readFileSync("components/dashboard-workspace.tsx", "utf8");
     const call = source.slice(source.indexOf("<DashboardTodayTabNova"));
     expect(call.slice(0, call.indexOf("/>"))).toMatch(/userMode=\{session\.userMode\}/);
+  });
+});
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Hero review 2026-09-04 — the findings that were fixed.
+
+   Nine of the fifteen findings were in code the backend had already computed a
+   correct answer for, which is exactly the failure mode no test catches by
+   accident: nothing throws, nothing looks broken, and the screen quietly says
+   the wrong thing. Each block below pins one of them at the point it would
+   silently come back.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/** The default `_TONE_MAP` profile — the one whose `bestUseOfDay` token
+ *  (`balanced_routine`) was rendering raw on screen. `*Text` carries the
+ *  reviewed bilingual sentence the backend already ships for each field. */
+function weatherFixture() {
+  return {
+    tone: "calm",
+    physicalTendency: "steady",
+    bestUseOfDay: "balanced_routine",
+    avoidBefore: {
+      en: "Delay emotionally heavy conversations until the evening if possible.",
+      ta: "உணர்வுபூர்வமான முக்கிய பேச்சுகளை முடிந்தால் மாலை வரை தள்ளி வைக்கலாம்.",
+    },
+    toneText: { en: "Emotional tone is likely steady and calm.", ta: "இன்று மனநிலை பொதுவாக அமைதியாக இருக்கலாம்." },
+    physicalTendencyText: { en: "Physical tendency should remain fairly steady.", ta: "உடல் நிலை வழக்கமான நடையில் இருக்கும்." },
+    bestUseOfDayText: {
+      en: "Well suited for routine progress and practical step-by-step decisions.",
+      ta: "நிதானமான வழக்கமான வேலைகள், சிறு முடிவுகள், படிப்படியான முன்னேற்றம் — இவற்றுக்கு இன்று நல்ல நாள்.",
+    },
+  };
+}
+
+async function renderWithWeather(lang: "en" | "ta" = "en") {
+  return renderTab({
+    lang,
+    personalDailyGuidance: {
+      ...guidanceFixture(),
+      emotionalWeather: weatherFixture(),
+    } as unknown as DailyGuidanceData,
+    panchangam: panchangamFixture() as unknown as TabProps["panchangam"],
+  });
+}
+
+describe("Today tab — emotional weather (findings 1-3)", () => {
+  beforeEach(freezeMorning);
+  afterEach(() => vi.useRealTimers());
+
+  it("never prints a database token as user copy", async () => {
+    const { container } = await renderWithWeather();
+    // The token that made the leak visible. `calm` and `steady` hid it by being
+    // readable English words by luck.
+    expect(container.textContent).not.toContain("balanced_routine");
+    expect(screen.getByText("Routine progress")).toBeInTheDocument();
+  });
+
+  it("prints the reviewed sentence the backend already sent, not just a label", async () => {
+    await renderWithWeather();
+    expect(screen.getByText(/Well suited for routine progress/i)).toBeInTheDocument();
+  });
+
+  it("gives a Tamil reader Tamil, not English enums", async () => {
+    const { container } = await renderWithWeather("ta");
+    expect(container.textContent).not.toContain("balanced_routine");
+    expect(container.textContent).not.toContain("steady");
+    expect(screen.getByText("வழக்கமான பணிகள்")).toBeInTheDocument();
+    expect(screen.getByText(/நிதானமான வழக்கமான வேலைகள்/)).toBeInTheDocument();
+  });
+
+  it("shows avoidBefore — the day's only real caution — instead of withholding it", async () => {
+    await renderWithWeather();
+    expect(screen.getByText(/Delay emotionally heavy conversations/i)).toBeInTheDocument();
+  });
+
+  it("does not paint the day's most positive field as a warning", async () => {
+    // Tone used to be hard-coded by slot index, so `bestUseOfDay` wore
+    // AlertTriangle in --color-low while `tone` wore a green leaf. The caution
+    // colour now belongs to the caution, and to nothing else.
+    await renderWithWeather();
+    const bestUseChip = screen.getByText("Routine progress").closest("span")!;
+    expect(bestUseChip.getAttribute("style") ?? "").not.toContain("--color-low");
+  });
+});
+
+describe("Today tab — the avoid window's now-state (finding 4)", () => {
+  afterEach(() => vi.useRealTimers());
+
+  function avoidCard() {
+    return screen.getByText(/^Avoid window$/i).closest("div")!.parentElement!;
+  }
+
+  it("says so while the reader is standing inside it", async () => {
+    // 09:45 IST — inside the fixture's Rahu Kalam (09:00-10:30). The card used
+    // to render exactly what it renders at 4pm.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-08-23T04:15:00Z"));
+    await renderWithWindows([{ type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM" }]);
+
+    expect(avoidCard().textContent).toMatch(/inside it now/i);
+    expect(avoidCard().textContent).toMatch(/ends in/);
+  });
+
+  it("counts down to it before it starts", async () => {
+    freezeMorning(); // 08:30 IST, Rahu Kalam starts 09:00
+    await renderWithWindows([{ type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM" }]);
+
+    expect(avoidCard().textContent).toMatch(/starts in/);
+  });
+
+  it("hides the card once it is over, rather than leaving a stale warning up", async () => {
+    // Owner ask (2026-09-07): a caution that already happened is not
+    // actionable, and kept eating hero space long after Rahu Kalam ended.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-08-23T09:00:00Z")); // 14:30 IST
+    await renderWithWindows([{ type: "PERSONAL_HORA", start: "16:00", end: "16:48", kala: "AMIRTHAM" }]);
+
+    expect(screen.queryByText(/^Avoid window$/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("Today tab — one score, one axis (finding 5)", () => {
+  beforeEach(freezeMorning);
+  afterEach(() => vi.useRealTimers());
+
+  async function renderWithBand() {
+    return renderWithWindows([{ type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM" }], {
+      personalDailyGuidance: {
+        ...guidanceFixture(),
+        band: "WEAK",
+        bestWindows: [{ type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM" }],
+      } as unknown as DailyGuidanceData,
+    });
+  }
+
+  it("drops the star row that re-encoded the dial's own number", async () => {
+    await renderWithBand();
+    expect(screen.queryByRole("img", { name: /\/ 5$/ })).toBeNull();
+  });
+
+  it("moves the band out of the hero and names the axis it measures", async () => {
+    // "needs attention" beside "Balanced day", 6px apart, was two ladders on one
+    // value reading as the app contradicting itself.
+    const { container } = await renderWithBand();
+    const pill = screen.getByText(/Chart support/i);
+    expect(pill).toHaveTextContent(/needs attention/i);
+    expect(container.querySelector("#nova-deep-dive")!.contains(pill)).toBe(true);
+  });
+
+  it("names the score link after the section it lands on", async () => {
+    await renderWithBand();
+    expect(screen.getAllByRole("link", { name: /Why this prediction/i }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("link", { name: /Why this score/i })).toBeNull();
+  });
+
+  it("moves focus to the explanation after following its hash link", async () => {
+    const { container } = await renderWithBand();
+    const target = container.querySelector("#nova-deep-dive")!;
+    expect(target).toHaveAttribute("tabindex", "-1");
+
+    fireEvent.click(screen.getAllByRole("link", { name: /Why this prediction/i })[0]);
+    vi.advanceTimersByTime(0);
+
+    expect(document.activeElement).toBe(target);
+  });
+});
+
+describe("Today tab — the day's other named timings (findings 6-8)", () => {
+  beforeEach(freezeMorning);
+  afterEach(() => vi.useRealTimers());
+
+  it("prints the day's Nalla Neram times, which no surface in the hero carried", async () => {
+    await renderWithWindows([{ type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM" }]);
+
+    // The one system a Tamil almanac reader looks for by name used to render
+    // with `value: null` — a definition and no times, under a count badge
+    // promising four answers. The data was in hand the whole time.
+    expect(screen.getByText(/^Key timings for today$/i).closest(".ui-card")).toHaveTextContent("7:30 am");
+  });
+
+  it("says when Abhijit runs into an avoid period", async () => {
+    // Abhijit is ~48 min fixed around solar noon while the kalas move by
+    // weekday, so the collision is structural, not rare. Listing it as a plain
+    // good time one card under "clear of Rahu Kalam, Yamagandam and Kuligai"
+    // gives the reader two contradictory instructions.
+    await renderWithWindows([
+      { type: "ABHIJIT", start: "09:50", end: "10:40", kala: "SUGAM" },
+      { type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM" },
+    ]);
+
+    // Overlaps the fixture's Rahu Kalam 09:00-10:30, so the clear part is
+    // 10:30-10:40 — the app's already-ruled position, not a new doctrine call.
+    expect(screen.getByText(/clear part is 10:30/i)).toBeInTheDocument();
+  });
+
+  it("stays quiet on the days Abhijit is clear of all three kalas", async () => {
+    // The note is a fact about today, not a standing caption. A note that
+    // rendered every day would be back to being a definition.
+    await renderWithWindows([
+      { type: "ABHIJIT", start: "11:55", end: "12:44", kala: "SUGAM" },
+      { type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM" },
+    ]);
+
+    expect(screen.queryByText(/clear part is/i)).toBeNull();
+  });
+});
+describe("Today tab — hero chrome (findings 10, 12, 13)", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("keeps the evening-preview setting out of the morning hero", async () => {
+    freezeMorning();
+    await renderWithWindows([]);
+    expect(screen.queryByRole("switch", { name: /Evening preview/i })).toBeNull();
+  });
+
+  it("exposes it as a real switch, with state, in the evening it applies to", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-08-23T14:00:00Z")); // 19:30 IST
+    await renderWithWindows([]);
+
+    expect(screen.getByRole("switch", { name: /Evening preview/i })).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("drops the static 'what this screen contains' lede once there is a briefing", async () => {
+    freezeMorning();
+    await renderWithWindows([]);
+    expect(screen.queryByText(/at a glance/i)).toBeNull();
+  });
+
+  it("keeps it on a screen with no guidance to lead with", async () => {
+    freezeMorning();
+    await renderTab({ personalDailyGuidance: null });
+    expect(screen.getByText(/at a glance/i)).toBeInTheDocument();
+  });
+
+  it("answers a thirukanitham reader's first two questions in the header", async () => {
+    freezeMorning();
+    await renderWithWindows([]);
+    // Star and tithi, ahead of paksha — and promoted by the same `limbNow` the
+    // ribbon uses, so the two surfaces cannot name different stars.
+    expect(screen.getByText("Swathi")).toBeInTheDocument();
+    expect(screen.getByText("Ekadasi")).toBeInTheDocument();
   });
 });

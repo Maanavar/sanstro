@@ -26,12 +26,21 @@ class LifeAreaData(BaseModel):
     #: UP / DOWN / STABLE from the six-month slope (score vs score_6mo), not
     #: from how high the current score happens to be.
     trend: str
-    #: True when Chandrashtamam is currently docking this area's score. A
-    #: life-area score is otherwise a period number that holds for weeks; this
-    #: is the one input that turns over on a ~2-day cycle, so a surface can name
-    #: the cause instead of letting the tile move for no visible reason.
+    #: True when TODAY is this chart's Chandrashtamam — the day a Tamil almanac
+    #: names for their birth star, which is the identical test the Today hero
+    #: badges with. A life-area score is otherwise a period number that holds
+    #: for weeks; this is the one input that turns over on a ~1-day cycle, so a
+    #: surface can name the cause instead of letting the tile move unexplained.
     #: Defaults False for backward-compatibility with cached payloads.
     chandrashtama_applied: bool = Field(default=False, alias="chandrashtamaApplied")
+    #: Points actually subtracted for Chandrashtamam, 0-8. NOT always 8: the
+    #: penalty is graded by the share of the solar day the Moon spends in the
+    #: 8th rasi (§16), so a day the almanac names can still be a partial one —
+    #: 2026-09-09 at Chennai was 0.384 of the day, three points. A surface that
+    #: names a number must print THIS one; hardcoding 8 beside a flag that no
+    #: longer implies 8 is the `explanation-must-match-its-own-numbers` defect.
+    #: 0 on a pre-§16 cached payload, where the flag alone is all there is.
+    chandrashtama_penalty: int = Field(default=0, alias="chandrashtamaPenalty")
     # Forward-projected scores: the SAME engine re-run at +6 and +12 months
     # (real transits + the dasha/antardasha in force then), blended exactly as
     # the current score is. Not a cosmetic slope. Flagged for astrologer review.

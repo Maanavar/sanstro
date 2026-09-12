@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  clearSegments,
   findSecondaryAbhijitWindow,
   pickFeaturedWindow,
   pickRecommendedWindow,
@@ -266,5 +267,71 @@ describe("pickRecommendedWindow — staying actionable through the day", () => {
   it("returns null when there are no windows at all", () => {
     expect(pickRecommendedWindow([], AVOID, OPTS)).toBeNull();
     expect(pickRecommendedWindow(undefined, AVOID, OPTS)).toBeNull();
+  });
+});
+
+/**
+ * `clearSegments` — hero review 2026-09-04, finding 7.
+ *
+ * Abhijit is ~48 minutes fixed around solar noon, and Friday's Rahu Kalam is
+ * the 4th of eight day-parts, so on a large fraction of Fridays the two
+ * genuinely collide (24 of Abhijit's 49 minutes on the reviewed day). The
+ * disclosure calls Abhijit "auspicious for anyone" one card away from a
+ * recommendation whose whole argument is that it is clear of the kalas, so it
+ * has to be able to name which part of Abhijit survives the veto.
+ */
+describe("clearSegments", () => {
+  it("returns the whole span when nothing blocks it", () => {
+    expect(clearSegments({ start: "11:55", end: "12:44" }, [])).toEqual([
+      { start: "11:55", end: "12:44" },
+    ]);
+  });
+
+  it("cuts a blocker off the head — the reviewed day's actual case", () => {
+    // Abhijit 11:55-12:44 vs Rahu Kalam 10:48-12:19: 24 of 49 minutes gone.
+    expect(
+      clearSegments({ start: "11:55", end: "12:44" }, [{ start: "10:48", end: "12:19" }]),
+    ).toEqual([{ start: "12:19", end: "12:44" }]);
+  });
+
+  it("cuts a blocker off the tail", () => {
+    expect(
+      clearSegments({ start: "11:55", end: "12:44" }, [{ start: "12:20", end: "13:50" }]),
+    ).toEqual([{ start: "11:55", end: "12:20" }]);
+  });
+
+  it("splits the span when a blocker sits inside it", () => {
+    expect(
+      clearSegments({ start: "11:00", end: "12:00" }, [{ start: "11:20", end: "11:40" }]),
+    ).toEqual([
+      { start: "11:00", end: "11:20" },
+      { start: "11:40", end: "12:00" },
+    ]);
+  });
+
+  it("returns nothing when the blockers cover it end to end", () => {
+    expect(
+      clearSegments({ start: "11:55", end: "12:44" }, [{ start: "11:00", end: "13:00" }]),
+    ).toEqual([]);
+  });
+
+  it("merges overlapping blockers rather than double-cutting", () => {
+    expect(
+      clearSegments({ start: "09:00", end: "12:00" }, [
+        { start: "09:30", end: "10:30" },
+        { start: "10:00", end: "11:00" },
+      ]),
+    ).toEqual([
+      { start: "09:00", end: "09:30" },
+      { start: "11:00", end: "12:00" },
+    ]);
+  });
+
+  it("treats a touching edge as clear, exactly as spansOverlap does", () => {
+    // A window that begins the moment Rahu Kalam ends is clean — the same
+    // half-open convention the promotion rule already uses.
+    expect(
+      clearSegments({ start: "10:30", end: "11:00" }, [{ start: "09:00", end: "10:30" }]),
+    ).toEqual([{ start: "10:30", end: "11:00" }]);
   });
 });

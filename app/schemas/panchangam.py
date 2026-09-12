@@ -220,6 +220,13 @@ class PanchangamChandrashtamamNakshatraWindow(BaseModel):
     name: str
     start: datetime
     end: datetime
+    # Which of the star's natives this window belongs to. Nine of the 27 stars
+    # straddle a rasi boundary — 30° is 2.25 nakshatras — so their natives fall
+    # in two signs whose Chandrashtamas are about a fortnight apart, and a
+    # client picking "my window" by star name alone gets the other half's. 0/""
+    # on a snapshot cached before panchangam v45.
+    rasi_number: int = Field(default=0, alias="rasiNumber")
+    rasi_name: str = Field(default="", alias="rasiName")
 
 
 class PanchangamChandrashtamamToday(BaseModel):
@@ -237,6 +244,15 @@ class PanchangamChandrashtamamToday(BaseModel):
     affected_janma_rasi_name: str = Field(alias="affectedJanmaRasiName")
     nakshatras: list[str] = Field(default_factory=list)
     janma_nakshatra_windows: list[PanchangamChandrashtamamNakshatraWindow] = Field(default_factory=list, alias="janmaNakshatraWindows")
+    # The star standing in Chandrashtamam AT SUNRISE — the உதய rule, so exactly
+    # one star owns the day, which is the one an almanac prints. `nakshatras`
+    # above lists every star the day touches (two, whenever the handover falls
+    # after 00:00); this says which of them the day belongs to. A personal
+    # surface uses it to pick the reader's own window out of the list instead of
+    # printing all of them — see the 2026-09-09 ruling. 0/"" on a snapshot
+    # cached before panchangam v44.
+    affected_janma_nakshatra_number: int = Field(default=0, alias="affectedJanmaNakshatraNumber")
+    affected_janma_nakshatra_name: str = Field(default="", alias="affectedJanmaNakshatraName")
     status: str = Field(default="preliminary", description="Verification status: 'preliminary' indicates pending source verification")
 
     model_config = ConfigDict(populate_by_name=True)
@@ -359,6 +375,39 @@ class PanchangamMonthlyData(BaseModel):
 class PanchangamMonthlyResponse(BaseModel):
     success: bool = True
     data: PanchangamMonthlyData
+    meta: PanchangamMeta
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class TamilMonthSpanEntry(BaseModel):
+    """One Tamil solar month named, and bounded in civil dates.
+
+    Both dates are inclusive, so a client can hand `startDate`/`endDate`
+    straight to any date-range parameter without an off-by-one adjustment of
+    its own — which is the whole reason this is computed server-side. The Tamil
+    month boundary is a sankranti instant plus a sunset rule plus, for some
+    months, a published-almanac override; nothing a client can approximate.
+    """
+
+    index: int = Field(ge=0, le=11, description="0 = Chithirai .. 11 = Panguni")
+    name: BiText
+    start_date: date = Field(alias="startDate")
+    end_date: date = Field(alias="endDate")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class TamilMonthsData(BaseModel):
+    location: PanchangamLocation
+    months: list[TamilMonthSpanEntry] = []
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class TamilMonthsResponse(BaseModel):
+    success: bool = True
+    data: TamilMonthsData
     meta: PanchangamMeta
 
     model_config = ConfigDict(populate_by_name=True)

@@ -1,2 +1,2 @@
 import { LearnArticle } from "./_article";
-export default function () { return <LearnArticle slug="what-is-thirukanitham" />; }
+export default function WhatIsThirukanithamScreen() { return <LearnArticle slug="what-is-thirukanitham" />; }

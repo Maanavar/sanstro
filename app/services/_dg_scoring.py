@@ -22,6 +22,7 @@ from app.calculations.panchangam import (
     PanchangamLimbSpan,
     limb_fraction,
     limb_weighted,
+    own_chandrashtama_windows,
 )
 from app.models import BirthProfile
 from app.services.narrative_engine import PLANET_NAME
@@ -523,48 +524,63 @@ def chandrashtama_rasi_for(natal_moon_rasi: int) -> int:
     return ((natal_moon_rasi - 1 + 7) % 12) + 1
 
 
-def _chandrashtama_rasi_spans(panchangam, natal_moon_rasi: int):
-    """Today's Moon-rasi spans that fall in the Chandrashtama rasi."""
-    rasi_spans = _spans_or_flat(
-        panchangam.moon_rasi_spans, panchangam.sunrise,
-        panchangam.chandrashtamam_moon_rasi_number, panchangam.chandrashtamam_moon_rasi_name,
-    )
-    target = chandrashtama_rasi_for(natal_moon_rasi)
-    return [span for span in rasi_spans if span.number == target]
-
-
-def chandrashtama_end(panchangam, *, natal_moon_rasi: int) -> datetime | None:
+def chandrashtama_end(
+    panchangam,
+    *,
+    janma_nakshatra: int,
+    natal_moon_rasi: int,
+) -> datetime | None:
     """When Chandrashtama lifts today, or None if it does not lift today.
 
-    Read off the same `moon_rasi_spans` that produce the share in
-    `weighted_moon_score` rather than computed a second time — the same
-    reasoning `PanchangamChandrashtamamToday.nakshatras` records for deriving
-    itself from its own windows: two computations of one fact can disagree.
+    Read off the reader's own janma-star window, because that is what the badge
+    beside it now means. Until 2026-09-09 this read `moon_rasi_spans` — when the
+    Moon left the 8th RASI — while the badge had moved to the star window, so the
+    two disagreed by hours on the very day they were both shown: on 2026-09-09 at
+    Chennai a Pooradam native's window closed at 09:34 and this returned 15:14.
+    Web mostly hid it behind the card's own window line; mobile renders this
+    field directly as *the* end time and had nothing to fall back on.
 
-    Returns None when the Moon is still in the 8th rasi at the end of the solar
-    day, and that is the whole point. `moon_rasi_spans` is built by
-    `limb_spans_between(..., sunrise_jd, next_sunrise_jd, ...)`, so every span is
-    CLIPPED to today. Taking the last span's end unconditionally would therefore
-    report the next sunrise as the end of Chandrashtama on the first day of a
-    stretch that actually runs two or three days — a precise-looking time that is
-    simply false. The Moon spends about 2.25 days per rasi, so that is the common
-    case, not the edge one.
+    The clipping trap the rasi version documented still applies, so the same
+    guard is kept in the same shape. `chandrashtamam_janma_nakshatra_windows` is
+    clipped to the day it describes — the SOLAR day since 2026-09-09's D11
+    ruling, the civil day before it — so the last window's end is the day's edge
+    whether or not the star actually hands over then. Returning that
+    unconditionally would print a precise-looking time that is simply false.
 
-    So: a time only when the Moon genuinely leaves the 8th rasi before the day
-    is out. Otherwise nothing, and the card keeps its untimed "Extra care advised
-    today." line, which is true on every day of the stretch.
+    Under D11 that case is rarer than it was, and means something specific: a
+    window still running at the next sunrise belongs to tomorrow, so the only
+    way to be badged today AND end at the day's edge is a window that covers
+    both sunrises — a genuinely all-day Chandrashtama, where None is the honest
+    answer.
+
+    What changed is which case is common. Under the rasi rule a stretch spanned
+    2-3 badged days, so None was the normal answer; a star window is about a day
+    and normally closes within the day it is badged on, so a real time is now the
+    normal answer and None the exception (a window still running at midnight).
+    Callers must still handle None — see the note on `chandrashtamaEnds` in
+    packages/shared/src/types/index.ts.
+
+    `natal_moon_rasi` is needed as well as the star: for the nine stars that
+    straddle a rasi boundary, the star name alone selects a window belonging to
+    the OTHER half of that star's natives, whose Chandrashtama is a fortnight
+    away. The badge beside this field applies both tests, so this must too.
     """
-    spans = _chandrashtama_rasi_spans(panchangam, natal_moon_rasi)
-    if not spans:
+    windows = getattr(panchangam, "chandrashtamam_janma_nakshatra_windows", ()) or ()
+    if not windows:
+        # A snapshot cached before panchangam v44 carries no windows. It cannot
+        # say when anything lifts, so it must not pretend to.
         return None
-    end = max(span.end for span in spans)
-    day_end = max(
-        span.end
-        for span in _spans_or_flat(
-            panchangam.moon_rasi_spans, panchangam.sunrise,
-            panchangam.chandrashtamam_moon_rasi_number, panchangam.chandrashtamam_moon_rasi_name,
-        )
+
+    mine = own_chandrashtama_windows(
+        windows,
+        janma_nakshatra=janma_nakshatra,
+        natal_moon_rasi=natal_moon_rasi,
     )
+    if not mine:
+        return None
+
+    end = max(window.end for window in mine)
+    day_end = max(window.end for window in windows)
     return end if end < day_end else None
 
 

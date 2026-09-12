@@ -64,7 +64,30 @@ services:
     command: python -m app.worker
     environment:
       JOTHIDAM_RUN_SCHEDULER_IN_WEB: "false"  # no-op in worker, but harmless
+      JOTHIDAM_PROCESS_ROLE: worker
 ```
+
+### Which secrets the worker needs
+
+`JOTHIDAM_PROCESS_ROLE: worker` is not cosmetic. It tells `app/core/config.py`
+that this process serves no HTTP, which changes what it must be given:
+
+| | Needs it | Why |
+|---|---|---|
+| `JOTHIDAM_DATABASE_URL` | yes | jobs read and write |
+| `JOTHIDAM_ENCRYPTION_KEY` (or `..._KEYS`) | **yes** | the morning push reads birth profiles, which are encrypted at rest |
+| `JOTHIDAM_JWT_SECRET` | no | authenticates nothing |
+| `JOTHIDAM_ADMIN_API_KEY` | no | serves no admin route |
+| `JOTHIDAM_COOKIE_SECURE` | no | sets no cookies |
+
+Without the role set, the default is `api` and the production checks demand all
+of the above — which is why the `scaled` profile previously could not start in
+production at all: the worker image carries no `.env`, so `cookie_secure`
+defaulted false and a cookie setting blocked a process that serves no cookies.
+See `docs/SEC1_SECRET_CUSTODY_RULING.md` §5.2.
+
+The default errs toward demanding more, deliberately: an unset or misspelled
+role must never let an HTTP process boot without a JWT secret.
 
 You can run multiple worker replicas — only the one that wins the PostgreSQL
 advisory lock fires jobs; the rest idle as followers and take over automatically

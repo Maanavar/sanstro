@@ -24,6 +24,7 @@ from app.core.auth import (
 )
 from app.core.auth_throttle import AuthThrottleAction, get_auth_throttler
 from app.core.config import Settings, get_settings
+from app.core.privacy_policy import CURRENT_POLICY_VERSION, consent_required_for
 from app.core.subscription import is_premium
 from app.db.session import get_db
 from app.middleware import resolve_client_ip
@@ -35,6 +36,7 @@ from app.schemas.auth import (
     AccountDeletionResult,
     AuthProvidersResponse,
     AuthUserResponse,
+    ConsentRequest,
     ForgotPasswordRequest,
     ForgotPasswordResponse,
     LoginRequest,
@@ -174,6 +176,7 @@ def _build_auth_user_response(
         userMode=getattr(user, "user_mode", "BALANCED") or "BALANCED",
         goalTrack=getattr(user, "goal_track", None),
         tier=_tier_for(user.user_id, session) if session is not None else "registered",
+        consentRequired=consent_required_for(user),
     )
 
 
@@ -287,6 +290,13 @@ def register(
         user_id=uuid4(),
         email=payload.email,
         hashed_password=_hash_password(payload.password),
+        # DPDP §6: stamped in the same transaction that creates the account, so
+        # there is no window in which a user exists with data and no consent
+        # record. `payload.consent_given` is already validated to be exactly
+        # True — the schema rejects a missing or false value rather than
+        # defaulting it.
+        consent_given_at=datetime.now(UTC),
+        consent_policy_version=CURRENT_POLICY_VERSION,
     )
     session.add(user)
     session.flush()
@@ -359,6 +369,7 @@ def me(
         goalTrack=getattr(user, "goal_track", None),
         lang=lang,
         tier=_tier_for(user.user_id, session),
+        consentRequired=consent_required_for(user),
     )
 
 
@@ -382,6 +393,49 @@ def patch_me(
         userMode=user.user_mode or "BALANCED",
         goalTrack=user.goal_track,
         tier=_tier_for(user.user_id, session),
+        consentRequired=consent_required_for(user),
+    )
+
+
+@router.post("/consent", response_model=AuthUserResponse, dependencies=[Depends(require_csrf_header)])
+def record_consent(
+    payload: ConsentRequest,
+    session: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> AuthUserResponse:
+    """Record consent for an already-registered account.
+
+    Accounts created before consent was captured have both columns null, and so
+    do accounts that consented to an older policy version. Both are asked again
+    on their next authenticated request — `consentRequired` on every
+    `AuthUserResponse` — and this is where the answer lands.
+
+    Deliberately **not** a gate. Nothing here refuses to serve a user whose
+    consent is outstanding: they already hold birth profiles and journal entries
+    they own, and locking them out of their own data to obtain a consent record
+    would be a worse outcome than asking them and waiting. The ask is
+    non-blocking by decision, recorded in docs/launch/GO_LIVE_CHECKLIST.md.
+
+    Re-stamping an already-current consent is allowed and harmless: it happens
+    when two tabs answer the panel, and refusing it would mean returning an error
+    for a user who did exactly what was asked.
+    """
+    email = _require_user_email(user)
+
+    # Always the version live *now*, never the one the client believed it was
+    # showing. A client running older code must not be able to record consent
+    # against a policy the user was never shown.
+    user.consent_given_at = datetime.now(UTC)
+    user.consent_policy_version = CURRENT_POLICY_VERSION
+    session.flush()
+
+    return AuthUserResponse(
+        userId=str(user.user_id),
+        email=email,
+        userMode=user.user_mode or "BALANCED",
+        goalTrack=user.goal_track,
+        tier=_tier_for(user.user_id, session),
+        consentRequired=consent_required_for(user),
     )
 
 

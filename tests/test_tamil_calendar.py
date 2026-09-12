@@ -182,3 +182,76 @@ def test_month_start_rule_is_separable_from_the_astronomy() -> None:
     # Aadi 2026: crossing is 23:39, after sunset -> next civil day.
     aadi_jd, _rise, _set, _d = _sankranti_geometry(AADI, date(2026, 7, 25))
     assert month_start_date_for_sankranti(aadi_jd, TZ, latitude, longitude) == date(2026, 7, 17)
+
+
+# ---------------------------------------------------------------------------
+# Month *spans* — the boundaries as a client consumes them
+# ---------------------------------------------------------------------------
+
+def test_month_spans_tile_the_calendar_without_gap_or_overlap() -> None:
+    """Consecutive spans must abut exactly.
+
+    `end` is derived by subtracting a day from the *next* month's start rather
+    than by adding a nominal length, and that is not a stylistic choice: a
+    published-authority start (doctrine A-3) moves a boundary without moving
+    the sankranti, so it lengthens one month and shortens the next. A nominal
+    length would leave a hole or a double-counted day there — and the picker
+    hands these dates straight to the muhurta search as `dateFrom`/`dateTo`.
+    """
+    from app.calculations.tamil_calendar import tamil_month_spans
+
+    latitude, longitude, tz_name = CHENNAI
+    spans = tamil_month_spans(date(2026, 9, 4), 13, tz_name, latitude, longitude)
+
+    assert len(spans) == 13
+    for earlier, later in zip(spans, spans[1:], strict=False):
+        assert later.start == earlier.end + timedelta(days=1)
+        assert later.rasi == (earlier.rasi + 1) % 12
+        # A solar month is 29-32 civil days; anything outside that is a bug in
+        # the sankranti walk, not an unusual year.
+        assert 29 <= (earlier.end - earlier.start).days + 1 <= 32
+
+
+def test_first_span_covers_the_requested_date_from_its_own_first_day() -> None:
+    """The span starts where the Tamil month starts, not where the caller asked.
+
+    "Search Aavani" means the whole month; clamping it to today is the caller's
+    decision, and the UI shows the clamped window separately.
+    """
+    from app.calculations.tamil_calendar import tamil_month_spans
+
+    latitude, longitude, tz_name = CHENNAI
+    asked = date(2026, 9, 4)
+    first = tamil_month_spans(asked, 1, tz_name, latitude, longitude)[0]
+
+    assert first.rasi == AAVANI
+    assert first.start <= asked <= first.end
+    # The published Gnanananda boundary, which the default sunset rule alone
+    # does not produce — proof the spans go through the same doctrine step as
+    # `tamil_solar_date` rather than around it.
+    assert first.start == GNANANANDA_MONTH_STARTS_2026_27[(2026, AAVANI)]
+
+
+def test_spans_agree_with_the_per_day_conversion_at_every_boundary() -> None:
+    """A span's first day is day 1, and its last day is the month's last day.
+
+    The list and the per-date `tamilDate` printed on each result come from two
+    different call paths; a reader who sees "Purattasi · 18 Sep - 17 Oct" and
+    then a result card dated 17 Oct labelled "Aippasi 1" has been shown two
+    different calendars.
+    """
+    from app.calculations.tamil_calendar import tamil_month_spans
+
+    latitude, longitude, tz_name = CHENNAI
+    for span in tamil_month_spans(date(2026, 9, 4), 4, tz_name, latitude, longitude):
+        start_rasi, start_day = tamil_solar_date(span.start, tz_name, latitude, longitude)
+        end_rasi, _end_day = tamil_solar_date(span.end, tz_name, latitude, longitude)
+        assert (start_rasi, start_day) == (span.rasi, 1)
+        assert end_rasi == span.rasi
+
+
+def test_zero_or_negative_count_returns_no_spans() -> None:
+    from app.calculations.tamil_calendar import tamil_month_spans
+
+    latitude, longitude, tz_name = CHENNAI
+    assert tamil_month_spans(date(2026, 9, 4), 0, tz_name, latitude, longitude) == []

@@ -20,11 +20,21 @@ from app.middleware import resolve_client_ip
 logger = logging.getLogger(__name__)
 
 
+_ONE_DAY_SECONDS = 86_400
+
+
 class PublicEndpointLimiter:
     """Per-endpoint rate limits for expensive public operations.
 
     Each endpoint has its own budget independent of the global rate limiter.
     Budget is per-IP address to prevent abuse from single clients.
+
+    An endpoint may declare an optional second budget, ``daily_max_requests``,
+    enforced over 24 hours alongside the per-minute one. A per-minute limit alone
+    bounds a *burst*; it does not bound a day. At 30/min a single IP can pull an
+    endpoint 43,200 times between midnights, entirely within its budget, which is
+    ample for mirroring a content library and not what the limit was chosen for.
+    Both budgets must pass.
     """
 
     # Endpoint-specific budgets: more restrictive than global limit
@@ -40,6 +50,22 @@ class PublicEndpointLimiter:
         "public_panchangam_events": {"max_requests": 30, "window_seconds": 60},  # 30/min per IP (GET, SEO content pages)
         "public_calendar_categories": {"max_requests": 30, "window_seconds": 60},  # 30/min per IP (GET, SEO content pages)
         "public_panchangam_share_card": {"max_requests": 30, "window_seconds": 60},  # 30/min per IP (GET, panchangam-backed)
+        # Its own key rather than sharing "public_panchangam" with /panchangam,
+        # /rasi-palan and /panchangam/monthly: a daily cap on the shared key would
+        # silently apply to all four, and only this one returns a whole library.
+        #
+        # One unauthenticated call returns every sign's full bilingual prediction
+        # and remedies -- the complete day's content library. At 30/min and no
+        # daily bound that is 43,200 full-library pulls per IP per day. The
+        # content changes once a day, so no visitor has a reason to fetch it more
+        # than a handful of times: 120/day still covers a NAT'd office of ~40
+        # people loading it three times each, and cuts a single-IP mirror by 360x.
+        # docs/launch/GO_LIVE_CHECKLIST.md, public-API scraping item.
+        "public_rasi_palan_grid": {
+            "max_requests": 30,
+            "window_seconds": 60,
+            "daily_max_requests": 120,
+        },
         "public_numerology": {"max_requests": 30, "window_seconds": 60},  # 30/min per IP (pure integer arithmetic, no ephemeris)
         "places_search": {"max_requests": 60, "window_seconds": 60},  # 60/min per IP (autocomplete-style, fires every keystroke debounce)
     }
@@ -63,14 +89,30 @@ class PublicEndpointLimiter:
             return True, 0
 
         config = self._ENDPOINT_CONFIG[endpoint]
-        max_requests = config["max_requests"]
-        window_seconds = config["window_seconds"]
 
-        key = f"public:{endpoint}:{ip}"
-        result = self._backend.check(key, max_requests, window_seconds)
-        if not result.allowed:
-            logger.warning(f"public_endpoint_limit endpoint={endpoint} ip={ip}")
-        return result.allowed, result.retry_after
+        # Burst budget first: it is the one nearly every rejection comes from, and
+        # failing it early means a caller already over the per-minute limit does
+        # not also burn a slot from the daily one.
+        budgets: list[tuple[str, int, int]] = [
+            ("", config["max_requests"], config["window_seconds"]),
+        ]
+        daily_max = config.get("daily_max_requests")
+        if daily_max:
+            # A distinct key prefix. Sharing one would make the two windows
+            # increment the same counter, and the tighter of them would decide
+            # both.
+            budgets.append(("daily:", daily_max, _ONE_DAY_SECONDS))
+
+        for prefix, max_requests, window_seconds in budgets:
+            key = f"public:{endpoint}:{prefix}{ip}"
+            result = self._backend.check(key, max_requests, window_seconds)
+            if not result.allowed:
+                logger.warning(
+                    f"public_endpoint_limit endpoint={endpoint} ip={ip} "
+                    f"window={'daily' if prefix else 'burst'}"
+                )
+                return False, result.retry_after
+        return True, 0
 
 
 _LIMITER = PublicEndpointLimiter()

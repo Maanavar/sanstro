@@ -47,10 +47,11 @@ output observed; where one was not, it says so.
 | P1-2 X-Forwarded-For | **Done** | `ee828dd` |
 | P1-3 geocoding logs | **Done** | `bc4b8b6` |
 | P1-4 admin key | **All four steps done.** Steps 1/3/4 in `a302127`; step 2 (short-lived elevation for destructive operations) below | `a302127` + below |
-| P1-5 production edge | **Not started** — infrastructure, not code |  |
+| P1-5 production edge | **Done 2026-09-03**, except the secret manager. It was *not* only infrastructure: the web origin had no security headers at all | below |
 | P1-6 refresh + quota races | **Done** — races were real | `82a0a34` |
 | P2-2 pnpm overrides | **Done** — pin was indeed ignored | `0c68275` |
-| P2-1, P2-3…P2-8 | **Not started** |  |
+| P2-1 journal encryption | **Done 2026-09-03** | below |
+| P2-3…P2-8 | **Not started** |  |
 
 P1-4 was scoped down after checking the tree: its step 1 (session-based
 admin authority) already existed — `User.is_admin`, `is_admin_user()`, a
@@ -884,6 +885,59 @@ and cache, distinct from a liveness probe.
 first. Putting a proxy in front while the XFF passthrough exists is precisely the
 configuration that makes the spoof live.
 
+**Done 2026-09-03**, five of six. Full write-up: `docs/PRODUCTION_EDGE.md`.
+
+The status table above called this "infrastructure, not code". That was wrong,
+and it is the reason the item sat still. The largest gap was code: **the Next
+origin sent no security headers whatsoever** — no CSP, no `X-Frame-Options`, no
+`Referrer-Policy`, no HSTS. The backend's header set (`app/middleware.py`, Sprint
+10) covered JSON API responses only, and the one CSP rule in `next.config.mjs`
+was the widget's `frame-ancestors *`. The origin holding the session cookie,
+rendering the admin console and displaying journal text had nothing.
+
+Shipped:
+
+1. **Readiness distinct from liveness.** `/health/live` touches no dependency —
+   a liveness probe that consulted the database would turn a database outage into
+   the orchestrator killing the entire fleet. `/health/ready` checks database and
+   Redis, 503s on a *required* dependency, and reports each one. Redis is
+   required only when it backs the rate limiter, which is when losing it stops
+   being a cold cache and becomes a loosened security control.
+2. **Both dependency checks bounded** — a 2s `statement_timeout`, and
+   `socket_timeout` on the Redis client. The latter applies to every Redis call,
+   not just the probe: redis-py defaults to waiting forever and Redis is in the
+   rate limiter's request path.
+3. **Nonce-based CSP on the web origin**, plus the standard header set. Not
+   `'unsafe-inline'`: the codebase turned out to contain exactly one executable
+   inline script, and the root layout already awaited `cookies()`, so the two
+   usual objections to a real nonce both cost nothing here.
+4. **TLS ingress** (`docker/nginx/vinaadi.conf`, compose `--profile edge`), and
+   the API and web ports rebound from `0.0.0.0` to `127.0.0.1`. `ports: 8000:8000`
+   had been publishing the unfronted API — every admin route, no TLS — on the
+   public interface.
+5. **Secret manager: not done.** Deliberately. The implementation is fully
+   determined by the deployment target and building one against no target would
+   mean building the wrong one. Written up in `docs/PRODUCTION_EDGE.md` §4.
+
+**Two corrections to this document's own premises.**
+
+*The hop counts.* The natural reading — nginx plus Next is two hops, so
+`JOTHIDAM_TRUSTED_PROXY_COUNT=2` — is wrong. Next *replaces* `X-Forwarded-For`
+with the rightmost entries it can vouch for rather than appending to it, so the
+API receives exactly one entry however deep the stack. The count is `1`, and
+stays `1` behind a CDN.
+
+*A finding, not fixed here, because it is P1-2's and P1-2 is closed.* Without an
+edge, anonymous rate limiting is **one shared bucket**. Next forwards no client
+address at `TRUSTED_PROXY_HOPS_BEFORE_WEB=0`, so `resolve_client_ip` falls back
+to the peer — the web container — for every browser request. Authenticated
+traffic keys on `_extract_user_id` and is unaffected; login, register, password
+reset, geocoding and the public tools are not, which is to say exactly the
+endpoints where per-IP limiting *is* the abuse control. Not introduced by this
+change; it is what `trusted_proxy_count: int = 0` has always meant. The edge
+profile fixes it by putting a hop in place that observes the real client, so the
+practical answer is "run the edge", but a deploy without one should know.
+
 ---
 
 ### P1-6 · Refresh-token and quota concurrency (**investigate before implementing**)
@@ -922,6 +976,46 @@ rotation should land in the same change or the migration path gets painful.
 Also define hard-delete and backup-expiry policy — journal retention currently
 archives via `deleted_at` and never removes. And only after the implementation
 matches should the privacy policy claim it.
+
+**Done 2026-09-03.** Full write-up: `docs/DATA_PROTECTION.md`.
+
+`journal_entries.note_text` is now `EncryptedString`
+(`app/services/encryption.py`), migrated in place
+(`migrations/versions/oo8e9f0a1b2c_encrypt_journal_note_text.py`, verified
+apply → decrypt-check → downgrade → decrypt-check against real Postgres). The
+"key versioning and rotation should land in the same change" instruction above
+is why `app/core/encryption.py` was rewritten rather than left alone: it had two
+independent `Fernet` constructions (this module and `app/services/encryption.py`
+each read `settings.encryption_key` and built their own), which was harmless
+only because both read one single-key setting. Rotation needed exactly one key
+path, so the services module now imports from core instead of duplicating it.
+`JOTHIDAM_ENCRYPTION_KEYS` (comma-separated, newest first) rotates via
+`MultiFernet`; `scripts/rotate_encryption_key.py` re-encrypts existing rows and
+is guarded by a test that fails when a new encrypted column is not added to it.
+
+Hard-delete: `app/services/journal_purge.py`, a new `journal_purge` scheduled
+job, gated by `JOTHIDAM_JOURNAL_PURGE_AFTER_DAYS` (default `0` — never — on
+purpose; the window is a product and legal decision, not a default to guess).
+Only rows already archived (`deleted_at` set) are ever eligible, regardless of
+age.
+
+**This is the first `destructive` scheduled job, and P1-4 pre-committed to
+exactly this case.** Its step 2 write-up (above) left `jobs/{id}/trigger`
+unelevated with the explicit condition "if a job that notifies or destroys is
+registered, move it." `journal_purge` permanently deletes rows, so
+`ScheduledJob` gained a `destructive` flag and `trigger_job`
+(`app/api/admin.py`) now calls `get_elevated_admin_user` itself for any job so
+flagged — a route dependency cannot express this because which job runs is a
+path parameter, not something FastAPI's dependency graph sees. Held down by
+`tests/test_admin_elevation.py::test_destructive_job_cannot_be_triggered_without_elevation`
+and `::test_every_destructive_job_is_flagged`, the same guard shape as the
+structural test for the five original elevated routes.
+
+Backup expiry is written up but not automated — it is an operational policy
+(retain dumps no longer than the purge window, and never past a key's
+retirement), not something this branch's code touches. The privacy policy has
+also not been updated to reflect any of this; §1 of `docs/DATA_PROTECTION.md`
+states exactly what to say and what not to overclaim.
 
 ### P2-2 · pnpm overrides are in a location pnpm ignores
 

@@ -24,12 +24,13 @@ from sqlalchemy.orm import Session
 from app.core.auth import create_access_token
 from app.core.auth_throttle import AuthThrottleAction, get_auth_throttler
 from app.core.config import get_settings
+from app.core.privacy_policy import CURRENT_POLICY_VERSION, consent_required_for
 from app.core.subscription import is_premium
 from app.db.session import get_db
 from app.middleware import resolve_client_ip
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
-from app.schemas.auth import AuthUserResponse, RegisterResponse
+from app.schemas.auth import AuthUserResponse, ConsentGiven, RegisterResponse
 from app.services.email_service import enqueue_existing_account_registration_email
 
 router = APIRouter(prefix="/mobile", tags=["mobile-auth"])
@@ -76,6 +77,9 @@ class MobileRegisterRequest(BaseModel):
     email: str
     password: str = Field(min_length=8, max_length=255)
     device_id: str | None = Field(alias="deviceId", default=None)
+    #: DPDP Act 2023 §6, same rule as the web route. No default: a client that
+    #: omits it is rejected rather than treated as consenting.
+    consent_given: ConsentGiven = Field(alias="consentGiven")
 
     @field_validator("email")
     @classmethod
@@ -141,6 +145,7 @@ def _build_response(db: Session, user: User, device_id: str | None) -> MobileAut
             userMode=getattr(user, "user_mode", "BALANCED") or "BALANCED",
             goalTrack=getattr(user, "goal_track", None),
             tier="premium" if is_premium(user.user_id, db) else "registered",
+            consentRequired=consent_required_for(user),
         ),
     )
 
@@ -209,7 +214,15 @@ def mobile_register(
             enqueue_existing_account_registration_email(background_tasks, existing.email)
         return RegisterResponse(detail="If this email can be used, your account is ready. Please sign in to continue.")
 
-    user = User(user_id=uuid4(), email=payload.email, hashed_password=_hash_password(payload.password))
+    user = User(
+        user_id=uuid4(),
+        email=payload.email,
+        hashed_password=_hash_password(payload.password),
+        # Same transaction as the account, so no account exists without a
+        # consent record. See app/api/auth.py::register.
+        consent_given_at=datetime.now(UTC),
+        consent_policy_version=CURRENT_POLICY_VERSION,
+    )
     db.add(user)
     db.flush()
     return RegisterResponse(detail="If this email can be used, your account is ready. Please sign in to continue.")

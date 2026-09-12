@@ -26,12 +26,14 @@ from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.functional_nature import get_dasha_modifier, get_transit_modifier
 from app.calculations.panchangam import (
+    NAKSHATRA_NAMES,
     PanchangamSnapshot,
     calculate_daily_panchangam,
     calculate_daily_panchangam_range,
     dominant_from_spans,
     dominant_span_name,
     limb_fraction,
+    own_chandrashtama_windows,
 )
 from app.calculations.remedies import (
     PLANET_REMEDY_CATALOG,
@@ -439,14 +441,62 @@ def build_daily_guidance_response(
         janma_nakshatra=janma_nakshatra,
         natal_moon_rasi=natal_moon.rasi,
     )
-    # Chandrashtama = Moon in the 8th Rasi from natal Janma Rasi (per spec §4.11),
-    # NOT the 8th Nakshatra — the two boundary systems do not align. The score
-    # above already carries the partial-day share; this boolean is the *display*
-    # and alert gate, so it asks whether the day is mostly chandrashtama rather
-    # than whether it touches it at all. A day that only clips the 8th rasi for
-    # an hour should not wear the badge, and the timed window is surfaced
-    # separately via chandrashtamam_janma_nakshatra_windows.
-    chandrashtama = chandrashtama_fraction >= 0.5
+    # Chandrashtama = Moon in the 8th Rasi from natal Janma Rasi (spec §4.11).
+    # The SCORE above reads that rule at rasi resolution and weights it by the
+    # share of the day, which is right: the penalty is graded.
+    #
+    # The BADGE is a different question and got a wrong answer for it until
+    # 2026-09-09. Owner ruling that day (see
+    # docs/CHANDRASHTAMA_SURFACE_DIVERGENCE_2026-09-09.md): a person's
+    # Chandrashtama is their janma STAR's window — about a day — not the Moon's
+    # whole 2¼-day transit of the 8th rasi. Same §4.11 offset of 210°, read at
+    # nakshatra resolution instead of rasi resolution; it is not the
+    # nakshatra-COUNT rule §4.11 forbids, which offsets by a different arc.
+    #
+    # The old `fraction >= 0.5` gate was rasi-granular and so could not tell the
+    # three stars of a sign apart: on 2026-09-09 at Chennai it withheld the badge
+    # from a Pooradam native on Pooradam's own day (share 0.384), while the noon
+    # sample the family surfaces used showed it to a Moolam native whose day had
+    # ended 22 hours earlier. Reading the sunrise star answers both at once, and
+    # matches what a printed almanac names for the day.
+    #
+    # WHICH DAY THE WINDOW NAMES. The first cut read the star standing at
+    # sunrise, which drops a star outright whenever its whole window falls
+    # between two sunrises (11 stars in 2026 at Chennai — a window is 20.8 h at
+    # the Moon's fastest against a 24 h day). The second cut answered that with
+    # plain overlap: any window touching the day badges it. That overshot in the
+    # other direction and was reported the same day — an Uthiradam/Magaram
+    # native badged on 2026-09-09, whose window opens at 15:14 that evening, on
+    # a day the almanac gives to Pooradam.
+    #
+    # The rule that satisfies both, ruled by the owner on 2026-09-09 (D11): a
+    # window names the day whose SUNRISE it covers — the உதய rule — and a window
+    # that covers no sunrise at all names the day containing it. Exactly one
+    # day per cycle for every star, none skipped, and the badged day is the one
+    # the printed almanac heads with that star. `own_chandrashtama_windows` is
+    # where it lives, shared with `chandrashtamaEnds`, the family surfaces and
+    # the muhurtham veto so they cannot drift apart again.
+    #
+    # STAR AND RASI, not the star alone. Nine of the 27 stars straddle a rasi
+    # boundary, so their natives sit in two different signs and have two
+    # different Chandrashtamas about a fortnight apart. Name-only matching gave
+    # both halves the same window: reported 2026-09-09 by an Uthiradam/Magaram
+    # native badged on Uthiradam/Dhanusu's day. `own_chandrashtama_windows`
+    # applies both tests; see D9 in the divergence doc.
+    own_star_name = NAKSHATRA_NAMES[(janma_nakshatra - 1) % 27]
+    chandrashtama_windows = panchangam.chandrashtamam_janma_nakshatra_windows
+    own_chandrashtama = own_chandrashtama_windows(
+        chandrashtama_windows,
+        janma_nakshatra=janma_nakshatra,
+        natal_moon_rasi=natal_moon.rasi,
+    )
+    chandrashtama = (
+        bool(own_chandrashtama)
+        if chandrashtama_windows
+        # A snapshot cached before panchangam v44 has no windows; fall back to
+        # the old share gate rather than clear a day we cannot read.
+        else chandrashtama_fraction >= 0.5
+    )
 
     _transit_bodies = {
         "JUPITER": jupiter,
@@ -1048,10 +1098,16 @@ def build_daily_guidance_response(
             tithiCard=_build_tithi_card(day_tithi),
             isChandrashtama=chandrashtama,
             chandrashtamaEnds=(
-                chandrashtama_end(panchangam, natal_moon_rasi=natal_moon.rasi)
+                chandrashtama_end(
+                    panchangam,
+                    janma_nakshatra=janma_nakshatra,
+                    natal_moon_rasi=natal_moon.rasi,
+                )
                 if chandrashtama
                 else None
             ),
+            chandrashtamaStar=own_star_name if chandrashtama else None,
+            chandrashtamaRasi=natal_moon.rasi if chandrashtama else None,
             saturnCycleAlert=saturn_cycle.type if saturn_cycle.is_active and saturn_cycle.type in {"JANMA_SANI", "ASHTAMA_SANI"} else None,
             activityBoard=_build_activity_board(
                 tithi_number=day_tithi,

@@ -39,7 +39,7 @@ export default function JadhagamUpsellScreen() {
   const { showToast } = useToast();
   const { lang } = useI18n();
   const isTamil = lang === "ta";
-  const { chartId, limitReached } = useLocalSearchParams<{ chartId?: string; limitReached?: string }>();
+  const { limitReached } = useLocalSearchParams<{ chartId?: string; limitReached?: string }>();
   const isLimitReached = limitReached === "true";
 
   const C = useColors();

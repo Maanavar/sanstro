@@ -73,7 +73,7 @@ _LOGGING_CONFIG = {
     "disable_existing_loggers": False,
     "formatters": {
         "json": {
-            "format": '{"time":"%(asctime)s","level":"%(levelname)s","logger":"%(name)s","message":"%(message)s"}',
+            "()": "app.core.json_logging.JsonLogFormatter",
         },
     },
     "handlers": {
@@ -184,18 +184,24 @@ def _register_exception_handlers(app: FastAPI) -> None:
     from fastapi.responses import JSONResponse
 
     from app.calculations.ephemeris import RiseTransitUndefinedError
+    from app.core.error_codes import ErrorCode
+    from app.core.errors import error_envelope, register_error_handlers
 
     exc_logger = logging.getLogger("jothidam.error")
+    register_error_handlers(app)
 
     @app.exception_handler(RiseTransitUndefinedError)
     async def _rise_transit_undefined_handler(request: Request, exc: RiseTransitUndefinedError):
         # Polar day/night: the Sun is circumpolar, so sunrise-anchored panchangam
         # fields are undefined for this location/date. A user-fixable input
         # condition, not a server fault — return 422, not 500.
-        request_id = getattr(request.state, "request_id", None)
         return JSONResponse(
             status_code=422,
-            content={"detail": str(exc), "request_id": request_id},
+            content=error_envelope(
+                code=ErrorCode.VALIDATION_ERROR,
+                request=request,
+                detail=str(exc),
+            ),
         )
 
     @app.exception_handler(Exception)
@@ -207,7 +213,12 @@ def _register_exception_handlers(app: FastAPI) -> None:
         )
         return JSONResponse(
             status_code=500,
-            content={"detail": "Internal server error.", "request_id": request_id},
+            headers={"X-Request-ID": request_id} if request_id else None,
+            content=error_envelope(
+                code=ErrorCode.INTERNAL_ERROR,
+                request=request,
+                detail="Internal server error.",
+            ),
         )
 
 

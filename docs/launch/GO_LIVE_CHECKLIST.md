@@ -130,11 +130,38 @@ These are hard blockers for this repo.
 - [ ] `JOTHIDAM_DATABASE_URL` points to the production database
 - [ ] `JOTHIDAM_JWT_SECRET` is set to a strong random secret
 - [ ] `JOTHIDAM_ADMIN_API_KEY` is set to a strong random secret
-- [ ] `JOTHIDAM_ENCRYPTION_KEY` is set and backed up securely
+- [ ] `JOTHIDAM_ENCRYPTION_KEY` (or `JOTHIDAM_ENCRYPTION_KEYS`) is set
 - [ ] `JOTHIDAM_COOKIE_SECURE=true`
 - [ ] `JOTHIDAM_DEBUG=false`
 - [ ] `JOTHIDAM_FRONTEND_URL` is the real domain
 - [ ] `JOTHIDAM_CORS_ALLOW_ORIGINS` is restricted to real origins only
+
+### Encryption-key custody — S0 blocker
+
+Ruled in [`SEC1_SECRET_CUSTODY_RULING.md`](../SEC1_SECRET_CUSTODY_RULING.md).
+`JOTHIDAM_ENCRYPTION_KEYS` is a data-encryption root secret, not a credential:
+there is no revoke-and-replace path. Lose it and every birth profile and journal
+entry stays in the database as ciphertext permanently. A backup that has never
+been restored is an assumption, not a backup.
+
+**Follow [`runbooks/KEY_ESCROW_AND_RESTORE.md`](../runbooks/KEY_ESCROW_AND_RESTORE.md)**
+— about 40 minutes, and it ticks all seven. The last four are a command with an
+exit code (`scripts/verify_restore.py`), not a judgement call. Date every tick:
+an undated tick decays into an assumption, and each of these is true only for the
+backup and the key it was run against.
+
+- [ ] Encryption key escrow exists in >= 2 independent locations — runbook Part 1.1
+- [ ] Database backup exists — runbook Part 2.1
+- [ ] Encryption key and DB backup are NOT stored together — runbook Part 1.2
+- [ ] Restore procedure has been tested end to end — `verify_restore.py` exits 0
+- [ ] A restored encrypted birth profile decrypts successfully — same run
+- [ ] A restored journal entry decrypts successfully — same run
+- [ ] Old-key recovery has been tested after a rotation — runbook Part 2.4
+
+The escrowed key must be the one you verify with. Retrieve it **from escrow**, not
+from the host: escrowing a key from a previous deployment, a truncated paste, and
+one with a trailing newline all look identical in a password manager, and the
+drill is what tells them apart.
 
 Strongly recommended:
 - [ ] `JOTHIDAM_RATE_LIMIT_ENABLED=true`
@@ -197,6 +224,10 @@ Security audit findings — must clear before go-live:
   `production`/`staging` if either is unset (it also requires `JOTHIDAM_ENCRYPTION_KEY`,
   `JOTHIDAM_COOKIE_SECURE=true`, `JOTHIDAM_DEBUG=false`). Outside those environments it
   generates a fresh ephemeral secret per boot instead of falling back to a fixed value.
+  **Amended 2026-09-03:** the JWT/admin/cookie checks now apply to the `api` role only
+  (`JOTHIDAM_PROCESS_ROLE`, default `api`); a `worker` process needs none of them but
+  still requires the encryption key. The failure message no longer echoes the settings
+  it was given — see `SEC1_SECRET_CUSTODY_RULING.md` §5.2 and §11.
   - [ ] **Residual risk to close out**: an earlier commit (`de48707`, 2026-06-16) shipped
     fixed literal fallback secrets — not placeholders, actual fixed strings
     (`faLe6vxFC4K4...`, `J2xfyx5Z2Hf...`) — before the current design landed in `8277a5a`.
@@ -234,15 +265,39 @@ Security audit findings — must clear before go-live:
   Done when: all seven endpoints above have an endpoint-level limit, FUP-2 is answered
   with a named CDN/WAF vendor and rule set (or the gap is explicitly accepted as a launch
   risk by the go/no-go owner), and `rasi-palan/grid` has a per-IP daily cap.
+
+  **Re-verified 2026-09-03 — two of the three are now closed:**
+  - ~~All seven endpoints~~ **Done**, and done before this check: every one of them
+    already carried `@public_endpoint_rate_limit(...)`. An audit of the whole router
+    found **25 public routes, 25 with an endpoint-level limit, 0 without** — so the
+    list above had been stale for some time. Trust the router, not this paragraph.
+  - ~~`rasi-palan/grid` daily cap~~ **Done.** It also no longer shares the
+    `public_panchangam` budget with `/panchangam`, `/rasi-palan` and
+    `/panchangam/monthly`: a daily cap on the shared key would have silently applied
+    to all four, one of which the dashboard calls. It now has its own key at 30/min
+    plus **120/day**, cutting a single-IP mirror of the full content library from
+    43,200 pulls a day to 120.
+  - **FUP-2 (CDN/WAF) is the only part left, and it is an owner decision** — name a
+    vendor and rule set, or accept the gap explicitly. App-level per-IP limits are
+    still trivially defeated by IP rotation; that has not changed.
 - [ ] **DPDP Act 2023 consent**: No logged affirmative consent record exists at registration.
   Section 6 requires a specific, informed, unambiguous consent action before collecting
   birth data. Add a consent checkbox + store `consent_given_at` timestamp on the User
   model before launch.
-- [ ] **Ask Vinaadi — Anthropic data processor disclosure** *(before enabling the feature)*:
-  When Ask Vinaadi is live, user chart context (birth date/time/place + planetary data)
-  is sent to Anthropic (USA). Add one sentence to `web/app/privacy/page.tsx`:
-  "When you use Ask Vinaadi, your anonymised chart context is processed by Anthropic PBC
-  (USA) to generate your answer." Required under DPDP Act Section 9.
+- [x] **Ask Vinaadi — Anthropic data processor disclosure** — **done 2026-09-03.**
+  Added to `web/app/(marketing)/privacy/page.tsx` (not `web/app/privacy/page.tsx`; that
+  path does not exist), with the "last updated" date moved to September 2026.
+
+  **The wording this item proposed was not accurate, and a privacy policy is a binding
+  statement, so it was checked against `app/services/ask_vinaadi_service.py` before
+  being written.** Two corrections:
+  - It said birth date/time/place is sent. **It is not.** `_build_context_block` sends
+    age (derived), marital status, employment type, and calculated positions — rasi,
+    nakshatra, dasa lords, transits, yogas — plus the user's own question. No name, no
+    email, no birth date, time or place.
+  - It said "anonymised". That would have been a misrepresentation: age + marital
+    status + employment + the user's free-text question is personal data, pseudonymous
+    at best. The published wording says exactly what is sent and exactly what is not.
 
 ## 8. Quality, testing, and release gates
 

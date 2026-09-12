@@ -785,3 +785,129 @@ def test_the_auspicious_remainder_never_blesses_the_new_or_full_moon(snapshots) 
                 f"{activity} scored tithi 15 ({snap.tithi_paksha}) as auspicious "
                 f"on the strength of a remainder clause"
             )
+
+
+# ── §16: the star window vetoes, the rasi span cautions ───────────────────────
+# The ruling §9 of docs/CHANDRASHTAMA_SURFACE_DIVERGENCE_2026-09-09.md made for
+# the Muhurtham Naal picker, applied here on 2026-09-10. Picking a date is a
+# prohibition, so it is ruled by the day the almanac NAMES for the reader's own
+# janma star — not by the whole 2.25-day transit of the 8th rasi, which used to
+# veto three dates where the dashboard badged one.
+
+def _chandra_factor(snapshot, subject):
+    from app.calculations.muhurta_engine import _chandra_bala_factor
+
+    return _chandra_bala_factor(snapshot, subject)
+
+
+def test_the_readers_own_star_day_vetoes_a_muhurta_date():
+    """Chennai, 2026-09-08: the almanac's Chandrashtamam is Moolam/Dhanusu.
+
+    A Moolam native (star 19, rasi 9) is in the 8th AND it is their named day,
+    so the date is vetoed.
+
+    The reason must lead with the STAR. The sign still appears — it is the
+    mechanism, and §4.11 has not moved — but under this ruling it no longer
+    decides the date, so copy that named only the sign would re-teach exactly
+    what the ruling removed (§9's own note on the naal picker's strings).
+    """
+    snapshot = calculate_daily_panchangam(date(2026, 9, 8), LATITUDE, LONGITUDE, TIMEZONE)
+    moolam = Subject(janma_nakshatra=19, janma_rasi=9, lagna_rasi=1, label="Test Subject")
+
+    factor = _chandra_factor(snapshot, moolam)
+    assert factor.verdict is Verdict.VETO
+    assert "Moolam" in factor.reason_en
+    assert factor.reason_en.index("Moolam") < factor.reason_en.index("birth sign")
+    assert "the almanac names" in factor.reason_en
+    assert "மூலம்" in factor.reason_ta
+
+
+def test_the_same_rasi_on_another_stars_day_cautions_without_vetoing():
+    """Same sign, same transit, one day later — and the day is not theirs.
+
+    2026-09-09 belongs to Pooradam. A Moolam native is still in the 8th rasi
+    (share 0.384 of the day), so the date carries a penalty — but the Moon
+    leaving the 8th is not what makes a date unpickable, the almanac naming your
+    star is. Before this it was a hard veto, dropping the date entirely.
+    """
+    snapshot = calculate_daily_panchangam(date(2026, 9, 9), LATITUDE, LONGITUDE, TIMEZONE)
+    moolam = Subject(janma_nakshatra=19, janma_rasi=9, lagna_rasi=1, label="Test Subject")
+
+    factor = _chandra_factor(snapshot, moolam)
+    assert factor.verdict is Verdict.PENALTY
+    assert factor.contribution < 0
+    assert "another birth star" in factor.reason_en
+
+
+def test_the_two_date_pickers_cannot_disagree():
+    """Muhurtham Naal and the /muhurta search are the same act, one ruling.
+
+    Both must veto exactly the days `own_chandrashtama_windows` names, because
+    that is the one place the test lives. A user comparing the two screens for
+    the same date saw one veto and the other clear, which is the divergence this
+    whole document exists to close — one surface further along.
+
+    Swept over EVERY star-and-rasi half the stretch contains, not one subject.
+    The first cut of this test used a single Moolam/Dhanusu subject over 30 days
+    and passed while the code under it failed open on 63 dates in 2026: the veto
+    was gated on `house == 8`, which reads the Moon's rasi at SUNRISE, so a
+    window opening after sunrise and closing before the next one never reached
+    the star test. A property that must hold for all charts has to be swept over
+    charts, not over dates alone.
+    """
+    from app.calculations.panchangam import NAKSHATRA_NAMES, own_chandrashtama_windows
+
+    snapshots = [
+        (day, calculate_daily_panchangam(day, LATITUDE, LONGITUDE, TIMEZONE))
+        for day in (date(2026, 2, 20) + timedelta(days=i) for i in range(32))
+    ]
+    halves = sorted({
+        (w.name, w.rasi_number)
+        for _, snap in snapshots for w in snap.chandrashtamam_janma_nakshatra_windows
+    })
+    # A full lunar cycle names every star, and the nine straddling ones twice.
+    assert len(halves) == 36
+
+    contained_seen = 0
+    for star, rasi in halves:
+        subject = Subject(
+            janma_nakshatra=NAKSHATRA_NAMES.index(star) + 1,
+            janma_rasi=rasi, lagna_rasi=1, label="Test Subject",
+        )
+        for day, snapshot in snapshots:
+            own = own_chandrashtama_windows(
+                snapshot.chandrashtamam_janma_nakshatra_windows,
+                janma_nakshatra=subject.janma_nakshatra,
+                natal_moon_rasi=subject.janma_rasi,
+            )
+            vetoed = _chandra_factor(snapshot, subject).verdict is Verdict.VETO
+            assert vetoed == bool(own), (star, rasi, day)
+            # The regression case: the day is theirs, but at sunrise the Moon had
+            # not yet reached their 8th rasi. This is what `house == 8` gating
+            # skipped, so the sweep must actually contain some.
+            if own and own[0].start > snapshot.sunrise:
+                contained_seen += 1
+
+    assert contained_seen > 0, "sweep never hit the contained-window case it exists for"
+
+
+def test_a_snapshot_without_windows_keeps_the_rasi_veto():
+    """Fail-safe direction, same as §9 and §11.
+
+    An avoidance rule must not clear a date it cannot read. A snapshot carrying
+    no window list cannot answer the star question, so it falls back to the
+    rasi-only veto rather than downgrading to a penalty.
+    """
+    from types import SimpleNamespace
+
+    from app.calculations.tara_bala import chandra_bala
+
+    subject = Subject(janma_nakshatra=19, janma_rasi=9, lagna_rasi=1, label="Test Subject")
+    # Moon's rasi is the 8th from Dhanusu (9) — Kadagam (4).
+    assert chandra_bala(9, 4) == 8
+    blind = SimpleNamespace(
+        chandrashtamam_moon_rasi_number=4,
+        chandrashtamam_janma_nakshatra_windows=(),
+    )
+
+    assert _chandra_factor(blind, subject).verdict is Verdict.VETO

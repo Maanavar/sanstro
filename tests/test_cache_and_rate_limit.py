@@ -173,3 +173,42 @@ def test_guard_checks_the_effective_backend_not_the_setting(monkeypatch):
 
     with pytest.raises(RuntimeError):
         _assert_rate_limiter_matches_worker_count()
+
+
+# ---------------------------------------------------------------------------
+# Why the two proxy-hop counts must be EQUAL, demonstrated rather than asserted.
+#
+# docs/PRODUCTION_EDGE.md used to recommend BEFORE_WEB=2 / PROXY_COUNT=1 behind
+# a CDN, reasoning that Next forwards exactly one entry. It forwards N -- see
+# `keeps two hops when two are declared` in
+# web/app/api/backend/proxy-forwarding.test.ts. These two tests are the
+# consequence, in the code that actually reads the header.
+# ---------------------------------------------------------------------------
+
+class _Peer:
+    host = "10.0.0.9"
+
+
+class _Request:
+    """The two attributes resolve_client_ip touches. Not a real Request."""
+
+    def __init__(self, xff: str):
+        self.client = _Peer()
+        self.headers = {"x-forwarded-for": xff}
+
+
+# Next forwarded the rightmost two entries: the client as the CDN reported it,
+# then the address our own nginx observed -- which is the CDN.
+_CDN_CHAIN = "203.0.113.7, 198.51.100.4"
+
+
+def test_the_documented_cdn_pair_attributes_every_request_to_the_cdn():
+    from app.middleware import resolve_client_ip
+
+    assert resolve_client_ip(_Request(_CDN_CHAIN), 1) == "198.51.100.4"
+
+
+def test_equal_counts_recover_the_real_client():
+    from app.middleware import resolve_client_ip
+
+    assert resolve_client_ip(_Request(_CDN_CHAIN), 2) == "203.0.113.7"

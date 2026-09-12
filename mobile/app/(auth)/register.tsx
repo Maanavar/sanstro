@@ -21,6 +21,9 @@ export default function RegisterScreen() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // DPDP Act 2023 §6. Starts false, always — a pre-ticked box is not a consent
+  // action the user performed.
+  const [consentGiven, setConsentGiven] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,10 +37,20 @@ export default function RegisterScreen() {
       setError(isTamil ? "கடவுச்சொல் குறைந்தது 8 எழுத்துகள் இருக்க வேண்டும்." : "Password must be at least 8 characters.");
       return;
     }
+    if (!consentGiven) {
+      setError(
+        isTamil
+          ? "கணக்கை உருவாக்க தனியுரிமைக் கொள்கையை ஏற்கவும்."
+          : "Please accept the privacy policy to create your account."
+      );
+      return;
+    }
     setError(null);
     setLoading(true);
     try {
-      await register(trimmedEmail, password);
+      // `undefined` for displayName: this screen collects none, and the backend
+      // has no such column. Consent is the fourth argument.
+      await register(trimmedEmail, password, undefined, consentGiven);
       const loginRes = await login(trimmedEmail, password);
       await setTokens({ accessToken: loginRes.accessToken, refreshToken: loginRes.refreshToken });
       setSession(
@@ -109,6 +122,36 @@ export default function RegisterScreen() {
               placeholderTextColor={C.textTertiary}
             />
 
+            {/* Consent. React Native has no native checkbox, so this is a
+                Pressable that declares itself as one: `accessibilityRole` and
+                `accessibilityState` are what make TalkBack and VoiceOver
+                announce it as a checkbox and read its checked state. Without
+                them it is an unlabelled button, which is not a control anyone
+                could be said to have knowingly ticked.
+                The row is 44px tall to clear the touch-target audit
+                (scripts/audit-touch-targets.mjs). */}
+            <TouchableOpacity
+              style={styles.consentRow}
+              onPress={() => { setConsentGiven((v) => !v); setError(null); }}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: consentGiven }}
+              accessibilityLabel={
+                isTamil
+                  ? "தனியுரிமைக் கொள்கையை ஏற்கிறேன்"
+                  : "I accept the privacy policy"
+              }
+              activeOpacity={0.8}
+            >
+              <View style={[styles.checkbox, consentGiven && styles.checkboxChecked]}>
+                {consentGiven && <Text style={styles.checkboxTick}>✓</Text>}
+              </View>
+              <Text style={[styles.consentText, isTamil ? TamilType.caption : EnType.caption]}>
+                {isTamil
+                  ? "தனியுரிமைக் கொள்கையை ஏற்கிறேன். எனது பிறப்பு விவரங்கள் எனது பலன்களை உருவாக்கப் பயன்படுத்தப்படுவதற்கு சம்மதிக்கிறேன்."
+                  : "I accept the Privacy Policy, and consent to my birth details being used to generate my readings."}
+              </Text>
+            </TouchableOpacity>
+
             {error && <Text style={styles.errorText}>{error}</Text>}
 
             <TouchableOpacity
@@ -165,6 +208,29 @@ const styles = StyleSheet.create({
     color: C.textPrimary,
     marginBottom: S.sm,
   },
+  consentRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: S.sm,
+    // 44 is the audited minimum touch target; the text usually makes the row
+    // taller than this, and minHeight guarantees it when it does not.
+    minHeight: 44,
+    paddingVertical: S.xs,
+    marginBottom: S.xs,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: C.textTertiary,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 1,
+  },
+  checkboxChecked: { backgroundColor: C.saffron, borderColor: C.saffron },
+  checkboxTick: { color: C.surface, fontSize: 14, lineHeight: 18, fontFamily: "Inter_400Regular" },
+  consentText: { flex: 1, color: C.textSecond },
   errorText: { fontFamily: "Inter_400Regular", fontSize: 13, color: C.alert, marginBottom: S.sm },
   primaryBtn: {
     backgroundColor: C.saffron,

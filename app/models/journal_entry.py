@@ -7,6 +7,7 @@ from sqlalchemy import JSON, Date, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
+from app.services.encryption import EncryptedString
 
 
 class JournalEntry(TimestampMixin, Base):
@@ -22,7 +23,11 @@ class JournalEntry(TimestampMixin, Base):
     chart_id: Mapped[UUID] = mapped_column(ForeignKey("charts.chart_id", ondelete="CASCADE"), nullable=False)
     entry_date: Mapped[date] = mapped_column(Date, nullable=False)
     life_area: Mapped[str] = mapped_column(String(32), nullable=False, default="general")
-    note_text: Mapped[str] = mapped_column(String(2000), nullable=False)
+    # Free text a user wrote about their own life — the most sensitive column in
+    # this table and, until P2-1, the only unencrypted one of its kind. The 2000
+    # limit is now enforced only by the Pydantic schema (app/schemas/journal.py):
+    # ciphertext has no VARCHAR length to enforce it against.
+    note_text: Mapped[str] = mapped_column(EncryptedString, nullable=False)
     tags: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     anchor_payload: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False, default=dict)
 

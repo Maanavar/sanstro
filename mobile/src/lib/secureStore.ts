@@ -1,3 +1,4 @@
+import { getRandomBytesAsync } from "expo-crypto";
 import * as SecureStore from "expo-secure-store";
 
 const KEYS = {
@@ -34,14 +35,21 @@ export async function clearTokens(): Promise<void> {
   ]);
 }
 
-function generateRandomKey(): string {
-  return Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function generateRandomKey(): Promise<string> {
+  // Expo's asynchronous native CSPRNG returns 32 bytes: exactly 256 bits for
+  // the AES-GCM key used by encryptedStorage. Existing SecureStore keys remain
+  // unchanged, so this affects only fresh installs or a failed prior write.
+  return bytesToHex(await getRandomBytesAsync(32));
 }
 
 export async function getMasterEncryptionKey(): Promise<string> {
   const stored = await SecureStore.getItemAsync(KEYS.ENCRYPTION_KEY);
   if (stored) return stored;
-  const newKey = generateRandomKey();
+  const newKey = await generateRandomKey();
   try {
     await SecureStore.setItemAsync(KEYS.ENCRYPTION_KEY, newKey);
   } catch {

@@ -55,7 +55,12 @@ Get-ChildItem -Recurse -Filter "*.py" -ErrorAction SilentlyContinue |
 ### DB topology
 - **Dev DB:** Docker container `slw-postgres`, port **5432**, db `vinaadi_dev` — THIS IS THE REAL DATA DB
 - **Test DB:** Docker container `slw-postgres-test` (separate container), port **5433**, db `vinaadi_test` — wipe freely
-- **SQLite test:** `sqlite:///./pytest_local_test.db` — for offline/CI use only
+- **SQLite: not an option for the suite.** `tests/conftest.py` refuses any database
+  not named exactly `vinaadi_test` on `localhost:5433`, and `app/db/session.py`
+  passes `max_overflow`, which SQLite's dialect rejects at import time
+  (`TypeError: Invalid argument(s) 'max_overflow'`). There is no offline fallback.
+  A test that genuinely needs SQLite builds its **own** engine —
+  `tests/test_newsletter.py` does exactly this to prove table portability.
 
 ### Rules — follow without exception
 1. **Never run `alembic upgrade head` against `vinaadi_dev` without first confirming the migration is backwards-safe.** Review the migration file before applying.
@@ -66,10 +71,8 @@ Get-ChildItem -Recurse -Filter "*.py" -ErrorAction SilentlyContinue |
    $env:JOTHIDAM_DATABASE_URL = "postgresql://slw_admin:slw_dev_password@localhost:5433/vinaadi_test"
    $env:JOTHIDAM_TEST_DB_RESET_ACK = "I_UNDERSTAND_THIS_WIPES_TEST_DB"
    ```
-   Or use SQLite for offline tests:
-   ```powershell
-   $env:JOTHIDAM_DATABASE_URL = "sqlite:///./pytest_local_test.db"
-   ```
+   There is no SQLite alternative — see the DB topology above. If the Docker test
+   container is not running, start it; do not reach for a different URL.
 5. **To back up dev data before risky work:**
    ```powershell
    docker exec slw-postgres pg_dump -U slw_admin vinaadi_dev > backup_$(Get-Date -Format 'yyyyMMdd_HHmm').sql

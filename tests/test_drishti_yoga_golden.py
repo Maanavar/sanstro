@@ -137,6 +137,14 @@ CHARTS: dict[str, tuple[dict[str, int], int, int]] = {
 #:     to the *fractional* tiers cannot reach either frozen surface. It reaches
 #:     Drik Bala and Bhava Bala instead, which this fixture does not cover.
 #:   * the solitary-Mercury ruling moved the one cell.
+#:
+#: RE-FROZEN AGAIN 2026-09-11 for exactly one cell — `spread`/`DARIDRA_YOGA`,
+#: True/STRONG -> False/WEAK. The astrologer ruling redefined `YOG-DR-01` from
+#: "the 11th lord occupies a dusthana" to a dusthana<->dhana **parivartana**.
+#: `spread` has the former and not the latter, so it correctly stops firing: that
+#: is the whole point of the change, which took the rule from ~25% of charts to
+#: ~4%. Nothing else moved, which is the useful part — the redefinition did not
+#: leak into any other yoga on any of the three charts.
 GOLDEN_YOGAS: dict[str, tuple[tuple[str, bool, str], ...]] = {
     "clustered": (
         ("ADHI_YOGA", False, "WEAK"),
@@ -203,7 +211,10 @@ GOLDEN_YOGAS: dict[str, tuple[tuple[str, bool, str], ...]] = {
         ("CHANDALA_YOGA", False, "WEAK"),
         ("CHANDRA_MANGALA_YOGA", False, "WEAK"),
         ("DARIDRA_PROXY_YOGA", False, "WEAK"),
-        ("DARIDRA_YOGA", True, "STRONG"),
+        # Was True/STRONG until 2026-09-11: this chart has the 11th lord in a
+        # dusthana (the old rule) but no dusthana<->dhana parivartana (the new
+        # one). See the RE-FROZEN AGAIN note above.
+        ("DARIDRA_YOGA", False, "WEAK"),
         ("DHANA_SUPPORTIVE_YOGA", False, "WEAK"),
         ("DHANA_YOGA", False, "WEAK"),
         ("GAJA_KESARI_YOGA", True, "STRONG"),

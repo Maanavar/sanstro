@@ -6,9 +6,6 @@ import * as ExpoFont from "expo-font";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-// Lazy-loaded to avoid crashing in Expo Go — JSI modules fail at import time when native bridge is absent.
-let Purchases: typeof import("react-native-purchases").default | null = null;
-try { Purchases = require("react-native-purchases").default; } catch { /* Expo Go */ }
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SessionProvider, useSession } from "@/state/sessionContext";
 import { LanguageProvider } from "@/state/languageContext";
@@ -18,17 +15,25 @@ import { ToastProvider } from "@/context/ToastContext";
 import { ConfirmProvider } from "@/context/ConfirmContext";
 import { queryClient, asyncStoragePersister } from "@/lib/queryClient";
 import { getTokens, clearTokens } from "@/lib/secureStore";
-import { initAnalytics, setUser } from "@/lib/analytics";
+import { initAnalytics, setAnalyticsConsent, setUser } from "@/lib/analytics";
+import { loadGuestPrefs } from "@/features/guest/guestStore";
 import { ENV } from "@/lib/env";
 import { getMe } from "@/api/auth";
 import { FONT_MAP } from "@/theme/typography";
+// Lazy-loaded to avoid crashing in Expo Go — JSI modules fail at import time when native bridge is absent.
+let Purchases: typeof import("react-native-purchases").default | null = null;
+// A static import would run at module load and crash Expo Go, where the
+// native bridge these JSI modules need does not exist. The require has to
+// stay a require: that is the point, not an oversight.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+try { Purchases = require("react-native-purchases").default; } catch { /* Expo Go */ }
 
 SplashScreen.preventAutoHideAsync();
 
-// Init analytics once at module load â€” safe before React tree mounts.
+// Init analytics once at module load — safe before React tree mounts.
 initAnalytics(ENV.SENTRY_DSN, ENV.POSTHOG_API_KEY, ENV.POSTHOG_HOST);
 
-// Configure RevenueCat â€” only if a key is provided (won't fire in CI/dev without keys).
+// Configure RevenueCat — only if a key is provided (won't fire in CI/dev without keys).
 const rcKey = Platform.OS === "ios" ? ENV.REVENUECAT_PUBLIC_KEY : ENV.REVENUECAT_ANDROID_KEY;
 if (rcKey && Purchases) {
   try {
@@ -61,10 +66,20 @@ function RootNavigation() {
 
   useEffect(() => {
     async function bootstrap() {
+      // Restore the stored analytics choice before anything can call setUser or
+      // trackEvent. The module-level default is `false`, so a failed read leaves
+      // analytics off rather than on.
+      try {
+        const prefs = await loadGuestPrefs();
+        setAnalyticsConsent(prefs.analyticsOptedIn === true);
+      } catch {
+        // Storage unavailable — stay opted out.
+      }
+
       try {
         await ExpoFont.loadAsync(FONT_MAP);
       } catch {
-        // Non-fatal â€” system fonts will render.
+        // Non-fatal — system fonts will render.
       }
 
       try {

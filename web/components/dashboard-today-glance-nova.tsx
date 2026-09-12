@@ -399,16 +399,29 @@ export function DashboardTodayLifeAreasDasaRowNova({
               const trend = TREND_META[area.trend] ?? TREND_META.STABLE;
               const trendLabel = lang === "ta" ? trend.ta : trend.en;
               const explanation = lifeAreaExplanation(area.area, lang);
-              // The one ~2-day input inside an otherwise months-long number:
-              // Chandrashtamam docks 8 points from the mind-sensitive areas. Left
-              // unnamed, the tile would silently drop 8 and could cross a verdict
-              // boundary overnight with nothing on screen accounting for it.
+              // The one ~1-day input inside an otherwise months-long number.
+              // Left unnamed, the tile would silently drop and could cross a
+              // verdict boundary overnight with nothing on screen accounting
+              // for it.
+              //
+              // The number is READ, not assumed. The penalty is graded by how
+              // much of the solar day the Moon spends in the reader's 8th rasi,
+              // so a day the almanac names can still cost three points rather
+              // than eight. This copy used to hardcode "8 points" beside a flag
+              // that no longer implies 8. Older cached payloads carry the flag
+              // without the number, so those fall back to naming no figure
+              // rather than printing a stale one.
               const chandra = area.chandrashtamaApplied === true;
-              const chandraNote = chandra
-                ? lang === "ta"
-                  ? "இன்று சந்திராஷ்டமம் — இந்த மதிப்பெண் 8 புள்ளிகள் குறைக்கப்பட்டுள்ளது. இது கடந்ததும் திரும்பும்."
-                  : "Chandrashtamam today — this score is docked 8 points, and recovers when it passes."
-                : null;
+              const chandraPoints = area.chandrashtamaPenalty ?? 0;
+              const chandraNote = !chandra
+                ? null
+                : chandraPoints > 0
+                  ? lang === "ta"
+                    ? `இன்று சந்திராஷ்டமம் — இந்த மதிப்பெண் ${chandraPoints} புள்ளி${chandraPoints === 1 ? "" : "கள்"} குறைக்கப்பட்டுள்ளது. இது கடந்ததும் திரும்பும்.`
+                    : `Chandrashtamam today — this score is docked ${chandraPoints} point${chandraPoints === 1 ? "" : "s"}, and recovers when it passes.`
+                  : lang === "ta"
+                    ? "இன்று சந்திராஷ்டமம் — இது கடந்ததும் மதிப்பெண் திரும்பும்."
+                    : "Chandrashtamam today — this score recovers when it passes.";
               const tooltip = [explanation, `${verdictWord} · ${score}/100 · ${trendLabel}`, chandraNote]
                 .filter(Boolean)
                 .join("\n");

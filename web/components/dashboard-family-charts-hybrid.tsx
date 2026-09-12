@@ -41,7 +41,7 @@ import type {
 import type { MemberChart } from "@/hooks/useFamilyData";
 import { useApiQuery } from "@/hooks/useApiQuery";
 
-import { formatChandrashtamaWindowSummary, formatHeaderDate, resolveTamilDate } from "./dashboard-calendar-shared";
+import { formatChandrashtamaWindowSummary, formatHeaderDate, formatOwnChandrashtamaWindow, resolveTamilDate } from "./dashboard-calendar-shared";
 import {
   ScoreRing,
   formatRelLabel,
@@ -860,12 +860,28 @@ export function DashboardFamilyChartsHybrid({
   // on their own Today hero, but a family member's only mention of it used to
   // be the dedicated full-profile screen behind "View full profile".
   const readingIsChandrashtama = activeMeta?.isChandrashtama ?? reading?.transit?.isChandrashtama ?? false;
-  // `chandrashtamamToday` is derived from today's transiting Moon rasi, not
-  // from any one chart — the affected janma rasi (and so its star windows) is
-  // the same for everyone in the vault, so these windows are correct for the
-  // member being read, exactly as they are for the owner on Today.
+  // `chandrashtamamToday` is derived from today's transiting Moon, not from any
+  // one chart, so it is the same for every member of the vault. Note what that
+  // does and does not license: the day's star LIST is shared, but which member
+  // it applies to is not — the 2026-09-09 ruling keyed Chandrashtama to the
+  // reader's own janma star, and a rasi holds 2¼ of them. This full list is the
+  // fallback; `readingChandrashtamaOwnWindow` below is what the card shows.
   const readingChandrashtamaWindows = panchangam
     ? formatChandrashtamaWindowSummary(panchangam.chandrashtamamToday?.janmaNakshatraWindows ?? [], panchangam.dateLocal, lang)
+    : "";
+  // The star must come from the member's own guidance: the badge is an overlap
+  // test, so on a handover day two members of the same rasi can each be in
+  // Chandrashtama from a different window of the same day.
+  const readingChandrashtamaOwnWindow = panchangam
+    ? formatOwnChandrashtamaWindow(
+        panchangam.chandrashtamamToday?.janmaNakshatraWindows ?? [],
+        dailyGuidance?.chandrashtamaStar ?? undefined,
+        panchangam.dateLocal,
+        lang,
+        // Star AND rasi: a straddling star holds two windows in a day, one per
+        // half of its natives, and they are a fortnight apart in Chandrashtama.
+        dailyGuidance?.chandrashtamaRasi ?? undefined,
+      )
     : "";
 
   return (
@@ -1111,6 +1127,7 @@ export function DashboardFamilyChartsHybrid({
                     descriptionTa={null}
                     descriptionEn={null}
                     windowsSummary={readingChandrashtamaWindows}
+                    ownWindowSummary={readingChandrashtamaOwnWindow}
                   />
                 )}
                 {dailyGuidance && (

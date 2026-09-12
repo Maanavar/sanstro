@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterator, Sequence
+from collections.abc import Collection, Iterator, Sequence
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 
@@ -11,6 +11,8 @@ from sqlalchemy.orm import Session
 
 from app.calculations.astro import (
     RASI_NAMES,
+    chandrashtama_janma_angle,
+    chandrashtama_janma_nakshatra,
     julian_day_to_utc_datetime,
     nakshatra_from_degree,
     normalize_longitude,
@@ -546,7 +548,15 @@ DEFAULT_AYANAMSA_TYPE = "LAHIRI"
 # midnight-to-midnight walk. Duration-weighted scoring reads the spans, so a
 # cached record written without them would score every limb as zero-weight; the
 # bump is what stops a warmed cache from serving the old flat answer.
-PANCHANGAM_CACHE_DATA_VERSION = 43
+# v44 (2026-09-09): Chandrashtama janma-nakshatra windows were searched on the
+# Moon's own nakshatra/rasi grid, but the affected star turns over on a grid 10°
+# away (210° = 15.75 nakshatras) — so every persisted window boundary was late,
+# by 5h34m at the 2026-09-08 Moolam→Pooradam handover. The same walk stopped at
+# the Moon's sunrise rasi and dropped the rest of any rasi-change day. Both are
+# corrected, and snapshots now carry the affected star AT SUNRISE, which is what
+# the personal Chandrashtama flag reads. A warmed cache would otherwise keep
+# serving the old boundaries to a flag that now depends on them being right.
+PANCHANGAM_CACHE_DATA_VERSION = 46
 DOMINANT_SPECIAL_TITHIS = {15, 30}
 
 # Fixed weekday clock-table Nalla Neram windows. NOTE (2026-07-17): the daily
@@ -644,9 +654,33 @@ class PanchangamHoraEntry:
 
 @dataclass(frozen=True, slots=True)
 class PanchangamChandrashtamamNakshatraWindow:
+    """One stretch during which a single janma star, in a single rasi, is in
+    Chandrashtama.
+
+    `rasi_number` is not decoration and not derivable from `name`. Nine of the
+    27 stars straddle a rasi boundary — Karthigai, Mirugaseeridam, Punarpoosam,
+    Uthiram, Chithirai, Visakam, Uthiradam, Avittam, Poorattathi — because 30°
+    is 2.25 nakshatras, so only every fourth rasi boundary lands on a nakshatra
+    boundary. Their natives fall in two different rasis and therefore have two
+    different Chandrashtamas, about a fortnight apart. Matching on the star name
+    alone hands each half the other half's window; see the D9 section of
+    docs/CHANDRASHTAMA_SURFACE_DIVERGENCE_2026-09-09.md.
+
+    A window is therefore split at the affected point's rasi boundaries as well
+    as its star boundaries. `rasi_number` is 0 only on a snapshot cached before
+    panchangam v45, which callers read as "unknown", not as "no rasi".
+
+    Windows are clipped to the SOLAR day they are reported for, sunrise to next
+    sunrise, like every other span list on the snapshot. `own_chandrashtama_windows`
+    depends on that: it reads "starts at the list's first edge" as "covers
+    sunrise", which is how the almanac decides whose day it is.
+    """
+
     name: str
     start: datetime
     end: datetime
+    rasi_number: int = 0
+    rasi_name: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -755,6 +789,15 @@ class PanchangamSnapshot:
     chandrashtamam_affected_janma_rasi_name: str
     chandrashtamam_today_nakshatras: tuple[str, ...]
     chandrashtamam_janma_nakshatra_windows: tuple[PanchangamChandrashtamamNakshatraWindow, ...] = ()
+    # The janma star in Chandrashtama at sunrise — the உதய rule, so exactly one
+    # star owns each day, which is how an almanac prints it and how a reader
+    # checks it. A *personal* Chandrashtama flag must test this, not the Moon's
+    # rasi: the rasi lumps all 2¼ stars of a sign into one 2¼-day stretch, so it
+    # flags a Moolam native on Pooradam's day. 0 means "not computed" — a cache
+    # record written before v44; callers must fall back rather than read 0 as a
+    # star number. See docs/CHANDRASHTAMA_SURFACE_DIVERGENCE_2026-09-09.md.
+    chandrashtamam_affected_janma_nakshatra_number: int = 0
+    chandrashtamam_affected_janma_nakshatra_name: str = ""
     warnings: tuple[str, ...] = ()
     # Every value each limb takes across the SOLAR day (this sunrise to the next),
     # in order. The scalars above are the value at sunrise — the உதய rule, which
@@ -877,6 +920,33 @@ def _civil_day_bounds_jd(date_local: date, timezone_name: str) -> tuple[float, f
     return start_jd, end_jd
 
 
+def _solar_day_bounds_jd(
+    date_local: date,
+    timezone_name: str,
+    latitude: float,
+    longitude: float,
+) -> tuple[float, float]:
+    """Sunrise to next sunrise — the almanac day, and the only day this file
+    divides limbs across.
+
+    A Tamil almanac page for a date covers that date's sunrise to the next, which
+    is why every span list on the snapshot is bounded this way. `_civil_day_bounds_jd`
+    above exists for the few markers that genuinely are civil-day questions
+    (Amavasai/Pournami tagging, which the calendar prints against a date).
+    """
+    timezone_obj = resolve_timezone(timezone_name)
+    local_midnight = datetime.combine(date_local, datetime.min.time(), tzinfo=timezone_obj)
+    jd_start = utc_datetime_to_julian_day(local_midnight.astimezone(UTC))
+    sunrise_jd = calculate_rise_transit_jd(jd_start, latitude, longitude, rise=True)
+    next_sunrise_jd = calculate_rise_transit_jd(
+        utc_datetime_to_julian_day((local_midnight + timedelta(days=1)).astimezone(UTC)),
+        latitude,
+        longitude,
+        rise=True,
+    )
+    return sunrise_jd, next_sunrise_jd
+
+
 def _state_durations_for_civil_day(
     date_local: date,
     timezone_name: str,
@@ -923,6 +993,14 @@ def _karana_index_at_jd(jd: float) -> int:
     return int((_tithi_angle_at_jd(jd) + 1e-9) // 6)
 
 
+def _chandrashtamam_janma_angle_at_jd(jd: float) -> float:
+    return chandrashtama_janma_angle(_nakshatra_angle_at_jd(jd))
+
+
+def _chandrashtamam_janma_nakshatra_number_at_jd(jd: float) -> int:
+    return chandrashtama_janma_nakshatra(_nakshatra_angle_at_jd(jd))
+
+
 # One entry per limb: how to read its value, how to find its next boundary, how
 # to name it, and how many transitions a solar day can hold. The counts are the
 # observed maxima plus headroom — measured over 2026-08..2027-07 at Chennai a
@@ -939,6 +1017,21 @@ _LIMB_WALKERS: dict[str, tuple] = {
     # worth -25 to the Moon score — is a rasi test, so scoring it off a single
     # instant has the same defect the limbs had.
     "moon_rasi": (lambda jd: rasi_from_degree(_nakshatra_angle_at_jd(jd)), _nakshatra_angle_at_jd, 30.0, lambda n: RASI_NAMES[n], 3),
+    # The janma star currently in Chandrashtama — the almanac's reading of the
+    # same 8th-rasi rule `moon_rasi` carries, at nakshatra resolution. Its angle
+    # is the Moon's MINUS 210°, and that matters for more than naming: 210° is
+    # 15.75 nakshatras, so this grid sits 10° — three padas — off the Moon's own
+    # nakshatra grid, and a walk that steps on the Moon's boundaries reports the
+    # handover late by up to a full nakshatra. On 2026-09-08 at Chennai the
+    # Moolam→Pooradam handover fell at 11:05 and the old walk printed 16:39.
+    # Same span length as a nakshatra, so a civil day holds at most 2 values.
+    "chandrashtama_janma_nakshatra": (
+        _chandrashtamam_janma_nakshatra_number_at_jd,
+        _chandrashtamam_janma_angle_at_jd,
+        40 / 3,
+        lambda n: NAKSHATRA_NAMES[(n - 1) % 27],
+        3,
+    ),
 }
 
 
@@ -1527,54 +1620,199 @@ def _chandrashtamam_affected_janma_rasi(moon_rasi_number: int) -> int:
     return ((moon_rasi_number - 8) % 12) + 1
 
 
-def _moon_rasi_number_at_jd(jd: float) -> int:
-    return rasi_from_degree(_nakshatra_angle_at_jd(jd))
+def chandrashtamam_janma_nakshatra_windows_for_day(
+    date_local: date,
+    timezone_name: str,
+    latitude: float,
+    longitude: float,
+) -> tuple[PanchangamChandrashtamamNakshatraWindow, ...]:
+    """Public entry for callers that need the day's windows without a panchangam.
+
+    Takes the location because the almanac day these windows divide runs sunrise
+    to sunrise. It used to take a timezone alone and bound the list by the civil
+    day, on the reasoning that the affected star is a function of the Moon's
+    longitude alone — true of the star, false of the *day* it is reported
+    against, which is the whole question `own_chandrashtama_windows` answers.
+    See the D11 ruling in docs/CHANDRASHTAMA_SURFACE_DIVERGENCE_2026-09-09.md.
+    """
+    sunrise_jd, next_sunrise_jd = _solar_day_bounds_jd(
+        date_local, timezone_name, latitude, longitude,
+    )
+    return _chandrashtamam_janma_nakshatra_windows(sunrise_jd, next_sunrise_jd, timezone_name)
 
 
-def _chandrashtamam_janma_nakshatra_name_at_jd(jd: float) -> str:
-    janma_longitude = normalize_longitude(_nakshatra_angle_at_jd(jd) - 210.0)
-    return NAKSHATRA_NAMES[nakshatra_from_degree(janma_longitude) - 1]
+def own_chandrashtama_windows(
+    windows: Sequence[PanchangamChandrashtamamNakshatraWindow],
+    *,
+    janma_nakshatra: int,
+    natal_moon_rasi: int,
+) -> tuple[PanchangamChandrashtamamNakshatraWindow, ...]:
+    """The windows in `windows` that belong to THIS chart, star and rasi both,
+    and that belong to the DAY `windows` describes.
+
+    Every surface that asks "is today my Chandrashtama?" must ask it here, so
+    the badge, the end time and the muhurtham veto cannot drift apart again —
+    they did, three separate ways, before 2026-09-09.
+
+    Matching on the star name alone is wrong for the nine straddling stars, and
+    wrong in both directions: it hands the Magaram half of Uthiradam the Dhanusu
+    half's window (a real day, but the wrong hours and the wrong sign), and on
+    2026-01-07 and ten other days of 2026 it badges the Dhanusu half on a day
+    the Moon is nowhere near their 8th rasi at all. The rasi test is exactly
+    spec §4.11 — it is what keeps the star refinement a strict sub-interval of
+    the rasi rule instead of a departure from it.
+
+    WHICH DAY A WINDOW BELONGS TO (owner ruling, 2026-09-09, D11). A window
+    listed against a day is not automatically that day's Chandrashtamam. The
+    almanac names the star standing at **sunrise** — the உதய rule — and a window
+    that opens after sunrise and is still running at the next sunrise is
+    tomorrow's entry, printed today only so the reader can see it coming. The
+    reported case: Uthiradam/Magaram opens 2026-09-09 15:14 and runs to 08:20 on
+    the 10th, and the day it names is the **10th**, the day whose sunrise it
+    covers. The 9th belongs to Pooradam/Dhanusu, which is what the printed
+    almanac says and what the reporting owner read.
+
+    The one exception is the reason the rule is not simply "the sunrise star". A
+    star window is 13°20' of Moon motion — 20.8 h at the Moon's fastest against
+    a 24 h day — so a whole window can fall between two sunrises and cover none
+    at all. Reading only the sunrise star drops those stars outright: 11 times
+    in 2026 at Chennai, including Moolam around 29-Nov. A window that covers no
+    sunrise is claimed by the solar day that contains it, because an almanac
+    never loses a star and its natives must be warned once per cycle.
+
+    `windows` is clipped to its solar day, so both tests are local: a window
+    covers sunrise iff it starts at the day's start, and it closes inside the
+    day iff it ends before the day's end. Exactly one case is excluded —
+    starts late AND runs past the next sunrise.
+
+    `natal_moon_rasi` of 0, or a window whose `rasi_number` is 0 (cached before
+    panchangam v45), falls back to matching the name alone: an avoidance rule
+    fails toward the doctrine rather than clearing a day it cannot read. There
+    is no equivalent fallback for the day test, and none is needed: a cache row
+    below `PANCHANGAM_CACHE_DATA_VERSION` is discarded rather than deserialized,
+    so a caller cannot be holding a civil-day-bounded list from before v46.
+    """
+    own_name = NAKSHATRA_NAMES[(janma_nakshatra - 1) % 27]
+    named = tuple(
+        window for window in windows
+        if window.name == own_name
+        and (not natal_moon_rasi or not window.rasi_number or window.rasi_number == natal_moon_rasi)
+    )
+    if not named:
+        return ()
+    day_start = min(window.start for window in windows)
+    day_end = max(window.end for window in windows)
+    return tuple(
+        window for window in named
+        if window.start <= day_start or window.end < day_end
+    )
+
+
+def is_chandrashtama_day(
+    date_local: date,
+    timezone_name: str,
+    latitude: float,
+    longitude: float,
+    *,
+    natal_moon_rasi: int,
+    janma_nakshatra: int,
+) -> bool:
+    """Is `date_local` the day the almanac names as THIS chart's Chandrashtamam?
+
+    The whole prohibition register in one call, so a surface that needs the
+    answer cannot arrive at it by a route of its own. Four surfaces had done
+    exactly that — a solar-noon rasi sample, a sunrise rasi sample, a
+    `datetime.now()` rasi sample and a half-of-the-solar-day gate — and every
+    one of them disagreed with the dashboard on ~20 days a year.
+
+    The graded CONDITION register is a different question and has a different
+    answer: `limb_fraction(moon_rasi_spans, …)`, the share of the day the Moon
+    spends in the 8th rasi. Do not use this boolean for that. See §16 of
+    docs/CHANDRASHTAMA_SURFACE_DIVERGENCE_2026-09-09.md.
+    """
+    windows = chandrashtamam_janma_nakshatra_windows_for_day(
+        date_local, timezone_name, latitude, longitude,
+    )
+    return bool(own_chandrashtama_windows(
+        windows, janma_nakshatra=janma_nakshatra, natal_moon_rasi=natal_moon_rasi,
+    ))
 
 
 def _chandrashtamam_janma_nakshatra_windows(
-    date_local: date,
+    start_jd: float,
+    end_jd: float,
     timezone_name: str,
-    moon_rasi_number: int,
+    moon_rasi_spans: Sequence[PanchangamLimbSpan] | None = None,
 ) -> tuple[PanchangamChandrashtamamNakshatraWindow, ...]:
-    start_jd, end_jd = _civil_day_bounds_jd(date_local, timezone_name)
-    cursor = start_jd
-    found_target_rasi = False
+    """Every janma star in Chandrashtama across this solar day, with its timing.
+
+    Two defects closed here on 2026-09-09; both are recorded in
+    docs/CHANDRASHTAMA_SURFACE_DIVERGENCE_2026-09-09.md.
+
+    The walk used to step on the MOON's nakshatra and rasi boundaries and read
+    the affected star's name at the start of each step. The affected star turns
+    over on its own grid, 10° off the Moon's (210° = 15.75 nakshatras), so the
+    reported name went stale until the next coarse step — the 2026-09-08
+    Moolam→Pooradam handover printed as 16:39 against a true 11:05, and
+    Uthiradam's window start was ~14 h late. `limb_spans_between` searches
+    boundaries with the same angle function it reads values from, so the grid
+    can no longer drift away from the value.
+
+    It also took the Moon's rasi at sunrise and walked only while the Moon was
+    still in it, which silently dropped the rest of the day on every day the
+    Moon changed rasi: 2026-09-07 listed Kettai to 12:38 and omitted Moolam,
+    whose window opened at 12:40 that same afternoon. The day is now covered
+    end to end.
+
+    Bounded by the SOLAR day (sunrise → next sunrise) since D11 on the same
+    date. It was the civil day, which made this the only span list in the file
+    measured over a different day from the rest of the snapshot — three
+    day-definitions inside one feature, with the score share, the badge and this
+    list each keyed to a different one. An almanac page runs sunrise to sunrise;
+    so does everything here now.
+    """
+    star_spans = limb_spans_between("chandrashtama_janma_nakshatra", start_jd, end_jd, timezone_name)
+    # The affected point sits exactly 210° behind the Moon, and 210° is seven
+    # WHOLE rasis, so the affected point crosses a rasi boundary at the same
+    # instant the Moon does — seven signs away. The Moon's own rasi spans are
+    # therefore the affected point's rasi spans relabelled, and reusing them
+    # costs nothing and cannot disagree with a second boundary search.
+    #
+    # The intersection is what makes a window belong to somebody. Nine stars
+    # straddle a rasi boundary (see the dataclass), and a straddling star's
+    # unsplit window covers both halves' natives at once — so the Dhanusu half
+    # of Uthiradam and the Magaram half of Uthiradam, whose Chandrashtamas are a
+    # fortnight apart, were being handed the same window. No sliver can come out
+    # of this: 30° is 2.25 nakshatras, so a rasi boundary always falls a quarter,
+    # half or three-quarters of the way through a star, never at its edge, and
+    # the shortest possible piece is 3°20' of Moon motion — five hours and up.
+    #
+    # `moon_rasi_spans` is passed in by `calculate_daily_panchangam`, which has
+    # already walked exactly this limb over exactly these bounds — the same
+    # search twice was 50 ms of the 604 ms a cold day costs, and two independent
+    # walks could in principle disagree. Standalone callers pass nothing and pay
+    # for their own.
+    rasi_spans = (
+        moon_rasi_spans
+        if moon_rasi_spans is not None
+        else limb_spans_between("moon_rasi", start_jd, end_jd, timezone_name)
+    )
     windows: list[PanchangamChandrashtamamNakshatraWindow] = []
-
-    for _ in range(12):
-        if cursor >= end_jd - 1e-10:
-            break
-
-        current_moon_rasi = _moon_rasi_number_at_jd(cursor)
-        next_nakshatra_boundary = _find_next_boundary_jd(cursor, _nakshatra_angle_at_jd, 40 / 3)
-        next_rasi_boundary = _find_next_boundary_jd(cursor, _nakshatra_angle_at_jd, 30.0)
-        interval_end = min(next_nakshatra_boundary, next_rasi_boundary, end_jd)
-
-        if current_moon_rasi == moon_rasi_number:
-            found_target_rasi = True
-            window = PanchangamChandrashtamamNakshatraWindow(
-                name=_chandrashtamam_janma_nakshatra_name_at_jd(cursor),
-                start=utc_datetime_to_local_datetime(julian_day_to_utc_datetime(cursor), timezone_name),
-                end=utc_datetime_to_local_datetime(julian_day_to_utc_datetime(interval_end), timezone_name),
-            )
-            if windows and windows[-1].name == window.name and abs((window.start - windows[-1].end).total_seconds()) < 1:
-                windows[-1] = PanchangamChandrashtamamNakshatraWindow(
-                    name=window.name,
-                    start=windows[-1].start,
-                    end=window.end,
-                )
-            else:
-                windows.append(window)
-        elif found_target_rasi:
-            break
-
-        cursor = min(interval_end + 1e-8, end_jd)
-
+    for star in star_spans:
+        for moon_rasi in rasi_spans:
+            start = max(star.start, moon_rasi.start)
+            end = min(star.end, moon_rasi.end)
+            if end <= start:
+                continue
+            affected_rasi = _chandrashtamam_affected_janma_rasi(moon_rasi.number)
+            windows.append(PanchangamChandrashtamamNakshatraWindow(
+                name=star.name,
+                start=start,
+                end=end,
+                rasi_number=affected_rasi,
+                rasi_name=RASI_NAMES[affected_rasi],
+            ))
+    windows.sort(key=lambda window: window.start)
     return tuple(windows)
 
 
@@ -1815,12 +2053,16 @@ def _serialize_snapshot(snapshot: PanchangamSnapshot) -> dict:
         "chandrashtamam_moon_rasi_name": snapshot.chandrashtamam_moon_rasi_name,
         "chandrashtamam_affected_janma_rasi_number": snapshot.chandrashtamam_affected_janma_rasi_number,
         "chandrashtamam_affected_janma_rasi_name": snapshot.chandrashtamam_affected_janma_rasi_name,
+        "chandrashtamam_affected_janma_nakshatra_number": snapshot.chandrashtamam_affected_janma_nakshatra_number,
+        "chandrashtamam_affected_janma_nakshatra_name": snapshot.chandrashtamam_affected_janma_nakshatra_name,
         "chandrashtamam_today_nakshatras": list(snapshot.chandrashtamam_today_nakshatras),
         "chandrashtamam_janma_nakshatra_windows": [
             {
                 "name": window.name,
                 "start": window.start.isoformat(),
                 "end": window.end.isoformat(),
+                "rasi_number": window.rasi_number,
+                "rasi_name": window.rasi_name,
             }
             for window in snapshot.chandrashtamam_janma_nakshatra_windows
         ],
@@ -1948,12 +2190,17 @@ def _deserialize_snapshot(data: dict) -> PanchangamSnapshot:
         chandrashtamam_moon_rasi_name=str(data.get("chandrashtamam_moon_rasi_name", "")),
         chandrashtamam_affected_janma_rasi_number=int(data.get("chandrashtamam_affected_janma_rasi_number", 0)),
         chandrashtamam_affected_janma_rasi_name=str(data.get("chandrashtamam_affected_janma_rasi_name", "")),
+        chandrashtamam_affected_janma_nakshatra_number=int(data.get("chandrashtamam_affected_janma_nakshatra_number", 0) or 0),
+        chandrashtamam_affected_janma_nakshatra_name=str(data.get("chandrashtamam_affected_janma_nakshatra_name", "")),
         chandrashtamam_today_nakshatras=tuple(data.get("chandrashtamam_today_nakshatras", [])),
         chandrashtamam_janma_nakshatra_windows=tuple(
             PanchangamChandrashtamamNakshatraWindow(
                 name=str(window.get("name", "")),
                 start=datetime.fromisoformat(window["start"]),
                 end=datetime.fromisoformat(window["end"]),
+                # 0 on a row written before v45: unknown rasi, not "no rasi".
+                rasi_number=int(window.get("rasi_number", 0) or 0),
+                rasi_name=str(window.get("rasi_name", "")),
             )
             for window in (data.get("chandrashtamam_janma_nakshatra_windows") or [])
         ),
@@ -2238,17 +2485,19 @@ def calculate_daily_panchangam(
     )
     amirdhadhi_yogam_next_name = _amirdhadhi_yogam_name(next_weekday_index, nakshatra_number + 1)
     moon_rasi_number = rasi_from_degree(moon_longitude)
+    # The affected star AND rasi at SUNRISE — the உதய rule that names the day,
+    # and the pair a Tamil almanac prints as "today's Chandrashtamam".
+    # `moon_longitude` is already the sunrise value, so both cost nothing.
+    #
+    # These two were once flagged as a trap: a scalar that names only the first
+    # of a rasi-change day's two rasis, with nothing personal reading it. The
+    # D11 ruling made them a contract instead — the day belongs to the star
+    # standing at sunrise, so this pair IS the day's headline and is by
+    # construction the first entry of the window list below. Read as a pair;
+    # neither half means anything without the other, and the windows are what a
+    # caller wants for anything finer.
     affected_janma_rasi_number = _chandrashtamam_affected_janma_rasi(moon_rasi_number)
-    chandrashtamam_janma_nakshatra_windows = _chandrashtamam_janma_nakshatra_windows(
-        date_local,
-        timezone_name,
-        moon_rasi_number,
-    )
-    # Derived from the correctly-computed rasi-based windows above (dedup, order
-    # preserved) so this list can never contradict janma_nakshatra_windows.
-    chandrashtamam_today_nakshatras = tuple(dict.fromkeys(
-        window.name for window in chandrashtamam_janma_nakshatra_windows
-    ))
+    affected_janma_nakshatra_number = chandrashtama_janma_nakshatra(moon_longitude)
 
     # What each limb actually does across the solar day, sunrise to next sunrise.
     # Sunrise-to-sunrise rather than midnight-to-midnight because that is the day
@@ -2263,6 +2512,23 @@ def calculate_daily_panchangam(
     yoga_spans = limb_spans_between("yoga", sunrise_jd, next_sunrise_jd, timezone_name)
     karana_spans = limb_spans_between("karana", sunrise_jd, next_sunrise_jd, timezone_name)
     moon_rasi_spans = limb_spans_between("moon_rasi", sunrise_jd, next_sunrise_jd, timezone_name)
+
+    # Sits here, after moon_rasi_spans, because it is built over the same solar
+    # day and reuses that walk. The affected-star scalars above are the *first*
+    # of these windows — the star and rasi standing at sunrise, which is what an
+    # almanac prints as the day's Chandrashtamam — and a test asserts that pair
+    # rather than leaving two independently-derived scalars to drift.
+    chandrashtamam_janma_nakshatra_windows = _chandrashtamam_janma_nakshatra_windows(
+        sunrise_jd,
+        next_sunrise_jd,
+        timezone_name,
+        moon_rasi_spans,
+    )
+    # Derived from the correctly-computed rasi-based windows above (dedup, order
+    # preserved) so this list can never contradict janma_nakshatra_windows.
+    chandrashtamam_today_nakshatras = tuple(dict.fromkeys(
+        window.name for window in chandrashtamam_janma_nakshatra_windows
+    ))
 
     dominant_tithi_number = dominant_from_spans(tithi_spans) or tithi_number
     dominant_nakshatra_number = dominant_from_spans(nakshatra_spans) or nakshatra_number
@@ -2343,6 +2609,8 @@ def calculate_daily_panchangam(
         chandrashtamam_moon_rasi_name=RASI_NAMES[moon_rasi_number],
         chandrashtamam_affected_janma_rasi_number=affected_janma_rasi_number,
         chandrashtamam_affected_janma_rasi_name=RASI_NAMES[affected_janma_rasi_number],
+        chandrashtamam_affected_janma_nakshatra_number=affected_janma_nakshatra_number,
+        chandrashtamam_affected_janma_nakshatra_name=NAKSHATRA_NAMES[affected_janma_nakshatra_number - 1],
         chandrashtamam_today_nakshatras=chandrashtamam_today_nakshatras,
         chandrashtamam_janma_nakshatra_windows=chandrashtamam_janma_nakshatra_windows,
         warnings=warnings,
@@ -2374,6 +2642,7 @@ def calculate_daily_panchangam_range(
     timezone_name: str,
     *,
     session: Session | None = None,
+    only: Collection[date] | None = None,
 ) -> dict[date, PanchangamSnapshot]:
     """Compute panchangam snapshots for a date range with batched cache I/O.
 
@@ -2381,13 +2650,26 @@ def calculate_daily_panchangam_range(
     performs when called in a loop (e.g. for a monthly calendar) with a single
     bulk SELECT covering the whole range and a single purge call. Cache misses
     fall back to the regular per-day computation, which also stores its result.
+
+    ``only`` restricts computation to the dates a caller actually needs, while
+    the cache SELECT still covers the whole range in one query. A caller with
+    SPARSE dates must pass it: the curated muhurtham sheet is ~55 dates spread
+    across a year, and filling the contiguous range between them computed ~360
+    days to answer about 55. That is invisible on a warm cache and a wall on a
+    cold one — a panchangam day costs ~600 ms, so the muhurtham-naals endpoint
+    spent ~220 s and returned 502 at the proxy's 300 s limit the first time it
+    was asked for a year whose snapshots had been invalidated (2026-09-09, by a
+    cache-version bump). Dates outside the range are ignored, not fetched.
     """
+    wanted = None if only is None else set(only)
     # A polar-latitude range can contain some days with no sunrise/sunset. Those
     # days are simply omitted from the result (the monthly grid skips them) rather
     # than failing the whole range — the caller iterates whatever days came back.
     if session is None:
         snapshots: dict[date, PanchangamSnapshot] = {}
         for current in _date_range(start_date, end_date):
+            if wanted is not None and current not in wanted:
+                continue
             try:
                 snapshots[current] = calculate_daily_panchangam(
                     current, latitude, longitude, timezone_name, session=None,
@@ -2407,6 +2689,8 @@ def calculate_daily_panchangam_range(
 
     snapshots = {}
     for current in _date_range(start_date, end_date):
+        if wanted is not None and current not in wanted:
+            continue
         existing = cached.get(current)
         if existing is not None:
             snapshots[current] = existing

@@ -14,22 +14,38 @@ import { GlossaryTerm } from "./glossary-term";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+export interface CompatibilityIntelligenceBirth {
+  displayName: string;
+  birthDateLocal: string;
+  birthTimeLocal: string | null;
+  birthPlace: string;
+  birthLatitude: number;
+  birthLongitude: number;
+  birthTimezone: string;
+}
+
+/** Two ways in, and the panel picks by what it was given:
+ *
+ *  1. **Vault member** - `familyVaultId` + `memberId` (Person A defaults to the
+ *     vault owner, or `chartIdA`, or a hand-entered `personABirth`).
+ *  2. **Two hand-entered people** - `personABirth` + `personBBirth`, no vault
+ *     involved. A signed-in user typing two birth records into the Porutham
+ *     tool used to get only the shallow ten-porutham result, because the deep
+ *     report was reachable solely through a saved member. Depth now follows
+ *     who is asking, not where the data happens to be stored.
+ */
 interface Props {
-  familyVaultId: string;
-  memberId: string;
+  familyVaultId?: string;
+  memberId?: string;
   lang: Lang;
   /** Pins Person A to a specific chart (e.g. the Porutham tool's Person 1).
    *  When omitted, Person A defaults to the vault owner. */
   chartIdA?: string;
-  personABirth?: {
-    displayName: string;
-    birthDateLocal: string;
-    birthTimeLocal: string | null;
-    birthPlace: string;
-    birthLatitude: number;
-    birthLongitude: number;
-    birthTimezone: string;
-  };
+  personABirth?: CompatibilityIntelligenceBirth;
+  /** Person B typed in by hand. Requires `personABirth`; ignored when a
+   *  `memberId` is supplied, since a saved member's own chart is the better
+   *  source for the same person. */
+  personBBirth?: CompatibilityIntelligenceBirth;
 }
 
 // ── Palette ──────────────────────────────────────────────────────────────────
@@ -154,7 +170,7 @@ function Badge({ text, color, bg }: { text: string; color: string; bg: string })
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, chartIdA, personABirth }: Props) {
+export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, chartIdA, personABirth, personBBirth }: Props) {
   const en = lang === "en";
   const [data, setData] = useState<CompatibilityIntelligenceData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -162,26 +178,51 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [downloadingPdf, setDownloadingPdf] = useState(false);
 
+  // Which of the three request shapes this mount is for. `pair` needs no vault
+  // at all - both charts are computed transiently from what the user typed.
+  const mode: "pair" | "memberDirect" | "member" | null =
+    memberId && familyVaultId
+      ? personABirth
+        ? "memberDirect"
+        : "member"
+      : personABirth && personBBirth
+        ? "pair"
+        : null;
+
   async function load() {
+    if (!mode) {
+      setError(en ? "Not enough birth details to build this report." : "இந்த அறிக்கைக்குத் தேவையான பிறப்புத் தகவல் இல்லை.");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
-      const params = new URLSearchParams({ familyVaultId });
-      const res = personABirth
-        ? await apiFetchJson<{ success: boolean; data: CompatibilityIntelligenceData }>(
+      type Res = { success: boolean; data: CompatibilityIntelligenceData };
+      let res: Res;
+      if (mode === "pair") {
+        res = await apiFetchJson<Res>("/api/v1/relationships/compatibility-intelligence/direct", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ personA: personABirth, personB: personBBirth }),
+        });
+      } else {
+        const params = new URLSearchParams({ familyVaultId: familyVaultId as string });
+        if (mode === "memberDirect") {
+          res = await apiFetchJson<Res>(
             `/api/v1/relationships/${memberId}/compatibility-intelligence/direct?${params.toString()}`,
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ personA: personABirth }),
             }
-          )
-        : await apiFetchJson<{ success: boolean; data: CompatibilityIntelligenceData }>(
-            `/api/v1/relationships/${memberId}/compatibility-intelligence?${(() => {
-              if (chartIdA) params.set("chartIdA", chartIdA);
-              return params.toString();
-            })()}`
           );
+        } else {
+          if (chartIdA) params.set("chartIdA", chartIdA);
+          res = await apiFetchJson<Res>(
+            `/api/v1/relationships/${memberId}/compatibility-intelligence?${params.toString()}`
+          );
+        }
+      }
       setData(res.data);
     } catch (e) {
       setError(readErrorMessage(e));
@@ -190,32 +231,44 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
     }
   }
   async function downloadPdf() {
-    if (!data || downloadingPdf) return;
+    if (!data || downloadingPdf || !mode) return;
     setDownloadingPdf(true);
     setError("");
     try {
-      const params = new URLSearchParams({ familyVaultId, lang });
       let response: Response;
-      if (personABirth) {
+      if (mode === "pair") {
         response = await fetch(
-          `/api/backend/api/v1/relationships/${memberId}/compatibility-intelligence/direct/pdf?${params.toString()}`,
+          `/api/backend/api/v1/relationships/compatibility-intelligence/direct/pdf?lang=${lang}`,
           {
             method: "POST",
             credentials: "include",
             headers: { "Content-Type": "application/json", "X-Vinaadi-CSRF": "1" },
-            body: JSON.stringify({ personA: personABirth }),
+            body: JSON.stringify({ personA: personABirth, personB: personBBirth }),
           }
         );
       } else {
-        if (chartIdA) params.set("chartIdA", chartIdA);
-        response = await fetch(
-          `/api/backend/api/v1/relationships/${memberId}/compatibility-intelligence/pdf?${params.toString()}`,
-          {
-            method: "GET",
-            credentials: "include",
-            headers: { "X-Vinaadi-CSRF": "1" },
-          }
-        );
+        const params = new URLSearchParams({ familyVaultId: familyVaultId as string, lang });
+        if (mode === "memberDirect") {
+          response = await fetch(
+            `/api/backend/api/v1/relationships/${memberId}/compatibility-intelligence/direct/pdf?${params.toString()}`,
+            {
+              method: "POST",
+              credentials: "include",
+              headers: { "Content-Type": "application/json", "X-Vinaadi-CSRF": "1" },
+              body: JSON.stringify({ personA: personABirth }),
+            }
+          );
+        } else {
+          if (chartIdA) params.set("chartIdA", chartIdA);
+          response = await fetch(
+            `/api/backend/api/v1/relationships/${memberId}/compatibility-intelligence/pdf?${params.toString()}`,
+            {
+              method: "GET",
+              credentials: "include",
+              headers: { "X-Vinaadi-CSRF": "1" },
+            }
+          );
+        }
       }
 
       if (!response.ok) throw new Error(`${response.status}: PDF export failed`);

@@ -99,6 +99,7 @@ from app.calculations.panchangam import (
     SUBHA_TITHIS_KRISHNA,
     SUBHA_TITHIS_SHUKLA,
     amirdhadhi_yogam_class,
+    own_chandrashtama_windows,
 )
 from app.calculations.tara_bala import TARA_SCORE, chandra_bala, tara_number
 from app.calculations.transits import is_cazimi, is_combust
@@ -258,6 +259,10 @@ class _W:
     CHANDRA_STRONG = 10.0
     CHANDRA_BONUS = 5.0
     CHANDRA_WEAK = -12.0
+    # The Moon is in the reader's 8th, but the day belongs to another janma star.
+    # Heavier than the merely weak 4th/12th and lighter than the veto the reader's
+    # own star-day carries — see `_chandra_bala_factor`.
+    CHANDRA_ASHTAMA_RASI = -15.0
     # Karaka transit dignity for acquisitions (A5). The *classification* is Tamil
     # practice consensus, not a Kalaprakasika page: almanacs print குரு மௌட்யம் /
     # சுக்ர மௌட்யம் as dated spans and offer no muhurtham inside them. Mapping it
@@ -1921,17 +1926,81 @@ def _paksha_factor(snapshot, activity: str) -> FactorResult | None:
 
 
 def _chandra_bala_factor(snapshot, subject: Subject) -> FactorResult:
+    """Chandra Bala, with Chandrashtama split into its two classical registers.
+
+    Picking a date is a prohibition, so it is ruled by the almanac's named day —
+    the reader's own janma star standing in Chandrashtama — not by the whole
+    2¼-day transit of the 8th rasi. That is the ruling §9 of
+    docs/CHANDRASHTAMA_SURFACE_DIVERGENCE_2026-09-09.md already made for the
+    Muhurtham Naal picker: **the star window vetoes, the rasi span cautions.**
+    This surface is the same act and was never brought onto it, so a user
+    comparing the two date pickers saw one veto three dates where the other
+    vetoed one. Applied here on 2026-09-10 (§16).
+
+    `Subject` has carried `janma_nakshatra` all along; only the test was
+    rasi-only, so no plumbing was needed to ask the right question.
+
+    A snapshot with no window list cannot answer the finer question, and an
+    avoidance rule fails toward the doctrine — that case keeps the old rasi
+    veto rather than clearing a date it cannot read. Same fallback direction as
+    §9 and §11.
+    """
     house = chandra_bala(subject.janma_rasi, snapshot.chandrashtamam_moon_rasi_number)
     who_en = subject.label or "this person"
     who_ta = f"{subject.label} " if subject.label else ""
 
-    if house == _CHANDRASHTAMA:
+    # The star window is asked FIRST and unconditionally, not inside a
+    # `house == 8` gate. `house` reads the Moon's rasi at SUNRISE, and a window
+    # that opens after sunrise and closes before the next one belongs to a day
+    # whose sunrise Moon has not yet reached the reader's 8th rasi — so gating on
+    # it silently skipped the veto on exactly those days. Measured over 2026 at
+    # Chennai that was 63 dates the dashboard badged and this surface cleared,
+    # all of them the contained-window case, and it survived a 30-day
+    # single-subject property test. An avoidance rule failing OPEN is the worst
+    # direction there is; the year-long sweep over all 36 halves is what caught it.
+    windows = getattr(snapshot, "chandrashtamam_janma_nakshatra_windows", ()) or ()
+    own = own_chandrashtama_windows(
+        windows,
+        janma_nakshatra=subject.janma_nakshatra,
+        natal_moon_rasi=subject.janma_rasi,
+    ) if windows else ()
+
+    if own or (house == _CHANDRASHTAMA and not windows):
+        # Name the star, not the sign: under the ruling the sign no longer
+        # decides the date, and copy that still said "birth sign" would
+        # re-teach the thing the ruling removed (§9's own note).
+        star_en = nakshatra_en(subject.janma_nakshatra) if own else None
+        star_ta = nakshatra_ta(subject.janma_nakshatra) if own else None
+        named_en = f" for {who_en}'s star {star_en}" if star_en else ""
+        named_ta = f"{who_ta}நட்சத்திரம் {star_ta}க்கு " if star_ta else who_ta
         return FactorResult(
             factor="CHANDRA_BALA",
             verdict=Verdict.VETO,
             contribution=0.0,
-            reason_en=f"Moon is 8th from {who_en}'s birth sign — Chandrashtama, which no other strength offsets.",
-            reason_ta=f"{who_ta}ஜென்ம ராசிக்கு 8ல் சந்திரன் — சந்திராஷ்டமம், வேறு எந்த பலமும் இதை ஈடுசெய்யாது.",
+            reason_en=(
+                f"Chandrashtama{named_en} today — the Moon is 8th from "
+                f"{who_en}'s birth sign and today is the day the almanac names. "
+                "No other strength offsets it."
+            ),
+            reason_ta=(
+                f"இன்று {named_ta}சந்திராஷ்டமம் — ஜென்ம ராசிக்கு 8ல் சந்திரன், "
+                "பஞ்சாங்கம் குறிக்கும் நாள் இதுவே. வேறு எந்த பலமும் இதை ஈடுசெய்யாது."
+            ),
+        )
+
+    if house == _CHANDRASHTAMA:
+        return FactorResult(
+            factor="CHANDRA_BALA",
+            verdict=Verdict.PENALTY,
+            contribution=_W.CHANDRA_ASHTAMA_RASI,
+            reason_en=(
+                f"Moon is 8th from {who_en}'s birth sign, but today's Chandrashtamam "
+                "belongs to another birth star — a caution, not a prohibition."
+            ),
+            reason_ta=(
+                f"{who_ta}ஜென்ம ராசிக்கு 8ல் சந்திரன்; ஆனால் இன்றைய சந்திராஷ்டமம் "
+                "வேறு நட்சத்திரத்திற்குரியது — தடை அல்ல, கவனம்."
+            ),
         )
     nth = _ordinal(house)
     if house in _CHANDRA_WEAK:

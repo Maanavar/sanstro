@@ -268,3 +268,97 @@ def test_monthly_panchangam_polar_month_omits_undefined_days_not_500(client):
     assert response.status_code == 200
     # June at Tromso is entirely polar day → all days omitted.
     assert response.json()["data"]["entries"] == []
+
+
+# ---------------------------------------------------------------------------
+# /panchangam/tamil-months — the boundary list the muhurta picker searches by
+# ---------------------------------------------------------------------------
+
+def _create_chennai_chart(client) -> str:
+    created = client.post(
+        "/api/v1/birth-profiles",
+        json={
+            "ownerUserId": "11111111-1111-1111-1111-111111111111",
+            "displayName": "Tamil Months Test",
+            "birthDateLocal": "1991-07-22",
+            "birthTimeLocal": "06:30:00",
+            "birthPlace": "Chennai, Tamil Nadu, India",
+            "birthLatitude": 13.0827,
+            "birthLongitude": 80.2707,
+            "birthTimezone": "Asia/Kolkata",
+            "calculateNow": True,
+        },
+    )
+    assert created.status_code == 200
+    chart = client.post(
+        "/api/v1/charts/calculate",
+        json={
+            "birthProfileId": created.json()["data"]["birthProfileId"],
+            "calculationVersion": "thirukanitham-2026-v1",
+            "forceRecalculate": False,
+        },
+    )
+    assert chart.status_code == 200
+    return chart.json()["data"]["chartId"]
+
+
+def test_tamil_months_endpoint_returns_named_contiguous_spans(client):
+    response = client.get(
+        "/api/v1/panchangam/tamil-months",
+        params={"dateFrom": "2026-09-04", "count": 4, "lat": 13.0827, "lng": 80.2707, "timezone": "Asia/Kolkata"},
+    )
+
+    assert response.status_code == 200
+    months = response.json()["data"]["months"]
+    assert [m["name"]["en"] for m in months] == ["Aavani", "Purattasi", "Aippasi", "Karthigai"]
+    # The published Gnanananda boundary, not the bare sunset rule's answer.
+    assert months[0]["startDate"] == "2026-08-18"
+    assert months[0]["endDate"] == "2026-09-17"
+    assert months[1]["startDate"] == "2026-09-18"
+    # The requested date must be inside the first span, or a client asking for
+    # "the month I am in" gets the month before it.
+    assert months[0]["startDate"] <= "2026-09-04" <= months[0]["endDate"]
+
+
+def test_tamil_months_resolve_against_the_charts_own_daily_location(client):
+    """Same precedence as the muhurta search, so the two cannot disagree.
+
+    A picker that lists boundaries for one location and then prints per-date
+    Tamil dates for another is off by a day at every month edge — which is the
+    exact failure the web calendar's private approximation table exists to warn
+    about.
+    """
+    chart_id = _create_chennai_chart(client)
+    response = client.get(
+        "/api/v1/panchangam/tamil-months",
+        params={"dateFrom": "2026-09-04", "count": 2, "chartId": chart_id},
+    )
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert body["location"] == {"lat": 13.0827, "lng": 80.2707, "timezone": "Asia/Kolkata"}
+    assert body["months"][0]["name"]["en"] == "Aavani"
+
+
+def test_tamil_months_rejects_a_location_that_is_only_half_supplied(client):
+    """lat/lng/timezone travel together or not at all."""
+    response = client.get(
+        "/api/v1/panchangam/tamil-months",
+        params={"dateFrom": "2026-09-04", "lat": 13.0827},
+    )
+    assert response.status_code == 422
+
+
+def test_tamil_months_requires_some_location(client):
+    response = client.get("/api/v1/panchangam/tamil-months", params={"dateFrom": "2026-09-04"})
+    assert response.status_code == 422
+
+
+def test_tamil_months_rejects_a_chart_the_caller_does_not_own(client):
+    from uuid import uuid4
+
+    response = client.get(
+        "/api/v1/panchangam/tamil-months",
+        params={"dateFrom": "2026-09-04", "chartId": str(uuid4())},
+    )
+    assert response.status_code == 404

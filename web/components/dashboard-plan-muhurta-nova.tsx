@@ -182,7 +182,7 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
         <p style={{ margin: "0 0 10px", fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.5 }}>
           {muhurtaPresetDate
             ? (lang === "ta" ? "தேர்ந்தெடுத்த தேதி தயாராக உள்ளது. செயல்பாடு, பஞ்சாங்கம் மற்றும் தனிப்பட்ட காரணிகளைச் சரிபார்க்கவும்." : "Your selected date is ready. Check its activity rules, Panchangam, and personal factors.")
-            : (lang === "ta" ? "எந்தத் தேதி அல்லது தேதி வரம்பிற்கும் உங்கள் ஜாதகத்தின்படி முழு முகூர்த்தத் தேடலை இயக்கவும்." : "Run a full, chart-personalised muhurta search for any date or date range.")}
+            : (lang === "ta" ? "ஆங்கில மாதம், தமிழ் மாதம் அல்லது தேதி வரம்பு — எதைத் தேர்ந்தெடுத்தாலும் உங்கள் ஜாதகத்தின்படி முழு முகூர்த்தத் தேடலை இயக்கவும்." : "Run a full, chart-personalised muhurta search by English month, Tamil month, or an explicit date range.")}
         </p>
         <NovaMuhurtaPicker lang={lang} chartId={chartId || null} initialDateFrom={muhurtaPresetDate} initialActivity={muhurtaPresetActivity} />
       </div>

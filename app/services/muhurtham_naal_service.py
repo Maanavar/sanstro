@@ -38,6 +38,7 @@ from app.calculations.panchangam import (
     NALLA_NERAM_SUMMARY_TABLE,
     WEEKDAY_NAMES,
     calculate_daily_panchangam_range,
+    own_chandrashtama_windows,
 )
 from app.calculations.tamil_calendar import TAMIL_MONTHS
 from app.calculations.tara_bala import TARA_NAMES, TARA_SCORE, tara_number
@@ -177,10 +178,38 @@ def _to_view(
     )
 
 
-def _computed_nalla_neram_by_date(
+def _panchangam_by_date(
     naals: tuple[MuhurthamNaal, ...],
     location: EffectiveDailyLocation,
     session: Session,
+):
+    """One batched range call, shared by everything on this path that needs it.
+
+    Split out from `_computed_nalla_neram_by_date` when the Chandrashtama
+    reading started needing the same snapshots: two range calls over the same
+    dates would double the ephemeris work and, worse, could disagree.
+    """
+    if not naals:
+        return {}
+    # `only` matters more than the range here. A curated sheet is ~55 dates
+    # scattered over a year, so without it this fills every day in between —
+    # ~360 computations to answer about 55, which the warm cache hid until a
+    # cache-version bump made the whole year cold and the endpoint 502'd at the
+    # proxy's 300 s limit.
+    return calculate_daily_panchangam_range(
+        min(n.date for n in naals),
+        max(n.date for n in naals),
+        location.latitude,
+        location.longitude,
+        location.timezone,
+        session=session,
+        only={n.date for n in naals},
+    )
+
+
+def _computed_nalla_neram_by_date(
+    naals: tuple[MuhurthamNaal, ...],
+    snapshots,
 ) -> dict[str, list[TimeWindow]]:
     """Compute actual Nalla Neram for a chart-aware curated-naal response.
 
@@ -190,16 +219,6 @@ def _computed_nalla_neram_by_date(
     claim.  One batched range call lets the persisted panchangam cache satisfy
     repeat requests and keeps the calculation tied to the exact location.
     """
-    if not naals:
-        return {}
-    snapshots = calculate_daily_panchangam_range(
-        min(n.date for n in naals),
-        max(n.date for n in naals),
-        location.latitude,
-        location.longitude,
-        location.timezone,
-        session=session,
-    )
     return {
         n.date.isoformat(): _slot_windows(snapshots[n.date].nalla_neram)
         for n in naals
@@ -317,17 +336,56 @@ def match_muhurtham_naals(
     janma_star_en = janma_name.title()
     janma_star_ta = nakshatra_ta(janma_nak) or janma_star_en
     location = _chart_daily_location(session, chart_id)
-    nalla_neram_by_date = (
-        _computed_nalla_neram_by_date(naals, location, session)
-        if location is not None
-        else {}
-    )
+    snapshots = _panchangam_by_date(naals, location, session) if location is not None else {}
+    nalla_neram_by_date = _computed_nalla_neram_by_date(naals, snapshots) if snapshots else {}
+    # Does each date's Chandrashtamam touch THIS reader — their star and their
+    # rasi — anywhere in the day? The overlap test the dashboard uses, not the
+    # single star standing at sunrise: a sunrise reading drops a star whenever
+    # its whole window falls between two sunrises, which would quietly clear a
+    # date that is genuinely the reader's.
+    #
+    # The rasi half of the test matters for the nine straddling stars, whose
+    # natives sit in two signs a fortnight apart in Chandrashtama; matching the
+    # star name alone vetoed the wrong dates for one of the two halves.
+    #
+    # The bool pair is (the day could be read at all, it is the reader's). They
+    # are not the same thing — a date with no snapshot must fall back, a date
+    # with a snapshot and no match must not.
+    chandra_own_by_date = {
+        day: (
+            bool(snapshot.chandrashtamam_janma_nakshatra_windows),
+            bool(own_chandrashtama_windows(
+                snapshot.chandrashtamam_janma_nakshatra_windows,
+                janma_nakshatra=janma_nak,
+                natal_moon_rasi=janma_rasi,
+            )),
+        )
+        for day, snapshot in snapshots.items()
+    }
 
     matches: list[MuhurthamNaalMatch] = []
     for n in naals:
         tara = _tara_number(janma_nak, n.nakshatra_number)
         quality = TARA_QUALITY[tara]
-        is_chandra = n.moon_rasi_number == chandra_rasi
+        # Owner ruling 2026-09-09: the star window vetoes, the rasi span
+        # cautions. Picking a date is not the same act as reading today's
+        # dashboard — a wedding is chosen once — so the wider rasi transit keeps
+        # a voice here, but only the reader's OWN star window can knock a date
+        # out of "recommended". Before this, all 2¼ days of the Moon's transit
+        # were a hard veto, which marked three dates "Chandrashtama for you,
+        # avoid" where the dashboard badged one.
+        # See docs/CHANDRASHTAMA_SURFACE_DIVERGENCE_2026-09-09.md.
+        day_readable, day_is_own = chandra_own_by_date.get(n.date, (False, False))
+        in_chandra_rasi = n.moon_rasi_number == chandra_rasi
+        if day_readable:
+            is_chandra = day_is_own
+        else:
+            # No snapshot to name the stars (no activity location for this
+            # chart, or a pre-v44 row). Fall back to the rasi reading rather
+            # than silently clearing a date that may well be the reader's — the
+            # fail-safe direction for an avoidance rule is toward the doctrine.
+            is_chandra = in_chandra_rasi
+        rasi_only_caution = in_chandra_rasi and not is_chandra
         tara_ta, tara_en = TARA_NAMES[tara]
         mean_ta, mean_en = TARA_MEANING[tara]
 
@@ -343,13 +401,19 @@ def match_muhurtham_naals(
         if is_chandra:
             score -= 40
             reasons.append(BiLabel(
-                ta="இந்நாளில் சந்திரன் உங்கள் ஜென்ம ராசிக்கு 8ல் — சந்திராஷ்டமம், தவிர்க்கவும்",
-                en="Moon is in the 8th from your birth sign — Chandrashtama for you, avoid",
+                ta=f"இந்நாள் {janma_star_ta} நட்சத்திரத்திற்கு சந்திராஷ்டமம் — தவிர்க்கவும்",
+                en=f"Chandrashtama for your star {janma_star_en} on this day — avoid",
+            ))
+        elif rasi_only_caution:
+            score -= 10
+            reasons.append(BiLabel(
+                ta="சந்திரன் உங்கள் 8ஆம் ராசியில் உள்ளது, ஆனால் இந்நாள் வேறு நட்சத்திரத்திற்கு — லேசான கவனம் மட்டும்",
+                en="The Moon is in your 8th sign, but the day belongs to another star — mild caution only",
             ))
         else:
             reasons.append(BiLabel(
-                ta="சந்திராஷ்டம தோஷம் இல்லை",
-                en="No Chandrashtama for your sign",
+                ta="உங்கள் நட்சத்திரத்திற்கு சந்திராஷ்டம தோஷம் இல்லை",
+                en="No Chandrashtama for your star",
             ))
 
         score = max(0, min(100, score))

@@ -6,7 +6,7 @@ from typing import Any
 from uuid import UUID
 
 import bcrypt
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from pydantic import BaseModel
 from sqlalchemy import func, select, text, update
 from sqlalchemy.orm import Session
@@ -195,6 +195,9 @@ class JobInfo(BaseModel):
     job_id: str
     label: str
     description: str
+    # Surfaced so the console can mark the job before an operator runs it, rather
+    # than only discovering it needs elevation from a 403.
+    destructive: bool = False
 
 
 class JobRunResult(BaseModel):
@@ -414,20 +417,30 @@ def list_users(
         q.order_by(User.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
     ).scalars().all()
 
+    user_ids = [user.user_id for user in users]
+    birth_profile_counts: dict[UUID, int] = {}
+    chart_counts: dict[UUID, int] = {}
+    if user_ids:
+        birth_profile_counts = {
+            owner_user_id: int(count)
+            for owner_user_id, count in session.execute(
+                select(BirthProfile.owner_user_id, func.count())
+                .where(BirthProfile.owner_user_id.in_(user_ids))
+                .group_by(BirthProfile.owner_user_id)
+            ).all()
+        }
+        chart_counts = {
+            owner_user_id: int(count)
+            for owner_user_id, count in session.execute(
+                select(BirthProfile.owner_user_id, func.count(Chart.chart_id))
+                .join(Chart, Chart.birth_profile_id == BirthProfile.birth_profile_id)
+                .where(BirthProfile.owner_user_id.in_(user_ids))
+                .group_by(BirthProfile.owner_user_id)
+            ).all()
+        }
+
     items: list[UserSummary] = []
     for user in users:
-        birth_profile_count = int(
-            session.execute(
-                select(func.count()).where(BirthProfile.owner_user_id == user.user_id)
-            ).scalar_one()
-        )
-        chart_count = int(
-            session.execute(
-                select(func.count(Chart.chart_id))
-                .join(BirthProfile, Chart.birth_profile_id == BirthProfile.birth_profile_id)
-                .where(BirthProfile.owner_user_id == user.user_id)
-            ).scalar_one()
-        )
         items.append(
             UserSummary(
                 user_id=str(user.user_id),
@@ -435,8 +448,8 @@ def list_users(
                 user_mode=user.user_mode,
                 is_suspended=user.is_suspended,
                 suspension_reason=user.suspension_reason,
-                birth_profile_count=birth_profile_count,
-                chart_count=chart_count,
+                birth_profile_count=birth_profile_counts.get(user.user_id, 0),
+                chart_count=chart_counts.get(user.user_id, 0),
                 created_at=user.created_at.isoformat() if user.created_at else "",
             )
         )
@@ -534,10 +547,24 @@ def list_jobs(_: User = Depends(get_admin_user)) -> list[JobInfo]:
 
 
 @router.post("/jobs/{job_id}/trigger", response_model=JobRunResult, summary="Manually trigger a background job")
-def trigger_job(job_id: str, admin_user: User = Depends(get_admin_user)) -> JobRunResult:
+def trigger_job(
+    job_id: str,
+    request: Request,
+    admin_user: User = Depends(get_admin_user),
+    x_admin_key: str | None = Header(default=None),
+) -> JobRunResult:
     job = get_job(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' not registered.")
+
+    # A destructive job gets the same gate as the five destructive routes: admin
+    # session *and* a fresh password proof. Checked here rather than as a route
+    # dependency because which job this is only exists as a path parameter — but
+    # it calls the real dependency function, so the X-Admin-Key browser refusal,
+    # the token binding and the audit trail all still apply. Reimplementing the
+    # check would be how the two drift apart.
+    if job.get("destructive"):
+        get_elevated_admin_user(request, admin_user, x_admin_key)
 
     started = datetime.now(UTC)
     summary: str | None = None

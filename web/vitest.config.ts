@@ -18,6 +18,17 @@ export default defineConfig({
     globals: true,
     include: ["**/*.test.ts", "**/*.test.tsx"],
     exclude: ["node_modules", ".next", "e2e"],
+    // Run every worker in UTC, the zone GitHub's runners are in.
+    //
+    // The date helpers in lib/tz.ts fall back to the *runner's* local zone when
+    // a component is handed no `timeZone` prop, which is the correct product
+    // behavior and a silent trapdoor for tests: three Today-tab cases asserting
+    // a live "you are inside this window now" state passed on an IST laptop and
+    // failed on CI, five and a half hours apart, with a diff that pointed at
+    // the component. A test that depends on the zone should now depend on a
+    // zone it states, and one that forgets to state it fails the same way
+    // everywhere rather than only where nobody is looking.
+    env: { TZ: "UTC" },
     // Component tests (.test.tsx) use jsdom; pure logic tests (.test.ts) run in node.
     environmentMatchGlobs: [
       ["**/*.test.tsx", "jsdom"],

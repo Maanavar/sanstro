@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 
 from app.db.session import SessionLocal
 from app.models.notification import Notification
+from app.models.user_preference import UserPreference
 
 TEST_USER_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
 
@@ -116,3 +117,49 @@ def test_notifications_inbox_hides_future_queued_until_due(client):
     ids = {item["notification_id"] for item in response.json()["data"]}
     assert str(due_id) in ids
     assert str(future_id) not in ids
+
+
+def test_notifications_inbox_follows_the_current_account_language(client):
+    """Bilingual notification payloads should follow a later language switch."""
+    user_id = UUID(TEST_USER_ID)
+    notification_id = uuid4()
+    with SessionLocal() as session:
+        preference = session.query(UserPreference).filter_by(owner_user_id=user_id).first()
+        if preference is None:
+            preference = UserPreference(owner_user_id=user_id, dashboard_lang="en")
+            session.add(preference)
+        else:
+            preference.dashboard_lang = "en"
+        session.add(
+            Notification(
+                notification_id=notification_id,
+                user_id=user_id,
+                chart_id=None,
+                type="GENERAL",
+                priority=50,
+                title="Tamil title",
+                body="Tamil body",
+                language="ta",
+                send_at=datetime.now(UTC),
+                status="sent",
+                payload={
+                    "title": {"ta": "Tamil title", "en": "English title"},
+                    "body": {"ta": "Tamil body", "en": "English body"},
+                },
+            )
+        )
+        session.commit()
+
+    english = client.get("/api/v1/notifications").json()["data"]
+    english_item = next(item for item in english if item["notification_id"] == str(notification_id))
+    assert english_item["title"] == "English title"
+    assert english_item["body"] == "English body"
+
+    with SessionLocal() as session:
+        session.query(UserPreference).filter_by(owner_user_id=user_id).update({"dashboard_lang": "ta"})
+        session.commit()
+
+    tamil = client.get("/api/v1/notifications").json()["data"]
+    tamil_item = next(item for item in tamil if item["notification_id"] == str(notification_id))
+    assert tamil_item["title"] == "Tamil title"
+    assert tamil_item["body"] == "Tamil body"

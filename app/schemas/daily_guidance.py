@@ -223,13 +223,32 @@ class DailyGuidanceData(BaseModel):
     pratyantar_narrative: DailyGuidanceText | None = Field(default=None, alias="pratyantarNarrative")
     tithi_card: DailyGuidanceText | None = Field(default=None, alias="tithiCard")
     is_chandrashtama: bool = Field(default=False, alias="isChandrashtama")
-    # When Chandrashtama LIFTS TODAY — null when it runs past the end of the
-    # solar day, which is most days of a 2-3 day stretch (ruling 2026-09-01).
-    # Null is therefore normal, not a gap: the card keeps its untimed "Extra
-    # care advised today." line, which is true on every day of the stretch.
-    # Also null when `is_chandrashtama` is false, and for cache rows built
-    # before this field existed.
+    # When Chandrashtama LIFTS TODAY — the reader's own janma-star window
+    # closing (ruling 2026-09-09), not the Moon leaving the 8th rasi.
+    #
+    # The 2026-09-01 ruling read the rasi transit, so a stretch covered 2-3
+    # badged days and null was the normal answer. A star window is about a day
+    # and normally closes within the day it is badged on, so a real time is now
+    # normal and null the exception — the window still running at civil midnight,
+    # where reporting the clip would print a false "ends 00:00". Also null when
+    # `is_chandrashtama` is false, for cache rows built before this field
+    # existed, and for a panchangam snapshot cached before v44 (no windows).
     chandrashtama_ends: datetime | None = Field(default=None, alias="chandrashtamaEnds")
+    # The reader's OWN janma star, sent when `is_chandrashtama` is true so a
+    # client can pick their window out of the day's list. It is not always the
+    # star that names the day: the badge is an overlap test, so on the day a
+    # window opens the reader's star may be the day's SECOND one. Deriving it
+    # client-side from the almanac's sunrise star would therefore find nothing
+    # on exactly those days. Null when not in Chandrashtama, and for rows cached
+    # before this field existed.
+    chandrashtama_star: str | None = Field(default=None, alias="chandrashtamaStar")
+    # The reader's own natal Moon rasi, sent alongside the star for the same
+    # reason and only when in Chandrashtama. The star name alone does not
+    # identify a window: nine stars straddle a rasi boundary, so their two
+    # halves have different windows a fortnight apart, and a client matching on
+    # the name would show one half the other half's hours. Null when not in
+    # Chandrashtama, and for rows cached before this field existed.
+    chandrashtama_rasi: int | None = Field(default=None, alias="chandrashtamaRasi")
     saturn_cycle_alert: str | None = Field(default=None, alias="saturnCycleAlert")
     activity_board: DailyActivityBoardData | None = Field(default=None, alias="activityBoard")
 

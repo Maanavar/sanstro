@@ -4,6 +4,7 @@ const sharedModuleNameMapper = {
   "^@vinaadi/shared/(.*)$": "<rootDir>/../packages/shared/src/$1",
   "^@vinaadi/shared$": "<rootDir>/../packages/shared/src/index.ts",
   "^@/(.*)$": "<rootDir>/src/$1",
+  "^expo-crypto$": "<rootDir>/__mocks__/expo-crypto.ts",
 };
 
 module.exports = {

@@ -15,6 +15,7 @@ import { TamilType, EnType, TamilFont, EnFont } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
 import { loadGuestPrefs, saveGuestPrefs } from "@/features/guest/guestStore";
+import { setAnalyticsConsent } from "@/lib/analytics";
 import { logout, getMySubscription } from "@/api/auth";
 import { clearTokens } from "@/lib/secureStore";
 import { clearUserPrefs, getPrimaryChartId } from "@/lib/userPrefs";
@@ -51,6 +52,7 @@ export default function MeScreen() {
 
   const [rasi, setRasi] = useState<string | null>(null);
   const [pushOptedIn, setPushOptedIn] = useState(false);
+  const [analyticsOptedIn, setAnalyticsOptedIn] = useState(false);
   const [city, setCity] = useState<string | null>(null);
   const [primaryChartId, setPrimaryChartId_] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -67,6 +69,7 @@ export default function MeScreen() {
     const [p, chartId] = await Promise.all([loadGuestPrefs(), getPrimaryChartId()]);
     setRasi(p.rasi);
     setPushOptedIn(p.pushOptedIn);
+    setAnalyticsOptedIn(p.analyticsOptedIn === true);
     setCity(p.city);
     setPrimaryChartId_(chartId);
   }
@@ -83,6 +86,16 @@ export default function MeScreen() {
     Haptics.selectionAsync();
     setPushOptedIn(val);
     await saveGuestPrefs({ pushOptedIn: val });
+  }
+
+  async function toggleAnalytics(val: boolean) {
+    Haptics.selectionAsync();
+    setAnalyticsOptedIn(val);
+    // Applied to the transport first: withdrawing consent must stop collection
+    // immediately (setAnalyticsConsent(false) also clears the identity), not
+    // only after the storage write lands or on the next launch.
+    setAnalyticsConsent(val);
+    await saveGuestPrefs({ analyticsOptedIn: val });
   }
 
   async function handleSignOut() {
@@ -184,6 +197,29 @@ export default function MeScreen() {
               <View style={styles.divider} />
             </>
           )}
+
+          {/* Analytics consent — the switch setAnalyticsConsent needs to exist.
+              Without it every trackEvent call site is a permanent no-op, because
+              the transport gate fails closed by design. */}
+          <View style={styles.menuRow}>
+            <Text style={styles.menuIcon}>📊</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.menuLabel, { fontFamily: T.body.fontFamily }]}>
+                {t(strings.me.analytics_label)}
+              </Text>
+              <Text style={[styles.menuValue, { marginTop: 2, fontFamily: T.caption.fontFamily }]}>
+                {t(strings.me.analytics_help)}
+              </Text>
+            </View>
+            <Switch
+              value={analyticsOptedIn}
+              onValueChange={toggleAnalytics}
+              accessibilityLabel={t(strings.me.analytics_label)}
+              trackColor={{ false: C.divider, true: C.saffron }}
+              thumbColor={C.surface}
+            />
+          </View>
+          <View style={styles.divider} />
 
           {/* Privacy */}
           <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/privacy" as any)}>

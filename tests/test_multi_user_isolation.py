@@ -6,7 +6,7 @@ from app.core.auth import create_access_token
 def _register_user(raw_client, email: str, password: str = "password123") -> dict:
     response = raw_client.post(
         "/api/v1/auth/register",
-        json={"email": email, "password": password},
+        json={"email": email, "password": password, "consentGiven": True},
     )
     assert response.status_code == 200
     login = raw_client.post(

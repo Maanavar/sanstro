@@ -25,7 +25,7 @@ import type {
   TransitSnapshotData,
 } from "@/lib/types";
 
-import { formatChandrashtamaWindowSummary } from "./dashboard-calendar-shared";
+import { formatChandrashtamaWindowSummary, formatOwnChandrashtamaWindow } from "./dashboard-calendar-shared";
 import { DASHA_COLORS } from "./dashboard-dasha";
 import { GlossaryTerm } from "./glossary-term";
 import { ChandrashtamaCard, GUIDANCE_REASON_KEYS } from "./dashboard-personal-shared";
@@ -362,6 +362,21 @@ export function NovaGocharCard({
   const chandrashtamaWindowsSummary = panchangam
     ? formatChandrashtamaWindowSummary(panchangam.chandrashtamamToday?.janmaNakshatraWindows ?? [], panchangam.dateLocal, lang)
     : "";
+  // The reader's OWN star comes from their guidance, not from the almanac's
+  // sunrise star. The badge is an overlap test, so on the day a window opens
+  // their star can be the day's second one — and the sunrise star would then
+  // point at somebody else's window.
+  const chandrashtamaOwnWindow = panchangam
+    ? formatOwnChandrashtamaWindow(
+        panchangam.chandrashtamamToday?.janmaNakshatraWindows ?? [],
+        personalDailyGuidance?.chandrashtamaStar ?? undefined,
+        panchangam.dateLocal,
+        lang,
+        // Star AND rasi: a straddling star holds two windows in a day, one per
+        // half of its natives, and they are a fortnight apart in Chandrashtama.
+        personalDailyGuidance?.chandrashtamaRasi ?? undefined,
+      )
+    : "";
 
   return (
         <Surface title={<GlossaryTerm term="gochar" lang={lang}>{t("surface_gochar", lang)}</GlossaryTerm>}>
@@ -374,6 +389,7 @@ export function NovaGocharCard({
                   descriptionTa={null}
                   descriptionEn={null}
                   windowsSummary={chandrashtamaWindowsSummary}
+                  ownWindowSummary={chandrashtamaOwnWindow}
                 />
               )}
               <div className="surface__metrics">

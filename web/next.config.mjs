@@ -33,11 +33,21 @@ const nextConfig = {
   async headers() {
     return [
       {
-        // Allow the widget to be embedded in any iframe
-        source: "/widget/:path*",
-        headers: [
-          { key: "Content-Security-Policy", value: "frame-ancestors *" },
-        ],
+        // `nosniff` is the one security header that belongs here rather than in
+        // middleware: it matters most on the static assets the middleware
+        // matcher deliberately skips, and it needs no per-request value.
+        //
+        // The rest — CSP, X-Frame-Options, Referrer-Policy, Permissions-Policy,
+        // COOP, HSTS — live in middleware.ts, because the CSP carries a
+        // per-request nonce and the widget needs a different frame-ancestors
+        // from every other route. The widget's `frame-ancestors *` used to be
+        // declared here; it moved for a concrete reason. Two
+        // Content-Security-Policy headers on one response are enforced as their
+        // *intersection*, so leaving this rule in place while middleware also
+        // set a policy would have resolved `*` against `'none'` and silently
+        // blocked the embed this rule exists to allow.
+        source: "/:path*",
+        headers: [{ key: "X-Content-Type-Options", value: "nosniff" }],
       },
     ];
   },

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { addDays } from "@/lib/format";
-import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
+import { apiFetchJson, getApiError, readErrorMessage, toQuery } from "@/lib/api";
 import { STALE } from "@/lib/queryClient";
 import { getChartDashboardBundle } from "@vinaadi/shared/api/dashboardBundle";
 import { splitDashaTimeline } from "@/hooks/usePersonalData";
@@ -299,12 +299,12 @@ export function useFamilyData({ ownerUserId, selectedDate, onStatus }: UseFamily
       await queryClient.invalidateQueries({ queryKey: ["family", "member-charts", nextVaultId] });
       reportStatus("Family data refreshed.");
     } catch (error) {
-      const message = readErrorMessage(error);
-      if (message.startsWith("404:") || message.startsWith("403:")) {
+      const apiError = getApiError(error);
+      if (apiError?.code === "FAMILY_VAULT_NOT_FOUND" || apiError?.code === "ACCESS_DENIED") {
         setSelectedVaultId("");
         await loadVaults(ownerUserId);
       } else {
-        reportStatus(message, "error");
+        reportStatus(readErrorMessage(error), "error");
       }
     }
   }

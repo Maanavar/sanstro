@@ -753,15 +753,39 @@ def test_l3_raja_yoga_detects_kendra_lord_special_aspect_onto_trikona_lord():
 
 def test_l6_daridra_conditions_met_reflects_only_fired_triggers():
     """L-6: conditions_met must list only the trigger(s) that actually fired,
-    not both trigger strings whenever either condition is true."""
-    # Lagna=1 -> 11th lord is Saturn (Aquarius). Placed in the 6th (dusthana)
-    # but strong (score 70, >=40), so only in_dusthana fires, not
-    # weak+malefic-conjunct.
-    dusthana_only_planets = {"SATURN": 6}
-    result = detect_daridra_yoga(dusthana_only_planets, lagna_rasi=1, planet_scores={"SATURN": 70})
+    not both trigger strings whenever either condition is true.
+
+    Rewritten 2026-09-11. The original asserted `eleventh_lord_in_6`, which was
+    the classical card's trigger when it tested "11th lord in a dusthana". That
+    test is gone — the astrologer ruling replaced it with the dusthana↔dhana
+    parivartana (see `YOG-DR-01`) — but the property L-6 was guarding survives
+    the redefinition and is what this now pins: the classical card never borrows
+    the proxy's trigger string, and the proxy never borrows the classical one.
+    """
+    # Mesha(1): 6th lord = MERCURY (Kanni), 11th lord = SATURN (Kumbam).
+    # Mercury into the 11th and Saturn into the 6th is the exchange.
+    exchange = {
+        "SUN": 3, "MOON": 4, "MARS": 8, "MERCURY": 11,
+        "JUPITER": 9, "VENUS": 2, "SATURN": 6,
+        "RAHU": 5, "KETU": 11,
+    }
+    result = detect_daridra_yoga(exchange, lagna_rasi=1, planet_scores={"SATURN": 70})
     assert result.is_present is True
-    assert result.conditions_met == ["eleventh_lord_in_6"]
+    assert result.conditions_met == ["parivartana_6_11"]
     assert "eleventh_lord_weak_malefic_conj" not in result.conditions_met
+
+    # And the converse: a weak, malefic-pressured 11th lord with no exchange
+    # fires the proxy only, leaving the classical card absent.
+    weak_only = {
+        "SUN": 3, "MOON": 4, "MARS": 11, "MERCURY": 2,
+        "JUPITER": 9, "VENUS": 5, "SATURN": 11,
+        "RAHU": 7, "KETU": 1,
+    }
+    classical = detect_daridra_yoga(weak_only, lagna_rasi=1, planet_scores={"SATURN": 30})
+    proxy = detect_daridra_yoga_proxy(weak_only, lagna_rasi=1, planet_scores={"SATURN": 30})
+    assert classical.is_present is False
+    assert proxy.is_present is True
+    assert proxy.conditions_met == ["eleventh_lord_weak_malefic_conj"]
 
 
 # ─── D-05: Pancha Mahapurusha + Raja Yoga coverage ───────────────────────────

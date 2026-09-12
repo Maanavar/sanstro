@@ -1,20 +1,29 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { ArrowRight, X, Sparkle, AlertTriangle, Leaf, type LucideIcon } from "lucide-react";
+import { Activity, AlertTriangle, ArrowRight, Bell, CalendarDays, CalendarPlus, ChevronDown, Leaf, Moon, MoonStar, Sparkles, Star, Sun, Target, TrendingUp, X, type LucideIcon } from "lucide-react";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { addDays, formatClockLabel, formatDateLabel, getScoreVerdictFromGuidance } from "@/lib/format";
 import type { GlossaryKey } from "@/lib/glossary";
-import { t, tLang, tPlanetLord } from "@/lib/i18n";
+import { t, tLang, tNakshatra, tTithi } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
-import { dt, FIRST_RESULT_GUIDE, TODAY_TIMINGS } from "@/lib/dashboard-i18n";
+import {
+  dt,
+  EMOTIONAL_WEATHER,
+  FIRST_RESULT_GUIDE,
+  TODAY_HERO,
+  TODAY_TIMINGS,
+  weatherLabel,
+} from "@/lib/dashboard-i18n";
 import { gowriCategoryLabel, gowriPurposeLabel } from "@/lib/gowri";
 import { hourInZone, minutesOfDayInZone, timeOnDateToMs } from "@/lib/tz";
 import {
+  clearSegments,
   findSecondaryAbhijitWindow,
   pickFeaturedWindow,
   pickRecommendedWindow,
+  spansOverlap,
   type TimingSpan,
 } from "@/lib/today-windows";
 import type {
@@ -34,8 +43,8 @@ import type {
   WeekAheadData,
 } from "@/lib/types";
 
-import { NovaClampedText, NovaScoreDial, NovaStarRow, StatusLive, type StatusMessage } from "./dashboard-ui-nova";
-import { festivalTags } from "./dashboard-calendar-shared";
+import { NovaClampedText, NovaScoreDial, StatusLive, type StatusMessage } from "./dashboard-ui-nova";
+import { festivalTags, limbNow } from "./dashboard-calendar-shared";
 import { bandPhrase, bandTone } from "@/lib/reasoning";
 import { MiniMoonGlyph } from "./celestial-glyph-nova";
 import { HeroSkyBackdrop, DeepDiveOrbitGlyph } from "./celestial-ambient-nova";
@@ -48,7 +57,7 @@ import type { MemberChart } from "@/hooks/useFamilyData";
 import { Card, Kicker } from "./ui";
 import { downloadJadhagamPdf } from "./dashboard-personal-shared";
 import { GlossaryTerm } from "./glossary-term";
-import { DashboardTodayRibbonNova, findHorai } from "./dashboard-today-ribbon-nova";
+import { DashboardTodayRibbonNova } from "./dashboard-today-ribbon-nova";
 import { DashboardTodayActivityBoardNova } from "./dashboard-today-activity-board-nova";
 import {
   DashboardTodayFamilyRemedyRowNova,
@@ -56,6 +65,17 @@ import {
   DashboardTodayQuickLinksNova,
 } from "./dashboard-today-glance-nova";
 import { DashboardOneMinuteReading } from "./dashboard-one-minute-reading";
+
+/**
+ * Hash navigation scrolls to its target, but leaves keyboard focus on the
+ * activated link. Move focus after the browser has completed its native hash
+ * navigation so a keyboard or screen-reader user arrives at the explanation.
+ */
+function focusDeepDiveAfterHashNavigation() {
+  window.setTimeout(() => {
+    document.getElementById("nova-deep-dive")?.focus({ preventScroll: true });
+  }, 0);
+}
 
 /**
  * Nova "Today" tab — decision layer only (design 8a). Every field below
@@ -176,160 +196,37 @@ function windowTypeGlossary(type: string): GlossaryKey | null {
 }
 
 /**
- * T8 / A-013 — the other timing systems, named and demoted.
+ * Finding 7 (hero review 2026-09-04) — say so when Abhijit runs into a kala.
  *
- * These used to sit beside the promoted window as peer cards of identical
- * weight: Abhijit muhurtham, Horai now, and the ribbon's Nalla Neram segment,
- * each naming a different time, none saying what it was or which to obey. A
- * reader who knows only Rahu Kalam had no way to choose, and choosing wrongly
- * is the whole risk.
+ * Abhijit is ~48 minutes fixed around solar noon and Friday's Rahu Kalam is the
+ * 4th of eight day-parts, so the two collide structurally, not rarely — 24 of
+ * Abhijit's 49 minutes on the reviewed day. The row called it "auspicious for
+ * anyone, whatever their chart" with no qualifier, one card away from a
+ * recommendation whose whole argument is "clear of Rahu Kalam, Yamagandam and
+ * Kuligai". Two contradictory instructions from one panel.
  *
- * They are not deleted — a Tamil reader looks for Nalla Neram by name, and an
- * Abhijit muhurtham that vanished would read as a missing feature. They are
- * collapsed behind one heading that says what they are *for*: checking the
- * recommendation, not competing with it. Each row leads with the plain-language
- * "what this system is" (Layer 1) and carries its traditional name (Layer 2).
- *
- * Closed by default and rendered as a real `aria-expanded` button — the axe
- * gate on this repo means a bare clickable div would fail CI, and a `<details>`
- * would not inherit the rail's card chrome.
+ * The note states the app's already-implemented position (owner ruling
+ * 2026-08-23: an overlapping window is never promoted) and names the clear
+ * part, rather than picking new doctrine. Whether Abhijit *overrides* the kalas
+ * — genuinely contested, and many Tamil families say it does not — is queued in
+ * docs/ASTROLOGER_REVIEW_QUEUE.md.
  */
-function OtherTimingsDisclosure({
-  lang,
-  abhijit,
-  horaLord,
-  nextHoraLord,
-  nextHoraStart,
-  avoidKalas,
-}: {
-  lang: Lang;
-  abhijit: { start: string; end: string } | null;
-  horaLord: string | null;
-  nextHoraLord: string | null;
-  nextHoraStart: string | null;
-  avoidKalas: Array<{ label: string; start: string; end: string; glossary: GlossaryKey }>;
-}) {
-  const [open, setOpen] = useState(false);
-
-  const rows: Array<{
-    key: string;
-    name: string;
-    /** The traditional name, when the label above it had to lead with plain
-     *  language instead (A-017). English mode only, and always a Latin
-     *  transliteration — a Tamil-script echo beside an English label is the
-     *  banned bilingual title echo, and in Tamil mode the almanac word is
-     *  already the name a reader looks for. */
-    traditional?: string;
-    value: ReactNode;
-    what: string;
-    /** Null when the row's own value carries the glosses instead — see the
-     *  avoid-kalas row, which names three systems in one line. */
-    glossary: GlossaryKey | null;
-  }> = [
-    {
-      key: "nallaNeram",
-      name: lang === "ta" ? "நல்ல நேரம்" : "Nalla Neram",
-      value: null,
-      what: dt(TODAY_TIMINGS.whatIsNallaNeram, lang),
-      glossary: "nallaNeram",
-    },
-    ...(abhijit
-      ? [{
-          key: "abhijit",
-          name: lang === "ta" ? "அபிஜித் முகூர்த்தம்" : "Abhijit muhurtham",
-          value: `${formatClockLabel(abhijit.start)} – ${formatClockLabel(abhijit.end)}`,
-          what: dt(TODAY_TIMINGS.whatIsAbhijit, lang),
-          glossary: "abhijit" as const,
-        }]
-      : []),
-    ...(horaLord
-      ? [{
-          // A-017: "Horai" is a proper noun a reader without the tradition
-          // never clicks, so the hour-by-hour feature underneath it goes
-          // unread. Plain meaning leads; the almanac name stays beside it.
-          key: "horai",
-          name: lang === "ta" ? "ஓரை" : "Planetary hour",
-          traditional: lang === "ta" ? undefined : "Horai",
-          value: nextHoraLord && nextHoraStart
-            ? `${tPlanetLord(horaLord, lang)} · ${lang === "ta" ? "அடுத்தது" : "next"} ${tPlanetLord(nextHoraLord, lang)} ${formatClockLabel(nextHoraStart)}`
-            : tPlanetLord(horaLord, lang),
-          what: dt(TODAY_TIMINGS.whatIsHorai, lang),
-          glossary: "hora" as const,
-        }]
-      : []),
-    ...(avoidKalas.length
-      ? [{
-          key: "avoidKalas",
-          name: lang === "ta" ? "தவிர்க்க வேண்டிய நேரங்கள்" : "Avoid periods",
-          // Each kala glossed on its own name. One row-level gloss would have to
-          // pick a single definition for a row that names three different
-          // systems — tapping "Avoid periods" and being told what Rahu Kalam is
-          // teaches the reader that Yamagandam and Kuligai are the same thing.
-          value: (
-            <>
-              {avoidKalas.map((k, i) => (
-                <span key={k.glossary}>
-                  {i > 0 && " · "}
-                  <GlossaryTerm term={k.glossary} lang={lang}>{k.label}</GlossaryTerm>
-                  {` ${formatClockLabel(k.start)}–${formatClockLabel(k.end)}`}
-                </span>
-              ))}
-            </>
-          ),
-          what: dt(TODAY_TIMINGS.whatIsAvoidKalas, lang),
-          glossary: null,
-        }]
-      : []),
-  ];
-
-  return (
-    <Card style={{ flex: "none", background: "color-mix(in srgb, var(--color-surface) 62%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3_5)", gap: "var(--space-2_5)" }}>
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-        style={{
-          display: "flex", alignItems: "center", gap: "var(--space-2)", width: "100%",
-          padding: 0, border: "none", background: "none", font: "inherit", textAlign: "left",
-          fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-text)", cursor: "pointer",
-          // Matches the collapsible Surface's trigger height — a 20px-tall tap
-          // target in a phone rail is not one.
-          minHeight: "32px",
-        }}
-      >
-        <span aria-hidden="true" style={{ display: "inline-flex", transform: open ? "rotate(90deg)" : "none", transition: "transform 140ms ease", flex: "none" }}>
-          <svg viewBox="0 0 20 20" style={{ width: "11px", height: "11px" }} aria-hidden="true">
-            <path d="M7 4l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </span>
-        <span style={{ minWidth: 0 }}>{dt(TODAY_TIMINGS.otherSystemsTitle, lang)}</span>
-        <span style={{ marginLeft: "auto", color: "var(--color-faint)", fontWeight: 400 }}>{rows.length}</span>
-      </button>
-      {open && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)" }}>
-          <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.45 }}>
-            {dt(TODAY_TIMINGS.otherSystemsIntro, lang)}
-          </p>
-          {rows.map((row) => (
-            <div key={row.key} style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-              <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-text-strong)" }}>
-                {row.glossary
-                  ? <GlossaryTerm term={row.glossary} lang={lang}>{row.name}</GlossaryTerm>
-                  : row.name}
-                {row.traditional && (
-                  <span style={{ fontWeight: 400, color: "var(--color-faint)" }}>{" · "}{row.traditional}</span>
-                )}
-                {row.value && (
-                  <span style={{ fontWeight: 400, color: "var(--color-text)", fontVariantNumeric: "tabular-nums" }}>{" · "}{row.value}</span>
-                )}
-              </div>
-              <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.45 }}>{row.what}</div>
-            </div>
-          ))}
-        </div>
-      )}
-    </Card>
-  );
+function abhijitOverlapNote(
+  abhijit: TimingSpan,
+  avoidKalas: Array<{ label: string; start: string; end: string }>,
+  lang: Lang,
+): string {
+  const hits = avoidKalas.filter((k) => spansOverlap(abhijit, k));
+  if (hits.length === 0) return "";
+  const names = hits.map((k) => k.label).join(lang === "ta" ? ", " : ", ");
+  const clear = clearSegments(abhijit, hits);
+  if (clear.length === 0) {
+    return dt(TODAY_TIMINGS.abhijitFullyCovered, lang).replace("%1$s", names);
+  }
+  const clearText = clear
+    .map((seg) => `${formatClockLabel(seg.start)}–${formatClockLabel(seg.end)}`)
+    .join(" · ");
+  return dt(TODAY_TIMINGS.abhijitOverlap, lang).replace("%1$s", names).replace("%2$s", clearText);
 }
 
 function formatDuration(ms: number, lang: Lang): string {
@@ -385,7 +282,7 @@ function FirstResultGuide({
           </div>
         ))}
       </div>
-      <a href="#nova-deep-dive" style={{ alignSelf: "flex-start", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 700, textDecoration: "none" }}>
+      <a href="#nova-deep-dive" onClick={focusDeepDiveAfterHashNavigation} style={{ alignSelf: "flex-start", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 700, textDecoration: "none" }}>
         {dt(FIRST_RESULT_GUIDE.whyTrail, lang)}
         <ArrowRight size={12} strokeWidth={2} aria-hidden="true" style={{ verticalAlign: "middle", marginLeft: "var(--space-1)" }} />
       </a>
@@ -459,6 +356,9 @@ export function DashboardTodayTabNova({
   const activeChartId = personalChartSummary?.chartId ?? "";
   const [savingReminder, setSavingReminder] = useState(false);
   const [reminderStatus, setReminderStatus] = useState<StatusMessage | null>(null);
+  // Redesign 2026-09-07 — collapsed by default; see the comment on the render
+  // site (`windowConflict`) for why this is a toggle rather than an always-open row.
+  const [conflictOpen, setConflictOpen] = useState(false);
 
   // Drives the timeline's NOW marker and the best-window countdown — ticks
   // once a minute, matching design 8a's "updates each minute" spec without
@@ -526,9 +426,6 @@ export function DashboardTodayTabNova({
   // resolves against "now" so it only renders when viewing today.
   const avoidWindow = personalDailyGuidance?.cautionWindows?.[0]
     ?? (panchangam ? { type: "RAHU_KALAM", start: panchangam.kalam.rahuKalam.start, end: panchangam.kalam.rahuKalam.end } : null);
-  const { current: heroHora, next: heroNextHora } = isToday && panchangam
-    ? findHorai(panchangam.hora, zoneMinutes)
-    : { current: null, next: null };
 
   // After 8pm (panchangam-local), the hero can swap to a preview of tomorrow +
   // a journal prompt for today — reuses the already-fetched 3-day
@@ -537,26 +434,59 @@ export function DashboardTodayTabNova({
   const tomorrowIso = addDays(selectedDate, 1);
   const tomorrowGuidance = dailyGuidanceRange?.items.find((item) => item.dateLocal === tomorrowIso) ?? null;
   const showEveningPreview = eveningPreviewOn && isToday && zoneHour >= 20 && tomorrowGuidance !== null;
+  // The switch itself is only worth hero space in the window it can act in —
+  // from 7pm, an hour before the swap, so a reader can turn it off *before*
+  // tomorrow replaces today rather than after. It defaults to on, so gating on
+  // "…or it is on" would have left it on screen all day for almost everyone,
+  // which is the state this finding is about.
+  const showEveningPreviewToggle = isToday && zoneHour >= 19;
   const tomorrowWeekday = new Date(`${tomorrowIso}T12:00:00`).toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", { weekday: "long" });
 
-  let windowPhase: "before" | "during" | "after" | null = null;
-  let windowCountdown: string | null = null;
-  if (bestWindow && isToday) {
-    const startMs = timeOnDateToMs(selectedDate, bestWindow.start, panchangamTimezone);
-    const endMs = timeOnDateToMs(selectedDate, bestWindow.end, panchangamTimezone);
-    if (startMs !== null && endMs !== null) {
-      const nowMs = now.getTime();
-      if (nowMs < startMs) {
-        windowPhase = "before";
-        windowCountdown = formatDuration(startMs - nowMs, lang);
-      } else if (nowMs <= endMs) {
-        windowPhase = "during";
-        windowCountdown = formatDuration(endMs - nowMs, lang);
-      } else {
-        windowPhase = "after";
-      }
-    }
+  /** Live phase of any wall-clock span on the selected day, in the panchangam
+   *  zone. Extracted from the best-window block so the avoid card can use the
+   *  identical machinery (hero review 2026-09-04, finding 4) — the opportunity
+   *  axis had three phase states and a countdown while the safety axis had
+   *  none, so the avoid card went silent at exactly the moment the user was
+   *  standing inside the window it exists to warn about. A caution earns live
+   *  state more than an invitation does. */
+  function spanPhase(span: { start: string; end: string } | null): {
+    phase: "before" | "during" | "after" | null;
+    countdown: string | null;
+  } {
+    if (!span || !isToday) return { phase: null, countdown: null };
+    const startMs = timeOnDateToMs(selectedDate, span.start, panchangamTimezone);
+    const endMs = timeOnDateToMs(selectedDate, span.end, panchangamTimezone);
+    if (startMs === null || endMs === null) return { phase: null, countdown: null };
+    const nowMs = now.getTime();
+    if (nowMs < startMs) return { phase: "before", countdown: formatDuration(startMs - nowMs, lang) };
+    if (nowMs <= endMs) return { phase: "during", countdown: formatDuration(endMs - nowMs, lang) };
+    return { phase: "after", countdown: null };
   }
+
+  const { phase: windowPhase, countdown: windowCountdown } = spanPhase(bestWindow);
+  const { phase: avoidPhase, countdown: avoidCountdown } = spanPhase(avoidWindow);
+  // Owner ask (2026-09-07): once today's avoid window has ended it no longer
+  // earns hero space — it stays visible only while it is upcoming or running.
+  // A past date's avoidWindow has no live phase (spanPhase short-circuits on
+  // `isToday`), so it keeps showing as reference rather than being hidden.
+  const showAvoidCard = avoidWindow != null && avoidPhase !== "after";
+
+  // Finding 6 — the day's Nalla Neram spans, so the disclosure's Nalla Neram
+  // row prints times like every other row instead of a bare definition. Same
+  // array the ribbon already segments on the timeline below.
+  const nallaNeramSpans = (panchangam?.kalam.nallaNeram ?? [])
+    .filter((slot) => slot?.start && slot?.end)
+    .map((slot) => ({ start: slot.start, end: slot.end }));
+
+  // Finding 13 — nakshatram and tithi are the first two things a thirukanitham
+  // reader looks up, ahead of paksha, and the hero header listed neither. Same
+  // `limbNow` promotion the ribbon uses, so the two surfaces cannot disagree
+  // about which star is actually running.
+  // Guarded per-limb, not on `panchangam` as a whole: a bundle section can come
+  // back partial (DASH-02), and a hero that throws is worse than a hero missing
+  // one line of the header.
+  const nakNow = panchangam?.nakshatra ? limbNow(panchangam.nakshatra, { isToday, nowIso: now.toISOString() }) : null;
+  const tithiNow = panchangam?.tithi ? limbNow(panchangam.tithi, { isToday, nowIso: now.toISOString() }) : null;
 
   async function handleSaveReminder() {
     if (savingReminder) return;
@@ -599,33 +529,89 @@ export function DashboardTodayTabNova({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
       {/* ===== 1. Hero: greeting, one theme line, mood chips, embedded
-          best-window "next action" tile, and the one canonical score. ===== */}
-      <div style={{
-        position: "relative", overflow: "hidden",
-        background: "linear-gradient(135deg, var(--color-surface-soft), var(--color-surface-3))",
-        border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-xl)", padding: "var(--space-6) var(--space-7)",
-      }}>
+          best-window "next action" tile, and the one canonical score.
+
+          Structure (layout lives in `.nova-hero*`, dashboard-nova.css):
+            masthead — full-width almanac strip: date · star · tithi · paksha ·
+                       observance, with the streak chip / evening switch at the
+                       right, closed by a hairline.
+            row      — three top-aligned columns at ≥1200px: greeting +
+                       briefing + best window · score (+ epigraph) · timing
+                       rail. Two columns at ≥860px, one below. ===== */}
+      <div className="nova-hero">
         <HeroSkyBackdrop moon={moonPhase} />
-        <div style={{ position: "relative", zIndex: 1, display: "flex", gap: "var(--space-7)", alignItems: "stretch", flexWrap: "wrap" }}>
-          <div style={{ flex: "1", minWidth: "280px", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2_5)", flexWrap: "wrap" }}>
-              <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
-                {weekday && `${weekday} · `}{formatDateLabel(selectedDate)}
-                {panchangam?.tamilDate && <> · <span style={{ color: "var(--color-accent-strong)", fontWeight: 600 }}>{lang === "ta" ? panchangam.tamilDate.ta : panchangam.tamilDate.en}</span></>}
-              </span>
-              {paksha && (
-                <span style={{ fontSize: "var(--text-sm)", color: "var(--color-accent-secondary)", display: "inline-flex", alignItems: "center", gap: "var(--space-1_5)" }}>
-                  {moonPhase ? <MiniMoonGlyph phase={moonPhase} size={18} /> : (wax ? "◐" : "◑")} {specialTithiMeta ? specialTithiMeta.label : wax ? (lang === "ta" ? "வளர்பிறை" : "Waxing") : (lang === "ta" ? "தேய்பிறை" : "Waning")} · {primaryFestival ? primaryFestival.name : wax ? (lang === "ta" ? "சுக்ல பக்ஷம்" : "Sukla Paksham") : (lang === "ta" ? "கிருஷ்ண பக்ஷம்" : "Krishna Paksham")}
+        {/* The four things a thirukanitham reader opens the page for (date,
+            star, tithi, paksha) read as one almanac line across the whole
+            hero, above the greeting — not stacked inside the greeting's own
+            column where they competed with the name. Same data, same
+            `limbNow` promotion. */}
+        <div className="nova-hero-masthead">
+          <span className="nova-hero-masthead__date">
+            {weekday && `${weekday}, `}{formatDateLabel(selectedDate)}
+            {panchangam?.tamilDate && <> · <span style={{ color: "var(--color-accent-strong)" }}>{lang === "ta" ? panchangam.tamilDate.ta : panchangam.tamilDate.en}</span></>}
+          </span>
+          {/* Star · tithi · paksha · observance. Finding 13 put the star and
+              the tithi ahead of paksha and that order is kept; each carries
+              its own glyph so the four read as four facts rather than one
+              sentence. Glyphs are lucide (the pre-delivery checklist bans
+              emoji as icons) except the moon, which is the existing
+              phase-accurate MiniMoonGlyph. */}
+          {(nakNow || paksha) && (
+            <div className="nova-hero-masthead__limbs">
+              {nakNow && (
+                <span className="nova-hero-masthead__limb">
+                  <Star size={15} strokeWidth={1.9} aria-hidden="true" style={{ color: "var(--color-accent-strong)", flex: "none" }} />
+                  <span>
+                    <GlossaryTerm term="nakshatra" lang={lang}>{lang === "ta" ? "நட்சத்திரம்" : "Star"}</GlossaryTerm>{" "}
+                    <b>{tNakshatra(nakNow.activeName, lang)}</b>
+                  </span>
                 </span>
               )}
-              <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+              {tithiNow && (
+                <span className="nova-hero-masthead__limb">
+                  <Sparkles size={15} strokeWidth={1.9} aria-hidden="true" style={{ color: "var(--color-accent-strong)", flex: "none" }} />
+                  <span>
+                    <GlossaryTerm term="tithi" lang={lang}>{lang === "ta" ? "திதி" : "Tithi"}</GlossaryTerm>{" "}
+                    <b>{tTithi(tithiNow.activeName, lang)}</b>
+                  </span>
+                </span>
+              )}
+              {paksha && (
+                <span className="nova-hero-masthead__limb">
+                  {moonPhase ? <MiniMoonGlyph phase={moonPhase} size={17} /> : <Moon size={15} strokeWidth={1.9} aria-hidden="true" style={{ color: "var(--color-accent-secondary)" }} />}
+                  <b>{specialTithiMeta ? specialTithiMeta.label : wax ? (lang === "ta" ? "வளர்பிறை" : "Waxing") : (lang === "ta" ? "தேய்பிறை" : "Waning")}</b>
+                </span>
+              )}
+              {paksha && (
+                <span className="nova-hero-masthead__limb">
+                  <CalendarDays size={15} strokeWidth={1.9} aria-hidden="true" style={{ color: "var(--color-accent-secondary)", flex: "none" }} />
+                  <b>{primaryFestival ? primaryFestival.name : wax ? (lang === "ta" ? "சுக்ல பக்ஷம்" : "Sukla Paksham") : (lang === "ta" ? "கிருஷ்ண பக்ஷம்" : "Krishna Paksham")}</b>
+                </span>
+              )}
+            </div>
+          )}
+          <div className="nova-hero-masthead__right">
                 <StreakChip days={streakDays} best={streakBest} forgiven={streakForgiven} lang={lang} />
+                {/* Finding 10 — this is a *setting*, and it changes nothing
+                    until 8pm (`showEveningPreview` gates on zoneHour >= 20).
+                    It sat in prime hero real estate beside the day's most
+                    important number, inert for ~20 hours a day. It now appears
+                    only in the evening it applies to — and whenever it is
+                    already on, so a reader can always reach the switch that is
+                    doing something to their screen.
+
+                    It is also a real `role="switch"` now: it looked like one
+                    (track, knob, animated position) but shipped as a bare
+                    <button>, so a screen-reader user heard "Evening preview,
+                    button" and got no state before or after pressing it. The
+                    repo's axe gate only checks contrast, so this passed CI. */}
+                {showEveningPreviewToggle && (
                 <button
                   type="button"
+                  role="switch"
+                  aria-checked={eveningPreviewOn}
                   onClick={() => setEveningPreviewOn(!eveningPreviewOn)}
-                  title={lang === "ta"
-                    ? "இரவு 8 மணிக்குப் பின் நாளையை முன்னோட்டமாகக் காட்டு"
-                    : "After 8pm, preview tomorrow here instead of today"}
+                  title={dt(TODAY_HERO.eveningPreviewHint, lang)}
                   style={{
                     display: "inline-flex", alignItems: "center", gap: "var(--space-1_5)", fontSize: "var(--text-xs)", fontWeight: 600,
                     color: eveningPreviewOn ? "var(--color-accent-strong)" : "var(--color-faint)",
@@ -634,8 +620,12 @@ export function DashboardTodayTabNova({
                     borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-2_5) var(--space-1) var(--space-2)", cursor: "pointer", fontFamily: "inherit",
                   }}
                 >
-                  🌙 {lang === "ta" ? "மாலை முன்னோட்டம்" : "Evening preview"}
-                  <span style={{
+                  {/* A lucide glyph, not 🌙 — the pre-delivery checklist bans
+                      emoji as icons, and a screen reader reads the emoji aloud
+                      as "crescent moon" in the middle of the label. */}
+                  <Moon size={12} strokeWidth={2} aria-hidden="true" />
+                  {dt(TODAY_HERO.eveningPreviewLabel, lang)}
+                  <span aria-hidden="true" style={{
                     display: "inline-block", width: "20px", height: "11px", borderRadius: "var(--radius-pill)",
                     background: eveningPreviewOn ? "var(--color-high)" : "color-mix(in srgb, var(--color-text-strong) 18%, transparent)",
                     position: "relative", flex: "none", transition: "background 0.15s",
@@ -647,32 +637,60 @@ export function DashboardTodayTabNova({
                     }} />
                   </span>
                 </button>
-              </div>
-            </div>
+                )}
+          </div>
+        </div>
+
+        <div className="nova-hero-row">
+          <div className="nova-hero-col-main">
             {showEveningPreview && tomorrowGuidance ? (
               <>
-                <Kicker>{t("tab_today", lang)}</Kicker>
-                <div style={{ fontSize: "clamp(17px, 1.8vw, 22px)", color: "var(--color-accent-secondary)", lineHeight: 1.2 }}>
+                {/* Hero redesign 2026-09-04 — this was a "TODAY" kicker stacked
+                    on a purple greeting: two eyebrow lines above the <h1>, the
+                    first of which names the tab the reader is already looking
+                    at. The greeting alone now carries the kicker treatment. */}
+                <div style={{
+                  fontSize: "var(--text-sm)", fontWeight: 700, letterSpacing: "0.24em", textTransform: "uppercase",
+                  color: "var(--color-accent-strong)", lineHeight: 1.2, marginBottom: "var(--space-1)",
+                }}>
                   {greetingWord(lang, zoneHour)},
                 </div>
                 {/* audit B-1: the greeting+name is the page's one <h1> — Today
                     previously shipped zero headings (no document outline). */}
-                <h1 style={{
-                  margin: 0, fontFamily: "var(--font-display)", fontWeight: 600, lineHeight: 1.08,
-                  fontSize: "clamp(1.9rem, 3.4vw, 2.7rem)", maxWidth: "480px",
-                  background: "linear-gradient(120deg, var(--color-text-strong), var(--color-accent-secondary))",
-                  WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent",
-                }}>
-                  {heroFirstName}
-                </h1>
+                {/* `nova-hero-name` carries the forced-colors guard (finding
+                    11): Windows High Contrast strips the gradient but keeps
+                    `-webkit-text-fill-color: transparent`, which erased the
+                    page's only <h1> entirely. */}
+                {/* The name is the hero's anchor and was rendering at roughly
+                    the same size as the briefing beneath it. The gradient (and
+                    so finding 11's forced-colors guard) is kept, but weighted
+                    to text-strong so it reads as the near-white it is meant to
+                    be rather than as a purple wash. The ornament follows the
+                    hour — a sun by day, a moon after dark — and is decorative,
+                    so it sits outside the accessible name. */}
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3_5)", flexWrap: "wrap" }}>
+                  <h1 className="nova-hero-name" style={{
+                    margin: 0, fontFamily: "var(--font-display)", fontWeight: 600, lineHeight: 1.06,
+                    fontSize: "clamp(2.25rem, 3.4vw, 3.5rem)", maxWidth: "720px",
+                    background: "linear-gradient(120deg, var(--color-text-strong) 68%, var(--color-accent-secondary))",
+                    WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent",
+                  }}>
+                    {heroFirstName}
+                  </h1>
+                  {zoneHour >= 6 && zoneHour < 18
+                    ? <Sun size={30} strokeWidth={1.7} aria-hidden="true" style={{ color: "var(--color-accent-strong)", flex: "none" }} />
+                    : <Moon size={28} strokeWidth={1.7} aria-hidden="true" style={{ color: "var(--color-accent-secondary)", flex: "none" }} />}
+                </div>
                 <div style={{ fontSize: "var(--text-base)", color: "var(--color-accent-secondary)", fontWeight: 600 }}>
                   {lang === "ta" ? "நாளையைப் பற்றி ஒரு முன்னோட்டம் — " : "A look ahead to tomorrow — "}
                   {tomorrowWeekday}, {formatDateLabel(tomorrowIso)}
                 </div>
                 <NovaClampedText
                   lines={3}
-                  maxWidth="600px"
-                  style={{ fontFamily: "var(--font-body)", fontSize: "var(--text-md)", lineHeight: 1.55, color: "var(--color-text)" }}
+                  maxWidth="690px"
+                  moreLabel={dt(TODAY_HERO.readMore, lang)}
+                  lessLabel={dt(TODAY_HERO.readLess, lang)}
+                  style={{ fontFamily: "var(--font-body)", fontSize: "clamp(16px, 1.2vw, 19px)", lineHeight: 1.55, color: "var(--color-text)" }}
                 >
                   {tLang(tomorrowGuidance.briefing ?? tomorrowGuidance.text, lang)}
                 </NovaClampedText>
@@ -732,29 +750,57 @@ export function DashboardTodayTabNova({
               </>
             ) : (
               <>
-                <Kicker>{t("tab_today", lang)}</Kicker>
-                <div style={{ fontSize: "clamp(17px, 1.8vw, 22px)", color: "var(--color-accent-secondary)", lineHeight: 1.2 }}>
+                {/* Hero redesign 2026-09-04 — this was a "TODAY" kicker stacked
+                    on a purple greeting: two eyebrow lines above the <h1>, the
+                    first of which names the tab the reader is already looking
+                    at. The greeting alone now carries the kicker treatment. */}
+                <div style={{
+                  fontSize: "var(--text-sm)", fontWeight: 700, letterSpacing: "0.24em", textTransform: "uppercase",
+                  color: "var(--color-accent-strong)", lineHeight: 1.2, marginBottom: "var(--space-1)",
+                }}>
                   {greetingWord(lang, zoneHour)},
                 </div>
                 {/* audit B-1: the greeting+name is the page's one <h1> — Today
                     previously shipped zero headings (no document outline). */}
-                <h1 style={{
-                  margin: 0, fontFamily: "var(--font-display)", fontWeight: 600, lineHeight: 1.08,
-                  fontSize: "clamp(1.9rem, 3.4vw, 2.7rem)", maxWidth: "480px",
-                  background: "linear-gradient(120deg, var(--color-text-strong), var(--color-accent-secondary))",
-                  WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent",
-                }}>
-                  {heroFirstName}
-                </h1>
-                <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55, maxWidth: "520px" }}>
-                  {lang === "ta"
-                    ? "இன்றைய வழிகாட்டுதல், ஜாதக மதிப்பெண் மற்றும் சிறந்த நேரங்கள் — ஒரே பார்வையில்."
-                    : "Today's guidance, your chart score, and the best windows — at a glance."}
-                </p>
+                {/* `nova-hero-name` carries the forced-colors guard (finding
+                    11): Windows High Contrast strips the gradient but keeps
+                    `-webkit-text-fill-color: transparent`, which erased the
+                    page's only <h1> entirely. */}
+                {/* The name is the hero's anchor and was rendering at roughly
+                    the same size as the briefing beneath it. The gradient (and
+                    so finding 11's forced-colors guard) is kept, but weighted
+                    to text-strong so it reads as the near-white it is meant to
+                    be rather than as a purple wash. The ornament follows the
+                    hour — a sun by day, a moon after dark — and is decorative,
+                    so it sits outside the accessible name. */}
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3_5)", flexWrap: "wrap" }}>
+                  <h1 className="nova-hero-name" style={{
+                    margin: 0, fontFamily: "var(--font-display)", fontWeight: 600, lineHeight: 1.06,
+                    fontSize: "clamp(2.25rem, 3.4vw, 3.5rem)", maxWidth: "720px",
+                    background: "linear-gradient(120deg, var(--color-text-strong) 68%, var(--color-accent-secondary))",
+                    WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent",
+                  }}>
+                    {heroFirstName}
+                  </h1>
+                  {zoneHour >= 6 && zoneHour < 18
+                    ? <Sun size={30} strokeWidth={1.7} aria-hidden="true" style={{ color: "var(--color-accent-strong)", flex: "none" }} />
+                    : <Moon size={28} strokeWidth={1.7} aria-hidden="true" style={{ color: "var(--color-accent-secondary)", flex: "none" }} />}
+                </div>
+                {/* Finding 12 — this line is onboarding copy: static, identical
+                    every day, and sitting between the reader's name and the
+                    briefing they came for. It earns its place only on a screen
+                    that has no briefing to lead with. */}
+                {!personalDailyGuidance && (
+                  <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55, maxWidth: "640px" }}>
+                    {dt(TODAY_HERO.ledeNoGuidance, lang)}
+                  </p>
+                )}
                 {personalDailyGuidance && (
                   <NovaClampedText
                     lines={3}
-                    maxWidth="600px"
+                    maxWidth="690px"
+                    moreLabel={dt(TODAY_HERO.readMore, lang)}
+                    lessLabel={dt(TODAY_HERO.readLess, lang)}
                     style={{ fontFamily: "var(--font-body)", fontSize: "var(--text-md)", lineHeight: 1.55, color: "var(--color-text)" }}
                   >
                     {tLang(personalDailyGuidance.briefing ?? personalDailyGuidance.text, lang)}
@@ -771,6 +817,7 @@ export function DashboardTodayTabNova({
                 {personalDailyGuidance?.isChandrashtama && (
                   <a
                     href="#nova-deep-dive"
+                    onClick={focusDeepDiveAfterHashNavigation}
                     style={{
                       display: "inline-flex", alignItems: "center", gap: "var(--space-2)", alignSelf: "flex-start",
                       textDecoration: "none", fontFamily: "inherit",
@@ -778,7 +825,10 @@ export function DashboardTodayTabNova({
                       borderRadius: "var(--radius-pill)", padding: "var(--space-1_5) var(--space-3_5)", maxWidth: "100%",
                     }}
                   >
-                    <span aria-hidden="true" style={{ fontSize: "var(--text-base)", flex: "none" }}>🌘</span>
+                    {/* lucide, not 🌘 — same rule as the evening-preview
+                        switch: no emoji as icons, and no "waning crescent moon"
+                        read aloud inside the label. */}
+                    <MoonStar size={15} strokeWidth={2} aria-hidden="true" style={{ color: "var(--color-mid-text)", flex: "none" }} />
                     <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       <b style={{ color: "var(--color-mid-text)", fontWeight: 700 }}>
                         <GlossaryTerm term="chandrashtama" lang={lang}>{lang === "ta" ? "இன்று சந்திராஷ்டமம்" : "Chandrashtama today"}</GlossaryTerm>
@@ -788,55 +838,224 @@ export function DashboardTodayTabNova({
                     <span style={{ display: "inline-flex", color: "var(--color-mid-text)", flex: "none" }}><ArrowRight size={14} strokeWidth={2} aria-hidden="true" /></span>
                   </a>
                 )}
-                {personalDailyGuidance?.emotionalWeather && (
-                  <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
-                    {([
-                      { Icon: Leaf, label: personalDailyGuidance.emotionalWeather.tone, color: "var(--color-high)", bg: "var(--color-high-bg)", border: "var(--color-high-border)" },
-                      { Icon: Sparkle, label: personalDailyGuidance.emotionalWeather.physicalTendency, color: "var(--color-accent-strong)", bg: "var(--color-accent-muted)", border: "var(--color-border-strong)" },
-                      { Icon: AlertTriangle, label: personalDailyGuidance.emotionalWeather.bestUseOfDay, color: "var(--color-low)", bg: "var(--color-low-bg)", border: "var(--color-low-border)" },
-                    ] as { Icon: LucideIcon; label: string; color: string; bg: string; border: string }[]).filter((tag) => tag.label).map((tag) => (
-                      <span key={tag.label} style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1_5)", fontSize: "var(--text-sm)", color: "var(--color-text)", background: tag.bg, border: `1px solid ${tag.border}`, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
-                        <tag.Icon size={13} strokeWidth={2} aria-hidden="true" style={{ color: tag.color }} /> {tag.label}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                {/* ── Emotional weather (hero review 2026-09-04, findings 1-3) ──
+                    Three things were wrong here at once, and all three were
+                    fixed by using what the response already carried:
+
+                    1. The chips printed the raw database enums — `tone`,
+                       `physicalTendency`, `bestUseOfDay` are Python tokens, and
+                       the third one rendered on screen as `balanced_routine`.
+                       It stayed invisible only while the selected profile
+                       happened to yield readable single words (`calm`,
+                       `steady`); `low_energy`, `deep_work`, `people_facing`,
+                       `execution_sprints` and `single_task_routine` all leak the
+                       moment their profile is picked. In Tamil mode a Tamil
+                       reader got English database tokens. `weatherLabel` maps
+                       every token to a bilingual label and humanises anything
+                       added to `_TONE_MAP` after it, so a token cannot reach
+                       the screen again.
+
+                    2. Tone was hard-coded by slot *position*, not by content —
+                       the repo's own DASH-08 ruling ("tone travels with the
+                       message") inverted. `bestUseOfDay` is the day's most
+                       positive field and wore AlertTriangle in `--color-low`,
+                       while `tone` — the field most likely to read `heavy` or
+                       `scattered` — wore a green leaf. On a Saturn day the hero
+                       said "heavy" in green and "deep work" in red. The three
+                       slots now carry fixed semantics that match their fields.
+
+                    3. `avoidBefore` — the one genuine caution in the payload —
+                       was rendered on no web surface at all. So the hero showed
+                       a fake warning while withholding the real one. It is now
+                       the only thing on this block wearing a caution tone, and
+                       in amber (mid), not red: same "awareness, not alarm"
+                       doctrine the Chandrashtama pill above follows.
+
+                    The chips stay short; the backend's reviewed bilingual
+                    sentence (`bestUseOfDayText`) prints underneath, which is
+                    the sentence the reader can actually act on. */}
+                {personalDailyGuidance?.emotionalWeather && (() => {
+                  const weather = personalDailyGuidance.emotionalWeather;
+                  const chips = ([
+                    { key: "tone", Icon: Leaf, axis: dt(EMOTIONAL_WEATHER.toneLabel, lang), token: weather.tone, color: "var(--color-accent-secondary)", bg: "var(--color-surface-soft)", border: "var(--color-border)" },
+                    { key: "body", Icon: Activity, axis: dt(EMOTIONAL_WEATHER.bodyLabel, lang), token: weather.physicalTendency, color: "var(--color-accent-secondary)", bg: "var(--color-surface-soft)", border: "var(--color-border)" },
+                    { key: "bestUse", Icon: Target, axis: dt(EMOTIONAL_WEATHER.bestUseLabel, lang), token: weather.bestUseOfDay, color: "var(--color-high)", bg: "var(--color-high-bg)", border: "var(--color-high-border)" },
+                  ] as { key: string; Icon: LucideIcon; axis: string; token: string; color: string; bg: string; border: string }[])
+                    .filter((chip) => chip.token);
+                  const bestUseText = weather.bestUseOfDayText ? tLang(weather.bestUseOfDayText, lang) : "";
+                  const avoidBefore = weather.avoidBefore ? tLang(weather.avoidBefore, lang) : "";
+                  return (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+                      {chips.length > 0 && (
+                        <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+                          {chips.map((chip) => (
+                            // The icon is the only thing separating "Calm" from
+                            // "Steady" visually, and an icon says nothing aloud
+                            // — the axis name is spoken before the value so the
+                            // three chips are not three loose adjectives. A
+                            // hidden span rather than aria-label: aria-label is
+                            // not honoured on a generic span.
+                            <span key={chip.key} style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-base)", color: "var(--color-text)", background: chip.bg, border: `1px solid ${chip.border}`, borderRadius: "var(--radius-pill)", padding: "var(--space-1_5) var(--space-3_5)" }}>
+                              <chip.Icon size={15} strokeWidth={2} aria-hidden="true" style={{ color: chip.color, flex: "none" }} />
+                              <span className="cd-visually-hidden">{chip.axis}: </span>
+                              {weatherLabel(chip.token, lang)}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {bestUseText && (
+                        <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.5, maxWidth: "660px" }}>
+                          <b style={{ color: "var(--color-text)", fontWeight: 600 }}>{dt(EMOTIONAL_WEATHER.bestUseLabel, lang)}</b>
+                          {" — "}{bestUseText}
+                        </p>
+                      )}
+                      {avoidBefore && (
+                        <p style={{ margin: 0, display: "flex", gap: "var(--space-2)", alignItems: "flex-start", fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.5, maxWidth: "660px" }}>
+                          <AlertTriangle size={14} strokeWidth={2} aria-hidden="true" style={{ color: "var(--color-mid-text)", flex: "none", marginTop: "3px" }} />
+                          <span>
+                            <b style={{ color: "var(--color-mid-text)", fontWeight: 700 }}>{dt(EMOTIONAL_WEATHER.cautionLabel, lang)}</b>
+                            {" — "}{avoidBefore}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 <div style={{ flex: 1 }} />
 
                 {/* Next-action tile — the single best-window callout, embedded in
                     the hero per design 8a §3 (not a separate card below it). */}
                 {bestWindow && (
-                  <Card variant="high" style={{
-                    display: "flex", flexDirection: "row", alignItems: "center", gap: "var(--space-3)", marginTop: "2px", flexWrap: "wrap", rowGap: "var(--space-2_5)",
-                    borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)",
-                  }}>
-                    <span className="nova-pulse-dot" style={{ width: "9px", height: "9px", borderRadius: "var(--radius-pill)", background: "var(--color-high)", boxShadow: "0 0 0 4px var(--color-high-bg)", flex: "none" }} />
-                    <div style={{ flex: 1, minWidth: "180px" }}>
-                      <div style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-high)", fontVariantNumeric: "tabular-nums" }}>
-                        <GlossaryTerm term="nallaNeram" lang={lang}>{lang === "ta" ? "சிறந்த நேரம்" : "Best window"}</GlossaryTerm> · {formatClockLabel(bestWindow.start)} – {formatClockLabel(bestWindow.end)}
+                  <Card variant="high" className="nova-hero-action">
+                    {/* Redesign 2026-09-07 (owner ask). The card carried six
+                        blocks at near-equal weight and so had no entry point:
+                        a 44px badge puck, the label, the time, a countdown, a
+                        mechanics-first reason, and an always-open conflict row.
+
+                        Rebuilt around one hero. The time is the answer the
+                        reader opened the page for, so it is the largest thing
+                        in the card; the label and the live state fold into a
+                        single eyebrow above it; and the reason is re-ordered to
+                        this repo's Meaning → Mechanics law — it used to lead
+                        with "Uthi", the one word in the sentence a reader
+                        cannot act on.
+
+                        The puck is deleted rather than shrunk: it repeated the
+                        label it sat beside, and cost the content ~56px of width
+                        plus the button indent that existed only to clear it.
+                        Its pulse moved to the eyebrow's live dot. This is
+                        deliberately no longer a mirror of the avoid tile — that
+                        is a 292px secondary tile in the rail, this is the main
+                        column's primary action.
+
+                        Second pass, same day (owner ask): the two actions and
+                        the footnote used to sit on a row of their own beneath
+                        the reason, which left the whole right half of a ~700px
+                        card empty and cost the hero ~45px of height. The buttons
+                        now ride the time's row, right-aligned, and the footnote
+                        rides the eyebrow's — the card fills the width it already
+                        occupies instead of growing downward. */}
+                    <div className="nova-hero-action__body">
+                      {/* A <span>, not a div: a line of label + state is
+                          honestly inline, and the T8 test walks closest("div")
+                          up from the label to assert the promoted time sits in
+                          the same block as it. */}
+                      <span className="nova-hero-action__eyebrow">
+                        <TrendingUp size={13} strokeWidth={2.5} aria-hidden="true" className="nova-hero-action__glyph" />
+                        <Kicker color="var(--color-high)">
+                          <GlossaryTerm term="nallaNeram" lang={lang}>{lang === "ta" ? "சிறந்த நேரம்" : "Best window"}</GlossaryTerm>
+                        </Kicker>
                         {windowCountdown && (
-                          <span style={{ fontWeight: 400, color: "var(--color-faint)" }}>
-                            {" · "}
-                            {windowPhase === "before"
-                              ? (lang === "ta" ? `${windowCountdown} இல் தொடங்குகிறது` : `starts in ${windowCountdown}`)
-                              : (lang === "ta" ? `${windowCountdown} இல் முடிகிறது` : `ends in ${windowCountdown}`)}
+                          <span className={windowPhase === "during" ? "nova-hero-action__state is-live" : "nova-hero-action__state"}>
+                            {windowPhase === "during" && (
+                              <span className="nova-pulse-dot nova-hero-action__live" aria-hidden="true" />
+                            )}
+                            {dt(windowPhase === "before" ? TODAY_TIMINGS.startsIn : TODAY_TIMINGS.endsIn, lang).replace("%s", windowCountdown)}
                           </span>
                         )}
+                        {/* This used to render open, permanently, as a bordered
+                            row with its own alarm triangle, and then as a quiet
+                            question on a row of its own. What it names is a
+                            *different, non-promoted* window — a competing
+                            method's pick and the caveat that cost it the slot —
+                            so it is neither a hazard nor part of the answer: it
+                            is the footnote that preempts "but my other almanac
+                            said 3:20". It rides the end of the
+                            eyebrow row, in the card's top-right corner, where a
+                            tertiary affordance costs no height, and it names the
+                            losing time so the label teaches something before it
+                            is opened. */}
+                        {windowConflict && (
+                          <button
+                            type="button"
+                            className="nova-hero-action__footnote-toggle"
+                            onClick={() => setConflictOpen((open) => !open)}
+                            aria-expanded={conflictOpen}
+                          >
+                            {dt(TODAY_TIMINGS.conflictToggle, lang).replace("%s", formatClockLabel(windowConflict.start))}
+                            <ChevronDown size={13} strokeWidth={2.5} aria-hidden="true" className={conflictOpen ? "is-open" : undefined} />
+                          </button>
+                        )}
+                      </span>
+
+                      <div className="nova-hero-action__topline">
+                        <div className={windowPhase === "during" ? "nova-hero-action__time is-live" : "nova-hero-action__time"}>
+                          {formatClockLabel(bestWindow.start)} – {formatClockLabel(bestWindow.end)}
+                          {/* The kala rides the time line rather than opening the
+                              reason paragraph: it is a name, not a sentence, and
+                              it cost a whole text row of its own. */}
+                          {recommended?.window.kala && (
+                            <span className="nova-hero-action__kala">{gowriCategoryLabel(recommended.window.kala, lang)}</span>
+                          )}
+                        </div>
+                        <div className="nova-hero-action__buttons">
+                          <button
+                            type="button"
+                            onClick={() => void handleSaveReminder()}
+                            disabled={savingReminder}
+                            style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-base)", fontWeight: 700, background: "var(--color-accent)", color: "var(--color-on-accent)", border: "none", borderRadius: "var(--radius-sm)", padding: "var(--space-2_5) var(--space-4)", cursor: savingReminder ? "wait" : "pointer", fontFamily: "inherit" }}
+                          >
+                            <Bell size={15} strokeWidth={2} aria-hidden="true" style={{ flex: "none" }} />
+                            {savingReminder ? (lang === "ta" ? "…" : "Saving…") : (lang === "ta" ? "நினைவூட்டு" : "Remind me")}
+                          </button>
+                          {/* One filled action, one plain one. The outline used to
+                              give both buttons the same silhouette, which made the
+                              reader choose between two equals rather than see a
+                              primary and its alternative. */}
+                          {onGoToJournal && (
+                            <button
+                              type="button"
+                              onClick={onGoToJournal}
+                              style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-base)", fontWeight: 600, border: "none", color: "var(--color-accent-strong)", background: "none", borderRadius: "var(--radius-sm)", padding: "var(--space-2_5) var(--space-3)", cursor: "pointer", fontFamily: "inherit" }}
+                            >
+                              <CalendarPlus size={15} strokeWidth={2} aria-hidden="true" style={{ flex: "none" }} />
+                              {lang === "ta" ? "தருணம் பதிவு" : "Log a moment"}
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      {/* T8 — why THIS window. Without it the reader is given a
-                          time and no reason, beside three other systems that
-                          each name a different one. */}
+
+                      {/* T8 — why THIS window, in the order a reader can use it:
+                          what the window is good for (life-language the engine
+                          already emits), then the clearance that let it win.
+                          Purpose and clearance were two stacked paragraphs and
+                          are now one line: they are one thought, and the second
+                          row was pure height. Both strings are printed verbatim
+                          — the sentence case is done with ::first-letter,
+                          because they are kept in sync word-for-word with
+                          panchangam.py. */}
                       {recommended && (
-                        <div style={{ fontSize: "var(--text-xs)", color: "var(--color-text)", marginTop: "4px", lineHeight: 1.4 }}>
-                          {recommended.window.kala && (
+                        <p className="nova-hero-action__reason">
+                          {gowriPurposeLabel(recommended.window.kala, lang) && (
                             <>
-                              <span style={{ fontWeight: 700 }}>{gowriCategoryLabel(recommended.window.kala, lang)}</span>
-                              {gowriPurposeLabel(recommended.window.kala, lang) && ` — ${gowriPurposeLabel(recommended.window.kala, lang)}`}
-                              {". "}
+                              <span className="nova-hero-action__purpose">
+                                {gowriPurposeLabel(recommended.window.kala, lang)}
+                              </span>
+                              {" · "}
                             </>
                           )}
-                          <span style={{ color: recommended.collidesWithAvoid ? "var(--color-low)" : "var(--color-faint)" }}>
+                          <span style={recommended.collidesWithAvoid ? { color: "var(--color-low)" } : undefined}>
                             {recommended.collidesWithAvoid
                               ? dt(TODAY_TIMINGS.allCollide, lang)
                               : recommended.hasPassed
@@ -845,40 +1064,19 @@ export function DashboardTodayTabNova({
                                   ? `${dt(TODAY_TIMINGS.clearOfKalas, lang)} ${dt(TODAY_TIMINGS.skippedForCollision, lang)}`
                                   : dt(TODAY_TIMINGS.clearOfKalas, lang)}
                           </span>
-                        </div>
+                        </p>
                       )}
-                      {windowConflict && (
-                        <div style={{ fontSize: "var(--text-xs)", color: "var(--color-low)", marginTop: "6px", paddingTop: "6px", borderTop: "1px solid var(--color-border)", lineHeight: 1.35, display: "flex", gap: "var(--space-2)" }}>
-                          <AlertTriangle size={12} strokeWidth={2} aria-hidden="true" style={{ flex: "none", marginTop: "2px" }} />
-                          <span>
-                            <span style={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-                              {formatClockLabel(windowConflict.start)} – {formatClockLabel(windowConflict.end)}
-                            </span>
-                            {" · "}
-                            {lang === "ta" ? windowConflict.text.ta : windowConflict.text.en}
-                          </span>
-                        </div>
-                      )}
+
                     </div>
-                    <div style={{ display: "flex", gap: "var(--space-2)", flex: "none" }}>
-                      <button
-                        type="button"
-                        onClick={() => void handleSaveReminder()}
-                        disabled={savingReminder}
-                        style={{ fontSize: "var(--text-sm)", fontWeight: 700, background: "var(--color-accent)", color: "var(--color-on-accent)", border: "none", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3_5)", cursor: savingReminder ? "wait" : "pointer", fontFamily: "inherit" }}
-                      >
-                        {savingReminder ? (lang === "ta" ? "…" : "Saving…") : (lang === "ta" ? "நினைவூட்டு" : "Remind me")}
-                      </button>
-                      {onGoToJournal && (
-                        <button
-                          type="button"
-                          onClick={onGoToJournal}
-                          style={{ fontSize: "var(--text-sm)", fontWeight: 600, border: "1px solid var(--color-border-strong)", color: "var(--color-accent-strong)", background: "none", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3_5)", cursor: "pointer", fontFamily: "inherit" }}
-                        >
-                          {lang === "ta" ? "தருணம் பதிவு" : "Log a moment"}
-                        </button>
-                      )}
-                    </div>
+                    {windowConflict && conflictOpen && (
+                      <p className="nova-hero-action__footnote-body">
+                        <span className="nova-hero-action__footnote-time">
+                          {formatClockLabel(windowConflict.start)} – {formatClockLabel(windowConflict.end)}
+                        </span>
+                        {" · "}
+                        {lang === "ta" ? windowConflict.text.ta : windowConflict.text.en}
+                      </p>
+                    )}
                   </Card>
                 )}
                 <StatusLive status={reminderStatus} />
@@ -886,9 +1084,15 @@ export function DashboardTodayTabNova({
             )}
           </div>
 
-          {/* The ONLY score on the page — tomorrow's, while previewing tomorrow.
-              Framed card per the 2026-07-18 redesign, stars derived from the
-              same score the dial shows. */}
+          {/* Score column — the ONLY score on the page, with the epigraph in
+              flow beneath it. The epigraph used to be absolutely positioned
+              over the rail's corner, and the rail carried a 120px offset to
+              clear it, which bottom-loaded the whole hero. */}
+          {/* Tomorrow's score while previewing tomorrow. Framed card per the
+              2026-07-18 redesign. The column (card + epigraph) renders only
+              when there is a score; without one the rail widens into its
+              place (`.nova-hero-row:not(:has(.nova-hero-score))`) rather than
+              leaving a hole in the middle of the hero. */}
           {(() => {
             const isTomorrow = showEveningPreview && tomorrowGuidance != null;
             const dialSource = isTomorrow ? tomorrowGuidance : personalDailyGuidance;
@@ -896,56 +1100,106 @@ export function DashboardTodayTabNova({
             const dialScore = dialSource.score ?? 0;
             const verdict = getScoreVerdictFromGuidance(dialSource.label, dialScore, lang);
             return (
+              <div className="nova-hero-score">
               <Card style={{
-                flex: "none", width: "196px", alignSelf: "center",
+                minWidth: 0,
                 background: "color-mix(in srgb, var(--color-surface) 62%, transparent)",
                 borderColor: "var(--color-border-strong)", borderRadius: "var(--radius-md)",
-                padding: "var(--space-4_5) var(--space-3_5)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "var(--space-2)",
+                padding: "var(--space-5) var(--space-4)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "var(--space-3)",
               }}>
+                {/* Finding 5 — one score used to be drawn four ways: the dial
+                    (54/100), a star row (2.7/5, the harshest reading and the
+                    only wordless one), the verdict phrase ("Balanced day") and
+                    the band pill ("needs attention"). The bottom two disagree
+                    in direction, 6px apart, with nothing saying they measure
+                    different things — the exact shape of the recorded ruling
+                    "Two Axes On One Card = Contradiction", which also records
+                    that re-wording the secondary axis was tried and failed.
+
+                    So: the star row is deleted outright (a second encoding of
+                    the number already on the dial), and the band pill moves out
+                    of the hero to the evidence section below, where it is
+                    labelled as chart support and sits beside the reasons it is
+                    derived from. Two encodings remain here, of one axis: the
+                    precise number and the calm verdict that leads it. */}
                 <Kicker style={{ letterSpacing: "0.14em" }}>
-                  {isTomorrow
-                    ? (lang === "ta" ? "நாளைய மதிப்பெண்" : "Tomorrow's score")
-                    : (lang === "ta" ? "இன்றைய மதிப்பெண்" : "Today's score")}
+                  {dt(isTomorrow ? TODAY_HERO.tomorrowScore : TODAY_HERO.todayScore, lang)}
                 </Kicker>
-                <NovaScoreDial score={dialScore} color={verdict.color} label={lang === "ta" ? "100க்கு" : "/ 100"} />
-                <NovaStarRow value={dialScore / 20} size={14} />
+                {/* The dial is the hero's one number and was drawn at the same
+                    118px it uses in the Life Areas and Family grids, where it
+                    is one tile among many. Here it is the whole point of the
+                    column, so it takes the size prop up. */}
+                <NovaScoreDial score={dialScore} size={172} color={verdict.color} label={lang === "ta" ? "100க்கு" : "/ 100"} />
                 {/* UXD-19 — the calm verdict phrase leads; the number supports it. */}
-                <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-md)", fontWeight: 700, color: verdict.color, textAlign: "center", lineHeight: 1.15 }}>{verdict.verdict}</div>
-                {!isTomorrow && personalDailyGuidance?.band && (() => {
-                  const bt = bandTone(personalDailyGuidance.band);
-                  return (
-                    <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", background: bt.bg, color: bt.text, border: `1px solid ${bt.border}` }}>
-                      {bandPhrase(personalDailyGuidance.band, lang)}
-                    </span>
-                  );
-                })()}
-                <a href="#nova-deep-dive" style={{ fontSize: "var(--text-xs)", color: "var(--color-accent-secondary)", fontWeight: 600, textDecoration: "none" }}>
-                  {lang === "ta" ? "இந்த மதிப்பெண் ஏன்?" : "Why this score"}
-                  <ArrowRight size={12} strokeWidth={2} aria-hidden="true" style={{ verticalAlign: "middle", marginLeft: "var(--space-1)" }} />
+                <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 700, color: verdict.color, textAlign: "center", lineHeight: 1.15 }}>{verdict.verdict}</div>
+                {/* Finding 9 — this link said "Why this score" and landed on a
+                    section headed "Why this prediction?". One destination, two
+                    names; the destination's heading wins. */}
+                <a href="#nova-deep-dive" onClick={focusDeepDiveAfterHashNavigation} style={{ fontSize: "var(--text-base)", color: "var(--color-accent-secondary)", fontWeight: 600, textDecoration: "none" }}>
+                  {dt(TODAY_HERO.whyLink, lang)}
+                  <ArrowRight size={14} strokeWidth={2} aria-hidden="true" style={{ verticalAlign: "middle", marginLeft: "var(--space-1)" }} />
                 </a>
               </Card>
+              <p className="nova-hero-quote">
+                &ldquo;{dt(TODAY_HERO.quote, lang)}&rdquo;
+                <span className="nova-hero-quote__attribution">— {dt(TODAY_HERO.quoteAttribution, lang)}</span>
+              </p>
+              </div>
             );
           })()}
 
           {/* Timing rail. The hero above owns the ONE recommended window; this
               rail keeps the avoid window promoted beside it — that is the
-              safety axis, not a competing recommendation — and folds every
-              other timing system into a single named disclosure (T8 / A-013).
-              Abhijit and Horai used to be peer cards here, indistinguishable in
-              weight from the recommendation and from each other. */}
-          {(secondaryAbhijitWindow || avoidWindow || heroHora) && (
-            <div style={{ flex: "none", width: "224px", alignSelf: "center", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-              {avoidWindow && (
-                <Card style={{ flex: "none", background: "color-mix(in srgb, var(--color-surface) 62%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3_5)", display: "flex", flexDirection: "row", gap: "var(--space-3)", alignItems: "center" }}>
-                  <div aria-hidden="true" style={{ width: "32px", height: "32px", borderRadius: "var(--radius-pill)", background: "var(--color-low-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-low)", flex: "none" }}><X size={16} strokeWidth={2} /></div>
+              safety axis, not a competing recommendation — and lists the day's
+              other named timings underneath it, times only.
+
+              The "Other traditional timings" disclosure that used to close the
+              rail was removed (owner call 2026-09-04). It had become a second,
+              longer copy of the Key timings card below, and every system it
+              named still has a home: Nalla Neram, Yamagandam, Kuligai and
+              Abhijit in that card, Rahu Kalam on the avoid card above, Horai
+              and the Nalla Neram segments on the ribbon under the hero. */}
+          {(secondaryAbhijitWindow || showAvoidCard || panchangam) && (
+            <div className="nova-hero-rail">
+              {/* Finding 4 — the safety axis had no now-state while the
+                  opportunity axis two columns left had three (before/during/
+                  after) plus a countdown and a pulsing dot. So at 11:14 am,
+                  with Rahu Kalam running 10:48–12:19, this card rendered
+                  exactly what it renders at 4 pm: a static pair of times, while
+                  the reader was standing inside the window. A caution earns
+                  live state more than an invitation does. Same `spanPhase`
+                  helper, same three states. */}
+              {showAvoidCard && (
+                <Card style={{ flex: "none", background: avoidPhase === "during" ? "var(--color-low-bg)" : "color-mix(in srgb, var(--color-surface) 62%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-4) var(--space-4)", display: "flex", flexDirection: "row", gap: "var(--space-3)", alignItems: "center", borderColor: avoidPhase === "during" ? "var(--color-low-border)" : undefined }}>
+                  <div aria-hidden="true" style={{ position: "relative", width: "40px", height: "40px", borderRadius: "var(--radius-pill)", background: "var(--color-low-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-low)", flex: "none" }}>
+                    <X size={19} strokeWidth={2} />
+                    {avoidPhase === "during" && (
+                      <span className="nova-pulse-dot" style={{ position: "absolute", top: "-1px", right: "-1px", width: "9px", height: "9px", borderRadius: "var(--radius-pill)", background: "var(--color-low)", boxShadow: "0 0 0 3px var(--color-surface)" }} />
+                    )}
+                  </div>
                   <div style={{ minWidth: 0 }}>
                     <Kicker as="div" color="var(--color-low)">
                       {lang === "ta" ? "தவிர்க்க வேண்டிய நேரம்" : "Avoid window"}
                     </Kicker>
-                    <div style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)", marginTop: "3px", fontVariantNumeric: "tabular-nums" }}>
+                    <div className="nova-hero-time" style={{ marginTop: "4px" }}>
                       {formatClockLabel(avoidWindow.start)} – {formatClockLabel(avoidWindow.end)}
                     </div>
-                    <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "2px" }}>
+                    {avoidPhase && (
+                      <div
+                        role="status"
+                        style={{
+                          fontSize: "var(--text-sm)", fontWeight: avoidPhase === "during" ? 700 : 400, marginTop: "4px",
+                          color: avoidPhase === "during" ? "var(--color-low)" : "var(--color-faint)",
+                        }}
+                      >
+                        {avoidPhase === "during" && avoidCountdown
+                          ? `${dt(TODAY_TIMINGS.avoidRunningNow, lang)} · ${dt(TODAY_TIMINGS.endsIn, lang).replace("%s", avoidCountdown)}`
+                          : avoidCountdown
+                            ? dt(TODAY_TIMINGS.startsIn, lang).replace("%s", avoidCountdown)
+                            : null}
+                      </div>
+                    )}
+                    <div style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)", marginTop: "3px" }}>
                       {windowTypeGlossary(avoidWindow.type) ? (
                         <GlossaryTerm term={windowTypeGlossary(avoidWindow.type)!} lang={lang}>{windowTypeLabel(avoidWindow.type, lang)}</GlossaryTerm>
                       ) : windowTypeLabel(avoidWindow.type, lang)}
@@ -953,18 +1207,113 @@ export function DashboardTodayTabNova({
                   </div>
                 </Card>
               )}
-              <OtherTimingsDisclosure
-                lang={lang}
-                abhijit={secondaryAbhijitWindow}
-                horaLord={heroHora?.lord ?? null}
-                nextHoraLord={heroNextHora?.lord ?? null}
-                nextHoraStart={heroNextHora?.start ?? null}
-                avoidKalas={panchangam ? [
-                  { label: windowTypeLabel("RAHU_KALAM", lang), glossary: "rahuKalam" as const, ...panchangam.kalam.rahuKalam },
-                  { label: windowTypeLabel("YAMAGANDAM", lang), glossary: "yamagandam" as const, ...panchangam.kalam.yamagandam },
-                  { label: windowTypeLabel("KULIGAI", lang), glossary: "kuligai" as const, ...panchangam.kalam.kuligai },
-                ] : []}
-              />
+              {/* ── Key timings, always visible (owner call 2026-09-04) ───────
+                  The four a Tamil almanac reader checks by name, at a glance.
+                  This was one of two copies until the "Other traditional
+                  timings" disclosure was removed the same day; it is now the
+                  only one, which is why the Abhijit row carries the kala
+                  overlap (hero review finding 7) that used to live in the
+                  panel. Rahu Kalam is deliberately absent — it is the avoid
+                  card directly above, and repeating it here would put the day's
+                  loudest caution in a quiet list. */}
+              {(() => {
+                const rows: Array<{ key: string; name: string; dot: string; times: string[]; note?: string }> = [];
+                if (nallaNeramSpans.length) {
+                  rows.push({
+                    key: "nallaNeram",
+                    name: lang === "ta" ? "நல்ல நேரம்" : "Nalla Neram",
+                    dot: "var(--color-high)",
+                    times: nallaNeramSpans
+                      .map((s) => `${formatClockLabel(s.start)} – ${formatClockLabel(s.end)}`),
+                  });
+                }
+                if (panchangam?.kalam.yamagandam) {
+                  rows.push({
+                    key: "yamagandam",
+                    name: windowTypeLabel("YAMAGANDAM", lang),
+                    dot: "var(--color-accent-secondary)",
+                    times: [`${formatClockLabel(panchangam.kalam.yamagandam.start)} – ${formatClockLabel(panchangam.kalam.yamagandam.end)}`],
+                  });
+                }
+                if (panchangam?.kalam.kuligai) {
+                  rows.push({
+                    key: "kuligai",
+                    name: windowTypeLabel("KULIGAI", lang),
+                    dot: "var(--color-low)",
+                    times: [`${formatClockLabel(panchangam.kalam.kuligai.start)} – ${formatClockLabel(panchangam.kalam.kuligai.end)}`],
+                  });
+                }
+                if (secondaryAbhijitWindow) {
+                  rows.push({
+                    key: "abhijit",
+                    name: lang === "ta" ? "அபிஜித் முகூர்த்தம்" : "Abhijit muhurtham",
+                    dot: "var(--color-accent)",
+                    times: [`${formatClockLabel(secondaryAbhijitWindow.start)} – ${formatClockLabel(secondaryAbhijitWindow.end)}`],
+                    // Finding 7. Abhijit is ~48 minutes fixed around solar noon
+                    // and the kalas move by weekday, so on a large fraction of
+                    // Fridays Rahu Kalam clips its head — 24 of 49 minutes on
+                    // the reviewed day. Listing it as a plain good time, one
+                    // card under a recommendation whose whole argument is that
+                    // it is clear of the kalas, gives two contradictory
+                    // instructions. The note states the app's already-ruled
+                    // position and names the clear part; it renders only on the
+                    // days the two actually collide.
+                    note: panchangam
+                      ? abhijitOverlapNote(secondaryAbhijitWindow, [
+                        { label: windowTypeLabel("RAHU_KALAM", lang), ...panchangam.kalam.rahuKalam },
+                        { label: windowTypeLabel("YAMAGANDAM", lang), ...panchangam.kalam.yamagandam },
+                        { label: windowTypeLabel("KULIGAI", lang), ...panchangam.kalam.kuligai },
+                      ], lang) || undefined
+                      : undefined,
+                  });
+                }
+                if (rows.length === 0) return null;
+                return (
+                  <Card style={{
+                    flex: "none", background: "color-mix(in srgb, var(--color-surface) 62%, transparent)",
+                    borderRadius: "var(--radius-md)", padding: "var(--space-4)",
+                    display: "flex", flexDirection: "column", gap: "var(--space-3)",
+                  }}>
+                    <Kicker as="div">{dt(TODAY_HERO.keyTimings, lang)}</Kicker>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2_5)" }}>
+                      {rows.map((row) => (
+                        <div key={row.key}>
+                          <div className="nova-hero-timing">
+                            <span aria-hidden="true" className="nova-hero-timing__dot" style={{ background: row.dot }} />
+                            <span className="nova-hero-timing__name">{row.name}</span>
+                            <span className="nova-hero-timing__times">
+                              {row.times.map((span) => <span key={span}>{span}</span>)}
+                            </span>
+                          </div>
+                          {row.note && (
+                            <div style={{ fontSize: "var(--text-xs)", color: "var(--color-mid-text)", lineHeight: 1.4, marginTop: "3px" }}>
+                              {row.note}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    {onGoToCalendar && (
+                      <button
+                        type="button"
+                        onClick={onGoToCalendar}
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: "var(--space-2)", alignSelf: "flex-start",
+                          marginTop: "var(--space-1)", paddingTop: "var(--space-3)", paddingLeft: 0, paddingRight: 0, paddingBottom: 0,
+                          borderTop: "1px solid var(--color-border)", borderLeft: "none", borderRight: "none", borderBottom: "none",
+                          width: "100%", background: "none", cursor: "pointer", fontFamily: "inherit",
+                          fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-accent-secondary)",
+                        }}
+                      >
+                        <CalendarDays size={15} strokeWidth={2} aria-hidden="true" style={{ flex: "none" }} />
+                        {dt(TODAY_HERO.viewFullAlmanac, lang)}
+                        <ArrowRight size={14} strokeWidth={2} aria-hidden="true" style={{ flex: "none" }} />
+                      </button>
+                    )}
+                  </Card>
+                );
+              })()}
+
             </div>
           )}
         </div>
@@ -992,12 +1341,21 @@ export function DashboardTodayTabNova({
         <FirstResultGuide lang={lang} action={personalDailyGuidance.actionSuggestion} />
       )}
 
+      {/* The two-minute reading, but only while it has something new to say.
+          `readingWindow` is the current antardasha — months to years — and most
+          of its beats are natal and never move at all, so this slot was
+          spending ~240 words a day on a piece of writing whose own subtitle
+          says it will not change until March. Once read, it collapses to a
+          single line pointing at Family & Charts, and it expands again by
+          itself when the bhukti turns and the backend rewrites it. See
+          `collapseWhenRead`. */}
       {activeChartId && (
         <DashboardOneMinuteReading
           lang={lang}
           chartId={activeChartId}
           onOpenFullChart={onGoToCharts}
           deferUntilVisible
+          collapseWhenRead
         />
       )}
 
@@ -1093,10 +1451,14 @@ export function DashboardTodayTabNova({
           The full engine (planet table, chart explanation, vargas, shadbala,
           alternate dashas, classical timing, birth-star profile, Prasna, PDF)
           lives in the "Family & Charts" tab (DashboardChartsPanelNova). This
-          keeps Today a decision layer only. The hero's "Why this score ->"
-          anchors here; this card's button opens the full charts. ===== */}
+          keeps Today a decision layer only. The hero's "Why this prediction ->"
+          anchors here; this card's button opens the full charts.
+
+          `tabIndex={-1}` so that jump actually moves focus here, not just the
+          viewport (finding 9) — a keyboard or screen-reader user was left where
+          they started, with no confirmation they had arrived anywhere. ===== */}
       {personalDailyGuidance && (
-        <Card id="nova-deep-dive" style={{ borderColor: "var(--color-border-strong)", padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3_5)" }}>
+        <Card id="nova-deep-dive" tabIndex={-1} style={{ borderColor: "var(--color-border-strong)", padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3_5)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2_5)", flexWrap: "wrap" }}>
             <h2 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--color-accent-strong)" }}>
               {lang === "ta" ? "இந்த கணிப்பு ஏன்?" : "Why this prediction?"}
@@ -1104,6 +1466,18 @@ export function DashboardTodayTabNova({
             <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
               {lang === "ta" ? "இன்றைய ஜோதிடத்தின் அடிப்படை" : "the astrology behind today"}
             </span>
+            {/* Finding 5, second half — the band is evidence strength, not a
+                second verdict on the day. Here it sits beside the reasons it
+                comes from, with the axis named, instead of contradicting the
+                verdict phrase in the hero. */}
+            {personalDailyGuidance.band && (() => {
+              const bt = bandTone(personalDailyGuidance.band);
+              return (
+                <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, padding: "var(--space-0_5) var(--space-2)", borderRadius: "var(--radius-pill)", background: bt.bg, color: bt.text, border: `1px solid ${bt.border}` }}>
+                  {dt(TODAY_HERO.chartSupport, lang)}: {bandPhrase(personalDailyGuidance.band, lang)}
+                </span>
+              );
+            })()}
             {onGoToCharts && (
               <button
                 type="button"

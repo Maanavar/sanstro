@@ -1,7 +1,13 @@
 import { router } from "expo-router";
 import { getTokens, setTokens, clearTokens } from "@/lib/secureStore";
 import { ENV } from "@/lib/env";
-import { initApiClient, type ApiQueryParams } from "@vinaadi/shared/api/client";
+import {
+  apiErrorDetail,
+  initApiClient,
+  parseApiError,
+  type ApiError as ApiErrorEnvelope,
+  type ApiQueryParams,
+} from "@vinaadi/shared/api";
 
 const API_V1_PREFIX = "/api/v1";
 
@@ -101,7 +107,7 @@ export async function fetchWithAuth(
 
 export async function apiGet<T>(url: string, params?: ApiQueryParams): Promise<T> {
   const res = await fetchWithAuth(appendQuery(url, params));
-  if (!res.ok) throw new ApiError(res.status, await res.text());
+  if (!res.ok) throw await ApiError.fromResponse(res);
   return res.json() as Promise<T>;
 }
 
@@ -110,7 +116,7 @@ export async function apiPost<T>(url: string, body?: unknown): Promise<T> {
     method: "POST",
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
-  if (!res.ok) throw new ApiError(res.status, await res.text());
+  if (!res.ok) throw await ApiError.fromResponse(res);
   return res.json() as Promise<T>;
 }
 
@@ -119,7 +125,7 @@ export async function apiPatch<T>(url: string, body?: unknown): Promise<T> {
     method: "PATCH",
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
-  if (!res.ok) throw new ApiError(res.status, await res.text());
+  if (!res.ok) throw await ApiError.fromResponse(res);
   return res.json() as Promise<T>;
 }
 
@@ -128,19 +134,25 @@ export async function apiPut<T>(url: string, body?: unknown): Promise<T> {
     method: "PUT",
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
-  if (!res.ok) throw new ApiError(res.status, await res.text());
+  if (!res.ok) throw await ApiError.fromResponse(res);
   return res.json() as Promise<T>;
 }
 
 export async function apiDelete(url: string): Promise<void> {
   const res = await fetchWithAuth(url, { method: "DELETE" });
-  if (!res.ok) throw new ApiError(res.status, await res.text());
+  if (!res.ok) throw await ApiError.fromResponse(res);
 }
 
 export class ApiError extends Error {
+  static async fromResponse(response: Response): Promise<ApiError> {
+    const apiError = await parseApiError(response);
+    return new ApiError(response.status, apiErrorDetail(apiError), apiError);
+  }
+
   constructor(
     public readonly status: number,
     message: string,
+    public readonly apiError?: ApiErrorEnvelope,
   ) {
     super(message);
     this.name = "ApiError";
@@ -152,12 +164,7 @@ export class ApiError extends Error {
   get isConflict()     { return this.status === 409; }
 
   getUserMessage(): string {
-    try {
-      const json = JSON.parse(this.message) as { detail?: string };
-      return json.detail || this.message;
-    } catch {
-      return this.message;
-    }
+    return this.apiError?.message.en ?? this.message;
   }
 }
 

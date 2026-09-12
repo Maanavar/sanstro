@@ -3,11 +3,12 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
-from app.core.error_codes import ErrorCode, get_error_message
+from app.core.error_codes import ErrorCode
+from app.core.errors import AppError
 from app.db.session import get_db
 from app.models import BirthProfile
 from app.models.user import User
@@ -77,11 +78,9 @@ def get_birth_profile_endpoint(
 ) -> BirthProfileGetResponse:
     profile = session.get(BirthProfile, birth_profile_id)
     if profile is None or profile.deleted_at is not None:
-        error_info = get_error_message(ErrorCode.BIRTH_PROFILE_NOT_FOUND)
-        raise HTTPException(status_code=error_info["status"], detail=error_info["user_message"])
+        raise AppError(ErrorCode.BIRTH_PROFILE_NOT_FOUND)
     if profile.owner_user_id != current_user.user_id:
-        error_info = get_error_message(ErrorCode.ACCESS_DENIED)
-        raise HTTPException(status_code=error_info["status"], detail=error_info["user_message"])
+        raise AppError(ErrorCode.ACCESS_DENIED)
     return get_birth_profile(session, birth_profile_id, calculation_version="thirukanitham-2026-v1")
 
 
@@ -106,11 +105,9 @@ def update_birth_profile_endpoint(
 ) -> BirthProfileGetResponse:
     profile = session.get(BirthProfile, birth_profile_id)
     if profile is None or profile.deleted_at is not None:
-        error_info = get_error_message(ErrorCode.BIRTH_PROFILE_NOT_FOUND)
-        raise HTTPException(status_code=error_info["status"], detail=error_info["user_message"])
+        raise AppError(ErrorCode.BIRTH_PROFILE_NOT_FOUND)
     if profile.owner_user_id != current_user.user_id:
-        error_info = get_error_message(ErrorCode.ACCESS_DENIED)
-        raise HTTPException(status_code=error_info["status"], detail=error_info["user_message"])
+        raise AppError(ErrorCode.ACCESS_DENIED)
     return update_birth_profile(session, profile, payload, calculation_version="thirukanitham-2026-v1")
 
 
@@ -128,10 +125,8 @@ def delete_birth_profile_endpoint(
     """Soft-delete a birth profile and retire any orphaned family-member link."""
     profile = session.get(BirthProfile, birth_profile_id)
     if profile is None or profile.deleted_at is not None:
-        error_info = get_error_message(ErrorCode.BIRTH_PROFILE_NOT_FOUND)
-        raise HTTPException(status_code=error_info["status"], detail=error_info["user_message"])
+        raise AppError(ErrorCode.BIRTH_PROFILE_NOT_FOUND)
     if profile.owner_user_id != current_user.user_id:
-        error_info = get_error_message(ErrorCode.ACCESS_DENIED)
-        raise HTTPException(status_code=error_info["status"], detail=error_info["user_message"])
+        raise AppError(ErrorCode.ACCESS_DENIED)
     soft_delete_birth_profile(session, profile)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

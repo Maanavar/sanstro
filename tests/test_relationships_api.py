@@ -179,3 +179,67 @@ def test_relationship_compatibility_intelligence_direct_pdf_endpoint_returns_pdf
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("application/pdf")
     assert response.content[:4] == b"%PDF"
+
+
+# Two clearly-synthetic people, neither of whom is a member of any family vault.
+_HAND_ENTERED_A = {
+    "displayName": "Test Person A",
+    "birthDateLocal": "1991-07-22",
+    "birthTimeLocal": "06:30:00",
+    "birthPlace": "Chennai, Tamil Nadu, India",
+    "birthLatitude": 13.0827,
+    "birthLongitude": 80.2707,
+    "birthTimezone": "Asia/Kolkata",
+}
+_HAND_ENTERED_B = {
+    "displayName": "Test Person B",
+    "birthDateLocal": "1993-02-11",
+    "birthTimeLocal": "18:45:00",
+    "birthPlace": "Coimbatore, Tamil Nadu, India",
+    "birthLatitude": 11.0168,
+    "birthLongitude": 76.9558,
+    "birthTimezone": "Asia/Kolkata",
+}
+
+
+def test_compatibility_intelligence_direct_pair_needs_no_family_vault(client):
+    """The depth of the report follows who is asking, not where the data is stored.
+
+    Every other Compatibility Intelligence route requires Person B to be a saved
+    family-vault member, which left a signed-in user who typed two people into
+    the Porutham tool with the same shallow ten-porutham result a logged-out
+    visitor gets on the marketing calculator.
+    """
+    response = client.post(
+        "/api/v1/relationships/compatibility-intelligence/direct",
+        json={"personA": _HAND_ENTERED_A, "personB": _HAND_ENTERED_B},
+    )
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert 0 <= body["overallScore"] <= 100
+    assert body["overallLabel"]
+    assert 0 <= body["poruthamScore"] <= body["poruthamMax"]
+    assert len(body["poruthamKutas"]) == 10
+    for identity in (body["personAIdentity"], body["personBIdentity"]):
+        assert 1 <= identity["rasi"] <= 12
+        assert 1 <= identity["nakshatra"] <= 27
+        assert 1 <= identity["lagnaRasi"] <= 12
+
+
+def test_compatibility_intelligence_direct_pair_requires_sign_in(raw_client):
+    """Sign-in is the only gate on the route — so it has to actually be one."""
+    response = raw_client.post(
+        "/api/v1/relationships/compatibility-intelligence/direct",
+        json={"personA": _HAND_ENTERED_A, "personB": _HAND_ENTERED_B},
+    )
+    assert response.status_code in {401, 403}
+
+
+def test_compatibility_intelligence_direct_pair_pdf_returns_pdf(client):
+    response = client.post(
+        "/api/v1/relationships/compatibility-intelligence/direct/pdf",
+        json={"personA": _HAND_ENTERED_A, "personB": _HAND_ENTERED_B},
+    )
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/pdf")
+    assert response.content[:4] == b"%PDF"

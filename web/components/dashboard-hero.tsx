@@ -2,12 +2,24 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { motion } from "framer-motion";
-import { Bell, Settings, LogOut, Check, X } from "lucide-react";
+import {
+  Bell,
+  Settings,
+  LogOut,
+  Check,
+  X,
+  ChevronDown,
+  Compass,
+  FlaskConical,
+  Wrench,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import Image from "next/image";
 import { formatClockLabel } from "@/lib/format";
 import { t } from "@/lib/i18n";
-import { DUR, EASE_NOVA } from "@/lib/motion";
+import { DUR, EASE_NOVA, prefersReducedMotion } from "@/lib/motion";
 import type { Lang } from "@/lib/i18n";
 import type {
   ChartSummaryData,
@@ -35,7 +47,14 @@ const SHOW_QA_TAB = process.env.NODE_ENV !== "production";
 // (tab_life_area_nav) is untouched: Tamil pluralization isn't a mechanical
 // "add கள்" the way English's is, and this wants a native-speaker call, not a
 // guess — see docs/ASTROLOGER_REVIEW_QUEUE.md.
-type TabDefinition = { id: Tab; labelEn: string; labelTaKey?: LabelKey; desc: { en: string; ta: string } };
+type TabDefinition = {
+  id: Tab;
+  labelEn: string;
+  labelTaKey?: LabelKey;
+  desc: { en: string; ta: string };
+  /** Only the "More" menu entries carry one — the top-strip pills are text. */
+  icon?: LucideIcon;
+};
 
 const TAB_DEFS: TabDefinition[] = [
   { id: "personal", labelEn: "Today", labelTaKey: "tab_today", desc: { en: "Your day at a glance, with timing and guidance.", ta: "இன்றைய நேரங்களும் வழிகாட்டுதலும் ஒரே பார்வையில்." } },
@@ -49,9 +68,9 @@ const TAB_DEFS: TabDefinition[] = [
 // Destinations tucked behind the "More" dropdown (see `showMoreMenu` below)
 // instead of their own pill — QA stays dev-only.
 const MORE_TAB_DEFS: TabDefinition[] = [
-  { id: "tools", labelEn: "Tools", labelTaKey: "tab_tools", desc: { en: "Use focused astrology tools for a specific question.", ta: "குறிப்பிட்ட கேள்விக்கான ஜோதிடக் கருவிகளைப் பயன்படுத்துங்கள்." } },
-  { id: "explore", labelEn: "Understand", labelTaKey: "tab_explore", desc: { en: "Learn the ideas behind your chart and guidance.", ta: "உங்கள் ஜாதகம் மற்றும் வழிகாட்டுதலின் பின்னுள்ள கருத்துகளை அறியுங்கள்." } },
-  { id: "qa", labelEn: "QA", desc: { en: "Check development diagnostics.", ta: "மேம்பாட்டு சோதனை விவரங்களைப் பாருங்கள்." } },
+  { id: "tools", labelEn: "Tools", labelTaKey: "tab_tools", icon: Wrench, desc: { en: "Use focused astrology tools for a specific question.", ta: "குறிப்பிட்ட கேள்விக்கான ஜோதிடக் கருவிகளைப் பயன்படுத்துங்கள்." } },
+  { id: "explore", labelEn: "Understand", labelTaKey: "tab_explore", icon: Compass, desc: { en: "Learn the ideas behind your chart and guidance.", ta: "உங்கள் ஜாதகம் மற்றும் வழிகாட்டுதலின் பின்னுள்ள கருத்துகளை அறியுங்கள்." } },
+  { id: "qa", labelEn: "QA", icon: FlaskConical, desc: { en: "Check development diagnostics.", ta: "மேம்பாட்டு சோதனை விவரங்களைப் பாருங்கள்." } },
 ];
 
 interface DashboardHeroProps {
@@ -182,6 +201,70 @@ export function DashboardHero(props: DashboardHeroProps) {
   );
   const isMoreActive = moreTabs.some((tab) => tab.id === activeTab);
 
+  /* ── "More" menu keyboard behaviour ─────────────────────────────────────
+     The menu already claimed role="menu"/role="menuitem", which promises the
+     WAI-ARIA menu keys. It had none of them: no Escape, no arrow-key roving,
+     and focus was left stranded on a button that had just been unmounted.
+     The handler sits on the anchor so it covers the trigger *and* the open
+     menu — ArrowDown opens from the trigger, Escape closes and hands focus
+     back to it. */
+  const moreTriggerRef = useRef<HTMLButtonElement>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+
+  const closeMoreMenu = (returnFocus = true) => {
+    setShowMoreMenu(false);
+    if (returnFocus) moreTriggerRef.current?.focus();
+  };
+
+  // Focus moves into the menu on open, landing on the current destination
+  // when one of them is active — so "where am I" and "where can I go" are
+  // answered in the same keystroke.
+  useEffect(() => {
+    if (!showMoreMenu) return;
+    const items = moreMenuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]');
+    if (!items || items.length === 0) return;
+    const list = Array.from(items);
+    (list.find((el) => el.getAttribute("aria-current") === "page") ?? list[0]).focus();
+  }, [showMoreMenu]);
+
+  const onMoreKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (!showMoreMenu) {
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setShowMoreMenu(true);
+      }
+      return;
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeMoreMenu();
+      return;
+    }
+    // Tabbing away closes the menu but must not yank focus back to the
+    // trigger — that would trap the user on the nav.
+    if (event.key === "Tab") {
+      closeMoreMenu(false);
+      return;
+    }
+    const items = moreMenuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]');
+    if (!items || items.length === 0) return;
+    const list = Array.from(items);
+    const index = list.indexOf(document.activeElement as HTMLButtonElement);
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      list[(index + 1) % list.length].focus();
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      list[(index - 1 + list.length) % list.length].focus();
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      list[0].focus();
+    } else if (event.key === "End") {
+      event.preventDefault();
+      list[list.length - 1].focus();
+    }
+  };
+
   // Keep the active tab scrolled into view on the mobile scrollable strip so the
   // user can always see where they are, even when tabs overflow the viewport.
   useEffect(() => {
@@ -297,15 +380,20 @@ export function DashboardHero(props: DashboardHeroProps) {
                 outside the scroll wrapper above: the scroll strip's
                 overflow-x:auto forces overflow-y to auto too, which would
                 clip an absolutely-positioned dropdown placed inside it. */}
-            <div className="cd-popover-anchor cd-topnav__more-anchor">
+            <div className="cd-popover-anchor cd-topnav__more-anchor" onKeyDown={onMoreKeyDown}>
               <button
                 type="button"
-                className={`cd-tab${isMoreActive ? " cd-tab--active" : ""}`}
+                ref={moreTriggerRef}
+                className={`cd-tab cd-tab--more${isMoreActive ? " cd-tab--active" : ""}`}
                 aria-haspopup="menu"
                 aria-expanded={showMoreMenu}
                 onClick={() => setShowMoreMenu((v) => !v)}
               >
-                {t("tab_more", lang)} ▾
+                {t("tab_more", lang)}
+                {/* lucide, not a "▾" text glyph: the glyph sat on the text
+                    baseline at whatever size the label happened to be, and
+                    could not turn to show the menu's state. */}
+                <ChevronDown className="cd-tab__chevron" size={15} strokeWidth={2} aria-hidden="true" />
                 {isMoreActive && (
                   <motion.span
                     layoutId="cd-tab-indicator"
@@ -316,25 +404,52 @@ export function DashboardHero(props: DashboardHeroProps) {
               </button>
               {showMoreMenu && (
                 <>
-                  <div className="cd-overlay cd-overlay--menu" onClick={() => setShowMoreMenu(false)} />
-                  <div className="cd-dropdown" role="menu">
-                    {moreTabs.map((tab) => (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        role="menuitem"
-                        className="cd-dropdown__btn"
-                        aria-current={activeTab === tab.id ? "page" : undefined}
-                        onClick={() => {
-                          onTabChange(tab.id);
-                          setShowMoreMenu(false);
-                        }}
-                      >
-                        <span>{lang === "ta" && tab.labelTaKey ? t(tab.labelTaKey, lang) : tab.labelEn}</span>
-                        <span className="cd-dropdown__desc">{lang === "ta" ? tab.desc.ta : tab.desc.en}</span>
-                      </button>
-                    ))}
-                  </div>
+                  <div className="cd-overlay cd-overlay--menu" onClick={() => closeMoreMenu(false)} />
+                  <motion.div
+                    ref={moreMenuRef}
+                    className="cd-dropdown cd-dropdown--nav"
+                    role="menu"
+                    aria-label={t("tab_more", lang)}
+                    initial={prefersReducedMotion() ? false : { opacity: 0, y: -6, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: DUR.fast, ease: EASE_NOVA }}
+                    style={{ transformOrigin: "top right" }}
+                  >
+                    {moreTabs.map((tab) => {
+                      const Glyph = tab.icon;
+                      const isCurrent = activeTab === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          type="button"
+                          role="menuitem"
+                          className="cd-dropdown__btn cd-dropdown__btn--nav"
+                          aria-current={isCurrent ? "page" : undefined}
+                          onClick={() => {
+                            onTabChange(tab.id);
+                            // Focus returns to the trigger rather than being
+                            // dropped on the body when the menu unmounts.
+                            closeMoreMenu();
+                          }}
+                        >
+                          <span className="cd-dropdown__icon" aria-hidden="true">
+                            {Glyph && <Glyph size={17} strokeWidth={1.9} />}
+                          </span>
+                          <span className="cd-dropdown__text">
+                            <span className="cd-dropdown__label">
+                              {lang === "ta" && tab.labelTaKey ? t(tab.labelTaKey, lang) : tab.labelEn}
+                            </span>
+                            <span className="cd-dropdown__desc">{lang === "ta" ? tab.desc.ta : tab.desc.en}</span>
+                          </span>
+                          {/* aria-current alone was invisible — you could not
+                              see which destination you were already on. */}
+                          <span className="cd-dropdown__check" aria-hidden="true">
+                            {isCurrent && <Check size={15} strokeWidth={2.4} />}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </motion.div>
                 </>
               )}
             </div>

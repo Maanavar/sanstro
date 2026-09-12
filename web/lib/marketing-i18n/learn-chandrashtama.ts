@@ -4,8 +4,8 @@ export const LEARN_CHANDRA = {
   eyebrow:  s("Learn · Chandrashtama",    "அறிந்து கொள் · சந்திராஷ்டமம்"),
   h1:       s("What is Chandrashtama?",   "சந்திராஷ்டமம் என்றால் என்ன?"),
   lead:     s(
-    "Chandrashtama is the period when the transiting Moon passes through the 8th sign from your birth Moon sign. It occurs roughly every 27 days and lasts about 2.5 days.",
-    "சந்திராஷ்டமம் என்பது நகரும் சந்திரன் உங்கள் பிறப்பு சந்திர ராசியிலிருந்து 8வது ராசி வழியாக கடக்கும் காலம். இது தோராயமாக ஒவ்வொரு 27 நாட்களுக்கும் ஒரு முறை நிகழ்கிறது, சுமார் 2.5 நாட்கள் நீடிக்கும்."
+    "Chandrashtama is the period when the transiting Moon passes through the 8th sign from your birth Moon sign. It comes round roughly every 27 days. The sign transit itself takes about 2.5 days, and a Tamil almanac names one birth star per day within it — so the window that is yours is about a day of those 2.5.",
+    "சந்திராஷ்டமம் என்பது நகரும் சந்திரன் உங்கள் பிறப்பு சந்திர ராசியிலிருந்து 8வது ராசி வழியாக கடக்கும் காலம். இது தோராயமாக ஒவ்வொரு 27 நாட்களுக்கும் ஒரு முறை வருகிறது. ராசி கடப்பு சுமார் 2.5 நாட்கள் நீடிக்கும்; அதற்குள் பஞ்சாங்கம் ஒவ்வொரு நாளுக்கும் ஒரு ஜென்ம நட்சத்திரத்தைக் குறிப்பிடுகிறது — எனவே உங்களுக்குரிய காலம் அந்த 2.5 நாட்களில் சுமார் ஒரு நாள் ஆகும்."
   ),
 
   what_h2:   s("What it means",        "இது என்ன அர்த்தம்"),

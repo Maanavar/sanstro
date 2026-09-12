@@ -52,7 +52,7 @@ include = ["app*"]
 testpaths = ["tests"]
 pythonpath = ["."]
 cache_dir = "C:/tmp/pytest_cache"
-addopts = "-ra --cov=app --cov-report=term-missing --cov-fail-under=40"
+addopts = "-ra --cov=app --cov-report=term-missing --cov-fail-under=88"
 markers = [
     "no_db: pure unit tests that do not need a database connection",
 ]

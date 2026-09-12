@@ -34,6 +34,83 @@ export const HOME = {
   card_hold:      s("Hold",              "எச்சரிக்கை நேரம்"),
   card_d1_ready:  s("D1 · D9 ready",    "D1 · D9 தயார்"),
 
+  // ── Hero "Today, live" panel ────────────────────────────────────────────
+  // These replace the hardcoded sample card. Every string here labels a value
+  // the public panchangam endpoint actually computed for today, so none of them
+  // may imply a personal chart the visitor has not given us — the panel's whole
+  // argument is that the reader can check it against their own almanac.
+  today_badge:      s("Live",                   "நேரலை"),
+  today_eyebrow:    s("Today in %s",            "இன்று %s இல்"),
+  today_loading:    s("Reading today's almanac…", "இன்றைய பஞ்சாங்கம் ஏற்றப்படுகிறது…"),
+  today_unavailable: s(
+    "Today's almanac could not be loaded just now. The full panchangam is always available.",
+    "இன்றைய பஞ்சாங்கத்தை இப்போது ஏற்ற முடியவில்லை. முழு பஞ்சாங்கம் எப்போதும் கிடைக்கும்."
+  ),
+  today_star:       s("Star",                   "நட்சத்திரம்"),
+  today_tithi:      s("Tithi",                  "திதி"),
+  today_waxing:     s("Waxing",                 "வளர்பிறை"),
+  today_waning:     s("Waning",                 "தேய்பிறை"),
+
+  today_best_label:    s("Best window",         "சிறந்த நேரம்"),
+  today_best_tonight:  s("Best window tonight", "இன்றிரவு சிறந்த நேரம்"),
+  today_starts_in:     s("starts in %s",        "%s இல் தொடங்குகிறது"),
+  today_on_now:        s("on now · %s left",    "இப்போது நடக்கிறது · %s மீதம்"),
+  today_passed:        s("has passed",          "முடிந்துவிட்டது"),
+  today_clear_of:      s(
+    "Clear of Rahu Kalam, Yamagandam and Kuligai.",
+    "ராகு காலம், எமகண்டம், குளிகை — மூன்றிலிருந்தும் விலகி உள்ளது."
+  ),
+  today_not_clear:     s(
+    "Every good kala today runs into an avoid period — this is the best of them, not a clear one.",
+    "இன்று ஒவ்வொரு நல்ல கலமும் ஒரு தீய காலத்துடன் மோதுகிறது — இது அவற்றுள் சிறந்தது, முற்றிலும் தெளிவானது அல்ல."
+  ),
+
+  today_avoid_label:   s("Avoid",               "தவிர்க்க"),
+  today_avoid_inside:  s("You are inside it now · %s left", "நீங்கள் இப்போது இதற்குள் இருக்கிறீர்கள் · %s மீதம்"),
+  today_avoid_in:      s("in %s",               "%s இல்"),
+  today_avoid_over:    s("over for today",      "இன்றைக்கு முடிந்தது"),
+
+  today_other_label:   s("Other traditional timings", "பிற பாரம்பரிய நேரங்கள்"),
+  today_other_note:    s(
+    "Your almanac also lists these. Shown so you can check us, not so you have to choose between them.",
+    "உங்கள் பஞ்சாங்கமும் இவற்றைக் குறிப்பிடும். எங்களைச் சரிபார்க்கவே இவை — நீங்கள் தேர்வு செய்ய வேண்டும் என்பதற்கு அல்ல."
+  ),
+  today_nalla_neram:   s("Nalla Neram",         "நல்ல நேரம்"),
+  today_rahu:          s("Rahu Kalam",          "ராகு காலம்"),
+  today_yama:          s("Yamagandam",          "எமகண்டம்"),
+  today_kuligai:       s("Kuligai",             "குளிகை"),
+  today_abhijit:       s("Abhijit",             "அபிஜித்"),
+  // Finding 7 of the dashboard hero review, same doctrine on this surface:
+  // Abhijit is a fixed ~49-min slot at solar noon and Friday's Rahu Kalam
+  // clips it on a large fraction of Fridays. Naming the overlap is the only
+  // position consistent with the card one row above, which promotes a window
+  // precisely *because* it is clear of the kalas.
+  today_abhijit_clipped: s(
+    "overlaps an avoid period; the clear part is %s",
+    "ஒரு தீய காலத்துடன் மோதுகிறது; தெளிவான பகுதி %s"
+  ),
+  today_abhijit_covered: s(
+    "falls entirely inside an avoid period today",
+    "இன்று முழுவதும் ஒரு தீய காலத்திற்குள் வருகிறது"
+  ),
+  today_abhijit_wednesday: s("not counted on Wednesdays", "புதன்கிழமைகளில் கணக்கிடப்படுவதில்லை"),
+
+  today_rasi_label:   s("Your rasi",            "உங்கள் ராசி"),
+  today_rasi_prompt:  s(
+    "Pick your birth rasi — no account, no birth time.",
+    "உங்கள் ஜன்ம ராசியைத் தேர்வு செய்யுங்கள் — கணக்கு வேண்டாம், பிறந்த நேரமும் வேண்டாம்."
+  ),
+  today_rasi_house:   s("Moon is in your %s house today", "இன்று சந்திரன் உங்களுக்கு %s ஆம் இடத்தில்"),
+  today_rasi_more:    s("Full rasi palan →",    "முழு ராசிபலன் →"),
+  today_rasi_change:  s("Change",               "மாற்று"),
+  today_rasi_loading: s("Reading the Moon…",    "சந்திர நிலை பார்க்கப்படுகிறது…"),
+
+  today_foot:       s(
+    "Drik Ganita (Thirukanitham) · times for %s",
+    "திருக்கணிதம் (Drik Ganita) · %s நேரங்கள்"
+  ),
+  today_foot_link:  s("Full panchangam →",      "முழு பஞ்சாங்கம் →"),
+
   // Section 2 — What Vinaadi does
   helps_eyebrow:  s("What Vinaadi does", "விநாடி என்ன செய்கிறது"),
   helps_h2:       s(

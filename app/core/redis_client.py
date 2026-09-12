@@ -37,7 +37,17 @@ def get_redis() -> Any | None:
         return None
 
     try:
-        client = redis.Redis.from_url(url, decode_responses=True)
+        # Both timeouts default to None in redis-py, i.e. wait forever. The rate
+        # limiter calls Redis on the request path, so a server that accepts the
+        # connection and then stops answering would hang requests instead of
+        # falling back to the in-process limiter.
+        timeout = settings.redis_socket_timeout_seconds
+        client = redis.Redis.from_url(
+            url,
+            decode_responses=True,
+            socket_timeout=timeout,
+            socket_connect_timeout=timeout,
+        )
         client.ping()
     except Exception as exc:  # pragma: no cover - infra dependent
         logger.warning("Redis unreachable at %s (%s); using in-process fallback.", url, exc)

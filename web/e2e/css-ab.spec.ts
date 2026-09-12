@@ -246,7 +246,7 @@ test.describe("css A/B — dashboard", () => {
     const api = context.request;
     const csrf = { "X-Vinaadi-CSRF": "1" };
 
-    const reg = await api.post("/api/backend/api/v1/auth/register", { data: { email, password: PASSWORD } });
+    const reg = await api.post("/api/backend/api/v1/auth/register", { data: { email, password: PASSWORD, consentGiven: true } });
     if (!reg.ok()) throw new Error(`register failed: ${reg.status()} ${await reg.text()}`);
     const login = await api.post("/api/backend/api/v1/auth/login", { data: { email, password: PASSWORD } });
     if (!login.ok()) throw new Error(`login failed: ${login.status()} ${await login.text()}`);

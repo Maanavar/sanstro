@@ -37,10 +37,19 @@ import { Kicker } from "./ui/kicker";
  * checks + next-steps + disclaimer) instead of Classic's single-column list.
  *
  * Also ports Classic's Compatibility Intelligence upsell/report (the 8-level
- * deep report gated to MARRIAGE + a real family-vault Person 2) and its
- * dedicated PDF branch — the first pass here dropped that feature entirely,
- * making Nova's tool noticeably shallower than Classic's for anyone with a
- * family vault (reported 2026-07-09).
+ * deep report) and its dedicated PDF branch — the first pass here dropped that
+ * feature entirely, making Nova's tool noticeably shallower than Classic's for
+ * anyone with a family vault (reported 2026-07-09).
+ *
+ * Classic gated that report on MARRIAGE **plus a real family-vault Person 2**,
+ * and this file inherited the gate. The effect was that depth followed where
+ * the birth data was stored rather than who was asking: a signed-in user who
+ * typed two people in by hand got the same shallow ten-porutham result as a
+ * logged-out visitor on the marketing calculator. Since 2026-09-04 the gate is
+ * MARRIAGE alone — a vault member still reads through the member route (its
+ * saved chart and its spouse/partner relationship check), and any other pair
+ * goes to POST /relationships/compatibility-intelligence/direct, which computes
+ * both charts transiently behind the same sign-in requirement.
  */
 
 type BirthForm = {
@@ -187,6 +196,7 @@ export function NovaPoruthamPanel({
     setError("");
     setLoading(true);
     setPorutham(null); setChartA(null); setChartB(null); setDashaA(null); setDashaB(null);
+    setShowCiReport(false);
     try {
       const result = await apiFetchJson<PublicCompareResponse>("/api/v1/public/compare", {
         method: "POST",
@@ -213,19 +223,26 @@ export function NovaPoruthamPanel({
     if (!chartA || !chartB || !porutham || downloadingPdf) return;
     setDownloadingPdf(true);
     try {
-      if (showCiReport && selectedVaultMemberIdB && familyVaultId) {
-        const params = new URLSearchParams({ familyVaultId, lang });
-        const response = await fetch(
-          `/api/backend/api/v1/relationships/${selectedVaultMemberIdB}/compatibility-intelligence/direct/pdf?${params.toString()}`,
-          {
-            method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json", "X-Vinaadi-CSRF": "1" },
-            body: JSON.stringify({
-              personA: { displayName: formA.displayName, birthDateLocal: formA.birthDateLocal, birthTimeLocal: formA.birthTimeLocal || null, birthPlace: formA.birthPlace, birthLatitude: parseFloat(formA.birthLatitude), birthLongitude: parseFloat(formA.birthLongitude), birthTimezone: formA.birthTimezone },
-            }),
-          }
-        );
+      if (showCiReport) {
+        const response = ciViaVaultMember
+          ? await fetch(
+              `/api/backend/api/v1/relationships/${selectedVaultMemberIdB}/compatibility-intelligence/direct/pdf?${new URLSearchParams({ familyVaultId: familyVaultId as string, lang }).toString()}`,
+              {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json", "X-Vinaadi-CSRF": "1" },
+                body: JSON.stringify({ personA: birthPayload(formA) }),
+              }
+            )
+          : await fetch(
+              `/api/backend/api/v1/relationships/compatibility-intelligence/direct/pdf?lang=${lang}`,
+              {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json", "X-Vinaadi-CSRF": "1" },
+                body: JSON.stringify({ personA: birthPayload(formA), personB: birthPayload(formB) }),
+              }
+            );
         if (!response.ok) throw new Error(`${response.status}: PDF export failed`);
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);
@@ -261,6 +278,15 @@ export function NovaPoruthamPanel({
     }
   }
 
+  // Editing Person 2 by hand after loading a family member makes that member
+  // the wrong source for the deep report — it must describe the birth details
+  // on screen, not the ones that were there before the edit. Person 1 carries
+  // no member id, so only B needs the wrapper.
+  const setFormBEdited: typeof setFormB = (next) => {
+    setFormB(next);
+    setSelectedVaultMemberIdB(null);
+  };
+
   function loadMember(which: "A" | "B", memberId: string) {
     const m = familyMembers.find((fm) => fm.memberId === memberId);
     if (!m) return;
@@ -282,6 +308,20 @@ export function NovaPoruthamPanel({
       setShowCiReport(false);
     }
   }
+
+  // A loaded vault member keeps the member route (saved chart + the
+  // spouse/partner relationship check); everything else is computed from the
+  // two forms as typed.
+  const ciViaVaultMember = Boolean(familyVaultId && selectedVaultMemberIdB);
+  const birthPayload = (f: BirthForm) => ({
+    displayName: f.displayName,
+    birthDateLocal: f.birthDateLocal,
+    birthTimeLocal: f.birthTimeLocal || null,
+    birthPlace: f.birthPlace,
+    birthLatitude: parseFloat(f.birthLatitude),
+    birthLongitude: parseFloat(f.birthLongitude),
+    birthTimezone: f.birthTimezone,
+  });
 
   const pct = porutham ? porutham.totalScore / Math.max(1, porutham.maxScore) : 0;
   // A Rajju/Vedha veto is inauspicious regardless of the numeric score — the
@@ -336,7 +376,7 @@ export function NovaPoruthamPanel({
 
       {/* Two person forms */}
       <div style={{ display: "flex", gap: "var(--space-4)", flexWrap: "wrap", alignItems: "flex-start" }}>
-        {([["A", formA, setFormA, "var(--color-accent-strong)"], ["B", formB, setFormB, "var(--color-accent-secondary)"]] as const).map(([which, form, setForm, accent]) => (
+        {([["A", formA, setFormA, "var(--color-accent-strong)"], ["B", formB, setFormBEdited, "var(--color-accent-secondary)"]] as const).map(([which, form, setForm, accent]) => (
           <Card key={which} style={{ flex: 1, minWidth: "260px", padding: "var(--space-5)", borderRadius: "var(--radius-md)", gap: 0 }}>
             {familyMembers.length > 0 && (
               <div style={{ marginBottom: "12px" }}>
@@ -695,10 +735,12 @@ export function NovaPoruthamPanel({
           {/* Compatibility Intelligence upsell / report — ported from Classic
               PoruthamPanel: the 8-level deep report (7th house, Navamsa, dasha
               timing, Sevvai dosham, emotional match, 0-100 score) is what makes
-              Classic's tool "deeper" than this one was. Gated the same way
-              Classic gates it: MARRIAGE context + a real family-vault member
-              loaded as Person 2 (not the "owner:"-prefixed self entry). */}
-          {compatCtx === "MARRIAGE" && familyVaultId && selectedVaultMemberIdB && (
+              Classic's tool "deeper" than this one was. The only gate is the
+              MARRIAGE context: this panel renders inside the signed-in
+              dashboard, so anyone who can see it has already paid the sign-in
+              price the report is gated on. Person 2 no longer has to be a saved
+              family member — see the file header. */}
+          {compatCtx === "MARRIAGE" && (
             <div>
               {!showCiReport ? (
                 <div style={{
@@ -735,17 +777,10 @@ export function NovaPoruthamPanel({
                     </button>
                   </div>
                   <CompatibilityIntelligencePanel
-                    familyVaultId={familyVaultId}
-                    memberId={selectedVaultMemberIdB}
-                    personABirth={{
-                      displayName: formA.displayName,
-                      birthDateLocal: formA.birthDateLocal,
-                      birthTimeLocal: formA.birthTimeLocal || null,
-                      birthPlace: formA.birthPlace,
-                      birthLatitude: parseFloat(formA.birthLatitude),
-                      birthLongitude: parseFloat(formA.birthLongitude),
-                      birthTimezone: formA.birthTimezone,
-                    }}
+                    familyVaultId={ciViaVaultMember ? familyVaultId : undefined}
+                    memberId={ciViaVaultMember ? selectedVaultMemberIdB ?? undefined : undefined}
+                    personABirth={birthPayload(formA)}
+                    personBBirth={ciViaVaultMember ? undefined : birthPayload(formB)}
                     lang={lang}
                   />
                 </div>

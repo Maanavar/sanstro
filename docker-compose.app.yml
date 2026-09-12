@@ -44,14 +44,40 @@ services:
     environment:
       JOTHIDAM_ENVIRONMENT: production
       JOTHIDAM_DATABASE_URL: postgresql://${POSTGRES_USER:-vinaadi}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-vinaadi}
-      JOTHIDAM_JWT_SECRET: ${JOTHIDAM_JWT_SECRET:?set JOTHIDAM_JWT_SECRET}
-      JOTHIDAM_ADMIN_API_KEY: ${JOTHIDAM_ADMIN_API_KEY:?set JOTHIDAM_ADMIN_API_KEY}
-      JOTHIDAM_ENCRYPTION_KEY: ${JOTHIDAM_ENCRYPTION_KEY:?set JOTHIDAM_ENCRYPTION_KEY}
+      # No `${VAR:?}` guard on these three. It used to be here, and it was the
+      # right guard while .env was the only channel — but compose interpolates
+      # each file at load time, before overlays merge, so a `:?` in this file
+      # fires even when docker-compose.secrets.yml is supplying the value from
+      # /run/secrets. That would make the file-backed path impossible to use
+      # without also keeping the plaintext in .env, which is the whole point of
+      # the overlay.
+      #
+      # Nothing is lost: app/core/config.py refuses to boot in production
+      # without them, knows about the _FILE channel, and knows which role needs
+      # which secret. The failure moves from `compose up` to a container that
+      # exits immediately with a named error.
+      JOTHIDAM_JWT_SECRET: ${JOTHIDAM_JWT_SECRET:-}
+      JOTHIDAM_ADMIN_API_KEY: ${JOTHIDAM_ADMIN_API_KEY:-}
+      JOTHIDAM_ENCRYPTION_KEY: ${JOTHIDAM_ENCRYPTION_KEY:-}
       JOTHIDAM_ANTHROPIC_API_KEY: ${JOTHIDAM_ANTHROPIC_API_KEY:-}
       JOTHIDAM_COOKIE_SECURE: "true"
       JOTHIDAM_DEBUG: "false"
-      # If the API sits behind a single reverse proxy / load balancer, set this to 1.
+      # Trusted hops in front of *the API*. This and TRUSTED_PROXY_HOPS_BEFORE_WEB
+      # describe the same deployment from two ends and must be EQUAL:
+      #
+      #   no edge (default)   both 0 — Next forwards no X-Forwarded-For at all,
+      #                       so there is nothing for the API to trust.
+      #   `edge` profile      both 1 — nginx appends the real peer, Next forwards
+      #                       that one entry, the API steps back one to read it.
+      #   edge behind a CDN   both 2 — Next forwards the rightmost TWO entries
+      #                       (`hops.slice(-N)`), so the API must step back two.
+      #
+      # Out of step = the API reads an entry no trusted hop wrote, or ignores the
+      # only one that was. Both are silent. The same variable is passed to this
+      # service purely so app/core/config.py can cross-check the pair at boot; it
+      # is the web tier's setting and the API reads nothing else from it.
       JOTHIDAM_TRUSTED_PROXY_COUNT: ${JOTHIDAM_TRUSTED_PROXY_COUNT:-0}
+      TRUSTED_PROXY_HOPS_BEFORE_WEB: ${TRUSTED_PROXY_HOPS_BEFORE_WEB:-0}
       JOTHIDAM_CORS_ALLOW_ORIGINS: ${JOTHIDAM_CORS_ALLOW_ORIGINS:-}
       WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
       # Single-box default: the API also runs the cron scheduler (behind the
@@ -66,8 +92,22 @@ services:
       JOTHIDAM_REDIS_URL: ${JOTHIDAM_REDIS_URL:-redis://redis:6379/0}
       JOTHIDAM_RATE_LIMIT_BACKEND: ${JOTHIDAM_RATE_LIMIT_BACKEND:-redis}
       JOTHIDAM_CACHE_BACKEND: ${JOTHIDAM_CACHE_BACKEND:-memory}
+    # Loopback only. This used to be "8000:8000", which publishes on 0.0.0.0 and
+    # puts the unfronted API — every admin route, no TLS — on the public
+    # interface of whatever box runs this. Browsers never need it: they reach the
+    # API through the Next proxy at /api/backend/*. Kept bound to localhost so
+    # `curl` from the host still works for debugging.
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      # Readiness, not liveness: compose gates dependent services on this, and
+      # what they need to know is whether the API can actually serve, not merely
+      # whether the process exists.
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=5).status==200 else 1)\""]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   # Dedicated scheduler process for scaled deploys. Not started by default; bring
   # it up with `--profile scaled` and set JOTHIDAM_RUN_SCHEDULER_IN_WEB=false on
@@ -83,10 +123,18 @@ services:
         condition: service_healthy
     environment:
       JOTHIDAM_ENVIRONMENT: production
+      # Least privilege: this process serves no HTTP, so it authenticates
+      # nothing and holds neither JOTHIDAM_JWT_SECRET nor
+      # JOTHIDAM_ADMIN_API_KEY. The role is what lets it boot without them —
+      # app/core/config.py requires those of the "api" role only.
+      #
+      # It does still need the encryption key: the morning push reads birth
+      # profiles, which are encrypted at rest.
+      JOTHIDAM_PROCESS_ROLE: worker
       JOTHIDAM_DATABASE_URL: postgresql://${POSTGRES_USER:-vinaadi}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-vinaadi}
-      JOTHIDAM_JWT_SECRET: ${JOTHIDAM_JWT_SECRET:?set JOTHIDAM_JWT_SECRET}
-      JOTHIDAM_ADMIN_API_KEY: ${JOTHIDAM_ADMIN_API_KEY:?set JOTHIDAM_ADMIN_API_KEY}
-      JOTHIDAM_ENCRYPTION_KEY: ${JOTHIDAM_ENCRYPTION_KEY:?set JOTHIDAM_ENCRYPTION_KEY}
+      # See the api service: guard removed so the overlay can supply this by
+      # file. app/core/config.py still refuses to boot without it, for both roles.
+      JOTHIDAM_ENCRYPTION_KEY: ${JOTHIDAM_ENCRYPTION_KEY:-}
       JOTHIDAM_REDIS_URL: ${JOTHIDAM_REDIS_URL:-redis://redis:6379/0}
     # Migrations are owned by the api container; the worker just runs the scheduler.
     entrypoint: ["tini", "--", "python", "-m", "app.worker"]
@@ -104,8 +152,98 @@ services:
       NODE_ENV: production
       # Server-to-server base URL the Next proxy uses to reach the API.
       API_BASE_URL: ${API_BASE_URL:-http://api:8000}
+      # Hops in front of *Next*. 0 without the `edge` profile, 1 with it, 2 for
+      # an edge behind a CDN. Must equal the api service's
+      # JOTHIDAM_TRUSTED_PROXY_COUNT, which now refuses to boot in production if
+      # it does not.
+      TRUSTED_PROXY_HOPS_BEFORE_WEB: ${TRUSTED_PROXY_HOPS_BEFORE_WEB:-0}
+    # Loopback only, for the same reason as the api service. With the `edge`
+    # profile nginx reaches it over the compose network as `web:3000`; without
+    # it, open http://localhost:3000.
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
+
+  # TLS ingress. Opt-in: `docker compose -f docker-compose.app.yml --profile edge up`.
+  #
+  # Not started by default because it needs a real certificate and a real
+  # domain, and a stack that fails to start without one would push people back
+  # to running the app on plain HTTP — the thing this exists to stop.
+  #
+  # Enabling it means setting VINAADI_DOMAIN, mounting certificates, and setting
+  # BOTH proxy-hop counts to 1.
+  edge:
+    image: nginx:1.27-alpine
+    profiles: ["edge"]
+    depends_on:
+      - web
+    environment:
+      VINAADI_DOMAIN: ${VINAADI_DOMAIN:?set VINAADI_DOMAIN}
+    # Reload every six hours so a certificate certbot renewed overnight is
+    # actually served. nginx re-reads certificates on SIGHUP and never on its
+    # own, so without this a renewal lands on disk and the expired one keeps
+    # being presented until someone restarts the container by hand.
+    #
+    # THE TRAP: the obvious form of this — `command: /bin/sh -c "…loop… & nginx
+    # -g 'daemon off;'"` — is the recipe everyone copies, and it silently breaks
+    # this deployment. `/docker-entrypoint.sh` runs the envsubst template step
+    # ONLY when its first argument is `nginx`. Replace the command with a shell
+    # and ${VINAADI_DOMAIN} is never substituted, so nginx starts with a literal
+    # `${VINAADI_DOMAIN}` server_name and a certificate path that does not exist.
+    #
+    # So the loop goes in the entrypoint, backgrounded before exec, and `command`
+    # stays `nginx …` — the entrypoint still sees what it needs to see. `--` is
+    # $0; "$@" is the command below.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - '(while :; do sleep 21600; nginx -s reload 2>/dev/null || true; done) & exec /docker-entrypoint.sh "$$@"'
+      - "--"
+    command: ["nginx", "-g", "daemon off;"]
+    volumes:
+      # nginx:1.27-alpine expands ${VINAADI_DOMAIN} in anything under
+      # templates/ and writes the result to conf.d at container start.
+      - ./docker/nginx/vinaadi.conf:/etc/nginx/templates/vinaadi.conf.template:ro
+      # Read-only here on purpose: nginx serves certificates, certbot owns them.
+      # The certbot service below mounts the same directory writable.
+      - ${CERTBOT_CONF_DIR:-./docker/nginx/certs}:/etc/letsencrypt:ro
+      - ${CERTBOT_WEBROOT_DIR:-./docker/nginx/webroot}:/var/www/certbot
+    ports:
+      - "80:80"
+      - "443:443"
+    healthcheck:
+      test: ["CMD-SHELL", "nginx -t || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Certificate renewal. Certificates were mounted read-only and nothing renewed
+  # them, so the stack was ninety days from an outage that looks like a total
+  # site failure. docs/PRODUCTION_EDGE.md §5.
+  #
+  # This service RENEWS. It does not issue the first certificate — `certbot
+  # renew` is a no-op when there is nothing to renew, and issuance needs port 80
+  # free, which the edge is holding. Bootstrap is a one-time command, documented
+  # in PRODUCTION_EDGE.md §1 and run before the edge starts.
+  #
+  # Twice a day is what Let's Encrypt asks for: renewal happens at 30 days
+  # remaining, so a run that fails has ~60 attempts left before anything breaks,
+  # and the jitter keeps the ACME servers from being hit by every deployment at
+  # midnight. A pass with nothing due exits 0 having made no network call.
+  certbot:
+    image: certbot/certbot:latest
+    profiles: ["edge"]
+    volumes:
+      # Writable, unlike the edge's mount of the same directory.
+      - ${CERTBOT_CONF_DIR:-./docker/nginx/certs}:/etc/letsencrypt
+      - ${CERTBOT_WEBROOT_DIR:-./docker/nginx/webroot}:/var/www/certbot
+    # `trap exit TERM` so `compose down` stops it during the sleep instead of
+    # waiting out the ten-second kill timeout. `sleep … & wait` rather than a
+    # bare sleep for the same reason: a shell blocked in `sleep` ignores signals.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 43200 & wait $${!}; done'
+    restart: unless-stopped
 
 volumes:
   vinaadi_db_data:

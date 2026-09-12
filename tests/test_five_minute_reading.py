@@ -64,6 +64,15 @@ def _maha(lord: str, start: date, end: date, index: int) -> DashaPeriod:
     )
 
 
+def _stable_error_body(response) -> dict:
+    """Compare anti-enumeration responses without their unique trace ids."""
+    body = response.json()
+    body.pop("request_id", None)
+    if isinstance(error := body.get("error"), dict):
+        error.pop("request_id", None)
+    return body
+
+
 @pytest.fixture(autouse=True)
 def _reading_enabled():
     set_flag("five_minute_reading", True)
@@ -141,7 +150,7 @@ def test_flag_off_answers_404_identically_for_real_and_fake_chart_ids(
 
     assert real.status_code == 404
     assert fake.status_code == 404
-    assert real.json() == fake.json()
+    assert _stable_error_body(real) == _stable_error_body(fake)
 
 
 # ── Register gating (§0.2): only "self" ships ────────────────────────────────
@@ -158,7 +167,7 @@ def test_a_minor_owning_their_own_account_gets_the_same_404_as_flag_off(client):
     response = client.get(f"/api/v1/charts/{chart_id}/five-minute")
 
     assert response.status_code == 404
-    assert response.json() == off.json()
+    assert _stable_error_body(response) == _stable_error_body(off)
 
 
 # ── client_with_guardian: the reduced 6-beat register (§0.2) ─────────────────
@@ -290,7 +299,7 @@ def test_a_family_vault_members_chart_gets_the_same_404_as_flag_off(
     response = client.get(f"/api/v1/charts/{row[0]}/five-minute")
 
     assert response.status_code == 404
-    assert response.json() == off.json()
+    assert _stable_error_body(response) == _stable_error_body(off)
 
 
 # ── What actually ships: "self", all 8 beats (5, 6, 7 gated per §0.2/§2.5) ──

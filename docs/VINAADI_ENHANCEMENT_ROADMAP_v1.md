@@ -904,7 +904,7 @@ compat_family: { ta: "குடும்ப பார்வை", en: "Family ins
 | 16–18 | Tone compliance audit + `tone_validator` tests (P1-D) | P1-D |
 | 19–22 | Rectification assistant wizard (P1-F) | P1-F |
 | 23-25 | Activity timing placement decision (Plan-only vs Plan+Personal) + polish pass | FEATURE-08 |
-| 26–30 | Integration test pass + all 233+ tests green | All |
+| 26–30 | Integration test pass + full suite green (count: see CI) | All |
 
 ### Days 31–60 — Deepen Trust and Utility
 **Goal:** Users can explore their future, ask questions, and find auspicious timing.
@@ -995,10 +995,15 @@ Before marking any sprint complete, run these checks in order:
 # Always set encoding vars before pytest — Tamil output will corrupt without these
 $env:PYTHONUTF8 = "1"
 $env:PYTHONIOENCODING = "utf-8"
-$env:JOTHIDAM_DATABASE_URL = "sqlite:///./pytest_local_test.db"
+# The suite requires the dedicated Docker test DB. SQLite is NOT supported:
+# tests/conftest.py refuses any database not named vinaadi_test on localhost:5433,
+# and app/db/session.py passes max_overflow, which SQLite rejects at import.
+$env:JOTHIDAM_DATABASE_URL = "postgresql://slw_admin:slw_dev_password@localhost:5433/vinaadi_test"
+$env:JOTHIDAM_TEST_DB_RESET_ACK = "I_UNDERSTAND_THIS_WIPES_TEST_DB"
 .\.venv\Scripts\python.exe -m pytest tests/ -x -q
 ```
-- All green. Count must be ≥ 233 (grows as new tests are added — never shrinks).
+- All green. Do not gate on a test *count*: a redundant or wrong test should be
+  deletable, and a hardcoded floor forbids that. CI is the authority on the suite.
 - If any test fails: fix root cause. Never skip with `--ignore` or `pytest.mark.skip` without explicit product-owner approval.
 
 ### 11.2 New Tests Required

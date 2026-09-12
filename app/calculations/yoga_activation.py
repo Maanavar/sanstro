@@ -12,11 +12,17 @@ on near-miss names — ``GAJA_KESARI`` for a code emitted as
 activated, and were capped at the dormant rung no matter which dasha ran. See
 `YOG-01` split, 2026-08-27.
 
-A yoga whose registry row declares no key grahas (Parivartana, Sakata,
-Kemadruma, Chandala, Amala, Adhi, Daridra, Lakshmi, Sunapha/Anapha/Durudhura,
-Vasumati, Kartari) is still dormant-capped. That is disclosed per rule in the
-registry rather than fixed here, because choosing a key graha for a yoga that
-has none is a doctrine call, not a code fix.
+A yoga whose registry row declares no key grahas is still dormant-capped. That is
+disclosed per rule in the registry rather than fixed here, because choosing a key
+graha for a yoga that has none is a doctrine call, not a code fix.
+
+**Astrologer ruling, 2026-09-11** closed three of those: Kemadruma activates on
+Chandran, Sakata on Chandran and Guru. Daridra's key graha is the *11th lord*,
+which is chart-dependent and therefore cannot live in a static registry row — so
+``YogaResult.key_grahas`` carries it per chart and ``key_planets_for`` below
+prefers it over the registry table. Parivartana, Chandala, Amala, Adhi, Lakshmi,
+Sunapha/Anapha/Durudhura, Vasumati and Kartari remain dormant-capped and are
+still awaiting a ruling.
 """
 from __future__ import annotations
 
@@ -27,6 +33,18 @@ from app.calculations.yoga_rules import activation_key_planets
 YOGA_KEY_PLANETS: dict[str, list[str]] = activation_key_planets()
 
 
+def key_planets_for(yoga_name: str, chart_key_grahas: tuple[str, ...] = ()) -> list[str]:
+    """The grahas whose dasha activates this yoga, for this chart.
+
+    A per-chart override wins over the registry table. It exists for yogas keyed
+    on a house *lord* — Daridra's 11th lord is a different graha per lagna, so
+    naming it in a static row is impossible. Empty override = use the registry.
+    """
+    if chart_key_grahas:
+        return list(chart_key_grahas)
+    return YOGA_KEY_PLANETS.get(yoga_name, [])
+
+
 def yoga_activation_score(
     yoga_name: str,
     yoga_is_present: bool,
@@ -34,16 +52,24 @@ def yoga_activation_score(
     mahadasha_lord: str,
     antardasha_lord: str,
     planet_scores: dict[str, int],
+    chart_key_grahas: tuple[str, ...] = (),
 ) -> int:
     """
     Returns 0-100 activation intensity for a yoga.
     0 = yoga absent or dormant.
     100 = yoga present and at peak dasha activation with strong key planet.
+
+    Note what this does *not* read: gochara. Intensity is a function of the
+    mahadasha lord, the antardasha lord and natal graha strength only. A yoga's
+    live intensity arguably *should* be transit-modulated — Guru or Sani transiting
+    a key graha is how a jyotishi judges "is it firing now" — but that is an
+    unbuilt engine, not an undocumented input. Any copy describing this number
+    must say dasha, never transits (astrologer ruling, 2026-09-11).
     """
     if not yoga_is_present:
         return 0
 
-    key_planets = YOGA_KEY_PLANETS.get(yoga_name, [])
+    key_planets = key_planets_for(yoga_name, chart_key_grahas)
     dasha_lords = {mahadasha_lord, antardasha_lord}
     activated = bool(dasha_lords & set(key_planets))
 

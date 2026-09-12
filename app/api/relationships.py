@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import date
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -24,6 +25,7 @@ from app.schemas.relationships import (
 )
 from app.services.chart_service import _chart_response_from_profile  # noqa: PLC2701
 from app.services.synastry_service import (
+    build_compatibility_intelligence_from_snapshots,
     compare_charts_direct,
     compare_synastry_direct,
     get_compatibility_intelligence_for_member,
@@ -50,6 +52,15 @@ class DirectBirthInput(BaseModel):
 
 class DirectCompatibilityIntelligenceRequest(BaseModel):
     person_a: DirectBirthInput = Field(alias="personA")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class DirectPairCompatibilityIntelligenceRequest(BaseModel):
+    """Both people typed in by hand — neither has to exist in a family vault."""
+
+    person_a: DirectBirthInput = Field(alias="personA")
+    person_b: DirectBirthInput = Field(alias="personB")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -86,6 +97,15 @@ def _validate_compatibility_context(value: str) -> str:
 def _safe_name(raw: str, fallback: str) -> str:
     cleaned = re.sub(r"[^A-Za-z0-9_-]+", "_", raw).strip("_")
     return cleaned or fallback
+
+
+def _transient_snapshot(payload: DirectBirthInput) -> Any:
+    """Compute a chart for a person who is not persisted anywhere."""
+    try:
+        return _chart_response_from_profile(_TransientProfile(payload), "thirukanitham-2026-v1")
+    except (ValueError, HTTPException) as exc:
+        msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
+        raise HTTPException(status_code=422, detail=msg) from exc
 
 
 @router.get("/relationships/alerts", response_model=RelationshipAlertsResponse, tags=["relationships"])
@@ -130,6 +150,60 @@ def relationship_porutham(
     )
 
 
+@router.post(
+    "/relationships/compatibility-intelligence/direct",
+    response_model=CompatibilityIntelligenceResponse,
+    tags=["relationships"],
+)
+def compatibility_intelligence_direct_pair(
+    payload: DirectPairCompatibilityIntelligenceRequest,
+    current_user: User = Depends(get_current_user),
+) -> CompatibilityIntelligenceResponse:
+    """Full 8-level Compatibility Intelligence Report for any two people a signed-in user types in.
+
+    The member-scoped routes below require Person B to be a member of the
+    caller's family vault. The Porutham tool lets a signed-in user enter two
+    people by hand, and gating the deep report on vault membership left every
+    hand-entered pair with the same shallow ten-porutham result a logged-out
+    visitor gets — the depth was a function of *where the data came from*
+    rather than of who was asking. Both charts are computed transiently and
+    nothing is persisted; sign-in is the only gate.
+
+    Declared before ``/relationships/{member_id}/...`` so the literal path
+    segment is matched before the UUID parameter can swallow it.
+    """
+    snap_a = _transient_snapshot(payload.person_a)
+    snap_b = _transient_snapshot(payload.person_b)
+    return build_compatibility_intelligence_from_snapshots(snap_a, snap_b)
+
+
+@router.post("/relationships/compatibility-intelligence/direct/pdf", tags=["relationships"])
+def compatibility_intelligence_direct_pair_pdf(
+    payload: DirectPairCompatibilityIntelligenceRequest,
+    lang: str = Query(default="en", pattern="^(en|ta)$"),
+    current_user: User = Depends(get_current_user),
+) -> Response:
+    from app.services.pdf_export_service import generate_compatibility_intelligence_pdf
+
+    snap_a = _transient_snapshot(payload.person_a)
+    snap_b = _transient_snapshot(payload.person_b)
+    result = build_compatibility_intelligence_from_snapshots(snap_a, snap_b)
+    name_a = result.data.person_a_name or payload.person_a.display_name or "Person_A"
+    name_b = result.data.person_b_name or payload.person_b.display_name or "Person_B"
+    pdf_bytes = generate_compatibility_intelligence_pdf(result.data, name_a, name_b, lang=lang)
+    safe_a = _safe_name(name_a, "A")
+    safe_b = _safe_name(name_b, "B")
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="compatibility_intelligence_{safe_a}_{safe_b}.pdf"'
+            )
+        },
+    )
+
+
 @router.get(
     "/relationships/{member_id}/compatibility-intelligence",
     response_model=CompatibilityIntelligenceResponse,
@@ -170,11 +244,7 @@ def relationship_compatibility_intelligence_direct(
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> CompatibilityIntelligenceResponse:
-    try:
-        snap_a = _chart_response_from_profile(_TransientProfile(payload.person_a), "thirukanitham-2026-v1")
-    except (ValueError, HTTPException) as exc:
-        msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
-        raise HTTPException(status_code=422, detail=msg) from exc
+    snap_a = _transient_snapshot(payload.person_a)
 
     return get_compatibility_intelligence_for_member_with_snapshot(
         session,
@@ -312,11 +382,7 @@ def relationship_compatibility_intelligence_direct_pdf(
 ) -> Response:
     from app.services.pdf_export_service import generate_compatibility_intelligence_pdf
 
-    try:
-        snap_a = _chart_response_from_profile(_TransientProfile(payload.person_a), "thirukanitham-2026-v1")
-    except (ValueError, HTTPException) as exc:
-        msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
-        raise HTTPException(status_code=422, detail=msg) from exc
+    snap_a = _transient_snapshot(payload.person_a)
 
     result = get_compatibility_intelligence_for_member_with_snapshot(
         session,

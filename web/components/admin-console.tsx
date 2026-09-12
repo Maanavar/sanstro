@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { ModalShell } from "@/components/modal-shell";
 import { useSession } from "@/hooks/useSession";
 import { readErrorMessage } from "@/lib/api";
+import { parseApiErrorText, type ApiErrorCode } from "@vinaadi/shared/api";
 import { formatDateTimeLabel } from "@/lib/format";
 
 type ElevationGrant = {
@@ -237,8 +238,8 @@ function registerElevationPrompt(prompt: ElevationPrompt | null) {
 }
 
 /** The server's signal that this session may act, but must re-authenticate first. */
-function needsElevation(status: number, detail: string) {
-  return status === 403 && detail.toLowerCase().includes("elevation");
+function needsElevation(status: number, code?: ApiErrorCode) {
+  return status === 403 && code === "ELEVATION_REQUIRED";
 }
 
 function adminHeaders(init: RequestInit) {
@@ -283,8 +284,9 @@ async function adminFetchJson<T>(
   if (!response.ok) {
     const text = await response.text().catch(() => "");
     const detail = errorDetail(text);
+    const apiError = parseApiErrorText(response.status, text, response.headers.get("X-Request-ID"));
 
-    if (allowElevationRetry && needsElevation(response.status, detail) && elevationPrompt) {
+    if (allowElevationRetry && needsElevation(response.status, apiError.code) && elevationPrompt) {
       // Whatever we were holding is spent or was never right; do not send it again.
       forgetElevation();
       if (await elevationPrompt()) {

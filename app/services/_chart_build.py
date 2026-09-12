@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import UTC, datetime, time
+from datetime import UTC, date, datetime, time
+from functools import lru_cache
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -32,7 +33,7 @@ from app.calculations.equal_bhava import compute_equal_bhava
 from app.calculations.functional_nature import get_functional_nature
 from app.calculations.panchangam import NAKSHATRA_NAMES, calculate_daily_panchangam
 from app.calculations.transits import RASI_NAMES, is_cazimi, is_combust
-from app.calculations.yoga_activation import yoga_activation_score
+from app.calculations.yoga_activation import key_planets_for, yoga_activation_score
 from app.calculations.yoga_effects import yoga_effect
 from app.calculations.yogas import detect_yogas_and_doshams
 from app.models import Chart
@@ -122,32 +123,58 @@ def _birth_datetime_utc(profile: Any) -> datetime:
     return local_datetime_to_utc(birth_datetime_local, _value(profile, "birth_timezone"))
 
 
-def _birth_panchangam_signature(profile: Any) -> dict[str, object]:
+@lru_cache(maxsize=1024)
+def _birth_panchangam_signature_items(
+    birth_date_local: date,
+    birth_timezone: str,
+    birth_latitude: float,
+    birth_longitude: float,
+) -> tuple[tuple[str, object], ...]:
+    """The birth day's panchangam signature, memoised on the four values it reads.
+
+    Deliberately keyed on scalars rather than the profile object: this is a pure
+    function of the birth moment and place, none of which can change for a chart,
+    so the answer is good for the life of the process.
+
+    It is worth memoising because it is expensive and called far more often than
+    it looks. `load_persisted_chart_response` calls it on every load, and one
+    dashboard-bundle request loads the chart **eight** times — the bundle itself
+    plus each sub-service that re-loads it independently. Profiled 2026-09-09:
+    32,338 swisseph calls per bundle, 7.4 s of 10.6 s total, and ~7.8 s of that
+    was eight identical recomputations of this one signature.
+
+    Note the `use_cache=False` below is intentional and stays: the panchangam
+    row cache is keyed for daily-guidance reads, and a birth date is a one-off
+    lookup that would only pollute it. This cache is the right layer.
+
+    Returns items rather than a dict so the caller can build a fresh mapping and
+    no caller can mutate what the next one receives.
+    """
     from zoneinfo import ZoneInfo
 
     from app.calculations.tamil_calendar import format_tamil_date
 
     snapshot = calculate_daily_panchangam(
-        date_local=_value(profile, "birth_date_local"),
-        timezone_name=_value(profile, "birth_timezone"),
-        latitude=float(_value(profile, "birth_latitude")),
-        longitude=float(_value(profile, "birth_longitude")),
+        date_local=birth_date_local,
+        timezone_name=birth_timezone,
+        latitude=birth_latitude,
+        longitude=birth_longitude,
         session=None,
         use_cache=False,
     )
 
-    tz = ZoneInfo(str(_value(profile, "birth_timezone")))
+    tz = ZoneInfo(birth_timezone)
     sunrise_local = snapshot.sunrise.astimezone(tz)
     sunset_local = snapshot.sunset.astimezone(tz)
     tamil_date_ta, tamil_date_en = format_tamil_date(
-        _value(profile, "birth_date_local"),
-        str(_value(profile, "birth_timezone")),
-        float(_value(profile, "birth_latitude")),
-        float(_value(profile, "birth_longitude")),
+        birth_date_local,
+        birth_timezone,
+        birth_latitude,
+        birth_longitude,
     )
 
     from app.services._chart_planets import _nakshatra_gana, _nakshatra_nadi
-    return {
+    return tuple({
         "vaaram": snapshot.weekday,
         "vaaram_lord": snapshot.weekday_lord,
         "tithi": snapshot.tithi_name,
@@ -163,7 +190,16 @@ def _birth_panchangam_signature(profile: Any) -> dict[str, object]:
         "sunset_time": sunset_local.strftime("%I:%M:%S %p"),
         "tamil_date_ta": tamil_date_ta,
         "tamil_date_en": tamil_date_en,
-    }
+    }.items())
+
+
+def _birth_panchangam_signature(profile: Any) -> dict[str, object]:
+    return dict(_birth_panchangam_signature_items(
+        _value(profile, "birth_date_local"),
+        str(_value(profile, "birth_timezone")),
+        float(_value(profile, "birth_latitude")),
+        float(_value(profile, "birth_longitude")),
+    ))
 
 
 def _build_birth_conditions(
@@ -392,6 +428,23 @@ def _build_yoga_dosham_insights(
         longitudes_in={planet.graha: planet.absolute_longitude for planet in planets},
     )
 
+    # A detector that cannot see the running dasha hardcodes `dasha_activated`
+    # to False (Sakata, Kemadruma, Daridra all do). Before the 2026-09-11 ruling
+    # gave those yogas key grahas that was harmless — nothing could activate
+    # them anyway — but it left the surfaces *asserting* dormancy: mobile's
+    # how-sheet said "no current dasha lord activates this yoga" on a Kemadruma
+    # chart in a Chandran mahadasha. Now that key grahas exist, resolve the flag
+    # here, where the dasha lords are actually in scope, against the same table
+    # the activation score uses. The detector's own True is never overturned.
+    running_lords = {mahadasha_lord, antardasha_lord}
+
+    def _dasha_activated(item) -> bool:
+        if item.dasha_activated:
+            return True
+        if not item.is_present:
+            return False
+        return bool(running_lords & set(key_planets_for(item.name, item.key_grahas)))
+
     yoga_models = [
         ChartYogaInsight(
             name=item.name,
@@ -399,7 +452,7 @@ def _build_yoga_dosham_insights(
             strength=item.strength,
             conditionsMet=item.conditions_met,
             cancellationFactors=item.cancellation_factors,
-            dashaActivated=item.dasha_activated,
+            dashaActivated=_dasha_activated(item),
             activationScore=yoga_activation_score(
                 yoga_name=item.name,
                 yoga_is_present=item.is_present,
@@ -407,8 +460,9 @@ def _build_yoga_dosham_insights(
                 mahadasha_lord=mahadasha_lord,
                 antardasha_lord=antardasha_lord,
                 planet_scores=planet_scores,
+                chart_key_grahas=item.key_grahas,
             ),
-            isCurrentlyActive=item.dasha_activated,
+            isCurrentlyActive=_dasha_activated(item),
             descriptionTa=item.description_ta,
             descriptionEn=item.description_en,
             # description_* states the mechanism (how the yoga forms); effect_*

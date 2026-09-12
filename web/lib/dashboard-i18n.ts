@@ -336,27 +336,135 @@ export const TODAY_TIMINGS = {
     "Today's clear windows have already passed.",
     "இன்றைய தெளிவான நேரங்கள் ஏற்கனவே கடந்துவிட்டன.",
   ),
-  otherSystemsTitle: s("Other traditional timings", "பிற பாரம்பரிய நேரக் கணக்குகள்"),
-  otherSystemsIntro: s(
-    "Use the window above. These are the systems it was chosen from — shown so you can check it, not so you have to choose between them.",
-    "மேலே உள்ள நேரத்தைப் பயன்படுத்துங்கள். அது எந்தக் கணக்குகளிலிருந்து தேர்ந்தெடுக்கப்பட்டது என்பதைச் சரிபார்க்க இவை காட்டப்படுகின்றன; இவற்றுள் ஒன்றைத் தேர்வு செய்ய அல்ல.",
+  // The "Other traditional timings" disclosure this block served was removed
+  // 2026-09-04 (owner call) — its title, its group headings and the Nalla Neram
+  // "(recommended)" tag went with it. Finding 8's correction (the panel claimed
+  // all four systems were "the systems it was chosen from", when
+  // `pickRecommendedWindow` reads only the Gowri ranking and the three kalas)
+  // no longer needs copy: there is no panel left to overclaim.
+  // Finding 7. The kala-overlap disclosure states the app's *existing*
+  // implemented position (owner ruling 2026-08-23: a window overlapping Rahu
+  // Kalam / Yamagandam / Kuligai is never promoted) rather than picking new
+  // doctrine — whether Abhijit overrides the kalas is queued in
+  // docs/ASTROLOGER_REVIEW_QUEUE.md.
+  abhijitOverlap: s(
+    "Overlaps %1$s here, and this app treats the avoid periods as binding — so the clear part is %2$s.",
+    "இது %1$s உடன் மேற்பொருந்துகிறது; இந்த ஆப் தவிர்க்க வேண்டிய நேரங்களைக் கட்டுப்பாடாகவே கொள்வதால், தெளிவான பகுதி %2$s.",
   ),
-  whatIsNallaNeram: s(
-    "Nalla Neram — the almanac's good windows for the day, cut from the Gowri table and always chosen clear of the avoid periods.",
-    "நல்ல நேரம் — கௌரி பஞ்சாங்க அட்டவணையிலிருந்து எடுக்கப்பட்ட, தவிர்க்க வேண்டிய நேரங்களில் படாத, அன்றைய நல்ல நேரங்கள்.",
+  abhijitFullyCovered: s(
+    "Overlaps %1$s for its whole span today, and this app treats the avoid periods as binding.",
+    "இன்று முழு நேரமும் %1$s உடன் மேற்பொருந்துகிறது; இந்த ஆப் தவிர்க்க வேண்டிய நேரங்களைக் கட்டுப்பாடாகவே கொள்கிறது.",
   ),
-  whatIsAbhijit: s(
-    "Abhijit — a fixed slot of about 48 minutes around midday, counted auspicious for anyone, whatever their chart.",
-    "அபிஜித் — நண்பகலைச் சுற்றி வரும் சுமார் 48 நிமிட நிலையான நேரம்; ஜாதகம் எதுவாயினும் அனைவருக்கும் நல்லதாகக் கருதப்படுகிறது.",
+  // Window phase copy, shared by the promoted window and the avoid window so
+  // the safety axis reads in the same tense as the opportunity axis
+  // (finding 4).
+  startsIn: s("starts in %s", "%s இல் தொடங்குகிறது"),
+  endsIn: s("ends in %s", "%s இல் முடிகிறது"),
+  avoidRunningNow: s("You are inside it now", "இப்போது இந்த நேரத்தில் இருக்கிறீர்கள்"),
+  // Redesign 2026-09-07 — the best-window card's conflict line used to render
+  // open, permanently, as a fifth stacked row under the reason text. It is a
+  // note about a *different, non-promoted* window (a competing method's pick),
+  // not a caution on the one already recommended, so it is collapsed behind a
+  // toggle rather than always taking hero space — same information, on demand.
+  //
+  // Phrased as a question naming the losing window's own start time, so the
+  // label teaches something before it is tapped and reads as a sibling of the
+  // score card's "Why this prediction?" rather than as an error count. Tamil
+  // puts the interrogative last, matching `TODAY_HERO.whyLink`.
+  conflictToggle: s("Why not %s?", "%s ஏன் இல்லை?"),
+} as const;
+
+// ─── Emotional weather (hero review 2026-09-04, findings 1–3) ────────────────
+// `emotionalWeather.tone` / `.physicalTendency` / `.bestUseOfDay` are database
+// enums, not copy — `balanced_routine`, `low_energy`, `single_task_routine`.
+// The hero rendered them raw, which was invisible only while the selected
+// profile happened to yield single readable English words (`calm`, `steady`),
+// and which handed a Tamil reader English tokens in Tamil mode.
+//
+// The backend already ships a reviewed bilingual *sentence* per field
+// (`toneText`, `physicalTendencyText`, `bestUseOfDayText`); the hero now prints
+// the sentence. These are the compact chip labels that sit above it, so a pill
+// never has to carry a full clause. A token must never reach the screen:
+// `weatherLabel` below falls back to a humanised form for any profile added to
+// `_TONE_MAP` after this map. New Tamil, pending native review.
+const EMOTIONAL_WEATHER_LABELS: Record<string, BiStr> = {
+  // tone
+  confident: s("Confident", "தன்னம்பிக்கை"),
+  heavy: s("Heavy", "கனமான மனநிலை"),
+  expansive: s("Expansive", "விரிந்த மனநிலை"),
+  restless: s("Restless", "அமைதியின்மை"),
+  calm: s("Calm", "அமைதி"),
+  scattered: s("Scattered", "சிதறல்"),
+  // physical tendency
+  energised: s("Energised", "உற்சாகம்"),
+  low_energy: s("Low energy", "மந்தமான சக்தி"),
+  focused: s("Focused", "கவனம்"),
+  hyperactive: s("Restless energy", "அதிக வேகம்"),
+  balanced: s("Balanced", "சமநிலை"),
+  anxious: s("Anxious", "பதற்றம்"),
+  steady: s("Steady", "நிலையான நடை"),
+  // best use of day
+  leadership: s("Leadership", "தலைமை"),
+  deep_work: s("Deep work", "ஆழ்ந்த வேலை"),
+  people_facing: s("People-facing work", "மக்களுடன் பணி"),
+  execution_sprints: s("Short sprints", "வேகமாக முடிக்க"),
+  creative: s("Creative work", "படைப்பு வேலை"),
+  single_task_routine: s("One task at a time", "ஒரு வேலை மட்டும்"),
+  balanced_routine: s("Routine progress", "வழக்கமான பணிகள்"),
+};
+
+/** Human label for one `emotionalWeather` enum. Unknown tokens are humanised
+ *  rather than printed raw — a snake_case token on screen is the bug this
+ *  exists to make impossible, not a case to fail loudly on. */
+export function weatherLabel(token: string, lang: Lang): string {
+  const known = EMOTIONAL_WEATHER_LABELS[token];
+  if (known) return dt(known, lang);
+  const words = token.replace(/_/g, " ").trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+// ─── Today hero chrome (hero review 2026-09-04, findings 9–14) ───────────────
+export const TODAY_HERO = {
+  /** Finding 12: the static "here is what this screen contains" lede is
+   *  onboarding copy in a surface a daily user opens every morning. It now
+   *  renders only when there is no briefing to lead with. */
+  ledeNoGuidance: s(
+    "Today's guidance, your chart score, and the best windows — at a glance.",
+    "இன்றைய வழிகாட்டுதல், ஜாதக மதிப்பெண் மற்றும் சிறந்த நேரங்கள் — ஒரே பார்வையில்.",
   ),
-  // The row label now leads with "Planetary hour" and carries "Horai" beside it
-  // (A-017), so this line no longer restates the name it sits under.
-  whatIsHorai: s(
-    "Every hour of the day is ruled by one planet, in a fixed weekly cycle — a finer layer of timing under the day's own ruler.",
-    "நாளின் ஒவ்வொரு மணி நேரமும் ஒரு கிரகத்தின் ஆட்சியில், நிலையான வாராந்திர சுழற்சியில் அமைகிறது.",
+  /** Finding 9: the hero link and the section it lands on had two different
+   *  names. The destination's heading wins. */
+  whyLink: s("Why this prediction", "இந்த கணிப்பு ஏன்?"),
+  eveningPreviewLabel: s("Evening preview", "மாலை முன்னோட்டம்"),
+  eveningPreviewHint: s(
+    "After 8pm, preview tomorrow here instead of today",
+    "இரவு 8 மணிக்குப் பின் நாளையை முன்னோட்டமாகக் காட்டு",
   ),
-  whatIsAvoidKalas: s(
-    "Rahu Kalam, Yamagandam, Kuligai — three stretches of every day traditionally kept free of new beginnings. Work already under way is not affected.",
-    "ராகு காலம், யமகண்டம், குளிகை — ஒவ்வொரு நாளிலும் புதிய தொடக்கங்களுக்குத் தவிர்க்கப்படும் மூன்று நேரங்கள். ஏற்கனவே நடந்துகொண்டிருக்கும் வேலைகளுக்கு இது பொருந்தாது.",
+  readMore: s("Read more", "மேலும் படிக்க"),
+  readLess: s("Show less", "சுருக்கு"),
+  todayScore: s("Today's score", "இன்றைய மதிப்பெண்"),
+  tomorrowScore: s("Tomorrow's score", "நாளைய மதிப்பெண்"),
+  /** Finding 5: the band is evidence strength, a different axis from the day's
+   *  verdict, and stacking the two 6px apart on the score card read as the app
+   *  contradicting itself. It moves to the evidence section and is labelled
+   *  there. */
+  chartSupport: s("Chart support", "ஜாதக ஆதரவு"),
+  /* Hero redesign 2026-09-04 — the three strings below are new to the surface.
+     New Tamil, pending native review (docs/ASTROLOGER_REVIEW_QUEUE.md). */
+  quote: s(
+    "Right timing turns ordinary days into meaningful progress.",
+    "சரியான நேரம் சாதாரண நாட்களை அர்த்தமுள்ள முன்னேற்றமாக மாற்றுகிறது.",
   ),
+  quoteAttribution: s("Vinaadi", "விநாடி"),
+  keyTimings: s("Key timings for today", "இன்றைய முக்கிய நேரங்கள்"),
+  viewFullAlmanac: s("View full almanac", "முழு பஞ்சாங்கம் பார்க்க"),
+} as const;
+
+export const EMOTIONAL_WEATHER = {
+  toneLabel: s("Mood", "மனநிலை"),
+  bodyLabel: s("Body", "உடல்"),
+  bestUseLabel: s("Best used for", "எதற்கு ஏற்ற நாள்"),
+  /** The one genuine caution in the payload (`avoidBefore`), which no web
+   *  surface rendered at all before this pass (finding 3). */
+  cautionLabel: s("One thing to hold back on", "ஒன்றை மட்டும் தள்ளி வைக்கவும்"),
 } as const;
