@@ -239,6 +239,21 @@ export interface PersonalizedMuhurtaBirthInput {
 
 export interface PersonalizedMuhurtaPayload {
   birth: PersonalizedMuhurtaBirthInput;
+  /**
+   * The second half of a couple. Optional — "check for one person only" is a
+   * supported answer, not a degraded one. When present, both charts are scored
+   * together: the weaker of each pair of personal readings is the one that is
+   * priced, and a veto from either side (Chandrashtama, a janma-tara count)
+   * removes the day. Birth time is required on this chart too.
+   */
+  partner?: PersonalizedMuhurtaBirthInput;
+  /**
+   * What `birth` is. The partner's role is the complement and is not sent.
+   * A display label everywhere except Kalaprakasika Ch. XIV p.79's Jupiter
+   * gochara rule, which is stated from the bride's Janma-Rasi and is only
+   * answerable once a caller has said which chart is hers.
+   */
+  subjectRole?: "BRIDE" | "GROOM" | "PERSON";
   eventType: string;
   dateFrom: string;
   dateTo: string;

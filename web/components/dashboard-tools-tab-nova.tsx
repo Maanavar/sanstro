@@ -236,7 +236,7 @@ export function DashboardToolsTabNova({
   function renderCardBody(tool: ToolCardSpec) {
     const isGenericMuhurta = tool.id === "muhurta";
     const description = isGenericMuhurta
-      ? (lang === "ta" ? "யாருக்காகவும் பிறப்பு விவரங்கள், செயல் மற்றும் நிகழ்வு இடத்தை உள்ளிட்டு தனிப்பட்ட முகூர்த்தத்தைக் காணுங்கள். விவரங்கள் சேமிக்கப்படாது." : "Personalised dates and hours for anyone — enter birth details, activity and event location. Nothing is saved.")
+      ? (lang === "ta" ? "யாருக்காகவும் பிறப்பு விவரங்கள், செயல் மற்றும் நிகழ்வு இடத்தை உள்ளிட்டு தனிப்பட்ட முகூர்த்தத்தைக் காணுங்கள். திருமணத்திற்கு மணமகள் மணமகன் இருவரின் ஜாதகத்தையும் சரிபார்க்கலாம். விவரங்கள் சேமிக்கப்படாது." : "Personalised dates and hours for anyone — enter birth details, activity and event location. A wedding can be checked against both the bride's and the groom's chart. Nothing is saved.")
       : (lang === "ta" ? tool.descTa : tool.descEn);
     const meta = isGenericMuhurta
       ? (lang === "ta" ? "தேவை · பிறப்பு விவரங்கள்" : "needs · birth details")

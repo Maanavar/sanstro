@@ -804,9 +804,26 @@ class PublicMuhurtaResponse(BaseModel):
 
 
 class PublicPersonalizedMuhurtaRequest(BaseModel):
-    """A no-save, chart-personalized muhurta request for the public tool."""
+    """A no-save, chart-personalized muhurta request for the public tool.
+
+    `birth` is the first chart and has always been required. `partner` is the
+    second — the shape a wedding date has always had, and which the tool could
+    not express until 2026-09-12. Optional, because "check for one person only"
+    is a supported answer, not a degraded one.
+
+    `subjectRole` names what `birth` is: BRIDE, GROOM, or PERSON when the reader
+    did not say. The partner's role is the complement and is not sent — two
+    fields that must disagree are two fields that will eventually agree. The
+    role is a display label everywhere except Ch. XIV p.79's Jupiter gochara
+    rule, which is stated from the bride's Janma-Rasi and is therefore only
+    answerable once a caller has said which chart is hers.
+    """
 
     birth: PublicBirthInput
+    partner: PublicBirthInput | None = None
+    subject_role: Literal["BRIDE", "GROOM", "PERSON"] = Field(
+        default="PERSON", alias="subjectRole",
+    )
     event_type: str = Field(alias="eventType")
     date_from: date = Field(alias="dateFrom")
     date_to: date = Field(alias="dateTo")
@@ -817,6 +834,15 @@ class PublicPersonalizedMuhurtaRequest(BaseModel):
     include_excluded: bool = Field(default=False, alias="includeExcluded")
 
     model_config = ConfigDict(populate_by_name=True)
+
+    @property
+    def roles(self) -> tuple[str | None, str | None]:
+        """(role of `birth`, role of `partner`), or (None, None) when unstated."""
+        if self.subject_role == "BRIDE":
+            return ("BRIDE", "GROOM")
+        if self.subject_role == "GROOM":
+            return ("GROOM", "BRIDE")
+        return (None, None)
 
 
 def _overlaps_public(start_a, end_a, start_b, end_b) -> bool:
@@ -874,7 +900,13 @@ def public_personalized_muhurta(
 
     The transient chart uses the same scorer and result contract as Calendar's
     signed-in picker. Birth time is required here: without it the tool must not
-    claim a personalized Lagna, Hora, or Dasha reading.
+    claim a personalized Lagna, Hora, or Dasha reading — and that applies to the
+    partner's chart exactly as it does to the first, since both feed the same
+    personal layer.
+
+    With a `partner`, both charts are scored together: the weaker of each pair of
+    personal readings is the one that is priced and a veto from either side
+    removes the day. See `muhurta_engine._weaker_side_governs`.
     """
     from app.services.muhurta_service import find_best_muhurta_slots
 
@@ -883,11 +915,35 @@ def public_personalized_muhurta(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Birth time is required for a personalized muhurta reading.",
         )
-    try:
-        chart = _chart_response_from_profile(_EphemeralProfile(payload.birth), "thirukanitham-2026-v1")
-    except (ValueError, HTTPException) as exc:
-        msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc
+    if payload.partner is not None and payload.partner.birth_time_local is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Birth time is required for the second person's chart too.",
+        )
+
+    def _chart_for(birth: PublicBirthInput, *, which: str):
+        try:
+            return _chart_response_from_profile(_EphemeralProfile(birth), "thirukanitham-2026-v1")
+        except (ValueError, HTTPException) as exc:
+            msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
+            # Naming which of the two charts failed. Without it a couple's form
+            # shows one error for two identical-looking blocks and the reader has
+            # to guess which set of details to correct.
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=f"{which}: {msg}" if payload.partner is not None else msg,
+            ) from exc
+
+    primary_role, partner_role = payload.roles
+    # "First chart" / "Second chart" rather than "Person" / "Partner" when the
+    # roles were not given: two nouns that differ by one syllable are no help at
+    # all when the reader is looking at two identical blocks. These match the
+    # unnamed-couple labels the service prints inside the factor copy.
+    chart = _chart_for(payload.birth, which=(primary_role or "").title() or "First chart")
+    partner_chart = (
+        None if payload.partner is None
+        else _chart_for(payload.partner, which=(partner_role or "").title() or "Second chart")
+    )
 
     return find_best_muhurta_slots(
         None,
@@ -901,6 +957,11 @@ def public_personalized_muhurta(
         activity_place=payload.place,
         include_excluded=payload.include_excluded,
         chart_data=chart.data,
+        co_chart_data=None if partner_chart is None else partner_chart.data,
+        subject_role=primary_role,
+        # None without a partner. A role for a chart that was not sent is dead
+        # state, and dead state is what a later reader mistakes for a signal.
+        co_subject_role=partner_role if partner_chart is not None else None,
     )
 
 

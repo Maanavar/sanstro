@@ -600,5 +600,7 @@ export function festivalTags(festival: Pick<PanchangamFestival, "category" | "ta
   return Array.from(new Set(tags.filter(Boolean)));
 }
 
-export const VRATHA_FESTIVAL_PATTERN = /ekadashi|ekadasi|pradosham|sashti|chaturthi|chathurthi|ashtami|amavas|pourn|vratam|vratham|thiruvonam/i;
+// "pradhosam" is the backend's own spelling (festivals.py) — without it every
+// Pradhosam fell into the Festivals filter and the Vratham toggle never hid it.
+export const VRATHA_FESTIVAL_PATTERN = /ekadashi|ekadasi|pradosham|pradhosam|sashti|chaturthi|chathurthi|ashtami|amavas|pourn|vratam|vratham|thiruvonam/i;
 
