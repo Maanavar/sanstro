@@ -507,9 +507,16 @@ async function skeletonPalette(page) {
     host.appendChild(card);
     const parse = (c) => {
       const m = c.match(/rgba?\(([^)]+)\)/);
-      if (!m) return [0, 0, 0, 0];
-      const p = m[1].split(/[ ,/]+/).filter(Boolean).map(Number);
-      return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1];
+      if (m) {
+        const p = m[1].split(/[ ,/]+/).filter(Boolean).map(Number);
+        return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1];
+      }
+      // Chromium serializes color-mix() with transparency as color(srgb …).
+      // Convert its unit RGB channels back to the 0–255 scale used below.
+      const srgb = c.match(/^color\(srgb\s+([^)]+)\)$/);
+      if (!srgb) return [0, 0, 0, 0];
+      const p = srgb[1].split(/[ /]+/).filter(Boolean).map(Number);
+      return [p[0] * 255, p[1] * 255, p[2] * 255, p.length > 3 ? p[3] : 1];
     };
     const over = (fg, bg) => fg.slice(0, 3).map((v, i) => v * fg[3] + bg[i] * (1 - fg[3])).concat(1);
     const lum = (c) => {

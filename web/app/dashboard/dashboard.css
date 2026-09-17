@@ -704,7 +704,7 @@
 .cd-skeleton {
   position: relative;
   overflow: hidden;
-  background: var(--panel-tan, #D4C8AE);
+  background: color-mix(in srgb, var(--color-text-strong) 8%, transparent);
   border-radius: var(--radius-sm);
 }
 
@@ -713,7 +713,12 @@
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-text-strong) 14%, transparent),
+    transparent
+  );
   animation: cd-shimmer 1.4s ease-in-out infinite;
 }
 
@@ -723,38 +728,38 @@
   }
 }
 
-/* Skeleton card components always use the cream/tan palette inside the dashboard
-   regardless of system theme — the dashboard shell has a fixed cream background */
+/* Skeletons inherit Nova's active surface and stay deliberately quiet in either
+   theme. The dashboard no longer has a fixed cream background. */
 .cd-main-content .skel-card {
-  background: var(--panel-cream, #FAF5EA);
-  border-color: var(--panel-tan-light, #E4DBC8);
+  background: var(--color-surface);
+  border-color: var(--color-border);
 }
 
 .cd-main-content .skel {
-  background: var(--panel-tan, #D4C8AE);
+  background: color-mix(in srgb, var(--color-text-strong) 8%, transparent);
 }
 
 .cd-main-content .skel::after {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.55) 50%,
+    color-mix(in srgb, var(--color-text-strong) 14%, transparent) 50%,
     transparent 100%
   );
 }
 
 .cd-main-content .skel-metric-cell {
-  background: var(--panel-cream, #FAF5EA);
-  border-color: var(--panel-tan-light, #E4DBC8);
+  background: var(--color-surface);
+  border-color: var(--color-border);
 }
 
 .cd-main-content .skel-transit-list {
-  background: var(--panel-cream, #FAF5EA);
-  border-color: var(--panel-tan-light, #E4DBC8);
+  background: var(--color-surface);
+  border-color: var(--color-border);
 }
 
 .cd-main-content .skel-chart-corner {
-  background: var(--panel-tan-light, #E4DBC8);
+  background: var(--color-surface);
 }
 
 @media (max-width: 900px) {

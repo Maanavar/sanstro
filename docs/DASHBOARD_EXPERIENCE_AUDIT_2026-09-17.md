@@ -118,7 +118,8 @@ It also carries a **Gate** line: the `ux-audit` check that proves it (§12).
 
 ### P0: trust and continuity
 
-#### DXA-01 `[ ]` Loading placeholders flash the Classic cream palette on the dark theme
+#### DXA-01 `[x] 2026-09-17` Loading placeholders flash the Classic cream palette on the dark theme
+Done: DXA-01 skeleton bar/card contrast, dark 9.95 → 1.22 PASS; light 1.30 → 1.18 PASS; metrics `web/e2e/.artifacts/ux-audit-202609171621`; commit uncommitted.
 Ready: yes · Wave 1 · Needs: — · Review: shots
 - **Problem:** `web/app/dashboard/dashboard.css:726-758` forces
   `.cd-main-content .skel { background: var(--panel-tan, #D4C8AE) }` and a
