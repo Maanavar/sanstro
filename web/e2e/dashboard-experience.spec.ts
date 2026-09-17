@@ -27,6 +27,7 @@ import { ALL_PHASES, assertE2eBackend, formatGates, gateKey, runAudit, type Gate
 const MUST_PASS: Record<string, string> = {
   "DXA-01 skeleton bar/card contrast, dark (1.05–1.6)": "load",
   "DXA-01 skeleton bar/card contrast, light (1.05–1.6)": "light",
+  "DXA-02 bare /dashboard shows one destination": "load",
   "DXA-11 reduced motion: nav indicator does not move": "reduced",
   "DXA-11 reduced motion: pane appears without a fade": "reduced",
   "DXA-27 phone: no horizontal overflow": "phone",

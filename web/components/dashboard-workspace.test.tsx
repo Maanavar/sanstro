@@ -50,6 +50,32 @@ describe("dashboard-workspace — first post-calculation screen (T5)", () => {
   });
 });
 
+describe("dashboard-workspace — bare /dashboard is always Today (DXA-02, D1)", () => {
+  const hydration = source.slice(source.indexOf("// ── Hydration + localStorage restore"));
+  const hydrationBody = hydration.slice(0, hydration.indexOf("}, [session.hydrated]);"));
+
+  it("starts on the path's tab, else Today", () => {
+    expect(source).toMatch(/parseDashboardPath\(pathname, \{ qaEnabled: ENABLE_QA_TAB \}\)\.tab \?\? "personal"/);
+  });
+
+  it("does not restore the last tab from localStorage", () => {
+    // A stored `activeTab: "calendar"` used to swap Today out after /auth/me.
+    expect(hydrationBody.length).toBeGreaterThan(0);
+    expect(hydrationBody).not.toMatch(/parsed\.activeTab/);
+    expect(hydrationBody).not.toMatch(/sanitizeRestoredTab/);
+    // The only tab the hydration effect may set is the one the URL names.
+    const setters = hydrationBody.match(/setActiveTab\([^)]*\)/g) ?? [];
+    expect(setters).toEqual(["setActiveTab(fromUrl)"]);
+  });
+
+  it("no longer persists the active tab", () => {
+    const persist = source.slice(source.indexOf("window.localStorage.setItem(STORAGE_KEY"));
+    const written = persist.slice(0, persist.indexOf("} as PersistedState"));
+    expect(written.length).toBeGreaterThan(0);
+    expect(written).not.toMatch(/\bactiveTab\b/);
+  });
+});
+
 describe("dashboard-workspace — family onboarding (T19)", () => {
   it("creates 'Your family' only when the first member is submitted", () => {
     const fn = source.slice(source.indexOf("async function handleAddMember"));

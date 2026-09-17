@@ -12,7 +12,7 @@ import { getFriendlyErrorMessage } from "@/lib/error-messages";
 import { isBirthDateWithinBounds } from "@/lib/birth-date";
 import {
   TAB_QUERY_PARAM, dashboardPath, isDashboardTool, parseDashboardPath,
-  sanitizeRestoredTab, sanitizeUrlTab, type DashboardTool, type Tab,
+  sanitizeUrlTab, type DashboardTool, type Tab,
 } from "@/lib/dashboard-tabs";
 import { todayIso } from "@/lib/format";
 import { DUR, EASE_NOVA } from "@/lib/motion";
@@ -248,7 +248,8 @@ type PersistedState = {
   chartId: string;
   birthForm: BirthFormState;
   memberForm: MemberFormState;
-  activeTab: Tab;
+  // No activeTab: bare /dashboard always opens Today (DXA-02, D1). Older
+  // stored states still carry one; it is ignored.
   lang: Lang;
   hasVisitedReading: boolean;
 };
@@ -338,9 +339,9 @@ export function DashboardWorkspace() {
   //
   // `usePathname()` already knows the destination on that first render; nothing
   // has to be awaited to read it. The hydration effect still runs and is now a
-  // no-op for this value, but it still owns the two cases a path cannot answer:
-  // the legacy `?tab=` param and the localStorage restore, both of which only
-  // apply when the path names nothing.
+  // no-op for this value, but it still owns the one case a path cannot answer:
+  // the legacy `?tab=` param, which only applies when the path names nothing.
+  // A bare path is Today; the last tab is not restored (DXA-02, D1).
   //
   // In-app tab clicks no longer go through any of this: the workspace is
   // mounted by app/dashboard/(workspace)/layout.tsx, which the router keeps
@@ -745,7 +746,7 @@ export function DashboardWorkspace() {
     document.documentElement.lang = lang;
   }, [lang]);
 
-  // ── Hydration + localStorage restore ─────────────────────
+  // ── Hydration + localStorage restore (everything but the tab) ──
 
   useEffect(() => {
     if (!session.hydrated) return;
@@ -789,16 +790,10 @@ export function DashboardWorkspace() {
           if (typeof parsed.hasVisitedReading === "boolean") setHasVisitedReading(parsed.hasVisitedReading);
           if (parsed.birthForm) setBirthForm((c) => ({ ...c, ...parsed.birthForm }));
           if (parsed.memberForm) setMemberForm((c) => ({ ...c, ...parsed.memberForm }));
-          // Allowlist restore (DASH-11): only tabs the hero nav actually
-          // offers come back. Settings/onboarding stay excluded — the
-          // onboarding gate decides those from profile existence.
-          // Skipped entirely when the URL already named a tab.
-          if (!fromUrl) {
-            const restored = sanitizeRestoredTab(parsed.activeTab, { qaEnabled: ENABLE_QA_TAB });
-            if (restored) {
-              setActiveTab(restored.tab);
-            }
-          }
+          // The tab is deliberately NOT restored (DXA-02, owner decision D1):
+          // bare /dashboard is always Today. Restoring the last tab here, after
+          // /auth/me, swapped the screen under a returning user who had
+          // already seen Today paint. A path or legacy ?tab= still wins above.
           if (parsed.lang === "ta" || parsed.lang === "en") setLang(parsed.lang);
         } else {
           window.localStorage.removeItem(STORAGE_KEY);
@@ -865,10 +860,8 @@ export function DashboardWorkspace() {
     const fromUrl = parseDashboardPath(pathname, { qaEnabled: ENABLE_QA_TAB });
     // A path naming no tab means Today here, NOT "leave things alone" — Back to
     // a bare `/dashboard` must actually land on Today rather than stranding the
-    // previous tab on screen under a URL that no longer describes it. (The
-    // hydration effect above reads the same null differently, handing off to
-    // the localStorage restore, because on first load there is no "previous
-    // tab" to strand.)
+    // previous tab on screen under a URL that no longer describes it. The
+    // hydration effect above reads the same null the same way: bare means Today.
     const nextTab = fromUrl.tab ?? "personal";
     const nextTool = nextTab === "tools" ? fromUrl.tool : null;
     if (nextTab === activeTab && nextTool === activeTool) return;
@@ -912,7 +905,6 @@ export function DashboardWorkspace() {
         chartId: personal.chartId,
         birthForm,
         memberForm,
-        activeTab,
         lang,
         hasVisitedReading,
       } as PersistedState));
@@ -921,7 +913,7 @@ export function DashboardWorkspace() {
   }, [
     session.hydrated, ownerUserId, selectedDate,
     family.selectedVaultId, personal.birthProfileId, personal.chartId,
-    birthForm, memberForm, activeTab, lang, hasVisitedReading,
+    birthForm, memberForm, lang, hasVisitedReading,
   ]);
 
   // Fires once, the first time the reader is actually on Family & Charts with
@@ -2204,7 +2196,8 @@ export function DashboardWorkspace() {
                       // and the cost is small — /dashboard/layout.tsx (and its
                       // QueryProvider cache) is shared with this route and so
                       // survives, and "Back to dashboard" lands on /dashboard,
-                      // which restores the last tab from localStorage.
+                      // which is always Today (DXA-02, D1). A plain link, not
+                      // router.back(): the glossary is also opened directly.
                       { href: "/dashboard/glossary", ta: "சொற்களஞ்சியம்", en: "Glossary" },
                     ],
                   },

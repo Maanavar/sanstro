@@ -140,7 +140,8 @@ Ready: yes · Wave 1 · Needs: — · Review: shots
 - **Files:** `web/app/dashboard/dashboard.css`.
 - **Gate:** `DXA-01` contrast within 1.05–1.6, dark **and** light.
 
-#### DXA-02 `[ ]` `/dashboard` renders Today, then switches to the last-used tab (D1: Today is home)
+#### DXA-02 `[x] 2026-09-17` `/dashboard` renders Today, then switches to the last-used tab (D1: Today is home)
+Done: DXA-02 destinations `personal → calendar` → `personal`; the tab is neither restored nor persisted any more; Glossary keeps its plain `/dashboard` link (now Today; `router.back()` would fail on direct visits); metrics `web/test-results/dxa02/…/ux-audit`; commit see git log. **Open:** deleting the now-unused `sanitizeRestoredTab` + its tests awaits owner approval.
 Ready: yes · Wave 1 · Needs: — · Review: —
 - **Problem:** the first render is Today (`dashboard-workspace.tsx:349`). The
   localStorage restore runs after `/auth/me` (`:796-801`) and swaps the tab.
