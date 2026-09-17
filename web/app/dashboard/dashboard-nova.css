@@ -1181,8 +1181,14 @@
   transition: border-color 150ms ease;
 }
 
-[data-ui="nova"] .cd-ask-search:hover {
+[data-ui="nova"] .cd-ask-search:hover:not(:disabled) {
   border-color: var(--color-accent);
+}
+
+/* Present before a chart exists so its arrival does not shift the nav (DXA-05). */
+[data-ui="nova"] .cd-ask-search:disabled {
+  cursor: default;
+  opacity: 0.55;
 }
 
 [data-ui="nova"] .cd-ask-search__star {
@@ -1299,6 +1305,10 @@
   align-items: baseline;
   gap: var(--space-3);
   min-width: 0;
+  /* Takes the row's free width (DXA-05): the name and the chart line arrive
+     with the chart, and while this block sized to its contents their arrival
+     pushed the whole right-hand group sideways. */
+  flex: 1 1 auto;
 }
 
 [data-ui="nova"] .cd-subbar__name {
@@ -1340,12 +1350,42 @@
   text-overflow: ellipsis;
 }
 
+/* Spans the free width and packs to the end (DXA-05): late chips (vault,
+   provenance) appear inside the box instead of moving the box itself. */
 [data-ui="nova"] .cd-subbar__right {
   margin-left: auto;
+  /* Its own width, held constant by the fixed slots below. */
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: var(--space-3);
   min-width: 0;
+}
+
+/* DXA-05 — the provenance note and the family-vault pill both arrive with the
+   day's data. Their slots are in the row from the first paint, and hold a
+   width, so the group's left edge stays put when they land. Only where the
+   bar is one row: on a phone it wraps, and a fixed 26rem would force a wrap
+   of its own. The widths are the notes' own (Tamil says the same thing in
+   more characters); anything longer ellipsizes, as it did before. */
+[data-ui="nova"] .cd-subbar__slot {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+}
+@media (min-width: 860px) {
+  [data-ui="nova"] .cd-subbar__slot--status {
+    width: 17rem;
+  }
+  [data-ui="nova"][lang="ta"] .cd-subbar__slot--status {
+    width: 20rem;
+  }
+  [data-ui="nova"] .cd-subbar__slot--vault {
+    width: 8.5rem;
+  }
 }
 
 [data-ui="nova"] .cd-subbar__status {
@@ -4068,6 +4108,112 @@ button.ui-chip { cursor: pointer; }
   border-radius: var(--radius-xl);
   padding: var(--space-5) var(--space-5) var(--space-6);
 }
+
+/* DXA-05 — Today's hero, before the day's data.
+
+   Two states precede it: the lazy fallback (pure CSS, first paint, before the
+   tab's chunk arrives) and then the pending hero, which builds its height out
+   of skeletons shaped like the blocks it is waiting for. The numbers below are
+   what that shape measures, so the fallback hands over to the pending hero
+   without moving, and the pending hero hands over to the loaded one without
+   moving. They also floor the pending hero if a translation makes its shape
+   shorter than the fallback.
+
+   Tamil sets the same content on more lines than English at every width, so it
+   carries its own values throughout. `lang` is server-rendered on <html>
+   (app/layout.tsx), so these apply on the first paint, not after hydration.
+
+   Measured on the isolated stack (:3100), 2026-09-18, en and ta at 390 / 860 /
+   1440 — re-measure with hero-inventory-probe.mjs if the hero's structure or
+   copy changes. DXA-05's CLS gate covers en at 1440. */
+.cd-shell {
+  --nova-hero-reserve: 1466px; /* one column */
+}
+:root[lang="ta"] .cd-shell {
+  --nova-hero-reserve: 1642px;
+}
+@media (min-width: 860px) {
+  .cd-shell { /* two columns */
+    --nova-hero-reserve: 857px;
+  }
+  :root[lang="ta"] .cd-shell {
+    --nova-hero-reserve: 898px;
+  }
+}
+@media (min-width: 1200px) {
+  .cd-shell { /* three columns */
+    --nova-hero-reserve: 592px;
+  }
+  :root[lang="ta"] .cd-shell {
+    --nova-hero-reserve: 641px;
+  }
+}
+.nova-hero--pending {
+  min-height: var(--nova-hero-reserve);
+}
+
+/* The blocks whose loaded height depends on how their copy wraps. Everything
+   else in the pending hero is held by its own shape (line boxes, the 172px
+   dial, four timing rows) and needs no number. */
+.nova-hero-skel--weather {
+  min-height: 124px;
+}
+.nova-hero-skel--window {
+  min-height: 196px;
+}
+.nova-hero-skel--score {
+  min-height: 313px;
+}
+.nova-hero-skel--avoid {
+  min-height: 115px;
+}
+.nova-hero-skel--timings {
+  min-height: 285px;
+}
+:root[lang="ta"] .nova-hero-skel--weather {
+  min-height: 146px;
+}
+:root[lang="ta"] .nova-hero-skel--window {
+  min-height: 314px;
+}
+:root[lang="ta"] .nova-hero-skel--score {
+  min-height: 341px;
+}
+:root[lang="ta"] .nova-hero-skel--avoid {
+  min-height: 111px;
+}
+:root[lang="ta"] .nova-hero-skel--timings {
+  min-height: 299px;
+}
+@media (min-width: 860px) {
+  .nova-hero-skel--weather {
+    min-height: 62px;
+  }
+  .nova-hero-skel--window {
+    min-height: 167px;
+  }
+  :root[lang="ta"] .nova-hero-skel--weather {
+    min-height: 81px;
+  }
+  :root[lang="ta"] .nova-hero-skel--window {
+    min-height: 198px;
+  }
+}
+.nova-today-fallback {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.nova-today-fallback__hero {
+  min-height: var(--nova-hero-reserve);
+  border-radius: var(--radius-xl);
+}
+.nova-today-fallback__links {
+  min-height: 220px;
+}
+/* Below the two boxes the fallback draws, the pending pane also mounts the
+   Life Areas and Family rows; on a phone the fallback's hero already runs
+   past the fold, so nothing under it is on screen to be moved. */
 
 .nova-hero-masthead {
   position: relative;

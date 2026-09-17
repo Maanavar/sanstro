@@ -140,6 +140,7 @@ const INSTRUMENT = () => {
       onboarding: !!document.querySelector(".cd-onboarding"),
       falseEmpty: FALSE_EMPTY.test(document.body.innerText),
       heroH: hero ? Math.round(hero.getBoundingClientRect().height) : 0,
+      heroPending: !!(hero && hero.classList.contains("nova-hero--pending")),
       docH: document.documentElement.scrollHeight,
     });
     if (performance.now() - start > 25000) clearInterval(iv);
@@ -650,6 +651,17 @@ export async function runAudit({ browser, base, out, phases = ALL_PHASES, prod =
           onboardingSeen: tl.some((s) => s.onboarding),
           skeletonFrom: first((s) => s.skel > 0), skeletonUntil: last((s) => s.skel > 0),
           documentHeightChanges: Math.max(0, heights.length - 1), heights: heights.slice(0, 20),
+          // DXA-05: the pending hero is built to stand at the loaded hero's
+          // height, so the day's data lands without moving the page. This is
+          // that claim as a number — the last waiting height against the
+          // first settled one.
+          heroReserve: (() => {
+            const waiting = [...tl].reverse().find((s) => s.heroPending && s.heroH > 0);
+            const settled = tl.find((s, i) => i > 0 && !s.heroPending && s.heroH > 0 && tl[i - 1].heroPending);
+            return waiting && settled
+              ? { pending: waiting.heroH, loaded: settled.heroH, delta: settled.heroH - waiting.heroH }
+              : null;
+          })(),
           cls: +ux.shifts.filter((s) => !s.input).reduce((a, s) => a + s.v, 0).toFixed(4),
           topbarShifts: ux.shifts.filter((s) => s.src.some((x) => /cd-topbar|cd-tab|cd-subbar/.test(x))).length,
           shifts: ux.shifts.slice(0, 25),
@@ -882,6 +894,13 @@ export function computeGates(m, { prod = false } = {}) {
     add("DXA-05", "CLS < 0.1 (Today cold load)", m.todayLoad.cls, m.todayLoad.cls < 0.1);
     add("DXA-05", "no top-bar / sub-bar shifts", m.todayLoad.topbarShifts, m.todayLoad.topbarShifts === 0);
     add("DXA-05", "document height changes during load", m.todayLoad.documentHeightChanges, null);
+    const hr = m.todayLoad.heroReserve;
+    add(
+      "DXA-05",
+      "pending hero within 8px of loaded",
+      hr ? `${hr.pending} → ${hr.loaded} (${hr.delta >= 0 ? "+" : ""}${hr.delta}px)` : "not observed",
+      hr ? Math.abs(hr.delta) <= 8 : null,
+    );
   }
   if (m.exploreLoad) add("DXA-05", "CLS < 0.1 (Understand cold load)", m.exploreLoad.cls, m.exploreLoad.cls < 0.1);
   if (m.tabs) {

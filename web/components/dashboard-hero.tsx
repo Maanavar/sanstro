@@ -108,8 +108,11 @@ interface DashboardHeroProps {
   onUserMenuClose: () => void;
   onGoToSettings: () => void;
   onSignOut: () => void;
-  /** Nova navbar's "✦ Ask Vinaadi" button — omitted when no chart exists yet. */
+  /** Nova navbar's "✦ Ask Vinaadi" button. */
   onAskVinaadi?: () => void;
+  /** False until a chart exists: the pill still renders, disabled, so its
+   *  arrival no longer pushes the nav ~225px sideways (DXA-05). */
+  askReady?: boolean;
 }
 
 /* Nova navbar glyphs — lucide (SHD-02). `.cd-icon` controls size (18px) and
@@ -164,8 +167,10 @@ export function DashboardHero(props: DashboardHeroProps) {
     onGoToSettings,
     onSignOut,
     onAskVinaadi,
+    askReady = true,
   } = props;
 
+  const errorStatus = status?.tone === "error" ? status : null;
   const [showAlerts, setShowAlerts] = useState(false);
   const [showInbox, setShowInbox] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -178,7 +183,7 @@ export function DashboardHero(props: DashboardHeroProps) {
     setKbdLabel(/mac/i.test(navigator.platform) ? "⌘K" : "Ctrl K");
   }, []);
   useEffect(() => {
-    if (!onAskVinaadi) return;
+    if (!onAskVinaadi || !askReady) return;
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
@@ -187,7 +192,7 @@ export function DashboardHero(props: DashboardHeroProps) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onAskVinaadi]);
+  }, [onAskVinaadi, askReady]);
 
   // Settings is reachable from the avatar menu, so it is omitted from the tab
   // strip to keep the mobile nav compact.
@@ -457,12 +462,21 @@ export function DashboardHero(props: DashboardHeroProps) {
 
           <div className="cd-topbar__right">
             {onAskVinaadi && (
-              <button type="button" className="cd-ask-search" onClick={onAskVinaadi} aria-label={t("ask_panel_title", lang)}>
+              <button
+                type="button"
+                className="cd-ask-search"
+                onClick={askReady ? onAskVinaadi : undefined}
+                disabled={!askReady}
+                aria-label={t("ask_panel_title", lang)}
+              >
                 <span aria-hidden="true" className="cd-ask-search__star">✦</span>
                 <span className="cd-ask-search__hint">
                   {lang === "ta" ? "விநாடியிடம் எதையும் கேளுங்கள்…" : "Ask Vinaadi anything…"}
                 </span>
-                {kbdLabel && <kbd className="cd-ask-search__kbd" aria-hidden="true">{kbdLabel}</kbd>}
+                {/* Width reserved before the platform is known (DXA-05). */}
+                <kbd className="cd-ask-search__kbd" aria-hidden="true" style={kbdLabel ? undefined : { visibility: "hidden" }}>
+                  {kbdLabel ?? "Ctrl K"}
+                </kbd>
               </button>
             )}
 
@@ -643,45 +657,53 @@ export function DashboardHero(props: DashboardHeroProps) {
               )}
             </div>
             <div className="cd-subbar__right">
-              {/* aria-live so async outcomes are announced; ✓/⚠ follows the
-                  message's own tone instead of always showing a check (DASH-08). */}
-              {status && (
-                <span
-                  className="cd-subbar__status"
-                  title={status.text}
-                  role="status"
-                  aria-live="polite"
-                  style={status.tone === "error" ? { color: "var(--color-low, #C0392B)" } : undefined}
-                >
-                  <span className="cd-subbar__status-check" aria-hidden="true">
-                    {status.tone === "error" ? "⚠" : "✓"}
+              {/* Only failures earn chrome space (DXA-05). Successes the user
+                  caused are already toasts; automatic "Personal data refreshed"
+                  lines arrived late, pushed the bar and said nothing new. The
+                  live region stays mounted so announcing an error moves nothing
+                  that was not already there. */}
+              <span className="cd-visually-hidden" role="status" aria-live="polite">
+                {errorStatus?.text ?? ""}
+              </span>
+              {/* Fixed slots (DXA-05). Both of these arrive with the day's
+                  data, and both used to widen this group as they landed,
+                  moving its left edge and everything in it — two of the three
+                  shifts the audit recorded inside the header. The slots are
+                  rendered from the first paint and hold their width (≥860px,
+                  where the bar is one row); what lands fills them. */}
+              <span className="cd-subbar__slot cd-subbar__slot--status">
+                {errorStatus && (
+                  <span className="cd-subbar__status" title={errorStatus.text} aria-hidden="true" style={{ color: "var(--color-low)" }}>
+                    <span className="cd-subbar__status-check">⚠</span>
+                    {errorStatus.text}
                   </span>
-                  {status.text}
-                </span>
-              )}
-              {/* Provenance note — which sunrise/place the day's panchangam was
-                  computed from. Yields the slot whenever a transient status is
-                  announcing something. New ta copy pending native review. */}
-              {!status && panchangamSunrise && (
-                <span className="cd-subbar__status" title={panchangamPlace ?? undefined}>
-                  <span className="cd-subbar__status-check" aria-hidden="true">✓</span>
-                  {lang === "ta"
-                    ? `பஞ்சாங்கம் ${formatClockLabel(panchangamSunrise, lang)} கணக்கிடப்பட்டது`
-                    : `Panchangam computed ${formatClockLabel(panchangamSunrise, lang)}`}
-                  {panchangamPlace ? ` · ${panchangamPlace}` : ""}
-                </span>
-              )}
-              {selectedVault && (
-                <button
-                  type="button"
-                  className="cd-subbar__vault"
-                  title={selectedVault.name}
-                  onClick={() => onTabChange("family")}
-                >
-                  {selectedVault.name}
-                  <span className="cd-subbar__vault-caret" aria-hidden="true">▾</span>
-                </button>
-              )}
+                )}
+                {/* Provenance note — which sunrise/place the day's panchangam
+                    was computed from. Yields the slot while an error is
+                    showing. New ta copy pending native review. */}
+                {!errorStatus && panchangamSunrise && (
+                  <span className="cd-subbar__status" title={panchangamPlace ?? undefined}>
+                    <span className="cd-subbar__status-check" aria-hidden="true">✓</span>
+                    {lang === "ta"
+                      ? `பஞ்சாங்கம் ${formatClockLabel(panchangamSunrise, lang)} கணக்கிடப்பட்டது`
+                      : `Panchangam computed ${formatClockLabel(panchangamSunrise, lang)}`}
+                    {panchangamPlace ? ` · ${panchangamPlace}` : ""}
+                  </span>
+                )}
+              </span>
+              <span className="cd-subbar__slot cd-subbar__slot--vault">
+                {selectedVault && (
+                  <button
+                    type="button"
+                    className="cd-subbar__vault"
+                    title={selectedVault.name}
+                    onClick={() => onTabChange("family")}
+                  >
+                    {selectedVault.name}
+                    <span className="cd-subbar__vault-caret" aria-hidden="true">▾</span>
+                  </button>
+                )}
+              </span>
 
               <label htmlFor="dashboard-date" className="cd-visually-hidden">
                 {lang === "ta" ? "தேதி தேர்வு" : "Select date"}

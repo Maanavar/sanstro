@@ -43,6 +43,7 @@ import type { SettingsSectionId } from "./dashboard-settings-rail";
 import { ConfirmDialog, type ConfirmDialogState } from "./modal-shell";
 import type { StatusMessage } from "./dashboard-ui-nova";
 import { CelestialAmbientNova } from "./celestial-ambient-nova";
+import { useLang } from "./lang-toggle";
 import { moonPhaseFromTithi } from "@/lib/lunar";
 import { DashboardHero } from "./dashboard-hero";
 import { DashboardFooterMorningGuidance } from "./dashboard-footer-morning-nova";
@@ -79,6 +80,19 @@ function LazyPanelFallback() {
     <div className="lazy-panel-fallback">
       <SkeletonDashboardCard lines={4} showIcon />
       <SkeletonDashboardCard lines={3} />
+    </div>
+  );
+}
+
+// DXA-05 — Today's own loading shape: the hero and Quick Links at their final
+// heights (see .nova-today-fallback in dashboard-nova.css). The generic
+// two-card fallback was ~320px where the loaded hero is ~525px, so the swap
+// shoved every row below it down.
+function LazyTodayFallback() {
+  return (
+    <div className="nova-today-fallback" aria-hidden="true">
+      <div className="skel-card nova-today-fallback__hero" />
+      <div className="skel-card nova-today-fallback__links" />
     </div>
   );
 }
@@ -183,7 +197,14 @@ const RectificationWizard = dynamic(
 
 const DashboardTodayTabNova = dynamic(
   () => import("./dashboard-today-tab-nova").then((mod) => mod.DashboardTodayTabNova),
-  { loading: LazyPanelFallback },
+  // ssr: false, measured (DXA-05). With SSR on, the server sent the whole
+  // ~1200px Today pane, and hydration then replaced it with this fallback
+  // (~900px) until the chunk arrived — a 300px shrink at ~2.5s that moved
+  // Quick Links and everything under it. The pane carries no server data
+  // anyway (every hook fetches client-side), so the only thing SSR bought
+  // here was that swap. Now the fallback IS the first paint and the real
+  // pane replaces it at the same hero height.
+  { loading: LazyTodayFallback, ssr: false },
 );
 
 const DashboardToolsTabNova = dynamic(
@@ -304,7 +325,10 @@ function TabPane({
   if (!visible) return null;
   return (
     <motion.div
-      style={{ display: active ? "block" : "none", position: "relative", zIndex: 1 }}
+      // minHeight (DXA-05): the active pane is at least a screen tall, so the
+      // footer starts below the fold and its moves while the pane fills in
+      // are not layout shifts the reader sees.
+      style={{ display: active ? "block" : "none", position: "relative", zIndex: 1, minHeight: "100vh" }}
       initial={reduce ? false : { opacity: 0, y: 8 }}
       animate={active ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
       transition={{ duration: reduce ? 0 : DUR.base, ease: EASE_NOVA }}
@@ -377,7 +401,17 @@ export function DashboardWorkspace() {
     [currentPaneKey],
   );
   const [selectedDate, setSelectedDate] = useState(todayIso());
-  const [lang, setLang] = useState<Lang>("en");
+  // Starts at the language the page was *rendered* in (LangProvider is seeded
+  // from the request cookie in app/layout.tsx), not at English (DXA-05).
+  // Hard-coded "en" here meant a Tamil reader's dashboard painted in English
+  // and flipped a second later, when localStorage and then the DB preference
+  // landed below — every label re-set, and the top bar's tab strip, the Ask
+  // pill and the sub-bar all re-flowed to Tamil's longer words. The effect
+  // below stamps this onto <html lang>, so it was also overwriting the
+  // server's own correct answer. localStorage and the DB still override it;
+  // they simply no longer have an English first paint to correct.
+  const [serverLang] = useLang();
+  const [lang, setLang] = useState<Lang>(serverLang);
 
   // UI-only state: forms, modals, toast
   const [ownerUserId, setOwnerUserId] = useState("");
@@ -1646,7 +1680,8 @@ export function DashboardWorkspace() {
             session.setShowUserMenu(false);
             session.signOut();
           }}
-          onAskVinaadi={personal.chartId ? () => setAskVinaadiOpen(true) : undefined}
+          onAskVinaadi={() => setAskVinaadiOpen(true)}
+          askReady={Boolean(personal.chartId)}
         />
 
         {/* Destructive-action confirmation (DASH-05) */}
@@ -2097,6 +2132,7 @@ export function DashboardWorkspace() {
               personalChart={personalChart}
               personalDailyGuidance={personalDailyGuidance}
               nakshatraCard={personalMemberChart?.nakshatraCard ?? personal.nakshatraCard}
+              pending={personal.personalPending}
               memberCharts={family.memberCharts}
               onNavigate={goToExploreDestination}
               onOpenAskVinaadi={() => setAskVinaadiOpen(true)}

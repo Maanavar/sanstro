@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Sparkles, AlertTriangle, Clover, Flame, Landmark, Moon, Search, ArrowRight, type LucideIcon } from "lucide-react";
 import { Kicker } from "./ui";
 import { novaDetailCardStyle } from "./dashboard-explore-detail-nova";
+import { PendingPlaceholder } from "./pending-placeholder-nova";
 
 import type { Lang } from "@/lib/i18n";
 import { t, tPlanetLord } from "@/lib/i18n";
@@ -247,6 +248,19 @@ interface DashboardExploreTabNovaProps {
   memberCharts: MemberChart[];
   onNavigate: (tab: Tab) => void;
   onOpenAskVinaadi: () => void;
+  /** The chart data is still on its way (DXA-05): "Start from your chart"
+   *  holds its place instead of appearing late and pushing the page. */
+  pending?: boolean;
+}
+
+/** One held "Start from your chart" slot: the card's own box, waiting.
+ *  188px is what the three loaded cards measure at 1440 (DXA-05). */
+function ChartStarterPending({ lang }: { lang: Lang }) {
+  return (
+    <div style={{ ...novaDetailCardStyle, minHeight: "188px" }}>
+      <PendingPlaceholder lang={lang} lines={4} />
+    </div>
+  );
 }
 
 export function DashboardExploreTabNova({
@@ -258,6 +272,7 @@ export function DashboardExploreTabNova({
   memberCharts,
   onNavigate,
   onOpenAskVinaadi,
+  pending = false,
 }: DashboardExploreTabNovaProps) {
   const [query, setQuery] = useState("");
   const [subview, setSubview] = useState<ExploreSubview | null>(null);
@@ -269,6 +284,23 @@ export function DashboardExploreTabNova({
   const yogas = personalChart?.yogas ?? [];
   const activeYoga = yogas.find((y) => y.isPresent && y.strength === "STRONG") ?? yogas.find((y) => y.isPresent) ?? null;
   const hasChartStarters = !!(personalChartSummary?.janmaNakshatra && nakshatraCard) || !!activeDosham || !!activeYoga;
+  /* DXA-05 — the three starter cards come from two responses that land at
+     different moments, and the birth-star card, which lands last, is the first
+     of the three in the DOM. So it was inserted *above* the two already on
+     screen: the dosham card slid one slot right and the yoga card wrapped to a
+     second row. That single insertion was the Understand tab's whole CLS
+     (0.267 of 0.271 measured 2026-09-18).
+
+     Each slot now holds its own place while the response it waits for is out,
+     so the cards that arrive first are laid out where they will stay. A slot
+     whose answer turns out to be "you have none of these" still closes — that
+     is a finished lookup, not a wait, and it is the one case left that moves
+     anything here. */
+  const starReady = !!(personalChartSummary?.janmaNakshatra && nakshatraCard);
+  const starPending = pending && !starReady;
+  // doshams and yogas ride the same chart response, so these two resolve together.
+  const chartPending = pending && !personalChart;
+  const showChartStarters = hasChartStarters || starPending || chartPending;
 
   const q = query.trim().toLowerCase();
   const filteredLibrary = q ? LIBRARY_ITEMS.filter((i) => matchesQuery(q, i.titleEn, i.descEn, i.titleTa, i.descTa)) : LIBRARY_ITEMS;
@@ -427,13 +459,14 @@ export function DashboardExploreTabNova({
       </div>
 
       {/* ===== Start from your chart ===== */}
-      {hasChartStarters && (
+      {showChartStarters && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-3)" }}>
             <Kicker>{lang === "ta" ? "உங்கள் ஜாதகத்திலிருந்து தொடங்குங்கள்" : "Start from your chart"}</Kicker>
             <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{lang === "ta" ? "உங்களுக்கே பொருந்தும் பதிவுகள்" : "the entries that apply to you"}</span>
           </div>
           <div className="nova-grid-2">
+            {starPending && <ChartStarterPending lang={lang} />}
             {personalChartSummary?.janmaNakshatra && nakshatraCard && (
               <button
                 type="button"
@@ -465,6 +498,7 @@ export function DashboardExploreTabNova({
                 </span>
               </button>
             )}
+            {chartPending && <ChartStarterPending lang={lang} />}
             {activeDosham && (
               <button
                 type="button"
@@ -490,6 +524,7 @@ export function DashboardExploreTabNova({
                 </span>
               </button>
             )}
+            {chartPending && <ChartStarterPending lang={lang} />}
             {activeYoga && (
               <button
                 type="button"

@@ -15,7 +15,11 @@ beforeAll(() => {
 
 const noop = () => {};
 
-function renderHero(activeTab: Parameters<typeof DashboardHero>[0]["activeTab"], onTabChange: (tab: string) => void) {
+function renderHero(
+  activeTab: Parameters<typeof DashboardHero>[0]["activeTab"],
+  onTabChange: (tab: string) => void,
+  overrides: Partial<Parameters<typeof DashboardHero>[0]> = {},
+) {
   return render(
     <DashboardHero
       lang="en"
@@ -41,9 +45,72 @@ function renderHero(activeTab: Parameters<typeof DashboardHero>[0]["activeTab"],
       onUserMenuClose={noop}
       onGoToSettings={noop}
       onSignOut={noop}
+      {...overrides}
     />,
   );
 }
+
+/**
+ * DXA-05: both of these used to mount only once their data arrived, and each
+ * arrival moved the bar around them.
+ */
+describe("DashboardHero — chrome that does not move (DXA-05)", () => {
+  it("keeps the Ask pill in place before a chart exists, disabled", () => {
+    const onAsk = vi.fn();
+    renderHero("personal", noop, { onAskVinaadi: onAsk, askReady: false });
+
+    const pill = screen.getByRole("button", { name: /ask vinaadi/i });
+    expect(pill).toBeDisabled();
+    fireEvent.click(pill);
+    expect(onAsk).not.toHaveBeenCalled();
+  });
+
+  it("enables the same pill once a chart exists", () => {
+    const onAsk = vi.fn();
+    renderHero("personal", noop, { onAskVinaadi: onAsk, askReady: true });
+
+    const pill = screen.getByRole("button", { name: /ask vinaadi/i });
+    expect(pill).toBeEnabled();
+    fireEvent.click(pill);
+    expect(onAsk).toHaveBeenCalledTimes(1);
+  });
+
+  it("gives chrome space to failures only, not to routine success lines", () => {
+    const { rerender } = renderHero("personal", noop, {
+      status: { text: "Personal data refreshed. Panchangam uses birth location.", tone: "success" },
+    });
+    expect(screen.queryByText(/Personal data refreshed/)).not.toBeInTheDocument();
+
+    rerender(
+      <DashboardHero
+        lang="en"
+        activeTab="personal"
+        birthDisplayName="Test User"
+        status={{ text: "Could not load your chart.", tone: "error" }}
+        chartSummary={null}
+        selectedVault={null}
+        selectedVaultId=""
+        selectedDate="2026-07-19"
+        userEmail="test@example.com"
+        showUserMenu={false}
+        alertCount={0}
+        alertItems={[]}
+        inboxItems={[]}
+        inboxUnreadCount={0}
+        onMarkAllRead={noop}
+        onMarkOneRead={noop}
+        onTabChange={noop as never}
+        onDateChange={noop}
+        onLangToggle={noop}
+        onUserMenuToggle={noop}
+        onUserMenuClose={noop}
+        onGoToSettings={noop}
+        onSignOut={noop}
+      />,
+    );
+    expect(screen.getAllByText("Could not load your chart.").length).toBeGreaterThan(0);
+  });
+});
 
 describe("DashboardHero brand mark", () => {
   it("navigates to the personal (home) tab when clicked from another tab", () => {

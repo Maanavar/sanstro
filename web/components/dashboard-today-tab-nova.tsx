@@ -295,6 +295,155 @@ function FirstResultGuide({
   );
 }
 
+/* ── Today's hero while the day's data is on its way (DXA-05) ──────────────
+   Loaded, the hero is six blocks tall: greeting, name, briefing, the weather
+   chips, the best-window card, and — in the two side columns — the score dial
+   and the timing rail. While `personalPending` is true only the first two
+   exist, so the hero rendered ~70px short of where it settles and then grew
+   under the reader, taking Quick Links and every row below it down with it.
+
+   Each piece below stands in the slot of the block it waits for, in that
+   block's own container (`.nova-hero-action`, the score card's padding, the
+   rail's two cards), so the height held is the hero's own shape. A single
+   reserved constant would have to be re-measured at every width and re-tuned
+   whenever the hero changes; a shape does not.
+
+   All of it is `aria-hidden`: the wait is announced once, by the lede's
+   PendingPlaceholder, which owns the live region. */
+function HeroSkelLine({ w, h = 13, radius = "var(--radius-sm)" }: { w: string; h?: number; radius?: string }) {
+  return <span className="skel" style={{ display: "block", height: `${h}px`, width: w, borderRadius: radius }} />;
+}
+
+/** A skeleton bar sitting in a text line box of the real line's height, so a
+ *  three-line stand-in occupies what three lines of that type will. */
+function HeroSkelTextLine({ w, box, bar = 13 }: { w: string; box: number; bar?: number }) {
+  return (
+    <div style={{ height: `${box}px`, display: "flex", alignItems: "center" }}>
+      <HeroSkelLine w={w} h={bar} />
+    </div>
+  );
+}
+
+/** The briefing: three clamped lines (24px line box) and the "Read more"
+ *  control under them — 97px loaded, measured at 1440. Carries the wait's
+ *  live region, so the rest of the pending hero can stay aria-hidden. */
+function HeroPendingLede({ lang }: { lang: Lang }) {
+  return (
+    <div role="status" aria-busy="true" data-pending-placeholder="" style={{ width: "100%", maxWidth: "690px" }}>
+      <span className="cd-visually-hidden">{lang === "ta" ? "ஏற்றுகிறது…" : "Loading…"}</span>
+      <div aria-hidden="true">
+        <HeroSkelTextLine w="100%" box={24} />
+        <HeroSkelTextLine w="100%" box={24} />
+        <HeroSkelTextLine w="62%" box={24} />
+        <div style={{ height: "25px", display: "flex", alignItems: "flex-end", paddingBottom: "4px" }}>
+          <HeroSkelLine w="104px" h={13} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* Four of these blocks are as tall as their copy wraps, which depends on both
+   the width and the language — `.nova-hero-skel--*` in dashboard-nova.css
+   carries those measured heights (en and ta, three widths). Everything else
+   here holds its place by its own shape. */
+
+/** Mood / body / best-used-for chips, and the sentence printed under them. */
+function HeroPendingWeather() {
+  return (
+    <div
+      aria-hidden="true"
+      className="nova-hero-skel--weather"
+      style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}
+    >
+      <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+        {["124px", "118px", "168px"].map((w) => (
+          <HeroSkelLine key={w} w={w} h={28} radius="var(--radius-pill)" />
+        ))}
+      </div>
+      <HeroSkelTextLine w="78%" box={26} />
+    </div>
+  );
+}
+
+/** The best-window card: eyebrow, the promoted time with its two actions,
+ *  and the reason under them. */
+function HeroPendingWindow() {
+  return (
+    <Card variant="high" className="nova-hero-action nova-hero-skel--window" aria-hidden="true">
+      <div className="nova-hero-action__body" style={{ width: "100%", gap: "var(--space-2_5)" }}>
+        <HeroSkelLine w="136px" h={11} />
+        <div style={{ height: "42px", width: "100%", display: "flex", alignItems: "center", gap: "var(--space-4)" }}>
+          <HeroSkelLine w="min(200px, 52%)" h={30} />
+          <span style={{ flex: 1 }} />
+          <HeroSkelLine w="112px" h={34} radius="var(--radius-sm)" />
+          <HeroSkelLine w="88px" h={34} radius="var(--radius-sm)" />
+        </div>
+        <HeroSkelTextLine w="100%" box={22} />
+        <HeroSkelTextLine w="64%" box={22} />
+      </div>
+    </Card>
+  );
+}
+
+/** The score column: the dial's card, then the epigraph — which is static
+ *  copy, not data, so it prints now and stays exactly where it is. */
+function HeroPendingScore({ lang }: { lang: Lang }) {
+  return (
+    <div className="nova-hero-score">
+      <Card
+        aria-hidden="true"
+        className="nova-hero-skel--score"
+        style={{
+          minWidth: 0,
+          background: "color-mix(in srgb, var(--color-surface) 62%, transparent)",
+          borderColor: "var(--color-border-strong)", borderRadius: "var(--radius-md)",
+          padding: "var(--space-5) var(--space-4)", display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center", gap: "var(--space-3)",
+        }}
+      >
+        <HeroSkelLine w="104px" h={11} />
+        <HeroSkelLine w="172px" h={172} radius="var(--radius-pill)" />
+        <HeroSkelLine w="152px" h={30} />
+        <HeroSkelLine w="124px" h={22} />
+      </Card>
+      <p className="nova-hero-quote">
+        &ldquo;{dt(TODAY_HERO.quote, lang)}&rdquo;
+        <span className="nova-hero-quote__attribution">— {dt(TODAY_HERO.quoteAttribution, lang)}</span>
+      </p>
+    </div>
+  );
+}
+
+/** The timing rail: the avoid window beside its glyph, then key timings. */
+function HeroPendingRail() {
+  const railCard = {
+    flex: "none" as const,
+    background: "color-mix(in srgb, var(--color-surface) 62%, transparent)",
+    borderRadius: "var(--radius-md)",
+    padding: "var(--space-4)",
+  };
+  return (
+    <div className="nova-hero-rail" aria-hidden="true">
+      <Card className="nova-hero-skel--avoid" style={{ ...railCard, display: "flex", flexDirection: "row", gap: "var(--space-3)", alignItems: "center" }}>
+        <HeroSkelLine w="40px" h={40} radius="var(--radius-pill)" />
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "5px" }}>
+          <HeroSkelLine w="92px" h={11} />
+          <HeroSkelLine w="72%" h={25} />
+          <HeroSkelLine w="46%" h={15} />
+          <HeroSkelLine w="38%" h={15} />
+        </div>
+      </Card>
+      <Card className="nova-hero-skel--timings" style={{ ...railCard, display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+        <HeroSkelLine w="140px" h={11} />
+        {[0, 1, 2, 3].map((i) => (
+          <HeroSkelLine key={i} w={i === 3 ? "72%" : "100%"} h={48} />
+        ))}
+      </Card>
+    </div>
+  );
+}
+
 export function DashboardTodayTabNova({
   lang,
   userMode = "BALANCED",
@@ -554,7 +703,7 @@ export function DashboardTodayTabNova({
             row      — three top-aligned columns at ≥1200px: greeting +
                        briefing + best window · score (+ epigraph) · timing
                        rail. Two columns at ≥860px, one below. ===== */}
-      <div className="nova-hero">
+      <div className={personalPending && !personalDailyGuidance ? "nova-hero nova-hero--pending" : "nova-hero"}>
         <HeroSkyBackdrop moon={moonPhase} />
         {/* The four things a thirukanitham reader opens the page for (date,
             star, tithi, paksha) read as one almanac line across the whole
@@ -572,6 +721,24 @@ export function DashboardTodayTabNova({
               sentence. Glyphs are lucide (the pre-delivery checklist bans
               emoji as icons) except the moon, which is the existing
               phase-accurate MiniMoonGlyph. */}
+          {/* DXA-05 — the almanac's four limbs arrive with the day's bundle.
+              Until then this row held one short date, and on a phone it grew
+              38px → 100px when they landed, pushing the whole page down: the
+              topmost shift on Today's cold load. Their slots are held at the
+              widths the four labels take, so the row wraps now the way it
+              will wrap then. D6 still governs the content — nothing here
+              guesses a Tamil date or a star; this reserves the space and says
+              nothing. */}
+          {!nakNow && !paksha && personalPending && (
+            <div className="nova-hero-masthead__limbs" aria-hidden="true">
+              {[112, 122, 94, 146].map((w) => (
+                <span className="nova-hero-masthead__limb" key={w}>
+                  <HeroSkelLine w="15px" h={15} radius="var(--radius-pill)" />
+                  <HeroSkelLine w={`${w}px`} h={13} />
+                </span>
+              ))}
+            </div>
+          )}
           {(nakNow || paksha) && (
             <div className="nova-hero-masthead__limbs">
               {nakNow && (
@@ -808,8 +975,16 @@ export function DashboardTodayTabNova({
                     that has no briefing to lead with. */}
                 {/* While the briefing is still on its way, its place is held
                     rather than filled with this lede (DXA-03). */}
+                {/* Three lines and the "Read more" control, the shape the
+                    briefing resolves to (DXA-05) — then the two blocks that
+                    follow it in the loaded column, so the column's height is
+                    its final one. */}
                 {!personalDailyGuidance && personalPending && (
-                  <div style={{ maxWidth: "640px" }}><PendingPlaceholder lang={lang} lines={2} /></div>
+                  <>
+                    <HeroPendingLede lang={lang} />
+                    <HeroPendingWeather />
+                    <HeroPendingWindow />
+                  </>
                 )}
                 {!personalDailyGuidance && !personalPending && (
                   <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55, maxWidth: "640px" }}>
@@ -1114,6 +1289,17 @@ export function DashboardTodayTabNova({
               when there is a score; without one the rail widens into its
               place (`.nova-hero-row:not(:has(.nova-hero-score))`) rather than
               leaving a hole in the middle of the hero. */}
+          {/* DXA-05: while the day's data is on its way the score and rail
+              columns do not exist at all, so the hero was only as tall as its
+              text column and grew when they arrived — the largest shift left
+              on Today's cold load. These hold the same two grid cells in the
+              same shape (dial card + epigraph · avoid card + key timings). */}
+          {personalPending && !personalDailyGuidance && (
+            <>
+              <HeroPendingScore lang={lang} />
+              <HeroPendingRail />
+            </>
+          )}
           {(() => {
             const isTomorrow = showEveningPreview && tomorrowGuidance != null;
             const dialSource = isTomorrow ? tomorrowGuidance : personalDailyGuidance;

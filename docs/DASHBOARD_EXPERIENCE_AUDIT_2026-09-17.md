@@ -217,7 +217,10 @@ Ready: yes · Wave 1 · Needs: — · Review: —
      (DXA-13).
 - **Gate:** `DXA-04` false (bare and Today loads).
 
-#### DXA-05 `[ ]` Layout instability on load
+#### DXA-05 `[x] 2026-09-18` Layout instability on load
+Done: CLS Today 0.77 → **0.0058**, Understand 0.82 → **0.0031**, top-bar /
+sub-bar shifts 2 → **0**, pending hero 592 → 592 (**+0px**); metrics
+`web/e2e/.artifacts/ux-audit-202609171942/`; commit uncommitted.
 Ready: yes · Wave 1 · Needs: — · Review: shots
 - **Evidence:** over two dev runs: CLS **0.77–0.92** (Today) and **0.82–1.00**
   (Understand); document height changed 7–10 times; 2–3 shifts inside the top
@@ -237,6 +240,50 @@ Ready: yes · Wave 1 · Needs: — · Review: shots
   4. Render Understand's cards in final order with placeholders.
   5. Reserve the reading slot on Today.
 - **Gate:** `DXA-05` CLS < 0.1 on both loads; top-bar shifts 0.
+- **What was built (2026-09-18).** Fixes 1, 2, 4 and 5 as written. Fix 3 —
+  every pane's last rendered height, remembered — was **not** built and is not
+  needed: a remembered height is a floor that can exceed the day's actual
+  content, and then the hero *shrinks* onto it, which is the same shift with
+  the sign flipped. Instead the pending hero renders the *shape* of what it is
+  waiting for (three clamped briefing lines, the chips row, the best-window
+  card, a 172px dial, the rail's two cards), so its height is the loaded
+  height by construction. Measured pending vs loaded at 1440: **592 / 592**
+  (en), **641 / 640** (ta).
+  - `ssr: false` on Today's lazy pane. With SSR on, the server sent the whole
+    ~1,200px pane and hydration replaced it with a ~900px fallback until the
+    chunk arrived — a 300px shrink at ~2.5s. The pane carries no server data
+    (every hook fetches client-side), so SSR bought only that swap.
+  - `NovaClampedText`'s overflow test moved to `useLayoutEffect`. It decides
+    whether "Read more" exists, and that button is ~25px tall: measured after
+    paint, it appeared a frame late and pushed everything below the hero.
+  - The almanac masthead's four limbs hold their slots. On a phone it grew
+    38px → 100px when they landed — the topmost shift on the page, and
+    invisible at 1440 where the row never wraps. D6 still governs the content:
+    the slots reserve space and say nothing.
+  - **New finding, fixed here:** `dashboard-workspace.tsx` initialised its
+    `lang` state to `"en"` and stamped it onto `<html lang>`, so a Tamil
+    reader's dashboard painted in **English** and flipped a second later, when
+    localStorage and then the DB preference landed — re-flowing the tab strip,
+    the Ask pill and the sub-bar to Tamil's longer words. It now starts from
+    the language the page was rendered in (`useLang()`, seeded from the
+    request cookie in `app/layout.tsx`). This was two of the three shifts left
+    on a Tamil load; a Tamil cold load is now **0.0031**.
+- **Still moves, deliberately left:** the page sky's five `.nova-sky__star`
+  specks, positioned as a percentage of a document that grows as sections
+  mount (0.003 per load, the whole remaining figure). The sky is authored to
+  sprinkle the full scroll height; pinning it to the viewport would change a
+  design decision to buy 3% of the CLS budget. See DXA-10 / DXA-17, which
+  already own the page sky.
+- **Reserve numbers.** `.nova-hero-skel--*` and `--nova-hero-reserve` in
+  `dashboard-nova.css` hold measured heights per width **and per language**
+  (Tamil sets the same content on more lines): they are what the pre-JS lazy
+  fallback and the pending hero stand on. Because such numbers go stale
+  silently, the measurement is now a gate of its own — `DXA-05 pending hero
+  within 8px of loaded`, ratcheted — so a copy or structure change that opens
+  the gap fails the audit instead of quietly shipping a jump. It measures en
+  at 1440; the ta and phone values were measured by hand (pending vs loaded:
+  641/640 ta at 1440, 898/932 ta at 860, 1461/1466 en and 1642/1632 ta at
+  390) and are not gated.
 
 #### DXA-07 `[ ]` Changing the date collapses Today while the new day loads
 Ready: yes · Wave 1 · Needs: — · Review: shots

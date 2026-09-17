@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, ChevronDown } from "lucide-react";
 
@@ -12,6 +12,10 @@ import { scoreColor } from "@/lib/format";
  * widely-used Classic primitive library never grows variant branching —
  * these are imported only from screens rendered under [data-ui="nova"].
  */
+
+/** useLayoutEffect in the browser, useEffect on the server: the server has no
+ *  layout to measure, and React warns if useLayoutEffect runs during SSR. */
+const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 /** Explicit outcome state for transient async status messages (DASH-08).
  *  Tone is carried as data, never inferred by sniffing the message text —
@@ -82,7 +86,12 @@ export function NovaClampedText({
   const textRef = useRef<HTMLDivElement>(null);
   const textId = useId();
 
-  useEffect(() => {
+  // Layout effect, not effect (DXA-05): the overflow test decides whether the
+  // "Read more" button exists, and the button is ~28px tall. Measured after
+  // paint, that button appeared a frame late and pushed Quick Links and every
+  // row below it down — the largest single layout shift on Today's cold load.
+  // Running before paint, the browser paints the hero once, button included.
+  useIsomorphicLayoutEffect(() => {
     const el = textRef.current;
     if (!el) return;
     // Measured against the clamped box, so the check has to run while clamped.
