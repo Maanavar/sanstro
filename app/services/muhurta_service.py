@@ -995,7 +995,7 @@ def find_best_muhurta_slots(
                     status_code=422,
                     detail=f"{(primary_label[0] or '').capitalize()}: the chart's birth star could not be read.",
                 )
-        if is_couple:
+        if co_chart_id is not None:
             if bp.birth_time_local is None:
                 raise HTTPException(
                     status_code=422,

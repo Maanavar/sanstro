@@ -611,14 +611,13 @@ def match_muhurtham_naals(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="A couple is two different charts — choose the partner's chart, not this one.",
         )
-    primary_who: BiLabel | None = None
-    partner_who: BiLabel | None = None
-    if couple:
+    partner: _Janma | None = None
+    if partner_chart_id is None:
+        primary = _janma_for(session, chart_id, None)
+    else:
         primary_who, partner_who = couple_who(subject_role)
-
-    primary = _janma_for(session, chart_id, primary_who)
-    partner = _janma_for(session, partner_chart_id, partner_who) if couple else None
-    if couple:
+        primary = _janma_for(session, chart_id, primary_who)
+        partner = _janma_for(session, partner_chart_id, partner_who)
         require_couple_birth_time(session, chart_id, primary_who)
         require_couple_birth_time(session, partner_chart_id, partner_who)
 
