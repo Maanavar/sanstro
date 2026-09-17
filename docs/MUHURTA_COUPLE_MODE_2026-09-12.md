@@ -187,14 +187,16 @@ been the weaker test — the same mistake the Chandrashtama window bug survived.
 
 ## 5. Open, deliberately
 
-1. **Signed-in Calendar/Plan picker** still scores one chart. Adding a partner
-   there means a family-vault selector plus two new query params on both
-   `GET /muhurta` routes.
-2. **Muhurtham Naal list** ranks published almanac wedding dates against the
-   account holder's star alone.
-3. **`MARRIAGE_JUPITER_FAVOURABLE_BRIDE_AGE_YEARS`** (5/6/7) remains unwired —
-   needs an age, which no request carries.
-4. **`MuhurtaPageContent.tsx`** (the public SEO wrapper, not the dashboard tool)
-   still says "top 3 auspicious time windows" and describes the tool as
-   Panchangam-only. Both were already stale before this change — the route
-   returns five and has been chart-personalised for a while. Not touched here.
+> **Update 2026-09-15:** items 1, 2 and 4 are closed. See
+> `docs/MUHURTA_COUPLE_SIGNED_IN_2026-09-15.md`.
+
+1. ~~**Signed-in Calendar/Plan picker** still scores one chart.~~ CLOSED
+   2026-09-15. The partner is a saved chart (owner-guarded); weddings only.
+2. ~~**Muhurtham Naal list** ranks published almanac wedding dates against the
+   account holder's star alone.~~ CLOSED 2026-09-15, under R1.
+3. ~~**`MARRIAGE_JUPITER_FAVOURABLE_BRIDE_AGE_YEARS`** (5/6/7) remains unwired —
+   needs an age, which no request carries.~~ PERMANENTLY REFUSED 2026-09-15: it
+   prescribes child marriage. See `docs/MUHURTA_COUPLE_OPEN_ITEMS_2026-09-15.md` §2.
+4. ~~**`MuhurtaPageContent.tsx`** still says "top 3 auspicious time windows" and
+   describes the tool as Panchangam-only.~~ CLOSED 2026-09-15 (hero, FAQ JSON-LD,
+   meta/OG descriptions, CTA strip).

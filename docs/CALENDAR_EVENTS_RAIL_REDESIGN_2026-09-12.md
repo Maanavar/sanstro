@@ -423,6 +423,46 @@ languages. Not changed here — it is content, not layout.
 
 ---
 
+## 10. Mockup revamp, completed (2026-09-15)
+
+The owner then supplied a full-page mockup (landscape header, grid, "Insights
+for <date>" card, closing banner, and a four-card rail: This Month · Monthly
+Observances · Filter Calendar · Quick Jump). This **supersedes §9's
+single-agenda rail** by owner direction. A first agent built most of it
+(`dashboard-calendar-monthly-panels.tsx`, `public/calendar/moonlit-temple.png`,
+i18n keys) and was interrupted; this pass finished it.
+
+Fixed in the finishing pass:
+
+- **F4 regressed and re-closed.** Monthly Observances dots used
+  `--color-accent-secondary` (the legend's Amavasai); This Month dots were all
+  Festival gold even on muhurtham-only / Karinaal-only rows. Now: gold only for
+  festivals, `--color-high` muhurtham, `--color-alert-critical` Karinaal,
+  `--color-faint` routine.
+- Closing banner no longer repeats the header motto ("Right time. Brighter tomorrow.").
+- **768px horizontal overflow** (caught only by the render): the header art's
+  24px bleed exceeded the shell gutter below 960px. Bleed removed there.
+- Dead CSS from the §9 absolutely-filled agenda removed.
+- Visual spec: focus-picker dialog lacked `aria-modal`, so the dismiss helper
+  never matched and the Monthly tab click was swallowed; it now presses "Skip
+  for now", retries the tab click boundedly, and names overflowing elements
+  instead of failing on a bare boolean.
+
+Verified: `tsc`, eslint, 80 unit tests (calendar + CSS guards), and
+`e2e/calendar-rail-visual.spec.ts` green on the isolated stack — axe contrast
+dark and light, no horizontal overflow at 1024/768/375.
+
+**Deliberately not built:** the mockup's "Good for / Use caution / Avoid" boxes
+with generic advice ("Planning, Learning"). No API field carries that for a
+date, and inventing it would be an unsourced astrology claim. The Insights card
+shows only the day's observances and the almanac muhurtham/Karinaal note.
+
+**Seen in the render, not fixed (data, not layout):** Vinayagar Chaturthi is
+listed on both 14 and 15 Sep 2026, and Maasi Magam on both 2 and 3 Mar 2026 —
+the same two-day-twin shape as D4. Needs a check of which source emits each.
+
+---
+
 ## Appendix — how the numbers were produced
 
 `build_monthly_panchangam` called in-process for all 24 months of 2026–2027 at
