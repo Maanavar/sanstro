@@ -997,7 +997,7 @@ export function DashboardTodayFamilyRemedyRowNova({
                   }}
                 >
                   {needsCare && <><b style={{ color: needsCare === chandraMember ? "var(--color-mid)" : "var(--color-low)" }}>{needsCare.displayName}</b> {needsCare === chandraMember ? (lang === "ta" ? "— இன்று சந்திராஷ்டமம்" : "— Chandrashtama today") : (lang === "ta" ? "— மென்மையான நாள்" : "— gentle day")}{shared ? "; " : "."}</>}
-                  {shared && <>{lang === "ta" ? `${memberCount} பேருக்கும் நல்ல நேரம்` : `good time for all ${memberCount}`} <b style={{ color: "var(--color-high)" }}>{formatClockLabel(shared.start)} – {formatClockLabel(shared.end)}</b></>}
+                  {shared && <>{lang === "ta" ? `${memberCount} பேருக்கும் நல்ல நேரம்` : `good time for all ${memberCount}`} <b style={{ color: "var(--color-high)" }}>{formatClockLabel(shared.start, lang)} – {formatClockLabel(shared.end, lang)}</b></>}
                 </div>
                   )}
                 </>

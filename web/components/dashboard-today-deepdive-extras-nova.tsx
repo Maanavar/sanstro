@@ -303,8 +303,8 @@ export function NovaGuidanceCard({
                 </p>
               )}
               <div className="surface__metrics">
-                <Metric label={t("label_best_time", lang)} value={bestWindow ? formatClockLabel(bestWindow.start) : ""} hint={bestWindow ? formatClockLabel(bestWindow.end) : ""} tone="high" />
-                <Metric label={t("label_caution_time", lang)} value={avoidWindow ? formatClockLabel(avoidWindow.start) : ""} hint={avoidWindow ? formatClockLabel(avoidWindow.end) : ""} tone="low" />
+                <Metric label={t("label_best_time", lang)} value={bestWindow ? formatClockLabel(bestWindow.start, lang) : ""} hint={bestWindow ? formatClockLabel(bestWindow.end, lang) : ""} tone="high" />
+                <Metric label={t("label_caution_time", lang)} value={avoidWindow ? formatClockLabel(avoidWindow.start, lang) : ""} hint={avoidWindow ? formatClockLabel(avoidWindow.end, lang) : ""} tone="low" />
                 <Metric label={t("label_moon_transit", lang)} value={`${personalDailyGuidance.scoreBreakdown.moonTransit}`} hint={`${t("dasha_word", lang)} ${personalDailyGuidance.scoreBreakdown.dashaSupport}`} />
               </div>
               {personalDailyGuidance.reasons && (

@@ -118,8 +118,8 @@ export function HomeContent() {
     if (flag === "variant_b") setCtaVariant("B");
   }, []);
   const SAMPLE = makeSample(lang, selectedRasi);
-  const bestWindowLabel = `${formatClockLabel(SAMPLE.bestWindow.start)} - ${formatClockLabel(SAMPLE.bestWindow.end)}`;
-  const holdWindowLabel = `${formatClockLabel(SAMPLE.holdWindow.start)} - ${formatClockLabel(SAMPLE.holdWindow.end)}`;
+  const bestWindowLabel = `${formatClockLabel(SAMPLE.bestWindow.start, lang)} - ${formatClockLabel(SAMPLE.bestWindow.end, lang)}`;
+  const holdWindowLabel = `${formatClockLabel(SAMPLE.holdWindow.start, lang)} - ${formatClockLabel(SAMPLE.holdWindow.end, lang)}`;
 
   // The section-3 sample card always shows *today*, so it must show the limbs
   // actually running, not the ones the day is named after. Printing the sunrise

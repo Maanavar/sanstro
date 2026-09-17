@@ -114,6 +114,31 @@ describe("Panchangam view — plain-language day summary", () => {
       "A generally favourable day. Use a recommended window for a new start.",
     );
   });
+
+  it("names the day's Rahu Kalam window so the line is usable without the vocabulary (T15)", () => {
+    renderPanchangam();
+    // Fixture Rahu Kalam is 13:42–15:18 — the same slot the Avoid card lists.
+    expect(screen.getByTestId("calendar-day-summary")).toHaveTextContent(
+      "Avoid Rahu Kalam, 1:42 pm–3:18 pm.",
+    );
+  });
+
+  it("renders the Tamil Rahu Kalam clause with almanac period-words, advisory voice, no dash", () => {
+    render(
+      <DashboardCalendarTabNova
+        selectedDate="2026-06-04"
+        todayDate="2026-06-04"
+        panchangam={panchangamFixture()}
+        panchangamTimings={null}
+        lang="ta"
+      />,
+    );
+    const summary = screen.getByTestId("calendar-day-summary");
+    expect(summary).toHaveTextContent(
+      "ராகு காலம் மதியம் 1:42 – மதியம் 3:18 நேரத்தில் புதிய செயல்களைத் தவிர்ப்பது நல்லது.",
+    );
+    expect(summary.textContent).not.toMatch(/\b(am|pm)\b|—/);
+  });
 });
 
 describe("Panchangam view — auspicious windows name their kala", () => {

@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   addDays,
+  formatClockHour,
   formatClockLabel,
+  formatClockRange,
   formatDateLabel,
   formatDateTimeLabel,
   getLifeAreaVerdict,
@@ -29,6 +31,29 @@ describe("format helpers", () => {
     expect(formatClockLabel("13:40:00")).toBe("1:40 pm");
     expect(formatDateLabel("2026-05-21")).toBe("21 May 2026");
     expect(todayIso(new Date("2026-05-21T12:00:00Z"))).toBe("2026-05-21");
+  });
+
+  it("renders Tamil clock labels with an almanac period-word, never am/pm", () => {
+    // Bucket edges from the 2026-09-17 ruling: காலை 5–11:59, மதியம் 12–15:59,
+    // மாலை 16–18:59, இரவு 19 onward (and 00–04:59).
+    expect(formatClockLabel("04:59", "ta")).toBe("இரவு 4:59");
+    expect(formatClockLabel("05:00", "ta")).toBe("காலை 5:00");
+    expect(formatClockLabel("11:59", "ta")).toBe("காலை 11:59");
+    expect(formatClockLabel("12:00", "ta")).toBe("மதியம் 12:00");
+    expect(formatClockLabel("15:59", "ta")).toBe("மதியம் 3:59");
+    expect(formatClockLabel("16:00", "ta")).toBe("மாலை 4:00");
+    expect(formatClockLabel("18:59", "ta")).toBe("மாலை 6:59");
+    expect(formatClockLabel("19:00", "ta")).toBe("இரவு 7:00");
+    expect(formatClockLabel("00:05", "ta")).toBe("இரவு 12:05");
+    expect(formatClockRange("13:42", "15:18")).toBe("1:42 pm–3:18 pm");
+    expect(formatClockRange("13:42", "15:18", "ta")).toBe("மதியம் 1:42 – மதியம் 3:18");
+  });
+
+  it("drops the minutes for an hour-only label in both languages", () => {
+    expect(formatClockHour("06:00")).toBe("6 am");
+    expect(formatClockHour("13:30")).toBe("1 pm");
+    expect(formatClockHour("13:30", "ta")).toBe("மதியம் 1");
+    expect(formatClockHour("21:00", "ta")).toBe("இரவு 9");
   });
 
   it("todayIso reads the local calendar day, not the UTC-shifted one", () => {

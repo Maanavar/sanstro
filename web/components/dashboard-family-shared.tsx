@@ -216,12 +216,12 @@ export function MemberDetailExpanded({
       <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
         {bestW && (
           <span style={{ padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", fontSize: "var(--text-sm)", fontWeight: 600, background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", color: "var(--color-text)" }}>
-            {lang === "ta" ? "சிறந்த நேரம்" : "Best"} {formatClockLabel(bestW.start)} – {formatClockLabel(bestW.end)}
+            {lang === "ta" ? "சிறந்த நேரம்" : "Best"} {formatClockLabel(bestW.start, lang)} – {formatClockLabel(bestW.end, lang)}
           </span>
         )}
         {avoidW && (
           <span style={{ padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", fontSize: "var(--text-sm)", fontWeight: 600, background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", color: SCORE_LOW }}>
-            {lang === "ta" ? "தவிர்க்கவும்" : "Avoid"} {formatClockLabel(avoidW.start)} – {formatClockLabel(avoidW.end)}
+            {lang === "ta" ? "தவிர்க்கவும்" : "Avoid"} {formatClockLabel(avoidW.start, lang)} – {formatClockLabel(avoidW.end, lang)}
           </span>
         )}
         {member.activeCycleTags.map((tag) => (

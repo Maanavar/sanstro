@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { apiFetchJson, toQuery } from "@/lib/api";
 import { useElapsedSeconds } from "@/hooks/useElapsedSeconds";
@@ -11,6 +11,16 @@ import type { ActivityTimingData } from "@/lib/types";
 import { ACTIVITY_OPTIONS, ACTIVITY_TO_MUHURTA } from "./dashboard-plan-shared";
 import { MuhurtaPanchangamOverlay, NovaMuhurtaPicker } from "./dashboard-plan-muhurta-picker-nova";
 import { NovaMuhurthamNaal } from "./dashboard-plan-muhurtham-naal-nova";
+import {
+  INITIAL_WEDDING_CHOICE,
+  WeddingPartnerControl,
+  coupleFromChoice,
+  defaultRoleFor,
+  scanWeddingParams,
+  suggestedPartner,
+  useSavedProfiles,
+} from "./dashboard-plan-wedding-partner";
+import type { WeddingChoice } from "./dashboard-plan-wedding-partner";
 import { NovaSelect } from "./nova-select";
 import { Card } from "./ui";
 import { Field, FieldShell, Input } from "./ui/field";
@@ -47,6 +57,36 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
   const [muhurtaPresetActivity, setMuhurtaPresetActivity] = useState<string | undefined>(undefined);
   const [panchangamDate, setPanchangamDate] = useState<string | null>(null);
 
+  // One answer to "whose charts decide a wedding?" for both surfaces below.
+  const { profiles, failed: profilesFailed } = useSavedProfiles();
+  const [wedding, setWedding] = useState<WeddingChoice>(INITIAL_WEDDING_CHOICE);
+  const seededFor = useRef<string | null>(null);
+  useEffect(() => {
+    // Seeded once per open chart, from what that chart's profile already says:
+    // its saved gender for the role, and a timed spouse as the partner. A spouse
+    // on file makes "both charts" the starting answer, as it is in the Tools
+    // finder; a reader's own later choice is never overwritten.
+    if (!profiles || seededFor.current === chartId) return;
+    seededFor.current = chartId;
+    const active = profiles.find((profile) => profile.chartId === chartId);
+    const partner = suggestedPartner(profiles, chartId);
+    setWedding({
+      mode: partner ? "couple" : "solo",
+      subjectRole: defaultRoleFor(active),
+      partnerChartId: partner,
+    });
+  }, [profiles, chartId]);
+  const activeProfile = profiles?.find((profile) => profile.chartId === chartId) ?? null;
+  // Unknown until profiles load; the backend is the final check either way.
+  const activeTimed = activeProfile ? Boolean(activeProfile.birthTimeLocal) : true;
+  const couple = coupleFromChoice(wedding, activeTimed);
+  const partnerName = couple ? (profiles?.find((profile) => profile.chartId === couple.partnerChartId)?.displayName ?? null) : null;
+  const isWeddingScan = activityType === "marriage";
+  const scanCouple = scanWeddingParams(activityType, couple);
+  // A shortlist ranked for one couple must not stay on screen under another.
+  const scanCoupleKey = `${scanCouple.partnerChartId ?? ""}:${scanCouple.subjectRole ?? ""}`;
+  useEffect(() => { setActivityTimingResult(null); }, [scanCoupleKey]);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", fontFamily: "var(--font-body)" }}>
       <Card variant="soft" compact>
@@ -63,6 +103,18 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
       <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.55 }}>
         {dt(CULTURAL_CONTEXT.muhurta, lang)}
       </p>
+
+      {/* Above all three surfaces it governs — the quick scan, the detailed
+          search and the published dates — so it is answered before any of them
+          is read, and "above" in their status lines is true. */}
+      <WeddingPartnerControl
+        lang={lang}
+        chartId={chartId || null}
+        profiles={profiles}
+        failed={profilesFailed}
+        value={wedding}
+        onChange={setWedding}
+      />
 
       <Card>
         <div>
@@ -92,7 +144,7 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
             onClick={() => {
               setActivityTimingBusy(true);
               apiFetchJson<{ success: boolean; data: ActivityTimingData }>(
-                `/api/v1/activity-timing${toQuery({ chartId, activity: activityType, month: activityMonth })}`,
+                `/api/v1/activity-timing${toQuery({ chartId, activity: activityType, month: activityMonth, ...scanCouple })}`,
               )
                 .then((r) => setActivityTimingResult(r.data))
                 .catch(() => {})
@@ -113,6 +165,20 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
             {activityTimingBusy ? `${t("btn_finding", lang)} ${activityTimingElapsed}s` : t("btn_find_best_dates", lang)}
           </button>
         </div>
+
+        {/* Whose charts a wedding shortlist reads, stated where it is run — the
+            same line the detailed search carries, for the same reason. */}
+        {isWeddingScan && (
+          <p style={{ margin: "-6px 0 14px", fontSize: "var(--text-sm)", color: couple ? "var(--color-text)" : "var(--color-muted)", lineHeight: 1.5 }}>
+            {couple
+              ? (lang === "ta"
+                ? `இரு ஜாதகங்களுக்கும் சரிபார்க்கப்படுகிறது — இந்த ஜாதகம்${partnerName ? ` மற்றும் ${partnerName}` : ""}. ஒவ்வொரு நாளுக்கும் இருவரில் குறைவான மதிப்பெண்ணும் பலவீனமான தாராவுமே கணக்கில் எடுக்கப்படும்.`
+                : `Checked for both charts — this chart${partnerName ? ` and ${partnerName}` : " and your partner's"}. Each day takes the lower of the two day scores and the weaker Tara.`)
+              : (lang === "ta"
+                ? "இந்த ஜாதகத்துக்கு மட்டுமே சரிபார்க்கப்படுகிறது. இருவருக்கும் சரிபார்க்க, மேலே \"மணமகள் & மணமகன்\" என்பதைத் தேர்ந்தெடுக்கவும்."
+                : "Checked for this chart only. Choose \"Bride and groom\" above to check both of you.")}
+          </p>
+        )}
 
         {activityTimingResult && (
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
@@ -184,7 +250,13 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
             ? (lang === "ta" ? "தேர்ந்தெடுத்த தேதி தயாராக உள்ளது. செயல்பாடு, பஞ்சாங்கம் மற்றும் தனிப்பட்ட காரணிகளைச் சரிபார்க்கவும்." : "Your selected date is ready. Check its activity rules, Panchangam, and personal factors.")
             : (lang === "ta" ? "ஆங்கில மாதம், தமிழ் மாதம் அல்லது தேதி வரம்பு — எதைத் தேர்ந்தெடுத்தாலும் உங்கள் ஜாதகத்தின்படி முழு முகூர்த்தத் தேடலை இயக்கவும்." : "Run a full, chart-personalised muhurta search by English month, Tamil month, or an explicit date range.")}
         </p>
-        <NovaMuhurtaPicker lang={lang} chartId={chartId || null} initialDateFrom={muhurtaPresetDate} initialActivity={muhurtaPresetActivity} />
+        <NovaMuhurtaPicker
+          lang={lang}
+          chartId={chartId || null}
+          initialDateFrom={muhurtaPresetDate}
+          initialActivity={muhurtaPresetActivity}
+          wedding={{ couple, subjectRole: wedding.subjectRole, partnerName }}
+        />
       </div>
 
       <div>
@@ -192,13 +264,18 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
           {lang === "ta" ? "திருமணம் · வெளியிடப்பட்ட முகூர்த்த நாட்கள்" : "Marriage · published muhurtham dates"}
         </p>
         <p style={{ margin: "0 0 10px", fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.5 }}>
-          {lang === "ta"
-            ? "வெளியிடப்பட்ட பஞ்சாங்க முகூர்த்த நாட்கள், உங்கள் நட்சத்திரத்துக்கு தாரா பலம் + சந்திராஷ்டமம் வைத்து வரிசைப்படுத்தப்பட்டவை."
-            : "Published almanac wedding dates, ranked for your birth star by Tara Bala and Chandrashtama."}
+          {couple
+            ? (lang === "ta"
+              ? "வெளியிடப்பட்ட பஞ்சாங்க முகூர்த்த நாட்கள், இருவரின் நட்சத்திரங்களுக்கும் தாரா பலம் + சந்திராஷ்டமம் வைத்து வரிசைப்படுத்தப்பட்டவை — இருவரில் பலவீனமானதே முடிவு செய்யும்."
+              : "Published almanac wedding dates, ranked for both birth stars by Tara Bala and Chandrashtama — the weaker of the two decides.")
+            : (lang === "ta"
+              ? "வெளியிடப்பட்ட பஞ்சாங்க முகூர்த்த நாட்கள், உங்கள் நட்சத்திரத்துக்கு தாரா பலம் + சந்திராஷ்டமம் வைத்து வரிசைப்படுத்தப்பட்டவை."
+              : "Published almanac wedding dates, ranked for your birth star by Tara Bala and Chandrashtama.")}
         </p>
         <NovaMuhurthamNaal
           lang={lang}
           chartId={chartId || null}
+          couple={couple}
           onCheckInPlanner={(date) => {
             setMuhurtaPresetDate(date);
             setMuhurtaPresetActivity("MARRIAGE");

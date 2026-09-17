@@ -704,8 +704,8 @@ export function MuhurtaTool() {
                     actually adds is persistence and the surfaces built on a saved chart.
                   */}
                   {lang === "en"
-                    ? "These details are used once and not saved. A free Vinaadi account keeps the chart, so you can return to a shortlist, compare dates on the calendar, and see the published almanac muhurtham days ranked for your star."
-                    : "இந்தத் தகவல்கள் ஒருமுறை மட்டுமே பயன்படுத்தப்படும்; சேமிக்கப்படாது. இலவச விநாடி கணக்கில் ஜாதகம் சேமிக்கப்படும் — தேர்ந்தெடுத்த நாட்களுக்குத் திரும்பலாம், நாட்காட்டியில் ஒப்பிடலாம், வெளியிடப்பட்ட முகூர்த்த நாட்களை உங்கள் நட்சத்திரத்துக்கு ஏற்ப வரிசைப்படுத்திப் பார்க்கலாம்."}
+                    ? "These details are used once and not saved. A free Vinaadi account keeps the charts, so you can return to a shortlist, compare dates on the calendar, and see the published almanac muhurtham days ranked for your star — or for both of you."
+                    : "இந்தத் தகவல்கள் ஒருமுறை மட்டுமே பயன்படுத்தப்படும்; சேமிக்கப்படாது. இலவச விநாடி கணக்கில் ஜாதகங்கள் சேமிக்கப்படும் — தேர்ந்தெடுத்த நாட்களுக்குத் திரும்பலாம், நாட்காட்டியில் ஒப்பிடலாம், வெளியிடப்பட்ட முகூர்த்த நாட்களை உங்கள் நட்சத்திரத்துக்கோ இருவருக்குமோ ஏற்ப வரிசைப்படுத்திப் பார்க்கலாம்."}
                 </p>
                 <Link
                   href="/dashboard"

@@ -6,7 +6,7 @@
 // three presentational leaf components (DayTimeline, MoonPhaseMark,
 // LunarTithiBadge) with no Classic/Nova fork.
 
-import { addDays, formatClockLabel, formatDateLabel } from "@/lib/format";
+import { addDays, formatClockHour, formatClockLabel, formatDateLabel } from "@/lib/format";
 import { tLang, tNakshatra } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { lunarSpecialTithiMeta } from "@/lib/lunar";
@@ -178,7 +178,7 @@ export function moonRasiFromNakshatra(name: string, pada = 1): number {
 // for rollover). Mirrors `formatChandrashtamaWindowEdge`'s day-qualifier
 // approach, using "tomorrow" for the common next-day case.
 export function formatUntilLabel(endsAt: string, endsAtIso: string, dateLocal: string, lang: Lang): string {
-  const clock = formatClockLabel(endsAt);
+  const clock = formatClockLabel(endsAt, lang);
   if (!endsAtIso.includes("T")) return clock;
   const endDate = endsAtIso.slice(0, 10);
   if (endDate === dateLocal) return clock;
@@ -188,8 +188,8 @@ export function formatUntilLabel(endsAt: string, endsAtIso: string, dateLocal: s
   return lang === "ta" ? `${dayLabel}, ${clock}` : `${clock} (${dayLabel})`;
 }
 
-export function formatChandrashtamaWindowEdge(value: string, dateLocal: string): string {
-  const clock = formatClockLabel(value);
+export function formatChandrashtamaWindowEdge(value: string, dateLocal: string, lang: Lang = "en"): string {
+  const clock = formatClockLabel(value, lang);
   if (!value.includes("T")) return clock;
   const edgeDate = value.slice(0, 10);
   return edgeDate === dateLocal ? clock : `${clock}, ${formatDateLabel(edgeDate)}`;
@@ -234,7 +234,7 @@ export function formatOwnChandrashtamaWindow(
     ? named.find((window) => !window.rasiNumber || window.rasiNumber === ownRasiNumber)
     : undefined) ?? named[0];
   if (!mine) return "";
-  return `${tNakshatra(mine.name, lang)} ${formatChandrashtamaWindowEdge(mine.start, dateLocal)} - ${formatChandrashtamaWindowEdge(mine.end, dateLocal)}`;
+  return `${tNakshatra(mine.name, lang)} ${formatChandrashtamaWindowEdge(mine.start, dateLocal, lang)} - ${formatChandrashtamaWindowEdge(mine.end, dateLocal, lang)}`;
 }
 
 /** Every distinct affected janma rasi the day touches, in the order they occur.
@@ -274,7 +274,7 @@ export function formatChandrashtamaWindowSummary(
       const qualifier = repeated.has(window.name) && window.rasiNumber
         ? ` (${rasiName(window.rasiNumber, lang)})`
         : "";
-      return `${tNakshatra(window.name, lang)}${qualifier} ${formatChandrashtamaWindowEdge(window.start, dateLocal)} - ${formatChandrashtamaWindowEdge(window.end, dateLocal)}`;
+      return `${tNakshatra(window.name, lang)}${qualifier} ${formatChandrashtamaWindowEdge(window.start, dateLocal, lang)} - ${formatChandrashtamaWindowEdge(window.end, dateLocal, lang)}`;
     })
     .join("; ");
 }
@@ -346,22 +346,21 @@ function toHours(timeStr: string): number | null {
   return h! + (Number.isFinite(m) ? m! : 0) / 60;
 }
 
-function formatHourLabel(h: number): string {
+function formatHourLabel(h: number, lang: Lang): string {
   const hr = ((Math.round(h) % 24) + 24) % 24;
-  if (hr === 0) return "12 am";
-  if (hr < 12) return `${hr} am`;
-  if (hr === 12) return "12 pm";
-  return `${hr - 12} pm`;
+  return formatClockHour(`${hr}:00`, lang);
 }
 
 export function DayTimeline({
   bands,
   sunrise,
   sunset,
+  lang = "en",
 }: {
   bands: DayTimelineBand[];
   sunrise?: string;
   sunset?: string;
+  lang?: Lang;
 }) {
   const sunriseH = (sunrise ? toHours(sunrise) : null) ?? DEFAULT_SUNRISE_H;
   const rawSunsetH = sunset ? toHours(sunset) : null;
@@ -422,7 +421,7 @@ export function DayTimeline({
 
   return (
     <div style={{ marginTop: "var(--space-3)" }}>
-      <svg viewBox="0 0 600 188" style={{ width: "100%", height: "auto", display: "block" }}>
+      <svg viewBox={`0 0 600 ${lang === "ta" ? 202 : 188}`} style={{ width: "100%", height: "auto", display: "block" }}>
         <defs>
           <linearGradient id="day-timeline-dome" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={"var(--color-score-mid)"} stopOpacity="0.24" />
@@ -446,7 +445,7 @@ export function DayTimeline({
           const style = DAY_TIMELINE_BAND_STYLE[band.kind];
           return (
             <rect key={band.key} x={x} y={HORIZON_Y - 4} width={width} height="9" rx="5" fill={style.fill} opacity={style.opacity}>
-              <title>{`${band.label} ${formatClockLabel(band.start)} – ${formatClockLabel(band.end)}`}</title>
+              <title>{`${band.label} ${formatClockLabel(band.start, lang)} – ${formatClockLabel(band.end, lang)}`}</title>
             </rect>
           );
         })}
@@ -456,7 +455,16 @@ export function DayTimeline({
           return (
             <g key={h}>
               <line x1={x} y1={HORIZON_Y + 3} x2={x} y2={HORIZON_Y + 11} stroke={"var(--color-faint)"} strokeWidth="2" />
-              <text x={x} y={HORIZON_Y + 26} textAnchor="middle" fontSize="12" fill={"var(--color-faint)"} fontFamily="var(--font-mono)">{formatHourLabel(h)}</text>
+              {lang === "ta" ? (
+                // Period-word stacked over the hour so neighbouring ticks don't collide.
+                <text x={x} textAnchor="middle" fontSize="11" fill={"var(--color-faint)"}>
+                  {formatHourLabel(h, lang).split(" ").map((part, i) => (
+                    <tspan key={i} x={x} y={HORIZON_Y + 24 + i * 14}>{part}</tspan>
+                  ))}
+                </text>
+              ) : (
+                <text x={x} y={HORIZON_Y + 26} textAnchor="middle" fontSize="12" fill={"var(--color-faint)"} fontFamily="var(--font-mono)">{formatHourLabel(h, lang)}</text>
+              )}
             </g>
           );
         })}

@@ -1287,7 +1287,7 @@ export function HyTodayFacts({ lang, memberName, memberNakshatraName, weekdayLor
           <span style={{ color: "var(--color-high)", fontSize: "var(--text-sm)" }}>✳</span>
           <span style={{ flex: 1, fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
             {goodWindowLabel ?? (lang === "ta" ? "சிறந்த நேரம் " : "Best window ")}
-            <b style={{ color: "var(--color-text-accent)", fontWeight: 600 }}>{formatClockLabel(goodWindow.start)} – {formatClockLabel(goodWindow.end)}</b>
+            <b style={{ color: "var(--color-text-accent)", fontWeight: 600 }}>{formatClockLabel(goodWindow.start, lang)} – {formatClockLabel(goodWindow.end, lang)}</b>
           </span>
         </Card>
       )}

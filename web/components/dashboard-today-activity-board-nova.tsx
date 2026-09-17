@@ -50,7 +50,7 @@ import { getActivityTimingBatch } from "@vinaadi/shared/api/activityTiming";
 import { NovaStarRow } from "./dashboard-ui-nova";
 import { GlanceHeader } from "./dashboard-today-glance-nova";
 import { Card } from "./ui";
-import { formatClockLabel } from "@/lib/format";
+import { formatClockHour } from "@/lib/format";
 import type { Lang } from "@/lib/i18n";
 import { minutesOfDayInZone } from "@/lib/tz";
 import type {
@@ -65,10 +65,7 @@ function tx(value: { ta: string; en: string }, lang: Lang): string {
 }
 
 function shortHour(clock: string, lang: Lang): string {
-  const [time, period] = formatClockLabel(clock).split(" ");
-  const hour = time?.split(":")[0] ?? time;
-  if (lang === "ta") return `${hour} ${period === "am" ? "காலை" : "மாலை"}`;
-  return `${hour} ${period}`;
+  return formatClockHour(clock, lang);
 }
 
 function shortDate(dateLocal: string, lang: Lang): string {

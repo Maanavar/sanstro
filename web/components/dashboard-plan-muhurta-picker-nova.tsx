@@ -21,6 +21,7 @@ import { Segmented } from "./ui/segmented";
 import { ModalShell } from "./modal-shell";
 import { GlossaryTerm } from "./glossary-term";
 import type { GlossaryKey } from "@/lib/glossary";
+import type { NaalCouple, WeddingRole } from "@/lib/muhurtham-naal";
 
 export type PanchangamOverlayLocation = Pick<MuhurtaResponseData["activityLocation"], "latitude" | "longitude" | "timezone">;
 
@@ -241,7 +242,7 @@ function NovaMuhurtaCard({
           {slot.tamilDate && (
             <div style={{ fontSize: "var(--text-base)", color: "var(--color-text-accent)", fontWeight: 600 }}>{lang === "ta" ? slot.tamilDate.ta : slot.tamilDate.en}</div>
           )}
-          <div style={{ fontSize: "var(--text-base)", color: "var(--color-muted)" }}>{formatClockLabel(slot.timeStart)} - {formatClockLabel(slot.timeEnd)}</div>
+          <div style={{ fontSize: "var(--text-base)", color: "var(--color-muted)" }}>{formatClockLabel(slot.timeStart, lang)} - {formatClockLabel(slot.timeEnd, lang)}</div>
           {slot.traditionalMonthNotices && slot.traditionalMonthNotices.length > 0 && (
             <div style={{ marginTop: "8px", padding: "6px 8px", border: "1px solid var(--color-mid-border)", borderRadius: "var(--radius-sm)", background: "var(--color-surface-soft)", color: "var(--color-text)", fontSize: "var(--text-sm)", lineHeight: 1.45 }}>
               {slot.traditionalMonthNotices.map((notice, index) => (
@@ -352,8 +353,8 @@ export function MuhurtaPanchangamOverlay({
     return () => controller.abort();
   }, [date, location.latitude, location.longitude, location.timezone]);
 
-  const timing = (slot: { start: string; end: string }) => `${formatClockLabel(slot.start)} – ${formatClockLabel(slot.end)}`;
-  const limbUntil = (value: string) => formatClockLabel(value);
+  const timing = (slot: { start: string; end: string }) => `${formatClockLabel(slot.start, lang)} – ${formatClockLabel(slot.end, lang)}`;
+  const limbUntil = (value: string) => formatClockLabel(value, lang);
 
   return (
     <ModalShell
@@ -392,7 +393,7 @@ export function MuhurtaPanchangamOverlay({
               </p>
               {data.tamilDate && <p style={{ margin: "4px 0 0", fontSize: "var(--text-sm)", color: "var(--color-text-accent)" }}>{lang === "ta" ? data.tamilDate.ta : data.tamilDate.en}</p>}
               <p style={{ margin: "6px 0 0", fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
-                {t("label_sunrise", lang)} {formatClockLabel(data.sunrise)} · {t("label_sunset", lang)} {formatClockLabel(data.sunset)}
+                {t("label_sunrise", lang)} {formatClockLabel(data.sunrise, lang)} · {t("label_sunset", lang)} {formatClockLabel(data.sunset, lang)}
               </p>
             </div>
 
@@ -445,11 +446,37 @@ export function MuhurtaPanchangamOverlay({
   );
 }
 
+/** The panel's answer to "whose charts decide a wedding?". Read only when the
+ *  selected activity is MARRIAGE — the couple ruling was made for a wedding. */
+export type PickerWedding = {
+  couple: NaalCouple | null;
+  subjectRole: WeddingRole;
+  partnerName: string | null;
+};
+
 interface Props {
   lang: Lang;
   chartId: string | null;
   initialActivity?: string;
   initialDateFrom?: string;
+  wedding?: PickerWedding;
+}
+
+const WEDDING_ACTIVITY = "MARRIAGE";
+
+/** The couple/role query parameters for a wedding search, and nothing otherwise.
+ *
+ *  A solo role still travels: naming the one chart as the bride is what lets
+ *  Ch. XIV p.79's Jupiter rule be applied to it, exactly as in the Tools finder. */
+export function withWeddingParams(params: URLSearchParams, activity: string, wedding: PickerWedding | undefined): URLSearchParams {
+  if (activity !== WEDDING_ACTIVITY || !wedding) return params;
+  if (wedding.couple) {
+    params.set("partnerChartId", wedding.couple.partnerChartId);
+    params.set("subjectRole", wedding.couple.subjectRole);
+  } else if (wedding.subjectRole !== "PERSON") {
+    params.set("subjectRole", wedding.subjectRole);
+  }
+  return params;
 }
 
 const DEFAULT_SEARCH_RANGE_DAYS = 30;
@@ -562,7 +589,7 @@ function byScoreDesc(slots: MuhurtaSlot[]): MuhurtaSlot[] {
   return [...slots].sort((a, b) => b.score - a.score);
 }
 
-export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateFrom }: Props) {
+export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateFrom, wedding }: Props) {
   const today = todayIso();
   const [activity, setActivity] = useState(initialActivity ?? "");
   const [pakshaFilter, setPakshaFilter] = useState<"" | "SHUKLA" | "KRISHNA">("");
@@ -607,6 +634,18 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
   useEffect(() => {
     if (initialActivity) setActivity(initialActivity);
   }, [initialActivity]);
+
+  // A wedding result belongs to the charts it was scored against. Changing the
+  // partner or a role above must not leave a one-chart list standing under a
+  // two-chart heading, so both results are cleared and the reader searches again.
+  const weddingKey = activity === WEDDING_ACTIVITY
+    ? `${wedding?.couple?.partnerChartId ?? ""}|${wedding?.couple?.subjectRole ?? wedding?.subjectRole ?? ""}`
+    : "";
+  useEffect(() => {
+    setResult(null);
+    setAssessment(null);
+    setAssessmentLocation(null);
+  }, [weddingKey]);
   useEffect(() => {
     if (initialDateFrom) {
       setSearchMode("range");
@@ -713,7 +752,11 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
     setAssessmentLocation(null);
     try {
       const chunks = await Promise.all(searchDateRanges(searched).map(async ({ from, to }) => {
-        const params = withActivityLocation(new URLSearchParams({ activity, dateFrom: from, dateTo: to }));
+        const params = withWeddingParams(
+          withActivityLocation(new URLSearchParams({ activity, dateFrom: from, dateTo: to })),
+          activity,
+          wedding,
+        );
         if (pakshaFilter) params.set("paksha", pakshaFilter);
         return apiFetchJson<ApiEnvelope<MuhurtaResponseData>>(`/api/v1/charts/${chartId}/muhurta?${params}`);
       }));
@@ -744,8 +787,12 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
     setAssessment(null);
     setAssessmentLocation(null);
     try {
-      const params = withActivityLocation(
-        new URLSearchParams({ activity, dateFrom: checkDate, dateTo: checkDate, includeExcluded: "true" }),
+      const params = withWeddingParams(
+        withActivityLocation(
+          new URLSearchParams({ activity, dateFrom: checkDate, dateTo: checkDate, includeExcluded: "true" }),
+        ),
+        activity,
+        wedding,
       );
       const json = await apiFetchJson<ApiEnvelope<MuhurtaResponseData>>(`/api/v1/charts/${chartId}/muhurta?${params}`);
       setAssessment(json.data.slots[0] ?? null);
@@ -948,6 +995,22 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
           lang === "ta" ? "தேட ஒரு காலகட்டத்தைத் தேர்ந்தெடுக்கவும்." : "Choose a period to search."
         )}
       </p>
+
+      {/* Whose charts a wedding search reads, stated where the search is run.
+          The choice itself lives once, above this panel; without this line a
+          reader scrolled down to the results has no way to tell a one-chart
+          wedding list from a two-chart one. */}
+      {activity === WEDDING_ACTIVITY && wedding && (
+        <p style={{ margin: "-6px 0 14px", fontSize: "var(--text-sm)", color: wedding.couple ? "var(--color-text)" : "var(--color-muted)", lineHeight: 1.5 }}>
+          {wedding.couple
+            ? (lang === "ta"
+              ? `இரு ஜாதகங்களுக்கும் சரிபார்க்கப்படுகிறது — இந்த ஜாதகம்${wedding.partnerName ? ` மற்றும் ${wedding.partnerName}` : ""}. இருவரில் ஒருவருக்குச் சந்திராஷ்டமம் இருந்தால் அந்நாள் நீக்கப்படும்.`
+              : `Checked for both charts — this chart${wedding.partnerName ? ` and ${wedding.partnerName}` : " and your partner's"}. Chandrashtama for either of you rules a day out.`)
+            : (lang === "ta"
+              ? "இந்த ஜாதகத்துக்கு மட்டுமே சரிபார்க்கப்படுகிறது. இருவருக்கும் சரிபார்க்க, மேலே \"மணமகள் & மணமகன்\" என்பதைத் தேர்ந்தெடுக்கவும்."
+              : "Checked for this chart only. Choose \"Bride and groom\" above to check both of you.")}
+        </p>
+      )}
 
       {(() => {
         // Sits with the inputs, not with the results, because it changes what is

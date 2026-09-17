@@ -4,7 +4,7 @@ import { MuhurtaPageContent } from "./MuhurtaPageContent";
 export const metadata: Metadata = {
   title: "Free Tamil Muhurtham Calculator — Auspicious Time Finder",
   description:
-    "Find auspicious muhurtham dates and times for weddings, job starts, travel, exams, and more. Uses Thirukanitham Panchangam — tithi, Moon star, and Rahu Kalam — to pick the best windows. No account required.",
+    "Find auspicious muhurtham dates and times for weddings, job starts, travel, exams, and more. Scored on Thirukanitham Panchangam and your birth chart — Tara Bala, Chandrashtama, dasa and hora — with both charts checked for a wedding. No account required.",
   keywords: [
     "muhurta calculator",
     "auspicious time Tamil",
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Free Tamil Muhurtham Calculator — Auspicious Time Finder",
     description:
-      "Pick the best auspicious time for your event using Thirukanitham Panchangam. Covers tithi, Moon star, Rahu Kalam, and Abhijit Muhurtham.",
+      "Pick the best auspicious time for your event from Thirukanitham Panchangam and your birth chart. Covers tithi, Moon star, Rahu Kalam, Tara Bala and Chandrashtama — for both charts at a wedding.",
     url: "https://vinaadi.com/tools/muhurta-calculator",
     type: "website",
   },
@@ -53,10 +53,14 @@ const FAQ_JSONLD = {
     },
     {
       "@type": "Question",
-      name: "How is this muhurtham calculator different from a personalised one?",
+      // Rewritten 2026-09-15. The old answer said the tool "uses Panchangam
+      // alone" and sold birth-chart personalisation as the account upgrade —
+      // false since the tool moved onto the personalised endpoint, and this is
+      // structured data a search engine can quote verbatim.
+      name: "Does this muhurtham calculator use my birth chart?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "This free tool uses Panchangam alone — tithi, Moon star, yoga, and Rahu Kalam. A personalised muhurtham, available with a free Vinaadi account, also considers your birth chart, dasa support, hora windows, and Chandrashtama avoidance. The personalised version is significantly stronger.",
+        text: "Yes. Along with the Panchangam — tithi, Moon star, yoga, and Rahu Kalam — it reads the birth details you enter for Tara Bala, Chandra Bala, Chandrashtama, dasa, and hora. For a wedding it checks both the bride's and the groom's charts, and a day that is Chandrashtama for either of them is ruled out. The details are used once and not saved; a free Vinaadi account keeps your chart, so you can return to a shortlist and see the published muhurtham days ranked for you, or for you and your partner together.",
       },
     },
     {

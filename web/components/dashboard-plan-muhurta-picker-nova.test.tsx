@@ -6,8 +6,38 @@ import {
   groupSlotsByTamilMonth,
   monthEndIso,
   windowDayCount,
+  withWeddingParams,
 } from "./dashboard-plan-muhurta-picker-nova";
 import type { MuhurtaSlot } from "@/lib/types";
+
+/** What leaves the picker for a wedding. The failure being guarded is silent — a
+ *  one-chart request renders exactly like a two-chart one — so this watches the
+ *  query, not the pixels. */
+describe("withWeddingParams", () => {
+  const couple = { partnerChartId: "chart-partner", subjectRole: "BRIDE" as const };
+
+  it("sends the partner and the role for a wedding couple", () => {
+    const params = withWeddingParams(new URLSearchParams(), "MARRIAGE", { couple, subjectRole: "BRIDE", partnerName: "Synthetic" });
+    expect(params.get("partnerChartId")).toBe("chart-partner");
+    expect(params.get("subjectRole")).toBe("BRIDE");
+  });
+
+  it("never sends a partner for any other activity", () => {
+    // The couple ruling was made for a wedding; a partner chosen for the wedding
+    // must not quietly re-score a house-warming.
+    const params = withWeddingParams(new URLSearchParams(), "SPIRITUAL", { couple, subjectRole: "BRIDE", partnerName: null });
+    expect(params.has("partnerChartId")).toBe(false);
+    expect(params.has("subjectRole")).toBe(false);
+  });
+
+  it("still names a one-chart bride, and names nobody when the role was not given", () => {
+    const named = withWeddingParams(new URLSearchParams(), "MARRIAGE", { couple: null, subjectRole: "BRIDE", partnerName: null });
+    expect(named.has("partnerChartId")).toBe(false);
+    expect(named.get("subjectRole")).toBe("BRIDE");
+    const unnamed = withWeddingParams(new URLSearchParams(), "MARRIAGE", { couple: null, subjectRole: "PERSON", partnerName: null });
+    expect(unnamed.has("subjectRole")).toBe(false);
+  });
+});
 
 /** Only the fields the grouping reads; the rest of a slot is irrelevant here. */
 function slot(date: string, tamil: string | null, score = 70): MuhurtaSlot {

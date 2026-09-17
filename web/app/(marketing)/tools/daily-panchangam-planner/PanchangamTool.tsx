@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { readErrorMessage } from "@/lib/api";
 import { useLang } from "@/components/lang-toggle";
-import { addDays, formatClockLabel, formatDateLabel } from "@/lib/format";
+import { addDays, formatClockLabel, formatClockRange, formatDateLabel } from "@/lib/format";
+import { CALENDAR_DAY_SUMMARY, dt } from "@/lib/dashboard-i18n";
 import { gowriCategoryLabel, gowriPeriodLabel, gowriPurposeLabel } from "@/lib/gowri";
 import { t, tAmirdhadhiYogam, tJeevan, tKarana, tMoonPhase, tNakshatra, tNethiram, tParigaram, tPlanetLord, tSoolamDirection, tTithi, tWeekday, tYoga, type Lang } from "@/lib/i18n";
 import { PlaceCombobox, type CityEntry } from "@/components/place-combobox";
@@ -189,19 +190,21 @@ function FestivalPill({ festival, lang, observance = false }: { festival: Pancha
 // earlier than sunrise belongs to the next Gregorian calendar date, which
 // reference almanacs call out explicitly (e.g. "* Next Calendar Day").
 function formatEndsAtLabel(endsAt: string, sunrise: string, dateLocal: string, lang: Lang, endsAtIso?: string): string {
-  const clock = formatClockLabel(endsAt);
+  const clock = formatClockLabel(endsAt, lang);
   const endDate = endsAtDate(endsAt, sunrise, dateLocal, endsAtIso);
   const dateLabel = formatDateLabel(endDate);
   const nextDaySuffix = lang === "ta" && endDate !== dateLocal ? " (மறுநாள்)" : "";
   return `${clock}, ${dateLabel}${nextDaySuffix}`;
 }
 
-function formatTimeRange(start: string, end: string): string {
-  return `${formatClockLabel(start)} - ${formatClockLabel(end)}`;
+function formatTimeRange(start: string, end: string, lang: Lang = "en"): string {
+  // Tamil ranges read as an almanac does ("மதியம் 1:42 – மதியம் 3:18").
+  if (lang === "ta") return formatClockRange(start, end, "ta");
+  return `${formatClockLabel(start, lang)} - ${formatClockLabel(end, lang)}`;
 }
 
-function formatChandrashtamaWindowEdge(value: string, dateLocal: string): string {
-  const clock = formatClockLabel(value);
+function formatChandrashtamaWindowEdge(value: string, dateLocal: string, lang: Lang): string {
+  const clock = formatClockLabel(value, lang);
   if (!value.includes("T")) return clock;
   const edgeDate = value.slice(0, 10);
   return edgeDate === dateLocal ? clock : `${clock}, ${formatDateLabel(edgeDate)}`;
@@ -213,11 +216,11 @@ function formatChandrashtamaWindowSummary(
   lang: Lang,
 ): string {
   return windows
-    .map((window) => `${tNakshatra(window.name, lang)} ${formatChandrashtamaWindowEdge(window.start, dateLocal)} - ${formatChandrashtamaWindowEdge(window.end, dateLocal)}`)
+    .map((window) => `${tNakshatra(window.name, lang)} ${formatChandrashtamaWindowEdge(window.start, dateLocal, lang)} - ${formatChandrashtamaWindowEdge(window.end, dateLocal, lang)}`)
     .join("; ");
 }
 
-function TimeSlot({ label, start, end, tone }: { label: string; start: string; end: string; tone: "best" | "hold" | "neutral" }) {
+function TimeSlot({ label, start, end, tone, lang }: { label: string; start: string; end: string; tone: "best" | "hold" | "neutral"; lang: Lang }) {
   const colors = {
     best: { bg: "var(--cl-sage-tint)", border: "var(--cl-sage-edge)", text: "var(--chart-d9-active)" },
     hold: { bg: "var(--cl-rust-tint)", border: "var(--cl-rust-edge)", text: "var(--planet-saturn)" },
@@ -227,8 +230,10 @@ function TimeSlot({ label, start, end, tone }: { label: string; start: string; e
   return (
     <div style={{ background: colors.bg, border: `1px solid ${colors.border}`, borderRadius: "10px", padding: "10px 14px" }}>
       <p style={{ margin: "0 0 3px", fontSize: "0.62rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: colors.text }}>{label}</p>
-      <p style={{ margin: 0, fontSize: "0.9rem", fontWeight: 600, color: colors.text, fontFamily: "monospace" }}>
-        {formatClockLabel(start)} – {formatClockLabel(end)}
+      {/* Monospace suits Latin digits only; Tamil period-words fall back to a
+          mismatched glyph set inside it. */}
+      <p style={{ margin: 0, fontSize: "0.9rem", fontWeight: 600, color: colors.text, fontFamily: lang === "ta" ? undefined : "monospace" }}>
+        {formatClockLabel(start, lang)} – {formatClockLabel(end, lang)}
       </p>
     </div>
   );
@@ -296,7 +301,7 @@ function SlotStack({ slots, emptyLabel, lang }: { slots: PanchangamTimingSlot[];
               {purpose && <span style={{ display: "block", marginTop: "2px", color: "var(--cl-ink-2)", fontSize: "0.68rem", fontWeight: 600 }}>{purpose}</span>}
             </span>
             <span style={{ color: "var(--cl-ink)", fontVariantNumeric: "tabular-nums", fontWeight: 700, whiteSpace: "nowrap" }}>
-              {formatClockLabel(slot.start)} - {formatClockLabel(slot.end)}
+              {formatClockLabel(slot.start, lang)} - {formatClockLabel(slot.end, lang)}
             </span>
           </div>
         );
@@ -437,12 +442,12 @@ export function PanchangamTool() {
     ? (firstNallaSlot
         ? {
             label: en ? "Nalla Neram" : "நல்ல நேரம்",
-            range: formatTimeRange(firstNallaSlot.start, firstNallaSlot.end),
+            range: formatTimeRange(firstNallaSlot.start, firstNallaSlot.end, lang),
           }
         : (hasAbhijitWindow
             ? {
                 label: en ? "Abhijit" : "அபிஜித்",
-                range: formatTimeRange(data.abhijit.start, data.abhijit.end),
+                range: formatTimeRange(data.abhijit.start, data.abhijit.end, lang),
               }
             : null))
     : null;
@@ -450,16 +455,16 @@ export function PanchangamTool() {
     ? (secondNallaSlot
         ? {
             label: en ? "Next clean window" : "அடுத்த நல்ல நேரம்",
-            range: formatTimeRange(secondNallaSlot.start, secondNallaSlot.end),
+            range: formatTimeRange(secondNallaSlot.start, secondNallaSlot.end, lang),
           }
         : (firstNallaSlot && hasAbhijitWindow
             ? {
                 label: en ? "Abhijit backup" : "அபிஜித் மாற்று நேரம்",
-                range: formatTimeRange(data.abhijit.start, data.abhijit.end),
+                range: formatTimeRange(data.abhijit.start, data.abhijit.end, lang),
               }
             : null))
     : null;
-  const rahuRange = data ? formatTimeRange(data.kalam.rahuKalam.start, data.kalam.rahuKalam.end) : "";
+  const rahuRange = data ? formatTimeRange(data.kalam.rahuKalam.start, data.kalam.rahuKalam.end, lang) : "";
   const plannerHeadline = data
     ? (primaryWindow
         ? (en ? `Best planning window: ${primaryWindow.range}` : `சிறந்த திட்ட நேரம்: ${primaryWindow.range}`)
@@ -469,7 +474,7 @@ export function PanchangamTool() {
     ? (data.subhaMuhurtham.isSubha
         ? (en
             ? `This date carries traditional support for fresh starts. Lead with ${primaryWindow ? `${primaryWindow.label} ${primaryWindow.range}` : "the cleaner windows below"}${secondaryWindow ? `, and keep ${secondaryWindow.label} ${secondaryWindow.range} in reserve` : ""}. Avoid Rahu Kalam ${rahuRange}.`
-            : `இந்த நாள் சுப தொடக்கங்களுக்கு ஏற்றதாக கருதப்படுகிறது. ${primaryWindow ? `${primaryWindow.label} ${primaryWindow.range}` : "கீழே உள்ள நல்ல நேரங்களை"} முதலில் பயன்படுத்துங்கள்${secondaryWindow ? `; ${secondaryWindow.label} ${secondaryWindow.range} மாற்று நேரமாக இருக்கும்` : ""}. ராகு காலம் ${rahuRange} தவிர்க்கவும்.`)
+            : `இந்த நாள் சுப தொடக்கங்களுக்கு ஏற்றதாக கருதப்படுகிறது. ${primaryWindow ? `${primaryWindow.label} ${primaryWindow.range}` : "கீழே உள்ள நல்ல நேரங்களை"} முதலில் பயன்படுத்துங்கள்${secondaryWindow ? `; ${secondaryWindow.label} ${secondaryWindow.range} மாற்று நேரமாக இருக்கும்` : ""}. ${dt(CALENDAR_DAY_SUMMARY.avoidRahu(rahuRange, rahuRange), "ta")}`)
         : (en
             ? `Use this date selectively. ${primaryWindow ? `The cleanest opening is ${primaryWindow.label} ${primaryWindow.range}` : "There is no standout muhurta window on this date"}${secondaryWindow ? `, and ${secondaryWindow.label} ${secondaryWindow.range} is the next option` : ""}. Keep major starts outside Rahu Kalam ${rahuRange}.`
             : `இந்த நாளை தேர்ந்தெடுத்து பயன்படுத்துங்கள். ${primaryWindow ? `${primaryWindow.label} ${primaryWindow.range} தான் சுத்தமான தொடக்க நேரம்` : "இந்த நாளில் மிகவும் வலுவான முகூர்த்த நேரம் இல்லை"}${secondaryWindow ? `; ${secondaryWindow.label} ${secondaryWindow.range} அடுத்த விருப்பம்` : ""}. முக்கிய தொடக்கங்களை ராகு காலம் ${rahuRange} வெளியே வைத்துக்கொள்ளுங்கள்.`))
@@ -699,12 +704,12 @@ export function PanchangamTool() {
                 vara: tWeekday(data.vara.weekday, lang),
                 yoga: data.yoga?.name,
                 karana: data.karana?.name,
-                sunrise: formatClockLabel(data.sunrise),
-                sunset: formatClockLabel(data.sunset),
-                rahuKalamStart: formatClockLabel(data.kalam.rahuKalam.start),
-                rahuKalamEnd: formatClockLabel(data.kalam.rahuKalam.end),
+                sunrise: formatClockLabel(data.sunrise, lang),
+                sunset: formatClockLabel(data.sunset, lang),
+                rahuKalamStart: formatClockLabel(data.kalam.rahuKalam.start, lang),
+                rahuKalamEnd: formatClockLabel(data.kalam.rahuKalam.end, lang),
                 nallaNeram: data.kalam.nallaNeram.length > 0
-                  ? `${formatClockLabel(data.kalam.nallaNeram[0].start)} – ${formatClockLabel(data.kalam.nallaNeram[0].end)}`
+                  ? `${formatClockLabel(data.kalam.nallaNeram[0].start, lang)} – ${formatClockLabel(data.kalam.nallaNeram[0].end, lang)}`
                   : (en ? "N/A" : "இல்லை"),
                 lang,
               }} />
@@ -717,9 +722,9 @@ export function PanchangamTool() {
             borderRadius: "14px", padding: "18px 22px",
           }}>
             {[
-              { label: en ? "Sunrise" : "சூரிய உதயம்",  value: formatClockLabel(data.sunrise) },
-              { label: en ? "Sunset" : "சூரிய அஸ்தமனம்", value: formatClockLabel(data.sunset) },
-              { label: en ? "Solar Noon" : "மத்தியான்னம்", value: formatClockLabel(data.solarNoon) },
+              { label: en ? "Sunrise" : "சூரிய உதயம்",  value: formatClockLabel(data.sunrise, lang) },
+              { label: en ? "Sunset" : "சூரிய அஸ்தமனம்", value: formatClockLabel(data.sunset, lang) },
+              { label: en ? "Solar Noon" : "மத்தியான்னம்", value: formatClockLabel(data.solarNoon, lang) },
             ].map((item) => (
               <div key={item.label}>
                 <p style={{ margin: "0 0 2px", fontSize: "0.65rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--cl-muted)" }}>
@@ -771,11 +776,11 @@ export function PanchangamTool() {
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "10px" }}>
               {!data.abhijit.isRestrictedByWeekday && (
-                <TimeSlot label={en ? "Abhijit Muhurta" : "அபிஜித் முகூர்த்தம்"} start={data.abhijit.start} end={data.abhijit.end} tone="best" />
+                <TimeSlot label={en ? "Abhijit Muhurta" : "அபிஜித் முகூர்த்தம்"} start={data.abhijit.start} end={data.abhijit.end} tone="best" lang={lang} />
               )}
-              <TimeSlot label={en ? "Rahu Kalam" : "ராகு காலம்"} start={data.kalam.rahuKalam.start} end={data.kalam.rahuKalam.end} tone="hold" />
-              <TimeSlot label={en ? "Yamagandam" : "யமகண்டம்"} start={data.kalam.yamagandam.start} end={data.kalam.yamagandam.end} tone="hold" />
-              <TimeSlot label={en ? "Kuligai" : "குளிகை"} start={data.kalam.kuligai.start} end={data.kalam.kuligai.end} tone="hold" />
+              <TimeSlot label={en ? "Rahu Kalam" : "ராகு காலம்"} start={data.kalam.rahuKalam.start} end={data.kalam.rahuKalam.end} tone="hold" lang={lang} />
+              <TimeSlot label={en ? "Yamagandam" : "யமகண்டம்"} start={data.kalam.yamagandam.start} end={data.kalam.yamagandam.end} tone="hold" lang={lang} />
+              <TimeSlot label={en ? "Kuligai" : "குளிகை"} start={data.kalam.kuligai.start} end={data.kalam.kuligai.end} tone="hold" lang={lang} />
             </div>
           </div>
 

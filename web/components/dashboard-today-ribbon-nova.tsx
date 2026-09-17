@@ -4,7 +4,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 
 import { limbNow } from "./dashboard-calendar-shared";
-import { formatClockLabel, getScoreBand, scoreColorScale } from "@/lib/format";
+import { formatClockHour, formatClockLabel, getScoreBand, scoreColorScale } from "@/lib/format";
 import { tNakshatra, tTithi } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { GlossaryKey } from "@/lib/glossary";
@@ -155,7 +155,7 @@ export function DashboardTodayRibbonNova({
       badge: lang === "ta" ? "யமகண்டம்" : "YAMAGANDAM",
       legendName: lang === "ta" ? "யமகண்டம்" : "Yamagandam",
       glossary: "yamagandam",
-      legendTime: `${formatClockLabel(panchangam.kalam.yamagandam.start)} – ${formatClockLabel(panchangam.kalam.yamagandam.end)}`,
+      legendTime: `${formatClockLabel(panchangam.kalam.yamagandam.start, lang)} – ${formatClockLabel(panchangam.kalam.yamagandam.end, lang)}`,
     });
   }
 
@@ -171,7 +171,7 @@ export function DashboardTodayRibbonNova({
       badge: lang === "ta" ? "ராகு காலம்" : "RAHU KALAM",
       legendName: lang === "ta" ? "ராகு காலம்" : "Rahu Kalam",
       glossary: "rahuKalam",
-      legendTime: `${formatClockLabel(panchangam.kalam.rahuKalam.start)} – ${formatClockLabel(panchangam.kalam.rahuKalam.end)}`,
+      legendTime: `${formatClockLabel(panchangam.kalam.rahuKalam.start, lang)} – ${formatClockLabel(panchangam.kalam.rahuKalam.end, lang)}`,
     });
   }
 
@@ -187,7 +187,7 @@ export function DashboardTodayRibbonNova({
       badge: lang === "ta" ? "குளிகை" : "KULIGAI",
       legendName: lang === "ta" ? "குளிகை" : "Kuligai",
       glossary: "kuligai",
-      legendTime: `${formatClockLabel(panchangam.kalam.kuligai.start)} – ${formatClockLabel(panchangam.kalam.kuligai.end)}`,
+      legendTime: `${formatClockLabel(panchangam.kalam.kuligai.start, lang)} – ${formatClockLabel(panchangam.kalam.kuligai.end, lang)}`,
     });
   }
 
@@ -205,7 +205,7 @@ export function DashboardTodayRibbonNova({
         badge: lang === "ta" ? "சிறந்தது" : "BEST",
         legendName: lang === "ta" ? "நல்ல நேரம்" : "Nalla Neram",
         glossary: "nallaNeram",
-        legendTime: `${formatClockLabel(slot.start)} – ${formatClockLabel(slot.end)}`,
+        legendTime: `${formatClockLabel(slot.start, lang)} – ${formatClockLabel(slot.end, lang)}`,
       });
     } else {
       const part = PART_OF_DAY_TEXT[partOfDay(s)];
@@ -218,7 +218,7 @@ export function DashboardTodayRibbonNova({
         badge: lang === "ta" ? part.badge.ta : part.badge.en,
         legendName: lang === "ta" ? part.legend.ta : part.legend.en,
         glossary: "nallaNeram",
-        legendTime: `${formatClockLabel(slot.start)} – ${formatClockLabel(slot.end)}`,
+        legendTime: `${formatClockLabel(slot.start, lang)} – ${formatClockLabel(slot.end, lang)}`,
       });
     }
   });
@@ -235,7 +235,11 @@ export function DashboardTodayRibbonNova({
   const nowMin = minutesOfDayInZone(now, timeZone);
   const nowInRange = nowMin >= rangeStart && nowMin <= rangeEnd;
   const nowPct = pct(nowMin);
-  const nowLabel = formatClockInZone(now, lang === "ta" ? "ta-IN" : "en-IN", timeZone);
+  // Tamil goes through the almanac period-words; ICU's ta-IN would print
+  // "பிற்பகல்", which is not the ruled vocabulary.
+  const nowLabel = lang === "ta"
+    ? formatClockLabel(`${Math.floor(nowMin / 60)}:${nowMin % 60}`, "ta")
+    : formatClockInZone(now, "en-IN", timeZone);
 
   const ticks: number[] = [];
   for (let m = Math.ceil(rangeStart / 60) * 60; m <= rangeEnd; m += 180) {
@@ -256,7 +260,7 @@ export function DashboardTodayRibbonNova({
             {lang === "ta" ? "இன்றைய நாள்" : "Your day"}
           </div>
           <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "2px" }}>
-            {lang === "ta" ? "சூரிய உதயம்" : "sunrise"} {formatClockLabel(panchangam.sunrise)} · {lang === "ta" ? "அஸ்தமனம்" : "sunset"} {formatClockLabel(panchangam.sunset)}
+            {lang === "ta" ? "சூரிய உதயம்" : "sunrise"} {formatClockLabel(panchangam.sunrise, lang)} · {lang === "ta" ? "அஸ்தமனம்" : "sunset"} {formatClockLabel(panchangam.sunset, lang)}
             {/* Was bare "Nakshatram". The natal star is labelled "Birth Star"
                 everywhere else in the app, so the same concept carried two
                 labels and a reader could not tell that this one moves daily —
@@ -269,12 +273,12 @@ export function DashboardTodayRibbonNova({
             <b style={{ color: "var(--color-text)" }}>{tNakshatra(nakNow.activeName, lang)}</b>
             {nakNow.rolledOver && (
               <span style={{ color: "var(--color-faint)" }}>
-                {" "}({lang === "ta" ? `${tNakshatra(nakNow.sunriseName, lang)} ${formatClockLabel(panchangam.nakshatra.endsAt)} வரை` : `${tNakshatra(nakNow.sunriseName, lang)} until ${formatClockLabel(panchangam.nakshatra.endsAt)}`})
+                {" "}({lang === "ta" ? `${tNakshatra(nakNow.sunriseName, lang)} ${formatClockLabel(panchangam.nakshatra.endsAt, lang)} வரை` : `${tNakshatra(nakNow.sunriseName, lang)} until ${formatClockLabel(panchangam.nakshatra.endsAt, lang)}`})
               </span>
             )}
             {!nakNow.rolledOver && nakNow.until && nakNow.upcomingName && (
               <span style={{ color: "var(--color-faint)" }}>
-                {" "}({lang === "ta" ? `${formatClockLabel(nakNow.until)} வரை · பின்பு ${tNakshatra(nakNow.upcomingName, lang)}` : `to ${formatClockLabel(nakNow.until)}, then ${tNakshatra(nakNow.upcomingName, lang)}`})
+                {" "}({lang === "ta" ? `${formatClockLabel(nakNow.until, lang)} வரை · பின்பு ${tNakshatra(nakNow.upcomingName, lang)}` : `to ${formatClockLabel(nakNow.until, lang)}, then ${tNakshatra(nakNow.upcomingName, lang)}`})
               </span>
             )}
             {" · "}
@@ -282,7 +286,7 @@ export function DashboardTodayRibbonNova({
             <b style={{ color: "var(--color-text)" }}>{tTithi(tithiNow.activeName, lang)}</b>
             {tithiNow.rolledOver && (
               <span style={{ color: "var(--color-faint)" }}>
-                {" "}({lang === "ta" ? `${tTithi(tithiNow.sunriseName, lang)} ${formatClockLabel(panchangam.tithi.endsAt)} வரை` : `${tTithi(tithiNow.sunriseName, lang)} until ${formatClockLabel(panchangam.tithi.endsAt)}`})
+                {" "}({lang === "ta" ? `${tTithi(tithiNow.sunriseName, lang)} ${formatClockLabel(panchangam.tithi.endsAt, lang)} வரை` : `${tTithi(tithiNow.sunriseName, lang)} until ${formatClockLabel(panchangam.tithi.endsAt, lang)}`})
               </span>
             )}
           </div>
@@ -384,9 +388,19 @@ export function DashboardTodayRibbonNova({
       </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-xs)", color: "var(--color-faint)", padding: "0 var(--space-0_5)" }}>
-        {ticks.map((m) => (
-          <span key={m}>{formatClockLabel(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`)}</span>
-        ))}
+        {ticks.map((m) => {
+          const hm = `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+          if (lang !== "ta") return <span key={m}>{formatClockLabel(hm, lang)}</span>;
+          // Tamil ticks stack the period-word over the hour: "மதியம் 12:00"
+          // side by side would overflow six ticks at phone width.
+          const [word, hour] = formatClockHour(hm, "ta").split(" ");
+          return (
+            <span key={m} style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", lineHeight: 1.2 }}>
+              <span>{word}</span>
+              <span>{hour}</span>
+            </span>
+          );
+        })}
       </div>
 
       {/* Legend as a framed cell grid (redesign 2026-07-18) — one cell per
@@ -401,7 +415,13 @@ export function DashboardTodayRibbonNova({
                   <GlossaryTerm term={s.glossary} lang={lang}>{s.legendName}</GlossaryTerm>
                 ) : s.legendName}
               </div>
-              <div style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: s.key === "rahu" || s.key === "yama" || s.key === "kuligai" ? "var(--color-low)" : "var(--color-high)", marginTop: "1px", whiteSpace: "nowrap" }}>{s.legendTime}</div>
+              <div style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: s.key === "rahu" || s.key === "yama" || s.key === "kuligai" ? "var(--color-low)" : "var(--color-high)", marginTop: "1px", display: "flex", flexWrap: "wrap", columnGap: "0.3em" }}>
+                {/* Wraps only at the dash: a Tamil range carries two period-words
+                    and outgrows the 160px cell, but each end stays whole. */}
+                {s.legendTime.split(" – ").map((part, i) => (
+                  <span key={i} style={{ whiteSpace: "nowrap" }}>{i > 0 ? `– ${part}` : part}</span>
+                ))}
+              </div>
             </div>
           </div>
         ))}

@@ -217,7 +217,7 @@ function BestWindowCard({
         )}
       </div>
       <p className="cl-today__window-time">
-        {formatClockLabel(pick.slot.start)} – {formatClockLabel(pick.slot.end)}
+        {formatClockLabel(pick.slot.start, lang)} – {formatClockLabel(pick.slot.end, lang)}
       </p>
       {/* A middle dot, not an em dash: every Gowri purpose string already
           contains one ("best overall — any important activity"), so joining
@@ -272,7 +272,7 @@ function AvoidWindowCard({
         )}
       </div>
       <p className="cl-today__window-time">
-        {formatClockLabel(period.start)} – {formatClockLabel(period.end)}
+        {formatClockLabel(period.start, lang)} – {formatClockLabel(period.end, lang)}
       </p>
     </div>
   );
@@ -282,7 +282,7 @@ function AvoidWindowCard({
 
 function OtherTimings({ panchangam, lang }: { panchangam: PanchangamDailyResponseData; lang: Lang }) {
   const { kalam, abhijit } = panchangam;
-  const fmt = (s: { start: string; end: string }) => `${formatClockLabel(s.start)} – ${formatClockLabel(s.end)}`;
+  const fmt = (s: { start: string; end: string }) => `${formatClockLabel(s.start, lang)} – ${formatClockLabel(s.end, lang)}`;
 
   const nallaNeram = (kalam.nallaNeram ?? []).filter((s) => s?.start && s?.end);
 

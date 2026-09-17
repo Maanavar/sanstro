@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Sparkles } from "lucide-react";
 
 import { apiFetchJson } from "@/lib/api";
-import { formatClockLabel, scoreColor } from "@/lib/format";
+import { formatClockLabel, formatClockRange, scoreColor } from "@/lib/format";
 import { DASHA_PANEL, dt, SANI_CYCLE_CARD, SANI_CYCLE_LABELS } from "@/lib/dashboard-i18n";
 import { cycleDate, cycleText } from "@/lib/sani-cycle-card";
 import {
@@ -263,14 +263,14 @@ function HyRhythmCard({
             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
               <span style={{ width: "8px", height: "8px", borderRadius: "var(--radius-pill)", background: "var(--color-low)", flexShrink: 0 }} />
               <span style={{ flex: 1 }}>{lang === "ta" ? "ராகு காலம்" : "Rahu Kalam"}</span>
-              <b style={{ color: "var(--color-low)", fontWeight: 700 }}>{formatClockLabel(rahuKalam.start)} – {formatClockLabel(rahuKalam.end)}</b>
+              <b style={{ color: "var(--color-low)", fontWeight: 700 }}>{formatClockLabel(rahuKalam.start, lang)} – {formatClockLabel(rahuKalam.end, lang)}</b>
             </div>
           )}
           {yamagandam && (
             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
               <span style={{ width: "8px", height: "8px", borderRadius: "var(--radius-pill)", background: "var(--color-mid)", flexShrink: 0 }} />
               <span style={{ flex: 1 }}>{lang === "ta" ? "எமகண்டம்" : "Yamagandam"}</span>
-              <b style={{ color: "var(--color-mid-text)", fontWeight: 700 }}>{formatClockLabel(yamagandam.start)} – {formatClockLabel(yamagandam.end)}</b>
+              <b style={{ color: "var(--color-mid-text)", fontWeight: 700 }}>{formatClockLabel(yamagandam.start, lang)} – {formatClockLabel(yamagandam.end, lang)}</b>
             </div>
           )}
           <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.5 }}>
@@ -477,7 +477,7 @@ function HyMemberSelectorCard({
       <div style={{ marginTop: "auto", display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
         {bestWindow && (
           <span style={{ fontSize: "var(--text-xs)", color: "var(--color-high)", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
-            ☀ {formatClockLabel(bestWindow.start)}–{formatClockLabel(bestWindow.end)}
+            ☀ {formatClockRange(bestWindow.start, bestWindow.end, lang)}
           </span>
         )}
         {/* Every flag names its own cause. The old single "needs care" chip
@@ -954,7 +954,7 @@ export function DashboardFamilyChartsHybrid({
                   <div style={{ flex: 1 }}>
                     <Kicker color="var(--color-high)">{lang === "ta" ? "சிறந்த பகிர்ந்த நேரம்" : "Best shared window"}</Kicker>
                     <div style={{ fontSize: "var(--text-base)", fontWeight: 600, marginTop: "2px", color: "var(--color-text-accent)" }}>
-                      {formatClockLabel(bestWindow.start)} – {formatClockLabel(bestWindow.end)} <span style={{ color: "var(--color-muted)", fontWeight: 400 }}>· {lang === "ta" ? `அனைத்து ${members.length} பேரும்` : `all ${members.length} aligned`}</span>
+                      {formatClockLabel(bestWindow.start, lang)} – {formatClockLabel(bestWindow.end, lang)} <span style={{ color: "var(--color-muted)", fontWeight: 400 }}>· {lang === "ta" ? `அனைத்து ${members.length} பேரும்` : `all ${members.length} aligned`}</span>
                     </div>
                   </div>
                 </Card>

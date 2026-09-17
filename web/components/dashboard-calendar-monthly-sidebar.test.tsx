@@ -1,10 +1,5 @@
-/**
- * Calendar → Monthly: the agenda rail and the filter chips that gate it.
- *
- * The rail is one chronological agenda — a row per day, each opening the day
- * like a grid cell — and the filter chips above the grid are the only filter.
- * Fixtures are synthetic (repo fixture rule).
- */
+/** Monthly overview, expandable agenda and shared category filters.
+ * Fixtures are synthetic. Every displayed date still opens the existing drawer. */
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -65,14 +60,45 @@ function renderView(onSelectDate = vi.fn()) {
 }
 
 function agenda() {
+  if (!screen.queryByRole("region", { name: "Events & Festivals" })) {
+    fireEvent.click(screen.getAllByRole("button", { name: "View all" })[0]!);
+  }
   return within(screen.getByRole("region", { name: "Events & Festivals" }));
 }
 
 describe("Calendar monthly agenda rail", () => {
+  it("starts with a compact preview and exposes every date through View all", () => {
+    renderView();
+    expect(screen.queryByRole("region", { name: "Events & Festivals" })).toBeNull();
+    expect(screen.getByRole("button", { name: "View all" }).getAttribute("aria-expanded")).toBe("false");
+    expect(agenda().getAllByRole("button")).toHaveLength(24);
+    fireEvent.click(screen.getByRole("button", { name: "Show less" }));
+    expect(screen.queryByRole("region", { name: "Events & Festivals" })).toBeNull();
+  });
+
+  it("updates the selected-day summary when a grid day opens", () => {
+    const onSelectDate = renderView();
+    fireEvent.click(screen.getByRole("button", { name: /^3 Aug · 2026/ }));
+    expect(onSelectDate).toHaveBeenCalledWith("2026-08-03");
+    const insights = within(screen.getByRole("region", { name: "Selected day insights" }));
+    expect(insights.getByRole("heading", { name: "Insights for 3 Aug 2026" })).toBeTruthy();
+    expect(insights.queryByText("Today")).toBeNull();
+    expect(insights.getByText("Test Event 3")).toBeTruthy();
+  });
+
+  it("clears all event categories and restores them together", () => {
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+    expect(screen.getByText("0 observances")).toBeTruthy();
+    expect(agenda().queryAllByRole("button")).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: "Show all" }));
+    expect(agenda().getAllByRole("button")).toHaveLength(24);
+  });
+
   it("counts every observance the rows show", () => {
     renderView();
     // 23 festivals + Pradhosam + 1 muhurtham day.
-    expect(agenda().getByText("25 observances")).toBeTruthy();
+    expect(screen.getByText("25 observances")).toBeTruthy();
   });
 
   it("lists every day in date order with nothing dropped", () => {
@@ -106,7 +132,7 @@ describe("Calendar monthly agenda rail", () => {
     );
     expect(agenda().getByText("Vinayagar Chaturthi")).toBeTruthy();
     expect(agenda().queryByText("Chathurthi")).toBeNull();
-    expect(agenda().getByText("1 observance")).toBeTruthy();
+    expect(screen.getByText("1 observance")).toBeTruthy();
   });
 
   it("labels the almanac's subha rule as the almanac's, not as the reader's chart", () => {
@@ -129,7 +155,7 @@ describe("Calendar monthly agenda rail", () => {
 
   it("filter chips gate the agenda: Vratham off hides Pradhosam, Festivals off leaves the muhurtham day", () => {
     renderView();
-    const filters = within(screen.getByRole("group", { name: "Filter calendar" }));
+    const filters = within(screen.getByRole("group", { name: /Filter calendar/i }));
 
     fireEvent.click(filters.getByRole("button", { name: "Vratham" }));
     expect(filters.getByRole("button", { name: "Vratham" }).getAttribute("aria-pressed")).toBe("false");
@@ -137,7 +163,7 @@ describe("Calendar monthly agenda rail", () => {
 
     fireEvent.click(filters.getByRole("button", { name: "Festivals" }));
     expect(agenda().getAllByRole("button")).toHaveLength(1);
-    expect(agenda().getByText("1 observance")).toBeTruthy();
+    expect(screen.getByText("1 observance")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Show all" }));
     expect(agenda().getAllByRole("button")).toHaveLength(24);

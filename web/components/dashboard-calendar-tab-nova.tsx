@@ -6,7 +6,7 @@ import { ArrowUp, ArrowDown, ArrowRight, ChevronLeft, ChevronRight } from "lucid
 import Link from "next/link";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
-import { addDays, formatClockLabel, formatHijriDate } from "@/lib/format";
+import { addDays, formatClockLabel, formatClockRange, formatHijriDate } from "@/lib/format";
 import {
   bestGowriSlot,
   gowriCategoryLabel,
@@ -60,6 +60,7 @@ import {
 } from "./dashboard-calendar-shared";
 import type { CalendarView, DayTimelineBand } from "./dashboard-calendar-shared";
 import { MonthlyCalendarViewNova } from "./dashboard-calendar-monthly-nova";
+import { MonthlyCalendarLandscape } from "./dashboard-calendar-monthly-panels";
 import { NovaPlanMuhurtaPanel } from "./dashboard-plan-muhurta-nova";
 
 // "Best Dates & Muhurta" moved here from Goals (IA audit 2026-07-22, Phase 3):
@@ -225,7 +226,7 @@ function NovaAuspiciousCard({
         if (purpose) purposeShownFor.add(kalaKey);
         return (
           <div key={`${slot.period ?? "slot"}-${slot.start}-${idx}`} style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-3)", fontSize: "var(--text-sm)", color: "var(--color-text)" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", columnGap: "var(--space-3)", fontSize: "var(--text-sm)", color: "var(--color-text)" }}>
               <span style={{ minWidth: 0 }}>
                 {gowriPeriodLabel(slot.period, lang) || `#${idx + 1}`}
                 {category && (
@@ -236,7 +237,7 @@ function NovaAuspiciousCard({
                   </>
                 )}
               </span>
-              <span style={{ fontWeight: 600, color: "var(--color-high)", whiteSpace: "nowrap" }}>{formatClockLabel(slot.start)} – {formatClockLabel(slot.end)}</span>
+              <span style={{ fontWeight: 600, color: "var(--color-high)", whiteSpace: "nowrap" }}>{formatClockLabel(slot.start, lang)} – {formatClockLabel(slot.end, lang)}</span>
             </div>
             {purpose && (
               <div style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.35 }}>{purpose}</div>
@@ -293,8 +294,10 @@ function NovaAvoidStrip({
               <span aria-hidden="true" style={{ width: "6px", height: "6px", borderRadius: "var(--radius-pill)", background: entry.dot, opacity: entry.dotOpacity, flexShrink: 0 }} />
               <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.label}</span>
             </span>
+            {/* Each end stays whole so a Tamil period-word never wraps away from its time. */}
             <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-low)" }}>
-              {formatClockLabel(entry.slot.start)} – {formatClockLabel(entry.slot.end)}
+              <span style={{ whiteSpace: "nowrap" }}>{formatClockLabel(entry.slot.start, lang)} –</span>{" "}
+              <span style={{ whiteSpace: "nowrap" }}>{formatClockLabel(entry.slot.end, lang)}</span>
             </span>
             {running && (
               <span style={{ fontSize: "var(--text-xs)", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-low)" }}>
@@ -320,7 +323,7 @@ function shortDayMonth(isoDate: string, lang: Lang): string {
 }
 
 function gowriEdgeLabel(hm: string, dayOffset: number, dateLocal: string, lang: Lang): string {
-  const clock = formatClockLabel(hm);
+  const clock = formatClockLabel(hm, lang);
   if (dayOffset <= 0) return clock;
   const stamp = shortDayMonth(addDays(dateLocal, dayOffset), lang);
   return stamp ? `${clock}, ${stamp}` : clock;
@@ -449,7 +452,7 @@ function NovaGowriKalaColumn({
           {title}
         </span>
         <span style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", whiteSpace: "nowrap" }}>
-          {anchorLabel} {formatClockLabel(anchorHm)}
+          {anchorLabel} {formatClockLabel(anchorHm, lang)}
         </span>
       </div>
       {slots.map((slot, idx) => (
@@ -589,7 +592,7 @@ function NovaHoraRow({
         {tPlanetLord(hora.lord, lang)} {t("hora_word", lang)}
       </span>
       <span style={{ fontSize: "var(--text-sm)", color: running ? "var(--color-accent-strong)" : "var(--color-faint)", fontWeight: running ? 600 : 500 }}>
-        {formatClockLabel(hora.start)} – {formatClockLabel(hora.end)}
+        {formatClockLabel(hora.start, lang)} – {formatClockLabel(hora.end, lang)}
       </span>
     </div>
   );
@@ -829,9 +832,9 @@ export function DayDetailDrawerNova({
 
   const sunPoints = data
     ? [
-        { key: "sunrise", label: lang === "ta" ? "சூர்யோதயம்" : "Sunrise", value: formatClockLabel(data.sunrise) },
-        { key: "noon", label: lang === "ta" ? "நண்பகல்" : "Solar noon", value: formatClockLabel(data.solarNoon) },
-        { key: "sunset", label: lang === "ta" ? "சூர்யாஸ்தமனம்" : "Sunset", value: formatClockLabel(data.sunset) },
+        { key: "sunrise", label: lang === "ta" ? "சூர்யோதயம்" : "Sunrise", value: formatClockLabel(data.sunrise, lang) },
+        { key: "noon", label: lang === "ta" ? "நண்பகல்" : "Solar noon", value: formatClockLabel(data.solarNoon, lang) },
+        { key: "sunset", label: lang === "ta" ? "சூர்யாஸ்தமனம்" : "Sunset", value: formatClockLabel(data.sunset, lang) },
       ]
     : [];
 
@@ -1225,11 +1228,15 @@ export function DashboardCalendarTabNova({
 
   // T15 / B-026: interpretation comes before the named panchangam facts. This
   // is deliberately about new beginnings only; routine work stays unaffected.
-  const daySummary = panchangam?.isKarinaal
+  const dayVerdict = panchangam?.isKarinaal
     ? dt(CALENDAR_DAY_SUMMARY.care, lang)
     : panchangam?.subhaMuhurtham.isSubha
       ? dt(CALENDAR_DAY_SUMMARY.favourable, lang)
       : dt(CALENDAR_DAY_SUMMARY.ordinary, lang);
+  const rahuKalam = panchangam?.kalam.rahuKalam;
+  const daySummary = rahuKalam?.start && rahuKalam.end
+    ? `${dayVerdict} ${dt(CALENDAR_DAY_SUMMARY.avoidRahu(formatClockRange(rahuKalam.start, rahuKalam.end), formatClockRange(rahuKalam.start, rahuKalam.end, "ta")), lang)}`
+    : dayVerdict;
 
   // Reading order is the astrologer's, not the textbook's: the day's fixed
   // identity first (Vara / Moon / Lagnam), then the moving limbs a reader checks
@@ -1244,14 +1251,14 @@ export function DashboardCalendarTabNova({
           key: lang === "ta" ? "நட்சத்திரம்" : "Nakshatra",
           value: tNakshatra(nakActive?.activeName ?? panchangam.nakshatra.name, lang),
           hint: nakActive?.rolledOver
-            ? `${formatClockLabel(panchangam.nakshatra.endsAt)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
+            ? `${formatClockLabel(panchangam.nakshatra.endsAt, lang)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
             : `${t("label_padam", lang)} ${panchangam.nakshatra.pada} · ${formatUntilLabel(panchangam.nakshatra.endsAt, panchangam.nakshatra.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tNakshatra(panchangam.nakshatra.nextName, lang)}`,
         },
         {
           key: lang === "ta" ? "திதி" : "Tithi",
           value: tTithi(tithiActive?.activeName ?? panchangam.tithi.name, lang),
           hint: tithiActive?.rolledOver
-            ? `${formatClockLabel(panchangam.tithi.endsAt)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
+            ? `${formatClockLabel(panchangam.tithi.endsAt, lang)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
             : `${tithiPaksha ?? ""} · ${formatUntilLabel(panchangam.tithi.endsAt, panchangam.tithi.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tTithi(panchangam.tithi.nextName, lang)}`,
         },
         {
@@ -1261,7 +1268,7 @@ export function DashboardCalendarTabNova({
           key: lang === "ta" ? "நாம யோகம்" : "Naamyogam",
           value: tYoga(yogaActive?.activeName ?? panchangam.yoga.name, lang),
           hint: yogaActive?.rolledOver
-            ? `${formatClockLabel(panchangam.yoga.endsAt)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
+            ? `${formatClockLabel(panchangam.yoga.endsAt, lang)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
             : `${formatUntilLabel(panchangam.yoga.endsAt, panchangam.yoga.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tYoga(panchangam.yoga.nextName, lang)}`,
         },
         { key: lang === "ta" ? "அமிர்தாதி யோகம்" : "Amirdhadhi Yogam", value: tAmirdhadhiYogam(panchangam.amirdhadhiYogam.name, lang), hint: `${formatUntilLabel(panchangam.amirdhadhiYogam.endsAt, panchangam.amirdhadhiYogam.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tAmirdhadhiYogam(panchangam.amirdhadhiYogam.nextName, lang)}` },
@@ -1269,7 +1276,7 @@ export function DashboardCalendarTabNova({
           key: lang === "ta" ? "கரணம்" : "Karana",
           value: tKarana(karanaActive?.activeName ?? panchangam.karana.name, lang),
           hint: karanaActive?.rolledOver
-            ? `${formatClockLabel(panchangam.karana.endsAt)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
+            ? `${formatClockLabel(panchangam.karana.endsAt, lang)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
             : `${formatUntilLabel(panchangam.karana.endsAt, panchangam.karana.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tKarana(panchangam.karana.nextName, lang)}`,
         },
         { key: lang === "ta" ? "சூலம்" : "Soolam", value: tSoolamDirection(panchangam.soolam.direction, lang), hint: `${lang === "ta" ? "பரிகாரம்" : "Parigaram"}: ${tParigaram(panchangam.soolam.parigaram, lang)}` },
@@ -1297,8 +1304,9 @@ export function DashboardCalendarTabNova({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
       {/* ===== Page header ===== */}
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "var(--space-4)", flexWrap: "wrap" }}>
-        <div>
+      <div className={view === "monthly" ? "nova-cal-monthly-header" : undefined} style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "var(--space-4)", flexWrap: "wrap" }}>
+        {view === "monthly" && <MonthlyCalendarLandscape priority />}
+        <div className={view === "monthly" ? "nova-cal-monthly-header__copy" : undefined}>
           <Kicker as="div">
             {lang === "ta" ? "கிரகநகர்வு & நிகழ்வுகள்" : "Transits & Events"}
           </Kicker>
@@ -1316,6 +1324,7 @@ export function DashboardCalendarTabNova({
             )}
           </div>
           <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", marginTop: "2px" }}>{panchangamMeta}</div>
+          {view === "monthly" && <p className="nova-cal-monthly-header__motto">{t("cal_monthly_plan_with_time_live_with_awareness", lang)}</p>}
         </div>
 
         {/* View switch — the segmented-toggle pattern, now the shared <Segmented>
@@ -1379,7 +1388,7 @@ export function DashboardCalendarTabNova({
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginTop: "8px", fontSize: "var(--text-sm)", color: "var(--color-muted)", flexWrap: "wrap" }}>
                   <span>
-                    {lang === "ta" ? "சூர்யோதயம்" : "Sunrise"} {formatClockLabel(panchangam.sunrise)} · {lang === "ta" ? "சூர்யாஸ்தமனம்" : "Sunset"} {formatClockLabel(panchangam.sunset)}
+                    {lang === "ta" ? "சூர்யோதயம்" : "Sunrise"} {formatClockLabel(panchangam.sunrise, lang)} · {lang === "ta" ? "சூர்யாஸ்தமனம்" : "Sunset"} {formatClockLabel(panchangam.sunset, lang)}
                   </span>
                   <button
                     type="button"
@@ -1602,7 +1611,7 @@ export function DashboardCalendarTabNova({
                           {tPlanetLord(nowHora.lord, lang)} {t("hora_word", lang)}
                         </span>
                         <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-accent-strong)" }}>
-                          {formatClockLabel(nowHora.start)} – {formatClockLabel(nowHora.end)}
+                          {formatClockLabel(nowHora.start, lang)} – {formatClockLabel(nowHora.end, lang)}
                         </span>
                       </Card>
                     );
@@ -1659,6 +1668,7 @@ export function DashboardCalendarTabNova({
           error={monthlyPanchangamError}
           hasLocation={Boolean(monthlyLocation)}
           selectedDate={selectedDate}
+          previewDate={detailDate}
           todayDate={todayDate}
           onPrevMonth={() => goToAdjacentMonth(-1)}
           onNextMonth={() => goToAdjacentMonth(1)}

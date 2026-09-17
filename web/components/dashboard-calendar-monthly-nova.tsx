@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Sparkles, AlertTriangle, ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -23,21 +23,11 @@ import {
   WEEKDAY_LABELS_TA,
 } from "./dashboard-calendar-shared";
 import { Button, Card } from "./ui";
-import { SectionHeader } from "./ui/kicker";
+import { MonthlyCalendarSidebar, MonthlyCalendarInsights, MonthlyCalendarLandscape } from "./dashboard-calendar-monthly-panels";
 
-/**
- * Nova "Calendar" tab, monthly grid view (mockup data-screen="cal-monthly",
- * docs/DASHBOARD_UI_REVAMP_PLAN.md).
- *
- * Layout (rebuilt 2026-09-15 from browser screenshots, see
- * docs/CALENDAR_EVENTS_RAIL_REDESIGN_2026-09-12.md §9): the controls sit with
- * the grid they control — month nav, Today / Next muhurtham and the category
- * filter chips form one toolbar above it — and the right rail is a single
- * agenda card sized to the grid column, never to its own content. Every agenda
- * row uses the same date column (day number over weekday) and opens the day
- * exactly like a grid cell. Filters and grid share one category model
- * (`CalCategory`) so a toggle and a highlight can never disagree.
- */
+/** Monthly grid, selected-day summary and compact observance rail.
+ * All views share one filtered agenda. Theme tokens and API-owned astronomy
+ * remain the source of truth. */
 
 type NovaHighlightKind = "muhurtham" | "pournami" | "amavasai" | "chathurthi" | "sashti" | "pradosham";
 
@@ -183,7 +173,7 @@ type SidebarEvent = {
   kind: "festival" | "vratha" | "global";
 };
 
-type AgendaDay = {
+export type AgendaDay = {
   dateLocal: string;
   dayNumber: number;
   weekday: string;
@@ -204,6 +194,8 @@ export type DashboardCalendarMonthlyNovaProps = {
   error: string | null;
   hasLocation: boolean;
   selectedDate: string;
+  /** Follows quick jumps and day stepping without changing the global date. */
+  previewDate?: string | null;
   todayDate: string;
   onPrevMonth: () => void;
   onNextMonth: () => void;
@@ -244,6 +236,7 @@ export function MonthlyCalendarViewNova({
   error,
   hasLocation,
   selectedDate,
+  previewDate,
   todayDate,
   onPrevMonth,
   onNextMonth,
@@ -251,6 +244,12 @@ export function MonthlyCalendarViewNova({
   onQuickJump,
   onJumpToNextMuhurtham,
 }: DashboardCalendarMonthlyNovaProps) {
+  const [focusedDate, setFocusedDate] = useState(selectedDate);
+  const [agendaExpanded, setAgendaExpanded] = useState(false);
+  useEffect(() => { setFocusedDate(selectedDate); }, [selectedDate]);
+  useEffect(() => { if (previewDate) setFocusedDate(previewDate); }, [previewDate]);
+  useEffect(() => { setAgendaExpanded(false); }, [year, month]);
+  const selectDay = (date: string) => { setFocusedDate(date); onSelectDate?.(date); };
   const monthLabel = lang === "ta" ? MONTH_LABELS_TA[month - 1] : MONTH_LABELS_EN[month - 1];
   const weekdayLabels = lang === "ta" ? WEEKDAY_LABELS_TA : WEEKDAY_LABELS_EN;
 
@@ -272,7 +271,9 @@ export function MonthlyCalendarViewNova({
     setNextMuhurthamNote(null);
     try {
       const found = await onJumpToNextMuhurtham();
-      if (!found) setNextMuhurthamNote(lang === "ta" ? "வரவிருக்கும் முகூர்த்தம் காணப்படவில்லை." : "No upcoming muhurtham found.");
+      if (!found) setNextMuhurthamNote(t("cal_monthly_no_upcoming_muhurtham_found", lang));
+    } catch {
+      setNextMuhurthamNote(t("cal_monthly_could_not_search_please_try_again", lang));
     } finally {
       setNextMuhurthamPending(false);
     }
@@ -404,100 +405,93 @@ export function MonthlyCalendarViewNova({
     const list = agendaListRef.current;
     if (!list) return;
     const monthKey = `${year}-${String(month).padStart(2, "0")}`;
-    const anchor = selectedDate.startsWith(monthKey) ? selectedDate : todayDate.startsWith(monthKey) ? todayDate : null;
+    const anchor = focusedDate.startsWith(monthKey) ? focusedDate : todayDate.startsWith(monthKey) ? todayDate : null;
     const first = anchor ? agendaDays.find((day) => day.dateLocal >= anchor) : undefined;
     const row = first ? list.querySelector<HTMLElement>(`[data-date="${first.dateLocal}"]`) : null;
     list.scrollTop = row ? Math.max(0, row.offsetTop - 4) : 0;
-  }, [agendaDays, selectedDate, todayDate, year, month]);
+  }, [agendaDays, focusedDate, todayDate, year, month, agendaExpanded]);
 
   if (!hasLocation) {
     return <p className="empty-state">{t("panja_empty", lang)}</p>;
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-      {/* ── Toolbar: month nav + jumps, then the category filters ── */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+    <div className="nova-cal-monthly">
+      {error && <p className="empty-state" role="alert">{error}</p>}
+      {!isLoading && !error && !monthly?.entries.length && <p className="empty-state">{t("cal_monthly_empty", lang)}</p>}
+      <div className="nova-cal-monthly-layout" aria-busy={isLoading}>
+        <div className="nova-cal-main">
+          <Card className="nova-cal-grid-panel">
         <div className="nova-cal-toolbar">
           <button
             type="button"
+            className="nova-cal-nav-btn"
             onClick={onPrevMonth}
-            aria-label="Previous month"
-            style={{ width: "30px", height: "30px", borderRadius: "var(--radius-pill)", border: "1px solid var(--color-border-strong)", background: "transparent", display: "grid", placeItems: "center", color: "var(--color-accent-strong)", fontSize: "var(--text-base)", cursor: "pointer" }}
+            aria-label={t("cal_monthly_previous_month", lang)}
           >
             <ChevronLeft size={18} strokeWidth={1.5} aria-hidden="true" />
           </button>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 600, color: "var(--color-text-strong)" }}>
+          <h2 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 600, color: "var(--color-text-strong)" }}>
             {monthLabel} {year}
-          </div>
+          </h2>
           <button
             type="button"
+            className="nova-cal-nav-btn"
             onClick={onNextMonth}
-            aria-label="Next month"
-            style={{ width: "30px", height: "30px", borderRadius: "var(--radius-pill)", border: "1px solid var(--color-border-strong)", background: "transparent", display: "grid", placeItems: "center", color: "var(--color-accent-strong)", fontSize: "var(--text-base)", cursor: "pointer" }}
+            aria-label={t("cal_monthly_next_month", lang)}
           >
             <ChevronRight size={18} strokeWidth={1.5} aria-hidden="true" />
           </button>
           {tamilMonthHeader && <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>{tamilMonthHeader}</div>}
           {isLoading && <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>{t("cal_monthly_loading", lang)}</span>}
           <div className="nova-cal-toolbar__actions">
-            <Button size="sm" variant="secondary" onClick={() => onQuickJump?.("today")}>
-              {lang === "ta" ? "இன்று" : "Today"}
+            <Button size="sm" variant="secondary" onClick={() => { setFocusedDate(todayDate); onQuickJump?.("today"); }} disabled={!onQuickJump}>
+              {t("cal_monthly_today", lang)}
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => onQuickJump?.("thisMonth")} disabled={!onQuickJump}>
+              {t("cal_monthly_this_month", lang)}
             </Button>
             <Button
               size="sm"
               variant="secondary"
+              className="nova-cal-next-muhurtham"
               onClick={handleNextMuhurtham}
               disabled={nextMuhurthamPending || !onJumpToNextMuhurtham}
             >
-              <Sparkles size={13} strokeWidth={1.75} aria-hidden="true" style={{ color: "var(--color-high)" }} />
+              <Sparkles size={13} strokeWidth={1.75} aria-hidden="true" />
               {nextMuhurthamPending
-                ? (lang === "ta" ? "தேடுகிறது…" : "Searching…")
-                : (lang === "ta" ? "அடுத்த முகூர்த்தம்" : "Next muhurtham")}
+                ? t("cal_monthly_searching", lang)
+                : t("cal_monthly_next_muhurtham", lang)}
             </Button>
           </div>
         </div>
+        {nextMuhurthamNote && <p role="status" className="nova-cal-rail-meta">{nextMuhurthamNote}</p>}
 
-        <div className="nova-cal-filters" role="group" aria-label={lang === "ta" ? "நாட்காட்டி வடிகட்டி" : "Filter calendar"}>
-          {CAL_FILTERS.map(({ cat, label, swatch }) => {
-            const on = catOn(cat);
-            return (
-              <button
-                key={cat}
-                type="button"
-                className="nova-cal-filter"
-                aria-pressed={on}
-                onClick={() => toggleCat(cat)}
-                style={{ "--swatch": swatch } as React.CSSProperties}
-              >
-                <span className="nova-cal-filter__swatch" aria-hidden="true" />
-                {lang === "ta" ? label.ta : label.en}
-              </button>
-            );
-          })}
-          {!allFiltersOn && (
-            <Button size="sm" variant="ghost" onClick={() => setEnabledCats(new Set(ALL_CATEGORIES))}>
-              {lang === "ta" ? "அனைத்தும் காட்டு" : "Show all"}
-            </Button>
-          )}
+        {/* Filters sit on the grid they gate, so a toggle's effect is visible
+            where it was clicked. One reset control: Clear while everything is
+            on, Show all once anything is off. */}
+        <div className="nova-cal-filterbar" role="group" aria-label={t("cal_monthly_filter_calendar", lang)}>
+          <SlidersHorizontal size={14} strokeWidth={1.75} aria-hidden="true" className="nova-cal-filterbar__icon" />
+          {CAL_FILTERS.map(({ cat, label, swatch }) => (
+            <button
+              key={cat}
+              type="button"
+              className="nova-cal-filter"
+              aria-pressed={catOn(cat)}
+              onClick={() => toggleCat(cat)}
+              style={{ "--swatch": swatch } as React.CSSProperties}
+            >
+              <span className="nova-cal-filter__swatch" aria-hidden="true" />
+              {lang === "ta" ? label.ta : label.en}
+            </button>
+          ))}
+          <Button size="sm" variant="ghost" className="nova-cal-filterbar__reset" onClick={() => setEnabledCats(allFiltersOn ? new Set() : new Set(ALL_CATEGORIES))}>
+            {allFiltersOn ? t("cal_monthly_clear", lang) : t("cal_monthly_show_all", lang)}
+          </Button>
         </div>
 
-        {nextMuhurthamNote && (
-          <p role="status" style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-muted)" }}>{nextMuhurthamNote}</p>
-        )}
-      </div>
-
-      {error && <p className="empty-state">{error}</p>}
-      {!isLoading && !error && !monthly?.entries.length && <p className="empty-state">{t("cal_monthly_empty", lang)}</p>}
-
-      {Boolean(monthly?.entries.length) && (
-        <div className="nova-cal-monthly-layout">
-          {/* ── Grid ── */}
-          <div style={{ minWidth: 0, overflowX: "auto" }}>
-            {/* audit B-5: `min(620px, 100%)` fills the column at desktop widths
-                but never exceeds it, so a 375px phone renders the whole month
-                in-viewport instead of scrolling sideways through it. The
-                overflowX:auto above stays as a graceful fallback only. */}
+            {/* The seven columns shrink to the phone viewport. Long event names
+                remain available in the accessible label and the day drawer. */}
             <div style={{ minWidth: "min(620px, 100%)" }}>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "var(--space-2)", marginBottom: "8px" }}>
                 {weekdayLabels.map((wd, i) => (
@@ -508,10 +502,13 @@ export function MonthlyCalendarViewNova({
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "var(--space-2)" }}>
                 {cells.map((cell, idx) => {
-                  if (!cell.dateLocal) return <div key={`blank-${idx}`} style={{ minHeight: "82px" }} />;
+                  if (!cell.dateLocal) {
+                    const adjacentDay = new Date(year, month - 1, idx - new Date(year, month - 1, 1).getDay() + 1).getDate();
+                    return <div key={`blank-${idx}`} className="nova-cal-cell nova-cal-cell--outside" aria-hidden="true"><span className="nova-cal-cell__number">{adjacentDay}</span></div>;
+                  }
                   const entry = cell.entry;
                   const dayNumber = Number(cell.dateLocal.slice(-2));
-                  const isSelected = cell.dateLocal === selectedDate;
+                  const isSelected = cell.dateLocal === focusedDate;
                   const isToday = cell.dateLocal === todayDate;
                   // Only the festivals whose category is still switched on. Both
                   // the day's dot and the chathurthi/sashti/pradosham tints derive
@@ -549,8 +546,8 @@ export function MonthlyCalendarViewNova({
                         lunarMeta
                           ? lunarMeta.phaseLabel
                           : entry.tithiPaksha === "SHUKLA"
-                            ? (lang === "ta" ? "வளர்பிறை" : "Waxing")
-                            : (lang === "ta" ? "தேய்பிறை" : "Waning"),
+                            ? (t("cal_monthly_waxing", lang))
+                            : (t("cal_monthly_waning", lang)),
                       ].filter(Boolean).join(" · ")
                     : "";
                   const highlightType: NovaHighlightKind | null = !entry ? null
@@ -591,16 +588,17 @@ export function MonthlyCalendarViewNova({
                     <button
                       key={cell.dateLocal}
                       type="button"
-                      className={isToday ? "nova-cal-today" : undefined}
+                      className={`nova-cal-cell${isToday ? " nova-cal-today" : ""}`}
+                      aria-label={[formatGridDay(cell.dateLocal, lang), String(year), tamilDay, entry ? tTithi(entry.tithiName, lang) : "", ...visibleFestivals.map((f) => f.name), showMuhurtham ? (t("cal_monthly_muhurtham", lang)) : "", showKarinaal ? (t("cal_monthly_karinaal", lang)) : ""].filter(Boolean).join(" · ")}
                       aria-pressed={onSelectDate ? isSelected : undefined}
                       aria-current={isToday ? "date" : undefined}
-                      onClick={onSelectDate ? () => onSelectDate(cell.dateLocal!) : undefined}
+                      onClick={onSelectDate ? () => selectDay(cell.dateLocal!) : undefined}
                       disabled={!onSelectDate}
                       style={{
                         appearance: "none", width: "100%", position: "relative",
                         border: `1px solid ${cellBorder}`, borderRadius: "var(--radius-sm)",
                         boxShadow: selectionRing,
-                        background: cellBg, padding: "var(--space-2)", minHeight: "82px",
+                        background: cellBg, padding: "var(--space-2)",
                         display: "flex", flexDirection: "column", gap: "var(--space-1)",
                         overflow: "hidden", cursor: onSelectDate ? "pointer" : "default", textAlign: "left",
                         fontFamily: "inherit",
@@ -610,7 +608,7 @@ export function MonthlyCalendarViewNova({
                         <span aria-hidden="true" style={{ position: "absolute", top: "8px", right: "8px", width: "6px", height: "6px", borderRadius: "var(--radius-pill)", background: dotColor }} />
                       )}
                       <div style={{ display: "flex", alignItems: "flex-start", gap: "var(--space-2)" }}>
-                        <span style={{ fontSize: "var(--text-base)", fontWeight: 700, color: dateColor, lineHeight: 1 }}>{dayNumber}</span>
+                        <span className="nova-cal-cell__number" style={{ fontSize: "var(--text-base)", fontWeight: 700, color: dateColor, lineHeight: 1 }}>{dayNumber}</span>
                         {moonPhase && (
                           <span title={moonTitle} style={{ display: "inline-flex", marginTop: "1px" }}>
                             <MiniMoonGlyph phase={moonPhase} size={13} />
@@ -628,17 +626,17 @@ export function MonthlyCalendarViewNova({
                         ))}
                         {showMuhurtham && (
                           <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-high)", display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}>
-                            <Sparkles size={12} strokeWidth={1.5} aria-hidden="true" />{lang === "ta" ? "முகூர்த்தம்" : "Muhurtham"}
+                            <Sparkles size={12} strokeWidth={1.5} aria-hidden="true" />{t("cal_monthly_muhurtham", lang)}
                           </span>
                         )}
                         {showKarinaal && (
-                          <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-alert-critical-text, var(--color-alert-critical))", display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}>
-                            <AlertTriangle size={12} strokeWidth={1.5} aria-hidden="true" />{lang === "ta" ? "கரிநாள்" : "Karinaal"}
+                          <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "color-mix(in srgb, var(--color-alert-critical-text, var(--color-alert-critical)) 85%, var(--color-text-strong))", display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}>
+                            <AlertTriangle size={12} strokeWidth={1.5} aria-hidden="true" />{t("cal_monthly_karinaal", lang)}
                           </span>
                         )}
                         {isToday && (
                           <span style={{ alignSelf: "flex-start", borderRadius: "var(--radius-pill)", background: "color-mix(in srgb, var(--color-text-strong) 14%, transparent)", color: "var(--color-text-strong)", padding: "var(--space-1) var(--space-2)", fontSize: "var(--text-xs)", fontWeight: 700 }}>
-                            {lang === "ta" ? "இன்று" : "Today"}
+                            {t("cal_monthly_today", lang)}
                           </span>
                         )}
                       </div>
@@ -657,28 +655,24 @@ export function MonthlyCalendarViewNova({
                 </span>
               ))}
             </div>
-          </div>
+          </Card>
 
-          {/* ── Agenda rail — sized by the grid column, scrolls inside ── */}
-          <div className="nova-cal-agenda-slot">
-            <Card as="section" className="nova-cal-agenda" aria-label={lang === "ta" ? "நிகழ்வுகள் & திருவிழாக்கள்" : "Events & Festivals"}>
-              <SectionHeader
-                title={lang === "ta" ? "நிகழ்வுகள் & திருவிழாக்கள்" : "Events & Festivals"}
-                right={
-                  <span className="nova-cal-agenda__count">
-                    {lang === "ta" ? `${observanceCount} நிகழ்வுகள்` : `${observanceCount} ${observanceCount === 1 ? "observance" : "observances"}`}
-                  </span>
-                }
-              />
+          <MonthlyCalendarInsights lang={lang} entry={entriesByDate.get(focusedDate)} todayDate={todayDate} onSelectDate={onSelectDate ? selectDay : undefined} formatDate={(date) => formatGridDay(date, lang)} />
+        </div>
+        <MonthlyCalendarSidebar
+          lang={lang} monthLabel={`${monthLabel} ${year}`} agendaDays={agendaDays} observanceCount={observanceCount}
+          onSelectDate={onSelectDate ? selectDay : undefined} formatDate={(date) => formatGridDay(date, lang)}
+          expanded={agendaExpanded} onToggleExpanded={() => setAgendaExpanded(!agendaExpanded)}
+        >
               {agendaDays.length === 0 ? (
                 <p className="nova-cal-agenda__empty">
-                  {lang === "ta" ? "வடிகட்டிகளுக்குப் பொருந்தும் நிகழ்வு இல்லை." : "Nothing matches the selected filters."}
+                  {t("cal_monthly_nothing_matches_the_selected_filters", lang)}
                 </p>
               ) : (
                 <ol ref={agendaListRef} className="nova-cal-agenda__list">
                   {agendaDays.map((day) => {
                     const isToday = day.dateLocal === todayDate;
-                    const isSelected = day.dateLocal === selectedDate;
+                    const isSelected = day.dateLocal === focusedDate;
                     const minor = [...day.civic, ...day.routine];
                     return (
                       <li key={day.dateLocal} data-date={day.dateLocal}>
@@ -687,7 +681,7 @@ export function MonthlyCalendarViewNova({
                           className={`nova-cal-agenda__day${isToday ? " nova-cal-agenda__day--today" : ""}`}
                           aria-current={isToday ? "date" : undefined}
                           aria-pressed={onSelectDate ? isSelected : undefined}
-                          onClick={onSelectDate ? () => onSelectDate(day.dateLocal) : undefined}
+                          onClick={onSelectDate ? () => selectDay(day.dateLocal) : undefined}
                           disabled={!onSelectDate}
                         >
                           <span className="nova-cal-agenda__date" aria-hidden={false}>
@@ -709,14 +703,14 @@ export function MonthlyCalendarViewNova({
                                   <span className="nova-cal-agenda__mark nova-cal-agenda__mark--muhurtham">
                                     <Sparkles size={12} strokeWidth={1.75} aria-hidden="true" />
                                     {day.muhurtham === "subha"
-                                      ? (lang === "ta" ? "சுப முகூர்த்தம்" : "Subha muhurtham")
-                                      : (lang === "ta" ? "முகூர்த்தம்" : "Muhurtham")}
+                                      ? (t("cal_monthly_subha_muhurtham", lang))
+                                      : (t("cal_monthly_muhurtham", lang))}
                                   </span>
                                 )}
                                 {day.karinaal && (
                                   <span className="nova-cal-agenda__mark nova-cal-agenda__mark--avoid">
                                     <AlertTriangle size={12} strokeWidth={1.75} aria-hidden="true" />
-                                    {lang === "ta" ? "கரிநாள் · தவிர்க்க" : "Karinaal · avoid"}
+                                    {t("cal_monthly_karinaal_avoid", lang)}
                                   </span>
                                 )}
                               </span>
@@ -729,15 +723,17 @@ export function MonthlyCalendarViewNova({
                   })}
                   <li className="nova-cal-agenda__foot">
                     <a href="/tamil-calendar" target="_blank" rel="noreferrer">
-                      {lang === "ta" ? "முழு தமிழ் நாட்காட்டி →" : "Full Tamil calendar →"}
+                      {t("cal_monthly_full_tamil_calendar", lang)}
                     </a>
                   </li>
                 </ol>
               )}
-            </Card>
-          </div>
-        </div>
-      )}
+
+        </MonthlyCalendarSidebar>
+      </div>
+      {/* Full width under both columns: inside the main column it lengthened
+          only that side and unbalanced the rail again. */}
+      <div className="nova-cal-closing"><MonthlyCalendarLandscape /><p>{t("cal_monthly_right_time_brighter_tomorrow", lang)}</p></div>
     </div>
   );
 }

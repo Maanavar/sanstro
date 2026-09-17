@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Activity, AlertTriangle, ArrowRight, Bell, CalendarDays, CalendarPlus, ChevronDown, Leaf, Moon, MoonStar, Sparkles, Star, Sun, Target, TrendingUp, X, type LucideIcon } from "lucide-react";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
-import { addDays, formatClockLabel, formatDateLabel, getScoreVerdictFromGuidance } from "@/lib/format";
+import { addDays, formatClockLabel, formatClockRange, formatDateLabel, getScoreVerdictFromGuidance } from "@/lib/format";
 import type { GlossaryKey } from "@/lib/glossary";
 import { t, tLang, tNakshatra, tTithi } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
@@ -224,7 +224,7 @@ function abhijitOverlapNote(
     return dt(TODAY_TIMINGS.abhijitFullyCovered, lang).replace("%1$s", names);
   }
   const clearText = clear
-    .map((seg) => `${formatClockLabel(seg.start)}–${formatClockLabel(seg.end)}`)
+    .map((seg) => formatClockRange(seg.start, seg.end, lang))
     .join(" · ");
   return dt(TODAY_TIMINGS.abhijitOverlap, lang).replace("%1$s", names).replace("%2$s", clearText);
 }
@@ -710,7 +710,7 @@ export function DashboardTodayTabNova({
                       {panchangam && (
                         <span style={{ fontWeight: 400, color: "var(--color-faint)" }}>
                           {" · "}
-                          {lang === "ta" ? `சூரிய உதயம் ${formatClockLabel(panchangam.sunrise)} இல் நாள் முடிகிறது` : `day closes at sunrise ${formatClockLabel(panchangam.sunrise)}`}
+                          {lang === "ta" ? `சூரிய உதயம் ${formatClockLabel(panchangam.sunrise, lang)} இல் நாள் முடிகிறது` : `day closes at sunrise ${formatClockLabel(panchangam.sunrise, lang)}`}
                         </span>
                       )}
                     </div>
@@ -719,8 +719,8 @@ export function DashboardTodayTabNova({
                         const tw = pickFeaturedWindow(tomorrowGuidance.bestWindows, now, false, tomorrowIso, panchangamTimezone);
                         return tw
                           ? (lang === "ta"
-                            ? <>நாளை முதல் நல்ல நேரம் · <b style={{ color: "var(--color-high)" }}>{formatClockLabel(tw.start)} – {formatClockLabel(tw.end)}</b></>
-                            : <>Tomorrow&rsquo;s first good window · <b style={{ color: "var(--color-high)" }}>{formatClockLabel(tw.start)} – {formatClockLabel(tw.end)}</b></>)
+                            ? <>நாளை முதல் நல்ல நேரம் · <b style={{ color: "var(--color-high)" }}>{formatClockLabel(tw.start, lang)} – {formatClockLabel(tw.end, lang)}</b></>
+                            : <>Tomorrow&rsquo;s first good window · <b style={{ color: "var(--color-high)" }}>{formatClockLabel(tw.start, lang)} – {formatClockLabel(tw.end, lang)}</b></>)
                           : (lang === "ta" ? "நாள் முடிவதற்குள் ஒரு சிறு குறிப்பு பதிவு செய்யுங்கள்." : "Log a quick note before the day closes.");
                       })()}
                     </div>
@@ -993,7 +993,7 @@ export function DashboardTodayTabNova({
                             onClick={() => setConflictOpen((open) => !open)}
                             aria-expanded={conflictOpen}
                           >
-                            {dt(TODAY_TIMINGS.conflictToggle, lang).replace("%s", formatClockLabel(windowConflict.start))}
+                            {dt(TODAY_TIMINGS.conflictToggle, lang).replace("%s", formatClockLabel(windowConflict.start, lang))}
                             <ChevronDown size={13} strokeWidth={2.5} aria-hidden="true" className={conflictOpen ? "is-open" : undefined} />
                           </button>
                         )}
@@ -1001,7 +1001,7 @@ export function DashboardTodayTabNova({
 
                       <div className="nova-hero-action__topline">
                         <div className={windowPhase === "during" ? "nova-hero-action__time is-live" : "nova-hero-action__time"}>
-                          {formatClockLabel(bestWindow.start)} – {formatClockLabel(bestWindow.end)}
+                          {formatClockLabel(bestWindow.start, lang)} – {formatClockLabel(bestWindow.end, lang)}
                           {/* The kala rides the time line rather than opening the
                               reason paragraph: it is a name, not a sentence, and
                               it cost a whole text row of its own. */}
@@ -1071,7 +1071,7 @@ export function DashboardTodayTabNova({
                     {windowConflict && conflictOpen && (
                       <p className="nova-hero-action__footnote-body">
                         <span className="nova-hero-action__footnote-time">
-                          {formatClockLabel(windowConflict.start)} – {formatClockLabel(windowConflict.end)}
+                          {formatClockLabel(windowConflict.start, lang)} – {formatClockLabel(windowConflict.end, lang)}
                         </span>
                         {" · "}
                         {lang === "ta" ? windowConflict.text.ta : windowConflict.text.en}
@@ -1182,7 +1182,7 @@ export function DashboardTodayTabNova({
                       {lang === "ta" ? "தவிர்க்க வேண்டிய நேரம்" : "Avoid window"}
                     </Kicker>
                     <div className="nova-hero-time" style={{ marginTop: "4px" }}>
-                      {formatClockLabel(avoidWindow.start)} – {formatClockLabel(avoidWindow.end)}
+                      {formatClockLabel(avoidWindow.start, lang)} – {formatClockLabel(avoidWindow.end, lang)}
                     </div>
                     {avoidPhase && (
                       <div
@@ -1224,7 +1224,7 @@ export function DashboardTodayTabNova({
                     name: lang === "ta" ? "நல்ல நேரம்" : "Nalla Neram",
                     dot: "var(--color-high)",
                     times: nallaNeramSpans
-                      .map((s) => `${formatClockLabel(s.start)} – ${formatClockLabel(s.end)}`),
+                      .map((s) => `${formatClockLabel(s.start, lang)} – ${formatClockLabel(s.end, lang)}`),
                   });
                 }
                 if (panchangam?.kalam.yamagandam) {
@@ -1232,7 +1232,7 @@ export function DashboardTodayTabNova({
                     key: "yamagandam",
                     name: windowTypeLabel("YAMAGANDAM", lang),
                     dot: "var(--color-accent-secondary)",
-                    times: [`${formatClockLabel(panchangam.kalam.yamagandam.start)} – ${formatClockLabel(panchangam.kalam.yamagandam.end)}`],
+                    times: [`${formatClockLabel(panchangam.kalam.yamagandam.start, lang)} – ${formatClockLabel(panchangam.kalam.yamagandam.end, lang)}`],
                   });
                 }
                 if (panchangam?.kalam.kuligai) {
@@ -1240,7 +1240,7 @@ export function DashboardTodayTabNova({
                     key: "kuligai",
                     name: windowTypeLabel("KULIGAI", lang),
                     dot: "var(--color-low)",
-                    times: [`${formatClockLabel(panchangam.kalam.kuligai.start)} – ${formatClockLabel(panchangam.kalam.kuligai.end)}`],
+                    times: [`${formatClockLabel(panchangam.kalam.kuligai.start, lang)} – ${formatClockLabel(panchangam.kalam.kuligai.end, lang)}`],
                   });
                 }
                 if (secondaryAbhijitWindow) {
@@ -1248,7 +1248,7 @@ export function DashboardTodayTabNova({
                     key: "abhijit",
                     name: lang === "ta" ? "அபிஜித் முகூர்த்தம்" : "Abhijit muhurtham",
                     dot: "var(--color-accent)",
-                    times: [`${formatClockLabel(secondaryAbhijitWindow.start)} – ${formatClockLabel(secondaryAbhijitWindow.end)}`],
+                    times: [`${formatClockLabel(secondaryAbhijitWindow.start, lang)} – ${formatClockLabel(secondaryAbhijitWindow.end, lang)}`],
                     // Finding 7. Abhijit is ~48 minutes fixed around solar noon
                     // and the kalas move by weekday, so on a large fraction of
                     // Fridays Rahu Kalam clips its head — 24 of 49 minutes on

@@ -666,8 +666,8 @@ export function DashboardHero(props: DashboardHeroProps) {
                 <span className="cd-subbar__status" title={panchangamPlace ?? undefined}>
                   <span className="cd-subbar__status-check" aria-hidden="true">✓</span>
                   {lang === "ta"
-                    ? `பஞ்சாங்கம் ${formatClockLabel(panchangamSunrise)} கணக்கிடப்பட்டது`
-                    : `Panchangam computed ${formatClockLabel(panchangamSunrise)}`}
+                    ? `பஞ்சாங்கம் ${formatClockLabel(panchangamSunrise, lang)} கணக்கிடப்பட்டது`
+                    : `Panchangam computed ${formatClockLabel(panchangamSunrise, lang)}`}
                   {panchangamPlace ? ` · ${panchangamPlace}` : ""}
                 </span>
               )}

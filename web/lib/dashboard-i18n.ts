@@ -87,7 +87,20 @@ export const CALENDAR_DAY_SUMMARY = {
     "An ordinary day. Keep routine work moving and use a recommended window for a new start.",
     "வழக்கமான நாள். தினசரி பணிகளைத் தொடருங்கள்; புதிய தொடக்கத்திற்கு பரிந்துரைக்கப்பட்ட நேரத்தைப் பயன்படுத்துங்கள்.",
   ),
-} as const;
+  // T15: the summary names one clock window so the line is usable without the
+  // vocabulary below it. Rahu Kalam only — it is the strongest of the three
+  // avoid-kalas (painted avoid-strong on the timeline); the Avoid card below
+  // still lists all three.
+  // Tamil, native-reviewed 2026-09-17: no em-dash (an English import), advisory
+  // தவிர்ப்பது நல்லது to match the counselling voice of the verdict before it,
+  // and the ranges are built per language (Tamil period-words, not "pm").
+  // The panchangam planner's subha-day sentence uses this same string.
+  avoidRahu: (rangeEn: string, rangeTa: string) =>
+    s(
+      `Avoid Rahu Kalam, ${rangeEn}.`,
+      `ராகு காலம் ${rangeTa} நேரத்தில் புதிய செயல்களைத் தவிர்ப்பது நல்லது.`,
+    ),
+};
 
 // New Tamil, pending native review (CLAUDE.md new-Tamil rule).
 export const EXPLORE_VOCABULARY = {

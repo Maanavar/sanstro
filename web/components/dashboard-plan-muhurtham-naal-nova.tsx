@@ -12,6 +12,7 @@ import {
   type MuhurthamNaalMatchItem,
   type MuhurthamNaalMatchContext,
   type MuhurthamNaalItem,
+  type NaalCouple,
 } from "@/lib/muhurtham-naal";
 import { NovaSelect } from "./nova-select";
 import { Card } from "./ui";
@@ -65,6 +66,13 @@ function formatDate(value: string, lang: Lang): string {
 }
 
 type MergedRow = { naal: MuhurthamNaalItem; match: MuhurthamNaalMatchItem | null };
+
+/** " · Bride" / " · Bride & Groom" for a couple's Chandrashtama badge; "" for one chart. */
+export function chandrashtamaWho(match: MuhurthamNaalMatchItem | null, lang: Lang): string {
+  const named = (match?.readings ?? []).filter((reading) => reading.isChandrashtama && reading.who);
+  if (named.length === 0) return "";
+  return ` · ${named.map((reading) => (lang === "ta" ? reading.who!.ta : reading.who!.en)).join(" & ")}`;
+}
 
 function NovaNaalRow({
   row,
@@ -130,6 +138,10 @@ function NovaNaalRow({
             {isChandrashtama && (
               <span style={{ fontSize: "var(--text-xs)", color: "var(--color-low)", fontWeight: 700, padding: "var(--space-1) var(--space-2)", background: "var(--color-low-bg)", borderRadius: "var(--radius-pill)", border: "1px solid var(--color-low-border)" }}>
                 {lang === "ta" ? "சந்திராஷ்டமம்" : "Chandrashtama"}
+                {/* For a couple the badge names whose it is — "Chandrashtama" on a
+                    date that is fine for the reader and not for their partner
+                    would read as a mistake. */}
+                {chandrashtamaWho(match, lang)}
               </span>
             )}
           </div>
@@ -181,10 +193,13 @@ function NovaNaalRow({
 export function NovaMuhurthamNaal({
   lang,
   chartId,
+  couple = null,
   onCheckInPlanner,
 }: {
   lang: Lang;
   chartId: string | null;
+  /** Rank for both charts, weaker side governing. Null ranks for `chartId` alone. */
+  couple?: NaalCouple | null;
   onCheckInPlanner?: (date: string) => void;
 }) {
   const [year, setYear] = useState(() => new Date().getFullYear());
@@ -203,13 +218,27 @@ export function NovaMuhurthamNaal({
   const [filterPirai, setFilterPirai] = useState("");
   const [recommendedOnly, setRecommendedOnly] = useState(false);
 
+  const partnerChartId = couple?.partnerChartId ?? null;
+  const subjectRole = couple?.subjectRole ?? null;
+
   useEffect(() => {
     let active = true;
     setLoading(true);
     setError(null);
+    // Cleared up front, not on arrival: a one-chart ranking left on screen
+    // while the couple's loads would sit under the couple's heading.
+    setMatches([]);
+    setContext(null);
 
     const publicFetch = fetchPublicMuhurthamNaals(year);
-    const chartFetch = chartId ? fetchChartMuhurthamNaals(chartId, year) : Promise.resolve(null);
+    const chartFetch = chartId
+      ? fetchChartMuhurthamNaals(
+          chartId,
+          year,
+          false,
+          partnerChartId && subjectRole ? { partnerChartId, subjectRole } : null,
+        )
+      : Promise.resolve(null);
 
     Promise.all([publicFetch, chartFetch])
       .then(([pub, chart]) => {
@@ -224,7 +253,7 @@ export function NovaMuhurthamNaal({
       .finally(() => { if (active) setLoading(false); });
 
     return () => { active = false; };
-  }, [chartId, year]);
+  }, [chartId, year, partnerChartId, subjectRole]);
 
   const matchByDate = useMemo(() => {
     const map = new Map<string, MuhurthamNaalMatchItem>();
@@ -315,9 +344,13 @@ export function NovaMuhurthamNaal({
 
       {chartId && context && (
         <Card variant="high" compact style={{ marginBottom: "12px", fontSize: "var(--text-base)", color: "var(--color-text)" }}>
-          {lang === "ta"
-            ? `உங்கள் நட்சத்திரம் ${context.janmaNakshatra.ta} — ${context.recommendedCount} நாட்கள் உங்களுக்கு ஏற்றவை (தாரா பலம் + சந்திராஷ்டமம் வைத்து).`
-            : `Your star ${context.janmaNakshatra.en} — ${context.recommendedCount} of ${context.totalCount} dates suit you (Tara Bala + Chandrashtama).`}
+          {context.partner && context.subjectWho
+            ? (lang === "ta"
+              ? `இருவருக்கும் சரிபார்க்கப்பட்டது — ${context.subjectWho.ta}: ${context.janmaNakshatra.ta}, ${context.partner.who.ta}: ${context.partner.janmaNakshatra.ta}. ${context.totalCount} நாட்களில் ${context.recommendedCount} நாட்கள் இருவருக்கும் ஏற்றவை (தாரா பலம் + சந்திராஷ்டமம்; இருவரில் பலவீனமானதே முடிவு செய்யும்).`
+              : `Checked for both — ${context.subjectWho.en}: ${context.janmaNakshatra.en}, ${context.partner.who.en}: ${context.partner.janmaNakshatra.en}. ${context.recommendedCount} of ${context.totalCount} dates suit you both (Tara Bala + Chandrashtama; the weaker of the two decides).`)
+            : (lang === "ta"
+              ? `உங்கள் நட்சத்திரம் ${context.janmaNakshatra.ta} — ${context.recommendedCount} நாட்கள் உங்களுக்கு ஏற்றவை (தாரா பலம் + சந்திராஷ்டமம் வைத்து).`
+              : `Your star ${context.janmaNakshatra.en} — ${context.recommendedCount} of ${context.totalCount} dates suit you (Tara Bala + Chandrashtama).`)}
         </Card>
       )}
 
