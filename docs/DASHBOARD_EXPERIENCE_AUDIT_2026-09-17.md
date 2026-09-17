@@ -282,8 +282,11 @@ Ready: yes · Wave 1 · Needs: — · Review: shots
   within 8px of loaded`, ratcheted — so a copy or structure change that opens
   the gap fails the audit instead of quietly shipping a jump. It measures en
   at 1440; the ta and phone values were measured by hand (pending vs loaded:
-  641/640 ta at 1440, 898/932 ta at 860, 1461/1466 en and 1642/1632 ta at
-  390) and are not gated.
+  641/640 ta at 1440 · 857/857 en and 898/932 ta at 860 · 1466/1466 en and
+  1642/1632 ta at 390) and are not gated. Two are loose: Tamil at 860 is 34px
+  short, and Tamil on a phone overshoots by 10px (a shrink) — both inside a
+  hero that is already taller than the viewport there, so what moves is below
+  the fold.
 
 #### DXA-07 `[ ]` Changing the date collapses Today while the new day loads
 Ready: yes · Wave 1 · Needs: — · Review: shots
