@@ -257,6 +257,9 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
   const [jadhagamReport, setJadhagamReport] = useState<JadhagamReportResponse["data"] | null>(null);
   const [jadhagamReportLoading, setJadhagamReportLoading] = useState(false);
   const [busyPersonalState, setBusyPersonalState] = useState(false);
+  // The last refreshPersonalBundle ended in an error that left no bundle —
+  // settled, so the empty copy may show (DXA-03 `personalPending`).
+  const [personalLoadFailed, setPersonalLoadFailed] = useState(false);
 
   const chartQuery = useQuery({
     queryKey: personalKeys.chartCalculate(birthProfileId),
@@ -524,6 +527,7 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
 
     const requestId = beginPersonalRequest();
     setBusyPersonalState(true);
+    setPersonalLoadFailed(false);
     try {
       // Cached for the session unless a profile edit forces a re-run — the
       // chart is a function of the birth data, not of the selected date
@@ -587,6 +591,7 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
           return;
         }
       }
+      if (isPersonalRequestCurrent(requestId)) setPersonalLoadFailed(true);
       reportStatus(readErrorMessage(error), "error");
     } finally {
       if (isPersonalRequestCurrent(requestId)) {
@@ -601,6 +606,13 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
   const todayGuidance = selectedDate === todayDate.current
     ? bundle?.dailyGuidance ?? todayGuidanceSnapshot
     : todayGuidanceSnapshot ?? bundle?.dailyGuidance ?? null;
+  // DXA-03: "not known yet" is not "nothing there". Pending until the profile
+  // lookup has answered and, for a user who has a profile, until the selected
+  // day's bundle has arrived or the load has failed. Consumers render a
+  // placeholder while this is true and their empty copy only after.
+  const personalPending =
+    !birthProfileLookupDone ||
+    (!!birthProfileId && bundle === null && !bundleQuery.isError && !personalLoadFailed);
   const todayTransit = selectedDate === todayDate.current
     ? bundle?.transit ?? todayTransitSnapshot
     : todayTransitSnapshot ?? bundle?.transit ?? null;
@@ -641,6 +653,7 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
     busyPersonal: busyPersonalState || bundleQuery.isFetching,
     setBirthProfileId: updateBirthProfileId,
     birthProfileLookupDone,
+    personalPending,
     setChartId,
     setPredictionsLoading: setPredictionsManualLoading,
     setJadhagamReport,

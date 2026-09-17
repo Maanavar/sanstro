@@ -669,7 +669,9 @@ export function DashboardWorkspace() {
   // specific tool from outside the Tools tab, the same way focusLifeAreas/
   // focusCalendar/focusFamily reach into their tabs (homepage redesign
   // 2026-07-24).
-  const needsProfile = !personal.birthProfileId;
+  // Only a finished lookup that found nothing means "no profile" (DXA-03);
+  // during the lookup the chart-dependent tiles must not grey out.
+  const needsProfile = personal.birthProfileLookupDone && !personal.birthProfileId;
   // Opening/closing a tool is a navigation: it earns a history entry and a URL
   // (`/dashboard/tools/numerology`), so Back leaves the tool the way it leaves
   // a tab. An unrecognised id closes the panel rather than opening nothing —
@@ -1809,6 +1811,8 @@ export function DashboardWorkspace() {
               panchangamTimings={personal.panchangamTimings}
               weekAhead={personal.weekAhead}
               familyAggregate={familyAggregateForToday}
+              personalPending={personal.personalPending}
+              familyPending={family.familyPending}
               remedyMemberCharts={family.memberCharts}
               lifeAreas={personal.lifeAreas}
               dasha={personalDasha}
@@ -1986,6 +1990,7 @@ export function DashboardWorkspace() {
               onSelectMember={setMuhurtaMemberId}
               focusView={calendarFocusView}
               onFocusConsumed={() => setCalendarFocusView(null)}
+              pending={personal.personalPending}
             />
           </TabPane>
 

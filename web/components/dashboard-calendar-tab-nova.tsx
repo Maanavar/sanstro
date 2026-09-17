@@ -29,6 +29,7 @@ import { nokkuMeta } from "@/lib/nokku";
 import { timeOnDateToMs } from "@/lib/tz";
 import { MiniMoonGlyph } from "./celestial-glyph-nova";
 import { useMonthlyPanchangam } from "@/hooks/useMonthlyPanchangam";
+import { PendingPlaceholder } from "./pending-placeholder-nova";
 import { PlaceCombobox } from "./place-combobox";
 import { DrawerPanel } from "./drawer-panel";
 import { Button, Card, Chip, Pill, Segmented } from "./ui";
@@ -108,6 +109,9 @@ export type DashboardCalendarTabNovaProps = {
    *  via `onFocusConsumed` (IA audit 2026-07-22, Phase 3). */
   focusView?: string | null;
   onFocusConsumed?: () => void;
+  /** The day's personal data has not arrived yet (DXA-03): placeholders,
+   *  not "Create a profile to see panchangam". */
+  pending?: boolean;
 };
 
 function novaFestivalTagLabel(tag: string, lang: Lang): string {
@@ -1019,6 +1023,7 @@ export function DashboardCalendarTabNova({
   onSelectMember,
   focusView = null,
   onFocusConsumed,
+  pending = false,
 }: DashboardCalendarTabNovaProps) {
   const CALENDAR_VIEWS: CalendarViewExt[] = ["panchangam", "monthly", "muhurta"];
   const [view, setView] = useState<CalendarViewExt>(
@@ -1191,7 +1196,9 @@ export function DashboardCalendarTabNova({
 
   const panchangamMeta = panchangam
     ? `${tWeekday(panchangam.vara.weekday, lang)} · ${tithiPaksha ?? ""} · ${tNakshatra(nakActive?.activeName ?? panchangam.nakshatra.name, lang)}`
-    : t("panja_empty", lang);
+    : pending
+      ? (lang === "ta" ? "ஏற்றுகிறது…" : "Loading…")
+      : t("panja_empty", lang);
 
   // Fortnight + moon shape, matching the Today hero's chip (same lunar helpers,
   // same Amavasai/Pournami override) so the two surfaces cannot disagree.
@@ -1343,7 +1350,7 @@ export function DashboardCalendarTabNova({
 
       {view === "panchangam" && (
         !panchangam ? (
-          <p className="empty-state">{t("panja_empty", lang)}</p>
+          pending ? <PendingPlaceholder lang={lang} lines={4} /> : <p className="empty-state">{t("panja_empty", lang)}</p>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: "var(--space-5)", alignItems: "start" }}>
             {/* ===== LEFT: Day at a glance ===== */}
@@ -1667,6 +1674,7 @@ export function DashboardCalendarTabNova({
           isLoading={isMonthlyPanchangamLoading}
           error={monthlyPanchangamError}
           hasLocation={Boolean(monthlyLocation)}
+          locationPending={pending}
           selectedDate={selectedDate}
           previewDate={detailDate}
           todayDate={todayDate}

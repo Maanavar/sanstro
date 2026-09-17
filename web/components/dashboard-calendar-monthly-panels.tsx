@@ -8,6 +8,7 @@ import { moonPhaseFromTithi } from "@/lib/lunar";
 import type { PanchangamMonthDayEntry } from "@/lib/types";
 import type { AgendaDay } from "./dashboard-calendar-monthly-nova";
 import { MiniMoonGlyph } from "./celestial-glyph-nova";
+import { PendingPlaceholder } from "./pending-placeholder-nova";
 import { Button, Card } from "./ui";
 
 type DayActions = {
@@ -23,13 +24,15 @@ export function MonthlyCalendarLandscape({ priority = false }: { priority?: bool
 
 export function MonthlyCalendarSidebar({
   lang, monthLabel, agendaDays, observanceCount, onSelectDate, formatDate,
-  expanded, onToggleExpanded, children,
+  expanded, onToggleExpanded, loading = false, children,
 }: DayActions & {
   monthLabel: string;
   agendaDays: AgendaDay[];
   observanceCount: number;
   expanded: boolean;
   onToggleExpanded: () => void;
+  /** The month is still loading: "Nothing matches" waits until it has (DXA-03). */
+  loading?: boolean;
   children: ReactNode;
 }) {
   const [allObservances, setAllObservances] = useState(false);
@@ -63,7 +66,9 @@ export function MonthlyCalendarSidebar({
               </span>
             </button>
           ))}
-          {!preview.length && <p className="nova-cal-rail-meta">{t("cal_monthly_nothing_matches_the_selected_filters", lang)}</p>}
+          {!preview.length && (loading
+            ? <PendingPlaceholder lang={lang} lines={3} />
+            : <p className="nova-cal-rail-meta">{t("cal_monthly_nothing_matches_the_selected_filters", lang)}</p>)}
         </div>}
         <section id="monthly-agenda" hidden={!expanded} aria-label={t("cal_monthly_events_festivals", lang)}>
           {children}

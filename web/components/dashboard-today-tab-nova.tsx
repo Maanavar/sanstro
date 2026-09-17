@@ -47,6 +47,7 @@ import { NovaClampedText, NovaScoreDial, StatusLive, type StatusMessage } from "
 import { festivalTags, limbNow } from "./dashboard-calendar-shared";
 import { bandPhrase, bandTone } from "@/lib/reasoning";
 import { MiniMoonGlyph } from "./celestial-glyph-nova";
+import { PendingPlaceholder } from "./pending-placeholder-nova";
 import { HeroSkyBackdrop, DeepDiveOrbitGlyph } from "./celestial-ambient-nova";
 import { lunarSpecialTithiMeta, moonPhaseFromTithi } from "@/lib/lunar";
 import { useStreak } from "@/hooks/useStreak";
@@ -112,6 +113,10 @@ export type DashboardTodayTabNovaProps = {
   panchangamTimings: PanchangamTimingsData | null;
   weekAhead: WeekAheadData | null;
   familyAggregate: FamilyAggregateData | null;
+  /** DXA-03: data still on its way. While true, cards show placeholders
+   *  instead of their empty-state copy. */
+  personalPending?: boolean;
+  familyPending?: boolean;
   remedyMemberCharts?: Array<Pick<MemberChart, "memberId" | "displayName" | "dailyGuidance">>;
   lifeAreas?: LifeAreasResponseData | null;
   dasha: DashaTimelineResponseData | null;
@@ -304,6 +309,8 @@ export function DashboardTodayTabNova({
   panchangam,
   weekAhead,
   familyAggregate,
+  personalPending = false,
+  familyPending = false,
   remedyMemberCharts = [],
   lifeAreas,
   dasha,
@@ -353,6 +360,15 @@ export function DashboardTodayTabNova({
   // Hero greeting shows a first name only — the full name reads too formal
   // sitting right next to "Good morning".
   const heroFirstName = displayName.trim().split(/\s+/)[0] ?? displayName;
+  // DXA-03: before the profile answers there is no name yet. Hold the line at
+  // its final height instead of rendering an empty <h1> beside the sun.
+  const heroName = heroFirstName || (personalPending ? (
+    <span
+      className="skel"
+      aria-hidden="true"
+      style={{ display: "inline-block", verticalAlign: "middle", width: "min(280px, 55vw)", height: "0.9em", borderRadius: "var(--radius-md)" }}
+    />
+  ) : null);
   const activeChartId = personalChartSummary?.chartId ?? "";
   const [savingReminder, setSavingReminder] = useState(false);
   const [reminderStatus, setReminderStatus] = useState<StatusMessage | null>(null);
@@ -675,7 +691,7 @@ export function DashboardTodayTabNova({
                     background: "linear-gradient(120deg, var(--color-text-strong) 68%, var(--color-accent-secondary))",
                     WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent",
                   }}>
-                    {heroFirstName}
+                    {heroName}
                   </h1>
                   {zoneHour >= 6 && zoneHour < 18
                     ? <Sun size={30} strokeWidth={1.7} aria-hidden="true" style={{ color: "var(--color-accent-strong)", flex: "none" }} />
@@ -780,7 +796,7 @@ export function DashboardTodayTabNova({
                     background: "linear-gradient(120deg, var(--color-text-strong) 68%, var(--color-accent-secondary))",
                     WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent",
                   }}>
-                    {heroFirstName}
+                    {heroName}
                   </h1>
                   {zoneHour >= 6 && zoneHour < 18
                     ? <Sun size={30} strokeWidth={1.7} aria-hidden="true" style={{ color: "var(--color-accent-strong)", flex: "none" }} />
@@ -790,7 +806,12 @@ export function DashboardTodayTabNova({
                     every day, and sitting between the reader's name and the
                     briefing they came for. It earns its place only on a screen
                     that has no briefing to lead with. */}
-                {!personalDailyGuidance && (
+                {/* While the briefing is still on its way, its place is held
+                    rather than filled with this lede (DXA-03). */}
+                {!personalDailyGuidance && personalPending && (
+                  <div style={{ maxWidth: "640px" }}><PendingPlaceholder lang={lang} lines={2} /></div>
+                )}
+                {!personalDailyGuidance && !personalPending && (
                   <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55, maxWidth: "640px" }}>
                     {dt(TODAY_HERO.ledeNoGuidance, lang)}
                   </p>
@@ -1421,6 +1442,7 @@ export function DashboardTodayTabNova({
         dashaAntar={dashaAntar}
         selectedDate={selectedDate}
         lifeAreas={lifeAreas}
+        pending={personalPending}
         onGoToChart={onGoToChart}
         onGoToLifeAreas={onGoToLifeAreas}
       />
@@ -1434,6 +1456,7 @@ export function DashboardTodayTabNova({
       <DashboardTodayFamilyRemedyRowNova
         lang={lang}
         familyAggregate={familyAggregate}
+        familyPending={familyPending}
         remedy={personalDailyGuidance?.remedy ?? null}
         remedyFocus={personalDailyGuidance?.remedyFocus ?? null}
         remedyMembers={remedyMembers}

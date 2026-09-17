@@ -23,6 +23,7 @@ import type {
 } from "@/lib/types";
 
 import { ScoreRing } from "./dashboard-family-shared";
+import { PendingPlaceholder } from "./pending-placeholder-nova";
 import { Card, Kicker } from "./ui";
 
 /** Chandrashtama for one family member, straight off the aggregate's cycle
@@ -329,6 +330,7 @@ export function DashboardTodayLifeAreasDasaRowNova({
   dashaAntar,
   selectedDate,
   lifeAreas,
+  pending = false,
   onGoToChart,
   onGoToLifeAreas,
 }: {
@@ -338,6 +340,8 @@ export function DashboardTodayLifeAreasDasaRowNova({
   dashaAntar: DashaTimelineItem[];
   selectedDate: string;
   lifeAreas?: LifeAreasResponseData | null;
+  /** The personal data has not arrived yet: show placeholders, not the empty copy (DXA-03). */
+  pending?: boolean;
   onGoToChart?: () => void;
   onGoToLifeAreas?: () => void;
 }) {
@@ -456,6 +460,8 @@ export function DashboardTodayLifeAreasDasaRowNova({
               );
             })}
           </div>
+        ) : pending ? (
+          <PendingPlaceholder lang={lang} tiles={5} />
         ) : (
           <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)" }}>{t("guidance_empty", lang)}</p>
         )}
@@ -526,6 +532,8 @@ export function DashboardTodayLifeAreasDasaRowNova({
               </>
             )}
           </>
+        ) : pending ? (
+          <PendingPlaceholder lang={lang} lines={3} />
         ) : (
           <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)" }}>{t("chart_no_profile", lang)}</p>
         )}
@@ -825,6 +833,7 @@ function RemedyFocusCard({
 export function DashboardTodayFamilyRemedyRowNova({
   lang,
   familyAggregate,
+  familyPending = false,
   remedy,
   remedyFocus,
   remedyMembers,
@@ -839,6 +848,8 @@ export function DashboardTodayFamilyRemedyRowNova({
 }: {
   lang: Lang;
   familyAggregate: FamilyAggregateData | null;
+  /** The family aggregate has not arrived yet: placeholder, not "No family members yet" (DXA-03). */
+  familyPending?: boolean;
   remedy: BiText | null;
   remedyFocus?: RemedyFocus | null;
   remedyMembers?: RemedyMemberOption[];
@@ -1004,6 +1015,8 @@ export function DashboardTodayFamilyRemedyRowNova({
               );
             })()}
           </>
+        ) : familyPending ? (
+          <PendingPlaceholder lang={lang} lines={3} />
         ) : (
           <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)" }}>{lang === "ta" ? "குடும்ப உறுப்பினர்கள் இல்லை" : "No family members yet"}</p>
         )}

@@ -326,6 +326,14 @@ export function useFamilyData({ ownerUserId, selectedDate, onStatus }: UseFamily
   }
 
   const bundle = familyBundleQuery.data;
+  // The vault list has answered at least once (success or error). Until then
+  // an empty `vaults` means "not known yet", not "no family" (DXA-03/DXA-04).
+  const vaultsReady = vaultsQuery.isFetched;
+  const hasVaults = (vaultsQuery.data?.items.length ?? 0) > 0;
+  // DXA-03: the family aggregate is still on its way — the vault list has not
+  // answered, or a vault exists whose bundle has neither arrived nor failed.
+  const familyPending =
+    !vaultsReady || (hasVaults && (!selectedVaultId || familyBundleQuery.isPending));
 
   return {
     selectedVaultId,
@@ -338,6 +346,8 @@ export function useFamilyData({ ownerUserId, selectedDate, onStatus }: UseFamily
     relationshipAlerts: relationshipAlertsQuery.data ?? [],
     relationshipAlertsLoading: relationshipAlertsQuery.isFetching,
     busyVaults: vaultsQuery.isFetching,
+    vaultsReady,
+    familyPending,
     busyFamily: familyBundleQuery.isFetching,
     busyMemberCharts: memberChartsQuery.isFetching,
     setSelectedVaultId,

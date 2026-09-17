@@ -23,6 +23,7 @@ import {
   WEEKDAY_LABELS_TA,
 } from "./dashboard-calendar-shared";
 import { Button, Card } from "./ui";
+import { PendingPlaceholder } from "./pending-placeholder-nova";
 import { MonthlyCalendarSidebar, MonthlyCalendarInsights, MonthlyCalendarLandscape } from "./dashboard-calendar-monthly-panels";
 
 /** Monthly grid, selected-day summary and compact observance rail.
@@ -193,6 +194,9 @@ export type DashboardCalendarMonthlyNovaProps = {
   isLoading: boolean;
   error: string | null;
   hasLocation: boolean;
+  /** No location yet because the day's data is still loading (DXA-03), not
+   *  because the user has none: placeholder instead of `panja_empty`. */
+  locationPending?: boolean;
   selectedDate: string;
   /** Follows quick jumps and day stepping without changing the global date. */
   previewDate?: string | null;
@@ -235,6 +239,7 @@ export function MonthlyCalendarViewNova({
   isLoading,
   error,
   hasLocation,
+  locationPending = false,
   selectedDate,
   previewDate,
   todayDate,
@@ -412,7 +417,9 @@ export function MonthlyCalendarViewNova({
   }, [agendaDays, focusedDate, todayDate, year, month, agendaExpanded]);
 
   if (!hasLocation) {
-    return <p className="empty-state">{t("panja_empty", lang)}</p>;
+    return locationPending
+      ? <PendingPlaceholder lang={lang} lines={4} />
+      : <p className="empty-state">{t("panja_empty", lang)}</p>;
   }
 
   return (
@@ -663,8 +670,11 @@ export function MonthlyCalendarViewNova({
           lang={lang} monthLabel={`${monthLabel} ${year}`} agendaDays={agendaDays} observanceCount={observanceCount}
           onSelectDate={onSelectDate ? selectDay : undefined} formatDate={(date) => formatGridDay(date, lang)}
           expanded={agendaExpanded} onToggleExpanded={() => setAgendaExpanded(!agendaExpanded)}
+          loading={isLoading}
         >
-              {agendaDays.length === 0 ? (
+              {agendaDays.length === 0 && isLoading ? (
+                <PendingPlaceholder lang={lang} lines={3} />
+              ) : agendaDays.length === 0 ? (
                 <p className="nova-cal-agenda__empty">
                   {t("cal_monthly_nothing_matches_the_selected_filters", lang)}
                 </p>

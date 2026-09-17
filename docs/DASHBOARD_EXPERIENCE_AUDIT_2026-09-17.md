@@ -167,7 +167,8 @@ Ready: yes · Wave 1 · Needs: — · Review: —
   stays green.
 - **Gate:** `DXA-02` one destination, `personal`.
 
-#### DXA-03 `[ ]` "Empty" copy shown while data is still loading
+#### DXA-03 `[x] 2026-09-17` "Empty" copy shown while data is still loading
+Done: DXA-03 false-empty `697–9907 ms` → `never`. `usePersonalData.personalPending` / `useFamilyData.familyPending` + shared `PendingPlaceholder`; wired into the Today glance cards, the hero name and lede, Quick Links (`needsProfile` waits for the lookup), the Calendar day view, the monthly view and its rail. Side effects: Understand CLS 0.73 → 0.49; DXA-06 skeleton frames 80 → 125 (INFO; placeholders now count). **Follow-up, not in this gate:** `NovaChartCard` / `NovaGuidanceCard` (`dashboard-today-deepdive-extras-nova.tsx`, used on Life Areas and Family & Charts) still show `chart_no_profile` / `guidance_empty` while a selected member loads. Metrics `web/test-results/dxa03/…/ux-audit`; commit see git log.
 Ready: yes · Wave 1 · Needs: — · Review: shots
 - **Problem:**
   - `needsProfile = !personal.birthProfileId` (`dashboard-workspace.tsx:671`)

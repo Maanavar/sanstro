@@ -513,3 +513,58 @@ describe("Family Today card — member Chandrashtama", () => {
     expect(screen.queryByText(/Chandrashtama/)).not.toBeInTheDocument();
   });
 });
+
+describe("glance cards — loading is not empty (DXA-03)", () => {
+  function renderLaDasa(pending: boolean) {
+    return render(
+      <DashboardTodayLifeAreasDasaRowNova
+        lang="en"
+        personalChartSummary={null}
+        dasha={null}
+        dashaAntar={[]}
+        selectedDate="2026-01-15"
+        lifeAreas={null}
+        pending={pending}
+      />,
+    );
+  }
+
+  function renderFamilyRow(familyPending: boolean) {
+    return render(
+      <DashboardTodayFamilyRemedyRowNova
+        lang="en"
+        familyAggregate={null}
+        familyPending={familyPending}
+        remedy={null}
+        savingReminder={false}
+        reminderMessage={null}
+        onSaveReminder={vi.fn()}
+      />,
+    );
+  }
+
+  it("shows placeholders, not the empty copy, while personal data is pending", () => {
+    renderLaDasa(true);
+    expect(screen.queryByText("Daily guidance loads after a profile is calculated.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Create a birth profile to load chart data.")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("status")).toHaveLength(2);
+  });
+
+  it("shows the empty copy once the lookup has finished with nothing", () => {
+    renderLaDasa(false);
+    expect(screen.getByText("Daily guidance loads after a profile is calculated.")).toBeInTheDocument();
+    expect(screen.getByText("Create a birth profile to load chart data.")).toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("does not claim 'No family members yet' while the family is loading", () => {
+    renderFamilyRow(true);
+    expect(screen.queryByText("No family members yet")).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true");
+  });
+
+  it("says 'No family members yet' once the family has loaded empty", () => {
+    renderFamilyRow(false);
+    expect(screen.getByText("No family members yet")).toBeInTheDocument();
+  });
+});
