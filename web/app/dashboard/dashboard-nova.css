@@ -1822,13 +1822,14 @@
   flex-direction: column;
   gap: var(--space-4);
 }
-[data-ui="nova"] .cd-shell .nova-cal-sidebar { gap: var(--space-3); }@keyframes nova-cal-reveal {
+[data-ui="nova"] .cd-shell .nova-cal-sidebar { gap: var(--space-3); }
+@keyframes nova-cal-reveal {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 [data-ui="nova"] .cd-shell .nova-cal-monthly-header,
 [data-ui="nova"] .cd-shell .nova-cal-insights,
-[data-ui="nova"] .cd-shell #monthly-agenda:not([hidden]) { animation: nova-cal-reveal 200ms ease-out both; }
+[data-ui="nova"] .cd-shell #monthly-agenda:not([hidden]) { animation: nova-cal-reveal var(--motion-nav) var(--ease-nova) both; }
 [data-ui="nova"] .cd-shell .nova-cal-grid-panel {
   padding: var(--space-4);
   gap: var(--space-5);
@@ -3837,8 +3838,15 @@ button.ui-chip { cursor: pointer; }
 /* ── Reduced-motion guard ──────────────────────────────────
    First-class a11y path: honour the OS preference by collapsing every
    Nova animation/transition to instant. Scoped to [data-ui="nova"] so it
-   only governs this dashboard. Keep this LAST so it wins the cascade. */
+   only governs this dashboard. Keep this after the Nova motion rules so it
+   wins the cascade. */
 @media (prefers-reduced-motion: reduce) {
+  /* framer's layoutId slide is an inline transform; the indicator's resting
+     position comes from left/right, so dropping the transform only drops
+     the slide. */
+  [data-ui="nova"] .cd-shell .cd-tab__indicator {
+    transform: none !important;
+  }
   [data-ui="nova"],
   [data-ui="nova"] *,
   [data-ui="nova"] *::before,

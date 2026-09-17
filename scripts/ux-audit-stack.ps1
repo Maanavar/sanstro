@@ -20,6 +20,11 @@
           environment "e2e". Refuses to finish if it reports anything else.
   down    stop both process trees and remove the junctions (the links only,
           never their targets). The copied files stay; they are gitignored.
+  serve   start the isolated stack, keep it alive for a caller such as
+          Playwright, and tear it down when the caller exits.
+  watch   internal to serve: a detached process that runs Stop-Stack once
+          -WatchPid exits, because Playwright force-kills the serve tree and
+          its finally block never runs.
   status  show ports, recorded processes, junctions and proxy health.
 
   Never delete artifacts/ux-stack with `Remove-Item -Recurse` while junctions
@@ -32,11 +37,12 @@
   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ux-audit-stack.ps1 -Action down
 #>
 param(
-    [ValidateSet("up", "down", "status")]
+    [ValidateSet("up", "down", "serve", "watch", "status")]
     [string]$Action = "status",
     [int]$FrontendPort = 3100,
     [int]$BackendPort = 8010,
-    [int]$StartupTimeoutSeconds = 300
+    [int]$StartupTimeoutSeconds = 300,
+    [int]$WatchPid = 0
 )
 
 $ErrorActionPreference = "Stop"
@@ -107,7 +113,7 @@ function Stop-Stack {
         foreach ($name in @("frontendPid", "frontendServerPid", "backendPid", "backendServerPid")) {
             if ($state.PSObject.Properties.Name -contains $name) { Stop-Tree ([int]$state.$name) }
         }
-        Remove-Item -LiteralPath $StateFile
+        Remove-Item -LiteralPath $StateFile -ErrorAction SilentlyContinue
     }
     foreach ($port in @($FrontendPort, $BackendPort)) {
         $l = Get-Listener $port
@@ -141,6 +147,40 @@ switch ($Action) {
     "down" {
         Stop-Stack
         Write-Output "stack down"
+    }
+
+    "serve" {
+        & $PSCommandPath -Action up -FrontendPort $FrontendPort -BackendPort $BackendPort -StartupTimeoutSeconds $StartupTimeoutSeconds
+        $state = Get-Content -Raw -LiteralPath $StateFile | ConvertFrom-Json
+        $state | Add-Member -NotePropertyName servePid -NotePropertyValue ([int]$PID)
+        $state | ConvertTo-Json | Set-Content -Encoding ascii -LiteralPath $StateFile
+        $watchCommand = "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Action watch -FrontendPort $FrontendPort -BackendPort $BackendPort -WatchPid $PID"
+        Start-Process -FilePath "cmd.exe" -ArgumentList @("/c", "start", "`"`"", "/b", $watchCommand) -WorkingDirectory $Repo -WindowStyle Hidden | Out-Null
+        try {
+            while ($true) {
+                if (-not (Test-Path -LiteralPath $StateFile)) { break }
+                $state = Get-Content -Raw -LiteralPath $StateFile | ConvertFrom-Json
+                $frontendPid = if ($state.PSObject.Properties.Name -contains "frontendServerPid") { [int]$state.frontendServerPid } else { 0 }
+                $backendPid = if ($state.PSObject.Properties.Name -contains "backendServerPid") { [int]$state.backendServerPid } else { 0 }
+                if (($frontendPid -gt 0 -and -not (Get-Process -Id $frontendPid -ErrorAction SilentlyContinue)) -or
+                    ($backendPid -gt 0 -and -not (Get-Process -Id $backendPid -ErrorAction SilentlyContinue))) { break }
+                Start-Sleep -Seconds 1
+            }
+        } finally {
+            & $PSCommandPath -Action down -FrontendPort $FrontendPort -BackendPort $BackendPort
+        }
+    }
+
+    "watch" {
+        while ($WatchPid -gt 0 -and (Get-Process -Id $WatchPid -ErrorAction SilentlyContinue)) {
+            Start-Sleep -Seconds 1
+        }
+        if (Test-Path -LiteralPath $StateFile) {
+            $state = Get-Content -Raw -LiteralPath $StateFile | ConvertFrom-Json
+            if ($state.PSObject.Properties.Name -contains "servePid" -and [int]$state.servePid -eq $WatchPid) {
+                Stop-Stack
+            }
+        }
     }
 
     "up" {

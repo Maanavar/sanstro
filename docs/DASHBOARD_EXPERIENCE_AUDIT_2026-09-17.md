@@ -7,7 +7,8 @@ that a coding agent can pick up any item, implement it, and prove it done.
 
 **Status:**
 - Audit complete; owner decisions D1–D6 taken 2026-09-17 (§0).
-- No product code has changed yet. The only work done is DXA-34's tooling.
+- Wave 0: DXA-40, DXA-11 and DXA-36 are done; DXA-34's Playwright port is
+  open (§13). No Wave 1+ item has started.
 - Measuring tools exist: `web/scripts/ux-audit.mjs` and
   `scripts/ux-audit-stack.ps1` (§11). Baseline: 36 of 44 gates failing (§12).
 
@@ -305,10 +306,13 @@ Ready: yes · Wave 1 · Needs: DXA-17 (same component) · Review: shots
      (`celestial-ambient-nova.tsx:172`).
 - **Gate:** `DXA-10` stars in text 0; stars through a translucent surface 0.
 
-#### DXA-11 `[ ]` Reduced motion does not reach Framer layout animations
+#### DXA-11 `[x] 2026-09-17` Reduced motion does not reach Framer layout animations
+Done: DXA-11 indicator transforms 3 → 1; pane opacity 1 → 1; metrics `web/e2e/.artifacts/ux-audit-202609171446`; commit uncommitted
 Ready: yes · Wave 0 · Needs: — · Review: —
-- **Evidence:** with `reducedMotion: "reduce"` the nav indicator still slides
-  for ~270 ms. `TabPane` is correctly instant.
+- **Evidence:** ~~with `reducedMotion: "reduce"` the nav indicator still slides
+  for ~270 ms.~~ `TabPane` was correctly instant; MotionConfig and the reduced-
+  motion indicator guard now leave the pane at opacity `1` and the indicator at
+  one transform state.
 - **Fix:**
   1. Wrap the workspace render in
      `<MotionConfig reducedMotion="user" transition={{ duration: DUR.base, ease: EASE_NOVA }}>`.
@@ -758,8 +762,7 @@ Ready: partial · Wave 0
   - `web/scripts/ux-audit.mjs` (every gate in §12);
   - `scripts/ux-audit-stack.ps1` (isolated stack up / down / status).
 - **Remaining:** a CI-safe Playwright port (`web/e2e/dashboard-experience.spec.ts`,
-  skipped unless `VISUAL_AUDIT=1`). Blocked on DXA-40, because the Playwright
-  web server is destructive locally.
+  skipped unless `VISUAL_AUDIT=1`). Unblocked: DXA-40 landed.
 
 #### DXA-35 `[~]` Verify in a production build
 Ready: partial · Wave 4 · Needs: a prod mode for the stack
@@ -776,17 +779,21 @@ Ready: partial · Wave 4 · Needs: a prod mode for the stack
      preview instead. Do not weaken production headers to make a local check
      pass.
 
-#### DXA-36 `[ ]` Hygiene
+#### DXA-36 `[x] 2026-09-17` Hygiene
+Done: DXA-36 hygiene check `}@keyframes` 1 → 0; `nova-cal-reveal` literal `200ms ease-out` → Nova tokens; metrics `web/e2e/.artifacts/ux-audit-202609171446`; commit uncommitted
 Ready: yes · Wave 0
-- `dashboard-nova.css:1825`: `}@keyframes nova-cal-reveal` sits on a rule's
-  line.
-- `nova-cal-reveal` uses `200ms ease-out` (DXA-16).
+- ~~`dashboard-nova.css:1825`: `}@keyframes nova-cal-reveal` sits on a rule's
+  line.~~ It was split into its own rule line.
+- ~~`nova-cal-reveal` uses `200ms ease-out` (DXA-16).~~ It now uses the Nova
+  `--motion-nav` and `--ease-nova` tokens.
 
-#### DXA-40 `[ ]` The local Playwright web server wipes the owner's running dev build
+#### DXA-40 `[x] 2026-09-17` The local Playwright web server wipes the owner's running dev build
+Done: DXA-40 safety acceptance `web/.next` listing unchanged (320 → 320), owner :3000 stayed available; metrics `web/test-results/`; commit uncommitted
 Ready: yes · Wave 0 · Review: —
 - **Problem:** `next dev` runs `clean()` on start, deleting everything in
   `.next` except `cache` (`next/dist/server/dev/hot-reloader-webpack.js`).
-  `web/playwright.config.ts` starts `npm run dev -- --port 3100` inside `web/`.
+  ~~`web/playwright.config.ts` starts `npm run dev -- --port 3100` inside `web/`.~~
+  It now delegates to the isolated copy-based `serve` stack.
   So any local e2e run wipes the build of a dev server already on :3000.
   - CI is unaffected: it only runs e2e against `E2E_BASE_URL`.
 - **Why not a second `distDir`:** `next-env.d.ts` references
@@ -795,8 +802,9 @@ Ready: yes · Wave 0 · Review: —
 - **Fix:**
   1. Add `-Action serve` to `scripts/ux-audit-stack.ps1`: `up`, then block until
      the process is stopped, then `down`.
-  2. Point `playwright.config.ts`'s frontend and backend `webServer` entries at
-     it, so Playwright owns an isolated copy instead of `web/`.
+  2. Point `playwright.config.ts`'s local `webServer` at it, so Playwright owns
+     an isolated copy instead of `web/` (the combined action starts both the
+     frontend and backend).
   3. Keep `global-setup.ts`'s environment guard.
 - **Acceptance:** with a dev server on :3000, a full local Playwright run leaves
   `web/.next` untouched (compare a file listing before and after) and :3000
@@ -918,7 +926,7 @@ owner can give:
 | Needs | Items |
 |---|---|
 | A production build to *prove* the fix (implementation itself is agent work) | DXA-06, DXA-35 |
-| Another item first | DXA-09 emoji part (needs DXA-24's glyphs), DXA-34 CI port (needs DXA-40) |
+| Another item first | DXA-09 emoji part (needs DXA-24's glyphs) |
 | Owner review of a rendered preview before it ships | DXA-29, DXA-31, DXA-32 (and every item marked `Review: shots`, as a final look) |
 | The owner's sign-off on new Tamil copy, in chat | DXA-37 labels, any Tamil in DXA-26 |
 | Approved design assets; an agent must not invent them | DXA-24 (custom glyphs), DXA-33 |
@@ -970,8 +978,11 @@ What made the first draft insufficient, fixed in this revision:
 ## 11. Environment: rendering signed-in pages safely
 
 - **Never start `next dev` inside `web/` while the owner's :3000 server runs.**
-  It deletes `web/.next` (DXA-40). The same applies to a local `playwright test`
-  until DXA-40 lands.
+  It deletes `web/.next` (DXA-40).
+- **A local `playwright test` is safe** since DXA-40: its `webServer` runs
+  `ux-audit-stack.ps1 -Action serve`, which builds from the copy and tears the
+  stack down when Playwright exits. Do not run it while a manual `up` stack is
+  holding :3100/:8010; `serve` refuses busy ports.
 - **Isolated stack**, run from `D:\sanstro`:
   ```powershell
   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ux-audit-stack.ps1 -Action up
@@ -1062,7 +1073,7 @@ compare pass/fail, not decimals.
 
 | Wave | Items, in order | Why this order |
 |---|---|---|
-| 0: tooling and safety | DXA-40, DXA-11, DXA-36, (DXA-34 CI port after 40) | a safe referee first; MotionConfig unblocks all motion work |
+| 0: tooling and safety | DXA-40, DXA-11, DXA-36 (done 2026-09-17), DXA-34 CI port | a safe referee first; MotionConfig unblocks all motion work |
 | 1: trust | DXA-01, 02, 03, 04, 05, 07, 08, 09 (stripe, echo), 38, 41, 10 | the broken moments users see on every visit |
 | 2: feel | DXA-19 (tokens) → 39 → 12 → 13 → 14 → 15 → 06 → 16 → 17 → 18 → 37 | elevation tokens feed hover and overlays; the touch policy feeds `Pressable`; `ViewSwap` feeds the reading switch |
 | 3: finish | DXA-20, 21, 22, 23, 24 (Lucide part), 25, 26, 09 (emoji), 27, 28 | rhythm and type after the primitives exist; the phone bar after D1 and `Presence` |
