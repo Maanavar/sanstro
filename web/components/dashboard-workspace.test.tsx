@@ -76,6 +76,30 @@ describe("dashboard-workspace — bare /dashboard is always Today (DXA-02, D1)",
   });
 });
 
+describe("dashboard-workspace — onboarding banner waits for an answer (DXA-04)", () => {
+  const gate = source.slice(source.indexOf("// ── Onboarding gate"));
+  const gateBody = gate.slice(0, gate.indexOf("// ── Data trigger effects"));
+
+  it("starts undecided, not 'not done'", () => {
+    expect(source).toMatch(/useState<boolean \| null>\(null\)/);
+    expect(source).not.toMatch(/const \[onboardingDone, setOnboardingDone\] = useState\(false\)/);
+  });
+
+  it("does not read an unfetched vault list as 'no members'", () => {
+    expect(gateBody.length).toBeGreaterThan(0);
+    const readyCheck = gateBody.indexOf("!family.vaultsReady");
+    const emptyCheck = gateBody.indexOf("family.vaults.length === 0");
+    expect(readyCheck).toBeGreaterThan(-1);
+    expect(readyCheck).toBeLessThan(emptyCheck);
+    expect(gateBody).toMatch(/family\.vaultsReady, family\.vaults\]/);
+  });
+
+  it("renders the banner only on a definite false", () => {
+    expect(source).toMatch(/\{onboardingDone === false && session\.hydrated && \(/);
+    expect(source).not.toMatch(/\{!onboardingDone && /);
+  });
+});
+
 describe("dashboard-workspace — family onboarding (T19)", () => {
   it("creates 'Your family' only when the first member is submitted", () => {
     const fn = source.slice(source.indexOf("async function handleAddMember"));

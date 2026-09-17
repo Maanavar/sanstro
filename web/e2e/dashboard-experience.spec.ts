@@ -29,6 +29,7 @@ const MUST_PASS: Record<string, string> = {
   "DXA-01 skeleton bar/card contrast, light (1.05–1.6)": "light",
   "DXA-02 bare /dashboard shows one destination": "load",
   "DXA-03 no empty-state copy while loading (Today)": "load",
+  "DXA-04 no onboarding banner for a set-up account": "load",
   "DXA-11 reduced motion: nav indicator does not move": "reduced",
   "DXA-11 reduced motion: pane appears without a fade": "reduced",
   "DXA-27 phone: no horizontal overflow": "phone",

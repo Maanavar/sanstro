@@ -599,7 +599,10 @@ export function DashboardWorkspace() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPaneKey, activeTool]);
 
-  const [onboardingDone, setOnboardingDone] = useState(false);
+  // null = not decided yet (DXA-04). The banner shows only on a definite
+  // `false`; starting at `false` flashed "A few steps to get started" at every
+  // finished user until the profile and vault lookups had answered.
+  const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
   // Onboarding step 3 — "read your two-minute chart result." Set once the
   // reader has actually been on Family & Charts (where the reading renders)
   // with a calculated chart, not merely once step 1 has a birth profile — the
@@ -941,12 +944,15 @@ export function DashboardWorkspace() {
       setActiveTab("settings");
       setSettingsSubTab("setup");
       setOnboardingDone(false);
+    } else if (!family.vaultsReady) {
+      // An unfetched vault list is "not known yet", not "no members".
+      return;
     } else if (family.vaults.length === 0 || family.vaults.every((v) => v.memberCount === 0)) {
       setOnboardingDone(false);
     } else {
       setOnboardingDone(true);
     }
-  }, [session.hydrated, personal.birthProfileLookupDone, personal.birthProfileId, family.vaults]);
+  }, [session.hydrated, personal.birthProfileLookupDone, personal.birthProfileId, family.vaultsReady, family.vaults]);
 
   // ── Data trigger effects ───────────────────────────────
 
@@ -1711,7 +1717,7 @@ export function DashboardWorkspace() {
         )}
 
         {/* Onboarding banner: shown until profile + one family member added */}
-        {!onboardingDone && session.hydrated && (
+        {onboardingDone === false && session.hydrated && (
           <div className="cd-onboarding">
             <div className="cd-onboarding__card">
               <div className="cd-onboarding__content">

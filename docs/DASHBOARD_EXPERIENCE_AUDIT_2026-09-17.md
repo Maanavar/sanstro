@@ -200,7 +200,8 @@ Ready: yes · Wave 1 · Needs: — · Review: shots
   the empty copy.
 - **Gate:** `DXA-03` never.
 
-#### DXA-04 `[ ]` "A few steps to get started" flashes for finished users
+#### DXA-04 `[x] 2026-09-17` "A few steps to get started" flashes for finished users
+Done: DXA-04 `bare:true today:true` → `bare:false today:false`; Journal and Settings banner also gone. `onboardingDone` is `boolean | null` starting `null`, the gate waits for `family.vaultsReady`, and the banner renders only on `=== false`. Presence animation (step 3 of the fix) waits for DXA-13's primitive. Metrics `web/test-results/dxa04/…/ux-audit`; commit see git log.
 Ready: yes · Wave 1 · Needs: — · Review: —
 - **Problem:** `onboardingDone` starts `false`. The gate effect
   (`dashboard-workspace.tsx:944-955`) treats a not-yet-fetched vault list as "no
