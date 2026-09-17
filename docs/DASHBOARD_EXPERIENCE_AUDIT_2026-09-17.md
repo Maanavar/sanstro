@@ -7,10 +7,11 @@ that a coding agent can pick up any item, implement it, and prove it done.
 
 **Status:**
 - Audit complete; owner decisions D1–D6 taken 2026-09-17 (§0).
-- Wave 0: DXA-40, DXA-11 and DXA-36 are done; DXA-34's Playwright port is
-  open (§13). No Wave 1+ item has started.
-- Measuring tools exist: `web/scripts/ux-audit.mjs` and
-  `scripts/ux-audit-stack.ps1` (§11). Baseline: 36 of 44 gates failing (§12).
+- Wave 0 is complete (DXA-40, DXA-11, DXA-36, DXA-34; see §13). No Wave 1+
+  item has started.
+- Measuring tools exist: `web/scripts/ux-audit.mjs` (CLI),
+  `web/e2e/dashboard-experience.spec.ts` (Playwright, with a regression
+  ratchet) and `scripts/ux-audit-stack.ps1` (§11). Baseline: 36 of 44 gates failing (§12).
 
 **Scope:** `/dashboard/*`, which covers Today, Calendar, Family & Charts, Goals,
 Life Areas, Tools, Understand (Explore), Journal and Settings, plus the shared
@@ -307,7 +308,7 @@ Ready: yes · Wave 1 · Needs: DXA-17 (same component) · Review: shots
 - **Gate:** `DXA-10` stars in text 0; stars through a translucent surface 0.
 
 #### DXA-11 `[x] 2026-09-17` Reduced motion does not reach Framer layout animations
-Done: DXA-11 indicator transforms 3 → 1; pane opacity 1 → 1; metrics `web/e2e/.artifacts/ux-audit-202609171446`; commit uncommitted
+Done: DXA-11 indicator transforms 3 → 1; pane opacity 1 → 1; metrics `web/e2e/.artifacts/ux-audit-202609171446`; commit 929f317
 Ready: yes · Wave 0 · Needs: — · Review: —
 - **Evidence:** ~~with `reducedMotion: "reduce"` the nav indicator still slides
   for ~270 ms.~~ `TabPane` was correctly instant; MotionConfig and the reduced-
@@ -756,13 +757,26 @@ Ready: no · Needs: DXA-24 design
 
 ### P3: guardrails and verification
 
-#### DXA-34 `[~]` Make the audit repeatable
-Ready: partial · Wave 0
+#### DXA-34 `[x] 2026-09-17` Make the audit repeatable
+Done: DXA-34 spec `VISUAL_AUDIT=1` load,tabs,reduced 1 passed (2.9 min), 6 ratcheted gates; unset → skipped; negative check (renamed key) → fails as MISSING; CLI after refactor DXA-11 PASS×2; metrics `web/e2e/.artifacts/ux-audit-wave0-recheck`, `ux-audit-dxa34-cli`; commit see git log (after 929f317)
+Ready: yes · Wave 0
 - **Done 2026-09-17:**
   - `web/scripts/ux-audit.mjs` (every gate in §12);
   - `scripts/ux-audit-stack.ps1` (isolated stack up / down / status).
-- **Remaining:** a CI-safe Playwright port (`web/e2e/dashboard-experience.spec.ts`,
-  skipped unless `VISUAL_AUDIT=1`). Unblocked: DXA-40 landed.
+- ~~**Remaining:** a CI-safe Playwright port (`web/e2e/dashboard-experience.spec.ts`,
+  skipped unless `VISUAL_AUDIT=1`). Blocked on DXA-40, because the Playwright
+  web server is destructive locally.~~ DXA-40 landed; the port is done:
+  - the probes and gates moved to `web/scripts/ux-audit-core.mjs` (types in
+    `ux-audit-core.d.mts`); `ux-audit.mjs` is now a thin CLI over it, so the
+    CLI and the spec cannot drift;
+  - `web/e2e/dashboard-experience.spec.ts` runs the same audit, skipped unless
+    `VISUAL_AUDIT=1` (CI does not set it), with `retries: 0` and a 30 min cap;
+  - it refuses any backend but e2e (`assertE2eBackend`), attaches
+    `metrics.json` and `gates.txt`, and annotates every failing gate as
+    "open gate" without failing on it;
+  - **ratchet:** gates in its `MUST_PASS` map pass today and fail the test if
+    they regress (or go missing while their phase ran). Add an item's gates
+    there when it lands (§15).
 
 #### DXA-35 `[~]` Verify in a production build
 Ready: partial · Wave 4 · Needs: a prod mode for the stack
@@ -780,7 +794,7 @@ Ready: partial · Wave 4 · Needs: a prod mode for the stack
      pass.
 
 #### DXA-36 `[x] 2026-09-17` Hygiene
-Done: DXA-36 hygiene check `}@keyframes` 1 → 0; `nova-cal-reveal` literal `200ms ease-out` → Nova tokens; metrics `web/e2e/.artifacts/ux-audit-202609171446`; commit uncommitted
+Done: DXA-36 hygiene check `}@keyframes` 1 → 0; `nova-cal-reveal` literal `200ms ease-out` → Nova tokens; metrics `web/e2e/.artifacts/ux-audit-202609171446`; commit 929f317
 Ready: yes · Wave 0
 - ~~`dashboard-nova.css:1825`: `}@keyframes nova-cal-reveal` sits on a rule's
   line.~~ It was split into its own rule line.
@@ -788,7 +802,7 @@ Ready: yes · Wave 0
   `--motion-nav` and `--ease-nova` tokens.
 
 #### DXA-40 `[x] 2026-09-17` The local Playwright web server wipes the owner's running dev build
-Done: DXA-40 safety acceptance `web/.next` listing unchanged (320 → 320), owner :3000 stayed available; metrics `web/test-results/`; commit uncommitted
+Done: DXA-40 safety acceptance `web/.next` listing unchanged (320 → 320), owner :3000 stayed available; metrics `web/test-results/`; commit 929f317
 Ready: yes · Wave 0 · Review: —
 - **Problem:** `next dev` runs `clean()` on start, deleting everything in
   `.next` except `cache` (`next/dist/server/dev/hot-reloader-webpack.js`).
@@ -990,6 +1004,16 @@ What made the first draft insufficient, fixed in this revision:
   node web\scripts\ux-audit.mjs --phases load,tabs  # a subset
   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ux-audit-stack.ps1 -Action down
   ```
+- **Same audit as a Playwright test** (DXA-34), with the ratchet:
+  ```powershell
+  Set-Location D:\sanstro\web
+  $env:VISUAL_AUDIT = "1"
+  $env:VISUAL_AUDIT_PHASES = "load,tabs,reduced"   # optional; default all
+  npx playwright test e2e/dashboard-experience.spec.ts --project=chromium
+  ```
+  With no `BASE_URL`, Playwright starts and stops the stack itself (`serve`).
+  If a manual `up` stack is already running, set
+  `$env:BASE_URL = "http://localhost:3100"` so Playwright reuses it instead.
   - `up` copies `web/` to `artifacts\ux-stack\web` (gitignored), links
     `node_modules`/`packages`, starts :8010 (`vinaadi_e2e`) and :3100, and
     refuses to finish unless the proxy reports `environment: e2e`.
@@ -1073,7 +1097,7 @@ compare pass/fail, not decimals.
 
 | Wave | Items, in order | Why this order |
 |---|---|---|
-| 0: tooling and safety | DXA-40, DXA-11, DXA-36 (done 2026-09-17), DXA-34 CI port | a safe referee first; MotionConfig unblocks all motion work |
+| 0: tooling and safety (**done 2026-09-17**) | DXA-40, DXA-11, DXA-36, DXA-34 | a safe referee first; MotionConfig unblocks all motion work |
 | 1: trust | DXA-01, 02, 03, 04, 05, 07, 08, 09 (stripe, echo), 38, 41, 10 | the broken moments users see on every visit |
 | 2: feel | DXA-19 (tokens) → 39 → 12 → 13 → 14 → 15 → 06 → 16 → 17 → 18 → 37 | elevation tokens feed hover and overlays; the touch policy feeds `Pressable`; `ViewSwap` feeds the reading switch |
 | 3: finish | DXA-20, 21, 22, 23, 24 (Lucide part), 25, 26, 09 (emoji), 27, 28 | rhythm and type after the primitives exist; the phone bar after D1 and `Presence` |
@@ -1108,8 +1132,10 @@ compare pass/fail, not decimals.
 
 When an item is done, edit its heading line in §4 in place:
 `[ ]` → `[x] 2026-MM-DD`. Add one line under the header: `Done: <gate> <before>
-→ <after>; metrics <folder>; commit <sha or "uncommitted">`. Partial progress
-uses `[~]` with the blocking reason. Do not delete findings; strike through
+→ <after>; metrics <folder>; commit <sha or "uncommitted">`. Add the item's
+passing gates to `MUST_PASS` in `web/e2e/dashboard-experience.spec.ts` in the
+same change, keyed `<id> <check>` exactly as the gate table prints them. Partial
+progress uses `[~]` with the blocking reason. Do not delete findings; strike through
 text that stopped being true and say why.
 
 ## 16. Evidence index
