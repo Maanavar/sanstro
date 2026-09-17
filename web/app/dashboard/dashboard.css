@@ -758,8 +758,10 @@
   border-color: var(--color-border);
 }
 
+/* Between the card and the bars, as --surface-2 is in skeleton.css: on the
+   card colour itself the four corner cells vanish and the chart loses its shape. */
 .cd-main-content .skel-chart-corner {
-  background: var(--color-surface);
+  background: color-mix(in srgb, var(--color-text-strong) 4%, transparent);
 }
 
 @media (max-width: 900px) {

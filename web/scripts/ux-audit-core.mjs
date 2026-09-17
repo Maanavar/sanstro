@@ -278,9 +278,18 @@ async function paneChecks(page) {
     // Page-sky stars that sit inside a text line, or show through a translucent surface.
     const alphaOf = (c) => {
       const m = c.match(/rgba?\(([^)]+)\)/);
-      if (!m) return c === "transparent" ? 0 : 1;
-      const parts = m[1].split(/[ ,/]+/).filter(Boolean);
-      return parts.length > 3 ? parseFloat(parts[3]) : 1;
+      if (m) {
+        const parts = m[1].split(/[ ,/]+/).filter(Boolean);
+        return parts.length > 3 ? parseFloat(parts[3]) : 1;
+      }
+      // color-mix() with transparency serializes as color(srgb r g b / a); read
+      // as opaque, a translucent Nova surface would hide the stars behind it.
+      const srgb = c.match(/^color\(srgb\s+([^)]+)\)$/);
+      if (srgb) {
+        const parts = srgb[1].split(/[ /]+/).filter(Boolean);
+        return parts.length > 3 ? parseFloat(parts[3]) : 1;
+      }
+      return c === "transparent" ? 0 : 1;
     };
     let starsInText = 0;
     let starsThroughSurface = 0;

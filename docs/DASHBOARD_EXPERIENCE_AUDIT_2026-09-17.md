@@ -119,7 +119,7 @@ It also carries a **Gate** line: the `ux-audit` check that proves it (§12).
 ### P0: trust and continuity
 
 #### DXA-01 `[x] 2026-09-17` Loading placeholders flash the Classic cream palette on the dark theme
-Done: DXA-01 skeleton bar/card contrast, dark 9.95 → 1.22 PASS; light 1.30 → 1.18 PASS; metrics `web/e2e/.artifacts/ux-audit-202609171621`; commit uncommitted.
+Done: DXA-01 skeleton bar/card contrast, dark 9.95 → 1.22 PASS; light 1.30 → 1.18 PASS; metrics `web/e2e/.artifacts/ux-audit-202609171621`; commit 8fa8917 (chart-corner tint and probe follow-up in the next commit).
 Ready: yes · Wave 1 · Needs: — · Review: shots
 - **Problem:** `web/app/dashboard/dashboard.css:726-758` forces
   `.cd-main-content .skel { background: var(--panel-tan, #D4C8AE) }` and a
@@ -307,6 +307,10 @@ Ready: yes · Wave 1 · Needs: DXA-17 (same component) · Review: shots
      `transition: opacity 600ms` never fires
      (`celestial-ambient-nova.tsx:172`).
 - **Gate:** `DXA-10` stars in text 0; stars through a translucent surface 0.
+- **Re-baseline 2026-09-17:** the probe used to read `color(srgb … / a)` (how
+  Chromium serializes `color-mix()` with transparency) as opaque, so it
+  undercounted. With that fixed, "through a translucent surface" reads 12 (was
+  6) and "in text" 2. Compare against these, not the §12 table.
 
 #### DXA-11 `[x] 2026-09-17` Reduced motion does not reach Framer layout animations
 Done: DXA-11 indicator transforms 3 → 1; pane opacity 1 → 1; metrics `web/e2e/.artifacts/ux-audit-202609171446`; commit 929f317
