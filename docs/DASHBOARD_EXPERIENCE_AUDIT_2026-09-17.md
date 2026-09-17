@@ -220,7 +220,7 @@ Ready: yes · Wave 1 · Needs: — · Review: —
 #### DXA-05 `[x] 2026-09-18` Layout instability on load
 Done: CLS Today 0.77 → **0.0058**, Understand 0.82 → **0.0031**, top-bar /
 sub-bar shifts 2 → **0**, pending hero 592 → 592 (**+0px**); metrics
-`web/e2e/.artifacts/ux-audit-202609171942/`; commit uncommitted.
+`web/e2e/.artifacts/ux-audit-202609171942/`; commit `7824022`.
 Ready: yes · Wave 1 · Needs: — · Review: shots
 - **Evidence:** over two dev runs: CLS **0.77–0.92** (Today) and **0.82–1.00**
   (Understand); document height changed 7–10 times; 2–3 shifts inside the top
