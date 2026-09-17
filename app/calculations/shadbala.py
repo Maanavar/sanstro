@@ -36,11 +36,17 @@ from app.calculations.astro import (
     rasi_from_degree,
 )
 from app.calculations.chart_strength import (
-    _NATURAL_ENEMIES,
-    _NATURAL_FRIENDS,
     MOOLATRIKONA_ZONE,
     OWN_SIGN_RASI,
+    REL_ENEMY,
+    REL_FRIEND,
+    REL_GREAT_ENEMY,
+    REL_GREAT_FRIEND,
+    REL_NEUTRAL,
     SIGN_LORD,
+    compound_relationship,
+    natural_relationship,
+    temporary_relationship,
 )
 from app.calculations.divisional_charts import (
     compute_d2,
@@ -183,8 +189,10 @@ def _angular_sep(a: float, b: float) -> float:
 #   natural enemy  + temp enemy     = great enemy (Adhishatru)
 # ---------------------------------------------------------------------------
 
+# The relationship itself is defined once, in chart_strength (engine audit G1),
+# and shared with the production dignity score.
 _GREAT_FRIEND, _FRIEND, _NEUTRAL, _ENEMY, _GREAT_ENEMY = (
-    "GREAT_FRIEND", "FRIEND", "NEUTRAL", "ENEMY", "GREAT_ENEMY",
+    REL_GREAT_FRIEND, REL_FRIEND, REL_NEUTRAL, REL_ENEMY, REL_GREAT_ENEMY,
 )
 
 # Saptavargaja Virupa per compound-relationship grade (B.V. Raman).
@@ -199,33 +207,9 @@ _SAPTAVARGAJA_POINTS: dict[str, float] = {
 }
 
 
-def _natural_relation(planet: str, other: str) -> str:
-    if other in _NATURAL_FRIENDS.get(planet, frozenset()):
-        return _FRIEND
-    if other in _NATURAL_ENEMIES.get(planet, frozenset()):
-        return _ENEMY
-    return _NEUTRAL
-
-
-def _temporal_relation(planet_rasi: int, other_rasi: int) -> str:
-    house = house_from_reference(planet_rasi, other_rasi)
-    return _FRIEND if house in {2, 3, 4, 10, 11, 12} else _ENEMY
-
-
-def _compound_relation(planet: str, other: str, rasi_map: dict[str, int]) -> str:
-    nat = _natural_relation(planet, other)
-    temp = _temporal_relation(rasi_map[planet], rasi_map[other])
-    if nat == _FRIEND and temp == _FRIEND:
-        return _GREAT_FRIEND
-    if nat == _FRIEND and temp == _ENEMY:
-        return _NEUTRAL
-    if nat == _NEUTRAL and temp == _FRIEND:
-        return _FRIEND
-    if nat == _NEUTRAL and temp == _ENEMY:
-        return _ENEMY
-    if nat == _ENEMY and temp == _FRIEND:
-        return _NEUTRAL
-    return _GREAT_ENEMY  # natural enemy + temporal enemy
+_natural_relation = natural_relationship
+_temporal_relation = temporary_relationship
+_compound_relation = compound_relationship
 
 
 # ---------------------------------------------------------------------------

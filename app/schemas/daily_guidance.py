@@ -354,6 +354,9 @@ class ActivityTimingData(BaseModel):
     )
     date_result: ActivityTimingDayResult | None = Field(default=None, alias="dateResult")
     daily_location: ActivityTimingLocation | None = Field(default=None, alias="dailyLocation")
+    # A wedding scan for a couple: the partner's chart. Every score above is then
+    # the lower of the two charts' and every reason names whose Tara it read.
+    partner_chart_id: UUID | None = Field(default=None, alias="partnerChartId")
 
     model_config = ConfigDict(populate_by_name=True)
 

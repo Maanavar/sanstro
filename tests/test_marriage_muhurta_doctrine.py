@@ -181,6 +181,27 @@ def test_jupiter_gochara_adverse_houses_from_the_moon() -> None:
     assert mmr.MARRIAGE_JUPITER_ADVERSE_HOUSES_FROM_MOON == {3, 4, 6, 8, 10, 12}
 
 
+def test_the_bride_age_half_of_p79_is_refused_and_never_read() -> None:
+    """p.79's "marry in the 5th/6th/7th year of the bride" prescribes child
+    marriage. The constant stays, so the extraction is faithful to the page, but
+    nothing in the application may read it. It was once filed as "blocked, needs
+    an age", and a later reader would reasonably unblock it by subtracting the
+    bride's saved birth date. This test is the reason that attempt fails.
+    """
+    from pathlib import Path
+
+    assert mmr.MARRIAGE_JUPITER_FAVOURABLE_BRIDE_AGE_YEARS == (5, 6, 7)
+    app_dir = Path(__file__).resolve().parents[1] / "app"
+    readers = [
+        path.relative_to(app_dir).as_posix()
+        for path in app_dir.rglob("*.py")
+        if "MARRIAGE_JUPITER_FAVOURABLE_BRIDE_AGE_YEARS" in path.read_text(encoding="utf-8")
+    ]
+    assert readers == ["data/marriage_muhurta_rules.py"], (
+        f"the refused bride-age rule is referenced from {readers}"
+    )
+
+
 # ── negative guards: what the chapter does NOT say ─────────────────────────
 
 def test_pada_exclusions_stay_empty() -> None:

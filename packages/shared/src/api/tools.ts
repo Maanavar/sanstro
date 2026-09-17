@@ -204,6 +204,14 @@ export interface MuhurtaPayload {
   paksha?: "SHUKLA" | "KRISHNA";
   /** Return the selected day's veto factors instead of silently omitting it. */
   includeExcluded?: boolean;
+  /**
+   * A second saved chart owned by the same user, for a couple. Requires
+   * `chartId`. Scored exactly as the public tool's `partner`: the weaker side
+   * governs each personal check and a veto from either removes the day.
+   */
+  partnerChartId?: string;
+  /** What `chartId` is. The partner takes the complement; not sent separately. */
+  subjectRole?: "BRIDE" | "GROOM" | "PERSON";
 }
 
 export function getMuhurta(
@@ -220,6 +228,8 @@ export function getMuhurta(
   if (params.place !== undefined) query.place = params.place;
   if (params.paksha !== undefined) query.paksha = params.paksha;
   if (params.includeExcluded) query.includeExcluded = "true";
+  if (params.partnerChartId) query.partnerChartId = params.partnerChartId;
+  if (params.subjectRole) query.subjectRole = params.subjectRole;
   return getApiClient().get(
     params.chartId ? `/charts/${encodeURIComponent(params.chartId)}/muhurta` : "/muhurta",
     query,

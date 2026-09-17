@@ -1732,8 +1732,11 @@ def marriage_jupiter_gochara_factor(
     the answer.
 
     The chapter's other half — "marry in the 5th/6th/7th year of the bride when
-    Jupiter is well-placed" — is deliberately NOT wired. It is a rule about the
-    bride's age, and no muhurta request carries an age.
+    Jupiter is well-placed" — is PERMANENTLY REFUSED, not pending. It prescribes
+    child marriage. The age was always derivable from the bride's saved birth
+    date, so "no request carries an age" was never the real reason it stayed
+    unwired. See the refused bride-age constant in `marriage_muhurta_rules`,
+    which a guard test forbids anything under app/ from reading.
     """
     if activity.upper() != "MARRIAGE" or subject.role != "BRIDE":
         return None

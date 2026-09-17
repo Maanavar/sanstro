@@ -38,6 +38,7 @@ the porutham it layers over.
 from __future__ import annotations
 
 from datetime import date
+from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
@@ -50,7 +51,7 @@ from app.core.auth import get_current_user
 from app.core.chart_access import assert_chart_owner as _assert_chart_owner
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.muhurtham_naal import context_from_dict, item_from_match
+from app.schemas.muhurtham_naal import context_from_dict
 from app.schemas.numerology import (
     BabyNamesResponse,
     DateNumerologyOut,
@@ -462,32 +463,45 @@ def get_marriage_dates(
     chart_id: UUID,
     year: int = Query(default=2027, description="Calendar year of the muhurtham sheet"),
     recommended_only: bool = Query(default=False, alias="recommendedOnly"),
+    partner_chart_id: UUID | None = Query(
+        default=None,
+        alias="partnerChartId",
+        description="The partner's saved chart. Both are read and the weaker side governs.",
+    ),
+    subject_role: Literal["BRIDE", "GROOM", "PERSON"] | None = Query(default=None, alias="subjectRole"),
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> MarriageDatesResponse:
     """Curated muhurtham naals for a year, re-ranked by numerology (NUM-43).
 
-    Same parameters as ``/charts/{chart_id}/muhurtham-naals``. The almanac sheet
-    and its Tara Bala / chandrashtama verdicts are authoritative: numerology
-    reorders within the recommended set and within the rest, never across them.
+    Same parameters as ``/charts/{chart_id}/muhurtham-naals``, the couple
+    parameters included. The almanac sheet and its Tara Bala / chandrashtama
+    verdicts are authoritative: numerology reorders within the recommended set
+    and within the rest, never across them. For a couple both of those layers
+    are the couple's, and each partner's numbers are read against their own chart.
     """
     _authorize(session, chart_id, current_user)
+    if partner_chart_id is not None and partner_chart_id != chart_id:
+        # A partner id is a second way in — its favourable numbers and personal
+        # day surface in the readings — so it is guarded exactly as the first.
+        _assert_chart_owner(session, partner_chart_id, current_user)
     result = marriage_dates_for_chart(
-        chart_id, year, session, recommended_only=recommended_only
+        chart_id, year, session,
+        recommended_only=recommended_only,
+        partner_chart_id=partner_chart_id,
+        subject_role=subject_role if subject_role in ("BRIDE", "GROOM") else None,
     )
     return MarriageDatesResponse(
         year=result.year,
         epoch=result.epoch.value,
         favourableNumbers=list(result.favourable_numbers),
+        partnerChartId=None if partner_chart_id is None else str(partner_chart_id),
+        partnerFavourableNumbers=(
+            None if result.partner_favourable_numbers is None
+            else list(result.partner_favourable_numbers)
+        ),
         context=context_from_dict(result.chart_context),
-        matches=[
-            NumerologyNaalMatchOut(
-                match=item_from_match(row.match),
-                numerology=DateNumerologyOut.from_numerology(row.numerology),
-                adjustedScore=row.adjusted_score,
-            )
-            for row in result.matches
-        ],
+        matches=[NumerologyNaalMatchOut.from_layered(row) for row in result.matches],
         calculationVersion=result.calculation_version,
     )
 

@@ -1288,6 +1288,7 @@ def _build_planet_sections(
     # House of every plotted body, so a planet's star-lord note can say where
     # that lord actually sits instead of only naming it.
     lord_house_by_graha = {p.graha: p.house_from_lagna for p in planets}
+    rasi_by_graha = {p.graha: p.rasi for p in planets}
     longitudes = {p.graha: p.absolute_longitude for p in planets}
     # Graha yuddham. Detected by the same canonical function the scorer uses, so
     # the -15 the reader can see in the breakdown and the sentence explaining it
@@ -1311,7 +1312,9 @@ def _build_planet_sections(
     items: list[ChartExplanationPlanet] = []
     for planet in planets:
         dignity = _dignity_label(planet)
-        dignity_score = _dignity_score(planet.graha, planet.rasi, planet.absolute_longitude)
+        # Same compound (G1) grading the scorer uses, so the label and the
+        # number beside it cannot disagree.
+        dignity_score = _dignity_score(planet.graha, planet.rasi, planet.absolute_longitude, rasi_by_graha)
         fn = functional.get(planet.graha, "NEUTRAL")
         contacts = _planet_transit_contacts(planet, transit_bodies)
         transit_contact, hidden_contacts = _split_transit_contact(contacts)

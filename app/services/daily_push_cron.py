@@ -101,8 +101,12 @@ def _score_label(score: int) -> str:
     return "RESTORATIVE"
 
 
-def _format_clock_label(value: datetime | time | None) -> str:
-    """`| object` used to sit in this union, which collapsed it to plain
+def _clock_hm(value: datetime | time | None) -> str:
+    """Raw 24h "HH:MM" for the notification builder, which formats it per
+    language (Tamil period-words, English am/pm). Formatting here used to bake
+    "1:30 pm" into the Tamil text too.
+
+    `| object` used to sit in this union, which collapsed it to plain
     ``object`` and hid `.hour`/`.strftime` from the checker. Every caller
     passes a datetime; the fallbacks below stay as belt-and-braces for
     values that survive a cache round-trip."""
@@ -120,9 +124,7 @@ def _format_clock_label(value: datetime | time | None) -> str:
         except Exception:
             return str(value)
 
-    suffix = "am" if hour < 12 else "pm"
-    hour_12 = hour % 12 or 12
-    return f"{hour_12}:{minute:02d} {suffix}"
+    return f"{hour:02d}:{minute:02d}"
 
 
 def _latest_active_profile(session: Session, user_id: UUID) -> BirthProfile | None:
@@ -253,11 +255,11 @@ def _dispatch_for_user(
             # after sunrise is the defect this whole change is about.
             fallback_star = panchang.dominant_nakshatra_number or panchang.nakshatra_number
             nalla_slot = best_gowri_slot(panchang.nalla_neram)
-            nalla_start = _format_clock_label(nalla_slot.start) if nalla_slot else "-"
-            nalla_end = _format_clock_label(nalla_slot.end) if nalla_slot else "-"
+            nalla_start = _clock_hm(nalla_slot.start) if nalla_slot else "-"
+            nalla_end = _clock_hm(nalla_slot.end) if nalla_slot else "-"
             nalla_name = getattr(nalla_slot, "name", None) if nalla_slot else None
-            rahu_start = _format_clock_label(panchang.rahu_kalam.start)
-            rahu_end = _format_clock_label(panchang.rahu_kalam.end)
+            rahu_start = _clock_hm(panchang.rahu_kalam.start)
+            rahu_end = _clock_hm(panchang.rahu_kalam.end)
 
             # Use the full daily guidance engine for an accurate score and rich content.
             # get_daily_guidance() is cache-backed (DailyScore table) so this is cheap

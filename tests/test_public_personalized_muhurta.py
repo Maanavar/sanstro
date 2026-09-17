@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 
 def test_personalized_muhurta_uses_a_transient_birth_chart_and_never_persists(client):
     response = client.post(
@@ -96,6 +98,22 @@ def _wedding_body(**overrides):
     }
     body.update(overrides)
     return body
+
+
+@pytest.mark.parametrize("event_type", ["JOB_START", "NAMING_CEREMONY"])
+def test_a_partner_is_refused_for_any_rite_but_a_wedding(client, event_type):
+    """Ruling 2026-09-15: only a marriage is elected on two charts.
+
+    The Tools form only sends `partner` for a wedding, and until now that was
+    the whole of the enforcement — any other client could have had a naming
+    ceremony scored "weaker side governs" with no ruling behind it.
+    """
+    response = client.post(
+        "/api/v1/public/muhurta/personalized",
+        json=_wedding_body(partner=_GROOM, eventType=event_type, subjectRole="PERSON"),
+    )
+    assert response.status_code == 422, response.text
+    assert "wedding" in response.json()["detail"]
 
 
 def test_a_wedding_can_be_checked_against_both_charts(client):

@@ -274,6 +274,10 @@ export interface BirthProfileResponse {
   birthTimeConfidenceMinutes: number;
   calculationStatus: "pending" | "completed" | "failed";
   warnings: string[];
+  /** The profile's saved chart. Sent by GET /birth-profiles; null until calculated. */
+  chartId?: string | null;
+  /** "male" | "female" when given; used to preselect a wedding role, never to score. */
+  genderForTraditionalRules?: string | null;
 }
 
 export interface BirthProfileSnapshot {
@@ -1420,6 +1424,8 @@ export type ActivityTimingData = {
   dateResult: ActivityTimingDayResult | null;
   /** Panchangam location used to rank this month's dates. */
   dailyLocation?: { latitude: number; longitude: number; timezone: string; source: "current" | "birth" } | null;
+  /** A wedding scan for a couple. Scores are then the lower of the two charts'. */
+  partnerChartId?: string | null;
 };
 
 export type DashaStoryData = {

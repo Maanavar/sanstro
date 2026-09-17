@@ -56,7 +56,7 @@ from app.services._chart_planets import (
     _aspect_counts,
     _compute_nakshatra_analysis,
     _compute_vargas,
-    _is_daytime_birth,
+    _is_daytime_birth_for_profile,
     _mandhi_longitude,
     _mandhi_planet_position,
     _paksha_is_shukla,
@@ -330,6 +330,7 @@ def _apply_holistic_strength_synthesis(
         benefic_planets=frozenset(benefics),
         d9_rasi_map=d9_map,
         d9_lagna_rasi=d9_lagna_rasi,
+        planet_longitude={p.graha: float(p.absolute_longitude) for p in natal},
     )
     for p in natal:
         terms = synthesis.get(p.graha)
@@ -597,7 +598,7 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
     sun_degree = snapshot.bodies["SUN"].absolute_longitude
     moon_degree = snapshot.bodies["MOON"].absolute_longitude
     birth_time_local = _value(profile, "birth_time_local")
-    is_daytime = _is_daytime_birth(birth_time_local)
+    is_daytime = _is_daytime_birth_for_profile(profile)
     paksha_is_shukla = _paksha_is_shukla(moon_degree, sun_degree)
     snapshot_rasi_map = {body.graha: body.rasi for body in snapshot.bodies.values() if body.graha in _NATAL_GRAHAS}
     # Cazimi (heart of the Sun) is empowered, not burnt — exclude it from the
@@ -630,6 +631,7 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
                 benefic_aspect_count=benefic_aspects,
                 malefic_aspect_count=malefic_aspects,
                 planetary_wars=planetary_wars,
+                planet_rasi_map=snapshot_rasi_map,
             )
         )
 
@@ -770,7 +772,7 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
 
     sun_degree = next(planet.absolute_longitude for planet in planet_positions if planet.graha == "SUN")
     moon_degree = next(planet.absolute_longitude for planet in planet_positions if planet.graha == "MOON")
-    is_daytime = _is_daytime_birth(_value(birth_profile, "birth_time_local"))
+    is_daytime = _is_daytime_birth_for_profile(birth_profile)
     paksha_is_shukla = _paksha_is_shukla(moon_degree, sun_degree)
     planet_rasi_map = {p.graha: p.rasi for p in planet_positions if p.graha in _NATAL_GRAHAS}
     planetary_wars = detect_planetary_wars({p.graha: p.absolute_longitude for p in planet_positions})
@@ -812,6 +814,7 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
             benefic_aspect_count=benefic_aspects,
             malefic_aspect_count=malefic_aspects,
             planetary_wars=planetary_wars,
+            planet_rasi_map=planet_rasi_map,
         )
         planet.score_terms = [
             PlanetScoreTerm(
@@ -835,6 +838,7 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
             benefic_aspect_count=benefic_aspects,
             malefic_aspect_count=malefic_aspects,
             speed_ratio=speed_ratio,
+            planet_rasi_map=planet_rasi_map,
         )
 
     # Holistic Strength Synthesis — shared across both build paths (audit C1).

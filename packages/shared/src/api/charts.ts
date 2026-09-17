@@ -3,7 +3,17 @@ import type {
   ChartCalculateResponseData,
   ChartSummaryData,
   BirthProfileCreateResponseData,
+  BirthProfileResponse,
 } from "../types";
+
+/** GET /birth-profiles (app/api/birth_profiles.py) — the signed-in user's active
+ *  profiles, newest first, each with its saved `chartId`. */
+export function listBirthProfiles(): Promise<{ success: boolean; data: BirthProfileResponse[] }> {
+  return getApiClient().get("/birth-profiles") as Promise<{
+    success: boolean;
+    data: BirthProfileResponse[];
+  }>;
+}
 
 export interface CreateBirthProfilePayload {
   displayName: string;

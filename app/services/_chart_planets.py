@@ -1,7 +1,9 @@
 """Pure planet-position calculation helpers — no DB, no HTTP, no service imports."""
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import UTC, date, datetime, time, timedelta
+from functools import lru_cache
 
 from app.calculations.aspects import aspects_house
 from app.calculations.astro import (
@@ -150,10 +152,75 @@ def _aspect_counts(
     return benefic_count, malefic_count
 
 
-def _is_daytime_birth(birth_time_local: time | None) -> bool:
+@lru_cache(maxsize=4096)
+def _sunrise_sunset_jd(
+    birth_date: date,
+    birth_timezone: str,
+    birth_latitude: float,
+    birth_longitude: float,
+) -> tuple[float, float] | None:
+    """True (Hindu, disc-centre) sunrise and sunset JDs for the birth day and place.
+
+    Memoised on scalars: a pure function of date and place, and every chart load
+    asks for it (see _chart_build._birth_panchangam_signature_items for why a
+    per-load recomputation is not free). ``None`` when the ephemeris has no
+    rise/set for that day (polar latitudes).
+    """
+    try:
+        tz = resolve_timezone(birth_timezone)
+        local_midnight = datetime.combine(birth_date, datetime.min.time(), tzinfo=tz)
+        jd_start = utc_datetime_to_julian_day(local_midnight.astimezone(UTC))
+        sunrise_jd = calculate_rise_transit_jd(jd_start, birth_latitude, birth_longitude, rise=True)
+        sunset_jd = calculate_rise_transit_jd(jd_start, birth_latitude, birth_longitude, rise=False)
+    except Exception:  # noqa: BLE001 — no rise/set resolvable; caller falls back
+        return None
+    return sunrise_jd, sunset_jd
+
+
+def _is_daytime_birth(
+    birth_time_local: time | None,
+    *,
+    birth_date: date | None = None,
+    birth_latitude: float | None = None,
+    birth_longitude: float | None = None,
+    birth_timezone: str | None = None,
+) -> bool:
+    """Was the Sun above the horizon at birth? Feeds Kala Bala's nathonnatha half.
+
+    Engine audit G3: this used to be the clock (06:00-18:00), while Mandhi — in
+    the same chart — used true sunrise, so a dawn, dusk or high-latitude birth
+    could be "day" to one and "night" to the other. With the birth date and place
+    it now uses the same true sunrise/sunset as Mandhi. The clock remains only as
+    the fallback when the place is unknown or the ephemeris has no rise/set.
+    An unknown birth time stays a day birth, as before.
+    """
     if birth_time_local is None:
         return True
+    if (
+        birth_date is not None
+        and birth_latitude is not None
+        and birth_longitude is not None
+        and birth_timezone
+    ):
+        bounds = _sunrise_sunset_jd(birth_date, str(birth_timezone), float(birth_latitude), float(birth_longitude))
+        if bounds is not None:
+            tz = resolve_timezone(str(birth_timezone))
+            birth_jd = utc_datetime_to_julian_day(
+                datetime.combine(birth_date, birth_time_local, tzinfo=tz).astimezone(UTC)
+            )
+            return bounds[0] <= birth_jd < bounds[1]
     return 6 <= birth_time_local.hour < 18
+
+
+def _is_daytime_birth_for_profile(profile: object) -> bool:
+    """``_is_daytime_birth`` read off a birth profile (ORM row or namespace)."""
+    return _is_daytime_birth(
+        getattr(profile, "birth_time_local", None),
+        birth_date=getattr(profile, "birth_date_local", None),
+        birth_latitude=getattr(profile, "birth_latitude", None),
+        birth_longitude=getattr(profile, "birth_longitude", None),
+        birth_timezone=getattr(profile, "birth_timezone", None),
+    )
 
 
 def _paksha_is_shukla(moon_longitude: float, sun_longitude: float) -> bool:
@@ -254,6 +321,7 @@ def _planet_position_from_snapshot(
     benefic_aspect_count: int = 0,
     malefic_aspect_count: int = 0,
     planetary_wars: dict[str, str] | None = None,
+    planet_rasi_map: Mapping[str, int] | None = None,
 ) -> PlanetPosition:
     rasi_name = RASI_NAMES[body.rasi]  # type: ignore[attr-defined]
     nakshatra_number = nakshatra_from_degree(body.absolute_longitude)  # type: ignore[attr-defined]
@@ -275,6 +343,7 @@ def _planet_position_from_snapshot(
         benefic_aspect_count=benefic_aspect_count,
         malefic_aspect_count=malefic_aspect_count,
         planetary_wars=planetary_wars,
+        planet_rasi_map=planet_rasi_map,
     )
     return PlanetPosition(
         graha=body.graha,  # type: ignore[attr-defined]
@@ -313,6 +382,7 @@ def _planet_position_from_snapshot(
             benefic_aspect_count=benefic_aspect_count,
             malefic_aspect_count=malefic_aspect_count,
             speed_ratio=speed_ratio,
+            planet_rasi_map=planet_rasi_map,
         ),
         score_terms=[
             PlanetScoreTerm(

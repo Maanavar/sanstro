@@ -1389,7 +1389,14 @@ def _score_area(
         varga_map = vargas[varga_name]
         varga_lord_rasi = varga_map.get(house_lord)
         if varga_lord_rasi is not None:
-            varga_house = house_from_reference(lagna_rasi, varga_lord_rasi)
+            # G4 (engine audit): a divisional chart is read from its OWN lagna.
+            # Every varga map carries "LAGNA" (both chart build paths add the
+            # lagna longitude before _compute_vargas); a stale snapshot without
+            # it falls back to the D1 lagna, the pre-2026-09-15 frame. Lord only,
+            # deliberately: the area karaka's strength is already scored in L2
+            # (karaka_strength below), so a karaka term here would count it twice.
+            varga_lagna_rasi = varga_map.get("LAGNA", lagna_rasi)
+            varga_house = house_from_reference(varga_lagna_rasi, varga_lord_rasi)
             varga_confirmation = 10 if varga_house in {1, 4, 5, 7, 9, 10, 11} else -5
 
     # W09: ashtakavarga deltas

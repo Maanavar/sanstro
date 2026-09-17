@@ -39,7 +39,7 @@ fortune-teller, and it costs nothing.
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -75,7 +75,12 @@ from app.calculations.numerology_correction import RankedVariant
 from app.calculations.numerology_timing import DateNumerology, PersonalCycle
 from app.data.nakshatra_pada_akshara import is_production_ready
 from app.schemas.muhurta import MuhurtaSlot
-from app.schemas.muhurtham_naal import MuhurthamNaalMatchContext, MuhurthamNaalMatchItem
+from app.schemas.muhurtham_naal import (
+    BiText,
+    MuhurthamNaalMatchContext,
+    MuhurthamNaalMatchItem,
+    item_from_match,
+)
 from app.schemas.relationships import VALID_COMPATIBILITY_CONTEXTS, DirectPoruthamData
 from app.services.numerology_compatibility_service import ChartCompatibility
 from app.services.numerology_content import compound_citation, compound_reading
@@ -1230,12 +1235,43 @@ class NumerologyCompatibilityResponse(BaseModel):
         return self
 
 
-class NumerologyNaalMatchOut(BaseModel):
-    match: MuhurthamNaalMatchItem
+class NumerologyDateReadingOut(BaseModel):
+    """One chart's numerology for one naal. `who` is null for a single chart."""
+
+    who: BiText | None = None
     numerology: DateNumerologyOut
-    adjusted_score: float = Field(alias="adjustedScore")
+    governs: bool
 
     model_config = ConfigDict(populate_by_name=True)
+
+
+class NumerologyNaalMatchOut(BaseModel):
+    match: MuhurthamNaalMatchItem
+    #: The governing reading — the one whose adjustment is in ``adjustedScore``.
+    numerology: DateNumerologyOut
+    adjusted_score: float = Field(alias="adjustedScore")
+    #: One per chart, in request order. A couple's two are both reported and the
+    #: lower adjustment is priced (R1), so exactly one governs.
+    readings: list[NumerologyDateReadingOut] = Field(default_factory=list)
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    @classmethod
+    def from_layered(cls, row: Any) -> NumerologyNaalMatchOut:
+        """From ``numerology_timing_service.NumerologyNaalMatch`` (duck-typed)."""
+        return cls(
+            match=item_from_match(row.match),
+            numerology=DateNumerologyOut.from_numerology(row.numerology),
+            adjustedScore=row.adjusted_score,
+            readings=[
+                NumerologyDateReadingOut(
+                    who=None if reading.who is None else BiText(ta=reading.who.ta, en=reading.who.en),
+                    numerology=DateNumerologyOut.from_numerology(reading.numerology),
+                    governs=reading.governs,
+                )
+                for reading in row.readings
+            ],
+        )
 
 
 class MarriageDatesResponse(BaseModel):
@@ -1248,6 +1284,9 @@ class MarriageDatesResponse(BaseModel):
     year: int
     epoch: str
     favourable_numbers: list[int] = Field(alias="favourableNumbers")
+    #: Couple mode only: the partner's saved chart and its own ranking.
+    partner_chart_id: str | None = Field(alias="partnerChartId", default=None)
+    partner_favourable_numbers: list[int] | None = Field(alias="partnerFavourableNumbers", default=None)
     #: Chart context from the muhurtham-naal engine, passed through unchanged.
     context: MuhurthamNaalMatchContext
     matches: list[NumerologyNaalMatchOut]

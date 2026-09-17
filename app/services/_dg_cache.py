@@ -74,7 +74,15 @@ from app.schemas.dasha import ResponseMeta
 # and `chandrashtamaRasi` are all persisted and all move, so warm rows must
 # recompute. Paired with panchangam cache v45 → v46, which reshapes the windows
 # this reads; a row written under v14 pairs the old badge with the new list.
-DAILY_SCORE_ENGINE_VERSION = "2026-09-10-v15"
+# v16 (2026-09-15): engine audit depth tranche G1-G4
+# (docs/THIRUKANITHAM_ENGINE_AUDIT_2026-07-23.md, Part F). Natal strength now
+# grades dignity by compound (permanent + temporary) friendship (G1), grades a
+# same-sign yuti by degree orb (G2), and takes day/night from true sunrise at
+# the birth place instead of 06:00-18:00 (G3); the life-area varga layer reads
+# each divisional chart from its own lagna (G4). Every one of these moves the
+# dasha-lord strengths and area scores a persisted daily row carries, so warm
+# rows must recompute.
+DAILY_SCORE_ENGINE_VERSION = "2026-09-15-v16"
 
 
 def _cache_version(calculation_version: str) -> str:

@@ -212,6 +212,19 @@ _ACTIVITY_HOUSES: dict[str, list[int]] = {
 # read from the same list.
 MUHURTA_ACTIVITIES: frozenset[str] = frozenset(_ACTIVITY_LORDS) | ENGINE_SOURCED_ACTIVITIES
 
+# The one rite elected on two charts. Ruling of 2026-09-15 (delegated; see
+# docs/MUHURTA_COUPLE_OPEN_ITEMS_2026-09-15.md §4): a marriage joins two janma
+# stars, which is why porutham exists for it and for no other samskara. Every
+# other act is elected on the star of the one it is for — the child for
+# Namakarana, Annaprasana and Karnavedha, the yajamana for a purchase or a
+# house. That was enforced only by the clients until now; a partner sent with
+# any other activity would have been scored under R1 without a ruling behind it.
+COUPLE_ACTIVITY = "MARRIAGE"
+COUPLE_ACTIVITY_ONLY_DETAIL = (
+    "A second chart is read only for a wedding. Every other rite is chosen on the "
+    "birth star of the one it is for — send that person's chart alone."
+)
+
 # Client keys that are not the backend activity name.
 #
 # `baby_naming` has been on the mobile picker since it shipped and has never
@@ -739,6 +752,38 @@ def _facts_from_chart_data(
     return _ChartFacts(subject=subject, lagna_rasi=lagna_rasi, maha_lord=maha_lord, antar_lord=antar_lord)
 
 
+def _facts_from_persisted_chart(
+    session: Session,
+    chart_id: UUID,
+    tz_name: str,
+    *,
+    role: str | None,
+    label: tuple[str | None, str | None],
+) -> _ChartFacts:
+    """A partner's saved chart, read into the same shape as an in-memory one.
+
+    Goes through `_facts_from_chart_data` rather than a second copy of the saved-
+    chart branch, so a partner is read exactly as the public tool reads a partner.
+    The caller has already checked ownership.
+    """
+    chart_row = session.get(Chart, chart_id)
+    if chart_row is None:
+        raise HTTPException(status_code=404, detail="Chart not found")
+    bp = session.get(BirthProfile, chart_row.birth_profile_id)
+    if bp is None:
+        raise HTTPException(status_code=404, detail="Birth profile not found")
+    who = (label[0] or "the second chart").capitalize()
+    # Required as the public tool requires it of a partner: without a time the
+    # Moon's star — the whole of Tara Bala and Chandrashtama — is a guess.
+    if bp.birth_time_local is None:
+        raise HTTPException(
+            status_code=422,
+            detail=f"{who}: a birth time is required to check a date for a couple.",
+        )
+    snapshot = load_persisted_chart_response(session, chart_id)
+    return _facts_from_chart_data(snapshot.data, tz_name, role=role, label=label)
+
+
 def find_best_muhurta_slots(
     chart_id: UUID | None,
     activity: str,
@@ -756,6 +801,7 @@ def find_best_muhurta_slots(
     subject_role: str | None = None,
     co_subject_role: str | None = None,
     activity_place: str | None = None,
+    co_chart_id: UUID | None = None,
 ) -> MuhurtaResponse:
     """Rank the days in a range for one activity, one person, or a couple.
 
@@ -769,12 +815,21 @@ def find_best_muhurta_slots(
     labels for every surface except one: Ch. XIV p.79's Jupiter gochara rule is
     stated from the *bride's* Janma-Rasi, so naming the role is what makes that
     rule answerable at all.
+
+    `co_chart_id` is the saved-chart form of `co_chart_data`, for the signed-in
+    picker: the same couple scoring, with the partner read from a persisted chart
+    the caller has already authorised. It requires `chart_id`.
     """
     activity = normalize_activity(activity)
     if activity not in MUHURTA_ACTIVITIES:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Unknown activity '{activity}'. Valid values: {sorted(MUHURTA_ACTIVITIES)}",
+        )
+    if (co_chart_data is not None or co_chart_id is not None) and activity != COUPLE_ACTIVITY:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=COUPLE_ACTIVITY_ONLY_DETAIL,
         )
 
     delta_days = (date_to - date_from).days
@@ -797,6 +852,16 @@ def find_best_muhurta_slots(
         raise HTTPException(
             status_code=422,
             detail="A second chart requires the first — a couple is two charts, not one.",
+        )
+    if co_chart_id is not None and chart_id is None:
+        raise HTTPException(
+            status_code=422,
+            detail="A second chart requires the first — a couple is two charts, not one.",
+        )
+    if co_chart_id is not None and co_chart_id == chart_id:
+        raise HTTPException(
+            status_code=422,
+            detail="A couple is two different charts — choose the partner's chart, not this one.",
         )
 
     subject: Subject | None = None
@@ -908,6 +973,42 @@ def find_best_muhurta_slots(
             antar_lord = timeline.current_antardasha.lord
         except Exception as exc:
             logger.debug("Muhurta dasha lookup failed for chart %s: %s", chart_id, exc)
+
+        # Roles and a partner, for a saved chart — the signed-in form of what the
+        # in-memory branch above does for the public tool, under the same rulings.
+        is_couple = co_chart_id is not None
+        if is_couple or subject_role in _ROLE_LABELS:
+            primary_label = _subject_labels(subject_role, position=0, couple=is_couple)
+            co_label = _subject_labels(co_subject_role, position=1, couple=is_couple)
+            if subject is not None:
+                subject = replace(
+                    subject,
+                    label=primary_label[0],
+                    label_ta=primary_label[1],
+                    role=subject_role if subject_role in _ROLE_LABELS else None,
+                )
+            elif is_couple:
+                # The single-chart path degrades an unreadable star to almanac-only.
+                # A couple cannot: half a couple's personal layer silently missing
+                # is the defect couple mode exists to prevent.
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"{(primary_label[0] or '').capitalize()}: the chart's birth star could not be read.",
+                )
+        if is_couple:
+            if bp.birth_time_local is None:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"{(primary_label[0] or '').capitalize()}: a birth time is required to check a date for a couple.",
+                )
+            co_facts = _facts_from_persisted_chart(
+                session, co_chart_id, tz_name, role=co_subject_role, label=co_label,
+            )
+            co_subject = co_facts.subject
+            co_maha_lord, co_antar_lord = co_facts.maha_lord, co_facts.antar_lord
+            # Owner ruling 2026-09-12, R2: no natal lagna owns a wedding. See the
+            # in-memory couple branch above for what this does and does not drop.
+            lagna_rasi = None
 
     if not has_personal_chart:
         try:
