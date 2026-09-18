@@ -293,7 +293,7 @@ Done: Today pane **3,515 → 1,513 px (0.43)** → **3,515 → 3,515 (1.00)**, t
 selected day arrives (`data-day` = 2026-09-19), hero 592 → 592. A/B on one
 account, same probe, same stack: `web/e2e/.artifacts/ux-audit-dxa07-negative10/`
 (fix removed) vs `…-final/`; the held moment is
-`…/dxa07-stale-dark-t600.png`. Commit see git log.
+`…/dxa07-stale-dark-t600.png`. Commit `08ced8e`.
 Ready: yes · Wave 1 · Needs: — · Review: shots
 - **Problem:** the bundle is `useQuery` keyed on `(chartId, selectedDate)`
   (`web/hooks/usePersonalData.ts:271-276`). A new date means a new key, so data
