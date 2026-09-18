@@ -20,7 +20,7 @@ docs below before making changes.
 
 **Database safety**
 - Dev DB `vinaadi_dev` (port 5432) holds REAL data — never `DROP` / `drop_all` / reset it, and never point pytest at it.
-- Tests use `vinaadi_test` (port 5433) or SQLite. Every migration must be reversible. Back up before risky work.
+- Tests use `vinaadi_test` (port 5433). **SQLite is not an option** — `tests/conftest.py` refuses any other DB and `app/db/session.py` passes `max_overflow`, which SQLite rejects at import. If the test container is down, start it; do not reach for another URL. Every migration must be reversible. Back up before risky work.
 
 **Astrology doctrine (strictly enforced)**
 - Lahiri sidereal ayanamsa · mean-node Rahu/Ketu (Ketu exactly 180° opposite Rahu) · Whole-Sign houses · Vimshottari dasha · gochar counted from Chandra Rasi (primary).
@@ -29,6 +29,10 @@ docs below before making changes.
 **Code contracts**
 - API routes, query params, and response shapes are a shared contract across `app/api/`, `packages/shared/src/api/`, `mobile/`, and `web/` — grep all four and change callers together (see CLAUDE.md).
 - Never hardcode real personal data (birth profiles, names, coordinates) in tests, fixtures, seed data, or docs — use clearly-synthetic identities.
+
+**Display and proof** (both cost us a shipped-green defect — see CLAUDE.md)
+- **Never render a name the server chose.** The backend sends a language-free key *and* a pre-rendered English name (`rasi` vs `rasiName`/`rasiCode`, `lord` vs the bare string). Render the key through its localiser (`rasiDisplayName`, `tPlanetLord`, `tNakshatra`, …). A field ending in `Name` or `Code` is the wrong field; `title=` and `aria-label=` count as rendering.
+- **A gate proves its own check, not the item.** Run every new gate once with your fix *removed* and confirm it fails, then write down what it cannot see. The UX harness walks top-level tab panes only and has never run in Tamil.
 
 ---
 
