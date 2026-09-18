@@ -764,9 +764,12 @@ Ready: yes · Wave 2 · Needs: DXA-17 · Review: shots
   and the Understand library. Once per session; headings and cards only, never
   table rows or chart cells.
 
-#### DXA-37 `[~] 2026-09-18` One reading with a length switch (D4)
-Built (commit `4c41ef9`); **awaiting the owner's shots review**. Gate
-`Family shows exactly one reading` **2 → 1 PASS**; full-harness metrics
+#### DXA-37 `[x] 2026-09-18` One reading with a length switch (D4)
+Done: commit `4c41ef9`. **Owner-approved 2026-09-18** in the browser, which
+covers both halves of its `shots + Tamil` review — the switch labels
+"2 நிமிடம்" / "4 நிமிடம்" and the tablist "வாசிப்பு நேரம்" are
+signed off. Gate `Family shows exactly one reading` **2 → 1 PASS**;
+full-harness metrics
 `web/e2e/.artifacts/ux-audit-202609180924/`, review shots
 `web/e2e/.artifacts/dxa37-39-review/`. `[~]` not `[x]`: a review marker is never dated without an
 explicit "approved".
@@ -884,10 +887,12 @@ Ready: yes · Wave 1 · Needs: — · Review: astrologer (informational)
      say so in the handoff instead of deleting them.
 - **Tests:** a unit test that `resolveTamilDate(undefined, …)` returns `""`.
 
-#### DXA-39 `[~] 2026-09-18` Touch-target policy (D5, decided by the auditor)
-Built (commit `bea29ea`), **awaiting the owner's sign-off on their own
-touchscreen laptop** — the one review this file cannot self-serve. Marked `[~]`, not `[x]`: a review marker
-is never dated without an explicit "approved".
+#### DXA-39 `[x] 2026-09-18` Touch-target policy (D5, decided by the auditor)
+Done: commit `bea29ea`. **Owner-approved 2026-09-18**, checked in the browser
+on their own touchscreen laptop — the one review this file cannot self-serve,
+and the review that matters here: the promise of D5 is that a hybrid laptop
+looks *unchanged*, which only that device can confirm. The Calendar rail
+heading buttons going 28px → 32px (below) was seen and accepted.
 
 - **Measured, three device classes** (real browser, the real stylesheet):
 
@@ -1487,8 +1492,8 @@ compare pass/fail, not decimals.
 | DXA-27 | no overprinted tab labels | Goals / Life Areas | FAIL |
 | DXA-27 | no horizontal overflow | none | PASS |
 | DXA-28 | activity board within 2.5 screens | 4.55 | FAIL |
-| DXA-37 | Family shows exactly one reading | 2 | PASS (2026-09-18) — awaiting shots review |
-| DXA-39 | touch policy: no size change on a hybrid | (added 09-18) | PASS (`app/dashboard/touch-policy.test.ts`) — awaiting the owner's device review |
+| DXA-37 | Family shows exactly one reading | 2 | PASS (2026-09-18; `4c41ef9`, owner-approved) |
+| DXA-39 | touch policy: no size change on a hybrid | (added 09-18) | PASS (2026-09-18; `bea29ea`, `app/dashboard/touch-policy.test.ts` + owner's own touchscreen laptop) |
 | DXA-41 | closes on Escape and page click: More / notifications / account | Esc only / neither / neither | PASS × 3 (2026-09-18; `c8852ee`) |
 | DXA-41 | same: Ask panel, day drawer | both work | PASS × 2 |
 | — | console errors (dev CSP chunk warnings included) | 20 | INFO |
@@ -1507,7 +1512,7 @@ gradient's own stops rather than its `backgroundColor`. Its own before/after is
 |---|---|---|
 | 0: tooling and safety (**done 2026-09-17**) | DXA-40, DXA-11, DXA-36, DXA-34 | a safe referee first; MotionConfig unblocks all motion work |
 | 1: trust | DXA-01, 02, 03, 04, 05, 07, 08, 09 (stripe, echo), 38, 41, 10 | the broken moments users see on every visit |
-| 2: feel | ~~DXA-19 (tokens) → 39 → 12 → 13 → 14 → 15 → 06 → 16 → 17 → 18 → 37~~ → **39 and 37 landed 2026-09-18 out of order** (both `[~]`, awaiting review); remaining: 19 → 12 → 13 → 14 → 15 → 06 → 16 → 17 → 18 | elevation tokens feed hover and overlays. 37 did not in fact need 19; it needed `ViewSwap`, which it built — DXA-14's other applications are still open |
+| 2: feel | ~~DXA-19 (tokens) → 39 → 12 → 13 → 14 → 15 → 06 → 16 → 17 → 18 → 37~~ → **39 and 37 done 2026-09-18, out of order and owner-approved**; remaining: 19 → 12 → 13 → 14 → 15 → 06 → 16 → 17 → 18 | elevation tokens feed hover and overlays. 37 did not in fact need 19; it needed `ViewSwap`, which it built — DXA-14's other applications are still open |
 | 3: finish | DXA-20, 21, 22, 23, 24 (Lucide part), 25, 26, 09 (emoji), 27, 28 | rhythm and type after the primitives exist; the phone bar after D1 and `Presence` |
 | 4: signature | DXA-30, 29, 31, 32, 35; 33 when assets exist | each behind an owner-reviewed preview |
 

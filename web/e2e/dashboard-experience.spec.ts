@@ -44,6 +44,7 @@ const MUST_PASS: Record<string, string> = {
   "DXA-09 no Tamil text in English mode": "tabs",
   "DXA-10 no page-sky star inside a text line": "sky",
   "DXA-10 no page-sky star showing through a translucent surface": "sky",
+  "DXA-37 Family shows exactly one reading": "tabs",
   "DXA-41 overlay more-menu: closes on Escape and on a page click": "overlays",
   "DXA-41 overlay notifications: closes on Escape and on a page click": "overlays",
   "DXA-41 overlay account-menu: closes on Escape and on a page click": "overlays",
