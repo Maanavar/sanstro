@@ -50,8 +50,7 @@ import {
   ageFromBirth,
 } from "./dashboard-family-shared";
 import { DashboardFamilyMemberNova } from "./dashboard-family-member-nova";
-import { DashboardOneMinuteReading } from "./dashboard-one-minute-reading";
-import { DashboardFiveMinuteReading } from "./dashboard-five-minute-reading";
+import { DashboardChartReading } from "./dashboard-chart-reading";
 import { NovaScoreDial } from "./dashboard-ui-nova";
 import { DashboardFamilyHarmonyRemedies } from "./dashboard-family-harmony-remedies";
 import { RasiChart, NavamsaChart } from "./dashboard-charts";
@@ -1067,20 +1066,20 @@ export function DashboardFamilyChartsHybrid({
               </div>
             </div>
 
-            {/* "Your Chart in One Minute" — the first thing on the active
-                member's reading, and deliberately ABOVE the score dial: it is
-                the one piece here written to be read rather than scanned, and
-                a number placed before it would be answered first. Renders
-                nothing while the `one_minute_reading` flag is off.
-                docs/ONE_MINUTE_READING_2026-08-04.md §7. */}
-            {readingChartId && <DashboardOneMinuteReading lang={lang} chartId={readingChartId} />}
+            {/* The active member's reading — the first thing on it, and
+                deliberately ABOVE the score dial: it is the one piece here
+                written to be read rather than scanned, and a number placed
+                before it would be answered first.
 
-            {/* "Your Chart in Five Minutes" — directly below the two-minute
-                reading, since it deepens the same beats rather than opening a
-                new one. Renders nothing while the `five_minute_reading` flag
-                is off, or for any register other than "self".
+                ONE reading with a 2 min / 4 min switch since DXA-37 (D4). The
+                two lengths used to render stacked, so a reader finished their
+                reading and immediately started the same reading again at twice
+                the length. The switch appears only when the four-minute
+                reading loaded — it 404s for any register but "self", and while
+                its flag is off. Renders nothing while `one_minute_reading` is
+                off. docs/ONE_MINUTE_READING_2026-08-04.md §7,
                 docs/FIVE_MINUTE_READING_SPEC_2026-08-11.md. */}
-            {readingChartId && <DashboardFiveMinuteReading lang={lang} chartId={readingChartId} />}
+            {readingChartId && <DashboardChartReading lang={lang} chartId={readingChartId} />}
 
             <div className="hy-grid-hero">
               {/* Cosmic snapshot */}

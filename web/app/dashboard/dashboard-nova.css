@@ -3650,6 +3650,16 @@ button.ui-chip { cursor: pointer; }
   flex: 1 1 260px;
   min-width: 0;
 }
+/* The header's controls: DXA-37's length switch, then the one disclosure.
+   Grouped so the pair stays hard right together and wraps as a unit below the
+   title, rather than the switch wrapping and leaving the toggle stranded. */
+.om__head-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
 .om__title {
   margin: 0;
   font-family: var(--font-display, Georgia, serif);
