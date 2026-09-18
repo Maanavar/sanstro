@@ -6,6 +6,7 @@
 // three presentational leaf components (DayTimeline, MoonPhaseMark,
 // LunarTithiBadge) with no Classic/Nova fork.
 
+import { D1_RASI_NAMES, D1_RASI_NAMES_TA } from "@/lib/chart-utils";
 import { addDays, formatClockHour, formatClockLabel, formatDateLabel } from "@/lib/format";
 import { tLang, tNakshatra } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
@@ -21,8 +22,9 @@ export type { LimbNow } from "@/lib/panchangam-limb";
 
 export type CalendarView = "panchangam" | "monthly";
 
-export const RASI_NAMES_EN = ["", "Mesham", "Rishabam", "Mithunam", "Kadagam", "Simmam", "Kanni", "Thulam", "Viruchigam", "Dhanusu", "Magaram", "Kumbam", "Meenam"];
-export const RASI_NAMES_TA = ["", "மேஷம்", "ரிஷபம்", "மிதுனம்", "கடகம்", "சிம்மம்", "கன்னி", "துலாம்", "விருச்சிகம்", "தனுசு", "மகரம்", "கும்பம்", "மீனம்"];
+// The canonical tables, not a fourth hand-copy — see lib/chart-utils.
+export const RASI_NAMES_EN = D1_RASI_NAMES;
+export const RASI_NAMES_TA = D1_RASI_NAMES_TA;
 
 // Tamil solar months start dates (approximate Gregorian: month-day)
 // Chithirai begins ~Apr 14, then every ~30–31 days

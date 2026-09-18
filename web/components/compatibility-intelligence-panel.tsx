@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
+import { rasiDisplayName } from "@/lib/chart-utils";
 import { t, tNakshatra } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { CompatibilityIntelligenceData } from "@/lib/types";
@@ -393,7 +394,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
                 <span style={{ display: "inline-flex", alignItems: "center", gap: "7px" }}>
                   <ZodiacBadge rasi={identity.rasi} size={32} />
                   <span style={{ fontSize: "0.8rem", color: W.inkMid }}>
-                    {identity.rasiName}{" "}
+                    {rasiDisplayName(identity.rasi, lang)}{" "}
                     <GlossaryTerm term="rasi" lang={lang}>{en ? "Rasi" : "ராசி"}</GlossaryTerm>
                   </span>
                 </span>
@@ -406,7 +407,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
                 </span>
               </div>
               <div style={{ fontSize: "0.78rem", color: W.muted }}>
-                {identity.lagnaRasiName} {en ? "Lagnam" : "லக்னம்"}
+                {rasiDisplayName(identity.lagnaRasi, lang)} {en ? "Lagnam" : "லக்னம்"}
               </div>
             </div>
           ))}

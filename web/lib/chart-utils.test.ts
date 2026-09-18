@@ -97,6 +97,24 @@ describe("chart utils", () => {
     expect(rasiDisplayName("UNRECOGNISED_RASI", "en")).toBe("Unrecognised Rasi");
   });
 
+  // The three shapes the backend actually sends for one sign: `rasi` (number),
+  // `rasiName` ("Mithunam", from RASI_NAMES) and `rasiCode` ("MITHUNAM"). A
+  // caller that picked the wrong one used to print English at a Tamil reader —
+  // DXA-08's own fix left nine such sites standing because only the code shape
+  // looks wrong on sight.
+  it("resolves every shape the backend sends for the same sign", () => {
+    for (const shape of [3, "MITHUNAM", "Mithunam", "மிதுனம்"] as const) {
+      expect(rasiDisplayName(shape, "ta")).toBe("மிதுனம்");
+      expect(rasiDisplayName(shape, "en")).toBe("Mithunam");
+    }
+  });
+
+  it("returns empty for an absent rasi rather than a placeholder", () => {
+    expect(rasiDisplayName(null, "ta")).toBe("");
+    expect(rasiDisplayName(undefined, "en")).toBe("");
+    expect(rasiDisplayName("  ", "en")).toBe("");
+  });
+
   it("builds D1 and D9 cell detail payloads for explain overlay", () => {
     const chart = sampleChart();
     const d1 = buildD1CellDetail(chart, 1);

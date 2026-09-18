@@ -6,6 +6,7 @@ import { AlertTriangle, Check, X } from "lucide-react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { MIN_BIRTH_DATE, maxBirthDateIso } from "@/lib/birth-date";
 import { CULTURAL_CONTEXT, dt, PORUTHAM_VERDICT } from "@/lib/dashboard-i18n";
+import { rasiDisplayName } from "@/lib/chart-utils";
 import { t, tPlanetLord, tNakshatra } from "@/lib/i18n";
 import { verdictPhrase } from "@/lib/verdict-lexicon";
 import { kutaTone, madhyamaLabel, madhyamaGloss, hasMadhyama } from "@/lib/kuta-grade";
@@ -555,7 +556,7 @@ export function NovaPoruthamPanel({
                     <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)" }}>
                       <ZodiacBadge rasi={moon.rasi} size={32} />
                       <span style={{ fontSize: "var(--text-base)", color: "var(--color-text)" }}>
-                        {moon.rasiName}{" "}
+                        {rasiDisplayName(moon.rasi, lang)}{" "}
                         <GlossaryTerm term="rasi" lang={lang}>{t("label_janma_rasi", lang)}</GlossaryTerm>
                       </span>
                     </span>
@@ -568,7 +569,7 @@ export function NovaPoruthamPanel({
                     </span>
                   </div>
                   <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
-                    {chart.lagna.rasiName} {t("label_lagnam", lang)}
+                    {rasiDisplayName(chart.lagna.rasi, lang)} {t("label_lagnam", lang)}
                   </div>
                   {dasha && (
                     <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>

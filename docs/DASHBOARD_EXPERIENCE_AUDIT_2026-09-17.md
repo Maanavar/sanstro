@@ -405,6 +405,42 @@ Ready: yes · Wave 1 · Needs: — · Review: —
     own text-only backend change, with no response-shape change. The
     server-authored chart gist observed in Family is likewise deliberately
     untouched.
+- **Completed on review (2026-09-18, second pass):** the PASS above was real for
+  what the gate walks and too narrow for what the item claims. The gate greps
+  for `UPPER_CASE`, so it only ever saw half the defect. The other half is
+  `rasiName` — the same sign, correctly title-cased, in English — which prints
+  `Mithunam` at a Tamil reader and trips no regex. Nine surfaces were still live
+  behind the green tick, six of them outside the tab sweep entirely (they need a
+  chart-cell click, a sub-tool or a report to render):
+  - Explain overlay (`dashboard-chart-explanation.tsx`) — `coreIdentity.lagnaRasi`
+    / `.moonRasi` / `.janmaNakshatra`. The loading fallback two lines below each
+    already called the localiser; only the loaded path, which is what a reader
+    actually sees, did not.
+  - Jadhagam report (`dashboard-jadhagam-report-panel.tsx`) — the same three plus
+    both dasha lords, rendered as raw graha codes.
+  - Porutham (`dashboard-tools-porutham-nova.tsx`), synastry
+    (`compatibility-intelligence-panel.tsx`), Kalachakra
+    (`dashboard-kalachakra-dasha-panel.tsx`, whose `rasiName ?? rasiCode`
+    printed the raw enum whenever the name was null), the Calendar lagnam row,
+    both solar-return tiles, Varshaphala (`yearLord` and the aspect tags were
+    raw graha codes in both languages) and the rectification wizard.
+  All now read the numeric `rasi` through `rasiDisplayName`, which was widened to
+  resolve all three shapes the backend sends for one sign — number, `rasiName`
+  ("Mithunam") and `rasiCode` ("MITHUNAM") — plus a Tamil-script name, so English
+  mode no longer leaks Tamil either (the DXA-09 ruling).
+- **Gate added:** `web/lib/rasi-display-boundary.test.ts`, a two-direction source
+  ratchet keyed on the *field being read*, not on its casing — the check the
+  browser regex could not be. Verified against the fix removed: it fails and
+  names the file. A Tamil-mode browser pass was considered and not built: the
+  harness pins the account to `lang: "en"` (`ux-audit-core.mjs`), so it would be a
+  second full walk, and it would still only catch the surfaces it clicks — which
+  is exactly how six of these nine stayed hidden.
+- **Still open:** the duplicated rasi tables in the marketing print tools
+  (`JadhagamTool`, `PoruthamTool`) use their own transliterations ("Mesha" vs
+  "Mesham") and are deliberately Tamil-only sheets; consolidating them is a
+  separate pass, not this one. The dashboard's third and fourth copies
+  (`TAMIL_RASI_NAMES`, `dashboard-calendar-shared`) are gone — both now read the
+  canonical tables in `lib/chart-utils`.
 
 #### DXA-09 `[ ]` Owner-ruling violations still on screen
 Ready: stripe and echo, yes; emoji, partial (see DXA-24) · Wave 1 (stripe, echo) / Wave 3 (emoji) · Review: —
@@ -1209,6 +1245,7 @@ compare pass/fail, not decimals.
 | DXA-07 | Today pane keeps ≥ 90% height through a date change | (added 09-18) 0.43 | FAIL |
 | DXA-07 | the selected day replaces the held one | (added 09-18) | — |
 | DXA-08 | no raw enums / "None" / upper-case rasi names | `ARDHASHTAMA_SANI`; `MITHUNAM`, `DHANUSU`, … | PASS (2026-09-18; `ux-audit-dxa08-final4`) |
+| DXA-08 | no rasi name read off the response (source ratchet) | (added 09-18) 9 surfaces | PASS (2026-09-18; `lib/rasi-display-boundary.test.ts`) |
 | DXA-09 | no accent stripes | Family: 1 | FAIL |
 | DXA-09 | no Tamil in English mode | Tools: echo + "திருமணப் பொருத்தம்" | FAIL |
 | DXA-09 | no emoji / text glyphs as icons | Calendar, Family, Journal, Today | FAIL |

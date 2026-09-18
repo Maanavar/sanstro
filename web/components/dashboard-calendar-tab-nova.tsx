@@ -1253,7 +1253,7 @@ export function DashboardCalendarTabNova({
     ? [
         { key: lang === "ta" ? "வாரம்" : "Vara", value: tWeekday(panchangam.vara.weekday, lang), hint: `${tPlanetLord(panchangam.vara.lord, lang)} ${t("lord_word", lang)}` },
         { key: lang === "ta" ? "சந்திரன்" : "Moon", value: tMoonPhase(panchangam.moonPhaseLabel, lang), hint: lang === "ta" ? "சந்திர கலை" : "Moon phase" },
-        { key: lang === "ta" ? "லக்னம்" : "Lagnam", value: panchangam.lagnam.rasiName, hint: `${lang === "ta" ? "இருப்பு" : "Remaining"} ${panchangam.lagnam.nazhigai} ${lang === "ta" ? "நாழிகை" : "nazhigai"} ${panchangam.lagnam.vinadi} ${lang === "ta" ? "விநாடி" : "vinadi"} · ${formatUntilLabel(panchangam.lagnam.endsAt, panchangam.lagnam.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)}` },
+        { key: lang === "ta" ? "லக்னம்" : "Lagnam", value: rasiName(panchangam.lagnam.rasiNumber, lang), hint: `${lang === "ta" ? "இருப்பு" : "Remaining"} ${panchangam.lagnam.nazhigai} ${lang === "ta" ? "நாழிகை" : "nazhigai"} ${panchangam.lagnam.vinadi} ${lang === "ta" ? "விநாடி" : "vinadi"} · ${formatUntilLabel(panchangam.lagnam.endsAt, panchangam.lagnam.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)}` },
         {
           key: lang === "ta" ? "நட்சத்திரம்" : "Nakshatra",
           value: tNakshatra(nakActive?.activeName ?? panchangam.nakshatra.name, lang),

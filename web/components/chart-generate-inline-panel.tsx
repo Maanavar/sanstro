@@ -342,7 +342,7 @@ function JathagamPrint({ chart, dasha, fatherName, motherName, gender }: {
             <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>பிறந்த கிழமை</td>
             <td style={{ ...cellStyle, textAlign: "left" }}>: {weekday}</td>
             <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>லக்னம்</td>
-            <td style={{ ...cellStyle, textAlign: "left" }}>: {RASI_NAMES_TA[chart.lagna.rasi] ?? chart.lagna.rasiName}</td>
+            <td style={{ ...cellStyle, textAlign: "left" }}>: {RASI_NAMES_TA[chart.lagna.rasi]}</td>
           </tr>
           <tr>
             <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>ஜென்ம நட்சத்திரம்</td>

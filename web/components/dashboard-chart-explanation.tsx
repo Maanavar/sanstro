@@ -3,7 +3,7 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { formatDateLabel } from "@/lib/format";
-import { D1_RASI_NAMES } from "@/lib/chart-utils";
+import { rasiDisplayName, rasiLabel } from "@/lib/chart-utils";
 import { tNakshatra, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type {
@@ -28,7 +28,6 @@ import {
   type BiCopy,
   type RelationshipTone,
   type SectionId,
-  TAMIL_RASI_NAMES,
   KENDRA_HOUSES,
   TRIKONA_HOUSES,
   DUSTHANA_HOUSES,
@@ -75,7 +74,7 @@ function tx(copy: BiCopy, lang: Lang): string {
 
 function rasiName(rasi: number | null | undefined, lang: Lang): string {
   if (!rasi) return lang === "ta" ? "தெரியவில்லை" : "Unknown";
-  return lang === "ta" ? (TAMIL_RASI_NAMES[rasi] ?? `${rasi}`) : (D1_RASI_NAMES[rasi] ?? `Rasi ${rasi}`);
+  return rasiLabel(rasi, lang);
 }
 
 function ordinalHouse(house: number, lang: Lang): string {
@@ -1058,14 +1057,14 @@ export function ChartExplanationPanel({
                     <DetailRow
                       label={lang === "ta" ? "லக்னம்" : "Lagna"}
                       value={coreIdentity
-                        ? coreIdentity.lagnaRasi
+                        ? rasiDisplayName(coreIdentity.lagnaRasi, lang)
                         : `${rasiName(chart.lagna.rasi, lang)} - ${tNakshatra(chart.lagna.nakshatraName, lang)} ${lang === "ta" ? "பாதம்" : "Pada"} ${chart.lagna.pada}`}
                     />
                     <DetailRow
                       label={lang === "ta" ? "சந்திரன்" : "Moon"}
                       value={
                         coreIdentity
-                          ? `${coreIdentity.moonRasi} - ${coreIdentity.janmaNakshatra} ${lang === "ta" ? "பாதம்" : "Pada"} ${coreIdentity.janmaPada}`
+                          ? `${rasiDisplayName(coreIdentity.moonRasi, lang)} - ${tNakshatra(coreIdentity.janmaNakshatra, lang)} ${lang === "ta" ? "பாதம்" : "Pada"} ${coreIdentity.janmaPada}`
                           : derived.moon
                           ? `${rasiName(derived.moon.rasi, lang)} - ${tNakshatra(derived.moon.nakshatraName, lang)} ${lang === "ta" ? "பாதம்" : "Pada"} ${derived.moon.pada}`
                           : (lang === "ta" ? "சந்திர தரவு இல்லை" : "Moon data unavailable")

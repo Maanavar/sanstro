@@ -48,14 +48,34 @@ export function rasiLabel(rasi: number, lang: "ta" | "en"): string {
   return table[rasi] ?? `Rasi ${rasi}`;
 }
 
-/** Render a numeric or legacy string-only rasi in the reader's language. */
+/**
+ * Render a rasi in the reader's language, whatever shape it arrives in.
+ *
+ * The backend sends the same twelve signs three ways: a number (`rasi`), the
+ * Latin name from `RASI_NAMES` (`rasiName`, `"Mithunam"`), and an upper-case
+ * code (`rasiCode`, `"MITHUNAM"`). All three resolve to the one index, so a
+ * caller never has to know which shape its endpoint happens to use — and a
+ * Tamil reader is never shown `Mithunam` because the field it landed in was the
+ * name rather than the number.
+ *
+ * The Tamil table is matched too: a name that already arrives in Tamil script
+ * is turned back into Latin in English mode, which is the owner ruling the
+ * DXA-09 gate reads (no Tamil in English mode).
+ *
+ * An unrecognised code de-snakes to title case and stays Latin in both
+ * languages — there is no Tamil name to give for a sign we do not know, and
+ * inventing one would be worse than transliterating. Same choice, same reason,
+ * as `saniCycleName` in lib/family-flags.
+ */
 export function rasiDisplayName(rasi: number | string | null | undefined, lang: "ta" | "en"): string {
   if (typeof rasi === "number") return rasiLabel(rasi, lang);
   const raw = rasi?.trim() ?? "";
   if (!raw) return "";
-  const index = D1_RASI_NAMES.findIndex((name) => name.toLowerCase() === raw.toLowerCase());
+  const folded = raw.replaceAll("_", " ").toLowerCase();
+  const matches = (name: string) => name.toLowerCase() === folded;
+  const index = Math.max(D1_RASI_NAMES.findIndex(matches), D1_RASI_NAMES_TA.findIndex(matches));
   if (index > 0) return rasiLabel(index, lang);
-  return raw.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return folded.replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 // Classical, fixed rasi→ruling-planet mapping (never changes per-chart, so it's
