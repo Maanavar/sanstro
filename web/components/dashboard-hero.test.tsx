@@ -21,7 +21,8 @@ function renderHero(
   overrides: Partial<Parameters<typeof DashboardHero>[0]> = {},
 ) {
   return render(
-    <DashboardHero
+    <div className="cd-shell">
+      <DashboardHero
       lang="en"
       activeTab={activeTab}
       birthDisplayName="Test User"
@@ -45,8 +46,9 @@ function renderHero(
       onUserMenuClose={noop}
       onGoToSettings={noop}
       onSignOut={noop}
-      {...overrides}
-    />,
+        {...overrides}
+      />
+    </div>,
   );
 }
 
@@ -178,5 +180,29 @@ describe("DashboardHero More menu keyboard behaviour", () => {
     expect(screen.queryByRole("menu")).toBeNull();
     expect(document.activeElement).toBe(trigger);
     expect(trigger).toHaveAttribute("aria-expanded", "false");
+  });
+});
+
+describe("DashboardHero top-bar menu dismissal (DXA-41)", () => {
+  it("closes notifications on Escape and returns focus to its trigger", () => {
+    renderHero("personal", noop);
+    const trigger = screen.getByRole("button", { name: /notifications/i });
+
+    fireEvent.click(trigger);
+    expect(screen.getByText("No notifications yet.")).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    expect(screen.queryByText("No notifications yet.")).not.toBeInTheDocument();
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it("uses the shell-level layer to dismiss notifications on a page click", () => {
+    renderHero("personal", noop);
+    fireEvent.click(screen.getByRole("button", { name: /notifications/i }));
+
+    fireEvent.click(document.querySelector(".cd-overlay--page") as HTMLElement);
+
+    expect(screen.queryByText("No notifications yet.")).not.toBeInTheDocument();
   });
 });

@@ -512,7 +512,8 @@ Ready: yes · Wave 0 · Needs: — · Review: —
      `!important`.
 - **Gate:** `DXA-11` indicator transforms ≤ 1; pane opacity only `1`.
 
-#### DXA-41 `[ ]` Top-bar menus ignore a page click and Escape
+#### DXA-41 `[x] 2026-09-18` Top-bar menus ignore a page click and Escape
+Done: DXA-41 More / notifications / account `Esc only / neither / neither` → `Escape + page click` PASS; negative (fix removed) metrics `web/e2e/.artifacts/ux-audit-202609180552/`, passing metrics `web/e2e/.artifacts/ux-audit-202609180557/`; commit uncommitted.
 Ready: yes · Wave 1 · Needs: — · Review: —
 - **Problem:** the "click outside to close" layer `.cd-overlay`
   (`dashboard.css:199-210`, `position: fixed; inset: 0`) is rendered inside

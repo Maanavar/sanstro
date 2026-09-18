@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
+import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import {
   Bell,
@@ -143,6 +144,23 @@ function CloseIcon() {
   return <X className="cd-icon" aria-hidden="true" focusable="false" />;
 }
 
+/**
+ * The top bar's backdrop filter turns it into the containing block for fixed
+ * descendants. Keep the dismiss layer at the shell instead, so it covers the
+ * page while the popover remains above it in the top bar.
+ */
+function PageDismissOverlay({ onDismiss }: { onDismiss: () => void }) {
+  const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setPortalHost(document.querySelector<HTMLElement>(".cd-shell"));
+  }, []);
+
+  return portalHost
+    ? createPortal(<div className="cd-overlay cd-overlay--page" onClick={onDismiss} />, portalHost)
+    : null;
+}
+
 export function DashboardHero(props: DashboardHeroProps) {
   const {
     lang,
@@ -181,6 +199,8 @@ export function DashboardHero(props: DashboardHeroProps) {
   const [showInbox, setShowInbox] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const activeTabRef = useRef<HTMLButtonElement>(null);
+  const inboxTriggerRef = useRef<HTMLButtonElement>(null);
+  const accountTriggerRef = useRef<HTMLButtonElement>(null);
 
   // ⌘K / Ctrl+K opens Ask Vinaadi from anywhere on the dashboard. The kbd
   // chip's label is resolved after mount (SSR can't know the platform).
@@ -226,6 +246,40 @@ export function DashboardHero(props: DashboardHeroProps) {
     setShowMoreMenu(false);
     if (returnFocus) moreTriggerRef.current?.focus();
   };
+
+  const closeInbox = useCallback((returnFocus = true) => {
+    setShowInbox(false);
+    if (returnFocus) inboxTriggerRef.current?.focus();
+  }, []);
+
+  const closeUserMenu = useCallback((returnFocus = true) => {
+    onUserMenuClose();
+    if (returnFocus) accountTriggerRef.current?.focus();
+  }, [onUserMenuClose]);
+
+  useEffect(() => {
+    if (!showInbox) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeInbox();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showInbox, closeInbox]);
+
+  useEffect(() => {
+    if (!showUserMenu) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeUserMenu();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showUserMenu, closeUserMenu]);
 
   // Focus moves into the menu on open, landing on the current destination
   // when one of them is active — so "where am I" and "where can I go" are
@@ -415,7 +469,7 @@ export function DashboardHero(props: DashboardHeroProps) {
               </button>
               {showMoreMenu && (
                 <>
-                  <div className="cd-overlay cd-overlay--menu" onClick={() => closeMoreMenu(false)} />
+                  <PageDismissOverlay onDismiss={() => closeMoreMenu(false)} />
                   <motion.div
                     ref={moreMenuRef}
                     className="cd-dropdown cd-dropdown--nav"
@@ -489,6 +543,7 @@ export function DashboardHero(props: DashboardHeroProps) {
             <div className="cd-popover-anchor">
               <button
                 type="button"
+                ref={inboxTriggerRef}
                 className="cd-icon-btn"
                 onClick={() => { setShowAlerts(false); setShowInbox((v) => !v); }}
                 aria-label={t("notif_section_title", lang)}
@@ -500,7 +555,7 @@ export function DashboardHero(props: DashboardHeroProps) {
               </button>
               {showInbox && (
                 <>
-                  <div className="cd-overlay cd-overlay--alerts" onClick={() => setShowInbox(false)} />
+                  <PageDismissOverlay onDismiss={() => closeInbox(false)} />
                   <div className="cd-alerts-popover">
                     {/* Ambient (astro) alerts */}
                     {alertItems.length > 0 && (
@@ -598,6 +653,7 @@ export function DashboardHero(props: DashboardHeroProps) {
             <div className="cd-popover-anchor">
               <button
                 type="button"
+                ref={accountTriggerRef}
                 className="cd-avatar"
                 onClick={onUserMenuToggle}
                 aria-label={t("label_account", lang)}
@@ -607,7 +663,7 @@ export function DashboardHero(props: DashboardHeroProps) {
               </button>
               {showUserMenu && (
                 <>
-                  <div className="cd-overlay cd-overlay--menu" onClick={onUserMenuClose} />
+                  <PageDismissOverlay onDismiss={() => closeUserMenu(false)} />
                   <div className="cd-dropdown">
                     <div className="cd-dropdown__head">
                       <p className="cd-dropdown__email-label">Signed in as</p>

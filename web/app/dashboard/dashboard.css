@@ -209,6 +209,11 @@
   z-index: 199;
 }
 
+/* Portalled to .cd-shell: above the page, below the top bar popover. */
+.cd-overlay--page {
+  z-index: 50;
+}
+
 .cd-empty-note {
   margin: 0;
   padding: var(--space-2) var(--space-3);
