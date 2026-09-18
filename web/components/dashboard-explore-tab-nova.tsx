@@ -471,7 +471,7 @@ export function DashboardExploreTabNova({
               <button
                 type="button"
                 onClick={() => setSubview({ kind: "nakshatram", screen: "detail", number: nakshatraCard.number })}
-                style={{ ...novaDetailCardStyle, background: "linear-gradient(120deg, var(--color-accent-muted), transparent)", border: "1px solid var(--color-border-strong)", textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
+                style={{ ...novaDetailCardStyle, backgroundColor: "var(--color-surface)", backgroundImage: "linear-gradient(120deg, var(--color-accent-muted), transparent)", border: "1px solid var(--color-border-strong)", textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <Kicker color="var(--color-accent-strong)">
@@ -529,7 +529,7 @@ export function DashboardExploreTabNova({
               <button
                 type="button"
                 onClick={() => setSubview({ kind: "yogam", screen: "detail", index: yogas.indexOf(activeYoga) })}
-                style={{ ...novaDetailCardStyle, background: "linear-gradient(120deg, var(--color-high-bg), transparent)", border: "1px solid var(--color-high-border)", textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
+                style={{ ...novaDetailCardStyle, backgroundColor: "var(--color-surface)", backgroundImage: "linear-gradient(120deg, var(--color-high-bg), transparent)", border: "1px solid var(--color-high-border)", textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <Kicker color="var(--color-high)">

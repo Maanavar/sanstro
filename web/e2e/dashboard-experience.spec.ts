@@ -38,6 +38,12 @@ const MUST_PASS: Record<string, string> = {
   "DXA-07 Today pane keeps ≥ 90% height through a date change": "today",
   "DXA-07 the selected day replaces the held one": "today",
   "DXA-08 no raw enums / 'None' / upper-case rasi names": "tabs",
+  // DXA-09's third gate ("no emoji / text glyphs as icons") is Wave 3 and still
+  // FAILs: it waits on DXA-24's glyph set. Only the two that landed ratchet.
+  "DXA-09 no accent stripes": "tabs",
+  "DXA-09 no Tamil text in English mode": "tabs",
+  "DXA-10 no page-sky star inside a text line": "sky",
+  "DXA-10 no page-sky star showing through a translucent surface": "sky",
   "DXA-41 overlay more-menu: closes on Escape and on a page click": "overlays",
   "DXA-41 overlay notifications: closes on Escape and on a page click": "overlays",
   "DXA-41 overlay account-menu: closes on Escape and on a page click": "overlays",

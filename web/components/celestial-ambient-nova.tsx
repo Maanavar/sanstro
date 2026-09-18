@@ -120,6 +120,16 @@ export function CelestialAmbientNova({ moon }: { moon?: MoonPhase | null }) {
     const id = setInterval(() => setHour(new Date().getHours()), 5 * 60 * 1000);
     return () => clearInterval(id);
   }, []);
+  // DXA-10 step 3: the layer carried `transition: opacity 600ms` and never
+  // faded, because it mounted at its final opacity — a transition needs a
+  // value to move from. One frame at 0 gives the sky the arrival the
+  // declaration always described.
+  const [lit, setLit] = useState(false);
+  useEffect(() => {
+    if (hour === null) return undefined;
+    const id = requestAnimationFrame(() => setLit(true));
+    return () => cancelAnimationFrame(id);
+  }, [hour]);
   const isLight = useIsLightTheme();
   if (hour === null) return null;
 
@@ -168,8 +178,8 @@ export function CelestialAmbientNova({ moon }: { moon?: MoonPhase | null }) {
         inset: 0,
         pointerEvents: "none",
         zIndex: 0,
-        opacity: AMBIENT_SKY_OPACITY,
-        transition: "opacity 600ms ease",
+        opacity: lit ? AMBIENT_SKY_OPACITY : 0,
+        transition: "opacity 600ms var(--ease-nova)",
         overflow: "hidden",
       }}
     >

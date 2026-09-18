@@ -23,7 +23,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-export const ALL_PHASES = ["load", "tabs", "today", "hover", "overlays", "reduced", "light", "phone"];
+export const ALL_PHASES = ["load", "tabs", "today", "hover", "overlays", "reduced", "light", "phone", "sky"];
 export const DEFAULT_PASSWORD = "UxAudit!Test123";
 const CSRF = { "X-Vinaadi-CSRF": "1" };
 
@@ -282,7 +282,35 @@ async function paneChecks(page) {
       }
     }
 
-    // Page-sky stars that sit inside a text line, or show through a translucent surface.
+    const readingSections = [...pane.querySelectorAll("section.om")].filter((s) => s.getBoundingClientRect().height > 0).length;
+    return { rawEnums, noneValues, upperNames, emoji, textGlyphs, tamilInEnglish, stripes: sample(stripes), stripeCount: stripes.length, readingSections };
+  });
+}
+
+/**
+ * Page-sky stars that sit inside a text line, or show through a translucent
+ * surface (DXA-10).
+ *
+ * This lives in its own phase, on its own clock, for a reason. The page sky
+ * draws stars only from dusk on the dark canvas
+ * (`celestial-ambient-nova.tsx`: `showStars = isLight || tod === "night" ||
+ * tod === "dusk"`), so a run started at 11:50 finds no `.nova-celestial__star`
+ * at all and BOTH DXA-10 gates report 0 and pass, with no fix anywhere in the
+ * tree. Measured 2026-09-18 at 11:37 and 11:50 IST: `0 / 0 PASS`. The §12
+ * baseline of `2 / 6` was taken at 18:39 IST, in the one window where the
+ * layer under audit is on screen at all.
+ *
+ * That is this file’s fourth "green by a check that could not fail", so the
+ * hour is pinned rather than inherited: `setFixedTime` (not `install`, which
+ * also freezes the timers React and Next need to hydrate) plus an explicit
+ * `timezoneId`, so the page reads 21:30 local wherever this runs.
+ *
+ * `starsRendered` is returned so the gate can tell "nothing shows through
+ * anything" from "the sky never painted" — a measurement that could not be
+ * taken is not a measurement that passed, the same rule DXA-07 follows.
+ */
+async function starOcclusion(page) {
+  return page.evaluate(() => {
     const alphaOf = (c) => {
       const m = c.match(/rgba?\(([^)]+)\)/);
       if (m) {
@@ -298,38 +326,89 @@ async function paneChecks(page) {
       }
       return c === "transparent" ? 0 : 1;
     };
+    /**
+     * What this element paints over the point: "opaque", "sheer" or "none".
+     *
+     * `backgroundColor` alone is not the answer. `.nova-hero` paints
+     * `linear-gradient(135deg, #1A1E31, #0A0E20)` — two solid colours — and
+     * its backgroundColor computes to rgba(0, 0, 0, 0). Reading only the colour
+     * called that hero see-through and reported nine page-sky stars as showing
+     * through it, on a surface that in the screenshot hides them completely.
+     *
+     * So the gradient's own stops are read. Every stop opaque covers; a
+     * `transparent` or alpha stop does not — which is exactly the Tools hero
+     * (`linear-gradient(120deg, var(--color-accent-muted), transparent)`), the
+     * surface DXA-10 named. An unreadable paint (a url() image) counts as
+     * sheer: a gate should err toward failing.
+     */
+    const paints = (cs) => {
+      if (parseFloat(cs.opacity) < 0.95) return "sheer";
+      if (/blur\(/.test(cs.backdropFilter || "")) return "opaque"; // DXA-10 accepts blurred
+      if (alphaOf(cs.backgroundColor) >= 0.95) return "opaque";
+      const img = cs.backgroundImage;
+      if (img && img !== "none") {
+        const stops = img.match(/rgba?\([^)]*\)|color\(srgb[^)]*\)|transparent/g) || [];
+        return stops.length > 0 && stops.every((s) => alphaOf(s) >= 0.95) ? "opaque" : "sheer";
+      }
+      return alphaOf(cs.backgroundColor) > 0 ? "sheer" : "none";
+    };
+    let starsRendered = 0;
     let starsInText = 0;
     let starsThroughSurface = 0;
+    const samples = [];
     for (const star of document.querySelectorAll(".nova-sky .nova-celestial__star")) {
       const r = star.getBoundingClientRect();
       if (!r.width || r.bottom < 0 || r.top > innerHeight) continue;
+      starsRendered++;
       const cx = r.left + r.width / 2;
       const cy = r.top + r.height / 2;
       let covered = false;
-      let translucent = false;
+      let translucent = null;
       // Paint order, topmost first. The sky ignores pointer events, so it is not
       // in the list; its ANCESTORS are, and they paint below it — stop there.
       for (const el of document.elementsFromPoint(cx, cy)) {
         if (el.contains(star)) break;
         const cs = getComputedStyle(el);
-        const a = alphaOf(cs.backgroundColor);
-        const img = cs.backgroundImage !== "none";
-        if (a >= 0.95) { covered = true; break; }
-        if ((a > 0 || img) && el.getBoundingClientRect().width > 100) translucent = true;
+        const layer = paints(cs);
+        if (layer === "opaque") { covered = true; break; }
+        if (layer === "sheer" && el.getBoundingClientRect().width > 100) {
+          // Name the paint, not just the tag: these surfaces are styled inline
+          // and carry no class, so "button" alone does not say which one.
+          const paint = cs.backgroundImage !== "none" ? cs.backgroundImage : cs.backgroundColor;
+          translucent = `${window.__uxDescribe ? window.__uxDescribe(el) : el.tagName} {${paint.slice(0, 70)}}`;
+        }
       }
       if (covered) continue;
-      if (translucent) starsThroughSurface++;
+      if (translucent) {
+        starsThroughSurface++;
+        if (samples.length < 6) samples.push(`through ${translucent}`);
+      }
       const range = document.caretRangeFromPoint ? document.caretRangeFromPoint(cx, cy) : null;
       if (range && range.startContainer.nodeType === 3) {
         const node = range.startContainer;
         const probe = document.createRange();
         probe.setStart(node, Math.max(0, range.startOffset - 1));
         probe.setEnd(node, Math.min(node.length, range.startOffset + 1));
-        if ([...probe.getClientRects()].some((q) => cx >= q.left && cx <= q.right && cy >= q.top && cy <= q.bottom)) starsInText++;
+        if ([...probe.getClientRects()].some((q) => cx >= q.left && cx <= q.right && cy >= q.top && cy <= q.bottom)) {
+          starsInText++;
+          if (samples.length < 6) samples.push(`in text "${(node.textContent ?? "").trim().slice(0, 40)}"`);
+        }
       }
     }
-    const readingSections = [...pane.querySelectorAll("section.om")].filter((s) => s.getBoundingClientRect().height > 0).length;
-    return { rawEnums, noneValues, upperNames, emoji, textGlyphs, tamilInEnglish, stripes: sample(stripes), stripeCount: stripes.length, starsInText, starsThroughSurface, readingSections };
+    const sky = document.querySelector(".nova-sky");
+    // An empty pane is nothing but sky, and every star in it "shows through"
+    // whatever the blank column paints. Recorded so the gate can refuse the
+    // measurement instead of reading a failed render as a finding.
+    const pane = window.__uxPane ? window.__uxPane() : null;
+    return {
+      hour: new Date().getHours(),
+      skyOpacity: sky ? getComputedStyle(sky).opacity : null,
+      paneElements: pane ? pane.querySelectorAll("*").length : 0,
+      starsRendered,
+      starsInText,
+      starsThroughSurface,
+      samples,
+    };
   });
 }
 
@@ -965,6 +1044,38 @@ export async function runAudit({ browser, base, out, phases = ALL_PHASES, prod =
       save();
       await ctx.close();
     }
+
+    if (PHASES.has("sky")) {
+      log("sky: page starfield occlusion, clock pinned to 21:30 IST");
+      // A separate context, because pinning the clock is not free: every other
+      // phase reads real panchangam for the real day, and DXA-03/05/07 measure
+      // that day loading. Only the sky needs a fixed hour, so only the sky gets
+      // one.
+      const { ctx, page: sp } = await newContext(run, browser, { viewport: { width: 1440, height: 900 }, timezoneId: "Asia/Kolkata" });
+      await sp.clock.setFixedTime(new Date("2026-09-17T16:00:00Z")); // 21:30 IST
+      metrics.sky = {};
+      // Switch tabs by CLICKING, never by `goto`. On this dev stack a fresh
+      // document re-issues the CSP nonce and every lazily-loaded tab chunk is
+      // then refused (DXA-35), so a per-tab `goto` renders an EMPTY pane — and
+      // an empty pane is nothing but sky, which reads as a page whose every
+      // star shows through. The first version of this phase reported 10 of 17
+      // stars "through a translucent surface" on Goals; the screenshot beside
+      // it was a blank starfield.
+      await sp.goto("/dashboard/today");
+      await settle(sp, 1200);
+      for (const tab of TABS) {
+        if (tab.id !== "personal") {
+          await clickTab(sp, tab).catch(() => {});
+          await settle(sp, 1200);
+        }
+        await sp.evaluate(() => window.scrollTo(0, 0));
+        await sleep(500);
+        metrics.sky[tab.id] = await starOcclusion(sp);
+        await shot(run, sp, `sky-${tab.slug}`);
+      }
+      save();
+      await ctx.close();
+    }
   } finally {
     metrics.consoleErrors = consoleErrors.slice(0, 20);
     metrics.finishedAt = new Date().toISOString();
@@ -1020,8 +1131,27 @@ export function computeGates(m, { prod = false } = {}) {
     add("DXA-09", "no Tamil text in English mode", list((c) => c.tamilInEnglish).join(" ; ") || 0, list((c) => c.tamilInEnglish).length === 0);
     add("DXA-09", "no emoji / text glyphs as icons", [...list((c) => c.emoji), ...list((c) => c.textGlyphs)].join(" ; ") || 0, list((c) => c.emoji).length === 0 && list((c) => c.textGlyphs).length === 0);
     if (m.tabs.family && m.tabs.family.checks) add("DXA-37", "Family shows exactly one reading", m.tabs.family.checks.readingSections, m.tabs.family.checks.readingSections === 1);
-    add("DXA-10", "no page-sky star inside a text line", sum((c) => c.starsInText), sum((c) => c.starsInText) === 0);
-    add("DXA-10", "no page-sky star showing through a translucent surface", sum((c) => c.starsThroughSurface), sum((c) => c.starsThroughSurface) === 0);
+  }
+  if (m.sky) {
+    const skies = Object.values(m.sky);
+    const total = (f) => skies.reduce((a, s) => a + (f(s) ?? 0), 0);
+    const rendered = total((s) => s.starsRendered);
+    const evidence = skies.flatMap((s) => s.samples ?? []).slice(0, 6).join(" ; ");
+    // The sky paints stars only from dusk. If the pinned clock did not put one
+    // on screen, these two gates have nothing to measure, and reporting 0 would
+    // report the absence of the LAYER as the absence of the DEFECT.
+    const blank = Object.entries(m.sky).filter(([, s]) => (s.paneElements ?? 0) < 40).map(([k]) => k);
+    if (rendered === 0 || blank.length > 0) {
+      const hours = [...new Set(skies.map((s) => s.hour))].join(",");
+      const why = rendered === 0
+        ? `the sky painted no stars (page hour ${hours})`
+        : `these panes did not render: ${blank.join(", ")}`;
+      add("DXA-10", "no page-sky star inside a text line", `not measurable: ${why}`, false);
+      add("DXA-10", "no page-sky star showing through a translucent surface", `not measurable: ${why}`, false);
+    } else {
+      add("DXA-10", "no page-sky star inside a text line", `${total((s) => s.starsInText)} of ${rendered}${evidence ? ` — ${evidence}` : ""}`, total((s) => s.starsInText) === 0);
+      add("DXA-10", "no page-sky star showing through a translucent surface", `${total((s) => s.starsThroughSurface)} of ${rendered}`, total((s) => s.starsThroughSurface) === 0);
+    }
   }
   if (m.reducedMotion && !m.reducedMotion.error) {
     add("DXA-11", "reduced motion: nav indicator does not move", m.reducedMotion.indicatorTransforms.length, m.reducedMotion.indicatorTransforms.length <= 1);

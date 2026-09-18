@@ -2567,6 +2567,30 @@
    soft daytime-gold crown) is handled in JS inside CelestialAmbientNova via
    useIsLightTheme(), not a CSS display:none gate — so the gold crown can still
    show on the cream canvas. */
+
+/* DXA-10 — the page sky keeps clear of the page header.
+
+   The star field is `inset: 0` of `.cd-page`, and `.cd-page` IS the content
+   column (`width: min(--cd-container-max, 100% - 2 * --space-4)`), so it has
+   no side gutters to retreat into: every star lands over the content. Below
+   the header that is the intended effect — the cards are opaque, so what shows
+   is sky in the gaps between them. The top of the column is different. Every
+   tab opens with a kicker, an H1 and a subtitle sitting on bare ground, with
+   no card behind them, and a star lands *in the title line*: measured on Goals
+   ("Plan with confidence.", 2026-09-18), on Explore inside "Gaja Kesari Yoga".
+
+   So the stars fade in below that band instead. The band is measured in the
+   column's own scroll space (the layer is absolutely positioned inside it, not
+   fixed to the viewport), so this is the top of the PAGE, not of the screen —
+   it does not move as the reader scrolls, and the sky below is untouched.
+
+   Note this is the inverse of the audit's phrasing ("stars live only in the
+   gutters and the top crown"): the crown band is exactly where the page title
+   sits, so keeping stars in it is the defect, not the fix. */
+[data-ui="nova"] .nova-sky__stars {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent 300px, #000 460px);
+  mask-image: linear-gradient(to bottom, transparent 0, transparent 300px, #000 460px);
+}
 /* Special-day (Pournami / Amavasai) signature draw: a single gold light sweep
    across the hero glyph tile. Runs once and settles transparent, so the
    reduced-motion guard collapses it to a clean, invisible still. */

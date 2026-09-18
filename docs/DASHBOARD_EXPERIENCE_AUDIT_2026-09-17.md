@@ -7,8 +7,10 @@ that a coding agent can pick up any item, implement it, and prove it done.
 
 **Status:**
 - Audit complete; owner decisions D1–D6 taken 2026-09-17 (§0).
-- Wave 0 is complete (DXA-40, DXA-11, DXA-36, DXA-34; see §13). Wave 1 has
-  landed DXA-01, 02, 03, 04, 05, 07 and 08; 09, 10, 38 and 41 remain.
+- Wave 0 is complete (DXA-40, DXA-11, DXA-36, DXA-34; see §13). **Wave 1 is
+  complete** as of 2026-09-18: DXA-01, 02, 03, 04, 05, 07, 08, 38, 41, 10 and
+  DXA-09's stripe and echo have all landed. DXA-09's emoji third is Wave 3 and
+  waits on DXA-24's glyph set, so that item stays `[~]`.
 - Measuring tools exist: `web/scripts/ux-audit.mjs` (CLI),
   `web/e2e/dashboard-experience.spec.ts` (Playwright, with a regression
   ratchet) and `scripts/ux-audit-stack.ps1` (§11). Baseline: 36 of 44 gates failing (§12).
@@ -455,7 +457,33 @@ Ready: yes · Wave 1 · Needs: — · Review: —
   (`TAMIL_RASI_NAMES`, `dashboard-calendar-shared`) are gone — both now read the
   canonical tables in `lib/chart-utils`.
 
-#### DXA-09 `[ ]` Owner-ruling violations still on screen
+#### DXA-09 `[~] 2026-09-18` Owner-ruling violations still on screen
+Done (stripe + echo): `no accent stripes` Family 1 → **0 PASS**; `no Tamil text in
+English mode` `tools: TOOLS · கருவிகள் | திருமணப் பொருத்தம்` → **0 PASS**. Negative
+(fix removed) metrics `web/e2e/.artifacts/ux-audit-202609180620/`; passing metrics
+`web/e2e/.artifacts/ux-audit-202609180653/`. **Emoji third still open** — Wave 3,
+blocked on DXA-24's glyph set; its gate still FAILs and is deliberately not in
+`MUST_PASS`.
+- **What the gate cannot see, checked by hand:**
+  - the harness pins `lang: "en"`, so the Tamil half of the echo — the kicker
+    reading `கருவிகள் · கருவிகள்`, the same word twice, the shape the owner
+    flagged on the Family kicker — was never measured by any run in this file.
+    `components/dashboard-tools-tab-nova.test.tsx` now renders the tab in BOTH
+    languages: English contains no Tamil codepoint at all, Tamil shows the
+    kicker once and no second name for the hero tool. Verified against the fix
+    removed: both cases fail.
+  - the stripe probe walks top-level panes only, and a `borderInlineStart` is
+    invisible to a `border-left` grep — the two blind spots that let this one
+    live. `web/lib/accent-stripe-boundary.test.ts` is a two-direction source
+    ratchet over `components/dashboard-*.tsx` and `app/dashboard/`, keyed on
+    every spelling and on the width, with two survivors declared and reasoned
+    (the dasha timeline spine; `.om__rewritten`, a blockquote rule on a `<p>`).
+    Verified against the fix removed: it fails and names the file.
+- **Found while there, NOT fixed (outside the item):** `metaTa` for the
+  Panchangam Planner reads `இதில் · Calendar தாவல்` — English inside Tamil mode, the
+  mirror of this item and outside every gate here; and the Compatibility tool
+  card and the Porutham hero share one Tamil name (`பொருத்தம் / இணக்கம்`),
+  so Tamil mode offers two differently-scoped tools under the same title.
 Ready: stripe and echo, yes; emoji, partial (see DXA-24) · Wave 1 (stripe, echo) / Wave 3 (emoji) · Review: —
 - **Accent stripe:** `dashboard-family-charts-hybrid.tsx:1233` uses
   `borderInlineStart: 3px solid ${accent}` on the birth-condition cards.
@@ -475,7 +503,77 @@ Ready: stripe and echo, yes; emoji, partial (see DXA-24) · Wave 1 (stripe, echo
     set. Do not invent icons.
 - **Gate:** `DXA-09` stripes 0, Tamil-in-English 0, emoji/glyphs 0.
 
-#### DXA-10 `[ ]` The page starfield shows through titles and translucent cards
+#### DXA-10 `[x] 2026-09-18` The page starfield shows through titles and translucent cards
+Done: `no page-sky star inside a text line` 1 → **0 of 64 PASS**; `no star through a
+translucent surface` 7 → **0 of 64 PASS**. Negative (no fix in the tree) metrics
+`web/e2e/.artifacts/ux-audit-202609180638/`; passing metrics
+`web/e2e/.artifacts/ux-audit-202609180701/`, which regressed no other gate
+(diffed gate-by-gate against `ux-audit-202609180653/`). Review shots — Tamil,
+light and 390 px — in `web/e2e/.artifacts/dxa09-10-review/`. **Taken alone:
+DXA-17 is untouched**, the page stars keep `nova-celestial__star`, so Wave 2
+still has that item whole (owner's call, 2026-09-18). Commit `<pending>`.
+
+- **This gate could not fail, and was passing before any fix.** The page sky
+  draws stars only from dusk (`showStars = isLight || tod === "night" || tod ===
+  "dusk"`), so a run at 11:37 and again at 11:50 IST counted **zero** stars and
+  reported `0 / 0 PASS` on the unfixed tree
+  (`ux-audit-202609180607/`, `ux-audit-202609180620/`). The §12 baseline of
+  `2 / 6` was taken at 18:39 IST. That is the fourth item in this file recorded
+  green by a check that could not fail, so the gate was rebuilt before the item
+  was touched:
+  - a new `sky` phase pins the clock (`setFixedTime` — not `install`, which also
+    freezes the timers React needs — plus an explicit `timezoneId`) to 21:30
+    IST, in its own context so no other phase's day moves;
+  - it reports `starsRendered`, and the gate **fails as "not measurable"**
+    rather than passing when the sky painted nothing, or when a pane did not
+    render (the same rule DXA-07 already follows);
+  - it switches tabs by **clicking**, never `goto`. A per-tab `goto` on this dev
+    stack re-issues the CSP nonce, every lazy tab chunk is refused (DXA-35) and
+    the pane renders EMPTY — the first version of the phase reported "10 of 17
+    stars through a translucent surface" on Goals with a blank starfield in the
+    screenshot beside it;
+  - the occlusion test now reads a gradient's own stops. `backgroundColor`
+    alone called `.nova-hero` see-through — it paints
+    `linear-gradient(135deg, #1A1E31, #0A0E20)`, two solid colours, over a
+    transparent colour — and blamed it for nine stars it in fact hides.
+- **What the rebuilt gate still cannot see, checked by hand:**
+  - "in text" means the star's centre lands inside a **glyph box**. The Goals
+    title star sat just *after* "confidence.", inside the line box but past the
+    last glyph, so the probe scored it 0 both before and after. Confirmed by eye
+    instead: `ux-audit-202609180636/sky-goals.png` (star in the title line, one
+    under the subtitle) against `ux-audit-202609180701/sky-goals.png` (both
+    gone, the open-space stars below the cards kept).
+  - the phase walks `TABS` only — Journal and Settings are not in it, so the
+    audit's "dot after '30+ entries.' on Journal" is unmeasured either way.
+  - it runs dark only, and the light canvas shows stars at **every** hour
+    (`isLight ||`), so light is strictly more exposed than the theme the gate
+    tests. Checked by hand: `dxa09-10-review/en-light-tools.png`.
+- **Fix, against the three steps:**
+  1. *Mask the stars out of the content column.* Not literally possible as
+     written: `.nova-sky` is `inset: 0` of `.cd-page`, and `.cd-page` **is** the
+     content column, so it has no side gutters to retreat into. What the
+     rendered pages show is that the defect is vertical, not horizontal — every
+     tab opens with a kicker, an H1 and a subtitle on bare ground, and that is
+     where a star lands in a title. `.nova-sky__stars` now carries a
+     `mask-image` that fades the field in below that band, measured in the
+     column's own scroll space (top of the PAGE, not of the screen). Note this
+     inverts the audit's phrasing: the "top crown" is exactly where every page
+     title sits, so keeping stars in it is the defect.
+  2. *Cards sit on opaque surfaces.* Six Nova card surfaces were written
+     `background: linear-gradient(120deg, <tint>, transparent)` — a wash with no
+     ground under it. They keep the wash and now paint it over
+     `--color-surface`. Ending the gradient on an opaque colour is **not**
+     enough and was tried first: the tint stop is itself translucent
+     (`--color-accent-muted` is `rgba(214,168,95,0.12)`), so the sky still came
+     through the tinted end — measured, still 7 of 64.
+  3. *The sky fades in.* It carried `transition: opacity 600ms` and mounted at
+     its final opacity, so the transition had nothing to move from. One frame at
+     0 now gives it the arrival the declaration always described, on
+     `var(--ease-nova)` rather than the bare `ease` it used to name.
+- **Found while there, NOT fixed (outside the item):** the Family birth-condition
+  cards render `INFO` severity in the `mid` (caution) chip tone — "Sankranti
+  Birth" and "Dagda Rasi" are neutral notes wearing a warning colour. The chip
+  mapping is untouched by DXA-09, which only moved the border onto it.
 Ready: yes · Wave 1 · Needs: DXA-17 (same component) · Review: shots
 - **Evidence:**
   - A star sits between two words of the Goals title ("Plan·with confidence").
@@ -513,7 +611,7 @@ Ready: yes · Wave 0 · Needs: — · Review: —
 - **Gate:** `DXA-11` indicator transforms ≤ 1; pane opacity only `1`.
 
 #### DXA-41 `[x] 2026-09-18` Top-bar menus ignore a page click and Escape
-Done: DXA-41 More / notifications / account `Esc only / neither / neither` → `Escape + page click` PASS; negative (fix removed) metrics `web/e2e/.artifacts/ux-audit-202609180552/`, passing metrics `web/e2e/.artifacts/ux-audit-202609180557/`; commit uncommitted.
+Done: DXA-41 More / notifications / account `Esc only / neither / neither` → `Escape + page click` PASS; negative (fix removed) metrics `web/e2e/.artifacts/ux-audit-202609180552/`, passing metrics `web/e2e/.artifacts/ux-audit-202609180557/`; commit `c8852ee`.
 Ready: yes · Wave 1 · Needs: — · Review: —
 - **Problem:** the "click outside to close" layer `.cd-overlay`
   (`dashboard.css:199-210`, `position: fixed; inset: 0`) is rendered inside
@@ -706,7 +804,7 @@ Ready: yes · Wave 2 · Needs: DXA-14 · Review: shots + Tamil
   exactly one `section.om`.
 
 #### DXA-38 `[x] 2026-09-18` Tamil date hidden until the server answers (D6)
-Done: `resolveTamilDate(undefined, …)` returns `""` (negative with the fallback restored: `Purattasi 1`); Calendar and drawer reserve an `aria-hidden` 8ch blank slot and Family drops the empty segment. Tamil browser check: loaded server value rendered in `web/e2e/.artifacts/dxa38-tamil-calendar.png`; pending-state Tamil RTL check passes. `getTamilMonthDate` and `TAMIL_MONTH_STARTS` retained without deletion approval; eslint does not flag them. Commit uncommitted.
+Done: `resolveTamilDate(undefined, …)` returns `""` (negative with the fallback restored: `Purattasi 1`); Calendar and drawer reserve an `aria-hidden` 8ch blank slot and Family drops the empty segment. Tamil browser check: loaded server value rendered in `web/e2e/.artifacts/dxa38-tamil-calendar.png`; pending-state Tamil RTL check passes. `getTamilMonthDate` and `TAMIL_MONTH_STARTS` retained without deletion approval; eslint does not flag them (re-confirmed 2026-09-18 on the changed files with `--max-warnings=0`). Commit `1b22e36`.
 Ready: yes · Wave 1 · Needs: — · Review: astrologer (informational)
 - **Problem:** `resolveTamilDate` falls back to `getTamilMonthDate`
   (`dashboard-calendar-shared.tsx:109-119`). That is a year-independent table
@@ -1195,6 +1293,10 @@ What made the first draft insufficient, fixed in this revision:
   node web\scripts\ux-audit.mjs --phases load,tabs  # a subset
   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ux-audit-stack.ps1 -Action down
   ```
+  Phases: `load, tabs, today, hover, overlays, reduced, light, phone, sky`.
+  `sky` (added 2026-09-18, DXA-10) opens its own context and pins the clock to
+  21:30 IST, because the page starfield only paints from dusk — measured in
+  daylight its gates passed with nothing fixed.
 - **Same audit as a Playwright test** (DXA-34), with the ratchet:
   ```powershell
   Set-Location D:\sanstro\web
@@ -1261,11 +1363,11 @@ compare pass/fail, not decimals.
 | DXA-07 | the selected day replaces the held one | (added 09-18) | — |
 | DXA-08 | no raw enums / "None" / upper-case rasi names | `ARDHASHTAMA_SANI`; `MITHUNAM`, `DHANUSU`, … | PASS (2026-09-18; `ux-audit-dxa08-final4`) |
 | DXA-08 | no rasi name read off the response (source ratchet) | (added 09-18) 9 surfaces | PASS (2026-09-18; `lib/rasi-display-boundary.test.ts`) |
-| DXA-09 | no accent stripes | Family: 1 | FAIL |
-| DXA-09 | no Tamil in English mode | Tools: echo + "திருமணப் பொருத்தம்" | FAIL |
-| DXA-09 | no emoji / text glyphs as icons | Calendar, Family, Journal, Today | FAIL |
-| DXA-10 | no page-sky star inside a text line | 2 | FAIL |
-| DXA-10 | no star through a translucent surface | 6 | FAIL |
+| DXA-09 | no accent stripes | Family: 1 | PASS (2026-09-18; `ux-audit-202609180653`) |
+| DXA-09 | no Tamil in English mode | Tools: echo + "திருமணப் பொருத்தம்" | PASS (2026-09-18; same run) |
+| DXA-09 | no emoji / text glyphs as icons | Calendar, Family, Journal, Today | FAIL (Wave 3, needs DXA-24) |
+| DXA-10 | no page-sky star inside a text line | 2 — but see below | PASS (2026-09-18; `ux-audit-202609180701`) |
+| DXA-10 | no star through a translucent surface | 6 — but see below | PASS (2026-09-18; same run) |
 | DXA-11 | reduced motion: indicator does not move | 3 transforms | FAIL |
 | DXA-11 | reduced motion: pane without a fade | 1 | PASS |
 | DXA-12 | hover feedback ≥ 95% | 2 / 22 | FAIL |
@@ -1283,9 +1385,17 @@ compare pass/fail, not decimals.
 | DXA-27 | no horizontal overflow | none | PASS |
 | DXA-28 | activity board within 2.5 screens | 4.55 | FAIL |
 | DXA-37 | Family shows exactly one reading | 2 | FAIL |
-| DXA-41 | closes on Escape and page click: More / notifications / account | Esc only / neither / neither | FAIL × 3 |
+| DXA-41 | closes on Escape and page click: More / notifications / account | Esc only / neither / neither | PASS × 3 (2026-09-18; `c8852ee`) |
 | DXA-41 | same: Ask panel, day drawer | both work | PASS × 2 |
 | — | console errors (dev CSP chunk warnings included) | 20 | INFO |
+
+**The two DXA-10 rows are not comparable to a later run.** They were taken at
+18:39 IST, and the page sky paints stars only from dusk — the same gates read
+`0 / 0 PASS` on the *unfixed* tree at 11:37 and 11:50 IST. Since 2026-09-18 they
+come from the `sky` phase, which pins the clock to 21:30, refuses the
+measurement when the sky painted nothing or a pane did not render, and reads a
+gradient's own stops rather than its `backgroundColor`. Its own before/after is
+`1 / 7` → `0 / 0`, of 64 stars rendered. See DXA-10.
 
 ## 13. Waves and dependencies
 

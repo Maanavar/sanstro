@@ -330,9 +330,10 @@ export function DashboardToolsTabNova({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
       <div>
-        <Kicker as="div">
-          {lang === "ta" ? "கருவிகள்" : "Tools"} · <span style={{ fontFamily: "var(--font-tamil), sans-serif", letterSpacing: 0, textTransform: "none" }}>கருவிகள்</span>
-        </Kicker>
+        {/* DXA-09: active language only. This kicker echoed "கருவிகள்" beside
+            its own translation, so English mode printed Tamil and Tamil mode
+            printed the same word twice. */}
+        <Kicker as="div">{lang === "ta" ? "கருவிகள்" : "Tools"}</Kicker>
         {/* audit B-1: page title is the Tools tab's sole page heading. */}
         <h1 style={{ margin: "6px 0 0", fontFamily: "var(--font-display)", fontSize: "var(--display-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>
           {lang === "ta" ? "உங்கள் ஜாதகங்களை அறிந்த கருவிகள்" : "Calculators that know your charts"}
@@ -343,17 +344,26 @@ export function DashboardToolsTabNova({
       </div>
 
       {/* Hero tool: Porutham — Classic's own "most used" primary tool */}
+      {/* DXA-10: the accent wash keeps its `transparent` end, but now over an
+          opaque card ground. Written as one `background: linear-gradient(…,
+          transparent)` the card had no ground at all, and the page starfield
+          showed through it — five stars on this surface alone. The same shape
+          was repeated on five other Nova card surfaces; all six now paint the
+          wash over `--color-surface`. */}
       <button type="button" onClick={() => onOpenTool("porutham")} style={{
-        background: "linear-gradient(120deg, var(--color-accent-muted), transparent)",
+        backgroundColor: "var(--color-surface)", backgroundImage: "linear-gradient(120deg, var(--color-accent-muted), transparent)",
         border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-lg)", padding: "var(--space-6) var(--space-7)",
         display: "flex", gap: "var(--space-6)", alignItems: "center", flexWrap: "wrap", cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%",
       }}>
         <div style={{ flex: "1", minWidth: "240px", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+            {/* DXA-09: the Tamil gloss "திருமணப் பொருத்தம்" printed in both
+                modes — Tamil in English mode, and a second name for the tool
+                right above its own title in Tamil mode. The title below is the
+                tool's name in the active language. */}
             <Kicker color="var(--color-accent-strong)" style={{ letterSpacing: "0.14em" }}>
               {lang === "ta" ? "அதிகம் பயன்படுத்தப்படுவது" : "Most used"}
             </Kicker>
-            <span style={{ fontFamily: "var(--font-tamil), sans-serif", fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>திருமணப் பொருத்தம்</span>
           </div>
           <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 600, color: "var(--color-text-strong)" }}>
             {lang === "ta" ? "பொருத்தம் / இணக்கம்" : "Marriage Porutham"}

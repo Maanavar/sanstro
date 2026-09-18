@@ -361,7 +361,7 @@ export function DashboardExploreYogamNova({
           </Card>
 
           {yoga.isPresent && powerText && (
-            <Card variant="accent" style={{ background: "linear-gradient(120deg, var(--color-accent-muted), transparent)" }}>
+            <Card variant="accent" style={{ backgroundColor: "var(--color-surface)", backgroundImage: "linear-gradient(120deg, var(--color-accent-muted), transparent)" }}>
               <Kicker color="var(--color-accent-strong)">{lang === "ta" ? "உங்கள் ஜாதகத்தில்" : "In your chart"}</Kicker>
               <p style={{ margin: 0, fontSize: "var(--text-base)", lineHeight: 1.6, color: "var(--color-text)" }}>{astroText(powerText)}</p>
               <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", alignItems: "center" }}>

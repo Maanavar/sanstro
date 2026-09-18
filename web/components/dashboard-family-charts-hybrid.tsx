@@ -1230,11 +1230,15 @@ export function DashboardFamilyChartsHybrid({
             {readingChart.birthConditions && readingChart.birthConditions.length > 0 && (
               <div style={{ display: "grid", gap: "var(--space-3)" }}>
                 {readingChart.birthConditions.map((condition) => {
-                  const accent = condition.severity === "BOOST" ? "var(--color-high)" : condition.severity === "ALERT" ? "var(--color-mid)" : "var(--color-accent-secondary)";
+                  // DXA-09: the tone rides the chip, and the card takes a full
+                  // 1 px border in the same tone — never an accent left stripe
+                  // (owner ruling; it was written as `borderInlineStart`, which
+                  // a `border-left` grep cannot see).
+                  const toneBorder = condition.severity === "BOOST" ? "var(--color-high-border)" : "var(--color-mid-border)";
                   return (
-                    <div key={condition.code} style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", padding: "var(--space-4) var(--space-5)", borderRadius: "var(--radius-lg)", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderInlineStart: `3px solid ${accent}` }}>
+                    <div key={condition.code} style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", padding: "var(--space-4) var(--space-5)", borderRadius: "var(--radius-lg)", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: `1px solid ${toneBorder}` }}>
                       <Chip tone={condition.severity === "BOOST" ? "high" : "mid"}>{lang === "ta" ? condition.titleTa : condition.titleEn}</Chip>
-                      <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text-secondary)" }}>{lang === "ta" ? condition.descriptionTa : condition.descriptionEn}</p>
+                      <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-text)" }}>{lang === "ta" ? condition.descriptionTa : condition.descriptionEn}</p>
                     </div>
                   );
                 })}
