@@ -764,7 +764,68 @@ Ready: yes · Wave 2 · Needs: DXA-17 · Review: shots
   and the Understand library. Once per session; headings and cards only, never
   table rows or chart cells.
 
-#### DXA-37 `[ ]` One reading with a length switch (D4)
+#### DXA-37 `[~] 2026-09-18` One reading with a length switch (D4)
+Built (commit `4c41ef9`); **awaiting the owner's shots review**. Gate
+`Family shows exactly one reading` **2 → 1 PASS**; full-harness metrics
+`web/e2e/.artifacts/ux-audit-202609180924/`, review shots
+`web/e2e/.artifacts/dxa37-39-review/`. `[~]` not `[x]`: a review marker is never dated without an
+explicit "approved".
+
+- **Tamil, decided under delegation, not guessed.** Switch labels are
+  **"2 நிமிடம்" / "4 நிமிடம்"**, the tablist is
+  **"வாசிப்பு நேரம்"**. The singular after a numeral is this app's own
+  established convention — `${m} நிமிடம்` in `lib/public-today.ts` and
+  mobile's inbox, "15 நிமிட வித்தியாசம்" in `lib/i18n.ts`, "90 நிமிடம்"
+  in the glossary. The plural (நிமிடங்கள்) appears only where the number is
+  spelled out in prose, which is the register of the H2 beside the control
+  ("இரண்டு நிமிடங்களில்"). Control and title differ on purpose. Say so
+  if you read it differently; it is one constant.
+- **Structure.** `DashboardChartReading` holds BOTH fetches (new hooks
+  `useOneMinuteReading` / `useFiveMinuteReading`) and hands each view its data,
+  so toggling never re-requests. The `.om` markup the two readings shared *by
+  copy* now lives once in `dashboard-reading-shell.tsx`; the long reading's
+  component is 70 lines. `ViewSwap` (DXA-14's primitive) is built in
+  `components/ui/view-swap.tsx` and pins the reading's own top across the swap.
+- **Steps 1–9, as built:** (1) done — one `section.om`, kit `Segmented` in the
+  header. (2) done. (3) done — no switch at all when the long reading 404s.
+  (4) done — `vinaadi-reading-length`, default 2 min. (5) done. (6) done — both
+  titles and both labels read one `READING_MINUTES` constant, so a re-measured
+  reading cannot advertise two numbers for itself. (7) done — the
+  pending-question machinery stays with the short reading and now renders
+  through the shared shell. (8) done — Today is untouched. (9) done — `.om__next`
+  and the recap link take a Lucide `ArrowRight`; the "→" glyphs are gone.
+- **DXA-14 is NOT done by this.** Only its `ViewSwap` primitive exists. The Tools
+  hub ⇄ tool swap, the other `Segmented`-driven views, the Understand hub ⇄
+  detail and the `Segmented` sliding thumb are all still open.
+- **Step 5's anchor was built, measured, and removed.** The item asked to pin the
+  header across the swap because the long body is ~2x taller. With the page
+  scroll settled it moves the reading's top by **0px in both directions**: a view
+  grows and shrinks BELOW its own header, so the header does not move. The one
+  case that could jump — the browser clamping the scroll when a shrink makes the
+  page shorter than the current offset — needs the swap within a viewport of the
+  page bottom, and a reader cannot click a control they cannot see (on Family the
+  reading sits ~8,000px above the end of the page). Taken out rather than left in
+  looking load-bearing; `ui/view-swap.tsx` records the measurement so DXA-14 does
+  not re-derive it.
+  - The first "867px drift in English, 518px in Tamil" reading was **the probe**,
+    not the product: the baseline was taken while a smooth `scrollIntoView` was
+    still in flight. Settle the scroll before measuring anything on this page.
+- **What the tests cannot see:** the RTL suite mocks `ViewSwap` — framer keeps an
+  exiting view mounted, so unmocked it would render two sections in jsdom and
+  the count assertions would be measuring the mock. The crossfade is therefore a
+  **browser-only** check; shots below.
+- **Behaviour change worth knowing:** switching to 4 min stops the two-minute
+  reading's read-marking for that visit (its observer needs the section in the
+  DOM), so Today may still show that reading in full. Family does not collapse
+  either way — `collapseWhenRead` is Today-only.
+- **One gate moved the wrong way, and it is not worth chasing here:** using the
+  shared `Segmented` brings its own 11px track radius (`dashboard-nova.css`)
+  onto Family, so `DXA-22` counts **9 → 10** there. Still FAIL either way; the
+  off-scale value is pre-existing in the kit primitive and consolidating it is
+  DXA-22's own scope. `DXA-28` reads 4.63 against the previous run's 2.63 — that
+  earlier run is the outlier (the §12 baseline is 4.55), not a regression.
+- **`showBasis` resets across a switch.** Each length has its own disclosure
+  text; not worth a shared controlled prop.
 Ready: yes · Wave 2 · Needs: DXA-14 · Review: shots + Tamil
 - **Problem:** Family renders `DashboardOneMinuteReading` ("Your chart in two
   minutes") and `DashboardFiveMinuteReading` ("… four minutes") stacked
@@ -823,7 +884,49 @@ Ready: yes · Wave 1 · Needs: — · Review: astrologer (informational)
      say so in the handoff instead of deleting them.
 - **Tests:** a unit test that `resolveTamilDate(undefined, …)` returns `""`.
 
-#### DXA-39 `[ ]` Touch-target policy (D5, decided by the auditor)
+#### DXA-39 `[~] 2026-09-18` Touch-target policy (D5, decided by the auditor)
+Built (commit `bea29ea`), **awaiting the owner's sign-off on their own
+touchscreen laptop** — the one review this file cannot self-serve. Marked `[~]`, not `[x]`: a review marker
+is never dated without an explicit "approved".
+
+- **Measured, three device classes** (real browser, the real stylesheet):
+
+  | control | mouse-only | hybrid laptop (visual / hit) | phone |
+  |---|---|---|---|
+  | `.ui-btn` | 38px | **38px** / 46px | 44px |
+  | `.ui-btn--sm` | 32px | **32px** / 46px | 44px |
+  | `.ui-pill` | 32px | **32px** / 46px | 44px |
+  | `button.ui-chip` | 28px | **28px** / 46px | 44px |
+  | `.ui-segmented__btn` | 34px | **34px** / 44px | 44px |
+  | `.ui-toggle` | 22px | **22px** / 46px | 22px |
+
+  Zero controls change size on a hybrid, and every hit area clears 44px. That
+  is D5 exactly: the owner's laptop should look **identical** to any other
+  laptop, and only the phone column should grow.
+- **Gate:** `web/app/dashboard/touch-policy.test.ts` (node env) parses the
+  stylesheet and fails on the SHAPE, not on any one rule — a coarse-pointer
+  query that does not exclude hover and sets a size-affecting property, a
+  `min-height` on `.ui-toggle`, or a phone block missing its 44px floor.
+  Verified against the pre-fix stylesheet: 3 of its 4 cases fail.
+- **What that gate cannot see, checked by hand:** it reads CSS text, so it
+  cannot know whether the slop actually *renders* 44px. The inset is derived,
+  `calc((var(--touch-target) - 100%) / -2)`, and the table above is a browser
+  measuring it. Chromium cannot emulate a hybrid (CDP `setEmulatedMedia`
+  ignores pointer/hover features — it reported the same media state for all
+  three profiles — and `hasTouch: true` produces `pointer: coarse` +
+  `hover: none`, i.e. a phone), so the hybrid column comes from forcing the
+  `any-pointer` rules on and confirming the layout does not move.
+- **One visible change on the owner's laptop, and it is the point of the
+  review:** the Calendar rail's panel-heading buttons go 28px → 32px. A
+  `(pointer: coarse) and (hover: hover)` rule was pinning them to 28px — a
+  counterweight to the bare 44px rule, and it overshot, since the kit's own
+  `--sm` is 32px. With the bare rule gone the counterweight goes too, and a
+  hybrid laptop now renders what every other laptop renders. That rule was
+  described in this item as already complying; it did not.
+- **Also fixed, rule 4:** `button.ui-chip` measured **23px** on every pointer —
+  under WCAG 2.5.8 AA's 24px, never mind D5's 28px floor. It now has a 28px
+  base. `span.ui-chip` (a static label, which `Chip` renders when it has no
+  handler) is untouched.
 Ready: yes · Wave 2 · Needs: — · Review: shots (owner's own touchscreen laptop)
 - **Decision: size follows the device, hit area follows the finger.**
   1. **Phones and tablets**, `@media (pointer: coarse) and (hover: none)`: 44 px
@@ -1384,7 +1487,8 @@ compare pass/fail, not decimals.
 | DXA-27 | no overprinted tab labels | Goals / Life Areas | FAIL |
 | DXA-27 | no horizontal overflow | none | PASS |
 | DXA-28 | activity board within 2.5 screens | 4.55 | FAIL |
-| DXA-37 | Family shows exactly one reading | 2 | FAIL |
+| DXA-37 | Family shows exactly one reading | 2 | PASS (2026-09-18) — awaiting shots review |
+| DXA-39 | touch policy: no size change on a hybrid | (added 09-18) | PASS (`app/dashboard/touch-policy.test.ts`) — awaiting the owner's device review |
 | DXA-41 | closes on Escape and page click: More / notifications / account | Esc only / neither / neither | PASS × 3 (2026-09-18; `c8852ee`) |
 | DXA-41 | same: Ask panel, day drawer | both work | PASS × 2 |
 | — | console errors (dev CSP chunk warnings included) | 20 | INFO |
@@ -1403,7 +1507,7 @@ gradient's own stops rather than its `backgroundColor`. Its own before/after is
 |---|---|---|
 | 0: tooling and safety (**done 2026-09-17**) | DXA-40, DXA-11, DXA-36, DXA-34 | a safe referee first; MotionConfig unblocks all motion work |
 | 1: trust | DXA-01, 02, 03, 04, 05, 07, 08, 09 (stripe, echo), 38, 41, 10 | the broken moments users see on every visit |
-| 2: feel | DXA-19 (tokens) → 39 → 12 → 13 → 14 → 15 → 06 → 16 → 17 → 18 → 37 | elevation tokens feed hover and overlays; the touch policy feeds `Pressable`; `ViewSwap` feeds the reading switch |
+| 2: feel | ~~DXA-19 (tokens) → 39 → 12 → 13 → 14 → 15 → 06 → 16 → 17 → 18 → 37~~ → **39 and 37 landed 2026-09-18 out of order** (both `[~]`, awaiting review); remaining: 19 → 12 → 13 → 14 → 15 → 06 → 16 → 17 → 18 | elevation tokens feed hover and overlays. 37 did not in fact need 19; it needed `ViewSwap`, which it built — DXA-14's other applications are still open |
 | 3: finish | DXA-20, 21, 22, 23, 24 (Lucide part), 25, 26, 09 (emoji), 27, 28 | rhythm and type after the primitives exist; the phone bar after D1 and `Presence` |
 | 4: signature | DXA-30, 29, 31, 32, 35; 33 when assets exist | each behind an owner-reviewed preview |
 
