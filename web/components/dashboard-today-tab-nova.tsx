@@ -116,6 +116,10 @@ export type DashboardTodayTabNovaProps = {
   /** DXA-03: data still on its way. While true, cards show placeholders
    *  instead of their empty-state copy. */
   personalPending?: boolean;
+  /** DXA-07: everything on this pane is still the previously selected day's,
+   *  held on screen while the newly selected day loads. The pane dims and the
+   *  day it describes is read from the data, not from `selectedDate`. */
+  showingPreviousDay?: boolean;
   familyPending?: boolean;
   remedyMemberCharts?: Array<Pick<MemberChart, "memberId" | "displayName" | "dailyGuidance">>;
   lifeAreas?: LifeAreasResponseData | null;
@@ -459,6 +463,7 @@ export function DashboardTodayTabNova({
   weekAhead,
   familyAggregate,
   personalPending = false,
+  showingPreviousDay = false,
   familyPending = false,
   remedyMemberCharts = [],
   lifeAreas,
@@ -553,7 +558,15 @@ export function DashboardTodayTabNova({
   // festival off this compact slot.
   const primaryFestival = panchangam?.festivals.find((f) => !festivalTags(f).includes("observance")) ?? null;
 
-  const isToday = selectedDate === todayDate;
+  // DXA-07 — the day this pane is actually describing. While the newly
+  // selected day loads, the panchangam, guidance and week strip on screen are
+  // still the previous day's; reading the picker's date here instead would
+  // print tomorrow's date over today's star, and would re-run every "is this
+  // window running now?" comparison against a date the data does not cover.
+  // Falls back to the picker when there is no panchangam to ask (a failed
+  // section, or the very first load).
+  const dataDate = panchangam?.dateLocal ?? selectedDate;
+  const isToday = dataDate === todayDate;
 
   // T8 / A-013 — the day's three avoid-kalas, straight from the panchangam.
   // These are the spans a recommended window may never overlap; the ruling is
@@ -570,10 +583,10 @@ export function DashboardTodayTabNova({
   // fallback for the case the ruling cannot apply to — no windows carrying a
   // kala, e.g. a stale-snapshot response — so the hero never goes blank.
   const recommended = pickRecommendedWindow(personalDailyGuidance?.bestWindows, avoidSpans, {
-    now, isToday, dateLocal: selectedDate, timeZone: panchangamTimezone,
+    now, isToday, dateLocal: dataDate, timeZone: panchangamTimezone,
   });
   const bestWindow = recommended?.window
-    ?? pickFeaturedWindow(personalDailyGuidance?.bestWindows, now, isToday, selectedDate, panchangamTimezone);
+    ?? pickFeaturedWindow(personalDailyGuidance?.bestWindows, now, isToday, dataDate, panchangamTimezone);
   // DASH-10.1 (2026-07-16): Abhijit never fully disappears — surfaced as a
   // small secondary line when another window won the hero instead. It now lives
   // inside "Other traditional timings" rather than beside the promoted window.
@@ -596,7 +609,7 @@ export function DashboardTodayTabNova({
   // a journal prompt for today — reuses the already-fetched 3-day
   // dailyGuidanceRange (today..+2), no extra network call. Gated by isToday so
   // opening a past or future date from the calendar never triggers it.
-  const tomorrowIso = addDays(selectedDate, 1);
+  const tomorrowIso = addDays(dataDate, 1);
   const tomorrowGuidance = dailyGuidanceRange?.items.find((item) => item.dateLocal === tomorrowIso) ?? null;
   const showEveningPreview = eveningPreviewOn && isToday && zoneHour >= 20 && tomorrowGuidance !== null;
   // The switch itself is only worth hero space in the window it can act in —
@@ -619,8 +632,8 @@ export function DashboardTodayTabNova({
     countdown: string | null;
   } {
     if (!span || !isToday) return { phase: null, countdown: null };
-    const startMs = timeOnDateToMs(selectedDate, span.start, panchangamTimezone);
-    const endMs = timeOnDateToMs(selectedDate, span.end, panchangamTimezone);
+    const startMs = timeOnDateToMs(dataDate, span.start, panchangamTimezone);
+    const endMs = timeOnDateToMs(dataDate, span.end, panchangamTimezone);
     if (startMs === null || endMs === null) return { phase: null, countdown: null };
     const nowMs = now.getTime();
     if (nowMs < startMs) return { phase: "before", countdown: formatDuration(startMs - nowMs, lang) };
@@ -692,7 +705,23 @@ export function DashboardTodayTabNova({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+    // DXA-07 — `data-stale` while the newly selected day is still loading: the
+    // day on screen is the previous one, held in place rather than torn down,
+    // and dimmed so it reads as "being replaced" instead of as the answer.
+    // `aria-busy` says the same thing to a screen reader, which cannot see the
+    // dim or the sub-bar's hairline.
+    <div
+      className="nova-today-pane"
+      // The day this pane is rendering, as opposed to the one the picker
+      // holds. They differ only while `data-stale` is set — which is what the
+      // DXA-07 probe reads to prove the held day is actually replaced, and
+      // not merely held forever (a stall and a fix look identical to a gate
+      // that only measures height).
+      data-day={dataDate}
+      data-stale={showingPreviousDay ? "" : undefined}
+      aria-busy={showingPreviousDay || undefined}
+      style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}
+    >
       {/* ===== 1. Hero: greeting, one theme line, mood chips, embedded
           best-window "next action" tile, and the one canonical score.
 
@@ -712,7 +741,7 @@ export function DashboardTodayTabNova({
             `limbNow` promotion. */}
         <div className="nova-hero-masthead">
           <span className="nova-hero-masthead__date">
-            {weekday && `${weekday}, `}{formatDateLabel(selectedDate)}
+            {weekday && `${weekday}, `}{formatDateLabel(dataDate)}
             {panchangam?.tamilDate && <> · <span style={{ color: "var(--color-accent-strong)" }}>{lang === "ta" ? panchangam.tamilDate.ta : panchangam.tamilDate.en}</span></>}
           </span>
           {/* Star · tithi · paksha · observance. Finding 13 put the star and
@@ -1599,7 +1628,7 @@ export function DashboardTodayTabNova({
         board={personalDailyGuidance?.activityBoard}
         lang={lang}
         chartId={activeChartId || null}
-        selectedDate={selectedDate}
+        selectedDate={dataDate}
         bestWindow={bestWindow}
         now={now}
         isToday={isToday}
@@ -1614,7 +1643,7 @@ export function DashboardTodayTabNova({
         lang={lang}
         panchangam={panchangam}
         weekAhead={weekAhead}
-        selectedDate={selectedDate}
+        selectedDate={dataDate}
         now={now}
         timeZone={panchangamTimezone}
         onGoToCalendar={onGoToCalendar}
@@ -1626,7 +1655,7 @@ export function DashboardTodayTabNova({
         personalChartSummary={personalChartSummary}
         dasha={dasha}
         dashaAntar={dashaAntar}
-        selectedDate={selectedDate}
+        selectedDate={dataDate}
         lifeAreas={lifeAreas}
         pending={personalPending}
         onGoToChart={onGoToChart}
@@ -1700,7 +1729,7 @@ export function DashboardTodayTabNova({
             {activeChartId && (
               <button
                 type="button"
-                onClick={() => void downloadJadhagamPdf(activeChartId, selectedDate, lang)}
+                onClick={() => void downloadJadhagamPdf(activeChartId, dataDate, lang)}
                 style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1_5)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-accent-strong)", background: "none", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)", cursor: "pointer", fontFamily: "inherit", ...(onGoToCharts ? {} : { marginLeft: "auto" }) }}
               >
                 ⤓ PDF

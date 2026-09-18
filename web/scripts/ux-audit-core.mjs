@@ -706,11 +706,73 @@ export async function runAudit({ browser, base, out, phases = ALL_PHASES, prod =
       metrics.today = { sections: await sectionShots(run, page, "today", 8) };
       await page.evaluate(() => window.scrollTo(0, 0));
       await sleep(400);
-      metrics.today.dateChange = await page.evaluate(async () => {
+      // A day that never loaded would pass this probe for the wrong reason:
+      // DXA-05's pending hero stands at the loaded height by construction, so
+      // measuring a placeholder page against a placeholder page returns a
+      // perfect ratio while proving nothing. Demand a loaded, *settled* day
+      // first and record an error otherwise — which withholds the gates
+      // rather than passing them.
+      //
+      // Both halves are needed. Markers alone fire too early: the hero fills
+      // (no `--pending`, no DXA-03 placeholder, no `.skel`) while the sections
+      // below it are still mounting, and a baseline taken there measured
+      // 2,072px against the same page's settled 4,074px. `settle()` does not
+      // cover it either — it gives up after ~32s, and this stack needs ~11s
+      // just to fill the pane after a cold compile. So: the markers, and then
+      // a document height that has not moved for 2s.
+      const loaded = await (async () => {
+        let lastHeight = -1;
+        let stableFor = 0;
+        for (let i = 0; i < 150; i++) {
+          const now = await page.evaluate(() => {
+            const pane = document.querySelector(".nova-today-pane");
+            return {
+              ready: !!pane
+                && !document.querySelector(".nova-hero--pending")
+                && document.querySelectorAll("[data-pending-placeholder]").length === 0
+                && document.querySelectorAll(".skel").length === 0,
+              // The pane's own box, the same number the gate measures — and
+              // not `documentElement.scrollHeight`, which does not track it
+              // (the dashboard scrolls an inner element). Watching the
+              // document instead declared "settled" while sections were still
+              // mounting, and every baseline taken that way was a different
+              // half-built page: 1,513 / 2,072 / 2,940 / 4,052 across runs of
+              // the same account.
+              height: pane ? Math.round(pane.getBoundingClientRect().height) : -1,
+            };
+          }).catch(() => ({ ready: false, height: -1 }));
+          stableFor = now.ready && now.height === lastHeight ? stableFor + 1 : 0;
+          lastHeight = now.height;
+          if (stableFor >= 5) return true;
+          await sleep(400);
+        }
+        return false;
+      })();
+      metrics.today.dateChange = { error: "the day never finished loading — nothing to measure a date change against" };
+      // The state the date change is measured *from*, so a surprising ratio
+      // can be read rather than guessed at.
+      await shot(run, page, "today-before-date-change");
+      // What the pane actually consisted of at the baseline, so a surprising
+      // `pageBefore` names its own cause instead of needing a bisect.
+      metrics.today.baselineSections = await page.evaluate(() => {
+        const pane = document.querySelector(".nova-today-pane");
+        if (!pane) return null;
+        return [...pane.children].map((el) => ({
+          h: Math.round(el.getBoundingClientRect().height),
+          text: (el.textContent || "").trim().slice(0, 40),
+        }));
+      });
+      if (loaded) metrics.today.dateChange = await page.evaluate(async () => {
         const input = document.querySelector("#dashboard-date");
         const hero = document.querySelector(".nova-hero");
         if (!input || !hero) return { error: "no date input or hero" };
         const before = hero.getBoundingClientRect().height;
+        // Both baselines are read BEFORE the date is dispatched. Reading the
+        // pane afterwards, even in the same synchronous block, already caught
+        // the collapsed pane on a build without the fix (1,513px against a
+        // settled 3,515px) and reported a perfect ratio against it.
+        const paneOf = () => document.querySelector(".nova-today-pane");
+        const paneBefore = paneOf() ? paneOf().getBoundingClientRect().height : 0;
         const [y, m, d] = input.value.split("-").map(Number);
         const nd = new Date(y, m - 1, d + 1);
         const next = `${nd.getFullYear()}-${String(nd.getMonth() + 1).padStart(2, "0")}-${String(nd.getDate()).padStart(2, "0")}`;
@@ -718,12 +780,20 @@ export async function runAudit({ browser, base, out, phases = ALL_PHASES, prod =
         input.dispatchEvent(new Event("input", { bubbles: true }));
         input.dispatchEvent(new Event("change", { bubbles: true }));
         const t0 = performance.now();
+        // The hero alone does not carry this finding: the audit measured the
+        // page at 4,029 -> 1,376px, i.e. everything below the hero went too.
+        // Measured on the pane's own rendered box rather than
+        // `documentElement.scrollHeight`, which does not track it — the
+        // dashboard scrolls an inner element, and that number read 4,074
+        // against a 3,515px pane.
         let minHero = before;
+        let minPane = paneBefore;
         const animations = new Set();
         await new Promise((res) => {
           const tick = (now) => {
             const h = document.querySelector(".nova-hero");
             minHero = Math.min(minHero, h ? h.getBoundingClientRect().height : 0);
+            minPane = Math.min(minPane, paneOf() ? paneOf().getBoundingClientRect().height : 0);
             for (const a of document.getAnimations()) {
               const n = a.animationName || a.transitionProperty || a.id || "waapi";
               if (!/twinkle|spin|breathe|pulse|shimmer|travel/.test(n)) animations.add(n);
@@ -732,8 +802,29 @@ export async function runAudit({ browser, base, out, phases = ALL_PHASES, prod =
           };
           requestAnimationFrame(tick);
         });
-        return { next, heroBefore: Math.round(before), heroMin: Math.round(minHero), minRatio: +(minHero / before).toFixed(2), animations: [...animations].slice(0, 12) };
+        return {
+          next,
+          heroBefore: Math.round(before), heroMin: Math.round(minHero),
+          minRatio: +(minHero / before).toFixed(2),
+          paneBefore: Math.round(paneBefore), paneMin: Math.round(minPane),
+          paneMinRatio: paneBefore ? +(minPane / paneBefore).toFixed(2) : 0,
+          docHeight: document.documentElement.scrollHeight,
+          animations: [...animations].slice(0, 12),
+        };
       });
+      // Holding the previous day is only a fix if the selected day then
+      // replaces it. A gate that measures height alone cannot tell the two
+      // apart, so ask the pane which day it is rendering (DXA-07).
+      if (!metrics.today.dateChange.error) {
+        metrics.today.dateChange.arrived = await page
+          .waitForFunction(
+            (want) => document.querySelector(".nova-today-pane")?.getAttribute("data-day") === want,
+            metrics.today.dateChange.next,
+            { timeout: 20000 },
+          )
+          .then(() => true)
+          .catch(() => false);
+      }
       await settle(page, 800);
       await shot(run, page, "today-next-day");
       save();
@@ -908,7 +999,14 @@ export function computeGates(m, { prod = false } = {}) {
     const full = switches.reduce((a, [, t]) => a + t.switch.skelFullOpacityFrames, 0);
     add("DXA-06", "frames showing a skeleton at full opacity on first tab visits", full, prod ? full === 0 : null);
   }
-  if (m.today && m.today.dateChange && !m.today.dateChange.error) add("DXA-07", "hero keeps ≥ 90% height through a date change", m.today.dateChange.minRatio, m.today.dateChange.minRatio >= 0.9);
+  if (m.today && m.today.dateChange) {
+    const dc = m.today.dateChange;
+    // On an error every gate reports it and fails: a measurement that could
+    // not be taken is not a measurement that passed.
+    add("DXA-07", "hero keeps ≥ 90% height through a date change", dc.error ?? dc.minRatio, !dc.error && dc.minRatio >= 0.9);
+    add("DXA-07", "Today pane keeps ≥ 90% height through a date change", dc.error ?? dc.paneMinRatio, !dc.error && dc.paneMinRatio >= 0.9);
+    add("DXA-07", "the selected day replaces the held one", dc.error ?? (dc.arrived ? dc.next : "still on the previous day"), dc.arrived === true);
+  }
   if (m.tabs) {
     const enums = list((c) => c.rawEnums);
     add("DXA-08", "no raw enums / 'None' / upper-case rasi names", [...enums, ...list((c) => c.upperNames)].join(" ; ") || `none (None×${sum((c) => c.noneValues)})`, enums.length === 0 && sum((c) => c.noneValues) === 0 && list((c) => c.upperNames).length === 0);

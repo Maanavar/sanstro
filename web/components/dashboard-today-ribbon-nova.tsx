@@ -248,7 +248,11 @@ export function DashboardTodayRibbonNova({
 
   return (
     <motion.div
-      key={selectedDate}
+      // Keyed on the panchangam's own date, not the picker's (DXA-07): the
+      // caller holds the previous day on screen while the next one loads, so
+      // keying on the selection would turn the page to a day that is not
+      // rendered yet and then sit there, un-turned, when it arrives.
+      key={panchangam.dateLocal}
       initial={reduce ? false : { opacity: 0, x: 14 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: reduce ? 0 : DUR.slow, ease: EASE_NOVA }}

@@ -113,6 +113,10 @@ interface DashboardHeroProps {
   /** False until a chart exists: the pill still renders, disabled, so its
    *  arrival no longer pushes the nav ~225px sideways (DXA-05). */
   askReady?: boolean;
+  /** DXA-07: the selected day's data is still in flight and what is on screen
+   *  below belongs to the previous selection. Draws a progress hairline along
+   *  the bottom edge of the sub-bar. */
+  dayLoading?: boolean;
 }
 
 /* Nova navbar glyphs — lucide (SHD-02). `.cd-icon` controls size (18px) and
@@ -168,6 +172,7 @@ export function DashboardHero(props: DashboardHeroProps) {
     onSignOut,
     onAskVinaadi,
     askReady = true,
+    dayLoading = false,
   } = props;
 
   const errorStatus = status?.tone === "error" ? status : null;
@@ -729,6 +734,12 @@ export function DashboardHero(props: DashboardHeroProps) {
               </div>
             </div>
           </div>
+          {/* DXA-07 — the day below is still the previous selection's while
+              this runs. Absolutely positioned on the sub-bar's bottom edge so
+              it adds no height: the bar this sits on is the one DXA-05 just
+              stopped moving, and a 2px row that appears on every date change
+              would put the shift back. */}
+          {dayLoading && <span className="cd-subbar__progress" aria-hidden="true" />}
         </div>
       </header>
 

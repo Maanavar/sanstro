@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { todayIso } from "@/lib/format";
 import { apiFetchJson, getApiError, readErrorMessage, toQuery } from "@/lib/api";
@@ -271,14 +271,33 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
   const chart = chartQuery.data?.data ?? null;
   const effectiveChartId = chartId || chart?.chartId || "";
 
+  // DXA-07: the key carries the date, so without this a new date means
+  // `data === undefined` and every consumer collapses — the hero measured
+  // 590 -> 264 px and the page 4,029 -> 1,376 px within 78ms of a date
+  // change, staying collapsed for the whole round trip. `keepPreviousData`
+  // holds the previous day on screen instead; `isShowingPreviousDay` below
+  // tells the UI to mark it as not-yet-the-selected-day.
   const bundleQuery = useQuery({
     queryKey: personalKeys.chartBundle(effectiveChartId, selectedDate),
     queryFn: () => fetchChartBundle(effectiveChartId, selectedDate),
     enabled: !!effectiveChartId,
     staleTime: STALE.today,
+    placeholderData: keepPreviousData,
   });
 
   const bundle = bundleQuery.data ?? null;
+  // The bundle on screen belongs to a date the user has already moved off
+  // (DXA-07). Consumers keep rendering it — marked as loading — and anything
+  // that would *derive and cache* a value from it must wait, or the new date
+  // ends up holding the old date's numbers permanently.
+  //
+  // `!isError` is the exit: a failed request leaves the placeholder in place
+  // for good, so without this the pane would sit dimmed under a sweeping
+  // progress line forever and never say why. On an error we stop claiming to
+  // be loading — the previous day stays on screen, still labelled as that day
+  // (`dataDate` in the Today pane), and the existing failure path does the
+  // talking: the error toast, the sub-bar's error slot and the retry chip.
+  const isShowingPreviousDay = bundleQuery.isPlaceholderData && !bundleQuery.isError;
   const moonNakshatra = chart?.planets.find((planet) => planet.graha === "MOON")?.nakshatra ?? null;
   const firstPeyarchiPlanet = bundle?.peyarchiUpcoming[0]?.planet ?? null;
 
@@ -293,6 +312,10 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
     },
     enabled: !!effectiveChartId,
     staleTime: STALE.today,
+    // DXA-07. This one also feeds the top bar's alert count: without it the
+    // bell drops to 0 and back on every date change, which is a shift inside
+    // the chrome DXA-05 just stopped moving.
+    placeholderData: keepPreviousData,
   });
 
   // Fallback only: the bundle already carries weekAhead/nakshatraCard; these
@@ -308,6 +331,7 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
     },
     enabled: !!birthProfileId && !!bundle && !bundle.weekAhead,
     staleTime: STALE.today,
+    placeholderData: keepPreviousData, // DXA-07
   });
 
   const nakshatraCardQuery = useQuery({
@@ -336,6 +360,7 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
     },
     enabled: !!effectiveChartId,
     staleTime: STALE.today,
+    placeholderData: keepPreviousData, // DXA-07
   });
 
   const peyarchiReportQuery = useQuery({
@@ -352,6 +377,7 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
     },
     enabled: !!effectiveChartId && !!firstPeyarchiPlanet,
     staleTime: STALE.today,
+    placeholderData: keepPreviousData, // DXA-07
   });
 
   const journalCorrelationsQuery = useQuery({
@@ -373,8 +399,14 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
   const lifeAreaInsightsQuery = useQuery({
     queryKey: personalKeys.lifeAreaInsights(effectiveChartId, selectedDate),
     queryFn: ({ signal }) => fetchLifeAreaInsights(effectiveChartId, selectedDate, bundle?.lifeAreas ?? null, signal),
-    enabled: !!effectiveChartId && !!bundle && predictionsEnabled,
+    // `!isShowingPreviousDay` is load-bearing, not a nicety (DXA-07): this
+    // queryFn seeds its life-areas from the bundle instead of refetching them
+    // (DASH-16), so firing it while the bundle is still the previous day's
+    // would cache yesterday's life areas under today's key — and they would
+    // stay there for the session.
+    enabled: !!effectiveChartId && !!bundle && !isShowingPreviousDay && predictionsEnabled,
     staleTime: STALE.today,
+    placeholderData: keepPreviousData,
   });
 
   function reportStatus(message: string, tone: "success" | "error" = "success") {
@@ -654,6 +686,7 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
     setBirthProfileId: updateBirthProfileId,
     birthProfileLookupDone,
     personalPending,
+    isShowingPreviousDay,
     setChartId,
     setPredictionsLoading: setPredictionsManualLoading,
     setJadhagamReport,

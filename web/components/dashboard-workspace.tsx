@@ -1682,6 +1682,7 @@ export function DashboardWorkspace() {
           }}
           onAskVinaadi={() => setAskVinaadiOpen(true)}
           askReady={Boolean(personal.chartId)}
+          dayLoading={personal.isShowingPreviousDay}
         />
 
         {/* Destructive-action confirmation (DASH-05) */}
@@ -1853,6 +1854,7 @@ export function DashboardWorkspace() {
               weekAhead={personal.weekAhead}
               familyAggregate={familyAggregateForToday}
               personalPending={personal.personalPending}
+              showingPreviousDay={personal.isShowingPreviousDay}
               familyPending={family.familyPending}
               remedyMemberCharts={family.memberCharts}
               lifeAreas={personal.lifeAreas}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { addDays } from "@/lib/format";
 import { apiFetchJson, getApiError, readErrorMessage, toQuery } from "@/lib/api";
@@ -215,6 +215,10 @@ export function useFamilyData({ ownerUserId, selectedDate, onStatus }: UseFamily
     queryFn: () => fetchFamilyBundle(selectedVaultId, selectedDate),
     enabled: !!selectedVaultId,
     staleTime: STALE.today,
+    // DXA-07: the date is in the key, so a date change would otherwise blank
+    // Family Today on the Today pane and the whole Family tab. Hold the
+    // previous day until the new one lands — the pane dims while it does.
+    placeholderData: keepPreviousData,
   });
 
   // "self" is a real, user-selectable relationshipToOwner value (dashboard-edit-member-modal.tsx's
@@ -252,6 +256,7 @@ export function useFamilyData({ ownerUserId, selectedDate, onStatus }: UseFamily
     },
     enabled: !!selectedVaultId && members.length > 0,
     staleTime: STALE.today,
+    placeholderData: keepPreviousData, // DXA-07
   });
 
   const relationshipAlertsQuery = useQuery({

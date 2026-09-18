@@ -7,8 +7,8 @@ that a coding agent can pick up any item, implement it, and prove it done.
 
 **Status:**
 - Audit complete; owner decisions D1–D6 taken 2026-09-17 (§0).
-- Wave 0 is complete (DXA-40, DXA-11, DXA-36, DXA-34; see §13). No Wave 1+
-  item has started.
+- Wave 0 is complete (DXA-40, DXA-11, DXA-36, DXA-34; see §13). Wave 1 has
+  landed DXA-01, 02, 03, 04, 05 and 07; 08, 09, 10, 38 and 41 remain.
 - Measuring tools exist: `web/scripts/ux-audit.mjs` (CLI),
   `web/e2e/dashboard-experience.spec.ts` (Playwright, with a regression
   ratchet) and `scripts/ux-audit-stack.ps1` (§11). Baseline: 36 of 44 gates failing (§12).
@@ -288,7 +288,12 @@ Ready: yes · Wave 1 · Needs: — · Review: shots
   hero that is already taller than the viewport there, so what moves is below
   the fold.
 
-#### DXA-07 `[ ]` Changing the date collapses Today while the new day loads
+#### DXA-07 `[x] 2026-09-18` Changing the date collapses Today while the new day loads
+Done: Today pane **3,515 → 1,513 px (0.43)** → **3,515 → 3,515 (1.00)**, the
+selected day arrives (`data-day` = 2026-09-19), hero 592 → 592. A/B on one
+account, same probe, same stack: `web/e2e/.artifacts/ux-audit-dxa07-negative10/`
+(fix removed) vs `…-final/`; the held moment is
+`…/dxa07-stale-dark-t600.png`. Commit see git log.
 Ready: yes · Wave 1 · Needs: — · Review: shots
 - **Problem:** the bundle is `useQuery` keyed on `(chartId, selectedDate)`
   (`web/hooks/usePersonalData.ts:271-276`). A new date means a new key, so data
@@ -306,6 +311,65 @@ Ready: yes · Wave 1 · Needs: — · Review: shots
      the new key. Key it on `panchangam.dateLocal` (the data's own date).
   4. Scores count from the old value (`useCountUp` already does).
 - **Gate:** `DXA-07` hero keeps ≥ 90% height.
+- **What was built (2026-09-18).** All four steps as written, plus three things
+  the item did not name.
+  - **Every date-keyed query, not three.** Ambient alerts, peyarchi report,
+    life-area insights and both family queries carry the date too, so leaving
+    them bare would have kept the collapse in the Family Today card and
+    dropped the top bar's alert count to 0 and back — a shift inside the
+    chrome DXA-05 had just stopped moving.
+  - **The pane now reads the day off the data, not off the picker**
+    (`dataDate = panchangam?.dateLocal ?? selectedDate`). Without it the
+    masthead prints the *new* date over the *old* day's star and tithi for the
+    length of the fetch, and every "is this window running now?" comparison
+    runs against a date the data does not cover. The ribbon's page-turn key
+    (trap 3) falls out of the same rule.
+  - **`lifeAreaInsights` waits for the real bundle** (`!isShowingPreviousDay`
+    in its `enabled`). That query seeds its life-areas from the bundle instead
+    of refetching them (DASH-16), so firing it against a held previous day
+    would have cached *yesterday's* life areas under today's key — for the
+    session. This is the one place where holding old data is not free.
+  - **An error ends the held state** (`isPlaceholderData && !isError`).
+    TanStack keeps a placeholder in place after a failed fetch, so without
+    this the pane would sit dimmed under a sweeping progress line forever and
+    never say why. On an error the previous day stays, still labelled as that
+    day, and the existing failure path talks: error toast, the sub-bar's error
+    slot, the retry chip.
+- **The hero gate could no longer see this item.** DXA-05's pending hero
+  stands at the loaded height by construction, so the hero measured **592 →
+  592 with and without the fix** — a PASS either way. What still collapsed was
+  everything below it. The gate is now three:
+  `DXA-07 Today pane keeps ≥ 90% height through a date change` (the one that
+  discriminates: 0.43 vs 1.00), the original hero check, and
+  `DXA-07 the selected day replaces the held one`, which reads `data-day` off
+  the pane — because a page that holds the old day *forever* and a page that
+  replaces it look identical to a gate that only measures height.
+- **The probe was wrong in four ways, each of which passed the gate.** Written
+  down because every one of them produced a green run against a broken build:
+  1. **No precondition.** It measured whatever was on screen. A day that never
+     loaded is a placeholder page measured against a placeholder page: ratio
+     1.00, proving nothing.
+  2. **`settle()` is not a load.** It gives up after ~32 s; this stack needs
+     ~11 s to fill the pane after a cold compile, and the run that timed out
+     was measured half-built.
+  3. **`documentElement.scrollHeight` is not the page.** The dashboard scrolls
+     an inner element, so that number read 4,074 against a 3,515 px pane and
+     wandered between 1,459 and 4,074 within one run. Both the gate and the
+     "settled" check now measure the pane's own box.
+  4. **The baseline was read after the input was dispatched.** In the same
+     synchronous block, React had already collapsed the pane: the baseline
+     captured 1,513 px — the collapsed value — and the gate then compared the
+     collapse against itself and passed. This is the one that made the
+     negative check pass three times in a row and sent the investigation after
+     the app instead of the probe.
+- **Left deliberately.** `useMonthlyPanchangam` is keyed on `(year, month)` and
+  collapses the Calendar grid the same way on a month change. Same class, same
+  one-line fix, but it is the Calendar's surface and its own skeleton story —
+  not folded in here silently.
+- **For the owner.** The 0.6 dim is as ruled and reads well on dark (see the
+  shot). On the light theme the same wash is heavier and drops body text under
+  AA for the ~1 s it is on. If that is not wanted, 0.75 with the hairline
+  unchanged carries the same message; say the word and it is one number.
 
 #### DXA-08 `[ ]` Raw enums and "None" rendered as copy
 Ready: yes · Wave 1 · Needs: — · Review: —
@@ -1124,6 +1188,8 @@ compare pass/fail, not decimals.
 | DXA-05 | CLS < 0.1, Understand cold load | 0.82 | FAIL |
 | DXA-06 | full-opacity skeleton frames on first tab visits | 78 | INFO (gates with `--prod`) |
 | DXA-07 | hero keeps ≥ 90% height through a date change | 0.45 | FAIL |
+| DXA-07 | Today pane keeps ≥ 90% height through a date change | (added 09-18) 0.43 | FAIL |
+| DXA-07 | the selected day replaces the held one | (added 09-18) | — |
 | DXA-08 | no raw enums / "None" / upper-case rasi names | `ARDHASHTAMA_SANI`; `MITHUNAM`, `DHANUSU`, … | FAIL |
 | DXA-09 | no accent stripes | Family: 1 | FAIL |
 | DXA-09 | no Tamil in English mode | Tools: echo + "திருமணப் பொருத்தம்" | FAIL |
@@ -1172,6 +1238,13 @@ compare pass/fail, not decimals.
   Verify in the render.
 - **Never round-trip source through PowerShell.** It adds a BOM and garbles
   Tamil. Use the editor tool; Tamil files stay UTF-8 without BOM.
+- **A gate that measures a change must read its baseline before the change.**
+  DXA-07's probe read the "before" height in the same block as the input
+  dispatch but after it, so on a broken build it compared the collapse against
+  itself and passed — three negative checks in a row, each of which sent the
+  investigation after the app. Related: this dashboard does not scroll the
+  document, so `documentElement.scrollHeight` is not the page's height;
+  measure the pane's own box. See DXA-07's "the probe was wrong in four ways".
 - **Hero test anchors constrain markup:**
   - `getByText(/Best window/).closest("div")` must contain the window time;
   - `getByText(/^Avoid window$/).closest("div").parentElement` is the avoid

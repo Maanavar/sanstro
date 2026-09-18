@@ -4607,3 +4607,73 @@ button.ui-chip { cursor: pointer; }
   content: " \00b7 ";
   color: var(--color-faint);
 }
+
+/* ── DXA-07 · holding the previous day while the next one loads ───────────
+   The day bundle is keyed on the selected date, so a date change used to
+   leave every consumer with no data at all: the hero measured 590 -> 264px
+   and the page 4,029 -> 1,376px within 78ms, and stayed collapsed for the
+   whole round trip. The data layer now keeps the previous day on screen
+   (`keepPreviousData`), which means the page holds its shape — and needs two
+   marks to say that what is showing is not yet the day that was asked for. */
+
+/* 1. The pane dims. Not a skeleton and not a spinner: the content is real,
+      it is simply the wrong day for a moment. On the Nova tokens, since
+      DXA-16's census reads computed transition timing functions off this very
+      pane and only the two Nova curves pass it. */
+.nova-today-pane {
+  transition: opacity var(--dur-base, 240ms) var(--ease-nova, cubic-bezier(0.22, 1, 0.36, 1));
+}
+.nova-today-pane[data-stale] {
+  opacity: 0.6;
+}
+
+/* 2. A progress hairline on the sub-bar's bottom edge. Absolutely positioned
+      so it occupies no row of its own — this is the bar DXA-05 just stopped
+      moving, and a 2px band that appears on every date change would put the
+      shift back. It exists only while a day is in flight, so it is not the
+      ambient motion DXA-17 bans; it is the one thing on screen that says a
+      request is running. */
+[data-ui="nova"] .cd-subbar {
+  position: relative;
+}
+[data-ui="nova"] .cd-subbar__progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  overflow: hidden;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--color-accent-strong) 12%, transparent);
+}
+[data-ui="nova"] .cd-subbar__progress::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 32%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-accent-strong),
+    transparent
+  );
+  animation: cd-subbar-progress 1.1s var(--ease-nova, cubic-bezier(0.22, 1, 0.36, 1)) infinite;
+}
+@keyframes cd-subbar-progress {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(400%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The dim still carries the message; it just arrives at once. The hairline
+     stops sweeping and stands as a solid accent line — same statement, no
+     motion (DXA-11's ruling: reduced motion removes movement, not meaning). */
+  .nova-today-pane {
+    transition: none;
+  }
+  [data-ui="nova"] .cd-subbar__progress::after {
+    animation: none;
+    width: 100%;
+    background: color-mix(in srgb, var(--color-accent-strong) 60%, transparent);
+  }
+}
