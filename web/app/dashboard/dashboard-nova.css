@@ -2338,11 +2338,13 @@
   [data-ui="nova"] .cd-shell .nova-cal-featured > button,
   [data-ui="nova"] .cd-shell .nova-cal-filter { min-height: 44px; }
 }
-/* Heading actions on a mouse-driven touchscreen keep the compact kit size so
-   the heading row does not grow to a phone's touch height. */
-@media (pointer: coarse) and (hover: hover) {
-  [data-ui="nova"] .cd-shell .nova-cal-rail-panel .nova-cal-panel-heading .ui-btn { min-height: 28px; }
-}
+/* The `(pointer: coarse) and (hover: hover)` rule that used to sit here is
+   gone (DXA-39). It existed only to undo the bare `@media (pointer: coarse)`
+   44px rule on the owner's touchscreen laptop — and it undid it too far,
+   pinning these to 28px while every mouse-only laptop showed the kit's own
+   `--sm` 32px. The bare rule is gone, so the counterweight goes with it and a
+   hybrid laptop now renders exactly what any other laptop renders, which is
+   the whole of D5. */
 @media (prefers-reduced-motion: reduce) {
   [data-ui="nova"] .cd-shell .nova-cal-monthly-header,
   [data-ui="nova"] .cd-shell .nova-cal-insights,
@@ -3535,15 +3537,59 @@ button.ui-chip { cursor: pointer; }
   outline-offset: 2px;
 }
 
-/* The 44px touch floor — the reason these are primitives, not inline styles
-   (audit B-3). Coarse pointers (touch) get a full 44px target while the
-   desktop variants stay visually compact. */
-@media (pointer: coarse) {
+/* An interactive chip is a control, and at 11px type inside 5px padding it
+   measured 23px — under WCAG 2.5.8 AA's 24px and under D5's own 28px floor,
+   on every pointer, not just touch. A STATIC chip is a label (`span.ui-chip`,
+   Chip renders one when it has no handler) and is left alone. */
+[data-ui="nova"] .cd-shell button.ui-chip { min-height: 28px; }
+
+/* ── Touch policy (DXA-39 · owner decision D5) ────────────────────────────
+   Size follows the device; hit area follows the finger.
+
+   The single bare `@media (pointer: coarse)` rule this replaces was the bug.
+   `pointer: coarse` matches the owner's touchscreen laptop, which is driven
+   by a MOUSE — so every kit control there grew to 44px and the Calendar rail
+   came out near-empty on 15 Sep 2026. Two queries carry the two intentions
+   the one query was conflating:
+
+   1. `(pointer: coarse) and (hover: none)` — phones and tablets, where a
+      thumb is the only pointer and the vertical room exists to spend. A real
+      44px VISUAL target (Apple's 44pt; WCAG 2.5.8 AA asks only 24).
+   2. `(any-pointer: coarse)` — anything a finger CAN touch, the hybrid
+      laptop included. Not one pixel of layout moves: an invisible hit slop
+      gives the finger its 44px while the mouse sees the compact control.
+
+   The slop is vertical, and barely anything horizontal (±2px), so two
+   controls side by side in a row never swallow each other's clicks. Its size
+   is derived, not typed: `(44px - 100%) / -2` per edge grows a 22px toggle by
+   11px and a 38px button by 3px, and both land on exactly 44. A control
+   already taller than 44 gets a positive inset, i.e. an overlay smaller than
+   itself — harmless, since the control's own box is the hit area there.
+
+   `.ui-toggle` is the reason rule 2 exists at all. Its 40×22 track IS the
+   control, so it takes the slop and never a `min-height`: the bare rule used
+   to stretch it to 44px tall on a touch laptop, which is not a toggle. */
+@media (pointer: coarse) and (hover: none) {
+  [data-ui="nova"] .cd-shell .ui-segmented__btn,
+  [data-ui="nova"] .cd-shell .ui-btn,
+  [data-ui="nova"] .cd-shell .ui-pill,
+  [data-ui="nova"] .cd-shell button.ui-chip { min-height: var(--touch-target); }
+}
+@media (any-pointer: coarse) {
   [data-ui="nova"] .cd-shell .ui-segmented__btn,
   [data-ui="nova"] .cd-shell .ui-btn,
   [data-ui="nova"] .cd-shell .ui-pill,
   [data-ui="nova"] .cd-shell button.ui-chip,
-  [data-ui="nova"] .cd-shell .ui-toggle { min-height: var(--touch-target); }
+  [data-ui="nova"] .cd-shell .ui-toggle { position: relative; }
+  [data-ui="nova"] .cd-shell .ui-segmented__btn::after,
+  [data-ui="nova"] .cd-shell .ui-btn::after,
+  [data-ui="nova"] .cd-shell .ui-pill::after,
+  [data-ui="nova"] .cd-shell button.ui-chip::after,
+  [data-ui="nova"] .cd-shell .ui-toggle::after {
+    content: "";
+    position: absolute;
+    inset: calc((var(--touch-target) - 100%) / -2) -2px;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -3893,10 +3939,24 @@ button.ui-chip { cursor: pointer; }
   border-radius: var(--radius-sm);
 }
 
-@media (pointer: coarse) {
+/* The reading surface's own three controls, under the same policy — see the
+   touch-policy block in the component kit above for why it is two queries. */
+@media (pointer: coarse) and (hover: none) {
   .om__basis-toggle,
   .om__ask-btn,
   .om-recap__link { min-height: var(--touch-target); }
+}
+@media (any-pointer: coarse) {
+  .om__basis-toggle,
+  .om__ask-btn,
+  .om-recap__link { position: relative; }
+  .om__basis-toggle::after,
+  .om__ask-btn::after,
+  .om-recap__link::after {
+    content: "";
+    position: absolute;
+    inset: calc((var(--touch-target) - 100%) / -2) -2px;
+  }
 }
 
 /* ── Reduced-motion guard ──────────────────────────────────
