@@ -461,7 +461,7 @@ Ready: yes · Wave 1 · Needs: — · Review: —
 Done (stripe + echo): `no accent stripes` Family 1 → **0 PASS**; `no Tamil text in
 English mode` `tools: TOOLS · கருவிகள் | திருமணப் பொருத்தம்` → **0 PASS**. Negative
 (fix removed) metrics `web/e2e/.artifacts/ux-audit-202609180620/`; passing metrics
-`web/e2e/.artifacts/ux-audit-202609180653/`. **Emoji third still open** — Wave 3,
+`web/e2e/.artifacts/ux-audit-202609180653/`; commit `a8e10a1`. **Emoji third still open** — Wave 3,
 blocked on DXA-24's glyph set; its gate still FAILs and is deliberately not in
 `MUST_PASS`.
 - **What the gate cannot see, checked by hand:**
@@ -511,7 +511,7 @@ translucent surface` 7 → **0 of 64 PASS**. Negative (no fix in the tree) metri
 (diffed gate-by-gate against `ux-audit-202609180653/`). Review shots — Tamil,
 light and 390 px — in `web/e2e/.artifacts/dxa09-10-review/`. **Taken alone:
 DXA-17 is untouched**, the page stars keep `nova-celestial__star`, so Wave 2
-still has that item whole (owner's call, 2026-09-18). Commit `<pending>`.
+still has that item whole (owner's call, 2026-09-18). Commit `a8e10a1`.
 
 - **This gate could not fail, and was passing before any fix.** The page sky
   draws stars only from dusk (`showStars = isLight || tod === "night" || tod ===
