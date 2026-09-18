@@ -37,6 +37,7 @@ const MUST_PASS: Record<string, string> = {
   "DXA-07 hero keeps ≥ 90% height through a date change": "today",
   "DXA-07 Today pane keeps ≥ 90% height through a date change": "today",
   "DXA-07 the selected day replaces the held one": "today",
+  "DXA-08 no raw enums / 'None' / upper-case rasi names": "tabs",
   "DXA-11 reduced motion: nav indicator does not move": "reduced",
   "DXA-11 reduced motion: pane appears without a fade": "reduced",
   "DXA-27 phone: no horizontal overflow": "phone",

@@ -10,6 +10,7 @@
 import { getScoreBand, formatClockLabel, scoreColor, SCORE_LOW } from "@/lib/format";
 import { t, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { rasiDisplayName } from "@/lib/chart-utils";
 import type {
   ChartCalculateResponseData,
   ChartExplanationData,
@@ -142,8 +143,8 @@ export function MemberDetailExpanded({
   const dasha = memberChart?.dasha;
 
   const identityParts: string[] = [];
-  if (summary?.lagnaRasi) identityParts.push(`${summary.lagnaRasi} ${t("label_lagnam", lang)}`);
-  if (summary?.moonRasi)   identityParts.push(`${summary.moonRasi} ${t("label_janma_rasi", lang)}`);
+  if (summary?.lagnaRasi) identityParts.push(`${rasiDisplayName(summary.lagnaRasi, lang)} ${t("label_lagnam", lang)}`);
+  if (summary?.moonRasi)   identityParts.push(`${rasiDisplayName(summary.moonRasi, lang)} ${t("label_janma_rasi", lang)}`);
   if (summary?.janmaNakshatra) identityParts.push(summary.janmaNakshatra);
 
   const birthDateLocal = memberChart?.chart?.birthProfile?.birthDateLocal ?? null;

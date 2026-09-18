@@ -8,6 +8,7 @@ import { nakshatraLord } from "@vinaadi/shared/nakshatraLord";
 import { formatClockLabel, scoreColor } from "@/lib/format";
 import { t, tPlanetLord, tWeekday, tNakshatra, nakshatraNumberFromName } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { rasiDisplayName } from "@/lib/chart-utils";
 import { tamilizeAstroEnglish } from "@/lib/tamil-astro";
 import type {
   BiText,
@@ -20,7 +21,6 @@ import type {
   TransitSnapshotData,
 } from "@/lib/types";
 
-import { RASI_NAMES } from "./dashboard-charts";
 import { displayName as yogaDoshamDisplayName } from "./dashboard-yoga-dosham-panel";
 import { HOUSE_MEANING, OWN_SIGN_RASI } from "./dashboard-chart-explanation-data";
 import { ageAtDate, DashaLordLabel } from "./dashboard-dasha";
@@ -387,7 +387,7 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
               />
               <span style={{ textAlign: "center" }}>
                 <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-text-strong)" }}>{tPlanetLord(pl.graha, lang)}</span>
-                <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "2px" }}>{pl.rasiName}</span>
+                <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "2px" }}>{rasiDisplayName(pl.rasi, lang)}</span>
                 <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--color-muted)", marginTop: "2px" }}>{pl.degreeInRasi.toFixed(1)}°</span>
               </span>
             </button>
@@ -428,7 +428,7 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
               >
                 <span style={{ width: "28px", height: "28px", borderRadius: "var(--radius-sm)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", display: "grid", placeItems: "center", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)" }}>{GRAHA_GLYPH[pl.graha] ?? ""}</span>
                 <span style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>{tPlanetLord(pl.graha, lang)}</span>
-                <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text)" }}>{pl.rasiName}</span>
+                <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text)" }}>{rasiDisplayName(pl.rasi, lang)}</span>
                 <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>{pl.degreeInRasi.toFixed(2)}°</span>
                 <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text)" }}>{astro(pl.nakshatraName)}</span>
                 <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", textAlign: "center" }}>{pl.houseFromLagna}</span>
@@ -539,7 +539,7 @@ function HyTechnicalDetails({ lang, pl, expl }: {
               label={<GlossaryTerm term="pada" lang={lang}>{t("col_pada", lang)}</GlossaryTerm>}
               value={`${pl.pada} / 4 · ${dt(PLANET_ROW_DETAILS.pada, lang)}`}
             />
-            <HyFact label={t("col_d9_rasi", lang)} value={RASI_NAMES[pl.d9Rasi] ?? String(pl.d9Rasi)} />
+            <HyFact label={t("col_d9_rasi", lang)} value={rasiDisplayName(pl.d9Rasi, lang)} />
           </div>
           {bodyFacets.length > 0 ? (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "var(--space-3) var(--space-6)" }}>
@@ -552,7 +552,7 @@ function HyTechnicalDetails({ lang, pl, expl }: {
           ) : (
             /* Explanation still loading — show the raw facts rather than nothing. */
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "var(--space-3) var(--space-6)" }}>
-              <HyFact label={t("col_house", lang)} value={`${pl.houseFromLagna} · ${pl.rasiName}`} />
+              <HyFact label={t("col_house", lang)} value={`${pl.houseFromLagna} · ${rasiDisplayName(pl.rasi, lang)}`} />
               <HyFact label={t("col_nakshatra", lang)} value={astro(pl.nakshatraName)} />
             </div>
           )}
@@ -587,7 +587,7 @@ export function HyBhavaTable({ lang, chart, explanationPlanets }: {
     const dot = lordScore == null ? "var(--color-border-strong)" : lordScore >= 60 ? "var(--color-high)" : lordScore >= 40 ? "var(--color-mid)" : "var(--color-low)";
     return {
       house,
-      signLord: `${RASI_NAMES[signNum] ?? signNum} (${tPlanetLord(lordGraha, lang)})`,
+      signLord: `${rasiDisplayName(signNum, lang)} (${tPlanetLord(lordGraha, lang)})`,
       occupants: occupantsByHouse.get(house) ?? [],
       dot,
       lordScore,
@@ -1851,8 +1851,8 @@ export function HyTransitOverview({ lang, transit, memberName, onOpenTransits }:
       {rows.length > 0 && moonRasi && (
         <p style={{ margin: 0, fontSize: "var(--text-xs)", lineHeight: 1.5, color: "var(--color-faint)" }}>
           {lang === "ta"
-            ? `கிரகங்கள் அமர்ந்துள்ள ராசிகள் அனைவருக்கும் பொதுவானவை. கீழே காணும் வீடும் அதன் தாக்கமும் ${who} சந்திரன் (${moonRasi}) இருந்து கணக்கிடப்படுகிறது — எனவே ஒவ்வொருவருக்கும் வேறுபடும்.`
-            : `The signs the planets sit in are shared by everyone. The house and effect shown below are read from ${memberName ? `${memberName}'s` : "this member's"} Moon in ${moonRasi} — so they differ from member to member.`}
+            ? `கிரகங்கள் அமர்ந்துள்ள ராசிகள் அனைவருக்கும் பொதுவானவை. கீழே காணும் வீடும் அதன் தாக்கமும் ${who} சந்திரன் (${rasiDisplayName(moonRasi, lang)}) இருந்து கணக்கிடப்படுகிறது — எனவே ஒவ்வொருவருக்கும் வேறுபடும்.`
+            : `The signs the planets sit in are shared by everyone. The house and effect shown below are read from ${memberName ? `${memberName}'s` : "this member's"} Moon in ${rasiDisplayName(moonRasi, lang)} — so they differ from member to member.`}
         </p>
       )}
       {rows.length === 0 ? (
@@ -1869,7 +1869,7 @@ export function HyTransitOverview({ lang, transit, memberName, onOpenTransits }:
                 <span style={{ flexShrink: 0, width: "30px", height: "30px", borderRadius: "var(--radius-sm)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", display: "grid", placeItems: "center", fontSize: "var(--text-base)", color: "var(--color-accent-strong)" }}>{GRAHA_GLYPH_R[tr.graha.toUpperCase()] ?? "◦"}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text)" }}>
-                    {tPlanetLord(tr.graha.toUpperCase(), lang)} {lang === "ta" ? "" : "in "}{tr.currentRasi}
+                    {tPlanetLord(tr.graha.toUpperCase(), lang)} {lang === "ta" ? "" : "in "}{rasiDisplayName(tr.currentRasi, lang)}
                     {tr.isRetrograde && <span style={{ marginLeft: "6px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-low)" }}>℞</span>}
                   </div>
                   <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>

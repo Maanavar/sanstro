@@ -5,6 +5,7 @@ import {
   buildD9CellDetail,
   computeD9LagnaRasi,
   houseFrom,
+  rasiDisplayName,
 } from "./chart-utils";
 import type { ChartCalculateResponseData } from "./types";
 
@@ -88,6 +89,12 @@ describe("chart utils", () => {
   it("computes D9 lagna using 108-pada modality mapping", () => {
     expect(computeD9LagnaRasi(10)).toBe(4);
     expect(computeD9LagnaRasi(35)).toBe(11);
+  });
+
+  it("renders string-only rasi fields in the active language without uppercase leaks", () => {
+    expect(rasiDisplayName("KANNI", "en")).toBe("Kanni");
+    expect(rasiDisplayName("KANNI", "ta")).toBe("கன்னி");
+    expect(rasiDisplayName("UNRECOGNISED_RASI", "en")).toBe("Unrecognised Rasi");
   });
 
   it("builds D1 and D9 cell detail payloads for explain overlay", () => {

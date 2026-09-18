@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Image from "next/image";
+import { rasiDisplayName } from "@/lib/chart-utils";
 import { formatClockLabel } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import { DUR, EASE_NOVA, prefersReducedMotion } from "@/lib/motion";
@@ -639,11 +640,11 @@ export function DashboardHero(props: DashboardHeroProps) {
               )}
               {chartSummary && (
                 <span className="cd-subbar__chart">
-                  {chartSummary.moonRasi}
+                  {rasiDisplayName(chartSummary.moonRasi, lang)}
                   {" - "}
                   {chartSummary.janmaNakshatra}
                   {" - "}
-                  {chartSummary.lagnaRasi} {lang === "ta" ? "லக்னம்" : "Lagnam"}
+                  {rasiDisplayName(chartSummary.lagnaRasi, lang)} {lang === "ta" ? "லக்னம்" : "Lagnam"}
                 </span>
               )}
               {/* UXD-15 — birth-time uncertainty is collected but was never shown;
@@ -746,4 +747,3 @@ export function DashboardHero(props: DashboardHeroProps) {
     </>
   );
 }
-

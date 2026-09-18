@@ -6,6 +6,7 @@ import { ArrowUpRight, Check, ChevronDown, ChevronRight, Copy, Mail, RefreshCw, 
 import { useTheme, type Theme } from "@/hooks/useTheme";
 import { apiFetchJson } from "@/lib/api";
 import { clearFcmTokenLocal, fetchFcmToken, hasFirebaseMessagingConfig } from "@/lib/firebase-messaging";
+import { rasiDisplayName } from "@/lib/chart-utils";
 import { formatDateLabel, formatDateTimeLabel, todayIso } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
@@ -494,7 +495,7 @@ export function DashboardSettingsSessionTab({
     return Number.isNaN(d.getTime()) ? t("settings_retention_not_available", lang) : d.toLocaleDateString();
   };
 
-  const chartLine = [moonRasi, janmaNakshatra, lagnaRasi ? `${lagnaRasi} ${lang === "ta" ? "லக்னம்" : "Lagnam"}` : ""]
+  const chartLine = [rasiDisplayName(moonRasi, lang), janmaNakshatra, lagnaRasi ? `${rasiDisplayName(lagnaRasi, lang)} ${lang === "ta" ? "லக்னம்" : "Lagnam"}` : ""]
     .filter(Boolean)
     .join(" · ");
 

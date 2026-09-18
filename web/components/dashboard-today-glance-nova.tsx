@@ -10,6 +10,7 @@ import {
 import { formatClockLabel, formatDateLabel, getLifeAreaVerdict, getScoreBand, getScoreVerdictFromGuidance, nextWeekdayDate, scoreColorAlpha } from "@/lib/format";
 import { t, tLang, tPlanetLord, tWeekday } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { saniCycleName } from "@/lib/family-flags";
 import type {
   BiText,
   ChartSummaryData,
@@ -1092,7 +1093,7 @@ export function DashboardTodayComingUpNova({
           ? <>{lang === "ta" ? primary.labelTa : primary.labelEn} · {daysAwayLabel(primary.daysFromToday, lang)}</>
           : (lang === "ta" ? "இந்த வாரம் பெரிய மாற்றம் இல்லை." : "No major transit shifts this week.")}
         {saniActive && (
-          <> · <span style={{ color: "var(--color-low)" }}>{personalSani?.moonBasedCycle.supportiveLabel ?? personalSani?.moonBasedCycle.type}</span></>
+          <> · <span style={{ color: "var(--color-low)" }}>{personalSani?.moonBasedCycle.supportiveLabel ?? saniCycleName(personalSani?.moonBasedCycle.type ?? "", lang)}</span></>
         )}
       </span>
     </button>

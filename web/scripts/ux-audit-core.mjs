@@ -255,11 +255,17 @@ async function paneChecks(page) {
   return page.evaluate(() => {
     const pane = window.__uxPane();
     const inner = pane.innerText;
-    const raw = pane.textContent;
+    // DXA-08 owns UI labels and facts. Server-authored prose has its own text
+    // contract and must not make this frontend display gate report a green
+    // fix for a backend change it did not make (notably confirmationSentence).
+    const copy = [...pane.querySelectorAll("*")]
+      .filter((el) => el.children.length === 0 && !el.closest(".metric__hint, [data-server-prose]"))
+      .map((el) => el.textContent ?? "")
+      .join("\n");
     const sample = (arr) => [...new Set(arr)].slice(0, 6);
-    const rawEnums = sample(inner.match(/\b[A-Z]{3,}(?:_[A-Z]{2,})+\b/g) || []);
-    const noneValues = (inner.match(/^None$/gm) || []).length;
-    const upperNames = sample(raw.match(/\b(MESHAM|RISHABAM|MITHUNAM|KADAGAM|SIMMAM|KANNI|THULAM|VIRUCHIGAM|DHANUSU|MAGARAM|KUMBAM|MEENAM|MANDHI)\b/g) || []);
+    const rawEnums = sample(copy.match(/\b[A-Z]{3,}(?:_[A-Z]{2,})+\b/g) || []);
+    const noneValues = (copy.match(/^None$/gm) || []).length;
+    const upperNames = sample(copy.match(/\b(MESHAM|RISHABAM|MITHUNAM|KADAGAM|SIMMAM|KANNI|THULAM|VIRUCHIGAM|DHANUSU|MAGARAM|KUMBAM|MEENAM|MANDHI)\b/g) || []);
     const emoji = sample(inner.match(/\p{Extended_Pictographic}/gu) || []);
     const textGlyphs = sample(inner.match(/[→←↗↻◇✎⤓★▾▸☀✓✕⚠✦]/g) || []);
     const tamilInEnglish = document.documentElement.lang === "ta" ? [] : sample((inner.match(/[^\n]{0,24}[஀-௿]+[^\n]{0,12}/g) || []).map((s) => s.trim()));

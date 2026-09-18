@@ -5,6 +5,7 @@ import { ArrowRight, Sparkles } from "lucide-react";
 
 import { apiFetchJson } from "@/lib/api";
 import { formatClockLabel, formatClockRange, scoreColor } from "@/lib/format";
+import { rasiDisplayName } from "@/lib/chart-utils";
 import { DASHA_PANEL, dt, SANI_CYCLE_CARD, SANI_CYCLE_LABELS } from "@/lib/dashboard-i18n";
 import { cycleDate, cycleText } from "@/lib/sani-cycle-card";
 import {
@@ -88,7 +89,7 @@ import {
 } from "./dashboard-hybrid-parts";
 import { DashboardAskVinaadi } from "./dashboard-ask-vinaadi";
 import { RASI_TRAITS } from "@/lib/rasi-traits";
-import { RASI_LORDS, D1_RASI_NAMES } from "@/lib/chart-utils";
+import { RASI_LORDS } from "@/lib/chart-utils";
 import { ZodiacBadge } from "./zodiac-badge";
 
 /**
@@ -408,7 +409,7 @@ function HySaniCard({ lang, sani }: { lang: Lang; sani: SaniCycleData }) {
         })}
       </div>
       {sani.confirmationSentence && (
-        <p style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", fontStyle: "italic", lineHeight: 1.5 }}>{sani.confirmationSentence}</p>
+        <p data-server-prose style={{ margin: 0, fontSize: "var(--text-xs)", color: "var(--color-faint)", fontStyle: "italic", lineHeight: 1.5 }}>{sani.confirmationSentence}</p>
       )}
     </Card>
   );
@@ -445,7 +446,7 @@ function HyMemberSelectorCard({
   const insight = todayItem ? (lang === "ta" ? todayItem.highlightTa : todayItem.highlightEn) : "";
 
   const lagnaDashaLine = summary
-    ? `${summary.lagnaRasi} ${t("label_lagnam", lang)}${dasha ? ` · ${tPlanetLord(dasha.current.mahadasha.lord, lang)}–${tPlanetLord(dasha.current.antardasha.lord, lang)}` : ""}`
+    ? `${rasiDisplayName(summary.lagnaRasi, lang)} ${t("label_lagnam", lang)}${dasha ? ` · ${tPlanetLord(dasha.current.mahadasha.lord, lang)}–${tPlanetLord(dasha.current.antardasha.lord, lang)}` : ""}`
     : "";
 
   return (
@@ -942,7 +943,7 @@ export function DashboardFamilyChartsHybrid({
                     {lang === "ta" ? heroText.ta : heroText.en}
                   </div>
                   {familyAggregate?.summary && (
-                    <div style={{ fontSize: "var(--text-base)", lineHeight: 1.55, color: "var(--color-muted)", marginTop: "8px" }}>
+                    <div data-server-prose style={{ fontSize: "var(--text-base)", lineHeight: 1.55, color: "var(--color-muted)", marginTop: "8px" }}>
                       {lang === "ta" ? familyAggregate.summary.ta : familyAggregate.summary.en}
                     </div>
                   )}
@@ -1090,7 +1091,7 @@ export function DashboardFamilyChartsHybrid({
                       {dailyGuidance ? (lang === "ta" ? dailyGuidance.confidenceReason.ta : dailyGuidance.confidenceReason.en) : (lang === "ta" ? "இன்றைய ஜாதக நிலை" : "Today's chart snapshot")}
                     </div>
                     {readingSummary && (
-                      <div style={{ fontSize: "var(--text-base)", lineHeight: 1.55, color: "var(--color-muted)", marginTop: "9px" }}>
+                      <div data-server-prose style={{ fontSize: "var(--text-base)", lineHeight: 1.55, color: "var(--color-muted)", marginTop: "9px" }}>
                         {lang === "ta" ? readingSummary.primaryLanguageText.ta : readingSummary.primaryLanguageText.en}
                       </div>
                     )}
@@ -1100,9 +1101,9 @@ export function DashboardFamilyChartsHybrid({
                 {readingSummary && (
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "var(--space-3)" }}>
                     {[
-                      [lang === "ta" ? "ராசி" : "Rasi", astroText(readingSummary.moonRasi)],
+                      [lang === "ta" ? "ராசி" : "Rasi", rasiDisplayName(readingSummary.moonRasi, lang)],
                       [lang === "ta" ? "நட்சத்திரம்" : "Nakshatra", `${astroText(readingSummary.janmaNakshatra)} · ${readingSummary.janmaPada}`],
-                      [lang === "ta" ? "லக்னம்" : "Lagnam", astroText(readingSummary.lagnaRasi)],
+                      [lang === "ta" ? "லக்னம்" : "Lagnam", rasiDisplayName(readingSummary.lagnaRasi, lang)],
                       [lang === "ta" ? "வயது" : "Age", String(readingSummary.currentAge)],
                     ].map(([label, value]) => (
                       <Card key={label} style={{ display: "block", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)" }}>
@@ -1212,7 +1213,7 @@ export function DashboardFamilyChartsHybrid({
                     key={key}
                     kicker={t(key, lang)}
                     glyph={<ZodiacBadge rasi={rasiNum} size={40} />}
-                    name={D1_RASI_NAMES[rasiNum] ?? String(rasiNum)}
+                    name={rasiDisplayName(rasiNum, lang)}
                     rulingPlanetLabel={lord ? `${t("nakshatra_ruling_planet", lang)}: ${tPlanetLord(lord, lang)}` : undefined}
                     blurb={lang === "ta" ? entry.profile.ta : astroText(entry.profile.en)}
                     traits={[
@@ -1479,13 +1480,13 @@ export function DashboardFamilyChartsHybrid({
                         {charaDasha.currentPeriod && (
                           <Card variant="high" style={{ display: "block", padding: "var(--space-2_5) var(--space-3)", borderRadius: "var(--radius-md)" }}>
                             <Kicker as="p" color="var(--color-high)" style={{ margin: "0 0 var(--space-0_5)", letterSpacing: "0.08em" }}>{lang === "ta" ? "தற்போதைய சார தசை" : "Current Chara Dasha"}</Kicker>
-                            <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>{charaDasha.currentPeriod.rasi_name}</p>
+                            <p style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>{rasiDisplayName(charaDasha.currentPeriod.rasi, lang)}</p>
                             <p style={{ margin: "var(--space-0_5) 0 0", fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>{charaDasha.currentPeriod.start_date} – {charaDasha.currentPeriod.end_date}</p>
                           </Card>
                         )}
                         {charaDasha.periods.map((period) => (
                           <Card key={`${period.rasi}-${period.start_date}`} style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: "var(--space-2)", padding: "var(--space-1_5) var(--space-3)", borderRadius: "var(--radius-sm)", background: charaDasha.currentPeriod?.rasi === period.rasi ? "var(--color-surface-soft)" : "transparent" }}>
-                            <span style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)" }}>{period.rasi_name}</span>
+                            <span style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)" }}>{rasiDisplayName(period.rasi, lang)}</span>
                             <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>{period.years} {lang === "ta" ? "ஆண்டுகள்" : "yrs"} · {period.start_date}</span>
                           </Card>
                         ))}

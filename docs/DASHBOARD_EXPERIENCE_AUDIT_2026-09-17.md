@@ -8,7 +8,7 @@ that a coding agent can pick up any item, implement it, and prove it done.
 **Status:**
 - Audit complete; owner decisions D1–D6 taken 2026-09-17 (§0).
 - Wave 0 is complete (DXA-40, DXA-11, DXA-36, DXA-34; see §13). Wave 1 has
-  landed DXA-01, 02, 03, 04, 05 and 07; 08, 09, 10, 38 and 41 remain.
+  landed DXA-01, 02, 03, 04, 05, 07 and 08; 09, 10, 38 and 41 remain.
 - Measuring tools exist: `web/scripts/ux-audit.mjs` (CLI),
   `web/e2e/dashboard-experience.spec.ts` (Playwright, with a regression
   ratchet) and `scripts/ux-audit-stack.ps1` (§11). Baseline: 36 of 44 gates failing (§12).
@@ -371,7 +371,8 @@ Ready: yes · Wave 1 · Needs: — · Review: shots
   AA for the ~1 s it is on. If that is not wanted, 0.75 with the hairline
   unchanged carries the same message; say the word and it is one number.
 
-#### DXA-08 `[ ]` Raw enums and "None" rendered as copy
+#### DXA-08 `[x] 2026-09-18` Raw enums and "None" rendered as copy
+Done: DXA-08 no raw enums / 'None' / upper-case rasi names FAIL (`ARDHASHTAMA_SANI`; `MITHUNAM`, `DHANUSU`, `MANDHI`, and Gochar rasi codes) → PASS (`none (None×0)`); negative (fix removed) metrics `web/e2e/.artifacts/ux-audit-dxa08-negative-final2/`, passing metrics `web/e2e/.artifacts/ux-audit-dxa08-final4/`; commit uncommitted.
 Ready: yes · Wave 1 · Needs: — · Review: —
 - **Problem:** `NovaGocharCard` (`dashboard-today-deepdive-extras-nova.tsx:397-410`)
   renders **"ARDHASHTAMA_SANI"** (`moonBasedCycle.type`), **"Chandrashtamam:
@@ -387,6 +388,23 @@ Ready: yes · Wave 1 · Needs: — · Review: —
     backend change: text only, no shape change. Grep `narrative_engine.py` per
     the almanac-naming rule. Record it; do not mix it into this change.
 - **Gate:** `DXA-08` no enums, no "None", no upper-case rasi names.
+- **What was built (2026-09-18):**
+  - Added `rasiDisplayName`, the display-layer adapter for numeric and legacy
+    string rasis. It selects the active language's almanac name (Tamil in Tamil,
+    title-case English in English) and now covers Gochar chips, the hero and
+    settings summaries, planet orbs/tables, and Family member/charts tiles.
+  - Reused `saniCycleName` for Saturn-cycle copy and added the active-language
+    `label_not_today` (`Not today` / `இன்று இல்லை`) instead of rendering an enum or
+    `label_none`. The Tamil addition awaits the normal Tamil-copy sign-off.
+  - The browser gate now examines direct UI labels and facts rather than
+    server-authored prose, so it ratchets this frontend result without claiming
+    a backend prose change.
+  - **Backend follow-up not done:** the upper-case-rasi
+    `confirmationSentence` is still server text (the live construction is in
+    `app/services/transit_service.py`, not `narrative_engine.py`); it needs its
+    own text-only backend change, with no response-shape change. The
+    server-authored chart gist observed in Family is likewise deliberately
+    untouched.
 
 #### DXA-09 `[ ]` Owner-ruling violations still on screen
 Ready: stripe and echo, yes; emoji, partial (see DXA-24) · Wave 1 (stripe, echo) / Wave 3 (emoji) · Review: —
@@ -1190,7 +1208,7 @@ compare pass/fail, not decimals.
 | DXA-07 | hero keeps ≥ 90% height through a date change | 0.45 | FAIL |
 | DXA-07 | Today pane keeps ≥ 90% height through a date change | (added 09-18) 0.43 | FAIL |
 | DXA-07 | the selected day replaces the held one | (added 09-18) | — |
-| DXA-08 | no raw enums / "None" / upper-case rasi names | `ARDHASHTAMA_SANI`; `MITHUNAM`, `DHANUSU`, … | FAIL |
+| DXA-08 | no raw enums / "None" / upper-case rasi names | `ARDHASHTAMA_SANI`; `MITHUNAM`, `DHANUSU`, … | PASS (2026-09-18; `ux-audit-dxa08-final4`) |
 | DXA-09 | no accent stripes | Family: 1 | FAIL |
 | DXA-09 | no Tamil in English mode | Tools: echo + "திருமணப் பொருத்தம்" | FAIL |
 | DXA-09 | no emoji / text glyphs as icons | Calendar, Family, Journal, Today | FAIL |

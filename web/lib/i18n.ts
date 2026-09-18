@@ -330,6 +330,7 @@ const STRINGS = {
   label_chandrashtamam_rasi: { ta: "இன்று சந்திராஷ்டமம்", en: "Today's Chandrashtamam" },
   label_active:     { ta: "நடப்பு",  en: "Active" },
   label_none:       { ta: "இல்லை",  en: "None" },
+  label_not_today:  { ta: "இன்று இல்லை", en: "Not today" },
   label_sani_cycle: { ta: "சனி சுழற்சி", en: "Saturn cycle" },
   label_gochar_pos: { ta: "கிரகநகர்வு நிலை", en: "Transit positions" },
   label_janma_rasi_short: { ta: "பிறப்பு ராசி", en: "Birth sign" },
@@ -1238,6 +1239,7 @@ const PLANET_LORDS: Record<string, { ta: string; en: string }> = {
   JUPITER: { ta: "குரு",     en: "Jupiter" },
   RAHU:    { ta: "ராகு",     en: "Rahu" },
   KETU:    { ta: "கேது",     en: "Ketu" },
+  MANDHI:  { ta: "மாந்தி",    en: "Mandhi" },
 };
 
 type PanchangamNameMap = Record<string, { ta: string; en: string }>;

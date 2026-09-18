@@ -48,6 +48,16 @@ export function rasiLabel(rasi: number, lang: "ta" | "en"): string {
   return table[rasi] ?? `Rasi ${rasi}`;
 }
 
+/** Render a numeric or legacy string-only rasi in the reader's language. */
+export function rasiDisplayName(rasi: number | string | null | undefined, lang: "ta" | "en"): string {
+  if (typeof rasi === "number") return rasiLabel(rasi, lang);
+  const raw = rasi?.trim() ?? "";
+  if (!raw) return "";
+  const index = D1_RASI_NAMES.findIndex((name) => name.toLowerCase() === raw.toLowerCase());
+  if (index > 0) return rasiLabel(index, lang);
+  return raw.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 // Classical, fixed rasi→ruling-planet mapping (never changes per-chart, so it's
 // safe to hardcode client-side — same tier of fact as GRAHA_ABBR/D1_RASI_NAMES
 // above). Keyed the same way DASHA_COLORS/tPlanetLord are (SUN/MOON/MARS/...).
