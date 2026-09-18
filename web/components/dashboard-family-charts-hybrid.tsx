@@ -750,7 +750,8 @@ export function DashboardFamilyChartsHybrid({
     .map((meta) => ({ displayName: meta.member.displayName, score: meta.member.individualScore }));
 
   const weekday = new Date(`${selectedDate}T00:00:00`).toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", { weekday: "long" });
-  const dateLine = `${weekday} · ${formatHeaderDate(selectedDate, lang)} · ${resolveTamilDate(panchangam?.tamilDate, selectedDate, lang)}`;
+  const tamilDate = resolveTamilDate(panchangam?.tamilDate, selectedDate, lang);
+  const dateLine = [weekday, formatHeaderDate(selectedDate, lang), tamilDate].filter(Boolean).join(" · ");
 
   // ── The subject of every reading section: selected member, or the owner. ──
   const ownerMeta = memberMeta.find((m) => m.isSelf) ?? null;

@@ -108,6 +108,25 @@ function auspiciousCard(title: string): HTMLElement {
 }
 
 describe("Panchangam view — plain-language day summary", () => {
+  it("keeps an aria-hidden Tamil-date slot blank while the server value is pending (DXA-38)", () => {
+    const { container } = render(
+      <DashboardCalendarTabNova
+        selectedDate="2026-09-17"
+        todayDate="2026-09-17"
+        panchangam={null}
+        panchangamTimings={null}
+        lang="ta"
+      />,
+    );
+
+    const tamilDateSlot = Array.from(container.querySelectorAll<HTMLElement>("[aria-hidden='true']"))
+      .find((element) => element.style.minWidth === "8ch");
+    expect(tamilDateSlot).toBeTruthy();
+    expect(tamilDateSlot).toHaveStyle({ visibility: "hidden" });
+    expect(tamilDateSlot?.textContent).toBe("\u00a0");
+    expect(container).not.toHaveTextContent("புரட்டாசி");
+  });
+
   it("leads with an interpretation before the named calendar facts", () => {
     renderPanchangam();
     expect(screen.getByTestId("calendar-day-summary")).toHaveTextContent(

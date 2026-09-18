@@ -705,7 +705,8 @@ Ready: yes · Wave 2 · Needs: DXA-14 · Review: shots + Tamil
 - **Gate:** add `readingSections` to the harness pane checks: Family shows
   exactly one `section.om`.
 
-#### DXA-38 `[ ]` Tamil date hidden until the server answers (D6)
+#### DXA-38 `[x] 2026-09-18` Tamil date hidden until the server answers (D6)
+Done: `resolveTamilDate(undefined, …)` returns `""` (negative with the fallback restored: `Purattasi 1`); Calendar and drawer reserve an `aria-hidden` 8ch blank slot and Family drops the empty segment. Tamil browser check: loaded server value rendered in `web/e2e/.artifacts/dxa38-tamil-calendar.png`; pending-state Tamil RTL check passes. `getTamilMonthDate` and `TAMIL_MONTH_STARTS` retained without deletion approval; eslint does not flag them. Commit uncommitted.
 Ready: yes · Wave 1 · Needs: — · Review: astrologer (informational)
 - **Problem:** `resolveTamilDate` falls back to `getTamilMonthDate`
   (`dashboard-calendar-shared.tsx:109-119`). That is a year-independent table

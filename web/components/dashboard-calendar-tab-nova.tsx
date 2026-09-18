@@ -850,7 +850,18 @@ export function DayDetailDrawerNova({
   const subtitle = (
     <>
       {data && <span>{tWeekday(data.vara.weekday, lang)}</span>}
-      {tamilDate && <span style={{ color: "var(--color-accent-strong)", fontWeight: 600 }}>{tamilDate}</span>}
+      <span
+        aria-hidden={!tamilDate}
+        style={{
+          color: "var(--color-accent-strong)",
+          display: "inline-block",
+          fontWeight: 600,
+          minWidth: "8ch",
+          visibility: tamilDate ? "visible" : "hidden",
+        }}
+      >
+        {tamilDate || "\u00a0"}
+      </span>
       {hijriLabel && <span>{hijriLabel}</span>}
       {isToday && <Chip tone="accent">{lang === "ta" ? "இன்று" : "Today"}</Chip>}
     </>
@@ -1323,9 +1334,18 @@ export function DashboardCalendarTabNova({
             <h1 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--display-md)", fontWeight: 600, color: "var(--color-text-strong)", lineHeight: 1.1 }}>
               {headerDate}
             </h1>
-            {tamilHeaderDate && (
-              <div style={{ fontSize: "var(--text-md)", color: "var(--color-accent-strong)", fontWeight: 600 }}>{tamilHeaderDate}</div>
-            )}
+            <div
+              aria-hidden={!tamilHeaderDate}
+              style={{
+                color: "var(--color-accent-strong)",
+                fontSize: "var(--text-md)",
+                fontWeight: 600,
+                minWidth: "8ch",
+                visibility: tamilHeaderDate ? "visible" : "hidden",
+              }}
+            >
+              {tamilHeaderDate || "\u00a0"}
+            </div>
             {hijriHeaderDate && (
               <div style={{ fontSize: "var(--text-base)", color: "var(--color-high)", fontWeight: 600 }}>{lang === "ta" ? hijriHeaderDate.ta : hijriHeaderDate.en}</div>
             )}

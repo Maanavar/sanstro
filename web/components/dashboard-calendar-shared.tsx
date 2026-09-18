@@ -101,12 +101,9 @@ function getTamilMonthDate(dateStr: string, lang: Lang): string {
  * above cannot: it is a year-independent month-start approximation and is
  * already a day off the engine for Karthigai, Thai and Panguni in 2026.
  *
- * So the approximation is a *loading placeholder*, not a second opinion. It
- * fills the header for the frame before the panchangam response lands, and the
- * server value replaces it the moment there is one. Two Tamil dates rendered
- * from two different sources is how the deleted 2026 Aavani override came to
- * disagree with the engine in the first place; prefer this helper over calling
- * `getTamilMonthDate` directly anywhere a response is in scope.
+ * D6 forbids a client approximation before the panchangam response arrives.
+ * Keep the private approximation intact until its deletion is explicitly
+ * approved, but do not call it from a rendered date surface.
  */
 export function resolveTamilDate(
   serverValue: BiText | null | undefined,
@@ -117,7 +114,7 @@ export function resolveTamilDate(
     const fromServer = tLang(serverValue, lang);
     if (fromServer) return fromServer;
   }
-  return getTamilMonthDate(dateStr, lang);
+  return "";
 }
 
 const NAKSHATRA_ORDER = [
@@ -613,4 +610,3 @@ export function festivalTags(festival: Pick<PanchangamFestival, "category" | "ta
 // "pradhosam" is the backend's own spelling (festivals.py) — without it every
 // Pradhosam fell into the Festivals filter and the Vratham toggle never hid it.
 export const VRATHA_FESTIVAL_PATTERN = /ekadashi|ekadasi|pradosham|pradhosam|sashti|chaturthi|chathurthi|ashtami|amavas|pourn|vratam|vratham|thiruvonam/i;
-
