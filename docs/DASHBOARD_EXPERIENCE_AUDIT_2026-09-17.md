@@ -405,7 +405,7 @@ Ready: yes · Wave 1 · Needs: — · Review: —
     own text-only backend change, with no response-shape change. The
     server-authored chart gist observed in Family is likewise deliberately
     untouched.
-- **Completed on review (2026-09-18, second pass):** the PASS above was real for
+- **Completed on review (2026-09-18, second pass, commit `0794f82`):** the PASS above was real for
   what the gate walks and too narrow for what the item claims. The gate greps
   for `UPPER_CASE`, so it only ever saw half the defect. The other half is
   `rasiName` — the same sign, correctly title-cased, in English — which prints
