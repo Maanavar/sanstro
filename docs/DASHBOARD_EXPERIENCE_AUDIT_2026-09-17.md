@@ -372,7 +372,7 @@ Ready: yes · Wave 1 · Needs: — · Review: shots
   unchanged carries the same message; say the word and it is one number.
 
 #### DXA-08 `[x] 2026-09-18` Raw enums and "None" rendered as copy
-Done: DXA-08 no raw enums / 'None' / upper-case rasi names FAIL (`ARDHASHTAMA_SANI`; `MITHUNAM`, `DHANUSU`, `MANDHI`, and Gochar rasi codes) → PASS (`none (None×0)`); negative (fix removed) metrics `web/e2e/.artifacts/ux-audit-dxa08-negative-final2/`, passing metrics `web/e2e/.artifacts/ux-audit-dxa08-final4/`; commit uncommitted.
+Done: DXA-08 no raw enums / 'None' / upper-case rasi names FAIL (`ARDHASHTAMA_SANI`; `MITHUNAM`, `DHANUSU`, `MANDHI`, and Gochar rasi codes) → PASS (`none (None×0)`); negative (fix removed) metrics `web/e2e/.artifacts/ux-audit-dxa08-negative-final2/`, passing metrics `web/e2e/.artifacts/ux-audit-dxa08-final4/`; commit `0e7c269`.
 Ready: yes · Wave 1 · Needs: — · Review: —
 - **Problem:** `NovaGocharCard` (`dashboard-today-deepdive-extras-nova.tsx:397-410`)
   renders **"ARDHASHTAMA_SANI"** (`moonBasedCycle.type`), **"Chandrashtamam:
