@@ -116,6 +116,19 @@ Each item carries a header line:
 
 It also carries a **Gate** line: the `ux-audit` check that proves it (§12).
 
+**A Gate is a measurement, not the definition of done.** Before recording a
+PASS, run the gate once with your fix *removed* and confirm it fails — three
+items here have been recorded green by a check that could not fail (DXA-05's
+pending hero made DXA-07's hero gate pass either way; DXA-08's `UPPER_CASE`
+regex could not see the correctly-cased half of its own defect). Then write down
+what the check cannot see. Two blind spots apply to every item in this file,
+because they are properties of the harness, not of any one gate:
+- `ux-audit-core.mjs` switches **top-level tab panes only**. Overlays, sub-tools,
+  generated reports and anything needing a second click are never rendered, so
+  no gate in §12 has ever measured them.
+- It pins the account to `lang: "en"`. **No gate here has ever run in Tamil.**
+  For any copy, naming or localisation item, check Tamil by hand and say so.
+
 ### P0: trust and continuity
 
 #### DXA-01 `[x] 2026-09-17` Loading placeholders flash the Classic cream palette on the dark theme
