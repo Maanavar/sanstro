@@ -519,13 +519,23 @@ async function hoverPress(page, max = 16) {
   const keys = ["transform", "boxShadow", "border", "bg", "color", "filter"];
   const out = [];
   for (let i = 0; i < n; i++) {
-    const target = page.locator(`[data-ux-h="${i}"]`);
-    await target.evaluate((el) => el.scrollIntoView({ block: "center", inline: "nearest" }));
+    const present = await page.evaluate((i) => {
+      const el = document.querySelector(`[data-ux-h="${i}"]`);
+      if (!el) return false;
+      el.scrollIntoView({ block: "center", inline: "nearest" });
+      return true;
+    }, i);
+    if (!present) continue;
     await settleScroll(page);
     await page.mouse.move(1, 1);
     await sleep(250);
     const a = await read(i);
-    const box = await target.boundingBox().catch(() => null);
+    const box = await page.evaluate((i) => {
+      const el = document.querySelector(`[data-ux-h="${i}"]`);
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { x: r.x, y: r.y, width: r.width, height: r.height };
+    }, i);
     if (!a || !box) continue;
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await sleep(350);
