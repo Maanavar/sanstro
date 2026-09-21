@@ -191,7 +191,7 @@ export function Surface({
     <div className="surface">
       <button
         type="button"
-        className="surface__title"
+        className="surface__title ui-card--interactive"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
         style={{
