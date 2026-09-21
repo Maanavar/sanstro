@@ -651,6 +651,20 @@ Ready: yes · Wave 1 · Needs: — · Review: —
 ### P1: make it feel alive
 
 #### DXA-12 `[~]` Clickable surfaces give no hover or press feedback
+W-5 completed 2026-09-21: reduced motion now removes the card's vertical
+travel while retaining its shadow and strong-border affordance. The same split
+was applied to the matching `.nova-interactive` rule found in the required
+sweep. **Negative control:** the new reduced-motion hover probe read **0/3
+FAIL** with the old combined media query
+(`web/e2e/.artifacts/w5-reduced-hover-negative/`); restored, it reads **3/3
+PASS** (`web/e2e/.artifacts/w5-reduced-hover-pass/`). **Not covered:** the gate
+samples three English Today `.ui-card--interactive` cards in the dark theme; it
+does not inspect `.nova-interactive`, other panes, light theme, Tamil, keyboard
+focus, or touch press feedback. DXA-12 remains `[~]` until W-6 closes the
+whole-pane hover and press counts.
+Done: DXA-12 reduced motion keeps colour/shadow hover feedback 0/3 → 3/3;
+negative metrics `web/e2e/.artifacts/w5-reduced-hover-negative/`; passing
+metrics `web/e2e/.artifacts/w5-reduced-hover-pass/`; commit `b4285f3`.
 Status correction 2026-09-18: the recorded 8/8 result had four empty panes;
 the ratchet was removed pending whole-pane measurement, negative control, and
 stable browser runs. The historical completion claim below is superseded.
@@ -1598,6 +1612,7 @@ the two source-only rows identify their 2026-09-21 recheck in the cell.
 | DXA-10 | no star through a translucent surface | 6 — see note | **0 of 64 PASS** |
 | DXA-11 | reduced motion: indicator does not move | 3 transforms FAIL | **1 PASS** |
 | DXA-11 | reduced motion: pane without a fade | 1 PASS | **1 PASS** |
+| DXA-12 | reduced motion keeps colour/shadow hover feedback | added 2026-09-21 | **3 / 3 PASS** (`w5-reduced-hover-pass`) |
 | DXA-12 | hover feedback ≥ 95% | 2 / 22 FAIL | **19 / 71 FAIL** |
 | DXA-12 | press feedback = 100% | 0 / 22 FAIL | **18 / 71 FAIL** |
 | DXA-12 | every hover pane yielded surfaces | added 09-18 | **all panes measured PASS** |
