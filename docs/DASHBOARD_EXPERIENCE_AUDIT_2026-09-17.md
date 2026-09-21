@@ -303,7 +303,17 @@ Ready: yes · Wave 1 · Needs: — · Review: shots
   hero that is already taller than the viewport there, so what moves is below
   the fold.
 
-#### DXA-07 `[x] 2026-09-18` Changing the date collapses Today while the new day loads
+#### DXA-07 `[x] 2026-09-21` Changing the date collapses Today while the new day loads
+Done: DXA-07 stale pane body text holds AA on light **3.41:1 → 10.47:1**;
+negative metrics `web/e2e/.artifacts/w3-stale-aa-negative-r8/`; passing metrics
+`web/e2e/.artifacts/w3-stale-aa-pass-r3/`; commit `1ea20e0`.
+OD-3 assumption (2026-09-21): proceeded with the work order's recommended
+chrome-only dim. Borders, accent fills and the hero masthead soften while body
+copy stays at full opacity; the 2 px progress hairline is unchanged.
+**Gate blind spot:** the light probe forces the loaded English Today pane's
+stale CSS state and samples the hero briefing. The Today phase separately
+proves that the runtime stale state appears and resolves; this contrast gate
+does not inspect every text node, nested tool or Tamil rendering.
 Done: Today pane **3,515 → 1,513 px (0.43)** → **3,515 → 3,515 (1.00)**, the
 selected day arrives (`data-day` = 2026-09-19), hero 592 → 592. A/B on one
 account, same probe, same stack: `web/e2e/.artifacts/ux-audit-dxa07-negative10/`
