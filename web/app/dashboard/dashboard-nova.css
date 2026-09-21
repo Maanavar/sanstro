@@ -3048,6 +3048,30 @@
 }
 [data-ui="nova"] .cd-shell .ui-card--interactive:active { transform: scale(0.985); }
 
+/* Direct-imported behaviour primitive for interactive surfaces that are not a
+   Card, button or pill. Feedback remains visible when travel is reduced. */
+[data-ui="nova"] .cd-shell .ui-pressable {
+  cursor: pointer;
+  transition:
+    transform var(--dur-fast) var(--ease-nova),
+    box-shadow var(--dur-base) var(--ease-nova),
+    border-color var(--dur-base) var(--ease-nova);
+}
+@media (hover: hover) {
+  [data-ui="nova"] .cd-shell .ui-pressable:not(:disabled):not([aria-disabled="true"]):hover {
+    box-shadow: var(--elev-2);
+    border-color: var(--color-border-strong);
+  }
+}
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+  [data-ui="nova"] .cd-shell .ui-pressable:not(:disabled):not([aria-disabled="true"]):hover {
+    transform: translateY(-2px);
+  }
+}
+[data-ui="nova"] .cd-shell .ui-pressable:not(:disabled):not([aria-disabled="true"]):active {
+  transform: scale(0.97);
+}
+
 /* ── Numerology "how this was worked out" disclosure ──
    A native <details> so keyboard and screen-reader behaviour, find-in-page and
    print-expanded all come for free. Only the *derivation* folds away — the
