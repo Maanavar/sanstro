@@ -549,7 +549,9 @@ async function hoverPress(page, max = 16) {
     const el = document.querySelector(`[data-ux-h="${i}"]`);
     if (!el) return null;
     const cs = getComputedStyle(el);
-    return { label: (el.getAttribute("aria-label") || el.textContent || "").trim().replace(/\s+/g, " ").slice(0, 40), transform: cs.transform, boxShadow: cs.boxShadow, border: cs.borderTopColor, bg: cs.backgroundColor, color: cs.color, filter: cs.filter };
+    const describe = window.__uxDescribe ?? ((node) => node?.tagName?.toLowerCase() ?? "unknown");
+    const selector = [el, el.parentElement, el.parentElement?.parentElement].map(describe).join(" < ");
+    return { label: (el.getAttribute("aria-label") || el.textContent || "").trim().replace(/\s+/g, " ").slice(0, 40), selector, transform: cs.transform, boxShadow: cs.boxShadow, border: cs.borderTopColor, bg: cs.backgroundColor, color: cs.color, filter: cs.filter };
   }, i);
   const keys = ["transform", "boxShadow", "border", "bg", "color", "filter"];
   const out = [];
@@ -580,7 +582,7 @@ async function hoverPress(page, max = 16) {
     const c = await read(i);
     await page.mouse.move(1, 1); // release OFF the element so nothing activates
     await page.mouse.up();
-    out.push({ label: a.label, hover: keys.filter((k) => b && a[k] !== b[k]), press: keys.filter((k) => c && b && c[k] !== b[k]) });
+    out.push({ label: a.label, selector: a.selector, hover: keys.filter((k) => b && a[k] !== b[k]), press: keys.filter((k) => c && b && c[k] !== b[k]) });
   }
   return out;
 }

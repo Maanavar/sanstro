@@ -1535,6 +1535,7 @@ export function DashboardTodayTabNova({
                     {onGoToCalendar && (
                       <button
                         type="button"
+                        className="ui-btn"
                         onClick={onGoToCalendar}
                         style={{
                           display: "inline-flex", alignItems: "center", gap: "var(--space-2)", alignSelf: "flex-start",

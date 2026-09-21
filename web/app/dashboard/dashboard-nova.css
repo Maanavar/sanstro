@@ -3072,6 +3072,21 @@
   transform: scale(0.97);
 }
 
+/* Inline glossary disclosures are intentionally not pills or cards, but they
+   still need pointer and press confirmation like every other disclosure. */
+[data-ui="nova"] .cd-shell .glossary-term__trigger {
+  color: inherit;
+  transition:
+    color var(--dur-fast) var(--ease-nova),
+    transform var(--dur-fast) var(--ease-nova);
+}
+[data-ui="nova"] .cd-shell .glossary-term__trigger:hover {
+  color: var(--color-accent-strong);
+}
+[data-ui="nova"] .cd-shell .glossary-term__trigger:active {
+  transform: scale(0.97);
+}
+
 /* ── Numerology "how this was worked out" disclosure ──
    A native <details> so keyboard and screen-reader behaviour, find-in-page and
    print-expanded all come for free. Only the *derivation* folds away — the
@@ -3179,6 +3194,9 @@
 [data-ui="nova"] .cd-shell .ui-segmented__label { position: relative; z-index: 1; }
 [data-ui="nova"] .cd-shell .ui-segmented__btn:hover:not([aria-selected="true"]) {
   color: var(--color-text-strong);
+}
+[data-ui="nova"] .cd-shell .ui-segmented__btn:active {
+  transform: scale(0.97);
 }
 [data-ui="nova"] .cd-shell .ui-segmented__btn[aria-selected="true"] {
   color: var(--color-on-accent);
@@ -3348,6 +3366,12 @@
   outline-offset: 2px;
 }
 [data-ui="nova"] .cd-shell .ui-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+@media (hover: hover) {
+  [data-ui="nova"] .cd-shell .ui-btn:hover:not(:disabled) {
+    box-shadow: var(--elev-1);
+  }
+}
+[data-ui="nova"] .cd-shell .ui-btn:active { transform: scale(0.97); }
 [data-ui="nova"] .cd-shell .ui-btn--primary {
   background: var(--color-accent);
   color: var(--color-on-accent);
@@ -3397,9 +3421,14 @@
   transition:
     background var(--motion-nav) var(--ease-nova),
     border-color var(--motion-nav) var(--ease-nova),
-    color var(--motion-nav) var(--ease-nova);
+    color var(--motion-nav) var(--ease-nova),
+    box-shadow var(--motion-nav) var(--ease-nova),
+    transform var(--motion-toggle) var(--ease-nova);
 }
-[data-ui="nova"] .cd-shell .ui-pill:hover:not([aria-pressed="true"]) { color: var(--color-text-strong); }
+[data-ui="nova"] .cd-shell .ui-pill:hover:not([aria-pressed="true"]) {
+  color: var(--color-text-strong);
+  box-shadow: var(--elev-1);
+}
 [data-ui="nova"] .cd-shell .ui-pill:active { transform: scale(0.97); }
 
 /* Kept mounted by CollapsibleSection after the first render: grid rows animate
@@ -3794,6 +3823,7 @@ button.ui-chip { cursor: pointer; }
   color: var(--color-text-strong);
   border-color: var(--color-border-strong);
 }
+.om__basis-toggle:active { transform: scale(0.97); }
 .om__basis-toggle:focus-visible {
   outline: 2px solid var(--color-accent-strong);
   outline-offset: 2px;

@@ -247,6 +247,7 @@ export function GlossaryTerm({ term, definition, lang, children }: GlossaryTermP
       <button
         ref={anchorRef}
         type="button"
+        className="glossary-term__trigger"
         onClick={(e) => {
           e.stopPropagation();
           setOpen((v) => !v);
@@ -291,7 +292,6 @@ export function GlossaryTerm({ term, definition, lang, children }: GlossaryTermP
           // saw that one term revert to its source casing.
           textTransform: "inherit",
           letterSpacing: "inherit",
-          color: "inherit",
           cursor: "help",
         }}
       >

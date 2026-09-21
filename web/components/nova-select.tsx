@@ -146,6 +146,7 @@ export function NovaSelect({
     <div ref={rootRef} style={{ position: "relative", ...containerStyle }}>
       <button
         type="button"
+        className="ui-pressable"
         disabled={disabled}
         onClick={() => !disabled && setOpen((v) => !v)}
         onKeyDown={onKeyDown}
