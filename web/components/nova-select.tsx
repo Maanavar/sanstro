@@ -3,6 +3,8 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { CSSProperties, KeyboardEvent } from "react";
 
+import "./interaction-kinds.css";
+
 /**
  * Nova-styled dropdown — replaces ad-hoc native `<select>` elements inside the
  * Nova ([data-ui="nova"]) dashboard. A native `<select>`'s *popup* list is
@@ -127,8 +129,9 @@ export function NovaSelect({
     gap: "8px",
     padding: "8px 12px",
     borderRadius: "10px",
-    border: "1.5px solid var(--color-border)",
-    background: "var(--color-surface-soft, var(--color-surface))",
+    // Border and fill come from `.ui-select-trigger` (interaction-kinds.css):
+    // inline they beat the OD-4 hover border and press tint. A caller's
+    // `style` still overrides both, and then owns their states too.
     color: selected ? "var(--color-text-strong)" : "var(--color-faint)",
     fontSize: "14px",
     fontFamily: "inherit",
@@ -146,7 +149,7 @@ export function NovaSelect({
     <div ref={rootRef} style={{ position: "relative", ...containerStyle }}>
       <button
         type="button"
-        className="ui-pressable"
+        className="ui-select-trigger"
         disabled={disabled}
         onClick={() => !disabled && setOpen((v) => !v)}
         onKeyDown={onKeyDown}

@@ -2,6 +2,8 @@
 
 import React, { useLayoutEffect, useRef, useState } from "react";
 
+import "./interaction-kinds.css";
+
 interface CollapsibleSectionProps {
   title: React.ReactNode;
   defaultOpen?: boolean;
@@ -52,7 +54,7 @@ export function CollapsibleSection({
       <button
         ref={triggerRef}
         type="button"
-        className="collapsible__trigger ui-card--interactive"
+        className="collapsible__trigger ui-disclosure-trigger ui-disclosure-trigger--flush"
         aria-expanded={open}
         onClick={toggle}
         style={{ overflowAnchor: "none" }}

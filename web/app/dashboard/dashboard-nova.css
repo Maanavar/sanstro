@@ -3072,19 +3072,59 @@
   transform: scale(0.97);
 }
 
-/* Inline glossary disclosures are intentionally not pills or cards, but they
-   still need pointer and press confirmation like every other disclosure. */
+/* OD-4 text link / inline action (2026-09-21): colour → accent-strong and an
+   underline on hover; press dims to 0.8. A link resting in accent-strong
+   already (the default) still gains the underline, so it always answers.
+   `--ui-link-color` sets a different resting colour without an inline
+   `color`, which would beat the hover. */
+[data-ui="nova"] .cd-shell .ui-link {
+  color: var(--ui-link-color, var(--color-accent-strong));
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  transition:
+    color var(--motion-nav) var(--ease-nova),
+    text-decoration-color var(--motion-nav) var(--ease-nova),
+    opacity var(--motion-toggle) var(--ease-nova);
+}
+@media (hover: hover) {
+  [data-ui="nova"] .cd-shell .ui-link:hover {
+    color: var(--color-accent-strong);
+    text-decoration-color: currentColor;
+  }
+}
+[data-ui="nova"] .cd-shell .ui-link:active { opacity: 0.8; }
+
+/* Inline glossary disclosures are text links under OD-4: the dotted
+   underline firms to solid on hover, the colour moves to accent-strong, press
+   dims. The underline is what answers when the term already sits in an
+   accent-strong line (DXA-12's one hover miss, Family "Mercury"). Every
+   importer of GlossaryTerm is a dashboard component, so this `.cd-shell`
+   scope covers every render. */
 [data-ui="nova"] .cd-shell .glossary-term__trigger {
   color: inherit;
+  text-decoration: underline dotted;
+  text-decoration-color: var(--color-faint);
+  text-underline-offset: 3px;
   transition:
     color var(--dur-fast) var(--ease-nova),
-    transform var(--dur-fast) var(--ease-nova);
+    text-decoration-color var(--dur-fast) var(--ease-nova),
+    opacity var(--dur-fast) var(--ease-nova);
 }
-[data-ui="nova"] .cd-shell .glossary-term__trigger:hover {
-  color: var(--color-accent-strong);
+@media (hover: hover) {
+  [data-ui="nova"] .cd-shell .glossary-term__trigger:hover {
+    color: var(--color-accent-strong);
+    text-decoration-style: solid;
+    text-decoration-color: currentColor;
+  }
 }
 [data-ui="nova"] .cd-shell .glossary-term__trigger:active {
-  transform: scale(0.97);
+  opacity: 0.8;
 }
 
 /* ── Numerology "how this was worked out" disclosure ──
@@ -3366,12 +3406,8 @@
   outline-offset: 2px;
 }
 [data-ui="nova"] .cd-shell .ui-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-@media (hover: hover) {
-  [data-ui="nova"] .cd-shell .ui-btn:hover:not(:disabled) {
-    box-shadow: var(--elev-1);
-  }
-}
-[data-ui="nova"] .cd-shell .ui-btn:active { transform: scale(0.97); }
+/* OD-4 (2026-09-21): a button's hover is its variant's own background/border
+   shift — no kit-wide shadow, and never one on ghost. */
 [data-ui="nova"] .cd-shell .ui-btn--primary {
   background: var(--color-accent);
   color: var(--color-on-accent);
@@ -3394,7 +3430,13 @@
   padding-left: 8px;
   padding-right: 8px;
 }
-[data-ui="nova"] .cd-shell .ui-btn--ghost:hover:not(:disabled) { color: var(--color-accent-strong); }
+/* Ghost rests in `--color-text-accent`, which is `--color-accent-strong` on the
+   dark theme — so a colour-only hover changed nothing there. The background
+   shift is the ghost variant's feedback; the colour still firms up on light. */
+[data-ui="nova"] .cd-shell .ui-btn--ghost:hover:not(:disabled) {
+  color: var(--color-accent-strong);
+  background: color-mix(in srgb, var(--color-text-strong) 6%, transparent);
+}
 [data-ui="nova"] .cd-shell .ui-btn--sm {
   font-size: var(--text-xs);
   padding: 6px 12px;
@@ -3427,7 +3469,7 @@
 }
 [data-ui="nova"] .cd-shell .ui-pill:hover:not([aria-pressed="true"]) {
   color: var(--color-text-strong);
-  box-shadow: var(--elev-1);
+  border-color: var(--color-accent);
 }
 [data-ui="nova"] .cd-shell .ui-pill:active { transform: scale(0.97); }
 

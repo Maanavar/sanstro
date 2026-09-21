@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import {
   ScrollText, Sunrise, Sparkles, Timer, Hash, HeartHandshake, NotebookPen, Compass,
   ArrowRight, ArrowUp, ArrowDown, Diamond, Check,
@@ -129,9 +129,10 @@ export function GlanceHeader({
       {onLink && linkLabel && (
         <button
           type="button"
-          className="ui-btn"
+          // OD-4 text link, not a kit button: `.ui-btn` stretched this to 38px.
+          className="ui-link"
           onClick={onLink}
-          style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0, whiteSpace: "nowrap" }}
+          style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-sm)", fontWeight: 600, whiteSpace: "nowrap" }}
         >
           {linkLabel}
           <ArrowRight size={13} strokeWidth={2} aria-hidden="true" />
@@ -808,11 +809,10 @@ function RemedyFocusCard({
           {isOwnerSelected && (
             <button
               type="button"
-              className="ui-btn"
+              className="ui-btn ui-btn--primary"
               onClick={onSaveReminder}
               disabled={savingReminder}
               title={reminderMessage ?? undefined}
-              style={{ fontSize: "var(--text-sm)", fontWeight: 700, background: "var(--color-accent)", color: "var(--color-on-accent)", border: "none", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-4)", cursor: savingReminder ? "wait" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
             >
               {savingReminder ? t("remedy_focus_reminder_saving", lang) : t("remedy_focus_reminder", lang)}
             </button>
@@ -820,9 +820,8 @@ function RemedyFocusCard({
           {onGoToLifeAreas && (
             <button
               type="button"
-              className="ui-btn"
+              className="ui-btn ui-btn--secondary"
               onClick={onGoToLifeAreas}
-              style={{ fontSize: "var(--text-sm)", fontWeight: 600, background: "transparent", color: "var(--color-accent-secondary)", border: "1px solid color-mix(in srgb, var(--color-accent-secondary) 35%, transparent)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-4)", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
             >
               {t("remedy_focus_more", lang)}
             </button>
@@ -1071,20 +1070,15 @@ export function DashboardTodayComingUpNova({
   const isNear = primary ? primary.daysFromToday <= 3 : false;
   const saniActive = personalSani?.moonBasedCycle.isActive ?? false;
 
-  return (
-    <button
-      type="button"
-      className={onGoToCalendar ? "ui-card--interactive" : undefined}
-      onClick={onGoToCalendar}
-      disabled={!onGoToCalendar}
-      style={{
-        display: "flex", alignItems: "flex-start", gap: "var(--space-2_5)", textAlign: "left", cursor: onGoToCalendar ? "pointer" : "default",
-        width: "100%", minWidth: 0, boxSizing: "border-box",
-        background: isNear || saniActive ? "linear-gradient(135deg, var(--color-accent-muted), transparent)" : "color-mix(in srgb, var(--color-text-strong) 3%, transparent)",
-        border: `1px solid ${isNear || saniActive ? "var(--color-border-strong)" : "var(--color-border)"}`,
-        borderRadius: "var(--radius-lg)", padding: "var(--space-3) var(--space-4_5)", fontFamily: "inherit",
-      }}
-    >
+  const style: CSSProperties = {
+    display: "flex", alignItems: "flex-start", gap: "var(--space-2_5)", textAlign: "left",
+    width: "100%", minWidth: 0, boxSizing: "border-box",
+    background: isNear || saniActive ? "linear-gradient(135deg, var(--color-accent-muted), transparent)" : "color-mix(in srgb, var(--color-text-strong) 3%, transparent)",
+    border: `1px solid ${isNear || saniActive ? "var(--color-border-strong)" : "var(--color-border)"}`,
+    borderRadius: "var(--radius-lg)", padding: "var(--space-3) var(--space-4_5)", fontFamily: "inherit",
+  };
+  const body = (
+    <>
       {/* Nested inside the Family Today footer now (was a full-width strip),
           so the line wraps instead of ellipsis-truncating — a half-width
           column is much likelier to clip a whole clause than a full row was. */}
@@ -1101,6 +1095,16 @@ export function DashboardTodayComingUpNova({
           <> · <span style={{ color: "var(--color-low)" }}>{personalSani?.moonBasedCycle.supportiveLabel ?? saniCycleName(personalSani?.moonBasedCycle.type ?? "", lang)}</span></>
         )}
       </span>
+    </>
+  );
+
+  // With nowhere to go this is a line of text, not a control. A disabled
+  // <button> would be announced as "unavailable" and dropped from DXA-12's
+  // census rather than counted honestly (E-4d).
+  if (!onGoToCalendar) return <div style={style}>{body}</div>;
+  return (
+    <button type="button" className="ui-card--interactive" onClick={onGoToCalendar} style={style}>
+      {body}
     </button>
   );
 }

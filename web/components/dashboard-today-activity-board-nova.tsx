@@ -591,9 +591,13 @@ export function DashboardTodayActivityBoardNova({
             twelfth. Ask Vinaadi's permanent home is the topbar — this is a
             contextual entry point, not a second one competing for the page. */}
         <li style={{ flex: "0 0 158px", scrollSnapAlign: "start", display: "flex" }}>
+          {/* OD-4: a 110px tile in a row of activity tiles is the card kind,
+              not a kit button — `.ui-btn` forced line-height 1 and a 38px
+              floor onto it. Its dashed border is its identity, so it keeps
+              that and answers with the lift and shadow. */}
           <button
             type="button"
-            className="ui-btn"
+            className="ui-card--interactive"
             onClick={onOpenAskVinaadi}
             style={{
               flex: 1,
@@ -610,7 +614,6 @@ export function DashboardTodayActivityBoardNova({
               border: "1px dashed var(--color-accent-secondary-muted, var(--color-accent-secondary))",
               borderRadius: "var(--radius-md)",
               padding: "var(--space-3)",
-              cursor: "pointer",
               fontFamily: "inherit",
             }}
           >

@@ -408,10 +408,9 @@ export function DashboardPlanTabNova({
                   />
                   <button
                     type="button"
-                    className="ui-btn"
+                    className="ui-btn ui-btn--primary"
                     onClick={() => onAddGoal(addingGoalType || "job_change")}
                     disabled={goalsBusy}
-                    style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", border: "none", borderRadius: "var(--radius-sm)", padding: "var(--space-3) var(--space-4)", cursor: goalsBusy ? "wait" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
                   >
                     {goalsBusy ? t("goals_adding", lang) : t("goals_add", lang)}
                   </button>

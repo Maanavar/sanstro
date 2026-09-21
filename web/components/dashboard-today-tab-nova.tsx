@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { Activity, AlertTriangle, ArrowRight, Bell, CalendarDays, CalendarPlus, ChevronDown, Leaf, Moon, MoonStar, Sparkles, Star, Sun, Target, TrendingUp, X, type LucideIcon } from "lucide-react";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
@@ -950,10 +950,9 @@ export function DashboardTodayTabNova({
                     )}
                     <button
                       type="button"
-                      className="ui-btn"
+                      className="ui-btn ui-btn--secondary"
                       onClick={() => void handleSaveReminder()}
                       disabled={savingReminder}
-                      style={{ fontSize: "var(--text-sm)", fontWeight: 600, border: "1px solid var(--color-border-strong)", color: "var(--color-accent-strong)", background: "none", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3_5)", cursor: savingReminder ? "wait" : "pointer", fontFamily: "inherit" }}
                     >
                       {savingReminder ? (lang === "ta" ? "…" : "Saving…") : (lang === "ta" ? "நினைவூட்டு" : "Remind me")}
                     </button>
@@ -1236,12 +1235,15 @@ export function DashboardTodayTabNova({
                           )}
                         </div>
                         <div className="nova-hero-action__buttons">
+                          {/* Kit primary; only the size stays inline — the
+                              hero's one action reads a step larger than the
+                              kit's default, and a size never blocks a state. */}
                           <button
                             type="button"
-                            className="ui-btn"
+                            className="ui-btn ui-btn--primary"
                             onClick={() => void handleSaveReminder()}
                             disabled={savingReminder}
-                            style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-base)", fontWeight: 700, background: "var(--color-accent)", color: "var(--color-on-accent)", border: "none", borderRadius: "var(--radius-sm)", padding: "var(--space-2_5) var(--space-4)", cursor: savingReminder ? "wait" : "pointer", fontFamily: "inherit" }}
+                            style={{ fontSize: "var(--text-base)" }}
                           >
                             <Bell size={15} strokeWidth={2} aria-hidden="true" style={{ flex: "none" }} />
                             {savingReminder ? (lang === "ta" ? "…" : "Saving…") : (lang === "ta" ? "நினைவூட்டு" : "Remind me")}
@@ -1253,9 +1255,9 @@ export function DashboardTodayTabNova({
                           {onGoToJournal && (
                             <button
                               type="button"
-                              className="ui-btn"
+                              className="ui-btn ui-btn--ghost"
                               onClick={onGoToJournal}
-                              style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-base)", fontWeight: 600, border: "none", color: "var(--color-accent-strong)", background: "none", borderRadius: "var(--radius-sm)", padding: "var(--space-2_5) var(--space-3)", cursor: "pointer", fontFamily: "inherit" }}
+                              style={{ fontSize: "var(--text-base)" }}
                             >
                               <CalendarPlus size={15} strokeWidth={2} aria-hidden="true" style={{ flex: "none" }} />
                               {lang === "ta" ? "தருணம் பதிவு" : "Log a moment"}
@@ -1535,15 +1537,18 @@ export function DashboardTodayTabNova({
                     {onGoToCalendar && (
                       <button
                         type="button"
-                        className="ui-btn"
+                        // OD-4 text link: `.ui-btn` had centred this row's
+                        // content and floored it at 38px.
+                        className="ui-link"
                         onClick={onGoToCalendar}
                         style={{
                           display: "inline-flex", alignItems: "center", gap: "var(--space-2)", alignSelf: "flex-start",
-                          marginTop: "var(--space-1)", paddingTop: "var(--space-3)", paddingLeft: 0, paddingRight: 0, paddingBottom: 0,
-                          borderTop: "1px solid var(--color-border)", borderLeft: "none", borderRight: "none", borderBottom: "none",
-                          width: "100%", background: "none", cursor: "pointer", fontFamily: "inherit",
-                          fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-accent-secondary)",
-                        }}
+                          marginTop: "var(--space-1)", paddingTop: "var(--space-3)",
+                          borderTop: "1px solid var(--color-border)",
+                          width: "100%",
+                          fontSize: "var(--text-base)", fontWeight: 600,
+                          "--ui-link-color": "var(--color-accent-secondary)",
+                        } as CSSProperties}
                       >
                         <CalendarDays size={15} strokeWidth={2} aria-hidden="true" style={{ flex: "none" }} />
                         {dt(TODAY_HERO.viewFullAlmanac, lang)}
@@ -1733,9 +1738,9 @@ export function DashboardTodayTabNova({
             {onGoToCharts && (
               <button
                 type="button"
-                className="ui-btn"
+                className="ui-btn ui-btn--primary"
                 onClick={onGoToCharts}
-                style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "var(--space-1_5)", fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", border: "none", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3_5)", cursor: "pointer", fontFamily: "inherit" }}
+                style={{ marginLeft: "auto" }}
               >
                 {lang === "ta" ? "ஜாதகம் & விளக்கம் திற" : "Open Chart & Explanations"}
                 <ArrowRight size={13} strokeWidth={2} aria-hidden="true" style={{ marginLeft: "var(--space-1)" }} />

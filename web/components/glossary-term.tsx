@@ -273,10 +273,9 @@ export function GlossaryTerm({ term, definition, lang, children }: GlossaryTermP
         aria-expanded={open}
         aria-controls={open ? tipId : undefined}
         aria-describedby={open ? `${tipId}-def` : undefined}
+        // The dotted underline lives on `.glossary-term__trigger`
+        // (dashboard-nova.css): inline, it beat the OD-4 hover that firms it.
         style={{
-          textDecoration: "underline dotted",
-          textUnderlineOffset: "3px",
-          textDecorationColor: "var(--color-faint)",
           background: "none",
           border: "none",
           padding: 0,

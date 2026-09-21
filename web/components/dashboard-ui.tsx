@@ -4,6 +4,8 @@
 import { cloneElement, isValidElement, useState } from "react";
 import type { CSSProperties, InputHTMLAttributes, SelectHTMLAttributes, ReactNode } from "react";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
+
+import "./interaction-kinds.css";
 export function Metric({
   label, value, hint, tone = "mid",
 }: {
@@ -191,7 +193,10 @@ export function Surface({
     <div className="surface">
       <button
         type="button"
-        className="surface__title ui-card--interactive"
+        // OD-4: a disclosure header takes the row tint, not the card lift.
+        // Its border, background and cursor come from the class, so the tint
+        // is not beaten by an inline `background: none`.
+        className="surface__title ui-disclosure-trigger ui-disclosure-trigger--flush"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
         style={{
@@ -203,15 +208,12 @@ export function Surface({
           // needs it too, so keep it rather than letting the reset drop it.
           margin: open ? undefined : 0,
           padding: 0,
-          border: "none",
-          background: "none",
           font: "inherit",
           fontSize: "0.72rem",
           fontWeight: 600,
           textTransform: "uppercase",
           letterSpacing: "0.18em",
           textAlign: "left",
-          cursor: "pointer",
           minHeight: "32px",
         }}
       >

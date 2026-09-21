@@ -325,11 +325,12 @@ export function DashboardTodayRibbonNova({
             </div>
           )}
           {onGoToCalendar && (
+            // An action, so the kit's secondary button (OD-4). Its inline
+            // colour, fill and border had beaten every pill hover rule.
             <button
               type="button"
-              className="ui-pill"
+              className="ui-btn ui-btn--secondary ui-btn--sm"
               onClick={onGoToCalendar}
-              style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-pill)", cursor: "pointer", fontFamily: "inherit", padding: "var(--space-1_5) var(--space-3_5)", whiteSpace: "nowrap" }}
             >
               {lang === "ta" ? "முழு பஞ்சாங்கம்" : "Full panchangam"}
               <ArrowRight size={13} strokeWidth={2} aria-hidden="true" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { ArrowRight, Minus, TrendingDown, TrendingUp, ChevronUp, ChevronDown } from "lucide-react";
 
 import { nakshatraLord } from "@vinaadi/shared/nakshatraLord";
@@ -23,6 +23,7 @@ import type {
 
 import { displayName as yogaDoshamDisplayName } from "./dashboard-yoga-dosham-panel";
 import { HOUSE_MEANING, OWN_SIGN_RASI } from "./dashboard-chart-explanation-data";
+import "./interaction-kinds.css";
 import { ageAtDate, DashaLordLabel } from "./dashboard-dasha";
 import type { Mode } from "@/lib/plainlang";
 import { Card, Kicker } from "./ui";
@@ -369,10 +370,14 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
           const grad = ORB_GRADIENTS[pl.graha] ?? ORB_GRADIENTS.SATURN!;
           const isOpen = open === pl.graha;
           return (
+            // OD-4: an orb is a tile that opens its planet's row — the card
+            // kind, so it keeps the card lift. `aria-expanded` names the state
+            // its fill already shows.
             <button
               key={pl.graha}
               type="button"
               className="ui-card--interactive"
+              aria-expanded={isOpen}
               onClick={() => setOpen(isOpen ? null : pl.graha)}
               style={{
                 background: isOpen ? "var(--color-accent-muted)" : "var(--color-surface)",
@@ -425,11 +430,15 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
           if (pl.isVargottama) flags.push({ key: "varga", label: t("flag_vargottamam", lang), tone: "success" });
           return (
             <div key={pl.graha} style={{ borderBottom: "1px solid var(--color-border)" }}>
+              {/* OD-4: a table row takes the row tint, not the card lift. The
+                  open row's fill is the tint's base (`--ui-row-base`), so hover
+                  and press still read on it; inline `background` beat both. */}
               <button
                 type="button"
-                className="ui-card--interactive"
+                className="ui-disclosure-trigger"
+                aria-expanded={isOpen}
                 onClick={() => setOpen(isOpen ? null : pl.graha)}
-                style={{ width: "100%", textAlign: "left", fontFamily: "inherit", display: "grid", gridTemplateColumns: PLANET_ROW_COLS, columnGap: "var(--space-3)", alignItems: "center", padding: "var(--space-3) var(--space-5)", cursor: "pointer", background: isOpen ? "var(--color-accent-muted)" : "transparent", border: "none" }}
+                style={{ width: "100%", textAlign: "left", fontFamily: "inherit", display: "grid", gridTemplateColumns: PLANET_ROW_COLS, columnGap: "var(--space-3)", alignItems: "center", padding: "var(--space-3) var(--space-5)", ...(isOpen ? { "--ui-row-base": "var(--color-accent-muted)" } as CSSProperties : null) }}
               >
                 <span style={{ width: "28px", height: "28px", borderRadius: "var(--radius-sm)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", display: "grid", placeItems: "center", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)" }}>{GRAHA_GLYPH[pl.graha] ?? ""}</span>
                 <span style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>{tPlanetLord(pl.graha, lang)}</span>

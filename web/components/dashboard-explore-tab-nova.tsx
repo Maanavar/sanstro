@@ -468,9 +468,10 @@ export function DashboardExploreTabNova({
               <button
                 key={s}
                 type="button"
+                // Kit pill, without the inline colour/fill/border that beat
+                // its hover rules (E-4c).
                 className="ui-pill"
                 onClick={() => setQuery(s)}
-                style={{ fontSize: "var(--text-sm)", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-2) var(--space-4)", cursor: "pointer", fontFamily: "inherit" }}
               >
                 {s}
               </button>

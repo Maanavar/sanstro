@@ -143,15 +143,14 @@ export function NovaLifeEventLogCard({ lang, chartId }: { lang: Lang; chartId: s
         <Kicker>
           {lang === "ta" ? "வாழ்க்கை நிகழ்வு பதிவு" : "Life event log"}
         </Kicker>
+        {/* Kit variants carry the toggle's two looks: secondary while the form
+            is closed, primary ("Close") while it is open. `aria-expanded`
+            says what the fill change shows. */}
         <button
           type="button"
-          className="ui-btn"
+          className={showForm ? "ui-btn ui-btn--primary" : "ui-btn ui-btn--secondary"}
+          aria-expanded={showForm}
           onClick={() => setShowForm((v) => !v)}
-          style={{
-            fontSize: "var(--text-sm)", fontWeight: 700, color: showForm ? "var(--color-on-accent)" : "var(--color-accent-strong)",
-            background: showForm ? "var(--color-accent)" : "transparent",
-            border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-4)", cursor: "pointer", fontFamily: "inherit",
-          }}
         >
           {showForm ? (lang === "ta" ? "மூடு" : "Close") : lang === "ta" ? "+ நிகழ்வை பதிவுசெய்" : "+ Log event"}
         </button>

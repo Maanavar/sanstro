@@ -551,9 +551,12 @@ async function hoverPress(page, max = 16) {
     const cs = getComputedStyle(el);
     const describe = window.__uxDescribe ?? ((node) => node?.tagName?.toLowerCase() ?? "unknown");
     const selector = [el, el.parentElement, el.parentElement?.parentElement].map(describe).join(" < ");
-    return { label: (el.getAttribute("aria-label") || el.textContent || "").trim().replace(/\s+/g, " ").slice(0, 40), selector, transform: cs.transform, boxShadow: cs.boxShadow, border: cs.borderTopColor, bg: cs.backgroundColor, color: cs.color, filter: cs.filter };
+    // `decoration` and `opacity` since OD-4 (2026-09-21): the owner-approved
+    // text-link treatment is an underline on hover and a 0.8 dim on press,
+    // which the six keys before it could not see.
+    return { label: (el.getAttribute("aria-label") || el.textContent || "").trim().replace(/\s+/g, " ").slice(0, 40), selector, transform: cs.transform, boxShadow: cs.boxShadow, border: cs.borderTopColor, bg: cs.backgroundColor, color: cs.color, filter: cs.filter, decoration: `${cs.textDecorationLine} ${cs.textDecorationStyle} ${cs.textDecorationColor}`, opacity: cs.opacity };
   }, i);
-  const keys = ["transform", "boxShadow", "border", "bg", "color", "filter"];
+  const keys = ["transform", "boxShadow", "border", "bg", "color", "filter", "decoration", "opacity"];
   const out = [];
   for (let i = 0; i < n; i++) {
     const present = await page.evaluate((i) => {
