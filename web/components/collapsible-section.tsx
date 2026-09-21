@@ -52,7 +52,7 @@ export function CollapsibleSection({
       <button
         ref={triggerRef}
         type="button"
-        className="collapsible__trigger"
+        className="collapsible__trigger ui-card--interactive"
         aria-expanded={open}
         onClick={toggle}
         style={{ overflowAnchor: "none" }}

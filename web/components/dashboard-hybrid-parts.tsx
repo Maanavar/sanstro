@@ -372,6 +372,7 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
             <button
               key={pl.graha}
               type="button"
+              className="ui-card--interactive"
               onClick={() => setOpen(isOpen ? null : pl.graha)}
               style={{
                 background: isOpen ? "var(--color-accent-muted)" : "var(--color-surface)",
@@ -426,6 +427,7 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
             <div key={pl.graha} style={{ borderBottom: "1px solid var(--color-border)" }}>
               <button
                 type="button"
+                className="ui-card--interactive"
                 onClick={() => setOpen(isOpen ? null : pl.graha)}
                 style={{ width: "100%", textAlign: "left", fontFamily: "inherit", display: "grid", gridTemplateColumns: PLANET_ROW_COLS, columnGap: "var(--space-3)", alignItems: "center", padding: "var(--space-3) var(--space-5)", cursor: "pointer", background: isOpen ? "var(--color-accent-muted)" : "transparent", border: "none" }}
               >

@@ -1533,6 +1533,7 @@ export function DashboardFamilyChartsHybrid({
           {memberCharts.length > 0 && onGoToTools && (
             <button
               type="button"
+              className="ui-card--interactive"
               onClick={onGoToTools}
               style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%", background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-5)", display: "flex", alignItems: "center", gap: "var(--space-3)" }}
             >
