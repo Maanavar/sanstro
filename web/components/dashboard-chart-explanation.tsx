@@ -953,9 +953,14 @@ export function ChartExplanationPanel({
             {teaser}
           </p>
         </div>
+        {/* Kit variants carry the two states (OD-4 button kind): secondary
+            while closed, primary while open. The inline fills gave no hover
+            or press. The pill shape and size stay inline; neither blocks a
+            state. */}
         <button
           ref={toggleRef}
           type="button"
+          className={open ? "ui-btn ui-btn--primary" : "ui-btn ui-btn--secondary"}
           aria-expanded={open}
           onClick={() => {
             pinTo(toggleRef.current);
@@ -963,21 +968,8 @@ export function ChartExplanationPanel({
           }}
           style={{
             overflowAnchor: "none",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "var(--space-1_5)",
-            minHeight: "36px",
-            padding: "var(--space-1_5) var(--space-4)",
             borderRadius: "var(--radius-pill)",
-            border: "1.5px solid var(--color-border-strong)",
-            background: open ? "var(--color-text-strong)" : "var(--color-surface)",
-            color: open ? "var(--color-bg)" : "var(--color-text)",
             fontSize: "var(--text-base)",
-            fontWeight: 700,
-            cursor: "pointer",
-            fontFamily: "inherit",
-            whiteSpace: "nowrap",
           }}
         >
           <Chevron open={open} />

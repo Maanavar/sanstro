@@ -28,6 +28,8 @@ export function runAudit(opts: {
   prod?: boolean;
   email?: string;
   password?: string;
+  /** DXA-12 surfaces sampled per pane (default 16); raise it for a population census. */
+  hoverMax?: number;
   log?: (...a: unknown[]) => void;
 }): Promise<AuditMetrics>;
 export function computeGates(metrics: Record<string, unknown>, opts?: { prod?: boolean }): Gate[];

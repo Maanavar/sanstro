@@ -23,7 +23,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-export const ALL_PHASES = ["load", "tabs", "today", "hover", "overlays", "reduced", "light", "phone", "sky"];
+export const ALL_PHASES = ["load", "tabs", "today", "hover", "overlays", "reduced", "light", "phone", "sky", "ta"];
 export const DEFAULT_PASSWORD = "UxAudit!Test123";
 const CSRF = { "X-Vinaadi-CSRF": "1" };
 
@@ -215,6 +215,10 @@ async function clickTab(page, tab) {
  * so the probe covers the cascade that a reader actually receives. */
 async function reducedHoverFeedback(page) {
   const cards = page.locator(".nova-today-pane .ui-card--interactive:visible");
+  // Wait for the pane's cards to exist: a run on a busy machine sampled 0/0
+  // before Today had rendered (2026-09-21), a FAIL for the wrong reason. A
+  // pane that never renders them still reads 0/0 and still fails.
+  await cards.first().waitFor({ state: "visible", timeout: 20_000 }).catch(() => {});
   const sampled = Math.min(await cards.count(), 3);
   const samples = [];
   for (let i = 0; i < sampled; i++) {
@@ -788,6 +792,35 @@ async function newContext(run, browser, opts) {
   return { ctx, page };
 }
 
+// ── W-8 · Tamil phase helpers ──────────────────────────────────────────────
+/** Clicks a tab by its language-free `data-tab` id — in Tamil mode the label
+ *  `clickTab` matches on is Tamil. Clicking, never `goto` (DXA-35). */
+async function clickTabById(page, tab) {
+  await dismissDialogs(page, 2);
+  const top = page.locator(`.cd-topnav__scroll button.cd-tab[data-tab="${tab.id}"]`).first();
+  if (await top.isVisible().catch(() => false)) {
+    await top.click({ timeout: 10_000 });
+    return;
+  }
+  await page.locator("button.cd-tab--more").first().click({ timeout: 10_000 });
+  await page.locator(`[role="menuitem"][data-tab="${tab.id}"]`).first().click({ timeout: 10_000 });
+}
+
+/**
+ * The mirror of `DXA-09 no Tamil text in English mode`: Latin words in the
+ * visible pane while the page is in Tamil. The account's own names (the
+ * harness creates them in English) and the brand are not findings; anything
+ * else is — `இதில் · Calendar தாவல்` is the shape this exists for.
+ */
+async function englishInTamil(page) {
+  return page.evaluate(() => {
+    const allowed = /\b(?:Audit|Sample|Family|Partner|Vinaadi)\b/g;
+    const text = window.__uxPane().innerText.replace(allowed, " ");
+    const hits = (text.match(/[^\n]{0,18}\b[A-Za-z][A-Za-z'’]{2,}\b[^\n]{0,14}/g) || []).map((s) => s.trim());
+    return [...new Set(hits)].slice(0, 8);
+  });
+}
+
 // ── DXA-07 · stale pane text, measured in the real stale state ─────────────
 /**
  * Puts the Today pane into its genuine stale state — the next day's bundle
@@ -975,9 +1008,10 @@ async function staleTextContrast(page, onStale = async () => {}) {
  * @param {boolean} [opts.prod]       gate timing-dependent checks (DXA-06)
  * @param {string} [opts.email]       reuse an existing e2e account instead of registering one
  * @param {string} [opts.password]
+ * @param {number} [opts.hoverMax]  DXA-12 surfaces sampled per pane (16; raise it for a population census)
  * @param {(...a: unknown[]) => void} [opts.log]
  */
-export async function runAudit({ browser, base, out, phases = ALL_PHASES, prod = false, email, password = DEFAULT_PASSWORD, log = () => {} }) {
+export async function runAudit({ browser, base, out, phases = ALL_PHASES, prod = false, email, password = DEFAULT_PASSWORD, hoverMax = 16, log = () => {} }) {
   const PHASES = new Set(phases);
   const run = {
     base: base.replace(/\/$/, ""),
@@ -1272,11 +1306,11 @@ export async function runAudit({ browser, base, out, phases = ALL_PHASES, prod =
       await settle(page, 1000);
       await clickTab(page, TABS[0]);
       await settle(page, 900);
-      metrics.hover.today = await hoverPress(page, 16);
+      metrics.hover.today = await hoverPress(page, hoverMax);
       for (const tab of TABS.filter((tab) => tab.id !== "personal")) {
         await clickTab(page, tab);
         await settle(page, 900);
-        metrics.hover[tab.slug] = await hoverPress(page, 16);
+        metrics.hover[tab.slug] = await hoverPress(page, hoverMax);
       }
       save();
     }
@@ -1438,6 +1472,87 @@ export async function runAudit({ browser, base, out, phases = ALL_PHASES, prod =
       save();
       await ctx.close();
     }
+
+    if (PHASES.has("ta")) {
+      log("ta: Tamil render — layout-sensitive checks and English inside Tamil mode");
+      // Its own contexts (W-8), modelled on `sky`: switching the account's
+      // language is not free, and every other phase measures English. The
+      // language is an account setting, so it is put back in `finally`.
+      // UX_AUDIT_TA_LANG exists for the negative control only: set it to "en"
+      // and this phase must FAIL, not quietly measure English (DXA-10's rule).
+      const asked = process.env.UX_AUDIT_TA_LANG || "ta";
+      metrics.ta = { asked };
+      const { ctx, page: tp } = await newContext(run, browser, { viewport: { width: 1440, height: 900 } });
+      try {
+        const patched = await ctx.request.patch("/api/backend/api/v1/settings/ui", { data: { lang: asked }, headers: CSRF });
+        if (!patched.ok()) throw new Error(`language PATCH failed: ${patched.status()}`);
+        await tp.goto("/dashboard/today");
+        await settle(tp, 800);
+        metrics.ta.lang = await tp.evaluate(() => document.documentElement.lang);
+        if (metrics.ta.lang !== "ta") {
+          metrics.ta.error = `not measurable: asked for Tamil, page rendered lang="${metrics.ta.lang}"`;
+        } else {
+          // DXA-05 in Tamil, 1440: the same last-pending vs first-settled read
+          // as the English load phase, on a second, cold document. The day's
+          // bundle is DELAYED 1.5 s (never failed): warm, it answered inside
+          // one 100 ms sample and the pending hero was never observed.
+          const bundle = (url) => url.pathname.endsWith("/dashboard-bundle");
+          const delay = async (route) => { await sleep(1500); await route.continue().catch(() => {}); };
+          await tp.route(bundle, delay);
+          await tp.goto("/dashboard/today", { waitUntil: "commit" });
+          await sleep(3200);
+          await settle(tp, 1500);
+          await tp.unroute(bundle, delay).catch(() => {});
+          // Thinned timeline beside the result, so a "not observed" names its
+          // own cause instead of needing a bisect.
+          metrics.ta.heroTimeline = await tp.evaluate(() => window.__ux.timeline.filter((_, i) => i % 3 === 0).slice(0, 50).map((s) => [s.t, s.heroH, s.heroPending ? 1 : 0, s.skel]));
+          metrics.ta.heroReserve = await tp.evaluate(() => {
+            const tl = window.__ux.timeline;
+            const waiting = [...tl].reverse().find((s) => s.heroPending && s.heroH > 0);
+            const settled = tl.find((s, i) => i > 0 && !s.heroPending && s.heroH > 0 && tl[i - 1].heroPending);
+            return waiting && settled ? { pending: waiting.heroH, loaded: settled.heroH, delta: settled.heroH - waiting.heroH } : null;
+          });
+          await shot(run, tp, "ta-today");
+          metrics.ta.english = { personal: await englishInTamil(tp) };
+          for (const tab of TABS.slice(1)) {
+            await clickTabById(tp, tab).catch(() => {});
+            await settle(tp, 1000);
+            metrics.ta.english[tab.id] = await englishInTamil(tp);
+            await shot(run, tp, `ta-${tab.slug}`);
+          }
+        }
+        save();
+
+        if (!metrics.ta.error) {
+          const { ctx: pctx, page: pp } = await newContext(run, browser, { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+          metrics.ta.phone = {};
+          await pp.goto("/dashboard/today");
+          await settle(pp, 1200);
+          for (const tab of TABS) {
+            if (tab.id !== "personal") {
+              await clickTabById(pp, tab).catch(() => {});
+              await settle(pp, 1000);
+            }
+            metrics.ta.phone[tab.id] = await pp.evaluate(() => ({
+              lang: document.documentElement.lang,
+              overflow: document.documentElement.scrollWidth > innerWidth + 1,
+            }));
+          }
+          await shot(run, pp, "ta-phone-last");
+          save();
+          await pctx.close();
+        }
+      } catch (e) {
+        // Unmeasurable is a FAIL on this phase's own gates, not a crash of
+        // the whole audit (its gates are not ratcheted yet).
+        metrics.ta.error = `not measurable: ${e instanceof Error ? e.message.split("\n")[0] : String(e)}`;
+      } finally {
+        // Every newContext is a login, and auth is rate-limited — put the
+        // language back through the context this phase already holds.
+        await ctx.request.patch("/api/backend/api/v1/settings/ui", { data: { lang: "en" }, headers: CSRF }).catch(() => {});
+        await ctx.close();
+      }
+    }
   } finally {
     metrics.consoleErrors = consoleErrors.slice(0, 20);
     metrics.finishedAt = new Date().toISOString();
@@ -1582,6 +1697,25 @@ export function computeGates(m, { prod = false } = {}) {
     add("DXA-27", "phone: no overprinted tab labels", clipped.join(" ") || 0, clipped.length === 0);
     add("DXA-27", "phone: no horizontal overflow", rows.filter(([, p]) => p.overflow).map(([k]) => k).join(" ") || "none", rows.every(([, p]) => !p.overflow));
     if (m.phone.today && m.phone.today.activityBoardScreens !== null) add("DXA-28", "phone: activity board within 2.5 screens", m.phone.today.activityBoardScreens, m.phone.today.activityBoardScreens <= 2.5);
+  }
+  if (m.ta) {
+    // W-8. Keys carry "(ta)" so they cannot collide with the English run. If
+    // the page did not render in Tamil, every check is "not measurable" and
+    // FAILs — a phase that quietly measured English would be a green lie.
+    const why = m.ta.error;
+    add("DXA-09", "page renders in Tamil (ta)", m.ta.lang ?? "no page", m.ta.lang === "ta");
+    const hr = m.ta.heroReserve;
+    add("DXA-05", "pending hero within 8px of loaded (ta)",
+      why ? why : hr ? `${hr.pending} → ${hr.loaded} (${hr.delta >= 0 ? "+" : ""}${hr.delta}px)` : "not observed",
+      !why && hr ? Math.abs(hr.delta) <= 8 : why ? false : null);
+    const phone = m.ta.phone ? Object.entries(m.ta.phone) : [];
+    add("DXA-27", "phone: no horizontal overflow (ta)",
+      why ? why : phone.filter(([, p]) => p.overflow).map(([k]) => k).join(" ") || "none",
+      !why && phone.length > 0 && phone.every(([, p]) => !p.overflow && p.lang === "ta"));
+    const english = m.ta.english ? Object.entries(m.ta.english).filter(([, hits]) => hits.length) : [];
+    add("DXA-09", "no English text in Tamil mode (ta)",
+      why ? why : english.map(([k, hits]) => `${k}: ${hits.join(" | ")}`).join(" ; ") || 0,
+      !why && !!m.ta.english && english.length === 0);
   }
   add("—", "console errors (dev CSP chunk warnings included)", (m.consoleErrors || []).length, null);
   return g;

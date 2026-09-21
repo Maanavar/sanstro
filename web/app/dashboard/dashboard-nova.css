@@ -3320,8 +3320,12 @@
   transition:
     background var(--motion-nav) var(--ease-nova),
     border-color var(--motion-nav) var(--ease-nova),
-    color var(--motion-nav) var(--ease-nova);
+    color var(--motion-nav) var(--ease-nova),
+    transform var(--motion-toggle) var(--ease-nova);
 }
+/* OD-4 button kind: the kit press. The chip had hover but no press at all —
+   DXA-12 caught it only on the run whose sample happened to include one. */
+.nova-remedy-chip:active:not([aria-selected="true"]) { transform: scale(0.97); }
 .nova-remedy-chip__glyph {
   flex: none;
   width: 26px;
@@ -4381,29 +4385,37 @@ button.ui-chip { cursor: pointer; }
    carries its own values throughout. `lang` is server-rendered on <html>
    (app/layout.tsx), so these apply on the first paint, not after hydration.
 
-   Measured on the isolated stack (:3100), 2026-09-21, en and ta at 390 / 860 /
-   1440 — re-measure with hero-inventory-probe.mjs if the hero's structure or
-   copy changes. DXA-05's CLS gate covers en at 1440. */
+   Measured on the isolated stack (:3100), 2026-09-21 14:08 IST, en and ta at
+   390 / 860 / 1440, with web/scripts/hero-inventory-probe.mjs — re-measure
+   with it if the hero's structure or copy changes. DXA-05's pending-hero gate
+   covers en at 1440 only.
+
+   Re-pinned by E-4f: kit buttons let the best-window action pair fit beside
+   its time, and the loaded en/1440 hero fell 620 → 580 (same-clock A/B
+   against the pre-E-4 file). The ungated cells had already drifted from the
+   morning's values before E-4 (en 860 857 → 737, ta 1440 641 → 691, …); the
+   loaded hero carries clock-dependent blocks, so compare re-measures at a
+   similar time of day. */
 .cd-shell {
-  --nova-hero-reserve: 1466px; /* one column */
+  --nova-hero-reserve: 1392px; /* one column */
 }
 :root[lang="ta"] .cd-shell {
-  --nova-hero-reserve: 1642px;
+  --nova-hero-reserve: 1645px;
 }
 @media (min-width: 860px) {
   .cd-shell { /* two columns */
-    --nova-hero-reserve: 857px;
+    --nova-hero-reserve: 731px;
   }
   :root[lang="ta"] .cd-shell {
-    --nova-hero-reserve: 898px;
+    --nova-hero-reserve: 796px;
   }
 }
 @media (min-width: 1200px) {
   .cd-shell { /* three columns */
-    --nova-hero-reserve: 621px;
+    --nova-hero-reserve: 580px;
   }
   :root[lang="ta"] .cd-shell {
-    --nova-hero-reserve: 641px;
+    --nova-hero-reserve: 691px;
   }
 }
 .nova-hero--pending {
@@ -4455,6 +4467,23 @@ button.ui-chip { cursor: pointer; }
   }
   :root[lang="ta"] .nova-hero-skel--window {
     min-height: 198px;
+  }
+}
+/* Three columns, English: the loaded best-window card is 125px — time and
+   actions on one row (owner ask 2026-09-07) and a one-line reason — so its
+   skeleton drops the second reason line and stays at or under it; the hero
+   reserve floors the rest. Tamil's card wraps and keeps both lines.
+   KNOWN DATA DEPENDENCE (E-4f, 2026-09-21): at 1440 a window whose start and
+   end both have two-digit hours ("10:31 am – 12:01 pm") no longer fits on one
+   row, the actions wrap, and the loaded hero is 620, not 580. No reserve can
+   match both; this one matches the one-row layout. Measured by injecting
+   times into the live card; recorded on DXA-05. */
+@media (min-width: 1200px) {
+  :root:not([lang="ta"]) .nova-hero-skel--window {
+    min-height: 0; /* the 167px two-column floor would outgrow the card */
+  }
+  :root:not([lang="ta"]) .nova-hero-skel__reason-2 {
+    display: none;
   }
 }
 .nova-today-fallback {

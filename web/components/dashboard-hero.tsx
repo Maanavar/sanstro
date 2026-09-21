@@ -399,6 +399,9 @@ export function DashboardHero(props: DashboardHeroProps) {
         type="button"
         ref={isActive ? activeTabRef : undefined}
         className={`cd-tab${isActive ? " cd-tab--active" : ""}`}
+        // Language-free handle: the audit's Tamil phase clicks tabs by id,
+        // because in Tamil mode the label it would match on is Tamil (W-8).
+        data-tab={tab.id}
         aria-current={isActive ? "page" : undefined}
         title={lang === "ta" ? tab.desc.ta : tab.desc.en}
         onClick={() => onTabChange(tab.id)}
@@ -504,6 +507,7 @@ export function DashboardHero(props: DashboardHeroProps) {
                           type="button"
                           role="menuitem"
                           className="cd-dropdown__btn cd-dropdown__btn--nav"
+                          data-tab={tab.id}
                           aria-current={isCurrent ? "page" : undefined}
                           onClick={() => {
                             onTabChange(tab.id);

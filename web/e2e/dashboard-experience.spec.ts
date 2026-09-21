@@ -70,6 +70,13 @@ const MUST_PASS: Record<string, string> = {
   "DXA-11 reduced motion: nav indicator does not move": "reduced",
   "DXA-11 reduced motion: pane appears without a fade": "reduced",
   "DXA-12 reduced motion keeps colour/shadow hover feedback": "reduced",
+  // `hover`'s first ratchet (I-1, 2026-09-21). Three consecutive runs on one
+  // build read 71/71 hover and 71/71 press (i1-final-run1..3), a population
+  // census read 106/106 (i1-final-census), and reverting the Tools tiles alone
+  // dropped both to 59/71 and FAILed (i1-negative-class2).
+  "DXA-12 every hover pane yielded surfaces": "hover",
+  "DXA-12 hover feedback coverage ≥ 95%": "hover",
+  "DXA-12 press feedback coverage = 100%": "hover",
   "DXA-27 phone: no horizontal overflow": "phone",
   "DXA-41 overlay ask-vinaadi: closes on Escape and on a page click": "overlays",
   "DXA-41 overlay day-drawer: closes on Escape and on a page click": "overlays",

@@ -53,6 +53,8 @@ try {
     prod: arg("prod", false) === true,
     email: typeof EMAIL === "string" ? EMAIL : undefined,
     password: String(arg("password", DEFAULT_PASSWORD)),
+    // DXA-12 samples 16 surfaces per pane; a larger number censuses the population.
+    hoverMax: Number(arg("hover-max", 16)),
     log,
   });
   console.log(`\n${formatGates(metrics.gates)}\n`);

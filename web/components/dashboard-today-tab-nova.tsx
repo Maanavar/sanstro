@@ -384,7 +384,13 @@ function HeroPendingWindow() {
           <HeroSkelLine w="88px" h={34} radius="var(--radius-sm)" />
         </div>
         <HeroSkelTextLine w="100%" box={22} />
-        <HeroSkelTextLine w="64%" box={22} />
+        {/* The reason runs to a second line except in English at three
+            columns, where it fits on one; that line is dropped there by
+            `.nova-hero-skel__reason-2` so the shape stays at or under the
+            loaded card (E-4f). */}
+        <div className="nova-hero-skel__reason-2">
+          <HeroSkelTextLine w="64%" box={22} />
+        </div>
       </div>
     </Card>
   );
