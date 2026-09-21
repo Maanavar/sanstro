@@ -210,6 +210,41 @@ async function clickTab(page, tab) {
   }
 }
 
+/** Reduced motion should remove travel, not the non-motion cue that a card is
+ * interactive. Exercise the real hover state instead of inferring it from CSS
+ * so the probe covers the cascade that a reader actually receives. */
+async function reducedHoverFeedback(page) {
+  const cards = page.locator(".nova-today-pane .ui-card--interactive:visible");
+  const sampled = Math.min(await cards.count(), 3);
+  const samples = [];
+  for (let i = 0; i < sampled; i++) {
+    const card = cards.nth(i);
+    await page.mouse.move(0, 0);
+    await sleep(300);
+    const rest = await card.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return { transform: cs.transform, boxShadow: cs.boxShadow, borderColor: cs.borderTopColor };
+    });
+    await card.hover({ timeout: 10_000 });
+    await sleep(350);
+    const hover = await card.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return { transform: cs.transform, boxShadow: cs.boxShadow, borderColor: cs.borderTopColor };
+    });
+    samples.push({
+      feedback: rest.boxShadow !== hover.boxShadow && rest.borderColor !== hover.borderColor,
+      noTravel: rest.transform === hover.transform,
+      rest,
+      hover,
+    });
+  }
+  return {
+    sampled,
+    withFeedback: samples.filter((s) => s.feedback && s.noTravel).length,
+    samples,
+  };
+}
+
 /** Per-frame record of the incoming pane through one tab switch (DXA-06). */
 async function probeSwitch(page, tab) {
   if (tab.more) {
@@ -1122,6 +1157,9 @@ export async function runAudit({ browser, base, out, phases = ALL_PHASES, prod =
         return { indicatorTransforms: [...transforms], paneOpacities: [...opacities] };
       });
       metrics.reducedMotion.loopsOnToday = await ambientLoops(rp);
+      await clickTab(rp, TABS[0]);
+      await settle(rp, 800);
+      metrics.reducedMotion.hoverFeedback = await reducedHoverFeedback(rp);
       save();
       await ctx.close();
     }
@@ -1366,6 +1404,8 @@ export function computeGates(m, { prod = false } = {}) {
   if (m.reducedMotion && !m.reducedMotion.error) {
     add("DXA-11", "reduced motion: nav indicator does not move", m.reducedMotion.indicatorTransforms.length, m.reducedMotion.indicatorTransforms.length <= 1);
     add("DXA-11", "reduced motion: pane appears without a fade", m.reducedMotion.paneOpacities.join(","), m.reducedMotion.paneOpacities.every((o) => o === "1"));
+    const feedback = m.reducedMotion.hoverFeedback ?? { sampled: 0, withFeedback: 0 };
+    add("DXA-12", "reduced motion keeps colour/shadow hover feedback", `${feedback.withFeedback}/${feedback.sampled}`, feedback.sampled > 0 && feedback.withFeedback === feedback.sampled);
   }
   if (m.viewSwaps) {
     // A pane with no unselected segment tells us nothing, so it is reported

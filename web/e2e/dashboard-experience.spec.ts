@@ -69,6 +69,7 @@ const MUST_PASS: Record<string, string> = {
   "DXA-41 overlay account-menu: closes on Escape and on a page click": "overlays",
   "DXA-11 reduced motion: nav indicator does not move": "reduced",
   "DXA-11 reduced motion: pane appears without a fade": "reduced",
+  "DXA-12 reduced motion keeps colour/shadow hover feedback": "reduced",
   "DXA-27 phone: no horizontal overflow": "phone",
   "DXA-41 overlay ask-vinaadi: closes on Escape and on a page click": "overlays",
   "DXA-41 overlay day-drawer: closes on Escape and on a page click": "overlays",

@@ -2498,9 +2498,10 @@
 [data-ui="nova"] .cd-shell .nova-interactive {
   cursor: pointer;
 }
-@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+/* Affordance is not motion: reduced-motion readers still need the depth cue
+   that says this surface is interactive. */
+@media (hover: hover) {
   [data-ui="nova"] .cd-shell .nova-interactive:hover {
-    transform: translateY(-2px);
     /* --nova-hover-shadow is per-theme (see both palette blocks). It used to be
        a literal rgba(0,0,0,0.28) — tuned for navy, where a heavy black bloom
        reads as depth. On cream that same shadow is a grey smudge under every
@@ -2509,6 +2510,11 @@
     box-shadow:
       var(--nova-hover-shadow),
       0 0 0 1px var(--color-border-strong);
+  }
+}
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+  [data-ui="nova"] .cd-shell .nova-interactive:hover {
+    transform: translateY(-2px);
   }
 }
 
@@ -3027,11 +3033,17 @@
 }
 [data-ui="nova"] .cd-shell .ui-card--pad-sm { padding: 14px 16px; }
 [data-ui="nova"] .cd-shell .ui-card--interactive { cursor: pointer; }
+/* Affordance, always: a reduced-motion reader still needs to know this clicks.
+   Section 6: reduced motion keeps meaning and drops travel. */
+@media (hover: hover) {
+  [data-ui="nova"] .cd-shell .ui-card--interactive:hover {
+    box-shadow: var(--elev-2);
+    border-color: var(--color-border-strong);
+  }
+}
 @media (prefers-reduced-motion: no-preference) and (hover: hover) {
   [data-ui="nova"] .cd-shell .ui-card--interactive:hover {
     transform: translateY(-2px);
-    box-shadow: var(--elev-2);
-    border-color: var(--color-border-strong);
   }
 }
 [data-ui="nova"] .cd-shell .ui-card--interactive:active { transform: scale(0.985); }
