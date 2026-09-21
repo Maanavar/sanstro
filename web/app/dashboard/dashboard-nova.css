@@ -4840,15 +4840,29 @@ button.ui-chip { cursor: pointer; }
   transition: opacity var(--dur-base, 240ms) var(--ease-nova, cubic-bezier(0.22, 1, 0.36, 1));
 }
 .nova-today-pane[data-stale] {
-  /* OD-3 / W-3: the held day still reads at full contrast. Dim only the
-     surrounding chrome so the stale state remains visible without washing
-     body copy below AA on the light theme. */
-  --color-border: color-mix(in srgb, var(--color-border) 62%, transparent);
-  --color-border-strong: color-mix(in srgb, var(--color-border-strong) 68%, transparent);
-  --color-accent-muted: color-mix(in srgb, var(--color-accent-muted) 72%, transparent);
+  /* OD-3 / W-3, corrected by E-1 (2026-09-21): the held day reads at full
+     contrast. No `opacity` on anything that carries text — the masthead dim
+     this replaces put the date and limbs at 3.03-4.19:1 on light. Only
+     non-text marks dim: borders, the accent fill, and icons.
+
+     The dims are computed here and applied one level down on purpose.
+     `--color-border: color-mix(… var(--color-border) …)` on one element is a
+     custom-property cycle, which computes to nothing: every border and fill
+     reading these tokens inside the pane was dropped, not dimmed. */
+  --stale-border: color-mix(in srgb, var(--color-border) 62%, transparent);
+  --stale-border-strong: color-mix(in srgb, var(--color-border-strong) 68%, transparent);
+  --stale-accent-muted: color-mix(in srgb, var(--color-accent-muted) 72%, transparent);
 }
-.nova-today-pane[data-stale] .nova-hero-masthead {
-  opacity: 0.68;
+.nova-today-pane[data-stale] > * {
+  --color-border: var(--stale-border);
+  --color-border-strong: var(--stale-border-strong);
+  --color-accent-muted: var(--stale-accent-muted);
+}
+.nova-today-pane :is(svg.lucide, .nova-hero-masthead svg) {
+  transition: opacity var(--dur-base, 240ms) var(--ease-nova, cubic-bezier(0.22, 1, 0.36, 1));
+}
+.nova-today-pane[data-stale] :is(svg.lucide, .nova-hero-masthead svg) {
+  opacity: 0.5;
 }
 
 /* 2. A progress hairline on the sub-bar's bottom edge. Absolutely positioned

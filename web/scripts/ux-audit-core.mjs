@@ -785,6 +785,178 @@ async function newContext(run, browser, opts) {
   return { ctx, page };
 }
 
+// ── DXA-07 · stale pane text, measured in the real stale state ─────────────
+/**
+ * Puts the Today pane into its genuine stale state — the next day's bundle
+ * request held open, the date moved, `[data-stale]` rendered by the app
+ * itself — and measures every visible element in the pane that owns a
+ * non-empty text node, not one sample.
+ *
+ * Why not re-apply a declaration: the probe this replaces scraped the
+ * stylesheets for an `opacity` on `.nova-today-pane[data-stale]` and set it
+ * inline on the pane. Once the dim moved onto a descendant (the masthead) that
+ * rule had no opacity, so it measured an undimmed pane and read 10.47:1 while
+ * the day's own date and limbs sat at ≈2.9–4.3:1 (E-1, 2026-09-21). It also
+ * sampled one briefing paragraph and never the masthead.
+ *
+ * Compositing follows paint order: ancestor background colours from the root
+ * down, and each ancestor opacity < 1 opens a group blended back over the
+ * colour behind it. Not seen: background images and gradients, and anything
+ * painted underneath by a sibling (the hero's sky backdrop).
+ */
+async function staleTextContrast(page, onStale = async () => {}) {
+  const next = await page.evaluate(() => {
+    const input = document.querySelector("#dashboard-date");
+    if (!(input instanceof HTMLInputElement) || !input.value) return null;
+    const [y, m, d] = input.value.split("-").map(Number);
+    const nd = new Date(y, m - 1, d + 1);
+    return `${nd.getFullYear()}-${String(nd.getMonth() + 1).padStart(2, "0")}-${String(nd.getDate()).padStart(2, "0")}`;
+  });
+  if (!next) return { error: "no date input to move the day with" };
+
+  // Delay the next day's bundle, never fail it: a failed request exits the
+  // stale state (`isShowingPreviousDay` stands down on error).
+  let release = () => {};
+  const released = new Promise((res) => { release = res; });
+  let held = 0;
+  const matcher = (url) => url.pathname.endsWith("/dashboard-bundle") && url.searchParams.get("date") === next;
+  const handler = async (route) => {
+    held += 1;
+    // Bounded, so a probe that throws before releasing cannot hang the run.
+    await Promise.race([released, new Promise((res) => setTimeout(res, 45_000))]);
+    await route.continue().catch(() => {});
+  };
+  await page.route(matcher, handler);
+  try {
+    await page.evaluate((value) => {
+      const input = document.querySelector("#dashboard-date");
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(input, value);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    }, next);
+    const entered = await page
+      .waitForSelector(".nova-today-pane[data-stale]", { timeout: 15_000 })
+      .then(() => true)
+      .catch(() => false);
+    // "Not measurable" is a failure, not a pass (DXA-10's rule).
+    if (!entered) return { error: `pane never entered the stale state (bundle requests held: ${held})`, next, held };
+    // Let the dim's own transition (--dur-base) finish before sampling.
+    await page.waitForTimeout(600);
+    await onStale();
+    const measured = await page.evaluate(() => {
+      const pane = document.querySelector(".nova-today-pane[data-stale]");
+      if (!(pane instanceof HTMLElement)) return { error: "the stale state ended before it was measured" };
+      const parse = (value) => {
+        if (!value || value === "none" || value === "transparent") return null;
+        const nums = (value.match(/[\d.]+/g) || []).map(Number);
+        if (nums.length < 3) return null;
+        const unit = value.startsWith("color(srgb");
+        return { r: unit ? nums[0] * 255 : nums[0], g: unit ? nums[1] * 255 : nums[1], b: unit ? nums[2] * 255 : nums[2], a: nums[3] ?? 1 };
+      };
+      const mix = (front, back, alpha) => ({
+        r: front.r * alpha + back.r * (1 - alpha),
+        g: front.g * alpha + back.g * (1 - alpha),
+        b: front.b * alpha + back.b * (1 - alpha),
+        a: 1,
+      });
+      const luminance = (c) => {
+        const channel = (n) => { const s = n / 255; return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; };
+        return 0.2126 * channel(c.r) + 0.7152 * channel(c.g) + 0.0722 * channel(c.b);
+      };
+      const contrast = (a, b) => {
+        const l1 = luminance(a);
+        const l2 = luminance(b);
+        return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+      };
+      const labelOf = (el) => {
+        const tag = el.tagName.toLowerCase();
+        const cls = typeof el.className === "string" && el.className.trim() ? `.${el.className.trim().split(/\s+/)[0]}` : "";
+        let name = `${tag}${cls}`;
+        if (!cls) {
+          const owner = el.parentElement?.closest("[class]");
+          const ownerCls = owner && typeof owner.className === "string" ? owner.className.trim().split(/\s+/)[0] : "";
+          if (ownerCls) name += ` < .${ownerCls}`;
+        }
+        const text = [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join("").trim().replace(/\s+/g, " ");
+        return `${name} "${text.slice(0, 28)}"`;
+      };
+
+      const white = { r: 255, g: 255, b: 255, a: 1 };
+      const samples = [];
+      for (const el of [pane, ...pane.querySelectorAll("*")]) {
+        const ownText = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+        if (!ownText) continue;
+        const cs = getComputedStyle(el);
+        if (cs.display === "none" || cs.visibility !== "visible") continue;
+        const box = el.getBoundingClientRect();
+        if (box.width < 2 || box.height < 2) continue;
+        if (cs.clipPath === "inset(50%)" || cs.clip === "rect(0px, 0px, 0px, 0px)") continue;
+
+        const chain = [];
+        for (let n = el; n; n = n.parentElement) chain.unshift(n);
+        let cur = white;
+        const groups = [];
+        for (const n of chain) {
+          const s = getComputedStyle(n);
+          const op = Number(s.opacity);
+          if (op < 0.999) groups.push({ op, backdrop: cur });
+          const bg = parse(s.backgroundColor);
+          if (bg && bg.a > 0) cur = mix(bg, cur, bg.a);
+        }
+        const opacity = groups.reduce((a, g) => a * g.op, 1);
+        // Mid-fade or fully transparent text is not on screen to be read.
+        if (opacity < 0.05) continue;
+        const fg = parse(el instanceof SVGElement ? cs.fill : cs.color);
+        if (!fg) continue;
+        let textPixel = mix(fg, cur, fg.a);
+        let backPixel = cur;
+        for (let i = groups.length - 1; i >= 0; i--) {
+          textPixel = mix(textPixel, groups[i].backdrop, groups[i].op);
+          backPixel = mix(backPixel, groups[i].backdrop, groups[i].op);
+        }
+        const size = parseFloat(cs.fontSize) || 16;
+        const weight = Number(cs.fontWeight) || 400;
+        // WCAG large text: 18pt (24px), or 14pt (18.66px) bold.
+        const need = size >= 24 || (size >= 18.66 && weight >= 700) ? 3 : 4.5;
+        const ratio = contrast(textPixel, backPixel);
+        samples.push({ label: labelOf(el), ratio: +ratio.toFixed(2), need, margin: ratio / need, opacity: +opacity.toFixed(2), color: cs.color, size, weight });
+      }
+      if (!samples.length) return { error: "no text measured in the stale pane" };
+      samples.sort((a, b) => a.margin - b.margin);
+      const failing = samples.filter((s) => s.ratio < s.need);
+      // Borders are dimmed through tokens; a self-referencing custom property
+      // is a cycle and computes to nothing, so record what the pane's content
+      // actually resolves (empty = the dim dropped the border instead).
+      const inner = pane.firstElementChild ?? pane;
+      const tokens = Object.fromEntries(["--color-border", "--color-border-strong", "--color-accent-muted"].map((t) => [
+        t,
+        { stale: getComputedStyle(inner).getPropertyValue(t).trim(), parent: pane.parentElement ? getComputedStyle(pane.parentElement).getPropertyValue(t).trim() : null },
+      ]));
+      return {
+        n: samples.length,
+        worst: samples[0],
+        failing: failing.length,
+        failingLabels: failing.slice(0, 12).map((s) => `${s.label} ${s.ratio}:1`),
+        lowest: samples.slice(0, 10),
+        tokens,
+        ariaBusy: pane.getAttribute("aria-busy"),
+      };
+    });
+    return { ...measured, next, held, state: "real: next day's dashboard-bundle held open" };
+  } finally {
+    release();
+    await page.unroute(matcher, handler).catch(() => {});
+    await page
+      .waitForFunction(
+        (want) => document.querySelector(".nova-today-pane")?.getAttribute("data-day") === want
+          && !document.querySelector(".nova-today-pane[data-stale]"),
+        next,
+        { timeout: 30_000 },
+      )
+      .catch(() => {});
+  }
+}
+
 // ── run ────────────────────────────────────────────────────────────────────
 /**
  * Runs the selected phases and returns the metrics, with `gates` computed.
@@ -1179,67 +1351,8 @@ export async function runAudit({ browser, base, out, phases = ALL_PHASES, prod =
           && document.querySelectorAll("[data-pending-placeholder]").length === 0
           && document.querySelectorAll(".skel").length === 0;
       }, null, { timeout: 60000 });
-      metrics.lightStaleContrast = await lp.evaluate(async () => {
-        const pane = document.querySelector(".nova-today-pane");
-        if (!(pane instanceof HTMLElement)) return { error: "no Today pane" };
-        const staleOpacity = (() => {
-          for (const sheet of document.styleSheets) {
-            let rules;
-            try { rules = sheet.cssRules; } catch { continue; }
-            for (const rule of rules) {
-              if (rule.selectorText?.includes(".nova-today-pane[data-stale]") && rule.style?.opacity) return rule.style.opacity;
-            }
-          }
-          return "1";
-        })();
-        pane.style.setProperty("opacity", staleOpacity, "important");
-        await new Promise((resolve) => setTimeout(resolve, 300));
-
-        const visible = (el) => {
-          const r = el.getBoundingClientRect();
-          return r.width > 40 && r.height > 10 && getComputedStyle(el).visibility !== "hidden";
-        };
-        const text = [...pane.querySelectorAll(".nova-hero-col-main > div > div[id]")]
-          .find((el) => visible(el) && (el.textContent || "").trim().length > 35);
-        if (!(text instanceof HTMLElement)) return { error: "no body text sample" };
-
-        const rgba = (value) => {
-          const nums = (value.match(/[\d.]+/g) || []).map(Number);
-          if (nums.length < 3) return null;
-          const unit = value.startsWith("color(srgb");
-          return { r: unit ? nums[0] * 255 : nums[0], g: unit ? nums[1] * 255 : nums[1], b: unit ? nums[2] * 255 : nums[2], a: nums[3] ?? 1 };
-        };
-        const over = (front, back, alpha = front.a) => ({
-          r: front.r * alpha + back.r * (1 - alpha),
-          g: front.g * alpha + back.g * (1 - alpha),
-          b: front.b * alpha + back.b * (1 - alpha),
-          a: 1,
-        });
-        const pageBg = rgba(getComputedStyle(document.body).backgroundColor) ?? { r: 255, g: 255, b: 255, a: 1 };
-        let surface = null;
-        for (let el = text; el && el !== document.documentElement; el = el.parentElement) {
-          const bg = rgba(getComputedStyle(el).backgroundColor);
-          if (bg && bg.a > 0.01) { surface = over(bg, pageBg); break; }
-        }
-        surface ??= pageBg;
-        const fg = rgba(getComputedStyle(text).color);
-        if (!fg) return { error: "unparseable text colour" };
-        let groupOpacity = 1;
-        for (let el = text; el && el !== document.documentElement; el = el.parentElement) groupOpacity *= Number(getComputedStyle(el).opacity) || 1;
-        const effectiveBg = over(surface, pageBg, groupOpacity);
-        const textPixel = over(fg, surface, fg.a);
-        const effectiveFg = over(textPixel, pageBg, groupOpacity);
-        const luminance = (c) => {
-          const channel = (n) => { const s = n / 255; return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; };
-          return 0.2126 * channel(c.r) + 0.7152 * channel(c.g) + 0.0722 * channel(c.b);
-        };
-        const l1 = luminance(effectiveFg);
-        const l2 = luminance(effectiveBg);
-        const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
-        pane.style.removeProperty("opacity");
-        return { ratio: +ratio.toFixed(2), opacity: +groupOpacity.toFixed(2), sample: (text.textContent || "").trim().slice(0, 60) };
-      });
       await shot(run, lp, "light-today");
+      metrics.lightStaleContrast = await staleTextContrast(lp, () => shot(run, lp, "light-today-stale"));
       for (const tab of [...TABS.slice(1).map((t) => t.slug), "journal", "settings"]) {
         await lp.goto(`/dashboard/${tab}`);
         await settle(lp, 900);
@@ -1343,7 +1456,10 @@ export function computeGates(m, { prod = false } = {}) {
   if (m.skeletonLight) add("DXA-01", "skeleton bar/card contrast, light (1.05–1.6)", m.skeletonLight.contrast, m.skeletonLight.contrast >= 1.05 && m.skeletonLight.contrast <= 1.6);
   if (m.lightStaleContrast) {
     const sc = m.lightStaleContrast;
-    add("DXA-07", "stale pane body text holds AA on light", sc.error ?? `${sc.ratio.toFixed(2)}:1`, !sc.error && sc.ratio >= 4.5);
+    // Every text-bearing element against its own WCAG threshold; the value
+    // names the weakest one so a FAIL points at its element.
+    const value = sc.error ?? `min ${sc.worst.ratio.toFixed(2)}:1${sc.worst.need === 3 ? " (large text, needs 3:1)" : ""} (${sc.worst.label}, n=${sc.n})`;
+    add("DXA-07", "stale pane body text holds AA on light", value, !sc.error && sc.failing === 0);
   }
   if (m.bareLoad) add("DXA-02", "bare /dashboard shows one destination", m.bareLoad.destinations.join(" → "), m.bareLoad.destinations.length === 1 && m.bareLoad.destinations[0] === "personal");
   if (m.todayLoad) {
