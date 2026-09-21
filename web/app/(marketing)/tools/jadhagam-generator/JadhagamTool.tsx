@@ -20,7 +20,7 @@ import {
 import { useLang } from "@/components/lang-toggle";
 import { JadhagamShareButton } from "@/components/public-share-card";
 import { tamilizeAstroEnglish } from "@/lib/tamil-astro";
-import { tPlanetLord } from "@/lib/i18n";
+import { tNakshatra, tPlanetLord } from "@/lib/i18n";
 import { nakshatraLordShort } from "@vinaadi/shared/nakshatraLord";
 
 // ── South Indian grid layout ──────────────────────────────────────────────────
@@ -503,14 +503,14 @@ function PrintableJadhagamSheet({
           </tr>
           <tr>
             <td style={hdrSt}>லக்னம்</td>
-            <td style={cellSt}>: {RASI_NAMES_TA[chart.lagna.rasi]} · {chart.lagna.nakshatraName}</td>
+            <td style={cellSt}>: {RASI_NAMES_TA[chart.lagna.rasi]} · {tNakshatra(chart.lagna.nakshatraName, "ta")}</td>
             <td style={hdrSt}>பிறந்த இடம்</td>
             <td style={cellSt}>: {bp.birthPlace || "—"}</td>
           </tr>
           <tr>
             <td style={hdrSt}>ராசி / நட்சத்திரம்</td>
             <td style={cellSt}>
-              : {moon ? `${RASI_NAMES_TA[moon.rasi]}-${moon.nakshatraName}, பாதம்-${moon.pada}` : "—"}
+              : {moon ? `${RASI_NAMES_TA[moon.rasi]}-${tNakshatra(moon.nakshatraName, "ta")}, பாதம்-${moon.pada}` : "—"}
             </td>
             <td style={hdrSt}>அட்சாம்சம் / தீர்க்காம்சம்</td>
             <td style={cellSt}>
@@ -561,7 +561,7 @@ function PrintableJadhagamSheet({
               <td style={{ ...cellSt, textAlign: "center", fontFamily: "monospace" }}>
                 {toDMS(row.absLong)}
               </td>
-              <td style={cellSt}>{row.nakshatraName}</td>
+              <td style={cellSt}>{tNakshatra(row.nakshatraName, "ta")}</td>
               <td style={{ ...cellSt, textAlign: "center" }}>{row.pada}</td>
               <td style={{ ...cellSt, textAlign: "center" }}>
                 {row.graha === "LAGNA" ? "—" : (NAKSHATRA_LORDS_TA[row.nakshatra] ?? "—")}

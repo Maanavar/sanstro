@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { useApiQuery } from "@/hooks/useApiQuery";
 import { apiFetchJson } from "@/lib/api";
+import { tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { formatDateLabel, todayIso } from "@/lib/format";
 import { STALE } from "@/lib/queryClient";
@@ -67,10 +68,10 @@ function NovaEventCard({ item, lang }: { item: LifeEventLogItem; lang: Lang }) {
           </p>
           <div style={{ display: "flex", gap: "var(--space-2)", marginTop: "8px", flexWrap: "wrap" }}>
             <span style={{ padding: "var(--space-1) var(--space-2)", background: "var(--color-accent-muted)", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", color: "var(--color-text)" }}>
-              {lang === "ta" ? "மகாதசை" : "Mahadasha"}: {item.correlation.mahaLord}
+              {lang === "ta" ? "மகாதசை" : "Mahadasha"}: {tPlanetLord(item.correlation.mahaLord, lang)}
             </span>
             <span style={{ padding: "var(--space-1) var(--space-2)", background: "var(--color-accent-muted)", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", color: "var(--color-text)" }}>
-              {lang === "ta" ? "அந்தர்தசை" : "Antardasha"}: {item.correlation.antarLord}
+              {lang === "ta" ? "அந்தர்தசை" : "Antardasha"}: {tPlanetLord(item.correlation.antarLord, lang)}
             </span>
           </div>
         </div>

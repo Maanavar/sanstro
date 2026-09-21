@@ -9,17 +9,37 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const BARE_EASE = /\b\d*\.?\d+m?s\s+ease(?!-)/g;
-const COMPONENTS = ["components/guide-cards.tsx", "components/natchathiram-visual.tsx"];
+/**
+ * Shared components the dashboard renders that carry no `dashboard-` prefix.
+ * The first five are the dashboard's own disclosure, overlay and select
+ * primitives (N-1a / W-7a, 2026-09-21).
+ */
+const COMPONENTS = [
+  "components/collapsible-section.tsx",
+  "components/modal-shell.tsx",
+  "components/drawer-panel.tsx",
+  "components/life-area-card.tsx",
+  "components/nova-select.tsx",
+  "components/guide-cards.tsx",
+  "components/natchathiram-visual.tsx",
+];
 
 export function bareEaseTimings(source: string): string[] {
   return [...source.matchAll(BARE_EASE)].map((match) => match[0]);
 }
 
-function dashboardComponents(dir = "components"): string[] {
+/**
+ * Every `dashboard-*.tsx`, plus EVERY `.tsx` under `components/ui/`. The ui
+ * folder used to go through the same `dashboard-` filter, so the four files
+ * that define the dashboard's motion — presence, pressable, segmented-thumb,
+ * view-swap — were outside the guard that exists to police it.
+ */
+function dashboardComponents(dir = "components", inUi = false): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const file = path.join(dir, entry.name);
-    if (entry.isDirectory()) return entry.name === "ui" ? dashboardComponents(file) : [];
-    return entry.isFile() && /^dashboard-.*\.tsx$/.test(entry.name) ? [file] : [];
+    if (entry.isDirectory()) return entry.name === "ui" ? dashboardComponents(file, true) : [];
+    if (!entry.isFile() || !entry.name.endsWith(".tsx")) return [];
+    return inUi || /^dashboard-/.test(entry.name) ? [file] : [];
   });
 }
 
@@ -51,6 +71,20 @@ describe("dashboard motion source boundary (DXA-16)", () => {
       [...scan().entries()],
       "Use var(--ease-nova) for CSS and EASE_NOVA for Framer transitions. Bare ease can hide in animations the browser census does not sample.",
     ).toEqual([]);
+  });
+
+  it("scans the motion primitives and the shared dashboard components", () => {
+    const scanned = new Set([...dashboardComponents(), ...COMPONENTS].map((f) => f.split(path.sep).join("/")));
+    for (const file of [
+      "components/ui/presence.tsx",
+      "components/ui/pressable.tsx",
+      "components/ui/segmented-thumb.tsx",
+      "components/ui/view-swap.tsx",
+      "components/collapsible-section.tsx",
+      "components/nova-select.tsx",
+    ]) {
+      expect(scanned, `${file} is outside the motion guard`).toContain(file);
+    }
   });
 
   it("matches bare ease but permits explicitly chosen named curves", () => {
