@@ -691,6 +691,9 @@ five gates went `enter:false exit:false`
 **Not covered:** the gate drives five representative overlays; anything
 *inside* an overlay is outside the harness by construction, and no run has been
 made in Tamil.
+**OD-2 ruling, 2026-09-21:** `Presence` intentionally uses `DUR.base` and
+`EASE_NOVA` in both directions. The product chose one settle curve as its house
+style; the retired exit tokens in §6 are not implementation drift.
 Status correction 2026-09-18: later overlay runs flapped and only one drawer
 caller was converted; the ratchet was removed pending retained lifecycles and
 five stable browser runs. The historical completion claim below is superseded.
@@ -1350,14 +1353,19 @@ Binding principles (from 2026-08-20):
 - motion orients, connects, reveals, or marks meaning;
 - one lead per change;
 - ≤ 8 px travel;
-- enter on `--ease-nova`, exit faster on `--ease-exit`;
+- ~~enter on `--ease-nova`, exit faster on `--ease-exit`;~~ **Superseded
+  2026-09-21 (OD-2 path B):** one `--ease-nova` settle curve is the house
+  style for both directions. This is a lineage choice for a simpler system,
+  not a claim that faster exits are wrong.
 - reduced motion keeps meaning and drops travel.
 
 New tokens (CSS in `dashboard-nova.css` beside `--dur-*`; JS twins in
 `web/lib/motion.ts`):
-- `--dur-press: 90ms`
-- `--dur-exit: 140ms`
-- `--ease-exit: cubic-bezier(0.4, 0, 1, 1)`
+- ~~`--dur-press: 90ms`~~ **Retired 2026-09-21 with OD-2 path B;** existing
+  duration tokens remain the shared scale.
+- ~~`--dur-exit: 140ms`~~ **Retired 2026-09-21 with OD-2 path B.**
+- ~~`--ease-exit: cubic-bezier(0.4, 0, 1, 1)`~~ **Retired 2026-09-21 with
+  OD-2 path B.**
 
 | Moment | Trigger | What moves | Duration / easing | Reduced motion |
 |---|---|---|---|---|
