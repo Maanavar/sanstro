@@ -4273,7 +4273,7 @@ button.ui-chip { cursor: pointer; }
    carries its own values throughout. `lang` is server-rendered on <html>
    (app/layout.tsx), so these apply on the first paint, not after hydration.
 
-   Measured on the isolated stack (:3100), 2026-09-18, en and ta at 390 / 860 /
+   Measured on the isolated stack (:3100), 2026-09-21, en and ta at 390 / 860 /
    1440 — re-measure with hero-inventory-probe.mjs if the hero's structure or
    copy changes. DXA-05's CLS gate covers en at 1440. */
 .cd-shell {
@@ -4292,7 +4292,7 @@ button.ui-chip { cursor: pointer; }
 }
 @media (min-width: 1200px) {
   .cd-shell { /* three columns */
-    --nova-hero-reserve: 592px;
+    --nova-hero-reserve: 621px;
   }
   :root[lang="ta"] .cd-shell {
     --nova-hero-reserve: 641px;
