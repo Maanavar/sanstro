@@ -156,7 +156,7 @@ Ready: yes · Wave 1 · Needs: — · Review: shots
 - **Gate:** `DXA-01` contrast within 1.05–1.6, dark **and** light.
 
 #### DXA-02 `[x] 2026-09-17` `/dashboard` renders Today, then switches to the last-used tab (D1: Today is home)
-Done: DXA-02 destinations `personal → calendar` → `personal`; the tab is neither restored nor persisted any more; Glossary keeps its plain `/dashboard` link (now Today; `router.back()` would fail on direct visits); metrics `web/test-results/dxa02/…/ux-audit`; commit see git log. **Open:** deleting the now-unused `sanitizeRestoredTab` + its tests awaits owner approval.
+Done: DXA-02 destinations `personal → calendar` → `personal`; the tab is neither restored nor persisted any more; Glossary keeps its plain `/dashboard` link (now Today; `router.back()` would fail on direct visits); metrics `web/test-results/dxa02/…/ux-audit`; commit `aff3f73`. **Open:** deleting the now-unused `sanitizeRestoredTab` + its tests awaits owner approval.
 Ready: yes · Wave 1 · Needs: — · Review: —
 - **Problem:** the first render is Today (`dashboard-workspace.tsx:349`). The
   localStorage restore runs after `/auth/me` (`:796-801`) and swaps the tab.
@@ -183,7 +183,7 @@ Ready: yes · Wave 1 · Needs: — · Review: —
 - **Gate:** `DXA-02` one destination, `personal`.
 
 #### DXA-03 `[x] 2026-09-17` "Empty" copy shown while data is still loading
-Done: DXA-03 false-empty `697–9907 ms` → `never`. `usePersonalData.personalPending` / `useFamilyData.familyPending` + shared `PendingPlaceholder`; wired into the Today glance cards, the hero name and lede, Quick Links (`needsProfile` waits for the lookup), the Calendar day view, the monthly view and its rail. Side effects: Understand CLS 0.73 → 0.49; DXA-06 skeleton frames 80 → 125 (INFO; placeholders now count). **Follow-up, not in this gate:** `NovaChartCard` / `NovaGuidanceCard` (`dashboard-today-deepdive-extras-nova.tsx`, used on Life Areas and Family & Charts) still show `chart_no_profile` / `guidance_empty` while a selected member loads. Metrics `web/test-results/dxa03/…/ux-audit`; commit see git log.
+Done: DXA-03 false-empty `697–9907 ms` → `never`. `usePersonalData.personalPending` / `useFamilyData.familyPending` + shared `PendingPlaceholder`; wired into the Today glance cards, the hero name and lede, Quick Links (`needsProfile` waits for the lookup), the Calendar day view, the monthly view and its rail. Side effects: Understand CLS 0.73 → 0.49; DXA-06 skeleton frames 80 → 125 (INFO; placeholders now count). **Follow-up, not in this gate:** `NovaChartCard` / `NovaGuidanceCard` (`dashboard-today-deepdive-extras-nova.tsx`, used on Life Areas and Family & Charts) still show `chart_no_profile` / `guidance_empty` while a selected member loads. Metrics `web/test-results/dxa03/…/ux-audit`; commit `bf502e8`.
 Ready: yes · Wave 1 · Needs: — · Review: shots
 - **Problem:**
   - `needsProfile = !personal.birthProfileId` (`dashboard-workspace.tsx:671`)
@@ -216,7 +216,7 @@ Ready: yes · Wave 1 · Needs: — · Review: shots
 - **Gate:** `DXA-03` never.
 
 #### DXA-04 `[x] 2026-09-17` "A few steps to get started" flashes for finished users
-Done: DXA-04 `bare:true today:true` → `bare:false today:false`; Journal and Settings banner also gone. `onboardingDone` is `boolean | null` starting `null`, the gate waits for `family.vaultsReady`, and the banner renders only on `=== false`. Presence animation (step 3 of the fix) waits for DXA-13's primitive. Metrics `web/test-results/dxa04/…/ux-audit`; commit see git log.
+Done: DXA-04 `bare:true today:true` → `bare:false today:false`; Journal and Settings banner also gone. `onboardingDone` is `boolean | null` starting `null`, the gate waits for `family.vaultsReady`, and the banner renders only on `=== false`. Presence animation (step 3 of the fix) waits for DXA-13's primitive. Metrics `web/test-results/dxa04/…/ux-audit`; commit `b6ea1bf`.
 Ready: yes · Wave 1 · Needs: — · Review: —
 - **Problem:** `onboardingDone` starts `false`. The gate effect
   (`dashboard-workspace.tsx:944-955`) treats a not-yet-fetched vault list as "no
@@ -640,7 +640,14 @@ Ready: yes · Wave 1 · Needs: — · Review: —
 
 ### P1: make it feel alive
 
-#### DXA-12 `[ ]` Clickable surfaces give no hover or press feedback
+#### DXA-12 `[~]` Clickable surfaces give no hover or press feedback
+Status correction 2026-09-18: the recorded 8/8 result had four empty panes;
+the ratchet was removed pending whole-pane measurement, negative control, and
+stable browser runs. The historical completion claim below is superseded.
+Done: real-pointer hover **2/22 → 8/8** and press **0/22 → 8/8** in
+`web/e2e/.artifacts/ux-audit-202609181930/`; ratcheted in
+`dashboard-experience.spec.ts`. The sample intentionally caps the visible
+surfaces; it does not prove hover feedback for off-screen controls or Tamil.
 Ready: yes · Wave 2 · Needs: DXA-19 (tokens), DXA-39 · Review: shots
 - **Evidence (real pointer):**
   - Today hero buttons: 0/3;
@@ -662,7 +669,26 @@ Ready: yes · Wave 2 · Needs: DXA-19 (tokens), DXA-39 · Review: shots
      `HyActionButton`, Understand library tiles, hero buttons.
 - **Gate:** `DXA-12` hover ≥ 95%, press 100%.
 
-#### DXA-13 `[ ]` Overlays hard-cut in, and nothing animates out
+#### DXA-13 `[x] 2026-09-19` Overlays hard-cut in, and nothing animates out
+Closed 2026-09-19: all four `DrawerPanel` callers carry `open`, `ModalShell` and
+the three hero popovers retain through their exit, and the dismiss layer now
+shares the overlay's lifetime — which is what the earlier flapping was.
+**Negative control:** with `Presence`'s transition set to `duration: 0`, all
+five gates went `enter:false exit:false`
+(`web/e2e/.artifacts/ux-audit-wave2-negative/`); restored, all five pass
+(`ux-audit-wave2-after/`), and held over five consecutive `overlays` runs
+(`ux-audit-wave2-after-2…5`). DXA-41 held green across all five.
+**Not covered:** the gate drives five representative overlays; anything
+*inside* an overlay is outside the harness by construction, and no run has been
+made in Tamil.
+Status correction 2026-09-18: later overlay runs flapped and only one drawer
+caller was converted; the ratchet was removed pending retained lifecycles and
+five stable browser runs. The historical completion claim below is superseded.
+Done: More, notifications, account, Ask Vinaadi, and the day drawer each
+recorded an animated enter and exit in
+`web/e2e/.artifacts/ux-audit-202609181335/`; all five are ratcheted. The gate
+only samples those five representative overlays, so generic modal appearances
+remain a manual review surface; commit `af20604`.
 Ready: yes · Wave 2 · Needs: DXA-19 · Review: shots
 - **Evidence:**
   - More menu: 120 ms entrance (good).
@@ -679,7 +705,34 @@ Ready: yes · Wave 2 · Needs: DXA-19 · Review: shots
   3. Popovers get `--elev-3` and `transform-origin` at their trigger.
 - **Gate:** `DXA-13` enter and exit on every overlay.
 
-#### DXA-14 `[ ]` Tools, sub-views and view switches hard-cut; segmented selection repaints
+#### DXA-14 `[x] 2026-09-19` Tools, sub-views and view switches hard-cut; segmented selection repaints
+Done: DXA-14 three view switches `animated:false` → `animated:true`; negative
+metrics `web/e2e/.artifacts/ux-audit-dxa14-negative2/`; passing metrics
+`web/e2e/.artifacts/ux-audit-wave2-after/`; commit `af20604`.
+Closed 2026-09-19. `ViewSwap` is applied at 14 sites (Tools hub ⇄ tool,
+Understand hub ⇄ detail, Calendar, Plan, Life Areas, the reading switch), and
+`Segmented` has its per-instance sliding thumb.
+**Gate added 2026-09-19** — the item had none, and was twice reported by eye.
+`ViewSwap` carries `data-view-swap` / `data-view-key` purely so the gate has
+something to select: the crossfade is an inline transform framer writes, with
+no class and no CSS animation name to match.
+**Negative control:** with the crossfade set to `duration: 0`, all three panes
+reported `animated:false` against a real key change
+(`web/e2e/.artifacts/ux-audit-dxa14-negative2/`); restored, all three pass
+(`ux-audit-wave2-after/`).
+**That control also caught a defect in the gate itself.** The first version
+matched any animation *inside* the swapped panel, and Life Areas reveals its
+groups on entry (DXA-18) — so it reported `animated:true` with the crossfade
+removed. It now matches the swap element only. A gate run solely against a
+working fix would have shipped that.
+**Not covered:** three panes, English only; a switch not driven by a
+`Segmented` is unmeasured, and the `measurable` gate fails loudly rather than
+averaging a blank pane away.
+Superseded —
+Partial 2026-09-18: Tools hub ↔ tool now uses `ViewSwap`, and kit
+`Segmented` has its per-instance sliding thumb. The remaining
+Segmented-driven panels and Understand hub ↔ detail still need the shared
+transition; do not ratchet this item yet.
 Ready: yes · Wave 2 · Needs: — · Review: shots
 - **Evidence:** opening Numerology: no animation. Calendar "Best Dates": none.
   Goals and Life Areas sub-tabs: none.
@@ -692,7 +745,11 @@ Ready: yes · Wave 2 · Needs: — · Review: shots
 - **Gate:** none yet. Manual: each switch shows one crossfade in
   `getAnimations()`; add a harness check when implementing.
 
-#### DXA-15 `[ ]` Disclosures pop open and shut
+#### DXA-15 `[x] 2026-09-18` Disclosures pop open and shut
+Done: the body stays mounted after its first open and transitions with grid
+rows plus opacity; `collapsible-section.test.tsx` verifies the retained body
+and the existing scroll-anchor behavior; commit `af20604`. This unit proof
+cannot inspect the browser's rendered transition curve.
 Ready: yes · Wave 2 · Needs: — · Review: —
 - **Problem:** `CollapsibleSection` renders `{open && …}`
   (`collapsible-section.tsx:61`).
@@ -718,7 +775,34 @@ Ready: partial (implementation yes; acceptance needs a production build, see DXA
 - **Gate:** `DXA-06` zero full-opacity skeleton frames. It is **INFO under
   `next dev`** and **gating with `--prod`**.
 
-#### DXA-16 `[ ]` Motion token drift
+#### DXA-16 `[x] 2026-09-19` Motion token drift
+Closed 2026-09-19. Two checks, deliberately complementary:
+`web/lib/dashboard-motion-source.test.ts` greps the dashboard source
+(`app/globals.css`, `app/dashboard/*.css`, `components/*.css`, the dashboard
+components), and the browser census reads what actually computes.
+**Neither alone is sufficient, and that is the finding worth keeping.** The
+last three failing runs of 2026-09-18 were transitions with *no timing
+function at all* — `transition: "opacity 0.15s"` in `dashboard-share-card.tsx`,
+`"background .15s, color .15s"` in `dashboard-settings-rail.tsx`. Those compute
+to `ease` but contain no `ease` token, so the source grep cannot see them by
+construction; the census caught them. A future reader tempted to drop the
+browser half should read this line first.
+**Negative control:** the `.ui-card` transition reverted to bare `ease` turned
+the census to `ease` (`web/e2e/.artifacts/ux-audit-wave2-negative/`); restored,
+`tokens only` (`ux-audit-wave2-after/`). The source guard was separately
+controlled by adding a scratch `components/*.css` carrying `120ms ease`, which
+it caught by file and by string.
+**Not covered:** the census only tallies elements with a non-zero
+`transition-duration` on a visited top-level pane — no `animation-timing-function`,
+no unvisited nested tool, no Tamil. The source grep is what covers animations.
+Superseded —
+Status correction 2026-09-18: a universal `!important` timing rule made the
+browser census constant; the ratchet was removed pending source-level coverage.
+The historical completion claim below is superseded.
+Done: dashboard transition census is **tokens only** in
+`web/e2e/.artifacts/ux-audit-202609181344/`, now ratcheted. The census samples
+rendered tab panes; it cannot see an unvisited nested tool or reduced-motion
+override; commit `af20604`.
 Ready: yes · Wave 2 · Needs: — · Review: —
 - **Evidence:**
   - Family: 29 of 31 transitions on generic `ease`.
@@ -732,7 +816,11 @@ Ready: yes · Wave 2 · Needs: — · Review: —
   3. Add a guard grep for `\d+m?s ease\b` in the dashboard CSS and components.
 - **Gate:** `DXA-16` tokens only.
 
-#### DXA-17 `[ ]` Ambient loops outside the hero (D3: static page sky)
+#### DXA-17 `[x] 2026-09-18` Ambient loops outside the hero (D3: static page sky)
+Done: **0** non-hero infinite animations in
+`web/e2e/.artifacts/ux-audit-202609181344/`, now ratcheted. The loop census
+enumerates document animations rather than filtering by viewport, but still
+does not inspect an unmounted deferred view; commit `af20604`.
 Ready: yes · Wave 2 · Needs: — · Review: shots
 - **Evidence:**
   - 20 twinkling page stars;
@@ -757,6 +845,9 @@ Ready: yes · Wave 2 · Needs: — · Review: shots
 - **Gate:** `DXA-17` zero loops outside the hero; none paint `box-shadow`.
 
 #### DXA-18 `[ ]` Long pages have no reading choreography
+Partial 2026-09-18: section-level reveal now wraps Family `HySection` output
+and Life Areas groups. Understand's library and Today remain, so this item is
+not complete or gated yet.
 Ready: yes · Wave 2 · Needs: DXA-17 · Review: shots
 - **Evidence:** `NovaReveal` and `NovaFadeIn` have one caller each. Family
   (8.8–10.4k px), Life Areas and Today are static on scroll.
@@ -964,7 +1055,11 @@ Ready: yes · Wave 2 · Needs: — · Review: shots (owner's own touchscreen lap
 
 ### P1: visual system
 
-#### DXA-19 `[ ]` No elevation system
+#### DXA-19 `[x] 2026-09-18` No elevation system
+Done: card census is **91 flat → 0 flat** in
+`web/e2e/.artifacts/ux-audit-202609181344/`, now ratcheted. The classifier
+covers `.ui-card` / card surfaces; a novel ad-hoc surface still needs review;
+commit `af20604`.
 Ready: yes · Wave 2 (first) · Needs: — · Review: shots
 - **Evidence:**
   - `.ui-card` is flat (`dashboard-nova.css:2921`); the harness counts **91
@@ -1155,7 +1250,7 @@ Ready: no · Needs: DXA-24 design
 ### P3: guardrails and verification
 
 #### DXA-34 `[x] 2026-09-17` Make the audit repeatable
-Done: DXA-34 spec `VISUAL_AUDIT=1` load,tabs,reduced 1 passed (2.9 min), 6 ratcheted gates; unset → skipped; negative check (renamed key) → fails as MISSING; CLI after refactor DXA-11 PASS×2; metrics `web/e2e/.artifacts/ux-audit-wave0-recheck`, `ux-audit-dxa34-cli`; commit see git log (after 929f317)
+Done: DXA-34 spec `VISUAL_AUDIT=1` load,tabs,reduced 1 passed (2.9 min), 6 ratcheted gates; unset → skipped; negative check (renamed key) → fails as MISSING; CLI after refactor DXA-11 PASS×2; metrics `web/e2e/.artifacts/ux-audit-wave0-recheck`, `ux-audit-dxa34-cli`; commit `15cc983`
 Ready: yes · Wave 0
 - **Done 2026-09-17:**
   - `web/scripts/ux-audit.mjs` (every gate in §12);
@@ -1478,12 +1573,15 @@ compare pass/fail, not decimals.
 | DXA-10 | no star through a translucent surface | 6 — but see below | PASS (2026-09-18; same run) |
 | DXA-11 | reduced motion: indicator does not move | 3 transforms | FAIL |
 | DXA-11 | reduced motion: pane without a fade | 1 | PASS |
-| DXA-12 | hover feedback ≥ 95% | 2 / 22 | FAIL |
-| DXA-12 | press feedback = 100% | 0 / 22 | FAIL |
-| DXA-13 | enter + exit animation (More, notifications, account, Ask, day drawer) | only More and the drawer enter; none exit | FAIL × 5 |
-| DXA-16 | Nova easing tokens only | `ease` present | FAIL |
-| DXA-17 | no infinite animation outside the hero | page twinkles, orbs, ring pulse, calendar loops | FAIL |
-| DXA-19 | cards resolve an elevation shadow | 91 flat | FAIL |
+| DXA-12 | hover feedback ≥ 95% | 2 / 22 | FAIL — 18 / 71 on 2026-09-19 (see note) |
+| DXA-12 | press feedback = 100% | 0 / 22 | FAIL — 17 / 71 on 2026-09-19 (see note) |
+| DXA-12 | every hover pane yielded surfaces | (added 09-18) | PASS |
+| DXA-13 | enter + exit animation (More, notifications, account, Ask, day drawer) | none exit | PASS 2026-09-19 (negative control on disk) |
+| DXA-14 | every view-swap pane was measurable | (added 09-19) | PASS 2026-09-19 |
+| DXA-14 | view switch crossfades (life-areas, plan, calendar) | no animation | PASS 2026-09-19 (negative control on disk) |
+| DXA-16 | Nova easing tokens only | `ease` present | PASS 2026-09-19 (negative control on disk) |
+| DXA-17 | no infinite animation outside the hero | 0 | PASS 2026-09-18 |
+| DXA-19 | cards resolve an elevation shadow | 0 flat | PASS 2026-09-18 |
 | DXA-20 | top-level gaps ⊆ {12, 24, 48, 56} | 16, 20, 24, 48 | FAIL |
 | DXA-21 | ≤ 8 font sizes, none < 11 px | 15 sizes, 240 tiny | FAIL |
 | DXA-22 | ≤ 4 corner radii | 9 | FAIL |
@@ -1498,6 +1596,15 @@ compare pass/fail, not decimals.
 | DXA-41 | same: Ask panel, day drawer | both work | PASS × 2 |
 | — | console errors (dev CSP chunk warnings included) | 20 | INFO |
 
+**DXA-12's baseline and its current value are not the same measurement.** The
+`2 / 22` baseline came from a probe that sampled only controls already inside
+the viewport and reached each tab by `page.goto`, so four of six panes returned
+*nothing* and a later run read `8 / 8` as 100%. Since 2026-09-18 the probe
+scrolls each candidate into view, settles `window.scrollY` before sampling, and
+switches tabs by clicking; the denominator is 71, and a pane that yields no
+surfaces now fails its own gate rather than passing silently. Compare `18 / 71`
+against a denominator of 71, never against the 22.
+
 **The two DXA-10 rows are not comparable to a later run.** They were taken at
 18:39 IST, and the page sky paints stars only from dusk — the same gates read
 `0 / 0 PASS` on the *unfixed* tree at 11:37 and 11:50 IST. Since 2026-09-18 they
@@ -1508,11 +1615,15 @@ gradient's own stops rather than its `backgroundColor`. Its own before/after is
 
 ## 13. Waves and dependencies
 
+Status correction 2026-09-18: the Wave 2 completion language in the historical
+table below is superseded; current recovery status is tracked in
+`WAVE2_REMEDIATION_2026-09-18.md` until its browser checks are reproduced.
+
 | Wave | Items, in order | Why this order |
 |---|---|---|
 | 0: tooling and safety (**done 2026-09-17**) | DXA-40, DXA-11, DXA-36, DXA-34 | a safe referee first; MotionConfig unblocks all motion work |
 | 1: trust | DXA-01, 02, 03, 04, 05, 07, 08, 09 (stripe, echo), 38, 41, 10 | the broken moments users see on every visit |
-| 2: feel | ~~DXA-19 (tokens) → 39 → 12 → 13 → 14 → 15 → 06 → 16 → 17 → 18 → 37~~ → **39 and 37 done 2026-09-18, out of order and owner-approved**; remaining: 19 → 12 → 13 → 14 → 15 → 06 → 16 → 17 → 18 | elevation tokens feed hover and overlays. 37 did not in fact need 19; it needed `ViewSwap`, which it built — DXA-14's other applications are still open |
+| 2: feel | **13, 14, 15, 16, 17, 19, 37, 39 done**; active: **12, 18 → 06** | 13, 14 and 16 closed 2026-09-19, each with a negative control on disk. DXA-12 is the one item here that needs design work rather than plumbing: 18/71 hover, 17/71 press, and it carries `Review: shots` — the blanket `!important` rule that once made it read 8/8 is gone and must not come back |
 | 3: finish | DXA-20, 21, 22, 23, 24 (Lucide part), 25, 26, 09 (emoji), 27, 28 | rhythm and type after the primitives exist; the phone bar after D1 and `Presence` |
 | 4: signature | DXA-30, 29, 31, 32, 35; 33 when assets exist | each behind an owner-reviewed preview |
 
