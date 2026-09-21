@@ -1544,57 +1544,64 @@ What made the first draft insufficient, fixed in this revision:
 - the item is marked `[x] YYYY-MM-DD`, with the gate value and the metrics
   folder path, in this file.
 
-**Baseline, 2026-09-17** (`web/e2e/.artifacts/ux-audit-202609171309/metrics.json`,
-`next dev`, 429 s): **36 FAIL · 5 PASS · 3 INFO.** Timings and CLS move between
-dev runs (an earlier run gave CLS 0.92 / 1.00 and false-empty from 6.4 s), so
-compare pass/fail, not decimals.
+**Wave 2 close-out baseline, 2026-09-21**
+(`web/e2e/.artifacts/w2-full-2026-09-21-r3/metrics.json`, started
+`2026-09-21T05:17:54.442Z`, isolated `next dev`, 483 s, all nine phases):
+**10 FAIL · 39 PASS · 3 INFO.** All 38 `MUST_PASS` keys passed. The first full
+run (`w2-full-2026-09-21-r2`) exposed and negatively controls two regressions:
+the pending hero was 29 px short and a Tamil-only observance name rendered in
+English mode. Timings and CLS move between dev runs, so compare pass/fail, not
+decimals. The 2026-09-17 column is retained as history rather than overwritten.
+The date and metrics folder in the fourth-column heading apply to every row;
+the two source-only rows identify their 2026-09-21 recheck in the cell.
 
-| Gate | Check | Baseline | Result |
+| Gate | Check | 2026-09-17 baseline | 2026-09-21 result (`w2-full-2026-09-21-r3`) |
 |---|---|---|---|
-| DXA-01 | skeleton bar/card contrast, dark (1.05–1.6) | 9.95 | FAIL |
-| DXA-01 | same, light | 1.30 | PASS |
-| DXA-02 | bare `/dashboard` shows one destination | personal → calendar | FAIL |
-| DXA-03 | no empty-state copy while loading (Today) | 1,947–13,800 ms | FAIL |
-| DXA-04 | no onboarding banner for a set-up account | seen (bare and Today) | FAIL |
-| DXA-05 | CLS < 0.1, Today cold load | 0.77 | FAIL |
-| DXA-05 | no top-bar / sub-bar shifts | 2 | FAIL |
-| DXA-05 | document height changes during load | 7 | INFO |
-| DXA-05 | CLS < 0.1, Understand cold load | 0.82 | FAIL |
-| DXA-06 | full-opacity skeleton frames on first tab visits | 78 | INFO (gates with `--prod`) |
-| DXA-07 | hero keeps ≥ 90% height through a date change | 0.45 | FAIL |
-| DXA-07 | Today pane keeps ≥ 90% height through a date change | (added 09-18) 0.43 | FAIL |
-| DXA-07 | the selected day replaces the held one | (added 09-18) | — |
-| DXA-08 | no raw enums / "None" / upper-case rasi names | `ARDHASHTAMA_SANI`; `MITHUNAM`, `DHANUSU`, … | PASS (2026-09-18; `ux-audit-dxa08-final4`) |
-| DXA-08 | no rasi name read off the response (source ratchet) | (added 09-18) 9 surfaces | PASS (2026-09-18; `lib/rasi-display-boundary.test.ts`) |
-| DXA-09 | no accent stripes | Family: 1 | PASS (2026-09-18; `ux-audit-202609180653`) |
-| DXA-09 | no Tamil in English mode | Tools: echo + "திருமணப் பொருத்தம்" | PASS (2026-09-18; same run) |
-| DXA-09 | no emoji / text glyphs as icons | Calendar, Family, Journal, Today | FAIL (Wave 3, needs DXA-24) |
-| DXA-10 | no page-sky star inside a text line | 2 — but see below | PASS (2026-09-18; `ux-audit-202609180701`) |
-| DXA-10 | no star through a translucent surface | 6 — but see below | PASS (2026-09-18; same run) |
-| DXA-11 | reduced motion: indicator does not move | 3 transforms | FAIL |
-| DXA-11 | reduced motion: pane without a fade | 1 | PASS |
-| DXA-12 | hover feedback ≥ 95% | 2 / 22 | FAIL — 18 / 71 on 2026-09-19 (see note) |
-| DXA-12 | press feedback = 100% | 0 / 22 | FAIL — 17 / 71 on 2026-09-19 (see note) |
-| DXA-12 | every hover pane yielded surfaces | (added 09-18) | PASS |
-| DXA-13 | enter + exit animation (More, notifications, account, Ask, day drawer) | none exit | PASS 2026-09-19 (negative control on disk) |
-| DXA-14 | every view-swap pane was measurable | (added 09-19) | PASS 2026-09-19 |
-| DXA-14 | view switch crossfades (life-areas, plan, calendar) | no animation | PASS 2026-09-19 (negative control on disk) |
-| DXA-16 | Nova easing tokens only | `ease` present | PASS 2026-09-19 (negative control on disk) |
-| DXA-17 | no infinite animation outside the hero | 0 | PASS 2026-09-18 |
-| DXA-19 | cards resolve an elevation shadow | 0 flat | PASS 2026-09-18 |
-| DXA-20 | top-level gaps ⊆ {12, 24, 48, 56} | 16, 20, 24, 48 | FAIL |
-| DXA-21 | ≤ 8 font sizes, none < 11 px | 15 sizes, 240 tiny | FAIL |
-| DXA-22 | ≤ 4 corner radii | 9 | FAIL |
-| DXA-27 | pinned top chrome ≤ 120 px (scrolled) | 197 px | FAIL |
-| DXA-27 | bottom tab bar present | 0 px | FAIL |
-| DXA-27 | no overprinted tab labels | Goals / Life Areas | FAIL |
-| DXA-27 | no horizontal overflow | none | PASS |
-| DXA-28 | activity board within 2.5 screens | 4.55 | FAIL |
-| DXA-37 | Family shows exactly one reading | 2 | PASS (2026-09-18; `4c41ef9`, owner-approved) |
-| DXA-39 | touch policy: no size change on a hybrid | (added 09-18) | PASS (2026-09-18; `bea29ea`, `app/dashboard/touch-policy.test.ts` + owner's own touchscreen laptop) |
-| DXA-41 | closes on Escape and page click: More / notifications / account | Esc only / neither / neither | PASS × 3 (2026-09-18; `c8852ee`) |
-| DXA-41 | same: Ask panel, day drawer | both work | PASS × 2 |
-| — | console errors (dev CSP chunk warnings included) | 20 | INFO |
+| DXA-01 | skeleton bar/card contrast, dark (1.05–1.6) | 9.95 FAIL | **1.22 PASS** |
+| DXA-01 | same, light | 1.30 PASS | **1.18 PASS** |
+| DXA-02 | bare `/dashboard` shows one destination | personal → calendar FAIL | **personal PASS** |
+| DXA-03 | no empty-state copy while loading (Today) | 1,947–13,800 ms FAIL | **never PASS** |
+| DXA-04 | no onboarding banner for a set-up account | seen (bare and Today) FAIL | **bare:false today:false PASS** |
+| DXA-05 | CLS < 0.1, Today cold load | 0.77 FAIL | **0.0002 PASS** |
+| DXA-05 | no top-bar / sub-bar shifts | 2 FAIL | **0 PASS** |
+| DXA-05 | document height changes during load | 7 INFO | **7 INFO** |
+| DXA-05 | pending hero within 8px of loaded | not listed | **621 → 621 (+0px) PASS** |
+| DXA-05 | CLS < 0.1, Understand cold load | 0.82 FAIL | **0 PASS** |
+| DXA-06 | full-opacity skeleton frames on first tab visits | 78 INFO | **165 INFO** (gates with `--prod`) |
+| DXA-07 | hero keeps ≥ 90% height through a date change | 0.45 FAIL | **1 PASS** |
+| DXA-07 | Today pane keeps ≥ 90% height through a date change | 0.43 FAIL (added 09-18) | **1 PASS** |
+| DXA-07 | the selected day replaces the held one | added 09-18 | **2026-09-22 PASS** |
+| DXA-08 | no raw enums / "None" / upper-case rasi names | `ARDHASHTAMA_SANI`; `MITHUNAM`, `DHANUSU`, … | **none (None×0) PASS** |
+| DXA-08 | no rasi name read off the response (source ratchet) | 9 surfaces (added 09-18) | **PASS** (2026-09-21 source test) |
+| DXA-09 | no accent stripes | Family: 1 | **0 PASS** |
+| DXA-09 | no Tamil in English mode | Tools echo + "திருமணப் பொருத்தம்" | **0 PASS** |
+| DXA-09 | no emoji / text glyphs as icons | Calendar, Family, Journal, Today | **FAIL**: Calendar, Family, Journal and Personal; OD-1 / Wave 3 |
+| DXA-10 | no page-sky star inside a text line | 2 — see note | **0 of 64 PASS** |
+| DXA-10 | no star through a translucent surface | 6 — see note | **0 of 64 PASS** |
+| DXA-11 | reduced motion: indicator does not move | 3 transforms FAIL | **1 PASS** |
+| DXA-11 | reduced motion: pane without a fade | 1 PASS | **1 PASS** |
+| DXA-12 | hover feedback ≥ 95% | 2 / 22 FAIL | **19 / 71 FAIL** |
+| DXA-12 | press feedback = 100% | 0 / 22 FAIL | **18 / 71 FAIL** |
+| DXA-12 | every hover pane yielded surfaces | added 09-18 | **all panes measured PASS** |
+| DXA-13 | enter + exit animation (More, notifications, account, Ask, day drawer) | none exit | **PASS × 5** |
+| DXA-14 | every view-swap pane was measurable | added 09-19 | **3 panes PASS** |
+| DXA-14 | view switch crossfades (life-areas, plan, calendar) | no animation | **PASS × 3** |
+| DXA-16 | Nova easing tokens only | `ease` present | **tokens only PASS** |
+| DXA-17 | no infinite animation outside the hero | 0 | **0 PASS** |
+| DXA-19 | cards resolve an elevation shadow | 0 flat | **0 flat PASS** |
+| DXA-20 | top-level gaps ⊆ {12, 24, 48, 56} | 16, 20, 24, 48 FAIL | **16, 20, 24, 36, 48, 60 FAIL** |
+| DXA-21 | ≤ 8 font sizes, none < 11 px | 15 sizes, 240 tiny FAIL | **max 15, tiny 240 FAIL** |
+| DXA-22 | ≤ 4 corner radii | 9 FAIL | **10 FAIL** |
+| DXA-27 | pinned top chrome ≤ 120 px (scrolled) | 197 px FAIL | **197 px FAIL** |
+| DXA-27 | bottom tab bar present | 0 px FAIL | **0 px FAIL** |
+| DXA-27 | no overprinted tab labels | Goals / Life Areas FAIL | **Today:Goals; Calendar:Goals; Family:Life Areas; Tools:Goals FAIL** |
+| DXA-27 | no horizontal overflow | none PASS | **none PASS** |
+| DXA-28 | activity board within 2.5 screens | 4.55 FAIL | **4.69 FAIL** |
+| DXA-37 | Family shows exactly one reading | 2 | **1 PASS** |
+| DXA-39 | touch policy: no size change on a hybrid | added 09-18 | **PASS** (2026-09-21 source test; owner hardware approval remains `11020e8`) |
+| DXA-41 | closes on Escape and page click: More / notifications / account | Esc only / neither / neither | **PASS × 3** |
+| DXA-41 | same: Ask panel, day drawer | both work | **PASS × 2** |
+| — | console errors (dev CSP chunk warnings included) | 20 INFO | **5 INFO** |
 
 **DXA-12's baseline and its current value are not the same measurement.** The
 `2 / 22` baseline came from a probe that sampled only controls already inside
@@ -1602,8 +1609,9 @@ the viewport and reached each tab by `page.goto`, so four of six panes returned
 *nothing* and a later run read `8 / 8` as 100%. Since 2026-09-18 the probe
 scrolls each candidate into view, settles `window.scrollY` before sampling, and
 switches tabs by clicking; the denominator is 71, and a pane that yields no
-surfaces now fails its own gate rather than passing silently. Compare `18 / 71`
-against a denominator of 71, never against the 22.
+surfaces now fails its own gate rather than passing silently. The W-2 close-out
+value is `19 / 71` hover and `18 / 71` press; compare against a denominator of
+71, never against the 22.
 
 **The two DXA-10 rows are not comparable to a later run.** They were taken at
 18:39 IST, and the page sky paints stars only from dusk — the same gates read
