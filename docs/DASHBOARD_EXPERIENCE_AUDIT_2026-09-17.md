@@ -304,16 +304,48 @@ Ready: yes · Wave 1 · Needs: — · Review: shots
   the fold.
 
 #### DXA-07 `[x] 2026-09-21` Changing the date collapses Today while the new day loads
-Done: DXA-07 stale pane body text holds AA on light **3.41:1 → 10.47:1**;
+~~Done: DXA-07 stale pane body text holds AA on light **3.41:1 → 10.47:1**;
 negative metrics `web/e2e/.artifacts/w3-stale-aa-negative-r8/`; passing metrics
-`web/e2e/.artifacts/w3-stale-aa-pass-r3/`; commit `1ea20e0`.
+`web/e2e/.artifacts/w3-stale-aa-pass-r3/`; commit `1ea20e0`.~~
+Struck 2026-09-21 (E-1): probe did not enter the stale state; masthead text
+fell to ≈2.9:1 (measured 3.03:1).
 OD-3 assumption (2026-09-21): proceeded with the work order's recommended
-chrome-only dim. Borders, accent fills and the hero masthead soften while body
-copy stays at full opacity; the 2 px progress hairline is unchanged.
-**Gate blind spot:** the light probe forces the loaded English Today pane's
+chrome-only dim. ~~Borders, accent fills and the hero masthead soften while body
+copy stays at full opacity;~~ the 2 px progress hairline is unchanged.
+~~**Gate blind spot:** the light probe forces the loaded English Today pane's
 stale CSS state and samples the hero briefing. The Today phase separately
 proves that the runtime stale state appears and resolves; this contrast gate
-does not inspect every text node, nested tool or Tamil rendering.
+does not inspect every text node, nested tool or Tamil rendering.~~
+Struck 2026-09-21 (E-1): the probe did not force the stale state. It re-applied
+a stylesheet `opacity` found on `.nova-today-pane[data-stale]`, which the fix
+had moved onto the masthead, so it measured an undimmed pane — and it sampled
+one briefing paragraph, never the masthead.
+Done: DXA-07 stale pane text holds AA on light **min 3.03:1 → min 5.10:1**
+(n=91); negative metrics `web/e2e/.artifacts/e1-stale-aa-negative/`; passing
+metrics `web/e2e/.artifacts/e1-stale-aa-pass/`; commit `cd193bf`.
+- **What E-1 changed (2026-09-21).** The probe now drives the real state: it
+  holds the next day's `dashboard-bundle` request (delayed, never failed),
+  changes the date, waits for the app's own `[data-stale]`, and measures every
+  visible element in the pane with a direct non-empty text node against its
+  own WCAG threshold (large text 3:1, else 4.5:1), compositing through
+  ancestor backgrounds and opacity groups. Its negative control failed on the
+  first run, on the unfixed tree: the limb labels "Star"/"Tithi" 3.03:1, the
+  Tamil date 3.37:1, the date line 4.19:1. The gate key is unchanged.
+- **The token dims never worked.** `--color-border: color-mix(… var(--color-border) …)`
+  declared on the pane is a custom-property cycle, which computes to the
+  guaranteed-invalid value: the probe read all three tokens as empty inside
+  the stale pane. Borders and accent fills reading them were dropped, not
+  dimmed. The dims are now computed on the pane (`--stale-*`) and applied to
+  its children, and resolve to the intended `color-mix()`.
+- **Design now:** no `opacity` on anything carrying text. Only non-text marks
+  dim: borders and the accent fill (tokens above) and icons (`svg.lucide` and
+  the masthead glyphs, 0.5). `aria-busy="true"` was already set while stale.
+  The stale cue is now quieter than the 0.6 pane dim was; a visible
+  "Loading…" label would be a new Tamil string and waits for the owner.
+- **Gate blind spot:** English only, light theme only, Today pane only; nested
+  overlays opened from the pane are not measured. Background images and
+  gradients (the hero's sky) and anything a sibling paints underneath are not
+  composited — backgrounds come from the ancestor chain only.
 Done: Today pane **3,515 → 1,513 px (0.43)** → **3,515 → 3,515 (1.00)**, the
 selected day arrives (`data-day` = 2026-09-19), hero 592 → 592. A/B on one
 account, same probe, same stack: `web/e2e/.artifacts/ux-audit-dxa07-negative10/`
@@ -1603,6 +1635,7 @@ the two source-only rows identify their 2026-09-21 recheck in the cell.
 | DXA-07 | hero keeps ≥ 90% height through a date change | 0.45 FAIL | **1 PASS** |
 | DXA-07 | Today pane keeps ≥ 90% height through a date change | 0.43 FAIL (added 09-18) | **1 PASS** |
 | DXA-07 | the selected day replaces the held one | added 09-18 | **2026-09-22 PASS** |
+| DXA-07 | stale pane body text holds AA on light (every text node, real stale state) | min 3.03:1 FAIL (E-1 negative, 2026-09-21) | **min 5.10:1, n=91 PASS** (`e1-stale-aa-pass`) |
 | DXA-08 | no raw enums / "None" / upper-case rasi names | `ARDHASHTAMA_SANI`; `MITHUNAM`, `DHANUSU`, … | **none (None×0) PASS** |
 | DXA-08 | no rasi name read off the response (source ratchet) | 9 surfaces (added 09-18) | **PASS** (2026-09-21 source test) |
 | DXA-09 | no accent stripes | Family: 1 | **0 PASS** |
