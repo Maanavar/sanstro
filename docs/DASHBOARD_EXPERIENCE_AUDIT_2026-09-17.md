@@ -1419,21 +1419,39 @@ New tokens (CSS in `dashboard-nova.css` beside `--dur-*`; JS twins in
 | Tab switch (cold) | chunk not ready | tab-shaped skeleton → content crossfade | 160 ms | instant swap |
 | Nav indicator | nav click | `layoutId` glide | 240 ms, ease-nova | none (MotionConfig) |
 | Segmented thumb | sub-view change | `layoutId` glide | 220 ms, ease-nova | none |
-| Sub-view / tool swap | segmented, tool open | crossfade + y 4→0 | 180 ms in / 120 ms out | instant |
-| Hover (card) | pointer enter, `hover: hover` | y −2, `--elev-1`→`--elev-2`, border → strong | 180 ms | colour/shadow only |
-| Press (card) | pointer down | scale 0.985 | 90 ms; release 180 ms | none |
-| Press (button) | pointer down | scale 0.97 | 90 ms | none |
-| Popover | open / close | opacity + y −4 + scale 0.98, origin = trigger | 160 in / 120 out | opacity 80 ms |
-| Modal | open / close | backdrop 160 ms; panel y 8 + scale 0.98 | 240 in / 160 out | opacity only |
-| Drawer / sheet | open / close | x 24→0 (sheet: y 24→0) + opacity | 240 in / 180 out | opacity only |
-| Disclosure | toggle | grid-rows 0fr→1fr + opacity; chevron 180° | 240 / 180 ms | instant |
+| Sub-view / tool swap | segmented, tool open | crossfade + y 4→0 | 180 ms in / 120 ms out — **confirmed in code 2026-09-21** (`ViewSwap`: `0.18` in, `DUR.fast` exit); the one asymmetric pair left under OD-2 path B, kept pending an owner call | instant |
+| Hover (card) | pointer enter, `hover: hover` | y −2, `--elev-1`→`--elev-2`, border → strong | ~~180 ms~~ travel 120 ms (`--motion-toggle`), shadow/border 240 ms (`--motion-nav`), ease-nova | colour/shadow only |
+| Press (card) | pointer down | scale 0.985 | ~~90 ms; release 180 ms~~ 120 ms both ways (`--motion-toggle`, ease-nova) | none |
+| Press (button) | pointer down | scale 0.97 | ~~90 ms~~ 120 ms both ways (`--motion-toggle`, ease-nova) | none |
+| Popover | open / close | opacity + y −4 + scale 0.98, origin = trigger | ~~160 in / 120 out~~ 240 ms both ways (`Presence`, `DUR.base`, `EASE_NOVA`) | opacity 80 ms |
+| Modal | open / close | ~~backdrop 160 ms; panel y 8 + scale 0.98~~ overlay and panel together: opacity + y −4 + scale 0.98 (`ModalShell` → `Presence`) | ~~240 in / 160 out~~ 240 ms both ways (`DUR.base`) | opacity only |
+| Drawer / sheet | open / close | ~~x 24→0 (sheet: y 24→0) + opacity~~ opacity + y −4 + scale 0.98 (`DrawerPanel` → `Presence`) | ~~240 in / 180 out~~ 240 ms both ways (`DUR.base`) | opacity only |
+| Disclosure | toggle | grid-rows 0fr→1fr + opacity; chevron 180° | ~~240 / 180 ms~~ rows 240 ms (`--dur-base`), body opacity 120 ms (`--dur-fast`), same both ways; chevron 140 ms | instant |
 | Data arrival | fetch resolves | placeholder → content crossfade | 200 ms | instant |
 | Numbers | first reveal or change | count from previous value | 600–900 ms | final value |
-| Date change | picker, week dot | old day at 0.6 while loading; then x 10→0 + fade; glyph arc | 280 ms | instant |
+| Date change | picker, week dot | ~~old day at 0.6 while loading;~~ old day held at full text contrast while loading (borders, accent fill and icons dim — DXA-07 / E-1); then x 10→0 + fade; glyph arc | 280 ms | instant |
 | Score | first reveal | ring → number → verdict (+300 ms) → link (+450 ms) | 900 ms | static |
 | Toast | save, refresh | y 12→0 + fade; 4 s | 200 ms | fade |
 | Scroll reveal | section enters view | once per session, opacity + y 8, stagger 50 ms, ≤ 5 per group | 360 ms | none |
 | Ambient | idle | **Today hero only** (D3); opacity/transform; paused off-screen | 3–240 s | frozen |
+
+Struck durations above (E-5, 2026-09-21): OD-2 path B, 2026-09-21: one settle
+curve and one duration per direction pair. Each replacement value was read off
+the code (`web/lib/motion.ts`, `components/ui/presence.tsx`,
+`components/ui/view-swap.tsx`, `collapsible-section.tsx`, the `.ui-card` /
+`.ui-btn` / `.collapsible__body` rules), not off this table.
+
+**OD-4 ruling — hover/press treatment per kind of surface (owner-approved
+2026-09-21).** The card lift is for cards. W-6 had applied it to planet rows,
+disclosure headers and the select; the owner approved this taxonomy instead:
+
+| Kind | Rest → hover | Press | Reduced motion |
+|---|---|---|---|
+| Card / tile (whole surface navigates or opens) | lift −2 px, `--elev-1`→`--elev-2`, border → strong | scale 0.985 | shadow + border only |
+| Button (kit `.ui-btn--*`) | variant's own background/border shift; **no shadow on ghost** | scale 0.97 | unchanged (no travel involved) |
+| Text link / inline action | colour → `--color-accent-strong`, underline | none beyond colour; or opacity 0.8 | unchanged |
+| List row / disclosure header | background tint (`--color-surface-soft` or equivalent) — **no lift, no shadow** | background one step deeper | unchanged |
+| Select trigger | border → strong | background tint | unchanged |
 
 **Budgets:**
 - Feedback starts within 100 ms.
