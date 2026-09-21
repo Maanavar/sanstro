@@ -334,6 +334,7 @@ export function DashboardPlanTabNova({
 
         <button
           type="button"
+          className="ui-card--interactive"
           onClick={onGoToChart}
           style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", background: "var(--color-surface)", color: "var(--color-muted)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)", fontSize: "var(--text-sm)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
         >
@@ -407,6 +408,7 @@ export function DashboardPlanTabNova({
                   />
                   <button
                     type="button"
+                    className="ui-btn"
                     onClick={() => onAddGoal(addingGoalType || "job_change")}
                     disabled={goalsBusy}
                     style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", border: "none", borderRadius: "var(--radius-sm)", padding: "var(--space-3) var(--space-4)", cursor: goalsBusy ? "wait" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}

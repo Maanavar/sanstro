@@ -145,6 +145,7 @@ export function NovaLifeEventLogCard({ lang, chartId }: { lang: Lang; chartId: s
         </Kicker>
         <button
           type="button"
+          className="ui-btn"
           onClick={() => setShowForm((v) => !v)}
           style={{
             fontSize: "var(--text-sm)", fontWeight: 700, color: showForm ? "var(--color-on-accent)" : "var(--color-accent-strong)",
