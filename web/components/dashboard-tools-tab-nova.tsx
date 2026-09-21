@@ -350,7 +350,7 @@ export function DashboardToolsTabNova({
           showed through it — five stars on this surface alone. The same shape
           was repeated on five other Nova card surfaces; all six now paint the
           wash over `--color-surface`. */}
-      <button type="button" onClick={() => onOpenTool("porutham")} style={{
+      <button type="button" className="ui-card--interactive" onClick={() => onOpenTool("porutham")} style={{
         backgroundColor: "var(--color-surface)", backgroundImage: "linear-gradient(120deg, var(--color-accent-muted), transparent)",
         border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-lg)", padding: "var(--space-6) var(--space-7)",
         display: "flex", gap: "var(--space-6)", alignItems: "center", flexWrap: "wrap", cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%",
@@ -386,6 +386,7 @@ export function DashboardToolsTabNova({
           <button
             key={tool.id}
             type="button"
+            className={tool.disabled ? undefined : "ui-card--interactive"}
             disabled={tool.disabled}
             onClick={() => {
               if (tool.kind === "cross-nav") { onGoToCalendar(); return; }
