@@ -327,6 +327,7 @@ export function DashboardTodayRibbonNova({
           {onGoToCalendar && (
             <button
               type="button"
+              className="ui-pill"
               onClick={onGoToCalendar}
               style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-pill)", cursor: "pointer", fontFamily: "inherit", padding: "var(--space-1_5) var(--space-3_5)", whiteSpace: "nowrap" }}
             >

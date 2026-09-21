@@ -129,6 +129,7 @@ export function GlanceHeader({
       {onLink && linkLabel && (
         <button
           type="button"
+          className="ui-btn"
           onClick={onLink}
           style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0, whiteSpace: "nowrap" }}
         >
@@ -807,6 +808,7 @@ function RemedyFocusCard({
           {isOwnerSelected && (
             <button
               type="button"
+              className="ui-btn"
               onClick={onSaveReminder}
               disabled={savingReminder}
               title={reminderMessage ?? undefined}
@@ -818,6 +820,7 @@ function RemedyFocusCard({
           {onGoToLifeAreas && (
             <button
               type="button"
+              className="ui-btn"
               onClick={onGoToLifeAreas}
               style={{ fontSize: "var(--text-sm)", fontWeight: 600, background: "transparent", color: "var(--color-accent-secondary)", border: "1px solid color-mix(in srgb, var(--color-accent-secondary) 35%, transparent)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-4)", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
             >
@@ -1071,7 +1074,9 @@ export function DashboardTodayComingUpNova({
   return (
     <button
       type="button"
+      className={onGoToCalendar ? "ui-card--interactive" : undefined}
       onClick={onGoToCalendar}
+      disabled={!onGoToCalendar}
       style={{
         display: "flex", alignItems: "flex-start", gap: "var(--space-2_5)", textAlign: "left", cursor: onGoToCalendar ? "pointer" : "default",
         width: "100%", minWidth: 0, boxSizing: "border-box",

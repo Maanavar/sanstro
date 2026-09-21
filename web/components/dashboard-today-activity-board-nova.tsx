@@ -593,6 +593,7 @@ export function DashboardTodayActivityBoardNova({
         <li style={{ flex: "0 0 158px", scrollSnapAlign: "start", display: "flex" }}>
           <button
             type="button"
+            className="ui-btn"
             onClick={onOpenAskVinaadi}
             style={{
               flex: 1,

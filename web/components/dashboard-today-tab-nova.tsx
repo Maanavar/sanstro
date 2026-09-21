@@ -950,6 +950,7 @@ export function DashboardTodayTabNova({
                     )}
                     <button
                       type="button"
+                      className="ui-btn"
                       onClick={() => void handleSaveReminder()}
                       disabled={savingReminder}
                       style={{ fontSize: "var(--text-sm)", fontWeight: 600, border: "1px solid var(--color-border-strong)", color: "var(--color-accent-strong)", background: "none", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3_5)", cursor: savingReminder ? "wait" : "pointer", fontFamily: "inherit" }}
@@ -1237,6 +1238,7 @@ export function DashboardTodayTabNova({
                         <div className="nova-hero-action__buttons">
                           <button
                             type="button"
+                            className="ui-btn"
                             onClick={() => void handleSaveReminder()}
                             disabled={savingReminder}
                             style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-base)", fontWeight: 700, background: "var(--color-accent)", color: "var(--color-on-accent)", border: "none", borderRadius: "var(--radius-sm)", padding: "var(--space-2_5) var(--space-4)", cursor: savingReminder ? "wait" : "pointer", fontFamily: "inherit" }}
@@ -1251,6 +1253,7 @@ export function DashboardTodayTabNova({
                           {onGoToJournal && (
                             <button
                               type="button"
+                              className="ui-btn"
                               onClick={onGoToJournal}
                               style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-base)", fontWeight: 600, border: "none", color: "var(--color-accent-strong)", background: "none", borderRadius: "var(--radius-sm)", padding: "var(--space-2_5) var(--space-3)", cursor: "pointer", fontFamily: "inherit" }}
                             >
@@ -1729,6 +1732,7 @@ export function DashboardTodayTabNova({
             {onGoToCharts && (
               <button
                 type="button"
+                className="ui-btn"
                 onClick={onGoToCharts}
                 style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "var(--space-1_5)", fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", border: "none", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3_5)", cursor: "pointer", fontFamily: "inherit" }}
               >
