@@ -1132,6 +1132,73 @@ export async function runAudit({ browser, base, out, phases = ALL_PHASES, prod =
       await lp.goto("/dashboard/today");
       await settle(lp, 1200);
       metrics.skeletonLight = await skeletonPalette(lp);
+      await lp.waitForFunction(() => {
+        const pane = document.querySelector(".nova-today-pane[data-day]");
+        return !!pane
+          && !document.querySelector(".nova-hero--pending")
+          && document.querySelectorAll("[data-pending-placeholder]").length === 0
+          && document.querySelectorAll(".skel").length === 0;
+      }, null, { timeout: 60000 });
+      metrics.lightStaleContrast = await lp.evaluate(async () => {
+        const pane = document.querySelector(".nova-today-pane");
+        if (!(pane instanceof HTMLElement)) return { error: "no Today pane" };
+        const staleOpacity = (() => {
+          for (const sheet of document.styleSheets) {
+            let rules;
+            try { rules = sheet.cssRules; } catch { continue; }
+            for (const rule of rules) {
+              if (rule.selectorText?.includes(".nova-today-pane[data-stale]") && rule.style?.opacity) return rule.style.opacity;
+            }
+          }
+          return "1";
+        })();
+        pane.style.setProperty("opacity", staleOpacity, "important");
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
+        const visible = (el) => {
+          const r = el.getBoundingClientRect();
+          return r.width > 40 && r.height > 10 && getComputedStyle(el).visibility !== "hidden";
+        };
+        const text = [...pane.querySelectorAll(".nova-hero-col-main > div > div[id]")]
+          .find((el) => visible(el) && (el.textContent || "").trim().length > 35);
+        if (!(text instanceof HTMLElement)) return { error: "no body text sample" };
+
+        const rgba = (value) => {
+          const nums = (value.match(/[\d.]+/g) || []).map(Number);
+          if (nums.length < 3) return null;
+          const unit = value.startsWith("color(srgb");
+          return { r: unit ? nums[0] * 255 : nums[0], g: unit ? nums[1] * 255 : nums[1], b: unit ? nums[2] * 255 : nums[2], a: nums[3] ?? 1 };
+        };
+        const over = (front, back, alpha = front.a) => ({
+          r: front.r * alpha + back.r * (1 - alpha),
+          g: front.g * alpha + back.g * (1 - alpha),
+          b: front.b * alpha + back.b * (1 - alpha),
+          a: 1,
+        });
+        const pageBg = rgba(getComputedStyle(document.body).backgroundColor) ?? { r: 255, g: 255, b: 255, a: 1 };
+        let surface = null;
+        for (let el = text; el && el !== document.documentElement; el = el.parentElement) {
+          const bg = rgba(getComputedStyle(el).backgroundColor);
+          if (bg && bg.a > 0.01) { surface = over(bg, pageBg); break; }
+        }
+        surface ??= pageBg;
+        const fg = rgba(getComputedStyle(text).color);
+        if (!fg) return { error: "unparseable text colour" };
+        let groupOpacity = 1;
+        for (let el = text; el && el !== document.documentElement; el = el.parentElement) groupOpacity *= Number(getComputedStyle(el).opacity) || 1;
+        const effectiveBg = over(surface, pageBg, groupOpacity);
+        const textPixel = over(fg, surface, fg.a);
+        const effectiveFg = over(textPixel, pageBg, groupOpacity);
+        const luminance = (c) => {
+          const channel = (n) => { const s = n / 255; return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; };
+          return 0.2126 * channel(c.r) + 0.7152 * channel(c.g) + 0.0722 * channel(c.b);
+        };
+        const l1 = luminance(effectiveFg);
+        const l2 = luminance(effectiveBg);
+        const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+        pane.style.removeProperty("opacity");
+        return { ratio: +ratio.toFixed(2), opacity: +groupOpacity.toFixed(2), sample: (text.textContent || "").trim().slice(0, 60) };
+      });
       await shot(run, lp, "light-today");
       for (const tab of [...TABS.slice(1).map((t) => t.slug), "journal", "settings"]) {
         await lp.goto(`/dashboard/${tab}`);
@@ -1234,6 +1301,10 @@ export function computeGates(m, { prod = false } = {}) {
 
   if (m.skeletonDark) add("DXA-01", "skeleton bar/card contrast, dark (1.05–1.6)", m.skeletonDark.contrast, m.skeletonDark.contrast >= 1.05 && m.skeletonDark.contrast <= 1.6);
   if (m.skeletonLight) add("DXA-01", "skeleton bar/card contrast, light (1.05–1.6)", m.skeletonLight.contrast, m.skeletonLight.contrast >= 1.05 && m.skeletonLight.contrast <= 1.6);
+  if (m.lightStaleContrast) {
+    const sc = m.lightStaleContrast;
+    add("DXA-07", "stale pane body text holds AA on light", sc.error ?? `${sc.ratio.toFixed(2)}:1`, !sc.error && sc.ratio >= 4.5);
+  }
   if (m.bareLoad) add("DXA-02", "bare /dashboard shows one destination", m.bareLoad.destinations.join(" → "), m.bareLoad.destinations.length === 1 && m.bareLoad.destinations[0] === "personal");
   if (m.todayLoad) {
     add("DXA-03", "no empty-state copy while loading (Today)", m.todayLoad.falseEmptyFrom === null ? "never" : `${m.todayLoad.falseEmptyFrom}–${m.todayLoad.falseEmptyUntil} ms`, m.todayLoad.falseEmptyFrom === null);

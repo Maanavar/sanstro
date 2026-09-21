@@ -4774,7 +4774,15 @@ button.ui-chip { cursor: pointer; }
   transition: opacity var(--dur-base, 240ms) var(--ease-nova, cubic-bezier(0.22, 1, 0.36, 1));
 }
 .nova-today-pane[data-stale] {
-  opacity: 0.6;
+  /* OD-3 / W-3: the held day still reads at full contrast. Dim only the
+     surrounding chrome so the stale state remains visible without washing
+     body copy below AA on the light theme. */
+  --color-border: color-mix(in srgb, var(--color-border) 62%, transparent);
+  --color-border-strong: color-mix(in srgb, var(--color-border-strong) 68%, transparent);
+  --color-accent-muted: color-mix(in srgb, var(--color-accent-muted) 72%, transparent);
+}
+.nova-today-pane[data-stale] .nova-hero-masthead {
+  opacity: 0.68;
 }
 
 /* 2. A progress hairline on the sub-bar's bottom edge. Absolutely positioned
