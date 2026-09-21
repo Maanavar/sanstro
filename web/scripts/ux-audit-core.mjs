@@ -417,7 +417,7 @@ async function census(page) {
   return page.evaluate(() => {
     const pane = window.__uxPane();
     const tally = (o, k) => { o[k] = (o[k] || 0) + 1; };
-    const radius = {}, fontSize = {}, easing = {}, shadowsOnCards = { none: 0, some: 0 };
+    const radius = {}, fontSize = {}, easing = {}, easingExamples = {}, shadowsOnCards = { none: 0, some: 0 };
     let elements = 0, inline = 0, tinyText = 0;
     for (const el of pane.querySelectorAll("*")) {
       const r = el.getBoundingClientRect();
@@ -434,7 +434,11 @@ async function census(page) {
       if (cs.transitionDuration !== "0s") {
         // First timing function; a plain split(",") would cut inside cubic-bezier(…).
         const first = cs.transitionTimingFunction.match(/^\s*(cubic-bezier\([^)]*\)|steps\([^)]*\)|linear\([^)]*\)|[a-z-]+)/);
-        tally(easing, first ? first[1] : cs.transitionTimingFunction);
+        const timing = first ? first[1] : cs.transitionTimingFunction;
+        tally(easing, timing);
+        if (!/^cubic-bezier\(0\.22, 1, 0\.36, 1\)$|^cubic-bezier\(0\.4, 0, 1, 1\)$/.test(timing)) {
+          (easingExamples[timing] ||= []).push({ tag: el.tagName.toLowerCase(), className: el.className, transition: cs.transition });
+        }
       }
       if (el.classList.contains("ui-card") || el.classList.contains("card")) shadowsOnCards[cs.boxShadow === "none" ? "none" : "some"]++;
     }
@@ -446,7 +450,7 @@ async function census(page) {
       elements, inlineStyled: inline, tinyText,
       fontSizes: sortObj(fontSize), distinctFontSizes: Object.keys(fontSize).length,
       radii: sortObj(radius), distinctRadii: Object.keys(radius).length,
-      easings: sortObj(easing), shadowsOnCards, sectionGaps,
+      easings: sortObj(easing), easingExamples, shadowsOnCards, sectionGaps,
       headings: [...pane.querySelectorAll("h1,h2")].filter((h) => h.getBoundingClientRect().height).map((h) => `${h.tagName} ${getComputedStyle(h).fontSize} ${h.textContent.trim().slice(0, 40)}`).slice(0, 20),
     };
   });
@@ -462,8 +466,6 @@ async function ambientLoops(page) {
       if (timing.iterations !== Infinity) continue;
       const target = a.effect && a.effect.target;
       if (!target || (target.closest && target.closest(".nova-hero"))) continue;
-      const r = target.getBoundingClientRect ? target.getBoundingClientRect() : null;
-      if (r && (r.bottom < 0 || r.top > innerHeight)) continue;
       const name = a.animationName || a.id || "waapi";
       if (allowed.test(name) || (target.classList && (target.classList.contains("skel") || target.classList.contains("ui-state__spinner")))) continue;
       const frames = a.effect.getKeyframes ? a.effect.getKeyframes() : [];
@@ -474,21 +476,39 @@ async function ambientLoops(page) {
   });
 }
 
-/** Real-pointer hover + press diffs on the visible pane's clickable surfaces (DXA-12). */
+/** Wait until a programmatic pane scroll has stopped before taking a pointer sample. */
+async function settleScroll(page) {
+  await page.evaluate(async () => {
+    let stable = 0;
+    let previous = window.scrollY;
+    while (stable < 3) {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      const current = window.scrollY;
+      stable = current === previous ? stable + 1 : 0;
+      previous = current;
+    }
+  });
+}
+
+/** Real-pointer hover + press diffs sampled across the entire visible pane (DXA-12). */
 async function hoverPress(page, max = 16) {
   const n = await page.evaluate(({ max }) => {
     document.querySelectorAll("[data-ux-h]").forEach((e) => e.removeAttribute("data-ux-h"));
     const pane = window.__uxPane();
-    let i = 0;
+    const candidates = [];
     for (const el of pane.querySelectorAll("button, a[href], [role='button'], [role='tab']")) {
-      if (i >= max) break;
       if (el.disabled || el.getAttribute("aria-disabled") === "true") continue;
       if (["true"].includes(el.getAttribute("aria-selected")) || ["true"].includes(el.getAttribute("aria-pressed")) || el.getAttribute("aria-current")) continue;
       const r = el.getBoundingClientRect();
-      if (r.width < 90 || r.height < 30 || r.top < 130 || r.bottom > innerHeight - 10) continue;
-      el.setAttribute("data-ux-h", String(i++));
+      if (r.width < 90 || r.height < 30) continue;
+      candidates.push(el);
     }
-    return i;
+    const sampleCount = Math.min(max, candidates.length);
+    for (let i = 0; i < sampleCount; i++) {
+      const index = sampleCount === 1 ? 0 : Math.round(i * (candidates.length - 1) / (sampleCount - 1));
+      candidates[index].setAttribute("data-ux-h", String(i));
+    }
+    return sampleCount;
   }, { max });
   const read = (i) => page.evaluate((i) => {
     const el = document.querySelector(`[data-ux-h="${i}"]`);
@@ -499,10 +519,13 @@ async function hoverPress(page, max = 16) {
   const keys = ["transform", "boxShadow", "border", "bg", "color", "filter"];
   const out = [];
   for (let i = 0; i < n; i++) {
+    const target = page.locator(`[data-ux-h="${i}"]`);
+    await target.evaluate((el) => el.scrollIntoView({ block: "center", inline: "nearest" }));
+    await settleScroll(page);
     await page.mouse.move(1, 1);
     await sleep(250);
     const a = await read(i);
-    const box = await page.locator(`[data-ux-h="${i}"]`).boundingBox().catch(() => null);
+    const box = await target.boundingBox().catch(() => null);
     if (!a || !box) continue;
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await sleep(350);
@@ -544,6 +567,72 @@ const EXIT_PROBE = (sel) => new Promise((res) => {
   };
   tick();
 });
+
+/**
+ * One crossfade per view switch (DXA-14). `ViewSwap` uses `mode="wait"`, so the
+ * outgoing view animates out before the incoming one animates in; either half
+ * proves the switch is not a hard cut. Samples for 500ms, which covers the
+ * 180ms in / 120ms out pair plus dev-server slack.
+ */
+const SWAP_PROBE = (before) => new Promise((res) => {
+  const t0 = performance.now();
+  let animated = false;
+  // A pane can hold several swaps (Life Areas has four Segmenteds), so the
+  // signature is every key in the pane, not one panel picked by position.
+  // Comparing the whole signature is what tells us the click actually drove a
+  // swap rather than some unrelated control.
+  const signature = () => [...window.__uxPane().querySelectorAll("[data-view-swap]")]
+    .map((p) => p.getAttribute("data-view-key")).join("|");
+  const tick = () => {
+    // The crossfade is on the swap element itself. Descendants are excluded
+    // deliberately: Life Areas reveals its groups on entry (DXA-18), so a
+    // `contains` test reported animated:true with the crossfade removed —
+    // caught by running this gate against the fix taken out.
+    const panels = [...window.__uxPane().querySelectorAll("[data-view-swap]")];
+    if (panels.some((p) => document.getAnimations().some((a) => {
+      const t = a.effect && a.effect.target;
+      return t === p;
+    }))) animated = true;
+    if (performance.now() - t0 > 500) {
+      const key = signature();
+      res({ animated, key, changed: key !== before });
+    } else requestAnimationFrame(tick);
+  };
+  tick();
+});
+
+/**
+ * Drive one Segmented-driven view switch on the current pane and watch for the
+ * crossfade. Returns `skipped` when the pane has no unselected segment to
+ * click — a pane that cannot switch is not a finding, but it must not read as
+ * a pass either (see the `measured` gate in computeGates).
+ */
+async function viewSwap(page, name, maxTries = 4) {
+  const result = { name };
+  try {
+    // Not every Segmented on a pane drives a ViewSwap — some filter in place.
+    // Try each unselected segment until one moves the key signature; only then
+    // is there a switch to judge. Re-tag each round, because the click
+    // re-renders the row and a previous attribute would be gone.
+    for (let i = 0; i < maxTries; i++) {
+      const prep = await page.evaluate((idx) => {
+        document.querySelectorAll("[data-ux-swap]").forEach((e) => e.removeAttribute("data-ux-swap"));
+        const pane = window.__uxPane();
+        const btns = [...pane.querySelectorAll('.ui-segmented__btn[aria-selected="false"]')];
+        if (!btns[idx]) return null;
+        btns[idx].setAttribute("data-ux-swap", "1");
+        return { before: [...pane.querySelectorAll("[data-view-swap]")].map((p) => p.getAttribute("data-view-key")).join("|") };
+      }, i);
+      if (!prep) break;
+      await page.locator('[data-ux-swap="1"]').click({ timeout: 8000 });
+      const seen = await page.evaluate(SWAP_PROBE, prep.before);
+      if (seen.changed) return { ...result, ...seen, from: prep.before, segment: i };
+    }
+    return { ...result, skipped: "no segment drove a view swap" };
+  } catch (e) {
+    return { ...result, error: e.message.split("\n")[0] };
+  }
+}
 
 /** Close whatever is open, whichever way works (the probe must not strand an overlay). */
 async function forceClose(page, selector, trigger) {
@@ -693,13 +782,37 @@ export async function runAudit({ browser, base, out, phases = ALL_PHASES, prod =
     page.on("console", (m) => { if (m.type() === "error") consoleErrors.push(m.text().slice(0, 240)); });
     page.on("pageerror", (e) => consoleErrors.push(`pageerror: ${e.message.slice(0, 240)}`));
 
-    log("warm-up (compiles every tab on a dev server)");
-    for (const tab of TABS) {
-      await page.goto(`/dashboard/${tab.slug}`);
+    // A full tab sweep matters when that phase is under test. Focused overlay
+    // and interaction runs only touch Today (and Calendar for the day drawer),
+    // so compiling every lazy tab first turns a small verification into a
+    // multi-minute unrelated wait on next dev.
+    const warmTabs = PHASES.has("tabs")
+      ? [...TABS.map((tab) => tab.slug), "settings"]
+      : PHASES.has("overlays")
+        ? [TABS[0].slug, "calendar"]
+        : [TABS[0].slug];
+    log(`warm-up (${warmTabs.join(", ")})`);
+    if (PHASES.has("tabs") || PHASES.has("hover") || PHASES.has("overlays")) {
+      // A direct lazy-tab URL gets a fresh dev CSP nonce, then its chunk can
+      // be refused. Warm the interactive paths by the same tab controls a
+      // reader uses, so a blank pane cannot be mistaken for a zero sample.
+      await page.goto("/dashboard");
       await settle(page, 300);
+      for (const slug of warmTabs) {
+        const tab = TABS.find((candidate) => candidate.slug === slug);
+        if (tab && tab.id !== "personal") await clickTab(page, tab);
+        if (slug === "settings") {
+          await page.locator(".cd-avatar").first().click({ timeout: 10_000 });
+          await page.locator(".cd-dropdown__btn", { hasText: "Settings" }).first().click({ timeout: 10_000 });
+        }
+        await settle(page, 300);
+      }
+    } else {
+      for (const slug of warmTabs) {
+        await page.goto(`/dashboard/${slug}`);
+        await settle(page, 300);
+      }
     }
-    await page.goto("/dashboard/settings");
-    await settle(page, 300);
 
     if (PHASES.has("load")) {
       log("load: one destination, false empties, layout stability");
@@ -774,6 +887,21 @@ export async function runAudit({ browser, base, out, phases = ALL_PHASES, prod =
         metrics.tabs[tab.id] = { switch: sw, sections, checks: await paneChecks(page), census: await census(page), loops: await ambientLoops(page) };
         save();
       }
+      // DXA-14: a Segmented-driven switch must crossfade, not hard-cut. Probed
+      // after the per-tab census above, so changing a sub-view cannot disturb
+      // the screenshots or the design-system counts already taken. Tabs are
+      // reached by clicking, not goto — a direct lazy-tab URL re-issues the dev
+      // CSP nonce and the pane renders blank (DXA-35).
+      metrics.viewSwaps = [];
+      for (const id of ["life-areas", "plan", "calendar"]) {
+        const tab = TABS.find((t) => t.id === id);
+        if (!tab) continue;
+        await clickTab(page, tab);
+        await settle(page, 800);
+        metrics.viewSwaps.push(await viewSwap(page, id));
+      }
+      save();
+
       for (const extra of ["journal", "settings"]) {
         await page.goto(`/dashboard/${extra}`);
         await settle(page, 900);
@@ -918,34 +1046,35 @@ export async function runAudit({ browser, base, out, phases = ALL_PHASES, prod =
     if (PHASES.has("hover")) {
       log("hover/press coverage");
       metrics.hover = {};
-      await page.goto("/dashboard/today");
+      await page.goto("/dashboard");
       await settle(page, 1000);
-      metrics.hover.todayHero = await hoverPress(page, 8);
-      await page.evaluate(() => {
-        const h = [...document.querySelectorAll("h2")].find((x) => /Quick Links/i.test(x.textContent));
-        if (h) window.scrollTo(0, h.getBoundingClientRect().top + scrollY - 140);
-      });
-      await sleep(600);
-      metrics.hover.todayQuickLinks = await hoverPress(page, 12);
-      for (const slug of ["tools", "family", "explore", "calendar"]) {
-        await page.goto(`/dashboard/${slug}`);
+      await clickTab(page, TABS[0]);
+      await settle(page, 900);
+      metrics.hover.today = await hoverPress(page, 16);
+      for (const tab of TABS.filter((tab) => tab.id !== "personal")) {
+        await clickTab(page, tab);
         await settle(page, 900);
-        metrics.hover[slug] = await hoverPress(page, 12);
+        metrics.hover[tab.slug] = await hoverPress(page, 16);
       }
       save();
     }
 
     if (PHASES.has("overlays")) {
       log("overlays: enter and exit");
-      await page.goto("/dashboard/today");
+      await page.goto("/dashboard");
       await settle(page, 1000);
+      await clickTab(page, TABS[0]);
+      await settle(page, 900);
       metrics.overlays = [];
-      const clickOpen = (sel) => () => page.locator(sel).first().click({ timeout: 8000 });
+      // Use a real pointer click: the overlay probe must preserve Playwright's
+      // actionability checks now that the trigger and dismiss layer share their
+      // retained lifetime. DXA-12 separately measures the visual feedback.
+      const clickOpen = (sel) => () => page.locator(sel).first().click({ timeout: 10_000 });
       metrics.overlays.push(await overlay(run, page, "more-menu", clickOpen("button.cd-tab--more"), ".cd-dropdown--nav", "button.cd-tab--more"));
       metrics.overlays.push(await overlay(run, page, "notifications", clickOpen(".cd-topbar__right .cd-icon-btn"), ".cd-alerts-popover", ".cd-topbar__right .cd-icon-btn"));
       metrics.overlays.push(await overlay(run, page, "account-menu", clickOpen(".cd-topbar .cd-avatar"), ".cd-dropdown:not(.cd-dropdown--nav)", ".cd-topbar .cd-avatar"));
       metrics.overlays.push(await overlay(run, page, "ask-vinaadi", clickOpen(".cd-ask-search"), '[role="dialog"]', null));
-      await page.goto("/dashboard/calendar");
+      await clickTab(page, TABS[1]);
       await settle(page, 800);
       const monthly = page.getByRole("tab", { name: /Monthly/ }).first();
       if (await monthly.isVisible().catch(() => false)) {
@@ -1157,10 +1286,23 @@ export function computeGates(m, { prod = false } = {}) {
     add("DXA-11", "reduced motion: nav indicator does not move", m.reducedMotion.indicatorTransforms.length, m.reducedMotion.indicatorTransforms.length <= 1);
     add("DXA-11", "reduced motion: pane appears without a fade", m.reducedMotion.paneOpacities.join(","), m.reducedMotion.paneOpacities.every((o) => o === "1"));
   }
+  if (m.viewSwaps) {
+    // A pane with no unselected segment tells us nothing, so it is reported
+    // rather than silently averaged away — the empty-pane lesson from DXA-12.
+    const usable = m.viewSwaps.filter((s) => !s.skipped && !s.error);
+    const blank = m.viewSwaps.filter((s) => s.skipped || s.error).map((s) => s.name);
+    add("DXA-14", "every view-swap pane was measurable", blank.length ? `not measured: ${blank.join(",")}` : `${usable.length} panes`, m.viewSwaps.length > 0 && blank.length === 0);
+    for (const s of usable) {
+      add("DXA-14", `view switch ${s.name}: crossfades`, `animated:${s.animated} key:${s.from}→${s.key}`, !!s.animated && !!s.changed);
+    }
+  }
   if (m.hover) {
     const all = Object.values(m.hover).flat();
+    const panes = Object.entries(m.hover);
+    const empty = panes.filter(([, surfaces]) => surfaces.length === 0).map(([pane]) => pane);
     const hov = all.filter((x) => x.hover.length).length;
     const prs = all.filter((x) => x.press.length).length;
+    add("DXA-12", "every hover pane yielded surfaces", empty.length ? `empty: ${empty.join(",")}` : "all panes measured", empty.length === 0);
     add("DXA-12", "hover feedback coverage ≥ 95%", `${hov}/${all.length}`, all.length > 0 && hov / all.length >= 0.95);
     add("DXA-12", "press feedback coverage = 100%", `${prs}/${all.length}`, all.length > 0 && prs === all.length);
   }

@@ -103,7 +103,7 @@ export function LifeModePicker({ lang, currentMode, blockedModes, onClose, onSel
                   borderColor: isCurrent ? "var(--color-accent, var(--panel-brand))" : "var(--color-border, #E4DAC6)",
                   background: saving === mode ? "var(--chart-d1-lagna-bg)" : isCurrent ? "var(--color-mid-bg, #F7E8DA)" : "var(--chart-cell-default)",
                   opacity: saving !== null && saving !== mode ? 0.5 : 1,
-                  transition: "all 0.12s ease", fontFamily: "inherit",
+                  transition: "all 0.12s var(--ease-nova)", fontFamily: "inherit",
                 }}
               >
                 <meta.Icon size={22} strokeWidth={1.5} aria-hidden="true" />

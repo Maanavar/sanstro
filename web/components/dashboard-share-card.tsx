@@ -347,7 +347,7 @@ export function ShareCardButton({ chartId, cardType, lang, date, label }: ShareC
           padding: "4px 11px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 600,
           border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.06)",
           color: "rgba(255,255,255,0.65)", cursor: loading ? "wait" : "pointer",
-          transition: "opacity 0.15s",
+          transition: "opacity var(--dur-fast) var(--ease-nova)",
           opacity: loading ? 0.6 : 1,
         }}
       >

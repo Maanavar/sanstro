@@ -29,6 +29,7 @@ import { Kicker } from "./ui/kicker";
 import { NovaPlanWhatIfPanel } from "./dashboard-plan-whatif-nova";
 import { NovaPlanDecisionsPanel } from "./dashboard-plan-decisions-nova";
 import { NovaSelect } from "./nova-select";
+import { ViewSwap } from "./ui/view-swap";
 
 /**
  * Nova Goals tab (nav id `"plan"`, labelled "Goals" in the top strip) —
@@ -351,6 +352,7 @@ export function DashboardPlanTabNova({
         options={PLAN_SUB_TABS.map(({ key, en, ta }) => ({ key, label: lang === "ta" ? ta : en }))}
       />
 
+      <ViewSwap viewKey={subTab}>
       {/* ===== Sub-tab: Goals ===== */}
       {subTab === "goals" && (
         <>
@@ -612,6 +614,7 @@ export function DashboardPlanTabNova({
         />
       )}
       {subTab === "decisions" && <NovaPlanDecisionsPanel lang={lang} chartId={chartId} mode={mode} />}
+      </ViewSwap>
     </div>
   );
 }

@@ -54,7 +54,7 @@
   background: transparent;
   color: var(--color-muted);
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s var(--ease-nova, ease-in-out), color 0.15s var(--ease-nova, ease-in-out);
 }
 
 .fbm-close:hover {
@@ -105,7 +105,7 @@
   color: var(--color-border-strong);
   padding: 2px;
   line-height: 1;
-  transition: color 0.12s ease, transform 0.12s ease;
+  transition: color 0.12s var(--ease-nova, ease-in-out), transform 0.12s var(--ease-nova, ease-in-out);
 }
 
 .fbm-star:hover {

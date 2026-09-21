@@ -257,7 +257,7 @@ export function DashboardTodayQuickLinksNova({
             <button
               key={link.id}
               type="button"
-              className="ui-card ui-card--pad-sm"
+              className="ui-card ui-card--pad-sm ui-card--interactive"
               onClick={link.onClick}
               disabled={disabled || !link.onClick}
               style={{

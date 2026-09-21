@@ -215,7 +215,7 @@ export function Surface({
           minHeight: "32px",
         }}
       >
-        <span aria-hidden="true" style={{ display: "inline-flex", transform: open ? "rotate(90deg)" : "none", transition: "transform 140ms ease", flex: "none" }}>
+        <span aria-hidden="true" style={{ display: "inline-flex", transform: open ? "rotate(90deg)" : "none", transition: "transform 140ms var(--ease-nova)", flex: "none" }}>
           <svg viewBox="0 0 20 20" style={{ width: "12px", height: "12px" }} aria-hidden="true">
             <path d="M7 4l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>

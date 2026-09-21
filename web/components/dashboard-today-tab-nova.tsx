@@ -43,7 +43,7 @@ import type {
   WeekAheadData,
 } from "@/lib/types";
 
-import { NovaClampedText, NovaScoreDial, StatusLive, type StatusMessage } from "./dashboard-ui-nova";
+import { NovaClampedText, NovaScoreDial, Reveal, StatusLive, type StatusMessage } from "./dashboard-ui-nova";
 import { festivalTags, limbNow } from "./dashboard-calendar-shared";
 import { bandPhrase, bandTone } from "@/lib/reasoning";
 import { MiniMoonGlyph } from "./celestial-glyph-nova";
@@ -840,12 +840,12 @@ export function DashboardTodayTabNova({
                   <span aria-hidden="true" style={{
                     display: "inline-block", width: "20px", height: "11px", borderRadius: "var(--radius-pill)",
                     background: eveningPreviewOn ? "var(--color-high)" : "color-mix(in srgb, var(--color-text-strong) 18%, transparent)",
-                    position: "relative", flex: "none", transition: "background 0.15s",
+                    position: "relative", flex: "none", transition: "background var(--dur-fast) var(--ease-nova)",
                   }}>
                     <span style={{
                       position: "absolute", top: "1.5px", left: eveningPreviewOn ? "10px" : "1.5px",
                       width: "8px", height: "8px", borderRadius: "var(--radius-pill)", background: "var(--color-on-accent)",
-                      transition: "left 0.15s",
+                      transition: "left var(--dur-fast) var(--ease-nova)",
                     }} />
                   </span>
                 </button>
@@ -1559,6 +1559,7 @@ export function DashboardTodayTabNova({
           that otherwise sit behind the "More" nav dropdown (Tools/Explore) or
           have no top-level nav entry at all (Journal). Placed right after the
           hero per the homepage redesign (2026-07-24). ===== */}
+      <Reveal>
       <DashboardTodayQuickLinksNova
         lang={lang}
         needsProfile={needsProfile}
@@ -1572,6 +1573,7 @@ export function DashboardTodayTabNova({
         onGoToExplore={onGoToExplore}
         onGoToAllTools={onGoToAllTools}
       />
+      </Reveal>
 
       {userMode === "BEGINNER" && personalDailyGuidance && (
         <FirstResultGuide lang={lang} action={personalDailyGuidance.actionSuggestion} />
@@ -1624,6 +1626,7 @@ export function DashboardTodayTabNova({
           two sections (a four-pill decision strip above an eleven-row board)
           that asked the same question of the same engine and repeated four of
           the same activities under different labels; they are now one. ===== */}
+      <Reveal>
       <DashboardTodayActivityBoardNova
         board={personalDailyGuidance?.activityBoard}
         lang={lang}
@@ -1636,9 +1639,11 @@ export function DashboardTodayTabNova({
         onOpenAskVinaadi={onOpenAskVinaadi}
         onGoToCalendar={onGoToCalendar}
       />
+      </Reveal>
 
       {/* ===== 3. Timeline spine: sunrise-to-sunrise, panchangam + horai +
           week-ahead dots merged in — the one place all day-timing lives. ===== */}
+      <Reveal>
       <DashboardTodayRibbonNova
         lang={lang}
         panchangam={panchangam}
@@ -1648,8 +1653,10 @@ export function DashboardTodayTabNova({
         timeZone={panchangamTimezone}
         onGoToCalendar={onGoToCalendar}
       />
+      </Reveal>
 
       {/* ===== 4. Life Areas + Dasa Chapter row (redesign 2026-07-18). ===== */}
+      <Reveal>
       <DashboardTodayLifeAreasDasaRowNova
         lang={lang}
         personalChartSummary={personalChartSummary}
@@ -1661,6 +1668,7 @@ export function DashboardTodayTabNova({
         onGoToChart={onGoToChart}
         onGoToLifeAreas={onGoToLifeAreas}
       />
+      </Reveal>
 
       {/* ===== 5. Family Today + Remedy For You row (redesign 2026-07-18,
           "Coming up" folded into Family Today's footer 2026-08-20) — the
@@ -1668,6 +1676,7 @@ export function DashboardTodayTabNova({
           family members get star tiles; Family Today pins "Coming up" to its
           bottom so a small/solo household doesn't leave the card looking
           empty next to the taller Remedy card. ===== */}
+      <Reveal>
       <DashboardTodayFamilyRemedyRowNova
         lang={lang}
         familyAggregate={familyAggregate}
@@ -1684,6 +1693,7 @@ export function DashboardTodayTabNova({
         personalSani={personalSani}
         onGoToCalendar={onGoToCalendar}
       />
+      </Reveal>
 
       {/* ===== 6. Deep-dive bridge — the single doorway to the chart engine.
           The full engine (planet table, chart explanation, vargas, shadbala,
@@ -1778,7 +1788,7 @@ export function DashboardTodayTabNova({
                   ))}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <DeepDiveOrbitGlyph size={168} />
+                  <DeepDiveOrbitGlyph size={168} className="nova-deepdive-glyph" />
                 </div>
               </div>
             );

@@ -143,7 +143,7 @@ export function NovaClampedText({
               size={14}
               strokeWidth={2.5}
               aria-hidden="true"
-              style={{ transform: "rotate(180deg)", transition: "transform 140ms ease" }}
+              style={{ transform: "rotate(180deg)", transition: "transform 140ms var(--ease-nova)" }}
             />
           ) : (
             <ArrowRight size={14} strokeWidth={2.5} aria-hidden="true" />
@@ -173,23 +173,30 @@ export function NovaReveal({ children, className, style, delay = 0 }: NovaReveal
   if (reduce) {
     return (
       <div className={className} style={style}>
-        {children}
-      </div>
-    );
+      {children}
+    </div>
+  );
   }
+  // JSDOM and a few embedded webviews do not implement IntersectionObserver.
+  // Treat that as immediately in view rather than failing to render content.
+  const canObserve = typeof IntersectionObserver !== "undefined";
   return (
     <motion.div
       className={className}
       style={style}
       initial={{ opacity: 0, y: 12 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.15 }}
+      animate={canObserve ? undefined : { opacity: 1, y: 0 }}
+      whileInView={canObserve ? { opacity: 1, y: 0 } : undefined}
+      viewport={canObserve ? { once: true, amount: 0.15 } : undefined}
       transition={{ duration: 0.42, ease: EASE_NOVA, delay }}
     >
       {children}
     </motion.div>
   );
 }
+
+/** Preferred name for new dashboard reading choreography. */
+export const Reveal = NovaReveal;
 
 /**
  * Fades its children in on mount — the settle half of a skeleton→content
@@ -362,7 +369,7 @@ export function NovaProgressBar({ value, max = 100, tone = "accent" }: NovaProgr
           width: `${pct}%`,
           borderRadius: 3,
           background: TONE_VAR[tone],
-          transition: "width 200ms ease",
+          transition: "width 200ms var(--ease-nova)",
         }}
       />
     </div>

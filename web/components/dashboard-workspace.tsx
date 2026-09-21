@@ -49,6 +49,7 @@ import { DashboardHero } from "./dashboard-hero";
 import { DashboardFooterMorningGuidance } from "./dashboard-footer-morning-nova";
 import { LifeModePicker } from "./life-mode-picker";
 import { DashboardAskVinaadiWidget } from "./dashboard-ask-vinaadi-widget";
+import { ViewSwap } from "./ui/view-swap";
 
 const STORAGE_KEY = "jothidam-ai-dashboard-state";
 const ENABLE_QA_TAB = process.env.NODE_ENV !== "production";
@@ -1909,7 +1910,8 @@ export function DashboardWorkspace() {
             }));
 
             return (
-              <DashboardToolsTabNova
+              <ViewSwap viewKey={activeTool ?? "tools-hub"}>
+                <DashboardToolsTabNova
                 lang={lang}
                 activeTool={activeTool}
                 needsProfile={needsProfile}
@@ -1965,7 +1967,8 @@ export function DashboardWorkspace() {
                 onGoToPlan={() => goToTab("plan")}
                 onGoToCalendar={() => goToTab("calendar")}
                 onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
-              />
+                />
+              </ViewSwap>
             );
             })()}
           </TabPane>
@@ -2368,7 +2371,6 @@ export function DashboardWorkspace() {
     </MotionConfig>
   );
 }
-
 
 
 

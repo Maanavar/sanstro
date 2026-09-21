@@ -621,10 +621,8 @@ export function NovaPrasnaWidget({
     onClose();
   }
 
-  if (!open) return null;
-
   return (
-    <DrawerPanel title={t("prasna_title", lang)} onClose={handleClose}>
+    <DrawerPanel title={t("prasna_title", lang)} onClose={handleClose} open={open}>
       <div style={{ padding: "var(--space-4) var(--space-4) var(--space-8)", maxWidth: "480px" }}>
         <p style={{ fontSize: "var(--text-base)", color: "var(--color-muted)", marginBottom: "16px", lineHeight: 1.6 }}>
           {t("prasna_desc", lang)}

@@ -240,7 +240,7 @@
   align-items: center;
   justify-content: center;
   position: relative;
-  transition: background 150ms ease, border-color 150ms ease;
+  transition: background 150ms var(--ease-nova), border-color 150ms var(--ease-nova);
   flex-shrink: 0;
 }
 
@@ -282,7 +282,7 @@
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 150ms ease;
+  transition: background 150ms var(--ease-nova);
 }
 
 .cd-lang-btn:hover {
@@ -302,7 +302,7 @@
   align-items: center;
   justify-content: center;
   border: 2px solid var(--color-border-strong);
-  transition: transform 0.12s ease;
+  transition: transform 0.12s var(--ease-nova);
   flex-shrink: 0;
 }
 
@@ -320,7 +320,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: 6px;
-  box-shadow: 0 8px 32px var(--color-shadow-warm);
+  box-shadow: var(--elev-3, 0 8px 32px var(--color-shadow-warm));
 }
 
 .cd-dropdown {
@@ -412,7 +412,7 @@
 
 .cd-dropdown__icon {
   color: var(--color-faint);
-  transition: color 150ms ease;
+  transition: color 150ms var(--ease-nova);
 }
 
 .cd-dropdown__btn--nav:hover .cd-dropdown__icon {
@@ -453,7 +453,7 @@
 .cd-tab__chevron {
   flex: none;
   color: var(--color-faint);
-  transition: transform 180ms ease, color 150ms ease;
+  transition: transform 180ms var(--ease-nova), color 150ms var(--ease-nova);
 }
 
 .cd-tab--more:hover .cd-tab__chevron,
@@ -584,7 +584,7 @@
   white-space: nowrap;
   flex-shrink: 0;
   position: relative;
-  transition: color 150ms ease;
+  transition: color 150ms var(--ease-nova);
   /* A nav label is a control, not prose — double-clicking one to switch tabs
      should not leave its text selected underneath. */
   -webkit-user-select: none;
@@ -1042,7 +1042,7 @@
     overflow: hidden;
     padding: var(--space-2) 0;
     gap: 2px;
-    transition: width 200ms ease;
+    transition: width 200ms var(--ease-nova);
   }
 
   .cd-left-rail[data-expanded="true"] {
@@ -1072,10 +1072,10 @@
   background: transparent;
   color: var(--color-faint);
   cursor: pointer;
-  transition: background var(--duration-fast, 150ms) ease,
-              color var(--duration-fast, 150ms) ease,
-              width 200ms ease,
-              padding 200ms ease;
+  transition: background var(--duration-fast, 150ms) var(--ease-nova),
+              color var(--duration-fast, 150ms) var(--ease-nova),
+              width 200ms var(--ease-nova),
+              padding 200ms var(--ease-nova);
   flex-shrink: 0;
 }
 
@@ -1123,7 +1123,7 @@
   white-space: nowrap;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 100ms ease 60ms;
+  transition: opacity 100ms var(--ease-nova) 60ms;
   z-index: 200;
 }
 
@@ -1192,7 +1192,7 @@
   border-radius: 6px;
 }
 .setup-advanced__chev {
-  transition: transform 160ms ease;
+  transition: transform 160ms var(--ease-nova);
   flex-shrink: 0;
 }
 .setup-advanced[open] > summary .setup-advanced__chev { transform: rotate(90deg); }
@@ -1212,7 +1212,7 @@
   background: var(--color-border);
   margin: var(--space-2) auto;
   flex-shrink: 0;
-  transition: width 200ms ease;
+  transition: width 200ms var(--ease-nova);
 }
 
 .cd-left-rail[data-expanded="true"] .cd-rail-divider {
@@ -1321,7 +1321,7 @@
   letter-spacing: 0.02em;
   font-family: inherit;
   opacity: 0.85;
-  transition: opacity 120ms ease;
+  transition: opacity 120ms var(--ease-nova);
 }
 
 .cd-household-strip__link:hover {

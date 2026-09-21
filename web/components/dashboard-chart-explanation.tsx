@@ -774,7 +774,7 @@ function Chevron({ open }: { open: boolean }) {
         width: "14px",
         height: "14px",
         transform: open ? "rotate(180deg)" : "rotate(0deg)",
-        transition: "transform 140ms ease",
+        transition: "transform 140ms var(--ease-nova)",
       }}
     >
       <path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />

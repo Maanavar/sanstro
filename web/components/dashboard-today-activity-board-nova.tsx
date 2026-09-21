@@ -495,7 +495,7 @@ export function DashboardTodayActivityBoardNova({
                         lineHeight: 1,
                         cursor: disabled ? "default" : "pointer",
                         opacity: disabled ? 0.35 : 1,
-                        transition: "opacity 120ms ease",
+                        transition: "opacity 120ms var(--ease-nova)",
                         fontFamily: "inherit",
                       }}
                     >

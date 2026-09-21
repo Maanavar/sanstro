@@ -53,7 +53,7 @@ function StrengthBar({ planet, score, lang }: { planet: string; score: number; l
     <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
       <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", minWidth: "76px" }}>{label}</span>
       <div style={{ flex: 1, height: "5px", borderRadius: "var(--radius-sm)", background: "var(--color-border)" }}>
-        <div style={{ width: `${score}%`, height: "100%", borderRadius: "var(--radius-sm)", background: color, transition: "width 0.6s ease" }} />
+        <div style={{ width: `${score}%`, height: "100%", borderRadius: "var(--radius-sm)", background: color, transition: "width 0.6s var(--ease-nova)" }} />
       </div>
       <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color, minWidth: "30px", textAlign: "right" }}>{score}</span>
     </div>

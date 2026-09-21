@@ -42,6 +42,24 @@ const MUST_PASS: Record<string, string> = {
   // FAILs: it waits on DXA-24's glyph set. Only the two that landed ratchet.
   "DXA-09 no accent stripes": "tabs",
   "DXA-09 no Tamil text in English mode": "tabs",
+  // Re-ratcheted 2026-09-19 after the negative control the first two passes
+  // skipped: with the crossfade, the Presence transition and the Nova easing
+  // token each removed, every one of these went red
+  // (ux-audit-wave2-negative, ux-audit-dxa14-negative2), and green again with
+  // them restored (ux-audit-wave2-after). DXA-13 and DXA-41 held over five
+  // consecutive overlays runs.
+  "DXA-13 overlay more-menu: enter + exit animation": "overlays",
+  "DXA-13 overlay notifications: enter + exit animation": "overlays",
+  "DXA-13 overlay account-menu: enter + exit animation": "overlays",
+  "DXA-13 overlay ask-vinaadi: enter + exit animation": "overlays",
+  "DXA-13 overlay day-drawer: enter + exit animation": "overlays",
+  "DXA-14 every view-swap pane was measurable": "tabs",
+  "DXA-14 view switch life-areas: crossfades": "tabs",
+  "DXA-14 view switch plan: crossfades": "tabs",
+  "DXA-14 view switch calendar: crossfades": "tabs",
+  "DXA-16 transitions use the Nova easing tokens only": "tabs",
+  "DXA-17 no infinite animation outside the Today hero": "tabs",
+  "DXA-19 cards resolve an elevation shadow": "tabs",
   "DXA-10 no page-sky star inside a text line": "sky",
   "DXA-10 no page-sky star showing through a translucent surface": "sky",
   "DXA-37 Family shows exactly one reading": "tabs",

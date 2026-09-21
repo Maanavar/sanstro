@@ -52,6 +52,12 @@ export function ViewSwap({
     <AnimatePresence mode="wait" initial={false}>
       <motion.div
         key={viewKey}
+        // DXA-14's gate needs something to select. The crossfade is an inline
+        // transform framer writes, so there is no class to match on and no
+        // CSS animation name to look up; without this hook the item can only
+        // be judged by eye, which is how it stayed open through two passes.
+        data-view-swap=""
+        data-view-key={viewKey}
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -4, transition: { duration: DUR.fast, ease: EASE_NOVA } }}

@@ -155,7 +155,7 @@ export function NovaSelect({
         style={triggerStyle}
       >
         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{triggerLabel}</span>
-        <svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true" style={{ flexShrink: 0, color: "var(--color-muted)", transform: open ? "rotate(180deg)" : "none", transition: "transform 120ms ease" }}>
+        <svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true" style={{ flexShrink: 0, color: "var(--color-muted)", transform: open ? "rotate(180deg)" : "none", transition: "transform 120ms var(--ease-nova)" }}>
           <path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>

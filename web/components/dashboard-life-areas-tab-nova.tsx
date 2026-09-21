@@ -26,6 +26,7 @@ import type {
 } from "@/lib/types";
 
 import { LifeAreaCard } from "./life-area-card";
+import { Reveal } from "./dashboard-ui-nova";
 import { DrawerPanel } from "./drawer-panel";
 import { displayName as yogaDisplayName } from "./dashboard-yoga-dosham-panel";
 import { NovaPredictionsPanel } from "./dashboard-life-areas-predictions-nova";
@@ -38,6 +39,7 @@ import { GOAL_OPTIONS } from "./dashboard-plan-shared";
 import { NovaGocharCard, NovaGuidanceCard } from "./dashboard-today-deepdive-extras-nova";
 import { Segmented, Card, Button, Pill, BilingualText } from "./ui";
 import { Kicker } from "./ui/kicker";
+import { ViewSwap } from "./ui/view-swap";
 
 /**
  * Nova Life Areas tab — Phase 9 of the dashboard revamp, mapped from the
@@ -289,6 +291,7 @@ export function DashboardLifeAreasTabNova({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusSubTab]);
   const [selectedArea, setSelectedArea] = useState<LifeAreaData | null>(null);
+  const [renderedArea, setRenderedArea] = useState<LifeAreaData | null>(null);
   const astroText = (value: string) => (lang === "en" ? tamilizeAstroEnglish(value) : value);
   const currentAge = chartSummary?.currentAge ?? null;
   const isMarried = maritalStatus === "married" || maritalStatus === "widowed" || maritalStatus === "divorced";
@@ -389,6 +392,7 @@ export function DashboardLifeAreasTabNova({
         </div>
       </div>
 
+      <ViewSwap viewKey={subTab}>
       {/* ===== Sub-tab: Overview ===== */}
       {subTab === "scores" && (
         <>
@@ -458,7 +462,8 @@ export function DashboardLifeAreasTabNova({
             )}
 
             {tiers.map((tier) => (
-              <section key={tier.key} style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+              <Reveal key={tier.key}>
+              <section style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                 <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-3)", flexWrap: "wrap" }}>
                   {/* audit B-1: tier name is a real section heading, not a styled
                       div — screen readers get a document outline on this page. */}
@@ -467,10 +472,11 @@ export function DashboardLifeAreasTabNova({
                 </div>
                 <div className="nova-grid-4">
                   {tier.areas.map((area) => (
-                    <LifeAreaCard key={area.area} area={area} lang={lang} ageRelevant={area.ageRelevant !== false} onOpenDetail={() => setSelectedArea(area)} />
+                    <LifeAreaCard key={area.area} area={area} lang={lang} ageRelevant={area.ageRelevant !== false} onOpenDetail={() => { setRenderedArea(area); setSelectedArea(area); }} />
                   ))}
                 </div>
               </section>
+              </Reveal>
             ))}
 
             <Card variant="dashed" style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
@@ -490,9 +496,14 @@ export function DashboardLifeAreasTabNova({
               </Button>
             </Card>
 
-            {selectedArea && (
-              <DrawerPanel title={lang === "ta" ? selectedArea.label.ta : selectedArea.label.en} onClose={() => setSelectedArea(null)}>
-                <LifeAreaCard area={selectedArea} lang={lang} ageRelevant={selectedArea.ageRelevant !== false} />
+            {renderedArea && (
+              <DrawerPanel
+                title={lang === "ta" ? renderedArea.label.ta : renderedArea.label.en}
+                open={Boolean(selectedArea)}
+                onClose={() => setSelectedArea(null)}
+                onExitComplete={() => setRenderedArea(null)}
+              >
+                <LifeAreaCard area={renderedArea} lang={lang} ageRelevant={renderedArea.ageRelevant !== false} />
               </DrawerPanel>
             )}
           </>
@@ -555,6 +566,7 @@ export function DashboardLifeAreasTabNova({
       {subTab === "report" && (
         <NovaJadhagamReportPanel lang={lang} report={jadhagamReport} loading={jadhagamReportLoading} onLoad={onLoadJadhagamReport} />
       )}
+      </ViewSwap>
     </div>
   );
 }

@@ -64,7 +64,7 @@ function QuotaBar({ used, limit, lang }: { used: number; limit: number; lang: La
         <span>{lang === "ta" ? `இன்று ${used} / ${limit} கேள்விகள் பயன்படுத்தப்பட்டன` : `${used} of ${limit} questions used today`}</span>
       </div>
       <div style={{ height: "4px", borderRadius: "2px", background: "var(--veil-white-10)", overflow: "hidden" }}>
-        <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: "2px", transition: "width 0.3s ease" }} />
+        <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: "2px", transition: "width 0.3s var(--ease-nova)" }} />
       </div>
     </div>
   );

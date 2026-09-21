@@ -30,6 +30,7 @@ import type {
 } from "@/lib/types";
 import type { Tab } from "@/lib/dashboard-tabs";
 import type { StatusMessage } from "./dashboard-ui-nova";
+import { Presence } from "./ui/presence";
 
 type LabelKey = Parameters<typeof t>[0];
 
@@ -200,6 +201,7 @@ export function DashboardHero(props: DashboardHeroProps) {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const activeTabRef = useRef<HTMLButtonElement>(null);
   const inboxTriggerRef = useRef<HTMLButtonElement>(null);
+  const inboxPopoverRef = useRef<HTMLDivElement>(null);
   const accountTriggerRef = useRef<HTMLButtonElement>(null);
 
   // ⌘K / Ctrl+K opens Ask Vinaadi from anywhere on the dashboard. The kbd
@@ -242,10 +244,10 @@ export function DashboardHero(props: DashboardHeroProps) {
   const moreTriggerRef = useRef<HTMLButtonElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
-  const closeMoreMenu = (returnFocus = true) => {
+  const closeMoreMenu = useCallback((returnFocus = true) => {
     setShowMoreMenu(false);
     if (returnFocus) moreTriggerRef.current?.focus();
-  };
+  }, []);
 
   const closeInbox = useCallback((returnFocus = true) => {
     setShowInbox(false);
@@ -257,28 +259,31 @@ export function DashboardHero(props: DashboardHeroProps) {
     if (returnFocus) accountTriggerRef.current?.focus();
   }, [onUserMenuClose]);
 
+  // The inbox can be opened while its trigger retains focus. Keep Escape
+  // available at the document boundary in that state; pointer dismissal is
+  // deliberately owned by the retained page layer below.
   useEffect(() => {
     if (!showInbox) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        closeInbox();
-      }
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      closeInbox();
     };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
   }, [showInbox, closeInbox]);
 
+  // An avatar click can open this menu without shifting focus from the page.
+  // Keep Escape available at the document boundary in that measured state.
   useEffect(() => {
     if (!showUserMenu) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        closeUserMenu();
-      }
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      closeUserMenu();
     };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
   }, [showUserMenu, closeUserMenu]);
 
   // Focus moves into the menu on open, landing on the current destination
@@ -327,6 +332,20 @@ export function DashboardHero(props: DashboardHeroProps) {
     } else if (event.key === "End") {
       event.preventDefault();
       list[list.length - 1].focus();
+    }
+  };
+
+  const onInboxKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeInbox();
+    }
+  };
+
+  const onAccountKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeUserMenu();
     }
   };
 
@@ -467,19 +486,15 @@ export function DashboardHero(props: DashboardHeroProps) {
                   />
                 )}
               </button>
-              {showMoreMenu && (
-                <>
-                  <PageDismissOverlay onDismiss={() => closeMoreMenu(false)} />
-                  <motion.div
-                    ref={moreMenuRef}
-                    className="cd-dropdown cd-dropdown--nav"
-                    role="menu"
-                    aria-label={t("tab_more", lang)}
-                    initial={prefersReducedMotion() ? false : { opacity: 0, y: -6, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ duration: DUR.fast, ease: EASE_NOVA }}
-                    style={{ transformOrigin: "top right" }}
-                  >
+              <Presence
+                  open={showMoreMenu}
+                  ref={moreMenuRef}
+                  className="cd-dropdown cd-dropdown--nav"
+                  role="menu"
+                  aria-label={t("tab_more", lang)}
+                  style={{ transformOrigin: "top right" }}
+                >
+                    <PageDismissOverlay onDismiss={() => closeMoreMenu(false)} />
                     {moreTabs.map((tab) => {
                       const Glyph = tab.icon;
                       const isCurrent = activeTab === tab.id;
@@ -514,9 +529,7 @@ export function DashboardHero(props: DashboardHeroProps) {
                         </button>
                       );
                     })}
-                  </motion.div>
-                </>
-              )}
+                </Presence>
             </div>
           </nav>
 
@@ -540,7 +553,7 @@ export function DashboardHero(props: DashboardHeroProps) {
               </button>
             )}
 
-            <div className="cd-popover-anchor">
+            <div className="cd-popover-anchor" onKeyDown={onInboxKeyDown}>
               <button
                 type="button"
                 ref={inboxTriggerRef}
@@ -553,10 +566,8 @@ export function DashboardHero(props: DashboardHeroProps) {
                   <span className="cd-badge">{(alertCount + inboxUnreadCount) > 9 ? "9+" : alertCount + inboxUnreadCount}</span>
                 )}
               </button>
-              {showInbox && (
-                <>
-                  <PageDismissOverlay onDismiss={() => closeInbox(false)} />
-                  <div className="cd-alerts-popover">
+              <Presence open={showInbox} ref={inboxPopoverRef} className="cd-alerts-popover" style={{ transformOrigin: "top right" }}>
+                    <PageDismissOverlay onDismiss={() => closeInbox(false)} />
                     {/* Ambient (astro) alerts */}
                     {alertItems.length > 0 && (
                       <>
@@ -635,9 +646,7 @@ export function DashboardHero(props: DashboardHeroProps) {
                         {lang === "ta" ? "முழு அறிவிப்பு பெட்டி" : "Open full inbox"}
                       </Link>
                     </div>
-                  </div>
-                </>
-              )}
+                </Presence>
             </div>
 
             <button
@@ -650,7 +659,7 @@ export function DashboardHero(props: DashboardHeroProps) {
               {lang === "ta" ? "EN" : "த"}
             </button>
 
-            <div className="cd-popover-anchor">
+            <div className="cd-popover-anchor" onKeyDown={onAccountKeyDown}>
               <button
                 type="button"
                 ref={accountTriggerRef}
@@ -661,10 +670,8 @@ export function DashboardHero(props: DashboardHeroProps) {
               >
                 {userEmail ? userEmail[0].toUpperCase() : "U"}
               </button>
-              {showUserMenu && (
-                <>
-                  <PageDismissOverlay onDismiss={() => closeUserMenu(false)} />
-                  <div className="cd-dropdown">
+              <Presence open={showUserMenu} className="cd-dropdown" style={{ transformOrigin: "top right" }}>
+                    <PageDismissOverlay onDismiss={() => closeUserMenu(false)} />
                     <div className="cd-dropdown__head">
                       <p className="cd-dropdown__email-label">Signed in as</p>
                       <p className="cd-dropdown__email">{userEmail ?? "—"}</p>
@@ -678,9 +685,7 @@ export function DashboardHero(props: DashboardHeroProps) {
                       <SignOutIcon />
                       <span>Sign out</span>
                     </button>
-                  </div>
-                </>
-              )}
+                </Presence>
             </div>
           </div>
         </div>

@@ -42,6 +42,8 @@ import type {
 import type { MemberChart } from "@/hooks/useFamilyData";
 import { useApiQuery } from "@/hooks/useApiQuery";
 
+import { Pressable } from "./ui/pressable";
+
 import { formatChandrashtamaWindowSummary, formatHeaderDate, formatOwnChandrashtamaWindow, resolveTamilDate } from "./dashboard-calendar-shared";
 import {
   ScoreRing,
@@ -449,7 +451,7 @@ function HyMemberSelectorCard({
     : "";
 
   return (
-    <button
+    <Pressable
       type="button"
       onClick={onOpen}
       style={{
@@ -510,7 +512,7 @@ function HyMemberSelectorCard({
           {isActive ? (lang === "ta" ? "✓ படிக்கிறது" : "✓ Reading") : <>{lang === "ta" ? "படி" : "Read"}<ArrowRight size={12} strokeWidth={1.5} aria-hidden="true" /></>}
         </span>
       </div>
-    </button>
+    </Pressable>
   );
 }
 
@@ -519,8 +521,7 @@ function HyActionButton({ onClick, disabled, active, primary, children }: {
   onClick?: () => void; disabled?: boolean; active?: boolean; primary?: boolean; children: React.ReactNode;
 }) {
   return (
-    <button
-      type="button"
+    <Pressable
       onClick={onClick}
       disabled={disabled}
       style={{
@@ -534,7 +535,7 @@ function HyActionButton({ onClick, disabled, active, primary, children }: {
       }}
     >
       {children}
-    </button>
+    </Pressable>
   );
 }
 

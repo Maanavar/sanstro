@@ -266,7 +266,7 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeArea
             fontWeight: 600,
             cursor: "pointer",
             fontFamily: "inherit",
-            transition: "border-color 120ms ease, color 120ms ease",
+            transition: "border-color 120ms var(--ease-nova), color 120ms var(--ease-nova)",
           }}
         >
           {lang === "ta" ? "விவரம்" : "Details"}

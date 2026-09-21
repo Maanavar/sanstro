@@ -131,7 +131,7 @@ function Segmented<T extends string>({ value, options, onChange }: {
             style={{
               padding: "var(--space-2) var(--space-4)", borderRadius: "var(--radius-sm)", fontSize: "var(--text-sm)", fontWeight: on ? 700 : 500,
               color: on ? "var(--color-on-accent)" : "var(--color-muted)", background: on ? "var(--color-accent)" : "transparent",
-              cursor: "pointer", border: "none", fontFamily: "inherit", transition: "background .15s, color .15s", whiteSpace: "nowrap",
+              cursor: "pointer", border: "none", fontFamily: "inherit", transition: "background var(--dur-fast) var(--ease-nova), color var(--dur-fast) var(--ease-nova)", whiteSpace: "nowrap",
             }}
           >
             {o.label}
@@ -152,7 +152,7 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
         background: active ? "var(--color-accent-muted)" : "var(--color-hover-bg)",
         border: `1px solid ${active ? "var(--color-accent)" : "var(--color-border)"}`,
         color: active ? "var(--color-text-strong)" : "var(--color-muted)",
-        cursor: "pointer", fontFamily: "inherit", transition: "background .15s, border-color .15s",
+        cursor: "pointer", fontFamily: "inherit", transition: "background var(--dur-fast) var(--ease-nova), border-color var(--dur-fast) var(--ease-nova)",
       }}
     >
       {children}
@@ -169,7 +169,7 @@ function PrimaryBtn({ onClick, disabled, children }: { onClick: () => void; disa
       style={{
         alignSelf: "flex-start", background: "var(--color-accent)", color: "var(--color-on-accent)", fontWeight: 700, borderRadius: "var(--radius-md)",
         padding: "var(--space-3) var(--space-6)", fontSize: "var(--text-base)", cursor: disabled ? "not-allowed" : "pointer", border: "none",
-        opacity: disabled ? 0.5 : 1, fontFamily: "inherit", whiteSpace: "nowrap", transition: "opacity .15s",
+        opacity: disabled ? 0.5 : 1, fontFamily: "inherit", whiteSpace: "nowrap", transition: "opacity var(--dur-fast) var(--ease-nova)",
       }}
     >
       {children}
@@ -189,7 +189,7 @@ function GhostBtn({ onClick, disabled, children, danger }: { onClick: () => void
         border: `1px solid ${danger ? "var(--color-low-border)" : "var(--color-border)"}`,
         color: danger ? "var(--color-low)" : "var(--color-text-accent)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-4)", fontSize: "var(--text-sm)",
         fontWeight: 600, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.5 : 1,
-        fontFamily: "inherit", whiteSpace: "nowrap", transition: "opacity .15s",
+        fontFamily: "inherit", whiteSpace: "nowrap", transition: "opacity var(--dur-fast) var(--ease-nova)",
       }}
     >
       {children}
@@ -506,7 +506,7 @@ export function DashboardSettingsSessionTab({
     { label: lang === "ta" ? "குடும்ப ID" : "Family ID", value: selectedVaultId },
   ].filter((f) => f.value);
 
-  const panelWrap: React.CSSProperties = { display: "flex", flexDirection: "column", gap: "var(--space-5)", animation: "vfade .3s ease" };
+  const panelWrap: React.CSSProperties = { display: "flex", flexDirection: "column", gap: "var(--space-5)", animation: "vfade .3s var(--ease-nova)" };
 
   /* ── Panels ── */
   const renderAccount = () => (

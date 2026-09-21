@@ -7,6 +7,13 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { DashboardHero } from "./dashboard-hero";
 
+// AnimatePresence retains an exiting node, while jsdom never advances that
+// exit. The browser audit proves the actual animation; RTL needs immediate
+// unmounting to assert the established dismissal contract.
+vi.mock("./ui/presence", () => ({
+  Presence: ({ open, children, ...props }: any) => open ? <div {...props}>{children}</div> : null,
+}));
+
 // jsdom doesn't implement scrollIntoView; the active-tab-into-view effect
 // calls it on mount regardless of what this test cares about.
 beforeAll(() => {
@@ -191,7 +198,9 @@ describe("DashboardHero top-bar menu dismissal (DXA-41)", () => {
     fireEvent.click(trigger);
     expect(screen.getByText("No notifications yet.")).toBeInTheDocument();
 
-    fireEvent.keyDown(window, { key: "Escape" });
+    // Keyboard events from the focused trigger bubble through document in a
+    // browser; dispatch there rather than at the window-only test target.
+    fireEvent.keyDown(document, { key: "Escape" });
 
     expect(screen.queryByText("No notifications yet.")).not.toBeInTheDocument();
     expect(document.activeElement).toBe(trigger);

@@ -29,6 +29,7 @@ import { Card, Kicker } from "./ui";
 import { GlossaryTerm } from "./glossary-term";
 import { dt, PLANET_ROW_DETAILS, PLANET_STATUS_MARKS } from "@/lib/dashboard-i18n";
 import type { PlanetStatusMarkKey } from "@/lib/dashboard-i18n";
+import { Reveal } from "./dashboard-ui-nova";
 
 /**
  * Net-new graphical leaf components for the Family & Charts "Hybrid v2"
@@ -85,7 +86,8 @@ export function HySection({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} ref={scrollRef} style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", scrollMarginTop: "72px" }}>
+    <Reveal>
+      <section id={id} ref={scrollRef} style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", scrollMarginTop: "72px" }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-3)", flexWrap: "wrap" }}>
         {/* audit B-1: every HySection-wrapped section gets a real <h2>, giving
             the Family & Charts long-scroll a proper document outline. */}
@@ -94,7 +96,8 @@ export function HySection({
         {meta && <><span style={{ flex: 1 }} />{meta}</>}
       </div>
       {children}
-    </section>
+      </section>
+    </Reveal>
   );
 }
 

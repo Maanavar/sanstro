@@ -59,7 +59,7 @@ function RailButton({
     borderRadius: "var(--radius-md)",
     fontSize: "var(--text-base)",
     cursor: "pointer",
-    transition: "background .15s, color .15s, border-color .15s",
+    transition: "background var(--dur-fast) var(--ease-nova), color var(--dur-fast) var(--ease-nova), border-color var(--dur-fast) var(--ease-nova)",
     // Longhand (not the `border` shorthand) so the active branch can toggle
     // borderColor between renders without React warning about mixing
     // shorthand + non-shorthand for the same property.

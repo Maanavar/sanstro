@@ -19,8 +19,10 @@ import { DashboardExploreDoshamNova, DashboardExploreDoshamListNova } from "./da
 import { DashboardExploreYogamNova, DashboardExploreYogamListNova } from "./dashboard-explore-yogam-nova";
 import { DashboardExploreGuideNova, DashboardExploreGuideListNova } from "./dashboard-explore-guide-nova";
 import { DashboardExploreLearnNova } from "./dashboard-explore-learn-nova";
+import { Reveal } from "./dashboard-ui-nova";
 import { GlossaryTerm } from "./glossary-term";
 import { GLOSSARY, GLOSSARY_LABELS, type GlossaryKey } from "@/lib/glossary";
+import { ViewSwap } from "./ui/view-swap";
 
 /**
  * Nova "Explore" tab — Phase 6 of the dashboard revamp (see
@@ -311,15 +313,18 @@ export function DashboardExploreTabNova({
   if (subview?.kind === "nakshatram" && nakshatraCard) {
     if (subview.screen === "list") {
       return (
+        <ViewSwap viewKey="nakshatram-list">
         <DashboardExploreNakshatramListNova
           lang={lang}
           ownNumber={nakshatraCard.number}
           onSelect={(number) => setSubview({ kind: "nakshatram", screen: "detail", number })}
           onBack={() => setSubview(null)}
         />
+        </ViewSwap>
       );
     }
     return (
+      <ViewSwap viewKey="nakshatram-detail">
       <DashboardExploreNakshatramNova
         lang={lang}
         initialNumber={subview.number}
@@ -330,21 +335,25 @@ export function DashboardExploreTabNova({
         onBack={() => setSubview({ kind: "nakshatram", screen: "list" })}
         onOpenAskVinaadi={onOpenAskVinaadi}
       />
+      </ViewSwap>
     );
   }
 
   if (subview?.kind === "dosham" && doshams.length > 0) {
     if (subview.screen === "list") {
       return (
+        <ViewSwap viewKey="dosham-list">
         <DashboardExploreDoshamListNova
           lang={lang}
           doshams={doshams}
           onSelect={(index) => setSubview({ kind: "dosham", screen: "detail", index })}
           onBack={() => setSubview(null)}
         />
+        </ViewSwap>
       );
     }
     return (
+      <ViewSwap viewKey="dosham-detail">
       <DashboardExploreDoshamNova
         lang={lang}
         doshams={doshams}
@@ -354,21 +363,25 @@ export function DashboardExploreTabNova({
         onOpenAskVinaadi={onOpenAskVinaadi}
         onNavigateToday={() => onNavigate("personal")}
       />
+      </ViewSwap>
     );
   }
 
   if (subview?.kind === "yogam" && yogas.length > 0) {
     if (subview.screen === "list") {
       return (
+        <ViewSwap viewKey="yogam-list">
         <DashboardExploreYogamListNova
           lang={lang}
           yogas={yogas}
           onSelect={(index) => setSubview({ kind: "yogam", screen: "detail", index })}
           onBack={() => setSubview(null)}
         />
+        </ViewSwap>
       );
     }
     return (
+      <ViewSwap viewKey="yogam-detail">
       <DashboardExploreYogamNova
         lang={lang}
         yogas={yogas}
@@ -378,21 +391,25 @@ export function DashboardExploreTabNova({
         onOpenAskVinaadi={onOpenAskVinaadi}
         onNavigateToday={() => onNavigate("personal")}
       />
+      </ViewSwap>
     );
   }
 
   if (subview?.kind === "pariharam" || subview?.kind === "temple") {
     if (subview.screen === "list") {
       return (
+        <ViewSwap viewKey={`${subview.kind}-list`}>
         <DashboardExploreGuideListNova
           lang={lang}
           kind={subview.kind}
           onSelect={(slug) => setSubview({ kind: subview.kind, screen: "detail", slug })}
           onBack={() => setSubview(null)}
         />
+        </ViewSwap>
       );
     }
     return (
+      <ViewSwap viewKey={`${subview.kind}-detail`}>
       <DashboardExploreGuideNova
         lang={lang}
         kind={subview.kind}
@@ -400,17 +417,20 @@ export function DashboardExploreTabNova({
         onBack={() => setSubview({ kind: subview.kind, screen: "list" })}
         onOpenAskVinaadi={onOpenAskVinaadi}
       />
+      </ViewSwap>
     );
   }
 
   if (learnSlug) {
     return (
+      <ViewSwap viewKey={`learn-${learnSlug}`}>
       <DashboardExploreLearnNova
         lang={lang}
         initialSlug={learnSlug}
         onBack={() => setLearnSlug(null)}
         onOpenAskVinaadi={onOpenAskVinaadi}
       />
+      </ViewSwap>
     );
   }
 
@@ -555,6 +575,7 @@ export function DashboardExploreTabNova({
       )}
 
       {/* ===== The library ===== */}
+      <Reveal>
       {filteredVocabulary.length > 0 && (
         <div data-testid="interface-vocabulary" style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
           <Kicker>{lang === "ta" ? "நீங்கள் பார்த்த சொற்கள்" : "Terms you may have seen"}</Kicker>
@@ -614,15 +635,17 @@ export function DashboardExploreTabNova({
                 textDecoration: "none", color: "var(--color-text)", background: "var(--color-surface)",
                 border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-5) var(--space-5)",
                 display: "flex", gap: "var(--space-4)", alignItems: "flex-start", cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+                transition: "transform var(--motion-toggle) var(--ease-nova), box-shadow var(--motion-nav) var(--ease-nova), border-color var(--motion-nav) var(--ease-nova)",
               };
               if (item.nav) {
-                return <button key={item.key} type="button" onClick={() => onNavigate(item.nav!)} style={tileStyle}>{inner}</button>;
+                return <button key={item.key} type="button" className="ui-card--interactive" onClick={() => onNavigate(item.nav!)} style={tileStyle}>{inner}</button>;
               }
               if (canOpenDetail) {
                 return (
                   <button
                     key={item.key}
                     type="button"
+                    className="ui-card--interactive"
                     onClick={() => {
                       if (item.openDetail === "nakshatram") setSubview({ kind: "nakshatram", screen: "list" });
                       else if (item.openDetail === "dosham") setSubview({ kind: "dosham", screen: "list" });
@@ -648,6 +671,7 @@ export function DashboardExploreTabNova({
           </p>
         )}
       </div>
+      </Reveal>
 
       {/* ===== Learn ===== */}
       {filteredLearn.length > 0 && (

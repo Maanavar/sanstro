@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiFetchJson } from "@/lib/api";
 import type { Lang } from "@/lib/i18n";
 import type { LifeMode } from "@/lib/types";
 import { DashboardAskVinaadi } from "./dashboard-ask-vinaadi";
+import { Presence } from "./ui/presence";
 
 type GoalTrack = "CAREER" | "EXAM" | "RELATIONSHIP" | "FINANCIAL" | null;
 
@@ -23,6 +24,7 @@ interface DashboardAskVinaadiWidgetProps {
 
 export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack, activeLifeMode, onUpgrade, open, onOpenChange, hideLauncher }: DashboardAskVinaadiWidgetProps) {
   const [chipsRemaining, setChipsRemaining] = useState<number | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
 
   // Counter badge — show remaining free chips when fewer than the daily allowance.
   useEffect(() => {
@@ -34,6 +36,17 @@ export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack, activeLife
   }, [open]);
 
   const showBadge = chipsRemaining !== null && chipsRemaining < 3;
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onOpenChange(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open, onOpenChange]);
 
   return (
     <>
@@ -80,8 +93,21 @@ export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack, activeLife
       </button>
       )}
 
-      {open && (
-        <div
+      {/* This shares Presence's retained exit lifetime with the panel, so the
+          page remains dismissible for the entire 240 ms close animation. */}
+      <Presence
+        open={open}
+        aria-hidden="true"
+        onPointerDown={() => onOpenChange(false)}
+        style={{ position: "fixed", inset: 0, zIndex: 160 }}
+      >
+        <span />
+      </Presence>
+      <Presence
+          open={open}
+          ref={panelRef}
+          role="dialog"
+          aria-modal="true"
           style={{
             position: "fixed",
             // Classic's trigger is the bottom-right launcher FAB, so the panel
@@ -98,10 +124,10 @@ export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack, activeLife
             borderRadius: "14px",
             background: "var(--color-surface, var(--chart-cell-default))",
             border: "1px solid var(--color-border, var(--panel-tan-light))",
-            boxShadow: "0 16px 48px rgba(61,53,43,0.24)",
+            boxShadow: "var(--elev-3, 0 16px 48px rgba(61,53,43,0.24))",
             padding: "10px",
           }}
-        >
+      >
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <button
               type="button"
@@ -118,8 +144,7 @@ export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack, activeLife
             </button>
           </div>
           <DashboardAskVinaadi lang={lang} chartId={chartId} goalTrack={goalTrack} activeLifeMode={activeLifeMode} onUpgrade={onUpgrade} />
-        </div>
-      )}
+      </Presence>
     </>
   );
 }

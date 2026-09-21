@@ -32,6 +32,7 @@ import { useMonthlyPanchangam } from "@/hooks/useMonthlyPanchangam";
 import { PendingPlaceholder } from "./pending-placeholder-nova";
 import { PlaceCombobox } from "./place-combobox";
 import { DrawerPanel } from "./drawer-panel";
+import { ViewSwap } from "./ui/view-swap";
 import { Button, Card, Chip, Pill, Segmented } from "./ui";
 import { Kicker } from "./ui/kicker";
 import type {
@@ -765,6 +766,8 @@ export function DayDetailDrawerNova({
   onClose,
   onOpenFull,
   onStepDay,
+  open = true,
+  onExitComplete,
 }: {
   date: string;
   /** Used only to mark the sheet as today — never to claim a live window. */
@@ -777,6 +780,8 @@ export function DayDetailDrawerNova({
   onOpenFull: () => void;
   /** Step the sheet to an adjacent day without returning to the grid. */
   onStepDay: (delta: number) => void;
+  open?: boolean;
+  onExitComplete?: () => void;
 }) {
   const headerDate = formatHeaderDate(date, lang);
   const tamilDate = resolveTamilDate(data?.tamilDate, date, lang);
@@ -874,6 +879,8 @@ export function DayDetailDrawerNova({
       size="lg"
       closeLabel={lang === "ta" ? "மூடு" : "Close day panel"}
       onClose={onClose}
+      open={open}
+      onExitComplete={onExitComplete}
       headerAccessory={
         <>
           <DayDrawerStep dir="prev" label={lang === "ta" ? "முந்தைய நாள்" : "Previous day"} onClick={() => onStepDay(-1)} />
@@ -1049,6 +1056,7 @@ export function DashboardCalendarTabNova({
   }, [focusView]);
 
   const [detailDate, setDetailDate] = useState<string | null>(null);
+  const [renderedDetailDate, setRenderedDetailDate] = useState<string | null>(null);
   const [detailData, setDetailData] = useState<PanchangamDailyResponseData | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
@@ -1147,7 +1155,7 @@ export function DashboardCalendarTabNova({
     const todayObj = new Date(`${todayDate}T00:00:00`);
     setMonthlyYear(todayObj.getFullYear());
     setMonthlyMonth(todayObj.getMonth() + 1);
-    if (target === "today") setDetailDate(todayDate);
+    if (target === "today") { setRenderedDetailDate(todayDate); setDetailDate(todayDate); }
   }, [todayDate]);
 
   // Quick Jump: "Next Muhurtham" scans forward from today's month, fetching one
@@ -1173,6 +1181,7 @@ export function DashboardCalendarTabNova({
         if (hit) {
           setMonthlyYear(year);
           setMonthlyMonth(month);
+          setRenderedDetailDate(hit.dateLocal);
           setDetailDate(hit.dateLocal);
           return true;
         }
@@ -1368,6 +1377,7 @@ export function DashboardCalendarTabNova({
         />
       </div>
 
+      <ViewSwap viewKey={view}>
       {view === "panchangam" && (
         !panchangam ? (
           pending ? <PendingPlaceholder lang={lang} lines={4} /> : <p className="empty-state">{t("panja_empty", lang)}</p>
@@ -1700,23 +1710,29 @@ export function DashboardCalendarTabNova({
           todayDate={todayDate}
           onPrevMonth={() => goToAdjacentMonth(-1)}
           onNextMonth={() => goToAdjacentMonth(1)}
-          onSelectDate={(date) => setDetailDate(date)}
+          onSelectDate={(date) => { setRenderedDetailDate(date); setDetailDate(date); }}
           onQuickJump={handleQuickJump}
           onJumpToNextMuhurtham={jumpToNextMuhurtham}
         />
       )}
+      </ViewSwap>
 
-      {detailDate && (
+      {renderedDetailDate && (
         <DayDetailDrawerNova
-          date={detailDate}
+          date={renderedDetailDate}
           todayDate={todayDate}
           data={detailData}
           loading={detailLoading}
           error={detailError}
           lang={lang}
-          onClose={() => setDetailDate(null)}
+          open={Boolean(detailDate)}
+          onClose={() => {
+            setDetailDate(null);
+          }}
+          onExitComplete={() => setRenderedDetailDate(null)}
           onStepDay={(delta) => {
-            const next = addDays(detailDate, delta);
+            const next = addDays(renderedDetailDate, delta);
+            setRenderedDetailDate(next);
             setDetailDate(next);
             // Step the grid with the sheet when the day crosses a month edge —
             // otherwise the drawer reads "1 Dec" over a November grid.
@@ -1725,7 +1741,7 @@ export function DashboardCalendarTabNova({
             setMonthlyMonth(Number(nextMonth));
           }}
           onOpenFull={() => {
-            onSelectDate?.(detailDate);
+            onSelectDate?.(renderedDetailDate);
             setView("panchangam");
             setDetailDate(null);
           }}

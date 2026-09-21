@@ -500,9 +500,12 @@
     linear-gradient(150deg, #151827 0%, #0A0E20 62%);
   /* Card lift — a whisper of shadow so cards sit above the base plane instead
      of floating on it borderless-flat. Kept to 1px depth on dark. */
-  --nova-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.30);
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.30);
+  --elev-2: 0 6px 20px rgba(0, 0, 0, 0.28);
+  --elev-3: 0 18px 42px rgba(0, 0, 0, 0.42);
+  --nova-card-shadow: var(--elev-1);
   /* Hover-lift twin of the above (.nova-interactive:hover). */
-  --nova-hover-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  --nova-hover-shadow: var(--elev-2);
   /* Shadow pigment as a bare rgb triple, for the shadows that compose their own
      alpha inline (the .button--primary pair). Neutral black on navy. */
   --nova-shadow-ink: 0, 0, 0;
@@ -883,10 +886,13 @@
   --nova-hero-gradient:
     radial-gradient(130% 150% at 12% 0%, rgba(201, 151, 28, 0.08), transparent 46%),
     linear-gradient(150deg, var(--surface-1), var(--surface-2));
-  --nova-card-shadow: 0 1px 3px rgba(28, 16, 8, 0.08);
+  --elev-1: 0 1px 3px rgba(28, 16, 8, 0.08);
+  --elev-2: 0 6px 18px rgba(28, 16, 8, 0.10);
+  --elev-3: 0 18px 42px rgba(28, 16, 8, 0.18);
+  --nova-card-shadow: var(--elev-1);
   /* Warm brown-black at a third of dark's alpha: on cream a shadow only needs
      to suggest lift, and a neutral black would grey the warm palette. */
-  --nova-hover-shadow: 0 6px 18px rgba(28, 16, 8, 0.10);
+  --nova-hover-shadow: var(--elev-2);
   /* Warm brown rather than neutral black — see --nova-shadow-ink in the dark
      block. A pure-black drop on a warm cream palette reads as dirt, not depth. */
   --nova-shadow-ink: 28, 16, 8;
@@ -1178,7 +1184,7 @@
   font-family: inherit;
   cursor: pointer;
   text-align: left;
-  transition: border-color 150ms ease;
+  transition: border-color 150ms var(--ease-nova);
 }
 
 [data-ui="nova"] .cd-ask-search:hover:not(:disabled) {
@@ -1423,7 +1429,7 @@
   max-width: 220px;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: border-color 150ms ease;
+  transition: border-color 150ms var(--ease-nova);
 }
 
 [data-ui="nova"] .cd-subbar__vault:hover {
@@ -1580,7 +1586,7 @@
   border-color: var(--color-accent);
   color: var(--color-on-accent);
   box-shadow: 0 1px 2px rgba(var(--nova-shadow-ink), 0.24), 0 2px 7px color-mix(in srgb, var(--color-accent) 20%, transparent);
-  transition: box-shadow 150ms ease, filter 150ms ease;
+  transition: box-shadow 150ms var(--ease-nova), filter 150ms var(--ease-nova);
 }
 [data-ui="nova"] .cd-shell .button--primary:hover {
   background: linear-gradient(180deg, var(--color-accent-strong), var(--color-accent-strong));
@@ -1789,7 +1795,7 @@
   50% { opacity: 0.45; }
 }
 .nova-pulse-dot {
-  animation: nova-pulse 2.4s ease infinite;
+  animation: nova-pulse 2.4s var(--ease-nova) infinite;
 }
 @media (prefers-reduced-motion: reduce) {
   .nova-pulse-dot {
@@ -1887,7 +1893,7 @@
   background: transparent;
   color: var(--color-accent-strong);
   cursor: pointer;
-  transition: border-color 120ms ease, background 120ms ease;
+  transition: border-color 120ms var(--ease-nova), background 120ms var(--ease-nova);
 }
 [data-ui="nova"] .cd-shell .nova-cal-nav-btn:hover { border-color: var(--color-accent); background: var(--color-accent-muted); }
 [data-ui="nova"] .cd-shell .nova-cal-nav-btn:focus-visible { outline: 2px solid var(--color-accent-strong); outline-offset: 2px; }
@@ -1896,12 +1902,13 @@
 [data-ui="nova"] .cd-shell .nova-cal-cell {
   min-width: 0;
   min-height: 104px;
-  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+  transition: border-color 160ms var(--ease-nova), background 160ms var(--ease-nova), transform 160ms var(--ease-nova);
 }
 [data-ui="nova"] .cd-shell .nova-cal-cell:hover:not(:disabled) {
   transform: translateY(-2px);
   border-color: var(--color-accent-strong) !important;
 }
+[data-ui="nova"] .cd-shell .nova-cal-cell:active:not(:disabled) { transform: scale(0.985); }
 [data-ui="nova"] .cd-shell .nova-cal-cell:focus-visible {
   outline: 2px solid var(--color-accent-strong);
   outline-offset: -3px;
@@ -2042,7 +2049,7 @@
   font-variant-numeric: tabular-nums;
   line-height: 1;
   cursor: pointer;
-  transition: border-color 120ms ease;
+  transition: border-color 120ms var(--ease-nova);
 }
 [data-ui="nova"] .cd-shell .nova-cal-sidebar .nova-cal-chip:hover:not(:disabled) { border-color: var(--color-accent); background: var(--color-surface-soft); }
 [data-ui="nova"] .cd-shell .nova-cal-chip--high {
@@ -2147,7 +2154,7 @@
   line-height: 1;
   white-space: nowrap;
   cursor: pointer;
-  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+  transition: background 120ms var(--ease-nova), border-color 120ms var(--ease-nova), color 120ms var(--ease-nova);
 }
 [data-ui="nova"] .cd-shell .nova-cal-filter[aria-pressed="true"] {
   color: var(--color-text-strong);
@@ -2868,7 +2875,7 @@
   border-radius: 999px;
   cursor: pointer;
   background: color-mix(in srgb, var(--color-text-strong) 18%, transparent);
-  transition: background 0.2s ease;
+  transition: background 0.2s var(--ease-nova);
 }
 .nova-fmg__switch[data-on="true"] {
   background: var(--color-accent-strong);
@@ -2890,7 +2897,7 @@
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 1px rgba(0, 0, 0, 0.16);
-  transition: transform 0.2s ease;
+  transition: transform 0.2s var(--ease-nova);
 }
 .nova-fmg__switch[data-on="true"] .nova-fmg__knob {
   transform: translateX(16px);
@@ -2958,7 +2965,7 @@
 .hy-ring-pulse { animation: hy-ring-pulse 4s ease-in-out infinite; }
 
 /* Expandable planet row chevron. */
-.hy-chev { transition: transform 0.15s ease; display: inline-block; }
+.hy-chev { transition: transform 0.15s var(--ease-nova); display: inline-block; }
 
 /* ── Chart-explanation section (Hybrid Family view, §9) ──────────────────
    2026-07-22: this section used to be a bespoke "cosmic panel" — a
@@ -2993,6 +3000,8 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  box-shadow: var(--elev-1);
+  transition: transform var(--motion-toggle) var(--ease-nova), box-shadow var(--motion-nav) var(--ease-nova), border-color var(--motion-nav) var(--ease-nova);
 }
 [data-ui="nova"] .cd-shell .ui-card--soft { background: var(--color-surface-soft); }
 [data-ui="nova"] .cd-shell .ui-card--accent {
@@ -3017,6 +3026,15 @@
   border-color: var(--color-mid-border);
 }
 [data-ui="nova"] .cd-shell .ui-card--pad-sm { padding: 14px 16px; }
+[data-ui="nova"] .cd-shell .ui-card--interactive { cursor: pointer; }
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+  [data-ui="nova"] .cd-shell .ui-card--interactive:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--elev-2);
+    border-color: var(--color-border-strong);
+  }
+}
+[data-ui="nova"] .cd-shell .ui-card--interactive:active { transform: scale(0.985); }
 
 /* ── Numerology "how this was worked out" disclosure ──
    A native <details> so keyboard and screen-reader behaviour, find-in-page and
@@ -3028,7 +3046,7 @@
   width: fit-content;
   padding: 2px 0;
   border-radius: var(--radius-sm, 6px);
-  transition: color 120ms ease;
+  transition: color 120ms var(--ease-nova);
 }
 [data-ui="nova"] .cd-shell .num-calc-details > summary:hover {
   color: var(--color-text) !important;
@@ -3053,7 +3071,7 @@
   cursor: pointer;
   border-radius: var(--radius-sm, 6px);
   list-style: none;
-  transition: color 120ms ease;
+  transition: color 120ms var(--ease-nova);
 }
 /* Safari still paints the default triangle without this. */
 [data-ui="nova"] .cd-shell .num-name-details > summary::-webkit-details-marker {
@@ -3067,7 +3085,7 @@
   line-height: 1;
   color: var(--color-faint);
   transform: rotate(90deg);
-  transition: transform 140ms ease;
+  transition: transform 140ms var(--ease-nova);
 }
 [data-ui="nova"] .cd-shell .num-name-details[open] > summary::after {
   transform: rotate(-90deg);
@@ -3113,13 +3131,32 @@
     background var(--motion-nav) var(--ease-nova),
     color var(--motion-nav) var(--ease-nova);
 }
+[data-ui="nova"] .cd-shell .ui-segmented__btn { position: relative; isolation: isolate; }
+[data-ui="nova"] .cd-shell .ui-segmented__thumb {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: var(--color-accent);
+}
+[data-ui="nova"] .cd-shell .ui-segmented__label { position: relative; z-index: 1; }
 [data-ui="nova"] .cd-shell .ui-segmented__btn:hover:not([aria-selected="true"]) {
   color: var(--color-text-strong);
 }
 [data-ui="nova"] .cd-shell .ui-segmented__btn[aria-selected="true"] {
-  background: var(--color-accent);
   color: var(--color-on-accent);
   font-weight: 700;
+}
+/* The thumb paints the selected fill and ships in its own chunk (it is loaded
+   through next/dynamic to keep framer-motion out of the ui barrel). `ssr: true`
+   covers the server-rendered case, but a Segmented that first mounts during a
+   client navigation can render one frame before the chunk lands. Without this
+   the label sits at 1.02:1 on cream and 1.15:1 on navy — invisible, not merely
+   low-contrast. Scoped with :not(:has()) so it never paints under the thumb,
+   which would make the slide look like a jump. */
+[data-ui="nova"] .cd-shell .ui-segmented__btn[aria-selected="true"]:not(:has(.ui-segmented__thumb)) {
+  background: var(--color-accent);
 }
 [data-ui="nova"] .cd-shell .ui-segmented__btn:focus-visible {
   outline: 2px solid var(--color-accent-strong);
@@ -3269,7 +3306,7 @@
     color var(--motion-nav) var(--ease-nova),
     transform var(--motion-toggle) var(--ease-nova);
 }
-[data-ui="nova"] .cd-shell .ui-btn:active { transform: translateY(1px); }
+[data-ui="nova"] .cd-shell .ui-btn:active { transform: scale(0.97); }
 [data-ui="nova"] .cd-shell .ui-btn:focus-visible {
   outline: 2px solid var(--color-accent-strong);
   outline-offset: 2px;
@@ -3327,6 +3364,25 @@
     color var(--motion-nav) var(--ease-nova);
 }
 [data-ui="nova"] .cd-shell .ui-pill:hover:not([aria-pressed="true"]) { color: var(--color-text-strong); }
+[data-ui="nova"] .cd-shell .ui-pill:active { transform: scale(0.97); }
+
+/* Kept mounted by CollapsibleSection after the first render: grid rows animate
+   disclosure height without losing the scroll-anchor pin on its trigger. */
+.collapsible__body { display: grid; grid-template-rows: 0fr; overflow: hidden; opacity: 0; visibility: hidden; transition: grid-template-rows var(--dur-base) var(--ease-nova), opacity var(--dur-fast) var(--ease-nova), visibility 0s linear var(--dur-base); }
+.collapsible__body--open { grid-template-rows: 1fr; opacity: 1; visibility: visible; transition-delay: 0s; }
+.collapsible__body-inner { min-height: 0; overflow: hidden; }
+
+/* D3: page ambience is static. The Today hero owns the only infinite motion. */
+.hy-float, .hy-glow, .hy-ring-pulse { animation: none; }
+[data-ui="nova"] .cd-shell .nova-cal-today::after { animation: none; background-size: 100% 100%; }
+[data-ui="nova"] .cd-shell .nova-pulse-dot,
+[data-ui="nova"] .cd-shell .nova-sky .nova-celestial__star,
+[data-ui="nova"] .cd-shell .nova-deepdive-glyph .nova-celestial__star,
+[data-ui="nova"] .cd-shell :not(.nova-hero) > .nova-wheel-spin,
+[data-ui="nova"] .cd-shell .nova-celestial__glow { animation: none; }
+/* The hero is the single exception to D3's static-page rule. */
+[data-ui="nova"] .cd-shell .nova-hero .nova-celestial__star { animation: nova-celestial-twinkle 3.6s ease-in-out infinite; }
+[data-ui="nova"] .cd-shell .nova-hero .nova-wheel-spin { animation: nova-celestial-spin 240s linear infinite; }
 [data-ui="nova"] .cd-shell .ui-pill[aria-pressed="true"] {
   background: var(--color-accent);
   color: var(--color-on-accent);
@@ -4622,7 +4678,7 @@ button.ui-chip { cursor: pointer; }
 }
 .nova-hero-action__footnote-toggle svg {
   flex: none;
-  transition: transform 150ms ease;
+  transition: transform 150ms var(--ease-nova);
 }
 @media (prefers-reduced-motion: reduce) {
   .nova-hero-action__footnote-toggle svg {
