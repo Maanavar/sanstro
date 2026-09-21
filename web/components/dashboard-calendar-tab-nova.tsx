@@ -7,6 +7,7 @@ import Link from "next/link";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { addDays, formatClockLabel, formatClockRange, formatHijriDate } from "@/lib/format";
+import { observanceEnglishName } from "@/lib/observance-names";
 import {
   bestGowriSlot,
   gowriCategoryLabel,
@@ -134,23 +135,22 @@ function novaFestivalTagTone(tag: string): { bg: string; border: string; color: 
   return { bg: "var(--color-surface-soft)", border: "var(--color-border)", color: "var(--color-muted)" };
 }
 
-function novaFestivalDisplayName(festival: PanchangamFestival, lang: Lang, dateLocal: string): string {
+function novaFestivalDisplayName(festival: PanchangamFestival, lang: Lang): string {
   if (lang !== "en" || !/[\u0B80-\u0BFF]/u.test(festival.name)) return festival.name;
 
-  // The API's fixed world-observance table currently carries Tamil display
-  // names only. Keep that transport limitation out of the English UI without
-  // inventing an English name for an unknown religious festival.
+  // The API's world-observance table carries Tamil display names only. Map
+  // them by exact name (all 24, parity-tested against festivals.py \u2014 E-3);
+  // the generic word is a fallback for a name the table does not know yet,
+  // never an English name invented for an unknown religious festival.
+  // Stopgap until the backend sends a language-free key (OD-5).
   if (festivalTags(festival).includes("observance")) {
-    const fixedNames: Record<string, string> = {
-      "09-21": "International Day of Peace",
-    };
-    return fixedNames[dateLocal.slice(5)] ?? "Observance";
+    return observanceEnglishName(festival.name) ?? "Observance";
   }
   return "Festival";
 }
 
-function NovaFestivalRow({ festival, lang, dateLocal }: { festival: PanchangamFestival; lang: Lang; dateLocal: string }) {
-  const displayName = novaFestivalDisplayName(festival, lang, dateLocal);
+function NovaFestivalRow({ festival, lang }: { festival: PanchangamFestival; lang: Lang }) {
+  const displayName = novaFestivalDisplayName(festival, lang);
   return (
     <Card variant="accent" compact style={{ flexDirection: "row", alignItems: "center", gap: "var(--space-3)" }}>
       <span aria-hidden="true" style={{ color: "var(--color-accent-strong)" }}>{festivalIcon(festival.name)}</span>
@@ -190,11 +190,11 @@ function NovaFestivalRow({ festival, lang, dateLocal }: { festival: PanchangamFe
  * Tag tone carries the tradition (Hindu / Muslim / Christian / govt); world
  * observances fall through to the muted tone, which is the ranking we want.
  */
-function NovaFestivalChip({ festival, lang, dateLocal }: { festival: PanchangamFestival; lang: Lang; dateLocal: string }) {
+function NovaFestivalChip({ festival, lang }: { festival: PanchangamFestival; lang: Lang }) {
   const tags = festivalTags(festival);
   const tone = novaFestivalTagTone(tags[0] ?? "");
   const tagNames = tags.map((tag) => novaFestivalTagLabel(tag, lang)).join(" · ");
-  const displayName = novaFestivalDisplayName(festival, lang, dateLocal);
+  const displayName = novaFestivalDisplayName(festival, lang);
   return (
     <span
       title={tagNames || undefined}
@@ -1034,7 +1034,7 @@ export function DayDetailDrawerNova({
           {data.festivals.length > 0 && (
             <DayDrawerSection title={t("label_festivals", lang)}>
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                {data.festivals.map((f) => <NovaFestivalRow key={f.name} festival={f} lang={lang} dateLocal={data.dateLocal} />)}
+                {data.festivals.map((f) => <NovaFestivalRow key={f.name} festival={f} lang={lang} />)}
               </div>
             </DayDrawerSection>
           )}
@@ -1437,7 +1437,7 @@ export function DashboardCalendarTabNova({
                   {/* Festivals first, then world observances — same row, ranked
                       by the tone their tag resolves to. */}
                   {[...dailyFestivalEvents, ...observanceFestivals].map((festival) => (
-                    <NovaFestivalChip key={festival.name} festival={festival} lang={lang} dateLocal={panchangam.dateLocal} />
+                    <NovaFestivalChip key={festival.name} festival={festival} lang={lang} />
                   ))}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginTop: "8px", fontSize: "var(--text-sm)", color: "var(--color-muted)", flexWrap: "wrap" }}>

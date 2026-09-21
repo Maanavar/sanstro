@@ -302,6 +302,30 @@ describe("Panchangam view — festivals", () => {
     expect(screen.queryByText("சர்வதேச அமைதி தினம்")).not.toBeInTheDocument();
   });
 
+  // E-3: the first fix keyed the English name on the date the audit ran, so
+  // the other 23 observances printed "Observance". Two share 06-08, which a
+  // date key cannot tell apart.
+  it("names both observances that share 06-08, each by its own name", () => {
+    renderPanchangam({
+      dateLocal: "2026-06-08",
+      festivals: [
+        { name: "உலக பெருங்கடல் தினம்", category: "observance", tags: ["observance"] },
+        { name: "உலக மூளைக்கட்டி தினம்", category: "observance", tags: ["observance"] },
+      ],
+    });
+    expect(screen.getByText("World Oceans Day")).toBeInTheDocument();
+    expect(screen.getByText("World Brain Tumour Day")).toBeInTheDocument();
+    expect(screen.queryByText("Observance")).not.toBeInTheDocument();
+  });
+
+  it("keys the English name on the observance, not on the date it is shown", () => {
+    renderPanchangam({
+      dateLocal: "2027-01-04",
+      festivals: [{ name: "சர்வதேச அமைதி தினம்", category: "observance", tags: ["observance"] }],
+    });
+    expect(screen.getByText("International Day of Peace")).toBeInTheDocument();
+  });
+
   it("prints nothing at all on a day with no festivals", () => {
     renderPanchangam();
     expect(screen.queryByText("Today's Events")).not.toBeInTheDocument();
