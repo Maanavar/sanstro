@@ -134,11 +134,27 @@ function novaFestivalTagTone(tag: string): { bg: string; border: string; color: 
   return { bg: "var(--color-surface-soft)", border: "var(--color-border)", color: "var(--color-muted)" };
 }
 
-function NovaFestivalRow({ festival, lang }: { festival: PanchangamFestival; lang: Lang }) {
+function novaFestivalDisplayName(festival: PanchangamFestival, lang: Lang, dateLocal: string): string {
+  if (lang !== "en" || !/[\u0B80-\u0BFF]/u.test(festival.name)) return festival.name;
+
+  // The API's fixed world-observance table currently carries Tamil display
+  // names only. Keep that transport limitation out of the English UI without
+  // inventing an English name for an unknown religious festival.
+  if (festivalTags(festival).includes("observance")) {
+    const fixedNames: Record<string, string> = {
+      "09-21": "International Day of Peace",
+    };
+    return fixedNames[dateLocal.slice(5)] ?? "Observance";
+  }
+  return "Festival";
+}
+
+function NovaFestivalRow({ festival, lang, dateLocal }: { festival: PanchangamFestival; lang: Lang; dateLocal: string }) {
+  const displayName = novaFestivalDisplayName(festival, lang, dateLocal);
   return (
     <Card variant="accent" compact style={{ flexDirection: "row", alignItems: "center", gap: "var(--space-3)" }}>
       <span aria-hidden="true" style={{ color: "var(--color-accent-strong)" }}>{festivalIcon(festival.name)}</span>
-      <span style={{ fontSize: "var(--text-base)", fontWeight: 600, flex: 1, color: "var(--color-text-strong)" }}>{festival.name}</span>
+      <span style={{ fontSize: "var(--text-base)", fontWeight: 600, flex: 1, color: "var(--color-text-strong)" }}>{displayName}</span>
       <span style={{ display: "flex", gap: "var(--space-1)", flexWrap: "wrap", justifyContent: "flex-end" }}>
         {festivalTags(festival).map((tag) => {
           const tone = novaFestivalTagTone(tag);
@@ -174,10 +190,11 @@ function NovaFestivalRow({ festival, lang }: { festival: PanchangamFestival; lan
  * Tag tone carries the tradition (Hindu / Muslim / Christian / govt); world
  * observances fall through to the muted tone, which is the ranking we want.
  */
-function NovaFestivalChip({ festival, lang }: { festival: PanchangamFestival; lang: Lang }) {
+function NovaFestivalChip({ festival, lang, dateLocal }: { festival: PanchangamFestival; lang: Lang; dateLocal: string }) {
   const tags = festivalTags(festival);
   const tone = novaFestivalTagTone(tags[0] ?? "");
   const tagNames = tags.map((tag) => novaFestivalTagLabel(tag, lang)).join(" · ");
+  const displayName = novaFestivalDisplayName(festival, lang, dateLocal);
   return (
     <span
       title={tagNames || undefined}
@@ -189,7 +206,7 @@ function NovaFestivalChip({ festival, lang }: { festival: PanchangamFestival; la
       }}
     >
       <span aria-hidden="true">{festivalIcon(festival.name)}</span>
-      {festival.name}
+      {displayName}
     </span>
   );
 }
@@ -1017,7 +1034,7 @@ export function DayDetailDrawerNova({
           {data.festivals.length > 0 && (
             <DayDrawerSection title={t("label_festivals", lang)}>
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                {data.festivals.map((f) => <NovaFestivalRow key={f.name} festival={f} lang={lang} />)}
+                {data.festivals.map((f) => <NovaFestivalRow key={f.name} festival={f} lang={lang} dateLocal={data.dateLocal} />)}
               </div>
             </DayDrawerSection>
           )}
@@ -1420,7 +1437,7 @@ export function DashboardCalendarTabNova({
                   {/* Festivals first, then world observances — same row, ranked
                       by the tone their tag resolves to. */}
                   {[...dailyFestivalEvents, ...observanceFestivals].map((festival) => (
-                    <NovaFestivalChip key={festival.name} festival={festival} lang={lang} />
+                    <NovaFestivalChip key={festival.name} festival={festival} lang={lang} dateLocal={panchangam.dateLocal} />
                   ))}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginTop: "8px", fontSize: "var(--text-sm)", color: "var(--color-muted)", flexWrap: "wrap" }}>

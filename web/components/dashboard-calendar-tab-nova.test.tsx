@@ -293,6 +293,15 @@ describe("Panchangam view — festivals", () => {
     expect(screen.getAllByText("Vaikasi Visakam")).toHaveLength(1);
   });
 
+  it("does not render a Tamil-only observance name in English mode", () => {
+    renderPanchangam({
+      dateLocal: "2026-09-21",
+      festivals: [{ name: "சர்வதேச அமைதி தினம்", category: "observance", tags: ["observance"] }],
+    });
+    expect(screen.getByText("International Day of Peace")).toBeInTheDocument();
+    expect(screen.queryByText("சர்வதேச அமைதி தினம்")).not.toBeInTheDocument();
+  });
+
   it("prints nothing at all on a day with no festivals", () => {
     renderPanchangam();
     expect(screen.queryByText("Today's Events")).not.toBeInTheDocument();
