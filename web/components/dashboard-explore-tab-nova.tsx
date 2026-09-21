@@ -468,6 +468,7 @@ export function DashboardExploreTabNova({
               <button
                 key={s}
                 type="button"
+                className="ui-pill"
                 onClick={() => setQuery(s)}
                 style={{ fontSize: "var(--text-sm)", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-2) var(--space-4)", cursor: "pointer", fontFamily: "inherit" }}
               >
@@ -490,6 +491,7 @@ export function DashboardExploreTabNova({
             {personalChartSummary?.janmaNakshatra && nakshatraCard && (
               <button
                 type="button"
+                className="ui-card--interactive"
                 onClick={() => setSubview({ kind: "nakshatram", screen: "detail", number: nakshatraCard.number })}
                 style={{ ...novaDetailCardStyle, backgroundColor: "var(--color-surface)", backgroundImage: "linear-gradient(120deg, var(--color-accent-muted), transparent)", border: "1px solid var(--color-border-strong)", textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
               >
@@ -522,6 +524,7 @@ export function DashboardExploreTabNova({
             {activeDosham && (
               <button
                 type="button"
+                className="ui-card--interactive"
                 onClick={() => setSubview({ kind: "dosham", screen: "detail", index: doshams.indexOf(activeDosham) })}
                 style={{ ...novaDetailCardStyle, border: "1px solid var(--color-low-border)", textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
               >
@@ -548,6 +551,7 @@ export function DashboardExploreTabNova({
             {activeYoga && (
               <button
                 type="button"
+                className="ui-card--interactive"
                 onClick={() => setSubview({ kind: "yogam", screen: "detail", index: yogas.indexOf(activeYoga) })}
                 style={{ ...novaDetailCardStyle, backgroundColor: "var(--color-surface)", backgroundImage: "linear-gradient(120deg, var(--color-high-bg), transparent)", border: "1px solid var(--color-high-border)", textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
               >
@@ -682,6 +686,7 @@ export function DashboardExploreTabNova({
               <button
                 key={a.key}
                 type="button"
+                className="ui-card--interactive"
                 onClick={() => setLearnSlug(a.slug)}
                 style={{ textDecoration: "none", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-4) var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-2)", cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%" }}
               >
@@ -709,6 +714,7 @@ export function DashboardExploreTabNova({
       {/* ===== Ask strip ===== */}
       <button
         type="button"
+        className="ui-card--interactive"
         onClick={onOpenAskVinaadi}
         style={{
           display: "flex", alignItems: "center", gap: "var(--space-4)", textAlign: "left", cursor: "pointer", fontFamily: "inherit",
