@@ -163,9 +163,8 @@ at 1440 and 375 px. Implementation notes:
   dismissed.
 - D5 shipped early: a saved focus that a profile edit has since blocked reads
   back as BALANCED (`effective_life_mode`).
-- **Gap until Phase 1:** with the Goal track card retired and no write-through
-  yet, web can no longer set `users.goal_track`. Existing values stay in force.
-  Phase 1 item 1 closes this. The picker subtitle also promises "daily tips",
+- **Gap until Phase 1 (closed by Phase 1):** with the Goal track card retired
+  and no write-through yet, web could no longer set `users.goal_track`. The picker subtitle also promises "daily tips",
   and that is true only once Phase 1 lands.
 - **What the probe cannot see:** it runs against one synthetic account with no
   family members, so D4 is untested (and moot until Phase 2 reorders anything).
@@ -180,6 +179,51 @@ at 1440 and 375 px. Implementation notes:
 **Accept:** changing focus changes tomorrow's guidance action line for a
 synthetic user. The cache hit rate for focus-set users stays within budget.
 Old clients sending `goalTrack` still work.
+
+**Status 2026-09-22: implemented and committed.**
+Tests: `tests/test_life_focus_phase1.py`. Implementation notes:
+- **D1 table** is `FOCUS_TABLE` in `app/core/life_mode.py`, the only copy. A test
+  checks every code in it against `VALID_GOAL_TYPES`, the life-area labels and
+  the `goalTrack` literal, so a typo cannot silently match nothing.
+- **One resolver**, `app/services/life_focus_service.py`. Daily guidance, Ask
+  Vinaadi and journal prompts all call it instead of reading `users.goal_track`:
+  - a user who has chosen a focus gets the track derived from their *effective*
+    focus, so D5 reaches the readers too (a focus a profile edit has since
+    blocked drives no track, where a stale stored `RELATIONSHIP` would have);
+  - a user who has **never** chosen a focus keeps their legacy `goal_track`;
+  - **D4 is applied in Phase 1 as well**: a family member's chart gets no track.
+    Ruling Q2 is about a person's focus, not only Today's ordering, and "career
+    efforts" on a spouse's action line broke it. The relationship lives on
+    `FamilyMember`, so a vault member marked `self` counts as the user.
+- **Write-through:** `PATCH /settings/life-mode` also sets `users.goal_track`
+  (clearing it for a focus with no track), so `/auth/me` stays in step for old
+  clients. `PATCH /auth/me` with `goalTrack` is still accepted and stored, but
+  once a focus exists the focus wins (Q6). No current client sends it: mobile
+  never did, and web stopped in Phase 0.
+- **Ask Vinaadi** gets `User's current life focus: FAMILY (life area FAMILY_HARMONY)`
+  instead of the 4-value goal track, so FAMILY, HEALTH, SPIRITUALITY and
+  REMEDIES now reach the model; they used to read "none set".
+- **Cache, no migration and no version bump.** A cache row is per birth profile,
+  and a profile has one owner, so it has one track at a time. Rows are
+  tagged `_goalTrack` and a mismatch is a miss, which keys the cache by
+  (profile, date, track). Untagged rows still match every user without a track,
+  so no existing row is retired. The month-timing scan now writes under the
+  same tag. Before this change it wrote track-free rows, which would have
+  overwritten a focus user's rows and caused thrash.
+- **Load check.** A track used to bypass the cache entirely (0% hits for those
+  users). Now it costs one miss per profile per day and one more on each focus
+  change. A test asserts the same focus is a hit and a new focus is exactly one
+  rebuild. Each new gate (tag, D4, cache hit) was run once with its fix removed
+  and failed.
+- **What the tests cannot see:** the real goal-track hint only speaks on some
+  days (dasha affinity or a caution label), so the action-line tests replace it
+  with a marker. They prove the wiring, not the wording. Tomorrow's action line
+  for a real chart changes only on such days. Journal D4 has no dedicated test.
+  The resolver adds two small queries per guidance request (preference plus
+  profile, or member). A range resolves once, not once per day.
+- **Known edge:** a legacy user with a stored `goal_track` who has never
+  chosen a focus loses the track if they press Skip, because Skip saves
+  BALANCED. The dev DB has no such user (checked 2026-09-22).
 
 ### Phase 2: Today tab responds
 T1–T5 and the Life areas tab behaviour from §3, driven by `focusArea` /

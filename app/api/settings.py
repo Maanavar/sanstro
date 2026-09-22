@@ -7,45 +7,26 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
-from app.core.age_gate import compute_age, get_blocked_life_modes, is_minor
+from app.core.age_gate import is_minor
 from app.core.auth import get_current_user
-from app.core.life_mode import ALL_LIFE_MODES, effective_life_mode, is_focus_nudge_due
+from app.core.life_mode import ALL_LIFE_MODES, effective_life_mode, focus_mapping, is_focus_nudge_due
 from app.db.session import get_db
-from app.models.birth_profile import BirthProfile
 from app.models.user import User
 from app.models.user_preference import UserPreference
 from app.schemas.settings import JournalSettingsResponse, JournalSettingsUpdateRequest
+from app.services.life_focus_service import self_birth_profile, user_blocked_modes
 from app.services.settings_service import get_journal_settings, update_journal_settings
 
 router = APIRouter()
 
 
-def _self_birth_profile(session: Session, user_id) -> BirthProfile | None:
-    """The user's own birth profile (not a family member) — used for age gating."""
-    return (
-        session.query(BirthProfile)
-        .filter(
-            BirthProfile.owner_user_id == user_id,
-            BirthProfile.family_member_id.is_(None),
-            BirthProfile.deleted_at.is_(None),
-        )
-        .order_by(BirthProfile.created_at.asc())
-        .first()
-    )
-
-
 def _user_is_minor(session: Session, user_id) -> bool:
-    profile = _self_birth_profile(session, user_id)
+    profile = self_birth_profile(session, user_id)
     return profile is not None and is_minor(profile.birth_date_local)
 
 
 def _user_blocked_modes(session: Session, user_id) -> frozenset[str]:
-    """Comprehensive blocked life modes based on age and marital status."""
-    profile = _self_birth_profile(session, user_id)
-    if profile is None:
-        return frozenset()
-    age = compute_age(profile.birth_date_local)
-    return get_blocked_life_modes(age, profile.marital_status)
+    return user_blocked_modes(session, user_id)
 
 
 def _get_or_create_preference(session: Session, user_id) -> UserPreference:
@@ -108,14 +89,21 @@ class LifeModeResponse(BaseModel):
     blocked_modes: list[str] = Field(default_factory=list, alias="blockedModes")
     # Server-computed so web and mobile share one cadence (LIFE_MODE_STALE_DAYS).
     focus_nudge_due: bool = Field(default=False, alias="focusNudgeDue")
+    # The D1 table's answer for this focus, so clients never re-derive it.
+    focus_area: str | None = Field(default=None, alias="focusArea")
+    focus_activities: list[str] = Field(default_factory=list, alias="focusActivities")
     model_config = ConfigDict(populate_by_name=True)
 
 
 def _life_mode_response(pref: UserPreference | None, blocked: frozenset[str]) -> LifeModeResponse:
     show_picker = pref.show_life_mode_picker if pref else True
     set_at = pref.life_mode_set_at if pref else None
+    mode = effective_life_mode(pref.life_mode if pref else None, blocked)
+    mapping = focus_mapping(mode)
     return LifeModeResponse(
-        mode=effective_life_mode(pref.life_mode if pref else None, blocked),
+        mode=mode,
+        focusArea=mapping.area,
+        focusActivities=list(mapping.activities),
         lifeModeSetAt=set_at,
         showLifeModePicker=show_picker,
         blockedModes=sorted(blocked),
@@ -162,6 +150,14 @@ def update_life_mode(
     pref.life_mode = mode
     pref.life_mode_set_at = datetime.now(tz=UTC)
     pref.show_life_mode_picker = False
+    # Write-through (plan Phase 1): keep the legacy column in step for old
+    # clients reading /auth/me. Backend readers derive it via
+    # life_focus_service.resolve_goal_track, which also honours D5.
+    # Loaded here rather than mutating current_user, which need not belong to
+    # this session.
+    user_row = session.get(User, current_user.user_id)
+    if user_row is not None:
+        user_row.goal_track = focus_mapping(mode).goal_track
     session.flush()
     session.refresh(pref)
     return _life_mode_response(pref, blocked)

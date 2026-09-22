@@ -1469,6 +1469,11 @@ export interface LifeModeStatus {
   showLifeModePicker: boolean; blockedModes?: string[];
   /** Server-computed: offer the "Still focused on X?" strip (60-day cadence). */
   focusNudgeDue: boolean;
+  /** Life-area code this focus pins (e.g. "CAREER"), or null for BALANCED/REMEDIES.
+   *  From the server's D1 table (app/core/life_mode.py) — never re-derive it. */
+  focusArea: string | null;
+  /** Activity types (user_goal VALID_GOAL_TYPES) this focus lifts; may be empty. */
+  focusActivities: string[];
 }
 
 export interface PredictionBundle {

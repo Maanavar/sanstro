@@ -89,12 +89,23 @@ def _cache_version(calculation_version: str) -> str:
     return f"{calculation_version}::{DAILY_SCORE_ENGINE_VERSION}"
 
 
+# The goal track a row was built for (Life Focus plan, Phase 1). It rewrites
+# the action line and, through it, the briefing, so a row built for one track
+# must not be served to another. A profile has exactly one owner and so one
+# track at a time: tagging the row keys the cache by (profile, date, track)
+# without a schema change. Rows written before the tag read as None, which
+# matches every user without a track, so this retires nothing that was valid.
+# Not a version bump: a focus change recomputes only that profile's rows.
+_GOAL_TRACK_KEY = "_goalTrack"
+
+
 def _load_daily_score_cache(
     session: Session,
     *,
     birth_profile_id: UUID,
     score_date: date,
     calculation_version: str,
+    goal_track: str | None = None,
 ) -> DailyGuidanceResponse | None:
     row = session.execute(
         select(DailyScore).where(
@@ -109,6 +120,8 @@ def _load_daily_score_cache(
     stored = dict(row.data)
     # Stale row from an older engine/chart version → force recompute.
     if stored.pop("_cacheVersion", None) != _cache_version(calculation_version):
+        return None
+    if stored.pop(_GOAL_TRACK_KEY, None) != goal_track:
         return None
     return DailyGuidanceResponse(
         data=DailyGuidanceData.model_validate(stored),
@@ -126,6 +139,7 @@ def _load_daily_score_cache_range(
     start_date: date,
     end_date: date,
     calculation_version: str,
+    goal_track: str | None = None,
 ) -> dict[date, DailyGuidanceResponse]:
     """Bulk-fetch DailyScore cache rows for a date range in a single query.
 
@@ -152,6 +166,8 @@ def _load_daily_score_cache_range(
         stored = dict(row.data)
         if stored.pop("_cacheVersion", None) != expected_version:
             continue
+        if stored.pop(_GOAL_TRACK_KEY, None) != goal_track:
+            continue
         cached[row.score_date] = DailyGuidanceResponse(
             data=DailyGuidanceData.model_validate(stored),
             meta=ResponseMeta(
@@ -169,9 +185,12 @@ def _store_daily_score_cache(
     score_date: date,
     response: DailyGuidanceResponse,
     calculation_version: str,
+    goal_track: str | None = None,
 ) -> None:
     payload = response.data.model_dump(mode="json", by_alias=True)
     payload["_cacheVersion"] = _cache_version(calculation_version)
+    if goal_track is not None:
+        payload[_GOAL_TRACK_KEY] = goal_track
     session.execute(
         pg_insert(DailyScore)
         .values(

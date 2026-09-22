@@ -131,6 +131,7 @@ from app.services.daily_briefing_synth import BriefingInputs, synthesize_daily_b
 from app.services.emotional_weather import TransitPoint, compute_emotional_weather
 from app.services.feature_flags import get_flag
 from app.services.goals_service import get_active_goals_for_chart
+from app.services.life_focus_service import chart_goal_track
 from app.services.location_service import (
     EffectiveDailyLocation,
     local_noon_as_utc_for_profile,
@@ -1153,6 +1154,11 @@ def _persisted_chart_owner(chart_snapshot: ChartCalculateResponse) -> UUID:
     return owner_user_id
 
 
+# Default for get_daily_guidance(goal_track=...): "look it up". None is a real
+# answer (no track), so it cannot double as "not passed".
+_UNRESOLVED: object = object()
+
+
 def get_daily_guidance(
     session: Session,
     chart_id: UUID,
@@ -1161,13 +1167,14 @@ def get_daily_guidance(
     *,
     chart_snapshot: ChartCalculateResponse | None = None,
     preloaded_cache: dict[date, DailyGuidanceResponse] | None = None,
+    goal_track: str | None | object = _UNRESOLVED,
 ) -> DailyGuidanceResponse:
-    from app.models.user import User as _User
     chart_snapshot = chart_snapshot or load_persisted_chart_response(session, chart_id)
     active_goals = get_active_goals_for_chart(session, chart_id)
     owner_user_id = _persisted_chart_owner(chart_snapshot)
-    _user_row = session.get(_User, owner_user_id)
-    goal_track = getattr(_user_row, "goal_track", None) if _user_row else None
+    if not isinstance(goal_track, str | None):
+        # Unresolved: focus-derived, and None on a family member's chart (plan D4).
+        goal_track = chart_goal_track(session, chart_snapshot.data.birth_profile, owner_user_id)
     context_row = get_context_row(session, owner_user_id, chart_id)
     journal_insight = _build_journal_insight(
         session,
@@ -1175,10 +1182,14 @@ def get_daily_guidance(
         chart_id=chart_id,
         on_date=on_date,
     )
-    can_use_cache = not active_goals and context_row is None and journal_insight is None and not goal_track
+    # goal_track no longer bypasses the cache: rows are tagged with the track
+    # they were built for (see _dg_cache._GOAL_TRACK_KEY), so a focus user is
+    # cached like everyone else instead of recomputing on every request.
+    can_use_cache = not active_goals and context_row is None and journal_insight is None
     birth_profile_id = chart_snapshot.data.birth_profile.birth_profile_id
     if can_use_cache:
         if preloaded_cache is not None:
+            # The caller loaded these rows for the same track (get_daily_guidance_range).
             cached = preloaded_cache.get(on_date)
         else:
             cached = _load_daily_score_cache(
@@ -1186,6 +1197,7 @@ def get_daily_guidance(
                 birth_profile_id=birth_profile_id,
                 score_date=on_date,
                 calculation_version=chart_snapshot.meta.calculation_version,
+                goal_track=goal_track,
             )
         if cached is not None:
             return cached
@@ -1207,6 +1219,7 @@ def get_daily_guidance(
             score_date=on_date,
             response=response,
             calculation_version=chart_snapshot.meta.calculation_version,
+            goal_track=goal_track,
         )
     return response
 
@@ -1237,12 +1250,17 @@ def get_daily_guidance_range(
     # can pass it in to avoid paying for `_birth_panchangam_signature`'s
     # ~1.2s recomputation twice in the same request.
     chart_snapshot = chart_snapshot or load_persisted_chart_response(session, chart.chart_id)
+    # Resolved once for the whole range, not once per day.
+    goal_track = chart_goal_track(
+        session, chart_snapshot.data.birth_profile, _persisted_chart_owner(chart_snapshot)
+    )
     preloaded_cache = _load_daily_score_cache_range(
         session,
         birth_profile_id=chart_snapshot.data.birth_profile.birth_profile_id,
         start_date=from_date,
         end_date=to_date,
         calculation_version=chart_snapshot.meta.calculation_version,
+        goal_track=goal_track,
     )
 
     # NOTE: threading was tried here and measured *slower* than the plain
@@ -1265,6 +1283,7 @@ def get_daily_guidance_range(
                 language,
                 chart_snapshot=chart_snapshot,
                 preloaded_cache=preloaded_cache,
+                goal_track=goal_track,
             ).data
         )
         current += timedelta(days=1)
@@ -1483,6 +1502,9 @@ class _TimingChart:
     context_row: object | None
     birth_profile_id: UUID
     cache_eligible: bool
+    # The same track get_daily_guidance applies, so both paths write the same
+    # cache row instead of overwriting each other's (the score is track-free, D2).
+    goal_track: str | None
     daily_location: EffectiveDailyLocation
     panchang_by_date: dict[date, PanchangamSnapshot]
     score_cache: dict
@@ -1500,6 +1522,7 @@ def _load_timing_chart(
     owner_user_id = _persisted_chart_owner(snapshot)
     context_row = get_context_row(session, owner_user_id, chart_id)
     birth_profile_id = snapshot.data.birth_profile.birth_profile_id
+    goal_track = chart_goal_track(session, snapshot.data.birth_profile, owner_user_id)
     # Batch-load/compute the whole month up front instead of looping per-day
     # (which previously recomputed panchangam from scratch — no session/cache —
     # and issued a separate DailyScore SELECT for every day).
@@ -1513,6 +1536,7 @@ def _load_timing_chart(
         context_row=context_row,
         birth_profile_id=birth_profile_id,
         cache_eligible=not active_goals and context_row is None,
+        goal_track=goal_track,
         daily_location=daily_location,
         panchang_by_date=calculate_daily_panchangam_range(
             month_start,
@@ -1528,6 +1552,7 @@ def _load_timing_chart(
             start_date=month_start,
             end_date=month_end,
             calculation_version=snapshot.meta.calculation_version,
+            goal_track=goal_track,
         ),
     )
 
@@ -1558,6 +1583,7 @@ def _timing_day_score(session: Session, reader: _TimingChart, d: date) -> int:
         active_goals=reader.active_goals,
         context_row=reader.context_row,
         journal_insight=journal_insight,
+        goal_track=reader.goal_track,
     )
     if can_use_cache:
         _store_daily_score_cache(
@@ -1566,6 +1592,7 @@ def _timing_day_score(session: Session, reader: _TimingChart, d: date) -> int:
             score_date=d,
             response=daily_response,
             calculation_version=reader.snapshot.meta.calculation_version,
+            goal_track=reader.goal_track,
         )
     return daily_response.data.score
 
