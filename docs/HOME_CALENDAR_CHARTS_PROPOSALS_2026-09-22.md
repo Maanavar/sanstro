@@ -1,6 +1,6 @@
 # Home, Calendar and Charts proposals: research and plan
 
-**Date:** 2026-09-22 · **Status:** owner rulings recorded (R1–R6, below); §7 fixed in `7347030`; §1 web-first slice implemented, not committed; the rest not built · **Asked by:** owner
+**Date:** 2026-09-22 · **Status:** owner rulings recorded (R1–R6, below); §7 fixed in `7347030`; §1 web + mobile slices committed in `8f60d0f`, device/browser sign-off still open; the rest not built · **Asked by:** owner
 
 Seven owner questions, each read through four lenses: Tamil Thirukanitham
 astrologer (**Astro**), full-stack developer (**Dev**), product owner and
@@ -483,7 +483,7 @@ Design notes for the build:
 
 ## Progress
 
-- **§1 web-first live kalam slice implemented (2026-09-22), not committed.**
+- **§1 web-first live kalam slice implemented (2026-09-22), committed in `8f60d0f`.**
   - one shared resolver now decides the period running now for both the Today
     hero and ribbon, with the ruled overlap priority Rahu Kalam > Yamagandam >
     Kuligai;
@@ -516,7 +516,7 @@ Design notes for the build:
     that fails with the imperative form restored, so this can't silently drift
     back.
 
-- **§1 mobile local reminders implemented (2026-09-22), not committed.** R1:
+- **§1 mobile local reminders implemented (2026-09-22), committed in `8f60d0f`.** R1:
   opt-in, local, offline, no server load.
   - `timeOnDateToMs` (+ its DST-refinement helpers) moved from `web/lib/tz.ts`
     to `packages/shared/src/utils/tz.ts`, re-exported from web unchanged, so
