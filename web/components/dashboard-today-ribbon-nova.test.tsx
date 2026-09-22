@@ -101,3 +101,51 @@ describe("DashboardTodayRibbonNova glossary", () => {
     expect(live).toHaveAttribute("aria-current", "time");
   });
 });
+
+/* §2.4 of docs/HOME_CALENDAR_CHARTS_PROPOSALS_2026-09-22.md: every time on
+   this card is cut from sunrise at one place, so the card names that place
+   without waiting to be asked. */
+describe("DashboardTodayRibbonNova place label", () => {
+  function renderWithPlace(place: string | null | undefined, lang: "en" | "ta" = "en") {
+    return render(
+      <DashboardTodayRibbonNova
+        lang={lang}
+        panchangam={panchangamFixture()}
+        weekAhead={null}
+        selectedDate="2026-06-04"
+        now={new Date("2026-06-04T08:00:00+05:30")}
+        timeZone="Asia/Kolkata"
+        place={place}
+      />,
+    );
+  }
+
+  it("names the place the day's timings were computed for, city only", () => {
+    renderWithPlace("Chennai, Tamil Nadu, India");
+
+    const label = screen.getByText("Timings for Chennai");
+    expect(label).toBeInTheDocument();
+    // The whole saved string survives in the title: shortening is a layout
+    // decision, not a loss of what the reader actually saved.
+    expect(label).toHaveAttribute("title", "Chennai, Tamil Nadu, India");
+  });
+
+  it("names it in Tamil in the almanac's own form", () => {
+    renderWithPlace("Chennai, Tamil Nadu, India", "ta");
+
+    // "<place> நேரப்படி" — by Chennai time. Not a translated preposition:
+    // the saved place is a Latin-script string and a Tamil case suffix does not
+    // attach to one cleanly. A Tamil reader must still be told the place, so an
+    // en-only assertion would not have covered this surface.
+    expect(screen.getByText("Chennai நேரப்படி")).toBeInTheDocument();
+  });
+
+  it("prints no label at all when no place is known", () => {
+    // A profile with no usable location resolves to no place. An empty
+    // "Timings for" would be worse than silence.
+    renderWithPlace(null);
+
+    expect(screen.queryByText(/Timings for/)).not.toBeInTheDocument();
+    expect(screen.getByText(/sunrise/)).toBeInTheDocument();
+  });
+});

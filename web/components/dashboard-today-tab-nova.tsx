@@ -1854,6 +1854,7 @@ export function DashboardTodayTabNova({
         selectedDate={dataDate}
         now={now}
         timeZone={panchangamTimezone}
+        place={panchangamPlace}
         onGoToCalendar={onGoToCalendar}
       />
       </Reveal>

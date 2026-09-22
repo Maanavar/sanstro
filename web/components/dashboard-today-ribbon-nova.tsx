@@ -3,8 +3,11 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 
+import { placeCityLabel } from "@vinaadi/shared/checkIn";
+
 import { limbNow } from "./dashboard-calendar-shared";
 import { formatClockHour, formatClockLabel, getScoreBand, scoreColorScale } from "@/lib/format";
+import { dt, LOCATION_CHECK } from "@/lib/dashboard-i18n";
 import { tNakshatra, tTithi } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { GlossaryKey } from "@/lib/glossary";
@@ -106,6 +109,7 @@ export function DashboardTodayRibbonNova({
   selectedDate,
   now,
   timeZone,
+  place,
   onGoToCalendar,
 }: {
   lang: Lang;
@@ -117,6 +121,12 @@ export function DashboardTodayRibbonNova({
    *  this zone, since every time on this card is wall-clock at the panchangam
    *  location, not the browser's (DASH-01). */
   timeZone?: string | null;
+  /** The place every time on this card was cut from (§2.4). Server-resolved
+   *  (`panchangamPlace` on the dashboard bundle) rather than re-derived from
+   *  the profile: the resolver falls back to the birth place when the current
+   *  location is incomplete, and a client that re-picked the fields would
+   *  label these timings with a place they were not computed for. */
+  place?: string | null;
   onGoToCalendar?: () => void;
 }) {
   // Page-turn: the whole ribbon re-reveals when the selected day changes, so
@@ -135,6 +145,11 @@ export function DashboardTodayRibbonNova({
   // correctly; the two surfaces disagreed. `sunriseName` is kept and shown when
   // it differs, because the almanac genuinely does call today a Swathi day.
   const isToday = selectedDate === toDateKeyInZone(now, timeZone);
+  // §2.4. Every time on this card — sunrise, the kalam bar, the horai — is
+  // cut from sunrise at one place, so the card says which place that is. It
+  // sits on the meta line rather than in a prompt: a reader who has moved
+  // should be able to see the mistake without being asked a question.
+  const placeLabel = placeCityLabel(place);
   const currentKalam = resolveKalamStatus(panchangam.kalam, {
     now,
     dateLocal: panchangam.dateLocal,
@@ -275,6 +290,14 @@ export function DashboardTodayRibbonNova({
             {lang === "ta" ? "இன்றைய நாள்" : "Your day"}
           </div>
           <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "2px" }}>
+            {placeLabel && (
+              <>
+                <b style={{ color: "var(--color-text)" }} title={place ?? undefined}>
+                  {dt(LOCATION_CHECK.timingsFor, lang).replace("%1$s", placeLabel)}
+                </b>
+                {" · "}
+              </>
+            )}
             {lang === "ta" ? "சூரிய உதயம்" : "sunrise"} {formatClockLabel(panchangam.sunrise, lang)} · {lang === "ta" ? "அஸ்தமனம்" : "sunset"} {formatClockLabel(panchangam.sunset, lang)}
             {/* Was bare "Nakshatram". The natal star is labelled "Birth Star"
                 everywhere else in the app, so the same concept carried two

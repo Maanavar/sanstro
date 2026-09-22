@@ -1740,7 +1740,13 @@ export function DashboardWorkspace() {
           selectedVaultId={family.selectedVaultId}
           selectedDate={selectedDate}
           panchangamSunrise={personal.panchangam?.sunrise ?? null}
-          panchangamPlace={personal.chart?.birthProfile.currentPlace ?? personal.chart?.birthProfile.birthPlace ?? null}
+          // Server-resolved, not re-picked from the profile (§2.4). The
+          // resolver falls back to the birth place when the current location is
+          // missing *any* of place/lat/lng/timezone, so a profile with a typed
+          // city but no coordinates is computed at its birth place while this
+          // line used to label it with the city — the one case the label
+          // exists to catch.
+          panchangamPlace={personal.panchangamPlace}
           userEmail={session.userEmail}
           showUserMenu={session.showUserMenu}
           alertCount={personal.ambientAlerts.length}

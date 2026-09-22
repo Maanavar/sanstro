@@ -18,7 +18,9 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Image from "next/image";
+import { placeCityLabel } from "@vinaadi/shared/checkIn";
 import { rasiDisplayName } from "@/lib/chart-utils";
+import { dt, LOCATION_CHECK } from "@/lib/dashboard-i18n";
 import { formatClockLabel } from "@/lib/format";
 import { t, tNakshatra } from "@/lib/i18n";
 import { DUR, EASE_NOVA, prefersReducedMotion } from "@/lib/motion";
@@ -196,6 +198,7 @@ export function DashboardHero(props: DashboardHeroProps) {
   } = props;
 
   const errorStatus = status?.tone === "error" ? status : null;
+  const panchangamCity = placeCityLabel(panchangamPlace);
   const [showAlerts, setShowAlerts] = useState(false);
   const [showInbox, setShowInbox] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -749,16 +752,26 @@ export function DashboardHero(props: DashboardHeroProps) {
                     {errorStatus.text}
                   </span>
                 )}
-                {/* Provenance note — which sunrise/place the day's panchangam
-                    was computed from. Yields the slot while an error is
-                    showing. New ta copy pending native review. */}
+                {/* Provenance note — which place and sunrise the day's
+                    panchangam was computed from. Yields the slot while an error
+                    is showing. New ta copy pending native review.
+
+                    §2.4 (2026-09-23): the place leads. It used to trail the
+                    sunrise as ` · Chennai`, reading as a footnote to the time
+                    rather than as the thing the time depends on, and it printed
+                    the whole saved string ("Chennai, Tamil Nadu, India") into a
+                    sub-bar slot sized for a few words. Now it is the sentence's
+                    subject, shortened to the city, with the full string still in
+                    `title`. */}
                 {!errorStatus && panchangamSunrise && (
                   <span className="cd-subbar__status" title={panchangamPlace ?? undefined}>
                     <span className="cd-subbar__status-check" aria-hidden="true">✓</span>
+                    {panchangamCity
+                      ? `${dt(LOCATION_CHECK.timingsFor, lang).replace("%1$s", panchangamCity)} · `
+                      : ""}
                     {lang === "ta"
-                      ? `பஞ்சாங்கம் ${formatClockLabel(panchangamSunrise, lang)} கணக்கிடப்பட்டது`
-                      : `Panchangam computed ${formatClockLabel(panchangamSunrise, lang)}`}
-                    {panchangamPlace ? ` · ${panchangamPlace}` : ""}
+                      ? `சூரிய உதயம் ${formatClockLabel(panchangamSunrise, lang)}`
+                      : `sunrise ${formatClockLabel(panchangamSunrise, lang)}`}
                   </span>
                 )}
               </span>

@@ -121,6 +121,47 @@ describe("DashboardHero — chrome that does not move (DXA-05)", () => {
   });
 });
 
+/**
+ * §2.4 of docs/HOME_CALENDAR_CHARTS_PROPOSALS_2026-09-22.md — the sub-bar's
+ * provenance note names the place today's timings were computed for, so a
+ * reader who has moved can see the mistake without being prompted.
+ */
+describe("DashboardHero panchangam provenance (§2.4)", () => {
+  it("leads with the place, shortened to the city, and keeps the rest in title", () => {
+    renderHero("personal", noop, {
+      panchangamSunrise: "05:45",
+      panchangamPlace: "Chennai, Tamil Nadu, India",
+    });
+
+    const note = screen.getByTitle("Chennai, Tamil Nadu, India");
+    expect(note).toHaveTextContent("Timings for Chennai");
+    expect(note).toHaveTextContent("sunrise");
+    // The place is the subject, not a trailing footnote to the sunrise time.
+    expect(note.textContent?.indexOf("Chennai")).toBeLessThan(
+      note.textContent?.indexOf("sunrise") ?? -1,
+    );
+  });
+
+  it("still prints the sunrise when the profile has no usable place", () => {
+    renderHero("personal", noop, { panchangamSunrise: "05:45", panchangamPlace: null });
+
+    expect(screen.queryByText(/Timings for/)).not.toBeInTheDocument();
+    expect(screen.getByText(/sunrise/)).toBeInTheDocument();
+  });
+
+  it("names it in Tamil too", () => {
+    // The harness pins the audit account to en, so an en-only pass proves
+    // nothing about the Tamil surface (CLAUDE.md display boundary).
+    renderHero("personal", noop, {
+      lang: "ta",
+      panchangamSunrise: "05:45",
+      panchangamPlace: "Chennai, Tamil Nadu, India",
+    });
+
+    expect(screen.getByTitle("Chennai, Tamil Nadu, India")).toHaveTextContent("Chennai நேரப்படி");
+  });
+});
+
 describe("DashboardHero brand mark", () => {
   it("navigates to the personal (home) tab when clicked from another tab", () => {
     const onTabChange = vi.fn();

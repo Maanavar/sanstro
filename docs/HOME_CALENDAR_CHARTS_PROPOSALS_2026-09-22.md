@@ -1,6 +1,6 @@
 # Home, Calendar and Charts proposals: research and plan
 
-**Date:** 2026-09-22 · **Status:** owner rulings recorded (R1–R6, below); §7 fixed in `7347030`; §1 web + mobile slices committed in `8f60d0f`, device/browser sign-off still open; the rest not built · **Asked by:** owner
+**Date:** 2026-09-22 · **Status:** owner rulings recorded (R1–R7, below); §7 and §1 shipped; **§2 complete as of 2026-09-23** (backend, cache invalidation, web check-in strip, and §2.4's place label); §3, §4, §6 and §5 not built; device/browser sign-off open on everything shipped · **Asked by:** owner
 
 Seven owner questions, each read through four lenses: Tamil Thirukanitham
 astrologer (**Astro**), full-stack developer (**Dev**), product owner and
@@ -825,6 +825,55 @@ Design notes for the build:
   **§2.4 ("Timings for Chennai" on the hero and ribbon) is not built.** The
   data is there (`panchangamPlace`); the placement was not among the options
   the owner ruled on, so it needs its own decision.
+
+- **§2.4 built (2026-09-23), closing §2.** The placement decision the entry
+  above deferred, taken on the evidence rather than re-asked: §2's own PO/UX
+  point 4 already names both surfaces, and the ribbon's own header comment
+  calls it "the one place all day-timing lives" — the label belongs on the
+  line that carries sunrise and sunset, because those are the values that move
+  with the place. **It is a label on a meta line, never a prompt**: §2.1's
+  mismatch strip is the prompt, and §2.4 exists so a wrong location is visible
+  *without* one. If the owner wants it louder, that is a change to one line.
+
+  - `placeCityLabel` in `@vinaadi/shared/checkIn`, beside `timeZoneCityLabel`
+    for the contrast the two need to carry: a zone city is an **inference** and
+    only ever a search seed (owner ruling above), while a saved place is what
+    the reader themselves picked, so it can be shown as the answer.
+  - Ribbon (`dashboard-today-ribbon-nova.tsx`): `Timings for Chennai` leads the
+    sunrise/sunset meta line. Tamil uses the almanac's own form,
+    `Chennai நேரப்படி` (by Chennai time), rather than a translated English
+    preposition — the saved place is a Latin-script string and a Tamil case
+    suffix does not attach to one cleanly.
+  - **Top-bar note: a real bug, not just copy.** `dashboard-workspace.tsx`
+    passed the hero `currentPlace ?? birthPlace`, re-deriving in the client the
+    choice the server resolver makes. The resolver falls back to the birth
+    place when the current location is missing **any** of
+    place/lat/lng/timezone, so a profile with a typed city and no coordinates
+    was computed at its birth place and labelled with the city — exactly the
+    case the label exists to catch, inverted. It now passes the bundle's
+    server-resolved `panchangamPlace`. Same class as the saved rule "a client
+    default overrides the server's answer".
+  - The note also stopped printing the whole saved string
+    ("Chennai, Tamil Nadu, India") into a sub-bar slot sized for a few words,
+    and the place moved from a trailing `· Chennai` footnote to the sentence's
+    subject. The full string stays in `title`.
+
+  Gate: 9 new tests (3 ribbon, 3 hero, 3 for `placeCityLabel`), each half in
+  Tamil as well as English. **Run with the fix removed: the 2 ribbon and all 3
+  hero assertions fail**, verified by reverting each render to its previous
+  form and watching the run go red before restoring. Full web suite green: 105
+  files, 1015 tests (was 1006). `tsc --noEmit` and ESLint clean on web and
+  mobile.
+
+  **Blind spot:** every one of these is a jsdom text assertion. None sees how
+  the label sits in the ribbon's meta line at 375 px, whether it pushes the
+  sunrise/sunset pair to a second row in Tamil (where the string is longer),
+  or how the shortened city reads in Nova light and dark. A place whose first
+  comma segment is *not* the city ("Greater Chennai, ...") still shortens to
+  that segment — correct for every entry the bundled picker writes, unverified
+  for a hand-typed one. The Tamil `நேரப்படி` form is unreviewed by a native
+  reader. Mobile has no equivalent label yet; §2.4 named the web hero and
+  ribbon only.
 
 - **§2 Arch, last bullet: the cache question, checked — and it was a real bug
   (2026-09-22), not committed.**

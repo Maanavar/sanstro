@@ -80,3 +80,23 @@ export function timeZoneCityLabel(timeZone: string | null | undefined): string {
   const last = segments[segments.length - 1] ?? "";
   return last.replace(/_/g, " ");
 }
+
+/**
+ * The city part of a saved place string, for naming the place a day's timings
+ * were computed for (§2.4).
+ *
+ * Places are saved as the picker wrote them — "Chennai, Tamil Nadu, India" —
+ * and §2.4's label sits on one meta line beside sunrise and sunset, where the
+ * full string would wrap the row on a phone. The first segment is the city,
+ * which is the part that answers "is this the right place?"; callers keep the
+ * whole string in `title` so nothing is lost.
+ *
+ * Unlike `timeZoneCityLabel` this is **saved data, not an inference** — the
+ * reader picked this place — so it is safe to show as the answer rather than
+ * only as a seed.
+ */
+export function placeCityLabel(place: string | null | undefined): string {
+  if (!place) return "";
+  const first = place.split(",")[0] ?? "";
+  return first.trim();
+}

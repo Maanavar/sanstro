@@ -88,6 +88,14 @@ export const LOCATION_CHECK = {
   save: s("Save", "சேமி"),
   cancel: s("Cancel", "ரத்து"),
   saveFailed: s("Couldn't save. Please try again.", "சேமிக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்."),
+  /** §2.4: name the place every timing on the day was cut from, so a wrong
+   *  location is visible without waiting for a prompt. `%1$s` is the city.
+   *
+   *  The Tamil is the almanac's own form — "<place> நேரப்படி", by <place>
+   *  time — rather than a translation of the English preposition, because the
+   *  saved place is a Latin-script string and Tamil case suffixes do not
+   *  attach to one cleanly. */
+  timingsFor: s("Timings for %1$s", "%1$s நேரப்படி"),
 } as const;
 
 export const LIFE_FOCUS = {

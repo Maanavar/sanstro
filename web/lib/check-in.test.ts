@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isLocationMismatch, pickCheckIn, timeZoneCityLabel, type CheckIn } from "@vinaadi/shared/checkIn";
+import { isLocationMismatch, pickCheckIn, placeCityLabel, timeZoneCityLabel, type CheckIn } from "@vinaadi/shared/checkIn";
 
 describe("pickCheckIn — §2.3, at most one check-in strip per visit", () => {
   it("returns nothing when nothing is owed", () => {
@@ -83,5 +83,25 @@ describe("timeZoneCityLabel", () => {
     expect(timeZoneCityLabel(null)).toBe("");
     expect(timeZoneCityLabel(undefined)).toBe("");
     expect(timeZoneCityLabel("")).toBe("");
+  });
+});
+
+describe("placeCityLabel — §2.4", () => {
+  it("keeps the city out of a full saved place string", () => {
+    expect(placeCityLabel("Chennai, Tamil Nadu, India")).toBe("Chennai");
+    expect(placeCityLabel("Singapore")).toBe("Singapore");
+  });
+
+  it("trims the separator's whitespace", () => {
+    // The picker writes ", " but a hand-typed profile may not.
+    expect(placeCityLabel("Coimbatore ,Tamil Nadu")).toBe("Coimbatore");
+  });
+
+  it("is empty when there is no place, so a caller renders nothing", () => {
+    // A profile with no usable location resolves to no place at all. The label
+    // must collapse rather than print "Timings for ".
+    expect(placeCityLabel(null)).toBe("");
+    expect(placeCityLabel(undefined)).toBe("");
+    expect(placeCityLabel("")).toBe("");
   });
 });
