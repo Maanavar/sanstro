@@ -40,3 +40,4 @@ export * from "./reports";
 export * from "./oneMinuteReading";
 export * from "./fiveMinuteReading";
 export * from "./places";
+export * from "./adminAnalytics";

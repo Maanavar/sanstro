@@ -13,12 +13,14 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { describe, expect, it, vi } from "vitest";
 import type { DailyActivityBoard } from "@/lib/types";
 import { getActivityTimingBatch } from "@vinaadi/shared/api/activityTiming";
+import { track } from "@/lib/analytics";
 
 import { DashboardTodayActivityBoardNova } from "./dashboard-today-activity-board-nova";
 
 vi.mock("@vinaadi/shared/api/activityTiming", () => ({
   getActivityTimingBatch: vi.fn(() => new Promise(() => {})),
 }));
+vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
 
 function verdict(activity: string, label: string, alignment: "SUPPORTS" | "NEUTRAL" | "CAUTION", reason: string) {
   return { activity, label: { ta: label, en: label }, alignment, reason: { ta: reason, en: reason } };
@@ -183,6 +185,7 @@ describe("DashboardTodayActivityBoardNova — life focus", () => {
         isToday
         onOpenAskVinaadi={() => {}}
         focusActivities={focusActivities}
+        focusMode="MARRIAGE"
       />,
     );
   }
@@ -220,5 +223,16 @@ describe("DashboardTodayActivityBoardNova — life focus", () => {
   it("stays quiet on a Chandrashtama day, which already explains the neutral column", () => {
     renderWithFocus({ ...board, isChandrashtama: true }, ["job_change"]);
     expect(screen.queryByText(/nothing specific today/)).toBeNull();
+  });
+
+  it("records a focus-row tap without sending its rendered label or reason", () => {
+    renderWithFocus(board, ["marriage"]);
+    fireEvent.pointerUp(screen.getByText("Marriage").closest("li") as HTMLElement);
+
+    expect(track).toHaveBeenCalledWith("life_focus_row_tapped", {
+      focus: "MARRIAGE",
+      activity: "marriage",
+      surface: "web",
+    });
   });
 });

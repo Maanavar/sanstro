@@ -1464,6 +1464,8 @@ export type LifeMode =
   | "STUDY" | "CAREER" | "LOVE" | "MARRIAGE" | "FAMILY"
   | "WEALTH" | "HEALTH" | "SPIRITUALITY" | "REMEDIES" | "BALANCED";
 
+export type LifeModeUpdateIntent = "SELECT" | "SKIP" | "KEEP";
+
 export interface LifeModeStatus {
   mode: LifeMode; lifeModeSetAt: string | null;
   showLifeModePicker: boolean; blockedModes?: string[];

@@ -51,6 +51,7 @@ import { NovaStarRow } from "./dashboard-ui-nova";
 import { GlanceHeader } from "./dashboard-today-glance-nova";
 import { Card } from "./ui";
 import { dt, LIFE_FOCUS } from "@/lib/dashboard-i18n";
+import { track } from "@/lib/analytics";
 import { formatClockHour } from "@/lib/format";
 import type { Lang } from "@/lib/i18n";
 import { pinFirst } from "@/lib/life-focus";
@@ -60,6 +61,7 @@ import type {
   DailyActivityBoard,
   DailyActivityVerdict,
   DailyGuidanceWindow,
+  LifeMode,
 } from "@/lib/types";
 
 function tx(value: { ta: string; en: string }, lang: Lang): string {
@@ -233,6 +235,7 @@ function ActivityCardNova({
   nextFavourableDates,
   onGoToCalendar,
   isFocus = false,
+  onFocusTap,
 }: {
   verdict: DailyActivityVerdict;
   lang: Lang;
@@ -243,6 +246,7 @@ function ActivityCardNova({
   onGoToCalendar?: () => void;
   /** Life focus T3: one of the reader's focus activities, led with and labelled. */
   isFocus?: boolean;
+  onFocusTap?: () => void;
 }) {
   const [showTimingHint, setShowTimingHint] = useState(false);
   const { color, bg, border, stars, statusEn, statusTa } = TONE_STYLE[tone];
@@ -269,6 +273,7 @@ function ActivityCardNova({
       onMouseLeave={() => setShowTimingHint(false)}
       onFocus={() => setShowTimingHint(true)}
       onBlur={() => setShowTimingHint(false)}
+      onPointerUp={isFocus ? onFocusTap : undefined}
       style={{
         position: "relative",
         flex: "0 0 158px",
@@ -363,11 +368,14 @@ export function DashboardTodayActivityBoardNova({
   onOpenAskVinaadi,
   onGoToCalendar,
   focusActivities = [],
+  focusMode = "BALANCED",
 }: {
   board: DailyActivityBoard | null | undefined;
   /** Life focus T3: these activity types lead the carousel. Verdicts are
    *  untouched; only the order changes (D2). */
   focusActivities?: readonly string[];
+  /** Server-returned focus key; event properties never contain rendered text. */
+  focusMode?: LifeMode;
   lang: Lang;
   chartId: string | null;
   selectedDate: string;
@@ -626,6 +634,11 @@ export function DashboardTodayActivityBoardNova({
             nextFavourableDates={tone === "good" ? undefined : nextFavourableDatesFor(v.activity)}
             onGoToCalendar={tone === "caution" ? onGoToCalendar : undefined}
             isFocus={isFocus(v.activity)}
+            onFocusTap={() => track("life_focus_row_tapped", {
+              focus: focusMode,
+              activity: v.activity,
+              surface: "web",
+            })}
           />
         ))}
         {/* The rules cover eleven activities; this is the way out for the

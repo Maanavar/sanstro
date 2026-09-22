@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { apiFetchJson, getApiError } from "@/lib/api";
+import { track } from "@/lib/analytics";
 import type { Lang } from "@/lib/i18n";
 import type { AskVinaadiResponseData, ConfidenceTier, LifeMode } from "@/lib/types";
 import { getChipsForMode } from "@/lib/ask-vinaadi-chips";
@@ -209,7 +210,14 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
               <button
                 key={`chip-${i}`}
                 disabled={limitReached}
-                onClick={() => void submit(lang === "ta" ? s.ta : s.en, true)}
+                onClick={() => {
+                  track("life_focus_ask_chip_tapped", {
+                    focus: activeLifeMode,
+                    surface: "web",
+                    chip_index: i,
+                  });
+                  void submit(lang === "ta" ? s.ta : s.en, true);
+                }}
                 style={{ fontSize: "12px", padding: "5px 10px", borderRadius: "20px", border: "1px solid var(--cl-brand-edge)", background: limitReached ? "var(--brand-tint-faint)" : "var(--ring-brand)", color: "var(--color-accent, var(--panel-brand))", cursor: limitReached ? "not-allowed" : "pointer", opacity: limitReached ? 0.5 : 1 }}
               >
                 {lang === "ta" ? s.ta : s.en}

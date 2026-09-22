@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime, timedelta
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -12,7 +12,9 @@ from app.core.auth import get_admin_user
 from app.db.session import get_db
 from app.models import BirthProfile, Chart, FamilyVault
 from app.models.ask_vinaadi_usage import AskVinaadiUsage
+from app.models.life_focus_event import LifeFocusEvent
 from app.models.user import User
+from app.models.user_preference import UserPreference
 
 router = APIRouter(prefix="/admin/analytics", tags=["admin"])
 
@@ -46,6 +48,42 @@ class RetentionCohort(BaseModel):
 
 class RetentionReport(BaseModel):
     cohorts: list[RetentionCohort]
+
+
+class LifeFocusMetrics(BaseModel):
+    period: str
+    total_users: int
+    non_balanced_users: int
+    non_balanced_share: float
+    mode_counts: dict[str, int]
+    first_run_decisions: int
+    first_run_skips: int
+    first_run_skip_rate: float | None
+    focus_change_count: int
+    focus_active_users: int
+    focus_changes_per_active_user: float | None
+
+
+def _month_bounds(month: str | None) -> tuple[datetime, datetime]:
+    if month is None:
+        now = datetime.now(UTC)
+        start = datetime(now.year, now.month, 1, tzinfo=UTC)
+    else:
+        try:
+            parsed = datetime.strptime(month, "%Y-%m")
+            if parsed.strftime("%Y-%m") != month:
+                raise ValueError
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="month must be YYYY-MM",
+            ) from exc
+        start = parsed.replace(tzinfo=UTC)
+    if start.month == 12:
+        end = datetime(start.year + 1, 1, 1, tzinfo=UTC)
+    else:
+        end = datetime(start.year, start.month + 1, 1, tzinfo=UTC)
+    return start, end
 
 
 def _series_from_rows(rows: list[tuple[date, int]], *, days: int) -> list[DailyCount]:
@@ -124,6 +162,98 @@ def get_feature_usage(
         ask_vinaadi_today=ask_today,
         birth_profiles_total=count(BirthProfile),
         as_of=datetime.now(UTC).isoformat(),
+    )
+
+
+@router.get(
+    "/life-focus",
+    response_model=LifeFocusMetrics,
+    summary="Life Focus adoption, first-run Skip, and monthly change rate",
+)
+def get_life_focus_metrics(
+    month: str | None = None,
+    session: Session = Depends(get_db),
+    _: User = Depends(get_admin_user),
+) -> LifeFocusMetrics:
+    """Read the server-authoritative Phase 4 measures.
+
+    ``focus_active_users`` means distinct users who interacted with the focus
+    PATCH during the requested month. That is the denominator the plan says a
+    PATCH-only store can support; broader product MAU remains a PostHog metric.
+    """
+
+    start, end = _month_bounds(month)
+    total_users = int(session.execute(select(func.count()).select_from(User)).scalar_one())
+    saved_rows = session.execute(
+        select(UserPreference.life_mode, func.count(UserPreference.preference_id)).group_by(
+            UserPreference.life_mode
+        )
+    ).all()
+    saved_counts = {str(mode): int(count) for mode, count in saved_rows}
+    non_balanced_users = sum(
+        count for mode, count in saved_counts.items() if mode != "BALANCED"
+    )
+    mode_counts = dict(sorted(saved_counts.items()))
+    # A user without a preference receives BALANCED, so the denominator is all
+    # users rather than only readers who have opened the picker.
+    mode_counts["BALANCED"] = total_users - non_balanced_users
+
+    in_period = (
+        LifeFocusEvent.created_at >= start,
+        LifeFocusEvent.created_at < end,
+    )
+    first_run_decisions = int(
+        session.execute(
+            select(func.count())
+            .select_from(LifeFocusEvent)
+            .where(*in_period, LifeFocusEvent.is_first_run.is_(True))
+        ).scalar_one()
+    )
+    first_run_skips = int(
+        session.execute(
+            select(func.count())
+            .select_from(LifeFocusEvent)
+            .where(
+                *in_period,
+                LifeFocusEvent.is_first_run.is_(True),
+                LifeFocusEvent.intent == "SKIP",
+            )
+        ).scalar_one()
+    )
+    focus_active_users = int(
+        session.execute(
+            select(func.count(func.distinct(LifeFocusEvent.user_id))).where(*in_period)
+        ).scalar_one()
+    )
+    focus_change_count = int(
+        session.execute(
+            select(func.count())
+            .select_from(LifeFocusEvent)
+            .where(
+                *in_period,
+                LifeFocusEvent.is_first_run.is_(False),
+                LifeFocusEvent.intent == "SELECT",
+                LifeFocusEvent.previous_mode != LifeFocusEvent.new_mode,
+            )
+        ).scalar_one()
+    )
+
+    return LifeFocusMetrics(
+        period=start.strftime("%Y-%m"),
+        total_users=total_users,
+        non_balanced_users=non_balanced_users,
+        non_balanced_share=round(non_balanced_users / total_users, 4) if total_users else 0.0,
+        mode_counts=mode_counts,
+        first_run_decisions=first_run_decisions,
+        first_run_skips=first_run_skips,
+        first_run_skip_rate=(
+            round(first_run_skips / first_run_decisions, 4) if first_run_decisions else None
+        ),
+        focus_change_count=focus_change_count,
+        focus_active_users=focus_active_users,
+        focus_changes_per_active_user=(
+            round(focus_change_count / focus_active_users, 4) if focus_active_users else None
+        ),
     )
 
 

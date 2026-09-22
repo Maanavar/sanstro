@@ -1738,6 +1738,7 @@ export function DashboardTodayTabNova({
         onOpenAskVinaadi={onOpenAskVinaadi}
         onGoToCalendar={onGoToCalendar}
         focusActivities={lifeFocus.activities}
+        focusMode={activeLifeMode}
       />
       </Reveal>
 

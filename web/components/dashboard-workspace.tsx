@@ -1025,7 +1025,7 @@ export function DashboardWorkspace() {
 
   const keepLifeMode = useCallback(async () => {
     try {
-      setLifeModeStatus(await updateLifeMode(activeLifeMode));
+      setLifeModeStatus(await updateLifeMode(activeLifeMode, "KEEP"));
     } catch {
       // The strip stays up; the reader can try again or dismiss it.
     }
@@ -2244,7 +2244,7 @@ export function DashboardWorkspace() {
               onSaveUserSettings={(mode) => saveUserSettings(mode)}
               lifeMode={activeLifeMode}
               blockedLifeModes={lifeModeStatus?.blockedModes ?? []}
-              onSaveLifeMode={async (mode) => setLifeModeStatus(await updateLifeMode(mode))}
+              onSaveLifeMode={async (mode) => setLifeModeStatus(await updateLifeMode(mode, "SELECT"))}
               onSelectedDateChange={setSelectedDate}
               onRefreshPersonal={() => void personal.refreshPersonalBundle(undefined, undefined, true, { forceDay: true })}
               onRefreshFamily={() => void family.refreshFamilyBundle()}
@@ -2437,6 +2437,5 @@ export function DashboardWorkspace() {
     </MotionConfig>
   );
 }
-
 
 

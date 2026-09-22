@@ -57,7 +57,7 @@ export function LifeModePicker({ lang, currentMode, blockedModes, firstRun, onCl
     setSaving(mode);
     setError(null);
     try {
-      const status = await updateLifeMode(mode);
+      const status = await updateLifeMode(mode, "SELECT");
       onSelected(status);
       onClose();
     } catch {
@@ -74,7 +74,7 @@ export function LifeModePicker({ lang, currentMode, blockedModes, firstRun, onCl
   function skip() {
     onClose();
     if (!firstRun) return;
-    updateLifeMode("BALANCED").then(onSelected).catch(() => {});
+    updateLifeMode("BALANCED", "SKIP").then(onSelected).catch(() => {});
   }
 
   return (

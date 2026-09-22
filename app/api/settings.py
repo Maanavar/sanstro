@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Literal
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -11,6 +12,7 @@ from app.core.age_gate import is_minor
 from app.core.auth import get_current_user
 from app.core.life_mode import ALL_LIFE_MODES, effective_life_mode, focus_mapping, is_focus_nudge_due
 from app.db.session import get_db
+from app.models.life_focus_event import LifeFocusEvent
 from app.models.user import User
 from app.models.user_preference import UserPreference
 from app.schemas.settings import JournalSettingsResponse, JournalSettingsUpdateRequest
@@ -113,6 +115,8 @@ def _life_mode_response(pref: UserPreference | None, blocked: frozenset[str]) ->
 
 class LifeModeUpdateRequest(BaseModel):
     mode: str
+    # Optional on the wire for old clients; every current surface sends it.
+    intent: Literal["SELECT", "SKIP", "KEEP"] = "SELECT"
     model_config = ConfigDict(populate_by_name=True)
 
 
@@ -146,7 +150,17 @@ def update_life_mode(
             detail=f"The '{mode}' focus is not available for your profile.",
         )
 
-    pref = _get_or_create_preference(session, current_user.user_id)
+    existing_pref = session.query(UserPreference).filter_by(owner_user_id=current_user.user_id).first()
+    is_first_run = existing_pref is None or existing_pref.show_life_mode_picker
+    previous_mode = existing_pref.life_mode if existing_pref else "BALANCED"
+
+    if payload.intent == "SKIP" and (not is_first_run or mode != "BALANCED"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="SKIP is valid only for BALANCED on the first-run picker.",
+        )
+
+    pref = existing_pref or _get_or_create_preference(session, current_user.user_id)
     pref.life_mode = mode
     pref.life_mode_set_at = datetime.now(tz=UTC)
     pref.show_life_mode_picker = False
@@ -158,6 +172,15 @@ def update_life_mode(
     user_row = session.get(User, current_user.user_id)
     if user_row is not None:
         user_row.goal_track = focus_mapping(mode).goal_track
+    session.add(
+        LifeFocusEvent(
+            user_id=current_user.user_id,
+            intent=payload.intent,
+            previous_mode=previous_mode,
+            new_mode=mode,
+            is_first_run=is_first_run,
+        )
+    )
     session.flush()
     session.refresh(pref)
     return _life_mode_response(pref, blocked)

@@ -23,6 +23,7 @@ import { useSession } from "@/hooks/useSession";
 import { getDailyStatus, askVinaadi } from "@/api/askVinaadi";
 import { useLifeFocus } from "@/hooks/useLifeFocus";
 import { askChipsForMode } from "@vinaadi/shared/lifeFocus";
+import { trackEvent } from "@/lib/analytics";
 
 // The chips follow the reader's life focus, the same three web shows
 // (LIFE_MODE_ASK_CHIPS in @vinaadi/shared; Life focus Phase 3). Until the
@@ -290,7 +291,14 @@ export default function AskVinaadiScreen() {
               <TouchableOpacity
                 key={i}
                 style={styles.suggestChip}
-                onPress={() => sendMessage(isTamil ? q.ta : q.en, true)}
+                onPress={() => {
+                  trackEvent("life_focus_ask_chip_tapped", {
+                    focus: focusMode,
+                    surface: "mobile",
+                    chip_index: i,
+                  });
+                  void sendMessage(isTamil ? q.ta : q.en, true);
+                }}
                 disabled={atLimit}
                 activeOpacity={0.85}
               >

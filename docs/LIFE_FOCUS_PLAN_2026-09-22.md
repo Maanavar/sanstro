@@ -386,6 +386,70 @@ on `PATCH /settings/life-mode` covers the first three):
 
 If a focus is almost never picked, merge it (LOVE/MARRIAGE are the likely pair).
 
+**Status 2026-09-22: implemented and committed.** Measurement is now in
+place; tuning waits for a real sample rather than guessing from synthetic data.
+Implementation notes:
+- **Existing logging audit.** There was no server-side product-event store.
+  `user_life_events` is the reader's domain data, `prediction_log` is outcome
+  calibration, `ask_vinaadi_usage` is only a per-day quota count, and the admin
+  analytics routes aggregate existing tables. Web and mobile already send
+  explicit PostHog events; mobile's transport is opt-in, allowlisted and
+  fail-closed, while web no-ops without a key and honours Do Not Track.
+- **One atomic signal, not a second endpoint.** `PATCH /settings/life-mode`
+  accepts optional `intent: SELECT | SKIP | KEEP` (default `SELECT` for old
+  clients). Current web/mobile callers send it explicitly. Skip is valid only
+  for first-run BALANCED. The state write and its event therefore commit or
+  roll back together, and the server decides whether the interaction was truly
+  first-run. This distinguishes Skip from choosing Balanced without trusting a
+  separate best-effort browser event.
+- **Minimal server record.** `life_focus_events` stores only opaque user id,
+  intent, previous/new mode, the first-run bit and timestamp. No birth, chart,
+  profile, rendered label, or question data. Its user FK cascades on account
+  deletion. Migration `qq0a1b2c3d4e` is reversible.
+- **The first three measures are admin-only.** `GET
+  /api/v1/admin/analytics/life-focus?month=YYYY-MM` returns current saved-mode
+  adoption, first-run Skip rate for the month, and actual post-onboarding
+  SELECT transitions per distinct user who used the focus PATCH that month.
+  Missing preferences count as BALANCED. A typed shared wrapper mirrors the
+  route; normal users receive 403.
+- **Tap measures stay consent-aware client analytics.** Both Ask surfaces emit
+  `life_focus_ask_chip_tapped` with only `focus`, `surface` and `chip_index`.
+  Web T3 focus cards emit `life_focus_row_tapped` with `focus`, `surface` and
+  the language-free activity key. No question or rendered text is sent.
+  Mobile has no T3 activity row yet, so that event is web-only by design.
+
+**Gates:**
+- `tests/test_life_focus_phase4.py` (5): Skip versus chose-Balanced, real
+  changes versus first choice/Keep, aggregate values, invalid month, and the
+  admin boundary. The suite failed before the table/route existed; the admin
+  case also failed 403 -> 200 with its dependency removed.
+- Shared/mobile contract and analytics tests (27, including a rendered mobile
+  Ask screen): the PATCH body includes intent, the new event is dropped before
+  consent, and after consent only its allowlisted aggregate-safe properties
+  pass. The wrapper, allowlist and screen-emitter assertions each failed before
+  their fixes.
+- Web Ask/activity tests (13 focused; 28 with the existing focus helpers):
+  focus and language-free keys reach analytics, never question/label text.
+  Both tap gates failed with their emitters removed.
+- Test-DB migration cycle: clean `vinaadi_test` -> upgrade to
+  `qq0a1b2c3d4e` (table present) -> downgrade to `pp9f0a1b2c3d` (absent) ->
+  upgrade again (present). Broader backend focus/admin regression: 58/58;
+  full web suite 960/960; full mobile run 95/96 with its sole unrelated
+  birth-details 5-second timeout then 5/5 in an isolated rerun; shared/web/mobile
+  `tsc`, changed-file `ruff` and ESLint clean.
+
+**What the gates cannot see:** there is no production PostHog delivery or
+dashboard check (test/dev have no key, and mobile remains off without opt-in),
+so event arrival and the eventual per-focus breakdown still need production
+observation. Server history starts at this migration; it does not reconstruct
+old first-run choices or changes. "Active" in the server rate means a distinct
+user of the focus PATCH, not whole-product MAU. The adoption count reads the
+saved preference, so a focus that D5 currently masks as BALANCED after a
+profile edit still counts as the user's non-BALANCED choice. The T3 pointer
+gate proves the event payload, not that a reader understands the card as
+tappable, and a nested better-date tap also bubbles as a row tap. No browser or
+device pass was run because this phase changes no visible UI.
+
 ---
 
 ## 6. Open questions for the owner
