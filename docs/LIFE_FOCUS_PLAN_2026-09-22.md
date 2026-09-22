@@ -373,9 +373,8 @@ run. The chip, the pre-selects and every mobile screen are checked only by
 tests and typecheck, in either language and at any width. The push line is
 tested with a synthetic board, not a real chart's day. The chip's real dates
 depend on the engine and were not eyeballed against the Best Days list for the
-same month. `scripts/audit-color-literals.mjs` is red on `HEAD` for a literal in
-`dashboard-ask-vinaadi-widget.tsx` from `af20604`. It is not from this phase and
-is not fixed here.
+same month. (`scripts/audit-color-literals.mjs` had been red since `af20604`
+for an unrelated literal; fixed right after this phase in `7eff4e9`.)
 
 ### Phase 4: measure and tune
 Measure these with whatever event logging exists (if none, a server-side count
