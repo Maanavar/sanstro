@@ -246,10 +246,9 @@ function AvoidWindowCard({
   // stay as actionable through the day as the opportunity axis beside it.
   const period = pickAvoidPeriod(panchangam.kalam, { now, dateLocal, timeZone: GUEST_LOCATION.tz });
   if (!period) return null;
-  const name = mt(
-    period.key === "yamagandam" ? HOME.today_yama : period.key === "kuligai" ? HOME.today_kuligai : HOME.today_rahu,
-    lang,
-  );
+  // Kuligai is no longer a candidate (R7) — `pickAvoidPeriod` rotates Rahu
+  // Kalam and Yamagandam only.
+  const name = mt(period.key === "yamagandam" ? HOME.today_yama : HOME.today_rahu, lang);
   const { phase, remainingMs } = spanState(period, { now, dateLocal, timeZone: GUEST_LOCATION.tz });
 
   let status: string | null = null;
@@ -311,7 +310,15 @@ function OtherTimings({ panchangam, lang }: { panchangam: PanchangamDailyRespons
     // way, and the review named that structure as correct.
     { key: "rahu", label: mt(HOME.today_rahu, lang), value: kalam.rahuKalam ? fmt(kalam.rahuKalam) : null },
     { key: "yama", label: mt(HOME.today_yama, lang), value: kalam.yamagandam ? fmt(kalam.yamagandam) : null },
-    { key: "kuligai", label: mt(HOME.today_kuligai, lang), value: kalam.kuligai ? fmt(kalam.kuligai) : null },
+    // R7.7: Kuligai is listed here, beside the two avoid kalas but never as one
+    // of them — the note is what keeps a reader from inferring the label's
+    // company means the label's meaning.
+    {
+      key: "kuligai",
+      label: mt(HOME.today_kuligai, lang),
+      value: kalam.kuligai ? fmt(kalam.kuligai) : null,
+      note: kalam.kuligai ? mt(HOME.today_kuligai_note, lang) : null,
+    },
     {
       key: "abhijit",
       label: mt(HOME.today_abhijit, lang),
@@ -337,7 +344,7 @@ function OtherTimings({ panchangam, lang }: { panchangam: PanchangamDailyRespons
       <p className="cl-today__more-note">{mt(HOME.today_other_note, lang)}</p>
       <dl className="cl-today__rows">
         {rows.map((row) => (
-          <div key={row.key} className="cl-today__row">
+          <div key={row.key} className="cl-today__row" data-row={row.key}>
             <dt className="cl-today__row-label">{row.label}</dt>
             <dd className="cl-today__row-value">
               {row.value}

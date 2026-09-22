@@ -390,21 +390,26 @@ export const SANI_CYCLE_CARD = {
 // Today used to show four "good time" systems at the same weight as the three
 // avoid-kalas, with nothing telling the reader which to obey. The window above
 // is now chosen by the almanac's own Gowri ranking and guaranteed clear of Rahu
-// Kalam / Yamagandam / Kuligai (see lib/today-windows.ts); these strings carry
-// the one-line "what this system is" for each of the systems it was chosen from.
+// Kalam / Yamagandam (see lib/today-windows.ts); these strings carry the
+// one-line "what this system is" for each of the systems it was chosen from.
 // New Tamil, pending native review.
+//
+// Kuligai is NOT in that clearance list, and this sentence must keep saying so
+// (owner ruling R7, 2026-09-22): Kuligai has no polarity of its own, the
+// activity resolves it, and this window is chosen with no activity in hand. It
+// is named separately by `windowInKuligai` when the two overlap.
 export const TODAY_TIMINGS = {
   clearOfKalas: s(
-    "Clear of Rahu Kalam, Yamagandam and Kuligai.",
-    "ராகு காலம், யமகண்டம், குளிகை ஆகியவற்றில் படாத நேரம்.",
+    "Clear of Rahu Kalam and Yamagandam.",
+    "ராகு காலம், யமகண்டம் ஆகியவற்றில் படாத நேரம்.",
   ),
   skippedForCollision: s(
     "An earlier, higher-ranked window today runs into one of those, so this is the next one clear of them.",
     "இன்று முன்னதாக வரும் சிறந்த நேரம் அவற்றில் ஒன்றில் படுவதால், அதற்கு அடுத்ததாக வரும் தெளிவான நேரம் இது.",
   ),
   allCollide: s(
-    "Every good window today runs into Rahu Kalam, Yamagandam or Kuligai. This is the best of them — many families would simply wait for tomorrow.",
-    "இன்று உள்ள எல்லா நல்ல நேரங்களும் ராகு காலம், யமகண்டம் அல்லது குளிகையில் படுகின்றன. அவற்றுள் சிறந்தது இது — பல குடும்பங்கள் நாளை வரை காத்திருப்பார்கள்.",
+    "Every good window today runs into Rahu Kalam or Yamagandam. This is the best of them — many families would simply wait for tomorrow.",
+    "இன்று உள்ள எல்லா நல்ல நேரங்களும் ராகு காலம் அல்லது யமகண்டத்தில் படுகின்றன. அவற்றுள் சிறந்தது இது; பல குடும்பங்கள் நாளை வரை காத்திருப்பார்கள்.",
   ),
   hasPassed: s(
     "Today's clear windows have already passed.",
@@ -443,13 +448,29 @@ export const TODAY_TIMINGS = {
     "Now: %1$s until %2$s · avoid new starts.",
     "இப்போது: %1$s · %2$s வரை · புதிய தொடக்கங்களைத் தவிர்ப்பது நல்லது.",
   ),
+  // R7 (2026-09-22): lead with the repetition principle, not with "Kuligai is
+  // good". Kuligai has no polarity of its own — what is begun in it tends to
+  // recur, and whether that is wanted is the activity's question, not
+  // Kuligai's. R5's gold/property/marriage/surgery examples stay, as examples.
   liveKuligaiLine: s(
-    "Now: Kuligai until %1$s · good for what you'd want again (gold, property); not for a wedding or surgery.",
-    "இப்போது: குளிகை · %1$s வரை · தங்கம் வாங்குதல், சொத்துப் பதிவு போன்றவை செய்யலாம்; திருமணம், அறுவை சிகிச்சை வேண்டாம்.",
+    "Now: Kuligai until %1$s · suits what you mean to repeat, continue or grow (gold, property); not for a wedding or surgery.",
+    "இப்போது: குளிகை · %1$s வரை · மீண்டும் நிகழ வேண்டிய, தொடர வேண்டியவற்றுக்கு ஏற்றது (தங்கம், சொத்துப் பதிவு); திருமணம், அறுவை சிகிச்சை வேண்டாம்.",
   ),
   kuligaiMeaning: s(
-    "Good for repeat-worthy acquisitions such as gold or property; not for a wedding or surgery.",
-    "மீண்டும் நடைபெற விரும்பும் தங்கம் வாங்குதல், சொத்துப் பதிவு போன்றவற்றுக்கு ஏற்றது; திருமணம், அறுவை சிகிச்சைக்கு அல்ல.",
+    "Suitable for activities intended to repeat, continue or grow, such as gold or property; not for a wedding or surgery.",
+    "மீண்டும் நிகழ வேண்டிய, தொடர வேண்டிய அல்லது வளர வேண்டிய செயல்களுக்கு ஏற்றது; தங்கம், சொத்துப் பதிவு போன்றவை. திருமணம், அறுவை சிகிச்சைக்கு அல்ல.",
+  ),
+  // The promoted window is picked with no activity in hand, so a Kuligai
+  // overlap can neither disqualify it (R7.4) nor be folded silently into
+  // "clear of the kalas" — it is named, as its own conditional line (R7.7).
+  windowInKuligai: s(
+    "This window also falls in Kuligai — suitable for what you mean to repeat, continue or grow; not for a wedding or surgery.",
+    "இந்த நேரம் குளிகையிலும் படுகிறது; மீண்டும் நிகழ வேண்டிய, தொடர வேண்டிய செயல்களுக்கு ஏற்றது. திருமணம், அறுவை சிகிச்சைக்கு அல்ல.",
+  ),
+  // R7.6: informational, never the avoid register.
+  abhijitInKuligai: s(
+    "It also falls in Kuligai, which depends on what you are doing rather than being an avoid period — it suits what you mean to repeat, continue or grow.",
+    "இது குளிகையிலும் படுகிறது; குளிகை தவிர்க்க வேண்டிய நேரம் அல்ல, செய்யும் செயலைப் பொறுத்தது. மீண்டும் நிகழ வேண்டிய, தொடர வேண்டிய செயல்களுக்கு ஏற்றது.",
   ),
   // Redesign 2026-09-07 — the best-window card's conflict line used to render
   // open, permanently, as a fifth stacked row under the reason text. It is a

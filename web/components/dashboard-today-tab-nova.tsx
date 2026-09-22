@@ -224,31 +224,40 @@ function windowTypeGlossary(type: string): GlossaryKey | null {
  * 4th of eight day-parts, so the two collide structurally, not rarely — 24 of
  * Abhijit's 49 minutes on the reviewed day. The row called it "auspicious for
  * anyone, whatever their chart" with no qualifier, one card away from a
- * recommendation whose whole argument is "clear of Rahu Kalam, Yamagandam and
- * Kuligai". Two contradictory instructions from one panel.
+ * recommendation whose whole argument is "clear of Rahu Kalam and Yamagandam".
+ * Two contradictory instructions from one panel.
  *
  * The note states the app's already-implemented position (owner ruling
  * 2026-08-23: an overlapping window is never promoted) and names the clear
  * part, rather than picking new doctrine. Whether Abhijit *overrides* the kalas
  * — genuinely contested, and many Tamil families say it does not — is queued in
  * docs/ASTROLOGER_REVIEW_QUEUE.md.
+ *
+ * `avoidKalas` carries Rahu Kalam and Yamagandam only. R7 (2026-09-22) took
+ * Kuligai out of this register: it is not an avoid period, so printing
+ * "Abhijit overlaps Kuligai" in the binding voice states a doctrine the owner
+ * has ruled against. A Kuligai overlap is appended separately, informationally,
+ * by `kuligaiNote`.
  */
 function abhijitOverlapNote(
   abhijit: TimingSpan,
   avoidKalas: Array<{ label: string; start: string; end: string }>,
   lang: Lang,
+  kuligai?: TimingSpan | null,
 ): string {
+  const kuligaiNote = kuligai && spansOverlap(abhijit, kuligai)
+    ? dt(TODAY_TIMINGS.abhijitInKuligai, lang)
+    : "";
   const hits = avoidKalas.filter((k) => spansOverlap(abhijit, k));
-  if (hits.length === 0) return "";
+  if (hits.length === 0) return kuligaiNote;
   const names = hits.map((k) => k.label).join(lang === "ta" ? ", " : ", ");
   const clear = clearSegments(abhijit, hits);
-  if (clear.length === 0) {
-    return dt(TODAY_TIMINGS.abhijitFullyCovered, lang).replace("%1$s", names);
-  }
-  const clearText = clear
-    .map((seg) => formatClockRange(seg.start, seg.end, lang))
-    .join(" · ");
-  return dt(TODAY_TIMINGS.abhijitOverlap, lang).replace("%1$s", names).replace("%2$s", clearText);
+  const avoidNote = clear.length === 0
+    ? dt(TODAY_TIMINGS.abhijitFullyCovered, lang).replace("%1$s", names)
+    : dt(TODAY_TIMINGS.abhijitOverlap, lang)
+        .replace("%1$s", names)
+        .replace("%2$s", clear.map((seg) => formatClockRange(seg.start, seg.end, lang)).join(" · "));
+  return kuligaiNote ? `${avoidNote} ${kuligaiNote}` : avoidNote;
 }
 
 function formatDuration(ms: number, lang: Lang): string {
@@ -604,14 +613,23 @@ export function DashboardTodayTabNova({
   const dataDate = panchangam?.dateLocal ?? selectedDate;
   const isToday = dataDate === todayDate;
 
-  // T8 / A-013 — the day's three avoid-kalas, straight from the panchangam.
-  // These are the spans a recommended window may never overlap; the ruling is
-  // documented on `pickRecommendedWindow`.
+  // T8 / A-013 — the spans a recommended window may never overlap; the ruling
+  // is documented on `pickRecommendedWindow`.
+  //
+  // Kuligai was in this list until R7 (owner ruling 2026-09-22). It is out
+  // because it has no polarity of its own: what is begun in Kuligai tends to
+  // recur, and whether recurrence is wanted is the *activity's* question. This
+  // pick has no activity, so blocking on Kuligai asserts a doctrine the
+  // almanac does not hold — and promoting it silently would assert the
+  // opposite one. It is neither; it is named separately below.
   const avoidSpans: TimingSpan[] = panchangam
-    ? [panchangam.kalam.rahuKalam, panchangam.kalam.yamagandam, panchangam.kalam.kuligai]
+    ? [panchangam.kalam.rahuKalam, panchangam.kalam.yamagandam]
         .filter(Boolean)
         .map((k) => ({ start: k.start, end: k.end }))
     : [];
+  const kuligaiSpan: TimingSpan | null = panchangam?.kalam.kuligai
+    ? { start: panchangam.kalam.kuligai.start, end: panchangam.kalam.kuligai.end }
+    : null;
 
   // One promoted window, chosen by the almanac's own Gowri ranking and clear of
   // the avoid-kalas (owner ruling 2026-08-23, superseding DASH-10.1's
@@ -630,6 +648,9 @@ export function DashboardTodayTabNova({
   // Keep a ranked timing conflict attached to the one actionable recommendation,
   // rather than rendering a second copy of the best-window card in the rail.
   const windowConflict = bestWindow ? personalDailyGuidance?.bestWindowConflicts?.[0] ?? null : null;
+  // R7.7: a promoted window overlapping Kuligai is neither disqualified nor
+  // waved through — the overlap is stated, in Kuligai's own conditional voice.
+  const bestWindowInKuligai = Boolean(bestWindow && kuligaiSpan && spansOverlap(bestWindow, kuligaiSpan));
 
   // Life focus T1 — one added sentence under the briefing, from numbers
   // already on this page: the focus area's life-area score (read through the
@@ -1413,6 +1434,17 @@ export function DashboardTodayTabNova({
                         </p>
                       )}
 
+                      {/* R7.7 — Kuligai is not in the clearance sentence above,
+                          so on the days it overlaps the promoted window it must
+                          say so itself, or "clear of Rahu Kalam and Yamagandam"
+                          would be read as "clear of everything". Conditional
+                          voice, not the avoid register. */}
+                      {bestWindowInKuligai && (
+                        <p className="nova-hero-action__reason" style={{ color: "var(--color-faint)" }}>
+                          {dt(TODAY_TIMINGS.windowInKuligai, lang)}
+                        </p>
+                      )}
+
                     </div>
                     {windowConflict && conflictOpen && (
                       <p className="nova-hero-action__footnote-body">
@@ -1631,8 +1663,7 @@ export function DashboardTodayTabNova({
                       ? abhijitOverlapNote(secondaryAbhijitWindow, [
                         { label: windowTypeLabel("RAHU_KALAM", lang), ...panchangam.kalam.rahuKalam },
                         { label: windowTypeLabel("YAMAGANDAM", lang), ...panchangam.kalam.yamagandam },
-                        { label: windowTypeLabel("KULIGAI", lang), ...panchangam.kalam.kuligai },
-                      ], lang) || undefined
+                      ], lang, kuligaiSpan) || undefined
                       : undefined,
                   });
                 }

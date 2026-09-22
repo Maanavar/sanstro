@@ -286,7 +286,37 @@ describe("Today tab — one recommended window (T8)", () => {
       { type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM" },
     ]);
 
-    expect(screen.getByText(/Clear of Rahu Kalam, Yamagandam and Kuligai/i)).toBeInTheDocument();
+    // R7: Kuligai is deliberately absent from this sentence — it is not a
+    // blocker, so claiming clearance of it would overstate what was checked.
+    expect(screen.getByText(/Clear of Rahu Kalam and Yamagandam/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Clear of .*Kuligai/i)).toBeNull();
+  });
+
+  it("promotes a window that overlaps Kuligai, and names the overlap in Kuligai's own voice", async () => {
+    // R7 (2026-09-22): Kuligai blocks nothing here. It has no polarity until an
+    // activity supplies one, and this pick is made with no activity in hand —
+    // so skipping the window asserts a doctrine the owner ruled against, and
+    // promoting it silently under "clear of the kalas" asserts the opposite.
+    // It is promoted AND the overlap is stated.
+    const fixture = panchangamFixture() as Record<string, unknown>;
+    await renderWithWindows(
+      [{ type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM" }],
+      {
+        panchangam: {
+          ...fixture,
+          kalam: {
+            ...(fixture.kalam as Record<string, unknown>),
+            kuligai: { start: "11:00", end: "12:30", slot: 1 },
+          },
+        } as unknown as TabProps["panchangam"],
+      },
+    );
+
+    expect(screen.getByText(/Best window/).closest("div")).toHaveTextContent("11:00");
+    expect(screen.getByText(/also falls in Kuligai/i)).toBeInTheDocument();
+    // Before R7 this was the only window of the day and it collided, so the
+    // reader got the degraded "every good window collides" sentence instead.
+    expect(screen.queryByText(/Every good window today runs into/i)).toBeNull();
   });
 
   it("says so plainly when every window of the day collides", async () => {
@@ -618,7 +648,9 @@ describe("Today tab — the avoid window's now-state (finding 4)", () => {
     const card = screen.getByText("குளிகை நேரம்").closest(".ui-card")!;
     expect(card).toHaveTextContent("இப்போது: குளிகை");
     expect(card).toHaveTextContent("காலை 7:30 வரை");
-    expect(card).toHaveTextContent("தங்கம் வாங்குதல்");
+    // R7: the repetition principle leads, the owner's examples follow it.
+    expect(card).toHaveTextContent("மீண்டும் நிகழ வேண்டிய");
+    expect(card).toHaveTextContent("தங்கம்");
     expect(card).toHaveTextContent("திருமணம், அறுவை சிகிச்சை வேண்டாம்");
     expect(card.textContent).not.toMatch(/\b(?:am|pm)\b/i);
     expect(card.textContent).not.toContain("—");
@@ -710,6 +742,21 @@ describe("Today tab — the day's other named timings (findings 6-8)", () => {
     // Overlaps the fixture's Rahu Kalam 09:00-10:30, so the clear part is
     // 10:30-10:40 — the app's already-ruled position, not a new doctrine call.
     expect(screen.getByText(/clear part is 10:30/i)).toBeInTheDocument();
+  });
+
+  it("reports an Abhijit / Kuligai overlap as conditional, never as an avoid period", async () => {
+    // R7.6. The fixture's Kuligai is 06:00-07:30, so this Abhijit sits inside
+    // it and clear of Rahu Kalam. Before R7 the same case printed "Overlaps
+    // Kuligai for its whole span today, and this app treats the avoid periods
+    // as binding" — the binding register the owner has ruled Kuligai out of.
+    await renderWithWindows([
+      { type: "ABHIJIT", start: "06:45", end: "07:20", kala: "SUGAM" },
+      { type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM" },
+    ]);
+
+    expect(screen.getByText(/also falls in Kuligai/i)).toBeInTheDocument();
+    expect(screen.queryByText(/treats the avoid periods as binding/i)).toBeNull();
+    expect(screen.queryByText(/clear part is/i)).toBeNull();
   });
 
   it("stays quiet on the days Abhijit is clear of all three kalas", async () => {

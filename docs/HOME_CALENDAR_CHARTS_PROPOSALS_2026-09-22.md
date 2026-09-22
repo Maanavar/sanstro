@@ -386,6 +386,7 @@ changes touch all four surfaces.
 | R4 | Chart (§7) | **Confirmed.** The owner's chart and a family member's chart are both Mesha lagna, so Mesha is the first chart the grid sees. That matches the diagnosis. |
 | R5 | Kuligai (§1) | **Kuligai is good for things you want to happen again**: buying gold, signing or registering property, anything everyone wishes to repeat. **Not for marriage. Not for surgery or operations.** |
 | R6 | Personal palan (§5) | The section structure below. |
+| R7 | Kuligai is **conditional**, not polar (2026-09-22) | Resolve polarity from the activity. With no activity supplied: neither a hard blocker nor a generic "best time". Details below. |
 
 ### R5: what the Kuligai ruling changes
 
@@ -412,6 +413,48 @@ changes touch all four surfaces.
   (see the saved rule "pure function recomputed per consumer").
 - Mobile reminders (R1) remind only for Rahu Kalam and Yamagandam by default.
   Kuligai gets no reminder.
+
+### R7: Kuligai is conditional, and the activity resolves it
+
+Owner ruling, 2026-09-22, given on the audit above. It refines R5 rather than
+replacing it: R5's gold/property/marriage/surgery examples stand, and this
+states the principle they are examples of.
+
+> The key traditional idea is that work begun in Kuligai tends toward
+> **repetition, recurrence, continuation or multiplication**. That can be
+> desirable for some activities and undesirable for others.
+
+1. **Kuligai has no universal polarity.** Never classify it as universally
+   auspicious or universally prohibited.
+2. **The activity resolves it.** Repeat-worthy / growth / continuation
+   activities: may be favourable. Activities where recurrence is undesirable:
+   may be unfavourable.
+3. **Classical activity rules take precedence** for major samskara/muhurta
+   activities (marriage, grihapravesam, and their kind). **Kuligai alone must
+   never turn a prohibited period into an auspicious one** — it can only ever
+   modulate within what the activity's own rules already allow.
+4. **With no activity supplied, Kuligai is `CONDITIONAL` / `UNSPECIFIED`** —
+   *not* a hard blocker, and *not* a generic "best time". Both readings are
+   wrong in the activity-free case.
+5. **Wording.** The generic Today surface must not say simply "Kuligai is
+   good". Say *"Kuligai — suitable for activities intended to repeat, continue
+   or grow."*
+6. **Abhijit overlap** is shown as **informational / conditional**, never in
+   the avoid register, unless the selected activity makes Kuligai
+   unfavourable.
+7. **On an activity-free "best time today" surface**, keep Abhijit as the
+   general auspicious window and show Kuligai **separately, as a
+   special-purpose conditional period** — never folded into either the
+   recommended list or the avoided list.
+
+The owner explicitly rejected the plain "stop blocking on Kuligai" option:
+making it non-blocking while still calling it generally good loses the
+activity-dependent doctrine, which is the whole point.
+
+**Backend note:** `app/data/kuligai_polarity.py` already models 1-3 correctly,
+including the deliberate non-rejecting `UNSPECIFIED` default. R7 changes no
+backend rule; it settles the activity-free web case the table cannot decide,
+and tightens the copy.
 
 ### R6: personal palan structure (இன்றைய பலன்)
 
@@ -562,6 +605,101 @@ Design notes for the build:
 
   **Still open in §1:** Durmuhurtham remains a later four-surface contract
   change (Astro/Arch note above).
+
+- **R5 Kuligai audit (2026-09-22), read-only — the doctrine conflict is
+  narrower than R5 assumed, and one half of it is already built.**
+
+  R5 asks for the audit *before* changing anything, and names three consumers.
+  Two of the three are already correct, and the "one activity → kuligai-policy
+  table on the backend" R5 asks for **already exists**:
+
+  - `app/data/kuligai_polarity.py` — owner-ruled 2026-08-17 as **EC-RULING-07**,
+    refined by astrologer ruling `MUH-06` (2026-08-28). It is the same
+    repetition discriminator R5 states ("does repeating this add to a stock, or
+    mean the first came undone?"), already extended well past R5's four
+    examples: 18 FAVOURABLE activities, 20 ADVERSE. `KULIGAI_ACTIVITY_TABLE_UNVERIFIED`
+    is already `False`. `polarity_for` returns `UNSPECIFIED` for anything
+    unclassified, and `rejects()` is **false** for `UNSPECIFIED` — the backend's
+    default is deliberately *not* to reject, because defaulting to reject is the
+    blanket exclusion EC-RULING-07 exists to undo.
+  - `app/services/muhurta_service.py` — consumes it in both directions already.
+    `_clear_good_day_kalas` cuts Kuligai only when `kuligai_rejects(activity)`;
+    the slot scorer names a Kuligai overlap always but only penalises an adverse
+    activity, and emits `WINDOW_KULIGAI_FAVOURABLE` as an unpriced bonus for a
+    favourable one.
+  - The activity board (`web/components/dashboard-today-activity-board-nova.tsx`)
+    contains **no** Kuligai handling of its own — it reads the backend verdict,
+    so it inherits the table correctly.
+
+  So R5's "audit how each of them treats Kuligai before changing any" resolves
+  to: the muhurta engine and the activity board need no change, and no new
+  backend table should be written. This is the "stale conclusion outlives its
+  check" pattern — R5 was drafted without checking what 2026-08-17 had already
+  ruled and built.
+
+  **The one real conflict is on the Today tab, and the web half of §1 that just
+  shipped is what makes it visible.** `web/components/dashboard-today-tab-nova.tsx`
+  treats Kuligai as a plain avoid-kala in two places, both activity-free:
+
+  - L610-614, `avoidSpans` = `[rahuKalam, yamagandam, kuligai]`, passed to
+    `pickRecommendedWindow`. A window overlapping Kuligai is never promoted and
+    counts into `skippedForCollision` / `collidesWithAvoid`.
+  - L1630-1635, the Abhijit overlap note lists Kuligai beside Rahu Kalam and
+    Yamagandam, so it prints "Abhijit overlaps Kuligai" in the avoid register.
+
+  Both sit on the same tab as the hero card that now reads *"Now: Kuligai until
+  1:30 pm · good for what you'd want again (gold, property)"*. One surface, two
+  registers for one period — the contradiction the saved rules "two axes on one
+  card" and "explanation must match its own numbers" both name.
+
+  **Not fixed in the audit, because it is a doctrine call, not a code call.**
+  The web recommendation is activity-free: there is no activity to look up in
+  the polarity table, so neither "keep blocking" nor "stop blocking" follows
+  from EC-RULING-07 on its own. Put to the owner → **R7**, above.
+
+- **R7 applied to both web surfaces (2026-09-22), not committed.** No backend
+  change: `kuligai_polarity.py` and `muhurta_service.py` already model R7.1-3,
+  and the activity board reads their verdict.
+
+  Signed-in Today (`dashboard-today-tab-nova.tsx`, `dashboard-i18n.ts`):
+  - `avoidSpans` is Rahu Kalam + Yamagandam. Kuligai no longer disqualifies a
+    window, and no longer counts into `skippedForCollision` /
+    `collidesWithAvoid`.
+  - `clearOfKalas` and `allCollide` no longer claim Kuligai was checked —
+    the sentence now names only what the code actually tested.
+  - A promoted window overlapping Kuligai says so itself, in the conditional
+    voice (`windowInKuligai`), so "clear of Rahu Kalam and Yamagandam" cannot
+    be read as "clear of everything" (R7.7).
+  - `abhijitOverlapNote` takes Kuligai as a separate argument and appends
+    `abhijitInKuligai` informationally; Kuligai is out of the binding register
+    and out of `clearSegments`, so it no longer shortens Abhijit's "clear
+    part" either (R7.6).
+  - Hero copy leads with the repetition principle rather than "good"
+    (`liveKuligaiLine`, `kuligaiMeaning`), keeping R5's examples as examples.
+
+  Signed-out home (`public-today.ts`, `home-today-panel.tsx`,
+  `marketing-i18n/home.ts`) carried a parallel copy of the same model and was
+  fixed with it — a doctrine ruling applied to one of two surfaces is the
+  DXA-08 failure repeating. `AvoidPeriod["key"]` is now `rahuKalam |
+  yamagandam` (so the dead Kuligai branch failed to typecheck rather than
+  lingering), `kuligaiPeriod()` is separate, Kuligai is out of the avoid-card
+  rotation, and its row in "other timings" carries `today_kuligai_note` so its
+  company in that list is not read as its meaning.
+
+  Gate: 3 new tests (promoted window overlapping Kuligai is promoted *and*
+  named; Abhijit ∩ Kuligai is conditional, not binding; the guest Kuligai row
+  has its own note), plus 6 existing tests updated from the old doctrine. The
+  two new Today-tab tests were **checked with the fix removed and both fail**
+  — Kuligai was put back into `avoidSpans` and into the Abhijit avoid list,
+  and the run was verified red before reverting. Full web suite green: 103
+  files, 986 tests. `tsc --noEmit` and ESLint clean.
+
+  **Blind spot:** every one of these is a jsdom text assertion. None of them
+  sees the Kuligai card's accent treatment in Nova light or dark, at 375 px,
+  or how the extra conditional line reflows the hero — and the guest panel's
+  new note adds a row of height to a marketing surface that has never been
+  looked at in a browser this session. Tamil copy is unreviewed by a native
+  reader. Visual sign-off still required.
 
   **Blind spot, both halves:** neither jsdom nor Jest's node/RN test
   environments prove a notification actually appears on a device at the

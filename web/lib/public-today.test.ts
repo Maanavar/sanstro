@@ -51,8 +51,10 @@ function slot(start: string, end: string, name: string, period: "DAY" | "NIGHT" 
 }
 
 describe("avoidPeriods", () => {
-  it("lists the three kalas with Rahu Kalam first", () => {
-    expect(avoidPeriods(kalam()).map((p) => p.key)).toEqual(["rahuKalam", "yamagandam", "kuligai"]);
+  it("lists the binding kalas with Rahu Kalam first, and leaves Kuligai out", () => {
+    // R7 (2026-09-22): Kuligai is not an avoid period. A guest supplies no
+    // activity, so this surface can assert neither polarity for it.
+    expect(avoidPeriods(kalam()).map((p) => p.key)).toEqual(["rahuKalam", "yamagandam"]);
   });
 
   it("is empty rather than throwing when the section is missing", () => {
@@ -64,8 +66,10 @@ describe("pickAvoidPeriod", () => {
   const at = (hhmm: string) => ({ now: ist(hhmm), dateLocal: DATE, timeZone: TZ });
 
   it("names the next kala still ahead, in clock order", () => {
-    // Kuligai 07:45 is the earliest of the three on this fixture.
-    expect(pickAvoidPeriod(kalam(), at("06:00"))?.key).toBe("kuligai");
+    // Rahu Kalam 10:48 is the earliest binding kala on this fixture. Kuligai
+    // 07:45 is earlier still but is no longer a candidate (R7), so a 06:00
+    // reader is pointed at Rahu Kalam rather than at a conditional period.
+    expect(pickAvoidPeriod(kalam(), at("06:00"))?.key).toBe("rahuKalam");
     expect(pickAvoidPeriod(kalam(), at("10:00"))?.key).toBe("rahuKalam");
   });
 
