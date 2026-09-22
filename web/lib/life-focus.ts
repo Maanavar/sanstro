@@ -36,14 +36,8 @@ export function appliedFocus(status: LifeModeStatus | null, isOwnChart: boolean)
   };
 }
 
-/** Stable partition: matching items first, each group in its original order.
- *  Returns the input objects themselves, never copies. */
-export function pinFirst<T>(items: readonly T[], isPinned: (item: T) => boolean): T[] {
-  const pinned: T[] = [];
-  const rest: T[] = [];
-  for (const item of items) (isPinned(item) ? pinned : rest).push(item);
-  return [...pinned, ...rest];
-}
+/** Stable partition, shared with mobile's Today pulse so the two cannot drift. */
+export { pinFirst } from "@vinaadi/shared/lifeFocus";
 
 /** Phase 3 pre-select: the focus's first activity, if the form offers it and
  *  the reader has not already used it; otherwise null.

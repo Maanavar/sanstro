@@ -16,6 +16,13 @@ export interface LifeFocusMetrics {
   focus_change_count: number;
   focus_returning_users: number;
   focus_changes_per_returning_user: number | null;
+  /** Tuning: live readers each focus is offered to (age/marital gate applied). */
+  offered_users: Record<string, number>;
+  /** Tuning: share of those readers who chose it; null when offered to nobody. */
+  offered_pick_share: Record<string, number | null>;
+  /** Focuses meeting the pre-registered "rarely picked" rule: a candidate for
+   *  retiring from the picker after two reads 28+ days apart, not a verdict. */
+  rarely_picked: string[];
 }
 
 // Checked against app/api/admin_analytics.py: GET

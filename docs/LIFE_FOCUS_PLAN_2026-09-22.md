@@ -494,17 +494,130 @@ no action of its own: `target: card` measures curiosity, not use, and a
 keyboard user focusing a card without pressing its link records nothing. No
 browser or device pass was run because this phase changes no visible UI.
 
-### Where the plan stands (2026-09-22)
-Phases 0–4 are built, committed and pushed on `harden/production-readiness`.
-Nothing in §3–§5 is left unbuilt except what an owner ruling took out (T5's
-focus-tied remedy, Q7; extra Quick Links, Q8). What remains is not code:
-- **Tuning (Phase 4, second half):** merge a focus that is almost never picked
-  (LOVE/MARRIAGE likeliest). Needs a production sample from
-  `/admin/analytics/life-focus`; there is none yet.
-- **Unverified in a browser:** Phase 3's Calendar chip and Plan pre-selects,
-  and every mobile screen on a device. Tests and typecheck only.
-- **Mobile Today reordering** waits for an equivalent Today layout (§3).
-- **Not this plan's:** the TA 375 px ribbon overflow (Phase 2) is pre-existing.
+### Tuning rule (Phase 4, second half), fixed 2026-09-22 before any data
+Rulings Q9 and Q10 (§6), made at the owner's delegation.
+
+**The question is not "is LOVE rare", it is "is LOVE rare among readers who
+are offered it".** D5 hides LOVE and MARRIAGE from minors and married readers,
+and MARRIAGE from readers 50 and over (`app/core/age_gate.py`). So a raw share
+of all readers understates both, MARRIAGE more. `/admin/analytics/life-focus`
+now returns, per focus:
+- `offered_users`: live, non-admin readers it is offered to today, gated on
+  each reader's own profile exactly as the picker is. No profile means all ten.
+- `offered_pick_share`: how many of those have it saved.
+- `rarely_picked`: the focuses meeting the rule below, computed server-side
+  so the call is not made by eye.
+
+**Rule.** A focus other than BALANCED is *rarely picked* when at least 400
+readers are offered it, fewer than 2% of them have chosen it, **and** the
+Wilson 95% upper bound is under 4% (ten options average 10%; 2% is a fifth
+of that). It is a candidate, not a verdict: act only if it is flagged on two
+reads at least 28 days apart (adoption is a snapshot, not month-scoped).
+
+**Action (Q10): retire from the picker, never merge, never rewrite.** A
+flagged focus stops being offered for new choices; readers who saved it keep
+it, and the server keeps accepting it. Merging LOVE into MARRIAGE is ruled out
+(Q9): it would take the only relationship focus away from unmarried readers
+50 and over, for whom MARRIAGE is blocked, and would silently add wedding
+muhurta lifts to someone who chose "Love". Both focuses already share the
+RELATIONSHIPS life area, so what a merge would save is one picker row.
+
+**Gates:** `tests/test_life_focus_tuning.py` (6): the rule as numbers (floor,
+strict 2%, interval width, BALANCED exempt) and the offered base on four
+synthetic readers (married, 55 single, 28 single, minor). With the age/marital
+gate switched off the offered test fails (LOVE offered to 5, not 3). Backend
+focus, admin and settings suites 101/101.
+
+**What it cannot see:** a reader who is shown the picker but never opens it
+is still in the base (the picker's exposure is not logged); a profile edit
+moves a reader in or out of a base with no history; test accounts without
+`is_admin` are counted. The per-reader gate runs in Python because the birth
+date is encrypted: fine for an admin read at today's scale, worth a cache
+before six figures of users.
+
+### Browser pass, Phase 3 (2026-09-22)
+Isolated stack (`vinaadi_e2e`), synthetic married account, EN and TA at 1440
+and 375 px: **74/74** after the fixes below (73/74 before).
+- **Calendar chip:** labelled with the focus (TA has no Latin), off by
+  default, **no request until switched on**, then exactly one
+  `/activity-timing/batch` call for the focus activities. Marked cells equal the
+  SUPPORTS dates in that response, and each activity's top dates match the
+  single-activity endpoint Best Days uses, date for date. No chip for REMEDIES
+  or BALANCED (LOVE is blocked for a married profile, so D5 was seen working).
+- **Pre-selects** (checked under STUDY, because CAREER's first activity is
+  the old default and would prove nothing): the Calendar quick scan opens on
+  "Exam / Course start", Plan's add-goal on "Education"; FAMILY keeps the old
+  default rather than falling through to child birth.
+- **Observation, not a defect:** late in a month the chip can mark only past
+  days (22 September: one mark, on the 13th), as Best Days does, because the
+  engine ranks the whole month. Whether ranking should start from today is an
+  engine question for both surfaces, not a chip change.
+
+### Phone-width overflow (was "not this plan's"), fixed 2026-09-22
+The TA 375 px Today overflow turned out to be one of six. A new sweep,
+`web/scripts/overflow-sweep.mjs` (every top-level tab, EN and TA, at
+320/375/768/1440), went from failing to **40/40**; the ribbon probe
+from 447 px to 375 at every phone width.
+
+| Where | Was | Cause | Fix |
+|---|---|---|---|
+| Today ribbon | TA 447 px up to 414 px wide; EN 344 at 320 | week strip + "முழு பஞ்சாங்கம்" in a non-wrapping row | the pair wraps; strip gap 6 → 4 px so Tamil's seven weekdays fit 320 |
+| Today section headers | TA 333 at 320 | `GlanceHeader` row could not wrap | wraps; the link drops under the title |
+| Calendar muhurta view | TA 401 at 375 | `.ui-field` kept `min-width: auto`, so a Segmented's `max-width: 100%` never bound | `min-width: 0`; in a form field a segment's label wraps instead of hiding options behind a sideways scroll |
+| Life areas | TA 1324, EN 635 at 375 | header column unconstrained; metric grid `1fr` = `minmax(auto, 1fr)` let a nowrap hint set its floor | column capped; grid `minmax(0, 1fr)` as at desktop; one button may wrap |
+| Family | TA 419 at 375 | `.om__head-actions` at `flex: 0 0 auto` | shrinkable, so its own wrap engages |
+| Calendar | 372 at 320 (both) | a 360 px grid floor; and the Tamil spec-row override out-ranked the phone stack | `min(360px, 100%)`; the Tamil 200 px label column now applies above 720 px only |
+
+Desktop is unchanged: every wrap engages only when the row runs out (checked
+by eye at 1440 in Tamil). **Cannot see:** overlays, non-default sub-tabs,
+More-menu tabs, and light theme.
+
+**Found on the way, fixed:** the sticky identity bar printed the raw
+nakshatra key to every reader (`தனுசு - UTHIRADAM - மிதுனம் லக்னம்`), as did
+the family card, the family member line and Settings' chart line. All four now
+go through `tNakshatra`, and `web/lib/nakshatra-display-boundary.test.ts`
+ratchets it (fails with the fixes removed). **Found, not fixed:** the
+marketing Jadhagam tool's Tamil share card passes English rasi names and a
+pre-composed English star (`JadhagamTool.tsx` → `JadhagamShareButton`).
+
+### Mobile Today (T2 shipped; the rest ruled) 2026-09-22
+The hold said "until mobile has a Today layout like web's". Ruled per surface
+instead of as a whole (Q11):
+- **T2, built.** Mobile Today already has the equivalent row: the life-area
+  pulse under the hero. The focus area is pinned before the cut to four (so a
+  sixth-ranked area reaches the row), through `pinFirst`, now in
+  `@vinaadi/shared/lifeFocus` so web and mobile share one copy. The pinned dot
+  carries the compass badge the Me row uses (a shape, not only a colour) and
+  its accessible name starts "Your focus". D4 needs no branch: Today's chart is
+  the primary chart, which only onboarding's own birth details set.
+- **T1, not built:** mobile's hero already shows the best window beside the
+  score; a focus line would repeat it.
+- **T3, T4, T5 wait:** mobile Today has no activity board, quick links or
+  remedy row to reorder.
+- **Fixed on the way:** the pulse cut labels with `slice(0, 6)`, which splits
+  a Tamil consonant from its vowel sign ("ஆரோக்கியம்" became "ஆரோக்க…", a
+  different letter). Truncation is now by width.
+
+Gates: `mobile/__tests__/todayFocus.test.ts` (4; the pin case fails with the
+pin removed). Mobile 100/100, `tsc` clean.
+
+### Mobile on a device: turned into a runnable gate
+No device or emulator image is set up here, and Expo Web cannot sign in
+(expo-secure-store's web build is empty), so the device pass was **not run**.
+Instead `mobile/.maestro/flows/07_life_focus.yaml` walks chip → picker →
+Studies → pinned pulse → Me row → Balanced → no pin, in either language, and
+takes three screenshots for a Tamil-shaping look. Run it after `02_login.yaml`
+on any device. Until someone does, mobile remains checked by tests and
+typecheck only.
+
+### Where the plan stands (2026-09-22, end of day)
+Phases 0–4 built. Of the four items left this morning:
+- **Tuning:** the rule and its numbers are live; the decision itself waits for
+  400+ offered readers per focus and two reads. Nothing more to build.
+- **Browser pass:** done for web (74/74 plus 40/40 widths). **Device pass not
+  done**; it is one Maestro command away.
+- **Mobile Today:** T2 shipped; T1 ruled out; T3–T5 wait for mobile surfaces.
+- **TA 375 px overflow:** fixed, with five more like it.
 
 ---
 
@@ -524,6 +637,9 @@ separately; their recommendations are in force unless the owner says otherwise.
 | Q6 | Retire the Goal track UI completely, or keep it hidden for power users? | **Retire it.** Two settings for one idea is what caused this mess. **Ruled: retire.** |
 | Q7 | Should the Today remedy switch to a planet tied to the focus area (e.g. Guru for Study, Sukran for Marriage)? | **Ruled 2026-09-22: No.** The remedy stays anchored to the running dasa lord. In Thirukanitham practice the dasa lord governs what fructifies now, so its parihara comes first whatever the reader wants to hear. Choosing the planet by focus is the same flattery D2 forbids for scores. Reopen only if the astrologer supplies a bhava-karaka parihara table and rules on when it outranks the dasa lord. |
 | Q8 | Add Remedies / Life Areas tiles to Quick Links for REMEDIES / STUDY / CAREER? | **Ruled 2026-09-22: No; reorder only.** Both would repeat something already on screen for that reader: REMEDIES already moves the remedy row under the hero (T5), and the Life areas row already pins the focus tile with its "All areas" link (T2). Quick Links stays a curated eight. Relationships leads with Compatibility (porutham); every other focus leads with Best Days This Month. |
+| Q9 | Merge LOVE and MARRIAGE if one is rarely picked? | **Ruled 2026-09-22: No merge, ever.** They share the RELATIONSHIPS area already; they differ in who is offered them (MARRIAGE is blocked at 50+, LOVE is not) and in what they lift (MARRIAGE lifts wedding muhurta; LOVE lifts nothing, Q4). A merge would strand older unmarried readers and add wedding timing to someone who chose "Love". |
+| Q10 | What happens to a focus that is rarely picked? | **Ruled 2026-09-22: retire it from the picker** under the pre-registered rule (§5 "Tuning rule"). Saved choices keep working and are never rewritten. |
+| Q11 | Mobile Today reordering: wait for a web-like layout? | **Ruled 2026-09-22: per surface.** T2 has a mobile equivalent (the pulse) and is built; T1 would repeat the hero's window; T3–T5 have no mobile surface yet. |
 
 ---
 

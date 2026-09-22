@@ -8,7 +8,9 @@ from pydantic import BaseModel
 from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
 
+from app.core.age_gate import compute_age, get_blocked_life_modes
 from app.core.auth import get_admin_user
+from app.core.life_mode import DEFAULT_LIFE_MODE, FOCUS_TABLE
 from app.db.session import get_db
 from app.models import BirthProfile, Chart, FamilyVault
 from app.models.ask_vinaadi_usage import AskVinaadiUsage
@@ -70,6 +72,92 @@ class LifeFocusMetrics(BaseModel):
     # changed yet, so they are not in the base.
     focus_returning_users: int
     focus_changes_per_returning_user: float | None
+    # Tuning (Phase 4, second half). A focus is judged only among the readers
+    # it is offered to: minors and married readers never see LOVE or MARRIAGE,
+    # and 50+ readers never see MARRIAGE (app/core/age_gate.py), so a raw share
+    # of all readers would call a focus unpopular when it is merely unoffered.
+    # Snapshot, like adoption. A reader with no own profile is offered all ten.
+    offered_users: dict[str, int]
+    offered_pick_share: dict[str, float | None]
+    # Focuses meeting the pre-registered rule in `rarely_picked`. A candidate,
+    # not a verdict: the plan (§5 Phase 4) asks for two reads 28+ days apart.
+    rarely_picked: list[str]
+
+
+# Pre-registered 2026-09-22, before any production data, so the call cannot be
+# fitted to the first numbers seen (docs/LIFE_FOCUS_PLAN_2026-09-22.md §5).
+# Ten options average 10% each; 2% is a fifth of that.
+TUNING_MIN_OFFERED = 400
+TUNING_MAX_SHARE = 0.02
+TUNING_MAX_UPPER = 0.04
+
+
+def wilson_upper(chosen: int, offered: int, z: float = 1.96) -> float:
+    """Upper bound of the Wilson 95% interval for chosen/offered."""
+    if offered <= 0:
+        return 1.0
+    p = chosen / offered
+    denom = 1 + z * z / offered
+    centre = p + z * z / (2 * offered)
+    margin = z * ((p * (1 - p) / offered + z * z / (4 * offered * offered)) ** 0.5)
+    return (centre + margin) / denom
+
+
+def rarely_picked(offered: dict[str, int], chosen: dict[str, int]) -> list[str]:
+    """Focuses picked by under 2% of the readers offered them, with enough
+    readers (400+) that the 95% upper bound is also under 4%. BALANCED is the
+    default, never a candidate. Small samples return nothing, by design."""
+    out = []
+    for mode, n in sorted(offered.items()):
+        if mode == DEFAULT_LIFE_MODE or n < TUNING_MIN_OFFERED:
+            continue
+        k = chosen.get(mode, 0)
+        if k / n < TUNING_MAX_SHARE and wilson_upper(k, n) < TUNING_MAX_UPPER:
+            out.append(mode)
+    return out
+
+
+def _offered_and_chosen(session: Session, counted_user: tuple) -> tuple[dict[str, int], dict[str, int]]:
+    """Per focus: live readers it is offered to, and how many of them chose it.
+
+    Age and marital status come from each reader's own profile, the one
+    `user_blocked_modes` gates the picker with. The birth date is encrypted, so
+    the gate runs here in Python rather than in SQL.
+    """
+    prefs = dict(
+        session.execute(
+            select(UserPreference.owner_user_id, UserPreference.life_mode)
+            .join(User, User.user_id == UserPreference.owner_user_id)
+            .where(*counted_user, UserPreference.deleted_at.is_(None))
+        ).all()
+    )
+    own_profile: dict = {}
+    for profile in session.execute(
+        select(BirthProfile)
+        .join(User, User.user_id == BirthProfile.owner_user_id)
+        .where(*counted_user, BirthProfile.family_member_id.is_(None), BirthProfile.deleted_at.is_(None))
+        .order_by(BirthProfile.created_at.asc())
+    ).scalars():
+        own_profile.setdefault(profile.owner_user_id, profile)
+
+    offered = dict.fromkeys(FOCUS_TABLE, 0)
+    chosen = dict.fromkeys(FOCUS_TABLE, 0)
+    user_ids = session.execute(select(User.user_id).where(*counted_user)).scalars()
+    for user_id in user_ids:
+        profile = own_profile.get(user_id)
+        blocked = (
+            get_blocked_life_modes(compute_age(profile.birth_date_local), profile.marital_status)
+            if profile is not None
+            else frozenset()
+        )
+        saved = prefs.get(user_id) or DEFAULT_LIFE_MODE
+        for mode in FOCUS_TABLE:
+            if mode in blocked:
+                continue
+            offered[mode] += 1
+            if saved == mode:
+                chosen[mode] += 1
+    return offered, chosen
 
 
 def _month_bounds(month: str | None) -> tuple[datetime, datetime]:
@@ -236,6 +324,8 @@ def get_life_focus_metrics(
         focus_returning_users,
     ) = (int(value) for value in row)
 
+    offered, chosen = _offered_and_chosen(session, counted_user)
+
     return LifeFocusMetrics(
         period=start.strftime("%Y-%m"),
         adoption_as_of=datetime.now(UTC),
@@ -258,6 +348,11 @@ def get_life_focus_metrics(
             if focus_returning_users
             else None
         ),
+        offered_users=offered,
+        offered_pick_share={
+            mode: (round(chosen[mode] / n, 4) if n else None) for mode, n in offered.items()
+        },
+        rarely_picked=rarely_picked(offered, chosen),
     )
 
 

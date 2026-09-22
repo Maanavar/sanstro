@@ -32,6 +32,9 @@ import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
 import { SharedTransitionView } from "@/components/SharedTransitionView";
 import { FocusChip } from "@/components/LifeFocus";
+import { useLifeFocus } from "@/hooks/useLifeFocus";
+import { todayPulseAreas } from "@/lib/todayFocus";
+import { LIFE_FOCUS_TEXT } from "@vinaadi/shared/lifeFocus";
 import { getDailySnapshot } from "@/api/snapshot";
 import { pingStreak } from "@/api/streak";
 import type { LifeAreaData } from "@/api/lifeAreas";
@@ -276,7 +279,9 @@ export default function TodayTab() {
   const todayLabel = formatDateLang(today, lang);
   const tamilDate = p?.tamilDate ? (isTamil ? p.tamilDate.ta : p.tamilDate.en) : todayLabel;
   const cityName = prefs?.city ?? (isLocationMissing ? (isTamil ? "இடத்தை அமைக்கவும்" : "Set location") : "Chennai");
-  const areaPulse = snapshotData?.data.life_areas ?? [];
+  const lifeAreas = snapshotData?.data.life_areas;
+  const { focusArea } = useLifeFocus();
+  const pulseAreas = useMemo(() => todayPulseAreas(lifeAreas ?? [], focusArea), [lifeAreas, focusArea]);
   const nextEvent = useMemo(
     () => getNextEvent((snapshotData?.data.life_events ?? []) as LifeEventWindow[]),
     [snapshotData]
@@ -382,8 +387,8 @@ export default function TodayTab() {
                 </Text>
               ) : null}
             </View>
-            {/* Life focus (Phase 3): shows and changes the focus. Today's
-                order on mobile does not respond to it yet. */}
+            {/* Life focus: shows and changes the focus. The pulse below the
+                hero pins the focus area (T2). */}
             <FocusChip />
             {streakCount >= 1 && (
               <View style={styles.streakChip} accessibilityLabel={`${streakCount}-day streak`}>
@@ -534,9 +539,10 @@ export default function TodayTab() {
           </View>
         )}
 
-        {tier !== "guest" && areaPulse.length > 0 && (
+        {tier !== "guest" && pulseAreas.length > 0 && (
           <LifeAreaPulse
-            areas={areaPulse.slice(0, 4)}
+            areas={pulseAreas}
+            focusArea={focusArea}
             isTamil={isTamil}
             C={C}
             styles={styles}
@@ -998,12 +1004,14 @@ export default function TodayTab() {
 
 function LifeAreaPulse({
   areas,
+  focusArea,
   isTamil,
   C,
   onSelect,
   styles,
 }: {
   areas: LifeAreaData[];
+  focusArea: string | null;
   isTamil: boolean;
   C: ColorTokens;
   onSelect: (area: LifeAreaData) => void;
@@ -1014,21 +1022,32 @@ function LifeAreaPulse({
       {areas.map((area) => {
         const tone = area.score >= SCORE_THRESHOLDS.HIGH ? C.green : area.score >= SCORE_THRESHOLDS.MID ? C.gold : C.caution;
         const score = Math.round(area.score);
-        const rawLabel = biText(area.label, isTamil, area.area);
-        const label = rawLabel.length > 7 ? rawLabel.slice(0, 6) + "…" : rawLabel;
+        const label = biText(area.label, isTamil, area.area);
+        const isFocus = focusArea !== null && area.area === focusArea;
+        const focusWord = isTamil ? LIFE_FOCUS_TEXT.eyebrow.ta : LIFE_FOCUS_TEXT.eyebrow.en;
         return (
           <TouchableOpacity
             key={area.area}
             style={styles.areaDotWrap}
             activeOpacity={0.78}
             onPress={() => onSelect(area)}
-            accessibilityLabel={`${rawLabel}: ${score}`}
+            accessibilityLabel={isFocus ? `${focusWord}. ${label}: ${score}` : `${label}: ${score}`}
             accessibilityRole="button"
           >
             <View style={[styles.areaDot, { backgroundColor: tone }]}>
               <Text style={styles.areaDotScore}>{score}</Text>
+              {/* A shape, not only a colour, marks the focus (WCAG 1.4.1):
+                  the compass the Me screen's "Your focus" row uses. */}
+              {isFocus && (
+                <View style={styles.areaDotFocusBadge}>
+                  <Ionicons name="compass" size={12} color={C.saffron} />
+                </View>
+              )}
             </View>
-            <Text numberOfLines={1} style={styles.areaDotLabel}>{label}</Text>
+            {/* Truncated by width, never by code unit: slice(0, 6) cut Tamil
+                between a consonant and its vowel sign, so "ஆரோக்கியம்" read
+                "ஆரோக்க…" (a different letter), not a shortened word. */}
+            <Text numberOfLines={1} ellipsizeMode="tail" style={styles.areaDotLabel}>{label}</Text>
           </TouchableOpacity>
         );
       })}
@@ -1237,6 +1256,19 @@ function makeStyles(C: ColorTokens) {
     shadowOpacity: 0.18,
     shadowRadius: 6,
     elevation: 3,
+  },
+  areaDotFocusBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.saffron,
   },
   areaDotScore: {
     fontFamily: EnFont.ExtraBold,

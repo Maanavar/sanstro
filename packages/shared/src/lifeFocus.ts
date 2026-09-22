@@ -89,6 +89,17 @@ export const LIFE_MODE_ASK_CHIPS: Record<LifeMode, readonly [BiText, BiText, BiT
   ],
 };
 
+/** The one reordering primitive for focus surfaces (D2: reorder, never
+ *  rescore). A stable partition: matching items first, each group in its
+ *  original order. Returns the input objects themselves, never copies. Web's
+ *  Today and Life areas and mobile's Today pulse all pin through this. */
+export function pinFirst<T>(items: readonly T[], isPinned: (item: T) => boolean): T[] {
+  const pinned: T[] = [];
+  const rest: T[] = [];
+  for (const item of items) (isPinned(item) ? pinned : rest).push(item);
+  return [...pinned, ...rest];
+}
+
 export function askChipsForMode(mode: LifeMode): readonly [BiText, BiText, BiText] {
   return LIFE_MODE_ASK_CHIPS[mode] ?? LIFE_MODE_ASK_CHIPS.BALANCED;
 }
