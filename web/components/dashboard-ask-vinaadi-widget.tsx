@@ -124,7 +124,7 @@ export function DashboardAskVinaadiWidget({ lang, chartId, goalTrack, activeLife
             borderRadius: "14px",
             background: "var(--color-surface, var(--chart-cell-default))",
             border: "1px solid var(--color-border, var(--panel-tan-light))",
-            boxShadow: "var(--elev-3, 0 16px 48px rgba(61,53,43,0.24))",
+            boxShadow: "var(--elev-3, 0 16px 48px var(--color-shadow-warm))",
             padding: "10px",
           }}
       >
