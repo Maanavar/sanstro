@@ -441,7 +441,8 @@ describe("notifications API", () => {
 // ─── LIFE FOCUS ───────────────────────────────────────────────────────────────
 // Life focus Phase 3 put these on mobile. Checked against app/api/settings.py:
 // GET and PATCH "/settings/life-mode", no path params; the body includes the
-// mode plus the explicit SELECT/SKIP/KEEP interaction intent, and
+// mode plus the explicit SELECT/SKIP/KEEP intent and its entry-point surface
+// (mobile always sends MOBILE: it has no first-run picker), and
 // the response is the bare status, not a { success, data } envelope.
 
 describe("life-mode API", () => {
@@ -462,12 +463,13 @@ describe("life-mode API", () => {
     expect(result.focusActivities).toEqual(["job_change", "business_start"]);
   });
 
-  it("updateLifeMode PATCHes the mode and explicit interaction intent", async () => {
+  it("updateLifeMode PATCHes the mode, interaction intent and surface", async () => {
     MOCK_CLIENT.patch.mockResolvedValue(STATUS);
-    await updateLifeMode("BALANCED", "SKIP");
+    await updateLifeMode("CAREER", "SELECT", "MOBILE");
     expect(MOCK_CLIENT.patch).toHaveBeenCalledWith("/settings/life-mode", {
-      mode: "BALANCED",
-      intent: "SKIP",
+      mode: "CAREER",
+      intent: "SELECT",
+      surface: "MOBILE",
     });
   });
 });

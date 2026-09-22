@@ -5,7 +5,7 @@ from datetime import UTC, date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_admin_user
@@ -52,16 +52,24 @@ class RetentionReport(BaseModel):
 
 class LifeFocusMetrics(BaseModel):
     period: str
+    # Measure 1 is a snapshot of saved preferences, not scoped to `period`.
+    adoption_as_of: datetime
     total_users: int
     non_balanced_users: int
     non_balanced_share: float
     mode_counts: dict[str, int]
+    # Every first write, any surface; context for the picker-only rate below.
     first_run_decisions: int
+    # First writes made on the first-run picker, the only surface offering Skip.
+    first_run_picker_decisions: int
     first_run_skips: int
     first_run_skip_rate: float | None
     focus_change_count: int
-    focus_active_users: int
-    focus_changes_per_active_user: float | None
+    # Distinct readers with a post-onboarding focus write (SELECT or KEEP) in
+    # the period. A reader whose only write was their first choice cannot have
+    # changed yet, so they are not in the base.
+    focus_returning_users: int
+    focus_changes_per_returning_user: float | None
 
 
 def _month_bounds(month: str | None) -> tuple[datetime, datetime]:
@@ -177,17 +185,22 @@ def get_life_focus_metrics(
 ) -> LifeFocusMetrics:
     """Read the server-authoritative Phase 4 measures.
 
-    ``focus_active_users`` means distinct users who interacted with the focus
-    PATCH during the requested month. That is the denominator the plan says a
-    PATCH-only store can support; broader product MAU remains a PostHog metric.
+    The population is live, non-admin accounts: soft-deleted users and staff
+    would otherwise sit in both numerator and denominator. The change rate's
+    base is ``focus_returning_users`` (see the model); whole-product MAU
+    remains a PostHog metric.
     """
 
     start, end = _month_bounds(month)
-    total_users = int(session.execute(select(func.count()).select_from(User)).scalar_one())
+    counted_user = (User.deleted_at.is_(None), User.is_admin.is_(False))
+    total_users = int(
+        session.execute(select(func.count()).select_from(User).where(*counted_user)).scalar_one()
+    )
     saved_rows = session.execute(
-        select(UserPreference.life_mode, func.count(UserPreference.preference_id)).group_by(
-            UserPreference.life_mode
-        )
+        select(UserPreference.life_mode, func.count(UserPreference.preference_id))
+        .join(User, User.user_id == UserPreference.owner_user_id)
+        .where(*counted_user, UserPreference.deleted_at.is_(None))
+        .group_by(UserPreference.life_mode)
     ).all()
     saved_counts = {str(mode): int(count) for mode, count in saved_rows}
     non_balanced_users = sum(
@@ -198,61 +211,52 @@ def get_life_focus_metrics(
     # users rather than only readers who have opened the picker.
     mode_counts["BALANCED"] = total_users - non_balanced_users
 
-    in_period = (
-        LifeFocusEvent.created_at >= start,
-        LifeFocusEvent.created_at < end,
-    )
-    first_run_decisions = int(
-        session.execute(
-            select(func.count())
-            .select_from(LifeFocusEvent)
-            .where(*in_period, LifeFocusEvent.is_first_run.is_(True))
-        ).scalar_one()
-    )
-    first_run_skips = int(
-        session.execute(
-            select(func.count())
-            .select_from(LifeFocusEvent)
-            .where(
-                *in_period,
-                LifeFocusEvent.is_first_run.is_(True),
-                LifeFocusEvent.intent == "SKIP",
-            )
-        ).scalar_one()
-    )
-    focus_active_users = int(
-        session.execute(
-            select(func.count(func.distinct(LifeFocusEvent.user_id))).where(*in_period)
-        ).scalar_one()
-    )
-    focus_change_count = int(
-        session.execute(
-            select(func.count())
-            .select_from(LifeFocusEvent)
-            .where(
-                *in_period,
-                LifeFocusEvent.is_first_run.is_(False),
-                LifeFocusEvent.intent == "SELECT",
-                LifeFocusEvent.previous_mode != LifeFocusEvent.new_mode,
-            )
-        ).scalar_one()
-    )
+    ev = LifeFocusEvent
+    first_run = ev.is_first_run.is_(True)
+    on_picker = ev.surface == "FIRST_RUN_PICKER"
+    returning = ev.is_first_run.is_(False)
+    is_change = and_(returning, ev.intent == "SELECT", ev.previous_mode != ev.new_mode)
+    row = session.execute(
+        select(
+            func.count().filter(first_run),
+            func.count().filter(first_run, on_picker),
+            func.count().filter(first_run, on_picker, ev.intent == "SKIP"),
+            func.count().filter(is_change),
+            func.count(func.distinct(ev.user_id)).filter(returning),
+        )
+        .select_from(ev)
+        .join(User, User.user_id == ev.user_id)
+        .where(*counted_user, ev.created_at >= start, ev.created_at < end)
+    ).one()
+    (
+        first_run_decisions,
+        first_run_picker_decisions,
+        first_run_skips,
+        focus_change_count,
+        focus_returning_users,
+    ) = (int(value) for value in row)
 
     return LifeFocusMetrics(
         period=start.strftime("%Y-%m"),
+        adoption_as_of=datetime.now(UTC),
         total_users=total_users,
         non_balanced_users=non_balanced_users,
         non_balanced_share=round(non_balanced_users / total_users, 4) if total_users else 0.0,
         mode_counts=mode_counts,
         first_run_decisions=first_run_decisions,
+        first_run_picker_decisions=first_run_picker_decisions,
         first_run_skips=first_run_skips,
         first_run_skip_rate=(
-            round(first_run_skips / first_run_decisions, 4) if first_run_decisions else None
+            round(first_run_skips / first_run_picker_decisions, 4)
+            if first_run_picker_decisions
+            else None
         ),
         focus_change_count=focus_change_count,
-        focus_active_users=focus_active_users,
-        focus_changes_per_active_user=(
-            round(focus_change_count / focus_active_users, 4) if focus_active_users else None
+        focus_returning_users=focus_returning_users,
+        focus_changes_per_returning_user=(
+            round(focus_change_count / focus_returning_users, 4)
+            if focus_returning_users
+            else None
         ),
     )
 

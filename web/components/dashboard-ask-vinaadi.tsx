@@ -27,6 +27,10 @@ interface DashboardAskVinaadiProps {
   /** Drop the standalone top margin when placed inline in a spaced column
       (e.g. the Hybrid Family forecast rail), so it aligns with its siblings. */
   embedded?: boolean;
+  /** Analytics surface for chip taps. The Family rail passes no life mode, so
+   *  its chips are the BALANCED set; a separate surface keeps those taps out
+   *  of the per-focus count for the reader's own Ask. */
+  analyticsSurface?: "web" | "web_family";
 }
 
 const SUGGESTED_QUESTIONS: Record<NonNullable<GoalTrack> | "DEFAULT", { ta: string; en: string }[]> = {
@@ -103,7 +107,7 @@ function AnswerCard({ entry, lang }: { entry: { question: string; data: AskVinaa
   );
 }
 
-export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode = "BALANCED", onUpgrade, embedded = false }: DashboardAskVinaadiProps) {
+export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode = "BALANCED", onUpgrade, embedded = false, analyticsSurface = "web" }: DashboardAskVinaadiProps) {
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -213,7 +217,7 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
                 onClick={() => {
                   track("life_focus_ask_chip_tapped", {
                     focus: activeLifeMode,
-                    surface: "web",
+                    surface: analyticsSurface,
                     chip_index: i,
                   });
                   void submit(lang === "ta" ? s.ta : s.en, true);

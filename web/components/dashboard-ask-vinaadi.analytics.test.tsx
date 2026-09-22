@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { apiFetchJson } from "@/lib/api";
 import { track } from "@/lib/analytics";
+import { getChipsForMode } from "@/lib/ask-vinaadi-chips";
 import { DashboardAskVinaadi } from "./dashboard-ask-vinaadi";
 
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
@@ -31,6 +32,25 @@ describe("DashboardAskVinaadi life-focus analytics", () => {
     expect(apiFetchJson).toHaveBeenCalledWith(
       "/api/v1/charts/synthetic-chart-id/ask",
       expect.objectContaining({ method: "POST" }),
+    );
+  });
+
+  it("keeps the Family rail's BALANCED chips out of the reader's own per-focus count", () => {
+    vi.mocked(track).mockClear();
+    render(
+      <DashboardAskVinaadi
+        lang="en"
+        chartId="synthetic-family-chart-id"
+        embedded
+        analyticsSurface="web_family"
+      />,
+    );
+
+    fireEvent.click(screen.getByText(getChipsForMode("BALANCED")[0].en));
+
+    expect(track).toHaveBeenCalledWith(
+      "life_focus_ask_chip_tapped",
+      expect.objectContaining({ focus: "BALANCED", surface: "web_family", chip_index: 0 }),
     );
   });
 });

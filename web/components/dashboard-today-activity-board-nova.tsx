@@ -246,7 +246,9 @@ function ActivityCardNova({
   onGoToCalendar?: () => void;
   /** Life focus T3: one of the reader's focus activities, led with and labelled. */
   isFocus?: boolean;
-  onFocusTap?: () => void;
+  /** Phase 4 tap measure. `better_date` is the card's one real action (the
+   *  calendar link); `card` is a tap anywhere else, which does nothing. */
+  onFocusTap?: (target: "card" | "better_date") => void;
 }) {
   const [showTimingHint, setShowTimingHint] = useState(false);
   const { color, bg, border, stars, statusEn, statusTa } = TONE_STYLE[tone];
@@ -273,7 +275,11 @@ function ActivityCardNova({
       onMouseLeave={() => setShowTimingHint(false)}
       onFocus={() => setShowTimingHint(true)}
       onBlur={() => setShowTimingHint(false)}
-      onPointerUp={isFocus ? onFocusTap : undefined}
+      // click, not pointerup: it skips secondary buttons and scroll-drags, and
+      // a keyboard Enter on the nested button still arrives as a click.
+      onClick={isFocus && onFocusTap
+        ? (e) => onFocusTap((e.target as Element).closest("button") ? "better_date" : "card")
+        : undefined}
       style={{
         position: "relative",
         flex: "0 0 158px",
@@ -634,10 +640,11 @@ export function DashboardTodayActivityBoardNova({
             nextFavourableDates={tone === "good" ? undefined : nextFavourableDatesFor(v.activity)}
             onGoToCalendar={tone === "caution" ? onGoToCalendar : undefined}
             isFocus={isFocus(v.activity)}
-            onFocusTap={() => track("life_focus_row_tapped", {
+            onFocusTap={(target) => track("life_focus_row_tapped", {
               focus: focusMode,
               activity: v.activity,
               surface: "web",
+              target,
             })}
           />
         ))}

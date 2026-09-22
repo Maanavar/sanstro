@@ -1465,6 +1465,8 @@ export type LifeMode =
   | "WEALTH" | "HEALTH" | "SPIRITUALITY" | "REMEDIES" | "BALANCED";
 
 export type LifeModeUpdateIntent = "SELECT" | "SKIP" | "KEEP";
+/** Entry point of a focus write. Only FIRST_RUN_PICKER may send SKIP. */
+export type LifeModeUpdateSurface = "FIRST_RUN_PICKER" | "WEB" | "MOBILE";
 
 export interface LifeModeStatus {
   mode: LifeMode; lifeModeSetAt: string | null;

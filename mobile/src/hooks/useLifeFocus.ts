@@ -27,7 +27,7 @@ export function useLifeFocus() {
   });
 
   const mutation = useMutation({
-    mutationFn: (mode: LifeMode) => updateLifeMode(mode, "SELECT"),
+    mutationFn: (mode: LifeMode) => updateLifeMode(mode, "SELECT", "MOBILE"),
     onSuccess: (status: LifeModeStatus) => {
       queryClient.setQueryData(LIFE_MODE_QUERY_KEY, status);
     },

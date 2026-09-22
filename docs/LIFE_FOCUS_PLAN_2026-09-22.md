@@ -311,7 +311,7 @@ is no light-theme pass.
 ### Phase 3: reach
 Plan pre-select, Calendar filter chip, morning-push line, and mobile focus chip plus Settings card.
 
-**Status 2026-09-22: implemented, not committed, awaiting owner review.**
+**Status 2026-09-22: implemented and committed (`0055d34`).**
 Implementation notes:
 - **One copy of the words.** The ten focus labels and descriptions, and the
   Ask chips, moved to `packages/shared/src/lifeFocus.ts` (`LIFE_MODE_TEXT`,
@@ -396,59 +396,92 @@ Implementation notes:
   explicit PostHog events; mobile's transport is opt-in, allowlisted and
   fail-closed, while web no-ops without a key and honours Do Not Track.
 - **One atomic signal, not a second endpoint.** `PATCH /settings/life-mode`
-  accepts optional `intent: SELECT | SKIP | KEEP` (default `SELECT` for old
-  clients). Current web/mobile callers send it explicitly. Skip is valid only
-  for first-run BALANCED. The state write and its event therefore commit or
-  roll back together, and the server decides whether the interaction was truly
-  first-run. This distinguishes Skip from choosing Balanced without trusting a
-  separate best-effort browser event.
+  accepts optional `intent: SELECT | SKIP | KEEP` (default `SELECT`) and
+  `surface: FIRST_RUN_PICKER | WEB | MOBILE` (default null), both for old
+  clients. The shared wrapper makes both **required**, so no new caller can
+  omit them. SKIP is valid only for BALANCED, on first run, from
+  `FIRST_RUN_PICKER`. KEEP must repeat the focus the reader was shown (the
+  D5-effective mode), so it can never change focus uncounted. The state write
+  and its event commit or roll back together, and the server decides whether
+  the interaction was truly first-run. This distinguishes Skip from choosing
+  Balanced without trusting a separate best-effort browser event.
 - **Minimal server record.** `life_focus_events` stores only opaque user id,
-  intent, previous/new mode, the first-run bit and timestamp. No birth, chart,
-  profile, rendered label, or question data. Its user FK cascades on account
-  deletion. Migration `qq0a1b2c3d4e` is reversible.
+  intent, previous/new mode, the first-run bit, entry-point surface and
+  timestamp, with CHECK constraints on both enums. No birth, chart, profile,
+  rendered label, or question data. Its user FK cascades on account deletion.
+  Migration `qq0a1b2c3d4e` is reversible.
 - **The first three measures are admin-only.** `GET
-  /api/v1/admin/analytics/life-focus?month=YYYY-MM` returns current saved-mode
-  adoption, first-run Skip rate for the month, and actual post-onboarding
-  SELECT transitions per distinct user who used the focus PATCH that month.
-  Missing preferences count as BALANCED. A typed shared wrapper mirrors the
-  route; normal users receive 403.
+  /api/v1/admin/analytics/life-focus?month=YYYY-MM`, over live non-admin
+  accounts only (soft-deleted users and preferences, and staff, are excluded
+  from every numerator and denominator):
+  - adoption: a snapshot of saved preferences, stamped `adoption_as_of`, not
+    scoped to `month`. Missing preferences count as BALANCED.
+  - Skip rate: `first_run_skips / first_run_picker_decisions`. The base is
+    first writes from the first-run picker only. A mobile reader's first
+    choice (`MOBILE`) is in `first_run_decisions` but not in the base, because
+    mobile has no first-run modal and could never have skipped.
+  - change rate: post-onboarding SELECT transitions per
+    `focus_returning_users`, the distinct readers with a non-first-run write
+    that month. A reader whose only write was their first choice is not in the
+    base, since they cannot have changed yet.
+
+  A typed shared wrapper mirrors the route; normal users receive 403.
 - **Tap measures stay consent-aware client analytics.** Both Ask surfaces emit
   `life_focus_ask_chip_tapped` with only `focus`, `surface` and `chip_index`.
-  Web T3 focus cards emit `life_focus_row_tapped` with `focus`, `surface` and
-  the language-free activity key. No question or rendered text is sent.
-  Mobile has no T3 activity row yet, so that event is web-only by design.
+  The Family rail's embedded Ask reports `surface: web_family`. It passes no
+  life mode, so its chips are the BALANCED set, and without its own surface
+  those taps would inflate the BALANCED bucket of the reader's own Ask. Web T3
+  focus cards emit `life_focus_row_tapped` with `focus`, `surface`, the
+  language-free activity key and `target: card | better_date`. It fires on
+  `click` (not `pointerup`), so secondary buttons and scroll-drags do not
+  count, and the nested calendar link is named instead of double-counted. No
+  question or rendered text is sent. Mobile has no T3 activity row yet, so that
+  event is web-only by design.
+- **Silent first-run dismissals.** Escape or the backdrop closes the first-run
+  picker without saving (it returns on a later load), so the server cannot see
+  it. The picker emits `life_focus_first_run_dismissed` for it. Read it beside
+  the server Skip count: together they are "did not choose".
 
 **Gates:**
-- `tests/test_life_focus_phase4.py` (5): Skip versus chose-Balanced, real
-  changes versus first choice/Keep, aggregate values, invalid month, and the
-  admin boundary. The suite failed before the table/route existed; the admin
-  case also failed 403 -> 200 with its dependency removed.
+- `tests/test_life_focus_phase4.py` (15): Skip versus chose-Balanced, old
+  client without intent/surface, SKIP rejected after onboarding, with a
+  non-BALANCED mode, and from WEB/MOBILE/null; KEEP rejected on a different
+  mode; real changes versus first choice/Keep; mobile first choice kept out of
+  the Skip base; first choice alone kept out of the change base; deleted and
+  admin accounts excluded; invalid month; the admin boundary. With the route
+  and metrics code reverted (model kept, so the failures are the logic's and
+  not a missing column), 9 fail; the 6 that pass cover behaviour that was
+  already right but untested.
 - Shared/mobile contract and analytics tests (27, including a rendered mobile
-  Ask screen): the PATCH body includes intent, the new event is dropped before
-  consent, and after consent only its allowlisted aggregate-safe properties
-  pass. The wrapper, allowlist and screen-emitter assertions each failed before
-  their fixes.
-- Web Ask/activity tests (13 focused; 28 with the existing focus helpers):
-  focus and language-free keys reach analytics, never question/label text.
-  Both tap gates failed with their emitters removed.
+  Ask screen): the PATCH body carries intent and surface, the new event is
+  dropped before consent, and after consent only its allowlisted
+  aggregate-safe properties pass.
+- Web picker/Ask/activity tests (21): the picker's three surfaces, the
+  first-run dismissal (tracked, nothing saved) and its non-first-run negative;
+  the Family Ask surface; card versus better-date targets and the non-focus
+  negative. All 7 positive gates failed with the component changes reverted.
 - Test-DB migration cycle: clean `vinaadi_test` -> upgrade to
-  `qq0a1b2c3d4e` (table present) -> downgrade to `pp9f0a1b2c3d` (absent) ->
-  upgrade again (present). Broader backend focus/admin regression: 58/58;
-  full web suite 960/960; full mobile run 95/96 with its sole unrelated
-  birth-details 5-second timeout then 5/5 in an isolated rerun; shared/web/mobile
-  `tsc`, changed-file `ruff` and ESLint clean.
+  `qq0a1b2c3d4e` (8 columns incl. `surface`) -> downgrade to `pp9f0a1b2c3d`
+  (absent) -> upgrade again; an out-of-enum `surface` insert is rejected by the
+  CHECK constraint. Backend focus/settings/admin regression 93/93; full web
+  suite 968/968; mobile 27/27 focused; shared/web/mobile `tsc`, changed-file
+  `ruff` and ESLint clean.
 
 **What the gates cannot see:** there is no production PostHog delivery or
 dashboard check (test/dev have no key, and mobile remains off without opt-in),
 so event arrival and the eventual per-focus breakdown still need production
-observation. Server history starts at this migration; it does not reconstruct
-old first-run choices or changes. "Active" in the server rate means a distinct
-user of the focus PATCH, not whole-product MAU. The adoption count reads the
-saved preference, so a focus that D5 currently masks as BALANCED after a
-profile edit still counts as the user's non-BALANCED choice. The T3 pointer
-gate proves the event payload, not that a reader understands the card as
-tappable, and a nested better-date tap also bubbles as a row tap. No browser or
-device pass was run because this phase changes no visible UI.
+observation. The dismissal event sits in PostHog and the Skip count on the
+server, so "did not choose" has to be joined by hand, and web PostHog honours
+Do Not Track, so dismissals are undercounted by that share. A Skip sent from a
+closing tab can still be lost (it is fire-and-forget by design, UXD-08).
+Server history starts at this migration; it does not reconstruct old
+first-run choices or changes. Test accounts without `is_admin` are still in
+the population; there is no flag to exclude them by. The adoption count reads
+the saved preference, so a focus that D5 currently masks as BALANCED after a
+profile edit still counts as the user's non-BALANCED choice. A T3 card tap has
+no action of its own: `target: card` measures curiosity, not use, and a
+keyboard user focusing a card without pressing its link records nothing. No
+browser or device pass was run because this phase changes no visible UI.
 
 ---
 

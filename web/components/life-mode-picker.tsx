@@ -7,6 +7,7 @@ import { updateLifeMode } from "@vinaadi/shared/api";
 import { LIFE_MODE_ORDER, LIFE_MODE_TEXT } from "@vinaadi/shared/lifeFocus";
 import "@/lib/api"; // initialises the shared API client the wrapper above uses
 import { ModalShell } from "@/components/modal-shell";
+import { track } from "@/lib/analytics";
 import { dt, LIFE_FOCUS } from "@/lib/dashboard-i18n";
 import type { Lang } from "@/lib/i18n";
 import type { LifeMode, LifeModeStatus } from "@/lib/types";
@@ -57,7 +58,7 @@ export function LifeModePicker({ lang, currentMode, blockedModes, firstRun, onCl
     setSaving(mode);
     setError(null);
     try {
-      const status = await updateLifeMode(mode, "SELECT");
+      const status = await updateLifeMode(mode, "SELECT", firstRun ? "FIRST_RUN_PICKER" : "WEB");
       onSelected(status);
       onClose();
     } catch {
@@ -74,13 +75,22 @@ export function LifeModePicker({ lang, currentMode, blockedModes, firstRun, onCl
   function skip() {
     onClose();
     if (!firstRun) return;
-    updateLifeMode("BALANCED", "SKIP").then(onSelected).catch(() => {});
+    updateLifeMode("BALANCED", "SKIP", "FIRST_RUN_PICKER").then(onSelected).catch(() => {});
+  }
+
+  // Escape and the backdrop reach here, never Skip or a choice (those call
+  // onClose directly). On first run this is a deferral: nothing is saved and
+  // the picker returns on a later load, so the server's Skip count cannot see
+  // it. Phase 4 reads it beside that count as the silent half of "skipped".
+  function dismiss() {
+    if (firstRun) track("life_focus_first_run_dismissed", { surface: "web" });
+    onClose();
   }
 
   return (
     <ModalShell
       label={dt(LIFE_FOCUS.question, lang)}
-      onClose={onClose}
+      onClose={dismiss}
       overlayStyle={{ zIndex: 9998 }}
       panelStyle={{
         width: "100%", maxWidth: "600px", maxHeight: "88vh", overflowY: "auto",

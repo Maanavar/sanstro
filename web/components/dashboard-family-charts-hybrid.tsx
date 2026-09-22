@@ -1421,7 +1421,7 @@ export function DashboardFamilyChartsHybrid({
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", minWidth: 0 }}>
               <HyTransitOverview lang={lang} transit={reading?.transit ?? null} memberName={readingName} />
               {reading?.sani && <HySaniCard lang={lang} sani={reading.sani} />}
-              {readingChartId && <DashboardAskVinaadi lang={lang} chartId={readingChartId} embedded />}
+              {readingChartId && <DashboardAskVinaadi lang={lang} chartId={readingChartId} embedded analyticsSurface="web_family" />}
               <HyDailyAffirmation lang={lang} selectedDate={selectedDate} dayScore={dailyGuidance?.score} seed={readingChartId ?? readingName} />
             </div>
           </div>

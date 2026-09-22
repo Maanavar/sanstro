@@ -113,10 +113,19 @@ def _life_mode_response(pref: UserPreference | None, blocked: frozenset[str]) ->
     )
 
 
+LifeModeIntent = Literal["SELECT", "SKIP", "KEEP"]
+# Where the write came from. FIRST_RUN_PICKER is the only place a reader is
+# offered Skip, so it is the Skip-rate denominator; a mobile reader's first
+# choice arrives as MOBILE and must not dilute it (mobile has no first-run
+# modal). None means an old client that predates the field.
+LifeModeSurface = Literal["FIRST_RUN_PICKER", "WEB", "MOBILE"]
+
+
 class LifeModeUpdateRequest(BaseModel):
     mode: str
-    # Optional on the wire for old clients; every current surface sends it.
-    intent: Literal["SELECT", "SKIP", "KEEP"] = "SELECT"
+    # Both optional on the wire for old clients; every current surface sends them.
+    intent: LifeModeIntent = "SELECT"
+    surface: LifeModeSurface | None = None
     model_config = ConfigDict(populate_by_name=True)
 
 
@@ -154,10 +163,19 @@ def update_life_mode(
     is_first_run = existing_pref is None or existing_pref.show_life_mode_picker
     previous_mode = existing_pref.life_mode if existing_pref else "BALANCED"
 
-    if payload.intent == "SKIP" and (not is_first_run or mode != "BALANCED"):
+    if payload.intent == "SKIP" and (
+        not is_first_run or mode != "BALANCED" or payload.surface != "FIRST_RUN_PICKER"
+    ):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="SKIP is valid only for BALANCED on the first-run picker.",
+        )
+    # KEEP answers "still focused on X?", so X must be the focus the reader was
+    # shown. The strip shows the effective (D5-masked) mode, not the stored one.
+    if payload.intent == "KEEP" and mode != effective_life_mode(previous_mode, blocked):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="KEEP must confirm the current focus; use SELECT to change it.",
         )
 
     pref = existing_pref or _get_or_create_preference(session, current_user.user_id)
@@ -179,6 +197,7 @@ def update_life_mode(
             previous_mode=previous_mode,
             new_mode=mode,
             is_first_run=is_first_run,
+            surface=payload.surface,
         )
     )
     session.flush()

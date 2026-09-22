@@ -4,8 +4,8 @@ Revision ID: qq0a1b2c3d4e
 Revises: pp9f0a1b2c3d
 Create Date: 2026-09-22 15:00:00.000000
 
-Only the opaque user FK, interaction intent, before/after modes, first-run bit
-and timestamp are stored. No birth/profile/chart data or question text enters
+Only the opaque user FK, interaction intent, before/after modes, first-run bit,
+entry-point surface and timestamp are stored. No birth/profile/chart data or question text enters
 this table. The user FK cascades so account deletion removes the history.
 """
 from __future__ import annotations
@@ -30,6 +30,7 @@ def upgrade() -> None:
         sa.Column("previous_mode", sa.String(length=20), nullable=False),
         sa.Column("new_mode", sa.String(length=20), nullable=False),
         sa.Column("is_first_run", sa.Boolean(), nullable=False),
+        sa.Column("surface", sa.String(length=20), nullable=True),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -39,6 +40,10 @@ def upgrade() -> None:
         sa.CheckConstraint(
             "intent IN ('SELECT', 'SKIP', 'KEEP')",
             name=op.f("ck_life_focus_events_intent"),
+        ),
+        sa.CheckConstraint(
+            "surface IS NULL OR surface IN ('FIRST_RUN_PICKER', 'WEB', 'MOBILE')",
+            name=op.f("ck_life_focus_events_surface"),
         ),
         sa.ForeignKeyConstraint(["user_id"], ["users.user_id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("event_id"),

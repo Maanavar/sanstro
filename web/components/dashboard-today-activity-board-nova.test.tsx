@@ -226,13 +226,57 @@ describe("DashboardTodayActivityBoardNova — life focus", () => {
   });
 
   it("records a focus-row tap without sending its rendered label or reason", () => {
+    vi.mocked(track).mockClear();
     renderWithFocus(board, ["marriage"]);
-    fireEvent.pointerUp(screen.getByText("Marriage").closest("li") as HTMLElement);
+    fireEvent.click(screen.getByText("Marriage").closest("li") as HTMLElement);
 
+    expect(track).toHaveBeenCalledTimes(1);
     expect(track).toHaveBeenCalledWith("life_focus_row_tapped", {
       focus: "MARRIAGE",
       activity: "marriage",
       surface: "web",
+      target: "card",
+    });
+  });
+
+  it("does not record taps on a card outside the focus", () => {
+    vi.mocked(track).mockClear();
+    renderWithFocus(board, ["marriage"]);
+    fireEvent.click(screen.getByText("Property").closest("li") as HTMLElement);
+    expect(track).not.toHaveBeenCalled();
+  });
+
+  it("names the better-date link as the target instead of counting a bare card tap", async () => {
+    vi.mocked(track).mockClear();
+    vi.mocked(getActivityTimingBatch).mockResolvedValueOnce({
+      data: { results: { marriage: { nextFavourableDates: ["2026-07-24"] } } },
+    } as unknown as Awaited<ReturnType<typeof getActivityTimingBatch>>);
+    const onGoToCalendar = vi.fn();
+    render(
+      <DashboardTodayActivityBoardNova
+        board={board}
+        lang="en"
+        chartId="synthetic-chart-id"
+        selectedDate="2026-07-18"
+        bestWindow={null}
+        now={new Date("2026-07-18T12:00:00Z")}
+        isToday
+        onOpenAskVinaadi={() => {}}
+        onGoToCalendar={onGoToCalendar}
+        focusActivities={["marriage"]}
+        focusMode="MARRIAGE"
+      />,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: /better/ }));
+
+    expect(onGoToCalendar).toHaveBeenCalledTimes(1);
+    expect(track).toHaveBeenCalledTimes(1);
+    expect(track).toHaveBeenCalledWith("life_focus_row_tapped", {
+      focus: "MARRIAGE",
+      activity: "marriage",
+      surface: "web",
+      target: "better_date",
     });
   });
 });

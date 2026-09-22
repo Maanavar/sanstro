@@ -23,6 +23,10 @@ class LifeFocusEvent(Base):
             "intent IN ('SELECT', 'SKIP', 'KEEP')",
             name="intent",
         ),
+        CheckConstraint(
+            "surface IS NULL OR surface IN ('FIRST_RUN_PICKER', 'WEB', 'MOBILE')",
+            name="surface",
+        ),
         Index("idx_life_focus_events_created_at", "created_at"),
         Index("idx_life_focus_events_user_created", "user_id", "created_at"),
     )
@@ -35,6 +39,9 @@ class LifeFocusEvent(Base):
     previous_mode: Mapped[str] = mapped_column(String(20), nullable=False)
     new_mode: Mapped[str] = mapped_column(String(20), nullable=False)
     is_first_run: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    # Entry point of the write; NULL for clients that predate the field. Only
+    # FIRST_RUN_PICKER rows can be a Skip, so only they form the Skip-rate base.
+    surface: Mapped[str | None] = mapped_column(String(20), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
