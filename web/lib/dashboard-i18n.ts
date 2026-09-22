@@ -51,6 +51,37 @@ export const ONBOARDING_DETAIL_LEVEL = {
   saveFailed: s("Detail level will stay balanced until Settings can save.", "அமைப்புகள் சேமிக்கும்வரை விளக்க நிலை சமநிலையாக இருக்கும்."),
 } as const;
 
+// Life focus, Phase 0 (docs/LIFE_FOCUS_PLAN_2026-09-22.md).
+// New Tamil, pending native review (CLAUDE.md new-Tamil rule).
+export const LIFE_FOCUS = {
+  eyebrow: s("Your focus", "உங்கள் கவனம்"),
+  question: s("What are you focused on right now?", "இப்போது எதில் கவனம்?"),
+  /** Phase 0 is honest about what the focus drives today: the Ask chips and,
+   *  once Phase 1 lands, the daily tip. Nothing broader until it is built. */
+  subtitle: s(
+    "We'll tailor your quick questions and daily tips to this. Change it anytime from the chip on Today or in Settings.",
+    "உங்கள் விரைவுக் கேள்விகளையும் தினசரி குறிப்புகளையும் இதற்கேற்ப அமைப்போம். இன்று பக்கத்தின் சிப் அல்லது அமைப்புகளில் எப்போது வேண்டுமானாலும் மாற்றலாம்.",
+  ),
+  skip: s("Skip for now", "இப்போது தவிர்க்கவும்"),
+  close: s("Close", "மூடு"),
+  saveFailed: s("Couldn't save. Please try again.", "சேமிக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்."),
+  chipPrefix: s("Focus", "கவனம்"),
+  /** aria-label for the Today chip. `%s` is the chip's visible text
+   *  ("Focus Career"), kept first and whole so the name contains the visible
+   *  label (WCAG 2.5.3, Label in Name). */
+  chipAria: s("%s. Change focus", "%s. கவனத்தை மாற்று"),
+  /** The 60-day strip. `%s` is the focus label. */
+  nudgeQuestion: s("Still focused on %s?", "இன்னும் %s மீது கவனமா?"),
+  nudgeKeep: s("Yes, keep", "ஆம், தொடரட்டும்"),
+  nudgeChange: s("Change", "மாற்று"),
+  nudgeDismiss: s("Dismiss", "மூடு"),
+  settingsDesc: s(
+    "Pick what matters right now. Your quick questions and daily tips lean toward it; your scores never change.",
+    "இப்போது முக்கியமானதைத் தேர்வுசெய்யுங்கள். விரைவுக் கேள்விகளும் தினசரி குறிப்புகளும் அதை நோக்கிச் சாயும்; உங்கள் மதிப்பெண்கள் மாறாது.",
+  ),
+  saved: s("Focus saved", "கவனம் சேமிக்கப்பட்டது"),
+} as const;
+
 // New Tamil, pending native review (CLAUDE.md new-Tamil rule).
 export const FIRST_RESULT_GUIDE = {
   heading: s("How to read your first result", "முதல் முடிவை எப்படி படிப்பது"),

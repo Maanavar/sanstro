@@ -7,6 +7,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { MotionConfig, motion, useReducedMotion } from "framer-motion";
 
 import { toast } from "sonner";
+import { getLifeMode, updateLifeMode } from "@vinaadi/shared/api";
 import { apiFetchJson, toQuery } from "@/lib/api";
 import { getFriendlyErrorMessage } from "@/lib/error-messages";
 import { isBirthDateWithinBounds } from "@/lib/birth-date";
@@ -32,7 +33,7 @@ import type {
 } from "@/lib/types";
 
 import { useSession } from "@/hooks/useSession";
-import type { GoalTrack, UserMode } from "@/hooks/useSession";
+import type { UserMode } from "@/hooks/useSession";
 import { usePersonalData } from "@/hooks/usePersonalData";
 import { useFamilyData, type MemberChart } from "@/hooks/useFamilyData";
 import { usePlanData } from "@/hooks/usePlanData";
@@ -52,6 +53,8 @@ import { DashboardAskVinaadiWidget } from "./dashboard-ask-vinaadi-widget";
 import { ViewSwap } from "./ui/view-swap";
 
 const STORAGE_KEY = "jothidam-ai-dashboard-state";
+/** Holds the `lifeModeSetAt` whose 60-day focus strip the reader dismissed. */
+const FOCUS_NUDGE_DISMISSED_KEY = "vinaadi-focus-nudge-dismissed";
 const ENABLE_QA_TAB = process.env.NODE_ENV !== "production";
 
 /**
@@ -690,7 +693,10 @@ export function DashboardWorkspace() {
 
   // ── Life Mode (Feature 2) ─────────────────────────────────
   const [lifeModeStatus, setLifeModeStatus] = useState<LifeModeStatus | null>(null);
-  const [lifeModePickerOpen, setLifeModePickerOpen] = useState(false);
+  // Which way the picker was opened decides what its dismiss button does:
+  // first run "Skip for now" records BALANCED; from the chip it just closes.
+  const [lifeModePicker, setLifeModePicker] = useState<null | "first-run" | "change">(null);
+  const [focusNudgeDismissed, setFocusNudgeDismissed] = useState(false);
   const activeLifeMode: LifeMode = lifeModeStatus?.mode ?? "BALANCED";
 
   const personal = usePersonalData({
@@ -1001,21 +1007,51 @@ export function DashboardWorkspace() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.hydrated]);
 
-  // Load Life Mode status; auto-open the picker for set-up users who haven't
-  // chosen recently (null, stale >30d, or server flag set).
+  // Load the life focus. The full picker opens only on first run (the server's
+  // flag, cleared by any save including Skip). A stale focus gets the inline
+  // 60-day strip on Today instead (`focusNudgeDue`, computed server-side), never
+  // the modal: docs/LIFE_FOCUS_PLAN_2026-09-22.md, D3.
   useEffect(() => {
     if (!session.hydrated || !personal.chartId) return;
-    apiFetchJson<LifeModeStatus>("/api/v1/settings/life-mode")
+    getLifeMode()
       .then((s) => {
         setLifeModeStatus(s);
-        const stale =
-          !s.lifeModeSetAt ||
-          Date.now() - new Date(s.lifeModeSetAt).getTime() > 30 * 24 * 60 * 60 * 1000;
-        if (s.showLifeModePicker || stale) setLifeModePickerOpen(true);
+        if (s.showLifeModePicker) setLifeModePicker("first-run");
       })
       .catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.hydrated, personal.chartId]);
+
+  const keepLifeMode = useCallback(async () => {
+    try {
+      setLifeModeStatus(await updateLifeMode(activeLifeMode));
+    } catch {
+      // The strip stays up; the reader can try again or dismiss it.
+    }
+  }, [activeLifeMode]);
+
+  const dismissFocusNudge = useCallback(() => {
+    setFocusNudgeDismissed(true);
+    try {
+      window.localStorage.setItem(FOCUS_NUDGE_DISMISSED_KEY, lifeModeStatus?.lifeModeSetAt ?? "");
+    } catch {
+      // Storage unavailable: the dismissal holds for this session only.
+    }
+  }, [lifeModeStatus?.lifeModeSetAt]);
+
+  // A dismissal is remembered against the timestamp it dismissed, so a later
+  // stale period (after the focus is re-saved) asks again.
+  useEffect(() => {
+    const setAt = lifeModeStatus?.lifeModeSetAt;
+    if (!setAt) return;
+    try {
+      setFocusNudgeDismissed(window.localStorage.getItem(FOCUS_NUDGE_DISMISSED_KEY) === setAt);
+    } catch {
+      // Storage unavailable: fall back to showing the strip.
+    }
+  }, [lifeModeStatus?.lifeModeSetAt]);
+
+  const showFocusNudge = Boolean(lifeModeStatus?.focusNudgeDue) && !focusNudgeDismissed;
 
   useEffect(() => {
     if (session.hydrated && personal.chartId) {
@@ -1609,25 +1645,25 @@ export function DashboardWorkspace() {
   // setters are raw `useState` setters (useSession.ts:29-30) and so are stable;
   // the two values are genuine dependencies, since the rollback path needs
   // whatever was current when the save started.
-  const { userMode: currentUserMode, goalTrack: currentGoalTrack, setUserMode, setGoalTrack } = session;
-  const saveUserSettings = useCallback(async (mode: UserMode, track: GoalTrack | null, options?: { toast?: boolean }) => {
+  const { userMode: currentUserMode, setUserMode } = session;
+  // goalTrack is no longer sent: the Goal track card is retired (life-focus
+  // plan Q6) and the server derives goal_track from the focus. PATCH /auth/me
+  // still accepts goalTrack for old clients.
+  const saveUserSettings = useCallback(async (mode: UserMode, options?: { toast?: boolean }) => {
     const previousMode = currentUserMode;
-    const previousTrack = currentGoalTrack;
     setUserMode(mode);
-    setGoalTrack(track);
     try {
       await apiFetchJson("/api/v1/auth/me", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userMode: mode, goalTrack: track }),
+        body: JSON.stringify({ userMode: mode }),
       });
       if (options?.toast) toast.success(dt(ONBOARDING_DETAIL_LEVEL.saved, lang));
     } catch {
       setUserMode(previousMode);
-      setGoalTrack(previousTrack ?? null);
       if (options?.toast) toast.error(dt(ONBOARDING_DETAIL_LEVEL.saveFailed, lang));
     }
-  }, [lang, currentUserMode, currentGoalTrack, setUserMode, setGoalTrack]);
+  }, [lang, currentUserMode, setUserMode]);
 
   // ── Render ────────────────────────────────────────────────
 
@@ -1833,7 +1869,7 @@ export function DashboardWorkspace() {
               onShowEditProfile={() => setShowEditProfile(true)}
               onGoToPersonal={() => setActiveTab("personal")}
               userMode={session.userMode}
-              onModeChange={(mode) => void saveUserSettings(mode, session.goalTrack ?? null, { toast: true })}
+              onModeChange={(mode) => void saveUserSettings(mode, { toast: true })}
             />
           </TabPane>
 
@@ -1842,6 +1878,10 @@ export function DashboardWorkspace() {
               lang={lang}
               userMode={session.userMode}
               activeLifeMode={activeLifeMode}
+              onOpenFocusPicker={() => setLifeModePicker("change")}
+              showFocusNudge={showFocusNudge}
+              onKeepFocus={keepLifeMode}
+              onDismissFocusNudge={dismissFocusNudge}
               birthDisplayName={birthForm.displayName}
               selectedDate={selectedDate}
               todayDate={personal.todayDate}
@@ -2178,8 +2218,10 @@ export function DashboardWorkspace() {
               notificationPrefs={journal.notificationPrefs}
               onNotificationPrefsSaved={journal.setNotificationPrefs}
               userMode={session.userMode}
-              goalTrack={session.goalTrack}
-              onSaveUserSettings={(mode, track) => saveUserSettings(mode, track)}
+              onSaveUserSettings={(mode) => saveUserSettings(mode)}
+              lifeMode={activeLifeMode}
+              blockedLifeModes={lifeModeStatus?.blockedModes ?? []}
+              onSaveLifeMode={async (mode) => setLifeModeStatus(await updateLifeMode(mode))}
               onSelectedDateChange={setSelectedDate}
               onRefreshPersonal={() => void personal.refreshPersonalBundle(undefined, undefined, true, { forceDay: true })}
               onRefreshFamily={() => void family.refreshFamilyBundle()}
@@ -2345,12 +2387,13 @@ export function DashboardWorkspace() {
 
         {showFeedback && <FeedbackModal lang={lang} onClose={() => setShowFeedback(false)} />}
 
-        {lifeModePickerOpen && (
+        {lifeModePicker && (
           <LifeModePicker
             lang={lang}
             currentMode={activeLifeMode}
             blockedModes={lifeModeStatus?.blockedModes ?? []}
-            onClose={() => setLifeModePickerOpen(false)}
+            firstRun={lifeModePicker === "first-run"}
+            onClose={() => setLifeModePicker(null)}
             onSelected={(status) => setLifeModeStatus(status)}
           />
         )}

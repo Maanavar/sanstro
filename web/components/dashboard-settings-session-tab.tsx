@@ -8,9 +8,11 @@ import { apiFetchJson } from "@/lib/api";
 import { clearFcmTokenLocal, fetchFcmToken, hasFirebaseMessagingConfig } from "@/lib/firebase-messaging";
 import { rasiDisplayName } from "@/lib/chart-utils";
 import { formatDateLabel, formatDateTimeLabel, todayIso } from "@/lib/format";
+import { dt, LIFE_FOCUS } from "@/lib/dashboard-i18n";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
-import type { ContextData, ContextEvent, JournalRetentionApplyData, NotificationPreferenceData } from "@/lib/types";
+import type { ContextData, ContextEvent, JournalRetentionApplyData, LifeMode, NotificationPreferenceData } from "@/lib/types";
+import { lifeModeLabel, MODE_ORDER } from "./life-mode-picker";
 import { CONTEXT_EVENT_TYPES, CTX_TYPE_KEY, type ContextEventType } from "./dashboard-journal-shared";
 import { NovaSelect } from "./nova-select";
 import { SettingsRail, type SettingsSectionId } from "./dashboard-settings-rail";
@@ -18,7 +20,6 @@ import { Toggle } from "./ui";
 import { Field, Input } from "./ui/field";
 
 type UserMode = "BEGINNER" | "BALANCED" | "TRADITIONAL";
-type GoalTrack = "CAREER" | "EXAM" | "RELATIONSHIP" | "FINANCIAL";
 
 // Mirrors the backend FeedbackPayload.category literal (app/api/feedback.py).
 type FeedbackCategory = "suggestion" | "bug" | "calculation" | "review" | "other";
@@ -60,8 +61,12 @@ type DashboardSettingsSessionTabProps = {
   notificationPrefs: NotificationPreferenceData | null;
   onNotificationPrefsSaved: (prefs: NotificationPreferenceData) => void;
   userMode: UserMode;
-  goalTrack: GoalTrack | null;
-  onSaveUserSettings: (mode: UserMode, track: GoalTrack | null) => void;
+  onSaveUserSettings: (mode: UserMode) => Promise<void> | void;
+  /** "Your focus" (life-focus plan D3). Replaces the retired Goal track card
+   *  (owner ruling Q6, 2026-09-22); the server derives goal_track from it. */
+  lifeMode: LifeMode;
+  blockedLifeModes: string[];
+  onSaveLifeMode: (mode: LifeMode) => Promise<void>;
   onSelectedDateChange: (value: string) => void;
   onRefreshPersonal: () => void;
   onRefreshFamily: () => void;
@@ -146,6 +151,7 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
   return (
     <button
       type="button"
+      aria-pressed={active}
       onClick={onClick}
       style={{
         padding: "var(--space-2) var(--space-4)", borderRadius: "var(--radius-pill)", fontSize: "var(--text-sm)", fontWeight: active ? 600 : 500,
@@ -230,8 +236,10 @@ export function DashboardSettingsSessionTab({
   notificationPrefs,
   onNotificationPrefsSaved,
   userMode,
-  goalTrack,
   onSaveUserSettings,
+  lifeMode,
+  blockedLifeModes,
+  onSaveLifeMode,
   onSelectedDateChange,
   onRefreshPersonal,
   onRefreshFamily,
@@ -244,7 +252,7 @@ export function DashboardSettingsSessionTab({
   const { theme: currentTheme, setTheme } = useTheme();
 
   const [modeDraft, setModeDraft] = useState<UserMode>(userMode);
-  const [trackDraft, setTrackDraft] = useState<GoalTrack | "">(goalTrack ?? "");
+  const [focusDraft, setFocusDraft] = useState<LifeMode>(lifeMode);
   const [userSettingsSaving, setUserSettingsSaving] = useState(false);
 
   const [retentionDraft, setRetentionDraft] = useState(journalRetentionDays);
@@ -370,7 +378,7 @@ export function DashboardSettingsSessionTab({
   };
 
   useEffect(() => { setModeDraft(userMode); }, [userMode]);
-  useEffect(() => { setTrackDraft(goalTrack ?? ""); }, [goalTrack]);
+  useEffect(() => { setFocusDraft(lifeMode); }, [lifeMode]);
   useEffect(() => { setRetentionDraft(journalRetentionDays); }, [journalRetentionDays]);
   useEffect(() => {
     if (notificationPrefs) {
@@ -426,8 +434,11 @@ export function DashboardSettingsSessionTab({
   const handleSaveUserSettings = async () => {
     setUserSettingsSaving(true);
     try {
-      await onSaveUserSettings(modeDraft, trackDraft || null);
+      await onSaveUserSettings(modeDraft);
+      if (focusDraft !== lifeMode) await onSaveLifeMode(focusDraft);
       flash(lang === "ta" ? "விருப்பங்கள் சேமிக்கப்பட்டன" : "Preferences saved");
+    } catch {
+      flash(dt(LIFE_FOCUS.saveFailed, lang));
     } finally {
       setUserSettingsSaving(false);
     }
@@ -653,12 +664,11 @@ export function DashboardSettingsSessionTab({
       </Card>
 
       <Card>
-        <RowHeader title={t("track_label", lang)} desc={lang === "ta" ? "இப்போது முக்கியமான ஒன்றைத் தேர்வுசெய்யுங்கள் — வழிகாட்டலும் நேரமும் அதை நோக்கி சாயும்." : "Pick what matters right now — guidance and timing lean toward it."} />
+        <RowHeader title={dt(LIFE_FOCUS.eyebrow, lang)} desc={dt(LIFE_FOCUS.settingsDesc, lang)} />
         <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
-          <Chip active={trackDraft === ""} onClick={() => setTrackDraft("")}>{t("track_none", lang)}</Chip>
-          {(["CAREER", "EXAM", "RELATIONSHIP", "FINANCIAL"] as GoalTrack[]).map((tr) => (
-            <Chip key={tr} active={trackDraft === tr} onClick={() => setTrackDraft(tr)}>
-              {t(tr === "CAREER" ? "track_career" : tr === "EXAM" ? "track_exam" : tr === "RELATIONSHIP" ? "track_relationship" : "track_financial", lang)}
+          {MODE_ORDER.filter((m) => !blockedLifeModes.includes(m)).map((m) => (
+            <Chip key={m} active={focusDraft === m} onClick={() => setFocusDraft(m)}>
+              {lifeModeLabel(m, lang)}
             </Chip>
           ))}
         </div>

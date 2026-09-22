@@ -66,6 +66,7 @@ import {
   DashboardTodayQuickLinksNova,
 } from "./dashboard-today-glance-nova";
 import { DashboardOneMinuteReading } from "./dashboard-one-minute-reading";
+import { FocusNudgeStrip, LifeModeBadge } from "./life-mode-picker";
 
 /**
  * Hash navigation scrolls to its target, but leaves keyboard focus on the
@@ -101,6 +102,12 @@ export type DashboardTodayTabNovaProps = {
   lang: Lang;
   userMode?: "BEGINNER" | "BALANCED" | "TRADITIONAL";
   activeLifeMode?: LifeMode;
+  /** Life focus, Phase 0 (docs/LIFE_FOCUS_PLAN_2026-09-22.md, T0): the
+   *  masthead chip opens the picker; the 60-day strip asks to keep or change. */
+  onOpenFocusPicker?: () => void;
+  showFocusNudge?: boolean;
+  onKeepFocus?: () => Promise<void>;
+  onDismissFocusNudge?: () => void;
   birthDisplayName: string;
   selectedDate: string;
   todayDate: string;
@@ -457,6 +464,11 @@ function HeroPendingRail() {
 export function DashboardTodayTabNova({
   lang,
   userMode = "BALANCED",
+  activeLifeMode = "BALANCED",
+  onOpenFocusPicker,
+  showFocusNudge = false,
+  onKeepFocus,
+  onDismissFocusNudge,
   birthDisplayName,
   selectedDate,
   todayDate,
@@ -809,6 +821,7 @@ export function DashboardTodayTabNova({
             </div>
           )}
           <div className="nova-hero-masthead__right">
+                {onOpenFocusPicker && <LifeModeBadge mode={activeLifeMode} lang={lang} onClick={onOpenFocusPicker} />}
                 <StreakChip days={streakDays} best={streakBest} forgiven={streakForgiven} lang={lang} />
                 {/* Finding 10 — this is a *setting*, and it changes nothing
                     until 8pm (`showEveningPreview` gates on zoneHour >= 20).
@@ -858,6 +871,16 @@ export function DashboardTodayTabNova({
                 )}
           </div>
         </div>
+
+        {showFocusNudge && onOpenFocusPicker && onKeepFocus && onDismissFocusNudge && (
+          <FocusNudgeStrip
+            mode={activeLifeMode}
+            lang={lang}
+            onKeep={onKeepFocus}
+            onChange={onOpenFocusPicker}
+            onDismiss={onDismissFocusNudge}
+          />
+        )}
 
         <div className="nova-hero-row">
           <div className="nova-hero-col-main">

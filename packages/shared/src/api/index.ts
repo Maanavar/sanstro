@@ -28,6 +28,7 @@ export * from "./streak";
 export * from "./journal";
 export * from "./familyVault";
 export * from "./notifications";
+export * from "./lifeMode";
 export * from "./tools";
 export * from "./annualWrapped";
 export * from "./propensities";

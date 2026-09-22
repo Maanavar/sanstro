@@ -44,6 +44,7 @@
     "./api/journal": "./src/api/journal.ts",
     "./api/familyVault": "./src/api/familyVault.ts",
     "./api/notifications": "./src/api/notifications.ts",
+    "./api/lifeMode": "./src/api/lifeMode.ts",
     "./api/numerology": "./src/api/numerology.ts",
     "./api/tools": "./src/api/tools.ts",
     "./api/annualWrapped": "./src/api/annualWrapped.ts",

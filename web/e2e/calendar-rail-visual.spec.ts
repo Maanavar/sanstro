@@ -27,7 +27,7 @@ async function dismissDialogs(page: Page, attempts = 12) {
     // clicks — match any dialog and prefer its own "Skip for now" exit.
     const dialog = page.locator('[role="dialog"]').first();
     if (!(await dialog.isVisible().catch(() => false))) return;
-    const skip = dialog.getByRole("button", { name: /skip for now/i });
+    const skip = dialog.getByRole("button", { name: /^(Skip for now|இப்போது தவிர்க்கவும்)$/ });
     if (await skip.isVisible().catch(() => false)) {
       await skip.click({ timeout: 3_000 }).catch(() => {});
     } else {

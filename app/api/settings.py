@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.age_gate import compute_age, get_blocked_life_modes, is_minor
 from app.core.auth import get_current_user
-from app.core.life_mode import ALL_LIFE_MODES
+from app.core.life_mode import ALL_LIFE_MODES, effective_life_mode, is_focus_nudge_due
 from app.db.session import get_db
 from app.models.birth_profile import BirthProfile
 from app.models.user import User
@@ -106,7 +106,21 @@ class LifeModeResponse(BaseModel):
     life_mode_set_at: datetime | None = Field(default=None, alias="lifeModeSetAt")
     show_life_mode_picker: bool = Field(alias="showLifeModePicker")
     blocked_modes: list[str] = Field(default_factory=list, alias="blockedModes")
+    # Server-computed so web and mobile share one cadence (LIFE_MODE_STALE_DAYS).
+    focus_nudge_due: bool = Field(default=False, alias="focusNudgeDue")
     model_config = ConfigDict(populate_by_name=True)
+
+
+def _life_mode_response(pref: UserPreference | None, blocked: frozenset[str]) -> LifeModeResponse:
+    show_picker = pref.show_life_mode_picker if pref else True
+    set_at = pref.life_mode_set_at if pref else None
+    return LifeModeResponse(
+        mode=effective_life_mode(pref.life_mode if pref else None, blocked),
+        lifeModeSetAt=set_at,
+        showLifeModePicker=show_picker,
+        blockedModes=sorted(blocked),
+        focusNudgeDue=is_focus_nudge_due(show_picker=show_picker, set_at=set_at),
+    )
 
 
 class LifeModeUpdateRequest(BaseModel):
@@ -121,12 +135,7 @@ def get_life_mode(
 ) -> LifeModeResponse:
     pref = session.query(UserPreference).filter_by(owner_user_id=current_user.user_id).first()
     blocked = _user_blocked_modes(session, current_user.user_id)
-    return LifeModeResponse(
-        mode=getattr(pref, "life_mode", "BALANCED") if pref else "BALANCED",
-        lifeModeSetAt=getattr(pref, "life_mode_set_at", None) if pref else None,
-        showLifeModePicker=getattr(pref, "show_life_mode_picker", True) if pref else True,
-        blockedModes=sorted(blocked),
-    )
+    return _life_mode_response(pref, blocked)
 
 
 @router.patch("/settings/life-mode", response_model=LifeModeResponse, tags=["settings"])
@@ -155,12 +164,7 @@ def update_life_mode(
     pref.show_life_mode_picker = False
     session.flush()
     session.refresh(pref)
-    return LifeModeResponse(
-        mode=pref.life_mode,
-        lifeModeSetAt=pref.life_mode_set_at,
-        showLifeModePicker=pref.show_life_mode_picker,
-        blockedModes=sorted(blocked),
-    )
+    return _life_mode_response(pref, blocked)
 
 
 @router.get("/settings/journal", response_model=JournalSettingsResponse, tags=["settings"])

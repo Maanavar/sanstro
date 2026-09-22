@@ -1467,6 +1467,8 @@ export type LifeMode =
 export interface LifeModeStatus {
   mode: LifeMode; lifeModeSetAt: string | null;
   showLifeModePicker: boolean; blockedModes?: string[];
+  /** Server-computed: offer the "Still focused on X?" strip (60-day cadence). */
+  focusNudgeDue: boolean;
 }
 
 export interface PredictionBundle {
