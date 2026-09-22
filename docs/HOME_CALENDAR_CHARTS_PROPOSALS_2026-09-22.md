@@ -603,8 +603,8 @@ Design notes for the build:
   where only the server-backed section is gated on the query state and the
   device-local section always renders below it.
 
-  **Still open in §1:** Durmuhurtham remains a later four-surface contract
-  change (Astro/Arch note above).
+  **Still open in §1:** Durmuhurtham — now exposed, see below; rendering it is
+  the remaining half.
 
 - **R5 Kuligai audit (2026-09-22), read-only — the doctrine conflict is
   narrower than R5 assumed, and one half of it is already built.**
@@ -700,6 +700,42 @@ Design notes for the build:
   new note adds a row of height to a marketing surface that has never been
   looked at in a browser this session. Tamil copy is unreviewed by a native
   reader. Visual sign-off still required.
+
+- **§1 (d): Durmuhurtham exposed in the daily panchangam response
+  (2026-09-22), not committed.** Plan item (d), and smaller than the plan
+  assumed — the *only* thing missing was the response mapping.
+
+  The rule has been computed, verified against seven owner-supplied Chennai
+  almanac entries, and carried on `PanchangamSnapshot` since 2026-08-16. It
+  already serialises **and** deserialises through the panchangam cache
+  (`app/calculations/panchangam.py` L2015 / L2145), and the deserialiser
+  already tolerates its absence — so **no cache version bump**, and none of
+  the recompute-storm risk a bump carries. `_build_kalam` in
+  `panchangam_service.py` was simply dropping the field on the floor on its
+  way to the wire.
+
+  - `app/schemas/panchangam.py`: `PanchangamKalam.durmuhurtham`, defaulting to
+    `[]` so a payload built before today still validates.
+  - `app/services/panchangam_service.py`: `_build_kalam` maps it, with
+    `warn_on_conflict=False` — the Gowri conflict warning is about a *good*
+    kala landing on an inauspicious kalam, and Durmuhurtham is never a good
+    kala.
+  - **Four-surface check:** `web/lib/types.ts` and mobile both re-export the
+    kalam type from `packages/shared/src/types/index.ts`, so the contract has
+    exactly one definition and one edit — `durmuhurtham?: KalamSlot[]`,
+    optional for the same reason `gowriPanchangam` is. Verified by grep rather
+    than assumed; `web/lib/types.ts` defines no kalam shape of its own.
+
+  Gate: 1 new test in `tests/test_durmuhurtham_structure.py`, **checked
+  failing with the mapping removed**. Backend 125 passed across
+  `test_panchangam`, `test_panchangam_api` and `test_gulika`; field-contract
+  and serializer-contract suites green (83 passed). `tsc --noEmit` green on
+  web and mobile; mobile suite 14 suites / 106 tests.
+
+  **Not rendered anywhere yet, deliberately.** Whether Durmuhurtham joins the
+  avoid-set is a doctrine call, and R7 is the argument for not guessing it:
+  `is_good=False` on a slot is not the same claim as "show this in the avoid
+  register". Needs an owner ruling before any surface paints it.
 
   **Blind spot, both halves:** neither jsdom nor Jest's node/RN test
   environments prove a notification actually appears on a device at the

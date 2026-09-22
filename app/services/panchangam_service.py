@@ -122,6 +122,12 @@ def _build_kalam(snapshot) -> PanchangamKalam:
             _build_slot(w, snapshot, warn_on_conflict=True)
             for w in snapshot.gowri_nalla_neram
         ],
+        # No conflict warning: that warning is about a good Gowri kala landing
+        # on an inauspicious kalam, and Durmuhurtham is never a good kala.
+        durmuhurtham=[
+            _build_slot(w, snapshot, warn_on_conflict=False)
+            for w in snapshot.durmuhurtham
+        ],
     )
 
 

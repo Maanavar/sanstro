@@ -1120,6 +1120,10 @@ export interface PanchangamDailyResponseData {
     gowriPanchangam?: KalamSlot[];
     nallaNeram: KalamSlot[];
     gowriNallaNeram: KalamSlot[];
+    /** 1-2 of the fifteen equal daylight muhurtas, by weekday. Optional
+     *  because a cached response built before 2026-09-22 has no such key —
+     *  same reason `gowriPanchangam` is optional. */
+    durmuhurtham?: KalamSlot[];
   };
   abhijit: { start: string; end: string; isRestrictedByWeekday: boolean };
   subhaMuhurtham: { isSubha: boolean; reason: string; isSubhaStrict: boolean; strictReason: string };
