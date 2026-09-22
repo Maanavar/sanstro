@@ -50,8 +50,10 @@ import { getActivityTimingBatch } from "@vinaadi/shared/api/activityTiming";
 import { NovaStarRow } from "./dashboard-ui-nova";
 import { GlanceHeader } from "./dashboard-today-glance-nova";
 import { Card } from "./ui";
+import { dt, LIFE_FOCUS } from "@/lib/dashboard-i18n";
 import { formatClockHour } from "@/lib/format";
 import type { Lang } from "@/lib/i18n";
+import { pinFirst } from "@/lib/life-focus";
 import { minutesOfDayInZone } from "@/lib/tz";
 import type {
   ActivityTimingData,
@@ -72,6 +74,14 @@ function shortDate(dateLocal: string, lang: Lang): string {
   return new Date(`${dateLocal}T12:00:00`).toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", {
     day: "numeric",
     month: "short",
+  });
+}
+
+/** "Thu 25": the focus note's next good day, always within this month. */
+function weekdayDate(dateLocal: string, lang: Lang): string {
+  return new Date(`${dateLocal}T12:00:00`).toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", {
+    weekday: "short",
+    day: "numeric",
   });
 }
 
@@ -222,6 +232,7 @@ function ActivityCardNova({
   betterDate,
   nextFavourableDates,
   onGoToCalendar,
+  isFocus = false,
 }: {
   verdict: DailyActivityVerdict;
   lang: Lang;
@@ -230,6 +241,8 @@ function ActivityCardNova({
   betterDate?: string | null;
   nextFavourableDates?: string[];
   onGoToCalendar?: () => void;
+  /** Life focus T3: one of the reader's focus activities, led with and labelled. */
+  isFocus?: boolean;
 }) {
   const [showTimingHint, setShowTimingHint] = useState(false);
   const { color, bg, border, stars, statusEn, statusTa } = TONE_STYLE[tone];
@@ -283,11 +296,18 @@ function ActivityCardNova({
           {lang === "ta" ? "அடுத்த நல்ல நாட்கள்" : "Next good dates"}: {nextFavourableDates.map((date) => shortDate(date, lang)).join(", ")}
         </span>
       ) : null}
-      {(() => { const Icon = activityIcon(verdict.activity, verdict.label.en); return (
-      <div aria-hidden="true" style={{ width: "34px", height: "34px", borderRadius: "var(--radius-pill)", background: bg, display: "flex", alignItems: "center", justifyContent: "center", color }}>
-        <Icon size={18} strokeWidth={1.75} />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-2)" }}>
+        {(() => { const Icon = activityIcon(verdict.activity, verdict.label.en); return (
+        <div aria-hidden="true" style={{ flex: "none", width: "34px", height: "34px", borderRadius: "var(--radius-pill)", background: bg, display: "flex", alignItems: "center", justifyContent: "center", color }}>
+          <Icon size={18} strokeWidth={1.75} />
+        </div>
+        ); })()}
+        {isFocus && (
+          <span style={{ minWidth: 0, fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--color-accent-strong)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {dt(LIFE_FOCUS.pinnedLabel, lang)}
+          </span>
+        )}
       </div>
-      ); })()}
       <div style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
         {label}
       </div>
@@ -342,8 +362,12 @@ export function DashboardTodayActivityBoardNova({
   timeZone,
   onOpenAskVinaadi,
   onGoToCalendar,
+  focusActivities = [],
 }: {
   board: DailyActivityBoard | null | undefined;
+  /** Life focus T3: these activity types lead the carousel. Verdicts are
+   *  untouched; only the order changes (D2). */
+  focusActivities?: readonly string[];
   lang: Lang;
   chartId: string | null;
   selectedDate: string;
@@ -387,6 +411,13 @@ export function DashboardTodayActivityBoardNova({
     return () => ro.disconnect();
     // Re-measure when the card count changes (data load / date switch).
   }, [syncScroll, cardCount]);
+
+  // A focus change re-sorts in place (plan D3); bring the newly lifted rows
+  // into view rather than leaving the reader wherever they had scrolled to.
+  const focusKey = focusActivities.join(",");
+  useEffect(() => {
+    if (scrollerRef.current) scrollerRef.current.scrollLeft = 0;
+  }, [focusKey]);
 
   const pageScroll = (dir: 1 | -1) => {
     const el = scrollerRef.current;
@@ -447,6 +478,28 @@ export function DashboardTodayActivityBoardNova({
 
   const nextFavourableDatesFor = (activity: string): string[] =>
     timing[activity]?.nextFavourableDates ?? [];
+
+  // One ordered list across the three tones so the focus rows can lead it.
+  // Each keeps its own tone, so a cautioned focus activity is still amber and
+  // still names its better day.
+  const isFocus = (activity: string) => focusActivities.includes(activity);
+  const entries = pinFirst(
+    [
+      ...favourable.map((verdict) => ({ verdict, tone: "good" as const })),
+      ...caution.map((verdict) => ({ verdict, tone: "caution" as const })),
+      ...neutral.map((verdict) => ({ verdict, tone: "neutral" as const })),
+    ],
+    (entry) => isFocus(entry.verdict.activity),
+  );
+
+  // "Nothing specific for job moves today", when every focus activity is
+  // neutral. Not on a Chandrashtama day: there the engine has moved the
+  // favourable rows to neutral on purpose, and the note above already says so.
+  const focusEntries = entries.filter((entry) => isFocus(entry.verdict.activity));
+  const quietFocus = !isChandrashtama && focusEntries.length > 0 && focusEntries.every((entry) => entry.tone === "neutral")
+    ? focusEntries.find((entry) => entry.verdict.activity === focusActivities[0]) ?? focusEntries[0]
+    : null;
+  const quietNextDate = quietFocus ? betterDateFor(quietFocus.verdict.activity) : null;
 
   return (
     <Card
@@ -537,6 +590,13 @@ export function DashboardTodayActivityBoardNova({
         </p>
       )}
 
+      {quietFocus && (
+        <p style={{ margin: "0 0 12px", fontSize: "var(--text-sm)", lineHeight: 1.5, color: "var(--color-muted)" }}>
+          {dt(LIFE_FOCUS.boardQuiet, lang).replace("%s", tx(quietFocus.verdict.label, lang))}
+          {quietNextDate && <> {dt(LIFE_FOCUS.boardNextGood, lang).replace("%s", weekdayDate(quietNextDate, lang))}</>}
+        </p>
+      )}
+
       {/* One horizontal carousel — favourable, then cautions, then the neutral
           "business as usual" rows shown inline (no longer toggled away), then
           the dashed way out for the activity the rules don't cover. The prev/next
@@ -555,36 +615,17 @@ export function DashboardTodayActivityBoardNova({
           scrollSnapType: "x proximity",
         }}
       >
-        {favourable.map((v) => (
+        {entries.map(({ verdict: v, tone }) => (
           <ActivityCardNova
             key={v.activity}
             verdict={v}
             lang={lang}
-            tone="good"
-            showReason={tx(v.reason, lang) !== sharedReason}
-          />
-        ))}
-        {caution.map((v) => (
-          <ActivityCardNova
-            key={v.activity}
-            verdict={v}
-            lang={lang}
-            tone="caution"
-            showReason={tx(v.reason, lang) !== sharedReason}
-            betterDate={betterDateFor(v.activity)}
-            nextFavourableDates={nextFavourableDatesFor(v.activity)}
-            onGoToCalendar={onGoToCalendar}
-          />
-        ))}
-        {neutral.map((v) => (
-          <ActivityCardNova
-            key={v.activity}
-            verdict={v}
-            lang={lang}
-            tone="neutral"
-            showReason={tx(v.reason, lang) !== neutralSharedReason}
-            betterDate={betterDateFor(v.activity)}
-            nextFavourableDates={nextFavourableDatesFor(v.activity)}
+            tone={tone}
+            showReason={tx(v.reason, lang) !== (tone === "neutral" ? neutralSharedReason : sharedReason)}
+            betterDate={tone === "good" ? undefined : betterDateFor(v.activity)}
+            nextFavourableDates={tone === "good" ? undefined : nextFavourableDatesFor(v.activity)}
+            onGoToCalendar={tone === "caution" ? onGoToCalendar : undefined}
+            isFocus={isFocus(v.activity)}
           />
         ))}
         {/* The rules cover eleven activities; this is the way out for the

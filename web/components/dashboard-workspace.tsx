@@ -20,6 +20,7 @@ import { DUR, EASE_NOVA } from "@/lib/motion";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { dt, ONBOARDING_DETAIL_LEVEL } from "@/lib/dashboard-i18n";
+import { appliedFocus } from "@/lib/life-focus";
 import { parseLatitude, parseLongitude } from "@/lib/validation";
 import type {
   ApiEnvelope,
@@ -1200,6 +1201,15 @@ export function DashboardWorkspace() {
   const personalMemberChart = resolveMemberChart(personalViewId);
   const lifeAreasMemberChart = resolveMemberChart(lifeAreasViewId);
 
+  // Life focus D4 (owner ruling Q2): a focus is about the reader's own life,
+  // so a family member's chart gets the neutral order. The relationship lives
+  // on the vault member — `birthProfile.relationshipToOwner` reads "self" for
+  // every persisted chart and cannot tell them apart.
+  const isOwnChart = (viewId: string | null) =>
+    !viewId || family.familyMembers.find((f) => f.familyMemberId === viewId)?.relationshipToOwner === "self";
+  const todayFocus = appliedFocus(lifeModeStatus, isOwnChart(personalViewId));
+  const lifeAreasFocus = appliedFocus(lifeModeStatus, isOwnChart(lifeAreasViewId));
+
   const personalChart = personalMemberChart?.chart ?? personal.chart;
   const personalChartExplanation = personalMemberChart ? personalMemberChart.explanation : personal.chartExplanation;
   const personalChartSummary = personalMemberChart?.summary ?? personal.chartSummary;
@@ -1882,6 +1892,7 @@ export function DashboardWorkspace() {
               showFocusNudge={showFocusNudge}
               onKeepFocus={keepLifeMode}
               onDismissFocusNudge={dismissFocusNudge}
+              lifeFocus={todayFocus}
               birthDisplayName={birthForm.displayName}
               selectedDate={selectedDate}
               todayDate={personal.todayDate}
@@ -2109,6 +2120,8 @@ export function DashboardWorkspace() {
               memberCharts={family.memberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName }))}
               selectedMemberId={lifeAreasViewId}
               onSelectMember={setLifeAreasViewId}
+              focusArea={lifeAreasFocus.area}
+              active={activeTab === "life-areas"}
               chartId={resolveLifeAreasChartId()}
               remedyPlan={remedyPlan}
               gemstoneAdvice={gemstoneAdvice}

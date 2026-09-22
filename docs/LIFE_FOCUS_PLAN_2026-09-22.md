@@ -97,7 +97,7 @@ Legend: **P1–P3** = delivery phase (see §5). "Focus area" = the life-area cod
 | T1 | One-minute reading / hero line (`DashboardOneMinuteReading`) | One added sentence: *"For your career today: steady; best window 10:30–12:00."* Built from the focus area's existing life-area score and today's windows. No new calculation. | No extra line | P2 |
 | T2 | Life areas row (`DashboardTodayLifeAreasDasaRowNova`, `dashboard-today-glance-nova.tsx:329`) | Focus area pinned first, with a small "Your focus" label. Other areas keep their order. | Unchanged | P2 |
 | T3 | Activity board (`dashboard-today-activity-board-nova.tsx`) | The focus's activity types sort to the top. If today says nothing about them, show one row: *"Nothing specific for job moves today. Next good day: Thu 25."* The board already points cautions at a better day this month, so reuse that. | Unchanged | P2 |
-| T4 | Quick links (`DashboardTodayQuickLinksNova`, `glance-nova.tsx:170`) | The focus-relevant link goes first (MARRIAGE → porutham, REMEDIES → remedies, STUDY/CAREER → life areas tab,mily  and so on) | Unchanged | P2 |
+| T4 | Quick links (`DashboardTodayQuickLinksNova`, `glance-nova.tsx:170`) | The focus-relevant link goes first (MARRIAGE → porutham, REMEDIES → remedies, STUDY/CAREER → life areas tab, and so on) | Unchanged | P2 |
 | T5 | Remedy row (`DashboardTodayFamilyRemedyRowNova`, `glance-nova.tsx:836`) | Prefer a remedy tied to the focus area when one is eligible. REMEDIES focus: remedy row moves up, directly under the hero. | Unchanged | P2 |
 
 ### Other web tabs
@@ -240,6 +240,74 @@ account to BALANCED and walks top-level panes only, so every focus-specific
 state lives outside it. Check CAREER and REMEDIES by hand in both languages, at
 375 px and 1440 px.
 
+**Status 2026-09-22: implemented and committed.**
+Implementation notes:
+- **One reorder primitive.** `web/lib/life-focus.ts` holds `pinFirst` (a
+  stable partition that returns the same objects it was given), `appliedFocus`
+  (applies D4) and `focusQuickLinkId`. Every surface below reorders through
+  them and reads `focusArea` / `focusActivities` from the server. The D1 table
+  is not re-typed on the client.
+- **T1** is a line under the hero briefing, not inside `DashboardOneMinuteReading`
+  (that card collapses once read and fetches on its own). It reads *"Your focus,
+  Career: Mixed period. Today's best window 4:31 pm – 5:01 pm."* The plan's
+  example said "career **today**: steady", but a life-area score is a period
+  outlook and its tiles say "not a daily score", so the line uses the tile's own
+  period verdict and rounding. The two cannot disagree.
+- **T2:** the focus tile is pinned *before* the cut to five, so an area ranked
+  sixth still reaches the row. Labelled "Your focus".
+- **T3:** one carousel ordered across the three tones, with focus rows first,
+  each keeping its own tone and better-day link. When every focus activity is
+  neutral, one line says *"Job moves: nothing specific today. Next good day: Thu 25."*
+  That line is suppressed on a Chandrashtama day, where the neutral column is
+  the engine's deliberate call and already explained. The carousel scrolls
+  back to its start when the focus changes.
+- **T4:** RELATIONSHIPS goes to Compatibility; every other area goes to "Best
+  Days This Month". The plan's "REMEDIES → remedies, STUDY/CAREER → life areas"
+  named links that do not exist in Quick Links, so the change reorders only.
+  Confirmed as ruling Q8 (§6).
+- **T5, partial.** The REMEDIES focus moves the remedy row directly under the
+  hero. **Not built:** "prefer a remedy tied to the focus area". The server
+  sends one remedy, anchored to the running dasa lord. Picking a different
+  graha by focus is a selection change near D2's "never change remedy
+  eligibility", and which graha serves a life area is a doctrine call for the
+  astrologer, not a UI change. Ruled out as Q7 (§6).
+- **Life areas tab:** the focus card is labelled and, when the tab opens on
+  Overview, scrolled into view only if it is off screen. The scroll waits for
+  the pane to be active (inactive panes are `display: none`).
+- **Label collision fixed:** active *goals* were labelled "Your focus" in
+  English (the Tamil always said இலக்கு, goal) on both the Life areas card pill
+  and the goals card. They now read "Your goal(s)".
+- **D4 on web:** a chart is the reader's own when no member is selected or the
+  vault member's `relationshipToOwner` is `self`. Today has no member switcher
+  (`setPersonalViewId` is never called), so D4 is reachable only on the Life
+  areas tab.
+- Picker subtitle and Settings copy now say Today puts the focus first.
+
+**Gates:**
+- `tests/test_life_focus_phase2.py`: the whole daily-guidance payload (minus
+  `actionSuggestion`, the one field a focus may reword) and the whole
+  life-areas list are identical across every focus the synthetic profile is
+  offered. Run with a focus-dependent score injected, it fails (that run is
+  kept as a test).
+- `web/lib/life-focus.test.ts` (helpers, including same-object identity) and
+  focus cases in `dashboard-today-activity-board-nova.test.tsx`. The lead-order
+  case failed with pinning switched off.
+- Browser probe on the isolated stack (`vinaadi_e2e`, synthetic account with a
+  spouse member), CAREER → REMEDIES change in place, EN and TA at 1440 and
+  375 px: **45/46**. Covered: hero line (no Latin in TA), pinned tile, first
+  board card, first quick link, remedy-row position, change without reload,
+  Life areas card present and in view, and no focus card on the spouse's chart.
+- **The one failure is pre-existing:** at TA 375 px the page is 447 px wide
+  under BALANCED too. The Today ribbon's week strip plus its
+  "முழு பஞ்சாங்கம்" button overflows. Not caused by Phase 2; not fixed here.
+
+**What the gates cannot see:** the "next good day" half of the T3 note has no
+component test (it needs the timing batch mocked). The probe account's
+CAREER activities happened to carry verdicts, so the quiet note was not seen
+in a browser. The T1 line adds height to the loaded hero that its pending
+skeleton does not reserve, so focus users get a small shift on a phone. There
+is no light-theme pass.
+
 ### Phase 3: reach
 Plan pre-select, Calendar filter chip, morning-push line, and mobile focus chip plus Settings card.
 
@@ -269,6 +337,8 @@ separately; their recommendations are in force unless the owner says otherwise.
 | Q4 | LOVE has no matching activity type. Add one ("difficult conversation / proposal") or leave the activity board unchanged for LOVE? | Leave it unchanged for now. Adding an activity type is a doctrine question for the astrologer, not a UI one. |
 | Q5 | Is REMEDIES a focus or a feature? | Keep it as a focus: it is how a user says "I want to *do* something about my chart". |
 | Q6 | Retire the Goal track UI completely, or keep it hidden for power users? | **Retire it.** Two settings for one idea is what caused this mess. **Ruled: retire.** |
+| Q7 | Should the Today remedy switch to a planet tied to the focus area (e.g. Guru for Study, Sukran for Marriage)? | **Ruled 2026-09-22: No.** The remedy stays anchored to the running dasa lord. In Thirukanitham practice the dasa lord governs what fructifies now, so its parihara comes first whatever the reader wants to hear. Choosing the planet by focus is the same flattery D2 forbids for scores. Reopen only if the astrologer supplies a bhava-karaka parihara table and rules on when it outranks the dasa lord. |
+| Q8 | Add Remedies / Life Areas tiles to Quick Links for REMEDIES / STUDY / CAREER? | **Ruled 2026-09-22: No; reorder only.** Both would repeat something already on screen for that reader: REMEDIES already moves the remedy row under the hero (T5), and the Life areas row already pins the focus tile with its "All areas" link (T2). Quick Links stays a curated eight. Relationships leads with Compatibility (porutham); every other focus leads with Best Days This Month. |
 
 ---
 

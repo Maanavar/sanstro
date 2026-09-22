@@ -56,11 +56,11 @@ export const ONBOARDING_DETAIL_LEVEL = {
 export const LIFE_FOCUS = {
   eyebrow: s("Your focus", "உங்கள் கவனம்"),
   question: s("What are you focused on right now?", "இப்போது எதில் கவனம்?"),
-  /** Phase 0 is honest about what the focus drives today: the Ask chips and,
-   *  once Phase 1 lands, the daily tip. Nothing broader until it is built. */
+  /** Says only what the focus drives: Today's order (Phase 2), the Ask chips
+   *  and the daily tip (Phase 1). Nothing broader until it is built. */
   subtitle: s(
-    "We'll tailor your quick questions and daily tips to this. Change it anytime from the chip on Today or in Settings.",
-    "உங்கள் விரைவுக் கேள்விகளையும் தினசரி குறிப்புகளையும் இதற்கேற்ப அமைப்போம். இன்று பக்கத்தின் சிப் அல்லது அமைப்புகளில் எப்போது வேண்டுமானாலும் மாற்றலாம்.",
+    "We'll put this first on Today and tailor your quick questions and daily tips to it. Change it anytime from the chip on Today or in Settings.",
+    "இதை இன்று பக்கத்தில் முதலில் காட்டி, உங்கள் விரைவுக் கேள்விகளையும் தினசரி குறிப்புகளையும் இதற்கேற்ப அமைப்போம். இன்று பக்கத்தின் சிப் அல்லது அமைப்புகளில் எப்போது வேண்டுமானாலும் மாற்றலாம்.",
   ),
   skip: s("Skip for now", "இப்போது தவிர்க்கவும்"),
   close: s("Close", "மூடு"),
@@ -76,10 +76,25 @@ export const LIFE_FOCUS = {
   nudgeChange: s("Change", "மாற்று"),
   nudgeDismiss: s("Dismiss", "மூடு"),
   settingsDesc: s(
-    "Pick what matters right now. Your quick questions and daily tips lean toward it; your scores never change.",
-    "இப்போது முக்கியமானதைத் தேர்வுசெய்யுங்கள். விரைவுக் கேள்விகளும் தினசரி குறிப்புகளும் அதை நோக்கிச் சாயும்; உங்கள் மதிப்பெண்கள் மாறாது.",
+    "Pick what matters right now. Today puts it first, and your quick questions and daily tips lean toward it; your scores never change.",
+    "இப்போது முக்கியமானதைத் தேர்வுசெய்யுங்கள். இன்று பக்கம் அதை முதலில் காட்டும்; விரைவுக் கேள்விகளும் தினசரி குறிப்புகளும் அதை நோக்கிச் சாயும்; உங்கள் மதிப்பெண்கள் மாறாது.",
   ),
   saved: s("Focus saved", "கவனம் சேமிக்கப்பட்டது"),
+  // Phase 2 (Today responds). New Tamil, pending native review.
+  /** Small label on the pinned life-area tile, the lifted activity cards and
+   *  the Life areas tab card. Same words as the eyebrow, kept separate so the
+   *  two can diverge. */
+  pinnedLabel: s("Your focus", "உங்கள் கவனம்"),
+  /** T1 hero line. `%1` is the life-area label, `%2` the period verdict
+   *  ("Mixed period"). The verdict is the life-area ladder, never the daily one. */
+  heroArea: s("Your focus, %1: %2.", "உங்கள் கவனம், %1: %2."),
+  /** T1 hero line, second half. `%s` is "10:30 am – 12:00 pm". */
+  heroWindowToday: s("Today's best window %s.", "இன்றைய சிறந்த நேரம் %s."),
+  heroWindowOther: s("Best window %s.", "சிறந்த நேரம் %s."),
+  /** T3: the focus activities have nothing to say today. `%s` is the activity label. */
+  boardQuiet: s("%s: nothing specific today.", "%s: இன்று குறிப்பாக எதுவும் இல்லை."),
+  /** T3, second sentence. `%s` is a short date ("Thu 25"). */
+  boardNextGood: s("Next good day: %s.", "அடுத்த நல்ல நாள்: %s."),
 } as const;
 
 // New Tamil, pending native review (CLAUDE.md new-Tamil rule).

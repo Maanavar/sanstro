@@ -156,3 +156,69 @@ describe("DashboardTodayActivityBoardNova — no repeated reasons", () => {
     expect(screen.getByRole("tooltip")).toHaveTextContent("Next good dates: 20 Jul, 23 Jul, 28 Jul");
   });
 });
+
+/** Life focus T3 (docs/LIFE_FOCUS_PLAN_2026-09-22.md): the focus activities
+ *  lead the carousel, verdicts untouched, and a focus with nothing to say
+ *  today says so once. */
+describe("DashboardTodayActivityBoardNova — life focus", () => {
+  const board: DailyActivityBoard = {
+    favourable: [verdict("property", "Property", "SUPPORTS", "Panchami tithi favourable")],
+    caution: [verdict("marriage", "Marriage", "CAUTION", "Saturday unfavourable")],
+    neutral: [
+      verdict("health", "Health", "NEUTRAL", "Neutral for this activity"),
+      verdict("job_change", "Job moves", "NEUTRAL", "Neutral for this activity"),
+    ],
+    isChandrashtama: false,
+  };
+
+  function renderWithFocus(b: DailyActivityBoard, focusActivities: string[]) {
+    return render(
+      <DashboardTodayActivityBoardNova
+        board={b}
+        lang="en"
+        chartId={null}
+        selectedDate="2026-07-18"
+        bestWindow={null}
+        now={new Date("2026-07-18T12:00:00Z")}
+        isToday
+        onOpenAskVinaadi={() => {}}
+        focusActivities={focusActivities}
+      />,
+    );
+  }
+
+  const cardLabels = () =>
+    screen.getAllByRole("listitem").map((li) => li.textContent ?? "");
+
+  it("leads with the focus activity and keeps its own tone", () => {
+    renderWithFocus(board, ["marriage"]);
+    const first = cardLabels()[0];
+    expect(first).toContain("Marriage");
+    expect(first).toContain("Your focus");
+    expect(first).toContain("Worth a second look");
+  });
+
+  it("changes order only: the same cards with the same verdicts", () => {
+    const { unmount } = renderWithFocus(board, []);
+    const neutralOrder = cardLabels().sort();
+    unmount();
+    renderWithFocus(board, ["job_change"]);
+    const focusOrder = cardLabels().map((text) => text.replace("Your focus", "")).sort();
+    expect(focusOrder).toEqual(neutralOrder);
+  });
+
+  it("says once when every focus activity is neutral today", () => {
+    renderWithFocus(board, ["job_change", "business_start"]);
+    expect(screen.getByText(/Job moves: nothing specific today\./)).toBeTruthy();
+  });
+
+  it("says nothing extra when a focus activity has a verdict", () => {
+    renderWithFocus(board, ["property"]);
+    expect(screen.queryByText(/nothing specific today/)).toBeNull();
+  });
+
+  it("stays quiet on a Chandrashtama day, which already explains the neutral column", () => {
+    renderWithFocus({ ...board, isChandrashtama: true }, ["job_change"]);
+    expect(screen.queryByText(/nothing specific today/)).toBeNull();
+  });
+});

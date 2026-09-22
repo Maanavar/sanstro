@@ -4,7 +4,7 @@ import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { Activity, AlertTriangle, ArrowRight, Bell, CalendarDays, CalendarPlus, ChevronDown, Leaf, Moon, MoonStar, Sparkles, Star, Sun, Target, TrendingUp, X, type LucideIcon } from "lucide-react";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
-import { addDays, formatClockLabel, formatClockRange, formatDateLabel, getScoreVerdictFromGuidance } from "@/lib/format";
+import { addDays, formatClockLabel, formatClockRange, formatDateLabel, getLifeAreaVerdict, getScoreVerdictFromGuidance } from "@/lib/format";
 import type { GlossaryKey } from "@/lib/glossary";
 import { t, tLang, tNakshatra, tTithi } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
@@ -12,11 +12,13 @@ import {
   dt,
   EMOTIONAL_WEATHER,
   FIRST_RESULT_GUIDE,
+  LIFE_FOCUS,
   TODAY_HERO,
   TODAY_TIMINGS,
   weatherLabel,
 } from "@/lib/dashboard-i18n";
 import { gowriCategoryLabel, gowriPurposeLabel } from "@/lib/gowri";
+import { NO_FOCUS, type AppliedFocus } from "@/lib/life-focus";
 import { hourInZone, minutesOfDayInZone, timeOnDateToMs } from "@/lib/tz";
 import {
   clearSegments,
@@ -108,6 +110,9 @@ export type DashboardTodayTabNovaProps = {
   showFocusNudge?: boolean;
   onKeepFocus?: () => Promise<void>;
   onDismissFocusNudge?: () => void;
+  /** Life focus, Phase 2 (T1–T5): what to pin and lift. The caller passes
+   *  NO_FOCUS for a chart that is not the reader's own (D4). */
+  lifeFocus?: AppliedFocus;
   birthDisplayName: string;
   selectedDate: string;
   todayDate: string;
@@ -469,6 +474,7 @@ export function DashboardTodayTabNova({
   showFocusNudge = false,
   onKeepFocus,
   onDismissFocusNudge,
+  lifeFocus = NO_FOCUS,
   birthDisplayName,
   selectedDate,
   todayDate,
@@ -613,6 +619,24 @@ export function DashboardTodayTabNova({
   // rather than rendering a second copy of the best-window card in the rail.
   const windowConflict = bestWindow ? personalDailyGuidance?.bestWindowConflicts?.[0] ?? null : null;
 
+  // Life focus T1 — one added sentence under the briefing, from numbers
+  // already on this page: the focus area's life-area score (read through the
+  // same period ladder and rounding as its tile, so the two cannot disagree)
+  // and the window the hero already promotes. No new calculation. It says
+  // "period", never "today", because a life-area score is not a daily one.
+  const focusAreaData = lifeFocus.area ? lifeAreas?.areas.find((a) => a.area === lifeFocus.area) ?? null : null;
+  const focusHeroLine = focusAreaData
+    ? [
+        dt(LIFE_FOCUS.heroArea, lang)
+          .replace("%1", tLang(focusAreaData.label, lang))
+          .replace("%2", getLifeAreaVerdict(Math.round(focusAreaData.score), lang).verdict),
+        bestWindow
+          ? dt(isToday ? LIFE_FOCUS.heroWindowToday : LIFE_FOCUS.heroWindowOther, lang)
+              .replace("%s", `${formatClockLabel(bestWindow.start, lang)} – ${formatClockLabel(bestWindow.end, lang)}`)
+          : null,
+      ].filter(Boolean).join(" ")
+    : null;
+
   // Real lunar phase for today, drawn straight from the tithi we already have —
   // drives the hero sky backdrop's moon shape (thin crescent -> full disc).
   const moonPhase = panchangam ? moonPhaseFromTithi(panchangam.tithi.number, panchangam.tithi.paksha) : null;
@@ -683,6 +707,34 @@ export function DashboardTodayTabNova({
   // one line of the header.
   const nakNow = panchangam?.nakshatra ? limbNow(panchangam.nakshatra, { isToday, nowIso: now.toISOString() }) : null;
   const tithiNow = panchangam?.tithi ? limbNow(panchangam.tithi, { isToday, nowIso: now.toISOString() }) : null;
+
+  // ===== 5. Family Today + Remedy For You row (redesign 2026-07-18,
+  // "Coming up" folded into Family Today's footer 2026-08-20) — the remedy
+  // grows from a one-liner into a card with its own save action; family
+  // members get star tiles; Family Today pins "Coming up" to its bottom so a
+  // small/solo household doesn't leave the card looking empty next to the
+  // taller Remedy card. Held in a variable because a REMEDIES focus renders it
+  // directly under the hero instead (life focus T5).
+  const familyRemedyRow = (
+    <Reveal>
+    <DashboardTodayFamilyRemedyRowNova
+      lang={lang}
+      familyAggregate={familyAggregate}
+      familyPending={familyPending}
+      remedy={personalDailyGuidance?.remedy ?? null}
+      remedyFocus={personalDailyGuidance?.remedyFocus ?? null}
+      remedyMembers={remedyMembers}
+      savingReminder={savingReminder}
+      reminderMessage={reminderStatus?.text ?? null}
+      onSaveReminder={() => void handleSaveReminder()}
+      onGoToFamily={onGoToFamily}
+      onGoToLifeAreas={onGoToLifeAreas}
+      peyarchiUpcoming={peyarchiUpcoming}
+      personalSani={personalSani}
+      onGoToCalendar={onGoToCalendar}
+    />
+    </Reveal>
+  );
 
   async function handleSaveReminder() {
     if (savingReminder) return;
@@ -1059,6 +1111,11 @@ export function DashboardTodayTabNova({
                   >
                     {tLang(personalDailyGuidance.briefing ?? personalDailyGuidance.text, lang)}
                   </NovaClampedText>
+                )}
+                {personalDailyGuidance && focusHeroLine && (
+                  <p className="nova-hero-focus-line" style={{ margin: 0, maxWidth: "690px", fontSize: "var(--text-sm)", lineHeight: 1.5, color: "var(--color-muted)" }}>
+                    {focusHeroLine}
+                  </p>
                 )}
                 {/* Chandrashtama hero flag — when the transiting Moon is in the
                     8th from the user's Janma Rasi today. Previously this only
@@ -1593,6 +1650,9 @@ export function DashboardTodayTabNova({
         </div>
       </div>
 
+      {/* Life focus T5: a REMEDIES focus puts the remedy row directly under the hero. */}
+      {lifeFocus.remediesFirst && familyRemedyRow}
+
       {/* ===== Quick Links — one-tap shortcuts to the highest-value functions
           that otherwise sit behind the "More" nav dropdown (Tools/Explore) or
           have no top-level nav entry at all (Journal). Placed right after the
@@ -1610,6 +1670,7 @@ export function DashboardTodayTabNova({
         onGoToJournal={onGoToJournal}
         onGoToExplore={onGoToExplore}
         onGoToAllTools={onGoToAllTools}
+        focusArea={lifeFocus.area}
       />
       </Reveal>
 
@@ -1676,6 +1737,7 @@ export function DashboardTodayTabNova({
         timeZone={panchangamTimezone}
         onOpenAskVinaadi={onOpenAskVinaadi}
         onGoToCalendar={onGoToCalendar}
+        focusActivities={lifeFocus.activities}
       />
       </Reveal>
 
@@ -1703,35 +1765,13 @@ export function DashboardTodayTabNova({
         selectedDate={dataDate}
         lifeAreas={lifeAreas}
         pending={personalPending}
+        focusArea={lifeFocus.area}
         onGoToChart={onGoToChart}
         onGoToLifeAreas={onGoToLifeAreas}
       />
       </Reveal>
 
-      {/* ===== 5. Family Today + Remedy For You row (redesign 2026-07-18,
-          "Coming up" folded into Family Today's footer 2026-08-20) — the
-          remedy grows from a one-liner into a card with its own save action;
-          family members get star tiles; Family Today pins "Coming up" to its
-          bottom so a small/solo household doesn't leave the card looking
-          empty next to the taller Remedy card. ===== */}
-      <Reveal>
-      <DashboardTodayFamilyRemedyRowNova
-        lang={lang}
-        familyAggregate={familyAggregate}
-        familyPending={familyPending}
-        remedy={personalDailyGuidance?.remedy ?? null}
-        remedyFocus={personalDailyGuidance?.remedyFocus ?? null}
-        remedyMembers={remedyMembers}
-        savingReminder={savingReminder}
-        reminderMessage={reminderStatus?.text ?? null}
-        onSaveReminder={() => void handleSaveReminder()}
-        onGoToFamily={onGoToFamily}
-        onGoToLifeAreas={onGoToLifeAreas}
-        peyarchiUpcoming={peyarchiUpcoming}
-        personalSani={personalSani}
-        onGoToCalendar={onGoToCalendar}
-      />
-      </Reveal>
+      {!lifeFocus.remediesFirst && familyRemedyRow}
 
       {/* ===== 6. Deep-dive bridge — the single doorway to the chart engine.
           The full engine (planet table, chart explanation, vargas, shadbala,

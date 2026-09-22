@@ -1,5 +1,6 @@
 "use client";
 
+import { dt, LIFE_FOCUS } from "@/lib/dashboard-i18n";
 import { getScoreBand } from "@/lib/format";
 import { WarningGlyph } from "./icons";
 import { t, tLang } from "@/lib/i18n";
@@ -7,11 +8,17 @@ import type { Lang } from "@/lib/i18n";
 import type { LifeAreaData } from "@/lib/types";
 import { readingPhrase, readingTone } from "@/lib/reasoning";
 
+/** Element id of the life-focus card; the Life areas tab scrolls to it. */
+export const LIFE_FOCUS_CARD_ID = "life-area-focus";
+
 interface LifeAreaCardProps {
   area: LifeAreaData;
   lang: Lang;
   ageRelevant: boolean;
   onOpenDetail?: () => void;
+  /** The reader's life focus (plan §3, Life areas tab). Labels the card and
+   *  gives it the id the tab scrolls to, so pass it to one card at most. */
+  isLifeFocus?: boolean;
 }
 
 const FACTOR_LABELS: Record<string, { ta: string; en: string }> = {
@@ -96,7 +103,7 @@ function humaniseFactorKey(key: string, lang: Lang): string {
 }
 
 
-export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeAreaCardProps) {
+export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail, isLifeFocus = false }: LifeAreaCardProps) {
   const scoreBand = getScoreBand(area.score);
 
   const barColor =
@@ -109,6 +116,7 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeArea
 
   return (
     <div
+      id={isLifeFocus ? LIFE_FOCUS_CARD_ID : undefined}
       style={{
         padding: "var(--space-6) var(--space-7)",
         borderRadius: "var(--radius-lg)",
@@ -139,7 +147,25 @@ export function LifeAreaCard({ area, lang, ageRelevant, onOpenDetail }: LifeArea
                 border: "1px solid rgba(184,90,44,0.3)",
               }}
             >
-              {lang === "ta" ? "உங்கள் இலக்கு" : "Your focus"}
+              {/* "Your goal", not "Your focus": an active goal is a concrete
+                  plan, and "Your focus" now names the life-focus setting. The
+                  Tamil always said இலக்கு (goal). */}
+              {lang === "ta" ? "உங்கள் இலக்கு" : "Your goal"}
+            </span>
+          )}
+          {isLifeFocus && (
+            <span
+              style={{
+                fontSize: "0.625rem",
+                fontWeight: 700,
+                padding: "2px 8px",
+                borderRadius: "999px",
+                background: "var(--color-accent-muted)",
+                color: "var(--color-accent-strong)",
+                border: "1px solid var(--color-border-strong)",
+              }}
+            >
+              {dt(LIFE_FOCUS.pinnedLabel, lang)}
             </span>
           )}
           {/* D4 contradiction reading (reasoning Phase 3): additive, present

@@ -25,7 +25,7 @@ import type {
   PanchangamDailyResponseData,
 } from "@/lib/types";
 
-import { LifeAreaCard } from "./life-area-card";
+import { LIFE_FOCUS_CARD_ID, LifeAreaCard } from "./life-area-card";
 import { Reveal } from "./dashboard-ui-nova";
 import { DrawerPanel } from "./drawer-panel";
 import { displayName as yogaDisplayName } from "./dashboard-yoga-dosham-panel";
@@ -242,6 +242,12 @@ type DashboardLifeAreasTabNovaProps = {
    *  audit 2026-07-22, Phase 1/2 — links must land on the populated sub-tab). */
   focusSubTab?: string | null;
   onFocusConsumed?: () => void;
+  /** Life focus (plan §3): this area's card is labelled and scrolled into
+   *  view when the tab opens. Null on a family member's chart (D4). */
+  focusArea?: string | null;
+  /** This tab is the one on screen. Inactive panes are `display: none`, so
+   *  the focus scroll has to wait for this. */
+  active?: boolean;
 };
 
 export function DashboardLifeAreasTabNova({
@@ -275,6 +281,8 @@ export function DashboardLifeAreasTabNova({
   onGoToChart,
   focusSubTab = null,
   onFocusConsumed,
+  focusArea = null,
+  active = false,
 }: DashboardLifeAreasTabNovaProps) {
   const SUB_TAB_KEYS: SubTab[] = ["scores", "predictions", "chances", "yogas", "remedies", "report"];
   const initialSubTab: SubTab = focusSubTab && (SUB_TAB_KEYS as string[]).includes(focusSubTab)
@@ -319,6 +327,23 @@ export function DashboardLifeAreasTabNova({
     { key: "remedies", label: t("remedies_title", lang) },
     { key: "report", label: lang === "ta" ? "முழு அறிக்கை" : "Full report" },
   ];
+
+  // Life focus: bring the focus card into view each time the tab opens on
+  // Overview — only when it is off screen, so a reader already looking at it
+  // is not moved.
+  const hasFocusCard = Boolean(focusArea && lifeAreas?.areas.some((a) => a.area === focusArea));
+  useEffect(() => {
+    if (!active || subTab !== "scores" || !hasFocusCard) return;
+    const frame = window.requestAnimationFrame(() => {
+      const el = document.getElementById(LIFE_FOCUS_CARD_ID);
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      if (rect.top >= 0 && rect.bottom <= window.innerHeight) return;
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      el.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [active, subTab, hasFocusCard, focusArea]);
 
   const activeGoals = goals.filter((g) => g.isActive);
   const focusedAreas = lifeAreas?.areas.filter((a) => a.isGoalFocus) ?? [];
@@ -440,7 +465,9 @@ export function DashboardLifeAreasTabNova({
             {activeGoals.length > 0 && (
               <Card style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
                 <Kicker style={{ flex: "none" }}>
-                  {lang === "ta" ? "உங்கள் இலக்கு" : "Your focus"}
+                  {/* "Your goals": "Your focus" now names the life-focus
+                      setting. The Tamil always said இலக்கு (goal). */}
+                  {lang === "ta" ? "உங்கள் இலக்கு" : "Your goals"}
                 </Kicker>
                 {activeGoals.map((g) => (
                   <span key={g.goalId} style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-accent-strong)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
@@ -472,7 +499,7 @@ export function DashboardLifeAreasTabNova({
                 </div>
                 <div className="nova-grid-4">
                   {tier.areas.map((area) => (
-                    <LifeAreaCard key={area.area} area={area} lang={lang} ageRelevant={area.ageRelevant !== false} onOpenDetail={() => { setRenderedArea(area); setSelectedArea(area); }} />
+                    <LifeAreaCard key={area.area} area={area} lang={lang} ageRelevant={area.ageRelevant !== false} isLifeFocus={focusArea !== null && area.area === focusArea} onOpenDetail={() => { setRenderedArea(area); setSelectedArea(area); }} />
                   ))}
                 </div>
               </section>

@@ -7,8 +7,10 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { dt, LIFE_FOCUS } from "@/lib/dashboard-i18n";
 import { formatClockLabel, formatDateLabel, getLifeAreaVerdict, getScoreBand, getScoreVerdictFromGuidance, nextWeekdayDate, scoreColorAlpha } from "@/lib/format";
 import { t, tLang, tPlanetLord, tWeekday } from "@/lib/i18n";
+import { focusQuickLinkId, pinFirst } from "@/lib/life-focus";
 import type { Lang } from "@/lib/i18n";
 import { saniCycleName } from "@/lib/family-flags";
 import type {
@@ -179,9 +181,12 @@ export function DashboardTodayQuickLinksNova({
   onGoToJournal,
   onGoToExplore,
   onGoToAllTools,
+  focusArea = null,
 }: {
   lang: Lang;
   needsProfile: boolean;
+  /** Life focus T4: the link that serves this area moves to the front. */
+  focusArea?: string | null;
   onOpenChartGen?: () => void;
   onOpenMuhurta?: () => void;
   onOpenCompatibility?: () => void;
@@ -242,6 +247,8 @@ export function DashboardTodayQuickLinksNova({
       onClick: onGoToExplore,
     },
   ];
+  const focusLinkId = focusQuickLinkId(focusArea);
+  const orderedLinks = pinFirst(LINKS, (link) => link.id === focusLinkId);
 
   return (
     <Card compact>
@@ -253,7 +260,7 @@ export function DashboardTodayQuickLinksNova({
         onLink={onGoToAllTools}
       />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "var(--space-2_5)" }}>
-        {LINKS.map((link) => {
+        {orderedLinks.map((link) => {
           const disabled = Boolean(link.gateOnProfile && needsProfile);
           return (
             <button
@@ -334,6 +341,7 @@ export function DashboardTodayLifeAreasDasaRowNova({
   selectedDate,
   lifeAreas,
   pending = false,
+  focusArea = null,
   onGoToChart,
   onGoToLifeAreas,
 }: {
@@ -345,6 +353,9 @@ export function DashboardTodayLifeAreasDasaRowNova({
   lifeAreas?: LifeAreasResponseData | null;
   /** The personal data has not arrived yet: show placeholders, not the empty copy (DXA-03). */
   pending?: boolean;
+  /** Life focus T2: this area's tile goes first and is labelled. The others
+   *  keep their order. Its score is untouched (D2). */
+  focusArea?: string | null;
   onGoToChart?: () => void;
   onGoToLifeAreas?: () => void;
 }) {
@@ -390,8 +401,11 @@ export function DashboardTodayLifeAreasDasaRowNova({
         </div>
         {lifeAreas?.areas && lifeAreas.areas.length > 0 ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(104px, 1fr))", gap: "var(--space-2_5)" }}>
-            {lifeAreas.areas.slice(0, 5).map((area) => {
+            {/* Pinned before the cut to five, so a focus area the engine ranks
+                sixth still reaches the row. */}
+            {pinFirst(lifeAreas.areas, (a) => a.area === focusArea).slice(0, 5).map((area) => {
               const score = Math.round(area.score);
+              const isFocus = focusArea !== null && area.area === focusArea;
               // UXD-14 — pair the band colour with its verdict word so the tile
               // is readable without relying on hue (colour-blind safe). Both now
               // come from the *period* ladder, not the daily one: "Good day"
@@ -457,6 +471,11 @@ export function DashboardTodayLifeAreasDasaRowNova({
                   {chandra && (
                     <div style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--color-mid-text)", marginTop: "4px", lineHeight: 1.15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                       🌘 {lang === "ta" ? "சந்திராஷ்டமம்" : "Chandrashtama"}
+                    </div>
+                  )}
+                  {isFocus && (
+                    <div style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--color-accent-strong)", marginTop: "4px", lineHeight: 1.15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {dt(LIFE_FOCUS.pinnedLabel, lang)}
                     </div>
                   )}
                 </div>
