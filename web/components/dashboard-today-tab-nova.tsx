@@ -359,6 +359,17 @@ function HeroPendingLede({ lang }: { lang: Lang }) {
   );
 }
 
+/** Life focus T1: the line under the briefing (12px type, 18px line box). It
+ *  wraps by width and language, so `.nova-hero-skel--focus` carries the
+ *  measured height; without it a focus reader's hero grew on arrival. */
+function HeroPendingFocusLine() {
+  return (
+    <div className="nova-hero-skel--focus" aria-hidden="true" style={{ width: "100%", maxWidth: "690px" }}>
+      <HeroSkelTextLine w="78%" box={18} bar={10} />
+    </div>
+  );
+}
+
 /* Four of these blocks are as tall as their copy wraps, which depends on both
    the width and the language — `.nova-hero-skel--*` in dashboard-nova.css
    carries those measured heights (en and ta, three widths). Everything else
@@ -1092,6 +1103,7 @@ export function DashboardTodayTabNova({
                 {!personalDailyGuidance && personalPending && (
                   <>
                     <HeroPendingLede lang={lang} />
+                    {lifeFocus.area && <HeroPendingFocusLine />}
                     <HeroPendingWeather />
                     <HeroPendingWindow />
                   </>

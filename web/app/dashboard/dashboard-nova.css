@@ -4455,6 +4455,18 @@ button.ui-chip { cursor: pointer; }
 :root[lang="ta"] .nova-hero-skel--timings {
   min-height: 299px;
 }
+/* Life focus T1 line, two 18px line boxes. Measured 2026-09-22 with a CAREER
+   focus: en is 391px on one line, so it wraps below 860 (374px column) and
+   not above (435px+); ta is 612px, one line only at 1440 (617px column) and
+   only for the shortest verdict, so ta keeps both lines at every width. */
+.nova-hero-skel--focus {
+  min-height: 36px;
+}
+@media (min-width: 860px) {
+  :root:not([lang="ta"]) .nova-hero-skel--focus {
+    min-height: 18px;
+  }
+}
 @media (min-width: 860px) {
   .nova-hero-skel--weather {
     min-height: 62px;

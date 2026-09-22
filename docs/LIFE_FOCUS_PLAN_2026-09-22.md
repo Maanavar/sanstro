@@ -304,9 +304,20 @@ Implementation notes:
 **What the gates cannot see:** the "next good day" half of the T3 note has no
 component test (it needs the timing batch mocked). The probe account's
 CAREER activities happened to carry verdicts, so the quiet note was not seen
-in a browser. The T1 line adds height to the loaded hero that its pending
-skeleton does not reserve, so focus users get a small shift on a phone. There
-is no light-theme pass.
+in a browser. There is no light-theme pass.
+
+**Closed 2026-09-22 (after Phase 4): the T1 line's pending stand-in.** The
+loaded line had no place held for it, so a focus reader's hero grew by one or
+two lines on arrival. `HeroPendingFocusLine` now holds it when the reader has
+a focus area, sized by `.nova-hero-skel--focus`. Measured on the isolated stack
+(CAREER, EN and TA at 375/768/860/1024/1200/1440): en's line is 391px on one
+line and wraps below 860; ta's is 612px and fits on one line only at 1440 with
+the shortest verdict. Before: the stand-in was 18px against a 36px line at
+375/768 (both languages) and ta 1024/1200. After: 11 of 12 points match; ta at
+1440 over-reserves 18px when the verdict is "Mixed", chosen because a longer
+verdict or area label wraps there. BALANCED readers get no stand-in. **Cannot
+see:** the height depends on the words, so an unusually long area label or
+window can still differ by one 18px line; one synthetic chart was measured.
 
 ### Phase 3: reach
 Plan pre-select, Calendar filter chip, morning-push line, and mobile focus chip plus Settings card.
@@ -482,6 +493,18 @@ profile edit still counts as the user's non-BALANCED choice. A T3 card tap has
 no action of its own: `target: card` measures curiosity, not use, and a
 keyboard user focusing a card without pressing its link records nothing. No
 browser or device pass was run because this phase changes no visible UI.
+
+### Where the plan stands (2026-09-22)
+Phases 0–4 are built, committed and pushed on `harden/production-readiness`.
+Nothing in §3–§5 is left unbuilt except what an owner ruling took out (T5's
+focus-tied remedy, Q7; extra Quick Links, Q8). What remains is not code:
+- **Tuning (Phase 4, second half):** merge a focus that is almost never picked
+  (LOVE/MARRIAGE likeliest). Needs a production sample from
+  `/admin/analytics/life-focus`; there is none yet.
+- **Unverified in a browser:** Phase 3's Calendar chip and Plan pre-selects,
+  and every mobile screen on a device. Tests and typecheck only.
+- **Mobile Today reordering** waits for an equivalent Today layout (§3).
+- **Not this plan's:** the TA 375 px ribbon overflow (Phase 2) is pre-existing.
 
 ---
 
