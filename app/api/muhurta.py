@@ -77,6 +77,14 @@ def _authorize_partner(
     assert_chart_owner(session, partner_chart_id, current_user)
 
 
+# §3 of docs/HOME_CALENDAR_CHARTS_PROPOSALS_2026-09-22.md. Shared by both
+# routes so the two cannot describe the same filter differently.
+_ALMANAC_ONLY_DESC = (
+    "MARRIAGE only. Restrict results to days on the sourced printed almanac's "
+    "wedding list. Every slot already carries `almanacMuhurtham` regardless."
+)
+
+
 @router.get("/charts/{chart_id}/muhurta", response_model=MuhurtaResponse, tags=["muhurta"])
 def get_muhurta(
     chart_id: UUID,
@@ -91,6 +99,7 @@ def get_muhurta(
     # typed "Coimbatore", so the card names a place the reader chose.
     place: str | None = Query(default=None, min_length=1, max_length=120),
     paksha: str | None = Query(default=None, pattern="^(SHUKLA|KRISHNA)$"),
+    almanac_only: bool = Query(default=False, alias="almanacOnly", description=_ALMANAC_ONLY_DESC),
     include_excluded: bool = Query(default=False, alias="includeExcluded"),
     partner_chart_id: UUID | None = _PARTNER_QUERY,
     subject_role: SubjectRole = _ROLE_QUERY,
@@ -112,6 +121,7 @@ def get_muhurta(
         activity_timezone=tz,
         activity_place=place,
         paksha=paksha,
+        almanac_only=almanac_only,
         include_excluded=include_excluded,
         co_chart_id=partner_chart_id,
         subject_role=primary_role,
@@ -132,6 +142,7 @@ def get_muhurta_for_activity_location(
     # typed "Coimbatore", so the card names a place the reader chose.
     place: str | None = Query(default=None, min_length=1, max_length=120),
     paksha: str | None = Query(default=None, pattern="^(SHUKLA|KRISHNA)$"),
+    almanac_only: bool = Query(default=False, alias="almanacOnly", description=_ALMANAC_ONLY_DESC),
     chart_id: UUID | None = Query(default=None, alias="chartId"),
     include_excluded: bool = Query(default=False, alias="includeExcluded"),
     partner_chart_id: UUID | None = _PARTNER_QUERY,
@@ -163,6 +174,7 @@ def get_muhurta_for_activity_location(
         activity_timezone=tz,
         activity_place=place,
         paksha=paksha,
+        almanac_only=almanac_only,
         include_excluded=include_excluded,
         co_chart_id=partner_chart_id,
         # A role with no chart is dead state; general mode has no subject to label.

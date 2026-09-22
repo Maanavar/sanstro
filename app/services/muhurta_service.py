@@ -66,9 +66,11 @@ from app.calculations.tara_bala import tara_number
 from app.constants.astrology import NAKSHATRA_NAMES, SIGN_LORD
 from app.data.kuligai_polarity import favours as kuligai_favours
 from app.data.kuligai_polarity import rejects as kuligai_rejects
+from app.data.muhurtham_naals import has_sourced_sheet, muhurtham_naal_on
 from app.models import BirthProfile, Chart
 from app.schemas.charts import ChartCalculateResponseData
 from app.schemas.muhurta import (
+    AlmanacMuhurtham,
     BiText,
     MuhurtaActivityLocation,
     MuhurtaFactor,
@@ -303,6 +305,27 @@ def _traditional_month_notices(
     month_ta, month_en = TAMIL_MONTHS[month_index]
     message_ta, message_en = custom
     return [TraditionalMonthNotice(month=_t(month_ta, month_en), message=_t(message_ta, message_en))]
+
+
+def _almanac_muhurtham(activity: str, on_date: date) -> AlmanacMuhurtham | None:
+    """Whether this wedding date is also on the printed almanac's list (§3).
+
+    MARRIAGE only, and None — not a status — for everything else: the almanac
+    sheets are wedding sheets, so "not on the list" would be a meaningless
+    verdict on a day someone picked for an exam.
+
+    Adds nothing to the score. It is reported as a gate the family applies, not
+    as a factor the engine priced; the limbs the almanac's compilers weighed are
+    already in `factors`, and pricing membership again would double count them.
+    """
+    if activity != COUPLE_ACTIVITY:
+        return None
+    if not has_sourced_sheet(on_date.year):
+        return AlmanacMuhurtham(status="NO_SHEET")
+    naal = muhurtham_naal_on(on_date)
+    if naal is None:
+        return AlmanacMuhurtham(status="NOT_ON_LIST")
+    return AlmanacMuhurtham(status="ON_LIST", pirai=naal.pirai)
 
 
 def _norm(lord: str) -> str:
@@ -796,6 +819,7 @@ def find_best_muhurta_slots(
     activity_timezone: str | None = None,
     include_excluded: bool = False,
     paksha: str | None = None,
+    almanac_only: bool = False,
     chart_data: ChartCalculateResponseData | None = None,
     co_chart_data: ChartCalculateResponseData | None = None,
     subject_role: str | None = None,
@@ -819,6 +843,12 @@ def find_best_muhurta_slots(
     `co_chart_id` is the saved-chart form of `co_chart_data`, for the signed-in
     picker: the same couple scoring, with the partner read from a persisted chart
     the caller has already authorised. It requires `chart_id`.
+
+    `almanac_only` narrows the scan to days on the printed almanac's own wedding
+    list (§3). MARRIAGE only. It is a filter and not a bonus, for the reason the
+    astrologer gave: almanac membership is a gate most families apply before they
+    look at a score at all, so it belongs where the other gates are — beside
+    `paksha`, removing days — not in the scoring.
     """
     activity = normalize_activity(activity)
     if activity not in MUHURTA_ACTIVITIES:
@@ -842,6 +872,23 @@ def find_best_muhurta_slots(
     normalized_paksha = str(paksha or "").upper() or None
     if normalized_paksha not in {None, "SHUKLA", "KRISHNA"}:
         raise HTTPException(status_code=422, detail="paksha must be SHUKLA or KRISHNA")
+    if almanac_only and activity != COUPLE_ACTIVITY:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                f"almanacOnly applies to {COUPLE_ACTIVITY} only — the sourced almanac "
+                "sheets are wedding sheets."
+            ),
+        )
+    if almanac_only and include_excluded:
+        # `includeExcluded` exists to show a reader *why* one chosen date is
+        # unavailable. Combining it with a filter that can remove that very date
+        # would answer the question with an empty list, so the contradiction is
+        # named rather than resolved silently either way.
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="almanacOnly cannot be combined with includeExcluded.",
+        )
 
     location_values = (activity_latitude, activity_longitude, activity_timezone)
     has_activity_location = any(value is not None for value in location_values)
@@ -1052,6 +1099,13 @@ def find_best_muhurta_slots(
         try:
             snap = snapshots_by_date[current]
             if normalized_paksha is not None and snap.tithi_paksha != normalized_paksha:
+                current += timedelta(days=1)
+                continue
+            # §3's gate, applied where the other gate is. A year with no sourced
+            # sheet yields nothing rather than everything: asking for almanac days
+            # and being handed unvetted ones is the failure this filter exists to
+            # prevent, and the badge on each slot says which state it is in.
+            if almanac_only and muhurtham_naal_on(current) is None:
                 current += timedelta(days=1)
                 continue
             # One scorer, all layers: the generic almanac, the per-activity
@@ -1303,6 +1357,7 @@ def find_best_muhurta_slots(
             cautions=c.cautions,
             traditionalMonthNotices=_traditional_month_notices(activity, c.day, tz_name, lat, lon),
             factors=c.factors,
+            almanacMuhurtham=_almanac_muhurtham(activity, c.day),
         )
         for c in top
     ]

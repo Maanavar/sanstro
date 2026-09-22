@@ -7,6 +7,7 @@ import type { TamilMonthSpanEntry } from "@vinaadi/shared/api";
 
 import { apiFetchJson } from "@/lib/api";
 import { useElapsedSeconds } from "@/hooks/useElapsedSeconds";
+import { almanacMuhurthamLabel } from "@/lib/almanac-muhurtham";
 import { t, tKarana, tNakshatra, tTithi, tWeekday, tYoga } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ApiEnvelope, MuhurtaFactor, MuhurtaSlot, MuhurtaResponseData, PanchangamDailyResponseData } from "@/lib/types";
@@ -196,6 +197,51 @@ function formatMuhurtaDate(value: string, lang: Lang): string {
   return parsed.toLocaleDateString(lang === "ta" ? "ta-IN" : "en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 }
 
+/**
+ * The almanac verdict on a wedding day, in Nova's tokens (§3 of
+ * docs/HOME_CALENDAR_CHARTS_PROPOSALS_2026-09-22.md).
+ *
+ * The words and the tone come from `almanacMuhurthamLabel`, which the public
+ * muhurta calculator also reads — two surfaces render the same wedding slots in
+ * two design systems, and a doctrine answer applied to one of them is the
+ * DXA-08 failure. This component is only the painting.
+ *
+ * It sits beside the score and never inside it: the astrologer's reading is that
+ * almanac membership is a **gate**, not a bonus point, and the limbs the
+ * almanac's compilers weighed are already priced in `factors`.
+ */
+export function AlmanacMuhurthamBadge({ slot, lang }: { slot: MuhurtaSlot; lang: Lang }) {
+  const label = almanacMuhurthamLabel(slot.almanacMuhurtham, lang);
+  if (!label) return null;
+
+  if (label.tone === "listed") {
+    return (
+      <span
+        data-almanac={label.status}
+        style={{
+          display: "inline-flex", alignItems: "center", gap: "var(--space-1_5)",
+          marginTop: "var(--space-1_5)", padding: "2px 8px",
+          border: "1px solid var(--color-high-border)", borderRadius: "var(--radius-pill)",
+          background: "var(--color-high-bg)", color: "var(--color-high)",
+          fontSize: "var(--text-xs)", fontWeight: 700, lineHeight: 1.5,
+        }}
+      >
+        {label.text}
+        {label.pirai && <span style={{ fontWeight: 500, opacity: 0.85 }}>{label.pirai}</span>}
+      </span>
+    );
+  }
+
+  return (
+    <div
+      data-almanac={label.status}
+      style={{ marginTop: "var(--space-1_5)", fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.5 }}
+    >
+      {label.text}
+    </div>
+  );
+}
+
 function NovaMuhurtaCard({
   slot,
   lang,
@@ -243,6 +289,8 @@ function NovaMuhurtaCard({
             <div style={{ fontSize: "var(--text-base)", color: "var(--color-text-accent)", fontWeight: 600 }}>{lang === "ta" ? slot.tamilDate.ta : slot.tamilDate.en}</div>
           )}
           <div style={{ fontSize: "var(--text-base)", color: "var(--color-muted)" }}>{formatClockLabel(slot.timeStart, lang)} - {formatClockLabel(slot.timeEnd, lang)}</div>
+          {/* Beside the score, never inside it (§3). */}
+          <AlmanacMuhurthamBadge slot={slot} lang={lang} />
           {slot.traditionalMonthNotices && slot.traditionalMonthNotices.length > 0 && (
             <div style={{ marginTop: "8px", padding: "6px 8px", border: "1px solid var(--color-mid-border)", borderRadius: "var(--radius-sm)", background: "var(--color-surface-soft)", color: "var(--color-text)", fontSize: "var(--text-sm)", lineHeight: 1.45 }}>
               {slot.traditionalMonthNotices.map((notice, index) => (
@@ -593,6 +641,10 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
   const today = todayIso();
   const [activity, setActivity] = useState(initialActivity ?? "");
   const [pakshaFilter, setPakshaFilter] = useState<"" | "SHUKLA" | "KRISHNA">("");
+  // §3: the almanac list is a gate most families apply before they look at a
+  // score, so it is offered as a filter beside the paksha one rather than as a
+  // sort. Wedding-only — the sourced sheets are wedding sheets.
+  const [almanacOnly, setAlmanacOnly] = useState(false);
   // A preset date arrives as one specific day, which only the explicit range
   // can express — a month mode would silently widen the very date the user
   // just clicked in the shortlist above.
@@ -758,6 +810,11 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
           wedding,
         );
         if (pakshaFilter) params.set("paksha", pakshaFilter);
+        // Gated on the activity as well as the toggle. The control is hidden for
+        // anything but a wedding, but a stale `true` left behind by an activity
+        // switch would 422 the search rather than quietly widen it, and the
+        // reader would see a network error for a filter they cannot see.
+        if (almanacOnly && activity === WEDDING_ACTIVITY) params.set("almanacOnly", "true");
         return apiFetchJson<ApiEnvelope<MuhurtaResponseData>>(`/api/v1/charts/${chartId}/muhurta?${params}`);
       }));
       const firstResult = chunks[0]?.data;
@@ -936,6 +993,23 @@ export function NovaMuhurtaPicker({ lang, chartId, initialActivity, initialDateF
               <Input type="date" value={dateTo} min={dateFrom} onChange={(e) => handleDateToChange(e.target.value)} />
             </Field>
           </>
+        )}
+
+        {activity === WEDDING_ACTIVITY && (
+          <FieldShell
+            label={lang === "ta" ? "பஞ்சாங்க நாள்" : "Almanac list"}
+            style={{ flex: "1 1 190px" }}
+          >
+            <NovaSelect
+              value={almanacOnly ? "ONLY" : ""}
+              onChange={(value) => setAlmanacOnly(value === "ONLY")}
+              ariaLabel={lang === "ta" ? "பஞ்சாங்க முகூர்த்த நாள் வடிகட்டி" : "Almanac muhurtham day filter"}
+              options={[
+                { value: "", label: lang === "ta" ? "அனைத்து நாட்களும்" : "All days" },
+                { value: "ONLY", label: lang === "ta" ? "பஞ்சாங்க நாட்கள் மட்டும்" : "Almanac days only" },
+              ]}
+            />
+          </FieldShell>
         )}
 
         <FieldShell label={lang === "ta" ? "பிறை" : "Lunar fortnight"} style={{ flex: "1 1 160px" }}>

@@ -112,6 +112,34 @@ class MuhurtaQuery(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class AlmanacMuhurtham(BaseModel):
+    """Whether a wedding date also appears on the printed almanac's own list.
+
+    §3 of docs/HOME_CALENDAR_CHARTS_PROPOSALS_2026-09-22.md. The published
+    marriage dates and the detailed search are two different sources behind the
+    same controls, and they never mentioned each other — which is the first
+    thing a Tamil family asks about a wedding date.
+
+    **This is a gate, not a bonus point** (astrologer, §3): most families will
+    not accept a date that is not in the almanac, however good its computed
+    score. So it is reported beside the score and deliberately contributes
+    nothing to it — the engine's factors already price the panchangam limbs the
+    almanac's own compilers weighed, and pricing membership again would double
+    count them (see the "layered scoring double-counts" rule).
+
+    Three states, not a boolean, because "no sheet" is not "not on the list":
+    only years with a sourced almanac sheet are published at all
+    (`available_years()`), and telling a family their date was rejected by a list
+    that was never consulted is worse than saying nothing.
+    """
+
+    status: Literal["ON_LIST", "NOT_ON_LIST", "NO_SHEET"]
+    # The almanac's own paksha for the day, present only when ON_LIST. Families
+    # filter the published list by Valarpirai/Theipirai, so a date carried over
+    # from it carries that label with it rather than being re-derived.
+    pirai: Literal["VALARPIRAI", "THEIPIRAI"] | None = None
+
+
 class MuhurtaSlot(BaseModel):
     date: date
     tamil_date: BiText | None = Field(alias="tamilDate", default=None)
@@ -137,6 +165,12 @@ class MuhurtaSlot(BaseModel):
     # `factors` instead, which also carries verdicts, citations and conflicts.
     # Defaulted so the numerology surfaces that embed a MuhurtaSlot keep working.
     factors: list[MuhurtaFactor] = Field(default_factory=list)
+    # Present only for MARRIAGE (§3). Structurally absent for every other
+    # activity rather than filtered out downstream, so no surface can invent a
+    # wording for an almanac wedding list on a day nobody is getting married.
+    almanac_muhurtham: AlmanacMuhurtham | None = Field(
+        default=None, alias="almanacMuhurtham"
+    )
 
     model_config = {"populate_by_name": True}
 

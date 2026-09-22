@@ -5,13 +5,43 @@ import { getPersonalizedMuhurta } from "@vinaadi/shared/api";
 import { getApiError, readErrorMessage } from "@/lib/api";
 import { useLang } from "@/components/lang-toggle";
 import { PlaceCombobox, type CityEntry } from "@/components/place-combobox";
+import { almanacMuhurthamLabel } from "@/lib/almanac-muhurtham";
 import { romanNakshathiramName } from "@/lib/tamil-astro";
+import type { AlmanacMuhurtham } from "@/lib/types";
 import Link from "next/link";
 
 // B-006: was `CITY_OPTIONS.find(...)` over a static array; that array is gone
 // (live search via PlaceCombobox replaced it), so the default is now a plain
 // constant carrying the same coordinates Chennai always had in that array.
 const DEFAULT_CITY: CityEntry = { name: "Chennai, Tamil Nadu, India", lat: "13.0667", lng: "80.2833", timezone: "Asia/Kolkata" };
+
+/** The almanac verdict in this page's own `--cl-*` tokens. See
+ *  `almanacMuhurthamLabel` for why the wording is not written here. */
+function AlmanacNote({ almanac, lang }: { almanac: AlmanacMuhurtham | null | undefined; lang: "en" | "ta" }) {
+  const label = almanacMuhurthamLabel(almanac, lang);
+  if (!label) return null;
+  if (label.tone === "listed") {
+    return (
+      <p
+        data-almanac={label.status}
+        style={{
+          display: "inline-flex", alignItems: "center", gap: "6px", margin: "0 0 6px",
+          padding: "2px 9px", borderRadius: "999px",
+          border: "1px solid var(--cl-muhurta-green)", background: "var(--cl-muhurta-green-bg)",
+          color: "var(--cl-muhurta-green)", fontSize: "0.8rem", fontWeight: 700,
+        }}
+      >
+        {label.text}
+        {label.pirai && <span style={{ fontWeight: 500 }}>{label.pirai}</span>}
+      </p>
+    );
+  }
+  return (
+    <p data-almanac={label.status} style={{ margin: "0 0 6px", color: "var(--cl-ink-2)", fontSize: "0.8rem" }}>
+      {label.text}
+    </p>
+  );
+}
 
 // Values must match `app.api.public_tools._PUBLIC_MUHURTA_ACTIVITIES`, which is
 // kept in step with the signed-in picker on purpose — the same question must
@@ -74,6 +104,9 @@ interface MuhurtaSlot {
   dashaSupport?: { en: string; ta: string } | null;
   horaSupport?: { en: string; ta: string } | null;
   factors?: Array<{ verdict: string; contribution: number; reason: { en: string; ta: string } }>;
+  /** MARRIAGE only (§3). The shared `MuhurtaSlot` shape is the definition; this
+   *  local interface exists only until the old renderer below is phased out. */
+  almanacMuhurtham?: AlmanacMuhurtham | null;
   // Retained while the old public-only result renderer is phased out below.
   timeWindow: string;
   tithi: string;
@@ -574,6 +607,13 @@ export function MuhurtaTool() {
                         </div>
                         <p style={{ margin: "0 0 6px", fontWeight: 700, color: "var(--cl-ink)" }}>{lang === "en" ? "Recommended window:" : "பரிந்துரைக்கப்படும் நேரம்:"} {formatTime(slot.timeStart)} – {formatTime(slot.timeEnd)}</p>
                         <p style={{ margin: "0 0 6px", color: "var(--cl-ink-2)" }}>{lang === "en" ? slot.panchangamSupport.en : slot.panchangamSupport.ta}</p>
+                        {/* §3: whether the printed almanac also lists this wedding day.
+                            The signed-in picker asks the same question of the same
+                            slots, and the words come from the one place both read
+                            — only the tokens are this surface's. Beside the score,
+                            never inside it: membership is a gate the family applies,
+                            not a factor the engine priced. */}
+                        <AlmanacNote almanac={slot.almanacMuhurtham} lang={lang} />
                         {slot.dashaSupport && <p style={{ margin: "0 0 6px", color: "var(--cl-ink-2)" }}><strong>{lang === "en" ? "Dasha support: " : "தசை ஆதரவு: "}</strong>{lang === "en" ? slot.dashaSupport.en : slot.dashaSupport.ta}</p>}
                         {slot.horaSupport && <p style={{ margin: 0, color: "var(--cl-ink-2)" }}><strong>{lang === "en" ? "Hora: " : "ஹோரை: "}</strong>{lang === "en" ? slot.horaSupport.en : slot.horaSupport.ta}</p>}
                         {weighedFactors.length > 0 && (

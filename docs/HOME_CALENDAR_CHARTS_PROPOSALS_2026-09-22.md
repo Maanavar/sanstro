@@ -1,6 +1,6 @@
 # Home, Calendar and Charts proposals: research and plan
 
-**Date:** 2026-09-22 · **Status:** owner rulings recorded (R1–R7, below); §7 and §1 shipped; **§2 complete as of 2026-09-23** (backend, cache invalidation, web check-in strip, and §2.4's place label); §3, §4, §6 and §5 not built; device/browser sign-off open on everything shipped · **Asked by:** owner
+**Date:** 2026-09-22 · **Status:** owner rulings recorded (R1–R7, below); §7 and §1 shipped; **§2 complete as of 2026-09-23** (backend, cache invalidation, web check-in strip, and §2.4's place label); §3 shipped 2026-09-23; §4, §6 and §5 not built; device/browser sign-off open on everything shipped · **Asked by:** owner
 
 Seven owner questions, each read through four lenses: Tamil Thirukanitham
 astrologer (**Astro**), full-stack developer (**Dev**), product owner and
@@ -224,17 +224,17 @@ flew out yesterday. Better:
 | Personalised by | Your birth star: Tara bala + Chandrashtama; both stars in couple mode | Your full chart: Tara/Chandra bala, dasha support, activity rules; couple mode for marriage |
 | Filters | English month, Tamil month, Valarpirai/Theipirai | English month, Tamil month, date range, paksha, activity location |
 
-**The gap:** the two lists never mention each other. A marriage date in the
-detailed search does not say "this is also a published almanac muhurtham
-day", which is the first thing a Tamil family asks. Published dates already
+**The gap** (closed 2026-09-23)**:** the two lists never mentioned each other. A
+marriage date in the detailed search did not say "this is also a published
+almanac muhurtham day", which is the first thing a Tamil family asks. Published dates already
 have "Check in detail", which sends the date to the detailed search.
 
 **Astro:** for a wedding, most families will not accept a date that is not in
 the almanac, however good its computed score. Being on the almanac list is a
 gate, not a bonus point.
 
-**Plan:** add an "Almanac muhurtham day" badge on detailed-search results for
-MARRIAGE. This is a lookup against the same muhurtham-naal data, done on the
+**Plan** (built 2026-09-23 — see Progress): add an "Almanac muhurtham day"
+badge on detailed-search results for MARRIAGE. This is a lookup against the same muhurtham-naal data, done on the
 server so the rule lives in one place. Consider an "almanac days only" filter
 for marriage. Separately, the **quick scan** (`/activity-timing`) and the
 **detailed search** are different engines with different scores. Check a
@@ -915,6 +915,81 @@ Design notes for the build:
   `current_location_updated_at` directly and is the one such path today; it
   was not touched here because whether a vault edit can move a member's
   current location is a separate question from §2's.
+
+- **§3 built (2026-09-23): the two wedding lists now mention each other.**
+
+  The gap §3 names is that the published almanac dates and the computed detailed
+  search never referred to one another, and that is the first thing a Tamil
+  family asks. The astrologer's reading decided the shape: **being on the almanac
+  list is a gate, not a bonus point.** So membership is reported beside the score
+  and adds **nothing** to it — the panchangam limbs the almanac's own compilers
+  weighed are already priced in `factors`, and pricing membership again is the
+  saved "layered scoring double-counts" failure.
+
+  - **Three states, not a boolean.** `AlmanacMuhurtham.status` is `ON_LIST` /
+    `NOT_ON_LIST` / `NO_SHEET`. Only years with a sourced sheet exist at all
+    (`available_years()` — 2026 and 2027 today), and reporting an unpublished year
+    as "not on the list" would tell a family their date failed a list nobody ever
+    consulted. `has_sourced_sheet()` in `app/data/muhurtham_naals.py` is what
+    tells the two apart; `muhurtham_naal_on()` indexes the sheets by date.
+  - `_almanac_muhurtham` in `muhurta_service.py`, beside
+    `_traditional_month_notices` — the other MARRIAGE-only per-day enrichment.
+    Non-wedding activities get `None`, not a status: the sourced sheets are
+    wedding sheets, so there is no wording path a surface could get wrong on an
+    exam day.
+  - **`almanacOnly` filter** (§3's "consider an almanac-days-only filter"). It
+    applies where the other gate applies — beside `paksha`, removing days before
+    ranking — because it is a gate, not a sort. 422 for any activity but MARRIAGE,
+    and 422 alongside `includeExcluded`: that flag exists to explain why *one*
+    chosen date is unavailable, and a filter that can remove that very date would
+    answer with an empty list. The web control also gates the param on the
+    activity, so a stale toggle cannot 422 a search for a filter the reader can
+    no longer see.
+  - **Four surfaces.** `packages/shared/src/types/index.ts` (the one definition;
+    `web/lib/types.ts` and mobile both re-export it), plus `almanacOnly` on the
+    `getMuhurta` wrapper in `packages/shared/src/api/tools.ts`, checked against
+    the route decorator by hand as CLAUDE.md requires. Mobile has no screen that
+    renders muhurta slots — verified by grep, `mobile/src/api/tools.ts` only
+    re-exports the wrapper — so there is nothing to paint there yet.
+  - **Both web surfaces that render wedding slots, not one.** The signed-in
+    picker *and* the public muhurta calculator
+    (`app/(marketing)/tools/muhurta-calculator/MuhurtaTool.tsx`) show slots from
+    `find_best_muhurta_slots`, in two different design systems. Fixing one would
+    be DXA-08 repeating, so the wording and tone live once in
+    `web/lib/almanac-muhurtham.ts` and each surface paints them with its own
+    tokens (`--color-*` / `--cl-*`).
+  - **Weighted rendering, on purpose.** `ON_LIST` earns the pill — it is the
+    answer the family wants. `NOT_ON_LIST` is one faint line, not a pill and not
+    an alert: a 30-row list of well-scored dates must not read as a wall of
+    faults, and the almanac's silence is a fact to weigh, not a defect in the
+    date. `NO_SHEET` says so in its own words.
+
+  Gate: 8 backend tests (`tests/test_muhurta_almanac_badge.py`, the route-level
+  ones through `raw_client` so the `almanacOnly` alias is checked with the rule —
+  the drift class that bit `getDailyGuidance`) + 10 web tests (5 for the shared
+  label, 5 for the Nova badge), half of them Tamil. **Every one of the 18 was run
+  against the thing it tests, removed** — three separate backend passes (wiring,
+  then the resolver, then the MARRIAGE-only scoping) and three web passes, because
+  a single blanket removal left several passing by construction and would have
+  recorded a green tick for a check that could not fail. Backend 419 passed
+  across the muhurta, naal and contract suites; web 106 files / 1025 tests; ruff,
+  `tsc --noEmit` and ESLint clean on backend, web and mobile.
+
+  **Deliberately not done, and why.** §3's last paragraph asks for a sample month
+  comparing the quick scan (`/activity-timing`) and the detailed search for dates
+  they rank in *opposite* directions. That guard is about promoting two engines'
+  scores on one screen, which is §4's work — this badge promotes no second score,
+  it reports a list membership. The check still has to happen before §4.
+
+  **Blind spots.** The pill's fit is unverified in a browser: nothing here sees it
+  at 375 px, in Nova light or dark, or how the longer Tamil string
+  (பஞ்சாங்க முகூர்த்த நாள் + வளர்பிறை) wraps inside a result row. The marketing
+  surface's `--cl-muhurta-green` on `--cl-muhurta-green-bg` has not been contrast
+  checked at this size and weight. The Tamil copy is new and unreviewed by a
+  native reader. The `NO_SHEET` path is only reachable for a year past 2027, so
+  no reader will see that wording until a sheet lapses — it is tested, not
+  observed. And the sheets themselves are curated data: the badge is exactly as
+  right as `app/data/muhurtham_naals.py` is.
 
 - **§7 fixed (2026-09-22), committed in `7347030`.** `web/components/dashboard-charts.tsx`:
   - selection is scoped to the chart's identity (`useCellSelection`), so a

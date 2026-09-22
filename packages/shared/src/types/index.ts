@@ -180,6 +180,24 @@ export interface TraditionalMonthNotice {
   message: BiText;
 }
 
+/**
+ * Whether a wedding date also appears on the printed almanac's own wedding list.
+ *
+ * §3 of docs/HOME_CALENDAR_CHARTS_PROPOSALS_2026-09-22.md. **A gate, not a
+ * bonus point** (astrologer): most Tamil families will not accept a date the
+ * almanac does not list, however good its computed score — so this is reported
+ * beside `score` and contributes nothing to it.
+ *
+ * Three states rather than a boolean: only years with a sourced almanac sheet
+ * are published at all, and "we have no sheet for that year" is not "the almanac
+ * rejected your date".
+ */
+export interface AlmanacMuhurtham {
+  status: "ON_LIST" | "NOT_ON_LIST" | "NO_SHEET";
+  /** The almanac's own paksha for the day. Present only when `ON_LIST`. */
+  pirai?: "VALARPIRAI" | "THEIPIRAI" | null;
+}
+
 export interface MuhurtaSlot {
   date: string;
   tamilDate?: BiText | null;
@@ -202,6 +220,9 @@ export interface MuhurtaSlot {
    * verdicts, citations and rule conflicts.
    */
   factors?: MuhurtaFactor[];
+  /** MARRIAGE only. Absent on every other activity: the sourced sheets are
+   *  wedding sheets, so there is no verdict to render for an exam day. */
+  almanacMuhurtham?: AlmanacMuhurtham | null;
 }
 
 export interface MuhurtaActivityLocation {

@@ -205,6 +205,14 @@ export interface MuhurtaPayload {
   /** Return the selected day's veto factors instead of silently omitting it. */
   includeExcluded?: boolean;
   /**
+   * MARRIAGE only: restrict results to days on the sourced printed almanac's
+   * wedding list (§3). Rejected with 422 for any other activity, and rejected
+   * alongside `includeExcluded` — that flag exists to explain one chosen date,
+   * which this filter could remove. Every wedding slot carries
+   * `almanacMuhurtham` whether or not this is set.
+   */
+  almanacOnly?: boolean;
+  /**
    * A second saved chart owned by the same user, for a couple. Requires
    * `chartId`. Scored exactly as the public tool's `partner`: the weaker side
    * governs each personal check and a veto from either removes the day.
@@ -228,6 +236,7 @@ export function getMuhurta(
   if (params.place !== undefined) query.place = params.place;
   if (params.paksha !== undefined) query.paksha = params.paksha;
   if (params.includeExcluded) query.includeExcluded = "true";
+  if (params.almanacOnly) query.almanacOnly = "true";
   if (params.partnerChartId) query.partnerChartId = params.partnerChartId;
   if (params.subjectRole) query.subjectRole = params.subjectRole;
   return getApiClient().get(

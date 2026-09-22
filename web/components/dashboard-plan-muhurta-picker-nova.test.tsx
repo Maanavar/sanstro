@@ -1,6 +1,8 @@
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import {
+  AlmanacMuhurthamBadge,
   clampWindowToToday,
   gregorianMonthOptions,
   groupSlotsByTamilMonth,
@@ -147,5 +149,59 @@ describe("search window resolution", () => {
     expect(options[0].value).toBe("2026-11");
     expect(options[2].value).toBe("2027-01");
     expect(options[11].value).toBe("2027-10");
+  });
+});
+
+/* §3 of docs/HOME_CALENDAR_CHARTS_PROPOSALS_2026-09-22.md. The almanac wedding
+   list and this computed search never mentioned each other, which is the first
+   thing a Tamil family asks. Astrologer: membership is a **gate**, not a bonus
+   point — so it is reported beside the score and never inside it. */
+describe("AlmanacMuhurthamBadge", () => {
+  function withAlmanac(almanac: MuhurtaSlot["almanacMuhurtham"]): MuhurtaSlot {
+    return { ...slot("2026-05-14", null), almanacMuhurtham: almanac };
+  }
+
+  it("earns a pill for a day the almanac lists, naming its pirai", () => {
+    render(<AlmanacMuhurthamBadge slot={withAlmanac({ status: "ON_LIST", pirai: "VALARPIRAI" })} lang="en" />);
+
+    const pill = screen.getByText(/Almanac muhurtham day/);
+    expect(pill).toBeInTheDocument();
+    expect(pill.closest("[data-almanac]")).toHaveAttribute("data-almanac", "ON_LIST");
+    expect(screen.getByText("Valarpirai")).toBeInTheDocument();
+  });
+
+  it("names the pirai the Tamil almanac's way, never Shukla or Krishna", () => {
+    // Owner ruling: Tamil almanac naming over Sanskrit. And the whole card is a
+    // Tamil-family surface, so an en-only pass proves nothing here.
+    render(<AlmanacMuhurthamBadge slot={withAlmanac({ status: "ON_LIST", pirai: "THEIPIRAI" })} lang="ta" />);
+
+    expect(screen.getByText(/பஞ்சாங்க முகூர்த்த நாள்/)).toBeInTheDocument();
+    expect(screen.getByText("தேய்பிறை")).toBeInTheDocument();
+    expect(screen.queryByText(/Krishna|Shukla/i)).not.toBeInTheDocument();
+  });
+
+  it("says an unlisted day is unlisted, quietly and without a pill", () => {
+    const { container } = render(<AlmanacMuhurthamBadge slot={withAlmanac({ status: "NOT_ON_LIST" })} lang="en" />);
+
+    expect(screen.getByText("Not on the almanac muhurtham list")).toBeInTheDocument();
+    // A 30-row list of well-scored dates must not read as a wall of faults: the
+    // almanac's silence is a fact for the family to weigh, not an alert.
+    expect(container.querySelector("[data-almanac=\"ON_LIST\"]")).toBeNull();
+  });
+
+  it("does not report an unpublished year as a rejection", () => {
+    // The state that made three states necessary. Telling a family their date
+    // failed a list nobody has published is worse than saying nothing.
+    render(<AlmanacMuhurthamBadge slot={withAlmanac({ status: "NO_SHEET" })} lang="en" />);
+
+    const line = screen.getByText(/No almanac muhurtham list sourced/);
+    expect(line).toBeInTheDocument();
+    expect(screen.queryByText(/Not on the almanac/)).not.toBeInTheDocument();
+  });
+
+  it("renders nothing at all for an activity that carries no almanac verdict", () => {
+    // Every non-wedding activity. The sheets are wedding sheets.
+    const { container } = render(<AlmanacMuhurthamBadge slot={slot("2026-05-14", null)} lang="en" />);
+    expect(container).toBeEmptyDOMElement();
   });
 });
