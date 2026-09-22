@@ -1,6 +1,6 @@
 import json
-from datetime import UTC, datetime, timedelta
-from uuid import UUID
+from datetime import UTC, date, datetime, timedelta
+from uuid import UUID, uuid4
 
 from sqlalchemy import select
 
@@ -356,6 +356,93 @@ def test_confirm_location_stamps_the_date_without_moving_the_place(client):
     assert data["currentTimezone"] == before["currentTimezone"]
     stamped = datetime.fromisoformat(data["currentLocationUpdatedAt"])
     assert datetime.now(tz=UTC) - stamped < timedelta(minutes=5)
+
+
+def _seed_daily_score(profile_id: str, score_date):
+    from app.models.daily_score import DailyScore
+    with SessionLocal() as session:
+        session.add(DailyScore(
+            score_id=uuid4(),
+            birth_profile_id=UUID(profile_id),
+            score_date=score_date,
+            score=50,
+            label="MIXED",
+            data={"stale": True},
+        ))
+        session.commit()
+
+
+def _daily_score_dates(profile_id: str):
+    from app.models.daily_score import DailyScore
+    with SessionLocal() as session:
+        return sorted(
+            row.score_date
+            for row in session.execute(
+                select(DailyScore).where(DailyScore.birth_profile_id == UUID(profile_id))
+            ).scalars()
+        )
+
+
+def test_moving_drops_cached_daily_guidance_from_today_but_keeps_the_past(client):
+    """DailyScore is keyed on (profile, date) and records nothing about the place
+    it was computed for, unlike PanchangamCache which is keyed on the coordinates.
+    Everything sunrise-derived in a row moves with the place, so a Chennai row
+    must not be served to a reader who just told us they are in Singapore."""
+    profile_id = _create_profile(
+        client,
+        currentPlace="Chennai, Tamil Nadu, India",
+        currentLatitude=13.0827,
+        currentLongitude=80.2707,
+        currentTimezone="Asia/Kolkata",
+    )
+    today = date.today()
+    yesterday = today - timedelta(days=1)
+    tomorrow = today + timedelta(days=1)
+    for day in (yesterday, today, tomorrow):
+        _seed_daily_score(profile_id, day)
+
+    moved = client.patch(
+        f"/api/v1/birth-profiles/{profile_id}",
+        json={
+            "currentPlace": "Singapore",
+            "currentLatitude": 1.3521,
+            "currentLongitude": 103.8198,
+            "currentTimezone": "Asia/Singapore",
+            "recalculate": False,
+        },
+    )
+
+    assert moved.status_code == 200, moved.text
+    assert _daily_score_dates(profile_id) == [yesterday]
+
+
+def test_re_sending_the_same_city_is_a_confirmation_and_keeps_warm_rows(client):
+    # A PATCH that repeats the current values is the "Keep" answer arriving by
+    # another route. Treating "the payload mentioned these fields" as a move
+    # would throw away warm rows for nothing.
+    profile_id = _create_profile(
+        client,
+        currentPlace="Chennai, Tamil Nadu, India",
+        currentLatitude=13.0827,
+        currentLongitude=80.2707,
+        currentTimezone="Asia/Kolkata",
+    )
+    today = date.today()
+    _seed_daily_score(profile_id, today)
+
+    response = client.patch(
+        f"/api/v1/birth-profiles/{profile_id}",
+        json={
+            "currentPlace": "Chennai, Tamil Nadu, India",
+            "currentLatitude": 13.0827,
+            "currentLongitude": 80.2707,
+            "currentTimezone": "Asia/Kolkata",
+            "recalculate": False,
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    assert _daily_score_dates(profile_id) == [today]
 
 
 def test_confirm_location_refuses_a_profile_that_is_gone(client):

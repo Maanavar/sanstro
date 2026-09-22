@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import math
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import case, func, select
+from sqlalchemy import case, delete, func, select
 from sqlalchemy.orm import Session
 
 from app.core.error_codes import ErrorCode
@@ -14,6 +14,7 @@ from app.core.subscription import is_premium
 from app.core.tier_limits import get_limits
 from app.models import BirthProfile, FamilyMember
 from app.models.chart import Chart
+from app.models.daily_score import DailyScore
 from app.models.notification import Notification
 from app.schemas.birth_profiles import (
     BirthProfileCreate,
@@ -28,6 +29,7 @@ from app.services.chart_service import (
     calculate_chart_for_persisted_profile,
     create_birth_profile_record,
 )
+from app.services.location_service import resolve_effective_daily_location_or_none
 
 _BIRTH_RECALC_FIELDS = {
     "birth_date_local",
@@ -295,11 +297,18 @@ def update_birth_profile(
         _raise_duplicate_birth_profile()
 
     touched_fields = set(update_data)
+    # Read the effective location before and after, not just which fields the
+    # payload mentioned: a PATCH that re-sends the same city is a confirmation,
+    # not a move, and must not throw away warm rows.
+    location_before = resolve_effective_daily_location_or_none(profile)
     for field, value in update_data.items():
         setattr(profile, field, value)
     if touched_fields.intersection(_CURRENT_LOCATION_FIELDS):
         profile.current_location_updated_at = datetime.now(tz=UTC)
     session.flush()
+
+    if resolve_effective_daily_location_or_none(profile) != location_before:
+        _drop_daily_scores_from_today(session, profile.birth_profile_id)
 
     should_recalculate = bool(payload.recalculate and touched_fields.intersection(_BIRTH_RECALC_FIELDS))
     if should_recalculate and profile.birth_time_local is not None:
@@ -312,6 +321,29 @@ def update_birth_profile(
 
     session.commit()
     return get_birth_profile(session, profile.birth_profile_id, calculation_version=calculation_version)
+
+
+def _drop_daily_scores_from_today(session: Session, birth_profile_id: UUID) -> None:
+    """Throw away this profile's cached daily guidance from today forward.
+
+    `DailyScore` is keyed on (birth_profile_id, score_date) and carries no note
+    of the place it was computed for, unlike `PanchangamCache`, which is keyed
+    on the coordinates themselves and therefore misses correctly on its own.
+    Everything sunrise-derived in a daily row — the avoid kalas, the Gowri
+    grid, horai, the recommended window's clock times — moves with the place,
+    so a row built for Chennai must not be served to a reader who has told us
+    they are in Singapore.
+
+    Past dates are left alone: those rows describe days that were actually
+    lived at the old place, and rewriting history would be the wrong answer as
+    well as the expensive one.
+    """
+    session.execute(
+        delete(DailyScore).where(
+            DailyScore.birth_profile_id == birth_profile_id,
+            DailyScore.score_date >= date.today(),
+        )
+    )
 
 
 def confirm_current_location(

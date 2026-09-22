@@ -781,11 +781,48 @@ Design notes for the build:
 
   **Nothing renders yet.** The mismatch prompt (§2.1), the backstop strip
   (§2.2), the one-slot queueing against the life-focus strip (§2.3) and the
-  "Timings for X" label (§2.4) are all still to build. Also still unverified:
-  whether the panchangam and daily-guidance cache keys include the coordinates
-  rather than just the profile id (§2 Arch, last bullet) — a location change
-  that does not invalidate cached day data would show the old place's timings
-  under the new place's name.
+  "Timings for X" label (§2.4) are all still to build.
+
+- **§2 Arch, last bullet: the cache question, checked — and it was a real bug
+  (2026-09-22), not committed.**
+
+  The two caches answer differently:
+
+  - `PanchangamCache` is keyed on `(cache_date, latitude, longitude,
+    ayanamsa_type)`, so a move misses correctly with no help from anyone.
+  - `DailyScore` — the daily-guidance cache — is keyed on
+    `(birth_profile_id, score_date)` and records **nothing** about the place
+    the row was computed for. Everything sunrise-derived in that row (the
+    avoid kalas, the Gowri grid, horai, the recommended window's clock times)
+    moves with the place. So a reader who moved Chennai → Singapore kept being
+    served Chennai timings under the Singapore label, for every date already
+    warm. §2 would have shipped its prompt on top of a cache that ignored the
+    answer.
+
+  Fixed in `update_birth_profile`: when the **effective location actually
+  changes**, that profile's `DailyScore` rows from today forward are dropped.
+
+  - The test is on the resolved location before vs after, not on which fields
+    the payload mentioned — a PATCH re-sending the same city is the "Keep"
+    answer arriving by another route, and must not throw away warm rows.
+  - Past dates are kept. Those rows describe days actually lived at the old
+    place; rewriting history is both wrong and the expensive option.
+  - **Deliberately not a cache-version bump.** A bump invalidates every row for
+    every user at once, which is a load test (see the saved rule). This
+    recomputes only the moved profile's future rows — the same reasoning
+    `_GOAL_TRACK_KEY` in `_dg_cache.py` records for its own case.
+
+  Gate: 2 new API tests. The move test **fails with the invalidation removed**;
+  the same-city test passes either way by construction, which is the point of
+  having it — it pins the behaviour that makes the first test's condition
+  narrow.
+
+  **Residual, written down rather than fixed:** a path that changes a current
+  location *without* going through `update_birth_profile` would still leave
+  stale rows. `family_vault_service.py` L1647 stamps
+  `current_location_updated_at` directly and is the one such path today; it
+  was not touched here because whether a vault edit can move a member's
+  current location is a separate question from §2's.
 
 - **§7 fixed (2026-09-22), committed in `7347030`.** `web/components/dashboard-charts.tsx`:
   - selection is scoped to the chart's identity (`useCellSelection`), so a
