@@ -116,7 +116,7 @@ Legend: **P1–P3** = delivery phase (see §5). "Focus area" = the life-area cod
 | Surface | Behaviour | Phase |
 |---|---|---|
 | Daily guidance (`daily_guidance_service.py`) | `_enrich_action_with_goal_track` is driven by focus (via the derived track, or directly by focus area). Active goals still outrank it (L891, unchanged). | P1 |
-| Morning push (`daily_push_cron.py`) | The notification body adds the focus line, e.g. *"Career: best window 10:30–12:00"*. One line, active language only. | P3 |
+| Morning push (`daily_push_cron.py`) | The notification body adds the focus line, e.g. *"Career: best window 10:30–12:00"*. One line, active language only. **As built:** the line names the Today board's verdict on a focus activity instead of a window, because the title already carries the day's window (see §5 Phase 3). | P3 |
 
 ### Mobile
 
@@ -310,6 +310,72 @@ is no light-theme pass.
 
 ### Phase 3: reach
 Plan pre-select, Calendar filter chip, morning-push line, and mobile focus chip plus Settings card.
+
+**Status 2026-09-22: implemented, not committed, awaiting owner review.**
+Implementation notes:
+- **One copy of the words.** The ten focus labels and descriptions, and the
+  Ask chips, moved to `packages/shared/src/lifeFocus.ts` (`LIFE_MODE_TEXT`,
+  `LIFE_MODE_ASK_CHIPS`). Web's `MODE_META` and `ask-vinaadi-chips.ts` now read
+  them, and so does mobile, so the two surfaces cannot name a focus differently.
+  The D1 table still lives only on the server.
+- **Plan pre-select.** Goals' "add a goal" picker and the Calendar's quick
+  date scan open on the focus's **first** activity, via `focusPreselect`. Only
+  the first: FAMILY's second activity is `child_birth`, and opening a form on
+  "Child birth" because someone chose Family presumes too much. If the first is
+  not offered (FAMILY in the quick scan has no `family_harmony` row) or is already
+  a goal, the old default stands. The reader's own choice is never overridden.
+  The muhurta view follows its member picker (D4). Goals is always the reader's
+  own chart. The detailed muhurta search is not pre-filled, since
+  `ACTIVITY_TO_MUHURTA` sends some goal types to a placeholder activity.
+- **Calendar chip.** "Good days: Career" in the month grid's filter bar, off by
+  default, and left alone by Clear / Show all. When switched on, it asks
+  `/activity-timing/batch` for the focus activities in the shown month, on the
+  reader's own chart even if the muhurta view shows a relative. It marks the
+  dates that rank in an activity's top five **and** read SUPPORTS. A
+  top-ranked CAUTION day is the best of a bad set, so it is not marked. The mark
+  is a crosshair shape in achromatic ink, because every tint on that grid
+  already means an almanac category. Each marked cell says "Good day for
+  Career" in its accessible name, and a status line explains what is marked,
+  or says it is loading, failed or found nothing. Nothing is fetched until
+  the chip is switched on. LOVE, REMEDIES and BALANCED have no activities, so
+  they get no chip.
+- **Morning push.** One line from the day's activity board, which the push
+  already fetched with the guidance. So there is no new calculation, and it
+  says what the Today board says: *"Your focus, Career. Job moves: supported
+  today."* or *"… go carefully today."* The first favoured focus activity is
+  named, else the first cautioned one, else there is no line (a neutral or
+  Chandrashtama day). The line never names a window: the title already carries
+  the day's Nalla Neram, and a second window could contradict it. D4 applies.
+  A failure in the line is logged and the push still goes out. Tamil is new,
+  pending native review.
+- **Mobile.** A "Focus Career" chip in the Today header and a "Your focus" row
+  on Me, both opening one picker that hides blocked focuses. The Ask chips now
+  follow the focus. There is no first-run modal and no 60-day strip, and Today
+  does not reorder: the plan waits for an equivalent Today layout.
+  `mobile/src/api/lifeMode.ts` re-exports the shared wrappers, which the mobile
+  contract test now checks against the route (GET/PATCH, body `{ mode }`).
+
+**Gates:**
+- `tests/test_life_focus_phase3.py` (13): which verdict the line names, focus
+  order over board order, favoured over cautioned, no line when silent, no line
+  for a focus without activities, D4, the line reaching the dispatched body, and
+  the push surviving a failing line. The D4 case failed with its check removed.
+- `web/lib/life-focus.test.ts`: `focusPreselect` (never falls through) and
+  `supportiveFocusDates` (SUPPORTS only). Both failed with their fix removed.
+- `web/components/dashboard-calendar-focus-days.test.tsx` (7): chip off by
+  default, exact cells marked, loading/failure/empty lines, Clear leaves it
+  alone, Tamil names. Failed with marking switched off.
+- Full web suite 958/958, backend focus + push suites 55/55, web/mobile/shared
+  `tsc` clean, `ruff` and `eslint` clean on changed files.
+
+**What the gates cannot see:** there has been no browser pass and no device
+run. The chip, the pre-selects and every mobile screen are checked only by
+tests and typecheck, in either language and at any width. The push line is
+tested with a synthetic board, not a real chart's day. The chip's real dates
+depend on the engine and were not eyeballed against the Best Days list for the
+same month. `scripts/audit-color-literals.mjs` is red on `HEAD` for a literal in
+`dashboard-ask-vinaadi-widget.tsx` from `af20604`. It is not from this phase and
+is not fixed here.
 
 ### Phase 4: measure and tune
 Measure these with whatever event logging exists (if none, a server-side count

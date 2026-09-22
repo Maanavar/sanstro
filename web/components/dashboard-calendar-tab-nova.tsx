@@ -4,8 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { ArrowUp, ArrowDown, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { getActivityTimingBatch } from "@vinaadi/shared/api/activityTiming";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
+import { supportiveFocusDates } from "@/lib/life-focus";
 import { addDays, formatClockLabel, formatClockRange, formatHijriDate } from "@/lib/format";
 import { observanceEnglishName } from "@/lib/observance-names";
 import {
@@ -71,6 +73,8 @@ import { NovaPlanMuhurtaPanel } from "./dashboard-plan-muhurta-nova";
 // is self-contained (`NovaPlanMuhurtaPanel`, props `{ lang, chartId }`).
 type CalendarViewExt = CalendarView | "muhurta";
 
+const EMPTY_DATES: ReadonlySet<string> = new Set();
+
 /**
  * Nova "Calendar" tab, daily Panchangam view — Phase 2 of the dashboard
  * revamp (mockup data-screen="cal-panch", see docs/DASHBOARD_UI_REVAMP_PLAN.md
@@ -114,6 +118,13 @@ export type DashboardCalendarTabNovaProps = {
   /** The day's personal data has not arrived yet (DXA-03): placeholders,
    *  not "Create a profile to see panchangam". */
   pending?: boolean;
+  /** Life focus, Phase 3: activities the muhurta quick scan opens on. The
+   *  caller has already emptied it for a family member's chart (D4). */
+  muhurtaFocusActivities?: readonly string[];
+  /** Life focus, Phase 3: the month grid's "Good days" chip. Always the
+   *  reader's own chart, whatever member the muhurta view is showing (D4).
+   *  Null when the focus has no activities. */
+  monthFocus?: { chartId: string; activities: readonly string[]; label: string } | null;
 };
 
 function novaFestivalTagLabel(tag: string, lang: Lang): string {
@@ -1059,6 +1070,8 @@ export function DashboardCalendarTabNova({
   focusView = null,
   onFocusConsumed,
   pending = false,
+  muhurtaFocusActivities = [],
+  monthFocus = null,
 }: DashboardCalendarTabNovaProps) {
   const CALENDAR_VIEWS: CalendarViewExt[] = ["panchangam", "monthly", "muhurta"];
   const [view, setView] = useState<CalendarViewExt>(
@@ -1082,6 +1095,37 @@ export function DashboardCalendarTabNova({
   const [monthlyYear, setMonthlyYear] = useState(() => selectedDateObj.getFullYear());
   const [monthlyMonth, setMonthlyMonth] = useState(() => selectedDateObj.getMonth() + 1);
   const { monthlyPanchangam, isMonthlyPanchangamLoading, monthlyPanchangamError, fetchMonthlyPanchangam } = useMonthlyPanchangam();
+
+  // "Good days: Career" (Phase 3). Off by default, and nothing is fetched
+  // until it is switched on. One batch request per month, through the same
+  // engine the Today board and Best Days use.
+  const [focusDaysOn, setFocusDaysOn] = useState(false);
+  const [focusDays, setFocusDays] = useState<{ key: string; dates: Set<string> | null; failed: boolean } | null>(null);
+  const focusMonthKey = `${monthlyYear}-${String(monthlyMonth).padStart(2, "0")}`;
+  const focusChartId = monthFocus?.chartId ?? null;
+  const focusActivitiesKey = monthFocus?.activities.join(",") ?? "";
+  // Keyed by chart + activities + month, so a focus change or a month step is
+  // never shown the previous answer while the new one loads.
+  const focusRequestKey = `${focusChartId}|${focusActivitiesKey}|${focusMonthKey}`;
+  useEffect(() => {
+    if (!focusDaysOn || view !== "monthly" || !focusChartId || !focusActivitiesKey) return;
+    // Skip only a finished answer: a request cancelled by switching the chip
+    // off left `dates: null` behind, and must run again when it comes back on.
+    if (focusDays?.key === focusRequestKey && focusDays.dates) return;
+    let cancelled = false;
+    setFocusDays({ key: focusRequestKey, dates: null, failed: false });
+    getActivityTimingBatch(focusChartId, focusActivitiesKey.split(","), focusMonthKey)
+      .then((response) => {
+        if (!cancelled) setFocusDays({ key: focusRequestKey, dates: supportiveFocusDates(response.data.results), failed: false });
+      })
+      .catch(() => {
+        if (!cancelled) setFocusDays({ key: focusRequestKey, dates: null, failed: true });
+      });
+    return () => { cancelled = true; };
+    // `focusDays` is read to skip a repeat, not to trigger one.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusDaysOn, view, focusChartId, focusActivitiesKey, focusMonthKey, focusRequestKey]);
+  const currentFocusDays = focusDays?.key === focusRequestKey ? focusDays : null;
 
   const [overrideLocation, setOverrideLocation] = useState<{ lat: number; lng: number; timezone: string; label: string } | null>(null);
   const [overridePanchangam, setOverridePanchangam] = useState<PanchangamDailyResponseData | null>(null);
@@ -1701,7 +1745,7 @@ export function DashboardCalendarTabNova({
                 ))}
               </div>
             )}
-            <NovaPlanMuhurtaPanel lang={lang} chartId={chartId} />
+            <NovaPlanMuhurtaPanel lang={lang} chartId={chartId} focusActivities={muhurtaFocusActivities} />
           </>
         ) : (
           <p className="empty-state">
@@ -1730,6 +1774,14 @@ export function DashboardCalendarTabNova({
           onSelectDate={(date) => { setRenderedDetailDate(date); setDetailDate(date); }}
           onQuickJump={handleQuickJump}
           onJumpToNextMuhurtham={jumpToNextMuhurtham}
+          focusDays={monthFocus ? {
+            label: monthFocus.label,
+            on: focusDaysOn,
+            onToggle: () => setFocusDaysOn((on) => !on),
+            dates: currentFocusDays?.dates ?? EMPTY_DATES,
+            loading: focusDaysOn && !currentFocusDays?.dates && !currentFocusDays?.failed,
+            failed: Boolean(currentFocusDays?.failed),
+          } : null}
         />
       )}
       </ViewSwap>

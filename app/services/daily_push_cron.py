@@ -73,6 +73,7 @@ from app.services._dg_scoring import (
 )
 from app.services.daily_guidance_service import get_daily_guidance
 from app.services.dasha_transition_service import get_dasha_transition_alerts
+from app.services.life_focus_service import focus_push_line
 from app.services.location_service import resolve_effective_daily_location
 from app.services.nakshatra_content import build_nakshatra_perspective
 from app.services.notification_dispatch_service import dispatch_notification, dispatch_queued_notification
@@ -273,6 +274,7 @@ def _dispatch_for_user(
                 action_en = guidance.data.action_suggestion.en
                 dasha_ctx_ta = guidance.data.reasons.dasha_support.ta
                 dasha_ctx_en = guidance.data.reasons.dasha_support.en
+                activity_board = guidance.data.activity_board
             except Exception:
                 # Fall back to panchangam-only signal if full guidance fails.
                 # Star sets imported, not restated: this branch used to carry
@@ -291,6 +293,7 @@ def _dispatch_for_user(
                 is_chandrashtama = False
                 action_ta = action_en = ""
                 dasha_ctx_ta = dasha_ctx_en = ""
+                activity_board = None
 
             nak_content = build_nakshatra_perspective(fallback_star, label)
             nak_ta = nak_content.ta if nak_content else str(panchang.nakshatra_number)
@@ -314,6 +317,17 @@ def _dispatch_for_user(
             if is_chandrashtama:
                 payload["body"]["ta"] += " சந்திராஷ்டமம் — உணர்ச்சி ரீதியாக சற்று கவனம் தேவை."
                 payload["body"]["en"] += " Chandrashtama day — be emotionally mindful."
+            # Life focus, Phase 3: one line, ahead of the longer dasha context so
+            # a truncated notification still shows it. A failure here must never
+            # cost the user the whole push.
+            try:
+                focus_line = focus_push_line(session, profile, user.user_id, activity_board)
+            except Exception as exc:
+                logger.warning("focus_push_line_error user=%s exc=%s", user.user_id, exc)
+                focus_line = None
+            if focus_line:
+                payload["body"]["ta"] += f" {focus_line[0]}"
+                payload["body"]["en"] += f" {focus_line[1]}"
             if dasha_ctx_en:
                 payload["body"]["ta"] += f" {dasha_ctx_ta}"
                 payload["body"]["en"] += f" {dasha_ctx_en}"

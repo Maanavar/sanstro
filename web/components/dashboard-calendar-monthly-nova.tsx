@@ -1,9 +1,10 @@
 "use client";
 
-import { Sparkles, AlertTriangle, ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
+import { Sparkles, AlertTriangle, ChevronLeft, ChevronRight, Crosshair, SlidersHorizontal } from "lucide-react";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { dt, LIFE_FOCUS } from "@/lib/dashboard-i18n";
 import { t, tLang, tTithi } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { lunarSpecialTithiMeta, moonPhaseFromTithi } from "@/lib/lunar";
@@ -212,6 +213,18 @@ export type DashboardCalendarMonthlyNovaProps = {
    *  navigate there and open it. Resolves false when none is found within the
    *  parent's scan cap. */
   onJumpToNextMuhurtham?: () => Promise<boolean>;
+  /** Life focus, Phase 3: the optional "Good days: Career" chip. Off by
+   *  default; absent when the focus has no activities or no own chart. The
+   *  dates come from the activity-timing engine and are only marked, never
+   *  re-scored here. */
+  focusDays?: {
+    label: string;
+    on: boolean;
+    onToggle: () => void;
+    dates: ReadonlySet<string>;
+    loading: boolean;
+    failed: boolean;
+  } | null;
 };
 
 function NovaFestivalIcon({ name }: { name: string }) {
@@ -248,7 +261,9 @@ export function MonthlyCalendarViewNova({
   onSelectDate,
   onQuickJump,
   onJumpToNextMuhurtham,
+  focusDays = null,
 }: DashboardCalendarMonthlyNovaProps) {
+  const markFocusDays = Boolean(focusDays?.on && !focusDays.loading && !focusDays.failed);
   const [focusedDate, setFocusedDate] = useState(selectedDate);
   const [agendaExpanded, setAgendaExpanded] = useState(false);
   useEffect(() => { setFocusedDate(selectedDate); }, [selectedDate]);
@@ -492,10 +507,34 @@ export function MonthlyCalendarViewNova({
               {lang === "ta" ? label.ta : label.en}
             </button>
           ))}
+          {/* Off by default and outside Clear / Show all: it adds a personal
+              layer, where the chips before it hide almanac categories. */}
+          {focusDays && (
+            <button
+              type="button"
+              className="nova-cal-filter"
+              aria-pressed={focusDays.on}
+              onClick={focusDays.onToggle}
+            >
+              <Crosshair size={13} strokeWidth={1.9} aria-hidden="true" style={{ color: "var(--color-text-strong)" }} />
+              {dt(LIFE_FOCUS.calendarChip, lang).replace("%s", focusDays.label)}
+            </button>
+          )}
           <Button size="sm" variant="ghost" className="nova-cal-filterbar__reset" onClick={() => setEnabledCats(allFiltersOn ? new Set() : new Set(ALL_CATEGORIES))}>
             {allFiltersOn ? t("cal_monthly_clear", lang) : t("cal_monthly_show_all", lang)}
           </Button>
         </div>
+        {focusDays?.on && (
+          <p role="status" className="nova-cal-rail-meta">
+            {focusDays.loading
+              ? dt(LIFE_FOCUS.calendarLoading, lang)
+              : focusDays.failed
+                ? dt(LIFE_FOCUS.calendarFailed, lang)
+                : focusDays.dates.size === 0
+                  ? dt(LIFE_FOCUS.calendarNone, lang)
+                  : dt(LIFE_FOCUS.calendarNote, lang)}
+          </p>
+        )}
 
             {/* The seven columns shrink to the phone viewport. Long event names
                 remain available in the accessible label and the day drawer. */}
@@ -530,6 +569,7 @@ export function MonthlyCalendarViewNova({
                   const showMuhurtham = Boolean(entry?.isTamilMuhurthamDay) && catOn("muhurtham");
                   const showLunar = catOn("lunar");
                   const showKarinaal = Boolean(entry?.isKarinaal) && catOn("karinaal");
+                  const isFocusDay = markFocusDays && Boolean(focusDays?.dates.has(cell.dateLocal));
                   // Every day carries its real moon shape, not just the two
                   // special tithis: the month grid is where the fortnight's
                   // rhythm is read, and the old flat mark appeared only on
@@ -596,7 +636,7 @@ export function MonthlyCalendarViewNova({
                       key={cell.dateLocal}
                       type="button"
                       className={`nova-cal-cell${isToday ? " nova-cal-today" : ""}`}
-                      aria-label={[formatGridDay(cell.dateLocal, lang), String(year), tamilDay, entry ? tTithi(entry.tithiName, lang) : "", ...visibleFestivals.map((f) => f.name), showMuhurtham ? (t("cal_monthly_muhurtham", lang)) : "", showKarinaal ? (t("cal_monthly_karinaal", lang)) : ""].filter(Boolean).join(" · ")}
+                      aria-label={[formatGridDay(cell.dateLocal, lang), String(year), tamilDay, entry ? tTithi(entry.tithiName, lang) : "", ...visibleFestivals.map((f) => f.name), showMuhurtham ? (t("cal_monthly_muhurtham", lang)) : "", showKarinaal ? (t("cal_monthly_karinaal", lang)) : "", isFocusDay && focusDays ? dt(LIFE_FOCUS.calendarCell, lang).replace("%s", focusDays.label) : ""].filter(Boolean).join(" · ")}
                       aria-pressed={onSelectDate ? isSelected : undefined}
                       aria-current={isToday ? "date" : undefined}
                       onClick={onSelectDate ? () => selectDay(cell.dateLocal!) : undefined}
@@ -620,6 +660,12 @@ export function MonthlyCalendarViewNova({
                           <span title={moonTitle} style={{ display: "inline-flex", marginTop: "1px" }}>
                             <MiniMoonGlyph phase={moonPhase} size={13} />
                           </span>
+                        )}
+                        {/* A shape, not a tint: every tint on this grid already
+                            means an almanac category, and the mark must read
+                            without colour. Named in the cell's aria-label. */}
+                        {isFocusDay && (
+                          <Crosshair size={13} strokeWidth={2} aria-hidden="true" style={{ marginTop: "1px", color: "var(--color-text-strong)", flexShrink: 0 }} />
                         )}
                       </div>
                       {tamilDay && <span style={{ fontSize: "var(--text-xs)", color: hasFestival ? "var(--color-text)" : "var(--color-faint)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{tamilDay}</span>}

@@ -146,6 +146,11 @@ _AREA_LABELS = {
     "SPIRITUALITY":    _t("ஆன்மீகம்",        "Spirituality"),
 }
 
+def area_label(area: str) -> LifeAreaText | None:
+    """The bilingual label a life area is shown under, or None for an unknown code."""
+    return _AREA_LABELS.get(area)
+
+
 # ── House quality tables (from Moon — Tamil Thirukanitham) ────────────────────
 # Score 0–100 for a planet transiting each house from the Moon.
 # Based on standard Ashtakavarga / Gochar tables used in Thirukanitham.

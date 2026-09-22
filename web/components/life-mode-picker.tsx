@@ -4,6 +4,7 @@ import { useState } from "react";
 import { BookOpen, Briefcase, Heart, Home, Coins, Leaf, Star, Flame, Scale, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { updateLifeMode } from "@vinaadi/shared/api";
+import { LIFE_MODE_ORDER, LIFE_MODE_TEXT } from "@vinaadi/shared/lifeFocus";
 import "@/lib/api"; // initialises the shared API client the wrapper above uses
 import { ModalShell } from "@/components/modal-shell";
 import { dt, LIFE_FOCUS } from "@/lib/dashboard-i18n";
@@ -11,27 +12,24 @@ import type { Lang } from "@/lib/i18n";
 import type { LifeMode, LifeModeStatus } from "@/lib/types";
 
 // ── Mode metadata ─────────────────────────────────────────────────────────────
-// The one place a focus gets its label and icon. The picker, the Today chip
-// and the Settings card all read it; do not re-type these labels elsewhere.
+// The one place a focus gets its label and icon on web. The picker, the Today
+// chip and the Settings card all read it. The words themselves come from
+// `LIFE_MODE_TEXT` in @vinaadi/shared, which mobile reads too (Phase 3).
 type ModeMeta = { Icon: LucideIcon; labelEn: string; labelTa: string; descEn: string; descTa: string };
 
-export const MODE_META: Record<LifeMode, ModeMeta> = {
-  STUDY:        { Icon: BookOpen,  labelEn: "Studies",      labelTa: "படிப்பு",     descEn: "Focus, exams, learning",      descTa: "கவனம், தேர்வு, கற்றல்" },
-  CAREER:       { Icon: Briefcase, labelEn: "Career",       labelTa: "தொழில்",      descEn: "Work timing & decisions",     descTa: "வேலை நேரம் & முடிவுகள்" },
-  LOVE:         { Icon: Heart,     labelEn: "Love",         labelTa: "காதல்",       descEn: "Communication & connection",  descTa: "தொடர்பு & நெருக்கம்" },
-  MARRIAGE:     { Icon: Heart,     labelEn: "Marriage",     labelTa: "திருமணம்",    descEn: "Relationship & timing",       descTa: "உறவு & நேரம்" },
-  FAMILY:       { Icon: Home,      labelEn: "Family",       labelTa: "குடும்பம்",   descEn: "Harmony & home",              descTa: "ஒற்றுமை & வீடு" },
-  WEALTH:       { Icon: Coins,     labelEn: "Wealth",       labelTa: "செல்வம்",     descEn: "Money & finance timing",      descTa: "பணம் & நிதி நேரம்" },
-  HEALTH:       { Icon: Leaf,      labelEn: "Health",       labelTa: "ஆரோக்கியம்",  descEn: "Energy, rest, vitality",      descTa: "சக்தி, ஓய்வு, உடல்நலம்" },
-  SPIRITUALITY: { Icon: Star,      labelEn: "Spirituality", labelTa: "ஆன்மீகம்",    descEn: "Prayer & inner growth",       descTa: "வழிபாடு & உள் வளர்ச்சி" },
-  REMEDIES:     { Icon: Flame,     labelEn: "Remedies",     labelTa: "பரிகாரம்",    descEn: "Parihara & practices",        descTa: "பரிகாரம் & பயிற்சிகள்" },
-  BALANCED:     { Icon: Scale,     labelEn: "Balanced",     labelTa: "சமநிலை",      descEn: "A bit of everything",         descTa: "எல்லாமே சிறிது" },
+const MODE_ICON: Record<LifeMode, LucideIcon> = {
+  STUDY: BookOpen, CAREER: Briefcase, LOVE: Heart, MARRIAGE: Heart, FAMILY: Home,
+  WEALTH: Coins, HEALTH: Leaf, SPIRITUALITY: Star, REMEDIES: Flame, BALANCED: Scale,
 };
 
-export const MODE_ORDER: LifeMode[] = [
-  "STUDY", "CAREER", "LOVE", "MARRIAGE", "FAMILY",
-  "WEALTH", "HEALTH", "SPIRITUALITY", "REMEDIES", "BALANCED",
-];
+export const MODE_META = Object.fromEntries(
+  LIFE_MODE_ORDER.map((mode) => {
+    const { label, desc } = LIFE_MODE_TEXT[mode];
+    return [mode, { Icon: MODE_ICON[mode], labelEn: label.en, labelTa: label.ta, descEn: desc.en, descTa: desc.ta }];
+  }),
+) as Record<LifeMode, ModeMeta>;
+
+export const MODE_ORDER: LifeMode[] = [...LIFE_MODE_ORDER];
 
 export function lifeModeLabel(mode: LifeMode, lang: Lang): string {
   const meta = MODE_META[mode];

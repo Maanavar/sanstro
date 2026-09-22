@@ -95,6 +95,21 @@ export const LIFE_FOCUS = {
   boardQuiet: s("%s: nothing specific today.", "%s: இன்று குறிப்பாக எதுவும் இல்லை."),
   /** T3, second sentence. `%s` is a short date ("Thu 25"). */
   boardNextGood: s("Next good day: %s.", "அடுத்த நல்ல நாள்: %s."),
+  // Phase 3 (reach). New Tamil, pending native review.
+  /** Calendar month filter chip, off by default. `%s` is the focus label. */
+  calendarChip: s("Good days: %s", "நல்ல நாட்கள்: %s"),
+  /** Appended to a marked day's accessible name. `%s` is the focus label. */
+  calendarCell: s("Good day for %s", "%s: நல்ல நாள்"),
+  calendarNote: s(
+    "Marked: this month's strongest supportive days for your focus, read on your own chart.",
+    "குறிக்கப்பட்டவை: உங்கள் சொந்த ஜாதகத்தின்படி, இந்த மாதம் உங்கள் கவனத்துக்கு மிக ஆதரவான நாட்கள்.",
+  ),
+  calendarNone: s(
+    "No strongly supportive days for your focus this month.",
+    "இந்த மாதம் உங்கள் கவனத்துக்கு வலுவான ஆதரவு நாட்கள் இல்லை.",
+  ),
+  calendarLoading: s("Finding your good days…", "நல்ல நாட்களைத் தேடுகிறோம்…"),
+  calendarFailed: s("Couldn't load your good days. Try again later.", "நல்ல நாட்களை ஏற்ற முடியவில்லை. பின்னர் முயற்சிக்கவும்."),
 } as const;
 
 // New Tamil, pending native review (CLAUDE.md new-Tamil rule).

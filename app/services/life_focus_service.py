@@ -85,6 +85,55 @@ def is_own_chart(session: Session, birth_profile: Any) -> bool:
     return member is not None and member.relationship_to_owner == "self"
 
 
+def focus_push_line(
+    session: Session,
+    birth_profile: Any,
+    owner_user_id: UUID,
+    board: Any,
+) -> tuple[str, str] | None:
+    """The morning push's one focus line (Phase 3), as ``(ta, en)``, or None.
+
+    Read off the day's activity board, which the push already fetched with the
+    guidance: no new calculation, and the same verdicts the Today board shows.
+    The first focus activity the board favours is named; failing that, the
+    first it cautions against. Otherwise, as on a neutral or Chandrashtama
+    day, there is no line; one line of silence beats one of filler.
+
+    D4: only on the user's own chart. D2: the line reorders nothing and
+    re-scores nothing, it only names a verdict the board already holds.
+    """
+    if board is None or not is_own_chart(session, birth_profile):
+        return None
+    focus = resolve_focus(session, owner_user_id)
+    mapping = focus_mapping(focus)
+    if focus is None or mapping.area is None or not mapping.activities:
+        return None
+
+    from app.services.life_areas_service import area_label  # heavy module; only the push needs it
+
+    area = area_label(mapping.area)
+    if area is None:
+        return None
+
+    def first(rows: Any) -> Any:
+        by_activity = {row.activity: row for row in rows or []}
+        return next((by_activity[a] for a in mapping.activities if a in by_activity), None)
+
+    # New Tamil, pending native review (CLAUDE.md new-Tamil rule). Same frame
+    # as the Today hero ("Your focus, %1") and the T3 note ("%s: …").
+    if (row := first(board.favourable)) is not None:
+        return (
+            f"உங்கள் கவனம், {area.ta}. {row.label.ta}: இன்று உகந்தது.",
+            f"Your focus, {area.en}. {row.label.en}: supported today.",
+        )
+    if (row := first(board.caution)) is not None:
+        return (
+            f"உங்கள் கவனம், {area.ta}. {row.label.ta}: இன்று எச்சரிக்கை தேவை.",
+            f"Your focus, {area.en}. {row.label.en}: go carefully today.",
+        )
+    return None
+
+
 def chart_goal_track(session: Session, birth_profile: Any, owner_user_id: UUID) -> str | None:
     """The goal track to apply to this chart's guidance.
 

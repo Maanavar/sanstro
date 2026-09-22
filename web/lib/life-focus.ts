@@ -45,6 +45,38 @@ export function pinFirst<T>(items: readonly T[], isPinned: (item: T) => boolean)
   return [...pinned, ...rest];
 }
 
+/** Phase 3 pre-select: the focus's first activity, if the form offers it and
+ *  the reader has not already used it; otherwise null.
+ *
+ *  Only the first, never a fall-through to the next: FAMILY's second activity
+ *  is child_birth, and opening a form on "Child birth" because the reader
+ *  picked "Family" presumes too much. A default only: the caller keeps any
+ *  choice the reader has made, and every option stays selectable. */
+export function focusPreselect(
+  activities: readonly string[],
+  offered: readonly string[],
+  taken: readonly string[] = [],
+): string | null {
+  const first = activities[0];
+  return first && offered.includes(first) && !taken.includes(first) ? first : null;
+}
+
+/** Calendar "Good days" chip (Phase 3): every date the activity-timing engine
+ *  ranks among the month's best for a focus activity AND reads as SUPPORTS.
+ *  A top-ranked date that only reads CAUTION is the best of a bad set, not a
+ *  good day, so it is left unmarked. A failed activity (null) adds nothing. */
+export function supportiveFocusDates(
+  results: Record<string, { topDates: { dateLocal: string; alignment: string }[] } | null> | undefined,
+): Set<string> {
+  const dates = new Set<string>();
+  for (const timing of Object.values(results ?? {})) {
+    for (const day of timing?.topDates ?? []) {
+      if (day.alignment === "SUPPORTS") dates.add(day.dateLocal);
+    }
+  }
+  return dates;
+}
+
 /** The Today quick link that serves a focus area best (T4), or null.
  *
  *  Relationships goes to porutham. Every other area with activities goes to

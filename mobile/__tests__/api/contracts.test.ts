@@ -12,6 +12,7 @@ import { getDailyStatus, askVinaadi } from "@vinaadi/shared/api/askVinaadi";
 import { getRasiPalan } from "@vinaadi/shared/api/rasiPalan";
 import { getDailyGuidance } from "@vinaadi/shared/api/guidance";
 import { registerFcmToken } from "@vinaadi/shared/api/notifications";
+import { getLifeMode, updateLifeMode } from "@vinaadi/shared/api/lifeMode";
 import { askPrasna, getMuhurta, getNatchathiram, getDosham } from "@vinaadi/shared/api/tools";
 
 const mockGet = jest.fn();
@@ -434,5 +435,35 @@ describe("notifications API", () => {
       "/settings/notifications/fcm-token",
       { fcmDeviceToken: "device-token-abc123" },
     );
+  });
+});
+
+// ─── LIFE FOCUS ───────────────────────────────────────────────────────────────
+// Life focus Phase 3 put these on mobile. Checked against app/api/settings.py:
+// GET and PATCH "/settings/life-mode", no path params; the body is { mode } and
+// the response is the bare status, not a { success, data } envelope.
+
+describe("life-mode API", () => {
+  const STATUS = {
+    mode: "CAREER",
+    lifeModeSetAt: "2026-09-22T06:00:00Z",
+    showLifeModePicker: false,
+    blockedModes: [],
+    focusNudgeDue: false,
+    focusArea: "CAREER",
+    focusActivities: ["job_change", "business_start"],
+  };
+
+  it("getLifeMode GETs the bare status", async () => {
+    mockGet.mockResolvedValue(STATUS);
+    const result = await getLifeMode();
+    expect(mockGet).toHaveBeenCalledWith("/settings/life-mode");
+    expect(result.focusActivities).toEqual(["job_change", "business_start"]);
+  });
+
+  it("updateLifeMode PATCHes { mode }", async () => {
+    MOCK_CLIENT.patch.mockResolvedValue(STATUS);
+    await updateLifeMode("CAREER");
+    expect(MOCK_CLIENT.patch).toHaveBeenCalledWith("/settings/life-mode", { mode: "CAREER" });
   });
 });

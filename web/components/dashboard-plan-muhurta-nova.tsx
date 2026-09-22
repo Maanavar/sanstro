@@ -8,6 +8,7 @@ import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { CULTURAL_CONTEXT, dt } from "@/lib/dashboard-i18n";
 import type { ActivityTimingData } from "@/lib/types";
+import { focusPreselect } from "@/lib/life-focus";
 import { ACTIVITY_OPTIONS, ACTIVITY_TO_MUHURTA } from "./dashboard-plan-shared";
 import { MuhurtaPanchangamOverlay, NovaMuhurtaPicker } from "./dashboard-plan-muhurta-picker-nova";
 import { NovaMuhurthamNaal } from "./dashboard-plan-muhurtham-naal-nova";
@@ -42,10 +43,21 @@ import { Field, FieldShell, Input } from "./ui/field";
  * click-to-prefill interaction between Step 1 and Step 2.
  */
 
-type Props = { lang: Lang; chartId: string };
+type Props = {
+  lang: Lang;
+  chartId: string;
+  /** Life focus, Phase 3: the quick scan opens on the focus's first activity.
+   *  Empty for a family member's chart (D4). */
+  focusActivities?: readonly string[];
+};
 
-export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
-  const [activityType, setActivityType] = useState(ACTIVITY_OPTIONS[0].value);
+export function NovaPlanMuhurtaPanel({ lang, chartId, focusActivities = [] }: Props) {
+  // Null until the reader picks, so the default can follow a focus change
+  // made elsewhere without overriding a choice made here.
+  const [chosenActivityType, setActivityType] = useState<string | null>(null);
+  const activityType = chosenActivityType
+    ?? focusPreselect(focusActivities, ACTIVITY_OPTIONS.map((opt) => opt.value))
+    ?? ACTIVITY_OPTIONS[0].value;
   const [activityMonth, setActivityMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -86,6 +98,8 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
   // A shortlist ranked for one couple must not stay on screen under another.
   const scanCoupleKey = `${scanCouple.partnerChartId ?? ""}:${scanCouple.subjectRole ?? ""}`;
   useEffect(() => { setActivityTimingResult(null); }, [scanCoupleKey]);
+  // Covers the focus-driven default too: a shortlist never outlives its activity.
+  useEffect(() => { setActivityTimingResult(null); }, [activityType]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", fontFamily: "var(--font-body)" }}>

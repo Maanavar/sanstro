@@ -10,6 +10,7 @@
     "./format": "./src/format/index.ts",
     "./i18n": "./src/i18n/strings.ts",
     "./i18n/panchangam-names": "./src/i18n/panchangam-names.ts",
+    "./lifeFocus": "./src/lifeFocus.ts",
     "./constants": "./src/constants/index.ts",
     "./constants/tiers": "./src/constants/tiers.ts",
     "./yogaDisplay": "./src/yogaDisplay.ts",

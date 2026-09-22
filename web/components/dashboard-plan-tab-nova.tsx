@@ -21,6 +21,7 @@ import {
   PlanEventsPanel,
 } from "./dashboard-plan-shared";
 import { useEventWindowsQuery, type EventType } from "@/hooks/useEventWindows";
+import { focusPreselect } from "@/lib/life-focus";
 import { humaniseReason } from "./dashboard-event-windows";
 import { NovaLifeEventLogCard } from "./dashboard-plan-life-event-log-nova";
 import { Orbit, ArrowRight, X } from "lucide-react";
@@ -243,6 +244,9 @@ type DashboardPlanTabNovaProps = {
   // one was removed 2026-07-21 and folded into Family & Charts (IA audit
   // 2026-07-22, Phase 5).
   onGoToChart: () => void;
+  /** Life focus, Phase 3: the new-goal picker opens on the focus's first
+   *  activity. Already off (empty) for a chart that is not the reader's own. */
+  focusActivities?: readonly string[];
 };
 
 export function DashboardPlanTabNova({
@@ -270,9 +274,15 @@ export function DashboardPlanTabNova({
   onGoToMuhurta,
   onGoToJournal,
   onGoToChart,
+  focusActivities = [],
 }: DashboardPlanTabNovaProps) {
   const [subTab, setSubTab] = useState<PlanSubTab>("goals");
   const todayStr = new Date().toISOString().slice(0, 10);
+  // A default, not a choice: `addingGoalType` is empty until the reader picks.
+  // A focus activity the reader already has as a goal is not offered again.
+  const newGoalType = addingGoalType
+    || focusPreselect(focusActivities, GOAL_OPTIONS.map(([value]) => value), goals.map((g) => normalizeGoalType(g.goalType)))
+    || "job_change";
 
   const { groups, unmapped } = useMemo(() => {
     const seen = new Set<EventType>();
@@ -399,7 +409,7 @@ export function DashboardPlanTabNova({
               {goals.length < 3 && (
                 <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
                   <NovaSelect
-                    value={addingGoalType || "job_change"}
+                    value={newGoalType}
                     onChange={onAddingGoalTypeChange}
                     ariaLabel={t("goals_add", lang)}
                     containerStyle={{ flex: "1 1 200px" }}
@@ -409,7 +419,7 @@ export function DashboardPlanTabNova({
                   <button
                     type="button"
                     className="ui-btn ui-btn--primary"
-                    onClick={() => onAddGoal(addingGoalType || "job_change")}
+                    onClick={() => onAddGoal(newGoalType)}
                     disabled={goalsBusy}
                   >
                     {goalsBusy ? t("goals_adding", lang) : t("goals_add", lang)}

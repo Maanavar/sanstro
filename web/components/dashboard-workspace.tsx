@@ -49,7 +49,7 @@ import { useLang } from "./lang-toggle";
 import { moonPhaseFromTithi } from "@/lib/lunar";
 import { DashboardHero } from "./dashboard-hero";
 import { DashboardFooterMorningGuidance } from "./dashboard-footer-morning-nova";
-import { LifeModePicker } from "./life-mode-picker";
+import { LifeModePicker, lifeModeLabel } from "./life-mode-picker";
 import { DashboardAskVinaadiWidget } from "./dashboard-ask-vinaadi-widget";
 import { ViewSwap } from "./ui/view-swap";
 
@@ -1209,6 +1209,13 @@ export function DashboardWorkspace() {
     !viewId || family.familyMembers.find((f) => f.familyMemberId === viewId)?.relationshipToOwner === "self";
   const todayFocus = appliedFocus(lifeModeStatus, isOwnChart(personalViewId));
   const lifeAreasFocus = appliedFocus(lifeModeStatus, isOwnChart(lifeAreasViewId));
+  // Phase 3. Goals is always the reader's own chart; the muhurta view follows
+  // its member picker; the month grid's chip is always read on the own chart.
+  const ownFocus = appliedFocus(lifeModeStatus, true);
+  const muhurtaFocus = appliedFocus(lifeModeStatus, isOwnChart(muhurtaMemberId));
+  const monthFocus = personal.chartId && ownFocus.activities.length > 0
+    ? { chartId: personal.chartId, activities: ownFocus.activities, label: lifeModeLabel(activeLifeMode, lang) }
+    : null;
 
   const personalChart = personalMemberChart?.chart ?? personal.chart;
   const personalChartExplanation = personalMemberChart ? personalMemberChart.explanation : personal.chartExplanation;
@@ -2088,6 +2095,8 @@ export function DashboardWorkspace() {
               focusView={calendarFocusView}
               onFocusConsumed={() => setCalendarFocusView(null)}
               pending={personal.personalPending}
+              muhurtaFocusActivities={muhurtaFocus.activities}
+              monthFocus={monthFocus}
             />
           </TabPane>
 
@@ -2161,6 +2170,7 @@ export function DashboardWorkspace() {
               onGoToMuhurta={() => focusCalendar("muhurta")}
               onGoToJournal={() => goToTab("journal")}
               onGoToChart={() => goToTab("family")}
+              focusActivities={ownFocus.activities}
             />
           </TabPane>
 

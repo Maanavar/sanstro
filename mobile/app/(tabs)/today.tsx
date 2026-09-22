@@ -31,6 +31,7 @@ import { NativeAdUnit } from "@/components/AdUnit";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
 import { SharedTransitionView } from "@/components/SharedTransitionView";
+import { FocusChip } from "@/components/LifeFocus";
 import { getDailySnapshot } from "@/api/snapshot";
 import { pingStreak } from "@/api/streak";
 import type { LifeAreaData } from "@/api/lifeAreas";
@@ -381,6 +382,9 @@ export default function TodayTab() {
                 </Text>
               ) : null}
             </View>
+            {/* Life focus (Phase 3): shows and changes the focus. Today's
+                order on mobile does not respond to it yet. */}
+            <FocusChip />
             {streakCount >= 1 && (
               <View style={styles.streakChip} accessibilityLabel={`${streakCount}-day streak`}>
                 <Ionicons name="flame-outline" size={13} color={C.surface} /><Text style={styles.streakText}>{streakCount}</Text>

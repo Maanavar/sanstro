@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { appliedFocus, focusQuickLinkId, NO_FOCUS, pinFirst } from "./life-focus";
+import { appliedFocus, focusPreselect, focusQuickLinkId, NO_FOCUS, pinFirst, supportiveFocusDates } from "./life-focus";
 import type { LifeModeStatus } from "./types";
 
 function status(overrides: Partial<LifeModeStatus>): LifeModeStatus {
@@ -76,6 +76,49 @@ describe("appliedFocus", () => {
   it("lifts the remedy row only for REMEDIES", () => {
     expect(appliedFocus(status({ mode: "REMEDIES" }), true).remediesFirst).toBe(true);
     expect(appliedFocus(career, true).remediesFirst).toBe(false);
+  });
+});
+
+describe("focusPreselect (Phase 3)", () => {
+  const goalOptions = ["job_change", "business_start", "marriage", "education", "property", "money"];
+
+  it("picks the focus's first activity when the form offers it", () => {
+    expect(focusPreselect(["money", "property", "business_start"], goalOptions)).toBe("money");
+  });
+
+  it("never falls through to a later activity", () => {
+    // FAMILY's second is child_birth: a form must not open on it.
+    expect(focusPreselect(["family_harmony", "child_birth", "property"], goalOptions)).toBeNull();
+    expect(focusPreselect(["job_change", "business_start"], goalOptions, ["job_change"])).toBeNull();
+  });
+
+  it("is null for a focus with no activities (LOVE, REMEDIES, BALANCED) or none left", () => {
+    expect(focusPreselect([], goalOptions)).toBeNull();
+    expect(focusPreselect(["education"], goalOptions, ["education"])).toBeNull();
+  });
+});
+
+describe("supportiveFocusDates (Phase 3 calendar chip)", () => {
+  const day = (dateLocal: string, alignment: string) => ({ dateLocal, alignment });
+
+  it("unions the SUPPORTS dates across the focus activities", () => {
+    const dates = supportiveFocusDates({
+      job_change: { topDates: [day("2026-10-02", "SUPPORTS"), day("2026-10-09", "SUPPORTS")] },
+      business_start: { topDates: [day("2026-10-09", "SUPPORTS"), day("2026-10-15", "SUPPORTS")] },
+    });
+    expect([...dates].sort()).toEqual(["2026-10-02", "2026-10-09", "2026-10-15"]);
+  });
+
+  it("leaves a top-ranked CAUTION or NEUTRAL day unmarked", () => {
+    const dates = supportiveFocusDates({
+      money: { topDates: [day("2026-10-03", "CAUTION"), day("2026-10-04", "NEUTRAL"), day("2026-10-05", "SUPPORTS")] },
+    });
+    expect([...dates]).toEqual(["2026-10-05"]);
+  });
+
+  it("tolerates a failed activity and a missing response", () => {
+    expect(supportiveFocusDates({ health: null }).size).toBe(0);
+    expect(supportiveFocusDates(undefined).size).toBe(0);
   });
 });
 
