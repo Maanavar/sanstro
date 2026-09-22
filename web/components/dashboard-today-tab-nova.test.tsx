@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 
 import type { DailyGuidanceData } from "@/lib/types";
 
@@ -562,8 +562,8 @@ describe("Today tab — the avoid window's now-state (finding 4)", () => {
     vi.setSystemTime(new Date("2026-08-23T04:15:00Z"));
     await renderWithWindows([{ type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM" }]);
 
-    expect(avoidCard().textContent).toMatch(/inside it now/i);
-    expect(avoidCard().textContent).toMatch(/ends in/);
+    expect(avoidCard().textContent).toMatch(/Now: Rahu Kalam until 10:30 am/i);
+    expect(avoidCard().textContent).toMatch(/avoid new starts/i);
   });
 
   it("counts down to it before it starts", async () => {
@@ -577,10 +577,64 @@ describe("Today tab — the avoid window's now-state (finding 4)", () => {
     // Owner ask (2026-09-07): a caution that already happened is not
     // actionable, and kept eating hero space long after Rahu Kalam ended.
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    vi.setSystemTime(new Date("2026-08-23T09:00:00Z")); // 14:30 IST
+    vi.setSystemTime(new Date("2026-08-23T10:00:00Z")); // 15:30 IST, after all three kalams
     await renderWithWindows([{ type: "PERSONAL_HORA", start: "16:00", end: "16:48", kala: "AMIRTHAM" }]);
 
     expect(screen.queryByText(/^Avoid window$/i)).not.toBeInTheDocument();
+  });
+
+  it("promotes Yamagandam when it is the period running now", async () => {
+    // 14:00 IST — Rahu Kalam has ended, but Yamagandam is in progress. The
+    // old `cautionWindows[0]` path kept looking at Rahu and hid the card.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-08-23T08:30:00Z"));
+    await renderWithWindows([{ type: "PERSONAL_HORA", start: "16:00", end: "16:48", kala: "AMIRTHAM" }]);
+
+    expect(avoidCard()).toHaveTextContent("Yamagandam");
+    expect(avoidCard()).toHaveTextContent(/Now: Yamagandam until 3:00 pm/i);
+    expect(avoidCard()).toHaveTextContent(/avoid new starts/i);
+  });
+
+  it("gives Kuligai its repeat-friendly meaning instead of avoid styling", async () => {
+    // 06:30 IST — Kuligai is active. Owner ruling R5 says this is useful for
+    // repeat-worthy acquisitions, but not marriage or surgery.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-08-23T01:00:00Z"));
+    await renderWithWindows([{ type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM" }]);
+
+    const card = screen.getByText(/^Kuligai period$/i).closest<HTMLElement>(".ui-card")!;
+    expect(card).toHaveTextContent(/Now: Kuligai until 7:30 am/i);
+    expect(card).toHaveTextContent(/gold, property/i);
+    expect(card).toHaveTextContent(/not for a wedding or surgery/i);
+    expect(within(card).queryByText(/^Avoid window$/i)).toBeNull();
+    expect(within(card).getByText(/^Kuligai period$/i)).toHaveStyle({ color: "var(--color-accent-secondary)" });
+  });
+
+  it("uses Tamil period-word time and ruled Tamil copy for live Kuligai", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-08-23T01:00:00Z"));
+    await renderWithWindows([], { lang: "ta" });
+
+    const card = screen.getByText("குளிகை நேரம்").closest(".ui-card")!;
+    expect(card).toHaveTextContent("இப்போது: குளிகை");
+    expect(card).toHaveTextContent("காலை 7:30 வரை");
+    expect(card).toHaveTextContent("தங்கம் வாங்குதல்");
+    expect(card).toHaveTextContent("திருமணம், அறுவை சிகிச்சை வேண்டாம்");
+    expect(card.textContent).not.toMatch(/\b(?:am|pm)\b/i);
+    expect(card.textContent).not.toContain("—");
+  });
+
+  it("counsels rather than commands in Tamil for a live Rahu Kalam / Yamagandam", async () => {
+    // Owner ruling 2026-09-17: Tamil advice is advisory (தவிர்ப்பது நல்லது),
+    // never the imperative (தவிர்க்கவும்) — same voice as `avoidRahu`. This
+    // line shipped with the imperative form once already; pin the register.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-08-23T04:15:00Z")); // 09:45 IST, inside Rahu Kalam
+    await renderWithWindows([], { lang: "ta" });
+
+    const card = screen.getByText("தவிர்க்க வேண்டிய நேரம்").closest<HTMLElement>(".ui-card")!;
+    expect(card).toHaveTextContent("தவிர்ப்பது நல்லது");
+    expect(card.textContent).not.toContain("தவிர்க்கவும்");
   });
 });
 

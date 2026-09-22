@@ -83,4 +83,21 @@ describe("DashboardTodayRibbonNova glossary", () => {
     // See glossary-term.tsx.
     expect(document.querySelector("[data-glossary-panel]")).toHaveTextContent(/starting anything new/i);
   });
+
+  it("marks the same currently-running kalam that the hero resolves", () => {
+    render(
+      <DashboardTodayRibbonNova
+        lang="en"
+        panchangam={panchangamFixture()}
+        weekAhead={null}
+        selectedDate="2026-06-04"
+        now={new Date("2026-06-04T06:30:00+05:30")}
+        timeZone="Asia/Kolkata"
+      />,
+    );
+
+    const live = document.querySelector("[data-current-kalam]");
+    expect(live).toHaveAttribute("data-current-kalam", "yamagandam");
+    expect(live).toHaveAttribute("aria-current", "time");
+  });
 });

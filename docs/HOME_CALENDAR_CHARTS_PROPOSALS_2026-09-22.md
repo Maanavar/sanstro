@@ -1,6 +1,6 @@
 # Home, Calendar and Charts proposals: research and plan
 
-**Date:** 2026-09-22 · **Status:** owner rulings recorded (R1–R6, below); §7 fixed, not committed; the rest not built · **Asked by:** owner
+**Date:** 2026-09-22 · **Status:** owner rulings recorded (R1–R6, below); §7 fixed in `7347030`; §1 web-first slice implemented, not committed; the rest not built · **Asked by:** owner
 
 Seven owner questions, each read through four lenses: Tamil Thirukanitham
 astrologer (**Astro**), full-stack developer (**Dev**), product owner and
@@ -483,7 +483,96 @@ Design notes for the build:
 
 ## Progress
 
-- **§7 fixed (2026-09-22), not committed.** `web/components/dashboard-charts.tsx`:
+- **§1 web-first live kalam slice implemented (2026-09-22), not committed.**
+  - one shared resolver now decides the period running now for both the Today
+    hero and ribbon, with the ruled overlap priority Rahu Kalam > Yamagandam >
+    Kuligai;
+  - Yamagandam and Kuligai no longer disappear behind the first Rahu Kalam
+    caution window;
+  - live Rahu Kalam / Yamagandam name the end time and advise against new
+    starts;
+  - Kuligai has its own neutral, repeat-friendly treatment and the R5 wording
+    in English and Tamil; it is not rendered as a generic avoid period;
+  - Tamil end times use the almanac period-word formatter.
+
+  Gate: 8 new tests across `kalam-live.test.ts`, `dashboard-today-tab-nova.test.tsx`,
+  and `dashboard-today-ribbon-nova.test.tsx`. All fail with their fix removed
+  (checked by hand, not just before the original implementation) and pass now.
+  The full web suite is green: 103 files, 983 tests. `tsc --noEmit` and targeted
+  ESLint are green.
+
+  **Review pass (2026-09-22), two fixes:**
+  - `dashboard-today-tab-nova.test.tsx`'s new Kuligai assertions called
+    `within()` on `Element.closest(".ui-card")`, which types as `Element`, not
+    `HTMLElement` — `tsc --noEmit` failed on it. The original report claimed a
+    clean typecheck; it wasn't run after that test was added. Fixed with
+    `closest<HTMLElement>(...)`.
+  - `liveAvoidLine`'s Tamil copy shipped in the imperative register
+    (புதிய தொடக்கங்களைத் **தவிர்க்கவும்**), the exact form the owner ruling of
+    2026-09-17 (`avoidRahu`, two lines above it in the same file) rules against
+    in favour of the advisory தவிர்ப்பது நல்லது — and the same ruling asks for
+    one phrasing per piece of advice, not two. Fixed to match `avoidRahu`'s
+    register; added a Tamil-mode test (`"counsels rather than commands..."`)
+    that fails with the imperative form restored, so this can't silently drift
+    back.
+
+- **§1 mobile local reminders implemented (2026-09-22), not committed.** R1:
+  opt-in, local, offline, no server load.
+  - `timeOnDateToMs` (+ its DST-refinement helpers) moved from `web/lib/tz.ts`
+    to `packages/shared/src/utils/tz.ts`, re-exported from web unchanged, so
+    mobile's reminders resolve the same instant web's hero/ribbon do instead
+    of a second copy that can drift — same reasoning as `pinFirst` earlier
+    this plan. Added `./utils/tz` to `packages/shared/package.json`'s
+    `exports` map; `shared-exports-map.test.ts` (a pre-existing guard against
+    exactly this class of miss) caught the omission on the first run.
+  - `mobile/src/lib/kalamReminders.ts`: pure trigger-time planning
+    (`planKalamReminders`), same "before/during/after, half-open at the end"
+    reasoning as web's `resolveKalamStatus`, arrived at independently since
+    the two run in different runtimes. `KALAM_REMINDER_KINDS` is
+    `["rahuKalam", "yamagandam"]` — Kuligai is structurally excluded, not
+    filtered out, so there is no wording path that could get it wrong (R5).
+  - `mobile/src/lib/kalamNotificationScheduler.ts`: schedules through
+    `expo-notifications`, tags its own notifications so a rebuild cancels
+    exactly its own and nothing else scheduled on the device; Tamil body
+    copy uses the same advisory register (தவிர்ப்பது நல்லது) as web's
+    `avoidRahu` / `liveAvoidLine`, on purpose, given what shipped wrong in
+    the web slice's own first draft.
+  - Toggle (Settings, "On this device", device-local via
+    `useKalamReminderToggle` / `AsyncStorage`, deliberately not the
+    server-synced `NotificationPreferenceData`) and scheduling
+    (`useKalamReminders`, mounted on Today where today's kalam times already
+    load) are two hooks, not one: Today stays mounted while the reader visits
+    Settings, so Today re-reads the toggle with `useFocusEffect` rather than
+    only on mount.
+
+  Gate: 6 new tests in `mobile/__tests__/kalamReminders.test.ts`, including
+  one that plants a stray truthy `kuligai` key on the prefs object and asserts
+  nothing gets planned. Checked by hand with the past-lead-time guard removed:
+  fails. Mobile suite green: 14 suites, 106 tests. `tsc --noEmit` and ESLint
+  clean on every touched/new file, web and mobile both.
+
+  **Review pass, one fix:** the Settings screen's first draft put the new
+  "On this device" section inside the same `!isLoading && !isError` gate as
+  the server-synced toggles above it. A failed or slow
+  `getNotificationPreferences` call would then have hidden the local-only
+  Rahu/Yama toggle behind an unrelated `ErrorCard` — exactly the server
+  dependency this feature exists to not have. Restructured to one `ScrollView`
+  where only the server-backed section is gated on the query state and the
+  device-local section always renders below it.
+
+  **Still open in §1:** Durmuhurtham remains a later four-surface contract
+  change (Astro/Arch note above).
+
+  **Blind spot, both halves:** neither jsdom nor Jest's node/RN test
+  environments prove a notification actually appears on a device at the
+  scheduled moment, survives the app being killed, or reads correctly in the
+  OS notification tray in Tamil. `mobile/.maestro/flows/` has no flow for this
+  yet. jsdom also still cannot see painted emphasis in Nova light/dark or
+  375 px reflow for the web half. The in-app browser and a device/emulator
+  were both unavailable in this session, so visual and on-device sign-off are
+  still required before either half ships.
+
+- **§7 fixed (2026-09-22), committed in `7347030`.** `web/components/dashboard-charts.tsx`:
   - selection is scoped to the chart's identity (`useCellSelection`), so a
     new chart starts from its own lagna;
   - no selection is painted where the grid has no explain panel

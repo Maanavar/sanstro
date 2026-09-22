@@ -18,6 +18,7 @@
     "./utils/score": "./src/utils/score.ts",
     "./utils/panchangamLimb": "./src/utils/panchangamLimb.ts",
     "./utils/format": "./src/utils/format.ts",
+    "./utils/tz": "./src/utils/tz.ts",
     "./api": "./src/api/index.ts",
     "./api/errors": "./src/api/errors.ts",
     "./api/client": "./src/api/client.ts",

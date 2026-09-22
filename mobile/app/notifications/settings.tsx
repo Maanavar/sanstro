@@ -10,6 +10,8 @@ import { useI18n } from "@/hooks/useI18n";
 import { getNotificationPreferences, updateNotificationPreferences } from "@/api/notifications";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
+import { useKalamReminderToggle } from "@/hooks/useKalamReminderToggle";
+import type { KalamReminderKind } from "@/lib/kalamReminders";
 import type { NotificationPreferenceData } from "@vinaadi/shared";
 
 export default function NotificationSettingsScreen() {
@@ -24,6 +26,7 @@ export default function NotificationSettingsScreen() {
   });
 
   const prefs: NotificationPreferenceData | undefined = data?.data;
+  const { prefs: kalamPrefs, setKind: setKalamKind } = useKalamReminderToggle();
 
   const [morningEnabled, setMorningEnabled] = useState(false);
   const [morningTime, setMorningTime] = useState("06:00");
@@ -66,16 +69,22 @@ export default function NotificationSettingsScreen() {
         </Text>
       </View>
 
-      {isLoading && (
-        <View style={{ padding: S.base, gap: S.sm }}>
-          <SkeletonCard height={100} />
-          <SkeletonCard height={72} />
-        </View>
-      )}
-      {isError && <ErrorCard onRetry={refetch} />}
+      {/* The server-synced section below (isLoading/isError) and the
+          device-local section further down are independent: the local
+          toggles need no network call, so a failed or slow
+          getNotificationPreferences must not hide them too. One ScrollView,
+          not two conditionally-rendered ones. */}
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {isLoading && (
+          <View style={{ gap: S.sm }}>
+            <SkeletonCard height={100} />
+            <SkeletonCard height={72} />
+          </View>
+        )}
+        {isError && <ErrorCard onRetry={refetch} />}
 
-      {!isLoading && !isError && (
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {!isLoading && !isError && (
+          <>
           {/* Morning push big card */}
           <View style={styles.morningCard}>
             <View style={styles.morningRow}>
@@ -170,8 +179,57 @@ export default function NotificationSettingsScreen() {
               {isTamil ? "சேமிக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்." : "Failed to save. Please try again."}
             </Text>
           )}
-        </ScrollView>
-      )}
+          </>
+        )}
+
+          {/* This device only, not synced to the server — docs/HOME_CALENDAR_CHARTS_PROPOSALS_2026-09-22.md
+              §1, R1: local scheduled notifications, exact and offline, chosen
+              specifically to add no server load. Kuligai has no toggle here:
+              R5 rules it is not a plain avoid period, so a "10 minutes
+              before" reminder for it would misstate what it means. */}
+          <Text style={[styles.sectionLabel, isTamil ? TamilType.caption : EnType.caption]}>
+            {isTamil ? "இந்தச் சாதனத்தில் மட்டும்" : "On this device"}
+          </Text>
+
+          {(
+            [
+              {
+                key: "rahuKalam" as KalamReminderKind,
+                ta: "ராகு காலத்திற்கு 10 நிமிடம் முன்",
+                en: "10 min before Rahu Kalam",
+                subTa: "இந்தச் சாதனத்தில் மட்டும்; வேறு சாதனங்களுக்குப் பொருந்தாது",
+                subEn: "This device only; does not carry over to other devices",
+              },
+              {
+                key: "yamagandam" as KalamReminderKind,
+                ta: "யமகண்டத்திற்கு 10 நிமிடம் முன்",
+                en: "10 min before Yamagandam",
+                subTa: "இந்தச் சாதனத்தில் மட்டும்; வேறு சாதனங்களுக்குப் பொருந்தாது",
+                subEn: "This device only; does not carry over to other devices",
+              },
+            ]
+          ).map((item) => (
+            <View key={item.key} style={styles.toggleRow}>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={[styles.toggleTitle, {
+                  fontFamily: isTamil ? "NotoSansTamil_700Bold" : "Inter_600SemiBold",
+                  fontSize: 14, lineHeight: 20, color: C.textPrimary,
+                }]}>
+                  {isTamil ? item.ta : item.en}
+                </Text>
+                <Text style={[styles.toggleSub, isTamil ? TamilType.caption : EnType.caption]}>
+                  {isTamil ? item.subTa : item.subEn}
+                </Text>
+              </View>
+              <Switch
+                value={kalamPrefs?.[item.key] ?? false}
+                onValueChange={(v) => { void setKalamKind(item.key, v); }}
+                trackColor={{ false: C.divider, true: C.saffron }}
+                thumbColor={C.surface}
+              />
+            </View>
+          ))}
+      </ScrollView>
     </SafeAreaView>
   );
 }

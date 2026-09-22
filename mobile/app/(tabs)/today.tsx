@@ -34,6 +34,7 @@ import { SharedTransitionView } from "@/components/SharedTransitionView";
 import { FocusChip } from "@/components/LifeFocus";
 import { useLifeFocus } from "@/hooks/useLifeFocus";
 import { todayPulseAreas } from "@/lib/todayFocus";
+import { useKalamReminders } from "@/hooks/useKalamReminders";
 import { LIFE_FOCUS_TEXT } from "@vinaadi/shared/lifeFocus";
 import { getDailySnapshot } from "@/api/snapshot";
 import { pingStreak } from "@/api/streak";
@@ -258,6 +259,17 @@ export default function TodayTab() {
   const rasiPalanData = snapshotData?.data.rasi_palan ?? null;
   const g = (snapshotData?.data.guidance ?? undefined) as ExtendedGuidance | undefined;
   const { state: pushPromptState, dismiss: dismissPushPrompt, requestAndRegister: requestPushPermission } = usePushNotificationOptIn(!!g);
+
+  // §1 (docs/HOME_CALENDAR_CHARTS_PROPOSALS_2026-09-22.md): opt-in local
+  // reminders for Rahu Kalam / Yamagandam, rebuilt whenever today's kalam
+  // times change. No `enabled` gate for guests: the prefs default off, so a
+  // guest who never opted in schedules nothing.
+  useKalamReminders({
+    kalam: p?.kalam,
+    dateLocal: p?.dateLocal ?? null,
+    timeZone: p?.location.timezone ?? tz,
+    lang,
+  });
 
   // Push today's snapshot to native widget storage whenever data freshens.
   useEffect(() => {

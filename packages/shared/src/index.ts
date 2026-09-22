@@ -6,3 +6,4 @@ export * from "./i18n/panchangam-names";
 export * from "./lifeFocus";
 export * from "./utils/score";
 export * from "./utils/panchangamLimb";
+export * from "./utils/tz";

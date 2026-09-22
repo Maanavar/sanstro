@@ -20,6 +20,7 @@ import {
 import { gowriCategoryLabel, gowriPurposeLabel } from "@/lib/gowri";
 import { NO_FOCUS, type AppliedFocus } from "@/lib/life-focus";
 import { hourInZone, minutesOfDayInZone, timeOnDateToMs } from "@/lib/tz";
+import { resolveKalamStatus } from "@/lib/kalam-live";
 import {
   clearSegments,
   findSecondaryAbhijitWindow,
@@ -652,11 +653,23 @@ export function DashboardTodayTabNova({
   // drives the hero sky backdrop's moon shape (thin crescent -> full disc).
   const moonPhase = panchangam ? moonPhaseFromTithi(panchangam.tithi.number, panchangam.tithi.paksha) : null;
 
-  // Hero tile rail (redesign 2026-07-18): avoid window = the day's first
-  // caution window, falling back to Rahu Kalam from the panchangam; Horai
-  // resolves against "now" so it only renders when viewing today.
-  const avoidWindow = personalDailyGuidance?.cautionWindows?.[0]
-    ?? (panchangam ? { type: "RAHU_KALAM", start: panchangam.kalam.rahuKalam.start, end: panchangam.kalam.rahuKalam.end } : null);
+  // The ribbon and hero share one resolver for "now". It examines all three
+  // daylight kalams, promotes the strongest one when overlaps occur (Rahu >
+  // Yama > Kuligai), and otherwise keeps the next one visible. This replaces
+  // the stale `cautionWindows[0]` assumption, which was always Rahu Kalam and
+  // made the hero go silent during Yamagandam and Kuligai.
+  const kalamStatus = panchangam
+    ? resolveKalamStatus(panchangam.kalam, {
+        now,
+        dateLocal: dataDate,
+        timeZone: panchangamTimezone,
+        isToday,
+      })
+    : null;
+  const heroKalam = kalamStatus?.current ?? kalamStatus?.next ?? null;
+  const avoidWindow = heroKalam
+    ? { type: heroKalam.type, start: heroKalam.start, end: heroKalam.end }
+    : personalDailyGuidance?.cautionWindows?.[0] ?? null;
 
   // After 8pm (panchangam-local), the hero can swap to a preview of tomorrow +
   // a journal prompt for today — reuses the already-fetched 3-day
@@ -695,7 +708,12 @@ export function DashboardTodayTabNova({
   }
 
   const { phase: windowPhase, countdown: windowCountdown } = spanPhase(bestWindow);
-  const { phase: avoidPhase, countdown: avoidCountdown } = spanPhase(avoidWindow);
+  const fallbackAvoidState = spanPhase(avoidWindow);
+  const avoidPhase = heroKalam?.phase ?? fallbackAvoidState.phase;
+  const avoidCountdown = heroKalam?.remainingMs != null
+    ? formatDuration(heroKalam.remainingMs, lang)
+    : fallbackAvoidState.countdown;
+  const isKuligaiPeriod = heroKalam?.key === "kuligai";
   // Owner ask (2026-09-07): once today's avoid window has ended it no longer
   // earns hero space — it stays visible only while it is upcoming or running.
   // A past date's avoidWindow has no live phase (spanPhase short-circuits on
@@ -1509,16 +1527,16 @@ export function DashboardTodayTabNova({
                   live state more than an invitation does. Same `spanPhase`
                   helper, same three states. */}
               {showAvoidCard && (
-                <Card style={{ flex: "none", background: avoidPhase === "during" ? "var(--color-low-bg)" : "color-mix(in srgb, var(--color-surface) 62%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-4) var(--space-4)", display: "flex", flexDirection: "row", gap: "var(--space-3)", alignItems: "center", borderColor: avoidPhase === "during" ? "var(--color-low-border)" : undefined }}>
-                  <div aria-hidden="true" style={{ position: "relative", width: "40px", height: "40px", borderRadius: "var(--radius-pill)", background: "var(--color-low-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-low)", flex: "none" }}>
-                    <X size={19} strokeWidth={2} />
+                <Card style={{ flex: "none", background: avoidPhase === "during" ? (isKuligaiPeriod ? "var(--color-accent-muted)" : "var(--color-low-bg)") : "color-mix(in srgb, var(--color-surface) 62%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-4) var(--space-4)", display: "flex", flexDirection: "row", gap: "var(--space-3)", alignItems: "center", borderColor: avoidPhase === "during" ? (isKuligaiPeriod ? "var(--color-accent-secondary)" : "var(--color-low-border)") : undefined }}>
+                  <div aria-hidden="true" style={{ position: "relative", width: "40px", height: "40px", borderRadius: "var(--radius-pill)", background: isKuligaiPeriod ? "var(--color-accent-muted)" : "var(--color-low-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: isKuligaiPeriod ? "var(--color-accent-secondary)" : "var(--color-low)", flex: "none" }}>
+                    {isKuligaiPeriod ? <Sparkles size={19} strokeWidth={2} /> : <X size={19} strokeWidth={2} />}
                     {avoidPhase === "during" && (
-                      <span className="nova-pulse-dot" style={{ position: "absolute", top: "-1px", right: "-1px", width: "9px", height: "9px", borderRadius: "var(--radius-pill)", background: "var(--color-low)", boxShadow: "0 0 0 3px var(--color-surface)" }} />
+                      <span className="nova-pulse-dot" style={{ position: "absolute", top: "-1px", right: "-1px", width: "9px", height: "9px", borderRadius: "var(--radius-pill)", background: isKuligaiPeriod ? "var(--color-accent-secondary)" : "var(--color-low)", boxShadow: "0 0 0 3px var(--color-surface)" }} />
                     )}
                   </div>
                   <div style={{ minWidth: 0 }}>
-                    <Kicker as="div" color="var(--color-low)">
-                      {lang === "ta" ? "தவிர்க்க வேண்டிய நேரம்" : "Avoid window"}
+                    <Kicker as="div" color={isKuligaiPeriod ? "var(--color-accent-secondary)" : "var(--color-low)"}>
+                      {dt(isKuligaiPeriod ? TODAY_TIMINGS.kuligaiPeriodLabel : TODAY_TIMINGS.avoidWindowLabel, lang)}
                     </Kicker>
                     <div className="nova-hero-time" style={{ marginTop: "4px" }}>
                       {formatClockLabel(avoidWindow.start, lang)} – {formatClockLabel(avoidWindow.end, lang)}
@@ -1528,14 +1546,26 @@ export function DashboardTodayTabNova({
                         role="status"
                         style={{
                           fontSize: "var(--text-sm)", fontWeight: avoidPhase === "during" ? 700 : 400, marginTop: "4px",
-                          color: avoidPhase === "during" ? "var(--color-low)" : "var(--color-faint)",
+                          color: avoidPhase === "during"
+                            ? (isKuligaiPeriod ? "var(--color-accent-secondary)" : "var(--color-low)")
+                            : "var(--color-faint)",
                         }}
                       >
-                        {avoidPhase === "during" && avoidCountdown
-                          ? `${dt(TODAY_TIMINGS.avoidRunningNow, lang)} · ${dt(TODAY_TIMINGS.endsIn, lang).replace("%s", avoidCountdown)}`
+                        {avoidPhase === "during" && isKuligaiPeriod
+                          ? dt(TODAY_TIMINGS.liveKuligaiLine, lang)
+                              .replace("%1$s", formatClockLabel(avoidWindow.end, lang))
+                          : avoidPhase === "during"
+                            ? dt(TODAY_TIMINGS.liveAvoidLine, lang)
+                                .replace("%1$s", windowTypeLabel(avoidWindow.type, lang))
+                                .replace("%2$s", formatClockLabel(avoidWindow.end, lang))
                           : avoidCountdown
                             ? dt(TODAY_TIMINGS.startsIn, lang).replace("%s", avoidCountdown)
                             : null}
+                      </div>
+                    )}
+                    {isKuligaiPeriod && avoidPhase !== "during" && (
+                      <div style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)", marginTop: "4px", lineHeight: 1.45 }}>
+                        {dt(TODAY_TIMINGS.kuligaiMeaning, lang)}
                       </div>
                     )}
                     <div style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)", marginTop: "3px" }}>

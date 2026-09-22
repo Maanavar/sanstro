@@ -10,6 +10,7 @@ import type { Lang } from "@/lib/i18n";
 import type { GlossaryKey } from "@/lib/glossary";
 import { DUR, EASE_NOVA } from "@/lib/motion";
 import { formatClockInZone, minutesOfDayInZone, toDateKeyInZone } from "@/lib/tz";
+import { resolveKalamStatus, type KalamKey } from "@/lib/kalam-live";
 import type { PanchangamDailyResponseData, WeekAheadData } from "@/lib/types";
 import { GlossaryTerm } from "./glossary-term";
 
@@ -66,6 +67,7 @@ const PART_OF_DAY_TEXT: Record<PartOfDay, { badge: { en: string; ta: string }; l
 
 type Segment = {
   key: string;
+  kalamKey?: KalamKey;
   startMin: number;
   endMin: number;
   bg: string;
@@ -133,6 +135,12 @@ export function DashboardTodayRibbonNova({
   // correctly; the two surfaces disagreed. `sunriseName` is kept and shown when
   // it differs, because the almanac genuinely does call today a Swathi day.
   const isToday = selectedDate === toDateKeyInZone(now, timeZone);
+  const currentKalam = resolveKalamStatus(panchangam.kalam, {
+    now,
+    dateLocal: panchangam.dateLocal,
+    timeZone,
+    isToday,
+  }).current;
   const nowIso = now.toISOString();
   const nakNow = limbNow(panchangam.nakshatra, { isToday, nowIso });
   const tithiNow = limbNow(panchangam.tithi, { isToday, nowIso });
@@ -148,6 +156,7 @@ export function DashboardTodayRibbonNova({
   if (yamaStart !== null && yamaEnd !== null) {
     segments.push({
       key: "yama",
+      kalamKey: "yamagandam",
       startMin: yamaStart,
       endMin: yamaEnd,
       bg: YAMA_BG,
@@ -164,6 +173,7 @@ export function DashboardTodayRibbonNova({
   if (rahuStart !== null && rahuEnd !== null) {
     segments.push({
       key: "rahu",
+      kalamKey: "rahuKalam",
       startMin: rahuStart,
       endMin: rahuEnd,
       bg: RAHU_BG,
@@ -180,6 +190,7 @@ export function DashboardTodayRibbonNova({
   if (kuligaiStart !== null && kuligaiEnd !== null) {
     segments.push({
       key: "kuligai",
+      kalamKey: "kuligai",
       startMin: kuligaiStart,
       endMin: kuligaiEnd,
       bg: KULIGAI_BG,
@@ -357,10 +368,13 @@ export function DashboardTodayRibbonNova({
         <div style={{ position: "absolute", inset: "14px 0", borderRadius: "var(--radius-sm)", overflow: "hidden", background: "var(--ribbon-track-bg)", boxShadow: "inset 0 0 0 1px var(--ribbon-track-border)" }}>
           {segments.map((s) => {
             const widthPct = pct(s.endMin) - pct(s.startMin);
+            const isCurrentKalam = s.kalamKey !== undefined && s.kalamKey === currentKalam?.key;
             return (
               <div
                 key={s.key}
                 title={`${s.legendName} ${s.legendTime}`}
+                data-current-kalam={isCurrentKalam ? s.kalamKey : undefined}
+                aria-current={isCurrentKalam ? "time" : undefined}
                 style={{
                   position: "absolute",
                   top: 0,
@@ -368,6 +382,7 @@ export function DashboardTodayRibbonNova({
                   left: `${pct(s.startMin)}%`,
                   width: `${Math.max(widthPct, 1.5)}%`,
                   background: s.bg,
+                  boxShadow: isCurrentKalam ? "inset 0 0 0 2px var(--ribbon-now-bg)" : undefined,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",

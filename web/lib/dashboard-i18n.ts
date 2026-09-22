@@ -435,6 +435,22 @@ export const TODAY_TIMINGS = {
   startsIn: s("starts in %s", "%s இல் தொடங்குகிறது"),
   endsIn: s("ends in %s", "%s இல் முடிகிறது"),
   avoidRunningNow: s("You are inside it now", "இப்போது இந்த நேரத்தில் இருக்கிறீர்கள்"),
+  avoidWindowLabel: s("Avoid window", "தவிர்க்க வேண்டிய நேரம்"),
+  kuligaiPeriodLabel: s("Kuligai period", "குளிகை நேரம்"),
+  // Advisory register (தவிர்ப்பது நல்லது), not the imperative தவிர்க்கவும் —
+  // owner ruling 2026-09-17, same voice as `avoidRahu` above.
+  liveAvoidLine: s(
+    "Now: %1$s until %2$s · avoid new starts.",
+    "இப்போது: %1$s · %2$s வரை · புதிய தொடக்கங்களைத் தவிர்ப்பது நல்லது.",
+  ),
+  liveKuligaiLine: s(
+    "Now: Kuligai until %1$s · good for what you'd want again (gold, property); not for a wedding or surgery.",
+    "இப்போது: குளிகை · %1$s வரை · தங்கம் வாங்குதல், சொத்துப் பதிவு போன்றவை செய்யலாம்; திருமணம், அறுவை சிகிச்சை வேண்டாம்.",
+  ),
+  kuligaiMeaning: s(
+    "Good for repeat-worthy acquisitions such as gold or property; not for a wedding or surgery.",
+    "மீண்டும் நடைபெற விரும்பும் தங்கம் வாங்குதல், சொத்துப் பதிவு போன்றவற்றுக்கு ஏற்றது; திருமணம், அறுவை சிகிச்சைக்கு அல்ல.",
+  ),
   // Redesign 2026-09-07 — the best-window card's conflict line used to render
   // open, permanently, as a fifth stacked row under the reason text. It is a
   // note about a *different, non-promoted* window (a competing method's pick),
