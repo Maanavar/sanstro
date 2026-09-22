@@ -746,6 +746,47 @@ Design notes for the build:
   were both unavailable in this session, so visual and on-device sign-off are
   still required before either half ships.
 
+- **§2 backend groundwork (2026-09-22), not committed.** Everything the UI
+  needs, and nothing that paints yet.
+
+  - **The duplicate resolver is gone first, as the Arch note demanded.**
+    `dashboard_bundle_service.py` L79 re-implemented the current-vs-birth
+    choice; it now calls the resolver every other service calls. The copy
+    existed only to tolerate a profile with no usable location at all — the
+    shared resolver calls `float()` on the birth coordinates unconditionally
+    and raises — so `resolve_effective_daily_location_or_none()` gives that
+    third answer in the one place the rule lives.
+  - **`panchangamPlace`** on the bundle (§2.4). `panchangamLocation` names the
+    *rule* that chose the place ("current" beat "birth"), which is not
+    something to show a reader — "Timings for current" is not the ask.
+  - **`locationCheckDue` + `locationConfirmedAt`** on the bundle, computed from
+    `LOCATION_CHECK_DUE_DAYS = 45` (R2) in `location_service.py`, the same
+    server-side-cadence pattern as `LIFE_MODE_STALE_DAYS`. A profile that has
+    never confirmed a location is due immediately — null is the state of every
+    reader who has only ever had a birth location, which is exactly the group
+    most likely to be reading timings for a place they left.
+  - **`POST /birth-profiles/{id}/confirm-location`** and its shared wrapper.
+    Only PATCH stamped `current_location_updated_at`, and only when a current
+    location field was actually in the payload — so "Keep Chennai" changed
+    nothing and the backstop would return on the reader's next visit.
+    Declining has to be recorded as an answer, not as silence.
+
+  Gate: 6 new backend tests (cadence boundary at exactly 45 days, naive-stamp
+  handling, the resolver's None case, the constant itself, and the endpoint
+  stamping without moving the place) plus 1 mobile wrapper-contract test
+  asserting the path-param shape — the class of drift that bit `getDailyGuidance`
+  and `registerFcmToken`. Backend route- and field-contract suites 284 passed
+  (up from 274: the new wrapper is now checked against its route). `tsc` clean
+  on web and mobile.
+
+  **Nothing renders yet.** The mismatch prompt (§2.1), the backstop strip
+  (§2.2), the one-slot queueing against the life-focus strip (§2.3) and the
+  "Timings for X" label (§2.4) are all still to build. Also still unverified:
+  whether the panchangam and daily-guidance cache keys include the coordinates
+  rather than just the profile id (§2 Arch, last bullet) — a location change
+  that does not invalidate cached day data would show the old place's timings
+  under the new place's name.
+
 - **§7 fixed (2026-09-22), committed in `7347030`.** `web/components/dashboard-charts.tsx`:
   - selection is scoped to the chart's identity (`useCellSelection`), so a
     new chart starts from its own lagna;

@@ -327,3 +327,44 @@ def test_children_status_rejects_a_value_outside_the_vocabulary(client):
         json={"children": "two", "recalculate": False},
     )
     assert response.status_code == 422
+
+
+def test_confirm_location_stamps_the_date_without_moving_the_place(client):
+    """§2 / R2: "Keep Chennai" is an answer. Only PATCH stamped
+    currentLocationUpdatedAt, so declining the prompt left the backstop due and
+    the reader would be asked again on the next visit."""
+    profile_id = _create_profile(
+        client,
+        currentPlace="Chennai, Tamil Nadu, India",
+        currentLatitude=13.0827,
+        currentLongitude=80.2707,
+        currentTimezone="Asia/Kolkata",
+    )
+    before = client.get(f"/api/v1/birth-profiles/{profile_id}").json()["data"]
+
+    with SessionLocal() as session:
+        profile = session.get(BirthProfile, UUID(profile_id))
+        profile.current_location_updated_at = datetime.now(tz=UTC) - timedelta(days=90)
+        session.commit()
+
+    response = client.post(f"/api/v1/birth-profiles/{profile_id}/confirm-location")
+
+    assert response.status_code == 200, response.text
+    data = response.json()["data"]
+    assert data["currentPlace"] == before["currentPlace"]
+    assert data["currentLatitude"] == before["currentLatitude"]
+    assert data["currentTimezone"] == before["currentTimezone"]
+    stamped = datetime.fromisoformat(data["currentLocationUpdatedAt"])
+    assert datetime.now(tz=UTC) - stamped < timedelta(minutes=5)
+
+
+def test_confirm_location_refuses_a_profile_that_is_gone(client):
+    # The owner check beside this one is the same two lines as the PATCH route
+    # above; reassigning owner_user_id here would need a second real user row,
+    # since the column is a foreign key.
+    profile_id = _create_profile(client)
+    client.delete(f"/api/v1/birth-profiles/{profile_id}")
+
+    response = client.post(f"/api/v1/birth-profiles/{profile_id}/confirm-location")
+
+    assert response.status_code == 404

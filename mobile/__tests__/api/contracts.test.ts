@@ -6,7 +6,7 @@
 
 import { initApiClient } from "@vinaadi/shared/api/client";
 import { getPanchangamDay, getPanchangamToday } from "@vinaadi/shared/api/panchangam";
-import { getChartFull, getChartSummary } from "@vinaadi/shared/api/charts";
+import { confirmBirthProfileLocation, getChartFull, getChartSummary } from "@vinaadi/shared/api/charts";
 import { getDashaTimeline } from "@vinaadi/shared/api/dasha";
 import { getDailyStatus, askVinaadi } from "@vinaadi/shared/api/askVinaadi";
 import { getRasiPalan } from "@vinaadi/shared/api/rasiPalan";
@@ -416,6 +416,21 @@ describe("tools API", () => {
     expect(result.data).toHaveLength(1);
     expect(result.data[0].name).toBe("SEVVAI_DOSHAM");
     expect(mockGet).toHaveBeenCalledWith("/charts/chart-uuid-001");
+  });
+});
+
+// ─── BIRTH PROFILES ───────────────────────────────────────────────────────────
+
+describe("birth profile location confirmation", () => {
+  it("confirmBirthProfileLocation POSTs to a path param, not a query param", async () => {
+    // The wrapper's URL and verb are a hand-typed string, unverified by the
+    // type system — getDailyGuidance and registerFcmToken both drifted wrong
+    // this way and would have failed on their first real call.
+    mockPost.mockResolvedValue({ success: true, data: { birthProfileId: "bp-1" } });
+
+    await confirmBirthProfileLocation("bp-1");
+
+    expect(mockPost).toHaveBeenCalledWith("/birth-profiles/bp-1/confirm-location", {});
   });
 });
 

@@ -11,7 +11,7 @@ The individual endpoints remain in place for mobile until it migrates.
 """
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import Literal
 from uuid import UUID
 
@@ -56,6 +56,17 @@ class ChartDashboardBundleData(BaseModel):
     # so horai/NOW-marker/countdowns stay location-true for diaspora (DASH-01).
     panchangam_location: Literal["current", "birth"] | None = Field(default=None, alias="panchangamLocation")
     panchangam_timezone: str | None = Field(default=None, alias="panchangamTimezone")
+    # The place's own name. `panchangam_location` names the *rule* that chose it
+    # ("current" beat "birth"), which is not something to show a reader — §2.4
+    # asks every timing surface to say which place it is for, and "Timings for
+    # current" is not that. Null when the profile has no usable location.
+    panchangam_place: str | None = Field(default=None, alias="panchangamPlace")
+    # §2 / R2 backstop. Server-computed on LOCATION_CHECK_DUE_DAYS so web and
+    # mobile cannot drift apart on the cadence. The device-timezone mismatch
+    # prompt is the main path and is decided client-side, because only the
+    # client knows what zone the device is in.
+    location_confirmed_at: datetime | None = Field(default=None, alias="locationConfirmedAt")
+    location_check_due: bool = Field(default=False, alias="locationCheckDue")
     # Section name -> short failure note for any section that came back null
     # because its computation raised. Purely diagnostic.
     errors: dict[str, str] = Field(default_factory=dict)

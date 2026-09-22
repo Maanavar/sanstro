@@ -314,6 +314,24 @@ def update_birth_profile(
     return get_birth_profile(session, profile.birth_profile_id, calculation_version=calculation_version)
 
 
+def confirm_current_location(
+    session: Session,
+    profile: BirthProfile,
+    *,
+    calculation_version: str = "thirukanitham-2026-v1",
+) -> BirthProfileGetResponse:
+    """Stamp the location as confirmed without changing where it points.
+
+    Nothing about the chart or the saved place moves, so there is no
+    recalculation and no cache to invalidate — only the answer to "when did a
+    human last vouch for this?" changes.
+    """
+    profile.current_location_updated_at = datetime.now(tz=UTC)
+    session.flush()
+    session.commit()
+    return get_birth_profile(session, profile.birth_profile_id, calculation_version=calculation_version)
+
+
 def list_birth_profiles_for_owner(
     session: Session,
     owner_user_id: UUID,

@@ -15,6 +15,24 @@ export function listBirthProfiles(): Promise<{ success: boolean; data: BirthProf
   }>;
 }
 
+/**
+ * POST /birth-profiles/{birthProfileId}/confirm-location
+ * (`confirm_birth_profile_location_endpoint`, app/api/birth_profiles.py).
+ *
+ * The "Keep Chennai" answer to the §2 location check: stamps
+ * `currentLocationUpdatedAt` without moving the saved place, so declining the
+ * prompt is recorded as an answer rather than as silence. Path param, POST,
+ * no body — checked against the route decorator, not inferred.
+ */
+export function confirmBirthProfileLocation(
+  birthProfileId: string,
+): Promise<{ success: boolean; data: BirthProfileResponse }> {
+  return getApiClient().post(
+    `/birth-profiles/${birthProfileId}/confirm-location`,
+    {},
+  ) as Promise<{ success: boolean; data: BirthProfileResponse }>;
+}
+
 export interface CreateBirthProfilePayload {
   displayName: string;
   birthDateLocal: string;
