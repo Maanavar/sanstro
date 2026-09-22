@@ -121,7 +121,9 @@ export function GlanceHeader({
   right?: ReactNode;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-2)", marginBottom: "14px" }}>
+    // Wraps so a long link drops under the title instead of past the card:
+    // Tamil "விரைவு இணைப்புகள்" + "அனைத்து கருவிகளும்" is 13px too wide at 320px.
+    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "var(--space-1) var(--space-2)", marginBottom: "14px" }}>
       {/* audit B-1: shared section header is a real <h2>, so every Today
           section (Life Areas, Dasa, Family, Coming up) lands in the outline. */}
       <h2 style={{ margin: 0, fontSize: "var(--text-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>

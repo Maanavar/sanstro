@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 
 import { RasiChart, NavamsaChart } from "./dashboard-charts";
 import type { ChartCalculateResponseData } from "@/lib/types";
@@ -201,6 +201,64 @@ describe("tap-to-explain chip (A-025)", () => {
   it("applies to the D9 grid on the same terms", () => {
     render(<NavamsaChart chart={sampleChart()} lang="en" showExplain={false} />);
     expect(screen.queryByText("Tap to explain")).toBeNull();
+  });
+});
+
+/**
+ * The owner's report (2026-09-22): "Mesha rasi is always highlighted even when
+ * it is not the lagnam". The grid seeded its selection once, from the FIRST
+ * chart it was given; Family & Charts hands the same grid a new chart on every
+ * member switch, so the first chart's Mesha lagna stayed lit on the rest.
+ * `sampleChart()` is a Mesha lagna; `simmamChart()` is not.
+ */
+function simmamChart(): ChartCalculateResponseData {
+  const chart = sampleChart();
+  return {
+    ...chart,
+    chartId: "chart-2",
+    lagna: { ...chart.lagna, rasi: 5, rasiName: "Simmam", absoluteLongitude: 132, degreeInRasi: 12 },
+  } as ChartCalculateResponseData;
+}
+
+function cell(name: RegExp): HTMLElement {
+  return screen.getByRole("button", { name });
+}
+
+describe("kattam — the lagna is the only standing highlight", () => {
+  it("moves the selection to the new chart's lagna when the chart changes", () => {
+    const { rerender } = render(<RasiChart chart={sampleChart()} lang="en" />);
+    rerender(<RasiChart chart={simmamChart()} lang="en" />);
+    expect(cell(/^Mesham/).getAttribute("aria-pressed")).toBe("false");
+    expect(cell(/^Mesham/).style.background).toBe("var(--chart-cell-default)");
+    expect(cell(/^Simmam/).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("does the same on the D9 grid", () => {
+    // 15° Mesham is the 5th navamsa → Simmam; 12° Simmam is the 4th → Kadagam.
+    // (Not the sample's 10°: that is exactly a navamsa boundary.)
+    const first = sampleChart();
+    first.lagna = { ...first.lagna, absoluteLongitude: 15, degreeInRasi: 15 };
+    const { rerender } = render(<NavamsaChart chart={first} lang="en" />);
+    expect(cell(/^Simmam/).getAttribute("aria-pressed")).toBe("true");
+    rerender(<NavamsaChart chart={simmamChart()} lang="en" />);
+    expect(cell(/^Simmam/).getAttribute("aria-pressed")).toBe("false");
+    expect(cell(/^Kadagam/).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("paints no selection where there is no explain panel for it to drive", () => {
+    // Family & Charts renders both grids this way; a tapped cell there lit up
+    // with nothing to explain it, next to the real lagna.
+    const { container } = render(<RasiChart chart={simmamChart()} lang="en" showExplain={false} />);
+    fireEvent.click(cell(/^Mesham/));
+    expect(container.querySelectorAll("button[aria-pressed]").length).toBe(0);
+    expect(cell(/^Mesham/).style.background).toBe("var(--chart-cell-default)");
+    expect(cell(/^Simmam/).style.background).toBe("var(--chart-d1-lagna-bg)");
+  });
+
+  it("marks the lagna box, and only it, with the corner stroke", () => {
+    render(<RasiChart chart={simmamChart()} lang="en" showExplain={false} />);
+    expect(cell(/^Simmam/).querySelectorAll("[data-lagna-mark]").length).toBe(1);
+    expect(document.querySelectorAll("[data-lagna-mark]").length).toBe(1);
   });
 });
 

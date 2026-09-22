@@ -959,9 +959,14 @@
    Use a shared fixed width instead (wide enough for the
    longest label) so every row lines up like the English mode.
    Also relax line-height on display-size text so Tamil
-   ascenders/descenders aren't clipped. */
-.cd-shell[data-lang="ta"] .cd-detail-spec-row {
-  grid-template-columns: 200px minmax(0, 1fr) auto;
+   ascenders/descenders aren't clipped.
+   Above 720px only: at phone width the rows stack to one column
+   (dashboard-globals.css), and this selector's higher specificity used
+   to override that, holding Calendar at 372px on a Tamil 320px phone. */
+@media (min-width: 721px) {
+  .cd-shell[data-lang="ta"] .cd-detail-spec-row {
+    grid-template-columns: 200px minmax(0, 1fr) auto;
+  }
 }
 
 .cd-shell[data-lang="ta"] .cd-detail-spec-row__label {

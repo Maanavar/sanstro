@@ -20,7 +20,7 @@ import type { LucideIcon } from "lucide-react";
 import Image from "next/image";
 import { rasiDisplayName } from "@/lib/chart-utils";
 import { formatClockLabel } from "@/lib/format";
-import { t } from "@/lib/i18n";
+import { t, tNakshatra } from "@/lib/i18n";
 import { DUR, EASE_NOVA, prefersReducedMotion } from "@/lib/motion";
 import type { Lang } from "@/lib/i18n";
 import type {
@@ -707,7 +707,7 @@ export function DashboardHero(props: DashboardHeroProps) {
                 <span className="cd-subbar__chart">
                   {rasiDisplayName(chartSummary.moonRasi, lang)}
                   {" - "}
-                  {chartSummary.janmaNakshatra}
+                  {tNakshatra(chartSummary.janmaNakshatra, lang)}
                   {" - "}
                   {rasiDisplayName(chartSummary.lagnaRasi, lang)} {lang === "ta" ? "லக்னம்" : "Lagnam"}
                 </span>

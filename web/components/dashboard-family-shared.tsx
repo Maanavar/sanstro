@@ -8,7 +8,7 @@
 // DasaBhuktiAntaramDetail.
 
 import { getScoreBand, formatClockLabel, scoreColor, SCORE_LOW } from "@/lib/format";
-import { t, tPlanetLord } from "@/lib/i18n";
+import { t, tNakshatra, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { rasiDisplayName } from "@/lib/chart-utils";
 import type {
@@ -145,7 +145,7 @@ export function MemberDetailExpanded({
   const identityParts: string[] = [];
   if (summary?.lagnaRasi) identityParts.push(`${rasiDisplayName(summary.lagnaRasi, lang)} ${t("label_lagnam", lang)}`);
   if (summary?.moonRasi)   identityParts.push(`${rasiDisplayName(summary.moonRasi, lang)} ${t("label_janma_rasi", lang)}`);
-  if (summary?.janmaNakshatra) identityParts.push(summary.janmaNakshatra);
+  if (summary?.janmaNakshatra) identityParts.push(tNakshatra(summary.janmaNakshatra, lang));
 
   const birthDateLocal = memberChart?.chart?.birthProfile?.birthDateLocal ?? null;
   const memberAge = birthDateLocal ? ageFromBirth(birthDateLocal, today) : null;

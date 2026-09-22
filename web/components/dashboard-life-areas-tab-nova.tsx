@@ -394,7 +394,10 @@ export function DashboardLifeAreasTabNova({
           </p>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "var(--space-3)" }}>
+        {/* Capped at the row: unconstrained, this column took the sub-nav's full
+            width and held the page at 1324px (Tamil) / 835px (English) on a
+            375px phone, so the Segmented's own `max-width: 100%` never bound. */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "var(--space-3)", minWidth: 0, maxWidth: "100%" }}>
           {/* Member switcher — kit <Pill> (audit B-7): one toggle chip, touch-safe. */}
           <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", justifyContent: "flex-end" }}>
             <Pill active={selectedMemberId === null} onClick={() => onSelectMember(null)}>
@@ -517,7 +520,9 @@ export function DashboardLifeAreasTabNova({
                     : "Natal karaka strength + active dasha alignment + today's transit support. They shift slowly — check weekly, not hourly."}
                 </p>
               </div>
-              <Button variant="secondary" onClick={onGoToChart} style={{ whiteSpace: "nowrap" }}>
+              {/* Wraps only when it must: nowrap put the Tamil label 2px past
+                  a 320px phone's card. */}
+              <Button variant="secondary" onClick={onGoToChart} style={{ maxWidth: "100%", whiteSpace: "normal" }}>
                 {lang === "ta" ? "இதன் பின்னணி ஜாதகத்தைப் பார்" : "See the chart behind them"}
                 <ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" />
               </Button>

@@ -193,7 +193,7 @@ export function DashboardFamilyMemberNova({
         chart.birthProfile.birthTimeLocal ? formatClockLabel(chart.birthProfile.birthTimeLocal, lang) : null,
         chart.birthProfile.birthPlace,
       ].filter(Boolean).join(" · ") +
-      (summary ? ` — ${rasiDisplayName(summary.lagnaRasi, lang)} ${t("label_lagnam", lang)} · ${rasiDisplayName(summary.moonRasi, lang)} ${t("label_janma_rasi", lang)}${summary.janmaNakshatra ? ` · ${summary.janmaNakshatra}` : ""}` : "")
+      (summary ? ` — ${rasiDisplayName(summary.lagnaRasi, lang)} ${t("label_lagnam", lang)} · ${rasiDisplayName(summary.moonRasi, lang)} ${t("label_janma_rasi", lang)}${summary.janmaNakshatra ? ` · ${tNakshatra(summary.janmaNakshatra, lang)}` : ""}` : "")
     : "";
 
   const dasaLine = dasha

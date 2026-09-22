@@ -1443,7 +1443,8 @@ export function DashboardCalendarTabNova({
         !panchangam ? (
           pending ? <PendingPlaceholder lang={lang} lines={4} /> : <p className="empty-state">{t("panja_empty", lang)}</p>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: "var(--space-5)", alignItems: "start" }}>
+          // min(…, 100%): a bare 360px column floor is wider than a 320px phone.
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(360px, 100%), 1fr))", gap: "var(--space-5)", alignItems: "start" }}>
             {/* ===== LEFT: Day at a glance ===== */}
             <Card style={{ borderRadius: "var(--radius-xl)", borderColor: "var(--color-border-strong)", padding: "var(--space-6) var(--space-7)", gap: "var(--space-5)" }}>
               <div>

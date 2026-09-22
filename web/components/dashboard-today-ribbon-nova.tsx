@@ -296,9 +296,13 @@ export function DashboardTodayRibbonNova({
           </div>
         </div>
 
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+        {/* Wraps so the button can drop under the week strip. Unwrapped, the
+            Tamil pair (strip 251px + button 147px) held the page at 447px on
+            every phone up to 414px, and English overflowed at 320px. The strip's
+            4px gap is what lets Tamil's seven weekdays fit a 320px phone. */}
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap", gap: "var(--space-2_5) var(--space-3)", minWidth: 0, maxWidth: "100%" }}>
           {weekAhead && weekAhead.days.length > 0 && (
-            <div style={{ display: "flex", gap: "var(--space-1_5)", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: "var(--space-1)", alignItems: "center" }}>
               {weekAhead.days.map((day) => {
                 const isToday = day.dateLocal === selectedDate;
                 // Continuous scale: a 46 day and a 64 day must not render as

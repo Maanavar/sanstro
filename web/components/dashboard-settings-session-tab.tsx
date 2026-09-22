@@ -9,7 +9,7 @@ import { clearFcmTokenLocal, fetchFcmToken, hasFirebaseMessagingConfig } from "@
 import { rasiDisplayName } from "@/lib/chart-utils";
 import { formatDateLabel, formatDateTimeLabel, todayIso } from "@/lib/format";
 import { dt, LIFE_FOCUS } from "@/lib/dashboard-i18n";
-import { t } from "@/lib/i18n";
+import { t, tNakshatra } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { ContextData, ContextEvent, JournalRetentionApplyData, LifeMode, NotificationPreferenceData } from "@/lib/types";
 import { lifeModeLabel, MODE_ORDER } from "./life-mode-picker";
@@ -506,7 +506,7 @@ export function DashboardSettingsSessionTab({
     return Number.isNaN(d.getTime()) ? t("settings_retention_not_available", lang) : d.toLocaleDateString();
   };
 
-  const chartLine = [rasiDisplayName(moonRasi, lang), janmaNakshatra, lagnaRasi ? `${rasiDisplayName(lagnaRasi, lang)} ${lang === "ta" ? "லக்னம்" : "Lagnam"}` : ""]
+  const chartLine = [rasiDisplayName(moonRasi, lang), tNakshatra(janmaNakshatra, lang), lagnaRasi ? `${rasiDisplayName(lagnaRasi, lang)} ${lang === "ta" ? "லக்னம்" : "Lagnam"}` : ""]
     .filter(Boolean)
     .join(" · ");
 

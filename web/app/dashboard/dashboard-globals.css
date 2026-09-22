@@ -163,11 +163,14 @@
 }
 
 @media (max-width: 720px) {
+/* minmax(0, 1fr), as at desktop: a bare `1fr` is minmax(auto, 1fr), so one
+   nowrap metric hint set the column's floor and held Life areas at 635px on a
+   375px phone. */
 .metric-strip,
     .surface__metrics,
     .form-grid,
     .settings-grid {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
 }
 
