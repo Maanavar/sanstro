@@ -85,6 +85,10 @@ export type ChartBundle = {
   /** IANA timezone the panchangam was computed for — "now" on the Today
    *  surface is computed in this zone, not the browser's (DASH-01). */
   panchangamTimezone: string | null;
+  /** The place's own name, for naming it to the reader (§2.4). */
+  panchangamPlace: string | null;
+  /** The 45-day backstop (§2 / R2), computed server-side. */
+  locationCheckDue: boolean;
   /** Bundle sections the backend could not compute (name -> short note).
    *  Non-empty means some cards render a gap/retry state (DASH-02). */
   sectionErrors: Record<string, string>;
@@ -170,6 +174,8 @@ export function mapDashboardBundle(data: ChartDashboardBundleData): ChartBundle 
     nakshatraCard: data.nakshatraCard,
     panchangamLocationLabel: data.panchangamLocation ? `${data.panchangamLocation} location` : null,
     panchangamTimezone: data.panchangamTimezone,
+    panchangamPlace: data.panchangamPlace ?? null,
+    locationCheckDue: Boolean(data.locationCheckDue),
     sectionErrors: data.errors ?? {},
   };
 }
@@ -670,6 +676,8 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
     panchangamTimings: bundle?.panchangamTimings ?? null,
     panchangamLocationLabel: bundle?.panchangamLocationLabel ?? null,
     panchangamTimezone: bundle?.panchangamTimezone ?? null,
+    panchangamPlace: bundle?.panchangamPlace ?? null,
+    locationCheckDue: bundle?.locationCheckDue ?? false,
     bundleSectionErrors: bundle?.sectionErrors ?? {},
     lifeAreas,
     ambientAlerts: ambientAlertsQuery.data ?? [],

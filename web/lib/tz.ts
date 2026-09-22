@@ -19,6 +19,23 @@
 export { zonedParts, timeOnDateToMs } from "@vinaadi/shared/utils/tz";
 import { zonedParts } from "@vinaadi/shared/utils/tz";
 
+/**
+ * The IANA zone this device is set to, or null if it cannot be read.
+ *
+ * §2.1 compares this against the zone today's timings were built for. Null on
+ * the server and during the first client render is deliberate: reading it
+ * while rendering would put a device-specific string into the SSR HTML and
+ * trip a hydration mismatch, so callers adopt it in an effect (see
+ * `useDeviceTimeZone`).
+ */
+export function readDeviceTimeZone(): string | null {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+  } catch {
+    return null;
+  }
+}
+
 /** Calendar date of `at` in `timeZone` as "YYYY-MM-DD"; browser-local when the
  *  zone is absent or invalid.
  *

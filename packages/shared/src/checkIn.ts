@@ -62,3 +62,21 @@ export function isLocationMismatch(
   if (!deviceTimeZone || !timingsTimeZone) return false;
   return deviceTimeZone !== timingsTimeZone;
 }
+
+/**
+ * The city part of an IANA zone id, for naming the zone in the prompt and for
+ * prefilling the place search.
+ *
+ * This is a **label and a search seed, never saved coordinates.** A zone names
+ * a representative city, not the reader's city — `Asia/Kolkata` covers Chennai,
+ * and a reader on `America/Los_Angeles` may be in San Diego. Owner ruling
+ * (2026-09-22): accepting the prompt opens the place picker prefilled with
+ * this, and the reader confirms an actual place, so the saved location is one
+ * a human chose rather than one a timezone implied.
+ */
+export function timeZoneCityLabel(timeZone: string | null | undefined): string {
+  if (!timeZone) return "";
+  const segments = timeZone.split("/");
+  const last = segments[segments.length - 1] ?? "";
+  return last.replace(/_/g, " ");
+}

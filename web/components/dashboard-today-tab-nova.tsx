@@ -21,6 +21,7 @@ import { gowriCategoryLabel, gowriPurposeLabel } from "@/lib/gowri";
 import { NO_FOCUS, type AppliedFocus } from "@/lib/life-focus";
 import { hourInZone, minutesOfDayInZone, timeOnDateToMs } from "@/lib/tz";
 import { resolveKalamStatus } from "@/lib/kalam-live";
+import { LocationCheckStrip, type LocationCheckVariant } from "./location-check-strip";
 import {
   clearSegments,
   findSecondaryAbhijitWindow,
@@ -111,6 +112,16 @@ export type DashboardTodayTabNovaProps = {
   showFocusNudge?: boolean;
   onKeepFocus?: () => Promise<void>;
   onDismissFocusNudge?: () => void;
+  /** §2 location check-in. The caller has already arbitrated with `pickCheckIn`
+   *  — §2.3 gives the focus strip and this one a single slot between them, so
+   *  this and `showFocusNudge` are never both set. */
+  locationCheck?: LocationCheckVariant | null;
+  locationCheckProfileId?: string | null;
+  panchangamPlace?: string | null;
+  /** Read once by the caller, which also used it to decide the mismatch. */
+  deviceTimeZone?: string | null;
+  onLocationResolved?: () => void;
+  onDismissLocationCheck?: () => void;
   /** Life focus, Phase 2 (T1–T5): what to pin and lift. The caller passes
    *  NO_FOCUS for a chart that is not the reader's own (D4). */
   lifeFocus?: AppliedFocus;
@@ -495,6 +506,12 @@ export function DashboardTodayTabNova({
   showFocusNudge = false,
   onKeepFocus,
   onDismissFocusNudge,
+  locationCheck = null,
+  locationCheckProfileId = null,
+  panchangamPlace = null,
+  deviceTimeZone = null,
+  onLocationResolved,
+  onDismissLocationCheck,
   lifeFocus = NO_FOCUS,
   birthDisplayName,
   selectedDate,
@@ -973,6 +990,18 @@ export function DashboardTodayTabNova({
                 )}
           </div>
         </div>
+
+        {locationCheck && locationCheckProfileId && onLocationResolved && onDismissLocationCheck && (
+          <LocationCheckStrip
+            variant={locationCheck}
+            lang={lang}
+            birthProfileId={locationCheckProfileId}
+            currentPlace={panchangamPlace}
+            deviceTimeZone={deviceTimeZone}
+            onResolved={onLocationResolved}
+            onDismiss={onDismissLocationCheck}
+          />
+        )}
 
         {showFocusNudge && onOpenFocusPicker && onKeepFocus && onDismissFocusNudge && (
           <FocusNudgeStrip

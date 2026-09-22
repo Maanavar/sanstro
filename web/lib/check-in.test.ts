@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isLocationMismatch, pickCheckIn, type CheckIn } from "@vinaadi/shared/checkIn";
+import { isLocationMismatch, pickCheckIn, timeZoneCityLabel, type CheckIn } from "@vinaadi/shared/checkIn";
 
 describe("pickCheckIn — §2.3, at most one check-in strip per visit", () => {
   it("returns nothing when nothing is owed", () => {
@@ -66,5 +66,22 @@ describe("isLocationMismatch", () => {
     expect(isLocationMismatch(undefined, "Asia/Kolkata")).toBe(false);
     expect(isLocationMismatch("Asia/Kolkata", null)).toBe(false);
     expect(isLocationMismatch("", "")).toBe(false);
+  });
+});
+
+describe("timeZoneCityLabel", () => {
+  it("reads the city out of a zone id and restores its spaces", () => {
+    expect(timeZoneCityLabel("Asia/Singapore")).toBe("Singapore");
+    expect(timeZoneCityLabel("America/Los_Angeles")).toBe("Los Angeles");
+  });
+
+  it("takes the last segment of a three-part zone id", () => {
+    expect(timeZoneCityLabel("America/Argentina/Buenos_Aires")).toBe("Buenos Aires");
+  });
+
+  it("returns an empty string rather than throwing on nothing", () => {
+    expect(timeZoneCityLabel(null)).toBe("");
+    expect(timeZoneCityLabel(undefined)).toBe("");
+    expect(timeZoneCityLabel("")).toBe("");
   });
 });

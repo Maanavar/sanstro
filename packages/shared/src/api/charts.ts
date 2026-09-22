@@ -33,6 +33,32 @@ export function confirmBirthProfileLocation(
   ) as Promise<{ success: boolean; data: BirthProfileResponse }>;
 }
 
+export interface CurrentLocationPayload {
+  currentPlace: string;
+  currentLatitude: number;
+  currentLongitude: number;
+  currentTimezone: string;
+}
+
+/**
+ * PATCH /birth-profiles/{birthProfileId} (`update_birth_profile_endpoint`),
+ * narrowed to the daily-timings location.
+ *
+ * `recalculate: false` on purpose — the natal chart is fixed at birth and does
+ * not move with the reader. The backend drops that profile's cached daily
+ * guidance from today forward when the effective location actually changes,
+ * so nothing here has to invalidate anything.
+ */
+export function updateBirthProfileLocation(
+  birthProfileId: string,
+  payload: CurrentLocationPayload,
+): Promise<{ success: boolean; data: BirthProfileResponse }> {
+  return getApiClient().patch(`/birth-profiles/${birthProfileId}`, {
+    ...payload,
+    recalculate: false,
+  }) as Promise<{ success: boolean; data: BirthProfileResponse }>;
+}
+
 export interface CreateBirthProfilePayload {
   displayName: string;
   birthDateLocal: string;

@@ -8,6 +8,7 @@ import { MotionConfig, motion, useReducedMotion } from "framer-motion";
 
 import { toast } from "sonner";
 import { getLifeMode, updateLifeMode } from "@vinaadi/shared/api";
+import { isLocationMismatch, pickCheckIn } from "@vinaadi/shared/checkIn";
 import { apiFetchJson, toQuery } from "@/lib/api";
 import { getFriendlyErrorMessage } from "@/lib/error-messages";
 import { isBirthDateWithinBounds } from "@/lib/birth-date";
@@ -36,6 +37,7 @@ import type {
 import { useSession } from "@/hooks/useSession";
 import type { UserMode } from "@/hooks/useSession";
 import { usePersonalData } from "@/hooks/usePersonalData";
+import { useDeviceTimeZone } from "@/hooks/useDeviceTimeZone";
 import { useFamilyData, type MemberChart } from "@/hooks/useFamilyData";
 import { usePlanData } from "@/hooks/usePlanData";
 import { useJournalData } from "@/hooks/useJournalData";
@@ -1040,6 +1042,21 @@ export function DashboardWorkspace() {
     }
   }, [lifeModeStatus?.lifeModeSetAt]);
 
+  // The location check is dismissed for the session only, not persisted: a
+  // reader who waves it away and then opens the app from another city should
+  // be asked again. The server-side stamp is what stops it recurring once it
+  // has actually been answered.
+  const [locationCheckDismissed, setLocationCheckDismissed] = useState(false);
+  const dismissLocationCheck = useCallback(() => setLocationCheckDismissed(true), []);
+  const onLocationResolved = useCallback(() => {
+    setLocationCheckDismissed(true);
+    // The backend has already dropped this profile's cached daily rows from
+    // today forward if the place actually moved, so this refetch recomputes
+    // rather than re-reading the old place's numbers.
+    void personal.refreshPersonalBundle();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // A dismissal is remembered against the timestamp it dismissed, so a later
   // stale period (after the focus is re-saved) asks again.
   useEffect(() => {
@@ -1052,7 +1069,22 @@ export function DashboardWorkspace() {
     }
   }, [lifeModeStatus?.lifeModeSetAt]);
 
-  const showFocusNudge = Boolean(lifeModeStatus?.focusNudgeDue) && !focusNudgeDismissed;
+  // §2.3 — the focus strip and the location strip share one slot, and the
+  // priority lives in @vinaadi/shared so mobile reaches the same answer. The
+  // two signals arrive from different endpoints (life-mode settings vs. the
+  // dashboard bundle), which is exactly why the rule cannot live in either.
+  const deviceTimeZone = useDeviceTimeZone();
+  const checkIn = pickCheckIn({
+    locationMismatch: isLocationMismatch(deviceTimeZone, personal.panchangamTimezone),
+    locationCheckDue: Boolean(personal.locationCheckDue),
+    focusNudgeDue: Boolean(lifeModeStatus?.focusNudgeDue),
+    dismissed: [
+      ...(focusNudgeDismissed ? (["focus"] as const) : []),
+      ...(locationCheckDismissed ? (["location-mismatch", "location-backstop"] as const) : []),
+    ],
+  });
+  const showFocusNudge = checkIn === "focus";
+  const locationCheck = checkIn === "location-mismatch" || checkIn === "location-backstop" ? checkIn : null;
 
   useEffect(() => {
     if (session.hydrated && personal.chartId) {
@@ -1899,6 +1931,12 @@ export function DashboardWorkspace() {
               showFocusNudge={showFocusNudge}
               onKeepFocus={keepLifeMode}
               onDismissFocusNudge={dismissFocusNudge}
+              locationCheck={locationCheck}
+              locationCheckProfileId={personal.birthProfileId}
+              panchangamPlace={personal.panchangamPlace}
+              deviceTimeZone={deviceTimeZone}
+              onLocationResolved={onLocationResolved}
+              onDismissLocationCheck={dismissLocationCheck}
               lifeFocus={todayFocus}
               birthDisplayName={birthForm.displayName}
               selectedDate={selectedDate}

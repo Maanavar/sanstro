@@ -779,9 +779,52 @@ Design notes for the build:
   (up from 274: the new wrapper is now checked against its route). `tsc` clean
   on web and mobile.
 
-  **Nothing renders yet.** The mismatch prompt (§2.1), the backstop strip
-  (§2.2), the one-slot queueing against the life-focus strip (§2.3) and the
-  "Timings for X" label (§2.4) are all still to build.
+  **Nothing renders yet** — built in the entry below, except §2.4.
+
+- **§2 web UI (2026-09-22), not committed.** Two owner decisions taken on the
+  way (2026-09-22):
+
+  - **Accepting the prompt never saves a timezone's city.** The device gives a
+    *zone*, and recomputing timings needs coordinates, which a zone cannot
+    supply: `Asia/Kolkata` covers Chennai, a reader on `America/Los_Angeles`
+    may be in San Diego, and sunrise moves with longitude. **Ruled: the accept
+    button opens the existing place picker prefilled with the zone's city**, so
+    one extra tap buys coordinates a human chose. `timeZoneCityLabel` is a
+    label and a search seed, never saved data.
+  - **Prominence: the inline strip in the one check-in slot**, not a pinned
+    banner and not a modal.
+
+  Built:
+  - `pickCheckIn` / `isLocationMismatch` in `@vinaadi/shared/checkIn` (§2.3),
+    with the priority mismatch > backstop > focus. The two signals arrive from
+    different endpoints — `focusNudgeDue` from life-mode settings, the location
+    pair from the dashboard bundle — which is exactly why neither could own the
+    rule. `isLocationMismatch` compares **zone ids, not offsets**: two zones can
+    share an offset today and diverge at the next DST boundary.
+  - `LocationCheckStrip`, both variants, in the life-focus strip's own markup
+    (§2.2 asks for the same one-line strip, so a reader meets one check-in
+    shape). Keep calls `confirm-location`; accept opens the picker; a failed
+    save says so rather than going quiet.
+  - `useDeviceTimeZone` reads the zone **in an effect**, never during render: it
+    is a device-specific string, so reading it while rendering would bake one
+    machine's answer into the SSR HTML and trip a hydration mismatch. Null
+    reads downstream as "no mismatch", which is the right default — an unknown
+    zone must never provoke the prompt.
+  - `updateBirthProfileLocation` wrapper, `recalculate: false` (the natal chart
+    does not move with the reader).
+
+  Gate: 8 component tests + 12 for the shared logic; web suite 105 files /
+  1006 tests, mobile 14 / 107, `tsc` and ESLint clean on both.
+
+  **Blind spots.** No browser has rendered this: the strip's fit at 375 px, its
+  look in Nova light and dark, and the picker modal over the Today hero are all
+  unverified. The Tamil copy is new and unreviewed by a native reader. And the
+  end-to-end path — prompt → picker → PATCH → cache drop → recomputed timings —
+  has only been tested in pieces, never once through.
+
+  **§2.4 ("Timings for Chennai" on the hero and ribbon) is not built.** The
+  data is there (`panchangamPlace`); the placement was not among the options
+  the owner ruled on, so it needs its own decision.
 
 - **§2 Arch, last bullet: the cache question, checked — and it was a real bug
   (2026-09-22), not committed.**

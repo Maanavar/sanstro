@@ -53,6 +53,43 @@ export const ONBOARDING_DETAIL_LEVEL = {
 
 // Life focus, Phase 0 (docs/LIFE_FOCUS_PLAN_2026-09-22.md).
 // New Tamil, pending native review (CLAUDE.md new-Tamil rule).
+/**
+ * §2 of docs/HOME_CALENDAR_CHARTS_PROPOSALS_2026-09-22.md — the location
+ * check-in, in the same one-line strip the life focus uses (§2.2).
+ *
+ * Place names arrive from the place database in English and are printed as
+ * they come, in both languages: they are proper nouns from a source we do not
+ * translate, and inventing a Tamil spelling for "Singapore" here would be
+ * worse than leaving the source's own name alone.
+ */
+export const LOCATION_CHECK = {
+  eyebrow: s("Your location", "உங்கள் இடம்"),
+  /** The mismatch prompt (§2.1). `%1$s` is the device's zone city. */
+  mismatchQuestion: s(
+    "Your phone is on %1$s time. Show today's timings for %1$s?",
+    "உங்கள் ஃபோன் %1$s நேரத்தில் உள்ளது. இன்றைய நேரங்களை %1$s க்குக் காட்டவா?",
+  ),
+  /** Opens the place picker, prefilled — never saves a zone's city directly. */
+  mismatchUse: s("Use %1$s", "%1$s பயன்படுத்து"),
+  /** `%1$s` is the place the timings are currently for. */
+  mismatchKeep: s("Keep %1$s", "%1$s தொடரட்டும்"),
+  /** The 45-day backstop (§2.2 / R2). `%1$s` is the saved place. */
+  backstopQuestion: s("Still in %1$s?", "இன்னும் %1$s இல் இருக்கிறீர்களா?"),
+  backstopQuestionNoPlace: s("Where are you right now?", "இப்போது நீங்கள் எங்கே இருக்கிறீர்கள்?"),
+  keep: s("Yes, keep", "ஆம், தொடரட்டும்"),
+  change: s("Change city", "நகரத்தை மாற்று"),
+  dismiss: s("Dismiss", "மூடு"),
+  /** The picker opened from the strip. */
+  pickerTitle: s("Current city for daily timings", "தினசரி நேரங்களுக்கான தற்போதைய நகரம்"),
+  pickerHelp: s(
+    "Sunrise moves with the place, and every timing on Today is cut from sunrise — so the city has to be the one you are in, not the nearest big one.",
+    "இடத்திற்கேற்ப சூரிய உதயம் மாறும்; இன்று பக்கத்தின் எல்லா நேரங்களும் சூரிய உதயத்திலிருந்தே கணக்கிடப்படுகின்றன. எனவே நீங்கள் இருக்கும் நகரமே வேண்டும், அருகிலுள்ள பெரிய நகரம் அல்ல.",
+  ),
+  save: s("Save", "சேமி"),
+  cancel: s("Cancel", "ரத்து"),
+  saveFailed: s("Couldn't save. Please try again.", "சேமிக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்."),
+} as const;
+
 export const LIFE_FOCUS = {
   eyebrow: s("Your focus", "உங்கள் கவனம்"),
   question: s("What are you focused on right now?", "இப்போது எதில் கவனம்?"),
