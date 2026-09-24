@@ -63,10 +63,15 @@ function partOfDay(startMin: number): PartOfDay {
 }
 
 const PART_OF_DAY_TEXT: Record<PartOfDay, { badge: { en: string; ta: string }; legend: { en: string; ta: string } }> = {
-  morning:   { badge: { en: "GOOD AM",  ta: "காலை" },   legend: { en: "Good morning",   ta: "காலை நல்ல நேரம்" } },
-  afternoon: { badge: { en: "GOOD DAY", ta: "மதியம்" }, legend: { en: "Good afternoon", ta: "மதிய நல்ல நேரம்" } },
-  evening:   { badge: { en: "GOOD EVE", ta: "மாலை" },   legend: { en: "Good evening",   ta: "மாலை நல்ல நேரம்" } },
+  morning:   { badge: { en: "GOOD AM",  ta: "காலை" },   legend: { en: "Morning Nalla Neram",   ta: "காலை நல்ல நேரம்" } },
+  afternoon: { badge: { en: "GOOD PM",  ta: "மதியம்" }, legend: { en: "Afternoon Nalla Neram", ta: "மதிய நல்ல நேரம்" } },
+  evening:   { badge: { en: "GOOD EVE", ta: "மாலை" },   legend: { en: "Evening Nalla Neram",   ta: "மாலை நல்ல நேரம்" } },
 };
+// The English legends read "Good morning / Good afternoon / Good evening" —
+// greetings, printed in a timing list under a hero that opens with one — while
+// their Tamil twins name the slot (காலை நல்ல நேரம், "morning Nalla Neram").
+// They now say what the Tamil says. "GOOD DAY" became "GOOD PM": on a day
+// ribbon, "good day" reads as a verdict on the whole day.
 
 type Segment = {
   key: string;
@@ -286,9 +291,9 @@ export function DashboardTodayRibbonNova({
     >
       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3_5)", marginBottom: "14px", flexWrap: "wrap", rowGap: "var(--space-2_5)" }}>
         <div>
-          <div style={{ fontSize: "var(--text-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>
+          <h2 className="nova-card-title">
             {lang === "ta" ? "இன்றைய நாள்" : "Your day"}
-          </div>
+          </h2>
           <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "2px" }}>
             {placeLabel && (
               <>
@@ -413,7 +418,7 @@ export function DashboardTodayRibbonNova({
                 }}
               >
                 {widthPct >= 6 && (
-                  <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: s.fg, whiteSpace: "nowrap", padding: "0 var(--space-1_5)" }}>
+                  <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "var(--tracking-tag)", textTransform: "uppercase", color: s.fg, whiteSpace: "nowrap", padding: "0 var(--space-1_5)" }}>
                     {s.badge}
                   </span>
                 )}

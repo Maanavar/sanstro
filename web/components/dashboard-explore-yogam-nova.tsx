@@ -22,6 +22,7 @@ import {
   YOGA_REMEDIES,
   yogaReadingStatus,
   yogaReadingStatusLabel,
+  yogaFactorHeading,
 } from "./dashboard-yoga-dosham-panel";
 import { NovaAskEntryChip, NovaAttributeBand, NovaDetailBreadcrumb, NovaDetailHero, novaDetailCardStyle } from "./dashboard-explore-detail-nova";
 import { Card, Kicker } from "./ui";
@@ -349,7 +350,7 @@ export function DashboardExploreYogamNova({
             {yoga.cancellationFactors.length > 0 && (
               <div style={{ marginTop: "4px" }}>
                 <p style={{ margin: "0 0 6px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                  {lang === "ta" ? "நிவர்த்தி காரணங்கள்" : "Cancellation factors"}
+                  {yogaFactorHeading(yoga.cancellationFactors, lang)}
                 </p>
                 <ul style={{ margin: 0, paddingLeft: "var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                   {yoga.cancellationFactors.map((c, i) => (

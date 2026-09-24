@@ -1,6 +1,6 @@
 # Home, Calendar and Charts proposals: research and plan
 
-**Date:** 2026-09-22 · **Status:** owner rulings recorded (R1–R7, below); §7 and §1 shipped; **§2 complete as of 2026-09-23** (backend, cache invalidation, web check-in strip, and §2.4's place label); §3 shipped 2026-09-23; §4, §6 and §5 not built; device/browser sign-off open on everything shipped · **Asked by:** owner
+**Date:** 2026-09-22 · **Status:** owner rulings recorded (R1–R10, below); §7, §1, §2 and §3 shipped; **§4 and §6 implemented 2026-09-23**; **§5 implemented 2026-09-23 at the owner's direction** (copy is an owner-commissioned draft; outside astrologer and native-Tamil review still owed, but no longer blocking); device/browser sign-off open on everything shipped · **Asked by:** owner
 
 Seven owner questions, each read through four lenses: Tamil Thirukanitham
 astrologer (**Astro**), full-stack developer (**Dev**), product owner and
@@ -387,6 +387,9 @@ changes touch all four surfaces.
 | R5 | Kuligai (§1) | **Kuligai is good for things you want to happen again**: buying gold, signing or registering property, anything everyone wishes to repeat. **Not for marriage. Not for surgery or operations.** |
 | R6 | Personal palan (§5) | The section structure below. |
 | R7 | Kuligai is **conditional**, not polar (2026-09-22) | Resolve polarity from the activity. With no activity supplied: neither a hard blocker nor a generic "best time". Details below. |
+| R8 | Durmuhurtham render (2026-09-23) | Put it in the avoid register **only for auspicious work and new beginnings**. Never render it as a whole-day warning or a general prohibition on ordinary activity. |
+| R9 | Personal palan lucky aspects (P1, 2026-09-23) | **Classical, auditable derivation only.** Every colour/number/direction must name its rule on tap. No TV-style arbitrary values; omit the row until a sourced table and Tamil copy pass review. **Built 2026-09-23 at the owner's request, to this rule:** one graha (the best window's hora lord, else the weekday lord), its BPHS ch. 3 colour and direction, and its number from the app's own numerology table; the rule is shown on tap; the day's Soolam overrides the direction. |
+| R10 | Personal palan Kuligai scope (P2, 2026-09-23) | **Closed by the existing ruled table.** `app/data/kuligai_polarity.py` already classifies 18 favourable and 20 adverse activities, with `UNSPECIFIED` remaining conditional. Do not duplicate a second list in palan content. |
 
 ### R5: what the Kuligai ruling changes
 
@@ -514,17 +517,298 @@ Design notes for the build:
 - Content cost: about 12 areas × Moon-house or tara states × ta/en. It needs
   astrologer sign-off and native Tamil review before it ships.
 
-### Still open
+### Personal-palan decisions and remaining content gate
 
-- **P1: lucky colour, number and direction.** Classical and rule-based (for
-  example from the day lord, the janma nakshatra lord, or dasa lord colours),
-  or TV-style light content? *Recommendation: classical, rule-based, with
-  the rule shown on tap. A chart-based product loses trust if one line is
-  arbitrary.*
-- **P2: the Kuligai activity list** beyond gold, property, marriage and
-  surgery. For the astrologer.
+- **P1 decided by R9:** classical and rule-based, with provenance on tap. The
+  already-shipped public rasipalan's house-based colour/number copy is not
+  promoted into personal palan merely because it exists; existence is not a
+  source. Until the graha/weekday/nakshatra mapping is sourced and reviewed,
+  the honest result is to omit this row.
+- **P2 decided by R10:** use the existing `kuligai_polarity.py` table. It has
+  already extended the repetition principle across the actual activity
+  registry and records the medical lineage divergence with its counter-source.
+  A prose table in the palan module would be a second doctrine engine.
+- **Still blocking §5 code:** the 12-area × Moon-house/tara bilingual phrase
+  matrix needs an astrologer content sign-off and a native Tamil copy review.
+  This implementation pass deliberately does not self-certify generated Tamil
+  as reviewed. The API shape remains unmodified until that review artifact is
+  approved. The finite matrix, precedence cases, safety rules and sign-off
+  sheet are now prepared in
+  [`PERSONAL_PALAN_CONTENT_REVIEW_2026-09-23.md`](PERSONAL_PALAN_CONTENT_REVIEW_2026-09-23.md).
 
 ## Progress
+
+- **§4 muhurta result day view implemented (2026-09-23).** Before building,
+  the required synthetic month sample was run against the dedicated test DB
+  (`vinaadi_test`, October 2026). It found the blocker the proposal anticipated:
+  for travel, the quick scan ranked **15 Oct = 67 first**, while the detailed
+  election put **12 Oct = 93.8 first** and did not put 15 Oct in its top five.
+  Education and purchase produced the same class of inversion. Therefore:
+  - quick scan, detailed election and published wedding-date links all reuse
+    `DayDetailDrawerNova` through its optional `lead` slot;
+  - each opening context shows only its own score and explanation. No drawer
+    puts quick and detailed scores side by side or blends them;
+  - previous/next follows R3 and steps through result dates, with position and
+    disabled endpoints;
+  - detailed results now have List / Calendar views. The calendar marks and
+    opens only dates from the detailed result set, fetches Panchangam for the
+    elected activity location through the shared API wrapper, and says the
+    quick score is not blended into it;
+  - the old `MuhurtaPanchangamOverlay` now has zero callers. It is intentionally
+    retained pending the proposal's explicit per-file removal approval, and
+    carries a comment saying not to extend it.
+
+  **Review pass, 2026-09-23 — three defects found and fixed after the first
+  implementation was recorded as done.** They are written down because each one
+  was outside the gate that had been cited as evidence for it:
+
+  - **The "check a specific date" link opened nothing.** Resolving the drawer's
+    slot from the search results alone meant a typed date — which the ranked
+    search almost never returns, and which is available before any search has
+    run at all — left `drawerSlot` null, so the click updated state and
+    rendered no drawer. Each entry path now carries its own slot *and* its own
+    step list (`drawerContext`), so the assessment opens with its own score.
+  - **The step list counted ranked slots, not days,** and treated "not in the
+    list" as position 1, which made the forward arrow jump to somebody else's
+    result. It now de-duplicates dates and reports position 0 for a day outside
+    the list, which disables both arrows instead of offering a move the caller
+    would silently drop.
+  - **Durmuhurtham painted at two different severities** a few pixels apart:
+    Rahu's red in the avoid strip and Yamagandam's amber on the timeline, in a
+    component whose own comment forbids exactly that. `DAY_TIMELINE_BAND_STYLE`
+    is now the single ramp, exported, with a dedicated `avoid-scoped` rung one
+    step below `avoid`; the strip reads its dots from it rather than re-typing
+    hex values. See Doctrine §14.
+
+  Gate: the drawer render tests cover lead placement and stepping/endpoints;
+  `dashboard-plan-muhurta-picker-nova.test.tsx` now covers the composition
+  itself — day-counting, the out-of-list case, and that each caller's lead is
+  the only score on screen. Every new assertion was run once with its fix
+  reverted and confirmed to fail.
+
+  **Blind spots, stated rather than implied:** jsdom does not prove the calendar
+  grid or drawer reflow at 375 px, light/dark paint, or touch comfort. The
+  picker's own Calendar view is still exercised only through
+  `MonthlyCalendarViewNova`'s props, not end to end with a live search. And the
+  three-context separation is proved by construction (each caller passes its own
+  `lead`), not by a test that renders two engines and asserts one score.
+
+- **§6 D1 / D9 switch implemented (2026-09-23).** The chart response now owns
+  `lagna.d9Rasi` and every planet's `d9Dignity`; the web client no longer
+  computes the D9 lagna for this table. The D9 view shows navamsa sign, house
+  from D9 lagna, sign-level dignity, vargottama and D1→D9 comparison, and
+  deliberately shows no D9 degree. Nodes and Mandhi are neutral rather than
+  being assigned a modern proxy dignity. Approximate birth time gets a clear
+  caveat that D9 lagna/houses can change while planet D9 signs are more stable.
+  Contract tests cover the fresh/persisted API path and English/Tamil render.
+  No stored-chart migration: the response derives both new fields from stored
+  longitudes at read time.
+
+  **Review pass, 2026-09-23 — the migration was half-done and two defaults
+  asserted doctrine.**
+
+  - **Five client-side D9 Lagna derivations remained** in `dashboard-charts`,
+    `chart-generate-inline-panel`, `JadhagamTool` and `buildD9CellDetail`, so
+    the field the server now owns was authoritative in one table and
+    re-computed beside it in four others. The web copy has no epsilon guard, and
+    `dashboard-charts.test.tsx` already carried the note that 10° "is exactly a
+    navamsa boundary" — the drift was documented before it was fixed. All five
+    now read `lagna.d9Rasi`; `computeD9LagnaRasi` is marked deprecated and kept
+    only for the 108-pada regression test.
+  - **`d9_dignity` no longer defaults to `"NEUTRAL_SIGN"`.** That is a claim
+    about a graha, not an "unset" marker: a construction site that forgot the
+    field would have shipped a wrong dignity silently. It is now required, and
+    the five test fixtures that build a `PlanetPosition` derive it with
+    `d9_dignity_label` rather than typing one by hand. On the client,
+    `dignityLabel(undefined)` renders an em dash instead of "neutral sign".
+  - **Three fixtures described charts the engine cannot produce** — a Sun
+    "exalted" in Rishabam, a Saturn in "its own sign" Kanni, and a lagna whose
+    `d9Rasi` contradicted its own longitude. Corrected, with the rule named
+    beside each.
+
+- **Durmuhurtham ruling R8 rendered (2026-09-23).** It now appears in the
+  shared Calendar/day drawer, detailed muhurta evidence, signed-out Home timing
+  details, public daily planner/date page, and mobile Today/Panchangam/planner.
+  Every explanatory surface scopes the caution to auspicious/new beginnings;
+  none turns it into a whole-day fear message. The central drawer render test
+  asserts that limiting copy. See Doctrine Decisions §14.
+
+  **Review pass, 2026-09-23 — R7 was applied on two mobile surfaces out of
+  four.** Mobile Today and the Panchangam tab had Kuligai re-tinted from caution
+  to sky blue with no words attached, leaving a blue card among red ones and no
+  reason given; the mobile planner and both web surfaces had a labelled
+  "Activity-dependent" group. Colour is not a carrier of meaning — it is
+  invisible to a screen reader, to a colour-blind reader, and to anyone without
+  a legend. The scope note is now wired to the *kind* inside `TimeCard`
+  (`strings.today.kuligai_scope` / `durmuhurtham_scope`), not to the screen, so
+  no surface can render either window without its clause. The shared
+  `durmuhurtham` string is a name again rather than a name-plus-clause, because
+  it is reused in chips, legends and accessible labels where a clause does not
+  fit. Pinned by `mobile/__tests__/time-card.scope.screen.test.tsx`, which runs
+  in the default Tamil, since an English-only pass proves nothing about the half
+  a default install shows.
+
+- **§5 pre-code decisions closed (2026-09-23); content gate remains.** R9
+  chooses classical/auditable lucky aspects and R10 reuses the already-reviewed
+  Kuligai activity table. No production schema or UI was added because the
+  required native-reviewed Tamil phrase matrix does not yet exist. This is a
+  content dependency, not an engineering blocker to work around with generated
+  prose.
+
+  **Superseded 2026-09-23 by the owner.** The owner pointed out that this
+  had been requested earlier and was still not on screen. The reason is the
+  paragraph above: every line of code was gated on two sign-off rows, and no
+  reviewer was named for either of them, so the gate could never open. The owner then directed the build,
+  with Claude acting as the Thirukanitham astrologer. See the next entry.
+
+- **§5 personal palan implemented (2026-09-23).** *இன்றைய பலன் · உங்கள்
+  ஜாதகப்படி* / "Today in two minutes" replaces the natal "Your chart in two
+  minutes" reading on Today, which remains in full on Family & Charts; the
+  card's last row links there.
+  - **Method (Astro).** Three lenses, read from the native's own chart rather
+    than a shared rasi bucket: (1) Chandra gochara, the Moon's house from the
+    janma rasi, with classical per-house results (1 comfort, 2 expense, 3
+    success, 4 unease, 5 dejection, 6 victory, 7 companionship, 8 anxiety,
+    9 obstruction, 10 accomplishment, 11 gain, 12 loss), refined per area by
+    the bhava each area belongs to (a 12-house × 12-area matrix); (2) Tara bala
+    from the janma star, which may soften, sharpen or lift a line but never
+    reverses one; (3) Chandrashtama (own star window, D11), which leads, and
+    on which no area reads favourable. The headline polarity is **read off the
+    hero's label**, and the best part of the day is the hero's featured window.
+    It adds no second score.
+  - **Build (Dev).** `app/services/personal_palan.py` (pure, content tables
+    inline, `CONTENT_VERSION = palan-2026-09-23-v1`), additive
+    `personalPalan` on `DailyGuidanceData`, safety-passed. Shared types plus
+    `@vinaadi/shared/personalPalan` (area labels, life-focus lead order).
+    Web card `dashboard-today-palan-nova.tsx`: overall, 3 lead areas (the
+    reader's life focus; neutral order for family, ruling Q2), with the other 9
+    areas in place behind one button; best time, strength / watch-for (the TV
+    "பலம் · கவனிக்க வேண்டியது" voice), advice, light worship keyed to the
+    weekday lord, closing line, and a "what is this read from?" disclosure.
+    Member chips read each member's own guidance from the Family bundle
+    already loaded on Today, so they add **no requests**.
+  - **Cache.** No engine-version bump (see the saved rule "a cache version
+    bump is a load test"). A cached row without `personalPalan` is rebuilt only
+    on a single-date read (Today, the member bundle). Range reads keep the old
+    row.
+  - **Held back by ruling.** No lucky colour, number or direction (R9); no
+    Kuligai mention (R10).
+  - **Gate.** `tests/test_personal_palan.py` (14, pure): matrix coverage,
+    overall == label across 5 labels × 12 houses × 9 taras, Chandrashtama
+    precedence, tara never lifts a caution line, the janma-triad wording, and
+    no medical/fear/lucky/Kuligai words in either language.
+    `web/components/dashboard-today-palan-nova.test.tsx` (5), whose
+    family-member neutral-order test was confirmed to fail with its fix
+    removed. A no-DB run of the real engine over 30 days for a synthetic chart
+    agreed with the hero's label on every day and found one wording defect: tara 1
+    also covers the 10th and 19th stars, which were being called "your birth
+    star". Fixed, and pinned by a test. `tests/test_daily_guidance_api.py` gained
+    a label-agreement + stale-row backfill test.
+  - **Period layer added the same day (owner question: "are we caring about
+    dasha, bhukti, Sani, peyarchi?").** Before this, those reached the palan only
+    through the hero score, so two natives on the same Moon day got identical
+    area lines whether or not they were in Ashtama Sani. `CONTENT_VERSION` is
+    now `palan-2026-09-23-v2`:
+    - **Bhukti lord → areas in play.** The houses it rules from the lagna (a
+      node: the house it occupies) map to areas (`dashaAreas`), which lead the
+      card: first on a family member's card, and in the third slot behind the reader's
+      two focus areas. One line names the dasa/bhukti and whether today's transit
+      of the bhukti lord from the Moon backs them (classical gochara houses).
+    - **Sani cycle** (Ezharai phases, Janma, Ashtama, Ardhashtama, Kandaka
+      7th/10th), **Guru** and **Rahu from the Moon** each add one season
+      clause to the areas they govern. Precedence: Sani, then a testing Guru or
+      Rahu, then a supportive one. A testing layer caps favourable at mixed;
+      no layer lifts a line or moves the overall tone, which the hero score
+      already weighs (the saved rule "layered scoring double-counts"). The Guru
+      house sets are the engine's `TRANSIT_BASE_SCORE`; Rahu's are the
+      peyarchi report's (now exported as `NODE_AXIS_*`); tests pin both.
+    - The card's "This period" block renders lords and the Sani cycle as
+      keys through `tPlanetLord` / `saniCycleName` (display boundary).
+    - The cache backfill now keys on `contentVersion`, so v1 rows rebuild on
+      their next single-date read.
+    - Gate: 7 new pure tests (21 total) and 2 new web tests (7 total). The Sani cap
+      and bhukti-ordering tests were each run with their fix removed and failed.
+  - **Presenter mode added the same day (owner: "another mode that feels like
+    a TV rasipalan transcript; voice later").** `CONTENT_VERSION` is now
+    `palan-2026-09-23-v3`. The server composes `transcript`, an ordered list
+    of bilingual segments (`OVERALL`, `PERIOD`, one `AREA` per area, `TIME`,
+    `STRENGTH`, `ADVICE`, `WORSHIP`, `CLOSING`), built only from the card's own
+    lines, so the two modes cannot disagree. Each season clause is said once,
+    not under every area it touches. The Moon line is skipped when the
+    headline already said it. The best time is spoken with the almanac's
+    period words ("மதியம் 1:02 முதல் மதியம் 1:31 வரை"). The card has a
+    "By area | Presenter style" switch, remembered per viewer. The greeting
+    uses the person's first name and is added by the client. **Ready for voice:**
+    each segment renders as its own `data-kind` span inside a `lang`-tagged
+    block, so a later text-to-speech pass can pause between segments and
+    highlight the one being spoken. A real transcript runs to ~200 Tamil
+    words (about 1½ minutes spoken).
+
+    Reading the real transcript aloud as the astrologer surfaced **one defect
+    in the period layer**: when Sani capped an area from favourable to mixed,
+    the tag changed but the favourable *sentence* stayed. Money read "Mixed ·
+    money flows in well", followed by "care with money". A capped area now reads
+    its mixed sentence, pinned by a test. Also fixed: two pieces of Tamil
+    phrasing in the transcript. Gate: 26 pure tests, 10 card tests. The
+    presenter tests fail with the view forced off.
+  - **Lucky colour, number and direction added (owner asked 2026-09-23), under
+    R9.** `CONTENT_VERSION` is now `palan-2026-09-23-v4`. There is no free-standing
+    lucky table. All three belong to **one graha**: the lord of the hora of the
+    reader's best window. That window is personal, because the hero prefers the
+    reader's lagna and dasha lords. With no hora window, the weekday lord is
+    used. Colour and direction are that graha's own in *Brihat Parashara Hora
+    Shastra* ch. 3; the number is the graha's in `NUMBER_TO_GRAHA`, the same
+    table the numerology section uses (the 2026-07-25 numerology rulings
+    already refuse "8 is unlucky"). The day's **Soolam**
+    (`SOOLAM_DIRECTION`) wins: a graha direction that falls on it is withheld,
+    and the Soolam is named as the direction to avoid for travel. The card shows
+    "Colour · number · direction" with the Soolam and a "Why these?" disclosure
+    carrying the rule. The presenter transcript speaks them before worship.
+    The public rasipalan's house-based colour/number table is still not used.
+    It names no rule. Honest consequence: because the graha is personal, it
+    repeats on many days (for the synthetic chart, Guru 5 days of 7 and the
+    Moon 2). It does not rotate like a TV slot. Gate: 4 new pure tests (30) and 2
+    web tests (12). The Soolam test fails with the guard removed.
+  - **Redesign; presenter style is the default (owner, 2026-09-23).** The first
+    card had no hierarchy. Every block was small text of equal weight. Its lines
+    ran ~150 characters across a 1,200px card, it used four pill styles, and the
+    best time was buried in a label list. New layout (`.tp*` in
+    `dashboard-nova.css`, tokens only, no accent left borders):
+    - header: kicker with a read-time estimate, a display-face title, and the
+      Presenter / By area switch;
+    - member chips with an initial avatar;
+    - a **verdict band**, tinted by polarity: the day's word, plus three fact
+      tiles (best time; lucky with "Why these?"; Soolam as a direction). On
+      wide screens (≥1080px) it becomes a **sticky right rail** beside the
+      body, so the facts stay in view and the card has no dead right third;
+    - **presenter**: running paragraphs in one voice, opening with the
+      person's name, in the chart reading's measure and prose face. The closing
+      line is a pull quote inside it, so a voice reader gets the whole script
+      from one element. *Correction, same day:* the redesign first set this as a
+      speaker-cue column (Today / Work / Money beside each sentence). The owner
+      pointed out that this no longer read like a TV presenter; it read like a
+      form. It is back to flowing paragraphs, and a test now fails if area
+      headings reappear in presenter mode;
+    - **by area**: a responsive grid of area cards with one polarity mark,
+      the period strip, and a counsel grid.
+    Tamil labels step up one type size with no letter-spacing, because Tamil
+    glyphs at 11px caps size are hard to read. The Tamil view-switch labels
+    were shortened after they overflowed at 390px.
+    Verified by rendering the real component to static HTML with the real Nova
+    stylesheets and real engine output, then screenshotting it in Chromium:
+    dark and light, English and Tamil, 1280px and 390px. There was no horizontal
+    overflow at any width. Gate: 13 card tests (62 with the Today tab and exports
+    guard); the default-mode tests fail with the default flipped; colour ratchet
+    unchanged at 350. Blind spot: the harness is static, so neither sticky-rail
+    scrolling nor hover/focus states were exercised in a live browser.
+  - **Blind spots, stated.** The API test was **not run locally**, because another
+    session's full pytest run was holding the shared test DB; CI is
+    authoritative. No browser pass at 375 px or in light/dark. **Mobile is not
+    built**: shared types and helpers are ready, and the surface should be
+    ruled per life-focus Q11. The Tamil copy is an **owner-commissioned
+    draft**. The outside astrologer and native-Tamil rows in
+    `PERSONAL_PALAN_CONTENT_REVIEW_2026-09-23.md` stay open, but they no
+    longer block shipping.
 
 - **§1 web-first live kalam slice implemented (2026-09-22), committed in `8f60d0f`.**
   - one shared resolver now decides the period running now for both the Today

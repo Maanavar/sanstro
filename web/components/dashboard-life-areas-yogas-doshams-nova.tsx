@@ -16,7 +16,9 @@ import {
   yogaCardTone,
   yogaReadingStatus,
   yogaReadingStatusLabel,
+  yogaFactorHeading,
   doshamSeverityBand,
+  doshamPresenceLabel,
   getDoshamPowerContext,
   getYogaPowerContext,
   resolveYogaKey,
@@ -246,7 +248,7 @@ function NovaYogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
             {Array.isArray(yoga.cancellationFactors) && yoga.cancellationFactors.length > 0 && (
               <div style={{ marginTop: "10px" }}>
                 <p style={{ margin: "0 0 4px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                  {lang === "ta" ? "நிவர்த்தி காரணங்கள்" : "Cancellation factors"}
+                  {yogaFactorHeading(yoga.cancellationFactors, lang)}
                 </p>
                 {yoga.cancellationFactors.map((factor) => (
                   <p key={factor} style={{ margin: "3px 0", fontSize: "var(--text-base)", color: "var(--color-muted)" }}>
@@ -390,11 +392,7 @@ function NovaDoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: La
   const color = isActiveAndPresent ? "var(--color-low)" : isCancelledAndPresent ? "var(--color-high)" : "var(--color-faint)";
   const severityBand = doshamSeverityBand(dosham, lang);
 
-  const statusLabel = !dosham.isPresent
-    ? (lang === "ta" ? "இல்லை" : "Absent")
-    : dosham.isCancelled
-    ? (lang === "ta" ? "நிவர்த்தி" : "Mitigated")
-    : (lang === "ta" ? "கவனம்" : "Active");
+  const statusLabel = doshamPresenceLabel(dosham, lang);
 
   const whyText = buildWhyText(dosham.conditionsMet, dosham.cancellationFactors, dosham.isPresent, dosham.isCancelled, dosham.dashaActivated, lang);
   const powerText = getDoshamPowerContext(dosham, lang);

@@ -33,6 +33,11 @@ function sampleChart(): ChartCalculateResponseData {
       nakshatra: 1,
       nakshatraName: "Aswini",
       pada: 4,
+      // Server-sent, and it must agree with `absoluteLongitude` above:
+      // navamsa of 10° Mesham is Kadagam. `buildD9CellDetail` now reads this
+      // field instead of re-deriving it, so an arbitrary value here would
+      // silently move every D9 house in the fixture.
+      d9Rasi: 4,
     },
     planets: [
       {
@@ -51,6 +56,11 @@ function sampleChart(): ChartCalculateResponseData {
         d9Rasi: 2,
         isVargottama: false,
         showRetrogradeBadge: false,
+        // Rishabam is Venus's sign and Venus is the Sun's natural enemy, so
+        // this is what the server's `d9_dignity_label` returns for D9 = 2.
+        // A fixture that pairs a sign with a dignity it cannot carry teaches
+        // the next reader a rule that is not the engine's.
+        d9Dignity: "ENEMY_SIGN",
       },
       {
         graha: "SATURN",
@@ -68,6 +78,9 @@ function sampleChart(): ChartCalculateResponseData {
         d9Rasi: 6,
         isVargottama: true,
         showRetrogradeBadge: true,
+        // Kanni is Mercury's sign and Mercury is Saturn's natural friend.
+        // Saturn's own signs are Magaram and Kumbam, never Kanni.
+        d9Dignity: "FRIEND_SIGN",
       },
     ],
     yogas: [],

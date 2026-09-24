@@ -32,24 +32,31 @@ function sampleChart(): ChartCalculateResponseData {
     julianDay: 2447892.5,
     ayanamsa: { type: "LAHIRI", valueDegrees: 23.5 },
     lagna: {
-      rasi: 1, rasiName: "Mesham", absoluteLongitude: 10, degreeInRasi: 10,
+      // `d9Rasi` is server-sent and travels with the longitude it was derived
+      // from: navamsa of 10° Mesham is Kadagam. The grid reads this field
+      // rather than re-deriving it, so a fixture that moves one without the
+      // other describes a chart the API cannot produce.
+      rasi: 1, rasiName: "Mesham", absoluteLongitude: 10, degreeInRasi: 10, d9Rasi: 4,
       nakshatra: 1, nakshatraName: "Aswini", pada: 4,
     },
     planets: [
       {
         graha: "SUN", rasiName: "Mesham", absoluteLongitude: 20, rasi: 1, degreeInRasi: 20,
         nakshatra: 2, nakshatraName: "Bharani", pada: 2, houseFromLagna: 1, speedDegPerDay: 1,
-        isRetrograde: false, isCombust: false, d9Rasi: 2, isVargottama: false, showRetrogradeBadge: false,
+        // Rishabam is Venus's sign; Venus is the Sun's natural enemy.
+        isRetrograde: false, isCombust: false, d9Rasi: 2, d9Dignity: "ENEMY_SIGN", isVargottama: false, showRetrogradeBadge: false,
       },
       {
         graha: "SATURN", rasiName: "Kanni", absoluteLongitude: 170, rasi: 6, degreeInRasi: 20,
         nakshatra: 14, nakshatraName: "Chitra", pada: 1, houseFromLagna: 6, speedDegPerDay: 0.1,
-        isRetrograde: true, isCombust: false, d9Rasi: 6, isVargottama: true, showRetrogradeBadge: true,
+        // Kanni is Mercury's sign; Mercury is Saturn's natural friend.
+        isRetrograde: true, isCombust: false, d9Rasi: 6, d9Dignity: "FRIEND_SIGN", isVargottama: true, showRetrogradeBadge: true,
       },
       {
         graha: "RAHU", rasiName: "Kadagam", absoluteLongitude: 100, rasi: 4, degreeInRasi: 10,
         nakshatra: 9, nakshatraName: "Ayilyam", pada: 1, houseFromLagna: 4, speedDegPerDay: -0.05,
-        isRetrograde: true, isCombust: false, d9Rasi: 4, isVargottama: false, showRetrogradeBadge: false,
+        // A node carries no sign-lord dignity in this model.
+        isRetrograde: true, isCombust: false, d9Rasi: 4, d9Dignity: "NEUTRAL_SIGN", isVargottama: false, showRetrogradeBadge: false,
       },
     ],
     yogas: [],
@@ -216,7 +223,9 @@ function simmamChart(): ChartCalculateResponseData {
   return {
     ...chart,
     chartId: "chart-2",
-    lagna: { ...chart.lagna, rasi: 5, rasiName: "Simmam", absoluteLongitude: 132, degreeInRasi: 12 },
+    // 12° Simmam (a fixed sign, so its navamsas start from Mesham) is the 4th
+    // navamsa → Kadagam.
+    lagna: { ...chart.lagna, rasi: 5, rasiName: "Simmam", absoluteLongitude: 132, degreeInRasi: 12, d9Rasi: 4 },
   } as ChartCalculateResponseData;
 }
 
@@ -235,9 +244,14 @@ describe("kattam — the lagna is the only standing highlight", () => {
 
   it("does the same on the D9 grid", () => {
     // 15° Mesham is the 5th navamsa → Simmam; 12° Simmam is the 4th → Kadagam.
-    // (Not the sample's 10°: that is exactly a navamsa boundary.)
+    // (Not the sample's 10°: that is exactly a navamsa boundary — which is why
+    // the derivation itself now lives on the server, where it is bounded by an
+    // epsilon, and is pinned by tests/test_charts_api.py and the 108-pada case
+    // in lib/chart-utils.test.ts. What this asserts is the grid's own job:
+    // that the standing highlight sits on the sign the response names, and
+    // moves when a different chart is rendered into the same component.)
     const first = sampleChart();
-    first.lagna = { ...first.lagna, absoluteLongitude: 15, degreeInRasi: 15 };
+    first.lagna = { ...first.lagna, absoluteLongitude: 15, degreeInRasi: 15, d9Rasi: 5 };
     const { rerender } = render(<NavamsaChart chart={first} lang="en" />);
     expect(cell(/^Simmam/).getAttribute("aria-pressed")).toBe("true");
     rerender(<NavamsaChart chart={simmamChart()} lang="en" />);

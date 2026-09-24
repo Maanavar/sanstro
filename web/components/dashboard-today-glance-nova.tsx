@@ -61,7 +61,7 @@ const _NATURE_TESTING = new Set(["MARAKA", "DUSTHANA"]);
 // DASH-10.2 ruling (2026-07-16): Upachaya houses (3/6/10/11) classically
 // improve with effort/time rather than warranting caution — bucketing them
 // with Maraka/Dusthana's "go gently" copy was a miscalibration. Split out
-// with its own "grows with effort" framing; reuses the neutral --color-mid
+// with its own "Grows with effort" framing; reuses the neutral --color-mid
 // tone (not --color-low, which reads as a warning) rather than adding a new
 // color token for a single category.
 const _NATURE_GROWTH = new Set(["UPACHAYA"]);
@@ -73,28 +73,28 @@ function dashaSentiment(
 ): { label: string; color: string } {
   if (functionalNature) {
     if (_NATURE_SUPPORTIVE.has(functionalNature)) {
-      return { label: lang === "ta" ? "ஆதரவான காலம்" : "supportive period", color: "var(--color-high)" };
+      return { label: lang === "ta" ? "ஆதரவான காலம்" : "Supportive period", color: "var(--color-high)" };
     }
     if (_NATURE_GROWTH.has(functionalNature)) {
       // New `ta` string — pending native review, matching this repo's
       // convention for newly added Tamil copy.
-      return { label: lang === "ta" ? "முயற்சியால் வளரும் காலம்" : "grows with effort", color: "var(--color-mid-text)" };
+      return { label: lang === "ta" ? "முயற்சியால் வளரும் காலம்" : "Grows with effort", color: "var(--color-mid-text)" };
     }
     if (_NATURE_TESTING.has(functionalNature)) {
-      return { label: lang === "ta" ? "சவாலான காலம் · மெதுவாக செல்லுங்கள்" : "testing period · go gently", color: "var(--color-low)" };
+      return { label: lang === "ta" ? "சவாலான காலம் · மெதுவாக செல்லுங்கள்" : "Testing period · go gently", color: "var(--color-low)" };
     }
     if (_NATURE_STEADY.has(functionalNature)) {
-      return { label: lang === "ta" ? "நடுநிலையான காலம்" : "steady, mixed period", color: "var(--color-mid-text)" };
+      return { label: lang === "ta" ? "நடுநிலையான காலம்" : "Steady, mixed period", color: "var(--color-mid-text)" };
     }
   }
   // Fallback: natural benefic/malefic split (no chart-specific data yet).
   if (_DASHA_BENEFIC.has(antardashaLord)) {
-    return { label: lang === "ta" ? "ஆதரவான காலம்" : "supportive period", color: "var(--color-high)" };
+    return { label: lang === "ta" ? "ஆதரவான காலம்" : "Supportive period", color: "var(--color-high)" };
   }
   if (_DASHA_CHALLENGING.has(antardashaLord)) {
-    return { label: lang === "ta" ? "சவாலான காலம் · மெதுவாக செல்லுங்கள்" : "testing period · go gently", color: "var(--color-low)" };
+    return { label: lang === "ta" ? "சவாலான காலம் · மெதுவாக செல்லுங்கள்" : "Testing period · go gently", color: "var(--color-low)" };
   }
-  return { label: lang === "ta" ? "நடுநிலையான காலம்" : "steady, mixed period", color: "var(--color-mid-text)" };
+  return { label: lang === "ta" ? "நடுநிலையான காலம்" : "Steady, mixed period", color: "var(--color-mid-text)" };
 }
 
 function daysAwayLabel(days: number, lang: Lang): string {
@@ -126,7 +126,7 @@ export function GlanceHeader({
     <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "var(--space-1) var(--space-2)", marginBottom: "14px" }}>
       {/* audit B-1: shared section header is a real <h2>, so every Today
           section (Life Areas, Dasa, Family, Coming up) lands in the outline. */}
-      <h2 style={{ margin: 0, fontSize: "var(--text-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>
+      <h2 className="nova-card-title">
         {lang === "ta" ? titleTa : title}
       </h2>
       {right}
@@ -256,7 +256,7 @@ export function DashboardTodayQuickLinksNova({
     <Card compact>
       <GlanceHeader
         lang={lang}
-        title="Quick Links"
+        title="Quick links"
         titleTa="விரைவு இணைப்புகள்"
         linkLabel={lang === "ta" ? "அனைத்து கருவிகளும்" : "All tools"}
         onLink={onGoToAllTools}
@@ -464,7 +464,7 @@ export function DashboardTodayLifeAreasDasaRowNova({
                     {lang === "ta" ? area.label.ta : area.label.en}
                   </div>
                   <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-1)", marginTop: "6px" }}>
-                    <span style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 700, color: "var(--color-text-strong)", lineHeight: 1 }}>{score}</span>
+                    <span style={{ fontFamily: "var(--font-heading)", fontSize: "var(--text-xl)", fontWeight: 700, color: "var(--color-text-strong)", lineHeight: 1 }}>{score}</span>
                     <span role="img" aria-label={trendLabel} style={{ display: "inline-flex", color: trend.color }}><trend.Icon size={14} strokeWidth={2} aria-hidden="true" /></span>
                   </div>
                   <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color, marginTop: "6px", lineHeight: 1.15 }}>{verdictWord}</div>
@@ -495,7 +495,7 @@ export function DashboardTodayLifeAreasDasaRowNova({
       <Card style={{ display: "flex", flexDirection: "column", gap: 0 }}>
         <GlanceHeader
           lang={lang}
-          title="Dasa Chapter"
+          title="Dasa chapter"
           titleTa="தசா"
           linkLabel={lang === "ta" ? "திற" : "Open"}
           onLink={onGoToChart}
@@ -503,7 +503,7 @@ export function DashboardTodayLifeAreasDasaRowNova({
         {personalChartSummary ? (
           <>
             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
-              <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 600, color: "var(--color-accent-strong)" }}>
+              <div style={{ fontFamily: "var(--font-heading)", fontSize: "var(--text-xl)", fontWeight: 600, color: "var(--color-accent-strong)" }}>
                 {tPlanetLord(personalChartSummary.currentMahadasha, lang)} <ArrowRight size={16} strokeWidth={2} aria-hidden="true" style={{ verticalAlign: "middle", color: "var(--color-faint)" }} /> {tPlanetLord(personalChartSummary.currentAntardasha, lang)}
               </div>
               {(() => {
@@ -769,11 +769,11 @@ function RemedyFocusCard({
             {/* "Remedy for you" is only true while the owner is selected. Read
                 someone else's and the heading names them instead — the old card
                 kept the first-person title over a sibling's remedy. */}
-            <div style={{ fontSize: "var(--text-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>
+            <h2 className="nova-card-title">
               {isOwnerSelected
                 ? t("remedy_focus_title", lang)
                 : `${selectedMember?.displayName ?? ""} · ${t("remedy_focus_title_short", lang)}`}
-            </div>
+            </h2>
           </div>
           {selectedFocus && (
             <button
@@ -788,7 +788,7 @@ function RemedyFocusCard({
         </div>
 
         {/* Lead sentence — the chart reason, active language only. */}
-        <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "var(--text-base)", lineHeight: 1.65, color: "var(--color-text)" }}>
+        <p style={{ margin: 0, fontSize: "var(--text-base)", lineHeight: 1.65, color: "var(--color-text)" }}>
           {selectedFocus ? tLang(selectedFocus.lead, lang) : (selectedRemedy ? tLang(selectedRemedy, lang) : t("remedy_focus_none", lang))}
         </p>
 
@@ -907,7 +907,7 @@ export function DashboardTodayFamilyRemedyRowNova({
         <div>
         <GlanceHeader
           lang={lang}
-          title="Family Today"
+          title="Family today"
           titleTa="குடும்பம்"
           linkLabel={lang === "ta" ? "குடும்பம்" : "Family"}
           onLink={onGoToFamily}
@@ -929,7 +929,7 @@ export function DashboardTodayFamilyRemedyRowNova({
                       {lang === "ta" ? "இன்று குடும்பம் ஒட்டுமொத்தம்" : "Family overall today"}
                     </div>
                     <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-2)", marginTop: "2px" }}>
-                      <span style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--color-text-strong)", lineHeight: 1 }}>{familyAggregate.familyScore}</span>
+                      <span style={{ fontFamily: "var(--font-heading)", fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--color-text-strong)", lineHeight: 1 }}>{familyAggregate.familyScore}</span>
                       <span style={{ fontSize: "var(--text-base)", fontWeight: 700, color: fverdict.color }}>{fverdict.verdict}</span>
                     </div>
                   </div>

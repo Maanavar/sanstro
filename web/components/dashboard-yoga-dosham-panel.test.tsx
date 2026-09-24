@@ -50,7 +50,8 @@ describe("YogaDoshamPanel — Gaja Kesari outcomes/how-to/remedies cards", () =>
   it("renders real Tamil text for the same cards when lang=ta", () => {
     render(<YogaDoshamPanel lang="ta" yogas={[makeGajaKesari()]} doshams={[]} />);
 
-    fireEvent.click(screen.getByText("Gaja Kesari Yoga"));
+    // Tamil-script yoga names in Tamil mode (native-Tamil review, 2026-09-23).
+    fireEvent.click(screen.getByText("கஜகேசரி யோகம்"));
 
     expect(screen.getByText(/இந்த யோகம் உள்ளவர்களுக்கு தொழில்முறை மரியாதை/)).toBeInTheDocument();
     expect(screen.getByText(/வியாழக்கிழமை குரு வழிபாடு/)).toBeInTheDocument();

@@ -5,7 +5,6 @@ import { useMemo, useState } from "react";
 import {
   buildD1CellDetail,
   buildD9CellDetail,
-  computeD9LagnaRasi,
   D1_RASI_NAMES,
   GRAHA_ABBR,
   GRAHA_ABBR_EN,
@@ -510,7 +509,7 @@ export function NavamsaChart({
   selectedRasi?: number;
   onSelectRasi?: (rasi: number) => void;
 }) {
-  const d9LagnaRasi = useMemo(() => computeD9LagnaRasi(chart.lagna.absoluteLongitude), [chart.lagna.absoluteLongitude]);
+  const d9LagnaRasi = chart.lagna.d9Rasi;
   const [selectedRasi, selectRasi] = useCellSelection(chartIdentityOf(chart), d9LagnaRasi, controlledRasi, onSelectRasi);
   const showsSelection = showExplain || controlledRasi !== undefined;
   const selectedDetail = useMemo(() => buildD9CellDetail(chart, selectedRasi), [chart, selectedRasi]);

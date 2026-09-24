@@ -87,7 +87,9 @@ import {
   HyTransitOverview,
   HyDetailedForecast,
   HyDailyAffirmation,
+  STANDING_TONE_COLOR,
 } from "./dashboard-hybrid-parts";
+import { displayName as yogaDoshamDisplayName, yogaStanding } from "./dashboard-yoga-dosham-panel";
 import { DashboardAskVinaadi } from "./dashboard-ask-vinaadi";
 import { RASI_TRAITS } from "@/lib/rasi-traits";
 import { RASI_LORDS } from "@/lib/chart-utils";
@@ -1325,7 +1327,14 @@ export function DashboardFamilyChartsHybrid({
               sub={lang === "ta" ? "ஒரு கோளத்தை அல்லது வரிசையைத் தட்டவும்" : "tap an orb or row for the full explanation"}
               meta={meta}
             >
-              <HyPlanetOrbs lang={lang} planets={readingChart.planets} explanationPlanets={explPlanets} animate />
+              <HyPlanetOrbs
+                lang={lang}
+                planets={readingChart.planets}
+                explanationPlanets={explPlanets}
+                d9LagnaRasi={readingChart.lagna.d9Rasi}
+                d9Reliability={readingChart.vargaReliability?.D9}
+                animate
+              />
             </HySection>
           );
         })()}
@@ -1377,14 +1386,20 @@ export function DashboardFamilyChartsHybrid({
               /* Explanation still loading — keep the flat yoga glance rather than nothing. */
               <Card style={{ borderRadius: "var(--radius-xl)", padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                 <Kicker color="var(--color-mid)">{lang === "ta" ? "யோகம் & தோஷம்" : "Yoga & doshas"}</Kicker>
-                {(readingSummary?.yogas ?? []).slice(0, 8).map((y) => (
-                  <div key={y.name} style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", padding: "var(--space-2) 0", borderBottom: "1px solid var(--color-border)" }}>
-                    <span style={{ flex: 1, fontSize: "var(--text-sm)", color: "var(--color-text)" }}>{y.name}</span>
-                    <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)", color: y.isPresent ? "var(--color-high)" : "var(--color-faint)", background: y.isPresent ? "var(--color-high-bg)" : "transparent", border: `1px solid ${y.isPresent ? "var(--color-high-border)" : "var(--color-border)"}` }}>
-                      {y.isPresent ? (y.isCurrentlyActive ? (lang === "ta" ? "செயலில்" : "Active") : (lang === "ta" ? "உள்ளது" : "Present")) : (lang === "ta" ? "இல்லை" : "Absent")}
-                    </span>
-                  </div>
-                ))}
+                {/* Same standing chip as the loaded HyYogaDoshaCard, so the card
+                    does not change its answer when the explanation arrives. */}
+                {(readingSummary?.yogas ?? []).slice(0, 8).map((y) => {
+                  const s = yogaStanding(y, lang);
+                  const c = STANDING_TONE_COLOR[s.tone];
+                  return (
+                    <div key={y.name} style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", padding: "var(--space-2) 0", borderBottom: "1px solid var(--color-border)" }}>
+                      <span style={{ flex: 1, fontSize: "var(--text-sm)", color: "var(--color-text)" }}>{yogaDoshamDisplayName(y.name, lang)}</span>
+                      <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)", color: c.fg, background: c.bg, border: `1px solid ${c.bd}` }}>
+                        {s.label}
+                      </span>
+                    </div>
+                  );
+                })}
               </Card>
             )}
           </HySection>

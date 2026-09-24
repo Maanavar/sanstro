@@ -1052,6 +1052,17 @@ export function ChartExplanationPanel({
                         ? rasiDisplayName(coreIdentity.lagnaRasi, lang)
                         : `${rasiName(chart.lagna.rasi, lang)} - ${tNakshatra(chart.lagna.nakshatraName, lang)} ${lang === "ta" ? "பாதம்" : "Pada"} ${chart.lagna.pada}`}
                     />
+                    {[coreIdentity?.lagnaEdgeNote, coreIdentity?.navamsaLagnaEdgeNote].map((note, index) =>
+                      note ? (
+                        <p
+                          key={index}
+                          role="note"
+                          style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.5, color: "var(--color-text)" }}
+                        >
+                          {tx(note, lang)}
+                        </p>
+                      ) : null,
+                    )}
                     <DetailRow
                       label={lang === "ta" ? "சந்திரன்" : "Moon"}
                       value={

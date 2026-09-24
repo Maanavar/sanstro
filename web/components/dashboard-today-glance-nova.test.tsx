@@ -48,7 +48,7 @@ describe("DashboardTodayLifeAreasDasaRowNova — dasha sentiment doctrine", () =
         functionalNature: { SATURN: "YOGAKARAKA" },
       }),
     );
-    expect(screen.getByText("supportive period")).toBeInTheDocument();
+    expect(screen.getByText("Supportive period")).toBeInTheDocument();
   });
 
   it("shows testing for a Mesha-lagna native in Venus antardasha (Venus is Maraka for Mesha)", () => {
@@ -59,7 +59,7 @@ describe("DashboardTodayLifeAreasDasaRowNova — dasha sentiment doctrine", () =
         functionalNature: { VENUS: "MARAKA" },
       }),
     );
-    expect(screen.getByText("testing period · go gently")).toBeInTheDocument();
+    expect(screen.getByText("Testing period · go gently")).toBeInTheDocument();
   });
 
   it("falls back to the natural benefic split when functionalNature is missing (Jupiter -> supportive)", () => {
@@ -70,7 +70,7 @@ describe("DashboardTodayLifeAreasDasaRowNova — dasha sentiment doctrine", () =
         functionalNature: undefined,
       }),
     );
-    expect(screen.getByText("supportive period")).toBeInTheDocument();
+    expect(screen.getByText("Supportive period")).toBeInTheDocument();
   });
 
   it("shows 'grows with effort' (not 'testing period') for Upachaya — DASH-10.2 ruling", () => {
@@ -81,8 +81,8 @@ describe("DashboardTodayLifeAreasDasaRowNova — dasha sentiment doctrine", () =
         functionalNature: { MARS: "UPACHAYA" },
       }),
     );
-    expect(screen.getByText("grows with effort")).toBeInTheDocument();
-    expect(screen.queryByText("testing period · go gently")).not.toBeInTheDocument();
+    expect(screen.getByText("Grows with effort")).toBeInTheDocument();
+    expect(screen.queryByText("Testing period · go gently")).not.toBeInTheDocument();
   });
 
   it("still shows testing for Dusthana (Upachaya split-out doesn't affect it)", () => {
@@ -93,7 +93,7 @@ describe("DashboardTodayLifeAreasDasaRowNova — dasha sentiment doctrine", () =
         functionalNature: { MARS: "DUSTHANA" },
       }),
     );
-    expect(screen.getByText("testing period · go gently")).toBeInTheDocument();
+    expect(screen.getByText("Testing period · go gently")).toBeInTheDocument();
   });
 });
 

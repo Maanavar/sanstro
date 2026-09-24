@@ -15,6 +15,7 @@ import {
   buildWhyText,
   displayName,
   DOSHAM_REMEDIES,
+  doshamPresenceLabel,
   getDoshamPowerContext,
   getWhat,
   markerLabel,
@@ -181,10 +182,10 @@ function wrapIndex(i: number, length: number): number {
   return ((i % length) + length) % length;
 }
 
+// Presence only — the Severity and Dasha facts beside it carry the other two
+// axes. "Active" is reserved for dasha timing (see `doshamPresenceLabel`).
 export function doshamStatusLabel(d: ChartDoshamInsight, lang: Lang): string {
-  if (!d.isPresent) return lang === "ta" ? "இல்லை" : "Absent";
-  if (d.isCancelled) return lang === "ta" ? "நிவர்த்தி" : "Mitigated";
-  return lang === "ta" ? "கவனம்" : "Active";
+  return doshamPresenceLabel(d, lang);
 }
 
 export function doshamStatusColor(d: ChartDoshamInsight): string {

@@ -16,7 +16,6 @@ import { nakshatraLord, nakshatraLordShort } from "@vinaadi/shared/nakshatraLord
 import {
   buildD1CellDetail,
   buildD9CellDetail,
-  computeD9LagnaRasi,
   D1_RASI_NAMES_TA,
   GRAHA_ABBR,
   rasiLabel,
@@ -265,7 +264,7 @@ function JathagamPrint({ chart, dasha, fatherName, motherName, gender }: {
   chart: ChartCalculateResponseData; dasha: DashaTimelineResponseData | null;
   fatherName: string; motherName: string; gender: string;
 }) {
-  const d9LagnaRasi = computeD9LagnaRasi(chart.lagna.absoluteLongitude);
+  const d9LagnaRasi = chart.lagna.d9Rasi;
   const bp = chart.birthProfile;
   const moon = chart.planets.find((p) => p.graha === "MOON");
   const weekday = formatWeekday(bp.birthDateLocal);
@@ -603,7 +602,12 @@ function GrahaPositionsTable({ chart, lang }: { chart: ChartCalculateResponseDat
       name: isTa ? "லக்னம்" : "Lagna",
       degInRasi: chart.lagna.degreeInRasi,
       rasi: chart.lagna.rasi,
-      d9Rasi: computeD9LagnaRasi(chart.lagna.absoluteLongitude),
+      // The server sends `lagna.d9Rasi` and every planet's `d9Rasi` from one
+      // navamsa function. Deriving the Lagna's here instead would be a second
+      // implementation of the same rule, and the client copy has no epsilon
+      // guard, so a longitude sitting exactly on a pada boundary can round to
+      // the neighbouring sign while the planets beside it do not.
+      d9Rasi: chart.lagna.d9Rasi,
       nakshatra: chart.lagna.nakshatra,
       nakshatraName: chart.lagna.nakshatraName,
       pada: chart.lagna.pada,

@@ -397,6 +397,13 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad, renderYogaD
       {/* ── Core identity ── */}
       <Section title={t("jadhagam_identity", lang)} accent="rgba(96,165,250,0.4)">
         <Row label={lang === "ta" ? "லக்னம்" : "Lagna"} value={rasiDisplayName(coreIdentity.lagnaRasi, lang)} />
+        {[coreIdentity.lagnaEdgeNote, coreIdentity.navamsaLagnaEdgeNote].map((note, index) =>
+          note ? (
+            <p key={index} role="note" style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-text)", lineHeight: 1.5 }}>
+              {lang === "ta" ? note.ta : note.en}
+            </p>
+          ) : null,
+        )}
         <Row label={lang === "ta" ? "சந்திர ராசி" : "Moon Rasi"} value={rasiDisplayName(coreIdentity.moonRasi, lang)} />
         <Row label={lang === "ta" ? "பிறப்பு நட்சத்திரம்" : "Birth Star"} value={`${tNakshatra(coreIdentity.janmaNakshatra, lang)} — ${lang === "ta" ? "பாதம்" : "Pada"} ${coreIdentity.janmaPada}`} />
         <Row label={lang === "ta" ? "நடப்பு மகாதசை" : "Mahadasha"} value={tPlanetLord(coreIdentity.currentMahadasha, lang)} />

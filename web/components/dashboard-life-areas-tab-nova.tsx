@@ -28,10 +28,10 @@ import type {
 import { LIFE_FOCUS_CARD_ID, LifeAreaCard } from "./life-area-card";
 import { Reveal } from "./dashboard-ui-nova";
 import { DrawerPanel } from "./drawer-panel";
-import { displayName as yogaDisplayName } from "./dashboard-yoga-dosham-panel";
+import { displayName as yogaDisplayName, doshamStanding, yogaStanding, isRunningInDasha } from "./dashboard-yoga-dosham-panel";
 import { NovaPredictionsPanel } from "./dashboard-life-areas-predictions-nova";
 import { DashboardPropensitiesPanelNova } from "./dashboard-propensities-panel-nova";
-import { HyLifeAreaForecast } from "./dashboard-hybrid-parts";
+import { HyLifeAreaForecast, STANDING_TONE_COLOR } from "./dashboard-hybrid-parts";
 import { NovaJadhagamReportPanel } from "./dashboard-life-areas-report-nova";
 import { NovaRemediesPanel } from "./dashboard-life-areas-remedies-nova";
 import { EventWindowsPanel } from "./dashboard-event-windows";
@@ -111,7 +111,7 @@ function tierOf(area: LifeAreaData): Tier {
  * tabs. Reuses `yogaDisplayName` so names follow the canonical map, never raw
  * enums.
  */
-function YogaActivationSummary({
+export function YogaActivationSummary({
   lang,
   yogas,
   doshams,
@@ -122,75 +122,66 @@ function YogaActivationSummary({
   doshams: ChartDoshamInsight[];
   onGoToChart: () => void;
 }) {
+  // This card answers one question — "what is the running dasha lighting?" —
+  // so only items the Mahadasha/Antardasha lord actually activates sit under
+  // the heading. It used to list every present item and stamp "Active" on any
+  // dosham not cancelled, under a heading claiming dasha *and transits*
+  // (the engine reads no transits). A dosham the chart holds but the dasha is
+  // not touching read "Active" here and "Partial" on the Charts tab
+  // (2026-09-23). Each chip now carries the same standing word the Charts card
+  // shows, from the same shared function, so the two tabs cannot disagree.
   const presentYogas = yogas.filter((y) => y.isPresent);
   const presentDoshams = doshams.filter((d) => d.isPresent);
-  const hasAny = presentYogas.length > 0 || presentDoshams.length > 0;
+  const running = [
+    ...presentDoshams.filter((d) => isRunningInDasha(d)).map((d) => ({ key: `d-${d.name}`, name: d.name, standing: doshamStanding(d, lang) })),
+    ...presentYogas.filter((y) => isRunningInDasha(y)).map((y, i) => ({ key: `y-${y.name}-${i}`, name: y.name, standing: yogaStanding(y, lang) })),
+  ];
+  const quiet = [
+    ...presentDoshams.filter((d) => !isRunningInDasha(d)).map((d) => ({ key: `d-${d.name}`, name: d.name, standing: doshamStanding(d, lang) })),
+    ...presentYogas.filter((y) => !isRunningInDasha(y)).map((y, i) => ({ key: `y-${y.name}-${i}`, name: y.name, standing: yogaStanding(y, lang) })),
+  ];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", fontFamily: "var(--font-body)" }}>
       <Card>
         <h3 style={{ margin: "0 0 4px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
-          {lang === "ta" ? "இப்போது செயலில் உள்ளவை" : "Active right now"}
+          {lang === "ta" ? "தற்போதைய தசையில் செயல்படுபவை" : "Running in your current dasha"}
         </h3>
         <p style={{ margin: "0 0 12px", fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5 }}>
           {lang === "ta"
-            ? "இந்தக் காலகட்டத்தில் தசை/கிரகநகர்வால் தூண்டப்படும் யோகங்கள் & தோஷங்கள். முழு விளக்கம் உங்கள் ஜாதகப் பார்வையில்."
-            : "Yogas & doshams your current dasha and transits are triggering. The full explanation lives in your chart view."}
+            ? "உங்கள் தற்போதைய தசாநாதன் அல்லது புக்திநாதனால் செயல்படும் யோகங்கள் மற்றும் தோஷங்கள். ஒவ்வொன்றும் உங்கள் ஜாதகத்தில் எவ்வளவு பலமாக உள்ளது என்பதும் காட்டப்படும். முழு விளக்கத்தை ஜாதகப் பகுதியில் பார்க்கலாம்."
+            : "Yogas & doshams your current Mahadasha or Bhukti lord is lighting up. Each shows its strength in the birth chart. The full explanation lives in your chart view."}
         </p>
 
-        {!hasAny ? (
+        {running.length === 0 ? (
           <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)" }}>
-            {lang === "ta" ? "இப்போது குறிப்பிட்டு செயலில் ஒன்றும் இல்லை." : "Nothing notably active for this chart right now."}
+            {lang === "ta" ? "தற்போதைய தசையில் இந்த ஜாதகத்தின் எந்த யோகமும் தோஷமும் செயல்படவில்லை." : "The current dasha is not lighting any yoga or dosham in this chart."}
           </p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-            {presentYogas.length > 0 && (
-              <div>
-                <p style={{ margin: "0 0 6px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-high)" }}>{t("yogas_title", lang)}</p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
-                  {presentYogas.map((y, i) => {
-                    const active = y.isCurrentlyActive;
-                    const color = active ? "var(--color-high)" : "var(--color-muted)";
-                    return (
-                      <span
-                        key={`${y.name}-${i}`}
-                        style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text-strong)", background: active ? "var(--color-high-bg)" : "var(--color-surface-soft)", border: `1px solid ${active ? "var(--color-high-border)" : "var(--color-border)"}`, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}
-                      >
-                        {yogaDisplayName(y.name, lang)}
-                        {typeof y.activationScore === "number" && (
-                          <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color }}>{y.activationScore}/100</span>
-                        )}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
+            {running.map((it) => {
+              const c = STANDING_TONE_COLOR[it.standing.tone];
+              return (
+                <span
+                  key={it.key}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text-strong)", background: c.bg, border: `1px solid ${c.bd}`, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}
+                >
+                  {yogaDisplayName(it.name, lang)}
+                  <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: c.fg }}>{it.standing.label}</span>
+                </span>
+              );
+            })}
+          </div>
+        )}
 
-            {presentDoshams.length > 0 && (
-              <div>
-                <p style={{ margin: "0 0 6px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-low)" }}>{t("doshams_title", lang)}</p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
-                  {presentDoshams.map((d) => {
-                    const mitigated = d.isCancelled;
-                    const color = mitigated ? "var(--color-high)" : "var(--color-low)";
-                    const bg = mitigated ? "var(--color-high-bg)" : "var(--color-low-bg)";
-                    const border = mitigated ? "var(--color-high-border)" : "var(--color-low-border)";
-                    return (
-                      <span
-                        key={d.name}
-                        style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text-strong)", background: bg, border: `1px solid ${border}`, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}
-                      >
-                        {yogaDisplayName(d.name, lang)}
-                        <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color }}>
-                          {mitigated ? (lang === "ta" ? "நிவர்த்தி" : "Mitigated") : (lang === "ta" ? "கவனம்" : "Active")}
-                        </span>
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+        {quiet.length > 0 && (
+          <div style={{ marginTop: "var(--space-4)" }}>
+            <p style={{ margin: "0 0 6px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)" }}>
+              {lang === "ta" ? "ஜாதகத்தில் உள்ளது, ஆனால் இந்த தசையில் செயல்படவில்லை" : "In the chart, quiet in this dasha"}
+            </p>
+            <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.6 }}>
+              {quiet.map((it) => `${yogaDisplayName(it.name, lang)} (${it.standing.label})`).join(" · ")}
+            </p>
           </div>
         )}
 

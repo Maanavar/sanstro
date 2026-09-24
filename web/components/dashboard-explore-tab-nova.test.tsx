@@ -199,7 +199,9 @@ describe("DashboardExploreTabNova — Dosham list-first navigation", () => {
     expect(screen.getByText("All doshams")).toBeInTheDocument();
     expect(screen.getByText("Sevvai Dosham")).toBeInTheDocument();
     expect(screen.getByText("Rahu-Ketu Dosham")).toBeInTheDocument();
-    expect(screen.getByText("Active")).toBeInTheDocument();
+    // Presence word, not "Active" — that word is reserved for dasha timing.
+    expect(screen.getByText("Present")).toBeInTheDocument();
+    expect(screen.queryByText("Active")).not.toBeInTheDocument();
     expect(screen.getByText("Absent")).toBeInTheDocument();
 
     fireEvent.click(screen.getByText("Rahu-Ketu Dosham"));

@@ -223,6 +223,15 @@ export function houseFrom(referenceRasi: number, targetRasi: number): number {
   return ((targetRasi - referenceRasi + 12) % 12) + 1;
 }
 
+/** @deprecated The server sends `lagna.d9Rasi`; read that instead.
+ *
+ *  Kept only because its unit test pins the 108-pada modality mapping, which
+ *  is worth a regression guard. It is no longer wired to any surface: it had
+ *  drifted into five call sites deriving the D9 Lagna client-side while every
+ *  planet's `d9Rasi` beside them came from the server, and this copy has no
+ *  epsilon guard, so a longitude sitting exactly on a pada boundary could round
+ *  to the neighbouring sign in one column and not the next. Do not reintroduce
+ *  it into a render path. */
 export function computeD9LagnaRasi(lagnaAbsoluteLongitude: number): number {
   const lagnaRasiIdx = Math.floor(lagnaAbsoluteLongitude / 30);
   const degreeInRasi = lagnaAbsoluteLongitude % 30;
@@ -286,7 +295,7 @@ export function buildD1CellDetail(chart: ChartCalculateResponseData, rasi: numbe
 }
 
 export function buildD9CellDetail(chart: ChartCalculateResponseData, rasi: number): RasiCellDetail {
-  const d9LagnaRasi = computeD9LagnaRasi(chart.lagna.absoluteLongitude);
+  const d9LagnaRasi = chart.lagna.d9Rasi;
   const occupants = chart.planets
     .filter((p) => p.d9Rasi === rasi)
     .map((p) => ({
