@@ -43,9 +43,6 @@ vi.mock("./dashboard-today-glance-nova", () => ({
   DashboardTodayFamilyRemedyRowNova: () => null,
   DashboardTodayLifeAreasDasaRowNova: () => null,
 }));
-vi.mock("./dashboard-one-minute-reading", () => ({
-  DashboardOneMinuteReading: () => null,
-}));
 vi.mock("@/hooks/useStreak", () => ({
   useStreak: () => ({ days: 0, best: 0, forgiven: false }),
 }));

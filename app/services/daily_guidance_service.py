@@ -74,6 +74,12 @@ from app.schemas.daily_guidance import (
     JournalCorrelationData,
     JournalCorrelationItem,
     JournalCorrelationResponse,
+    PersonalPalan,
+    PersonalPalanArea,
+    PersonalPalanBasis,
+    PersonalPalanLucky,
+    PersonalPalanPeriod,
+    PersonalPalanSegment,
     RemedyFocus,
     RemedyFocusAction,
     WeekAheadData,
@@ -149,6 +155,8 @@ from app.services.narrative_engine import (
     sani_cycle_background,
     tithi_content_card,
 )
+from app.services.personal_palan import CONTENT_VERSION as PALAN_CONTENT_VERSION
+from app.services.personal_palan import DIRECTION_NAME, PeriodInputs, build_personal_palan
 from app.services.safety_filter import run_safety_pass
 
 __all__ = [
@@ -1028,6 +1036,118 @@ def build_daily_guidance_response(
 
     remedy_focus = _build_remedy_focus(chart_snapshot, maha_lord)
 
+    # Proposal §5: the personal palan reads the same day star, Moon rasi,
+    # Chandrashtama badge and verdict label as everything above, and names the
+    # hero's featured window as the best part of the day. No second score.
+    palan = build_personal_palan(
+        on_date=on_date,
+        natal_moon_rasi=natal_moon.rasi,
+        janma_nakshatra=janma_nakshatra,
+        day_moon_rasi=day_moon_rasi,
+        day_nakshatra=day_nakshatra,
+        weekday_lord=panchangam.weekday_lord,
+        label=label,
+        is_chandrashtama=chandrashtama,
+        period=PeriodInputs(
+            maha_lord=maha_lord,
+            antar_lord=antar_lord,
+            natal_lagna_rasi=natal_lagna,
+            antar_natal_rasi=natal_rasi_by_graha.get(antar_lord, natal_lagna),
+            sani_cycle=saturn_cycle.type if saturn_cycle.is_active else None,
+            kandaka_house=saturn_house if kantaka_sani.is_active else None,
+            guru_house=jupiter_house,
+            saturn_house=saturn_house,
+            rahu_house=_all_transit_houses["RAHU"],
+            antar_transit_house=house_from_reference(
+                natal_moon.rasi, transit_snapshot.bodies[antar_lord].rasi
+            ),
+        ),
+        best_window=(_featured_win.start, _featured_win.end) if _featured_win else None,
+        best_hora_lord=_featured_win.hora_lord if _featured_win else None,
+        soolam=getattr(panchangam, "soolam_direction", None),
+    )
+
+    def _dgt(bi) -> DailyGuidanceText:
+        return DailyGuidanceText(ta=bi.ta, en=bi.en)
+
+    personal_palan = PersonalPalan(
+        contentVersion=palan.content_version,
+        reviewStatus=palan.review_status,
+        overallPolarity=palan.overall_polarity,
+        overall=_dgt(palan.overall),
+        areas=[
+            PersonalPalanArea(
+                area=a.area,
+                polarity=a.polarity,
+                text=_dgt(a.text),
+                periodNote=_dgt(a.period_note) if a.period_note else None,
+            )
+            for a in palan.areas
+        ],
+        advice=_dgt(palan.advice),
+        worship=_dgt(palan.worship),
+        closing=_dgt(palan.closing),
+        strength=_dgt(palan.strength) if palan.strength else None,
+        watch=_dgt(palan.watch) if palan.watch else None,
+        opportunityArea=palan.opportunity_area,
+        cautionArea=palan.caution_area,
+        bestWindow=_featured_win,
+        basis=PersonalPalanBasis(
+            moonHouse=palan.moon_house,
+            tara=palan.tara,
+            taraName=_dgt(palan.tara_name),
+            isChandrashtama=palan.is_chandrashtama,
+            text=_dgt(palan.basis),
+        ),
+        period=(
+            PersonalPalanPeriod(
+                mahaLord=palan.period.maha_lord,
+                antarLord=palan.period.antar_lord,
+                saniCycle=palan.period.sani_cycle,
+                kandakaHouse=palan.period.kandaka_house,
+                guruHouse=palan.period.guru_house,
+                saturnHouse=palan.period.saturn_house,
+                rahuHouse=palan.period.rahu_house,
+                antarHouses=list(palan.period.antar_houses),
+                antarTransitHouse=palan.period.antar_transit_house,
+                antarTransitSupportive=palan.period.antar_transit_supportive,
+                text=_dgt(palan.period.text),
+            )
+            if palan.period
+            else None
+        ),
+        dashaAreas=list(palan.dasha_areas),
+        transcript=[
+            PersonalPalanSegment(kind=seg.kind, area=seg.area, text=_dgt(seg.text))
+            for seg in palan.transcript
+        ],
+        lucky=(
+            PersonalPalanLucky(
+                graha=palan.lucky.graha,
+                source=palan.lucky.source,
+                colour=_dgt(palan.lucky.colour),
+                number=palan.lucky.number,
+                direction=palan.lucky.direction,
+                directionName=_dgt(DIRECTION_NAME[palan.lucky.direction]) if palan.lucky.direction else None,
+                soolam=palan.lucky.soolam,
+                soolamName=_dgt(DIRECTION_NAME[palan.lucky.soolam]) if palan.lucky.soolam else None,
+                text=_dgt(palan.lucky.basis),
+            )
+            if palan.lucky
+            else None
+        ),
+    )
+
+    run_safety_pass(
+        personal_palan.overall, personal_palan.advice, personal_palan.worship,
+        personal_palan.closing, personal_palan.basis.text,
+        personal_palan.period.text if personal_palan.period else None,
+        *(a.text for a in personal_palan.areas),
+        *(a.period_note for a in personal_palan.areas),
+        *(seg.text for seg in personal_palan.transcript),
+        personal_palan.lucky.text if personal_palan.lucky else None,
+        source="personal_palan",
+    )
     run_safety_pass(
         reasons.summary, reasons.remedy, reasons.caution, reasons.personal_caution,
         nakshatra_perspective, briefing, emotional_weather.tone_text,
@@ -1129,6 +1249,7 @@ def build_daily_guidance_response(
                 nakshatra_number=day_nakshatra,
                 is_chandrashtama=chandrashtama,
             ),
+            personalPalan=personal_palan,
         ),
         meta=ResponseMeta(
             calculation_version=chart_snapshot.meta.calculation_version,
@@ -1199,7 +1320,17 @@ def get_daily_guidance(
                 calculation_version=chart_snapshot.meta.calculation_version,
                 goal_track=goal_track,
             )
-        if cached is not None:
+        # A row cached before `personalPalan` existed, or with an older palan
+        # CONTENT_VERSION, is otherwise current, so this is not an engine-version
+        # bump: only a single-date read (Today, the member bundle) rebuilds its
+        # own row, the day it is asked for. Range reads keep the old row;
+        # nothing they feed renders the palan.
+        palan_current = (
+            cached is not None
+            and cached.data.personal_palan is not None
+            and cached.data.personal_palan.content_version == PALAN_CONTENT_VERSION
+        )
+        if cached is not None and (palan_current or preloaded_cache is not None):
             return cached
 
     response = build_daily_guidance_response(

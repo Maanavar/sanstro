@@ -69,6 +69,7 @@ Quick map to the right document for each purpose. **Last regenerated: 2026-07-16
 - [REASONING_LAYER_UPGRADE_PLAN.md](REASONING_LAYER_UPGRADE_PLAN.md) — Reasoning-layer upgrade plan (calibration, explanation surfaces)
 
 ## Content & Tamil Astrology Reference
+- [PERSONAL_PALAN_CONTENT_REVIEW_2026-09-23.md](PERSONAL_PALAN_CONTENT_REVIEW_2026-09-23.md) — Review packet and release gate for the chart-personalised daily palan; 144-row area/Moon-house matrix, tara modifiers, precedence cases, safety rules and dual sign-off
 - [NATCHATHIRAM_DASHA_WRITING_GUIDE.md](NATCHATHIRAM_DASHA_WRITING_GUIDE.md) — Rules and patterns for writing dasha content for all 27 nakshatrams
 - [tamil-review-age-phase.md](tamil-review-age-phase.md) — Native-Tamil review notes: age-phase content
 - [tamil-review-daily-briefing.md](tamil-review-daily-briefing.md) — Native-Tamil review notes: daily briefing

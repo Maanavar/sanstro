@@ -119,13 +119,20 @@ def _normalize_activity_timing_activity(activity: str) -> ActivityType:
     return normalized
 
 
+# Rahu's house from the Moon, read as an axis. Shared with the personal palan
+# (app/services/personal_palan.py) so the peyarchi report and Today's palan
+# cannot call the same placement supportive in one place and testing in the other.
+NODE_AXIS_SUPPORTIVE: frozenset[int] = frozenset({3, 6, 10, 11})
+NODE_AXIS_RESTRUCTURING: frozenset[int] = frozenset({1, 5, 7, 8, 12})
+
+
 def _node_axis_phase(rahu_house_from_moon: int) -> tuple[str, str]:
-    if rahu_house_from_moon in {3, 6, 10, 11}:
+    if rahu_house_from_moon in NODE_AXIS_SUPPORTIVE:
         return (
             "இந்த அச்சு வெளிப்படையான முன்னேற்றம், திறன், சாதனை நோக்கை வலுப்படுத்தும்.",
             "This axis tends to externalize change through effort, skill-building, and visible progress.",
         )
-    if rahu_house_from_moon in {1, 5, 7, 8, 12}:
+    if rahu_house_from_moon in NODE_AXIS_RESTRUCTURING:
         return (
             "இந்த அச்சு ஆழமான மறுசீரமைப்பு காலம்; வேகத்தை விட நிலைத்தன்மை முக்கியம்.",
             "This axis marks a deeper restructuring phase, so grounding matters more than speed.",

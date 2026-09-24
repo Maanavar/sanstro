@@ -11,6 +11,7 @@
     "./i18n": "./src/i18n/strings.ts",
     "./i18n/panchangam-names": "./src/i18n/panchangam-names.ts",
     "./lifeFocus": "./src/lifeFocus.ts",
+    "./personalPalan": "./src/personalPalan.ts",
     "./checkIn": "./src/checkIn.ts",
     "./constants": "./src/constants/index.ts",
     "./constants/tiers": "./src/constants/tiers.ts",

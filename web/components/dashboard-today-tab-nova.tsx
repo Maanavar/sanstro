@@ -6,7 +6,7 @@ import { Activity, AlertTriangle, ArrowRight, Bell, CalendarDays, CalendarPlus, 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { addDays, formatClockLabel, formatClockRange, formatDateLabel, getLifeAreaVerdict, getScoreVerdictFromGuidance } from "@/lib/format";
 import type { GlossaryKey } from "@/lib/glossary";
-import { t, tLang, tNakshatra, tTithi } from "@/lib/i18n";
+import { t, tLang, tNakshatra, tTithi, tWeekday } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import {
   dt,
@@ -69,7 +69,7 @@ import {
   DashboardTodayLifeAreasDasaRowNova,
   DashboardTodayQuickLinksNova,
 } from "./dashboard-today-glance-nova";
-import { DashboardOneMinuteReading } from "./dashboard-one-minute-reading";
+import { DashboardTodayPalanNova, type PalanMember } from "./dashboard-today-palan-nova";
 import { FocusNudgeStrip, LifeModeBadge } from "./life-mode-picker";
 
 /**
@@ -304,7 +304,7 @@ function FirstResultGuide({
       gap: "var(--space-3)",
     }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "var(--space-3)", flexWrap: "wrap" }}>
-        <h2 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--color-accent-strong)" }}>
+        <h2 className="nova-card-title">
           {dt(FIRST_RESULT_GUIDE.heading, lang)}
         </h2>
         <a href="/learn/vedic-vs-western" style={{ fontSize: "var(--text-sm)", color: "var(--color-accent-secondary)", fontWeight: 700, textDecoration: "none" }}>
@@ -572,6 +572,18 @@ export function DashboardTodayTabNova({
         remedy: member.dailyGuidance?.remedy ?? null,
         remedyFocus: member.dailyGuidance?.remedyFocus ?? null,
       })),
+  ];
+  // §5 personal palan: the reader first, then each family member whose day
+  // bundle has already arrived. Same member list and dedupe as the remedy row.
+  const palanMembers: PalanMember[] = [
+    ...(personalDailyGuidance?.personalPalan
+      ? [{ memberId: primaryRemedyMemberId, displayName, palan: personalDailyGuidance.personalPalan, isSelf: true }]
+      : []),
+    ...remedyMemberCharts
+      .filter((member) => member.memberId !== primaryRemedyMemberId)
+      .flatMap((member) => (member.dailyGuidance?.personalPalan
+        ? [{ memberId: member.memberId, displayName: member.displayName, palan: member.dailyGuidance.personalPalan, isSelf: false }]
+        : [])),
   ];
   // Hero greeting shows a first name only — the full name reads too formal
   // sitting right next to "Good morning".
@@ -878,7 +890,10 @@ export function DashboardTodayTabNova({
             `limbNow` promotion. */}
         <div className="nova-hero-masthead">
           <span className="nova-hero-masthead__date">
-            {weekday && `${weekday}, `}{formatDateLabel(dataDate)}
+            {/* `vara.weekday` is a key ("WEDNESDAY"), not a display name — it
+                printed in capitals beside a sentence-case date, and in English
+                on the Tamil page. Through the localiser, like every other key. */}
+            {weekday && `${tWeekday(weekday, lang)}, `}{formatDateLabel(dataDate)}
             {panchangam?.tamilDate && <> · <span style={{ color: "var(--color-accent-strong)" }}>{lang === "ta" ? panchangam.tamilDate.ta : panchangam.tamilDate.en}</span></>}
           </span>
           {/* Star · tithi · paksha · observance. Finding 13 put the star and
@@ -1022,7 +1037,7 @@ export function DashboardTodayTabNova({
                     first of which names the tab the reader is already looking
                     at. The greeting alone now carries the kicker treatment. */}
                 <div style={{
-                  fontSize: "var(--text-sm)", fontWeight: 700, letterSpacing: "0.24em", textTransform: "uppercase",
+                  fontSize: "var(--text-sm)", fontWeight: 700, letterSpacing: "var(--tracking-caps)", textTransform: "uppercase",
                   color: "var(--color-accent-strong)", lineHeight: 1.2, marginBottom: "var(--space-1)",
                 }}>
                   {greetingWord(lang, zoneHour)},
@@ -1042,7 +1057,7 @@ export function DashboardTodayTabNova({
                     so it sits outside the accessible name. */}
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3_5)", flexWrap: "wrap" }}>
                   <h1 className="nova-hero-name" style={{
-                    margin: 0, fontFamily: "var(--font-display)", fontWeight: 600, lineHeight: 1.06,
+                    margin: 0, fontFamily: "var(--font-heading)", fontWeight: 600, lineHeight: 1.06,
                     fontSize: "clamp(2.25rem, 3.4vw, 3.5rem)", maxWidth: "720px",
                     background: "linear-gradient(120deg, var(--color-text-strong) 68%, var(--color-accent-secondary))",
                     WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent",
@@ -1062,7 +1077,7 @@ export function DashboardTodayTabNova({
                   maxWidth="690px"
                   moreLabel={dt(TODAY_HERO.readMore, lang)}
                   lessLabel={dt(TODAY_HERO.readLess, lang)}
-                  style={{ fontFamily: "var(--font-body)", fontSize: "clamp(16px, 1.2vw, 19px)", lineHeight: 1.55, color: "var(--color-text)" }}
+                  style={{ fontSize: "var(--text-md)", lineHeight: 1.55, color: "var(--color-text)" }}
                 >
                   {tLang(tomorrowGuidance.briefing ?? tomorrowGuidance.text, lang)}
                 </NovaClampedText>
@@ -1127,7 +1142,7 @@ export function DashboardTodayTabNova({
                     first of which names the tab the reader is already looking
                     at. The greeting alone now carries the kicker treatment. */}
                 <div style={{
-                  fontSize: "var(--text-sm)", fontWeight: 700, letterSpacing: "0.24em", textTransform: "uppercase",
+                  fontSize: "var(--text-sm)", fontWeight: 700, letterSpacing: "var(--tracking-caps)", textTransform: "uppercase",
                   color: "var(--color-accent-strong)", lineHeight: 1.2, marginBottom: "var(--space-1)",
                 }}>
                   {greetingWord(lang, zoneHour)},
@@ -1147,7 +1162,7 @@ export function DashboardTodayTabNova({
                     so it sits outside the accessible name. */}
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3_5)", flexWrap: "wrap" }}>
                   <h1 className="nova-hero-name" style={{
-                    margin: 0, fontFamily: "var(--font-display)", fontWeight: 600, lineHeight: 1.06,
+                    margin: 0, fontFamily: "var(--font-heading)", fontWeight: 600, lineHeight: 1.06,
                     fontSize: "clamp(2.25rem, 3.4vw, 3.5rem)", maxWidth: "720px",
                     background: "linear-gradient(120deg, var(--color-text-strong) 68%, var(--color-accent-secondary))",
                     WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent",
@@ -1187,7 +1202,12 @@ export function DashboardTodayTabNova({
                     maxWidth="690px"
                     moreLabel={dt(TODAY_HERO.readMore, lang)}
                     lessLabel={dt(TODAY_HERO.readLess, lang)}
-                    style={{ fontFamily: "var(--font-body)", fontSize: "var(--text-md)", lineHeight: 1.55, color: "var(--color-text)" }}
+                    // Inherits the shell's face rather than naming
+                    // --font-body: in Tamil the shell leads with Noto Sans
+                    // Tamil, and --font-body names no Tamil face at all, so
+                    // the one paragraph a reader opens Today for was the one
+                    // painted in the OS's Tamil font.
+                    style={{ fontSize: "var(--text-md)", lineHeight: 1.55, color: "var(--color-text)" }}
                   >
                     {tLang(personalDailyGuidance.briefing ?? personalDailyGuidance.text, lang)}
                   </NovaClampedText>
@@ -1540,7 +1560,7 @@ export function DashboardTodayTabNova({
                     labelled as chart support and sits beside the reasons it is
                     derived from. Two encodings remain here, of one axis: the
                     precise number and the calm verdict that leads it. */}
-                <Kicker style={{ letterSpacing: "0.14em" }}>
+                <Kicker>
                   {dt(isTomorrow ? TODAY_HERO.tomorrowScore : TODAY_HERO.todayScore, lang)}
                 </Kicker>
                 {/* The dial is the hero's one number and was drawn at the same
@@ -1549,7 +1569,7 @@ export function DashboardTodayTabNova({
                     column, so it takes the size prop up. */}
                 <NovaScoreDial score={dialScore} size={172} color={verdict.color} label={lang === "ta" ? "100க்கு" : "/ 100"} />
                 {/* UXD-19 — the calm verdict phrase leads; the number supports it. */}
-                <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 700, color: verdict.color, textAlign: "center", lineHeight: 1.15 }}>{verdict.verdict}</div>
+                <div style={{ fontFamily: "var(--font-heading)", fontSize: "var(--text-xl)", fontWeight: 700, color: verdict.color, textAlign: "center", lineHeight: 1.15 }}>{verdict.verdict}</div>
                 {/* Finding 9 — this link said "Why this score" and landed on a
                     section headed "Why this prediction?". One destination, two
                     names; the destination's heading wins. */}
@@ -1780,22 +1800,21 @@ export function DashboardTodayTabNova({
         <FirstResultGuide lang={lang} action={personalDailyGuidance.actionSuggestion} />
       )}
 
-      {/* The two-minute reading, but only while it has something new to say.
-          `readingWindow` is the current antardasha — months to years — and most
-          of its beats are natal and never move at all, so this slot was
-          spending ~240 words a day on a piece of writing whose own subtitle
-          says it will not change until March. Once read, it collapses to a
-          single line pointing at Family & Charts, and it expands again by
-          itself when the bhukti turns and the backend rewrites it. See
-          `collapseWhenRead`. */}
-      {activeChartId && (
-        <DashboardOneMinuteReading
-          lang={lang}
-          chartId={activeChartId}
-          onOpenFullChart={onGoToCharts}
-          deferUntilVisible
-          collapseWhenRead
-        />
+      {/* Proposal §5 (owner, 2026-09-23): Today in two minutes, from the
+          reader's own chart, for them and each family member. It replaces the
+          natal "Your chart in two minutes" reading here, which changes only at
+          the bhukti turn and is read in full on Family & Charts; the card's
+          last row links there. A row cached before the palan existed has no
+          `personalPalan`, and the slot then renders nothing that day. */}
+      {palanMembers.length > 0 && (
+        <Reveal>
+          <DashboardTodayPalanNova
+            lang={lang}
+            members={palanMembers}
+            focusArea={lifeFocus.area}
+            onOpenChartReading={onGoToCharts}
+          />
+        </Reveal>
       )}
 
       {/* Fail-soft notice (DASH-02): the day bundle loaded but some sections
@@ -1890,11 +1909,11 @@ export function DashboardTodayTabNova({
       {personalDailyGuidance && (
         <Card id="nova-deep-dive" tabIndex={-1} style={{ borderColor: "var(--color-border-strong)", padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3_5)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2_5)", flexWrap: "wrap" }}>
-            <h2 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--color-accent-strong)" }}>
+            <h2 className="nova-card-title">
               {lang === "ta" ? "இந்த கணிப்பு ஏன்?" : "Why this prediction?"}
             </h2>
             <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
-              {lang === "ta" ? "இன்றைய ஜோதிடத்தின் அடிப்படை" : "the astrology behind today"}
+              {lang === "ta" ? "இன்றைய ஜோதிடத்தின் அடிப்படை" : "The astrology behind today"}
             </span>
             {/* Finding 5, second half — the band is evidence strength, not a
                 second verdict on the day. Here it sits beside the reasons it
