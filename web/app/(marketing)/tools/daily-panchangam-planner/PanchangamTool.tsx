@@ -780,7 +780,17 @@ export function PanchangamTool() {
               )}
               <TimeSlot label={en ? "Rahu Kalam" : "ராகு காலம்"} start={data.kalam.rahuKalam.start} end={data.kalam.rahuKalam.end} tone="hold" lang={lang} />
               <TimeSlot label={en ? "Yamagandam" : "யமகண்டம்"} start={data.kalam.yamagandam.start} end={data.kalam.yamagandam.end} tone="hold" lang={lang} />
-              <TimeSlot label={en ? "Kuligai" : "குளிகை"} start={data.kalam.kuligai.start} end={data.kalam.kuligai.end} tone="hold" lang={lang} />
+              <TimeSlot label={en ? "Kuligai · repeat / continue / grow" : "குளிகை · மீண்டும் நிகழ / தொடர / வளர"} start={data.kalam.kuligai.start} end={data.kalam.kuligai.end} tone="neutral" lang={lang} />
+              {(data.kalam.durmuhurtham ?? []).map((slot, index) => (
+                <TimeSlot
+                  key={`dur-${index}`}
+                  label={en ? "Durmuhurtham · avoid auspicious/new beginnings" : "துர்முகூர்த்தம் · சுப / புதிய தொடக்கங்களுக்கு தவிர்க்கவும்"}
+                  start={slot.start}
+                  end={slot.end}
+                  tone="hold"
+                  lang={lang}
+                />
+              ))}
             </div>
           </div>
 

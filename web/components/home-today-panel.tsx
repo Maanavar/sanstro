@@ -319,6 +319,12 @@ function OtherTimings({ panchangam, lang }: { panchangam: PanchangamDailyRespons
       value: kalam.kuligai ? fmt(kalam.kuligai) : null,
       note: kalam.kuligai ? mt(HOME.today_kuligai_note, lang) : null,
     },
+    ...(kalam.durmuhurtham ?? []).map((slot, index) => ({
+      key: `durmuhurtham-${index}`,
+      label: mt(HOME.today_durmuhurtham, lang),
+      value: fmt(slot),
+      note: mt(HOME.today_durmuhurtham_note, lang),
+    })),
     {
       key: "abhijit",
       label: mt(HOME.today_abhijit, lang),

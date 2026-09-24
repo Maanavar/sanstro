@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   AlmanacMuhurthamBadge,
@@ -7,10 +7,20 @@ import {
   gregorianMonthOptions,
   groupSlotsByTamilMonth,
   monthEndIso,
+  MuhurtaDayDetailDrawer,
   windowDayCount,
   withWeddingParams,
 } from "./dashboard-plan-muhurta-picker-nova";
+import type { MuhurtaDayDrawerComponentProps } from "./dashboard-plan-muhurta-picker-nova";
 import type { MuhurtaSlot } from "@/lib/types";
+
+// Partial, not wholesale: `lib/api` calls `initApiClient` at import time, so
+// replacing the module outright breaks the picker's own import chain.
+vi.mock("@vinaadi/shared/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@vinaadi/shared/api")>()),
+  getPanchangamDay: vi.fn(() => Promise.resolve({ data: null })),
+  getPanchangamMonth: vi.fn(() => Promise.resolve({ data: null })),
+}));
 
 /** What leaves the picker for a wedding. The failure being guarded is silent — a
  *  one-chart request renders exactly like a two-chart one — so this watches the
@@ -94,6 +104,86 @@ describe("groupSlotsByTamilMonth", () => {
 
   it("returns nothing for an empty result", () => {
     expect(groupSlotsByTamilMonth([])).toEqual([]);
+  });
+});
+
+/**
+ * `MuhurtaDayDetailDrawer` is the seam three different ranking contexts share —
+ * the detailed election, the quick month scan and the published wedding naal —
+ * and the rule is that each one brings its own score and its own list of dates.
+ * The drawer tests in `dashboard-calendar-day-drawer-nova.test.tsx` render the
+ * drawer directly, so they prove that a `lead` prop reaches the DOM and nothing
+ * about this composition. These cover the composition.
+ *
+ * The step list is the part that has already been wrong twice: once counting
+ * ranked slots rather than days, and once treating "not in the list" as
+ * position 1, which turned the forward arrow into a jump to somebody else's
+ * result.
+ */
+describe("MuhurtaDayDetailDrawer step context", () => {
+  const location = { latitude: 13.08, longitude: 80.27, timezone: "Asia/Kolkata" };
+
+  /** Stands in for `DayDetailDrawerNova`: this suite is about which props the
+   *  composition computes, not about how the drawer paints them. */
+  function StubDrawer({ date, lead, stepContext, onStepDay }: MuhurtaDayDrawerComponentProps) {
+    return (
+      <div>
+        <span data-testid="date">{date}</span>
+        <span data-testid="position">{stepContext ? `${stepContext.position}/${stepContext.total}` : "none"}</span>
+        <div data-testid="lead">{lead}</div>
+        <button type="button" onClick={() => onStepDay(-1)}>prev</button>
+        <button type="button" onClick={() => onStepDay(1)}>next</button>
+      </div>
+    );
+  }
+
+  function renderDrawer(date: string, resultDates: string[]) {
+    const onDateChange = vi.fn();
+    render(
+      <MuhurtaDayDetailDrawer
+        date={date}
+        location={location}
+        resultDates={resultDates}
+        lang="en"
+        lead={<p>Detailed election · 93.8</p>}
+        onDateChange={onDateChange}
+        onClose={vi.fn()}
+        DayDrawer={StubDrawer}
+      />,
+    );
+    return { onDateChange };
+  }
+
+  it("counts distinct days, not ranked slots, so a day with two windows steps once", async () => {
+    // A ranked list can carry the same date twice. Stepping by slot would land
+    // on the date it started from and the drawer would look frozen.
+    const { onDateChange } = renderDrawer("2026-10-12", ["2026-10-12", "2026-10-12", "2026-10-15"]);
+
+    expect(screen.getByTestId("position")).toHaveTextContent("1/2");
+    fireEvent.click(screen.getByRole("button", { name: "next" }));
+    expect(onDateChange).toHaveBeenCalledWith("2026-10-15");
+    await waitFor(() => expect(screen.getByTestId("date")).toHaveTextContent("2026-10-12"));
+  });
+
+  it("reports no position for a day outside the list instead of claiming to be its first result", async () => {
+    // This is the "check a specific date" case: one typed day that the ranked
+    // search never returned. Position 0 is what disables both arrows.
+    const { onDateChange } = renderDrawer("2026-11-03", ["2026-10-12", "2026-10-15"]);
+
+    expect(screen.getByTestId("position")).toHaveTextContent("0/2");
+    fireEvent.click(screen.getByRole("button", { name: "next" }));
+    fireEvent.click(screen.getByRole("button", { name: "prev" }));
+    expect(onDateChange).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.getByTestId("lead")).toHaveTextContent("Detailed election · 93.8"));
+  });
+
+  it("shows only the lead its caller supplied, so two engines never share a screen", async () => {
+    renderDrawer("2026-10-12", ["2026-10-12"]);
+
+    expect(screen.getByTestId("lead")).toHaveTextContent("Detailed election · 93.8");
+    // One checked day is both endpoints.
+    expect(screen.getByTestId("position")).toHaveTextContent("1/1");
+    await waitFor(() => expect(screen.getByTestId("date")).toHaveTextContent("2026-10-12"));
   });
 });
 

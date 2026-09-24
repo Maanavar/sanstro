@@ -16,7 +16,10 @@ import {
 } from "@/lib/muhurtham-naal";
 import { NovaSelect } from "./nova-select";
 import { Card } from "./ui";
-import { MuhurtaPanchangamOverlay } from "./dashboard-plan-muhurta-picker-nova";
+import {
+  MuhurtaDayDetailDrawer,
+  type MuhurtaDayDrawerComponent,
+} from "./dashboard-plan-muhurta-picker-nova";
 
 /**
  * Nova re-skin of dashboard-muhurtham-naal.tsx's DashboardMuhurthamNaal —
@@ -193,11 +196,13 @@ function NovaNaalRow({
 export function NovaMuhurthamNaal({
   lang,
   chartId,
+  DayDrawer,
   couple = null,
   onCheckInPlanner,
 }: {
   lang: Lang;
   chartId: string | null;
+  DayDrawer: MuhurtaDayDrawerComponent;
   /** Rank for both charts, weaker side governing. Null ranks for `chartId` alone. */
   couple?: NaalCouple | null;
   onCheckInPlanner?: (date: string) => void;
@@ -315,6 +320,7 @@ export function NovaMuhurthamNaal({
   })();
 
   const showMatchCol = chartId !== null && matches.length > 0;
+  const drawerRow = panchangamDate ? rows.find((row) => row.naal.date === panchangamDate) ?? null : null;
   const title = lang === "ta" ? `${year} திருமண முகூர்த்த நாட்கள்` : `${year} Wedding Muhurtham Naal`;
 
   return (
@@ -455,12 +461,44 @@ export function NovaMuhurthamNaal({
         </Card>
       )}
 
-      {panchangamDate && context?.dailyLocation && (
-        <MuhurtaPanchangamOverlay
+      {panchangamDate && drawerRow && context?.dailyLocation && (
+        <MuhurtaDayDetailDrawer
           date={panchangamDate}
           location={context.dailyLocation}
+          resultDates={rows.map((row) => row.naal.date)}
           lang={lang}
+          lead={(
+            <section style={{ padding: "var(--space-4)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", background: "var(--color-surface-soft)" }}>
+              <p style={{ margin: "0 0 6px", color: "var(--color-text-accent)", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                {lang === "ta" ? "வெளியிடப்பட்ட திருமண முகூர்த்த நாள்" : "Published wedding muhurtham date"}
+              </p>
+              <p style={{ margin: 0, color: "var(--color-text)", lineHeight: 1.55 }}>
+                {lang === "ta"
+                  ? `${drawerRow.naal.tamilMonth.ta} ${drawerRow.naal.tamilDay} · ${drawerRow.naal.nakshatra.ta} · ${drawerRow.naal.pirai.ta}`
+                  : `${drawerRow.naal.tamilMonth.en} ${drawerRow.naal.tamilDay} · ${drawerRow.naal.nakshatra.en} · ${drawerRow.naal.pirai.en}`}
+              </p>
+              {drawerRow.match && (
+                <>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-2)", marginTop: "8px", flexWrap: "wrap" }}>
+                    <strong style={{ color: SCORE_COLOR(drawerRow.match.matchScore), fontFamily: "var(--font-display)", fontSize: "var(--text-2xl)" }}>
+                      {drawerRow.match.matchScore}<span style={{ fontSize: "var(--text-sm)" }}>/100</span>
+                    </strong>
+                    <span style={{ color: "var(--color-muted)", fontSize: "var(--text-sm)", fontWeight: 700 }}>
+                      {lang === "ta" ? drawerRow.match.taraName.ta : drawerRow.match.taraName.en}
+                    </span>
+                  </div>
+                  {drawerRow.match.reasons.map((reason, index) => (
+                    <p key={index} style={{ margin: "6px 0 0", color: "var(--color-text)", fontSize: "var(--text-sm)", lineHeight: 1.5 }}>
+                      {lang === "ta" ? reason.ta : reason.en}
+                    </p>
+                  ))}
+                </>
+              )}
+            </section>
+          )}
+          onDateChange={setPanchangamDate}
           onClose={() => setPanchangamDate(null)}
+          DayDrawer={DayDrawer}
         />
       )}
     </Card>

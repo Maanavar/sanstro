@@ -213,6 +213,9 @@ export type DashboardCalendarMonthlyNovaProps = {
    *  navigate there and open it. Resolves false when none is found within the
    *  parent's scan cap. */
   onJumpToNextMuhurtham?: () => Promise<boolean>;
+  /** Hide the dashboard-only jump actions when the grid is embedded as a
+   *  search-result view. Month stepping and result-date selection remain. */
+  showQuickJumps?: boolean;
   /** Life focus, Phase 3: the optional "Good days: Career" chip. Off by
    *  default; absent when the focus has no activities or no own chart. The
    *  dates come from the activity-timing engine and are only marked, never
@@ -224,7 +227,15 @@ export type DashboardCalendarMonthlyNovaProps = {
     dates: ReadonlySet<string>;
     loading: boolean;
     failed: boolean;
+    /** Context-owned copy. Life focus uses the defaults below; other result
+     *  overlays can reuse the same non-colour marker without borrowing its
+     *  wording. */
+    chipLabel?: string;
+    cellLabel?: string;
+    note?: string;
   } | null;
+  /** When supplied, only these civil dates open a drawer. */
+  selectableDates?: ReadonlySet<string> | null;
 };
 
 function NovaFestivalIcon({ name }: { name: string }) {
@@ -261,7 +272,9 @@ export function MonthlyCalendarViewNova({
   onSelectDate,
   onQuickJump,
   onJumpToNextMuhurtham,
+  showQuickJumps = true,
   focusDays = null,
+  selectableDates = null,
 }: DashboardCalendarMonthlyNovaProps) {
   const markFocusDays = Boolean(focusDays?.on && !focusDays.loading && !focusDays.failed);
   const [focusedDate, setFocusedDate] = useState(selectedDate);
@@ -466,26 +479,28 @@ export function MonthlyCalendarViewNova({
           </button>
           {tamilMonthHeader && <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>{tamilMonthHeader}</div>}
           {isLoading && <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>{t("cal_monthly_loading", lang)}</span>}
-          <div className="nova-cal-toolbar__actions">
-            <Button size="sm" variant="secondary" onClick={() => { setFocusedDate(todayDate); onQuickJump?.("today"); }} disabled={!onQuickJump}>
-              {t("cal_monthly_today", lang)}
-            </Button>
-            <Button size="sm" variant="secondary" onClick={() => onQuickJump?.("thisMonth")} disabled={!onQuickJump}>
-              {t("cal_monthly_this_month", lang)}
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              className="nova-cal-next-muhurtham"
-              onClick={handleNextMuhurtham}
-              disabled={nextMuhurthamPending || !onJumpToNextMuhurtham}
-            >
-              <Sparkles size={13} strokeWidth={1.75} aria-hidden="true" />
-              {nextMuhurthamPending
-                ? t("cal_monthly_searching", lang)
-                : t("cal_monthly_next_muhurtham", lang)}
-            </Button>
-          </div>
+          {showQuickJumps && (
+            <div className="nova-cal-toolbar__actions">
+              <Button size="sm" variant="secondary" onClick={() => { setFocusedDate(todayDate); onQuickJump?.("today"); }} disabled={!onQuickJump}>
+                {t("cal_monthly_today", lang)}
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => onQuickJump?.("thisMonth")} disabled={!onQuickJump}>
+                {t("cal_monthly_this_month", lang)}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="nova-cal-next-muhurtham"
+                onClick={handleNextMuhurtham}
+                disabled={nextMuhurthamPending || !onJumpToNextMuhurtham}
+              >
+                <Sparkles size={13} strokeWidth={1.75} aria-hidden="true" />
+                {nextMuhurthamPending
+                  ? t("cal_monthly_searching", lang)
+                  : t("cal_monthly_next_muhurtham", lang)}
+              </Button>
+            </div>
+          )}
         </div>
         {nextMuhurthamNote && <p role="status" className="nova-cal-rail-meta">{nextMuhurthamNote}</p>}
 
@@ -517,7 +532,7 @@ export function MonthlyCalendarViewNova({
               onClick={focusDays.onToggle}
             >
               <Crosshair size={13} strokeWidth={1.9} aria-hidden="true" style={{ color: "var(--color-text-strong)" }} />
-              {dt(LIFE_FOCUS.calendarChip, lang).replace("%s", focusDays.label)}
+              {focusDays.chipLabel ?? dt(LIFE_FOCUS.calendarChip, lang).replace("%s", focusDays.label)}
             </button>
           )}
           <Button size="sm" variant="ghost" className="nova-cal-filterbar__reset" onClick={() => setEnabledCats(allFiltersOn ? new Set() : new Set(ALL_CATEGORIES))}>
@@ -532,7 +547,7 @@ export function MonthlyCalendarViewNova({
                 ? dt(LIFE_FOCUS.calendarFailed, lang)
                 : focusDays.dates.size === 0
                   ? dt(LIFE_FOCUS.calendarNone, lang)
-                  : dt(LIFE_FOCUS.calendarNote, lang)}
+                  : focusDays.note ?? dt(LIFE_FOCUS.calendarNote, lang)}
           </p>
         )}
 
@@ -570,6 +585,7 @@ export function MonthlyCalendarViewNova({
                   const showLunar = catOn("lunar");
                   const showKarinaal = Boolean(entry?.isKarinaal) && catOn("karinaal");
                   const isFocusDay = markFocusDays && Boolean(focusDays?.dates.has(cell.dateLocal));
+                  const isSelectable = Boolean(onSelectDate) && (!selectableDates || selectableDates.has(cell.dateLocal));
                   // Every day carries its real moon shape, not just the two
                   // special tithis: the month grid is where the fortnight's
                   // rhythm is read, and the old flat mark appeared only on
@@ -631,23 +647,33 @@ export function MonthlyCalendarViewNova({
                   const selectionRing = isSelected ? "inset 0 0 0 2px var(--color-text-strong)" : isToday ? "inset 0 0 0 1.5px color-mix(in srgb, var(--color-text-strong) 55%, transparent)" : "none";
                   const dateColor = "var(--color-text-strong)";
 
+                  // A day the caller cannot open is not a control, so it is not
+                  // rendered as one. A `disabled` button looks identical to an
+                  // active cell here (the styles are inline and unconditional),
+                  // drops out of the tab order anyway, and announces "dimmed"
+                  // for a cell whose almanac content is perfectly readable. A
+                  // plain element keeps the content and drops the false
+                  // affordance. `selectableDates` is null on the dashboard
+                  // calendar, where every day stays a button.
+                  const CellTag = (isSelectable ? "button" : "div") as "button";
+                  const cellActions = isSelectable
+                    ? { type: "button" as const, onClick: () => selectDay(cell.dateLocal!), "aria-pressed": isSelected }
+                    : {};
+
                   return (
-                    <button
+                    <CellTag
                       key={cell.dateLocal}
-                      type="button"
+                      {...cellActions}
                       className={`nova-cal-cell${isToday ? " nova-cal-today" : ""}`}
-                      aria-label={[formatGridDay(cell.dateLocal, lang), String(year), tamilDay, entry ? tTithi(entry.tithiName, lang) : "", ...visibleFestivals.map((f) => f.name), showMuhurtham ? (t("cal_monthly_muhurtham", lang)) : "", showKarinaal ? (t("cal_monthly_karinaal", lang)) : "", isFocusDay && focusDays ? dt(LIFE_FOCUS.calendarCell, lang).replace("%s", focusDays.label) : ""].filter(Boolean).join(" · ")}
-                      aria-pressed={onSelectDate ? isSelected : undefined}
+                      aria-label={[formatGridDay(cell.dateLocal, lang), String(year), tamilDay, entry ? tTithi(entry.tithiName, lang) : "", ...visibleFestivals.map((f) => f.name), showMuhurtham ? (t("cal_monthly_muhurtham", lang)) : "", showKarinaal ? (t("cal_monthly_karinaal", lang)) : "", isFocusDay && focusDays ? (focusDays.cellLabel ?? dt(LIFE_FOCUS.calendarCell, lang).replace("%s", focusDays.label)) : ""].filter(Boolean).join(" · ")}
                       aria-current={isToday ? "date" : undefined}
-                      onClick={onSelectDate ? () => selectDay(cell.dateLocal!) : undefined}
-                      disabled={!onSelectDate}
                       style={{
                         appearance: "none", width: "100%", position: "relative",
                         border: `1px solid ${cellBorder}`, borderRadius: "var(--radius-sm)",
                         boxShadow: selectionRing,
                         background: cellBg, padding: "var(--space-2)",
                         display: "flex", flexDirection: "column", gap: "var(--space-1)",
-                        overflow: "hidden", cursor: onSelectDate ? "pointer" : "default", textAlign: "left",
+                        overflow: "hidden", cursor: isSelectable ? "pointer" : "default", textAlign: "left",
                         fontFamily: "inherit",
                       }}
                     >
@@ -693,7 +719,7 @@ export function MonthlyCalendarViewNova({
                           </span>
                         )}
                       </div>
-                    </button>
+                    </CellTag>
                   );
                 })}
               </div>

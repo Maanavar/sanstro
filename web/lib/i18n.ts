@@ -339,6 +339,7 @@ const STRINGS = {
   label_rahu_kalam: { ta: "ரா.காலம்",    en: "Rahu Kalam" },
   label_yamagandam: { ta: "எமகண்டம்",     en: "Yamagandam" },
   label_kuligai:    { ta: "குளிகை",       en: "Kuligai" },
+  label_durmuhurtham:{ ta: "துர்முகூர்த்தம்", en: "Durmuhurtham" },
   label_mandhi:     { ta: "மாந்தி",       en: "Mandhi" },
   label_nalla_neram:      { ta: "நல்ல நேரம்",       en: "Nalla Neram" },
   label_gowri_nalla_neram:{ ta: "கௌரி நல்ல நேரம்", en: "Gowri Nalla Neram" },

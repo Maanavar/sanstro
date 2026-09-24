@@ -309,7 +309,7 @@ export default function TodayTab() {
     const chips = [] as { label: string; ok: boolean; detail: string }[];
     if (g.bestWindows?.[0]) {
       const w = g.bestWindows[0];
-      chips.push({ label: t(strings.chips.start_work), ok: true, detail: `${w.type}: ${fmt(w.start)} - ${fmt(w.end)}` });
+      chips.push({ label: t(strings.chips.start_work), ok: true, detail: `${w.type}: ${formatTimeLang(w.start, lang)} - ${formatTimeLang(w.end, lang)}` });
     }
     if (g.currentHoraLord) {
       chips.push({ label: `${g.currentHoraLord} ${t(strings.chips.hora_suffix)}`, ok: true, detail: biText(g.actionSuggestion, isTamil, "Use this window for focused action.") });
@@ -318,10 +318,10 @@ export default function TodayTab() {
     chips.push({ label: t(strings.chips.contracts), ok: !g.cautionWindows?.length && g.score >= SCORE_THRESHOLDS.HIGH, detail: biText(g.cautionSuggestion, isTamil, "Check caution windows before signing.") });
     if (g.cautionWindows?.[0]) {
       const w = g.cautionWindows[0];
-      chips.push({ label: t(strings.chips.avoid_rush), ok: false, detail: `${w.type}: ${fmt(w.start)} - ${fmt(w.end)}` });
+      chips.push({ label: t(strings.chips.avoid_rush), ok: false, detail: `${w.type}: ${formatTimeLang(w.start, lang)} - ${formatTimeLang(w.end, lang)}` });
     }
     return chips.slice(0, 5);
-  }, [g, isTamil, t, strings]);
+  }, [g, isTamil, lang, t, strings]);
 
   const openDetailSheet = useCallback((sheet: DetailSheetState) => {
     setDetailSheet(sheet);
@@ -697,6 +697,14 @@ export default function TodayTab() {
               start={fmt(p.kalam.kuligai.start)}
               end={fmt(p.kalam.kuligai.end)}
             />
+            {(p.kalam.durmuhurtham ?? []).map((slot, index) => (
+              <TimeCard
+                key={`dur-${index}`}
+                kind="durmuhurtham"
+                start={fmt(slot.start)}
+                end={fmt(slot.end)}
+              />
+            ))}
           </ScrollView>
         ) : null}
 

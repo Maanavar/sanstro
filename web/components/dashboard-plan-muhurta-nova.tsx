@@ -10,7 +10,11 @@ import { CULTURAL_CONTEXT, dt } from "@/lib/dashboard-i18n";
 import type { ActivityTimingData } from "@/lib/types";
 import { focusPreselect } from "@/lib/life-focus";
 import { ACTIVITY_OPTIONS, ACTIVITY_TO_MUHURTA } from "./dashboard-plan-shared";
-import { MuhurtaPanchangamOverlay, NovaMuhurtaPicker } from "./dashboard-plan-muhurta-picker-nova";
+import {
+  MuhurtaDayDetailDrawer,
+  NovaMuhurtaPicker,
+  type MuhurtaDayDrawerComponent,
+} from "./dashboard-plan-muhurta-picker-nova";
 import { NovaMuhurthamNaal } from "./dashboard-plan-muhurtham-naal-nova";
 import {
   INITIAL_WEDDING_CHOICE,
@@ -49,9 +53,10 @@ type Props = {
   /** Life focus, Phase 3: the quick scan opens on the focus's first activity.
    *  Empty for a family member's chart (D4). */
   focusActivities?: readonly string[];
+  DayDrawer: MuhurtaDayDrawerComponent;
 };
 
-export function NovaPlanMuhurtaPanel({ lang, chartId, focusActivities = [] }: Props) {
+export function NovaPlanMuhurtaPanel({ lang, chartId, focusActivities = [], DayDrawer }: Props) {
   // Null until the reader picks, so the default can follow a focus change
   // made elsewhere without overriding a choice made here.
   const [chosenActivityType, setActivityType] = useState<string | null>(null);
@@ -100,6 +105,10 @@ export function NovaPlanMuhurtaPanel({ lang, chartId, focusActivities = [] }: Pr
   useEffect(() => { setActivityTimingResult(null); }, [scanCoupleKey]);
   // Covers the focus-driven default too: a shortlist never outlives its activity.
   useEffect(() => { setActivityTimingResult(null); }, [activityType]);
+  const quickScanDay = panchangamDate
+    ? activityTimingResult?.topDates.find((day) => day.dateLocal === panchangamDate) ?? null
+    : null;
+  const quickScanActivity = ACTIVITY_OPTIONS.find((option) => option.value === activityType) ?? ACTIVITY_OPTIONS[0];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", fontFamily: "var(--font-body)" }}>
@@ -267,6 +276,7 @@ export function NovaPlanMuhurtaPanel({ lang, chartId, focusActivities = [] }: Pr
         <NovaMuhurtaPicker
           lang={lang}
           chartId={chartId || null}
+          DayDrawer={DayDrawer}
           initialDateFrom={muhurtaPresetDate}
           initialActivity={muhurtaPresetActivity}
           wedding={{ couple, subjectRole: wedding.subjectRole, partnerName }}
@@ -289,6 +299,7 @@ export function NovaPlanMuhurtaPanel({ lang, chartId, focusActivities = [] }: Pr
         <NovaMuhurthamNaal
           lang={lang}
           chartId={chartId || null}
+          DayDrawer={DayDrawer}
           couple={couple}
           onCheckInPlanner={(date) => {
             setMuhurtaPresetDate(date);
@@ -297,12 +308,36 @@ export function NovaPlanMuhurtaPanel({ lang, chartId, focusActivities = [] }: Pr
         />
       </div>
 
-      {panchangamDate && activityTimingResult?.dailyLocation && (
-        <MuhurtaPanchangamOverlay
+      {panchangamDate && quickScanDay && activityTimingResult?.dailyLocation && (
+        <MuhurtaDayDetailDrawer
           date={panchangamDate}
           location={activityTimingResult.dailyLocation}
+          resultDates={activityTimingResult.topDates.map((day) => day.dateLocal)}
           lang={lang}
+          lead={(
+            <section style={{ padding: "var(--space-4)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", background: "var(--color-surface-soft)" }}>
+              <p style={{ margin: "0 0 6px", color: "var(--color-text-accent)", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                {lang === "ta" ? `விரைவு மாதத் தேடல் · ${quickScanActivity.ta}` : `Quick month scan · ${quickScanActivity.en}`}
+              </p>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-2)", flexWrap: "wrap" }}>
+                <strong style={{ color: quickScanDay.score >= 70 ? "var(--color-high)" : quickScanDay.score >= 50 ? "var(--color-mid)" : "var(--color-low)", fontFamily: "var(--font-display)", fontSize: "var(--text-2xl)" }}>
+                  {quickScanDay.score}<span style={{ fontSize: "var(--text-sm)" }}>/100</span>
+                </strong>
+                <span style={{ color: "var(--color-muted)", fontSize: "var(--text-sm)", fontWeight: 700 }}>{quickScanDay.alignment}</span>
+              </div>
+              <p style={{ margin: "6px 0 0", color: "var(--color-text)", lineHeight: 1.55 }}>
+                {lang === "ta" ? quickScanDay.reasonTa : quickScanDay.reasonEn}
+              </p>
+              <p style={{ margin: "8px 0 0", color: "var(--color-muted)", fontSize: "var(--text-xs)", lineHeight: 1.5 }}>
+                {lang === "ta"
+                  ? "இது தினவழிகாட்டல் + தாரா அடிப்படையிலான விரைவு வரிசை. நேரத்தைத் தேர்வதற்கு கீழுள்ள விரிவான முகூர்த்தத் தேடலை இயக்கவும்."
+                  : "This is the daily-guidance + Tara quick ranking. Run the detailed election below before choosing a time."}
+              </p>
+            </section>
+          )}
+          onDateChange={setPanchangamDate}
           onClose={() => setPanchangamDate(null)}
+          DayDrawer={DayDrawer}
         />
       )}
     </div>

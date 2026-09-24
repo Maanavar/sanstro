@@ -306,18 +306,28 @@ export type DayTimelineBand = {
   key: string;
   start: string;
   end: string;
-  /** best/good are the auspicious greens; the three avoid kinds step down in
-   *  intensity so Rahu > Yama > Kuligai reads at a glance, mirroring the
-   *  severity ramp of the "Your day" ribbon on the Today tab. */
-  kind: "best" | "good" | "avoid-strong" | "avoid" | "avoid-soft";
+  /** Kuligai is contextual, not a generic avoid period. Keep it visually
+   *  distinct from both the auspicious and avoid ramps.
+   *
+   *  `avoid-scoped` is the narrow-scope rung: Durmuhurtham binds only on
+   *  auspicious work and new beginnings, so it must not paint at Rahu's or
+   *  Yamagandam's intensity. It is the same hue as `avoid`, one step down —
+   *  narrower scope reads as lighter, never as more severe. */
+  kind: "best" | "good" | "contextual" | "avoid-strong" | "avoid" | "avoid-scoped" | "avoid-soft";
   label: string;
 };
 
-const DAY_TIMELINE_BAND_STYLE: Record<DayTimelineBand["kind"], { fill: string; opacity: number }> = {
+/** The one severity ramp. `NovaAvoidStrip`'s dots read their fill and opacity
+ *  from this table by band kind, because the strip and the timeline paint the
+ *  same windows a few pixels apart — two ramps disagreeing on one card is
+ *  worse than having none. Change a colour here and both surfaces move. */
+export const DAY_TIMELINE_BAND_STYLE: Record<DayTimelineBand["kind"], { fill: string; opacity: number }> = {
   best: { fill: "var(--color-score-high)", opacity: 0.9 },
   good: { fill: "var(--color-score-high)", opacity: 0.5 },
+  contextual: { fill: "var(--color-accent-secondary)", opacity: 0.64 },
   "avoid-strong": { fill: "var(--color-score-low)", opacity: 0.9 },
   avoid: { fill: "var(--color-score-mid)", opacity: 0.88 },
+  "avoid-scoped": { fill: "var(--color-score-mid)", opacity: 0.62 },
   "avoid-soft": { fill: "var(--color-score-mid)", opacity: 0.45 },
 };
 

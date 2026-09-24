@@ -86,6 +86,11 @@ export const HOME = {
   today_rahu:          s("Rahu Kalam",          "ராகு காலம்"),
   today_yama:          s("Yamagandam",          "எமகண்டம்"),
   today_kuligai:       s("Kuligai",             "குளிகை"),
+  today_durmuhurtham:  s("Durmuhurtham",        "துர்முகூர்த்தம்"),
+  today_durmuhurtham_note: s(
+    "Avoid for auspicious or new beginnings; it is not a blanket warning for the whole day.",
+    "சுப காரியங்கள் அல்லது புதிய தொடக்கங்களுக்கு தவிர்க்கவும்; நாள் முழுவதற்குமான பொதுத் தடை அல்ல."
+  ),
   today_abhijit:       s("Abhijit",             "அபிஜித்"),
   // Finding 7 of the dashboard hero review, same doctrine on this surface:
   // Abhijit is a fixed ~49-min slot at solar noon and Friday's Rahu Kalam
