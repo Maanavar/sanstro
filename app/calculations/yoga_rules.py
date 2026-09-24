@@ -49,9 +49,10 @@ should rule on.
 The ``dasha_activated`` flag on a card is a **separate** computation from the
 activation score, and the two can disagree on one chart. The detectors for
 Sakata, Kemadruma, Kartari, Chandala, Daridra, Lakshmi, Sunapha/Anapha/
-Durudhura and Vasumati hardcode it to ``False`` whatever dasha is running; Amala
-and Adhi set it from the *functional nature* of a benefic rather than from any
-dasha at all. Both are disclosed on the rows concerned and left for a verdict.
+Durudhura and Vasumati hardcode it to ``False`` whatever dasha is running. Since
+2026-09-23 ``_chart_build`` resolves the published flag against the same key
+grahas the score reads and hands the score that verdict, so the two agree on
+every chart (`tests/test_yoga_activation_agreement.py`).
 """
 from __future__ import annotations
 
@@ -91,6 +92,11 @@ class YogaRule:
     #: Grahas whose maha/antar dasha activates this yoga in the activation
     #: score. Empty tuple = dormant-capped; see the module docstring.
     key_planets: tuple[str, ...] = ()
+    #: When the activating grahas are resolved **per chart** and carried in
+    #: ``YogaResult.key_grahas``, a plain statement of which grahas they are.
+    #: Such a yoga is *not* dormant-capped even with an empty ``key_planets``;
+    #: the appendix prints this instead of "none — dormant-capped".
+    per_chart_activation: str = ""
     #: The school choice, the departure from the classical form, or the thing a
     #: reviewer would otherwise have to read the source to discover.
     note: str = ""
@@ -155,7 +161,7 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         rule_id="YOG-RY-01",
         yoga_name="RAJA_YOGA",
         name_en="Raja Yoga — trikona/kendra lord association",
-        name_ta="ராஜ யோகம் — இணைப்பு",
+        name_ta="ராஜயோகம் — இணைப்பு",
         markers=("VARIANT", "PRODUCT"),
         detector="_yoga_detect.detect_raja_yoga",
         present_when=(
@@ -178,6 +184,7 @@ YOGA_RULES: tuple[YogaRule, ...] = (
             "association reading is one of several live formulations, not the only one."
         ),
         key_planets=("SUN", "MOON", "MARS", "JUPITER"),
+        per_chart_activation="This instance's own trikona lord and kendra lord (the fixed list is only a fallback).",
         note=(
             "**This is the formulation choice the reviewer asked to see.** At "
             "least four are in live Tamil use: (a) association of a trikona and a "
@@ -188,17 +195,21 @@ YOGA_RULES: tuple[YogaRule, ...] = (
             "(b). Because every lagna has one lord shared between the two sets, "
             "the association test is generous: it iterates all trikona × kendra "
             "pairs and one hit forms the yoga. "
-            "**`key_planets` here is a `[PRODUCT]` approximation** — the true key "
-            "grahas are the specific lords that linked, which are lagna-dependent, "
-            "and the activation table cannot express that. `dasha_activated` on the "
-            "same card *is* computed from the real lords, so the two can disagree."
+            "**Ruling 2026-09-23:** (1) each instance activates on its own two "
+            "lords, carried in `YogaResult.key_grahas`; the `key_planets` below is "
+            "now only a fallback for a card with no instance. (2) A lord that also "
+            "owns the 6th/8th/12th qualifies only if its moolatrikona sign is the "
+            "kendra/trikona it owns (`raja_lord_qualifies`). Precedence is "
+            "lagna ownership first: the lagna lord always qualifies. (3) Rahu/Ketu sharing a sign with a forming "
+            "lord are recorded as supporting (`supporting_grahas`), never forming, "
+            "and their dashas do not activate the card."
         ),
     ),
     YogaRule(
         rule_id="YOG-RY-02",
         yoga_name="RAJA_YOGA",
         name_en="Raja Yoga — trikona/kendra lord exchange",
-        name_ta="ராஜ யோகம் — பரிவர்தனம்",
+        name_ta="ராஜயோகம் — பரிவர்தனம்",
         markers=("VARIANT",),
         detector="yogas.detect_yogas_and_doshams",
         present_when=(
@@ -210,11 +221,14 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         cancellation="—",
         source="Parivartana raja yoga, standard in the Tamil commentaries on the exchange yogas.",
         key_planets=(),
+        per_chart_activation="The two exchanging lords of this instance.",
         note=(
             "Merges into the same `RAJA_YOGA` card as `YOG-RY-01`. **This path is "
             "not strength-gated** while `YOG-RY-01` is — a combust or badly placed "
             "pair still reports STRONG here. That asymmetry is disclosed rather "
-            "than quietly evened out, because evening it out is a doctrine call."
+            "than quietly evened out, because evening it out is a doctrine call. "
+            "The same 2026-09-23 lord-eligibility, per-instance trigger and "
+            "Rahu/Ketu rules as `YOG-RY-01` apply."
         ),
     ),
     YogaRule(
@@ -230,15 +244,48 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         source="—",
         key_planets=(),
         note=(
-            "Not reported by Vinaadi under any name: (a) a yogakaraka graha owning "
-            "both a kendra and a trikona forming raja yoga by itself, with no "
-            "second lord involved; (b) the two lords merely occupying kendras from "
+            "Not reported by Vinaadi under any name: (a) retired 2026-09-23 — the "
+            "lone yogakaraka is now `YOG-RY-04`, its own card; (b) the two lords merely occupying kendras from "
             "each other, without conjunction, drishti or exchange; (c) raja yogas "
             "read from the Navamsa or from Chandra lagna rather than from the "
             "Lagna; (d) Dharma-Karmadhipati as a **separately named** yoga — the "
             "9th/10th pair does form `YOG-RY-01`, but it is never distinguished "
             "from any other trikona-kendra link on the card. Neecha Bhanga and "
             "Vipareetha raja yogas are detected, under their own IDs."
+        ),
+    ),
+    YogaRule(
+        rule_id="YOG-RY-04",
+        yoga_name="YOGAKARAKA_RAJA_YOGA",
+        name_en="Yogakaraka Raja Yoga",
+        name_ta="யோககாரக ராஜயோகம்",
+        markers=("TRADITION", "PRODUCT"),
+        detector="_yoga_detect.detect_raja_yogakaraka",
+        present_when=(
+            "One graha owns both a kendra (4/7/10) and a trikona (5/9) for the "
+            "lagna — Sani for Rishabha/Thulam, Sevvai for Kataka/Simha, Sukran for "
+            "Makara/Kumbam. Ownership alone establishes it."
+        ),
+        strength_rule=(
+            "STRONG on formation; PARTIAL when the yogakaraka is debilitated, "
+            "combust or placed in the 6th/8th/12th from Lagna — one rung however "
+            "many apply, each recorded as `<graha>_yogakaraka_<affliction>`. "
+            f"{_GATE_NOTE} Here the gate reads the composite score only; "
+            "combustion is already counted once, above."
+        ),
+        cancellation=(
+            "None. Debility, combustion and a dusthana placement weaken the yoga; "
+            "they never remove it (owner ruling 2026-09-23, superseding the "
+            "first-pass dignity gate)."
+        ),
+        source="Yogakaraka graha, BPHS — a single lord of a kendra and a trikona.",
+        key_planets=(),
+        per_chart_activation="The yogakaraka graha itself.",
+        note=(
+            "Astrologer ruling 2026-09-23: a **distinct yoga type**, not a "
+            "loosening of `YOG-RY-01`'s different-graha pairing, so existing Raja "
+            "Yoga presence is unchanged and this addition is reviewable on its own. "
+            "The yogakaraka is carried per chart in `YogaResult.key_grahas`."
         ),
     ),
     # ── Dhana ────────────────────────────────────────────────────────────────
@@ -292,7 +339,7 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         rule_id="YOG-NBR-01",
         yoga_name="NEECHA_BHANGA_RAJA_YOGA",
         name_en="Neecha Bhanga Raja Yoga",
-        name_ta="நீசபங்க ராஜ யோகம்",
+        name_ta="நீசபங்க ராஜயோகம்",
         markers=("TRADITION",),
         detector="_yoga_detect.detect_neecha_bhanga",
         present_when=(
@@ -439,7 +486,7 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         rule_id="YOG-VRY-01",
         yoga_name="VIPAREETHA_RAJA_YOGA",
         name_en="Vipareetha Raja Yoga (Harsha / Sarala / Vimala)",
-        name_ta="விபரீத ராஜ யோகம்",
+        name_ta="விபரீத ராஜயோகம்",
         markers=("VARIANT",),
         detector="_yoga_detect.detect_vipareetha_raja",
         present_when=(
@@ -716,20 +763,31 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         markers=("TRADITION", "PRODUCT"),
         detector="_yoga_detect.detect_amala_yoga",
         present_when=(
-            "At least one of Guru, Sukran, Budhan or Chandran occupies the 10th "
-            "rasi from the Lagna **or** the 10th from Chandran."
+            "At least one of Guru, Sukran or Budhan occupies the 10th rasi from "
+            "the Lagna **or** the 10th from Chandran. Budhan counts only when no "
+            "afflicting malefic (below) shares its sign — **not Suriya**, whose "
+            "nearness to Budhan is constant and whose combustion is judged "
+            "separately; Chandran never counts (ruling 2026-09-23, amended)."
         ),
-        strength_rule="STRONG when two or more such benefics are found, PARTIAL for one.",
-        cancellation="—",
+        strength_rule=(
+            "STRONG when two or more such benefics are found, PARTIAL for one; "
+            "then one rung lower when an afflicting malefic casts poorna drishti "
+            "on an occupied 10th (recorded as `malefic_aspect_on_10th_<graha>`). "
+            "**Afflicting malefics** are one set, `AMALA_AFFLICTING_MALEFICS`, read "
+            "by both this test and Budhan's: Sani, Sevvai, Rahu, Ketu and Mandhi. "
+            "Nodes per `CORE-10`; Mandhi's 7th aspect per `EC-A21`. Suriya is "
+            "excluded: karaka of the 10th with dig bala there."
+        ),
+        cancellation="None. Malefic aspect weakens, never cancels (ruling 2026-09-23).",
         source="Amala yoga, Phaladeepika — a benefic in the 10th from Lagna or Chandran.",
         key_planets=(),
+        per_chart_activation="The benefics occupying the 10th — never the 10th lord.",
         note=(
             "Classical Amala is satisfied by a **single** benefic in that position; "
             "the two-or-more → STRONG rung is Vinaadi's grading, not a source "
-            f"distinction. {_BENEFIC_SET_NOTE} `dasha_activated` here is not a "
-            "dasha test at all — it is true when any of the found benefics is a "
-            "yogakaraka or trikona lord for the lagna, which is a different "
-            "statement from 'this yoga is running now'. Flagged for a verdict."
+            "distinction. Activation (ruling 2026-09-23): the benefics occupying "
+            "the 10th, carried per chart in `YogaResult.key_grahas` — never the "
+            "10th lord. The old functional-nature `dasha_activated` test is retired."
         ),
     ),
     # ── Adhi ─────────────────────────────────────────────────────────────────
@@ -752,6 +810,7 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         cancellation="—",
         source="Adhi yoga, BPHS and Phaladeepika — the three benefics in the 6th/7th/8th from Chandran.",
         key_planets=(),
+        per_chart_activation="The benefics in the 6th/7th/8th from Chandran — Chandran is the reference, not a trigger.",
         note=(
             "**Tightened by ruling from the loosest presence test in the yoga "
             "set.** The old test fired on a single benefic in a single house, "
@@ -760,11 +819,11 @@ YOGA_RULES: tuple[YogaRule, ...] = (
             "golden.py` pinned that as the live evidence behind this ruling. "
             "Presence and grading now both count distinct *benefics* found in the "
             "6th/7th/8th, matching the classical 'three as a set' reading. "
-            "`dasha_activated` here is read from the functional nature of Guru, "
-            "Sukran and Budhan for the lagna — **all three, whether or not they "
-            "are among the grahas that formed the yoga** — so it is neither a "
-            "dasha test nor restricted to this yoga's own participants; left "
-            "unchanged, since the ruling addressed only presence and grading."
+            "Reaffirmed 2026-09-23: a single benefic is not Adhi; counted from "
+            "Chandran only in v1. Activation (ruling 2026-09-23): the benefics that "
+            "formed it, carried per chart in `YogaResult.key_grahas`; Chandran is "
+            "the reference point, not a participant. The old functional-nature "
+            "`dasha_activated` test is retired."
         ),
     ),
     # ── Daridra ──────────────────────────────────────────────────────────────
@@ -792,6 +851,7 @@ YOGA_RULES: tuple[YogaRule, ...] = (
             "'11th lord in a dusthana' test this used to implement."
         ),
         key_planets=(),
+        per_chart_activation="The 11th lord of this lagna.",
         note=(
             "**Redefined by the 2026-09-11 ruling**, and the *reading* of the "
             "chosen words was settled by measurement rather than taste "
@@ -826,6 +886,7 @@ YOGA_RULES: tuple[YogaRule, ...] = (
         cancellation="—",
         source="No source claimed. A Vinaadi proxy, not a classical daridra yoga.",
         key_planets=(),
+        per_chart_activation="The 11th lord of this lagna.",
         note=(
             "**Split off `YOG-DR-01` by ruling** ('the weak-and-afflicted proxy is "
             "labelled as ours'), kept rather than dropped. The `< 40` cut-off "

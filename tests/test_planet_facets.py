@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import pytest
 
+from app.calculations.chart_strength import d9_dignity_label
 from app.calculations.planet_conditions import COMBUST_MEANING, RETROGRADE_MEANING
 from app.schemas.charts import PlanetPosition
 from app.services.chart_explanation_service import (
@@ -41,6 +42,7 @@ def _planet(
         isCombust=combust,
         isCazimi=cazimi,
         d9Rasi=d9_rasi,
+        d9Dignity=d9_dignity_label(graha, d9_rasi),
         isVargottama=vargottama,
         showRetrogradeBadge=retro,
         strengthScore=55,

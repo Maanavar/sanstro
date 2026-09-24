@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from app.calculations.astro import house_from_reference
 from app.calculations.chart_strength import (
     EXALTATION_RASI,
+    MOOLATRIKONA_ZONE,
     OWN_SIGN_RASI,
     SIGN_LORD,
 )
@@ -17,6 +18,7 @@ PlanetInput = int | Mapping[str, int | float | str]
 
 KENDRA_HOUSES = {1, 4, 7, 10}
 TRIKONA_HOUSES = {1, 5, 9}
+DUSTHANA_HOUSES = {6, 8, 12}
 # 2026-07 audit A-5: confirmed against mainstream Kuja/Chevvai Dosham
 # references (Mars in 1,2,4,7,8,12 from Lagna/Moon/Venus) as the standard
 # Tamil house set, including the 1st house — see docs/SEVVAIRAGU.MD §4.1.
@@ -63,6 +65,16 @@ class YogaResult:
     #: the registry's ``key_planets`` still applies. Astrologer ruling,
     #: 2026-09-11.
     key_grahas: tuple[str, ...] = ()
+    #: One tuple of forming grahas per *instance* behind this card. A merged
+    #: card (Raja Yoga) unions ``key_grahas`` across instances, which loses
+    #: which lords formed the same instance — and the 2026-09-23 "both lords"
+    #: step applies only when Dasha and Bhukti lords formed the *same* one.
+    #: Empty = the card is a single instance whose formers are ``key_grahas``.
+    former_groups: tuple[tuple[str, ...], ...] = ()
+    #: Grahas recorded as supporting, never forming — Rahu/Ketu sharing a sign
+    #: with a Raja Yoga's forming lord (ruling 2026-09-23). Their dashas do not
+    #: activate the yoga. Engine-internal; not on the wire.
+    supporting_grahas: tuple[str, ...] = ()
 
     @property
     def rule_ids(self) -> tuple[str, ...]:
@@ -191,6 +203,36 @@ def gate_yoga_strength(
 def _house_lord(lagna_rasi: int, house_number: int) -> str:
     house_rasi = ((lagna_rasi + house_number - 2) % 12) + 1
     return SIGN_LORD[house_rasi]
+
+
+def houses_owned(lagna_rasi: int, planet: str) -> set[int]:
+    return {h for h in range(1, 13) if _house_lord(lagna_rasi, h) == planet}
+
+
+def raja_lord_qualifies(lagna_rasi: int, planet: str) -> bool:
+    """May this kendra/trikona lord form a Raja Yoga, given a dusthana it also owns?
+
+    Astrologer ruling 2026-09-23: a lord that also owns the 6th, 8th or 12th is
+    decided by its **moolatrikona** sign. If that sign is the kendra/trikona it
+    owns, the lord qualifies (Sani for Mithuna lagna: Kumbam is the 9th); if it
+    is the dusthana, it does not (Guru for Kataka lagna: Dhanusu is the 6th).
+
+    Precedence (ruling 2026-09-23, amended): **lagna ownership first, then
+    moolatrikona.** The lagna lord qualifies as both a kendra and a trikona
+    lord whatever else it owns — it does not carry its second house's stigma —
+    so Sukran for Rishabha lagna and Sevvai for Vrischika lagna qualify even
+    though their moolatrikona sign is the 6th. The moolatrikona test applies
+    only to non-lagna lords with a dusthana.
+    """
+    owned = houses_owned(lagna_rasi, planet)
+    if 1 in owned:  # lagna ownership decides first
+        return True
+    if not (owned & DUSTHANA_HOUSES):
+        return True
+    mt = MOOLATRIKONA_ZONE.get(planet)
+    if mt is None:
+        return True
+    return house_from_reference(lagna_rasi, mt[0]) in KENDRA_HOUSES | TRIKONA_HOUSES
 
 
 def _is_kendra_from(reference_rasi: int, target_rasi: int) -> bool:

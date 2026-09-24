@@ -15,6 +15,7 @@ from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.functional_nature import get_functional_nature
 from app.calculations.house_lords import compute_house_lord_report
+from app.calculations.lagna_edge import lagna_edge_note_for_profile, navamsa_lagna_edge_note_for_profile
 from app.calculations.transits import RASI_NAMES, classify_sani_cycle, is_combust
 from app.models import Chart
 from app.models.user_life_events import UserLifeEvent
@@ -79,6 +80,17 @@ def _gist_text(
         antardasha_lord=antardasha_lord,
     )
     return ChartSummaryText(ta=gist["ta"], en=gist["en"])
+
+
+def _lagna_edge_text(
+    chart_response: ChartCalculateResponse, birth_profile: object, *, navamsa: bool = False
+) -> ChartSummaryText | None:
+    """The Lagna (or D9 Lagna) edge note, or None when it is safely inside its sign."""
+    build = navamsa_lagna_edge_note_for_profile if navamsa else lagna_edge_note_for_profile
+    note = build(
+        chart_response.data.lagna.absolute_longitude, chart_response.data.julian_day, birth_profile
+    )
+    return ChartSummaryText(ta=note[0], en=note[1]) if note is not None else None
 
 
 def _current_age(birth_date_local: date, today: date) -> int:
@@ -406,6 +418,8 @@ def get_jadhagam_report(session: Session, chart_id: UUID) -> JadhagamReportRespo
                 janma_pada=moon.pada,
                 current_mahadasha=mahadasha_lord,
                 current_antardasha=antardasha_lord,
+                lagna_edge_note=_lagna_edge_text(chart_response, birth_profile),
+                navamsa_lagna_edge_note=_lagna_edge_text(chart_response, birth_profile, navamsa=True),
             ),
             rasi_chart_summary=JadhagamReportRasiSummary(
                 lagna=chart_response.data.lagna,

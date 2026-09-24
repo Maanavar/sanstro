@@ -16,6 +16,7 @@ import pytest
 from sqlalchemy import select
 
 from app.calculations.astro import utc_datetime_to_julian_day
+from app.calculations.chart_strength import d9_dignity_label
 from app.calculations.dasha import DashaPeriod, VimshottariTimeline
 from app.calculations.display_names import (
     NAKSHATRA_EN,
@@ -1518,6 +1519,7 @@ def _tied_planet(graha: str) -> PlanetPosition:
         isRetrograde=False,
         isCombust=False,
         d9Rasi=4,
+        d9Dignity=d9_dignity_label(graha, 4),
         isVargottama=False,
         showRetrogradeBadge=False,
         strengthScore=55,

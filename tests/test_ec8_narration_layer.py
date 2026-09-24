@@ -13,6 +13,7 @@ from dataclasses import dataclass
 import pytest
 
 from app.calculations.chart_strength import (
+    d9_dignity_label,
     detect_planetary_wars,
     explain_natal_planet_score,
 )
@@ -73,6 +74,7 @@ def _planet(
         isCombust=combust,
         isCazimi=cazimi,
         d9Rasi=d9_rasi,
+        d9Dignity=d9_dignity_label(graha, d9_rasi),
         isVargottama=vargottama,
         showRetrogradeBadge=retro,
         strengthScore=55,

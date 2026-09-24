@@ -32,6 +32,7 @@ class LagnaPosition(BaseModel):
     nakshatra: int
     nakshatra_name: str = Field(alias="nakshatraName")
     pada: int
+    d9_rasi: int = Field(alias="d9Rasi")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -70,6 +71,19 @@ class PlanetPosition(BaseModel):
     is_combust: bool = Field(alias="isCombust")
     is_cazimi: bool = Field(default=False, alias="isCazimi")
     d9_rasi: int = Field(alias="d9Rasi")
+    # Deliberately has no default. "NEUTRAL_SIGN" is a doctrinal claim about a
+    # graha, not an "unset" marker, so defaulting to it would let a construction
+    # site that forgets the field ship a wrong dignity silently instead of
+    # failing at author time. Every caller derives it with
+    # `chart_strength.d9_dignity_label(graha, d9_rasi)`.
+    d9_dignity: Literal[
+        "EXALTED",
+        "OWN_SIGN",
+        "FRIEND_SIGN",
+        "NEUTRAL_SIGN",
+        "ENEMY_SIGN",
+        "DEBILITATED",
+    ] = Field(alias="d9Dignity")
     is_vargottama: bool = Field(alias="isVargottama")
     show_retrograde_badge: bool = Field(alias="showRetrogradeBadge")
     strength_score: int = Field(default=0, alias="strengthScore")
@@ -94,6 +108,21 @@ class PlanetPosition(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class YogaPeakWindow(BaseModel):
+    """The running Antaram (Pratyantar), when its lord also formed this yoga.
+
+    Ruling 2026-09-23: Antaram never activates a yoga on its own; inside a
+    period the Maha or Antar lord has already activated, it marks the sharpest
+    sub-window.
+    """
+
+    start: date
+    end: date
+    antaram_lord: str = Field(alias="antaramLord")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class ChartYogaInsight(BaseModel):
     name: str
     is_present: bool = Field(alias="isPresent")
@@ -110,6 +139,8 @@ class ChartYogaInsight(BaseModel):
     # to "" so an unmapped code renders as a hidden line, never a raw enum.
     effect_ta: str = Field(default="", alias="effectTa")
     effect_en: str = Field(default="", alias="effectEn")
+    # Nullable and additive: clients that do not render it lose nothing.
+    peak_window: YogaPeakWindow | None = Field(default=None, alias="peakWindow")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -276,6 +307,10 @@ class JadhagamReportCoreIdentity(BaseModel):
     janma_pada: int = Field(alias="janmaPada")
     current_mahadasha: str = Field(alias="currentMahadasha")
     current_antardasha: str = Field(alias="currentAntardasha")
+    # Same note as the chart explanation's core identity: set only when a few
+    # minutes of birth-time error would change the Lagna sign.
+    lagna_edge_note: ChartSummaryText | None = Field(default=None, alias="lagnaEdgeNote")
+    navamsa_lagna_edge_note: ChartSummaryText | None = Field(default=None, alias="navamsaLagnaEdgeNote")
 
     model_config = ConfigDict(populate_by_name=True)
 

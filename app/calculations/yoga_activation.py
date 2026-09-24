@@ -20,13 +20,26 @@ graha for a yoga that has none is a doctrine call, not a code fix.
 Chandran, Sakata on Chandran and Guru. Daridra's key graha is the *11th lord*,
 which is chart-dependent and therefore cannot live in a static registry row — so
 ``YogaResult.key_grahas`` carries it per chart and ``key_planets_for`` below
-prefers it over the registry table. Parivartana, Chandala, Amala, Adhi, Lakshmi,
+prefers it over the registry table. Parivartana, Chandala, Lakshmi,
 Sunapha/Anapha/Durudhura, Vasumati and Kartari remain dormant-capped and are
 still awaiting a ruling.
+
+**Astrologer ruling, 2026-09-23:** triggers are the planets that *form* the
+instance, recorded at detection time. Raja Yoga carries its own kendra/trikona
+lord pair (the registry's fixed list is only a fallback for a chart with no
+instance). Amala carries the benefics occupying the 10th; Adhi the benefics in
+the 6th/7th/8th from Chandran. Pratyantar (Antaram) alone never activates — it
+only narrows a window a Maha or Antar lord has already opened.
 """
 from __future__ import annotations
 
 from app.calculations.yoga_rules import activation_key_planets
+
+#: Ruling 2026-09-23 — the "Strong" activation tier. A fixed additive step, not a
+#: multiplier, so the interpretive copy can state it plainly. Largest activated
+#: score without it is 85 (STRONG base, key graha 100), so +10 cannot swamp the
+#: strength and graha-score components; the cap still guards 100.
+BOTH_LORDS_STEP = 10
 
 #: Grahas whose maha/antar dasha activates a yoga, keyed by ``YogaResult.name``.
 #: Built from the per-yoga rule registry — edit the rule row, not this dict.
@@ -53,6 +66,8 @@ def yoga_activation_score(
     antardasha_lord: str,
     planet_scores: dict[str, int],
     chart_key_grahas: tuple[str, ...] = (),
+    activated: bool | None = None,
+    both_lords: bool = False,
 ) -> int:
     """
     Returns 0-100 activation intensity for a yoga.
@@ -65,13 +80,24 @@ def yoga_activation_score(
     a key graha is how a jyotishi judges "is it firing now" — but that is an
     unbuilt engine, not an undocumented input. Any copy describing this number
     must say dasha, never transits (astrologer ruling, 2026-09-11).
+
+    ``activated`` lets the caller pass the same verdict it publishes as
+    ``isCurrentlyActive``. Without it the chart response computed "is it running"
+    twice with different inputs, and a yoga could print "Active" beside the
+    dormant score 34/100 (2026-09-23). ``None`` keeps the key-graha test below.
+
+    ``both_lords`` is the caller's verdict that the Mahadasha *and* Antardasha
+    lords are two distinct planets that formed the same instance of this yoga —
+    the "Strong" tier, worth ``BOTH_LORDS_STEP``. One of them alone, or a
+    planet in its own bhukti, is "Moderate": the score unchanged.
     """
     if not yoga_is_present:
         return 0
 
     key_planets = key_planets_for(yoga_name, chart_key_grahas)
     dasha_lords = {mahadasha_lord, antardasha_lord}
-    activated = bool(dasha_lords & set(key_planets))
+    if activated is None:
+        activated = bool(dasha_lords & set(key_planets))
 
     strength_base = {"STRONG": 75, "MODERATE": 55, "PARTIAL": 40, "WEAK": 25}.get(yoga_strength, 50)
     if not activated:
@@ -79,4 +105,6 @@ def yoga_activation_score(
 
     best_planet_score = max((planet_scores.get(p, 50) for p in key_planets if p in dasha_lords), default=50)
     intensity = strength_base * 0.60 + best_planet_score * 0.40
+    if both_lords:
+        intensity += BOTH_LORDS_STEP
     return max(10, min(100, round(intensity)))

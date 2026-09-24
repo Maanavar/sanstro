@@ -17,6 +17,7 @@ from app.calculations.astro import (
 )
 from app.calculations.chart_strength import (
     compute_strength_breakdown,
+    d9_dignity_label,
     explain_natal_planet_score,
 )
 from app.calculations.divisional_charts import get_varga
@@ -292,6 +293,7 @@ def _mandhi_planet_position(longitude: float, lagna_rasi: int) -> PlanetPosition
         is_combust=False,
         is_cazimi=False,
         d9_rasi=d9_rasi,
+        d9_dignity=d9_dignity_label("MANDHI", d9_rasi),
         is_vargottama=rasi == d9_rasi,
         show_retrograde_badge=False,
         strength_score=0,
@@ -366,6 +368,7 @@ def _planet_position_from_snapshot(
         ),
         is_cazimi=is_cazimi(body.graha, body.absolute_longitude, sun_degree),  # type: ignore[attr-defined]
         d9_rasi=d9_rasi,
+        d9_dignity=d9_dignity_label(body.graha, d9_rasi),  # type: ignore[attr-defined]
         is_vargottama=is_vargottama,
         show_retrograde_badge=body.show_retrograde_badge and body.graha not in {"RAHU", "KETU"},  # type: ignore[attr-defined]
         strength_score=strength_score,
