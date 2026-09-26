@@ -5178,6 +5178,534 @@ button.ui-chip { cursor: pointer; }
   }
 }
 
+/* ═══════════════════════════════════════════════════════════
+   Your day — the day as one horizon
+   dashboard-today-ribbon-nova.tsx
+
+   The sun's arc over the kalam bar, star/tithi change-over markers on it, one
+   readout line, and the week as seven bars. Everything here is something the
+   hero above does not show; the component's header records what it
+   deliberately leaves to the hero. Nova tokens only, both themes.
+   ═══════════════════════════════════════════════════════════ */
+.day-ribbon {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6) var(--space-4_5);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.day-ribbon__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-5);
+}
+
+.day-ribbon__heading { min-width: 0; }
+
+.day-ribbon__place {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.day-ribbon__place svg { flex: none; color: var(--color-accent-strong); }
+
+/* ── Week: seven bars, no numbers. The hero dial is the page's one score; the
+      number stays in each day's accessible name. ── */
+.day-ribbon__week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-1);
+  min-width: min(100%, 336px);
+}
+
+.day-ribbon__day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  min-height: 48px;
+  padding: var(--space-1_5) var(--space-1);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-faint);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease-nova),
+    border-color var(--dur-fast) var(--ease-nova),
+    color var(--dur-fast) var(--ease-nova),
+    transform var(--dur-fast) var(--ease-nova);
+}
+
+.day-ribbon__day:disabled { cursor: default; }
+
+.day-ribbon__day[data-selected="true"] {
+  border-color: var(--color-border-strong);
+  background: var(--color-accent-muted);
+  color: var(--color-accent-strong);
+}
+
+.day-ribbon__day-name {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.day-ribbon__day-num {
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.day-ribbon__day[data-selected="true"] .day-ribbon__day-num { color: var(--color-accent-strong); }
+
+.day-ribbon__day-bar {
+  display: block;
+  width: 100%;
+  max-width: 28px;
+  height: 3px;
+  margin-top: 2px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--ribbon-track-bg);
+}
+
+.day-ribbon__day-bar > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+@media (hover: hover) {
+  .day-ribbon__day:not(:disabled):not([data-selected="true"]):hover {
+    border-color: var(--color-border);
+    background: var(--color-surface-soft);
+    color: var(--color-text);
+  }
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .day-ribbon__day:not(:disabled):hover { transform: translateY(-2px); }
+}
+
+/* ── Horizon: sky (arc + sun) over the bar over the scale ── */
+.day-ribbon__horizon {
+  position: relative;
+  min-width: 0;
+}
+
+/* The 16px top pad is SKY_PAD_PX in the component: the sun's top position is
+   computed against it, so the two must change together. */
+.day-ribbon__sky {
+  position: relative;
+  height: 84px;
+}
+
+.day-ribbon__arc {
+  position: absolute;
+  top: 16px;
+  left: 0;
+  width: 100%;
+  height: calc(100% - 16px);
+  overflow: visible;
+}
+
+.day-ribbon__arc-path {
+  fill: none;
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 5;
+}
+
+.day-ribbon__arc-lit {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.day-ribbon__horizon-line {
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+/* The sun or moon: a zero-width anchor at the body's centre that runs down to
+   the bar, so its dashed plumb line meets the NOW line exactly. */
+.day-ribbon__body {
+  position: absolute;
+  z-index: 2;
+  bottom: 0;
+  width: 0;
+  pointer-events: none;
+}
+
+.day-ribbon__body::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  bottom: 0;
+  left: -0.5px;
+  border-left: 1px dashed var(--ribbon-now-bg);
+}
+
+.day-ribbon__body--moon { top: calc(16px + 0.7 * (100% - 16px)); }
+
+.day-ribbon__body--moon > svg {
+  position: absolute;
+  top: -7px;
+  left: -7px;
+  color: var(--color-accent-secondary);
+}
+
+.day-ribbon__sun {
+  position: absolute;
+  top: -9px;
+  left: -9px;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-pill);
+  background: radial-gradient(circle at 35% 35%, var(--color-on-accent) 0 10%, var(--color-accent) 55%, var(--color-accent-strong));
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--color-accent) 22%, transparent),
+    0 0 14px 3px color-mix(in srgb, var(--color-accent) 28%, transparent);
+  animation: day-ribbon-sun-breathe 4.8s var(--ease-nova) infinite;
+}
+
+@keyframes day-ribbon-sun-breathe {
+  0%, 100% {
+    box-shadow:
+      0 0 0 4px color-mix(in srgb, var(--color-accent) 22%, transparent),
+      0 0 14px 3px color-mix(in srgb, var(--color-accent) 28%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 0 0 7px color-mix(in srgb, var(--color-accent) 12%, transparent),
+      0 0 24px 6px color-mix(in srgb, var(--color-accent) 40%, transparent);
+  }
+}
+
+.day-ribbon__now-chip {
+  position: absolute;
+  top: -11px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--ribbon-now-bg);
+  color: var(--ribbon-now-fg);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px var(--shadow-drop);
+}
+
+.day-ribbon__now-chip--right { left: 16px; }
+.day-ribbon__now-chip--left { right: 16px; }
+
+.day-ribbon__now-chip > span {
+  font-weight: 700;
+  letter-spacing: var(--tracking-tag);
+  text-transform: uppercase;
+}
+
+.day-ribbon__now-chip > b { font-weight: 700; }
+
+/* ── The bar ── */
+.day-ribbon__track {
+  position: relative;
+  height: 36px;
+}
+
+.day-ribbon__segments {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--ribbon-track-bg);
+  box-shadow: inset 0 0 0 1px var(--ribbon-track-border);
+}
+
+.day-ribbon__segment {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    filter var(--dur-fast) var(--ease-nova),
+    box-shadow var(--dur-fast) var(--ease-nova);
+}
+
+.day-ribbon__segment > span {
+  overflow: hidden;
+  padding: 0 var(--space-1_5);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tag);
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.day-ribbon__segment:hover { filter: brightness(1.08) saturate(1.12); }
+.day-ribbon__segment[data-shown="true"] { box-shadow: inset 0 -3px 0 var(--color-text-strong); }
+.day-ribbon__segment[data-current-kalam] { box-shadow: inset 0 0 0 2px var(--ribbon-now-bg); }
+
+.day-ribbon__segment[data-current-kalam][data-shown="true"] {
+  box-shadow: inset 0 0 0 2px var(--ribbon-now-bg), inset 0 -3px 0 var(--color-text-strong);
+}
+
+/* Inset, not an outline: the bar clips its segments for its rounded ends, and
+   an outline would be cut off on every side. */
+.day-ribbon__segment:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 3px var(--color-accent-strong);
+}
+
+/* The part of the day already gone, hatched rather than hidden. */
+.day-ribbon__elapsed {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  background: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-surface) 58%, transparent) 0 6px,
+    color-mix(in srgb, var(--color-surface) 40%, transparent) 6px 12px
+  );
+  pointer-events: none;
+}
+
+.day-ribbon__now-line {
+  position: absolute;
+  z-index: 2;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: var(--radius-pill);
+  background: var(--ribbon-now-bg);
+  box-shadow: 0 0 0 1px var(--ribbon-track-bg);
+  pointer-events: none;
+}
+
+/* Star change-over rides the bar's top edge, tithi its bottom edge, so the
+   two never collide however close together they fall. */
+.day-ribbon__limb {
+  position: absolute;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-left: -12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-accent-strong);
+  cursor: pointer;
+}
+
+.day-ribbon__limb--star { top: -12px; }
+.day-ribbon__limb--tithi { bottom: -12px; color: var(--color-accent-secondary); }
+
+.day-ribbon__limb svg {
+  box-sizing: content-box;
+  padding: 3px;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  transition: transform var(--dur-fast) var(--ease-nova);
+}
+
+.day-ribbon__limb[data-shown="true"] svg {
+  border-color: currentColor;
+  background: currentColor;
+}
+
+.day-ribbon__limb[data-shown="true"] svg * { stroke: var(--color-surface); }
+
+.day-ribbon__limb::after {
+  content: "";
+  position: absolute;
+  left: 11.5px;
+  width: 1px;
+  height: 14px;
+  background: currentColor;
+  opacity: 0.55;
+}
+
+.day-ribbon__limb--star::after { top: 22px; }
+.day-ribbon__limb--tithi::after { bottom: 22px; }
+
+.day-ribbon__limb:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 1px;
+  border-radius: var(--radius-pill);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .day-ribbon__limb:hover svg,
+  .day-ribbon__limb[data-shown="true"] svg { transform: scale(1.15); }
+}
+
+/* ── Scale: sunrise and sunset once, hour ticks between ── */
+.day-ribbon__scale {
+  position: relative;
+  height: 38px;
+  margin-top: var(--space-4);
+}
+
+.day-ribbon__tick {
+  position: absolute;
+  top: 0;
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  color: var(--color-faint);
+  font-size: var(--text-xs);
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.day-ribbon__tick--center { transform: translateX(-50%); }
+.day-ribbon__tick--end { transform: translateX(-100%); }
+
+.day-ribbon__tick-text {
+  display: inline-flex;
+  flex-direction: column;
+}
+
+.day-ribbon__tick-text small { font-size: inherit; }
+.day-ribbon__tick--hour .day-ribbon__tick-text { align-items: center; }
+.day-ribbon__tick--hour b { font-weight: 500; }
+.day-ribbon__tick--sun { color: var(--color-muted); }
+.day-ribbon__tick--sun svg { flex: none; margin-top: 1px; color: var(--color-accent-strong); }
+
+.day-ribbon__tick--sun small {
+  letter-spacing: var(--tracking-tag);
+  text-transform: uppercase;
+}
+
+.day-ribbon__tick--sun b { color: var(--color-text); font-weight: 700; }
+
+/* ── Readout: the one thing being looked at, and the running Horai ── */
+.day-ribbon__readout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  min-height: 44px;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.day-ribbon__detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2_5);
+  min-width: 0;
+  font-size: var(--text-sm);
+}
+
+.day-ribbon__swatch {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-sm);
+}
+
+.day-ribbon__swatch--limb {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent-muted);
+  color: var(--color-accent-strong);
+}
+
+.day-ribbon__status {
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-soft);
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tag);
+  text-transform: uppercase;
+}
+
+.day-ribbon__status--now {
+  background: var(--ribbon-now-bg);
+  color: var(--ribbon-now-fg);
+}
+
+.day-ribbon__detail strong { color: var(--color-text-strong); font-weight: 700; }
+.day-ribbon__time { color: var(--color-muted); font-weight: 600; }
+.day-ribbon__time.is-caution { color: var(--color-low); }
+.day-ribbon__time.is-supportive { color: var(--color-high); }
+.day-ribbon__hint { color: var(--color-faint); }
+
+.day-ribbon__hora {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+.day-ribbon__hora > svg { flex: none; color: var(--color-accent-strong); }
+.day-ribbon__hora > b { color: var(--color-text-strong); }
+.day-ribbon__hora-next { color: var(--color-faint); font-size: var(--text-xs); }
+
+.day-ribbon :is(.day-ribbon__day):focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .day-ribbon { padding: var(--space-4); }
+  .day-ribbon__week { flex: 1 1 100%; min-width: 0; }
+  .day-ribbon__sky { height: 76px; }
+  .day-ribbon__tick--hour { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .day-ribbon__sun { animation: none; }
+  .day-ribbon :is(.day-ribbon__day, .day-ribbon__segment, .day-ribbon__limb svg) { transition: none; }
+}
+
 
 /* ═══════════════════════════════════════════════════════════
    Today in two minutes — the personal palan (.tp)

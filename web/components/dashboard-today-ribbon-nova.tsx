@@ -1,14 +1,14 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { animate, motion, useMotionValue, useReducedMotion, useTransform } from "framer-motion";
+import { Clock3, MapPin, Moon, Star, Sunrise, Sunset } from "lucide-react";
 
 import { placeCityLabel } from "@vinaadi/shared/checkIn";
 
-import { limbNow } from "./dashboard-calendar-shared";
-import { formatClockHour, formatClockLabel, getScoreBand, scoreColorScale } from "@/lib/format";
+import { formatClockHour, formatClockLabel, scoreColorScale, getScoreBand } from "@/lib/format";
 import { dt, LOCATION_CHECK } from "@/lib/dashboard-i18n";
-import { tNakshatra, tTithi } from "@/lib/i18n";
+import { tNakshatra, tPlanetLord, tTithi } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { GlossaryKey } from "@/lib/glossary";
 import { DUR, EASE_NOVA } from "@/lib/motion";
@@ -18,12 +18,25 @@ import type { PanchangamDailyResponseData, WeekAheadData } from "@/lib/types";
 import { GlossaryTerm } from "./glossary-term";
 
 /**
- * Nova "Your day" timeline spine — the single card that owns every panchangam
- * time: sunrise/sunset, Horai (current + next), the week-ahead dots, the
- * segmented Rahu Kalam / Yamagandam / Kuligai / Nalla Neram bar, and the
- * Nakshatram/Tithi/Vaaram footer. Nothing panchangam-related renders outside
- * this card on the Today tab — everything else (calendar month view, full
- * gowri table) lives one click away via the "Full panchangam" link.
+ * Nova "Your day" — the day drawn as one horizon: the sun's arc from sunrise
+ * to sunset, the kalam / Nalla Neram bar beneath it, and the moments the star
+ * and the tithi turn over, placed where they fall on the clock.
+ *
+ * What this card owns, because nothing else on Today shows it: the SHAPE of
+ * the day over time, how much of it has gone, the running Horai, the star and
+ * tithi change-over times, and the week ahead.
+ *
+ * What it deliberately does NOT repeat (2026-09-26, after a redesign pass
+ * printed each of these a second time on the same page):
+ *   - today's star and tithi names — the hero masthead carries them;
+ *   - the named list of timings with their ranges — the hero rail's avoid card
+ *     and Key timings card carry them. Here a window's name and time appear
+ *     only for the one window being looked at, in the readout line;
+ *   - a day score as a number — the hero dial is the page's one score, so the
+ *     week strip encodes each day as a bar and keeps the number in its label;
+ *   - a "full almanac" button — the Key timings card has it; the week strip's
+ *     days open the same calendar.
+ * Sunrise and sunset print once, at the feet of the arc.
  */
 
 function timeToMinutes(value: string | undefined | null): number | null {
@@ -86,6 +99,32 @@ type Segment = {
   legendTime: string;
 };
 
+/** A change-over of one of the day's limbs, placed on the clock. */
+type LimbMark = {
+  key: "star" | "tithi";
+  min: number;
+  glossary: GlossaryKey;
+  label: string;
+  text: string;
+  aria: string;
+};
+
+type SpanStatus = "now" | "past" | "future";
+
+const STATUS_TEXT: Record<SpanStatus, { en: string; ta: string }> = {
+  now:    { en: "Now",           ta: "இப்போது" },
+  past:   { en: "Earlier today", ta: "முடிந்தது" },
+  future: { en: "Coming up",     ta: "வரவுள்ளது" },
+};
+
+// The week strip's accessible name must not fall back to `getScoreBand`'s
+// English label on the Tamil page (aria-label is rendering — CLAUDE.md).
+const TONE_TEXT: Record<"high" | "mid" | "low", { en: string; ta: string }> = {
+  high: { en: "supportive", ta: "நல்ல நாள்" },
+  mid:  { en: "steady",     ta: "சமநிலை" },
+  low:  { en: "take care",  ta: "கவனம்" },
+};
+
 /** Finds the Horai (planetary hour) active at `now`, and the one after it.
  *  panchangam.hora entries can wrap past midnight (night horas), so both the
  *  entry's own span and `now` are normalized onto a rolling clock before
@@ -105,6 +144,229 @@ export function findHorai(hora: PanchangamDailyResponseData["hora"], nowMin: num
   const current = currentIdx >= 0 ? spans[currentIdx] : null;
   const next = currentIdx >= 0 && currentIdx + 1 < spans.length ? spans[currentIdx + 1] : null;
   return { current: current?.entry ?? null, next: next?.entry ?? null };
+}
+
+/* ── Sun arc geometry ─────────────────────────────────────────────────────
+   One quadratic Bézier in a 100 × 40 viewBox, stretched to the card's width.
+   Its x is linear in t (the control point sits at the midpoint), so the sun at
+   t = elapsed daylight lands at exactly the same x as the NOW line on the bar
+   below: pct(sunrise) is 0 and pct(sunset) is the arc's right foot. */
+const ARC_BASE = 38;
+const ARC_CTRL = -30; // peaks the arc at y = 4
+const SKY_PAD_PX = 16; // room above the peak for the sun's disc
+
+function arcPoint(t: number, xEnd: number) {
+  return { x: t * xEnd, y: ARC_BASE + 2 * t * (1 - t) * (ARC_CTRL - ARC_BASE) };
+}
+
+/** The [0, t] piece of the arc — itself a quadratic (de Casteljau). */
+function arcPathTo(t: number, xEnd: number): string {
+  const cx = (t * xEnd) / 2;
+  const cy = ARC_BASE + t * (ARC_CTRL - ARC_BASE);
+  const p = arcPoint(t, xEnd);
+  return `M 0 ${ARC_BASE} Q ${cx} ${cy} ${p.x} ${p.y}`;
+}
+
+/** True once the element has been on screen. The card sits below the fold and
+ *  is scroll-revealed, so a sweep started on mount would finish unseen. jsdom
+ *  and some webviews have no IntersectionObserver: treat those as seen. */
+function useSeenOnce<T extends Element>() {
+  const ref = useRef<T>(null);
+  const [seen, setSeen] = useState(false);
+  useEffect(() => {
+    if (seen) return;
+    const node = ref.current;
+    if (!node || typeof IntersectionObserver === "undefined") {
+      setSeen(true);
+      return;
+    }
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) {
+        setSeen(true);
+        io.disconnect();
+      }
+    }, { threshold: 0.35 });
+    io.observe(node);
+    return () => io.disconnect();
+  }, [seen]);
+  return [ref, seen] as const;
+}
+
+type Tick = { key: string; pct: number; align: "start" | "center" | "end"; node: ReactNode; kind: "sun" | "hour" };
+
+function DayHorizon({
+  lang,
+  reduce,
+  segments,
+  limbMarks,
+  ticks,
+  pctOf,
+  sunsetPct,
+  phase,
+  dayT,
+  nowPct,
+  nowLabel,
+  currentKalamKey,
+  shownKey,
+  onPick,
+  onHover,
+}: {
+  lang: Lang;
+  reduce: boolean;
+  segments: Segment[];
+  limbMarks: LimbMark[];
+  ticks: Tick[];
+  pctOf: (minutes: number) => number;
+  sunsetPct: number;
+  /** "day" draws the sun on the arc; "night" draws the moon on the horizon
+   *  line after sunset; null is a day other than today, with no NOW at all. */
+  phase: "day" | "night" | null;
+  /** Fraction of daylight gone, 0..1 (only meaningful when phase is "day"). */
+  dayT: number;
+  nowPct: number;
+  nowLabel: string;
+  currentKalamKey: KalamKey | undefined;
+  shownKey: string | null;
+  onPick: (key: string) => void;
+  onHover: (key: string | null) => void;
+}) {
+  const gradId = useId();
+  const [ref, seen] = useSeenOnce<HTMLDivElement>();
+
+  // One progress value drives the whole sweep — sun, drawn arc, NOW line and
+  // the elapsed veil — so they cannot drift apart mid-animation. The targets
+  // are motion values too: `now` ticks every minute and the sweep follows it.
+  const progress = useMotionValue(reduce ? 1 : 0);
+  const tTarget = useMotionValue(dayT);
+  const pctTarget = useMotionValue(nowPct);
+  const xEnd = useMotionValue(sunsetPct);
+  useEffect(() => { tTarget.set(dayT); }, [dayT, tTarget]);
+  useEffect(() => { pctTarget.set(nowPct); }, [nowPct, pctTarget]);
+  useEffect(() => { xEnd.set(sunsetPct); }, [sunsetPct, xEnd]);
+
+  useEffect(() => {
+    if (!seen) return;
+    if (reduce) {
+      progress.set(1);
+      return;
+    }
+    const controls = animate(progress, 1, { duration: DUR.reveal * 1.6, ease: EASE_NOVA });
+    return () => controls.stop();
+  }, [seen, reduce, progress]);
+
+  const litPath = useTransform([progress, tTarget, xEnd], ([p, t, x]: number[]) => arcPathTo(p * t, x));
+  const sunLeft = useTransform([progress, tTarget, xEnd], ([p, t, x]: number[]) => `${arcPoint(p * t, x).x}%`);
+  const sunTop = useTransform([progress, tTarget, xEnd], ([p, t, x]: number[]) =>
+    `calc(${SKY_PAD_PX}px + ${(arcPoint(p * t, x).y / 40).toFixed(4)} * (100% - ${SKY_PAD_PX}px))`);
+  const nowLeft = useTransform([progress, pctTarget], ([p, n]: number[]) => `${p * n}%`);
+
+  const fullArc = `M 0 ${ARC_BASE} Q ${sunsetPct / 2} ${ARC_CTRL} ${sunsetPct} ${ARC_BASE}`;
+  // The NOW chip rides beside the sun or moon; past ~62% it flips to the
+  // left so it never runs off the card's right edge.
+  const chipSide = nowPct > 62 ? "left" : "right";
+  const nowChip = (
+    <span className={`day-ribbon__now-chip day-ribbon__now-chip--${chipSide}`}>
+      <span>{lang === "ta" ? "இப்போது" : "Now"}</span>
+      <b>{nowLabel}</b>
+    </span>
+  );
+
+  return (
+    <div className="day-ribbon__horizon" ref={ref}>
+      <div className="day-ribbon__sky" aria-hidden="true">
+        <svg className="day-ribbon__arc" viewBox="0 0 100 40" preserveAspectRatio="none" focusable="false">
+          <defs>
+            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" style={{ stopColor: "var(--color-accent)", stopOpacity: 0.16 }} />
+              <stop offset="100%" style={{ stopColor: "var(--color-accent)", stopOpacity: 0 }} />
+            </linearGradient>
+          </defs>
+          <path d={`${fullArc} Z`} fill={`url(#${gradId})`} stroke="none" />
+          <path d={fullArc} className="day-ribbon__arc-path" vectorEffect="non-scaling-stroke" />
+          {phase && <motion.path d={litPath} className="day-ribbon__arc-lit" vectorEffect="non-scaling-stroke" />}
+          <line x1="0" y1={ARC_BASE} x2="100" y2={ARC_BASE} className="day-ribbon__horizon-line" vectorEffect="non-scaling-stroke" />
+        </svg>
+        {phase === "day" && (
+          <motion.span className="day-ribbon__body day-ribbon__body--sun" style={{ left: sunLeft, top: sunTop }}>
+            <span className="day-ribbon__sun" />
+            {nowChip}
+          </motion.span>
+        )}
+        {phase === "night" && (
+          <motion.span className="day-ribbon__body day-ribbon__body--moon" style={{ left: nowLeft }}>
+            <Moon size={14} strokeWidth={2} />
+            {nowChip}
+          </motion.span>
+        )}
+      </div>
+
+      <div className="day-ribbon__track">
+        <div className="day-ribbon__segments" role="group" aria-label={lang === "ta" ? "இன்றைய நேரங்கள்" : "Today's timing windows"}>
+          {segments.map((segment) => {
+            const widthPct = pctOf(segment.endMin) - pctOf(segment.startMin);
+            const isCurrentKalam = segment.kalamKey !== undefined && segment.kalamKey === currentKalamKey;
+            return (
+              <button
+                key={segment.key}
+                type="button"
+                className="day-ribbon__segment"
+                data-current-kalam={isCurrentKalam ? segment.kalamKey : undefined}
+                data-shown={shownKey === segment.key ? "true" : undefined}
+                aria-current={isCurrentKalam ? "time" : undefined}
+                aria-label={`${segment.legendName} ${segment.legendTime}`}
+                onClick={() => onPick(segment.key)}
+                onFocus={() => onPick(segment.key)}
+                onMouseEnter={() => onHover(segment.key)}
+                onMouseLeave={() => onHover(null)}
+                style={{
+                  left: `${pctOf(segment.startMin)}%`,
+                  width: `${Math.max(widthPct, 1.5)}%`,
+                  background: segment.bg,
+                  color: segment.fg,
+                }}
+              >
+                {widthPct >= 7 && <span aria-hidden="true">{segment.badge}</span>}
+              </button>
+            );
+          })}
+        </div>
+
+        {phase && <motion.span className="day-ribbon__elapsed" style={{ width: nowLeft }} aria-hidden="true" />}
+        {phase && <motion.span className="day-ribbon__now-line" style={{ left: nowLeft }} aria-hidden="true" />}
+
+        {limbMarks.map((mark) => (
+          <button
+            key={mark.key}
+            type="button"
+            className={`day-ribbon__limb day-ribbon__limb--${mark.key}`}
+            data-shown={shownKey === `limb-${mark.key}` ? "true" : undefined}
+            style={{ left: `${pctOf(mark.min)}%` }}
+            aria-label={mark.aria}
+            onClick={() => onPick(`limb-${mark.key}`)}
+            onFocus={() => onPick(`limb-${mark.key}`)}
+            onMouseEnter={() => onHover(`limb-${mark.key}`)}
+            onMouseLeave={() => onHover(null)}
+          >
+            {mark.key === "star"
+              ? <Star size={11} strokeWidth={2.4} aria-hidden="true" />
+              : <Moon size={11} strokeWidth={2.4} aria-hidden="true" />}
+          </button>
+        ))}
+      </div>
+
+      <div className="day-ribbon__scale">
+        {ticks.map((tick) => (
+          <span
+            key={tick.key}
+            className={`day-ribbon__tick day-ribbon__tick--${tick.kind} day-ribbon__tick--${tick.align}`}
+            style={{ left: `${tick.pct}%` }}
+          >
+            {tick.node}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export function DashboardTodayRibbonNova({
@@ -138,17 +400,14 @@ export function DashboardTodayRibbonNova({
   // switching dates reads as turning to a fresh page of the almanac rather than
   // silently swapping numbers in place. Gated on reduced-motion in JS since the
   // key-remount replays a framer transform the CSS guard can't reach.
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotion() ?? false;
+  const titleId = useId();
+  // What the readout line describes: a hover previews, a click / focus pins.
+  const [picked, setPicked] = useState<string | null>(null);
+  const [hovered, setHovered] = useState<string | null>(null);
 
   if (!panchangam) return null;
 
-  // The star and tithi actually running, not the ones the day is named after.
-  // A nakshatra span holds under half the day on 46.6% of days, and this card
-  // used to print the sunrise value flat for all 24 hours — so on 2026-08-19 it
-  // read "Swathi" from 06:00 to midnight, when Swathi ended at 06:47 and Visakam
-  // held the remaining 96.8%. The Calendar tab, one click away, already promoted
-  // correctly; the two surfaces disagreed. `sunriseName` is kept and shown when
-  // it differs, because the almanac genuinely does call today a Swathi day.
   const isToday = selectedDate === toDateKeyInZone(now, timeZone);
   // §2.4. Every time on this card — sunrise, the kalam bar, the horai — is
   // cut from sunrise at one place, so the card says which place that is. It
@@ -161,9 +420,6 @@ export function DashboardTodayRibbonNova({
     timeZone,
     isToday,
   }).current;
-  const nowIso = now.toISOString();
-  const nakNow = limbNow(panchangam.nakshatra, { isToday, nowIso });
-  const tithiNow = limbNow(panchangam.tithi, { isToday, nowIso });
 
   const sunriseMin = timeToMinutes(panchangam.sunrise);
   const sunsetMin = timeToMinutes(panchangam.sunset);
@@ -254,6 +510,9 @@ export function DashboardTodayRibbonNova({
     }
   });
 
+  // The engine groups windows by kind; the bar and the tab order follow the
+  // clock instead.
+  segments.sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
   const latestSegmentEnd = segments.reduce((max, s) => Math.max(max, s.endMin), 0);
   const rangeStart = sunriseMin;
   const rangeEnd = Math.max(sunsetMin + 180, latestSegmentEnd, rangeStart + 60);
@@ -264,221 +523,276 @@ export function DashboardTodayRibbonNova({
   }
 
   const nowMin = minutesOfDayInZone(now, timeZone);
-  const nowInRange = nowMin >= rangeStart && nowMin <= rangeEnd;
+  const nowInRange = isToday && nowMin >= rangeStart && nowMin <= rangeEnd;
   const nowPct = pct(nowMin);
+  const phase: "day" | "night" | null = !nowInRange ? null : nowMin <= sunsetMin ? "day" : "night";
+  const dayT = Math.max(0, Math.min(1, (nowMin - sunriseMin) / Math.max(1, sunsetMin - sunriseMin)));
+  const { current: currentHora, next: nextHora } = isToday
+    ? findHorai(panchangam.hora, nowMin)
+    : { current: null, next: null };
   // Tamil goes through the almanac period-words; ICU's ta-IN would print
   // "பிற்பகல்", which is not the ruled vocabulary.
   const nowLabel = lang === "ta"
     ? formatClockLabel(`${Math.floor(nowMin / 60)}:${nowMin % 60}`, "ta")
     : formatClockInZone(now, "en-IN", timeZone);
 
-  const ticks: number[] = [];
+  // ── Star and tithi change-overs ─────────────────────────────────────────
+  // The hero masthead names the star and tithi running now; what it cannot
+  // show is WHEN they turn over, which is the thing a reader planning the day
+  // needs (the 2026-08-19 "Swathi all day" defect was exactly this). Each
+  // change is a marker on the bar at its clock time. Only a change that falls
+  // on this date and inside the drawn range is placed — an `endsAt` of 10:35
+  // tomorrow would otherwise land on today's 10:35.
+  const limbMarks: LimbMark[] = [];
+  const placeLimb = (
+    key: LimbMark["key"],
+    limb: { name: string; endsAt?: string | null; endsAtIso?: string | null; nextName?: string | null },
+    localize: (name: string, lang: Lang) => string,
+  ) => {
+    const at = timeToMinutes(limb.endsAt);
+    if (at === null || !limb.nextName) return;
+    if (limb.endsAtIso && limb.endsAtIso.slice(0, 10) !== panchangam.dateLocal) return;
+    if (at < rangeStart || at > rangeEnd) return;
+    const time = formatClockLabel(limb.endsAt!, lang);
+    const from = localize(limb.name, lang);
+    const to = localize(limb.nextName, lang);
+    const isStar = key === "star";
+    limbMarks.push({
+      key,
+      min: at,
+      glossary: isStar ? "nakshatra" : "tithi",
+      label: isStar
+        ? (lang === "ta" ? "நட்சத்திரம்" : "Star")
+        : (lang === "ta" ? "திதி" : "Tithi"),
+      text: lang === "ta" ? `${from} ${time} வரை · பின்பு ${to}` : `${from} until ${time}, then ${to}`,
+      aria: isStar
+        ? (lang === "ta" ? `நட்சத்திரம் ${time} மாறுகிறது` : `Star changes at ${time}`)
+        : (lang === "ta" ? `திதி ${time} மாறுகிறது` : `Tithi changes at ${time}`),
+    });
+  };
+  placeLimb("star", panchangam.nakshatra, tNakshatra);
+  placeLimb("tithi", panchangam.tithi, tTithi);
+
+  // ── Scale under the bar: sunrise and sunset once, hour ticks between ──────
+  const sunsetPct = pct(sunsetMin);
+  const ticks: Tick[] = [
+    {
+      key: "sunrise",
+      pct: 0,
+      align: "start",
+      kind: "sun",
+      node: (
+        <>
+          <Sunrise size={14} strokeWidth={2} aria-hidden="true" />
+          <span className="day-ribbon__tick-text">
+            <small>{lang === "ta" ? "சூரிய உதயம்" : "sunrise"}</small>
+            <b>{formatClockLabel(panchangam.sunrise, lang)}</b>
+          </span>
+        </>
+      ),
+    },
+    {
+      key: "sunset",
+      pct: sunsetPct,
+      align: sunsetPct > 88 ? "end" : "center",
+      kind: "sun",
+      node: (
+        <>
+          <Sunset size={14} strokeWidth={2} aria-hidden="true" />
+          <span className="day-ribbon__tick-text">
+            <small>{lang === "ta" ? "அஸ்தமனம்" : "sunset"}</small>
+            <b>{formatClockLabel(panchangam.sunset, lang)}</b>
+          </span>
+        </>
+      ),
+    },
+  ];
   for (let m = Math.ceil(rangeStart / 60) * 60; m <= rangeEnd; m += 180) {
-    ticks.push(m);
+    const p = pct(m);
+    // Hours that would print on top of a sun label are dropped, not squeezed.
+    if (p < 14 || Math.abs(p - sunsetPct) < 12) continue;
+    const hm = `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+    // Tamil ticks stack the period-word over the hour: "மதியம் 12:00"
+    // side by side would crowd the scale at phone width.
+    const [word, hour] = lang === "ta" ? formatClockHour(hm, "ta").split(" ") : [null, formatClockLabel(hm, lang)];
+    ticks.push({
+      key: `h-${m}`,
+      pct: p,
+      align: p > 92 ? "end" : "center",
+      kind: "hour",
+      node: <span className="day-ribbon__tick-text">{word && <small>{word}</small>}<b>{hour}</b></span>,
+    });
   }
 
+  // ── The readout line ────────────────────────────────────────────────────
+  // It names ONE thing: whatever the reader is pointing at, or else the window
+  // they are standing in (or the next one today). Never the whole list — the
+  // hero rail already prints that.
+  const statusOf = (start: number, end: number): SpanStatus | null => {
+    if (!isToday) return null;
+    if (nowMin >= start && nowMin < end) return "now";
+    return nowMin >= end ? "past" : "future";
+  };
+  const defaultKey = isToday
+    ? (segments.find((s) => nowMin >= s.startMin && nowMin < s.endMin)
+      ?? segments.find((s) => s.startMin > nowMin))?.key ?? null
+    : null;
+  const knownKey = (key: string | null) =>
+    key !== null && (segments.some((s) => s.key === key) || limbMarks.some((m) => `limb-${m.key}` === key));
+  const shownKey = [hovered, picked, defaultKey].find(knownKey) ?? null;
+  const shownSegment = segments.find((s) => s.key === shownKey) ?? null;
+  const shownLimb = limbMarks.find((m) => `limb-${m.key}` === shownKey) ?? null;
+
+  let readout: ReactNode;
+  if (shownSegment) {
+    const status = statusOf(shownSegment.startMin, shownSegment.endMin);
+    readout = (
+      <>
+        <span className="day-ribbon__swatch" style={{ background: shownSegment.bg }} aria-hidden="true" />
+        {status && <span className={`day-ribbon__status day-ribbon__status--${status}`}>{STATUS_TEXT[status][lang === "ta" ? "ta" : "en"]}</span>}
+        <strong>
+          {shownSegment.glossary
+            ? <GlossaryTerm term={shownSegment.glossary} lang={lang}>{shownSegment.legendName}</GlossaryTerm>
+            : shownSegment.legendName}
+        </strong>
+        <span className={shownSegment.kalamKey ? "day-ribbon__time is-caution" : "day-ribbon__time is-supportive"}>
+          {shownSegment.legendTime}
+        </span>
+      </>
+    );
+  } else if (shownLimb) {
+    const status = isToday ? (nowMin >= shownLimb.min ? "past" : "future") : null;
+    readout = (
+      <>
+        <span className="day-ribbon__swatch day-ribbon__swatch--limb" aria-hidden="true">
+          {shownLimb.key === "star" ? <Star size={11} strokeWidth={2.4} /> : <Moon size={11} strokeWidth={2.4} />}
+        </span>
+        {status && <span className={`day-ribbon__status day-ribbon__status--${status}`}>{STATUS_TEXT[status][lang === "ta" ? "ta" : "en"]}</span>}
+        <strong><GlossaryTerm term={shownLimb.glossary} lang={lang}>{shownLimb.label}</GlossaryTerm></strong>
+        <span className="day-ribbon__time">{shownLimb.text}</span>
+      </>
+    );
+  } else {
+    readout = (
+      <span className="day-ribbon__hint">
+        {lang === "ta"
+          ? "நேரக்கோட்டின் எந்தப் பகுதியையும் தொட்டால் அதன் பெயரும் நேரமும் தெரியும்."
+          : "Select any part of the timeline to see what it is and when."}
+      </span>
+    );
+  }
+
+  const weekDays = weekAhead?.days ?? [];
+
   return (
-    <motion.div
+    <motion.section
       // Keyed on the panchangam's own date, not the picker's (DXA-07): the
       // caller holds the previous day on screen while the next one loads, so
       // keying on the selection would turn the page to a day that is not
       // rendered yet and then sit there, un-turned, when it arrives.
       key={panchangam.dateLocal}
+      className="day-ribbon"
+      aria-labelledby={titleId}
       initial={reduce ? false : { opacity: 0, x: 14 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: reduce ? 0 : DUR.slow, ease: EASE_NOVA }}
-      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-lg)", padding: "var(--space-5) var(--space-6) var(--space-4_5)" }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3_5)", marginBottom: "14px", flexWrap: "wrap", rowGap: "var(--space-2_5)" }}>
-        <div>
-          <h2 className="nova-card-title">
+      <header className="day-ribbon__head">
+        <div className="day-ribbon__heading">
+          <h2 id={titleId} className="nova-card-title">
             {lang === "ta" ? "இன்றைய நாள்" : "Your day"}
           </h2>
-          <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "2px" }}>
-            {placeLabel && (
-              <>
-                <b style={{ color: "var(--color-text)" }} title={place ?? undefined}>
-                  {dt(LOCATION_CHECK.timingsFor, lang).replace("%1$s", placeLabel)}
-                </b>
-                {" · "}
-              </>
-            )}
-            {lang === "ta" ? "சூரிய உதயம்" : "sunrise"} {formatClockLabel(panchangam.sunrise, lang)} · {lang === "ta" ? "அஸ்தமனம்" : "sunset"} {formatClockLabel(panchangam.sunset, lang)}
-            {/* Was bare "Nakshatram". The natal star is labelled "Birth Star"
-                everywhere else in the app, so the same concept carried two
-                labels and a reader could not tell that this one moves daily —
-                several read the day's star as their own. Named for what it is,
-                and glossed in place. */}
-            {" · "}
-            <GlossaryTerm term="nakshatra" lang={lang}>
-              {lang === "ta" ? "இன்றைய நட்சத்திரம்" : "Today's star"}
-            </GlossaryTerm>{" "}
-            <b style={{ color: "var(--color-text)" }}>{tNakshatra(nakNow.activeName, lang)}</b>
-            {nakNow.rolledOver && (
-              <span style={{ color: "var(--color-faint)" }}>
-                {" "}({lang === "ta" ? `${tNakshatra(nakNow.sunriseName, lang)} ${formatClockLabel(panchangam.nakshatra.endsAt, lang)} வரை` : `${tNakshatra(nakNow.sunriseName, lang)} until ${formatClockLabel(panchangam.nakshatra.endsAt, lang)}`})
-              </span>
-            )}
-            {!nakNow.rolledOver && nakNow.until && nakNow.upcomingName && (
-              <span style={{ color: "var(--color-faint)" }}>
-                {" "}({lang === "ta" ? `${formatClockLabel(nakNow.until, lang)} வரை · பின்பு ${tNakshatra(nakNow.upcomingName, lang)}` : `to ${formatClockLabel(nakNow.until, lang)}, then ${tNakshatra(nakNow.upcomingName, lang)}`})
-              </span>
-            )}
-            {" · "}
-            <GlossaryTerm term="tithi" lang={lang}>{lang === "ta" ? "திதி" : "Tithi"}</GlossaryTerm>{" "}
-            <b style={{ color: "var(--color-text)" }}>{tTithi(tithiNow.activeName, lang)}</b>
-            {tithiNow.rolledOver && (
-              <span style={{ color: "var(--color-faint)" }}>
-                {" "}({lang === "ta" ? `${tTithi(tithiNow.sunriseName, lang)} ${formatClockLabel(panchangam.tithi.endsAt, lang)} வரை` : `${tTithi(tithiNow.sunriseName, lang)} until ${formatClockLabel(panchangam.tithi.endsAt, lang)}`})
+          {placeLabel && (
+            <span className="day-ribbon__place" title={place ?? undefined}>
+              <MapPin size={12} strokeWidth={2} aria-hidden="true" />
+              {dt(LOCATION_CHECK.timingsFor, lang).replace("%1$s", placeLabel)}
+            </span>
+          )}
+        </div>
+
+        {weekDays.length > 0 && (
+          <div className="day-ribbon__week" role="group" aria-label={lang === "ta" ? "இந்த வாரம்" : "This week"}>
+            {weekDays.map((day, index) => {
+              const isSelected = day.dateLocal === selectedDate;
+              const date = new Date(`${day.dateLocal}T12:00:00`);
+              const locale = lang === "ta" ? "ta-IN" : "en-IN";
+              const weekday = date.toLocaleDateString(locale, { weekday: "short" });
+              const dayNumber = date.toLocaleDateString(locale, { day: "numeric" });
+              const tone = TONE_TEXT[getScoreBand(day.score).tone][lang === "ta" ? "ta" : "en"];
+              return (
+                <button
+                  key={day.dateLocal}
+                  type="button"
+                  className="day-ribbon__day"
+                  data-selected={isSelected ? "true" : undefined}
+                  aria-current={isSelected ? "date" : undefined}
+                  onClick={onGoToCalendar}
+                  disabled={!onGoToCalendar}
+                  aria-label={`${weekday} ${dayNumber}: ${day.score} / 100 · ${tone}`}
+                >
+                  <span className="day-ribbon__day-name">{weekday}</span>
+                  <span className="day-ribbon__day-num">{dayNumber}</span>
+                  <span className="day-ribbon__day-bar" aria-hidden="true">
+                    <motion.i
+                      style={{ background: scoreColorScale(day.score), transformOrigin: "left center" }}
+                      initial={reduce ? false : { scaleX: 0 }}
+                      animate={{ scaleX: Math.max(0.12, Math.min(1, day.score / 100)) }}
+                      transition={{ duration: reduce ? 0 : DUR.reveal, ease: EASE_NOVA, delay: reduce ? 0 : 0.1 + index * 0.05 }}
+                    />
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </header>
+
+      <DayHorizon
+        lang={lang}
+        reduce={reduce}
+        segments={segments}
+        limbMarks={limbMarks}
+        ticks={ticks}
+        pctOf={pct}
+        sunsetPct={sunsetPct}
+        phase={phase}
+        dayT={dayT}
+        nowPct={nowPct}
+        nowLabel={nowLabel}
+        currentKalamKey={currentKalam?.key}
+        shownKey={shownKey}
+        onPick={setPicked}
+        onHover={setHovered}
+      />
+
+      <div className="day-ribbon__readout">
+        <motion.div
+          key={shownKey ?? "hint"}
+          className="day-ribbon__detail"
+          initial={reduce ? false : { opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: reduce ? 0 : DUR.base, ease: EASE_NOVA }}
+        >
+          {readout}
+        </motion.div>
+
+        {currentHora && (
+          <div className="day-ribbon__hora" role="group" aria-label={lang === "ta" ? "தற்போதைய ஹோரை" : "Current hora"}>
+            <Clock3 size={14} strokeWidth={2} aria-hidden="true" />
+            <span className="day-ribbon__hora-label">
+              <GlossaryTerm term="hora" lang={lang}>{lang === "ta" ? "ஹோரை" : "Hora"}</GlossaryTerm>
+            </span>
+            <b>{tPlanetLord(currentHora.lord, lang)}</b>
+            {nextHora && (
+              <span className="day-ribbon__hora-next">
+                {lang === "ta"
+                  ? `${formatClockLabel(nextHora.start, lang)} முதல் ${tPlanetLord(nextHora.lord, lang)}`
+                  : `then ${tPlanetLord(nextHora.lord, lang)} at ${formatClockLabel(nextHora.start, lang)}`}
               </span>
             )}
           </div>
-        </div>
-
-        {/* Wraps so the button can drop under the week strip. Unwrapped, the
-            Tamil pair (strip 251px + button 147px) held the page at 447px on
-            every phone up to 414px, and English overflowed at 320px. The strip's
-            4px gap is what lets Tamil's seven weekdays fit a 320px phone. */}
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap", gap: "var(--space-2_5) var(--space-3)", minWidth: 0, maxWidth: "100%" }}>
-          {weekAhead && weekAhead.days.length > 0 && (
-            <div style={{ display: "flex", gap: "var(--space-1)", alignItems: "center" }}>
-              {weekAhead.days.map((day) => {
-                const isToday = day.dateLocal === selectedDate;
-                // Continuous scale: a 46 day and a 64 day must not render as
-                // the same dot even though both are "mid" band.
-                const color = scoreColorScale(day.score);
-                const band = getScoreBand(day.score);
-                const wd = new Date(`${day.dateLocal}T12:00:00`).toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", { weekday: "short" });
-                return (
-                  <button
-                    key={day.dateLocal}
-                    type="button"
-                    onClick={onGoToCalendar}
-                    title={`${band.label} · ${day.dateLocal}: ${day.score}/100`}
-                    style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-1)", background: "none", border: "none", cursor: onGoToCalendar ? "pointer" : "default", padding: 0, fontFamily: "inherit" }}
-                  >
-                    <span style={{
-                      width: "9px", height: "9px", borderRadius: "var(--radius-pill)", background: color,
-                      boxShadow: isToday ? "0 0 0 3px var(--color-accent-muted)" : "none",
-                    }} />
-                    <span style={{ fontSize: "var(--text-xs)", color: isToday ? "var(--color-accent-strong)" : "var(--color-faint)", fontWeight: isToday ? 700 : 400 }}>{wd}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          {onGoToCalendar && (
-            // An action, so the kit's secondary button (OD-4). Its inline
-            // colour, fill and border had beaten every pill hover rule.
-            <button
-              type="button"
-              className="ui-btn ui-btn--secondary ui-btn--sm"
-              onClick={onGoToCalendar}
-            >
-              {lang === "ta" ? "முழு பஞ்சாங்கம்" : "Full panchangam"}
-              <ArrowRight size={13} strokeWidth={2} aria-hidden="true" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div
-        style={{
-          position: "relative",
-          height: "46px",
-          margin: "18px 2px 4px",
-        }}
-      >
-        {/* Segments render inside this rounded + clipped track (rather than as
-            siblings with their own smaller corner radius) so the bar's left
-            and right ends are always evenly rounded, no matter which segment
-            happens to sit at either edge. */}
-        <div style={{ position: "absolute", inset: "14px 0", borderRadius: "var(--radius-sm)", overflow: "hidden", background: "var(--ribbon-track-bg)", boxShadow: "inset 0 0 0 1px var(--ribbon-track-border)" }}>
-          {segments.map((s) => {
-            const widthPct = pct(s.endMin) - pct(s.startMin);
-            const isCurrentKalam = s.kalamKey !== undefined && s.kalamKey === currentKalam?.key;
-            return (
-              <div
-                key={s.key}
-                title={`${s.legendName} ${s.legendTime}`}
-                data-current-kalam={isCurrentKalam ? s.kalamKey : undefined}
-                aria-current={isCurrentKalam ? "time" : undefined}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  bottom: 0,
-                  left: `${pct(s.startMin)}%`,
-                  width: `${Math.max(widthPct, 1.5)}%`,
-                  background: s.bg,
-                  boxShadow: isCurrentKalam ? "inset 0 0 0 2px var(--ribbon-now-bg)" : undefined,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  overflow: "hidden",
-                }}
-              >
-                {widthPct >= 6 && (
-                  <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "var(--tracking-tag)", textTransform: "uppercase", color: s.fg, whiteSpace: "nowrap", padding: "0 var(--space-1_5)" }}>
-                    {s.badge}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        {nowInRange && (
-          <>
-            <div style={{ position: "absolute", top: 0, bottom: 0, left: `${nowPct}%`, width: "2px", background: "var(--ribbon-now-bg)", borderRadius: "var(--radius-sm)", boxShadow: "0 0 0 1px var(--ribbon-track-bg)" }} />
-            <div style={{
-              position: "absolute", top: "-4px", left: `${nowPct}%`, transform: "translateX(-50%)",
-              fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--ribbon-now-fg)", background: "var(--ribbon-now-bg)",
-              borderRadius: "var(--radius-sm)", padding: "var(--space-0_5) var(--space-1_5)", whiteSpace: "nowrap", boxShadow: "0 1px 3px var(--shadow-drop)",
-            }}>
-              {lang === "ta" ? "இப்போது" : "NOW"} {nowLabel}
-            </div>
-          </>
         )}
       </div>
-
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-xs)", color: "var(--color-faint)", padding: "0 var(--space-0_5)" }}>
-        {ticks.map((m) => {
-          const hm = `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
-          if (lang !== "ta") return <span key={m}>{formatClockLabel(hm, lang)}</span>;
-          // Tamil ticks stack the period-word over the hour: "மதியம் 12:00"
-          // side by side would overflow six ticks at phone width.
-          const [word, hour] = formatClockHour(hm, "ta").split(" ");
-          return (
-            <span key={m} style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", lineHeight: 1.2 }}>
-              <span>{word}</span>
-              <span>{hour}</span>
-            </span>
-          );
-        })}
-      </div>
-
-      {/* Legend as a framed cell grid (redesign 2026-07-18) — one cell per
-          segment, times colored by whether the window helps or warns. */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", background: "color-mix(in srgb, var(--color-text-strong) 2.5%, transparent)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", marginTop: "16px", overflow: "hidden" }}>
-        {segments.map((s) => (
-          <div key={`legend-${s.key}`} style={{ display: "flex", gap: "var(--space-2_5)", alignItems: "center", padding: "var(--space-3) var(--space-3_5)", borderRight: "1px solid color-mix(in srgb, var(--color-text-strong) 5%, transparent)" }}>
-            <span style={{ width: "8px", height: "8px", borderRadius: "var(--radius-sm)", background: s.bg, flex: "none" }} />
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {s.glossary ? (
-                  <GlossaryTerm term={s.glossary} lang={lang}>{s.legendName}</GlossaryTerm>
-                ) : s.legendName}
-              </div>
-              <div style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: s.key === "rahu" || s.key === "yama" || s.key === "kuligai" ? "var(--color-low)" : "var(--color-high)", marginTop: "1px", display: "flex", flexWrap: "wrap", columnGap: "0.3em" }}>
-                {/* Wraps only at the dash: a Tamil range carries two period-words
-                    and outgrows the 160px cell, but each end stays whole. */}
-                {s.legendTime.split(" – ").map((part, i) => (
-                  <span key={i} style={{ whiteSpace: "nowrap" }}>{i > 0 ? `– ${part}` : part}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </motion.div>
+    </motion.section>
   );
 }
