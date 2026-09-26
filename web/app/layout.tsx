@@ -117,7 +117,7 @@ export const metadata: Metadata = {
       "Precise Thirukanitham-based Tamil astrology for daily guidance, porutham matching, jadhagam generation, and family planning.",
     images: [
       {
-        url: "/brand/vinaadi-og-image.png",
+        url: "/brand/vinaadi-og-image.jpg",
         width: 1200,
         height: 630,
         alt: "Vinaadi - Tamil Astrology Assistant",
@@ -129,7 +129,7 @@ export const metadata: Metadata = {
     title: "Vinaadi - Tamil Astrology Assistant for Daily Guidance & Planning",
     description:
       "Thirukanitham-based Tamil astrology for daily guidance, porutham, jadhagam, and family planning.",
-    images: ["/brand/vinaadi-og-image.png"],
+    images: ["/brand/vinaadi-og-image.jpg"],
   },
   robots: {
     index: true,
@@ -149,6 +149,13 @@ export const metadata: Metadata = {
     icon: [{ url: "/favicon.ico" }, { url: "/icon.png", type: "image/png" }],
     apple: [{ url: "/apple-icon.png", type: "image/png" }],
     shortcut: ["/favicon.ico"],
+  },
+  // Search Console / Bing ownership tokens, read from the server's runtime env
+  // so they can be set at deploy without a rebuild (GRW-01). A DNS TXT record
+  // verifies the whole domain too; either works. Absent env -> no tag.
+  verification: {
+    ...(process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : {}),
+    ...(process.env.BING_SITE_VERIFICATION ? { other: { "msvalidate.01": process.env.BING_SITE_VERIFICATION } } : {}),
   },
 };
 

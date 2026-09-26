@@ -17,6 +17,9 @@ const SKIP_FILES = new Set([
   "web/components/friendship-result-card.tsx",
   "web/components/panchangam-share-card.tsx",
   "web/components/public-share-card.tsx",
+  // The web app manifest is JSON the browser reads before any stylesheet, so
+  // its background/theme colours must be literals (mirroring --cl-bg/--cl-ink).
+  "web/app/manifest.ts",
 ]);
 
 function toRepoPath(filePath) {

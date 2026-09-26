@@ -132,6 +132,25 @@ export function getMySubscription(): Promise<SubscriptionInfoResponse> {
   return getApiClient().get("/users/me/subscription") as Promise<SubscriptionInfoResponse>;
 }
 
+/** GET /users/me/referral — app/api/users.py `get_own_referral` (GRW-13). */
+export interface ReferralInfo {
+  /** Minted on the first call, stable afterwards. */
+  code: string;
+  /** The site root carrying `?ref=<code>`. */
+  shareUrl: string;
+  /** Accounts whose first visit arrived through this code. */
+  referredCount: number;
+}
+
+export interface ReferralInfoResponse {
+  success: boolean;
+  data: ReferralInfo;
+}
+
+export function getMyReferral(): Promise<ReferralInfoResponse> {
+  return getApiClient().get("/users/me/referral") as Promise<ReferralInfoResponse>;
+}
+
 export interface AuthProvidersResponse {
   google: boolean;
 }

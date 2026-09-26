@@ -12,13 +12,13 @@ export const metadata: Metadata = {
     description: CHITRA.meta.description,
     url: "https://vinaadi.com/natchathiram/chitra",
     type: "article",
-    images: [{ url: "/brand/vinaadi-og-image.png", width: 1200, height: 630, alt: "Vinaadi — Tamil Astrology" }],
+    images: [{ url: "/brand/vinaadi-og-image.jpg", width: 1200, height: 630, alt: "Vinaadi — Tamil Astrology" }],
   },
   twitter: {
     card: "summary_large_image",
     title: CHITRA.meta.title,
     description: CHITRA.meta.description,
-    images: ["/brand/vinaadi-og-image.png"],
+    images: ["/brand/vinaadi-og-image.jpg"],
   },
 };
 

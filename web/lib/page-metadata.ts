@@ -4,7 +4,7 @@ import { SITE_URL } from "@vinaadi/shared/constants";
 /** The public origin every canonical, sitemap and share URL is built from. */
 export { SITE_URL };
 
-const OG_IMAGE = { url: "/brand/vinaadi-og-image.png", width: 1200, height: 630, alt: "Vinaadi — Tamil astrology assistant" };
+const OG_IMAGE = { url: "/brand/vinaadi-og-image.jpg", width: 1200, height: 630, alt: "Vinaadi — Tamil astrology assistant" };
 
 /**
  * Metadata for one public page: its own title, description, canonical and

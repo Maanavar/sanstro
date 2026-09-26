@@ -12,13 +12,13 @@ export const metadata: Metadata = {
     description: MAGHA.meta.description,
     url: "https://vinaadi.com/natchathiram/magha",
     type: "article",
-    images: [{ url: "/brand/vinaadi-og-image.png", width: 1200, height: 630, alt: "Vinaadi — Tamil Astrology" }],
+    images: [{ url: "/brand/vinaadi-og-image.jpg", width: 1200, height: 630, alt: "Vinaadi — Tamil Astrology" }],
   },
   twitter: {
     card: "summary_large_image",
     title: MAGHA.meta.title,
     description: MAGHA.meta.description,
-    images: ["/brand/vinaadi-og-image.png"],
+    images: ["/brand/vinaadi-og-image.jpg"],
   },
 };
 

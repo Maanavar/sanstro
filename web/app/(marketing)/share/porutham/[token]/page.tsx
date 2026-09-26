@@ -88,7 +88,9 @@ export default async function PoruthamSharePage({ params }: Props) {
               <p className="cl-pub-lead" style={{ marginBottom: "24px" }}>
                 The porutham result may have been revoked, or the share link has expired (links last 30 days).
               </p>
-              <Link href="/dashboard" className="cl-btn cl-btn--solid">Go to Vinaadi AI →</Link>
+              {/* Still useful to whoever opened a dead link: the calculator is
+                  free and needs no account. */}
+              <Link href="/tools/marriage-porutham-calculator" className="cl-btn cl-btn--solid">Check a porutham yourself →</Link>
             </div>
           </section>
         </main>
@@ -203,7 +205,9 @@ export default async function PoruthamSharePage({ params }: Props) {
               <h2 className="cl-cta-strip__title">Check your own compatibility</h2>
               <p className="cl-cta-strip__body">Create a free account for the full compatibility intelligence report, charts, and daily guidance.</p>
             </div>
-            <Link href="/dashboard" className="cl-btn cl-btn--solid">Get started free →</Link>
+            {/* Straight to the signup form: /dashboard bounces a visitor
+                with no session through a redirect first. */}
+            <Link href="/login?mode=signup" className="cl-btn cl-btn--solid">Get started free →</Link>
           </div>
         </section>
       </main>

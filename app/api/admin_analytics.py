@@ -356,6 +356,82 @@ def get_life_focus_metrics(
     )
 
 
+class ChannelCount(BaseModel):
+    channel: str
+    signups: int
+    #: Of those, accounts that went on to generate a chart — the first value.
+    activated: int
+
+
+class AcquisitionReport(BaseModel):
+    days: int
+    channels: list[ChannelCount]
+    landing_pages: list[ChannelCount]
+
+
+def acquisition_channel(source: str | None, ref: str | None, referrer_host: str | None) -> str:
+    """One label per account, most specific first.
+
+    A tagged campaign names itself; an untagged `?ref=` visit is a referral; an
+    untagged link from another site is that site; nothing at all is "unknown" —
+    not "direct", because a pre-attribution account and a bookmark look the same.
+    """
+    if source:
+        return source.lower()
+    if ref:
+        return "referral"
+    if referrer_host:
+        return referrer_host.removeprefix("www.")
+    return "unknown"
+
+
+@router.get(
+    "/acquisition",
+    response_model=AcquisitionReport,
+    summary="Signups and activation by first-touch channel and landing page (GRW-03)",
+)
+def get_acquisition(
+    days: int = 30,
+    session: Session = Depends(get_db),
+    _: User = Depends(get_admin_user),
+) -> AcquisitionReport:
+    days = max(1, min(days, 365))
+    since = datetime.now(UTC) - timedelta(days=days)
+    rows = session.execute(
+        select(
+            User.user_id,
+            User.acquisition_source,
+            User.acquisition_ref,
+            User.acquisition_referrer_host,
+            User.acquisition_landing_path,
+        ).where(User.created_at >= since)
+    ).all()
+    activated_ids = set(
+        session.execute(
+            select(func.distinct(BirthProfile.owner_user_id))
+            .join(Chart, Chart.birth_profile_id == BirthProfile.birth_profile_id)
+            .where(BirthProfile.owner_user_id.in_([r.user_id for r in rows]))
+        ).scalars().all()
+    ) if rows else set()
+
+    def tally(key_of) -> list[ChannelCount]:
+        counts: dict[str, list[int]] = {}
+        for r in rows:
+            bucket = counts.setdefault(key_of(r), [0, 0])
+            bucket[0] += 1
+            bucket[1] += r.user_id in activated_ids
+        return sorted(
+            (ChannelCount(channel=k, signups=v[0], activated=v[1]) for k, v in counts.items()),
+            key=lambda c: (-c.signups, c.channel),
+        )
+
+    return AcquisitionReport(
+        days=days,
+        channels=tally(lambda r: acquisition_channel(r.acquisition_source, r.acquisition_ref, r.acquisition_referrer_host)),
+        landing_pages=tally(lambda r: r.acquisition_landing_path or "unknown")[:20],
+    )
+
+
 @router.get("/retention", response_model=RetentionReport, summary="Weekly cohort retention (D7, D30)")
 def get_retention(
     session: Session = Depends(get_db),

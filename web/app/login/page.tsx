@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { track } from "@/lib/analytics";
+import { firstTouchChannel, readFirstTouch } from "@/lib/acquisition";
 import { estimatePasswordStrength } from "@/lib/password-strength";
 import { lt, LEFT_PANEL_FEATURES, type LoginKey } from "@/lib/login-i18n";
 import { LangToggle, useLang } from "@/components/lang-toggle";
@@ -209,6 +210,25 @@ export default function LoginPage() {
           throw new AuthCopyError("error_create_failed");
         }
         track("onboarding_step_completed", { step: "account_created" });
+        track("signup_completed", { method: "email", channel: firstTouchChannel(readFirstTouch()) });
+        // Sign straight in with the password just chosen, instead of ending on
+        // "account ready — please sign in" and making them type it again
+        // (GRW-14). Register answers neutrally whether or not the email was
+        // new, and this keeps that: if the address already belonged to someone
+        // with a different password the login fails and the same neutral
+        // message shows; if the password matches, the person already had it.
+        const autoLogin = await fetch("/api/backend/api/v1/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Vinaadi-CSRF": "1" },
+          credentials: "include",
+          body: JSON.stringify({ email: email.trim(), password }),
+        }).catch(() => null);
+        if (autoLogin?.ok) {
+          const dest = "/dashboard?setup=1";
+          try { router.prefetch(dest); } catch { /* prefetch is best-effort */ }
+          setWelcomeDest(dest);
+          return;
+        }
         setDone("signup");
       } else if (mode === "login") {
         const response = await fetch("/api/backend/api/v1/auth/login", {
@@ -382,6 +402,7 @@ export default function LoginPage() {
                 <a
                   href="/api/backend/api/v1/auth/oauth/google/start"
                   className="ca-google-btn"
+                  onClick={() => track("signup_started", { method: "google", mode, channel: firstTouchChannel(readFirstTouch()) })}
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
                     <path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.53 5.53 0 0 1-2.4 3.63v3h3.88c2.27-2.09 3.57-5.17 3.57-8.82Z"/>

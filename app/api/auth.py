@@ -45,6 +45,7 @@ from app.schemas.auth import (
     ResetPasswordRequest,
     UpdateUserSettingsRequest,
 )
+from app.services.acquisition_service import apply_first_touch
 from app.services.email_service import (
     enqueue_existing_account_registration_email,
     enqueue_password_reset_email,
@@ -298,6 +299,7 @@ def register(
         consent_given_at=datetime.now(UTC),
         consent_policy_version=CURRENT_POLICY_VERSION,
     )
+    apply_first_touch(user, request)
     session.add(user)
     session.flush()
     return RegisterResponse(detail=_REGISTER_NEUTRAL_DETAIL)
@@ -656,6 +658,9 @@ def oauth_google_callback(
             user.google_sub = google_sub
         else:
             user = User(user_id=uuid4(), email=email, google_sub=google_sub)
+            # New accounts only: linking Google to an existing account must
+            # not rewrite where that account originally came from.
+            apply_first_touch(user, request)
             session.add(user)
         session.flush()
 

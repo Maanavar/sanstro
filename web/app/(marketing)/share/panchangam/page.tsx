@@ -59,7 +59,7 @@ export default async function SharePanchangamPage({ searchParams }: Props) {
                 Create a free account for daily guidance that combines your chart, dasa, and panchangam together.
               </p>
             </div>
-            <Link href="/dashboard" className="cl-btn cl-btn--solid">Get started free →</Link>
+            <Link href="/login?mode=signup" className="cl-btn cl-btn--solid">Get started free →</Link>
           </div>
         </section>
       </main>

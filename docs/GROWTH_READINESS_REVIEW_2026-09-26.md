@@ -4,6 +4,7 @@
 **Discovery → Signup → First value → Habit → Premium → Retention → Referral → Return.**
 **Lenses:** marketing, SEO, business analysis, product management.
 **Item prefix:** `GRW-##`. Status: `[ ]` open · `[~]` partial · `[x]` done.
+**Progress:** owner chose open beta on 2026-09-26; code-side items shipped the same day — see [LAUNCH_RUNBOOK_2026-09-26.md](LAUNCH_RUNBOOK_2026-09-26.md) for what shipped and the owner's go-live steps.
 
 ---
 
@@ -56,32 +57,32 @@ Vinaadi has **built more growth machinery than most products at launch**. It has
 
 ## 3. P0 — launch blockers (do these before any marketing spend)
 
-### [ ] GRW-01 — The domain does not resolve
+### [~] GRW-01 — The domain does not resolve
 - **Problem:** `vinaadi.com` / `.ai` / `.app` all NXDOMAIN. `web/app/layout.tsx:19`, `web/app/sitemap.ts:5`, `web/app/robots.ts:26` hard-code `https://vinaadi.com`.
 - **Why:** zero pages can be indexed, zero shared links work, and domain age (a slow SEO factor) isn't accruing.
 - **Fix:** register one domain, deploy web + API behind it, and verify it in Google Search Console and Bing Webmaster (`metadata.verification`). Submit the sitemap.
 - **Acceptance:** `Resolve-DnsName <domain> -Server 8.8.8.8` returns A/AAAA; `curl -I https://<domain>/sitemap.xml` is 200; Search Console shows "Sitemap: Success".
 
-### [ ] GRW-02 — 10 public pages canonicalise to the homepage
+### [x] GRW-02 — 10 public pages canonicalise to the homepage
 - **Problem:** the root layout sets `alternates.canonical: BASE` (`web/app/layout.tsx:145`). Next.js passes metadata fields down to any child segment that doesn't override them. These pages export no metadata at all, so they ship `<link rel="canonical" href="https://vinaadi.com">` **and** the homepage's title and description:
   `features/daily-guidance`, `features/family-planning`, `features/chart-guidance`, `features/timing-and-decisions`, `trust/methodology`, `trust/about-vinaadi`, `tools/birth-time-rectification`, `tools/chandrashtama` (`"use client"`, so it needs a `layout.tsx`), `family`, `widget/panchangam`.
 - **Why:** Google treats each one as a duplicate of `/` and drops it. Four are in the sitemap at priority 0.8–0.9, and they are the highest-intent commercial pages on the site ("Daily Personalized Astrology", methodology/trust).
 - **Fix:** give each its own `metadata` (title, description, `alternates.canonical`, OG). Set `robots: { index: false }` on `widget/panchangam`. **Then remove `canonical` from the root layout**, so the next page that forgets metadata gets no canonical instead of a wrong one. Keep only the homepage's canonical in `(marketing)/page.tsx`.
 - **Acceptance:** a vitest that imports every `(marketing)/**/page.tsx` (or its layout) and asserts `alternates.canonical` equals its own path. Run it once with the root canonical restored and confirm it fails. Then `curl -s <url> | findstr canonical` on the 10 URLs in prod.
 
-### [ ] GRW-03 — Analytics is dark and signups have no source
+### [x] GRW-03 — Analytics is dark and signups have no source
 - **Problem:** `web/lib/analytics.ts` no-ops without `NEXT_PUBLIC_POSTHOG_KEY`, which is not passed as a build arg in `web/Dockerfile` or `.github/workflows/*` (`NEXT_PUBLIC_*` is baked in at build time). Web sends ~8 event names (`chart_generated`, `onboarding_step_completed`, `cta_clicked`, `app_dl_clicked`, …). There is no `signup_completed`, `public_tool_used`, `share_clicked`, `upgrade_viewed` or `paywall_hit`. `app/models/user.py` has no `signup_source` / `utm_*` / `landing_path` / `referrer`.
 - **Why:** you can't answer "which page or channel produces retained users", which is the only question that should steer spend.
 - **Fix:** (a) add `ARG NEXT_PUBLIC_POSTHOG_KEY` / `HOST` to the web Dockerfile and CI. (b) Capture first-touch `utm_*`, `document.referrer` and landing path into a first-party cookie, and persist it to new nullable `users.acquisition_*` columns on register (reversible migration). (c) Add ~10 funnel events: `public_tool_used{tool}`, `public_tool_result{tool}`, `signup_started{from}`, `signup_completed{method,source}`, `first_reading_viewed`, `share_clicked{surface,channel}`, `paywall_hit{feature}`, `upgrade_clicked{surface}`, `push_opt_in`, `day7_return`.
 - **Acceptance:** a PostHog funnel `public_tool_used → signup_completed → first_reading_viewed` renders with non-zero counts in staging; admin `/daily` can split signups by source.
 
-### [ ] GRW-04 — One domain, one brand name everywhere
+### [x] GRW-04 — One domain, one brand name everywhere
 - **Problem:** web SEO says `vinaadi.com`, `app/services/panchangam_card_service.py:110-113` prints `vinaadi.ai` on every panchangam share image, and `mobile/src/components/ShareCard.tsx:105` prints `vinaadi.app`. The name also alternates between "Vinaadi" and "Vinaadi AI" (`share/porutham/[token]` titles, email subjects).
 - **Why:** a forwarded image is the cheapest acquisition you'll ever get. Today it sends people to a dead address, and splits brand search across three names.
 - **Fix:** add a single `PUBLIC_SITE_URL` setting consumed by backend, web and mobile, and pick one brand string.
 - **Acceptance:** `rg -n "vinaadi\.(ai|app)\b"` returns only intentional hits; a rendered share PNG shows the live domain.
 
-### [ ] GRW-05 — Premium story contradicts itself; no one can pay outside Android
+### [x] GRW-05 — Premium story contradicts itself; no one can pay outside Android
 - **Problem:**
   - `/beta` (`BETA.page_free_b`) says *"Every feature is unlocked for now"*. The server enforces caps via `is_premium()` in `ask_vinaadi_usage_service`, `birth_profile_service`, `family_vault_service`, `goals_service` and `reports`: registered = 7 Ask/day, 3 profiles, 1 vault member, 3 goals.
   - The Ask upgrade modal says *"You've used your 3 free questions today"* (`dashboard-ask-vinaadi.tsx:244`). `tier_limits.py` says 7, and the recorded 2026-07-03 decision says 2 (ladder 1/2/5), still unimplemented.
@@ -101,13 +102,13 @@ Vinaadi has **built more growth machinery than most products at launch**. It has
 - **Fix:** serve Tamil at its own URL. Least disruption: a `/ta/...` mirror via middleware rewrite that sets the language from the path (cookie still wins for the toggle UX but never for URL-addressed pages). Emit reciprocal `hreflang` (`en`, `ta`, `x-default`) per page and add `ta` URLs to the sitemap. Start with the 6 highest-intent templates: rasi palan, panchangam/[date], porutham, muhurtham-naal/[year], nakshatra, festival calendar.
 - **Acceptance:** `curl https://<domain>/ta/panchangam/2026-10-01` returns `<html lang="ta">` with a Tamil `<title>` and no cookie sent; Search Console → International Targeting shows no hreflang errors.
 
-### [ ] GRW-07 — Titles render "… | Vinaadi | Vinaadi"
+### [x] GRW-07 — Titles render "… | Vinaadi | Vinaadi"
 - **Problem:** the root template is `"%s | Vinaadi"`, and 80 page titles already end in `| Vinaadi`. Only 1 uses `title.absolute`.
 - **Why:** it burns ~10 of ~60 visible SERP characters on every page.
 - **Fix:** strip the suffix from the 80 titles (or switch those to `absolute`). Add a test that no `title:` literal contains `| Vinaadi`.
 - **Acceptance:** that test, run once before the fix to see it fail.
 
-### [ ] GRW-08 — Sitemap is hand-maintained and has drifted
+### [~] GRW-08 — Sitemap is hand-maintained and has drifted
 - **Missing:** `/pricing`, `/beta`, `/family`, `/tools/chandrashtama`, 23 of 27 `/natchathiram/*/visual`, the `/features` and `/tools` hubs (if they exist). **Stale soon:** `TAMIL_CALENDAR_EVENTS` are hard-coded `-2026`. Searches for "2027 Tamil calendar", "2027 muhurtham" and "pongal 2027" start in October.
 - **Also:** `WEBSITE_JSONLD.potentialAction` is a `SearchAction` whose target has no `{search_term_string}`, which is invalid structured data, so remove it. `ORG_JSONLD.sameAs: []` stays empty until GRW-18.
 - **Fix:** generate the sitemap from the route tree plus the content registries, add a year parameter to the festival pages, and publish 2027 before 1 Oct.
@@ -122,7 +123,7 @@ Vinaadi has **built more growth machinery than most products at launch**. It has
 
 ## 5. P1 — Loop mechanics (signup, habit, referral)
 
-### [ ] GRW-10 — WhatsApp is the channel; give it a first-class button
+### [~] GRW-10 — WhatsApp is the channel; give it a first-class button
 - **Problem:** every share path is `navigator.share`, which isn't available on most desktop browsers and some in-app webviews. There is no `wa.me/?text=` fallback anywhere.
 - **Fix:** a single `ShareButtons` component with a WhatsApp button (`https://wa.me/?text=<encoded text + url>`), `navigator.share`, and copy link. Pre-fill a Tamil or English message per surface. The daily panchangam card is the one to optimise, since families forward it every morning.
 
@@ -135,15 +136,15 @@ Vinaadi has **built more growth machinery than most products at launch**. It has
 - **Fix:** stash the tool input (in `sessionStorage`, never in the URL) and have `/login?mode=signup&next=/dashboard/...&from=porutham_tool` prefill onboarding from it, so the first dashboard view shows **their** chart.
 - **Acceptance:** an e2e test: porutham tool → "Save this" → signup → dashboard shows the same names with no re-entry.
 
-### [ ] GRW-13 — Referral + attribution
+### [x] GRW-13 — Referral + attribution
 - **Fix (minimum viable):** a per-user `ref` code, `?ref=` captured into the first-touch cookie from GRW-03, and every share URL and card footer auto-tagged. Reward something that costs little and is on-brand. For example, both people get +1 family-vault slot or a month of extended rasi-palan window, not cash. Admin: "signups by referrer".
 - **Don't:** leaderboards or streak shaming (the owner's "reflective artifacts, not gamification" rule in `MARKETING_PLAN.md` §1).
 
-### [ ] GRW-14 — Signup friction for the actual buyer
+### [~] GRW-14 — Signup friction for the actual buyer
 - **Observation:** registration is email + strong password + confirm password, with Google OAuth when configured. The family decision-maker for porutham and muhurtham is often 45+ and phone-first.
 - **Fix:** make Google the primary button, drop the confirm-password field (show/hide already exists), and plan **phone OTP** (MSG91 / Firebase Phone Auth) as the next auth method. Measure with `signup_started → signup_completed` from GRW-03 before and after.
 
-### [ ] GRW-15 — PWA manifest
+### [x] GRW-15 — PWA manifest
 - **Problem:** no `web/app/manifest.ts`. Web push already works via `lib/firebase-messaging.ts`.
 - **Fix:** add a manifest with the Tamil name, icons and `start_url=/dashboard`, so Android Chrome offers "Add to Home screen". It's the cheapest "app" until the Play release.
 

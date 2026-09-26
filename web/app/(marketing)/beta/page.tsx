@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     url: "https://vinaadi.com/beta",
     images: [
       {
-        url: "/brand/vinaadi-og-image.png",
+        url: "/brand/vinaadi-og-image.jpg",
         width: 1792,
         height: 612,
         alt: "Vinaadi - Your Cosmic Copilot",
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Open Beta",
     description: "Every feature free while we refine Vinaadi. Your feedback shapes v1.",
-    images: ["/brand/vinaadi-og-image.png"],
+    images: ["/brand/vinaadi-og-image.jpg"],
   },
 };
 
