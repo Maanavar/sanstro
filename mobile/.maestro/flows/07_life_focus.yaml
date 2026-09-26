@@ -1,0 +1,61 @@
+appId: ai.vinaadi.app
+---
+# Life focus on a device (docs/LIFE_FOCUS_PLAN_2026-09-22.md, Phase 3 + mobile T2).
+# The web pass covered web; this is the device half, which tests and typecheck
+# cannot see: native Tamil shaping, the bottom-sheet picker, safe areas, touch.
+#
+# Assumes a signed-in synthetic account (run 02_login.yaml first) whose own
+# chart is saved. Run in each language:
+#   maestro test --env TEST_EMAIL=... --env TEST_PASSWORD=... .maestro/flows/02_login.yaml .maestro/flows/07_life_focus.yaml
+# Every step accepts English or Tamil. Screenshots land beside the run for a
+# human look at Tamil rendering; the assertions do not judge glyph shaping.
+- launchApp
+- waitForAnimationToEnd
+- tapOn:
+    text: "Today|இன்று"
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# 1. The Today chip opens the picker.
+- tapOn:
+    text: "(Focus|கவனம்) .*"
+- assertVisible:
+    text: "What are you focused on right now\\?|இப்போது எதில் கவனம்\\?"
+- takeScreenshot: 07-picker
+
+# 2. Choosing Studies closes the sheet and renames the chip in place.
+- tapOn:
+    text: "Studies|படிப்பு"
+- waitForAnimationToEnd
+- assertNotVisible:
+    text: "What are you focused on right now\\?|இப்போது எதில் கவனம்\\?"
+- assertVisible:
+    text: "Studies|படிப்பு"
+
+# 3. The life-area pulse pins the focus area first, badged, without a reload.
+#    Its accessible name leads with "Your focus".
+- assertVisible:
+    text: "(Your focus|உங்கள் கவனம்)\\. .*"
+- takeScreenshot: 07-today-pinned
+
+# 4. The Me row shows the same focus and changes it back to Balanced.
+- tapOn:
+    text: "Me|நான்"
+- waitForAnimationToEnd
+- assertVisible:
+    text: "(Your focus|உங்கள் கவனம்): (Studies|படிப்பு)"
+- tapOn:
+    text: "(Your focus|உங்கள் கவனம்): .*"
+- tapOn:
+    text: "Balanced|சமநிலை"
+- waitForAnimationToEnd
+- assertVisible:
+    text: "(Your focus|உங்கள் கவனம்): (Balanced|சமநிலை)"
+- takeScreenshot: 07-me-balanced
+
+# 5. Balanced pins nothing on Today.
+- tapOn:
+    text: "Today|இன்று"
+- waitForAnimationToEnd
+- assertNotVisible:
+    text: "(Your focus|உங்கள் கவனம்)\\. .*"

@@ -292,7 +292,7 @@ function DashaDetailPanel({
       padding: "1.75rem 2rem",
       boxShadow: `0 4px 24px ${color}15`,
       position: "relative",
-      animation: "dashaPanelIn 0.22s ease",
+      animation: "dashaPanelIn 0.22s var(--ease-nova)",
     }}>
       <style>{`@keyframes dashaPanelIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }`}</style>
 
@@ -758,7 +758,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
                           fontSize:"1.1rem", color:col,
                           boxShadow: isSelected ? `0 0 0 4px ${col}20, 0 4px 12px ${col}30` : `0 2px 8px ${col}20`,
                           cursor: hasDetail ? "pointer" : "default",
-                          transition:"all 0.18s ease",
+                          transition:"all 0.18s var(--ease-nova)",
                           transform: isSelected ? "scale(1.12)" : "scale(1)",
                         }}
                       >

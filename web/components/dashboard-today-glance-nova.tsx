@@ -1,15 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import {
   ScrollText, Sunrise, Sparkles, Timer, Hash, HeartHandshake, NotebookPen, Compass,
   ArrowRight, ArrowUp, ArrowDown, Diamond, Check,
   type LucideIcon,
 } from "lucide-react";
 
+import { dt, LIFE_FOCUS } from "@/lib/dashboard-i18n";
 import { formatClockLabel, formatDateLabel, getLifeAreaVerdict, getScoreBand, getScoreVerdictFromGuidance, nextWeekdayDate, scoreColorAlpha } from "@/lib/format";
 import { t, tLang, tPlanetLord, tWeekday } from "@/lib/i18n";
+import { focusQuickLinkId, pinFirst } from "@/lib/life-focus";
 import type { Lang } from "@/lib/i18n";
+import { saniCycleName } from "@/lib/family-flags";
 import type {
   BiText,
   ChartSummaryData,
@@ -23,6 +26,7 @@ import type {
 } from "@/lib/types";
 
 import { ScoreRing } from "./dashboard-family-shared";
+import { PendingPlaceholder } from "./pending-placeholder-nova";
 import { Card, Kicker } from "./ui";
 
 /** Chandrashtama for one family member, straight off the aggregate's cycle
@@ -57,7 +61,7 @@ const _NATURE_TESTING = new Set(["MARAKA", "DUSTHANA"]);
 // DASH-10.2 ruling (2026-07-16): Upachaya houses (3/6/10/11) classically
 // improve with effort/time rather than warranting caution — bucketing them
 // with Maraka/Dusthana's "go gently" copy was a miscalibration. Split out
-// with its own "grows with effort" framing; reuses the neutral --color-mid
+// with its own "Grows with effort" framing; reuses the neutral --color-mid
 // tone (not --color-low, which reads as a warning) rather than adding a new
 // color token for a single category.
 const _NATURE_GROWTH = new Set(["UPACHAYA"]);
@@ -69,28 +73,28 @@ function dashaSentiment(
 ): { label: string; color: string } {
   if (functionalNature) {
     if (_NATURE_SUPPORTIVE.has(functionalNature)) {
-      return { label: lang === "ta" ? "ஆதரவான காலம்" : "supportive period", color: "var(--color-high)" };
+      return { label: lang === "ta" ? "ஆதரவான காலம்" : "Supportive period", color: "var(--color-high)" };
     }
     if (_NATURE_GROWTH.has(functionalNature)) {
       // New `ta` string — pending native review, matching this repo's
       // convention for newly added Tamil copy.
-      return { label: lang === "ta" ? "முயற்சியால் வளரும் காலம்" : "grows with effort", color: "var(--color-mid-text)" };
+      return { label: lang === "ta" ? "முயற்சியால் வளரும் காலம்" : "Grows with effort", color: "var(--color-mid-text)" };
     }
     if (_NATURE_TESTING.has(functionalNature)) {
-      return { label: lang === "ta" ? "சவாலான காலம் · மெதுவாக செல்லுங்கள்" : "testing period · go gently", color: "var(--color-low)" };
+      return { label: lang === "ta" ? "சவாலான காலம் · மெதுவாக செல்லுங்கள்" : "Testing period · go gently", color: "var(--color-low)" };
     }
     if (_NATURE_STEADY.has(functionalNature)) {
-      return { label: lang === "ta" ? "நடுநிலையான காலம்" : "steady, mixed period", color: "var(--color-mid-text)" };
+      return { label: lang === "ta" ? "நடுநிலையான காலம்" : "Steady, mixed period", color: "var(--color-mid-text)" };
     }
   }
   // Fallback: natural benefic/malefic split (no chart-specific data yet).
   if (_DASHA_BENEFIC.has(antardashaLord)) {
-    return { label: lang === "ta" ? "ஆதரவான காலம்" : "supportive period", color: "var(--color-high)" };
+    return { label: lang === "ta" ? "ஆதரவான காலம்" : "Supportive period", color: "var(--color-high)" };
   }
   if (_DASHA_CHALLENGING.has(antardashaLord)) {
-    return { label: lang === "ta" ? "சவாலான காலம் · மெதுவாக செல்லுங்கள்" : "testing period · go gently", color: "var(--color-low)" };
+    return { label: lang === "ta" ? "சவாலான காலம் · மெதுவாக செல்லுங்கள்" : "Testing period · go gently", color: "var(--color-low)" };
   }
-  return { label: lang === "ta" ? "நடுநிலையான காலம்" : "steady, mixed period", color: "var(--color-mid-text)" };
+  return { label: lang === "ta" ? "நடுநிலையான காலம்" : "Steady, mixed period", color: "var(--color-mid-text)" };
 }
 
 function daysAwayLabel(days: number, lang: Lang): string {
@@ -117,18 +121,22 @@ export function GlanceHeader({
   right?: ReactNode;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-2)", marginBottom: "14px" }}>
+    // Wraps so a long link drops under the title instead of past the card:
+    // Tamil "விரைவு இணைப்புகள்" + "அனைத்து கருவிகளும்" is 13px too wide at 320px.
+    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "var(--space-1) var(--space-2)", marginBottom: "14px" }}>
       {/* audit B-1: shared section header is a real <h2>, so every Today
           section (Life Areas, Dasa, Family, Coming up) lands in the outline. */}
-      <h2 style={{ margin: 0, fontSize: "var(--text-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>
+      <h2 className="nova-card-title">
         {lang === "ta" ? titleTa : title}
       </h2>
       {right}
       {onLink && linkLabel && (
         <button
           type="button"
+          // OD-4 text link, not a kit button: `.ui-btn` stretched this to 38px.
+          className="ui-link"
           onClick={onLink}
-          style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0, whiteSpace: "nowrap" }}
+          style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-sm)", fontWeight: 600, whiteSpace: "nowrap" }}
         >
           {linkLabel}
           <ArrowRight size={13} strokeWidth={2} aria-hidden="true" />
@@ -175,9 +183,12 @@ export function DashboardTodayQuickLinksNova({
   onGoToJournal,
   onGoToExplore,
   onGoToAllTools,
+  focusArea = null,
 }: {
   lang: Lang;
   needsProfile: boolean;
+  /** Life focus T4: the link that serves this area moves to the front. */
+  focusArea?: string | null;
   onOpenChartGen?: () => void;
   onOpenMuhurta?: () => void;
   onOpenCompatibility?: () => void;
@@ -238,24 +249,26 @@ export function DashboardTodayQuickLinksNova({
       onClick: onGoToExplore,
     },
   ];
+  const focusLinkId = focusQuickLinkId(focusArea);
+  const orderedLinks = pinFirst(LINKS, (link) => link.id === focusLinkId);
 
   return (
     <Card compact>
       <GlanceHeader
         lang={lang}
-        title="Quick Links"
+        title="Quick links"
         titleTa="விரைவு இணைப்புகள்"
         linkLabel={lang === "ta" ? "அனைத்து கருவிகளும்" : "All tools"}
         onLink={onGoToAllTools}
       />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "var(--space-2_5)" }}>
-        {LINKS.map((link) => {
+        {orderedLinks.map((link) => {
           const disabled = Boolean(link.gateOnProfile && needsProfile);
           return (
             <button
               key={link.id}
               type="button"
-              className="ui-card ui-card--pad-sm"
+              className="ui-card ui-card--pad-sm ui-card--interactive"
               onClick={link.onClick}
               disabled={disabled || !link.onClick}
               style={{
@@ -329,6 +342,8 @@ export function DashboardTodayLifeAreasDasaRowNova({
   dashaAntar,
   selectedDate,
   lifeAreas,
+  pending = false,
+  focusArea = null,
   onGoToChart,
   onGoToLifeAreas,
 }: {
@@ -338,6 +353,11 @@ export function DashboardTodayLifeAreasDasaRowNova({
   dashaAntar: DashaTimelineItem[];
   selectedDate: string;
   lifeAreas?: LifeAreasResponseData | null;
+  /** The personal data has not arrived yet: show placeholders, not the empty copy (DXA-03). */
+  pending?: boolean;
+  /** Life focus T2: this area's tile goes first and is labelled. The others
+   *  keep their order. Its score is untouched (D2). */
+  focusArea?: string | null;
   onGoToChart?: () => void;
   onGoToLifeAreas?: () => void;
 }) {
@@ -383,8 +403,11 @@ export function DashboardTodayLifeAreasDasaRowNova({
         </div>
         {lifeAreas?.areas && lifeAreas.areas.length > 0 ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(104px, 1fr))", gap: "var(--space-2_5)" }}>
-            {lifeAreas.areas.slice(0, 5).map((area) => {
+            {/* Pinned before the cut to five, so a focus area the engine ranks
+                sixth still reaches the row. */}
+            {pinFirst(lifeAreas.areas, (a) => a.area === focusArea).slice(0, 5).map((area) => {
               const score = Math.round(area.score);
+              const isFocus = focusArea !== null && area.area === focusArea;
               // UXD-14 — pair the band colour with its verdict word so the tile
               // is readable without relying on hue (colour-blind safe). Both now
               // come from the *period* ladder, not the daily one: "Good day"
@@ -441,7 +464,7 @@ export function DashboardTodayLifeAreasDasaRowNova({
                     {lang === "ta" ? area.label.ta : area.label.en}
                   </div>
                   <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-1)", marginTop: "6px" }}>
-                    <span style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 700, color: "var(--color-text-strong)", lineHeight: 1 }}>{score}</span>
+                    <span style={{ fontFamily: "var(--font-heading)", fontSize: "var(--text-xl)", fontWeight: 700, color: "var(--color-text-strong)", lineHeight: 1 }}>{score}</span>
                     <span role="img" aria-label={trendLabel} style={{ display: "inline-flex", color: trend.color }}><trend.Icon size={14} strokeWidth={2} aria-hidden="true" /></span>
                   </div>
                   <div style={{ fontSize: "var(--text-xs)", fontWeight: 700, color, marginTop: "6px", lineHeight: 1.15 }}>{verdictWord}</div>
@@ -452,10 +475,17 @@ export function DashboardTodayLifeAreasDasaRowNova({
                       🌘 {lang === "ta" ? "சந்திராஷ்டமம்" : "Chandrashtama"}
                     </div>
                   )}
+                  {isFocus && (
+                    <div style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--color-accent-strong)", marginTop: "4px", lineHeight: 1.15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {dt(LIFE_FOCUS.pinnedLabel, lang)}
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
+        ) : pending ? (
+          <PendingPlaceholder lang={lang} tiles={5} />
         ) : (
           <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)" }}>{t("guidance_empty", lang)}</p>
         )}
@@ -465,7 +495,7 @@ export function DashboardTodayLifeAreasDasaRowNova({
       <Card style={{ display: "flex", flexDirection: "column", gap: 0 }}>
         <GlanceHeader
           lang={lang}
-          title="Dasa Chapter"
+          title="Dasa chapter"
           titleTa="தசா"
           linkLabel={lang === "ta" ? "திற" : "Open"}
           onLink={onGoToChart}
@@ -473,7 +503,7 @@ export function DashboardTodayLifeAreasDasaRowNova({
         {personalChartSummary ? (
           <>
             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", flexWrap: "wrap" }}>
-              <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 600, color: "var(--color-accent-strong)" }}>
+              <div style={{ fontFamily: "var(--font-heading)", fontSize: "var(--text-xl)", fontWeight: 600, color: "var(--color-accent-strong)" }}>
                 {tPlanetLord(personalChartSummary.currentMahadasha, lang)} <ArrowRight size={16} strokeWidth={2} aria-hidden="true" style={{ verticalAlign: "middle", color: "var(--color-faint)" }} /> {tPlanetLord(personalChartSummary.currentAntardasha, lang)}
               </div>
               {(() => {
@@ -526,6 +556,8 @@ export function DashboardTodayLifeAreasDasaRowNova({
               </>
             )}
           </>
+        ) : pending ? (
+          <PendingPlaceholder lang={lang} lines={3} />
         ) : (
           <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)" }}>{t("chart_no_profile", lang)}</p>
         )}
@@ -737,11 +769,11 @@ function RemedyFocusCard({
             {/* "Remedy for you" is only true while the owner is selected. Read
                 someone else's and the heading names them instead — the old card
                 kept the first-person title over a sibling's remedy. */}
-            <div style={{ fontSize: "var(--text-md)", fontWeight: 600, color: "var(--color-text-strong)" }}>
+            <h2 className="nova-card-title">
               {isOwnerSelected
                 ? t("remedy_focus_title", lang)
                 : `${selectedMember?.displayName ?? ""} · ${t("remedy_focus_title_short", lang)}`}
-            </div>
+            </h2>
           </div>
           {selectedFocus && (
             <button
@@ -756,7 +788,7 @@ function RemedyFocusCard({
         </div>
 
         {/* Lead sentence — the chart reason, active language only. */}
-        <p style={{ margin: 0, fontFamily: "var(--font-body)", fontSize: "var(--text-base)", lineHeight: 1.65, color: "var(--color-text)" }}>
+        <p style={{ margin: 0, fontSize: "var(--text-base)", lineHeight: 1.65, color: "var(--color-text)" }}>
           {selectedFocus ? tLang(selectedFocus.lead, lang) : (selectedRemedy ? tLang(selectedRemedy, lang) : t("remedy_focus_none", lang))}
         </p>
 
@@ -798,10 +830,10 @@ function RemedyFocusCard({
           {isOwnerSelected && (
             <button
               type="button"
+              className="ui-btn ui-btn--primary"
               onClick={onSaveReminder}
               disabled={savingReminder}
               title={reminderMessage ?? undefined}
-              style={{ fontSize: "var(--text-sm)", fontWeight: 700, background: "var(--color-accent)", color: "var(--color-on-accent)", border: "none", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-4)", cursor: savingReminder ? "wait" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
             >
               {savingReminder ? t("remedy_focus_reminder_saving", lang) : t("remedy_focus_reminder", lang)}
             </button>
@@ -809,8 +841,8 @@ function RemedyFocusCard({
           {onGoToLifeAreas && (
             <button
               type="button"
+              className="ui-btn ui-btn--secondary"
               onClick={onGoToLifeAreas}
-              style={{ fontSize: "var(--text-sm)", fontWeight: 600, background: "transparent", color: "var(--color-accent-secondary)", border: "1px solid color-mix(in srgb, var(--color-accent-secondary) 35%, transparent)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-4)", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
             >
               {t("remedy_focus_more", lang)}
             </button>
@@ -825,6 +857,7 @@ function RemedyFocusCard({
 export function DashboardTodayFamilyRemedyRowNova({
   lang,
   familyAggregate,
+  familyPending = false,
   remedy,
   remedyFocus,
   remedyMembers,
@@ -839,6 +872,8 @@ export function DashboardTodayFamilyRemedyRowNova({
 }: {
   lang: Lang;
   familyAggregate: FamilyAggregateData | null;
+  /** The family aggregate has not arrived yet: placeholder, not "No family members yet" (DXA-03). */
+  familyPending?: boolean;
   remedy: BiText | null;
   remedyFocus?: RemedyFocus | null;
   remedyMembers?: RemedyMemberOption[];
@@ -872,7 +907,7 @@ export function DashboardTodayFamilyRemedyRowNova({
         <div>
         <GlanceHeader
           lang={lang}
-          title="Family Today"
+          title="Family today"
           titleTa="குடும்பம்"
           linkLabel={lang === "ta" ? "குடும்பம்" : "Family"}
           onLink={onGoToFamily}
@@ -894,7 +929,7 @@ export function DashboardTodayFamilyRemedyRowNova({
                       {lang === "ta" ? "இன்று குடும்பம் ஒட்டுமொத்தம்" : "Family overall today"}
                     </div>
                     <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-2)", marginTop: "2px" }}>
-                      <span style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--color-text-strong)", lineHeight: 1 }}>{familyAggregate.familyScore}</span>
+                      <span style={{ fontFamily: "var(--font-heading)", fontSize: "var(--text-lg)", fontWeight: 700, color: "var(--color-text-strong)", lineHeight: 1 }}>{familyAggregate.familyScore}</span>
                       <span style={{ fontSize: "var(--text-base)", fontWeight: 700, color: fverdict.color }}>{fverdict.verdict}</span>
                     </div>
                   </div>
@@ -997,13 +1032,15 @@ export function DashboardTodayFamilyRemedyRowNova({
                   }}
                 >
                   {needsCare && <><b style={{ color: needsCare === chandraMember ? "var(--color-mid)" : "var(--color-low)" }}>{needsCare.displayName}</b> {needsCare === chandraMember ? (lang === "ta" ? "— இன்று சந்திராஷ்டமம்" : "— Chandrashtama today") : (lang === "ta" ? "— மென்மையான நாள்" : "— gentle day")}{shared ? "; " : "."}</>}
-                  {shared && <>{lang === "ta" ? `${memberCount} பேருக்கும் நல்ல நேரம்` : `good time for all ${memberCount}`} <b style={{ color: "var(--color-high)" }}>{formatClockLabel(shared.start)} – {formatClockLabel(shared.end)}</b></>}
+                  {shared && <>{lang === "ta" ? `${memberCount} பேருக்கும் நல்ல நேரம்` : `good time for all ${memberCount}`} <b style={{ color: "var(--color-high)" }}>{formatClockLabel(shared.start, lang)} – {formatClockLabel(shared.end, lang)}</b></>}
                 </div>
                   )}
                 </>
               );
             })()}
           </>
+        ) : familyPending ? (
+          <PendingPlaceholder lang={lang} lines={3} />
         ) : (
           <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)" }}>{lang === "ta" ? "குடும்ப உறுப்பினர்கள் இல்லை" : "No family members yet"}</p>
         )}
@@ -1054,18 +1091,15 @@ export function DashboardTodayComingUpNova({
   const isNear = primary ? primary.daysFromToday <= 3 : false;
   const saniActive = personalSani?.moonBasedCycle.isActive ?? false;
 
-  return (
-    <button
-      type="button"
-      onClick={onGoToCalendar}
-      style={{
-        display: "flex", alignItems: "flex-start", gap: "var(--space-2_5)", textAlign: "left", cursor: onGoToCalendar ? "pointer" : "default",
-        width: "100%", minWidth: 0, boxSizing: "border-box",
-        background: isNear || saniActive ? "linear-gradient(135deg, var(--color-accent-muted), transparent)" : "color-mix(in srgb, var(--color-text-strong) 3%, transparent)",
-        border: `1px solid ${isNear || saniActive ? "var(--color-border-strong)" : "var(--color-border)"}`,
-        borderRadius: "var(--radius-lg)", padding: "var(--space-3) var(--space-4_5)", fontFamily: "inherit",
-      }}
-    >
+  const style: CSSProperties = {
+    display: "flex", alignItems: "flex-start", gap: "var(--space-2_5)", textAlign: "left",
+    width: "100%", minWidth: 0, boxSizing: "border-box",
+    background: isNear || saniActive ? "linear-gradient(135deg, var(--color-accent-muted), transparent)" : "color-mix(in srgb, var(--color-text-strong) 3%, transparent)",
+    border: `1px solid ${isNear || saniActive ? "var(--color-border-strong)" : "var(--color-border)"}`,
+    borderRadius: "var(--radius-lg)", padding: "var(--space-3) var(--space-4_5)", fontFamily: "inherit",
+  };
+  const body = (
+    <>
       {/* Nested inside the Family Today footer now (was a full-width strip),
           so the line wraps instead of ellipsis-truncating — a half-width
           column is much likelier to clip a whole clause than a full row was. */}
@@ -1079,9 +1113,19 @@ export function DashboardTodayComingUpNova({
           ? <>{lang === "ta" ? primary.labelTa : primary.labelEn} · {daysAwayLabel(primary.daysFromToday, lang)}</>
           : (lang === "ta" ? "இந்த வாரம் பெரிய மாற்றம் இல்லை." : "No major transit shifts this week.")}
         {saniActive && (
-          <> · <span style={{ color: "var(--color-low)" }}>{personalSani?.moonBasedCycle.supportiveLabel ?? personalSani?.moonBasedCycle.type}</span></>
+          <> · <span style={{ color: "var(--color-low)" }}>{personalSani?.moonBasedCycle.supportiveLabel ?? saniCycleName(personalSani?.moonBasedCycle.type ?? "", lang)}</span></>
         )}
       </span>
+    </>
+  );
+
+  // With nowhere to go this is a line of text, not a control. A disabled
+  // <button> would be announced as "unavailable" and dropped from DXA-12's
+  // census rather than counted honestly (E-4d).
+  if (!onGoToCalendar) return <div style={style}>{body}</div>;
+  return (
+    <button type="button" className="ui-card--interactive" onClick={onGoToCalendar} style={style}>
+      {body}
     </button>
   );
 }

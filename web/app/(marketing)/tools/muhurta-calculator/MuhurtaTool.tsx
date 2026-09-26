@@ -2,16 +2,46 @@
 
 import { useState } from "react";
 import { getPersonalizedMuhurta } from "@vinaadi/shared/api";
-import { readErrorMessage } from "@/lib/api";
+import { getApiError, readErrorMessage } from "@/lib/api";
 import { useLang } from "@/components/lang-toggle";
 import { PlaceCombobox, type CityEntry } from "@/components/place-combobox";
+import { almanacMuhurthamLabel } from "@/lib/almanac-muhurtham";
 import { romanNakshathiramName } from "@/lib/tamil-astro";
+import type { AlmanacMuhurtham } from "@/lib/types";
 import Link from "next/link";
 
 // B-006: was `CITY_OPTIONS.find(...)` over a static array; that array is gone
 // (live search via PlaceCombobox replaced it), so the default is now a plain
 // constant carrying the same coordinates Chennai always had in that array.
 const DEFAULT_CITY: CityEntry = { name: "Chennai, Tamil Nadu, India", lat: "13.0667", lng: "80.2833", timezone: "Asia/Kolkata" };
+
+/** The almanac verdict in this page's own `--cl-*` tokens. See
+ *  `almanacMuhurthamLabel` for why the wording is not written here. */
+function AlmanacNote({ almanac, lang }: { almanac: AlmanacMuhurtham | null | undefined; lang: "en" | "ta" }) {
+  const label = almanacMuhurthamLabel(almanac, lang);
+  if (!label) return null;
+  if (label.tone === "listed") {
+    return (
+      <p
+        data-almanac={label.status}
+        style={{
+          display: "inline-flex", alignItems: "center", gap: "6px", margin: "0 0 6px",
+          padding: "2px 9px", borderRadius: "999px",
+          border: "1px solid var(--cl-muhurta-green)", background: "var(--cl-muhurta-green-bg)",
+          color: "var(--cl-muhurta-green)", fontSize: "0.8rem", fontWeight: 700,
+        }}
+      >
+        {label.text}
+        {label.pirai && <span style={{ fontWeight: 500 }}>{label.pirai}</span>}
+      </p>
+    );
+  }
+  return (
+    <p data-almanac={label.status} style={{ margin: "0 0 6px", color: "var(--cl-ink-2)", fontSize: "0.8rem" }}>
+      {label.text}
+    </p>
+  );
+}
 
 // Values must match `app.api.public_tools._PUBLIC_MUHURTA_ACTIVITIES`, which is
 // kept in step with the signed-in picker on purpose — the same question must
@@ -74,6 +104,9 @@ interface MuhurtaSlot {
   dashaSupport?: { en: string; ta: string } | null;
   horaSupport?: { en: string; ta: string } | null;
   factors?: Array<{ verdict: string; contribution: number; reason: { en: string; ta: string } }>;
+  /** MARRIAGE only (§3). The shared `MuhurtaSlot` shape is the definition; this
+   *  local interface exists only until the old renderer below is phased out. */
+  almanacMuhurtham?: AlmanacMuhurtham | null;
   // Retained while the old public-only result renderer is phased out below.
   timeWindow: string;
   tithi: string;
@@ -160,34 +193,159 @@ const labelStyle: React.CSSProperties = {
   color: "var(--cl-ink-2)",
 };
 
+// ── Whose chart(s) the muhurta is for ────────────────────────────────────────
+//
+// A wedding has two subjects, and this tool asked for one. Chandrashtama and
+// Tara Bala are per-person gates in Tamil practice, so a date clean for the
+// groom and Naidhana for the bride is not a wedding muhurtham — it just looked
+// like one, because only one of them was ever checked.
+//
+// Two charts is therefore the DEFAULT for a wedding, and one chart is an
+// explicit choice the reader can make (a bride whose match is not yet fixed,
+// someone checking a date on a family member's behalf). It is offered rather
+// than assumed in either direction.
+//
+// The role is not decoration. Kalaprakasika Ch. XIV p.79 states its Jupiter
+// gochara rule from the BRIDE's Janma-Rasi, so it can only be applied at all
+// once the reader has said which chart is hers — including in one-person mode,
+// which is why the role selector appears there too.
+type PersonDraft = { date: string; time: string; city: CityEntry };
+type SubjectRole = "BRIDE" | "GROOM" | "PERSON";
+
+const WEDDING_EVENT = "MARRIAGE";
+
+const emptyPerson = (): PersonDraft => ({ date: "", time: "", city: DEFAULT_CITY });
+
+const ROLE_COPY: Record<SubjectRole, { en: string; ta: string }> = {
+  BRIDE: { en: "Bride", ta: "மணமகள்" },
+  GROOM: { en: "Groom", ta: "மணமகன்" },
+  PERSON: { en: "Prefer not to say", ta: "குறிப்பிட விரும்பவில்லை" },
+};
+
+const radioRowStyle: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "8px",
+};
+
+const radioChipStyle = (active: boolean): React.CSSProperties => ({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "7px",
+  border: `1.5px solid ${active ? "var(--cl-muhurta-green)" : "var(--cl-border)"}`,
+  background: active ? "var(--cl-muhurta-green-bg)" : "var(--cl-bg)",
+  color: "var(--cl-ink)",
+  borderRadius: "999px",
+  padding: "7px 14px",
+  fontSize: "0.82rem",
+  fontWeight: active ? 700 : 600,
+  cursor: "pointer",
+});
+
+/**
+ * One person's birth details.
+ *
+ * Every control stays nested inside its own `<label>`. That is what gives these
+ * hand-rolled inputs an accessible name at all — see the `[M]` entry for this
+ * file in `web/lib/field-style-guard.test.ts`, which exempts the marketing
+ * tools from the shared field kit precisely because they already do this.
+ * With two identical blocks on screen the legend is load-bearing too: "Birth
+ * date" appears twice, and only the fieldset says which one.
+ */
+function BirthDetailsBlock({
+  lang,
+  legend,
+  value,
+  onChange,
+}: {
+  lang: "en" | "ta";
+  legend: string | null;
+  value: PersonDraft;
+  onChange: (next: PersonDraft) => void;
+}) {
+  return (
+    <fieldset style={{ border: 0, margin: 0, padding: 0, display: "grid", gap: "12px", minWidth: 0 }}>
+      {legend !== null && (
+        <legend style={{ padding: 0, fontSize: "0.82rem", fontWeight: 700, color: "var(--cl-ink)" }}>
+          {legend}
+        </legend>
+      )}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 160px), 1fr))", gap: "12px" }}>
+        <label style={labelStyle}>
+          {lang === "en" ? "Birth date" : "பிறந்த தேதி"}
+          <input
+            type="date"
+            value={value.date}
+            onChange={(e) => onChange({ ...value, date: e.target.value })}
+            style={inputStyle}
+            required
+          />
+        </label>
+        <label style={labelStyle}>
+          {lang === "en" ? "Birth time" : "பிறந்த நேரம்"}
+          <input
+            type="time"
+            value={value.time}
+            onChange={(e) => onChange({ ...value, time: e.target.value })}
+            style={inputStyle}
+            required
+          />
+        </label>
+      </div>
+      <label style={labelStyle}>
+        {lang === "en" ? "Birth city" : "பிறந்த ஊர்"}
+        <PlaceCombobox
+          value={value.city.name}
+          lang={lang}
+          onChange={(selected, raw) => onChange({ ...value, city: selected ?? { ...value.city, name: raw } })}
+        />
+      </label>
+    </fieldset>
+  );
+}
+
 export function MuhurtaTool() {
   const [lang] = useLang();
   const [eventType, setEventType] = useState("MARRIAGE");
   const [dateFrom, setDateFrom] = useState(todayStr());
   const [dateTo, setDateTo] = useState(addDaysStr(todayStr(), 14));
   const [city, setCity] = useState<CityEntry>(DEFAULT_CITY);
-  const [birthCity, setBirthCity] = useState<CityEntry>(DEFAULT_CITY);
-  const [birthDate, setBirthDate] = useState("1992-04-18");
-  const [birthTime, setBirthTime] = useState("09:15");
+  const [personA, setPersonA] = useState<PersonDraft>(emptyPerson);
+  const [personB, setPersonB] = useState<PersonDraft>(emptyPerson);
+  // Two charts is the default for a wedding; one is an explicit choice.
+  const [checkBoth, setCheckBoth] = useState(true);
+  // Only consulted in one-person wedding mode — in couple mode person A is the
+  // bride by construction, which is what the two legends on screen say.
+  const [soloRole, setSoloRole] = useState<SubjectRole>("PERSON");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [slots, setSlots] = useState<MuhurtaSlot[] | null>(null);
+
+  const isWedding = eventType === WEDDING_EVENT;
+  const couple = isWedding && checkBoth;
+  const subjectRole: SubjectRole = couple ? "BRIDE" : isWedding ? soloRole : "PERSON";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setSlots(null);
+    const toBirth = (person: PersonDraft) => ({
+      birthDateLocal: person.date,
+      birthTimeLocal: `${person.time}:00`,
+      birthLatitude: Number(person.city.lat),
+      birthLongitude: Number(person.city.lng),
+      birthTimezone: person.city.timezone,
+      birthPlace: person.city.name,
+    });
     try {
       const response = await getPersonalizedMuhurta({
-        birth: {
-          birthDateLocal: birthDate,
-          birthTimeLocal: `${birthTime}:00`,
-          birthLatitude: Number(birthCity.lat),
-          birthLongitude: Number(birthCity.lng),
-          birthTimezone: birthCity.timezone,
-          birthPlace: birthCity.name,
-        },
+        birth: toBirth(personA),
+        // Omitted rather than sent empty. The backend treats a present
+        // `partner` as a request for couple mode, so a blank one would ask for
+        // a wedding to be scored against a chart nobody entered.
+        ...(couple ? { partner: toBirth(personB) } : {}),
+        subjectRole,
         eventType,
         dateFrom,
         dateTo,
@@ -197,28 +355,20 @@ export function MuhurtaTool() {
         place: city.name,
       });
       setSlots(response.data.slots as unknown as MuhurtaSlot[]);
-      return;
-
-      const res = await fetch("/api/backend/api/v1/public/muhurta", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventType: eventType,
-          dateFrom: dateFrom,
-          dateTo: dateTo,
-          lat: parseFloat(city.lat),
-          lng: parseFloat(city.lng),
-          timezone: city.timezone,
-        }),
-      });
-      if (!res.ok) {
-        setError(await readErrorMessage(res));
-        return;
-      }
-      const data = await res.json();
-      setSlots(data.slots ?? []);
-    } catch {
-      setError(lang === "en" ? "Network error — please try again." : "நெட்வொர்க் பிழை — மீண்டும் முயற்சிக்கவும்.");
+    } catch (err) {
+      // The backend's own message, not a blanket "network error". With two
+      // birth blocks on screen a 422 names which chart failed ("Groom: …"), and
+      // swallowing that leaves the reader guessing which half to correct. Any
+      // other status gets the bilingual envelope message instead — a raw
+      // "500: /public/muhurta/personalized: …" helps nobody.
+      const apiError = getApiError(err);
+      setError(
+        apiError?.status === 422
+          ? readErrorMessage(err)
+          : apiError
+            ? apiError.message[lang]
+            : lang === "en" ? "Network error — please try again." : "நெட்வொர்க் பிழை — மீண்டும் முயற்சிக்கவும்.",
+      );
     } finally {
       setLoading(false);
     }
@@ -257,27 +407,92 @@ export function MuhurtaTool() {
           </select>
         </label>
 
-        <div style={{ padding: "14px", background: "var(--cl-brand-tint)", borderRadius: "8px", display: "grid", gap: "12px" }}>
-          <strong style={{ fontSize: "0.9rem", color: "var(--cl-ink)" }}>{lang === "en" ? "Whose timing is this for?" : "யாருக்கான முகூர்த்தம்?"}</strong>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: "12px" }}>
-            <label style={labelStyle}>
-              {lang === "en" ? "Birth date" : "பிறந்த தேதி"}
-              <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} style={inputStyle} required />
-            </label>
-            <label style={labelStyle}>
-              {lang === "en" ? "Birth time" : "பிறந்த நேரம்"}
-              <input type="time" value={birthTime} onChange={(e) => setBirthTime(e.target.value)} style={inputStyle} required />
-            </label>
-          </div>
-          <label style={labelStyle}>
-            {lang === "en" ? "Birth city" : "பிறந்த ஊர்"}
-            <PlaceCombobox
-              value={birthCity.name}
+        <div style={{ padding: "14px", background: "var(--cl-brand-tint)", borderRadius: "8px", display: "grid", gap: "14px" }}>
+          <strong style={{ fontSize: "0.9rem", color: "var(--cl-ink)" }}>
+            {lang === "en" ? "Whose timing is this for?" : "யாருக்கான முகூர்த்தம்?"}
+          </strong>
+
+          {isWedding && (
+            <fieldset style={{ border: 0, margin: 0, padding: 0, display: "grid", gap: "8px" }}>
+              <legend style={{ padding: 0, fontSize: "0.78rem", fontWeight: 600, color: "var(--cl-ink-2)" }}>
+                {lang === "en" ? "Check the dates against" : "எந்த ஜாதகத்தை வைத்துச் சரிபார்க்க வேண்டும்?"}
+              </legend>
+              <div style={radioRowStyle}>
+                {([true, false] as const).map((both) => (
+                  <label key={String(both)} style={radioChipStyle(checkBoth === both)}>
+                    <input
+                      type="radio"
+                      name="muhurta-subject-count"
+                      checked={checkBoth === both}
+                      onChange={() => setCheckBoth(both)}
+                      style={{ accentColor: "var(--cl-muhurta-green)", margin: 0 }}
+                    />
+                    {both
+                      ? (lang === "en" ? "Bride and groom" : "மணமகள் & மணமகன்")
+                      : (lang === "en" ? "One person only" : "ஒருவருக்கு மட்டும்")}
+                  </label>
+                ))}
+              </div>
+              <p style={{ margin: 0, fontSize: "0.76rem", color: "var(--cl-ink-2)", lineHeight: 1.5 }}>
+                {couple
+                  ? (lang === "en"
+                    ? "Both charts are checked. Chandrashtama or an adverse Tara Bala on either side rules the day out — a wedding date is only as good as its harder half."
+                    : "இரு ஜாதகங்களும் சரிபார்க்கப்படும். இருவரில் ஒருவருக்குச் சந்திராஷ்டமம் அல்லது கெட்ட தாரா பலம் இருந்தால் அந்நாள் நீக்கப்படும் — இருவரில் பலவீனமான நிலையே முகூர்த்தத்தை முடிவு செய்யும்.")
+                  : (lang === "en"
+                    ? "Only this chart is checked. For a wedding, the other person's Chandrashtama and Tara Bala are not weighed at all."
+                    : "இந்த ஜாதகம் மட்டுமே சரிபார்க்கப்படும். திருமணத்திற்கு மற்றவரின் சந்திராஷ்டமமும் தாரா பலமும் இதில் கணக்கிடப்படாது.")}
+              </p>
+            </fieldset>
+          )}
+
+          <BirthDetailsBlock
+            lang={lang}
+            legend={couple ? `${ROLE_COPY.BRIDE.ta} · ${ROLE_COPY.BRIDE.en}` : null}
+            value={personA}
+            onChange={setPersonA}
+          />
+
+          {couple && (
+            <BirthDetailsBlock
               lang={lang}
-              onChange={(selected, raw) => setBirthCity(selected ?? { ...birthCity, name: raw })}
+              legend={`${ROLE_COPY.GROOM.ta} · ${ROLE_COPY.GROOM.en}`}
+              value={personB}
+              onChange={setPersonB}
             />
-          </label>
-          <span style={{ fontSize: "0.76rem", color: "var(--cl-ink-2)" }}>{lang === "en" ? "Used only for this calculation; it is not saved." : "இந்தக் கணக்கீட்டிற்கு மட்டும் பயன்படுத்தப்படும்; சேமிக்கப்படாது."}</span>
+          )}
+
+          {isWedding && !couple && (
+            <fieldset style={{ border: 0, margin: 0, padding: 0, display: "grid", gap: "8px" }}>
+              <legend style={{ padding: 0, fontSize: "0.78rem", fontWeight: 600, color: "var(--cl-ink-2)" }}>
+                {lang === "en" ? "This chart is the" : "இந்த ஜாதகம் யாருடையது?"}
+              </legend>
+              <div style={radioRowStyle}>
+                {(["BRIDE", "GROOM", "PERSON"] as const).map((role) => (
+                  <label key={role} style={radioChipStyle(soloRole === role)}>
+                    <input
+                      type="radio"
+                      name="muhurta-solo-role"
+                      checked={soloRole === role}
+                      onChange={() => setSoloRole(role)}
+                      style={{ accentColor: "var(--cl-muhurta-green)", margin: 0 }}
+                    />
+                    {lang === "en" ? ROLE_COPY[role].en : ROLE_COPY[role].ta}
+                  </label>
+                ))}
+              </div>
+              <p style={{ margin: 0, fontSize: "0.76rem", color: "var(--cl-ink-2)", lineHeight: 1.5 }}>
+                {lang === "en"
+                  ? "Kalaprakasika Ch. XIV counts Jupiter's transit from the bride's birth sign, so that rule can only be applied when you say which chart is hers."
+                  : "கலப்பிரகாசிகை அத். XIV, குரு பகவானின் சஞ்சாரத்தை மணமகளின் ஜென்ம ராசியிலிருந்து கணக்கிடுகிறது — எனவே அந்த விதி, ஜாதகம் யாருடையது எனச் சொன்னால் மட்டுமே பயன்படும்."}
+              </p>
+            </fieldset>
+          )}
+
+          <span style={{ fontSize: "0.76rem", color: "var(--cl-ink-2)" }}>
+            {lang === "en"
+              ? "Used only for this calculation; it is not saved."
+              : "இந்தக் கணக்கீட்டிற்கு மட்டும் பயன்படுத்தப்படும்; சேமிக்கப்படாது."}
+          </span>
         </div>
 
         {/* Date range */}
@@ -369,11 +584,21 @@ export function MuhurtaTool() {
                 {lang === "en"
                   ? `Top ${slots.length} auspicious slots for ${selectedEvent.en} — ${compactCityName(city.name)}`
                   : `${selectedEvent.ta} — ${compactCityName(city.name)} — சிறந்த ${slots.length} சுப நேரங்கள்`}
+                {couple && (lang === "en"
+                  ? " · checked against both charts"
+                  : " · இரு ஜாதகங்களையும் வைத்துச் சரிபார்க்கப்பட்டது")}
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 {slots.map((slot, i) => {
                   if (Number.isFinite(slot.score)) {
-                    const positiveFactors = (slot.factors ?? []).filter((factor) => factor.contribution !== 0);
+                    // Every factor, not just the priced ones. This used to drop
+                    // `contribution === 0`, which is fine while each factor is
+                    // scored or absent — and wrong the moment a couple is on
+                    // screen, because the stood-down half of each pair carries
+                    // exactly zero *by design* and is the reading the reader
+                    // most needs to see. A panel called "What was weighed" that
+                    // hides half of what was weighed is worse than no panel.
+                    const weighedFactors = slot.factors ?? [];
                     return (
                       <div key={slot.date} style={{ border: "1.5px solid var(--cl-border)", borderLeft: "4px solid var(--cl-muhurta-green)", borderRadius: "10px", background: "var(--cl-surface)", padding: "16px 20px" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "baseline", marginBottom: "8px" }}>
@@ -382,9 +607,65 @@ export function MuhurtaTool() {
                         </div>
                         <p style={{ margin: "0 0 6px", fontWeight: 700, color: "var(--cl-ink)" }}>{lang === "en" ? "Recommended window:" : "பரிந்துரைக்கப்படும் நேரம்:"} {formatTime(slot.timeStart)} – {formatTime(slot.timeEnd)}</p>
                         <p style={{ margin: "0 0 6px", color: "var(--cl-ink-2)" }}>{lang === "en" ? slot.panchangamSupport.en : slot.panchangamSupport.ta}</p>
+                        {/* §3: whether the printed almanac also lists this wedding day.
+                            The signed-in picker asks the same question of the same
+                            slots, and the words come from the one place both read
+                            — only the tokens are this surface's. Beside the score,
+                            never inside it: membership is a gate the family applies,
+                            not a factor the engine priced. */}
+                        <AlmanacNote almanac={slot.almanacMuhurtham} lang={lang} />
                         {slot.dashaSupport && <p style={{ margin: "0 0 6px", color: "var(--cl-ink-2)" }}><strong>{lang === "en" ? "Dasha support: " : "தசை ஆதரவு: "}</strong>{lang === "en" ? slot.dashaSupport.en : slot.dashaSupport.ta}</p>}
                         {slot.horaSupport && <p style={{ margin: 0, color: "var(--cl-ink-2)" }}><strong>{lang === "en" ? "Hora: " : "ஹோரை: "}</strong>{lang === "en" ? slot.horaSupport.en : slot.horaSupport.ta}</p>}
-                        {positiveFactors.length > 0 && <details style={{ marginTop: "10px", color: "var(--cl-ink-2)" }}><summary style={{ cursor: "pointer", fontWeight: 700 }}>{lang === "en" ? "What was weighed" : "பரிசீலிக்கப்பட்டவை"}</summary><ul style={{ margin: "8px 0 0", paddingLeft: "18px" }}>{positiveFactors.map((factor, factorIndex) => <li key={factorIndex}>{lang === "en" ? factor.reason.en : factor.reason.ta}</li>)}</ul></details>}
+                        {weighedFactors.length > 0 && (
+                          <details style={{ marginTop: "10px", color: "var(--cl-ink-2)" }}>
+                            <summary style={{ cursor: "pointer", fontWeight: 700 }}>
+                              {lang === "en" ? "What was weighed" : "பரிசீலிக்கப்பட்டவை"}
+                            </summary>
+                            <ul style={{ margin: "8px 0 0", padding: 0, listStyle: "none", display: "grid", gap: "6px" }}>
+                              {weighedFactors.map((factor, factorIndex) => (
+                                <li
+                                  key={factorIndex}
+                                  style={{ display: "flex", gap: "10px", alignItems: "baseline", fontSize: "0.82rem" }}
+                                >
+                                  {/*
+                                    The points sit beside the sentence that earned
+                                    them. Without them a zero-scored line and a
+                                    priced one read identically, and couple mode
+                                    puts one of each on screen for every factor.
+                                  */}
+                                  <span
+                                    aria-hidden
+                                    style={{
+                                      flex: "none",
+                                      minWidth: "3.2em",
+                                      textAlign: "right",
+                                      fontVariantNumeric: "tabular-nums",
+                                      fontWeight: 700,
+                                      color: factor.contribution > 0
+                                        ? "var(--cl-muhurta-green)"
+                                        : factor.contribution < 0
+                                          ? "var(--cl-caution-ink)"
+                                          : "var(--cl-ink-2)",
+                                    }}
+                                  >
+                                    {factor.contribution === 0
+                                      ? "—"
+                                      : `${factor.contribution > 0 ? "+" : ""}${factor.contribution}`}
+                                  </span>
+                                  <span>
+                                    {/* Spoken, not implied by colour alone. */}
+                                    <span style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" }}>
+                                      {factor.contribution === 0
+                                        ? (lang === "en" ? "No points. " : "மதிப்பெண் இல்லை. ")
+                                        : `${factor.contribution > 0 ? "+" : ""}${factor.contribution} ${lang === "en" ? "points. " : "மதிப்பெண். "}`}
+                                    </span>
+                                    {lang === "en" ? factor.reason.en : factor.reason.ta}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </details>
+                        )}
                       </div>
                     );
                   }
@@ -454,9 +735,17 @@ export function MuhurtaTool() {
                     : "உங்கள் ஜாதகத்துடன் பொருந்திய முகூர்த்தம் பெறுங்கள்"}
                 </p>
                 <p style={{ fontSize: "0.82rem", color: "var(--cl-ink-2)" }}>
+                  {/*
+                    This used to say the results were "based on Panchangam alone" and
+                    offered birth-chart personalisation as the thing an account adds.
+                    That stopped being true when this tool moved onto the personalised
+                    endpoint — it already weighs Tara Bala, Chandra Bala, dasha and hora
+                    — and couple mode makes the gap plainer still. What an account
+                    actually adds is persistence and the surfaces built on a saved chart.
+                  */}
                   {lang === "en"
-                    ? "The results above are based on Panchangam alone. A free Vinaadi account adds birth-chart personalisation, dasa support, hora windows, and Chandrashtama checks for a much stronger recommendation."
-                    : "மேலுள்ள முடிவுகள் பஞ்சாங்கத்தை மட்டும் அடிப்படையாகக் கொண்டவை. இலவச விநாடி கணக்கில் ஜாதகத்துக்கு ஏற்ப தசை ஆதரவு, ஹோரை நேரம், சந்திராஷ்டமம் சோதனை ஆகியவை சேர்ந்து இன்னும் வலுவான பரிந்துரையை தரும்."}
+                    ? "These details are used once and not saved. A free Vinaadi account keeps the charts, so you can return to a shortlist, compare dates on the calendar, and see the published almanac muhurtham days ranked for your star — or for both of you."
+                    : "இந்தத் தகவல்கள் ஒருமுறை மட்டுமே பயன்படுத்தப்படும்; சேமிக்கப்படாது. இலவச விநாடி கணக்கில் ஜாதகங்கள் சேமிக்கப்படும் — தேர்ந்தெடுத்த நாட்களுக்குத் திரும்பலாம், நாட்காட்டியில் ஒப்பிடலாம், வெளியிடப்பட்ட முகூர்த்த நாட்களை உங்கள் நட்சத்திரத்துக்கோ இருவருக்குமோ ஏற்ப வரிசைப்படுத்திப் பார்க்கலாம்."}
                 </p>
                 <Link
                   href="/dashboard"

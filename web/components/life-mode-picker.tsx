@@ -1,43 +1,54 @@
 "use client";
 
 import { useState } from "react";
-import { BookOpen, Briefcase, Heart, Home, Coins, Leaf, Star, Flame, Scale } from "lucide-react";
+import { BookOpen, Briefcase, Heart, Home, Coins, Leaf, Star, Flame, Scale, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { apiFetchJson } from "@/lib/api";
+import { updateLifeMode } from "@vinaadi/shared/api";
+import { LIFE_MODE_ORDER, LIFE_MODE_TEXT } from "@vinaadi/shared/lifeFocus";
+import "@/lib/api"; // initialises the shared API client the wrapper above uses
 import { ModalShell } from "@/components/modal-shell";
+import { track } from "@/lib/analytics";
+import { dt, LIFE_FOCUS } from "@/lib/dashboard-i18n";
 import type { Lang } from "@/lib/i18n";
 import type { LifeMode, LifeModeStatus } from "@/lib/types";
 
 // ── Mode metadata ─────────────────────────────────────────────────────────────
+// The one place a focus gets its label and icon on web. The picker, the Today
+// chip and the Settings card all read it. The words themselves come from
+// `LIFE_MODE_TEXT` in @vinaadi/shared, which mobile reads too (Phase 3).
 type ModeMeta = { Icon: LucideIcon; labelEn: string; labelTa: string; descEn: string; descTa: string };
 
-const MODE_META: Record<LifeMode, ModeMeta> = {
-  STUDY:        { Icon: BookOpen,  labelEn: "Studies",      labelTa: "படிப்பு",     descEn: "Focus, exams, learning",      descTa: "கவனம், தேர்வு, கற்றல்" },
-  CAREER:       { Icon: Briefcase, labelEn: "Career",       labelTa: "தொழில்",      descEn: "Work timing & decisions",     descTa: "வேலை நேரம் & முடிவுகள்" },
-  LOVE:         { Icon: Heart,     labelEn: "Love",         labelTa: "காதல்",       descEn: "Communication & connection",  descTa: "தொடர்பு & நெருக்கம்" },
-  MARRIAGE:     { Icon: Heart,     labelEn: "Marriage",     labelTa: "திருமணம்",    descEn: "Relationship & timing",       descTa: "உறவு & நேரம்" },
-  FAMILY:       { Icon: Home,      labelEn: "Family",       labelTa: "குடும்பம்",   descEn: "Harmony & home",              descTa: "ஒற்றுமை & வீடு" },
-  WEALTH:       { Icon: Coins,     labelEn: "Wealth",       labelTa: "செல்வம்",     descEn: "Money & finance timing",      descTa: "பணம் & நிதி நேரம்" },
-  HEALTH:       { Icon: Leaf,      labelEn: "Health",       labelTa: "ஆரோக்கியம்",  descEn: "Energy, rest, vitality",      descTa: "சக்தி, ஓய்வு, உடல்நலம்" },
-  SPIRITUALITY: { Icon: Star,      labelEn: "Spirituality", labelTa: "ஆன்மீகம்",    descEn: "Prayer & inner growth",       descTa: "வழிபாடு & உள் வளர்ச்சி" },
-  REMEDIES:     { Icon: Flame,     labelEn: "Remedies",     labelTa: "பரிகாரம்",    descEn: "Parihara & practices",        descTa: "பரிகாரம் & பயிற்சிகள்" },
-  BALANCED:     { Icon: Scale,     labelEn: "Balanced",     labelTa: "சமநிலை",      descEn: "A bit of everything",         descTa: "எல்லாமே சிறிது" },
+const MODE_ICON: Record<LifeMode, LucideIcon> = {
+  STUDY: BookOpen, CAREER: Briefcase, LOVE: Heart, MARRIAGE: Heart, FAMILY: Home,
+  WEALTH: Coins, HEALTH: Leaf, SPIRITUALITY: Star, REMEDIES: Flame, BALANCED: Scale,
 };
 
-const MODE_ORDER: LifeMode[] = [
-  "STUDY", "CAREER", "LOVE", "MARRIAGE", "FAMILY",
-  "WEALTH", "HEALTH", "SPIRITUALITY", "REMEDIES", "BALANCED",
-];
+export const MODE_META = Object.fromEntries(
+  LIFE_MODE_ORDER.map((mode) => {
+    const { label, desc } = LIFE_MODE_TEXT[mode];
+    return [mode, { Icon: MODE_ICON[mode], labelEn: label.en, labelTa: label.ta, descEn: desc.en, descTa: desc.ta }];
+  }),
+) as Record<LifeMode, ModeMeta>;
+
+export const MODE_ORDER: LifeMode[] = [...LIFE_MODE_ORDER];
+
+export function lifeModeLabel(mode: LifeMode, lang: Lang): string {
+  const meta = MODE_META[mode];
+  return lang === "ta" ? meta.labelTa : meta.labelEn;
+}
 
 interface LifeModePickerProps {
   lang: Lang;
   currentMode: LifeMode;
   blockedModes: string[];
+  /** First run: the dismiss button is "Skip for now" and records BALANCED so
+   *  the picker does not come back. Opened from the chip: it is a plain close. */
+  firstRun: boolean;
   onClose: () => void;
   onSelected: (status: LifeModeStatus) => void;
 }
 
-export function LifeModePicker({ lang, currentMode, blockedModes, onClose, onSelected }: LifeModePickerProps) {
+export function LifeModePicker({ lang, currentMode, blockedModes, firstRun, onClose, onSelected }: LifeModePickerProps) {
   const [saving, setSaving] = useState<LifeMode | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,23 +58,39 @@ export function LifeModePicker({ lang, currentMode, blockedModes, onClose, onSel
     setSaving(mode);
     setError(null);
     try {
-      const status = await apiFetchJson<LifeModeStatus>("/api/v1/settings/life-mode", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode }),
-      });
+      const status = await updateLifeMode(mode, "SELECT", firstRun ? "FIRST_RUN_PICKER" : "WEB");
       onSelected(status);
       onClose();
     } catch {
-      setError(lang === "ta" ? "சேமிக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்." : "Couldn't save. Please try again.");
+      setError(dt(LIFE_FOCUS.saveFailed, lang));
       setSaving(null);
     }
   }
 
+  // Skip means skip, and it never waits. UXD-08 (3a353f9) made Skip a local
+  // no-op because the old Skip awaited this PATCH, so a failed request left
+  // the user in an error loop over a choice they had declined to make. The
+  // close is still immediate; the save runs behind it. If the save fails,
+  // the only cost is that the picker is offered again on a later load.
+  function skip() {
+    onClose();
+    if (!firstRun) return;
+    updateLifeMode("BALANCED", "SKIP", "FIRST_RUN_PICKER").then(onSelected).catch(() => {});
+  }
+
+  // Escape and the backdrop reach here, never Skip or a choice (those call
+  // onClose directly). On first run this is a deferral: nothing is saved and
+  // the picker returns on a later load, so the server's Skip count cannot see
+  // it. Phase 4 reads it beside that count as the silent half of "skipped".
+  function dismiss() {
+    if (firstRun) track("life_focus_first_run_dismissed", { surface: "web" });
+    onClose();
+  }
+
   return (
     <ModalShell
-      label={lang === "ta" ? "இப்போது எதில் கவனம்?" : "What are you focused on right now?"}
-      onClose={onClose}
+      label={dt(LIFE_FOCUS.question, lang)}
+      onClose={dismiss}
       overlayStyle={{ zIndex: 9998 }}
       panelStyle={{
         width: "100%", maxWidth: "600px", maxHeight: "88vh", overflowY: "auto",
@@ -75,15 +102,13 @@ export function LifeModePicker({ lang, currentMode, blockedModes, onClose, onSel
       }}
     >
         <p style={{ margin: "0 0 6px", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-accent, var(--panel-brand))" }}>
-          {lang === "ta" ? "உங்கள் கவனம்" : "Your focus"}
+          {dt(LIFE_FOCUS.eyebrow, lang)}
         </p>
         <h2 style={{ margin: "0 0 4px", fontFamily: "var(--font-display)", fontSize: "clamp(1.5rem, 4vw, 2rem)", fontWeight: 500, color: "var(--color-text-strong, var(--panel-earth-dark))", letterSpacing: "-0.02em" }}>
-          {lang === "ta" ? "இப்போது எதில் கவனம்?" : "What are you focused on right now?"}
+          {dt(LIFE_FOCUS.question, lang)}
         </h2>
         <p style={{ margin: "0 0 20px", fontSize: "0.875rem", color: "var(--color-muted, var(--panel-mid-earth))", lineHeight: 1.5 }}>
-          {lang === "ta"
-            ? "உங்கள் தேர்வைப் பொறுத்து தினசரி வழிகாட்டுதலை முன்னிலைப்படுத்துகிறோம். எப்போது வேண்டுமானாலும் மாற்றலாம்."
-            : "We'll surface daily guidance around your choice. You can change it anytime."}
+          {dt(LIFE_FOCUS.subtitle, lang)}
         </p>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 180px), 1fr))", gap: "10px" }}>
@@ -103,12 +128,12 @@ export function LifeModePicker({ lang, currentMode, blockedModes, onClose, onSel
                   borderColor: isCurrent ? "var(--color-accent, var(--panel-brand))" : "var(--color-border, #E4DAC6)",
                   background: saving === mode ? "var(--chart-d1-lagna-bg)" : isCurrent ? "var(--color-mid-bg, #F7E8DA)" : "var(--chart-cell-default)",
                   opacity: saving !== null && saving !== mode ? 0.5 : 1,
-                  transition: "all 0.12s ease", fontFamily: "inherit",
+                  transition: "all 0.12s var(--ease-nova)", fontFamily: "inherit",
                 }}
               >
                 <meta.Icon size={22} strokeWidth={1.5} aria-hidden="true" />
                 <span style={{ fontSize: "0.95rem", fontWeight: 700, color: "var(--color-text-strong, var(--panel-earth-dark))" }}>
-                  {lang === "ta" ? meta.labelTa : meta.labelEn}
+                  {lifeModeLabel(mode, lang)}
                 </span>
                 <span style={{ fontSize: "0.72rem", color: "var(--color-faint)", lineHeight: 1.35 }}>
                   {lang === "ta" ? meta.descTa : meta.descEn}
@@ -124,37 +149,84 @@ export function LifeModePicker({ lang, currentMode, blockedModes, onClose, onSel
           <button
             type="button"
             disabled={saving !== null}
-            onClick={onClose}
+            onClick={skip}
             style={{
               padding: "8px 18px", borderRadius: "var(--radius-pill)", background: "transparent",
               border: "none", color: "var(--color-faint)", fontSize: "0.8rem", fontWeight: 600,
               cursor: "pointer", fontFamily: "inherit", textDecoration: "underline",
             }}
           >
-            {lang === "ta" ? "இப்போது தவிர்க்கவும்" : "Skip for now"}
+            {dt(firstRun ? LIFE_FOCUS.skip : LIFE_FOCUS.close, lang)}
           </button>
         </div>
     </ModalShell>
   );
 }
 
-// Small inline badge shown on the dashboard; tapping re-opens the picker.
+// The 60-day "Still focused on X?" strip (plan D3). Replaces the old full
+// modal re-ask: one line, three actions, never blocks the page.
+export function FocusNudgeStrip({
+  mode, lang, onKeep, onChange, onDismiss,
+}: {
+  mode: LifeMode;
+  lang: Lang;
+  onKeep: () => Promise<void>;
+  onChange: () => void;
+  onDismiss: () => void;
+}) {
+  const [keeping, setKeeping] = useState(false);
+  const meta = MODE_META[mode];
+  return (
+    <div className="nova-focus-nudge" role="region" aria-label={dt(LIFE_FOCUS.eyebrow, lang)}>
+      <meta.Icon size={15} strokeWidth={1.9} aria-hidden="true" className="nova-focus-nudge__icon" />
+      <span className="nova-focus-nudge__q">
+        {dt(LIFE_FOCUS.nudgeQuestion, lang).replace("%s", lifeModeLabel(mode, lang))}
+      </span>
+      <span className="nova-focus-nudge__actions">
+        <button
+          type="button"
+          className="nova-focus-nudge__btn nova-focus-nudge__btn--primary"
+          disabled={keeping}
+          onClick={() => {
+            setKeeping(true);
+            void onKeep().finally(() => setKeeping(false));
+          }}
+        >
+          {dt(LIFE_FOCUS.nudgeKeep, lang)}
+        </button>
+        <button type="button" className="nova-focus-nudge__btn" onClick={onChange} aria-haspopup="dialog">
+          {dt(LIFE_FOCUS.nudgeChange, lang)}
+        </button>
+        <button
+          type="button"
+          className="nova-focus-nudge__close"
+          onClick={onDismiss}
+          aria-label={dt(LIFE_FOCUS.nudgeDismiss, lang)}
+        >
+          <X size={14} strokeWidth={2} aria-hidden="true" />
+        </button>
+      </span>
+    </div>
+  );
+}
+
+// The always-visible focus chip in the Today masthead (plan D3 / T0). Sized
+// and toned to sit beside StreakChip; tapping it opens the picker.
 export function LifeModeBadge({ mode, lang, onClick }: { mode: LifeMode; lang: Lang; onClick: () => void }) {
   const meta = MODE_META[mode];
+  const label = lifeModeLabel(mode, lang);
+  const prefix = dt(LIFE_FOCUS.chipPrefix, lang);
   return (
     <button
       type="button"
+      className="nova-focus-chip"
       onClick={onClick}
-      title={lang === "ta" ? "கவனத்தை மாற்று" : "Change focus"}
-      style={{
-        display: "inline-flex", alignItems: "center", gap: "6px",
-        padding: "4px 12px", borderRadius: "var(--radius-pill)",
-        border: "1.5px solid var(--color-border, #E4DAC6)", background: "var(--chart-cell-default)", cursor: "pointer",
-        fontSize: "0.75rem", fontWeight: 700, color: "var(--planet-lagna)", fontFamily: "var(--font-body)",
-      }}
+      aria-label={dt(LIFE_FOCUS.chipAria, lang).replace("%s", `${prefix} ${label}`)}
+      aria-haspopup="dialog"
     >
-      <meta.Icon size={14} strokeWidth={1.5} aria-hidden="true" />
-      {lang === "ta" ? meta.labelTa : meta.labelEn}
+      <meta.Icon size={13} strokeWidth={1.9} aria-hidden="true" />
+      <span className="nova-focus-chip__prefix">{prefix}</span>
+      <span>{label}</span>
     </button>
   );
 }

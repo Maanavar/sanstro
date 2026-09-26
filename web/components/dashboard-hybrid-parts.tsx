@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { ArrowRight, Minus, TrendingDown, TrendingUp, ChevronUp, ChevronDown } from "lucide-react";
 
 import { nakshatraLord } from "@vinaadi/shared/nakshatraLord";
@@ -8,6 +8,7 @@ import { nakshatraLord } from "@vinaadi/shared/nakshatraLord";
 import { formatClockLabel, scoreColor } from "@/lib/format";
 import { t, tPlanetLord, tWeekday, tNakshatra, nakshatraNumberFromName } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { houseFrom, rasiDisplayName } from "@/lib/chart-utils";
 import { tamilizeAstroEnglish } from "@/lib/tamil-astro";
 import type {
   BiText,
@@ -20,15 +21,18 @@ import type {
   TransitSnapshotData,
 } from "@/lib/types";
 
-import { RASI_NAMES } from "./dashboard-charts";
-import { displayName as yogaDoshamDisplayName } from "./dashboard-yoga-dosham-panel";
+import { displayName as yogaDoshamDisplayName, doshamStanding, yogaStanding } from "./dashboard-yoga-dosham-panel";
+import type { StandingTone } from "@vinaadi/shared/yogaDisplay";
 import { HOUSE_MEANING, OWN_SIGN_RASI } from "./dashboard-chart-explanation-data";
+import "./interaction-kinds.css";
 import { ageAtDate, DashaLordLabel } from "./dashboard-dasha";
 import type { Mode } from "@/lib/plainlang";
 import { Card, Kicker } from "./ui";
 import { GlossaryTerm } from "./glossary-term";
 import { dt, PLANET_ROW_DETAILS, PLANET_STATUS_MARKS } from "@/lib/dashboard-i18n";
 import type { PlanetStatusMarkKey } from "@/lib/dashboard-i18n";
+import { Reveal } from "./dashboard-ui-nova";
+import { Segmented } from "./ui/segmented";
 
 /**
  * Net-new graphical leaf components for the Family & Charts "Hybrid v2"
@@ -85,7 +89,8 @@ export function HySection({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} ref={scrollRef} style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", scrollMarginTop: "72px" }}>
+    <Reveal>
+      <section id={id} ref={scrollRef} style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", scrollMarginTop: "72px" }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-3)", flexWrap: "wrap" }}>
         {/* audit B-1: every HySection-wrapped section gets a real <h2>, giving
             the Family & Charts long-scroll a proper document outline. */}
@@ -94,7 +99,8 @@ export function HySection({
         {meta && <><span style={{ flex: 1 }} />{meta}</>}
       </div>
       {children}
-    </section>
+      </section>
+    </Reveal>
   );
 }
 
@@ -351,24 +357,72 @@ function HyPlanetLifeAreas({ lang, expl }: { lang: Lang; expl: ChartExplanationP
 // 10-column grid; they now live one tap down in the expanded row detail
 // (rendered unconditionally there, so nothing is lost).
 const PLANET_ROW_COLS = "44px 1.1fr 1fr .7fr 1.2fr .7fr 1.4fr 32px";
-export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
-  lang: Lang; planets: OrbPlanet[]; explanationPlanets?: ChartExplanationPlanet[]; animate: boolean;
+const D9_PLANET_ROW_COLS = "44px 1.1fr 1fr .7fr 1.1fr 1.2fr 32px";
+type PlanetPositionView = "D1" | "D9";
+
+export function HyPlanetOrbs({ lang, planets, explanationPlanets, d9LagnaRasi, d9Reliability, animate }: {
+  lang: Lang;
+  planets: OrbPlanet[];
+  explanationPlanets?: ChartExplanationPlanet[];
+  d9LagnaRasi: number;
+  d9Reliability?: string;
+  animate: boolean;
 }) {
   const [open, setOpen] = useState<string | null>(null);
+  const [view, setView] = useState<PlanetPositionView>("D1");
   const astro = (v: string) => (lang === "en" ? tamilizeAstroEnglish(v) : v);
   const explByGraha = new Map((explanationPlanets ?? []).map((p) => [p.graha, p]));
+  const rowCols = view === "D1" ? PLANET_ROW_COLS : D9_PLANET_ROW_COLS;
+  // A missing dignity is not a neutral one. "Neutral sign" is a claim about the
+  // graha; printing it for an absent field (an older cached response, a field
+  // the server did not send) would state doctrine the engine never computed.
+  // An em dash says "not known here" and is the only honest fallback.
+  const dignityLabel = (value: string | undefined) => {
+    const word = value ? DIGNITY_WORD[value] : undefined;
+    return word ? tl(lang, word) : "—";
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-3)", flexWrap: "wrap" }}>
+        <Segmented<PlanetPositionView>
+          value={view}
+          onChange={setView}
+          ariaLabel={lang === "ta" ? "கிரக நிலை அட்டவணை" : "Planet-position chart"}
+          options={[
+            { key: "D1", label: lang === "ta" ? "D1 · ராசி" : "D1 · Rasi" },
+            { key: "D9", label: lang === "ta" ? "D9 · நவாம்சம்" : "D9 · Navamsa" },
+          ]}
+        />
+        {view === "D9" && (
+          <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
+            {lang === "ta" ? `D9 லக்னம் · ${rasiDisplayName(d9LagnaRasi, lang)}` : `D9 Lagna · ${rasiDisplayName(d9LagnaRasi, lang)}`}
+          </span>
+        )}
+      </div>
+
+      {view === "D9" && d9Reliability === "LOW" && (
+        <Card variant="soft" compact style={{ fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)" }}>
+          {lang === "ta"
+            ? "பிறந்த நேரம் தோராயமானது. கிரகங்களின் D9 ராசிகள் நிலையாக இருக்கலாம்; D9 லக்னமும் வீடுகளும் மாறக்கூடும்."
+            : "Birth time is approximate. Planetary D9 signs may remain stable, but the D9 Lagna and houses can change."}
+        </Card>
+      )}
+
       {/* Orbs */}
       <div className="hy-orbs">
         {planets.map((pl, i) => {
           const grad = ORB_GRADIENTS[pl.graha] ?? ORB_GRADIENTS.SATURN!;
           const isOpen = open === pl.graha;
           return (
+            // OD-4: an orb is a tile that opens its planet's row — the card
+            // kind, so it keeps the card lift. `aria-expanded` names the state
+            // its fill already shows.
             <button
               key={pl.graha}
               type="button"
+              className="ui-card--interactive"
+              aria-expanded={isOpen}
               onClick={() => setOpen(isOpen ? null : pl.graha)}
               style={{
                 background: isOpen ? "var(--color-accent-muted)" : "var(--color-surface)",
@@ -387,8 +441,10 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
               />
               <span style={{ textAlign: "center" }}>
                 <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-text-strong)" }}>{tPlanetLord(pl.graha, lang)}</span>
-                <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "2px" }}>{pl.rasiName}</span>
-                <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--color-muted)", marginTop: "2px" }}>{pl.degreeInRasi.toFixed(1)}°</span>
+                <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--color-faint)", marginTop: "2px" }}>{rasiDisplayName(view === "D1" ? pl.rasi : pl.d9Rasi, lang)}</span>
+                <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--color-muted)", marginTop: "2px" }}>
+                  {view === "D1" ? `${pl.degreeInRasi.toFixed(1)}°` : dignityLabel(pl.d9Dignity)}
+                </span>
               </span>
             </button>
           );
@@ -397,13 +453,21 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
 
       {/* Expandable table */}
       <Card style={{ display: "block", overflow: "hidden", padding: 0 }}>
-        <div style={{ display: "grid", gridTemplateColumns: PLANET_ROW_COLS, columnGap: "var(--space-3)", alignItems: "center", padding: "var(--space-3) var(--space-5)", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderBottom: "1px solid var(--color-border)", fontSize: "var(--text-xs)", letterSpacing: "0.1em", fontWeight: 700, color: "var(--color-faint)" }}>
-          <span /><span>{t("col_graha", lang)}</span><span>{t("col_rasi", lang)}</span><span>{t("col_degree", lang)}</span>
-          <span>{t("col_nakshatra", lang)}</span>
-          {/* B-013: this is the column the audit named — "House (from Lagna)"
-              is unrecoverable without knowing what a house is. */}
-          <span><GlossaryTerm term="house" lang={lang}>{t("col_house", lang)}</GlossaryTerm></span>
-          <span>{t("col_special", lang)}</span><span />
+        <div style={{ display: "grid", gridTemplateColumns: rowCols, columnGap: "var(--space-3)", alignItems: "center", padding: "var(--space-3) var(--space-5)", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderBottom: "1px solid var(--color-border)", fontSize: "var(--text-xs)", letterSpacing: "0.1em", fontWeight: 700, color: "var(--color-faint)" }}>
+          {view === "D1" ? (
+            <>
+              <span /><span>{t("col_graha", lang)}</span><span>{t("col_rasi", lang)}</span><span>{t("col_degree", lang)}</span>
+              <span>{t("col_nakshatra", lang)}</span>
+              <span><GlossaryTerm term="house" lang={lang}>{t("col_house", lang)}</GlossaryTerm></span>
+              <span>{t("col_special", lang)}</span><span />
+            </>
+          ) : (
+            <>
+              <span /><span>{t("col_graha", lang)}</span><span>{lang === "ta" ? "D9 ராசி" : "D9 sign"}</span>
+              <span><GlossaryTerm term="house" lang={lang}>{t("col_house", lang)}</GlossaryTerm></span>
+              <span>{lang === "ta" ? "D9 நிலை" : "D9 dignity"}</span><span>{t("col_special", lang)}</span><span />
+            </>
+          )}
         </div>
         {planets.map((pl) => {
           const isOpen = open === pl.graha;
@@ -413,25 +477,40 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
           // Rahu/Ketu are retrograde every day of their existence, so the badge
           // separates nothing on them and reads as generated noise. The backend
           // already applies this rule (PlanetPosition.showRetrogradeBadge).
-          if (pl.isRetrograde && !PERPETUALLY_RETROGRADE.has(pl.graha)) {
+          if (view === "D1" && pl.isRetrograde && !PERPETUALLY_RETROGRADE.has(pl.graha)) {
             flags.push({ key: "vakra", label: t("flag_vakra", lang), tone: "warning" });
           }
-          if (pl.isCombust) flags.push({ key: "astam", label: t("flag_astam", lang), tone: "warning" });
-          if (pl.isCazimi) flags.push({ key: "cazimi", label: t("flag_cazimi", lang), tone: "success" });
+          if (view === "D1" && pl.isCombust) flags.push({ key: "astam", label: t("flag_astam", lang), tone: "warning" });
+          if (view === "D1" && pl.isCazimi) flags.push({ key: "cazimi", label: t("flag_cazimi", lang), tone: "success" });
           if (pl.isVargottama) flags.push({ key: "varga", label: t("flag_vargottamam", lang), tone: "success" });
           return (
             <div key={pl.graha} style={{ borderBottom: "1px solid var(--color-border)" }}>
+              {/* OD-4: a table row takes the row tint, not the card lift. The
+                  open row's fill is the tint's base (`--ui-row-base`), so hover
+                  and press still read on it; inline `background` beat both. */}
               <button
                 type="button"
+                className="ui-disclosure-trigger"
+                aria-expanded={isOpen}
                 onClick={() => setOpen(isOpen ? null : pl.graha)}
-                style={{ width: "100%", textAlign: "left", fontFamily: "inherit", display: "grid", gridTemplateColumns: PLANET_ROW_COLS, columnGap: "var(--space-3)", alignItems: "center", padding: "var(--space-3) var(--space-5)", cursor: "pointer", background: isOpen ? "var(--color-accent-muted)" : "transparent", border: "none" }}
+                style={{ width: "100%", textAlign: "left", fontFamily: "inherit", display: "grid", gridTemplateColumns: rowCols, columnGap: "var(--space-3)", alignItems: "center", padding: "var(--space-3) var(--space-5)", ...(isOpen ? { "--ui-row-base": "var(--color-accent-muted)" } as CSSProperties : null) }}
               >
                 <span style={{ width: "28px", height: "28px", borderRadius: "var(--radius-sm)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", display: "grid", placeItems: "center", fontSize: "var(--text-sm)", color: "var(--color-accent-strong)" }}>{GRAHA_GLYPH[pl.graha] ?? ""}</span>
                 <span style={{ fontSize: "var(--text-base)", fontWeight: 700, color: "var(--color-text-strong)" }}>{tPlanetLord(pl.graha, lang)}</span>
-                <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text)" }}>{pl.rasiName}</span>
-                <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>{pl.degreeInRasi.toFixed(2)}°</span>
-                <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text)" }}>{astro(pl.nakshatraName)}</span>
-                <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", textAlign: "center" }}>{pl.houseFromLagna}</span>
+                {view === "D1" ? (
+                  <>
+                    <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text)" }}>{rasiDisplayName(pl.rasi, lang)}</span>
+                    <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>{pl.degreeInRasi.toFixed(2)}°</span>
+                    <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text)" }}>{astro(pl.nakshatraName)}</span>
+                    <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", textAlign: "center" }}>{pl.houseFromLagna}</span>
+                  </>
+                ) : (
+                  <>
+                    <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text)" }}>{rasiDisplayName(pl.d9Rasi, lang)}</span>
+                    <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", textAlign: "center" }}>{houseFrom(d9LagnaRasi, pl.d9Rasi)}</span>
+                    <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text)" }}>{dignityLabel(pl.d9Dignity)}</span>
+                  </>
+                )}
                 <span style={{ display: "flex", gap: "var(--space-1)", flexWrap: "wrap" }}>
                   {flags.map((f) => (
                     <span key={f.key} style={{ fontSize: "var(--text-xs)", fontWeight: 600, whiteSpace: "nowrap", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-2)", color: f.tone === "success" ? "var(--color-high)" : "var(--color-low)", border: `1px solid ${f.tone === "success" ? "var(--color-high-border)" : "var(--color-low-border)"}`, background: f.tone === "success" ? "var(--color-high-bg)" : "var(--color-low-bg)" }}>{f.label}</span>
@@ -451,8 +530,23 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
                         (strength bar, pada, D9, facet lines) are tucked one more
                         tap down in the "Technical details" toggle (Phase 3), so
                         nothing is lost but nothing ambushes a newcomer. */}
-                    <HyPlanetVerdict lang={lang} pl={pl} expl={expl} />
-                    <HyPlanetLifeAreas lang={lang} expl={expl} />
+                    {view === "D1" ? (
+                      <>
+                        <HyPlanetVerdict lang={lang} pl={pl} expl={expl} />
+                        <HyPlanetLifeAreas lang={lang} expl={expl} />
+                      </>
+                    ) : (
+                      <Card variant="soft" compact style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "var(--space-3)" }}>
+                        <HyFact label={lang === "ta" ? "நவாம்ச ராசி" : "Navamsa sign"} value={rasiDisplayName(pl.d9Rasi, lang)} />
+                        <HyFact label={lang === "ta" ? "D9 லக்னத்திலிருந்து வீடு" : "House from D9 Lagna"} value={String(houseFrom(d9LagnaRasi, pl.d9Rasi))} />
+                        <HyFact
+                          label={lang === "ta" ? "D9 நிலை" : "D9 dignity"}
+                          value={dignityLabel(pl.d9Dignity)}
+                          tone={pl.d9Dignity === "EXALTED" || pl.d9Dignity === "OWN_SIGN" || pl.d9Dignity === "FRIEND_SIGN" ? "BOOST" : pl.d9Dignity === "DEBILITATED" || pl.d9Dignity === "ENEMY_SIGN" ? "CAUTION" : "NEUTRAL"}
+                        />
+                        <HyFact label="D1 → D9" value={`${rasiDisplayName(pl.rasi, lang)} → ${rasiDisplayName(pl.d9Rasi, lang)}`} />
+                      </Card>
+                    )}
                     {flags.length > 0 && (
                       <div data-testid={`status-marks-${pl.graha}`} style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)" }}>
                         <Kicker color="var(--color-mid)">{dt(PLANET_STATUS_MARKS.heading, lang)}</Kicker>
@@ -463,13 +557,13 @@ export function HyPlanetOrbs({ lang, planets, explanationPlanets, animate }: {
                         ))}
                       </div>
                     )}
-                    {remedy && (
+                    {view === "D1" && remedy && (
                       <Card variant="high" style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "var(--space-3)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)" }}>
                         <span style={{ color: "var(--color-high)", fontSize: "var(--text-base)", flexShrink: 0 }}>⋔</span>
                         <span style={{ fontFamily: "var(--font-body)", fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)" }}>{lang === "ta" ? remedy.value.ta : remedy.value.en}</span>
                       </Card>
                     )}
-                    <HyTechnicalDetails lang={lang} pl={pl} expl={expl} />
+                    {view === "D1" && <HyTechnicalDetails lang={lang} pl={pl} expl={expl} />}
                   </div>
                 );
               })()}
@@ -539,7 +633,7 @@ function HyTechnicalDetails({ lang, pl, expl }: {
               label={<GlossaryTerm term="pada" lang={lang}>{t("col_pada", lang)}</GlossaryTerm>}
               value={`${pl.pada} / 4 · ${dt(PLANET_ROW_DETAILS.pada, lang)}`}
             />
-            <HyFact label={t("col_d9_rasi", lang)} value={RASI_NAMES[pl.d9Rasi] ?? String(pl.d9Rasi)} />
+            <HyFact label={t("col_d9_rasi", lang)} value={rasiDisplayName(pl.d9Rasi, lang)} />
           </div>
           {bodyFacets.length > 0 ? (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "var(--space-3) var(--space-6)" }}>
@@ -552,7 +646,7 @@ function HyTechnicalDetails({ lang, pl, expl }: {
           ) : (
             /* Explanation still loading — show the raw facts rather than nothing. */
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "var(--space-3) var(--space-6)" }}>
-              <HyFact label={t("col_house", lang)} value={`${pl.houseFromLagna} · ${pl.rasiName}`} />
+              <HyFact label={t("col_house", lang)} value={`${pl.houseFromLagna} · ${rasiDisplayName(pl.rasi, lang)}`} />
               <HyFact label={t("col_nakshatra", lang)} value={astro(pl.nakshatraName)} />
             </div>
           )}
@@ -587,7 +681,7 @@ export function HyBhavaTable({ lang, chart, explanationPlanets }: {
     const dot = lordScore == null ? "var(--color-border-strong)" : lordScore >= 60 ? "var(--color-high)" : lordScore >= 40 ? "var(--color-mid)" : "var(--color-low)";
     return {
       house,
-      signLord: `${RASI_NAMES[signNum] ?? signNum} (${tPlanetLord(lordGraha, lang)})`,
+      signLord: `${rasiDisplayName(signNum, lang)} (${tPlanetLord(lordGraha, lang)})`,
       occupants: occupantsByHouse.get(house) ?? [],
       dot,
       lordScore,
@@ -1287,7 +1381,7 @@ export function HyTodayFacts({ lang, memberName, memberNakshatraName, weekdayLor
           <span style={{ color: "var(--color-high)", fontSize: "var(--text-sm)" }}>✳</span>
           <span style={{ flex: 1, fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>
             {goodWindowLabel ?? (lang === "ta" ? "சிறந்த நேரம் " : "Best window ")}
-            <b style={{ color: "var(--color-text-accent)", fontWeight: 600 }}>{formatClockLabel(goodWindow.start)} – {formatClockLabel(goodWindow.end)}</b>
+            <b style={{ color: "var(--color-text-accent)", fontWeight: 600 }}>{formatClockLabel(goodWindow.start, lang)} – {formatClockLabel(goodWindow.end, lang)}</b>
           </span>
         </Card>
       )}
@@ -1313,40 +1407,24 @@ const tl = (lang: Lang, v: BiText): string => (lang === "ta" ? v.ta : v.en);
 
 /* ── 7a · Yoga & dosham quick-status list ─────────────────────────────────
    A compact roll-up of the same yogas + doshams the full panel (§9) renders,
-   with one status chip each so a reader sees at a glance what is Active,
-   Partial, Mitigated or Inactive. "View all ->" jumps to the full panel. */
-type YdTone = "good" | "caution" | "mid" | "muted";
-type YdItem = { name: string; status: BiText; tone: YdTone };
-
-const YD_TONE_COLOR: Record<YdTone, { fg: string; bg: string; bd: string }> = {
+   one chip each. This section is "this chart's signature", so the chip is the
+   *birth-chart standing* only (Strong / Moderate / Mild / Mitigated). Whether
+   the running dasha lights it is a different question, answered on Life Areas
+   — it used to share this chip ("Active" for a yoga meant dasha-running, for a
+   dosham it meant not-cancelled), and one chart read "Partial" here and
+   "Active" there for the same dosham (2026-09-23). "View all ->" jumps to the
+   full panel. */
+export const STANDING_TONE_COLOR: Record<StandingTone, { fg: string; bg: string; bd: string }> = {
   good:    { fg: "var(--color-high)", bg: "var(--color-high-bg)", bd: "var(--color-high-border)" },
   caution: { fg: "var(--color-low)",  bg: "var(--color-low-bg)",  bd: "var(--color-low-border)" },
   mid:     { fg: "var(--color-mid)",  bg: "var(--color-mid-bg)",  bd: "var(--color-mid-border)" },
   muted:   { fg: "var(--color-faint)", bg: "transparent",         bd: "var(--color-border)" },
 };
+type YdItem = { name: string; label: string; tone: StandingTone };
 
-function buildYogaDoshaItems(section: ChartExplanationYogaDoshamSection, lang: Lang): YdItem[] {
-  const active = (en: string, ta: string, tone: YdTone) => ({ status: { en, ta }, tone });
-  const yogaItems: YdItem[] = section.yogas.map((y) => {
-    const { status, tone }: { status: BiText; tone: YdTone } = !y.isPresent
-      ? active("Inactive", "இல்லை", "muted")
-      : y.isCurrentlyActive
-      ? active("Active", "செயலில்", "good")
-      : y.strength === "PARTIAL"
-      ? active("Partial", "பகுதி", "mid")
-      : active("Present", "உள்ளது", "good");
-    return { name: yogaDoshamDisplayName(y.name, lang), status, tone };
-  });
-  const doshamItems: YdItem[] = section.doshams.map((d) => {
-    const { status, tone }: { status: BiText; tone: YdTone } = !d.isPresent
-      ? active("Inactive", "இல்லை", "muted")
-      : d.isCancelled
-      ? active("Mitigated", "நிவர்த்தி", "good")
-      : d.strength === "PARTIAL"
-      ? active("Partial", "பகுதி", "mid")
-      : active("Active", "செயலில்", "caution");
-    return { name: yogaDoshamDisplayName(d.name, lang), status, tone };
-  });
+export function buildYogaDoshaItems(section: ChartExplanationYogaDoshamSection, lang: Lang): YdItem[] {
+  const yogaItems: YdItem[] = section.yogas.map((y) => ({ name: yogaDoshamDisplayName(y.name, lang), ...yogaStanding(y, lang) }));
+  const doshamItems: YdItem[] = section.doshams.map((d) => ({ name: yogaDoshamDisplayName(d.name, lang), ...doshamStanding(d, lang) }));
   // Present/relevant first (doshams needing attention, then live yogas), a few
   // "Inactive" for context — capped so the card stays a glance, not a table.
   const present = [...doshamItems, ...yogaItems].filter((i) => i.tone !== "muted");
@@ -1363,11 +1441,11 @@ export function HyYogaDoshaCard({ lang, yogaDosham, onViewAll }: {
       <Kicker color="var(--color-mid)">{lang === "ta" ? "யோகம் & தோஷம்" : "Yoga & doshas"}</Kicker>
       <div style={{ marginTop: "8px" }}>
         {items.map((it, i) => {
-          const c = YD_TONE_COLOR[it.tone];
+          const c = STANDING_TONE_COLOR[it.tone];
           return (
             <div key={`${it.name}-${i}`} style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", padding: "var(--space-3) 0", borderBottom: i < items.length - 1 ? "1px solid var(--color-border)" : "none" }}>
               <span style={{ flex: 1, fontSize: "var(--text-sm)", color: it.tone === "muted" ? "var(--color-faint)" : "var(--color-text)" }}>{it.name}</span>
-              <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)", color: c.fg, background: c.bg, border: `1px solid ${c.bd}`, whiteSpace: "nowrap" }}>{tl(lang, it.status)}</span>
+              <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)", color: c.fg, background: c.bg, border: `1px solid ${c.bd}`, whiteSpace: "nowrap" }}>{it.label}</span>
             </div>
           );
         })}
@@ -1438,6 +1516,9 @@ const DIGNITY_WORD: Record<string, BiText> = {
   EXALTED: { en: "exalted", ta: "உச்சம்" },
   MOOLATRIKONA: { en: "moolatrikona", ta: "மூலத்திரிகோணம்" },
   OWN_SIGN: { en: "own sign", ta: "சொந்த ராசி" },
+  FRIEND_SIGN: { en: "friendly sign", ta: "நட்பு ராசி" },
+  NEUTRAL_SIGN: { en: "neutral sign", ta: "சம ராசி" },
+  ENEMY_SIGN: { en: "enemy sign", ta: "பகை ராசி" },
   DEBILITATED: { en: "debilitated", ta: "நீசம்" },
 };
 export type PlacementChip = { label: string; tone: "good" | "warn" };
@@ -1851,8 +1932,8 @@ export function HyTransitOverview({ lang, transit, memberName, onOpenTransits }:
       {rows.length > 0 && moonRasi && (
         <p style={{ margin: 0, fontSize: "var(--text-xs)", lineHeight: 1.5, color: "var(--color-faint)" }}>
           {lang === "ta"
-            ? `கிரகங்கள் அமர்ந்துள்ள ராசிகள் அனைவருக்கும் பொதுவானவை. கீழே காணும் வீடும் அதன் தாக்கமும் ${who} சந்திரன் (${moonRasi}) இருந்து கணக்கிடப்படுகிறது — எனவே ஒவ்வொருவருக்கும் வேறுபடும்.`
-            : `The signs the planets sit in are shared by everyone. The house and effect shown below are read from ${memberName ? `${memberName}'s` : "this member's"} Moon in ${moonRasi} — so they differ from member to member.`}
+            ? `கிரகங்கள் அமர்ந்துள்ள ராசிகள் அனைவருக்கும் பொதுவானவை. கீழே காணும் வீடும் அதன் தாக்கமும் ${who} சந்திரன் (${rasiDisplayName(moonRasi, lang)}) இருந்து கணக்கிடப்படுகிறது — எனவே ஒவ்வொருவருக்கும் வேறுபடும்.`
+            : `The signs the planets sit in are shared by everyone. The house and effect shown below are read from ${memberName ? `${memberName}'s` : "this member's"} Moon in ${rasiDisplayName(moonRasi, lang)} — so they differ from member to member.`}
         </p>
       )}
       {rows.length === 0 ? (
@@ -1869,7 +1950,7 @@ export function HyTransitOverview({ lang, transit, memberName, onOpenTransits }:
                 <span style={{ flexShrink: 0, width: "30px", height: "30px", borderRadius: "var(--radius-sm)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", display: "grid", placeItems: "center", fontSize: "var(--text-base)", color: "var(--color-accent-strong)" }}>{GRAHA_GLYPH_R[tr.graha.toUpperCase()] ?? "◦"}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text)" }}>
-                    {tPlanetLord(tr.graha.toUpperCase(), lang)} {lang === "ta" ? "" : "in "}{tr.currentRasi}
+                    {tPlanetLord(tr.graha.toUpperCase(), lang)} {lang === "ta" ? "" : "in "}{rasiDisplayName(tr.currentRasi, lang)}
                     {tr.isRetrograde && <span style={{ marginLeft: "6px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-low)" }}>℞</span>}
                   </div>
                   <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>

@@ -16,21 +16,6 @@ export type SectionId =
   | "summary"
   | "peyarchi";
 
-export const TAMIL_RASI_NAMES: Record<number, string> = {
-  1: "மேஷம்",
-  2: "ரிஷபம்",
-  3: "மிதுனம்",
-  4: "கடகம்",
-  5: "சிம்மம்",
-  6: "கன்னி",
-  7: "துலாம்",
-  8: "விருச்சிகம்",
-  9: "தனுசு",
-  10: "மகரம்",
-  11: "கும்பம்",
-  12: "மீனம்",
-};
-
 export const KENDRA_HOUSES = new Set([1, 4, 7, 10]);
 export const TRIKONA_HOUSES = new Set([1, 5, 9]);
 export const DUSTHANA_HOUSES = new Set([6, 8, 12]);

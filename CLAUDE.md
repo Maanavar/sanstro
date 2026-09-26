@@ -109,6 +109,59 @@ A change made only in the backend (e.g. renaming a param, moving a path segment 
 - A wrapper's URL/method/params are unverified by the type system (they're a hand-typed string + `ApiClient.get/post/patch/put/delete` call, not generated from the FastAPI route) — when adding or touching one, actually re-read the backend route decorator and confirm the path shape (path param vs. query param) and HTTP verb before wiring it up. Two of these silently drifted wrong in the past (`getDailyGuidance` used a query param where the backend expected a path param; `registerFcmToken` sent `PATCH` where the backend only accepts `PUT`) and would have failed on first real use.
 - If a change adds a route (or ports one) that only mobile currently reaches through the shared client, that's fine — don't delete a wrapper just because `web/` doesn't call it yet; check `mobile/` for callers before deleting anything from `packages/shared/src/api/`.
 
+## Display boundary — never render a name the server chose
+
+The backend sends most astrology terms **twice**: a language-free key and a
+pre-rendered English name. For one rasi it sends three — `rasi` (number),
+`rasiName` (`"Mithunam"`) and `rasiCode` (`"MITHUNAM"`). The same doubling
+exists for `lord`/`graha`, nakshatra, tithi, yoga, karana and the Saturn-cycle
+`type`.
+
+**Render the key through the localiser. Never render the name field.**
+
+| Read this | Not this | Through |
+|---|---|---|
+| `rasi` (number) | `rasiName`, `rasiCode`, `lagnaRasiName`, `munthaRasiName` | `rasiDisplayName(rasi, lang)` — `lib/chart-utils` |
+| `graha`, `lord` | the bare string | `tPlanetLord(key, lang)` — `lib/i18n` |
+| `nakshatraName`, tithi, yoga, karana | the bare string | `tNakshatra` / `tTithi` / `tYoga` / `tKarana` |
+| Saturn-cycle `type` | the bare tag | `saniCycleName(tag, lang)` — `lib/family-flags` |
+
+**Why:** a name field is English-only, so rendering it prints `Mithunam` at a
+Tamil reader; a code field prints `MITHUNAM` at everybody. DXA-08 fixed the
+code half, was gated PASS, and left **nine** surfaces rendering the name half —
+the gate greps for `UPPER_CASE` and a correctly-cased English word trips no
+regex. `web/lib/rasi-display-boundary.test.ts` now ratchets the rasi case in CI.
+Nothing ratchets the others: a raw `period.lord` was still sitting in a dasha
+tooltip months later, two files from a twin that localised it correctly.
+
+**How to apply:**
+- Writing a component: if a field name ends in `Name` or `Code`, it is the wrong
+  field. Look for its key twin in `packages/shared/src/types/index.ts` — it is
+  almost always right beside it.
+- Reviewing: grep the diff for `.rasiName`, `.rasiCode`, `.lord`, `.graha`.
+- `title=` and `aria-label=` count as rendering. They carry the same leak and
+  **no** browser text probe can see them — `innerText` does not include
+  attributes.
+- Tamil-mode checks are not optional for this class: the harness pins the audit
+  account to `lang: "en"`, so an English-only pass proves nothing about it.
+
+## A gate proves its own check, not the item
+
+A `Gate:` line in an audit is a *measurement*, not the item's definition of done.
+Before recording a PASS, state what the check cannot see, and look there by hand.
+
+**Why:** three separate items here have now been recorded green by a gate that
+could not fail — DXA-05's pending hero stands at the loaded height, so DXA-07's
+"hero ≥ 90%" passed with and without the fix; DXA-08's regex could not see the
+casing that was actually wrong; and `scripts/ux-audit-core.mjs` only walks
+top-level tab panes in English, so overlays, sub-tools, reports and every Tamil
+surface are outside it by construction.
+
+**How to apply:** run each new gate once with the fix **removed** and confirm it
+fails (see [Suspect your own inputs](#debugging-discipline--suspect-your-own-inputs-before-the-environment)).
+Then write the blind spot down beside the PASS. A tick whose scope is not
+recorded is inherited as "this item is clean" by the next reader.
+
 ## Test & fixture data
 
 Never hardcode real personal data (real birth profiles, names, exact coordinates) in tests, fixtures, seed data, docs, or example payloads. Use a clearly-synthetic identity instead. Real-looking data in a diff should be flagged during review, not assumed to be a fixture.

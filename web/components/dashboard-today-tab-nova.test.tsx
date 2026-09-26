@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 
 import type { DailyGuidanceData } from "@/lib/types";
 
@@ -42,9 +42,6 @@ vi.mock("./dashboard-today-glance-nova", () => ({
   DashboardTodayQuickLinksNova: () => null,
   DashboardTodayFamilyRemedyRowNova: () => null,
   DashboardTodayLifeAreasDasaRowNova: () => null,
-}));
-vi.mock("./dashboard-one-minute-reading", () => ({
-  DashboardOneMinuteReading: () => null,
 }));
 vi.mock("@/hooks/useStreak", () => ({
   useStreak: () => ({ days: 0, best: 0, forgiven: false }),
@@ -286,7 +283,37 @@ describe("Today tab — one recommended window (T8)", () => {
       { type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM" },
     ]);
 
-    expect(screen.getByText(/Clear of Rahu Kalam, Yamagandam and Kuligai/i)).toBeInTheDocument();
+    // R7: Kuligai is deliberately absent from this sentence — it is not a
+    // blocker, so claiming clearance of it would overstate what was checked.
+    expect(screen.getByText(/Clear of Rahu Kalam and Yamagandam/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Clear of .*Kuligai/i)).toBeNull();
+  });
+
+  it("promotes a window that overlaps Kuligai, and names the overlap in Kuligai's own voice", async () => {
+    // R7 (2026-09-22): Kuligai blocks nothing here. It has no polarity until an
+    // activity supplies one, and this pick is made with no activity in hand —
+    // so skipping the window asserts a doctrine the owner ruled against, and
+    // promoting it silently under "clear of the kalas" asserts the opposite.
+    // It is promoted AND the overlap is stated.
+    const fixture = panchangamFixture() as Record<string, unknown>;
+    await renderWithWindows(
+      [{ type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM" }],
+      {
+        panchangam: {
+          ...fixture,
+          kalam: {
+            ...(fixture.kalam as Record<string, unknown>),
+            kuligai: { start: "11:00", end: "12:30", slot: 1 },
+          },
+        } as unknown as TabProps["panchangam"],
+      },
+    );
+
+    expect(screen.getByText(/Best window/).closest("div")).toHaveTextContent("11:00");
+    expect(screen.getByText(/also falls in Kuligai/i)).toBeInTheDocument();
+    // Before R7 this was the only window of the day and it collided, so the
+    // reader got the degraded "every good window collides" sentence instead.
+    expect(screen.queryByText(/Every good window today runs into/i)).toBeNull();
   });
 
   it("says so plainly when every window of the day collides", async () => {
@@ -562,8 +589,8 @@ describe("Today tab — the avoid window's now-state (finding 4)", () => {
     vi.setSystemTime(new Date("2026-08-23T04:15:00Z"));
     await renderWithWindows([{ type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM" }]);
 
-    expect(avoidCard().textContent).toMatch(/inside it now/i);
-    expect(avoidCard().textContent).toMatch(/ends in/);
+    expect(avoidCard().textContent).toMatch(/Now: Rahu Kalam until 10:30 am/i);
+    expect(avoidCard().textContent).toMatch(/avoid new starts/i);
   });
 
   it("counts down to it before it starts", async () => {
@@ -577,10 +604,66 @@ describe("Today tab — the avoid window's now-state (finding 4)", () => {
     // Owner ask (2026-09-07): a caution that already happened is not
     // actionable, and kept eating hero space long after Rahu Kalam ended.
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    vi.setSystemTime(new Date("2026-08-23T09:00:00Z")); // 14:30 IST
+    vi.setSystemTime(new Date("2026-08-23T10:00:00Z")); // 15:30 IST, after all three kalams
     await renderWithWindows([{ type: "PERSONAL_HORA", start: "16:00", end: "16:48", kala: "AMIRTHAM" }]);
 
     expect(screen.queryByText(/^Avoid window$/i)).not.toBeInTheDocument();
+  });
+
+  it("promotes Yamagandam when it is the period running now", async () => {
+    // 14:00 IST — Rahu Kalam has ended, but Yamagandam is in progress. The
+    // old `cautionWindows[0]` path kept looking at Rahu and hid the card.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-08-23T08:30:00Z"));
+    await renderWithWindows([{ type: "PERSONAL_HORA", start: "16:00", end: "16:48", kala: "AMIRTHAM" }]);
+
+    expect(avoidCard()).toHaveTextContent("Yamagandam");
+    expect(avoidCard()).toHaveTextContent(/Now: Yamagandam until 3:00 pm/i);
+    expect(avoidCard()).toHaveTextContent(/avoid new starts/i);
+  });
+
+  it("gives Kuligai its repeat-friendly meaning instead of avoid styling", async () => {
+    // 06:30 IST — Kuligai is active. Owner ruling R5 says this is useful for
+    // repeat-worthy acquisitions, but not marriage or surgery.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-08-23T01:00:00Z"));
+    await renderWithWindows([{ type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM" }]);
+
+    const card = screen.getByText(/^Kuligai period$/i).closest<HTMLElement>(".ui-card")!;
+    expect(card).toHaveTextContent(/Now: Kuligai until 7:30 am/i);
+    expect(card).toHaveTextContent(/gold, property/i);
+    expect(card).toHaveTextContent(/not for a wedding or surgery/i);
+    expect(within(card).queryByText(/^Avoid window$/i)).toBeNull();
+    expect(within(card).getByText(/^Kuligai period$/i)).toHaveStyle({ color: "var(--color-accent-secondary)" });
+  });
+
+  it("uses Tamil period-word time and ruled Tamil copy for live Kuligai", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-08-23T01:00:00Z"));
+    await renderWithWindows([], { lang: "ta" });
+
+    const card = screen.getByText("குளிகை நேரம்").closest(".ui-card")!;
+    expect(card).toHaveTextContent("இப்போது: குளிகை");
+    expect(card).toHaveTextContent("காலை 7:30 வரை");
+    // R7: the repetition principle leads, the owner's examples follow it.
+    expect(card).toHaveTextContent("மீண்டும் நிகழ வேண்டிய");
+    expect(card).toHaveTextContent("தங்கம்");
+    expect(card).toHaveTextContent("திருமணம், அறுவை சிகிச்சை வேண்டாம்");
+    expect(card.textContent).not.toMatch(/\b(?:am|pm)\b/i);
+    expect(card.textContent).not.toContain("—");
+  });
+
+  it("counsels rather than commands in Tamil for a live Rahu Kalam / Yamagandam", async () => {
+    // Owner ruling 2026-09-17: Tamil advice is advisory (தவிர்ப்பது நல்லது),
+    // never the imperative (தவிர்க்கவும்) — same voice as `avoidRahu`. This
+    // line shipped with the imperative form once already; pin the register.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-08-23T04:15:00Z")); // 09:45 IST, inside Rahu Kalam
+    await renderWithWindows([], { lang: "ta" });
+
+    const card = screen.getByText("தவிர்க்க வேண்டிய நேரம்").closest<HTMLElement>(".ui-card")!;
+    expect(card).toHaveTextContent("தவிர்ப்பது நல்லது");
+    expect(card.textContent).not.toContain("தவிர்க்கவும்");
   });
 });
 
@@ -656,6 +739,21 @@ describe("Today tab — the day's other named timings (findings 6-8)", () => {
     // Overlaps the fixture's Rahu Kalam 09:00-10:30, so the clear part is
     // 10:30-10:40 — the app's already-ruled position, not a new doctrine call.
     expect(screen.getByText(/clear part is 10:30/i)).toBeInTheDocument();
+  });
+
+  it("reports an Abhijit / Kuligai overlap as conditional, never as an avoid period", async () => {
+    // R7.6. The fixture's Kuligai is 06:00-07:30, so this Abhijit sits inside
+    // it and clear of Rahu Kalam. Before R7 the same case printed "Overlaps
+    // Kuligai for its whole span today, and this app treats the avoid periods
+    // as binding" — the binding register the owner has ruled Kuligai out of.
+    await renderWithWindows([
+      { type: "ABHIJIT", start: "06:45", end: "07:20", kala: "SUGAM" },
+      { type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM" },
+    ]);
+
+    expect(screen.getByText(/also falls in Kuligai/i)).toBeInTheDocument();
+    expect(screen.queryByText(/treats the avoid periods as binding/i)).toBeNull();
+    expect(screen.queryByText(/clear part is/i)).toBeNull();
   });
 
   it("stays quiet on the days Abhijit is clear of all three kalas", async () => {

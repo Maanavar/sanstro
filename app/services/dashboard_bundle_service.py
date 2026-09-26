@@ -32,6 +32,10 @@ from app.services.daily_guidance_service import (
 )
 from app.services.dasha_service import get_chart_dasha_from_snapshot
 from app.services.life_areas_service import get_life_areas
+from app.services.location_service import (
+    is_location_check_due,
+    resolve_effective_daily_location_or_none,
+)
 from app.services.nakshatra_content import get_nakshatra_card
 from app.services.panchangam_service import calculate_panchangam, calculate_panchangam_timings
 from app.services.peyarchi_service import get_peyarchi_summary
@@ -75,16 +79,15 @@ def get_chart_dashboard_bundle(
             return None
 
     # Same location choice the web client made before this endpoint existed:
-    # the saved current location when complete, else the birth location.
-    has_current = (
-        profile.current_latitude is not None
-        and profile.current_longitude is not None
-        and bool(profile.current_timezone)
-    )
-    lat = profile.current_latitude if has_current else profile.birth_latitude
-    lng = profile.current_longitude if has_current else profile.birth_longitude
-    tz = profile.current_timezone if has_current else profile.birth_timezone
-    has_location = lat is not None and lng is not None and bool(tz)
+    # the saved current location when complete, else the birth location. This
+    # block used to re-implement that rule instead of calling the resolver every
+    # other service calls; a drift between the two would show one place's
+    # timings under another place's name.
+    effective = resolve_effective_daily_location_or_none(profile)
+    has_location = effective is not None
+    lat = effective.latitude if effective else None
+    lng = effective.longitude if effective else None
+    tz = effective.timezone if effective else None
 
     moon = next((p for p in chart_snapshot.data.planets if p.graha == "MOON"), None)
 
@@ -164,8 +167,13 @@ def get_chart_dashboard_bundle(
             if moon is not None and 1 <= moon.nakshatra <= 27
             else None
         ),
-        panchangamLocation=("current" if has_current else "birth") if has_location else None,
-        panchangamTimezone=tz if has_location else None,
+        panchangamLocation=effective.source if effective else None,
+        panchangamTimezone=effective.timezone if effective else None,
+        # §2.4: the UI cannot say "Timings for Chennai" without the name. The
+        # source alone ("current"/"birth") names the *rule*, not the place.
+        panchangamPlace=(effective.place or None) if effective else None,
+        locationConfirmedAt=profile.current_location_updated_at,
+        locationCheckDue=is_location_check_due(profile.current_location_updated_at),
         errors=errors,
     )
 

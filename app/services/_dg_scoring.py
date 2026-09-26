@@ -255,6 +255,7 @@ def _collect_afflicted_planets(chart_snapshot) -> list[str]:
     ketu = next((p for p in planets if p.graha == "KETU"), None)
     sun_longitude = sun.absolute_longitude if sun is not None else 0.0
 
+    rasi_by_graha = {p.graha: p.rasi for p in planets}
     afflicted: list[str] = []
     for planet in planets:
         graha = planet.graha
@@ -270,6 +271,7 @@ def _collect_afflicted_planets(chart_snapshot) -> list[str]:
                 is_retrograde=planet.is_retrograde,
                 is_vargottama=planet.is_vargottama,
                 d9_rasi=planet.d9_rasi,
+                planet_rasi_map=rasi_by_graha,
             )
 
         is_conj_malefic = False

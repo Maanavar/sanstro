@@ -92,7 +92,7 @@ function WInput(props: React.InputHTMLAttributes<HTMLInputElement> & { hasError?
         background: W.card, color: W.inkMid,
         fontSize: "0.875rem", fontFamily: "inherit", outline: "none",
         boxShadow: hasError ? "0 0 0 3px rgba(168,72,47,0.08)" : undefined,
-        transition: "border-color 150ms ease, box-shadow 150ms ease",
+        transition: "border-color 150ms var(--ease-nova), box-shadow 150ms var(--ease-nova)",
         ...(style ?? {}),
       }}
     />

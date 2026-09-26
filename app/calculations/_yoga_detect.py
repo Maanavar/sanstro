@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from itertools import combinations
 
 from app.calculations._yoga_helpers import (
+    DUSTHANA_HOUSES,
     KENDRA_HOUSES,
     NATURAL_MALEFICS,
     TRIKONA_HOUSES,
@@ -16,6 +17,8 @@ from app.calculations._yoga_helpers import (
     _planet_rasi,
     _planets_as_rasi_map,
     gate_yoga_strength,
+    houses_owned,
+    raja_lord_qualifies,
 )
 from app.calculations.aspects import aspects_house, effective_natural_class
 from app.calculations.astro import house_from_reference
@@ -97,6 +100,88 @@ def detect_gaja_kesari(
     )
 
 
+def raja_lord_sets(lagna_rasi: int) -> tuple[set[str], set[str]]:
+    """Kendra and trikona lords eligible to form a Raja Yoga for this lagna —
+    each passing the moolatrikona test for a dusthana it also owns
+    (`raja_lord_qualifies`, ruling 2026-09-23)."""
+    kendra = {_house_lord(lagna_rasi, h) for h in (1, 4, 7, 10)}
+    trikona = {_house_lord(lagna_rasi, h) for h in (1, 5, 9)}
+    return (
+        {p for p in kendra if raja_lord_qualifies(lagna_rasi, p)},
+        {p for p in trikona if raja_lord_qualifies(lagna_rasi, p)},
+    )
+
+
+def _nodes_with(planets: Mapping[str, PlanetInput], *rasis: int) -> tuple[str, ...]:
+    """Rahu/Ketu sharing a sign with a forming lord — supporting, never forming
+    (ruling 2026-09-23; revisit under the Rahu/Ketu doctrine section)."""
+    return tuple(n for n in ("RAHU", "KETU") if n in planets and _planet_rasi(planets, n) in rasis)
+
+
+def detect_raja_yogakaraka(
+    planets: Mapping[str, PlanetInput],
+    lagna_rasi: int,
+    *,
+    active_lords: Iterable[str] | None = None,
+    planet_scores: Mapping[str, int] | None = None,
+    combust_planets: frozenset[str] = frozenset(),
+) -> YogaResult:
+    """A single graha owning both a kendra (4/7/10) and a trikona (5/9).
+
+    Astrologer ruling 2026-09-23: a distinct yoga type, not a loosening of
+    `detect_raja_yoga`'s different-graha pairing, so existing Raja Yoga presence
+    is untouched. The lagna lord is not a yogakaraka here: no lagna lord owns
+    the 5th or 9th.
+
+    Ownership alone establishes the yoga (owner ruling on the native-Tamil
+    review, 2026-09-23, superseding the first-pass dignity gate). Debilitation,
+    combustion or a 6th/8th/12th placement lowers it one rung — however many of
+    them apply — and never removes it. Each is recorded in `conditions_met`, not
+    `cancellation_factors`, so the card reads "Moderate", not "Cancelled".
+    """
+    active = set(active_lords or ())
+    for planet in ("SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN"):
+        owned = houses_owned(lagna_rasi, planet)
+        if not (owned & {4, 7, 10} and owned & {5, 9}) or planet not in planets:
+            continue
+        rasi = _planet_rasi(planets, planet)
+        house = house_from_reference(lagna_rasi, rasi)
+        afflictions = [
+            reason for reason, applies in (
+                (f"{planet.lower()}_yogakaraka_debilitated", rasi == DEBILITATION_RASI.get(planet)),
+                (f"{planet.lower()}_yogakaraka_combust", planet in combust_planets),
+                (f"{planet.lower()}_yogakaraka_in_dusthana_{house}", house in DUSTHANA_HOUSES),
+            ) if applies
+        ]
+        # Combustion is already one of the afflictions, so the score gate must
+        # not count it a second time.
+        strength, gate_notes = gate_yoga_strength(
+            "PARTIAL" if afflictions else "STRONG", (planet,), planet_scores,
+        )
+        houses = "_".join(str(h) for h in sorted(owned))
+        return YogaResult(
+            name="YOGAKARAKA_RAJA_YOGA",
+            is_present=True,
+            strength=strength,
+            conditions_met=[f"{planet.lower()}_yogakaraka_owns_{houses}", *afflictions],
+            cancellation_factors=gate_notes,
+            dasha_activated=_is_active(active, planet),
+            key_grahas=(planet,),
+            description_ta="யோககாரக ராஜயோகம்: ஒரே கிரகம் ஒரு கேந்திரத்திற்கும் ஒரு திரிகோணத்திற்கும் அதிபதியாக உள்ளது.",
+            description_en="Yogakaraka Raja Yoga: one graha lords both a kendra and a trikona.",
+        )
+    return YogaResult(
+        name="YOGAKARAKA_RAJA_YOGA",
+        is_present=False,
+        strength="WEAK",
+        conditions_met=[],
+        cancellation_factors=[],
+        dasha_activated=False,
+        description_ta="இந்த லக்னத்திற்கு யோககாரக கிரகம் இல்லை.",
+        description_en="This lagna has no yogakaraka graha.",
+    )
+
+
 def detect_raja_yoga(
     planets: Mapping[str, PlanetInput],
     lagna_rasi: int,
@@ -106,8 +191,7 @@ def detect_raja_yoga(
     combust_planets: frozenset[str] = frozenset(),
 ) -> list[YogaResult]:
     active = set(active_lords or ())
-    kendra_lords = {_house_lord(lagna_rasi, house) for house in (1, 4, 7, 10)}
-    trikona_lords = {_house_lord(lagna_rasi, house) for house in (1, 5, 9)}
+    kendra_lords, trikona_lords = raja_lord_sets(lagna_rasi)
 
     results: list[YogaResult] = []
     for trikona_lord in sorted(trikona_lords):
@@ -137,6 +221,11 @@ def detect_raja_yoga(
                         conditions_met=[f"{trikona_lord}_{kendra_lord}_link"],
                         cancellation_factors=gate_notes,
                         dasha_activated=_is_active(active, trikona_lord, kendra_lord),
+                        # Astrologer ruling 2026-09-23: a Raja Yoga activates on
+                        # the lords that form *this* instance, not a fixed list
+                        # and not every kendra/trikona lord in the chart.
+                        key_grahas=(trikona_lord, kendra_lord),
+                        supporting_grahas=_nodes_with(planets, trikona_rasi, kendra_rasi),
                         description_ta="திரிகோண மற்றும் கேந்திர அதிபதிகள் இணைப்பு ராஜயோகமாக கருதப்படுகிறது.",
                         description_en="A Trikona and Kendra lord linkage is traditionally treated as Raja Yoga.",
                     )
@@ -497,11 +586,15 @@ def _merge_yoga_list(results: list[YogaResult], merged_name: str) -> YogaResult:
     all_conditions: list[str] = []
     all_cancellations: list[str] = []
     all_key_grahas: list[str] = []
+    all_supporting: list[str] = []
+    groups: list[tuple[str, ...]] = []
     dasha_activated = False
     for r in results:
         all_conditions.extend(r.conditions_met)
         all_cancellations.extend(r.cancellation_factors)
         all_key_grahas.extend(r.key_grahas)
+        all_supporting.extend(r.supporting_grahas)
+        groups.extend(r.former_groups or ((r.key_grahas,) if r.key_grahas else ()))
         if r.dasha_activated:
             dasha_activated = True
     strengths = [r.strength for r in present]
@@ -518,6 +611,8 @@ def _merge_yoga_list(results: list[YogaResult], merged_name: str) -> YogaResult:
         # A merged card activates on the union of its parts' key grahas —
         # dropping them here would silently re-dormant-cap any merged yoga.
         key_grahas=tuple(dict.fromkeys(all_key_grahas)),
+        former_groups=tuple(dict.fromkeys(groups)),
+        supporting_grahas=tuple(dict.fromkeys(all_supporting)),
     )
 
 
@@ -694,27 +789,65 @@ def detect_chandala_yoga_ketu_variant(jupiter_rasi: int, ketu_rasi: int) -> Yoga
     )
 
 
+#: The one malefic set Amala reads, for BOTH its tests: Budhan loses benefic
+#: status when one of these shares its sign, and one of these casting poorna
+#: drishti on an occupied 10th weakens the yoga (ruling 2026-09-23, second
+#: amendment — one list so the two tests cannot drift apart again).
+#: Suriya is out: karaka of the 10th with dig bala there, and only a mild
+#: malefic. Mandhi is in: the project grants it the 7th aspect (`EC-A21`,
+#: `aspects.ASPECT_HOUSES`), and the ruling asked for consistency with that.
+#: The nodes are in under the node-aspect choice `CORE-10`.
+AMALA_AFFLICTING_MALEFICS: frozenset[str] = frozenset({"SATURN", "MARS", "RAHU", "KETU", "MANDHI"})
+
+
 def detect_amala_yoga(
     planets: dict[str, int], lagna_rasi: int, moon_rasi: int, lagna_nature_map: dict[str, str], *,
     paksha_is_shukla: bool | None = None,
 ) -> YogaResult:
     tenth_lagna = ((lagna_rasi - 1 + 9) % 12) + 1
     tenth_moon = ((moon_rasi - 1 + 9) % 12) + 1
+    tenths = {tenth_lagna, tenth_moon}
+    # Ruling 2026-09-23: Guru, Sukran and Budhan — Budhan only when no member of
+    # `AMALA_AFFLICTING_MALEFICS` shares its sign; Chandran never. Suriya is
+    # deliberately NOT an afflictor (amendment, same day): Budhan is never more
+    # than ~28° from Suriya, Budha-Aditya is itself auspicious, and combustion
+    # is judged separately — counting Suriya would double-penalise.
     found = []
-    for planet in planets:
-        if effective_natural_class(planet, planets, paksha_is_shukla=paksha_is_shukla) != "BENEFIC":
-            continue
+    for planet in ("JUPITER", "VENUS", "MERCURY"):
         rasi = planets.get(planet)
-        if rasi in {tenth_lagna, tenth_moon}:
-            found.append(planet)
+        if rasi not in tenths:
+            continue
+        if planet == "MERCURY" and any(planets.get(m) == rasi for m in AMALA_AFFLICTING_MALEFICS):
+            continue
+        found.append(planet)
     present = len(found) > 0
+    strength = "STRONG" if len(found) >= 2 else ("PARTIAL" if present else "WEAK")
+    # Malefic drishti on an occupied 10th weakens by one rung, never removes:
+    # presence and quality stay separate. Same set as the Budhan test above.
+    # Recorded in conditions_met, not cancellation_factors, because a WEAK card
+    # with cancellation factors reads as "Cancelled" — which is exactly what the
+    # ruling said this is not.
+    occupied = {planets[p] for p in found}
+    aspecting = sorted(
+        m for m in AMALA_AFFLICTING_MALEFICS
+        if m in planets and any(aspects_house(m, planets[m], t) for t in occupied)
+    )
+    if present and aspecting:
+        strength = "PARTIAL" if strength == "STRONG" else "WEAK"
     return YogaResult(
         name="AMALA_YOGA",
         is_present=present,
-        strength="STRONG" if len(found) >= 2 else ("PARTIAL" if present else "WEAK"),
-        conditions_met=[f"{planet}_in_10th" for planet in found],
+        strength=strength,
+        conditions_met=[f"{planet}_in_10th" for planet in found]
+        + ([f"malefic_aspect_on_10th_{m.lower()}" for m in aspecting] if present else []),
         cancellation_factors=[],
-        dasha_activated=any(lagna_nature_map.get(planet, "") in {"YOGAKARAKA", "TRIKONA"} for planet in found),
+        # Was a functional-nature test (a benefic here lords a trikona), which
+        # reads no dasha at all yet surfaced as "Dasha activated" for life.
+        # Astrologer ruling 2026-09-23: the triggers are the benefics *occupying*
+        # the 10th — not the 10th lord. The running-dasha check against them is
+        # made in `_chart_build._dasha_activated`, which reads `key_grahas`.
+        dasha_activated=False,
+        key_grahas=tuple(found),
         description_ta="அமல யோகம் — லக்னம்/சந்திரத்திலிருந்து 10ஆம் இடத்தில் சுபகிரகங்கள்.",
         description_en="Amala Yoga — benefics in the 10th from Lagna or Moon.",
     )
@@ -748,7 +881,10 @@ def detect_adhi_yoga(
         strength="STRONG" if count == 3 else ("PARTIAL" if count == 2 else "WEAK"),
         conditions_met=[f"{p}_in_house_{h}_from_moon" for p, h in benefic_hits] if present else [],
         cancellation_factors=[],
-        dasha_activated=any(lagna_nature_map.get(p, "") in {"YOGAKARAKA", "TRIKONA"} for p in {"JUPITER", "VENUS", "MERCURY"}),
+        # Ruling 2026-09-23: the benefics in the 6th/7th/8th from Chandran are
+        # the triggers. Chandran is the reference point, not a participant.
+        dasha_activated=False,
+        key_grahas=tuple(p for p, _h in benefic_hits) if present else (),
         description_ta="அதி யோகம் — சந்திரனிலிருந்து 6/7/8இல் இரண்டு அல்லது மூன்று சுபகிரகங்கள்.",
         description_en="Adhi Yoga — two or more of Jupiter, Venus and Mercury in the 6th/7th/8th from Moon.",
     )

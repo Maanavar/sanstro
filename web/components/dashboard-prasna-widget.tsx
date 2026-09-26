@@ -100,12 +100,11 @@ export function PrasnaWidget({ lang, open, onClose, timezone, latitude, longitud
     onClose();
   }
 
-  if (!open) return null;
-
   return (
     <DrawerPanel
       title={t("prasna_title", lang)}
       onClose={handleClose}
+      open={open}
     >
       <div style={{ padding: "var(--space-4) var(--space-4) var(--space-8)", maxWidth: "480px" }}>
         <p style={{ fontSize: "0.83rem", color: W.muted, marginBottom: "var(--space-4)", lineHeight: 1.6 }}>

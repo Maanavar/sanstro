@@ -21,6 +21,7 @@ import {
   PlanEventsPanel,
 } from "./dashboard-plan-shared";
 import { useEventWindowsQuery, type EventType } from "@/hooks/useEventWindows";
+import { focusPreselect } from "@/lib/life-focus";
 import { humaniseReason } from "./dashboard-event-windows";
 import { NovaLifeEventLogCard } from "./dashboard-plan-life-event-log-nova";
 import { Orbit, ArrowRight, X } from "lucide-react";
@@ -29,6 +30,7 @@ import { Kicker } from "./ui/kicker";
 import { NovaPlanWhatIfPanel } from "./dashboard-plan-whatif-nova";
 import { NovaPlanDecisionsPanel } from "./dashboard-plan-decisions-nova";
 import { NovaSelect } from "./nova-select";
+import { ViewSwap } from "./ui/view-swap";
 
 /**
  * Nova Goals tab (nav id `"plan"`, labelled "Goals" in the top strip) —
@@ -242,6 +244,9 @@ type DashboardPlanTabNovaProps = {
   // one was removed 2026-07-21 and folded into Family & Charts (IA audit
   // 2026-07-22, Phase 5).
   onGoToChart: () => void;
+  /** Life focus, Phase 3: the new-goal picker opens on the focus's first
+   *  activity. Already off (empty) for a chart that is not the reader's own. */
+  focusActivities?: readonly string[];
 };
 
 export function DashboardPlanTabNova({
@@ -269,9 +274,15 @@ export function DashboardPlanTabNova({
   onGoToMuhurta,
   onGoToJournal,
   onGoToChart,
+  focusActivities = [],
 }: DashboardPlanTabNovaProps) {
   const [subTab, setSubTab] = useState<PlanSubTab>("goals");
   const todayStr = new Date().toISOString().slice(0, 10);
+  // A default, not a choice: `addingGoalType` is empty until the reader picks.
+  // A focus activity the reader already has as a goal is not offered again.
+  const newGoalType = addingGoalType
+    || focusPreselect(focusActivities, GOAL_OPTIONS.map(([value]) => value), goals.map((g) => normalizeGoalType(g.goalType)))
+    || "job_change";
 
   const { groups, unmapped } = useMemo(() => {
     const seen = new Set<EventType>();
@@ -333,6 +344,7 @@ export function DashboardPlanTabNova({
 
         <button
           type="button"
+          className="ui-card--interactive"
           onClick={onGoToChart}
           style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", background: "var(--color-surface)", color: "var(--color-muted)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)", fontSize: "var(--text-sm)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
         >
@@ -351,6 +363,7 @@ export function DashboardPlanTabNova({
         options={PLAN_SUB_TABS.map(({ key, en, ta }) => ({ key, label: lang === "ta" ? ta : en }))}
       />
 
+      <ViewSwap viewKey={subTab}>
       {/* ===== Sub-tab: Goals ===== */}
       {subTab === "goals" && (
         <>
@@ -396,7 +409,7 @@ export function DashboardPlanTabNova({
               {goals.length < 3 && (
                 <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
                   <NovaSelect
-                    value={addingGoalType || "job_change"}
+                    value={newGoalType}
                     onChange={onAddingGoalTypeChange}
                     ariaLabel={t("goals_add", lang)}
                     containerStyle={{ flex: "1 1 200px" }}
@@ -405,9 +418,9 @@ export function DashboardPlanTabNova({
                   />
                   <button
                     type="button"
-                    onClick={() => onAddGoal(addingGoalType || "job_change")}
+                    className="ui-btn ui-btn--primary"
+                    onClick={() => onAddGoal(newGoalType)}
                     disabled={goalsBusy}
-                    style={{ fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", border: "none", borderRadius: "var(--radius-sm)", padding: "var(--space-3) var(--space-4)", cursor: goalsBusy ? "wait" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
                   >
                     {goalsBusy ? t("goals_adding", lang) : t("goals_add", lang)}
                   </button>
@@ -612,6 +625,7 @@ export function DashboardPlanTabNova({
         />
       )}
       {subTab === "decisions" && <NovaPlanDecisionsPanel lang={lang} chartId={chartId} mode={mode} />}
+      </ViewSwap>
     </div>
   );
 }

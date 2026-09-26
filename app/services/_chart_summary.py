@@ -15,6 +15,7 @@ from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.functional_nature import get_functional_nature
 from app.calculations.house_lords import compute_house_lord_report
+from app.calculations.lagna_edge import lagna_edge_note_for_profile, navamsa_lagna_edge_note_for_profile
 from app.calculations.transits import RASI_NAMES, classify_sani_cycle, is_combust
 from app.models import Chart
 from app.models.user_life_events import UserLifeEvent
@@ -44,7 +45,7 @@ from app.services._chart_persist import _require_active_birth_profile, load_pers
 from app.services._chart_planets import (
     _NATAL_GRAHAS,
     _aspect_counts,
-    _is_daytime_birth,
+    _is_daytime_birth_for_profile,
     _paksha_is_shukla,
     _speed_ratio,
 )
@@ -79,6 +80,17 @@ def _gist_text(
         antardasha_lord=antardasha_lord,
     )
     return ChartSummaryText(ta=gist["ta"], en=gist["en"])
+
+
+def _lagna_edge_text(
+    chart_response: ChartCalculateResponse, birth_profile: object, *, navamsa: bool = False
+) -> ChartSummaryText | None:
+    """The Lagna (or D9 Lagna) edge note, or None when it is safely inside its sign."""
+    build = navamsa_lagna_edge_note_for_profile if navamsa else lagna_edge_note_for_profile
+    note = build(
+        chart_response.data.lagna.absolute_longitude, chart_response.data.julian_day, birth_profile
+    )
+    return ChartSummaryText(ta=note[0], en=note[1]) if note is not None else None
 
 
 def _current_age(birth_date_local: date, today: date) -> int:
@@ -280,7 +292,7 @@ def get_jadhagam_report(session: Session, chart_id: UUID) -> JadhagamReportRespo
 
     sun_lon = next(planet.absolute_longitude for planet in chart_response.data.planets if planet.graha == "SUN")
     moon_lon = next(planet.absolute_longitude for planet in chart_response.data.planets if planet.graha == "MOON")
-    is_daytime = _is_daytime_birth(_value(birth_profile, "birth_time_local"))
+    is_daytime = _is_daytime_birth_for_profile(birth_profile)
     paksha_is_shukla = _paksha_is_shukla(moon_lon, sun_lon)
     report_rasi_map = {p.graha: p.rasi for p in chart_response.data.planets if p.graha in _NATAL_GRAHAS}
     report_wars = detect_planetary_wars({p.graha: p.absolute_longitude for p in chart_response.data.planets})
@@ -309,6 +321,7 @@ def get_jadhagam_report(session: Session, chart_id: UUID) -> JadhagamReportRespo
             is_vargottama=planet.is_vargottama,
             d9_rasi=planet.d9_rasi,
             is_daytime=is_daytime,
+            planet_rasi_map=report_rasi_map,
             paksha_is_shukla=paksha_is_shukla,
             speed_ratio=_speed_ratio(planet.graha, float(planet.speed_deg_per_day)),
             benefic_aspect_count=benefic_aspects,
@@ -405,6 +418,8 @@ def get_jadhagam_report(session: Session, chart_id: UUID) -> JadhagamReportRespo
                 janma_pada=moon.pada,
                 current_mahadasha=mahadasha_lord,
                 current_antardasha=antardasha_lord,
+                lagna_edge_note=_lagna_edge_text(chart_response, birth_profile),
+                navamsa_lagna_edge_note=_lagna_edge_text(chart_response, birth_profile, navamsa=True),
             ),
             rasi_chart_summary=JadhagamReportRasiSummary(
                 lagna=chart_response.data.lagna,

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { apiFetchJson, getApiError } from "@/lib/api";
+import { track } from "@/lib/analytics";
 import type { Lang } from "@/lib/i18n";
 import type { AskVinaadiResponseData, ConfidenceTier, LifeMode } from "@/lib/types";
 import { getChipsForMode } from "@/lib/ask-vinaadi-chips";
@@ -26,6 +27,10 @@ interface DashboardAskVinaadiProps {
   /** Drop the standalone top margin when placed inline in a spaced column
       (e.g. the Hybrid Family forecast rail), so it aligns with its siblings. */
   embedded?: boolean;
+  /** Analytics surface for chip taps. The Family rail passes no life mode, so
+   *  its chips are the BALANCED set; a separate surface keeps those taps out
+   *  of the per-focus count for the reader's own Ask. */
+  analyticsSurface?: "web" | "web_family";
 }
 
 const SUGGESTED_QUESTIONS: Record<NonNullable<GoalTrack> | "DEFAULT", { ta: string; en: string }[]> = {
@@ -64,7 +69,7 @@ function QuotaBar({ used, limit, lang }: { used: number; limit: number; lang: La
         <span>{lang === "ta" ? `இன்று ${used} / ${limit} கேள்விகள் பயன்படுத்தப்பட்டன` : `${used} of ${limit} questions used today`}</span>
       </div>
       <div style={{ height: "4px", borderRadius: "2px", background: "var(--veil-white-10)", overflow: "hidden" }}>
-        <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: "2px", transition: "width 0.3s ease" }} />
+        <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: "2px", transition: "width 0.3s var(--ease-nova)" }} />
       </div>
     </div>
   );
@@ -102,7 +107,7 @@ function AnswerCard({ entry, lang }: { entry: { question: string; data: AskVinaa
   );
 }
 
-export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode = "BALANCED", onUpgrade, embedded = false }: DashboardAskVinaadiProps) {
+export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode = "BALANCED", onUpgrade, embedded = false, analyticsSurface = "web" }: DashboardAskVinaadiProps) {
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -209,7 +214,14 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
               <button
                 key={`chip-${i}`}
                 disabled={limitReached}
-                onClick={() => void submit(lang === "ta" ? s.ta : s.en, true)}
+                onClick={() => {
+                  track("life_focus_ask_chip_tapped", {
+                    focus: activeLifeMode,
+                    surface: analyticsSurface,
+                    chip_index: i,
+                  });
+                  void submit(lang === "ta" ? s.ta : s.en, true);
+                }}
                 style={{ fontSize: "12px", padding: "5px 10px", borderRadius: "20px", border: "1px solid var(--cl-brand-edge)", background: limitReached ? "var(--brand-tint-faint)" : "var(--ring-brand)", color: "var(--color-accent, var(--panel-brand))", cursor: limitReached ? "not-allowed" : "pointer", opacity: limitReached ? 0.5 : 1 }}
               >
                 {lang === "ta" ? s.ta : s.en}

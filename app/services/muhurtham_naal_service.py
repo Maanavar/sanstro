@@ -18,11 +18,20 @@ date from a published list:
 Days that are favourable by Tara Bala and free of Chandrashtama are surfaced as
 "best matches" for the chart; the rest are still returned, annotated, so the UI
 can show the full picture.
+
+**Couples (2026-09-15).** A published wedding date is chosen for two people, and
+both checks above are per-person gates. With a partner chart the list is ranked
+under the same ruling as the Muhurta Finder's couple mode
+(docs/MUHURTA_COUPLE_MODE_2026-09-12.md, R1): per check, the weaker of the two
+readings is the one priced, a Chandrashtama on either side removes the date from
+"recommended", and nothing is averaged or added. Both readings are reported and
+each names whose chart it read. See docs/MUHURTA_COUPLE_SIGNED_IN_2026-09-15.md.
 """
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from typing import NamedTuple
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -115,15 +124,36 @@ class MuhurthamNaalView:
 
 
 @dataclass(frozen=True, slots=True)
-class MuhurthamNaalMatch:
-    naal: MuhurthamNaalView
+class NaalReading:
+    """One chart's reading of one date.
+
+    `who` is None for a single chart — "your star" is unambiguous when there is
+    only one. `governs` marks the reading whose tara set the score; in couple
+    mode exactly one of the two carries it.
+    """
+
+    who: BiLabel | None
     tara_number: int
     tara_name: BiLabel
     tara_quality: str            # GOOD | NEUTRAL | AVOID
     is_chandrashtama: bool
+    governs: bool
+
+
+@dataclass(frozen=True, slots=True)
+class MuhurthamNaalMatch:
+    naal: MuhurthamNaalView
+    # The governing reading's tara — the one that set `match_score`. For a
+    # single chart that is simply the chart's own.
+    tara_number: int
+    tara_name: BiLabel
+    tara_quality: str            # GOOD | NEUTRAL | AVOID
+    # True when the date is Chandrashtama for *either* chart.
+    is_chandrashtama: bool
     is_recommended: bool
     match_score: int             # 0..100
     reasons: list[BiLabel]
+    readings: tuple[NaalReading, ...] = ()
 
 
 def _nalla_neram_windows(weekday: str) -> list[TimeWindow]:
@@ -309,35 +339,94 @@ def _resolve_janma(session: Session, chart_id: UUID) -> tuple[int, int, str]:
     return janma_nak, janma_rasi, janma_name
 
 
-def match_muhurtham_naals(
-    chart_id: UUID,
-    year: int,
-    session: Session,
-    *,
-    recommended_only: bool = False,
-) -> tuple[list[MuhurthamNaalMatch], dict]:
-    """Annotate the year's curated naals against a chart and rank them.
+# Whose chart a couple-mode sentence reads. Tamil almanac usage, not Sanskrit —
+# the same மணமகள் / மணமகன் the Muhurta Finder prints. Capitalised because here
+# the label leads its sentence ("Bride — …") rather than sitting inside one.
+_ROLE_WHO: dict[str, BiLabel] = {
+    "BRIDE": BiLabel(ta="மணமகள்", en="Bride"),
+    "GROOM": BiLabel(ta="மணமகன்", en="Groom"),
+}
+# When the roles were not given. Two readings both headed "your star" would be
+# indistinguishable, which is the ambiguity the Finder's unnamed-couple labels
+# close for the same reason.
+_POSITIONAL_WHO: tuple[BiLabel, BiLabel] = (
+    BiLabel(ta="முதல் ஜாதகம்", en="First chart"),
+    BiLabel(ta="இரண்டாம் ஜாதகம்", en="Second chart"),
+)
+_ROLE_COMPLEMENT = {"BRIDE": "GROOM", "GROOM": "BRIDE"}
 
-    Returns (matches_sorted_best_first, chart_context). Chandrashtama days and
-    avoid-tara days are included but never marked recommended.
+# Worst first. This agrees with TARA_SCORE's own ordering — every AVOID tara
+# scores below the NEUTRAL Janma tara, which scores below every GOOD one — so
+# "the weaker reading" names the same chart whether asked by bucket or by number,
+# and the governing tara is always the lowest-scoring one.
+_QUALITY_RANK = {"AVOID": 0, "NEUTRAL": 1, "GOOD": 2}
+
+_CHANDRA_STAR_PENALTY = -40
+_CHANDRA_RASI_PENALTY = -10
+
+
+class _Janma(NamedTuple):
+    """One chart's inputs to the date reading."""
+
+    nakshatra: int
+    rasi: int
+    star: BiLabel
+    chandrashtama_rasi: int
+    who: BiLabel | None
+
+
+class _DayReading(NamedTuple):
+    reading: NaalReading
+    tara_score: int
+    chandra_penalty: int
+    reasons: list[BiLabel]
+
+
+def _janma_for(session: Session, chart_id: UUID, who: BiLabel | None) -> _Janma:
+    nak, rasi, name = _resolve_janma(session, chart_id)
+    star_en = name.title()
+    return _Janma(
+        nakshatra=nak,
+        rasi=rasi,
+        star=BiLabel(ta=nakshatra_ta(nak) or star_en, en=star_en),
+        chandrashtama_rasi=chandrashtama_rasi_from_janma(rasi),
+        who=who,
+    )
+
+
+def couple_who(subject_role: str | None) -> tuple[BiLabel, BiLabel]:
+    """(label of the chart, label of its partner) for a couple.
+
+    The roles when they were given, positions otherwise. Shared with the month
+    date scan so both surfaces head a couple's readings with the same words.
     """
-    naals = get_muhurtham_naals(year)
-    if not naals:
+    primary_role = subject_role if subject_role in _ROLE_WHO else None
+    partner_role = _ROLE_COMPLEMENT.get(primary_role or "")
+    return (
+        _ROLE_WHO.get(primary_role or "", _POSITIONAL_WHO[0]),
+        _ROLE_WHO.get(partner_role or "", _POSITIONAL_WHO[1]),
+    )
+
+
+def require_couple_birth_time(session: Session, chart_id: UUID, who: BiLabel) -> None:
+    """A couple reading needs both birth times, as the Muhurta Finder does.
+
+    The janma star is the whole input here, and the Moon moves about 13° a day —
+    enough to change the star for a chart saved without a time. A single chart
+    has always been read regardless; a couple's shared verdict is only as sound
+    as its less certain half, so both must be timed.
+    """
+    chart = session.get(Chart, chart_id)
+    profile_id = getattr(chart, "birth_profile_id", None)
+    profile = session.get(BirthProfile, profile_id) if profile_id is not None else None
+    if profile is None or getattr(profile, "birth_time_local", None) is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=(
-                f"No muhurtham naals published for {year}. "
-                f"Available years: {available_years()}"
-            ),
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"{who.en}: a birth time is required to check dates for a couple.",
         )
 
-    janma_nak, janma_rasi, janma_name = _resolve_janma(session, chart_id)
-    chandra_rasi = chandrashtama_rasi_from_janma(janma_rasi)
-    janma_star_en = janma_name.title()
-    janma_star_ta = nakshatra_ta(janma_nak) or janma_star_en
-    location = _chart_daily_location(session, chart_id)
-    snapshots = _panchangam_by_date(naals, location, session) if location is not None else {}
-    nalla_neram_by_date = _computed_nalla_neram_by_date(naals, snapshots) if snapshots else {}
+
+def _chandra_own_by_date(snapshots, janma: _Janma) -> dict:
     # Does each date's Chandrashtamam touch THIS reader — their star and their
     # rasi — anywhere in the day? The overlap test the dashboard uses, not the
     # single star standing at sunrise: a sunrise reading drops a star whenever
@@ -351,61 +440,61 @@ def match_muhurtham_naals(
     # The bool pair is (the day could be read at all, it is the reader's). They
     # are not the same thing — a date with no snapshot must fall back, a date
     # with a snapshot and no match must not.
-    chandra_own_by_date = {
+    return {
         day: (
             bool(snapshot.chandrashtamam_janma_nakshatra_windows),
             bool(own_chandrashtama_windows(
                 snapshot.chandrashtamam_janma_nakshatra_windows,
-                janma_nakshatra=janma_nak,
-                natal_moon_rasi=janma_rasi,
+                janma_nakshatra=janma.nakshatra,
+                natal_moon_rasi=janma.rasi,
             )),
         )
         for day, snapshot in snapshots.items()
     }
 
-    matches: list[MuhurthamNaalMatch] = []
-    for n in naals:
-        tara = _tara_number(janma_nak, n.nakshatra_number)
-        quality = TARA_QUALITY[tara]
-        # Owner ruling 2026-09-09: the star window vetoes, the rasi span
-        # cautions. Picking a date is not the same act as reading today's
-        # dashboard — a wedding is chosen once — so the wider rasi transit keeps
-        # a voice here, but only the reader's OWN star window can knock a date
-        # out of "recommended". Before this, all 2¼ days of the Moon's transit
-        # were a hard veto, which marked three dates "Chandrashtama for you,
-        # avoid" where the dashboard badged one.
-        # See docs/CHANDRASHTAMA_SURFACE_DIVERGENCE_2026-09-09.md.
-        day_readable, day_is_own = chandra_own_by_date.get(n.date, (False, False))
-        in_chandra_rasi = n.moon_rasi_number == chandra_rasi
-        if day_readable:
-            is_chandra = day_is_own
-        else:
-            # No snapshot to name the stars (no activity location for this
-            # chart, or a pre-v44 row). Fall back to the rasi reading rather
-            # than silently clearing a date that may well be the reader's — the
-            # fail-safe direction for an avoidance rule is toward the doctrine.
-            is_chandra = in_chandra_rasi
-        rasi_only_caution = in_chandra_rasi and not is_chandra
-        tara_ta, tara_en = TARA_NAMES[tara]
-        mean_ta, mean_en = TARA_MEANING[tara]
 
-        score = 50 + TARA_SCORE[tara]
-        reasons: list[BiLabel] = []
+def _read_day(n: MuhurthamNaal, janma: _Janma, chandra_own_by_date: dict) -> _DayReading:
+    """One chart's Tara Bala and Chandrashtama reading of one published date."""
+    tara = _tara_number(janma.nakshatra, n.nakshatra_number)
+    quality = TARA_QUALITY[tara]
+    # Owner ruling 2026-09-09: the star window vetoes, the rasi span
+    # cautions. Picking a date is not the same act as reading today's
+    # dashboard — a wedding is chosen once — so the wider rasi transit keeps
+    # a voice here, but only the reader's OWN star window can knock a date
+    # out of "recommended". Before this, all 2¼ days of the Moon's transit
+    # were a hard veto, which marked three dates "Chandrashtama for you,
+    # avoid" where the dashboard badged one.
+    # See docs/CHANDRASHTAMA_SURFACE_DIVERGENCE_2026-09-09.md.
+    day_readable, day_is_own = chandra_own_by_date.get(n.date, (False, False))
+    in_chandra_rasi = n.moon_rasi_number == janma.chandrashtama_rasi
+    if day_readable:
+        is_chandra = day_is_own
+    else:
+        # No snapshot to name the stars (no activity location for this
+        # chart, or a pre-v44 row). Fall back to the rasi reading rather
+        # than silently clearing a date that may well be the reader's — the
+        # fail-safe direction for an avoidance rule is toward the doctrine.
+        is_chandra = in_chandra_rasi
+    rasi_only_caution = in_chandra_rasi and not is_chandra
+    tara_ta, tara_en = TARA_NAMES[tara]
+    mean_ta, mean_en = TARA_MEANING[tara]
+    day_star_ta = nakshatra_ta(n.nakshatra_number)
+    day_star_en = n.nakshatra_name.title()
+    star, who = janma.star, janma.who
 
-        day_star_ta = nakshatra_ta(n.nakshatra_number)
+    reasons: list[BiLabel] = []
+    if who is None:
+        # Single chart: the copy this list has always printed, unchanged.
         reasons.append(BiLabel(
-            ta=f"உங்கள் நட்சத்திரம் {janma_star_ta}லிருந்து {day_star_ta} {tara_ta} தாரா — {mean_ta}",
-            en=f"{tara_en} tara ({n.nakshatra_name.title()}) from your star {janma_star_en} — {mean_en}",
+            ta=f"உங்கள் நட்சத்திரம் {star.ta}லிருந்து {day_star_ta} {tara_ta} தாரா — {mean_ta}",
+            en=f"{tara_en} tara ({day_star_en}) from your star {star.en} — {mean_en}",
         ))
-
         if is_chandra:
-            score -= 40
             reasons.append(BiLabel(
-                ta=f"இந்நாள் {janma_star_ta} நட்சத்திரத்திற்கு சந்திராஷ்டமம் — தவிர்க்கவும்",
-                en=f"Chandrashtama for your star {janma_star_en} on this day — avoid",
+                ta=f"இந்நாள் {star.ta} நட்சத்திரத்திற்கு சந்திராஷ்டமம் — தவிர்க்கவும்",
+                en=f"Chandrashtama for your star {star.en} on this day — avoid",
             ))
         elif rasi_only_caution:
-            score -= 10
             reasons.append(BiLabel(
                 ta="சந்திரன் உங்கள் 8ஆம் ராசியில் உள்ளது, ஆனால் இந்நாள் வேறு நட்சத்திரத்திற்கு — லேசான கவனம் மட்டும்",
                 en="The Moon is in your 8th sign, but the day belongs to another star — mild caution only",
@@ -415,19 +504,168 @@ def match_muhurtham_naals(
                 ta="உங்கள் நட்சத்திரத்திற்கு சந்திராஷ்டம தோஷம் இல்லை",
                 en="No Chandrashtama for your star",
             ))
+    else:
+        # A couple: every line is headed by whose chart it read. "Your star"
+        # printed twice, once per chart, is two true sentences a reader cannot
+        # tell apart.
+        reasons.append(BiLabel(
+            ta=f"{who.ta} — நட்சத்திரம் {star.ta}லிருந்து {day_star_ta} {tara_ta} தாரா — {mean_ta}",
+            en=f"{who.en} — {tara_en} tara ({day_star_en}) from star {star.en} — {mean_en}",
+        ))
+        if is_chandra:
+            reasons.append(BiLabel(
+                ta=f"{who.ta} — இந்நாள் {star.ta} நட்சத்திரத்திற்கு சந்திராஷ்டமம் — தவிர்க்கவும்",
+                en=f"{who.en} — Chandrashtama for star {star.en} on this day — avoid",
+            ))
+        elif rasi_only_caution:
+            reasons.append(BiLabel(
+                ta=f"{who.ta} — சந்திரன் 8ஆம் ராசியில் உள்ளது, ஆனால் இந்நாள் வேறு நட்சத்திரத்திற்கு — லேசான கவனம் மட்டும்",
+                en=f"{who.en} — The Moon is in the 8th sign, but the day belongs to another star — mild caution only",
+            ))
+        else:
+            reasons.append(BiLabel(
+                ta=f"{who.ta} — சந்திராஷ்டம தோஷம் இல்லை",
+                en=f"{who.en} — No Chandrashtama",
+            ))
 
-        score = max(0, min(100, score))
-        is_recommended = quality == "GOOD" and not is_chandra
-
-        matches.append(MuhurthamNaalMatch(
-            naal=_to_view(n, nalla_neram=nalla_neram_by_date.get(n.date.isoformat())),
+    return _DayReading(
+        reading=NaalReading(
+            who=who,
             tara_number=tara,
             tara_name=BiLabel(ta=tara_ta, en=tara_en),
             tara_quality=quality,
             is_chandrashtama=is_chandra,
+            governs=False,
+        ),
+        tara_score=TARA_SCORE[tara],
+        chandra_penalty=(
+            _CHANDRA_STAR_PENALTY if is_chandra
+            else _CHANDRA_RASI_PENALTY if rasi_only_caution
+            else 0
+        ),
+        reasons=reasons,
+    )
+
+
+def _couple_pricing_reasons(day: list[_DayReading], governing: int) -> list[BiLabel]:
+    """Say which half of a couple set the score, whenever it made a difference.
+
+    Both readings are printed above; only one of each check is priced. A score
+    that silently used one of two printed taras is the number disagreeing with
+    its own explanation — the defect this codebase has paid for before.
+    """
+    gov, other = day[governing], day[1 - governing]
+    gw, ow = gov.reading.who, other.reading.who
+    out: list[BiLabel] = []
+    if gw is not None and ow is not None and gov.tara_score != other.tara_score:
+        out.append(BiLabel(
+            ta=(
+                f"மதிப்பெண் இருவரில் பலவீனமான தாராவை வைத்தே — {gw.ta}: {gov.reading.tara_name.ta}. "
+                f"{ow.ta}: {other.reading.tara_name.ta} காட்டப்படுகிறது, கணக்கிடப்படவில்லை"
+            ),
+            en=(
+                f"Scored on the weaker tara of the two — {gw.en}: {gov.reading.tara_name.en}. "
+                f"{ow.en}: {other.reading.tara_name.en} is shown but not counted"
+            ),
+        ))
+    if gov.chandra_penalty < 0 and other.chandra_penalty < 0:
+        out.append(BiLabel(
+            ta="சந்திராஷ்டமம் இருவருக்கும் தொடுகிறது — கடுமையானதை வைத்து ஒருமுறை மட்டுமே கணக்கிடப்படுகிறது, கூட்டப்படுவதில்லை",
+            en="Chandrashtama touches both charts — counted once, at the more severe reading, never added together",
+        ))
+    return out
+
+
+def match_muhurtham_naals(
+    chart_id: UUID,
+    year: int,
+    session: Session,
+    *,
+    recommended_only: bool = False,
+    partner_chart_id: UUID | None = None,
+    subject_role: str | None = None,
+) -> tuple[list[MuhurthamNaalMatch], dict]:
+    """Annotate the year's curated naals against a chart and rank them.
+
+    Returns (matches_sorted_best_first, chart_context). Chandrashtama days and
+    avoid-tara days are included but never marked recommended.
+
+    With `partner_chart_id` the dates are read against both charts and ranked
+    by the weaker side (see the module docstring). `subject_role` is BRIDE or
+    GROOM for `chart_id`; the partner takes the complement. It only labels the
+    two readings here — no rule on this list depends on which chart is whose.
+    """
+    naals = get_muhurtham_naals(year)
+    if not naals:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=(
+                f"No muhurtham naals published for {year}. "
+                f"Available years: {available_years()}"
+            ),
+        )
+
+    couple = partner_chart_id is not None
+    if couple and partner_chart_id == chart_id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="A couple is two different charts — choose the partner's chart, not this one.",
+        )
+    partner: _Janma | None = None
+    if partner_chart_id is None:
+        primary = _janma_for(session, chart_id, None)
+    else:
+        primary_who, partner_who = couple_who(subject_role)
+        primary = _janma_for(session, chart_id, primary_who)
+        partner = _janma_for(session, partner_chart_id, partner_who)
+        require_couple_birth_time(session, chart_id, primary_who)
+        require_couple_birth_time(session, partner_chart_id, partner_who)
+
+    # The first chart's daily location serves both readings. A couple marries in
+    # one place, and the snapshots are the Moon's position on the day — the same
+    # sky for both charts — so a second batch would only double the ephemeris work.
+    location = _chart_daily_location(session, chart_id)
+    snapshots = _panchangam_by_date(naals, location, session) if location is not None else {}
+    nalla_neram_by_date = _computed_nalla_neram_by_date(naals, snapshots) if snapshots else {}
+
+    charts = (primary,) if partner is None else (primary, partner)
+    own_by_chart = [_chandra_own_by_date(snapshots, janma) for janma in charts]
+
+    matches: list[MuhurthamNaalMatch] = []
+    for n in naals:
+        day = [_read_day(n, janma, own) for janma, own in zip(charts, own_by_chart, strict=True)]
+        # Owner ruling 2026-09-12, R1, applied per check. The tara that is priced
+        # is the weaker one; on a tie the first chart's reading stands, which
+        # changes nothing but which sentence is marked as governing.
+        governing = min(
+            range(len(day)),
+            key=lambda i: (_QUALITY_RANK[day[i].reading.tara_quality], day[i].tara_score),
+        )
+        gov = day[governing]
+        # The more severe Chandrashtama reading, once — never one per chart.
+        chandra_penalty = min(d.chandra_penalty for d in day)
+        is_chandra = any(d.reading.is_chandrashtama for d in day)
+
+        score = max(0, min(100, 50 + gov.tara_score + chandra_penalty))
+        # `gov` is the worst quality of the two, so GOOD here means GOOD for both.
+        is_recommended = gov.reading.tara_quality == "GOOD" and not is_chandra
+
+        reasons = [reason for d in day for reason in d.reasons]
+        if couple:
+            reasons.extend(_couple_pricing_reasons(day, governing))
+
+        matches.append(MuhurthamNaalMatch(
+            naal=_to_view(n, nalla_neram=nalla_neram_by_date.get(n.date.isoformat())),
+            tara_number=gov.reading.tara_number,
+            tara_name=gov.reading.tara_name,
+            tara_quality=gov.reading.tara_quality,
+            is_chandrashtama=is_chandra,
             is_recommended=is_recommended,
             match_score=score,
             reasons=reasons,
+            readings=tuple(
+                replace(d.reading, governs=(i == governing)) for i, d in enumerate(day)
+            ),
         ))
 
     # Best score first; ties broken by earliest date (ISO strings sort naturally).
@@ -437,12 +675,22 @@ def match_muhurtham_naals(
         matches = [m for m in matches if m.is_recommended]
 
     context = {
-        "janma_nakshatra": BiLabel(ta=janma_star_ta, en=janma_star_en),
-        "janma_rasi_number": janma_rasi,
-        "chandrashtama_rasi_number": chandra_rasi,
+        "janma_nakshatra": primary.star,
+        "janma_rasi_number": primary.rasi,
+        "chandrashtama_rasi_number": primary.chandrashtama_rasi,
         "recommended_count": sum(1 for m in matches if m.is_recommended),
         "total_count": len(naals),
         "source": MUHURTHAM_SOURCE,
+        "subject_who": primary.who,
+        "partner": (
+            None if partner is None
+            else {
+                "who": partner.who,
+                "janma_nakshatra": partner.star,
+                "janma_rasi_number": partner.rasi,
+                "chandrashtama_rasi_number": partner.chandrashtama_rasi,
+            }
+        ),
         "daily_location": (
             {
                 "latitude": location.latitude,

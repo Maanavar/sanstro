@@ -17,6 +17,7 @@ from app.calculations._yoga_detect import (
     NakshatraCautionResult,
     ParivartanaResult,
     _merge_yoga_list,
+    _nodes_with,
     _parivartana_as_yogas,
     detect_adhi_yoga,
     detect_amala_yoga,
@@ -37,10 +38,12 @@ from app.calculations._yoga_detect import (
     detect_pancha_mahapurusha,
     detect_parivartana,
     detect_raja_yoga,
+    detect_raja_yogakaraka,
     detect_sakata_yoga,
     detect_sunapha_anapha_durudhura,
     detect_vasumati_yoga,
     detect_vipareetha_raja,
+    raja_lord_sets,
 )
 from app.calculations._yoga_dosham import (
     detect_badhaka_dosham,
@@ -154,8 +157,7 @@ def detect_yogas_and_doshams(
             p1_house = house_from_reference(lagna_rasi, _planet_rasi(planets, pv.planet_a))  # noqa: F841
             p2_house = house_from_reference(lagna_rasi, _planet_rasi(planets, pv.planet_b))  # noqa: F841
             kendra_trikona = KENDRA_HOUSES | TRIKONA_HOUSES  # noqa: F841
-            kendra_lords = {_house_lord(lagna_rasi, h) for h in (1, 4, 7, 10)}
-            trikona_lords = {_house_lord(lagna_rasi, h) for h in (1, 5, 9)}
+            kendra_lords, trikona_lords = raja_lord_sets(lagna_rasi)
             if pv.planet_a in kendra_lords and pv.planet_b in trikona_lords or \
                pv.planet_b in kendra_lords and pv.planet_a in trikona_lords:
                 raja_list.append(YogaResult(
@@ -165,6 +167,10 @@ def detect_yogas_and_doshams(
                     conditions_met=[f"{pv.planet_a.lower()}_{pv.planet_b.lower()}_parivartana_link"],
                     cancellation_factors=[],
                     dasha_activated=_is_active(active_set, pv.planet_a, pv.planet_b),
+                    key_grahas=(pv.planet_a, pv.planet_b),  # ruling 2026-09-23: this instance's formers
+                    supporting_grahas=_nodes_with(
+                        planets, _planet_rasi(planets, pv.planet_a), _planet_rasi(planets, pv.planet_b),
+                    ),
                     description_ta="திரிகோண-கேந்திர அதிபதிகளின் பரிவர்தனம் ராஜயோகமாக கருதப்படுகிறது.",
                     description_en="Parivartana between Trikona and Kendra lords is treated as Raja Yoga.",
                 ))
@@ -183,6 +189,10 @@ def detect_yogas_and_doshams(
             description_en="No Trikona-Kendra lord linkage found.",
         )
     )
+    yogas.append(detect_raja_yogakaraka(
+        planets, lagna_rasi, active_lords=active_lords,
+        planet_scores=planet_scores, combust_planets=combust_planets,
+    ))
     yogas.append(detect_dhana_yoga(
         planets, lagna_rasi, active_lords=active_lords,
         planet_scores=planet_scores, combust_planets=combust_planets,
@@ -420,6 +430,8 @@ __all__ = [
     "detect_putra_sarpa_dosham",
     "detect_rahu_ketu_dosham",
     "detect_raja_yoga",
+    "detect_raja_yogakaraka",
+    "raja_lord_sets",
     "detect_sakata_yoga",
     "detect_sevvai_dosham",
     "detect_sunapha_anapha_durudhura",

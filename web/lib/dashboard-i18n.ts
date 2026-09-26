@@ -51,6 +51,112 @@ export const ONBOARDING_DETAIL_LEVEL = {
   saveFailed: s("Detail level will stay balanced until Settings can save.", "அமைப்புகள் சேமிக்கும்வரை விளக்க நிலை சமநிலையாக இருக்கும்."),
 } as const;
 
+// Life focus, Phase 0 (docs/LIFE_FOCUS_PLAN_2026-09-22.md).
+// New Tamil, pending native review (CLAUDE.md new-Tamil rule).
+/**
+ * §2 of docs/HOME_CALENDAR_CHARTS_PROPOSALS_2026-09-22.md — the location
+ * check-in, in the same one-line strip the life focus uses (§2.2).
+ *
+ * Place names arrive from the place database in English and are printed as
+ * they come, in both languages: they are proper nouns from a source we do not
+ * translate, and inventing a Tamil spelling for "Singapore" here would be
+ * worse than leaving the source's own name alone.
+ */
+export const LOCATION_CHECK = {
+  eyebrow: s("Your location", "உங்கள் இடம்"),
+  /** The mismatch prompt (§2.1). `%1$s` is the device's zone city. */
+  mismatchQuestion: s(
+    "Your phone is on %1$s time. Show today's timings for %1$s?",
+    "உங்கள் ஃபோன் %1$s நேரத்தில் உள்ளது. இன்றைய நேரங்களை %1$s க்குக் காட்டவா?",
+  ),
+  /** Opens the place picker, prefilled — never saves a zone's city directly. */
+  mismatchUse: s("Use %1$s", "%1$s பயன்படுத்து"),
+  /** `%1$s` is the place the timings are currently for. */
+  mismatchKeep: s("Keep %1$s", "%1$s தொடரட்டும்"),
+  /** The 45-day backstop (§2.2 / R2). `%1$s` is the saved place. */
+  backstopQuestion: s("Still in %1$s?", "இன்னும் %1$s இல் இருக்கிறீர்களா?"),
+  backstopQuestionNoPlace: s("Where are you right now?", "இப்போது நீங்கள் எங்கே இருக்கிறீர்கள்?"),
+  keep: s("Yes, keep", "ஆம், தொடரட்டும்"),
+  change: s("Change city", "நகரத்தை மாற்று"),
+  dismiss: s("Dismiss", "மூடு"),
+  /** The picker opened from the strip. */
+  pickerTitle: s("Current city for daily timings", "தினசரி நேரங்களுக்கான தற்போதைய நகரம்"),
+  pickerHelp: s(
+    "Sunrise moves with the place, and every timing on Today is cut from sunrise — so the city has to be the one you are in, not the nearest big one.",
+    "இடத்திற்கேற்ப சூரிய உதயம் மாறும்; இன்று பக்கத்தின் எல்லா நேரங்களும் சூரிய உதயத்திலிருந்தே கணக்கிடப்படுகின்றன. எனவே நீங்கள் இருக்கும் நகரமே வேண்டும், அருகிலுள்ள பெரிய நகரம் அல்ல.",
+  ),
+  save: s("Save", "சேமி"),
+  cancel: s("Cancel", "ரத்து"),
+  saveFailed: s("Couldn't save. Please try again.", "சேமிக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்."),
+  /** §2.4: name the place every timing on the day was cut from, so a wrong
+   *  location is visible without waiting for a prompt. `%1$s` is the city.
+   *
+   *  The Tamil is the almanac's own form — "<place> நேரப்படி", by <place>
+   *  time — rather than a translation of the English preposition, because the
+   *  saved place is a Latin-script string and Tamil case suffixes do not
+   *  attach to one cleanly. */
+  timingsFor: s("Timings for %1$s", "%1$s நேரப்படி"),
+} as const;
+
+export const LIFE_FOCUS = {
+  eyebrow: s("Your focus", "உங்கள் கவனம்"),
+  question: s("What are you focused on right now?", "இப்போது எதில் கவனம்?"),
+  /** Says only what the focus drives: Today's order (Phase 2), the Ask chips
+   *  and the daily tip (Phase 1). Nothing broader until it is built. */
+  subtitle: s(
+    "We'll put this first on Today and tailor your quick questions and daily tips to it. Change it anytime from the chip on Today or in Settings.",
+    "இதை இன்று பக்கத்தில் முதலில் காட்டி, உங்கள் விரைவுக் கேள்விகளையும் தினசரி குறிப்புகளையும் இதற்கேற்ப அமைப்போம். இன்று பக்கத்தின் சிப் அல்லது அமைப்புகளில் எப்போது வேண்டுமானாலும் மாற்றலாம்.",
+  ),
+  skip: s("Skip for now", "இப்போது தவிர்க்கவும்"),
+  close: s("Close", "மூடு"),
+  saveFailed: s("Couldn't save. Please try again.", "சேமிக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்."),
+  chipPrefix: s("Focus", "கவனம்"),
+  /** aria-label for the Today chip. `%s` is the chip's visible text
+   *  ("Focus Career"), kept first and whole so the name contains the visible
+   *  label (WCAG 2.5.3, Label in Name). */
+  chipAria: s("%s. Change focus", "%s. கவனத்தை மாற்று"),
+  /** The 60-day strip. `%s` is the focus label. */
+  nudgeQuestion: s("Still focused on %s?", "இன்னும் %s மீது கவனமா?"),
+  nudgeKeep: s("Yes, keep", "ஆம், தொடரட்டும்"),
+  nudgeChange: s("Change", "மாற்று"),
+  nudgeDismiss: s("Dismiss", "மூடு"),
+  settingsDesc: s(
+    "Pick what matters right now. Today puts it first, and your quick questions and daily tips lean toward it; your scores never change.",
+    "இப்போது முக்கியமானதைத் தேர்வுசெய்யுங்கள். இன்று பக்கம் அதை முதலில் காட்டும்; விரைவுக் கேள்விகளும் தினசரி குறிப்புகளும் அதை நோக்கிச் சாயும்; உங்கள் மதிப்பெண்கள் மாறாது.",
+  ),
+  saved: s("Focus saved", "கவனம் சேமிக்கப்பட்டது"),
+  // Phase 2 (Today responds). New Tamil, pending native review.
+  /** Small label on the pinned life-area tile, the lifted activity cards and
+   *  the Life areas tab card. Same words as the eyebrow, kept separate so the
+   *  two can diverge. */
+  pinnedLabel: s("Your focus", "உங்கள் கவனம்"),
+  /** T1 hero line. `%1` is the life-area label, `%2` the period verdict
+   *  ("Mixed period"). The verdict is the life-area ladder, never the daily one. */
+  heroArea: s("Your focus, %1: %2.", "உங்கள் கவனம், %1: %2."),
+  /** T1 hero line, second half. `%s` is "10:30 am – 12:00 pm". */
+  heroWindowToday: s("Today's best window %s.", "இன்றைய சிறந்த நேரம் %s."),
+  heroWindowOther: s("Best window %s.", "சிறந்த நேரம் %s."),
+  /** T3: the focus activities have nothing to say today. `%s` is the activity label. */
+  boardQuiet: s("%s: nothing specific today.", "%s: இன்று குறிப்பாக எதுவும் இல்லை."),
+  /** T3, second sentence. `%s` is a short date ("Thu 25"). */
+  boardNextGood: s("Next good day: %s.", "அடுத்த நல்ல நாள்: %s."),
+  // Phase 3 (reach). New Tamil, pending native review.
+  /** Calendar month filter chip, off by default. `%s` is the focus label. */
+  calendarChip: s("Good days: %s", "நல்ல நாட்கள்: %s"),
+  /** Appended to a marked day's accessible name. `%s` is the focus label. */
+  calendarCell: s("Good day for %s", "%s: நல்ல நாள்"),
+  calendarNote: s(
+    "Marked: this month's strongest supportive days for your focus, read on your own chart.",
+    "குறிக்கப்பட்டவை: உங்கள் சொந்த ஜாதகத்தின்படி, இந்த மாதம் உங்கள் கவனத்துக்கு மிக ஆதரவான நாட்கள்.",
+  ),
+  calendarNone: s(
+    "No strongly supportive days for your focus this month.",
+    "இந்த மாதம் உங்கள் கவனத்துக்கு வலுவான ஆதரவு நாட்கள் இல்லை.",
+  ),
+  calendarLoading: s("Finding your good days…", "நல்ல நாட்களைத் தேடுகிறோம்…"),
+  calendarFailed: s("Couldn't load your good days. Try again later.", "நல்ல நாட்களை ஏற்ற முடியவில்லை. பின்னர் முயற்சிக்கவும்."),
+} as const;
+
 // New Tamil, pending native review (CLAUDE.md new-Tamil rule).
 export const FIRST_RESULT_GUIDE = {
   heading: s("How to read your first result", "முதல் முடிவை எப்படி படிப்பது"),
@@ -87,7 +193,20 @@ export const CALENDAR_DAY_SUMMARY = {
     "An ordinary day. Keep routine work moving and use a recommended window for a new start.",
     "வழக்கமான நாள். தினசரி பணிகளைத் தொடருங்கள்; புதிய தொடக்கத்திற்கு பரிந்துரைக்கப்பட்ட நேரத்தைப் பயன்படுத்துங்கள்.",
   ),
-} as const;
+  // T15: the summary names one clock window so the line is usable without the
+  // vocabulary below it. Rahu Kalam only — it is the strongest of the three
+  // avoid-kalas (painted avoid-strong on the timeline); the Avoid card below
+  // still lists all three.
+  // Tamil, native-reviewed 2026-09-17: no em-dash (an English import), advisory
+  // தவிர்ப்பது நல்லது to match the counselling voice of the verdict before it,
+  // and the ranges are built per language (Tamil period-words, not "pm").
+  // The panchangam planner's subha-day sentence uses this same string.
+  avoidRahu: (rangeEn: string, rangeTa: string) =>
+    s(
+      `Avoid Rahu Kalam, ${rangeEn}.`,
+      `ராகு காலம் ${rangeTa} நேரத்தில் புதிய செயல்களைத் தவிர்ப்பது நல்லது.`,
+    ),
+};
 
 // New Tamil, pending native review (CLAUDE.md new-Tamil rule).
 export const EXPLORE_VOCABULARY = {
@@ -316,21 +435,26 @@ export const SANI_CYCLE_CARD = {
 // Today used to show four "good time" systems at the same weight as the three
 // avoid-kalas, with nothing telling the reader which to obey. The window above
 // is now chosen by the almanac's own Gowri ranking and guaranteed clear of Rahu
-// Kalam / Yamagandam / Kuligai (see lib/today-windows.ts); these strings carry
-// the one-line "what this system is" for each of the systems it was chosen from.
+// Kalam / Yamagandam (see lib/today-windows.ts); these strings carry the
+// one-line "what this system is" for each of the systems it was chosen from.
 // New Tamil, pending native review.
+//
+// Kuligai is NOT in that clearance list, and this sentence must keep saying so
+// (owner ruling R7, 2026-09-22): Kuligai has no polarity of its own, the
+// activity resolves it, and this window is chosen with no activity in hand. It
+// is named separately by `windowInKuligai` when the two overlap.
 export const TODAY_TIMINGS = {
   clearOfKalas: s(
-    "Clear of Rahu Kalam, Yamagandam and Kuligai.",
-    "ராகு காலம், யமகண்டம், குளிகை ஆகியவற்றில் படாத நேரம்.",
+    "Clear of Rahu Kalam and Yamagandam.",
+    "ராகு காலம், யமகண்டம் ஆகியவற்றில் படாத நேரம்.",
   ),
   skippedForCollision: s(
     "An earlier, higher-ranked window today runs into one of those, so this is the next one clear of them.",
     "இன்று முன்னதாக வரும் சிறந்த நேரம் அவற்றில் ஒன்றில் படுவதால், அதற்கு அடுத்ததாக வரும் தெளிவான நேரம் இது.",
   ),
   allCollide: s(
-    "Every good window today runs into Rahu Kalam, Yamagandam or Kuligai. This is the best of them — many families would simply wait for tomorrow.",
-    "இன்று உள்ள எல்லா நல்ல நேரங்களும் ராகு காலம், யமகண்டம் அல்லது குளிகையில் படுகின்றன. அவற்றுள் சிறந்தது இது — பல குடும்பங்கள் நாளை வரை காத்திருப்பார்கள்.",
+    "Every good window today runs into Rahu Kalam or Yamagandam. This is the best of them — many families would simply wait for tomorrow.",
+    "இன்று உள்ள எல்லா நல்ல நேரங்களும் ராகு காலம் அல்லது யமகண்டத்தில் படுகின்றன. அவற்றுள் சிறந்தது இது; பல குடும்பங்கள் நாளை வரை காத்திருப்பார்கள்.",
   ),
   hasPassed: s(
     "Today's clear windows have already passed.",
@@ -361,6 +485,38 @@ export const TODAY_TIMINGS = {
   startsIn: s("starts in %s", "%s இல் தொடங்குகிறது"),
   endsIn: s("ends in %s", "%s இல் முடிகிறது"),
   avoidRunningNow: s("You are inside it now", "இப்போது இந்த நேரத்தில் இருக்கிறீர்கள்"),
+  avoidWindowLabel: s("Avoid window", "தவிர்க்க வேண்டிய நேரம்"),
+  kuligaiPeriodLabel: s("Kuligai period", "குளிகை நேரம்"),
+  // Advisory register (தவிர்ப்பது நல்லது), not the imperative தவிர்க்கவும் —
+  // owner ruling 2026-09-17, same voice as `avoidRahu` above.
+  liveAvoidLine: s(
+    "Now: %1$s until %2$s · avoid new starts.",
+    "இப்போது: %1$s · %2$s வரை · புதிய தொடக்கங்களைத் தவிர்ப்பது நல்லது.",
+  ),
+  // R7 (2026-09-22): lead with the repetition principle, not with "Kuligai is
+  // good". Kuligai has no polarity of its own — what is begun in it tends to
+  // recur, and whether that is wanted is the activity's question, not
+  // Kuligai's. R5's gold/property/marriage/surgery examples stay, as examples.
+  liveKuligaiLine: s(
+    "Now: Kuligai until %1$s · suits what you mean to repeat, continue or grow (gold, property); not for a wedding or surgery.",
+    "இப்போது: குளிகை · %1$s வரை · மீண்டும் நிகழ வேண்டிய, தொடர வேண்டியவற்றுக்கு ஏற்றது (தங்கம், சொத்துப் பதிவு); திருமணம், அறுவை சிகிச்சை வேண்டாம்.",
+  ),
+  kuligaiMeaning: s(
+    "Suitable for activities intended to repeat, continue or grow, such as gold or property; not for a wedding or surgery.",
+    "மீண்டும் நிகழ வேண்டிய, தொடர வேண்டிய அல்லது வளர வேண்டிய செயல்களுக்கு ஏற்றது; தங்கம், சொத்துப் பதிவு போன்றவை. திருமணம், அறுவை சிகிச்சைக்கு அல்ல.",
+  ),
+  // The promoted window is picked with no activity in hand, so a Kuligai
+  // overlap can neither disqualify it (R7.4) nor be folded silently into
+  // "clear of the kalas" — it is named, as its own conditional line (R7.7).
+  windowInKuligai: s(
+    "This window also falls in Kuligai — suitable for what you mean to repeat, continue or grow; not for a wedding or surgery.",
+    "இந்த நேரம் குளிகையிலும் படுகிறது; மீண்டும் நிகழ வேண்டிய, தொடர வேண்டிய செயல்களுக்கு ஏற்றது. திருமணம், அறுவை சிகிச்சைக்கு அல்ல.",
+  ),
+  // R7.6: informational, never the avoid register.
+  abhijitInKuligai: s(
+    "It also falls in Kuligai, which depends on what you are doing rather than being an avoid period — it suits what you mean to repeat, continue or grow.",
+    "இது குளிகையிலும் படுகிறது; குளிகை தவிர்க்க வேண்டிய நேரம் அல்ல, செய்யும் செயலைப் பொறுத்தது. மீண்டும் நிகழ வேண்டிய, தொடர வேண்டிய செயல்களுக்கு ஏற்றது.",
+  ),
   // Redesign 2026-09-07 — the best-window card's conflict line used to render
   // open, permanently, as a fifth stacked row under the reason text. It is a
   // note about a *different, non-promoted* window (a competing method's pick),

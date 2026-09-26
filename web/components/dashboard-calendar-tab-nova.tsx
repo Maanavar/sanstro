@@ -4,9 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { ArrowUp, ArrowDown, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { getActivityTimingBatch } from "@vinaadi/shared/api/activityTiming";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
-import { addDays, formatClockLabel, formatHijriDate } from "@/lib/format";
+import { supportiveFocusDates } from "@/lib/life-focus";
+import { addDays, formatClockLabel, formatClockRange, formatHijriDate } from "@/lib/format";
+import { observanceEnglishName } from "@/lib/observance-names";
 import {
   bestGowriSlot,
   gowriCategoryLabel,
@@ -29,8 +32,10 @@ import { nokkuMeta } from "@/lib/nokku";
 import { timeOnDateToMs } from "@/lib/tz";
 import { MiniMoonGlyph } from "./celestial-glyph-nova";
 import { useMonthlyPanchangam } from "@/hooks/useMonthlyPanchangam";
+import { PendingPlaceholder } from "./pending-placeholder-nova";
 import { PlaceCombobox } from "./place-combobox";
 import { DrawerPanel } from "./drawer-panel";
+import { ViewSwap } from "./ui/view-swap";
 import { Button, Card, Chip, Pill, Segmented } from "./ui";
 import { Kicker } from "./ui/kicker";
 import type {
@@ -45,6 +50,7 @@ import {
   activeLimb,
   chandrashtamaAffectedNatalRasi,
   chandrashtamaAffectedRasiNumbers,
+  DAY_TIMELINE_BAND_STYLE,
   DayTimeline,
   festivalIcon,
   festivalTags,
@@ -60,12 +66,15 @@ import {
 } from "./dashboard-calendar-shared";
 import type { CalendarView, DayTimelineBand } from "./dashboard-calendar-shared";
 import { MonthlyCalendarViewNova } from "./dashboard-calendar-monthly-nova";
+import { MonthlyCalendarLandscape } from "./dashboard-calendar-monthly-panels";
 import { NovaPlanMuhurtaPanel } from "./dashboard-plan-muhurta-nova";
 
 // "Best Dates & Muhurta" moved here from Goals (IA audit 2026-07-22, Phase 3):
 // timing/almanac work belongs with the panchangam, not goal-setting. The panel
 // is self-contained (`NovaPlanMuhurtaPanel`, props `{ lang, chartId }`).
 type CalendarViewExt = CalendarView | "muhurta";
+
+const EMPTY_DATES: ReadonlySet<string> = new Set();
 
 /**
  * Nova "Calendar" tab, daily Panchangam view — Phase 2 of the dashboard
@@ -107,6 +116,16 @@ export type DashboardCalendarTabNovaProps = {
    *  via `onFocusConsumed` (IA audit 2026-07-22, Phase 3). */
   focusView?: string | null;
   onFocusConsumed?: () => void;
+  /** The day's personal data has not arrived yet (DXA-03): placeholders,
+   *  not "Create a profile to see panchangam". */
+  pending?: boolean;
+  /** Life focus, Phase 3: activities the muhurta quick scan opens on. The
+   *  caller has already emptied it for a family member's chart (D4). */
+  muhurtaFocusActivities?: readonly string[];
+  /** Life focus, Phase 3: the month grid's "Good days" chip. Always the
+   *  reader's own chart, whatever member the muhurta view is showing (D4).
+   *  Null when the focus has no activities. */
+  monthFocus?: { chartId: string; activities: readonly string[]; label: string } | null;
 };
 
 function novaFestivalTagLabel(tag: string, lang: Lang): string {
@@ -128,11 +147,26 @@ function novaFestivalTagTone(tag: string): { bg: string; border: string; color: 
   return { bg: "var(--color-surface-soft)", border: "var(--color-border)", color: "var(--color-muted)" };
 }
 
+function novaFestivalDisplayName(festival: PanchangamFestival, lang: Lang): string {
+  if (lang !== "en" || !/[\u0B80-\u0BFF]/u.test(festival.name)) return festival.name;
+
+  // The API's world-observance table carries Tamil display names only. Map
+  // them by exact name (all 24, parity-tested against festivals.py \u2014 E-3);
+  // the generic word is a fallback for a name the table does not know yet,
+  // never an English name invented for an unknown religious festival.
+  // Stopgap until the backend sends a language-free key (OD-5).
+  if (festivalTags(festival).includes("observance")) {
+    return observanceEnglishName(festival.name) ?? "Observance";
+  }
+  return "Festival";
+}
+
 function NovaFestivalRow({ festival, lang }: { festival: PanchangamFestival; lang: Lang }) {
+  const displayName = novaFestivalDisplayName(festival, lang);
   return (
     <Card variant="accent" compact style={{ flexDirection: "row", alignItems: "center", gap: "var(--space-3)" }}>
       <span aria-hidden="true" style={{ color: "var(--color-accent-strong)" }}>{festivalIcon(festival.name)}</span>
-      <span style={{ fontSize: "var(--text-base)", fontWeight: 600, flex: 1, color: "var(--color-text-strong)" }}>{festival.name}</span>
+      <span style={{ fontSize: "var(--text-base)", fontWeight: 600, flex: 1, color: "var(--color-text-strong)" }}>{displayName}</span>
       <span style={{ display: "flex", gap: "var(--space-1)", flexWrap: "wrap", justifyContent: "flex-end" }}>
         {festivalTags(festival).map((tag) => {
           const tone = novaFestivalTagTone(tag);
@@ -172,6 +206,7 @@ function NovaFestivalChip({ festival, lang }: { festival: PanchangamFestival; la
   const tags = festivalTags(festival);
   const tone = novaFestivalTagTone(tags[0] ?? "");
   const tagNames = tags.map((tag) => novaFestivalTagLabel(tag, lang)).join(" · ");
+  const displayName = novaFestivalDisplayName(festival, lang);
   return (
     <span
       title={tagNames || undefined}
@@ -183,7 +218,7 @@ function NovaFestivalChip({ festival, lang }: { festival: PanchangamFestival; la
       }}
     >
       <span aria-hidden="true">{festivalIcon(festival.name)}</span>
-      {festival.name}
+      {displayName}
     </span>
   );
 }
@@ -225,7 +260,7 @@ function NovaAuspiciousCard({
         if (purpose) purposeShownFor.add(kalaKey);
         return (
           <div key={`${slot.period ?? "slot"}-${slot.start}-${idx}`} style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-3)", fontSize: "var(--text-sm)", color: "var(--color-text)" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", columnGap: "var(--space-3)", fontSize: "var(--text-sm)", color: "var(--color-text)" }}>
               <span style={{ minWidth: 0 }}>
                 {gowriPeriodLabel(slot.period, lang) || `#${idx + 1}`}
                 {category && (
@@ -236,7 +271,7 @@ function NovaAuspiciousCard({
                   </>
                 )}
               </span>
-              <span style={{ fontWeight: 600, color: "var(--color-high)", whiteSpace: "nowrap" }}>{formatClockLabel(slot.start)} – {formatClockLabel(slot.end)}</span>
+              <span style={{ fontWeight: 600, color: "var(--color-high)", whiteSpace: "nowrap" }}>{formatClockLabel(slot.start, lang)} – {formatClockLabel(slot.end, lang)}</span>
             </div>
             {purpose && (
               <div style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.35 }}>{purpose}</div>
@@ -249,10 +284,12 @@ function NovaAuspiciousCard({
 }
 
 /**
- * The three inauspicious kalams as one three-up row rather than three stacked
- * rows. They are the same *kind* of fact measured three ways, all of one day, so
- * a reader compares them against each other and against the clock — a vertical
- * list makes that a scan of three separate cards; side by side it is one glance.
+ * The day's avoid register as one compact grid rather than stacked rows. Rahu
+ * Kalam and Yamagandam are general avoid windows; Durmuhurtham binds only on
+ * auspicious work and new beginnings (R8 / Doctrine §14), so it paints one rung
+ * lighter than Yamagandam — a narrower rule must never look like a graver one.
+ * Kuligai is shown outside the grid entirely because it is contextual rather
+ * than a prohibition (R7), and carries its own explanation on every surface.
  * Collapses to two columns and then one on narrow surfaces (the day drawer).
  *
  * `nowMinutes` is optional: only the live "today" view knows a running window,
@@ -267,43 +304,79 @@ function NovaAvoidStrip({
   lang: Lang;
   nowMinutes?: number;
 }) {
-  // Dot colour + opacity deliberately mirror DAY_TIMELINE_BAND_STYLE's
-  // avoid-strong / avoid / avoid-soft ramp, because the timeline paints these
-  // same three windows a few pixels above this strip. Two severity ramps
-  // disagreeing on one card is worse than having none.
-  const entries = [
-    { key: "rahu", label: t("label_rahu_kalam", lang), slot: kalam.rahuKalam, dot: "var(--color-score-low)", dotOpacity: 0.9 },
-    { key: "yama", label: t("label_yamagandam", lang), slot: kalam.yamagandam, dot: "var(--color-score-mid)", dotOpacity: 0.88 },
-    { key: "kuligai", label: t("label_kuligai", lang), slot: kalam.kuligai, dot: "var(--color-score-mid)", dotOpacity: 0.45 },
+  // Dot colour + opacity are READ FROM DAY_TIMELINE_BAND_STYLE rather than
+  // re-typed here, because the timeline paints these same windows a few pixels
+  // above this strip. Two severity ramps disagreeing on one card is worse than
+  // having none, and a hand-copied hex is how they drift apart.
+  const entries: Array<{
+    key: string;
+    label: string;
+    slot: { start: string; end: string };
+    band: DayTimelineBand["kind"];
+    note?: string;
+  }> = [
+    { key: "rahu", label: t("label_rahu_kalam", lang), slot: kalam.rahuKalam, band: "avoid-strong" },
+    { key: "yama", label: t("label_yamagandam", lang), slot: kalam.yamagandam, band: "avoid" },
+    ...(kalam.durmuhurtham ?? []).map((slot, index) => ({
+      key: `dur-${index}`,
+      label: t("label_durmuhurtham", lang),
+      slot,
+      // Narrow scope, so it sits one rung below Yamagandam — never above it.
+      band: "avoid-scoped" as const,
+      note: lang === "ta" ? "சுப / புதிய தொடக்கங்களுக்கு தவிர்க்கவும்" : "Avoid for auspicious / new beginnings",
+    })),
   ];
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "var(--space-2)" }}>
-      {entries.map((entry) => {
-        const start = parseHmToMinutes(entry.slot.start);
-        const end = parseHmToMinutes(entry.slot.end);
-        const running = nowMinutes !== undefined && nowMinutes >= start && nowMinutes < end;
-        return (
-          <Card
-            key={entry.key}
-            variant="low"
-            compact
-            style={{ gap: "3px", minWidth: 0, borderColor: running ? "var(--color-low)" : undefined }}
-          >
-            <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-text-strong)", minWidth: 0 }}>
-              <span aria-hidden="true" style={{ width: "6px", height: "6px", borderRadius: "var(--radius-pill)", background: entry.dot, opacity: entry.dotOpacity, flexShrink: 0 }} />
-              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.label}</span>
-            </span>
-            <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-low)" }}>
-              {formatClockLabel(entry.slot.start)} – {formatClockLabel(entry.slot.end)}
-            </span>
-            {running && (
-              <span style={{ fontSize: "var(--text-xs)", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-low)" }}>
-                {lang === "ta" ? "இப்போது நடப்பில்" : "Running now"}
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "var(--space-2)" }}>
+        {entries.map((entry) => {
+          const start = parseHmToMinutes(entry.slot.start);
+          const end = parseHmToMinutes(entry.slot.end);
+          const running = nowMinutes !== undefined && nowMinutes >= start && nowMinutes < end;
+          const band = DAY_TIMELINE_BAND_STYLE[entry.band];
+          return (
+            <Card
+              key={entry.key}
+              variant="low"
+              compact
+              style={{ gap: "3px", minWidth: 0, borderColor: running ? "var(--color-low)" : undefined }}
+            >
+              <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-text-strong)", minWidth: 0 }}>
+                <span aria-hidden="true" style={{ width: "6px", height: "6px", borderRadius: "var(--radius-pill)", background: band.fill, opacity: band.opacity, flexShrink: 0 }} />
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.label}</span>
               </span>
-            )}
-          </Card>
-        );
-      })}
+              {/* Each end stays whole so a Tamil period-word never wraps away from its time. */}
+              <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-low)" }}>
+                <span style={{ whiteSpace: "nowrap" }}>{formatClockLabel(entry.slot.start, lang)} –</span>{" "}
+                <span style={{ whiteSpace: "nowrap" }}>{formatClockLabel(entry.slot.end, lang)}</span>
+              </span>
+              {entry.note && (
+                <span style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.35 }}>{entry.note}</span>
+              )}
+              {running && (
+                <span style={{ fontSize: "var(--text-xs)", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-low)" }}>
+                  {lang === "ta" ? "இப்போது நடப்பில்" : "Running now"}
+                </span>
+              )}
+            </Card>
+          );
+        })}
+      </div>
+      <Card variant="soft" compact data-testid="kuligai-contextual" style={{ gap: "3px", minWidth: 0 }}>
+        <span style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-text-strong)" }}>
+          <span aria-hidden="true" style={{ width: "6px", height: "6px", borderRadius: "var(--radius-pill)", background: DAY_TIMELINE_BAND_STYLE.contextual.fill, opacity: DAY_TIMELINE_BAND_STYLE.contextual.opacity, flexShrink: 0 }} />
+          {t("label_kuligai", lang)}
+        </span>
+        <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text-strong)" }}>
+          <span style={{ whiteSpace: "nowrap" }}>{formatClockLabel(kalam.kuligai.start, lang)} –</span>{" "}
+          <span style={{ whiteSpace: "nowrap" }}>{formatClockLabel(kalam.kuligai.end, lang)}</span>
+        </span>
+        <span style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", lineHeight: 1.35 }}>
+          {lang === "ta"
+            ? "மீண்டும் நிகழ, தொடர அல்லது வளர வேண்டிய செயல்களுக்கு ஏற்ற காலம்; பொதுவான தவிர்ப்பு நேரம் அல்ல."
+            : "Suited to activities meant to repeat, continue or grow; not a general avoid period."}
+        </span>
+      </Card>
     </div>
   );
 }
@@ -320,7 +393,7 @@ function shortDayMonth(isoDate: string, lang: Lang): string {
 }
 
 function gowriEdgeLabel(hm: string, dayOffset: number, dateLocal: string, lang: Lang): string {
-  const clock = formatClockLabel(hm);
+  const clock = formatClockLabel(hm, lang);
   if (dayOffset <= 0) return clock;
   const stamp = shortDayMonth(addDays(dateLocal, dayOffset), lang);
   return stamp ? `${clock}, ${stamp}` : clock;
@@ -449,7 +522,7 @@ function NovaGowriKalaColumn({
           {title}
         </span>
         <span style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", whiteSpace: "nowrap" }}>
-          {anchorLabel} {formatClockLabel(anchorHm)}
+          {anchorLabel} {formatClockLabel(anchorHm, lang)}
         </span>
       </div>
       {slots.map((slot, idx) => (
@@ -589,18 +662,19 @@ function NovaHoraRow({
         {tPlanetLord(hora.lord, lang)} {t("hora_word", lang)}
       </span>
       <span style={{ fontSize: "var(--text-sm)", color: running ? "var(--color-accent-strong)" : "var(--color-faint)", fontWeight: running ? 600 : 500 }}>
-        {formatClockLabel(hora.start)} – {formatClockLabel(hora.end)}
+        {formatClockLabel(hora.start, lang)} – {formatClockLabel(hora.end, lang)}
       </span>
     </div>
   );
 }
 
 /** One ‹ / › day step in the day drawer's header. */
-function DayDrawerStep({ dir, label, onClick }: { dir: "prev" | "next"; label: string; onClick: () => void }) {
+function DayDrawerStep({ dir, label, onClick, disabled = false }: { dir: "prev" | "next"; label: string; onClick: () => void; disabled?: boolean }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-label={label}
       title={label}
       style={{
@@ -608,7 +682,8 @@ function DayDrawerStep({ dir, label, onClick }: { dir: "prev" | "next"; label: s
         display: "inline-flex", alignItems: "center", justifyContent: "center",
         borderRadius: "var(--radius-pill)", border: "1px solid var(--color-border-strong)",
         background: "var(--color-surface-soft)", color: "var(--color-text)",
-        cursor: "pointer", fontFamily: "inherit",
+        cursor: disabled ? "not-allowed" : "pointer", fontFamily: "inherit",
+        opacity: disabled ? 0.4 : 1,
       }}
     >
       {dir === "prev"
@@ -758,6 +833,10 @@ export function DayDetailDrawerNova({
   onClose,
   onOpenFull,
   onStepDay,
+  lead,
+  stepContext,
+  open = true,
+  onExitComplete,
 }: {
   date: string;
   /** Used only to mark the sheet as today — never to claim a live window. */
@@ -767,9 +846,21 @@ export function DayDetailDrawerNova({
   error: string | null;
   lang: Lang;
   onClose: () => void;
-  onOpenFull: () => void;
+  onOpenFull?: () => void;
   /** Step the sheet to an adjacent day without returning to the grid. */
   onStepDay: (delta: number) => void;
+  /** Context-specific content above the shared day reading (for example, the
+   *  activity verdict that opened this date). */
+  lead?: ReactNode;
+  /** Optional result navigation. When absent, arrows step civil days. */
+  stepContext?: {
+    position: number;
+    total: number;
+    previousLabel: string;
+    nextLabel: string;
+  };
+  open?: boolean;
+  onExitComplete?: () => void;
 }) {
   const headerDate = formatHeaderDate(date, lang);
   const tamilDate = resolveTamilDate(data?.tamilDate, date, lang);
@@ -829,9 +920,9 @@ export function DayDetailDrawerNova({
 
   const sunPoints = data
     ? [
-        { key: "sunrise", label: lang === "ta" ? "சூர்யோதயம்" : "Sunrise", value: formatClockLabel(data.sunrise) },
-        { key: "noon", label: lang === "ta" ? "நண்பகல்" : "Solar noon", value: formatClockLabel(data.solarNoon) },
-        { key: "sunset", label: lang === "ta" ? "சூர்யாஸ்தமனம்" : "Sunset", value: formatClockLabel(data.sunset) },
+        { key: "sunrise", label: lang === "ta" ? "சூர்யோதயம்" : "Sunrise", value: formatClockLabel(data.sunrise, lang) },
+        { key: "noon", label: lang === "ta" ? "நண்பகல்" : "Solar noon", value: formatClockLabel(data.solarNoon, lang) },
+        { key: "sunset", label: lang === "ta" ? "சூர்யாஸ்தமனம்" : "Sunset", value: formatClockLabel(data.sunset, lang) },
       ]
     : [];
 
@@ -843,7 +934,18 @@ export function DayDetailDrawerNova({
   const subtitle = (
     <>
       {data && <span>{tWeekday(data.vara.weekday, lang)}</span>}
-      {tamilDate && <span style={{ color: "var(--color-accent-strong)", fontWeight: 600 }}>{tamilDate}</span>}
+      <span
+        aria-hidden={!tamilDate}
+        style={{
+          color: "var(--color-accent-strong)",
+          display: "inline-block",
+          fontWeight: 600,
+          minWidth: "8ch",
+          visibility: tamilDate ? "visible" : "hidden",
+        }}
+      >
+        {tamilDate || "\u00a0"}
+      </span>
       {hijriLabel && <span>{hijriLabel}</span>}
       {isToday && <Chip tone="accent">{lang === "ta" ? "இன்று" : "Today"}</Chip>}
     </>
@@ -856,22 +958,44 @@ export function DayDetailDrawerNova({
       size="lg"
       closeLabel={lang === "ta" ? "மூடு" : "Close day panel"}
       onClose={onClose}
+      open={open}
+      onExitComplete={onExitComplete}
       headerAccessory={
         <>
-          <DayDrawerStep dir="prev" label={lang === "ta" ? "முந்தைய நாள்" : "Previous day"} onClick={() => onStepDay(-1)} />
-          <DayDrawerStep dir="next" label={lang === "ta" ? "அடுத்த நாள்" : "Next day"} onClick={() => onStepDay(1)} />
+          {/* `position: 0` means "this day is not in the result list" — it has
+              no place to report and nowhere to step, so the counter stays away
+              and both arrows disable rather than offering a move that the
+              caller would silently drop. */}
+          {stepContext && stepContext.position >= 1 && (
+            <span style={{ minWidth: "5ch", textAlign: "center", fontSize: "var(--text-xs)", color: "var(--color-muted)", fontVariantNumeric: "tabular-nums" }}>
+              {stepContext.position} / {stepContext.total}
+            </span>
+          )}
+          <DayDrawerStep
+            dir="prev"
+            label={stepContext?.previousLabel ?? (lang === "ta" ? "முந்தைய நாள்" : "Previous day")}
+            onClick={() => onStepDay(-1)}
+            disabled={Boolean(stepContext && stepContext.position <= 1)}
+          />
+          <DayDrawerStep
+            dir="next"
+            label={stepContext?.nextLabel ?? (lang === "ta" ? "அடுத்த நாள்" : "Next day")}
+            onClick={() => onStepDay(1)}
+            disabled={Boolean(stepContext && (stepContext.position < 1 || stepContext.position >= stepContext.total))}
+          />
         </>
       }
-      footer={
+      footer={onOpenFull ? (
         <Button variant="primary" onClick={onOpenFull} style={{ width: "100%", justifyContent: "center" }}>
           {lang === "ta" ? "முழு நாள் விவரம்" : "Open full day view"}
         </Button>
-      }
+      ) : undefined}
     >
       {loading && <DayDrawerSkeleton label={t("cal_monthly_loading", lang)} />}
       {error && !loading && <p className="empty-state">{error}</p>}
       {data && !loading && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
+          {lead}
           {/* ── What kind of day is this ── */}
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "var(--space-2)" }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-accent-secondary)" }}>
@@ -1016,6 +1140,9 @@ export function DashboardCalendarTabNova({
   onSelectMember,
   focusView = null,
   onFocusConsumed,
+  pending = false,
+  muhurtaFocusActivities = [],
+  monthFocus = null,
 }: DashboardCalendarTabNovaProps) {
   const CALENDAR_VIEWS: CalendarViewExt[] = ["panchangam", "monthly", "muhurta"];
   const [view, setView] = useState<CalendarViewExt>(
@@ -1030,6 +1157,7 @@ export function DashboardCalendarTabNova({
   }, [focusView]);
 
   const [detailDate, setDetailDate] = useState<string | null>(null);
+  const [renderedDetailDate, setRenderedDetailDate] = useState<string | null>(null);
   const [detailData, setDetailData] = useState<PanchangamDailyResponseData | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
@@ -1038,6 +1166,37 @@ export function DashboardCalendarTabNova({
   const [monthlyYear, setMonthlyYear] = useState(() => selectedDateObj.getFullYear());
   const [monthlyMonth, setMonthlyMonth] = useState(() => selectedDateObj.getMonth() + 1);
   const { monthlyPanchangam, isMonthlyPanchangamLoading, monthlyPanchangamError, fetchMonthlyPanchangam } = useMonthlyPanchangam();
+
+  // "Good days: Career" (Phase 3). Off by default, and nothing is fetched
+  // until it is switched on. One batch request per month, through the same
+  // engine the Today board and Best Days use.
+  const [focusDaysOn, setFocusDaysOn] = useState(false);
+  const [focusDays, setFocusDays] = useState<{ key: string; dates: Set<string> | null; failed: boolean } | null>(null);
+  const focusMonthKey = `${monthlyYear}-${String(monthlyMonth).padStart(2, "0")}`;
+  const focusChartId = monthFocus?.chartId ?? null;
+  const focusActivitiesKey = monthFocus?.activities.join(",") ?? "";
+  // Keyed by chart + activities + month, so a focus change or a month step is
+  // never shown the previous answer while the new one loads.
+  const focusRequestKey = `${focusChartId}|${focusActivitiesKey}|${focusMonthKey}`;
+  useEffect(() => {
+    if (!focusDaysOn || view !== "monthly" || !focusChartId || !focusActivitiesKey) return;
+    // Skip only a finished answer: a request cancelled by switching the chip
+    // off left `dates: null` behind, and must run again when it comes back on.
+    if (focusDays?.key === focusRequestKey && focusDays.dates) return;
+    let cancelled = false;
+    setFocusDays({ key: focusRequestKey, dates: null, failed: false });
+    getActivityTimingBatch(focusChartId, focusActivitiesKey.split(","), focusMonthKey)
+      .then((response) => {
+        if (!cancelled) setFocusDays({ key: focusRequestKey, dates: supportiveFocusDates(response.data.results), failed: false });
+      })
+      .catch(() => {
+        if (!cancelled) setFocusDays({ key: focusRequestKey, dates: null, failed: true });
+      });
+    return () => { cancelled = true; };
+    // `focusDays` is read to skip a repeat, not to trigger one.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusDaysOn, view, focusChartId, focusActivitiesKey, focusMonthKey, focusRequestKey]);
+  const currentFocusDays = focusDays?.key === focusRequestKey ? focusDays : null;
 
   const [overrideLocation, setOverrideLocation] = useState<{ lat: number; lng: number; timezone: string; label: string } | null>(null);
   const [overridePanchangam, setOverridePanchangam] = useState<PanchangamDailyResponseData | null>(null);
@@ -1128,7 +1287,7 @@ export function DashboardCalendarTabNova({
     const todayObj = new Date(`${todayDate}T00:00:00`);
     setMonthlyYear(todayObj.getFullYear());
     setMonthlyMonth(todayObj.getMonth() + 1);
-    if (target === "today") setDetailDate(todayDate);
+    if (target === "today") { setRenderedDetailDate(todayDate); setDetailDate(todayDate); }
   }, [todayDate]);
 
   // Quick Jump: "Next Muhurtham" scans forward from today's month, fetching one
@@ -1154,6 +1313,7 @@ export function DashboardCalendarTabNova({
         if (hit) {
           setMonthlyYear(year);
           setMonthlyMonth(month);
+          setRenderedDetailDate(hit.dateLocal);
           setDetailDate(hit.dateLocal);
           return true;
         }
@@ -1188,7 +1348,9 @@ export function DashboardCalendarTabNova({
 
   const panchangamMeta = panchangam
     ? `${tWeekday(panchangam.vara.weekday, lang)} · ${tithiPaksha ?? ""} · ${tNakshatra(nakActive?.activeName ?? panchangam.nakshatra.name, lang)}`
-    : t("panja_empty", lang);
+    : pending
+      ? (lang === "ta" ? "ஏற்றுகிறது…" : "Loading…")
+      : t("panja_empty", lang);
 
   // Fortnight + moon shape, matching the Today hero's chip (same lunar helpers,
   // same Amavasai/Pournami override) so the two surfaces cannot disagree.
@@ -1225,11 +1387,15 @@ export function DashboardCalendarTabNova({
 
   // T15 / B-026: interpretation comes before the named panchangam facts. This
   // is deliberately about new beginnings only; routine work stays unaffected.
-  const daySummary = panchangam?.isKarinaal
+  const dayVerdict = panchangam?.isKarinaal
     ? dt(CALENDAR_DAY_SUMMARY.care, lang)
     : panchangam?.subhaMuhurtham.isSubha
       ? dt(CALENDAR_DAY_SUMMARY.favourable, lang)
       : dt(CALENDAR_DAY_SUMMARY.ordinary, lang);
+  const rahuKalam = panchangam?.kalam.rahuKalam;
+  const daySummary = rahuKalam?.start && rahuKalam.end
+    ? `${dayVerdict} ${dt(CALENDAR_DAY_SUMMARY.avoidRahu(formatClockRange(rahuKalam.start, rahuKalam.end), formatClockRange(rahuKalam.start, rahuKalam.end, "ta")), lang)}`
+    : dayVerdict;
 
   // Reading order is the astrologer's, not the textbook's: the day's fixed
   // identity first (Vara / Moon / Lagnam), then the moving limbs a reader checks
@@ -1239,19 +1405,19 @@ export function DashboardCalendarTabNova({
     ? [
         { key: lang === "ta" ? "வாரம்" : "Vara", value: tWeekday(panchangam.vara.weekday, lang), hint: `${tPlanetLord(panchangam.vara.lord, lang)} ${t("lord_word", lang)}` },
         { key: lang === "ta" ? "சந்திரன்" : "Moon", value: tMoonPhase(panchangam.moonPhaseLabel, lang), hint: lang === "ta" ? "சந்திர கலை" : "Moon phase" },
-        { key: lang === "ta" ? "லக்னம்" : "Lagnam", value: panchangam.lagnam.rasiName, hint: `${lang === "ta" ? "இருப்பு" : "Remaining"} ${panchangam.lagnam.nazhigai} ${lang === "ta" ? "நாழிகை" : "nazhigai"} ${panchangam.lagnam.vinadi} ${lang === "ta" ? "விநாடி" : "vinadi"} · ${formatUntilLabel(panchangam.lagnam.endsAt, panchangam.lagnam.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)}` },
+        { key: lang === "ta" ? "லக்னம்" : "Lagnam", value: rasiName(panchangam.lagnam.rasiNumber, lang), hint: `${lang === "ta" ? "இருப்பு" : "Remaining"} ${panchangam.lagnam.nazhigai} ${lang === "ta" ? "நாழிகை" : "nazhigai"} ${panchangam.lagnam.vinadi} ${lang === "ta" ? "விநாடி" : "vinadi"} · ${formatUntilLabel(panchangam.lagnam.endsAt, panchangam.lagnam.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)}` },
         {
           key: lang === "ta" ? "நட்சத்திரம்" : "Nakshatra",
           value: tNakshatra(nakActive?.activeName ?? panchangam.nakshatra.name, lang),
           hint: nakActive?.rolledOver
-            ? `${formatClockLabel(panchangam.nakshatra.endsAt)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
+            ? `${formatClockLabel(panchangam.nakshatra.endsAt, lang)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
             : `${t("label_padam", lang)} ${panchangam.nakshatra.pada} · ${formatUntilLabel(panchangam.nakshatra.endsAt, panchangam.nakshatra.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tNakshatra(panchangam.nakshatra.nextName, lang)}`,
         },
         {
           key: lang === "ta" ? "திதி" : "Tithi",
           value: tTithi(tithiActive?.activeName ?? panchangam.tithi.name, lang),
           hint: tithiActive?.rolledOver
-            ? `${formatClockLabel(panchangam.tithi.endsAt)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
+            ? `${formatClockLabel(panchangam.tithi.endsAt, lang)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
             : `${tithiPaksha ?? ""} · ${formatUntilLabel(panchangam.tithi.endsAt, panchangam.tithi.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tTithi(panchangam.tithi.nextName, lang)}`,
         },
         {
@@ -1261,7 +1427,7 @@ export function DashboardCalendarTabNova({
           key: lang === "ta" ? "நாம யோகம்" : "Naamyogam",
           value: tYoga(yogaActive?.activeName ?? panchangam.yoga.name, lang),
           hint: yogaActive?.rolledOver
-            ? `${formatClockLabel(panchangam.yoga.endsAt)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
+            ? `${formatClockLabel(panchangam.yoga.endsAt, lang)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
             : `${formatUntilLabel(panchangam.yoga.endsAt, panchangam.yoga.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tYoga(panchangam.yoga.nextName, lang)}`,
         },
         { key: lang === "ta" ? "அமிர்தாதி யோகம்" : "Amirdhadhi Yogam", value: tAmirdhadhiYogam(panchangam.amirdhadhiYogam.name, lang), hint: `${formatUntilLabel(panchangam.amirdhadhiYogam.endsAt, panchangam.amirdhadhiYogam.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tAmirdhadhiYogam(panchangam.amirdhadhiYogam.nextName, lang)}` },
@@ -1269,7 +1435,7 @@ export function DashboardCalendarTabNova({
           key: lang === "ta" ? "கரணம்" : "Karana",
           value: tKarana(karanaActive?.activeName ?? panchangam.karana.name, lang),
           hint: karanaActive?.rolledOver
-            ? `${formatClockLabel(panchangam.karana.endsAt)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
+            ? `${formatClockLabel(panchangam.karana.endsAt, lang)} ${lang === "ta" ? "முதல் தற்போது செயலில்" : "active since"}`
             : `${formatUntilLabel(panchangam.karana.endsAt, panchangam.karana.endsAtIso, panchangam.dateLocal, lang)} ${t("until_word", lang)} · ${lang === "ta" ? "பின்பு" : "then"} ${tKarana(panchangam.karana.nextName, lang)}`,
         },
         { key: lang === "ta" ? "சூலம்" : "Soolam", value: tSoolamDirection(panchangam.soolam.direction, lang), hint: `${lang === "ta" ? "பரிகாரம்" : "Parigaram"}: ${tParigaram(panchangam.soolam.parigaram, lang)}` },
@@ -1290,15 +1456,16 @@ export function DashboardCalendarTabNova({
     ? [
         { label: t("label_rahu_kalam", lang), start: panchangam.kalam.rahuKalam.start, end: panchangam.kalam.rahuKalam.end },
         { label: t("label_yamagandam", lang), start: panchangam.kalam.yamagandam.start, end: panchangam.kalam.yamagandam.end },
-        { label: t("label_kuligai", lang), start: panchangam.kalam.kuligai.start, end: panchangam.kalam.kuligai.end },
+        ...(panchangam.kalam.durmuhurtham ?? []).map((slot) => ({ label: t("label_durmuhurtham", lang), start: slot.start, end: slot.end })),
       ]
     : [];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
       {/* ===== Page header ===== */}
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "var(--space-4)", flexWrap: "wrap" }}>
-        <div>
+      <div className={view === "monthly" ? "nova-cal-monthly-header" : undefined} style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "var(--space-4)", flexWrap: "wrap" }}>
+        {view === "monthly" && <MonthlyCalendarLandscape priority />}
+        <div className={view === "monthly" ? "nova-cal-monthly-header__copy" : undefined}>
           <Kicker as="div">
             {lang === "ta" ? "கிரகநகர்வு & நிகழ்வுகள்" : "Transits & Events"}
           </Kicker>
@@ -1308,14 +1475,24 @@ export function DashboardCalendarTabNova({
             <h1 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--display-md)", fontWeight: 600, color: "var(--color-text-strong)", lineHeight: 1.1 }}>
               {headerDate}
             </h1>
-            {tamilHeaderDate && (
-              <div style={{ fontSize: "var(--text-md)", color: "var(--color-accent-strong)", fontWeight: 600 }}>{tamilHeaderDate}</div>
-            )}
+            <div
+              aria-hidden={!tamilHeaderDate}
+              style={{
+                color: "var(--color-accent-strong)",
+                fontSize: "var(--text-md)",
+                fontWeight: 600,
+                minWidth: "8ch",
+                visibility: tamilHeaderDate ? "visible" : "hidden",
+              }}
+            >
+              {tamilHeaderDate || "\u00a0"}
+            </div>
             {hijriHeaderDate && (
               <div style={{ fontSize: "var(--text-base)", color: "var(--color-high)", fontWeight: 600 }}>{lang === "ta" ? hijriHeaderDate.ta : hijriHeaderDate.en}</div>
             )}
           </div>
           <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", marginTop: "2px" }}>{panchangamMeta}</div>
+          {view === "monthly" && <p className="nova-cal-monthly-header__motto">{t("cal_monthly_plan_with_time_live_with_awareness", lang)}</p>}
         </div>
 
         {/* View switch — the segmented-toggle pattern, now the shared <Segmented>
@@ -1332,11 +1509,13 @@ export function DashboardCalendarTabNova({
         />
       </div>
 
+      <ViewSwap viewKey={view}>
       {view === "panchangam" && (
         !panchangam ? (
-          <p className="empty-state">{t("panja_empty", lang)}</p>
+          pending ? <PendingPlaceholder lang={lang} lines={4} /> : <p className="empty-state">{t("panja_empty", lang)}</p>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: "var(--space-5)", alignItems: "start" }}>
+          // min(…, 100%): a bare 360px column floor is wider than a 320px phone.
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(360px, 100%), 1fr))", gap: "var(--space-5)", alignItems: "start" }}>
             {/* ===== LEFT: Day at a glance ===== */}
             <Card style={{ borderRadius: "var(--radius-xl)", borderColor: "var(--color-border-strong)", padding: "var(--space-6) var(--space-7)", gap: "var(--space-5)" }}>
               <div>
@@ -1379,7 +1558,7 @@ export function DashboardCalendarTabNova({
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginTop: "8px", fontSize: "var(--text-sm)", color: "var(--color-muted)", flexWrap: "wrap" }}>
                   <span>
-                    {lang === "ta" ? "சூர்யோதயம்" : "Sunrise"} {formatClockLabel(panchangam.sunrise)} · {lang === "ta" ? "சூர்யாஸ்தமனம்" : "Sunset"} {formatClockLabel(panchangam.sunset)}
+                    {lang === "ta" ? "சூர்யோதயம்" : "Sunrise"} {formatClockLabel(panchangam.sunrise, lang)} · {lang === "ta" ? "சூர்யாஸ்தமனம்" : "Sunset"} {formatClockLabel(panchangam.sunset, lang)}
                   </span>
                   <button
                     type="button"
@@ -1436,7 +1615,8 @@ export function DashboardCalendarTabNova({
                   })),
                   { key: "rahu", start: panchangam.kalam.rahuKalam.start, end: panchangam.kalam.rahuKalam.end, kind: "avoid-strong", label: t("label_rahu_kalam", lang) },
                   { key: "yama", start: panchangam.kalam.yamagandam.start, end: panchangam.kalam.yamagandam.end, kind: "avoid", label: t("label_yamagandam", lang) },
-                  { key: "kuligai", start: panchangam.kalam.kuligai.start, end: panchangam.kalam.kuligai.end, kind: "avoid-soft", label: t("label_kuligai", lang) },
+                  { key: "kuligai", start: panchangam.kalam.kuligai.start, end: panchangam.kalam.kuligai.end, kind: "contextual", label: t("label_kuligai", lang) },
+                  ...(panchangam.kalam.durmuhurtham ?? []).map((slot, index): DayTimelineBand => ({ key: `dur-${index}`, start: slot.start, end: slot.end, kind: "avoid-scoped", label: t("label_durmuhurtham", lang) })),
                 ]}
               />
 
@@ -1602,7 +1782,7 @@ export function DashboardCalendarTabNova({
                           {tPlanetLord(nowHora.lord, lang)} {t("hora_word", lang)}
                         </span>
                         <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-accent-strong)" }}>
-                          {formatClockLabel(nowHora.start)} – {formatClockLabel(nowHora.end)}
+                          {formatClockLabel(nowHora.start, lang)} – {formatClockLabel(nowHora.end, lang)}
                         </span>
                       </Card>
                     );
@@ -1638,7 +1818,7 @@ export function DashboardCalendarTabNova({
                 ))}
               </div>
             )}
-            <NovaPlanMuhurtaPanel lang={lang} chartId={chartId} />
+            <NovaPlanMuhurtaPanel lang={lang} chartId={chartId} focusActivities={muhurtaFocusActivities} DayDrawer={DayDetailDrawerNova} />
           </>
         ) : (
           <p className="empty-state">
@@ -1658,27 +1838,43 @@ export function DashboardCalendarTabNova({
           isLoading={isMonthlyPanchangamLoading}
           error={monthlyPanchangamError}
           hasLocation={Boolean(monthlyLocation)}
+          locationPending={pending}
           selectedDate={selectedDate}
+          previewDate={detailDate}
           todayDate={todayDate}
           onPrevMonth={() => goToAdjacentMonth(-1)}
           onNextMonth={() => goToAdjacentMonth(1)}
-          onSelectDate={(date) => setDetailDate(date)}
+          onSelectDate={(date) => { setRenderedDetailDate(date); setDetailDate(date); }}
           onQuickJump={handleQuickJump}
           onJumpToNextMuhurtham={jumpToNextMuhurtham}
+          focusDays={monthFocus ? {
+            label: monthFocus.label,
+            on: focusDaysOn,
+            onToggle: () => setFocusDaysOn((on) => !on),
+            dates: currentFocusDays?.dates ?? EMPTY_DATES,
+            loading: focusDaysOn && !currentFocusDays?.dates && !currentFocusDays?.failed,
+            failed: Boolean(currentFocusDays?.failed),
+          } : null}
         />
       )}
+      </ViewSwap>
 
-      {detailDate && (
+      {renderedDetailDate && (
         <DayDetailDrawerNova
-          date={detailDate}
+          date={renderedDetailDate}
           todayDate={todayDate}
           data={detailData}
           loading={detailLoading}
           error={detailError}
           lang={lang}
-          onClose={() => setDetailDate(null)}
+          open={Boolean(detailDate)}
+          onClose={() => {
+            setDetailDate(null);
+          }}
+          onExitComplete={() => setRenderedDetailDate(null)}
           onStepDay={(delta) => {
-            const next = addDays(detailDate, delta);
+            const next = addDays(renderedDetailDate, delta);
+            setRenderedDetailDate(next);
             setDetailDate(next);
             // Step the grid with the sheet when the day crosses a month edge —
             // otherwise the drawer reads "1 Dec" over a November grid.
@@ -1687,7 +1883,7 @@ export function DashboardCalendarTabNova({
             setMonthlyMonth(Number(nextMonth));
           }}
           onOpenFull={() => {
-            onSelectDate?.(detailDate);
+            onSelectDate?.(renderedDetailDate);
             setView("panchangam");
             setDetailDate(null);
           }}

@@ -1,5 +1,6 @@
 "use client";
 
+import { rasiDisplayName } from "@/lib/chart-utils";
 import type { Lang } from "@/lib/i18n";
 import { getKalachakraDasha } from "@vinaadi/shared/api/kalachakraDasha";
 import { useApiQuery } from "@/hooks/useApiQuery";
@@ -8,9 +9,10 @@ import { SecondaryDashaPanel } from "./dashboard-secondary-dasha-panel";
 // Kalachakra Dasha — rasi-based, non-uniform period lengths (4-21 years).
 // Experimental / display only — see app/calculations/kalachakra_dasha.py for
 // the cited Saravali source, the documented Portion-Zero cycle convention,
-// and a discovered inconsistency in the source's own worked example. Lords
-// are rasis, so the API already returns a display name (rasiName) — no
-// separate label table needed here.
+// and a discovered inconsistency in the source's own worked example. Lords are
+// rasis: read the numeric `rasi` through rasiDisplayName, not the API's
+// `rasiName ?? rasiCode` pair — that name is English-only and the code is the
+// raw enum, so a Tamil reader got "Mithunam", or "MITHUNAM" when it was null.
 // 9 rasis per Paramayus cycle (app/calculations/kalachakra_dasha.py:
 // KALACHAKRA_CHAKRAS — every chakra/pada sequence is 9 rasis long).
 const KALACHAKRA_SEQUENCE_LENGTH = 9;
@@ -42,12 +44,12 @@ export function KalachakraDashaPanel({ lang, chartId }: Props) {
       current={
         data && {
           mahadasha: {
-            name: data.current.mahadasha.rasiName ?? data.current.mahadasha.rasiCode,
+            name: rasiDisplayName(data.current.mahadasha.rasi, lang),
             startDate: data.current.mahadasha.startDate,
             endDate: data.current.mahadasha.endDate,
           },
           antardasha: {
-            name: data.current.antardasha.rasiName ?? data.current.antardasha.rasiCode,
+            name: rasiDisplayName(data.current.antardasha.rasi, lang),
             startDate: data.current.antardasha.startDate,
             endDate: data.current.antardasha.endDate,
           },
@@ -59,7 +61,7 @@ export function KalachakraDashaPanel({ lang, chartId }: Props) {
       // Paramayus, 83-100 years).
       periods={data?.mahadashas.slice(0, KALACHAKRA_SEQUENCE_LENGTH).map((period, index) => ({
         key: `${period.startDate}-${index}`,
-        name: period.rasiName ?? period.rasiCode,
+        name: rasiDisplayName(period.rasi, lang),
         years: period.years,
         startDate: period.startDate,
         isCurrent: period.startDate === data.current.mahadasha.startDate,

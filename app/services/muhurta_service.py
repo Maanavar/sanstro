@@ -26,6 +26,7 @@ Methodology (Thirukanitham), in the order the layers apply:
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from dataclasses import replace
 from datetime import UTC, date, datetime, time, timedelta
 from typing import NamedTuple
@@ -48,6 +49,7 @@ from app.calculations.muhurta_engine import (
     karaka_dignity_factors,
     lagna_sign_factor_at_window,
     limb_factors_at_window,
+    marriage_jupiter_gochara_factor,
     score_day,
     wealth_house_heuristic_factor,
 )
@@ -64,9 +66,11 @@ from app.calculations.tara_bala import tara_number
 from app.constants.astrology import NAKSHATRA_NAMES, SIGN_LORD
 from app.data.kuligai_polarity import favours as kuligai_favours
 from app.data.kuligai_polarity import rejects as kuligai_rejects
+from app.data.muhurtham_naals import has_sourced_sheet, muhurtham_naal_on
 from app.models import BirthProfile, Chart
 from app.schemas.charts import ChartCalculateResponseData
 from app.schemas.muhurta import (
+    AlmanacMuhurtham,
     BiText,
     MuhurtaActivityLocation,
     MuhurtaFactor,
@@ -210,6 +214,19 @@ _ACTIVITY_HOUSES: dict[str, list[int]] = {
 # read from the same list.
 MUHURTA_ACTIVITIES: frozenset[str] = frozenset(_ACTIVITY_LORDS) | ENGINE_SOURCED_ACTIVITIES
 
+# The one rite elected on two charts. Ruling of 2026-09-15 (delegated; see
+# docs/MUHURTA_COUPLE_OPEN_ITEMS_2026-09-15.md §4): a marriage joins two janma
+# stars, which is why porutham exists for it and for no other samskara. Every
+# other act is elected on the star of the one it is for — the child for
+# Namakarana, Annaprasana and Karnavedha, the yajamana for a purchase or a
+# house. That was enforced only by the clients until now; a partner sent with
+# any other activity would have been scored under R1 without a ruling behind it.
+COUPLE_ACTIVITY = "MARRIAGE"
+COUPLE_ACTIVITY_ONLY_DETAIL = (
+    "A second chart is read only for a wedding. Every other rite is chosen on the "
+    "birth star of the one it is for — send that person's chart alone."
+)
+
 # Client keys that are not the backend activity name.
 #
 # `baby_naming` has been on the mobile picker since it shipped and has never
@@ -288,6 +305,27 @@ def _traditional_month_notices(
     month_ta, month_en = TAMIL_MONTHS[month_index]
     message_ta, message_en = custom
     return [TraditionalMonthNotice(month=_t(month_ta, month_en), message=_t(message_ta, message_en))]
+
+
+def _almanac_muhurtham(activity: str, on_date: date) -> AlmanacMuhurtham | None:
+    """Whether this wedding date is also on the printed almanac's list (§3).
+
+    MARRIAGE only, and None — not a status — for everything else: the almanac
+    sheets are wedding sheets, so "not on the list" would be a meaningless
+    verdict on a day someone picked for an exam.
+
+    Adds nothing to the score. It is reported as a gate the family applies, not
+    as a factor the engine priced; the limbs the almanac's compilers weighed are
+    already in `factors`, and pricing membership again would double count them.
+    """
+    if activity != COUPLE_ACTIVITY:
+        return None
+    if not has_sourced_sheet(on_date.year):
+        return AlmanacMuhurtham(status="NO_SHEET")
+    naal = muhurtham_naal_on(on_date)
+    if naal is None:
+        return AlmanacMuhurtham(status="NOT_ON_LIST")
+    return AlmanacMuhurtham(status="ON_LIST", pirai=naal.pirai)
 
 
 def _norm(lord: str) -> str:
@@ -440,37 +478,69 @@ def _best_fragment(snapshot, start: datetime, end: datetime) -> tuple[datetime, 
     return min(fragments, default=None, key=lambda fragment: fragment[0])
 
 
-def _apply_tara_display_cap(raw_score: float, snapshot, subject: Subject | None) -> float:
-    """Apply the owner-approved maximum displayed band for adverse Tara Bala."""
-    if subject is None:
-        return raw_score
-    tara = tara_number(subject.janma_nakshatra, snapshot.nakshatra_number)
-    cap = _TARA_DISPLAY_CAP.get(tara)
-    return min(raw_score, cap) if cap is not None else raw_score
+def _apply_tara_display_cap(raw_score: float, snapshot, subjects: Sequence[Subject]) -> float:
+    """Apply the owner-approved maximum displayed band for adverse Tara Bala.
+
+    Takes every subject, not one. For a couple the cap follows the same ruling
+    the score does — the weaker side governs — so the tightest cap among the two
+    charts wins, and a Naidhana count for the groom holds the day down to Usable
+    however the bride's star reads.
+    """
+    capped = raw_score
+    for subject in subjects:
+        tara = tara_number(subject.janma_nakshatra, snapshot.nakshatra_number)
+        cap = _TARA_DISPLAY_CAP.get(tara)
+        if cap is not None:
+            capped = min(capped, cap)
+    return capped
 
 
-def _karaka_factors_at(activity: str, window_start: datetime, window_end: datetime, day: date) -> list:
-    """The wealth karakas' dignity at the recommended window's midpoint.
+def _transit_factors_at(
+    activity: str,
+    window_start: datetime,
+    window_end: datetime,
+    day: date,
+    subjects: Sequence[Subject],
+) -> list:
+    """Transit-time factors read at the recommended window's midpoint.
+
+    Two of them today: the wealth karakas' dignity (A5), and — for a marriage
+    where we have been told which chart is the bride's — Jupiter's gochara from
+    her Janma-Rasi (Ch. XIV p.79).
 
     The midpoint rather than sunrise, so the condition is read at the moment the
     act is actually recommended — the same convention the wealth-house heuristic
-    uses. Combustion moves far too slowly for the choice to change a verdict, but
-    two factors on one card disagreeing about which instant they describe is the
-    contradiction class this service already fixed once (D1).
+    uses. Combustion moves far too slowly for the choice to change a verdict, and
+    Jupiter's sign far slower still, but two factors on one card disagreeing about
+    which instant they describe is the contradiction class this service already
+    fixed once (D1).
+
+    One ephemeris call serves both. That is the reason these share a function
+    rather than sitting in two: at 0.5 ms a call over every candidate day in a
+    60-day range, a second one would double a measured cost for a planet that
+    moves a degree a month.
     """
     try:
         midpoint = window_start + (window_end - window_start) / 2
         planets = calculate_sidereal_planets(utc_datetime_to_julian_day(midpoint.astimezone(UTC))).bodies
-        return karaka_dignity_factors(activity, planets)
     except Exception as exc:
         # An ephemeris hiccup must not drop the whole day from the picker, but it
         # must not silently read as "the karakas are fine" either — the caller
         # sees no factor, and the log names the date.
-        logger.debug("Karaka dignity lookup failed for %s: %s", day, exc)
+        logger.debug("Transit factor lookup failed for %s: %s", day, exc)
         return []
 
+    factors = list(karaka_dignity_factors(activity, planets))
+    for subject in subjects:
+        gochara = marriage_jupiter_gochara_factor(activity, planets, subject)
+        if gochara is not None:
+            factors.append(gochara)
+    return factors
 
-def _best_time_window(snapshot, activity: str, lagna_rasi: int | None) -> _Window:
+
+def _best_time_window(
+    snapshot, activity: str, lagna_rasi: int | None, *, couple_mode: bool = False,
+) -> _Window:
     """Pick the day's recommended window, and the hora bonus that goes with it.
 
     The window is the **intersection** of a favoured hora with a good Gowri day
@@ -499,33 +569,32 @@ def _best_time_window(snapshot, activity: str, lagna_rasi: int | None) -> _Windo
     `_compute_gowri_nalla_neram`).
     """
     candidates = _clear_good_day_kalas(snapshot, activity)
-    # General mode has no chart, so it must not select or describe a lagna- or
-    # dasha-derived hora. It still returns the strongest clear daytime Gowri
-    # kala, which is the location-aware almanac answer it can honestly make.
-    if lagna_rasi is None:
-        candidate_fragments = [
-            (kala, start, end)
-            for kala in candidates
-            for start, end in _daylight_fragments(snapshot, kala.start, kala.end)
-        ]
-        if candidate_fragments:
-            kala, start, end = min(
-                candidate_fragments,
-                key=lambda item: (gowri_category_rank(item[0].name), item[1]),
-            )
-            return _Window(start, end, 0.0, None)
-        fallback = best_gowri_slot(snapshot.nalla_neram)
-        if fallback is not None:
-            fragment = _best_fragment(snapshot, fallback.start, fallback.end)
-            if fragment is not None:
-                return _Window(*fragment, 0.0, None)
-        fragment = _best_fragment(snapshot, snapshot.abhijit_start, snapshot.abhijit_end)
-        if fragment is not None:
-            return _Window(*fragment, 0.0, None)
-        return _Window(snapshot.sunrise + _SANDHYA_DURATION, snapshot.sunrise + _SANDHYA_DURATION, 0.0, None)
 
-    target_lords = _activity_hora_lords(activity, lagna_rasi)
-    lagna_lord = _norm(_SIGN_LORDS[lagna_rasi])
+    # Which hora lords may be credited today, and which of them (if any) is a
+    # lagna lord. Three modes:
+    #
+    # * **One chart** — the activity's generic lords plus the lords of the
+    #   activity-relevant houses for that lagna, with a lagna-lord premium.
+    # * **General** — no chart at all, so no lagna- or dasha-derived hora may be
+    #   selected or described. An empty lord set leaves the loop below with
+    #   nothing to match, and the day falls through to the shared fallback: the
+    #   strongest clear daytime Gowri kala, which is the location-aware almanac
+    #   answer it can honestly make.
+    # * **Couple** — two charts, so no single natal lagna owns the window (owner
+    #   ruling 2026-09-12). It keeps the activity's *own* hora lords, which are a
+    #   property of the act rather than of either chart, and forgoes only the
+    #   lagna-lord premium and the lagna-derived house lords. Dropping the
+    #   activity lords too would have handed a couple the same window a signed-out
+    #   stranger gets, which is not what having two charts should buy.
+    if lagna_rasi is not None:
+        target_lords = _activity_hora_lords(activity, lagna_rasi)
+        lagna_lord: str | None = _norm(_SIGN_LORDS[lagna_rasi])
+    elif couple_mode:
+        target_lords = set(_ACTIVITY_LORDS.get(activity, set()))
+        lagna_lord = None
+    else:
+        target_lords = set()
+        lagna_lord = None
 
     best_key: tuple | None = None
     best: _Window | None = None
@@ -533,7 +602,7 @@ def _best_time_window(snapshot, activity: str, lagna_rasi: int | None) -> _Windo
         lord = _norm(entry.lord)
         if lord not in target_lords:
             continue
-        is_lagna_lord = lord == lagna_lord
+        is_lagna_lord = lagna_lord is not None and lord == lagna_lord
         bonus = 13.0 if is_lagna_lord else 8.0
         for kala in candidates:
             for start, end in _daylight_fragments(
@@ -603,6 +672,141 @@ def _dasha_support(maha_lord: str, antar_lord: str, activity: str) -> BiText:
     )
 
 
+def _dasha_supports(maha_lord: str, antar_lord: str, activity: str) -> bool:
+    """Whether either running lord is one this activity's table favours.
+
+    Pulled out of the scoring loop's inline `in` test because the couple rule
+    needs to ask it of two charts and combine the answers, and an `or` written
+    twice over four variables is where a swapped pair hides.
+    """
+    favourable = _ACTIVITY_LORDS.get(activity, set())
+    return maha_lord in favourable or antar_lord in favourable
+
+
+# Role → (english name, tamil name) for the labels printed inside factor reason
+# copy. Tamil almanac usage, not Sanskrit: மணமகள் / மணமகன் are the words a Tamil
+# family and a Tamil panchangam both use.
+#
+# The English half is lower-case and article-led because every call site splices
+# it mid-sentence — "Moon is 4th from the bride's birth sign".
+_ROLE_LABELS: dict[str, tuple[str, str]] = {
+    "BRIDE": ("the bride", "மணமகள்"),
+    "GROOM": ("the groom", "மணமகன்"),
+}
+
+# What a couple's two charts are called when the caller did not name the roles.
+#
+# Without these both charts narrate as "this person" — the single-chart fallback,
+# which is unambiguous for one chart and useless for two: a reader would see
+# "Moon is 10th from this person's birth sign" directly above "Moon is 4th from
+# this person's birth sign" and have no way to tell which is which. The web form
+# always sends roles, but the route accepts a partner without them, so the
+# ambiguity has to be closed here rather than assumed away upstream.
+_UNNAMED_COUPLE_LABELS: tuple[tuple[str, str], tuple[str, str]] = (
+    ("the first chart", "முதல் ஜாதகம்"),
+    ("the second chart", "இரண்டாம் ஜாதகம்"),
+)
+
+
+def _subject_labels(role: str | None, *, position: int, couple: bool) -> tuple[str | None, str | None]:
+    """(english, tamil) names for one chart, or (None, None) to stay unnamed.
+
+    A single unnamed chart stays unnamed: "this person" is the copy that has
+    always been there and it is unambiguous when there is only one.
+    """
+    named = _ROLE_LABELS.get(role or "")
+    if named is not None:
+        return named
+    if couple:
+        return _UNNAMED_COUPLE_LABELS[position]
+    return (None, None)
+
+
+class _ChartFacts(NamedTuple):
+    """Everything one chart contributes to a muhurta run."""
+
+    subject: Subject | None
+    lagna_rasi: int | None
+    maha_lord: str
+    antar_lord: str
+
+
+def _facts_from_chart_data(
+    chart_data: ChartCalculateResponseData,
+    tz_name: str,
+    *,
+    role: str | None,
+    label: tuple[str | None, str | None] = (None, None),
+) -> _ChartFacts:
+    """Build the personal layer's inputs from an in-memory (unsaved) chart.
+
+    Raises 422 rather than degrading to almanac-only: a caller that supplied
+    birth details asked for a personalised reading, and quietly returning a
+    general one would answer a different question than the one put to it.
+    """
+    try:
+        lagna_rasi = chart_data.lagna.rasi
+        natal_moon = next(p for p in chart_data.planets if p.graha == "MOON")
+    except (AttributeError, StopIteration, ValueError) as exc:
+        raise HTTPException(status_code=422, detail="Could not derive the personal chart for muhurta") from exc
+
+    label_en, label_ta = label
+    subject = Subject(
+        janma_nakshatra=natal_moon.nakshatra,
+        janma_rasi=natal_moon.rasi,
+        lagna_rasi=lagna_rasi,
+        label=label_en,
+        label_ta=label_ta,
+        role=role if role in _ROLE_LABELS else None,
+    )
+
+    maha_lord = "UNKNOWN"
+    antar_lord = "UNKNOWN"
+    try:
+        tz_obj = resolve_timezone(tz_name)
+        today_local = datetime.now(tz_obj).date()
+        today_midnight = datetime.combine(today_local, datetime.min.time(), tzinfo=tz_obj)
+        jd_today = utc_datetime_to_julian_day(today_midnight.astimezone(UTC))
+        timeline = calculate_vimshottari_timeline(chart_data.julian_day, natal_moon.absolute_longitude, jd_today)
+        maha_lord = timeline.current_mahadasha.lord
+        antar_lord = timeline.current_antardasha.lord
+    except Exception as exc:
+        logger.debug("Muhurta dasha lookup failed for in-memory chart: %s", exc)
+    return _ChartFacts(subject=subject, lagna_rasi=lagna_rasi, maha_lord=maha_lord, antar_lord=antar_lord)
+
+
+def _facts_from_persisted_chart(
+    session: Session,
+    chart_id: UUID,
+    tz_name: str,
+    *,
+    role: str | None,
+    label: tuple[str | None, str | None],
+) -> _ChartFacts:
+    """A partner's saved chart, read into the same shape as an in-memory one.
+
+    Goes through `_facts_from_chart_data` rather than a second copy of the saved-
+    chart branch, so a partner is read exactly as the public tool reads a partner.
+    The caller has already checked ownership.
+    """
+    chart_row = session.get(Chart, chart_id)
+    if chart_row is None:
+        raise HTTPException(status_code=404, detail="Chart not found")
+    bp = session.get(BirthProfile, chart_row.birth_profile_id)
+    if bp is None:
+        raise HTTPException(status_code=404, detail="Birth profile not found")
+    who = (label[0] or "the second chart").capitalize()
+    # Required as the public tool requires it of a partner: without a time the
+    # Moon's star — the whole of Tara Bala and Chandrashtama — is a guess.
+    if bp.birth_time_local is None:
+        raise HTTPException(
+            status_code=422,
+            detail=f"{who}: a birth time is required to check a date for a couple.",
+        )
+    snapshot = load_persisted_chart_response(session, chart_id)
+    return _facts_from_chart_data(snapshot.data, tz_name, role=role, label=label)
+
+
 def find_best_muhurta_slots(
     chart_id: UUID | None,
     activity: str,
@@ -615,14 +819,47 @@ def find_best_muhurta_slots(
     activity_timezone: str | None = None,
     include_excluded: bool = False,
     paksha: str | None = None,
+    almanac_only: bool = False,
     chart_data: ChartCalculateResponseData | None = None,
+    co_chart_data: ChartCalculateResponseData | None = None,
+    subject_role: str | None = None,
+    co_subject_role: str | None = None,
     activity_place: str | None = None,
+    co_chart_id: UUID | None = None,
 ) -> MuhurtaResponse:
+    """Rank the days in a range for one activity, one person, or a couple.
+
+    `co_chart_data` adds the second half of a couple — the shape a wedding date
+    has always had. It is only accepted alongside `chart_data`: the two charts
+    are scored together by `score_day`'s couple mode, where the weaker of each
+    pair of personal readings is the one that is priced and a veto from either
+    side removes the day.
+
+    `subject_role` / `co_subject_role` are "BRIDE" or "GROOM". They are display
+    labels for every surface except one: Ch. XIV p.79's Jupiter gochara rule is
+    stated from the *bride's* Janma-Rasi, so naming the role is what makes that
+    rule answerable at all.
+
+    `co_chart_id` is the saved-chart form of `co_chart_data`, for the signed-in
+    picker: the same couple scoring, with the partner read from a persisted chart
+    the caller has already authorised. It requires `chart_id`.
+
+    `almanac_only` narrows the scan to days on the printed almanac's own wedding
+    list (§3). MARRIAGE only. It is a filter and not a bonus, for the reason the
+    astrologer gave: almanac membership is a gate most families apply before they
+    look at a score at all, so it belongs where the other gates are — beside
+    `paksha`, removing days — not in the scoring.
+    """
     activity = normalize_activity(activity)
     if activity not in MUHURTA_ACTIVITIES:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Unknown activity '{activity}'. Valid values: {sorted(MUHURTA_ACTIVITIES)}",
+        )
+    if (co_chart_data is not None or co_chart_id is not None) and activity != COUPLE_ACTIVITY:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=COUPLE_ACTIVITY_ONLY_DETAIL,
         )
 
     delta_days = (date_to - date_from).days
@@ -635,16 +872,52 @@ def find_best_muhurta_slots(
     normalized_paksha = str(paksha or "").upper() or None
     if normalized_paksha not in {None, "SHUKLA", "KRISHNA"}:
         raise HTTPException(status_code=422, detail="paksha must be SHUKLA or KRISHNA")
+    if almanac_only and activity != COUPLE_ACTIVITY:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                f"almanacOnly applies to {COUPLE_ACTIVITY} only — the sourced almanac "
+                "sheets are wedding sheets."
+            ),
+        )
+    if almanac_only and include_excluded:
+        # `includeExcluded` exists to show a reader *why* one chosen date is
+        # unavailable. Combining it with a filter that can remove that very date
+        # would answer the question with an empty list, so the contradiction is
+        # named rather than resolved silently either way.
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="almanacOnly cannot be combined with includeExcluded.",
+        )
 
     location_values = (activity_latitude, activity_longitude, activity_timezone)
     has_activity_location = any(value is not None for value in location_values)
     if has_activity_location and not all(value is not None for value in location_values):
         raise HTTPException(status_code=422, detail="lat, lon, and tz must be supplied together")
 
+    if co_chart_data is not None and chart_data is None:
+        raise HTTPException(
+            status_code=422,
+            detail="A second chart requires the first — a couple is two charts, not one.",
+        )
+    if co_chart_id is not None and chart_id is None:
+        raise HTTPException(
+            status_code=422,
+            detail="A second chart requires the first — a couple is two charts, not one.",
+        )
+    if co_chart_id is not None and co_chart_id == chart_id:
+        raise HTTPException(
+            status_code=422,
+            detail="A couple is two different charts — choose the partner's chart, not this one.",
+        )
+
     subject: Subject | None = None
+    co_subject: Subject | None = None
     lagna_rasi: int | None = None
     maha_lord = "UNKNOWN"
     antar_lord = "UNKNOWN"
+    co_maha_lord = "UNKNOWN"
+    co_antar_lord = "UNKNOWN"
 
     has_personal_chart = chart_id is not None or chart_data is not None
 
@@ -658,27 +931,33 @@ def find_best_muhurta_slots(
         location_place = activity_place or "Selected activity location"
         try:
             resolve_timezone(tz_name)
-            lagna_rasi = chart_data.lagna.rasi
-            natal_moon = next(p for p in chart_data.planets if p.graha == "MOON")
-        except (AttributeError, StopIteration, ValueError) as exc:
-            raise HTTPException(status_code=422, detail="Could not derive the personal chart for muhurta") from exc
-        birth_jd = chart_data.julian_day
-        moon_lon = natal_moon.absolute_longitude
-        subject = Subject(
-            janma_nakshatra=natal_moon.nakshatra,
-            janma_rasi=natal_moon.rasi,
-            lagna_rasi=lagna_rasi,
-        )
-        try:
-            tz_obj = resolve_timezone(tz_name)
-            today_local = datetime.now(tz_obj).date()
-            today_midnight = datetime.combine(today_local, datetime.min.time(), tzinfo=tz_obj)
-            jd_today = utc_datetime_to_julian_day(today_midnight.astimezone(UTC))
-            timeline = calculate_vimshottari_timeline(birth_jd, moon_lon, jd_today)
-            maha_lord = timeline.current_mahadasha.lord
-            antar_lord = timeline.current_antardasha.lord
-        except Exception as exc:
-            logger.debug("Muhurta dasha lookup failed for in-memory chart: %s", exc)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=f"Invalid timezone: {tz_name}") from exc
+        is_couple = co_chart_data is not None
+        primary_label = _subject_labels(subject_role, position=0, couple=is_couple)
+        co_label = _subject_labels(co_subject_role, position=1, couple=is_couple)
+        facts = _facts_from_chart_data(chart_data, tz_name, role=subject_role, label=primary_label)
+        subject, lagna_rasi = facts.subject, facts.lagna_rasi
+        maha_lord, antar_lord = facts.maha_lord, facts.antar_lord
+        if co_chart_data is not None:
+            co_facts = _facts_from_chart_data(
+                co_chart_data, tz_name, role=co_subject_role, label=co_label,
+            )
+            co_subject = co_facts.subject
+            co_maha_lord, co_antar_lord = co_facts.maha_lord, co_facts.antar_lord
+            # A *natal* lagna is single-chart by construction, and here it does
+            # exactly one thing: pick and price a lagna-lord hora. Owner ruling
+            # 2026-09-12 — in couple mode neither chart's is used, because no
+            # single natal lagna owns a wedding. The window keeps the activity's
+            # own hora lords (see `_best_time_window`'s couple branch) and
+            # forgoes only the lagna-lord premium and the lagna-derived house
+            # lords.
+            #
+            # This does NOT touch `lagna_sign_factor_at_window`, which reads the
+            # sign *rising at the elected moment* — the muhurta lagna Ch. XIV
+            # rules on. That was never natal and is unaffected by whose chart is
+            # in play.
+            lagna_rasi = None
     elif chart_id is None:
         if activity_latitude is None or activity_longitude is None or activity_timezone is None:
             raise HTTPException(status_code=422, detail="lat, lon, and tz are required without chartId")
@@ -742,12 +1021,73 @@ def find_best_muhurta_slots(
         except Exception as exc:
             logger.debug("Muhurta dasha lookup failed for chart %s: %s", chart_id, exc)
 
+        # Roles and a partner, for a saved chart — the signed-in form of what the
+        # in-memory branch above does for the public tool, under the same rulings.
+        is_couple = co_chart_id is not None
+        if is_couple or subject_role in _ROLE_LABELS:
+            primary_label = _subject_labels(subject_role, position=0, couple=is_couple)
+            co_label = _subject_labels(co_subject_role, position=1, couple=is_couple)
+            if subject is not None:
+                subject = replace(
+                    subject,
+                    label=primary_label[0],
+                    label_ta=primary_label[1],
+                    role=subject_role if subject_role in _ROLE_LABELS else None,
+                )
+            elif is_couple:
+                # The single-chart path degrades an unreadable star to almanac-only.
+                # A couple cannot: half a couple's personal layer silently missing
+                # is the defect couple mode exists to prevent.
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"{(primary_label[0] or '').capitalize()}: the chart's birth star could not be read.",
+                )
+        if co_chart_id is not None:
+            if bp.birth_time_local is None:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"{(primary_label[0] or '').capitalize()}: a birth time is required to check a date for a couple.",
+                )
+            co_facts = _facts_from_persisted_chart(
+                session, co_chart_id, tz_name, role=co_subject_role, label=co_label,
+            )
+            co_subject = co_facts.subject
+            co_maha_lord, co_antar_lord = co_facts.maha_lord, co_facts.antar_lord
+            # Owner ruling 2026-09-12, R2: no natal lagna owns a wedding. See the
+            # in-memory couple branch above for what this does and does not drop.
+            lagna_rasi = None
+
     if not has_personal_chart:
         try:
             resolve_timezone(tz_name)
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=f"Invalid timezone: {tz_name}") from exc
-    dasha_support = _dasha_support(maha_lord, antar_lord, activity) if has_personal_chart else None
+
+    # Every chart in play, in the order the reader entered them. Used by the
+    # tara display cap and the transit-time factors, both of which have to ask
+    # the same question of each half of a couple.
+    subjects: tuple[Subject, ...] = tuple(s for s in (subject, co_subject) if s is not None)
+
+    if not has_personal_chart:
+        dasha_support = None
+    elif co_subject is None:
+        dasha_support = _dasha_support(maha_lord, antar_lord, activity)
+    else:
+        # Two dasha lines, each named, on the one `dashaSupport` field the
+        # contract has. Joined rather than given a second field: this is a
+        # four-surface contract (app/api, packages/shared, mobile, web) and a
+        # new field would have to land on all of them to be read by any.
+        first = _dasha_support(maha_lord, antar_lord, activity)
+        second = _dasha_support(co_maha_lord, co_antar_lord, activity)
+        # `primary_label` / `co_label` are set in the couple branch above, which
+        # is the only path that can reach here — `co_subject` exists only there.
+        # Both halves are always named in couple mode, so the `or` is a type
+        # narrowing, not a real fallback.
+        dasha_support = _t(
+            f"{primary_label[1]} — {first.ta} · {co_label[1]} — {second.ta}",
+            f"{(primary_label[0] or '').capitalize()} — {first.en}"
+            f" · {(co_label[0] or '').capitalize()} — {second.en}",
+        )
 
     # Scan each day in range — batch-load/compute panchangam snapshots in one pass
     # to avoid a per-day cache SELECT+DELETE (see calculate_daily_panchangam_range).
@@ -761,6 +1101,13 @@ def find_best_muhurta_slots(
             if normalized_paksha is not None and snap.tithi_paksha != normalized_paksha:
                 current += timedelta(days=1)
                 continue
+            # §3's gate, applied where the other gate is. A year with no sourced
+            # sheet yields nothing rather than everything: asking for almanac days
+            # and being handed unvetted ones is the failure this filter exists to
+            # prevent, and the badge on each slot says which state it is in.
+            if almanac_only and muhurtham_naal_on(current) is None:
+                current += timedelta(days=1)
+                continue
             # One scorer, all layers: the generic almanac, the per-activity
             # rules sourced from the classical text (Kalaprakasika Ch. XIV for
             # MARRIAGE today), and the personal Tara Bala / Chandra Bala factors
@@ -770,7 +1117,7 @@ def find_best_muhurta_slots(
             # The selected-window lagna is calculated only for the top five
             # candidates below.  A sunrise lagna would be cheaper but falsely
             # claims the sign at the recommended clock time.
-            day = score_day(snap, activity, subject, include_lagna_sign=False)
+            day = score_day(snap, activity, subject, co_subject=co_subject, include_lagna_sign=False)
             # A vetoed day is never a candidate. `continue` would be wrong here —
             # the loop counter advances at the bottom of the while body, outside
             # this try, so skipping the rest must not skip the increment.
@@ -783,12 +1130,19 @@ def find_best_muhurta_slots(
                     if f.verdict is Verdict.PENALTY
                 ]
 
-                # Dasha bonus
-                if maha_lord in _ACTIVITY_LORDS.get(activity, set()) or antar_lord in _ACTIVITY_LORDS.get(activity, set()):
+                # Dasha bonus. For a couple the same ruling governs as the rest
+                # of the personal layer — the weaker side decides — so the credit
+                # is earned only when a favourable lord is running for *both*.
+                # One partner's supportive dasha is not a reason to marry into
+                # the other's indifferent one, and crediting it would be the
+                # averaging behaviour the ruling rejected, arriving by a side door.
+                if _dasha_supports(maha_lord, antar_lord, activity) and (
+                    co_subject is None or _dasha_supports(co_maha_lord, co_antar_lord, activity)
+                ):
                     day_score += 10
                 # Window + hora bonus — the two are chosen together so the returned
                 # time always falls inside the hora its own reason names (D1).
-                window = _best_time_window(snap, activity, lagna_rasi)
+                window = _best_time_window(snap, activity, lagna_rasi, couple_mode=co_subject is not None)
                 day_score += window.hora_bonus
                 slot_start, slot_end = window.start, window.end
                 t_start, t_end = slot_start.strftime("%H:%M"), slot_end.strftime("%H:%M")
@@ -801,14 +1155,20 @@ def find_best_muhurta_slots(
                 # மௌட்யம் must be able to rank the clear days above the hidden
                 # ones, which a top-N-only check could never do. Measured at
                 # 0.5 ms per call, so 60 days costs ~32 ms of a 1.5 s budget.
-                for karaka_factor in _karaka_factors_at(activity, slot_start, slot_end, current):
-                    day_score += karaka_factor.contribution
-                    slot_factors.append(MuhurtaFactor.from_engine(karaka_factor))
-                    slot_cautions.append(_t(karaka_factor.reason_ta, karaka_factor.reason_en))
+                for transit_factor in _transit_factors_at(activity, slot_start, slot_end, current, subjects):
+                    day_score += transit_factor.contribution
+                    slot_factors.append(MuhurtaFactor.from_engine(transit_factor))
+                    # Only a penalty is a caution. The karaka factors were all
+                    # penalties when this loop was written, so the append was
+                    # unconditional; the bride's Jupiter gochara also reports the
+                    # clear case, and filing "Jupiter is clear of the adverse
+                    # houses" under cautions would invert what it says.
+                    if transit_factor.verdict is Verdict.PENALTY:
+                        slot_cautions.append(_t(transit_factor.reason_ta, transit_factor.reason_en))
                 # Capped once, after every additive layer. The karaka penalties
                 # are negative-only, so moving the cap below them cannot raise a
                 # capped day — it just stops the cap being applied twice.
-                day_score = _apply_tara_display_cap(day_score, snap, subject)
+                day_score = _apply_tara_display_cap(day_score, snap, subjects)
                 for band, band_ta, band_en in (
                     (snap.rahu_kalam, "ராகு காலம்", "Rahu Kalam"),
                     (snap.yamagandam, "யமகண்டம்", "Yamagandam"),
@@ -933,7 +1293,7 @@ def find_best_muhurta_slots(
                 vetoed_at_window = True
                 cautions.append(_t(limb_factor.reason_ta, limb_factor.reason_en))
             elif limb_factor.verdict is Verdict.PENALTY:
-                score = _apply_tara_display_cap(score + limb_factor.contribution, snapshot_with_schedule, subject)
+                score = _apply_tara_display_cap(score + limb_factor.contribution, snapshot_with_schedule, subjects)
                 cautions.append(_t(limb_factor.reason_ta, limb_factor.reason_en))
         if vetoed_at_window:
             enriched_top.append(candidate._replace(
@@ -943,7 +1303,7 @@ def find_best_muhurta_slots(
 
         lagna_factor = lagna_sign_factor_at_window(activity, lagna_window.rasi_number)
         if lagna_factor is not None:
-            score = _apply_tara_display_cap(score + lagna_factor.contribution, snapshot_with_schedule, subject)
+            score = _apply_tara_display_cap(score + lagna_factor.contribution, snapshot_with_schedule, subjects)
             factors.append(MuhurtaFactor.from_engine(lagna_factor))
             if lagna_factor.verdict is Verdict.PENALTY:
                 cautions.append(_t(lagna_factor.reason_ta, lagna_factor.reason_en))
@@ -961,7 +1321,7 @@ def find_best_muhurta_slots(
         if wealth_factor is not None:
             pre_heuristic_score = score
             score = _apply_in_band_heuristic_bonus(score, wealth_factor.contribution)
-            score = _apply_tara_display_cap(score, snapshot_with_schedule, subject)
+            score = _apply_tara_display_cap(score, snapshot_with_schedule, subjects)
             # Report the real applied contribution, which can be zero when a
             # band boundary or Tara cap correctly prevents a score change.
             wealth_factor = replace(wealth_factor, contribution=score - pre_heuristic_score)
@@ -997,6 +1357,7 @@ def find_best_muhurta_slots(
             cautions=c.cautions,
             traditionalMonthNotices=_traditional_month_notices(activity, c.day, tz_name, lat, lon),
             factors=c.factors,
+            almanacMuhurtham=_almanac_muhurtham(activity, c.day),
         )
         for c in top
     ]

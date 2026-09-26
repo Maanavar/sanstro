@@ -6,12 +6,13 @@
 
 import { initApiClient } from "@vinaadi/shared/api/client";
 import { getPanchangamDay, getPanchangamToday } from "@vinaadi/shared/api/panchangam";
-import { getChartFull, getChartSummary } from "@vinaadi/shared/api/charts";
+import { confirmBirthProfileLocation, getChartFull, getChartSummary } from "@vinaadi/shared/api/charts";
 import { getDashaTimeline } from "@vinaadi/shared/api/dasha";
 import { getDailyStatus, askVinaadi } from "@vinaadi/shared/api/askVinaadi";
 import { getRasiPalan } from "@vinaadi/shared/api/rasiPalan";
 import { getDailyGuidance } from "@vinaadi/shared/api/guidance";
 import { registerFcmToken } from "@vinaadi/shared/api/notifications";
+import { getLifeMode, updateLifeMode } from "@vinaadi/shared/api/lifeMode";
 import { askPrasna, getMuhurta, getNatchathiram, getDosham } from "@vinaadi/shared/api/tools";
 
 const mockGet = jest.fn();
@@ -418,6 +419,21 @@ describe("tools API", () => {
   });
 });
 
+// ─── BIRTH PROFILES ───────────────────────────────────────────────────────────
+
+describe("birth profile location confirmation", () => {
+  it("confirmBirthProfileLocation POSTs to a path param, not a query param", async () => {
+    // The wrapper's URL and verb are a hand-typed string, unverified by the
+    // type system — getDailyGuidance and registerFcmToken both drifted wrong
+    // this way and would have failed on their first real call.
+    mockPost.mockResolvedValue({ success: true, data: { birthProfileId: "bp-1" } });
+
+    await confirmBirthProfileLocation("bp-1");
+
+    expect(mockPost).toHaveBeenCalledWith("/birth-profiles/bp-1/confirm-location", {});
+  });
+});
+
 // ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
 // Regression test for WIRE-7: registerFcmToken previously sent PATCH, but the
 // backend route only accepts PUT (and DELETE) — every real call would have 405'd.
@@ -434,5 +450,41 @@ describe("notifications API", () => {
       "/settings/notifications/fcm-token",
       { fcmDeviceToken: "device-token-abc123" },
     );
+  });
+});
+
+// ─── LIFE FOCUS ───────────────────────────────────────────────────────────────
+// Life focus Phase 3 put these on mobile. Checked against app/api/settings.py:
+// GET and PATCH "/settings/life-mode", no path params; the body includes the
+// mode plus the explicit SELECT/SKIP/KEEP intent and its entry-point surface
+// (mobile always sends MOBILE: it has no first-run picker), and
+// the response is the bare status, not a { success, data } envelope.
+
+describe("life-mode API", () => {
+  const STATUS = {
+    mode: "CAREER",
+    lifeModeSetAt: "2026-09-22T06:00:00Z",
+    showLifeModePicker: false,
+    blockedModes: [],
+    focusNudgeDue: false,
+    focusArea: "CAREER",
+    focusActivities: ["job_change", "business_start"],
+  };
+
+  it("getLifeMode GETs the bare status", async () => {
+    mockGet.mockResolvedValue(STATUS);
+    const result = await getLifeMode();
+    expect(mockGet).toHaveBeenCalledWith("/settings/life-mode");
+    expect(result.focusActivities).toEqual(["job_change", "business_start"]);
+  });
+
+  it("updateLifeMode PATCHes the mode, interaction intent and surface", async () => {
+    MOCK_CLIENT.patch.mockResolvedValue(STATUS);
+    await updateLifeMode("CAREER", "SELECT", "MOBILE");
+    expect(MOCK_CLIENT.patch).toHaveBeenCalledWith("/settings/life-mode", {
+      mode: "CAREER",
+      intent: "SELECT",
+      surface: "MOBILE",
+    });
   });
 });

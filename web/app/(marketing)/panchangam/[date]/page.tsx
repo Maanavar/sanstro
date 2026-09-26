@@ -256,7 +256,27 @@ export default async function PanchangamDatePage({ params }: Props) {
                 </div>
                 <TimeRow label="Rahu Kalam" labelTa="ராகு காலம்" value={clockRange(data.kalam.rahuKalam.start, data.kalam.rahuKalam.end)} tone="hold" />
                 <TimeRow label="Yamagandam" labelTa="எமகண்டம்" value={clockRange(data.kalam.yamagandam.start, data.kalam.yamagandam.end)} tone="hold" />
-                <TimeRow label="Kuligai" labelTa="குளிகை" value={clockRange(data.kalam.kuligai.start, data.kalam.kuligai.end)} tone="hold" />
+                {(data.kalam.durmuhurtham ?? []).map((slot, index) => (
+                  <TimeRow
+                    key={`dur-${index}`}
+                    label="Durmuhurtham · avoid auspicious/new beginnings"
+                    labelTa="துர்முகூர்த்தம் · சுப / புதிய தொடக்கங்களுக்கு தவிர்க்கவும்"
+                    value={clockRange(slot.start, slot.end)}
+                    tone="hold"
+                  />
+                ))}
+              </div>
+
+              {/* Kuligai is activity-dependent, not part of the general avoid register. */}
+              <div style={{ background: "var(--cl-surface)", border: "1px solid var(--cl-border)", borderRadius: "14px", overflow: "hidden" }}>
+                <div style={{ padding: "18px 22px 6px" }}>
+                  <SectionHead title="Activity-dependent Window · செயலைப் பொறுத்த நேரம்" />
+                </div>
+                <TimeRow
+                  label="Kuligai · for activities meant to repeat, continue or grow"
+                  labelTa="குளிகை · மீண்டும் நிகழ, தொடர அல்லது வளர வேண்டிய செயல்களுக்கு"
+                  value={clockRange(data.kalam.kuligai.start, data.kalam.kuligai.end)}
+                />
               </div>
 
               {/* Auspicious timings */}

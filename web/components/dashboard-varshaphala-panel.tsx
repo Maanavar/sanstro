@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { t } from "@/lib/i18n";
+import { t, tPlanetLord } from "@/lib/i18n";
+import { rasiDisplayName } from "@/lib/chart-utils";
 import { scoreColor } from "@/lib/format";
 import type { Lang } from "@/lib/i18n";
 import type { VarshaphalaData } from "@/lib/types";
@@ -31,7 +32,7 @@ const PLANET_COLORS: Record<string, string> = {
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 
-function PlanetTag({ planet }: { planet: string }) {
+function PlanetTag({ planet, lang }: { planet: string; lang: Lang }) {
   const color = PLANET_COLORS[planet] ?? W.muted;
   return (
     <span style={{
@@ -44,7 +45,7 @@ function PlanetTag({ planet }: { planet: string }) {
       fontSize: "0.78rem",
       fontWeight: 700,
     }}>
-      {planet}
+      {tPlanetLord(planet, lang)}
     </span>
   );
 }
@@ -99,11 +100,11 @@ export function VarshaphalaPanel({ lang, chartId, data, loading, onLoad }: Props
         <>
           {/* Header metrics row */}
           <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", marginBottom: "var(--space-4)" }}>
-            <MetricPill label={t("varshaphala_sr_lagna", lang)} value={data.solarReturnLagnaName} />
-            <MetricPill label={t("varshaphala_muntha", lang)} value={`${data.munthaRasiName} (H${data.munthaHouseFromSrLagna})`} />
+            <MetricPill label={t("varshaphala_sr_lagna", lang)} value={rasiDisplayName(data.solarReturnLagnaRasi, lang)} />
+            <MetricPill label={t("varshaphala_muntha", lang)} value={`${rasiDisplayName(data.munthaRasi, lang)} (H${data.munthaHouseFromSrLagna})`} />
             <MetricPill
               label={t("varshaphala_year_lord", lang)}
-              value={data.yearLord}
+              value={tPlanetLord(data.yearLord, lang)}
               accent={PLANET_COLORS[data.yearLord]}
             />
           </div>
@@ -227,9 +228,9 @@ function AspectList({ lang, title, pairs, tone }: {
             const [planet1, planet2] = p.pair.split("-");
             return (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
-                <PlanetTag planet={planet1} />
+                <PlanetTag planet={planet1} lang={lang} />
                 <span style={{ color: tone, fontWeight: 700, fontSize: "0.8rem" }}>↔</span>
-                <PlanetTag planet={planet2} />
+                <PlanetTag planet={planet2} lang={lang} />
               </div>
             );
           })}

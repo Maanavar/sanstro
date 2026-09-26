@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
+import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import {
   Bell,
@@ -17,8 +18,11 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Image from "next/image";
+import { placeCityLabel } from "@vinaadi/shared/checkIn";
+import { rasiDisplayName } from "@/lib/chart-utils";
+import { dt, LOCATION_CHECK } from "@/lib/dashboard-i18n";
 import { formatClockLabel } from "@/lib/format";
-import { t } from "@/lib/i18n";
+import { t, tNakshatra } from "@/lib/i18n";
 import { DUR, EASE_NOVA, prefersReducedMotion } from "@/lib/motion";
 import type { Lang } from "@/lib/i18n";
 import type {
@@ -28,6 +32,7 @@ import type {
 } from "@/lib/types";
 import type { Tab } from "@/lib/dashboard-tabs";
 import type { StatusMessage } from "./dashboard-ui-nova";
+import { Presence } from "./ui/presence";
 
 type LabelKey = Parameters<typeof t>[0];
 
@@ -108,8 +113,15 @@ interface DashboardHeroProps {
   onUserMenuClose: () => void;
   onGoToSettings: () => void;
   onSignOut: () => void;
-  /** Nova navbar's "✦ Ask Vinaadi" button — omitted when no chart exists yet. */
+  /** Nova navbar's "✦ Ask Vinaadi" button. */
   onAskVinaadi?: () => void;
+  /** False until a chart exists: the pill still renders, disabled, so its
+   *  arrival no longer pushes the nav ~225px sideways (DXA-05). */
+  askReady?: boolean;
+  /** DXA-07: the selected day's data is still in flight and what is on screen
+   *  below belongs to the previous selection. Draws a progress hairline along
+   *  the bottom edge of the sub-bar. */
+  dayLoading?: boolean;
 }
 
 /* Nova navbar glyphs — lucide (SHD-02). `.cd-icon` controls size (18px) and
@@ -133,6 +145,23 @@ function CheckIcon() {
 
 function CloseIcon() {
   return <X className="cd-icon" aria-hidden="true" focusable="false" />;
+}
+
+/**
+ * The top bar's backdrop filter turns it into the containing block for fixed
+ * descendants. Keep the dismiss layer at the shell instead, so it covers the
+ * page while the popover remains above it in the top bar.
+ */
+function PageDismissOverlay({ onDismiss }: { onDismiss: () => void }) {
+  const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setPortalHost(document.querySelector<HTMLElement>(".cd-shell"));
+  }, []);
+
+  return portalHost
+    ? createPortal(<div className="cd-overlay cd-overlay--page" onClick={onDismiss} />, portalHost)
+    : null;
 }
 
 export function DashboardHero(props: DashboardHeroProps) {
@@ -164,12 +193,19 @@ export function DashboardHero(props: DashboardHeroProps) {
     onGoToSettings,
     onSignOut,
     onAskVinaadi,
+    askReady = true,
+    dayLoading = false,
   } = props;
 
+  const errorStatus = status?.tone === "error" ? status : null;
+  const panchangamCity = placeCityLabel(panchangamPlace);
   const [showAlerts, setShowAlerts] = useState(false);
   const [showInbox, setShowInbox] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const activeTabRef = useRef<HTMLButtonElement>(null);
+  const inboxTriggerRef = useRef<HTMLButtonElement>(null);
+  const inboxPopoverRef = useRef<HTMLDivElement>(null);
+  const accountTriggerRef = useRef<HTMLButtonElement>(null);
 
   // ⌘K / Ctrl+K opens Ask Vinaadi from anywhere on the dashboard. The kbd
   // chip's label is resolved after mount (SSR can't know the platform).
@@ -178,7 +214,7 @@ export function DashboardHero(props: DashboardHeroProps) {
     setKbdLabel(/mac/i.test(navigator.platform) ? "⌘K" : "Ctrl K");
   }, []);
   useEffect(() => {
-    if (!onAskVinaadi) return;
+    if (!onAskVinaadi || !askReady) return;
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
@@ -187,7 +223,7 @@ export function DashboardHero(props: DashboardHeroProps) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onAskVinaadi]);
+  }, [onAskVinaadi, askReady]);
 
   // Settings is reachable from the avatar menu, so it is omitted from the tab
   // strip to keep the mobile nav compact.
@@ -211,10 +247,47 @@ export function DashboardHero(props: DashboardHeroProps) {
   const moreTriggerRef = useRef<HTMLButtonElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
-  const closeMoreMenu = (returnFocus = true) => {
+  const closeMoreMenu = useCallback((returnFocus = true) => {
     setShowMoreMenu(false);
     if (returnFocus) moreTriggerRef.current?.focus();
-  };
+  }, []);
+
+  const closeInbox = useCallback((returnFocus = true) => {
+    setShowInbox(false);
+    if (returnFocus) inboxTriggerRef.current?.focus();
+  }, []);
+
+  const closeUserMenu = useCallback((returnFocus = true) => {
+    onUserMenuClose();
+    if (returnFocus) accountTriggerRef.current?.focus();
+  }, [onUserMenuClose]);
+
+  // The inbox can be opened while its trigger retains focus. Keep Escape
+  // available at the document boundary in that state; pointer dismissal is
+  // deliberately owned by the retained page layer below.
+  useEffect(() => {
+    if (!showInbox) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      closeInbox();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [showInbox, closeInbox]);
+
+  // An avatar click can open this menu without shifting focus from the page.
+  // Keep Escape available at the document boundary in that measured state.
+  useEffect(() => {
+    if (!showUserMenu) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      closeUserMenu();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [showUserMenu, closeUserMenu]);
 
   // Focus moves into the menu on open, landing on the current destination
   // when one of them is active — so "where am I" and "where can I go" are
@@ -262,6 +335,20 @@ export function DashboardHero(props: DashboardHeroProps) {
     } else if (event.key === "End") {
       event.preventDefault();
       list[list.length - 1].focus();
+    }
+  };
+
+  const onInboxKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeInbox();
+    }
+  };
+
+  const onAccountKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeUserMenu();
     }
   };
 
@@ -315,6 +402,9 @@ export function DashboardHero(props: DashboardHeroProps) {
         type="button"
         ref={isActive ? activeTabRef : undefined}
         className={`cd-tab${isActive ? " cd-tab--active" : ""}`}
+        // Language-free handle: the audit's Tamil phase clicks tabs by id,
+        // because in Tamil mode the label it would match on is Tamil (W-8).
+        data-tab={tab.id}
         aria-current={isActive ? "page" : undefined}
         title={lang === "ta" ? tab.desc.ta : tab.desc.en}
         onClick={() => onTabChange(tab.id)}
@@ -402,19 +492,15 @@ export function DashboardHero(props: DashboardHeroProps) {
                   />
                 )}
               </button>
-              {showMoreMenu && (
-                <>
-                  <div className="cd-overlay cd-overlay--menu" onClick={() => closeMoreMenu(false)} />
-                  <motion.div
-                    ref={moreMenuRef}
-                    className="cd-dropdown cd-dropdown--nav"
-                    role="menu"
-                    aria-label={t("tab_more", lang)}
-                    initial={prefersReducedMotion() ? false : { opacity: 0, y: -6, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ duration: DUR.fast, ease: EASE_NOVA }}
-                    style={{ transformOrigin: "top right" }}
-                  >
+              <Presence
+                  open={showMoreMenu}
+                  ref={moreMenuRef}
+                  className="cd-dropdown cd-dropdown--nav"
+                  role="menu"
+                  aria-label={t("tab_more", lang)}
+                  style={{ transformOrigin: "top right" }}
+                >
+                    <PageDismissOverlay onDismiss={() => closeMoreMenu(false)} />
                     {moreTabs.map((tab) => {
                       const Glyph = tab.icon;
                       const isCurrent = activeTab === tab.id;
@@ -424,6 +510,7 @@ export function DashboardHero(props: DashboardHeroProps) {
                           type="button"
                           role="menuitem"
                           className="cd-dropdown__btn cd-dropdown__btn--nav"
+                          data-tab={tab.id}
                           aria-current={isCurrent ? "page" : undefined}
                           onClick={() => {
                             onTabChange(tab.id);
@@ -449,26 +536,34 @@ export function DashboardHero(props: DashboardHeroProps) {
                         </button>
                       );
                     })}
-                  </motion.div>
-                </>
-              )}
+                </Presence>
             </div>
           </nav>
 
           <div className="cd-topbar__right">
             {onAskVinaadi && (
-              <button type="button" className="cd-ask-search" onClick={onAskVinaadi} aria-label={t("ask_panel_title", lang)}>
+              <button
+                type="button"
+                className="cd-ask-search"
+                onClick={askReady ? onAskVinaadi : undefined}
+                disabled={!askReady}
+                aria-label={t("ask_panel_title", lang)}
+              >
                 <span aria-hidden="true" className="cd-ask-search__star">✦</span>
                 <span className="cd-ask-search__hint">
                   {lang === "ta" ? "விநாடியிடம் எதையும் கேளுங்கள்…" : "Ask Vinaadi anything…"}
                 </span>
-                {kbdLabel && <kbd className="cd-ask-search__kbd" aria-hidden="true">{kbdLabel}</kbd>}
+                {/* Width reserved before the platform is known (DXA-05). */}
+                <kbd className="cd-ask-search__kbd" aria-hidden="true" style={kbdLabel ? undefined : { visibility: "hidden" }}>
+                  {kbdLabel ?? "Ctrl K"}
+                </kbd>
               </button>
             )}
 
-            <div className="cd-popover-anchor">
+            <div className="cd-popover-anchor" onKeyDown={onInboxKeyDown}>
               <button
                 type="button"
+                ref={inboxTriggerRef}
                 className="cd-icon-btn"
                 onClick={() => { setShowAlerts(false); setShowInbox((v) => !v); }}
                 aria-label={t("notif_section_title", lang)}
@@ -478,10 +573,8 @@ export function DashboardHero(props: DashboardHeroProps) {
                   <span className="cd-badge">{(alertCount + inboxUnreadCount) > 9 ? "9+" : alertCount + inboxUnreadCount}</span>
                 )}
               </button>
-              {showInbox && (
-                <>
-                  <div className="cd-overlay cd-overlay--alerts" onClick={() => setShowInbox(false)} />
-                  <div className="cd-alerts-popover">
+              <Presence open={showInbox} ref={inboxPopoverRef} className="cd-alerts-popover" style={{ transformOrigin: "top right" }}>
+                    <PageDismissOverlay onDismiss={() => closeInbox(false)} />
                     {/* Ambient (astro) alerts */}
                     {alertItems.length > 0 && (
                       <>
@@ -560,9 +653,7 @@ export function DashboardHero(props: DashboardHeroProps) {
                         {lang === "ta" ? "முழு அறிவிப்பு பெட்டி" : "Open full inbox"}
                       </Link>
                     </div>
-                  </div>
-                </>
-              )}
+                </Presence>
             </div>
 
             <button
@@ -575,9 +666,10 @@ export function DashboardHero(props: DashboardHeroProps) {
               {lang === "ta" ? "EN" : "த"}
             </button>
 
-            <div className="cd-popover-anchor">
+            <div className="cd-popover-anchor" onKeyDown={onAccountKeyDown}>
               <button
                 type="button"
+                ref={accountTriggerRef}
                 className="cd-avatar"
                 onClick={onUserMenuToggle}
                 aria-label={t("label_account", lang)}
@@ -585,10 +677,8 @@ export function DashboardHero(props: DashboardHeroProps) {
               >
                 {userEmail ? userEmail[0].toUpperCase() : "U"}
               </button>
-              {showUserMenu && (
-                <>
-                  <div className="cd-overlay cd-overlay--menu" onClick={onUserMenuClose} />
-                  <div className="cd-dropdown">
+              <Presence open={showUserMenu} className="cd-dropdown" style={{ transformOrigin: "top right" }}>
+                    <PageDismissOverlay onDismiss={() => closeUserMenu(false)} />
                     <div className="cd-dropdown__head">
                       <p className="cd-dropdown__email-label">Signed in as</p>
                       <p className="cd-dropdown__email">{userEmail ?? "—"}</p>
@@ -602,9 +692,7 @@ export function DashboardHero(props: DashboardHeroProps) {
                       <SignOutIcon />
                       <span>Sign out</span>
                     </button>
-                  </div>
-                </>
-              )}
+                </Presence>
             </div>
           </div>
         </div>
@@ -620,11 +708,11 @@ export function DashboardHero(props: DashboardHeroProps) {
               )}
               {chartSummary && (
                 <span className="cd-subbar__chart">
-                  {chartSummary.moonRasi}
+                  {rasiDisplayName(chartSummary.moonRasi, lang)}
                   {" - "}
-                  {chartSummary.janmaNakshatra}
+                  {tNakshatra(chartSummary.janmaNakshatra, lang)}
                   {" - "}
-                  {chartSummary.lagnaRasi} {lang === "ta" ? "லக்னம்" : "Lagnam"}
+                  {rasiDisplayName(chartSummary.lagnaRasi, lang)} {lang === "ta" ? "லக்னம்" : "Lagnam"}
                 </span>
               )}
               {/* UXD-15 — birth-time uncertainty is collected but was never shown;
@@ -643,45 +731,63 @@ export function DashboardHero(props: DashboardHeroProps) {
               )}
             </div>
             <div className="cd-subbar__right">
-              {/* aria-live so async outcomes are announced; ✓/⚠ follows the
-                  message's own tone instead of always showing a check (DASH-08). */}
-              {status && (
-                <span
-                  className="cd-subbar__status"
-                  title={status.text}
-                  role="status"
-                  aria-live="polite"
-                  style={status.tone === "error" ? { color: "var(--color-low, #C0392B)" } : undefined}
-                >
-                  <span className="cd-subbar__status-check" aria-hidden="true">
-                    {status.tone === "error" ? "⚠" : "✓"}
+              {/* Only failures earn chrome space (DXA-05). Successes the user
+                  caused are already toasts; automatic "Personal data refreshed"
+                  lines arrived late, pushed the bar and said nothing new. The
+                  live region stays mounted so announcing an error moves nothing
+                  that was not already there. */}
+              <span className="cd-visually-hidden" role="status" aria-live="polite">
+                {errorStatus?.text ?? ""}
+              </span>
+              {/* Fixed slots (DXA-05). Both of these arrive with the day's
+                  data, and both used to widen this group as they landed,
+                  moving its left edge and everything in it — two of the three
+                  shifts the audit recorded inside the header. The slots are
+                  rendered from the first paint and hold their width (≥860px,
+                  where the bar is one row); what lands fills them. */}
+              <span className="cd-subbar__slot cd-subbar__slot--status">
+                {errorStatus && (
+                  <span className="cd-subbar__status" title={errorStatus.text} aria-hidden="true" style={{ color: "var(--color-low)" }}>
+                    <span className="cd-subbar__status-check">⚠</span>
+                    {errorStatus.text}
                   </span>
-                  {status.text}
-                </span>
-              )}
-              {/* Provenance note — which sunrise/place the day's panchangam was
-                  computed from. Yields the slot whenever a transient status is
-                  announcing something. New ta copy pending native review. */}
-              {!status && panchangamSunrise && (
-                <span className="cd-subbar__status" title={panchangamPlace ?? undefined}>
-                  <span className="cd-subbar__status-check" aria-hidden="true">✓</span>
-                  {lang === "ta"
-                    ? `பஞ்சாங்கம் ${formatClockLabel(panchangamSunrise)} கணக்கிடப்பட்டது`
-                    : `Panchangam computed ${formatClockLabel(panchangamSunrise)}`}
-                  {panchangamPlace ? ` · ${panchangamPlace}` : ""}
-                </span>
-              )}
-              {selectedVault && (
-                <button
-                  type="button"
-                  className="cd-subbar__vault"
-                  title={selectedVault.name}
-                  onClick={() => onTabChange("family")}
-                >
-                  {selectedVault.name}
-                  <span className="cd-subbar__vault-caret" aria-hidden="true">▾</span>
-                </button>
-              )}
+                )}
+                {/* Provenance note — which place and sunrise the day's
+                    panchangam was computed from. Yields the slot while an error
+                    is showing. New ta copy pending native review.
+
+                    §2.4 (2026-09-23): the place leads. It used to trail the
+                    sunrise as ` · Chennai`, reading as a footnote to the time
+                    rather than as the thing the time depends on, and it printed
+                    the whole saved string ("Chennai, Tamil Nadu, India") into a
+                    sub-bar slot sized for a few words. Now it is the sentence's
+                    subject, shortened to the city, with the full string still in
+                    `title`. */}
+                {!errorStatus && panchangamSunrise && (
+                  <span className="cd-subbar__status" title={panchangamPlace ?? undefined}>
+                    <span className="cd-subbar__status-check" aria-hidden="true">✓</span>
+                    {panchangamCity
+                      ? `${dt(LOCATION_CHECK.timingsFor, lang).replace("%1$s", panchangamCity)} · `
+                      : ""}
+                    {lang === "ta"
+                      ? `சூரிய உதயம் ${formatClockLabel(panchangamSunrise, lang)}`
+                      : `sunrise ${formatClockLabel(panchangamSunrise, lang)}`}
+                  </span>
+                )}
+              </span>
+              <span className="cd-subbar__slot cd-subbar__slot--vault">
+                {selectedVault && (
+                  <button
+                    type="button"
+                    className="cd-subbar__vault"
+                    title={selectedVault.name}
+                    onClick={() => onTabChange("family")}
+                  >
+                    {selectedVault.name}
+                    <span className="cd-subbar__vault-caret" aria-hidden="true">▾</span>
+                  </button>
+                )}
+              </span>
 
               <label htmlFor="dashboard-date" className="cd-visually-hidden">
                 {lang === "ta" ? "தேதி தேர்வு" : "Select date"}
@@ -707,10 +813,15 @@ export function DashboardHero(props: DashboardHeroProps) {
               </div>
             </div>
           </div>
+          {/* DXA-07 — the day below is still the previous selection's while
+              this runs. Absolutely positioned on the sub-bar's bottom edge so
+              it adds no height: the bar this sits on is the one DXA-05 just
+              stopped moving, and a 2px row that appears on every date change
+              would put the shift back. */}
+          {dayLoading && <span className="cd-subbar__progress" aria-hidden="true" />}
         </div>
       </header>
 
     </>
   );
 }
-

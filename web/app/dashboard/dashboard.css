@@ -209,6 +209,11 @@
   z-index: 199;
 }
 
+/* Portalled to .cd-shell: above the page, below the top bar popover. */
+.cd-overlay--page {
+  z-index: 50;
+}
+
 .cd-empty-note {
   margin: 0;
   padding: var(--space-2) var(--space-3);
@@ -235,7 +240,7 @@
   align-items: center;
   justify-content: center;
   position: relative;
-  transition: background 150ms ease, border-color 150ms ease;
+  transition: background 150ms var(--ease-nova), border-color 150ms var(--ease-nova);
   flex-shrink: 0;
 }
 
@@ -277,7 +282,7 @@
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 150ms ease;
+  transition: background 150ms var(--ease-nova);
 }
 
 .cd-lang-btn:hover {
@@ -297,7 +302,7 @@
   align-items: center;
   justify-content: center;
   border: 2px solid var(--color-border-strong);
-  transition: transform 0.12s ease;
+  transition: transform 0.12s var(--ease-nova);
   flex-shrink: 0;
 }
 
@@ -315,7 +320,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: 6px;
-  box-shadow: 0 8px 32px var(--color-shadow-warm);
+  box-shadow: var(--elev-3, 0 8px 32px var(--color-shadow-warm));
 }
 
 .cd-dropdown {
@@ -407,7 +412,7 @@
 
 .cd-dropdown__icon {
   color: var(--color-faint);
-  transition: color 150ms ease;
+  transition: color 150ms var(--ease-nova);
 }
 
 .cd-dropdown__btn--nav:hover .cd-dropdown__icon {
@@ -448,7 +453,7 @@
 .cd-tab__chevron {
   flex: none;
   color: var(--color-faint);
-  transition: transform 180ms ease, color 150ms ease;
+  transition: transform 180ms var(--ease-nova), color 150ms var(--ease-nova);
 }
 
 .cd-tab--more:hover .cd-tab__chevron,
@@ -579,7 +584,7 @@
   white-space: nowrap;
   flex-shrink: 0;
   position: relative;
-  transition: color 150ms ease;
+  transition: color 150ms var(--ease-nova);
   /* A nav label is a control, not prose — double-clicking one to switch tabs
      should not leave its text selected underneath. */
   -webkit-user-select: none;
@@ -704,7 +709,7 @@
 .cd-skeleton {
   position: relative;
   overflow: hidden;
-  background: var(--panel-tan, #D4C8AE);
+  background: color-mix(in srgb, var(--color-text-strong) 8%, transparent);
   border-radius: var(--radius-sm);
 }
 
@@ -713,7 +718,12 @@
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-text-strong) 14%, transparent),
+    transparent
+  );
   animation: cd-shimmer 1.4s ease-in-out infinite;
 }
 
@@ -723,38 +733,40 @@
   }
 }
 
-/* Skeleton card components always use the cream/tan palette inside the dashboard
-   regardless of system theme — the dashboard shell has a fixed cream background */
+/* Skeletons inherit Nova's active surface and stay deliberately quiet in either
+   theme. The dashboard no longer has a fixed cream background. */
 .cd-main-content .skel-card {
-  background: var(--panel-cream, #FAF5EA);
-  border-color: var(--panel-tan-light, #E4DBC8);
+  background: var(--color-surface);
+  border-color: var(--color-border);
 }
 
 .cd-main-content .skel {
-  background: var(--panel-tan, #D4C8AE);
+  background: color-mix(in srgb, var(--color-text-strong) 8%, transparent);
 }
 
 .cd-main-content .skel::after {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.55) 50%,
+    color-mix(in srgb, var(--color-text-strong) 14%, transparent) 50%,
     transparent 100%
   );
 }
 
 .cd-main-content .skel-metric-cell {
-  background: var(--panel-cream, #FAF5EA);
-  border-color: var(--panel-tan-light, #E4DBC8);
+  background: var(--color-surface);
+  border-color: var(--color-border);
 }
 
 .cd-main-content .skel-transit-list {
-  background: var(--panel-cream, #FAF5EA);
-  border-color: var(--panel-tan-light, #E4DBC8);
+  background: var(--color-surface);
+  border-color: var(--color-border);
 }
 
+/* Between the card and the bars, as --surface-2 is in skeleton.css: on the
+   card colour itself the four corner cells vanish and the chart loses its shape. */
 .cd-main-content .skel-chart-corner {
-  background: var(--panel-tan-light, #E4DBC8);
+  background: color-mix(in srgb, var(--color-text-strong) 4%, transparent);
 }
 
 @media (max-width: 900px) {
@@ -947,9 +959,14 @@
    Use a shared fixed width instead (wide enough for the
    longest label) so every row lines up like the English mode.
    Also relax line-height on display-size text so Tamil
-   ascenders/descenders aren't clipped. */
-.cd-shell[data-lang="ta"] .cd-detail-spec-row {
-  grid-template-columns: 200px minmax(0, 1fr) auto;
+   ascenders/descenders aren't clipped.
+   Above 720px only: at phone width the rows stack to one column
+   (dashboard-globals.css), and this selector's higher specificity used
+   to override that, holding Calendar at 372px on a Tamil 320px phone. */
+@media (min-width: 721px) {
+  .cd-shell[data-lang="ta"] .cd-detail-spec-row {
+    grid-template-columns: 200px minmax(0, 1fr) auto;
+  }
 }
 
 .cd-shell[data-lang="ta"] .cd-detail-spec-row__label {
@@ -1030,7 +1047,7 @@
     overflow: hidden;
     padding: var(--space-2) 0;
     gap: 2px;
-    transition: width 200ms ease;
+    transition: width 200ms var(--ease-nova);
   }
 
   .cd-left-rail[data-expanded="true"] {
@@ -1060,10 +1077,10 @@
   background: transparent;
   color: var(--color-faint);
   cursor: pointer;
-  transition: background var(--duration-fast, 150ms) ease,
-              color var(--duration-fast, 150ms) ease,
-              width 200ms ease,
-              padding 200ms ease;
+  transition: background var(--duration-fast, 150ms) var(--ease-nova),
+              color var(--duration-fast, 150ms) var(--ease-nova),
+              width 200ms var(--ease-nova),
+              padding 200ms var(--ease-nova);
   flex-shrink: 0;
 }
 
@@ -1111,7 +1128,7 @@
   white-space: nowrap;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 100ms ease 60ms;
+  transition: opacity 100ms var(--ease-nova) 60ms;
   z-index: 200;
 }
 
@@ -1180,7 +1197,7 @@
   border-radius: 6px;
 }
 .setup-advanced__chev {
-  transition: transform 160ms ease;
+  transition: transform 160ms var(--ease-nova);
   flex-shrink: 0;
 }
 .setup-advanced[open] > summary .setup-advanced__chev { transform: rotate(90deg); }
@@ -1200,7 +1217,7 @@
   background: var(--color-border);
   margin: var(--space-2) auto;
   flex-shrink: 0;
-  transition: width 200ms ease;
+  transition: width 200ms var(--ease-nova);
 }
 
 .cd-left-rail[data-expanded="true"] .cd-rail-divider {
@@ -1309,7 +1326,7 @@
   letter-spacing: 0.02em;
   font-family: inherit;
   opacity: 0.85;
-  transition: opacity 120ms ease;
+  transition: opacity 120ms var(--ease-nova);
 }
 
 .cd-household-strip__link:hover {

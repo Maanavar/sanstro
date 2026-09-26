@@ -78,7 +78,7 @@ already like; they change only with a stated reason.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import Enum
 
 from app.calculations.chart_strength import DEBILITATION_RASI
@@ -133,6 +133,20 @@ class Subject:
     maha_lord: str | None = None
     antar_lord: str | None = None
     label: str | None = None       # "Meera" — for copy; never used in scoring
+    # The Tamil half of `label`. A role label like "the bride" is *generated*
+    # copy, not a personal name, so it has a real Tamil form and must use it —
+    # `label` alone would drop "the bride" into an otherwise-Tamil sentence,
+    # which is the mistake `_janma_nakshatra_factor` already documents for its
+    # own fallback. A personal name has no translation and leaves this None,
+    # which falls back to `label` in both languages, as before.
+    label_ta: str | None = None
+    # "BRIDE" | "GROOM" | None. Scoring-relevant, unlike `label`: Ch. XIV p.79's
+    # Jupiter gochara rule is stated *from the bride's* Janma-Rasi and names a
+    # consequence that falls on her, so it is only answerable when we have been
+    # told which chart is hers. Unknown role means the rule stays silent — the
+    # fail-safe direction here is not to apply it, because applying a rule about
+    # the bride to a groom's chart is not conservative, it is simply wrong.
+    role: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -287,6 +301,24 @@ class _W:
     # year Jupiter is retrograde.
     KARAKA_COMBUST = -14.0
     KARAKA_DEBILITATED = -10.0
+    # Ch. XIV p.79, Jupiter's gochara from the bride's Janma-Rasi. The *rule* is
+    # primary-text confirmed (`MARRIAGE_JUPITER_GOCHARA_FROM_MOON`); this number
+    # and the decision to price it as a penalty rather than a veto are the
+    # owner's ruling of 2026-09-12, taken with the copy softened — the passage
+    # states its consequence in terms this product will not print.
+    #
+    # Sized level with CHANDRA_ASHTAMA_RASI (-15): grave enough to move the band,
+    # never enough to remove a day on its own. Two properties of the rule argue
+    # against anything heavier. Jupiter holds a sign for about a year, so across
+    # any 60-day search it is very nearly a constant — it shifts every candidate
+    # by the same amount and therefore changes the *band*, not the ranking. And
+    # six of the twelve houses are adverse, so a veto would blank roughly half of
+    # every bride's available years, which no almanac does.
+    MARRIAGE_JUPITER_GOCHARA = -15.0
+    # ENGINE_POLICY, not doctrine: what a personal factor contributes when the
+    # *other* half of a couple has the weaker reading and therefore governs.
+    # Exactly zero — see `_weaker_side_governs`.
+    COUPLE_STOOD_DOWN = 0.0
 
 
 # Navatara quality. The adverse *classification* (Vipat 3 / Pratyak 5 / Vadha 7)
@@ -381,6 +413,21 @@ def _star(snapshot) -> tuple[str, str]:
     fallback = str(snapshot.nakshatra_name).title()
     number = snapshot.nakshatra_number
     return (nakshatra_en(number) or fallback, nakshatra_ta(number) or fallback)
+
+
+def _who(subject: Subject, fallback_en: str) -> tuple[str, str]:
+    """(english name, tamil prefix) for naming whose chart a factor read.
+
+    Two things it exists to keep straight. The Tamil half comes from `label_ta`
+    where the label is generated copy with a real Tamil form ("the bride" /
+    "மணமகள்"), and falls back to `label` only for a personal name, which has no
+    translation. And the Tamil half is returned as a *prefix* — trailing space
+    included, empty when there is no label — because every call site splices it
+    directly in front of a Tamil noun.
+    """
+    label_en = subject.label
+    label_ta = subject.label_ta or subject.label
+    return (label_en or fallback_en, f"{label_ta} " if label_ta else "")
 
 
 def _tithi(snapshot) -> tuple[str, str]:
@@ -1656,6 +1703,87 @@ def karaka_dignity_factors(
     return factors
 
 
+def marriage_jupiter_gochara_factor(
+    activity: str,
+    bodies: dict[str, EphemerisBody],
+    subject: Subject,
+) -> FactorResult | None:
+    """Ch. XIV p.79 — Jupiter's transit house from the **bride's** Janma-Rasi.
+
+    The passage (`MARRIAGE_JUPITER_GOCHARA_FROM_MOON`, CONFIRMED_EXACT) shuts out
+    the 3rd, 4th, 6th, 8th, 10th and 12th, and states its consequence in terms
+    this product does not print. The constant has sat in
+    `marriage_muhurta_rules` since the extraction pass with a note that wiring it
+    was a product decision; it was unanswerable until a caller could say which of
+    two charts is the bride's. That is the decision of 2026-09-12: **wired as a
+    penalty, with the consequence paraphrased as "counted among the adverse
+    gochara positions" rather than quoted.** The citation still carries the
+    passage verbatim for a reader who opens it — softening the copy is not the
+    same as hiding the source.
+
+    Returns None unless the role is explicitly BRIDE. A single-chart run that
+    never said who it was for gets silence, not a guess: this rule names a
+    consequence that falls on the bride, so applying it to an unknown or a
+    groom's chart would not be the cautious reading, just the wrong one.
+
+    Takes the bodies from the caller, preserving this module's no-ephemeris-call
+    contract, exactly as `karaka_dignity_factors` does. Jupiter holds a sign for
+    roughly a year, so which instant of the day they were read at cannot change
+    the answer.
+
+    The chapter's other half — "marry in the 5th/6th/7th year of the bride when
+    Jupiter is well-placed" — is PERMANENTLY REFUSED, not pending. It prescribes
+    child marriage. The age was always derivable from the bride's saved birth
+    date, so "no request carries an age" was never the real reason it stayed
+    unwired. See the refused bride-age constant in `marriage_muhurta_rules`,
+    which a guard test forbids anything under app/ from reading.
+    """
+    if activity.upper() != "MARRIAGE" or subject.role != "BRIDE":
+        return None
+    jupiter = bodies.get("JUPITER")
+    if jupiter is None:
+        return None
+
+    house = ((jupiter.rasi - subject.janma_rasi) % 12) + 1
+    who_en, who_ta = _who(subject, "the bride")
+    nth = _ordinal(house)
+
+    if house not in marriage.MARRIAGE_JUPITER_ADVERSE_HOUSES_FROM_MOON:
+        # Named rather than silent. This module's own rule is that "we checked
+        # and it is clear" must be distinguishable from "we have no table" — and
+        # a bride who has been told about this rule on one date needs to see it
+        # answered on the others.
+        return FactorResult(
+            factor="GRAHA_GOCHARA",
+            verdict=Verdict.NEUTRAL,
+            contribution=0.0,
+            reason_en=(
+                f"Jupiter transits the {nth} from {who_en}'s birth sign, clear of the "
+                "houses Kalaprakasika counts against a marriage."
+            ),
+            reason_ta=(
+                f"{who_ta}ஜென்ம ராசிக்கு {house}ல் குரு பகவான் — திருமணத்திற்கு "
+                "கலப்பிரகாசிகை தவிர்க்கச் சொல்லும் இடங்களில் இல்லை."
+            ),
+            rule_id="MARRIAGE_JUPITER_GOCHARA_FROM_MOON",
+        )
+
+    return FactorResult(
+        factor="GRAHA_GOCHARA",
+        verdict=Verdict.PENALTY,
+        contribution=_W.MARRIAGE_JUPITER_GOCHARA,
+        reason_en=(
+            f"Jupiter transits the {nth} from {who_en}'s birth sign, which Kalaprakasika "
+            "counts among the adverse gochara positions for a marriage."
+        ),
+        reason_ta=(
+            f"{who_ta}ஜென்ம ராசிக்கு {house}ல் குரு பகவான் — திருமணத்திற்கு "
+            "உகந்ததல்ல என கலப்பிரகாசிகை கூறுகிறது."
+        ),
+        rule_id="MARRIAGE_JUPITER_GOCHARA_FROM_MOON",
+    )
+
+
 def _registry_lagna_sign_factor(snapshot, activity: str) -> FactorResult | None:
     """The activity's own sourced lagna-sign preference.
 
@@ -1749,12 +1877,11 @@ def _janma_nakshatra_factor(snapshot, activity: str, subject: Subject) -> Factor
         return None
 
     # The fallback is bilingual, not one English string reused in both. The
-    # picker builds its `Subject` without a label, so the unlabelled path is the
-    # *production* path — a shared `or "this chart"` would put a Latin phrase
-    # inside the Tamil sentence on every real result, not just in a rare corner.
-    # A supplied label is a personal name and is printed as given in both.
-    who_en = subject.label or "this chart"
-    who_ta = f"{subject.label} " if subject.label else ""
+    # single-chart picker builds its `Subject` without a label, so the unlabelled
+    # path is a *production* path — a shared `or "this chart"` would put a Latin
+    # phrase inside the Tamil sentence on every real result, not just in a rare
+    # corner. `_who` keeps that property for a labelled subject too.
+    who_en, who_ta = _who(subject, "this chart")
     star_en, star_ta = _star(snapshot)
     return FactorResult(
         factor="JANMA_NAKSHATRA",
@@ -1837,8 +1964,7 @@ def _janma_tara_count_factor(snapshot, activity: str, subject: Subject) -> Facto
         return None
     count = ((snapshot.nakshatra_number - subject.janma_nakshatra) % 27) + 1
 
-    who_en = subject.label or "this chart"
-    who_ta = f"{subject.label} " if subject.label else ""
+    who_en, who_ta = _who(subject, "this chart")
     star_en, star_ta = _star(snapshot)
     which_en, which_ta = _janma_tara_naming(count)
 
@@ -1946,8 +2072,7 @@ def _chandra_bala_factor(snapshot, subject: Subject) -> FactorResult:
     §9 and §11.
     """
     house = chandra_bala(subject.janma_rasi, snapshot.chandrashtamam_moon_rasi_number)
-    who_en = subject.label or "this person"
-    who_ta = f"{subject.label} " if subject.label else ""
+    who_en, who_ta = _who(subject, "this person")
 
     # The star window is asked FIRST and unconditionally, not inside a
     # `house == 8` gate. `house` reads the Moon's rasi at SUNRISE, and a window
@@ -2039,8 +2164,7 @@ def _chandra_bala_factor(snapshot, subject: Subject) -> FactorResult:
 def _tara_bala_factor(snapshot, subject: Subject) -> FactorResult:
     tara = tara_number(subject.janma_nakshatra, snapshot.nakshatra_number)
     tara_ta, tara_en = _TARA_NAMES[tara]
-    who_en = subject.label or "this person"
-    who_ta = f"{subject.label} " if subject.label else ""
+    who_en, who_ta = _who(subject, "this person")
     star_en, star_ta = _star(snapshot)
 
     if tara in _TARA_ADVERSE:
@@ -2068,6 +2192,125 @@ def _tara_bala_factor(snapshot, subject: Subject) -> FactorResult:
     )
 
 
+# ── the personal layer, for one subject and for a couple ────────────────────
+
+def _personal_factors(snapshot, activity: str, subject: Subject) -> list[FactorResult]:
+    """Every factor that needs a birth chart, for one subject, in order."""
+    factors = [
+        _chandra_bala_factor(snapshot, subject),
+        _tara_bala_factor(snapshot, subject),
+    ]
+    for optional in (
+        _janma_nakshatra_factor(snapshot, activity, subject),
+        _janma_tara_count_factor(snapshot, activity, subject),
+    ):
+        if optional is not None:
+            factors.append(optional)
+    return factors
+
+
+# Deliberately says "the two charts", not "the couple". Couple mode exists for
+# weddings and that is what the form offers it for, but the route accepts a
+# second chart for any activity, and copy that calls two people a couple when
+# they are a mother and a child would be the surface telling the reader
+# something nobody asked it.
+_COUPLE_STAND_DOWN_EN = (
+    " Not counted in the score — the weaker of the two charts governs."
+)
+_COUPLE_STAND_DOWN_TA = (
+    " இது மதிப்பெண்ணில் சேர்க்கப்படவில்லை — இரு ஜாதகங்களில் "
+    "பலவீனமான நிலையே முடிவு செய்யும்."
+)
+
+
+def _stand_down(factor: FactorResult) -> FactorResult:
+    """The same reading, not counted, and saying so in its own sentence.
+
+    Both halves of a couple's reading are always reported — a reader needs to
+    see that the bride's star was Sampat even on a day the groom's Vipat
+    decided. But only one of them is priced, so the one that is not must carry a
+    contribution of exactly zero *and* explain the zero. A PENALTY worth 0.0 with
+    no explanation is the class of defect this repo has already paid for: a
+    printed number and the sentence beside it disagreeing about what happened.
+
+    The verdict is left truthful. A stood-down PENALTY still reaches the caller's
+    `cautions` list, which is right — an adverse reading on either side is worth
+    a reader's attention whether or not it is the one that set the score.
+    """
+    return replace(
+        factor,
+        contribution=_W.COUPLE_STOOD_DOWN,
+        reason_en=factor.reason_en + _COUPLE_STAND_DOWN_EN,
+        reason_ta=factor.reason_ta + _COUPLE_STAND_DOWN_TA,
+    )
+
+
+def _weaker_side_governs(
+    primary: list[FactorResult],
+    partner: list[FactorResult],
+) -> list[FactorResult]:
+    """Fold two subjects' personal factors into one priced layer.
+
+    The owner's ruling of 2026-09-12: **a wedding date is only as good as its
+    harder half.** Per factor family the couple's score takes the *worse* of the
+    two readings, and a VETO from either side vetoes the day. A brilliant Tara
+    Bala for the bride does not buy back a Naidhana one for the groom — the two
+    are gates in Tamil practice, not a pair of scores to average.
+
+    Two consequences worth stating, because both were alternatives that were
+    considered and rejected:
+
+    * The personal layer keeps the **same weight** it has in single-chart mode.
+      Summing both subjects would have doubled it against the almanac layer,
+      which is the double-counting failure this codebase has hit before.
+    * A factor **absent** for one subject counts as a neutral 0 for them, not as
+      "no opinion". So a bonus only one side earns is not credited: if the
+      groom's janma-tara count is ordinary, the bride's favoured count cannot
+      lift the couple's day above ordinary. A penalty only one side earns *is*
+      applied, for the same reason read the other way round.
+
+    Order is preserved: families in the order the primary subject produced them,
+    then any family only the partner has, and within a family the primary's
+    reading first.
+    """
+    by_family: dict[str, list[FactorResult]] = {}
+    order: list[str] = []
+    for factor in (*primary, *partner):
+        if factor.factor not in by_family:
+            by_family[factor.factor] = []
+            order.append(factor.factor)
+        by_family[factor.factor].append(factor)
+
+    combined: list[FactorResult] = []
+    for family in order:
+        readings = by_family[family]
+        vetoes = [f for f in readings if f.verdict is Verdict.VETO]
+        if vetoes:
+            # A veto is not a quantity, so "worse" is not a comparison here: every
+            # veto stands, and anything alongside it is stood down. Its own
+            # contribution is already 0.0 by construction.
+            combined.extend(f if f.verdict is Verdict.VETO else _stand_down(f) for f in readings)
+            continue
+
+        # An absent reading is a neutral 0 for that subject — see the docstring.
+        # So a family only one subject produced is compared against that 0: a
+        # lone penalty governs, a lone bonus stands down. Writing this as a flat
+        # `0.0 if len(readings) < 2` would silently discard the lone penalty,
+        # which is the one direction an avoidance rule must never fail.
+        contributions = [f.contribution for f in readings]
+        if len(readings) < 2:
+            contributions.append(0.0)
+        floor = min(contributions)
+        governed = False
+        for factor in readings:
+            if not governed and factor.contribution == floor:
+                combined.append(factor)
+                governed = True
+            else:
+                combined.append(_stand_down(factor))
+    return combined
+
+
 # ── the entry point ─────────────────────────────────────────────────────────
 
 def score_day(
@@ -2075,13 +2318,21 @@ def score_day(
     activity: str,
     subject: Subject | None = None,
     *,
+    co_subject: Subject | None = None,
     include_lagna_sign: bool = True,
 ) -> DayScore:
-    """Score one day for one activity, optionally for one person.
+    """Score one day for one activity, optionally for one person or a couple.
 
     `subject=None` is general mode: the personal factors are not computed, not
     scored, and not mentioned. A general result can never be vetoed by a
     personal factor — that is the definition of the mode.
+
+    `co_subject` adds the second half of a couple — the case a wedding date has
+    always been, and which this engine could not express until 2026-09-12. Both
+    charts' personal factors are reported; only the weaker of each pair is
+    priced, and a veto from either vetoes the day. See `_weaker_side_governs`. It
+    requires `subject`: a couple is two people, and a co-subject alone would
+    quietly become single-chart mode for the wrong person.
 
     The returned score is **not clamped**. Callers add their own layers on top
     (`muhurta_service` adds a dasha and a hora bonus) and clamping here would
@@ -2124,15 +2375,16 @@ def score_day(
         if lagna_factor is not None:
             factors.append(lagna_factor)
 
-    if subject is not None:
-        factors.append(_chandra_bala_factor(snapshot, subject))
-        factors.append(_tara_bala_factor(snapshot, subject))
-        for personal in (
-            _janma_nakshatra_factor(snapshot, activity, subject),
-            _janma_tara_count_factor(snapshot, activity, subject),
-        ):
-            if personal is not None:
-                factors.append(personal)
+    if subject is None:
+        if co_subject is not None:
+            raise ValueError("co_subject requires subject — a couple is two charts, not one")
+    elif co_subject is None:
+        factors.extend(_personal_factors(snapshot, activity, subject))
+    else:
+        factors.extend(_weaker_side_governs(
+            _personal_factors(snapshot, activity, subject),
+            _personal_factors(snapshot, activity, co_subject),
+        ))
 
     vetoed = any(f.verdict is Verdict.VETO for f in factors)
     # A vetoed day keeps its factor list — the UI needs to name what killed it —

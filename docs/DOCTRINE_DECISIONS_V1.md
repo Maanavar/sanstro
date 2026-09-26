@@ -21,6 +21,8 @@
 | 11 | `_graha_relation` compound friendship rule (CI Level 6) | Enemy in either direction → enemy; friend in both directions → friend; else neutral | 🟡 Important — Compatibility Intelligence report |
 | 12 | Rajju/Vedha veto on CI overall label | Hard-cap the headline label at CAUTION when Rajju or Vedha fails, regardless of the 0–100 weighted score | 🟡 Important — Compatibility Intelligence report; consistency with the shipped porutham-label veto |
 | 13 | Ashtakavarga bindu grid vs kāraka-relative readings | Grid is a measurement → shown ungated. Readings counted from a kāraka graha are claims about named relatives → gated to life-area cards, banded never counted | ✅ Ratified 2026-08-18 (P2-05); boundary enforced by test, not convention |
+| 14 | Durmuhurtham display polarity | Avoid for auspicious acts and new beginnings; not a blanket prohibition or whole-day verdict | ✅ Owner-delegated ruling 2026-09-23; rendered with scoped copy |
+| 15 | Sign-edge grahas and Lagna | Edge (±1°) and Baladi never both charged; the larger applies. No Baladi for Rahu/Ketu. A graha belongs only to its occupied sign. Lagna checked by recompute at ±5 (firm) / ±15 (soft) min; D9 Lagna at ±5 | ✅ Astrologer ruling 2026-09-23; built |
 
 ---
 
@@ -226,6 +228,120 @@ A kāraka-relative reading is a claim about a named relative. Its failure mode i
 - Nāḍi-tier association rules (planets conjunct Sevvai / Chandran / Sukran) remain **not built**: their natural output is a count, they have no labelled auxiliary surface, and the Sukran rule asserts a spouse the profile may not have. Revisit only with a labelled auxiliary section and a marital-status gate matching the `has_declared_children()` pattern.
 
 **Related:** §6 (whole-sign remains the primary interpretive engine; equal bhāva stays a labelled secondary lens showing only the grahas that move). Rulebook `STR-04`, `STR-05`, `OUT-02`.
+
+---
+
+## 14. Durmuhurtham Is an Electional Avoid Window, Not a Whole-Day Verdict
+
+**Decision (owner-delegated, 2026-09-23):** Durmuhurtham belongs in the
+Panchangam avoid register when the reader is choosing an **auspicious act or a
+new beginning**. It must not be expanded into “this whole period is bad for all
+ordinary activity,” and it must never colour the whole civil day as adverse.
+If the UI has room for explanatory copy, use the limiting phrase: **“Avoid for
+auspicious / new beginnings”** / **“சுப / புதிய தொடக்கங்களுக்கு தவிர்க்கவும்.”**
+
+**Rationale.** The production table is a weekday-indexed electional exclusion,
+already verified against the seven supplied Chennai almanac entries. Its name
+and `is_good=False` flag establish that it is not a recommended muhurta, but do
+not justify turning a narrow electional rule into a fear-based general warning.
+This is also why it is not added to the mobile Rahu/Yama reminder preferences:
+those reminders are an explicit, separately ruled product contract.
+
+**Affected modules and surfaces.** The computation remains in
+`app/calculations/panchangam.py`; the wire contract remains
+`PanchangamKalam.durmuhurtham`. Renderers in the shared web Calendar/day drawer,
+muhurta evidence, signed-out Home/Panchangam tools, and mobile
+Today/Panchangam/planner may show the windows only with the scope above.
+Activity-specific muhurta scoring may continue to exclude overlap as an
+electional factor. Kuligai remains governed separately by its conditional
+activity table and must not be inferred from this decision.
+
+**Two consequences of the scope, both of which are part of the ruling.**
+
+1. **It joins the Nalla Neram overlap check, and Kuligai leaves it.**
+   `avoidSlotsForOverlap` in `dashboard-calendar-tab-nova.tsx` marks an
+   auspicious window that a binding avoid period runs through. Durmuhurtham
+   belongs there *because* it binds on auspicious work, which is exactly what a
+   Gowri Nalla Neram window is offered for — the two claims would otherwise
+   contradict each other on one card. Kuligai was removed from that list under
+   R7 for the mirror reason: it is not a prohibition, so it has no standing to
+   qualify a recommendation.
+2. **It paints one rung below Yamagandam, never above it.** A narrower rule
+   must not look graver than a general one. `DAY_TIMELINE_BAND_STYLE` carries a
+   dedicated `avoid-scoped` kind for it — same hue as `avoid`, lower intensity —
+   and `NovaAvoidStrip` reads its dot colours from that same table rather than
+   re-typing them, so the strip and the timeline cannot drift into two
+   disagreeing severity ramps a few pixels apart. Pinned by
+   `dashboard-calendar-tab-nova.test.tsx`.
+
+**Migration impact.** None. No stored chart changes, cache-version change or
+recalculation is required; the field is derived from date, weekday, sunrise and
+sunset and was already optional on cached Panchangam responses.
+
+**Sign-off.** The repository owner delegated the remaining product/doctrine
+call to the implementation owner on 2026-09-23 in the §4/§6/§5 completion
+request. This section records that delegated decision; it does not claim a new
+independent printed-source review beyond the seven-entry verification already
+recorded in `HOME_CALENDAR_CHARTS_PROPOSALS_2026-09-22.md`.
+
+---
+
+## 15. Sign-Edge Grahas and the Lagna Edge
+
+**Decision (astrologer ruling, 2026-09-23; queue item "Sign-edge grahas").**
+
+1. **One fact, one penalty (Q1).** A graha within 1° of a sign boundary is also
+   in the first or last 6° Baladi zone, so the flat rasi-sandhi term (−8) and
+   the Baladi avastha scaling both come from its degree in the sign. They are
+   never both charged. The larger applies: if the Baladi cost
+   (`dignity × (1 − multiplier) × 0.60 × 0.30`) exceeds 8, it stands and the
+   sandhi row reads 0 with the reason; otherwise the −8 applies and the Baladi
+   scaling is lifted for that graha.
+   *Note on the ruling's wording.* The ruling also said this is "the same as
+   letting sandhi replace Baladi inside its window". That holds only while the
+   Baladi cost is at most 8. It is exceeded when dignity ≥ ~60 in a Mrita zone:
+   an exalted graha in the first degree of an even sign costs 13.5. Where the
+   two readings differ, we followed the stated rule ("the larger"), which never
+   under-penalises. *Astrologer: please confirm.*
+2. **No Baladi for Rahu and Ketu (Q2).** Baladi is defined for the seven grahas;
+   the nodes are always retrograde, so a mechanical reading would run their
+   stages backwards. The scorer's multiplier is 1.0 for them, the
+   `strength_breakdown.baladi` label is `NEUTRAL`, and no avastha line is
+   narrated. Their strength comes through the dispositor and the node doctrine.
+   Jagradadi was not ruled on and is unchanged.
+3. **A graha belongs only to its occupied sign (Q3).** Consistent with §6
+   (whole-sign is the primary engine). Copy: *"It gives its sign and house
+   results only from ‹sign›. Nearness to the edge can lower its strength but
+   never moves it into ‹neighbour›."* The earlier word "fully" was dropped
+   because it read as "undiminished strength".
+4. **Lagna edge by recompute, in two tiers (Q4).** The Lagna is recomputed at
+   the birth time ± the window and the crossing found by bisection, never
+   inferred from a degree cutoff. ±5 min gives a firm warning ("this Lagna
+   depends on the precise birth time"). ±15 min gives a softer note, because
+   Indian birth times are commonly rounded to 5 or 15 minutes. A recorded
+   birth-time confidence wider than 15 min widens the soft tier. The **Navamsa
+   Lagna** is checked the same way at ±5 min only: a navamsa lasts about 13
+   minutes, so a ±15 window would flag every chart.
+
+**Measured frequency** (400 synthetic births, 8–30°N): Lagna firm 8%, Lagna soft
+19%, **D9 Lagna firm 76%**. The D9 figure is arithmetic, not a bug: a ±5 min
+window covers 10 of a navamsa's ~13 minutes. Whether to show that note on three
+charts in four is an open product question (see the queue item).
+
+**Affected modules.** `app/calculations/chart_strength.py`
+(`SANDHI_PENALTY`, `SANDHI_EDGE_DEGREES`, `_BALADI_EXEMPT`, the natal score);
+`app/calculations/lagna_edge.py`; `app/services/chart_explanation_service.py`
+(avastha facet, sandhi sentence, core-identity notes);
+`app/services/_chart_summary.py` (Jadhagam report core identity); wire fields
+`coreIdentity.lagnaEdgeNote` / `navamsaLagnaEdgeNote` on both responses.
+Tests: `tests/test_sign_edge_narration.py`.
+
+**Migration impact.** None stored: natal scores are recomputed when a persisted
+chart is read. Scores move for (a) edge grahas whose Baladi cost is below 8,
+which rise by that cost; (b) edge grahas whose Baladi cost is 8 or more, which
+rise by 8; (c) Rahu and Ketu outside the Yuva band, which rise. Daily guidance
+already cached for today keeps its old natal inputs until the day rolls over.
+The daily engine version was deliberately not bumped.
 
 ---
 

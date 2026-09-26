@@ -51,7 +51,7 @@ def _daily_guidance_line(is_subha: bool) -> dict[str, str]:
             "en": "An auspicious day — a good time to begin good work.",
         }
     return {
-        "ta": "கீழே உள்ள நல்ல நேரங்களைப் பயன்படுத்தி, ராகு காலத்தைத் தவிர்க்கவும்.",
+        "ta": "கீழே உள்ள நல்ல நேரங்களைப் பயன்படுத்தி, ராகு காலத்தைத் தவிர்ப்பது நல்லது.",
         "en": "Use the good windows below and avoid Rahu Kalam.",
     }
 

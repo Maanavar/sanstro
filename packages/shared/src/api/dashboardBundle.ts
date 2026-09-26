@@ -45,6 +45,17 @@ export type ChartDashboardBundleData = {
   panchangamLocation: "current" | "birth" | null;
   /** IANA timezone of that location — compute "now" in this zone (DASH-01). */
   panchangamTimezone: string | null;
+  /** The place's own name, for "Timings for Chennai" (§2.4). `panchangamLocation`
+   *  names the rule that picked it, which is not something to show a reader. */
+  panchangamPlace?: string | null;
+  /** When a human last vouched for the saved location — moved by a change *and*
+   *  by a "Keep" confirmation. */
+  locationConfirmedAt?: string | null;
+  /** The §2 backstop, server-computed on LOCATION_CHECK_DUE_DAYS (R2: 45) so
+   *  web and mobile cannot drift apart on the cadence. The device-timezone
+   *  mismatch prompt is the main path and stays client-side — only the client
+   *  knows what zone the device is in. */
+  locationCheckDue?: boolean;
   /** Section name -> short failure note for sections returned as null. */
   errors: Record<string, string>;
 };

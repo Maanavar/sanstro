@@ -179,7 +179,7 @@ function Pill({ active, onClick, children }: { active: boolean; onClick: () => v
         background: active ? "var(--color-text-strong)" : "transparent",
         color: active ? "var(--color-on-accent)" : "var(--color-faint)",
         fontSize: "var(--text-base)", fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-        transition: "all 150ms ease",
+        transition: "all 150ms var(--ease-nova)",
       }}
     >
       {children}
@@ -738,7 +738,7 @@ export function SynastryPanel({
 
                           {/* Progress bar */}
                           <div style={{ width: "100%", height: "5px", borderRadius: "var(--radius-sm)", background: "var(--color-border)", overflow: "hidden" }}>
-                            <div style={{ height: "100%", borderRadius: "var(--radius-sm)", width: `${barPct}%`, background: stTone.color, transition: "width 400ms ease" }} />
+                            <div style={{ height: "100%", borderRadius: "var(--radius-sm)", width: `${barPct}%`, background: stTone.color, transition: "width 400ms var(--ease-nova)" }} />
                           </div>
 
                           {isCriticalFail && (

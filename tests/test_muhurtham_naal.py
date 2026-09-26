@@ -6,12 +6,13 @@ the matching is pure arithmetic — so they run anywhere (no swisseph / no DB).
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, time
 from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
 
+from app.calculations.astro import RASI_NAMES
 from app.data.muhurtham_naals import available_years, get_muhurtham_naals
 from app.models import BirthProfile, Chart
 from app.services import muhurtham_naal_service as svc
@@ -309,3 +310,196 @@ def test_match_unknown_chart_or_year():
     with pytest.raises(HTTPException) as exc2:
         svc.match_muhurtham_naals(uuid.uuid4(), 2026, _NoneSession())
     assert exc2.value.status_code == 404
+
+
+def test_a_single_chart_reports_one_governing_reading():
+    session = _FakeSession(_FakeChart("ROHINI", "Rishabam"))
+    matches, ctx = svc.match_muhurtham_naals(uuid.uuid4(), 2026, session)
+    assert ctx["partner"] is None and ctx["subject_who"] is None
+    for m in matches:
+        assert len(m.readings) == 1
+        (reading,) = m.readings
+        assert reading.who is None and reading.governs is True
+        assert reading.tara_number == m.tara_number
+
+
+# ── Couples (2026-09-15) ──────────────────────────────────────────────────────
+#
+# A published wedding date is read against both charts and the weaker side
+# governs each check (docs/MUHURTA_COUPLE_MODE_2026-09-12.md, R1). These are
+# properties of a *pair*, so they sweep star pairs, not dates.
+
+
+class _PairSession:
+    def __init__(self, charts: dict, profiles: dict):
+        self._charts = charts
+        self._profiles = profiles
+
+    def get(self, model, key):
+        if model is Chart:
+            return self._charts.get(key)
+        if model is BirthProfile:
+            return self._profiles.get(key)
+        raise AssertionError(f"Unexpected model: {model}")
+
+
+def _saved_chart(star: str, rasi_number: int, *, birth_time: time | None = time(6, 30)):
+    """(chart_id, chart, profile_id, profile) for a synthetic saved chart."""
+    profile_id = uuid.uuid4()
+    chart = SimpleNamespace(
+        janma_nakshatra=star, moon_rasi=RASI_NAMES[rasi_number], birth_profile_id=profile_id,
+    )
+    profile = SimpleNamespace(
+        birth_place="Synthetic birthplace", birth_latitude=10.0, birth_longitude=76.0,
+        birth_timezone="Asia/Kolkata", current_place="Synthetic current place",
+        current_latitude=11.0, current_longitude=77.0, current_timezone="Asia/Kolkata",
+        birth_time_local=birth_time,
+    )
+    return uuid.uuid4(), chart, profile_id, profile
+
+
+def _pair_session(*entries) -> _PairSession:
+    return _PairSession(
+        {chart_id: chart for chart_id, chart, _, _ in entries},
+        {profile_id: profile for _, _, profile_id, profile in entries},
+    )
+
+
+@pytest.fixture()
+def _rasi_fallback_snapshots(monkeypatch):
+    """Snapshots with no star windows, so Chandrashtama is read by rasi alone.
+
+    That keeps each date's verdict a pure function of the two charts' rasis,
+    which is what lets the sweep compare a couple against its two halves.
+    """
+    slot = SimpleNamespace(start=datetime(2026, 1, 1, 8, 12), end=datetime(2026, 1, 1, 9, 7), period="AM")
+
+    def _snapshots(start, end, lat, lon, tz, *, session, only=None):
+        return {
+            day: SimpleNamespace(nalla_neram=[slot], chandrashtamam_janma_nakshatra_windows=())
+            for day in (only or ())
+        }
+
+    monkeypatch.setattr(svc, "calculate_daily_panchangam_range", _snapshots)
+
+
+# One star per quality neighbourhood, spread across the zodiac so Chandrashtama
+# lands on different dates for each.
+_SWEEP_CHARTS = [
+    ("ROHINI", 2), ("ASWINI", 1), ("MOOLAM", 9),
+    ("HASTHAM", 6), ("REVATHI", 12), ("POOSAM", 4),
+]
+
+
+@pytest.mark.usefixtures("_rasi_fallback_snapshots")
+def test_a_couple_is_never_ranked_above_either_half_of_it():
+    entries = [_saved_chart(star, rasi) for star, rasi in _SWEEP_CHARTS]
+    session = _pair_session(*entries)
+    solo = {
+        chart_id: {m.naal.date: m for m in svc.match_muhurtham_naals(chart_id, 2026, session)[0]}
+        for chart_id, *_ in entries
+    }
+
+    for a, *_ in entries:
+        for b, *_ in entries:
+            if a == b:
+                continue
+            couple, ctx = svc.match_muhurtham_naals(
+                a, 2026, session, partner_chart_id=b, subject_role="BRIDE",
+            )
+            assert len(couple) == 55
+            for m in couple:
+                sa, sb = solo[a][m.naal.date], solo[b][m.naal.date]
+                assert m.match_score <= min(sa.match_score, sb.match_score)
+                # Recommended for a couple means recommended for each of them —
+                # no more, and no less.
+                assert m.is_recommended == (sa.is_recommended and sb.is_recommended)
+                assert m.is_chandrashtama == (sa.is_chandrashtama or sb.is_chandrashtama)
+                assert [r.governs for r in m.readings].count(True) == 1
+                governing = next(r for r in m.readings if r.governs)
+                assert (governing.tara_number, governing.tara_quality) == (m.tara_number, m.tara_quality)
+            assert ctx["recommended_count"] <= min(
+                sum(s.is_recommended for s in solo[a].values()),
+                sum(s.is_recommended for s in solo[b].values()),
+            )
+
+
+@pytest.mark.usefixtures("_rasi_fallback_snapshots")
+def test_two_charts_with_one_star_score_exactly_as_one_chart():
+    """The no-double-counting check: the same reading twice is still one reading.
+
+    Summing the personal layer would dock a shared Chandrashtama twice and pass
+    every other test here.
+    """
+    first, second = _saved_chart("MOOLAM", 9), _saved_chart("MOOLAM", 9)
+    session = _pair_session(first, second)
+    solo = {m.naal.date: m for m in svc.match_muhurtham_naals(first[0], 2026, session)[0]}
+    couple, _ = svc.match_muhurtham_naals(first[0], 2026, session, partner_chart_id=second[0])
+
+    for m in couple:
+        assert m.match_score == solo[m.naal.date].match_score
+        assert not any("weaker tara" in r.en for r in m.reasons)
+    shared = [m for m in couple if m.is_chandrashtama]
+    assert shared, "expected Kadagam-Moon dates in the 2026 sheet"
+    for m in shared:
+        assert any("counted once" in r.en for r in m.reasons)
+
+
+@pytest.mark.usefixtures("_rasi_fallback_snapshots")
+def test_each_reading_names_whose_chart_it_read():
+    bride, groom = _saved_chart("ROHINI", 2), _saved_chart("ASWINI", 1)
+    session = _pair_session(bride, groom)
+    matches, ctx = svc.match_muhurtham_naals(
+        bride[0], 2026, session, partner_chart_id=groom[0], subject_role="BRIDE",
+    )
+
+    assert ctx["subject_who"].en == "Bride"
+    assert ctx["partner"]["who"].en == "Groom"
+    assert ctx["partner"]["janma_nakshatra"].en == "Aswini"
+    for m in matches:
+        assert [r.who.en for r in m.readings] == ["Bride", "Groom"]
+        assert not any("your star" in r.en for r in m.reasons)
+        # "Your star", twice, is two true sentences a reader cannot tell apart.
+        assert any(r.en.startswith("Bride — ") for r in m.reasons)
+        assert any(r.en.startswith("Groom — ") for r in m.reasons)
+        assert any(r.ta.startswith("மணமகள் — ") for r in m.reasons)
+        scores = {svc.TARA_SCORE[r.tara_number] for r in m.readings}
+        priced = [r for r in m.reasons if "weaker tara" in r.en]
+        # The priced-vs-shown sentence appears exactly when it changed the score.
+        assert len(priced) == (1 if len(scores) == 2 else 0)
+
+    # The groom being named first makes him the subject, not the bride.
+    swapped, swapped_ctx = svc.match_muhurtham_naals(
+        bride[0], 2026, session, partner_chart_id=groom[0], subject_role="GROOM",
+    )
+    assert (swapped_ctx["subject_who"].en, swapped_ctx["partner"]["who"].en) == ("Groom", "Bride")
+    # Labels only: the ranking itself cannot depend on who is called what.
+    assert [m.match_score for m in swapped] == [m.match_score for m in matches]
+
+
+@pytest.mark.usefixtures("_rasi_fallback_snapshots")
+def test_an_unnamed_couple_is_told_apart_by_position():
+    first, second = _saved_chart("ROHINI", 2), _saved_chart("ASWINI", 1)
+    session = _pair_session(first, second)
+    matches, _ = svc.match_muhurtham_naals(first[0], 2026, session, partner_chart_id=second[0])
+    assert [r.who.en for r in matches[0].readings] == ["First chart", "Second chart"]
+
+
+def test_a_chart_cannot_be_its_own_partner():
+    chart = _saved_chart("ROHINI", 2)
+    with pytest.raises(HTTPException) as exc:
+        svc.match_muhurtham_naals(chart[0], 2026, _pair_session(chart), partner_chart_id=chart[0])
+    assert exc.value.status_code == 422
+
+
+@pytest.mark.parametrize("untimed_side,named", [("partner", "Groom"), ("subject", "Bride")])
+def test_a_couple_needs_both_birth_times(untimed_side, named):
+    bride = _saved_chart("ROHINI", 2, birth_time=None if untimed_side == "subject" else time(6, 30))
+    groom = _saved_chart("ASWINI", 1, birth_time=None if untimed_side == "partner" else time(6, 30))
+    with pytest.raises(HTTPException) as exc:
+        svc.match_muhurtham_naals(
+            bride[0], 2026, _pair_session(bride, groom), partner_chart_id=groom[0], subject_role="BRIDE",
+        )
+    assert exc.value.status_code == 422
+    # Naming which chart failed; two identical-looking choices need that.
+    assert exc.value.detail.startswith(f"{named}:")

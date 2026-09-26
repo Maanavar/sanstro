@@ -21,12 +21,13 @@ import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "@/hooks/useSession";
 import { getDailyStatus, askVinaadi } from "@/api/askVinaadi";
+import { useLifeFocus } from "@/hooks/useLifeFocus";
+import { askChipsForMode } from "@vinaadi/shared/lifeFocus";
+import { trackEvent } from "@/lib/analytics";
 
-const SUGGESTED_QUESTIONS = [
-  { ta: "திருமணம் எப்போது?", en: "When will I get married?" },
-  { ta: "தொழில் மாற்றம் சரியா?", en: "Is a career change right for me?" },
-  { ta: "இந்த ஆண்டு எப்படி?", en: "How is this year for me?" },
-];
+// The chips follow the reader's life focus, the same three web shows
+// (LIFE_MODE_ASK_CHIPS in @vinaadi/shared; Life focus Phase 3). Until the
+// focus loads, or with none chosen, they are the BALANCED three.
 
 interface ChatMessage {
   id: string;
@@ -57,6 +58,9 @@ export default function AskVinaadiScreen() {
     staleTime: 1000 * 60,
     enabled: tier !== "guest",
   });
+
+  const { mode: focusMode } = useLifeFocus();
+  const suggestedQuestions = askChipsForMode(focusMode);
 
   const questionsUsed = statusData?.questionsUsedToday ?? 0;
   const dailyLimit = statusData?.dailyLimit ?? 5;
@@ -283,11 +287,18 @@ export default function AskVinaadiScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.chipsRow}
           >
-            {SUGGESTED_QUESTIONS.map((q, i) => (
+            {suggestedQuestions.map((q, i) => (
               <TouchableOpacity
                 key={i}
                 style={styles.suggestChip}
-                onPress={() => sendMessage(isTamil ? q.ta : q.en, true)}
+                onPress={() => {
+                  trackEvent("life_focus_ask_chip_tapped", {
+                    focus: focusMode,
+                    surface: "mobile",
+                    chip_index: i,
+                  });
+                  void sendMessage(isTamil ? q.ta : q.en, true);
+                }}
                 disabled={atLimit}
                 activeOpacity={0.85}
               >

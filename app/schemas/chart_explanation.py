@@ -65,6 +65,15 @@ class ChartExplanationCoreIdentity(BaseModel):
     current_antardasha: str = Field(alias="currentAntardasha")
     current_pratyantardasha: str = Field(alias="currentPratyantardasha")
     explanation: ChartExplanationText
+    # Present only when the Lagna sits so close to a sign boundary that a
+    # birth-time error of a few minutes (or the recorded confidence window)
+    # would put it in the neighbouring sign. Null for everyone else.
+    lagna_edge_note: ChartExplanationText | None = Field(default=None, alias="lagnaEdgeNote")
+    # Same idea for the Navamsa (D9) Lagna, which changes every ~13 minutes and
+    # feeds yoga detection. Firm tier (±5 min) only.
+    navamsa_lagna_edge_note: ChartExplanationText | None = Field(
+        default=None, alias="navamsaLagnaEdgeNote"
+    )
 
     model_config = ConfigDict(populate_by_name=True)
 

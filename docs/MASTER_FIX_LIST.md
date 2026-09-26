@@ -4,6 +4,12 @@ Last updated: 2026-06-26
 
 Scope: Security, resilience, astrology accuracy, and follow-up verification work from the consolidated review list.
 
+## Calendar Monthly — 2026-09-15
+
+- [~] Owner-approved reference redesign using Nova fonts/colors, compact
+  observance sidebar, selected-day summary and responsive grid. See
+  [design and verification notes](CALENDAR_MONTHLY_REDESIGN_2026-09-15.md).
+
 This document is written as an agent handoff. A coding agent should be able to pick one task ID, inspect the listed files, implement the fix, add or update tests, and report the result without relying on the original review chat.
 
 ## Before Starting

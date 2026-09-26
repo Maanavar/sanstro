@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Sparkles, AlertTriangle, Clover, Flame, Landmark, Moon, Search, ArrowRight, type LucideIcon } from "lucide-react";
 import { Kicker } from "./ui";
 import { novaDetailCardStyle } from "./dashboard-explore-detail-nova";
+import { PendingPlaceholder } from "./pending-placeholder-nova";
 
 import type { Lang } from "@/lib/i18n";
 import { t, tPlanetLord } from "@/lib/i18n";
@@ -18,8 +19,10 @@ import { DashboardExploreDoshamNova, DashboardExploreDoshamListNova } from "./da
 import { DashboardExploreYogamNova, DashboardExploreYogamListNova } from "./dashboard-explore-yogam-nova";
 import { DashboardExploreGuideNova, DashboardExploreGuideListNova } from "./dashboard-explore-guide-nova";
 import { DashboardExploreLearnNova } from "./dashboard-explore-learn-nova";
+import { Reveal } from "./dashboard-ui-nova";
 import { GlossaryTerm } from "./glossary-term";
 import { GLOSSARY, GLOSSARY_LABELS, type GlossaryKey } from "@/lib/glossary";
+import { ViewSwap } from "./ui/view-swap";
 
 /**
  * Nova "Explore" tab — Phase 6 of the dashboard revamp (see
@@ -247,6 +250,19 @@ interface DashboardExploreTabNovaProps {
   memberCharts: MemberChart[];
   onNavigate: (tab: Tab) => void;
   onOpenAskVinaadi: () => void;
+  /** The chart data is still on its way (DXA-05): "Start from your chart"
+   *  holds its place instead of appearing late and pushing the page. */
+  pending?: boolean;
+}
+
+/** One held "Start from your chart" slot: the card's own box, waiting.
+ *  188px is what the three loaded cards measure at 1440 (DXA-05). */
+function ChartStarterPending({ lang }: { lang: Lang }) {
+  return (
+    <div style={{ ...novaDetailCardStyle, minHeight: "188px" }}>
+      <PendingPlaceholder lang={lang} lines={4} />
+    </div>
+  );
 }
 
 export function DashboardExploreTabNova({
@@ -258,6 +274,7 @@ export function DashboardExploreTabNova({
   memberCharts,
   onNavigate,
   onOpenAskVinaadi,
+  pending = false,
 }: DashboardExploreTabNovaProps) {
   const [query, setQuery] = useState("");
   const [subview, setSubview] = useState<ExploreSubview | null>(null);
@@ -269,6 +286,23 @@ export function DashboardExploreTabNova({
   const yogas = personalChart?.yogas ?? [];
   const activeYoga = yogas.find((y) => y.isPresent && y.strength === "STRONG") ?? yogas.find((y) => y.isPresent) ?? null;
   const hasChartStarters = !!(personalChartSummary?.janmaNakshatra && nakshatraCard) || !!activeDosham || !!activeYoga;
+  /* DXA-05 — the three starter cards come from two responses that land at
+     different moments, and the birth-star card, which lands last, is the first
+     of the three in the DOM. So it was inserted *above* the two already on
+     screen: the dosham card slid one slot right and the yoga card wrapped to a
+     second row. That single insertion was the Understand tab's whole CLS
+     (0.267 of 0.271 measured 2026-09-18).
+
+     Each slot now holds its own place while the response it waits for is out,
+     so the cards that arrive first are laid out where they will stay. A slot
+     whose answer turns out to be "you have none of these" still closes — that
+     is a finished lookup, not a wait, and it is the one case left that moves
+     anything here. */
+  const starReady = !!(personalChartSummary?.janmaNakshatra && nakshatraCard);
+  const starPending = pending && !starReady;
+  // doshams and yogas ride the same chart response, so these two resolve together.
+  const chartPending = pending && !personalChart;
+  const showChartStarters = hasChartStarters || starPending || chartPending;
 
   const q = query.trim().toLowerCase();
   const filteredLibrary = q ? LIBRARY_ITEMS.filter((i) => matchesQuery(q, i.titleEn, i.descEn, i.titleTa, i.descTa)) : LIBRARY_ITEMS;
@@ -279,15 +313,18 @@ export function DashboardExploreTabNova({
   if (subview?.kind === "nakshatram" && nakshatraCard) {
     if (subview.screen === "list") {
       return (
+        <ViewSwap viewKey="nakshatram-list">
         <DashboardExploreNakshatramListNova
           lang={lang}
           ownNumber={nakshatraCard.number}
           onSelect={(number) => setSubview({ kind: "nakshatram", screen: "detail", number })}
           onBack={() => setSubview(null)}
         />
+        </ViewSwap>
       );
     }
     return (
+      <ViewSwap viewKey="nakshatram-detail">
       <DashboardExploreNakshatramNova
         lang={lang}
         initialNumber={subview.number}
@@ -298,21 +335,25 @@ export function DashboardExploreTabNova({
         onBack={() => setSubview({ kind: "nakshatram", screen: "list" })}
         onOpenAskVinaadi={onOpenAskVinaadi}
       />
+      </ViewSwap>
     );
   }
 
   if (subview?.kind === "dosham" && doshams.length > 0) {
     if (subview.screen === "list") {
       return (
+        <ViewSwap viewKey="dosham-list">
         <DashboardExploreDoshamListNova
           lang={lang}
           doshams={doshams}
           onSelect={(index) => setSubview({ kind: "dosham", screen: "detail", index })}
           onBack={() => setSubview(null)}
         />
+        </ViewSwap>
       );
     }
     return (
+      <ViewSwap viewKey="dosham-detail">
       <DashboardExploreDoshamNova
         lang={lang}
         doshams={doshams}
@@ -322,21 +363,25 @@ export function DashboardExploreTabNova({
         onOpenAskVinaadi={onOpenAskVinaadi}
         onNavigateToday={() => onNavigate("personal")}
       />
+      </ViewSwap>
     );
   }
 
   if (subview?.kind === "yogam" && yogas.length > 0) {
     if (subview.screen === "list") {
       return (
+        <ViewSwap viewKey="yogam-list">
         <DashboardExploreYogamListNova
           lang={lang}
           yogas={yogas}
           onSelect={(index) => setSubview({ kind: "yogam", screen: "detail", index })}
           onBack={() => setSubview(null)}
         />
+        </ViewSwap>
       );
     }
     return (
+      <ViewSwap viewKey="yogam-detail">
       <DashboardExploreYogamNova
         lang={lang}
         yogas={yogas}
@@ -346,21 +391,25 @@ export function DashboardExploreTabNova({
         onOpenAskVinaadi={onOpenAskVinaadi}
         onNavigateToday={() => onNavigate("personal")}
       />
+      </ViewSwap>
     );
   }
 
   if (subview?.kind === "pariharam" || subview?.kind === "temple") {
     if (subview.screen === "list") {
       return (
+        <ViewSwap viewKey={`${subview.kind}-list`}>
         <DashboardExploreGuideListNova
           lang={lang}
           kind={subview.kind}
           onSelect={(slug) => setSubview({ kind: subview.kind, screen: "detail", slug })}
           onBack={() => setSubview(null)}
         />
+        </ViewSwap>
       );
     }
     return (
+      <ViewSwap viewKey={`${subview.kind}-detail`}>
       <DashboardExploreGuideNova
         lang={lang}
         kind={subview.kind}
@@ -368,17 +417,20 @@ export function DashboardExploreTabNova({
         onBack={() => setSubview({ kind: subview.kind, screen: "list" })}
         onOpenAskVinaadi={onOpenAskVinaadi}
       />
+      </ViewSwap>
     );
   }
 
   if (learnSlug) {
     return (
+      <ViewSwap viewKey={`learn-${learnSlug}`}>
       <DashboardExploreLearnNova
         lang={lang}
         initialSlug={learnSlug}
         onBack={() => setLearnSlug(null)}
         onOpenAskVinaadi={onOpenAskVinaadi}
       />
+      </ViewSwap>
     );
   }
 
@@ -416,8 +468,10 @@ export function DashboardExploreTabNova({
               <button
                 key={s}
                 type="button"
+                // Kit pill, without the inline colour/fill/border that beat
+                // its hover rules (E-4c).
+                className="ui-pill"
                 onClick={() => setQuery(s)}
-                style={{ fontSize: "var(--text-sm)", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 5%, transparent)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-pill)", padding: "var(--space-2) var(--space-4)", cursor: "pointer", fontFamily: "inherit" }}
               >
                 {s}
               </button>
@@ -427,18 +481,20 @@ export function DashboardExploreTabNova({
       </div>
 
       {/* ===== Start from your chart ===== */}
-      {hasChartStarters && (
+      {showChartStarters && (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-3)" }}>
             <Kicker>{lang === "ta" ? "உங்கள் ஜாதகத்திலிருந்து தொடங்குங்கள்" : "Start from your chart"}</Kicker>
             <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>{lang === "ta" ? "உங்களுக்கே பொருந்தும் பதிவுகள்" : "the entries that apply to you"}</span>
           </div>
           <div className="nova-grid-2">
+            {starPending && <ChartStarterPending lang={lang} />}
             {personalChartSummary?.janmaNakshatra && nakshatraCard && (
               <button
                 type="button"
+                className="ui-card--interactive"
                 onClick={() => setSubview({ kind: "nakshatram", screen: "detail", number: nakshatraCard.number })}
-                style={{ ...novaDetailCardStyle, background: "linear-gradient(120deg, var(--color-accent-muted), transparent)", border: "1px solid var(--color-border-strong)", textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
+                style={{ ...novaDetailCardStyle, backgroundColor: "var(--color-surface)", backgroundImage: "linear-gradient(120deg, var(--color-accent-muted), transparent)", border: "1px solid var(--color-border-strong)", textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <Kicker color="var(--color-accent-strong)">
@@ -465,9 +521,11 @@ export function DashboardExploreTabNova({
                 </span>
               </button>
             )}
+            {chartPending && <ChartStarterPending lang={lang} />}
             {activeDosham && (
               <button
                 type="button"
+                className="ui-card--interactive"
                 onClick={() => setSubview({ kind: "dosham", screen: "detail", index: doshams.indexOf(activeDosham) })}
                 style={{ ...novaDetailCardStyle, border: "1px solid var(--color-low-border)", textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
               >
@@ -490,11 +548,13 @@ export function DashboardExploreTabNova({
                 </span>
               </button>
             )}
+            {chartPending && <ChartStarterPending lang={lang} />}
             {activeYoga && (
               <button
                 type="button"
+                className="ui-card--interactive"
                 onClick={() => setSubview({ kind: "yogam", screen: "detail", index: yogas.indexOf(activeYoga) })}
-                style={{ ...novaDetailCardStyle, background: "linear-gradient(120deg, var(--color-high-bg), transparent)", border: "1px solid var(--color-high-border)", textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
+                style={{ ...novaDetailCardStyle, backgroundColor: "var(--color-surface)", backgroundImage: "linear-gradient(120deg, var(--color-high-bg), transparent)", border: "1px solid var(--color-high-border)", textAlign: "left", cursor: "pointer", fontFamily: "inherit", width: "100%" }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <Kicker color="var(--color-high)">
@@ -520,6 +580,7 @@ export function DashboardExploreTabNova({
       )}
 
       {/* ===== The library ===== */}
+      <Reveal>
       {filteredVocabulary.length > 0 && (
         <div data-testid="interface-vocabulary" style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
           <Kicker>{lang === "ta" ? "நீங்கள் பார்த்த சொற்கள்" : "Terms you may have seen"}</Kicker>
@@ -579,15 +640,17 @@ export function DashboardExploreTabNova({
                 textDecoration: "none", color: "var(--color-text)", background: "var(--color-surface)",
                 border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-5) var(--space-5)",
                 display: "flex", gap: "var(--space-4)", alignItems: "flex-start", cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+                transition: "transform var(--motion-toggle) var(--ease-nova), box-shadow var(--motion-nav) var(--ease-nova), border-color var(--motion-nav) var(--ease-nova)",
               };
               if (item.nav) {
-                return <button key={item.key} type="button" onClick={() => onNavigate(item.nav!)} style={tileStyle}>{inner}</button>;
+                return <button key={item.key} type="button" className="ui-card--interactive" onClick={() => onNavigate(item.nav!)} style={tileStyle}>{inner}</button>;
               }
               if (canOpenDetail) {
                 return (
                   <button
                     key={item.key}
                     type="button"
+                    className="ui-card--interactive"
                     onClick={() => {
                       if (item.openDetail === "nakshatram") setSubview({ kind: "nakshatram", screen: "list" });
                       else if (item.openDetail === "dosham") setSubview({ kind: "dosham", screen: "list" });
@@ -613,6 +676,7 @@ export function DashboardExploreTabNova({
           </p>
         )}
       </div>
+      </Reveal>
 
       {/* ===== Learn ===== */}
       {filteredLearn.length > 0 && (
@@ -623,6 +687,7 @@ export function DashboardExploreTabNova({
               <button
                 key={a.key}
                 type="button"
+                className="ui-card--interactive"
                 onClick={() => setLearnSlug(a.slug)}
                 style={{ textDecoration: "none", color: "var(--color-text)", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "var(--space-4) var(--space-5)", display: "flex", flexDirection: "column", gap: "var(--space-2)", cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%" }}
               >
@@ -650,6 +715,7 @@ export function DashboardExploreTabNova({
       {/* ===== Ask strip ===== */}
       <button
         type="button"
+        className="ui-card--interactive"
         onClick={onOpenAskVinaadi}
         style={{
           display: "flex", alignItems: "center", gap: "var(--space-4)", textAlign: "left", cursor: "pointer", fontFamily: "inherit",

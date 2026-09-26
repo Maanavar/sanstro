@@ -1,10 +1,10 @@
 "use client";
 
-import { Sparkles, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Sparkles, AlertTriangle, ChevronLeft, ChevronRight, Crosshair, SlidersHorizontal } from "lucide-react";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-import { formatDateLabel } from "@/lib/format";
+import { dt, LIFE_FOCUS } from "@/lib/dashboard-i18n";
 import { t, tLang, tTithi } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { lunarSpecialTithiMeta, moonPhaseFromTithi } from "@/lib/lunar";
@@ -16,7 +16,6 @@ import { GlossaryTerm } from "./glossary-term";
 import type { GlossaryKey } from "@/lib/glossary";
 import {
   festivalImagePath,
-  festivalTags,
   MONTH_LABELS_EN,
   MONTH_LABELS_TA,
   tamilMonthOnly,
@@ -24,29 +23,13 @@ import {
   WEEKDAY_LABELS_EN,
   WEEKDAY_LABELS_TA,
 } from "./dashboard-calendar-shared";
-import { Card } from "./ui";
-import { Kicker } from "./ui/kicker";
+import { Button, Card } from "./ui";
+import { PendingPlaceholder } from "./pending-placeholder-nova";
+import { MonthlyCalendarSidebar, MonthlyCalendarInsights, MonthlyCalendarLandscape } from "./dashboard-calendar-monthly-panels";
 
-/**
- * Nova "Calendar" tab, monthly grid view — Phase 3 of the dashboard revamp,
- * pulled forward at the user's request right after Phase 2 sign-off
- * (mockup data-screen="cal-monthly", see docs/DASHBOARD_UI_REVAMP_PLAN.md).
- *
- * Classic's MonthlyCalendarView (dashboard-calendar-tab.tsx) reads almost
- * entirely from Classic-only literal-hex custom properties (the legacy
- * cal / cream-light families — confirmed via globals.css to have no
- * [data-ui="nova"] override), so unlike DayTimeline/.cd-detail-spec-row in
- * Phase 2, none of its markup is safe to reuse verbatim. This file
- * recomputes the same derived data (festival grouping, vratha sequences,
- * sidebar tabs) from the same PanchangamMonthlyData entries — same
- * calculations, fresh Nova-token presentation.
- *
- * The sidebar rail (2026-07-22) folds three month-control panels into the view
- * — Events & Festivals (Upcoming/Vratham/Muhurtham), Filter Calendar (six
- * category toggles that gate BOTH the grid and the lists), and Quick Jump
- * (Today / This Month / Next Muhurtham). Filters and grid share one category
- * model (`CalCategory`) so a toggle and a highlight can never disagree.
- */
+/** Monthly grid, selected-day summary and compact observance rail.
+ * All views share one filtered agenda. Theme tokens and API-owned astronomy
+ * remain the source of truth. */
 
 type NovaHighlightKind = "muhurtham" | "pournami" | "amavasai" | "chathurthi" | "sashti" | "pradosham";
 
@@ -66,10 +49,12 @@ const NOVA_CAL_HILITE: Record<NovaHighlightKind, { dot: string; bg: string; bord
   pradosham: { dot: "var(--color-accent)", bg: "var(--color-accent-muted)", border: "var(--color-border-strong)" },
 };
 
+// Vratha and civic dots have no legend entry of their own, so they use the
+// legend's neutral grey rather than borrowing Chathurthi's or Amavasai's colour.
 const NOVA_DOT_TONE: Record<"festival" | "vratha" | "global", string> = {
   festival: "var(--color-accent-strong)",
-  vratha: "var(--color-low)",
-  global: "var(--color-accent-secondary)",
+  vratha: "var(--color-faint)",
+  global: "var(--color-faint)",
 };
 
 const NOVA_LEGEND: Array<{ label: { en: string; ta: string }; icon: string | null; emoji: string; swatch: string; term?: GlossaryKey }> = [
@@ -85,13 +70,22 @@ const NOVA_LEGEND: Array<{ label: { en: string; ta: string }; icon: string | nul
 ];
 
 // ── Filter/grid category model ──────────────────────────────────────────────
-// One enum drives the Filter Calendar toggles, the grid highlights, and the
-// sidebar lists, so a toggled-off category leaves the grid and the lists in
-// lockstep. Ekadashi is split out ahead of Vratham because it also matches
-// VRATHA_FESTIVAL_PATTERN — order matters here.
+// One enum drives the filter chips, the grid highlights, and the agenda, so a
+// toggled-off category leaves the grid and the agenda in lockstep. Ekadashi is
+// split out ahead of Vratham because it also matches VRATHA_FESTIVAL_PATTERN —
+// order matters here.
 type CalCategory = "muhurtham" | "vratham" | "festivals" | "lunar" | "ekadashi" | "karinaal";
 
 const EKADASHI_PATTERN = /ekadashi|ekadasi|ஏகாதசி/i;
+
+// Weight only, never filtering: the fortnightly observances every month
+// repeats. Named yearly festivals that merely contain a vratham word
+// (Vinayagar Chaturthi, Skanda Sashti, Vaikunta Ekadashi, Mahalaya Amavasai)
+// deliberately do not match, so they read as festivals in the agenda.
+const ROUTINE_OBSERVANCE_PATTERN =
+  /^(sani )?prad(h)?osh?am$|^ekadashi \((shukla|krishna)\)$|^(angarki )?sankatahara chaturthi$|^cha?th?urthi$|^sashti$|^theipirai ashtami$|^(thiruvonam|rohini|karthigai) vrat(h)?am$/i;
+
+const MAJOR_FESTIVAL_CATEGORIES = new Set(["hindu", "muslim", "christian"]);
 
 // Written out rather than sliced from MONTH_LABELS_*. Tamil month names are
 // built from grapheme clusters, so "ஆகஸ்ட்".slice(0, 3) cuts between a
@@ -164,13 +158,13 @@ function festivalCalCategory(name: string): CalCategory {
   return "festivals";
 }
 
-const CAL_FILTERS: Array<{ cat: CalCategory; label: { en: string; ta: string }; swatch: string; term?: GlossaryKey }> = [
+const CAL_FILTERS: Array<{ cat: CalCategory; label: { en: string; ta: string }; swatch: string }> = [
   { cat: "muhurtham", label: { en: "Muhurtham", ta: "முகூர்த்தம்" }, swatch: NOVA_CAL_HILITE.muhurtham.dot },
-  { cat: "vratham", label: { en: "Vratham", ta: "விரதம்" }, swatch: NOVA_DOT_TONE.vratha, term: "vratham" },
   { cat: "festivals", label: { en: "Festivals", ta: "திருவிழாக்கள்" }, swatch: NOVA_DOT_TONE.festival },
+  { cat: "vratham", label: { en: "Vratham", ta: "விரதம்" }, swatch: NOVA_DOT_TONE.vratha },
+  { cat: "ekadashi", label: { en: "Ekadashi", ta: "ஏகாதசி" }, swatch: "var(--color-faint)" },
   { cat: "lunar", label: { en: "Amavasai / Pournami", ta: "அமாவாசை / பௌர்ணமி" }, swatch: NOVA_CAL_HILITE.pournami.dot },
-  { cat: "ekadashi", label: { en: "Ekadashi", ta: "ஏகாதசி" }, swatch: "var(--color-faint)", term: "ekadashi" },
-  { cat: "karinaal", label: { en: "Karinaal (avoid)", ta: "கரிநாள் (தவிர்க்க)" }, swatch: "var(--color-alert-critical)" },
+  { cat: "karinaal", label: { en: "Karinaal", ta: "கரிநாள்" }, swatch: "var(--color-alert-critical)" },
 ];
 const ALL_CATEGORIES: CalCategory[] = CAL_FILTERS.map((f) => f.cat);
 
@@ -178,9 +172,19 @@ type SidebarEvent = {
   dateLocal: string;
   name: string;
   calCategory: CalCategory;
-  kind: "festival" | "vratha" | "global" | "reference-muhurtham";
-  tamilDate: string;
-  tithiName: string;
+  kind: "festival" | "vratha" | "global";
+};
+
+export type AgendaDay = {
+  dateLocal: string;
+  dayNumber: number;
+  weekday: string;
+  meta: string;
+  major: string[];
+  civic: string[];
+  routine: string[];
+  muhurtham: "subha" | "plain" | null;
+  karinaal: boolean;
 };
 
 export type DashboardCalendarMonthlyNovaProps = {
@@ -191,19 +195,47 @@ export type DashboardCalendarMonthlyNovaProps = {
   isLoading: boolean;
   error: string | null;
   hasLocation: boolean;
+  /** No location yet because the day's data is still loading (DXA-03), not
+   *  because the user has none: placeholder instead of `panja_empty`. */
+  locationPending?: boolean;
   selectedDate: string;
+  /** Follows quick jumps and day stepping without changing the global date. */
+  previewDate?: string | null;
   todayDate: string;
   onPrevMonth: () => void;
   onNextMonth: () => void;
   onSelectDate?: (date: string) => void;
-  /** Quick Jump — navigate the grid to the current month (and, for "today",
-   *  open today's day-detail drawer). Owned by the parent, which holds the
-   *  month-nav + drawer state. */
+  /** Navigate the grid to the current month (and, for "today", open today's
+   *  day-detail drawer). Owned by the parent, which holds the month-nav +
+   *  drawer state. */
   onQuickJump?: (target: "today" | "thisMonth") => void;
-  /** Quick Jump — scan forward across months for the next Tamil muhurtham day
-   *  after today, navigate there and open it. Resolves false when none is found
-   *  within the parent's scan cap. */
+  /** Scan forward across months for the next Tamil muhurtham day after today,
+   *  navigate there and open it. Resolves false when none is found within the
+   *  parent's scan cap. */
   onJumpToNextMuhurtham?: () => Promise<boolean>;
+  /** Hide the dashboard-only jump actions when the grid is embedded as a
+   *  search-result view. Month stepping and result-date selection remain. */
+  showQuickJumps?: boolean;
+  /** Life focus, Phase 3: the optional "Good days: Career" chip. Off by
+   *  default; absent when the focus has no activities or no own chart. The
+   *  dates come from the activity-timing engine and are only marked, never
+   *  re-scored here. */
+  focusDays?: {
+    label: string;
+    on: boolean;
+    onToggle: () => void;
+    dates: ReadonlySet<string>;
+    loading: boolean;
+    failed: boolean;
+    /** Context-owned copy. Life focus uses the defaults below; other result
+     *  overlays can reuse the same non-colour marker without borrowing its
+     *  wording. */
+    chipLabel?: string;
+    cellLabel?: string;
+    note?: string;
+  } | null;
+  /** When supplied, only these civil dates open a drawer. */
+  selectableDates?: ReadonlySet<string> | null;
 };
 
 function NovaFestivalIcon({ name }: { name: string }) {
@@ -223,70 +255,6 @@ function NovaFestivalIcon({ name }: { name: string }) {
   );
 }
 
-/** The on/off pill used by every Filter Calendar row. Knob is the card surface
- *  with a border so it stays legible against both the on (accent) and off
- *  (faint) track — no literal hex, works in light + dark. */
-function FilterSwitch({ on, label, onToggle }: { on: boolean; label: string; onToggle: () => void }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-label={label}
-      onClick={onToggle}
-      style={{
-        position: "relative", width: "38px", height: "22px", flexShrink: 0,
-        borderRadius: "var(--radius-pill)", border: "none", cursor: "pointer", padding: 0,
-        background: on ? "var(--color-accent)" : "color-mix(in srgb, var(--color-text-strong) 20%, transparent)",
-        transition: "background 0.15s ease",
-      }}
-    >
-      <span
-        aria-hidden="true"
-        style={{
-          position: "absolute", top: "2px", left: on ? "18px" : "2px",
-          width: "18px", height: "18px", borderRadius: "var(--radius-pill)",
-          background: "var(--color-surface)", border: "1px solid var(--color-border-strong)",
-          transition: "left 0.15s ease",
-        }}
-      />
-    </button>
-  );
-}
-
-/** One event row shared by all three Events & Festivals tabs: dot + name and a
- *  `date · tamil-date · tithi` meta line, with an optional "your chart" badge. */
-function NovaEventRow({
-  item,
-  lang,
-  dotColor,
-  chartMatch,
-}: {
-  item: SidebarEvent;
-  lang: Lang;
-  dotColor: string;
-  chartMatch: boolean;
-}) {
-  const dayLabel = new Date(`${item.dateLocal}T00:00:00`).toLocaleDateString(lang === "ta" ? "ta-IN" : "en-IN", { day: "numeric", month: "short", year: "numeric" });
-  const meta = [dayLabel, item.tamilDate, tTithi(item.tithiName, lang)].filter(Boolean).join(" · ");
-  return (
-    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-3)", padding: "var(--space-3) var(--space-1)", borderBottom: "1px solid color-mix(in srgb, var(--color-text-strong) 6%, transparent)" }}>
-      <span style={{ display: "flex", alignItems: "flex-start", gap: "var(--space-2)", minWidth: 0 }}>
-        <span aria-hidden="true" style={{ width: "7px", height: "7px", borderRadius: "var(--radius-pill)", background: chartMatch ? "var(--color-high)" : dotColor, flexShrink: 0, marginTop: "5px" }} />
-        <span style={{ minWidth: 0 }}>
-          <span style={{ display: "block", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text-strong)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</span>
-          <span style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--color-muted)", marginTop: "2px" }}>{meta}</span>
-        </span>
-      </span>
-      {chartMatch && (
-        <span style={{ fontSize: "var(--text-xs)", fontWeight: 800, color: "var(--color-high)", background: "var(--color-high-bg)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-2)", whiteSpace: "nowrap", flexShrink: 0, marginTop: "2px" }}>
-          {lang === "ta" ? "உங்கள் ஜாதகம்" : "Your chart"}
-        </span>
-      )}
-    </div>
-  );
-}
-
 export function MonthlyCalendarViewNova({
   lang,
   year,
@@ -295,18 +263,28 @@ export function MonthlyCalendarViewNova({
   isLoading,
   error,
   hasLocation,
+  locationPending = false,
   selectedDate,
+  previewDate,
   todayDate,
   onPrevMonth,
   onNextMonth,
   onSelectDate,
   onQuickJump,
   onJumpToNextMuhurtham,
+  showQuickJumps = true,
+  focusDays = null,
+  selectableDates = null,
 }: DashboardCalendarMonthlyNovaProps) {
+  const markFocusDays = Boolean(focusDays?.on && !focusDays.loading && !focusDays.failed);
+  const [focusedDate, setFocusedDate] = useState(selectedDate);
+  const [agendaExpanded, setAgendaExpanded] = useState(false);
+  useEffect(() => { setFocusedDate(selectedDate); }, [selectedDate]);
+  useEffect(() => { if (previewDate) setFocusedDate(previewDate); }, [previewDate]);
+  useEffect(() => { setAgendaExpanded(false); }, [year, month]);
+  const selectDay = (date: string) => { setFocusedDate(date); onSelectDate?.(date); };
   const monthLabel = lang === "ta" ? MONTH_LABELS_TA[month - 1] : MONTH_LABELS_EN[month - 1];
   const weekdayLabels = lang === "ta" ? WEEKDAY_LABELS_TA : WEEKDAY_LABELS_EN;
-  const [sidebarTab, setSidebarTab] = useState<"upcoming" | "vratha" | "muhurthams">("upcoming");
-  const [showAllUpcoming, setShowAllUpcoming] = useState(false);
 
   const [enabledCats, setEnabledCats] = useState<Set<CalCategory>>(() => new Set(ALL_CATEGORIES));
   const catOn = (cat: CalCategory) => enabledCats.has(cat);
@@ -316,7 +294,7 @@ export function MonthlyCalendarViewNova({
       if (next.has(cat)) next.delete(cat); else next.add(cat);
       return next;
     });
-  const clearFilters = () => setEnabledCats(new Set(ALL_CATEGORIES));
+  const allFiltersOn = enabledCats.size === ALL_CATEGORIES.length;
 
   const [nextMuhurthamPending, setNextMuhurthamPending] = useState(false);
   const [nextMuhurthamNote, setNextMuhurthamNote] = useState<string | null>(null);
@@ -326,7 +304,9 @@ export function MonthlyCalendarViewNova({
     setNextMuhurthamNote(null);
     try {
       const found = await onJumpToNextMuhurtham();
-      if (!found) setNextMuhurthamNote(lang === "ta" ? "வரவிருக்கும் முகூர்த்தம் காணப்படவில்லை." : "No upcoming muhurtham found.");
+      if (!found) setNextMuhurthamNote(t("cal_monthly_no_upcoming_muhurtham_found", lang));
+    } catch {
+      setNextMuhurthamNote(t("cal_monthly_could_not_search_please_try_again", lang));
     } finally {
       setNextMuhurthamPending(false);
     }
@@ -364,8 +344,11 @@ export function MonthlyCalendarViewNova({
     return result;
   }, [year, month, entriesByDate]);
 
-  // Every festival in the month, deduped, tagged with its filter category and
-  // enriched with the day's tamil-date + tithi for the sidebar meta line.
+  // Every festival in the month, deduped and tagged with its filter category.
+  // `kind` drives the grid cell's corner dot: a vratham-pattern name is always
+  // "vratha"; otherwise "festival" iff the festival's own resolved `category`
+  // is religious. (Checking the tags instead demoted every festival that is
+  // also a gazetted holiday — Deepavali, Ugadi, Pongal — to civic.)
   const monthFestivals = useMemo<SidebarEvent[]>(() => {
     const seen = new Set<string>();
     const items: SidebarEvent[] = [];
@@ -374,162 +357,202 @@ export function MonthlyCalendarViewNova({
         const key = `${entry.dateLocal}::${f.name}`;
         if (seen.has(key)) return;
         seen.add(key);
-        const tags = festivalTags(f);
-        const isGlobal = tags.includes("observance") || tags.includes("indian_govt") || tags.includes("tamilnadu_govt");
         const isVratha = VRATHA_FESTIVAL_PATTERN.test(f.name);
+        const isMajor = !isVratha && MAJOR_FESTIVAL_CATEGORIES.has(f.category);
         items.push({
           dateLocal: entry.dateLocal,
           name: f.name,
           calCategory: festivalCalCategory(f.name),
-          kind: isGlobal ? "global" : isVratha ? "vratha" : "festival",
-          tamilDate: entry.tamilDate ? tLang(entry.tamilDate, lang) : "",
-          tithiName: entry.tithiName,
+          kind: isVratha ? "vratha" : isMajor ? "festival" : "global",
         });
       });
     });
     return items;
-  }, [monthly, lang]);
-
-  const tamilMuhurthamEntries = useMemo(
-    () => (monthly?.entries ?? []).filter((entry) => entry.isTamilMuhurthamDay),
-    [monthly],
-  );
-  const chartMatchedMuhurthamEntries = useMemo(
-    () => tamilMuhurthamEntries.filter((entry) => entry.isSubhaMuhurtham),
-    [tamilMuhurthamEntries],
-  );
-  const chartMatchedDates = useMemo(
-    () => chartMatchedMuhurthamEntries.map((entry) => entry.dateLocal),
-    [chartMatchedMuhurthamEntries],
-  );
-
-  const muhurthamEvents = useMemo<SidebarEvent[]>(
-    () =>
-      tamilMuhurthamEntries
-        .map((entry): SidebarEvent => ({
-          dateLocal: entry.dateLocal,
-          name: lang === "ta" ? "தமிழ் முகூர்த்த நாள்" : "Tamil Muhurtham",
-          calCategory: "muhurtham",
-          kind: "reference-muhurtham",
-          tamilDate: entry.tamilDate ? tLang(entry.tamilDate, lang) : "",
-          tithiName: entry.tithiName,
-        }))
-        .sort((left, right) => left.dateLocal.localeCompare(right.dateLocal)),
-    [lang, tamilMuhurthamEntries],
-  );
-
-  const vrathaGroups = useMemo(() => {
-    const groups = new Map<string, number[]>();
-    (monthly?.entries ?? []).forEach((entry) => {
-      entry.festivals.forEach((f) => {
-        if (!VRATHA_FESTIVAL_PATTERN.test(f.name)) return;
-        const day = Number(entry.dateLocal.slice(-2));
-        const list = groups.get(f.name) ?? [];
-        if (!list.includes(day)) list.push(day);
-        groups.set(f.name, list);
-      });
-    });
-    return Array.from(groups.entries()).map(([name, days]) => ({ name, days: days.sort((a, b) => a - b) }));
   }, [monthly]);
 
-  // Sidebar lists, each already gated by the Filter Calendar toggles.
-  // Upcoming = every event (festivals + muhurtham days) chronologically, from
-  // today forward (View all reveals the earlier-in-month ones too).
-  const allEventsChrono = useMemo<SidebarEvent[]>(
-    () =>
-      [...monthFestivals, ...muhurthamEvents].sort(
-        (a, b) => a.dateLocal.localeCompare(b.dateLocal) || a.name.localeCompare(b.name),
-      ),
-    [monthFestivals, muhurthamEvents],
+  // The agenda: one row per day that has anything the filters let through, in
+  // date order. Within a day, festivals lead, civic days follow, and routine
+  // fortnightly observances come last in a quieter line. `isSubhaMuhurtham` is
+  // the almanac's general subha rule (no birth data), so it is labelled as
+  // such and never as a personal match.
+  const agendaDays = useMemo<AgendaDay[]>(() => {
+    return (monthly?.entries ?? [])
+      .slice()
+      .sort((a, b) => a.dateLocal.localeCompare(b.dateLocal))
+      .flatMap((entry): AgendaDay[] => {
+        const seen = new Set<string>();
+        const major: string[] = [];
+        const civic: string[] = [];
+        const routine: string[] = [];
+        entry.festivals.forEach((f) => {
+          if (seen.has(f.name) || !enabledCats.has(festivalCalCategory(f.name))) return;
+          seen.add(f.name);
+          if (ROUTINE_OBSERVANCE_PATTERN.test(f.name)) routine.push(f.name);
+          else if (MAJOR_FESTIVAL_CATEGORIES.has(f.category)) major.push(f.name);
+          else civic.push(f.name);
+        });
+        const special = entry.specialTithiDayNumber === 15 ? "POURNAMI" : entry.specialTithiDayNumber === 30 ? "AMAVASAI" : null;
+        if (special && enabledCats.has("lunar") && !entry.festivals.some((f) => /amavas|pourn/i.test(f.name))) {
+          const lunar = lunarSpecialTithiMeta(special, lang);
+          if (lunar) routine.unshift(lunar.label);
+        }
+        // A generic observance the day's named festival already says
+        // ("Chathurthi" under "Vinayagar Chaturthi") is the same fact twice.
+        const folded = (s: string) => s.toLowerCase().replace(/h/g, "");
+        const routineShown = routine.filter((name) => !major.some((m) => folded(m).includes(folded(name))));
+        routine.length = 0;
+        routine.push(...routineShown);
+        const muhurtham = entry.isTamilMuhurthamDay && enabledCats.has("muhurtham")
+          ? (entry.isSubhaMuhurtham ? "subha" : "plain")
+          : null;
+        const karinaal = Boolean(entry.isKarinaal) && enabledCats.has("karinaal");
+        if (major.length + civic.length + routine.length === 0 && !muhurtham && !karinaal) return [];
+        const y = Number(entry.dateLocal.slice(0, 4));
+        const m = Number(entry.dateLocal.slice(5, 7));
+        const d = Number(entry.dateLocal.slice(8, 10));
+        return [{
+          dateLocal: entry.dateLocal,
+          dayNumber: d,
+          weekday: weekdayLabels[new Date(y, m - 1, d).getDay()] ?? "",
+          // Tamil date only: the tithi is on the grid cell, and in the agenda it
+          // mostly repeated the event beside it ("Sashti … · Shashti").
+          meta: entry.tamilDate ? tLang(entry.tamilDate, lang) : "",
+          major,
+          civic,
+          routine,
+          muhurtham,
+          karinaal,
+        }];
+      });
+  }, [monthly, lang, enabledCats, weekdayLabels]);
+
+  const observanceCount = agendaDays.reduce(
+    (sum, day) => sum + day.major.length + day.civic.length + day.routine.length + (day.muhurtham ? 1 : 0),
+    0,
   );
 
-  // Every event in the month that survives the Filter Calendar toggles. This is
-  // the scope the Upcoming tab *counts*; the list it renders is narrower (from
-  // today forward) until "View all" is pressed.
-  const upcomingAllVisible = useMemo(
-    () => allEventsChrono.filter((item) => catOn(item.calCategory)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [allEventsChrono, enabledCats],
-  );
-
-  const upcomingItems = useMemo(() => {
-    if (showAllUpcoming) return upcomingAllVisible;
-    const forward = upcomingAllVisible.filter((item) => item.dateLocal >= todayDate);
-    // If the displayed month is entirely past/future relative to today, "from
-    // today forward" would be empty — fall back to the whole month.
-    return forward.length > 0 ? forward : upcomingAllVisible;
-  }, [upcomingAllVisible, showAllUpcoming, todayDate]);
-
-  const upcomingHiddenCount = useMemo(
-    () => (showAllUpcoming ? 0 : Math.max(0, upcomingAllVisible.length - upcomingItems.length)),
-    [upcomingAllVisible, showAllUpcoming, upcomingItems.length],
-  );
-
-  const vrathaItems = useMemo(
-    () => monthFestivals.filter((item) => item.kind === "vratha" && catOn(item.calCategory)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [monthFestivals, enabledCats],
-  );
-  const muhurthamItems = useMemo(
-    () => muhurthamEvents.filter((item) => catOn(item.calCategory)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [muhurthamEvents, enabledCats],
-  );
-
-  const sidebarLists = { upcoming: upcomingItems, vratha: vrathaItems, muhurthams: muhurthamItems } as const;
-  // All three badges must count the same scope — the whole filtered month — or
-  // they don't reconcile side by side. Counting Upcoming's *truncated* list
-  // instead made it read 12 next to Vratham 11 + Muhurtham 3, as if the two
-  // subsets exceeded the superset. The "View all (N)" button below carries the
-  // truncation, so the badge doesn't have to.
-  const sidebarCounts = {
-    upcoming: upcomingAllVisible.length,
-    vratha: vrathaItems.length,
-    muhurthams: muhurthamItems.length,
-  } as const;
+  // Open the agenda where the reader is: the selected day if it is in this
+  // month, else today if it is, else the top. Scrolls the list, not the page.
+  const agendaListRef = useRef<HTMLOListElement>(null);
+  useEffect(() => {
+    const list = agendaListRef.current;
+    if (!list) return;
+    const monthKey = `${year}-${String(month).padStart(2, "0")}`;
+    const anchor = focusedDate.startsWith(monthKey) ? focusedDate : todayDate.startsWith(monthKey) ? todayDate : null;
+    const first = anchor ? agendaDays.find((day) => day.dateLocal >= anchor) : undefined;
+    const row = first ? list.querySelector<HTMLElement>(`[data-date="${first.dateLocal}"]`) : null;
+    list.scrollTop = row ? Math.max(0, row.offsetTop - 4) : 0;
+  }, [agendaDays, focusedDate, todayDate, year, month, agendaExpanded]);
 
   if (!hasLocation) {
-    return <p className="empty-state">{t("panja_empty", lang)}</p>;
+    return locationPending
+      ? <PendingPlaceholder lang={lang} lines={4} />
+      : <p className="empty-state">{t("panja_empty", lang)}</p>;
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
-      {/* ── Month nav ── */}
-      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", flexWrap: "wrap" }}>
-        <button
-          type="button"
-          onClick={onPrevMonth}
-          aria-label="Previous month"
-          style={{ width: "30px", height: "30px", borderRadius: "var(--radius-pill)", border: "1px solid var(--color-border-strong)", background: "transparent", display: "grid", placeItems: "center", color: "var(--color-accent-strong)", fontSize: "var(--text-base)", cursor: "pointer" }}
-        >
-          <ChevronLeft size={18} strokeWidth={1.5} aria-hidden="true" />
-        </button>
-        <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 600, color: "var(--color-text-strong)" }}>
-          {monthLabel} {year}
-        </div>
-        {tamilMonthHeader && <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>{tamilMonthHeader}</div>}
-        <button
-          type="button"
-          onClick={onNextMonth}
-          aria-label="Next month"
-          style={{ width: "30px", height: "30px", borderRadius: "var(--radius-pill)", border: "1px solid var(--color-border-strong)", background: "transparent", display: "grid", placeItems: "center", color: "var(--color-accent-strong)", fontSize: "var(--text-base)", cursor: "pointer" }}
-        >
-          <ChevronRight size={18} strokeWidth={1.5} aria-hidden="true" />
-        </button>
-        {isLoading && <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>{t("cal_monthly_loading", lang)}</span>}
-      </div>
-
-      {error && <p className="empty-state">{error}</p>}
+    <div className="nova-cal-monthly">
+      {error && <p className="empty-state" role="alert">{error}</p>}
       {!isLoading && !error && !monthly?.entries.length && <p className="empty-state">{t("cal_monthly_empty", lang)}</p>}
+      <div className="nova-cal-monthly-layout" aria-busy={isLoading}>
+        <div className="nova-cal-main">
+          <Card className="nova-cal-grid-panel">
+        <div className="nova-cal-toolbar">
+          <button
+            type="button"
+            className="nova-cal-nav-btn"
+            onClick={onPrevMonth}
+            aria-label={t("cal_monthly_previous_month", lang)}
+          >
+            <ChevronLeft size={18} strokeWidth={1.5} aria-hidden="true" />
+          </button>
+          <h2 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 600, color: "var(--color-text-strong)" }}>
+            {monthLabel} {year}
+          </h2>
+          <button
+            type="button"
+            className="nova-cal-nav-btn"
+            onClick={onNextMonth}
+            aria-label={t("cal_monthly_next_month", lang)}
+          >
+            <ChevronRight size={18} strokeWidth={1.5} aria-hidden="true" />
+          </button>
+          {tamilMonthHeader && <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>{tamilMonthHeader}</div>}
+          {isLoading && <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>{t("cal_monthly_loading", lang)}</span>}
+          {showQuickJumps && (
+            <div className="nova-cal-toolbar__actions">
+              <Button size="sm" variant="secondary" onClick={() => { setFocusedDate(todayDate); onQuickJump?.("today"); }} disabled={!onQuickJump}>
+                {t("cal_monthly_today", lang)}
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => onQuickJump?.("thisMonth")} disabled={!onQuickJump}>
+                {t("cal_monthly_this_month", lang)}
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="nova-cal-next-muhurtham"
+                onClick={handleNextMuhurtham}
+                disabled={nextMuhurthamPending || !onJumpToNextMuhurtham}
+              >
+                <Sparkles size={13} strokeWidth={1.75} aria-hidden="true" />
+                {nextMuhurthamPending
+                  ? t("cal_monthly_searching", lang)
+                  : t("cal_monthly_next_muhurtham", lang)}
+              </Button>
+            </div>
+          )}
+        </div>
+        {nextMuhurthamNote && <p role="status" className="nova-cal-rail-meta">{nextMuhurthamNote}</p>}
 
-      {Boolean(monthly?.entries.length) && (
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 300px", gap: "var(--space-5)", alignItems: "start" }} className="nova-cal-monthly-layout">
-          {/* ── Grid ── */}
-          <div style={{ minWidth: 0, overflowX: "auto" }}>
-            {/* audit B-5: `min(620px, 100%)` fills the column at desktop widths
-                but never exceeds it, so a 375px phone renders the whole month
-                in-viewport instead of scrolling sideways through it. The
-                overflowX:auto above stays as a graceful fallback only. */}
+        {/* Filters sit on the grid they gate, so a toggle's effect is visible
+            where it was clicked. One reset control: Clear while everything is
+            on, Show all once anything is off. */}
+        <div className="nova-cal-filterbar" role="group" aria-label={t("cal_monthly_filter_calendar", lang)}>
+          <SlidersHorizontal size={14} strokeWidth={1.75} aria-hidden="true" className="nova-cal-filterbar__icon" />
+          {CAL_FILTERS.map(({ cat, label, swatch }) => (
+            <button
+              key={cat}
+              type="button"
+              className="nova-cal-filter"
+              aria-pressed={catOn(cat)}
+              onClick={() => toggleCat(cat)}
+              style={{ "--swatch": swatch } as React.CSSProperties}
+            >
+              <span className="nova-cal-filter__swatch" aria-hidden="true" />
+              {lang === "ta" ? label.ta : label.en}
+            </button>
+          ))}
+          {/* Off by default and outside Clear / Show all: it adds a personal
+              layer, where the chips before it hide almanac categories. */}
+          {focusDays && (
+            <button
+              type="button"
+              className="nova-cal-filter"
+              aria-pressed={focusDays.on}
+              onClick={focusDays.onToggle}
+            >
+              <Crosshair size={13} strokeWidth={1.9} aria-hidden="true" style={{ color: "var(--color-text-strong)" }} />
+              {focusDays.chipLabel ?? dt(LIFE_FOCUS.calendarChip, lang).replace("%s", focusDays.label)}
+            </button>
+          )}
+          <Button size="sm" variant="ghost" className="nova-cal-filterbar__reset" onClick={() => setEnabledCats(allFiltersOn ? new Set() : new Set(ALL_CATEGORIES))}>
+            {allFiltersOn ? t("cal_monthly_clear", lang) : t("cal_monthly_show_all", lang)}
+          </Button>
+        </div>
+        {focusDays?.on && (
+          <p role="status" className="nova-cal-rail-meta">
+            {focusDays.loading
+              ? dt(LIFE_FOCUS.calendarLoading, lang)
+              : focusDays.failed
+                ? dt(LIFE_FOCUS.calendarFailed, lang)
+                : focusDays.dates.size === 0
+                  ? dt(LIFE_FOCUS.calendarNone, lang)
+                  : focusDays.note ?? dt(LIFE_FOCUS.calendarNote, lang)}
+          </p>
+        )}
+
+            {/* The seven columns shrink to the phone viewport. Long event names
+                remain available in the accessible label and the day drawer. */}
             <div style={{ minWidth: "min(620px, 100%)" }}>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "var(--space-2)", marginBottom: "8px" }}>
                 {weekdayLabels.map((wd, i) => (
@@ -540,10 +563,13 @@ export function MonthlyCalendarViewNova({
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: "var(--space-2)" }}>
                 {cells.map((cell, idx) => {
-                  if (!cell.dateLocal) return <div key={`blank-${idx}`} style={{ minHeight: "82px" }} />;
+                  if (!cell.dateLocal) {
+                    const adjacentDay = new Date(year, month - 1, idx - new Date(year, month - 1, 1).getDay() + 1).getDate();
+                    return <div key={`blank-${idx}`} className="nova-cal-cell nova-cal-cell--outside" aria-hidden="true"><span className="nova-cal-cell__number">{adjacentDay}</span></div>;
+                  }
                   const entry = cell.entry;
                   const dayNumber = Number(cell.dateLocal.slice(-2));
-                  const isSelected = cell.dateLocal === selectedDate;
+                  const isSelected = cell.dateLocal === focusedDate;
                   const isToday = cell.dateLocal === todayDate;
                   // Only the festivals whose category is still switched on. Both
                   // the day's dot and the chathurthi/sashti/pradosham tints derive
@@ -553,11 +579,13 @@ export function MonthlyCalendarViewNova({
                   const dayItems = monthFestivals.filter((item) => item.dateLocal === cell.dateLocal && catOn(item.calCategory));
                   const dominantKind = dayItems[0]?.kind;
                   const hasFestival = dayItems.length > 0;
-                  const dotColor = dominantKind && dominantKind !== "reference-muhurtham" ? NOVA_DOT_TONE[dominantKind] : null;
+                  const dotColor = dominantKind ? NOVA_DOT_TONE[dominantKind] : null;
                   const tamilDay = entry?.tamilDate ? tLang(entry.tamilDate, lang) : "";
                   const showMuhurtham = Boolean(entry?.isTamilMuhurthamDay) && catOn("muhurtham");
                   const showLunar = catOn("lunar");
                   const showKarinaal = Boolean(entry?.isKarinaal) && catOn("karinaal");
+                  const isFocusDay = markFocusDays && Boolean(focusDays?.dates.has(cell.dateLocal));
+                  const isSelectable = Boolean(onSelectDate) && (!selectableDates || selectableDates.has(cell.dateLocal));
                   // Every day carries its real moon shape, not just the two
                   // special tithis: the month grid is where the fortnight's
                   // rhythm is read, and the old flat mark appeared only on
@@ -581,8 +609,8 @@ export function MonthlyCalendarViewNova({
                         lunarMeta
                           ? lunarMeta.phaseLabel
                           : entry.tithiPaksha === "SHUKLA"
-                            ? (lang === "ta" ? "வளர்பிறை" : "Waxing")
-                            : (lang === "ta" ? "தேய்பிறை" : "Waning"),
+                            ? (t("cal_monthly_waxing", lang))
+                            : (t("cal_monthly_waning", lang)),
                       ].filter(Boolean).join(" · ")
                     : "";
                   const highlightType: NovaHighlightKind | null = !entry ? null
@@ -619,22 +647,33 @@ export function MonthlyCalendarViewNova({
                   const selectionRing = isSelected ? "inset 0 0 0 2px var(--color-text-strong)" : isToday ? "inset 0 0 0 1.5px color-mix(in srgb, var(--color-text-strong) 55%, transparent)" : "none";
                   const dateColor = "var(--color-text-strong)";
 
+                  // A day the caller cannot open is not a control, so it is not
+                  // rendered as one. A `disabled` button looks identical to an
+                  // active cell here (the styles are inline and unconditional),
+                  // drops out of the tab order anyway, and announces "dimmed"
+                  // for a cell whose almanac content is perfectly readable. A
+                  // plain element keeps the content and drops the false
+                  // affordance. `selectableDates` is null on the dashboard
+                  // calendar, where every day stays a button.
+                  const CellTag = (isSelectable ? "button" : "div") as "button";
+                  const cellActions = isSelectable
+                    ? { type: "button" as const, onClick: () => selectDay(cell.dateLocal!), "aria-pressed": isSelected }
+                    : {};
+
                   return (
-                    <button
+                    <CellTag
                       key={cell.dateLocal}
-                      type="button"
-                      className={isToday ? "nova-cal-today" : undefined}
-                      aria-pressed={onSelectDate ? isSelected : undefined}
+                      {...cellActions}
+                      className={`nova-cal-cell${isToday ? " nova-cal-today" : ""}`}
+                      aria-label={[formatGridDay(cell.dateLocal, lang), String(year), tamilDay, entry ? tTithi(entry.tithiName, lang) : "", ...visibleFestivals.map((f) => f.name), showMuhurtham ? (t("cal_monthly_muhurtham", lang)) : "", showKarinaal ? (t("cal_monthly_karinaal", lang)) : "", isFocusDay && focusDays ? (focusDays.cellLabel ?? dt(LIFE_FOCUS.calendarCell, lang).replace("%s", focusDays.label)) : ""].filter(Boolean).join(" · ")}
                       aria-current={isToday ? "date" : undefined}
-                      onClick={onSelectDate ? () => onSelectDate(cell.dateLocal!) : undefined}
-                      disabled={!onSelectDate}
                       style={{
                         appearance: "none", width: "100%", position: "relative",
                         border: `1px solid ${cellBorder}`, borderRadius: "var(--radius-sm)",
                         boxShadow: selectionRing,
-                        background: cellBg, padding: "var(--space-2)", minHeight: "82px",
+                        background: cellBg, padding: "var(--space-2)",
                         display: "flex", flexDirection: "column", gap: "var(--space-1)",
-                        overflow: "hidden", cursor: onSelectDate ? "pointer" : "default", textAlign: "left",
+                        overflow: "hidden", cursor: isSelectable ? "pointer" : "default", textAlign: "left",
                         fontFamily: "inherit",
                       }}
                     >
@@ -642,11 +681,17 @@ export function MonthlyCalendarViewNova({
                         <span aria-hidden="true" style={{ position: "absolute", top: "8px", right: "8px", width: "6px", height: "6px", borderRadius: "var(--radius-pill)", background: dotColor }} />
                       )}
                       <div style={{ display: "flex", alignItems: "flex-start", gap: "var(--space-2)" }}>
-                        <span style={{ fontSize: "var(--text-base)", fontWeight: 700, color: dateColor, lineHeight: 1 }}>{dayNumber}</span>
+                        <span className="nova-cal-cell__number" style={{ fontSize: "var(--text-base)", fontWeight: 700, color: dateColor, lineHeight: 1 }}>{dayNumber}</span>
                         {moonPhase && (
                           <span title={moonTitle} style={{ display: "inline-flex", marginTop: "1px" }}>
                             <MiniMoonGlyph phase={moonPhase} size={13} />
                           </span>
+                        )}
+                        {/* A shape, not a tint: every tint on this grid already
+                            means an almanac category, and the mark must read
+                            without colour. Named in the cell's aria-label. */}
+                        {isFocusDay && (
+                          <Crosshair size={13} strokeWidth={2} aria-hidden="true" style={{ marginTop: "1px", color: "var(--color-text-strong)", flexShrink: 0 }} />
                         )}
                       </div>
                       {tamilDay && <span style={{ fontSize: "var(--text-xs)", color: hasFestival ? "var(--color-text)" : "var(--color-faint)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{tamilDay}</span>}
@@ -660,21 +705,21 @@ export function MonthlyCalendarViewNova({
                         ))}
                         {showMuhurtham && (
                           <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-high)", display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}>
-                            <Sparkles size={12} strokeWidth={1.5} aria-hidden="true" />{lang === "ta" ? "முகூர்த்தம்" : "Muhurtham"}
+                            <Sparkles size={12} strokeWidth={1.5} aria-hidden="true" />{t("cal_monthly_muhurtham", lang)}
                           </span>
                         )}
                         {showKarinaal && (
-                          <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-alert-critical-text, var(--color-alert-critical))", display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}>
-                            <AlertTriangle size={12} strokeWidth={1.5} aria-hidden="true" />{lang === "ta" ? "கரிநாள்" : "Karinaal"}
+                          <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "color-mix(in srgb, var(--color-alert-critical-text, var(--color-alert-critical)) 85%, var(--color-text-strong))", display: "inline-flex", alignItems: "center", gap: "var(--space-1)" }}>
+                            <AlertTriangle size={12} strokeWidth={1.5} aria-hidden="true" />{t("cal_monthly_karinaal", lang)}
                           </span>
                         )}
                         {isToday && (
                           <span style={{ alignSelf: "flex-start", borderRadius: "var(--radius-pill)", background: "color-mix(in srgb, var(--color-text-strong) 14%, transparent)", color: "var(--color-text-strong)", padding: "var(--space-1) var(--space-2)", fontSize: "var(--text-xs)", fontWeight: 700 }}>
-                            {lang === "ta" ? "இன்று" : "Today"}
+                            {t("cal_monthly_today", lang)}
                           </span>
                         )}
                       </div>
-                    </button>
+                    </CellTag>
                   );
                 })}
               </div>
@@ -689,194 +734,88 @@ export function MonthlyCalendarViewNova({
                 </span>
               ))}
             </div>
-          </div>
+          </Card>
 
-          {/* ── Sidebar rail: Events & Festivals · Filter Calendar · Quick Jump ── */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", minWidth: 0 }}>
-            {/* Card A — Events & Festivals */}
-            <Card as="section" style={{ borderRadius: "var(--radius-xl)", borderColor: "var(--color-border-strong)", gap: "var(--space-1)" }}>
-              <Kicker as="div" style={{ marginBottom: "10px" }}>
-                {lang === "ta" ? "நிகழ்வுகள் & திருவிழாக்கள்" : "Events & Festivals"}
-              </Kicker>
-              <div
-                className="nova-cal-sidebar-tabs"
-                style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", borderBottom: "1px solid var(--color-border)", marginBottom: "6px" }}
-              >
-                {([
-                  ["upcoming", lang === "ta" ? "வரவிருப்பவை" : "Upcoming", sidebarCounts.upcoming],
-                  ["vratha", lang === "ta" ? "விரதம்" : "Vratham", sidebarCounts.vratha],
-                  ["muhurthams", lang === "ta" ? "முகூர்த்தம்" : "Muhurtham", sidebarCounts.muhurthams],
-                ] as const).map(([key, label, count]) => {
-                  const active = sidebarTab === key;
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => setSidebarTab(key)}
-                      style={{
-                        border: "none", borderBottom: active ? "2px solid var(--color-accent)" : "2px solid transparent",
-                        background: "transparent", color: active ? "var(--color-accent-strong)" : "var(--color-muted)",
-                        paddingBottom: "var(--space-3)", cursor: "pointer", fontSize: "var(--text-sm)", fontWeight: active ? 700 : 600,
-                        display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontFamily: "inherit",
-                        flexShrink: 0, whiteSpace: "nowrap",
-                      }}
-                    >
-                      <span>{label}</span>
-                      {count > 0 && <span style={{ color: active ? "var(--color-accent-strong)" : "var(--color-faint)", fontSize: "var(--text-xs)" }}>{count}</span>}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                {sidebarLists[sidebarTab].length === 0 ? (
-                  <p style={{ margin: "9px 2px", fontSize: "var(--text-sm)", color: "var(--color-muted)" }}>{t("cal_monthly_empty", lang)}</p>
-                ) : (
-                  sidebarLists[sidebarTab].map((item) => {
-                    const dotColor = item.kind === "reference-muhurtham" ? "var(--color-high)" : NOVA_DOT_TONE[item.kind];
-                    const chartMatch = item.kind === "reference-muhurtham" && chartMatchedDates.includes(item.dateLocal);
-                    return (
-                      <NovaEventRow
-                        key={`${sidebarTab}-${item.dateLocal}-${item.name}`}
-                        item={item}
-                        lang={lang}
-                        dotColor={dotColor}
-                        chartMatch={chartMatch}
-                      />
-                    );
-                  })
-                )}
-              </div>
-
-              {sidebarTab === "upcoming" && (upcomingHiddenCount > 0 || showAllUpcoming) && (
-                <button
-                  type="button"
-                  onClick={() => setShowAllUpcoming((v) => !v)}
-                  style={{ alignSelf: "flex-start", marginTop: "8px", border: "none", background: "none", color: "var(--color-accent-strong)", fontSize: "var(--text-sm)", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", padding: "var(--space-1) 0" }}
-                >
-                  {showAllUpcoming
-                    ? (lang === "ta" ? "வரவிருப்பவை மட்டும்" : "Upcoming only")
-                    : (lang === "ta" ? `அனைத்தையும் காட்டு (${upcomingHiddenCount})` : `View all (${upcomingHiddenCount})`)}
-                </button>
-              )}
-
-              {sidebarTab === "vratha" && vrathaGroups.length > 0 && (
-                <div style={{ marginTop: "14px" }}>
-                  <Kicker as="p" color="var(--color-faint)" style={{ margin: "0 0 8px" }}>
-                    {lang === "ta" ? "விரத வரிசை" : "Vratha sequence"}
-                  </Kicker>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
-                    {vrathaGroups.slice(0, 6).map((group) => (
-                      <span key={group.name} style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-pill)", background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", fontSize: "var(--text-xs)", color: "var(--color-text)" }}>
-                        <span aria-hidden="true" style={{ width: "7px", height: "7px", borderRadius: "var(--radius-pill)", background: "var(--color-low)" }} />
-                        {group.name}
-                        <span style={{ color: "var(--color-faint)" }}>{group.days.join(", ")}</span>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {sidebarTab === "muhurthams" && chartMatchedDates.length > 0 && (
-                <div style={{ marginTop: "14px" }}>
-                  <Kicker as="p" color="var(--color-high)" style={{ margin: "0 0 8px" }}>
-                    {lang === "ta" ? "உங்கள் ஜாதகத்துக்கு ஏற்ற நாட்கள்" : "Best for your chart"}
-                  </Kicker>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
-                    {chartMatchedDates.map((dateLocal) => (
-                      <span key={dateLocal} style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-pill)", background: "var(--color-high-bg)", border: "1px solid var(--color-high-border)", fontSize: "var(--text-xs)", color: "var(--color-high)", fontWeight: 700 }}>
-                        <Sparkles size={12} strokeWidth={1.5} aria-hidden="true" />
-                        {formatDateLabel(dateLocal)}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </Card>
-
-            {/* Card B — Filter Calendar */}
-            <Card as="section" style={{ borderRadius: "var(--radius-xl)", borderColor: "var(--color-border-strong)", gap: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-                <Kicker as="div">
-                  {lang === "ta" ? "நாட்காட்டி வடிகட்டி" : "Filter Calendar"}
-                </Kicker>
-                <button
-                  type="button"
-                  onClick={clearFilters}
-                  disabled={enabledCats.size === ALL_CATEGORIES.length}
-                  style={{
-                    border: "none", background: "none", padding: 0, fontFamily: "inherit", fontSize: "var(--text-sm)", fontWeight: 700,
-                    color: enabledCats.size === ALL_CATEGORIES.length ? "var(--color-faint)" : "var(--color-accent-strong)",
-                    cursor: enabledCats.size === ALL_CATEGORIES.length ? "default" : "pointer",
-                  }}
-                >
-                  {lang === "ta" ? "அழி" : "Clear"}
-                </button>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-                {CAL_FILTERS.map(({ cat, label, swatch, term }) => {
-                  const on = catOn(cat);
-                  const text = lang === "ta" ? label.ta : label.en;
-                  const glossaryTerm = term ?? (cat === "muhurtham" ? "muhurtham" : undefined);
-                  return (
-                    <div key={cat} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-3)" }}>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)", fontWeight: 600, color: on ? "var(--color-text-strong)" : "var(--color-muted)", minWidth: 0 }}>
-                        <span aria-hidden="true" style={{ width: "10px", height: "10px", borderRadius: "var(--radius-sm)", background: swatch, opacity: on ? 1 : 0.4, flexShrink: 0 }} />
-                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {glossaryTerm ? <GlossaryTerm term={glossaryTerm} lang={lang}>{text}</GlossaryTerm> : text}
-                        </span>
-                      </span>
-                      <FilterSwitch on={on} label={text} onToggle={() => toggleCat(cat)} />
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
-
-            {/* Card C — Quick Jump */}
-            <Card as="section" style={{ borderRadius: "var(--radius-xl)", borderColor: "var(--color-border-strong)", gap: 0 }}>
-              <Kicker as="div" style={{ marginBottom: "12px" }}>
-                {lang === "ta" ? "விரைவு தாவல்" : "Quick Jump"}
-              </Kicker>
-              <div style={{ display: "flex", gap: "var(--space-2)", marginBottom: "10px" }}>
-                <button
-                  type="button"
-                  onClick={() => onQuickJump?.("today")}
-                  style={{ flex: 1, border: "1px solid var(--color-border-strong)", background: "var(--color-surface-soft)", borderRadius: "var(--radius-md)", padding: "var(--space-2) var(--space-2)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text)", cursor: "pointer", fontFamily: "inherit" }}
-                >
-                  {lang === "ta" ? "இன்று" : "Today"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onQuickJump?.("thisMonth")}
-                  style={{ flex: 1, border: "1px solid var(--color-border-strong)", background: "var(--color-surface-soft)", borderRadius: "var(--radius-md)", padding: "var(--space-2) var(--space-2)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text)", cursor: "pointer", fontFamily: "inherit" }}
-                >
-                  {lang === "ta" ? "இந்த மாதம்" : "This Month"}
-                </button>
-              </div>
-              <button
-                type="button"
-                onClick={handleNextMuhurtham}
-                disabled={nextMuhurthamPending || !onJumpToNextMuhurtham}
-                style={{
-                  width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "var(--space-2)",
-                  border: "1px solid var(--color-high-border)", background: "var(--color-high-bg)", borderRadius: "var(--radius-md)",
-                  padding: "var(--space-3) var(--space-2)", fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-high)",
-                  cursor: nextMuhurthamPending ? "progress" : "pointer", fontFamily: "inherit", opacity: nextMuhurthamPending ? 0.7 : 1,
-                }}
-              >
-                <Sparkles size={12} strokeWidth={1.5} aria-hidden="true" />
-                {nextMuhurthamPending
-                  ? (lang === "ta" ? "தேடுகிறது…" : "Searching…")
-                  : (lang === "ta" ? "அடுத்த முகூர்த்தம்" : "Next Muhurtham")}
-              </button>
-              {nextMuhurthamNote && (
-                <p style={{ margin: "8px 0 0", fontSize: "var(--text-xs)", color: "var(--color-muted)" }}>{nextMuhurthamNote}</p>
-              )}
-            </Card>
-          </div>
+          <MonthlyCalendarInsights lang={lang} entry={entriesByDate.get(focusedDate)} todayDate={todayDate} onSelectDate={onSelectDate ? selectDay : undefined} formatDate={(date) => formatGridDay(date, lang)} />
         </div>
-      )}
+        <MonthlyCalendarSidebar
+          lang={lang} monthLabel={`${monthLabel} ${year}`} agendaDays={agendaDays} observanceCount={observanceCount}
+          onSelectDate={onSelectDate ? selectDay : undefined} formatDate={(date) => formatGridDay(date, lang)}
+          expanded={agendaExpanded} onToggleExpanded={() => setAgendaExpanded(!agendaExpanded)}
+          loading={isLoading}
+        >
+              {agendaDays.length === 0 && isLoading ? (
+                <PendingPlaceholder lang={lang} lines={3} />
+              ) : agendaDays.length === 0 ? (
+                <p className="nova-cal-agenda__empty">
+                  {t("cal_monthly_nothing_matches_the_selected_filters", lang)}
+                </p>
+              ) : (
+                <ol ref={agendaListRef} className="nova-cal-agenda__list">
+                  {agendaDays.map((day) => {
+                    const isToday = day.dateLocal === todayDate;
+                    const isSelected = day.dateLocal === focusedDate;
+                    const minor = [...day.civic, ...day.routine];
+                    return (
+                      <li key={day.dateLocal} data-date={day.dateLocal}>
+                        <button
+                          type="button"
+                          className={`nova-cal-agenda__day${isToday ? " nova-cal-agenda__day--today" : ""}`}
+                          aria-current={isToday ? "date" : undefined}
+                          aria-pressed={onSelectDate ? isSelected : undefined}
+                          onClick={onSelectDate ? () => selectDay(day.dateLocal) : undefined}
+                          disabled={!onSelectDate}
+                        >
+                          <span className="nova-cal-agenda__date" aria-hidden={false}>
+                            <span className="nova-cal-agenda__dnum">{day.dayNumber}</span>
+                            <span className="nova-cal-agenda__dow">{day.weekday}</span>
+                          </span>
+                          <span className="nova-cal-agenda__body">
+                            {day.major.map((name) => (
+                              <span key={name} className="nova-cal-agenda__major">{name}</span>
+                            ))}
+                            {minor.length > 0 && (
+                              <span className={day.major.length ? "nova-cal-agenda__minor" : "nova-cal-agenda__minor nova-cal-agenda__minor--lead"}>
+                                {minor.join(" · ")}
+                              </span>
+                            )}
+                            {(day.muhurtham || day.karinaal) && (
+                              <span className="nova-cal-agenda__marks">
+                                {day.muhurtham && (
+                                  <span className="nova-cal-agenda__mark nova-cal-agenda__mark--muhurtham">
+                                    <Sparkles size={12} strokeWidth={1.75} aria-hidden="true" />
+                                    {day.muhurtham === "subha"
+                                      ? (t("cal_monthly_subha_muhurtham", lang))
+                                      : (t("cal_monthly_muhurtham", lang))}
+                                  </span>
+                                )}
+                                {day.karinaal && (
+                                  <span className="nova-cal-agenda__mark nova-cal-agenda__mark--avoid">
+                                    <AlertTriangle size={12} strokeWidth={1.75} aria-hidden="true" />
+                                    {t("cal_monthly_karinaal_avoid", lang)}
+                                  </span>
+                                )}
+                              </span>
+                            )}
+                            {day.meta && <span className="nova-cal-agenda__meta">{day.meta}</span>}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                  <li className="nova-cal-agenda__foot">
+                    <a href="/tamil-calendar" target="_blank" rel="noreferrer">
+                      {t("cal_monthly_full_tamil_calendar", lang)}
+                    </a>
+                  </li>
+                </ol>
+              )}
+
+        </MonthlyCalendarSidebar>
+      </div>
+      {/* Full width under both columns: inside the main column it lengthened
+          only that side and unbalanced the rail again. */}
+      <div className="nova-cal-closing"><MonthlyCalendarLandscape /><p>{t("cal_monthly_right_time_brighter_tomorrow", lang)}</p></div>
     </div>
   );
 }

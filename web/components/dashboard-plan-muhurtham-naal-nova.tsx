@@ -12,10 +12,14 @@ import {
   type MuhurthamNaalMatchItem,
   type MuhurthamNaalMatchContext,
   type MuhurthamNaalItem,
+  type NaalCouple,
 } from "@/lib/muhurtham-naal";
 import { NovaSelect } from "./nova-select";
 import { Card } from "./ui";
-import { MuhurtaPanchangamOverlay } from "./dashboard-plan-muhurta-picker-nova";
+import {
+  MuhurtaDayDetailDrawer,
+  type MuhurtaDayDrawerComponent,
+} from "./dashboard-plan-muhurta-picker-nova";
 
 /**
  * Nova re-skin of dashboard-muhurtham-naal.tsx's DashboardMuhurthamNaal —
@@ -65,6 +69,13 @@ function formatDate(value: string, lang: Lang): string {
 }
 
 type MergedRow = { naal: MuhurthamNaalItem; match: MuhurthamNaalMatchItem | null };
+
+/** " · Bride" / " · Bride & Groom" for a couple's Chandrashtama badge; "" for one chart. */
+export function chandrashtamaWho(match: MuhurthamNaalMatchItem | null, lang: Lang): string {
+  const named = (match?.readings ?? []).filter((reading) => reading.isChandrashtama && reading.who);
+  if (named.length === 0) return "";
+  return ` · ${named.map((reading) => (lang === "ta" ? reading.who!.ta : reading.who!.en)).join(" & ")}`;
+}
 
 function NovaNaalRow({
   row,
@@ -130,6 +141,10 @@ function NovaNaalRow({
             {isChandrashtama && (
               <span style={{ fontSize: "var(--text-xs)", color: "var(--color-low)", fontWeight: 700, padding: "var(--space-1) var(--space-2)", background: "var(--color-low-bg)", borderRadius: "var(--radius-pill)", border: "1px solid var(--color-low-border)" }}>
                 {lang === "ta" ? "சந்திராஷ்டமம்" : "Chandrashtama"}
+                {/* For a couple the badge names whose it is — "Chandrashtama" on a
+                    date that is fine for the reader and not for their partner
+                    would read as a mistake. */}
+                {chandrashtamaWho(match, lang)}
               </span>
             )}
           </div>
@@ -181,10 +196,15 @@ function NovaNaalRow({
 export function NovaMuhurthamNaal({
   lang,
   chartId,
+  DayDrawer,
+  couple = null,
   onCheckInPlanner,
 }: {
   lang: Lang;
   chartId: string | null;
+  DayDrawer: MuhurtaDayDrawerComponent;
+  /** Rank for both charts, weaker side governing. Null ranks for `chartId` alone. */
+  couple?: NaalCouple | null;
   onCheckInPlanner?: (date: string) => void;
 }) {
   const [year, setYear] = useState(() => new Date().getFullYear());
@@ -203,13 +223,27 @@ export function NovaMuhurthamNaal({
   const [filterPirai, setFilterPirai] = useState("");
   const [recommendedOnly, setRecommendedOnly] = useState(false);
 
+  const partnerChartId = couple?.partnerChartId ?? null;
+  const subjectRole = couple?.subjectRole ?? null;
+
   useEffect(() => {
     let active = true;
     setLoading(true);
     setError(null);
+    // Cleared up front, not on arrival: a one-chart ranking left on screen
+    // while the couple's loads would sit under the couple's heading.
+    setMatches([]);
+    setContext(null);
 
     const publicFetch = fetchPublicMuhurthamNaals(year);
-    const chartFetch = chartId ? fetchChartMuhurthamNaals(chartId, year) : Promise.resolve(null);
+    const chartFetch = chartId
+      ? fetchChartMuhurthamNaals(
+          chartId,
+          year,
+          false,
+          partnerChartId && subjectRole ? { partnerChartId, subjectRole } : null,
+        )
+      : Promise.resolve(null);
 
     Promise.all([publicFetch, chartFetch])
       .then(([pub, chart]) => {
@@ -224,7 +258,7 @@ export function NovaMuhurthamNaal({
       .finally(() => { if (active) setLoading(false); });
 
     return () => { active = false; };
-  }, [chartId, year]);
+  }, [chartId, year, partnerChartId, subjectRole]);
 
   const matchByDate = useMemo(() => {
     const map = new Map<string, MuhurthamNaalMatchItem>();
@@ -286,6 +320,7 @@ export function NovaMuhurthamNaal({
   })();
 
   const showMatchCol = chartId !== null && matches.length > 0;
+  const drawerRow = panchangamDate ? rows.find((row) => row.naal.date === panchangamDate) ?? null : null;
   const title = lang === "ta" ? `${year} திருமண முகூர்த்த நாட்கள்` : `${year} Wedding Muhurtham Naal`;
 
   return (
@@ -315,9 +350,13 @@ export function NovaMuhurthamNaal({
 
       {chartId && context && (
         <Card variant="high" compact style={{ marginBottom: "12px", fontSize: "var(--text-base)", color: "var(--color-text)" }}>
-          {lang === "ta"
-            ? `உங்கள் நட்சத்திரம் ${context.janmaNakshatra.ta} — ${context.recommendedCount} நாட்கள் உங்களுக்கு ஏற்றவை (தாரா பலம் + சந்திராஷ்டமம் வைத்து).`
-            : `Your star ${context.janmaNakshatra.en} — ${context.recommendedCount} of ${context.totalCount} dates suit you (Tara Bala + Chandrashtama).`}
+          {context.partner && context.subjectWho
+            ? (lang === "ta"
+              ? `இருவருக்கும் சரிபார்க்கப்பட்டது — ${context.subjectWho.ta}: ${context.janmaNakshatra.ta}, ${context.partner.who.ta}: ${context.partner.janmaNakshatra.ta}. ${context.totalCount} நாட்களில் ${context.recommendedCount} நாட்கள் இருவருக்கும் ஏற்றவை (தாரா பலம் + சந்திராஷ்டமம்; இருவரில் பலவீனமானதே முடிவு செய்யும்).`
+              : `Checked for both — ${context.subjectWho.en}: ${context.janmaNakshatra.en}, ${context.partner.who.en}: ${context.partner.janmaNakshatra.en}. ${context.recommendedCount} of ${context.totalCount} dates suit you both (Tara Bala + Chandrashtama; the weaker of the two decides).`)
+            : (lang === "ta"
+              ? `உங்கள் நட்சத்திரம் ${context.janmaNakshatra.ta} — ${context.recommendedCount} நாட்கள் உங்களுக்கு ஏற்றவை (தாரா பலம் + சந்திராஷ்டமம் வைத்து).`
+              : `Your star ${context.janmaNakshatra.en} — ${context.recommendedCount} of ${context.totalCount} dates suit you (Tara Bala + Chandrashtama).`)}
         </Card>
       )}
 
@@ -422,12 +461,44 @@ export function NovaMuhurthamNaal({
         </Card>
       )}
 
-      {panchangamDate && context?.dailyLocation && (
-        <MuhurtaPanchangamOverlay
+      {panchangamDate && drawerRow && context?.dailyLocation && (
+        <MuhurtaDayDetailDrawer
           date={panchangamDate}
           location={context.dailyLocation}
+          resultDates={rows.map((row) => row.naal.date)}
           lang={lang}
+          lead={(
+            <section style={{ padding: "var(--space-4)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", background: "var(--color-surface-soft)" }}>
+              <p style={{ margin: "0 0 6px", color: "var(--color-text-accent)", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                {lang === "ta" ? "வெளியிடப்பட்ட திருமண முகூர்த்த நாள்" : "Published wedding muhurtham date"}
+              </p>
+              <p style={{ margin: 0, color: "var(--color-text)", lineHeight: 1.55 }}>
+                {lang === "ta"
+                  ? `${drawerRow.naal.tamilMonth.ta} ${drawerRow.naal.tamilDay} · ${drawerRow.naal.nakshatra.ta} · ${drawerRow.naal.pirai.ta}`
+                  : `${drawerRow.naal.tamilMonth.en} ${drawerRow.naal.tamilDay} · ${drawerRow.naal.nakshatra.en} · ${drawerRow.naal.pirai.en}`}
+              </p>
+              {drawerRow.match && (
+                <>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-2)", marginTop: "8px", flexWrap: "wrap" }}>
+                    <strong style={{ color: SCORE_COLOR(drawerRow.match.matchScore), fontFamily: "var(--font-display)", fontSize: "var(--text-2xl)" }}>
+                      {drawerRow.match.matchScore}<span style={{ fontSize: "var(--text-sm)" }}>/100</span>
+                    </strong>
+                    <span style={{ color: "var(--color-muted)", fontSize: "var(--text-sm)", fontWeight: 700 }}>
+                      {lang === "ta" ? drawerRow.match.taraName.ta : drawerRow.match.taraName.en}
+                    </span>
+                  </div>
+                  {drawerRow.match.reasons.map((reason, index) => (
+                    <p key={index} style={{ margin: "6px 0 0", color: "var(--color-text)", fontSize: "var(--text-sm)", lineHeight: 1.5 }}>
+                      {lang === "ta" ? reason.ta : reason.en}
+                    </p>
+                  ))}
+                </>
+              )}
+            </section>
+          )}
+          onDateChange={setPanchangamDate}
           onClose={() => setPanchangamDate(null)}
+          DayDrawer={DayDrawer}
         />
       )}
     </Card>

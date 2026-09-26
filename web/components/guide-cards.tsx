@@ -24,7 +24,7 @@ export function GuideCardGrid({ cards }: { cards: GuideCard[] }) {
           padding: 18px; border-radius: 16px;
           background: var(--cl-surface); border: 1px solid var(--cl-border);
           text-decoration: none;
-          transition: transform 120ms ease, box-shadow 120ms ease;
+          transition: transform 120ms var(--ease-nova), box-shadow 120ms var(--ease-nova);
         }
         a.cl-guide-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px var(--cl-shadow); }
         .cl-guide-card--muted { opacity: 0.6; }

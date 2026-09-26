@@ -15,6 +15,7 @@ import {
   buildWhyText,
   displayName,
   DOSHAM_REMEDIES,
+  doshamPresenceLabel,
   getDoshamPowerContext,
   getWhat,
   markerLabel,
@@ -181,10 +182,10 @@ function wrapIndex(i: number, length: number): number {
   return ((i % length) + length) % length;
 }
 
+// Presence only — the Severity and Dasha facts beside it carry the other two
+// axes. "Active" is reserved for dasha timing (see `doshamPresenceLabel`).
 export function doshamStatusLabel(d: ChartDoshamInsight, lang: Lang): string {
-  if (!d.isPresent) return lang === "ta" ? "இல்லை" : "Absent";
-  if (d.isCancelled) return lang === "ta" ? "நிவர்த்தி" : "Mitigated";
-  return lang === "ta" ? "கவனம்" : "Active";
+  return doshamPresenceLabel(d, lang);
 }
 
 export function doshamStatusColor(d: ChartDoshamInsight): string {
@@ -411,7 +412,7 @@ export function DashboardExploreDoshamNova({
           </Card>
 
           {dosham.isPresent && (
-            <Card variant="accent" style={{ background: "linear-gradient(120deg, var(--color-accent-muted), transparent)" }}>
+            <Card variant="accent" style={{ backgroundColor: "var(--color-surface)", backgroundImage: "linear-gradient(120deg, var(--color-accent-muted), transparent)" }}>
               <Kicker color="var(--color-accent-strong)">{lang === "ta" ? "உங்கள் ஜாதகத்தில்" : "In your chart"}</Kicker>
               <p style={{ margin: 0, fontSize: "var(--text-base)", lineHeight: 1.6, color: "var(--color-text)" }}>{astroText(powerText)}</p>
               <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", alignItems: "center" }}>

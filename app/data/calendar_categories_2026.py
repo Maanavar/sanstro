@@ -93,11 +93,21 @@ CALENDAR_CATEGORY_EVENTS_2026: tuple[CalendarCategoryEvent, ...] = (
     # Hindu festivals and Tamil devotional observances.
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 3), "Arudra Darisanam", "ஆருத்ரா தரிசனம்", ("hindu",)),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 11), "Kerpotta Nivarthi", "கெர்போட்ட நிவர்த்தி", ("hindu",)),
-    CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 14), "Bhogi", "போகிப் பண்டிகை", ("hindu",)),
-    CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 15), "Thai Pongal / Makar Sankranti", "தைப் பொங்கல்", ("hindu",)),
-    CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 16), "Mattu Pongal", "மாட்டுப் பொங்கல்", ("hindu",)),
+    # 2026-09-15: dates below were one day late against the WI-12 correction
+    # already verified in app/calculations/festivals.py (Makar Sankranti
+    # crossing 2026-01-14 15:07 IST, hours before sunset — see that file's
+    # _YEARLY_FESTIVALS comment and tests/test_festivals.py's explicit
+    # "the hardcode's 01-15 is wrong" assertion). This list was never updated
+    # when that correction shipped, so the calendar rail showed the same
+    # festival on two different days depending on which list it read from.
+    # "Thai Pongal / Makar Sankranti" is renamed to plain "Thai Pongal" so it
+    # dedupes by (date, name) with the algorithmic engine's own row instead of
+    # rendering as a second entry beside it.
+    CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 13), "Bhogi", "போகிப் பண்டிகை", ("hindu",)),
+    CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 14), "Thai Pongal", "தைப் பொங்கல்", ("hindu",)),
+    CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 15), "Mattu Pongal", "மாட்டுப் பொங்கல்", ("hindu",)),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 16), "Thiruvalluvar Day", "திருவள்ளுவர் தினம்", ("hindu", "tamilnadu_govt")),
-    CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 17), "Kaanum Pongal", "காணும் பொங்கல்", ("hindu",)),
+    CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 16), "Kaanum Pongal", "காணும் பொங்கல்", ("hindu",)),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 17), "Uzhavar Thirunal", "உழவர் திருநாள்", ("hindu", "tamilnadu_govt")),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 18), "Thai Amavasai", "தை அமாவாசை", ("hindu",)),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 1, 25), "Ratha Saptami", "ரத ஸப்தமி", ("hindu",)),
@@ -106,7 +116,10 @@ CALENDAR_CATEGORY_EVENTS_2026: tuple[CalendarCategoryEvent, ...] = (
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 3, 2), "Maasi Magam", "மாசி மகம்", ("hindu",)),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 3, 4), "Holi", "ஹோலி பண்டிகை", ("hindu",), "Holi observance can span the evening of Mar 3 through Mar 5.", "ஹோலி அனுசரிப்பு மார்ச் 3 மாலை முதல் மார்ச் 5 வரை மாறலாம்."),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 3, 14), "Karadayan Nombu", "காரடையான் நோன்பு", ("hindu",)),
-    CalendarCategoryEvent("hindu-festivals-2026", date(2026, 3, 19), "Ugadi / Telugu New Year", "தெலுங்கு வருடப் பிறப்பு", ("hindu", "tamilnadu_govt")),
+    # Canonical spelling matches app/calculations/festivals.py's
+    # _YEARLY_FESTIVALS row for the same date, so the two sources dedupe by
+    # (date, name) into one rail entry instead of two differently-spelled ones.
+    CalendarCategoryEvent("hindu-festivals-2026", date(2026, 3, 19), "Ugadi (Telugu New Year)", "தெலுங்கு வருடப் பிறப்பு", ("hindu", "tamilnadu_govt")),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 3, 26), "Ram Navami", "ராமநவமி", ("hindu",), "Some regional panchangams observe Ram Navami on Mar 27.", "சில பிராந்திய பஞ்சாங்கங்களில் ராமநவமி மார்ச் 27 எனக் கடைப்பிடிக்கப்படுகிறது."),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 4, 1), "Panguni Uthiram", "பங்குனி உத்திரம்", ("hindu",)),
     CalendarCategoryEvent("hindu-festivals-2026", date(2026, 4, 14), "Tamil New Year (Puthandu) / Ambedkar Jayanti", "தமிழ் வருடப்பிறப்பு", ("hindu", "tamilnadu_govt")),
@@ -159,7 +172,8 @@ CALENDAR_CATEGORY_EVENTS_2026: tuple[CalendarCategoryEvent, ...] = (
 
     # Muslim festivals.
     CalendarCategoryEvent("muslim-festivals-2026", date(2026, 2, 19), "Ramzan Begins", "ரம்ஜான் முதல் தேதி", ("muslim",), "Subject to local moon sighting.", "உள்ளூர் பிறைத் தரிசனத்தைப் பொறுத்து மாறலாம்."),
-    CalendarCategoryEvent("muslim-festivals-2026", date(2026, 3, 21), "Eid ul-Fitr (Ramzan)", "ரம்ஜான் பண்டிகை", ("muslim", "tamilnadu_govt"), "Subject to local moon sighting.", "உள்ளூர் பிறைத் தரிசனத்தைப் பொறுத்து மாறலாம்."),
+    # Canonical spelling matches festivals.py's _YEARLY_FESTIVALS row (see note above).
+    CalendarCategoryEvent("muslim-festivals-2026", date(2026, 3, 21), "Eid ul-Fitr (Ramazan)", "ரம்ஜான் பண்டிகை", ("muslim", "tamilnadu_govt"), "Subject to local moon sighting.", "உள்ளூர் பிறைத் தரிசனத்தைப் பொறுத்து மாறலாம்."),
     CalendarCategoryEvent("muslim-festivals-2026", date(2026, 5, 28), "Bakrid (Eid al-Adha)", "பக்ரீத் பண்டிகை", ("muslim", "tamilnadu_govt"), "Subject to local moon sighting.", "உள்ளூர் பிறைத் தரிசனத்தைப் பொறுத்து மாறலாம்."),
     CalendarCategoryEvent("muslim-festivals-2026", date(2026, 6, 17), "Hijri New Year", "ஹிஜிரி வருடப் பிறப்பு", ("muslim",), "Subject to local moon sighting.", "உள்ளூர் பிறைத் தரிசனத்தைப் பொறுத்து மாறலாம்."),
     CalendarCategoryEvent("muslim-festivals-2026", date(2026, 6, 26), "Muharram", "மொஹரம் பண்டிகை", ("muslim", "tamilnadu_govt"), "Subject to local moon sighting.", "உள்ளூர் பிறைத் தரிசனத்தைப் பொறுத்து மாறலாம்."),
@@ -173,9 +187,12 @@ CALENDAR_CATEGORY_EVENTS_2026: tuple[CalendarCategoryEvent, ...] = (
     CalendarCategoryEvent("tamil-nadu-government-holidays-2026", date(2026, 1, 17), "Uzhavar Thirunal", "உழவர் திருநாள்", ("tamilnadu_govt",)),
     CalendarCategoryEvent("tamil-nadu-government-holidays-2026", date(2026, 1, 26), "Republic Day", "குடியரசு தினம்", ("tamilnadu_govt", "indian_govt")),
     CalendarCategoryEvent("tamil-nadu-government-holidays-2026", date(2026, 2, 1), "Thai Poosam", "தைப்பூசம்", ("tamilnadu_govt",)),
-    CalendarCategoryEvent("tamil-nadu-government-holidays-2026", date(2026, 3, 19), "Telugu New Year Day", "தெலுங்கு வருடப் பிறப்பு", ("tamilnadu_govt",)),
-    CalendarCategoryEvent("tamil-nadu-government-holidays-2026", date(2026, 3, 21), "Ramzan Festival", "ரமலான் பண்டிகை", ("tamilnadu_govt", "muslim")),
-    CalendarCategoryEvent("tamil-nadu-government-holidays-2026", date(2026, 3, 31), "Mahaveer Jayanthi", "மஹாவீர் ஜெயந்தி", ("tamilnadu_govt",)),
+    # Canonical spellings match festivals.py's _YEARLY_FESTIVALS rows for the
+    # same dates (see note above the hindu-festivals-2026 block), so these
+    # dedupe by (date, name) into one rail entry instead of a third spelling.
+    CalendarCategoryEvent("tamil-nadu-government-holidays-2026", date(2026, 3, 19), "Ugadi (Telugu New Year)", "தெலுங்கு வருடப் பிறப்பு", ("tamilnadu_govt",)),
+    CalendarCategoryEvent("tamil-nadu-government-holidays-2026", date(2026, 3, 21), "Eid ul-Fitr (Ramazan)", "ரமலான் பண்டிகை", ("tamilnadu_govt", "muslim")),
+    CalendarCategoryEvent("tamil-nadu-government-holidays-2026", date(2026, 3, 31), "Mahavir Jayanti", "மஹாவீர் ஜெயந்தி", ("tamilnadu_govt",)),
     CalendarCategoryEvent("tamil-nadu-government-holidays-2026", date(2026, 4, 1), "Annual Closing of Accounts", "வங்கி கணக்கு முடிக்கும் நாள்", ("tamilnadu_govt",), "Bank-only holiday.", "வங்கிகளுக்கு மட்டும் விடுமுறை."),
     CalendarCategoryEvent("tamil-nadu-government-holidays-2026", date(2026, 4, 3), "Good Friday", "புனித வெள்ளி", ("tamilnadu_govt", "christian")),
     CalendarCategoryEvent("tamil-nadu-government-holidays-2026", date(2026, 4, 14), "Tamil New Year's Day", "தமிழ் வருடப் பிறப்பு", ("tamilnadu_govt",)),
@@ -186,7 +203,8 @@ CALENDAR_CATEGORY_EVENTS_2026: tuple[CalendarCategoryEvent, ...] = (
     CalendarCategoryEvent("tamil-nadu-government-holidays-2026", date(2026, 8, 15), "Independence Day", "சுதந்திர தினம்", ("tamilnadu_govt", "indian_govt")),
     CalendarCategoryEvent("tamil-nadu-government-holidays-2026", date(2026, 8, 26), "Milad-un-Nabi", "மீலாது நபி", ("tamilnadu_govt", "muslim")),
     CalendarCategoryEvent("tamil-nadu-government-holidays-2026", date(2026, 9, 4), "Krishna Jayanthi", "கிருஷ்ண ஜெயந்தி", ("tamilnadu_govt", "hindu")),
-    CalendarCategoryEvent("tamil-nadu-government-holidays-2026", date(2026, 9, 14), "Vinayakar Chaturthi", "விநாயகர் சதுர்த்தி", ("tamilnadu_govt", "hindu")),
+    # Canonical spelling (was "Vinayakar") so it dedupes with the same-date rows in festivals.py and hindu-festivals-2026.
+    CalendarCategoryEvent("tamil-nadu-government-holidays-2026", date(2026, 9, 14), "Vinayagar Chaturthi", "விநாயகர் சதுர்த்தி", ("tamilnadu_govt", "hindu")),
     CalendarCategoryEvent("tamil-nadu-government-holidays-2026", date(2026, 10, 2), "Gandhi Jayanthi", "காந்தி ஜெயந்தி", ("tamilnadu_govt", "indian_govt")),
     CalendarCategoryEvent("tamil-nadu-government-holidays-2026", date(2026, 10, 19), "Ayudha Pooja", "ஆயுத பூஜை", ("tamilnadu_govt", "hindu")),
     CalendarCategoryEvent("tamil-nadu-government-holidays-2026", date(2026, 10, 20), "Vijaya Dasami", "சரஸ்வதி பூஜை / விஜயதசமி", ("tamilnadu_govt", "hindu")),

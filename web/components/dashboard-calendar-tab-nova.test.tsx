@@ -9,8 +9,8 @@
  *  1. The Nalla Neram and Gowri Nalla Neram cards printed bare clock times, so
  *     when the two windows coincided the second card was indistinguishable
  *     noise. Each window now names the Gowri kala it was cut from.
- *  2. The three inauspicious kalams were three stacked cards; they are one
- *     three-up row.
+ *  2. The binding avoid kalams share one compact row. Kuligai is kept outside
+ *     it because its polarity depends on the activity.
  *  3. Five Limbs row order (and "Naamyogam", not "Yoga", for the 27 nithya
  *     yogas — "Yoga" sat directly above "Amirdhadhi Yogam" and read as a repeat).
  *  4. A festival is a headline fact and belongs in the day-header chip row
@@ -31,6 +31,7 @@ vi.mock("@/hooks/useMonthlyPanchangam", () => ({
 }));
 
 import { DashboardCalendarTabNova } from "./dashboard-calendar-tab-nova";
+import { DAY_TIMELINE_BAND_STYLE } from "./dashboard-calendar-shared";
 
 // Synthetic Thursday: Yamagandam sits on the first good day kala (Dhanam), so
 // Nalla Neram opens at Sugam and the Gowri summary lands on the ranked-best
@@ -56,6 +57,7 @@ function panchangamFixture(
       rahuKalam: { start: "13:42", end: "15:18", slot: 6 },
       yamagandam: { start: "05:45", end: "07:20", slot: 1 },
       kuligai: { start: "08:56", end: "10:31", slot: 3 },
+      durmuhurtham: [{ start: "10:31", end: "11:18", slot: 4 }],
       gowriPanchangam: [],
       nallaNeram: [
         { start: "07:20", end: "08:56", slot: 1, name: "SUGAM", period: "AM", isGood: true },
@@ -108,11 +110,55 @@ function auspiciousCard(title: string): HTMLElement {
 }
 
 describe("Panchangam view — plain-language day summary", () => {
+  it("keeps an aria-hidden Tamil-date slot blank while the server value is pending (DXA-38)", () => {
+    const { container } = render(
+      <DashboardCalendarTabNova
+        selectedDate="2026-09-17"
+        todayDate="2026-09-17"
+        panchangam={null}
+        panchangamTimings={null}
+        lang="ta"
+      />,
+    );
+
+    const tamilDateSlot = Array.from(container.querySelectorAll<HTMLElement>("[aria-hidden='true']"))
+      .find((element) => element.style.minWidth === "8ch");
+    expect(tamilDateSlot).toBeTruthy();
+    expect(tamilDateSlot).toHaveStyle({ visibility: "hidden" });
+    expect(tamilDateSlot?.textContent).toBe("\u00a0");
+    expect(container).not.toHaveTextContent("புரட்டாசி");
+  });
+
   it("leads with an interpretation before the named calendar facts", () => {
     renderPanchangam();
     expect(screen.getByTestId("calendar-day-summary")).toHaveTextContent(
       "A generally favourable day. Use a recommended window for a new start.",
     );
+  });
+
+  it("names the day's Rahu Kalam window so the line is usable without the vocabulary (T15)", () => {
+    renderPanchangam();
+    // Fixture Rahu Kalam is 13:42–15:18 — the same slot the Avoid card lists.
+    expect(screen.getByTestId("calendar-day-summary")).toHaveTextContent(
+      "Avoid Rahu Kalam, 1:42 pm–3:18 pm.",
+    );
+  });
+
+  it("renders the Tamil Rahu Kalam clause with almanac period-words, advisory voice, no dash", () => {
+    render(
+      <DashboardCalendarTabNova
+        selectedDate="2026-06-04"
+        todayDate="2026-06-04"
+        panchangam={panchangamFixture()}
+        panchangamTimings={null}
+        lang="ta"
+      />,
+    );
+    const summary = screen.getByTestId("calendar-day-summary");
+    expect(summary).toHaveTextContent(
+      "ராகு காலம் மதியம் 1:42 – மதியம் 3:18 நேரத்தில் புதிய செயல்களைத் தவிர்ப்பது நல்லது.",
+    );
+    expect(summary.textContent).not.toMatch(/\b(am|pm)\b|—/);
   });
 });
 
@@ -172,16 +218,34 @@ describe("Panchangam view — auspicious windows name their kala", () => {
   });
 });
 
-describe("Panchangam view — the three kalams to avoid", () => {
-  it("puts all three in one row, not three stacked cards", () => {
+describe("Panchangam view — binding avoid periods and contextual Kuligai", () => {
+  it("keeps Kuligai visible but outside the avoid grid", () => {
     renderPanchangam();
     const heading = screen.getByText("Avoid");
     const strip = heading.parentElement?.querySelector("div[style*='grid']") as HTMLElement;
     expect(strip).toBeTruthy();
     expect(within(strip).getByText("Rahu Kalam")).toBeInTheDocument();
     expect(within(strip).getByText("Yamagandam")).toBeInTheDocument();
-    expect(within(strip).getByText("Kuligai")).toBeInTheDocument();
+    expect(within(strip).queryByText("Kuligai")).toBeNull();
+    // Rahu + Yamagandam + the fixture's one Durmuhurtham window.
     expect(strip.children).toHaveLength(3);
+    expect(within(strip).getByText("Durmuhurtham")).toBeInTheDocument();
+    // R8: the caution is scoped on the surface, not left as a bare label.
+    expect(within(strip).getByText("Avoid for auspicious / new beginnings")).toBeInTheDocument();
+    // "Kuligai" also appears as a timeline legend entry, so scope the assertion
+    // to the contextual card rather than the whole document.
+    const kuligaiCard = screen.getByTestId("kuligai-contextual");
+    expect(within(kuligaiCard).getByText("Kuligai")).toBeInTheDocument();
+    expect(within(kuligaiCard).getByText("Suited to activities meant to repeat, continue or grow; not a general avoid period.")).toBeInTheDocument();
+  });
+
+  it("paints Durmuhurtham one rung below Yamagandam, never above it", () => {
+    // The dot and the timeline band read the same table, so this also pins the
+    // strip. A narrower rule must not look graver than a general one.
+    expect(DAY_TIMELINE_BAND_STYLE["avoid-scoped"].fill).toBe(DAY_TIMELINE_BAND_STYLE.avoid.fill);
+    expect(DAY_TIMELINE_BAND_STYLE["avoid-scoped"].opacity).toBeLessThan(DAY_TIMELINE_BAND_STYLE.avoid.opacity);
+    expect(DAY_TIMELINE_BAND_STYLE.contextual.fill).not.toBe(DAY_TIMELINE_BAND_STYLE.avoid.fill);
+    expect(DAY_TIMELINE_BAND_STYLE.contextual.fill).not.toBe(DAY_TIMELINE_BAND_STYLE["avoid-strong"].fill);
   });
 
   it("marks the kalam running right now, and only that one", () => {
@@ -247,6 +311,39 @@ describe("Panchangam view — festivals", () => {
     renderPanchangam({ festivals });
     expect(screen.queryByText("Today's Events")).not.toBeInTheDocument();
     expect(screen.getAllByText("Vaikasi Visakam")).toHaveLength(1);
+  });
+
+  it("does not render a Tamil-only observance name in English mode", () => {
+    renderPanchangam({
+      dateLocal: "2026-09-21",
+      festivals: [{ name: "சர்வதேச அமைதி தினம்", category: "observance", tags: ["observance"] }],
+    });
+    expect(screen.getByText("International Day of Peace")).toBeInTheDocument();
+    expect(screen.queryByText("சர்வதேச அமைதி தினம்")).not.toBeInTheDocument();
+  });
+
+  // E-3: the first fix keyed the English name on the date the audit ran, so
+  // the other 23 observances printed "Observance". Two share 06-08, which a
+  // date key cannot tell apart.
+  it("names both observances that share 06-08, each by its own name", () => {
+    renderPanchangam({
+      dateLocal: "2026-06-08",
+      festivals: [
+        { name: "உலக பெருங்கடல் தினம்", category: "observance", tags: ["observance"] },
+        { name: "உலக மூளைக்கட்டி தினம்", category: "observance", tags: ["observance"] },
+      ],
+    });
+    expect(screen.getByText("World Oceans Day")).toBeInTheDocument();
+    expect(screen.getByText("World Brain Tumour Day")).toBeInTheDocument();
+    expect(screen.queryByText("Observance")).not.toBeInTheDocument();
+  });
+
+  it("keys the English name on the observance, not on the date it is shown", () => {
+    renderPanchangam({
+      dateLocal: "2027-01-04",
+      festivals: [{ name: "சர்வதேச அமைதி தினம்", category: "observance", tags: ["observance"] }],
+    });
+    expect(screen.getByText("International Day of Peace")).toBeInTheDocument();
   });
 
   it("prints nothing at all on a day with no festivals", () => {

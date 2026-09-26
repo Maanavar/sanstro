@@ -10,6 +10,166 @@ decision inline and move it to "Resolved".
 
 ## Open
 
+### 2026-09-23 · Does Neecha Bhanga restore a debilitated Yogakaraka's rung? Not decided — today it does not
+
+- **Where:** `app/calculations/_yoga_detect.py` (`detect_raja_yogakaraka`,
+  `detect_neecha_bhanga`); witness chart `yogakaraka_neecha` in
+  `tests/test_drishti_yoga_golden.py`.
+- **What happens today:** Rishabha lagna, Sani neecha in Mesham (also the 12th).
+  Suriya, who is exalted in Mesham, sits in a kendra, so `NEECHA_BHANGA_RAJA_YOGA`
+  is present. The Yogakaraka card still reads **Moderate (PARTIAL)**: the
+  2026-09-23 ownership ruling lowers one rung for debility and does not look at
+  bhanga. The two cards are computed independently.
+- **Question:** when the yogakaraka's own debility is cancelled by a valid neecha
+  bhanga, should the debility still cost the rung? Options:
+  (a) no change: debility lowers, bhanga is its own yoga (today);
+  (b) a valid bhanga removes the debility affliction only, so the dusthana
+  placement alone still lowers it (on the witness chart it stays PARTIAL);
+  (c) a valid bhanga restores STRONG outright.
+- **Why we did not pick:** it is a lineage choice with direct effect on the
+  strength shown, and the ruling of the day did not address it.
+
+### 2026-09-23 · Which dasha levels "activate" a yoga? We chose Maha + Antar — live after this change
+
+- **Where:** `app/services/_chart_build.py` (`_build_yoga_dosham_insights`),
+  `app/calculations/yoga_activation.py`, `app/calculations/_yoga_detect.py`
+  (Amala, Adhi); web surfaces through `packages/shared/src/yogaDisplay.ts`.
+- **What was wrong:** the chart decided "is this yoga running" twice. The
+  detectors used Maha + Antar + **Pratyantar** lords. The 0–100 activation score
+  used Maha + Antar only. A reported chart (Suriya mahadasha, Ketu bhukti, Guru
+  pratyantar) showed Gaja Kesari, Hamsa and Vipareetha Raja Yoga as **Active**
+  with the **dormant** score 34/100 beside each. Amala and Adhi also set their
+  flag from functional nature (does a benefic here lord a trikona?), which reads
+  no dasha at all.
+- **What we chose:** one verdict, Maha + Antar, the definition the activation
+  score already documented. The score now takes the published flag instead of
+  re-deciding it. Amala and Adhi stay dormant, because neither has a ruled key
+  graha. This is a lineage choice, not a claim that Pratyantar timing is invalid.
+  Pratyantar lasts weeks, and a lifelong-yoga chip that flips on and off every
+  few weeks read as noise.
+- **Astrologer answers, 2026-09-23:**
+  1. **Antaram (Pratyantar) refines timing but never triggers on its own.**
+     Proposed tiers: Strong when both Dasha and Bhukti lords form the yoga;
+     Moderate when one does. An Antaram lord that also forms it marks a "peak
+     window" inside an already-active period. Antaram alone does not activate.
+  2. **Raja Yoga activates on the lords that form each instance.** Not a fixed
+     list, and not every kendra/trikona lord in the chart.
+  3. **Amala:** the benefics occupying the 10th activate it, never the 10th
+     lord. **Adhi:** the benefics in the 6th/7th/8th from Chandran activate it;
+     Chandran is the reference point, not a participant.
+  4. **Principle:** triggers are computed at detection and stored on the
+     instance, never keyed on the yoga's name.
+- **Built from these answers:** 1 (Antaram alone never activates; this was
+  already true after the fix above). 2, 3 and 4 via the existing
+  `YogaResult.key_grahas`: Raja Yoga (link and parivartana forms) records its
+  own pair, Amala its 10th-house benefics, Adhi its 6/7/8 benefics.
+  Tests are in `tests/test_yoga_activation_agreement.py`.
+- **Second ruling pass (same day), all built:**
+  - **Strong tier:** +10 (`BOTH_LORDS_STEP`), capped at 100, added only when
+    the Dasha and Bhukti lords formed the *same* instance. Moderate is the
+    existing score, unchanged. The largest activated score before the step is
+    85, so +10 cannot swamp the other components.
+  - **Peak window:** nullable `peakWindow {start, end, antaramLord}` on each
+    yoga, in the backend and the shared type. Web and mobile do not render it
+    yet.
+  - **Yogakaraka:** a separate `YOGAKARAKA_RAJA_YOGA` (`YOG-RY-04`), gated on
+    not debilitated / not combust / not in 6-8-12. The existing Raja Yoga is
+    untouched. *Gate superseded the same day; see the Tamil review below.*
+  - **Adhi:** YOG-AD-01 stands (at least two benefics). The single-benefic
+    suggestion is withdrawn. No code change; Chandran only in v1.
+  - **Dusthana dual lords:** decided by moolatrikona sign
+    (`raja_lord_qualifies`). This disqualifies Rishabha-Sevvai,
+    Kataka-Guru/Sani, Kanni-Sani, Thulam-Budhan, Vrischika-Sukran and
+    Kumbha-Budhan.
+  - **Rahu/Ketu:** recorded as supporting when they share a sign with a
+    forming lord; they never form a Raja Yoga and never activate one.
+  - **Amala:** Guru/Sukran/Budhan only (Budhan only if no malefic shares its
+    sign), Chandran excluded. Malefic drishti lowers strength one rung and
+    never cancels.
+  - Three golden-chart cells moved, all explained in
+    `tests/test_drishti_yoga_golden.py`. No Raja Yoga moved on those charts.
+- **Amendment, same day (all built):**
+  1. **Lagna lord over moolatrikona.** Precedence is lagna ownership first,
+     then moolatrikona. The lagna lord always qualifies as both kendra and
+     trikona lord; the moolatrikona test applies only to non-lagna lords with a
+     dusthana. This was already the behaviour; it is now stated as the rule.
+  2. **Node drishti in Amala** follows the project's existing node-aspect
+     doctrine (`CORE-10`, Rahu/Ketu 5/7/9), so it counts. It only ever
+     weakens; it never removes the yoga. On the reported chart Amala went
+     STRONG → PARTIAL (still present), as intended.
+  3. **Suriya does not afflict Budhan.** For Amala, Budhan loses benefic
+     status only when Sani, Sevvai, Rahu or Ketu shares its sign. Rahu/Ketu stay
+     on that list because of point 2.
+  4. **Own bhukti is Moderate.** Strong needs two distinct forming planets as
+     Dasha and Bhukti lords, so a single-former yoga (including the yogakaraka
+     type) never reaches Strong.
+  5. **One afflicting-malefic set for Amala.** Budhan's same-sign test and the
+     10th-house aspect test both read `AMALA_AFFLICTING_MALEFICS`, so the two
+     cannot drift apart again. **Suriya is out** of both: it is the karaka of
+     the 10th, gains dig bala there, and is only a mild malefic. **Mandhi:** the
+     astrologer excludes upagrahas from aspect tests *unless the project grants
+     Mandhi drishti elsewhere*, in which case stay consistent. We do (`EC-A21`,
+     the 7th aspect in `aspects.ASPECT_HOUSES`), so Mandhi is **in**, for both
+     tests (owner decision). The set is Sani, Sevvai, Rahu, Ketu and Mandhi.
+     A weakening flag, never a cancellation. Tested in
+     `test_amala_reads_one_afflictor_set_for_both_tests`.
+- **Native Tamil review, 2026-09-23 (all built):**
+  - **Yogakaraka doctrine (owner decision on the reviewer's point):** ownership
+    establishes the yoga; debility, combustion and a 6/8/12 placement lower it
+    one rung (Strong → Moderate, however many apply) and never remove it. This
+    **supersedes the first-pass dignity gate** above. Each affliction is a
+    `<graha>_yogakaraka_<affliction>` marker in `conditions_met`, rendered as
+    "…; யோகபலம் சற்று குறையலாம், யோகம் நீங்காது". The three golden charts did
+    not move. *Astrologer: please confirm, since this reverses your gate.*
+  - **Names:** யோககாரக ராஜயோகம் (ராஜயோகம் as one word). Every yoga name in
+    Tamil mode is now in Tamil script, from the registry's `name_ta`
+    (`packages/shared/src/yogaDisplay.ts`), instead of English.
+  - **Strength words:** வலுவான / மிதமான / **லேசான** (was மென்மையான, which
+    reads as a "gentle" dosham). உண்டு stays for the chip.
+  - **Copy:** the reviewer's wording for the effect line (softer, traditional
+    tone), the description (லக்னத்திற்கு), the "what this is" line, both marker
+    lines (பார்க்கிறது-style neutral verb, -ஆம்), and the four Life Areas
+    lines (செயல்படும் over தூண்டும்; ஜாதகப் பகுதி over ஜாதகப் பார்வை).
+  - **Em-dash:** not a Tamil-language rule; the rewritten lines use a colon or
+    semicolon instead. No global sweep.
+- **Status:** live. Locked by `tests/test_yoga_activation_agreement.py`, which
+  sweeps 36 synthetic charts and fails if any yoga reads active beside a dormant
+  score. Before the fix, 1 of the first 2 charts already failed.
+- **Display change in the same pass:** "Active" now means dasha timing only.
+  A dosham's presence reads Present / உண்டு (the reviewed yoga chip word). Its
+  natal strength reads Strong / Moderate / Mild on every surface. The Life Areas
+  card lists only what the running dasha lights. Its old copy also claimed
+  transits, which the engine never reads (2026-09-11 ruling). Its Tamil was
+  reviewed 2026-09-23 (above).
+
+### 2026-09-23 · Personal palan bilingual content matrix — NOT LIVE; blocks §5
+
+- **Where:** the proposed chart-personalised daily palan in
+  `HOME_CALENDAR_CHARTS_PROPOSALS_2026-09-22.md` §5. The self-contained review
+  packet is `PERSONAL_PALAN_CONTENT_REVIEW_2026-09-23.md`.
+- **What is decided:** Moon-relative gochara is primary; tara bala modifies it;
+  Chandrashtama leads when present; the hero remains the single verdict source.
+  Lucky aspects are omitted until a sourced classical mapping passes review,
+  and Kuligai uses the existing activity polarity table rather than prose.
+- **What is needed:** astrologer review of the area × Moon-house matrix, tara
+  modifiers and precedence rules, followed by a native Tamil review of every
+  production line. Health and remedies have explicit safety limits in the
+  packet.
+- **Status:** not built and not live. Do not add the API field or UI until both
+  sign-off rows in the packet are complete.
+
+### 2026-09-23 · Calendar Durmuhurtham and contextual Kuligai Tamil — live after this change
+
+- **Where:** `web/components/dashboard-calendar-tab-nova.tsx`, plus the
+  Durmuhurtham scope labels on web marketing and mobile panchangam surfaces.
+- **Doctrine already ruled:** Durmuhurtham is an avoid period only for
+  auspicious work/new beginnings; Kuligai is conditional and is suitable for
+  activities intended to repeat, continue or grow. Neither is a general
+  whole-day prohibition.
+- **Review needed:** native Tamil idiom/register for the new scope notes. The
+  rule itself is closed by R7/R8; this is a language review, not permission to
+  turn Kuligai back into a generic avoid period.
+
 ### 2026-09-04 · Does Abhijit muhurtham override Rahu Kalam and the other kalas?
 
 - **Where:** `web/components/dashboard-today-tab-nova.tsx` (`abhijitOverlapNote`,
@@ -195,6 +355,62 @@ decision inline and move it to "Resolved".
   that session closed it; removing rather than re-carrying it forward.
 
 ## Resolved
+
+### 2026-09-23 · Sign-edge grahas: four questions, plus new Tamil copy — ✅ RULED 2026-09-23, built
+
+- **Where:** `app/calculations/chart_strength.py` (`_avastha_multiplier`, the
+  `sandhi` −8 near L1011); `app/services/chart_explanation_service.py`
+  (`_sandhi_meaning`, `_avastha_facet_value`); `app/calculations/lagna_edge.py`.
+- **What is now live:**
+  1. Every graha card for the seven grahas has a new **avastha (Baladi)** line
+     under strength. It gives the stage, the 6° band and, for even signs, the
+     reversal. So Saturn at 0.94° Meenam reads **Mrita**, not the "Bala/infant"
+     that popular write-ups give.
+  2. The **sign-edge (sandhi)** line now names the neighbouring sign and the
+     direction of travel. Retrograde grahas and the nodes are treated as moving
+     backwards. The line also says that house and lordship are still read fully
+     from the occupied sign. In other words, we do **not** carry a 0°-graha's
+     results over to the previous house.
+  3. A **Lagna-edge note** appears when the Lagna would change sign within
+     max(5 min, the recorded birth-time confidence). It shows on the chart
+     explanation's basics tab and in the Jadhagam report.
+- **Questions:**
+  - **Q1: do the two penalties stack?** A graha at ≤1° or ≥29° takes the flat
+    −8 sandhi term. It *also* sits in the first or last 6° Baladi band, where
+    the avastha multiplier is at its lowest (0.25 or 0.50). Both come from the
+    same degree fact. Options: (a) both apply (today); (b) inside the ±1° band,
+    sandhi replaces the avastha scaling; (c) drop the flat −8 and let avastha
+    carry the edge. We did not pick, because each option moves real scores.
+  - **Q2: do Rahu and Ketu get Baladi avastha?** The scorer applies the
+    multiplier to the nodes today. The new *narration* does not show a stage for
+    them, because the scheme is stated for the seven grahas. Please confirm one
+    way or the other; the scorer and the text should agree.
+  - **Q3: is the carry-over wording right for our lineage?** Is "house and
+    lordship are read fully from the occupied sign" acceptable in a whole-sign
+    rasi chart, or does the lineage give a 0°/29° graha any bhava-sandhi
+    (split-house) reading?
+  - **Q4: is the 5-minute Lagna window right?** It is a [PRODUCT] threshold.
+    Should it be wider, or tied to rectification practice?
+- **New Tamil copy to check:** the five `_BALADI_TEXT` stage lines, the
+  odd/even rule sentence, the directional sandhi sentence and the Lagna-edge
+  note. They use பால / குமார / யுவ / விருத்த / மிருத அவஸ்தை.
+- **Decision (astrologer, 2026-09-23), all built. Recorded as DOCTRINE_DECISIONS_V1 §15:**
+  - **Q1: never both; the larger applies.** Built literally. *Follow-up:* the
+    ruling also said this equals "sandhi replaces Baladi". That holds only
+    while the Baladi cost is ≤ 8. It is not true for dignity ≥ ~60 in a Mrita
+    zone (an exalted graha at 0.4° of an even sign costs 13.5). We kept "the
+    larger". Please confirm.
+  - **Q2: the text is right; the scorer now drops Baladi for Rahu/Ketu**
+    (multiplier 1.0, label NEUTRAL). Jagradadi was not ruled on and is unchanged.
+  - **Q3: the astrologer's wording is adopted** ("only from ‹sign›… never
+    moves it into ‹neighbour›"); "fully" is removed. It matches
+    DOCTRINE_DECISIONS_V1 §6 (whole-sign). "PR-A2" is the astrologer's label;
+    there is no such change in this repo.
+  - **Q4: recompute plus bisection, with firm ±5 / soft ±15 min tiers and a
+    D9 Lagna check at ±5.** *Follow-up (product):* measured on 400 synthetic
+    births, the D9 note fires on **76%** of charts (Lagna: firm 8%, soft 19%).
+    It is rendered today. The owner decides whether it stays on the basics
+    tab or moves next to the D9 chart.
 
 ### 2026-08-18 · Kandaka Sani — which reference, and which house set? (`GO-10`) — ✅ RESOLVED 2026-08-19
 

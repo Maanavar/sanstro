@@ -8,7 +8,7 @@ import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";
 import { formatClockLabel, getScoreBand } from "@/lib/format";
 import { t, tLang, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
-import { D1_RASI_NAMES, RASI_LORDS } from "@/lib/chart-utils";
+import { rasiDisplayName, rasiLabel, RASI_LORDS } from "@/lib/chart-utils";
 import { RASI_TRAITS } from "@/lib/rasi-traits";
 import { ZodiacBadge } from "@/components/zodiac-badge";
 import type {
@@ -43,6 +43,7 @@ import { NovaSelect } from "./nova-select";
 import { Chip, Metric, Surface } from "./dashboard-ui";
 import { Card, Kicker } from "./ui";
 import { Field, FieldShell, Input } from "./ui/field";
+import { saniCycleName } from "@/lib/family-flags";
 
 /**
  * Deep Dive completeness follow-up (see docs/DASHBOARD_UI_REVAMP_PLAN.md §7/§8) —
@@ -130,7 +131,7 @@ export function NovaChartIdentityCard({
             </div>
             <p className="surface__text">
               {personalChartSummary
-                ? `${personalChartSummary.lagnaRasi} ${t("label_lagnam", lang)} · ${personalChartSummary.moonRasi} ${t("label_janma_rasi", lang)} · ${astroText(personalChartSummary.janmaNakshatra)} ${t("label_nakshatra", lang)} ${t("label_padam", lang)} ${personalChartSummary.janmaPada}`
+                ? `${rasiDisplayName(personalChartSummary.lagnaRasi, lang)} ${t("label_lagnam", lang)} · ${rasiDisplayName(personalChartSummary.moonRasi, lang)} ${t("label_janma_rasi", lang)} · ${astroText(personalChartSummary.janmaNakshatra)} ${t("label_nakshatra", lang)} ${t("label_padam", lang)} ${personalChartSummary.janmaPada}`
                 : t("chart_loading", lang)}
             </p>
             <div style={{ display: "flex", gap: "var(--space-3_5)", flexWrap: "wrap", justifyContent: "center", marginTop: "14px" }}>
@@ -176,7 +177,7 @@ export function NovaRasiTraitCard({
   if (rasi == null) return null;
   const entry = RASI_TRAITS[rasi];
   if (!entry) return null;
-  const rasiName = D1_RASI_NAMES[rasi] ?? `Rasi ${rasi}`;
+  const rasiName = rasiLabel(rasi, lang);
   const lord = RASI_LORDS[rasi];
 
   return (
@@ -303,8 +304,8 @@ export function NovaGuidanceCard({
                 </p>
               )}
               <div className="surface__metrics">
-                <Metric label={t("label_best_time", lang)} value={bestWindow ? formatClockLabel(bestWindow.start) : ""} hint={bestWindow ? formatClockLabel(bestWindow.end) : ""} tone="high" />
-                <Metric label={t("label_caution_time", lang)} value={avoidWindow ? formatClockLabel(avoidWindow.start) : ""} hint={avoidWindow ? formatClockLabel(avoidWindow.end) : ""} tone="low" />
+                <Metric label={t("label_best_time", lang)} value={bestWindow ? formatClockLabel(bestWindow.start, lang) : ""} hint={bestWindow ? formatClockLabel(bestWindow.end, lang) : ""} tone="high" />
+                <Metric label={t("label_caution_time", lang)} value={avoidWindow ? formatClockLabel(avoidWindow.start, lang) : ""} hint={avoidWindow ? formatClockLabel(avoidWindow.end, lang) : ""} tone="low" />
                 <Metric label={t("label_moon_transit", lang)} value={`${personalDailyGuidance.scoreBreakdown.moonTransit}`} hint={`${t("dasha_word", lang)} ${personalDailyGuidance.scoreBreakdown.dashaSupport}`} />
               </div>
               {personalDailyGuidance.reasons && (
@@ -396,18 +397,18 @@ export function NovaGocharCard({
                 {!personalTransit.isChandrashtama && (
                   <Metric
                     label={t("label_chandrashtamam", lang)}
-                    value={t("label_none", lang)}
+                    value={t("label_not_today", lang)}
                     hint={personalSani.confirmationSentence}
                     tone="rest"
                   />
                 )}
-                {personalSani.moonBasedCycle.isActive && <Metric label={t("label_sani_cycle", lang)} value={personalSani.moonBasedCycle.type ?? ""} hint={personalSani.moonBasedCycle.supportiveLabel ?? ""} tone="low" />}
+                {personalSani.moonBasedCycle.isActive && <Metric label={t("label_sani_cycle", lang)} value={saniCycleName(personalSani.moonBasedCycle.type ?? "", lang)} hint={personalSani.moonBasedCycle.supportiveLabel ?? ""} tone="low" />}
               </div>
               <div className="surface__textBlock">
                 <p className="surface__subhead">{t("label_gochar_pos", lang)}</p>
                 <div className="chip-row">
                   {personalTransit.transits.slice(0, 5).map((item) => (
-                    <Chip key={item.graha}>{item.graha} · {item.currentRasi}</Chip>
+                    <Chip key={item.graha}>{tPlanetLord(item.graha, lang)} · {rasiDisplayName(item.currentRasi, lang)}</Chip>
                   ))}
                 </div>
               </div>
@@ -620,10 +621,8 @@ export function NovaPrasnaWidget({
     onClose();
   }
 
-  if (!open) return null;
-
   return (
-    <DrawerPanel title={t("prasna_title", lang)} onClose={handleClose}>
+    <DrawerPanel title={t("prasna_title", lang)} onClose={handleClose} open={open}>
       <div style={{ padding: "var(--space-4) var(--space-4) var(--space-8)", maxWidth: "480px" }}>
         <p style={{ fontSize: "var(--text-base)", color: "var(--color-muted)", marginBottom: "16px", lineHeight: 1.6 }}>
           {t("prasna_desc", lang)}

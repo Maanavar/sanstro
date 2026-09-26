@@ -31,6 +31,11 @@ import { NativeAdUnit } from "@/components/AdUnit";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { ErrorCard } from "@/components/ErrorCard";
 import { SharedTransitionView } from "@/components/SharedTransitionView";
+import { FocusChip } from "@/components/LifeFocus";
+import { useLifeFocus } from "@/hooks/useLifeFocus";
+import { todayPulseAreas } from "@/lib/todayFocus";
+import { useKalamReminders } from "@/hooks/useKalamReminders";
+import { LIFE_FOCUS_TEXT } from "@vinaadi/shared/lifeFocus";
 import { getDailySnapshot } from "@/api/snapshot";
 import { pingStreak } from "@/api/streak";
 import type { LifeAreaData } from "@/api/lifeAreas";
@@ -255,6 +260,17 @@ export default function TodayTab() {
   const g = (snapshotData?.data.guidance ?? undefined) as ExtendedGuidance | undefined;
   const { state: pushPromptState, dismiss: dismissPushPrompt, requestAndRegister: requestPushPermission } = usePushNotificationOptIn(!!g);
 
+  // §1 (docs/HOME_CALENDAR_CHARTS_PROPOSALS_2026-09-22.md): opt-in local
+  // reminders for Rahu Kalam / Yamagandam, rebuilt whenever today's kalam
+  // times change. No `enabled` gate for guests: the prefs default off, so a
+  // guest who never opted in schedules nothing.
+  useKalamReminders({
+    kalam: p?.kalam,
+    dateLocal: p?.dateLocal ?? null,
+    timeZone: p?.location.timezone ?? tz,
+    lang,
+  });
+
   // Push today's snapshot to native widget storage whenever data freshens.
   useEffect(() => {
     if (!p) return;
@@ -275,7 +291,9 @@ export default function TodayTab() {
   const todayLabel = formatDateLang(today, lang);
   const tamilDate = p?.tamilDate ? (isTamil ? p.tamilDate.ta : p.tamilDate.en) : todayLabel;
   const cityName = prefs?.city ?? (isLocationMissing ? (isTamil ? "இடத்தை அமைக்கவும்" : "Set location") : "Chennai");
-  const areaPulse = snapshotData?.data.life_areas ?? [];
+  const lifeAreas = snapshotData?.data.life_areas;
+  const { focusArea } = useLifeFocus();
+  const pulseAreas = useMemo(() => todayPulseAreas(lifeAreas ?? [], focusArea), [lifeAreas, focusArea]);
   const nextEvent = useMemo(
     () => getNextEvent((snapshotData?.data.life_events ?? []) as LifeEventWindow[]),
     [snapshotData]
@@ -291,7 +309,7 @@ export default function TodayTab() {
     const chips = [] as { label: string; ok: boolean; detail: string }[];
     if (g.bestWindows?.[0]) {
       const w = g.bestWindows[0];
-      chips.push({ label: t(strings.chips.start_work), ok: true, detail: `${w.type}: ${fmt(w.start)} - ${fmt(w.end)}` });
+      chips.push({ label: t(strings.chips.start_work), ok: true, detail: `${w.type}: ${formatTimeLang(w.start, lang)} - ${formatTimeLang(w.end, lang)}` });
     }
     if (g.currentHoraLord) {
       chips.push({ label: `${g.currentHoraLord} ${t(strings.chips.hora_suffix)}`, ok: true, detail: biText(g.actionSuggestion, isTamil, "Use this window for focused action.") });
@@ -300,10 +318,10 @@ export default function TodayTab() {
     chips.push({ label: t(strings.chips.contracts), ok: !g.cautionWindows?.length && g.score >= SCORE_THRESHOLDS.HIGH, detail: biText(g.cautionSuggestion, isTamil, "Check caution windows before signing.") });
     if (g.cautionWindows?.[0]) {
       const w = g.cautionWindows[0];
-      chips.push({ label: t(strings.chips.avoid_rush), ok: false, detail: `${w.type}: ${fmt(w.start)} - ${fmt(w.end)}` });
+      chips.push({ label: t(strings.chips.avoid_rush), ok: false, detail: `${w.type}: ${formatTimeLang(w.start, lang)} - ${formatTimeLang(w.end, lang)}` });
     }
     return chips.slice(0, 5);
-  }, [g, isTamil, t, strings]);
+  }, [g, isTamil, lang, t, strings]);
 
   const openDetailSheet = useCallback((sheet: DetailSheetState) => {
     setDetailSheet(sheet);
@@ -381,6 +399,9 @@ export default function TodayTab() {
                 </Text>
               ) : null}
             </View>
+            {/* Life focus: shows and changes the focus. The pulse below the
+                hero pins the focus area (T2). */}
+            <FocusChip />
             {streakCount >= 1 && (
               <View style={styles.streakChip} accessibilityLabel={`${streakCount}-day streak`}>
                 <Ionicons name="flame-outline" size={13} color={C.surface} /><Text style={styles.streakText}>{streakCount}</Text>
@@ -530,9 +551,10 @@ export default function TodayTab() {
           </View>
         )}
 
-        {tier !== "guest" && areaPulse.length > 0 && (
+        {tier !== "guest" && pulseAreas.length > 0 && (
           <LifeAreaPulse
-            areas={areaPulse.slice(0, 4)}
+            areas={pulseAreas}
+            focusArea={focusArea}
             isTamil={isTamil}
             C={C}
             styles={styles}
@@ -675,6 +697,14 @@ export default function TodayTab() {
               start={fmt(p.kalam.kuligai.start)}
               end={fmt(p.kalam.kuligai.end)}
             />
+            {(p.kalam.durmuhurtham ?? []).map((slot, index) => (
+              <TimeCard
+                key={`dur-${index}`}
+                kind="durmuhurtham"
+                start={fmt(slot.start)}
+                end={fmt(slot.end)}
+              />
+            ))}
           </ScrollView>
         ) : null}
 
@@ -994,12 +1024,14 @@ export default function TodayTab() {
 
 function LifeAreaPulse({
   areas,
+  focusArea,
   isTamil,
   C,
   onSelect,
   styles,
 }: {
   areas: LifeAreaData[];
+  focusArea: string | null;
   isTamil: boolean;
   C: ColorTokens;
   onSelect: (area: LifeAreaData) => void;
@@ -1010,21 +1042,32 @@ function LifeAreaPulse({
       {areas.map((area) => {
         const tone = area.score >= SCORE_THRESHOLDS.HIGH ? C.green : area.score >= SCORE_THRESHOLDS.MID ? C.gold : C.caution;
         const score = Math.round(area.score);
-        const rawLabel = biText(area.label, isTamil, area.area);
-        const label = rawLabel.length > 7 ? rawLabel.slice(0, 6) + "…" : rawLabel;
+        const label = biText(area.label, isTamil, area.area);
+        const isFocus = focusArea !== null && area.area === focusArea;
+        const focusWord = isTamil ? LIFE_FOCUS_TEXT.eyebrow.ta : LIFE_FOCUS_TEXT.eyebrow.en;
         return (
           <TouchableOpacity
             key={area.area}
             style={styles.areaDotWrap}
             activeOpacity={0.78}
             onPress={() => onSelect(area)}
-            accessibilityLabel={`${rawLabel}: ${score}`}
+            accessibilityLabel={isFocus ? `${focusWord}. ${label}: ${score}` : `${label}: ${score}`}
             accessibilityRole="button"
           >
             <View style={[styles.areaDot, { backgroundColor: tone }]}>
               <Text style={styles.areaDotScore}>{score}</Text>
+              {/* A shape, not only a colour, marks the focus (WCAG 1.4.1):
+                  the compass the Me screen's "Your focus" row uses. */}
+              {isFocus && (
+                <View style={styles.areaDotFocusBadge}>
+                  <Ionicons name="compass" size={12} color={C.saffron} />
+                </View>
+              )}
             </View>
-            <Text numberOfLines={1} style={styles.areaDotLabel}>{label}</Text>
+            {/* Truncated by width, never by code unit: slice(0, 6) cut Tamil
+                between a consonant and its vowel sign, so "ஆரோக்கியம்" read
+                "ஆரோக்க…" (a different letter), not a shortened word. */}
+            <Text numberOfLines={1} ellipsizeMode="tail" style={styles.areaDotLabel}>{label}</Text>
           </TouchableOpacity>
         );
       })}
@@ -1233,6 +1276,19 @@ function makeStyles(C: ColorTokens) {
     shadowOpacity: 0.18,
     shadowRadius: 6,
     elevation: 3,
+  },
+  areaDotFocusBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.saffron,
   },
   areaDotScore: {
     fontFamily: EnFont.ExtraBold,

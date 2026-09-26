@@ -24,6 +24,7 @@ from app.calculations.birth_conditions import (
 from app.calculations.chart_strength import (
     apply_holistic_synthesis,
     compute_strength_breakdown,
+    d9_dignity_label,
     detect_planetary_wars,
     explain_natal_planet_score,
 )
@@ -50,13 +51,14 @@ from app.schemas.charts import (
     PlanetPosition,
     PlanetScoreTerm,
     ResponseMeta,
+    YogaPeakWindow,
 )
 from app.services._chart_planets import (
     _NATAL_GRAHAS,
     _aspect_counts,
     _compute_nakshatra_analysis,
     _compute_vargas,
-    _is_daytime_birth,
+    _is_daytime_birth_for_profile,
     _mandhi_longitude,
     _mandhi_planet_position,
     _paksha_is_shukla,
@@ -330,6 +332,7 @@ def _apply_holistic_strength_synthesis(
         benefic_planets=frozenset(benefics),
         d9_rasi_map=d9_map,
         d9_lagna_rasi=d9_lagna_rasi,
+        planet_longitude={p.graha: float(p.absolute_longitude) for p in natal},
     )
     for p in natal:
         terms = synthesis.get(p.graha)
@@ -365,26 +368,46 @@ def _apply_holistic_strength_synthesis(
                 p.score_terms.append(PlanetScoreTerm(key="clamp", points=residual))
 
 
-def _active_dasha_lords(birth_jd: float, moon_longitude: float) -> set[str]:
-    timeline = calculate_vimshottari_timeline(
+def _current_timeline(birth_jd: float, moon_longitude: float):
+    return calculate_vimshottari_timeline(
         birth_jd,
         moon_longitude,
         utc_datetime_to_julian_day(datetime.now(tz=UTC)),
     )
-    return {
-        timeline.current_mahadasha.lord,
-        timeline.current_antardasha.lord,
-        timeline.current_pratyantardasha.lord,
-    }
 
 
 def _current_dasha_lords(birth_jd: float, moon_longitude: float) -> tuple[str, str]:
-    timeline = calculate_vimshottari_timeline(
-        birth_jd,
-        moon_longitude,
-        utc_datetime_to_julian_day(datetime.now(tz=UTC)),
-    )
+    timeline = _current_timeline(birth_jd, moon_longitude)
     return timeline.current_mahadasha.lord, timeline.current_antardasha.lord
+
+
+def _former_groups(item) -> tuple[tuple[str, ...], ...]:
+    """One tuple of forming grahas per instance behind this card."""
+    if item.former_groups:
+        return item.former_groups
+    formers = tuple(key_planets_for(item.name, item.key_grahas))
+    return (formers,) if formers else ()
+
+
+def _yoga_timing(item, *, maha: str, antar: str, antaram) -> tuple[bool, YogaPeakWindow | None]:
+    """The two 2026-09-23 timing refinements, for a yoga already activated.
+
+    * **Strong**: two *distinct* forming planets are the Mahadasha and
+      Antardasha lords of the same instance. A planet's own bhukti (maha ==
+      antar) is Moderate — swa-bhukti classically gives mixed results, not a
+      peak — so a single-former yoga (Hamsa, the yogakaraka) never reaches
+      Strong (ruling 2026-09-23, amended).
+    * **Peak window**: the running Antaram's lord formed an instance that an
+      activating Maha/Antar lord also formed. Never activates on its own.
+    """
+    groups = [set(g) for g in _former_groups(item)]
+    both = maha != antar and any({maha, antar} <= g for g in groups)
+    peak = any(antaram.lord in g and (maha in g or antar in g) for g in groups)
+    window = (
+        YogaPeakWindow(start=antaram.start_date, end=antaram.end_date, antaramLord=antaram.lord)
+        if peak else None
+    )
+    return both, window
 
 
 def _build_yoga_dosham_insights(
@@ -398,11 +421,18 @@ def _build_yoga_dosham_insights(
     equal_bhava_map: dict[str, int] | None = None,
 ) -> tuple[list[ChartYogaInsight], list[ChartDoshamInsight], list[ChartNakshatraCaution]]:
     planet_map: dict[str, int] = {planet.graha: planet.rasi for planet in planets}
-    active_lords = _active_dasha_lords(birth_jd, next(planet.absolute_longitude for planet in planets if planet.graha == "MOON"))
-    mahadasha_lord, antardasha_lord = _current_dasha_lords(
+    timeline = _current_timeline(
         birth_jd,
         next(planet.absolute_longitude for planet in planets if planet.graha == "MOON"),
     )
+    mahadasha_lord = timeline.current_mahadasha.lord
+    antardasha_lord = timeline.current_antardasha.lord
+    # Mahadasha + Antardasha only — the same two lords `yoga_activation_score`
+    # reads. The detectors used to get the Pratyantar lord as well, so a yoga
+    # lit only by a weeks-long Pratyantar printed "Active" beside the dormant
+    # score 34/100 (a Guru Pratyantar under a Suriya/Ketu period lit Gaja
+    # Kesari, Hamsa and Vipareetha, 2026-09-23). One definition of "running".
+    active_lords = {mahadasha_lord, antardasha_lord}
     planet_scores = {p.graha: p.strength_score for p in planets}
     combust_set = frozenset(p.graha for p in planets if p.is_combust)
     retrograde_set = frozenset(p.graha for p in planets if p.is_retrograde)
@@ -445,14 +475,22 @@ def _build_yoga_dosham_insights(
             return False
         return bool(running_lords & set(key_planets_for(item.name, item.key_grahas)))
 
-    yoga_models = [
-        ChartYogaInsight(
+    def _yoga_model(item) -> ChartYogaInsight:
+        activated = _dasha_activated(item)
+        both, peak = (
+            _yoga_timing(item, maha=mahadasha_lord, antar=antardasha_lord,
+                         antaram=timeline.current_pratyantardasha)
+            if activated else (False, None)
+        )
+        return ChartYogaInsight(
             name=item.name,
             isPresent=item.is_present,
             strength=item.strength,
             conditionsMet=item.conditions_met,
             cancellationFactors=item.cancellation_factors,
-            dashaActivated=_dasha_activated(item),
+            dashaActivated=activated,
+            # The flag above and this score must never disagree, so the score
+            # is handed the flag instead of re-deciding it.
             activationScore=yoga_activation_score(
                 yoga_name=item.name,
                 yoga_is_present=item.is_present,
@@ -461,8 +499,10 @@ def _build_yoga_dosham_insights(
                 antardasha_lord=antardasha_lord,
                 planet_scores=planet_scores,
                 chart_key_grahas=item.key_grahas,
+                activated=activated,
+                both_lords=both,
             ),
-            isCurrentlyActive=_dasha_activated(item),
+            isCurrentlyActive=activated,
             descriptionTa=item.description_ta,
             descriptionEn=item.description_en,
             # description_* states the mechanism (how the yoga forms); effect_*
@@ -470,9 +510,10 @@ def _build_yoga_dosham_insights(
             # than in each detector so the catalogue has one home.
             effectTa=yoga_effect(item.name)[0],
             effectEn=yoga_effect(item.name)[1],
+            peakWindow=peak,
         )
-        for item in yogas
-    ]
+
+    yoga_models = [_yoga_model(item) for item in yogas]
     dosham_models = [
         ChartDoshamInsight(
             name=item.name,
@@ -591,13 +632,14 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
         nakshatra=nakshatra_from_degree(lagna_degree),
         nakshatra_name=NAKSHATRA_NAMES[nakshatra_from_degree(lagna_degree) - 1],
         pada=pada_from_degree(lagna_degree),
+        d9_rasi=navamsa_rasi_from_degree(lagna_degree),
     )
 
     planet_positions = []
     sun_degree = snapshot.bodies["SUN"].absolute_longitude
     moon_degree = snapshot.bodies["MOON"].absolute_longitude
     birth_time_local = _value(profile, "birth_time_local")
-    is_daytime = _is_daytime_birth(birth_time_local)
+    is_daytime = _is_daytime_birth_for_profile(profile)
     paksha_is_shukla = _paksha_is_shukla(moon_degree, sun_degree)
     snapshot_rasi_map = {body.graha: body.rasi for body in snapshot.bodies.values() if body.graha in _NATAL_GRAHAS}
     # Cazimi (heart of the Sun) is empowered, not burnt — exclude it from the
@@ -630,6 +672,7 @@ def _chart_response_from_profile(profile: Any, calculation_version: str, chart_i
                 benefic_aspect_count=benefic_aspects,
                 malefic_aspect_count=malefic_aspects,
                 planetary_wars=planetary_wars,
+                planet_rasi_map=snapshot_rasi_map,
             )
         )
 
@@ -744,7 +787,21 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
         nakshatra=lagna_nakshatra,
         nakshatra_name=NAKSHATRA_NAMES[lagna_nakshatra - 1],
         pada=pada_from_degree(float(chart.lagna_longitude)),
+        d9_rasi=navamsa_rasi_from_degree(float(chart.lagna_longitude)),
     )
+
+    def _stored_d9_rasi(planet: Any) -> int:
+        """The navamsa sign of a persisted planet row.
+
+        Rows written before the `d9_rasi` column existed fall back to deriving
+        it from the stored longitude, with the same function the fresh path
+        uses. One definition, because `d9_rasi` and `d9_dignity` must never
+        disagree about which sign they are describing — two copies of this
+        expression is how they would.
+        """
+        if planet.d9_rasi is not None:
+            return RASI_NUMBERS.get(str(planet.d9_rasi), 1)
+        return navamsa_rasi_from_degree(float(planet.absolute_longitude))
 
     planets = sorted(chart.planets, key=lambda planet: PLANET_ORDER.get(planet.graha, 99))
     planet_positions = [
@@ -761,7 +818,8 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
             speed_deg_per_day=float(planet.speed_deg_per_day) if planet.speed_deg_per_day is not None else 0.0,
             is_retrograde=bool(planet.is_retrograde),
             is_combust=bool(planet.is_combust),
-            d9_rasi=RASI_NUMBERS.get(str(planet.d9_rasi), 1) if planet.d9_rasi is not None else navamsa_rasi_from_degree(float(planet.absolute_longitude)),
+            d9_rasi=_stored_d9_rasi(planet),
+            d9_dignity=d9_dignity_label(planet.graha, _stored_d9_rasi(planet)),
             is_vargottama=bool(planet.is_vargottama),
             show_retrograde_badge=bool(planet.is_retrograde) and planet.graha not in {"RAHU", "KETU"},
         )
@@ -770,7 +828,7 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
 
     sun_degree = next(planet.absolute_longitude for planet in planet_positions if planet.graha == "SUN")
     moon_degree = next(planet.absolute_longitude for planet in planet_positions if planet.graha == "MOON")
-    is_daytime = _is_daytime_birth(_value(birth_profile, "birth_time_local"))
+    is_daytime = _is_daytime_birth_for_profile(birth_profile)
     paksha_is_shukla = _paksha_is_shukla(moon_degree, sun_degree)
     planet_rasi_map = {p.graha: p.rasi for p in planet_positions if p.graha in _NATAL_GRAHAS}
     planetary_wars = detect_planetary_wars({p.graha: p.absolute_longitude for p in planet_positions})
@@ -812,6 +870,7 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
             benefic_aspect_count=benefic_aspects,
             malefic_aspect_count=malefic_aspects,
             planetary_wars=planetary_wars,
+            planet_rasi_map=planet_rasi_map,
         )
         planet.score_terms = [
             PlanetScoreTerm(
@@ -835,6 +894,7 @@ def _chart_response_from_record(chart: Chart) -> ChartCalculateResponse:
             benefic_aspect_count=benefic_aspects,
             malefic_aspect_count=malefic_aspects,
             speed_ratio=speed_ratio,
+            planet_rasi_map=planet_rasi_map,
         )
 
     # Holistic Strength Synthesis — shared across both build paths (audit C1).

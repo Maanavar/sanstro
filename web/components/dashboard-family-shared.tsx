@@ -8,8 +8,9 @@
 // DasaBhuktiAntaramDetail.
 
 import { getScoreBand, formatClockLabel, scoreColor, SCORE_LOW } from "@/lib/format";
-import { t, tPlanetLord } from "@/lib/i18n";
+import { t, tNakshatra, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { rasiDisplayName } from "@/lib/chart-utils";
 import type {
   ChartCalculateResponseData,
   ChartExplanationData,
@@ -142,9 +143,9 @@ export function MemberDetailExpanded({
   const dasha = memberChart?.dasha;
 
   const identityParts: string[] = [];
-  if (summary?.lagnaRasi) identityParts.push(`${summary.lagnaRasi} ${t("label_lagnam", lang)}`);
-  if (summary?.moonRasi)   identityParts.push(`${summary.moonRasi} ${t("label_janma_rasi", lang)}`);
-  if (summary?.janmaNakshatra) identityParts.push(summary.janmaNakshatra);
+  if (summary?.lagnaRasi) identityParts.push(`${rasiDisplayName(summary.lagnaRasi, lang)} ${t("label_lagnam", lang)}`);
+  if (summary?.moonRasi)   identityParts.push(`${rasiDisplayName(summary.moonRasi, lang)} ${t("label_janma_rasi", lang)}`);
+  if (summary?.janmaNakshatra) identityParts.push(tNakshatra(summary.janmaNakshatra, lang));
 
   const birthDateLocal = memberChart?.chart?.birthProfile?.birthDateLocal ?? null;
   const memberAge = birthDateLocal ? ageFromBirth(birthDateLocal, today) : null;
@@ -216,12 +217,12 @@ export function MemberDetailExpanded({
       <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
         {bestW && (
           <span style={{ padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", fontSize: "var(--text-sm)", fontWeight: 600, background: "var(--color-surface-soft)", border: "1px solid var(--color-border)", color: "var(--color-text)" }}>
-            {lang === "ta" ? "சிறந்த நேரம்" : "Best"} {formatClockLabel(bestW.start)} – {formatClockLabel(bestW.end)}
+            {lang === "ta" ? "சிறந்த நேரம்" : "Best"} {formatClockLabel(bestW.start, lang)} – {formatClockLabel(bestW.end, lang)}
           </span>
         )}
         {avoidW && (
           <span style={{ padding: "var(--space-1) var(--space-3)", borderRadius: "var(--radius-pill)", fontSize: "var(--text-sm)", fontWeight: 600, background: "var(--color-low-bg)", border: "1px solid var(--color-low-border)", color: SCORE_LOW }}>
-            {lang === "ta" ? "தவிர்க்கவும்" : "Avoid"} {formatClockLabel(avoidW.start)} – {formatClockLabel(avoidW.end)}
+            {lang === "ta" ? "தவிர்க்கவும்" : "Avoid"} {formatClockLabel(avoidW.start, lang)} – {formatClockLabel(avoidW.end, lang)}
           </span>
         )}
         {member.activeCycleTags.map((tag) => (

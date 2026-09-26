@@ -7,7 +7,6 @@ import { PlaceCombobox } from "@/components/place-combobox";
 import type { ChartCalculateResponseData, ChartPlanet, ChartYogaInsight } from "@/lib/types";
 import { readErrorMessage } from "@/lib/api";
 import {
-  computeD9LagnaRasi,
   DEBILITATION_RASI,
   EXALTATION_RASI,
   GRAHA_ABBR,
@@ -20,7 +19,7 @@ import {
 import { useLang } from "@/components/lang-toggle";
 import { JadhagamShareButton } from "@/components/public-share-card";
 import { tamilizeAstroEnglish } from "@/lib/tamil-astro";
-import { tPlanetLord } from "@/lib/i18n";
+import { tNakshatra, tPlanetLord } from "@/lib/i18n";
 import { nakshatraLordShort } from "@vinaadi/shared/nakshatraLord";
 
 // ── South Indian grid layout ──────────────────────────────────────────────────
@@ -216,7 +215,7 @@ function formatISODate(iso: string): string {
 
 // ── Screen RasiGrid (interactive) ─────────────────────────────────────────────
 function RasiGrid({ chart, d9, lang }: { chart: ChartCalculateResponseData; d9?: boolean; lang: "en" | "ta" }) {
-  const lagnaRasi = d9 ? computeD9LagnaRasi(chart.lagna.absoluteLongitude) : chart.lagna.rasi;
+  const lagnaRasi = d9 ? chart.lagna.d9Rasi : chart.lagna.rasi;
   const RASI_NAMES = lang === "en" ? RASI_NAMES_EN : RASI_NAMES_TA;
   const lagnaLabel = lang === "en" ? "La" : "ல";
   const cellSize = 72;
@@ -300,7 +299,7 @@ function PrintSouthChart({
 }: {
   chart: ChartCalculateResponseData; title: string; d9?: boolean;
 }) {
-  const lagnaRasi = d9 ? computeD9LagnaRasi(chart.lagna.absoluteLongitude) : chart.lagna.rasi;
+  const lagnaRasi = d9 ? chart.lagna.d9Rasi : chart.lagna.rasi;
   const cellSize = 64;
 
   function getOcc(rasi: number): string[] {
@@ -391,7 +390,8 @@ function PrintableJadhagamSheet({
 }) {
   const bp = chart.birthProfile;
   const moon = chart.planets.find((p) => p.graha === "MOON");
-  const d9LagnaRasi = computeD9LagnaRasi(chart.lagna.absoluteLongitude);
+  // Server-owned, like every planet's `d9Rasi` beside it. See chart-utils.
+  const d9LagnaRasi = chart.lagna.d9Rasi;
   const sig = chart.birthPanchangamSignature as Record<string, string>;
 
   // Nakshatra syllables for moon's nakshatra
@@ -503,14 +503,14 @@ function PrintableJadhagamSheet({
           </tr>
           <tr>
             <td style={hdrSt}>லக்னம்</td>
-            <td style={cellSt}>: {RASI_NAMES_TA[chart.lagna.rasi]} · {chart.lagna.nakshatraName}</td>
+            <td style={cellSt}>: {RASI_NAMES_TA[chart.lagna.rasi]} · {tNakshatra(chart.lagna.nakshatraName, "ta")}</td>
             <td style={hdrSt}>பிறந்த இடம்</td>
             <td style={cellSt}>: {bp.birthPlace || "—"}</td>
           </tr>
           <tr>
             <td style={hdrSt}>ராசி / நட்சத்திரம்</td>
             <td style={cellSt}>
-              : {moon ? `${RASI_NAMES_TA[moon.rasi]}-${moon.nakshatraName}, பாதம்-${moon.pada}` : "—"}
+              : {moon ? `${RASI_NAMES_TA[moon.rasi]}-${tNakshatra(moon.nakshatraName, "ta")}, பாதம்-${moon.pada}` : "—"}
             </td>
             <td style={hdrSt}>அட்சாம்சம் / தீர்க்காம்சம்</td>
             <td style={cellSt}>
@@ -561,7 +561,7 @@ function PrintableJadhagamSheet({
               <td style={{ ...cellSt, textAlign: "center", fontFamily: "monospace" }}>
                 {toDMS(row.absLong)}
               </td>
-              <td style={cellSt}>{row.nakshatraName}</td>
+              <td style={cellSt}>{tNakshatra(row.nakshatraName, "ta")}</td>
               <td style={{ ...cellSt, textAlign: "center" }}>{row.pada}</td>
               <td style={{ ...cellSt, textAlign: "center" }}>
                 {row.graha === "LAGNA" ? "—" : (NAKSHATRA_LORDS_TA[row.nakshatra] ?? "—")}
@@ -712,7 +712,7 @@ export function JadhagamTool() {
   }
 
   const moon = chart?.planets.find((p) => p.graha === "MOON");
-  const d9LagnaRasi = chart ? computeD9LagnaRasi(chart.lagna.absoluteLongitude) : 0;
+  const d9LagnaRasi = chart ? chart.lagna.d9Rasi : 0;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>

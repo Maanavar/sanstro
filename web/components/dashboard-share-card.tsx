@@ -338,18 +338,14 @@ export function ShareCardButton({ chartId, cardType, lang, date, label }: ShareC
       {/* Hidden canvas — used only for rendering */}
       <canvas ref={canvasRef} style={{ display: "none" }} />
 
+      {/* Kit secondary (OD-4 button kind). The inline white-on-translucent
+          look gave no hover or press, and was near-invisible on the light
+          theme; the kit's own :disabled covers the loading dim. */}
       <button
         type="button"
+        className="ui-btn ui-btn--secondary ui-btn--sm"
         onClick={() => void handleShare()}
         disabled={loading}
-        style={{
-          display: "inline-flex", alignItems: "center", gap: "5px",
-          padding: "4px 11px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 600,
-          border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.06)",
-          color: "rgba(255,255,255,0.65)", cursor: loading ? "wait" : "pointer",
-          transition: "opacity 0.15s",
-          opacity: loading ? 0.6 : 1,
-        }}
       >
         <span style={{ fontSize: "0.875rem" }}>↑</span>
         {loading

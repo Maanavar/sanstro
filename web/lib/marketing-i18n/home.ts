@@ -56,9 +56,16 @@ export const HOME = {
   today_starts_in:     s("starts in %s",        "%s இல் தொடங்குகிறது"),
   today_on_now:        s("on now · %s left",    "இப்போது நடக்கிறது · %s மீதம்"),
   today_passed:        s("has passed",          "முடிந்துவிட்டது"),
+  // R7 (2026-09-22): Kuligai is not in this clearance claim, because it is not
+  // an avoid period and nothing checked it. It is named separately, in its own
+  // conditional voice, by `today_kuligai_note`.
   today_clear_of:      s(
-    "Clear of Rahu Kalam, Yamagandam and Kuligai.",
-    "ராகு காலம், எமகண்டம், குளிகை — மூன்றிலிருந்தும் விலகி உள்ளது."
+    "Clear of Rahu Kalam and Yamagandam.",
+    "ராகு காலம், எமகண்டம் — இரண்டிலிருந்தும் விலகி உள்ளது."
+  ),
+  today_kuligai_note:  s(
+    "Suits what you mean to repeat, continue or grow; not for a wedding or surgery.",
+    "மீண்டும் நிகழ வேண்டிய, தொடர வேண்டிய செயல்களுக்கு ஏற்றது; திருமணம், அறுவை சிகிச்சைக்கு அல்ல."
   ),
   today_not_clear:     s(
     "Every good kala today runs into an avoid period — this is the best of them, not a clear one.",
@@ -79,6 +86,11 @@ export const HOME = {
   today_rahu:          s("Rahu Kalam",          "ராகு காலம்"),
   today_yama:          s("Yamagandam",          "எமகண்டம்"),
   today_kuligai:       s("Kuligai",             "குளிகை"),
+  today_durmuhurtham:  s("Durmuhurtham",        "துர்முகூர்த்தம்"),
+  today_durmuhurtham_note: s(
+    "Avoid for auspicious or new beginnings; it is not a blanket warning for the whole day.",
+    "சுப காரியங்கள் அல்லது புதிய தொடக்கங்களுக்கு தவிர்க்கவும்; நாள் முழுவதற்குமான பொதுத் தடை அல்ல."
+  ),
   today_abhijit:       s("Abhijit",             "அபிஜித்"),
   // Finding 7 of the dashboard hero review, same doctrine on this surface:
   // Abhijit is a fixed ~49-min slot at solar noon and Friday's Rahu Kalam

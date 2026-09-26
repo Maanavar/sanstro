@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from app.calculations.chart_strength import d9_dignity_label
 from app.schemas.charts import PlanetPosition
 from app.services.chart_explanation_service import _build_bhava_section
 
@@ -36,6 +37,9 @@ def _planet(graha: str, rasi: int, lagna_rasi: int = 1, strength: int = 50) -> P
         is_retrograde=False,
         is_combust=False,
         d9_rasi=rasi,
+        # Derived, never hand-typed: a fixture that pairs a navamsa sign with a
+        # dignity it cannot carry states a rule the engine does not hold.
+        d9_dignity=d9_dignity_label(graha, rasi),
         is_vargottama=False,
         show_retrograde_badge=False,
         strength_score=strength,

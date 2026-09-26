@@ -558,6 +558,10 @@ def _yoga_activation_cell(rule) -> str:
         return "— (not detected)"
     if rule.yoga_name.endswith("_CAUTION"):
         return "n/a — not scored"
+    if rule.per_chart_activation:
+        # Resolved per chart into `YogaResult.key_grahas`, which beats the
+        # static table — so an empty table here does not mean dormant.
+        return f"Per chart: {rule.per_chart_activation}"
     effective = YR.activation_key_planets().get(rule.yoga_name, [])
     if not effective:
         return "**none — dormant-capped**"
@@ -633,8 +637,11 @@ are the exception: display-only, no strength, no activation, no scoring reach.
 raises a present yoga above the dormant rung. **"none — dormant-capped" means
 the yoga's activation score can never exceed `round(strength_base × 0.45)`**, no
 matter which dasha runs. That is a live behaviour, disclosed here rather than
-hidden. Where the true key grahas are lagna-dependent (Raja, Dhana, Vipareetha)
-the listed set is a `[PRODUCT]` approximation and the row says so.
+hidden. **"Per chart"** means the activating grahas are resolved for each chart
+from the planets that formed it (astrologer ruling 2026-09-23) — Raja Yoga, the
+yogakaraka, Amala, Adhi and Daridra. Where the true key grahas are still
+lagna-dependent but tabled statically (Dhana, Vipareetha) the listed set is a
+`[PRODUCT]` approximation and the row says so.
 
 ### Index
 

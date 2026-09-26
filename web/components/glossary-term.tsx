@@ -247,6 +247,7 @@ export function GlossaryTerm({ term, definition, lang, children }: GlossaryTermP
       <button
         ref={anchorRef}
         type="button"
+        className="glossary-term__trigger"
         onClick={(e) => {
           e.stopPropagation();
           setOpen((v) => !v);
@@ -272,10 +273,9 @@ export function GlossaryTerm({ term, definition, lang, children }: GlossaryTermP
         aria-expanded={open}
         aria-controls={open ? tipId : undefined}
         aria-describedby={open ? `${tipId}-def` : undefined}
+        // The dotted underline lives on `.glossary-term__trigger`
+        // (dashboard-nova.css): inline, it beat the OD-4 hover that firms it.
         style={{
-          textDecoration: "underline dotted",
-          textUnderlineOffset: "3px",
-          textDecorationColor: "var(--color-faint)",
           background: "none",
           border: "none",
           padding: 0,
@@ -291,7 +291,6 @@ export function GlossaryTerm({ term, definition, lang, children }: GlossaryTermP
           // saw that one term revert to its source casing.
           textTransform: "inherit",
           letterSpacing: "inherit",
-          color: "inherit",
           cursor: "help",
         }}
       >

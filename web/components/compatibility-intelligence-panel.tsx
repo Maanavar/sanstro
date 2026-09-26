@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
-import { t, tNakshatra } from "@/lib/i18n";
+import { rasiDisplayName } from "@/lib/chart-utils";
+import { t, tNakshatra, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type { CompatibilityIntelligenceData } from "@/lib/types";
 import { scoreColorPct } from "@/lib/format";
@@ -393,7 +394,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
                 <span style={{ display: "inline-flex", alignItems: "center", gap: "7px" }}>
                   <ZodiacBadge rasi={identity.rasi} size={32} />
                   <span style={{ fontSize: "0.8rem", color: W.inkMid }}>
-                    {identity.rasiName}{" "}
+                    {rasiDisplayName(identity.rasi, lang)}{" "}
                     <GlossaryTerm term="rasi" lang={lang}>{en ? "Rasi" : "ராசி"}</GlossaryTerm>
                   </span>
                 </span>
@@ -406,7 +407,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
                 </span>
               </div>
               <div style={{ fontSize: "0.78rem", color: W.muted }}>
-                {identity.lagnaRasiName} {en ? "Lagnam" : "லக்னம்"}
+                {rasiDisplayName(identity.lagnaRasi, lang)} {en ? "Lagnam" : "லக்னம்"}
               </div>
             </div>
           ))}
@@ -492,7 +493,7 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
             <div key={i} style={{ flex: 1, minWidth: "200px", background: W.surface, borderRadius: "10px", padding: "12px 16px" }}>
               <p style={{ margin: "0 0 8px", fontSize: "0.78rem", fontWeight: 700, color: W.terracotta }}>{label}</p>
               <p style={{ margin: "0 0 4px", fontSize: "0.8rem", color: W.inkMid }}>
-                {en ? `7th Lord: ${strength.seventhLord}` : `7ஆம் அதிபதி: ${strength.seventhLord}`}
+                {en ? `7th Lord: ${tPlanetLord(strength.seventhLord, "en")}` : `7ஆம் அதிபதி: ${tPlanetLord(strength.seventhLord, "ta")}`}
                 {en ? ` in house ${strength.seventhLordHouse}` : ` ${strength.seventhLordHouse}ஆம் இடம்`}
               </p>
               <p style={{ margin: "0 0 4px", fontSize: "0.8rem", color: W.inkMid }}>
@@ -567,10 +568,10 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
           <Badge text={d.dashaHarmony.harmonyLabel} {...harmonyBadge(d.dashaHarmony.harmonyLabel)} />
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
             <span style={{ fontSize: "0.78rem", color: W.muted, background: W.surface, border: `1px solid ${W.border}`, borderRadius: "999px", padding: "2px 10px" }}>
-              {d.personAName}: {d.dashaHarmony.personAMahaLord} / {d.dashaHarmony.personAantarLord} {en ? "until" : "வரை"} {d.dashaHarmony.personAMahaEnd}
+              {d.personAName}: {tPlanetLord(d.dashaHarmony.personAMahaLord, en ? "en" : "ta")} / {tPlanetLord(d.dashaHarmony.personAantarLord, en ? "en" : "ta")} {en ? "until" : "வரை"} {d.dashaHarmony.personAMahaEnd}
             </span>
             <span style={{ fontSize: "0.78rem", color: W.muted, background: W.surface, border: `1px solid ${W.border}`, borderRadius: "999px", padding: "2px 10px" }}>
-              {d.personBName}: {d.dashaHarmony.personBMahaLord} / {d.dashaHarmony.personBAntarLord} {en ? "until" : "வரை"} {d.dashaHarmony.personBMahaEnd}
+              {d.personBName}: {tPlanetLord(d.dashaHarmony.personBMahaLord, en ? "en" : "ta")} / {tPlanetLord(d.dashaHarmony.personBAntarLord, en ? "en" : "ta")} {en ? "until" : "வரை"} {d.dashaHarmony.personBMahaEnd}
             </span>
           </div>
         </div>

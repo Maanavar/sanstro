@@ -1,23 +1,27 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { Activity, AlertTriangle, ArrowRight, Bell, CalendarDays, CalendarPlus, ChevronDown, Leaf, Moon, MoonStar, Sparkles, Star, Sun, Target, TrendingUp, X, type LucideIcon } from "lucide-react";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
-import { addDays, formatClockLabel, formatDateLabel, getScoreVerdictFromGuidance } from "@/lib/format";
+import { addDays, formatClockLabel, formatClockRange, formatDateLabel, getLifeAreaVerdict, getScoreVerdictFromGuidance } from "@/lib/format";
 import type { GlossaryKey } from "@/lib/glossary";
-import { t, tLang, tNakshatra, tTithi } from "@/lib/i18n";
+import { t, tLang, tNakshatra, tTithi, tWeekday } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import {
   dt,
   EMOTIONAL_WEATHER,
   FIRST_RESULT_GUIDE,
+  LIFE_FOCUS,
   TODAY_HERO,
   TODAY_TIMINGS,
   weatherLabel,
 } from "@/lib/dashboard-i18n";
 import { gowriCategoryLabel, gowriPurposeLabel } from "@/lib/gowri";
+import { NO_FOCUS, type AppliedFocus } from "@/lib/life-focus";
 import { hourInZone, minutesOfDayInZone, timeOnDateToMs } from "@/lib/tz";
+import { resolveKalamStatus } from "@/lib/kalam-live";
+import { LocationCheckStrip, type LocationCheckVariant } from "./location-check-strip";
 import {
   clearSegments,
   findSecondaryAbhijitWindow,
@@ -43,10 +47,11 @@ import type {
   WeekAheadData,
 } from "@/lib/types";
 
-import { NovaClampedText, NovaScoreDial, StatusLive, type StatusMessage } from "./dashboard-ui-nova";
+import { NovaClampedText, NovaScoreDial, Reveal, StatusLive, type StatusMessage } from "./dashboard-ui-nova";
 import { festivalTags, limbNow } from "./dashboard-calendar-shared";
 import { bandPhrase, bandTone } from "@/lib/reasoning";
 import { MiniMoonGlyph } from "./celestial-glyph-nova";
+import { PendingPlaceholder } from "./pending-placeholder-nova";
 import { HeroSkyBackdrop, DeepDiveOrbitGlyph } from "./celestial-ambient-nova";
 import { lunarSpecialTithiMeta, moonPhaseFromTithi } from "@/lib/lunar";
 import { useStreak } from "@/hooks/useStreak";
@@ -64,7 +69,8 @@ import {
   DashboardTodayLifeAreasDasaRowNova,
   DashboardTodayQuickLinksNova,
 } from "./dashboard-today-glance-nova";
-import { DashboardOneMinuteReading } from "./dashboard-one-minute-reading";
+import { DashboardTodayPalanNova, type PalanMember } from "./dashboard-today-palan-nova";
+import { FocusNudgeStrip, LifeModeBadge } from "./life-mode-picker";
 
 /**
  * Hash navigation scrolls to its target, but leaves keyboard focus on the
@@ -100,6 +106,25 @@ export type DashboardTodayTabNovaProps = {
   lang: Lang;
   userMode?: "BEGINNER" | "BALANCED" | "TRADITIONAL";
   activeLifeMode?: LifeMode;
+  /** Life focus, Phase 0 (docs/LIFE_FOCUS_PLAN_2026-09-22.md, T0): the
+   *  masthead chip opens the picker; the 60-day strip asks to keep or change. */
+  onOpenFocusPicker?: () => void;
+  showFocusNudge?: boolean;
+  onKeepFocus?: () => Promise<void>;
+  onDismissFocusNudge?: () => void;
+  /** §2 location check-in. The caller has already arbitrated with `pickCheckIn`
+   *  — §2.3 gives the focus strip and this one a single slot between them, so
+   *  this and `showFocusNudge` are never both set. */
+  locationCheck?: LocationCheckVariant | null;
+  locationCheckProfileId?: string | null;
+  panchangamPlace?: string | null;
+  /** Read once by the caller, which also used it to decide the mismatch. */
+  deviceTimeZone?: string | null;
+  onLocationResolved?: () => void;
+  onDismissLocationCheck?: () => void;
+  /** Life focus, Phase 2 (T1–T5): what to pin and lift. The caller passes
+   *  NO_FOCUS for a chart that is not the reader's own (D4). */
+  lifeFocus?: AppliedFocus;
   birthDisplayName: string;
   selectedDate: string;
   todayDate: string;
@@ -112,6 +137,14 @@ export type DashboardTodayTabNovaProps = {
   panchangamTimings: PanchangamTimingsData | null;
   weekAhead: WeekAheadData | null;
   familyAggregate: FamilyAggregateData | null;
+  /** DXA-03: data still on its way. While true, cards show placeholders
+   *  instead of their empty-state copy. */
+  personalPending?: boolean;
+  /** DXA-07: everything on this pane is still the previously selected day's,
+   *  held on screen while the newly selected day loads. The pane dims and the
+   *  day it describes is read from the data, not from `selectedDate`. */
+  showingPreviousDay?: boolean;
+  familyPending?: boolean;
   remedyMemberCharts?: Array<Pick<MemberChart, "memberId" | "displayName" | "dailyGuidance">>;
   lifeAreas?: LifeAreasResponseData | null;
   dasha: DashaTimelineResponseData | null;
@@ -202,31 +235,40 @@ function windowTypeGlossary(type: string): GlossaryKey | null {
  * 4th of eight day-parts, so the two collide structurally, not rarely — 24 of
  * Abhijit's 49 minutes on the reviewed day. The row called it "auspicious for
  * anyone, whatever their chart" with no qualifier, one card away from a
- * recommendation whose whole argument is "clear of Rahu Kalam, Yamagandam and
- * Kuligai". Two contradictory instructions from one panel.
+ * recommendation whose whole argument is "clear of Rahu Kalam and Yamagandam".
+ * Two contradictory instructions from one panel.
  *
  * The note states the app's already-implemented position (owner ruling
  * 2026-08-23: an overlapping window is never promoted) and names the clear
  * part, rather than picking new doctrine. Whether Abhijit *overrides* the kalas
  * — genuinely contested, and many Tamil families say it does not — is queued in
  * docs/ASTROLOGER_REVIEW_QUEUE.md.
+ *
+ * `avoidKalas` carries Rahu Kalam and Yamagandam only. R7 (2026-09-22) took
+ * Kuligai out of this register: it is not an avoid period, so printing
+ * "Abhijit overlaps Kuligai" in the binding voice states a doctrine the owner
+ * has ruled against. A Kuligai overlap is appended separately, informationally,
+ * by `kuligaiNote`.
  */
 function abhijitOverlapNote(
   abhijit: TimingSpan,
   avoidKalas: Array<{ label: string; start: string; end: string }>,
   lang: Lang,
+  kuligai?: TimingSpan | null,
 ): string {
+  const kuligaiNote = kuligai && spansOverlap(abhijit, kuligai)
+    ? dt(TODAY_TIMINGS.abhijitInKuligai, lang)
+    : "";
   const hits = avoidKalas.filter((k) => spansOverlap(abhijit, k));
-  if (hits.length === 0) return "";
+  if (hits.length === 0) return kuligaiNote;
   const names = hits.map((k) => k.label).join(lang === "ta" ? ", " : ", ");
   const clear = clearSegments(abhijit, hits);
-  if (clear.length === 0) {
-    return dt(TODAY_TIMINGS.abhijitFullyCovered, lang).replace("%1$s", names);
-  }
-  const clearText = clear
-    .map((seg) => `${formatClockLabel(seg.start)}–${formatClockLabel(seg.end)}`)
-    .join(" · ");
-  return dt(TODAY_TIMINGS.abhijitOverlap, lang).replace("%1$s", names).replace("%2$s", clearText);
+  const avoidNote = clear.length === 0
+    ? dt(TODAY_TIMINGS.abhijitFullyCovered, lang).replace("%1$s", names)
+    : dt(TODAY_TIMINGS.abhijitOverlap, lang)
+        .replace("%1$s", names)
+        .replace("%2$s", clear.map((seg) => formatClockRange(seg.start, seg.end, lang)).join(" · "));
+  return kuligaiNote ? `${avoidNote} ${kuligaiNote}` : avoidNote;
 }
 
 function formatDuration(ms: number, lang: Lang): string {
@@ -262,7 +304,7 @@ function FirstResultGuide({
       gap: "var(--space-3)",
     }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "var(--space-3)", flexWrap: "wrap" }}>
-        <h2 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--color-accent-strong)" }}>
+        <h2 className="nova-card-title">
           {dt(FIRST_RESULT_GUIDE.heading, lang)}
         </h2>
         <a href="/learn/vedic-vs-western" style={{ fontSize: "var(--text-sm)", color: "var(--color-accent-secondary)", fontWeight: 700, textDecoration: "none" }}>
@@ -290,9 +332,187 @@ function FirstResultGuide({
   );
 }
 
+/* ── Today's hero while the day's data is on its way (DXA-05) ──────────────
+   Loaded, the hero is six blocks tall: greeting, name, briefing, the weather
+   chips, the best-window card, and — in the two side columns — the score dial
+   and the timing rail. While `personalPending` is true only the first two
+   exist, so the hero rendered ~70px short of where it settles and then grew
+   under the reader, taking Quick Links and every row below it down with it.
+
+   Each piece below stands in the slot of the block it waits for, in that
+   block's own container (`.nova-hero-action`, the score card's padding, the
+   rail's two cards), so the height held is the hero's own shape. A single
+   reserved constant would have to be re-measured at every width and re-tuned
+   whenever the hero changes; a shape does not.
+
+   All of it is `aria-hidden`: the wait is announced once, by the lede's
+   PendingPlaceholder, which owns the live region. */
+function HeroSkelLine({ w, h = 13, radius = "var(--radius-sm)" }: { w: string; h?: number; radius?: string }) {
+  return <span className="skel" style={{ display: "block", height: `${h}px`, width: w, borderRadius: radius }} />;
+}
+
+/** A skeleton bar sitting in a text line box of the real line's height, so a
+ *  three-line stand-in occupies what three lines of that type will. */
+function HeroSkelTextLine({ w, box, bar = 13 }: { w: string; box: number; bar?: number }) {
+  return (
+    <div style={{ height: `${box}px`, display: "flex", alignItems: "center" }}>
+      <HeroSkelLine w={w} h={bar} />
+    </div>
+  );
+}
+
+/** The briefing: three clamped lines (24px line box) and the "Read more"
+ *  control under them — 97px loaded, measured at 1440. Carries the wait's
+ *  live region, so the rest of the pending hero can stay aria-hidden. */
+function HeroPendingLede({ lang }: { lang: Lang }) {
+  return (
+    <div role="status" aria-busy="true" data-pending-placeholder="" style={{ width: "100%", maxWidth: "690px" }}>
+      <span className="cd-visually-hidden">{lang === "ta" ? "ஏற்றுகிறது…" : "Loading…"}</span>
+      <div aria-hidden="true">
+        <HeroSkelTextLine w="100%" box={24} />
+        <HeroSkelTextLine w="100%" box={24} />
+        <HeroSkelTextLine w="62%" box={24} />
+        <div style={{ height: "25px", display: "flex", alignItems: "flex-end", paddingBottom: "4px" }}>
+          <HeroSkelLine w="104px" h={13} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Life focus T1: the line under the briefing (12px type, 18px line box). It
+ *  wraps by width and language, so `.nova-hero-skel--focus` carries the
+ *  measured height; without it a focus reader's hero grew on arrival. */
+function HeroPendingFocusLine() {
+  return (
+    <div className="nova-hero-skel--focus" aria-hidden="true" style={{ width: "100%", maxWidth: "690px" }}>
+      <HeroSkelTextLine w="78%" box={18} bar={10} />
+    </div>
+  );
+}
+
+/* Four of these blocks are as tall as their copy wraps, which depends on both
+   the width and the language — `.nova-hero-skel--*` in dashboard-nova.css
+   carries those measured heights (en and ta, three widths). Everything else
+   here holds its place by its own shape. */
+
+/** Mood / body / best-used-for chips, and the sentence printed under them. */
+function HeroPendingWeather() {
+  return (
+    <div
+      aria-hidden="true"
+      className="nova-hero-skel--weather"
+      style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}
+    >
+      <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+        {["124px", "118px", "168px"].map((w) => (
+          <HeroSkelLine key={w} w={w} h={28} radius="var(--radius-pill)" />
+        ))}
+      </div>
+      <HeroSkelTextLine w="78%" box={26} />
+    </div>
+  );
+}
+
+/** The best-window card: eyebrow, the promoted time with its two actions,
+ *  and the reason under them. */
+function HeroPendingWindow() {
+  return (
+    <Card variant="high" className="nova-hero-action nova-hero-skel--window" aria-hidden="true">
+      <div className="nova-hero-action__body" style={{ width: "100%", gap: "var(--space-2_5)" }}>
+        <HeroSkelLine w="136px" h={11} />
+        <div style={{ height: "42px", width: "100%", display: "flex", alignItems: "center", gap: "var(--space-4)" }}>
+          <HeroSkelLine w="min(200px, 52%)" h={30} />
+          <span style={{ flex: 1 }} />
+          <HeroSkelLine w="112px" h={34} radius="var(--radius-sm)" />
+          <HeroSkelLine w="88px" h={34} radius="var(--radius-sm)" />
+        </div>
+        <HeroSkelTextLine w="100%" box={22} />
+        {/* The reason runs to a second line except in English at three
+            columns, where it fits on one; that line is dropped there by
+            `.nova-hero-skel__reason-2` so the shape stays at or under the
+            loaded card (E-4f). */}
+        <div className="nova-hero-skel__reason-2">
+          <HeroSkelTextLine w="64%" box={22} />
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+/** The score column: the dial's card, then the epigraph — which is static
+ *  copy, not data, so it prints now and stays exactly where it is. */
+function HeroPendingScore({ lang }: { lang: Lang }) {
+  return (
+    <div className="nova-hero-score">
+      <Card
+        aria-hidden="true"
+        className="nova-hero-skel--score"
+        style={{
+          minWidth: 0,
+          background: "color-mix(in srgb, var(--color-surface) 62%, transparent)",
+          borderColor: "var(--color-border-strong)", borderRadius: "var(--radius-md)",
+          padding: "var(--space-5) var(--space-4)", display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center", gap: "var(--space-3)",
+        }}
+      >
+        <HeroSkelLine w="104px" h={11} />
+        <HeroSkelLine w="172px" h={172} radius="var(--radius-pill)" />
+        <HeroSkelLine w="152px" h={30} />
+        <HeroSkelLine w="124px" h={22} />
+      </Card>
+      <p className="nova-hero-quote">
+        &ldquo;{dt(TODAY_HERO.quote, lang)}&rdquo;
+        <span className="nova-hero-quote__attribution">— {dt(TODAY_HERO.quoteAttribution, lang)}</span>
+      </p>
+    </div>
+  );
+}
+
+/** The timing rail: the avoid window beside its glyph, then key timings. */
+function HeroPendingRail() {
+  const railCard = {
+    flex: "none" as const,
+    background: "color-mix(in srgb, var(--color-surface) 62%, transparent)",
+    borderRadius: "var(--radius-md)",
+    padding: "var(--space-4)",
+  };
+  return (
+    <div className="nova-hero-rail" aria-hidden="true">
+      <Card className="nova-hero-skel--avoid" style={{ ...railCard, display: "flex", flexDirection: "row", gap: "var(--space-3)", alignItems: "center" }}>
+        <HeroSkelLine w="40px" h={40} radius="var(--radius-pill)" />
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "5px" }}>
+          <HeroSkelLine w="92px" h={11} />
+          <HeroSkelLine w="72%" h={25} />
+          <HeroSkelLine w="46%" h={15} />
+          <HeroSkelLine w="38%" h={15} />
+        </div>
+      </Card>
+      <Card className="nova-hero-skel--timings" style={{ ...railCard, display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+        <HeroSkelLine w="140px" h={11} />
+        {[0, 1, 2, 3].map((i) => (
+          <HeroSkelLine key={i} w={i === 3 ? "72%" : "100%"} h={48} />
+        ))}
+      </Card>
+    </div>
+  );
+}
+
 export function DashboardTodayTabNova({
   lang,
   userMode = "BALANCED",
+  activeLifeMode = "BALANCED",
+  onOpenFocusPicker,
+  showFocusNudge = false,
+  onKeepFocus,
+  onDismissFocusNudge,
+  locationCheck = null,
+  locationCheckProfileId = null,
+  panchangamPlace = null,
+  deviceTimeZone = null,
+  onLocationResolved,
+  onDismissLocationCheck,
+  lifeFocus = NO_FOCUS,
   birthDisplayName,
   selectedDate,
   todayDate,
@@ -304,6 +524,9 @@ export function DashboardTodayTabNova({
   panchangam,
   weekAhead,
   familyAggregate,
+  personalPending = false,
+  showingPreviousDay = false,
+  familyPending = false,
   remedyMemberCharts = [],
   lifeAreas,
   dasha,
@@ -350,9 +573,30 @@ export function DashboardTodayTabNova({
         remedyFocus: member.dailyGuidance?.remedyFocus ?? null,
       })),
   ];
+  // §5 personal palan: the reader first, then each family member whose day
+  // bundle has already arrived. Same member list and dedupe as the remedy row.
+  const palanMembers: PalanMember[] = [
+    ...(personalDailyGuidance?.personalPalan
+      ? [{ memberId: primaryRemedyMemberId, displayName, palan: personalDailyGuidance.personalPalan, isSelf: true }]
+      : []),
+    ...remedyMemberCharts
+      .filter((member) => member.memberId !== primaryRemedyMemberId)
+      .flatMap((member) => (member.dailyGuidance?.personalPalan
+        ? [{ memberId: member.memberId, displayName: member.displayName, palan: member.dailyGuidance.personalPalan, isSelf: false }]
+        : [])),
+  ];
   // Hero greeting shows a first name only — the full name reads too formal
   // sitting right next to "Good morning".
   const heroFirstName = displayName.trim().split(/\s+/)[0] ?? displayName;
+  // DXA-03: before the profile answers there is no name yet. Hold the line at
+  // its final height instead of rendering an empty <h1> beside the sun.
+  const heroName = heroFirstName || (personalPending ? (
+    <span
+      className="skel"
+      aria-hidden="true"
+      style={{ display: "inline-block", verticalAlign: "middle", width: "min(280px, 55vw)", height: "0.9em", borderRadius: "var(--radius-md)" }}
+    />
+  ) : null);
   const activeChartId = personalChartSummary?.chartId ?? "";
   const [savingReminder, setSavingReminder] = useState(false);
   const [reminderStatus, setReminderStatus] = useState<StatusMessage | null>(null);
@@ -388,16 +632,33 @@ export function DashboardTodayTabNova({
   // festival off this compact slot.
   const primaryFestival = panchangam?.festivals.find((f) => !festivalTags(f).includes("observance")) ?? null;
 
-  const isToday = selectedDate === todayDate;
+  // DXA-07 — the day this pane is actually describing. While the newly
+  // selected day loads, the panchangam, guidance and week strip on screen are
+  // still the previous day's; reading the picker's date here instead would
+  // print tomorrow's date over today's star, and would re-run every "is this
+  // window running now?" comparison against a date the data does not cover.
+  // Falls back to the picker when there is no panchangam to ask (a failed
+  // section, or the very first load).
+  const dataDate = panchangam?.dateLocal ?? selectedDate;
+  const isToday = dataDate === todayDate;
 
-  // T8 / A-013 — the day's three avoid-kalas, straight from the panchangam.
-  // These are the spans a recommended window may never overlap; the ruling is
-  // documented on `pickRecommendedWindow`.
+  // T8 / A-013 — the spans a recommended window may never overlap; the ruling
+  // is documented on `pickRecommendedWindow`.
+  //
+  // Kuligai was in this list until R7 (owner ruling 2026-09-22). It is out
+  // because it has no polarity of its own: what is begun in Kuligai tends to
+  // recur, and whether recurrence is wanted is the *activity's* question. This
+  // pick has no activity, so blocking on Kuligai asserts a doctrine the
+  // almanac does not hold — and promoting it silently would assert the
+  // opposite one. It is neither; it is named separately below.
   const avoidSpans: TimingSpan[] = panchangam
-    ? [panchangam.kalam.rahuKalam, panchangam.kalam.yamagandam, panchangam.kalam.kuligai]
+    ? [panchangam.kalam.rahuKalam, panchangam.kalam.yamagandam]
         .filter(Boolean)
         .map((k) => ({ start: k.start, end: k.end }))
     : [];
+  const kuligaiSpan: TimingSpan | null = panchangam?.kalam.kuligai
+    ? { start: panchangam.kalam.kuligai.start, end: panchangam.kalam.kuligai.end }
+    : null;
 
   // One promoted window, chosen by the almanac's own Gowri ranking and clear of
   // the avoid-kalas (owner ruling 2026-08-23, superseding DASH-10.1's
@@ -405,10 +666,10 @@ export function DashboardTodayTabNova({
   // fallback for the case the ruling cannot apply to — no windows carrying a
   // kala, e.g. a stale-snapshot response — so the hero never goes blank.
   const recommended = pickRecommendedWindow(personalDailyGuidance?.bestWindows, avoidSpans, {
-    now, isToday, dateLocal: selectedDate, timeZone: panchangamTimezone,
+    now, isToday, dateLocal: dataDate, timeZone: panchangamTimezone,
   });
   const bestWindow = recommended?.window
-    ?? pickFeaturedWindow(personalDailyGuidance?.bestWindows, now, isToday, selectedDate, panchangamTimezone);
+    ?? pickFeaturedWindow(personalDailyGuidance?.bestWindows, now, isToday, dataDate, panchangamTimezone);
   // DASH-10.1 (2026-07-16): Abhijit never fully disappears — surfaced as a
   // small secondary line when another window won the hero instead. It now lives
   // inside "Other traditional timings" rather than beside the promoted window.
@@ -416,22 +677,55 @@ export function DashboardTodayTabNova({
   // Keep a ranked timing conflict attached to the one actionable recommendation,
   // rather than rendering a second copy of the best-window card in the rail.
   const windowConflict = bestWindow ? personalDailyGuidance?.bestWindowConflicts?.[0] ?? null : null;
+  // R7.7: a promoted window overlapping Kuligai is neither disqualified nor
+  // waved through — the overlap is stated, in Kuligai's own conditional voice.
+  const bestWindowInKuligai = Boolean(bestWindow && kuligaiSpan && spansOverlap(bestWindow, kuligaiSpan));
+
+  // Life focus T1 — one added sentence under the briefing, from numbers
+  // already on this page: the focus area's life-area score (read through the
+  // same period ladder and rounding as its tile, so the two cannot disagree)
+  // and the window the hero already promotes. No new calculation. It says
+  // "period", never "today", because a life-area score is not a daily one.
+  const focusAreaData = lifeFocus.area ? lifeAreas?.areas.find((a) => a.area === lifeFocus.area) ?? null : null;
+  const focusHeroLine = focusAreaData
+    ? [
+        dt(LIFE_FOCUS.heroArea, lang)
+          .replace("%1", tLang(focusAreaData.label, lang))
+          .replace("%2", getLifeAreaVerdict(Math.round(focusAreaData.score), lang).verdict),
+        bestWindow
+          ? dt(isToday ? LIFE_FOCUS.heroWindowToday : LIFE_FOCUS.heroWindowOther, lang)
+              .replace("%s", `${formatClockLabel(bestWindow.start, lang)} – ${formatClockLabel(bestWindow.end, lang)}`)
+          : null,
+      ].filter(Boolean).join(" ")
+    : null;
 
   // Real lunar phase for today, drawn straight from the tithi we already have —
   // drives the hero sky backdrop's moon shape (thin crescent -> full disc).
   const moonPhase = panchangam ? moonPhaseFromTithi(panchangam.tithi.number, panchangam.tithi.paksha) : null;
 
-  // Hero tile rail (redesign 2026-07-18): avoid window = the day's first
-  // caution window, falling back to Rahu Kalam from the panchangam; Horai
-  // resolves against "now" so it only renders when viewing today.
-  const avoidWindow = personalDailyGuidance?.cautionWindows?.[0]
-    ?? (panchangam ? { type: "RAHU_KALAM", start: panchangam.kalam.rahuKalam.start, end: panchangam.kalam.rahuKalam.end } : null);
+  // The ribbon and hero share one resolver for "now". It examines all three
+  // daylight kalams, promotes the strongest one when overlaps occur (Rahu >
+  // Yama > Kuligai), and otherwise keeps the next one visible. This replaces
+  // the stale `cautionWindows[0]` assumption, which was always Rahu Kalam and
+  // made the hero go silent during Yamagandam and Kuligai.
+  const kalamStatus = panchangam
+    ? resolveKalamStatus(panchangam.kalam, {
+        now,
+        dateLocal: dataDate,
+        timeZone: panchangamTimezone,
+        isToday,
+      })
+    : null;
+  const heroKalam = kalamStatus?.current ?? kalamStatus?.next ?? null;
+  const avoidWindow = heroKalam
+    ? { type: heroKalam.type, start: heroKalam.start, end: heroKalam.end }
+    : personalDailyGuidance?.cautionWindows?.[0] ?? null;
 
   // After 8pm (panchangam-local), the hero can swap to a preview of tomorrow +
   // a journal prompt for today — reuses the already-fetched 3-day
   // dailyGuidanceRange (today..+2), no extra network call. Gated by isToday so
   // opening a past or future date from the calendar never triggers it.
-  const tomorrowIso = addDays(selectedDate, 1);
+  const tomorrowIso = addDays(dataDate, 1);
   const tomorrowGuidance = dailyGuidanceRange?.items.find((item) => item.dateLocal === tomorrowIso) ?? null;
   const showEveningPreview = eveningPreviewOn && isToday && zoneHour >= 20 && tomorrowGuidance !== null;
   // The switch itself is only worth hero space in the window it can act in —
@@ -454,8 +748,8 @@ export function DashboardTodayTabNova({
     countdown: string | null;
   } {
     if (!span || !isToday) return { phase: null, countdown: null };
-    const startMs = timeOnDateToMs(selectedDate, span.start, panchangamTimezone);
-    const endMs = timeOnDateToMs(selectedDate, span.end, panchangamTimezone);
+    const startMs = timeOnDateToMs(dataDate, span.start, panchangamTimezone);
+    const endMs = timeOnDateToMs(dataDate, span.end, panchangamTimezone);
     if (startMs === null || endMs === null) return { phase: null, countdown: null };
     const nowMs = now.getTime();
     if (nowMs < startMs) return { phase: "before", countdown: formatDuration(startMs - nowMs, lang) };
@@ -464,7 +758,12 @@ export function DashboardTodayTabNova({
   }
 
   const { phase: windowPhase, countdown: windowCountdown } = spanPhase(bestWindow);
-  const { phase: avoidPhase, countdown: avoidCountdown } = spanPhase(avoidWindow);
+  const fallbackAvoidState = spanPhase(avoidWindow);
+  const avoidPhase = heroKalam?.phase ?? fallbackAvoidState.phase;
+  const avoidCountdown = heroKalam?.remainingMs != null
+    ? formatDuration(heroKalam.remainingMs, lang)
+    : fallbackAvoidState.countdown;
+  const isKuligaiPeriod = heroKalam?.key === "kuligai";
   // Owner ask (2026-09-07): once today's avoid window has ended it no longer
   // earns hero space — it stays visible only while it is upcoming or running.
   // A past date's avoidWindow has no live phase (spanPhase short-circuits on
@@ -487,6 +786,34 @@ export function DashboardTodayTabNova({
   // one line of the header.
   const nakNow = panchangam?.nakshatra ? limbNow(panchangam.nakshatra, { isToday, nowIso: now.toISOString() }) : null;
   const tithiNow = panchangam?.tithi ? limbNow(panchangam.tithi, { isToday, nowIso: now.toISOString() }) : null;
+
+  // ===== 5. Family Today + Remedy For You row (redesign 2026-07-18,
+  // "Coming up" folded into Family Today's footer 2026-08-20) — the remedy
+  // grows from a one-liner into a card with its own save action; family
+  // members get star tiles; Family Today pins "Coming up" to its bottom so a
+  // small/solo household doesn't leave the card looking empty next to the
+  // taller Remedy card. Held in a variable because a REMEDIES focus renders it
+  // directly under the hero instead (life focus T5).
+  const familyRemedyRow = (
+    <Reveal>
+    <DashboardTodayFamilyRemedyRowNova
+      lang={lang}
+      familyAggregate={familyAggregate}
+      familyPending={familyPending}
+      remedy={personalDailyGuidance?.remedy ?? null}
+      remedyFocus={personalDailyGuidance?.remedyFocus ?? null}
+      remedyMembers={remedyMembers}
+      savingReminder={savingReminder}
+      reminderMessage={reminderStatus?.text ?? null}
+      onSaveReminder={() => void handleSaveReminder()}
+      onGoToFamily={onGoToFamily}
+      onGoToLifeAreas={onGoToLifeAreas}
+      peyarchiUpcoming={peyarchiUpcoming}
+      personalSani={personalSani}
+      onGoToCalendar={onGoToCalendar}
+    />
+    </Reveal>
+  );
 
   async function handleSaveReminder() {
     if (savingReminder) return;
@@ -527,7 +854,23 @@ export function DashboardTodayTabNova({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+    // DXA-07 — `data-stale` while the newly selected day is still loading: the
+    // day on screen is the previous one, held in place rather than torn down,
+    // and dimmed so it reads as "being replaced" instead of as the answer.
+    // `aria-busy` says the same thing to a screen reader, which cannot see the
+    // dim or the sub-bar's hairline.
+    <div
+      className="nova-today-pane"
+      // The day this pane is rendering, as opposed to the one the picker
+      // holds. They differ only while `data-stale` is set — which is what the
+      // DXA-07 probe reads to prove the held day is actually replaced, and
+      // not merely held forever (a stall and a fix look identical to a gate
+      // that only measures height).
+      data-day={dataDate}
+      data-stale={showingPreviousDay ? "" : undefined}
+      aria-busy={showingPreviousDay || undefined}
+      style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}
+    >
       {/* ===== 1. Hero: greeting, one theme line, mood chips, embedded
           best-window "next action" tile, and the one canonical score.
 
@@ -538,7 +881,7 @@ export function DashboardTodayTabNova({
             row      — three top-aligned columns at ≥1200px: greeting +
                        briefing + best window · score (+ epigraph) · timing
                        rail. Two columns at ≥860px, one below. ===== */}
-      <div className="nova-hero">
+      <div className={personalPending && !personalDailyGuidance ? "nova-hero nova-hero--pending" : "nova-hero"}>
         <HeroSkyBackdrop moon={moonPhase} />
         {/* The four things a thirukanitham reader opens the page for (date,
             star, tithi, paksha) read as one almanac line across the whole
@@ -547,7 +890,10 @@ export function DashboardTodayTabNova({
             `limbNow` promotion. */}
         <div className="nova-hero-masthead">
           <span className="nova-hero-masthead__date">
-            {weekday && `${weekday}, `}{formatDateLabel(selectedDate)}
+            {/* `vara.weekday` is a key ("WEDNESDAY"), not a display name — it
+                printed in capitals beside a sentence-case date, and in English
+                on the Tamil page. Through the localiser, like every other key. */}
+            {weekday && `${tWeekday(weekday, lang)}, `}{formatDateLabel(dataDate)}
             {panchangam?.tamilDate && <> · <span style={{ color: "var(--color-accent-strong)" }}>{lang === "ta" ? panchangam.tamilDate.ta : panchangam.tamilDate.en}</span></>}
           </span>
           {/* Star · tithi · paksha · observance. Finding 13 put the star and
@@ -556,6 +902,24 @@ export function DashboardTodayTabNova({
               sentence. Glyphs are lucide (the pre-delivery checklist bans
               emoji as icons) except the moon, which is the existing
               phase-accurate MiniMoonGlyph. */}
+          {/* DXA-05 — the almanac's four limbs arrive with the day's bundle.
+              Until then this row held one short date, and on a phone it grew
+              38px → 100px when they landed, pushing the whole page down: the
+              topmost shift on Today's cold load. Their slots are held at the
+              widths the four labels take, so the row wraps now the way it
+              will wrap then. D6 still governs the content — nothing here
+              guesses a Tamil date or a star; this reserves the space and says
+              nothing. */}
+          {!nakNow && !paksha && personalPending && (
+            <div className="nova-hero-masthead__limbs" aria-hidden="true">
+              {[112, 122, 94, 146].map((w) => (
+                <span className="nova-hero-masthead__limb" key={w}>
+                  <HeroSkelLine w="15px" h={15} radius="var(--radius-pill)" />
+                  <HeroSkelLine w={`${w}px`} h={13} />
+                </span>
+              ))}
+            </div>
+          )}
           {(nakNow || paksha) && (
             <div className="nova-hero-masthead__limbs">
               {nakNow && (
@@ -591,6 +955,7 @@ export function DashboardTodayTabNova({
             </div>
           )}
           <div className="nova-hero-masthead__right">
+                {onOpenFocusPicker && <LifeModeBadge mode={activeLifeMode} lang={lang} onClick={onOpenFocusPicker} />}
                 <StreakChip days={streakDays} best={streakBest} forgiven={streakForgiven} lang={lang} />
                 {/* Finding 10 — this is a *setting*, and it changes nothing
                     until 8pm (`showEveningPreview` gates on zoneHour >= 20).
@@ -628,18 +993,40 @@ export function DashboardTodayTabNova({
                   <span aria-hidden="true" style={{
                     display: "inline-block", width: "20px", height: "11px", borderRadius: "var(--radius-pill)",
                     background: eveningPreviewOn ? "var(--color-high)" : "color-mix(in srgb, var(--color-text-strong) 18%, transparent)",
-                    position: "relative", flex: "none", transition: "background 0.15s",
+                    position: "relative", flex: "none", transition: "background var(--dur-fast) var(--ease-nova)",
                   }}>
                     <span style={{
                       position: "absolute", top: "1.5px", left: eveningPreviewOn ? "10px" : "1.5px",
                       width: "8px", height: "8px", borderRadius: "var(--radius-pill)", background: "var(--color-on-accent)",
-                      transition: "left 0.15s",
+                      transition: "left var(--dur-fast) var(--ease-nova)",
                     }} />
                   </span>
                 </button>
                 )}
           </div>
         </div>
+
+        {locationCheck && locationCheckProfileId && onLocationResolved && onDismissLocationCheck && (
+          <LocationCheckStrip
+            variant={locationCheck}
+            lang={lang}
+            birthProfileId={locationCheckProfileId}
+            currentPlace={panchangamPlace}
+            deviceTimeZone={deviceTimeZone}
+            onResolved={onLocationResolved}
+            onDismiss={onDismissLocationCheck}
+          />
+        )}
+
+        {showFocusNudge && onOpenFocusPicker && onKeepFocus && onDismissFocusNudge && (
+          <FocusNudgeStrip
+            mode={activeLifeMode}
+            lang={lang}
+            onKeep={onKeepFocus}
+            onChange={onOpenFocusPicker}
+            onDismiss={onDismissFocusNudge}
+          />
+        )}
 
         <div className="nova-hero-row">
           <div className="nova-hero-col-main">
@@ -650,7 +1037,7 @@ export function DashboardTodayTabNova({
                     first of which names the tab the reader is already looking
                     at. The greeting alone now carries the kicker treatment. */}
                 <div style={{
-                  fontSize: "var(--text-sm)", fontWeight: 700, letterSpacing: "0.24em", textTransform: "uppercase",
+                  fontSize: "var(--text-sm)", fontWeight: 700, letterSpacing: "var(--tracking-caps)", textTransform: "uppercase",
                   color: "var(--color-accent-strong)", lineHeight: 1.2, marginBottom: "var(--space-1)",
                 }}>
                   {greetingWord(lang, zoneHour)},
@@ -670,12 +1057,12 @@ export function DashboardTodayTabNova({
                     so it sits outside the accessible name. */}
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3_5)", flexWrap: "wrap" }}>
                   <h1 className="nova-hero-name" style={{
-                    margin: 0, fontFamily: "var(--font-display)", fontWeight: 600, lineHeight: 1.06,
+                    margin: 0, fontFamily: "var(--font-heading)", fontWeight: 600, lineHeight: 1.06,
                     fontSize: "clamp(2.25rem, 3.4vw, 3.5rem)", maxWidth: "720px",
                     background: "linear-gradient(120deg, var(--color-text-strong) 68%, var(--color-accent-secondary))",
                     WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent",
                   }}>
-                    {heroFirstName}
+                    {heroName}
                   </h1>
                   {zoneHour >= 6 && zoneHour < 18
                     ? <Sun size={30} strokeWidth={1.7} aria-hidden="true" style={{ color: "var(--color-accent-strong)", flex: "none" }} />
@@ -690,7 +1077,7 @@ export function DashboardTodayTabNova({
                   maxWidth="690px"
                   moreLabel={dt(TODAY_HERO.readMore, lang)}
                   lessLabel={dt(TODAY_HERO.readLess, lang)}
-                  style={{ fontFamily: "var(--font-body)", fontSize: "clamp(16px, 1.2vw, 19px)", lineHeight: 1.55, color: "var(--color-text)" }}
+                  style={{ fontSize: "var(--text-md)", lineHeight: 1.55, color: "var(--color-text)" }}
                 >
                   {tLang(tomorrowGuidance.briefing ?? tomorrowGuidance.text, lang)}
                 </NovaClampedText>
@@ -710,7 +1097,7 @@ export function DashboardTodayTabNova({
                       {panchangam && (
                         <span style={{ fontWeight: 400, color: "var(--color-faint)" }}>
                           {" · "}
-                          {lang === "ta" ? `சூரிய உதயம் ${formatClockLabel(panchangam.sunrise)} இல் நாள் முடிகிறது` : `day closes at sunrise ${formatClockLabel(panchangam.sunrise)}`}
+                          {lang === "ta" ? `சூரிய உதயம் ${formatClockLabel(panchangam.sunrise, lang)} இல் நாள் முடிகிறது` : `day closes at sunrise ${formatClockLabel(panchangam.sunrise, lang)}`}
                         </span>
                       )}
                     </div>
@@ -719,8 +1106,8 @@ export function DashboardTodayTabNova({
                         const tw = pickFeaturedWindow(tomorrowGuidance.bestWindows, now, false, tomorrowIso, panchangamTimezone);
                         return tw
                           ? (lang === "ta"
-                            ? <>நாளை முதல் நல்ல நேரம் · <b style={{ color: "var(--color-high)" }}>{formatClockLabel(tw.start)} – {formatClockLabel(tw.end)}</b></>
-                            : <>Tomorrow&rsquo;s first good window · <b style={{ color: "var(--color-high)" }}>{formatClockLabel(tw.start)} – {formatClockLabel(tw.end)}</b></>)
+                            ? <>நாளை முதல் நல்ல நேரம் · <b style={{ color: "var(--color-high)" }}>{formatClockLabel(tw.start, lang)} – {formatClockLabel(tw.end, lang)}</b></>
+                            : <>Tomorrow&rsquo;s first good window · <b style={{ color: "var(--color-high)" }}>{formatClockLabel(tw.start, lang)} – {formatClockLabel(tw.end, lang)}</b></>)
                           : (lang === "ta" ? "நாள் முடிவதற்குள் ஒரு சிறு குறிப்பு பதிவு செய்யுங்கள்." : "Log a quick note before the day closes.");
                       })()}
                     </div>
@@ -738,9 +1125,9 @@ export function DashboardTodayTabNova({
                     )}
                     <button
                       type="button"
+                      className="ui-btn ui-btn--secondary"
                       onClick={() => void handleSaveReminder()}
                       disabled={savingReminder}
-                      style={{ fontSize: "var(--text-sm)", fontWeight: 600, border: "1px solid var(--color-border-strong)", color: "var(--color-accent-strong)", background: "none", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3_5)", cursor: savingReminder ? "wait" : "pointer", fontFamily: "inherit" }}
                     >
                       {savingReminder ? (lang === "ta" ? "…" : "Saving…") : (lang === "ta" ? "நினைவூட்டு" : "Remind me")}
                     </button>
@@ -755,7 +1142,7 @@ export function DashboardTodayTabNova({
                     first of which names the tab the reader is already looking
                     at. The greeting alone now carries the kicker treatment. */}
                 <div style={{
-                  fontSize: "var(--text-sm)", fontWeight: 700, letterSpacing: "0.24em", textTransform: "uppercase",
+                  fontSize: "var(--text-sm)", fontWeight: 700, letterSpacing: "var(--tracking-caps)", textTransform: "uppercase",
                   color: "var(--color-accent-strong)", lineHeight: 1.2, marginBottom: "var(--space-1)",
                 }}>
                   {greetingWord(lang, zoneHour)},
@@ -775,12 +1162,12 @@ export function DashboardTodayTabNova({
                     so it sits outside the accessible name. */}
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3_5)", flexWrap: "wrap" }}>
                   <h1 className="nova-hero-name" style={{
-                    margin: 0, fontFamily: "var(--font-display)", fontWeight: 600, lineHeight: 1.06,
+                    margin: 0, fontFamily: "var(--font-heading)", fontWeight: 600, lineHeight: 1.06,
                     fontSize: "clamp(2.25rem, 3.4vw, 3.5rem)", maxWidth: "720px",
                     background: "linear-gradient(120deg, var(--color-text-strong) 68%, var(--color-accent-secondary))",
                     WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent",
                   }}>
-                    {heroFirstName}
+                    {heroName}
                   </h1>
                   {zoneHour >= 6 && zoneHour < 18
                     ? <Sun size={30} strokeWidth={1.7} aria-hidden="true" style={{ color: "var(--color-accent-strong)", flex: "none" }} />
@@ -790,7 +1177,21 @@ export function DashboardTodayTabNova({
                     every day, and sitting between the reader's name and the
                     briefing they came for. It earns its place only on a screen
                     that has no briefing to lead with. */}
-                {!personalDailyGuidance && (
+                {/* While the briefing is still on its way, its place is held
+                    rather than filled with this lede (DXA-03). */}
+                {/* Three lines and the "Read more" control, the shape the
+                    briefing resolves to (DXA-05) — then the two blocks that
+                    follow it in the loaded column, so the column's height is
+                    its final one. */}
+                {!personalDailyGuidance && personalPending && (
+                  <>
+                    <HeroPendingLede lang={lang} />
+                    {lifeFocus.area && <HeroPendingFocusLine />}
+                    <HeroPendingWeather />
+                    <HeroPendingWindow />
+                  </>
+                )}
+                {!personalDailyGuidance && !personalPending && (
                   <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-muted)", lineHeight: 1.55, maxWidth: "640px" }}>
                     {dt(TODAY_HERO.ledeNoGuidance, lang)}
                   </p>
@@ -801,10 +1202,20 @@ export function DashboardTodayTabNova({
                     maxWidth="690px"
                     moreLabel={dt(TODAY_HERO.readMore, lang)}
                     lessLabel={dt(TODAY_HERO.readLess, lang)}
-                    style={{ fontFamily: "var(--font-body)", fontSize: "var(--text-md)", lineHeight: 1.55, color: "var(--color-text)" }}
+                    // Inherits the shell's face rather than naming
+                    // --font-body: in Tamil the shell leads with Noto Sans
+                    // Tamil, and --font-body names no Tamil face at all, so
+                    // the one paragraph a reader opens Today for was the one
+                    // painted in the OS's Tamil font.
+                    style={{ fontSize: "var(--text-md)", lineHeight: 1.55, color: "var(--color-text)" }}
                   >
                     {tLang(personalDailyGuidance.briefing ?? personalDailyGuidance.text, lang)}
                   </NovaClampedText>
+                )}
+                {personalDailyGuidance && focusHeroLine && (
+                  <p className="nova-hero-focus-line" style={{ margin: 0, maxWidth: "690px", fontSize: "var(--text-sm)", lineHeight: 1.5, color: "var(--color-muted)" }}>
+                    {focusHeroLine}
+                  </p>
                 )}
                 {/* Chandrashtama hero flag — when the transiting Moon is in the
                     8th from the user's Janma Rasi today. Previously this only
@@ -993,7 +1404,7 @@ export function DashboardTodayTabNova({
                             onClick={() => setConflictOpen((open) => !open)}
                             aria-expanded={conflictOpen}
                           >
-                            {dt(TODAY_TIMINGS.conflictToggle, lang).replace("%s", formatClockLabel(windowConflict.start))}
+                            {dt(TODAY_TIMINGS.conflictToggle, lang).replace("%s", formatClockLabel(windowConflict.start, lang))}
                             <ChevronDown size={13} strokeWidth={2.5} aria-hidden="true" className={conflictOpen ? "is-open" : undefined} />
                           </button>
                         )}
@@ -1001,7 +1412,7 @@ export function DashboardTodayTabNova({
 
                       <div className="nova-hero-action__topline">
                         <div className={windowPhase === "during" ? "nova-hero-action__time is-live" : "nova-hero-action__time"}>
-                          {formatClockLabel(bestWindow.start)} – {formatClockLabel(bestWindow.end)}
+                          {formatClockLabel(bestWindow.start, lang)} – {formatClockLabel(bestWindow.end, lang)}
                           {/* The kala rides the time line rather than opening the
                               reason paragraph: it is a name, not a sentence, and
                               it cost a whole text row of its own. */}
@@ -1010,11 +1421,15 @@ export function DashboardTodayTabNova({
                           )}
                         </div>
                         <div className="nova-hero-action__buttons">
+                          {/* Kit primary; only the size stays inline — the
+                              hero's one action reads a step larger than the
+                              kit's default, and a size never blocks a state. */}
                           <button
                             type="button"
+                            className="ui-btn ui-btn--primary"
                             onClick={() => void handleSaveReminder()}
                             disabled={savingReminder}
-                            style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-base)", fontWeight: 700, background: "var(--color-accent)", color: "var(--color-on-accent)", border: "none", borderRadius: "var(--radius-sm)", padding: "var(--space-2_5) var(--space-4)", cursor: savingReminder ? "wait" : "pointer", fontFamily: "inherit" }}
+                            style={{ fontSize: "var(--text-base)" }}
                           >
                             <Bell size={15} strokeWidth={2} aria-hidden="true" style={{ flex: "none" }} />
                             {savingReminder ? (lang === "ta" ? "…" : "Saving…") : (lang === "ta" ? "நினைவூட்டு" : "Remind me")}
@@ -1026,8 +1441,9 @@ export function DashboardTodayTabNova({
                           {onGoToJournal && (
                             <button
                               type="button"
+                              className="ui-btn ui-btn--ghost"
                               onClick={onGoToJournal}
-                              style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-base)", fontWeight: 600, border: "none", color: "var(--color-accent-strong)", background: "none", borderRadius: "var(--radius-sm)", padding: "var(--space-2_5) var(--space-3)", cursor: "pointer", fontFamily: "inherit" }}
+                              style={{ fontSize: "var(--text-base)" }}
                             >
                               <CalendarPlus size={15} strokeWidth={2} aria-hidden="true" style={{ flex: "none" }} />
                               {lang === "ta" ? "தருணம் பதிவு" : "Log a moment"}
@@ -1067,11 +1483,22 @@ export function DashboardTodayTabNova({
                         </p>
                       )}
 
+                      {/* R7.7 — Kuligai is not in the clearance sentence above,
+                          so on the days it overlaps the promoted window it must
+                          say so itself, or "clear of Rahu Kalam and Yamagandam"
+                          would be read as "clear of everything". Conditional
+                          voice, not the avoid register. */}
+                      {bestWindowInKuligai && (
+                        <p className="nova-hero-action__reason" style={{ color: "var(--color-faint)" }}>
+                          {dt(TODAY_TIMINGS.windowInKuligai, lang)}
+                        </p>
+                      )}
+
                     </div>
                     {windowConflict && conflictOpen && (
                       <p className="nova-hero-action__footnote-body">
                         <span className="nova-hero-action__footnote-time">
-                          {formatClockLabel(windowConflict.start)} – {formatClockLabel(windowConflict.end)}
+                          {formatClockLabel(windowConflict.start, lang)} – {formatClockLabel(windowConflict.end, lang)}
                         </span>
                         {" · "}
                         {lang === "ta" ? windowConflict.text.ta : windowConflict.text.en}
@@ -1093,6 +1520,17 @@ export function DashboardTodayTabNova({
               when there is a score; without one the rail widens into its
               place (`.nova-hero-row:not(:has(.nova-hero-score))`) rather than
               leaving a hole in the middle of the hero. */}
+          {/* DXA-05: while the day's data is on its way the score and rail
+              columns do not exist at all, so the hero was only as tall as its
+              text column and grew when they arrived — the largest shift left
+              on Today's cold load. These hold the same two grid cells in the
+              same shape (dial card + epigraph · avoid card + key timings). */}
+          {personalPending && !personalDailyGuidance && (
+            <>
+              <HeroPendingScore lang={lang} />
+              <HeroPendingRail />
+            </>
+          )}
           {(() => {
             const isTomorrow = showEveningPreview && tomorrowGuidance != null;
             const dialSource = isTomorrow ? tomorrowGuidance : personalDailyGuidance;
@@ -1122,7 +1560,7 @@ export function DashboardTodayTabNova({
                     labelled as chart support and sits beside the reasons it is
                     derived from. Two encodings remain here, of one axis: the
                     precise number and the calm verdict that leads it. */}
-                <Kicker style={{ letterSpacing: "0.14em" }}>
+                <Kicker>
                   {dt(isTomorrow ? TODAY_HERO.tomorrowScore : TODAY_HERO.todayScore, lang)}
                 </Kicker>
                 {/* The dial is the hero's one number and was drawn at the same
@@ -1131,7 +1569,7 @@ export function DashboardTodayTabNova({
                     column, so it takes the size prop up. */}
                 <NovaScoreDial score={dialScore} size={172} color={verdict.color} label={lang === "ta" ? "100க்கு" : "/ 100"} />
                 {/* UXD-19 — the calm verdict phrase leads; the number supports it. */}
-                <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: 700, color: verdict.color, textAlign: "center", lineHeight: 1.15 }}>{verdict.verdict}</div>
+                <div style={{ fontFamily: "var(--font-heading)", fontSize: "var(--text-xl)", fontWeight: 700, color: verdict.color, textAlign: "center", lineHeight: 1.15 }}>{verdict.verdict}</div>
                 {/* Finding 9 — this link said "Why this score" and landed on a
                     section headed "Why this prediction?". One destination, two
                     names; the destination's heading wins. */}
@@ -1170,33 +1608,45 @@ export function DashboardTodayTabNova({
                   live state more than an invitation does. Same `spanPhase`
                   helper, same three states. */}
               {showAvoidCard && (
-                <Card style={{ flex: "none", background: avoidPhase === "during" ? "var(--color-low-bg)" : "color-mix(in srgb, var(--color-surface) 62%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-4) var(--space-4)", display: "flex", flexDirection: "row", gap: "var(--space-3)", alignItems: "center", borderColor: avoidPhase === "during" ? "var(--color-low-border)" : undefined }}>
-                  <div aria-hidden="true" style={{ position: "relative", width: "40px", height: "40px", borderRadius: "var(--radius-pill)", background: "var(--color-low-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-low)", flex: "none" }}>
-                    <X size={19} strokeWidth={2} />
+                <Card style={{ flex: "none", background: avoidPhase === "during" ? (isKuligaiPeriod ? "var(--color-accent-muted)" : "var(--color-low-bg)") : "color-mix(in srgb, var(--color-surface) 62%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-4) var(--space-4)", display: "flex", flexDirection: "row", gap: "var(--space-3)", alignItems: "center", borderColor: avoidPhase === "during" ? (isKuligaiPeriod ? "var(--color-accent-secondary)" : "var(--color-low-border)") : undefined }}>
+                  <div aria-hidden="true" style={{ position: "relative", width: "40px", height: "40px", borderRadius: "var(--radius-pill)", background: isKuligaiPeriod ? "var(--color-accent-muted)" : "var(--color-low-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: isKuligaiPeriod ? "var(--color-accent-secondary)" : "var(--color-low)", flex: "none" }}>
+                    {isKuligaiPeriod ? <Sparkles size={19} strokeWidth={2} /> : <X size={19} strokeWidth={2} />}
                     {avoidPhase === "during" && (
-                      <span className="nova-pulse-dot" style={{ position: "absolute", top: "-1px", right: "-1px", width: "9px", height: "9px", borderRadius: "var(--radius-pill)", background: "var(--color-low)", boxShadow: "0 0 0 3px var(--color-surface)" }} />
+                      <span className="nova-pulse-dot" style={{ position: "absolute", top: "-1px", right: "-1px", width: "9px", height: "9px", borderRadius: "var(--radius-pill)", background: isKuligaiPeriod ? "var(--color-accent-secondary)" : "var(--color-low)", boxShadow: "0 0 0 3px var(--color-surface)" }} />
                     )}
                   </div>
                   <div style={{ minWidth: 0 }}>
-                    <Kicker as="div" color="var(--color-low)">
-                      {lang === "ta" ? "தவிர்க்க வேண்டிய நேரம்" : "Avoid window"}
+                    <Kicker as="div" color={isKuligaiPeriod ? "var(--color-accent-secondary)" : "var(--color-low)"}>
+                      {dt(isKuligaiPeriod ? TODAY_TIMINGS.kuligaiPeriodLabel : TODAY_TIMINGS.avoidWindowLabel, lang)}
                     </Kicker>
                     <div className="nova-hero-time" style={{ marginTop: "4px" }}>
-                      {formatClockLabel(avoidWindow.start)} – {formatClockLabel(avoidWindow.end)}
+                      {formatClockLabel(avoidWindow.start, lang)} – {formatClockLabel(avoidWindow.end, lang)}
                     </div>
                     {avoidPhase && (
                       <div
                         role="status"
                         style={{
                           fontSize: "var(--text-sm)", fontWeight: avoidPhase === "during" ? 700 : 400, marginTop: "4px",
-                          color: avoidPhase === "during" ? "var(--color-low)" : "var(--color-faint)",
+                          color: avoidPhase === "during"
+                            ? (isKuligaiPeriod ? "var(--color-accent-secondary)" : "var(--color-low)")
+                            : "var(--color-faint)",
                         }}
                       >
-                        {avoidPhase === "during" && avoidCountdown
-                          ? `${dt(TODAY_TIMINGS.avoidRunningNow, lang)} · ${dt(TODAY_TIMINGS.endsIn, lang).replace("%s", avoidCountdown)}`
+                        {avoidPhase === "during" && isKuligaiPeriod
+                          ? dt(TODAY_TIMINGS.liveKuligaiLine, lang)
+                              .replace("%1$s", formatClockLabel(avoidWindow.end, lang))
+                          : avoidPhase === "during"
+                            ? dt(TODAY_TIMINGS.liveAvoidLine, lang)
+                                .replace("%1$s", windowTypeLabel(avoidWindow.type, lang))
+                                .replace("%2$s", formatClockLabel(avoidWindow.end, lang))
                           : avoidCountdown
                             ? dt(TODAY_TIMINGS.startsIn, lang).replace("%s", avoidCountdown)
                             : null}
+                      </div>
+                    )}
+                    {isKuligaiPeriod && avoidPhase !== "during" && (
+                      <div style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)", marginTop: "4px", lineHeight: 1.45 }}>
+                        {dt(TODAY_TIMINGS.kuligaiMeaning, lang)}
                       </div>
                     )}
                     <div style={{ fontSize: "var(--text-sm)", color: "var(--color-faint)", marginTop: "3px" }}>
@@ -1224,7 +1674,7 @@ export function DashboardTodayTabNova({
                     name: lang === "ta" ? "நல்ல நேரம்" : "Nalla Neram",
                     dot: "var(--color-high)",
                     times: nallaNeramSpans
-                      .map((s) => `${formatClockLabel(s.start)} – ${formatClockLabel(s.end)}`),
+                      .map((s) => `${formatClockLabel(s.start, lang)} – ${formatClockLabel(s.end, lang)}`),
                   });
                 }
                 if (panchangam?.kalam.yamagandam) {
@@ -1232,7 +1682,7 @@ export function DashboardTodayTabNova({
                     key: "yamagandam",
                     name: windowTypeLabel("YAMAGANDAM", lang),
                     dot: "var(--color-accent-secondary)",
-                    times: [`${formatClockLabel(panchangam.kalam.yamagandam.start)} – ${formatClockLabel(panchangam.kalam.yamagandam.end)}`],
+                    times: [`${formatClockLabel(panchangam.kalam.yamagandam.start, lang)} – ${formatClockLabel(panchangam.kalam.yamagandam.end, lang)}`],
                   });
                 }
                 if (panchangam?.kalam.kuligai) {
@@ -1240,7 +1690,7 @@ export function DashboardTodayTabNova({
                     key: "kuligai",
                     name: windowTypeLabel("KULIGAI", lang),
                     dot: "var(--color-low)",
-                    times: [`${formatClockLabel(panchangam.kalam.kuligai.start)} – ${formatClockLabel(panchangam.kalam.kuligai.end)}`],
+                    times: [`${formatClockLabel(panchangam.kalam.kuligai.start, lang)} – ${formatClockLabel(panchangam.kalam.kuligai.end, lang)}`],
                   });
                 }
                 if (secondaryAbhijitWindow) {
@@ -1248,7 +1698,7 @@ export function DashboardTodayTabNova({
                     key: "abhijit",
                     name: lang === "ta" ? "அபிஜித் முகூர்த்தம்" : "Abhijit muhurtham",
                     dot: "var(--color-accent)",
-                    times: [`${formatClockLabel(secondaryAbhijitWindow.start)} – ${formatClockLabel(secondaryAbhijitWindow.end)}`],
+                    times: [`${formatClockLabel(secondaryAbhijitWindow.start, lang)} – ${formatClockLabel(secondaryAbhijitWindow.end, lang)}`],
                     // Finding 7. Abhijit is ~48 minutes fixed around solar noon
                     // and the kalas move by weekday, so on a large fraction of
                     // Fridays Rahu Kalam clips its head — 24 of 49 minutes on
@@ -1262,8 +1712,7 @@ export function DashboardTodayTabNova({
                       ? abhijitOverlapNote(secondaryAbhijitWindow, [
                         { label: windowTypeLabel("RAHU_KALAM", lang), ...panchangam.kalam.rahuKalam },
                         { label: windowTypeLabel("YAMAGANDAM", lang), ...panchangam.kalam.yamagandam },
-                        { label: windowTypeLabel("KULIGAI", lang), ...panchangam.kalam.kuligai },
-                      ], lang) || undefined
+                      ], lang, kuligaiSpan) || undefined
                       : undefined,
                   });
                 }
@@ -1296,14 +1745,18 @@ export function DashboardTodayTabNova({
                     {onGoToCalendar && (
                       <button
                         type="button"
+                        // OD-4 text link: `.ui-btn` had centred this row's
+                        // content and floored it at 38px.
+                        className="ui-link"
                         onClick={onGoToCalendar}
                         style={{
                           display: "inline-flex", alignItems: "center", gap: "var(--space-2)", alignSelf: "flex-start",
-                          marginTop: "var(--space-1)", paddingTop: "var(--space-3)", paddingLeft: 0, paddingRight: 0, paddingBottom: 0,
-                          borderTop: "1px solid var(--color-border)", borderLeft: "none", borderRight: "none", borderBottom: "none",
-                          width: "100%", background: "none", cursor: "pointer", fontFamily: "inherit",
-                          fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-accent-secondary)",
-                        }}
+                          marginTop: "var(--space-1)", paddingTop: "var(--space-3)",
+                          borderTop: "1px solid var(--color-border)",
+                          width: "100%",
+                          fontSize: "var(--text-base)", fontWeight: 600,
+                          "--ui-link-color": "var(--color-accent-secondary)",
+                        } as CSSProperties}
                       >
                         <CalendarDays size={15} strokeWidth={2} aria-hidden="true" style={{ flex: "none" }} />
                         {dt(TODAY_HERO.viewFullAlmanac, lang)}
@@ -1319,10 +1772,14 @@ export function DashboardTodayTabNova({
         </div>
       </div>
 
+      {/* Life focus T5: a REMEDIES focus puts the remedy row directly under the hero. */}
+      {lifeFocus.remediesFirst && familyRemedyRow}
+
       {/* ===== Quick Links — one-tap shortcuts to the highest-value functions
           that otherwise sit behind the "More" nav dropdown (Tools/Explore) or
           have no top-level nav entry at all (Journal). Placed right after the
           hero per the homepage redesign (2026-07-24). ===== */}
+      <Reveal>
       <DashboardTodayQuickLinksNova
         lang={lang}
         needsProfile={needsProfile}
@@ -1335,28 +1792,29 @@ export function DashboardTodayTabNova({
         onGoToJournal={onGoToJournal}
         onGoToExplore={onGoToExplore}
         onGoToAllTools={onGoToAllTools}
+        focusArea={lifeFocus.area}
       />
+      </Reveal>
 
       {userMode === "BEGINNER" && personalDailyGuidance && (
         <FirstResultGuide lang={lang} action={personalDailyGuidance.actionSuggestion} />
       )}
 
-      {/* The two-minute reading, but only while it has something new to say.
-          `readingWindow` is the current antardasha — months to years — and most
-          of its beats are natal and never move at all, so this slot was
-          spending ~240 words a day on a piece of writing whose own subtitle
-          says it will not change until March. Once read, it collapses to a
-          single line pointing at Family & Charts, and it expands again by
-          itself when the bhukti turns and the backend rewrites it. See
-          `collapseWhenRead`. */}
-      {activeChartId && (
-        <DashboardOneMinuteReading
-          lang={lang}
-          chartId={activeChartId}
-          onOpenFullChart={onGoToCharts}
-          deferUntilVisible
-          collapseWhenRead
-        />
+      {/* Proposal §5 (owner, 2026-09-23): Today in two minutes, from the
+          reader's own chart, for them and each family member. It replaces the
+          natal "Your chart in two minutes" reading here, which changes only at
+          the bhukti turn and is read in full on Family & Charts; the card's
+          last row links there. A row cached before the palan existed has no
+          `personalPalan`, and the slot then renders nothing that day. */}
+      {palanMembers.length > 0 && (
+        <Reveal>
+          <DashboardTodayPalanNova
+            lang={lang}
+            members={palanMembers}
+            focusArea={lifeFocus.area}
+            onOpenChartReading={onGoToCharts}
+          />
+        </Reveal>
       )}
 
       {/* Fail-soft notice (DASH-02): the day bundle loaded but some sections
@@ -1388,64 +1846,55 @@ export function DashboardTodayTabNova({
           two sections (a four-pill decision strip above an eleven-row board)
           that asked the same question of the same engine and repeated four of
           the same activities under different labels; they are now one. ===== */}
+      <Reveal>
       <DashboardTodayActivityBoardNova
         board={personalDailyGuidance?.activityBoard}
         lang={lang}
         chartId={activeChartId || null}
-        selectedDate={selectedDate}
+        selectedDate={dataDate}
         bestWindow={bestWindow}
         now={now}
         isToday={isToday}
         timeZone={panchangamTimezone}
         onOpenAskVinaadi={onOpenAskVinaadi}
         onGoToCalendar={onGoToCalendar}
+        focusActivities={lifeFocus.activities}
+        focusMode={activeLifeMode}
       />
+      </Reveal>
 
       {/* ===== 3. Timeline spine: sunrise-to-sunrise, panchangam + horai +
           week-ahead dots merged in — the one place all day-timing lives. ===== */}
+      <Reveal>
       <DashboardTodayRibbonNova
         lang={lang}
         panchangam={panchangam}
         weekAhead={weekAhead}
-        selectedDate={selectedDate}
+        selectedDate={dataDate}
         now={now}
         timeZone={panchangamTimezone}
+        place={panchangamPlace}
         onGoToCalendar={onGoToCalendar}
       />
+      </Reveal>
 
       {/* ===== 4. Life Areas + Dasa Chapter row (redesign 2026-07-18). ===== */}
+      <Reveal>
       <DashboardTodayLifeAreasDasaRowNova
         lang={lang}
         personalChartSummary={personalChartSummary}
         dasha={dasha}
         dashaAntar={dashaAntar}
-        selectedDate={selectedDate}
+        selectedDate={dataDate}
         lifeAreas={lifeAreas}
+        pending={personalPending}
+        focusArea={lifeFocus.area}
         onGoToChart={onGoToChart}
         onGoToLifeAreas={onGoToLifeAreas}
       />
+      </Reveal>
 
-      {/* ===== 5. Family Today + Remedy For You row (redesign 2026-07-18,
-          "Coming up" folded into Family Today's footer 2026-08-20) — the
-          remedy grows from a one-liner into a card with its own save action;
-          family members get star tiles; Family Today pins "Coming up" to its
-          bottom so a small/solo household doesn't leave the card looking
-          empty next to the taller Remedy card. ===== */}
-      <DashboardTodayFamilyRemedyRowNova
-        lang={lang}
-        familyAggregate={familyAggregate}
-        remedy={personalDailyGuidance?.remedy ?? null}
-        remedyFocus={personalDailyGuidance?.remedyFocus ?? null}
-        remedyMembers={remedyMembers}
-        savingReminder={savingReminder}
-        reminderMessage={reminderStatus?.text ?? null}
-        onSaveReminder={() => void handleSaveReminder()}
-        onGoToFamily={onGoToFamily}
-        onGoToLifeAreas={onGoToLifeAreas}
-        peyarchiUpcoming={peyarchiUpcoming}
-        personalSani={personalSani}
-        onGoToCalendar={onGoToCalendar}
-      />
+      {!lifeFocus.remediesFirst && familyRemedyRow}
 
       {/* ===== 6. Deep-dive bridge — the single doorway to the chart engine.
           The full engine (planet table, chart explanation, vargas, shadbala,
@@ -1460,11 +1909,11 @@ export function DashboardTodayTabNova({
       {personalDailyGuidance && (
         <Card id="nova-deep-dive" tabIndex={-1} style={{ borderColor: "var(--color-border-strong)", padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-3_5)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2_5)", flexWrap: "wrap" }}>
-            <h2 style={{ margin: 0, fontFamily: "var(--font-display)", fontSize: "var(--text-lg)", fontWeight: 600, color: "var(--color-accent-strong)" }}>
+            <h2 className="nova-card-title">
               {lang === "ta" ? "இந்த கணிப்பு ஏன்?" : "Why this prediction?"}
             </h2>
             <span style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>
-              {lang === "ta" ? "இன்றைய ஜோதிடத்தின் அடிப்படை" : "the astrology behind today"}
+              {lang === "ta" ? "இன்றைய ஜோதிடத்தின் அடிப்படை" : "The astrology behind today"}
             </span>
             {/* Finding 5, second half — the band is evidence strength, not a
                 second verdict on the day. Here it sits beside the reasons it
@@ -1481,8 +1930,9 @@ export function DashboardTodayTabNova({
             {onGoToCharts && (
               <button
                 type="button"
+                className="ui-btn ui-btn--primary"
                 onClick={onGoToCharts}
-                style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: "var(--space-1_5)", fontSize: "var(--text-sm)", fontWeight: 700, color: "var(--color-on-accent)", background: "var(--color-accent)", border: "none", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3_5)", cursor: "pointer", fontFamily: "inherit" }}
+                style={{ marginLeft: "auto" }}
               >
                 {lang === "ta" ? "ஜாதகம் & விளக்கம் திற" : "Open Chart & Explanations"}
                 <ArrowRight size={13} strokeWidth={2} aria-hidden="true" style={{ marginLeft: "var(--space-1)" }} />
@@ -1491,7 +1941,7 @@ export function DashboardTodayTabNova({
             {activeChartId && (
               <button
                 type="button"
-                onClick={() => void downloadJadhagamPdf(activeChartId, selectedDate, lang)}
+                onClick={() => void downloadJadhagamPdf(activeChartId, dataDate, lang)}
                 style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1_5)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-accent-strong)", background: "none", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)", cursor: "pointer", fontFamily: "inherit", ...(onGoToCharts ? {} : { marginLeft: "auto" }) }}
               >
                 ⤓ PDF
@@ -1540,7 +1990,7 @@ export function DashboardTodayTabNova({
                   ))}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <DeepDiveOrbitGlyph size={168} />
+                  <DeepDiveOrbitGlyph size={168} className="nova-deepdive-glyph" />
                 </div>
               </div>
             );

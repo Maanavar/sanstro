@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { apiFetchJson, toQuery } from "@/lib/api";
 import { useElapsedSeconds } from "@/hooks/useElapsedSeconds";
@@ -8,9 +8,24 @@ import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { CULTURAL_CONTEXT, dt } from "@/lib/dashboard-i18n";
 import type { ActivityTimingData } from "@/lib/types";
+import { focusPreselect } from "@/lib/life-focus";
 import { ACTIVITY_OPTIONS, ACTIVITY_TO_MUHURTA } from "./dashboard-plan-shared";
-import { MuhurtaPanchangamOverlay, NovaMuhurtaPicker } from "./dashboard-plan-muhurta-picker-nova";
+import {
+  MuhurtaDayDetailDrawer,
+  NovaMuhurtaPicker,
+  type MuhurtaDayDrawerComponent,
+} from "./dashboard-plan-muhurta-picker-nova";
 import { NovaMuhurthamNaal } from "./dashboard-plan-muhurtham-naal-nova";
+import {
+  INITIAL_WEDDING_CHOICE,
+  WeddingPartnerControl,
+  coupleFromChoice,
+  defaultRoleFor,
+  scanWeddingParams,
+  suggestedPartner,
+  useSavedProfiles,
+} from "./dashboard-plan-wedding-partner";
+import type { WeddingChoice } from "./dashboard-plan-wedding-partner";
 import { NovaSelect } from "./nova-select";
 import { Card } from "./ui";
 import { Field, FieldShell, Input } from "./ui/field";
@@ -32,10 +47,22 @@ import { Field, FieldShell, Input } from "./ui/field";
  * click-to-prefill interaction between Step 1 and Step 2.
  */
 
-type Props = { lang: Lang; chartId: string };
+type Props = {
+  lang: Lang;
+  chartId: string;
+  /** Life focus, Phase 3: the quick scan opens on the focus's first activity.
+   *  Empty for a family member's chart (D4). */
+  focusActivities?: readonly string[];
+  DayDrawer: MuhurtaDayDrawerComponent;
+};
 
-export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
-  const [activityType, setActivityType] = useState(ACTIVITY_OPTIONS[0].value);
+export function NovaPlanMuhurtaPanel({ lang, chartId, focusActivities = [], DayDrawer }: Props) {
+  // Null until the reader picks, so the default can follow a focus change
+  // made elsewhere without overriding a choice made here.
+  const [chosenActivityType, setActivityType] = useState<string | null>(null);
+  const activityType = chosenActivityType
+    ?? focusPreselect(focusActivities, ACTIVITY_OPTIONS.map((opt) => opt.value))
+    ?? ACTIVITY_OPTIONS[0].value;
   const [activityMonth, setActivityMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -46,6 +73,42 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
   const [muhurtaPresetDate, setMuhurtaPresetDate] = useState<string | undefined>(undefined);
   const [muhurtaPresetActivity, setMuhurtaPresetActivity] = useState<string | undefined>(undefined);
   const [panchangamDate, setPanchangamDate] = useState<string | null>(null);
+
+  // One answer to "whose charts decide a wedding?" for both surfaces below.
+  const { profiles, failed: profilesFailed } = useSavedProfiles();
+  const [wedding, setWedding] = useState<WeddingChoice>(INITIAL_WEDDING_CHOICE);
+  const seededFor = useRef<string | null>(null);
+  useEffect(() => {
+    // Seeded once per open chart, from what that chart's profile already says:
+    // its saved gender for the role, and a timed spouse as the partner. A spouse
+    // on file makes "both charts" the starting answer, as it is in the Tools
+    // finder; a reader's own later choice is never overwritten.
+    if (!profiles || seededFor.current === chartId) return;
+    seededFor.current = chartId;
+    const active = profiles.find((profile) => profile.chartId === chartId);
+    const partner = suggestedPartner(profiles, chartId);
+    setWedding({
+      mode: partner ? "couple" : "solo",
+      subjectRole: defaultRoleFor(active),
+      partnerChartId: partner,
+    });
+  }, [profiles, chartId]);
+  const activeProfile = profiles?.find((profile) => profile.chartId === chartId) ?? null;
+  // Unknown until profiles load; the backend is the final check either way.
+  const activeTimed = activeProfile ? Boolean(activeProfile.birthTimeLocal) : true;
+  const couple = coupleFromChoice(wedding, activeTimed);
+  const partnerName = couple ? (profiles?.find((profile) => profile.chartId === couple.partnerChartId)?.displayName ?? null) : null;
+  const isWeddingScan = activityType === "marriage";
+  const scanCouple = scanWeddingParams(activityType, couple);
+  // A shortlist ranked for one couple must not stay on screen under another.
+  const scanCoupleKey = `${scanCouple.partnerChartId ?? ""}:${scanCouple.subjectRole ?? ""}`;
+  useEffect(() => { setActivityTimingResult(null); }, [scanCoupleKey]);
+  // Covers the focus-driven default too: a shortlist never outlives its activity.
+  useEffect(() => { setActivityTimingResult(null); }, [activityType]);
+  const quickScanDay = panchangamDate
+    ? activityTimingResult?.topDates.find((day) => day.dateLocal === panchangamDate) ?? null
+    : null;
+  const quickScanActivity = ACTIVITY_OPTIONS.find((option) => option.value === activityType) ?? ACTIVITY_OPTIONS[0];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", fontFamily: "var(--font-body)" }}>
@@ -63,6 +126,18 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
       <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.55 }}>
         {dt(CULTURAL_CONTEXT.muhurta, lang)}
       </p>
+
+      {/* Above all three surfaces it governs — the quick scan, the detailed
+          search and the published dates — so it is answered before any of them
+          is read, and "above" in their status lines is true. */}
+      <WeddingPartnerControl
+        lang={lang}
+        chartId={chartId || null}
+        profiles={profiles}
+        failed={profilesFailed}
+        value={wedding}
+        onChange={setWedding}
+      />
 
       <Card>
         <div>
@@ -92,7 +167,7 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
             onClick={() => {
               setActivityTimingBusy(true);
               apiFetchJson<{ success: boolean; data: ActivityTimingData }>(
-                `/api/v1/activity-timing${toQuery({ chartId, activity: activityType, month: activityMonth })}`,
+                `/api/v1/activity-timing${toQuery({ chartId, activity: activityType, month: activityMonth, ...scanCouple })}`,
               )
                 .then((r) => setActivityTimingResult(r.data))
                 .catch(() => {})
@@ -113,6 +188,20 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
             {activityTimingBusy ? `${t("btn_finding", lang)} ${activityTimingElapsed}s` : t("btn_find_best_dates", lang)}
           </button>
         </div>
+
+        {/* Whose charts a wedding shortlist reads, stated where it is run — the
+            same line the detailed search carries, for the same reason. */}
+        {isWeddingScan && (
+          <p style={{ margin: "-6px 0 14px", fontSize: "var(--text-sm)", color: couple ? "var(--color-text)" : "var(--color-muted)", lineHeight: 1.5 }}>
+            {couple
+              ? (lang === "ta"
+                ? `இரு ஜாதகங்களுக்கும் சரிபார்க்கப்படுகிறது — இந்த ஜாதகம்${partnerName ? ` மற்றும் ${partnerName}` : ""}. ஒவ்வொரு நாளுக்கும் இருவரில் குறைவான மதிப்பெண்ணும் பலவீனமான தாராவுமே கணக்கில் எடுக்கப்படும்.`
+                : `Checked for both charts — this chart${partnerName ? ` and ${partnerName}` : " and your partner's"}. Each day takes the lower of the two day scores and the weaker Tara.`)
+              : (lang === "ta"
+                ? "இந்த ஜாதகத்துக்கு மட்டுமே சரிபார்க்கப்படுகிறது. இருவருக்கும் சரிபார்க்க, மேலே \"மணமகள் & மணமகன்\" என்பதைத் தேர்ந்தெடுக்கவும்."
+                : "Checked for this chart only. Choose \"Bride and groom\" above to check both of you.")}
+          </p>
+        )}
 
         {activityTimingResult && (
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
@@ -184,7 +273,14 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
             ? (lang === "ta" ? "தேர்ந்தெடுத்த தேதி தயாராக உள்ளது. செயல்பாடு, பஞ்சாங்கம் மற்றும் தனிப்பட்ட காரணிகளைச் சரிபார்க்கவும்." : "Your selected date is ready. Check its activity rules, Panchangam, and personal factors.")
             : (lang === "ta" ? "ஆங்கில மாதம், தமிழ் மாதம் அல்லது தேதி வரம்பு — எதைத் தேர்ந்தெடுத்தாலும் உங்கள் ஜாதகத்தின்படி முழு முகூர்த்தத் தேடலை இயக்கவும்." : "Run a full, chart-personalised muhurta search by English month, Tamil month, or an explicit date range.")}
         </p>
-        <NovaMuhurtaPicker lang={lang} chartId={chartId || null} initialDateFrom={muhurtaPresetDate} initialActivity={muhurtaPresetActivity} />
+        <NovaMuhurtaPicker
+          lang={lang}
+          chartId={chartId || null}
+          DayDrawer={DayDrawer}
+          initialDateFrom={muhurtaPresetDate}
+          initialActivity={muhurtaPresetActivity}
+          wedding={{ couple, subjectRole: wedding.subjectRole, partnerName }}
+        />
       </div>
 
       <div>
@@ -192,13 +288,19 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
           {lang === "ta" ? "திருமணம் · வெளியிடப்பட்ட முகூர்த்த நாட்கள்" : "Marriage · published muhurtham dates"}
         </p>
         <p style={{ margin: "0 0 10px", fontSize: "var(--text-xs)", color: "var(--color-faint)", lineHeight: 1.5 }}>
-          {lang === "ta"
-            ? "வெளியிடப்பட்ட பஞ்சாங்க முகூர்த்த நாட்கள், உங்கள் நட்சத்திரத்துக்கு தாரா பலம் + சந்திராஷ்டமம் வைத்து வரிசைப்படுத்தப்பட்டவை."
-            : "Published almanac wedding dates, ranked for your birth star by Tara Bala and Chandrashtama."}
+          {couple
+            ? (lang === "ta"
+              ? "வெளியிடப்பட்ட பஞ்சாங்க முகூர்த்த நாட்கள், இருவரின் நட்சத்திரங்களுக்கும் தாரா பலம் + சந்திராஷ்டமம் வைத்து வரிசைப்படுத்தப்பட்டவை — இருவரில் பலவீனமானதே முடிவு செய்யும்."
+              : "Published almanac wedding dates, ranked for both birth stars by Tara Bala and Chandrashtama — the weaker of the two decides.")
+            : (lang === "ta"
+              ? "வெளியிடப்பட்ட பஞ்சாங்க முகூர்த்த நாட்கள், உங்கள் நட்சத்திரத்துக்கு தாரா பலம் + சந்திராஷ்டமம் வைத்து வரிசைப்படுத்தப்பட்டவை."
+              : "Published almanac wedding dates, ranked for your birth star by Tara Bala and Chandrashtama.")}
         </p>
         <NovaMuhurthamNaal
           lang={lang}
           chartId={chartId || null}
+          DayDrawer={DayDrawer}
+          couple={couple}
           onCheckInPlanner={(date) => {
             setMuhurtaPresetDate(date);
             setMuhurtaPresetActivity("MARRIAGE");
@@ -206,12 +308,36 @@ export function NovaPlanMuhurtaPanel({ lang, chartId }: Props) {
         />
       </div>
 
-      {panchangamDate && activityTimingResult?.dailyLocation && (
-        <MuhurtaPanchangamOverlay
+      {panchangamDate && quickScanDay && activityTimingResult?.dailyLocation && (
+        <MuhurtaDayDetailDrawer
           date={panchangamDate}
           location={activityTimingResult.dailyLocation}
+          resultDates={activityTimingResult.topDates.map((day) => day.dateLocal)}
           lang={lang}
+          lead={(
+            <section style={{ padding: "var(--space-4)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", background: "var(--color-surface-soft)" }}>
+              <p style={{ margin: "0 0 6px", color: "var(--color-text-accent)", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                {lang === "ta" ? `விரைவு மாதத் தேடல் · ${quickScanActivity.ta}` : `Quick month scan · ${quickScanActivity.en}`}
+              </p>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-2)", flexWrap: "wrap" }}>
+                <strong style={{ color: quickScanDay.score >= 70 ? "var(--color-high)" : quickScanDay.score >= 50 ? "var(--color-mid)" : "var(--color-low)", fontFamily: "var(--font-display)", fontSize: "var(--text-2xl)" }}>
+                  {quickScanDay.score}<span style={{ fontSize: "var(--text-sm)" }}>/100</span>
+                </strong>
+                <span style={{ color: "var(--color-muted)", fontSize: "var(--text-sm)", fontWeight: 700 }}>{quickScanDay.alignment}</span>
+              </div>
+              <p style={{ margin: "6px 0 0", color: "var(--color-text)", lineHeight: 1.55 }}>
+                {lang === "ta" ? quickScanDay.reasonTa : quickScanDay.reasonEn}
+              </p>
+              <p style={{ margin: "8px 0 0", color: "var(--color-muted)", fontSize: "var(--text-xs)", lineHeight: 1.5 }}>
+                {lang === "ta"
+                  ? "இது தினவழிகாட்டல் + தாரா அடிப்படையிலான விரைவு வரிசை. நேரத்தைத் தேர்வதற்கு கீழுள்ள விரிவான முகூர்த்தத் தேடலை இயக்கவும்."
+                  : "This is the daily-guidance + Tara quick ranking. Run the detailed election below before choosing a time."}
+              </p>
+            </section>
+          )}
+          onDateChange={setPanchangamDate}
           onClose={() => setPanchangamDate(null)}
+          DayDrawer={DayDrawer}
         />
       )}
     </div>

@@ -3,7 +3,7 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { formatDateLabel } from "@/lib/format";
-import { D1_RASI_NAMES } from "@/lib/chart-utils";
+import { rasiDisplayName, rasiLabel } from "@/lib/chart-utils";
 import { tNakshatra, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import type {
@@ -28,7 +28,6 @@ import {
   type BiCopy,
   type RelationshipTone,
   type SectionId,
-  TAMIL_RASI_NAMES,
   KENDRA_HOUSES,
   TRIKONA_HOUSES,
   DUSTHANA_HOUSES,
@@ -75,7 +74,7 @@ function tx(copy: BiCopy, lang: Lang): string {
 
 function rasiName(rasi: number | null | undefined, lang: Lang): string {
   if (!rasi) return lang === "ta" ? "தெரியவில்லை" : "Unknown";
-  return lang === "ta" ? (TAMIL_RASI_NAMES[rasi] ?? `${rasi}`) : (D1_RASI_NAMES[rasi] ?? `Rasi ${rasi}`);
+  return rasiLabel(rasi, lang);
 }
 
 function ordinalHouse(house: number, lang: Lang): string {
@@ -775,7 +774,7 @@ function Chevron({ open }: { open: boolean }) {
         width: "14px",
         height: "14px",
         transform: open ? "rotate(180deg)" : "rotate(0deg)",
-        transition: "transform 140ms ease",
+        transition: "transform 140ms var(--ease-nova)",
       }}
     >
       <path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -954,9 +953,14 @@ export function ChartExplanationPanel({
             {teaser}
           </p>
         </div>
+        {/* Kit variants carry the two states (OD-4 button kind): secondary
+            while closed, primary while open. The inline fills gave no hover
+            or press. The pill shape and size stay inline; neither blocks a
+            state. */}
         <button
           ref={toggleRef}
           type="button"
+          className={open ? "ui-btn ui-btn--primary" : "ui-btn ui-btn--secondary"}
           aria-expanded={open}
           onClick={() => {
             pinTo(toggleRef.current);
@@ -964,21 +968,8 @@ export function ChartExplanationPanel({
           }}
           style={{
             overflowAnchor: "none",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "var(--space-1_5)",
-            minHeight: "36px",
-            padding: "var(--space-1_5) var(--space-4)",
             borderRadius: "var(--radius-pill)",
-            border: "1.5px solid var(--color-border-strong)",
-            background: open ? "var(--color-text-strong)" : "var(--color-surface)",
-            color: open ? "var(--color-bg)" : "var(--color-text)",
             fontSize: "var(--text-base)",
-            fontWeight: 700,
-            cursor: "pointer",
-            fontFamily: "inherit",
-            whiteSpace: "nowrap",
           }}
         >
           <Chevron open={open} />
@@ -1058,14 +1049,25 @@ export function ChartExplanationPanel({
                     <DetailRow
                       label={lang === "ta" ? "லக்னம்" : "Lagna"}
                       value={coreIdentity
-                        ? coreIdentity.lagnaRasi
+                        ? rasiDisplayName(coreIdentity.lagnaRasi, lang)
                         : `${rasiName(chart.lagna.rasi, lang)} - ${tNakshatra(chart.lagna.nakshatraName, lang)} ${lang === "ta" ? "பாதம்" : "Pada"} ${chart.lagna.pada}`}
                     />
+                    {[coreIdentity?.lagnaEdgeNote, coreIdentity?.navamsaLagnaEdgeNote].map((note, index) =>
+                      note ? (
+                        <p
+                          key={index}
+                          role="note"
+                          style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.5, color: "var(--color-text)" }}
+                        >
+                          {tx(note, lang)}
+                        </p>
+                      ) : null,
+                    )}
                     <DetailRow
                       label={lang === "ta" ? "சந்திரன்" : "Moon"}
                       value={
                         coreIdentity
-                          ? `${coreIdentity.moonRasi} - ${coreIdentity.janmaNakshatra} ${lang === "ta" ? "பாதம்" : "Pada"} ${coreIdentity.janmaPada}`
+                          ? `${rasiDisplayName(coreIdentity.moonRasi, lang)} - ${tNakshatra(coreIdentity.janmaNakshatra, lang)} ${lang === "ta" ? "பாதம்" : "Pada"} ${coreIdentity.janmaPada}`
                           : derived.moon
                           ? `${rasiName(derived.moon.rasi, lang)} - ${tNakshatra(derived.moon.nakshatraName, lang)} ${lang === "ta" ? "பாதம்" : "Pada"} ${derived.moon.pada}`
                           : (lang === "ta" ? "சந்திர தரவு இல்லை" : "Moon data unavailable")

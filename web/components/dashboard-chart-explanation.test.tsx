@@ -53,6 +53,53 @@ const baseProps = {
   dashaAntar: [],
 };
 
+describe("ChartExplanationPanel — Lagna sign-edge note", () => {
+  const note = {
+    ta: "லக்னம் மீனம் ராசியின் விளிம்பில் (0.50°) உள்ளது.",
+    en: "The Lagna sits at the edge of Meenam (0.50°).",
+  };
+  function explanationWith(lagnaEdgeNote: typeof note | null) {
+    return {
+      coreIdentity: {
+        lagnaRasi: "MEENAM",
+        moonRasi: "MESHAM",
+        janmaNakshatra: "ASWINI",
+        janmaPada: 1,
+        currentMahadasha: "SATURN",
+        currentAntardasha: "MERCURY",
+        currentPratyantardasha: "KETU",
+        explanation: { ta: "அடிப்படை", en: "Basics" },
+        lagnaEdgeNote,
+      },
+      planets: [],
+      houseGroups: [],
+      summary: { strongestPlanet: null, positives: [], cautions: [] },
+    } as unknown as React.ComponentProps<typeof ChartExplanationPanel>["explanation"];
+  }
+
+  it.each([
+    ["en", note.en],
+    ["ta", note.ta],
+  ] as const)("renders the note in the active language (%s)", (lang, expected) => {
+    render(
+      <ChartExplanationPanel
+        {...baseProps}
+        lang={lang}
+        explanation={explanationWith(note)}
+        chart={makeChart([])}
+      />,
+    );
+    fireEvent.click(screen.getByText(lang === "ta" ? "ஜாதக விளக்கம் திற" : "Open chart explanation"));
+    expect(screen.getByRole("note")).toHaveTextContent(expected);
+  });
+
+  it("renders nothing when the Lagna is safely inside its sign", () => {
+    render(<ChartExplanationPanel {...baseProps} explanation={explanationWith(null)} chart={makeChart([])} />);
+    fireEvent.click(screen.getByText("Open chart explanation"));
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
+  });
+});
+
 describe("ChartExplanationPanel — Yogas section renderYogaDoshamPanel override", () => {
   it("invokes the override renderer with the chart's yogas/doshams", () => {
     const renderYogaDoshamPanel = vi.fn(() => <div>NOVA_YOGA_OVERRIDE</div>);

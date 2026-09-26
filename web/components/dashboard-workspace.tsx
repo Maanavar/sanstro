@@ -4,21 +4,24 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { MotionConfig, motion, useReducedMotion } from "framer-motion";
 
 import { toast } from "sonner";
+import { getLifeMode, updateLifeMode } from "@vinaadi/shared/api";
+import { isLocationMismatch, pickCheckIn } from "@vinaadi/shared/checkIn";
 import { apiFetchJson, toQuery } from "@/lib/api";
 import { getFriendlyErrorMessage } from "@/lib/error-messages";
 import { isBirthDateWithinBounds } from "@/lib/birth-date";
 import {
   TAB_QUERY_PARAM, dashboardPath, isDashboardTool, parseDashboardPath,
-  sanitizeRestoredTab, sanitizeUrlTab, type DashboardTool, type Tab,
+  sanitizeUrlTab, type DashboardTool, type Tab,
 } from "@/lib/dashboard-tabs";
 import { todayIso } from "@/lib/format";
 import { DUR, EASE_NOVA } from "@/lib/motion";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { dt, ONBOARDING_DETAIL_LEVEL } from "@/lib/dashboard-i18n";
+import { appliedFocus } from "@/lib/life-focus";
 import { parseLatitude, parseLongitude } from "@/lib/validation";
 import type {
   ApiEnvelope,
@@ -32,8 +35,9 @@ import type {
 } from "@/lib/types";
 
 import { useSession } from "@/hooks/useSession";
-import type { GoalTrack, UserMode } from "@/hooks/useSession";
+import type { UserMode } from "@/hooks/useSession";
 import { usePersonalData } from "@/hooks/usePersonalData";
+import { useDeviceTimeZone } from "@/hooks/useDeviceTimeZone";
 import { useFamilyData, type MemberChart } from "@/hooks/useFamilyData";
 import { usePlanData } from "@/hooks/usePlanData";
 import { useJournalData } from "@/hooks/useJournalData";
@@ -43,13 +47,17 @@ import type { SettingsSectionId } from "./dashboard-settings-rail";
 import { ConfirmDialog, type ConfirmDialogState } from "./modal-shell";
 import type { StatusMessage } from "./dashboard-ui-nova";
 import { CelestialAmbientNova } from "./celestial-ambient-nova";
+import { useLang } from "./lang-toggle";
 import { moonPhaseFromTithi } from "@/lib/lunar";
 import { DashboardHero } from "./dashboard-hero";
 import { DashboardFooterMorningGuidance } from "./dashboard-footer-morning-nova";
-import { LifeModePicker } from "./life-mode-picker";
+import { LifeModePicker, lifeModeLabel } from "./life-mode-picker";
 import { DashboardAskVinaadiWidget } from "./dashboard-ask-vinaadi-widget";
+import { ViewSwap } from "./ui/view-swap";
 
 const STORAGE_KEY = "jothidam-ai-dashboard-state";
+/** Holds the `lifeModeSetAt` whose 60-day focus strip the reader dismissed. */
+const FOCUS_NUDGE_DISMISSED_KEY = "vinaadi-focus-nudge-dismissed";
 const ENABLE_QA_TAB = process.env.NODE_ENV !== "production";
 
 /**
@@ -79,6 +87,19 @@ function LazyPanelFallback() {
     <div className="lazy-panel-fallback">
       <SkeletonDashboardCard lines={4} showIcon />
       <SkeletonDashboardCard lines={3} />
+    </div>
+  );
+}
+
+// DXA-05 — Today's own loading shape: the hero and Quick Links at their final
+// heights (see .nova-today-fallback in dashboard-nova.css). The generic
+// two-card fallback was ~320px where the loaded hero is ~525px, so the swap
+// shoved every row below it down.
+function LazyTodayFallback() {
+  return (
+    <div className="nova-today-fallback" aria-hidden="true">
+      <div className="skel-card nova-today-fallback__hero" />
+      <div className="skel-card nova-today-fallback__links" />
     </div>
   );
 }
@@ -183,7 +204,14 @@ const RectificationWizard = dynamic(
 
 const DashboardTodayTabNova = dynamic(
   () => import("./dashboard-today-tab-nova").then((mod) => mod.DashboardTodayTabNova),
-  { loading: LazyPanelFallback },
+  // ssr: false, measured (DXA-05). With SSR on, the server sent the whole
+  // ~1200px Today pane, and hydration then replaced it with this fallback
+  // (~900px) until the chunk arrived — a 300px shrink at ~2.5s that moved
+  // Quick Links and everything under it. The pane carries no server data
+  // anyway (every hook fetches client-side), so the only thing SSR bought
+  // here was that swap. Now the fallback IS the first paint and the real
+  // pane replaces it at the same hero height.
+  { loading: LazyTodayFallback, ssr: false },
 );
 
 const DashboardToolsTabNova = dynamic(
@@ -248,7 +276,8 @@ type PersistedState = {
   chartId: string;
   birthForm: BirthFormState;
   memberForm: MemberFormState;
-  activeTab: Tab;
+  // No activeTab: bare /dashboard always opens Today (DXA-02, D1). Older
+  // stored states still carry one; it is ignored.
   lang: Lang;
   hasVisitedReading: boolean;
 };
@@ -303,7 +332,10 @@ function TabPane({
   if (!visible) return null;
   return (
     <motion.div
-      style={{ display: active ? "block" : "none", position: "relative", zIndex: 1 }}
+      // minHeight (DXA-05): the active pane is at least a screen tall, so the
+      // footer starts below the fold and its moves while the pane fills in
+      // are not layout shifts the reader sees.
+      style={{ display: active ? "block" : "none", position: "relative", zIndex: 1, minHeight: "100vh" }}
       initial={reduce ? false : { opacity: 0, y: 8 }}
       animate={active ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
       transition={{ duration: reduce ? 0 : DUR.base, ease: EASE_NOVA }}
@@ -338,9 +370,9 @@ export function DashboardWorkspace() {
   //
   // `usePathname()` already knows the destination on that first render; nothing
   // has to be awaited to read it. The hydration effect still runs and is now a
-  // no-op for this value, but it still owns the two cases a path cannot answer:
-  // the legacy `?tab=` param and the localStorage restore, both of which only
-  // apply when the path names nothing.
+  // no-op for this value, but it still owns the one case a path cannot answer:
+  // the legacy `?tab=` param, which only applies when the path names nothing.
+  // A bare path is Today; the last tab is not restored (DXA-02, D1).
   //
   // In-app tab clicks no longer go through any of this: the workspace is
   // mounted by app/dashboard/(workspace)/layout.tsx, which the router keeps
@@ -376,7 +408,17 @@ export function DashboardWorkspace() {
     [currentPaneKey],
   );
   const [selectedDate, setSelectedDate] = useState(todayIso());
-  const [lang, setLang] = useState<Lang>("en");
+  // Starts at the language the page was *rendered* in (LangProvider is seeded
+  // from the request cookie in app/layout.tsx), not at English (DXA-05).
+  // Hard-coded "en" here meant a Tamil reader's dashboard painted in English
+  // and flipped a second later, when localStorage and then the DB preference
+  // landed below — every label re-set, and the top bar's tab strip, the Ask
+  // pill and the sub-bar all re-flowed to Tamil's longer words. The effect
+  // below stamps this onto <html lang>, so it was also overwriting the
+  // server's own correct answer. localStorage and the DB still override it;
+  // they simply no longer have an English first paint to correct.
+  const [serverLang] = useLang();
+  const [lang, setLang] = useState<Lang>(serverLang);
 
   // UI-only state: forms, modals, toast
   const [ownerUserId, setOwnerUserId] = useState("");
@@ -598,7 +640,10 @@ export function DashboardWorkspace() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPaneKey, activeTool]);
 
-  const [onboardingDone, setOnboardingDone] = useState(false);
+  // null = not decided yet (DXA-04). The banner shows only on a definite
+  // `false`; starting at `false` flashed "A few steps to get started" at every
+  // finished user until the profile and vault lookups had answered.
+  const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
   // Onboarding step 3 — "read your two-minute chart result." Set once the
   // reader has actually been on Family & Charts (where the reading renders)
   // with a calculated chart, not merely once step 1 has a birth profile — the
@@ -651,7 +696,10 @@ export function DashboardWorkspace() {
 
   // ── Life Mode (Feature 2) ─────────────────────────────────
   const [lifeModeStatus, setLifeModeStatus] = useState<LifeModeStatus | null>(null);
-  const [lifeModePickerOpen, setLifeModePickerOpen] = useState(false);
+  // Which way the picker was opened decides what its dismiss button does:
+  // first run "Skip for now" records BALANCED; from the chip it just closes.
+  const [lifeModePicker, setLifeModePicker] = useState<null | "first-run" | "change">(null);
+  const [focusNudgeDismissed, setFocusNudgeDismissed] = useState(false);
   const activeLifeMode: LifeMode = lifeModeStatus?.mode ?? "BALANCED";
 
   const personal = usePersonalData({
@@ -668,7 +716,9 @@ export function DashboardWorkspace() {
   // specific tool from outside the Tools tab, the same way focusLifeAreas/
   // focusCalendar/focusFamily reach into their tabs (homepage redesign
   // 2026-07-24).
-  const needsProfile = !personal.birthProfileId;
+  // Only a finished lookup that found nothing means "no profile" (DXA-03);
+  // during the lookup the chart-dependent tiles must not grey out.
+  const needsProfile = personal.birthProfileLookupDone && !personal.birthProfileId;
   // Opening/closing a tool is a navigation: it earns a history entry and a URL
   // (`/dashboard/tools/numerology`), so Back leaves the tool the way it leaves
   // a tab. An unrecognised id closes the panel rather than opening nothing —
@@ -745,7 +795,7 @@ export function DashboardWorkspace() {
     document.documentElement.lang = lang;
   }, [lang]);
 
-  // ── Hydration + localStorage restore ─────────────────────
+  // ── Hydration + localStorage restore (everything but the tab) ──
 
   useEffect(() => {
     if (!session.hydrated) return;
@@ -789,16 +839,10 @@ export function DashboardWorkspace() {
           if (typeof parsed.hasVisitedReading === "boolean") setHasVisitedReading(parsed.hasVisitedReading);
           if (parsed.birthForm) setBirthForm((c) => ({ ...c, ...parsed.birthForm }));
           if (parsed.memberForm) setMemberForm((c) => ({ ...c, ...parsed.memberForm }));
-          // Allowlist restore (DASH-11): only tabs the hero nav actually
-          // offers come back. Settings/onboarding stay excluded — the
-          // onboarding gate decides those from profile existence.
-          // Skipped entirely when the URL already named a tab.
-          if (!fromUrl) {
-            const restored = sanitizeRestoredTab(parsed.activeTab, { qaEnabled: ENABLE_QA_TAB });
-            if (restored) {
-              setActiveTab(restored.tab);
-            }
-          }
+          // The tab is deliberately NOT restored (DXA-02, owner decision D1):
+          // bare /dashboard is always Today. Restoring the last tab here, after
+          // /auth/me, swapped the screen under a returning user who had
+          // already seen Today paint. A path or legacy ?tab= still wins above.
           if (parsed.lang === "ta" || parsed.lang === "en") setLang(parsed.lang);
         } else {
           window.localStorage.removeItem(STORAGE_KEY);
@@ -865,10 +909,8 @@ export function DashboardWorkspace() {
     const fromUrl = parseDashboardPath(pathname, { qaEnabled: ENABLE_QA_TAB });
     // A path naming no tab means Today here, NOT "leave things alone" — Back to
     // a bare `/dashboard` must actually land on Today rather than stranding the
-    // previous tab on screen under a URL that no longer describes it. (The
-    // hydration effect above reads the same null differently, handing off to
-    // the localStorage restore, because on first load there is no "previous
-    // tab" to strand.)
+    // previous tab on screen under a URL that no longer describes it. The
+    // hydration effect above reads the same null the same way: bare means Today.
     const nextTab = fromUrl.tab ?? "personal";
     const nextTool = nextTab === "tools" ? fromUrl.tool : null;
     if (nextTab === activeTab && nextTool === activeTool) return;
@@ -912,7 +954,6 @@ export function DashboardWorkspace() {
         chartId: personal.chartId,
         birthForm,
         memberForm,
-        activeTab,
         lang,
         hasVisitedReading,
       } as PersistedState));
@@ -921,7 +962,7 @@ export function DashboardWorkspace() {
   }, [
     session.hydrated, ownerUserId, selectedDate,
     family.selectedVaultId, personal.birthProfileId, personal.chartId,
-    birthForm, memberForm, activeTab, lang, hasVisitedReading,
+    birthForm, memberForm, lang, hasVisitedReading,
   ]);
 
   // Fires once, the first time the reader is actually on Family & Charts with
@@ -947,12 +988,15 @@ export function DashboardWorkspace() {
       setActiveTab("settings");
       setSettingsSubTab("setup");
       setOnboardingDone(false);
+    } else if (!family.vaultsReady) {
+      // An unfetched vault list is "not known yet", not "no members".
+      return;
     } else if (family.vaults.length === 0 || family.vaults.every((v) => v.memberCount === 0)) {
       setOnboardingDone(false);
     } else {
       setOnboardingDone(true);
     }
-  }, [session.hydrated, personal.birthProfileLookupDone, personal.birthProfileId, family.vaults]);
+  }, [session.hydrated, personal.birthProfileLookupDone, personal.birthProfileId, family.vaultsReady, family.vaults]);
 
   // ── Data trigger effects ───────────────────────────────
 
@@ -966,21 +1010,81 @@ export function DashboardWorkspace() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.hydrated]);
 
-  // Load Life Mode status; auto-open the picker for set-up users who haven't
-  // chosen recently (null, stale >30d, or server flag set).
+  // Load the life focus. The full picker opens only on first run (the server's
+  // flag, cleared by any save including Skip). A stale focus gets the inline
+  // 60-day strip on Today instead (`focusNudgeDue`, computed server-side), never
+  // the modal: docs/LIFE_FOCUS_PLAN_2026-09-22.md, D3.
   useEffect(() => {
     if (!session.hydrated || !personal.chartId) return;
-    apiFetchJson<LifeModeStatus>("/api/v1/settings/life-mode")
+    getLifeMode()
       .then((s) => {
         setLifeModeStatus(s);
-        const stale =
-          !s.lifeModeSetAt ||
-          Date.now() - new Date(s.lifeModeSetAt).getTime() > 30 * 24 * 60 * 60 * 1000;
-        if (s.showLifeModePicker || stale) setLifeModePickerOpen(true);
+        if (s.showLifeModePicker) setLifeModePicker("first-run");
       })
       .catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.hydrated, personal.chartId]);
+
+  const keepLifeMode = useCallback(async () => {
+    try {
+      setLifeModeStatus(await updateLifeMode(activeLifeMode, "KEEP", "WEB"));
+    } catch {
+      // The strip stays up; the reader can try again or dismiss it.
+    }
+  }, [activeLifeMode]);
+
+  const dismissFocusNudge = useCallback(() => {
+    setFocusNudgeDismissed(true);
+    try {
+      window.localStorage.setItem(FOCUS_NUDGE_DISMISSED_KEY, lifeModeStatus?.lifeModeSetAt ?? "");
+    } catch {
+      // Storage unavailable: the dismissal holds for this session only.
+    }
+  }, [lifeModeStatus?.lifeModeSetAt]);
+
+  // The location check is dismissed for the session only, not persisted: a
+  // reader who waves it away and then opens the app from another city should
+  // be asked again. The server-side stamp is what stops it recurring once it
+  // has actually been answered.
+  const [locationCheckDismissed, setLocationCheckDismissed] = useState(false);
+  const dismissLocationCheck = useCallback(() => setLocationCheckDismissed(true), []);
+  const onLocationResolved = useCallback(() => {
+    setLocationCheckDismissed(true);
+    // The backend has already dropped this profile's cached daily rows from
+    // today forward if the place actually moved, so this refetch recomputes
+    // rather than re-reading the old place's numbers.
+    void personal.refreshPersonalBundle();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // A dismissal is remembered against the timestamp it dismissed, so a later
+  // stale period (after the focus is re-saved) asks again.
+  useEffect(() => {
+    const setAt = lifeModeStatus?.lifeModeSetAt;
+    if (!setAt) return;
+    try {
+      setFocusNudgeDismissed(window.localStorage.getItem(FOCUS_NUDGE_DISMISSED_KEY) === setAt);
+    } catch {
+      // Storage unavailable: fall back to showing the strip.
+    }
+  }, [lifeModeStatus?.lifeModeSetAt]);
+
+  // §2.3 — the focus strip and the location strip share one slot, and the
+  // priority lives in @vinaadi/shared so mobile reaches the same answer. The
+  // two signals arrive from different endpoints (life-mode settings vs. the
+  // dashboard bundle), which is exactly why the rule cannot live in either.
+  const deviceTimeZone = useDeviceTimeZone();
+  const checkIn = pickCheckIn({
+    locationMismatch: isLocationMismatch(deviceTimeZone, personal.panchangamTimezone),
+    locationCheckDue: Boolean(personal.locationCheckDue),
+    focusNudgeDue: Boolean(lifeModeStatus?.focusNudgeDue),
+    dismissed: [
+      ...(focusNudgeDismissed ? (["focus"] as const) : []),
+      ...(locationCheckDismissed ? (["location-mismatch", "location-backstop"] as const) : []),
+    ],
+  });
+  const showFocusNudge = checkIn === "focus";
+  const locationCheck = checkIn === "location-mismatch" || checkIn === "location-backstop" ? checkIn : null;
 
   useEffect(() => {
     if (session.hydrated && personal.chartId) {
@@ -1128,6 +1232,22 @@ export function DashboardWorkspace() {
 
   const personalMemberChart = resolveMemberChart(personalViewId);
   const lifeAreasMemberChart = resolveMemberChart(lifeAreasViewId);
+
+  // Life focus D4 (owner ruling Q2): a focus is about the reader's own life,
+  // so a family member's chart gets the neutral order. The relationship lives
+  // on the vault member — `birthProfile.relationshipToOwner` reads "self" for
+  // every persisted chart and cannot tell them apart.
+  const isOwnChart = (viewId: string | null) =>
+    !viewId || family.familyMembers.find((f) => f.familyMemberId === viewId)?.relationshipToOwner === "self";
+  const todayFocus = appliedFocus(lifeModeStatus, isOwnChart(personalViewId));
+  const lifeAreasFocus = appliedFocus(lifeModeStatus, isOwnChart(lifeAreasViewId));
+  // Phase 3. Goals is always the reader's own chart; the muhurta view follows
+  // its member picker; the month grid's chip is always read on the own chart.
+  const ownFocus = appliedFocus(lifeModeStatus, true);
+  const muhurtaFocus = appliedFocus(lifeModeStatus, isOwnChart(muhurtaMemberId));
+  const monthFocus = personal.chartId && ownFocus.activities.length > 0
+    ? { chartId: personal.chartId, activities: ownFocus.activities, label: lifeModeLabel(activeLifeMode, lang) }
+    : null;
 
   const personalChart = personalMemberChart?.chart ?? personal.chart;
   const personalChartExplanation = personalMemberChart ? personalMemberChart.explanation : personal.chartExplanation;
@@ -1574,757 +1694,792 @@ export function DashboardWorkspace() {
   // setters are raw `useState` setters (useSession.ts:29-30) and so are stable;
   // the two values are genuine dependencies, since the rollback path needs
   // whatever was current when the save started.
-  const { userMode: currentUserMode, goalTrack: currentGoalTrack, setUserMode, setGoalTrack } = session;
-  const saveUserSettings = useCallback(async (mode: UserMode, track: GoalTrack | null, options?: { toast?: boolean }) => {
+  const { userMode: currentUserMode, setUserMode } = session;
+  // goalTrack is no longer sent: the Goal track card is retired (life-focus
+  // plan Q6) and the server derives goal_track from the focus. PATCH /auth/me
+  // still accepts goalTrack for old clients.
+  const saveUserSettings = useCallback(async (mode: UserMode, options?: { toast?: boolean }) => {
     const previousMode = currentUserMode;
-    const previousTrack = currentGoalTrack;
     setUserMode(mode);
-    setGoalTrack(track);
     try {
       await apiFetchJson("/api/v1/auth/me", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userMode: mode, goalTrack: track }),
+        body: JSON.stringify({ userMode: mode }),
       });
       if (options?.toast) toast.success(dt(ONBOARDING_DETAIL_LEVEL.saved, lang));
     } catch {
       setUserMode(previousMode);
-      setGoalTrack(previousTrack ?? null);
       if (options?.toast) toast.error(dt(ONBOARDING_DETAIL_LEVEL.saveFailed, lang));
     }
-  }, [lang, currentUserMode, currentGoalTrack, setUserMode, setGoalTrack]);
+  }, [lang, currentUserMode, setUserMode]);
 
   // ── Render ────────────────────────────────────────────────
 
   return (
-    <div className="site cd-shell" data-lang={lang}>
+    <MotionConfig reducedMotion="user" transition={{ duration: DUR.base, ease: EASE_NOVA }}>
+      <div className="site cd-shell" data-lang={lang}>
 
-      {/* Print-only brand lockup. Hidden on screen; appears at the top of
-          browser-printed / "Save as PDF" output so printouts read as a Vinaadi
-          document. Pairs with the brand-first <title> in dashboard/layout.tsx. */}
-      <div className="cd-print-brand" aria-hidden="true">
-        <span className="cd-print-brand__name">Vinaadi AI</span>
-        <span className="cd-print-brand__tag">{lang === "ta" ? "திருக்கணித ஜோதிடம்" : "Thirukanitham Jothidam"}</span>
-      </div>
-
-      <DashboardHero
-        lang={lang}
-        activeTab={activeTab}
-        birthDisplayName={birthForm.displayName}
-        status={status}
-        chartSummary={personal.chartSummary}
-        birthTimeConfidenceMinutes={personal.chart?.birthProfile.birthTimeConfidenceMinutes ?? null}
-        birthTimeLocal={personal.chart?.birthProfile.birthTimeLocal ?? null}
-        selectedVault={selectedVault}
-        selectedVaultId={family.selectedVaultId}
-        selectedDate={selectedDate}
-        panchangamSunrise={personal.panchangam?.sunrise ?? null}
-        panchangamPlace={personal.chart?.birthProfile.currentPlace ?? personal.chart?.birthProfile.birthPlace ?? null}
-        userEmail={session.userEmail}
-        showUserMenu={session.showUserMenu}
-        alertCount={personal.ambientAlerts.length}
-        alertItems={personal.ambientAlerts.map((a) => ({
-          type: a.source,
-          title: lang === "ta" ? a.title.ta : a.title.en,
-          body: lang === "ta" ? a.message.ta : a.message.en,
-        }))}
-        inboxItems={inboxItems}
-        inboxUnreadCount={inboxUnreadCount}
-        onMarkAllRead={handleMarkAllRead}
-        onMarkOneRead={handleMarkOneRead}
-        onTabChange={goToTab}
-        onDateChange={setSelectedDate}
-        onLangToggle={() => setLang((l) => l === "ta" ? "en" : "ta")}
-        onUserMenuToggle={() => session.setShowUserMenu((v) => !v)}
-        onUserMenuClose={() => session.setShowUserMenu(false)}
-        onGoToSettings={() => {
-          navigateSettings("account");
-          session.setShowUserMenu(false);
-        }}
-        onSignOut={() => {
-          session.setShowUserMenu(false);
-          session.signOut();
-        }}
-        onAskVinaadi={personal.chartId ? () => setAskVinaadiOpen(true) : undefined}
-      />
-
-      {/* Destructive-action confirmation (DASH-05) */}
-      {confirmDialog && (
-        <ConfirmDialog
-          lang={lang}
-          state={confirmDialog}
-          onClose={() => setConfirmDialog(null)}
-        />
-      )}
-
-      {/* Edit member modal */}
-      {editMember && (
-        <EditMemberModal
-          lang={lang}
-          editMember={editMember}
-          busySaving={busyEditingMember}
-          onClose={() => setEditMember(null)}
-          onChange={setEditMember}
-          onSave={() => void handleSaveEdit()}
-        />
-      )}
-
-      {/* Edit personal profile modal */}
-      {showEditProfile && (
-        <EditProfileModal
-          lang={lang}
-          birthForm={birthForm}
-          busySaving={busyEditingProfile}
-          isExistingProfile={!!personal.birthProfileId}
-          onClose={() => setShowEditProfile(false)}
-          onChange={setBirthForm}
-          onSubmit={handleSaveProfile}
-          onOpenRectification={() => setShowRectification(true)}
-          onDeleteProfile={() => void handleDeleteProfile()}
-        />
-      )}
-
-      <div className="cd-app-body" data-active-tab={activeTab}>
-      <div className="cd-main-content" data-active-tab={activeTab}>
-      <div className="cd-main-content__body">
-
-      {exploreReturnTab === activeTab && activeTab !== "explore" && (
-        <div style={{ padding: "var(--space-3) var(--space-3) 0" }}>
-          <button
-            type="button"
-            onClick={returnToExplore}
-            aria-label={t("tab_explore_back", lang)}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              minHeight: 36,
-              padding: "7px 12px",
-              borderRadius: "var(--radius-sm)",
-              border: "1px solid var(--panel-tan-light)",
-              background: "var(--panel-cream)",
-              color: "var(--panel-earth)",
-              fontSize: "0.82rem",
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
-          >
-            <span aria-hidden="true">←</span>
-            {t("tab_explore_back", lang)}
-          </button>
+        {/* Print-only brand lockup. Hidden on screen; appears at the top of
+            browser-printed / "Save as PDF" output so printouts read as a Vinaadi
+            document. Pairs with the brand-first <title> in dashboard/layout.tsx. */}
+        <div className="cd-print-brand" aria-hidden="true">
+          <span className="cd-print-brand__name">Vinaadi AI</span>
+          <span className="cd-print-brand__tag">{lang === "ta" ? "திருக்கணித ஜோதிடம்" : "Thirukanitham Jothidam"}</span>
         </div>
-      )}
 
-      {/* Onboarding banner: shown until profile + one family member added */}
-      {!onboardingDone && session.hydrated && (
-        <div className="cd-onboarding">
-          <div className="cd-onboarding__card">
-            <div className="cd-onboarding__content">
-              <p className="cd-onboarding__title">
-                {t("onboarding_title", lang)}
-              </p>
-              <div className="cd-onboarding__steps">
-                <div className="cd-onboarding__step">
-                  <span className={`cd-onboarding__step-badge ${personal.birthProfileId ? "is-done" : "is-pending"}`}>
-                    {personal.birthProfileId ? "✓" : "1"}
-                  </span>
-                  <span className={`cd-onboarding__step-text ${personal.birthProfileId ? "is-done" : ""}`}>
-                    {t("onboarding_step1", lang)}
-                  </span>
-                </div>
-                {(() => {
-                  const hasMember = family.vaults.some((v) => v.memberCount > 0);
-                  return (
-                    <div className="cd-onboarding__step">
-                      <span className={`cd-onboarding__step-badge ${hasMember ? "is-done" : "is-pending"}`}>
-                        {hasMember ? "✓" : "2"}
-                      </span>
-                      <span className={`cd-onboarding__step-text ${hasMember ? "is-done" : ""}`}>
-                        {t("onboarding_step2", lang)}
-                      </span>
-                    </div>
-                  );
-                })()}
-                <div className="cd-onboarding__step">
-                  <span className={`cd-onboarding__step-badge ${hasVisitedReading ? "is-done" : "is-pending"}`}>
-                    {hasVisitedReading ? "✓" : "3"}
-                  </span>
-                  <span className={`cd-onboarding__step-text ${hasVisitedReading ? "is-done" : ""}`}>
-                    {t("onboarding_step3", lang)}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => { goToTab("settings"); setSettingsSubTab("setup"); }}
-              className="cd-onboarding__cta"
-            >
-              {t("onboarding_go_setup", lang)}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Tab content */}
-      <div className="cd-page site__body" style={{ position: "relative" }}>
-        {/* Decorative celestial sky filling the whole content column — a crown
-            of light at the top plus a star field the full scroll height, behind
-            all tab content (which is lifted to zIndex 1 below). Moon-reactive:
-            the selected day's tithi lifts the night wash + star brightness
-            (Pournami luminous, Amavasai a deep new-moon night). */}
-        <CelestialAmbientNova
-          moon={personal.panchangam ? moonPhaseFromTithi(personal.panchangam.tithi.number, personal.panchangam.tithi.paksha) : null}
+        <DashboardHero
+          lang={lang}
+          activeTab={activeTab}
+          birthDisplayName={birthForm.displayName}
+          status={status}
+          chartSummary={personal.chartSummary}
+          birthTimeConfidenceMinutes={personal.chart?.birthProfile.birthTimeConfidenceMinutes ?? null}
+          birthTimeLocal={personal.chart?.birthProfile.birthTimeLocal ?? null}
+          selectedVault={selectedVault}
+          selectedVaultId={family.selectedVaultId}
+          selectedDate={selectedDate}
+          panchangamSunrise={personal.panchangam?.sunrise ?? null}
+          // Server-resolved, not re-picked from the profile (§2.4). The
+          // resolver falls back to the birth place when the current location is
+          // missing *any* of place/lat/lng/timezone, so a profile with a typed
+          // city but no coordinates is computed at its birth place while this
+          // line used to label it with the city — the one case the label
+          // exists to catch.
+          panchangamPlace={personal.panchangamPlace}
+          userEmail={session.userEmail}
+          showUserMenu={session.showUserMenu}
+          alertCount={personal.ambientAlerts.length}
+          alertItems={personal.ambientAlerts.map((a) => ({
+            type: a.source,
+            title: lang === "ta" ? a.title.ta : a.title.en,
+            body: lang === "ta" ? a.message.ta : a.message.en,
+          }))}
+          inboxItems={inboxItems}
+          inboxUnreadCount={inboxUnreadCount}
+          onMarkAllRead={handleMarkAllRead}
+          onMarkOneRead={handleMarkOneRead}
+          onTabChange={goToTab}
+          onDateChange={setSelectedDate}
+          onLangToggle={() => setLang((l) => l === "ta" ? "en" : "ta")}
+          onUserMenuToggle={() => session.setShowUserMenu((v) => !v)}
+          onUserMenuClose={() => session.setShowUserMenu(false)}
+          onGoToSettings={() => {
+            navigateSettings("account");
+            session.setShowUserMenu(false);
+          }}
+          onSignOut={() => {
+            session.setShowUserMenu(false);
+            session.signOut();
+          }}
+          onAskVinaadi={() => setAskVinaadiOpen(true)}
+          askReady={Boolean(personal.chartId)}
+          dayLoading={personal.isShowingPreviousDay}
         />
-        <TabPane visible={isPaneRendered("settings-setup")} active={activeTab === "settings" && settingsSubTab === "setup"}>
-          <DashboardSetupTab
+
+        {/* Destructive-action confirmation (DASH-05) */}
+        {confirmDialog && (
+          <ConfirmDialog
             lang={lang}
-            birthProfileId={personal.birthProfileId}
-            selectedVaultId={family.selectedVaultId}
-            selectedVault={selectedVault}
-            birthForm={birthForm}
-            memberForm={memberForm}
-            formErrors={formErrors}
-            busy={{ createProfile: busyCreateProfile, addMember: busyAddMember }}
-            onNavigate={navigateSettings}
-            onBirthFormChange={setBirthForm}
-            onMemberFormChange={setMemberForm}
-            onFormErrorChange={(patch) => setFormErrors((c) => ({ ...c, ...patch }))}
-            onCreateProfile={handleCreateProfile}
-            onAddMember={handleAddMember}
-            onShowEditProfile={() => setShowEditProfile(true)}
-            onGoToPersonal={() => setActiveTab("personal")}
-            userMode={session.userMode}
-            onModeChange={(mode) => void saveUserSettings(mode, session.goalTrack ?? null, { toast: true })}
+            state={confirmDialog}
+            onClose={() => setConfirmDialog(null)}
           />
-        </TabPane>
-
-        <TabPane visible={isPaneRendered("personal")} active={activeTab === "personal"}>
-          <DashboardTodayTabNova
-            lang={lang}
-            userMode={session.userMode}
-            activeLifeMode={activeLifeMode}
-            birthDisplayName={birthForm.displayName}
-            selectedDate={selectedDate}
-            todayDate={personal.todayDate}
-            personalMemberChart={personalMemberChart}
-            personalChartSummary={personalChartSummary}
-            personalDailyGuidance={personalDailyGuidance}
-            personalSani={personalSani}
-            peyarchiUpcoming={personalPeyarchiUpcoming}
-            panchangam={personal.panchangam}
-            panchangamTimings={personal.panchangamTimings}
-            weekAhead={personal.weekAhead}
-            familyAggregate={familyAggregateForToday}
-            remedyMemberCharts={family.memberCharts}
-            lifeAreas={personal.lifeAreas}
-            dasha={personalDasha}
-            dashaAntar={personalDashaAntar}
-            dailyGuidanceRange={personal.dailyGuidanceRange}
-            panchangamTimezone={personal.panchangamTimezone}
-            bundleSectionErrors={personal.bundleSectionErrors}
-            onRetryBundle={() => void personal.refreshPersonalBundle(undefined, undefined, true, { forceDay: true })}
-            onGoToFamily={() => focusFamily("hy-members")}
-            onGoToJournal={() => setActiveTab("journal")}
-            onGoToCalendar={() => setActiveTab("calendar")}
-            onGoToLifeAreas={() => setActiveTab("life-areas")}
-            onGoToChart={() => focusFamily("hy-dashas")}
-            onGoToCharts={() => setActiveTab("family")}
-            onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
-            onOpenNotificationSettings={() => navigateSettings("notifications")}
-            needsProfile={needsProfile}
-            onOpenChartGen={() => focusTool("chartgen")}
-            onOpenMuhurta={() => focusCalendar("muhurta")}
-            onOpenCompatibility={() => focusTool("synastry")}
-            onOpenActivityTiming={() => focusTool("activityTiming")}
-            onOpenRasipalan={() => focusTool("rasipalan")}
-            onOpenNumerology={() => focusTool("numerology")}
-            onGoToExplore={() => goToTab("explore")}
-            onGoToAllTools={() => goToTab("tools")}
-          />
-        </TabPane>
-
-        <TabPane visible={isPaneRendered("tools")} active={activeTab === "tools"}>
-          {(() => {
-          // `activeTool` is component-level state now (it used to be derived
-          // here from the nine show* booleans) — that is what makes it
-          // addressable as `/dashboard/tools/<tool>`.
-          // Note: Find Birth Time (rectification) removed — results were unreliable
-          // needsProfile/openTool/closeTool now live at component level (see
-          // above, near the other cross-tab focus helpers) so Today's Quick
-          // Links can reuse them via focusTool.
-          // Compatibility tool (moved from the Family page 2026-07-21): join the
-          // vault's member charts with their relationship labels for the picker.
-          const synastryMemberOptions = family.memberCharts.map((mc) => {
-            const fm = family.familyMembers.find((f) => f.familyMemberId === mc.memberId);
-            return { memberId: mc.memberId, displayName: mc.displayName, relationshipToOwner: fm?.relationshipToOwner ?? "other" };
-          });
-          // Numerology's "Reading for" switcher — same member charts as
-          // Compatibility above, just the {memberId, displayName, chartId}
-          // shape the panel's picker needs.
-          const numerologyMembers = family.memberCharts.map((mc) => ({
-            memberId: mc.memberId,
-            displayName: mc.displayName,
-            chartId: mc.chart.chartId,
-          }));
-
-          return (
-            <DashboardToolsTabNova
-              lang={lang}
-              activeTool={activeTool}
-              needsProfile={needsProfile}
-              onOpenTool={openTool}
-              onCloseTool={closeTool}
-              showPorutham={showPorutham}
-              showChartGenerate={showChartGenerate}
-              showWrapped={showWrapped}
-              showRetrospective={showRetrospective}
-              showRasipalan={showRasipalan}
-              showActivityTiming={showActivityTiming}
-              showVarshaphala={showVarshaphala}
-              showSynastry={showSynastry}
-              showNumerology={showNumerology}
-              showBabyNames={showBabyNames}
-              varshaphalaData={varshaphalaData}
-              varshaphalaLoading={varshaphalaLoading}
-              onLoadVarshaphala={(year) => void loadVarshaphala(year)}
-              personalChartId={personal.chartId}
-              selectedDate={selectedDate}
-              onDateChange={setSelectedDate}
-              familyVaultId={family.selectedVaultId ?? undefined}
-              numerologyMembers={numerologyMembers}
-              ownerChart={personal.chart}
-              synastryMemberCharts={family.memberCharts}
-              synastryMemberOptions={synastryMemberOptions}
-              relationshipAlerts={family.relationshipAlerts}
-              relationshipAlertsLoading={family.relationshipAlertsLoading}
-              familyMembersForPorutham={[
-                ...(personal.chart ? [{
-                  memberId: `owner:${personal.chart.birthProfile.birthProfileId}`,
-                  displayName: personal.chart.birthProfile.displayName,
-                  birthDateLocal: personal.chart.birthProfile.birthDateLocal,
-                  birthTimeLocal: personal.chart.birthProfile.birthTimeLocal ?? "",
-                  birthPlace: personal.chart.birthProfile.birthPlace,
-                  birthLatitude: personal.chart.birthProfile.birthLatitude,
-                  birthLongitude: personal.chart.birthProfile.birthLongitude,
-                  birthTimezone: personal.chart.birthProfile.birthTimezone,
-                }] : []),
-                ...family.memberCharts
-                  .filter((mc) => mc.chart.birthProfile.birthProfileId !== personal.chart?.birthProfile.birthProfileId)
-                  .map((mc) => ({
-                    memberId: mc.memberId,
-                    displayName: mc.displayName,
-                    birthDateLocal: mc.chart.birthProfile.birthDateLocal,
-                    birthTimeLocal: mc.chart.birthProfile.birthTimeLocal ?? "",
-                    birthPlace: mc.chart.birthProfile.birthPlace,
-                    birthLatitude: mc.chart.birthProfile.birthLatitude,
-                    birthLongitude: mc.chart.birthProfile.birthLongitude,
-                    birthTimezone: mc.chart.birthProfile.birthTimezone,
-                  })),
-              ]}
-              onGoToPlan={() => goToTab("plan")}
-              onGoToCalendar={() => goToTab("calendar")}
-              onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
-            />
-          );
-          })()}
-        </TabPane>
-
-        <TabPane visible={isPaneRendered("family")} active={activeTab === "family"}>
-          {(() => {
-          const familyTabProps: DashboardFamilyChartsHybridProps = {
-            lang,
-            selectedDate,
-            selectedVaultId: family.selectedVaultId,
-            ownerChartId: personal.chartId,
-            ownerChart: personal.chart,
-            ownerMemberChart,
-            vaults: family.vaults,
-            familyDetail: family.familyDetail,
-            familyAggregate: familyAggregateForToday,
-            familyComposite: family.familyComposite,
-            familyMembers: family.familyMembers,
-            memberCharts: family.memberCharts,
-            relationshipAlerts: family.relationshipAlerts,
-            alertsLoading: family.relationshipAlertsLoading,
-            panchangam: personal.panchangam,
-            mode: session.userMode,
-            onGoToJournal: () => goToTab("journal"),
-            onOpenPrasna: () => setShowPrasna(true),
-            showPrasna,
-            onClosePrasna: () => setShowPrasna(false),
-            busy: {
-              family: family.busyFamily,
-              vaults: family.busyVaults,
-              deletingVaultId,
-              deletingMemberId,
-              memberCharts: family.busyMemberCharts,
-            },
-            onRefreshFamily: () => void family.refreshFamilyBundle(),
-            onOpenSetup: openSetupInSettings,
-            onSelectVault: handleSelectVault,
-            onDeleteVault: (vaultId: string, name: string) => void handleDeleteVault(vaultId, name),
-            onDeleteMember: (memberId: string, name: string) => void handleDeleteMember(memberId, name),
-            onEditMember: handleEditFamilyMember,
-            onGoToLifeAreas: () => goToTab("life-areas"),
-            onGoToRemedies: () => focusLifeAreas("remedies"),
-            onGoToForecast: () => focusLifeAreas("predictions"),
-            onGoToTools: () => goToTab("tools"),
-            focusSection: familyFocusSection,
-            onFocusConsumed: () => setFamilyFocusSection(null),
-          };
-          return <DashboardFamilyChartsHybrid {...familyTabProps} />;
-          })()}
-        </TabPane>
-
-        <TabPane visible={isPaneRendered("calendar")} active={activeTab === "calendar"}>
-          <DashboardCalendarTabNova
-            selectedDate={selectedDate}
-            todayDate={personal.todayDate}
-            panchangam={personal.panchangam}
-            panchangamTimings={personal.panchangamTimings}
-            lang={lang}
-            locationLabel={personal.panchangamLocationLabel}
-            panchangamTimezone={personal.panchangamTimezone}
-            onSelectDate={setSelectedDate}
-            chartId={resolveMuhurtaChartId()}
-            memberCharts={family.memberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName }))}
-            selectedMemberId={muhurtaMemberId}
-            onSelectMember={setMuhurtaMemberId}
-            focusView={calendarFocusView}
-            onFocusConsumed={() => setCalendarFocusView(null)}
-          />
-        </TabPane>
-
-        <TabPane visible={isPaneRendered("life-areas")} active={activeTab === "life-areas"}>
-          <DashboardLifeAreasTabNova
-            lang={lang}
-            personalDailyGuidance={lifeAreasDailyGuidance}
-            dailyGuidanceRange={!lifeAreasViewId ? personal.dailyGuidanceRange : undefined}
-            personalTransit={lifeAreasTransit}
-            personalSani={lifeAreasSani}
-            panchangam={personal.panchangam}
-            lifeAreas={personal.lifeAreas}
-            predictions={personal.predictions}
-            predictionsLoading={personal.predictionsLoading}
-            yogas={(lifeAreasMemberChart?.chart ?? personal.chart)?.yogas ?? []}
-            doshams={(lifeAreasMemberChart?.chart ?? personal.chart)?.doshams ?? []}
-            jadhagamReport={personal.jadhagamReport}
-            jadhagamReportLoading={personal.jadhagamReportLoading}
-            onLoadJadhagamReport={() => void personal.loadJadhagamReport(resolveLifeAreasChartId())}
-            chartSummary={lifeAreasMemberChart?.summary ?? personal.chartSummary}
-            birthDisplayName={birthForm.displayName}
-            maritalStatus={(() => {
-              if (!lifeAreasViewId) return birthForm.maritalStatus || undefined;
-              const mc = family.memberCharts.find((m) => m.memberId === lifeAreasViewId);
-              const rel = mc?.chart.birthProfile.relationshipToOwner;
-              // Spouse/parent/grandparent are definitionally married — no need to ask
-              if (rel === "spouse" || rel === "parent" || rel === "grandparent") return "married";
-              return undefined;
-            })()}
-            memberCharts={family.memberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName }))}
-            selectedMemberId={lifeAreasViewId}
-            onSelectMember={setLifeAreasViewId}
-            chartId={resolveLifeAreasChartId()}
-            remedyPlan={remedyPlan}
-            gemstoneAdvice={gemstoneAdvice}
-            remediesLoading={remediesLoading}
-            onLoadRemedies={() => void loadRemedies(resolveLifeAreasChartId())}
-            goals={plan.goals}
-            onGoToPlan={() => goToTab("plan")}
-            onGoToChart={() => goToTab("family")}
-            focusSubTab={lifeAreasFocusSubTab}
-            onFocusConsumed={() => setLifeAreasFocusSubTab(null)}
-          />
-        </TabPane>
-
-        <TabPane visible={isPaneRendered("plan")} active={activeTab === "plan"}>
-          <DashboardPlanTabNova
-            lang={lang}
-            chartId={personal.chartId}
-            hasBirthProfile={!!personal.birthProfileId}
-            goals={plan.goals}
-            goalsBusy={plan.goalsBusy}
-            addingGoalType={plan.addingGoalType}
-            onAddingGoalTypeChange={plan.setAddingGoalType}
-            removingGoalId={plan.removingGoalId}
-            onAddGoal={(goalType) => void plan.addGoal(goalType)}
-            onRemoveGoal={(goalId) => void plan.removeGoal(goalId)}
-            whatIfScenario={plan.whatIfScenario}
-            whatIfDate={plan.whatIfDate}
-            whatIfResult={plan.whatIfResult}
-            whatIfBusy={plan.whatIfBusy}
-            whatIfError={plan.whatIfError}
-            onWhatIfScenarioChange={plan.setWhatIfScenario}
-            onWhatIfDateChange={plan.setWhatIfDate}
-            onRunWhatIf={() => void plan.runWhatIf()}
-            mode={session.userMode}
-            onGoToLifeAreas={() => goToTab("life-areas")}
-            onGoToCalendar={() => goToTab("calendar")}
-            onGoToMuhurta={() => focusCalendar("muhurta")}
-            onGoToJournal={() => goToTab("journal")}
-            onGoToChart={() => goToTab("family")}
-          />
-        </TabPane>
-
-        <TabPane visible={isPaneRendered("journal")} active={activeTab === "journal"}>
-          <DashboardJournalTabNova
-            lang={lang}
-            chartId={personal.chartId}
-            selectedDate={selectedDate}
-            hasBirthProfile={!!personal.birthProfileId}
-            journalEntries={journal.journalEntries}
-            journalTotal={journal.journalTotal}
-            contextData={journal.contextData}
-            onEntrySaved={() => journal.loadJournalEntries(personal.chartId)}
-            onEntryArchived={() => journal.loadJournalEntries(personal.chartId)}
-            mode={session.userMode}
-            chartSummary={personal.chartSummary}
-            journalCorrelations={personal.journalCorrelations}
-            onGoToChart={() => goToTab("family")}
-            onManageContext={() => navigateSettings("context")}
-          />
-        </TabPane>
-
-        <TabPane visible={isPaneRendered("explore")} active={activeTab === "explore"}>
-          <DashboardExploreTabNova
-            lang={lang}
-            personalChartSummary={personalChartSummary}
-            personalChart={personalChart}
-            personalDailyGuidance={personalDailyGuidance}
-            nakshatraCard={personalMemberChart?.nakshatraCard ?? personal.nakshatraCard}
-            memberCharts={family.memberCharts}
-            onNavigate={goToExploreDestination}
-            onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
-          />
-        </TabPane>
-
-        {ENABLE_QA_TAB && (
-          <TabPane visible={isPaneRendered("qa")} active={activeTab === "qa"}>
-            <QATab lang={lang} />
-          </TabPane>
         )}
 
-        <TabPane visible={isPaneRendered("settings-session")} active={activeTab === "settings" && settingsSubTab === "session"}>
-          <DashboardSettingsSessionTab
+        {/* Edit member modal */}
+        {editMember && (
+          <EditMemberModal
             lang={lang}
-            section={settingsSection}
-            onNavigate={navigateSettings}
-            onLangChange={setLang}
-            userDisplayName={birthForm.displayName}
-            moonRasi={personalChartSummary?.moonRasi ?? ""}
-            janmaNakshatra={personalChartSummary?.janmaNakshatra ?? ""}
-            lagnaRasi={personalChartSummary?.lagnaRasi ?? ""}
-            vaultName={selectedVault?.name ?? ""}
-            ownerUserId={ownerUserId}
-            selectedDate={selectedDate}
-            selectedVaultId={family.selectedVaultId}
-            birthProfileId={personal.birthProfileId}
-            chartId={personal.chartId}
-            contextData={journal.contextData}
-            onContextUpdated={(data) => journal.setContextData(data)}
-            busyPersonal={personal.busyPersonal}
-            busyFamily={family.busyFamily}
-            journalRetentionDays={journalRetentionDays}
-            journalLastUpdatedAt={journal.journalSettings?.lastUpdatedAt ?? null}
-            journalLastRetentionReviewedAt={journal.journalSettings?.lastRetentionReviewedAt ?? null}
-            journalNextRecommendedReviewDate={journal.journalSettings?.nextRecommendedReviewDate ?? null}
-            busyJournalSettings={journal.busyJournalSettings}
-            notificationPrefs={journal.notificationPrefs}
-            onNotificationPrefsSaved={journal.setNotificationPrefs}
-            userMode={session.userMode}
-            goalTrack={session.goalTrack}
-            onSaveUserSettings={(mode, track) => saveUserSettings(mode, track)}
-            onSelectedDateChange={setSelectedDate}
-            onRefreshPersonal={() => void personal.refreshPersonalBundle(undefined, undefined, true, { forceDay: true })}
-            onRefreshFamily={() => void family.refreshFamilyBundle()}
-            onSaveJournalRetentionDays={(days) => void journal.saveJournalRetentionDays(days)}
-            onAcknowledgeJournalReminder={() => void journal.acknowledgeJournalReminder()}
-            onApplyRetention={(dryRun) => journal.applyJournalRetention(personal.chartId, dryRun)}
-            busyRetentionApply={journal.busyRetentionApply}
-            onSignOut={session.signOut}
+            editMember={editMember}
+            busySaving={busyEditingMember}
+            onClose={() => setEditMember(null)}
+            onChange={setEditMember}
+            onSave={() => void handleSaveEdit()}
           />
-        </TabPane>
-      </div>
-      </div>{/* cd-main-content__body */}
+        )}
 
-      {/* Dashboard footer. Layout rationale lives in the "Footer redesign"
-          block in dashboard-nova.css; the 2026-07-20 Apple pass reordered
-          the regions to Apple's global-footer sequence — legal disclaimer
-          FIRST (a footnote qualifying everything above it, so it reads
-          before the navigation rather than as an afterthought beside the
-          copyright), then the link grid, then the copyright baseline, with
-          a hairline between each.
+        {/* Edit personal profile modal */}
+        {showEditProfile && (
+          <EditProfileModal
+            lang={lang}
+            birthForm={birthForm}
+            busySaving={busyEditingProfile}
+            isExistingProfile={!!personal.birthProfileId}
+            onClose={() => setShowEditProfile(false)}
+            onChange={setBirthForm}
+            onSubmit={handleSaveProfile}
+            onOpenRectification={() => setShowRectification(true)}
+            onDeleteProfile={() => void handleDeleteProfile()}
+          />
+        )}
 
-          Deliberately NOT accordions: Apple collapses footer columns behind
-          chevrons because their global footer carries ~60 links. This one
-          carries 6. Collapsing them would hide content that costs nothing
-          to show and put two taps between the user and a tab — the pattern
-          without the problem it solves. Columns stay open at every width. */}
-      <footer className="cd-footer">
-        <div className="cd-footer__inner">
+        <div className="cd-app-body" data-active-tab={activeTab}>
+        <div className="cd-main-content" data-active-tab={activeTab}>
+        <div className="cd-main-content__body">
 
-          <p className="nova-footer__legal">
-            {lang === "ta"
-              ? "ஜோதிடம் ஒரு பாரம்பரிய நம்பிக்கை அமைப்பு — அறிவியல் உண்மை அல்ல. மருத்துவ, சட்ட, நிதி முடிவுகளுக்கு தகுதிவாய்ந்த நிபுணரை அணுகுங்கள்."
-              : "Astrology is a traditional belief system, not a scientific fact. For medical, legal, or financial decisions, consult a qualified professional."}
-          </p>
+        {exploreReturnTab === activeTab && activeTab !== "explore" && (
+          <div style={{ padding: "var(--space-3) var(--space-3) 0" }}>
+            <button
+              type="button"
+              onClick={returnToExplore}
+              aria-label={t("tab_explore_back", lang)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                minHeight: 36,
+                padding: "7px 12px",
+                borderRadius: "var(--radius-sm)",
+                border: "1px solid var(--panel-tan-light)",
+                background: "var(--panel-cream)",
+                color: "var(--panel-earth)",
+                fontSize: "0.82rem",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              <span aria-hidden="true">←</span>
+              {t("tab_explore_back", lang)}
+            </button>
+          </div>
+        )}
 
-          <div className="cd-footer__divider" />
+        {/* Onboarding banner: shown until profile + one family member added */}
+        {onboardingDone === false && session.hydrated && (
+          <div className="cd-onboarding">
+            <div className="cd-onboarding__card">
+              <div className="cd-onboarding__content">
+                <p className="cd-onboarding__title">
+                  {t("onboarding_title", lang)}
+                </p>
+                <div className="cd-onboarding__steps">
+                  <div className="cd-onboarding__step">
+                    <span className={`cd-onboarding__step-badge ${personal.birthProfileId ? "is-done" : "is-pending"}`}>
+                      {personal.birthProfileId ? "✓" : "1"}
+                    </span>
+                    <span className={`cd-onboarding__step-text ${personal.birthProfileId ? "is-done" : ""}`}>
+                      {t("onboarding_step1", lang)}
+                    </span>
+                  </div>
+                  {(() => {
+                    const hasMember = family.vaults.some((v) => v.memberCount > 0);
+                    return (
+                      <div className="cd-onboarding__step">
+                        <span className={`cd-onboarding__step-badge ${hasMember ? "is-done" : "is-pending"}`}>
+                          {hasMember ? "✓" : "2"}
+                        </span>
+                        <span className={`cd-onboarding__step-text ${hasMember ? "is-done" : ""}`}>
+                          {t("onboarding_step2", lang)}
+                        </span>
+                      </div>
+                    );
+                  })()}
+                  <div className="cd-onboarding__step">
+                    <span className={`cd-onboarding__step-badge ${hasVisitedReading ? "is-done" : "is-pending"}`}>
+                      {hasVisitedReading ? "✓" : "3"}
+                    </span>
+                    <span className={`cd-onboarding__step-text ${hasVisitedReading ? "is-done" : ""}`}>
+                      {t("onboarding_step3", lang)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { goToTab("settings"); setSettingsSubTab("setup"); }}
+                className="cd-onboarding__cta"
+              >
+                {t("onboarding_go_setup", lang)}
+              </button>
+            </div>
+          </div>
+        )}
 
-          <div className="nova-footer__grid">
-            <div className="nova-footer__brand">
-              <p className="cd-footer__wordmark">Vinaadi</p>
-              <p className="nova-footer__tagline">
-                {lang === "ta" ? "ஜோதிட வழிகாட்டல் — தினமும் சூரிய உதயத்திற்கு முன்." : "Jothidam guidance, every morning before sunrise."}
+        {/* Tab content */}
+        <div className="cd-page site__body" style={{ position: "relative" }}>
+          {/* Decorative celestial sky filling the whole content column — a crown
+              of light at the top plus a star field the full scroll height, behind
+              all tab content (which is lifted to zIndex 1 below). Moon-reactive:
+              the selected day's tithi lifts the night wash + star brightness
+              (Pournami luminous, Amavasai a deep new-moon night). */}
+          <CelestialAmbientNova
+            moon={personal.panchangam ? moonPhaseFromTithi(personal.panchangam.tithi.number, personal.panchangam.tithi.paksha) : null}
+          />
+          <TabPane visible={isPaneRendered("settings-setup")} active={activeTab === "settings" && settingsSubTab === "setup"}>
+            <DashboardSetupTab
+              lang={lang}
+              birthProfileId={personal.birthProfileId}
+              selectedVaultId={family.selectedVaultId}
+              selectedVault={selectedVault}
+              birthForm={birthForm}
+              memberForm={memberForm}
+              formErrors={formErrors}
+              busy={{ createProfile: busyCreateProfile, addMember: busyAddMember }}
+              onNavigate={navigateSettings}
+              onBirthFormChange={setBirthForm}
+              onMemberFormChange={setMemberForm}
+              onFormErrorChange={(patch) => setFormErrors((c) => ({ ...c, ...patch }))}
+              onCreateProfile={handleCreateProfile}
+              onAddMember={handleAddMember}
+              onShowEditProfile={() => setShowEditProfile(true)}
+              onGoToPersonal={() => setActiveTab("personal")}
+              userMode={session.userMode}
+              onModeChange={(mode) => void saveUserSettings(mode, { toast: true })}
+            />
+          </TabPane>
+
+          <TabPane visible={isPaneRendered("personal")} active={activeTab === "personal"}>
+            <DashboardTodayTabNova
+              lang={lang}
+              userMode={session.userMode}
+              activeLifeMode={activeLifeMode}
+              onOpenFocusPicker={() => setLifeModePicker("change")}
+              showFocusNudge={showFocusNudge}
+              onKeepFocus={keepLifeMode}
+              onDismissFocusNudge={dismissFocusNudge}
+              locationCheck={locationCheck}
+              locationCheckProfileId={personal.birthProfileId}
+              panchangamPlace={personal.panchangamPlace}
+              deviceTimeZone={deviceTimeZone}
+              onLocationResolved={onLocationResolved}
+              onDismissLocationCheck={dismissLocationCheck}
+              lifeFocus={todayFocus}
+              birthDisplayName={birthForm.displayName}
+              selectedDate={selectedDate}
+              todayDate={personal.todayDate}
+              personalMemberChart={personalMemberChart}
+              personalChartSummary={personalChartSummary}
+              personalDailyGuidance={personalDailyGuidance}
+              personalSani={personalSani}
+              peyarchiUpcoming={personalPeyarchiUpcoming}
+              panchangam={personal.panchangam}
+              panchangamTimings={personal.panchangamTimings}
+              weekAhead={personal.weekAhead}
+              familyAggregate={familyAggregateForToday}
+              personalPending={personal.personalPending}
+              showingPreviousDay={personal.isShowingPreviousDay}
+              familyPending={family.familyPending}
+              remedyMemberCharts={family.memberCharts}
+              lifeAreas={personal.lifeAreas}
+              dasha={personalDasha}
+              dashaAntar={personalDashaAntar}
+              dailyGuidanceRange={personal.dailyGuidanceRange}
+              panchangamTimezone={personal.panchangamTimezone}
+              bundleSectionErrors={personal.bundleSectionErrors}
+              onRetryBundle={() => void personal.refreshPersonalBundle(undefined, undefined, true, { forceDay: true })}
+              onGoToFamily={() => focusFamily("hy-members")}
+              onGoToJournal={() => setActiveTab("journal")}
+              onGoToCalendar={() => setActiveTab("calendar")}
+              onGoToLifeAreas={() => setActiveTab("life-areas")}
+              onGoToChart={() => focusFamily("hy-dashas")}
+              onGoToCharts={() => setActiveTab("family")}
+              onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
+              onOpenNotificationSettings={() => navigateSettings("notifications")}
+              needsProfile={needsProfile}
+              onOpenChartGen={() => focusTool("chartgen")}
+              onOpenMuhurta={() => focusCalendar("muhurta")}
+              onOpenCompatibility={() => focusTool("synastry")}
+              onOpenActivityTiming={() => focusTool("activityTiming")}
+              onOpenRasipalan={() => focusTool("rasipalan")}
+              onOpenNumerology={() => focusTool("numerology")}
+              onGoToExplore={() => goToTab("explore")}
+              onGoToAllTools={() => goToTab("tools")}
+            />
+          </TabPane>
+
+          <TabPane visible={isPaneRendered("tools")} active={activeTab === "tools"}>
+            {(() => {
+            // `activeTool` is component-level state now (it used to be derived
+            // here from the nine show* booleans) — that is what makes it
+            // addressable as `/dashboard/tools/<tool>`.
+            // Note: Find Birth Time (rectification) removed — results were unreliable
+            // needsProfile/openTool/closeTool now live at component level (see
+            // above, near the other cross-tab focus helpers) so Today's Quick
+            // Links can reuse them via focusTool.
+            // Compatibility tool (moved from the Family page 2026-07-21): join the
+            // vault's member charts with their relationship labels for the picker.
+            const synastryMemberOptions = family.memberCharts.map((mc) => {
+              const fm = family.familyMembers.find((f) => f.familyMemberId === mc.memberId);
+              return { memberId: mc.memberId, displayName: mc.displayName, relationshipToOwner: fm?.relationshipToOwner ?? "other" };
+            });
+            // Numerology's "Reading for" switcher — same member charts as
+            // Compatibility above, just the {memberId, displayName, chartId}
+            // shape the panel's picker needs.
+            const numerologyMembers = family.memberCharts.map((mc) => ({
+              memberId: mc.memberId,
+              displayName: mc.displayName,
+              chartId: mc.chart.chartId,
+            }));
+
+            return (
+              <ViewSwap viewKey={activeTool ?? "tools-hub"}>
+                <DashboardToolsTabNova
+                lang={lang}
+                activeTool={activeTool}
+                needsProfile={needsProfile}
+                onOpenTool={openTool}
+                onCloseTool={closeTool}
+                showPorutham={showPorutham}
+                showChartGenerate={showChartGenerate}
+                showWrapped={showWrapped}
+                showRetrospective={showRetrospective}
+                showRasipalan={showRasipalan}
+                showActivityTiming={showActivityTiming}
+                showVarshaphala={showVarshaphala}
+                showSynastry={showSynastry}
+                showNumerology={showNumerology}
+                showBabyNames={showBabyNames}
+                varshaphalaData={varshaphalaData}
+                varshaphalaLoading={varshaphalaLoading}
+                onLoadVarshaphala={(year) => void loadVarshaphala(year)}
+                personalChartId={personal.chartId}
+                selectedDate={selectedDate}
+                onDateChange={setSelectedDate}
+                familyVaultId={family.selectedVaultId ?? undefined}
+                numerologyMembers={numerologyMembers}
+                ownerChart={personal.chart}
+                synastryMemberCharts={family.memberCharts}
+                synastryMemberOptions={synastryMemberOptions}
+                relationshipAlerts={family.relationshipAlerts}
+                relationshipAlertsLoading={family.relationshipAlertsLoading}
+                familyMembersForPorutham={[
+                  ...(personal.chart ? [{
+                    memberId: `owner:${personal.chart.birthProfile.birthProfileId}`,
+                    displayName: personal.chart.birthProfile.displayName,
+                    birthDateLocal: personal.chart.birthProfile.birthDateLocal,
+                    birthTimeLocal: personal.chart.birthProfile.birthTimeLocal ?? "",
+                    birthPlace: personal.chart.birthProfile.birthPlace,
+                    birthLatitude: personal.chart.birthProfile.birthLatitude,
+                    birthLongitude: personal.chart.birthProfile.birthLongitude,
+                    birthTimezone: personal.chart.birthProfile.birthTimezone,
+                  }] : []),
+                  ...family.memberCharts
+                    .filter((mc) => mc.chart.birthProfile.birthProfileId !== personal.chart?.birthProfile.birthProfileId)
+                    .map((mc) => ({
+                      memberId: mc.memberId,
+                      displayName: mc.displayName,
+                      birthDateLocal: mc.chart.birthProfile.birthDateLocal,
+                      birthTimeLocal: mc.chart.birthProfile.birthTimeLocal ?? "",
+                      birthPlace: mc.chart.birthProfile.birthPlace,
+                      birthLatitude: mc.chart.birthProfile.birthLatitude,
+                      birthLongitude: mc.chart.birthProfile.birthLongitude,
+                      birthTimezone: mc.chart.birthProfile.birthTimezone,
+                    })),
+                ]}
+                onGoToPlan={() => goToTab("plan")}
+                onGoToCalendar={() => goToTab("calendar")}
+                onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
+                />
+              </ViewSwap>
+            );
+            })()}
+          </TabPane>
+
+          <TabPane visible={isPaneRendered("family")} active={activeTab === "family"}>
+            {(() => {
+            const familyTabProps: DashboardFamilyChartsHybridProps = {
+              lang,
+              selectedDate,
+              selectedVaultId: family.selectedVaultId,
+              ownerChartId: personal.chartId,
+              ownerChart: personal.chart,
+              ownerMemberChart,
+              vaults: family.vaults,
+              familyDetail: family.familyDetail,
+              familyAggregate: familyAggregateForToday,
+              familyComposite: family.familyComposite,
+              familyMembers: family.familyMembers,
+              memberCharts: family.memberCharts,
+              relationshipAlerts: family.relationshipAlerts,
+              alertsLoading: family.relationshipAlertsLoading,
+              panchangam: personal.panchangam,
+              mode: session.userMode,
+              onGoToJournal: () => goToTab("journal"),
+              onOpenPrasna: () => setShowPrasna(true),
+              showPrasna,
+              onClosePrasna: () => setShowPrasna(false),
+              busy: {
+                family: family.busyFamily,
+                vaults: family.busyVaults,
+                deletingVaultId,
+                deletingMemberId,
+                memberCharts: family.busyMemberCharts,
+              },
+              onRefreshFamily: () => void family.refreshFamilyBundle(),
+              onOpenSetup: openSetupInSettings,
+              onSelectVault: handleSelectVault,
+              onDeleteVault: (vaultId: string, name: string) => void handleDeleteVault(vaultId, name),
+              onDeleteMember: (memberId: string, name: string) => void handleDeleteMember(memberId, name),
+              onEditMember: handleEditFamilyMember,
+              onGoToLifeAreas: () => goToTab("life-areas"),
+              onGoToRemedies: () => focusLifeAreas("remedies"),
+              onGoToForecast: () => focusLifeAreas("predictions"),
+              onGoToTools: () => goToTab("tools"),
+              focusSection: familyFocusSection,
+              onFocusConsumed: () => setFamilyFocusSection(null),
+            };
+            return <DashboardFamilyChartsHybrid {...familyTabProps} />;
+            })()}
+          </TabPane>
+
+          <TabPane visible={isPaneRendered("calendar")} active={activeTab === "calendar"}>
+            <DashboardCalendarTabNova
+              selectedDate={selectedDate}
+              todayDate={personal.todayDate}
+              panchangam={personal.panchangam}
+              panchangamTimings={personal.panchangamTimings}
+              lang={lang}
+              locationLabel={personal.panchangamLocationLabel}
+              panchangamTimezone={personal.panchangamTimezone}
+              onSelectDate={setSelectedDate}
+              chartId={resolveMuhurtaChartId()}
+              memberCharts={family.memberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName }))}
+              selectedMemberId={muhurtaMemberId}
+              onSelectMember={setMuhurtaMemberId}
+              focusView={calendarFocusView}
+              onFocusConsumed={() => setCalendarFocusView(null)}
+              pending={personal.personalPending}
+              muhurtaFocusActivities={muhurtaFocus.activities}
+              monthFocus={monthFocus}
+            />
+          </TabPane>
+
+          <TabPane visible={isPaneRendered("life-areas")} active={activeTab === "life-areas"}>
+            <DashboardLifeAreasTabNova
+              lang={lang}
+              personalDailyGuidance={lifeAreasDailyGuidance}
+              dailyGuidanceRange={!lifeAreasViewId ? personal.dailyGuidanceRange : undefined}
+              personalTransit={lifeAreasTransit}
+              personalSani={lifeAreasSani}
+              panchangam={personal.panchangam}
+              lifeAreas={personal.lifeAreas}
+              predictions={personal.predictions}
+              predictionsLoading={personal.predictionsLoading}
+              yogas={(lifeAreasMemberChart?.chart ?? personal.chart)?.yogas ?? []}
+              doshams={(lifeAreasMemberChart?.chart ?? personal.chart)?.doshams ?? []}
+              jadhagamReport={personal.jadhagamReport}
+              jadhagamReportLoading={personal.jadhagamReportLoading}
+              onLoadJadhagamReport={() => void personal.loadJadhagamReport(resolveLifeAreasChartId())}
+              chartSummary={lifeAreasMemberChart?.summary ?? personal.chartSummary}
+              birthDisplayName={birthForm.displayName}
+              maritalStatus={(() => {
+                if (!lifeAreasViewId) return birthForm.maritalStatus || undefined;
+                const mc = family.memberCharts.find((m) => m.memberId === lifeAreasViewId);
+                const rel = mc?.chart.birthProfile.relationshipToOwner;
+                // Spouse/parent/grandparent are definitionally married — no need to ask
+                if (rel === "spouse" || rel === "parent" || rel === "grandparent") return "married";
+                return undefined;
+              })()}
+              memberCharts={family.memberCharts.map((mc) => ({ memberId: mc.memberId, displayName: mc.displayName }))}
+              selectedMemberId={lifeAreasViewId}
+              onSelectMember={setLifeAreasViewId}
+              focusArea={lifeAreasFocus.area}
+              active={activeTab === "life-areas"}
+              chartId={resolveLifeAreasChartId()}
+              remedyPlan={remedyPlan}
+              gemstoneAdvice={gemstoneAdvice}
+              remediesLoading={remediesLoading}
+              onLoadRemedies={() => void loadRemedies(resolveLifeAreasChartId())}
+              goals={plan.goals}
+              onGoToPlan={() => goToTab("plan")}
+              onGoToChart={() => goToTab("family")}
+              focusSubTab={lifeAreasFocusSubTab}
+              onFocusConsumed={() => setLifeAreasFocusSubTab(null)}
+            />
+          </TabPane>
+
+          <TabPane visible={isPaneRendered("plan")} active={activeTab === "plan"}>
+            <DashboardPlanTabNova
+              lang={lang}
+              chartId={personal.chartId}
+              hasBirthProfile={!!personal.birthProfileId}
+              goals={plan.goals}
+              goalsBusy={plan.goalsBusy}
+              addingGoalType={plan.addingGoalType}
+              onAddingGoalTypeChange={plan.setAddingGoalType}
+              removingGoalId={plan.removingGoalId}
+              onAddGoal={(goalType) => void plan.addGoal(goalType)}
+              onRemoveGoal={(goalId) => void plan.removeGoal(goalId)}
+              whatIfScenario={plan.whatIfScenario}
+              whatIfDate={plan.whatIfDate}
+              whatIfResult={plan.whatIfResult}
+              whatIfBusy={plan.whatIfBusy}
+              whatIfError={plan.whatIfError}
+              onWhatIfScenarioChange={plan.setWhatIfScenario}
+              onWhatIfDateChange={plan.setWhatIfDate}
+              onRunWhatIf={() => void plan.runWhatIf()}
+              mode={session.userMode}
+              onGoToLifeAreas={() => goToTab("life-areas")}
+              onGoToCalendar={() => goToTab("calendar")}
+              onGoToMuhurta={() => focusCalendar("muhurta")}
+              onGoToJournal={() => goToTab("journal")}
+              onGoToChart={() => goToTab("family")}
+              focusActivities={ownFocus.activities}
+            />
+          </TabPane>
+
+          <TabPane visible={isPaneRendered("journal")} active={activeTab === "journal"}>
+            <DashboardJournalTabNova
+              lang={lang}
+              chartId={personal.chartId}
+              selectedDate={selectedDate}
+              hasBirthProfile={!!personal.birthProfileId}
+              journalEntries={journal.journalEntries}
+              journalTotal={journal.journalTotal}
+              contextData={journal.contextData}
+              onEntrySaved={() => journal.loadJournalEntries(personal.chartId)}
+              onEntryArchived={() => journal.loadJournalEntries(personal.chartId)}
+              mode={session.userMode}
+              chartSummary={personal.chartSummary}
+              journalCorrelations={personal.journalCorrelations}
+              onGoToChart={() => goToTab("family")}
+              onManageContext={() => navigateSettings("context")}
+            />
+          </TabPane>
+
+          <TabPane visible={isPaneRendered("explore")} active={activeTab === "explore"}>
+            <DashboardExploreTabNova
+              lang={lang}
+              personalChartSummary={personalChartSummary}
+              personalChart={personalChart}
+              personalDailyGuidance={personalDailyGuidance}
+              nakshatraCard={personalMemberChart?.nakshatraCard ?? personal.nakshatraCard}
+              pending={personal.personalPending}
+              memberCharts={family.memberCharts}
+              onNavigate={goToExploreDestination}
+              onOpenAskVinaadi={() => setAskVinaadiOpen(true)}
+            />
+          </TabPane>
+
+          {ENABLE_QA_TAB && (
+            <TabPane visible={isPaneRendered("qa")} active={activeTab === "qa"}>
+              <QATab lang={lang} />
+            </TabPane>
+          )}
+
+          <TabPane visible={isPaneRendered("settings-session")} active={activeTab === "settings" && settingsSubTab === "session"}>
+            <DashboardSettingsSessionTab
+              lang={lang}
+              section={settingsSection}
+              onNavigate={navigateSettings}
+              onLangChange={setLang}
+              userDisplayName={birthForm.displayName}
+              moonRasi={personalChartSummary?.moonRasi ?? ""}
+              janmaNakshatra={personalChartSummary?.janmaNakshatra ?? ""}
+              lagnaRasi={personalChartSummary?.lagnaRasi ?? ""}
+              vaultName={selectedVault?.name ?? ""}
+              ownerUserId={ownerUserId}
+              selectedDate={selectedDate}
+              selectedVaultId={family.selectedVaultId}
+              birthProfileId={personal.birthProfileId}
+              chartId={personal.chartId}
+              contextData={journal.contextData}
+              onContextUpdated={(data) => journal.setContextData(data)}
+              busyPersonal={personal.busyPersonal}
+              busyFamily={family.busyFamily}
+              journalRetentionDays={journalRetentionDays}
+              journalLastUpdatedAt={journal.journalSettings?.lastUpdatedAt ?? null}
+              journalLastRetentionReviewedAt={journal.journalSettings?.lastRetentionReviewedAt ?? null}
+              journalNextRecommendedReviewDate={journal.journalSettings?.nextRecommendedReviewDate ?? null}
+              busyJournalSettings={journal.busyJournalSettings}
+              notificationPrefs={journal.notificationPrefs}
+              onNotificationPrefsSaved={journal.setNotificationPrefs}
+              userMode={session.userMode}
+              onSaveUserSettings={(mode) => saveUserSettings(mode)}
+              lifeMode={activeLifeMode}
+              blockedLifeModes={lifeModeStatus?.blockedModes ?? []}
+              onSaveLifeMode={async (mode) => setLifeModeStatus(await updateLifeMode(mode, "SELECT", "WEB"))}
+              onSelectedDateChange={setSelectedDate}
+              onRefreshPersonal={() => void personal.refreshPersonalBundle(undefined, undefined, true, { forceDay: true })}
+              onRefreshFamily={() => void family.refreshFamilyBundle()}
+              onSaveJournalRetentionDays={(days) => void journal.saveJournalRetentionDays(days)}
+              onAcknowledgeJournalReminder={() => void journal.acknowledgeJournalReminder()}
+              onApplyRetention={(dryRun) => journal.applyJournalRetention(personal.chartId, dryRun)}
+              busyRetentionApply={journal.busyRetentionApply}
+              onSignOut={session.signOut}
+            />
+          </TabPane>
+        </div>
+        </div>{/* cd-main-content__body */}
+
+        {/* Dashboard footer. Layout rationale lives in the "Footer redesign"
+            block in dashboard-nova.css; the 2026-07-20 Apple pass reordered
+            the regions to Apple's global-footer sequence — legal disclaimer
+            FIRST (a footnote qualifying everything above it, so it reads
+            before the navigation rather than as an afterthought beside the
+            copyright), then the link grid, then the copyright baseline, with
+            a hairline between each.
+
+            Deliberately NOT accordions: Apple collapses footer columns behind
+            chevrons because their global footer carries ~60 links. This one
+            carries 6. Collapsing them would hide content that costs nothing
+            to show and put two taps between the user and a tab — the pattern
+            without the problem it solves. Columns stay open at every width. */}
+        <footer className="cd-footer">
+          <div className="cd-footer__inner">
+
+            <p className="nova-footer__legal">
+              {lang === "ta"
+                ? "ஜோதிடம் ஒரு பாரம்பரிய நம்பிக்கை அமைப்பு — அறிவியல் உண்மை அல்ல. மருத்துவ, சட்ட, நிதி முடிவுகளுக்கு தகுதிவாய்ந்த நிபுணரை அணுகுங்கள்."
+                : "Astrology is a traditional belief system, not a scientific fact. For medical, legal, or financial decisions, consult a qualified professional."}
+            </p>
+
+            <div className="cd-footer__divider" />
+
+            <div className="nova-footer__grid">
+              <div className="nova-footer__brand">
+                <p className="cd-footer__wordmark">Vinaadi</p>
+                <p className="nova-footer__tagline">
+                  {lang === "ta" ? "ஜோதிட வழிகாட்டல் — தினமும் சூரிய உதயத்திற்கு முன்." : "Jothidam guidance, every morning before sunrise."}
+                </p>
+              </div>
+
+              {/* Real navigation, not link-styled spans (DASH-13) — every
+                  element styled as a link must actually go somewhere. */}
+              <nav className="nova-footer__nav" aria-label={lang === "ta" ? "அடிக்குறிப்பு வழிசெலுத்தல்" : "Footer navigation"}>
+                {(([
+                  {
+                    head: { en: "Understand", ta: "ஆராயுங்கள்" },
+                    links: [
+                      { tab: "personal" as Tab, ta: "இன்று", en: "Today" },
+                      { tab: "calendar" as Tab, ta: "நாட்காட்டி", en: "Calendar" },
+                      { tab: "life-areas" as Tab, ta: "வாழ்க்கைத் துறைகள்", en: "Life Areas" },
+                      // The glossary's ONLY other way in is tapping a glossed
+                      // term, which a reader who does not already suspect the
+                      // words are tappable will never do — so the page that
+                      // explains the vocabulary was reachable only by readers who
+                      // did not need it. This is the one entry point.
+                      //
+                      // In the footer rather than the hero nav on purpose: it is
+                      // a route outside `(workspace)`, so it unmounts the
+                      // workspace, and a tab strip must never do that. Reaching
+                      // the bottom of the page is already a "leaving" gesture,
+                      // and the cost is small — /dashboard/layout.tsx (and its
+                      // QueryProvider cache) is shared with this route and so
+                      // survives, and "Back to dashboard" lands on /dashboard,
+                      // which is always Today (DXA-02, D1). A plain link, not
+                      // router.back(): the glossary is also opened directly.
+                      { href: "/dashboard/glossary", ta: "சொற்களஞ்சியம்", en: "Glossary" },
+                    ],
+                  },
+                  {
+                    head: { en: "Personal", ta: "தனிப்பட்ட" },
+                    links: [
+                      { tab: "family" as Tab, ta: "குடும்பம் & ஜாதகம்", en: "Family & Charts" },
+                      { tab: "journal" as Tab, ta: "குறிப்பேடு", en: "Journal" },
+                      { tab: "settings" as Tab, ta: "அமைப்புகள்", en: "Settings" },
+                    ],
+                  },
+                ]) as FooterNavColumn[]).map((col) => (
+                  <div key={col.head.en} className="nova-footer__nav-col">
+                    <h2 className="nova-footer__nav-head">
+                      {lang === "ta" ? col.head.ta : col.head.en}
+                    </h2>
+                    <div className="nova-footer__nav-links">
+                      {col.links.map((link) => {
+                        // `!== undefined`, not truthiness: `href: string` includes
+                        // "", so a falsy test cannot rule that arm out and the
+                        // other branch keeps `tab` as `Tab | undefined`.
+                        if (link.href !== undefined) {
+                          return (
+                            <Link key={link.href} href={link.href} className="nova-footer__nav-link">
+                              {lang === "ta" ? link.ta : link.en}
+                            </Link>
+                          );
+                        }
+                        // Read out here, not inside the handler: narrowing on a
+                        // parameter does not survive into a nested closure, so
+                        // `link.tab` reads as `Tab | undefined` in there.
+                        const tab = link.tab;
+                        return (
+                          <button
+                            key={tab}
+                            type="button"
+                            className="nova-footer__nav-link"
+                            onClick={() => goToTab(tab)}
+                          >
+                            {lang === "ta" ? link.ta : link.en}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </nav>
+
+              <div className="nova-footer__quick">
+                <h2 className="nova-footer__nav-head">
+                  {lang === "ta" ? "விரைவு அமைப்பு" : "Quick setting"}
+                </h2>
+                <DashboardFooterMorningGuidance lang={lang} onOpenSettings={() => navigateSettings("notifications")} />
+              </div>
+            </div>
+
+            <div className="cd-footer__divider" />
+
+            <div className="cd-footer__bottom">
+              <p className="cd-footer__copy">
+                © {new Date().getFullYear()} Vinaadi
               </p>
             </div>
 
-            {/* Real navigation, not link-styled spans (DASH-13) — every
-                element styled as a link must actually go somewhere. */}
-            <nav className="nova-footer__nav" aria-label={lang === "ta" ? "அடிக்குறிப்பு வழிசெலுத்தல்" : "Footer navigation"}>
-              {(([
-                {
-                  head: { en: "Understand", ta: "ஆராயுங்கள்" },
-                  links: [
-                    { tab: "personal" as Tab, ta: "இன்று", en: "Today" },
-                    { tab: "calendar" as Tab, ta: "நாட்காட்டி", en: "Calendar" },
-                    { tab: "life-areas" as Tab, ta: "வாழ்க்கைத் துறைகள்", en: "Life Areas" },
-                    // The glossary's ONLY other way in is tapping a glossed
-                    // term, which a reader who does not already suspect the
-                    // words are tappable will never do — so the page that
-                    // explains the vocabulary was reachable only by readers who
-                    // did not need it. This is the one entry point.
-                    //
-                    // In the footer rather than the hero nav on purpose: it is
-                    // a route outside `(workspace)`, so it unmounts the
-                    // workspace, and a tab strip must never do that. Reaching
-                    // the bottom of the page is already a "leaving" gesture,
-                    // and the cost is small — /dashboard/layout.tsx (and its
-                    // QueryProvider cache) is shared with this route and so
-                    // survives, and "Back to dashboard" lands on /dashboard,
-                    // which restores the last tab from localStorage.
-                    { href: "/dashboard/glossary", ta: "சொற்களஞ்சியம்", en: "Glossary" },
-                  ],
-                },
-                {
-                  head: { en: "Personal", ta: "தனிப்பட்ட" },
-                  links: [
-                    { tab: "family" as Tab, ta: "குடும்பம் & ஜாதகம்", en: "Family & Charts" },
-                    { tab: "journal" as Tab, ta: "குறிப்பேடு", en: "Journal" },
-                    { tab: "settings" as Tab, ta: "அமைப்புகள்", en: "Settings" },
-                  ],
-                },
-              ]) as FooterNavColumn[]).map((col) => (
-                <div key={col.head.en} className="nova-footer__nav-col">
-                  <h2 className="nova-footer__nav-head">
-                    {lang === "ta" ? col.head.ta : col.head.en}
-                  </h2>
-                  <div className="nova-footer__nav-links">
-                    {col.links.map((link) => {
-                      // `!== undefined`, not truthiness: `href: string` includes
-                      // "", so a falsy test cannot rule that arm out and the
-                      // other branch keeps `tab` as `Tab | undefined`.
-                      if (link.href !== undefined) {
-                        return (
-                          <Link key={link.href} href={link.href} className="nova-footer__nav-link">
-                            {lang === "ta" ? link.ta : link.en}
-                          </Link>
-                        );
-                      }
-                      // Read out here, not inside the handler: narrowing on a
-                      // parameter does not survive into a nested closure, so
-                      // `link.tab` reads as `Tab | undefined` in there.
-                      const tab = link.tab;
-                      return (
-                        <button
-                          key={tab}
-                          type="button"
-                          className="nova-footer__nav-link"
-                          onClick={() => goToTab(tab)}
-                        >
-                          {lang === "ta" ? link.ta : link.en}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </nav>
-
-            <div className="nova-footer__quick">
-              <h2 className="nova-footer__nav-head">
-                {lang === "ta" ? "விரைவு அமைப்பு" : "Quick setting"}
-              </h2>
-              <DashboardFooterMorningGuidance lang={lang} onOpenSettings={() => navigateSettings("notifications")} />
-            </div>
           </div>
+        </footer>
 
-          <div className="cd-footer__divider" />
+        </div>{/* cd-main-content */}
+        </div>{/* cd-app-body */}
 
-          <div className="cd-footer__bottom">
-            <p className="cd-footer__copy">
-              © {new Date().getFullYear()} Vinaadi
-            </p>
-          </div>
+        {/* Feedback FAB — Clarity ink style */}
+        <button
+          type="button"
+          onClick={() => setShowFeedback(true)}
+          title={t("feedback_btn", lang)}
+          aria-label={t("feedback_btn", lang)}
+          className="cd-feedback-fab"
+        >
+          ✉
+        </button>
 
-        </div>
-      </footer>
+        {personal.chartId && (
+          <DashboardAskVinaadiWidget
+            lang={lang}
+            chartId={personal.chartId}
+            goalTrack={session.goalTrack}
+            activeLifeMode={activeLifeMode}
+            open={askVinaadiOpen}
+            onOpenChange={setAskVinaadiOpen}
+            hideLauncher
+          />
+        )}
 
-      </div>{/* cd-main-content */}
-      </div>{/* cd-app-body */}
+        {showFeedback && <FeedbackModal lang={lang} onClose={() => setShowFeedback(false)} />}
 
-      {/* Feedback FAB — Clarity ink style */}
-      <button
-        type="button"
-        onClick={() => setShowFeedback(true)}
-        title={t("feedback_btn", lang)}
-        aria-label={t("feedback_btn", lang)}
-        className="cd-feedback-fab"
-      >
-        ✉
-      </button>
+        {lifeModePicker && (
+          <LifeModePicker
+            lang={lang}
+            currentMode={activeLifeMode}
+            blockedModes={lifeModeStatus?.blockedModes ?? []}
+            firstRun={lifeModePicker === "first-run"}
+            onClose={() => setLifeModePicker(null)}
+            onSelected={(status) => setLifeModeStatus(status)}
+          />
+        )}
 
-      {personal.chartId && (
-        <DashboardAskVinaadiWidget
-          lang={lang}
-          chartId={personal.chartId}
-          goalTrack={session.goalTrack}
-          activeLifeMode={activeLifeMode}
-          open={askVinaadiOpen}
-          onOpenChange={setAskVinaadiOpen}
-          hideLauncher
-        />
-      )}
+        {showRectification && personal.birthProfileId && (
+          <RectificationWizard
+            lang={lang}
+            birthProfileId={personal.birthProfileId}
+            onApply={(time) => {
+              setShowRectification(false);
+              showToast(`Birth time updated: ${time}`, "success");
+            }}
+            onClose={() => setShowRectification(false)}
+          />
+        )}
 
-      {showFeedback && <FeedbackModal lang={lang} onClose={() => setShowFeedback(false)} />}
-
-      {lifeModePickerOpen && (
-        <LifeModePicker
-          lang={lang}
-          currentMode={activeLifeMode}
-          blockedModes={lifeModeStatus?.blockedModes ?? []}
-          onClose={() => setLifeModePickerOpen(false)}
-          onSelected={(status) => setLifeModeStatus(status)}
-        />
-      )}
-
-      {showRectification && personal.birthProfileId && (
-        <RectificationWizard
-          lang={lang}
-          birthProfileId={personal.birthProfileId}
-          onApply={(time) => {
-            setShowRectification(false);
-            showToast(`Birth time updated: ${time}`, "success");
-          }}
-          onClose={() => setShowRectification(false)}
-        />
-      )}
-
-    </div>
+      </div>
+    </MotionConfig>
   );
 }
-
-
 
 

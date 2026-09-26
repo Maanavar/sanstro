@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { todayIso } from "@/lib/format";
 import { apiFetchJson, getApiError, readErrorMessage, toQuery } from "@/lib/api";
@@ -85,6 +85,10 @@ export type ChartBundle = {
   /** IANA timezone the panchangam was computed for — "now" on the Today
    *  surface is computed in this zone, not the browser's (DASH-01). */
   panchangamTimezone: string | null;
+  /** The place's own name, for naming it to the reader (§2.4). */
+  panchangamPlace: string | null;
+  /** The 45-day backstop (§2 / R2), computed server-side. */
+  locationCheckDue: boolean;
   /** Bundle sections the backend could not compute (name -> short note).
    *  Non-empty means some cards render a gap/retry state (DASH-02). */
   sectionErrors: Record<string, string>;
@@ -170,6 +174,8 @@ export function mapDashboardBundle(data: ChartDashboardBundleData): ChartBundle 
     nakshatraCard: data.nakshatraCard,
     panchangamLocationLabel: data.panchangamLocation ? `${data.panchangamLocation} location` : null,
     panchangamTimezone: data.panchangamTimezone,
+    panchangamPlace: data.panchangamPlace ?? null,
+    locationCheckDue: Boolean(data.locationCheckDue),
     sectionErrors: data.errors ?? {},
   };
 }
@@ -257,6 +263,9 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
   const [jadhagamReport, setJadhagamReport] = useState<JadhagamReportResponse["data"] | null>(null);
   const [jadhagamReportLoading, setJadhagamReportLoading] = useState(false);
   const [busyPersonalState, setBusyPersonalState] = useState(false);
+  // The last refreshPersonalBundle ended in an error that left no bundle —
+  // settled, so the empty copy may show (DXA-03 `personalPending`).
+  const [personalLoadFailed, setPersonalLoadFailed] = useState(false);
 
   const chartQuery = useQuery({
     queryKey: personalKeys.chartCalculate(birthProfileId),
@@ -268,14 +277,33 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
   const chart = chartQuery.data?.data ?? null;
   const effectiveChartId = chartId || chart?.chartId || "";
 
+  // DXA-07: the key carries the date, so without this a new date means
+  // `data === undefined` and every consumer collapses — the hero measured
+  // 590 -> 264 px and the page 4,029 -> 1,376 px within 78ms of a date
+  // change, staying collapsed for the whole round trip. `keepPreviousData`
+  // holds the previous day on screen instead; `isShowingPreviousDay` below
+  // tells the UI to mark it as not-yet-the-selected-day.
   const bundleQuery = useQuery({
     queryKey: personalKeys.chartBundle(effectiveChartId, selectedDate),
     queryFn: () => fetchChartBundle(effectiveChartId, selectedDate),
     enabled: !!effectiveChartId,
     staleTime: STALE.today,
+    placeholderData: keepPreviousData,
   });
 
   const bundle = bundleQuery.data ?? null;
+  // The bundle on screen belongs to a date the user has already moved off
+  // (DXA-07). Consumers keep rendering it — marked as loading — and anything
+  // that would *derive and cache* a value from it must wait, or the new date
+  // ends up holding the old date's numbers permanently.
+  //
+  // `!isError` is the exit: a failed request leaves the placeholder in place
+  // for good, so without this the pane would sit dimmed under a sweeping
+  // progress line forever and never say why. On an error we stop claiming to
+  // be loading — the previous day stays on screen, still labelled as that day
+  // (`dataDate` in the Today pane), and the existing failure path does the
+  // talking: the error toast, the sub-bar's error slot and the retry chip.
+  const isShowingPreviousDay = bundleQuery.isPlaceholderData && !bundleQuery.isError;
   const moonNakshatra = chart?.planets.find((planet) => planet.graha === "MOON")?.nakshatra ?? null;
   const firstPeyarchiPlanet = bundle?.peyarchiUpcoming[0]?.planet ?? null;
 
@@ -290,6 +318,10 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
     },
     enabled: !!effectiveChartId,
     staleTime: STALE.today,
+    // DXA-07. This one also feeds the top bar's alert count: without it the
+    // bell drops to 0 and back on every date change, which is a shift inside
+    // the chrome DXA-05 just stopped moving.
+    placeholderData: keepPreviousData,
   });
 
   // Fallback only: the bundle already carries weekAhead/nakshatraCard; these
@@ -305,6 +337,7 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
     },
     enabled: !!birthProfileId && !!bundle && !bundle.weekAhead,
     staleTime: STALE.today,
+    placeholderData: keepPreviousData, // DXA-07
   });
 
   const nakshatraCardQuery = useQuery({
@@ -333,6 +366,7 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
     },
     enabled: !!effectiveChartId,
     staleTime: STALE.today,
+    placeholderData: keepPreviousData, // DXA-07
   });
 
   const peyarchiReportQuery = useQuery({
@@ -349,6 +383,7 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
     },
     enabled: !!effectiveChartId && !!firstPeyarchiPlanet,
     staleTime: STALE.today,
+    placeholderData: keepPreviousData, // DXA-07
   });
 
   const journalCorrelationsQuery = useQuery({
@@ -370,8 +405,14 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
   const lifeAreaInsightsQuery = useQuery({
     queryKey: personalKeys.lifeAreaInsights(effectiveChartId, selectedDate),
     queryFn: ({ signal }) => fetchLifeAreaInsights(effectiveChartId, selectedDate, bundle?.lifeAreas ?? null, signal),
-    enabled: !!effectiveChartId && !!bundle && predictionsEnabled,
+    // `!isShowingPreviousDay` is load-bearing, not a nicety (DXA-07): this
+    // queryFn seeds its life-areas from the bundle instead of refetching them
+    // (DASH-16), so firing it while the bundle is still the previous day's
+    // would cache yesterday's life areas under today's key — and they would
+    // stay there for the session.
+    enabled: !!effectiveChartId && !!bundle && !isShowingPreviousDay && predictionsEnabled,
     staleTime: STALE.today,
+    placeholderData: keepPreviousData,
   });
 
   function reportStatus(message: string, tone: "success" | "error" = "success") {
@@ -524,6 +565,7 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
 
     const requestId = beginPersonalRequest();
     setBusyPersonalState(true);
+    setPersonalLoadFailed(false);
     try {
       // Cached for the session unless a profile edit forces a re-run — the
       // chart is a function of the birth data, not of the selected date
@@ -587,6 +629,7 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
           return;
         }
       }
+      if (isPersonalRequestCurrent(requestId)) setPersonalLoadFailed(true);
       reportStatus(readErrorMessage(error), "error");
     } finally {
       if (isPersonalRequestCurrent(requestId)) {
@@ -601,6 +644,13 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
   const todayGuidance = selectedDate === todayDate.current
     ? bundle?.dailyGuidance ?? todayGuidanceSnapshot
     : todayGuidanceSnapshot ?? bundle?.dailyGuidance ?? null;
+  // DXA-03: "not known yet" is not "nothing there". Pending until the profile
+  // lookup has answered and, for a user who has a profile, until the selected
+  // day's bundle has arrived or the load has failed. Consumers render a
+  // placeholder while this is true and their empty copy only after.
+  const personalPending =
+    !birthProfileLookupDone ||
+    (!!birthProfileId && bundle === null && !bundleQuery.isError && !personalLoadFailed);
   const todayTransit = selectedDate === todayDate.current
     ? bundle?.transit ?? todayTransitSnapshot
     : todayTransitSnapshot ?? bundle?.transit ?? null;
@@ -626,6 +676,8 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
     panchangamTimings: bundle?.panchangamTimings ?? null,
     panchangamLocationLabel: bundle?.panchangamLocationLabel ?? null,
     panchangamTimezone: bundle?.panchangamTimezone ?? null,
+    panchangamPlace: bundle?.panchangamPlace ?? null,
+    locationCheckDue: bundle?.locationCheckDue ?? false,
     bundleSectionErrors: bundle?.sectionErrors ?? {},
     lifeAreas,
     ambientAlerts: ambientAlertsQuery.data ?? [],
@@ -641,6 +693,8 @@ export function usePersonalData({ selectedDate, onStatus, predictionsEnabled = t
     busyPersonal: busyPersonalState || bundleQuery.isFetching,
     setBirthProfileId: updateBirthProfileId,
     birthProfileLookupDone,
+    personalPending,
+    isShowingPreviousDay,
     setChartId,
     setPredictionsLoading: setPredictionsManualLoading,
     setJadhagamReport,

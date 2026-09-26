@@ -25,12 +25,13 @@ import type {
   PanchangamDailyResponseData,
 } from "@/lib/types";
 
-import { LifeAreaCard } from "./life-area-card";
+import { LIFE_FOCUS_CARD_ID, LifeAreaCard } from "./life-area-card";
+import { Reveal } from "./dashboard-ui-nova";
 import { DrawerPanel } from "./drawer-panel";
-import { displayName as yogaDisplayName } from "./dashboard-yoga-dosham-panel";
+import { displayName as yogaDisplayName, doshamStanding, yogaStanding, isRunningInDasha } from "./dashboard-yoga-dosham-panel";
 import { NovaPredictionsPanel } from "./dashboard-life-areas-predictions-nova";
 import { DashboardPropensitiesPanelNova } from "./dashboard-propensities-panel-nova";
-import { HyLifeAreaForecast } from "./dashboard-hybrid-parts";
+import { HyLifeAreaForecast, STANDING_TONE_COLOR } from "./dashboard-hybrid-parts";
 import { NovaJadhagamReportPanel } from "./dashboard-life-areas-report-nova";
 import { NovaRemediesPanel } from "./dashboard-life-areas-remedies-nova";
 import { EventWindowsPanel } from "./dashboard-event-windows";
@@ -38,6 +39,7 @@ import { GOAL_OPTIONS } from "./dashboard-plan-shared";
 import { NovaGocharCard, NovaGuidanceCard } from "./dashboard-today-deepdive-extras-nova";
 import { Segmented, Card, Button, Pill, BilingualText } from "./ui";
 import { Kicker } from "./ui/kicker";
+import { ViewSwap } from "./ui/view-swap";
 
 /**
  * Nova Life Areas tab — Phase 9 of the dashboard revamp, mapped from the
@@ -109,7 +111,7 @@ function tierOf(area: LifeAreaData): Tier {
  * tabs. Reuses `yogaDisplayName` so names follow the canonical map, never raw
  * enums.
  */
-function YogaActivationSummary({
+export function YogaActivationSummary({
   lang,
   yogas,
   doshams,
@@ -120,75 +122,66 @@ function YogaActivationSummary({
   doshams: ChartDoshamInsight[];
   onGoToChart: () => void;
 }) {
+  // This card answers one question — "what is the running dasha lighting?" —
+  // so only items the Mahadasha/Antardasha lord actually activates sit under
+  // the heading. It used to list every present item and stamp "Active" on any
+  // dosham not cancelled, under a heading claiming dasha *and transits*
+  // (the engine reads no transits). A dosham the chart holds but the dasha is
+  // not touching read "Active" here and "Partial" on the Charts tab
+  // (2026-09-23). Each chip now carries the same standing word the Charts card
+  // shows, from the same shared function, so the two tabs cannot disagree.
   const presentYogas = yogas.filter((y) => y.isPresent);
   const presentDoshams = doshams.filter((d) => d.isPresent);
-  const hasAny = presentYogas.length > 0 || presentDoshams.length > 0;
+  const running = [
+    ...presentDoshams.filter((d) => isRunningInDasha(d)).map((d) => ({ key: `d-${d.name}`, name: d.name, standing: doshamStanding(d, lang) })),
+    ...presentYogas.filter((y) => isRunningInDasha(y)).map((y, i) => ({ key: `y-${y.name}-${i}`, name: y.name, standing: yogaStanding(y, lang) })),
+  ];
+  const quiet = [
+    ...presentDoshams.filter((d) => !isRunningInDasha(d)).map((d) => ({ key: `d-${d.name}`, name: d.name, standing: doshamStanding(d, lang) })),
+    ...presentYogas.filter((y) => !isRunningInDasha(y)).map((y, i) => ({ key: `y-${y.name}-${i}`, name: y.name, standing: yogaStanding(y, lang) })),
+  ];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)", fontFamily: "var(--font-body)" }}>
       <Card>
         <h3 style={{ margin: "0 0 4px", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-faint)" }}>
-          {lang === "ta" ? "இப்போது செயலில் உள்ளவை" : "Active right now"}
+          {lang === "ta" ? "தற்போதைய தசையில் செயல்படுபவை" : "Running in your current dasha"}
         </h3>
         <p style={{ margin: "0 0 12px", fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.5 }}>
           {lang === "ta"
-            ? "இந்தக் காலகட்டத்தில் தசை/கிரகநகர்வால் தூண்டப்படும் யோகங்கள் & தோஷங்கள். முழு விளக்கம் உங்கள் ஜாதகப் பார்வையில்."
-            : "Yogas & doshams your current dasha and transits are triggering. The full explanation lives in your chart view."}
+            ? "உங்கள் தற்போதைய தசாநாதன் அல்லது புக்திநாதனால் செயல்படும் யோகங்கள் மற்றும் தோஷங்கள். ஒவ்வொன்றும் உங்கள் ஜாதகத்தில் எவ்வளவு பலமாக உள்ளது என்பதும் காட்டப்படும். முழு விளக்கத்தை ஜாதகப் பகுதியில் பார்க்கலாம்."
+            : "Yogas & doshams your current Mahadasha or Bhukti lord is lighting up. Each shows its strength in the birth chart. The full explanation lives in your chart view."}
         </p>
 
-        {!hasAny ? (
+        {running.length === 0 ? (
           <p style={{ margin: 0, fontSize: "var(--text-base)", color: "var(--color-faint)" }}>
-            {lang === "ta" ? "இப்போது குறிப்பிட்டு செயலில் ஒன்றும் இல்லை." : "Nothing notably active for this chart right now."}
+            {lang === "ta" ? "தற்போதைய தசையில் இந்த ஜாதகத்தின் எந்த யோகமும் தோஷமும் செயல்படவில்லை." : "The current dasha is not lighting any yoga or dosham in this chart."}
           </p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-            {presentYogas.length > 0 && (
-              <div>
-                <p style={{ margin: "0 0 6px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-high)" }}>{t("yogas_title", lang)}</p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
-                  {presentYogas.map((y, i) => {
-                    const active = y.isCurrentlyActive;
-                    const color = active ? "var(--color-high)" : "var(--color-muted)";
-                    return (
-                      <span
-                        key={`${y.name}-${i}`}
-                        style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text-strong)", background: active ? "var(--color-high-bg)" : "var(--color-surface-soft)", border: `1px solid ${active ? "var(--color-high-border)" : "var(--color-border)"}`, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}
-                      >
-                        {yogaDisplayName(y.name, lang)}
-                        {typeof y.activationScore === "number" && (
-                          <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color }}>{y.activationScore}/100</span>
-                        )}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
+            {running.map((it) => {
+              const c = STANDING_TONE_COLOR[it.standing.tone];
+              return (
+                <span
+                  key={it.key}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text-strong)", background: c.bg, border: `1px solid ${c.bd}`, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}
+                >
+                  {yogaDisplayName(it.name, lang)}
+                  <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: c.fg }}>{it.standing.label}</span>
+                </span>
+              );
+            })}
+          </div>
+        )}
 
-            {presentDoshams.length > 0 && (
-              <div>
-                <p style={{ margin: "0 0 6px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-low)" }}>{t("doshams_title", lang)}</p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
-                  {presentDoshams.map((d) => {
-                    const mitigated = d.isCancelled;
-                    const color = mitigated ? "var(--color-high)" : "var(--color-low)";
-                    const bg = mitigated ? "var(--color-high-bg)" : "var(--color-low-bg)";
-                    const border = mitigated ? "var(--color-high-border)" : "var(--color-low-border)";
-                    return (
-                      <span
-                        key={d.name}
-                        style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-text-strong)", background: bg, border: `1px solid ${border}`, borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}
-                      >
-                        {yogaDisplayName(d.name, lang)}
-                        <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color }}>
-                          {mitigated ? (lang === "ta" ? "நிவர்த்தி" : "Mitigated") : (lang === "ta" ? "கவனம்" : "Active")}
-                        </span>
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+        {quiet.length > 0 && (
+          <div style={{ marginTop: "var(--space-4)" }}>
+            <p style={{ margin: "0 0 6px", fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-faint)" }}>
+              {lang === "ta" ? "ஜாதகத்தில் உள்ளது, ஆனால் இந்த தசையில் செயல்படவில்லை" : "In the chart, quiet in this dasha"}
+            </p>
+            <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-muted)", lineHeight: 1.6 }}>
+              {quiet.map((it) => `${yogaDisplayName(it.name, lang)} (${it.standing.label})`).join(" · ")}
+            </p>
           </div>
         )}
 
@@ -240,6 +233,12 @@ type DashboardLifeAreasTabNovaProps = {
    *  audit 2026-07-22, Phase 1/2 — links must land on the populated sub-tab). */
   focusSubTab?: string | null;
   onFocusConsumed?: () => void;
+  /** Life focus (plan §3): this area's card is labelled and scrolled into
+   *  view when the tab opens. Null on a family member's chart (D4). */
+  focusArea?: string | null;
+  /** This tab is the one on screen. Inactive panes are `display: none`, so
+   *  the focus scroll has to wait for this. */
+  active?: boolean;
 };
 
 export function DashboardLifeAreasTabNova({
@@ -273,6 +272,8 @@ export function DashboardLifeAreasTabNova({
   onGoToChart,
   focusSubTab = null,
   onFocusConsumed,
+  focusArea = null,
+  active = false,
 }: DashboardLifeAreasTabNovaProps) {
   const SUB_TAB_KEYS: SubTab[] = ["scores", "predictions", "chances", "yogas", "remedies", "report"];
   const initialSubTab: SubTab = focusSubTab && (SUB_TAB_KEYS as string[]).includes(focusSubTab)
@@ -289,6 +290,7 @@ export function DashboardLifeAreasTabNova({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusSubTab]);
   const [selectedArea, setSelectedArea] = useState<LifeAreaData | null>(null);
+  const [renderedArea, setRenderedArea] = useState<LifeAreaData | null>(null);
   const astroText = (value: string) => (lang === "en" ? tamilizeAstroEnglish(value) : value);
   const currentAge = chartSummary?.currentAge ?? null;
   const isMarried = maritalStatus === "married" || maritalStatus === "widowed" || maritalStatus === "divorced";
@@ -316,6 +318,23 @@ export function DashboardLifeAreasTabNova({
     { key: "remedies", label: t("remedies_title", lang) },
     { key: "report", label: lang === "ta" ? "முழு அறிக்கை" : "Full report" },
   ];
+
+  // Life focus: bring the focus card into view each time the tab opens on
+  // Overview — only when it is off screen, so a reader already looking at it
+  // is not moved.
+  const hasFocusCard = Boolean(focusArea && lifeAreas?.areas.some((a) => a.area === focusArea));
+  useEffect(() => {
+    if (!active || subTab !== "scores" || !hasFocusCard) return;
+    const frame = window.requestAnimationFrame(() => {
+      const el = document.getElementById(LIFE_FOCUS_CARD_ID);
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      if (rect.top >= 0 && rect.bottom <= window.innerHeight) return;
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      el.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [active, subTab, hasFocusCard, focusArea]);
 
   const activeGoals = goals.filter((g) => g.isActive);
   const focusedAreas = lifeAreas?.areas.filter((a) => a.isGoalFocus) ?? [];
@@ -366,7 +385,10 @@ export function DashboardLifeAreasTabNova({
           </p>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "var(--space-3)" }}>
+        {/* Capped at the row: unconstrained, this column took the sub-nav's full
+            width and held the page at 1324px (Tamil) / 835px (English) on a
+            375px phone, so the Segmented's own `max-width: 100%` never bound. */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "var(--space-3)", minWidth: 0, maxWidth: "100%" }}>
           {/* Member switcher — kit <Pill> (audit B-7): one toggle chip, touch-safe. */}
           <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", justifyContent: "flex-end" }}>
             <Pill active={selectedMemberId === null} onClick={() => onSelectMember(null)}>
@@ -389,6 +411,7 @@ export function DashboardLifeAreasTabNova({
         </div>
       </div>
 
+      <ViewSwap viewKey={subTab}>
       {/* ===== Sub-tab: Overview ===== */}
       {subTab === "scores" && (
         <>
@@ -436,7 +459,9 @@ export function DashboardLifeAreasTabNova({
             {activeGoals.length > 0 && (
               <Card style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
                 <Kicker style={{ flex: "none" }}>
-                  {lang === "ta" ? "உங்கள் இலக்கு" : "Your focus"}
+                  {/* "Your goals": "Your focus" now names the life-focus
+                      setting. The Tamil always said இலக்கு (goal). */}
+                  {lang === "ta" ? "உங்கள் இலக்கு" : "Your goals"}
                 </Kicker>
                 {activeGoals.map((g) => (
                   <span key={g.goalId} style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--color-accent-strong)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-pill)", padding: "var(--space-1) var(--space-3)" }}>
@@ -458,7 +483,8 @@ export function DashboardLifeAreasTabNova({
             )}
 
             {tiers.map((tier) => (
-              <section key={tier.key} style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+              <Reveal key={tier.key}>
+              <section style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                 <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-3)", flexWrap: "wrap" }}>
                   {/* audit B-1: tier name is a real section heading, not a styled
                       div — screen readers get a document outline on this page. */}
@@ -467,10 +493,11 @@ export function DashboardLifeAreasTabNova({
                 </div>
                 <div className="nova-grid-4">
                   {tier.areas.map((area) => (
-                    <LifeAreaCard key={area.area} area={area} lang={lang} ageRelevant={area.ageRelevant !== false} onOpenDetail={() => setSelectedArea(area)} />
+                    <LifeAreaCard key={area.area} area={area} lang={lang} ageRelevant={area.ageRelevant !== false} isLifeFocus={focusArea !== null && area.area === focusArea} onOpenDetail={() => { setRenderedArea(area); setSelectedArea(area); }} />
                   ))}
                 </div>
               </section>
+              </Reveal>
             ))}
 
             <Card variant="dashed" style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap" }}>
@@ -484,15 +511,22 @@ export function DashboardLifeAreasTabNova({
                     : "Natal karaka strength + active dasha alignment + today's transit support. They shift slowly — check weekly, not hourly."}
                 </p>
               </div>
-              <Button variant="secondary" onClick={onGoToChart} style={{ whiteSpace: "nowrap" }}>
+              {/* Wraps only when it must: nowrap put the Tamil label 2px past
+                  a 320px phone's card. */}
+              <Button variant="secondary" onClick={onGoToChart} style={{ maxWidth: "100%", whiteSpace: "normal" }}>
                 {lang === "ta" ? "இதன் பின்னணி ஜாதகத்தைப் பார்" : "See the chart behind them"}
                 <ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" />
               </Button>
             </Card>
 
-            {selectedArea && (
-              <DrawerPanel title={lang === "ta" ? selectedArea.label.ta : selectedArea.label.en} onClose={() => setSelectedArea(null)}>
-                <LifeAreaCard area={selectedArea} lang={lang} ageRelevant={selectedArea.ageRelevant !== false} />
+            {renderedArea && (
+              <DrawerPanel
+                title={lang === "ta" ? renderedArea.label.ta : renderedArea.label.en}
+                open={Boolean(selectedArea)}
+                onClose={() => setSelectedArea(null)}
+                onExitComplete={() => setRenderedArea(null)}
+              >
+                <LifeAreaCard area={renderedArea} lang={lang} ageRelevant={renderedArea.ageRelevant !== false} />
               </DrawerPanel>
             )}
           </>
@@ -555,6 +589,7 @@ export function DashboardLifeAreasTabNova({
       {subTab === "report" && (
         <NovaJadhagamReportPanel lang={lang} report={jadhagamReport} loading={jadhagamReportLoading} onLoad={onLoadJadhagamReport} />
       )}
+      </ViewSwap>
     </div>
   );
 }

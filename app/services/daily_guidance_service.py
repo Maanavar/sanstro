@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from calendar import monthrange
+from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from typing import get_args
 from uuid import UUID
@@ -11,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.calculations.activity_timing_rules import (
     ActivityAudience,
+    ActivityTimingResult,
     ActivityType,
     assess_activity_timing,
     daily_activity_board,
@@ -71,6 +74,12 @@ from app.schemas.daily_guidance import (
     JournalCorrelationData,
     JournalCorrelationItem,
     JournalCorrelationResponse,
+    PersonalPalan,
+    PersonalPalanArea,
+    PersonalPalanBasis,
+    PersonalPalanLucky,
+    PersonalPalanPeriod,
+    PersonalPalanSegment,
     RemedyFocus,
     RemedyFocusAction,
     WeekAheadData,
@@ -78,6 +87,7 @@ from app.schemas.daily_guidance import (
     WeekAheadResponse,
 )
 from app.schemas.dasha import ResponseMeta
+from app.services._chart_planets import _is_daytime_birth_for_profile
 from app.services._dg_cache import (
     DAILY_SCORE_ENGINE_VERSION,
     _load_daily_score_cache,
@@ -127,11 +137,14 @@ from app.services.daily_briefing_synth import BriefingInputs, synthesize_daily_b
 from app.services.emotional_weather import TransitPoint, compute_emotional_weather
 from app.services.feature_flags import get_flag
 from app.services.goals_service import get_active_goals_for_chart
+from app.services.life_focus_service import chart_goal_track
 from app.services.location_service import (
+    EffectiveDailyLocation,
     local_noon_as_utc_for_profile,
     resolve_effective_daily_location,
     resolve_effective_daily_timezone,
 )
+from app.services.muhurtham_naal_service import BiLabel, couple_who, require_couple_birth_time
 from app.services.nakshatra_content import build_nakshatra_perspective
 from app.services.narrative_engine import (
     build_score_reasons,
@@ -142,6 +155,8 @@ from app.services.narrative_engine import (
     sani_cycle_background,
     tithi_content_card,
 )
+from app.services.personal_palan import CONTENT_VERSION as PALAN_CONTENT_VERSION
+from app.services.personal_palan import DIRECTION_NAME, PeriodInputs, build_personal_palan
 from app.services.safety_filter import run_safety_pass
 
 __all__ = [
@@ -561,8 +576,11 @@ def build_daily_guidance_response(
     natal_antar_data = next((p for p in chart_snapshot.data.planets if p.graha == antar_lord), None)
     sun_lon = float(natal_sun_data.absolute_longitude) if natal_sun_data else 0.0
     moon_lon = float(natal_moon_data.absolute_longitude) if natal_moon_data else 0.0
-    is_daytime = True if birth_profile.birth_time_local is None else (6 <= birth_profile.birth_time_local.hour < 18)
+    # True sunrise/sunset at the birth place (engine audit G3) — the same
+    # day/night the chart's own strength scores were computed with.
+    is_daytime = _is_daytime_birth_for_profile(birth_profile)
     paksha_is_shukla = ((moon_lon - sun_lon) % 360.0) < 180.0
+    natal_rasi_by_graha = {p.graha: p.rasi for p in chart_snapshot.data.planets}
 
     if natal_maha_data:
         maha_natal_score = int(getattr(natal_maha_data, "strength_score", 0) or 0)
@@ -578,6 +596,7 @@ def build_daily_guidance_response(
                 d9_rasi=natal_maha_data.d9_rasi,
                 is_daytime=is_daytime,
                 paksha_is_shukla=paksha_is_shukla,
+                planet_rasi_map=natal_rasi_by_graha,
             )
         maha_transit = _transit_bodies.get(maha_lord)
         if maha_transit is not None:
@@ -606,6 +625,7 @@ def build_daily_guidance_response(
                 d9_rasi=natal_antar_data.d9_rasi,
                 is_daytime=is_daytime,
                 paksha_is_shukla=paksha_is_shukla,
+                planet_rasi_map=natal_rasi_by_graha,
             )
         antar_transit = _transit_bodies.get(antar_lord)
         if antar_transit is not None:
@@ -640,6 +660,7 @@ def build_daily_guidance_response(
                 d9_rasi=natal_praty_data.d9_rasi,
                 is_daytime=is_daytime,
                 paksha_is_shukla=paksha_is_shukla,
+                planet_rasi_map=natal_rasi_by_graha,
             )
         planet_strength_map[pratyantar_lord] = praty_score
 
@@ -1015,6 +1036,118 @@ def build_daily_guidance_response(
 
     remedy_focus = _build_remedy_focus(chart_snapshot, maha_lord)
 
+    # Proposal §5: the personal palan reads the same day star, Moon rasi,
+    # Chandrashtama badge and verdict label as everything above, and names the
+    # hero's featured window as the best part of the day. No second score.
+    palan = build_personal_palan(
+        on_date=on_date,
+        natal_moon_rasi=natal_moon.rasi,
+        janma_nakshatra=janma_nakshatra,
+        day_moon_rasi=day_moon_rasi,
+        day_nakshatra=day_nakshatra,
+        weekday_lord=panchangam.weekday_lord,
+        label=label,
+        is_chandrashtama=chandrashtama,
+        period=PeriodInputs(
+            maha_lord=maha_lord,
+            antar_lord=antar_lord,
+            natal_lagna_rasi=natal_lagna,
+            antar_natal_rasi=natal_rasi_by_graha.get(antar_lord, natal_lagna),
+            sani_cycle=saturn_cycle.type if saturn_cycle.is_active else None,
+            kandaka_house=saturn_house if kantaka_sani.is_active else None,
+            guru_house=jupiter_house,
+            saturn_house=saturn_house,
+            rahu_house=_all_transit_houses["RAHU"],
+            antar_transit_house=house_from_reference(
+                natal_moon.rasi, transit_snapshot.bodies[antar_lord].rasi
+            ),
+        ),
+        best_window=(_featured_win.start, _featured_win.end) if _featured_win else None,
+        best_hora_lord=_featured_win.hora_lord if _featured_win else None,
+        soolam=getattr(panchangam, "soolam_direction", None),
+    )
+
+    def _dgt(bi) -> DailyGuidanceText:
+        return DailyGuidanceText(ta=bi.ta, en=bi.en)
+
+    personal_palan = PersonalPalan(
+        contentVersion=palan.content_version,
+        reviewStatus=palan.review_status,
+        overallPolarity=palan.overall_polarity,
+        overall=_dgt(palan.overall),
+        areas=[
+            PersonalPalanArea(
+                area=a.area,
+                polarity=a.polarity,
+                text=_dgt(a.text),
+                periodNote=_dgt(a.period_note) if a.period_note else None,
+            )
+            for a in palan.areas
+        ],
+        advice=_dgt(palan.advice),
+        worship=_dgt(palan.worship),
+        closing=_dgt(palan.closing),
+        strength=_dgt(palan.strength) if palan.strength else None,
+        watch=_dgt(palan.watch) if palan.watch else None,
+        opportunityArea=palan.opportunity_area,
+        cautionArea=palan.caution_area,
+        bestWindow=_featured_win,
+        basis=PersonalPalanBasis(
+            moonHouse=palan.moon_house,
+            tara=palan.tara,
+            taraName=_dgt(palan.tara_name),
+            isChandrashtama=palan.is_chandrashtama,
+            text=_dgt(palan.basis),
+        ),
+        period=(
+            PersonalPalanPeriod(
+                mahaLord=palan.period.maha_lord,
+                antarLord=palan.period.antar_lord,
+                saniCycle=palan.period.sani_cycle,
+                kandakaHouse=palan.period.kandaka_house,
+                guruHouse=palan.period.guru_house,
+                saturnHouse=palan.period.saturn_house,
+                rahuHouse=palan.period.rahu_house,
+                antarHouses=list(palan.period.antar_houses),
+                antarTransitHouse=palan.period.antar_transit_house,
+                antarTransitSupportive=palan.period.antar_transit_supportive,
+                text=_dgt(palan.period.text),
+            )
+            if palan.period
+            else None
+        ),
+        dashaAreas=list(palan.dasha_areas),
+        transcript=[
+            PersonalPalanSegment(kind=seg.kind, area=seg.area, text=_dgt(seg.text))
+            for seg in palan.transcript
+        ],
+        lucky=(
+            PersonalPalanLucky(
+                graha=palan.lucky.graha,
+                source=palan.lucky.source,
+                colour=_dgt(palan.lucky.colour),
+                number=palan.lucky.number,
+                direction=palan.lucky.direction,
+                directionName=_dgt(DIRECTION_NAME[palan.lucky.direction]) if palan.lucky.direction else None,
+                soolam=palan.lucky.soolam,
+                soolamName=_dgt(DIRECTION_NAME[palan.lucky.soolam]) if palan.lucky.soolam else None,
+                text=_dgt(palan.lucky.basis),
+            )
+            if palan.lucky
+            else None
+        ),
+    )
+
+    run_safety_pass(
+        personal_palan.overall, personal_palan.advice, personal_palan.worship,
+        personal_palan.closing, personal_palan.basis.text,
+        personal_palan.period.text if personal_palan.period else None,
+        *(a.text for a in personal_palan.areas),
+        *(a.period_note for a in personal_palan.areas),
+        *(seg.text for seg in personal_palan.transcript),
+        personal_palan.lucky.text if personal_palan.lucky else None,
+        source="personal_palan",
+    )
     run_safety_pass(
         reasons.summary, reasons.remedy, reasons.caution, reasons.personal_caution,
         nakshatra_perspective, briefing, emotional_weather.tone_text,
@@ -1116,6 +1249,7 @@ def build_daily_guidance_response(
                 nakshatra_number=day_nakshatra,
                 is_chandrashtama=chandrashtama,
             ),
+            personalPalan=personal_palan,
         ),
         meta=ResponseMeta(
             calculation_version=chart_snapshot.meta.calculation_version,
@@ -1141,6 +1275,11 @@ def _persisted_chart_owner(chart_snapshot: ChartCalculateResponse) -> UUID:
     return owner_user_id
 
 
+# Default for get_daily_guidance(goal_track=...): "look it up". None is a real
+# answer (no track), so it cannot double as "not passed".
+_UNRESOLVED: object = object()
+
+
 def get_daily_guidance(
     session: Session,
     chart_id: UUID,
@@ -1149,13 +1288,14 @@ def get_daily_guidance(
     *,
     chart_snapshot: ChartCalculateResponse | None = None,
     preloaded_cache: dict[date, DailyGuidanceResponse] | None = None,
+    goal_track: str | None | object = _UNRESOLVED,
 ) -> DailyGuidanceResponse:
-    from app.models.user import User as _User
     chart_snapshot = chart_snapshot or load_persisted_chart_response(session, chart_id)
     active_goals = get_active_goals_for_chart(session, chart_id)
     owner_user_id = _persisted_chart_owner(chart_snapshot)
-    _user_row = session.get(_User, owner_user_id)
-    goal_track = getattr(_user_row, "goal_track", None) if _user_row else None
+    if not isinstance(goal_track, str | None):
+        # Unresolved: focus-derived, and None on a family member's chart (plan D4).
+        goal_track = chart_goal_track(session, chart_snapshot.data.birth_profile, owner_user_id)
     context_row = get_context_row(session, owner_user_id, chart_id)
     journal_insight = _build_journal_insight(
         session,
@@ -1163,10 +1303,14 @@ def get_daily_guidance(
         chart_id=chart_id,
         on_date=on_date,
     )
-    can_use_cache = not active_goals and context_row is None and journal_insight is None and not goal_track
+    # goal_track no longer bypasses the cache: rows are tagged with the track
+    # they were built for (see _dg_cache._GOAL_TRACK_KEY), so a focus user is
+    # cached like everyone else instead of recomputing on every request.
+    can_use_cache = not active_goals and context_row is None and journal_insight is None
     birth_profile_id = chart_snapshot.data.birth_profile.birth_profile_id
     if can_use_cache:
         if preloaded_cache is not None:
+            # The caller loaded these rows for the same track (get_daily_guidance_range).
             cached = preloaded_cache.get(on_date)
         else:
             cached = _load_daily_score_cache(
@@ -1174,8 +1318,19 @@ def get_daily_guidance(
                 birth_profile_id=birth_profile_id,
                 score_date=on_date,
                 calculation_version=chart_snapshot.meta.calculation_version,
+                goal_track=goal_track,
             )
-        if cached is not None:
+        # A row cached before `personalPalan` existed, or with an older palan
+        # CONTENT_VERSION, is otherwise current, so this is not an engine-version
+        # bump: only a single-date read (Today, the member bundle) rebuilds its
+        # own row, the day it is asked for. Range reads keep the old row;
+        # nothing they feed renders the palan.
+        palan_current = (
+            cached is not None
+            and cached.data.personal_palan is not None
+            and cached.data.personal_palan.content_version == PALAN_CONTENT_VERSION
+        )
+        if cached is not None and (palan_current or preloaded_cache is not None):
             return cached
 
     response = build_daily_guidance_response(
@@ -1195,6 +1350,7 @@ def get_daily_guidance(
             score_date=on_date,
             response=response,
             calculation_version=chart_snapshot.meta.calculation_version,
+            goal_track=goal_track,
         )
     return response
 
@@ -1225,12 +1381,17 @@ def get_daily_guidance_range(
     # can pass it in to avoid paying for `_birth_panchangam_signature`'s
     # ~1.2s recomputation twice in the same request.
     chart_snapshot = chart_snapshot or load_persisted_chart_response(session, chart.chart_id)
+    # Resolved once for the whole range, not once per day.
+    goal_track = chart_goal_track(
+        session, chart_snapshot.data.birth_profile, _persisted_chart_owner(chart_snapshot)
+    )
     preloaded_cache = _load_daily_score_cache_range(
         session,
         birth_profile_id=chart_snapshot.data.birth_profile.birth_profile_id,
         start_date=from_date,
         end_date=to_date,
         calculation_version=chart_snapshot.meta.calculation_version,
+        goal_track=goal_track,
     )
 
     # NOTE: threading was tried here and measured *slower* than the plain
@@ -1253,6 +1414,7 @@ def get_daily_guidance_range(
                 language,
                 chart_snapshot=chart_snapshot,
                 preloaded_cache=preloaded_cache,
+                goal_track=goal_track,
             ).data
         )
         current += timedelta(days=1)
@@ -1453,6 +1615,164 @@ def _activity_timing_rank(
     return daily_score + tara_score, alignment_tie, -day_ordinal
 
 
+@dataclass(frozen=True, slots=True)
+class _TimingChart:
+    """One chart's half of a month scan: its birth star and its own day scores.
+
+    A couple's two halves share the event's Panchangam (one sky, one place) for
+    every star-level reading. Each day *score* stays that person's own: read at
+    their own daily location, from their own goals and journal, and cached under
+    their own profile, exactly as a single-chart scan has always done.
+    """
+
+    chart_id: UUID
+    snapshot: ChartCalculateResponse
+    janma_nakshatra: int
+    owner_user_id: UUID
+    active_goals: list
+    context_row: object | None
+    birth_profile_id: UUID
+    cache_eligible: bool
+    # The same track get_daily_guidance applies, so both paths write the same
+    # cache row instead of overwriting each other's (the score is track-free, D2).
+    goal_track: str | None
+    daily_location: EffectiveDailyLocation
+    panchang_by_date: dict[date, PanchangamSnapshot]
+    score_cache: dict
+
+
+def _load_timing_chart(
+    session: Session,
+    chart_id: UUID,
+    birth_profile: BirthProfile,
+    month_start: date,
+    month_end: date,
+) -> _TimingChart:
+    snapshot = load_persisted_chart_response(session, chart_id)
+    active_goals = get_active_goals_for_chart(session, chart_id)
+    owner_user_id = _persisted_chart_owner(snapshot)
+    context_row = get_context_row(session, owner_user_id, chart_id)
+    birth_profile_id = snapshot.data.birth_profile.birth_profile_id
+    goal_track = chart_goal_track(session, snapshot.data.birth_profile, owner_user_id)
+    # Batch-load/compute the whole month up front instead of looping per-day
+    # (which previously recomputed panchangam from scratch — no session/cache —
+    # and issued a separate DailyScore SELECT for every day).
+    daily_location = resolve_effective_daily_location(birth_profile)
+    return _TimingChart(
+        chart_id=chart_id,
+        snapshot=snapshot,
+        janma_nakshatra=next(planet.nakshatra for planet in snapshot.data.planets if planet.graha == "MOON"),
+        owner_user_id=owner_user_id,
+        active_goals=active_goals,
+        context_row=context_row,
+        birth_profile_id=birth_profile_id,
+        cache_eligible=not active_goals and context_row is None,
+        goal_track=goal_track,
+        daily_location=daily_location,
+        panchang_by_date=calculate_daily_panchangam_range(
+            month_start,
+            month_end,
+            daily_location.latitude,
+            daily_location.longitude,
+            daily_location.timezone,
+            session=session,
+        ),
+        score_cache=_load_daily_score_cache_range(
+            session,
+            birth_profile_id=birth_profile_id,
+            start_date=month_start,
+            end_date=month_end,
+            calculation_version=snapshot.meta.calculation_version,
+            goal_track=goal_track,
+        ),
+    )
+
+
+def _timing_day_score(session: Session, reader: _TimingChart, d: date) -> int:
+    """This chart's own daily-guidance score for `d`, cached where it may be."""
+    panchang = reader.panchang_by_date[d]
+    journal_insight = _build_journal_insight(
+        session,
+        owner_user_id=reader.owner_user_id,
+        chart_id=reader.chart_id,
+        on_date=d,
+    )
+    can_use_cache = reader.cache_eligible and journal_insight is None
+    if can_use_cache:
+        cached_response = reader.score_cache.get(d)
+        if cached_response is not None:
+            return cached_response.data.score
+
+    current_jd = utc_datetime_to_julian_day(panchang.solar_noon.astimezone(UTC))
+    transit_snapshot = calculate_sidereal_planets(current_jd)
+    daily_response = build_daily_guidance_response(
+        reader.snapshot,
+        d,
+        session=session,
+        panchangam=panchang,
+        transit_snapshot=transit_snapshot,
+        active_goals=reader.active_goals,
+        context_row=reader.context_row,
+        journal_insight=journal_insight,
+        goal_track=reader.goal_track,
+    )
+    if can_use_cache:
+        _store_daily_score_cache(
+            session,
+            birth_profile_id=reader.birth_profile_id,
+            score_date=d,
+            response=daily_response,
+            calculation_version=reader.snapshot.meta.calculation_version,
+            goal_track=reader.goal_track,
+        )
+    return daily_response.data.score
+
+
+def _couple_timing_day(
+    general: ActivityTimingResult,
+    readings: Sequence[ActivityTimingResult],
+    scores: Sequence[int],
+    who: tuple[BiLabel, BiLabel],
+) -> tuple[int, int, str, str]:
+    """A couple's day in the month scan: (score, tara_score, reason_ta, reason_en).
+
+    Owner ruling 2026-09-12 (R1), per factor family, as the muhurta engine
+    applies it: the day score is the **lower** of the two charts' own, and the
+    Tara priced is the **weaker** of the two. The families are folded
+    independently, so a date can take one partner's day score and the other's
+    Tara. Both Taras are named. The closing sentences say which numbers set the
+    order, so the printed score never has to explain itself.
+
+    `general` is the same day assessed with no birth star — the Panchangam half
+    that is identical for both charts.
+    """
+    score = min(scores)
+    tara_scores = [reading.tara_score for reading in readings]
+    governing = tara_scores.index(min(tara_scores))
+
+    named = [(w, r.tara_signal) for w, r in zip(who, readings, strict=True) if r.tara_signal is not None]
+    parts_ta = [f"{w.ta}: {signal.reason_ta}." for w, signal in named] + [general.combined_ta]
+    parts_en = [f"{w.en}: {signal.reason_en}" for w, signal in named] + [general.combined_en]
+
+    if scores[0] == scores[1]:
+        parts_ta.append(f"இருவருக்கும் இந்நாளின் மதிப்பெண் {score}.")
+        parts_en.append(f"Both charts score this day {score}.")
+    else:
+        parts_ta.append(
+            f"நாள் மதிப்பெண் {score} — இருவரில் குறைவானது "
+            f"({who[0].ta} {scores[0]} · {who[1].ta} {scores[1]})."
+        )
+        parts_en.append(
+            f"Day score {score} is the lower of the two charts' "
+            f"({who[0].en} {scores[0]} · {who[1].en} {scores[1]})."
+        )
+    if tara_scores[0] != tara_scores[1]:
+        parts_ta.append(f"வரிசைப்படுத்த எடுத்த தாரா: {who[governing].ta} — இருவரில் பலவீனமானது.")
+        parts_en.append(f"The order uses the {who[governing].en.lower()}'s Tara, the weaker of the two.")
+
+    return score, tara_scores[governing], " ".join(parts_ta), " ".join(parts_en)
+
+
 def get_activity_timing(
     session: Session,
     chart_id: UUID,
@@ -1460,12 +1780,19 @@ def get_activity_timing(
     month: str,
     as_of: date | None = None,
     calculation_version: str = "thirukanitham-2026-v1",
+    *,
+    partner_chart_id: UUID | None = None,
+    subject_role: str | None = None,
 ) -> ActivityTimingResponse:
     """
     FEATURE-08: Returns top 5 dates in the given month ranked by activity alignment.
     month format: YYYY-MM. If `as_of` falls within `month`, its own (unranked)
     result is also returned as `date_result` — the month is already fully
     computed below, so this reuses that work rather than adding a query.
+
+    With `partner_chart_id` (a wedding only) both charts are read and the weaker
+    side governs each family — see `_couple_timing_day`. The caller has already
+    authorised the partner chart.
     """
     chart = session.get(Chart, chart_id)
     if chart is None:
@@ -1479,108 +1806,94 @@ def get_activity_timing(
 
     normalized_activity = _normalize_activity_timing_activity(activity)
 
+    who: tuple[BiLabel, BiLabel] | None = None
+    partner_profile: BirthProfile | None = None
+    if partner_chart_id is not None:
+        if normalized_activity != "marriage":
+            # Ruling 2026-09-15: only a marriage is elected on two charts.
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=(
+                    "A second chart is read only for a wedding. Every other rite is chosen on "
+                    "the birth star of the one it is for — send that person's chart alone."
+                ),
+            )
+        if partner_chart_id == chart_id:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="A couple is two different charts — choose the partner's chart, not this one.",
+            )
+        partner_chart = session.get(Chart, partner_chart_id)
+        partner_profile = (
+            session.get(BirthProfile, partner_chart.birth_profile_id) if partner_chart is not None else None
+        )
+        if partner_profile is None:
+            raise HTTPException(status_code=404, detail="Chart not found.")
+        who = couple_who(subject_role)
+        require_couple_birth_time(session, chart_id, who[0])
+        require_couple_birth_time(session, partner_chart_id, who[1])
+
     year, mon = int(month[:4]), int(month[5:7])
     _, days_in_month = monthrange(year, mon)
+    month_start = date(year, mon, 1)
+    month_end = date(year, mon, days_in_month)
 
-    chart_snapshot = load_persisted_chart_response(session, chart_id)
-    active_goals = get_active_goals_for_chart(session, chart_id)
-    owner_user_id = _persisted_chart_owner(chart_snapshot)
-    context_row = get_context_row(session, owner_user_id, chart_id)
-    birth_profile_id = chart_snapshot.data.birth_profile.birth_profile_id
-    base_cache_eligible = not active_goals and context_row is None
+    primary = _load_timing_chart(session, chart_id, birth_profile, month_start, month_end)
+    readers = [primary]
+    if partner_chart_id is not None and partner_profile is not None:
+        readers.append(_load_timing_chart(session, partner_chart_id, partner_profile, month_start, month_end))
 
     results: list[tuple[int, int, int, ActivityTimingDayResult]] = []
     date_result: ActivityTimingDayResult | None = None
-    janma_nakshatra = next(
-        planet.nakshatra for planet in chart_snapshot.data.planets if planet.graha == "MOON"
-    )
-
-    # Batch-load/compute the whole month up front instead of looping per-day
-    # (which previously recomputed panchangam from scratch — no session/cache —
-    # and issued a separate DailyScore SELECT for every day).
-    daily_location = resolve_effective_daily_location(birth_profile)
-    month_start = date(year, mon, 1)
-    month_end = date(year, mon, days_in_month)
-    panchang_by_date = calculate_daily_panchangam_range(
-        month_start,
-        month_end,
-        daily_location.latitude,
-        daily_location.longitude,
-        daily_location.timezone,
-        session=session,
-    )
-    daily_score_cache = _load_daily_score_cache_range(
-        session,
-        birth_profile_id=birth_profile_id,
-        start_date=month_start,
-        end_date=month_end,
-        calculation_version=chart_snapshot.meta.calculation_version,
-    )
+    janma_nakshatra = primary.janma_nakshatra
+    daily_location = primary.daily_location
+    # The event's Panchangam: the first chart's place, as the naal list reads it.
+    panchang_by_date = primary.panchang_by_date
 
     for day_num in range(1, days_in_month + 1):
         d = date(year, mon, day_num)
         try:
             panchang = panchang_by_date[d]
-            result = assess_activity_timing(
-                activity=normalized_activity,
-                tithi_number=panchang.tithi_number,
-                paksha=panchang.tithi_paksha,
-                weekday_lord=panchang.weekday_lord,
-                # The strongest day-selection factor, and this ranker ran
-                # without it: tithi, paksha and weekday alone would rank a
-                # Bharani day above a Poosam day for the same activity.
-                nakshatra_number=panchang.nakshatra_number,
-                janma_nakshatra=janma_nakshatra,
-            )
-            journal_insight = _build_journal_insight(
-                session,
-                owner_user_id=owner_user_id,
-                chart_id=chart_id,
-                on_date=d,
-            )
-            can_use_cache = base_cache_eligible and journal_insight is None
-
-            cached_score: int | None = None
-            if can_use_cache:
-                cached_response = daily_score_cache.get(d)
-                if cached_response is not None:
-                    cached_score = cached_response.data.score
-
-            if cached_score is not None:
-                score = cached_score
-            else:
-                current_jd = utc_datetime_to_julian_day(panchang.solar_noon.astimezone(UTC))
-                transit_snapshot = calculate_sidereal_planets(current_jd)
-                daily_response = build_daily_guidance_response(
-                    chart_snapshot,
-                    d,
-                    session=session,
-                    panchangam=panchang,
-                    transit_snapshot=transit_snapshot,
-                    active_goals=active_goals,
-                    context_row=context_row,
-                    journal_insight=journal_insight,
+            readings = [
+                assess_activity_timing(
+                    activity=normalized_activity,
+                    tithi_number=panchang.tithi_number,
+                    paksha=panchang.tithi_paksha,
+                    weekday_lord=panchang.weekday_lord,
+                    # The strongest day-selection factor, and this ranker ran
+                    # without it: tithi, paksha and weekday alone would rank a
+                    # Bharani day above a Poosam day for the same activity.
+                    nakshatra_number=panchang.nakshatra_number,
+                    janma_nakshatra=reader.janma_nakshatra,
                 )
-                if can_use_cache:
-                    _store_daily_score_cache(
-                        session,
-                        birth_profile_id=birth_profile_id,
-                        score_date=d,
-                        response=daily_response,
-                        calculation_version=chart_snapshot.meta.calculation_version,
-                    )
-                score = daily_response.data.score
+                for reader in readers
+            ]
+            scores = [_timing_day_score(session, reader, d) for reader in readers]
+
+            if who is None:
+                result = readings[0]
+                score, tara_score = scores[0], result.tara_score
+                reason_ta, reason_en = result.combined_ta, result.combined_en
+            else:
+                result = assess_activity_timing(
+                    activity=normalized_activity,
+                    tithi_number=panchang.tithi_number,
+                    paksha=panchang.tithi_paksha,
+                    weekday_lord=panchang.weekday_lord,
+                    nakshatra_number=panchang.nakshatra_number,
+                )
+                score, tara_score, reason_ta, reason_en = _couple_timing_day(result, readings, scores, who)
 
             rank, alignment_tie, date_tie = _activity_timing_rank(
-                score, result.combined_alignment, result.tara_score, day_num
+                score, result.combined_alignment, tara_score, day_num
             )
             day_result = ActivityTimingDayResult(
                 dateLocal=d,
                 score=score,
                 label=_score_label(score),
                 alignment=result.combined_alignment,
-                reasonTa=result.combined_ta,
-                reasonEn=result.combined_en,
+                reasonTa=reason_ta,
+                reasonEn=reason_en,
                 shortReasonTa=result.short_ta,
                 shortReasonEn=result.short_en,
             )
@@ -1640,6 +1953,7 @@ def get_activity_timing(
                 timezone=daily_location.timezone,
                 source=daily_location.source,
             ),
+            partnerChartId=partner_chart_id,
         ),
         meta=ResponseMeta(
             calculation_version=calculation_version,

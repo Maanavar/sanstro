@@ -107,7 +107,7 @@ describe("NovaYogaDoshamPanel — nested Full yogam guide", () => {
     const gajaKesari = makeYoga({ name: "GAJA_KESARI_YOGA" });
     render(<NovaYogaDoshamPanel lang="ta" yogas={[gajaKesari]} doshams={[]} />);
 
-    fireEvent.click(screen.getByText("Gaja Kesari Yoga"));
+    fireEvent.click(screen.getByText("கஜகேசரி யோகம்"));
     fireEvent.click(screen.getByText("முழுமையான யோக வழிகாட்டி"));
     expect(screen.getByText(/சந்திரனிலிருந்து கேந்திரத்தில்/)).toBeInTheDocument();
   });

@@ -36,7 +36,7 @@ the commit message which cells moved and why the ruling accounts for them:
 
     py -3 tests/test_drishti_yoga_golden.py    # prints both tables as literals
 
-## Why these three charts
+## Why these four charts
 
 Chosen so the two pending changes have somewhere to show up, not for realism:
 
@@ -47,8 +47,11 @@ Chosen so the two pending changes have somewhere to show up, not for realism:
 * `nodal` — Rahu with Jupiter and Ketu with the Sun, so the node rows relabelled
   `[PRODUCT]` on 2026-08-28 and Chandala's ruled split (Guru+Rahu only, with
   Guru+Ketu becoming its own `[VARIANT]` card) both have a witness.
+* `yogakaraka_neecha` (added 2026-09-23) — a yogakaraka that is both neecha and
+  in a dusthana, the one case the ownership ruling reversed from absent to
+  present. None of the first three has a weakened yogakaraka.
 
-All three are synthetic and deliberately regular. No birth data.
+All four are synthetic and deliberately regular. No birth data.
 
 ## One thing the fixture already shows
 
@@ -122,6 +125,15 @@ CHARTS: dict[str, tuple[dict[str, int], int, int]] = {
          "VENUS": 8, "SATURN": 1, "RAHU": 12, "KETU": 6},
         10, 12,
     ),
+    # Added 2026-09-23 as the witness the other three cannot be: a *weakened*
+    # yogakaraka. Rishabha lagna, so Sani lords the 9th and 10th; it sits in
+    # Mesham — its neecha sign and the 12th from lagna — so two afflictions
+    # apply and the ruling still takes exactly one rung (STRONG -> PARTIAL).
+    "yogakaraka_neecha": (
+        {"SUN": 5, "MOON": 4, "MARS": 6, "MERCURY": 5, "JUPITER": 3,
+         "VENUS": 9, "SATURN": 1, "RAHU": 11, "KETU": 5},
+        2, 4,
+    ),
 }
 
 #: Frozen 2026-08-28, AFTER item 7's per-yoga rulings land, BEFORE the drishti
@@ -145,6 +157,17 @@ CHARTS: dict[str, tuple[dict[str, int], int, int]] = {
 #: is the whole point of the change, which took the rule from ~25% of charts to
 #: ~4%. Nothing else moved, which is the useful part — the redefinition did not
 #: leak into any other yoga on any of the three charts.
+#:
+#: RE-FROZEN 2026-09-23 for the astrologer's Raja/Amala rulings:
+#:   * a new row on every chart, `YOGAKARAKA_RAJA_YOGA` (`YOG-RY-04`). Present
+#:     only on `nodal`: Makara lagna, Sukran lords Rishabham (5th) and Thulam
+#:     (10th), sits in Vrischikam (11th) — not a dusthana, not neecha.
+#:   * `spread`/`AMALA_YOGA` PARTIAL -> WEAK: Guru in the 10th (Makara) takes
+#:     Sevvai's 4th drishti from Thulam and Sani's 3rd from Vrischikam. The
+#:     ruling is "malefic aspect weakens, never cancels": still present.
+#:   * `RAJA_YOGA` did not move on any chart under the moolatrikona test for
+#:     dusthana-owning lords — none of these three lagnas has a disqualified lord
+#:     that was forming its Raja Yoga.
 GOLDEN_YOGAS: dict[str, tuple[tuple[str, bool, str], ...]] = {
     "clustered": (
         ("ADHI_YOGA", False, "WEAK"),
@@ -173,6 +196,7 @@ GOLDEN_YOGAS: dict[str, tuple[tuple[str, bool, str], ...]] = {
         ("SUNAPHA_YOGA", True, "PARTIAL"),
         ("VASUMATI_YOGA", False, "WEAK"),
         ("VIPAREETHA_RAJA_YOGA", False, "WEAK"),
+        ("YOGAKARAKA_RAJA_YOGA", False, "WEAK"),
     ),
     "nodal": (
         ("ADHI_YOGA", False, "WEAK"),
@@ -201,10 +225,12 @@ GOLDEN_YOGAS: dict[str, tuple[tuple[str, bool, str], ...]] = {
         ("SUNAPHA_YOGA", True, "PARTIAL"),
         ("VASUMATI_YOGA", True, "PARTIAL"),
         ("VIPAREETHA_RAJA_YOGA", False, "WEAK"),
+        ("YOGAKARAKA_RAJA_YOGA", True, "STRONG"),
     ),
     "spread": (
         ("ADHI_YOGA", False, "WEAK"),
-        ("AMALA_YOGA", True, "PARTIAL"),
+        # Was PARTIAL until 2026-09-23: malefic drishti on the occupied 10th.
+        ("AMALA_YOGA", True, "WEAK"),
         ("BHADRA_YOGA", False, "WEAK"),
         ("BUDHA_ADITYA_YOGA", False, "WEAK"),
         ("CHANDALA_KETU_YOGA", False, "WEAK"),
@@ -237,6 +263,44 @@ GOLDEN_YOGAS: dict[str, tuple[tuple[str, bool, str], ...]] = {
         # upachaya, and a solitary Budha is one, so the yoga is right to fire.
         ("VASUMATI_YOGA", True, "PARTIAL"),
         ("VIPAREETHA_RAJA_YOGA", False, "WEAK"),
+        ("YOGAKARAKA_RAJA_YOGA", False, "WEAK"),
+    ),
+    # Frozen 2026-09-23 when the chart was added. The row that matters is the
+    # last: present, PARTIAL. On the code before the ownership ruling this read
+    # absent (the first-pass dignity gate removed a neecha yogakaraka).
+    # NEECHA_BHANGA_RAJA_YOGA is present too — Suriya, exalted in Mesham, is in
+    # a kendra — and whether that bhanga should restore the yogakaraka's rung is
+    # an open question in docs/ASTROLOGER_REVIEW_QUEUE.md, not decided here.
+    "yogakaraka_neecha": (
+        ("ADHI_YOGA", False, "WEAK"),
+        ("AMALA_YOGA", False, "WEAK"),
+        ("ANAPHA_YOGA", True, "PARTIAL"),
+        ("BHADRA_YOGA", False, "WEAK"),
+        ("BUDHA_ADITYA_YOGA", True, "STRONG"),
+        ("CHANDALA_KETU_YOGA", False, "WEAK"),
+        ("CHANDALA_YOGA", False, "WEAK"),
+        ("CHANDRA_MANGALA_YOGA", False, "WEAK"),
+        ("DARIDRA_PROXY_YOGA", False, "WEAK"),
+        ("DARIDRA_YOGA", False, "WEAK"),
+        ("DHANA_SUPPORTIVE_YOGA", False, "WEAK"),
+        ("DHANA_YOGA", False, "WEAK"),
+        ("DURUDHURA_YOGA", True, "STRONG"),
+        ("GAJA_KESARI_YOGA", False, "WEAK"),
+        ("HAMSA_YOGA", False, "WEAK"),
+        ("KARTARI_YOGA", False, "WEAK"),
+        ("KEMADRUMA_YOGA", False, "WEAK"),
+        ("LAKSHMI_YOGA", False, "WEAK"),
+        ("MALAVYA_YOGA", False, "WEAK"),
+        ("NEECHA_BHANGA_RAJA_YOGA", True, "PARTIAL"),
+        ("PARIVARTANA_YOGA", False, "WEAK"),
+        ("RAJA_YOGA", True, "STRONG"),
+        ("RUCHAKA_YOGA", False, "WEAK"),
+        ("SAKATA_YOGA", False, "WEAK"),
+        ("SASA_YOGA", False, "WEAK"),
+        ("SUNAPHA_YOGA", True, "PARTIAL"),
+        ("VASUMATI_YOGA", False, "WEAK"),
+        ("VIPAREETHA_RAJA_YOGA", True, "STRONG"),
+        ("YOGAKARAKA_RAJA_YOGA", True, "PARTIAL"),
     ),
 }
 
@@ -332,6 +396,23 @@ def test_adhi_yoga_no_longer_fires_on_every_chart_here() -> None:
         "Adhi Yoga still fires on every fixture chart — YOG-AD-01's tightening "
         "did not take"
     )
+
+
+def test_weakened_yogakaraka_is_lowered_not_cancelled() -> None:
+    """`YOG-RY-04` on a full chart: ownership forms it, two afflictions cost one
+    rung, and neither is filed as a cancellation — a cancellation factor on a
+    WEAK card reads "Cancelled" on every client (`yogaReadingStatus`)."""
+    planets, lagna, moon = CHARTS["yogakaraka_neecha"]
+    yogas, _, _ = detect_yogas_and_doshams(planets, lagna_rasi=lagna, moon_rasi=moon)
+    yk = next(y for y in yogas if y.name == "YOGAKARAKA_RAJA_YOGA")
+    assert (yk.is_present, yk.strength) == (True, "PARTIAL")
+    assert yk.conditions_met == [
+        "saturn_yogakaraka_owns_9_10",
+        "saturn_yogakaraka_debilitated",
+        "saturn_yogakaraka_in_dusthana_12",
+    ]
+    assert yk.cancellation_factors == []
+    assert yk.key_grahas == ("SATURN",)
 
 
 if __name__ == "__main__":  # pragma: no cover — regeneration helper

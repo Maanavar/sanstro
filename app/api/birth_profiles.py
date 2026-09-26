@@ -21,6 +21,7 @@ from app.schemas.birth_profiles import (
     BirthProfileUpdate,
 )
 from app.services.birth_profile_service import (
+    confirm_current_location,
     create_birth_profile,
     get_birth_profile,
     get_latest_birth_profile_for_owner,
@@ -109,6 +110,33 @@ def update_birth_profile_endpoint(
     if profile.owner_user_id != current_user.user_id:
         raise AppError(ErrorCode.ACCESS_DENIED)
     return update_birth_profile(session, profile, payload, calculation_version="thirukanitham-2026-v1")
+
+
+@router.post(
+    "/birth-profiles/{birth_profile_id}/confirm-location",
+    response_model=BirthProfileGetResponse,
+    tags=["birth-profiles"],
+    summary="Record that the saved location is still correct, without changing it",
+)
+def confirm_birth_profile_location_endpoint(
+    birth_profile_id: UUID,
+    session: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> BirthProfileGetResponse:
+    """The "Keep Chennai" half of the §2 location check.
+
+    A reader who declines the prompt has answered it just as much as one who
+    accepts, so the confirmation stamp has to move on both. Without this the
+    PATCH route would be the only thing that stamps, the backstop would come
+    back on the reader's next visit, and declining would be indistinguishable
+    from ignoring.
+    """
+    profile = session.get(BirthProfile, birth_profile_id)
+    if profile is None or profile.deleted_at is not None:
+        raise AppError(ErrorCode.BIRTH_PROFILE_NOT_FOUND)
+    if profile.owner_user_id != current_user.user_id:
+        raise AppError(ErrorCode.ACCESS_DENIED)
+    return confirm_current_location(session, profile)
 
 
 @router.delete(

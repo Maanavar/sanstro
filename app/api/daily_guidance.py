@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
+from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -101,11 +102,24 @@ def activity_timing(
     activity: str = Query(alias="activity"),
     month: str = Query(alias="month", description="Format: YYYY-MM"),
     as_of: date | None = Query(default=None, alias="asOf", description="Optional specific date to also score, within `month`"),
+    partner_chart_id: UUID | None = Query(
+        default=None,
+        alias="partnerChartId",
+        description="Marriage only: the partner's saved chart. Both are read and the weaker side governs.",
+    ),
+    subject_role: Literal["BRIDE", "GROOM", "PERSON"] | None = Query(default=None, alias="subjectRole"),
     session: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ActivityTimingResponse:
     _assert_chart_owner(session, chart_id, current_user)
-    return get_activity_timing(session, chart_id, activity, month, as_of=as_of)
+    if partner_chart_id is not None and partner_chart_id != chart_id:
+        # A partner id is a second way in — its birth star and day score surface
+        # in the reasons — so it is guarded exactly as the first.
+        _assert_chart_owner(session, partner_chart_id, current_user)
+    return get_activity_timing(
+        session, chart_id, activity, month, as_of=as_of,
+        partner_chart_id=partner_chart_id, subject_role=subject_role,
+    )
 
 
 @router.get("/activity-timing/batch", response_model=ActivityTimingBatchResponse, tags=["daily-guidance"])

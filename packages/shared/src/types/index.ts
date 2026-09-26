@@ -180,6 +180,24 @@ export interface TraditionalMonthNotice {
   message: BiText;
 }
 
+/**
+ * Whether a wedding date also appears on the printed almanac's own wedding list.
+ *
+ * §3 of docs/HOME_CALENDAR_CHARTS_PROPOSALS_2026-09-22.md. **A gate, not a
+ * bonus point** (astrologer): most Tamil families will not accept a date the
+ * almanac does not list, however good its computed score — so this is reported
+ * beside `score` and contributes nothing to it.
+ *
+ * Three states rather than a boolean: only years with a sourced almanac sheet
+ * are published at all, and "we have no sheet for that year" is not "the almanac
+ * rejected your date".
+ */
+export interface AlmanacMuhurtham {
+  status: "ON_LIST" | "NOT_ON_LIST" | "NO_SHEET";
+  /** The almanac's own paksha for the day. Present only when `ON_LIST`. */
+  pirai?: "VALARPIRAI" | "THEIPIRAI" | null;
+}
+
 export interface MuhurtaSlot {
   date: string;
   tamilDate?: BiText | null;
@@ -202,6 +220,9 @@ export interface MuhurtaSlot {
    * verdicts, citations and rule conflicts.
    */
   factors?: MuhurtaFactor[];
+  /** MARRIAGE only. Absent on every other activity: the sourced sheets are
+   *  wedding sheets, so there is no verdict to render for an exam day. */
+  almanacMuhurtham?: AlmanacMuhurtham | null;
 }
 
 export interface MuhurtaActivityLocation {
@@ -274,6 +295,10 @@ export interface BirthProfileResponse {
   birthTimeConfidenceMinutes: number;
   calculationStatus: "pending" | "completed" | "failed";
   warnings: string[];
+  /** The profile's saved chart. Sent by GET /birth-profiles; null until calculated. */
+  chartId?: string | null;
+  /** "male" | "female" when given; used to preselect a wedding role, never to score. */
+  genderForTraditionalRules?: string | null;
 }
 
 export interface BirthProfileSnapshot {
@@ -329,6 +354,7 @@ export interface ChartPlanet {
   /** Cazimi — planet within 0°17' of the Sun (heart of the Sun): empowered, not burnt. */
   isCazimi?: boolean;
   d9Rasi: number;
+  d9Dignity: "EXALTED" | "OWN_SIGN" | "FRIEND_SIGN" | "NEUTRAL_SIGN" | "ENEMY_SIGN" | "DEBILITATED";
   isVargottama: boolean;
   showRetrogradeBadge: boolean;
   strengthScore?: number;
@@ -339,6 +365,13 @@ export interface ChartPlanet {
     chesta: "STRONG" | "NEUTRAL" | "WEAK";
     naisargika: "STRONG" | "NEUTRAL" | "WEAK";
     drik: "STRONG" | "NEUTRAL" | "WEAK";
+    // Avastha labels the backend has always sent (compute_strength_breakdown)
+    // but this type never declared. Language-free keys — render the chart
+    // explanation's `avastha` facet for prose, never these bare codes.
+    // Mandhi carries "NEUTRAL" for all three.
+    baladi?: "BALA" | "KUMARA" | "YUVA" | "VRIDDHA" | "MRITA" | "NEUTRAL";
+    jagradadi?: "JAGRAT" | "SWAPNA" | "SUSHUPTI" | "NEUTRAL";
+    deeptadi?: "DEEPTA" | "SWASTHA" | "MUDITA" | "DEENA" | "DUKHITA" | "KHALA" | "NEUTRAL";
   };
 }
 
@@ -362,6 +395,13 @@ export interface ChartYogaInsight {
    */
   effectTa?: string;
   effectEn?: string;
+  /**
+   * The running Antaram (Pratyantar), when its lord also formed this yoga and a
+   * Maha/Antar lord has already activated it — the sharpest sub-window
+   * (astrologer ruling 2026-09-23). Antaram never activates a yoga on its own.
+   * Null otherwise. Dates are ISO `YYYY-MM-DD`. Not rendered yet; additive.
+   */
+  peakWindow?: { start: string; end: string; antaramLord: string } | null;
 }
 
 export interface ChartDoshamInsight {
@@ -421,6 +461,7 @@ export interface ChartCalculateResponseData {
     nakshatra: number;
     nakshatraName: string;
     pada: number;
+    d9Rasi: number;
   };
   planets: ChartPlanet[];
   yogas: ChartYogaInsight[];
@@ -635,6 +676,97 @@ export interface DailyGuidanceData {
   /** Today's green/red light across all activity types. Optional — older
    *  cached rows predate it, so callers must handle undefined. */
   activityBoard?: DailyActivityBoard | null;
+  /** இன்றைய பலன் · உங்கள் ஜாதகப்படி (proposal §5). Null on rows cached
+   *  before it existed. */
+  personalPalan?: PersonalPalan | null;
+}
+
+export type PalanPolarity = "FAVOURABLE" | "MIXED" | "CAUTION";
+
+/** Language-free area keys; label them with `palanAreaLabel`. */
+export type PalanAreaKey =
+  | "CAREER" | "BUSINESS" | "MONEY" | "FAMILY" | "LOVE" | "HEALTH"
+  | "EDUCATION" | "TRAVEL" | "DOCUMENTS" | "FRIENDS" | "COMMUNICATION" | "MIND";
+
+export interface PersonalPalanArea {
+  area: PalanAreaKey | (string & {});
+  polarity: PalanPolarity;
+  text: { ta: string; en: string };
+  /** The season's one clause for this area (Sani / Guru / Rahu), if any. */
+  periodNote?: { ta: string; en: string } | null;
+}
+
+/** The slow layers the day is read against. Lords and the Sani cycle are
+ *  keys: render them through `tPlanetLord` / `saniCycleName`. */
+export interface PersonalPalanPeriod {
+  mahaLord: string;
+  antarLord: string;
+  saniCycle?: string | null;
+  kandakaHouse?: number | null;
+  /** Houses counted from the natal Moon. */
+  guruHouse: number;
+  saturnHouse: number;
+  rahuHouse: number;
+  /** Houses the bhukti lord rules (a node: occupies) from the lagna. */
+  antarHouses: number[];
+  antarTransitHouse: number;
+  antarTransitSupportive: boolean;
+  text: { ta: string; en: string };
+}
+
+export interface PersonalPalan {
+  contentVersion: string;
+  /** OWNER_COMMISSIONED_DRAFT until outside review is recorded. */
+  reviewStatus: string;
+  /** Read off the same response's `label`: never contradicts the hero. */
+  overallPolarity: PalanPolarity;
+  overall: { ta: string; en: string };
+  areas: PersonalPalanArea[];
+  advice: { ta: string; en: string };
+  worship: { ta: string; en: string };
+  closing: { ta: string; en: string };
+  strength?: { ta: string; en: string } | null;
+  watch?: { ta: string; en: string } | null;
+  opportunityArea?: PalanAreaKey | null;
+  cautionArea?: PalanAreaKey | null;
+  /** The hero's featured window, not a second calculation. */
+  bestWindow?: DailyGuidanceWindow | null;
+  basis: {
+    moonHouse: number;
+    tara: number;
+    taraName: { ta: string; en: string };
+    isChandrashtama: boolean;
+    text: { ta: string; en: string };
+  };
+  period?: PersonalPalanPeriod | null;
+  /** Areas the running bhukti lord brings forward; they lead the card. */
+  dashaAreas?: PalanAreaKey[];
+  /** The same palan as a TV-presenter transcript, in speaking order. The
+   *  greeting with the person's name is the client's. */
+  transcript?: PersonalPalanSegment[];
+  /** Lucky colour, number and direction (ruling R9): one graha, named with
+   *  its rules in `text`. */
+  lucky?: PersonalPalanLucky | null;
+}
+
+export interface PersonalPalanLucky {
+  /** Graha key; render with `tPlanetLord`. */
+  graha: string;
+  source: "BEST_HORA" | "WEEKDAY" | (string & {});
+  colour: { ta: string; en: string };
+  number: number;
+  /** Null when the graha's direction is the day's Soolam. */
+  direction?: string | null;
+  directionName?: { ta: string; en: string } | null;
+  soolam?: string | null;
+  soolamName?: { ta: string; en: string } | null;
+  text: { ta: string; en: string };
+}
+
+export interface PersonalPalanSegment {
+  kind: "OVERALL" | "PERIOD" | "AREA" | "TIME" | "STRENGTH" | "ADVICE" | "WORSHIP" | "CLOSING" | (string & {});
+  area?: PalanAreaKey | null;
+  text: { ta: string; en: string };
 }
 
 /** One activity and today's verdict on it. */
@@ -826,6 +958,10 @@ export interface ChartExplanationCoreIdentity {
   currentAntardasha: string;
   currentPratyantardasha: string;
   explanation: BiText;
+  /** Set only when birth-time error (firm ±5 min, soft ±15 min) would change the Lagna sign. */
+  lagnaEdgeNote?: BiText | null;
+  /** Set only when ±5 min of birth-time error would change the Navamsa (D9) Lagna. */
+  navamsaLagnaEdgeNote?: BiText | null;
 }
 
 export interface ChartExplanationPlanet {
@@ -887,6 +1023,7 @@ export interface ChartExplanationFacet {
     | "placement"
     | "role"
     | "strength"
+    | "avastha"
     | "lordship"
     | "condition"
     | "company"
@@ -1116,6 +1253,10 @@ export interface PanchangamDailyResponseData {
     gowriPanchangam?: KalamSlot[];
     nallaNeram: KalamSlot[];
     gowriNallaNeram: KalamSlot[];
+    /** 1-2 of the fifteen equal daylight muhurtas, by weekday. Optional
+     *  because a cached response built before 2026-09-22 has no such key —
+     *  same reason `gowriPanchangam` is optional. */
+    durmuhurtham?: KalamSlot[];
   };
   abhijit: { start: string; end: string; isRestrictedByWeekday: boolean };
   subhaMuhurtham: { isSubha: boolean; reason: string; isSubhaStrict: boolean; strictReason: string };
@@ -1420,6 +1561,8 @@ export type ActivityTimingData = {
   dateResult: ActivityTimingDayResult | null;
   /** Panchangam location used to rank this month's dates. */
   dailyLocation?: { latitude: number; longitude: number; timezone: string; source: "current" | "birth" } | null;
+  /** A wedding scan for a couple. Scores are then the lower of the two charts'. */
+  partnerChartId?: string | null;
 };
 
 export type DashaStoryData = {
@@ -1458,9 +1601,20 @@ export type LifeMode =
   | "STUDY" | "CAREER" | "LOVE" | "MARRIAGE" | "FAMILY"
   | "WEALTH" | "HEALTH" | "SPIRITUALITY" | "REMEDIES" | "BALANCED";
 
+export type LifeModeUpdateIntent = "SELECT" | "SKIP" | "KEEP";
+/** Entry point of a focus write. Only FIRST_RUN_PICKER may send SKIP. */
+export type LifeModeUpdateSurface = "FIRST_RUN_PICKER" | "WEB" | "MOBILE";
+
 export interface LifeModeStatus {
   mode: LifeMode; lifeModeSetAt: string | null;
   showLifeModePicker: boolean; blockedModes?: string[];
+  /** Server-computed: offer the "Still focused on X?" strip (60-day cadence). */
+  focusNudgeDue: boolean;
+  /** Life-area code this focus pins (e.g. "CAREER"), or null for BALANCED/REMEDIES.
+   *  From the server's D1 table (app/core/life_mode.py) — never re-derive it. */
+  focusArea: string | null;
+  /** Activity types (user_goal VALID_GOAL_TYPES) this focus lifts; may be empty. */
+  focusActivities: string[];
 }
 
 export interface PredictionBundle {
@@ -1476,6 +1630,10 @@ export interface JadhagamReportBirthProfile {
 export interface JadhagamReportCoreIdentity {
   lagnaRasi: string; moonRasi: string; janmaNakshatra: string; janmaPada: number;
   currentMahadasha: string; currentAntardasha: string;
+  /** Set only when birth-time error (firm ±5 min, soft ±15 min) would change the Lagna sign. */
+  lagnaEdgeNote?: BiText | null;
+  /** Set only when ±5 min of birth-time error would change the Navamsa (D9) Lagna. */
+  navamsaLagnaEdgeNote?: BiText | null;
 }
 
 export interface JadhagamReportNavamsaSummary {

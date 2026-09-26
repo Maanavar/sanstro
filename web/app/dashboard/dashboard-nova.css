@@ -72,6 +72,42 @@
      in dashboard/layout.tsx) is applied selectively to prose/guidance copy
      as each screen is built, not blanket here. ── */
   --font-body: system-ui, -apple-system, sans-serif;
+
+  /* ── Heading role (typography pass 2026-09-23). Fraunces carries no Tamil
+     glyphs, and neither does anything after it in a bare `var(--font-display)`
+     — so every Tamil heading, verdict and closing line on Today was painted in
+     the OS's Tamil face (Nirmala UI on Windows) while the text around it was
+     Noto Sans Tamil. Measured: 29 elements on Today in ta. Naming the Tamil
+     face second keeps Latin in Fraunces and hands Tamil to the one Tamil face
+     the product loads. A new name, not a re-point of --font-display: a
+     self-reference here is a cycle and computes to nothing, and the render
+     pass asserts --font-display is inherited untouched. ── */
+  --font-heading: var(--font-display), var(--font-tamil), Georgia, serif;
+
+  /* ── Uppercase tracking: two steps, not five. Today's eyebrows were set at
+     0.24em, 0.14em, 0.12em, 0.06em and 0.04em. `caps` is the kicker/eyebrow;
+     `tag` is the tight uppercase chip that has to fit a timeline segment.
+     Both drop to 0 in Tamil below — letter-spacing breaks Tamil conjuncts and
+     uppercase does nothing to the script, so there is no case to track. ── */
+  --tracking-caps: 0.12em;
+  --tracking-tag: 0.06em;
+}
+[data-ui="nova"] .cd-shell[data-lang="ta"] {
+  --tracking-caps: 0;
+  --tracking-tag: 0;
+}
+
+/* One card title for every section on Today — was three families-and-sizes:
+   Fraunces 26px (the palan), Fraunces 20px (Why this prediction?) and system
+   sans 16px (Quick links, Life Areas, Dasa chapter, Family today, Your day,
+   Remedy for you, Is today okay for…?). The display face at the h3 step. */
+[data-ui="nova"] .cd-shell .nova-card-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--color-text-strong);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -500,9 +536,12 @@
     linear-gradient(150deg, #151827 0%, #0A0E20 62%);
   /* Card lift — a whisper of shadow so cards sit above the base plane instead
      of floating on it borderless-flat. Kept to 1px depth on dark. */
-  --nova-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.30);
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.30);
+  --elev-2: 0 6px 20px rgba(0, 0, 0, 0.28);
+  --elev-3: 0 18px 42px rgba(0, 0, 0, 0.42);
+  --nova-card-shadow: var(--elev-1);
   /* Hover-lift twin of the above (.nova-interactive:hover). */
-  --nova-hover-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  --nova-hover-shadow: var(--elev-2);
   /* Shadow pigment as a bare rgb triple, for the shadows that compose their own
      alpha inline (the .button--primary pair). Neutral black on navy. */
   --nova-shadow-ink: 0, 0, 0;
@@ -883,10 +922,13 @@
   --nova-hero-gradient:
     radial-gradient(130% 150% at 12% 0%, rgba(201, 151, 28, 0.08), transparent 46%),
     linear-gradient(150deg, var(--surface-1), var(--surface-2));
-  --nova-card-shadow: 0 1px 3px rgba(28, 16, 8, 0.08);
+  --elev-1: 0 1px 3px rgba(28, 16, 8, 0.08);
+  --elev-2: 0 6px 18px rgba(28, 16, 8, 0.10);
+  --elev-3: 0 18px 42px rgba(28, 16, 8, 0.18);
+  --nova-card-shadow: var(--elev-1);
   /* Warm brown-black at a third of dark's alpha: on cream a shadow only needs
      to suggest lift, and a neutral black would grey the warm palette. */
-  --nova-hover-shadow: 0 6px 18px rgba(28, 16, 8, 0.10);
+  --nova-hover-shadow: var(--elev-2);
   /* Warm brown rather than neutral black — see --nova-shadow-ink in the dark
      block. A pure-black drop on a warm cream palette reads as dirt, not depth. */
   --nova-shadow-ink: 28, 16, 8;
@@ -1178,11 +1220,17 @@
   font-family: inherit;
   cursor: pointer;
   text-align: left;
-  transition: border-color 150ms ease;
+  transition: border-color 150ms var(--ease-nova);
 }
 
-[data-ui="nova"] .cd-ask-search:hover {
+[data-ui="nova"] .cd-ask-search:hover:not(:disabled) {
   border-color: var(--color-accent);
+}
+
+/* Present before a chart exists so its arrival does not shift the nav (DXA-05). */
+[data-ui="nova"] .cd-ask-search:disabled {
+  cursor: default;
+  opacity: 0.55;
 }
 
 [data-ui="nova"] .cd-ask-search__star {
@@ -1299,6 +1347,10 @@
   align-items: baseline;
   gap: var(--space-3);
   min-width: 0;
+  /* Takes the row's free width (DXA-05): the name and the chart line arrive
+     with the chart, and while this block sized to its contents their arrival
+     pushed the whole right-hand group sideways. */
+  flex: 1 1 auto;
 }
 
 [data-ui="nova"] .cd-subbar__name {
@@ -1340,12 +1392,42 @@
   text-overflow: ellipsis;
 }
 
+/* Spans the free width and packs to the end (DXA-05): late chips (vault,
+   provenance) appear inside the box instead of moving the box itself. */
 [data-ui="nova"] .cd-subbar__right {
   margin-left: auto;
+  /* Its own width, held constant by the fixed slots below. */
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: var(--space-3);
   min-width: 0;
+}
+
+/* DXA-05 — the provenance note and the family-vault pill both arrive with the
+   day's data. Their slots are in the row from the first paint, and hold a
+   width, so the group's left edge stays put when they land. Only where the
+   bar is one row: on a phone it wraps, and a fixed 26rem would force a wrap
+   of its own. The widths are the notes' own (Tamil says the same thing in
+   more characters); anything longer ellipsizes, as it did before. */
+[data-ui="nova"] .cd-subbar__slot {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+}
+@media (min-width: 860px) {
+  [data-ui="nova"] .cd-subbar__slot--status {
+    width: 17rem;
+  }
+  [data-ui="nova"][lang="ta"] .cd-subbar__slot--status {
+    width: 20rem;
+  }
+  [data-ui="nova"] .cd-subbar__slot--vault {
+    width: 8.5rem;
+  }
 }
 
 [data-ui="nova"] .cd-subbar__status {
@@ -1383,7 +1465,7 @@
   max-width: 220px;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: border-color 150ms ease;
+  transition: border-color 150ms var(--ease-nova);
 }
 
 [data-ui="nova"] .cd-subbar__vault:hover {
@@ -1540,7 +1622,7 @@
   border-color: var(--color-accent);
   color: var(--color-on-accent);
   box-shadow: 0 1px 2px rgba(var(--nova-shadow-ink), 0.24), 0 2px 7px color-mix(in srgb, var(--color-accent) 20%, transparent);
-  transition: box-shadow 150ms ease, filter 150ms ease;
+  transition: box-shadow 150ms var(--ease-nova), filter 150ms var(--ease-nova);
 }
 [data-ui="nova"] .cd-shell .button--primary:hover {
   background: linear-gradient(180deg, var(--color-accent-strong), var(--color-accent-strong));
@@ -1749,7 +1831,7 @@
   50% { opacity: 0.45; }
 }
 .nova-pulse-dot {
-  animation: nova-pulse 2.4s ease infinite;
+  animation: nova-pulse 2.4s var(--ease-nova) infinite;
 }
 @media (prefers-reduced-motion: reduce) {
   .nova-pulse-dot {
@@ -1776,28 +1858,543 @@
   .nova-grid-4 { grid-template-columns: minmax(0, 1fr); }
 }
 
-/* Monthly calendar tab: grid + 300px sidebar, used by
-   dashboard-calendar-monthly-nova.tsx (screen 3, cal-monthly). */
-@media (max-width: 960px) {
-  .nova-cal-monthly-layout {
-    grid-template-columns: 1fr !important;
-  }
+/* Monthly calendar: shared Nova surfaces, with a quiet landscape behind the
+   page heading. The bitmap is decorative; actual moon phases remain in cells. */
+[data-ui="nova"] .cd-shell .nova-cal-monthly-header {
+  position: relative;
+  isolation: isolate;
+  min-height: 190px;
+  padding: var(--space-5) 0 var(--space-4);
+  align-items: flex-start !important;
 }
+/* No opaque scrim: --color-bg is not the shell's gradient ground, so a scrim
+   painted in it drew a visible box. The artwork's mask does the fading, and
+   its left third is dark sky by construction (see the generation prompt). */
+[data-ui="nova"] .cd-shell .nova-cal-monthly-header::before { content: none; }
+/* Feathered on every edge: an unmasked bitmap read as a hard-cornered box
+   floating over the page ground instead of atmosphere behind it. */
+[data-ui="nova"] .cd-shell .nova-cal-landscape {
+  position: absolute; z-index: -2; inset: 0; pointer-events: none; opacity: .8;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 18%, #000 88%, transparent), linear-gradient(180deg, transparent, #000 22%, #000 62%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(90deg, transparent, #000 18%, #000 88%, transparent), linear-gradient(180deg, transparent, #000 22%, #000 62%, transparent);
+  mask-composite: intersect;
+}
+[data-ui="nova"] .cd-shell .nova-cal-landscape img { object-fit: cover; object-position: center 48%; }
+[data-ui="nova"] .cd-shell .nova-cal-monthly-header > .nova-cal-landscape { inset: -24px -24px 0; }
+[data-ui="nova"] .cd-shell .nova-cal-monthly-header__copy {
+  max-width: 620px;
+}
+[data-ui="nova"] .cd-shell .nova-cal-monthly-header__copy > div:nth-child(2) {
+  row-gap: var(--space-2) !important;
+}
+[data-ui="nova"] .cd-shell .nova-cal-monthly-header h1 { flex-basis: 100%; }
+[data-ui="nova"] .cd-shell .nova-cal-monthly-header__motto {
+  margin: var(--space-3) 0 0;
+  color: var(--color-accent-strong);
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-style: italic;
+}
+[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-landscape { opacity: .1; }
+[data-ui="nova"] .cd-shell .nova-cal-main,
+[data-ui="nova"] .cd-shell .nova-cal-sidebar {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+[data-ui="nova"] .cd-shell .nova-cal-sidebar { gap: var(--space-3); }
+@keyframes nova-cal-reveal {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+[data-ui="nova"] .cd-shell .nova-cal-monthly-header,
+[data-ui="nova"] .cd-shell .nova-cal-insights,
+[data-ui="nova"] .cd-shell #monthly-agenda:not([hidden]) { animation: nova-cal-reveal var(--motion-nav) var(--ease-nova) both; }
+[data-ui="nova"] .cd-shell .nova-cal-grid-panel {
+  padding: var(--space-4);
+  gap: var(--space-5);
+  background: color-mix(in srgb, var(--color-surface) 55%, transparent);
+  border-color: var(--color-border-strong);
+}
+[data-ui="nova"] .cd-shell .nova-cal-nav-btn {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-accent-strong);
+  cursor: pointer;
+  transition: border-color 120ms var(--ease-nova), background 120ms var(--ease-nova);
+}
+[data-ui="nova"] .cd-shell .nova-cal-nav-btn:hover { border-color: var(--color-accent); background: var(--color-accent-muted); }
+[data-ui="nova"] .cd-shell .nova-cal-nav-btn:focus-visible { outline: 2px solid var(--color-accent-strong); outline-offset: 2px; }
+/* Sized to its content (number, Tamil date, tithi, two event lines), not to a
+   fixed tall slot: 124px left a third of most cells empty. */
+[data-ui="nova"] .cd-shell .nova-cal-cell {
+  min-width: 0;
+  min-height: 104px;
+  transition: border-color 160ms var(--ease-nova), background 160ms var(--ease-nova), transform 160ms var(--ease-nova);
+}
+[data-ui="nova"] .cd-shell .nova-cal-cell:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--color-accent-strong) !important;
+}
+[data-ui="nova"] .cd-shell .nova-cal-cell:active:not(:disabled) { transform: scale(0.985); }
+[data-ui="nova"] .cd-shell .nova-cal-cell:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: -3px;
+}
+[data-ui="nova"] .cd-shell .nova-cal-cell__number {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+/* Adjacent-month days are context, not content: a quiet outline, no dashes. */
+[data-ui="nova"] .cd-shell .nova-cal-cell--outside {
+  border: 1px solid color-mix(in srgb, var(--color-border) 55%, transparent);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+  background: transparent;
+  color: var(--color-muted);
+}
+/* Quieted by weight and size, not by opacity: faint/opacity fell to 3.67:1
+   on the grid panel and failed the axe contrast gate. */
+[data-ui="nova"] .cd-shell .nova-cal-cell--outside .nova-cal-cell__number { font-size: var(--text-base); font-weight: 400; }
+[data-ui="nova"] .cd-shell .nova-cal-rail-panel {
+  padding: var(--space-4);
+  gap: 10px;
+  background: color-mix(in srgb, var(--color-surface) 85%, transparent);
+}
+[data-ui="nova"] .cd-shell .nova-cal-rail-panel .nova-cal-panel-heading { flex-wrap: nowrap; min-height: 28px; }
+[data-ui="nova"] .cd-shell .nova-cal-rail-panel .nova-cal-panel-heading h2 { font-size: var(--text-base); line-height: 1.3; min-width: 0; }
+[data-ui="nova"] .cd-shell .nova-cal-rail-panel .nova-cal-panel-heading .ui-btn { margin-right: -8px; flex-shrink: 0; }
+[data-ui="nova"] .cd-shell .nova-cal-panel-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: space-between;
+  align-items: center;
+}
+[data-ui="nova"] .cd-shell .nova-cal-panel-heading h2,
+[data-ui="nova"] .cd-shell .nova-cal-rail-section h3,
+[data-ui="nova"] .cd-shell .nova-cal-insights h3 {
+  margin: 0;
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: 600;
+  line-height: 1.4;
+}
+[data-ui="nova"] .cd-shell .nova-cal-panel-heading h2,
+[data-ui="nova"] .cd-shell .nova-cal-insights__fact h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+[data-ui="nova"] .cd-shell .nova-cal-panel-heading h2 > svg {
+  color: var(--color-accent-strong);
+  flex-shrink: 0;
+}
+[data-ui="nova"] .cd-shell .nova-cal-rail-meta {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+[data-ui="nova"] .cd-shell .nova-cal-featured > button {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
+  gap: var(--space-2);
+  padding: 7px 0;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  background: transparent;
+  text-align: left;
+  color: var(--color-text);
+  font: inherit;
+  width: 100%;
+  cursor: pointer;
+}
+[data-ui="nova"] .cd-shell .nova-cal-featured strong {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.35;
+}
+[data-ui="nova"] .cd-shell .nova-cal-featured small {
+  display: block;
+  margin-top: 1px;
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+}
+[data-ui="nova"] .cd-shell .nova-cal-event-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent-strong);
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+/* Dots speak the grid legend's language: gold is Festival only, so a row that
+   is just a muhurtham or a Karinaal day must not wear it. */
+[data-ui="nova"] .cd-shell .nova-cal-event-dot--muhurtham { background: var(--color-high); }
+[data-ui="nova"] .cd-shell .nova-cal-event-dot--karinaal { background: var(--color-alert-critical); }
+[data-ui="nova"] .cd-shell .nova-cal-event-dot--routine { background: var(--color-faint); }
+/* Observances as a two-column list (name · date chips). Wrapped pills put one
+   observance per row anyway at rail width, at twice the height. */
+[data-ui="nova"] .cd-shell .nova-cal-observances {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+[data-ui="nova"] .cd-shell .nova-cal-observance {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 4px 0;
+  font-size: var(--text-xs);
+  color: var(--color-text);
+}
+[data-ui="nova"] .cd-shell .nova-cal-observance + .nova-cal-observance { border-top: 1px solid color-mix(in srgb, var(--color-text-strong) 6%, transparent); }
+[data-ui="nova"] .cd-shell .nova-cal-observance__name { min-width: 0; line-height: 1.35; }
+[data-ui="nova"] .cd-shell .nova-cal-observance__dates { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; flex-shrink: 0; }
+/* The rail's one chip: dates in observances and muhurtham days. */
+[data-ui="nova"] .cd-shell .nova-cal-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 26px;
+  height: 24px;
+  padding: 0 7px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-soft);
+  color: var(--color-text-strong);
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 120ms var(--ease-nova);
+}
+[data-ui="nova"] .cd-shell .nova-cal-sidebar .nova-cal-chip:hover:not(:disabled) { border-color: var(--color-accent); background: var(--color-surface-soft); }
+[data-ui="nova"] .cd-shell .nova-cal-chip--high {
+  padding: 0 10px;
+  color: var(--color-high);
+  background: var(--color-high-bg);
+  border-color: var(--color-high-border);
+}
+[data-ui="nova"] .cd-shell .nova-cal-sidebar .nova-cal-chip--high:hover:not(:disabled) { background: var(--color-high-bg); border-color: var(--color-high); }
+[data-ui="nova"] .cd-shell .nova-cal-rail-section {
+  border-top: 1px solid var(--color-border);
+  padding-top: 10px;
+}
+[data-ui="nova"] .cd-shell .nova-cal-rail-section h3 { margin-bottom: 6px; font-size: var(--text-sm); }
+[data-ui="nova"] .cd-shell .nova-cal-rail-section .nova-cal-muhurtham-heading { color: var(--color-high); }
+[data-ui="nova"] .cd-shell .nova-cal-date-links { display: flex; flex-wrap: wrap; gap: 6px; }
+[data-ui="nova"] .cd-shell .nova-cal-other-days {
+  max-height: 168px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+[data-ui="nova"] .cd-shell .nova-cal-other-days button {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: var(--space-2);
+  width: 100%;
+  padding: 5px 0;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text-strong) 6%, transparent);
+  background: transparent;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: var(--text-xs);
+  text-align: left;
+  cursor: pointer;
+}
+[data-ui="nova"] .cd-shell .nova-cal-full-link { color: var(--color-accent-strong); font-size: var(--text-xs); font-weight: 600; }
+[data-ui="nova"] .cd-shell .nova-cal-sidebar button:hover:not(:disabled) { background: var(--color-surface-soft); }
+[data-ui="nova"] .cd-shell .nova-cal-sidebar button:focus-visible { outline: 2px solid var(--color-accent-strong); outline-offset: 2px; }
+[data-ui="nova"] .cd-shell .nova-cal-sidebar button:disabled { cursor: default; }
+[data-ui="nova"] .cd-shell .nova-cal-insights { padding: var(--space-4); gap: var(--space-3); }
+[data-ui="nova"] .cd-shell .nova-cal-insights__body { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: var(--space-3); align-items: start; }
+[data-ui="nova"] .cd-shell .nova-cal-insights__date .ui-btn { margin-left: -8px; }
+[data-ui="nova"] .cd-shell .nova-cal-insights__date { display: flex; align-items: center; gap: var(--space-3); }
+[data-ui="nova"] .cd-shell .nova-cal-insights__date > svg { flex-shrink: 0; }
+[data-ui="nova"] .cd-shell .nova-cal-insights p { font-size: var(--text-xs); color: var(--color-muted); line-height: 1.55; margin: var(--space-1) 0 0; }
+[data-ui="nova"] .cd-shell .nova-cal-insights__fact { padding: 10px var(--space-3); background: var(--color-surface-soft); border: 1px solid var(--color-border); border-radius: var(--radius-sm); }
+[data-ui="nova"] .cd-shell .nova-cal-insights__fact h3 { font-family: inherit; font-size: var(--text-xs); }
+[data-ui="nova"] .cd-shell .nova-cal-insights__fact--high { background: var(--color-high-bg); border-color: var(--color-high-border); }
+[data-ui="nova"] .cd-shell .nova-cal-insights__fact--caution { background: var(--color-low-bg); border-color: var(--color-low-border); }
+[data-ui="nova"] .cd-shell .nova-cal-today-label { color: var(--color-accent-strong); background: var(--color-accent-muted); padding: 3px 12px; font-size: var(--text-xs); border-radius: var(--radius-pill); }
+[data-ui="nova"] .cd-shell .nova-cal-closing {
+  position: relative;
+  isolation: isolate;
+  min-height: 150px;
+  margin-top: var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: var(--space-4) var(--space-6);
+}
+[data-ui="nova"] .cd-shell .nova-cal-closing p { margin: 0; max-width: 260px; font: italic var(--text-lg)/1.45 var(--font-display); color: var(--color-accent-strong); text-shadow: 0 1px 12px var(--color-bg); }
+[data-ui="nova"][data-theme="light"] .cd-shell .nova-cal-closing { background: var(--color-surface-soft); }
 
-/* Events & Festivals tab row inside that 300px rail. The card's 22px side
-   padding leaves ~256px, and three label+count tabs consume nearly all of it
-   in English — Tamil (வரவிருப்பவை / விரதம் / முகூர்த்தம்) does not fit at all.
-   Without this the flex children shrink and the labels clip mid-word, so the
-   row scrolls instead, matching .cd-tabnav__scroll / .ui-segmented. The tabs
-   themselves set flex-shrink:0 + nowrap inline. */
-.nova-cal-sidebar-tabs {
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;         /* Firefox */
-  -ms-overflow-style: none;      /* legacy Edge */
+[data-ui="nova"] .cd-shell .nova-cal-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
 }
-.nova-cal-sidebar-tabs::-webkit-scrollbar {
-  display: none;                 /* WebKit */
+/* Quick jumps ride the month toolbar's right edge. */
+[data-ui="nova"] .cd-shell .nova-cal-toolbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+[data-ui="nova"] .cd-shell .nova-cal-next-muhurtham svg { color: var(--color-high); }
+/* Filter bar: chips directly above the grid they gate. */
+[data-ui="nova"] .cd-shell .nova-cal-filterbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: calc(-1 * var(--space-2));
+}
+[data-ui="nova"] .cd-shell .nova-cal-filterbar__icon { color: var(--color-muted); margin-right: 2px; flex-shrink: 0; }
+[data-ui="nova"] .cd-shell .nova-cal-filterbar__reset { margin-left: auto; }
+[data-ui="nova"] .cd-shell .nova-cal-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 11px;
+  min-height: 28px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-muted);
+  font-family: inherit;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 120ms var(--ease-nova), border-color 120ms var(--ease-nova), color 120ms var(--ease-nova);
+}
+[data-ui="nova"] .cd-shell .nova-cal-filter[aria-pressed="true"] {
+  color: var(--color-text-strong);
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-soft);
+}
+[data-ui="nova"] .cd-shell .nova-cal-filter:hover { border-color: var(--color-accent); }
+[data-ui="nova"] .cd-shell .nova-cal-filter:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 2px;
+}
+[data-ui="nova"] .cd-shell .nova-cal-filter__swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  border: 1.5px solid var(--swatch);
+  background: var(--swatch);
+  flex-shrink: 0;
+}
+[data-ui="nova"] .cd-shell .nova-cal-filter[aria-pressed="false"] .nova-cal-filter__swatch { background: transparent; }
+
+[data-ui="nova"] .cd-shell .nova-cal-monthly-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: var(--space-4);
+  align-items: start;
+}
+[data-ui="nova"] .cd-shell .nova-cal-agenda__empty {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+[data-ui="nova"] .cd-shell .nova-cal-agenda__list {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  list-style: none;
+  margin: 0;
+  max-height: 480px;
+  padding: 0;
+  border-top: 1px solid var(--color-border);
+}
+[data-ui="nova"] .cd-shell .nova-cal-agenda__list > li + li {
+  border-top: 1px solid color-mix(in srgb, var(--color-text-strong) 7%, transparent);
+}
+[data-ui="nova"] .cd-shell .nova-cal-agenda__day {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+  width: 100%;
+  padding: 7px 8px;
+  margin: 1px 0;
+  border: 0;
+  border-radius: var(--radius-sm, 8px);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+[data-ui="nova"] .cd-shell .nova-cal-agenda__day:disabled { cursor: default; }
+[data-ui="nova"] .cd-shell .nova-cal-agenda__day:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-text-strong) 5%, transparent);
+}
+[data-ui="nova"] .cd-shell .nova-cal-agenda__day[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--color-text-strong) 8%, transparent);
+}
+[data-ui="nova"] .cd-shell .nova-cal-agenda__day:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: -2px;
+}
+[data-ui="nova"] .cd-shell .nova-cal-agenda__date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  line-height: 1;
+}
+[data-ui="nova"] .cd-shell .nova-cal-agenda__dnum {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  font-family: var(--font-display, inherit);
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--color-text-strong);
+  font-variant-numeric: tabular-nums;
+}
+/* Today wears the grid's own achromatic "today" language, not gold. */
+[data-ui="nova"] .cd-shell .nova-cal-agenda__day--today .nova-cal-agenda__dnum {
+  background: var(--color-text-strong);
+  color: var(--color-surface);
+}
+[data-ui="nova"] .cd-shell .nova-cal-agenda__dow {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+[data-ui="nova"] .cd-shell .nova-cal-agenda__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 4px;
+}
+[data-ui="nova"] .cd-shell .nova-cal-agenda__major {
+  font-size: var(--text-base);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-text-strong);
+}
+[data-ui="nova"] .cd-shell .nova-cal-agenda__minor {
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  color: var(--color-text);
+}
+[data-ui="nova"] .cd-shell .nova-cal-agenda__minor--lead { color: var(--color-text-strong); }
+[data-ui="nova"] .cd-shell .nova-cal-agenda__marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+[data-ui="nova"] .cd-shell .nova-cal-agenda__mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+[data-ui="nova"] .cd-shell .nova-cal-agenda__mark--muhurtham { color: var(--color-high); }
+[data-ui="nova"] .cd-shell .nova-cal-agenda__mark--avoid { color: var(--color-alert-critical-text, var(--color-alert-critical)); }
+[data-ui="nova"] .cd-shell .nova-cal-agenda__meta {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+}
+[data-ui="nova"] .cd-shell .nova-cal-agenda__foot {
+  padding: 12px 8px 4px;
+}
+[data-ui="nova"] .cd-shell .nova-cal-agenda__foot a {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-text-accent);
+  text-decoration: none;
+}
+[data-ui="nova"] .cd-shell .nova-cal-agenda__foot a:hover { text-decoration: underline; }
+
+@media (max-width: 960px) {
+  [data-ui="nova"] .cd-shell .nova-cal-monthly-layout { grid-template-columns: minmax(0, 1fr); }
+  [data-ui="nova"] .cd-shell .nova-cal-sidebar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+  /* The header art bleeds 24px past the gutter on wide screens; below this the
+     shell's own gutter is narrower than that, so the bleed became page overflow. */
+  [data-ui="nova"] .cd-shell .nova-cal-monthly-header::before,
+  [data-ui="nova"] .cd-shell .nova-cal-monthly-header > .nova-cal-landscape { inset-inline: 0; }
+  [data-ui="nova"] .cd-shell .nova-cal-toolbar__actions { margin-left: 0; }
+}
+@media (max-width: 600px) {
+  [data-ui="nova"] .cd-shell .nova-cal-monthly-header { min-height: 220px; }
+  [data-ui="nova"] .cd-shell .nova-cal-monthly-header::before { inset-inline: -12px; }
+  [data-ui="nova"] .cd-shell .nova-cal-monthly-header > .nova-cal-landscape { inset-inline: -12px; }
+  [data-ui="nova"] .cd-shell .nova-cal-sidebar { display: flex; align-items: stretch; }
+  [data-ui="nova"] .cd-shell .nova-cal-grid-panel { padding: var(--space-2); }
+  [data-ui="nova"] .cd-shell .nova-cal-toolbar__actions { margin-left: 0; width: 100%; }
+  [data-ui="nova"] .cd-shell .nova-cal-filterbar { margin-top: 0; }
+  [data-ui="nova"] .cd-shell .nova-cal-filterbar__reset { margin-left: 0; }
+  [data-ui="nova"] .cd-shell .nova-cal-cell { min-height: 84px; padding: 4px !important; }
+  [data-ui="nova"] .cd-shell .nova-cal-cell > div:first-of-type > span[title] { display: none !important; }
+  [data-ui="nova"] .cd-shell .nova-cal-cell > span { max-width: 100%; }
+  [data-ui="nova"] .cd-shell .nova-cal-insights__body { grid-template-columns: 1fr; }
+  [data-ui="nova"] .cd-shell .nova-cal-closing { min-height: 125px; }
+}
+/* Touch floor. `pointer: coarse` alone also matches touchscreen laptops driven
+   by a mouse, which inflated every rail row to 44px and produced the empty
+   rail the owner flagged on 15 Sep 2026; `hover: none` limits it to phones and
+   tablets. Everywhere else the rail's targets stay at or above WCAG 2.5.8's
+   24px minimum. */
+@media (pointer: coarse) and (hover: none) {
+  [data-ui="nova"] .cd-shell .nova-cal-nav-btn { width: 44px; height: 44px; }
+  [data-ui="nova"] .cd-shell .nova-cal-chip { min-width: 44px; height: 44px; }
+  [data-ui="nova"] .cd-shell .nova-cal-other-days button,
+  [data-ui="nova"] .cd-shell .nova-cal-featured > button,
+  [data-ui="nova"] .cd-shell .nova-cal-filter { min-height: 44px; }
+}
+/* The `(pointer: coarse) and (hover: hover)` rule that used to sit here is
+   gone (DXA-39). It existed only to undo the bare `@media (pointer: coarse)`
+   44px rule on the owner's touchscreen laptop — and it undid it too far,
+   pinning these to 28px while every mouse-only laptop showed the kit's own
+   `--sm` 32px. The bare rule is gone, so the counterweight goes with it and a
+   hybrid laptop now renders exactly what any other laptop renders, which is
+   the whole of D5. */
+@media (prefers-reduced-motion: reduce) {
+  [data-ui="nova"] .cd-shell .nova-cal-monthly-header,
+  [data-ui="nova"] .cd-shell .nova-cal-insights,
+  [data-ui="nova"] .cd-shell #monthly-agenda:not([hidden]) { animation: none; }
+  [data-ui="nova"] .cd-shell .nova-cal-cell,
+  [data-ui="nova"] .cd-shell .nova-cal-filter { transition: none; }
+  [data-ui="nova"] .cd-shell .nova-cal-cell:hover:not(:disabled) { transform: none; }
 }
 
 /* Today's cell in the month grid — a light that travels around its border.
@@ -1937,9 +2534,10 @@
 [data-ui="nova"] .cd-shell .nova-interactive {
   cursor: pointer;
 }
-@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+/* Affordance is not motion: reduced-motion readers still need the depth cue
+   that says this surface is interactive. */
+@media (hover: hover) {
   [data-ui="nova"] .cd-shell .nova-interactive:hover {
-    transform: translateY(-2px);
     /* --nova-hover-shadow is per-theme (see both palette blocks). It used to be
        a literal rgba(0,0,0,0.28) — tuned for navy, where a heavy black bloom
        reads as depth. On cream that same shadow is a grey smudge under every
@@ -1948,6 +2546,11 @@
     box-shadow:
       var(--nova-hover-shadow),
       0 0 0 1px var(--color-border-strong);
+  }
+}
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+  [data-ui="nova"] .cd-shell .nova-interactive:hover {
+    transform: translateY(-2px);
   }
 }
 
@@ -2015,6 +2618,30 @@
    soft daytime-gold crown) is handled in JS inside CelestialAmbientNova via
    useIsLightTheme(), not a CSS display:none gate — so the gold crown can still
    show on the cream canvas. */
+
+/* DXA-10 — the page sky keeps clear of the page header.
+
+   The star field is `inset: 0` of `.cd-page`, and `.cd-page` IS the content
+   column (`width: min(--cd-container-max, 100% - 2 * --space-4)`), so it has
+   no side gutters to retreat into: every star lands over the content. Below
+   the header that is the intended effect — the cards are opaque, so what shows
+   is sky in the gaps between them. The top of the column is different. Every
+   tab opens with a kicker, an H1 and a subtitle sitting on bare ground, with
+   no card behind them, and a star lands *in the title line*: measured on Goals
+   ("Plan with confidence.", 2026-09-18), on Explore inside "Gaja Kesari Yoga".
+
+   So the stars fade in below that band instead. The band is measured in the
+   column's own scroll space (the layer is absolutely positioned inside it, not
+   fixed to the viewport), so this is the top of the PAGE, not of the screen —
+   it does not move as the reader scrolls, and the sky below is untouched.
+
+   Note this is the inverse of the audit's phrasing ("stars live only in the
+   gutters and the top crown"): the crown band is exactly where the page title
+   sits, so keeping stars in it is the defect, not the fix. */
+[data-ui="nova"] .nova-sky__stars {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent 300px, #000 460px);
+  mask-image: linear-gradient(to bottom, transparent 0, transparent 300px, #000 460px);
+}
 /* Special-day (Pournami / Amavasai) signature draw: a single gold light sweep
    across the hero glyph tile. Runs once and settles transparent, so the
    reduced-motion guard collapses it to a clean, invisible still. */
@@ -2290,7 +2917,7 @@
   border-radius: 999px;
   cursor: pointer;
   background: color-mix(in srgb, var(--color-text-strong) 18%, transparent);
-  transition: background 0.2s ease;
+  transition: background 0.2s var(--ease-nova);
 }
 .nova-fmg__switch[data-on="true"] {
   background: var(--color-accent-strong);
@@ -2312,7 +2939,7 @@
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 1px rgba(0, 0, 0, 0.16);
-  transition: transform 0.2s ease;
+  transition: transform 0.2s var(--ease-nova);
 }
 .nova-fmg__switch[data-on="true"] .nova-fmg__knob {
   transform: translateX(16px);
@@ -2380,7 +3007,7 @@
 .hy-ring-pulse { animation: hy-ring-pulse 4s ease-in-out infinite; }
 
 /* Expandable planet row chevron. */
-.hy-chev { transition: transform 0.15s ease; display: inline-block; }
+.hy-chev { transition: transform 0.15s var(--ease-nova); display: inline-block; }
 
 /* ── Chart-explanation section (Hybrid Family view, §9) ──────────────────
    2026-07-22: this section used to be a bespoke "cosmic panel" — a
@@ -2415,6 +3042,8 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  box-shadow: var(--elev-1);
+  transition: transform var(--motion-toggle) var(--ease-nova), box-shadow var(--motion-nav) var(--ease-nova), border-color var(--motion-nav) var(--ease-nova);
 }
 [data-ui="nova"] .cd-shell .ui-card--soft { background: var(--color-surface-soft); }
 [data-ui="nova"] .cd-shell .ui-card--accent {
@@ -2439,6 +3068,100 @@
   border-color: var(--color-mid-border);
 }
 [data-ui="nova"] .cd-shell .ui-card--pad-sm { padding: 14px 16px; }
+[data-ui="nova"] .cd-shell .ui-card--interactive { cursor: pointer; }
+/* Affordance, always: a reduced-motion reader still needs to know this clicks.
+   Section 6: reduced motion keeps meaning and drops travel. */
+@media (hover: hover) {
+  [data-ui="nova"] .cd-shell .ui-card--interactive:hover {
+    box-shadow: var(--elev-2);
+    border-color: var(--color-border-strong);
+  }
+}
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+  [data-ui="nova"] .cd-shell .ui-card--interactive:hover {
+    transform: translateY(-2px);
+  }
+}
+[data-ui="nova"] .cd-shell .ui-card--interactive:active { transform: scale(0.985); }
+
+/* Direct-imported behaviour primitive for interactive surfaces that are not a
+   Card, button or pill. Feedback remains visible when travel is reduced. */
+[data-ui="nova"] .cd-shell .ui-pressable {
+  cursor: pointer;
+  transition:
+    transform var(--dur-fast) var(--ease-nova),
+    box-shadow var(--dur-base) var(--ease-nova),
+    border-color var(--dur-base) var(--ease-nova);
+}
+@media (hover: hover) {
+  [data-ui="nova"] .cd-shell .ui-pressable:not(:disabled):not([aria-disabled="true"]):hover {
+    box-shadow: var(--elev-2);
+    border-color: var(--color-border-strong);
+  }
+}
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+  [data-ui="nova"] .cd-shell .ui-pressable:not(:disabled):not([aria-disabled="true"]):hover {
+    transform: translateY(-2px);
+  }
+}
+[data-ui="nova"] .cd-shell .ui-pressable:not(:disabled):not([aria-disabled="true"]):active {
+  transform: scale(0.97);
+}
+
+/* OD-4 text link / inline action (2026-09-21): colour → accent-strong and an
+   underline on hover; press dims to 0.8. A link resting in accent-strong
+   already (the default) still gains the underline, so it always answers.
+   `--ui-link-color` sets a different resting colour without an inline
+   `color`, which would beat the hover. */
+[data-ui="nova"] .cd-shell .ui-link {
+  color: var(--ui-link-color, var(--color-accent-strong));
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  transition:
+    color var(--motion-nav) var(--ease-nova),
+    text-decoration-color var(--motion-nav) var(--ease-nova),
+    opacity var(--motion-toggle) var(--ease-nova);
+}
+@media (hover: hover) {
+  [data-ui="nova"] .cd-shell .ui-link:hover {
+    color: var(--color-accent-strong);
+    text-decoration-color: currentColor;
+  }
+}
+[data-ui="nova"] .cd-shell .ui-link:active { opacity: 0.8; }
+
+/* Inline glossary disclosures are text links under OD-4: the dotted
+   underline firms to solid on hover, the colour moves to accent-strong, press
+   dims. The underline is what answers when the term already sits in an
+   accent-strong line (DXA-12's one hover miss, Family "Mercury"). Every
+   importer of GlossaryTerm is a dashboard component, so this `.cd-shell`
+   scope covers every render. */
+[data-ui="nova"] .cd-shell .glossary-term__trigger {
+  color: inherit;
+  text-decoration: underline dotted;
+  text-decoration-color: var(--color-faint);
+  text-underline-offset: 3px;
+  transition:
+    color var(--dur-fast) var(--ease-nova),
+    text-decoration-color var(--dur-fast) var(--ease-nova),
+    opacity var(--dur-fast) var(--ease-nova);
+}
+@media (hover: hover) {
+  [data-ui="nova"] .cd-shell .glossary-term__trigger:hover {
+    color: var(--color-accent-strong);
+    text-decoration-style: solid;
+    text-decoration-color: currentColor;
+  }
+}
+[data-ui="nova"] .cd-shell .glossary-term__trigger:active {
+  opacity: 0.8;
+}
 
 /* ── Numerology "how this was worked out" disclosure ──
    A native <details> so keyboard and screen-reader behaviour, find-in-page and
@@ -2450,7 +3173,7 @@
   width: fit-content;
   padding: 2px 0;
   border-radius: var(--radius-sm, 6px);
-  transition: color 120ms ease;
+  transition: color 120ms var(--ease-nova);
 }
 [data-ui="nova"] .cd-shell .num-calc-details > summary:hover {
   color: var(--color-text) !important;
@@ -2475,7 +3198,7 @@
   cursor: pointer;
   border-radius: var(--radius-sm, 6px);
   list-style: none;
-  transition: color 120ms ease;
+  transition: color 120ms var(--ease-nova);
 }
 /* Safari still paints the default triangle without this. */
 [data-ui="nova"] .cd-shell .num-name-details > summary::-webkit-details-marker {
@@ -2489,7 +3212,7 @@
   line-height: 1;
   color: var(--color-faint);
   transform: rotate(90deg);
-  transition: transform 140ms ease;
+  transition: transform 140ms var(--ease-nova);
 }
 [data-ui="nova"] .cd-shell .num-name-details[open] > summary::after {
   transform: rotate(-90deg);
@@ -2535,13 +3258,35 @@
     background var(--motion-nav) var(--ease-nova),
     color var(--motion-nav) var(--ease-nova);
 }
+[data-ui="nova"] .cd-shell .ui-segmented__btn { position: relative; isolation: isolate; }
+[data-ui="nova"] .cd-shell .ui-segmented__thumb {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: var(--color-accent);
+}
+[data-ui="nova"] .cd-shell .ui-segmented__label { position: relative; z-index: 1; }
 [data-ui="nova"] .cd-shell .ui-segmented__btn:hover:not([aria-selected="true"]) {
   color: var(--color-text-strong);
 }
+[data-ui="nova"] .cd-shell .ui-segmented__btn:active {
+  transform: scale(0.97);
+}
 [data-ui="nova"] .cd-shell .ui-segmented__btn[aria-selected="true"] {
-  background: var(--color-accent);
   color: var(--color-on-accent);
   font-weight: 700;
+}
+/* The thumb paints the selected fill and ships in its own chunk (it is loaded
+   through next/dynamic to keep framer-motion out of the ui barrel). `ssr: true`
+   covers the server-rendered case, but a Segmented that first mounts during a
+   client navigation can render one frame before the chunk lands. Without this
+   the label sits at 1.02:1 on cream and 1.15:1 on navy — invisible, not merely
+   low-contrast. Scoped with :not(:has()) so it never paints under the thumb,
+   which would make the slide look like a jump. */
+[data-ui="nova"] .cd-shell .ui-segmented__btn[aria-selected="true"]:not(:has(.ui-segmented__thumb)) {
+  background: var(--color-accent);
 }
 [data-ui="nova"] .cd-shell .ui-segmented__btn:focus-visible {
   outline: 2px solid var(--color-accent-strong);
@@ -2611,8 +3356,12 @@
   transition:
     background var(--motion-nav) var(--ease-nova),
     border-color var(--motion-nav) var(--ease-nova),
-    color var(--motion-nav) var(--ease-nova);
+    color var(--motion-nav) var(--ease-nova),
+    transform var(--motion-toggle) var(--ease-nova);
 }
+/* OD-4 button kind: the kit press. The chip had hover but no press at all —
+   DXA-12 caught it only on the run whose sample happened to include one. */
+.nova-remedy-chip:active:not([aria-selected="true"]) { transform: scale(0.97); }
 .nova-remedy-chip__glyph {
   flex: none;
   width: 26px;
@@ -2691,12 +3440,14 @@
     color var(--motion-nav) var(--ease-nova),
     transform var(--motion-toggle) var(--ease-nova);
 }
-[data-ui="nova"] .cd-shell .ui-btn:active { transform: translateY(1px); }
+[data-ui="nova"] .cd-shell .ui-btn:active { transform: scale(0.97); }
 [data-ui="nova"] .cd-shell .ui-btn:focus-visible {
   outline: 2px solid var(--color-accent-strong);
   outline-offset: 2px;
 }
 [data-ui="nova"] .cd-shell .ui-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+/* OD-4 (2026-09-21): a button's hover is its variant's own background/border
+   shift — no kit-wide shadow, and never one on ghost. */
 [data-ui="nova"] .cd-shell .ui-btn--primary {
   background: var(--color-accent);
   color: var(--color-on-accent);
@@ -2719,7 +3470,13 @@
   padding-left: 8px;
   padding-right: 8px;
 }
-[data-ui="nova"] .cd-shell .ui-btn--ghost:hover:not(:disabled) { color: var(--color-accent-strong); }
+/* Ghost rests in `--color-text-accent`, which is `--color-accent-strong` on the
+   dark theme — so a colour-only hover changed nothing there. The background
+   shift is the ghost variant's feedback; the colour still firms up on light. */
+[data-ui="nova"] .cd-shell .ui-btn--ghost:hover:not(:disabled) {
+  color: var(--color-accent-strong);
+  background: color-mix(in srgb, var(--color-text-strong) 6%, transparent);
+}
 [data-ui="nova"] .cd-shell .ui-btn--sm {
   font-size: var(--text-xs);
   padding: 6px 12px;
@@ -2746,9 +3503,33 @@
   transition:
     background var(--motion-nav) var(--ease-nova),
     border-color var(--motion-nav) var(--ease-nova),
-    color var(--motion-nav) var(--ease-nova);
+    color var(--motion-nav) var(--ease-nova),
+    box-shadow var(--motion-nav) var(--ease-nova),
+    transform var(--motion-toggle) var(--ease-nova);
 }
-[data-ui="nova"] .cd-shell .ui-pill:hover:not([aria-pressed="true"]) { color: var(--color-text-strong); }
+[data-ui="nova"] .cd-shell .ui-pill:hover:not([aria-pressed="true"]) {
+  color: var(--color-text-strong);
+  border-color: var(--color-accent);
+}
+[data-ui="nova"] .cd-shell .ui-pill:active { transform: scale(0.97); }
+
+/* Kept mounted by CollapsibleSection after the first render: grid rows animate
+   disclosure height without losing the scroll-anchor pin on its trigger. */
+.collapsible__body { display: grid; grid-template-rows: 0fr; overflow: hidden; opacity: 0; visibility: hidden; transition: grid-template-rows var(--dur-base) var(--ease-nova), opacity var(--dur-fast) var(--ease-nova), visibility 0s linear var(--dur-base); }
+.collapsible__body--open { grid-template-rows: 1fr; opacity: 1; visibility: visible; transition-delay: 0s; }
+.collapsible__body-inner { min-height: 0; overflow: hidden; }
+
+/* D3: page ambience is static. The Today hero owns the only infinite motion. */
+.hy-float, .hy-glow, .hy-ring-pulse { animation: none; }
+[data-ui="nova"] .cd-shell .nova-cal-today::after { animation: none; background-size: 100% 100%; }
+[data-ui="nova"] .cd-shell .nova-pulse-dot,
+[data-ui="nova"] .cd-shell .nova-sky .nova-celestial__star,
+[data-ui="nova"] .cd-shell .nova-deepdive-glyph .nova-celestial__star,
+[data-ui="nova"] .cd-shell :not(.nova-hero) > .nova-wheel-spin,
+[data-ui="nova"] .cd-shell .nova-celestial__glow { animation: none; }
+/* The hero is the single exception to D3's static-page rule. */
+[data-ui="nova"] .cd-shell .nova-hero .nova-celestial__star { animation: nova-celestial-twinkle 3.6s ease-in-out infinite; }
+[data-ui="nova"] .cd-shell .nova-hero .nova-wheel-spin { animation: nova-celestial-spin 240s linear infinite; }
 [data-ui="nova"] .cd-shell .ui-pill[aria-pressed="true"] {
   background: var(--color-accent);
   color: var(--color-on-accent);
@@ -2783,7 +3564,7 @@
   font-family: inherit;
   font-size: var(--text-xs);
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--color-text-accent);
   line-height: 1.3;
@@ -2820,6 +3601,20 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+  /* A field is usually a flex item; without this its content's min-width wins
+     and a Segmented's `max-width: 100%` never binds. Tamil 375px "Best Dates &
+     Muhurta" measured 401px wide from three such fields. */
+  min-width: 0;
+}
+/* A Segmented inside a form field is a choice, not tab navigation: every
+   option must stay visible, so a long label wraps inside its segment instead
+   of the control scrolling sideways behind a hidden scrollbar. */
+[data-ui="nova"] .cd-shell .ui-field .ui-segmented__btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: normal;
+  line-height: 1.25;
+  text-align: center;
 }
 [data-ui="nova"] .cd-shell .ui-field__label {
   font-size: var(--text-sm);
@@ -2959,15 +3754,59 @@ button.ui-chip { cursor: pointer; }
   outline-offset: 2px;
 }
 
-/* The 44px touch floor — the reason these are primitives, not inline styles
-   (audit B-3). Coarse pointers (touch) get a full 44px target while the
-   desktop variants stay visually compact. */
-@media (pointer: coarse) {
+/* An interactive chip is a control, and at 11px type inside 5px padding it
+   measured 23px — under WCAG 2.5.8 AA's 24px and under D5's own 28px floor,
+   on every pointer, not just touch. A STATIC chip is a label (`span.ui-chip`,
+   Chip renders one when it has no handler) and is left alone. */
+[data-ui="nova"] .cd-shell button.ui-chip { min-height: 28px; }
+
+/* ── Touch policy (DXA-39 · owner decision D5) ────────────────────────────
+   Size follows the device; hit area follows the finger.
+
+   The single bare `@media (pointer: coarse)` rule this replaces was the bug.
+   `pointer: coarse` matches the owner's touchscreen laptop, which is driven
+   by a MOUSE — so every kit control there grew to 44px and the Calendar rail
+   came out near-empty on 15 Sep 2026. Two queries carry the two intentions
+   the one query was conflating:
+
+   1. `(pointer: coarse) and (hover: none)` — phones and tablets, where a
+      thumb is the only pointer and the vertical room exists to spend. A real
+      44px VISUAL target (Apple's 44pt; WCAG 2.5.8 AA asks only 24).
+   2. `(any-pointer: coarse)` — anything a finger CAN touch, the hybrid
+      laptop included. Not one pixel of layout moves: an invisible hit slop
+      gives the finger its 44px while the mouse sees the compact control.
+
+   The slop is vertical, and barely anything horizontal (±2px), so two
+   controls side by side in a row never swallow each other's clicks. Its size
+   is derived, not typed: `(44px - 100%) / -2` per edge grows a 22px toggle by
+   11px and a 38px button by 3px, and both land on exactly 44. A control
+   already taller than 44 gets a positive inset, i.e. an overlay smaller than
+   itself — harmless, since the control's own box is the hit area there.
+
+   `.ui-toggle` is the reason rule 2 exists at all. Its 40×22 track IS the
+   control, so it takes the slop and never a `min-height`: the bare rule used
+   to stretch it to 44px tall on a touch laptop, which is not a toggle. */
+@media (pointer: coarse) and (hover: none) {
+  [data-ui="nova"] .cd-shell .ui-segmented__btn,
+  [data-ui="nova"] .cd-shell .ui-btn,
+  [data-ui="nova"] .cd-shell .ui-pill,
+  [data-ui="nova"] .cd-shell button.ui-chip { min-height: var(--touch-target); }
+}
+@media (any-pointer: coarse) {
   [data-ui="nova"] .cd-shell .ui-segmented__btn,
   [data-ui="nova"] .cd-shell .ui-btn,
   [data-ui="nova"] .cd-shell .ui-pill,
   [data-ui="nova"] .cd-shell button.ui-chip,
-  [data-ui="nova"] .cd-shell .ui-toggle { min-height: var(--touch-target); }
+  [data-ui="nova"] .cd-shell .ui-toggle { position: relative; }
+  [data-ui="nova"] .cd-shell .ui-segmented__btn::after,
+  [data-ui="nova"] .cd-shell .ui-btn::after,
+  [data-ui="nova"] .cd-shell .ui-pill::after,
+  [data-ui="nova"] .cd-shell button.ui-chip::after,
+  [data-ui="nova"] .cd-shell .ui-toggle::after {
+    content: "";
+    position: absolute;
+    inset: calc((var(--touch-target) - 100%) / -2) -2px;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -3028,6 +3867,21 @@ button.ui-chip { cursor: pointer; }
   flex: 1 1 260px;
   min-width: 0;
 }
+/* The header's controls: DXA-37's length switch, then the one disclosure.
+   Grouped so the pair stays hard right together and wraps as a unit below the
+   title, rather than the switch wrapping and leaving the toggle stranded. */
+.om__head-actions {
+  /* Shrinkable to the row, so its own wrap can engage: at `0 0 auto` the pair
+     stayed on one line and held Family at 419px on a Tamil 375px phone. */
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
 .om__title {
   margin: 0;
   font-family: var(--font-display, Georgia, serif);
@@ -3070,6 +3924,7 @@ button.ui-chip { cursor: pointer; }
   color: var(--color-text-strong);
   border-color: var(--color-border-strong);
 }
+.om__basis-toggle:active { transform: scale(0.97); }
 .om__basis-toggle:focus-visible {
   outline: 2px solid var(--color-accent-strong);
   outline-offset: 2px;
@@ -3317,17 +4172,38 @@ button.ui-chip { cursor: pointer; }
   border-radius: var(--radius-sm);
 }
 
-@media (pointer: coarse) {
+/* The reading surface's own three controls, under the same policy — see the
+   touch-policy block in the component kit above for why it is two queries. */
+@media (pointer: coarse) and (hover: none) {
   .om__basis-toggle,
   .om__ask-btn,
   .om-recap__link { min-height: var(--touch-target); }
+}
+@media (any-pointer: coarse) {
+  .om__basis-toggle,
+  .om__ask-btn,
+  .om-recap__link { position: relative; }
+  .om__basis-toggle::after,
+  .om__ask-btn::after,
+  .om-recap__link::after {
+    content: "";
+    position: absolute;
+    inset: calc((var(--touch-target) - 100%) / -2) -2px;
+  }
 }
 
 /* ── Reduced-motion guard ──────────────────────────────────
    First-class a11y path: honour the OS preference by collapsing every
    Nova animation/transition to instant. Scoped to [data-ui="nova"] so it
-   only governs this dashboard. Keep this LAST so it wins the cascade. */
+   only governs this dashboard. Keep this after the Nova motion rules so it
+   wins the cascade. */
 @media (prefers-reduced-motion: reduce) {
+  /* framer's layoutId slide is an inline transform; the indicator's resting
+     position comes from left/right, so dropping the transform only drops
+     the slide. */
+  [data-ui="nova"] .cd-shell .cd-tab__indicator {
+    transform: none !important;
+  }
   [data-ui="nova"],
   [data-ui="nova"] *,
   [data-ui="nova"] *::before,
@@ -3550,6 +4426,149 @@ button.ui-chip { cursor: pointer; }
   padding: var(--space-5) var(--space-5) var(--space-6);
 }
 
+/* DXA-05 — Today's hero, before the day's data.
+
+   Two states precede it: the lazy fallback (pure CSS, first paint, before the
+   tab's chunk arrives) and then the pending hero, which builds its height out
+   of skeletons shaped like the blocks it is waiting for. The numbers below are
+   what that shape measures, so the fallback hands over to the pending hero
+   without moving, and the pending hero hands over to the loaded one without
+   moving. They also floor the pending hero if a translation makes its shape
+   shorter than the fallback.
+
+   Tamil sets the same content on more lines than English at every width, so it
+   carries its own values throughout. `lang` is server-rendered on <html>
+   (app/layout.tsx), so these apply on the first paint, not after hydration.
+
+   Measured on the isolated stack (:3100), 2026-09-21 14:08 IST, en and ta at
+   390 / 860 / 1440, with web/scripts/hero-inventory-probe.mjs — re-measure
+   with it if the hero's structure or copy changes. DXA-05's pending-hero gate
+   covers en at 1440 only.
+
+   Re-pinned by E-4f: kit buttons let the best-window action pair fit beside
+   its time, and the loaded en/1440 hero fell 620 → 580 (same-clock A/B
+   against the pre-E-4 file). The ungated cells had already drifted from the
+   morning's values before E-4 (en 860 857 → 737, ta 1440 641 → 691, …); the
+   loaded hero carries clock-dependent blocks, so compare re-measures at a
+   similar time of day. */
+.cd-shell {
+  --nova-hero-reserve: 1392px; /* one column */
+}
+:root[lang="ta"] .cd-shell {
+  --nova-hero-reserve: 1645px;
+}
+@media (min-width: 860px) {
+  .cd-shell { /* two columns */
+    --nova-hero-reserve: 731px;
+  }
+  :root[lang="ta"] .cd-shell {
+    --nova-hero-reserve: 796px;
+  }
+}
+@media (min-width: 1200px) {
+  .cd-shell { /* three columns */
+    --nova-hero-reserve: 580px;
+  }
+  :root[lang="ta"] .cd-shell {
+    --nova-hero-reserve: 691px;
+  }
+}
+.nova-hero--pending {
+  min-height: var(--nova-hero-reserve);
+}
+
+/* The blocks whose loaded height depends on how their copy wraps. Everything
+   else in the pending hero is held by its own shape (line boxes, the 172px
+   dial, four timing rows) and needs no number. */
+.nova-hero-skel--weather {
+  min-height: 124px;
+}
+.nova-hero-skel--window {
+  min-height: 196px;
+}
+.nova-hero-skel--score {
+  min-height: 313px;
+}
+.nova-hero-skel--avoid {
+  min-height: 115px;
+}
+.nova-hero-skel--timings {
+  min-height: 285px;
+}
+:root[lang="ta"] .nova-hero-skel--weather {
+  min-height: 146px;
+}
+:root[lang="ta"] .nova-hero-skel--window {
+  min-height: 314px;
+}
+:root[lang="ta"] .nova-hero-skel--score {
+  min-height: 341px;
+}
+:root[lang="ta"] .nova-hero-skel--avoid {
+  min-height: 111px;
+}
+:root[lang="ta"] .nova-hero-skel--timings {
+  min-height: 299px;
+}
+/* Life focus T1 line, two 18px line boxes. Measured 2026-09-22 with a CAREER
+   focus: en is 391px on one line, so it wraps below 860 (374px column) and
+   not above (435px+); ta is 612px, one line only at 1440 (617px column) and
+   only for the shortest verdict, so ta keeps both lines at every width. */
+.nova-hero-skel--focus {
+  min-height: 36px;
+}
+@media (min-width: 860px) {
+  :root:not([lang="ta"]) .nova-hero-skel--focus {
+    min-height: 18px;
+  }
+}
+@media (min-width: 860px) {
+  .nova-hero-skel--weather {
+    min-height: 62px;
+  }
+  .nova-hero-skel--window {
+    min-height: 167px;
+  }
+  :root[lang="ta"] .nova-hero-skel--weather {
+    min-height: 81px;
+  }
+  :root[lang="ta"] .nova-hero-skel--window {
+    min-height: 198px;
+  }
+}
+/* Three columns, English: the loaded best-window card is 125px — time and
+   actions on one row (owner ask 2026-09-07) and a one-line reason — so its
+   skeleton drops the second reason line and stays at or under it; the hero
+   reserve floors the rest. Tamil's card wraps and keeps both lines.
+   KNOWN DATA DEPENDENCE (E-4f, 2026-09-21): at 1440 a window whose start and
+   end both have two-digit hours ("10:31 am – 12:01 pm") no longer fits on one
+   row, the actions wrap, and the loaded hero is 620, not 580. No reserve can
+   match both; this one matches the one-row layout. Measured by injecting
+   times into the live card; recorded on DXA-05. */
+@media (min-width: 1200px) {
+  :root:not([lang="ta"]) .nova-hero-skel--window {
+    min-height: 0; /* the 167px two-column floor would outgrow the card */
+  }
+  :root:not([lang="ta"]) .nova-hero-skel__reason-2 {
+    display: none;
+  }
+}
+.nova-today-fallback {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.nova-today-fallback__hero {
+  min-height: var(--nova-hero-reserve);
+  border-radius: var(--radius-xl);
+}
+.nova-today-fallback__links {
+  min-height: 220px;
+}
+/* Below the two boxes the fallback draws, the pending pane also mounts the
+   Life Areas and Family rows; on a phone the fallback's hero already runs
+   past the fold, so nothing under it is on screen to be moved. */
+
 .nova-hero-masthead {
   position: relative;
   z-index: 1;
@@ -3590,6 +4609,130 @@ button.ui-chip { cursor: pointer; }
   display: flex;
   align-items: center;
   gap: var(--space-2);
+}
+
+/* Life focus, Phase 0 (docs/LIFE_FOCUS_PLAN_2026-09-22.md, D3/T0).
+   The chip sits beside StreakChip, so it takes that chip's size and pill; it is
+   a button where the streak is a label, so it gets the OD-4 button kind:
+   border/colour hover, a kit press, and the accent focus ring. */
+.nova-focus-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1_5);
+  min-height: 26px;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-accent-strong);
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color var(--motion-nav) var(--ease-nova),
+    color var(--motion-nav) var(--ease-nova),
+    transform var(--motion-toggle) var(--ease-nova);
+}
+.nova-focus-chip__prefix {
+  color: var(--color-faint);
+  font-weight: 600;
+}
+.nova-focus-chip:hover {
+  border-color: var(--color-border-strong);
+  color: var(--color-text-strong);
+}
+.nova-focus-chip:active { transform: scale(0.97); }
+.nova-focus-chip:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 2px;
+}
+
+/* The 60-day "Still focused on X?" strip, between the masthead and the hero
+   row. One line where it fits; the actions wrap under the question on a phone. */
+.nova-focus-nudge {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin: calc(-1 * var(--space-2)) 0 var(--space-5);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-accent-muted);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+.nova-focus-nudge__icon {
+  flex: none;
+  color: var(--color-accent-strong);
+}
+.nova-focus-nudge__q {
+  flex: 1 1 12rem;
+  font-weight: 600;
+  color: var(--color-text-strong);
+}
+.nova-focus-nudge__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.nova-focus-nudge__btn,
+.nova-focus-nudge__close {
+  min-height: 28px;
+  border-radius: var(--radius-pill);
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background var(--motion-nav) var(--ease-nova),
+    border-color var(--motion-nav) var(--ease-nova),
+    color var(--motion-nav) var(--ease-nova),
+    transform var(--motion-toggle) var(--ease-nova);
+}
+.nova-focus-nudge__btn {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text-strong);
+}
+.nova-focus-nudge__btn--primary {
+  border-color: var(--color-accent-strong);
+  background: var(--color-accent-strong);
+  color: var(--color-on-accent);
+}
+.nova-focus-nudge__btn:hover:not(:disabled) { border-color: var(--color-accent-strong); }
+.nova-focus-nudge__btn--primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-accent-strong) 88%, var(--color-text-strong));
+}
+.nova-focus-nudge__btn:disabled { cursor: wait; opacity: 0.6; }
+.nova-focus-nudge__close {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-faint);
+}
+.nova-focus-nudge__close:hover { color: var(--color-text-strong); border-color: var(--color-border); }
+.nova-focus-nudge__btn:active:not(:disabled),
+.nova-focus-nudge__close:active { transform: scale(0.97); }
+.nova-focus-nudge__btn:focus-visible,
+.nova-focus-nudge__close:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nova-focus-chip,
+  .nova-focus-nudge__btn,
+  .nova-focus-nudge__close { transition: none; }
+  .nova-focus-chip:active,
+  .nova-focus-nudge__btn:active:not(:disabled),
+  .nova-focus-nudge__close:active { transform: none; }
 }
 
 .nova-hero-row {
@@ -3689,7 +4832,7 @@ button.ui-chip { cursor: pointer; }
     margin: 0;
     padding: 0 var(--space-2);
     text-align: center;
-    font-family: var(--font-display);
+    font-family: var(--font-heading);
     font-style: italic;
     font-size: var(--text-md);
     line-height: 1.45;
@@ -3863,7 +5006,7 @@ button.ui-chip { cursor: pointer; }
 }
 .nova-hero-action__footnote-toggle svg {
   flex: none;
-  transition: transform 150ms ease;
+  transition: transform 150ms var(--ease-nova);
 }
 @media (prefers-reduced-motion: reduce) {
   .nova-hero-action__footnote-toggle svg {
@@ -3941,4 +5084,939 @@ button.ui-chip { cursor: pointer; }
 .nova-hero-timing__times > span:not(:last-child)::after {
   content: " \00b7 ";
   color: var(--color-faint);
+}
+
+/* ── DXA-07 · holding the previous day while the next one loads ───────────
+   The day bundle is keyed on the selected date, so a date change used to
+   leave every consumer with no data at all: the hero measured 590 -> 264px
+   and the page 4,029 -> 1,376px within 78ms, and stayed collapsed for the
+   whole round trip. The data layer now keeps the previous day on screen
+   (`keepPreviousData`), which means the page holds its shape — and needs two
+   marks to say that what is showing is not yet the day that was asked for. */
+
+/* 1. The pane dims. Not a skeleton and not a spinner: the content is real,
+      it is simply the wrong day for a moment. On the Nova tokens, since
+      DXA-16's census reads computed transition timing functions off this very
+      pane and only the two Nova curves pass it. */
+.nova-today-pane {
+  transition: opacity var(--dur-base, 240ms) var(--ease-nova, cubic-bezier(0.22, 1, 0.36, 1));
+}
+.nova-today-pane[data-stale] {
+  /* OD-3 / W-3, corrected by E-1 (2026-09-21): the held day reads at full
+     contrast. No `opacity` on anything that carries text — the masthead dim
+     this replaces put the date and limbs at 3.03-4.19:1 on light. Only
+     non-text marks dim: borders, the accent fill, and icons.
+
+     The dims are computed here and applied one level down on purpose.
+     `--color-border: color-mix(… var(--color-border) …)` on one element is a
+     custom-property cycle, which computes to nothing: every border and fill
+     reading these tokens inside the pane was dropped, not dimmed. */
+  --stale-border: color-mix(in srgb, var(--color-border) 62%, transparent);
+  --stale-border-strong: color-mix(in srgb, var(--color-border-strong) 68%, transparent);
+  --stale-accent-muted: color-mix(in srgb, var(--color-accent-muted) 72%, transparent);
+}
+.nova-today-pane[data-stale] > * {
+  --color-border: var(--stale-border);
+  --color-border-strong: var(--stale-border-strong);
+  --color-accent-muted: var(--stale-accent-muted);
+}
+.nova-today-pane :is(svg.lucide, .nova-hero-masthead svg) {
+  transition: opacity var(--dur-base, 240ms) var(--ease-nova, cubic-bezier(0.22, 1, 0.36, 1));
+}
+.nova-today-pane[data-stale] :is(svg.lucide, .nova-hero-masthead svg) {
+  opacity: 0.5;
+}
+
+/* 2. A progress hairline on the sub-bar's bottom edge. Absolutely positioned
+      so it occupies no row of its own — this is the bar DXA-05 just stopped
+      moving, and a 2px band that appears on every date change would put the
+      shift back. It exists only while a day is in flight, so it is not the
+      ambient motion DXA-17 bans; it is the one thing on screen that says a
+      request is running. */
+[data-ui="nova"] .cd-subbar {
+  position: relative;
+}
+[data-ui="nova"] .cd-subbar__progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  overflow: hidden;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--color-accent-strong) 12%, transparent);
+}
+[data-ui="nova"] .cd-subbar__progress::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 32%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-accent-strong),
+    transparent
+  );
+  animation: cd-subbar-progress 1.1s var(--ease-nova, cubic-bezier(0.22, 1, 0.36, 1)) infinite;
+}
+@keyframes cd-subbar-progress {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(400%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The dim still carries the message; it just arrives at once. The hairline
+     stops sweeping and stands as a solid accent line — same statement, no
+     motion (DXA-11's ruling: reduced motion removes movement, not meaning). */
+  .nova-today-pane {
+    transition: none;
+  }
+  [data-ui="nova"] .cd-subbar__progress::after {
+    animation: none;
+    width: 100%;
+    background: color-mix(in srgb, var(--color-accent-strong) 60%, transparent);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Your day — the day as one horizon
+   dashboard-today-ribbon-nova.tsx
+
+   The sun's arc over the kalam bar, star/tithi change-over markers on it, one
+   readout line, and the week as seven bars. Everything here is something the
+   hero above does not show; the component's header records what it
+   deliberately leaves to the hero. Nova tokens only, both themes.
+   ═══════════════════════════════════════════════════════════ */
+.day-ribbon {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6) var(--space-4_5);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.day-ribbon__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-5);
+}
+
+.day-ribbon__heading { min-width: 0; }
+
+.day-ribbon__place {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.day-ribbon__place svg { flex: none; color: var(--color-accent-strong); }
+
+/* ── Week: seven bars, no numbers. The hero dial is the page's one score; the
+      number stays in each day's accessible name. ── */
+.day-ribbon__week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-1);
+  min-width: min(100%, 336px);
+}
+
+.day-ribbon__day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  min-height: 48px;
+  padding: var(--space-1_5) var(--space-1);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-faint);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease-nova),
+    border-color var(--dur-fast) var(--ease-nova),
+    color var(--dur-fast) var(--ease-nova),
+    transform var(--dur-fast) var(--ease-nova);
+}
+
+.day-ribbon__day:disabled { cursor: default; }
+
+.day-ribbon__day[data-selected="true"] {
+  border-color: var(--color-border-strong);
+  background: var(--color-accent-muted);
+  color: var(--color-accent-strong);
+}
+
+.day-ribbon__day-name {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.day-ribbon__day-num {
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.day-ribbon__day[data-selected="true"] .day-ribbon__day-num { color: var(--color-accent-strong); }
+
+.day-ribbon__day-bar {
+  display: block;
+  width: 100%;
+  max-width: 28px;
+  height: 3px;
+  margin-top: 2px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--ribbon-track-bg);
+}
+
+.day-ribbon__day-bar > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+@media (hover: hover) {
+  .day-ribbon__day:not(:disabled):not([data-selected="true"]):hover {
+    border-color: var(--color-border);
+    background: var(--color-surface-soft);
+    color: var(--color-text);
+  }
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .day-ribbon__day:not(:disabled):hover { transform: translateY(-2px); }
+}
+
+/* ── Horizon: sky (arc + sun) over the bar over the scale ── */
+.day-ribbon__horizon {
+  position: relative;
+  min-width: 0;
+}
+
+/* The 16px top pad is SKY_PAD_PX in the component: the sun's top position is
+   computed against it, so the two must change together. */
+.day-ribbon__sky {
+  position: relative;
+  height: 84px;
+}
+
+.day-ribbon__arc {
+  position: absolute;
+  top: 16px;
+  left: 0;
+  width: 100%;
+  height: calc(100% - 16px);
+  overflow: visible;
+}
+
+.day-ribbon__arc-path {
+  fill: none;
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 5;
+}
+
+.day-ribbon__arc-lit {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.day-ribbon__horizon-line {
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+/* The sun or moon: a zero-width anchor at the body's centre that runs down to
+   the bar, so its dashed plumb line meets the NOW line exactly. */
+.day-ribbon__body {
+  position: absolute;
+  z-index: 2;
+  bottom: 0;
+  width: 0;
+  pointer-events: none;
+}
+
+.day-ribbon__body::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  bottom: 0;
+  left: -0.5px;
+  border-left: 1px dashed var(--ribbon-now-bg);
+}
+
+.day-ribbon__body--moon { top: calc(16px + 0.7 * (100% - 16px)); }
+
+.day-ribbon__body--moon > svg {
+  position: absolute;
+  top: -7px;
+  left: -7px;
+  color: var(--color-accent-secondary);
+}
+
+.day-ribbon__sun {
+  position: absolute;
+  top: -9px;
+  left: -9px;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-pill);
+  background: radial-gradient(circle at 35% 35%, var(--color-on-accent) 0 10%, var(--color-accent) 55%, var(--color-accent-strong));
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--color-accent) 22%, transparent),
+    0 0 14px 3px color-mix(in srgb, var(--color-accent) 28%, transparent);
+  animation: day-ribbon-sun-breathe 4.8s var(--ease-nova) infinite;
+}
+
+@keyframes day-ribbon-sun-breathe {
+  0%, 100% {
+    box-shadow:
+      0 0 0 4px color-mix(in srgb, var(--color-accent) 22%, transparent),
+      0 0 14px 3px color-mix(in srgb, var(--color-accent) 28%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 0 0 7px color-mix(in srgb, var(--color-accent) 12%, transparent),
+      0 0 24px 6px color-mix(in srgb, var(--color-accent) 40%, transparent);
+  }
+}
+
+.day-ribbon__now-chip {
+  position: absolute;
+  top: -11px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--ribbon-now-bg);
+  color: var(--ribbon-now-fg);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px var(--shadow-drop);
+}
+
+.day-ribbon__now-chip--right { left: 16px; }
+.day-ribbon__now-chip--left { right: 16px; }
+
+.day-ribbon__now-chip > span {
+  font-weight: 700;
+  letter-spacing: var(--tracking-tag);
+  text-transform: uppercase;
+}
+
+.day-ribbon__now-chip > b { font-weight: 700; }
+
+/* ── The bar ── */
+.day-ribbon__track {
+  position: relative;
+  height: 36px;
+}
+
+.day-ribbon__segments {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--ribbon-track-bg);
+  box-shadow: inset 0 0 0 1px var(--ribbon-track-border);
+}
+
+.day-ribbon__segment {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    filter var(--dur-fast) var(--ease-nova),
+    box-shadow var(--dur-fast) var(--ease-nova);
+}
+
+.day-ribbon__segment > span {
+  overflow: hidden;
+  padding: 0 var(--space-1_5);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tag);
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.day-ribbon__segment:hover { filter: brightness(1.08) saturate(1.12); }
+.day-ribbon__segment[data-shown="true"] { box-shadow: inset 0 -3px 0 var(--color-text-strong); }
+.day-ribbon__segment[data-current-kalam] { box-shadow: inset 0 0 0 2px var(--ribbon-now-bg); }
+
+.day-ribbon__segment[data-current-kalam][data-shown="true"] {
+  box-shadow: inset 0 0 0 2px var(--ribbon-now-bg), inset 0 -3px 0 var(--color-text-strong);
+}
+
+/* Inset, not an outline: the bar clips its segments for its rounded ends, and
+   an outline would be cut off on every side. */
+.day-ribbon__segment:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 3px var(--color-accent-strong);
+}
+
+/* The part of the day already gone, hatched rather than hidden. */
+.day-ribbon__elapsed {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  background: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-surface) 58%, transparent) 0 6px,
+    color-mix(in srgb, var(--color-surface) 40%, transparent) 6px 12px
+  );
+  pointer-events: none;
+}
+
+.day-ribbon__now-line {
+  position: absolute;
+  z-index: 2;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: var(--radius-pill);
+  background: var(--ribbon-now-bg);
+  box-shadow: 0 0 0 1px var(--ribbon-track-bg);
+  pointer-events: none;
+}
+
+/* Star change-over rides the bar's top edge, tithi its bottom edge, so the
+   two never collide however close together they fall. */
+.day-ribbon__limb {
+  position: absolute;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-left: -12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-accent-strong);
+  cursor: pointer;
+}
+
+.day-ribbon__limb--star { top: -12px; }
+.day-ribbon__limb--tithi { bottom: -12px; color: var(--color-accent-secondary); }
+
+.day-ribbon__limb svg {
+  box-sizing: content-box;
+  padding: 3px;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  transition: transform var(--dur-fast) var(--ease-nova);
+}
+
+.day-ribbon__limb[data-shown="true"] svg {
+  border-color: currentColor;
+  background: currentColor;
+}
+
+.day-ribbon__limb[data-shown="true"] svg * { stroke: var(--color-surface); }
+
+.day-ribbon__limb::after {
+  content: "";
+  position: absolute;
+  left: 11.5px;
+  width: 1px;
+  height: 14px;
+  background: currentColor;
+  opacity: 0.55;
+}
+
+.day-ribbon__limb--star::after { top: 22px; }
+.day-ribbon__limb--tithi::after { bottom: 22px; }
+
+.day-ribbon__limb:focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 1px;
+  border-radius: var(--radius-pill);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .day-ribbon__limb:hover svg,
+  .day-ribbon__limb[data-shown="true"] svg { transform: scale(1.15); }
+}
+
+/* ── Scale: sunrise and sunset once, hour ticks between ── */
+.day-ribbon__scale {
+  position: relative;
+  height: 38px;
+  margin-top: var(--space-4);
+}
+
+.day-ribbon__tick {
+  position: absolute;
+  top: 0;
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  color: var(--color-faint);
+  font-size: var(--text-xs);
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.day-ribbon__tick--center { transform: translateX(-50%); }
+.day-ribbon__tick--end { transform: translateX(-100%); }
+
+.day-ribbon__tick-text {
+  display: inline-flex;
+  flex-direction: column;
+}
+
+.day-ribbon__tick-text small { font-size: inherit; }
+.day-ribbon__tick--hour .day-ribbon__tick-text { align-items: center; }
+.day-ribbon__tick--hour b { font-weight: 500; }
+.day-ribbon__tick--sun { color: var(--color-muted); }
+.day-ribbon__tick--sun svg { flex: none; margin-top: 1px; color: var(--color-accent-strong); }
+
+.day-ribbon__tick--sun small {
+  letter-spacing: var(--tracking-tag);
+  text-transform: uppercase;
+}
+
+.day-ribbon__tick--sun b { color: var(--color-text); font-weight: 700; }
+
+/* ── Readout: the one thing being looked at, and the running Horai ── */
+.day-ribbon__readout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  min-height: 44px;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.day-ribbon__detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2_5);
+  min-width: 0;
+  font-size: var(--text-sm);
+}
+
+.day-ribbon__swatch {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-sm);
+}
+
+.day-ribbon__swatch--limb {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent-muted);
+  color: var(--color-accent-strong);
+}
+
+.day-ribbon__status {
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-soft);
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tag);
+  text-transform: uppercase;
+}
+
+.day-ribbon__status--now {
+  background: var(--ribbon-now-bg);
+  color: var(--ribbon-now-fg);
+}
+
+.day-ribbon__detail strong { color: var(--color-text-strong); font-weight: 700; }
+.day-ribbon__time { color: var(--color-muted); font-weight: 600; }
+.day-ribbon__time.is-caution { color: var(--color-low); }
+.day-ribbon__time.is-supportive { color: var(--color-high); }
+.day-ribbon__hint { color: var(--color-faint); }
+
+.day-ribbon__hora {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+.day-ribbon__hora > svg { flex: none; color: var(--color-accent-strong); }
+.day-ribbon__hora > b { color: var(--color-text-strong); }
+.day-ribbon__hora-next { color: var(--color-faint); font-size: var(--text-xs); }
+
+.day-ribbon :is(.day-ribbon__day):focus-visible {
+  outline: 2px solid var(--color-accent-strong);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .day-ribbon { padding: var(--space-4); }
+  .day-ribbon__week { flex: 1 1 100%; min-width: 0; }
+  .day-ribbon__sky { height: 76px; }
+  .day-ribbon__tick--hour { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .day-ribbon__sun { animation: none; }
+  .day-ribbon :is(.day-ribbon__day, .day-ribbon__segment, .day-ribbon__limb svg) { transition: none; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   Today in two minutes — the personal palan (.tp)
+   dashboard-today-palan-nova.tsx. Proposal §5; owner 2026-09-23:
+   presenter style is the default.
+
+   Reading order is the design: (1) the day's word in a tinted band with
+   the three facts you act on (best time, lucky, soolam) — the five-second
+   read; (2) the body — a presenter script with speaker cues, or the area
+   grid; (3) one closing line. One pill style, one polarity mark, tokens
+   only, and the same prose face and measure as the chart reading (.om).
+   No accent left borders (owner ruling).
+   ═══════════════════════════════════════════════════════════ */
+.ui-card.tp {
+  gap: var(--space-5);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-accent) 5%, transparent) 0%,
+      transparent 220px
+    ),
+    var(--color-surface);
+}
+
+.tp-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-5);
+}
+.tp-head__text { display: flex; flex-direction: column; gap: var(--space-1_5); min-width: 0; }
+/* Same as `.nova-card-title` — every other card on Today titles at the h3
+   step; at 26px this one outranked the page's own section rhythm. */
+.tp-head__title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--color-text-strong);
+}
+.tp-head__time { color: var(--color-muted); font-weight: 500; }
+.tp-kicker-icon { margin-right: var(--space-1); vertical-align: -1px; }
+
+/* Members: an initial beside each name, so the selected person reads at a glance. */
+.tp-members { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.tp-member {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 36px;
+  padding: var(--space-1) var(--space-3_5) var(--space-1) var(--space-1);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+.tp-member__avatar {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-surface-soft);
+  color: var(--color-text-accent, var(--color-accent-strong));
+  font-weight: 700;
+}
+.tp-member[aria-pressed="true"] {
+  border-color: var(--color-accent);
+  background: var(--color-accent-muted);
+  color: var(--color-text-strong);
+}
+.tp-member[aria-pressed="true"] .tp-member__avatar { background: var(--color-accent); color: var(--color-surface); }
+
+/* Polarity: one tone variable, set per state, read by the band and the mark. */
+.tp-band--favourable, .tp-mark--favourable { --tp-tone: var(--color-high); --tp-tone-bg: var(--color-high-bg); }
+.tp-band--mixed, .tp-mark--mixed { --tp-tone: var(--color-mid); --tp-tone-bg: var(--color-mid-bg); }
+.tp-band--caution, .tp-mark--caution { --tp-tone: var(--color-low); --tp-tone-bg: var(--color-low-bg); }
+
+.tp-band {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid color-mix(in srgb, var(--tp-tone) 30%, transparent);
+  border-radius: var(--radius-lg);
+  background: var(--tp-tone-bg);
+}
+.tp-band__verdict { display: flex; align-items: center; gap: var(--space-2_5, 10px); min-width: 0; }
+.tp-band__verdict > * { flex: none; }
+.tp-band__verdict > .tp-band__word { flex: 0 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.tp-band__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--tp-tone);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--tp-tone) 22%, transparent);
+}
+.tp-band__word {
+  font-family: var(--font-heading);
+  font-size: clamp(20px, 2.2vw, 26px);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--color-text-strong);
+}
+
+.tp-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: var(--space-3); }
+.tp-fact {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 10px);
+  background: color-mix(in srgb, var(--color-surface) 72%, transparent);
+}
+.tp-fact__label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1_5);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+.tp-fact__value { font-size: var(--text-md); font-weight: 600; line-height: 1.4; color: var(--color-text-strong); }
+/* The server sends the soolam direction lower-case ("north") so it can sit
+   mid-sentence; standing alone under a label it is a value, and starts with a
+   capital. Blockified as a flex item, so ::first-letter applies. */
+.tp-fact__value::first-letter { text-transform: uppercase; }
+.tp-fact__value--quiet { font-size: var(--text-sm); font-weight: 500; color: var(--color-text); }
+.tp-fact__why { font-size: var(--text-sm); line-height: 1.55; color: var(--color-muted); }
+
+/* Narrow: band, then body, stacked. Wide: the body holds the reading measure
+   (~68ch of prose beside the cue column) and the band becomes a sticky rail
+   beside it, so the facts stay in view while the script is read and the card
+   has no dead right-hand third. */
+.tp-layout { display: grid; gap: var(--space-5); }
+.tp-body { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+@media (min-width: 1080px) {
+  .tp-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 330px);
+    grid-template-areas: "body rail";
+    align-items: start;
+    gap: var(--space-8, 32px);
+  }
+  .tp-layout > .tp-band { grid-area: rail; position: sticky; top: var(--space-4); }
+  .tp-layout > .tp-body { grid-area: body; max-width: 780px; }
+  .tp-layout > .tp-band .tp-facts { grid-template-columns: 1fr; }
+}
+
+/* Presenter: one voice in running paragraphs, like a TV rasipalan read out —
+   no labels. The measure of the chart reading (.om), but NOT its serif face
+   (owner, typography pass 2026-09-23): on Today these paragraphs sat directly
+   under the hero briefing, which is the shell's sans, so the page read as two
+   different documents. Inheriting also fixes Tamil — Source Serif 4 has no
+   Tamil glyphs and its stack named no Tamil face, so the OS supplied one. The
+   greeting likewise stays in the paragraph's own face: a Fraunces run inside
+   a serif paragraph under a sans briefing was a third family in one line. */
+.tp-script { display: flex; flex-direction: column; gap: var(--space-4); max-width: 720px; }
+.tp-script__para {
+  margin: 0;
+  font-size: var(--text-md);
+  line-height: 1.8;
+  color: var(--color-text);
+}
+.tp-script__greeting {
+  font-weight: 600;
+  color: var(--color-text-strong);
+}
+.tp-script:lang(ta) .tp-script__para { line-height: 1.95; }
+
+/* By area. */
+.tp-overall { margin: 0; font-size: var(--text-md); line-height: 1.7; color: var(--color-text); }
+.tp-period {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+  border-block: 1px solid var(--color-border);
+}
+.tp-period__tags { display: flex; flex-wrap: wrap; gap: var(--space-1_5); margin: 0; padding: 0; list-style: none; }
+.tp-period__text { margin: 0; font-size: var(--text-sm); line-height: 1.65; color: var(--color-muted); }
+.tp-period__text strong { color: var(--color-text-strong); }
+.tp-pill {
+  padding: 2px var(--space-2_5, 10px);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+.tp-pill--alert {
+  border-color: color-mix(in srgb, var(--color-low) 50%, transparent);
+  background: var(--color-low-bg);
+  color: var(--color-low);
+}
+
+.tp-areas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tp-area {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1_5);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-soft);
+}
+.tp-area__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.tp-area__name { font-size: var(--text-sm); font-weight: 700; color: var(--color-text-strong); }
+.tp-area__text { margin: 0; font-size: var(--text-sm); line-height: 1.65; color: var(--color-text); }
+.tp-area__note {
+  margin: 0;
+  padding-top: var(--space-1_5);
+  border-top: 1px dashed var(--color-border);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+  color: var(--color-muted);
+}
+.tp-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1_5);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--tp-tone);
+}
+.tp-mark__dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+
+.tp-counsel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-3) var(--space-5);
+  margin: 0;
+}
+.tp-counsel__item dt {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+.tp-counsel__item dd { margin: var(--space-1) 0 0; font-size: var(--text-sm); line-height: 1.6; color: var(--color-text); }
+
+/* The closing line: the one sentence to carry out of the card. */
+.tp-close {
+  margin: var(--space-1) 0 0;
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-text-accent, var(--color-accent-strong));
+}
+
+.tp-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+.tp-foot__basis { flex-basis: 100%; margin: 0; font-size: var(--text-sm); line-height: 1.6; color: var(--color-muted); }
+
+.tp-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1_5);
+  align-self: flex-start;
+  min-height: 32px;
+  padding: var(--space-1) 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-accent, var(--color-accent-strong));
+  cursor: pointer;
+}
+.tp-link--inline { min-height: 0; padding: 0; }
+.tp-flip { transform: rotate(180deg); }
+.tp-member:focus-visible,
+.tp-link:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Tamil glyphs need a size more than Latin caps to read at label size, and
+   letter-spacing breaks Tamil conjuncts. */
+.tp:lang(ta) .tp-fact__label,
+.tp:lang(ta) .tp-counsel__item dt {
+  font-size: var(--text-sm);
+  letter-spacing: 0;
+}
+
+@media (max-width: 640px) {
+  .tp-band { padding: var(--space-4); }
+  .tp-head__switch { width: 100%; }
 }

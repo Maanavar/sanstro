@@ -2,6 +2,8 @@
 
 import React, { useLayoutEffect, useRef, useState } from "react";
 
+import "./interaction-kinds.css";
+
 interface CollapsibleSectionProps {
   title: React.ReactNode;
   defaultOpen?: boolean;
@@ -10,7 +12,7 @@ interface CollapsibleSectionProps {
 
 function Chevron({ open }: { open: boolean }) {
   return (
-    <svg viewBox="0 0 20 20" aria-hidden="true" style={{ width: "14px", height: "14px", transform: open ? "rotate(180deg)" : "none", transition: "transform 140ms ease" }}>
+    <svg viewBox="0 0 20 20" aria-hidden="true" style={{ width: "14px", height: "14px", transform: open ? "rotate(180deg)" : "none", transition: "transform 140ms var(--ease-nova)" }}>
       <path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -22,6 +24,7 @@ export function CollapsibleSection({
   children,
 }: CollapsibleSectionProps) {
   const [open, setOpen] = useState(defaultOpen);
+  const [hasOpened, setHasOpened] = useState(defaultOpen);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const anchorTop = useRef<number | null>(null);
 
@@ -40,7 +43,10 @@ export function CollapsibleSection({
 
   function toggle() {
     anchorTop.current = triggerRef.current?.getBoundingClientRect().top ?? null;
-    setOpen((v) => !v);
+    setOpen((v) => {
+      if (!v) setHasOpened(true);
+      return !v;
+    });
   }
 
   return (
@@ -48,7 +54,7 @@ export function CollapsibleSection({
       <button
         ref={triggerRef}
         type="button"
-        className="collapsible__trigger"
+        className="collapsible__trigger ui-disclosure-trigger ui-disclosure-trigger--flush"
         aria-expanded={open}
         onClick={toggle}
         style={{ overflowAnchor: "none" }}
@@ -58,11 +64,18 @@ export function CollapsibleSection({
           <Chevron open={open} />
         </span>
       </button>
-      {open && (
-        <div className="collapsible__body" style={{ overflowAnchor: "none" }}>
-          {children}
+      {hasOpened ? (
+        <div
+          className={`collapsible__body${open ? " collapsible__body--open" : ""}`}
+          style={{ overflowAnchor: "none" }}
+          aria-hidden={!open}
+          inert={!open}
+        >
+          <div className="collapsible__body-inner">
+            {children}
+          </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -50,8 +50,8 @@ export async function MuhurtaPageContent() {
             </h1>
             <p className="cl-pub-lead">
               {lang === "en"
-                ? "Enter your event type, date range, and location to get the top 3 auspicious time windows from Thirukanitham Panchangam. No account required."
-                : "நிகழ்வு வகை, தேதி வரம்பு, இடம் ஆகியவற்றை உள்ளிடுங்கள். திருக்கணித பஞ்சாங்கத்தின் அடிப்படையில் சிறந்த 3 சுப நேரச் சாளரங்களை உடனே காணலாம். கணக்கு தேவையில்லை."}
+                ? "Enter your event, dates, place and birth details to get the best auspicious time windows, scored on Thirukanitham Panchangam and your own chart. For a wedding, both the bride's and the groom's charts are checked. No account required."
+                : "நிகழ்வு, தேதி வரம்பு, இடம், பிறப்பு விவரங்கள் ஆகியவற்றை உள்ளிடுங்கள். திருக்கணித பஞ்சாங்கத்தையும் உங்கள் ஜாதகத்தையும் வைத்து சிறந்த சுப நேரங்களைக் காணலாம். திருமணத்திற்கு மணமகள், மணமகன் இருவரின் ஜாதகமும் சரிபார்க்கப்படும். கணக்கு தேவையில்லை."}
             </p>
             </div>
             <div className="cl-hero-figure">
@@ -121,19 +121,24 @@ export async function MuhurtaPageContent() {
           </div>
         </section>
 
-        {/* CTA strip */}
+        {/* CTA strip.
+            This used to sell chart personalisation — dasa, hora, Chandrashtama —
+            as what an account adds. The tool above already does all of that from
+            the birth details typed into it, so the promise was of something the
+            reader had just been given. What an account actually adds is keeping
+            the charts, and the surfaces built on a saved one. */}
         <section className="cl-cta-strip">
           <div className="cl-container cl-cta-strip__inner">
             <div>
               <h2 className="cl-cta-strip__title">
                 {lang === "en"
-                  ? "Get muhurtham matched to your birth chart"
-                  : "உங்கள் ஜாதகத்துக்கு பொருந்திய முகூர்த்தம் பெறுங்கள்"}
+                  ? "Save your charts and compare dates"
+                  : "ஜாதகங்களைச் சேமித்து, நாட்களை ஒப்பிடுங்கள்"}
               </h2>
               <p className="cl-cta-strip__body">
                 {lang === "en"
-                  ? "Create a free account for chart-personalised muhurtham with dasa support, hora windows, and Chandrashtama checks."
-                  : "தசை ஆதரவு, ஹோரை நேரங்கள், சந்திராஷ்டமம் உள்ளிட்ட ஜாதகத்துக்கு ஏற்ற முகூர்த்தம் பெற இலவச கணக்கை உருவாக்குங்கள்."}
+                  ? "A free account keeps your chart, so you can return to a shortlist, compare dates on the calendar, and see the published muhurtham days ranked for you — or for you and your partner together."
+                  : "இலவச கணக்கில் உங்கள் ஜாதகம் சேமிக்கப்படும் — தேர்ந்தெடுத்த நாட்களுக்குத் திரும்பலாம், நாட்காட்டியில் ஒப்பிடலாம், வெளியிடப்பட்ட முகூர்த்த நாட்களை உங்களுக்கோ உங்கள் இணையருடன் சேர்த்து இருவருக்குமோ வரிசைப்படுத்திப் பார்க்கலாம்."}
               </p>
             </div>
             <Link href="/dashboard" className="cl-btn cl-btn--solid">

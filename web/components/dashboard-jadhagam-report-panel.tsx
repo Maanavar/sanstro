@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import { ArrowRight } from "lucide-react";
-import { t, tPlanetLord } from "@/lib/i18n";
+import { t, tNakshatra, tPlanetLord } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { rasiDisplayName } from "@/lib/chart-utils";
 import type { AdhipathiReading, JadhagamReportData } from "@/lib/types";
 import { YogaDoshamPanel } from "./dashboard-yoga-dosham-panel";
 import { Card } from "./ui/card";
@@ -52,7 +53,7 @@ function StrengthBar({ planet, score, lang }: { planet: string; score: number; l
     <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
       <span style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", minWidth: "76px" }}>{label}</span>
       <div style={{ flex: 1, height: "5px", borderRadius: "var(--radius-sm)", background: "var(--color-border)" }}>
-        <div style={{ width: `${score}%`, height: "100%", borderRadius: "var(--radius-sm)", background: color, transition: "width 0.6s ease" }} />
+        <div style={{ width: `${score}%`, height: "100%", borderRadius: "var(--radius-sm)", background: color, transition: "width 0.6s var(--ease-nova)" }} />
       </div>
       <span style={{ fontSize: "var(--text-sm)", fontWeight: 700, color, minWidth: "30px", textAlign: "right" }}>{score}</span>
     </div>
@@ -395,11 +396,18 @@ export function JadhagamReportPanel({ lang, report, loading, onLoad, renderYogaD
 
       {/* ── Core identity ── */}
       <Section title={t("jadhagam_identity", lang)} accent="rgba(96,165,250,0.4)">
-        <Row label={lang === "ta" ? "லக்னம்" : "Lagna"} value={coreIdentity.lagnaRasi} />
-        <Row label={lang === "ta" ? "சந்திர ராசி" : "Moon Rasi"} value={coreIdentity.moonRasi} />
-        <Row label={lang === "ta" ? "பிறப்பு நட்சத்திரம்" : "Birth Star"} value={`${coreIdentity.janmaNakshatra} — ${lang === "ta" ? "பாதம்" : "Pada"} ${coreIdentity.janmaPada}`} />
-        <Row label={lang === "ta" ? "நடப்பு மகாதசை" : "Mahadasha"} value={coreIdentity.currentMahadasha} />
-        <Row label={lang === "ta" ? "நடப்பு அந்தரதசை" : "Antardasha"} value={coreIdentity.currentAntardasha} />
+        <Row label={lang === "ta" ? "லக்னம்" : "Lagna"} value={rasiDisplayName(coreIdentity.lagnaRasi, lang)} />
+        {[coreIdentity.lagnaEdgeNote, coreIdentity.navamsaLagnaEdgeNote].map((note, index) =>
+          note ? (
+            <p key={index} role="note" style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--color-text)", lineHeight: 1.5 }}>
+              {lang === "ta" ? note.ta : note.en}
+            </p>
+          ) : null,
+        )}
+        <Row label={lang === "ta" ? "சந்திர ராசி" : "Moon Rasi"} value={rasiDisplayName(coreIdentity.moonRasi, lang)} />
+        <Row label={lang === "ta" ? "பிறப்பு நட்சத்திரம்" : "Birth Star"} value={`${tNakshatra(coreIdentity.janmaNakshatra, lang)} — ${lang === "ta" ? "பாதம்" : "Pada"} ${coreIdentity.janmaPada}`} />
+        <Row label={lang === "ta" ? "நடப்பு மகாதசை" : "Mahadasha"} value={tPlanetLord(coreIdentity.currentMahadasha, lang)} />
+        <Row label={lang === "ta" ? "நடப்பு அந்தரதசை" : "Antardasha"} value={tPlanetLord(coreIdentity.currentAntardasha, lang)} />
       </Section>
 
       {/* ── Age-appropriate life focus ── */}

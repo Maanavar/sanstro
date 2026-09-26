@@ -161,20 +161,21 @@ test.beforeAll(async ({ browser }) => {
 });
 
 async function dismissBlockingDialogs(maxAttempts = 20) {
-  // Deliberately NOT clicking labelled buttons like "Skip for now" here: on the
-  // focus-picker modal (life-mode-picker.tsx) that button calls choose("BALANCED"),
-  // a real PATCH /settings/life-mode mutation, not a plain close — under the load
-  // of concurrent chart-calc requests that mutation can sit "saving…" for a long
-  // time, which hung this exact dismissal loop during investigation. Both known
-  // first-run modals (beta-system.tsx, life-mode-picker.tsx) close on a backdrop
-  // click via `if (e.target === e.currentTarget) close()`, which is a pure
-  // client-side state change with no network call, so prefer that.
+  // History: this loop once avoided "Skip for now" because that button awaited
+  // PATCH /settings/life-mode, which could sit "saving…" under chart-calc load
+  // and hung the loop. It no longer waits: Skip closes at once and saves
+  // BALANCED in the background (life-focus plan, Phase 0), and saving is what
+  // stops the picker re-appearing on the next navigation. So click Skip when
+  // it is there; any other first-run modal (beta-system.tsx) still closes on a
+  // backdrop click, which is pure client state.
   for (let i = 0; i < maxAttempts; i++) {
     const dialog = page.locator('[role="dialog"][aria-modal="true"]').first();
     const visible = await dialog.isVisible().catch(() => false);
     log(`dismissBlockingDialogs: attempt ${i + 1}/${maxAttempts}, dialog visible=${visible}`);
     if (!visible) return;
-    await dialog.click({ position: { x: 3, y: 3 }, force: true }).catch(() => {});
+    const skip = dialog.getByRole("button", { name: /^(Skip for now|இப்போது தவிர்க்கவும்)$/ });
+    if (await skip.isVisible().catch(() => false)) await skip.click({ timeout: 3_000 }).catch(() => {});
+    else await dialog.click({ position: { x: 3, y: 3 }, force: true }).catch(() => {});
     await page.waitForTimeout(400);
   }
 }

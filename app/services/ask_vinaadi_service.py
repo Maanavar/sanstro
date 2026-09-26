@@ -32,11 +32,13 @@ from app.calculations.panchangam import is_chandrashtama_day
 from app.calculations.transits import classify_kandaka_cycle, classify_sani_cycle
 from app.core.age_gate import CAREER_REDIRECT_KEYWORDS, MINOR_REDIRECT_KEYWORDS, STUDY_REDIRECT_KEYWORDS
 from app.core.config import get_settings
+from app.core.life_mode import focus_mapping
 from app.models import BirthProfile, Chart
 from app.reasoning.verdict import legacy_confidence_to_band
 from app.schemas.ask_vinaadi import AskVinaadiResponse, AskVinaadiResponseData, AskVinaadiVerdict, BiText
 from app.schemas.dasha import ResponseMeta
 from app.services.chart_service import load_persisted_chart_response
+from app.services.life_focus_service import chart_goal_track, is_own_chart, resolve_focus
 from app.services.location_service import resolve_effective_daily_location
 from app.services.prediction_log_service import log_prediction
 from app.services.safety_filter import run_safety_pass
@@ -256,10 +258,18 @@ def _build_context_block(
     if chandrashtama:
         signals.append("CHANDRASHTAMA")
 
-    # Goal track from user model
-    from app.models.user import User
-    user = session.get(User, owner_user_id)
-    goal_track = getattr(user, "goal_track", None) if user else None
+    # The user's focus (Life Focus plan, Phase 1), not the legacy goal track:
+    # it covers all ten focuses, where the track has only four values. Never on
+    # a relative's chart (D4): the focus is about the user's own life.
+    focus_line = "not applied (family member's chart)"
+    if is_own_chart(session, profile):
+        focus = resolve_focus(session, owner_user_id)
+        if focus is None:
+            legacy_track = chart_goal_track(session, profile, owner_user_id)
+            focus_line = f"goal track {legacy_track}" if legacy_track else "none set"
+        else:
+            area = focus_mapping(focus).area
+            focus_line = focus + (f" (life area {area})" if area else "")
 
     # Caveat for uncertain birth time
     birth_time_src = getattr(profile, "birth_time_source", "unknown")
@@ -291,7 +301,7 @@ def _build_context_block(
         f"Janma nakshatra: {natal_moon.nakshatra}\n"
         f"Current Mahadasha: {maha_lord}\n"
         f"Current Antardasha: {antar_lord}\n"
-        f"Goal track: {goal_track or 'none set'}\n"
+        f"User's current life focus: {focus_line}\n"
         f"Active transits:\n" + "\n".join(transit_lines) + "\n"
         f"Jupiter house from Moon: {jup_house_moon}\n"
         f"Saturn cycle: {sani_cycle.type if sani_cycle.is_active else 'none'}\n"

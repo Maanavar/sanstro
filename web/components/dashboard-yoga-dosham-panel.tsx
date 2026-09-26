@@ -12,6 +12,11 @@ import {
   displayName,
   yogaReadingStatus,
   yogaReadingStatusLabel,
+  natalStrengthWord,
+  doshamPresenceLabel,
+  doshamStanding,
+  yogaStanding,
+  isRunningInDasha,
 } from "@vinaadi/shared/yogaDisplay";
 import type { YogaReadingStatus } from "@vinaadi/shared/yogaDisplay";
 import { Card } from "./ui/card";
@@ -28,6 +33,10 @@ export {
   displayName,
   yogaReadingStatus,
   yogaReadingStatusLabel,
+  doshamPresenceLabel,
+  doshamStanding,
+  yogaStanding,
+  isRunningInDasha,
 };
 
 // ── Human-readable marker labels ─────────────────────────────────────────────
@@ -153,6 +162,37 @@ function planetLabel(code: string, lang: Lang): string {
  */
 const MARKER_PATTERNS: { re: RegExp; label: (m: RegExpMatchArray, lang: Lang) => { ta: string; en: string } }[] = [
   {
+    re: /^([a-z]+)_yogakaraka_owns_(\d+)_(\d+)$/,
+    label: (m, lang) => ({
+      ta: `${planetLabel(m[1].toUpperCase(), lang)} ${m[2]}, ${m[3]}-ஆம் வீடுகளுக்கு அதிபதி; ஒரு கேந்திரத்தையும் ஒரு திரிகோணத்தையும் ஆள்வதால் யோககாரக கிரகம் ஆகிறது`,
+      en: `${planetLabel(m[1].toUpperCase(), lang)} rules both the ${m[2]}th and ${m[3]}th houses (a kendra and a trikona), which makes it the yogakaraka`,
+    }),
+  },
+  {
+    // Ruling 2026-09-23: ownership makes the yogakaraka; these only weaken it.
+    re: /^([a-z]+)_yogakaraka_(debilitated|combust|in_dusthana_(\d+))$/,
+    label: (m, lang) => {
+      const planet = planetLabel(m[1].toUpperCase(), lang);
+      const why = m[2] === "debilitated"
+        ? { ta: "நீசம் பெற்றுள்ளது", en: "is debilitated" }
+        : m[2] === "combust"
+          ? { ta: "அஸ்தங்கம் அடைந்துள்ளது", en: "is combust" }
+          : { ta: `${m[3]}-ஆம் வீட்டில் (மறைவு ஸ்தானம்) உள்ளது`, en: `sits in the ${m[3]}th house (a dusthana)` };
+      return {
+        ta: `${planet} ${why.ta}; யோகபலம் சற்று குறையலாம், யோகம் நீங்காது`,
+        en: `${planet} ${why.en}, which weakens the yoga without removing it`,
+      };
+    },
+  },
+  {
+    // Ruling 2026-09-23: this weakens Amala, it does not cancel it.
+    re: /^malefic_aspect_on_10th_([a-z]+)$/,
+    label: (m, lang) => ({
+      ta: `${planetLabel(m[1].toUpperCase(), lang)} 10-ஆம் வீட்டைப் பார்ப்பதால், யோகத்தின் பலம் சற்று குறையலாம்; யோகம் முழுமையாக நீங்காது.`,
+      en: `${planetLabel(m[1].toUpperCase(), lang)} aspects the 10th, which softens the yoga rather than cancelling it`,
+    }),
+  },
+  {
     re: /^([A-Z]+)_in_10th$/,
     label: (m, lang) => ({
       ta: `${planetLabel(m[1], lang)} 10-ம் வீட்டில் (தொழில் இடம்) உள்ளார்`,
@@ -242,6 +282,16 @@ const MARKER_PATTERNS: { re: RegExp; label: (m: RegExpMatchArray, lang: Lang) =>
     }),
   },
   {
+    // `gate_yoga_strength`'s score note, `weak_key_planet_<graha>_<score>`. The
+    // score is dropped on purpose: it is a composite on an internal scale, and
+    // a bare "32" beside a yoga reads as a verdict it is not.
+    re: /^weak_key_planet_([a-z]+)_\d+$/,
+    label: (m, lang) => ({
+      ta: `${planetLabel(m[1], lang)} ஜாதகத்தில் பலம் குறைந்துள்ளது; யோகபலம் சற்று குறையும்`,
+      en: `${planetLabel(m[1], lang)} is weak in this chart overall, which lowers the yoga's strength`,
+    }),
+  },
+  {
     // Emitted as a lowercase, underscore-joined list of planets, so this can
     // carry more than one: `combust_key_planet_mercury_venus`.
     re: /^combust_key_planet_([a-z_]+)$/,
@@ -255,6 +305,32 @@ const MARKER_PATTERNS: { re: RegExp; label: (m: RegExpMatchArray, lang: Lang) =>
     },
   },
 ];
+
+/**
+ * Markers that lower a *present* yoga's strength and never remove it: the
+ * strength gate's notes (`gate_yoga_strength`, filed in `cancellationFactors`)
+ * and the weakeners that the 2026-09-23 rulings file in `conditionsMet`
+ * (Yogakaraka debility/combustion/dusthana; malefic drishti on Amala's 10th).
+ *
+ * They need their own heading. Under "Cancellation factors" — or, in the why
+ * sentence, "Protective factors present" — a combust yogakaraka read as a
+ * protection, which is the opposite of what the engine said.
+ */
+const WEAKENING_MARKER_RE =
+  /^(weak_key_planet_[a-z]+_\d+|combust_key_planet_[a-z_]+|[a-z]+_yogakaraka_(debilitated|combust|in_dusthana_\d+)|malefic_aspect_on_10th_[a-z]+)$/;
+
+export function isWeakeningMarker(marker: string): boolean {
+  return WEAKENING_MARKER_RE.test(marker);
+}
+
+/** Heading for a yoga's `cancellationFactors` list: a real bhanga keeps
+ *  "Cancellation factors"; a list of weakeners only says so. */
+export function yogaFactorHeading(factors: string[], lang: Lang): string {
+  if (factors.length > 0 && factors.every(isWeakeningMarker)) {
+    return lang === "ta" ? "பலம் குறைக்கும் காரணிகள்" : "What lowers its strength";
+  }
+  return lang === "ta" ? "நிவர்த்தி காரணங்கள்" : "Cancellation factors";
+}
 
 export function markerLabel(marker: string, lang: Lang): string {
   const entry = MARKER_LABELS[marker];
@@ -279,6 +355,10 @@ const YOGA_WHAT: Record<string, { ta: string; en: string }> = {
   RAJA_YOGA: {
     ta: "ஒரு திரிகோண அதிபதியும் ஒரு கேந்திர அதிபதியும் சேரும்போது அல்லது ஒருவரை ஒருவர் பார்க்கும்போது உருவாகும் யோகம். முன்னேற்றம், பொறுப்பு, மற்றும் சாதனை ஆகியவற்றுடன் தொடர்புடையது.",
     en: "Formed when a trikona lord (1/5/9) and a kendra lord (1/4/7/10) are conjunct or aspect each other. Traditionally linked to growth, responsibility, and achievement.",
+  },
+  YOGAKARAKA_RAJA_YOGA: {
+    ta: "ஒரே கிரகம் ஒரு கேந்திரத்திற்கும் (4/7/10) ஒரு திரிகோணத்திற்கும் (5/9) அதிபதியாக இருக்கும்போது, அது யோககாரக கிரகமாகிறது. நீசம், அஸ்தங்கம், 6/8/12 போன்ற பாதிப்புகள் இருந்தால் அதன் யோகபலம் குறையலாம்.",
+    en: "Formed when one planet rules both a kendra (4/7/10) and a trikona (5/9), which makes it the yogakaraka. Debilitation, combustion or a 6th/8th/12th placement can weaken it.",
   },
   DHANA_YOGA: {
     ta: "2-ம் மற்றும் 11-ம் அதிபதிகள் சேரும்போது அல்லது பரிவர்த்தனை செய்யும்போது உருவாகும் யோகம். திட்டமிட்ட முயற்சியால் வருமானம் வளரும் என்று சுட்டும்.",
@@ -445,8 +525,12 @@ export function buildWhyText(
 
   // Filter out annotation-only markers from the "why" sentence
   const triggerMarkers = conditionsMet.filter(
-    (c) => !["female_high_attention_house", "male_high_attention_house", "rahu_ketu_upachaya"].includes(c),
+    (c) => !["female_high_attention_house", "male_high_attention_house", "rahu_ketu_upachaya"].includes(c)
+      && !isWeakeningMarker(c),
   );
+  // A weakener is neither a trigger nor a protection; it gets its own sentence.
+  const weakeningMarkers = [...conditionsMet, ...cancellationFactors].filter(isWeakeningMarker);
+  const protectiveFactors = cancellationFactors.filter((c) => !isWeakeningMarker(c));
   const attentionMarkers = conditionsMet.filter((c) =>
     ["female_high_attention_house", "male_high_attention_house"].includes(c),
   );
@@ -461,8 +545,16 @@ export function buildWhyText(
     parts.push(lang === "ta" ? `தூண்டல் காரணங்கள்: ${triggerList}.` : `Triggered because: ${triggerList}.`);
   }
 
-  if (cancellationFactors.length > 0) {
-    const cancelList = cancellationFactors
+  if (weakeningMarkers.length > 0) {
+    const weakList = weakeningMarkers
+      .slice(0, 3)
+      .map((c) => markerLabel(c, lang))
+      .join("; ");
+    parts.push(lang === "ta" ? `பலம் குறைக்கும் காரணிகள்: ${weakList}.` : `What lowers its strength: ${weakList}.`);
+  }
+
+  if (protectiveFactors.length > 0) {
+    const cancelList = protectiveFactors
       .slice(0, 3)
       .map((c) => markerLabel(c, lang))
       .join("; ");
@@ -511,6 +603,13 @@ export const YOGA_OUTCOMES: Record<string, { ta: string; en: string }> = {
     ta: "தொழில்முறை வளர்ச்சி, பொறுப்புகள் அதிகரிப்பு, சமூக அங்கீகாரம் ஆகியவை சாத்தியம். பெரிய நிறுவனங்களில் உயர் பதவிகள், தலைமைத்துவ வாய்ப்புகள், அரசு/அரசியல் துறைகளில் செல்வாக்கு இருக்கலாம்.",
     en: "Career advancement, increased responsibilities, and social recognition are possible. Senior positions in large organizations, leadership opportunities, and influence in government or public sectors are indicated.",
   },
+  // The yogakaraka is Sani (Rishabha/Thulam), Sevvai (Kataka/Simha) or Sukran
+  // (Makara/Kumbam); the card's "why" line names which one. Its own dasha and
+  // bhukti are when this yoga gives, which is the classical point of the yoga.
+  YOGAKARAKA_RAJA_YOGA: {
+    ta: "யோககாரக கிரகம் ஒரே நேரத்தில் கேந்திரத்தையும் திரிகோணத்தையும் ஆள்வதால், முயற்சிக்கு அதிர்ஷ்டமும் அதிர்ஷ்டத்திற்கு செயலும் இணைகின்றன. அந்த கிரகத்தின் தசை அல்லது புக்தி காலத்தில் பதவி உயர்வு, பொறுப்பு, சமூக மதிப்பு, நிலையான முன்னேற்றம் ஆகியவை சாத்தியம். யோககாரகர் பலம் குறைந்திருந்தால் பலன் தாமதமாகவும் அதிக உழைப்புக்குப் பிறகும் வரலாம்; ஆனால் வாய்ப்பு இல்லாமல் போவதில்லை.",
+    en: "Because one graha rules both a kendra and a trikona, effort and fortune work through the same planet. Its own Dasha or Bhukti is when rise in position, responsibility, standing and steady progress tend to come. If the yogakaraka is weakened, results may arrive later and ask for more work, but they are delayed, not denied.",
+  },
   DHANA_YOGA: {
     ta: "திட்டமிட்ட முயற்சியால் வருமான வளர்ச்சி சாத்தியம். சேமிப்பு வழக்கங்கள் படிப்படியாக பலன் தரும். தொழில் முனைவோர் வாய்ப்புகள் சாதகமாக இருக்கலாம். உழைப்பால் செல்வம் கட்டுவது சாத்தியம் — திடீர் பணம் வராது.",
     en: "Income growth through planned effort is possible. Consistent saving habits will yield results over time. Entrepreneurial opportunities may be favorable. Building wealth through sustained effort is indicated — not sudden windfalls.",
@@ -534,6 +633,12 @@ export const YOGA_REMEDIES: Record<string, { ta: string; en: string }> = {
     ta: "ஏகாதசி விரதம், குரு-சூரிய வழிபாடு, சித்திரை மாதம் திருவண்ணாமலை அல்லது திருவிடைமருதூர் வழிபாடு, மக்களுக்கு உதவுவது, நேர்மையான நடத்தை.",
     en: "Ekadasi fasting, Sun and Jupiter worship, visiting Tiruvannamalai or Tiruvidaraimarudur in Chithirai month, service to the community, maintaining integrity in all dealings.",
   },
+  // Keyed on the yoga, so it names all three possible yogakarakas; the reader
+  // follows the one their card names. Navagraha sthalams per the standard list.
+  YOGAKARAKA_RAJA_YOGA: {
+    ta: "உங்கள் யோககாரக கிரகத்தை வழிபடுங்கள். சனி என்றால்: சனிக்கிழமை எள் தீபம், திருநள்ளாறு சனீஸ்வரர் தரிசனம், உழைப்பாளர்களுக்கு உதவி. செவ்வாய் என்றால்: செவ்வாய்க்கிழமை முருகன் வழிபாடு, வைத்தீஸ்வரன் கோயில் தரிசனம், துவரை தானம். சுக்கிரன் என்றால்: வெள்ளிக்கிழமை மகாலட்சுமி வழிபாடு, கஞ்சனூர் அக்னீஸ்வரர் தரிசனம், வெண்ணிற ஆடை அல்லது அரிசி தானம்.",
+    en: "Worship your yogakaraka graha. If it is Saturn: a sesame-oil lamp on Saturdays, darshan at Thirunallar Saneeswarar, help for manual workers. If Mars: Murugan worship on Tuesdays, darshan at Vaitheeswaran Koil, a gift of toor dal. If Venus: Mahalakshmi worship on Fridays, darshan at Kanjanur Agneeswarar, a gift of white cloth or rice.",
+  },
   DHANA_YOGA: {
     ta: "வெள்ளிக்கிழமை லட்சுமி வழிபாடு, சுக்கிர மந்திரம் (ஓம் சுக்ராய நமஹ), திருப்பதி அல்லது திருவரங்கம் வழிபாடு, உணவு தானம், நிதி ஒழுக்கம் கடைப்பிடிப்பது.",
     en: "Lakshmi worship on Fridays, Venus mantra (Om Shukraya Namah), visits to Tirupati or Srirangam, food donations, maintaining financial discipline.",
@@ -556,6 +661,10 @@ export const YOGA_HOW_TO: Record<string, { ta: string; en: string }> = {
   RAJA_YOGA: {
     ta: "யோகத்தை பலப்படுத்த: நேர்மையான செயல்கள், ஆட்சி கிரகங்களின் தசை காலத்தில் பெரிய நடவடிக்கை எடுங்கள், பொறுப்பான பாத்திரங்களை ஏற்றுக்கொள்ளுங்கள். சமுதாய சேவை: பசிப்பவருக்கு உணவளியுங்கள், இளைஞர்களுக்கு வழிகாட்டுங்கள், அல்லது சமூக நல அமைப்பில் தொண்டு செய்யுங்கள்.",
     en: "To strengthen: act with integrity, take major steps during the ruling planets' Dasha, accept leadership responsibilities. For seva: feed the hungry, mentor youth, or volunteer at a community shelter — leadership yoga grows through acts of service.",
+  },
+  YOGAKARAKA_RAJA_YOGA: {
+    ta: "யோகத்தை பலப்படுத்த: யோககாரக கிரகத்தின் தசை, புக்தி காலங்களில் பெரிய தொழில் முடிவுகளை எடுங்கள். அந்த கிரகத்தின் குணத்தை வாழ்க்கையில் கடைப்பிடியுங்கள்: சனி என்றால் ஒழுக்கமும் பொறுமையும், செவ்வாய் என்றால் துணிவும் விரைந்த செயலும், சுக்கிரன் என்றால் நயமும் கலையுணர்வும். யோககாரகர் நீசம், அஸ்தங்கம் அல்லது மறைவு ஸ்தானத்தில் இருந்தால், வழிபாட்டையும் தானத்தையும் அந்த தசை தொடங்கும் முன்பே ஆரம்பியுங்கள்.",
+    en: "To strengthen: time major career decisions to the yogakaraka's own Dasha and Bhukti. Live out its nature: discipline and patience for Saturn, courage and prompt action for Mars, tact and refinement for Venus. If the yogakaraka is debilitated, combust or in a dusthana, begin its worship and charity before that Dasha opens, not after.",
   },
   DHANA_YOGA: {
     ta: "யோகத்தை பலப்படுத்த: சேமிப்பு ஒழுக்கம், நிதி திட்டமிடல் பழக்கங்கள் வளர்த்துக்கொள்ளுங்கள், 2-ம் மற்றும் 11-ம் அதிபதிகளின் தசையில் கவனம் செலுத்துங்கள், அன்னதானம் செய்யுங்கள்.",
@@ -676,6 +785,14 @@ const YOGA_POWER_CONTEXT: Record<string, { strong: { ta: string; en: string }; p
     strong:  { ta: "ராஜயோகம் இப்போது வலுவாக உள்ளது. தசை ஆதரிக்கும்போது பொறுப்பு, அங்கீகாரம், வளர்ச்சி ஆகியவை அதிகரிக்கலாம். முக்கியமான தொழில்முறை படிகளுக்கு இது ஒரு நல்ல காலம்.", en: "Raja Yoga is strong now. When Dasha aligns, responsibility, recognition, and career growth can increase. A favorable phase for important professional moves." },
     partial: { ta: "ராஜயோகம் ஓரளவு செயல்பாட்டில் உள்ளது. தொழில்முறை முன்னேற்றம் மெதுவாக இருக்கலாம்; நிலையான முயற்சியை தொடருங்கள்.", en: "Raja Yoga is partially active. Professional progress may be gradual; maintain consistent effort." },
     weak:    { ta: "ராஜயோகம் தற்போது மிகவும் குறைந்த பலத்தில் உள்ளது. அடிப்படை வலிமையை கட்டியெழுப்புவதில் கவனம் செலுத்துங்கள்.", en: "Raja Yoga is at low strength. Focus on building foundational skills and reliability." },
+  },
+  // PARTIAL here always means a *weakened* yogakaraka (debility, combustion,
+  // dusthana or a low composite score), never a partly formed yoga: ownership
+  // alone forms it (ruling 2026-09-23).
+  YOGAKARAKA_RAJA_YOGA: {
+    strong:  { ta: "யோககாரக கிரகம் பாதிப்பின்றி உள்ளது. அதன் தசை அல்லது புக்தி வரும்போது பதவி, பொறுப்பு, அங்கீகாரம் ஆகியவற்றில் தெளிவான முன்னேற்றம் எதிர்பார்க்கலாம்.", en: "The yogakaraka is unafflicted. When its Dasha or Bhukti runs, clear gains in position, responsibility and recognition can be expected." },
+    partial: { ta: "யோகம் உண்டு, ஆனால் யோககாரக கிரகம் பாதிக்கப்பட்டுள்ளதால் பலன் தாமதமாகவோ அதிக முயற்சிக்குப் பிறகோ வரலாம். யோகம் நீங்கவில்லை.", en: "The yoga is present, but the yogakaraka is afflicted, so results may come later or after more effort. The yoga is not removed." },
+    weak:    { ta: "யோககாரக கிரகம் மிகவும் பலம் குறைந்துள்ளது. அதன் தசைக்கு முன்பே வழிபாடும் ஒழுக்கமும் தொடங்குவது உதவும்.", en: "The yogakaraka is considerably weakened. Starting its worship and discipline before its Dasha arrives helps." },
   },
   DHANA_YOGA: {
     strong:  { ta: "தனயோகம் வலுவாக உள்ளது. வருமான ஒழுக்கம் மற்றும் சேமிப்பில் கவனம் செலுத்துவது இந்த காலத்தில் நிதி முன்னேற்றத்தை ஆதரிக்கலாம்.", en: "Dhana Yoga is strong. Attention to income discipline and savings may support financial progress in this phase." },
@@ -879,9 +996,7 @@ export function getDoshamPowerContext(dosham: ChartDoshamInsight, lang: Lang): s
 
 export function strengthBand(strength: string, present: boolean, lang: Lang): string {
   if (!present) return lang === "ta" ? "செயல்பாட்டில் இல்லை" : "Not active";
-  if (strength === "STRONG") return lang === "ta" ? "வலுவான" : "Strong";
-  if (strength === "PARTIAL") return lang === "ta" ? "மிதமான" : "Moderate";
-  return lang === "ta" ? "மென்மையான" : "Mild";
+  return natalStrengthWord(strength, lang);
 }
 
 // ── Yoga card tone ────────────────────────────────────────────────────────────
@@ -1042,7 +1157,7 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
               {`${yoga.activationScore}/100`}
             </span>
           )}
-          <span style={{ color: "var(--color-faint)" }} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" width="12" height="12" style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 150ms ease" }}><path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
+          <span style={{ color: "var(--color-faint)" }} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" width="12" height="12" style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 150ms var(--ease-nova)" }}><path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
         </div>
       </button>
 
@@ -1084,7 +1199,7 @@ function YogaCard({ yoga, lang }: { yoga: ChartYogaInsight; lang: Lang }) {
                     letterSpacing: "0.08em",
                   }}
                 >
-                  {lang === "ta" ? "நிவர்த்தி காரணங்கள்" : "Cancellation factors"}
+                  {yogaFactorHeading(yoga.cancellationFactors, lang)}
                 </p>
                 {yoga.cancellationFactors.map((factor) => (
                   <p
@@ -1205,12 +1320,7 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
   const color = isActiveAndPresent ? "var(--planet-saturn)" : isCancelledAndPresent ? "var(--chart-d9-active)" : "var(--color-faint)";
   const severityBand = doshamSeverityBand(dosham, lang);
 
-  const statusLabel =
-    !dosham.isPresent
-      ? (lang === "ta" ? "இல்லை" : "Absent")
-      : dosham.isCancelled
-      ? (lang === "ta" ? "நிவர்த்தி" : "Mitigated")
-      : (lang === "ta" ? "கவனம்" : "Active");
+  const statusLabel = doshamPresenceLabel(dosham, lang);
 
   const whyText = buildWhyText(
     dosham.conditionsMet,
@@ -1267,7 +1377,7 @@ function DoshamCard({ dosham, lang }: { dosham: ChartDoshamInsight; lang: Lang }
               {severityBand}
             </span>
           )}
-          <span style={{ color: "var(--color-faint)" }} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" width="12" height="12" style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 150ms ease" }}><path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
+          <span style={{ color: "var(--color-faint)" }} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" width="12" height="12" style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 150ms var(--ease-nova)" }}><path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
         </div>
       </button>
 

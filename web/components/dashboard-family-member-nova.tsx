@@ -6,6 +6,7 @@ import { ArrowRight } from "lucide-react";
 import { formatClockLabel, formatDateLabel, scoreColor } from "@/lib/format";
 import { t, tNakshatra, tPlanetLord, tTithi, tYoga } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
+import { rasiDisplayName } from "@/lib/chart-utils";
 import { compareSynastry } from "@vinaadi/shared/api/relationships";
 import type {
   ChartDoshamInsight,
@@ -126,7 +127,7 @@ function NovaMemberRelationshipsCard({
       {bestFamilyWindow && (
         <div style={{ fontSize: "var(--text-sm)", lineHeight: 1.5, color: "var(--color-muted)", background: "var(--color-accent-muted)", borderRadius: "var(--radius-sm)", padding: "var(--space-2) var(--space-3)", marginTop: "2px" }}>
           {lang === "ta" ? "குடும்பத்துடன் சிறந்த பகிர்ந்த நேரம் " : "Best shared window with family "}
-          <b style={{ color: "var(--color-accent-strong)" }}>{formatClockLabel(bestFamilyWindow.start)} – {formatClockLabel(bestFamilyWindow.end)}</b>.
+          <b style={{ color: "var(--color-accent-strong)" }}>{formatClockLabel(bestFamilyWindow.start, lang)} – {formatClockLabel(bestFamilyWindow.end, lang)}</b>.
         </div>
       )}
     </NovaCard>
@@ -189,10 +190,10 @@ export function DashboardFamilyMemberNova({
   const identityLine = chart
     ? [
         formatDateLabel(chart.birthProfile.birthDateLocal),
-        chart.birthProfile.birthTimeLocal ? formatClockLabel(chart.birthProfile.birthTimeLocal) : null,
+        chart.birthProfile.birthTimeLocal ? formatClockLabel(chart.birthProfile.birthTimeLocal, lang) : null,
         chart.birthProfile.birthPlace,
       ].filter(Boolean).join(" · ") +
-      (summary ? ` — ${summary.lagnaRasi} ${t("label_lagnam", lang)} · ${summary.moonRasi} ${t("label_janma_rasi", lang)}${summary.janmaNakshatra ? ` · ${summary.janmaNakshatra}` : ""}` : "")
+      (summary ? ` — ${rasiDisplayName(summary.lagnaRasi, lang)} ${t("label_lagnam", lang)} · ${rasiDisplayName(summary.moonRasi, lang)} ${t("label_janma_rasi", lang)}${summary.janmaNakshatra ? ` · ${tNakshatra(summary.janmaNakshatra, lang)}` : ""}` : "")
     : "";
 
   const dasaLine = dasha
@@ -300,12 +301,12 @@ export function DashboardFamilyMemberNova({
       <div className="nova-grid-anticipation" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "var(--space-3)" }}>
         <TimingCard
           label={lang === "ta" ? "சிறந்த நேரம்" : "Best window"}
-          value={bestWindow ? `${formatClockLabel(bestWindow.start)} – ${formatClockLabel(bestWindow.end)}` : "—"}
+          value={bestWindow ? `${formatClockLabel(bestWindow.start, lang)} – ${formatClockLabel(bestWindow.end, lang)}` : "—"}
           color="var(--color-high)" borderColor="var(--color-high-border)" bgColor="var(--color-high-bg)"
         />
         <TimingCard
           label={lang === "ta" ? "ராகு காலம்" : "Rahu Kalam"}
-          value={panchangam ? `${formatClockLabel(panchangam.kalam.rahuKalam.start)} – ${formatClockLabel(panchangam.kalam.rahuKalam.end)}` : "—"}
+          value={panchangam ? `${formatClockLabel(panchangam.kalam.rahuKalam.start, lang)} – ${formatClockLabel(panchangam.kalam.rahuKalam.end, lang)}` : "—"}
           color="var(--color-low)" borderColor="var(--color-low-border)" bgColor="var(--color-low-bg)"
         />
         <TimingCard
@@ -358,7 +359,7 @@ export function DashboardFamilyMemberNova({
               )}
               <div style={{ display: "flex", gap: "var(--space-2_5)", fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)" }}>
                 <span style={{ flexShrink: 0, width: "6px", height: "6px", borderRadius: "var(--radius-pill)", background: "var(--color-accent)", marginTop: "6px" }} />
-                <span><b style={{ color: "var(--color-text-strong)" }}>{lang === "ta" ? "கிரகநகர்வு" : "Transit"}</b> — {transitLine}</span>
+                <span><b style={{ color: "var(--color-text-strong)" }}>{lang === "ta" ? "கிரகநகர்வு" : "Transit"}</b> — <span data-server-prose={sani?.moonBasedCycle.isActive || undefined}>{transitLine}</span></span>
               </div>
             </div>
             <div style={{ marginTop: "auto", background: "linear-gradient(135deg, var(--color-accent-muted), transparent)", border: "1px solid var(--color-border-strong)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3_5)" }}>
@@ -446,7 +447,7 @@ export function DashboardFamilyMemberNova({
                     return (
                       <tr key={planet.graha} style={{ borderBottom: "1px solid color-mix(in srgb, var(--color-text-strong) 7%, transparent)" }}>
                         <td style={{ padding: "var(--space-2_5) var(--space-3)", fontWeight: 700, color: DASHA_COLORS[planet.graha] ?? "var(--color-accent-secondary)" }}>{tPlanetLord(planet.graha, lang)}</td>
-                        <td style={{ padding: "var(--space-2_5) var(--space-3)", color: "var(--color-text)" }}>{planet.rasiName}</td>
+                        <td style={{ padding: "var(--space-2_5) var(--space-3)", color: "var(--color-text)" }}>{rasiDisplayName(planet.rasi, lang)}</td>
                         <td style={{ padding: "var(--space-2_5) var(--space-3)", color: "var(--color-text)" }}>{planet.houseFromLagna}</td>
                         {showAllPlanets && <td style={{ padding: "var(--space-2_5) var(--space-3)", color: "var(--color-text)" }}>{planet.degreeInRasi.toFixed(2)}°</td>}
                         <td style={{ padding: "var(--space-2_5) var(--space-3)" }}>

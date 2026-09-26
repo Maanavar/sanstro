@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import pytest
 
+from app.calculations.chart_strength import d9_dignity_label
 from app.calculations.yogas import detect_yogas_and_doshams
 from app.schemas.charts import PlanetPosition
 from app.services._chart_build import _build_yoga_dosham_insights
@@ -141,6 +142,7 @@ def _planet(graha: str, rasi: int, score: int) -> PlanetPosition:
         isRetrograde=False,
         isCombust=False,
         d9Rasi=rasi,
+        d9Dignity=d9_dignity_label(graha, rasi),
         isVargottama=False,
         showRetrogradeBadge=False,
         strengthScore=score,

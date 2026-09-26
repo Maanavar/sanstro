@@ -43,6 +43,13 @@ YOGA_EFFECT: dict[str, tuple[str, str]] = {
         "Linked to advancement, responsibility, and recognition; the pattern typically opens doors "
         "when you step toward responsibility rather than wait to be offered it.",
     ),
+    "YOGAKARAKA_RAJA_YOGA": (
+        "ஒரே கிரகம் கேந்திரத்திற்கும் திரிகோணத்திற்கும் அதிபதியாக இருப்பதால், அந்த கிரகம் சிறப்பான "
+        "சுபபலன்களை வழங்கக்கூடியதாக பாரம்பரிய ஜோதிடத்தில் கருதப்படுகிறது. குறிப்பாக அதன் தசை மற்றும் "
+        "புக்தி காலங்கள் முக்கியமானவை.",
+        "Classically read as effort and fortune running through one planet, since it rules both a "
+        "kendra and a trikona — its own dasha is traditionally the period to watch.",
+    ),
     "DHANA_YOGA": (
         "வருமானமும் சேமிப்பும் திட்டமிட்ட முயற்சியால் வளரும் என்று சுட்டுகிறது; "
         "திடீர் ஆதாயம் அல்ல, தொடர்ச்சியான கட்டமைப்பு.",

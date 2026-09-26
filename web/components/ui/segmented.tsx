@@ -1,6 +1,12 @@
 "use client";
 
-import { useRef, type ReactNode } from "react";
+import dynamic from "next/dynamic";
+import { useId, useRef, type ReactNode } from "react";
+
+const SegmentedThumb = dynamic(
+  () => import("./segmented-thumb").then((module) => module.SegmentedThumb),
+  { ssr: true },
+);
 
 /**
  * <Segmented> — the single replacement for the 7 different hand-rolled
@@ -37,6 +43,7 @@ export function Segmented<T extends string>({
   className,
 }: SegmentedProps<T>) {
   const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const thumbId = useId();
 
   const focusIndex = (idx: number) => {
     const clamped = (idx + options.length) % options.length;
@@ -89,7 +96,10 @@ export function Segmented<T extends string>({
             onClick={() => onChange(opt.key)}
             onKeyDown={(e) => onKeyDown(e, idx)}
           >
-            {opt.label}
+            {selected ? (
+              <SegmentedThumb layoutId={`segmented-thumb-${thumbId}`} />
+            ) : null}
+            <span className="ui-segmented__label">{opt.label}</span>
           </button>
         );
       })}
