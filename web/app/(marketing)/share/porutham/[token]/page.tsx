@@ -25,10 +25,12 @@ type Props = { params: Promise<{ token: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { token } = await params;
   const data = await fetchShare(token);
-  if (!data) return { title: "Porutham Result | Vinaadi AI" };
+  // Private to the couple who shared it, found or not — the not-found branch
+  // used to drop `noindex` and inherit the homepage's canonical.
+  if (!data) return { title: "Porutham Result", robots: { index: false, follow: false } };
 
   const names = [data.labelA, data.labelB].filter(Boolean).join(" & ") || "This match";
-  const title = `${names} — ${data.totalScore}/${data.maxScore} Porutham | Vinaadi AI`;
+  const title = `${names} — ${data.totalScore}/${data.maxScore} Porutham`;
   const description = data.summary.en || "View this Tamil marriage porutham (compatibility) result — shared via Vinaadi AI.";
 
   return {

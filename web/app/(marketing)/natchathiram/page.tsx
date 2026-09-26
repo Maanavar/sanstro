@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { NatchathiramIndexContent } from "./NatchathiramIndexContent";
 
 export const metadata: Metadata = {
-  title: "27 Nakshathirams (நட்சத்திரங்கள்) — Personality, Career & dasa Guide | Vinaadi",
+  title: "27 Nakshathirams (நட்சத்திரங்கள்) — Personality, Career & dasa Guide",
   description:
     "Complete guide to all 27 birth stars in Tamil Vedic astrology — personality traits, career strengths, family life, dasa timelines, and spiritual guidance. Based on Thirukanitham.",
   keywords: [
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "https://vinaadi.com/natchathiram" },
   openGraph: {
-    title: "27 Nakshathirams — Birth Star Profiles | Vinaadi",
+    title: "27 Nakshathirams — Birth Star Profiles",
     description:
       "Personality traits, career paths, dasa timelines and spiritual guidance for all 27 birth stars. Based on Thirukanitham Vedic astrology.",
     url: "https://vinaadi.com/natchathiram",
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "27 Nakshathirams — Birth Star Profiles | Vinaadi",
+    title: "27 Nakshathirams — Birth Star Profiles",
     description: "Personality traits, career paths, dasa timelines and spiritual guidance for all 27 birth stars. Based on Thirukanitham Vedic astrology.",
     images: ["/brand/vinaadi-og-image.png"],
   },

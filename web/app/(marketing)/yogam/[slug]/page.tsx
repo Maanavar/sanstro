@@ -17,11 +17,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!content) return {};
 
   return {
-    title: `${content.title.en} - Formula, Benefits & Dasa Activation | Vinaadi`,
+    title: `${content.title.en} - Formula, Benefits & Dasa Activation`,
     description: content.lead.en,
     alternates: { canonical: `https://vinaadi.com/yogam/${slug}` },
     openGraph: {
-      title: `${content.title.en} | Vinaadi`,
+      title: `${content.title.en}`,
       description: content.lead.en,
       url: `https://vinaadi.com/yogam/${slug}`,
       type: "article",

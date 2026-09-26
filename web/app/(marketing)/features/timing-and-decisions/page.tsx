@@ -4,6 +4,15 @@ import { PublicFooter } from "@/components/public-footer";
 import { getServerLang } from "@/lib/server-lang";
 import { FEAT_TIMING, mt } from "@/lib/marketing-i18n";
 import { PanchangamWheelVisual, TimingArcVisual } from "@/components/marketing-visuals";
+import { pageMetadata } from "@/lib/page-metadata";
+
+export const metadata = pageMetadata({
+  path: "/features/timing-and-decisions",
+  title: "Timing & Decisions — Nalla Neram, Muhurtham and Your Best Windows",
+  description:
+    "Pick the right day and hour for the things that matter: nalla neram, muhurtham and best/avoid windows, read against your own chart rather than a general almanac.",
+  keywords: ["nalla neram", "muhurtham for me", "auspicious time", "best time to start"],
+});
 
 // F7 part two - a Server Component; see lib/server-lang.ts.
 export default async function TimingAndDecisionsPage() {

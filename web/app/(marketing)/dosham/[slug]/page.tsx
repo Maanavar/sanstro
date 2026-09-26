@@ -24,11 +24,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!content) return {};
 
   return {
-    title: `${content.title.en} - Meaning, Chart Check & Pariharam | Vinaadi`,
+    title: `${content.title.en} - Meaning, Chart Check & Pariharam`,
     description: content.lead.en,
     alternates: { canonical: `https://vinaadi.com/dosham/${slug}` },
     openGraph: {
-      title: `${content.title.en} | Vinaadi`,
+      title: `${content.title.en}`,
       description: content.lead.en,
       url: `https://vinaadi.com/dosham/${slug}`,
       type: "article",

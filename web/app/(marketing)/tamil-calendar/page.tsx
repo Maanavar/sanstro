@@ -24,7 +24,7 @@ async function fetchEvents(): Promise<EventsList | null> {
 }
 
 export const metadata: Metadata = {
-  title: "Tamil Calendar 2026 - Pournami, Amavasai, Pradosham, Ekadhasi Dates | Vinaadi",
+  title: "Tamil Calendar 2026 - Pournami, Amavasai, Pradosham, Ekadhasi Dates",
   description:
     "Full 2026 Tamil calendar of special days - Pournami (full moon), Amavasai (new moon), Pradosham, Ekadhasi, Sankatahara Chathurthi, Karthigai, Sashti, Sivarathiri and Karinaal - with every date, weekday and Tamil date.",
   keywords: [

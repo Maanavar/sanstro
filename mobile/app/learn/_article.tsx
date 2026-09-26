@@ -6,6 +6,7 @@ import { C } from "@/theme/colors";
 import { RADIUS, S } from "@/theme/spacing";
 import { TamilType, EnType } from "@/theme/typography";
 import { useI18n } from "@/hooks/useI18n";
+import { SITE_HOST } from "@vinaadi/shared";
 import { LEARN_CONTENT } from "./[slug]";
 
 export function LearnArticle({ slug }: { slug: keyof typeof LEARN_CONTENT }) {
@@ -42,7 +43,7 @@ export function LearnArticle({ slug }: { slug: keyof typeof LEARN_CONTENT }) {
         <View style={styles.webLink}>
           <Text style={styles.webLinkLabel}>{isTamil ? "முழு வழிகாட்டி" : "Full guide"}</Text>
           <Text style={[styles.webLinkBody, type.bodySmall]}>
-            {isTamil ? "இந்த தலைப்பில் விரிவான கட்டுரை எங்கள் இணையதளத்தில் உள்ளது." : "A detailed article is available on vinaadi.app."}
+            {isTamil ? "இந்த தலைப்பில் விரிவான கட்டுரை எங்கள் இணையதளத்தில் உள்ளது." : `A detailed article is available on ${SITE_HOST}.`}
           </Text>
         </View>
       </ScrollView>

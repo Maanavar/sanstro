@@ -3,7 +3,7 @@ import { DOSHAM_KALA_SARPA_FAQ } from "@/lib/marketing-i18n";
 import { KalaSarpaDoshamContent } from "./PageContent";
 
 export const metadata: Metadata = {
-  title: "Kala Sarpa Dosham — Meaning, Types, Chart Check & Pariharam | Vinaadi",
+  title: "Kala Sarpa Dosham — Meaning, Types, Chart Check & Pariharam",
   description:
     "Kala Sarpa dosham forms when all 7 classical planets are enclosed between Rahu and Ketu. Learn the 12 types (Ananta to Sheshanaga), how to check your chart, what it means for life, when it softens, and the traditional pariharam.",
   keywords: [

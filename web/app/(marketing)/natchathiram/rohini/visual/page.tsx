@@ -3,7 +3,7 @@ import { ROHINI } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
 
 export const metadata: Metadata = {
-  title: "Rohini Nakshathiram — Visual Profile | Vinaadi",
+  title: "Rohini Nakshathiram — Visual Profile",
   description: "Visual profile of Rohini Nakshathiram: personality traits, career strengths, dasa timeline, compatible nakshathirams, and spiritual guidance.",
   alternates: { canonical: "https://vinaadi.com/natchathiram/rohini/visual" },
   openGraph: {

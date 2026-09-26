@@ -67,6 +67,10 @@ const ORG_JSONLD = {
   sameAs: [],
 };
 
+// No `potentialAction`: a SearchAction needs a URL template carrying the query
+// (`{search_term_string}`), and the site has no search page to point it at. The
+// one that was here targeted the porutham calculator with no placeholder, which
+// is invalid structured data (GRW-08).
 const WEBSITE_JSONLD = {
   "@context": "https://schema.org",
   "@type": "WebSite",
@@ -74,14 +78,6 @@ const WEBSITE_JSONLD = {
   url: BASE,
   description:
     "Tamil astrology assistant for daily guidance, timing, porutham, and family planning. Powered by Thirukanitham.",
-  potentialAction: {
-    "@type": "SearchAction",
-    target: {
-      "@type": "EntryPoint",
-      urlTemplate: `${BASE}/tools/marriage-porutham-calculator`,
-    },
-    "query-input": "required name=search_term_string",
-  },
 };
 
 export const metadata: Metadata = {
@@ -107,10 +103,14 @@ export const metadata: Metadata = {
   authors: [{ name: "Vinaadi" }],
   creator: "Vinaadi",
   publisher: "Vinaadi",
+  // No `url` here, and no `alternates` below: both are inherited by every page
+  // that does not set its own, and a site-wide value tells search engines and
+  // share previews that the page is the homepage. Ten public pages declared
+  // exactly that until 2026-09-26 (GRW-02). Each page sets its own through
+  // lib/page-metadata.ts; lib/seo-metadata.test.ts checks every one.
   openGraph: {
     type: "website",
     locale: "en_IN",
-    url: BASE,
     siteName: "Vinaadi",
     title: "Vinaadi - Tamil Astrology Assistant for Daily Guidance & Planning",
     description:
@@ -142,14 +142,9 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  alternates: {
-    canonical: BASE,
-    languages: {
-      en: BASE,
-      ta: BASE,
-      "x-default": BASE,
-    },
-  },
+  // hreflang is omitted until Tamil has URLs of its own (GRW-06): declaring
+  // `en` and `ta` at the same address told crawlers the two were one page, and
+  // the Tamil copy is served by cookie, which a crawler never sends.
   icons: {
     icon: [{ url: "/favicon.ico" }, { url: "/icon.png", type: "image/png" }],
     apple: [{ url: "/apple-icon.png", type: "image/png" }],

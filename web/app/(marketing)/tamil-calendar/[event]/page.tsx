@@ -81,10 +81,14 @@ type Props = { params: Promise<{ event: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { event } = await params;
   const data = await fetchEvent(event);
-  if (!data) return { title: "Tamil Calendar 2026 | Vinaadi" };
+  // A backend hiccup must not hand the crawler the homepage's canonical: this
+  // branch is what Google indexes if the fetch fails while it visits.
+  if (!data) {
+    return { title: "Tamil Calendar 2026", alternates: { canonical: `https://vinaadi.com/tamil-calendar/${event}` } };
+  }
 
   const next = data.nextDate ? `Next: ${fmtShort(data.nextDate)}.` : "";
-  const title = `${data.name.en} 2026 Dates (${data.name.ta}) - All ${data.count} Dates | Vinaadi`;
+  const title = `${data.name.en} 2026 Dates (${data.name.ta}) - All ${data.count} Dates`;
   const description = `${data.name.en} (${data.name.ta}) 2026: all ${data.count} dates with weekday and Tamil date. ${data.summary.en} ${next}`.slice(0, 300);
 
   return {

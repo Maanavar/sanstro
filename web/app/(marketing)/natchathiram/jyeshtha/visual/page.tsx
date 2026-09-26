@@ -3,7 +3,7 @@ import { JYESHTHA } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
 
 export const metadata: Metadata = {
-  title: "Kettai Nakshathiram — Visual Profile | Vinaadi",
+  title: "Kettai Nakshathiram — Visual Profile",
   description: "Visual profile of Kettai Nakshathiram: personality traits, career strengths, dasa timeline, compatible nakshathirams, and spiritual guidance.",
   alternates: { canonical: "https://vinaadi.com/natchathiram/jyeshtha/visual" },
   openGraph: {

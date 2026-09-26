@@ -3,7 +3,7 @@ import { KRITTIKA } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
 
 export const metadata: Metadata = {
-  title: "Karthigai Nakshathiram — Visual Profile | Vinaadi",
+  title: "Karthigai Nakshathiram — Visual Profile",
   description: "Visual profile of Karthigai Nakshathiram: personality traits, career strengths, dasa timeline, compatible nakshathirams, and spiritual guidance.",
   alternates: { canonical: "https://vinaadi.com/natchathiram/krittika/visual" },
   openGraph: {

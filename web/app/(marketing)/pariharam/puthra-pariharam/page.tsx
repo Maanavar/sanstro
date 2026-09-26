@@ -3,7 +3,7 @@ import { PARIHARAM_PUTHRA_FAQ } from "@/lib/marketing-i18n";
 import { PuthraPariharamContent } from "./PageContent";
 
 export const metadata: Metadata = {
-  title: "Pariharam for Childbirth Blessings (Puthra Pariharam) | Vinaadi",
+  title: "Pariharam for Childbirth Blessings (Puthra Pariharam)",
   description:
     "Puthra pariharam: when the 5th house feels blocked — Jupiter, Rahu-Ketu, and naga dosham factors — and the traditional remedy: Alangudi, naga propitiation, Santhana Gopala mantra and Murugan worship.",
   keywords: [

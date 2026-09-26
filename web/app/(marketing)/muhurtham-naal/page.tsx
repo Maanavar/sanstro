@@ -5,7 +5,7 @@ import { MuhurthamNaalContent } from "./MuhurthamNaalContent";
 const SITE = "https://vinaadi.com";
 
 export function metadataForMuhurthamYear(year: number, path = "/muhurtham-naal"): Metadata {
-  const title = `${year} Tamil Muhurtham Naal (Wedding Dates) - Verified Almanac List | Vinaadi`;
+  const title = `${year} Tamil Muhurtham Naal (Wedding Dates) - Verified Almanac List`;
   const description =
     `All auspicious Tamil muhurtham (wedding) dates for ${year} from the published almanac, with weekday, Tamil date, pirai, nakshatra and nalla neram for each. Sign in to find the dates that best match your birth star.`;
 

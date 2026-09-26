@@ -17,11 +17,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!content) return {};
 
   return {
-    title: `${content.title.en} - Deity, Blessing & Chart Connection | Vinaadi`,
+    title: `${content.title.en} - Deity, Blessing & Chart Connection`,
     description: content.lead.en,
     alternates: { canonical: `https://vinaadi.com/temples/${slug}` },
     openGraph: {
-      title: `${content.title.en} | Vinaadi`,
+      title: `${content.title.en}`,
       description: content.lead.en,
       url: `https://vinaadi.com/temples/${slug}`,
       type: "article",

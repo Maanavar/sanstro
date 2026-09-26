@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { ChandrashtamaPageContent } from "./PageContent";
 
 export const metadata: Metadata = {
-  title: "What is Chandrashtama? — Moon's 8th Sign Transit in Tamil Astrology | Vinaadi",
+  title: "What is Chandrashtama? — Moon's 8th Sign Transit in Tamil Astrology",
   description:
     "Chandrashtama is when the transiting Moon passes through the 8th sign from your birth Moon sign. The sign transit takes about 2.5 days and recurs every 27 days; the window that belongs to your own birth star is about a day of it. Learn what it means and how to approach it calmly.",
   keywords: [

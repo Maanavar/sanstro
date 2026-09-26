@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { TempleIndexContent } from "./IndexContent";
 
 export const metadata: Metadata = {
-  title: "Famous Temples & Their Power — Navagraha, Rahu-Ketu & More | Vinaadi",
+  title: "Famous Temples & Their Power — Navagraha, Rahu-Ketu & More",
   description:
     "A guide to the temples sought for specific blessings — the nine Navagraha temples for planetary peace, Thirunallar for Saturn, Rahu-Ketu sthalams, Vaitheeswaran Koil for health. What each temple is known for and which difficulty it addresses.",
   keywords: [
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "https://vinaadi.com/temples" },
   openGraph: {
-    title: "Famous Temples & Their Power — Navagraha, Rahu-Ketu & More | Vinaadi",
+    title: "Famous Temples & Their Power — Navagraha, Rahu-Ketu & More",
     description:
       "What each temple is known for, the deity worshipped, and which difficulty it traditionally addresses.",
     url: "https://vinaadi.com/temples",

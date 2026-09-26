@@ -3,7 +3,7 @@ import { BHARANI } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
 
 export const metadata: Metadata = {
-  title: "Bharani Nakshathiram — Visual Profile | Vinaadi",
+  title: "Bharani Nakshathiram — Visual Profile",
   description: "Visual profile of Bharani Nakshathiram: personality traits, career strengths, dasa timeline, compatible nakshathirams, and spiritual guidance.",
   alternates: { canonical: "https://vinaadi.com/natchathiram/bharani/visual" },
   openGraph: {

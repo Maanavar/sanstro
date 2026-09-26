@@ -3,7 +3,7 @@ import { PARIHARAM_MARRIAGE_FAQ } from "@/lib/marketing-i18n";
 import { ThirumanaThadaiContent } from "./PageContent";
 
 export const metadata: Metadata = {
-  title: "Pariharam for Delayed Marriage (Thirumana Thadai) — Reasons, Remedies & Slokam | Vinaadi",
+  title: "Pariharam for Delayed Marriage (Thirumana Thadai) — Reasons, Remedies & Slokam",
   description:
     "Why marriage gets delayed in astrology — the 7th house, Venus, Jupiter, Sevvai dosham and Rahu-Ketu — and the step-by-step pariharam: Katyayani slokam, fasts, and temple worship at Thirumananjeri.",
   keywords: [

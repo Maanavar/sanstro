@@ -24,6 +24,18 @@ def _ts_open_beta() -> bool:
     return match.group(1) == "true"
 
 
+SITE_TS = LAUNCH_TS.with_name("site.ts")
+
+
+@pytest.mark.no_db
+def test_share_card_address_matches_the_site_constant() -> None:
+    """GRW-04: the backend's share card printed vinaadi.ai while the web said
+    vinaadi.com and mobile said vinaadi.app. One address, pinned both sides."""
+    match = re.search(r'export const SITE_URL\s*=\s*"([^"]+)"', SITE_TS.read_text(encoding="utf-8"))
+    assert match, f"SITE_URL declaration not found in {SITE_TS}"
+    assert Settings.model_fields["public_site_url"].default == match.group(1)
+
+
 @pytest.mark.no_db
 def test_open_beta_default_matches_the_public_copy_constant() -> None:
     server_default = Settings.model_fields["open_beta"].default

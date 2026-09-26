@@ -1,8 +1,12 @@
 import type { MetadataRoute } from "next";
 import { DOSHAM_DETAILS, DRAFT_GUIDE_SLUGS, YOGAM_DETAILS, TEMPLE_DETAILS, PARIHARAM_DETAILS } from "@/lib/guide-detail-content";
+import { NAKSHATRA_LIST } from "@vinaadi/shared/constants";
+import { SITE_URL } from "@/lib/page-metadata";
 import { CALENDAR_CATEGORY_SLUGS } from "./(marketing)/tamil-calendar/calendar-category-api";
 
-const BASE = "https://vinaadi.com";
+// Every indexable public page belongs here; lib/seo-metadata.test.ts fails
+// when one is missing.
+const BASE = SITE_URL;
 
 function guideEntries(prefix: string, slugs: string[]): MetadataRoute.Sitemap {
   return slugs.map((slug) => ({
@@ -153,6 +157,27 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "daily",
       priority: 0.7,
     },
+    {
+      url: `${BASE}/tools/chandrashtama`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${BASE}/family`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    /* ── Plans ── */
+    {
+      url: `${BASE}/pricing`,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
+      url: `${BASE}/beta`,
+      changeFrequency: "monthly",
+      priority: 0.5,
+    },
     /* ── Trust pages ── */
     {
       url: `${BASE}/trust/methodology`,
@@ -214,11 +239,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.8,
     },
-    {
-      url: `${BASE}/dosham/sevvai-dosham`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
     // Draft, not-yet-reviewed dosham slugs are excluded — see DRAFT_GUIDE_SLUGS.
     ...guideEntries("dosham", Object.keys(DOSHAM_DETAILS).filter((slug) => !DRAFT_GUIDE_SLUGS.has(slug))),
     /* ── Yogam pages ── */
@@ -258,161 +278,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.8,
     },
-    {
-      url: `${BASE}/natchathiram/ashwini`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/natchathiram/bharani`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/natchathiram/krittika`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/natchathiram/rohini`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/natchathiram/mrigashira`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/natchathiram/ardra`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/natchathiram/punarvasu`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/natchathiram/pushya`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/natchathiram/pushya/visual`,
-      changeFrequency: "monthly",
-      priority: 0.7,
-    },
-    {
-      url: `${BASE}/natchathiram/ashlesha`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/natchathiram/ashlesha/visual`,
-      changeFrequency: "monthly",
-      priority: 0.7,
-    },
-    {
-      url: `${BASE}/natchathiram/magha`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/natchathiram/magha/visual`,
-      changeFrequency: "monthly",
-      priority: 0.7,
-    },
-    {
-      url: `${BASE}/natchathiram/purva-phalguni`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/natchathiram/purva-phalguni/visual`,
-      changeFrequency: "monthly",
-      priority: 0.7,
-    },
-    {
-      url: `${BASE}/natchathiram/uttara-phalguni`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/natchathiram/hasta`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/natchathiram/chitra`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/natchathiram/swati`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/natchathiram/vishakha`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/natchathiram/anuradha`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/natchathiram/jyeshtha`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/natchathiram/mula`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/natchathiram/purva-ashadha`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/natchathiram/uttara-ashadha`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/natchathiram/shravana`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/natchathiram/dhanishtha`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/natchathiram/shatabhisha`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/natchathiram/purva-bhadra`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/natchathiram/uttara-bhadra`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/natchathiram/revati`,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
+    // All 27, generated — the hand-written list had drifted to 4 of 27 visual
+    // profiles. The shared slugs are the route folder names.
+    ...NAKSHATRA_LIST.flatMap(({ slug }) => [
+      { url: `${BASE}/natchathiram/${slug}`, changeFrequency: "monthly" as const, priority: 0.8 },
+      { url: `${BASE}/natchathiram/${slug}/visual`, changeFrequency: "monthly" as const, priority: 0.7 },
+    ]),
     /* ── Daily panchangam pages (30 days) ── */
     ...panchangamDateEntries(),
   ];

@@ -3,7 +3,7 @@ import { PARIHARAM_KADAN_FAQ } from "@/lib/marketing-i18n";
 import { KadanPariharamContent } from "./PageContent";
 
 export const metadata: Metadata = {
-  title: "Pariharam for Debt & Financial Strain (Kadan Pariharam) | Vinaadi",
+  title: "Pariharam for Debt & Financial Strain (Kadan Pariharam)",
   description:
     "Why the chart shows persistent debt — 2nd, 6th, 11th house pressure — and the traditional pariharam: Mahalakshmi Friday worship, Kubera mantra, Kanjanur and Alangudi temples.",
   keywords: [

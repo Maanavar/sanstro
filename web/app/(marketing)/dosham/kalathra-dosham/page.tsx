@@ -3,7 +3,7 @@ import { DOSHAM_KALATHRA_FAQ } from "@/lib/marketing-i18n";
 import { KalathraDoshamContent } from "./PageContent";
 
 export const metadata: Metadata = {
-  title: "Kalathra Dosham — Marriage Affliction, Meaning, Chart Check & Pariharam | Vinaadi",
+  title: "Kalathra Dosham — Marriage Affliction, Meaning, Chart Check & Pariharam",
   description:
     "Kalathra dosham covers any malefic (Saturn, Mars, Rahu, Ketu, Sun) pressing the 7th house, its lord, or Venus. Learn how it differs from Sevvai dosham, how to read your chart for marriage timing, when it eases, and the traditional pariharam.",
   keywords: [

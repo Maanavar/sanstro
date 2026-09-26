@@ -5,12 +5,12 @@ import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — Vinaadi",
+  title: "Privacy Policy",
   description: "How Vinaadi collects, uses, and protects your personal data.",
   alternates: { canonical: "https://vinaadi.com/privacy" },
   robots: { index: true, follow: false },
   openGraph: {
-    title: "Privacy Policy - Vinaadi",
+    title: "Privacy Policy",
     description: "How Vinaadi collects, uses, and protects your personal data.",
     url: "https://vinaadi.com/privacy",
     images: [
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Privacy Policy - Vinaadi",
+    title: "Privacy Policy",
     description: "How Vinaadi collects, uses, and protects your personal data.",
     images: ["/brand/vinaadi-og-image.png"],
   },

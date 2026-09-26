@@ -3,7 +3,7 @@ import { ASHWINI } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
 
 export const metadata: Metadata = {
-  title: "Aswini Nakshathiram — Visual Profile | Vinaadi",
+  title: "Aswini Nakshathiram — Visual Profile",
   description: "Visual profile of Aswini Nakshathiram: personality traits, career strengths, dasa timeline, compatible nakshathirams, and spiritual guidance.",
   alternates: { canonical: "https://vinaadi.com/natchathiram/ashwini/visual" },
   openGraph: {

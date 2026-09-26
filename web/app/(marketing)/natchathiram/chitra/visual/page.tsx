@@ -3,7 +3,7 @@ import { CHITRA } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
 
 export const metadata: Metadata = {
-  title: "Chithirai Nakshathiram — Visual Profile | Vinaadi",
+  title: "Chithirai Nakshathiram — Visual Profile",
   description: "Visual profile of Chithirai Nakshathiram: personality traits, career strengths, dasa timeline, compatible nakshathirams, and spiritual guidance.",
   alternates: { canonical: "https://vinaadi.com/natchathiram/chitra/visual" },
   openGraph: {

@@ -3,7 +3,7 @@ import { TEMPLE_PANCHA_BHOOTA_FAQ } from "@/lib/marketing-i18n";
 import { PanchaBhootaContent } from "./PageContent";
 
 export const metadata: Metadata = {
-  title: "Pancha Bhoota Sthalams — Five Element Temples of Shiva | Vinaadi",
+  title: "Pancha Bhoota Sthalams — Five Element Temples of Shiva",
   description:
     "The five Shiva temples of the elements — Kanchipuram (earth), Thiruvanaikaval (water), Thiruvannamalai (fire), Srikalahasti (wind), Chidambaram (space) — and how to do the pilgrimage circuit.",
   keywords: [

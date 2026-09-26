@@ -3,7 +3,7 @@ import { DOSHAM_PITHRU_FAQ } from "@/lib/marketing-i18n";
 import { PithruDoshamContent } from "./PageContent";
 
 export const metadata: Metadata = {
-  title: "Pithru Dosham — Ancestral Karma, Meaning, Chart Check & Pariharam | Vinaadi",
+  title: "Pithru Dosham — Ancestral Karma, Meaning, Chart Check & Pariharam",
   description:
     "Pithru dosham is the Sun-Rahu affliction (Pithru-Rahu yoga) or pressure on the 9th house. Learn what it means for fortune and lineage, how to read your chart, the most responsive pariharam (Amavasya tarpan), and the Sun slokam.",
   keywords: [

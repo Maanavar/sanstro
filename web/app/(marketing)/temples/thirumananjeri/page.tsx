@@ -3,7 +3,7 @@ import { TEMPLE_THIRUMANANJERI_FAQ } from "@/lib/marketing-i18n";
 import { ThirumananjeriContent } from "./PageContent";
 
 export const metadata: Metadata = {
-  title: "Thirumananjeri Temple — Divine Marriage, Blessings & Pariharam | Vinaadi",
+  title: "Thirumananjeri Temple — Divine Marriage, Blessings & Pariharam",
   description:
     "Thirumananjeri is where Shiva and Parvati were wed — the foremost temple for marriage blessings, thirumana thadai pariharam, and the Swayamvara Parvati mantra.",
   keywords: [

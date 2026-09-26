@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { YogamIndexContent } from "./IndexContent";
 
 export const metadata: Metadata = {
-  title: "Yogams in Tamil Astrology — Meaning, Formula & Benefits | Vinaadi",
+  title: "Yogams in Tamil Astrology — Meaning, Formula & Benefits",
   description:
     "Understand the auspicious yogams in your horoscope — Gaja Kesari, Dhana, Budha-Aditya and Neecha Bhanga Raja yogam. What each means, the formula that forms it, and when it activates through dasa.",
   keywords: [
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "https://vinaadi.com/yogam" },
   openGraph: {
-    title: "Yogams in Tamil Astrology — Meaning, Formula & Benefits | Vinaadi",
+    title: "Yogams in Tamil Astrology — Meaning, Formula & Benefits",
     description:
       "What every yogam means, the formula that forms it, and when it activates — explained in Tamil and English.",
     url: "https://vinaadi.com/yogam",

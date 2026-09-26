@@ -3,7 +3,7 @@ import { DOSHAM_NAGA_FAQ } from "@/lib/marketing-i18n";
 import { NagaDoshamContent } from "./PageContent";
 
 export const metadata: Metadata = {
-  title: "Naga Dosham (Sarpa Dosham) — Meaning, Chart Check & Pariharam | Vinaadi",
+  title: "Naga Dosham (Sarpa Dosham) — Meaning, Chart Check & Pariharam",
   description:
     "Naga or Sarpa dosham forms when Rahu or Ketu presses the 5th house, its lord, or Jupiter. Learn what it means for children and lineage, how to read your chart, when it is cancelled, and the traditional pariharam with Rahu slokam.",
   keywords: [

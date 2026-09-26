@@ -3,7 +3,7 @@ import { TEMPLE_ARUPADAI_VEEDU_FAQ } from "@/lib/marketing-i18n";
 import { ArupadaiVeeduContent } from "./PageContent";
 
 export const metadata: Metadata = {
-  title: "Arupadai Veedu — Six Sacred Abodes of Lord Murugan | Vinaadi",
+  title: "Arupadai Veedu — Six Sacred Abodes of Lord Murugan",
   description:
     "The six sacred Murugan temples — Thiruparankundram, Thiruchendur, Palani, Swamimalai, Pazhamudircholai, Thiruthani — and the pilgrimage circuit for Sevvai dosham, Mars energy and courage.",
   keywords: [

@@ -3,7 +3,7 @@ import { PARIHARAM_SEVVAI_FAQ } from "@/lib/marketing-i18n";
 import { SevvaiDoshaPariharamContent } from "./PageContent";
 
 export const metadata: Metadata = {
-  title: "Sevvai Dosham Pariharam — Mars Remedy, Temples & Mantra | Vinaadi",
+  title: "Sevvai Dosham Pariharam — Mars Remedy, Temples & Mantra",
   description:
     "Sevvai dosham pariharam: understanding Mars placement, which charts are truly affected, and the step-by-step remedy — Vaitheeswaran Koil, Murugan worship and the Angaraka mantra.",
   keywords: [

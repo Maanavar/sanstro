@@ -17,11 +17,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!content) return {};
 
   return {
-    title: `${content.title.en} - Reason, Chart Connection & Remedies | Vinaadi`,
+    title: `${content.title.en} - Reason, Chart Connection & Remedies`,
     description: content.lead.en,
     alternates: { canonical: `https://vinaadi.com/pariharam/${slug}` },
     openGraph: {
-      title: `${content.title.en} | Vinaadi`,
+      title: `${content.title.en}`,
       description: content.lead.en,
       url: `https://vinaadi.com/pariharam/${slug}`,
       type: "article",

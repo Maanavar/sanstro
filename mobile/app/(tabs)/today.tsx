@@ -53,7 +53,7 @@ import { formatTimeLang, formatDateLang } from "@/lib/formatLocale";
 import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 import type { GuestPrefs } from "@/features/guest/guestStore";
 import type { DailyGuidanceData } from "@vinaadi/shared";
-import { tKarana, tNakshatra, tTithi, tYoga } from "@vinaadi/shared";
+import { SITE_HOST, tKarana, tNakshatra, tTithi, tYoga } from "@vinaadi/shared";
 import { SCORE_THRESHOLDS } from "@vinaadi/shared/utils/score";
 type ExtendedGuidance = DailyGuidanceData & {
   is_chandrashtama?: boolean;
@@ -802,7 +802,7 @@ export default function TodayTab() {
                 isTamil ? "இன்றைய விநாடி பஞ்சாங்கம்" : "My Vinaadi day — powered by Thirukanitham",
                 scoreText,
                 windowText,
-                "vinaadi.app",
+                SITE_HOST,
               ].filter(Boolean).join("\n");
               try {
                 const result = await Share.share({ message });
@@ -832,7 +832,7 @@ export default function TodayTab() {
                 isTamil ? "இன்றைய விநாடி திருகணிதம்" : "My Vinaadi day — powered by Thirukanitham",
                 scoreText,
                 windowText,
-                "vinaadi.app",
+                SITE_HOST,
               ].filter(Boolean).join("\n");
               const url = `whatsapp://send?text=${encodeURIComponent(message)}`;
               try {

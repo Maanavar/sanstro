@@ -3,7 +3,7 @@ import { ANURADHA } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
 
 export const metadata: Metadata = {
-  title: "Anusham Nakshathiram — Visual Profile | Vinaadi",
+  title: "Anusham Nakshathiram — Visual Profile",
   description: "Visual profile of Anusham Nakshathiram: personality traits, career strengths, dasa timeline, compatible nakshathirams, and spiritual guidance.",
   alternates: { canonical: "https://vinaadi.com/natchathiram/anuradha/visual" },
   openGraph: {

@@ -4,6 +4,15 @@ import { PublicFooter } from "@/components/public-footer";
 import { getServerLang } from "@/lib/server-lang";
 import { TopicSymbolPanel } from "@/components/astro-symbols";
 import { TRUST_ABOUT, mt } from "@/lib/marketing-i18n";
+import { pageMetadata } from "@/lib/page-metadata";
+
+export const metadata = pageMetadata({
+  path: "/trust/about-vinaadi",
+  title: "About Vinaadi — Calm, Method-Transparent Tamil Astrology",
+  absolute: true,
+  description:
+    "Why Vinaadi exists: Tamil astrology for real decisions, built on Thirukanitham, explained without fear, and designed for families.",
+});
 
 // F7 part two - a Server Component; see lib/server-lang.ts.
 export default async function AboutPage() {

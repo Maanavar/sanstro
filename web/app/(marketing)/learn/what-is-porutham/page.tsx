@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { PoruthamLearnPageContent } from "./PageContent";
 
 export const metadata: Metadata = {
-  title: "What is Porutham? — Tamil Marriage Compatibility Explained | Vinaadi",
+  title: "What is Porutham? — Tamil Marriage Compatibility Explained",
   description:
     "Porutham is the Tamil system for checking marriage compatibility using birth stars. Learn about the 10 porutham factors, why Rajju dosha and Nadi dosha outweigh the score, and how Sevvai dosham is assessed.",
   keywords: [

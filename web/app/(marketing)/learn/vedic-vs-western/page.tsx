@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { VedicVsWesternPageContent } from "./PageContent";
 
 export const metadata: Metadata = {
-  title: "Vedic vs Western Astrology — Zodiac, Lagna, Nakshatra, Dasha | Vinaadi",
+  title: "Vedic vs Western Astrology — Zodiac, Lagna, Nakshatra, Dasha",
   description:
     "A plain-language guide to how Vedic astrology differs from Western astrology: sidereal vs tropical zodiac, lagna over sun sign, 27 nakshatras, and multi-year dasha periods.",
   keywords: [

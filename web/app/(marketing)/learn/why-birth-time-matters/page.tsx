@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { WhyBirthTimeMattersPageContent } from "./PageContent";
 
 export const metadata: Metadata = {
-  title: "Why Birth Time Matters in Tamil Astrology — Lagna and Dasa | Vinaadi",
+  title: "Why Birth Time Matters in Tamil Astrology — Lagna and Dasa",
   description:
     "In Thirukanitham astrology, birth time determines your lagna (which changes every ~2 hours) and the Moon's exact birth-star pada. Both shape your full chart and dasa sequence. Learn why accuracy matters and what to do when birth time is uncertain.",
   keywords: [

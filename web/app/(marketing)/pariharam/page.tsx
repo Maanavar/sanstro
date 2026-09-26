@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { PariharamIndexContent } from "./IndexContent";
 
 export const metadata: Metadata = {
-  title: "Pariharam for Life's Difficulties — Remedies & Slokams | Vinaadi",
+  title: "Pariharam for Life's Difficulties — Remedies & Slokams",
   description:
     "Traditional pariharam (remedies) for delayed marriage, Rahu-Ketu and Sevvai dosham, debt, health and more — with the astrological reason behind each difficulty, slokams, fasts and temple worship.",
   keywords: [
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "https://vinaadi.com/pariharam" },
   openGraph: {
-    title: "Pariharam for Life's Difficulties — Remedies & Slokams | Vinaadi",
+    title: "Pariharam for Life's Difficulties — Remedies & Slokams",
     description:
       "Devotional remedies, slokams and temple worship for life's difficulties — with the astrological reason behind each.",
     url: "https://vinaadi.com/pariharam",

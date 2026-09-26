@@ -4,6 +4,15 @@ import { PublicFooter } from "@/components/public-footer";
 import { getServerLang } from "@/lib/server-lang";
 import { TopicSymbolPanel } from "@/components/astro-symbols";
 import { TRUST_METHOD, mt } from "@/lib/marketing-i18n";
+import { pageMetadata } from "@/lib/page-metadata";
+
+export const metadata = pageMetadata({
+  path: "/trust/methodology",
+  title: "Methodology — Thirukanitham, Lahiri Ayanamsa and How Charts Are Calculated",
+  description:
+    "How Vinaadi computes a Tamil chart: Thirukanitham true positions, Lahiri ayanamsa, Rahu and Ketu, Drik ephemeris, Vimshottari dasa, transits and panchangam.",
+  keywords: ["Thirukanitham", "Lahiri ayanamsa", "Drik panchangam", "Vimshottari dasa calculation"],
+});
 
 // F7 part two - a Server Component; see lib/server-lang.ts.
 export default async function MethodologyPage() {

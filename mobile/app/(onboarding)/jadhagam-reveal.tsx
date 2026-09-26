@@ -14,6 +14,7 @@ import { JadhagamChart, type JadhagamHouseData } from "@/components/JadhagamChar
 import { AnimatedEmptyState } from "@/components/AnimatedEmptyState";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import type { ChartCalculateResponseData } from "@vinaadi/shared";
+import { SITE_HOST } from "@vinaadi/shared";
 import { PPU_REPORT_PRODUCTS } from "@vinaadi/shared/constants";
 
 const PLANET_SHORT_TA: Record<string, string> = {
@@ -125,8 +126,8 @@ export default function JadhagamRevealScreen() {
           onPress={async () => {
             trackEvent("share_card_opened");
             const message = isTamil
-              ? "விநாடி AI மூலம் திருக்கணித ஜாதகம் பெற்றேன்! உங்கள் ஜாதகத்தையும் பாருங்கள்: vinaadi.app"
-              : "Just got my Thirukanitham jadhagam on Vinaadi! Check yours: vinaadi.app";
+              ? `விநாடி மூலம் திருக்கணித ஜாதகம் பெற்றேன்! உங்கள் ஜாதகத்தையும் பாருங்கள்: ${SITE_HOST}`
+              : `Just got my Thirukanitham jadhagam on Vinaadi! Check yours: ${SITE_HOST}`;
             try {
               const result = await Share.share({ message });
               if (result.action === Share.sharedAction) trackEvent("share_card_shared");

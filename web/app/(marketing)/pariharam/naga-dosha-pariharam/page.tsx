@@ -3,7 +3,7 @@ import { PARIHARAM_NAGA_FAQ } from "@/lib/marketing-i18n";
 import { NagaDoshaPariharamContent } from "./PageContent";
 
 export const metadata: Metadata = {
-  title: "Naga Dosham Pariharam — Sarpa Remedy, Temples & Observances | Vinaadi",
+  title: "Naga Dosham Pariharam — Sarpa Remedy, Temples & Observances",
   description:
     "Naga dosham pariharam: the ancestral and karmic meaning of serpent energy in the chart, and the step-by-step remedy — milk abhishekam, Panchami-Aayilyam observances, and naga prarthana.",
   keywords: [

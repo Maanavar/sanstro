@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { FriendshipTool } from "./FriendshipTool";
 
 export const metadata: Metadata = {
-  title: "Friends & Compatibility — Free Tamil Nakshatra Friendship Report | Vinaadi",
+  title: "Friends & Compatibility — Free Tamil Nakshatra Friendship Report",
   description:
     "Discover your friendship style with anyone. Enter two birth details for a positive, nakshatra-based friendship compatibility report — communication, trust, energy balance, and growth. Free, no account needed.",
   keywords: [

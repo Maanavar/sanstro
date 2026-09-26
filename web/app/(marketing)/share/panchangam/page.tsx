@@ -13,7 +13,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const { date, city } = await searchParams;
   const dateLabel = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? formatDateLabel(date) : "Today";
   const place = city ?? DEFAULT_CITY;
-  const title = `Today's Panchangam Card — ${dateLabel}, ${place} | Vinaadi AI`;
+  const title = `Today's Panchangam Card — ${dateLabel}, ${place}`;
   const description = `Share today's Tamil Panchangam — Tithi, Nakshatra, Rahu Kalam, and auspicious timings for ${place}. Free shareable card from Vinaadi AI.`;
   return {
     title,

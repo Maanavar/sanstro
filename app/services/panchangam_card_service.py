@@ -8,9 +8,11 @@ returns JSON. Picks a day-of-week deity and detects special-tithi festivals
 from __future__ import annotations
 
 from datetime import date
+from urllib.parse import urlparse
 
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.schemas.panchangam import PanchangamDailyQuery
 from app.services.narrative_engine import festival_for_tithi, tithi_content_card
 from app.services.panchangam_service import calculate_panchangam
@@ -72,6 +74,8 @@ def get_card_data(
     weekday = (d.vara.weekday or "").upper()
     deity_key = DEITY_MAP.get(weekday[:3], "surya")
 
+    site_host = urlparse(get_settings().public_site_url).netloc
+
     abs_tithi = _absolute_tithi_number(d.tithi.number, d.tithi.paksha)
     festival = festival_for_tithi(abs_tithi)
     festival_payload = None
@@ -105,12 +109,14 @@ def get_card_data(
         "moonPhaseLabel": d.moon_phase_label,
         "festival": festival_payload,
         "guidance": _daily_guidance_line(d.subha_muhurtham.is_subha),
+        # Printed on every forwarded card, so it must be the live address:
+        # this said "vinaadi.ai", which never resolved (GRW-04).
         "brand": {
-            "name": "Vinaadi AI",
-            "url": "vinaadi.ai",
+            "name": "Vinaadi",
+            "url": site_host,
             "cta": {
-                "ta": "உங்கள் இலவச ஜாதகம் — vinaadi.ai",
-                "en": "Get your free Jadhagam — vinaadi.ai",
+                "ta": f"உங்கள் இலவச ஜாதகம் — {site_host}",
+                "en": f"Get your free Jadhagam — {site_host}",
             },
         },
         "lang": lang,

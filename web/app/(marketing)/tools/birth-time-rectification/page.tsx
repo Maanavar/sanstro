@@ -3,6 +3,15 @@ import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { getServerLang } from "@/lib/server-lang";
 import { TOOL_BTR, mt } from "@/lib/marketing-i18n";
+import { pageMetadata } from "@/lib/page-metadata";
+
+export const metadata = pageMetadata({
+  path: "/tools/birth-time-rectification",
+  title: "Birth Time Rectification — Check the Time Your Tamil Chart Rests On",
+  description:
+    "Unsure of your exact birth time? Rectification tests candidate times against the life events you remember, so your lagna and dasa start from the right minute.",
+  keywords: ["birth time rectification", "correct birth time astrology", "lagna birth time", "Tamil jadhagam time correction"],
+});
 
 // F7 part two - a Server Component; see lib/server-lang.ts.
 export default async function BirthTimeRectificationPage() {

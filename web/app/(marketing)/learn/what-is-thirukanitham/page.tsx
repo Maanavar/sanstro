@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { ThirukanithamPageContent } from "./PageContent";
 
 export const metadata: Metadata = {
-  title: "What is Thirukanitham? — The Precise Tamil Astrology Calculation System | Vinaadi",
+  title: "What is Thirukanitham? — The Precise Tamil Astrology Calculation System",
   description:
     "Thirukanitham is the Tamil astronomical calculation method that uses actual planetary positions — not Vakya's pre-computed tables. Learn how it differs from Vakya, what Lahiri ayanamsa is, and why it matters for your birth chart.",
   keywords: [

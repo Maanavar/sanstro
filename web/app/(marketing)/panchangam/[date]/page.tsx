@@ -34,11 +34,11 @@ type Props = { params: Promise<{ date: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { date } = await params;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { title: "Panchangam | Vinaadi" };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { title: "Panchangam" };
 
   const data = await fetchPanchangam(date);
   const dateLabel = formatDateLabel(date);
-  const title = `Tamil Panchangam ${dateLabel} — Tithi, Nakshatra & Muhurtham | Vinaadi`;
+  const title = `Tamil Panchangam ${dateLabel} — Tithi, Nakshatra & Muhurtham`;
 
   let description = `Tamil Panchangam for ${dateLabel}. Thirukanitham-based calculation. Set your city for local sunrise, Rahu Kalam, and Nalla Neram timings.`;
   if (data) {

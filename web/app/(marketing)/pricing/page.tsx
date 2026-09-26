@@ -7,7 +7,7 @@ import { GooglePlayBadge } from "@/components/store-badges";
 import { OPEN_BETA, PPU_REPORT_PRODUCTS, SUBSCRIPTION_PLANS, TIER_LIMITS } from "@vinaadi/shared/constants";
 
 export const metadata: Metadata = {
-  title: "Pricing | Vinaadi",
+  title: "Pricing",
   description: "Compare Vinaadi guest, free, and premium access. See plan pricing, included features, and how subscriptions fit alongside report purchases.",
   alternates: { canonical: "https://vinaadi.com/pricing" },
 };

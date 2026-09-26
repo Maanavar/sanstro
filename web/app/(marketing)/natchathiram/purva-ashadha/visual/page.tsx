@@ -3,7 +3,7 @@ import { PURVA_ASHADHA } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
 
 export const metadata: Metadata = {
-  title: "Pooradam Nakshathiram — Visual Profile | Vinaadi",
+  title: "Pooradam Nakshathiram — Visual Profile",
   description: "Visual profile of Pooradam Nakshathiram: personality traits, career strengths, dasa timeline, compatible nakshathirams, and spiritual guidance.",
   alternates: { canonical: "https://vinaadi.com/natchathiram/purva-ashadha/visual" },
   openGraph: {

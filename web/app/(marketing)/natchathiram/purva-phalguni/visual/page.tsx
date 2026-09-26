@@ -3,7 +3,7 @@ import { PURVA_PHALGUNI } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
 
 export const metadata: Metadata = {
-  title: "Pooram Nakshathiram — Visual Profile | Vinaadi",
+  title: "Pooram Nakshathiram — Visual Profile",
   description: "Visual profile of Pooram Nakshathiram: personality traits, career strengths, dasa timeline, compatible nakshathirams, and spiritual guidance.",
   alternates: { canonical: "https://vinaadi.com/natchathiram/purva-phalguni/visual" },
   openGraph: {

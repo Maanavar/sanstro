@@ -4,6 +4,15 @@ import { PublicFooter } from "@/components/public-footer";
 import { getServerLang } from "@/lib/server-lang";
 import { FEAT_DAILY, mt } from "@/lib/marketing-i18n";
 import { PanchangamWheelVisual, SouthIndianChartVisual, TimingArcVisual } from "@/components/marketing-visuals";
+import { pageMetadata } from "@/lib/page-metadata";
+
+export const metadata = pageMetadata({
+  path: "/features/daily-guidance",
+  title: "Daily Tamil Astrology Guidance — Your Day, Read From Your Own Chart",
+  description:
+    "One calm reading every morning: your Thirukanitham chart, current dasa, today's transits and the panchangam read together into a best window and a caution window.",
+  keywords: ["daily astrology guidance", "personalised rasi palan", "Tamil daily jothidam", "today nalla neram for me"],
+});
 
 // F7 part two — a Server Component; see lib/server-lang.ts.
 export default async function DailyGuidancePage() {
