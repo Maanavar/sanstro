@@ -43,7 +43,7 @@ export default function AskVinaadiScreen() {
   const styles = useMemo(() => makeStyles(C), [C]);
   const { lang } = useI18n();
   const isTamil = lang === "ta";
-  const { tier } = useSession();
+  const { gateTier: tier } = useSession();
   const { chartId: _chartId } = useLocalSearchParams<{ chartId?: string }>();
   const chartId = Array.isArray(_chartId) ? _chartId[0] : _chartId;
 
@@ -62,10 +62,12 @@ export default function AskVinaadiScreen() {
   const { mode: focusMode } = useLifeFocus();
   const suggestedQuestions = askChipsForMode(focusMode);
 
-  const questionsUsed = statusData?.questionsUsedToday ?? 0;
-  const dailyLimit = statusData?.dailyLimit ?? 5;
+  // The server's own count decides the limit. This used to compare
+  // `questionsUsedToday` — a field the status route never sends — against a
+  // fallback of 5, so `atLimit` was always false and the limit bar never showed.
+  const dailyLimit = statusData?.dailyLimit ?? statusData?.monthlyLimit ?? 0;
   const chipsLeft = statusData?.chipsRemaining;
-  const atLimit = questionsUsed >= dailyLimit;
+  const atLimit = chipsLeft !== null && chipsLeft !== undefined && chipsLeft <= 0;
 
   // Gate: guests and registered users without a chartId need to go create a chart first
   if (tier === "guest") {

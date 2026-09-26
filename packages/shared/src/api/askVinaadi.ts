@@ -1,10 +1,25 @@
 import { getApiClient } from "./client";
 import type { BiText } from "../types";
 
+/**
+ * GET /ask-vinaadi/daily-status — app/services/ask_vinaadi_usage_service.py
+ * `get_daily_status`. That route has no response_model, so
+ * tests/test_api_wrapper_field_contract.py cannot check this type: it declared
+ * `questionsUsedToday` (a field of the *answer*, never of the status) until
+ * 2026-09-26, which left mobile's limit bar permanently hidden. Keep in step by hand.
+ */
 export interface AskVinaadiDailyStatus {
-  questionsUsedToday: number;
-  dailyLimit: number;
+  /** Questions spent — today for a daily allowance, this month for a monthly one. */
+  chipsUsed: number;
   chipsRemaining: number | null;
+  /** The subscription fact. */
+  isPremium: boolean;
+  /** Open beta: a spent allowance is a fair-use cap to wait out, not a paywall. */
+  openBeta: boolean;
+  /** Null for a monthly (premium) allowance. */
+  dailyLimit: number | null;
+  /** Null for a daily allowance. */
+  monthlyLimit: number | null;
 }
 
 export type AskVinaadiVerdictKind = "GO" | "WAIT" | "CAUTION" | "MIXED";

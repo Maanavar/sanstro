@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { SUBSCRIPTION_PLANS } from "@vinaadi/shared/constants";
+import { OPEN_BETA, SUBSCRIPTION_PLANS } from "@vinaadi/shared/constants";
 
 /** ₹ with Indian digit grouping; "Free" for zero (MKT-14). */
 function formatINR(amount: number): string {
@@ -168,13 +168,27 @@ export function PricingPlans() {
               : "Switch to annual to save"}
           </p>
           <div style={{ marginTop: "auto", paddingTop: "12px" }}>
-            <Link href="/login" className="cl-btn cl-btn--solid" style={{ width: "100%" }}>
-              Start {monthly.trialDays}-day free trial
-            </Link>
-            <p style={{ margin: "8px 0 0", color: "var(--cl-muted)", fontSize: "0.8rem", textAlign: "center" }}>
-              {monthly.trialDays} days free, then {formatINR(premiumPlan.priceINR)}
-              {billing === "monthly" ? " / month" : " / year"}. Cancel anytime.
-            </p>
+            {OPEN_BETA ? (
+              <>
+                {/* No trial to start: the beta already unlocks all of this. */}
+                <Link href="/login" className="cl-btn cl-btn--solid" style={{ width: "100%" }}>
+                  Free during the beta
+                </Link>
+                <p style={{ margin: "8px 0 0", color: "var(--cl-muted)", fontSize: "0.8rem", textAlign: "center" }}>
+                  Included with a free account while the beta runs. Price after launch.
+                </p>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className="cl-btn cl-btn--solid" style={{ width: "100%" }}>
+                  Start {monthly.trialDays}-day free trial
+                </Link>
+                <p style={{ margin: "8px 0 0", color: "var(--cl-muted)", fontSize: "0.8rem", textAlign: "center" }}>
+                  {monthly.trialDays} days free, then {formatINR(premiumPlan.priceINR)}
+                  {billing === "monthly" ? " / month" : " / year"}. Cancel anytime.
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>

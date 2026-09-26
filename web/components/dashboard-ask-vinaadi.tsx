@@ -15,7 +15,12 @@ interface DailyStatus {
   chipsUsed: number;
   chipsRemaining: number | null;
   isPremium: boolean;
-  dailyLimit: number;
+  /** Open beta: a spent allowance is a fair-use cap to wait out, never a paywall. */
+  openBeta: boolean;
+  /** Null for a monthly (premium) allowance. */
+  dailyLimit: number | null;
+  /** Null for a daily allowance. */
+  monthlyLimit: number | null;
 }
 
 interface DashboardAskVinaadiProps {
@@ -107,6 +112,19 @@ function AnswerCard({ entry, lang }: { entry: { question: string; data: AskVinaa
   );
 }
 
+/** What to say when the day's questions are spent. Exported for its test. */
+export function askLimitMessage(lang: Lang, dailyLimit: number | null, canUpgrade: boolean): string {
+  const n = dailyLimit ?? 0;
+  if (lang === "ta") {
+    const used = `இன்றைய ${n} கேள்விகளையும் பயன்படுத்திவிட்டீர்கள்.`;
+    return canUpgrade
+      ? `${used} கூடுதல் கேள்விகளுக்கு மேம்படுத்துங்கள், அல்லது நாளை மீண்டும் கேளுங்கள்.`
+      : `${used} நாளை மீண்டும் கேளுங்கள்.`;
+  }
+  const used = `You've used today's ${n} question${n === 1 ? "" : "s"}.`;
+  return canUpgrade ? `${used} Upgrade for more, or ask again tomorrow.` : `${used} Ask again tomorrow.`;
+}
+
 export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode = "BALANCED", onUpgrade, embedded = false, analyticsSurface = "web" }: DashboardAskVinaadiProps) {
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
@@ -125,8 +143,13 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
   }, []);
 
   const isPremium = status?.isPremium ?? false;
+  const openBeta = status?.openBeta ?? false;
+  const dailyLimit = status?.dailyLimit ?? null;
   const chipsRemaining = status?.chipsRemaining ?? null;
   const limitReached = !isPremium && chipsRemaining !== null && chipsRemaining <= 0;
+  // An upgrade is only offered when one exists: not to a subscriber, and not
+  // during the open beta, when /beta has promised every feature is unlocked.
+  const canUpgrade = !isPremium && !openBeta;
 
   const modeChips = getChipsForMode(activeLifeMode);
   const suggestions = SUGGESTED_QUESTIONS[goalTrack ?? "DEFAULT"];
@@ -191,8 +214,9 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
               question costs money" unless we say plainly it doesn't (#18). */}
           <p style={{ margin: "3px 0 0", fontSize: "11.5px", color: "var(--color-score-high, #5C7654)", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "4px" }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+            {/* Premium's allowance is monthly, not unlimited — say what it is. */}
             {isPremium
-              ? (lang === "ta" ? "வரம்பற்ற கேள்விகள் — கூடுதல் கட்டணம் இல்லை" : "Unlimited questions — no extra charge")
+              ? (lang === "ta" ? "Premium-இல் அடங்கும் — ஒவ்வொரு கேள்விக்கும் தனிக் கட்டணம் இல்லை" : "Included in Premium — no charge per question")
               : (lang === "ta" ? "இலவசம் — ஒவ்வொரு கேள்விக்கும் தனிக் கட்டணம் இல்லை" : "Free — no charge per question")}
           </p>
         </div>
@@ -239,14 +263,16 @@ export function DashboardAskVinaadi({ lang, chartId, goalTrack, activeLifeMode =
       {showUpgrade && (
         <div style={{ borderRadius: "12px", background: "var(--glow-brand)", border: "1px solid var(--underline-brand)", padding: "16px", marginBottom: "14px" }}>
           <p style={{ margin: "0 0 12px", fontSize: "14px", lineHeight: 1.5, color: "var(--color-text, var(--panel-earth))" }}>
-            {lang === "ta"
-              ? "இன்று உங்கள் 3 இலவச கேள்விகளைப் பயன்படுத்திவிட்டீர்கள். வரம்பற்ற தினசரி வழிகாட்டுதலுக்கு மேம்படுத்துங்கள்."
-              : "You've used your 3 free questions today. Upgrade for unlimited daily guidance."}
+            {/* The number is the server's (daily-status), never prose: this line
+                once said "3" while the server allowed 7. */}
+            {askLimitMessage(lang, dailyLimit, canUpgrade)}
           </p>
           <div style={{ display: "flex", gap: "8px" }}>
-            <button onClick={goUpgrade} style={{ padding: "8px 18px", borderRadius: "8px", border: "none", background: "var(--color-accent, var(--panel-brand))", color: "white", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
-              {lang === "ta" ? "மேம்படுத்து" : "Upgrade"}
-            </button>
+            {canUpgrade && (
+              <button onClick={goUpgrade} style={{ padding: "8px 18px", borderRadius: "8px", border: "none", background: "var(--color-accent, var(--panel-brand))", color: "white", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>
+                {lang === "ta" ? "மேம்படுத்து" : "Upgrade"}
+              </button>
+            )}
             <button onClick={() => setShowUpgrade(false)} style={{ padding: "8px 18px", borderRadius: "8px", border: "1px solid var(--color-border, var(--panel-tan-light))", background: "transparent", color: "var(--color-muted, var(--panel-mid-earth))", fontSize: "13px", cursor: "pointer" }}>
               {lang === "ta" ? "நாளை முயற்சிக்கவும்" : "Try again tomorrow"}
             </button>

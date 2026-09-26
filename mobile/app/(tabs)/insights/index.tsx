@@ -87,7 +87,7 @@ export default function InsightsScreen() {
   const C = useColors();
   const styles = useMemo(() => makeStyles(C), [C]);
   const { lang, t } = useI18n();
-  const { tier } = useSession();
+  const { gateTier: tier } = useSession();
   const isAuthenticated = tier !== "guest";
   const isTamil = lang === "ta";
   const type = isTamil ? TamilType : EnType;

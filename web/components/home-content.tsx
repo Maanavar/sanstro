@@ -16,6 +16,7 @@ import { MarketingIcon, type MarketingIconName } from "@/components/marketing-ic
 import { HomeTodayPanel } from "@/components/home-today-panel";
 import { useGuestStore } from "@/hooks/useGuestStore";
 import { getFeatureFlag, initAnalytics, track } from "@/lib/analytics";
+import { PLAY_STORE_URL } from "@vinaadi/shared/constants";
 
 function makeSample(lang: "en" | "ta", rasiOverride?: { en: string; ta: string } | null) {
   const en = lang === "en";
@@ -487,10 +488,18 @@ export function HomeContent() {
             <div className="cl-connect-card cl-connect-card--app">
               <span className="cl-connect-card__icon"><MarketingIcon name="phone" size={22} /></span>
               <h3 className="cl-connect-card__title">{mt(HOME.connect_app_title, lang)}</h3>
-              <p className="cl-connect-card__body">{mt(HOME.connect_app_body, lang)}</p>
+              <p className="cl-connect-card__body">
+                {mt(PLAY_STORE_URL || APP_STORE_URL ? HOME.connect_app_body : HOME.connect_app_soon, lang)}
+              </p>
+              {!(PLAY_STORE_URL || APP_STORE_URL) && (
+                <Link href="/login" className="cl-btn cl-btn--ghost" style={{ alignSelf: "start" }}>
+                  {lang === "en" ? "Open Vinaadi" : "விநாடியைத் திற"}
+                </Link>
+              )}
               <div className="cl-connect-badges">
+                {PLAY_STORE_URL && (
                 <a
-                  href="https://play.google.com/store/apps/details?id=ai.vinaadi.app"
+                  href={PLAY_STORE_URL}
                   className="cl-store-badge"
                   aria-label="Get Vinaadi on Google Play"
                   onClick={() => track("app_dl_clicked", { store: "play" })}
@@ -508,6 +517,7 @@ export function HomeContent() {
                     <p className="cl-store-badge__name">Google Play</p>
                   </div>
                 </a>
+                )}
                 {APP_STORE_URL && (
                   <a
                     href={APP_STORE_URL}

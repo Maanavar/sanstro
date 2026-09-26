@@ -4,7 +4,7 @@ import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { PricingPlans } from "@/components/pricing-plans";
 import { GooglePlayBadge } from "@/components/store-badges";
-import { PPU_REPORT_PRODUCTS, SUBSCRIPTION_PLANS, TIER_LIMITS } from "@vinaadi/shared/constants";
+import { OPEN_BETA, PPU_REPORT_PRODUCTS, SUBSCRIPTION_PLANS, TIER_LIMITS } from "@vinaadi/shared/constants";
 
 export const metadata: Metadata = {
   title: "Pricing | Vinaadi",
@@ -70,6 +70,19 @@ const oneOffReports = [
   PPU_REPORT_PRODUCTS.PORTRAIT_10PAGE,
 ];
 
+// During the open beta nobody is billed, so the billing FAQ answers the question
+// a beta visitor actually has; the Play Store cancellation answer returns with
+// payments.
+const billingFaq = OPEN_BETA
+  ? {
+      q: "Do I pay anything during the beta?",
+      a: "No. Every feature is free while Vinaadi is in open beta. The prices on this page are what the plans will cost after launch, and we will give notice before anything changes.",
+    }
+  : {
+      q: "Can I cancel?",
+      a: "Yes. Premium is managed in the Play Store and follows the platform's cancellation rules — cancel any time and keep access until the period ends.",
+    };
+
 const faqs = [
   {
     q: "What is Thirukanitham?",
@@ -79,10 +92,7 @@ const faqs = [
     q: "Is this the same as Western astrology?",
     a: "No. Vinaadi follows Tamil jyothidam with sidereal zodiac logic, dashas, panchangam, and nakshatra-based timing.",
   },
-  {
-    q: "Can I cancel?",
-    a: "Yes. Premium is managed in the Play Store and follows the platform's cancellation rules — cancel any time and keep access until the period ends.",
-  },
+  billingFaq,
   {
     q: "Does this app use a lot of data?",
     a: "No. There is no video and no large downloads — Vinaadi is built to load quickly and work smoothly even on a slow or limited connection.",
@@ -140,6 +150,14 @@ export default function PricingPage() {
             <p className="cl-pub-lead" style={{ maxWidth: "66ch" }}>
               Vinaadi keeps the public experience open, then adds chart depth, family tools, and premium timing features as you move deeper into the product.
             </p>
+            {OPEN_BETA && (
+              <p
+                role="note"
+                style={{ maxWidth: "66ch", margin: "18px 0 0", padding: "14px 18px", borderRadius: "12px", background: "var(--cl-brand-tint)", border: "1px solid var(--cl-border)", color: "var(--cl-ink)", lineHeight: 1.6 }}
+              >
+                <strong>Open beta — everything is free right now.</strong> A free account gets every Premium feature while we refine Vinaadi. The prices below are what the plans will cost after launch; <Link href="/beta">we will give notice</Link> before anything changes.
+              </p>
+            )}
           </div>
         </section>
 
@@ -216,8 +234,14 @@ export default function PricingPage() {
               </div>
 
               <div style={{ background: "linear-gradient(180deg, var(--cl-ink) 0%, var(--cl-ink-2) 100%)", borderRadius: "16px", padding: "24px", color: "var(--cl-bg)" }}>
-                <h2 style={{ margin: "0 0 10px", fontSize: "1.25rem" }}>Start with free access, upgrade when the chart depth matters.</h2>
-                <p style={{ margin: "0 0 18px", lineHeight: 1.7, opacity: 0.82 }}>Guests can explore public rasi palan and panchangam. A free account unlocks saved charts. Premium opens the full timing stack.</p>
+                <h2 style={{ margin: "0 0 10px", fontSize: "1.25rem" }}>
+                  {OPEN_BETA ? "Create a free account — every feature is unlocked during the beta." : "Start with free access, upgrade when the chart depth matters."}
+                </h2>
+                <p style={{ margin: "0 0 18px", lineHeight: 1.7, opacity: 0.82 }}>
+                  {OPEN_BETA
+                    ? "Guests can explore public rasi palan and panchangam. A free account opens saved charts, family timing, and the full dasha and timing stack while the beta runs."
+                    : "Guests can explore public rasi palan and panchangam. A free account unlocks saved charts. Premium opens the full timing stack."}
+                </p>
                 <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                   <Link href="/login" style={{ ...pillLink, background: "var(--cl-bg)", color: "var(--cl-ink)" }}>Create free account</Link>
                   <Link href="/tools/indraiya-rasipalan" style={{ ...pillLink, border: "1px solid color-mix(in srgb, var(--cl-bg) 28%, transparent)", color: "var(--cl-bg)" }}>Try guest mode</Link>
@@ -225,7 +249,9 @@ export default function PricingPage() {
               </div>
             </div>
 
-            {/* ── Get Premium: download the app ── */}
+            {/* ── Get Premium: download the app ── (after the beta; there is
+                nothing to buy while it runs, and no store listing may exist yet) */}
+            {!OPEN_BETA && (
             <div style={{ background: "linear-gradient(135deg, var(--cl-ink) 0%, var(--cl-ink-2) 60%, var(--cl-ink-2) 100%)", borderRadius: "20px", padding: "40px 32px", marginTop: "8px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "32px", alignItems: "center", color: "var(--cl-bg)" }}>
               <div>
                 <p style={{ margin: "0 0 8px", fontSize: "0.7rem", fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--cl-accent-soft)" }}>Ready for Premium?</p>
@@ -247,6 +273,7 @@ export default function PricingPage() {
                 </Link>
               </div>
             </div>
+            )}
           </div>
         </section>
       </main>

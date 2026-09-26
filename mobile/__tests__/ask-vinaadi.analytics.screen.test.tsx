@@ -16,7 +16,7 @@ jest.mock("@tanstack/react-query", () => ({
 }));
 jest.mock("@/hooks/useColors", () => ({ useColors: () => ({}) }));
 jest.mock("@/hooks/useI18n", () => ({ useI18n: () => ({ lang: "en" }) }));
-jest.mock("@/hooks/useSession", () => ({ useSession: () => ({ tier: "premium" }) }));
+jest.mock("@/hooks/useSession", () => ({ useSession: () => ({ tier: "premium", gateTier: "premium", openBeta: false }) }));
 jest.mock("@/hooks/useLifeFocus", () => ({ useLifeFocus: () => ({ mode: "CAREER" }) }));
 jest.mock("@/api/askVinaadi", () => ({
   getDailyStatus: jest.fn(),

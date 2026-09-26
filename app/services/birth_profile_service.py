@@ -10,8 +10,8 @@ from sqlalchemy.orm import Session
 
 from app.core.error_codes import ErrorCode
 from app.core.errors import AppError
-from app.core.subscription import is_premium
-from app.core.tier_limits import get_limits
+from app.core.subscription import limits_for_user
+from app.core.tier_limits import TIER_LIMITS
 from app.models import BirthProfile, FamilyMember
 from app.models.chart import Chart
 from app.models.daily_score import DailyScore
@@ -165,8 +165,7 @@ def create_birth_profile(session: Session, payload: BirthProfileCreate, *, calcu
     if duplicate_profile is not None:
         _raise_duplicate_birth_profile()
 
-    tier = "premium" if is_premium(owner_user_id, session) else "registered"
-    max_profiles = get_limits(tier).birth_profiles_max
+    max_profiles = limits_for_user(owner_user_id, session).birth_profiles_max
     active_profile_count = session.execute(
         select(func.count())
         .select_from(BirthProfile)
@@ -180,12 +179,18 @@ def create_birth_profile(session: Session, payload: BirthProfileCreate, *, calcu
         # The catalogue's copy said "(10)" while this tier's cap was 3, so the
         # message named a limit nobody was ever held to.
         limit = int(max_profiles)
+        # Offer Premium only when Premium would actually lift this cap.
+        upgrade = (
+            ", or upgrade to Premium for unlimited profiles"
+            if max_profiles < TIER_LIMITS["premium"].birth_profiles_max
+            else ""
+        )
         raise AppError(
             ErrorCode.RESOURCE_LIMIT_EXCEEDED,
             detail=(
                 f"You have reached the maximum number of birth profiles "
                 f"({limit}). Delete unused profiles from your settings to make "
-                f"room for new ones, or upgrade to Premium for unlimited profiles."
+                f"room for new ones{upgrade}."
             ),
         )
 

@@ -17,6 +17,7 @@ import { SettingsRail, type SettingsSectionId } from "./dashboard-settings-rail"
 import { Button, StatusChip } from "./ui";
 import { Field, FieldShell, Input, Select } from "./ui/field";
 import { ArrowUpRight } from "lucide-react";
+import { OPEN_BETA, PLAY_STORE_URL } from "@vinaadi/shared/constants";
 
 type Relationship = "self" | "spouse" | "child" | "parent" | "sibling" | "grandparent" | "other";
 
@@ -784,8 +785,9 @@ export function DashboardSetupTab({
         </div>
       )}
 
-      {/* ── Premium upgrade nudge — shown once birth profile exists ── */}
-      {!!birthProfileId && (
+      {/* ── Premium upgrade nudge — shown once birth profile exists, and not
+          during the open beta, when there is nothing to subscribe to ── */}
+      {!!birthProfileId && !OPEN_BETA && (
         <div style={{
           background: "linear-gradient(135deg, var(--color-surface-3) 0%, var(--color-surface-2) 100%)",
           borderRadius: "var(--radius-md)", padding: "var(--space-5) var(--space-6)",
@@ -833,17 +835,19 @@ export function DashboardSetupTab({
                 App Store <ArrowUpRight size={14} strokeWidth={1.5} aria-hidden="true" />
               </a>
             )}
-            <a
-              href="https://play.google.com/store/apps/details?id=ai.vinaadi.app"
-              style={{
-                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "var(--space-1)",
-                padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)",
-                border: "1px solid var(--color-border-strong)", color: "var(--color-text-strong)", textDecoration: "none",
-                fontSize: "var(--text-base)", fontWeight: 700, whiteSpace: "nowrap",
-              }}
-            >
-              Google Play <ArrowUpRight size={14} strokeWidth={1.5} aria-hidden="true" />
-            </a>
+            {PLAY_STORE_URL && (
+              <a
+                href={PLAY_STORE_URL}
+                style={{
+                  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "var(--space-1)",
+                  padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)",
+                  border: "1px solid var(--color-border-strong)", color: "var(--color-text-strong)", textDecoration: "none",
+                  fontSize: "var(--text-base)", fontWeight: 700, whiteSpace: "nowrap",
+                }}
+              >
+                Google Play <ArrowUpRight size={14} strokeWidth={1.5} aria-hidden="true" />
+              </a>
+            )}
           </div>
         </div>
       )}

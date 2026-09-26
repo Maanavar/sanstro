@@ -297,7 +297,12 @@ export const HOME = {
     "தினசரி திருக்கணித வழிகாட்டுதல், நீங்கள் எங்கு பார்த்தாலும் — மின்னஞ்சலிலோ அல்லது கைபேசியிலோ."
   ),
   connect_email_title: s("Daily email summary", "தினசரி மின்னஞ்சல் சுருக்கம்"),
-  connect_email_body:  s("Score, transit alerts, and timing highlights — delivered every morning.", "மதிப்பெண், கோசார எச்சரிக்கைகள், நல்ல நேர தகவல்கள் — ஒவ்வொரு காலையும்."),
+  // GRW-16 — nothing sends to newsletter subscribers yet, so this promises the
+  // list, not a delivery. Restore "delivered every morning" when the send ships.
+  connect_email_body:  s("Score, transit alerts, and timing highlights each morning. Join the list and we'll write when the daily email starts.", "மதிப்பெண், கோசார எச்சரிக்கைகள், நல்ல நேர தகவல்கள் — ஒவ்வொரு காலையும். பட்டியலில் இணையுங்கள்; தினசரி மின்னஞ்சல் தொடங்கும்போது தெரிவிப்போம்."),
   connect_app_title:   s("Mobile app", "மொபைல் பயன்பாடு"),
   connect_app_body:    s("Jadhagam, family timing, and daily guidance on your phone. Free 7-day trial.", "ஜாதகம், குடும்ப நேரங்கள், தினசரி வழிகாட்டுதல் — உங்கள் கையில். 7 நாள் இலவச சோதனை."),
+  // Shown instead of connect_app_body while no store listing exists
+  // (PLAY_STORE_URL / APP_STORE_URL null): no badge to press, no trial to start.
+  connect_app_soon:    s("The Android app is on its way. Until then, Vinaadi works fully in your phone's browser — sign in and everything is there.", "Android செயலி விரைவில் வருகிறது. அதுவரை உங்கள் கைபேசி உலாவியிலேயே விநாடி முழுமையாகச் செயல்படும் — உள்நுழைந்தால் எல்லாம் அங்கே இருக்கும்."),
 };

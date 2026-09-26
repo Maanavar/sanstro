@@ -185,11 +185,16 @@ describe("dasha API", () => {
 
 // Dasha tests above intentionally mirror the backend camelCase response.
 describe("askVinaadi API", () => {
-  it("getDailyStatus returns questionsUsedToday and dailyLimit", async () => {
-    mockGet.mockResolvedValue({ questionsUsedToday: 2, dailyLimit: 7, chipsRemaining: null });
+  it("getDailyStatus returns the server's usage, limit and beta flag", async () => {
+    // The shape get_daily_status sends — not `questionsUsedToday`, which is a
+    // field of the answer and was never on the status.
+    mockGet.mockResolvedValue({
+      chipsUsed: 2, chipsRemaining: 5, isPremium: false, openBeta: true, dailyLimit: 7, monthlyLimit: null,
+    });
     const result = await getDailyStatus();
-    expect(typeof result.questionsUsedToday).toBe("number");
+    expect(typeof result.chipsUsed).toBe("number");
     expect(typeof result.dailyLimit).toBe("number");
+    expect(result.openBeta).toBe(true);
     expect("chipsRemaining" in result).toBe(true);
     expect(mockGet).toHaveBeenCalledWith("/ask-vinaadi/daily-status");
   });

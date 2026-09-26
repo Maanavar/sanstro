@@ -18,8 +18,8 @@ from app.calculations.family_harmony_remedies import (
 )
 from app.calculations.panchangam import PanchangamSnapshot, calculate_daily_panchangam
 from app.calculations.remedies import remedy_disclaimer
-from app.core.subscription import is_premium
-from app.core.tier_limits import get_limits
+from app.core.subscription import limits_for_user
+from app.core.tier_limits import TIER_LIMITS
 from app.models import BirthProfile, Chart, FamilyDailyScore, FamilyMember, FamilyVault, User
 from app.schemas.daily_guidance import DailyGuidanceResponse, DailyGuidanceWindow
 from app.schemas.dasha import ResponseMeta
@@ -1047,8 +1047,7 @@ def add_family_member(
             detail="This family member already exists in the vault.",
         )
 
-    tier = "premium" if is_premium(owner_user_id, session) else "registered"
-    vault_limit = get_limits(tier).family_vault_profiles_max
+    vault_limit = limits_for_user(owner_user_id, session).family_vault_profiles_max
     existing_count = session.execute(
         select(func.count(FamilyMember.family_member_id)).where(
             FamilyMember.family_vault_id == family_vault.family_vault_id,
@@ -1056,9 +1055,16 @@ def add_family_member(
         )
     ).scalar_one()
     if int(existing_count) >= vault_limit:
+        # Offer Premium only when Premium would actually lift this cap — an
+        # open-beta account already holds premium's.
+        upgrade = (
+            " Upgrade to Premium to add more."
+            if vault_limit < TIER_LIMITS["premium"].family_vault_profiles_max
+            else ""
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Family Vault limit reached ({vault_limit} profile{'s' if vault_limit != 1 else ''}). Upgrade to Premium to add more.",
+            detail=f"Family Vault limit reached ({vault_limit} profile{'s' if vault_limit != 1 else ''}).{upgrade}",
         )
 
     family_member = FamilyMember(
