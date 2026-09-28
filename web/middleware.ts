@@ -6,6 +6,8 @@ import {
   createNonce,
   isEmbeddablePath,
 } from "@/lib/security-headers";
+import { LANG_COOKIE_NAME } from "@/lib/lang-core";
+import { LANG_HEADER, PATHNAME_HEADER, TA_PREFIX, isTaReady, splitLangPrefix } from "@/lib/ta-routes";
 
 const NONCE_HEADER = "x-nonce";
 const CSP_HEADER = "Content-Security-Policy";
@@ -37,10 +39,41 @@ export async function middleware(request: NextRequest) {
   requestHeaders.set(NONCE_HEADER, nonce);
   requestHeaders.set(CSP_HEADER, headers[CSP_HEADER]);
 
+  // GRW-06 — the URL is the language. `/ta/x` is the Tamil page at `/x`; both
+  // headers are set (or cleared) on every request because they are trusted
+  // downstream and a client could otherwise send its own.
+  const { lang: urlLang, path: barePath } = splitLangPrefix(pathname);
+  requestHeaders.delete(LANG_HEADER);
+  requestHeaders.set(PATHNAME_HEADER, barePath);
+
+  let langRedirect: URL | null = null;
+  let langRewrite: URL | null = null;
+  if (urlLang === "ta") {
+    if (isTaReady(barePath)) {
+      requestHeaders.set(LANG_HEADER, "ta");
+      langRewrite = request.nextUrl.clone();
+      langRewrite.pathname = barePath;
+    } else {
+      // No Tamil twin: an English body under a Tamil URL would be indexed as
+      // Tamil, so send the visitor to the page that exists.
+      langRedirect = request.nextUrl.clone();
+      langRedirect.pathname = barePath;
+    }
+  } else if (request.cookies.get(LANG_COOKIE_NAME)?.value === "ta" && isTaReady(barePath)) {
+    // A returning Tamil reader on an English URL. Crawlers send no cookie, so
+    // they always see the English page here; the redirect is for people.
+    langRedirect = request.nextUrl.clone();
+    langRedirect.pathname = `${TA_PREFIX}${barePath === "/" ? "" : barePath}`;
+  }
+
   const response =
     !token && protectedPath
       ? NextResponse.redirect(new URL("/login", request.url))
-      : NextResponse.next({ request: { headers: requestHeaders } });
+      : langRedirect
+        ? NextResponse.redirect(langRedirect)
+        : langRewrite
+          ? NextResponse.rewrite(langRewrite, { request: { headers: requestHeaders } })
+          : NextResponse.next({ request: { headers: requestHeaders } });
 
   // The redirect is a document response too, and gets the same treatment.
   for (const [name, value] of Object.entries(headers)) {

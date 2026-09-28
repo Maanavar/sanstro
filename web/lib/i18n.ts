@@ -7,20 +7,11 @@ import {
   KARANA_NAMES,
 } from "@vinaadi/shared";
 
-export type Lang = "ta" | "en";
-
-export const LANG_STORAGE_KEY = "jothidam-lang";
-export const LANG_COOKIE_NAME = "jothidam-lang";
-
-// F7 — one coercion rule for "is this stored value a language?". Before this
-// there were two, and they disagreed on shape: the root layout wrote
-// `v === "ta" ? "ta" : "en"` (only Tamil recognised, English the sink) while
-// LangProvider wrote `v === "ta" || v === "en" ? v : initialLang` (a different
-// fallback). Both are correct for their own call site and neither is reusable,
-// which is how a language ends up resolved differently depending on who asks.
-export function resolveLang(value: string | null | undefined, fallback: Lang = "en"): Lang {
-  return value === "ta" || value === "en" ? value : fallback;
-}
+// Defined in lang-core.ts so the edge middleware can import them without this
+// file's string tables.
+import type { Lang } from "./lang-core";
+export { LANG_STORAGE_KEY, LANG_COOKIE_NAME, resolveLang } from "./lang-core";
+export type { Lang } from "./lang-core";
 
 // All UI strings. Key = stable identifier, value = { ta, en }
 const STRINGS = {
