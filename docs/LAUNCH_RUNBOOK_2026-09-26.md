@@ -102,7 +102,7 @@ This has to be one coordinated change:
 
 | ID | Item | Why it's next |
 |---|---|---|
-| GRW-06 | Tamil at its own URLs (`/ta/...`) with hreflang | The largest search upside. Tamil copy is still served by cookie, which crawlers never send. |
+| GRW-06 | Tamil at its own URLs (`/ta/...`) with hreflang | **Built, not yet committed** (2026-09-26): 134 pages at `/ta/...`, reciprocal hreflang, both languages in the sitemap. Left: pricing/privacy/terms bodies (English only), a Tamil reader's review of `web/lib/marketing-seo-ta.ts`, JSON-LD in Tamil. After deploy: resubmit the sitemap in Search Console and watch the International Targeting / page-indexing report. |
 | GRW-09 | Dynamic OG images per porutham share and panchangam day | The static image now works; per-result images get more clicks. |
 | GRW-11 | Daily 6 am panchangam push with a one-tap forward | The habit loop. |
 | GRW-12 | Carry tool inputs (birth details) into signup | Avoids re-entry at the most fragile step. |
