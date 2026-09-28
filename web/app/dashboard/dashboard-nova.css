@@ -5039,6 +5039,89 @@ button.ui-chip { cursor: pointer; }
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
+/* Live Rahu Kalam / Yamagandam attention treatment.
+
+   A rapid full-card blink would compete with the score and can cross the line
+   from useful urgency into alarm. Instead the card performs two finite cues
+   when it enters the live state: one light sweep and three slow beacon breaths.
+   It then settles into a stronger static border/background, so the state stays
+   legible without demanding attention forever. Kuligai never receives this
+   class because its repeat-friendly meaning is not the same as an avoid kala. */
+.nova-hero-avoid {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.nova-hero-avoid > * {
+  position: relative;
+  z-index: 1;
+}
+.nova-hero-avoid--attention {
+  box-shadow:
+    var(--nova-card-shadow),
+    0 0 0 1px color-mix(in srgb, var(--color-low) 24%, transparent),
+    0 10px 30px color-mix(in srgb, var(--color-low) 13%, transparent);
+}
+.nova-hero-avoid--attention::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: -45% auto -45% -65%;
+  width: 42%;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(0) skewX(-14deg);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-low) 22%, transparent),
+    transparent
+  );
+  animation: nova-kalam-attention-sweep 1.25s var(--ease-nova) 120ms 1 both;
+}
+.nova-hero-avoid--attention .nova-hero-avoid__signal {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--color-low) 30%, transparent),
+    0 0 0 0 color-mix(in srgb, var(--color-low) 0%, transparent);
+  animation: nova-kalam-attention-breathe 2.2s var(--ease-nova) 420ms 3 both;
+}
+.nova-hero-avoid--attention .nova-hero-avoid__beacon {
+  box-shadow:
+    0 0 0 3px var(--color-surface),
+    0 0 13px color-mix(in srgb, var(--color-low) 72%, transparent) !important;
+}
+@keyframes nova-kalam-attention-sweep {
+  0% { opacity: 0; transform: translateX(0) skewX(-14deg); }
+  18% { opacity: 0.7; }
+  82% { opacity: 0.35; }
+  100% { opacity: 0; transform: translateX(430%) skewX(-14deg); }
+}
+@keyframes nova-kalam-attention-breathe {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--color-low) 30%, transparent),
+      0 0 0 0 color-mix(in srgb, var(--color-low) 0%, transparent);
+  }
+  48% {
+    transform: scale(1.045);
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--color-low) 55%, transparent),
+      0 0 0 7px color-mix(in srgb, var(--color-low) 10%, transparent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nova-hero-avoid--attention::after {
+    display: none;
+  }
+  .nova-hero-avoid--attention .nova-hero-avoid__signal {
+    animation: none;
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--color-low) 48%, transparent),
+      0 0 0 5px color-mix(in srgb, var(--color-low) 9%, transparent);
+  }
+}
 .nova-hero-action__buttons {
   display: flex;
   flex-wrap: wrap;

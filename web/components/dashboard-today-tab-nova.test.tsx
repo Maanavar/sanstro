@@ -578,6 +578,10 @@ describe("Today tab — emotional weather (findings 1-3)", () => {
 describe("Today tab — the avoid window's now-state (finding 4)", () => {
   afterEach(() => vi.useRealTimers());
 
+  // Gate scope: these assertions prove that the semantic live-attention state
+  // reaches Rahu Kalam / Yamagandam and stays off Kuligai. JSDOM cannot judge
+  // animation smoothness, clipping, palette balance, or the reduced-motion
+  // frame; those remain CSS/browser checks rather than claims of this gate.
   function avoidCard() {
     return screen.getByText(/^Avoid window$/i).closest("div")!.parentElement!;
   }
@@ -591,6 +595,7 @@ describe("Today tab — the avoid window's now-state (finding 4)", () => {
 
     expect(avoidCard().textContent).toMatch(/Now: Rahu Kalam until 10:30 am/i);
     expect(avoidCard().textContent).toMatch(/avoid new starts/i);
+    expect(screen.getByText(/^Avoid window$/i).closest(".ui-card")).toHaveAttribute("data-live-attention", "true");
   });
 
   it("counts down to it before it starts", async () => {
@@ -598,6 +603,7 @@ describe("Today tab — the avoid window's now-state (finding 4)", () => {
     await renderWithWindows([{ type: "PERSONAL_HORA", start: "11:00", end: "11:48", kala: "AMIRTHAM" }]);
 
     expect(avoidCard().textContent).toMatch(/starts in/);
+    expect(screen.getByText(/^Avoid window$/i).closest(".ui-card")).not.toHaveAttribute("data-live-attention");
   });
 
   it("hides the card once it is over, rather than leaving a stale warning up", async () => {
@@ -620,6 +626,7 @@ describe("Today tab — the avoid window's now-state (finding 4)", () => {
     expect(avoidCard()).toHaveTextContent("Yamagandam");
     expect(avoidCard()).toHaveTextContent(/Now: Yamagandam until 3:00 pm/i);
     expect(avoidCard()).toHaveTextContent(/avoid new starts/i);
+    expect(screen.getByText(/^Avoid window$/i).closest(".ui-card")).toHaveAttribute("data-live-attention", "true");
   });
 
   it("gives Kuligai its repeat-friendly meaning instead of avoid styling", async () => {
@@ -635,6 +642,7 @@ describe("Today tab — the avoid window's now-state (finding 4)", () => {
     expect(card).toHaveTextContent(/not for a wedding or surgery/i);
     expect(within(card).queryByText(/^Avoid window$/i)).toBeNull();
     expect(within(card).getByText(/^Kuligai period$/i)).toHaveStyle({ color: "var(--color-accent-secondary)" });
+    expect(card).not.toHaveAttribute("data-live-attention");
   });
 
   it("uses Tamil period-word time and ruled Tamil copy for live Kuligai", async () => {

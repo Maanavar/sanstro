@@ -764,6 +764,11 @@ export function DashboardTodayTabNova({
     ? formatDuration(heroKalam.remainingMs, lang)
     : fallbackAvoidState.countdown;
   const isKuligaiPeriod = heroKalam?.key === "kuligai";
+  // Rahu Kalam and Yamagandam are binding avoid periods; Kuligai has a
+  // different, repeat-friendly product meaning and must not inherit the alert
+  // choreography. Keep this state explicit so visual urgency cannot drift
+  // away from the copy when another kalam is added later.
+  const hasLiveAvoidAttention = avoidPhase === "during" && !isKuligaiPeriod;
   // Owner ask (2026-09-07): once today's avoid window has ended it no longer
   // earns hero space — it stays visible only while it is upcoming or running.
   // A past date's avoidWindow has no live phase (spanPhase short-circuits on
@@ -1608,11 +1613,15 @@ export function DashboardTodayTabNova({
                   live state more than an invitation does. Same `spanPhase`
                   helper, same three states. */}
               {showAvoidCard && (
-                <Card style={{ flex: "none", background: avoidPhase === "during" ? (isKuligaiPeriod ? "var(--color-accent-muted)" : "var(--color-low-bg)") : "color-mix(in srgb, var(--color-surface) 62%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-4) var(--space-4)", display: "flex", flexDirection: "row", gap: "var(--space-3)", alignItems: "center", borderColor: avoidPhase === "during" ? (isKuligaiPeriod ? "var(--color-accent-secondary)" : "var(--color-low-border)") : undefined }}>
-                  <div aria-hidden="true" style={{ position: "relative", width: "40px", height: "40px", borderRadius: "var(--radius-pill)", background: isKuligaiPeriod ? "var(--color-accent-muted)" : "var(--color-low-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: isKuligaiPeriod ? "var(--color-accent-secondary)" : "var(--color-low)", flex: "none" }}>
+                <Card
+                  className={`nova-hero-avoid${hasLiveAvoidAttention ? " nova-hero-avoid--attention" : ""}`}
+                  data-live-attention={hasLiveAvoidAttention ? "true" : undefined}
+                  style={{ flex: "none", background: avoidPhase === "during" ? (isKuligaiPeriod ? "var(--color-accent-muted)" : "var(--color-low-bg)") : "color-mix(in srgb, var(--color-surface) 62%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-4) var(--space-4)", display: "flex", flexDirection: "row", gap: "var(--space-3)", alignItems: "center", borderColor: avoidPhase === "during" ? (isKuligaiPeriod ? "var(--color-accent-secondary)" : "var(--color-low-border)") : undefined }}
+                >
+                  <div className="nova-hero-avoid__signal" aria-hidden="true" style={{ position: "relative", width: "40px", height: "40px", borderRadius: "var(--radius-pill)", background: isKuligaiPeriod ? "var(--color-accent-muted)" : "var(--color-low-bg)", display: "flex", alignItems: "center", justifyContent: "center", color: isKuligaiPeriod ? "var(--color-accent-secondary)" : "var(--color-low)", flex: "none" }}>
                     {isKuligaiPeriod ? <Sparkles size={19} strokeWidth={2} /> : <X size={19} strokeWidth={2} />}
                     {avoidPhase === "during" && (
-                      <span className="nova-pulse-dot" style={{ position: "absolute", top: "-1px", right: "-1px", width: "9px", height: "9px", borderRadius: "var(--radius-pill)", background: isKuligaiPeriod ? "var(--color-accent-secondary)" : "var(--color-low)", boxShadow: "0 0 0 3px var(--color-surface)" }} />
+                      <span className="nova-hero-avoid__beacon" style={{ position: "absolute", top: "-1px", right: "-1px", width: "9px", height: "9px", borderRadius: "var(--radius-pill)", background: isKuligaiPeriod ? "var(--color-accent-secondary)" : "var(--color-low)", boxShadow: "0 0 0 3px var(--color-surface)" }} />
                     )}
                   </div>
                   <div style={{ minWidth: 0 }}>
