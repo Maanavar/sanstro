@@ -1,4 +1,7 @@
-import Link from "next/link";
+"use client";
+
+import { LocalizedLink as Link } from "@/components/localized-link";
+import { useLang } from "@/components/lang-context";
 import type { CSSProperties } from "react";
 
 interface ThirukanithamBadgeProps {
@@ -8,6 +11,7 @@ interface ThirukanithamBadgeProps {
 }
 
 export function ThirukanithamBadge({ size = "sm", style, asLink = true }: ThirukanithamBadgeProps) {
+  const [lang] = useLang();
   const isSmall = size === "sm";
   const badgeStyle: CSSProperties = {
     display: "inline-flex",
@@ -30,7 +34,7 @@ export function ThirukanithamBadge({ size = "sm", style, asLink = true }: Thiruk
 
   if (asLink) {
     return (
-      <Link href="/learn/what-is-thirukanitham" style={badgeStyle} title="What is Thirukanitham?">
+      <Link href="/learn/what-is-thirukanitham" style={badgeStyle} title={lang === "ta" ? "திருக்கணிதம் என்றால் என்ன?" : "What is Thirukanitham?"}>
         {content}
       </Link>
     );

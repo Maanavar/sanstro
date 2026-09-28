@@ -10,6 +10,18 @@ export {
 import { addDays, todayIso } from "@vinaadi/shared/utils/format";
 import { SCORE_THRESHOLDS, scoreTonePct } from "@vinaadi/shared/utils/score";
 import { verdictPhrase } from "./verdict-lexicon";
+import type { Lang } from "./lang-core";
+import { formatDateLabel as formatDateLabelEn } from "@vinaadi/shared/utils/format";
+
+/** `formatDateLabel` in the active language. English is the shared "01 Oct
+ *  2026"; Tamil is "1 அக்டோபர் 2026" (Intl's comma after the month is dropped:
+ *  it is not how a Tamil date is written). UTC, matching the shared helper. */
+export function formatDateLabelIn(isoDate: string, lang: Lang): string {
+  if (lang !== "ta") return formatDateLabelEn(isoDate);
+  return new Intl.DateTimeFormat("ta-IN", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })
+    .format(new Date(`${isoDate}T00:00:00Z`))
+    .replace(",", "");
+}
 
 const WEEKDAY_INDEX: Record<string, number> = {
   SUNDAY: 0, MONDAY: 1, TUESDAY: 2, WEDNESDAY: 3, THURSDAY: 4, FRIDAY: 5, SATURDAY: 6,
