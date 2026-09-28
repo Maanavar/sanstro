@@ -6,6 +6,7 @@ import { readErrorMessage } from "@/lib/api";
 import { useLang } from "@/components/lang-toggle";
 import { addDays, formatClockLabel, formatClockRange, formatDateLabel } from "@/lib/format";
 import { CALENDAR_DAY_SUMMARY, dt } from "@/lib/dashboard-i18n";
+import { tFestival } from "@/lib/festival-names";
 import { gowriCategoryLabel, gowriPeriodLabel, gowriPurposeLabel } from "@/lib/gowri";
 import { t, tAmirdhadhiYogam, tJeevan, tKarana, tMoonPhase, tNakshatra, tNethiram, tParigaram, tPlanetLord, tSoolamDirection, tTithi, tWeekday, tYoga, type Lang } from "@/lib/i18n";
 import { PlaceCombobox, type CityEntry } from "@/components/place-combobox";
@@ -178,7 +179,7 @@ function FestivalPill({ festival, lang, observance = false }: { festival: Pancha
       borderRadius: "999px",
       padding: "5px 12px",
     }}>
-      <span>{festival.name}</span>
+      <span>{tFestival(festival.name, lang)}</span>
       {festivalTags(festival).map((tag) => (
         <FestivalTagBadge key={tag} tag={tag} lang={lang} />
       ))}
@@ -747,8 +748,8 @@ export function PanchangamTool() {
                     { en: "Gowri Nalla Neram", ta: "கௌரி நல்ல நேரம்" },
                   ].map((col) => (
                     <th key={col.en} style={{ padding: "12px 16px", fontWeight: 700, textAlign: "left", borderBottom: "1px solid var(--cl-border)", background: "var(--cl-sage-tint)", width: "50%" }}>
-                      <div>{col.en}</div>
-                      <div style={{ fontSize: "0.78rem", fontWeight: 500, color: "var(--cl-muted)" }}>{col.ta}</div>
+                      {/* One language, the reader's: no English-over-Tamil echo. */}
+                      <div>{en ? col.en : col.ta}</div>
                     </th>
                   ))}
                 </tr>
@@ -811,9 +812,14 @@ export function PanchangamTool() {
                     ? (en ? "Subha Muhurtham Day" : "சுப முகூர்த்த நாள்")
                     : (en ? "Not a Subha Muhurtham Day" : "சுப முகூர்த்த நாள் அல்ல")}
                 </p>
-                <p style={{ margin: 0, fontSize: "0.85rem", lineHeight: 1.55, color: "var(--cl-ink-2)" }}>
-                  {data.subhaMuhurtham.reason}
-                </p>
+                {/* The backend's reason is an English engine string ("Auspicious:
+                    REVATHI nakshatra"); it is not shown on the Tamil page rather
+                    than printing English there, as on /panchangam/<date>. */}
+                {en && (
+                  <p style={{ margin: 0, fontSize: "0.85rem", lineHeight: 1.55, color: "var(--cl-ink-2)" }}>
+                    {data.subhaMuhurtham.reason}
+                  </p>
+                )}
               </div>
               <div style={{
                 display: "inline-flex",

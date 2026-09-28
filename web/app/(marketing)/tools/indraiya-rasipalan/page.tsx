@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { JsonLd } from "@/lib/json-ld";
 import { withTamilTwin } from "@/lib/localized-metadata";
 import { RASIPALAN_TA } from "@/lib/marketing-seo-ta";
 import { RasippalanPageContent } from "./RasippalanPageContent";
@@ -88,10 +89,7 @@ const FAQ_JSONLD = {
 export default function IndraiyaRasippalanPage() {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }}
-      />
+      <JsonLd en={FAQ_JSONLD} />
       <RasippalanPageContent />
     </>
   );

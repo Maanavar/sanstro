@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { JsonLd } from "@/lib/json-ld";
 import { AlertTriangle } from "lucide-react";
 import { redirect } from "next/navigation";
 import { LocalizedLink as Link } from "@/components/localized-link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { t, tNakshatra, tTithi, tWeekday, tYoga, tKarana, tPlanetLord, tMoonPhase, tSoolamDirection, tParigaram, tNethiram, tJeevan, tAmirdhadhiYogam, type Lang } from "@/lib/i18n";
+import { tFestival, tFestivalCategory } from "@/lib/festival-names";
 import { formatClockLabel, formatDateLabelIn, addDays, formatHijriDate } from "@/lib/format";
 import { withTamilTwin } from "@/lib/localized-metadata";
 import { getServerLang } from "@/lib/server-lang";
@@ -158,10 +160,8 @@ export default async function PanchangamDatePage({ params }: Props) {
     <div className="clarity-shell">
       <PublicNav />
       <main>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(PAGE_JSONLD) }}
-        />
+        {/* Built above in the reader's language, so both sides are the same block. */}
+        <JsonLd en={PAGE_JSONLD} ta={PAGE_JSONLD} />
 
         {/* Hero */}
         <section className="cl-pub-hero" style={{ paddingBottom: "24px" }}>
@@ -363,10 +363,8 @@ export default async function PanchangamDatePage({ params }: Props) {
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                     {data.festivals.map((f, i) => (
                       <div key={i} style={{ padding: "8px 12px", background: "var(--cl-bg-2)", borderRadius: "8px", border: "1px solid var(--cl-border)" }}>
-                        <p style={{ margin: 0, fontSize: "0.88rem", fontWeight: 600, color: "var(--cl-ink)" }}>{f.name}</p>
-                        {lang === "en" && (
-                          <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "var(--cl-muted)", textTransform: "capitalize" }}>{f.category.replace(/_/g, " ")}</p>
-                        )}
+                        <p style={{ margin: 0, fontSize: "0.88rem", fontWeight: 600, color: "var(--cl-ink)" }}>{tFestival(f.name, lang)}</p>
+                        <p style={{ margin: "2px 0 0", fontSize: "0.72rem", color: "var(--cl-muted)", textTransform: "capitalize" }}>{tFestivalCategory(f.category, lang)}</p>
                       </div>
                     ))}
                   </div>

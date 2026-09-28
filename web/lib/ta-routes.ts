@@ -9,6 +9,7 @@
  * Pure and edge-safe on purpose: the middleware imports it, so no `next/*`
  * imports and no Node APIs here.
  */
+import { SITE_URL } from "@vinaadi/shared/constants";
 import type { Lang } from "./lang-core";
 
 export const TA_PREFIX = "/ta";
@@ -43,6 +44,9 @@ export const TA_READY_ROUTES: readonly string[] = [
   "/temples/*",
   "/trust/methodology",
   "/trust/about-vinaadi",
+  "/pricing",
+  "/privacy",
+  "/terms",
   "/tools/baby-name-finder",
   "/tools/birth-time-rectification",
   "/tools/chandrashtama",
@@ -77,6 +81,13 @@ function cleanPath(input: string): string {
   const bare = input.split(/[?#]/)[0] ?? "";
   const trimmed = bare.length > 1 ? bare.replace(/\/+$/, "") : bare;
   return trimmed || "/";
+}
+
+/** The Tamil twin's address for an absolute site URL (`https://vinaadi.com/x` -> `.../ta/x`). */
+export function taUrl(url: string): string {
+  if (!url.startsWith(SITE_URL)) return url;
+  const path = url.slice(SITE_URL.length);
+  return `${SITE_URL}${TA_PREFIX}${path === "/" ? "" : path}`;
 }
 
 /** True when `pathname` (unprefixed) has a Tamil twin. */

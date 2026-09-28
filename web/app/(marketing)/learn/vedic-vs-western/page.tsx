@@ -1,4 +1,5 @@
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { VedicVsWesternPageContent } from "./PageContent";
 
@@ -68,10 +69,7 @@ const FAQ_JSONLD = {
 export default function VedicVsWesternPage() {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }}
-      />
+      <JsonLd en={FAQ_JSONLD} />
       <VedicVsWesternPageContent />
     </>
   );

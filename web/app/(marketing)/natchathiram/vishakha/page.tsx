@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { natchathiramMetadata } from "@/lib/natchathiram-metadata";
+import { JsonLd } from "@/lib/json-ld";
+import { natchathiramJsonLd, natchathiramMetadata } from "@/lib/natchathiram-metadata";
 import { NatchathiramPageContent } from "@/components/natchathiram-page";
 import { VISHAKHA } from "@/lib/natchathiram-data";
 
@@ -7,30 +8,12 @@ export async function generateMetadata(): Promise<Metadata> {
   return natchathiramMetadata(VISHAKHA);
 }
 
-const FAQ_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: VISHAKHA.faq.map((item) => ({
-    "@type": "Question",
-    name: item.q,
-    acceptedAnswer: { "@type": "Answer", text: item.a },
-  })),
-};
-
-const ARTICLE_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "Article",
-  headline: VISHAKHA.meta.title,
-  description: VISHAKHA.meta.description,
-  url: "https://vinaadi.com/natchathiram/vishakha",
-  publisher: { "@type": "Organization", name: "Vinaadi" },
-};
-
 export default function VishakhaPage() {
+  const { faqTa, article } = natchathiramJsonLd(VISHAKHA);
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ARTICLE_JSONLD) }} />
+      <JsonLd ta={faqTa} />
+      <JsonLd en={article.en} ta={article.ta} />
       <NatchathiramPageContent data={VISHAKHA} />
     </>
   );

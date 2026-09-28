@@ -1,4 +1,6 @@
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd, faqPageFromPairs } from "@/lib/json-ld";
+import { TOOL_NUMEROLOGY as N } from "@/lib/marketing-i18n/tool-numerology";
 import type { Metadata } from "next";
 import { NumerologyCalculatorContent } from "./NumerologyCalculatorContent";
 
@@ -98,13 +100,16 @@ const FAQ_JSONLD = {
   ],
 };
 
+// The Tamil twin marks up the FAQ its own body prints, which the catalog holds in
+// Tamil. The English block above is a hand-written paraphrase of the same six.
+const FAQ_JSONLD_TA = faqPageFromPairs(
+  ([1, 2, 3, 4, 5, 6] as const).map((n) => ({ q: N[`faq${n}_q`].ta, a: N[`faq${n}_a`].ta })),
+);
+
 export default function NumerologyCalculatorPage() {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }}
-      />
+      <JsonLd en={FAQ_JSONLD} ta={FAQ_JSONLD_TA} />
       <NumerologyCalculatorContent />
     </>
   );

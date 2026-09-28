@@ -1,4 +1,5 @@
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd, faqPageLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { TEMPLE_THIRUMANANJERI_FAQ } from "@/lib/marketing-i18n";
 import { ThirumananjeriContent } from "./PageContent";
@@ -37,20 +38,13 @@ export async function generateMetadata(): Promise<Metadata> {
   return withTamilTwin(EN_METADATA, "/temples/thirumananjeri");
 }
 
-const FAQ_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: TEMPLE_THIRUMANANJERI_FAQ.map((f) => ({
-    "@type": "Question",
-    name: f.q.en,
-    acceptedAnswer: { "@type": "Answer", text: f.a.en },
-  })),
-};
+const FAQ_JSONLD = faqPageLd(TEMPLE_THIRUMANANJERI_FAQ, "en");
+const FAQ_JSONLD_TA = faqPageLd(TEMPLE_THIRUMANANJERI_FAQ, "ta");
 
 export default function ThirumananjeriPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }} />
+      <JsonLd en={FAQ_JSONLD} ta={FAQ_JSONLD_TA} />
       <ThirumananjeriContent />
     </>
   );

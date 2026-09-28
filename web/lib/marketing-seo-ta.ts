@@ -11,6 +11,7 @@
  * template, so titles never name it; a title carries one language, never a
  * bilingual echo of the English one.
  */
+import { SITE_DESCRIPTION_TA } from "./site-description-ta";
 import type { MetaCopy } from "./localized-metadata";
 import { getGuideDetail, type GuideKind } from "./guide-detail-content";
 import { NATCHATHIRAM_LIST } from "./natchathiram-data";
@@ -98,8 +99,7 @@ export function natchathiramVisualTa(slug: string): MetaCopy | null {
 export const PAGE_SEO_TA: Record<string, MetaCopy> = {
   "/": {
     title: "Vinaadi: திருக்கணித தமிழ் ஜோதிடம், தினசரி வழிகாட்டுதல், நல்ல நேரம், பொருத்தம்",
-    description:
-      "தினசரி வழிகாட்டுதல், நேரத் தேர்வு, குடும்பத் திட்டமிடல், தெளிவுக்கான உங்கள் தமிழ் ஜோதிட உதவியாளர். திருக்கணிதத் துல்லியத்துடன், அமைதியாக, உண்மையான முடிவுகளுக்காக.",
+    description: SITE_DESCRIPTION_TA,
   },
   "/beta": {
     title: "திறந்த பீட்டா: எல்லா வசதிகளும் இலவசம்",
@@ -235,6 +235,19 @@ export const PAGE_SEO_TA: Record<string, MetaCopy> = {
     title: "Vinaadi பற்றி: அமைதியான, முறை வெளிப்படையான தமிழ் ஜோதிடம்",
     description:
       "Vinaadi ஏன் உள்ளது: உண்மையான முடிவுகளுக்கான தமிழ் ஜோதிடம், திருக்கணிதத்தின் அடிப்படையில், அச்சமின்றி விளக்கப்பட்டு, குடும்பங்களுக்காக வடிவமைக்கப்பட்டது.",
+  },
+  "/pricing": {
+    title: "விலை மற்றும் திட்டங்கள்: விருந்தினர், இலவசம், பிரீமியம்",
+    description:
+      "Vinaadi விருந்தினர், இலவச, பிரீமியம் அணுகலை ஒப்பிடுங்கள். திட்ட விலை, உள்ளடங்கும் வசதிகள், சந்தாக்கள் அறிக்கை வாங்குதல்களுடன் எவ்வாறு இணைகின்றன என்பதைப் பாருங்கள்.",
+  },
+  "/privacy": {
+    title: "தனியுரிமைக் கொள்கை",
+    description: "Vinaadi உங்கள் தனிப்பட்ட தரவை எவ்வாறு சேகரிக்கிறது, பயன்படுத்துகிறது, பாதுகாக்கிறது என்பதை அறியுங்கள்.",
+  },
+  "/terms": {
+    title: "பயன்பாட்டு விதிகள்",
+    description: "Vinaadi தமிழ் ஜோதிட உதவியாளரின் பயன்பாட்டை வரையறுக்கும் விதிகள்.",
   },
   "/trust/methodology": {
     title: "கணிப்பு முறை: திருக்கணிதம், லாகிரி அயனாம்சம், ஜாதகம் கணிக்கப்படும் விதம்",

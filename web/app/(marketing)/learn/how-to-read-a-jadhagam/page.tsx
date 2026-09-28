@@ -1,4 +1,5 @@
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { HowToReadJadhagamPageContent } from "./PageContent";
 
@@ -78,10 +79,7 @@ const FAQ_JSONLD = {
 export default function HowToReadAJadhagamPage() {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }}
-      />
+      <JsonLd en={FAQ_JSONLD} />
       <HowToReadJadhagamPageContent />
     </>
   );

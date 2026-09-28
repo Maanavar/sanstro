@@ -12,6 +12,9 @@ import type { ReactNode } from "react";
 import { DeferredChrome } from "@/components/deferred-chrome";
 import { LangProvider } from "@/components/lang-toggle";
 import { getServerLang } from "@/lib/server-lang";
+import { LANG_HEADER } from "@/lib/ta-routes";
+import { SITE_DESCRIPTION_TA } from "@/lib/site-description-ta";
+import { safeJsonLd } from "@/lib/json-ld";
 
 import "@vinaadi/design-tokens/dist/web/tokens.css";
 import "./globals.css";
@@ -176,7 +179,12 @@ export default async function RootLayout({
   // Reading headers() forces dynamic rendering, which costs nothing here: the
   // `getServerLang()` call above already awaits cookies(), so this layout — and
   // so every route beneath it — was dynamic before the CSP existed.
-  const nonce = (await headers()).get("x-nonce") ?? undefined;
+  const requestHeaders = await headers();
+  const nonce = requestHeaders.get("x-nonce") ?? undefined;
+  // The site-level Organization/WebSite blocks ride on every page. On a Tamil
+  // twin (the URL, not the cookie, asked for Tamil) their description is the
+  // Tamil home copy, so no English structured data sits on a Tamil page.
+  const tamilDescription = requestHeaders.get(LANG_HEADER) === "ta" ? SITE_DESCRIPTION_TA : undefined;
 
   return (
     <html
@@ -207,13 +215,13 @@ export default async function RootLayout({
           type="application/ld+json"
           suppressHydrationWarning
           nonce={nonce}
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(ORG_JSONLD) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd({ ...ORG_JSONLD, ...(tamilDescription ? { description: tamilDescription, inLanguage: "ta" } : {}) }) }}
         />
         <script
           type="application/ld+json"
           suppressHydrationWarning
           nonce={nonce}
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_JSONLD) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd({ ...WEBSITE_JSONLD, ...(tamilDescription ? { description: tamilDescription, inLanguage: "ta" } : {}) }) }}
         />
       </head>
       <body>

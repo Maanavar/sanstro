@@ -58,7 +58,7 @@ export async function NatchathiramIndexContent() {
                 >
                   <span className="cl-natch-tile__num">{n.number}</span>
                   <span className="cl-natch-tile__sigil">
-                    <NakshatraSigil number={n.number} name={romanNakshathiramName(n.name_en)} size="md" />
+                    <NakshatraSigil number={n.number} name={romanNakshathiramName(n.name_en)} nameTa={n.name_ta} size="md" />
                   </span>
                   <span className="cl-natch-tile__body">
                     {lang === "ta"

@@ -8,6 +8,7 @@ import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { useLang } from "@/components/lang-toggle";
 import { mt, NATCHATHIRAM_DETAIL, NATCHATHIRAM_VISUAL } from "@/lib/marketing-i18n";
+import { tPlanetLord } from "@/lib/i18n";
 import { NakshatraSigil, RasiGlyph } from "@/components/astro-symbols";
 import type { NatchathiramEntry } from "@/lib/natchathiram-data";
 import { JYOTISH_TERM_EN, NATCHATHIRAM_EN_FACTS } from "@/lib/natchathiram-data-en";
@@ -315,7 +316,7 @@ function DashaDetailPanel({
           {glyph}
         </div>
         <div>
-          <p style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: T.ink }}>{entry.planet} Dasha</p>
+          <p style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700, color: T.ink }}>{lang === "ta" ? `${tPlanetLord(entry.planet, lang)} தசை` : `${entry.planet} Dasha`}</p>
           <p style={{ margin: 0, fontSize: "0.8rem", color, fontWeight: 600 }}>
             {entry.period}{entry.ageRange ? ` · ${entry.ageRange}` : ""} &mdash; {entry.theme}
           </p>
@@ -505,7 +506,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
                       {mtv(v.natch_profile)} &middot; {lang==="ta" ? data.rasi_ta.toUpperCase() : data.rasi_en.toUpperCase()}
                     </p>
                     <div style={{ display:"flex", justifyContent:"center", marginBottom:"1.25rem" }}>
-                      <NakshatraSigil number={data.number} name={englishName} size="lg" />
+                      <NakshatraSigil number={data.number} name={englishName} nameTa={data.name_ta} size="lg" />
                     </div>
                     <p style={{ fontSize:"0.6rem", textTransform:"uppercase", letterSpacing:"0.12em", color:T.muted, margin:"0 0 0.2rem", fontWeight:600 }}>
                       {mtv(v.better_star)}
@@ -519,7 +520,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
                       <p style={{ fontFamily:"var(--cl-font-display)", fontSize:"1.6rem", fontWeight:600, color:T.ink, margin:"0 0 1.5rem", letterSpacing:"-0.02em" }}>{englishName}</p>
                     )}
                     <div style={{ display:"inline-flex", alignItems:"center", gap:"0.75rem", background:T.surface, border:`1px solid ${T.border}`, borderRadius:12, padding:"0.75rem 1.25rem" }}>
-                      <RasiGlyph rasi={data.rasi_en} label={data.rasi_en} size="md" />
+                      <RasiGlyph rasi={data.rasi_en} label={lang === "ta" ? data.rasi_ta : data.rasi_en} size="md" />
                       <div style={{ textAlign:"left" }}>
                         <p style={{ fontSize:"0.58rem", textTransform:"uppercase", letterSpacing:"0.12em", color:T.muted, margin:0, fontWeight:600 }}>{mtv(v.rasi_label)}</p>
                         <p style={{ fontWeight:700, color:T.ink, margin:"0.1rem 0 0.05rem", fontSize:"1rem" }}>
@@ -542,7 +543,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
               {facts.map((f, i) => (
                 <div key={f.label} style={{ background:T.surface, border:`1px solid ${T.border}`, borderRadius:12, padding:"1.1rem 1.25rem", boxShadow:`0 1px 4px ${T.accentA10}` }}>
                   <div style={{ marginBottom:"0.6rem" }}>
-                    {i === 0 ? <RasiGlyph rasi={data.rasi_en} label={data.rasi_en} size="sm" /> : <FactIcon type={f.icon} />}
+                    {i === 0 ? <RasiGlyph rasi={data.rasi_en} label={lang === "ta" ? data.rasi_ta : data.rasi_en} size="sm" /> : <FactIcon type={f.icon} />}
                   </div>
                   <p style={{ fontSize:"0.6rem", textTransform:"uppercase", letterSpacing:"0.11em", color:T.muted, margin:"0 0 0.25rem", fontWeight:600 }}>{f.label}</p>
                   <p style={{ fontWeight:700, fontSize:"0.92rem", color:T.ink, margin:0 }}>{f.value}</p>
@@ -748,7 +749,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
                       <button
                         onClick={() => setSelectedDasha(isSelected ? null : i)}
                         aria-expanded={isSelected}
-                        aria-label={`${entry.planet} dasha details`}
+                        aria-label={lang === "ta" ? `${tPlanetLord(entry.planet, lang)} தசை விவரங்கள்` : `${entry.planet} dasha details`}
                         style={{
                           width:46, height:46, borderRadius:"50%",
                           background: isSelected ? `${col}30` : `${col}18`,
@@ -764,7 +765,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
                       >
                         {glyph}
                       </button>
-                      <p style={{ fontSize:"0.82rem", fontWeight:700, color: isSelected ? col : T.ink, margin:"0 0 0.15rem", transition:"color 0.18s" }}>{entry.planet}</p>
+                      <p style={{ fontSize:"0.82rem", fontWeight:700, color: isSelected ? col : T.ink, margin:"0 0 0.15rem", transition:"color 0.18s" }}>{lang === "ta" ? tPlanetLord(entry.planet, lang) : entry.planet}</p>
                       <p style={{ fontSize:"0.7rem", color:T.accent, margin:"0 0 0.1rem", fontWeight:700 }}>{entry.period}</p>
                       {entry.ageRange && <p style={{ fontSize:"0.62rem", color:T.muted, margin:"0 0 0.2rem", fontWeight:500 }}>{entry.ageRange}</p>}
                       <p style={{ fontSize:"0.66rem", color:T.muted, margin:0, lineHeight:1.4, padding:"0 0.2rem" }}>{entry.theme}</p>

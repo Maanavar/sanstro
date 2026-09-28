@@ -236,7 +236,7 @@ export async function NatchathiramPageContent({ data }: Props) {
 
         {/* ── Prev / Next navigation ── */}
         {(prev || next) && (
-          <nav aria-label="Nakshathiram navigation" className="cl-band cl-band--alt">
+          <nav aria-label={lang === "ta" ? "நட்சத்திர வழிசெலுத்தல்" : "Nakshathiram navigation"} className="cl-band cl-band--alt">
             <div className="cl-container">
               <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", borderTop: "1px solid var(--cl-border)", paddingTop: "1.5rem" }}>
                 {prev ? (

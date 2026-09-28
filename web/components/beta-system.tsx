@@ -64,7 +64,7 @@ export function BetaSystem() {
   return (
     <>
       {bannerOpen && (
-        <div className="beta-banner" role="region" aria-label="Beta notice">
+        <div className="beta-banner" role="region" aria-label={lang === "ta" ? "பீட்டா அறிவிப்பு" : "Beta notice"}>
           <span className="beta-banner__tag">{mt(BETA.badge, lang)}</span>
           <span className="beta-banner__text">{mt(BETA.banner_text, lang)}</span>
           <Link href="/beta" className="beta-banner__cta">

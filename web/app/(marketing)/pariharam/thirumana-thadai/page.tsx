@@ -1,4 +1,5 @@
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd, faqPageLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { PARIHARAM_MARRIAGE_FAQ } from "@/lib/marketing-i18n";
 import { ThirumanaThadaiContent } from "./PageContent";
@@ -51,21 +52,14 @@ const HOWTO_JSONLD = {
   ],
 };
 
-const FAQ_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: PARIHARAM_MARRIAGE_FAQ.map((f) => ({
-    "@type": "Question",
-    name: f.q.en,
-    acceptedAnswer: { "@type": "Answer", text: f.a.en },
-  })),
-};
+const FAQ_JSONLD = faqPageLd(PARIHARAM_MARRIAGE_FAQ, "en");
+const FAQ_JSONLD_TA = faqPageLd(PARIHARAM_MARRIAGE_FAQ, "ta");
 
 export default function ThirumanaThadaiPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(HOWTO_JSONLD) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }} />
+      <JsonLd en={HOWTO_JSONLD} />
+      <JsonLd en={FAQ_JSONLD} ta={FAQ_JSONLD_TA} />
       <ThirumanaThadaiContent />
     </>
   );

@@ -42,7 +42,7 @@ beforeEach(() => {
   router.replace.mockClear();
   // A page with no Tamil twin, so a language change re-renders in place. The
   // twin cases below set their own path.
-  window.history.replaceState({}, "", "/pricing");
+  window.history.replaceState({}, "", "/share/panchangam");
   localStorage.clear();
   document.cookie = `${LANG_STORAGE_KEY}=; path=/; max-age=0`;
 });

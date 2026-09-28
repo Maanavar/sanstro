@@ -26,8 +26,12 @@ describe("isTaReady", () => {
   });
 
   it("leaves pages that are not Tamil-ready alone", () => {
-    expect(isTaReady("/pricing")).toBe(false);
-    expect(isTaReady("/privacy")).toBe(false);
+    expect(isTaReady("/share/panchangam")).toBe(false);
+    expect(isTaReady("/share/porutham/some-token")).toBe(false);
+  });
+
+  it("counts the pricing and legal pages as ready now their bodies are Tamil", () => {
+    for (const p of ["/pricing", "/privacy", "/terms"]) expect(isTaReady(p)).toBe(true);
   });
 });
 
@@ -51,7 +55,8 @@ describe("localizePath", () => {
 
   it("returns English hrefs, non-ready paths, externals and anchors untouched", () => {
     expect(localizePath("/tamil-calendar", "en")).toBe("/tamil-calendar");
-    expect(localizePath("/pricing", "ta")).toBe("/pricing");
+    expect(localizePath("/share/panchangam", "ta")).toBe("/share/panchangam");
+    expect(localizePath("/pricing", "ta")).toBe("/ta/pricing");
     expect(localizePath("/dashboard", "ta")).toBe("/dashboard");
     expect(localizePath("https://example.com/tamil-calendar", "ta")).toBe("https://example.com/tamil-calendar");
     expect(localizePath("//example.com/tamil-calendar", "ta")).toBe("//example.com/tamil-calendar");
@@ -73,7 +78,7 @@ describe("counterpartPath", () => {
   });
 
   it("is null when the page has no twin", () => {
-    expect(counterpartPath("/pricing", "ta")).toBeNull();
-    expect(counterpartPath("/ta/pricing", "en")).toBeNull();
+    expect(counterpartPath("/share/panchangam", "ta")).toBeNull();
+    expect(counterpartPath("/ta/share/panchangam", "en")).toBeNull();
   });
 });

@@ -1,4 +1,5 @@
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { GuideDetailPage } from "@/components/guide-detail-page";
@@ -35,11 +36,11 @@ export default async function PariharamDetailPage({ params }: PageProps) {
   const content = getGuideDetail("pariharam", slug);
   if (!content) notFound();
 
-  const jsonLd = guideJsonLd(content, `https://vinaadi.com/pariharam/${slug}`);
+  const url = `https://vinaadi.com/pariharam/${slug}`;
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <JsonLd en={guideJsonLd(content, url, "en")} ta={guideJsonLd(content, url, "ta")} />
       <GuideDetailPage content={content} />
     </>
   );

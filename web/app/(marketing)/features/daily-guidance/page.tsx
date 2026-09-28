@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { JsonLd } from "@/lib/json-ld";
 import { withTamilTwin } from "@/lib/localized-metadata";
 import { LocalizedLink as Link } from "@/components/localized-link";
 import { PublicNav } from "@/components/public-nav";
@@ -51,7 +52,7 @@ export default async function DailyGuidancePage() {
 
   return (
     <div className="clarity-shell">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+      <JsonLd en={faqJsonLd} />
       <PublicNav />
       <main>
         {/* HERO */}

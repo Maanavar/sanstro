@@ -4,6 +4,8 @@ import type { CSSProperties } from "react";
 import type { NatchathiramEntry } from "@/lib/natchathiram-data";
 import { romanNakshathiramName, romanNakshathiramLabel } from "@/lib/tamil-astro";
 import { ZodiacBadge } from "@/components/zodiac-badge";
+import { useLang } from "@/components/lang-context";
+import { rasiDisplayName } from "@/lib/chart-utils";
 import { NakshatraBadge } from "@/components/nakshatra-badge";
 
 const RASI_GLYPHS: Record<string, { glyph: string; tone: string }> = {
@@ -49,31 +51,40 @@ const NAK_PX = { sm: 40, md: 52, lg: 124 } as const;
 const BADGE_WRAP_RESET: CSSProperties = { background: "none", boxShadow: "none", borderRadius: 0 };
 
 export function RasiGlyph({ rasi, label, size = "md" }: { rasi?: string; label?: string; size?: "sm" | "md" | "lg" }) {
+  const [lang] = useLang();
   const num = rasi ? RASI_NUMBER_BY_EN[rasi.trim().toLowerCase()] ?? null : null;
+  // A caller's `label` wins; without one the accessible name is the rasi in the
+  // reader's language, from the key, never the English name string.
+  const accessibleName = label ?? (num != null ? rasiDisplayName(num, lang) : (rasi ?? (lang === "ta" ? "ராசி" : "Rasi")));
 
   // Fallback to the classical Unicode glyph if the name doesn't resolve.
   if (num == null) {
     const item = rasiFor(rasi);
     return (
-      <span className={cx("as-rasi", `as-rasi--${item.tone}`, `as-rasi--${size}`)} aria-label={label ?? rasi ?? "Rasi"}>
+      <span className={cx("as-rasi", `as-rasi--${item.tone}`, `as-rasi--${size}`)} aria-label={accessibleName}>
         {item.glyph}
       </span>
     );
   }
 
   return (
-    <span className={cx("as-rasi", `as-rasi--${size}`)} style={BADGE_WRAP_RESET} aria-label={label ?? rasi ?? "Rasi"}>
+    <span className={cx("as-rasi", `as-rasi--${size}`)} style={BADGE_WRAP_RESET} aria-label={accessibleName}>
       <ZodiacBadge rasi={num} size={RASI_PX[size]} glyph={RASI_GLYPHS[rasi ?? ""]?.glyph} />
     </span>
   );
 }
 
-export function NakshatraSigil({ number, name, size = "md" }: { number: number; name?: string; size?: "sm" | "md" | "lg" }) {
+export function NakshatraSigil({ number, name, nameTa, size = "md" }: { number: number; name?: string; nameTa?: string; size?: "sm" | "md" | "lg" }) {
+  const [lang] = useLang();
+  const label =
+    lang === "ta"
+      ? nameTa ? `${nameTa} நட்சத்திரம்` : `நட்சத்திரம் ${number}`
+      : name ? `${romanNakshathiramName(name)} nakshathiram` : `Nakshathiram ${number}`;
   return (
     <span
       className={cx("as-nak", `as-nak--${size}`)}
       style={BADGE_WRAP_RESET}
-      aria-label={name ? `${romanNakshathiramName(name)} nakshathiram` : `Nakshathiram ${number}`}
+      aria-label={label}
     >
       <NakshatraBadge nakshatra={number} size={NAK_PX[size]} />
     </span>

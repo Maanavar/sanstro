@@ -44,9 +44,9 @@ describe("middleware — Tamil URLs", () => {
   });
 
   it("redirects /ta/<page with no Tamil twin> to the English page rather than index an English body as Tamil", async () => {
-    const res = await middleware(req("/ta/pricing"));
+    const res = await middleware(req("/ta/share/panchangam"));
     expect(res.status).toBe(307);
-    expect(res.headers.get("location")).toBe("https://vinaadi.com/pricing");
+    expect(res.headers.get("location")).toBe("https://vinaadi.com/share/panchangam");
   });
 
   it("does not let /ta reach the dashboard", async () => {
@@ -77,7 +77,7 @@ describe("middleware — English URLs", () => {
   });
 
   it("leaves a Tamil-cookie visitor alone on pages with no Tamil twin, and on the app", async () => {
-    for (const p of ["/pricing", "/login"]) {
+    for (const p of ["/share/panchangam", "/login"]) {
       const res = await middleware(req(p, { cookie: "jothidam-lang=ta" }));
       expect(res.headers.get("location")).toBeNull();
     }

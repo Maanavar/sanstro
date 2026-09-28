@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { JsonLd } from "@/lib/json-ld";
 import { withTamilTwin } from "@/lib/localized-metadata";
 import { muhurthamNaalTa } from "@/lib/marketing-seo-ta";
 import { MUHURTHAM_NAAL_YEARS } from "@/lib/muhurtham-naal";
@@ -33,11 +34,11 @@ export default async function MuhurthamNaalYearPage({ params }: PageProps) {
   const { year: yearParam } = await params;
   const year = parseYear(yearParam);
   if (!year) notFound();
-  const jsonLd = jsonLdForMuhurthamYear(year, `/muhurtham-naal/${year}`);
+  const path = `/muhurtham-naal/${year}`;
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <JsonLd en={jsonLdForMuhurthamYear(year, path)} ta={jsonLdForMuhurthamYear(year, path, "ta")} />
       <MuhurthamNaalContent year={year} />
     </>
   );

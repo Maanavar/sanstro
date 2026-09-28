@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { JsonLd } from "@/lib/json-ld";
+import { calendarHubLd } from "./calendar-jsonld";
 import { withTamilTwin } from "@/lib/localized-metadata";
 import { TAMIL_CALENDAR_TA } from "@/lib/marketing-seo-ta";
 import { TamilCalendarContent, type EventSummary } from "./TamilCalendarContent";
@@ -56,25 +58,13 @@ export default async function TamilCalendarHub() {
   const [data, categories] = await Promise.all([fetchEvents(), fetchCalendarCategories()]);
   const events = data?.events ?? [];
 
-  const jsonld = {
-    "@context": "https://schema.org",
-    "@type": "CollectionPage",
-    name: "Tamil Calendar 2026 - Special Days",
-    url: "https://vinaadi.com/tamil-calendar",
-    hasPart: [...categories.map((category: CalendarCategorySummary) => ({
-      "@type": "WebPage",
-      name: category.title.en,
-      url: `https://vinaadi.com/tamil-calendar/${category.slug}`,
-    })), ...events.map((event) => ({
-      "@type": "WebPage",
-      name: `${event.name.en} 2026`,
-      url: `https://vinaadi.com/tamil-calendar/${event.slug}`,
-    }))],
-  };
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonld) }} />
+      <JsonLd
+        en={calendarHubLd(categories, events, "en", "Tamil Calendar 2026 - Special Days")}
+        ta={calendarHubLd(categories, events, "ta", TAMIL_CALENDAR_TA.title)}
+      />
       <TamilCalendarContent events={events} categories={categories} />
     </>
   );

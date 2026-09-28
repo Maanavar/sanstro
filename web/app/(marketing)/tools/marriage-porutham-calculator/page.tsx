@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { JsonLd } from "@/lib/json-ld";
 import { withTamilTwin } from "@/lib/localized-metadata";
 import { PORUTHAM_TA } from "@/lib/marketing-seo-ta";
 import { PoruthamPageContent } from "./PoruthamPageContent";
@@ -87,10 +88,7 @@ const FAQ_JSONLD = {
 export default function PoruthamCalculatorPage() {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }}
-      />
+      <JsonLd en={FAQ_JSONLD} />
       <PoruthamPageContent />
     </>
   );

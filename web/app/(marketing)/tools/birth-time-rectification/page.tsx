@@ -57,7 +57,7 @@ export default async function BirthTimeRectificationPage() {
             <div className="cl-hero-figure">
               <p className="cl-hero-figure__label">{lang === "en" ? "Rectification · How it works" : "திருத்தம் · எப்படி வேலை செய்கிறது"}</p>
               <div className="cl-hero-figure__art">
-                <svg viewBox="0 0 240 120" role="img" aria-label="Candidate birth times narrowing around events">
+                <svg viewBox="0 0 240 120" role="img" aria-label={lang === "en" ? "Candidate birth times narrowing around events" : "நிகழ்வுகளைச் சுற்றிச் சுருங்கும் சாத்தியமான பிறந்த நேரங்கள்"}>
                   <line x1="16" y1="64" x2="224" y2="64" stroke="var(--cl-border-2)" strokeWidth="1.4" />
                   <g stroke="var(--cl-muted-2)" strokeWidth="1.5" strokeLinecap="round">
                     <line x1="40" y1="59" x2="40" y2="69" /><line x1="120" y1="59" x2="120" y2="69" /><line x1="200" y1="59" x2="200" y2="69" />

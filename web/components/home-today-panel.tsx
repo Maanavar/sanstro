@@ -37,6 +37,7 @@ import { LocalizedLink as Link } from "@/components/localized-link";
 import { useEffect, useMemo, useState } from "react";
 import { getRasiPalan, type RasiPalanData } from "@vinaadi/shared/api";
 import { formatClockLabel } from "@/lib/format";
+import { tFestival } from "@/lib/festival-names";
 import { gowriCategoryLabel, gowriPurposeLabel } from "@/lib/gowri";
 import { tNakshatra, tTithi, type Lang } from "@/lib/i18n";
 import { moonPhaseFromTithi } from "@/lib/lunar";
@@ -170,7 +171,7 @@ function PanelHead({
               {phase.waxing ? mt(HOME.today_waxing, lang) : mt(HOME.today_waning, lang)}
             </span>
           )}
-          {festival && <span className="cl-today__festival">{festival.name}</span>}
+          {festival && <span className="cl-today__festival">{tFestival(festival.name, lang)}</span>}
         </p>
       )}
     </header>

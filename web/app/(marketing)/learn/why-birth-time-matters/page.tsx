@@ -1,4 +1,5 @@
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { WhyBirthTimeMattersPageContent } from "./PageContent";
 
@@ -77,10 +78,7 @@ const FAQ_JSONLD = {
 export default function WhyBirthTimeMattersPage() {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }}
-      />
+      <JsonLd en={FAQ_JSONLD} />
       <WhyBirthTimeMattersPageContent />
     </>
   );

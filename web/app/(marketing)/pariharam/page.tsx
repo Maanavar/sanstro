@@ -1,4 +1,5 @@
 import { withTamilTwin } from "@/lib/localized-metadata";
+import { JsonLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import { PariharamIndexContent } from "./IndexContent";
 
@@ -49,7 +50,7 @@ const JSONLD = {
 export default function PariharamIndexPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSONLD) }} />
+      <JsonLd en={JSONLD} />
       <PariharamIndexContent />
     </>
   );

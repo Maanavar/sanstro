@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { JsonLd } from "@/lib/json-ld";
+import { eventFaqLd, eventItemListLd } from "../calendar-jsonld";
 import { withTamilTwin } from "@/lib/localized-metadata";
 import { TAMIL_CALENDAR_TA, calendarEventTa } from "@/lib/marketing-seo-ta";
 import {
@@ -61,15 +63,6 @@ export function generateStaticParams() {
   return EVENT_KEYS.map((key) => ({ event: `${key}-${YEAR}` }));
 }
 
-function fmt(iso: string): string {
-  return new Date(iso + "T00:00:00").toLocaleDateString("en-GB", {
-    weekday: "short",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
-
 function fmtShort(iso: string): string {
   return new Date(iso + "T00:00:00").toLocaleDateString("en-GB", {
     day: "numeric",
@@ -119,59 +112,10 @@ export default async function EventPage({ params }: Props) {
   const { event } = await params;
   const [data, allEvents] = await Promise.all([fetchEvent(event), fetchEvents()]);
 
-  const faqJsonld = data
-    ? {
-        "@context": "https://schema.org",
-        "@type": "FAQPage",
-        mainEntity: [
-          {
-            "@type": "Question",
-            name: `When is the next ${data.name.en} in 2026?`,
-            acceptedAnswer: {
-              "@type": "Answer",
-              text: data.nextDate
-                ? `The next ${data.name.en} is on ${fmt(data.nextDate)}.`
-                : `All ${data.name.en} dates for 2026 have passed; see the full list above.`,
-            },
-          },
-          {
-            "@type": "Question",
-            name: `How many ${data.name.en} days are there in 2026?`,
-            acceptedAnswer: {
-              "@type": "Answer",
-              text: `There are ${data.count} ${data.name.en} dates in 2026.`,
-            },
-          },
-          {
-            "@type": "Question",
-            name: `What is ${data.name.en} (${data.name.ta})?`,
-            acceptedAnswer: {
-              "@type": "Answer",
-              text: `${data.summary.en} ${data.significance.en}`,
-            },
-          },
-        ],
-      }
-    : null;
-
-  const itemListJsonld = data
-    ? {
-        "@context": "https://schema.org",
-        "@type": "ItemList",
-        name: `${data.name.en} 2026 Dates`,
-        numberOfItems: data.count,
-        itemListElement: data.dates.map((date, index) => ({
-          "@type": "ListItem",
-          position: index + 1,
-          name: `${data.name.en} - ${fmtShort(date.date)}`,
-        })),
-      }
-    : null;
-
   return (
     <>
-      {faqJsonld && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonld) }} />}
-      {itemListJsonld && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonld) }} />}
+      {data && <JsonLd en={eventFaqLd(data, "en")} ta={eventFaqLd(data, "ta")} />}
+      {data && <JsonLd en={eventItemListLd(data, "en")} ta={eventItemListLd(data, "ta")} />}
       <TamilCalendarEventContent data={data} allEvents={allEvents} />
     </>
   );
