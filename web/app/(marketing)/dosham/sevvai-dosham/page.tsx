@@ -1,8 +1,9 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 import { DOSHAM_SEVVAI_FAQ } from "@/lib/marketing-i18n";
 import { SevvaiDoshamContent } from "./PageContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Sevvai Dosham (Mangal Dosha) — Meaning, Calculation & Pariharam",
   description:
     "Sevvai dosham (Mangal dosha / Manglik) forms when Mars sits in the 1st, 2nd, 4th, 7th, 8th or 12th house. Learn how it is calculated, what it means for marriage, when it is cancelled, and the traditional pariharam with slokam.",
@@ -32,6 +33,10 @@ export const metadata: Metadata = {
     description: "Meaning, calculation, cancellations and pariharam — calmly explained.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/dosham/sevvai-dosham");
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",

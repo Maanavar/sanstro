@@ -142,9 +142,10 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  // hreflang is omitted until Tamil has URLs of its own (GRW-06): declaring
-  // `en` and `ta` at the same address told crawlers the two were one page, and
-  // the Tamil copy is served by cookie, which a crawler never sends.
+  // No site-wide hreflang: declaring `en` and `ta` at one address told crawlers
+  // the two were one page. Tamil now has its own URLs (`/ta/...`, GRW-06), and
+  // each page that has a twin declares the reciprocal pair itself through
+  // lib/localized-metadata.ts. Pages without a twin declare none.
   icons: {
     icon: [{ url: "/favicon.ico" }, { url: "/icon.png", type: "image/png" }],
     apple: [{ url: "/apple-icon.png", type: "image/png" }],

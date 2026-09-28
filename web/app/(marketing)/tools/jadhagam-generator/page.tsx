@@ -1,7 +1,8 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 import { JadhagamPageContent } from "./JadhagamPageContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Free Tamil Jadhagam Generator — South Indian Birth Chart",
   description:
     "Generate your Thirukanitham-precise South Indian Tamil jadhagam free. Get a D1 Rasi chart, D9 Navamsa, all planet positions with birth-star details, and the full Vimshottari dasha sequence. No account required.",
@@ -31,6 +32,10 @@ export const metadata: Metadata = {
     description: "Thirukanitham-precise Tamil jadhagam with D1, D9, planet positions, birth star, and dasha. Free.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/tools/jadhagam-generator");
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",

@@ -1,7 +1,8 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 import { YogamIndexContent } from "./IndexContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Yogams in Tamil Astrology — Meaning, Formula & Benefits",
   description:
     "Understand the auspicious yogams in your horoscope — Gaja Kesari, Dhana, Budha-Aditya and Neecha Bhanga Raja yogam. What each means, the formula that forms it, and when it activates through dasa.",
@@ -25,6 +26,10 @@ export const metadata: Metadata = {
     type: "website",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/yogam");
+}
 
 const JSONLD = {
   "@context": "https://schema.org",

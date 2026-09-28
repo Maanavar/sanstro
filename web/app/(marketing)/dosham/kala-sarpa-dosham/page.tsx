@@ -1,8 +1,9 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 import { DOSHAM_KALA_SARPA_FAQ } from "@/lib/marketing-i18n";
 import { KalaSarpaDoshamContent } from "./PageContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Kala Sarpa Dosham — Meaning, Types, Chart Check & Pariharam",
   description:
     "Kala Sarpa dosham forms when all 7 classical planets are enclosed between Rahu and Ketu. Learn the 12 types (Ananta to Sheshanaga), how to check your chart, what it means for life, when it softens, and the traditional pariharam.",
@@ -31,6 +32,10 @@ export const metadata: Metadata = {
     description: "12 types, chart check, real meaning and pariharam — calmly explained.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/dosham/kala-sarpa-dosham");
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",

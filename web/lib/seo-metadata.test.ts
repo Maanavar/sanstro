@@ -24,10 +24,15 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import type { Metadata } from "next";
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import { TA_READY_ROUTES, isTaReady, splitLangPrefix } from "./ta-routes";
+
+// The language the middleware would have put on the request (`x-lang`), which
+// is how a `/ta/...` URL reaches `getServerLang()`. Null = an English URL.
+const urlLang = vi.hoisted(() => ({ value: null as string | null }));
 
 vi.mock("next/headers", () => ({
   cookies: async () => ({ get: () => undefined }),
-  headers: async () => new Headers(),
+  headers: async () => new Headers(urlLang.value ? { "x-lang": urlLang.value } : {}),
 }));
 
 const BASE = "https://vinaadi.com";
@@ -115,16 +120,39 @@ function renderTitle(md: Metadata | undefined): string | undefined {
   return undefined;
 }
 
-type Row = { route: string; pattern: RegExp; dynamic: boolean; canonical?: string; noindex: boolean; title?: string };
+type Row = {
+  route: string;
+  pattern: RegExp;
+  dynamic: boolean;
+  canonical?: string;
+  noindex: boolean;
+  title?: string;
+  description?: string;
+  languages?: Record<string, string>;
+};
 const rows: Row[] = [];
+/** The same pages, evaluated as the middleware serves them at `/ta/...`. */
+const taRows: Row[] = [];
 
 function routePattern(segments: string[]): RegExp {
   const body = segments.map((s) => (/^\[.+\]$/.test(s) ? "[^/]+" : s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))).join("/");
   return new RegExp(`^/${body}$`);
 }
 
+function languagesOf(md: Metadata | undefined): Record<string, string> | undefined {
+  const l = md?.alternates?.languages;
+  return l ? (Object.fromEntries(Object.entries(l).map(([k, v]) => [k, String(v)])) as Record<string, string>) : undefined;
+}
+
 beforeAll(async () => {
   vi.stubGlobal("fetch", () => Promise.reject(new Error("backend unreachable in tests")));
+  await collectRows(rows, null);
+  await collectRows(taRows, "ta");
+  urlLang.value = null;
+}, 240_000);
+
+async function collectRows(into: Row[], lang: string | null) {
+  urlLang.value = lang;
   for (const file of listPages(MARKETING)) {
     const segments = routeSegments(file);
     const mod = (await import(/* @vite-ignore */ file)) as PageModule;
@@ -147,16 +175,18 @@ beforeAll(async () => {
     const own = await resolveMetadata(mod, params);
     merged = { ...merged, ...own };
 
-    rows.push({
+    into.push({
       route: route === "/" ? "/" : route.replace(/\/$/, ""),
       pattern: segments.length ? routePattern(segments) : /^\/$/,
       dynamic: dynamic.length > 0,
       canonical: canonicalOf(merged),
       noindex: noindex(merged),
       title: renderTitle(own) ?? (own?.title ? undefined : renderTitle(merged)),
+      description: typeof merged.description === "string" ? merged.description : undefined,
+      languages: languagesOf(merged),
     });
   }
-}, 120_000);
+}
 
 describe("public page metadata", () => {
   it("found the public pages", () => {
@@ -186,6 +216,7 @@ describe("public page metadata", () => {
   it("every indexable static page is in the sitemap", async () => {
     const { default: sitemap } = await import("../app/sitemap");
     const listed = new Set(sitemap().map((e) => e.url.replace(BASE, "") || "/"));
+    // (English URLs only: this is about coverage; the Tamil twins are below.)
     const missing = rows
       .filter((r) => !r.noindex && !r.dynamic && !(r.route in NO_METADATA))
       .filter((r) => !listed.has(r.route))
@@ -195,8 +226,11 @@ describe("public page metadata", () => {
 
   it("every sitemap URL is a real, indexable page, listed once", async () => {
     const { default: sitemap } = await import("../app/sitemap");
-    const paths = sitemap().map((e) => e.url.replace(BASE, "") || "/");
-    const dupes = paths.filter((p, i) => paths.indexOf(p) !== i);
+    // A `/ta/...` entry is the same page as its English twin, so it is checked
+    // against the same route; the twin tests below check the Tamil half itself.
+    const all = sitemap().map((e) => e.url.replace(BASE, "") || "/");
+    const dupes = all.filter((p, i) => all.indexOf(p) !== i);
+    const paths = all.map((p) => splitLangPrefix(p).path);
     expect(dupes).toEqual([]);
     const bad = paths.filter((p) => {
       const matches = rows.filter((r) => r.pattern.test(p));
@@ -212,5 +246,88 @@ describe("public page metadata", () => {
       .filter((r) => r.title && (r.title.match(/Vinaadi/g) ?? []).length > 1)
       .map((r) => `${r.route}: ${r.title}`);
     expect(doubled).toEqual([]);
+  });
+});
+
+const TAMIL_SCRIPT = /[஀-௿]/;
+
+/** The English and Tamil URLs of a route (`/` -> `/ta`, never `/ta/`). */
+const twin = (route: string) => ({ en: route === "/" ? BASE : `${BASE}${route}`, ta: `${BASE}/ta${route === "/" ? "" : route}` });
+
+/**
+ * GRW-06 — Tamil at its own URLs. The Tamil half of every page with a twin has
+ * to carry Tamil text, name itself as `/ta/...`, and be named back by its
+ * English twin: Google discards an hreflang pair that is not reciprocal.
+ */
+describe("Tamil twins (/ta/...)", () => {
+  // `/panchangam/today` renders nothing of its own (it redirects), so has no metadata.
+  const ready = () => taRows.filter((r) => isTaReady(r.route) && !(r.route in NO_METADATA));
+
+  it("finds Tamil-ready pages, and every registry pattern matches a real route", () => {
+    expect(ready().length).toBeGreaterThan(50);
+    const dead = TA_READY_ROUTES.filter((pattern) => {
+      const re = new RegExp(`^${pattern.replace(/\*/g, "[^/]+")}$`);
+      return !rows.some((r) => re.test(r.route));
+    });
+    expect(dead).toEqual([]);
+  });
+
+  it("every Tamil page has a Tamil title and description of its own", () => {
+    const bad = ready()
+      .filter((r) => !r.title || !TAMIL_SCRIPT.test(r.title) || !r.description || !TAMIL_SCRIPT.test(r.description))
+      .map((r) => `${r.route}: ${r.title ?? "(no title)"}`);
+    expect(bad).toEqual([]);
+  });
+
+  it("every Tamil page's canonical is its own /ta URL", () => {
+    const wrong = ready()
+      .filter((r) => r.canonical !== twin(r.route).ta)
+      .map((r) => `${r.route} -> ${r.canonical ?? "(none)"}`);
+    expect(wrong).toEqual([]);
+  });
+
+  it("hreflang is reciprocal: both languages name both URLs, plus x-default", () => {
+    const bad: string[] = [];
+    for (const ta of ready()) {
+      const en = rows.find((r) => r.route === ta.route);
+      const want = { en: twin(ta.route).en, ta: twin(ta.route).ta, "x-default": twin(ta.route).en };
+      if (JSON.stringify(ta.languages) !== JSON.stringify(want)) bad.push(`${ta.route} (ta side)`);
+      if (JSON.stringify(en?.languages) !== JSON.stringify(want)) bad.push(`${ta.route} (en side)`);
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it("the English page is not the Tamil page: titles differ and the English URL keeps its own canonical", () => {
+    const same = ready()
+      .filter((ta) => {
+        const en = rows.find((r) => r.route === ta.route);
+        return en?.title === ta.title || en?.canonical === ta.canonical;
+      })
+      .map((r) => r.route);
+    expect(same).toEqual([]);
+  });
+
+  it("pages without a twin advertise no hreflang", () => {
+    const stray = rows.filter((r) => !isTaReady(r.route) && r.languages).map((r) => r.route);
+    expect(stray).toEqual([]);
+  });
+
+  it("the sitemap lists both URLs of every Tamil-ready page it lists, each naming the other", async () => {
+    const { default: sitemap } = await import("../app/sitemap");
+    const entries = sitemap();
+    const byUrl = new Map(entries.map((e) => [e.url, e]));
+    const bad: string[] = [];
+    for (const r of ready()) {
+      // A dynamic route's sample param may not be one the sitemap lists; only
+      // pages it does list are held to this.
+      const { en, ta } = twin(r.route);
+      if (!byUrl.has(en)) continue;
+      for (const url of [en, ta]) {
+        const langs = byUrl.get(url)?.alternates?.languages as Record<string, string> | undefined;
+        if (langs?.ta !== ta || langs?.en !== en) bad.push(url);
+      }
+    }
+    expect(bad).toEqual([]);
+    expect(entries.filter((e) => splitLangPrefix(e.url.replace(BASE, "") || "/").lang === "ta").length).toBeGreaterThan(50);
   });
 });

@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { CALENDAR_CATEGORY_TA } from "@/lib/marketing-seo-ta";
 
 const BACKEND_URL = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
 export const CALENDAR_CATEGORY_YEAR = 2026;
@@ -77,6 +79,11 @@ export function metadataForCategory(slug: CalendarCategorySlug): Metadata {
       type: "website",
     },
   };
+}
+
+/** `metadataForCategory` with its Tamil twin (GRW-06). */
+export async function localizedCategoryMetadata(slug: CalendarCategorySlug): Promise<Metadata> {
+  return withTamilTwin(metadataForCategory(slug), `/tamil-calendar/${slug}`, CALENDAR_CATEGORY_TA[slug]);
 }
 
 export async function fetchCalendarCategory(slug: CalendarCategorySlug): Promise<CalendarCategoryDetail | null> {

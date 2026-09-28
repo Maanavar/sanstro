@@ -1,26 +1,11 @@
 import type { Metadata } from "next";
+import { natchathiramMetadata } from "@/lib/natchathiram-metadata";
 import { NatchathiramPageContent } from "@/components/natchathiram-page";
 import { KRITTIKA } from "@/lib/natchathiram-data";
 
-export const metadata: Metadata = {
-  title: KRITTIKA.meta.title,
-  description: KRITTIKA.meta.description,
-  keywords: KRITTIKA.meta.keywords,
-  alternates: { canonical: "https://vinaadi.com/natchathiram/krittika" },
-  openGraph: {
-    title: KRITTIKA.meta.title,
-    description: KRITTIKA.meta.description,
-    url: "https://vinaadi.com/natchathiram/krittika",
-    type: "article",
-    images: [{ url: "/brand/vinaadi-og-image.jpg", width: 1200, height: 630, alt: "Vinaadi — Tamil Astrology" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: KRITTIKA.meta.title,
-    description: KRITTIKA.meta.description,
-    images: ["/brand/vinaadi-og-image.jpg"],
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return natchathiramMetadata(KRITTIKA);
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",

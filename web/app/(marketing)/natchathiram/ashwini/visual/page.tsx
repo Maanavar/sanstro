@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { ASHWINI } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Aswini Nakshathiram — Visual Profile",
   description: "Visual profile of Aswini Nakshathiram: personality traits, career strengths, dasa timeline, compatible nakshathirams, and spiritual guidance.",
   alternates: { canonical: "https://vinaadi.com/natchathiram/ashwini/visual" },
@@ -13,6 +15,10 @@ export const metadata: Metadata = {
     type: "article",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/natchathiram/ashwini/visual", natchathiramVisualTa("ashwini")!);
+}
 
 // ── Visual data for Ashwini ────────────────────────────────────────────────
 // Scores derived from the qualitative descriptions in natchathiram-data-en.ts.

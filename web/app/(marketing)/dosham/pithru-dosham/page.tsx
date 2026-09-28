@@ -1,8 +1,9 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 import { DOSHAM_PITHRU_FAQ } from "@/lib/marketing-i18n";
 import { PithruDoshamContent } from "./PageContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Pithru Dosham — Ancestral Karma, Meaning, Chart Check & Pariharam",
   description:
     "Pithru dosham is the Sun-Rahu affliction (Pithru-Rahu yoga) or pressure on the 9th house. Learn what it means for fortune and lineage, how to read your chart, the most responsive pariharam (Amavasya tarpan), and the Sun slokam.",
@@ -32,6 +33,10 @@ export const metadata: Metadata = {
     description: "Sun-Rahu yoga, 9th house, Amavasya tarpan and pariharam — calmly explained.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/dosham/pithru-dosham");
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",

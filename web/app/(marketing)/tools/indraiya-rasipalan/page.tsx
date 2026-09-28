@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { RASIPALAN_TA } from "@/lib/marketing-seo-ta";
 import { RasippalanPageContent } from "./RasippalanPageContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Indraiya Rasipalan — Today's Horoscope for All 12 Tamil Rasis",
   description:
     "Get today's Tamil rasipalan (daily horoscope) for all 12 rasis based on the Moon's position. Thirukanitham-accurate Moon transit predictions. Select your janma rasi to see your reading. Free, no account required.",
@@ -31,6 +33,10 @@ export const metadata: Metadata = {
     description: "Free daily rasi palan based on Moon transit. Thirukanitham-accurate. Select your janma rasi.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/tools/indraiya-rasipalan", RASIPALAN_TA);
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",

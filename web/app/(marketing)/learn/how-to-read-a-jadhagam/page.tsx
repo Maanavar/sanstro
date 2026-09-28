@@ -1,7 +1,8 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 import { HowToReadJadhagamPageContent } from "./PageContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "How to Read a Jadhagam — South Indian Tamil Birth Chart Guide",
   description:
     "Learn how to read a South Indian Tamil jadhagam — the fixed square chart structure, how lagna is determined, how planets are placed across the 12 rasis, and how the Vimshottari dasa sequence is calculated from your Moon's birth star.",
@@ -30,6 +31,10 @@ export const metadata: Metadata = {
     description: "South Indian chart structure, lagna, planets, and dasa sequence explained simply.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/learn/how-to-read-a-jadhagam");
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",

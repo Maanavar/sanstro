@@ -1,7 +1,8 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 import { DoshamIndexContent } from "./IndexContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Doshams in Tamil Astrology — Meaning, Calculation & Pariharam",
   description:
     "Understand the doshams in your horoscope — Sevvai (Mangal) dosham, Naga dosham, Kala Sarpa, Pithru and Kalathra dosham. What each means, how it is calculated in Thirukanitham, and how its strength can be softened.",
@@ -25,6 +26,10 @@ export const metadata: Metadata = {
     type: "website",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/dosham");
+}
 
 const JSONLD = {
   "@context": "https://schema.org",

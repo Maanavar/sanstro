@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { muhurthamNaalTa } from "@/lib/marketing-seo-ta";
 import { MUHURTHAM_NAAL_YEARS } from "@/lib/muhurtham-naal";
 import { MuhurthamNaalContent } from "../MuhurthamNaalContent";
 import { jsonLdForMuhurthamYear, metadataForMuhurthamYear } from "../page";
@@ -20,7 +22,11 @@ export async function generateMetadata({ params }: PageProps) {
   const { year: yearParam } = await params;
   const year = parseYear(yearParam);
   if (!year) return {};
-  return metadataForMuhurthamYear(year, `/muhurtham-naal/${year}`);
+  return withTamilTwin(
+    metadataForMuhurthamYear(year, `/muhurtham-naal/${year}`),
+    `/muhurtham-naal/${year}`,
+    muhurthamNaalTa(year),
+  );
 }
 
 export default async function MuhurthamNaalYearPage({ params }: PageProps) {

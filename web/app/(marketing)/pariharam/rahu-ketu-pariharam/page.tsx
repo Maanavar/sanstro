@@ -1,8 +1,9 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 import { PARIHARAM_RAHU_KETU_FAQ } from "@/lib/marketing-i18n";
 import { RahuKetuPariharamContent } from "./PageContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Rahu-Ketu Pariharam — Nodal Remedy, Temples & Mantra",
   description:
     "Rahu-Ketu pariharam: why the lunar nodes create instability, and the step-by-step devotional remedy — Thirunageswaram, Keezhaperumpallam, Aayilyam observances and the Rahu Beeja Mantra.",
@@ -32,6 +33,10 @@ export const metadata: Metadata = {
     description: "Thirunageswaram, Keezhaperumpallam, Aayilyam observances and the Rahu Beeja Mantra.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/pariharam/rahu-ketu-pariharam");
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",

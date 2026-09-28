@@ -1,8 +1,9 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 import { TEMPLE_ARUPADAI_VEEDU_FAQ } from "@/lib/marketing-i18n";
 import { ArupadaiVeeduContent } from "./PageContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Arupadai Veedu — Six Sacred Abodes of Lord Murugan",
   description:
     "The six sacred Murugan temples — Thiruparankundram, Thiruchendur, Palani, Swamimalai, Pazhamudircholai, Thiruthani — and the pilgrimage circuit for Sevvai dosham, Mars energy and courage.",
@@ -33,6 +34,10 @@ export const metadata: Metadata = {
     description: "Thiruparankundram, Thiruchendur, Palani, Swamimalai, Pazhamudircholai, Thiruthani — and when to visit.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/temples/arupadai-veedu");
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",

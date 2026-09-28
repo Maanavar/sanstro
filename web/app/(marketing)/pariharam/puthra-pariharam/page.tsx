@@ -1,8 +1,9 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 import { PARIHARAM_PUTHRA_FAQ } from "@/lib/marketing-i18n";
 import { PuthraPariharamContent } from "./PageContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Pariharam for Childbirth Blessings (Puthra Pariharam)",
   description:
     "Puthra pariharam: when the 5th house feels blocked — Jupiter, Rahu-Ketu, and naga dosham factors — and the traditional remedy: Alangudi, naga propitiation, Santhana Gopala mantra and Murugan worship.",
@@ -32,6 +33,10 @@ export const metadata: Metadata = {
     description: "Alangudi, naga propitiation and Santhana Gopala mantra for children's blessings.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/pariharam/puthra-pariharam");
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",

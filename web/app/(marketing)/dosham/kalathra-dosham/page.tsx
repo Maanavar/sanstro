@@ -1,8 +1,9 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 import { DOSHAM_KALATHRA_FAQ } from "@/lib/marketing-i18n";
 import { KalathraDoshamContent } from "./PageContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Kalathra Dosham — Marriage Affliction, Meaning, Chart Check & Pariharam",
   description:
     "Kalathra dosham covers any malefic (Saturn, Mars, Rahu, Ketu, Sun) pressing the 7th house, its lord, or Venus. Learn how it differs from Sevvai dosham, how to read your chart for marriage timing, when it eases, and the traditional pariharam.",
@@ -32,6 +33,10 @@ export const metadata: Metadata = {
     description: "7th house, Venus, marriage timing and pariharam — calmly explained.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/dosham/kalathra-dosham");
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",

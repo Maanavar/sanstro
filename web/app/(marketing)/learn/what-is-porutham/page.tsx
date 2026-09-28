@@ -1,7 +1,8 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 import { PoruthamLearnPageContent } from "./PageContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "What is Porutham? — Tamil Marriage Compatibility Explained",
   description:
     "Porutham is the Tamil system for checking marriage compatibility using birth stars. Learn about the 10 porutham factors, why Rajju dosha and Nadi dosha outweigh the score, and how Sevvai dosham is assessed.",
@@ -31,6 +32,10 @@ export const metadata: Metadata = {
     description: "The 10 porutham factors, Rajju dosha, Nadi dosha, and Sevvai dosham explained clearly.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/learn/what-is-porutham");
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",

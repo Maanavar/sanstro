@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { NATCHATHIRAM_INDEX_TA } from "@/lib/marketing-seo-ta";
 import { NatchathiramIndexContent } from "./NatchathiramIndexContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "27 Nakshathirams (நட்சத்திரங்கள்) — Personality, Career & dasa Guide",
   description:
     "Complete guide to all 27 birth stars in Tamil Vedic astrology — personality traits, career strengths, family life, dasa timelines, and spiritual guidance. Based on Thirukanitham.",
@@ -32,6 +34,10 @@ export const metadata: Metadata = {
     images: ["/brand/vinaadi-og-image.jpg"],
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/natchathiram", NATCHATHIRAM_INDEX_TA);
+}
 
 export default function NatchathiramIndexPage() {
   return <NatchathiramIndexContent />;

@@ -1,8 +1,9 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 import { TEMPLE_PANCHA_BHOOTA_FAQ } from "@/lib/marketing-i18n";
 import { PanchaBhootaContent } from "./PageContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Pancha Bhoota Sthalams — Five Element Temples of Shiva",
   description:
     "The five Shiva temples of the elements — Kanchipuram (earth), Thiruvanaikaval (water), Thiruvannamalai (fire), Srikalahasti (wind), Chidambaram (space) — and how to do the pilgrimage circuit.",
@@ -32,6 +33,10 @@ export const metadata: Metadata = {
     description: "The pilgrimage circuit of earth, water, fire, wind, and space — with the Panchakshara mantra.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/temples/pancha-bhoota-sthalams");
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",

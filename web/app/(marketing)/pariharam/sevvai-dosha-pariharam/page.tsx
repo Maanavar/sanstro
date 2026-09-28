@@ -1,8 +1,9 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 import { PARIHARAM_SEVVAI_FAQ } from "@/lib/marketing-i18n";
 import { SevvaiDoshaPariharamContent } from "./PageContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Sevvai Dosham Pariharam — Mars Remedy, Temples & Mantra",
   description:
     "Sevvai dosham pariharam: understanding Mars placement, which charts are truly affected, and the step-by-step remedy — Vaitheeswaran Koil, Murugan worship and the Angaraka mantra.",
@@ -31,6 +32,10 @@ export const metadata: Metadata = {
     description: "Step-by-step remedy for Sevvai dosham with the Angaraka Beeja Mantra.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/pariharam/sevvai-dosha-pariharam");
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",

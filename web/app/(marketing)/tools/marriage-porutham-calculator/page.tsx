@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { PORUTHAM_TA } from "@/lib/marketing-seo-ta";
 import { PoruthamPageContent } from "./PoruthamPageContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Free Tamil Birth Star Porutham Preview",
   description:
     "Get a quick Tamil birth-star porutham preview with Rajju, Vedhai, Rasi, and Nadi cautions. Sign in for the full chart-grade traditional 10-factor Thirukanitham porutham reading.",
@@ -30,6 +32,10 @@ export const metadata: Metadata = {
       "Quick Tamil birth-star porutham preview with Rajju, Vedha, Rasi, and Nadi cautions. Full chart reading is available after sign-in.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/tools/marriage-porutham-calculator", PORUTHAM_TA);
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",

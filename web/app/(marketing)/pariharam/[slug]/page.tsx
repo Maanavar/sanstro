@@ -1,3 +1,4 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { GuideDetailPage } from "@/components/guide-detail-page";
@@ -16,7 +17,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const content = getGuideDetail("pariharam", slug);
   if (!content) return {};
 
-  return {
+  return withTamilTwin({
     title: `${content.title.en} - Reason, Chart Connection & Remedies`,
     description: content.lead.en,
     alternates: { canonical: `https://vinaadi.com/pariharam/${slug}` },
@@ -26,7 +27,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       url: `https://vinaadi.com/pariharam/${slug}`,
       type: "article",
     },
-  };
+  }, `/pariharam/${slug}`);
 }
 
 export default async function PariharamDetailPage({ params }: PageProps) {

@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { natchathiramVisualTa } from "@/lib/marketing-seo-ta";
 import { POORATTATHI } from "@/lib/natchathiram-data";
 import { NatchathiramVisualContent, type NatchathiramVisualData } from "@/components/natchathiram-visual";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Poorattathi Nakshathiram — Visual Profile",
   description: "Visual profile of Poorattathi Nakshathiram: personality traits, career strengths, dasa timeline, compatible nakshathirams, and spiritual guidance.",
   alternates: { canonical: "https://vinaadi.com/natchathiram/purva-bhadra/visual" },
@@ -13,6 +15,10 @@ export const metadata: Metadata = {
     type: "article",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/natchathiram/purva-bhadra/visual", natchathiramVisualTa("purva-bhadra")!);
+}
 
 const PURVA_BHADRA_VISUAL: NatchathiramVisualData = {
   atAGlance: [

@@ -2,12 +2,12 @@ import { CalendarCategoryContent } from "../CalendarCategoryContent";
 import {
   fetchCalendarCategories,
   fetchCalendarCategory,
-  metadataForCategory,
+  localizedCategoryMetadata,
 } from "../calendar-category-api";
 
 const SLUG = "christian-festivals-2026" as const;
 
-export const metadata = metadataForCategory(SLUG);
+export const generateMetadata = () => localizedCategoryMetadata(SLUG);
 
 export default async function ChristianFestivalsPage() {
   const [data, categories] = await Promise.all([

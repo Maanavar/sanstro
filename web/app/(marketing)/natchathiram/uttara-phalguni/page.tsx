@@ -1,26 +1,11 @@
 import type { Metadata } from "next";
+import { natchathiramMetadata } from "@/lib/natchathiram-metadata";
 import { NatchathiramPageContent } from "@/components/natchathiram-page";
 import { UTTARA_PHALGUNI } from "@/lib/natchathiram-data";
 
-export const metadata: Metadata = {
-  title: UTTARA_PHALGUNI.meta.title,
-  description: UTTARA_PHALGUNI.meta.description,
-  keywords: UTTARA_PHALGUNI.meta.keywords,
-  alternates: { canonical: "https://vinaadi.com/natchathiram/uttara-phalguni" },
-  openGraph: {
-    title: UTTARA_PHALGUNI.meta.title,
-    description: UTTARA_PHALGUNI.meta.description,
-    url: "https://vinaadi.com/natchathiram/uttara-phalguni",
-    type: "article",
-    images: [{ url: "/brand/vinaadi-og-image.jpg", width: 1200, height: 630, alt: "Vinaadi — Tamil Astrology" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: UTTARA_PHALGUNI.meta.title,
-    description: UTTARA_PHALGUNI.meta.description,
-    images: ["/brand/vinaadi-og-image.jpg"],
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return natchathiramMetadata(UTTARA_PHALGUNI);
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",

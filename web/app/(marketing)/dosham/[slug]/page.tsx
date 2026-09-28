@@ -1,3 +1,4 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { GuideDetailPage } from "@/components/guide-detail-page";
@@ -23,7 +24,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const content = getGuideDetail("dosham", slug);
   if (!content) return {};
 
-  return {
+  return withTamilTwin({
     title: `${content.title.en} - Meaning, Chart Check & Pariharam`,
     description: content.lead.en,
     alternates: { canonical: `https://vinaadi.com/dosham/${slug}` },
@@ -33,7 +34,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       url: `https://vinaadi.com/dosham/${slug}`,
       type: "article",
     },
-  };
+  }, `/dosham/${slug}`);
 }
 
 export default async function DoshamDetailPage({ params }: PageProps) {

@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { TAMIL_CALENDAR_TA } from "@/lib/marketing-seo-ta";
 import { TamilCalendarContent, type EventSummary } from "./TamilCalendarContent";
 import { fetchCalendarCategories, type CalendarCategorySummary } from "./calendar-category-api";
 
@@ -23,7 +25,7 @@ async function fetchEvents(): Promise<EventsList | null> {
   }
 }
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Tamil Calendar 2026 - Pournami, Amavasai, Pradosham, Ekadhasi Dates",
   description:
     "Full 2026 Tamil calendar of special days - Pournami (full moon), Amavasai (new moon), Pradosham, Ekadhasi, Sankatahara Chathurthi, Karthigai, Sashti, Sivarathiri and Karinaal - with every date, weekday and Tamil date.",
@@ -45,6 +47,10 @@ export const metadata: Metadata = {
     type: "website",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/tamil-calendar", TAMIL_CALENDAR_TA);
+}
 
 export default async function TamilCalendarHub() {
   const [data, categories] = await Promise.all([fetchEvents(), fetchCalendarCategories()]);

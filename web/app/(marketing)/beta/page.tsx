@@ -1,10 +1,11 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { BetaPageContent } from "@/components/beta-page-content";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Open Beta",
   description:
     "Vinaadi is in open beta — every feature is free while we refine it. Here's what that means for you, what's coming next, and how your feedback shapes the final version.",
@@ -31,6 +32,10 @@ export const metadata: Metadata = {
     images: ["/brand/vinaadi-og-image.jpg"],
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/beta");
+}
 
 export default function BetaPage() {
   return (

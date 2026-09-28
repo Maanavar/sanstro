@@ -1,8 +1,9 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 import { TEMPLE_THIRUNALLAR_FAQ } from "@/lib/marketing-i18n";
 import { ThirunallarContent } from "./PageContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Thirunallar Saniswaran Temple — Power, Sani Peyarchi & Worship",
   description:
     "Thirunallar near Karaikal is the foremost Navagraha temple for Saturn (Saniswaran). Learn what it is known for, why devotees visit during Sani peyarchi and Ezharai Sani, how to worship, and the Sani slokam.",
@@ -31,6 +32,10 @@ export const metadata: Metadata = {
     description: "The foremost temple for Saturn relief — power, worship and slokam.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/temples/thirunallar");
+}
 
 const PLACE_JSONLD = {
   "@context": "https://schema.org",

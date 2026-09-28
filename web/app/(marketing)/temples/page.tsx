@@ -1,7 +1,8 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 import { TempleIndexContent } from "./IndexContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Famous Temples & Their Power — Navagraha, Rahu-Ketu & More",
   description:
     "A guide to the temples sought for specific blessings — the nine Navagraha temples for planetary peace, Thirunallar for Saturn, Rahu-Ketu sthalams, Vaitheeswaran Koil for health. What each temple is known for and which difficulty it addresses.",
@@ -25,6 +26,10 @@ export const metadata: Metadata = {
     type: "website",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/temples");
+}
 
 const JSONLD = {
   "@context": "https://schema.org",

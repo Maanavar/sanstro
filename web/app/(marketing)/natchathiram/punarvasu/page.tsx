@@ -1,26 +1,11 @@
 import type { Metadata } from "next";
+import { natchathiramMetadata } from "@/lib/natchathiram-metadata";
 import { NatchathiramPageContent } from "@/components/natchathiram-page";
 import { PUNARVASU } from "@/lib/natchathiram-data";
 
-export const metadata: Metadata = {
-  title: PUNARVASU.meta.title,
-  description: PUNARVASU.meta.description,
-  keywords: PUNARVASU.meta.keywords,
-  alternates: { canonical: "https://vinaadi.com/natchathiram/punarvasu" },
-  openGraph: {
-    title: PUNARVASU.meta.title,
-    description: PUNARVASU.meta.description,
-    url: "https://vinaadi.com/natchathiram/punarvasu",
-    type: "article",
-    images: [{ url: "/brand/vinaadi-og-image.jpg", width: 1200, height: 630, alt: "Vinaadi — Tamil Astrology" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: PUNARVASU.meta.title,
-    description: PUNARVASU.meta.description,
-    images: ["/brand/vinaadi-og-image.jpg"],
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return natchathiramMetadata(PUNARVASU);
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",

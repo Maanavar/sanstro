@@ -1,7 +1,8 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 import { ChandrashtamaPageContent } from "./PageContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "What is Chandrashtama? — Moon's 8th Sign Transit in Tamil Astrology",
   description:
     "Chandrashtama is when the transiting Moon passes through the 8th sign from your birth Moon sign. The sign transit takes about 2.5 days and recurs every 27 days; the window that belongs to your own birth star is about a day of it. Learn what it means and how to approach it calmly.",
@@ -28,6 +29,10 @@ export const metadata: Metadata = {
     description: "Moon's 8th sign transit — what it is, how often it occurs, and a calm approach to it.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/learn/what-is-chandrashtama");
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",

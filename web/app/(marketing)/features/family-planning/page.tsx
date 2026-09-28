@@ -1,4 +1,6 @@
-import Link from "next/link";
+import type { Metadata } from "next";
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { LocalizedLink as Link } from "@/components/localized-link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { getServerLang } from "@/lib/server-lang";
@@ -6,13 +8,17 @@ import { FEAT_FAMILY, mt } from "@/lib/marketing-i18n";
 import { FamilyOrbitVisual } from "@/components/marketing-visuals";
 import { pageMetadata } from "@/lib/page-metadata";
 
-export const metadata = pageMetadata({
+const EN_METADATA = pageMetadata({
   path: "/features/family-planning",
   title: "Family Astrology Planning — Shared Timing for Everyone You Plan With",
   description:
     "Keep every family member's jadhagam in one vault, read their days side by side, and find timing windows that work for the whole household.",
   keywords: ["family astrology", "family jadhagam", "family timing", "Tamil family astrology app"],
 });
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/features/family-planning");
+}
 
 // F7 part two - a Server Component; see lib/server-lang.ts.
 export default async function FamilyPlanningPage() {

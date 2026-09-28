@@ -1,7 +1,8 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 import { MuhurtaPageContent } from "./MuhurtaPageContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Free Tamil Muhurtham Calculator — Auspicious Time Finder",
   description:
     "Find auspicious muhurtham dates and times for weddings, job starts, travel, exams, and more. Scored on Thirukanitham Panchangam and your birth chart — Tara Bala, Chandrashtama, dasa and hora — with both charts checked for a wedding. No account required.",
@@ -30,6 +31,10 @@ export const metadata: Metadata = {
       "Find auspicious muhurtham for weddings, job starts, travel, exams and more. Free, Thirukanitham-based.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/tools/muhurta-calculator");
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",

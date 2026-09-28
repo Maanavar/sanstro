@@ -1,7 +1,8 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 import { PariharamIndexContent } from "./IndexContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Pariharam for Life's Difficulties — Remedies & Slokams",
   description:
     "Traditional pariharam (remedies) for delayed marriage, Rahu-Ketu and Sevvai dosham, debt, health and more — with the astrological reason behind each difficulty, slokams, fasts and temple worship.",
@@ -25,6 +26,10 @@ export const metadata: Metadata = {
     type: "website",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/pariharam");
+}
 
 const JSONLD = {
   "@context": "https://schema.org",

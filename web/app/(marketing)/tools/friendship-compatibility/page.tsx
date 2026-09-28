@@ -1,7 +1,8 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 import { FriendshipTool } from "./FriendshipTool";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Friends & Compatibility — Free Tamil Nakshatra Friendship Report",
   description:
     "Discover your friendship style with anyone. Enter two birth details for a positive, nakshatra-based friendship compatibility report — communication, trust, energy balance, and growth. Free, no account needed.",
@@ -27,6 +28,10 @@ export const metadata: Metadata = {
     description: "Discover your friendship style — communication, trust, energy balance, and growth. Free.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/tools/friendship-compatibility");
+}
 
 export default function FriendshipCompatibilityPage() {
   return <FriendshipTool />;

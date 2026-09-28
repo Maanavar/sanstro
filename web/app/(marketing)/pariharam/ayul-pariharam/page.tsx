@@ -1,8 +1,9 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 import { PARIHARAM_AYUL_FAQ } from "@/lib/marketing-i18n";
 import { AyulPariharamContent } from "./PageContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Pariharam for Health & Longevity (Ayul Pariharam)",
   description:
     "Ayul pariharam: 8th house, Sun and 6th house factors in health, and the traditional remedy — Vaitheeswaran Koil, Suryanar Koil, Surya worship and the Mahamrityunjaya mantra.",
@@ -32,6 +33,10 @@ export const metadata: Metadata = {
     description: "Vaitheeswaran Koil, Surya worship and the Mahamrityunjaya mantra for longevity.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/pariharam/ayul-pariharam");
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",

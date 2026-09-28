@@ -1,7 +1,9 @@
 import type { MetadataRoute } from "next";
 import { DOSHAM_DETAILS, DRAFT_GUIDE_SLUGS, YOGAM_DETAILS, TEMPLE_DETAILS, PARIHARAM_DETAILS } from "@/lib/guide-detail-content";
 import { NAKSHATRA_LIST } from "@vinaadi/shared/constants";
+import { languageUrls } from "@/lib/localized-metadata";
 import { SITE_URL } from "@/lib/page-metadata";
+import { isTaReady } from "@/lib/ta-routes";
 import { CALENDAR_CATEGORY_SLUGS } from "./(marketing)/tamil-calendar/calendar-category-api";
 
 // Every indexable public page belongs here; lib/seo-metadata.test.ts fails
@@ -52,8 +54,25 @@ function tamilCalendarEntries(): MetadataRoute.Sitemap {
   ];
 }
 
+/**
+ * Every page that has a Tamil twin is listed twice — once per language — and
+ * each entry names both, which is the reciprocal `hreflang` set Google needs
+ * (GRW-06). Pages without a twin pass through unchanged.
+ */
+function withTamilTwins(entries: MetadataRoute.Sitemap): MetadataRoute.Sitemap {
+  return entries.flatMap((entry) => {
+    const path = (entry.url.replace(BASE, "") || "/") as `/${string}`;
+    if (!isTaReady(path)) return [entry];
+    const { ta, languages } = languageUrls(path);
+    return [
+      { ...entry, alternates: { languages } },
+      { ...entry, url: ta, alternates: { languages } },
+    ];
+  });
+}
+
 export default function sitemap(): MetadataRoute.Sitemap {
-  return [
+  return withTamilTwins([
     {
       url: BASE,
       changeFrequency: "weekly",
@@ -286,5 +305,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ]),
     /* ── Daily panchangam pages (30 days) ── */
     ...panchangamDateEntries(),
-  ];
+  ]);
 }

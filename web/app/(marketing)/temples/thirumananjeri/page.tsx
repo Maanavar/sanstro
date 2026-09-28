@@ -1,8 +1,9 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 import { TEMPLE_THIRUMANANJERI_FAQ } from "@/lib/marketing-i18n";
 import { ThirumananjeriContent } from "./PageContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Thirumananjeri Temple — Divine Marriage, Blessings & Pariharam",
   description:
     "Thirumananjeri is where Shiva and Parvati were wed — the foremost temple for marriage blessings, thirumana thadai pariharam, and the Swayamvara Parvati mantra.",
@@ -31,6 +32,10 @@ export const metadata: Metadata = {
     description: "Swayamvara Parvati mantra and the temple for marriage blessings in Tamil astrology.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/temples/thirumananjeri");
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",

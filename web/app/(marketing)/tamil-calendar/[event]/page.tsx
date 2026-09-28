@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { TAMIL_CALENDAR_TA, calendarEventTa } from "@/lib/marketing-seo-ta";
 import {
   TamilCalendarEventContent,
   type EventDetail,
@@ -84,25 +86,33 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // A backend hiccup must not hand the crawler the homepage's canonical: this
   // branch is what Google indexes if the fetch fails while it visits.
   if (!data) {
-    return { title: "Tamil Calendar 2026", alternates: { canonical: `https://vinaadi.com/tamil-calendar/${event}` } };
+    return withTamilTwin(
+      { title: "Tamil Calendar 2026", alternates: { canonical: `https://vinaadi.com/tamil-calendar/${event}` } },
+      `/tamil-calendar/${event}`,
+      { title: "தமிழ் நாட்காட்டி 2026", description: TAMIL_CALENDAR_TA.description },
+    );
   }
 
   const next = data.nextDate ? `Next: ${fmtShort(data.nextDate)}.` : "";
   const title = `${data.name.en} 2026 Dates (${data.name.ta}) - All ${data.count} Dates`;
   const description = `${data.name.en} (${data.name.ta}) 2026: all ${data.count} dates with weekday and Tamil date. ${data.summary.en} ${next}`.slice(0, 300);
 
-  return {
-    title,
-    description,
-    keywords: data.keywords,
-    alternates: { canonical: `https://vinaadi.com/tamil-calendar/${data.slug}` },
-    openGraph: {
-      title: `${data.name.en} 2026 - All Dates`,
-      description: data.summary.en,
-      url: `https://vinaadi.com/tamil-calendar/${data.slug}`,
-      type: "website",
+  return withTamilTwin(
+    {
+      title,
+      description,
+      keywords: data.keywords,
+      alternates: { canonical: `https://vinaadi.com/tamil-calendar/${data.slug}` },
+      openGraph: {
+        title: `${data.name.en} 2026 - All Dates`,
+        description: data.summary.en,
+        url: `https://vinaadi.com/tamil-calendar/${data.slug}`,
+        type: "website",
+      },
     },
-  };
+    `/tamil-calendar/${data.slug}`,
+    calendarEventTa(data.name.ta, data.count, data.summary.ta),
+  );
 }
 
 export default async function EventPage({ params }: Props) {

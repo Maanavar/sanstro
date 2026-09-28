@@ -1,4 +1,6 @@
-import Link from "next/link";
+import type { Metadata } from "next";
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { LocalizedLink as Link } from "@/components/localized-link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { getServerLang } from "@/lib/server-lang";
@@ -6,13 +8,17 @@ import { FEAT_CHART, mt } from "@/lib/marketing-i18n";
 import { SouthIndianChartVisual } from "@/components/marketing-visuals";
 import { pageMetadata } from "@/lib/page-metadata";
 
-export const metadata = pageMetadata({
+const EN_METADATA = pageMetadata({
   path: "/features/chart-guidance",
   title: "Jadhagam Guidance — Understand What Your Tamil Birth Chart Says",
   description:
     "Your Thirukanitham jadhagam explained in plain language: lagna, planet positions, dasa context, yogas and doshas, with the reasoning shown.",
   keywords: ["jadhagam explained", "Tamil birth chart reading", "lagna meaning", "yoga and dosham in chart"],
 });
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/features/chart-guidance");
+}
 
 // F7 part two - a Server Component; see lib/server-lang.ts.
 export default async function ChartGuidancePage() {

@@ -1,8 +1,9 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 import { PARIHARAM_KADAN_FAQ } from "@/lib/marketing-i18n";
 import { KadanPariharamContent } from "./PageContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Pariharam for Debt & Financial Strain (Kadan Pariharam)",
   description:
     "Why the chart shows persistent debt — 2nd, 6th, 11th house pressure — and the traditional pariharam: Mahalakshmi Friday worship, Kubera mantra, Kanjanur and Alangudi temples.",
@@ -32,6 +33,10 @@ export const metadata: Metadata = {
     description: "Friday Mahalakshmi worship, Kubera mantra and key temples for financial relief.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/pariharam/kadan-pariharam");
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",

@@ -1,8 +1,9 @@
+import { withTamilTwin } from "@/lib/localized-metadata";
 import type { Metadata } from "next";
 import { PARIHARAM_NAGA_FAQ } from "@/lib/marketing-i18n";
 import { NagaDoshaPariharamContent } from "./PageContent";
 
-export const metadata: Metadata = {
+const EN_METADATA: Metadata = {
   title: "Naga Dosham Pariharam — Sarpa Remedy, Temples & Observances",
   description:
     "Naga dosham pariharam: the ancestral and karmic meaning of serpent energy in the chart, and the step-by-step remedy — milk abhishekam, Panchami-Aayilyam observances, and naga prarthana.",
@@ -31,6 +32,10 @@ export const metadata: Metadata = {
     description: "Traditional pariharam for Sarpa dosham with Aayilyam and milk abhishekam.",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(EN_METADATA, "/pariharam/naga-dosha-pariharam");
+}
 
 const FAQ_JSONLD = {
   "@context": "https://schema.org",

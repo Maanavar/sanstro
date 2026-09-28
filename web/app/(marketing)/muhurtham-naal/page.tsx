@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { withTamilTwin } from "@/lib/localized-metadata";
+import { muhurthamNaalTa } from "@/lib/marketing-seo-ta";
 import { LATEST_MUHURTHAM_NAAL_YEAR } from "@/lib/muhurtham-naal";
 import { MuhurthamNaalContent } from "./MuhurthamNaalContent";
 
@@ -54,7 +56,13 @@ export function jsonLdForMuhurthamYear(year: number, path = "/muhurtham-naal") {
   };
 }
 
-export const metadata = metadataForMuhurthamYear(LATEST_MUHURTHAM_NAAL_YEAR);
+export async function generateMetadata(): Promise<Metadata> {
+  return withTamilTwin(
+    metadataForMuhurthamYear(LATEST_MUHURTHAM_NAAL_YEAR),
+    "/muhurtham-naal",
+    muhurthamNaalTa(LATEST_MUHURTHAM_NAAL_YEAR),
+  );
+}
 
 export default function MuhurthamNaalPage() {
   const jsonLd = jsonLdForMuhurthamYear(LATEST_MUHURTHAM_NAAL_YEAR);
