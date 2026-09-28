@@ -33,7 +33,7 @@
  * personal reading for one tap and no account — the honest analogue.
  */
 
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/localized-link";
 import { useEffect, useMemo, useState } from "react";
 import { getRasiPalan, type RasiPalanData } from "@vinaadi/shared/api";
 import { formatClockLabel } from "@/lib/format";

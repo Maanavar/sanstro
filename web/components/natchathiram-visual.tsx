@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Sun, Flame, Sparkles } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/localized-link";
 import { PublicNav } from "@/components/public-nav";
 import { PublicFooter } from "@/components/public-footer";
 import { useLang } from "@/components/lang-toggle";

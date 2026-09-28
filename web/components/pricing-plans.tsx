@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/localized-link";
 import { OPEN_BETA, SUBSCRIPTION_PLANS } from "@vinaadi/shared/constants";
 
 /** ₹ with Indian digit grouping; "Free" for zero (MKT-14). */

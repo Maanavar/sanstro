@@ -8,7 +8,7 @@ import { PlaceCombobox, type CityEntry } from "@/components/place-combobox";
 import { almanacMuhurthamLabel } from "@/lib/almanac-muhurtham";
 import { romanNakshathiramName } from "@/lib/tamil-astro";
 import type { AlmanacMuhurtham } from "@/lib/types";
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/localized-link";
 
 // B-006: was `CITY_OPTIONS.find(...)` over a static array; that array is gone
 // (live search via PlaceCombobox replaced it), so the default is now a plain

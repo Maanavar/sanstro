@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/localized-link";
 
 import { GLOSSARY, type GlossaryKey } from "@/lib/glossary";
 import type { Lang } from "@/lib/i18n";

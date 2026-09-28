@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/localized-link";
 import { Check, Minus, AlertTriangle, ArrowRight } from "lucide-react";
 
 import { apiFetchJson, readErrorMessage, toQuery } from "@/lib/api";

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/localized-link";
 import { useState, useEffect } from "react";
 import { useLang } from "@/components/lang-toggle";
 import { getPublicPanchangamDay } from "@vinaadi/shared/api";
@@ -288,10 +288,10 @@ export function HomeContent() {
                 href: "/privacy",
               },
             ].map((p, i) => (
-              <a key={i} href={p.href} className="cl-testimonial" style={{ textDecoration: "none", display: "block" }}>
+              <Link key={i} href={p.href} className="cl-testimonial" style={{ textDecoration: "none", display: "block" }}>
                 <p className="cl-testimonial__quote">{p.claim}</p>
                 <footer className="cl-testimonial__name">{p.tag} →</footer>
-              </a>
+              </Link>
             ))}
           </div>
         </div>

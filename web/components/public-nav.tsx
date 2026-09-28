@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useId } from "react";
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/localized-link";
 import Image from "next/image";
 import { LangToggle, useLang } from "@/components/lang-toggle";
 import { SiteSearch } from "@/components/site-search";

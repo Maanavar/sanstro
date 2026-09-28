@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { ArrowUp, ArrowDown, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/localized-link";
 import { getActivityTimingBatch } from "@vinaadi/shared/api/activityTiming";
 
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
