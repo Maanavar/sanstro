@@ -6,7 +6,7 @@
 // sitemap and measures the share of Tamil script in what a reader gets, so the
 // answer comes from the page rather than the source.
 //
-//   node scripts/ta-route-audit.mjs [baseUrl] [--min=70] [--only=/tools] [--hydrate] [--interact] [--strict]
+//   node scripts/ta-route-audit.mjs [baseUrl] [--min=70] [--only=/tools,/temples] [--hydrate] [--interact] [--strict]
 //
 // What it looks at, per page:
 //   text        visible text of the server HTML.
@@ -36,7 +36,7 @@ import process from "node:process";
 const args = process.argv.slice(2);
 const BASE = (args.find((a) => a.startsWith("http")) ?? "http://localhost:3200").replace(/\/$/, "");
 const MIN = Number((args.find((a) => a.startsWith("--min=")) ?? "--min=70").slice(6));
-const ONLY = (args.find((a) => a.startsWith("--only=")) ?? "").slice(7);
+const ONLY = (args.find((a) => a.startsWith("--only=")) ?? "").slice(7).split(",").filter(Boolean);
 const HYDRATE = args.includes("--hydrate") || args.includes("--interact");
 const INTERACT = args.includes("--interact");
 const STRICT = args.includes("--strict");
@@ -203,7 +203,7 @@ const INTERACTIONS = {
 const sitemap = await (await fetch(`${BASE}/sitemap.xml`)).text();
 const paths = [...new Set([...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]).pathname))]
   .filter((p) => !p.startsWith("/ta/") && p !== "/ta")
-  .filter((p) => !ONLY || p.startsWith(ONLY));
+  .filter((p) => !ONLY.length || ONLY.some((o) => p.startsWith(o)));
 
 // ── Server-HTML pass ───────────────────────────────────────────────────────
 const rows = await pool(paths, 4, async (path) => {
@@ -287,7 +287,7 @@ if (HYDRATE) {
 
   if (INTERACT) {
     for (const [path, flow] of Object.entries(INTERACTIONS)) {
-      if (ONLY && !path.startsWith(ONLY)) continue;
+      if (ONLY.length && !ONLY.some((o) => path.startsWith(o))) continue;
       const row = rows.find((r) => r.path === path);
       if (!row?.ready) continue;
       const page = await ctx.newPage();

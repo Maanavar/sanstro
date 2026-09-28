@@ -459,12 +459,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
               <div className="cl-pub-hero__copy">
                 <h1 className="cl-pub-h1">
                   {lang === "ta" ? (
-                    <>
-                      {data.name_ta} நட்சத்திரம்
-                      <span style={{ display:"block", fontSize:"clamp(0.9rem,1.8vw,1.15rem)", color:"var(--cl-muted)", fontFamily:"var(--cl-font-sans)", fontWeight:500, letterSpacing:"0.12em", textTransform:"uppercase", marginTop:"0.4rem" }}>
-                        {englishLabel.toUpperCase()}
-                      </span>
-                    </>
+                    <>{data.name_ta} நட்சத்திரம்</>
                   ) : (
                     <>
                       {englishLabel}
@@ -513,8 +508,7 @@ export function NatchathiramVisualContent({ data, visual }: Props) {
                     </p>
                     {lang === "ta" ? (
                       <>
-                        <p style={{ fontFamily:"var(--cl-font-display)", fontSize:"1.6rem", fontWeight:600, color:T.ink, margin:"0 0 0.1rem", letterSpacing:"-0.02em" }}>{data.name_ta}</p>
-                        <p style={{ fontSize:"0.85rem", color:T.muted, margin:"0 0 1.5rem" }}>{englishLabel}</p>
+                        <p style={{ fontFamily:"var(--cl-font-display)", fontSize:"1.6rem", fontWeight:600, color:T.ink, margin:"0 0 1.5rem", letterSpacing:"-0.02em" }}>{data.name_ta}</p>
                       </>
                     ) : (
                       <p style={{ fontFamily:"var(--cl-font-display)", fontSize:"1.6rem", fontWeight:600, color:T.ink, margin:"0 0 1.5rem", letterSpacing:"-0.02em" }}>{englishName}</p>
