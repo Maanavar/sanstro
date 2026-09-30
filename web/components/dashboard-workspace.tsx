@@ -13,8 +13,8 @@ import { apiFetchJson, toQuery } from "@/lib/api";
 import { getFriendlyErrorMessage } from "@/lib/error-messages";
 import { isBirthDateWithinBounds } from "@/lib/birth-date";
 import {
-  TAB_QUERY_PARAM, dashboardPath, isDashboardTool, parseDashboardPath,
-  sanitizeUrlTab, type DashboardTool, type Tab,
+  DEFAULT_SETTINGS_SECTION, TAB_QUERY_PARAM, dashboardPath, isDashboardTool,
+  parseDashboardPath, sanitizeUrlTab, type DashboardTool, type Tab,
 } from "@/lib/dashboard-tabs";
 import { todayIso } from "@/lib/format";
 import { DUR, EASE_NOVA } from "@/lib/motion";
@@ -386,12 +386,31 @@ export function DashboardWorkspace() {
   // replaces the browser confirm() popups.
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
   const [exploreReturnTab, setExploreReturnTab] = useState<Tab | null>(null);
-  const [settingsSubTab, setSettingsSubTab] = useState<SettingsSubTab>("setup");
-  const [settingsSection, setSettingsSection] = useState<SettingsSectionId>("account");
+  // Settings is two panes (setup / session) over nine rail sections, and the
+  // URL names the SECTION — the pane is derived from it, because "setup" is
+  // the only section the setup pane draws. Seeded from the path for the same
+  // reason `activeTool` is: `/dashboard/settings/notifications` must land on
+  // Notifications, not land on the default and slide there a render later.
+  const [settingsSubTab, setSettingsSubTab] = useState<SettingsSubTab>(
+    () => (parseDashboardPath(pathname, { qaEnabled: ENABLE_QA_TAB }).section ?? DEFAULT_SETTINGS_SECTION) === "setup"
+      ? "setup"
+      : "session",
+  );
+  const [settingsSection, setSettingsSection] = useState<SettingsSectionId>(() => {
+    // "setup" is the other pane's section, never this one's — seeding it here
+    // would hand the session pane a section it cannot draw.
+    const fromPath = parseDashboardPath(pathname, { qaEnabled: ENABLE_QA_TAB }).section;
+    return fromPath && fromPath !== "setup" ? fromPath : "account";
+  });
   // Which pane is on screen right now. Settings splits into two independent
   // panes (setup / session) that need the same keep-alive treatment as a top-
   // level tab, so it gets its own compound key; every other tab is just itself.
   const currentPaneKey = activeTab === "settings" ? `settings-${settingsSubTab}` : activeTab;
+  // The one settings value the URL carries. The two states above cannot
+  // disagree about it — the setup pane draws exactly the "setup" section — so
+  // the path names the section and the pane is recovered from it on the way
+  // back in. Ignored by `dashboardPath` on every tab but `settings`.
+  const urlSettingsSection: SettingsSectionId = settingsSubTab === "setup" ? "setup" : settingsSection;
   // Panes are mounted once and never unmounted again (see `TabPane` below) —
   // switching tabs used to fully unmount/remount the outgoing and incoming
   // tab's whole subtree (a single AnimatePresence child keyed by the tab), so
@@ -821,6 +840,14 @@ export function DashboardWorkspace() {
     if (fromUrl) {
       setActiveTab(fromUrl);
       setActiveTool(fromUrl === "tools" ? fromPath.tool : null);
+      if (fromUrl === "settings") {
+        // Also covers the legacy `?tab=settings`, which names no section: that
+        // resolves to the default here and the outbound sync writes the
+        // section into the path on its way to dropping the param.
+        const section = fromPath.section ?? DEFAULT_SETTINGS_SECTION;
+        setSettingsSubTab(section === "setup" ? "setup" : "session");
+        if (section !== "setup") setSettingsSection(section);
+      }
     }
     try {
       const stored = window.localStorage.getItem(STORAGE_KEY);
@@ -883,7 +910,7 @@ export function DashboardWorkspace() {
   // scope for that bail check.
   useEffect(() => {
     if (!urlSyncReady) return;
-    const nextPath = dashboardPath(activeTab, activeTool);
+    const nextPath = dashboardPath(activeTab, { tool: activeTool, section: urlSettingsSection });
     // Everything except the superseded `?tab=` survives the rewrite — the
     // destination lives in the path now, so carrying the old param forward
     // would leave `/dashboard/tools?tab=tools` in the address bar.
@@ -903,7 +930,7 @@ export function DashboardWorkspace() {
   // searchParams/pathname/router are stable per navigation; pathname is read
   // for the bail but deliberately NOT a dependency (see comment above).
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, activeTool, urlSyncReady]);
+  }, [activeTab, activeTool, urlSettingsSection, urlSyncReady]);
 
   // ── URL → destination (inbound) ───────────────────────────
   // Back/forward and hand-edited URLs. Guarded the same way as the outbound
@@ -917,12 +944,20 @@ export function DashboardWorkspace() {
     // hydration effect above reads the same null the same way: bare means Today.
     const nextTab = fromUrl.tab ?? "personal";
     const nextTool = nextTab === "tools" ? fromUrl.tool : null;
-    if (nextTab === activeTab && nextTool === activeTool) return;
+    // Bare `/dashboard/settings` names no section, so it means the default —
+    // the same "a URL is user-editable input" rule the parser applies to a
+    // typo'd slug. The outbound sync then writes the explicit path back.
+    const nextSection = nextTab === "settings" ? fromUrl.section ?? DEFAULT_SETTINGS_SECTION : null;
+    if (nextTab === activeTab && nextTool === activeTool && (nextSection === null || nextSection === urlSettingsSection)) return;
     // A history move is not a new navigation — never push in response to one.
     navIntentRef.current = "replace";
     setExploreReturnTab(null);
     setActiveTab(nextTab);
     setActiveTool(nextTool);
+    if (nextSection) {
+      setSettingsSubTab(nextSection === "setup" ? "setup" : "session");
+      if (nextSection !== "setup") setSettingsSection(nextSection);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname, urlSyncReady]);
 

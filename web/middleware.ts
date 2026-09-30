@@ -6,6 +6,7 @@ import {
   createNonce,
   isEmbeddablePath,
 } from "@/lib/security-headers";
+import { NEXT_PARAM } from "@/lib/auth-redirect";
 import { LANG_COOKIE_NAME } from "@/lib/lang-core";
 import { LANG_HEADER, PATHNAME_HEADER, TA_PREFIX, isTaReady, splitLangPrefix } from "@/lib/ta-routes";
 
@@ -66,9 +67,22 @@ export async function middleware(request: NextRequest) {
     langRedirect.pathname = `${TA_PREFIX}${barePath === "/" ? "" : barePath}`;
   }
 
+  // Send the destination along. Without it every signed-out visit to a real
+  // dashboard URL — a link someone shared, a bookmark, a "change your
+  // notification time" link in an email — was thrown away at the door and the
+  // visitor landed on Today wondering what they had clicked. The value is
+  // built here from our own path, so it is internal by construction; the login
+  // page still re-validates it, because by then it is a query param a stranger
+  // can write.
+  let signInUrl: URL | null = null;
+  if (!token && protectedPath) {
+    signInUrl = new URL("/login", request.url);
+    signInUrl.searchParams.set(NEXT_PARAM, `${pathname}${request.nextUrl.search}`);
+  }
+
   const response =
-    !token && protectedPath
-      ? NextResponse.redirect(new URL("/login", request.url))
+    signInUrl
+      ? NextResponse.redirect(signInUrl)
       : langRedirect
         ? NextResponse.redirect(langRedirect)
         : langRewrite

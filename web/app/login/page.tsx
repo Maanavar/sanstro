@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { track } from "@/lib/analytics";
+import { DEFAULT_SIGNED_IN_PATH, NEXT_PARAM, safeNextPath } from "@/lib/auth-redirect";
 import { firstTouchChannel, readFirstTouch } from "@/lib/acquisition";
 import { estimatePasswordStrength } from "@/lib/password-strength";
 import { lt, LEFT_PANEL_FEATURES, type LoginKey } from "@/lib/login-i18n";
@@ -94,6 +95,9 @@ export default function LoginPage() {
   const [done, setDone] = useState<"signup" | "forgot" | "reset" | null>(null);
   const [googleEnabled, setGoogleEnabled] = useState(false);
   const [showGuestChart, setShowGuestChart] = useState(false);
+  // The dashboard URL the visitor was actually trying to reach before the
+  // sign-in wall, if any. Validated on read — see lib/auth-redirect.
+  const [nextPath, setNextPath] = useState<string | null>(null);
   // Destination to open once the post-login celestial welcome finishes playing.
   const [welcomeDest, setWelcomeDest] = useState<string | null>(null);
 
@@ -115,6 +119,10 @@ export default function LoginPage() {
     if (params.get("mode") === "signup") {
       setMode("signup");
     }
+    // Where the middleware (or a marketing CTA) asked us to land. Re-validated
+    // rather than trusted: by the time it reaches here it is a query param
+    // anyone can write, and an unchecked one is an open redirect.
+    setNextPath(safeNextPath(params.get(NEXT_PARAM)));
     if (params.get("error") === "oauth_failed") {
       setError({ key: "error_oauth_failed" });
     }
@@ -242,13 +250,16 @@ export default function LoginPage() {
           if (payload.detail) throw new Error(payload.detail);
           throw new AuthCopyError("error_credentials");
         }
-        let dest = "/dashboard";
+        // A `?next=` only applies once there IS a profile — setup is not
+        // something a deep link may skip past, so a profile-less account still
+        // goes to setup and the destination is dropped rather than queued.
+        let dest = nextPath ?? DEFAULT_SIGNED_IN_PATH;
         try {
           const profileCheck = await fetch("/api/backend/api/v1/birth-profiles/me/latest", { credentials: "include" });
-          dest = profileCheck.ok ? "/dashboard" : "/dashboard?setup=1";
+          dest = profileCheck.ok ? (nextPath ?? DEFAULT_SIGNED_IN_PATH) : "/dashboard?setup=1";
           track("onboarding_step_completed", { step: "login", has_profile: profileCheck.ok });
         } catch {
-          dest = "/dashboard";
+          dest = nextPath ?? DEFAULT_SIGNED_IN_PATH;
         }
         // Warm the dashboard route behind the welcome curtain so the hand-off is
         // seamless, then play the celestial welcome; it navigates when it ends.
