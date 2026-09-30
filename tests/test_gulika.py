@@ -484,9 +484,13 @@ def test_kuligai_kalam_is_the_whole_interval_and_the_sphuta_is_its_end():
     Uttara-Kalamrita convention. Same table, two different things, and the
     published window is the one with a duration.
 
-    Maandhi belongs to neither: it falls strictly INSIDE the window on a Monday
-    (22 nazhigai, window 18.75 to 22.5) and that is a coincidence of that
-    weekday, not a rule — on Saturday it is inside too, on Thursday it is not.
+    Maandhi is neither, even though it always falls strictly INSIDE the window.
+    That is a rule of the two tables, not a coincidence of one weekday: all
+    seven day constants and all seven night constants land 0.25 to 1.75
+    nazhigai short of the window's end (see
+    `test_maandhi_lies_inside_saturns_eighth_part_on_all_seven_weekdays`).
+    Inside the interval is not at its end, so the sphuta and Maandhi remain two
+    points.
     """
     d = date(2026, 5, 20)  # Wednesday
     lat, lng, tz = MADURAI
@@ -506,6 +510,125 @@ def test_kuligai_kalam_is_the_whole_interval_and_the_sphuta_is_its_end():
     assert window_end == pytest.approx(sunrise + part * slot, abs=1.0 / 86400)
     # The window has a real duration — one eighth of the day, not an instant.
     assert (window_end - window_start) == pytest.approx(part, abs=1.0 / 86400)
+
+
+#: Sunday -> Saturday in Python weekday order.
+_SUN_TO_SAT = [6, 0, 1, 2, 3, 4, 5]
+
+
+@pytest.mark.parametrize(
+    ("portion", "maandhi_table", "gulika_table"),
+    [
+        ("day", MAANDHI_DAY_NAZHIGAI, KULIGAI_SLOT),
+        ("night", MAANDHI_NIGHT_NAZHIGAI, KULIGAI_NIGHT_SLOT),
+    ],
+)
+def test_maandhi_lies_inside_saturns_eighth_part_on_all_seven_weekdays(
+    portion, maandhi_table, gulika_table
+):
+    """Fourteen cases, one invariant: the Maandhi constant sits strictly inside
+    Saturn's eighth-part of the same span.
+
+    This replaced a docstring claim that the Monday case was "a coincidence of
+    that weekday — on Thursday it is not". Thursday's day constant is 10 and its
+    window is 7.5 to 11.25, so it is inside, as is every other weekday, day and
+    night. Pinned as the full 7-weekday table so no single case can be misread
+    as the rule again.
+
+    Strict at both ends, and why: no constant is a multiple of 3.75
+    (`test_no_maandhi_constant_sits_on_an_eighth_part_boundary`), so equality
+    would itself be a regression. Nothing here uses the arithmetic of one table
+    to derive the other — the two are the ruled Maandhi tables and the Gulika
+    slot tables, each pinned independently above.
+    """
+    gaps = []
+    for weekday in _SUN_TO_SAT:
+        slot = gulika_table[weekday]
+        start, end = (slot - 1) * EIGHTH_PART_NAZHIGAI, slot * EIGHTH_PART_NAZHIGAI
+        nazhigai = maandhi_table[weekday]
+        assert start < nazhigai < end, (
+            f"{portion} weekday {weekday}: Maandhi {nazhigai} is outside Saturn's "
+            f"part {slot} [{start}, {end})"
+        )
+        gaps.append(end - nazhigai)
+    # The same seven distances by day and by night; see the next test for why.
+    assert sorted(gaps) == pytest.approx([0.25, 0.50, 0.75, 1.00, 1.25, 1.50, 1.75])
+
+
+def test_night_tables_are_the_day_tables_from_the_fifth_weekday():
+    """Each weekday's night value is the DAY value of the fifth weekday counted
+    from it, inclusive — Sunday night reads Thursday's day — and this holds for
+    the Maandhi constants and the Gulika slots alike.
+
+    That is the fifth-weekday-lord reckoning Phaladeepika gives for ordering the
+    night, and it is why the night invariant above is not a second coincidence.
+    It is an observation about the ruled data, pinned so an edit to one night
+    value that leaves its day twin alone fails here with the reason named.
+    """
+    for weekday in range(7):
+        fifth = (weekday + 4) % 7
+        assert MAANDHI_NIGHT_NAZHIGAI[weekday] == MAANDHI_DAY_NAZHIGAI[fifth], weekday
+        assert KULIGAI_NIGHT_SLOT[weekday] == KULIGAI_SLOT[fifth], weekday
+
+
+def test_maandhi_instant_falls_inside_the_published_kuligai_kalam_all_week():
+    """End to end, day births: production's Maandhi instant against the window
+    the panchangam actually publishes, for each of seven consecutive weekdays.
+
+    The table test above cannot see the SPAN — a Maandhi scaled to the wrong
+    day length, or measured from the wrong sunrise, keeps every constant intact.
+    Here both sides come from production: `maandhi_span` on the chart side,
+    `calculate_daily_panchangam` on the other.
+
+    **Resolution, measured:** Maandhi's instant shifted 10 minutes late fails
+    here; shifted 5 minutes it passes, because Sunday's margin to the window's
+    end is 0.25 nazhigai, about 6 minutes in May. So this catches a gross span
+    or anchor error, not a small one. The exact instant is owned by
+    `test_maandhi_longitude_matches_the_ruled_proportional_formula`, which does
+    fail on the 5-minute shift.
+    """
+    lat, lng, tz = MADURAI
+    seen = set()
+    for offset in range(7):
+        d = date(2026, 5, 17) + timedelta(days=offset)  # Sunday .. Saturday
+        span = maandhi_span(d, time(12, 0), lat, lng, tz)
+        assert span is not None and span.is_day and span.vara_date == d
+
+        kuligai = calculate_daily_panchangam(d, lat, lng, tz).kuligai
+        window_start = utc_datetime_to_julian_day(kuligai.start.astimezone(UTC))
+        window_end = utc_datetime_to_julian_day(kuligai.end.astimezone(UTC))
+        # Offsets from the window, in minutes, so the tolerance means something
+        # (a raw JD difference has ~0.05 ms of resolution left).
+        into = (span.maandhi_jd - window_start) * 1440
+        before_end = (window_end - span.maandhi_jd) * 1440
+        assert into > 0 and before_end > 0, (
+            f"{d:%A}: Maandhi {into:.2f} min into a window ending {before_end:.2f} min later"
+        )
+        seen.add(d.weekday())
+    assert seen == set(range(7))
+
+
+def test_maandhi_night_instant_falls_inside_saturns_night_part_all_week():
+    """End to end, night births. The panchangam publishes no night Kuligai, so
+    Saturn's night part is laid out here from `KULIGAI_NIGHT_SLOT` over the
+    span production itself resolved — sunset to next sunrise of the vaara."""
+    lat, lng, tz = MADURAI
+    seen = set()
+    for offset in range(7):
+        d = date(2026, 5, 17) + timedelta(days=offset)
+        span = maandhi_span(d, time(23, 0), lat, lng, tz)
+        assert span is not None and span.is_day is False and span.vara_date == d
+
+        part = (span.end_jd - span.start_jd) / 8
+        slot = KULIGAI_NIGHT_SLOT[d.weekday()]
+        into = (span.maandhi_jd - (span.start_jd + part * (slot - 1))) * 1440
+        before_end = (span.start_jd + part * slot - span.maandhi_jd) * 1440
+        assert into > 0 and before_end > 0, (
+            f"{d:%A} night: Maandhi {into:.2f} min into Saturn's part {slot}, "
+            f"{before_end:.2f} min before its end"
+        )
+        seen.add(d.weekday())
+    assert seen == set(range(7))
 
 
 def test_pre_sunrise_birth_uses_the_previous_vaarams_night_constant():
