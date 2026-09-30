@@ -13,6 +13,7 @@ import { tamilizeAstroEnglish } from "@/lib/tamil-astro";
 import type {
   BiText,
   ChartCalculateResponseData,
+  ChartExplanationBhava,
   ChartExplanationPlanet,
   ChartExplanationYogaDoshamSection,
   DashaTimelineItem,
@@ -659,53 +660,209 @@ function HyTechnicalDetails({ lang, pl, expl }: {
 /* ── Bhava (house) overview — house · sign · lord · occupants. All four are
       factual (whole-sign houses from the lagna); no invented "status"
       verdict. ────────────────────────────────────────────────────────── */
-export function HyBhavaTable({ lang, chart, explanationPlanets }: {
-  lang: Lang; chart: ChartCalculateResponseData; explanationPlanets?: ChartExplanationPlanet[];
+/* ── Bhava palan: twelve houses, each with a verdict, a reason and conduct ──
+   The engine has shipped a full per-house reading for months
+   (`ChartExplanationBhava`: bhavaBala, lord + where it sits, occupants, and
+   crucially the drishti landing on EMPTY houses) and no surface has ever drawn
+   it — a sweep of web/ and mobile/ for `bhavas` found only the type definition.
+   This table is where it lands.
+
+   Two defects fixed in the same pass, both in the old "Status" dot:
+     · it was computed from `lordScore` alone — the 50% bhavadhipati term — so an
+       empty 7th with a strong Venus elsewhere and Saturn aspecting it rendered
+       GREEN, which is the exact case the backend's bhava section was built for;
+     · the meaning was carried by colour alone (WCAG 1.4.1) and the number lived
+       only in `title=`, which touch users can never reach and no text probe can
+       see.
+   The chip now carries a word, the whole row is the hit target, and the band
+   comes from `verdict` — the engine's polarity-aware call, which knows that a
+   quiet 6th is good news.
+
+   Deliberately renders `bandWord`, never `bhavaBala`: that scale is centred at
+   45 with a stdev of 6, so "45/100" reads as "mediocre" on a perfectly ordinary
+   house. docs/BHAVA_PALAN_SECTION_PLAN_2026-09-28.md §9-Q2. */
+const BP_TONE: Record<string, { color: string; segments: number }> = {
+  SUPPORTED: { color: "var(--color-high)", segments: 3 },
+  MIXED: { color: "var(--color-mid)", segments: 2 },
+  NEEDS_CARE: { color: "var(--color-low)", segments: 1 },
+};
+
+export function HyBhavaTable({ lang, chart, explanationPlanets, bhavas }: {
+  lang: Lang;
+  chart: ChartCalculateResponseData;
+  explanationPlanets?: ChartExplanationPlanet[];
+  /** Per-house reading from the chart explanation. Absent on older servers. */
+  bhavas?: ChartExplanationBhava[] | null;
 }) {
   const lagnaRasi = chart.lagna.rasi; // 1–12
+  // One row open at a time, matching the chart-explanation panel's
+  // one-section-at-a-time pattern rather than letting twelve tall panels stack.
+  const [openHouse, setOpenHouse] = useState<number | null>(null);
+
   const occupantsByHouse = new Map<number, string[]>();
   for (const p of chart.planets) {
     const list = occupantsByHouse.get(p.houseFromLagna) ?? [];
     list.push(tPlanetLord(p.graha, lang));
     occupantsByHouse.set(p.houseFromLagna, list);
   }
-  // House "status" = the strength of that house's lord (a house is only as
-  // sound as the graha that owns it). Sourced from the engine's per-planet
-  // strengthScore — real, not an invented verdict. green ≥60 · amber ≥40 · red <40.
-  const strengthByGraha = new Map((explanationPlanets ?? []).map((p) => [p.graha, p.strengthScore]));
+
+  const palanByHouse = new Map((bhavas ?? []).map((b) => [b.house, b]));
+
   const rows = Array.from({ length: 12 }, (_, i) => {
     const house = i + 1;
     const signNum = ((lagnaRasi - 1 + i) % 12) + 1;
     const lordGraha = RASI_LORD_GRAHA[signNum - 1]!;
-    const lordScore = strengthByGraha.get(lordGraha);
-    const dot = lordScore == null ? "var(--color-border-strong)" : lordScore >= 60 ? "var(--color-high)" : lordScore >= 40 ? "var(--color-mid)" : "var(--color-low)";
     return {
       house,
       signLord: `${rasiDisplayName(signNum, lang)} (${tPlanetLord(lordGraha, lang)})`,
       occupants: occupantsByHouse.get(house) ?? [],
-      dot,
-      lordScore,
+      palan: palanByHouse.get(house) ?? null,
     };
   });
 
-  const cols = ".5fr 1.9fr 1.2fr auto";
   return (
     <Card style={{ padding: "var(--space-5) var(--space-5)", display: "flex", flexDirection: "column", gap: 0 }}>
-      <Kicker color="var(--color-mid)">{lang === "ta" ? "பாவ (வீடு) மேலோட்டம்" : "Bhava (house) overview"}</Kicker>
-      <div style={{ display: "grid", gridTemplateColumns: cols, columnGap: "var(--space-3)", padding: "var(--space-3) var(--space-2) var(--space-2)", marginTop: "8px", fontSize: "var(--text-xs)", letterSpacing: "0.1em", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase" }}>
+      <Kicker color="var(--color-mid)">{lang === "ta" ? "பாவ (வீடு) பலன்" : "Bhava (house) reading"}</Kicker>
+      <p style={{ margin: "6px 0 0", fontSize: "var(--text-xs)", lineHeight: 1.5, color: "var(--color-faint)" }}>
+        {lang === "ta"
+          ? "ஒவ்வொரு வீட்டையும் திறந்து பாருங்கள் — நிலை, காரணம், என்ன செய்யலாம். இது உங்கள் ஜாதகத்தின் நிலைத்த அமைப்பு, இன்றைய நிலை அல்ல."
+          : "Open any house for its reading — how it stands, why, and what to do. This is your chart's lasting terrain, not today's weather."}
+      </p>
+      <div className="bp-row" style={{ borderTop: 0, minHeight: 0, cursor: "default", padding: "var(--space-3) var(--space-2) var(--space-2)", marginTop: "8px", fontSize: "var(--text-xs)", letterSpacing: "0.1em", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase" }}>
         <span><GlossaryTerm term="house" lang={lang}>{lang === "ta" ? "வீடு" : "House"}</GlossaryTerm></span>
         <span>{lang === "ta" ? "ராசி (அதிபதி)" : "Sign (Lord)"}</span>
-        <span>{lang === "ta" ? "கிரகங்கள்" : "Planets"}</span>
-        <span style={{ textAlign: "center" }}>{lang === "ta" ? "நிலை" : "Status"}</span>
+        <span className="bp-occupants">{lang === "ta" ? "கிரகங்கள்" : "Planets"}</span>
+        <span style={{ textAlign: "right" }}>{lang === "ta" ? "நிலை" : "Reading"}</span>
       </div>
-      {rows.map((r) => (
-        <div key={r.house} style={{ display: "grid", gridTemplateColumns: cols, columnGap: "var(--space-3)", alignItems: "center", padding: "var(--space-2) var(--space-2)", borderTop: "1px solid var(--color-border)" }}>
-          <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-muted)" }}>{r.house}</span>
-          <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text)" }}>{r.signLord}</span>
-          <span style={{ fontSize: "var(--text-xs)", color: r.occupants.length ? "var(--color-accent-strong)" : "var(--color-faint)" }}>{r.occupants.length ? r.occupants.join(", ") : "—"}</span>
-          <span title={r.lordScore != null ? `${r.lordScore}/100` : undefined} style={{ justifySelf: "center", width: "9px", height: "9px", borderRadius: "var(--radius-pill)", background: r.dot }} />
-        </div>
-      ))}
+
+      {rows.map((r) => {
+        const palan = r.palan;
+        const verdict = palan?.verdict ?? null;
+        const tone = verdict ? BP_TONE[verdict] : null;
+        const open = openHouse === r.house;
+        const panelId = `bp-panel-${r.house}`;
+        const label = palan?.houseLabel ? tl(lang, palan.houseLabel) : null;
+
+        const cells = (
+          <>
+            <span style={{ fontSize: "var(--text-xs)", fontWeight: 700, color: "var(--color-muted)" }}>{r.house}</span>
+            <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text)", minWidth: 0 }}>
+              {label ? (
+                <>
+                  <span style={{ color: "var(--color-text-strong)", fontWeight: 600 }}>{label}</span>
+                  <span style={{ color: "var(--color-faint)" }}>{` · ${r.signLord}`}</span>
+                </>
+              ) : r.signLord}
+            </span>
+            <span className="bp-occupants" style={{ fontSize: "var(--text-xs)", color: r.occupants.length ? "var(--color-accent-strong)" : "var(--color-faint)", minWidth: 0 }}>
+              {r.occupants.length ? r.occupants.join(", ") : "—"}
+            </span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", justifySelf: "end" }}>
+              {tone && palan?.bandWord && (
+                <span className="bp-chip" style={{ color: tone.color }}>
+                  <span className="bp-chip-dot" aria-hidden="true" />
+                  {tl(lang, palan.bandWord)}
+                </span>
+              )}
+              {tone && (
+                <span className="bp-meter" style={{ color: tone.color }} aria-hidden="true">
+                  {[1, 2, 3].map((s) => (
+                    <span key={s} className="bp-meter-seg" data-on={s <= tone.segments} />
+                  ))}
+                </span>
+              )}
+              {palan && <ChevronDown size={14} className="hy-chev" style={{ color: "var(--color-faint)", transform: open ? "rotate(180deg)" : "none" }} aria-hidden="true" />}
+            </span>
+          </>
+        );
+
+        // Without a palan there is no verdict to claim, so the row stays inert
+        // rather than showing the old lordScore-only dot, which we now know
+        // disagreed with the engine.
+        if (!palan) {
+          return <div key={r.house} className="bp-row" style={{ cursor: "default" }}>{cells}</div>;
+        }
+
+        return (
+          <div key={r.house}>
+            <button
+              type="button"
+              className="bp-row"
+              // The header's GlossaryTerm is also a <button>, so row lookups need
+              // something narrower than role=button. Deliberately not an
+              // aria-label: the row's own text already names the house, its sign,
+              // its lord and the band, and a label would hide all of that from a
+              // screen reader.
+              data-house={r.house}
+              aria-expanded={open}
+              aria-controls={panelId}
+              onClick={() => setOpenHouse(open ? null : r.house)}
+            >
+              {cells}
+            </button>
+            {open && (
+              <div id={panelId} className="bp-panel" role="region" aria-label={label ?? `${r.house}`}>
+                {palan.framing && (
+                  <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.6, color: "var(--color-text)" }}>
+                    {tl(lang, palan.framing)}
+                  </p>
+                )}
+
+                {palan.why && (
+                  <div>
+                    <p className="bp-conduct-head" style={{ color: "var(--color-faint)" }}>{lang === "ta" ? "ஏன்" : "Why"}</p>
+                    <p style={{ margin: 0, fontSize: "var(--text-sm)", lineHeight: 1.55, color: "var(--color-muted)" }}>
+                      {tl(lang, palan.why)}
+                    </p>
+                  </div>
+                )}
+
+                {/* The drishti list elsewhere in the payload is planet-to-planet
+                    only, so this is the one place an aspect onto an EMPTY house
+                    is ever stated — the reason this section exists. */}
+                <p style={{ margin: 0, fontSize: "var(--text-xs)", lineHeight: 1.5, color: "var(--color-faint)" }}>
+                  {palan.aspectingPlanets.length
+                    ? `${lang === "ta" ? "இந்த வீட்டைப் பார்க்கும் கிரகங்கள்" : "Aspects falling on it"}: ${palan.aspectingPlanets.map((g) => tPlanetLord(g, lang)).join(", ")}`
+                    : lang === "ta" ? "எந்தக் கிரகப் பார்வையும் இதன் மேல் விழவில்லை." : "No planetary aspect falls on it."}
+                </p>
+
+                {palan.karakaNote && (
+                  <p style={{ margin: 0, fontSize: "var(--text-xs)", lineHeight: 1.55, color: "var(--color-muted)" }}>
+                    {tl(lang, palan.karakaNote)}
+                  </p>
+                )}
+
+                <div className="bp-conduct">
+                  <div>
+                    <p className="bp-conduct-head" style={{ color: "var(--color-high)" }}>
+                      {lang === "ta" ? "இதைப் பின்பற்றுங்கள்" : "Lean on"}
+                    </p>
+                    <ul>
+                      {(palan.leanOn ?? []).map((item, idx) => <li key={idx}>{tl(lang, item)}</li>)}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="bp-conduct-head" style={{ color: "var(--color-mid)" }}>
+                      {lang === "ta" ? "நிதானம் தேவை" : "Go slowly with"}
+                    </p>
+                    <ul>
+                      {(palan.goSlowlyWith ?? []).map((item, idx) => <li key={idx}>{tl(lang, item)}</li>)}
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Without this a reader who has seen the other chips reads a
+                    green chip on a low 6th as a bug. */}
+                {palan.polarityNote && (
+                  <p style={{ margin: 0, fontSize: "var(--text-xs)", lineHeight: 1.55, color: "var(--color-faint)", fontStyle: "italic" }}>
+                    {tl(lang, palan.polarityNote)}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </Card>
   );
 }
