@@ -59,8 +59,11 @@ logger = logging.getLogger(__name__)
 # are recorded. Nothing here derives Maandhi from them.
 #
 # THE MEASURE. The classical constants are stated in nazhigai (நாழிகை, ~24 min)
-# of a **30-nazhigai reference span** — the equinoctial day, when sunrise-to-
-# sunset really is 30 nazhigai. An actual 12h03m day is NOT 30 nazhigai, so the
+# of a **30-nazhigai reference span** — half of the 60-nazhigai day-and-night.
+# That is a nominal divisor, not the length of any day this engine computes. It
+# is not even the equinoctial day: under the ruled apparent-upper-limb sunrise,
+# refraction and the upper limb add about 3.5 minutes at each end, so the
+# equinox day at 8-13 deg N runs 12h06.8m, about 30.28 nazhigai. So the
 # constant is scaled to the true local span:
 #
 #     day birth:    maandhi_time = sunrise + day_duration   * c / 30

@@ -449,8 +449,10 @@ Saturday. That single check validates both tables and fixes the convention, and
 it is pinned in `tests/test_gulika.py`.
 
 **On "30 nazhigai".** The constants are stated in nazhigai (~24 min) of a
-**30-nazhigai reference span** — the equinoctial day. An actual 12h03m day is
-*not* 30 nazhigai; the constant is scaled to the true local span. Equivalently,
+**30-nazhigai reference span** — half of the 60-nazhigai day-and-night, a nominal
+divisor rather than the length of any computed day. It is not the equinoctial day
+either: under the §1 apparent-upper-limb sunrise, the equinox day at 8–13°N runs
+12h06.8m, about 30.28 nazhigai. The constant is scaled to the true local span. Equivalently,
 and the way a Tamil practitioner states it, the constants are read in
 *proportional* nazhigai each worth 1/30th of the span. Same arithmetic, and the
 first phrasing is the one that survives a reader who knows a nazhigai is a fixed

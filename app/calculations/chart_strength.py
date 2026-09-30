@@ -581,7 +581,11 @@ def _kala_bala_score(
     Moon/Mars/Saturn to 0.4 on the strength of nothing.
     """
     # Nathonnatha rule (BPHS) — day-strong: Sun, Jupiter, Venus; night-strong:
-    # Moon, Mars, Saturn. Must match shadbala._nathonnatha_bala (WI-01).
+    # Moon, Mars, Saturn. That GROUPING must match shadbala._nathonnatha_bala
+    # (WI-01). The formula deliberately does not: Shadbala's is BPHS's
+    # continuous 0-60 virupa ramp from local midnight to noon, with 30 for an
+    # unknown time and Mercury always 60; this is a two-level 1.0/0.4 step on
+    # the 0-1 product scale, 0.7 for unknown and for Mercury.
     diurnal = frozenset({"SUN", "JUPITER", "VENUS"})
     nocturnal = frozenset({"MOON", "MARS", "SATURN"})
     #: Midpoint of the 1.0/0.4 nathonnatha pair — "no day/night claim either way".

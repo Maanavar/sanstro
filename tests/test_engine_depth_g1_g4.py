@@ -265,7 +265,7 @@ def test_varga_confirmation_reads_the_divisional_lagna():
         natal_planet_rasis={g: 1 for g in bodies},
     )
     # D10 Saturn in rasi 10: 10th from a D1-style Mesha frame (kendra, +10) but
-    # 6th from a D10 lagna in Kanni (dusthana, -5).
+    # 6th from a D10 lagna in Simmam (dusthana, -5).
     _, from_varga_lagna, _ = _score_area(**base, vargas={"D10": {"SATURN": 10, "LAGNA": 5}})
     _, from_d1_frame, _ = _score_area(**base, vargas={"D10": {"SATURN": 10}})
     _, same_lagna, _ = _score_area(**base, vargas={"D10": {"SATURN": 10, "LAGNA": 1}})
