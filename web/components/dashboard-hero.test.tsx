@@ -255,4 +255,33 @@ describe("DashboardHero top-bar menu dismissal (DXA-41)", () => {
 
     expect(screen.queryByText("No notifications yet.")).not.toBeInTheDocument();
   });
+
+  // The theme control lives in the topbar so switching does not cost a trip to
+  // Settings. It talks to hooks/useTheme directly rather than through a prop,
+  // so the wiring is only visible from a mounted hero.
+  //
+  // Blind spot: which of the two icon faces is painted is a CSS decision off
+  // [data-theme] (.cd-theme-btn in dashboard.css) and jsdom loads no
+  // stylesheet, so both faces are in this DOM and neither visibility is
+  // assertable here. The attribute below is the half that can be checked.
+  it("flips the painted theme from the topbar without going to Settings", () => {
+    document.documentElement.setAttribute("data-theme", "dark");
+    renderHero("personal", noop);
+
+    const toggle = screen.getByRole("button", { name: "Switch theme" });
+    fireEvent.click(toggle);
+    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
+
+    fireEvent.click(toggle);
+    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+  });
+
+  // A control whose whole label lives in aria-label/title is invisible to every
+  // text probe in this repo, so an English string would sit there unnoticed on
+  // the Tamil surface. Checked by hand here because nothing else can see it.
+  it("labels the theme toggle in Tamil on the Tamil surface", () => {
+    renderHero("personal", noop, { lang: "ta" });
+    expect(screen.getByRole("button", { name: "தோற்றத்தை மாற்று" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Switch theme" })).not.toBeInTheDocument();
+  });
 });

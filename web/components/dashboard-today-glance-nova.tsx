@@ -277,7 +277,13 @@ export function DashboardTodayQuickLinksNova({
                 fontFamily: "inherit", width: "100%",
               }}
             >
-              <span aria-hidden="true" style={{ flex: "none", width: "36px", height: "36px", borderRadius: "var(--radius-pill)", background: "var(--color-accent-muted)", border: "1px solid var(--color-border-strong)", display: "grid", placeItems: "center", color: link.color }}>
+              {/* The disc used to be a hardcoded --color-accent-muted fill with a
+                  --color-border-strong edge, so all eight rendered gold no matter
+                  what `link.color` said — the icon carried its semantic hue and
+                  its container contradicted it. .nova-icon-disc derives both fill
+                  and edge from currentColor, which this span already sets to
+                  link.color, so the disc now agrees with the glyph it holds. */}
+              <span aria-hidden="true" className="nova-icon-disc" style={{ color: link.color }}>
                 <link.icon size={17} strokeWidth={2} />
               </span>
               <span style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text-strong)", lineHeight: 1.25 }}>

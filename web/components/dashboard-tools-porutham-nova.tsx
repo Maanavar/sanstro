@@ -469,7 +469,20 @@ export function NovaPoruthamPanel({
             <div style={{ display: "flex", gap: "var(--space-7)", alignItems: "center", flexWrap: "wrap" }}>
               <div style={{ flex: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-2)" }}>
                 <div style={{ position: "relative", width: "116px", height: "116px", borderRadius: "var(--radius-pill)", background: `conic-gradient(${scoreTone} ${pct * 360}deg, var(--color-border) 0)`, display: "grid", placeItems: "center" }}>
-                  <div style={{ width: "92px", height: "92px", borderRadius: "var(--radius-pill)", background: "var(--color-surface-3)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: `1px solid ${scoreTone}` }}>
+                  {/* The donut's inner disc. Was --color-surface-3, which on
+                      the light theme is the palette's DEEPEST cream (#DDD6C8)
+                      — and every ink here is dark, so a deeper ground costs
+                      contrast rather than adding it. "/ 10 PORUTHAMS" in
+                      --color-faint measured 4.47 and the red verdict tone
+                      4.37, both under AA, at --text-xs. Dark was unaffected,
+                      because there surface-3 is genuinely deeper than surface
+                      and the inks are light — the same token inverts meaning
+                      between themes.
+
+                      --color-surface is also the better donut: a gauge reads
+                      as a ring when its centre matches the card it sits on, and
+                      as a disc-on-a-disc when it does not. */}
+                  <div style={{ width: "92px", height: "92px", borderRadius: "var(--radius-pill)", background: "var(--color-surface)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: `1px solid ${scoreTone}` }}>
                     <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-2xl)", fontWeight: 700, lineHeight: 1, color: scoreTone }}>{porutham.totalScore}</div>
                     <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)", letterSpacing: "0.08em", marginTop: "1px" }}>/ {porutham.maxScore} {lang === "ta" ? "பொருத்தம்" : "PORUTHAMS"}</div>
                   </div>

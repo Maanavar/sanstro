@@ -1237,7 +1237,23 @@ export function DashboardTodayTabNova({
                     style={{
                       display: "inline-flex", alignItems: "center", gap: "var(--space-2)", alignSelf: "flex-start",
                       textDecoration: "none", fontFamily: "inherit",
-                      background: "var(--color-mid-bg)", border: "1px solid var(--color-mid-border)",
+                      /* -bg-solid, not -bg. This pill floats on the hero band
+                         — `.nova-hero`'s background, which as of 2026-09-28 is
+                         --nova-hero-gradient and until then was a local
+                         surface-soft -> surface-3 ramp; this comment named the
+                         token before the hero actually used it, so read it as
+                         "the hero's gradient, whatever it currently resolves
+                         to". The fix holds either way, which is the point of
+                         an opaque ground — with HeroSkyBackdrop's time-of-day
+                         radial composited over that, so a translucent tint had
+                         no fixed ground: measured through the real stack,
+                         --color-mid-text on it came to 4.32 at midday and 3.28
+                         under the night sky — an AA failure the ink contract
+                         could not see, because it measures tints over
+                         bg/surface/surface-soft and this is none of the three.
+                         The opaque token bakes the same amber over the card
+                         colour once and holds 5.32 whatever the sky is doing. */
+                      background: "var(--color-mid-bg-solid)", border: "1px solid var(--color-mid-border)",
                       borderRadius: "var(--radius-pill)", padding: "var(--space-1_5) var(--space-3_5)", maxWidth: "100%",
                     }}
                   >

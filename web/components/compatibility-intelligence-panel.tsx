@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AlertTriangle } from "lucide-react";
 import { apiFetchJson, readErrorMessage } from "@/lib/api";
 import { rasiDisplayName } from "@/lib/chart-utils";
 import { t, tNakshatra, tPlanetLord } from "@/lib/i18n";
@@ -158,12 +159,30 @@ function SectionCard({ title, children }: { title: string; children: React.React
   );
 }
 
-function Badge({ text, color, bg }: { text: string; color: string; bg: string }) {
+/** `warn` draws a real icon instead of the "⚠ " text prefix the dosha badges
+ *  used to carry. Three reasons the glyph had to go, in order of how much they
+ *  cost a reader:
+ *
+ *    1. "⚠" is Extended_Pictographic. Some platforms resolve it to the
+ *       monochrome text presentation and some to the colour emoji, so the same
+ *       badge is a small brown triangle on one machine and a saturated
+ *       yellow-and-black sign on the next — and in the colour presentation it
+ *       ignores `color` entirely, which is the one thing a dosha badge uses to
+ *       say "this is the adverse one".
+ *    2. It sat inside the translated string, so the mark was duplicated across
+ *       six literals and could drift out of one of them silently.
+ *    3. Screen readers announce it. "warning sign Rajju Dosha" is noise on a
+ *       badge whose colour and wording already carry the warning; the icon is
+ *       aria-hidden and the sentence is just "Rajju Dosha".
+ */
+function Badge({ text, color, bg, warn = false }: { text: string; color: string; bg: string; warn?: boolean }) {
   return (
     <span style={{
+      display: "inline-flex", alignItems: "center", gap: "5px",
       fontSize: "0.72rem", fontWeight: 700, padding: "3px 10px", borderRadius: "999px",
       background: bg, color, border: `1px solid ${color}33`,
     }}>
+      {warn && <AlertTriangle aria-hidden="true" focusable="false" size={12} strokeWidth={2.5} style={{ flex: "none" }} />}
       {text}
     </span>
   );
@@ -464,9 +483,9 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
             <span style={{ fontSize: "0.9rem", color: W.muted }}>/{d.poruthamMax}</span>
           </div>
           <Badge text={d.poruthamLabel} {...poruthamLabelBadge(d.poruthamLabel)} />
-          {d.rajjuDosha && <Badge text={en ? "⚠ Rajju Dosha" : "⚠ ரஜ்ஜு தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
-          {d.vedhaDosha && <Badge text={en ? "⚠ Vedha Dosha" : "⚠ வேத தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
-          {d.nadiDosha.hasNadiDosha && <Badge text={en ? "⚠ Nadi Dosha" : "⚠ நாடி தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
+          {d.rajjuDosha && <Badge warn text={en ? "Rajju Dosha" : "ரஜ்ஜு தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
+          {d.vedhaDosha && <Badge warn text={en ? "Vedha Dosha" : "வேத தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
+          {d.nadiDosha.hasNadiDosha && <Badge warn text={en ? "Nadi Dosha" : "நாடி தோஷம்"} color={W.rust} bg="var(--cl-rust-soft)" />}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           {d.poruthamKutas.map(k => (
@@ -500,9 +519,14 @@ export function CompatibilityIntelligencePanel({ familyVaultId, memberId, lang, 
                 {en ? `Venus in house ${strength.venusHouse}` : `சுக்கிரன் ${strength.venusHouse}ஆம் இடம்`}
                 {" · "}{en ? `Strength ${strength.venusStrength}/100` : `வலிமை ${strength.venusStrength}/100`}
               </p>
+              {/* Same swap as Badge's `warn`, inline. `flex-start` + the 1px
+                  nudge optically centres a 12px triangle against a 0.76rem
+                  line; `align-items: center` would sit it low, because the
+                  glyph's visual mass is below its box centre. */}
               {strength.hasMaleficInSeventh && (
-                <p style={{ margin: "4px 0 0", fontSize: "0.76rem", color: W.rust }}>
-                  ⚠ {en ? "Malefic in 7th house" : "7ஆம் இடத்தில் பாதக கிரகம்"}
+                <p style={{ margin: "4px 0 0", fontSize: "0.76rem", color: W.rust, display: "flex", alignItems: "flex-start", gap: "5px" }}>
+                  <AlertTriangle aria-hidden="true" focusable="false" size={12} strokeWidth={2.5} style={{ flex: "none", marginTop: "1px" }} />
+                  {en ? "Malefic in 7th house" : "7ஆம் இடத்தில் பாதக கிரகம்"}
                 </p>
               )}
               <div style={{ marginTop: "8px" }}>

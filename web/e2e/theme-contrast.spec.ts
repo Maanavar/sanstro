@@ -157,6 +157,55 @@ async function applyTheme(theme: "light" | "dark") {
   expect(await page.getAttribute("html", "data-theme")).toBe(theme);
 }
 
+/**
+ * Waits for in-flight entrance animations to finish before axe measures.
+ *
+ * WHY. axe reports *composited* pixels, which is the whole reason this gate is
+ * a browser and not a stylesheet script — but it means an element caught
+ * mid-fade is measured at its transitional alpha, not its designed colour.
+ * Nova fades almost everything in: `.nova-stagger > *` and `.nova-reveal` run
+ * `nova-rise` (opacity 0->1) per section, and `.drawer__panel` runs
+ * `drawer-panel-in` (opacity 0->1, 220ms) on open.
+ *
+ * Left unhandled that makes this gate non-deterministic, and it demonstrably
+ * was: on 2026-09-28 the same commit produced a day-drawer run with seven
+ * violations and, minutes later, a clean one. The seven were arithmetic on the
+ * panel at ~0.91 opacity over its own semi-opaque black backdrop: every ground
+ * axe reported reproduced exactly as the designed token darkened by that one
+ * alpha (--color-accent-muted and --color-surface-soft both landed ~5% down),
+ * i.e. the gate was reporting the fade, not the palette. It also explains the
+ * shape of the report — a whole pane failing at once, at ratios near 1.3,
+ * which no palette regression produces. A gate that can pass or fail on
+ * identical
+ * input proves nothing in either direction, which is worse than a gate that
+ * fails: a green tick from it gets inherited as "this theme is clean".
+ *
+ * Infinite animations are excluded deliberately. The hero's 240s rasi-chakra
+ * rotation and the skeleton shimmers never reach `finished`, so awaiting them
+ * would hang until the test timeout. And the whole wait is bounded rather than
+ * open-ended — an entrance animation that never settles should cost this gate
+ * a bounded delay and a real measurement, not a 9-minute timeout with no
+ * result (which is exactly how the first attempt of that same run died).
+ */
+async function settleAnimations() {
+  await page.evaluate(async () => {
+    const settling = document.getAnimations().filter((a) => {
+      if (a.playState !== "running") return false;
+      const timing = a.effect?.getComputedTiming();
+      // iterations: Infinity => a loop (shimmer, the chakra spin). endTime is
+      // Infinity for those too; either check alone is enough, both is cheap.
+      return !!timing && timing.iterations !== Infinity && Number.isFinite(a.effect!.getComputedTiming().endTime as number);
+    });
+    if (!settling.length) return;
+    await Promise.race([
+      Promise.all(settling.map((a) => a.finished.catch(() => undefined))),
+      new Promise((resolve) => setTimeout(resolve, 2000)),
+    ]);
+  });
+  // One frame past the last commit, so the final values are painted.
+  await page.waitForTimeout(150);
+}
+
 /** Reached the same way nova-sweep does — a label the nav does not render makes
  *  the click hang until timeout rather than fail, so keep this list in step with
  *  dashboard-hero.tsx's TAB_DEFS. */
@@ -173,6 +222,8 @@ async function goToTab(label: string) {
   await page.getByRole("button", { name: label, exact: true }).first().click();
   await page.waitForTimeout(1500);
   await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
+  // Every pane stagger-reveals its sections; measure them at their real colours.
+  await settleAnimations();
 }
 
 for (const theme of ["light", "dark"] as const) {
@@ -256,10 +307,33 @@ for (const theme of ["light", "dark"] as const) {
     await page.getByRole("tab", { name: /Monthly/i }).click();
     await page.waitForTimeout(2000);
     await dismissBlockingDialogs();
-    await page.locator('button[aria-current="date"]').first().click();
+    // Wait for the grid EXPLICITLY before clicking into it.
+    //
+    // Playwright's auto-wait on `.click()` is bounded only by the test
+    // timeout, and `test.slow()` makes that 540s — so a month grid that has
+    // not rendered yet costs this gate nine minutes of silence and then an
+    // error naming the browser teardown ("Target page, context or browser has
+    // been closed") rather than the thing that was actually missing. Observed
+    // 2026-09-28: the first attempt died exactly that way, and the retry ran
+    // the identical test in 21.0s. A 25x gap is a cold `next dev` route
+    // compile on the isolated e2e stack, not a defect — but nothing in the
+    // failure said so, and a nine-minute unreadable hang is indistinguishable
+    // from a real break while you are looking at it.
+    //
+    // 60s is generous for a warm route and still an order of magnitude below
+    // the test timeout, so a genuinely missing grid now fails fast and names
+    // itself. Repo rule: bound every unbounded wait, and make the failure
+    // legible before theorising (CLAUDE.md, P0-5).
+    const today = page.locator('button[aria-current="date"]').first();
+    await today.waitFor({ state: "visible", timeout: 60_000 });
+    await today.click();
     // The sheet fetches the day it was opened on; measuring the skeleton would
     // pass trivially.
     await page.getByRole("dialog").getByText("Panchangam").waitFor({ timeout: 20_000 });
+    // The text node appears while .drawer__panel is still running its 220ms
+    // opacity 0->1; without this, axe measures the panel mid-fade and reports
+    // the fade as a palette failure. See settleAnimations().
+    await settleAnimations();
 
     const results = await new AxeBuilder({ page })
       .withRules(["color-contrast"])

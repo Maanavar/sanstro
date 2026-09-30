@@ -14,12 +14,15 @@ import {
   ChevronDown,
   Compass,
   FlaskConical,
+  Moon,
+  Sun,
   Wrench,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Image from "next/image";
 import { placeCityLabel } from "@vinaadi/shared/checkIn";
 import { rasiDisplayName } from "@/lib/chart-utils";
+import { toggleTheme } from "@/hooks/useTheme";
 import { dt, LOCATION_CHECK } from "@/lib/dashboard-i18n";
 import { formatClockLabel } from "@/lib/format";
 import { t, tNakshatra } from "@/lib/i18n";
@@ -133,6 +136,22 @@ function BellIcon() {
 
 function SettingsIcon() {
   return <Settings className="cd-icon" aria-hidden="true" focusable="false" />;
+}
+
+/* Both faces are rendered and CSS picks one off [data-theme] on <html> (see
+   .cd-theme-btn in dashboard.css). Deliberately not driven from React state:
+   the pre-paint script in app/layout.tsx resolves the theme before React
+   hydrates, so a state-driven icon would either mismatch on hydration or flash
+   the wrong face for a tick. The label stays neutral for the same reason —
+   naming the target theme would reintroduce the mismatch in an attribute no
+   text probe can see. */
+function ThemeIcon() {
+  return (
+    <>
+      <Sun className="cd-icon cd-theme-btn__sun" aria-hidden="true" focusable="false" />
+      <Moon className="cd-icon cd-theme-btn__moon" aria-hidden="true" focusable="false" />
+    </>
+  );
 }
 
 function SignOutIcon() {
@@ -379,6 +398,9 @@ export function DashboardHero(props: DashboardHeroProps) {
   }, [activeTab]);
 
   const langToggleTitle = lang === "ta" ? "Switch to English" : "தமிழுக்கு மாறு";
+  // Neutral wording on purpose: the label cannot name the target theme without
+  // depending on state React does not have at hydration time (see ThemeIcon).
+  const themeToggleTitle = lang === "ta" ? "தோற்றத்தை மாற்று" : "Switch theme";
 
   // "05 · Jul · 2026" label for the Nova navbar's date pill. The native date
   // input stays mounted underneath (invisible, full-pill hit area) so the OS
@@ -655,6 +677,16 @@ export function DashboardHero(props: DashboardHeroProps) {
                     </div>
                 </Presence>
             </div>
+
+            <button
+              type="button"
+              className="cd-icon-btn cd-theme-btn"
+              onClick={toggleTheme}
+              aria-label={themeToggleTitle}
+              title={themeToggleTitle}
+            >
+              <ThemeIcon />
+            </button>
 
             <button
               type="button"

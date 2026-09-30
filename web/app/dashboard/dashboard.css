@@ -273,6 +273,24 @@
   line-height: 1;
 }
 
+/* One-click Warm ↔ Nova Galaxy flip in the topbar. Which face shows is
+   decided by [data-theme] on <html> — written pre-paint by the inline script in
+   app/layout.tsx and again by hooks/useTheme.ts — so the icon is correct on the
+   very first frame and React never has to guess it. The sun is the unqualified
+   default because dark is the app's default theme; if the attribute were ever
+   missing the button would still show an icon rather than going blank. */
+.cd-theme-btn__moon {
+  display: none;
+}
+
+[data-theme="light"] .cd-theme-btn__sun {
+  display: none;
+}
+
+[data-theme="light"] .cd-theme-btn__moon {
+  display: block;
+}
+
 .cd-lang-btn {
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-pill);
