@@ -258,9 +258,11 @@ Polarity table:
 
 | Houses | Scale | Band from `bhavaBala` |
 |---|---|---|
-| 1,2,4,5,7,9,10 | direct | ≥50 SUPPORTED · 40–49 MIXED · <40 NEEDS_CARE |
-| 3,11 | upachaya | ≥48 SUPPORTED · 38–47 MIXED · <38 NEEDS_CARE, + "grows with effort" note |
-| 6,8,12 | inverted | ≤41 SUPPORTED (worded *quiet*) · 42–50 MIXED · ≥51 NEEDS_CARE |
+| 1,2,4,5,7,9,10 | direct | ≥52 SUPPORTED · 40–51 MIXED · <40 NEEDS_CARE |
+| 3,11 | upachaya | ≥50 SUPPORTED · 38–49 MIXED · <38 NEEDS_CARE, + "grows with effort" note |
+| 6,8,12 | inverted | ≤39 SUPPORTED (worded *quiet*) · 40–50 MIXED · ≥51 NEEDS_CARE |
+
+*Green cuts raised by 2 on 2026-09-30 — see §9-Q1a.*
 
 **Measured, not eyeballed** — see §9. The earlier 60/40 proposal in this section was
 falsified by the sweep (it fired SUPPORTED 0.7% of the time) and has been replaced.
@@ -587,6 +589,34 @@ Validated on what the reader actually sees: **median 2 NEEDS_CARE and 3 SUPPORTE
 12-house chart**; only 3.7% of charts show 5+ flags; only 3.7% show zero SUPPORTED. The
 7th lands 24 / 60 / 16. Upachaya is deliberately the most generous (36% SUPPORTED) —
 3 and 11 are the growth houses and a low reading there is not a life sentence.
+
+**Q1a — Green cuts raised by 2. RULED by the owner 2026-09-30.**
+
+| Polarity | SUPPORTED was | SUPPORTED now | NEEDS_CARE (unchanged) |
+|---|---|---|---|
+| DIRECT | ≥ 50 | **≥ 52** | < 40 |
+| UPACHAYA | ≥ 48 | **≥ 50** | < 38 |
+| INVERTED | ≤ 41 | **≤ 39** | ≥ 51 |
+
+Trigger: a reader saw 7 green houses on one chart, 5 of them at 50–54, and read the
+table as "mostly lucky". A re-sweep (3,000 charts through today's real scorer, Mercury
+within 28° and Venus within 48° of the Sun) found the Q1 figures above no longer hold:
+
+| Green line | Green / chart | Amber | Red | Charts with ≥6 green |
+|---|---|---|---|---|
+| Q1 cuts (50/48/41) | 4.48 | 6.10 | 1.42 | 28.5% |
+| +1 | 3.54 | 7.04 | 1.42 | 13.1% |
+| **+2 (ruled)** | **3.10** | 7.48 | 1.42 | **8.3%** |
+
+The band had drifted ~1.4 greens per chart above the 26% SUPPORTED Q1 was set at, and
+21% of all greens sat exactly on the line. +2 restores Q1's intent. `compute_bhava_bala`
+is untouched, so Life Areas scores do not move — only the chip a reader sees.
+
+Two measurement notes. (1) A first run with Mercury and Venus placed uniformly gave
+4.87 green per chart — combustion is rarer when they wander, so it overstated the
+drift; the table above is the shaped run. (2) The red side of Q1 has drifted too
+(1.42 NEEDS_CARE per chart, not the median 2 recorded above). Not changed — the ask
+was about greens — but it is on record here rather than left to be rediscovered.
 
 **Q2 — Show the number? RULED: no. Not anywhere, including `title=`.**
 Now an evidence-based call, not taste: a scale centred at 45 with stdev 6 is not a

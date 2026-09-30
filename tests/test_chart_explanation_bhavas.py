@@ -210,12 +210,13 @@ def test_dusthana_polarity_and_notes_are_wired_through():
 def test_the_contrast_line_reaches_the_schema_only_where_chips_disagree():
     """Wired through, and serialised under the name web reads.
 
-    Mesha lagna, 10th = Magaram, lord Saturn at 40 (below web's 45 "Needs support"
+    Mesha lagna, 10th = Magaram, lord Saturn at 44 (below web's 45 "Needs support"
     cut) and placed in the 3rd, away from it. Venus and Mercury sit in the 10th and
-    Jupiter aspects it from the 4th, which carries it to Supported.
+    Jupiter aspects it from the 4th, which carries it to 52 — Supported at the
+    green cut raised on 2026-09-30.
     """
     planets = [
-        _planet("SATURN", 3, strength=40),
+        _planet("SATURN", 3, strength=44),
         _planet("VENUS", 10),
         _planet("MERCURY", 10),
         _planet("JUPITER", 4),

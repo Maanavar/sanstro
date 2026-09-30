@@ -97,12 +97,16 @@ def test_polarity_mapping() -> None:
 @pytest.mark.parametrize(
     ("house", "bala", "expected"),
     [
-        # DIRECT: >=50 supported, <40 needs care.
-        (7, 50, "SUPPORTED"), (7, 49, "MIXED"), (7, 40, "MIXED"), (7, 39, "NEEDS_CARE"),
+        # DIRECT: >=52 supported, <40 needs care. The green cut was 50 until
+        # 2026-09-30; 50 and 51 are pinned MIXED so a revert cannot pass quietly.
+        (7, 52, "SUPPORTED"), (7, 51, "MIXED"), (7, 50, "MIXED"), (7, 40, "MIXED"),
+        (7, 39, "NEEDS_CARE"),
         # UPACHAYA is the most forgiving of the three.
-        (11, 48, "SUPPORTED"), (11, 47, "MIXED"), (11, 38, "MIXED"), (11, 37, "NEEDS_CARE"),
+        (11, 50, "SUPPORTED"), (11, 49, "MIXED"), (11, 48, "MIXED"), (11, 38, "MIXED"),
+        (11, 37, "NEEDS_CARE"),
         # INVERTED reads the other way round: LOW is the good news.
-        (6, 41, "SUPPORTED"), (6, 42, "MIXED"), (6, 50, "MIXED"), (6, 51, "NEEDS_CARE"),
+        (6, 39, "SUPPORTED"), (6, 40, "MIXED"), (6, 41, "MIXED"), (6, 50, "MIXED"),
+        (6, 51, "NEEDS_CARE"),
         (8, 30, "SUPPORTED"), (12, 70, "NEEDS_CARE"),
     ],
 )
@@ -112,8 +116,8 @@ def test_verdict_boundaries(house: int, bala: int, expected: str) -> None:
 
 def test_upachaya_is_more_forgiving_than_direct() -> None:
     """A 3rd and a 7th on the same number must not band the same at the margin."""
-    assert verdict_of(3, 48) == "SUPPORTED"
-    assert verdict_of(7, 48) == "MIXED"
+    assert verdict_of(3, 50) == "SUPPORTED"
+    assert verdict_of(7, 50) == "MIXED"
     assert verdict_of(3, 38) == "MIXED"
     assert verdict_of(7, 38) == "NEEDS_CARE"
 
@@ -563,13 +567,13 @@ def _each_house(n: int):
 def test_a_house_chip_against_its_lords_chip_is_never_left_unexplained() -> None:
     """The gate. Every row where the two chips visibly disagree carries a line.
 
-    Measured over 800 charts: the dusthana case dominates (~1.7k), "carried" is
-    ~20, and "held" is ~0 — a lord at >=70 contributes >=35 on its own, so a
-    direct house under it only drops below 40 if its occupants and aspects are
-    near zero. That branch is exercised directly in the next test instead.
+    Measured over 800 charts at the raised green cut: the dusthana case dominates
+    (~1.25k), "carried" is ~4, and "held" is ~0 — a lord at >=70 contributes >=35
+    on its own, so a direct house under it only drops below 40 if its occupants and
+    aspects are near zero. That branch is exercised directly in the next test.
     """
     seen = {"carried": 0, "held": 0, "inverted": 0}
-    for lagna, _, scores, house, verdict, line in _each_house(800):
+    for lagna, _, scores, house, verdict, line in _each_house(2500):
         if verdict == "MIXED":
             continue
         lord_score = scores[_lord_of(house, lagna)]
@@ -589,7 +593,7 @@ def test_a_house_chip_against_its_lords_chip_is_never_left_unexplained() -> None
             assert line is not None, f"dusthana {house} under {lord_en}, no line"
             assert "which keeps this house" in line[1]
             seen["inverted"] += 1
-    assert seen["carried"] >= 10 and seen["inverted"] >= 10, seen
+    assert seen["carried"] >= 5 and seen["inverted"] >= 10, seen
 
 
 def test_the_held_back_branch_names_the_malefics(monkeypatch) -> None:
@@ -635,7 +639,7 @@ def test_the_named_counterweights_really_pull_that_way() -> None:
     """A 'carried by' graha must be a benefic in or aspecting the house, never the
     lord itself; a 'weighs on' graha must be a malefic doing the same."""
     checked = 0
-    for lagna, rasi, _, house, verdict, line in _each_house(800):
+    for lagna, rasi, _, house, verdict, line in _each_house(2500):
         if line is None or ", but " not in line[1]:
             continue
         pull = bhava_palan_module._verdict_pull(house, verdict)
@@ -649,7 +653,7 @@ def test_the_named_counterweights_really_pull_that_way() -> None:
             assert rasi[graha] == house_rasi or aspect_strength(graha, rasi[graha], house_rasi) > 0
             assert planet_en(graha) in line[1].split(", but ")[1]
         checked += 1
-    assert checked >= 10, checked
+    assert checked >= 5, checked
 
 
 def test_the_contrast_line_stays_the_exception() -> None:

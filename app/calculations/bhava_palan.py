@@ -15,8 +15,9 @@ Four design rules, each of which was a decision with a reason
 
 2. **Thresholds are measured, not eyeballed.** `bhava_bala` is centred at 45 with a
    stdev of 6 (4,000-chart sweep, 48,000 readings), not at 50. An earlier 60/40
-   proposal fired SUPPORTED 0.7% of the time. The cuts below land the median reader
-   on 2 NEEDS_CARE and 3 SUPPORTED houses out of twelve.
+   proposal fired SUPPORTED 0.7% of the time. The cuts below land the reader on about
+   3 SUPPORTED and 1.4 NEEDS_CARE houses out of twelve (re-measured 2026-09-30, when
+   the green cuts were raised by 2 — see `_CUT_DIRECT`).
 
 3. **Conduct is keyed on the responsible graha, not on the band.** Band-keyed copy
    produces twelve interchangeable paragraphs. What a jyotishi actually varies is
@@ -90,10 +91,16 @@ def polarity_of(house: int) -> Polarity:
 
 
 # (supported_at, needs_care_below) for the two non-inverted scales.
-_CUT_DIRECT = (50, 40)
-_CUT_UPACHAYA = (48, 38)
+#
+# The green cuts were raised by 2 on 2026-09-30 (owner ruling, doc §9-Q1a). At the
+# original 50/48/41 a re-sweep through today's scorer showed 4.5 green houses per
+# chart and 28% of charts mostly green — the band had drifted ~1.4 greens above the
+# 26% SUPPORTED the ruling was set at — and 21% of all greens sat exactly ON the
+# line. Raised by 2: 3.1 green per chart, 8% mostly green. Red cuts unchanged.
+_CUT_DIRECT = (52, 40)
+_CUT_UPACHAYA = (50, 38)
 # Inverted is read the other way round: low is the good news.
-_INVERTED_QUIET_AT = 41
+_INVERTED_QUIET_AT = 39
 _INVERTED_LOUD_AT = 51
 
 
