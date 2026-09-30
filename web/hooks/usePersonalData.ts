@@ -124,13 +124,19 @@ function isAbortError(error: unknown): boolean {
   return error instanceof Error && error.name === "AbortError";
 }
 
+/** No `calculationVersion` here on purpose.
+ *
+ *  This used to send the literal `"thirukanitham-2026-v1"`, and the backend
+ *  stamped it onto the stored chart — so every dashboard load recorded that a
+ *  chart had been computed by an engine two revisions behind the one that
+ *  actually computed it, and a client shipped months ago decided the answer.
+ *  The server now resolves the version itself (`app/constants/versions.py`); the
+ *  request field is still accepted and ignored, so the two surfaces can be
+ *  deployed in either order. */
 async function calculateChart(birthProfileId: string, signal?: AbortSignal): Promise<ApiEnvelope<ChartCalculateResponseData>> {
   return apiFetchJson<ApiEnvelope<ChartCalculateResponseData>>("/api/v1/charts/calculate", {
     method: "POST",
-    body: JSON.stringify({
-      birthProfileId,
-      calculationVersion: "thirukanitham-2026-v1",
-    }),
+    body: JSON.stringify({ birthProfileId }),
     signal,
   });
 }

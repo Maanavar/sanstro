@@ -32,6 +32,7 @@ import type {
   LifeModeStatus,
   NotificationInboxItem,
   NotificationInboxResponse,
+  BirthProfileResponse,
 } from "@/lib/types";
 
 import { useSession } from "@/hooks/useSession";
@@ -425,6 +426,9 @@ export function DashboardWorkspace() {
   const [birthForm, setBirthForm] = useState<BirthFormState>(defaultBirthForm);
   const [memberForm, setMemberForm] = useState<MemberFormState>(defaultMemberForm);
   const [editMember, setEditMember] = useState<EditMemberState | null>(null);
+  // Bumped after a successful save so BirthProfilesManager, which owns its own
+  // fetch, reloads instead of showing the values the reader just changed.
+  const [birthProfilesReloadToken, setBirthProfilesReloadToken] = useState(0);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showRectification, setShowRectification] = useState(false);
@@ -1468,32 +1472,54 @@ export function DashboardWorkspace() {
     if (!editMember) return;
     setBusyEditingMember(true);
     try {
-      await apiFetchJson<unknown>(
-        `/api/v1/family-vaults/${family.selectedVaultId}/members/${editMember.memberId}`,
-        {
-          method: "PATCH",
-          body: JSON.stringify({
-            displayName: editMember.displayName,
-            relationshipToOwner: editMember.relationshipToOwner,
-            memberWeight: parseNumber(editMember.memberWeight, 1),
-            birthDateLocal: editMember.birthDateLocal || undefined,
-            birthTimeLocal: editMember.birthTimeLocal || undefined,
-            birthPlace: editMember.birthPlace || undefined,
-            birthLatitude: editMember.birthLatitude ? parseNumber(editMember.birthLatitude) : undefined,
-            birthLongitude: editMember.birthLongitude ? parseNumber(editMember.birthLongitude) : undefined,
-            birthTimezone: editMember.birthTimezone || undefined,
-            currentPlace: editMember.currentPlace || undefined,
-            currentLatitude: editMember.currentLatitude ? parseNumber(editMember.currentLatitude) : undefined,
-            currentLongitude: editMember.currentLongitude ? parseNumber(editMember.currentLongitude) : undefined,
-            currentTimezone: editMember.currentTimezone || undefined,
-            recalculate: true,
-          }),
-        }
-      );
+      // Birth fields: `|| undefined` omits an empty one, which the API reads as
+      // "leave alone" — right, because none of them is nullable on a saved
+      // profile.
+      //
+      // Current location is the opposite case and must NOT use `|| undefined`:
+      // "" is the sentinel that clears it back to the birth place, and omitting
+      // it made the field a one-way door. The four move together — a place
+      // without coordinates is not a location.
+      const clearingCurrent = !editMember.currentPlace;
+      const body = {
+        displayName: editMember.displayName,
+        birthDateLocal: editMember.birthDateLocal || undefined,
+        birthTimeLocal: editMember.birthTimeLocal || undefined,
+        birthPlace: editMember.birthPlace || undefined,
+        birthLatitude: editMember.birthLatitude ? parseNumber(editMember.birthLatitude) : undefined,
+        birthLongitude: editMember.birthLongitude ? parseNumber(editMember.birthLongitude) : undefined,
+        birthTimezone: editMember.birthTimezone || undefined,
+        currentPlace: editMember.currentPlace,
+        currentLatitude: clearingCurrent || !editMember.currentLatitude ? undefined : parseNumber(editMember.currentLatitude),
+        currentLongitude: clearingCurrent || !editMember.currentLongitude ? undefined : parseNumber(editMember.currentLongitude),
+        currentTimezone: clearingCurrent ? undefined : (editMember.currentTimezone || undefined),
+        recalculate: true,
+      };
+      const url = editMember.scope === "member"
+        ? `/api/v1/family-vaults/${editMember.familyVaultId}/members/${editMember.memberId}`
+        : `/api/v1/birth-profiles/${editMember.birthProfileId}`;
+      await apiFetchJson<unknown>(url, {
+        method: "PATCH",
+        body: JSON.stringify(
+          editMember.scope === "member"
+            ? { ...body, relationshipToOwner: editMember.relationshipToOwner, memberWeight: parseNumber(editMember.memberWeight, 1) }
+            : body,
+        ),
+      });
       showToast(`${editMember.displayName} updated.`);
       setStatus(`${editMember.displayName} updated.`);
       setEditMember(null);
-      await family.refreshFamilyBundle(family.selectedVaultId, selectedDate);
+      // Both scopes can touch a family-linked profile, and a profile edit can
+      // change the name and DOB the family views read, so refresh either way.
+      setBirthProfilesReloadToken((n) => n + 1);
+      if (family.selectedVaultId) {
+        await family.refreshFamilyBundle(family.selectedVaultId, selectedDate);
+      }
+      // A profile edit can be the owner's own, and it may have recalculated the
+      // chart, so the personal bundle has to be refetched rather than reused.
+      if (editMember.scope === "profile" && editMember.birthProfileId === personal.birthProfileId) {
+        await personal.refreshPersonalBundle(personal.birthProfileId, selectedDate, true, { forceChart: true, forceDay: true });
+      }
     } catch (error) {
       const msg = getFriendlyErrorMessage(error);
       showToast(msg, "error"); setStatus(msg, "error");
@@ -1517,10 +1543,13 @@ export function DashboardWorkspace() {
             birthLatitude: parseNumber(birthForm.birthLatitude),
             birthLongitude: parseNumber(birthForm.birthLongitude),
             birthTimezone: birthForm.birthTimezone,
-            currentPlace: birthForm.currentPlace || undefined,
-            currentLatitude: birthForm.currentLatitude ? parseNumber(birthForm.currentLatitude) : undefined,
-            currentLongitude: birthForm.currentLongitude ? parseNumber(birthForm.currentLongitude) : undefined,
-            currentTimezone: birthForm.currentTimezone || undefined,
+            // "" is the clear sentinel, so this one is sent as-is rather than
+            // `|| undefined` — omitting it means "leave alone", which made the
+            // owner's own current location unremovable once set.
+            currentPlace: birthForm.currentPlace,
+            currentLatitude: birthForm.currentPlace && birthForm.currentLatitude ? parseNumber(birthForm.currentLatitude) : undefined,
+            currentLongitude: birthForm.currentPlace && birthForm.currentLongitude ? parseNumber(birthForm.currentLongitude) : undefined,
+            currentTimezone: birthForm.currentPlace ? (birthForm.currentTimezone || undefined) : undefined,
             maritalStatus: birthForm.maritalStatus || undefined,
             employmentType: birthForm.employmentType || undefined,
             children: birthForm.children || undefined,
@@ -1669,10 +1698,22 @@ export function DashboardWorkspace() {
     const bp = mc?.chart.birthProfile;
     // Guard: member charts may still be loading — don't open with empty fields
     if (!bp) return;
+    // Relationship and weight are columns on the FamilyMember row, so they are
+    // read from the vault's own member list — NOT from `bp`. `chart.birthProfile`
+    // carries a `relationshipToOwner` that the backend cannot populate for a
+    // persisted profile (the column is not on that table); it reported "self"
+    // for everyone, this modal PATCHed that back over the real relationship,
+    // and a member tagged "self" is then excluded from `memberCharts`, which
+    // empties the member picker on every tab. Seeded from the truth here so the
+    // save is a no-op when the reader does not touch the dropdown.
+    const row = family.familyMembers.find((fm) => fm.familyMemberId === member.familyMemberId);
     setEditMember({
+      scope: "member",
+      birthProfileId: bp.birthProfileId,
+      familyVaultId: family.selectedVaultId,
       memberId: member.familyMemberId,
       displayName: member.displayName,
-      relationshipToOwner: (bp.relationshipToOwner as Relationship) ?? "other",
+      relationshipToOwner: (row?.relationshipToOwner as Relationship) ?? "other",
       memberWeight: member.memberWeight.toFixed(2),
       birthDateLocal: bp.birthDateLocal ?? "",
       birthTimeLocal: bp.birthTimeLocal ?? "",
@@ -1684,6 +1725,36 @@ export function DashboardWorkspace() {
       currentLatitude: bp.currentLatitude?.toString() ?? "",
       currentLongitude: bp.currentLongitude?.toString() ?? "",
       currentTimezone: bp.currentTimezone ?? "",
+    });
+  }
+
+  /** Open the editor on a bare birth profile, from Setup -> all birth profiles.
+   *
+   *  Deliberately routed to /birth-profiles even for a family-linked profile,
+   *  rather than to the member endpoint: this list edits birth DATA, and
+   *  relationship/weight are membership facts that belong to the Family surface
+   *  where the rest of the vault is visible. The backend mirrors display name
+   *  and date of birth back onto the FamilyMember row, so the family views stay
+   *  correct either way. */
+  function handleEditBirthProfile(profile: BirthProfileResponse) {
+    setEditMember({
+      scope: "profile",
+      birthProfileId: profile.birthProfileId,
+      familyVaultId: "",
+      memberId: "",
+      displayName: profile.displayName,
+      relationshipToOwner: (profile.relationshipToOwner as Relationship) ?? "other",
+      memberWeight: "1.00",
+      birthDateLocal: profile.birthDateLocal ?? "",
+      birthTimeLocal: profile.birthTimeLocal ?? "",
+      birthPlace: profile.birthPlace ?? "",
+      birthLatitude: profile.birthLatitude?.toString() ?? "",
+      birthLongitude: profile.birthLongitude?.toString() ?? "",
+      birthTimezone: profile.birthTimezone ?? "",
+      currentPlace: profile.currentPlace ?? "",
+      currentLatitude: profile.currentLatitude?.toString() ?? "",
+      currentLongitude: profile.currentLongitude?.toString() ?? "",
+      currentTimezone: profile.currentTimezone ?? "",
     });
   }
 
@@ -1922,6 +1993,8 @@ export function DashboardWorkspace() {
               onCreateProfile={handleCreateProfile}
               onAddMember={handleAddMember}
               onShowEditProfile={() => setShowEditProfile(true)}
+              onEditBirthProfile={handleEditBirthProfile}
+              birthProfilesReloadToken={birthProfilesReloadToken}
               onGoToPersonal={() => setActiveTab("personal")}
               userMode={session.userMode}
               onModeChange={(mode) => void saveUserSettings(mode, { toast: true })}
@@ -2111,6 +2184,7 @@ export function DashboardWorkspace() {
               onDeleteVault: (vaultId: string, name: string) => void handleDeleteVault(vaultId, name),
               onDeleteMember: (memberId: string, name: string) => void handleDeleteMember(memberId, name),
               onEditMember: handleEditFamilyMember,
+              onEditSelf: () => setShowEditProfile(true),
               onGoToLifeAreas: () => goToTab("life-areas"),
               onGoToRemedies: () => focusLifeAreas("remedies"),
               onGoToForecast: () => focusLifeAreas("predictions"),

@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
+from app.constants.versions import CHART_CALCULATION_VERSION
 from app.core.auth import get_current_user
 from app.core.error_codes import ErrorCode
 from app.core.errors import AppError
@@ -42,12 +43,12 @@ def list_birth_profiles_endpoint(
     profiles = list_birth_profiles_for_owner(
         session,
         current_user.user_id,
-        calculation_version="thirukanitham-2026-v1",
+        calculation_version=CHART_CALCULATION_VERSION,
     )
     return BirthProfileListResponse(
         data=profiles,
         meta=BirthProfileResponseMeta(
-            calculation_version="thirukanitham-2026-v1",
+            calculation_version=CHART_CALCULATION_VERSION,
             generated_at=datetime.now(tz=UTC),
         ),
     )
@@ -61,11 +62,11 @@ def create_birth_profile_endpoint(
 ) -> BirthProfileCreateResponse:
     # Ensure the profile is created under the authenticated user's identity
     payload = payload.model_copy(update={"owner_user_id": current_user.user_id})
-    result = create_birth_profile(session, payload, calculation_version="thirukanitham-2026-v1")
+    result = create_birth_profile(session, payload, calculation_version=CHART_CALCULATION_VERSION)
     return BirthProfileCreateResponse(
         data=result,
         meta=BirthProfileResponseMeta(
-            calculation_version="thirukanitham-2026-v1",
+            calculation_version=CHART_CALCULATION_VERSION,
             generated_at=datetime.now(tz=UTC),
         ),
     )
@@ -82,7 +83,7 @@ def get_birth_profile_endpoint(
         raise AppError(ErrorCode.BIRTH_PROFILE_NOT_FOUND)
     if profile.owner_user_id != current_user.user_id:
         raise AppError(ErrorCode.ACCESS_DENIED)
-    return get_birth_profile(session, birth_profile_id, calculation_version="thirukanitham-2026-v1")
+    return get_birth_profile(session, birth_profile_id, calculation_version=CHART_CALCULATION_VERSION)
 
 
 @router.get("/birth-profiles/me/latest", response_model=BirthProfileGetResponse, tags=["birth-profiles"])
@@ -93,7 +94,7 @@ def get_latest_birth_profile_for_current_user_endpoint(
     return get_latest_birth_profile_for_owner(
         session,
         current_user.user_id,
-        calculation_version="thirukanitham-2026-v1",
+        calculation_version=CHART_CALCULATION_VERSION,
     )
 
 
@@ -109,7 +110,7 @@ def update_birth_profile_endpoint(
         raise AppError(ErrorCode.BIRTH_PROFILE_NOT_FOUND)
     if profile.owner_user_id != current_user.user_id:
         raise AppError(ErrorCode.ACCESS_DENIED)
-    return update_birth_profile(session, profile, payload, calculation_version="thirukanitham-2026-v1")
+    return update_birth_profile(session, profile, payload, calculation_version=CHART_CALCULATION_VERSION)
 
 
 @router.post(

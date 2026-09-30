@@ -10,6 +10,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
+from app.constants.versions import CHART_CALCULATION_VERSION
 from app.core.auth import get_current_user
 from app.db.session import get_db
 from app.models.user import User
@@ -102,7 +103,7 @@ def _safe_name(raw: str, fallback: str) -> str:
 def _transient_snapshot(payload: DirectBirthInput) -> Any:
     """Compute a chart for a person who is not persisted anywhere."""
     try:
-        return _chart_response_from_profile(_TransientProfile(payload), "thirukanitham-2026-v1")
+        return _chart_response_from_profile(_TransientProfile(payload), CHART_CALCULATION_VERSION)
     except (ValueError, HTTPException) as exc:
         msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
         raise HTTPException(status_code=422, detail=msg) from exc

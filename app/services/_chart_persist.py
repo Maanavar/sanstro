@@ -194,11 +194,14 @@ def calculate_chart_for_persisted_profile(
         raise ValueError("calculate_chart_for_persisted_profile requires a persisted birth profile.")
 
     if not force_recalculate:
+        # Found by its profile, NOT by its version. This used to also require
+        # `Chart.calculation_version == calculation_version`, which meant a chart
+        # written through a caller that passed a different literal was invisible
+        # here and a duplicate row was created beside it. The version records
+        # which engine produced a chart; it is not part of its identity. See
+        # app/constants/versions.py.
         existing_chart = session.execute(
-            select(Chart).where(
-                Chart.birth_profile_id == persisted_profile_id,
-                Chart.calculation_version == calculation_version,
-            )
+            select(Chart).where(Chart.birth_profile_id == persisted_profile_id)
             .order_by(Chart.created_at.desc())
             .limit(1)
         ).scalars().first()
@@ -248,9 +251,16 @@ def calculate_chart(payload: ChartCalculateRequest, session: Session | None = No
         )
 
     birth_profile = _require_active_birth_profile(session, payload.birth_profile_id)
+    # `payload.calculation_version` is deliberately NOT forwarded. A client does
+    # not get to choose which engine computed its chart — and one already did:
+    # web/hooks/usePersonalData.ts posted the literal "thirukanitham-2026-v1" on
+    # every dashboard load, so the stored version described a build that had been
+    # superseded twice. The field stays accepted (the request model is
+    # extra="forbid", so rejecting it would 400 every deployed client) and
+    # inert. See app/constants/versions.py.
     return calculate_chart_for_persisted_profile(
         session,
         birth_profile,
-        calculation_version=payload.calculation_version,
+        calculation_version=DEFAULT_CALCULATION_VERSION,
         force_recalculate=payload.force_recalculate,
     )

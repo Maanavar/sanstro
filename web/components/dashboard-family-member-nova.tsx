@@ -149,10 +149,30 @@ export type DashboardFamilyMemberNovaProps = {
   onNext: (() => void) | null;
   prevName: string | null;
   nextName: string | null;
-  onEdit: () => void;
-  onDelete: () => void;
+  /** Undefined = no such action for this person. The owner's own row has a
+   *  synthetic familyMemberId that the member endpoints cannot address. */
+  onEdit?: () => void;
+  onDelete?: () => void;
   deleting: boolean;
 };
+
+/** Shared chrome for the two header actions. Small and quiet — they sit beside
+ *  the member's name, not in a toolbar — but unmistakably controls: a border, a
+ *  surface and a hit area, which bare underlined text gave neither. */
+function memberActionStyle(opts?: { destructive?: boolean; disabled?: boolean }): React.CSSProperties {
+  const destructive = opts?.destructive ?? false;
+  return {
+    display: "inline-flex", alignItems: "center", justifyContent: "center",
+    minHeight: "28px", padding: "var(--space-1) var(--space-3)",
+    fontSize: "var(--text-xs)", fontWeight: 600, fontFamily: "inherit",
+    color: destructive ? "var(--color-low)" : "var(--color-text)",
+    background: "var(--color-surface)",
+    border: `1px solid ${destructive ? "var(--color-low-border)" : "var(--color-border-strong)"}`,
+    borderRadius: "var(--radius-sm)",
+    cursor: opts?.disabled ? "default" : "pointer",
+    opacity: opts?.disabled ? 0.5 : 1,
+  };
+}
 
 export function DashboardFamilyMemberNova({
   lang,
@@ -277,12 +297,23 @@ export function DashboardFamilyMemberNova({
                 {relationLabel}
               </span>
             )}
-            <button type="button" onClick={onEdit} style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}>
-              {lang === "ta" ? "திருத்து" : "Edit"}
-            </button>
-            <button type="button" disabled={deleting} onClick={onDelete} style={{ fontSize: "var(--text-xs)", color: "var(--color-low)", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textDecoration: "underline", opacity: deleting ? 0.5 : 1 }}>
-              {deleting ? "…" : (lang === "ta" ? "நீக்கு" : "Remove")}
-            </button>
+            {/* Both were bare underlined text at --text-xs, and Edit was
+                additionally --color-muted, so the only control here that looked
+                like one was the destructive one — readers reported finding
+                Remove and concluding no Edit existed. Given real chrome, and
+                Edit ahead of Remove in the tab order, which is also the order of
+                likelihood. */}
+            {onEdit && (
+              <button type="button" onClick={onEdit} style={memberActionStyle()}>
+                {lang === "ta" ? "திருத்து" : "Edit"}
+              </button>
+            )}
+            {onDelete && (
+              <button type="button" disabled={deleting} onClick={onDelete}
+                style={memberActionStyle({ destructive: true, disabled: deleting })}>
+                {deleting ? "…" : (lang === "ta" ? "நீக்கு" : "Remove")}
+              </button>
+            )}
           </div>
           {identityLine && <div style={{ fontSize: "var(--text-sm)", color: "var(--color-muted)", marginTop: "3px" }}>{identityLine}</div>}
         </div>

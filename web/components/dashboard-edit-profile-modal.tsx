@@ -256,27 +256,45 @@ export function EditProfileModal({
                 latitude={birthForm.birthLatitude} longitude={birthForm.birthLongitude}
                 onEditClick={() => coordsConfirm.setEditing(true)} />
             )}
-            <WField label={lang === "ta" ? "தினசரி நேரங்களுக்கான தற்போதைய நகரம்" : "Current City (Daily Timings)"}>
+            {/* Where you live NOW — one field, not four, matching the member
+                editor. The owner reaches this modal from their own tile in the
+                family grid, so the two must not disagree about how the most
+                consequential setting on the screen is entered. */}
+            <WField label={lang === "ta" ? "இப்போது வசிக்கும் ஊர்" : "Where you live now"}>
               <PlaceCombobox value={birthForm.currentPlace}
+                aria-label={lang === "ta" ? "இப்போது வசிக்கும் ஊர்" : "Where you live now"}
                 lang={lang}
                 onChange={(city, raw) => onChange({
                   ...birthForm,
                   currentPlace: raw,
-                  ...(city ? { currentLatitude: city.lat, currentLongitude: city.lng, currentTimezone: city.timezone } : {}),
+                  // Free text that matched no city must not inherit the previous
+                  // city's coordinates — a new label over an old location is the
+                  // one state the server-side resolver cannot detect.
+                  ...(city
+                    ? { currentLatitude: city.lat, currentLongitude: city.lng, currentTimezone: city.timezone }
+                    : { currentLatitude: "", currentLongitude: "", currentTimezone: "" }),
                 })} />
             </WField>
-            <WField label={lang === "ta" ? "தற்போதைய நேர மண்டலம்" : "Current Timezone"}>
-              <WInput value={birthForm.currentTimezone}
-                onChange={(e) => onChange({ ...birthForm, currentTimezone: e.target.value })} />
-            </WField>
-            <WField label={lang === "ta" ? "தற்போதைய அகலம்" : "Current Latitude"}>
-              <WInput inputMode="decimal" value={birthForm.currentLatitude}
-                onChange={(e) => onChange({ ...birthForm, currentLatitude: e.target.value })} />
-            </WField>
-            <WField label={lang === "ta" ? "தற்போதைய தீர்க்கரம்" : "Current Longitude"}>
-              <WInput inputMode="decimal" value={birthForm.currentLongitude}
-                onChange={(e) => onChange({ ...birthForm, currentLongitude: e.target.value })} />
-            </WField>
+            {(birthForm.currentPlace || birthForm.currentTimezone) && (
+              <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", marginTop: "-6px" }}>
+                <span style={{ fontSize: "0.75rem", color: W.muted }}>
+                  {birthForm.currentTimezone
+                    ? `${birthForm.currentTimezone}${birthForm.currentLatitude && birthForm.currentLongitude ? ` · ${Number(birthForm.currentLatitude).toFixed(2)}, ${Number(birthForm.currentLongitude).toFixed(2)}` : ""}`
+                    : (lang === "ta" ? "நகரத்தை பட்டியலிலிருந்து தேர்ந்தெடுக்கவும்" : "Pick a city from the list to set the timezone")}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onChange({ ...birthForm, currentPlace: "", currentLatitude: "", currentLongitude: "", currentTimezone: "" })}
+                  style={{
+                    background: "none", border: "none", padding: 0,
+                    fontSize: "0.75rem", color: W.terracota, textDecoration: "underline",
+                    cursor: "pointer", fontFamily: "inherit",
+                  }}
+                >
+                  {lang === "ta" ? "நீக்கி பிறந்த ஊரை பயன்படுத்து" : "Clear — use birth place"}
+                </button>
+              </div>
+            )}
             <WField label={t("field_marital_status", lang)}>
               <WSelect value={birthForm.maritalStatus}
                 onChange={(e) => onChange({ ...birthForm, maritalStatus: e.target.value })}>

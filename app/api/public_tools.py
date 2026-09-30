@@ -20,14 +20,15 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy.orm import Session
 
-from app.calculations.astro import RASI_NAME_TO_NUMBER, RASI_NAMES, nakshatra_to_rasi
+from app.calculations.astro import RASI_NAME_TO_NUMBER, RASI_NAMES, format_clock_hhmm, nakshatra_to_rasi
 from app.calculations.muhurta_engine import display_score
 from app.calculations.numerology import ScriptMismatchError, analyze_object, build_profile
 from app.calculations.numerology_naming import NamingMode, UnverifiedCanonError
 from app.calculations.porutham import compute_porutham
+from app.constants.versions import CHART_CALCULATION_VERSION
 from app.core.public_endpoint_limiter import public_endpoint_rate_limit
 from app.db.session import get_db
-from app.schemas.birth_profiles import _validate_birth_date_bounds  # noqa: PLC2701 (shared validation)
+from app.schemas.birth_profiles import validate_birth_date_bounds
 from app.schemas.charts import ChartCalculateResponseData, ChartSummaryData
 from app.schemas.dasha import DashaTimelineResponseData
 from app.schemas.muhurta import MuhurtaResponse
@@ -87,7 +88,7 @@ class PublicBirthInput(BaseModel):
     @field_validator("birth_date_local")
     @classmethod
     def validate_birth_date_local(cls, value: date) -> date:
-        return _validate_birth_date_bounds(value)
+        return validate_birth_date_bounds(value)
 
 
 class PublicChartRequest(BaseModel):
@@ -178,7 +179,7 @@ def public_chart_preview(payload: PublicChartRequest, request: Request) -> Publi
     """Calculate a transient chart plus summary and dasha without persistence."""
     profile = _EphemeralProfile(payload.birth)
     try:
-        result = _chart_response_from_profile(profile, "thirukanitham-2026-v1")
+        result = _chart_response_from_profile(profile, CHART_CALCULATION_VERSION)
     except (ValueError, HTTPException) as exc:
         msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc
@@ -203,7 +204,7 @@ def public_chart(payload: PublicChartRequest, request: Request) -> PublicChartRe
     """
     profile = _EphemeralProfile(payload.birth)
     try:
-        result = _chart_response_from_profile(profile, "thirukanitham-2026-v1")
+        result = _chart_response_from_profile(profile, CHART_CALCULATION_VERSION)
     except (ValueError, HTTPException) as exc:
         msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc
@@ -223,8 +224,8 @@ def public_compare(payload: PublicPoruthamRequest, request: Request) -> PublicCo
         )
 
     try:
-        chart_a = _chart_response_from_profile(_EphemeralProfile(payload.person_a), "thirukanitham-2026-v1")
-        chart_b = _chart_response_from_profile(_EphemeralProfile(payload.person_b), "thirukanitham-2026-v1")
+        chart_a = _chart_response_from_profile(_EphemeralProfile(payload.person_a), CHART_CALCULATION_VERSION)
+        chart_b = _chart_response_from_profile(_EphemeralProfile(payload.person_b), CHART_CALCULATION_VERSION)
     except (ValueError, HTTPException) as exc:
         msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc
@@ -261,8 +262,8 @@ def public_compare_pdf(payload: PublicPoruthamRequest, request: Request, lang: s
         )
 
     try:
-        chart_a = _chart_response_from_profile(_EphemeralProfile(payload.person_a), "thirukanitham-2026-v1")
-        chart_b = _chart_response_from_profile(_EphemeralProfile(payload.person_b), "thirukanitham-2026-v1")
+        chart_a = _chart_response_from_profile(_EphemeralProfile(payload.person_a), CHART_CALCULATION_VERSION)
+        chart_b = _chart_response_from_profile(_EphemeralProfile(payload.person_b), CHART_CALCULATION_VERSION)
     except (ValueError, HTTPException) as exc:
         msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc
@@ -307,8 +308,8 @@ def public_porutham(payload: PublicPoruthamRequest, request: Request) -> PublicP
         )
 
     try:
-        chart_a = _chart_response_from_profile(_EphemeralProfile(payload.person_a), "thirukanitham-2026-v1")
-        chart_b = _chart_response_from_profile(_EphemeralProfile(payload.person_b), "thirukanitham-2026-v1")
+        chart_a = _chart_response_from_profile(_EphemeralProfile(payload.person_a), CHART_CALCULATION_VERSION)
+        chart_b = _chart_response_from_profile(_EphemeralProfile(payload.person_b), CHART_CALCULATION_VERSION)
     except (ValueError, HTTPException) as exc:
         msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc
@@ -610,8 +611,8 @@ def public_friendship_compatibility(payload: FriendshipRequest, request: Request
     from app.services.friendship_compatibility_service import get_friendship_report
 
     try:
-        chart_a = _chart_response_from_profile(_EphemeralProfile(payload.person_a), "thirukanitham-2026-v1")
-        chart_b = _chart_response_from_profile(_EphemeralProfile(payload.person_b), "thirukanitham-2026-v1")
+        chart_a = _chart_response_from_profile(_EphemeralProfile(payload.person_a), CHART_CALCULATION_VERSION)
+        chart_b = _chart_response_from_profile(_EphemeralProfile(payload.person_b), CHART_CALCULATION_VERSION)
     except (ValueError, HTTPException) as exc:
         msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc
@@ -871,7 +872,7 @@ def _quality_label(raw_score: float) -> str:
 
 def _format_clock_label(value) -> str:
     if hasattr(value, "strftime"):
-        value = value.strftime("%H:%M")
+        value = format_clock_hhmm(value)
     pieces = str(value).split(":")
     try:
         hour = int(pieces[0])
@@ -923,7 +924,7 @@ def public_personalized_muhurta(
 
     def _chart_for(birth: PublicBirthInput, *, which: str):
         try:
-            return _chart_response_from_profile(_EphemeralProfile(birth), "thirukanitham-2026-v1")
+            return _chart_response_from_profile(_EphemeralProfile(birth), CHART_CALCULATION_VERSION)
         except (ValueError, HTTPException) as exc:
             msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
             # Naming which of the two charts failed. Without it a couple's form
@@ -1525,7 +1526,7 @@ def public_baby_names_preview(
     _require_baby_naming_enabled()
     profile = _EphemeralProfile(payload.birth)
     try:
-        chart = _chart_response_from_profile(profile, "thirukanitham-2026-v1")
+        chart = _chart_response_from_profile(profile, CHART_CALCULATION_VERSION)
     except (ValueError, HTTPException) as exc:
         msg = exc.detail if isinstance(exc, HTTPException) else str(exc)
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=msg) from exc

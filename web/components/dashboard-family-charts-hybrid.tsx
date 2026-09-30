@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Pencil, Sparkles } from "lucide-react";
 
 import { apiFetchJson } from "@/lib/api";
-import { formatClockLabel, formatClockRange, scoreColor } from "@/lib/format";
+import { formatClockLabel, formatClockRange, formatDateLabelIn, scoreColor } from "@/lib/format";
 import { rasiDisplayName } from "@/lib/chart-utils";
 import { DASHA_PANEL, dt, SANI_CYCLE_CARD, SANI_CYCLE_LABELS } from "@/lib/dashboard-i18n";
 import { cycleDate, cycleText } from "@/lib/sani-cycle-card";
@@ -419,7 +419,11 @@ function HySaniCard({ lang, sani }: { lang: Lang; sani: SaniCycleData }) {
 }
 
 /* ── Member selector card — click to make this member the page's subject. ── */
-function HyMemberSelectorCard({
+/** Exported for test only — the edit affordance added here has an invariant
+ *  (its button must never end up nested inside the card's own button) that no
+ *  type or lint rule catches and that a browser resolves by silently dropping
+ *  or mis-dispatching the click. */
+export function HyMemberSelectorCard({
   lang,
   member,
   todayItem,
@@ -430,6 +434,7 @@ function HyMemberSelectorCard({
   careReason,
   saniCycles,
   onOpen,
+  onEdit,
 }: {
   lang: Lang;
   member: FamilyAggregateMember;
@@ -441,6 +446,9 @@ function HyMemberSelectorCard({
   careReason: CareReason | null;
   saniCycles: string[];
   onOpen: () => void;
+  /** Omitted while this member's chart is still loading — the editor opens from
+   *  the loaded birth profile and would otherwise show an empty form. */
+  onEdit?: () => void;
 }) {
   const summary = memberChart?.summary;
   const dasha = memberChart?.dasha;
@@ -453,10 +461,17 @@ function HyMemberSelectorCard({
     : "";
 
   return (
+    // The edit control is a SIBLING of the card, not a child: the card itself
+    // is a <button> (Pressable) and a button inside a button is invalid HTML —
+    // the inner one is dropped or swallows the outer one's clicks depending on
+    // the browser. Absolutely positioned top-right; the header row below
+    // reserves the width so it never lands on the score ring.
+    <div style={{ position: "relative", display: "flex", minWidth: 0 }}>
     <Pressable
       type="button"
       onClick={onOpen}
       style={{
+        flex: 1, minWidth: 0,
         textAlign: "left", cursor: "pointer", fontFamily: "inherit",
         background: isActive ? "var(--color-accent-muted)" : "var(--color-surface)",
         // Only a *today* condition tints the border. A Saturn cycle running for
@@ -466,7 +481,7 @@ function HyMemberSelectorCard({
         display: "flex", flexDirection: "column", gap: "var(--space-3)",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", paddingRight: onEdit ? "30px" : undefined }}>
         <span style={{ flexShrink: 0, width: "44px", height: "44px", borderRadius: "var(--radius-pill)", background: color, color: "var(--color-on-accent)", display: "grid", placeItems: "center", fontSize: "var(--text-md)", fontWeight: 700, fontFamily: "var(--font-display)" }}>
           {member.displayName.charAt(0).toUpperCase()}
         </span>
@@ -515,6 +530,28 @@ function HyMemberSelectorCard({
         </span>
       </div>
     </Pressable>
+      {onEdit && (
+        // 30×30 clears WCAG 2.2 SC 2.5.8 (24×24 minimum) without competing with
+        // the score ring for attention. The accessible name carries the member's
+        // name because a grid of these is otherwise eight identical "Edit"s to
+        // anyone listening rather than looking.
+        <Pressable
+          type="button"
+          onClick={onEdit}
+          aria-label={lang === "ta" ? `${member.displayName} விவரம் திருத்து` : `Edit ${member.displayName}'s details`}
+          title={lang === "ta" ? "விவரம் திருத்து" : "Edit details"}
+          style={{
+            position: "absolute", top: "var(--space-3)", right: "var(--space-3)",
+            width: "30px", height: "30px", display: "grid", placeItems: "center",
+            borderRadius: "var(--radius-sm)", border: "1px solid var(--color-border)",
+            background: "var(--color-surface)", color: "var(--color-muted)",
+            cursor: "pointer", fontFamily: "inherit", padding: 0,
+          }}
+        >
+          <Pencil size={14} strokeWidth={1.5} aria-hidden="true" />
+        </Pressable>
+      )}
+    </div>
   );
 }
 
@@ -595,6 +632,9 @@ export type DashboardFamilyChartsHybridProps = {
   onDeleteVault: (vaultId: string, name: string) => void;
   onDeleteMember: (memberId: string, name: string) => void;
   onEditMember: (member: FamilyAggregateMember) => void;
+  /** Opens the owner's OWN profile editor. The owner has no FamilyMember row,
+   *  so `onEditMember` cannot address them — see `editTargetFor`. */
+  onEditSelf?: () => void;
   onGoToLifeAreas?: () => void;
   /** Deep link-outs to specific Life Areas sub-tabs — the single homes for the
    *  full Remedies plan and 6/12-month Forecast (IA audit 2026-07-22, Phase
@@ -639,6 +679,7 @@ export function DashboardFamilyChartsHybrid({
   onSelectVault,
   onDeleteMember,
   onEditMember,
+  onEditSelf,
   focusSection,
   onFocusConsumed,
 }: DashboardFamilyChartsHybridProps) {
@@ -831,6 +872,28 @@ export function DashboardFamilyChartsHybrid({
     jumpTo("hy-overview");
   }
 
+  /** Which editor an Edit control opens, or `undefined` for none.
+   *
+   *  The owner's row is NOT a FamilyMember: the aggregate synthesises it with
+   *  `familyMemberId = birthProfileId` (family_vault_service `_owner_aggregate_
+   *  member`), so `onEditMember` looks that id up in `memberCharts`, finds
+   *  nothing and returns silently. That was survivable while Edit was one
+   *  hidden link on the full-profile screen; with a control on every tile it
+   *  would be a dead button on the tile the owner clicks first. The owner edits
+   *  their own record through the personal profile editor instead.
+   *
+   *  A member whose chart has not loaded gets no control rather than one that
+   *  opens an empty form. */
+  function editTargetFor(
+    isSelf: boolean,
+    member: FamilyAggregateMember,
+    chart: MemberChart | undefined,
+  ): (() => void) | undefined {
+    if (isSelf) return onEditSelf;
+    if (!chart) return undefined;
+    return () => onEditMember(member);
+  }
+
   // ── Full-profile screen (unchanged dedicated member view). ──
   if (detailView && activeMember) {
     return (
@@ -849,8 +912,12 @@ export function DashboardFamilyChartsHybrid({
         onNext={nextMember ? () => setSelectedMemberId(nextMember.familyMemberId) : null}
         prevName={prevMember?.displayName ?? null}
         nextName={nextMember?.displayName ?? null}
-        onEdit={() => onEditMember(activeMember)}
-        onDelete={() => onDeleteMember(activeMember.familyMemberId, activeMember.displayName)}
+        onEdit={editTargetFor(activeIsSelf, activeMember, reading)}
+        // Same reason as `editTargetFor`: the owner's row carries a synthetic
+        // familyMemberId, so a delete through the member endpoint would 404 —
+        // and removing yourself from your own vault is not an action this
+        // screen should offer anyway.
+        onDelete={activeIsSelf ? undefined : () => onDeleteMember(activeMember.familyMemberId, activeMember.displayName)}
         deleting={busy.deletingMemberId === activeMember.familyMemberId}
       />
     );
@@ -859,6 +926,14 @@ export function DashboardFamilyChartsHybrid({
   const dailyGuidance = reading?.dailyGuidance ?? null;
   const readingSummary = reading?.summary ?? null;
   const readingChart = reading?.chart ?? null;
+  // The birth facts the whole reading is derived from. Shown beside the astro
+  // chips so a reader can confirm the chart is the right person's before they
+  // believe anything it says — and so a family member picked from the switcher
+  // is identifiable by more than a display name. Comes off the chart response's
+  // own birthProfile, not the FamilyMember row: `FamilyMemberData` carries only
+  // `dateOfBirthLocal` (no time, no place), and for the owner there is no
+  // FamilyMember row at all.
+  const readingBirth = readingChart?.birthProfile ?? null;
   const nakshatraCard = reading?.nakshatraCard ?? null;
   // Chandrashtama for whoever is being read — the owner sees this spelled out
   // on their own Today hero, but a family member's only mention of it used to
@@ -1025,6 +1100,7 @@ export function DashboardFamilyChartsHybrid({
                   careReason={careReason}
                   saniCycles={saniCycles}
                   onOpen={() => selectMember(member.familyMemberId)}
+                  onEdit={editTargetFor(isSelf, member, chart)}
                 />
               ))}
             </div>
@@ -1100,16 +1176,42 @@ export function DashboardFamilyChartsHybrid({
                     )}
                   </div>
                 </div>
-                {/* Identity chips */}
-                {readingSummary && (
+                {/* Identity chips — the astro identity first, then the birth
+                    facts it was cast from. Birth place spans two columns: a
+                    place string ("Tiruchirappalli, Tamil Nadu, India") does not
+                    fit a 120px track without wrapping to three lines. */}
+                {(readingSummary || readingBirth) && (
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "var(--space-3)" }}>
                     {[
-                      [lang === "ta" ? "ராசி" : "Rasi", rasiDisplayName(readingSummary.moonRasi, lang)],
-                      [lang === "ta" ? "நட்சத்திரம்" : "Nakshatra", `${astroText(readingSummary.janmaNakshatra)} · ${readingSummary.janmaPada}`],
-                      [lang === "ta" ? "லக்னம்" : "Lagnam", rasiDisplayName(readingSummary.lagnaRasi, lang)],
-                      [lang === "ta" ? "வயது" : "Age", String(readingSummary.currentAge)],
-                    ].map(([label, value]) => (
-                      <Card key={label} style={{ display: "block", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)" }}>
+                      ...(readingSummary ? [
+                        { label: lang === "ta" ? "ராசி" : "Rasi", value: rasiDisplayName(readingSummary.moonRasi, lang) },
+                        { label: lang === "ta" ? "நட்சத்திரம்" : "Nakshatra", value: `${astroText(readingSummary.janmaNakshatra)} · ${readingSummary.janmaPada}` },
+                        { label: lang === "ta" ? "லக்னம்" : "Lagnam", value: rasiDisplayName(readingSummary.lagnaRasi, lang) },
+                        { label: lang === "ta" ? "வயது" : "Age", value: String(readingSummary.currentAge) },
+                      ] : []),
+                      ...(readingBirth ? [
+                        { label: lang === "ta" ? "பிறந்த தேதி" : "Born", value: formatDateLabelIn(readingBirth.birthDateLocal, lang) },
+                        {
+                          label: lang === "ta" ? "பிறந்த நேரம்" : "Birth time",
+                          // No time on file means the chart was cast for noon.
+                          // Printing "12:00 pm" here would assert a birth minute
+                          // nobody gave us, and the Lagnam chip two cells left is
+                          // exactly what that minute decides — so say it is
+                          // unknown and let the rectification banner carry the
+                          // rest. `lagnaEdgeNote` / the validation chip already
+                          // own the "how much does this move" question.
+                          value: readingBirth.birthTimeLocal
+                            ? formatClockLabel(readingBirth.birthTimeLocal, lang)
+                            : (lang === "ta" ? "தெரியாது" : "Unknown"),
+                        },
+                        ...(readingBirth.birthPlace ? [{
+                          label: lang === "ta" ? "பிறந்த இடம்" : "Birth place",
+                          value: readingBirth.birthPlace,
+                          span: 2,
+                        }] : []),
+                      ] : []),
+                    ].map(({ label, value, span }: { label: string; value: string; span?: number }) => (
+                      <Card key={label} style={{ display: "block", background: "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)", gridColumn: span ? `span ${span}` : undefined }}>
                         <Kicker as="div" color="var(--color-faint)">{label}</Kicker>
                         <div style={{ fontSize: "var(--text-base)", fontWeight: 600, color: "var(--color-text)", marginTop: "4px" }}>{value}</div>
                       </Card>
@@ -1184,7 +1286,7 @@ export function DashboardFamilyChartsHybrid({
                   {lang === "ta" ? "நவாம்சம் (D9) — திருமணம், தர்மம், கிரகங்களின் உள் வலிமை. D1-ஐ உறுதி செய்யும் நுட்பப் படம்." : "Navamsa (D9) — marriage, dharma and the inner strength of each planet. It confirms and refines the D1."}
                 </p>
               </Card>
-              <HyBhavaTable lang={lang} chart={readingChart} explanationPlanets={reading?.explanation?.planets} />
+              <HyBhavaTable lang={lang} chart={readingChart} explanationPlanets={reading?.explanation?.planets} bhavas={reading?.explanation?.bhavas?.bhavas} />
             </div>
 
             {/* Profile cards — birth star + rasi + lagnam, one unified look

@@ -7,7 +7,7 @@ import { useBirthProfileForm } from "@/hooks/useBirthProfileForm";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 import { dt, FAMILY_ONBOARDING, ONBOARDING_DETAIL_LEVEL } from "@/lib/dashboard-i18n";
-import type { FamilyVaultListItem } from "@/lib/types";
+import type { BirthProfileResponse, FamilyVaultListItem } from "@/lib/types";
 import { PlaceCombobox } from "./place-combobox";
 import { RectificationWizard } from "./dashboard-rectification-wizard";
 import { DashboardLearnArticleModal } from "./dashboard-learn-article-modal";
@@ -90,6 +90,9 @@ interface DashboardSetupTabProps {
   onCreateProfile: (e: FormEvent<HTMLFormElement>) => void;
   onAddMember: (e: FormEvent<HTMLFormElement>) => void;
   onShowEditProfile: () => void;
+  /** Opens the shared edit modal on one row of the all-birth-profiles list. */
+  onEditBirthProfile?: (profile: BirthProfileResponse) => void;
+  birthProfilesReloadToken?: number;
   onGoToPersonal: () => void;
   onModeChange?: (mode: UserMode) => void;
 }
@@ -205,6 +208,8 @@ export function DashboardSetupTab({
   onCreateProfile,
   onAddMember,
   onShowEditProfile,
+  onEditBirthProfile,
+  birthProfilesReloadToken,
   onGoToPersonal,
   userMode = "BALANCED",
   onModeChange,
@@ -611,7 +616,12 @@ export function DashboardSetupTab({
                 {lang === "ta" ? "பிறந்த விவர பட்டியல்" : "All birth profiles"}
               </h3>
             </div>
-            <BirthProfilesManager lang={lang} activeProfileId={birthProfileId} />
+            <BirthProfilesManager
+              lang={lang}
+              activeProfileId={birthProfileId}
+              onEditProfile={onEditBirthProfile}
+              reloadToken={birthProfilesReloadToken}
+            />
           </div>
         )}
 
@@ -789,7 +799,14 @@ export function DashboardSetupTab({
           during the open beta, when there is nothing to subscribe to ── */}
       {!!birthProfileId && !OPEN_BETA && (
         <div style={{
-          background: "linear-gradient(135deg, var(--color-surface-3) 0%, var(--color-surface-2) 100%)",
+          /* Was surface-3 -> surface-2. On light, surface-3 is the palette's
+             deepest cream and every ink in this panel is dark, so the deep end
+             was the contrast floor: --color-muted measured 4.47 there, under
+             AA, and --color-text-accent was no better. surface-soft keeps the
+             recessed-panel read (it is still a step below the card) and gives
+             the three inks their headroom back. Dark was unaffected either
+             way — there surface-3 is genuinely deeper and the inks are light. */
+          background: "linear-gradient(135deg, var(--color-surface-soft) 0%, var(--color-surface-2) 100%)",
           borderRadius: "var(--radius-md)", padding: "var(--space-5) var(--space-6)",
           display: "grid", gridTemplateColumns: "1fr auto", gap: "var(--space-4)",
           alignItems: "center",

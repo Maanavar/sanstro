@@ -6,12 +6,18 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.constants.versions import CHART_CALCULATION_VERSION
 from app.schemas.birth_profiles import BirthProfileResponse
 
 
 class ChartCalculateRequest(BaseModel):
     birth_profile_id: UUID = Field(alias="birthProfileId")
-    calculation_version: str = Field(default="thirukanitham-2026-v1", alias="calculationVersion")
+    #: Accepted and IGNORED. The engine version is the server's answer, not the
+    #: client's — `_chart_persist.calculate_chart` does not forward this. It
+    #: stays in the model because the config below is extra="forbid", so removing
+    #: it would 400 every deployed client that still sends it (web did, with a
+    #: literal two revisions behind). See app/constants/versions.py.
+    calculation_version: str = Field(default=CHART_CALCULATION_VERSION, alias="calculationVersion")
     force_recalculate: bool = Field(default=False, alias="forceRecalculate")
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid")

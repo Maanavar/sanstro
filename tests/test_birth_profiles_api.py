@@ -455,3 +455,47 @@ def test_confirm_location_refuses_a_profile_that_is_gone(client):
     response = client.post(f"/api/v1/birth-profiles/{profile_id}/confirm-location")
 
     assert response.status_code == 404
+
+
+def test_correcting_a_birth_time_actually_moves_the_chart(client):
+    """The cached UTC birth instant must follow a corrected birth time.
+
+    `BirthProfile.birth_datetime_utc` is written once at creation, and the chart
+    builder PREFERS it over `birth_date_local + birth_time_local +
+    birth_timezone` — it falls back to those only when the column is null. No
+    update path refreshed it, so a corrected birth time produced a brand-new
+    Chart row, with a new chart id and a "completed" status, holding exactly the
+    old planetary positions.
+
+    That is the worst shape a bug can take here: the reader is told the edit
+    succeeded, the chart id changes so caches genuinely turn over, and the
+    reading they get back is still cast from a birth minute they have just told
+    us was wrong. Nine hours must move the Lagna.
+    """
+    created = client.post(
+        "/api/v1/birth-profiles",
+        json={
+            "ownerUserId": "22222222-2222-2222-2222-222222222222",
+            "displayName": "Rectification Subject",
+            "birthDateLocal": "1991-07-22",
+            "birthTimeLocal": "06:30:00",
+            "birthPlace": "Chennai, Tamil Nadu, India",
+            "birthLatitude": 13.0827,
+            "birthLongitude": 80.2707,
+            "birthTimezone": "Asia/Kolkata",
+            "calculateNow": True,
+        },
+    ).json()["data"]
+    before = client.get(f"/api/v1/charts/{created['chartId']}").json()["data"]["lagna"]["rasi"]
+
+    updated = client.patch(
+        f"/api/v1/birth-profiles/{created['birthProfileId']}",
+        json={"birthTimeLocal": "15:30:00", "recalculate": True},
+    )
+    assert updated.status_code == 200
+
+    chart_id = updated.json()["data"].get("chartId")
+    assert chart_id is not None
+    after = client.get(f"/api/v1/charts/{chart_id}").json()["data"]
+    assert after["birthProfile"]["birthTimeLocal"].startswith("15:30")
+    assert after["lagna"]["rasi"] != before, "chart recalculated from the old birth instant"
