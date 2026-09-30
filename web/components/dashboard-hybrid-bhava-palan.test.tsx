@@ -212,6 +212,47 @@ describe("HyBhavaTable — titles say what the chip rates", () => {
   });
 });
 
+/**
+ * A green 10th under a weak Saturn — Saturn's own chip, lower on the page, says
+ * "Needs support". The contradiction is seen in the CLOSED row, so the line that
+ * answers it must be there too, not only in the expanded panel.
+ */
+describe("HyBhavaTable — contrast line", () => {
+  function tenth(): ChartExplanationBhava {
+    return {
+      ...seventh(),
+      house: 10,
+      rasi: 10,
+      rasiName: "Magaram",
+      lord: "SATURN",
+      verdict: "SUPPORTED",
+      bandWord: { ta: "வலுவானது", en: "Supported" },
+      houseLabel: { ta: "தொழில்", en: "Work & standing" },
+      contrast: {
+        ta: "அதிபதி சனி வலு குறைந்தவர்; ஆனால் சந்திரன், குரு ஆகியோர் இந்த வீட்டைத் தாங்குகின்றனர்.",
+        en: "Lord Saturn is weak, but Moon and Jupiter carry this house.",
+      },
+    };
+  }
+
+  it("shows in the closed row, in English", () => {
+    const { container } = render(<HyBhavaTable lang="en" chart={sampleChart()} bhavas={[seventh(), tenth()]} />);
+    const r = row(container, 10);
+    expect(r.getAttribute("aria-expanded")).toBe("false");
+    expect(r.textContent).toContain("Lord Saturn is weak, but Moon and Jupiter carry this house.");
+  });
+
+  it("shows in the closed row, in Tamil", () => {
+    const { container } = render(<HyBhavaTable lang="ta" chart={sampleChart()} bhavas={[seventh(), tenth()]} />);
+    expect(row(container, 10).textContent).toContain("ஆனால் சந்திரன், குரு ஆகியோர் இந்த வீட்டைத் தாங்குகின்றனர்");
+  });
+
+  it("adds nothing to a row whose payload carries no contrast", () => {
+    const { container } = render(<HyBhavaTable lang="en" chart={sampleChart()} bhavas={[seventh(), tenth()]} />);
+    expect(row(container, 7).textContent).not.toContain("Lord ");
+  });
+});
+
 describe("HyBhavaTable — older servers", () => {
   it("claims no verdict when the payload has no bhavas, instead of the old dot", () => {
     const { container } = render(<HyBhavaTable lang="en" chart={sampleChart()} />);

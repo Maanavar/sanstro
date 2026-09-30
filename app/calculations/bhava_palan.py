@@ -534,6 +534,143 @@ def render_karaka_note(palan: BhavaPalan) -> tuple[str, str] | None:
     )
 
 
+# ── Contrast line: the lord's chip and the house's chip disagree ────────────────
+#
+# Family & Charts draws the house chip in one table and each graha's own strength
+# chip in another, lower on the same page. A reader who sees "Supported" on the 10th
+# and "Needs support" on Saturn, its lord, reads a contradiction — and the why-line
+# made it worse, because `dominant_term` names the single LARGEST term: on a chart
+# where the lord pulls a 10th down by 6.5 and the Moon (+2.5) and Jupiter's aspect
+# (+4) together pull it up by more, the why-line names only Saturn, under a green
+# chip. This line names what actually carried the house, and it shows in the CLOSED
+# row, where the contradiction is seen.
+#
+# The planet chip's cuts live in web (`scoreLabel` in
+# web/components/dashboard-chart-explanation.tsx: >=70 Strong, <45 Needs support).
+# Mirrored, not shared, because the chip is drawn there; if those cuts move, move
+# these. A "Moderate" lord never contradicts anything, so it never fires.
+_LORD_CHIP_STRONG_AT = 70
+_LORD_CHIP_WEAK_BELOW = 45
+
+
+def _verdict_pull(house: int, verdict: Verdict) -> bool | None:
+    """Which way the NUMBER moved to earn this verdict: True up, False down.
+
+    On 6/8/12 the good band is the low one, so a Quiet house was pulled DOWN.
+    MIXED makes no claim, so there is nothing for a lord to contradict.
+    """
+    if verdict == "MIXED":
+        return None
+    up = verdict == "SUPPORTED"
+    return (not up) if polarity_of(house) == "INVERTED" else up
+
+
+def _pullers(
+    house: int,
+    lagna_rasi: int,
+    planets_rasi: dict[str, int],
+    exclude: str,
+    up: bool,
+) -> list[str]:
+    """Grahas whose occupancy or aspect moved this house in direction `up`, heaviest
+    first, with the same weights `_term_scores` uses (occupant 10, aspect 8 x
+    strength). The lord is excluded: "Saturn is weak, but Saturn carries it" is
+    not a reason."""
+    house_rasi = ((lagna_rasi + house - 2) % 12) + 1
+    weight: dict[str, float] = {}
+    for planet, rasi in planets_rasi.items():
+        if planet == exclude:
+            continue
+        benefic = effective_natural_class(planet, planets_rasi) == "BENEFIC"
+        if benefic != up or (not benefic and not _is_malefic(planet, planets_rasi)):
+            continue
+        w = 10.0 if rasi == house_rasi else 0.0
+        strength = aspect_strength(planet, rasi, house_rasi)
+        if strength > 0:
+            w += round(8 * strength)
+        if w > 0:
+            weight[planet] = w
+    # Stable sort: ties keep the placement dict's order, so output is deterministic.
+    return sorted(weight, key=lambda g: -weight[g])[:2]
+
+
+def _names_ta(names: list[str]) -> str:
+    """Same rule as the service's `_graha_list_ta`: a list of persons closes with ஆகியோர்."""
+    return names[0] if len(names) == 1 else f"{', '.join(names)} ஆகியோர்"
+
+
+def _names_en(names: list[str]) -> str:
+    return names[0] if len(names) == 1 else f"{', '.join(names[:-1])} and {names[-1]}"
+
+
+def render_contrast(
+    house: int,
+    lagna_rasi: int,
+    planets_rasi: dict[str, int],
+    planet_scores: dict[str, int],
+    verdict: Verdict,
+) -> tuple[str, str] | None:
+    """One short line for the closed row, only where the lord's own chip points the
+    other way from the house's chip. None everywhere else — a line on every row
+    would be read as boilerplate and skipped."""
+    pull = _verdict_pull(house, verdict)
+    if pull is None:
+        return None
+    house_rasi = ((lagna_rasi + house - 2) % 12) + 1
+    lord = SIGN_LORD[house_rasi]
+    score = planet_scores.get(lord)
+    if score is None:
+        return None
+    if score >= _LORD_CHIP_STRONG_AT:
+        lord_up = True
+    elif score < _LORD_CHIP_WEAK_BELOW:
+        lord_up = False
+    else:
+        return None
+
+    inverted = polarity_of(house) == "INVERTED"
+    lord_ta, lord_en = planet_ta(lord), planet_en(lord)
+    adj_ta, adj_en = ("வலுவானவர்", "strong") if lord_up else ("வலு குறைந்தவர்", "weak")
+    lead_ta = f"அதிபதி {lord_ta} {adj_ta}"
+    lead_en = f"Lord {lord_en} is {adj_en}"
+
+    if lord_up == pull:
+        # The lord explains the verdict on its own. That only LOOKS wrong on 6/8/12,
+        # where a weak lord earns a green chip and a strong one a red chip.
+        if not inverted:
+            return None
+        if pull:
+            return (f"{lead_ta}; அதனால் இந்த வீடு அதிகம் இயங்குகிறது.",
+                    f"{lead_en}, which keeps this house active.")
+        return (f"{lead_ta}; அதனால் இந்த வீடு அமைதியாக உள்ளது.",
+                f"{lead_en}, which keeps this house quiet.")
+
+    # Something other than the lord outweighed it — name it.
+    names = _pullers(house, lagna_rasi, planets_rasi, lord, pull)
+    if not names:
+        return None
+    who_ta = _names_ta([planet_ta(g) for g in names])
+    who_en = _names_en([planet_en(g) for g in names])
+    many = len(names) > 1
+    if not inverted and pull:
+        verb_ta = "இந்த வீட்டைத் தாங்குகின்றனர்" if many else "இந்த வீட்டைத் தாங்குகிறார்"
+        verb_en = "carry this house" if many else "carries this house"
+    elif not inverted:
+        verb_ta = ("இந்த வீட்டின் மேல் அழுத்தம் தருகின்றனர்" if many
+                   else "இந்த வீட்டின் மேல் அழுத்தம் தருகிறார்")
+        verb_en = "weigh on this house" if many else "weighs on this house"
+    elif pull:
+        verb_ta = ("இந்த வீட்டை அதிகம் இயங்க வைக்கின்றனர்" if many
+                   else "இந்த வீட்டை அதிகம் இயங்க வைக்கிறார்")
+        verb_en = "keep this house active" if many else "keeps this house active"
+    else:
+        verb_ta = ("இந்த வீட்டை அமைதியாக வைத்துள்ளனர்" if many
+                   else "இந்த வீட்டை அமைதியாக வைத்துள்ளார்")
+        verb_en = "keep this house quiet" if many else "keeps this house quiet"
+    return (f"{lead_ta}; ஆனால் {who_ta} {verb_ta}.",
+            f"{lead_en}, but {who_en} {verb_en}.")
+
+
 def render_polarity_note(palan: BhavaPalan) -> tuple[str, str] | None:
     """The line that stops a green chip on a low house looking like a bug."""
     if palan.polarity == "INVERTED":

@@ -207,6 +207,35 @@ def test_dusthana_polarity_and_notes_are_wired_through():
         assert by_house[house].polarity_note is None
 
 
+def test_the_contrast_line_reaches_the_schema_only_where_chips_disagree():
+    """Wired through, and serialised under the name web reads.
+
+    Mesha lagna, 10th = Magaram, lord Saturn at 40 (below web's 45 "Needs support"
+    cut) and placed in the 3rd, away from it. Venus and Mercury sit in the 10th and
+    Jupiter aspects it from the 4th, which carries it to Supported.
+    """
+    planets = [
+        _planet("SATURN", 3, strength=40),
+        _planet("VENUS", 10),
+        _planet("MERCURY", 10),
+        _planet("JUPITER", 4),
+    ]
+    section = _build_bhava_section(planets, lagna_rasi=1)
+    by_house = {b.house: b for b in section.bhavas}
+
+    tenth = by_house[10]
+    assert tenth.verdict == "SUPPORTED"
+    assert tenth.contrast is not None
+    assert tenth.contrast.en.startswith("Lord Saturn is weak, but ")
+    assert "carry this house" in tenth.contrast.en
+    assert tenth.contrast.ta
+    assert tenth.model_dump(by_alias=True)["contrast"]["en"] == tenth.contrast.en
+
+    # Every lord here other than Saturn sits at the neutral 50 ("Moderate"), so
+    # nothing else on the page contradicts anything.
+    assert all(b.contrast is None for h, b in by_house.items() if by_house[h].lord != "SATURN")
+
+
 def test_the_eighth_house_label_avoids_the_longevity_register():
     """ஆயுள் ஸ்தானம் is the almanac name and is deliberately NOT used — it invites
     exactly the longevity question this product permanently refuses."""

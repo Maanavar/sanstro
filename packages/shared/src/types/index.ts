@@ -1195,6 +1195,10 @@ export interface ChartExplanationBhava {
   karakaNote?: BiText | null;
   /** Why 6/8/12 (or 3/11) are read on a different scale. Absent on the other seven. */
   polarityNote?: BiText | null;
+  /** Short line for the closed row, present only where the lord's own strength
+   *  chip points against this house's chip — names what carried or held it.
+   *  Absent on most rows by design. */
+  contrast?: BiText | null;
 }
 
 export type BhavaVerdict = "SUPPORTED" | "MIXED" | "NEEDS_CARE";

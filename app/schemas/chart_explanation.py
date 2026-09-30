@@ -203,6 +203,11 @@ class ChartExplanationBhava(BaseModel):
     )
     karaka_note: ChartExplanationText | None = Field(default=None, alias="karakaNote")
     polarity_note: ChartExplanationText | None = Field(default=None, alias="polarityNote")
+    # One short line for the CLOSED row, present only where the lord's own strength
+    # chip points the other way from this house's chip (a green 10th under a weak
+    # Saturn; a red 12th under a strong Jupiter). Names what carried or held the
+    # house. `bhava_palan.render_contrast`.
+    contrast: ChartExplanationText | None = Field(default=None)
 
     model_config = ConfigDict(populate_by_name=True)
 

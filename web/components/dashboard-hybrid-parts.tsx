@@ -762,6 +762,15 @@ export function HyBhavaTable({ lang, chart, explanationPlanets, bhavas }: {
                   <span style={{ color: "var(--color-faint)" }}>{` · ${r.signLord}`}</span>
                 </>
               ) : r.signLord}
+              {/* Only on rows where the lord's own chip, further down the page,
+                  points the other way — the contradiction a reader sees without
+                  opening anything, so it is answered without opening anything.
+                  Column 2 stays visible at phone width; the planets column does not. */}
+              {palan?.contrast && (
+                <span style={{ display: "block", marginTop: "2px", color: "var(--color-muted)", lineHeight: 1.45 }}>
+                  {tl(lang, palan.contrast)}
+                </span>
+              )}
             </span>
             <span className="bp-occupants" style={{ fontSize: "var(--text-xs)", color: r.occupants.length ? "var(--color-accent-strong)" : "var(--color-faint)", minWidth: 0 }}>
               {r.occupants.length ? r.occupants.join(", ") : "—"}

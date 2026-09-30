@@ -16,6 +16,7 @@ from app.calculations.bhava_palan import (
     band_word,
     build_palan,
     render_conduct,
+    render_contrast,
     render_framing,
     render_karaka_note,
     render_polarity_note,
@@ -1784,6 +1785,9 @@ def _build_bhava_section(
             lean, slow = render_conduct(palan)
             karaka = render_karaka_note(palan)
             polarity_note = render_polarity_note(palan)
+            contrast = render_contrast(
+                house, lagna_rasi, planets_rasi, planet_scores, palan.verdict
+            )
 
         bhavas.append(
             ChartExplanationBhava(
@@ -1806,6 +1810,7 @@ def _build_bhava_section(
                 go_slowly_with=[_bi(t, e) for t, e in slow] if palan else [],
                 karaka_note=_bi(*karaka) if palan and karaka else None,
                 polarity_note=_bi(*polarity_note) if palan and polarity_note else None,
+                contrast=_bi(*contrast) if palan and contrast else None,
                 theme=theme,
                 explanation=_bi(
                     (

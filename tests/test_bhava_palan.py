@@ -16,6 +16,7 @@ import random
 import pytest
 
 from app.calculations import bhava_palan as bhava_palan_module
+from app.calculations.aspects import aspect_strength, effective_natural_class
 from app.calculations.bhava_palan import (
     CONDUCT,
     HOUSE_DOMAIN,
@@ -28,6 +29,7 @@ from app.calculations.bhava_palan import (
     lord_dignity_of,
     polarity_of,
     render_conduct,
+    render_contrast,
     render_framing,
     render_karaka_note,
     render_polarity_note,
@@ -46,6 +48,8 @@ from app.calculations.chart_strength import (
     compute_all_bhava_bala,
     compute_bhava_bala,
 )
+from app.calculations.display_names import planet_en
+from app.constants.astrology import SIGN_LORD
 from app.services.narrative_engine import mortality_validator, tone_validator
 
 PLANETS = ["SUN", "MOON", "MARS", "MERCURY", "JUPITER", "VENUS", "SATURN", "RAHU", "KETU"]
@@ -239,20 +243,23 @@ def test_no_fatalistic_or_mortality_phrasing_anywhere() -> None:
                 assert mortality_validator(text) == [], text
 
 
+_Q6_FENCE = (
+    # prohibition register
+    "don't", "do not ", "you must", "never marry", "avoid marriage",
+    # irreversible acts
+    "postpone", "cancel", "call it off", "walk out", "sell ", "resign",
+    # out-of-scope professional advice
+    "doctor", "medicine", "medical", "diagnos", "lawyer", "legal action", "sue ",
+    # fatalism the shared validator misses
+    "destroy", "ruin", "doomed", "suffer", "disaster", "hopeless", "no future",
+)
+
+
 def test_generated_copy_stays_inside_the_q6_fence() -> None:
     """Sweeps EVERY generated string, not just the conduct table, against the fence
     ruling Q6 set. This is the check that actually constrains the copy, because
     tone_validator's phrase list does not cover most of what we care about here."""
-    banned = (
-        # prohibition register
-        "don't", "do not ", "you must", "never marry", "avoid marriage",
-        # irreversible acts
-        "postpone", "cancel", "call it off", "walk out", "sell ", "resign",
-        # out-of-scope professional advice
-        "doctor", "medicine", "medical", "diagnos", "lawyer", "legal action", "sue ",
-        # fatalism the shared validator misses
-        "destroy", "ruin", "doomed", "suffer", "disaster", "hopeless", "no future",
-    )
+    banned = _Q6_FENCE
     for lagna, rasi, scores in _charts(150):
         bala = compute_all_bhava_bala(lagna, rasi, scores)
         for house in range(1, 13):
@@ -528,3 +535,138 @@ def test_the_band_is_unchanged_by_the_navamsa() -> None:
             assert without.verdict == with_d9.verdict
             assert without.bhava_bala == with_d9.bhava_bala
             assert without.polarity == with_d9.polarity
+
+
+# ── Contrast line: the lord's chip against the house's chip ─────────────────────
+#
+# A reader saw "Supported" on a 10th and "Needs support" on Saturn, its lord, lower
+# on the same page, and read it as a contradiction; the why-line named only Saturn,
+# under the green chip, because `dominant_term` picks the single largest term.
+# These mirror web's planet-chip cuts (`scoreLabel`: >=70 Strong, <45 Needs support).
+_STRONG_AT, _WEAK_BELOW = 70, 45
+
+
+def _lord_of(house: int, lagna: int) -> str:
+    return SIGN_LORD[((lagna + house - 2) % 12) + 1]
+
+
+def _each_house(n: int):
+    for lagna, rasi, scores in _charts(n):
+        bala = compute_all_bhava_bala(lagna, rasi, scores)
+        for house in range(1, 13):
+            verdict = verdict_of(house, bala[house])
+            yield lagna, rasi, scores, house, verdict, render_contrast(
+                house, lagna, rasi, scores, verdict
+            )
+
+
+def test_a_house_chip_against_its_lords_chip_is_never_left_unexplained() -> None:
+    """The gate. Every row where the two chips visibly disagree carries a line.
+
+    Measured over 800 charts: the dusthana case dominates (~1.7k), "carried" is
+    ~20, and "held" is ~0 — a lord at >=70 contributes >=35 on its own, so a
+    direct house under it only drops below 40 if its occupants and aspects are
+    near zero. That branch is exercised directly in the next test instead.
+    """
+    seen = {"carried": 0, "held": 0, "inverted": 0}
+    for lagna, _, scores, house, verdict, line in _each_house(800):
+        if verdict == "MIXED":
+            continue
+        lord_score = scores[_lord_of(house, lagna)]
+        weak, strong = lord_score < _WEAK_BELOW, lord_score >= _STRONG_AT
+        inverted = polarity_of(house) == "INVERTED"
+        lord_en = planet_en(_lord_of(house, lagna))
+        if not inverted and verdict == "SUPPORTED" and weak:
+            assert line is not None, f"green house {house} under weak {lord_en}, no line"
+            assert line[1].startswith(f"Lord {lord_en} is weak, but ")
+            seen["carried"] += 1
+        elif not inverted and verdict == "NEEDS_CARE" and strong:
+            assert line is not None, f"red house {house} under strong {lord_en}, no line"
+            assert line[1].startswith(f"Lord {lord_en} is strong, but ")
+            seen["held"] += 1
+        elif inverted and ((verdict == "SUPPORTED" and weak) or (verdict == "NEEDS_CARE" and strong)):
+            # The expected inversion, which still LOOKS wrong in a closed row.
+            assert line is not None, f"dusthana {house} under {lord_en}, no line"
+            assert "which keeps this house" in line[1]
+            seen["inverted"] += 1
+    assert seen["carried"] >= 10 and seen["inverted"] >= 10, seen
+
+
+def test_the_held_back_branch_names_the_malefics(monkeypatch) -> None:
+    """Unreachable at the real 70 cut (see above) and not even found by an 800-chart
+    sweep at a cut of 52, so build it by hand and lower the cut to reach it. Guards
+    the branch's copy against silent rot.
+
+    Mesha lagna, 7th = Thulam, lord Venus at 52, placed in the 8th — the 7th is the
+    12th from there, so the benefics parked with it cast no partial aspect back (the
+    11th would: a half-strength 9th-house aspect). Sun, Mars, Saturn and Ketu crowd
+    the 7th (occupant 10) and Rahu aspects it from the 1st (drishti 42):
+    26 + 2.5 + 10.5 = 39, NEEDS_CARE.
+    """
+    monkeypatch.setattr(bhava_palan_module, "_LORD_CHIP_STRONG_AT", 52)
+    rasi = {"SUN": 7, "MOON": 8, "MARS": 7, "MERCURY": 8, "JUPITER": 2,
+            "VENUS": 8, "SATURN": 7, "RAHU": 1, "KETU": 7}
+    scores = {p: 50 for p in rasi} | {"VENUS": 52}
+    bala = compute_bhava_bala(7, 1, rasi, scores)
+    assert verdict_of(7, bala) == "NEEDS_CARE", bala
+
+    line = render_contrast(7, 1, rasi, scores, "NEEDS_CARE")
+    assert line is not None
+    assert line[1].startswith("Lord Venus is strong, but ")
+    assert line[1].endswith("weigh on this house.")
+    assert "அழுத்தம் தருகின்றனர்" in line[0]
+
+
+def test_the_contrast_line_is_silent_where_nothing_contradicts() -> None:
+    for lagna, _, scores, house, verdict, line in _each_house(300):
+        lord_score = scores[_lord_of(house, lagna)]
+        moderate = _WEAK_BELOW <= lord_score < _STRONG_AT
+        if verdict == "MIXED" or moderate:
+            assert line is None, (house, verdict, lord_score, line)
+        elif polarity_of(house) != "INVERTED" and (
+            (verdict == "SUPPORTED" and lord_score >= _STRONG_AT)
+            or (verdict == "NEEDS_CARE" and lord_score < _WEAK_BELOW)
+        ):
+            # A green house under a strong lord needs no explaining.
+            assert line is None, (house, verdict, lord_score, line)
+
+
+def test_the_named_counterweights_really_pull_that_way() -> None:
+    """A 'carried by' graha must be a benefic in or aspecting the house, never the
+    lord itself; a 'weighs on' graha must be a malefic doing the same."""
+    checked = 0
+    for lagna, rasi, _, house, verdict, line in _each_house(800):
+        if line is None or ", but " not in line[1]:
+            continue
+        pull = bhava_palan_module._verdict_pull(house, verdict)
+        lord = _lord_of(house, lagna)
+        house_rasi = ((lagna + house - 2) % 12) + 1
+        named = bhava_palan_module._pullers(house, lagna, rasi, lord, pull)
+        assert named and lord not in named
+        for graha in named:
+            benefic = effective_natural_class(graha, rasi) == "BENEFIC"
+            assert benefic == pull, (graha, pull)
+            assert rasi[graha] == house_rasi or aspect_strength(graha, rasi[graha], house_rasi) > 0
+            assert planet_en(graha) in line[1].split(", but ")[1]
+        checked += 1
+    assert checked >= 10, checked
+
+
+def test_the_contrast_line_stays_the_exception() -> None:
+    """A line on every row reads as boilerplate and gets skipped. Measured at 1.74
+    per chart over 2,000 charts, whose uniform 15-85 scores are MORE extreme than
+    real ones, so real charts fire less."""
+    lines = sum(1 for *_, line in _each_house(1000) if line is not None)
+    assert lines / 1000 < 2.5, lines / 1000
+
+
+def test_the_contrast_line_passes_the_tone_and_q6_fences() -> None:
+    for *_, line in _each_house(200):
+        if line is None:
+            continue
+        for text in line:
+            assert tone_validator(text) == [], text
+            assert mortality_validator(text) == [], text
+            for phrase in _Q6_FENCE:
+                assert phrase not in text.lower(), f"{text!r} contains {phrase!r}"
+        assert "பலவீனம்" not in line[0]
