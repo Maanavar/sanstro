@@ -11,6 +11,16 @@ from sqlalchemy.orm import Session
 
 from app.calculations.aspects import aspect_houses, aspects_house
 from app.calculations.astro import RASI_NAMES, house_from_reference, utc_datetime_to_julian_day
+from app.calculations.bhava_palan import (
+    HOUSE_LABEL,
+    band_word,
+    build_palan,
+    render_conduct,
+    render_framing,
+    render_karaka_note,
+    render_polarity_note,
+    render_why,
+)
 from app.calculations.chart_strength import (
     _NATURAL_ENEMIES,
     _NATURAL_FRIENDS,
@@ -1677,6 +1687,7 @@ _SIGN_LORD_BY_RASI: dict[int, str] = SIGN_LORD
 def _build_bhava_section(
     planets: list[PlanetPosition],
     lagna_rasi: int,
+    d9_lagna_rasi: int | None = None,
 ) -> ChartExplanationBhavaSection:
     """Read all twelve bhavas as life areas.
 
@@ -1692,6 +1703,11 @@ def _build_bhava_section(
         p.graha: p.strength_score for p in planets if p.strength_score is not None
     }
     bhava_bala = compute_all_bhava_bala(lagna_rasi, planets_rasi, planet_scores)
+    # Read for the why-line only — D9 already reached `bhava_bala` upstream, inside
+    # each lord's `strength_score` (vargottama, D9 dignity, and the +14 neecha bhanga
+    # term). Passing it here lets the sentence say so when the Rasi chart drawn beside
+    # it appears to contradict the verdict; it moves no number.
+    d9_rasi = {p.graha: p.d9_rasi for p in planets}
 
     bhavas: list[ChartExplanationBhava] = []
     for house in range(1, 13):
@@ -1743,6 +1759,32 @@ def _build_bhava_section(
             aspect_ta = " எந்த கிரகப் பார்வையும் இதன் மேல் விழவில்லை."
             aspect_en = " No planetary aspect falls on it."
 
+        # Bhava palan — the verdict/why/conduct triple (2026-09-28). Built from the
+        # bala already computed above rather than recomputing it, so the panel and
+        # the number can never disagree.
+        house_bala = bhava_bala.get(house)
+        palan = (
+            build_palan(
+                house,
+                lagna_rasi,
+                planets_rasi,
+                planet_scores,
+                house_bala,
+                d9_rasi=d9_rasi,
+                d9_lagna_rasi=d9_lagna_rasi,
+            )
+            if house_bala is not None
+            else None
+        )
+        if palan is not None:
+            band_ta, band_en = band_word(palan.verdict, house)
+            label_ta, label_en = HOUSE_LABEL[house]
+            framing_ta, framing_en = render_framing(palan)
+            why_ta, why_en = render_why(palan, lord_house)
+            lean, slow = render_conduct(palan)
+            karaka = render_karaka_note(palan)
+            polarity_note = render_polarity_note(palan)
+
         bhavas.append(
             ChartExplanationBhava(
                 house=house,
@@ -1753,7 +1795,17 @@ def _build_bhava_section(
                 lord_strength=planet_scores.get(lord),
                 occupants=occupants,
                 aspecting_planets=aspecting,
-                bhava_bala=bhava_bala.get(house),
+                bhava_bala=house_bala,
+                verdict=palan.verdict if palan else None,
+                polarity=palan.polarity if palan else None,
+                band_word=_bi(band_ta, band_en) if palan else None,
+                house_label=_bi(label_ta, label_en) if palan else None,
+                framing=_bi(framing_ta, framing_en) if palan else None,
+                why=_bi(why_ta, why_en) if palan else None,
+                lean_on=[_bi(t, e) for t, e in lean] if palan else [],
+                go_slowly_with=[_bi(t, e) for t, e in slow] if palan else [],
+                karaka_note=_bi(*karaka) if palan and karaka else None,
+                polarity_note=_bi(*polarity_note) if palan and polarity_note else None,
                 theme=theme,
                 explanation=_bi(
                     (
@@ -2422,7 +2474,7 @@ def build_chart_explanation(
             conjunctions=_build_conjunctions(planets, data.lagna.rasi),
             aspects=_build_aspects(planets),
             house_groups=_build_house_groups(planets),
-            bhavas=_build_bhava_section(planets, data.lagna.rasi),
+            bhavas=_build_bhava_section(planets, data.lagna.rasi, data.lagna.d9_rasi),
             functional_nature=functional_nature,
             yoga_dosham=ChartExplanationYogaDoshamSection(
                 yogas=data.yogas,

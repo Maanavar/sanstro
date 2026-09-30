@@ -1169,7 +1169,32 @@ export interface ChartExplanationBhava {
   bhavaBala?: number | null;
   theme: BiText;
   explanation: BiText;
+
+  /**
+   * Bhava palan (2026-09-28) — the verdict/why/conduct triple the reading panel
+   * renders. Optional: older servers omit the whole group.
+   *
+   * Do NOT render `bhavaBala`. The scale is centred at 45 with a stdev of 6, so
+   * "45/100" reads as "mediocre" on a perfectly ordinary house. Render `bandWord`
+   * (already polarity-aware — the top band on 6/8/12 reads "Quiet", not
+   * "Supported") and let `verdict` drive styling only.
+   * docs/BHAVA_PALAN_SECTION_PLAN_2026-09-28.md §9.
+   */
+  verdict?: BhavaVerdict | null;
+  polarity?: BhavaPolarity | null;
+  bandWord?: BiText | null;
+  houseLabel?: BiText | null;
+  framing?: BiText | null;
+  why?: BiText | null;
+  leanOn?: BiText[];
+  goSlowlyWith?: BiText[];
+  karakaNote?: BiText | null;
+  /** Why 6/8/12 (or 3/11) are read on a different scale. Absent on the other seven. */
+  polarityNote?: BiText | null;
 }
+
+export type BhavaVerdict = "SUPPORTED" | "MIXED" | "NEEDS_CARE";
+export type BhavaPolarity = "DIRECT" | "UPACHAYA" | "INVERTED";
 
 export interface ChartExplanationBhavaSection {
   bhavas: ChartExplanationBhava[];
