@@ -59,6 +59,78 @@ def test_compound_grade_table_is_bphs_panchadha(natural, temporary_house, expect
     assert compound_relationship(planet, other, rasi_map) == expected
 
 
+# ── G1, exhaustively: an independent combination table ───────────────────────
+#
+# The six cases above show one example per grade, found by searching the
+# engine's OWN natural table for a pair — so a wrong friendship in that table
+# would just pick a different example and stay green. Below, all three inputs
+# are written out afresh from BPHS and nothing is imported to build them.
+
+#: BPHS naisargika maitri, the seven grahas. Each row partitions the other six.
+_BPHS_NATURAL: dict[str, dict[str, frozenset[str]]] = {
+    "SUN": {"friend": frozenset({"MOON", "MARS", "JUPITER"}), "neutral": frozenset({"MERCURY"}),
+            "enemy": frozenset({"VENUS", "SATURN"})},
+    "MOON": {"friend": frozenset({"SUN", "MERCURY"}),
+             "neutral": frozenset({"MARS", "JUPITER", "VENUS", "SATURN"}), "enemy": frozenset()},
+    "MARS": {"friend": frozenset({"SUN", "MOON", "JUPITER"}), "neutral": frozenset({"VENUS", "SATURN"}),
+             "enemy": frozenset({"MERCURY"})},
+    "MERCURY": {"friend": frozenset({"SUN", "VENUS"}), "neutral": frozenset({"MARS", "JUPITER", "SATURN"}),
+                "enemy": frozenset({"MOON"})},
+    "JUPITER": {"friend": frozenset({"SUN", "MOON", "MARS"}), "neutral": frozenset({"SATURN"}),
+                "enemy": frozenset({"MERCURY", "VENUS"})},
+    "VENUS": {"friend": frozenset({"MERCURY", "SATURN"}), "neutral": frozenset({"MARS", "JUPITER"}),
+              "enemy": frozenset({"SUN", "MOON"})},
+    "SATURN": {"friend": frozenset({"MERCURY", "VENUS"}), "neutral": frozenset({"JUPITER"}),
+               "enemy": frozenset({"SUN", "MOON", "MARS"})},
+}
+
+#: Tatkalika, by the other graha's house counted from the planet (1 = same sign).
+_BPHS_TEMPORARY_BY_HOUSE = {
+    1: "enemy", 2: "friend", 3: "friend", 4: "friend", 5: "enemy", 6: "enemy",
+    7: "enemy", 8: "enemy", 9: "enemy", 10: "friend", 11: "friend", 12: "friend",
+}
+
+#: Panchadha maitri: row = natural, column = temporary.
+_BPHS_PANCHADHA_GRID = {
+    "friend": {"friend": REL_GREAT_FRIEND, "enemy": REL_NEUTRAL},
+    "neutral": {"friend": REL_FRIEND, "enemy": REL_ENEMY},
+    "enemy": {"friend": REL_NEUTRAL, "enemy": REL_GREAT_ENEMY},
+}
+
+_SEVEN = tuple(_BPHS_NATURAL)
+
+
+def test_independent_natural_table_partitions_each_row():
+    """Guard on the reference itself: every row names each other graha once."""
+    for planet, row in _BPHS_NATURAL.items():
+        named = [g for bucket in row.values() for g in bucket]
+        assert sorted(named) == sorted(g for g in _SEVEN if g != planet), planet
+
+
+@pytest.mark.parametrize("planet", _SEVEN)
+def test_panchadha_matrix_is_exhaustively_bphs(planet):
+    """7 grahas x 6 others x 12 relative positions = 504 relationships, each
+    also placed at all 12 absolute signs so a wrap-around bug cannot hide in
+    the choice of anchor. Mismatches are collected and reported together."""
+    natural_of = {
+        other: bucket
+        for bucket, members in _BPHS_NATURAL[planet].items()
+        for other in members
+    }
+    mismatches = []
+    for other in _SEVEN:
+        if other == planet:
+            continue
+        for house in range(1, 13):
+            want = _BPHS_PANCHADHA_GRID[natural_of[other]][_BPHS_TEMPORARY_BY_HOUSE[house]]
+            for anchor in range(1, 13):
+                rasi_map = {planet: anchor, other: (anchor - 1 + house - 1) % 12 + 1}
+                got = compound_relationship(planet, other, rasi_map)
+                if got != want:
+                    mismatches.append(f"{planet}->{other} house {house} (anchor {anchor}): {got}, want {want}")
+    assert not mismatches, f"{len(mismatches)} mismatches, first: {mismatches[:6]}"
+
+
 def test_shadbala_uses_the_one_compound_definition():
     """Saptavargaja Bala and the production dignity score cannot drift apart."""
     assert shadbala._compound_relation is compound_relationship
