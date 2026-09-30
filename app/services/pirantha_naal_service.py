@@ -8,6 +8,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
+from app.calculations.astro import round_to_nearest_minute
 from app.calculations.panchangam import calculate_daily_panchangam, limb_fraction
 from app.services.narrative_engine import NAKSHATRA_NAME
 
@@ -41,6 +42,12 @@ def _format_clock_label(value: datetime | time | None) -> str:
     values that survive a cache round-trip."""
     if value is None:
         return "N/A"
+    # Round before reading .hour/.minute: those truncate, so a 19:04:58
+    # nakshatra end printed as "7:04 pm" is a minute early. Only a datetime
+    # can be rounded (round_to_nearest_minute needs the date for its midnight
+    # clamp); a bare `time` survives a cache round-trip already second-less.
+    if isinstance(value, datetime):
+        value = round_to_nearest_minute(value)
     try:
         hour = int(value.hour)
         minute = int(value.minute)

@@ -164,7 +164,11 @@ def test_module_backend_calls_rise_trans_with_the_pyswisseph_signature(
     assert recorded["body"] == 0
     # geopos is (longitude, latitude, altitude) — eastern/northern positive.
     assert recorded["geopos"] == (80.2707, 13.0827, 0.0)
-    assert recorded["rsmi"] == expected_direction_bit | ephemeris._RSMI_HINDU_RISING
+    # The ruled default adds NO extra rsmi bits (apparent upper limb +
+    # refraction is Swiss Ephemeris's own default), so rsmi is the bare
+    # direction bit. Asserted against the named constant rather than a literal
+    # 0, so a future convention change fails here instead of passing silently.
+    assert recorded["rsmi"] == expected_direction_bit | ephemeris._RSMI_APPARENT_UPPER_LIMB
     assert recorded["flags"] == 987654
     assert recorded["atpress"] == 0.0
     assert recorded["attemp"] == 0.0

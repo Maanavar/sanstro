@@ -25,7 +25,7 @@ from app.calculations.chart_strength import (
     natural_relationship,
     yuti_orb_factor,
 )
-from app.services._chart_planets import _is_daytime_birth, _is_daytime_birth_for_profile
+from app.services._chart_planets import resolve_daytime_birth, resolve_daytime_birth_for_profile
 
 pytestmark = pytest.mark.no_db
 
@@ -148,23 +148,31 @@ OSLO = {"birth_latitude": 59.91, "birth_longitude": 10.75, "birth_timezone": "Eu
 
 def test_high_latitude_summer_dawn_is_a_day_birth():
     """Oslo midsummer sunrise is ~04:00: 05:00 is daylight though the clock says night."""
-    assert _is_daytime_birth(time(5, 0), birth_date=date(2001, 6, 21), **OSLO) is True
-    assert _is_daytime_birth(time(5, 0)) is False  # clock fallback, the old answer
+    assert resolve_daytime_birth(time(5, 0), birth_date=date(2001, 6, 21), **OSLO) is True
+    assert resolve_daytime_birth(time(5, 0)) is False  # clock fallback, the old answer
 
 
 def test_high_latitude_winter_morning_is_a_night_birth():
     """Oslo midwinter sunrise is ~09:20: 08:30 is still night though the clock says day."""
-    assert _is_daytime_birth(time(8, 30), birth_date=date(2001, 12, 21), **OSLO) is False
-    assert _is_daytime_birth(time(8, 30)) is True
+    assert resolve_daytime_birth(time(8, 30), birth_date=date(2001, 12, 21), **OSLO) is False
+    assert resolve_daytime_birth(time(8, 30)) is True
 
 
-def test_unknown_birth_time_stays_a_day_birth():
-    assert _is_daytime_birth(None, birth_date=date(2001, 6, 21), **OSLO) is True
+def test_unknown_birth_time_is_unresolved_not_a_day_birth():
+    """Was `is True` — asserting the fabrication back at itself.
+
+    A place and date resolve nothing without a time: the Sun's altitude is a
+    function of the instant. Returning True here handed Kala Bala an invented
+    diurnal birth. `None` is the honest answer and is scored neutrally
+    downstream — see tests/test_gulika.py's day/night section.
+    """
+    assert resolve_daytime_birth(None, birth_date=date(2001, 6, 21), **OSLO) is None
+    assert resolve_daytime_birth(None) is None
 
 
 def test_profile_helper_reads_the_same_fields():
     profile = SimpleNamespace(birth_time_local=time(5, 0), birth_date_local=date(2001, 6, 21), **OSLO)
-    assert _is_daytime_birth_for_profile(profile) is True
+    assert resolve_daytime_birth_for_profile(profile) is True
 
 
 # ── G4 ────────────────────────────────────────────────────────────────────────

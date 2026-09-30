@@ -51,6 +51,7 @@ from app.calculations.transits import (
     find_saturn_ingress_jd,
     is_combust,
 )
+from app.constants.versions import API_RESPONSE_VERSION
 from app.models import BirthProfile, Chart, JournalEntry
 from app.reasoning.verdict import Band, band_to_legacy_confidence
 from app.schemas.charts import ChartCalculateResponse
@@ -87,7 +88,7 @@ from app.schemas.daily_guidance import (
     WeekAheadResponse,
 )
 from app.schemas.dasha import ResponseMeta
-from app.services._chart_planets import _is_daytime_birth_for_profile
+from app.services._chart_planets import resolve_daytime_birth_for_profile
 from app.services._dg_cache import (
     DAILY_SCORE_ENGINE_VERSION,
     _load_daily_score_cache,
@@ -578,7 +579,7 @@ def build_daily_guidance_response(
     moon_lon = float(natal_moon_data.absolute_longitude) if natal_moon_data else 0.0
     # True sunrise/sunset at the birth place (engine audit G3) — the same
     # day/night the chart's own strength scores were computed with.
-    is_daytime = _is_daytime_birth_for_profile(birth_profile)
+    is_daytime = resolve_daytime_birth_for_profile(birth_profile)
     paksha_is_shukla = ((moon_lon - sun_lon) % 360.0) < 180.0
     natal_rasi_by_graha = {p.graha: p.rasi for p in chart_snapshot.data.planets}
 
@@ -1439,7 +1440,7 @@ def get_week_ahead(
     profile_id: UUID,
     week_start: date,
     language: str = "ta-en",
-    calculation_version: str = "thirukanitham-2026-v1",
+    calculation_version: str = API_RESPONSE_VERSION,
 ) -> WeekAheadResponse:
     """
     FEATURE-07: Weekly digest endpoint.
@@ -1589,7 +1590,7 @@ def get_week_ahead_by_chart(
     chart_id: UUID,
     week_start: date,
     language: str = "ta-en",
-    calculation_version: str = "thirukanitham-2026-v1",
+    calculation_version: str = API_RESPONSE_VERSION,
 ) -> WeekAheadResponse:
     chart = session.get(Chart, chart_id)
     if chart is None:
@@ -1779,7 +1780,7 @@ def get_activity_timing(
     activity: str,
     month: str,
     as_of: date | None = None,
-    calculation_version: str = "thirukanitham-2026-v1",
+    calculation_version: str = API_RESPONSE_VERSION,
     *,
     partner_chart_id: UUID | None = None,
     subject_role: str | None = None,
@@ -1966,7 +1967,7 @@ def get_journal_correlations(
     session: Session,
     chart_id: UUID,
     lookback_days: int = 90,
-    calculation_version: str = "thirukanitham-2026-v1",
+    calculation_version: str = API_RESPONSE_VERSION,
 ) -> JournalCorrelationResponse:
     """
     FEATURE-12: Correlates journal mood ratings with astrological conditions.

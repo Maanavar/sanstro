@@ -35,7 +35,13 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.calculations.astro import nakshatra_to_rasi, resolve_rasi, resolve_timezone, utc_datetime_to_julian_day
+from app.calculations.astro import (
+    format_clock_hhmm,
+    nakshatra_to_rasi,
+    resolve_rasi,
+    resolve_timezone,
+    utc_datetime_to_julian_day,
+)
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.muhurta_engine import (
@@ -334,7 +340,7 @@ def _norm(lord: str) -> str:
 
 def _format_clock_label(value) -> str:
     if hasattr(value, "strftime"):
-        value = value.strftime("%H:%M")
+        value = format_clock_hhmm(value)
     pieces = str(value).split(":")
     try:
         hour = int(pieces[0])
@@ -1145,7 +1151,7 @@ def find_best_muhurta_slots(
                 window = _best_time_window(snap, activity, lagna_rasi, couple_mode=co_subject is not None)
                 day_score += window.hora_bonus
                 slot_start, slot_end = window.start, window.end
-                t_start, t_end = slot_start.strftime("%H:%M"), slot_end.strftime("%H:%M")
+                t_start, t_end = format_clock_hhmm(slot_start), format_clock_hhmm(slot_end)
                 slot_cautions = list(cautions)
                 slot_factors = [MuhurtaFactor.from_engine(f) for f in day.factors]
 

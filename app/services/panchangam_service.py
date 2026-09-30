@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfoNotFoundError
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+from app.calculations.astro import format_clock_hhmm
 from app.calculations.festivals import get_festivals_for_date
 from app.calculations.panchangam import (
     _compute_subha_muhurtham_broad,
@@ -83,8 +84,8 @@ def _gowri_conflict_warning(slot, snapshot) -> str | None:
 
 def _build_slot(slot, snapshot, *, warn_on_conflict: bool) -> PanchangamSlot:
     return PanchangamSlot(
-        start=slot.start.strftime("%H:%M"),
-        end=slot.end.strftime("%H:%M"),
+        start=format_clock_hhmm(slot.start),
+        end=format_clock_hhmm(slot.end),
         slot=slot.slot,
         warning=_gowri_conflict_warning(slot, snapshot) if warn_on_conflict else None,
         name=slot.name,
@@ -96,18 +97,18 @@ def _build_slot(slot, snapshot, *, warn_on_conflict: bool) -> PanchangamSlot:
 def _build_kalam(snapshot) -> PanchangamKalam:
     return PanchangamKalam(
         rahu_kalam=PanchangamSlot(
-            start=snapshot.rahu_kalam.start.strftime("%H:%M"),
-            end=snapshot.rahu_kalam.end.strftime("%H:%M"),
+            start=format_clock_hhmm(snapshot.rahu_kalam.start),
+            end=format_clock_hhmm(snapshot.rahu_kalam.end),
             slot=snapshot.rahu_kalam.slot,
         ),
         yamagandam=PanchangamSlot(
-            start=snapshot.yamagandam.start.strftime("%H:%M"),
-            end=snapshot.yamagandam.end.strftime("%H:%M"),
+            start=format_clock_hhmm(snapshot.yamagandam.start),
+            end=format_clock_hhmm(snapshot.yamagandam.end),
             slot=snapshot.yamagandam.slot,
         ),
         kuligai=PanchangamSlot(
-            start=snapshot.kuligai.start.strftime("%H:%M"),
-            end=snapshot.kuligai.end.strftime("%H:%M"),
+            start=format_clock_hhmm(snapshot.kuligai.start),
+            end=format_clock_hhmm(snapshot.kuligai.end),
             slot=snapshot.kuligai.slot,
         ),
         gowri_panchangam=[
@@ -220,6 +221,41 @@ def _build_special_tithi_day(snapshot) -> PanchangamSpecialTithiDay | None:
     return None
 
 
+def _ends(moment: datetime) -> dict[str, str]:
+    """The `endsAt` / `endsAtIso` field pair for ONE instant.
+
+    Every limb boundary ships twice: a nearest-minute display string and the
+    exact instant. Those are two renderings of one event and must never name two
+    different events, so they are produced from a single argument here rather
+    than typed out side by side at each call site.
+
+    That hand-wiring was the real hazard. Eight pairs in this module each named
+    their snapshot field twice, and nothing structural stopped one of them
+    reading `nakshatra_ends_at` for the clock and `tithi_ends_at` for the ISO —
+    a mis-wire that ships a boundary a client cannot reconcile, with no type
+    error and no test failure unless a test happens to compare the two. Passing
+    the instant once removes the class.
+
+    Why the two strings still differ by up to 30 s, deliberately: `endsAt` is
+    presentation and rounds half-up (`format_clock_hhmm`, doctrine §1); the ISO
+    value stays exact because clients compare it against `now` to decide whether
+    a limb has rolled over, and rounding it would report a limb still active for
+    up to 30 s after it ended. So `endsAtIso[11:16]` is NOT `endsAt` — it
+    truncates. Round it before comparing.
+    """
+    return {"ends_at": format_clock_hhmm(moment), "ends_at_iso": moment.isoformat()}
+
+
+def _starts(moment: datetime) -> dict[str, str]:
+    """The `startsAt` / `startsAtIso` pair for one instant. See `_ends`.
+
+    A span's start is the previous span's end — the same instant — and both go
+    through the same pure rounding, so the shared boundary renders as one time on
+    both sides of it.
+    """
+    return {"starts_at": format_clock_hhmm(moment), "starts_at_iso": moment.isoformat()}
+
+
 def _spans(spans) -> list[PanchangamLimbSpan]:
     """Map engine spans onto the wire shape.
 
@@ -232,10 +268,8 @@ def _spans(spans) -> list[PanchangamLimbSpan]:
         PanchangamLimbSpan(
             number=span.number,
             name=span.name,
-            starts_at=span.start.strftime("%H:%M"),
-            ends_at=span.end.strftime("%H:%M"),
-            starts_at_iso=span.start.isoformat(),
-            ends_at_iso=span.end.isoformat(),
+            **_starts(span.start),
+            **_ends(span.end),
             fraction=round(span.fraction, 4),
         )
         for span in spans
@@ -251,16 +285,15 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
             date_local=snapshot.date_local,
             tamil_date=_build_tamil_date(snapshot),
             location=PanchangamLocation(lat=snapshot.latitude, lng=snapshot.longitude, timezone=snapshot.timezone_name),
-            sunrise=snapshot.sunrise.strftime("%H:%M"),
-            sunset=snapshot.sunset.strftime("%H:%M"),
-            solar_noon=snapshot.solar_noon.strftime("%H:%M"),
+            sunrise=format_clock_hhmm(snapshot.sunrise),
+            sunset=format_clock_hhmm(snapshot.sunset),
+            solar_noon=format_clock_hhmm(snapshot.solar_noon),
             vara=PanchangamVara(weekday=snapshot.weekday, lord=snapshot.weekday_lord),
             tithi=PanchangamTithi(
                 number=snapshot.tithi_number,
                 name=snapshot.tithi_name,
                 paksha=snapshot.tithi_paksha,
-                ends_at=snapshot.tithi_ends_at.strftime("%H:%M"),
-                ends_at_iso=snapshot.tithi_ends_at.isoformat(),
+                **_ends(snapshot.tithi_ends_at),
                 next_number=snapshot.tithi_next_number,
                 next_name=snapshot.tithi_next_name,
                 next_paksha=snapshot.tithi_next_paksha,
@@ -269,30 +302,27 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
             nakshatra=PanchangamNakshatra(
                 name=snapshot.nakshatra_name,
                 pada=snapshot.nakshatra_pada,
-                ends_at=snapshot.nakshatra_ends_at.strftime("%H:%M"),
-                ends_at_iso=snapshot.nakshatra_ends_at.isoformat(),
+                **_ends(snapshot.nakshatra_ends_at),
                 next_name=snapshot.nakshatra_next_name,
                 spans=_spans(snapshot.nakshatra_spans),
             ),
             yoga=PanchangamYoga(
                 number=snapshot.yoga_number,
                 name=snapshot.yoga_name,
-                ends_at=snapshot.yoga_ends_at.strftime("%H:%M"),
-                ends_at_iso=snapshot.yoga_ends_at.isoformat(),
+                **_ends(snapshot.yoga_ends_at),
                 next_name=snapshot.yoga_next_name,
                 spans=_spans(snapshot.yoga_spans),
             ),
             karana=PanchangamKarana(
                 name=snapshot.karana_name,
-                ends_at=snapshot.karana_ends_at.strftime("%H:%M"),
-                ends_at_iso=snapshot.karana_ends_at.isoformat(),
+                **_ends(snapshot.karana_ends_at),
                 next_name=snapshot.karana_next_name,
                 spans=_spans(snapshot.karana_spans),
             ),
             kalam=_build_kalam(snapshot),
             abhijit=PanchangamAbhijit(
-                start=snapshot.abhijit_start.strftime("%H:%M"),
-                end=snapshot.abhijit_end.strftime("%H:%M"),
+                start=format_clock_hhmm(snapshot.abhijit_start),
+                end=format_clock_hhmm(snapshot.abhijit_end),
                 is_restricted_by_weekday=snapshot.abhijit_restricted,
             ),
             subha_muhurtham=PanchangamSubhaMuhurtham(
@@ -306,8 +336,8 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
                 PanchangamHoraEntry(
                     index=entry.index,
                     lord=entry.lord,
-                    start=entry.start.strftime("%H:%M"),
-                    end=entry.end.strftime("%H:%M"),
+                    start=format_clock_hhmm(entry.start),
+                    end=format_clock_hhmm(entry.end),
                 )
                 for entry in snapshot.hora
             ],
@@ -320,8 +350,7 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
             lagnam=PanchangamLagnam(
                 rasi_number=snapshot.lagna_rasi_number,
                 rasi_name=snapshot.lagna_rasi_name,
-                ends_at=snapshot.lagna_ends_at.strftime("%H:%M"),
-                ends_at_iso=snapshot.lagna_ends_at.isoformat(),
+                **_ends(snapshot.lagna_ends_at),
                 nazhigai=snapshot.lagna_nazhigai,
                 vinadi=snapshot.lagna_vinadi,
             ),
@@ -335,13 +364,11 @@ def calculate_panchangam(query: PanchangamDailyQuery, session: Session | None = 
                 jeevan=snapshot.jeevan,
                 nethiram_next=snapshot.nethiram_next,
                 jeevan_next=snapshot.jeevan_next,
-                ends_at=snapshot.nakshatra_ends_at.strftime("%H:%M"),
-                ends_at_iso=snapshot.nakshatra_ends_at.isoformat(),
+                **_ends(snapshot.nakshatra_ends_at),
             ),
             amirdhadhi_yogam=PanchangamAmirdhadhiYogam(
                 name=snapshot.amirdhadhi_yogam_name,
-                ends_at=snapshot.amirdhadhi_yogam_ends_at.strftime("%H:%M"),
-                ends_at_iso=snapshot.amirdhadhi_yogam_ends_at.isoformat(),
+                **_ends(snapshot.amirdhadhi_yogam_ends_at),
                 next_name=snapshot.amirdhadhi_yogam_next_name,
                 status="preliminary",
             ),
@@ -383,13 +410,13 @@ def calculate_panchangam_timings(query: PanchangamDailyQuery, session: Session |
         data=PanchangamTimingsData(
             date_local=snapshot.date_local,
             location=PanchangamLocation(lat=snapshot.latitude, lng=snapshot.longitude, timezone=snapshot.timezone_name),
-            sunrise=snapshot.sunrise.strftime("%H:%M"),
-            sunset=snapshot.sunset.strftime("%H:%M"),
-            solar_noon=snapshot.solar_noon.strftime("%H:%M"),
+            sunrise=format_clock_hhmm(snapshot.sunrise),
+            sunset=format_clock_hhmm(snapshot.sunset),
+            solar_noon=format_clock_hhmm(snapshot.solar_noon),
             kalam=_build_kalam(snapshot),
             abhijit=PanchangamAbhijit(
-                start=snapshot.abhijit_start.strftime("%H:%M"),
-                end=snapshot.abhijit_end.strftime("%H:%M"),
+                start=format_clock_hhmm(snapshot.abhijit_start),
+                end=format_clock_hhmm(snapshot.abhijit_end),
                 is_restricted_by_weekday=snapshot.abhijit_restricted,
             ),
             subha_muhurtham=PanchangamSubhaMuhurtham(
@@ -403,8 +430,8 @@ def calculate_panchangam_timings(query: PanchangamDailyQuery, session: Session |
                 PanchangamHoraEntry(
                     index=entry.index,
                     lord=entry.lord,
-                    start=entry.start.strftime("%H:%M"),
-                    end=entry.end.strftime("%H:%M"),
+                    start=format_clock_hhmm(entry.start),
+                    end=format_clock_hhmm(entry.end),
                 )
                 for entry in snapshot.hora
             ],

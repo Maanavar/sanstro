@@ -13,6 +13,7 @@ from app.calculations.astro import (
     RASI_NAMES,
     chandrashtama_janma_angle,
     chandrashtama_janma_nakshatra,
+    format_clock_hhmm,
     julian_day_to_utc_datetime,
     nakshatra_from_degree,
     normalize_longitude,
@@ -113,6 +114,26 @@ WEEKDAY_LORDS = {
 RAHU_SLOT = {6: 8, 0: 2, 1: 7, 2: 5, 3: 6, 4: 4, 5: 3}
 YAMA_SLOT = {6: 5, 0: 4, 1: 3, 2: 2, 3: 1, 4: 7, 5: 6}
 KULIGAI_SLOT = {6: 7, 0: 6, 1: 5, 2: 4, 3: 3, 4: 2, 5: 1}
+# Night Gulika: sunset -> next sunrise in 8 equal parts, rulership beginning
+# from the lord of the FIFTH weekday hence (inclusive), Saturn's portion being
+# Gulika. Sunday -> Saturday = [3, 2, 1, 7, 6, 5, 4].
+#
+# Derivation, Sunday: the 5th weekday from Sunday is Thursday, so the parts run
+# Jupiter, Venus, Saturn -> Saturn is the 3rd. Wednesday: 5th is Sunday, so
+# Sun, Moon, Mars, Mercury, Jupiter, Venus, Saturn -> Saturn is the 7th.
+#
+# This corrects a `day_slot + 4` wrapped modulo 8 form that used to live in
+# app/services/_chart_planets.py under a Maandhi name. That form coincides with
+# the rule above only for Sunday, Monday and Tuesday, where the sum exceeds 8
+# and wraps; for Wednesday through Saturday it was one part late, and it put
+# Wednesday on the 8th part, which under this rule has NO lord at all and so
+# can never be Saturn's. Only three of the seven weekdays were ever right.
+#
+# Gulika is NOT Maandhi. Maandhi is a proportional nazhigai measure with its
+# own constants (`MAANDHI_DAY_NAZHIGAI` in app/services/_chart_planets.py) and
+# is deliberately not derived from any eighth-part slot — owner ruling
+# 2026-09-29. Do not alias the two.
+KULIGAI_NIGHT_SLOT = {6: 3, 0: 2, 1: 1, 2: 7, 3: 6, 4: 5, 5: 4}
 # Gowri Panchangam full engine tables. Day slots run sunrise->sunset; night slots
 # run sunset->next sunrise. Names are kept normalized for API consumers.
 # Traditional Gowri Panchangam kala names, per the project's frozen spec
@@ -556,7 +577,22 @@ DEFAULT_AYANAMSA_TYPE = "LAHIRI"
 # corrected, and snapshots now carry the affected star AT SUNRISE, which is what
 # the personal Chandrashtama flag reads. A warmed cache would otherwise keep
 # serving the old boundaries to a flag that now depends on them being right.
-PANCHANGAM_CACHE_DATA_VERSION = 46
+# v47 (2026-09-29, owner ruling superseding WI-07's original choice):
+# sunrise/sunset reverted from SE_BIT_HINDU_RISING (disc centre, no refraction)
+# to Swiss Ephemeris's standard APPARENT upper-limb + refraction event — the
+# modern Drik convention of India's Rashtriya Panchang and DrikPanchang's
+# default. v33 had adopted disc-centre on the premise that it "matches every
+# printed Tamil panchangam"; that premise was never verified against any
+# printed edition, and it put every published value ~3.5 min out at both ends.
+# Sunrise moves ~3.5 min EARLIER and sunset ~3.5 min LATER, so the day
+# lengthens ~7 min and every subdivision of it shifts: Rahu Kalam, Yamagandam,
+# Kuligai, all eight kalam divisions, Gowri Panchangam, Durmuhurtham, day and
+# night horai, udaya tithi/nakshatra, sunrise lagna, Chandrashtama's
+# sunrise-sampled star, and the Tamil solar calendar's sunset cutoff. Udaya
+# tithi/nakshatra can therefore land on a DIFFERENT value on days where the
+# boundary falls inside that 3.5-minute band, which can move a festival or an
+# Ekadashi by a day. Cached snapshots must recompute.
+PANCHANGAM_CACHE_DATA_VERSION = 47
 DOMINANT_SPECIAL_TITHIS = {15, 30}
 
 # Fixed weekday clock-table Nalla Neram windows. NOTE (2026-07-17): the daily
@@ -836,7 +872,8 @@ class PanchangamSnapshot:
 
 
 def _format_hhmm(moment: datetime) -> str:
-    return moment.strftime("%H:%M")
+    """Nearest-minute, not truncated — see astro.round_to_nearest_minute."""
+    return format_clock_hhmm(moment)
 
 
 def _angle_continuous(angle_fn, jd_start: float, jd: float, base_angle: float) -> float:

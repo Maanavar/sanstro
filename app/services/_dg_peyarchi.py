@@ -12,6 +12,7 @@ from app.calculations.activity_timing_rules import ActivityType
 from app.calculations.astro import house_from_reference, local_datetime_to_utc, utc_datetime_to_julian_day
 from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
+from app.constants.versions import API_RESPONSE_VERSION
 from app.models import BirthProfile, Chart
 from app.schemas.daily_guidance import (
     DashaStoryData,
@@ -195,7 +196,7 @@ def get_dasha_story(
     session: Session,
     chart_id: UUID,
     as_of: date,
-    calculation_version: str = "thirukanitham-2026-v1",
+    calculation_version: str = API_RESPONSE_VERSION,
 ) -> DashaStoryResponse:
     """
     FEATURE-09: Returns all Mahadasha periods from birth through ~120 years with themes.
@@ -264,7 +265,7 @@ def get_peyarchi_report(
     chart_id: UUID,
     planet: str,
     as_of: date,
-    calculation_version: str = "thirukanitham-2026-v1",
+    calculation_version: str = API_RESPONSE_VERSION,
 ) -> PeyarchiReportResponse:
     """
     FEATURE-11: Personalised Peyarchi (Rasi transit) report for Jupiter, Saturn, Rahu, or Ketu.

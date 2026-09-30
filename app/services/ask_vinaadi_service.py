@@ -30,6 +30,7 @@ from app.calculations.dasha import calculate_vimshottari_timeline
 from app.calculations.ephemeris import calculate_sidereal_planets
 from app.calculations.panchangam import is_chandrashtama_day
 from app.calculations.transits import classify_kandaka_cycle, classify_sani_cycle
+from app.constants.versions import API_RESPONSE_VERSION
 from app.core.age_gate import CAREER_REDIRECT_KEYWORDS, MINOR_REDIRECT_KEYWORDS, STUDY_REDIRECT_KEYWORDS
 from app.core.config import get_settings
 from app.core.life_mode import focus_mapping
@@ -45,7 +46,7 @@ from app.services.safety_filter import run_safety_pass
 
 logger = logging.getLogger("jothidam.ask_vinaadi")
 
-_CALC_VERSION = "thirukanitham-2026-v1"
+_CALC_VERSION = API_RESPONSE_VERSION
 
 # Hard ceiling on how long we will wait for the Anthropic API before giving up,
 # so a hung request cannot pin a worker thread indefinitely.

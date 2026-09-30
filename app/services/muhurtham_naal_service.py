@@ -39,6 +39,7 @@ from sqlalchemy.orm import Session
 
 from app.calculations.astro import (
     chandrashtama_rasi_from_janma,
+    format_clock_hhmm,
     resolve_rasi,
 )
 from app.calculations.display_names import nakshatra_ta
@@ -174,8 +175,8 @@ def _slot_windows(slots) -> list[TimeWindow]:
     """Turn computed, timezone-aware panchangam slots into the API clock shape."""
     return [
         TimeWindow(
-            start=slot.start.strftime("%H:%M"),
-            end=slot.end.strftime("%H:%M"),
+            start=format_clock_hhmm(slot.start),
+            end=format_clock_hhmm(slot.end),
             period=slot.period or ("AM" if slot.start.hour < 12 else "PM"),
         )
         for slot in slots

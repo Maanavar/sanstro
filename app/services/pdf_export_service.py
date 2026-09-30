@@ -40,6 +40,7 @@ from reportlab.platypus import (
 )
 from sqlalchemy.orm import Session
 
+from app.calculations.astro import format_clock_hhmm
 from app.calculations.panchangam import (
     best_gowri_slot,
     calculate_daily_panchangam,
@@ -189,7 +190,7 @@ def _format_clock_label(value) -> str:
         return "Unknown"
     if hasattr(value, "strftime"):
         try:
-            value = value.strftime("%H:%M")
+            value = format_clock_hhmm(value)
         except (TypeError, ValueError):
             pass
     hour = getattr(value, "hour", None)

@@ -164,7 +164,50 @@ Phase C (consistency/docs):        WI-13 … WI-21     (any order)
 
 # PHASE B — Doctrine launch gates (Doctrine Decisions v1.0)
 
-## WI-07 — Hindu sunrise: disc center, no refraction (Doctrine §1) ✅❌
+## WI-07 — Thirukanitham sunrise convention (Doctrine §1) ✅ SUPERSEDED 2026-09-29
+
+> **SUPERSEDED BY OWNER RULING, 2026-09-29. Read this banner before anything below it.**
+>
+> This WI's choice — disc centre, no refraction (`SE_BIT_HINDU_RISING`) — was
+> **reversed**. The default is now the **apparent upper-limb event including
+> atmospheric refraction** (Swiss Ephemeris's own default, no extra rsmi bits),
+> which is the modern Drik convention of India's Rashtriya Panchang and of
+> DrikPanchang. Cache version 46→47. The geometric variant survives as
+> `SunriseConvention.GEOMETRIC_DISC_CENTER` and must never be the default again
+> without a fresh ruling.
+>
+> **Two specific claims in the text below are false and must not be reused:**
+>
+> 1. *"matching every printed Tamil panchangam's definition of udaya/asthamana"*
+>    — **unsupported**. No printed edition was ever consulted, before or after.
+>    Swiss Ephemeris's flag name is a claim about Hindu practice, not a ratified
+>    standard, and this WI treated the two as the same thing. Printed-publisher
+>    parity remains a separate open task (AR-5).
+> 2. *"larger than a naive estimate because the geocentric-no-ecl-lat bit is a
+>    real third correction"* — **wrong, measured**. Bit 128 moves the event by
+>    **~1 second**, not minutes: the Sun's ecliptic latitude is ~0 by
+>    definition, so removing it changes almost nothing. The entire gap was
+>    always the semi-diameter (~16′) plus refraction (~34′). The stated shift of
+>    "~4-6 min" was also overstated; the measured value is ~3.5 min at Tamil-Nadu
+>    latitudes.
+>
+> **What the reversal cost.** Every published Vinaadi sunrise was ~3.5 min late
+> and every sunset ~3.5 min early for two months, and so was every field
+> subdivided from them. It was reported by a user comparing Tiruppur
+> 2026-09-29 against timeanddate, not caught by a test — this WI's own
+> acceptance criteria were written so that the 12 reference slots could stay
+> `None` indefinitely, and they did.
+>
+> **The lesson, recorded because this file is where the next reader looks:**
+> the 2026-07-16 follow-up work *found* the disagreement — DrikPanchang was
+> 3-6 min earlier on all 12 cases — and explained it away as a difference of
+> convention rather than treating it as evidence. A consistent one-directional
+> disagreement with every external source is a finding about your own inputs.
+> See "Debugging discipline — suspect your own inputs" in CLAUDE.md.
+
+### Original text, retained for history (its conclusions are superseded)
+
+
 - [~] **Status:** CODE-COMPLETE, VALIDATION PENDING (2026-07-16) — both backends now pass `SE_BIT_HINDU_RISING` (disc center + no refraction + geocentric-no-ecliptic-latitude — the Swiss Ephemeris library's own named constant for exactly this, 896 = 256|512|128) into `calculate_rise_transit_jd`'s rsmi parameter; `PANCHANGAM_CACHE_DATA_VERSION` bumped 32→33. Sunrise moves ~4-6 min later, sunset ~4-6 min earlier (both toward solar noon) vs. the old refracted-upper-limb values — larger than a naive "just disc-center+no-refraction" estimate because the geocentric-no-ecl-lat bit is a real third correction bundled into Swiss Ephemeris's own Hindu-rising definition, not a bug. Existing pinned tests in `tests/test_panchangam.py` updated to the new values (2 tests). New `tests/test_wi07_sunrise_validation_harness.py` scaffolds 12 reference cases (6 dates × Chennai + Toronto) with TODO reference slots — all skip (not fail) until real printed-panchangam values are supplied; 2 structural checks (shift direction + plausible magnitude band) pass now without external data. **Do not check the doctrine §1 launch-gate box until the TODO slots are filled** — see OQ-slot in that test file. Resolved by: Claude (full ownership grant, 2026-07-16).
 - **Priority:** P1 — launch gate. **Do this before WI-12.**
 - **Files:** `app/calculations/ephemeris.py` (`calculate_rise_transit_jd`, both backends), `app/calculations/panchangam.py` (`PANCHANGAM_CACHE_DATA_VERSION`).
@@ -395,7 +438,7 @@ Follow the established pattern: present each as an open request for the authorit
 - [x] WI-06 Pushkara navamsa (2-per-sign, by element) + standard bhaga degrees
 
 ## Phase B — Doctrine launch gates
-- [~] WI-07 Hindu sunrise (disc center, no refraction) + cache v33 + validation harness — code-complete 2026-07-16, printed-panchangam cross-check still pending  *(before WI-12)*
+- [~] WI-07 Thirukanitham sunrise — **REVERSED 2026-09-29** to the apparent upper-limb + refraction convention (cache v47); the disc-centre/no-refraction choice and its "matches every printed Tamil panchangam" premise were both wrong. Convention now externally cross-checked (DrikPanchang exact-match + independent NOAA/Meeus); **printed-publisher parity still pending** — see the supersession banner above and AR-5.
 - [x] WI-08 Murthi default → ingress-Moon method; pada rule as labeled variant
 - [x] WI-09 Jaimini Rahu = 30° − advancement; 8-karaka documented; migration check  *(before WI-10)*
 - [~] WI-10 Chara Dasha → full Rao/BPHS rules (savya/apasavya direction + period-length + Scorpio/Aquarius co-lord) — code-complete 2026-07-16, sourced from published materials cross-referenced against each other, JHora cross-check still pending (permanent disclosure shipped instead of the interim "Experimental" label)

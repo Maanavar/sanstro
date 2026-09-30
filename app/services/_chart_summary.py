@@ -45,7 +45,7 @@ from app.services._chart_persist import _require_active_birth_profile, load_pers
 from app.services._chart_planets import (
     _NATAL_GRAHAS,
     _aspect_counts,
-    _is_daytime_birth_for_profile,
+    resolve_daytime_birth_for_profile,
     _paksha_is_shukla,
     _speed_ratio,
 )
@@ -292,7 +292,7 @@ def get_jadhagam_report(session: Session, chart_id: UUID) -> JadhagamReportRespo
 
     sun_lon = next(planet.absolute_longitude for planet in chart_response.data.planets if planet.graha == "SUN")
     moon_lon = next(planet.absolute_longitude for planet in chart_response.data.planets if planet.graha == "MOON")
-    is_daytime = _is_daytime_birth_for_profile(birth_profile)
+    is_daytime = resolve_daytime_birth_for_profile(birth_profile)
     paksha_is_shukla = _paksha_is_shukla(moon_lon, sun_lon)
     report_rasi_map = {p.graha: p.rasi for p in chart_response.data.planets if p.graha in _NATAL_GRAHAS}
     report_wars = detect_planetary_wars({p.graha: p.absolute_longitude for p in chart_response.data.planets})

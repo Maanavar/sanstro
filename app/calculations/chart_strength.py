@@ -565,21 +565,32 @@ def _dik_bala_score(planet: str, house_from_lagna: int) -> float:
 
 def _kala_bala_score(
     planet: str,
-    is_daytime: bool,
+    is_daytime: bool | None,
     paksha_is_shukla: bool,
     is_vargottama: bool,
     d9_rasi: int | None,
 ) -> float:
-    """Temporal strength 0.0-1.0."""
+    """Temporal strength 0.0-1.0.
+
+    `is_daytime` is three-valued: ``None`` means the birth's day/night could not
+    be resolved (no birth time on file — see
+    `_chart_planets.resolve_daytime_birth`). Nathonnatha is then scored at the
+    midpoint, the same value Mercury gets for having no day/night preference,
+    rather than on a fabricated boolean. An unknown time used to arrive here as
+    ``True``, which is not neutral: it awarded Sun/Jupiter/Venus 1.0 and docked
+    Moon/Mars/Saturn to 0.4 on the strength of nothing.
+    """
     # Nathonnatha rule (BPHS) — day-strong: Sun, Jupiter, Venus; night-strong:
     # Moon, Mars, Saturn. Must match shadbala._nathonnatha_bala (WI-01).
     diurnal = frozenset({"SUN", "JUPITER", "VENUS"})
     nocturnal = frozenset({"MOON", "MARS", "SATURN"})
+    #: Midpoint of the 1.0/0.4 nathonnatha pair — "no day/night claim either way".
+    natha_unknown = 0.7
 
     if planet in diurnal:
-        natha = 1.0 if is_daytime else 0.4
+        natha = natha_unknown if is_daytime is None else (1.0 if is_daytime else 0.4)
     elif planet in nocturnal:
-        natha = 1.0 if not is_daytime else 0.4
+        natha = natha_unknown if is_daytime is None else (1.0 if not is_daytime else 0.4)
     elif planet == "MERCURY":
         natha = 0.7
     else:
@@ -758,7 +769,7 @@ def compute_strength_breakdown(
     is_retrograde: bool,
     is_vargottama: bool = False,
     d9_rasi: int | None = None,
-    is_daytime: bool = True,
+    is_daytime: bool | None = True,
     paksha_is_shukla: bool = True,
     benefic_aspect_count: int = 0,
     malefic_aspect_count: int = 0,
@@ -844,7 +855,7 @@ def compute_natal_planet_score(
     benefic_aspect_count: int = 0,
     malefic_aspect_count: int = 0,
     d9_rasi: int | None = None,
-    is_daytime: bool = True,
+    is_daytime: bool | None = True,
     paksha_is_shukla: bool = True,
     speed_ratio: float | None = None,
     planetary_wars: dict[str, str] | None = None,
@@ -889,7 +900,7 @@ def explain_natal_planet_score(
     benefic_aspect_count: int = 0,
     malefic_aspect_count: int = 0,
     d9_rasi: int | None = None,
-    is_daytime: bool = True,
+    is_daytime: bool | None = True,
     paksha_is_shukla: bool = True,
     speed_ratio: float | None = None,
     planetary_wars: dict[str, str] | None = None,

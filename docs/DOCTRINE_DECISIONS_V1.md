@@ -8,7 +8,7 @@
 
 | # | Item | Decision | Priority |
 |---|------|----------|----------|
-| 1 | Sunrise definition | Hindu sunrise (disc center, no refraction) | 🔴 Critical — fix before launch |
+| 1 | Sunrise definition | **Apparent upper limb + refraction** (Drik / Rashtriya Panchang), re-ruled 2026-09-29 | ✅ Built + externally cross-checked; printed-publisher parity open (AR-5) |
 | 2 | Rahu/Ketu node | Mean node (default); true node as toggle | ✅ Keep as-is, document |
 | 3 | Ezharai Sani Murthi | Ingress-Moon-from-janma-rasi (default); pada rule as labeled variant | 🔴 Critical — change default |
 | 4 | Jaimini Rahu degree | 30° − advancement (BPHS/JHora standard) | 🔴 Critical — fix before launch |
@@ -23,21 +23,88 @@
 | 13 | Ashtakavarga bindu grid vs kāraka-relative readings | Grid is a measurement → shown ungated. Readings counted from a kāraka graha are claims about named relatives → gated to life-area cards, banded never counted | ✅ Ratified 2026-08-18 (P2-05); boundary enforced by test, not convention |
 | 14 | Durmuhurtham display polarity | Avoid for auspicious acts and new beginnings; not a blanket prohibition or whole-day verdict | ✅ Owner-delegated ruling 2026-09-23; rendered with scoped copy |
 | 15 | Sign-edge grahas and Lagna | Edge (±1°) and Baladi never both charged; the larger applies. No Baladi for Rahu/Ketu. A graha belongs only to its occupied sign. Lagna checked by recompute at ±5 (firm) / ±15 (soft) min; D9 Lagna at ±5 | ✅ Astrologer ruling 2026-09-23; built |
+| 16 | Maandhi vs Gulika | **Uttara-Kalamrita convention adopted:** two separate points. Maandhi = proportional nazhigai; Kuligai Kalam = the whole Saturn eighth-part; Gulika sphuta = ascendant at that part's END. BPHS/Prasna-Marga synonym tradition named and declined. Vaara is sunrise-bounded. Unknown birth time = unknown, not day | ✅ Owner ruling 2026-09-29, confirmed 2026-09-30; built, chart v1.4 |
 
 ---
 
 ## 1. Sunrise Definition
 
-**Decision:** Use **Hindu sunrise** — geometric rise of the Sun's **disc center**, **no atmospheric refraction** — as the default anchor for all sunrise-dependent calculations.
+> **REVISED 2026-09-29 by owner ruling. The original decision below was reversed.**
 
-**Rationale:** Every siddhantic definition of udaya (சூரிய உதயம்) is the geometric rise of the Sun's center. All major printed Tamil panchangams (Thirukanitham editions, Vakya, Manimekalai, Arcot, Sri Sankara) use this convention. The Swiss Ephemeris default (upper limb + refraction) shifts sunrise ~3 minutes earlier, causing visible mismatches with the panchangam on the user's wall. "Drik" in Thirukanitham refers to accuracy of planetary positions, not adoption of the observational horizon.
+**Decision (current):** Use **apparent sunrise/sunset** — the rise and set of the
+Sun's **upper limb**, **including standard atmospheric refraction** — as the
+default anchor for all sunrise-dependent calculations. This is Swiss Ephemeris's
+own default: no extra `rsmi` bits.
 
-**Scope — inherits this anchor:** Rahu kalam, Yamagandam, Gulikai, Horai, Udaya tithi, sunrise lagna, all eight kalam divisions, and Ekadashi observance logic (see §8).
+**Rationale:** Vinaadi's Thirukanitham engine follows the modern Drik
+astronomical convention represented by India's **Rashtriya Panchang** and by
+DrikPanchang's default. This is the convention essentially every published
+source a Vinaadi reader can check against uses, so it is what the app must show.
 
-**Implementation notes:**
-- Swiss Ephemeris flags: disable refraction, use disc center (`SE_BIT_NO_REFRACTION | SE_BIT_DISC_CENTER` with `swe.rise_trans`).
-- Optionally expose "observed sunrise" (refracted upper limb) as a labeled advanced toggle.
-- **Verification:** validate Rahu kalam and udaya tithi against at least two printed panchangams (e.g. Thirukanitham + Manimekalai or Arcot) across a spread of dates and latitudes.
+**Do not equate Swiss Ephemeris's `SE_BIT_HINDU_RISING` flag with the universal
+Thirukanitham standard.** That flag's name is a claim about Hindu practice, not
+a ratified standard, and the reversed decision below rested on exactly that
+conflation.
+
+**Scope — inherits this anchor:** Rahu Kalam, Yamagandam, Kuligai, Gowri
+Panchangam, Durmuhurtham, day and night Horai, all eight kalam divisions, udaya
+tithi/nakshatra, sunrise lagna, Chandrashtama's sunrise-sampled star, Ekadashi
+observance logic (§8), and the Tamil solar calendar's sunset cutoff.
+
+**Implementation:** `SunriseConvention.APPARENT_UPPER_LIMB` in
+`app/calculations/ephemeris.py`, exposed as
+`THIRUKANITHAM_SUNRISE_CONVENTION`. Exact instants are preserved internally;
+only the presentation boundary rounds, half-up, to the nearest minute
+(`astro.format_clock_hhmm`). The retired convention is retained as
+`SunriseConvention.GEOMETRIC_DISC_CENTER` — a named traditional variant, never
+the default, not reachable without asking for it by name.
+
+**Verification status:** the convention is externally cross-checked — exact
+match against DrikPanchang for 12 date/location cases (worst 40 s) and against
+an independent NOAA/Meeus implementation (worst 20 s). **Printed-publisher
+parity is a separate task and remains OPEN** (AR-5): validate representative
+dates against actual Vasan / Manimekalai / Arcot or other selected printed
+editions, with page citations, before claiming publisher parity. Tests:
+`tests/test_wi07_sunrise_validation_harness.py`, generator
+`scripts/sunrise_reference_crosscheck.py`.
+
+### Reversed decision, retained so the error is not repeated
+
+**Original decision (2026-07, WI-07 — WRONG):** geometric rise of the Sun's
+disc centre, no atmospheric refraction (`SE_BIT_HINDU_RISING`).
+
+**Original rationale, with the two false claims marked:**
+
+> Every siddhantic definition of udaya (சூரிய உதயம்) is the geometric rise of
+> the Sun's center. ~~All major printed Tamil panchangams (Thirukanitham
+> editions, Vakya, Manimekalai, Arcot, Sri Sankara) use this convention.~~
+> **[FALSE — asserted, never checked. Not one printed edition was consulted,
+> before the decision or in the two months after it.]** The Swiss Ephemeris
+> default (upper limb + refraction) shifts sunrise ~3 minutes earlier,
+> ~~causing visible mismatches with the panchangam on the user's wall~~
+> **[BACKWARDS — the disc-centre choice is what produced the visible
+> mismatch, against every source a reader could actually check].** "Drik" in
+> Thirukanitham refers to accuracy of planetary positions, not adoption of the
+> observational horizon. **[Not accepted: the ruling adopts the Drik
+> astronomical convention, Rashtriya Panchang's, as Vinaadi's.]**
+
+**How it was found, and why not sooner.** A user compared Tiruppur,
+2026-09-29: Vinaadi showed 6:12 am / 6:08 pm against 06:09 / 18:12 at
+timeanddate and everywhere else. The arithmetic had always been correct — the
+ephemeris reproduces the apparent values to the second. Only the definition was
+wrong, and it was wrong for two months in production.
+
+The §1 verification note above ("validate against at least two printed
+panchangams") was written at the same time as the decision and was **never
+performed**. The harness built for it held 12 reference slots at `None`, which
+*skipped* rather than failed, so the launch-gate line below could sit unticked
+indefinitely while the code shipped. Worse, the 2026-07-16 follow-up *did*
+observe that DrikPanchang was 3-6 minutes earlier on all 12 cases and recorded
+that as confirmation the conventions differed by design — treating the finding
+as a property to assert around. A consistent one-directional disagreement with
+every external source is evidence against your own inputs. See "Debugging
+discipline — suspect your own inputs" and "A gate proves its own check, not the
+item" in CLAUDE.md.
 
 ---
 
@@ -345,11 +412,85 @@ The daily engine version was deliberately not bumped.
 
 ---
 
+## 16. Maandhi and Gulika Are Two Points — the Uttara-Kalamrita Convention
+
+**Decision (owner ruling 2026-09-29, reviewed and confirmed 2026-09-30):**
+Vinaadi adopts the **Uttara-Kalamrita** distinction. Maandhi (மாந்தி) and
+Gulika/Kuligai are separately calculated:
+
+| | Rule | Where |
+|---|---|---|
+| **Maandhi** | Proportional nazhigai after the span's start, own day/night tables | `MAANDHI_DAY_NAZHIGAI` / `MAANDHI_NIGHT_NAZHIGAI`, `app/services/_chart_planets.py` |
+| **Kuligai Kalam** | The complete eighth-part of the span whose lord is Saturn — an interval with a duration | `KULIGAI_SLOT` / `KULIGAI_NIGHT_SLOT`, `app/calculations/panchangam.py` |
+| **Gulika sphuta** | The ascendant at the **END** of that eighth-part | Not currently exposed as a chart point |
+
+**This is a chosen textual tradition, not a universal rule of Jyotisha.** Some
+editions and commentaries of **Brihat Parashara Hora Shastra** state that Mandi
+is another name for Gulika, and the Prasna-Marga lineage is cited on the same
+side. Vinaadi deliberately does not follow that convention. Recorded this way per
+the standing rule that contested doctrine is a lineage choice — we chose
+Uttara-Kalamrita, we are not claiming the synonym tradition is an error.
+
+**Authorities, kept distinct so neither is over-claimed:**
+
+- **Uttara-Kalamrita** — authority for Maandhi ≠ Gulika, and for the sphuta being
+  the END of Saturn's part. Its worked Saturday example gives Maandhi at 2
+  nazhigai after sunrise and Gulika at 3¾.
+- **Phaladeepika** — authority for the Maandhi constants and the day/night
+  sequences, and for the proportional adjustment when a span is not 30 nazhigai.
+  It is **not** cited for the two points being universally separate.
+
+**Internal cross-check.** Saturday's Gulika slot is the 1st eighth-part, whose end
+is 1 × 3.75 = 3¾ nazhigai, against Maandhi's 2 — reproducing the Uttara-Kalamrita
+example exactly. No other reading of either table produces that pair (the START
+would be 0.0, i.e. sunrise itself). Across the week |Maandhi − Gulika_end| is a
+clean progression: 0.25 nazhigai on Sunday rising by 0.25 a day to 1.75 on
+Saturday. That single check validates both tables and fixes the convention, and
+it is pinned in `tests/test_gulika.py`.
+
+**On "30 nazhigai".** The constants are stated in nazhigai (~24 min) of a
+**30-nazhigai reference span** — the equinoctial day. An actual 12h03m day is
+*not* 30 nazhigai; the constant is scaled to the true local span. Equivalently,
+and the way a Tamil practitioner states it, the constants are read in
+*proportional* nazhigai each worth 1/30th of the span. Same arithmetic, and the
+first phrasing is the one that survives a reader who knows a nazhigai is a fixed
+unit of time. `MAANDHI_REFERENCE_NAZHIGAI` is named for this.
+
+**Vaara boundary.** The governing vaara runs **sunrise to sunrise**. A birth after
+civil midnight but before local sunrise belongs to the *preceding* date's vaara
+and takes that vaara's night constant. Civil midnight must not move the weekday;
+crossing local sunrise must. Not a rounding-scale distinction: Wednesday's night
+constant is 26 and Tuesday's is 2.
+
+**Maandhi's standing as a body.** A shadow upagraha. It afflicts as a malefic
+where affliction is *interpretive* — yoga detection, and `compute_bhava_bala`'s
+occupancy and drishti terms, the bhava it occupies suffering for it being standard
+Tamil practice. It is excluded from every calculation reserved for real grahas:
+no Shadbala, no graha yuddha, no retrogression or combustion, and nathonnatha
+scores it identically day or night. Both directions of that boundary are pinned.
+
+**Day/night resolution.** One canonical sunrise feeds the vaara boundary, the
+day/night classification, the span and the constant — the same
+`THIRUKANITHAM_SUNRISE_CONVENTION` the panchangam uses (§1), passed explicitly at
+the call site rather than inherited from a parameter default. A birth with **no
+time on file** resolves to *unknown*, not to day: Kala Bala then scores
+nathonnatha at the midpoint. No doctrine assumes a daylight birth for an unknown
+time — classical practice rectifies the time first — so the fail-safe abstains.
+Chart calculation version **v1.4**.
+
+**Still open.** Whether to expose a Gulika sphuta as a chart point at all, and if
+so whether a *night* Gulika sphuta takes the end of the night eighth-part by the
+same rule. Nothing consumes either today and no ruling has been asked for. §1's
+printed-publisher parity (AR-5) remains open and is inherited here, since Maandhi
+rides on the same sunrise.
+
+---
+
 ## Launch Gate Checklist
 
 Before claiming traditional accuracy:
 
-- [ ] §1 Hindu sunrise implemented and validated against ≥2 printed panchangams
+- [~] §1 Apparent sunrise implemented (2026-09-29 ruling) and cross-checked against DrikPanchang + independent NOAA/Meeus; **still unvalidated against ≥2 printed panchangams** — that is what this box is for, and neither cross-check closes it
 - [ ] §3 Murthi default switched to ingress-Moon method
 - [ ] §4 Jaimini Rahu reversed degree + karaka scheme documented
 - [ ] §5 Standard Chara Dasha (parity, minus-one, own-sign 12, Scorpio/Aquarius strength resolution)

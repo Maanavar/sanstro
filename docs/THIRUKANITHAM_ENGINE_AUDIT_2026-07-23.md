@@ -134,6 +134,15 @@ latitude birth gets the wrong nathonnatha half — and Mandhi (true) and Kala Ba
 sunrise/sunset already computed in `_birth_panchangam_signature` into the day/
 night flag.
 
+> **RESOLVED.** Done as described: the function is now
+> `_chart_planets.resolve_daytime_birth`, which uses the same canonical
+> `_sunrise_sunset_jd` as Maandhi and the panchangam, so the two can no longer
+> disagree. The 06:00–18:00 clock survives only as the fallback for a known time
+> at an unknown place. Follow-on (2026-09-30): an **unknown** birth time now
+> resolves to `None` rather than to day, and Kala Bala scores nathonnatha at the
+> midpoint instead of taking a fabricated diurnal birth. Chart version v1.4;
+> see `docs/DOCTRINE_DECISIONS_V1.md` §16.
+
 ### G4 — Varga strength (Level 19) judged from the D1 lagna, coarsely ✎
 `life_areas_service` L4 varga-confirmation takes the house-lord's **divisional**
 rasi and counts its house **from the natal D1 lagna** (`house_from_reference(

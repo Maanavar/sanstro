@@ -7,6 +7,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
+from app.constants.versions import API_RESPONSE_VERSION
 from app.core.auth import get_current_user
 from app.core.chart_access import assert_chart_owner as _assert_chart_owner
 from app.db.session import get_db
@@ -160,7 +161,7 @@ def activity_timing_batch(
         data=ActivityTimingBatchData(chartId=chart_id, month=month, results=results),
         meta=meta
         or ResponseMeta(
-            calculation_version="thirukanitham-2026-v1",
+            calculation_version=API_RESPONSE_VERSION,
             generated_at=datetime.now(tz=UTC),
         ),
     )

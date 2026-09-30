@@ -81,6 +81,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from enum import Enum
 
+from app.calculations.astro import format_clock_hhmm
 from app.calculations.chart_strength import DEBILITATION_RASI
 from app.calculations.display_names import (
     YOGA_NAME_EN,
@@ -1436,10 +1437,10 @@ def limb_factors_at_window(snapshot, midpoint, activity: str) -> list[FactorResu
                 verdict=Verdict.VETO,
                 contribution=0.0,
                 reason_en=(f"{name_en} runs through the selected window "
-                           f"({karana_span.start:%H:%M}–{karana_span.end:%H:%M}), and it is "
+                           f"({format_clock_hhmm(karana_span.start)}–{format_clock_hhmm(karana_span.end)}), and it is "
                            f"excluded for {entry.label_en}."),
                 reason_ta=(f"தேர்ந்தெடுத்த நேரத்தில் {name_en} கரணம் "
-                           f"({karana_span.start:%H:%M}–{karana_span.end:%H:%M}) நடைபெறுகிறது; "
+                           f"({format_clock_hhmm(karana_span.start)}–{format_clock_hhmm(karana_span.end)}) நடைபெறுகிறது; "
                            f"{entry.label_ta} இது தவிர்க்கப்பட வேண்டியது."),
                 rule_id=entry.karana_rule_id,
             ))
