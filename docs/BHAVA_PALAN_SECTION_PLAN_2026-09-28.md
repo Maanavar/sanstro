@@ -618,6 +618,15 @@ drift; the table above is the shaped run. (2) The red side of Q1 has drifted too
 (1.42 NEEDS_CARE per chart, not the median 2 recorded above). Not changed — the ask
 was about greens — but it is on record here rather than left to be rediscovered.
 
+**Copy — native Tamil review, 2026-09-30 (two rounds).** The contrast line describes
+the lord's strength in the genitive (அதிபதி புதனின் வலு குறைவாக உள்ளது), in two full
+sentences; "ஆதரவாக உள்ளார்" replaced "தாங்குகிறார்"; the active-dusthana ending is
+"அதிக செயல்பாட்டில் உள்ளது". Doctrine-relevant: the table intro AND the opened
+6/8/12 note (`INVERSION_NOTE`) no longer say "quiet is good" — both now say high
+activity *can* call for extra attention and the result depends on lord, planets and
+aspects. The band logic above is unchanged; only what it is claimed to mean.
+துஷ்டானம் is the one spelling (`tests/test_tamil_term_spelling.py`).
+
 **Q2 — Show the number? RULED: no. Not anywhere, including `title=`.**
 Now an evidence-based call, not taste: a scale centred at 45 with stdev 6 is not a
 percentage of anything, and `45/100` on a perfectly ordinary house reads as "mediocre"

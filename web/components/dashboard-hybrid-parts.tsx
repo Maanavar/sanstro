@@ -728,9 +728,13 @@ export function HyBhavaTable({ lang, chart, explanationPlanets, bhavas }: {
             ("Where your planets are placed") and read a green house beside an
             orange lord as a contradiction. The chip rates the HOUSE — lord,
             occupants and aspects together — so say that before they compare. */}
+        {/* Tamil is a native reader's rewrite (2026-09-30). It also softened the
+            6/8/12 claim from "quiet is good" — an absolute the doctrine does not
+            make, since these houses carry real life areas too — to "high activity
+            can call for extra attention"; the English says the same. */}
         {lang === "ta"
-          ? "ஒவ்வொரு வீட்டின் நிலையும் அதன் அதிபதி, அதில் உள்ள கிரகங்கள், அதன் மேல் விழும் பார்வைகள் ஆகிய மூன்றையும் சேர்த்துக் கணிக்கப்படுகிறது. அதனால் ஒரு வீடு அதன் கிரகங்களை விட வலுவாகவோ குறைவாகவோ தோன்றலாம். 6, 8, 12 வீடுகளுக்கு அமைதியாக இருப்பதே நல்லது. காரணத்தையும் என்ன செய்யலாம் என்பதையும் அறிய எந்த வீட்டையும் திறந்து பாருங்கள். இது உங்கள் ஜாதகத்தின் நிலைத்த அமைப்பு, இன்றைய நிலை அல்ல."
-          : "Each house is rated as a whole — its lord, the planets in it and the aspects falling on it — so a house can read stronger or weaker than the planets beside it. For houses 6, 8 and 12, quiet is the good outcome. Open any house for why, and what to do. This is your chart's lasting terrain, not today's weather."}
+          ? "ஒவ்வொரு வீட்டின் நிலையும் அதன் அதிபதி, அதில் உள்ள கிரகங்கள் மற்றும் அதன் மீது விழும் பார்வைகள் ஆகியவற்றைச் சேர்த்துக் கணிக்கப்படுகிறது. அதனால், ஒரு வீட்டின் நிலை அதில் உள்ள கிரகங்களின் நிலையை விட வலுவாகவோ குறைவாகவோ இருக்கலாம். 6, 8, 12ஆம் வீடுகளில் அதிக செயல்பாடு இருப்பது கூடுதல் கவனம் தேவைப்படுவதைக் காட்டலாம். காரணத்தையும் அதன் விளக்கத்தையும் அறிய அந்த வீட்டைத் திறந்து பாருங்கள். இது உங்கள் பிறப்பு ஜாதகத்தின் அடிப்படை நிலை; இன்றைய கிரகநிலை அல்ல."
+          : "Each house is rated as a whole — its lord, the planets in it and the aspects falling on it — so a house can read stronger or weaker than the planets beside it. In houses 6, 8 and 12, high activity can mean the area needs extra attention. Open any house for why, and what to do. This is your birth chart's lasting terrain, not today's planetary weather."}
       </p>
       <div className="bp-row" style={{ borderTop: 0, minHeight: 0, cursor: "default", padding: "var(--space-3) var(--space-2) var(--space-2)", marginTop: "8px", fontSize: "var(--text-xs)", letterSpacing: "0.1em", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase" }}>
         {/* One header over the number AND sign columns: "HOUSE" in caps with
@@ -1800,7 +1804,7 @@ export function HyStrengthsWatchoutsCard({ lang, planets }: {
         </Card>
         <Card variant={dusthana > 0 ? "low" : "default"} style={{ display: "block", flex: "1 1 120px", background: dusthana > 0 ? undefined : "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3)" }}>
           <div style={{ fontSize: "var(--text-lg)", fontWeight: 700, fontFamily: "var(--font-display)", color: dusthana > 0 ? "var(--color-low)" : "var(--color-faint)", lineHeight: 1 }}>{dusthana}</div>
-          <div style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", marginTop: "3px" }}>{lang === "ta" ? "துஸ்தானத்தில் (6·8·12) கிரகங்கள்" : "planets in Dusthana (6·8·12)"}</div>
+          <div style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", marginTop: "3px" }}>{lang === "ta" ? "துஷ்டானத்தில் (6·8·12) கிரகங்கள்" : "planets in Dusthana (6·8·12)"}</div>
         </Card>
       </div>
 

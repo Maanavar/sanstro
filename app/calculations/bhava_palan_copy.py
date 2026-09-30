@@ -197,11 +197,21 @@ FRAMING_QUIET: tuple[str, str] = (
 
 # One line explaining the inversion, shown on 6/8/12 only. Without it a reader who has
 # seen the other chips reads a green dot on a low house as a bug.
+#
+# Reworded 2026-09-30 on a native reader's review. The old line ("இவை அமைதியாக
+# இருப்பதே நல்லது" / "a quiet one of these favours you") taught the shortcut
+# "quiet = good", which is too absolute: 6/8/12 also carry real life areas (service,
+# research, expenditure, foreign residence, moksha), and the outcome depends on the
+# lord, occupants and aspects. The intro above the table was softened the same day;
+# this keeps the opened panel from teaching a different doctrine than the intro.
+# The BAND logic is unchanged — only what it is claimed to mean.
 INVERSION_NOTE: tuple[str, str] = (
-    "6, 8, 12 ஆகிய வீடுகள் தலைகீழாகப் படிக்கப்படுகின்றன: இவை அமைதியாக இருப்பதே "
-    "நல்லது என்பது பராசர மரபின் பார்வை.",
-    "Houses 6, 8 and 12 are read the other way round: in the Parashari line we follow, "
-    "a quiet one of these favours you.",
+    "6, 8, 12 ஆகிய வீடுகள் பொதுவாக சவால்கள் மற்றும் மாற்றங்களுடன் தொடர்புடையவை. "
+    "அவற்றின் செயல்பாடு அதிகமாக இருந்தால் கூடுதல் கவனம் தேவைப்படலாம்; இறுதி பலன் "
+    "அதிபதி, கிரகங்கள் மற்றும் பார்வைகளின் வலிமையைப் பொறுத்தே அமையும்.",
+    "Houses 6, 8 and 12 are generally tied to challenge and change. When they are highly "
+    "active they can call for extra attention; the final result depends on the strength "
+    "of the lord, the planets and the aspects.",
 )
 
 # Shown on 3 and 11 — these genuinely improve with age and effort, and a reader who

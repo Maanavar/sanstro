@@ -90,7 +90,10 @@ function sixth(): ChartExplanationBhava {
     leanOn: [{ ta: "எழுதிப் பார்ப்பது", en: "writing it down before you say it" }],
     goSlowlyWith: [{ ta: "அதிகம் விளக்குவது", en: "over-explaining yourself" }],
     karakaNote: null,
-    polarityNote: { ta: "6, 8, 12 தலைகீழாகப் படிக்கப்படுகின்றன.", en: "Houses 6, 8 and 12 are read the other way round." },
+    polarityNote: {
+      ta: "6, 8, 12 ஆகிய வீடுகள் பொதுவாக சவால்கள் மற்றும் மாற்றங்களுடன் தொடர்புடையவை.",
+      en: "Houses 6, 8 and 12 are generally tied to challenge and change.",
+    },
   };
 }
 
@@ -169,7 +172,7 @@ describe("HyBhavaTable — row expansion", () => {
   it("explains the inverted scale on a dusthana, so a green chip reads as intended", () => {
     const { container } = renderTable("en");
     fireEvent.click(row(container, 6));
-    expect(screen.getByText(/read the other way round/)).toBeTruthy();
+    expect(screen.getByText(/tied to challenge and change/)).toBeTruthy();
   });
 
   it("keeps only one row open at a time", () => {
@@ -208,7 +211,11 @@ describe("HyBhavaTable — titles say what the chip rates", () => {
     renderTable("ta");
     expect(screen.getByText("வீட்டின் நிலை")).toBeTruthy();
     expect(screen.getByText("அதில் உள்ள கிரகங்கள்")).toBeTruthy();
-    expect(screen.getByText(/மூன்றையும் சேர்த்துக் கணிக்கப்படுகிறது/)).toBeTruthy();
+    expect(screen.getByText(/ஆகியவற்றைச் சேர்த்துக் கணிக்கப்படுகிறது/)).toBeTruthy();
+    // The native-reader review replaced an absolute doctrine claim and an abstract
+    // phrase; neither may come back.
+    expect(screen.queryByText(/அமைதியாக இருப்பதே நல்லது/)).toBeNull();
+    expect(screen.queryByText(/நிலைத்த அமைப்பு/)).toBeNull();
   });
 });
 
@@ -229,7 +236,7 @@ describe("HyBhavaTable — contrast line", () => {
       bandWord: { ta: "வலுவானது", en: "Supported" },
       houseLabel: { ta: "தொழில்", en: "Work & standing" },
       contrast: {
-        ta: "அதிபதி சனி வலு குறைந்தவர்; ஆனால் சந்திரன், குரு ஆகியோர் இந்த வீட்டைத் தாங்குகின்றனர்.",
+        ta: "அதிபதி சனியின் வலு குறைவாக உள்ளது. ஆனால் சந்திரன், குரு ஆகியோர் இந்த வீட்டிற்கு ஆதரவாக உள்ளனர்.",
         en: "Lord Saturn is weak, but Moon and Jupiter carry this house.",
       },
     };
@@ -244,7 +251,7 @@ describe("HyBhavaTable — contrast line", () => {
 
   it("shows in the closed row, in Tamil", () => {
     const { container } = render(<HyBhavaTable lang="ta" chart={sampleChart()} bhavas={[seventh(), tenth()]} />);
-    expect(row(container, 10).textContent).toContain("ஆனால் சந்திரன், குரு ஆகியோர் இந்த வீட்டைத் தாங்குகின்றனர்");
+    expect(row(container, 10).textContent).toContain("ஆனால் சந்திரன், குரு ஆகியோர் இந்த வீட்டிற்கு ஆதரவாக உள்ளனர்");
   });
 
   it("adds nothing to a row whose payload carries no contrast", () => {

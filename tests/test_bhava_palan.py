@@ -618,7 +618,7 @@ def test_the_held_back_branch_names_the_malefics(monkeypatch) -> None:
     assert line is not None
     assert line[1].startswith("Lord Venus is strong, but ")
     assert line[1].endswith("weigh on this house.")
-    assert "அழுத்தம் தருகின்றனர்" in line[0]
+    assert "அழுத்தத்தை அதிகரிக்கின்றனர்" in line[0]
 
 
 def test_the_contrast_line_is_silent_where_nothing_contradicts() -> None:
@@ -662,6 +662,44 @@ def test_the_contrast_line_stays_the_exception() -> None:
     real ones, so real charts fire less."""
     lines = sum(1 for *_, line in _each_house(1000) if line is not None)
     assert lines / 1000 < 2.5, lines / 1000
+
+
+def test_the_contrast_tamil_follows_the_native_review() -> None:
+    """A native reader's review (2026-09-30) rejected four phrasings as translated
+    English. Sweep every generated Tamil line so none can drift back:
+      · the lord is described by its STRENGTH in the genitive ("சனியின் வலு
+        குறைவாக உள்ளது"), not as a person ("சனி வலு குறைந்தவர்");
+      · two full sentences — no semicolon;
+      · "அதிகம் இயங்குகிறது" read as "functioning well" on a 12th;
+      · "தாங்குகிறார்" (holds up) was metaphorical; "ஆதரவாக உள்ளார்" replaces it.
+    """
+    retired = ("வலு குறைந்தவர்", "வலுவானவர்", ";", "இயங்குகிறது", "இயங்க வைக்",
+               "தாங்கு", "மேல் அழுத்தம்")
+    genitives = set(bhava_palan_module._LORD_GENITIVE_TA.values())
+    seen = 0
+    for *_, line in _each_house(400):
+        if line is None:
+            continue
+        ta = line[0]
+        for phrase in retired:
+            assert phrase not in ta, f"{ta!r} contains retired {phrase!r}"
+        assert ta.startswith("அதிபதி ") and ta.split()[1] in genitives, ta
+        assert " வலு குறைவாக உள்ளது." in ta or " வலு அதிகமாக உள்ளது." in ta, ta
+        # Second review: no back-to-back அதிகமாக across the two sentences.
+        assert ta.count("அதிகமாக") <= 1, ta
+        seen += 1
+    assert seen >= 100
+
+
+def test_the_dusthana_note_does_not_teach_quiet_equals_good() -> None:
+    """Second native review (2026-09-30): the opened 6/8/12 panel said a quiet
+    dusthana is good — the absolute the intro had just been softened away from.
+    Both languages must now make the conditional claim."""
+    ta, en = render_polarity_note(build_palan(8, 1, {"SUN": 1}, {}, 45))
+    assert "அமைதியாக இருப்பதே நல்லது" not in ta
+    assert "favours you" not in en
+    assert "கூடுதல் கவனம் தேவைப்படலாம்" in ta
+    assert "depends on the strength" in en
 
 
 def test_the_contrast_line_passes_the_tone_and_q6_fences() -> None:

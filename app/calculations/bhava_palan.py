@@ -601,6 +601,17 @@ def _pullers(
     return sorted(weight, key=lambda g: -weight[g])[:2]
 
 
+# Genitive of each house lord, for "அதிபதி புதனின் வலு குறைவாக உள்ளது". A closed
+# table, not a suffix rule: the lord of a sign is always one of these seven, and a
+# suffix rule is how "சனிவுக்கு" once shipped (see the dative guard in
+# tests/test_chart_explanation_bhavas.py).
+_LORD_GENITIVE_TA: dict[str, str] = {
+    "SUN": "சூரியனின்", "MOON": "சந்திரனின்", "MARS": "செவ்வாயின்",
+    "MERCURY": "புதனின்", "JUPITER": "குருவின்", "VENUS": "சுக்கிரனின்",
+    "SATURN": "சனியின்",
+}
+
+
 def _names_ta(names: list[str]) -> str:
     """Same rule as the service's `_graha_list_ta`: a list of persons closes with ஆகியோர்."""
     return names[0] if len(names) == 1 else f"{', '.join(names)} ஆகியோர்"
@@ -636,10 +647,19 @@ def render_contrast(
         return None
 
     inverted = polarity_of(house) == "INVERTED"
-    lord_ta, lord_en = planet_ta(lord), planet_en(lord)
-    adj_ta, adj_en = ("வலுவானவர்", "strong") if lord_up else ("வலு குறைந்தவர்", "weak")
-    lead_ta = f"அதிபதி {lord_ta} {adj_ta}"
-    lead_en = f"Lord {lord_en} is {adj_en}"
+    lord_en = planet_en(lord)
+    # Tamil wording from a native reader's review (2026-09-30): describe the lord's
+    # STRENGTH ("புதனின் வலு குறைவாக உள்ளது"), not the lord as a person ("புதன் வலு
+    # குறைந்தவர்"), which read as translated; two full sentences, no semicolon;
+    # "செயல்பாடு அதிகமாக உள்ளது" for an active dusthana, because "அதிகம் இயங்குகிறது"
+    # read as "functioning well"; "ஆதரவாக உள்ளார்" over the metaphorical "தாங்குகிறார்".
+    genitive = _LORD_GENITIVE_TA.get(lord)
+    if genitive is not None:
+        lead_ta = f"அதிபதி {genitive} வலு {'அதிகமாக' if lord_up else 'குறைவாக'} உள்ளது."
+    else:  # unreachable for a sign lord; the reviewer's uninflected alternative
+        lead_ta = (f"அதிபதி {planet_ta(lord)} "
+                   f"{'வலுவாக உள்ளார்' if lord_up else 'வலு குறைந்த நிலையில் உள்ளார்'}.")
+    lead_en = f"Lord {lord_en} is {'strong' if lord_up else 'weak'}"
 
     if lord_up == pull:
         # The lord explains the verdict on its own. That only LOOKS wrong on 6/8/12,
@@ -647,9 +667,13 @@ def render_contrast(
         if not inverted:
             return None
         if pull:
-            return (f"{lead_ta}; அதனால் இந்த வீடு அதிகம் இயங்குகிறது.",
+            # Not "செயல்பாடு அதிகமாக உள்ளது": the lead already ends "வலு அதிகமாக
+            # உள்ளது", and the reviewer flagged the back-to-back அதிகமாக. Their
+            # consistency exception (reuse the chip's words) does not apply — this
+            # chip reads கவனம் தேவை, not "செயல்பாடு அதிகம்".
+            return (f"{lead_ta} அதனால் இந்த வீடு அதிக செயல்பாட்டில் உள்ளது.",
                     f"{lead_en}, which keeps this house active.")
-        return (f"{lead_ta}; அதனால் இந்த வீடு அமைதியாக உள்ளது.",
+        return (f"{lead_ta} அதனால் இந்த வீடு அமைதியாக உள்ளது.",
                 f"{lead_en}, which keeps this house quiet.")
 
     # Something other than the lord outweighed it — name it.
@@ -660,21 +684,21 @@ def render_contrast(
     who_en = _names_en([planet_en(g) for g in names])
     many = len(names) > 1
     if not inverted and pull:
-        verb_ta = "இந்த வீட்டைத் தாங்குகின்றனர்" if many else "இந்த வீட்டைத் தாங்குகிறார்"
+        verb_ta = "இந்த வீட்டிற்கு ஆதரவாக உள்ளனர்" if many else "இந்த வீட்டிற்கு ஆதரவாக உள்ளார்"
         verb_en = "carry this house" if many else "carries this house"
     elif not inverted:
-        verb_ta = ("இந்த வீட்டின் மேல் அழுத்தம் தருகின்றனர்" if many
-                   else "இந்த வீட்டின் மேல் அழுத்தம் தருகிறார்")
+        verb_ta = ("இந்த வீட்டின் மீது அழுத்தத்தை அதிகரிக்கின்றனர்" if many
+                   else "இந்த வீட்டின் மீது அழுத்தத்தை அதிகரிக்கிறார்")
         verb_en = "weigh on this house" if many else "weighs on this house"
     elif pull:
-        verb_ta = ("இந்த வீட்டை அதிகம் இயங்க வைக்கின்றனர்" if many
-                   else "இந்த வீட்டை அதிகம் இயங்க வைக்கிறார்")
+        verb_ta = ("இந்த வீட்டின் செயல்பாட்டை அதிகரிக்கின்றனர்" if many
+                   else "இந்த வீட்டின் செயல்பாட்டை அதிகரிக்கிறார்")
         verb_en = "keep this house active" if many else "keeps this house active"
     else:
-        verb_ta = ("இந்த வீட்டை அமைதியாக வைத்துள்ளனர்" if many
-                   else "இந்த வீட்டை அமைதியாக வைத்துள்ளார்")
+        verb_ta = ("இந்த வீட்டை அமைதியாக வைத்திருக்கின்றனர்" if many
+                   else "இந்த வீட்டை அமைதியாக வைத்திருக்கிறார்")
         verb_en = "keep this house quiet" if many else "keeps this house quiet"
-    return (f"{lead_ta}; ஆனால் {who_ta} {verb_ta}.",
+    return (f"{lead_ta} ஆனால் {who_ta} {verb_ta}.",
             f"{lead_en}, but {who_en} {verb_en}.")
 
 

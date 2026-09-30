@@ -413,7 +413,7 @@ const YOGA_WHAT_EXTRA: Record<string, { ta: string; en: string }> = {
     en: "Formed when the Sun and Mercury are together in one house. Linked to sharp intelligence, communication skill, and aptitude for writing, speaking, and analysis.",
   },
   VIPAREETHA_RAJA_YOGA: {
-    ta: "துஸ்தான (6/8/12) அதிபதிகள் தங்களுக்குள் தொடர்பு கொள்ளும்போது உருவாகும் யோகம். கடினமான சூழல்களிலிருந்து எதிர்பாராத வெற்றி கிடைக்கலாம் — 'நெருக்கடி வழியாக வளர்ச்சி'.",
+    ta: "துஷ்டான (6/8/12) அதிபதிகள் தங்களுக்குள் தொடர்பு கொள்ளும்போது உருவாகும் யோகம். கடினமான சூழல்களிலிருந்து எதிர்பாராத வெற்றி கிடைக்கலாம் — 'நெருக்கடி வழியாக வளர்ச்சி'.",
     en: "Formed when the lords of the dusthanas (6/8/12) connect with each other. Can bring unexpected rise out of difficult circumstances — 'growth through adversity'.",
   },
   PARIVARTANA_YOGA: {
@@ -452,7 +452,7 @@ const YOGA_WHAT_EXTRA: Record<string, { ta: string; en: string }> = {
   // described the pre-proxy-split merged condition until then, and the detector
   // it now describes is a mutual exchange, not a placement.
   DARIDRA_YOGA: {
-    ta: "துஸ்தான (6/8/12) வீட்டு அதிபதியும் தன (2/11) வீட்டு அதிபதியும் ஒருவர் இடத்தில் மற்றவர் அமரும் பரிவர்த்தனையால் உருவாகும் அரிய அமைப்பு. வருமான வழிகளில் அழுத்தம் இருக்கலாம்; பல ஆதாரங்களும் கவனமான செலவுத் திட்டமும் உதவும்.",
+    ta: "துஷ்டான (6/8/12) வீட்டு அதிபதியும் தன (2/11) வீட்டு அதிபதியும் ஒருவர் இடத்தில் மற்றவர் அமரும் பரிவர்த்தனையால் உருவாகும் அரிய அமைப்பு. வருமான வழிகளில் அழுத்தம் இருக்கலாம்; பல ஆதாரங்களும் கவனமான செலவுத் திட்டமும் உதவும்.",
     en: "A rare combination formed when a lord of the difficult houses (6th, 8th, 12th) and a lord of the wealth houses (2nd, 11th) exchange places. Income channels can feel pressured; diversified earnings and deliberate spending help most.",
   },
   DARIDRA_PROXY_YOGA: {
