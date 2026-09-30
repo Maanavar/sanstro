@@ -492,6 +492,9 @@ function houseGroupFor(house: number): "kendra" | "trikona" | "dusthana" | "othe
 
 function normalizeHouseGroup(group: string): "kendra" | "trikona" | "dusthana" | "other" {
   const key = group.toLowerCase();
+  // The lagna arrives as KENDRA_TRIKONA; without this a planet in the 1st house
+  // was chipped "Other". Kendra wins, matching houseGroupFor above.
+  if (key === "kendra_trikona") return "kendra";
   if (key === "kendra" || key === "trikona" || key === "dusthana") return key;
   return "other";
 }

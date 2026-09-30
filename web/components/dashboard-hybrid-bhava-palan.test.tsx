@@ -189,6 +189,29 @@ describe("HyBhavaTable — row expansion", () => {
   });
 });
 
+/**
+ * Readers compared the house chips with the planet scores lower on the page and
+ * read a green house beside a weak lord as a contradiction; the old column title
+ * "Reading" sat right after "Planets", so the chip looked like a planet grade.
+ * The titles must say the chip rates the house, in both languages.
+ */
+describe("HyBhavaTable — titles say what the chip rates", () => {
+  it("titles the chip column as the house's outlook, in English", () => {
+    renderTable("en");
+    expect(screen.getByText("House outlook")).toBeTruthy();
+    expect(screen.getByText("Planets in it")).toBeTruthy();
+    expect(screen.queryByText("Reading")).toBeNull();
+    expect(screen.getByText(/Each house is rated as a whole/)).toBeTruthy();
+  });
+
+  it("titles the chip column as the house's outlook, in Tamil", () => {
+    renderTable("ta");
+    expect(screen.getByText("வீட்டின் நிலை")).toBeTruthy();
+    expect(screen.getByText("அதில் உள்ள கிரகங்கள்")).toBeTruthy();
+    expect(screen.getByText(/மூன்றையும் சேர்த்துக் கணிக்கப்படுகிறது/)).toBeTruthy();
+  });
+});
+
 describe("HyBhavaTable — older servers", () => {
   it("claims no verdict when the payload has no bhavas, instead of the old dot", () => {
     const { container } = render(<HyBhavaTable lang="en" chart={sampleChart()} />);

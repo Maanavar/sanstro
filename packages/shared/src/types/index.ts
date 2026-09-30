@@ -983,7 +983,11 @@ export interface ChartExplanationPlanet {
   isCazimi: boolean;
   isVargottama: boolean;
   d9Rasi: number;
-  houseGroup: "KENDRA" | "TRIKONA" | "DUSTHANA" | "OTHER";
+  /** The lagna (house 1) is both a kendra and a trikona and arrives as
+   *  `KENDRA_TRIKONA` (`_house_group` in chart_explanation_service.py). Every
+   *  kendra count must include it — web uses `isKendraGroup` in
+   *  web/components/dashboard-hybrid-parts.tsx. */
+  houseGroup: "KENDRA" | "TRIKONA" | "KENDRA_TRIKONA" | "DUSTHANA" | "OTHER";
   functionalNature: string;
   /** Inside a graha yuddham (planetary war) — two tara grahas within 1°. The
    *  engine has always charged the loser -15 on `strengthScore`; these fields

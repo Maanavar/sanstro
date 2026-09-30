@@ -88,6 +88,7 @@ import {
   HyDetailedForecast,
   HyDailyAffirmation,
   STANDING_TONE_COLOR,
+  isKendraGroup,
 } from "./dashboard-hybrid-parts";
 import { displayName as yogaDoshamDisplayName, yogaStanding } from "./dashboard-yoga-dosham-panel";
 import { DashboardAskVinaadi } from "./dashboard-ask-vinaadi";
@@ -1414,7 +1415,7 @@ export function DashboardFamilyChartsHybrid({
         {/* ═══ 5 · PLANET POSITIONS ═══ */}
         {readingChart && (() => {
           const explPlanets = reading?.explanation?.planets ?? [];
-          const kendraCount = explPlanets.filter((p) => p.houseGroup === "KENDRA").length;
+          const kendraCount = explPlanets.filter((p) => isKendraGroup(p.houseGroup)).length;
           const strongest = reading?.explanation?.summary?.strongestPlanet;
           const meta = explPlanets.length > 0 ? (
             <div style={{ fontSize: "var(--text-xs)", color: "var(--color-faint)" }}>

@@ -724,15 +724,24 @@ export function HyBhavaTable({ lang, chart, explanationPlanets, bhavas }: {
     <Card style={{ padding: "var(--space-5) var(--space-5)", display: "flex", flexDirection: "column", gap: 0 }}>
       <Kicker color="var(--color-mid)">{lang === "ta" ? "பாவ (வீடு) பலன்" : "Bhava (house) reading"}</Kicker>
       <p style={{ margin: "6px 0 0", fontSize: "var(--text-xs)", lineHeight: 1.5, color: "var(--color-faint)" }}>
+        {/* Readers compared these chips with the planet scores further down
+            ("Where your planets are placed") and read a green house beside an
+            orange lord as a contradiction. The chip rates the HOUSE — lord,
+            occupants and aspects together — so say that before they compare. */}
         {lang === "ta"
-          ? "ஒவ்வொரு வீட்டையும் திறந்து பாருங்கள் — நிலை, காரணம், என்ன செய்யலாம். இது உங்கள் ஜாதகத்தின் நிலைத்த அமைப்பு, இன்றைய நிலை அல்ல."
-          : "Open any house for its reading — how it stands, why, and what to do. This is your chart's lasting terrain, not today's weather."}
+          ? "ஒவ்வொரு வீட்டின் நிலையும் அதன் அதிபதி, அதில் உள்ள கிரகங்கள், அதன் மேல் விழும் பார்வைகள் ஆகிய மூன்றையும் சேர்த்துக் கணிக்கப்படுகிறது. அதனால் ஒரு வீடு அதன் கிரகங்களை விட வலுவாகவோ குறைவாகவோ தோன்றலாம். 6, 8, 12 வீடுகளுக்கு அமைதியாக இருப்பதே நல்லது. காரணத்தையும் என்ன செய்யலாம் என்பதையும் அறிய எந்த வீட்டையும் திறந்து பாருங்கள். இது உங்கள் ஜாதகத்தின் நிலைத்த அமைப்பு, இன்றைய நிலை அல்ல."
+          : "Each house is rated as a whole — its lord, the planets in it and the aspects falling on it — so a house can read stronger or weaker than the planets beside it. For houses 6, 8 and 12, quiet is the good outcome. Open any house for why, and what to do. This is your chart's lasting terrain, not today's weather."}
       </p>
       <div className="bp-row" style={{ borderTop: 0, minHeight: 0, cursor: "default", padding: "var(--space-3) var(--space-2) var(--space-2)", marginTop: "8px", fontSize: "var(--text-xs)", letterSpacing: "0.1em", fontWeight: 700, color: "var(--color-faint)", textTransform: "uppercase" }}>
-        <span><GlossaryTerm term="house" lang={lang}>{lang === "ta" ? "வீடு" : "House"}</GlossaryTerm></span>
-        <span>{lang === "ta" ? "ராசி (அதிபதி)" : "Sign (Lord)"}</span>
-        <span className="bp-occupants">{lang === "ta" ? "கிரகங்கள்" : "Planets"}</span>
-        <span style={{ textAlign: "right" }}>{lang === "ta" ? "நிலை" : "Reading"}</span>
+        {/* One header over the number AND sign columns: "HOUSE" in caps with
+            tracking is wider than the 1.6rem number column and ran into
+            "SIGN (LORD)" as "HOUSSIGN". */}
+        <span style={{ gridColumn: "1 / 3" }}>
+          <GlossaryTerm term="house" lang={lang}>{lang === "ta" ? "வீடு" : "House"}</GlossaryTerm>
+          {lang === "ta" ? " · ராசி (அதிபதி)" : " · Sign (lord)"}
+        </span>
+        <span className="bp-occupants">{lang === "ta" ? "அதில் உள்ள கிரகங்கள்" : "Planets in it"}</span>
+        <span style={{ textAlign: "right" }}>{lang === "ta" ? "வீட்டின் நிலை" : "House outlook"}</span>
       </div>
 
       {rows.map((r) => {
@@ -1679,18 +1688,32 @@ const DIGNITY_WORD: Record<string, BiText> = {
   DEBILITATED: { en: "debilitated", ta: "நீசம்" },
 };
 export type PlacementChip = { label: string; tone: "good" | "warn" };
+
+/** Houses 1·4·7·10. The lagna arrives as `KENDRA_TRIKONA`, so a bare
+ *  `=== "KENDRA"` silently drops every planet sitting in the 1st house. This is
+ *  the one kendra rule for every count on the Family & Charts page, so the tile,
+ *  the section meta and the backend's "N planets are in Kendra houses" line
+ *  always print the same number. */
+export function isKendraGroup(houseGroup: string): boolean {
+  return houseGroup === "KENDRA" || houseGroup === "KENDRA_TRIKONA";
+}
+
 export function derivePlacementSignals(
   planets: ChartExplanationPlanet[],
   lang: Lang,
-): { boosts: PlacementChip[]; cautions: PlacementChip[]; kendraTrikona: number; dusthana: number } {
+): { boosts: PlacementChip[]; cautions: PlacementChip[]; kendra: number; dusthana: number } {
   const boosts: PlacementChip[] = [];
   const cautions: PlacementChip[] = [];
-  let kendraTrikona = 0;
+  // Kendra only, not "Kendra / Trikona": the Chart-strengths card beside this
+  // tile counts kendra alone, and two different numbers under near-identical
+  // labels read as a contradiction. It also counted Ketu in the 5th as a
+  // strength while Ketu's own chip said "Needs support".
+  let kendra = 0;
   let dusthana = 0;
   const push = (arr: PlacementChip[], graha: string, reason: string, tone: "good" | "warn") =>
     arr.push({ label: `${tPlanetLord(graha, lang)} · ${reason}`, tone });
   for (const p of planets) {
-    if (p.houseGroup === "KENDRA" || p.houseGroup === "TRIKONA") kendraTrikona += 1;
+    if (isKendraGroup(p.houseGroup)) kendra += 1;
     if (p.houseGroup === "DUSTHANA") dusthana += 1;
     const dig = DIGNITY_WORD[p.dignity];
     if (dig && (p.dignity === "EXALTED" || p.dignity === "MOOLATRIKONA" || p.dignity === "OWN_SIGN")) {
@@ -1708,7 +1731,7 @@ export function derivePlacementSignals(
       push(cautions, p.graha, lang === "ta" ? "கிரக யுத்தம்" : "Graha yuddham", "warn");
     }
   }
-  return { boosts: boosts.slice(0, 6), cautions: cautions.slice(0, 6), kendraTrikona, dusthana };
+  return { boosts: boosts.slice(0, 6), cautions: cautions.slice(0, 6), kendra, dusthana };
 }
 
 function TraitBars({ rows, mode, lang }: { rows: TraitRow[]; mode: "strength" | "watch"; lang: Lang }) {
@@ -1752,18 +1775,19 @@ export function HyStrengthsWatchoutsCard({ lang, planets }: {
   lang: Lang; planets: ChartExplanationPlanet[];
 }) {
   const { strengths, watchOuts } = deriveStrengthsWatchouts(planets);
-  const { boosts, cautions, kendraTrikona, dusthana } = derivePlacementSignals(planets, lang);
+  const { boosts, cautions, kendra, dusthana } = derivePlacementSignals(planets, lang);
   if (strengths.length === 0 && watchOuts.length === 0 && boosts.length === 0 && cautions.length === 0) return null;
   return (
     <Card style={{ padding: "var(--space-5) var(--space-6)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
       <Kicker color="var(--color-mid)">{lang === "ta" ? "பலம் & கவனிக்க வேண்டியவை" : "Strengths & watch-outs"}</Kicker>
 
-      {/* Structural summary — kendra/trikona (angular & trinal, strong) vs.
-          dusthana (6·8·12, testing) occupancy, straight off houseGroup. */}
+      {/* Structural summary — kendra (1·4·7·10, angular) vs. dusthana
+          (6·8·12, testing) occupancy, straight off houseGroup. Both labels
+          name their houses so the count can be checked against the chart. */}
       <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
         <Card variant="high" style={{ display: "block", flex: "1 1 120px", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3)" }}>
-          <div style={{ fontSize: "var(--text-lg)", fontWeight: 700, fontFamily: "var(--font-display)", color: "var(--color-high)", lineHeight: 1 }}>{kendraTrikona}</div>
-          <div style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", marginTop: "3px" }}>{lang === "ta" ? "கேந்திர/திரிகோணத்தில் கிரகங்கள்" : "planets in Kendra / Trikona"}</div>
+          <div style={{ fontSize: "var(--text-lg)", fontWeight: 700, fontFamily: "var(--font-display)", color: "var(--color-high)", lineHeight: 1 }}>{kendra}</div>
+          <div style={{ fontSize: "var(--text-xs)", color: "var(--color-muted)", marginTop: "3px" }}>{lang === "ta" ? "கேந்திரத்தில் (1·4·7·10) கிரகங்கள்" : "planets in Kendra (1·4·7·10)"}</div>
         </Card>
         <Card variant={dusthana > 0 ? "low" : "default"} style={{ display: "block", flex: "1 1 120px", background: dusthana > 0 ? undefined : "color-mix(in srgb, var(--color-text-strong) 3%, transparent)", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-3)" }}>
           <div style={{ fontSize: "var(--text-lg)", fontWeight: 700, fontFamily: "var(--font-display)", color: dusthana > 0 ? "var(--color-low)" : "var(--color-faint)", lineHeight: 1 }}>{dusthana}</div>
