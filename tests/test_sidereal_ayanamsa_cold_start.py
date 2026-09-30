@@ -37,10 +37,13 @@ import subprocess
 import sys
 import textwrap
 
-# 1993-03-15 09:48:33 UT at 11.1085N 77.3411E.
-_JD = 2449061.908715278
-_EXPECTED_ASC = 104.97033412042533
-_EXPECTED_LAHIRI = 23.762129
+# 1988-06-01 10:14 UT at Madurai (9.9252N 78.1198E) — the synthetic T003
+# chart's instant, not a real person's birth. _EXPECTED_ASC agrees with the
+# independent reference in tests/test_lagna_mc_goldens.py to 0.1 arcsec.
+_JD = 2447313.926388889
+_LAT, _LNG = 9.9252, 78.1198
+_EXPECTED_ASC = 188.05631292258792
+_EXPECTED_LAHIRI = 23.695280
 _FAGAN_BRADLEY_OFFSET = 0.883208
 
 
@@ -59,7 +62,7 @@ def test_ascendant_is_lahiri_without_a_preceding_planet_call() -> None:
     out = _run_cold(
         f"""
         from app.calculations.ephemeris import calculate_lagna_degree
-        print(repr(calculate_lagna_degree({_JD!r}, 11.1085, 77.3411)))
+        print(repr(calculate_lagna_degree({_JD!r}, {_LAT!r}, {_LNG!r})))
         """
     )
     got = float(out)
@@ -89,9 +92,9 @@ def test_cold_ascendant_matches_warm_ascendant() -> None:
         f"""
         from app.calculations.ephemeris import calculate_lagna_degree, calculate_sidereal_planets
 
-        cold = calculate_lagna_degree({_JD!r}, 11.1085, 77.3411)
+        cold = calculate_lagna_degree({_JD!r}, {_LAT!r}, {_LNG!r})
         calculate_sidereal_planets({_JD!r})
-        warm = calculate_lagna_degree({_JD!r}, 11.1085, 77.3411)
+        warm = calculate_lagna_degree({_JD!r}, {_LAT!r}, {_LNG!r})
         print(f"{{cold!r}} {{warm!r}}")
         """
     )
@@ -107,10 +110,10 @@ def test_asc_mc_is_lahiri_cold_too() -> None:
         from app.calculations.ephemeris import calculate_asc_mc, calculate_sidereal_planets
         from datetime import UTC, datetime
 
-        jd = utc_datetime_to_julian_day(datetime(1993, 3, 15, 2, 45, tzinfo=UTC))
-        cold_asc, cold_mc = calculate_asc_mc(jd, 11.1085, 77.3411)
+        jd = utc_datetime_to_julian_day(datetime(1988, 6, 1, 10, 14, tzinfo=UTC))
+        cold_asc, cold_mc = calculate_asc_mc(jd, 9.9252, 78.1198)
         calculate_sidereal_planets(jd)
-        warm_asc, warm_mc = calculate_asc_mc(jd, 11.1085, 77.3411)
+        warm_asc, warm_mc = calculate_asc_mc(jd, 9.9252, 78.1198)
         print(f"{cold_asc!r} {warm_asc!r} {cold_mc!r} {warm_mc!r}")
         """
     )

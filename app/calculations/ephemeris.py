@@ -171,7 +171,7 @@ def get_lahiri_ayanamsa_ut(jd_ut: float) -> float:
     Sets the mode first, because `swe_get_ayanamsa_ut` reports whatever mode is
     currently selected and this function's NAME is a promise about which one
     that is. Called cold it returned the library default, Fagan/Bradley — at
-    1993-03-15 that is 24.645336 against Lahiri's 23.762117, and the number
+    1988-06-01 that is 24.578488 against Lahiri's 23.695280, and the number
     goes straight into `chart.ayanamsa_value_degrees` and onto the screen. Same
     omission as `calculate_lagna_degree`; see its note.
     """
@@ -280,9 +280,9 @@ def calculate_lagna_degree(jd_ut: float, latitude: float, longitude: float) -> f
     a silently Fagan/Bradley Ascendant: ~0.88° out, and a different rasi
     whenever the true degree sits within 0.88° of a sign boundary.
 
-    Measured on a cold interpreter: Mandhi for 1993-03-15 08:15 at 11.1085N
-    77.3411E came out 86.0214 without a preceding planet call and 86.9046 with
-    one. Re-entrant lock, so the nested acquire is free.
+    Measured on a cold interpreter: an Ascendant came out 0.8832 deg lower
+    without a preceding planet call than with one — the full Fagan/Bradley
+    offset. Re-entrant lock, so the nested acquire is free.
     """
     with _SWISS_LOCK:
         set_lahiri_ayanamsa()

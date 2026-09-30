@@ -13,9 +13,10 @@ from app.calculations.ephemeris import (
 )
 
 
-def test_sidereal_planets_from_documented_birth_datetime():
+def test_sidereal_planets_from_synthetic_reference_datetime():
+    # Synthetic T003 chart, 1988-06-01 15:44 IST — not a real person's birth.
     birth_datetime_utc = local_datetime_to_utc(
-        datetime(1993, 3, 15, 8, 15),
+        datetime(1988, 6, 1, 15, 44),
         "Asia/Kolkata",
     )
     jd_ut = utc_datetime_to_julian_day(birth_datetime_utc)
@@ -24,12 +25,12 @@ def test_sidereal_planets_from_documented_birth_datetime():
 
     assert snapshot.backend in {"pyswisseph", "swisseph-ffi"}
     assert snapshot.ayanamsa == "LAHIRI"
-    assert snapshot.ayanamsa_value_degrees == pytest.approx(23.76211742, abs=0.01)
+    assert snapshot.ayanamsa_value_degrees == pytest.approx(23.69528030, abs=0.01)
     assert snapshot.jd_ut == jd_ut
-    assert snapshot.bodies["SUN"].absolute_longitude == pytest.approx(330.76342508, abs=0.01)
-    assert snapshot.bodies["MOON"].absolute_longitude == pytest.approx(240.01137891, abs=0.01)
-    assert snapshot.bodies["RAHU"].absolute_longitude == pytest.approx(232.78702194, abs=0.01)
-    assert snapshot.bodies["KETU"].absolute_longitude == pytest.approx(52.78702194, abs=0.01)
+    assert snapshot.bodies["SUN"].absolute_longitude == pytest.approx(47.43402212, abs=0.01)
+    assert snapshot.bodies["MOON"].absolute_longitude == pytest.approx(240.01252726, abs=0.01)
+    assert snapshot.bodies["RAHU"].absolute_longitude == pytest.approx(325.40055158, abs=0.01)
+    assert snapshot.bodies["KETU"].absolute_longitude == pytest.approx(145.40055158, abs=0.01)
     assert snapshot.bodies["SUN"].is_retrograde is False
     assert snapshot.bodies["SUN"].show_retrograde_badge is False
     assert snapshot.bodies["MOON"].show_retrograde_badge is False
@@ -38,7 +39,9 @@ def test_sidereal_planets_from_documented_birth_datetime():
     assert snapshot.bodies["MERCURY"].is_retrograde is True
     assert snapshot.bodies["MERCURY"].show_retrograde_badge is True
     assert snapshot.bodies["VENUS"].is_retrograde is True
-    assert snapshot.bodies["JUPITER"].is_retrograde is True
+    assert snapshot.bodies["SATURN"].is_retrograde is True
+    assert snapshot.bodies["SATURN"].show_retrograde_badge is True
+    assert snapshot.bodies["JUPITER"].is_retrograde is False
     assert snapshot.bodies["KETU"].absolute_longitude == pytest.approx(
         (snapshot.bodies["RAHU"].absolute_longitude + 180.0) % 360.0,
         abs=1e-9,
@@ -80,7 +83,7 @@ def test_sun_moon_shortcut_matches_the_full_snapshot_exactly():
     """
     for month in range(1, 13):
         birth_datetime_utc = local_datetime_to_utc(
-            datetime(1993, month, 15, 8, 15),
+            datetime(1988, month, 1, 15, 44),
             "Asia/Kolkata",
         )
         jd_ut = utc_datetime_to_julian_day(birth_datetime_utc)

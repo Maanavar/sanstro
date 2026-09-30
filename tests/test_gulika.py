@@ -242,8 +242,8 @@ def test_maandhi_is_distinct_from_the_gulika_sphuta_on_a_real_chart():
         arithmetic and is asserted as such; only the much weaker "the ascendant
         did move" claim is left to the ephemeris.
     """
-    lat, lng, tz = 11.1085, 77.3411, "Asia/Kolkata"
-    d, t = date(1993, 3, 15), time(8, 15)
+    lat, lng, tz = MADURAI
+    d, t = date(2026, 3, 16), time(9, 0)
     assert d.weekday() == 0, "this case is a Monday day-birth"
 
     maandhi = _mandhi_longitude(d, t, lat, lng, tz)

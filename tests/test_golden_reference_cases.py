@@ -13,18 +13,18 @@ from app.calculations.ephemeris import calculate_sidereal_planets
     [
         (
             "GC1",
-            datetime(1993, 3, 15, 8, 15),
+            datetime(1988, 6, 1, 15, 44),
             "Asia/Kolkata",
             {
-                "SUN": 330.76342508,
-                "MOON": 240.01137891,
-                "MARS": 79.07542605,
-                "MERCURY": 319.35056099,
-                "JUPITER": 167.96021694,
-                "VENUS": 355.97203864,
-                "SATURN": 301.07930470,
-                "RAHU": 232.78702194,
-                "KETU": 52.78702194,
+                "SUN": 47.43402212,
+                "MOON": 240.01252726,
+                "MARS": 312.68026966,
+                "MERCURY": 63.07891747,
+                "JUPITER": 25.92107722,
+                "VENUS": 64.80528843,
+                "SATURN": 246.91810293,
+                "RAHU": 325.40055158,
+                "KETU": 145.40055158,
             },
         ),
         (

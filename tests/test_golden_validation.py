@@ -157,21 +157,25 @@ def test_zero_failures(golden_result):
         pytest.fail(f"{golden_result.total_failed} golden case(s) failed:\n" + "\n".join(lines))
 
 
-def test_t003_cross_verify_reference_chart_all_9_planets_within_point1_degree():
-    dt_utc = local_datetime_to_utc(datetime(1993, 3, 15, 8, 15), "Asia/Kolkata")
+def test_t003_reference_chart_all_9_planets_within_point1_degree():
+    """Regression pin on the synthetic T003 chart (1988-06-01 15:44 IST, not a
+    real person). The values are this engine's own Swiss Ephemeris output;
+    unlike the chart they replaced, they have NOT been cross-checked against
+    a second ephemeris, so a pass proves stability, not external agreement."""
+    dt_utc = local_datetime_to_utc(datetime(1988, 6, 1, 15, 44), "Asia/Kolkata")
     jd = utc_datetime_to_julian_day(dt_utc)
     snap = calculate_sidereal_planets(jd)
 
     expected = {
-        "SUN": 330.76342508,
-        "MOON": 240.01137891,
-        "MARS": 79.07542605,
-        "MERCURY": 319.35056099,
-        "JUPITER": 167.96021694,
-        "VENUS": 355.97203864,
-        "SATURN": 301.07930470,
-        "RAHU": 232.78702194,
-        "KETU": 52.78702194,
+        "SUN": 47.43402212,
+        "MOON": 240.01252726,
+        "MARS": 312.68026966,
+        "MERCURY": 63.07891747,
+        "JUPITER": 25.92107722,
+        "VENUS": 64.80528843,
+        "SATURN": 246.91810293,
+        "RAHU": 325.40055158,
+        "KETU": 145.40055158,
     }
 
     for planet, expected_longitude in expected.items():
