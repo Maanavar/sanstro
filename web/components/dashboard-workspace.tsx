@@ -558,8 +558,11 @@ export function DashboardWorkspace() {
           planet: r.planet as string,
           functionalNature: r.functional_nature as string,
           isGemstonePrescribed: r.is_gemstone_prescribed as boolean,
-          gemstoneNameTa: (r.gemstone_ta as string | null) ?? null,
-          gemstoneNameEn: (r.gemstone_en as string | null) ?? null,
+          // /gemstone-advice names these `gemstone_name_*` (app/api/remedies.py);
+          // reading `gemstone_*` here made every stone null, so the "optional"
+          // group never rendered and a named stone printed "No gemstone needed".
+          gemstoneNameTa: (r.gemstone_name_ta as string | null) ?? null,
+          gemstoneNameEn: (r.gemstone_name_en as string | null) ?? null,
           reasonTa: r.reason_ta as string,
           reasonEn: r.reason_en as string,
           cautionTa: (r.caution_ta as string | null) ?? null,

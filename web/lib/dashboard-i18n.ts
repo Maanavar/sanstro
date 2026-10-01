@@ -232,8 +232,11 @@ export const REMEDIES_CONTEXT = {
 // New Tamil, pending native review (CLAUDE.md new-Tamil rule).
 export const GEMSTONE_GROUPS = {
   worn: s("Traditionally worn for your chart", "உங்கள் ஜாதகத்திற்கு பாரம்பரியமாக அணியப்படுபவை"),
-  optional: s("Traditionally optional — with care", "பாரம்பரியமாக விருப்பத் தேர்வு — கவனத்துடன்"),
-  avoided: s("Traditionally avoided", "பாரம்பரியமாக தவிர்க்கப்படுபவை"),
+  // Owner ruling 2026-10-01: nothing is ever recommended for wearing, so a
+  // named stone is a traditional reference, and the rest are simply not named.
+  optional: s("Traditional reference — consult an astrologer first", "பாரம்பரியக் குறிப்பு — முதலில் ஜோதிடரை அணுகுங்கள்"),
+  avoided: s("No gemstone suggested", "ரத்தினம் பரிந்துரைக்கப்படவில்லை"),
+  planReference: s("traditional reference; consult an astrologer before wearing", "பாரம்பரியக் குறிப்பு; அணிவதற்கு முன் ஜோதிடரை அணுகுங்கள்"),
   note: s(
     "These are traditional recommendations, not requirements. Gemstones vary widely in cost and quality, and nothing here depends on buying one.",
     "இவை பாரம்பரிய பரிந்துரைகள்; கட்டாயம் அல்ல. கற்களின் விலையும் தரமும் பெரிதும் வேறுபடும்; இங்குள்ள எதுவும் ஒரு கல் வாங்குவதைச் சார்ந்தது அல்ல.",
